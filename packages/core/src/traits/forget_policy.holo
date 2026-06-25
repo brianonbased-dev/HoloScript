@@ -1,0 +1,20 @@
+@trait {
+  name: "@forget_policy",
+  category: "compliance",
+  description: "Right-to-erasure and data expiry enforcer. after is the retention duration (default: 30d — supports Xd, Xh, Xm). when is an optional event trigger for deletion. audit logs all deletions to the audit trail (default: true). eval_interval_ms is the policy evaluation cadence in ms (default: 60,000). dry_run logs deletions without executing them (default: false). max_deletes_per_cycle is the delete cap per evaluation (default: 100). Port of ForgetPolicyTrait.ts (handler name: forget_policy).",
+  props: {
+    after: string = "30d",
+    when: string = "",
+    audit: boolean = true,
+    eval_interval_ms: number = 60000,
+    dry_run: boolean = false,
+    max_deletes_per_cycle: number = 100
+  },
+  events: {
+    on_deleted: "forget_policy:deleted",
+    on_dry_run: "forget_policy:dry_run",
+    on_cycle: "forget_policy:cycle",
+    trigger: "forget_policy.trigger"
+  },
+  behaviors: ["@data_retention", "@audit_log", "@consent_management"]
+}

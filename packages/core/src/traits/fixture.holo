@@ -1,0 +1,15 @@
+@trait {
+  name: "@fixture",
+  category: "testing",
+  description: "Test fixture lifecycle manager. auto_teardown removes fixtures on detach (default: true). Port of FixtureTrait.ts (handler name: fixture).",
+  props: {
+    auto_teardown: boolean = true
+  },
+  events: {
+    on_setup: "fixture:setup",
+    on_torn_down: "fixture:torn_down",
+    setup: "fixture.setup",
+    teardown: "fixture.teardown"
+  },
+  behaviors: ["@chaos_test"]
+}

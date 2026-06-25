@@ -1,0 +1,12 @@
+@trait {
+  name: "@emotion_directive",
+  category: "expression",
+  description: "LLM-driven emotion directive layer — translates natural language emotional cues into blend shape weights and animation directives. Config is agent-dependent and passed through to the EmotionDirectiveTrait instance. Port of EmotionDirectiveTrait.ts (handler name: emotion_directive).",
+  props: {},
+  events: {
+    on_directive: "emotion_directive:directive",
+    on_applied: "emotion_directive:applied",
+    direct: "emotion_directive.direct"
+  },
+  behaviors: ["@emotion", "@neural_expression", "@llm_agent"]
+}

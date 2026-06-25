@@ -1,0 +1,19 @@
+@trait {
+  name: "@emergent_spacetime",
+  category: "simulation",
+  description: "Emergent spacetime simulation — spin-foam / loop quantum gravity voxel lattice with Ricci flow convergence. initial_voxels is the starting lattice size (default: 1000). max_voxels is the lattice growth cap (default: 1,000,000). real_time_budget_ms is the ms budget per frame (default: 2.0). ricci_error_bound is the convergence threshold (default: 1e-5). loop_threshold is the spin-foam loop detection threshold (default: 0.05). Port of EmergentSpacetimeTrait.ts (handler name: emergent_spacetime).",
+  props: {
+    initial_voxels: number = 1000,
+    max_voxels: number = 1000000,
+    real_time_budget_ms: number = 2.0,
+    ricci_error_bound: number = 0.00001,
+    loop_threshold: number = 0.05
+  },
+  events: {
+    on_tick: "emergent_spacetime:tick",
+    on_loop_detected: "emergent_spacetime:loop_detected",
+    on_converged: "emergent_spacetime:converged",
+    step: "emergent_spacetime.step"
+  },
+  behaviors: ["@compute_shader", "@fluid_simulation"]
+}

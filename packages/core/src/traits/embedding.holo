@@ -1,0 +1,15 @@
+@trait {
+  name: "@embedding",
+  category: "ml",
+  description: "Text embedding generator. default_model is the embedding model (default: text-embedding-3-small). default_dimensions is the output vector dimension (default: 1536). Port of EmbeddingTrait.ts (handler name: embedding).",
+  props: {
+    default_model: string = "text-embedding-3-small",
+    default_dimensions: number = 1536
+  },
+  events: {
+    on_embedded: "embedding:embedded",
+    on_error: "embedding:error",
+    embed: "embedding.embed"
+  },
+  behaviors: ["@llm_agent", "@agent_memory"]
+}

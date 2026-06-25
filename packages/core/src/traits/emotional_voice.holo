@@ -1,0 +1,17 @@
+@trait {
+  name: "@emotional_voice",
+  category: "audio",
+  description: "Emotion-conditioned TTS voice synthesis. default_emotion is the baseline emotion (default: neutral). default_intensity is the emotion strength [0,1] (default: 0.5). cache_enabled caches synthesized audio to avoid re-generating identical phrases (default: true). Port of EmotionalVoiceTrait.ts (handler name: emotional_voice).",
+  props: {
+    default_emotion: string = "neutral",
+    default_intensity: number = 0.5,
+    cache_enabled: boolean = true
+  },
+  events: {
+    on_synthesized: "emotional_voice:synthesized",
+    on_error: "emotional_voice:error",
+    speak: "emotional_voice.speak",
+    stop: "emotional_voice.stop"
+  },
+  behaviors: ["@emotion", "@positional", "@spatial_voice"]
+}

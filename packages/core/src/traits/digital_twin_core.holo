@@ -1,0 +1,19 @@
+@trait {
+  name: "@digital_twin",
+  category: "iot",
+  description: "Digital twin binding — syncs this scene node to a physical device or IoT asset. physical_id is the device/asset identifier. model_source is the URL of the 3D model to use for the physical counterpart. sync_properties is the list of property names to sync. update_mode: polling (default), push, websocket. poll_interval is the polling interval in ms (default: 5000). Port of DigitalTwinTrait.ts (handler name: digital_twin).",
+  props: {
+    physical_id: string = "",
+    model_source: string = "",
+    update_mode: enum("polling" | "push" | "websocket") = "polling",
+    poll_interval: number = 5000
+  },
+  events: {
+    on_synced: "digital_twin:synced",
+    on_drift: "digital_twin:drift",
+    on_error: "digital_twin:error",
+    sync: "digital_twin.sync",
+    push: "digital_twin.push"
+  },
+  behaviors: ["@data_binding", "@sensor"]
+}

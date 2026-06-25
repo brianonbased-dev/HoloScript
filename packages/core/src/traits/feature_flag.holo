@@ -1,0 +1,16 @@
+@trait {
+  name: "@feature_flag",
+  category: "configuration",
+  description: "Feature flag store with per-context evaluation. max_flags is the maximum registered flags (default: 200). Port of FeatureFlagTrait.ts (handler name: feature_flag).",
+  props: {
+    max_flags: number = 200
+  },
+  events: {
+    on_enabled: "feature_flag:enabled",
+    on_disabled: "feature_flag:disabled",
+    is_enabled: "feature_flag.is_enabled",
+    set: "feature_flag.set",
+    clear: "feature_flag.clear"
+  },
+  behaviors: ["@env_config", "@canary"]
+}

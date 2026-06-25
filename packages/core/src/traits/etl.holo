@@ -1,0 +1,17 @@
+@trait {
+  name: "@etl",
+  category: "data",
+  description: "ETL pipeline orchestrator (Extract-Transform-Load). max_batch_size is the maximum records per ETL batch (default: 10,000). Port of EtlTrait.ts (handler name: etl).",
+  props: {
+    max_batch_size: number = 10000
+  },
+  events: {
+    on_extracted: "etl:extracted",
+    on_transformed: "etl:transformed",
+    on_loaded: "etl:loaded",
+    on_error: "etl:error",
+    run: "etl.run",
+    cancel: "etl.cancel"
+  },
+  behaviors: ["@data_transform", "@batch_job"]
+}

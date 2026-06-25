@@ -1,0 +1,18 @@
+@trait {
+  name: "@edge_node",
+  category: "agent",
+  description: "Sovereign edge node — marks a composition as a persistent edge agent that claims board tasks tagged for this node and runs them local-first, escalating to the fleet on failure. handle is the node identity (default: holoscript-edge-node). domain is the task domain filter (default: edge). capability_tags is the list of capabilities advertised to the board. board_url is the orchestrator endpoint. tick_interval_s is the claim-check cadence in seconds (default: 10). Port of EdgeNodeTrait.ts (handler name: edge_node).",
+  props: {
+    handle: string = "holoscript-edge-node",
+    domain: string = "edge",
+    board_url: string = "https://mcp-orchestrator-production-45f9.up.railway.app",
+    tick_interval_s: number = 10
+  },
+  events: {
+    on_claimed: "edge_node:claimed",
+    on_completed: "edge_node:completed",
+    on_escalated: "edge_node:escalated",
+    tick: "edge_node.tick"
+  },
+  behaviors: ["@autonomous_agenda", "@agent_discovery"]
+}

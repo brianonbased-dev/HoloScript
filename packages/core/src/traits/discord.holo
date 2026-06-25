@@ -1,0 +1,16 @@
+@trait {
+  name: "@discord",
+  category: "social",
+  description: "Discord webhook integration — posts messages and embeds to a Discord channel. webhook_url is the Discord webhook URL (required). bot_name is the display name for posted messages (default: HoloBot). Port of DiscordTrait.ts (handler name: discord).",
+  props: {
+    webhook_url: string = "",
+    bot_name: string = "HoloBot"
+  },
+  events: {
+    on_sent: "discord:sent",
+    on_error: "discord:error",
+    send: "discord.send",
+    embed: "discord.embed"
+  },
+  behaviors: ["@email", "@alert"]
+}

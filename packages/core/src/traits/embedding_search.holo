@@ -1,0 +1,20 @@
+@trait {
+  name: "@embedding_search",
+  category: "retrieval",
+  description: "Semantic embedding search over an in-memory vector store. embedding_model is the sentence transformer model (default: all-minilm-l6-v2). similarity_metric: cosine (default), dot, euclidean. top_k is the number of results (default: 5). min_score is the minimum similarity threshold (default: 0.6). cache_embeddings caches query embeddings to reduce re-computation (default: true). Port of EmbeddingSearchTrait.ts (handler name: embedding_search).",
+  props: {
+    embedding_model: string = "all-minilm-l6-v2",
+    similarity_metric: enum("cosine" | "dot" | "euclidean") = "cosine",
+    top_k: number = 5,
+    min_score: number = 0.6,
+    cache_embeddings: boolean = true
+  },
+  events: {
+    on_results: "embedding_search:results",
+    on_indexed: "embedding_search:indexed",
+    search: "embedding_search.search",
+    index: "embedding_search.index",
+    remove: "embedding_search.remove"
+  },
+  behaviors: ["@embedding", "@agent_memory"]
+}

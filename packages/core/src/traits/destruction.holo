@@ -1,0 +1,20 @@
+@trait {
+  name: "@destruction",
+  category: "physics",
+  description: "Procedural destruction — shatters mesh into physics fragments on impact. mode: voronoi (default), precomputed, prefab. fragment_count is the number of shards (default: 8). impact_threshold is the minimum impulse to trigger destruction (default: 10). damage_threshold is the accumulated damage before destruction (default: 0 — single-hit). fragment_lifetime is the seconds before fragments are removed (default: 5). Port of DestructionTrait.ts (handler name: destruction).",
+  props: {
+    mode: enum("voronoi" | "precomputed" | "prefab") = "voronoi",
+    fragment_count: number = 8,
+    impact_threshold: number = 10,
+    damage_threshold: number = 0,
+    fragment_lifetime: number = 5
+  },
+  events: {
+    on_destroyed: "destruction:destroyed",
+    on_damaged: "destruction:damaged",
+    on_fragment_expired: "destruction:fragment_expired",
+    destroy: "destruction.destroy",
+    reset: "destruction.reset"
+  },
+  behaviors: ["@gpu_physics", "@advanced_cloth"]
+}

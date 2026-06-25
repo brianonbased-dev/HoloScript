@@ -1,0 +1,16 @@
+@trait {
+  name: "@dynamic_region_mask",
+  category: "vision",
+  description: "Dynamic region mask for per-frame selective processing. source: none (default), depth, semantic, manual. dilation_pixels is the mask dilation radius in pixels (default: 4). invert inverts the mask (default: false). Port of DynamicRegionMaskTrait.ts (handler name: dynamic_region_mask).",
+  props: {
+    source: enum("none" | "depth" | "semantic" | "manual") = "none",
+    dilation_pixels: number = 4,
+    invert: boolean = false
+  },
+  events: {
+    on_mask_updated: "dynamic_region_mask:mask_updated",
+    set_source: "dynamic_region_mask.set_source",
+    reset: "dynamic_region_mask.reset"
+  },
+  behaviors: ["@depth_estimation", "@ai_inpainting"]
+}

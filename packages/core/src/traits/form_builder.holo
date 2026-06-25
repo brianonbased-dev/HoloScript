@@ -1,0 +1,17 @@
+@trait {
+  name: "@form_builder",
+  category: "ux",
+  description: "Dynamic form builder. max_fields is the maximum fields per form (default: 100). Port of FormBuilderTrait.ts (handler name: form_builder).",
+  props: {
+    max_fields: number = 100
+  },
+  events: {
+    on_submitted: "form_builder:submitted",
+    on_validated: "form_builder:validated",
+    on_error: "form_builder:error",
+    add_field: "form_builder.add_field",
+    submit: "form_builder.submit",
+    reset: "form_builder.reset"
+  },
+  behaviors: ["@autocomplete", "@data_binding"]
+}

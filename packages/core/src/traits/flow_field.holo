@@ -1,0 +1,17 @@
+@trait {
+  name: "@flow_field",
+  category: "navigation",
+  description: "Flow-field crowd navigation — agents follow a pre-computed vector field toward a destination. destination_id is the target node ID. speed is the agent max speed (default: 3.0). steering_weight blends flow-field direction with individual steering (default: 0.8). stop_distance is the arrival radius (default: 0.5). Port of FlowFieldTrait.ts (handler name: flow_field).",
+  props: {
+    destination_id: string = "",
+    speed: number = 3.0,
+    steering_weight: number = 0.8,
+    stop_distance: number = 0.5
+  },
+  events: {
+    on_arrived: "flow_field:arrived",
+    on_blocked: "flow_field:blocked",
+    set_destination: "flow_field.set_destination"
+  },
+  behaviors: ["@astar", "@crowd_sim", "@formation_control"]
+}

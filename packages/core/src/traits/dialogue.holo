@@ -1,0 +1,21 @@
+@trait {
+  name: "@dialogue",
+  category: "behavior",
+  description: "Branching dialogue tree with optional LLM dynamic generation. dialogue_tree is the static node map {nodeId: {text, options}}. start_node is the entry node key (default: start). llm_dynamic enables LLM-generated fallback dialogue (default: false). personality is the NPC personality prompt for LLM mode. knowledge_base is the RAG source for context injection. speaker_name is the NPC display name (default: NPC). player_name is the player display name (default: Player). Port of DialogueTrait.ts (handler name: dialogue).",
+  props: {
+    start_node: string = "start",
+    llm_dynamic: boolean = false,
+    personality: string = "",
+    knowledge_base: string = "",
+    speaker_name: string = "NPC",
+    player_name: string = "Player"
+  },
+  events: {
+    on_line: "dialogue:line",
+    on_choice: "dialogue:choice",
+    on_end: "dialogue:end",
+    select: "dialogue.select",
+    restart: "dialogue.restart"
+  },
+  behaviors: ["@ai_companion", "@llm_agent"]
+}

@@ -1,0 +1,15 @@
+@trait {
+  name: "@dialog",
+  category: "ux",
+  description: "Modal dialog system — manages open/close lifecycle, focus trap, and keyboard navigation. Config is dialog-type-dependent and passed through to the DialogTrait instance. Port of DialogTrait.ts (handler name: dialog).",
+  props: {},
+  events: {
+    on_opened: "dialog:opened",
+    on_closed: "dialog:closed",
+    on_confirmed: "dialog:confirmed",
+    on_cancelled: "dialog:cancelled",
+    open: "dialog.open",
+    close: "dialog.close"
+  },
+  behaviors: ["@alert", "@accessible"]
+}

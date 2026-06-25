@@ -1,0 +1,18 @@
+@trait {
+  name: "@file_system",
+  category: "storage",
+  description: "Virtual in-node file system. root is the root path (default: /). Port of FileSystemTrait.ts (handler name: file_system).",
+  props: {
+    root: string = "/"
+  },
+  events: {
+    on_written: "file_system:written",
+    on_deleted: "file_system:deleted",
+    on_error: "file_system:error",
+    read: "file_system.read",
+    write: "file_system.write",
+    delete: "file_system.delete",
+    list: "file_system.list"
+  },
+  behaviors: ["@blob_store", "@database"]
+}

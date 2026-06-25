@@ -1,0 +1,16 @@
+@trait {
+  name: "@email",
+  category: "communication",
+  description: "Transactional email sender. from is the sender address (default: noreply@holoscript.dev). max_queue is the maximum queued emails (default: 100). Port of EmailTrait.ts (handler name: email).",
+  props: {
+    from: string = "noreply@holoscript.dev",
+    max_queue: number = 100
+  },
+  events: {
+    on_sent: "email:sent",
+    on_failed: "email:failed",
+    on_queue_full: "email:queue_full",
+    send: "email.send"
+  },
+  behaviors: ["@discord", "@alert"]
+}

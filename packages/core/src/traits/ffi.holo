@@ -1,0 +1,15 @@
+@trait {
+  name: "@ffi",
+  category: "interop",
+  description: "Foreign function interface — bridges native dynamic libraries into HoloScript. allowed_libs is the allowlisted library names (default: [] — all blocked). Port of FfiTrait.ts (handler name: ffi).",
+  props: {},
+  events: {
+    on_bound: "ffi:bound",
+    on_called: "ffi:called",
+    on_error: "ffi:error",
+    bind: "ffi.bind",
+    call: "ffi.call",
+    unbind: "ffi.unbind"
+  },
+  behaviors: ["@absorb", "@compute"]
+}

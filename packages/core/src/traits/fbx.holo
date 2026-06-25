@@ -1,0 +1,22 @@
+@trait {
+  name: "@fbx",
+  category: "asset",
+  description: "FBX asset importer. source is the FBX file URL. animation_stack is the named animation stack to load (default: all). embed_textures embeds texture data in the import (default: true). scale_factor is the uniform scale applied on import (default: 1.0). up_axis: y (default), z. forward_axis: -z (default), z. unit_conversion converts units to meters (default: true). unit_scale: m (default), cm, mm, ft. Port of FBXTrait.ts (handler name: fbx).",
+  props: {
+    source: string = "",
+    animation_stack: string = "",
+    embed_textures: boolean = true,
+    scale_factor: number = 1.0,
+    up_axis: enum("y" | "z") = "y",
+    forward_axis: enum("-z" | "z") = "-z",
+    unit_conversion: boolean = true,
+    unit_scale: enum("m" | "cm" | "mm" | "ft") = "m"
+  },
+  events: {
+    on_loaded: "fbx:loaded",
+    on_error: "fbx:error",
+    load: "fbx.load",
+    play_animation: "fbx.play_animation"
+  },
+  behaviors: ["@auto_rig", "@character", "@neural_animation"]
+}

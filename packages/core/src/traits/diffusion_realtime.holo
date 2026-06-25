@@ -1,0 +1,19 @@
+@trait {
+  name: "@diffusion_realtime",
+  category: "generation",
+  description: "Real-time diffusion inference at interactive frame rates. backend: lcm (default), turbo, distilled. stream_mode: img2img (default), txt2img, inpaint. target_fps is the target generation rate (default: 15). guidance_scale is the CFG scale (default: 1.0 — low for LCM). noise_strength is the img2img noise level [0,1] (default: 0.5). Port of DiffusionRealtimeTrait.ts (handler name: diffusion_realtime).",
+  props: {
+    backend: enum("lcm" | "turbo" | "distilled") = "lcm",
+    stream_mode: enum("img2img" | "txt2img" | "inpaint") = "img2img",
+    target_fps: number = 15,
+    guidance_scale: number = 1.0,
+    noise_strength: number = 0.5
+  },
+  events: {
+    on_frame: "diffusion_realtime:frame",
+    on_error: "diffusion_realtime:error",
+    start: "diffusion_realtime.start",
+    stop: "diffusion_realtime.stop"
+  },
+  behaviors: ["@ai_inpainting", "@controlnet"]
+}

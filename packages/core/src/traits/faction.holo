@@ -1,0 +1,17 @@
+@trait {
+  name: "@faction",
+  category: "social",
+  description: "Faction system with reputation tracking between agent groups. faction_id is the unique faction identifier. reputation is a {faction_id: score} map. hostile_factions is the list of always-hostile faction IDs. allied_factions is the list of always-allied faction IDs. neutral_threshold is the reputation score boundary for neutral status (default: 25). Port of FactionTrait.ts (handler name: faction).",
+  props: {
+    faction_id: string = "",
+    neutral_threshold: number = 25
+  },
+  events: {
+    on_reputation_changed: "faction:reputation_changed",
+    on_hostile: "faction:hostile",
+    on_allied: "faction:allied",
+    set_reputation: "faction.set_reputation",
+    adjust_reputation: "faction.adjust_reputation"
+  },
+  behaviors: ["@affinity", "@ai_companion"]
+}

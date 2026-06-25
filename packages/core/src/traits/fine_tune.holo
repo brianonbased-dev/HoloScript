@@ -1,0 +1,17 @@
+@trait {
+  name: "@fine_tune",
+  category: "ml",
+  description: "Model fine-tuning job manager. max_concurrent is the maximum simultaneous training jobs (default: 2). Port of FineTuneTrait.ts (handler name: fine_tune).",
+  props: {
+    max_concurrent: number = 2
+  },
+  events: {
+    on_started: "fine_tune:started",
+    on_progress: "fine_tune:progress",
+    on_completed: "fine_tune:completed",
+    on_failed: "fine_tune:failed",
+    submit: "fine_tune.submit",
+    cancel: "fine_tune.cancel"
+  },
+  behaviors: ["@llm_agent", "@batch_job"]
+}

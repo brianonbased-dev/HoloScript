@@ -1,0 +1,18 @@
+@trait {
+  name: "@face_tracking",
+  category: "xr",
+  description: "Real-time face tracking with blend shapes and mesh topology. blend_shapes enables ARKit/MediaPipe blend shape output (default: true). mesh_topology: arkit (default), mediapipe, generic. eye_tracking extracts gaze direction (default: true). lip_sync extracts viseme blend weights for lip sync (default: true). smoothing is the temporal smoothing factor [0,1] (default: 0.3). Port of FaceTrackingTrait.ts (handler name: face_tracking).",
+  props: {
+    blend_shapes: boolean = true,
+    mesh_topology: enum("arkit" | "mediapipe" | "generic") = "arkit",
+    eye_tracking: boolean = true,
+    lip_sync: boolean = true,
+    smoothing: number = 0.3
+  },
+  events: {
+    on_face: "face_tracking:face",
+    on_expression: "face_tracking:expression",
+    on_lost: "face_tracking:lost"
+  },
+  behaviors: ["@body_tracking", "@emotion", "@avatar_embodiment"]
+}

@@ -1,0 +1,16 @@
+@trait {
+  name: "@draft",
+  category: "editor",
+  description: "Draft document manager — tracks in-progress content edits with save/restore and conflict detection. Config is document-type-dependent and passed through to the DraftManager instance. Port of DraftTrait.ts (handler name: draft).",
+  props: {},
+  events: {
+    on_saved: "draft:saved",
+    on_restored: "draft:restored",
+    on_discarded: "draft:discarded",
+    on_conflict: "draft:conflict",
+    save: "draft.save",
+    restore: "draft.restore",
+    discard: "draft.discard"
+  },
+  behaviors: ["@change_tracking", "@crdt_room"]
+}

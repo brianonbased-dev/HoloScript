@@ -1,0 +1,14 @@
+@trait {
+  name: "@env_config",
+  category: "configuration",
+  description: "Layered environment configuration with override cascade. layers is the ordered list of config layers applied lowest-to-highest (default: [default, env, override]). Port of EnvConfigTrait.ts (handler name: env_config).",
+  props: {},
+  events: {
+    on_applied: "env_config:applied",
+    on_override: "env_config:override",
+    get: "env_config.get",
+    set: "env_config.set",
+    reset: "env_config.reset"
+  },
+  behaviors: ["@feature_flag", "@database"]
+}
