@@ -1,0 +1,29 @@
+@trait {
+  name: "@sso_oidc",
+  category: "devops",
+  description: "OIDC (OpenID Connect / OAuth 2.0) Single Sign-On — alias of @sso_saml sharing its full implementation. Use for Google Workspace, Auth0, Keycloak, Cognito, and other OIDC-compliant IdPs. All config props, session management, JIT provisioning, role sync, and MFA escalation are identical to @sso_saml; only the protocol name differs for IdP routing. Port of SSOTrait.ts ssoOidcHandler (handler name: sso_oidc — spread alias of ssoSamlHandler).",
+  props: {
+    tenant_id: string = "",
+    enabled: boolean = false,
+    enforce_sso: boolean = false,
+    sp_entity_id: string = "",
+    acs_url: string = "",
+    session_timeout_minutes: number = 480,
+    max_sessions_per_user: number = 5,
+    jit_provisioning_enabled: boolean = true,
+    jit_default_role: string = "viewer",
+    sync_roles_on_login: boolean = true,
+    require_mfa_after_sso: boolean = false
+  },
+  events: {
+    attached: "sso_oidc_ready",
+    on_login: "sso_login_success",
+    on_logout: "sso_logout",
+    on_error: "sso_error",
+    on_session_expired: "sso_session_expired",
+    on_mfa_required: "sso_mfa_required",
+    login: "sso_initiate_login",
+    logout: "sso_initiate_logout"
+  },
+  behaviors: ["@sso_saml", "@hsm_integration"]
+}

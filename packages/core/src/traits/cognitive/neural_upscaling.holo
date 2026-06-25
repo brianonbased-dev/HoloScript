@@ -1,0 +1,21 @@
+@trait {
+  name: "@neural_upscaling",
+  category: "cognitive",
+  description: "Alias of @ai_upscaling with SwinIR as the default model. SwinIR (Swin Transformer Image Restoration) provides stronger perceptual detail preservation than RealESRGAN for texture-rich XR content. Consolidates the neural_upscaling trait name for backwards compatibility. All props, events, and behaviors identical to @ai_upscaling; only upscale_model default differs (swinir vs realesrgan). Port of AiUpscalingTrait.ts neuralUpscalingHandler (handler name: neural_upscaling — alias via spread of aiUpscalingHandler).",
+  props: {
+    upscale_model: string = "swinir",
+    scale_factor: number = 4,
+    tile_size: number = 512,
+    denoise_strength: number = 0.5,
+    input_source: enum("texture" | "framebuffer" | "render_target") = "texture",
+    preserve_details: boolean = true,
+    apply_to_material: boolean = true
+  },
+  events: {
+    attached: "neural_upscaling_init",
+    on_upscale_complete: "neural_upscaling_complete",
+    on_error: "neural_upscaling_error",
+    upscale: "neural_upscaling_trigger"
+  },
+  behaviors: ["@ai_upscaling", "@advanced_pbr"]
+}

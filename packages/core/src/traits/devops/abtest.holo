@@ -1,0 +1,29 @@
+@trait {
+  name: "@abtest",
+  category: "devops",
+  description: "A/B experiment framework with frequentist and multi-armed bandit modes. default_strategy: equal (50/50), weighted, or bandit. alpha is the significance threshold (default: 0.05). min_sample_size gates analysis (default: 30 per variant). min_detectable_effect is the MDE for power calculations (default: 0.1 = 10%). statistical_power target (default: 0.8). auto_complete ends experiments when significance is reached. max_duration=0 disables time-based auto-close. privacy_mode: anonymous (hashed user id), pseudonymous, or none. enable_bandit switches to epsilon-greedy bandit (bandit_epsilon: explore rate). custom_tags are arbitrary metadata labels. Port of ABTestTrait.ts (handler name: abtest).",
+  props: {
+    enabled: boolean = true,
+    default_strategy: enum("equal" | "weighted" | "bandit") = "equal",
+    alpha: number = 0.05,
+    min_sample_size: number = 30,
+    min_detectable_effect: number = 0.1,
+    statistical_power: number = 0.8,
+    auto_complete: boolean = false,
+    max_duration: number = 0,
+    privacy_mode: enum("anonymous" | "pseudonymous" | "none") = "anonymous",
+    enable_bandit: boolean = false,
+    bandit_epsilon: number = 0.1
+  },
+  events: {
+    attached: "abtest_ready",
+    on_variant_assigned: "abtest_variant_assigned",
+    on_experiment_complete: "abtest_complete",
+    on_significance_reached: "abtest_significant",
+    start: "abtest_start",
+    assign: "abtest_assign",
+    record: "abtest_record",
+    complete: "abtest_complete_experiment"
+  },
+  behaviors: ["@analytics", "@economy"]
+}
