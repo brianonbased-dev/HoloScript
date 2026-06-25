@@ -1,0 +1,23 @@
+// @pillar_jepa — Pillar JEPA: Joint Embedding Predictive Architecture for world-model learning.
+//
+// Native .hsplus surface for core/traits/pillar/PillarJEPA.ts.
+
+@trait pillar_jepa {
+  capability_tags: ["pillar_jepa", "jepa", "joint_embedding_predictive", "world_model_learning", "core"]
+
+  @on_spawn(config) => {
+    init_pillar_jepa(config)
+    emit("pillar_jepa_ready", {})
+  }
+
+  @on_predict(context_enc, target_enc) => {
+    pred = predict_pillar_jepa(context_enc, target_enc)
+    return pred
+  }
+
+  @receipt pillar_jepa_config {
+    type: "PillarJEPAReceipt"
+    architecture: "JEPA (Joint Embedding Predictive Architecture)"
+    timestamp: now()
+  }
+}

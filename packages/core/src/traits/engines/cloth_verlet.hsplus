@@ -1,0 +1,21 @@
+// @cloth_verlet — Cloth Verlet: Verlet-integration cloth simulation with constraint relaxation.
+//
+// Native .hsplus surface for core/traits/engines/cloth-verlet.ts.
+
+@trait cloth_verlet {
+  capability_tags: ["cloth_verlet", "verlet_integration", "constraint_relaxation", "cloth_sim", "core"]
+
+  @on_spawn(grid_w, grid_h, rest_dist) => {
+    init_cloth_verlet(grid_w, grid_h, rest_dist)
+    emit("cloth_verlet_ready", {})
+  }
+
+  @on_step(dt, gravity) => {
+    step_cloth_verlet(dt, gravity)
+  }
+
+  @receipt cloth_verlet_config {
+    type: "ClothVerletReceipt"
+    timestamp: now()
+  }
+}

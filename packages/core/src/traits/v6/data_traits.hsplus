@@ -1,0 +1,21 @@
+// @data_traits — Data traits: v6 typed data binding, validation, and transform primitives.
+//
+// Native .hsplus surface for core/traits/v6/DataTraits.ts.
+
+@trait data_traits {
+  capability_tags: ["data_traits", "typed_data_binding", "validation_transform", "v6_data", "core"]
+
+  @on_spawn => {
+    emit("data_traits_ready", {})
+  }
+
+  @on_bind(schema, data) => {
+    bound = bind_data_traits(schema, data)
+    return bound
+  }
+
+  @receipt data_traits_config {
+    type: "DataTraitsReceipt"
+    timestamp: now()
+  }
+}

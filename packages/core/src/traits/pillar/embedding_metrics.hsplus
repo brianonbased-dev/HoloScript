@@ -1,0 +1,22 @@
+// @embedding_metrics — Embedding metrics: cosine similarity, distance, and drift tracking for Pillar embeddings.
+//
+// Native .hsplus surface for core/traits/pillar/embedding-metrics.ts.
+
+@trait embedding_metrics {
+  capability_tags: ["embedding_metrics", "cosine_similarity", "distance_drift", "pillar_embeddings", "core"]
+
+  @on_spawn => {
+    emit("embedding_metrics_ready", {})
+  }
+
+  @on_compare(vec_a, vec_b) => {
+    score = compare_embeddings(vec_a, vec_b)
+    return score
+  }
+
+  @receipt embedding_metrics_config {
+    type: "EmbeddingMetricsReceipt"
+    metrics: ["cosine", "L2", "drift"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,22 @@
+// @pipeline_traits — Pipeline traits: v6 data-pipeline stage composition with backpressure.
+//
+// Native .hsplus surface for core/traits/v6/PipelineTraits.ts.
+
+@trait pipeline_traits {
+  capability_tags: ["pipeline_traits", "stage_composition", "backpressure", "v6_pipeline", "core"]
+
+  @on_spawn(stages) => {
+    init_pipeline_traits(stages)
+    emit("pipeline_traits_ready", {})
+  }
+
+  @on_run(input) => {
+    output = run_pipeline_traits(input)
+    return output
+  }
+
+  @receipt pipeline_traits_config {
+    type: "PipelineTraitsReceipt"
+    timestamp: now()
+  }
+}

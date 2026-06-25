@@ -1,0 +1,23 @@
+// @resilience_traits — Resilience traits: bulkhead, retry, timeout, fallback for v6 fault tolerance.
+//
+// Native .hsplus surface for core/traits/v6/ResilienceTraits.ts.
+
+@trait resilience_traits {
+  capability_tags: ["resilience_traits", "bulkhead_retry_timeout", "fallback", "v6_fault_tolerance", "core"]
+
+  @on_spawn(config) => {
+    init_resilience_traits(config)
+    emit("resilience_traits_ready", {})
+  }
+
+  @on_wrap(fn) => {
+    result = wrap_with_resilience(fn)
+    return result
+  }
+
+  @receipt resilience_traits_config {
+    type: "ResilienceTraitsReceipt"
+    patterns: ["bulkhead", "retry", "timeout", "fallback"]
+    timestamp: now()
+  }
+}

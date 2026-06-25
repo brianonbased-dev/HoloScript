@@ -1,0 +1,23 @@
+// @economic_traits — Economic traits: token staking, yield, price oracle, market-making primitives.
+//
+// Native .hsplus surface for core/traits/economics/EconomicTraits.ts.
+
+@trait economic_traits {
+  capability_tags: ["economic_traits", "token_staking_yield", "price_oracle", "market_making", "core"]
+
+  @on_spawn(config) => {
+    init_economic_traits(config)
+    emit("economic_traits_ready", {})
+  }
+
+  @on_stake(amount, period) => {
+    receipt = stake_tokens(amount, period)
+    return receipt
+  }
+
+  @receipt economic_traits_config {
+    type: "EconomicTraitsReceipt"
+    doc: "D.013 uaa2 sells orchestrations"
+    timestamp: now()
+  }
+}

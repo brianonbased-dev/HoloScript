@@ -1,0 +1,24 @@
+// @pillar_registry — Pillar registry: maps named Pillar modules to their active compute instances.
+//
+// Native .hsplus surface for core/traits/pillar/PillarRegistry.ts.
+
+@trait pillar_registry {
+  capability_tags: ["pillar_registry", "pillar_module_map", "compute_instances", "registry", "core"]
+
+  @on_spawn => {
+    emit("pillar_registry_ready", {})
+  }
+
+  @on_register(name, instance) => {
+    register_pillar(name, instance)
+  }
+
+  @on_resolve(name) => {
+    return resolve_pillar(name)
+  }
+
+  @receipt pillar_registry_config {
+    type: "PillarRegistryReceipt"
+    timestamp: now()
+  }
+}

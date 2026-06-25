@@ -1,0 +1,22 @@
+// @synthetic_walk_cycle — Synthetic walk cycle: procedurally generates foot-plant walk cycles.
+//
+// Native .hsplus surface for core/traits/engines/synthetic-walk-cycle.ts.
+
+@trait synthetic_walk_cycle {
+  capability_tags: ["synthetic_walk_cycle", "procedural_walk", "foot_plant", "walk_cycle_gen", "core"]
+
+  @on_spawn(stride, speed) => {
+    init_synthetic_walk_cycle(stride, speed)
+    emit("synthetic_walk_cycle_ready", {})
+  }
+
+  @on_sample(phase) => {
+    pose = sample_synthetic_walk_cycle(phase)
+    return pose
+  }
+
+  @receipt synthetic_walk_cycle_config {
+    type: "SyntheticWalkCycleReceipt"
+    timestamp: now()
+  }
+}

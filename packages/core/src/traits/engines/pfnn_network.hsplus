@@ -1,0 +1,23 @@
+// @pfnn_network — PFNN: Phase-Functioned Neural Network for locomotion blending.
+//
+// Native .hsplus surface for core/traits/engines/pfnn-network.ts.
+
+@trait pfnn_network {
+  capability_tags: ["pfnn", "phase_functioned_neural_net", "locomotion_blend", "neural_locomotion", "core"]
+
+  @on_spawn(weights_path) => {
+    init_pfnn_network(weights_path)
+    emit("pfnn_network_ready", {})
+  }
+
+  @on_infer(phase, input_features) => {
+    pose = infer_pfnn(phase, input_features)
+    return pose
+  }
+
+  @receipt pfnn_network_config {
+    type: "PFNNNetworkReceipt"
+    architecture: "Phase-Functioned Neural Network"
+    timestamp: now()
+  }
+}

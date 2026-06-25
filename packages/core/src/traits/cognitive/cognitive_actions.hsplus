@@ -1,0 +1,32 @@
+// @cognitive_actions — Cognitive actions: recall, plan, rag_query primitives for agent brain execution.
+//
+// Native .hsplus surface for core/traits/cognitive/CognitiveActions.ts.
+// W.752: cognitive verbs wired — Jetson Phase 2.2 (provider+mesh).
+
+@trait cognitive_actions {
+  capability_tags: ["cognitive_actions", "recall_plan_rag", "brain_execution", "agent_cognitive", "core"]
+
+  @on_spawn => {
+    emit("cognitive_actions_ready", {})
+  }
+
+  @on_recall(query) => {
+    result = recall_cognitive(query)
+    return result
+  }
+
+  @on_plan(goal) => {
+    plan = plan_cognitive(goal)
+    return plan
+  }
+
+  @on_rag_query(query, context) => {
+    return rag_query_cognitive(query, context)
+  }
+
+  @receipt cognitive_actions_config {
+    type: "CognitiveActionsReceipt"
+    doc: "W.752 cognitive verbs wired on Jetson Phase 2.2"
+    timestamp: now()
+  }
+}

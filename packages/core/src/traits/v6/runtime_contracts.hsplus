@@ -1,0 +1,22 @@
+// @runtime_contracts — Runtime contracts: v6 verifiable postcondition contracts for service operations.
+//
+// Native .hsplus surface for core/traits/v6/RuntimeContracts.ts.
+
+@trait runtime_contracts {
+  capability_tags: ["runtime_contracts", "postcondition_verify", "verifiable_service_ops", "v6_contracts", "core"]
+
+  @on_spawn => {
+    emit("runtime_contracts_ready", {})
+  }
+
+  @on_verify(op_name, result) => {
+    valid = verify_runtime_contract(op_name, result)
+    if !valid { emit("contract_violated", { op_name }) }
+    return valid
+  }
+
+  @receipt runtime_contracts_config {
+    type: "RuntimeContractsReceipt"
+    timestamp: now()
+  }
+}

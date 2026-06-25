@@ -1,0 +1,24 @@
+// @locomotion_actions — Locomotion actions: move, strafe, jump, crouch, sprint primitives for agents.
+//
+// Native .hsplus surface for core/traits/locomotion/LocomotionActions.ts.
+
+@trait locomotion_actions {
+  capability_tags: ["locomotion_actions", "move_strafe_jump", "crouch_sprint", "agent_locomotion", "core"]
+
+  @on_spawn => {
+    emit("locomotion_actions_ready", {})
+  }
+
+  @on_move(direction, speed) => {
+    execute_locomotion_move(direction, speed)
+  }
+
+  @on_jump(impulse) => {
+    execute_locomotion_jump(impulse)
+  }
+
+  @receipt locomotion_actions_config {
+    type: "LocomotionActionsReceipt"
+    timestamp: now()
+  }
+}

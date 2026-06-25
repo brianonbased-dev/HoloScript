@@ -1,0 +1,22 @@
+// @motion_matching — Motion matching: KD-tree nearest-pose search for responsive character animation.
+//
+// Native .hsplus surface for core/traits/engines/motion-matching.ts.
+
+@trait motion_matching {
+  capability_tags: ["motion_matching", "kd_tree_pose_search", "character_animation", "responsive_locomotion", "core"]
+
+  @on_spawn(database) => {
+    init_motion_matching(database)
+    emit("motion_matching_ready", {})
+  }
+
+  @on_query(query_features) => {
+    best_frame = query_motion_matching(query_features)
+    return best_frame
+  }
+
+  @receipt motion_matching_config {
+    type: "MotionMatchingReceipt"
+    timestamp: now()
+  }
+}

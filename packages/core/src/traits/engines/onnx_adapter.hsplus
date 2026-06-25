@@ -1,0 +1,23 @@
+// @onnx_adapter — ONNX adapter: loads and runs ONNX models via ort/wasm runtime.
+//
+// Native .hsplus surface for core/traits/engines/onnx-adapter.ts.
+
+@trait onnx_adapter {
+  capability_tags: ["onnx_adapter", "onnx_model_run", "ort_wasm", "model_adapter", "core"]
+
+  @on_spawn(model_path, backend) => {
+    init_onnx_adapter(model_path, backend)
+    emit("onnx_adapter_ready", {})
+  }
+
+  @on_run(inputs) => {
+    outputs = run_onnx(inputs)
+    return outputs
+  }
+
+  @receipt onnx_adapter_config {
+    type: "OnnxAdapterReceipt"
+    backends: ["ort-wasm", "ort-webgpu"]
+    timestamp: now()
+  }
+}

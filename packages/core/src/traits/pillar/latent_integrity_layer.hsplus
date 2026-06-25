@@ -1,0 +1,21 @@
+// @latent_integrity_layer — Latent integrity layer: validates Pillar latent representations for coherence.
+//
+// Native .hsplus surface for core/traits/pillar/LatentIntegrityLayer.ts.
+
+@trait latent_integrity_layer {
+  capability_tags: ["latent_integrity_layer", "latent_coherence", "pillar_validate", "representation_integrity", "core"]
+
+  @on_spawn => {
+    emit("latent_integrity_layer_ready", {})
+  }
+
+  @on_validate(latent_vec) => {
+    score = validate_latent_integrity(latent_vec)
+    return score
+  }
+
+  @receipt latent_integrity_layer_config {
+    type: "LatentIntegrityLayerReceipt"
+    timestamp: now()
+  }
+}

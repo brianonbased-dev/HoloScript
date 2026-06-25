@@ -1,0 +1,20 @@
+// @motion_data_schema — Motion data schema: typed schema for motion-capture clip data frames.
+//
+// Native .hsplus surface for core/traits/engines/motion-data-schema.ts.
+
+@trait motion_data_schema {
+  capability_tags: ["motion_data_schema", "mocap_clip", "frame_schema", "motion_capture", "core"]
+
+  @on_spawn => {
+    emit("motion_data_schema_ready", {})
+  }
+
+  @on_validate(frame) => {
+    return validate_motion_frame(frame)
+  }
+
+  @receipt motion_data_schema_config {
+    type: "MotionDataSchemaReceipt"
+    timestamp: now()
+  }
+}

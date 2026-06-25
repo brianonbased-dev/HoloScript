@@ -1,0 +1,22 @@
+// @onnx_motion_matching — ONNX motion matching: neural motion-matching inference via ONNX backend.
+//
+// Native .hsplus surface for core/traits/engines/onnx-motion-matching.ts.
+
+@trait onnx_motion_matching {
+  capability_tags: ["onnx_motion_matching", "neural_motion_match", "onnx_locomotion", "neural_anim", "core"]
+
+  @on_spawn(model_path) => {
+    init_onnx_motion_matching(model_path)
+    emit("onnx_motion_matching_ready", {})
+  }
+
+  @on_query(features) => {
+    pose = query_onnx_motion_matching(features)
+    return pose
+  }
+
+  @receipt onnx_motion_matching_config {
+    type: "OnnxMotionMatchingReceipt"
+    timestamp: now()
+  }
+}

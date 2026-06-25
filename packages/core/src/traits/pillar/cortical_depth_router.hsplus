@@ -1,0 +1,21 @@
+// @cortical_depth_router — Cortical depth router: routes signals by processing depth tier in Pillar.
+//
+// Native .hsplus surface for core/traits/pillar/CorticalDepthRouter.ts.
+
+@trait cortical_depth_router {
+  capability_tags: ["cortical_depth_router", "depth_tier_routing", "pillar_signal", "cortical_routing", "core"]
+
+  @on_spawn => {
+    emit("cortical_depth_router_ready", {})
+  }
+
+  @on_route(signal, depth_tier) => {
+    target = route_cortical_signal(signal, depth_tier)
+    return target
+  }
+
+  @receipt cortical_depth_router_config {
+    type: "CorticalDepthRouterReceipt"
+    timestamp: now()
+  }
+}

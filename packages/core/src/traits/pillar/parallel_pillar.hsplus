@@ -1,0 +1,22 @@
+// @parallel_pillar — Parallel Pillar: spawns concurrent Pillar compute paths for multi-modal reasoning.
+//
+// Native .hsplus surface for core/traits/pillar/ParallelPillar.ts.
+
+@trait parallel_pillar {
+  capability_tags: ["parallel_pillar", "concurrent_paths", "multi_modal_reason", "pillar_parallel", "core"]
+
+  @on_spawn(n_paths) => {
+    init_parallel_pillar(n_paths)
+    emit("parallel_pillar_ready", {})
+  }
+
+  @on_run(input, merge_fn) => {
+    outputs = run_parallel_pillar(input, merge_fn)
+    return outputs
+  }
+
+  @receipt parallel_pillar_config {
+    type: "ParallelPillarReceipt"
+    timestamp: now()
+  }
+}

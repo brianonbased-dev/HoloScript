@@ -1,0 +1,22 @@
+// @slice_emitter — Slice emitter: emits time-sliced Pillar computation results for streaming.
+//
+// Native .hsplus surface for core/traits/pillar/SliceEmitter.ts.
+
+@trait slice_emitter {
+  capability_tags: ["slice_emitter", "time_sliced_pillar", "streaming_compute", "pillar_stream", "core"]
+
+  @on_spawn(slice_ms) => {
+    init_slice_emitter(slice_ms)
+    emit("slice_emitter_ready", {})
+  }
+
+  @on_slice(payload) => {
+    slice = emit_pillar_slice(payload)
+    return slice
+  }
+
+  @receipt slice_emitter_config {
+    type: "SliceEmitterReceipt"
+    timestamp: now()
+  }
+}

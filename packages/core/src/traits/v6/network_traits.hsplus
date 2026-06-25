@@ -1,0 +1,22 @@
+// @network_traits — Network traits: v6 service mesh networking with circuit-breaker and retries.
+//
+// Native .hsplus surface for core/traits/v6/NetworkTraits.ts.
+
+@trait network_traits {
+  capability_tags: ["network_traits", "service_mesh_network", "circuit_breaker_retry", "v6_network", "core"]
+
+  @on_spawn(config) => {
+    init_network_traits(config)
+    emit("network_traits_ready", {})
+  }
+
+  @on_call(endpoint, method, body) => {
+    result = call_network_trait(endpoint, method, body)
+    return result
+  }
+
+  @receipt network_traits_config {
+    type: "NetworkTraitsReceipt"
+    timestamp: now()
+  }
+}

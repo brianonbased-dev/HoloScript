@@ -1,0 +1,22 @@
+// @trait_compositor — Trait compositor: composites multiple visual trait outputs into a single render pass.
+//
+// Native .hsplus surface for core/traits/visual/TraitCompositor.ts.
+
+@trait trait_compositor {
+  capability_tags: ["trait_compositor", "visual_composite", "render_pass_merge", "layer_compose", "core"]
+
+  @on_spawn(blend_mode) => {
+    init_trait_compositor(blend_mode)
+    emit("trait_compositor_ready", {})
+  }
+
+  @on_composite(layers) => {
+    output = composite_trait_layers(layers)
+    return output
+  }
+
+  @receipt trait_compositor_config {
+    type: "TraitCompositorReceipt"
+    timestamp: now()
+  }
+}

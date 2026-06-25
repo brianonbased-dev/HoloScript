@@ -1,0 +1,22 @@
+// @container_traits — Container traits: Docker/k8s container lifecycle traits for v6 service mesh.
+//
+// Native .hsplus surface for core/traits/v6/ContainerTraits.ts.
+
+@trait container_traits {
+  capability_tags: ["container_traits", "docker_k8s", "container_lifecycle", "v6_service_mesh", "core"]
+
+  @on_spawn(container_spec) => {
+    init_container_traits(container_spec)
+    emit("container_traits_ready", {})
+  }
+
+  @on_start => {
+    start_container()
+    emit("container_started", {})
+  }
+
+  @receipt container_traits_config {
+    type: "ContainerTraitsReceipt"
+    timestamp: now()
+  }
+}

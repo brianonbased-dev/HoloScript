@@ -1,0 +1,22 @@
+// @cognitive_vm_trait — Cognitive VM: executes cognitive instruction sequences in the Pillar runtime.
+//
+// Native .hsplus surface for core/traits/pillar/CognitiveVMTrait.ts.
+
+@trait cognitive_vm_trait {
+  capability_tags: ["cognitive_vm", "pillar_runtime", "cognitive_instruction", "vm_execute", "core"]
+
+  @on_spawn(vm_config) => {
+    init_cognitive_vm(vm_config)
+    emit("cognitive_vm_ready", {})
+  }
+
+  @on_execute(instruction_seq) => {
+    result = execute_cognitive_vm(instruction_seq)
+    return result
+  }
+
+  @receipt cognitive_vm_trait_config {
+    type: "CognitiveVMTraitReceipt"
+    timestamp: now()
+  }
+}

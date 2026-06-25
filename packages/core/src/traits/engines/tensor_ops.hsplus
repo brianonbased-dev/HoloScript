@@ -1,0 +1,20 @@
+// @tensor_ops_engine — Tensor ops engine: low-level tensor math primitives for animation/ML engines.
+//
+// Native .hsplus surface for core/traits/engines/tensor-ops.ts.
+
+@trait tensor_ops_engine {
+  capability_tags: ["tensor_ops_engine", "tensor_math", "animation_ml_math", "low_level_ops", "core"]
+
+  @on_spawn => {
+    emit("tensor_ops_engine_ready", {})
+  }
+
+  @on_op(op, a, b) => {
+    return execute_tensor_op_low(op, a, b)
+  }
+
+  @receipt tensor_ops_engine_config {
+    type: "TensorOpsEngineReceipt"
+    timestamp: now()
+  }
+}

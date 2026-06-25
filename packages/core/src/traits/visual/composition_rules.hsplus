@@ -1,0 +1,22 @@
+// @composition_rules — Visual composition rules: ordering, exclusion, and blending rules for trait combos.
+//
+// Native .hsplus surface for core/traits/visual/composition-rules.ts.
+
+@trait composition_rules {
+  capability_tags: ["composition_rules", "ordering_exclusion", "blend_rules", "trait_combo", "core"]
+
+  @on_spawn(rule_set) => {
+    init_composition_rules(rule_set)
+    emit("composition_rules_ready", {})
+  }
+
+  @on_apply(trait_list) => {
+    ordered = apply_composition_rules(trait_list)
+    return ordered
+  }
+
+  @receipt composition_rules_config {
+    type: "CompositionRulesReceipt"
+    timestamp: now()
+  }
+}

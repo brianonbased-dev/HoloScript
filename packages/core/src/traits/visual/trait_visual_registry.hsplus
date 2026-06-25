@@ -1,0 +1,21 @@
+// @trait_visual_registry — Trait visual registry: maps trait names to their visual thumbnail/preview assets.
+//
+// Native .hsplus surface for core/traits/visual/TraitVisualRegistry.ts.
+
+@trait trait_visual_registry {
+  capability_tags: ["trait_visual_registry", "trait_thumbnail", "preview_assets", "visual_map", "core"]
+
+  @on_spawn => {
+    emit("trait_visual_registry_ready", {})
+  }
+
+  @on_lookup(trait_name) => {
+    asset = lookup_trait_visual(trait_name)
+    return asset
+  }
+
+  @receipt trait_visual_registry_config {
+    type: "TraitVisualRegistryReceipt"
+    timestamp: now()
+  }
+}

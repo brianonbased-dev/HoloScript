@@ -1,0 +1,22 @@
+// @noise_engine — Noise engine: Perlin/Simplex/Worley noise generators for procedural content.
+//
+// Native .hsplus surface for core/traits/engines/noise.ts.
+
+@trait noise_engine {
+  capability_tags: ["noise_engine", "perlin_simplex_worley", "procedural_noise", "pcg_foundation", "core"]
+
+  @on_spawn(seed) => {
+    init_noise_engine(seed)
+    emit("noise_engine_ready", {})
+  }
+
+  @on_sample(x, y, z, type) => {
+    return sample_noise(x, y, z, type)
+  }
+
+  @receipt noise_engine_config {
+    type: "NoiseEngineReceipt"
+    types: ["Perlin", "Simplex", "Worley"]
+    timestamp: now()
+  }
+}

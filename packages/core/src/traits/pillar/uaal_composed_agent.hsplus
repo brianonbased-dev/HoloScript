@@ -1,0 +1,24 @@
+// @uaal_composed_agent — uAAL composed agent: composes a cognitive agent from uAAL intent + Pillar modules.
+//
+// Native .hsplus surface for core/traits/pillar/uAALComposedAgent.ts.
+// uAAL = cognitive DSL born in uaa2-service (P.017, D.104).
+
+@trait uaal_composed_agent {
+  capability_tags: ["uaal_composed_agent", "uaal_intent", "pillar_compose", "cognitive_composition", "core"]
+
+  @on_spawn(uaal_spec) => {
+    init_uaal_composed_agent(uaal_spec)
+    emit("uaal_composed_agent_ready", {})
+  }
+
+  @on_run(intent) => {
+    result = run_uaal_composed_agent(intent)
+    return result
+  }
+
+  @receipt uaal_composed_agent_config {
+    type: "UAALComposedAgentReceipt"
+    doc: "P.017 language born in uaa2 as uAAL"
+    timestamp: now()
+  }
+}

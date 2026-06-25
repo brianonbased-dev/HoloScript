@@ -1,0 +1,22 @@
+// @semantic_2d_traits — Semantic 2D traits: 2D layout traits with semantic role annotations for v6 UI.
+//
+// Native .hsplus surface for core/traits/v6/Semantic2DTraits.ts.
+
+@trait semantic_2d_traits {
+  capability_tags: ["semantic_2d_traits", "2d_layout", "semantic_role", "v6_ui", "core"]
+
+  @on_spawn(role_map) => {
+    init_semantic_2d_traits(role_map)
+    emit("semantic_2d_traits_ready", {})
+  }
+
+  @on_layout(tree) => {
+    layout = layout_semantic_2d(tree)
+    return layout
+  }
+
+  @receipt semantic_2d_traits_config {
+    type: "Semantic2DTraitsReceipt"
+    timestamp: now()
+  }
+}

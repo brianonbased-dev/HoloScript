@@ -1,0 +1,22 @@
+// @gyri_sulci_partitioner — Gyri-sulci partitioner: partitions knowledge into Pillar gyri/sulci regions.
+//
+// Native .hsplus surface for core/traits/pillar/GyriSulciPartitioner.ts.
+
+@trait gyri_sulci_partitioner {
+  capability_tags: ["gyri_sulci_partitioner", "knowledge_partition", "pillar_regions", "cortical_segment", "core"]
+
+  @on_spawn(partition_config) => {
+    init_gyri_sulci_partitioner(partition_config)
+    emit("gyri_sulci_partitioner_ready", {})
+  }
+
+  @on_partition(knowledge_blob) => {
+    regions = partition_gyri_sulci(knowledge_blob)
+    return regions
+  }
+
+  @receipt gyri_sulci_partitioner_config {
+    type: "GyriSulciPartitionerReceipt"
+    timestamp: now()
+  }
+}

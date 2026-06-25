@@ -1,0 +1,21 @@
+// @brain_coord_mapper — Brain coord mapper: maps cognitive task types to Pillar cortical region coordinates.
+//
+// Native .hsplus surface for core/traits/pillar/BrainCoordMapper.ts.
+
+@trait brain_coord_mapper {
+  capability_tags: ["brain_coord_mapper", "cortical_region_map", "pillar_coords", "cognitive_routing", "core"]
+
+  @on_spawn => {
+    emit("brain_coord_mapper_ready", {})
+  }
+
+  @on_map(task_type) => {
+    coords = map_brain_coords(task_type)
+    return coords
+  }
+
+  @receipt brain_coord_mapper_config {
+    type: "BrainCoordMapperReceipt"
+    timestamp: now()
+  }
+}

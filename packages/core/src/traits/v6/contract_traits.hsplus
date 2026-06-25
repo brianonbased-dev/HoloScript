@@ -1,0 +1,22 @@
+// @contract_traits — Contract traits: SLA/SLO contract enforcement for v6 services.
+//
+// Native .hsplus surface for core/traits/v6/ContractTraits.ts.
+
+@trait contract_traits {
+  capability_tags: ["contract_traits", "sla_slo", "contract_enforcement", "v6_service", "core"]
+
+  @on_spawn(contract_spec) => {
+    init_contract_traits(contract_spec)
+    emit("contract_traits_ready", {})
+  }
+
+  @on_evaluate => {
+    status = evaluate_service_contract()
+    return status
+  }
+
+  @receipt contract_traits_config {
+    type: "ContractTraitsReceipt"
+    timestamp: now()
+  }
+}

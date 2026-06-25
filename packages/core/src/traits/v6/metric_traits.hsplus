@@ -1,0 +1,22 @@
+// @metric_traits — Metric traits: counter, gauge, histogram, summary for v6 service telemetry.
+//
+// Native .hsplus surface for core/traits/v6/MetricTraits.ts.
+
+@trait metric_traits {
+  capability_tags: ["metric_traits", "counter_gauge_histogram", "v6_telemetry", "service_metrics", "core"]
+
+  @on_spawn(service_name) => {
+    init_metric_traits(service_name)
+    emit("metric_traits_ready", {})
+  }
+
+  @on_record(metric_name, value, labels) => {
+    record_service_metric(metric_name, value, labels)
+  }
+
+  @receipt metric_traits_config {
+    type: "MetricTraitsReceipt"
+    types: ["counter", "gauge", "histogram", "summary"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,22 @@
+// @service_traits — Service traits: v6 service registration, discovery, and health-check primitives.
+//
+// Native .hsplus surface for core/traits/v6/ServiceTraits.ts.
+
+@trait service_traits {
+  capability_tags: ["service_traits", "service_registration", "discovery_health", "v6_service", "core"]
+
+  @on_spawn(service_name, version) => {
+    init_service_traits(service_name, version)
+    emit("service_traits_ready", { service_name })
+  }
+
+  @on_health => {
+    status = check_service_health()
+    return status
+  }
+
+  @receipt service_traits_config {
+    type: "ServiceTraitsReceipt"
+    timestamp: now()
+  }
+}

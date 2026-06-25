@@ -1,0 +1,22 @@
+// @semantic_collaboration_contract — Semantic collab contract: typed interface for Pillar agent collaboration.
+//
+// Native .hsplus surface for core/traits/pillar/SemanticCollaborationContract.ts.
+
+@trait semantic_collaboration_contract {
+  capability_tags: ["semantic_collab_contract", "pillar_agent_interface", "typed_collab", "agent_contract", "core"]
+
+  @on_spawn(contract_spec) => {
+    init_semantic_collab_contract(contract_spec)
+    emit("semantic_collab_contract_ready", {})
+  }
+
+  @on_invoke(method, args) => {
+    result = invoke_semantic_contract(method, args)
+    return result
+  }
+
+  @receipt semantic_collaboration_contract_config {
+    type: "SemanticCollaborationContractReceipt"
+    timestamp: now()
+  }
+}

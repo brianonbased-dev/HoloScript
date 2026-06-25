@@ -1,0 +1,22 @@
+// @recursive_link_trait — Recursive link: self-referential Pillar module that feeds output back as input.
+//
+// Native .hsplus surface for core/traits/pillar/RecursiveLinkTrait.ts.
+
+@trait recursive_link_trait {
+  capability_tags: ["recursive_link", "self_referential_pillar", "feedback_loop", "recursive_compute", "core"]
+
+  @on_spawn(depth_limit) => {
+    init_recursive_link(depth_limit)
+    emit("recursive_link_ready", {})
+  }
+
+  @on_recurse(input, depth) => {
+    output = recurse_pillar_link(input, depth)
+    return output
+  }
+
+  @receipt recursive_link_trait_config {
+    type: "RecursiveLinkTraitReceipt"
+    timestamp: now()
+  }
+}
