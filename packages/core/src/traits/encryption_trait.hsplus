@@ -1,0 +1,27 @@
+// @encryption_trait — Data encryption: AES-256-GCM encrypt/decrypt, key from vault.
+//
+// Native .hsplus surface for core/traits/EncryptionTrait.ts.
+
+@trait encryption_trait {
+  capability_tags: ["encryption", "aes_256_gcm", "vault_key", "encrypt_decrypt", "core"]
+
+  @on_spawn(key_ref) => {
+    init_encryption(key_ref)
+    emit("encryption_ready", {})
+  }
+
+  @on_encrypt(plaintext) => {
+    return encrypt_data(plaintext)
+  }
+
+  @on_decrypt(ciphertext) => {
+    return decrypt_data(ciphertext)
+  }
+
+  @receipt encryption_trait_config {
+    type: "EncryptionTraitReceipt"
+    algorithm: "AES-256-GCM"
+    key_source: "vault"
+    timestamp: now()
+  }
+}

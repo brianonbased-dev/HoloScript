@@ -1,0 +1,26 @@
+// @evolve_program_trait — Gated program evolution: propose→verify→accrue (I.023 @evolve_program).
+//
+// Native .hsplus surface for core/traits/EvolveProgramTrait.ts.
+// Gate IS the engine: mutations failing verifier are discarded, never shipped.
+
+@trait evolve_program_trait {
+  capability_tags: ["evolve_program", "gated_mutation", "propose_verify_accrue", "i023_evolve", "core"]
+
+  @on_spawn(seed) => {
+    init_evolve_program(seed)
+    emit("evolve_program_ready", {})
+  }
+
+  @on_evolve(generations, budget) => {
+    result = run_evolution(generations, budget)
+    emit("evolution_complete", { improved: result.improved })
+    return result
+  }
+
+  @receipt evolve_program_trait_config {
+    type: "EvolveProgramTraitReceipt"
+    invariant: "verifier-gate IS the engine"
+    doc: "I.023"
+    timestamp: now()
+  }
+}

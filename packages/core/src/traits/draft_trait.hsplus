@@ -1,0 +1,22 @@
+// @draft_trait — Draft state: marks entity as unpublished, tracks revisions, gating publish.
+//
+// Native .hsplus surface for core/traits/DraftTrait.ts.
+
+@trait draft_trait {
+  capability_tags: ["draft", "unpublished", "revision_tracking", "publish_gate", "core"]
+
+  @on_spawn => {
+    emit("draft_ready", {})
+  }
+
+  @on_publish(version) => {
+    result = publish_draft(version)
+    emit("draft_published", { version })
+    return result
+  }
+
+  @receipt draft_trait_config {
+    type: "DraftTraitReceipt"
+    timestamp: now()
+  }
+}

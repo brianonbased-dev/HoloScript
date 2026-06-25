@@ -1,0 +1,23 @@
+// @emotional_voice_trait — Emotional voice synthesis: TTS with pitch/rate/timbre mapped to emotion state.
+//
+// Native .hsplus surface for core/traits/EmotionalVoiceTrait.ts.
+
+@trait emotional_voice_trait {
+  capability_tags: ["emotional_voice", "tts_emotion", "pitch_rate_timbre", "voice_synthesis", "core"]
+
+  @on_spawn(voice_id) => {
+    init_emotional_voice(voice_id)
+    emit("emotional_voice_ready", {})
+  }
+
+  @on_speak(text, emotion_state) => {
+    audio = synthesize_emotional_speech(text, emotion_state)
+    emit("speech_synthesized", {})
+    return audio
+  }
+
+  @receipt emotional_voice_trait_config {
+    type: "EmotionalVoiceTraitReceipt"
+    timestamp: now()
+  }
+}

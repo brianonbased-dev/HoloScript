@@ -1,0 +1,22 @@
+// @faction_trait — Game faction: membership, influence, faction-vs-faction affinity, rank.
+//
+// Native .hsplus surface for core/traits/FactionTrait.ts.
+
+@trait faction_trait {
+  capability_tags: ["faction", "membership", "influence", "faction_affinity", "core"]
+
+  @on_spawn(faction_id) => {
+    init_faction(faction_id)
+    emit("faction_ready", { faction_id })
+  }
+
+  @on_join(agent_id) => {
+    join_faction(agent_id)
+    emit("faction_joined", { agent_id })
+  }
+
+  @receipt faction_trait_config {
+    type: "FactionTraitReceipt"
+    timestamp: now()
+  }
+}

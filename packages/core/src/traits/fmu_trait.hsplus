@@ -1,0 +1,23 @@
+// @fmu_trait — Functional Mock-up Unit (FMU/FMI) co-simulation: step external FMU in world loop.
+//
+// Native .hsplus surface for core/traits/FMUTrait.ts.
+
+@trait fmu_trait {
+  capability_tags: ["fmu", "fmi_cosimulation", "functional_mockup", "external_model", "core"]
+
+  @on_spawn(fmu_path) => {
+    init_fmu(fmu_path)
+    emit("fmu_ready", {})
+  }
+
+  @on_step(dt, inputs) => {
+    outputs = step_fmu(dt, inputs)
+    return outputs
+  }
+
+  @receipt fmu_trait_config {
+    type: "FMUTraitReceipt"
+    standard: "FMI 2.0/3.0"
+    timestamp: now()
+  }
+}

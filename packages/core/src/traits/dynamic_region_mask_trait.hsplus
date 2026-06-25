@@ -1,0 +1,21 @@
+// @dynamic_region_mask_trait — Dynamic region mask: GPU-side paint mask for selective effect zones.
+//
+// Native .hsplus surface for core/traits/DynamicRegionMaskTrait.ts.
+
+@trait dynamic_region_mask_trait {
+  capability_tags: ["dynamic_region_mask", "gpu_paint_mask", "effect_zones", "selective_effect", "core"]
+
+  @on_spawn(texture_size) => {
+    init_dynamic_region_mask(texture_size)
+    emit("dynamic_region_mask_ready", {})
+  }
+
+  @on_paint(region, effect_id) => {
+    paint_region_mask(region, effect_id)
+  }
+
+  @receipt dynamic_region_mask_trait_config {
+    type: "DynamicRegionMaskTraitReceipt"
+    timestamp: now()
+  }
+}

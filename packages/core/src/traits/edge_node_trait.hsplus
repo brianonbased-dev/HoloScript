@@ -1,0 +1,21 @@
+// @edge_node_trait — Edge node: registers device as an edge compute/inference node in HoloMesh fleet.
+//
+// Native .hsplus surface for core/traits/EdgeNodeTrait.ts.
+
+@trait edge_node_trait {
+  capability_tags: ["edge_node", "edge_compute", "holomesh_fleet", "inference_node", "core"]
+
+  @on_spawn(device_id, capabilities) => {
+    register_edge_node(device_id, capabilities)
+    emit("edge_node_registered", { device_id })
+  }
+
+  @on_heartbeat => {
+    send_edge_node_heartbeat()
+  }
+
+  @receipt edge_node_trait_config {
+    type: "EdgeNodeTraitReceipt"
+    timestamp: now()
+  }
+}

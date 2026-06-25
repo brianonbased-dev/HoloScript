@@ -1,0 +1,23 @@
+// @fbx_trait — FBX import: parses FBX files to HoloScript mesh, skeleton, and animation clips.
+//
+// Native .hsplus surface for core/traits/FBXTrait.ts.
+
+@trait fbx_trait {
+  capability_tags: ["fbx", "fbx_import", "mesh_skeleton_animation", "asset_import", "core"]
+
+  @on_spawn => {
+    emit("fbx_ready", {})
+  }
+
+  @on_import(fbx_path) => {
+    asset = import_fbx(fbx_path)
+    emit("fbx_imported", {})
+    return asset
+  }
+
+  @receipt fbx_trait_config {
+    type: "FBXTraitReceipt"
+    output: "HoloScript mesh + skeleton + clips"
+    timestamp: now()
+  }
+}

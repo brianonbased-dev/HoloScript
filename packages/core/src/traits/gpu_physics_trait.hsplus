@@ -1,0 +1,22 @@
+// @gpu_physics_trait — GPU-accelerated physics: broad-phase + constraint solve on WebGPU.
+//
+// Native .hsplus surface for core/traits/GPUPhysicsTrait.ts.
+
+@trait gpu_physics_trait {
+  capability_tags: ["gpu_physics", "broad_phase_gpu", "constraint_solve", "webgpu_physics", "core"]
+
+  @on_spawn(config) => {
+    init_gpu_physics(config)
+    emit("gpu_physics_ready", {})
+  }
+
+  @on_step(dt) => {
+    step_gpu_physics(dt)
+  }
+
+  @receipt gpu_physics_trait_config {
+    type: "GPUPhysicsTraitReceipt"
+    backend: "WebGPU"
+    timestamp: now()
+  }
+}

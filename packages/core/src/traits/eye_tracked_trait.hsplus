@@ -1,0 +1,23 @@
+// @eye_tracked_trait — Eye tracking: gaze direction, fixation, saccade for XR foveated rendering.
+//
+// Native .hsplus surface for core/traits/EyeTrackedTrait.ts.
+
+@trait eye_tracked_trait {
+  capability_tags: ["eye_tracked", "gaze_direction", "fixation_saccade", "foveated_rendering", "core"]
+
+  @on_spawn(device_id) => {
+    init_eye_tracking(device_id)
+    emit("eye_tracked_ready", {})
+  }
+
+  @on_gaze_update(gaze_data) => {
+    process_gaze_update(gaze_data)
+    emit("gaze_updated", {})
+  }
+
+  @receipt eye_tracked_trait_config {
+    type: "EyeTrackedTraitReceipt"
+    use_case: "foveated rendering"
+    timestamp: now()
+  }
+}

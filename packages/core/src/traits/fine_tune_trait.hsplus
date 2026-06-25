@@ -1,0 +1,23 @@
+// @fine_tune_trait — Fine-tune adapter: wraps HoloTune job submission and promote flow (I.023).
+//
+// Native .hsplus surface for core/traits/FineTuneTrait.ts.
+
+@trait fine_tune_trait {
+  capability_tags: ["fine_tune", "holotune", "job_submission", "promote_flow", "core"]
+
+  @on_spawn => {
+    emit("fine_tune_ready", {})
+  }
+
+  @on_launch(dataset_path, config) => {
+    job_id = launch_fine_tune(dataset_path, config)
+    emit("fine_tune_launched", { job_id })
+    return job_id
+  }
+
+  @receipt fine_tune_trait_config {
+    type: "FineTuneTraitReceipt"
+    doc: "I.023; GPU spend gated at >$100/day"
+    timestamp: now()
+  }
+}

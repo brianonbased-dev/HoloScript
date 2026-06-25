@@ -1,0 +1,23 @@
+// @full_text_search_trait — Full-text search: inverted index, BM25 ranking, highlight, suggest.
+//
+// Native .hsplus surface for core/traits/FullTextSearchTrait.ts.
+
+@trait full_text_search_trait {
+  capability_tags: ["full_text_search", "inverted_index", "bm25_ranking", "highlight_suggest", "core"]
+
+  @on_spawn(index_id) => {
+    init_full_text_search(index_id)
+    emit("full_text_search_ready", {})
+  }
+
+  @on_search(query, opts) => {
+    results = full_text_query(query, opts)
+    return results
+  }
+
+  @receipt full_text_search_trait_config {
+    type: "FullTextSearchTraitReceipt"
+    ranking: "BM25"
+    timestamp: now()
+  }
+}

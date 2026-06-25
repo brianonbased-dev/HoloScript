@@ -1,0 +1,22 @@
+// @formation_control_trait — Multi-agent formation: maintains geometric formation shape during movement.
+//
+// Native .hsplus surface for core/traits/FormationControlTrait.ts.
+
+@trait formation_control_trait {
+  capability_tags: ["formation_control", "geometric_formation", "multi_agent", "shape_maintenance", "core"]
+
+  @on_spawn(formation_type, agent_count) => {
+    init_formation_control(formation_type, agent_count)
+    emit("formation_control_ready", {})
+  }
+
+  @on_update(leader_pose) => {
+    positions = update_formation(leader_pose)
+    return positions
+  }
+
+  @receipt formation_control_trait_config {
+    type: "FormationControlTraitReceipt"
+    timestamp: now()
+  }
+}

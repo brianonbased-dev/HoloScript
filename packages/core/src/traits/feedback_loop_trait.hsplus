@@ -1,0 +1,22 @@
+// @feedback_loop_trait — Feedback loop: output → measurement → error → correction → re-apply.
+//
+// Native .hsplus surface for core/traits/FeedbackLoopTrait.ts.
+
+@trait feedback_loop_trait {
+  capability_tags: ["feedback_loop", "output_measure_correct", "closed_loop", "control_system", "core"]
+
+  @on_spawn(gain) => {
+    init_feedback_loop(gain)
+    emit("feedback_loop_ready", {})
+  }
+
+  @on_tick(measurement, setpoint) => {
+    correction = tick_feedback_loop(measurement, setpoint)
+    return correction
+  }
+
+  @receipt feedback_loop_trait_config {
+    type: "FeedbackLoopTraitReceipt"
+    timestamp: now()
+  }
+}

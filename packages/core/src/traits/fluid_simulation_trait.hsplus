@@ -1,0 +1,22 @@
+// @fluid_simulation_trait — Full-featured fluid simulation: SPH/FLIP solver, viscosity, surface tension.
+//
+// Native .hsplus surface for core/traits/FluidSimulationTrait.ts.
+
+@trait fluid_simulation_trait {
+  capability_tags: ["fluid_simulation", "sph_flip", "viscosity", "surface_tension", "core"]
+
+  @on_spawn(solver, params) => {
+    init_fluid_simulation(solver, params)
+    emit("fluid_simulation_ready", {})
+  }
+
+  @on_tick(dt) => {
+    step_fluid_simulation(dt)
+  }
+
+  @receipt fluid_simulation_trait_config {
+    type: "FluidSimulationTraitReceipt"
+    solvers: ["SPH", "FLIP"]
+    timestamp: now()
+  }
+}

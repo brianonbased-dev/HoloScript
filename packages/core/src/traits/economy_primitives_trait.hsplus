@@ -1,0 +1,21 @@
+// @economy_primitives_trait — Economy primitives: price, supply, demand, market tick, trade receipt.
+//
+// Native .hsplus surface for core/traits/EconomyPrimitivesTrait.ts.
+
+@trait economy_primitives_trait {
+  capability_tags: ["economy_primitives", "price_supply_demand", "market_tick", "trade_receipt", "core"]
+
+  @on_spawn(market_id) => {
+    init_economy_primitives(market_id)
+    emit("economy_primitives_ready", {})
+  }
+
+  @on_tick => {
+    update_economy_market()
+  }
+
+  @receipt economy_primitives_trait_config {
+    type: "EconomyPrimitivesTraitReceipt"
+    timestamp: now()
+  }
+}

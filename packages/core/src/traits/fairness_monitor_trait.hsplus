@@ -1,0 +1,23 @@
+// @fairness_monitor_trait — Fairness monitor: bias detection across demographic groups in AI decisions.
+//
+// Native .hsplus surface for core/traits/FairnessMonitorTrait.ts.
+
+@trait fairness_monitor_trait {
+  capability_tags: ["fairness_monitor", "bias_detection", "demographic_groups", "ai_fairness", "core"]
+
+  @on_spawn(metrics) => {
+    init_fairness_monitor(metrics)
+    emit("fairness_monitor_ready", {})
+  }
+
+  @on_evaluate(decisions, group_labels) => {
+    report = evaluate_fairness(decisions, group_labels)
+    if report.biased { emit("fairness_violation", { metrics: report.violations }) }
+    return report
+  }
+
+  @receipt fairness_monitor_trait_config {
+    type: "FairnessMonitorTraitReceipt"
+    timestamp: now()
+  }
+}

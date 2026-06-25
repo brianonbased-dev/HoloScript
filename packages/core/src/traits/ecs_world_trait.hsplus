@@ -1,0 +1,20 @@
+// @ecs_world_trait — ECS world: entity registry, component storage, system scheduling.
+//
+// Native .hsplus surface for core/traits/ECSWorldTrait.ts.
+
+@trait ecs_world_trait {
+  capability_tags: ["ecs_world", "entity_registry", "component_storage", "system_scheduling", "core"]
+
+  @on_spawn => {
+    emit("ecs_world_ready", {})
+  }
+
+  @on_tick(dt) => {
+    tick_ecs_world(dt)
+  }
+
+  @receipt ecs_world_trait_config {
+    type: "ECSWorldTraitReceipt"
+    timestamp: now()
+  }
+}

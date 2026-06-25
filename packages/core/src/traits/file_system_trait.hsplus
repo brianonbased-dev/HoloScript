@@ -1,0 +1,25 @@
+// @file_system_trait — File system access: read, write, watch, stat over local or virtual FS.
+//
+// Native .hsplus surface for core/traits/FileSystemTrait.ts.
+
+@trait file_system_trait {
+  capability_tags: ["file_system", "read_write_watch", "stat", "local_virtual_fs", "core"]
+
+  @on_spawn(root) => {
+    init_file_system(root)
+    emit("file_system_ready", {})
+  }
+
+  @on_read(path) => {
+    return read_file(path)
+  }
+
+  @on_write(path, content) => {
+    write_file(path, content)
+  }
+
+  @receipt file_system_trait_config {
+    type: "FileSystemTraitReceipt"
+    timestamp: now()
+  }
+}

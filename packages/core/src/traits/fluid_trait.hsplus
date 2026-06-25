@@ -1,0 +1,23 @@
+// @fluid_trait — Basic fluid: simple particle-based water/lava with surface mesh and buoyancy.
+//
+// Native .hsplus surface for core/traits/FluidTrait.ts.
+// (Lightweight; FluidSimulationTrait is the full SPH/FLIP solver.)
+
+@trait fluid_trait {
+  capability_tags: ["fluid_trait", "particle_fluid", "surface_mesh", "buoyancy_basic", "core"]
+
+  @on_spawn(fluid_type) => {
+    init_fluid(fluid_type)
+    emit("fluid_ready", {})
+  }
+
+  @on_tick(dt) => {
+    step_fluid(dt)
+  }
+
+  @receipt fluid_trait_config {
+    type: "FluidTraitReceipt"
+    scope: "basic; full solver → FluidSimulationTrait"
+    timestamp: now()
+  }
+}

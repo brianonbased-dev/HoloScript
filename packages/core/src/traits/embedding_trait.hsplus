@@ -1,0 +1,23 @@
+// @embedding_trait — Text/entity embedding: encodes semantic content to dense vectors via HoloEmbed.
+//
+// Native .hsplus surface for core/traits/EmbeddingTrait.ts.
+
+@trait embedding_trait {
+  capability_tags: ["embedding", "dense_vector", "holoembed", "semantic_encode", "core"]
+
+  @on_spawn(model_id) => {
+    init_embedding(model_id)
+    emit("embedding_ready", {})
+  }
+
+  @on_encode(content) => {
+    vector = encode_to_embedding(content)
+    return vector
+  }
+
+  @receipt embedding_trait_config {
+    type: "EmbeddingTraitReceipt"
+    model_priority: "HoloEmbed sovereign; OpenAI optional"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,23 @@
+// @drop_table_trait — Loot drop table: weighted random item drops on entity death/interaction.
+//
+// Native .hsplus surface for core/traits/DropTableTrait.ts.
+
+@trait drop_table_trait {
+  capability_tags: ["drop_table", "loot_drop", "weighted_random", "item_reward", "core"]
+
+  @on_spawn(table_id, entries) => {
+    init_drop_table(table_id, entries)
+    emit("drop_table_ready", {})
+  }
+
+  @on_roll(seed) => {
+    drops = roll_drop_table(seed)
+    emit("drops_rolled", { count: drops.length })
+    return drops
+  }
+
+  @receipt drop_table_trait_config {
+    type: "DropTableTraitReceipt"
+    timestamp: now()
+  }
+}

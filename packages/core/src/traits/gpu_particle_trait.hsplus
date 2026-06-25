@@ -1,0 +1,22 @@
+// @gpu_particle_trait — GPU particle system: compute-shader driven, millions of particles.
+//
+// Native .hsplus surface for core/traits/GPUParticleTrait.ts.
+
+@trait gpu_particle_trait {
+  capability_tags: ["gpu_particle", "compute_shader_particles", "millions_particles", "webgpu_particles", "core"]
+
+  @on_spawn(max_particles, emitter_def) => {
+    init_gpu_particles(max_particles, emitter_def)
+    emit("gpu_particle_ready", {})
+  }
+
+  @on_tick(dt) => {
+    step_gpu_particles(dt)
+  }
+
+  @receipt gpu_particle_trait_config {
+    type: "GPUParticleTraitReceipt"
+    backend: "WebGPU compute shader"
+    timestamp: now()
+  }
+}

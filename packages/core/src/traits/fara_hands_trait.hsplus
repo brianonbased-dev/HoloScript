@@ -1,0 +1,22 @@
+// @fara_hands_trait — Fara avatar hands: articulated hand mesh with finger pose and gesture recognition.
+//
+// Native .hsplus surface for core/traits/FaraHandsTrait.ts.
+
+@trait fara_hands_trait {
+  capability_tags: ["fara_hands", "articulated_hand", "finger_pose", "gesture_recognition", "core"]
+
+  @on_spawn(hand_side) => {
+    init_fara_hands(hand_side)
+    emit("fara_hands_ready", { hand_side })
+  }
+
+  @on_pose(finger_poses) => {
+    apply_hand_pose(finger_poses)
+    emit("hand_pose_applied", {})
+  }
+
+  @receipt fara_hands_trait_config {
+    type: "FaraHandsTraitReceipt"
+    timestamp: now()
+  }
+}

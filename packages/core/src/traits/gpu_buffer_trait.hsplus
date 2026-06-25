@@ -1,0 +1,22 @@
+// @gpu_buffer_trait — WebGPU buffer: typed buffer allocation, write, map, unmap, destroy.
+//
+// Native .hsplus surface for core/traits/GPUBufferTrait.ts.
+
+@trait gpu_buffer_trait {
+  capability_tags: ["gpu_buffer", "webgpu_buffer", "typed_allocation", "map_unmap", "core"]
+
+  @on_spawn(size_bytes, usage_flags) => {
+    init_gpu_buffer(size_bytes, usage_flags)
+    emit("gpu_buffer_ready", {})
+  }
+
+  @on_write(data, offset) => {
+    write_gpu_buffer(data, offset)
+  }
+
+  @receipt gpu_buffer_trait_config {
+    type: "GPUBufferTraitReceipt"
+    backend: "WebGPU"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,23 @@
+// @emotion_trait — Agent emotion system: valence/arousal model, emotion transitions, expression output.
+//
+// Native .hsplus surface for core/traits/EmotionTrait.ts.
+
+@trait emotion_trait {
+  capability_tags: ["emotion", "valence_arousal", "emotion_transition", "expression_output", "core"]
+
+  @on_spawn => {
+    emit("emotion_ready", {})
+  }
+
+  @on_stimulus(event_type, intensity) => {
+    new_state = apply_emotion_stimulus(event_type, intensity)
+    emit("emotion_changed", { state: new_state })
+    return new_state
+  }
+
+  @receipt emotion_trait_config {
+    type: "EmotionTraitReceipt"
+    model: "valence/arousal"
+    timestamp: now()
+  }
+}

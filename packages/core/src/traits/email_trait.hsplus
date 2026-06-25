@@ -1,0 +1,22 @@
+// @email_trait — Email integration: send, receive, template, attachment via SMTP/API.
+//
+// Native .hsplus surface for core/traits/EmailTrait.ts.
+
+@trait email_trait {
+  capability_tags: ["email", "smtp", "send_receive", "template", "core"]
+
+  @on_spawn(config) => {
+    init_email(config)
+    emit("email_ready", {})
+  }
+
+  @on_send(to, subject, body, attachments) => {
+    send_email(to, subject, body, attachments)
+    emit("email_sent", { to })
+  }
+
+  @receipt email_trait_config {
+    type: "EmailTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,22 @@
+// @gaussian_splat_trait — 3D Gaussian Splat renderer: load .ply, sort, cull, splat-rasterize.
+//
+// Native .hsplus surface for core/traits/GaussianSplatTrait.ts.
+
+@trait gaussian_splat_trait {
+  capability_tags: ["gaussian_splat", "3dgs", "ply_load_sort_cull", "splat_rasterize", "core"]
+
+  @on_spawn(ply_path) => {
+    init_gaussian_splat(ply_path)
+    emit("gaussian_splat_ready", {})
+  }
+
+  @on_render(camera) => {
+    render_gaussian_splat(camera)
+  }
+
+  @receipt gaussian_splat_trait_config {
+    type: "GaussianSplatTraitReceipt"
+    note: "positive camera-space Z; depth<0.01 culls"
+    timestamp: now()
+  }
+}

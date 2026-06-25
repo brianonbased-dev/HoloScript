@@ -1,0 +1,24 @@
+// @gaussian_train_trait — Gaussian Splat training: runs 3DGS optimization on image set to produce .ply.
+//
+// Native .hsplus surface for core/traits/GaussianTrainTrait.ts.
+
+@trait gaussian_train_trait {
+  capability_tags: ["gaussian_train", "3dgs_optimization", "image_to_splat", "ply_output", "core"]
+
+  @on_spawn(config) => {
+    init_gaussian_training(config)
+    emit("gaussian_train_ready", {})
+  }
+
+  @on_train(image_set, iterations) => {
+    result = train_gaussian_splat(image_set, iterations)
+    emit("gaussian_training_complete", { ply_path: result.ply_path })
+    return result
+  }
+
+  @receipt gaussian_train_trait_config {
+    type: "GaussianTrainTraitReceipt"
+    output: ".ply"
+    timestamp: now()
+  }
+}

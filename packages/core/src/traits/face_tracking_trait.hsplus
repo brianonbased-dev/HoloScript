@@ -1,0 +1,23 @@
+// @face_tracking_trait — Face tracking: landmarks, blend shapes, expression mapping for avatars.
+//
+// Native .hsplus surface for core/traits/FaceTrackingTrait.ts.
+
+@trait face_tracking_trait {
+  capability_tags: ["face_tracking", "landmarks", "blend_shapes", "expression_avatar", "core"]
+
+  @on_spawn(device_id) => {
+    init_face_tracking(device_id)
+    emit("face_tracking_ready", {})
+  }
+
+  @on_frame(frame_data) => {
+    expression = process_face_frame(frame_data)
+    emit("face_expression_updated", {})
+    return expression
+  }
+
+  @receipt face_tracking_trait_config {
+    type: "FaceTrackingTraitReceipt"
+    timestamp: now()
+  }
+}

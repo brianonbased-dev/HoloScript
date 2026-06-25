@@ -1,0 +1,22 @@
+// @env_config_trait — Environment config: typed config load from env vars with validation and defaults.
+//
+// Native .hsplus surface for core/traits/EnvConfigTrait.ts.
+
+@trait env_config_trait {
+  capability_tags: ["env_config", "typed_config", "env_vars", "validation_defaults", "core"]
+
+  @on_spawn(schema) => {
+    init_env_config(schema)
+    emit("env_config_ready", {})
+  }
+
+  @on_get(key) => {
+    return get_env_config(key)
+  }
+
+  @receipt env_config_trait_config {
+    type: "EnvConfigTraitReceipt"
+    note: "keys from .env; never inline literals"
+    timestamp: now()
+  }
+}

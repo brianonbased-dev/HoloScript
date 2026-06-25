@@ -1,0 +1,21 @@
+// @frame_declaration_trait — Frame declaration: defines reference frames and coordinate transform chains.
+//
+// Native .hsplus surface for core/traits/FrameDeclarationTrait.ts.
+
+@trait frame_declaration_trait {
+  capability_tags: ["frame_declaration", "reference_frame", "coordinate_chain", "transform_graph", "core"]
+
+  @on_spawn(frame_id, parent_frame) => {
+    declare_frame(frame_id, parent_frame)
+    emit("frame_declared", { frame_id })
+  }
+
+  @on_transform(from_frame, to_frame, point) => {
+    return transform_point_between_frames(from_frame, to_frame, point)
+  }
+
+  @receipt frame_declaration_trait_config {
+    type: "FrameDeclarationTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,21 @@
+// @emergent_spacetime_trait — Emergent spacetime simulation: discrete causal network, holographic boundary.
+//
+// Native .hsplus surface for core/traits/EmergentSpacetimeTrait.ts.
+
+@trait emergent_spacetime_trait {
+  capability_tags: ["emergent_spacetime", "causal_network", "holographic_boundary", "quantum_foam", "core"]
+
+  @on_spawn(params) => {
+    init_emergent_spacetime(params)
+    emit("emergent_spacetime_ready", {})
+  }
+
+  @on_tick(dt) => {
+    step_spacetime(dt)
+  }
+
+  @receipt emergent_spacetime_trait_config {
+    type: "EmergentSpacetimeTraitReceipt"
+    timestamp: now()
+  }
+}

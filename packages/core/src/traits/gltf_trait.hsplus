@@ -1,0 +1,23 @@
+// @gltf_trait — glTF import/export: load glTF 2.0 meshes, materials, animations into HoloScript.
+//
+// Native .hsplus surface for core/traits/GLTFTrait.ts.
+
+@trait gltf_trait {
+  capability_tags: ["gltf", "gltf2_import_export", "mesh_materials_animations", "asset_pipeline", "core"]
+
+  @on_spawn => {
+    emit("gltf_ready", {})
+  }
+
+  @on_import(gltf_path) => {
+    asset = import_gltf(gltf_path)
+    emit("gltf_imported", {})
+    return asset
+  }
+
+  @receipt gltf_trait_config {
+    type: "GLTFTraitReceipt"
+    standard: "glTF 2.0"
+    timestamp: now()
+  }
+}

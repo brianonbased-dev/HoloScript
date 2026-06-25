@@ -1,0 +1,23 @@
+// @ffi_trait — Foreign function interface: calls native C/Rust/WASM functions from HoloScript.
+//
+// Native .hsplus surface for core/traits/FfiTrait.ts.
+
+@trait ffi_trait {
+  capability_tags: ["ffi", "native_call", "c_rust_wasm", "foreign_function", "core"]
+
+  @on_spawn(lib_path) => {
+    init_ffi(lib_path)
+    emit("ffi_ready", {})
+  }
+
+  @on_call(fn_name, args) => {
+    result = call_ffi(fn_name, args)
+    return result
+  }
+
+  @receipt ffi_trait_config {
+    type: "FfiTraitReceipt"
+    targets: ["C", "Rust", "WASM"]
+    timestamp: now()
+  }
+}

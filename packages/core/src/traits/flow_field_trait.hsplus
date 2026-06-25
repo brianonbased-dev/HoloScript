@@ -1,0 +1,21 @@
+// @flow_field_trait — Flow field: vector field directing agent movement through space.
+//
+// Native .hsplus surface for core/traits/FlowFieldTrait.ts.
+
+@trait flow_field_trait {
+  capability_tags: ["flow_field", "vector_field", "agent_steering", "spatial_flow", "core"]
+
+  @on_spawn(grid_size) => {
+    init_flow_field(grid_size)
+    emit("flow_field_ready", {})
+  }
+
+  @on_sample(position) => {
+    return sample_flow_field(position)
+  }
+
+  @receipt flow_field_trait_config {
+    type: "FlowFieldTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,23 @@
+// @form_builder_trait — Dynamic form builder: schema → rendered form with validation and submit action.
+//
+// Native .hsplus surface for core/traits/FormBuilderTrait.ts.
+
+@trait form_builder_trait {
+  capability_tags: ["form_builder", "schema_to_form", "validation", "submit_action", "core"]
+
+  @on_spawn(schema) => {
+    init_form_builder(schema)
+    emit("form_builder_ready", {})
+  }
+
+  @on_submit(values) => {
+    result = validate_and_submit_form(values)
+    if result.valid { emit("form_submitted", { values }) }
+    return result
+  }
+
+  @receipt form_builder_trait_config {
+    type: "FormBuilderTraitReceipt"
+    timestamp: now()
+  }
+}

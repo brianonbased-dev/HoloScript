@@ -1,0 +1,23 @@
+// @elasticity_trait — Service elasticity: auto-scale replicas based on load metric thresholds.
+//
+// Native .hsplus surface for core/traits/ElasticityTrait.ts.
+
+@trait elasticity_trait {
+  capability_tags: ["elasticity", "auto_scale", "replica_count", "load_metric", "core"]
+
+  @on_spawn(min_replicas, max_replicas, target_metric) => {
+    init_elasticity(min_replicas, max_replicas, target_metric)
+    emit("elasticity_ready", {})
+  }
+
+  @on_evaluate_load(current_metric) => {
+    new_count = evaluate_elasticity(current_metric)
+    emit("elasticity_scaled", { replicas: new_count })
+    return new_count
+  }
+
+  @receipt elasticity_trait_config {
+    type: "ElasticityTraitReceipt"
+    timestamp: now()
+  }
+}

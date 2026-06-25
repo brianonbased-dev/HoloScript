@@ -1,0 +1,23 @@
+// @forget_policy_trait — Forget policy: time/count-bounded memory eviction for agent knowledge stores.
+//
+// Native .hsplus surface for core/traits/ForgetPolicyTrait.ts.
+
+@trait forget_policy_trait {
+  capability_tags: ["forget_policy", "memory_eviction", "time_count_bounded", "agent_memory", "core"]
+
+  @on_spawn(max_age_ms, max_count) => {
+    init_forget_policy(max_age_ms, max_count)
+    emit("forget_policy_ready", {})
+  }
+
+  @on_enforce(memory_store) => {
+    evicted = enforce_forget_policy(memory_store)
+    emit("memories_evicted", { count: evicted })
+    return evicted
+  }
+
+  @receipt forget_policy_trait_config {
+    type: "ForgetPolicyTraitReceipt"
+    timestamp: now()
+  }
+}

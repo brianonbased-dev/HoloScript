@@ -1,0 +1,21 @@
+// @emotion_directive_trait — Emotion directive: author-specified emotional state override for NPC/avatar.
+//
+// Native .hsplus surface for core/traits/EmotionDirectiveTrait.ts.
+
+@trait emotion_directive_trait {
+  capability_tags: ["emotion_directive", "emotional_override", "npc_emotion", "author_directive", "core"]
+
+  @on_spawn => {
+    emit("emotion_directive_ready", {})
+  }
+
+  @on_set(emotion, intensity, duration_ms) => {
+    set_emotion_directive(emotion, intensity, duration_ms)
+    emit("emotion_directive_set", { emotion, intensity })
+  }
+
+  @receipt emotion_directive_trait_config {
+    type: "EmotionDirectiveTraitReceipt"
+    timestamp: now()
+  }
+}

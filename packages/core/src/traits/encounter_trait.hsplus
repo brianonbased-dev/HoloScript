@@ -1,0 +1,22 @@
+// @encounter_trait — Game encounter: scripted or procedural agent encounter with trigger zones.
+//
+// Native .hsplus surface for core/traits/EncounterTrait.ts.
+
+@trait encounter_trait {
+  capability_tags: ["encounter", "scripted_procedural", "trigger_zone", "game_encounter", "core"]
+
+  @on_spawn(encounter_def) => {
+    init_encounter(encounter_def)
+    emit("encounter_ready", {})
+  }
+
+  @on_trigger(trigger_entity_id) => {
+    start_encounter(trigger_entity_id)
+    emit("encounter_started", {})
+  }
+
+  @receipt encounter_trait_config {
+    type: "EncounterTraitReceipt"
+    timestamp: now()
+  }
+}

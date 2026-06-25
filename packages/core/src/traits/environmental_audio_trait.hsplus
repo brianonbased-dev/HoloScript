@@ -1,0 +1,21 @@
+// @environmental_audio_trait — Environmental audio: ambient soundscape that reacts to weather, time, biome.
+//
+// Native .hsplus surface for core/traits/EnvironmentalAudioTrait.ts.
+
+@trait environmental_audio_trait {
+  capability_tags: ["environmental_audio", "ambient_soundscape", "weather_time_biome", "reactive_audio", "core"]
+
+  @on_spawn(biome_id) => {
+    init_environmental_audio(biome_id)
+    emit("environmental_audio_ready", {})
+  }
+
+  @on_update(weather, time_of_day) => {
+    update_soundscape(weather, time_of_day)
+  }
+
+  @receipt environmental_audio_trait_config {
+    type: "EnvironmentalAudioTraitReceipt"
+    timestamp: now()
+  }
+}

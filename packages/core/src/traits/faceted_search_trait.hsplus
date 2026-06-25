@@ -1,0 +1,22 @@
+// @faceted_search_trait — Faceted search: filter-by-facet, count per facet, sort, paginate.
+//
+// Native .hsplus surface for core/traits/FacetedSearchTrait.ts.
+
+@trait faceted_search_trait {
+  capability_tags: ["faceted_search", "filter_facet", "count_facet", "paginate", "core"]
+
+  @on_spawn(index_id) => {
+    init_faceted_search(index_id)
+    emit("faceted_search_ready", {})
+  }
+
+  @on_search(query, facets, page, page_size) => {
+    result = search_with_facets(query, facets, page, page_size)
+    return result
+  }
+
+  @receipt faceted_search_trait_config {
+    type: "FacetedSearchTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,23 @@
+// @embedding_search_trait — Embedding vector search: ANN query over HoloEmbed store.
+//
+// Native .hsplus surface for core/traits/EmbeddingSearchTrait.ts.
+
+@trait embedding_search_trait {
+  capability_tags: ["embedding_search", "ann_query", "holoembed", "vector_search", "core"]
+
+  @on_spawn(index_id) => {
+    init_embedding_search(index_id)
+    emit("embedding_search_ready", {})
+  }
+
+  @on_search(query_vector, k) => {
+    results = search_embedding_index(query_vector, k)
+    return results
+  }
+
+  @receipt embedding_search_trait_config {
+    type: "EmbeddingSearchTraitReceipt"
+    backend: "HoloEmbed (sovereign)"
+    timestamp: now()
+  }
+}

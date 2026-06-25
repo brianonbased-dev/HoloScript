@@ -1,0 +1,20 @@
+// @feature_flag_trait — Feature flag: runtime boolean/variant flags with user/env targeting.
+//
+// Native .hsplus surface for core/traits/FeatureFlagTrait.ts.
+
+@trait feature_flag_trait {
+  capability_tags: ["feature_flag", "runtime_toggle", "user_targeting", "variant_flag", "core"]
+
+  @on_spawn => {
+    emit("feature_flag_ready", {})
+  }
+
+  @on_is_enabled(flag_key, context) => {
+    return evaluate_feature_flag(flag_key, context)
+  }
+
+  @receipt feature_flag_trait_config {
+    type: "FeatureFlagTraitReceipt"
+    timestamp: now()
+  }
+}

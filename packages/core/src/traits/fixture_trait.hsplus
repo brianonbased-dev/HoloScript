@@ -1,0 +1,21 @@
+// @fixture_trait — Test fixture: seeded deterministic world state for test isolation.
+//
+// Native .hsplus surface for core/traits/FixtureTrait.ts.
+
+@trait fixture_trait {
+  capability_tags: ["fixture", "test_fixture", "seeded_world_state", "test_isolation", "core"]
+
+  @on_spawn(fixture_id, seed) => {
+    init_test_fixture(fixture_id, seed)
+    emit("fixture_ready", { fixture_id })
+  }
+
+  @on_reset => {
+    reset_fixture()
+  }
+
+  @receipt fixture_trait_config {
+    type: "FixtureTraitReceipt"
+    timestamp: now()
+  }
+}

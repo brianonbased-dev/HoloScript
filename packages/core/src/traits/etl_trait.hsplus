@@ -1,0 +1,23 @@
+// @etl_trait — ETL pipeline: extract-transform-load with provenance receipt.
+//
+// Native .hsplus surface for core/traits/EtlTrait.ts.
+
+@trait etl_trait {
+  capability_tags: ["etl", "extract_transform_load", "provenance_receipt", "data_pipeline", "core"]
+
+  @on_spawn(pipeline_def) => {
+    init_etl_pipeline(pipeline_def)
+    emit("etl_ready", {})
+  }
+
+  @on_run(source) => {
+    result = run_etl_pipeline(source)
+    emit("etl_complete", { rows: result.rows })
+    return result
+  }
+
+  @receipt etl_trait_config {
+    type: "EtlTraitReceipt"
+    timestamp: now()
+  }
+}
