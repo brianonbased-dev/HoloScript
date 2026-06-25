@@ -1,0 +1,21 @@
+@trait {
+  name: "@tooltip",
+  category: "visual",
+  description: "Contextual hover tooltip panel. Displays a styled tooltip card anchored near the pointer or entity when hovered, supporting rich content (title, description, icon, stat rows), smart screen-edge avoidance, and configurable show/hide delays. Authored from TooltipTrait.ts.",
+  props: {
+    title: string = "",
+    body: string = "",
+    icon_url: string = "",
+    stats: list<{ label: string, value: string }> = [],
+    show_delay_ms: number = 400,
+    hide_delay_ms: number = 100,
+    max_width_px: number = 280
+  },
+  events: {
+    attached: "tooltip_attached",
+    detached: "tooltip_detached",
+    on_show: "tooltip_show",
+    on_hide: "tooltip_hide"
+  },
+  behaviors: ["@hover_effect", "@ui_frame", "@icon"]
+}

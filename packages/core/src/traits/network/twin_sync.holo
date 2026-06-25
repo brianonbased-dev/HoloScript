@@ -1,0 +1,21 @@
+@trait {
+  name: "@twin_sync",
+  category: "network",
+  description: "Digital-twin bidirectional state synchronizer. Mirrors the entity's state to and from a real-world twin endpoint (IoT device, industrial PLC, or telemetry feed), performing transformation and unit conversion, and raising a divergence alert when physical and virtual states drift beyond a threshold. Authored from TwinSyncTrait.ts.",
+  props: {
+    twin_url: string = "",
+    direction: enum("push" | "pull" | "bidirectional") = "bidirectional",
+    sync_interval_ms: number = 500,
+    mapping: list<{ entity_prop: string, twin_field: string, scale: number }> = [],
+    divergence_threshold_pct: number = 5,
+    auth_secret: string = ""
+  },
+  events: {
+    attached: "twin_sync_attached",
+    detached: "twin_sync_detached",
+    on_sync: "twin_sync_sync",
+    on_diverge: "twin_sync_diverge",
+    on_error: "twin_sync_error"
+  },
+  behaviors: ["@replication_policy", "@reactive_store", "@web_socket"]
+}

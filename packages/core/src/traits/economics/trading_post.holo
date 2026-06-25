@@ -1,0 +1,21 @@
+@trait {
+  name: "@trading_post",
+  category: "economics",
+  description: "Player-to-player item trading station. Facilitates a bilateral trade offer flow — both parties commit items and an optional currency amount to escrow, sign an approval intent, and the swap executes atomically via the x402 settlement contract, refunding both sides on timeout or rejection. Authored from TradingPostTrait.ts.",
+  props: {
+    trade_timeout_s: number = 120,
+    require_both_confirm: boolean = true,
+    allow_currency: boolean = true,
+    currency_token: string = "USDC",
+    log_trades: boolean = true
+  },
+  events: {
+    attached: "trading_post_attached",
+    detached: "trading_post_detached",
+    on_offer: "trading_post_offer",
+    on_accept: "trading_post_accept",
+    on_complete: "trading_post_complete",
+    on_cancel: "trading_post_cancel"
+  },
+  behaviors: ["@inventory", "@discount", "@ownership"]
+}

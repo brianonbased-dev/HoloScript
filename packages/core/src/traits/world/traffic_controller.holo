@@ -1,0 +1,18 @@
+@trait {
+  name: "@traffic_controller",
+  category: "world",
+  description: "Intersection traffic signal and vehicle flow controller. Cycles a list of signal groups through green/yellow/red phases on a configurable schedule, integrating with nav-agent traffic awareness so vehicles yield at red lights and pathfind around blocked intersections. Authored from TrafficControllerTrait.ts.",
+  props: {
+    signal_groups: list<{ ids: list<string>, green_s: number, yellow_s: number }> = [],
+    cycle_offset_s: number = 0,
+    enabled: boolean = true,
+    emergency_override: boolean = false
+  },
+  events: {
+    attached: "traffic_controller_attached",
+    detached: "traffic_controller_detached",
+    on_phase_change: "traffic_controller_phase_change",
+    on_emergency: "traffic_controller_emergency"
+  },
+  behaviors: ["@route_planner", "@city_generator", "@sim_speed"]
+}
