@@ -1,0 +1,29 @@
+@trait {
+  name: "@partner_sdk",
+  category: "integration",
+  description: "Partner SDK integration for connecting to external third-party APIs. Manages authenticated partner sessions (API key, HMAC, OAuth 2.0, JWT), rate limiting per partner, webhook verification (HMAC-signed payloads), request concurrency, and session TTL. Port of PartnerSDKTrait.ts (handler name: partner_sdk).",
+  props: {
+    partners: list<{ id: string, name: string, base_url: string, auth_mode: string, api_key: string, secret: string, capabilities: list<string>, version: string }> = [],
+    max_concurrent_requests: number = 10,
+    request_timeout_ms: number = 30000,
+    session_ttl_ms: number = 3600000,
+    rate_limit_per_partner: number = 100,
+    rate_limit_window_ms: number = 60000,
+    enable_webhook_verification: boolean = true,
+    log_requests: boolean = true,
+    max_log_size: number = 1000
+  },
+  events: {
+    attached: "partner_sdk_attached",
+    detached: "partner_sdk_detached",
+    on_connected: "partner:connected",
+    on_disconnected: "partner:disconnected",
+    on_response: "partner:response",
+    on_webhook: "partner:webhook",
+    on_error: "partner:error",
+    connect: "partner:connect",
+    request: "partner:request",
+    disconnect: "partner:disconnect"
+  },
+  behaviors: ["@marketplace_integration", "@package_signing"]
+}

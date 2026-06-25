@@ -1,0 +1,28 @@
+@trait {
+  name: "@poi",
+  category: "spatial",
+  description: "Point of Interest with proximity triggers and navigation. Emits proximity events when user enters/exits trigger radius, supports distance labeling, navigation target marking, and cooldown between triggers. Port of POITrait.ts (handler name: poi).",
+  props: {
+    name: string = "",
+    description: string = "",
+    category: string = "",
+    icon: string = "",
+    trigger_radius: number = 10.0,
+    visible_radius: number = 100.0,
+    navigation_target: boolean = false,
+    show_distance: boolean = true,
+    show_label: boolean = true,
+    trigger_once: boolean = false,
+    cooldown: number = 1000
+  },
+  events: {
+    attached: "poi_attached",
+    detached: "poi_detached",
+    on_enter: "poi_enter",
+    on_exit: "poi_exit",
+    on_triggered: "poi_triggered",
+    on_visible: "poi_visible",
+    on_hidden: "poi_hidden"
+  },
+  behaviors: ["@geospatial_anchor", "@terrain_anchor", "@spatial_navigation"]
+}

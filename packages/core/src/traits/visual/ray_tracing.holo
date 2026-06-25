@@ -1,0 +1,35 @@
+@trait {
+  name: "@ray_tracing",
+  category: "visual",
+  description: "Configures hardware/software ray tracing: reflections (max bounces, samples, roughness cutoff, SSR fallback), shadows (samples, soft, bias), ambient occlusion (radius, samples), global illumination (path tracer, denoiser: NLM/OIDN/none). Actual ray-scene intersection is done by the renderer backend — this trait provides config and event dispatch only. Modes: hardware, software_bvh, hybrid. Port of RayTracingTrait.ts (handler name: ray_tracing).",
+  props: {
+    mode: enum("hardware" | "software_bvh" | "hybrid") = "hardware",
+    reflections_enabled: boolean = true,
+    reflections_max_bounces: number = 2,
+    reflections_spp: number = 1,
+    reflections_max_roughness: number = 0.5,
+    reflections_ssr_fallback: boolean = true,
+    shadows_enabled: boolean = true,
+    shadows_spl: number = 4,
+    shadows_soft: boolean = true,
+    ao_enabled: boolean = true,
+    ao_radius: number = 0.5,
+    ao_spp: number = 2,
+    gi_enabled: boolean = false,
+    gi_max_bounces: number = 3,
+    gi_spp: number = 1,
+    gi_denoise: boolean = true,
+    path_tracer_enabled: boolean = false,
+    path_tracer_spp: number = 4,
+    path_tracer_max_bounces: number = 8,
+    path_tracer_denoiser: enum("nlm" | "oidn" | "none") = "oidn",
+    max_rays_per_frame: number = 0
+  },
+  events: {
+    attached: "ray_tracing_attached",
+    detached: "ray_tracing_detached",
+    on_result: "ray_tracing_result",
+    trace: "ray_tracing_trace"
+  },
+  behaviors: ["@god_rays", "@volumetric", "@gaussian_splat"]
+}

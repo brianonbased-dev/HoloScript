@@ -1,0 +1,29 @@
+@trait {
+  name: "@physical_camera_input",
+  category: "xr",
+  description: "Sovereign edge hardware camera input for physical cameras attached to edge nodes (Jetson Orin, etc.). Supports /dev/videoN (UVC), csi://N (CSI GStreamer), realsense://<serial> (Intel RealSense D4xx), and oak://<ip-or-usb> (Luxonis OAK-D). Routes incoming frame notifications into the HoloScript world model; actual capture runs in a side-channel process. Emits perception:update so cognitive traits can react. Port of PhysicalCameraInputTrait.ts (handler name: physical_camera_input).",
+  props: {
+    source: string = "/dev/video0",
+    width: number = 1920,
+    height: number = 1080,
+    fps: number = 30,
+    format: enum("rgb8" | "bgr8" | "yuv420" | "nv12") = "rgb8",
+    depth_enabled: boolean = false,
+    depth_min_m: number = 0.1,
+    depth_max_m: number = 10.0,
+    frame_dir: string = "/tmp/holo-frames",
+    max_frames_queued: number = 5,
+    emit_perception: boolean = true
+  },
+  events: {
+    on_opened: "camera:opened",
+    on_closed: "camera:closed",
+    on_error: "camera:error",
+    on_perception: "perception:update",
+    open: "camera:open",
+    close: "camera:close",
+    frame: "camera:frame",
+    depth_frame: "camera:depth_frame"
+  },
+  behaviors: ["@open_xr_hal", "@hand_mesh_ai"]
+}
