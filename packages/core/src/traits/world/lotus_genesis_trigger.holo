@@ -1,0 +1,23 @@
+@trait {
+  name: "@lotus_genesis_trigger",
+  category: "world",
+  description: "Founder-gated trigger for the Lotus seedable artifact. Refuses to emit lotus_genesis_fired unless a signed genesis anchor is present, the derived seed is not the placeholder, and all petals are full. Gate evaluation is a pure function of (seed, anchor, allPetalsFull); the fired transition is irreversible per node and emits exactly once. Port of LotusGenesisTriggerTrait.ts (handler name: lotus_genesis_trigger).",
+  props: {
+    seed_source: string = "LOTUS_GENESIS_SEED",
+    placeholder_seed: string = "0x0000DEAD",
+    required_anchor_path: string = "D:/GOLD/anchors/lotus-genesis.json",
+    required_wallet: string = "0x0C574397150Ad8d9f7FEF83fe86a2CBdf4A660E3",
+    require_signed_anchor: boolean = true,
+    all_petals_full_source: string = "lotus.api.all_petals_full",
+    emit_attach_event: boolean = true
+  },
+  events: {
+    attached: "lotus_genesis_trigger_attached",
+    on_evaluation: "lotus_genesis_evaluation",
+    on_armed: "lotus_genesis_armed",
+    on_fired: "lotus_genesis_fired",
+    anchor_update: "lotus_genesis_anchor_update",
+    check: "lotus_genesis_check"
+  },
+  behaviors: ["@lotus_root", "@lotus_stalk", "@lotus_gardener"]
+}

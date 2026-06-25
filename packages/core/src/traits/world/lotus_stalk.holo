@@ -1,0 +1,20 @@
+@trait {
+  name: "@lotus_stalk",
+  category: "world",
+  description: "Format-tier marker for the lotus seedable artifact (.hs/.hsplus/.holo/.hs.md). Maps aggregate bloom state to sway amplitude, stiffness, and y-droop — sealed=max sway/low stiffness, full=stiff/no sway, wilted=drooping+sway returns. Modulates @animated sway clip amplitude via events; does not replace the animation. Pure mapping: no Math.random, no wall-clock. Port of LotusStalkTrait.ts (handler name: lotus_stalk).",
+  props: {
+    format: string = "holo",
+    bloom_state_source: string = "lotus.api.bloom_state",
+    base_sway_amplitude_rad: number = 0.15,
+    max_stiffness: number = 4.0,
+    wilt_droop_m: number = 0.5,
+    emit_attach_event: boolean = true
+  },
+  events: {
+    attached: "lotus_stalk_attached",
+    on_sway_modulated: "stalk_sway_modulated",
+    on_bloom_changed: "lotus_stalk.bloom_changed",
+    bloom_state_changed: "lotus_bloom_state_changed"
+  },
+  behaviors: ["@lotus_root", "@animated", "@lotus_gardener"]
+}

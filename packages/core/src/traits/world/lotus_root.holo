@@ -1,0 +1,20 @@
+@trait {
+  name: "@lotus_root",
+  category: "world",
+  description: "Substrate-tier marker for the lotus seedable artifact. Reads aggregate bloom state from context (sealed/budding/blooming/full/wilted) and drives sub-emissive pulse intensity — brighter when sealed/budding (infrastructure alive, content incoming), quieter when full. Pure mapping: no Math.random, no wall-clock, no per-frame work. Port of LotusRootTrait.ts (handler name: lotus_root).",
+  props: {
+    substrate: string = "parser",
+    bloom_state_source: string = "lotus.api.bloom_state",
+    early_pulse_intensity: number = 0.8,
+    mature_intensity: number = 0.4,
+    early_pulse_speed: number = 0.5,
+    emit_attach_event: boolean = true
+  },
+  events: {
+    attached: "lotus_root_attached",
+    on_pulse: "lotus_root.pulse",
+    on_bloom_changed: "lotus_root.bloom_changed",
+    bloom_state_changed: "lotus_bloom_state_changed"
+  },
+  behaviors: ["@lotus_stalk", "@lotus_gardener", "@gpu_particle"]
+}

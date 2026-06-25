@@ -1,0 +1,28 @@
+@trait {
+  name: "@marketplace",
+  category: "world",
+  description: "In-world marketplace integration for buying, selling, and auctioning assets across OpenSea/Rarible/Blur/MagicEden/custom platforms. Supports listing, buying, auction, royalties, and multi-currency (ETH/MATIC/SOL/USDC). Port of MarketplaceTrait.ts (handler name: marketplace).",
+  props: {
+    platform: enum("opensea" | "rarible" | "blur" | "magic_eden" | "custom") = "opensea",
+    listing_enabled: boolean = false,
+    buy_enabled: boolean = true,
+    currency: enum("ETH" | "MATIC" | "SOL" | "USDC" | "custom") = "ETH",
+    royalty_percentage: number = 2.5,
+    royalty_recipient: string = "",
+    auction_support: boolean = false,
+    min_price: number = 0.0,
+    custom_api: string = ""
+  },
+  events: {
+    attached: "marketplace_connected",
+    detached: "marketplace_disconnected",
+    on_listed: "marketplace_listed",
+    on_sold: "marketplace_sold",
+    on_bid: "marketplace_bid",
+    on_error: "marketplace_error",
+    list: "marketplace_list",
+    buy: "marketplace_buy",
+    bid: "marketplace_bid_place"
+  },
+  behaviors: ["@marketplace_integration", "@nft", "@digital_twin"]
+}
