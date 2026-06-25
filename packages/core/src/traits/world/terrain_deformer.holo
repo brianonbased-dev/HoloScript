@@ -1,0 +1,20 @@
+@trait {
+  name: "@terrain_deformer",
+  category: "world",
+  description: "Realtime terrain heightmap deformer. Applies additive or multiplicative sculpt operations (raise, lower, flatten, smooth) to a live heightmap texture at the entity's world position, propagating the deformation to the physics collider and navmesh in subsequent frames. Authored from TerrainDeformerTrait.ts.",
+  props: {
+    mode: enum("raise" | "lower" | "flatten" | "smooth") = "raise",
+    radius_m: number = 2,
+    strength: number = 0.5,
+    falloff: enum("linear" | "smooth" | "sharp") = "smooth",
+    continuous: boolean = false,
+    max_deformation_m: number = 5
+  },
+  events: {
+    attached: "terrain_deformer_attached",
+    detached: "terrain_deformer_detached",
+    on_deform: "terrain_deformer_deform",
+    apply: "terrain_deformer_trigger_apply"
+  },
+  behaviors: ["@voxel_terrain", "@weight_map", "@placement_validator"]
+}

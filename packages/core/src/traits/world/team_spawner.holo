@@ -1,0 +1,22 @@
+@trait {
+  name: "@team_spawner",
+  category: "world",
+  description: "Team-faction spawn point manager. Assigns incoming players to team spawn locations based on their faction tag, balancing load across multiple spawn pads, enforcing minimum distance between simultaneous spawns, and locking the spawn on capture. Authored from TeamSpawnerTrait.ts.",
+  props: {
+    faction: string = "",
+    spawn_pad_entity_ids: list<string> = [],
+    min_spread_m: number = 5,
+    capturable: boolean = false,
+    capture_progress: number = 0,
+    capture_speed: number = 0.2,
+    enabled: boolean = true
+  },
+  events: {
+    attached: "team_spawner_attached",
+    detached: "team_spawner_detached",
+    on_spawn: "team_spawner_spawn",
+    on_capture: "team_spawner_capture",
+    on_neutralize: "team_spawner_neutralize"
+  },
+  behaviors: ["@respawn_manager", "@spawn_gate", "@penalty_zone"]
+}

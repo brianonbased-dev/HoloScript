@@ -1,0 +1,20 @@
+@trait {
+  name: "@talent_tree",
+  category: "game",
+  description: "RPG talent/skill tree progression system. Stores a graph of talent nodes with prerequisites and unlock costs, applying passive stat modifiers and activating new abilities when points are spent, persisting the unlocked state per wallet address. Authored from TalentTreeTrait.ts.",
+  props: {
+    tree_url: string = "",
+    talent_points: number = 0,
+    unlocked: list<string> = [],
+    max_points: number = 50,
+    reset_cost: number = 1000
+  },
+  events: {
+    attached: "talent_tree_attached",
+    detached: "talent_tree_detached",
+    on_unlock: "talent_tree_unlock",
+    on_reset: "talent_tree_reset",
+    unlock: "talent_tree_trigger_unlock"
+  },
+  behaviors: ["@player_stats", "@equip", "@badge"]
+}

@@ -1,0 +1,25 @@
+@trait {
+  name: "@timeline_director",
+  category: "game",
+  description: "Cinematic timeline sequencer. Drives an ordered list of timed cues — camera cuts, entity state changes, audio stings, dialogue lines, particle bursts — on a shared timeline clock, supporting pause/play/seek and non-destructive looping for cutscenes, trailers, and tutorial sequences. Authored from TimelineDirectorTrait.ts.",
+  props: {
+    cues: list<{ time_ms: number, type: string, target_id: string, params: dict<string, string> }> = [],
+    duration_ms: number = 10000,
+    auto_play: boolean = false,
+    loop: boolean = false,
+    time_scale: number = 1.0,
+    skip_allowed: boolean = true
+  },
+  events: {
+    attached: "timeline_director_attached",
+    detached: "timeline_director_detached",
+    on_play: "timeline_director_play",
+    on_pause: "timeline_director_pause",
+    on_complete: "timeline_director_complete",
+    on_cue: "timeline_director_cue",
+    play: "timeline_director_trigger_play",
+    pause: "timeline_director_trigger_pause",
+    seek: "timeline_director_trigger_seek"
+  },
+  behaviors: ["@story_beat", "@keyframe", "@transition"]
+}
