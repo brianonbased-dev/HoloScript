@@ -1,0 +1,32 @@
+// @hitl_manager — Human-in-the-Loop approval gates, intervention points, and audit trails.
+//
+// Native .hsplus surface for core/hitl/HITLManager.ts.
+//
+// requestApproval(action) → ApprovalToken / checkApproval(token) → bool
+// Patterns: approval gate, human review, supervised execution, abort-on-reject
+
+@trait hitl_manager {
+  capability_tags: ["hitl_manager", "approval_gate", "supervised_execution", "audit_trail", "core"]
+
+  @on_spawn => {
+    emit("hitl_manager_ready", {})
+  }
+
+  @on_request_approval(action) => {
+    token = request_hitl_approval(action)
+    emit("hitl_approval_requested", {})
+    return token
+  }
+
+  @on_check_approval(token) => {
+    approved = check_hitl_approval(token)
+    if !approved { emit("hitl_approval_rejected", {}) }
+    return approved
+  }
+
+  @receipt hitl_manager_config {
+    type: "HITLManagerReceipt"
+    patterns: ["approval gate", "human review", "supervised execution", "abort-on-reject"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,31 @@
+// @delegation_engine — Task delegation from supervisors to subordinates with retry, escalation, tracking.
+//
+// Native .hsplus surface for core/hierarchy/DelegationEngine.ts.
+//
+// delegate(task, agentId) / escalate(task, reason) / getStatus(taskId) → DelegationStatus
+// Sprint 4 Priority 7 — drives AgentHierarchy supervision loop
+
+@trait delegation_engine {
+  capability_tags: ["delegation_engine", "task_delegation", "retry_escalation", "supervision_loop", "core"]
+
+  @on_spawn => {
+    emit("delegation_engine_ready", {})
+  }
+
+  @on_delegate(task, agent_id) => {
+    status = delegate_task(task, agent_id)
+    emit("task_delegated", { task_id: task.id, agent_id })
+    return status
+  }
+
+  @on_escalate(task, reason) => {
+    escalate_task(task, reason)
+    emit("task_escalated", { task_id: task.id, reason })
+  }
+
+  @receipt delegation_engine_config {
+    type: "DelegationEngineReceipt"
+    features: ["retry", "escalation", "tracking"]
+    timestamp: now()
+  }
+}

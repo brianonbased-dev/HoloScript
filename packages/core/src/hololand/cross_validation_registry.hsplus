@@ -1,0 +1,28 @@
+// @cross_validation_registry — Multi-agent consensus validation of HoloLand world state events.
+//
+// Native .hsplus surface for core/hololand/CrossValidationRegistry.ts.
+// Third sibling of Confabulation Risk story: AgentRiskRegistry + PhysicsBoundsRegistry + this.
+//
+// register(event, validators[]) / validate(event) → ConsensusResult
+// Requires quorum (e.g. 2-of-3 agents) to accept a world state mutation
+
+@trait cross_validation_registry {
+  capability_tags: ["cross_validation_registry", "multi_agent_consensus", "confabulation_risk", "world_state", "core"]
+
+  @on_spawn => {
+    emit("cross_validation_registry_ready", {})
+  }
+
+  @on_validate(event) => {
+    result = validate_world_state_event(event)
+    if !result.consensus { emit("world_state_consensus_fail", { event_id: event.id }) }
+    return result
+  }
+
+  @receipt cross_validation_registry_config {
+    type: "CrossValidationRegistryReceipt"
+    pattern: "quorum consensus — multi-agent must agree before accepting mutation"
+    siblings: ["AgentRiskRegistry", "PhysicsBoundsRegistry"]
+    timestamp: now()
+  }
+}

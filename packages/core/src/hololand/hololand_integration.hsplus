@@ -1,0 +1,30 @@
+// @hololand_integration — Bridge between HoloScript language and the HoloLand runtime platform.
+//
+// Native .hsplus surface for core/hololand/HololandIntegration.ts.
+//
+// registerWorld(def) / syncEntity(entity) / joinNetwork(worldId)
+// Handles: world registration, entity synchronization, networking, cross-platform services
+
+@trait hololand_integration {
+  capability_tags: ["hololand_integration", "runtime_bridge", "world_registration", "entity_sync", "core"]
+
+  @on_spawn => {
+    emit("hololand_integration_ready", {})
+  }
+
+  @on_register_world(world_def) => {
+    register_hololand_world(world_def)
+    emit("hololand_world_registered", {})
+  }
+
+  @on_sync_entity(entity) => {
+    sync_hololand_entity(entity)
+    emit("hololand_entity_synced", { id: entity.id })
+  }
+
+  @receipt hololand_integration_config {
+    type: "HololandIntegrationReceipt"
+    features: ["world registration", "entity sync", "networking", "cross-platform services"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,25 @@
+// @agent_hierarchy — Tree-structured agent hierarchies for delegation and supervision. Sprint 4 Priority 7.
+//
+// Native .hsplus surface for core/hierarchy/AgentHierarchy.ts.
+//
+// addAgent(agent, parentId?) / removeAgent(id) / getSupervisor(id) → AgentNode?
+// Hierarchy drives DelegationEngine; supervisors receive escalations from subordinates
+
+@trait agent_hierarchy {
+  capability_tags: ["agent_hierarchy", "tree_hierarchy", "supervision", "delegation_tree", "core"]
+
+  @on_spawn => {
+    emit("agent_hierarchy_ready", {})
+  }
+
+  @on_add_agent(agent, parent_id) => {
+    add_agent_to_hierarchy(agent, parent_id)
+    emit("agent_added_to_hierarchy", { id: agent.id, parent_id })
+  }
+
+  @receipt agent_hierarchy_config {
+    type: "AgentHierarchyReceipt"
+    pattern: "tree — supervisors receive escalations from subordinates"
+    timestamp: now()
+  }
+}

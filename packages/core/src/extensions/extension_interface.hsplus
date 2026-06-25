@@ -1,0 +1,20 @@
+// @extension_interface — HoloExtension and ExtensionContext: plugin registration interface.
+//
+// Native .hsplus surface for core/extensions/ExtensionInterface.ts.
+//
+// HoloExtension { name, version, register(ctx: ExtensionContext) }
+// ExtensionContext { registerTrait(name, handler), getRuntime() }
+
+@trait extension_interface {
+  capability_tags: ["extension_interface", "plugin_interface", "trait_registration", "extension_context", "core"]
+
+  @on_spawn => {
+    emit("extension_interface_ready", {})
+  }
+
+  @receipt extension_interface_config {
+    type: "ExtensionInterfaceReceipt"
+    interfaces: ["HoloExtension", "ExtensionContext"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,26 @@
+// @base_recovery_strategy — Base class for self-healing recovery strategies implementing IRecoveryStrategy.
+//
+// Native .hsplus surface for core/extensions/BaseRecoveryStrategy.ts.
+//
+// recover(error, context) → RecoveryResult { action: restart|skip|escalate, delay? }
+// Extend to add agent-specific recovery logic; used by AgentRunner circuit breaker
+
+@trait base_recovery_strategy {
+  capability_tags: ["base_recovery_strategy", "self_healing", "circuit_breaker", "escalation", "core"]
+
+  @on_spawn => {
+    emit("base_recovery_strategy_ready", {})
+  }
+
+  @on_recover(error, context) => {
+    result = execute_recovery_strategy(error, context)
+    emit("recovery_executed", { action: result.action })
+    return result
+  }
+
+  @receipt base_recovery_strategy_config {
+    type: "BaseRecoveryStrategyReceipt"
+    actions: ["restart", "skip", "escalate"]
+    timestamp: now()
+  }
+}

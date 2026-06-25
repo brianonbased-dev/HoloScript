@@ -1,0 +1,32 @@
+// @hitl_backend_service — Production HITL backend: REST API, WebSocket real-time, multi-storage. Sprint 3.
+//
+// Native .hsplus surface for core/hitl/HITLBackendService.ts.
+//
+// submitRequest(req) / getStatus(id) / resolve(id, decision)
+// Targets: 40% → 5% agentic project failure via human oversight gates
+
+@trait hitl_backend_service {
+  capability_tags: ["hitl_backend_service", "human_in_the_loop", "rest_websocket", "approval_gates", "core"]
+
+  @on_spawn => {
+    emit("hitl_backend_service_ready", {})
+  }
+
+  @on_submit(request) => {
+    id = submit_hitl_request(request)
+    emit("hitl_request_submitted", { id })
+    return id
+  }
+
+  @on_resolve(id, decision) => {
+    resolve_hitl_request(id, decision)
+    emit("hitl_request_resolved", { id, decision })
+  }
+
+  @receipt hitl_backend_service_config {
+    type: "HITLBackendServiceReceipt"
+    transports: ["REST API", "WebSocket real-time"]
+    target: "reduce agentic failure rate 40% → 5%"
+    timestamp: now()
+  }
+}

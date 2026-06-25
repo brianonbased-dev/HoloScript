@@ -1,0 +1,28 @@
+// @physics_bounds_registry — Confabulation-safe physics bounds: per-tier runtime envelopes on physics mutations.
+//
+// Native .hsplus surface for core/hololand/PhysicsBoundsRegistry.ts.
+// Sibling to AgentRiskRegistry + CrossValidationRegistry in Confabulation Risk story.
+//
+// register(tier, bounds) / check(mutation, agentTier) → bool
+// Higher-tier agents (T0 > T1 > T2 > T3) get tighter physics bounds
+
+@trait physics_bounds_registry {
+  capability_tags: ["physics_bounds_registry", "confabulation_safe", "physics_envelopes", "tier_bounds", "core"]
+
+  @on_spawn => {
+    emit("physics_bounds_registry_ready", {})
+  }
+
+  @on_check(mutation, agent_tier) => {
+    allowed = check_physics_mutation_bounds(mutation, agent_tier)
+    if !allowed { emit("physics_bounds_violation", { agent_tier }) }
+    return allowed
+  }
+
+  @receipt physics_bounds_registry_config {
+    type: "PhysicsBoundsRegistryReceipt"
+    tiers: ["T0", "T1", "T2", "T3"]
+    siblings: ["AgentRiskRegistry", "CrossValidationRegistry"]
+    timestamp: now()
+  }
+}

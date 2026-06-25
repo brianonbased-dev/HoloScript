@@ -1,0 +1,26 @@
+// @graph_grammar — Composition rules as recursively expandable grammar nodes for procedural world generation.
+//
+// Native .hsplus surface for core/grammar/GraphGrammar.ts.
+//
+// GrammarRule { pattern, expansion, weight } / expand(rule, seed) → SceneGraph
+// Production rules generate entire scenes from seed grammars — procedural world gen substrate
+
+@trait graph_grammar {
+  capability_tags: ["graph_grammar", "procedural_generation", "grammar_rules", "scene_from_seed", "core"]
+
+  @on_spawn => {
+    emit("graph_grammar_ready", {})
+  }
+
+  @on_expand(rule, seed) => {
+    scene = expand_grammar_rule(rule, seed)
+    emit("grammar_expanded", {})
+    return scene
+  }
+
+  @receipt graph_grammar_config {
+    type: "GraphGrammarReceipt"
+    pattern: "composition rules → recursively expandable → full scene from seed"
+    timestamp: now()
+  }
+}

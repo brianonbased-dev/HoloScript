@@ -1,0 +1,28 @@
+// @base_mailbox — Priority-aware message queue for agents implementing IAgentMailbox.
+//
+// Native .hsplus surface for core/extensions/BaseMailbox.ts.
+//
+// enqueue(msg, priority) / dequeue() → Message? / peek() → Message?
+// Priority: critical > high > normal > low; FIFO within each tier
+
+@trait base_mailbox {
+  capability_tags: ["base_mailbox", "priority_queue", "agent_mailbox", "message_ordering", "core"]
+
+  @on_spawn => {
+    emit("base_mailbox_ready", {})
+  }
+
+  @on_enqueue(msg, priority) => {
+    enqueue_mailbox_message(msg, priority)
+  }
+
+  @on_dequeue => {
+    return dequeue_mailbox_message()
+  }
+
+  @receipt base_mailbox_config {
+    type: "BaseMailboxReceipt"
+    priorities: ["critical", "high", "normal", "low"]
+    timestamp: now()
+  }
+}

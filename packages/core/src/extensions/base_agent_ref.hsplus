@@ -1,0 +1,25 @@
+// @base_agent_ref — Default IAgentRef implementation with customizable messaging behavior.
+//
+// Native .hsplus surface for core/extensions/BaseAgentRef.ts.
+//
+// send(msg) / receive() → Message / close()
+// Extend to add application-specific message routing; used by uaa2-service AgentRef
+
+@trait base_agent_ref {
+  capability_tags: ["base_agent_ref", "agent_ref_impl", "messaging_behavior", "extensible", "core"]
+
+  @on_spawn => {
+    emit("base_agent_ref_ready", {})
+  }
+
+  @on_send(msg) => {
+    send_agent_ref_message(msg)
+    emit("agent_ref_message_sent", {})
+  }
+
+  @receipt base_agent_ref_config {
+    type: "BaseAgentRefReceipt"
+    pattern: "extend to customize; default impl for uaa2-service AgentRef"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,25 @@
+// @world_definition_schema — Comprehensive schema for HoloScript worlds with HoloLand runtime integration.
+//
+// Native .hsplus surface for core/hololand/WorldDefinitionSchema.ts.
+//
+// WorldDefinition { id, spatial hierarchy, assets, network config, deploy targets }
+// Supports spatial hierarchies, asset references, networking, cross-platform deployment
+
+@trait world_definition_schema {
+  capability_tags: ["world_definition_schema", "world_schema", "spatial_hierarchy", "cross_platform_deploy", "core"]
+
+  @on_spawn => {
+    emit("world_definition_schema_ready", {})
+  }
+
+  @on_validate(definition) => {
+    valid = validate_world_definition(definition)
+    return valid
+  }
+
+  @receipt world_definition_schema_config {
+    type: "WorldDefinitionSchemaReceipt"
+    features: ["spatial hierarchy", "asset references", "networking", "cross-platform deployment"]
+    timestamp: now()
+  }
+}

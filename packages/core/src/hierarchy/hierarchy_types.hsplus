@@ -1,0 +1,19 @@
+// @hierarchy_types — Type definitions for agent hierarchies, delegation rules, supervision. Sprint 4 Priority 7.
+//
+// Native .hsplus surface for core/hierarchy/HierarchyTypes.ts.
+//
+// AgentNode, DelegationRule, SupervisionPolicy, DelegationStatus
+
+@trait hierarchy_types {
+  capability_tags: ["hierarchy_types", "delegation_rule", "supervision_policy", "type_definitions", "core"]
+
+  @on_spawn => {
+    emit("hierarchy_types_ready", {})
+  }
+
+  @receipt hierarchy_types_config {
+    type: "HierarchyTypesReceipt"
+    types: ["AgentNode", "DelegationRule", "SupervisionPolicy", "DelegationStatus"]
+    timestamp: now()
+  }
+}

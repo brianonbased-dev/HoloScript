@@ -1,0 +1,26 @@
+// @notification_service — Multi-channel HITL notifications: email, Slack, webhooks, SMS, push. Sprint 3.
+//
+// Native .hsplus surface for core/hitl/NotificationService.ts.
+//
+// notify(channel, request) → NotificationId
+// Dispatches HITL approval requests to human reviewers via preferred channel
+
+@trait notification_service {
+  capability_tags: ["notification_service", "multi_channel_notify", "hitl_notifications", "approval_dispatch", "core"]
+
+  @on_spawn => {
+    emit("notification_service_ready", {})
+  }
+
+  @on_notify(channel, request) => {
+    id = send_hitl_notification(channel, request)
+    emit("hitl_notification_sent", { channel, id })
+    return id
+  }
+
+  @receipt notification_service_config {
+    type: "NotificationServiceReceipt"
+    channels: ["email", "Slack", "webhooks", "SMS", "push"]
+    timestamp: now()
+  }
+}

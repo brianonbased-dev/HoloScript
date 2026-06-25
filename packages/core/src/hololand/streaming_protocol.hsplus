@@ -1,0 +1,25 @@
+// @streaming_protocol — Real-time streaming for asset delivery, entity state sync, world updates.
+//
+// Native .hsplus surface for core/hololand/StreamingProtocol.ts.
+//
+// openStream(worldId) → Stream / push(stream, message) / subscribe(stream, handler)
+// Bridges HoloScript clients to HoloLand servers; VRRLiveDataSync uses this lane
+
+@trait streaming_protocol {
+  capability_tags: ["streaming_protocol", "real_time_streaming", "asset_delivery", "entity_state_sync", "core"]
+
+  @on_spawn => {
+    emit("streaming_protocol_ready", {})
+  }
+
+  @on_push(stream_id, message) => {
+    push_stream_message(stream_id, message)
+    emit("stream_message_pushed", {})
+  }
+
+  @receipt streaming_protocol_config {
+    type: "StreamingProtocolReceipt"
+    features: ["asset delivery", "entity state sync", "world updates"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,27 @@
+// @vrr_live_data_sync — VRR twin state projection: weather, event, sensor, inventory snapshots into StreamingProtocol.
+//
+// Native .hsplus surface for core/hololand/VRRLiveDataSync.ts.
+//
+// sync(providers[]) / push(snapshot) → StreamMessage
+// Providers are pluggable; owns VRR twin state projection and stream message shape
+
+@trait vrr_live_data_sync {
+  capability_tags: ["vrr_live_data_sync", "twin_state_projection", "pluggable_providers", "streaming_protocol", "core"]
+
+  @on_spawn => {
+    emit("vrr_live_data_sync_ready", {})
+  }
+
+  @on_sync(providers) => {
+    snapshot = collect_vrr_snapshots(providers)
+    push_vrr_to_stream(snapshot)
+    emit("vrr_synced", {})
+  }
+
+  @receipt vrr_live_data_sync_config {
+    type: "VRRLiveDataSyncReceipt"
+    providers: ["weather", "event", "sensor", "inventory"]
+    pattern: "pluggable providers — owns message shape"
+    timestamp: now()
+  }
+}

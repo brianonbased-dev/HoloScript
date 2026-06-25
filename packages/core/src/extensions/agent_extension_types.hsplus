@@ -1,0 +1,20 @@
+// @agent_extension_types — Core extensibility interfaces for the HoloScript agent system.
+//
+// Native .hsplus surface for core/extensions/AgentExtensionTypes.ts.
+//
+// IAgentRef, IAgentMailbox, IRecoveryStrategy — consumed by uaa2-service and other hosts
+
+@trait agent_extension_types {
+  capability_tags: ["agent_extension_types", "extensibility_interfaces", "agent_ref", "mailbox", "core"]
+
+  @on_spawn => {
+    emit("agent_extension_types_ready", {})
+  }
+
+  @receipt agent_extension_types_config {
+    type: "AgentExtensionTypesReceipt"
+    interfaces: ["IAgentRef", "IAgentMailbox", "IRecoveryStrategy"]
+    consumers: ["uaa2-service", "extension hosts"]
+    timestamp: now()
+  }
+}

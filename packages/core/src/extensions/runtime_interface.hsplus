@@ -1,0 +1,20 @@
+// @runtime_interface — Minimal IExtensionRuntime interface to break circular HoloScriptRuntime↔ExtensionRegistry dep.
+//
+// Native .hsplus surface for core/extensions/RuntimeInterface.ts.
+//
+// IExtensionRuntime { registerTrait(name, handler), emit(event, payload) }
+// Extracted to avoid circular dependency; implemented by HoloScriptRuntime
+
+@trait runtime_interface {
+  capability_tags: ["runtime_interface", "extension_runtime", "circular_dep_break", "trait_handler", "core"]
+
+  @on_spawn => {
+    emit("runtime_interface_ready", {})
+  }
+
+  @receipt runtime_interface_config {
+    type: "RuntimeInterfaceReceipt"
+    purpose: "break circular dep between HoloScriptRuntime and ExtensionRegistry"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,30 @@
+// @extension_registry — Loads and manages HoloExtension plugins: register, enable, disable.
+//
+// Native .hsplus surface for core/extensions/ExtensionRegistry.ts.
+//
+// register(ext) / enable(name) / disable(name) / get(name) → HoloExtension?
+// Decoupled from TraitRegistry via RuntimeInterface; uses IExtensionRuntime
+
+@trait extension_registry {
+  capability_tags: ["extension_registry", "plugin_manager", "extension_lifecycle", "runtime_decoupled", "core"]
+
+  @on_spawn => {
+    emit("extension_registry_ready", {})
+  }
+
+  @on_register(extension) => {
+    register_extension(extension)
+    emit("extension_registered", { name: extension.name })
+  }
+
+  @on_enable(name) => {
+    enable_extension(name)
+    emit("extension_enabled", { name })
+  }
+
+  @receipt extension_registry_config {
+    type: "ExtensionRegistryReceipt"
+    pattern: "decoupled from TraitRegistry via IExtensionRuntime"
+    timestamp: now()
+  }
+}

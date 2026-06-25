@@ -1,0 +1,27 @@
+// @item_manifest — Items as Characters (W.506): HoloLand items with backstory, state, trajectory, 5 sovereign traits.
+//
+// Native .hsplus surface for core/hololand/ItemManifest.ts.
+//
+// ItemCharacter { backstory, state, trajectory, sovereignty: [5 traits] }
+// Ticked per in-world day (slower cadence than NPCs per in-world hour)
+
+@trait item_manifest {
+  capability_tags: ["item_manifest", "items_as_characters", "w506", "sovereign_traits", "core"]
+
+  @on_spawn => {
+    emit("item_manifest_ready", {})
+  }
+
+  @on_tick_day(item_id) => {
+    tick_item_character_day(item_id)
+    emit("item_day_ticked", { item_id })
+  }
+
+  @receipt item_manifest_config {
+    type: "ItemManifestReceipt"
+    paradigm: "Items as Characters (W.506)"
+    tick_cadence: "per in-world day"
+    sovereign_traits_count: 5
+    timestamp: now()
+  }
+}
