@@ -1,0 +1,20 @@
+@trait {
+  name: "@language_adapter",
+  category: "data",
+  description: "Declares a tree-sitter language adapter as HoloScript data. Absorb consumes these declarations to build its language ingestion registry; the generic TreeSitterTraitAdapter handles runtime extraction. Specifies symbol, import, and call extraction rules per node type. Port of LanguageAdapterTrait.ts (handler name: language_adapter).",
+  props: {
+    language: string = "plaintext",
+    grammar: string = "",
+    grammar_package: string = "",
+    extensions: list<string> = [],
+    symbols: list<{ node_type: string, kind: string, name_field: string, container: boolean }> = [],
+    imports: list<{ call_node_type: string, method_field: string, method_names: list<string> }> = [],
+    calls: list<{ call_node_type: string, method_field: string, receiver_field: string }> = []
+  },
+  events: {
+    attached: "language_adapter_attached",
+    detached: "language_adapter_detached",
+    on_registered: "language_adapter_registered"
+  },
+  behaviors: ["@vocabulary_register", "@wasm_bridge"]
+}

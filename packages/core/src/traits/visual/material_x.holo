@@ -1,0 +1,23 @@
+@trait {
+  name: "@material_x",
+  category: "visual",
+  description: "MaterialX cross-platform material authoring. Loads a .mtlx file, selects a named material and node graph, resolves textures relative to texture_path, and optionally compiles to GLSL. Supports standard_surface/gltf_pbr/usd_preview_surface/open_pbr shading models. Port of MaterialXTrait.ts (handler name: material_x).",
+  props: {
+    source: string = "",
+    material_name: string = "",
+    node_graph: string = "",
+    color_space: enum("srgb" | "linear" | "raw" | "acescg") = "srgb",
+    shading_model: enum("standard_surface" | "gltf_pbr" | "usd_preview_surface" | "open_pbr") = "standard_surface",
+    texture_path: string = "",
+    compile_to_glsl: boolean = true
+  },
+  events: {
+    attached: "material_x_attached",
+    detached: "material_x_detached",
+    on_loaded: "material_x_loaded",
+    on_error: "material_x_error",
+    on_compiled: "material_x_compiled",
+    reload: "material_x_trigger_reload"
+  },
+  behaviors: ["@volumetric", "@ray_tracing", "@gpu_physics"]
+}

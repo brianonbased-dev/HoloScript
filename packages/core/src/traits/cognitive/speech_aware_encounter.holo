@@ -1,0 +1,22 @@
+@trait {
+  name: "@speech_aware_encounter",
+  category: "cognitive",
+  description: "Voice-channel encounter engine with ReID-backed speaker attribution. Maintains a sliding window of utterance turns with speaker IDs derived from voice-print embeddings. Falls back to text-channel naming when ReID confidence is below threshold. Port of SpeechAwareEncounterTrait.ts (handler name: speech_aware_encounter).",
+  props: {
+    voice_enabled: boolean = true,
+    reid_confidence_threshold: number = 0.75,
+    fallback_to_text: boolean = true,
+    max_turns: number = 100,
+    reid_backend: string = "reid_local"
+  },
+  events: {
+    attached: "speech_aware_encounter_attached",
+    detached: "speech_aware_encounter_detached",
+    on_turn: "speech_aware_encounter_turn",
+    on_speaker_identified: "speech_aware_encounter_speaker_identified",
+    on_channel_switch: "speech_aware_encounter_channel_switch",
+    add_turn: "speech_aware_encounter_trigger_add_turn",
+    clear: "speech_aware_encounter_trigger_clear"
+  },
+  behaviors: ["@dialogue", "@voice_input", "@verbal_fingerprint"]
+}

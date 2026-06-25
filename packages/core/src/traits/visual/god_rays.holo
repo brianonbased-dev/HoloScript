@@ -1,0 +1,21 @@
+@trait {
+  name: "@god_rays",
+  category: "visual",
+  description: "Screen-space volumetric light scattering (crepuscular rays) post-process. Applies a radial blur from the projected sun position using configurable decay, weight, exposure, density, and sample count. Reads sun_position from the @weather blackboard when use_weather is true. Port of GodRaysTrait.ts (handler name: god_rays).",
+  props: {
+    decay: number = 0.96,
+    weight: number = 0.5,
+    exposure: number = 0.3,
+    samples: number = 100,
+    density: number = 1.0,
+    use_weather: boolean = true,
+    light_position: { x: number, y: number, z: number } = { x: 100, y: 200, z: 100 }
+  },
+  events: {
+    attached: "god_rays_attached",
+    detached: "god_rays_detached",
+    on_enabled: "god_rays_enabled",
+    on_disabled: "god_rays_disabled"
+  },
+  behaviors: ["@volumetric_clouds", "@ray_tracing", "@volumetric"]
+}
