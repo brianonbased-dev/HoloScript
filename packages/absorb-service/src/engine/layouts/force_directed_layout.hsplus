@@ -1,0 +1,70 @@
+// @force_directed_layout — Barnes-Hut 3D force simulation for codebase graph layout.
+//
+// Native .hsplus surface for ForceDirectedLayout.ts (absorb-service/engine/layouts).
+//
+// Positions nodes in 3D space using a simplified Barnes-Hut force simulation.
+// Connected nodes attract; all nodes repel. Produces organic, graph-aware 3D layouts.
+//
+// LayoutNode { id, x, y, z, weight }     — weight influences repulsion radius (e.g. LOC)
+// LayoutEdge { source, target, weight }
+//
+// ForceLayoutOptions (ForceDirectedLayout.ts):
+//   iterations:    200   — simulation steps
+//   repulsion:     500   — global repulsion strength
+//   attraction:    0.01  — attraction strength along edges
+//   damping:       0.95  — velocity decay per iteration
+//   min_distance:  0.1   — min distance to prevent division by zero
+//   initial_spread: 50   — initial random spread radius
+//
+// forceDirectedLayout(nodes, edges, options) → LayoutNode[] (positions filled in-place)
+
+@trait force_directed_layout {
+  // Simulation iterations
+  iterations: Int = 200
+
+  // Global node repulsion strength
+  repulsion: Float = 500.0
+
+  // Edge attraction strength
+  attraction: Float = 0.01
+
+  // Velocity damping per iteration
+  damping: Float = 0.95
+
+  // Min distance to avoid div-by-zero
+  min_distance: Float = 0.1
+
+  // Initial random spread radius
+  initial_spread: Float = 50.0
+
+  capability_tags: ["force_directed_layout", "barnes_hut", "3d_layout", "graph_layout", "codebase_visualization", "absorb_service"]
+
+  @on_spawn => {
+    layout_fn = init_force_directed_layout({
+      iterations: iterations,
+      repulsion: repulsion,
+      attraction: attraction,
+      damping: damping,
+      min_distance: min_distance,
+      initial_spread: initial_spread
+    })
+    emit("force_directed_layout_ready", { iterations: iterations })
+  }
+
+  // Compute 3D positions for nodes given edges
+  @on_layout(nodes, edges) => {
+    positioned = layout_fn.layout(nodes, edges)
+    emit("force_layout_complete", { node_count: positioned.size })
+    return positioned
+  }
+
+  @receipt force_layout_config {
+    type: "ForceDirectedLayoutReceipt"
+    algorithm: "simplified Barnes-Hut 3D"
+    iterations: iterations
+    repulsion: repulsion
+    attraction: attraction
+    damping: damping
+    timestamp: now()
+  }
+}

@@ -1,0 +1,64 @@
+// @agent_event_bus — In-memory typed event bus for multi-agent HoloScript scenes.
+//
+// Native .hsplus surface for agentEventBus.ts (absorb-service).
+//
+// Pure TypeScript, no DOM. Usable in Node.js vitest and in-browser.
+// Consumed by ai-orchestration-builder.scenario.ts living-spec tests.
+//
+// AgentEvent (agentEventBus.ts):
+//   id: "evt_<counter>_<timestamp>"  — uuid-style unique per event
+//   topic: String                    — routing key
+//   payload: T                       — arbitrary data
+//   sender_id: String                — which agent sent it
+//   timestamp: Float                 — performance.now() or Date.now()
+//   received_by: String[]            — filled as subscribers handle it
+//
+// Dead letters: events with no subscribers are stored in deadLetters[]
+// publish(topic, payload, senderId) → AgentEvent
+// subscribe(topic, handler) → unsubscribe fn
+
+@trait agent_event_bus {
+  capability_tags: ["agent_event_bus", "event_bus", "multi_agent", "pub_sub", "dead_letters", "absorb_service", "test_living_spec"]
+
+  @on_spawn => {
+    bus = init_agent_event_bus()
+    emit("agent_event_bus_ready", {})
+  }
+
+  // Publish an event to all subscribers on the topic
+  @on_publish(topic, payload, sender_id) => {
+    event = bus.publish(topic, payload, sender_id ?? "anonymous")
+    emit("agent_event_published", { topic: topic, id: event.id })
+    return event
+  }
+
+  // Subscribe to a topic; handler is called for each matching event
+  @on_subscribe(topic, handler_id) => {
+    unsubscribe = bus.subscribe(topic, handler_id)
+    emit("agent_event_subscribed", { topic: topic })
+    return unsubscribe
+  }
+
+  // Query the event history
+  @on_history => {
+    return bus.get_history()
+  }
+
+  // Query dead-letter events (no subscribers)
+  @on_dead_letters => {
+    return bus.get_dead_letters()
+  }
+
+  // Clear all history (reset for test isolation)
+  @on_reset => {
+    bus.reset()
+    emit("agent_event_bus_reset", {})
+  }
+
+  @receipt agent_event_bus_config {
+    type: "AgentEventBusReceipt"
+    dead_letter_policy: "stored in deadLetters[] when no subscribers"
+    id_format: "evt_<counter>_<timestamp>"
+    timestamp: now()
+  }
+}

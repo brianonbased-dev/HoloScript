@@ -1,0 +1,59 @@
+// @feedback_engine — Transform L0/L1/L2 cycle results into upward feedback signals.
+//
+// Native .hsplus surface for feedbackEngine.ts (absorb-service/pipeline).
+//
+// Feedback flows upward only: L0 → L1 → L2.
+// PLATEAU_THRESHOLD = 0.01 (matches daemon-actions.ts quality delta check).
+//
+// generateFeedbackSignals(LayerCycleResult) → FeedbackSignal[]:
+//   Always emits "quality_trend": { before, after, delta, cycle_id }
+//   Emits "cost_efficiency" when cost > 0 and delta ≠ 0:
+//     { cost_usd, quality_delta, cost_per_point }
+//   Emits "plateau_detected" when |delta| < 0.01:
+//     { consecutive_plateaus, cycle_id }
+//
+// TrendSummary: aggregated trend over N cycles for L1/L2 consumption.
+// FocusRanking: ranked list of focus areas by contribution signal.
+// countConsecutivePlateaus(results): count of successive below-threshold cycles.
+
+@trait feedback_engine {
+  // Plateau detection threshold (must match daemon-actions.ts)
+  plateau_threshold: Float = 0.01
+
+  capability_tags: ["feedback_engine", "l0_l1_l2", "pipeline_feedback", "quality_trend", "plateau_detection", "absorb_service"]
+
+  @on_spawn => {
+    engine = init_feedback_engine({ plateau_threshold: plateau_threshold })
+    emit("feedback_engine_ready", { plateau_threshold: plateau_threshold })
+  }
+
+  // Generate FeedbackSignal[] from a completed layer cycle result
+  @on_generate_signals(cycle_result) => {
+    signals = engine.generate_feedback_signals(cycle_result)
+    emit("feedback_signals_generated", {
+      source_layer: cycle_result.layer_id,
+      signal_count: signals.size
+    })
+    return signals
+  }
+
+  // Aggregate cycle results → TrendSummary for a higher layer
+  @on_aggregate_trend(results, layer_id) => {
+    summary = engine.aggregate_trend(results, layer_id)
+    emit("feedback_trend_aggregated", { layer_id: layer_id })
+    return summary
+  }
+
+  // Count consecutive plateaus in a result history
+  @on_count_plateaus(results) => {
+    return engine.count_consecutive_plateaus(results)
+  }
+
+  @receipt feedback_engine_config {
+    type: "FeedbackEngineReceipt"
+    plateau_threshold: plateau_threshold
+    signal_types: ["quality_trend", "cost_efficiency", "plateau_detected"]
+    flow_direction: "L0 → L1 → L2 (upward only)"
+    timestamp: now()
+  }
+}

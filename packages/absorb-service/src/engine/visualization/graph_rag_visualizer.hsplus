@@ -1,0 +1,74 @@
+// @graph_rag_visualizer — Highlight GraphRAG search results in a 3D codebase scene.
+//
+// Native .hsplus surface for GraphRAGVisualizer.ts (absorb-service/engine/visualization).
+//
+// Connects GraphRAG query results to the 3D SceneComposition.
+// Highlights matching nodes (score-scaled glow + scale), dims non-matching,
+// animates call chains, and color-codes impact sets.
+//
+// RAGSearchResult (GraphRAGVisualizer.ts):
+//   node_id: String  — node ID (Owner.name or name)
+//   score: Float     — relevance [0-1]; higher = stronger glow + scale
+//
+// ImpactNode:
+//   file: String     — file path
+//   distance: Int    — hop count from changed file (0=direct, 1=one import away)
+//
+// highlight_search_results(scene, results) — mutates object styles in the scene:
+//   matching nodes  → normalizedScore * emissive glow + scale-up
+//   non-matching    → dimmed (opacity/scale reduced)
+//
+// animate_call_chain(scene, chain): highlights call path through graph.
+// highlight_impact_set(scene, impactNodes): color-codes by distance.
+
+@trait graph_rag_visualizer {
+  // Base emissive intensity for top-scoring match
+  max_emissive_intensity: Float = 2.0
+
+  // Base scale for top-scoring match
+  max_match_scale: Float = 1.5
+
+  // Opacity for non-matching nodes
+  dim_opacity: Float = 0.2
+
+  capability_tags: ["graph_rag_visualizer", "search_highlight", "call_chain", "impact_visualization", "codebase_scene", "absorb_service"]
+
+  @on_spawn => {
+    visualizer = init_graph_rag_visualizer({
+      max_emissive_intensity: max_emissive_intensity,
+      max_match_scale: max_match_scale,
+      dim_opacity: dim_opacity
+    })
+    emit("graph_rag_visualizer_ready", {})
+  }
+
+  // Highlight RAG search results in a scene (score-scaled glow)
+  @on_highlight_search(scene, results) => {
+    highlighted = visualizer.highlight_search_results(scene, results)
+    emit("rag_search_highlighted", { match_count: results.size })
+    return highlighted
+  }
+
+  // Animate a call chain through the scene
+  @on_animate_call_chain(scene, chain) => {
+    animated = visualizer.animate_call_chain(scene, chain)
+    emit("call_chain_animated", { chain_length: chain.size })
+    return animated
+  }
+
+  // Color-code impact nodes by hop distance
+  @on_highlight_impact(scene, impact_nodes) => {
+    enriched = visualizer.highlight_impact_set(scene, impact_nodes)
+    emit("impact_set_highlighted", { node_count: impact_nodes.size })
+    return enriched
+  }
+
+  @receipt graph_rag_visualizer_config {
+    type: "GraphRAGVisualizerReceipt"
+    max_emissive_intensity: max_emissive_intensity
+    max_match_scale: max_match_scale
+    dim_opacity: dim_opacity
+    operations: ["highlight_search", "animate_call_chain", "highlight_impact_set"]
+    timestamp: now()
+  }
+}
