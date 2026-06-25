@@ -1,0 +1,20 @@
+@trait {
+  name: "@surface_decal",
+  category: "visual",
+  description: "Deferred decal projector. Projects a texture quad onto underlying geometry within a bounding box using deferred decal rendering, with optional normal-map overlay and roughness modulation, supporting bullet holes, paint, scorch marks, and terrain stains. Authored from SurfaceDecalTrait.ts.",
+  props: {
+    texture_url: string = "",
+    normal_url: string = "",
+    size: { x: number, y: number, z: number } = { x: 1, y: 1, z: 1 },
+    opacity: number = 1.0,
+    roughness_bias: number = 0,
+    lifetime_s: number = 0,
+    fade_out_s: number = 1
+  },
+  events: {
+    attached: "surface_decal_attached",
+    detached: "surface_decal_detached",
+    on_expire: "surface_decal_expire"
+  },
+  behaviors: ["@static_mesh", "@trail_emitter", "@visibility"]
+}

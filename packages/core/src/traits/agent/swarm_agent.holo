@@ -1,0 +1,23 @@
+@trait {
+  name: "@swarm_agent",
+  category: "agent",
+  description: "Swarm-behavior collective intelligence node. Contributes local velocity, separation, alignment, and cohesion forces to a shared HoloMesh swarm channel, enabling emergent flocking with obstacle avoidance and configurable formation modes, all computed peer-to-peer without a central orchestrator. Authored from SwarmAgentTrait.ts.",
+  props: {
+    swarm_id: string = "",
+    role: enum("worker" | "scout" | "leader") = "worker",
+    neighbor_radius_m: number = 5,
+    separation_weight: number = 1.5,
+    alignment_weight: number = 1.0,
+    cohesion_weight: number = 1.0,
+    max_speed_m_s: number = 4,
+    max_force: number = 0.5
+  },
+  events: {
+    attached: "swarm_agent_attached",
+    detached: "swarm_agent_detached",
+    on_join: "swarm_agent_join",
+    on_leave: "swarm_agent_leave",
+    on_formation_change: "swarm_agent_formation_change"
+  },
+  behaviors: ["@crew", "@nav_agent", "@utility_ai"]
+}

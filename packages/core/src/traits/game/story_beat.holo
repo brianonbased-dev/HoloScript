@@ -1,0 +1,22 @@
+@trait {
+  name: "@story_beat",
+  category: "game",
+  description: "Narrative story beat orchestrator. Triggers a scripted sequence of dialogue lines, camera cuts, entity state changes, and objective updates when a precondition is met, advancing a beat index through an ordered list and optionally branching on player choice. Authored from StoryBeatTrait.ts.",
+  props: {
+    beat_id: string = "",
+    sequence: list<{ type: enum("dialogue" | "cutscene" | "objective" | "spawn" | "wait"), params: dict<string, string> }> = [],
+    trigger: enum("on_enter" | "on_event" | "on_objective") = "on_event",
+    trigger_event: string = "",
+    allow_skip: boolean = false,
+    played: boolean = false
+  },
+  events: {
+    attached: "story_beat_attached",
+    detached: "story_beat_detached",
+    on_start: "story_beat_start",
+    on_step: "story_beat_step",
+    on_complete: "story_beat_complete",
+    play: "story_beat_trigger_play"
+  },
+  behaviors: ["@dialogue", "@mission_tracker", "@level_loader"]
+}

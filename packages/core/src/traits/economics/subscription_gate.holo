@@ -1,0 +1,21 @@
+@trait {
+  name: "@subscription_gate",
+  category: "economics",
+  description: "Subscription-gated content access controller. Checks the requesting wallet's active subscription tier against a required tier before granting access to the gated entity, redirecting unlicensed access to a paywall flow and logging attempts for analytics. Authored from SubscriptionGateTrait.ts.",
+  props: {
+    required_tier: string = "pro",
+    tiers: list<string> = ["free", "pro", "enterprise"],
+    paywall_url: string = "",
+    check_interval_s: number = 300,
+    grace_period_s: number = 86400,
+    log_attempts: boolean = true
+  },
+  events: {
+    attached: "subscription_gate_attached",
+    detached: "subscription_gate_detached",
+    on_grant: "subscription_gate_grant",
+    on_deny: "subscription_gate_deny",
+    check: "subscription_gate_trigger_check"
+  },
+  behaviors: ["@access_control", "@ownership", "@discount"]
+}
