@@ -1,0 +1,53 @@
+// @worker_pool — Thread pool for parallel tree-sitter parsing (Phase 9 Extension).
+//
+// Native .hsplus surface for WorkerPool.ts (absorb-service/engine/workers).
+//
+// Manages N worker threads for parallel parse/embedding jobs.
+// N = CPU cores - 2 (default); configurable.
+//
+// WorkerPool(scriptPath, size) — WorkerPool.ts:
+//   execute(jobData) → Promise<Result>   — queue and run a job
+//   terminate()                          — drain queue, terminate all workers
+//
+// WorkerPoolTelemetry.stats:
+//   pool_size, available_workers, queued_jobs, pending_jobs,
+//   max_queue_depth, total_jobs, completed_jobs, failed_jobs, avg_job_duration_ms
+//
+// QueuedJob { jobId, data, resolve, reject, startAt }
+// Workers emit { type: 'ready' } on start; job results keyed by jobId.
+// Used by EmbeddingIndex (use_workers=true) for 4-8x parallel embedding speedup.
+
+@trait worker_pool {
+  default_size: Int = 0  // 0 = CPU cores - 2
+
+  capability_tags: ["worker_pool", "worker_threads", "parallel_parsing", "phase9", "absorb_service"]
+
+  @on_spawn(script_path, size) => {
+    pool = init_worker_pool(script_path, size ?? default_size)
+    emit("worker_pool_ready", { size: size ?? default_size })
+  }
+
+  // Execute a job on the next available worker
+  @on_execute(job_data) => {
+    return pool.execute(job_data)
+  }
+
+  // Get pool telemetry
+  @on_telemetry => {
+    return pool.get_telemetry()
+  }
+
+  // Drain queue and terminate all workers
+  @on_terminate => {
+    pool.terminate()
+    emit("worker_pool_terminated", {})
+  }
+
+  @receipt worker_pool_config {
+    type: "WorkerPoolReceipt"
+    phase: "Phase 9 Extension"
+    default_size: "CPU cores - 2"
+    usage: "EmbeddingIndex use_workers=true; 4-8x speedup on large codebases"
+    timestamp: now()
+  }
+}
