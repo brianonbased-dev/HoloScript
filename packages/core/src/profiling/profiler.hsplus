@@ -1,0 +1,33 @@
+// @profiler — Low-overhead instrumentation profiler: span recording, call-stack sampling.
+//
+// Native .hsplus surface for core/profiling/Profiler.ts.
+//
+// begin(label) / end(label) → span / flush() → ProfilerTrace
+// Sub-millisecond overhead; wraps performance.now(); feeds Analyzer
+
+@trait profiler {
+  capability_tags: ["profiler", "span_recording", "call_stack_sampling", "performance_now", "core"]
+
+  @on_spawn => {
+    emit("profiler_ready", {})
+  }
+
+  @on_begin(label) => {
+    profiler_begin_span(label)
+  }
+
+  @on_end(label) => {
+    return profiler_end_span(label)
+  }
+
+  @on_flush => {
+    trace = flush_profiler_trace()
+    return trace
+  }
+
+  @receipt profiler_config {
+    type: "ProfilerReceipt"
+    overhead: "sub-millisecond"
+    timestamp: now()
+  }
+}

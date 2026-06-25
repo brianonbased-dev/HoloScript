@@ -1,0 +1,26 @@
+// @hash_policy — Content-hash policy for HoloScript receipts: SHA-256, algorithm pinning, upgrade path.
+//
+// Native .hsplus surface for core/receipts/hash-policy.ts.
+//
+// hash(data) → HashResult { alg: 'sha256', digest }
+// Enforces ecosystem-wide hash algorithm; receipts store algorithm tag for upgrade safety
+
+@trait hash_policy {
+  capability_tags: ["hash_policy", "sha256", "algorithm_pinning", "upgrade_safe", "core"]
+
+  @on_spawn => {
+    emit("hash_policy_ready", {})
+  }
+
+  @on_hash(data) => {
+    result = apply_hash_policy(data)
+    return result
+  }
+
+  @receipt hash_policy_config {
+    type: "HashPolicyReceipt"
+    algorithm: "sha256"
+    format: "{ alg, digest } — algorithm-tagged for upgrade path"
+    timestamp: now()
+  }
+}

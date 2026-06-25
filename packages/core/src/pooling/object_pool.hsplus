@@ -1,0 +1,29 @@
+// @object_pool — Generic object pool for zero-allocation hot-path entity reuse.
+//
+// Native .hsplus surface for core/pooling/ObjectPool.ts.
+//
+// acquire() → T / release(obj) — resets object and returns to pool; grows when exhausted
+
+@trait object_pool {
+  capability_tags: ["object_pool", "zero_allocation", "hot_path_reuse", "entity_pooling", "core"]
+
+  @on_spawn(factory, initial_size) => {
+    init_object_pool(factory, initial_size)
+    emit("object_pool_ready", {})
+  }
+
+  @on_acquire => {
+    obj = pool_acquire()
+    return obj
+  }
+
+  @on_release(obj) => {
+    pool_release(obj)
+  }
+
+  @receipt object_pool_config {
+    type: "ObjectPoolReceipt"
+    strategy: "grow on exhaustion; reset on release"
+    timestamp: now()
+  }
+}

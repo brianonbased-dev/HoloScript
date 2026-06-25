@@ -1,0 +1,27 @@
+// @domain_simulation_receipt — Typed receipt for domain simulation results: result + traceJSONL + verifyUrl.
+//
+// Native .hsplus surface for core/receipts/DomainSimulationReceipt.ts.
+//
+// DomainSimulationReceipt { result, traceJSONL, verifyUrl, timestamp, domainId }
+// Standard receipt shape for ALL simulation outputs — enforces {result, traceJSONL, verifyUrl}
+
+@trait domain_simulation_receipt {
+  capability_tags: ["domain_simulation_receipt", "simulation_receipt", "trace_jsonl", "verify_url", "core"]
+
+  @on_spawn => {
+    emit("domain_simulation_receipt_ready", {})
+  }
+
+  @on_create(result, trace_jsonl, verify_url, domain_id) => {
+    receipt = create_domain_simulation_receipt(result, trace_jsonl, verify_url, domain_id)
+    emit("domain_simulation_receipt_created", { domain_id })
+    return receipt
+  }
+
+  @receipt domain_simulation_receipt_config {
+    type: "DomainSimulationReceipt"
+    fields: ["result", "traceJSONL", "verifyUrl", "timestamp", "domainId"]
+    constraint: "all simulation outputs must use this shape"
+    timestamp: now()
+  }
+}

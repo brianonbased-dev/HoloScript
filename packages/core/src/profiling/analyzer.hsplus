@@ -1,0 +1,25 @@
+// @profiling_analyzer — Analyzes Profiler traces: hotspot ranking, call-tree summarization.
+//
+// Native .hsplus surface for core/profiling/Analyzer.ts.
+//
+// analyze(trace) → AnalysisReport { hotspots[], callTree, totalMs }
+// Input: ProfilerTrace from Profiler; output consumed by PerformanceReportGenerator
+
+@trait profiling_analyzer {
+  capability_tags: ["profiling_analyzer", "hotspot_ranking", "call_tree", "trace_analysis", "core"]
+
+  @on_spawn => {
+    emit("profiling_analyzer_ready", {})
+  }
+
+  @on_analyze(trace) => {
+    report = analyze_profiler_trace(trace)
+    return report
+  }
+
+  @receipt profiling_analyzer_config {
+    type: "ProfilingAnalyzerReceipt"
+    consumer: "PerformanceReportGenerator"
+    timestamp: now()
+  }
+}

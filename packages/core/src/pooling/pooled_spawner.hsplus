@@ -1,0 +1,26 @@
+// @pooled_spawner — ECS entity spawner backed by ObjectPool for zero-GC burst spawning.
+//
+// Native .hsplus surface for core/pooling/PooledSpawner.ts.
+//
+// spawn(components[]) → Entity / despawn(entity)
+// Integrates ObjectPool with ECS world; used for particle effects and projectile bursts
+
+@trait pooled_spawner {
+  capability_tags: ["pooled_spawner", "zero_gc_spawn", "burst_spawning", "ecs_pool", "core"]
+
+  @on_spawn_entity(components) => {
+    entity = pooled_spawn_entity(components)
+    emit("entity_spawned_pooled", {})
+    return entity
+  }
+
+  @on_despawn(entity) => {
+    pooled_despawn_entity(entity)
+  }
+
+  @receipt pooled_spawner_config {
+    type: "PooledSpawnerReceipt"
+    consumers: ["particle effects", "projectile bursts"]
+    timestamp: now()
+  }
+}

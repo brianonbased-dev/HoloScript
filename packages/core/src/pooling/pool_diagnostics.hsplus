@@ -1,0 +1,24 @@
+// @pool_diagnostics — Diagnostics for ObjectPool: hit/miss rates, pool utilization, growth events.
+//
+// Native .hsplus surface for core/pooling/PoolDiagnostics.ts.
+//
+// snapshot() → PoolStats { hits, misses, size, peak }
+
+@trait pool_diagnostics {
+  capability_tags: ["pool_diagnostics", "hit_miss_rate", "pool_utilization", "growth_events", "core"]
+
+  @on_spawn => {
+    emit("pool_diagnostics_ready", {})
+  }
+
+  @on_snapshot => {
+    stats = capture_pool_diagnostics()
+    return stats
+  }
+
+  @receipt pool_diagnostics_config {
+    type: "PoolDiagnosticsReceipt"
+    fields: ["hits", "misses", "size", "peak"]
+    timestamp: now()
+  }
+}

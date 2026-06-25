@@ -1,0 +1,28 @@
+// @proof_composition_law — Verifies proof-composition algebraic laws for trait receipt chains.
+//
+// Native .hsplus surface for core/proof-composition/ProofCompositionLaw.ts.
+//
+// verify(chain) → LawResult { identity, associativity, commutativity }
+// H1/H2 proof machinery: composition of verifiable receipts must satisfy semiring laws
+
+@trait proof_composition_law {
+  capability_tags: ["proof_composition_law", "algebraic_laws", "receipt_chain", "semiring", "core"]
+
+  @on_spawn => {
+    emit("proof_composition_law_ready", {})
+  }
+
+  @on_verify(chain) => {
+    result = verify_composition_laws(chain)
+    if !result.identity { emit("law_violation_identity", {}) }
+    if !result.associativity { emit("law_violation_associativity", {}) }
+    return result
+  }
+
+  @receipt proof_composition_law_config {
+    type: "ProofCompositionLawReceipt"
+    laws: ["identity", "associativity", "commutativity"]
+    foundation: "H1/H2 provenance-semiring theorem"
+    timestamp: now()
+  }
+}
