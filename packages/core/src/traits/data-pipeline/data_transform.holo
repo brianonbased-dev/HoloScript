@@ -1,0 +1,13 @@
+@trait {
+  name: "@data_transform",
+  category: "data-pipeline",
+  description: "Data transformation and mapping pipeline. In strict mode rejects unknown input keys. On transform:apply emits transform:applied with the mapping and a running count of transforms applied on this node.",
+  props: {
+    strict: boolean = false
+  },
+  events: {
+    apply: "transform:apply",
+    applied: "transform:applied"
+  },
+  behaviors: []
+}

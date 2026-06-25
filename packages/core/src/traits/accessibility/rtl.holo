@@ -1,0 +1,13 @@
+@trait {
+  name: "@rtl",
+  category: "accessibility",
+  description: "Right-to-left layout management. Activates RTL rendering for a set of configured locales. On rtl:check emits rtl:result with a boolean indicating whether the given locale requires RTL. Pairs with @transform.",
+  props: {
+    rtl_locales: string[] = ["ar", "he", "fa", "ur"]
+  },
+  events: {
+    check: "rtl:check",
+    result: "rtl:result"
+  },
+  behaviors: ["@transform"]
+}
