@@ -1,0 +1,21 @@
+@trait {
+  name: "@dissolve_shader",
+  category: "visual",
+  description: "Noise-based dissolve / materialise shader effect. Animates the entity mesh from fully opaque to invisible (or vice versa) by thresholding a world-space noise pattern, with a configurable edge glow color and emission intensity at the dissolve boundary — used for death, spawn, teleport, and cloak effects. Authored from DissolveShaderTrait.ts.",
+  props: {
+    direction: enum("dissolve" | "materialise") = "dissolve",
+    duration_ms: number = 800,
+    edge_color: string = "#00aaff",
+    edge_width: number = 0.05,
+    noise_scale: number = 4.0,
+    auto_play: boolean = false
+  },
+  events: {
+    attached: "dissolve_shader_attached",
+    detached: "dissolve_shader_detached",
+    on_start: "dissolve_shader_start",
+    on_complete: "dissolve_shader_complete",
+    play: "dissolve_shader_trigger_play"
+  },
+  behaviors: ["@screen_shader", "@material", "@transition_manager"]
+}

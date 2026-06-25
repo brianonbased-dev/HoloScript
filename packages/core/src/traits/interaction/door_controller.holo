@@ -1,0 +1,26 @@
+@trait {
+  name: "@door_controller",
+  category: "interaction",
+  description: "Animated door open/close state machine. Drives a door mesh between open and closed states via a rotation or translation animation tween, with auto-open on proximity, lock state gated by a key item, and networked state replication so all clients see the same door position. Authored from DoorControllerTrait.ts.",
+  props: {
+    state: enum("closed" | "open" | "locked") = "closed",
+    open_axis: enum("y_rot" | "x_rot" | "z_rot" | "translate_x" | "translate_z") = "y_rot",
+    open_angle: number = 90,
+    open_duration_ms: number = 500,
+    auto_open_radius_m: number = 0,
+    auto_close_s: number = 0,
+    required_key_item_id: string = "",
+    sound_url: string = ""
+  },
+  events: {
+    attached: "door_controller_attached",
+    detached: "door_controller_detached",
+    on_open: "door_controller_open",
+    on_close: "door_controller_close",
+    on_locked: "door_controller_locked",
+    open: "door_controller_trigger_open",
+    close: "door_controller_trigger_close",
+    toggle: "door_controller_trigger_toggle"
+  },
+  behaviors: ["@animated", "@puzzle_lock", "@anchor_constraint"]
+}

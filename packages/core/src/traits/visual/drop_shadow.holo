@@ -1,0 +1,19 @@
+@trait {
+  name: "@drop_shadow",
+  category: "visual",
+  description: "Projected blob or planar drop shadow. Renders a soft circular or mesh-projected shadow beneath the entity independent of the scene's shadow map, using a downward ray-cast to find the ground plane and scaling opacity with height for a cheap mobile-friendly shadow substitute. Authored from DropShadowTrait.ts.",
+  props: {
+    mode: enum("blob" | "projected") = "blob",
+    max_distance_m: number = 10,
+    radius_m: number = 0.4,
+    opacity: number = 0.6,
+    softness: number = 0.3,
+    color: string = "#000000",
+    enabled: boolean = true
+  },
+  events: {
+    attached: "drop_shadow_attached",
+    detached: "drop_shadow_detached"
+  },
+  behaviors: ["@cast_shadow", "@material", "@lod_controller"]
+}

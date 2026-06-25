@@ -1,0 +1,23 @@
+@trait {
+  name: "@dynamic_light",
+  category: "visual",
+  description: "Runtime dynamic point, spot, or directional light. Adds a fully dynamic shadow-casting light to the entity with colour, intensity, range, and angle parameters, supporting flicker animation, distance-based LOD culling, and runtime colour temperature transitions for day/night and event-driven lighting. Authored from DynamicLightTrait.ts.",
+  props: {
+    type: enum("point" | "spot" | "directional") = "point",
+    color: string = "#ffffff",
+    intensity: number = 1.0,
+    range_m: number = 10,
+    spot_angle_deg: number = 45,
+    cast_shadow: boolean = false,
+    flicker_hz: number = 0,
+    cull_distance_m: number = 60
+  },
+  events: {
+    attached: "dynamic_light_attached",
+    detached: "dynamic_light_detached",
+    on: "dynamic_light_trigger_on",
+    off: "dynamic_light_trigger_off",
+    set_color: "dynamic_light_trigger_set_color"
+  },
+  behaviors: ["@cast_shadow", "@weather_controller", "@day_night_cycle"]
+}
