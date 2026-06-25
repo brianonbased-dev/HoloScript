@@ -1,0 +1,26 @@
+@trait {
+  name: "@openxr_hal",
+  category: "xr",
+  description: "OpenXR Hardware Abstraction Layer. Detects and adapts to 20+ device profiles (Quest 3, Vision Pro, Valve Index, Pico 4, etc.) for consistent XR session management. Passthrough, hand tracking, eye tracking toggles. Performance modes: low_power/balanced/high_performance. Fallback: simulate (synthetic device for testing) or error. Haptics simulation available in simulate mode. Per-device overrides via device_overrides map. Port of OpenXRHALTrait.ts (handler name: openxr_hal).",
+  props: {
+    preferred_refresh_rate: number = 0,
+    enable_passthrough: boolean = false,
+    enable_hand_tracking: boolean = true,
+    enable_eye_tracking: boolean = false,
+    performance_mode: enum("low_power" | "balanced" | "high_performance") = "balanced",
+    fallback_mode: enum("simulate" | "error") = "simulate",
+    simulate_haptics: boolean = true
+  },
+  events: {
+    attached: "openxr_hal_initialized",
+    detached: "openxr_hal_disposed",
+    on_session_start: "openxr_session_start",
+    on_session_end: "openxr_session_end",
+    on_frame: "openxr_frame",
+    on_input: "openxr_input",
+    on_device_detected: "openxr_device_detected",
+    on_error: "openxr_hal_error",
+    haptic: "openxr_haptic"
+  },
+  behaviors: ["@hand_tracking", "@eye_tracking", "@grab_feedback_profile"]
+}
