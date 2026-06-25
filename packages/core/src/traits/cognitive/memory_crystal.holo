@@ -1,0 +1,24 @@
+@trait {
+  name: "@memory_crystal",
+  category: "cognitive",
+  description: "Persistent memory crystallization with capacity modes and prune thresholds. Composes with @agent_memory; emits warnings when unbounded growth risk is detected (unpaired @forget_policy). Supports semantic/raw/time-window capacity modes backed by IPFS or KV. Port of MemoryCrystalTrait.ts.",
+  props: {
+    capacity: enum("semantic" | "raw" | "time-window") = "semantic",
+    prune_threshold: number = 0.8,
+    backend: enum("ipfs" | "kv") = "kv",
+    time_window_ttl: number = 86400000,
+    max_entries: number = 10000,
+    warn_unpaired: boolean = true
+  },
+  events: {
+    attached: "crystal_initialized",
+    detached: "crystal_detached",
+    on_write: "crystal_write",
+    on_prune: "crystal_prune",
+    on_threshold_warn: "crystal_threshold_warn",
+    on_error: "crystal_error",
+    write: "crystal_trigger_write",
+    prune: "crystal_trigger_prune"
+  },
+  behaviors: ["@memory", "@agent_memory", "@versioned_state"]
+}

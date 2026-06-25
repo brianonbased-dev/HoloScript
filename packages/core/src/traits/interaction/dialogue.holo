@@ -1,0 +1,32 @@
+@trait {
+  name: "@dialogue",
+  category: "interaction",
+  description: "Branching dialogue system with conversation trees, blackboard conditions, and optional LLM dynamic fallback. Supports emotion-aware nodes, voice synthesis, auto-advance delays, and per-node enter/exit actions. Port of DialogueTrait.ts.",
+  props: {
+    start_node: string = "start",
+    llm_dynamic: boolean = false,
+    llm_endpoint: string = "",
+    personality: string = "",
+    knowledge_base: string = "",
+    voice_enabled: boolean = false,
+    voice_id: string = "",
+    emotion_aware: boolean = true,
+    speaker_name: string = "NPC",
+    player_name: string = "Player",
+    history_limit: number = 50
+  },
+  events: {
+    attached: "dialogue_attached",
+    detached: "dialogue_detached",
+    on_start: "dialogue_start",
+    on_end: "dialogue_end",
+    on_node_enter: "dialogue_node_enter",
+    on_node_exit: "dialogue_node_exit",
+    on_option_selected: "dialogue_option_selected",
+    on_llm_response: "dialogue_llm_response",
+    start: "dialogue_trigger_start",
+    select: "dialogue_trigger_select",
+    end: "dialogue_trigger_end"
+  },
+  behaviors: ["@npcai", "@voice_output", "@persona"]
+}

@@ -1,0 +1,26 @@
+@trait {
+  name: "@spatial_audio_cue",
+  category: "interaction",
+  description: "Spatial audio landmarks for accessible navigation and feedback. Plays earcon files or TTS announcements from 3D positions with distance falloff, repeat intervals, priority queuing, and lower-priority interruption. Port of SpatialAudioCueTrait.ts (handler name: spatial_audio_cue).",
+  props: {
+    cue_type: enum("navigation" | "alert" | "confirmation" | "information" | "error" | "custom") = "navigation",
+    earcon: string = "",
+    spatial: boolean = true,
+    repeat_interval: number = 0,
+    volume: number = 1.0,
+    priority: enum("low" | "medium" | "high" | "critical") = "medium",
+    max_distance: number = 10.0,
+    tts_message: string = "",
+    interrupt_lower_priority: boolean = true
+  },
+  events: {
+    attached: "spatial_audio_cue_attached",
+    detached: "spatial_audio_cue_detached",
+    on_play: "spatial_audio_cue_play",
+    on_stop: "spatial_audio_cue_stop",
+    on_repeat: "spatial_audio_cue_repeat",
+    play: "spatial_audio_cue_trigger_play",
+    stop: "spatial_audio_cue_trigger_stop"
+  },
+  behaviors: ["@voice_output", "@head_tracked_audio", "@notification_manager"]
+}

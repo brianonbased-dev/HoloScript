@@ -1,0 +1,14 @@
+@trait {
+  name: "@provenance",
+  category: "reconstruction",
+  description: "Declares the data-origin class of an object's geometry. Consumed by GaussianSplattingCompiler to stamp emitted splats with the provenance class (→ glTF _PROVENANCE attribute + asset.extras.holoProvenance histogram). Native authoring surface for the observed-vs-invented moat axis (D.104). Port of ProvenanceTrait.ts (handler name: provenance).",
+  props: {
+    class: enum("observed" | "interpolated" | "generative-extended") = "observed",
+    source: string = ""
+  },
+  events: {
+    attached: "provenance_declared",
+    detached: "provenance_detached"
+  },
+  behaviors: ["@holo_twin", "@volumetric", "@gaussian_splat"]
+}
