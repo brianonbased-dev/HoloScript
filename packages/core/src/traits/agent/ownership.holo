@@ -1,0 +1,20 @@
+@trait {
+  name: "@ownership",
+  category: "agent",
+  description: "Wallet-keyed entity ownership record. Binds the entity to a wallet address as its primary owner, tracking co-owner lists, transferring ownership via a signed intent, and gating modification/destruction operations behind an owner check. Authored from OwnershipTrait.ts.",
+  props: {
+    owner_wallet: string = "",
+    co_owners: list<string> = [],
+    transferable: boolean = true,
+    require_signature: boolean = true,
+    log_transfers: boolean = true
+  },
+  events: {
+    attached: "ownership_attached",
+    detached: "ownership_detached",
+    on_transfer: "ownership_transfer",
+    on_claim: "ownership_claim",
+    transfer: "ownership_trigger_transfer"
+  },
+  behaviors: ["@access_control", "@session_manager", "@identity"]
+}

@@ -1,0 +1,22 @@
+@trait {
+  name: "@penalty_zone",
+  category: "world",
+  description: "Spatial penalty zone trigger. Applies periodic damage, speed reduction, or score penalty to any player/agent that occupies the zone volume, optionally visualizing the hazard boundary and displaying a warning countdown before penalty onset. Authored from PenaltyZoneTrait.ts.",
+  props: {
+    type: enum("damage" | "slow" | "score_loss" | "death_zone") = "damage",
+    amount: number = 10,
+    interval_s: number = 1,
+    slow_factor: number = 0.5,
+    warning_s: number = 3,
+    visual_border: boolean = true,
+    border_color: string = "#ff4400"
+  },
+  events: {
+    attached: "penalty_zone_attached",
+    detached: "penalty_zone_detached",
+    on_enter: "penalty_zone_enter",
+    on_exit: "penalty_zone_exit",
+    on_penalty: "penalty_zone_penalty"
+  },
+  behaviors: ["@proximity_zone", "@hit_reaction", "@spawn_gate"]
+}

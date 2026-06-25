@@ -1,0 +1,20 @@
+@trait {
+  name: "@persona",
+  category: "agent",
+  description: "LLM agent persona configuration. Defines the agent's personality name, backstory excerpt, tone guidelines, and goal list injected as a system-prompt prefix for all LLM inference calls, shaping conversation style while remaining decoupled from the model or provider. Authored from PersonaTrait.ts.",
+  props: {
+    name: string = "",
+    backstory: string = "",
+    tone: enum("friendly" | "formal" | "humorous" | "mysterious" | "neutral") = "neutral",
+    goals: list<string> = [],
+    language: string = "en",
+    system_prefix: string = ""
+  },
+  events: {
+    attached: "persona_attached",
+    detached: "persona_detached",
+    on_change: "persona_change",
+    set_tone: "persona_trigger_set_tone"
+  },
+  behaviors: ["@npc_brain", "@emotion_engine", "@dialogue"]
+}

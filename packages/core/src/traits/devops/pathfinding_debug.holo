@@ -1,0 +1,21 @@
+@trait {
+  name: "@pathfinding_debug",
+  category: "devops",
+  description: "Pathfinding overlay debugger. Renders the active nav-mesh triangulation, current A* path lines, influence-map heat overlay, and failed-path markers in world space as a debug draw layer, exposing query latency and node-expansion counts in a HUD panel. Authored from PathfindingDebugTrait.ts.",
+  props: {
+    show_navmesh: boolean = true,
+    show_path: boolean = true,
+    show_influence_map: boolean = false,
+    show_failed: boolean = true,
+    path_color: string = "#00ff88",
+    failed_color: string = "#ff4444",
+    visible: boolean = false
+  },
+  events: {
+    attached: "pathfinding_debug_attached",
+    detached: "pathfinding_debug_detached",
+    on_query: "pathfinding_debug_query",
+    toggle: "pathfinding_debug_trigger_toggle"
+  },
+  behaviors: ["@stats", "@inspector", "@nav_agent"]
+}
