@@ -1,0 +1,20 @@
+@trait {
+  name: "@attack_graph",
+  category: "security",
+  description: "Adversary attack path graph for threat modeling and risk propagation. graphId identifies the attack scenario. nodeCount and edgeCount track the graph topology. severity: low, medium, high, or critical — the overall risk severity of this graph. campaignId optionally links to a named threat campaign. Computes propagated risk scores across attack paths. Port of AttackGraphTrait.ts (handler name: attack_graph).",
+  props: {
+    graph_id: string = "",
+    node_count: number = 0,
+    edge_count: number = 0,
+    severity: enum("low" | "medium" | "high" | "critical") = "medium",
+    campaign_id: string = ""
+  },
+  events: {
+    on_path_found: "attack_path_found",
+    on_risk_updated: "attack_risk_updated",
+    on_remediated: "attack_remediated",
+    update: "attack_graph_update",
+    remediate: "attack_graph_remediate"
+  },
+  behaviors: ["@ioc_matching", "@siem_integration", "@threat_feed"]
+}

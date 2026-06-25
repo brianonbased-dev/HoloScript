@@ -1,0 +1,16 @@
+@trait {
+  name: "@interoperability_badge",
+  category: "audit",
+  description: "Trait interoperability conformance badge. traitName identifies the trait under audit. targetVersion is the HoloScript trait schema version. checks is the list of conformance checks run (typed_config, event_schema, lifecycle_complete, no_global_mutation, deterministic_update, serializable_state). Emits a badge:granted or badge:failed event based on pass/fail. Port of InteroperabilityBadgeTrait.ts (handler name: interoperability_badge).",
+  props: {
+    trait_name: string = "",
+    target_version: string = "1.0.0"
+  },
+  events: {
+    on_granted: "badge_granted",
+    on_failed: "badge_failed",
+    on_check_run: "badge_check_run",
+    audit: "badge_audit"
+  },
+  behaviors: ["@civic_compliance"]
+}

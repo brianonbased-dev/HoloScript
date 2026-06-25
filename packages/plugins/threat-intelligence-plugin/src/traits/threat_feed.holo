@@ -1,0 +1,21 @@
+@trait {
+  name: "@threat_feed",
+  category: "security",
+  description: "Threat intelligence feed ingestion and normalization. sourceId is the feed identifier. provider is the feed provider name (default: internal). pollingIntervalSec is the feed refresh cadence (default: 300s = 5 min). severityThreshold: low, medium, high, or critical — minimum severity to ingest. enabled activates polling. Normalizes entries to STIX/TAXII-compatible IOCs for @ioc_matching. Port of ThreatFeedTrait.ts (handler name: threat_feed).",
+  props: {
+    source_id: string = "",
+    provider: string = "internal",
+    polling_interval_sec: number = 300,
+    severity_threshold: enum("low" | "medium" | "high" | "critical") = "medium",
+    enabled: boolean = true
+  },
+  events: {
+    on_ingested: "threat_feed_ingested",
+    on_error: "threat_feed_error",
+    on_stale: "threat_feed_stale",
+    poll: "threat_feed_poll",
+    enable: "threat_feed_enable",
+    disable: "threat_feed_disable"
+  },
+  behaviors: ["@ioc_matching", "@siem_integration", "@attack_graph"]
+}

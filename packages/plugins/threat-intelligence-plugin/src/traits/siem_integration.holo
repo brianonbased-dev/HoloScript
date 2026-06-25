@@ -1,0 +1,20 @@
+@trait {
+  name: "@siem_integration",
+  category: "security",
+  description: "SIEM (Security Information and Event Management) integration bridge. connectorId is the SIEM connector identifier. platform: splunk, sentinel, elastic, or custom. indexName is the target index/datastream (default: threat-events). enabled activates event forwarding. Routes alerts from @attack_graph, @ioc_matching, and @threat_feed to the SIEM. Port of SIEMIntegrationTrait.ts (handler name: siem_integration).",
+  props: {
+    connector_id: string = "",
+    platform: enum("splunk" | "sentinel" | "elastic" | "custom") = "custom",
+    index_name: string = "threat-events",
+    enabled: boolean = true
+  },
+  events: {
+    on_event_sent: "siem_event_sent",
+    on_alert_triggered: "siem_alert_triggered",
+    on_error: "siem_error",
+    send_event: "siem_send",
+    enable: "siem_enable",
+    disable: "siem_disable"
+  },
+  behaviors: ["@attack_graph", "@ioc_matching", "@threat_feed"]
+}

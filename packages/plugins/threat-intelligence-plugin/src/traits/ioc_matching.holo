@@ -1,0 +1,18 @@
+@trait {
+  name: "@ioc_matching",
+  category: "security",
+  description: "Indicator of Compromise (IOC) matching engine. profileId identifies the detection profile. minConfidence is the minimum match confidence to surface (0-100). severity: low, medium, high, or critical — minimum IOC severity to match. indicators is a pre-loaded list of IOC strings (IP, hash, domain, URL, email). Emits matches when telemetry hits. Port of IOCMatchingTrait.ts (handler name: ioc_matching).",
+  props: {
+    profile_id: string = "",
+    min_confidence: number = 70,
+    severity: enum("low" | "medium" | "high" | "critical") = "medium"
+  },
+  events: {
+    on_match: "ioc_match",
+    on_scan_complete: "ioc_scan_complete",
+    on_false_positive: "ioc_false_positive",
+    scan: "ioc_scan",
+    add_indicator: "ioc_add_indicator"
+  },
+  behaviors: ["@attack_graph", "@siem_integration", "@threat_feed"]
+}
