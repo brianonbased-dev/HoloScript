@@ -1,0 +1,23 @@
+@trait {
+  name: "@typewriter",
+  category: "visual",
+  description: "Character-by-character typewriter text reveal effect. Animates a string's visible character count from zero to full length at a configurable speed, supporting pause-on-punctuation, skip-to-end on interact, and sound-effect callbacks per-character for retro or dramatic dialogue presentation. Authored from TypewriterTrait.ts.",
+  props: {
+    text: string = "",
+    chars_per_second: number = 30,
+    pause_on_punctuation_ms: number = 200,
+    sound_url: string = "",
+    sound_every_n_chars: number = 2,
+    auto_play: boolean = true,
+    loop: boolean = false
+  },
+  events: {
+    attached: "typewriter_attached",
+    detached: "typewriter_detached",
+    on_char: "typewriter_char",
+    on_complete: "typewriter_complete",
+    play: "typewriter_trigger_play",
+    skip: "typewriter_trigger_skip"
+  },
+  behaviors: ["@speech_bubble", "@panel", "@easing"]
+}

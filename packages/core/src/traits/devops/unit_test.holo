@@ -1,0 +1,21 @@
+@trait {
+  name: "@unit_test",
+  category: "devops",
+  description: "Embedded entity-level unit test runner. Defines a suite of named assertions executed at attach-time or on demand, emitting pass/fail events per assertion and a summary result suitable for CI pipelines, HoloClaw test harnesses, and in-world debug panels. Authored from UnitTestTrait.ts.",
+  props: {
+    suite_name: string = "",
+    timeout_ms: number = 5000,
+    run_on_attach: boolean = false,
+    assertions: list<{ name: string, expression: string }> = [],
+    report_to_url: string = ""
+  },
+  events: {
+    attached: "unit_test_attached",
+    detached: "unit_test_detached",
+    on_pass: "unit_test_pass",
+    on_fail: "unit_test_fail",
+    on_suite_complete: "unit_test_complete",
+    run: "unit_test_trigger_run"
+  },
+  behaviors: ["@diagnostic", "@heartbeat", "@ruleset"]
+}

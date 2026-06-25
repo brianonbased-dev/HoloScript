@@ -1,0 +1,22 @@
+@trait {
+  name: "@ui_controller",
+  category: "interaction",
+  description: "XR and gamepad UI navigation controller. Routes spatial pointer, gaze, or thumbstick input to focusable UI elements, managing a focus stack with directional navigation, selection, and back-press handling across multiple panel layers. Authored from UiControllerTrait.ts.",
+  props: {
+    input_mode: enum("pointer" | "gaze" | "thumbstick" | "keyboard") = "pointer",
+    default_focus_id: string = "",
+    back_event: string = "",
+    scroll_speed: number = 1.0,
+    deadzone: number = 0.2,
+    haptic_on_focus: boolean = true,
+    enabled: boolean = true
+  },
+  events: {
+    attached: "ui_controller_attached",
+    detached: "ui_controller_detached",
+    on_focus: "ui_controller_focus",
+    on_select: "ui_controller_select",
+    on_back: "ui_controller_back"
+  },
+  behaviors: ["@input_map", "@panel", "@xr_ray_interactor"]
+}

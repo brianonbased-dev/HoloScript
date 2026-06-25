@@ -1,0 +1,22 @@
+@trait {
+  name: "@ui_frame",
+  category: "visual",
+  description: "Root spatial UI layout frame for XR and 2D overlay surfaces. Establishes the canvas coordinate system and pixel density for child panel elements, managing fixed/flexible layout slots, safe-area insets, and billboard anchoring relative to the viewer. Authored from UiFrameTrait.ts.",
+  props: {
+    width_m: number = 1.0,
+    height_m: number = 0.6,
+    ppi: number = 72,
+    layout: enum("fixed" | "flex_row" | "flex_col" | "grid") = "fixed",
+    safe_area_inset_m: number = 0.02,
+    billboard: boolean = false,
+    depth_offset_m: number = 0
+  },
+  events: {
+    attached: "ui_frame_attached",
+    detached: "ui_frame_detached",
+    on_resize: "ui_frame_resize",
+    on_show: "ui_frame_show",
+    on_hide: "ui_frame_hide"
+  },
+  behaviors: ["@panel", "@ui_theme", "@ui_controller"]
+}
