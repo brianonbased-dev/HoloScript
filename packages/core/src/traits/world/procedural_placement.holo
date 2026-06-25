@@ -1,0 +1,22 @@
+@trait {
+  name: "@procedural_placement",
+  category: "world",
+  description: "Scatter/procedural object placement engine. Distributes copies of a template entity across a surface region using Poisson disk sampling or noise-guided density, respecting slope and water-level exclusions, with LOD streaming for distant instances. Authored from ProceduralPlacementTrait.ts.",
+  props: {
+    template_entity_id: string = "",
+    density: number = 0.5,
+    region_radius_m: number = 100,
+    min_separation_m: number = 2,
+    seed: number = 0,
+    max_slope_deg: number = 40,
+    min_altitude_m: number = 0,
+    max_altitude_m: number = 9999
+  },
+  events: {
+    attached: "procedural_placement_attached",
+    detached: "procedural_placement_detached",
+    on_generate: "procedural_placement_generate",
+    regenerate: "procedural_placement_trigger_regenerate"
+  },
+  behaviors: ["@voxel_terrain", "@city_generator", "@spawn_gate"]
+}

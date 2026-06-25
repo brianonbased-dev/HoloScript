@@ -1,0 +1,21 @@
+@trait {
+  name: "@puzzle_lock",
+  category: "interaction",
+  description: "Combination puzzle lock gate. Requires players to activate a set of trigger entities in a specific sequence or state combination before unlocking, firing a success event that can open doors, spawn items, or progress objectives. Authored from PuzzleLockTrait.ts.",
+  props: {
+    triggers: list<string> = [],
+    sequence_required: boolean = false,
+    timeout_s: number = 0,
+    attempts_allowed: number = 0,
+    reset_on_fail: boolean = true,
+    locked: boolean = true
+  },
+  events: {
+    attached: "puzzle_lock_attached",
+    detached: "puzzle_lock_detached",
+    on_unlock: "puzzle_lock_unlock",
+    on_fail: "puzzle_lock_fail",
+    reset: "puzzle_lock_trigger_reset"
+  },
+  behaviors: ["@proximity_zone", "@objective", "@dialogue"]
+}

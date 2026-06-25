@@ -1,0 +1,22 @@
+@trait {
+  name: "@radio_channel",
+  category: "audio",
+  description: "Push-to-talk radio channel for team voice communication. Connects the entity to a named voice channel with optional squelch, simulated radio distortion (bandwidth filter + noise), and keyed-up indicator light, supporting multiple channel presets tunable by game events. Authored from RadioChannelTrait.ts.",
+  props: {
+    channel: string = "alpha",
+    push_to_talk: boolean = true,
+    distortion: boolean = false,
+    squelch_db: number = -40,
+    bandwidth_hz: number = 3000,
+    indicator_color: string = "#00ff44",
+    volume: number = 1.0
+  },
+  events: {
+    attached: "radio_channel_attached",
+    detached: "radio_channel_detached",
+    on_key_up: "radio_channel_key_up",
+    on_key_down: "radio_channel_key_down",
+    on_message: "radio_channel_message"
+  },
+  behaviors: ["@proximity_chat", "@spatial_audio", "@voice_cloner"]
+}
