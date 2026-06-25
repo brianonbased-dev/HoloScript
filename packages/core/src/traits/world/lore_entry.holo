@@ -1,0 +1,21 @@
+@trait {
+  name: "@lore_entry",
+  category: "world",
+  description: "Discoverable world lore fragment. Stores a titled lore text and optional audio narration URL, marking itself discovered on player proximity or interaction, and contributing to a global lore completion counter readable from the UI. Authored from LoreEntryTrait.ts.",
+  props: {
+    lore_id: string = "",
+    title: string = "",
+    body: string = "",
+    audio_url: string = "",
+    discover_radius_m: number = 1.5,
+    auto_discover: boolean = true,
+    tag: string = ""
+  },
+  events: {
+    attached: "lore_entry_attached",
+    detached: "lore_entry_detached",
+    on_discover: "lore_entry_discover",
+    on_read: "lore_entry_read"
+  },
+  behaviors: ["@dialogue", "@icon", "@proximity_zone"]
+}

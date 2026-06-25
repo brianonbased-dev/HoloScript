@@ -1,0 +1,22 @@
+@trait {
+  name: "@level_loader",
+  category: "world",
+  description: "Scene/level streaming loader. Loads a scene or world shard by URL or shard ID on trigger, managing an async load with progress reporting, optional fade transition, and predecessor-scene unload with memory release. Authored from LevelLoaderTrait.ts.",
+  props: {
+    scene_url: string = "",
+    shard_id: string = "",
+    transition: enum("instant" | "fade" | "dissolve") = "fade",
+    transition_ms: number = 500,
+    auto_load_on_attach: boolean = false,
+    preload: boolean = true
+  },
+  events: {
+    attached: "level_loader_attached",
+    detached: "level_loader_detached",
+    on_start: "level_loader_start",
+    on_progress: "level_loader_progress",
+    on_complete: "level_loader_complete",
+    load: "level_loader_trigger_load"
+  },
+  behaviors: ["@resource_loader", "@transition", "@spawn_gate"]
+}

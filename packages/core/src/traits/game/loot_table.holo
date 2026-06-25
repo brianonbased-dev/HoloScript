@@ -1,0 +1,19 @@
+@trait {
+  name: "@loot_table",
+  category: "game",
+  description: "Weighted random loot drop resolver. Holds a list of item definitions with weight, min/max quantity, and rarity tier, resolving a roll on death/trigger to yield a list of drops, optionally biased by player stats or zone difficulty. Authored from LootTableTrait.ts.",
+  props: {
+    entries: list<{ item_id: string, weight: number, min_qty: number, max_qty: number, rarity: enum("common" | "uncommon" | "rare" | "epic" | "legendary") }> = [],
+    rolls: number = 1,
+    luck_factor: number = 1.0,
+    spawn_on_drop: boolean = true,
+    drop_height_m: number = 0.3
+  },
+  events: {
+    attached: "loot_table_attached",
+    detached: "loot_table_detached",
+    on_drop: "loot_table_drop",
+    roll: "loot_table_trigger_roll"
+  },
+  behaviors: ["@collectable", "@crafting", "@inventory"]
+}

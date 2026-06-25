@@ -1,0 +1,19 @@
+@trait {
+  name: "@lod_controller",
+  category: "visual",
+  description: "Level-of-detail mesh switcher. Selects among multiple mesh URL variants by distance thresholds from the camera, streaming in higher-fidelity meshes as the viewer approaches and unloading them as the viewer recedes, reducing GPU draw cost for scene-scale assets. Authored from LodControllerTrait.ts.",
+  props: {
+    lods: list<{ url: string, max_distance_m: number }> = [],
+    hysteresis_m: number = 2,
+    auto_cull_distance_m: number = 500,
+    fade_between: boolean = false,
+    fade_duration_ms: number = 100
+  },
+  events: {
+    attached: "lod_controller_attached",
+    detached: "lod_controller_detached",
+    on_switch: "lod_controller_switch",
+    on_cull: "lod_controller_cull"
+  },
+  behaviors: ["@static_mesh", "@visibility", "@resource_loader"]
+}
