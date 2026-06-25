@@ -1,0 +1,19 @@
+// @holo_composition_types — .holo composition AST node types.
+//
+// Native .hsplus surface for core/parser/HoloCompositionTypes.ts.
+//
+// HoloComposition, HoloTrait, HoloBlock, HoloStatement, HoloExpression
+
+@trait holo_composition_types {
+  capability_tags: ["holo_composition_types", "ast_types", "holo_nodes", "type_definitions", "core"]
+
+  @on_spawn => {
+    emit("holo_composition_types_ready", {})
+  }
+
+  @receipt holo_composition_types_config {
+    type: "HoloCompositionTypesReceipt"
+    types: ["HoloComposition", "HoloTrait", "HoloBlock", "HoloStatement", "HoloExpression"]
+    timestamp: now()
+  }
+}

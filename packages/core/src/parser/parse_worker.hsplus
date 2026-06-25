@@ -1,0 +1,24 @@
+// @parse_worker — Worker thread for parallel file parsing: receives chunks, returns AST results.
+//
+// Native .hsplus surface for core/parser/ParseWorker.ts.
+//
+// Runs in a worker thread; receives { source, strategy } / posts back IncrementalParseResult
+
+@trait parse_worker {
+  capability_tags: ["parse_worker", "worker_thread", "chunk_parsing", "parallel_parse", "core"]
+
+  @on_spawn => {
+    emit("parse_worker_ready", {})
+  }
+
+  @on_parse_chunk(source, strategy) => {
+    result = worker_parse_chunk(source, strategy)
+    return result
+  }
+
+  @receipt parse_worker_config {
+    type: "ParseWorkerReceipt"
+    pattern: "worker thread — no main-thread blocking"
+    timestamp: now()
+  }
+}

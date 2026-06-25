@@ -1,0 +1,25 @@
+// @holo_composition_factory — Constructs HoloComposition AST nodes from parsed components.
+//
+// Native .hsplus surface for core/parser/HoloCompositionFactory.ts.
+//
+// create(traitName, opts) → HoloComposition / merge(a, b) → HoloComposition
+// Used by HoloCompositionParser to build typed AST from parse results
+
+@trait holo_composition_factory {
+  capability_tags: ["holo_composition_factory", "ast_construction", "typed_ast", "composition_builder", "core"]
+
+  @on_spawn => {
+    emit("holo_composition_factory_ready", {})
+  }
+
+  @on_create(trait_name, opts) => {
+    composition = create_holo_composition(trait_name, opts)
+    return composition
+  }
+
+  @receipt holo_composition_factory_config {
+    type: "HoloCompositionFactoryReceipt"
+    consumer: "HoloCompositionParser"
+    timestamp: now()
+  }
+}

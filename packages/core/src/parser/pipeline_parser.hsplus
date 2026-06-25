@@ -1,0 +1,25 @@
+// @pipeline_parser — Parses HoloScript pipeline declarations into PipelineAST.
+//
+// Native .hsplus surface for core/parser/PipelineParser.ts.
+//
+// parse(source) → PipelineAST / parsePipelineFile(path) → PipelineAST
+// Consumed by PipelineCompiler for multi-step composition workflows
+
+@trait pipeline_parser {
+  capability_tags: ["pipeline_parser", "pipeline_ast", "multi_step_workflow", "composition_pipeline", "core"]
+
+  @on_spawn => {
+    emit("pipeline_parser_ready", {})
+  }
+
+  @on_parse(source) => {
+    ast = parse_pipeline_source(source)
+    return ast
+  }
+
+  @receipt pipeline_parser_config {
+    type: "PipelineParserReceipt"
+    consumer: "PipelineCompiler"
+    timestamp: now()
+  }
+}

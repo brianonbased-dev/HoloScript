@@ -1,0 +1,25 @@
+// @incremental_parser — Chunk-based incremental parser for HoloScript+: parse only changed chunks.
+//
+// Native .hsplus surface for core/parser/IncrementalParser.ts.
+//
+// parse(chunk) → IncrementalParseResult / merge(results[]) → FullAST
+// Reuses unchanged chunk results; invalidates only changed chunk subtrees
+
+@trait incremental_parser {
+  capability_tags: ["incremental_parser", "chunk_parse", "subtree_invalidation", "performance", "core"]
+
+  @on_spawn => {
+    emit("incremental_parser_ready", {})
+  }
+
+  @on_parse_chunk(chunk) => {
+    result = parse_incremental_chunk(chunk)
+    return result
+  }
+
+  @receipt incremental_parser_config {
+    type: "IncrementalParserReceipt"
+    strategy: "reuse unchanged chunks; invalidate changed subtrees only"
+    timestamp: now()
+  }
+}

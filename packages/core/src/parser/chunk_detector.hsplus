@@ -1,0 +1,25 @@
+// @chunk_detector — Detects chunk boundaries in HoloScript source for incremental parsing.
+//
+// Native .hsplus surface for core/parser/ChunkDetector.ts.
+//
+// detect(source, strategy) → ChunkBoundary[]
+// Used by HybridChunker to decide where to split source for parallel workers
+
+@trait chunk_detector {
+  capability_tags: ["chunk_detector", "chunk_boundaries", "incremental_parsing", "parallel_workers", "core"]
+
+  @on_spawn => {
+    emit("chunk_detector_ready", {})
+  }
+
+  @on_detect(source, strategy) => {
+    boundaries = detect_chunk_boundaries(source, strategy)
+    return boundaries
+  }
+
+  @receipt chunk_detector_config {
+    type: "ChunkDetectorReceipt"
+    consumer: "HybridChunker"
+    timestamp: now()
+  }
+}

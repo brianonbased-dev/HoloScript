@@ -1,0 +1,21 @@
+// @expression_rules — HoloScript composition parser expression rule functions.
+//
+// Native .hsplus surface for core/parser/composition/expression-rules.ts.
+//
+// parseExpression(tokens) / parseBinary(left, op) / parseCall(fn, args[])
+// Pratt-style expression rules consumed by HoloCompositionParser
+
+@trait expression_rules {
+  capability_tags: ["expression_rules", "pratt_parser", "expression_grammar", "composition_parser", "core"]
+
+  @on_spawn => {
+    emit("expression_rules_ready", {})
+  }
+
+  @receipt expression_rules_config {
+    type: "ExpressionRulesReceipt"
+    style: "Pratt-style expression parsing"
+    consumer: "HoloCompositionParser"
+    timestamp: now()
+  }
+}

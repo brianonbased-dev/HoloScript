@@ -1,0 +1,25 @@
+// @holo_script_material_parser — Parses HoloScript material_block grammar into MaterialDefinition AST.
+//
+// Native .hsplus surface for core/parser/HoloScriptMaterialParser.ts.
+//
+// parseMaterial(source) → MaterialDefinition / validateMaterial(mat) → HoloDiagnostic[]
+// Used by asset pipeline and GLTF/USDZ export to resolve material types
+
+@trait holo_script_material_parser {
+  capability_tags: ["holo_script_material_parser", "material_block", "material_ast", "asset_pipeline", "core"]
+
+  @on_spawn => {
+    emit("holo_script_material_parser_ready", {})
+  }
+
+  @on_parse_material(source) => {
+    mat = parse_material_block(source)
+    return mat
+  }
+
+  @receipt holo_script_material_parser_config {
+    type: "HoloScriptMaterialParserReceipt"
+    consumers: ["asset pipeline", "GLTF exporter", "USDZ exporter"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,26 @@
+// @typo_detector — Detects typos in HoloScript identifiers and suggests corrections.
+//
+// Native .hsplus surface for core/parser/TypoDetector.ts.
+//
+// detect(identifier, candidates[]) → SuggestionResult { didYouMean?, distance }
+// Edit-distance based; used by RichErrors for "did you mean?" suggestions
+
+@trait typo_detector {
+  capability_tags: ["typo_detector", "edit_distance", "did_you_mean", "suggestion", "core"]
+
+  @on_spawn => {
+    emit("typo_detector_ready", {})
+  }
+
+  @on_detect(identifier, candidates) => {
+    result = detect_typo(identifier, candidates)
+    return result
+  }
+
+  @receipt typo_detector_config {
+    type: "TypoDetectorReceipt"
+    algorithm: "edit distance"
+    consumer: "RichErrors — did you mean?"
+    timestamp: now()
+  }
+}

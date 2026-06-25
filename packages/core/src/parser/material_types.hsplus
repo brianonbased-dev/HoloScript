@@ -1,0 +1,19 @@
+// @material_types — Material type definitions for HoloScript material_block grammar.
+//
+// Native .hsplus surface for core/parser/MaterialTypes.ts.
+//
+// MaterialDefinition, PBRMaterial, UnlitMaterial, MaterialProperty
+
+@trait material_types {
+  capability_tags: ["material_types", "material_block", "pbr", "type_definitions", "core"]
+
+  @on_spawn => {
+    emit("material_types_ready", {})
+  }
+
+  @receipt material_types_config {
+    type: "MaterialTypesReceipt"
+    types: ["MaterialDefinition", "PBRMaterial", "UnlitMaterial", "MaterialProperty"]
+    timestamp: now()
+  }
+}

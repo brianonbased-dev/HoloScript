@@ -1,0 +1,19 @@
+// @nft_marketplace_types — NFT marketplace DSL types for HoloScript composition publishing.
+//
+// Native .hsplus surface for core/parser/NFTMarketplaceTypes.ts.
+//
+// NFTListing, CollectAction, RoyaltyConfig, MarketplaceDSLNode
+
+@trait nft_marketplace_types {
+  capability_tags: ["nft_marketplace_types", "nft_dsl", "marketplace_types", "royalty_config", "core"]
+
+  @on_spawn => {
+    emit("nft_marketplace_types_ready", {})
+  }
+
+  @receipt nft_marketplace_types_config {
+    type: "NFTMarketplaceTypesReceipt"
+    types: ["NFTListing", "CollectAction", "RoyaltyConfig", "MarketplaceDSLNode"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,28 @@
+// @parse_cache — AST parse result cache: content-addressed by source hash for incremental parse reuse.
+//
+// Native .hsplus surface for core/parser/ParseCache.ts.
+//
+// get(hash) → HSPlusNode? / set(hash, node) / invalidate(hash)
+// Used by IncrementalParser to skip re-parsing unchanged chunks
+
+@trait parse_cache {
+  capability_tags: ["parse_cache", "content_addressed", "incremental_reuse", "ast_cache", "core"]
+
+  @on_spawn => {
+    emit("parse_cache_ready", {})
+  }
+
+  @on_get(hash) => {
+    return lookup_parse_cache(hash)
+  }
+
+  @on_set(hash, node) => {
+    store_parse_cache(hash, node)
+  }
+
+  @receipt parse_cache_config {
+    type: "ParseCacheReceipt"
+    key: "SHA-256 source content hash"
+    timestamp: now()
+  }
+}

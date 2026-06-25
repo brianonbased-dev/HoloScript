@@ -1,0 +1,25 @@
+// @hs_knowledge_parser — Parses HoloScript knowledge annotations and semantic blocks.
+//
+// Native .hsplus surface for core/parser/HSKnowledgeParser.ts.
+//
+// parse(source) → KnowledgeBlock[] / extractAnnotations(ast) → Annotation[]
+// Used by knowledge store ingestion pipeline
+
+@trait hs_knowledge_parser {
+  capability_tags: ["hs_knowledge_parser", "knowledge_annotations", "semantic_blocks", "knowledge_ingestion", "core"]
+
+  @on_spawn => {
+    emit("hs_knowledge_parser_ready", {})
+  }
+
+  @on_parse(source) => {
+    blocks = parse_knowledge_blocks(source)
+    return blocks
+  }
+
+  @receipt hs_knowledge_parser_config {
+    type: "HSKnowledgeParserReceipt"
+    consumer: "knowledge store ingestion pipeline"
+    timestamp: now()
+  }
+}

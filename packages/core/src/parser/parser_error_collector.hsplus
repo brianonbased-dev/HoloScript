@@ -1,0 +1,30 @@
+// @parser_error_collector — Collects and deduplicates parser errors; integrates with ErrorRecovery.
+//
+// Native .hsplus surface for core/parser/ParserErrorCollector.ts.
+//
+// collect(error) / flush() → HoloDiagnostic[] / clear()
+// Deduplicates span-overlapping errors; emits structured diagnostics
+
+@trait parser_error_collector {
+  capability_tags: ["parser_error_collector", "error_dedup", "structured_diagnostics", "span_overlap", "core"]
+
+  @on_spawn => {
+    emit("parser_error_collector_ready", {})
+  }
+
+  @on_collect(error) => {
+    collect_parser_error(error)
+  }
+
+  @on_flush => {
+    diags = flush_parser_errors()
+    emit("parser_errors_flushed", { count: diags.length })
+    return diags
+  }
+
+  @receipt parser_error_collector_config {
+    type: "ParserErrorCollectorReceipt"
+    dedup: "span-overlapping errors collapsed"
+    timestamp: now()
+  }
+}

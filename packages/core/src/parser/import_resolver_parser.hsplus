@@ -1,0 +1,25 @@
+// @import_resolver_parser — HoloScript+ asset pipeline import resolver: maps import paths to content.
+//
+// Native .hsplus surface for core/parser/ImportResolver.ts.
+// (Distinct from lsp/ImportResolver which maps to file locations for IDE navigation.)
+//
+// resolve(importPath, context) → ResolvedAsset? / bundle(composition) → BundleMap
+
+@trait import_resolver_parser {
+  capability_tags: ["import_resolver_parser", "asset_pipeline", "import_bundling", "content_resolution", "core"]
+
+  @on_spawn => {
+    emit("import_resolver_parser_ready", {})
+  }
+
+  @on_resolve(import_path, context) => {
+    asset = resolve_import_asset(import_path, context)
+    return asset
+  }
+
+  @receipt import_resolver_parser_config {
+    type: "ImportResolverParserReceipt"
+    scope: "asset pipeline import (content) — distinct from LSP import (file location)"
+    timestamp: now()
+  }
+}

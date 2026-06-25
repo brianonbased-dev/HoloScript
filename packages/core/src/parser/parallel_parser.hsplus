@@ -1,0 +1,26 @@
+// @parallel_parser — Parallel file parsing using worker threads via WorkerPool.
+//
+// Native .hsplus surface for core/parser/ParallelParser.ts.
+//
+// parseFiles(paths[]) → ParseResult[] — dispatched across N worker threads
+// Each file chunk routes to a ParseWorker; results merged in main thread
+
+@trait parallel_parser {
+  capability_tags: ["parallel_parser", "worker_threads", "parallel_file_parse", "worker_pool", "core"]
+
+  @on_spawn => {
+    emit("parallel_parser_ready", {})
+  }
+
+  @on_parse_files(paths) => {
+    results = parse_files_parallel(paths)
+    emit("parallel_parse_done", { count: paths.length })
+    return results
+  }
+
+  @receipt parallel_parser_config {
+    type: "ParallelParserReceipt"
+    pattern: "WorkerPool → ParseWorker per chunk → merge in main"
+    timestamp: now()
+  }
+}

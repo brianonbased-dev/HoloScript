@@ -1,0 +1,26 @@
+// @rich_errors — Rich error system for HoloScript parser: source spans, context, suggested fixes.
+//
+// Native .hsplus surface for core/parser/RichErrors.ts.
+//
+// RichError { span, message, context, suggestions[] }
+// Used by DiagnosticProvider to surface actionable errors in IDEs
+
+@trait rich_errors {
+  capability_tags: ["rich_errors", "source_spans", "suggested_fixes", "actionable_errors", "core"]
+
+  @on_spawn => {
+    emit("rich_errors_ready", {})
+  }
+
+  @on_create(span, message, context, suggestions) => {
+    err = create_rich_error(span, message, context, suggestions)
+    return err
+  }
+
+  @receipt rich_errors_config {
+    type: "RichErrorsReceipt"
+    fields: ["span", "message", "context", "suggestions"]
+    consumer: "DiagnosticProvider (IDE)"
+    timestamp: now()
+  }
+}

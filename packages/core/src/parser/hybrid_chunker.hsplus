@@ -1,0 +1,26 @@
+// @hybrid_chunker — Multi-strategy source file chunking for parallel parsing.
+//
+// Native .hsplus surface for core/parser/HybridChunker.ts.
+//
+// chunk(source, strategy: line|semantic|size) → Chunk[]
+// Dispatches to ChunkDetector; feeds ParallelParser worker pool
+
+@trait hybrid_chunker {
+  capability_tags: ["hybrid_chunker", "multi_strategy_chunking", "parallel_parse", "worker_pool", "core"]
+
+  @on_spawn => {
+    emit("hybrid_chunker_ready", {})
+  }
+
+  @on_chunk(source, strategy) => {
+    chunks = chunk_source_file(source, strategy)
+    emit("source_chunked", { count: chunks.length })
+    return chunks
+  }
+
+  @receipt hybrid_chunker_config {
+    type: "HybridChunkerReceipt"
+    strategies: ["line", "semantic", "size"]
+    timestamp: now()
+  }
+}

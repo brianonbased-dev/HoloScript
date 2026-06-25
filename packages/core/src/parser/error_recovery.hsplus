@@ -1,0 +1,26 @@
+// @error_recovery — HoloScript parser error recovery: synchronize to next valid token after error.
+//
+// Native .hsplus surface for core/parser/ErrorRecovery.ts.
+//
+// recover(parser, error) → RecoveryPoint / skipTo(tokenType) / insertMissing(token)
+// Strategies: skip-to-sync, insert-missing, partial-tree recovery
+
+@trait error_recovery {
+  capability_tags: ["error_recovery", "parser_recovery", "sync_token", "partial_tree", "core"]
+
+  @on_spawn => {
+    emit("error_recovery_ready", {})
+  }
+
+  @on_recover(error, context) => {
+    point = recover_parser_error(error, context)
+    emit("parser_error_recovered", {})
+    return point
+  }
+
+  @receipt error_recovery_config {
+    type: "ErrorRecoveryReceipt"
+    strategies: ["skip-to-sync", "insert-missing", "partial-tree"]
+    timestamp: now()
+  }
+}

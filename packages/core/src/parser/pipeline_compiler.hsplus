@@ -1,0 +1,26 @@
+// @pipeline_compiler_parser — HoloScript pipeline compiler for Node.js target.
+//
+// Native .hsplus surface for core/parser/PipelineCompiler.ts.
+//
+// compile(pipeline) → NodeJS executable string
+// Produces Node.js runnable from HoloScript pipeline AST
+
+@trait pipeline_compiler_parser {
+  capability_tags: ["pipeline_compiler_parser", "pipeline_to_node", "nodejs_target", "compile_target", "core"]
+
+  @on_spawn => {
+    emit("pipeline_compiler_parser_ready", {})
+  }
+
+  @on_compile(pipeline) => {
+    output = compile_pipeline_to_nodejs(pipeline)
+    emit("pipeline_compiled_nodejs", {})
+    return output
+  }
+
+  @receipt pipeline_compiler_parser_config {
+    type: "PipelineCompilerParserReceipt"
+    target: "Node.js executable"
+    timestamp: now()
+  }
+}

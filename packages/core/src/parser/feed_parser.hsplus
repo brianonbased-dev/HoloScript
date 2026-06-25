@@ -1,0 +1,31 @@
+// @feed_parser — Chunk-based incremental feed parser for streaming HoloScript+ source.
+//
+// Native .hsplus surface for core/parser/FeedParser.ts.
+//
+// feed(chunk) → IncrementalParseResult / finish() → FullParseResult
+// Wraps ChunkBasedIncrementalParser; used for large-file streaming parse
+
+@trait feed_parser {
+  capability_tags: ["feed_parser", "streaming_parse", "incremental_feed", "large_file", "core"]
+
+  @on_spawn => {
+    emit("feed_parser_ready", {})
+  }
+
+  @on_feed(chunk) => {
+    result = feed_parse_chunk(chunk)
+    return result
+  }
+
+  @on_finish => {
+    result = finish_feed_parse()
+    emit("feed_parse_complete", {})
+    return result
+  }
+
+  @receipt feed_parser_config {
+    type: "FeedParserReceipt"
+    use_case: "streaming large-file parse"
+    timestamp: now()
+  }
+}

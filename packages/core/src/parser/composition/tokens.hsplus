@@ -1,0 +1,20 @@
+// @composition_tokens — HoloScript composition parser token types and keyword table.
+//
+// Native .hsplus surface for core/parser/composition/tokens.ts.
+//
+// TokenType enum + KEYWORDS map
+// Used by lexer and expression rules to classify source tokens
+
+@trait composition_tokens {
+  capability_tags: ["composition_tokens", "token_types", "keyword_table", "lexer_support", "core"]
+
+  @on_spawn => {
+    emit("composition_tokens_ready", {})
+  }
+
+  @receipt composition_tokens_config {
+    type: "CompositionTokensReceipt"
+    types: ["TokenType enum", "KEYWORDS map"]
+    timestamp: now()
+  }
+}

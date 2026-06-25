@@ -1,0 +1,25 @@
+// @holo_composition_parser — .holo composition parser: lexes, parses, and produces HoloComposition AST.
+//
+// Native .hsplus surface for core/parser/HoloCompositionParser.ts.
+//
+// parse(source) → HoloComposition / parseFile(path) → HoloComposition
+// Entry for all .holo source; delegates to HoloCompositionFactory for AST construction
+
+@trait holo_composition_parser {
+  capability_tags: ["holo_composition_parser", "holo_file_parser", "ast_entry", "composition_ast", "core"]
+
+  @on_spawn => {
+    emit("holo_composition_parser_ready", {})
+  }
+
+  @on_parse(source) => {
+    ast = parse_holo_composition(source)
+    return ast
+  }
+
+  @receipt holo_composition_parser_config {
+    type: "HoloCompositionParserReceipt"
+    format: ".holo"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,25 @@
+// @worker_pool — Worker thread pool for parallel HoloScript+ file parsing.
+//
+// Native .hsplus surface for core/parser/WorkerPool.ts.
+//
+// submit(task) → Promise / drain() / resize(n)
+// Manages N ParseWorker threads; queues tasks; backpressure via drain()
+
+@trait worker_pool {
+  capability_tags: ["worker_pool", "thread_pool", "backpressure", "parse_workers", "core"]
+
+  @on_spawn(size) => {
+    init_worker_pool(size)
+    emit("worker_pool_ready", { size })
+  }
+
+  @on_submit(task) => {
+    return submit_to_worker_pool(task)
+  }
+
+  @receipt worker_pool_config {
+    type: "WorkerPoolReceipt"
+    features: ["fixed-size pool", "task queue", "backpressure via drain()"]
+    timestamp: now()
+  }
+}

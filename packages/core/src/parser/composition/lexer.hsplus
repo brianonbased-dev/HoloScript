@@ -1,0 +1,25 @@
+// @composition_lexer — HoloScript composition parser lexer: tokenizes .holo source.
+//
+// Native .hsplus surface for core/parser/composition/lexer.ts.
+//
+// tokenize(source) → Token[]
+// Produces token stream consumed by HoloCompositionParser expression rules
+
+@trait composition_lexer {
+  capability_tags: ["composition_lexer", "holo_tokenizer", "token_stream", "composition_parser", "core"]
+
+  @on_spawn => {
+    emit("composition_lexer_ready", {})
+  }
+
+  @on_tokenize(source) => {
+    tokens = tokenize_holo_source(source)
+    return tokens
+  }
+
+  @receipt composition_lexer_config {
+    type: "CompositionLexerReceipt"
+    consumer: "HoloCompositionParser"
+    timestamp: now()
+  }
+}
