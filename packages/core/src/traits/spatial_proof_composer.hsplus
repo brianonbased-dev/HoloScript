@@ -1,0 +1,21 @@
+// @spatial_proof_composer — Spatial proof composer: assembles multi-witness spatial provenance proof.
+//
+// Native .hsplus surface for core/traits/SpatialProofComposer.ts.
+
+@trait spatial_proof_composer {
+  capability_tags: ["spatial_proof_composer", "multi_witness", "spatial_provenance", "proof_assembly", "core"]
+
+  @on_spawn => {
+    emit("spatial_proof_composer_ready", {})
+  }
+
+  @on_compose(witnesses, claims) => {
+    proof = compose_spatial_proof(witnesses, claims)
+    return proof
+  }
+
+  @receipt spatial_proof_composer_config {
+    type: "SpatialProofComposerReceipt"
+    timestamp: now()
+  }
+}

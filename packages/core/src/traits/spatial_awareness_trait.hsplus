@@ -1,0 +1,22 @@
+// @spatial_awareness_trait — Spatial awareness: entity maintains a spatial map of nearby objects.
+//
+// Native .hsplus surface for core/traits/SpatialAwarenessTrait.ts.
+
+@trait spatial_awareness_trait {
+  capability_tags: ["spatial_awareness", "spatial_map", "nearby_objects", "world_model", "core"]
+
+  @on_spawn(radius) => {
+    init_spatial_awareness(radius)
+    emit("spatial_awareness_ready", {})
+  }
+
+  @on_update(world_state) => {
+    nearby = update_spatial_map(world_state)
+    return nearby
+  }
+
+  @receipt spatial_awareness_trait_config {
+    type: "SpatialAwarenessTraitReceipt"
+    timestamp: now()
+  }
+}

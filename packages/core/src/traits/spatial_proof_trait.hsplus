@@ -1,0 +1,21 @@
+// @spatial_proof_trait — Spatial proof: cryptographic attestation of entity position at timestamp.
+//
+// Native .hsplus surface for core/traits/SpatialProofTrait.ts.
+
+@trait spatial_proof_trait {
+  capability_tags: ["spatial_proof", "position_attestation", "cryptographic_proof", "spatial_anchor", "core"]
+
+  @on_spawn => {
+    emit("spatial_proof_ready", {})
+  }
+
+  @on_attest(entity_id, position, timestamp) => {
+    proof = attest_spatial_position(entity_id, position, timestamp)
+    return proof
+  }
+
+  @receipt spatial_proof_trait_config {
+    type: "SpatialProofTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,23 @@
+// @spatial_navigation_trait — Spatial navigation: teleport, locomotion menu, and boundary visualization in XR.
+//
+// Native .hsplus surface for core/traits/SpatialNavigationTrait.ts.
+
+@trait spatial_navigation_trait {
+  capability_tags: ["spatial_navigation", "teleport", "locomotion_menu", "boundary_vis", "core"]
+
+  @on_spawn(mode) => {
+    init_spatial_navigation(mode)
+    emit("spatial_navigation_ready", {})
+  }
+
+  @on_navigate(destination) => {
+    navigate_spatial(destination)
+    emit("navigated", { destination })
+  }
+
+  @receipt spatial_navigation_trait_config {
+    type: "SpatialNavigationTraitReceipt"
+    modes: ["teleport", "smooth", "boundary"]
+    timestamp: now()
+  }
+}

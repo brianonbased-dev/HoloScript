@@ -1,0 +1,24 @@
+// @skill_registry_trait — Skill registry: registers, looks up, and invokes named agent skills.
+//
+// Native .hsplus surface for core/traits/SkillRegistryTrait.ts.
+
+@trait skill_registry_trait {
+  capability_tags: ["skill_registry", "register_lookup_invoke", "named_skills", "agent_skills", "core"]
+
+  @on_spawn => {
+    emit("skill_registry_ready", {})
+  }
+
+  @on_register(skill_name, handler) => {
+    register_skill(skill_name, handler)
+  }
+
+  @on_invoke(skill_name, params) => {
+    return invoke_skill(skill_name, params)
+  }
+
+  @receipt skill_registry_trait_config {
+    type: "SkillRegistryTraitReceipt"
+    timestamp: now()
+  }
+}

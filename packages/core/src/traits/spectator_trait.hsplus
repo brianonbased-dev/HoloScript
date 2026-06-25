@@ -1,0 +1,22 @@
+// @spectator_trait — Spectator mode: observe world state without participating; read-only viewport.
+//
+// Native .hsplus surface for core/traits/SpectatorTrait.ts.
+
+@trait spectator_trait {
+  capability_tags: ["spectator", "observe_mode", "read_only_viewport", "passive_observer", "core"]
+
+  @on_spawn(target_session) => {
+    init_spectator(target_session)
+    emit("spectator_ready", {})
+  }
+
+  @on_follow(entity_id) => {
+    follow_spectator(entity_id)
+    emit("spectating", { entity_id })
+  }
+
+  @receipt spectator_trait_config {
+    type: "SpectatorTraitReceipt"
+    timestamp: now()
+  }
+}

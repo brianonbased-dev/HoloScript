@@ -1,0 +1,23 @@
+// @schema_migrate_trait — Schema migration: type-safe column/field migration with up/down rollback.
+//
+// Native .hsplus surface for core/traits/SchemaMigrateTrait.ts.
+
+@trait schema_migrate_trait {
+  capability_tags: ["schema_migrate", "column_field_migration", "type_safe_up_down", "schema_versioning", "core"]
+
+  @on_spawn(registry) => {
+    init_schema_migrate(registry)
+    emit("schema_migrate_ready", {})
+  }
+
+  @on_run(target_version) => {
+    result = run_schema_migration(target_version)
+    emit("schema_migrated", { version: target_version })
+    return result
+  }
+
+  @receipt schema_migrate_trait_config {
+    type: "SchemaMigrateTraitReceipt"
+    timestamp: now()
+  }
+}

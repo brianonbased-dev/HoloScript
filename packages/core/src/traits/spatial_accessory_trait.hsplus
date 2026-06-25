@@ -1,0 +1,22 @@
+// @spatial_accessory_trait — Spatial accessory: attaches virtual accessories to tracked body joints.
+//
+// Native .hsplus surface for core/traits/SpatialAccessoryTrait.ts.
+
+@trait spatial_accessory_trait {
+  capability_tags: ["spatial_accessory", "body_joint_attach", "virtual_accessory", "tracked_body", "core"]
+
+  @on_spawn(joint_id) => {
+    init_spatial_accessory(joint_id)
+    emit("spatial_accessory_ready", {})
+  }
+
+  @on_attach(accessory_id) => {
+    attach_spatial_accessory(accessory_id)
+    emit("accessory_attached", { accessory_id })
+  }
+
+  @receipt spatial_accessory_trait_config {
+    type: "SpatialAccessoryTraitReceipt"
+    timestamp: now()
+  }
+}

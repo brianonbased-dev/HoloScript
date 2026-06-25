@@ -1,0 +1,22 @@
+// @simulation_solver_factory — Simulation solver factory: instantiates appropriate solver (rigid/fluid/soft/FEA).
+//
+// Native .hsplus surface for core/traits/SimulationSolverFactory.ts.
+
+@trait simulation_solver_factory {
+  capability_tags: ["simulation_solver_factory", "solver_dispatch", "rigid_fluid_soft_fea", "factory_pattern", "core"]
+
+  @on_spawn => {
+    emit("simulation_solver_factory_ready", {})
+  }
+
+  @on_create(solver_type, config) => {
+    solver = create_simulation_solver(solver_type, config)
+    return solver
+  }
+
+  @receipt simulation_solver_factory_config {
+    type: "SimulationSolverFactoryReceipt"
+    solvers: ["rigid", "fluid", "soft", "FEA"]
+    timestamp: now()
+  }
+}

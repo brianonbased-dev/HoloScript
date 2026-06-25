@@ -1,0 +1,23 @@
+// @speech_aware_encounter_trait — Speech-aware encounter: NPC responds to player speech intent in real-time.
+//
+// Native .hsplus surface for core/traits/SpeechAwareEncounterTrait.ts.
+
+@trait speech_aware_encounter_trait {
+  capability_tags: ["speech_aware_encounter", "player_speech_intent", "npc_response", "real_time_dialogue", "core"]
+
+  @on_spawn(npc_id, intent_model) => {
+    init_speech_aware_encounter(npc_id, intent_model)
+    emit("speech_aware_encounter_ready", {})
+  }
+
+  @on_utterance(speech_text) => {
+    response = handle_encounter_speech(speech_text)
+    emit("encounter_responded", {})
+    return response
+  }
+
+  @receipt speech_aware_encounter_trait_config {
+    type: "SpeechAwareEncounterTraitReceipt"
+    timestamp: now()
+  }
+}

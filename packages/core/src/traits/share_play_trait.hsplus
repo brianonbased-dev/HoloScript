@@ -1,0 +1,23 @@
+// @share_play_trait — SharePlay: Apple GroupActivities session for shared XR experiences on visionOS.
+//
+// Native .hsplus surface for core/traits/SharePlayTrait.ts.
+
+@trait share_play_trait {
+  capability_tags: ["share_play", "group_activities", "visionos", "shared_xr", "core"]
+
+  @on_spawn(activity_type) => {
+    init_share_play(activity_type)
+    emit("share_play_ready", {})
+  }
+
+  @on_join(session_id) => {
+    join_share_play(session_id)
+    emit("share_play_joined", { session_id })
+  }
+
+  @receipt share_play_trait_config {
+    type: "SharePlayTraitReceipt"
+    platform: "visionOS SharePlay"
+    timestamp: now()
+  }
+}

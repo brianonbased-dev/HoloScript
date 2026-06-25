@@ -1,0 +1,23 @@
+// @spatial_persona_trait — Spatial persona: agent identity embodied in a named 3D presence in the world.
+//
+// Native .hsplus surface for core/traits/SpatialPersonaTrait.ts.
+
+@trait spatial_persona_trait {
+  capability_tags: ["spatial_persona", "agent_embodiment", "named_3d_presence", "persona_identity", "core"]
+
+  @on_spawn(persona_id, wallet_address) => {
+    init_spatial_persona(persona_id, wallet_address)
+    emit("spatial_persona_ready", { persona_id })
+  }
+
+  @on_appear(position) => {
+    materialize_persona(position)
+    emit("persona_appeared", { persona_id })
+  }
+
+  @receipt spatial_persona_trait_config {
+    type: "SpatialPersonaTraitReceipt"
+    doc: "D.102 portable agent mind"
+    timestamp: now()
+  }
+}

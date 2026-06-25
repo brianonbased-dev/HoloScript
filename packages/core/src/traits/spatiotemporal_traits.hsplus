@@ -1,0 +1,25 @@
+// @spatiotemporal_traits — Spatiotemporal traits: entity position + timestamp indexing for replay/query.
+//
+// Native .hsplus surface for core/traits/SpatiotemporalTraits.ts.
+
+@trait spatiotemporal_traits {
+  capability_tags: ["spatiotemporal", "position_timestamp_index", "replay_query", "4d_index", "core"]
+
+  @on_spawn(index_config) => {
+    init_spatiotemporal(index_config)
+    emit("spatiotemporal_ready", {})
+  }
+
+  @on_record(entity_id, position, timestamp) => {
+    record_spatiotemporal(entity_id, position, timestamp)
+  }
+
+  @on_query(region, time_range) => {
+    return query_spatiotemporal(region, time_range)
+  }
+
+  @receipt spatiotemporal_traits_config {
+    type: "SpatiotemporalTraitsReceipt"
+    timestamp: now()
+  }
+}

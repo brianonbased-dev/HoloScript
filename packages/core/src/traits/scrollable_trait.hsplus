@@ -1,0 +1,22 @@
+// @scrollable_trait — Scrollable container: virtual scroll with momentum, snap, and overflow mask.
+//
+// Native .hsplus surface for core/traits/ScrollableTrait.ts.
+
+@trait scrollable_trait {
+  capability_tags: ["scrollable", "virtual_scroll", "momentum_snap", "overflow_mask", "core"]
+
+  @on_spawn(content_size, viewport_size) => {
+    init_scrollable(content_size, viewport_size)
+    emit("scrollable_ready", {})
+  }
+
+  @on_scroll(delta, pointer) => {
+    scroll_position = update_scroll(delta, pointer)
+    return scroll_position
+  }
+
+  @receipt scrollable_trait_config {
+    type: "ScrollableTraitReceipt"
+    timestamp: now()
+  }
+}

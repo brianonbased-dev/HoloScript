@@ -1,0 +1,22 @@
+// @soft_body_pro_trait — Soft-body Pro: FEA-grade deformable mesh with plastic/elastic material model.
+//
+// Native .hsplus surface for core/traits/SoftBodyProTrait.ts.
+
+@trait soft_body_pro_trait {
+  capability_tags: ["soft_body_pro", "fea_deformable", "plastic_elastic_material", "deformable_mesh", "core"]
+
+  @on_spawn(material_model) => {
+    init_soft_body_pro(material_model)
+    emit("soft_body_pro_ready", {})
+  }
+
+  @on_step(dt, external_loads) => {
+    step_soft_body_pro(dt, external_loads)
+  }
+
+  @receipt soft_body_pro_trait_config {
+    type: "SoftBodyProTraitReceipt"
+    method: "FEA (plastic + elastic)"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,22 @@
+// @sonification_trait — Sonification: maps data dimensions to audio parameters for non-visual display.
+//
+// Native .hsplus surface for core/traits/SonificationTrait.ts.
+
+@trait sonification_trait {
+  capability_tags: ["sonification", "data_to_audio", "non_visual_display", "data_audification", "core"]
+
+  @on_spawn(mapping_config) => {
+    init_sonification(mapping_config)
+    emit("sonification_ready", {})
+  }
+
+  @on_map(data_point) => {
+    audio_params = sonify_data(data_point)
+    apply_audio_params(audio_params)
+  }
+
+  @receipt sonification_trait_config {
+    type: "SonificationTraitReceipt"
+    timestamp: now()
+  }
+}

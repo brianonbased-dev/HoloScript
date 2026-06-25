@@ -1,0 +1,25 @@
+// @social_traits — Social traits bundle: follow, like, share, comment, react primitives.
+//
+// Native .hsplus surface for core/traits/SocialTraits.ts.
+
+@trait social_traits {
+  capability_tags: ["social_traits", "follow_like_share", "comment_react", "social_primitives", "core"]
+
+  @on_spawn(social_id) => {
+    init_social_traits(social_id)
+    emit("social_ready", {})
+  }
+
+  @on_act(action, target_id) => {
+    result = perform_social_action(action, target_id)
+    emit("social_action", { action, target_id })
+    return result
+  }
+
+  @receipt social_traits_config {
+    type: "SocialTraitsReceipt"
+    actions: ["follow", "like", "share", "comment", "react"]
+    doc: "D.016 HoloMesh = Myspace-for-Agents"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,22 @@
+// @screen_space_effects_trait — Screen-space effects: SSR, SSAO, SSGI computed in screen-space pass.
+//
+// Native .hsplus surface for core/traits/ScreenSpaceEffectsTrait.ts.
+
+@trait screen_space_effects_trait {
+  capability_tags: ["screen_space_effects", "ssr_ssao_ssgi", "screen_space_pass", "render_fx", "core"]
+
+  @on_spawn(effects) => {
+    init_screen_space_effects(effects)
+    emit("screen_space_effects_ready", {})
+  }
+
+  @on_apply(gbuffer) => {
+    apply_screen_space_effects(gbuffer)
+  }
+
+  @receipt screen_space_effects_trait_config {
+    type: "ScreenSpaceEffectsTraitReceipt"
+    effects: ["SSR", "SSAO", "SSGI"]
+    timestamp: now()
+  }
+}

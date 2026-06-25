@@ -1,0 +1,22 @@
+// @slack_trait — Slack integration: send messages, respond to events, manage channels via Slack API.
+//
+// Native .hsplus surface for core/traits/SlackTrait.ts.
+
+@trait slack_trait {
+  capability_tags: ["slack_trait", "slack_api", "send_messages", "event_respond", "core"]
+
+  @on_spawn(credentials_ref) => {
+    init_slack(credentials_ref)
+    emit("slack_ready", {})
+  }
+
+  @on_message(channel, text, blocks) => {
+    msg_ts = post_slack_message(channel, text, blocks)
+    return msg_ts
+  }
+
+  @receipt slack_trait_config {
+    type: "SlackTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,22 @@
+// @spatial_text_layout_trait — Spatial text layout: SDF-rendered text with kerning, wrapping, and billboard.
+//
+// Native .hsplus surface for core/traits/SpatialTextLayoutTrait.ts.
+
+@trait spatial_text_layout_trait {
+  capability_tags: ["spatial_text_layout", "sdf_text", "kerning_wrapping", "billboard_text", "core"]
+
+  @on_spawn(font_ref, size) => {
+    init_spatial_text_layout(font_ref, size)
+    emit("spatial_text_layout_ready", {})
+  }
+
+  @on_set_text(text, max_width) => {
+    layout_spatial_text(text, max_width)
+  }
+
+  @receipt spatial_text_layout_trait_config {
+    type: "SpatialTextLayoutTraitReceipt"
+    rendering: "SDF"
+    timestamp: now()
+  }
+}

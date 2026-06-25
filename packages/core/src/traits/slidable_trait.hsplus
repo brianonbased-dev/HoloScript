@@ -1,0 +1,22 @@
+// @slidable_trait — Slidable: XR slider widget with min/max, step, and haptic feedback.
+//
+// Native .hsplus surface for core/traits/SlidableTrait.ts.
+
+@trait slidable_trait {
+  capability_tags: ["slidable", "xr_slider", "min_max_step", "haptic_feedback", "core"]
+
+  @on_spawn(min, max, step) => {
+    init_slidable(min, max, step)
+    emit("slidable_ready", {})
+  }
+
+  @on_slide(value) => {
+    set_slider_value(value)
+    emit("value_changed", { value })
+  }
+
+  @receipt slidable_trait_config {
+    type: "SlidableTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,24 @@
+// @skeleton_trait — Skeletal rig: 55-bone BONE_ORDER pose evaluation with inverse kinematics.
+//
+// Native .hsplus surface for core/traits/SkeletonTrait.ts.
+// Palette: BONE_ORDER.length (55 bones; W.821).
+
+@trait skeleton_trait {
+  capability_tags: ["skeleton", "55_bone_rig", "pose_evaluation", "bone_order", "core"]
+
+  @on_spawn(rig_config) => {
+    init_skeleton(rig_config)
+    emit("skeleton_ready", {})
+  }
+
+  @on_set_pose(bone_transforms) => {
+    apply_skeleton_pose(bone_transforms)
+  }
+
+  @receipt skeleton_trait_config {
+    type: "SkeletonTraitReceipt"
+    bone_count: "BONE_ORDER.length (55)"
+    doc: "W.821 splat/skeleton gotchas"
+    timestamp: now()
+  }
+}

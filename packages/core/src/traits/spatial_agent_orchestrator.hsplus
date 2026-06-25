@@ -1,0 +1,23 @@
+// @spatial_agent_orchestrator — Spatial agent orchestrator: routes world-space tasks to embodied agents.
+//
+// Native .hsplus surface for core/traits/SpatialAgentOrchestrator.ts.
+
+@trait spatial_agent_orchestrator {
+  capability_tags: ["spatial_agent_orchestrator", "world_space_routing", "embodied_agent", "task_dispatch", "core"]
+
+  @on_spawn(world_id) => {
+    init_spatial_agent_orchestrator(world_id)
+    emit("spatial_agent_orchestrator_ready", {})
+  }
+
+  @on_dispatch(task, location) => {
+    agent_id = dispatch_spatial_task(task, location)
+    emit("spatial_task_dispatched", { agent_id })
+    return agent_id
+  }
+
+  @receipt spatial_agent_orchestrator_config {
+    type: "SpatialAgentOrchestratorReceipt"
+    timestamp: now()
+  }
+}

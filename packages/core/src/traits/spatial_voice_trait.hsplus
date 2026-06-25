@@ -1,0 +1,22 @@
+// @spatial_voice_trait — Spatial voice: VAD + positional audio routing for in-world voice chat.
+//
+// Native .hsplus surface for core/traits/SpatialVoiceTrait.ts.
+
+@trait spatial_voice_trait {
+  capability_tags: ["spatial_voice", "vad", "positional_audio", "in_world_voice", "core"]
+
+  @on_spawn(room_id) => {
+    init_spatial_voice(room_id)
+    emit("spatial_voice_ready", {})
+  }
+
+  @on_speak(audio_frame) => {
+    broadcast_spatial_audio(audio_frame)
+  }
+
+  @receipt spatial_voice_trait_config {
+    type: "SpatialVoiceTraitReceipt"
+    features: ["VAD", "positional audio", "3D spatialization"]
+    timestamp: now()
+  }
+}

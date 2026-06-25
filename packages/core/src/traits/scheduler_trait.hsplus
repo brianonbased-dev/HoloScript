@@ -1,0 +1,21 @@
+// @scheduler_trait — Task scheduler: cron-expression and interval-based job execution with persistence.
+//
+// Native .hsplus surface for core/traits/SchedulerTrait.ts.
+
+@trait scheduler_trait {
+  capability_tags: ["scheduler", "cron_interval", "job_execution", "persistent_schedule", "core"]
+
+  @on_spawn => {
+    emit("scheduler_ready", {})
+  }
+
+  @on_schedule(job_id, expression, fn) => {
+    schedule_job(job_id, expression, fn)
+    emit("job_scheduled", { job_id })
+  }
+
+  @receipt scheduler_trait_config {
+    type: "SchedulerTraitReceipt"
+    timestamp: now()
+  }
+}

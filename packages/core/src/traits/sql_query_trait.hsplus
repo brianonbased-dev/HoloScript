@@ -1,0 +1,23 @@
+// @sql_query_trait — SQL query: parameterized SQL execution with injection-safe binding.
+//
+// Native .hsplus surface for core/traits/SqlQueryTrait.ts.
+
+@trait sql_query_trait {
+  capability_tags: ["sql_query", "parameterized_sql", "injection_safe", "sql_execution", "core"]
+
+  @on_spawn(db_ref) => {
+    init_sql_query(db_ref)
+    emit("sql_query_ready", {})
+  }
+
+  @on_execute(sql, params) => {
+    rows = execute_sql_query(sql, params)
+    return rows
+  }
+
+  @receipt sql_query_trait_config {
+    type: "SqlQueryTraitReceipt"
+    safety: "parameterized binding (no string concat)"
+    timestamp: now()
+  }
+}

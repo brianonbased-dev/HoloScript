@@ -1,0 +1,21 @@
+// @spatial_audio_cue_trait — Spatial audio cue: HRTF-spatialized one-shot sound at 3D position.
+//
+// Native .hsplus surface for core/traits/SpatialAudioCueTrait.ts.
+
+@trait spatial_audio_cue_trait {
+  capability_tags: ["spatial_audio_cue", "hrtf", "one_shot_3d_sound", "spatialized_audio", "core"]
+
+  @on_spawn => {
+    emit("spatial_audio_cue_ready", {})
+  }
+
+  @on_play(clip_id, position, gain) => {
+    play_spatial_audio_cue(clip_id, position, gain)
+  }
+
+  @receipt spatial_audio_cue_trait_config {
+    type: "SpatialAudioCueTraitReceipt"
+    processing: "HRTF"
+    timestamp: now()
+  }
+}

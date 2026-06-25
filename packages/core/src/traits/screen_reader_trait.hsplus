@@ -1,0 +1,20 @@
+// @screen_reader_trait — Screen reader: exposes ARIA-equivalent semantic labels to assistive tech.
+//
+// Native .hsplus surface for core/traits/ScreenReaderTrait.ts.
+
+@trait screen_reader_trait {
+  capability_tags: ["screen_reader", "aria_labels", "assistive_tech", "accessibility", "core"]
+
+  @on_spawn => {
+    emit("screen_reader_ready", {})
+  }
+
+  @on_announce(label, priority) => {
+    announce_to_screen_reader(label, priority)
+  }
+
+  @receipt screen_reader_trait_config {
+    type: "ScreenReaderTraitReceipt"
+    timestamp: now()
+  }
+}

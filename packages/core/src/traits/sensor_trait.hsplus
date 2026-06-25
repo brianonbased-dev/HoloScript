@@ -1,0 +1,22 @@
+// @sensor_trait — Generic sensor: abstracts IMU/env/proximity/custom sensors with typed output.
+//
+// Native .hsplus surface for core/traits/SensorTrait.ts.
+
+@trait sensor_trait {
+  capability_tags: ["sensor_trait", "imu_env_proximity", "typed_sensor_output", "generic_sensor", "core"]
+
+  @on_spawn(sensor_type, device_id) => {
+    init_sensor(sensor_type, device_id)
+    emit("sensor_ready", { sensor_type })
+  }
+
+  @on_read => {
+    return read_sensor()
+  }
+
+  @receipt sensor_trait_config {
+    type: "SensorTraitReceipt"
+    types: ["IMU", "env", "proximity", "custom"]
+    timestamp: now()
+  }
+}

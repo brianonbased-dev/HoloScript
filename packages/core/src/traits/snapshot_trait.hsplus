@@ -1,0 +1,27 @@
+// @snapshot_trait — State snapshot: point-in-time world/entity state capture and restore.
+//
+// Native .hsplus surface for core/traits/SnapshotTrait.ts.
+
+@trait snapshot_trait {
+  capability_tags: ["snapshot_trait", "state_capture", "point_in_time", "restore", "core"]
+
+  @on_spawn(store_id) => {
+    init_snapshot(store_id)
+    emit("snapshot_ready", {})
+  }
+
+  @on_capture(label) => {
+    snap = capture_snapshot(label)
+    return snap
+  }
+
+  @on_restore(snap_id) => {
+    restore_snapshot(snap_id)
+    emit("snapshot_restored", { snap_id })
+  }
+
+  @receipt snapshot_trait_config {
+    type: "SnapshotTraitReceipt"
+    timestamp: now()
+  }
+}

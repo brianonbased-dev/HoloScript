@@ -1,0 +1,23 @@
+// @shell_trait — Shell execution: runs OS commands via HoloShell with timeout and sandboxing.
+//
+// Native .hsplus surface for core/traits/ShellTrait.ts.
+
+@trait shell_trait {
+  capability_tags: ["shell_trait", "os_command", "holoshell", "timeout_sandbox", "core"]
+
+  @on_spawn(policy) => {
+    init_shell(policy)
+    emit("shell_ready", {})
+  }
+
+  @on_exec(command, args, timeout_ms) => {
+    result = exec_shell(command, args, timeout_ms)
+    return result
+  }
+
+  @receipt shell_trait_config {
+    type: "ShellTraitReceipt"
+    doc: "D.055 HoloShell = Operate surface; route work through it"
+    timestamp: now()
+  }
+}

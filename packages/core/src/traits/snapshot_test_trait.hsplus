@@ -1,0 +1,23 @@
+// @snapshot_test_trait — Snapshot test: captures and diffs serialized entity/output against baseline.
+//
+// Native .hsplus surface for core/traits/SnapshotTestTrait.ts.
+
+@trait snapshot_test_trait {
+  capability_tags: ["snapshot_test", "baseline_diff", "serialized_output", "regression_test", "core"]
+
+  @on_spawn(baseline_dir) => {
+    init_snapshot_test(baseline_dir)
+    emit("snapshot_test_ready", {})
+  }
+
+  @on_assert(name, output) => {
+    result = assert_snapshot(name, output)
+    if result.updated { emit("snapshot_updated", { name }) }
+    return result
+  }
+
+  @receipt snapshot_test_trait_config {
+    type: "SnapshotTestTraitReceipt"
+    timestamp: now()
+  }
+}

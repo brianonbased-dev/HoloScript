@@ -1,0 +1,22 @@
+// @soft_body_trait — Soft-body: position-based dynamics (PBD) for cloth, jelly, rubber-like deformation.
+//
+// Native .hsplus surface for core/traits/SoftBodyTrait.ts.
+
+@trait soft_body_trait {
+  capability_tags: ["soft_body", "pbd", "cloth_jelly_rubber", "deformable_pbd", "core"]
+
+  @on_spawn(constraints) => {
+    init_soft_body(constraints)
+    emit("soft_body_ready", {})
+  }
+
+  @on_step(dt, external_forces) => {
+    step_soft_body(dt, external_forces)
+  }
+
+  @receipt soft_body_trait_config {
+    type: "SoftBodyTraitReceipt"
+    method: "Position-Based Dynamics"
+    timestamp: now()
+  }
+}

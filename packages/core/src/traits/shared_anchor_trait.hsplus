@@ -1,0 +1,22 @@
+// @shared_anchor_trait — Shared AR anchor: broadcasts world-locked anchor to all session peers.
+//
+// Native .hsplus surface for core/traits/SharedAnchorTrait.ts.
+
+@trait shared_anchor_trait {
+  capability_tags: ["shared_anchor", "world_locked", "session_broadcast", "multi_user_ar", "core"]
+
+  @on_spawn(session_id) => {
+    init_shared_anchor(session_id)
+    emit("shared_anchor_ready", {})
+  }
+
+  @on_share(anchor_id, pose) => {
+    broadcast_shared_anchor(anchor_id, pose)
+    emit("anchor_shared", { anchor_id })
+  }
+
+  @receipt shared_anchor_trait_config {
+    type: "SharedAnchorTraitReceipt"
+    timestamp: now()
+  }
+}

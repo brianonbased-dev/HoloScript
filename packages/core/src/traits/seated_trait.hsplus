@@ -1,0 +1,22 @@
+// @seated_trait — Seated entity: occupies a seat slot with occupancy state and reservation.
+//
+// Native .hsplus surface for core/traits/SeatedTrait.ts.
+
+@trait seated_trait {
+  capability_tags: ["seated", "seat_slot", "occupancy_state", "reservation", "core"]
+
+  @on_spawn(seat_id) => {
+    init_seated(seat_id)
+    emit("seated_ready", { seat_id })
+  }
+
+  @on_sit(entity_id) => {
+    occupy_seat(entity_id)
+    emit("seat_occupied", { entity_id, seat_id })
+  }
+
+  @receipt seated_trait_config {
+    type: "SeatedTraitReceipt"
+    timestamp: now()
+  }
+}

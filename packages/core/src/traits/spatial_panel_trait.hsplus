@@ -1,0 +1,22 @@
+// @spatial_panel_trait — Spatial panel: world-locked 2D UI panel with billboard/face-camera mode.
+//
+// Native .hsplus surface for core/traits/SpatialPanelTrait.ts.
+
+@trait spatial_panel_trait {
+  capability_tags: ["spatial_panel", "world_locked_ui", "billboard_face_camera", "2d_in_3d", "core"]
+
+  @on_spawn(size, mode) => {
+    init_spatial_panel(size, mode)
+    emit("spatial_panel_ready", {})
+  }
+
+  @on_set_content(content_id) => {
+    set_panel_content(content_id)
+  }
+
+  @receipt spatial_panel_trait_config {
+    type: "SpatialPanelTraitReceipt"
+    modes: ["billboard", "face-camera", "fixed"]
+    timestamp: now()
+  }
+}

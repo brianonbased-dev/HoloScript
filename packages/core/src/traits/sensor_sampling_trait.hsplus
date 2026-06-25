@@ -1,0 +1,22 @@
+// @sensor_sampling_trait — Sensor sampling: fixed-rate polling of physical sensors with buffering.
+//
+// Native .hsplus surface for core/traits/SensorSamplingTrait.ts.
+
+@trait sensor_sampling_trait {
+  capability_tags: ["sensor_sampling", "fixed_rate_poll", "physical_sensor", "buffered_samples", "core"]
+
+  @on_spawn(sensor_id, sample_rate_hz) => {
+    init_sensor_sampling(sensor_id, sample_rate_hz)
+    emit("sensor_sampling_ready", {})
+  }
+
+  @on_sample => {
+    reading = sample_sensor()
+    return reading
+  }
+
+  @receipt sensor_sampling_trait_config {
+    type: "SensorSamplingTraitReceipt"
+    timestamp: now()
+  }
+}

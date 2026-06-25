@@ -1,0 +1,22 @@
+// @segment_trait — User segment: assigns users to named cohorts for analytics/targeting.
+//
+// Native .hsplus surface for core/traits/SegmentTrait.ts.
+
+@trait segment_trait {
+  capability_tags: ["segment_trait", "user_cohort", "analytics_targeting", "segmentation", "core"]
+
+  @on_spawn(segment_rules) => {
+    init_segment(segment_rules)
+    emit("segment_ready", {})
+  }
+
+  @on_evaluate(user_profile) => {
+    segments = evaluate_segments(user_profile)
+    return segments
+  }
+
+  @receipt segment_trait_config {
+    type: "SegmentTraitReceipt"
+    timestamp: now()
+  }
+}

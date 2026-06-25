@@ -1,0 +1,23 @@
+// @spatial_constraint_traits — Spatial constraints: snap-to-surface, boundary clamp, gravity-align group.
+//
+// Native .hsplus surface for core/traits/SpatialConstraintTraits.ts.
+
+@trait spatial_constraint_traits {
+  capability_tags: ["spatial_constraints", "snap_to_surface", "boundary_clamp", "gravity_align", "core"]
+
+  @on_spawn(constraints) => {
+    init_spatial_constraints(constraints)
+    emit("spatial_constraints_ready", {})
+  }
+
+  @on_apply(transform) => {
+    constrained = apply_spatial_constraints(transform)
+    return constrained
+  }
+
+  @receipt spatial_constraint_traits_config {
+    type: "SpatialConstraintTraitsReceipt"
+    types: ["snap-to-surface", "boundary-clamp", "gravity-align"]
+    timestamp: now()
+  }
+}

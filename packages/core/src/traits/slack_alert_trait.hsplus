@@ -1,0 +1,21 @@
+// @slack_alert_trait — Slack alert: posts formatted alert messages to Slack channels via webhook.
+//
+// Native .hsplus surface for core/traits/SlackAlertTrait.ts.
+
+@trait slack_alert_trait {
+  capability_tags: ["slack_alert", "slack_webhook", "formatted_alert", "channel_post", "core"]
+
+  @on_spawn(webhook_ref) => {
+    init_slack_alert(webhook_ref)
+    emit("slack_alert_ready", {})
+  }
+
+  @on_send(channel, title, message, severity) => {
+    send_slack_alert(channel, title, message, severity)
+  }
+
+  @receipt slack_alert_trait_config {
+    type: "SlackAlertTraitReceipt"
+    timestamp: now()
+  }
+}

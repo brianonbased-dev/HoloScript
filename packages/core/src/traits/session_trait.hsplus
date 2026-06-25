@@ -1,0 +1,27 @@
+// @session_trait — User session: JWT-backed session with refresh, expiry, and device binding.
+//
+// Native .hsplus surface for core/traits/SessionTrait.ts.
+
+@trait session_trait {
+  capability_tags: ["session_trait", "jwt_session", "refresh_expiry", "device_binding", "core"]
+
+  @on_spawn(config) => {
+    init_session(config)
+    emit("session_ready", {})
+  }
+
+  @on_create(user_id, device_id) => {
+    session = create_session(user_id, device_id)
+    return session
+  }
+
+  @on_refresh(session_token) => {
+    new_token = refresh_session(session_token)
+    return new_token
+  }
+
+  @receipt session_trait_config {
+    type: "SessionTraitReceipt"
+    timestamp: now()
+  }
+}

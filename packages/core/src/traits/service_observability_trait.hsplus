@@ -1,0 +1,23 @@
+// @service_observability_trait — Service observability: wires tracing, metrics, and structured logs for services.
+//
+// Native .hsplus surface for core/traits/ServiceObservabilityTrait.ts.
+
+@trait service_observability_trait {
+  capability_tags: ["service_observability", "tracing_metrics_logs", "service_telemetry", "otel", "core"]
+
+  @on_spawn(service_name) => {
+    init_service_observability(service_name)
+    emit("service_observability_ready", {})
+  }
+
+  @on_start_trace(span_name, attrs) => {
+    span = start_observability_span(span_name, attrs)
+    return span
+  }
+
+  @receipt service_observability_trait_config {
+    type: "ServiceObservabilityTraitReceipt"
+    standard: "OpenTelemetry"
+    timestamp: now()
+  }
+}

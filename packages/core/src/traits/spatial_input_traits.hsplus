@@ -1,0 +1,21 @@
+// @spatial_input_traits — Spatial input: hand/controller/gaze input routing for XR interactions.
+//
+// Native .hsplus surface for core/traits/SpatialInputTraits.ts.
+
+@trait spatial_input_traits {
+  capability_tags: ["spatial_input", "hand_controller_gaze", "xr_input_routing", "interaction_input", "core"]
+
+  @on_spawn => {
+    emit("spatial_input_ready", {})
+  }
+
+  @on_input(input_event) => {
+    route_spatial_input(input_event)
+  }
+
+  @receipt spatial_input_traits_config {
+    type: "SpatialInputTraitsReceipt"
+    modalities: ["hand", "controller", "gaze", "voice"]
+    timestamp: now()
+  }
+}

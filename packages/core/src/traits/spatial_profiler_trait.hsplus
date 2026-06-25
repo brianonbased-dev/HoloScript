@@ -1,0 +1,21 @@
+// @spatial_profiler_trait — Spatial profiler: measures per-region draw calls, GPU ms, and overdraw in XR.
+//
+// Native .hsplus surface for core/traits/SpatialProfilerTrait.ts.
+
+@trait spatial_profiler_trait {
+  capability_tags: ["spatial_profiler", "per_region_draw_calls", "gpu_ms_overdraw", "xr_profiling", "core"]
+
+  @on_spawn => {
+    emit("spatial_profiler_ready", {})
+  }
+
+  @on_measure(region_id) => {
+    metrics = measure_spatial_region(region_id)
+    return metrics
+  }
+
+  @receipt spatial_profiler_trait_config {
+    type: "SpatialProfilerTraitReceipt"
+    timestamp: now()
+  }
+}

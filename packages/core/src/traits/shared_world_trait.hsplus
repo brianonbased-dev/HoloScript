@@ -1,0 +1,23 @@
+// @shared_world_trait — Shared world: CRDT-synchronized world state across all participants.
+//
+// Native .hsplus surface for core/traits/SharedWorldTrait.ts.
+
+@trait shared_world_trait {
+  capability_tags: ["shared_world", "crdt_sync", "world_state", "multi_participant", "core"]
+
+  @on_spawn(room_id) => {
+    init_shared_world(room_id)
+    emit("shared_world_ready", { room_id })
+  }
+
+  @on_apply(op) => {
+    apply_shared_world_op(op)
+    emit("world_op_applied", {})
+  }
+
+  @receipt shared_world_trait_config {
+    type: "SharedWorldTraitReceipt"
+    crdt: "Loro"
+    timestamp: now()
+  }
+}

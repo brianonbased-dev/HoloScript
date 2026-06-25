@@ -1,0 +1,22 @@
+// @shader_trait — Custom shader: WGSL/GLSL shader with hot-reload and uniform binding.
+//
+// Native .hsplus surface for core/traits/ShaderTrait.ts.
+
+@trait shader_trait {
+  capability_tags: ["shader", "wgsl_glsl", "hot_reload", "uniform_binding", "core"]
+
+  @on_spawn(shader_source, stage) => {
+    init_shader(shader_source, stage)
+    emit("shader_ready", { stage })
+  }
+
+  @on_set_uniform(name, value) => {
+    set_shader_uniform(name, value)
+  }
+
+  @receipt shader_trait_config {
+    type: "ShaderTraitReceipt"
+    languages: ["WGSL", "GLSL"]
+    timestamp: now()
+  }
+}

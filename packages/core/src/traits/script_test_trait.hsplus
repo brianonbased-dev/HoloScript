@@ -1,0 +1,23 @@
+// @script_test_trait — Script-level test: runs a HoloScript execution path and asserts outputs.
+//
+// Native .hsplus surface for core/traits/ScriptTestTrait.ts.
+
+@trait script_test_trait {
+  capability_tags: ["script_test", "script_execution_test", "assert_outputs", "holoscript_test", "core"]
+
+  @on_spawn(script_path) => {
+    init_script_test(script_path)
+    emit("script_test_ready", {})
+  }
+
+  @on_run(inputs) => {
+    result = run_script_test(inputs)
+    emit("script_test_complete", { passed: result.passed })
+    return result
+  }
+
+  @receipt script_test_trait_config {
+    type: "ScriptTestTraitReceipt"
+    timestamp: now()
+  }
+}

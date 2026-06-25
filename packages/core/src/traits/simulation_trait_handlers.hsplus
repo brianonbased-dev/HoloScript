@@ -1,0 +1,16 @@
+// @simulation_trait_handlers — Simulation handler bindings: wires sim traits to execution backends.
+//
+// Native .hsplus surface for core/traits/SimulationTraitHandlers.ts.
+
+@trait simulation_trait_handlers {
+  capability_tags: ["simulation_trait_handlers", "handler_bindings", "sim_backend_wire", "trait_handler", "core"]
+
+  @on_spawn => {
+    emit("simulation_trait_handlers_ready", {})
+  }
+
+  @receipt simulation_trait_handlers_config {
+    type: "SimulationTraitHandlersReceipt"
+    timestamp: now()
+  }
+}

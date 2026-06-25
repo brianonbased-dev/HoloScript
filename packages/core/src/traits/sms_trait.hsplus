@@ -1,0 +1,23 @@
+// @sms_trait — SMS: sends/receives SMS via Twilio/SNS with delivery status tracking.
+//
+// Native .hsplus surface for core/traits/SmsTrait.ts.
+
+@trait sms_trait {
+  capability_tags: ["sms_trait", "twilio_sns", "send_receive_sms", "delivery_status", "core"]
+
+  @on_spawn(provider, credentials_ref) => {
+    init_sms(provider, credentials_ref)
+    emit("sms_ready", { provider })
+  }
+
+  @on_send(to, body) => {
+    msg_id = send_sms(to, body)
+    return msg_id
+  }
+
+  @receipt sms_trait_config {
+    type: "SmsTraitReceipt"
+    providers: ["Twilio", "AWS SNS"]
+    timestamp: now()
+  }
+}
