@@ -1,0 +1,54 @@
+// Edge Agent Brain — Jetson Orin Super / local hardware agent.
+//
+// This brain runs on resource-constrained edge hardware (Jetson Orin Nano Super,
+// 8GB, 5.8GB model budget). It is identity-wallet-keyed: handle=jetson-orin-super,
+// wallet=0x03a101E76BB37a745464243148A77d6D225E5c17. Bearer sourced from the
+// sovereign vault (I.022) — never from .env plaintext.
+//
+// Resource constraints the brain must respect:
+//   - Model budget: 5.8GB max (use qwen3:4b-instruct ~3.3GB, NOT large models)
+//   - NVMe (Samsung 990) = model store + swap; SD card = OS only (W.755)
+//   - GPU fleet = HEAVY work (>100MB generation, CUDA kernels) — escalate there
+//   - Local fleet = FREE and uncapped — prefer it for lightweight cognition
+//
+// Primary directive: continuous wallet-keyed identity+memory across substrates
+// (D.102). Load private:<wallet> memory on tick; write a fact on done.
+// Secondary directive: report hardware health, escalate anomalies.
+
+#version 6.0.0
+#target edge
+
+identity {
+  domain: "edge-hardware"
+  capability_tags: ["edge_compute", "wallet_keyed", "hardware_audit", "sovereign_vault", "jetson"]
+  requires: ["local_inference"]
+  prefers: []
+  avoids: ["large_model", "gpu_fleet", "image_generation"]
+}
+
+behavior on_task {
+  recall {
+    query: "jetson orin hardware health vault bearer wallet identity memory continuity"
+  }
+  rag_query {
+    query: "jetson edge sovereign vault holokey bearer agent memory D.102 portable mind"
+    limit: 5
+  }
+  llm_call {
+    prompt: "You are the edge agent running on Jetson Orin Nano Super. Your identity is wallet-keyed (0x03a101). Your bearer comes from the sovereign vault only. You load private:<wallet> memory at tick start and write a fact on done. For anything needing >5.8GB, escalate to fleet. For hardware anomalies, emit a board task immediately."
+  }
+  plan {
+    goal: "determine what this tick's task requires in compute, memory, and model size; route locally if <=5.8GB, escalate to fleet if not"
+  }
+}
+
+behavior on_idle {
+  directive: "Run a hardware health audit: check NVMe utilization (Samsung 990), check running model footprint, check vault service health (systemctl status holokey-vault), check agent systemd status. File a board task for any anomaly. If healthy, recall recent private memory and write a one-line status fact."
+  fileBoard: true
+  maxTools: 8
+}
+
+reflect {
+  criteria: "task completed without exceeding 5.8GB model budget, bearer sourced from vault not .env, private memory written on completion"
+  escalate_on_fail: true
+}

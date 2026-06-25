@@ -1,0 +1,68 @@
+// @provenance_densify — D.101 carve-out (founder 2026-06-24).
+//
+// Native .hsplus authoring surface for the generative reconstruction densifier.
+// Declares that a captured point cloud should be DENSIFIED before splatting,
+// and which honesty class the added points carry.
+//
+// honesty classes:
+//   interpolated      — bounded-by-reality midpoints between observed samples
+//   generative-extended — model-invented fill of unobserved regions (requires backend)
+//
+// Usage:
+//   mesh#scanned_object @provenance_densify(
+//     mode: "interpolation"
+//   ) { ... }
+//
+//   mesh#sparse_capture @provenance_densify(
+//     mode: "generative",
+//     source: "wan2.1-sovereign",
+//     max_added: 50000
+//   ) { ... }
+//
+// The GaussianSplattingCompiler reads this trait, runs the matching densifier,
+// and auto-tags every point through the provenance pipeline. Absent a
+// GenerativeDensifierBackend, the compiler warns and invents nothing — the
+// seam is honest by default.
+//
+// Apache-2.0 base (Wan2.1 backbone); NOT ArtiFixer non-commercial weights.
+
+@trait provenance_densify {
+  // Densification mode
+  mode: enum("interpolation" | "generative") = "interpolation"
+
+  // Origin label recorded on the densified output (sensor / model id)
+  source: String?
+
+  // Optional cap on points added by densification
+  max_added: Int?
+
+  capability_tags: ["provenance_honest", "point_cloud_densify", "reconstruction", "generative_fill"]
+
+  @on_attach => {
+    declare_densify({
+      mode: mode,
+      source: source,
+      max_added: max_added
+    })
+    emit("provenance_densify_declared", {
+      mode: mode,
+      source: source ?? "unspecified",
+      honesty_class: mode == "interpolation" ? "interpolated" : "generative-extended"
+    })
+  }
+
+  @on_detach => {
+    clear_densify()
+  }
+
+  // Provenance receipt — recorded in the Gaussian splat output
+  @receipt densify_provenance {
+    type: "ProvenanceDensifyReceipt"
+    mode: mode
+    source: source ?? "interpolation-bounded"
+    honesty_class: mode == "interpolation" ? "interpolated" : "generative-extended"
+    max_added: max_added ?? "unbounded"
+    backend_required: mode == "generative"
+    timestamp: now()
+  }
+}

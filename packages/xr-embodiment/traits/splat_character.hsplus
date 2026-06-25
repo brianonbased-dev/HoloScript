@@ -1,0 +1,80 @@
+// @splat_character — D.102 E5b: a Gaussian-splat-bodied agent entity.
+//
+// Wraps a real .ply / codec-encoded splat as an agent-embodied character.
+// The entity carries wallet-keyed identity (D.102) — same private:<wallet>
+// memory whether running on Jetson or in the headset. The bearer authenticates
+// the mind seam; the splat provides the visual body.
+//
+// Compile targets: compile_to_android_xr / compile_to_openxr / compile_to_visionos
+// Runtime bridge: SplatCharacterHost in @holoscript/engine (D.094 entityId)
+//
+// Gotchas (I.021):
+//   - Needs POSITIVE camera-space Z (depth<0.01 culls)
+//   - Codec rotation is (x,y,z,w) → reorder to (w,x,y,z)
+//   - Test asset = many SMALL splats not few fat (fat fills frame)
+//   - framingSplatCamera auto-frames any cloud — use it for initial positioning
+
+@trait splat_character {
+  // Path or URL to the .ply source (can be a codec-encoded Gaussian3D asset)
+  ply_source: String
+
+  // Wallet address for identity continuity (D.102 portable mind)
+  wallet: String?
+
+  // HoloMesh team ID for private memory store
+  team_id: String?
+
+  // x402 bearer for private:<wallet> memory access (from sovereign vault)
+  bearer: String?
+
+  // Optional agent handle (defaults to wallet address)
+  agent_id: String?
+
+  // Auto-frame the splat on spawn using framingSplatCamera
+  auto_frame: Bool = true
+
+  // Scale multiplier applied after splat decode
+  scale: Float = 1.0
+
+  capability_tags: ["splat_body", "wallet_keyed", "portable_mind", "gaussian_splatting", "xr_embodiment"]
+
+  @on_spawn => {
+    splat = decode_splat({
+      source: ply_source,
+      rotation_convention: "wxyz",
+      depth_cull_threshold: 0.01
+    })
+    body = bind_splat_body({
+      splat: splat,
+      entity_id: wallet ?? agent_id ?? "splat_agent",
+      scale: scale
+    })
+    if auto_frame {
+      frame_camera_to_splat(splat)
+    }
+    if bearer {
+      mind = build_portable_mind({
+        bearer: bearer,
+        team_id: team_id,
+        agent_id: agent_id ?? wallet
+      })
+      bind_mind(body, mind)
+      emit("mind_loaded", { wallet: wallet, agent_id: agent_id })
+    }
+    emit("splat_character_ready", {
+      ply_source: ply_source,
+      wallet: wallet,
+      has_mind: bearer != null
+    })
+  }
+
+  @receipt splat_character_identity {
+    type: "SplatCharacterIdentityReceipt"
+    ply_source: ply_source
+    wallet: wallet ?? "anonymous"
+    agent_id: agent_id ?? wallet ?? "anonymous"
+    has_mind: bearer != null
+    auto_framed: auto_frame
+    timestamp: now()
+  }
+}

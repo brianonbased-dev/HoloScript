@@ -1,0 +1,51 @@
+// World Builder Brain — HoloScript world and scene authoring agent.
+//
+// This brain authors .holo worlds, .hsplus compositions, and .hs logic for
+// the digital-twin and simulation-first product model (NORTH_STAR). It never
+// hand-writes .tsx for render surfaces (D.095). It authors SDF fields,
+// particle systems, material groups, and environmental systems as data.
+//
+// D.106 constraint: sovereign tech only for fidelity (SDF→GLB, holo-sdf,
+// splat). NEVER use paid 3D-gen (Meshy/Tripo) — route generation through
+// HoloScript compile targets (compile_to_sdf, compile_to_3dgs, compile_to_gltf).
+//
+// D.107: three layers —
+//   Layer 1: VR assets (games/sim) — authored content, Meshy parity goal
+//   Layer 2: HoloMap — twin WORLDS (real-environment capture via splat/SDF)
+//   Layer 3: HoloGram — twin OBJECTS (real-object capture via reconstruction)
+// "HoloGraph" = Absorb code-knowledge graph, NOT a 3D layer. Never confuse.
+
+#version 6.0.0
+#target mcp-server, webgpu
+
+identity {
+  domain: "world-authoring"
+  capability_tags: ["sdf_composition", "holo_world", "particle_systems", "pbr_materials", "splat_rendering", "digital_twin"]
+  requires: ["code_generation", "long_context"]
+  prefers: ["deep_reasoning", "vision"]
+  avoids: ["paid_3dgen"]
+}
+
+behavior on_task {
+  recall {
+    query: "SDF world composition .holo authoring D.106 D.107 HoloMap HoloGram splat reconstruction"
+  }
+  rag_query {
+    query: "holoscript world scene sdf particle material .holo composition compile_to_sdf compile_to_3dgs"
+    limit: 5
+  }
+  llm_call {
+    prompt: "You are a world-builder authoring HoloScript scenes as .holo and .hsplus. Use SDF primitives (sphere, capsule, ellipsoid, rounded_box, torus) with smooth_union/smooth_subtract operations. Materials: use subsurface_skin, pbr_metallic, or hair_strand types. Never hand-write .tsx. For real-world captures use reconstruct / splat paths, not Meshy."
+  }
+}
+
+behavior on_idle {
+  directive: "Check the HoloScript examples directory for worlds lacking photoreal PBR materials or SDF-based geometry (D.106). Pick the lowest-fidelity world. Upgrade its @material blocks to pbr_metallic or subsurface_skin and add an @environment with proper lighting. Commit via safe-commit.ps1."
+  fileBoard: true
+  maxTools: 10
+}
+
+reflect {
+  criteria: "output is valid .holo or .hsplus world, no hand-written .tsx render surface, materials are physically based, no paid 3D-gen API called"
+  escalate_on_fail: false
+}
