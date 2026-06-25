@@ -1,0 +1,25 @@
+@trait {
+  name: "@nerf",
+  category: "volumetrics",
+  description: "Neural Radiance Field (NeRF) scene renderer. method: instant_ngp (fastest), nerfacto, tensorf, or mipnerf360. resolution is the render resolution (default: 512). nearPlane/farPlane define the depth range in meters. samplesPerRay is the coarse sample count (default: 64). batchSize is the training/render ray batch (default: 4096). enableDeformation adds deformation fields for dynamic scenes. quality: draft, balanced, or quality. cacheFrames enables frame caching. cacheSize is the cached frame count (default: 32). Port of NeRFTrait.ts (handler name: nerf).",
+  props: {
+    method: enum("instant_ngp" | "nerfacto" | "tensorf" | "mipnerf360") = "instant_ngp",
+    resolution: number = 512,
+    near_plane: number = 0.01,
+    far_plane: number = 100,
+    samples_per_ray: number = 64,
+    batch_size: number = 4096,
+    enable_deformation: boolean = false,
+    quality: enum("draft" | "balanced" | "quality") = "balanced",
+    cache_frames: boolean = true,
+    cache_size: number = 32
+  },
+  events: {
+    on_trained: "nerf_trained",
+    on_rendered: "nerf_rendered",
+    on_frame_cached: "nerf_frame_cached",
+    render: "nerf_render",
+    train: "nerf_train"
+  },
+  behaviors: ["@gaussian_splat", "@volumetric", "@cinematic_camera"]
+}

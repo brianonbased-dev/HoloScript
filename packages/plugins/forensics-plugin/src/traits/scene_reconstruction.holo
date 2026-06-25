@@ -1,0 +1,19 @@
+@trait {
+  name: "@scene_reconstruction",
+  category: "forensics",
+  description: "Forensic crime scene 3D reconstruction. sceneId is the case scene identifier. referenceFrame: world (absolute GPS/ECEF) or local (relative to scene origin). confidence is a 0-1 reconstruction confidence score computed from input evidence quality. annotationCount is the number of forensic annotations placed. Integrates with @evidence_chain and @chain_of_custody for provenance. Port of SceneReconstructionTrait.ts (handler name: scene_reconstruction).",
+  props: {
+    scene_id: string = "",
+    reference_frame: enum("world" | "local") = "world",
+    confidence: number = 0,
+    annotation_count: number = 0
+  },
+  events: {
+    on_reconstructed: "scene_reconstructed",
+    on_annotation_added: "scene_annotation_added",
+    on_exported: "scene_exported",
+    add_annotation: "scene_add_annotation",
+    export_report: "scene_export_report"
+  },
+  behaviors: ["@evidence_chain", "@chain_of_custody"]
+}

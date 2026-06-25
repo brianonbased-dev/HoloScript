@@ -1,0 +1,24 @@
+@trait {
+  name: "@color_grade",
+  category: "film",
+  description: "Cinematic color grading. temperature is the color temperature in Kelvin (default: 6500K = daylight). tint shifts the green-magenta axis (-100 to +100). contrast adjusts the contrast curve (-100 to +100). saturation scales color saturation (0=desaturated, 1=neutral, >1=boosted). liftGammaGain are the CDL primary color corrector values ([R,G,B] each). exposure adjusts exposure in stops. highlights/shadows adjust tonal range. vibrance is a saturation boost protecting skin tones (0-100). cdlCompatible flags CDL-compliant export. Port of ColorGradeTrait.ts (handler name: color_grade).",
+  props: {
+    temperature: number = 6500,
+    tint: number = 0,
+    contrast: number = 0,
+    saturation: number = 1,
+    exposure: number = 0,
+    highlights: number = 0,
+    shadows: number = 0,
+    vibrance: number = 50,
+    cdl_compatible: boolean = true
+  },
+  events: {
+    on_applied: "color_grade_applied",
+    on_exported: "color_grade_exported",
+    apply: "color_grade_apply",
+    reset: "color_grade_reset",
+    export_cdl: "color_grade_export_cdl"
+  },
+  behaviors: ["@cinematic_camera", "@director_ai"]
+}

@@ -1,0 +1,23 @@
+@trait {
+  name: "@transaction",
+  category: "finance",
+  description: "Financial transaction record. type: transfer, payment, deposit, withdrawal, fee, or refund. amount is the transaction amount in the given currency. fromAccount and toAccount are account identifiers. description and reference are free-text/reference fields. Port of TransactionTrait.ts (handler name: transaction).",
+  props: {
+    type: enum("transfer" | "payment" | "deposit" | "withdrawal" | "fee" | "refund") = "transfer",
+    amount: number = 0,
+    currency: string = "USD",
+    from_account: string = "",
+    to_account: string = "",
+    description: string = "",
+    reference: string = ""
+  },
+  events: {
+    on_initiated: "transaction_initiated",
+    on_completed: "transaction_completed",
+    on_failed: "transaction_failed",
+    on_reversed: "transaction_reversed",
+    initiate: "transaction_initiate",
+    reverse: "transaction_reverse"
+  },
+  behaviors: ["@account", "@portfolio"]
+}

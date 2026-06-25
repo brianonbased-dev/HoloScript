@@ -1,0 +1,19 @@
+@trait {
+  name: "@workout",
+  category: "fitness",
+  description: "Workout session definition aggregating exercises into a structured training block. type: strength, cardio, hiit, yoga, mobility, or sport. exercises is an ordered list of exercise sets (exerciseId, sets, targetReps, restSec). estimatedDurationMin is the expected completion time (default: 30 min). difficulty: beginner, intermediate, or advanced. Port of WorkoutTrait.ts (handler name: workout).",
+  props: {
+    workout_name: string = "",
+    type: enum("strength" | "cardio" | "hiit" | "yoga" | "mobility" | "sport") = "strength",
+    estimated_duration_min: number = 30,
+    difficulty: enum("beginner" | "intermediate" | "advanced") = "intermediate"
+  },
+  events: {
+    on_started: "workout_started",
+    on_completed: "workout_completed",
+    on_exercise_done: "workout_exercise_done",
+    start: "workout_start",
+    complete: "workout_complete"
+  },
+  behaviors: ["@exercise_library", "@rep_counter", "@progress_tracker"]
+}

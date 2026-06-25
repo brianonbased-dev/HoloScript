@@ -1,0 +1,21 @@
+@trait {
+  name: "@garment",
+  category: "fashion",
+  description: "Garment product definition. category: top, bottom, dress, outerwear, underwear, footwear, or accessory. sizes is the available size list. colors is the available color list. fabric is the primary material (e.g., cotton, polyester, wool). weight_gsm is the fabric weight in grams per square meter. season: spring, summer, fall, winter, or all. price is the retail price. sku is the stock-keeping unit. Port of GarmentTrait.ts (handler name: garment).",
+  props: {
+    garment_name: string = "",
+    category: enum("top" | "bottom" | "dress" | "outerwear" | "underwear" | "footwear" | "accessory") = "top",
+    fabric: string = "cotton",
+    weight_gsm: number = 200,
+    season: enum("spring" | "summer" | "fall" | "winter" | "all") = "all",
+    price: number = 0,
+    sku: string = ""
+  },
+  events: {
+    on_added: "garment_added",
+    on_size_out_of_stock: "garment_size_oos",
+    add_size: "garment_add_size",
+    add_color: "garment_add_color"
+  },
+  behaviors: ["@fabric_simulation", "@runway_choreography"]
+}

@@ -1,0 +1,21 @@
+@trait {
+  name: "@volumetric",
+  category: "volumetrics",
+  description: "Volumetric capture / playback. format: point_cloud, voxel, mesh_sequence, or holographic_video. resolution is the capture resolution per axis (default: 1024). frameRate is the capture/playback frame rate (default: 30 fps). compressionLevel 0-9 (default: 5). streamingEnabled enables progressive streaming. boundingBoxM defines the capture volume in meters [width, height, depth] (default: 2x2x2m). colorDepth is bits per channel (8 or 16). Port of VolumetricTrait.ts (handler name: volumetric).",
+  props: {
+    format: enum("point_cloud" | "voxel" | "mesh_sequence" | "holographic_video") = "point_cloud",
+    resolution: number = 1024,
+    frame_rate: number = 30,
+    compression_level: number = 5,
+    streaming_enabled: boolean = false,
+    color_depth: number = 8
+  },
+  events: {
+    on_frame_ready: "volumetric_frame_ready",
+    on_stream_started: "volumetric_stream_started",
+    on_stream_ended: "volumetric_stream_ended",
+    start_stream: "volumetric_start_stream",
+    stop_stream: "volumetric_stop_stream"
+  },
+  behaviors: ["@gaussian_splat", "@nerf", "@cinematic_camera"]
+}

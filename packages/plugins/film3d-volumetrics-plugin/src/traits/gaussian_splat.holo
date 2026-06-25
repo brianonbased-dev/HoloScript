@@ -1,0 +1,22 @@
+@trait {
+  name: "@gaussian_splat",
+  category: "volumetrics",
+  description: "3D Gaussian Splatting (3DGS) scene renderer. splatCount is the total number of Gaussians. shDegree is the spherical harmonics degree for view-dependent color (0-3; default 3 = full). sortMethod: radix (GPU) or cpu. enableAntialiasing applies anti-aliasing during splat rasterization. opacityThreshold culls near-transparent splats (default: 0.005). maxSplatSize is the maximum screen-space splat radius in meters (default: 0.1m). lodLevels is the number of LOD levels for streaming (default: 4). Port of GaussianSplatTrait.ts (handler name: gaussian_splat).",
+  props: {
+    splat_count: number = 0,
+    sh_degree: number = 3,
+    sort_method: enum("radix" | "cpu") = "radix",
+    enable_antialiasing: boolean = true,
+    opacity_threshold: number = 0.005,
+    max_splat_size: number = 0.1,
+    lod_levels: number = 4
+  },
+  events: {
+    on_loaded: "gaussian_splat_loaded",
+    on_sorted: "gaussian_splat_sorted",
+    on_lod_changed: "gaussian_splat_lod_changed",
+    load: "gaussian_splat_load",
+    sort: "gaussian_splat_sort"
+  },
+  behaviors: ["@nerf", "@volumetric", "@cinematic_camera"]
+}
