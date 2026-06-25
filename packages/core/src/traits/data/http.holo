@@ -1,0 +1,18 @@
+@trait {
+  name: "@http",
+  category: "data",
+  description: "HTTP client for fetch/REST requests. Configures base_url, method (GET/POST/PUT/DELETE/PATCH), default headers, timeout_ms, response_type (json/text/blob/arrayBuffer), and include_credentials (CORS cookies). Dispatches http:request events with per-request overrides; emits http:response (ok) or http:error. Concurrent requests tracked in a pending set. Port of HttpClientTrait.ts (handler name: http).",
+  props: {
+    base_url: string = "",
+    method: enum("GET" | "POST" | "PUT" | "DELETE" | "PATCH") = "GET",
+    timeout_ms: number = 30000,
+    response_type: enum("json" | "text" | "blob" | "arrayBuffer") = "json",
+    include_credentials: boolean = false
+  },
+  events: {
+    on_response: "http:response",
+    on_error: "http:error",
+    request: "http:request"
+  },
+  behaviors: ["@graphql", "@rest_api", "@websocket"]
+}

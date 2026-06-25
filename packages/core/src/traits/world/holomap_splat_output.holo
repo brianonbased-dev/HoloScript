@@ -1,0 +1,18 @@
+@trait {
+  name: "@holomap_splat_output",
+  category: "world",
+  description: "Gaussian splat output for HoloMap reconstruction. Listens for holomap:finalized → emits holomap:splat_bake_requested. Formats: splat (raw) or spz (v1.0/v2.0 compressed). maxSplats budgets VRAM for downstream GaussianSplatTrait renderer. bakeSphericalHarmonics improves view-dependent quality at higher bake cost. Sprint 1 scaffold — splat baking lands in Sprint 2 via GaussianSplatBakingPipeline. Port of HoloMapSplatOutputTrait.ts (handler name: holomap_splat_output).",
+  props: {
+    format: enum("splat" | "spz") = "spz",
+    spz_version: enum("1.0" | "2.0") = "2.0",
+    max_splats: number = 500000,
+    bake_spherical_harmonics: boolean = false
+  },
+  events: {
+    attached: "holomap:splat_output_registered",
+    on_bake_requested: "holomap:splat_bake_requested",
+    on_baked: "holomap:splat_baked",
+    finalized: "holomap:finalized"
+  },
+  behaviors: ["@holomap_reconstruct", "@gaussian_splat"]
+}

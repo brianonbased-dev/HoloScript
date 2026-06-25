@@ -1,0 +1,18 @@
+@trait {
+  name: "@holomap_drift_correction",
+  category: "world",
+  description: "Drift-correction policy for HoloMap reconstruction sessions. Monitors estimated drift (meters) from holomap:step_result. When drift exceeds maxDriftMeters, triggers loop-closure detection and keyframe matching. loopClosureThreshold is the minimum match confidence to accept a closure. rewriteHistory=true rewrites past poses on correction (else correct forward only). Sprint 1 scaffold — loop-closure logic lands in Sprint 2. Port of HoloMapDriftCorrectionTrait.ts (handler name: holomap_drift_correction).",
+  props: {
+    max_drift_meters: number = 1.0,
+    loop_closure_threshold: number = 0.92,
+    rewrite_history: boolean = false
+  },
+  events: {
+    attached: "holomap:drift_monitor_start",
+    on_correction: "holomap:drift_correction_applied",
+    on_drift_exceeded: "holomap:drift_exceeded",
+    step_result: "holomap:step_result",
+    drift_update: "holomap:drift_update"
+  },
+  behaviors: ["@holomap_anchor_context", "@holomap_camera_trajectory"]
+}

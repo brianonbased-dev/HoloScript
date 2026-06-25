@@ -1,0 +1,20 @@
+@trait {
+  name: "@holomap_reconstruct",
+  category: "world",
+  description: "HoloMap WebGPU reconstruction runtime binding. Sources: webcam (live), video_url, frame_folder. Drives HoloMapRuntime lifecycle: holomap:start_session→init(), holomap:frame→step()→emits holomap:step_result, holomap:finalize→finalize()→emits holomap:finalized (with ReconstructionManifest). autoFinalize emits manifest on finalize. Sibling traits @holomap_camera_trajectory, @holomap_anchor_context, @holomap_drift_correction, @holomap_splat_output consume step_result/finalized events. Port of HoloMapReconstructionTrait.ts (handler name: holomap_reconstruct).",
+  props: {
+    source: enum("webcam" | "video_url" | "frame_folder") = "webcam",
+    source_ref: string = "",
+    auto_finalize: boolean = true
+  },
+  events: {
+    attached: "holomap:session_ready",
+    on_step_result: "holomap:step_result",
+    on_finalized: "holomap:finalized",
+    on_error: "holomap:reconstruction_error",
+    start_session: "holomap:start_session",
+    frame: "holomap:frame",
+    finalize: "holomap:finalize"
+  },
+  behaviors: ["@holomap_camera_trajectory", "@holomap_anchor_context", "@holomap_drift_correction", "@holomap_splat_output"]
+}
