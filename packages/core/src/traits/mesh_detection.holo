@@ -1,0 +1,17 @@
+@trait {
+  name: "@mesh_detection",
+  category: "xr",
+  description: "XR environment mesh detection. resolution: medium (default), low, high. semantic_labeling annotates mesh surfaces with room labels (default: false). update_rate is the mesh update frequency in Hz (default: 10). max_distance is the maximum mesh detection range in meters (default: 5m). Port of MeshDetectionTrait.ts (handler name: mesh_detection).",
+  props: {
+    resolution: enum("low" | "medium" | "high") = "medium",
+    semantic_labeling: boolean = false,
+    update_rate: number = 10,
+    max_distance: number = 5
+  },
+  events: {
+    on_mesh_updated: "mesh_detection:mesh_updated",
+    on_surface_added: "mesh_detection:surface_added",
+    on_surface_removed: "mesh_detection:surface_removed"
+  },
+  behaviors: ["@anchor", "@depth_estimation"]
+}

@@ -1,0 +1,17 @@
+@trait {
+  name: "@lotus_center",
+  category: "lotus",
+  description: "Lotus genesis center — the hub node of the Lotus flower simulation that reads bloom state and coordinates petals. bloom_state_source is the prop path for the bloom state signal. genesis_fired_source is the prop path for the genesis-fired signal. placeholder_intensity is the light intensity before bloom (default: 0.3). mature_intensity is the light intensity at full bloom (default: 1.5). Port of LotusCenterTrait.ts (handler name: lotus_center).",
+  props: {
+    bloom_state_source: string = "lotus.api.bloom_state",
+    genesis_fired_source: string = "lotus.api.genesis_fired",
+    placeholder_intensity: number = 0.3,
+    mature_intensity: number = 1.5
+  },
+  events: {
+    on_bloom: "lotus_center:bloom",
+    on_genesis: "lotus_center:genesis",
+    on_sealed: "lotus_center:sealed"
+  },
+  behaviors: ["@bloom_reactive", "@bioluminescent"]
+}

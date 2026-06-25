@@ -1,0 +1,18 @@
+@trait {
+  name: "@lotus_petal",
+  category: "lotus",
+  description: "Lotus petal — one leaf of the Lotus bloom, representing a paper in the D.010 paper program. paper_id is the paper identifier. venue is the target venue. program is the program number (default: 1). layer is the petal layer [1-8] (default: 1). Port of LotusPetalTrait.ts (handler name: lotus_petal).",
+  props: {
+    paper_id: string = "reserved",
+    venue: string = "",
+    program: number = 1,
+    layer: number = 1
+  },
+  events: {
+    on_opened: "lotus_petal:opened",
+    on_closed: "lotus_petal:closed",
+    open: "lotus_petal.open",
+    close: "lotus_petal.close"
+  },
+  behaviors: ["@lotus_center", "@bloom_reactive"]
+}

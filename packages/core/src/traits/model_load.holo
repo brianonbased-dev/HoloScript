@@ -1,0 +1,17 @@
+@trait {
+  name: "@model_load",
+  category: "ml",
+  description: "ML model lifecycle manager. max_loaded is the maximum simultaneously loaded models (default: 5). warmup_rounds is the inference warmup passes to run on load (default: 1). Port of ModelLoadTrait.ts (handler name: model_load).",
+  props: {
+    max_loaded: number = 5,
+    warmup_rounds: number = 1
+  },
+  events: {
+    on_loaded: "model_load:loaded",
+    on_unloaded: "model_load:unloaded",
+    on_error: "model_load:error",
+    load: "model_load.load",
+    unload: "model_load.unload"
+  },
+  behaviors: ["@inference", "@local_llm", "@fine_tune"]
+}

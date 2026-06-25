@@ -1,0 +1,18 @@
+@trait {
+  name: "@marketplace_integration",
+  category: "marketplace",
+  description: "HoloScript marketplace integration — publishes and manages compositions on the marketplace. marketplace_url is the marketplace base URL. publisher_id is the registered publisher ID. publisher_name is the display name. default_category is the default listing category (default: utility). Port of MarketplaceIntegrationTrait.ts (handler name: marketplace_integration).",
+  props: {
+    marketplace_url: string = "https://marketplace.holoscript.net",
+    publisher_id: string = "",
+    publisher_name: string = "",
+    default_category: string = "utility"
+  },
+  events: {
+    on_published: "marketplace_integration:published",
+    on_updated: "marketplace_integration:updated",
+    publish: "marketplace_integration.publish",
+    update: "marketplace_integration.update"
+  },
+  behaviors: ["@trait_marketplace", "@economy"]
+}

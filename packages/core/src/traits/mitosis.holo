@@ -1,0 +1,17 @@
+@trait {
+  name: "@mitosis",
+  category: "agent",
+  description: "Agent mitosis — allows an agent to spawn child agents that inherit its brain state. strategy: collaborative (default), competitive, independent. max_children is the maximum live children (default: 5). auto_cleanup removes completed children automatically (default: true). Port of MitosisTrait.ts (handler name: mitosis).",
+  props: {
+    strategy: enum("collaborative" | "competitive" | "independent") = "collaborative",
+    max_children: number = 5,
+    auto_cleanup: boolean = true
+  },
+  events: {
+    on_spawned: "mitosis:spawned",
+    on_child_done: "mitosis:child_done",
+    on_child_failed: "mitosis:child_failed",
+    spawn: "mitosis.spawn"
+  },
+  behaviors: ["@edge_node", "@autonomous_agenda"]
+}

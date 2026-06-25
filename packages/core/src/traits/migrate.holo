@@ -1,0 +1,17 @@
+@trait {
+  name: "@migrate",
+  category: "data",
+  description: "Schema migration runner. current_version is the current schema version (default: 0). auto_run runs pending migrations on attach (default: false). Port of MigrateTrait.ts (handler name: migrate).",
+  props: {
+    current_version: number = 0,
+    auto_run: boolean = false
+  },
+  events: {
+    on_applied: "migrate:applied",
+    on_rolled_back: "migrate:rolled_back",
+    on_error: "migrate:error",
+    run: "migrate.run",
+    rollback: "migrate.rollback"
+  },
+  behaviors: ["@database", "@audit_log"]
+}

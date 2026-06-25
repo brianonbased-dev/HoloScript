@@ -1,0 +1,17 @@
+@trait {
+  name: "@material_x",
+  category: "render",
+  description: "MaterialX material definition. source is the .mtlx file URL. material_name is the material to load from the file. node_graph is the node graph to use. color_space: srgb (default), linear, aces, raw. Port of MaterialXTrait.ts (handler name: material_x).",
+  props: {
+    source: string = "",
+    material_name: string = "",
+    node_graph: string = "",
+    color_space: enum("srgb" | "linear" | "aces" | "raw") = "srgb"
+  },
+  events: {
+    on_loaded: "material_x:loaded",
+    on_error: "material_x:error",
+    load: "material_x.load"
+  },
+  behaviors: ["@material", "@advanced_pbr"]
+}

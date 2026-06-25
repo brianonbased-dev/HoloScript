@@ -1,0 +1,16 @@
+@trait {
+  name: "@motion_reduced",
+  category: "accessibility",
+  description: "Reduced-motion accessibility mode. disable_parallax removes parallax scrolling (default: true). reduce_animations simplifies complex animations (default: true). static_ui freezes UI animations entirely (default: false). max_velocity caps fast movements in m/s (default: 2). Port of MotionReducedTrait.ts (handler name: motion_reduced).",
+  props: {
+    disable_parallax: boolean = true,
+    reduce_animations: boolean = true,
+    static_ui: boolean = false,
+    max_velocity: number = 2
+  },
+  events: {
+    on_applied: "motion_reduced:applied",
+    on_removed: "motion_reduced:removed"
+  },
+  behaviors: ["@accessible", "@high_contrast"]
+}

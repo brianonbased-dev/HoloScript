@@ -1,0 +1,17 @@
+@trait {
+  name: "@mqtt_source",
+  category: "iot",
+  description: "MQTT source — subscribes to an MQTT broker and emits received messages as scene events. broker is the MQTT broker URL (default: mqtt://localhost:1883). topic is the subscription topic filter (default: # = all). qos is the quality of service level [0,1,2] (default: 0). parse_json parses incoming payloads as JSON (default: true). Port of MQTTSourceTrait.ts (handler name: mqtt_source). broker URL is an edge-local default, override for remote brokers.",
+  props: {
+    broker: string = "mqtt://localhost:1883",
+    topic: string = "#",
+    qos: number = 0,
+    parse_json: boolean = true
+  },
+  events: {
+    on_message: "mqtt_source:message",
+    on_connected: "mqtt_source:connected",
+    on_disconnected: "mqtt_source:disconnected"
+  },
+  behaviors: ["@data_binding", "@sensor"]
+}

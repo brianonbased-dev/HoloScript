@@ -1,0 +1,20 @@
+@trait {
+  name: "@memory",
+  category: "agent",
+  description: "Agent episodic memory store. memory_type: episodic (default), semantic, working, procedural. capacity is the maximum memory entries (default: 1000). decay_rate is the per-cycle memory strength decay [0,1] (default: 0.01). decay_interval is the decay cycle in seconds (default: 60s). Port of MemoryTrait.ts (handler name: memory).",
+  props: {
+    memory_type: enum("episodic" | "semantic" | "working" | "procedural") = "episodic",
+    capacity: number = 1000,
+    decay_rate: number = 0.01,
+    decay_interval: number = 60
+  },
+  events: {
+    on_stored: "memory:stored",
+    on_recalled: "memory:recalled",
+    on_forgotten: "memory:forgotten",
+    store: "memory.store",
+    recall: "memory.recall",
+    forget: "memory.forget"
+  },
+  behaviors: ["@memory_crystal", "@agent_memory", "@forget_policy"]
+}

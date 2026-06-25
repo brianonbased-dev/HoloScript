@@ -1,0 +1,17 @@
+@trait {
+  name: "@magnifiable",
+  category: "interaction",
+  description: "Pinch-to-zoom magnification for XR objects. min_scale is the minimum scale multiplier (default: 1). max_scale is the maximum scale multiplier (default: 5). trigger: pinch (default), controller, gaze. smooth_zoom enables eased scaling (default: true). Port of MagnifiableTrait.ts (handler name: magnifiable).",
+  props: {
+    min_scale: number = 1,
+    max_scale: number = 5,
+    trigger: enum("pinch" | "controller" | "gaze") = "pinch",
+    smooth_zoom: boolean = true
+  },
+  events: {
+    on_zoom: "magnifiable:zoom",
+    on_reset: "magnifiable:reset",
+    set_scale: "magnifiable.set_scale"
+  },
+  behaviors: ["@grabbable", "@gesture_recognition"]
+}

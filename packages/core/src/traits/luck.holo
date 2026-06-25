@@ -1,0 +1,16 @@
+@trait {
+  name: "@luck",
+  category: "simulation",
+  description: "Stochastic luck modifier — biases random outcomes for a character or loot roll. base_chance is the base probability [0,1] (default: 0.5). luck_bonus is the additive luck bonus (default: 0). seed is the deterministic random seed (default: 1). Port of LuckTrait.ts (handler name: luck).",
+  props: {
+    base_chance: number = 0.5,
+    luck_bonus: number = 0,
+    seed: number = 1
+  },
+  events: {
+    on_roll: "luck:roll",
+    on_jackpot: "luck:jackpot",
+    roll: "luck.roll"
+  },
+  behaviors: ["@faction", "@economy"]
+}

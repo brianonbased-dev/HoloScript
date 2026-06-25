@@ -1,0 +1,15 @@
+@trait {
+  name: "@mood",
+  category: "expression",
+  description: "Character mood state. initial is the starting mood (default: calm). intensity is the mood strength [0,1] (default: 0.7). Port of MoodTrait.ts (handler name: mood).",
+  props: {
+    initial: string = "calm",
+    intensity: number = 0.7
+  },
+  events: {
+    on_changed: "mood:changed",
+    set: "mood.set",
+    blend: "mood.blend"
+  },
+  behaviors: ["@emotion", "@ai_companion"]
+}

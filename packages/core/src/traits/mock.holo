@@ -1,0 +1,16 @@
+@trait {
+  name: "@mock",
+  category: "testing",
+  description: "Test mock — replaces trait behaviors with controllable stubs. strict mode throws on unmocked calls (default: true). Port of MockTrait.ts (handler name: mock).",
+  props: {
+    strict: boolean = true
+  },
+  events: {
+    on_called: "mock:called",
+    on_uncalled: "mock:uncalled",
+    setup: "mock.setup",
+    verify: "mock.verify",
+    reset: "mock.reset"
+  },
+  behaviors: ["@fixture", "@chaos_test"]
+}

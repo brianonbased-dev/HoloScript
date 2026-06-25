@@ -1,0 +1,14 @@
+@trait {
+  name: "@markdown_render",
+  category: "ux",
+  description: "Markdown to HTML renderer. sanitize strips unsafe HTML (default: true). gfm enables GitHub Flavored Markdown extensions (default: true). Port of MarkdownRenderTrait.ts (handler name: markdown_render).",
+  props: {
+    sanitize: boolean = true,
+    gfm: boolean = true
+  },
+  events: {
+    on_rendered: "markdown_render:rendered",
+    render: "markdown_render.render"
+  },
+  behaviors: ["@form_builder", "@accessible"]
+}

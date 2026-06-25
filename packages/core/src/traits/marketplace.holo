@@ -1,0 +1,18 @@
+@trait {
+  name: "@marketplace",
+  category: "marketplace",
+  description: "NFT marketplace integration. platform: opensea (default), blur, looksrare. listing_enabled enables listing new items (default: false). buy_enabled enables purchasing (default: true). currency: ETH (default), USDC, USDT. Port of MarketplaceTrait.ts (handler name: marketplace).",
+  props: {
+    platform: enum("opensea" | "blur" | "looksrare") = "opensea",
+    listing_enabled: boolean = false,
+    buy_enabled: boolean = true,
+    currency: enum("ETH" | "USDC" | "USDT") = "ETH"
+  },
+  events: {
+    on_listed: "marketplace:listed",
+    on_sold: "marketplace:sold",
+    list: "marketplace.list",
+    buy: "marketplace.buy"
+  },
+  behaviors: ["@nft", "@economy", "@token_gated"]
+}

@@ -1,0 +1,16 @@
+@trait {
+  name: "@lotus_genesis_trigger",
+  category: "lotus",
+  description: "Lotus genesis trigger — fires the Lotus genesis event when all preconditions are met (16 papers with real benchmarks, wallet match, anchor path). Trigger conditions: seed_source env key present, required_anchor_path exists, required_wallet matches. I.007: NOT public — fires internally when the paper program is complete. Port of LotusGenesisTriggerTrait.ts (handler name: lotus_genesis_trigger).",
+  props: {
+    seed_source: string = "LOTUS_GENESIS_SEED",
+    placeholder_seed: string = "0x0000DEAD",
+    required_anchor_path: string = "D:/GOLD/anchors/lotus-genesis.json"
+  },
+  events: {
+    on_fired: "lotus_genesis_trigger:fired",
+    on_precondition_failed: "lotus_genesis_trigger:precondition_failed",
+    check: "lotus_genesis_trigger.check"
+  },
+  behaviors: ["@lotus_center", "@consent_gate", "@audit_log"]
+}

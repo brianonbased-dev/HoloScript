@@ -1,0 +1,14 @@
+@trait {
+  name: "@mfa",
+  category: "security",
+  description: "Multi-factor authentication. methods is the enabled MFA methods (default: [totp, sms]). Port of MfaTrait.ts (handler name: mfa).",
+  props: {},
+  events: {
+    on_enrolled: "mfa:enrolled",
+    on_verified: "mfa:verified",
+    on_failed: "mfa:failed",
+    enroll: "mfa.enroll",
+    verify: "mfa.verify"
+  },
+  behaviors: ["@jwt", "@consent_gate", "@audit_log"]
+}

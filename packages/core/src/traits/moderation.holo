@@ -1,0 +1,16 @@
+@trait {
+  name: "@moderation",
+  category: "safety",
+  description: "Content moderation gate. sensitivity: low, medium (default), high. categories is the set of checked categories (default: [harassment, hate_speech, sexual, violence, spam]). action: warn (default), hide, ban. moderate_text enables text analysis (default: true). Port of ModerationTrait.ts (handler name: moderation).",
+  props: {
+    sensitivity: enum("low" | "medium" | "high") = "medium",
+    action: enum("warn" | "hide" | "ban") = "warn",
+    moderate_text: boolean = true
+  },
+  events: {
+    on_flagged: "moderation:flagged",
+    on_cleared: "moderation:cleared",
+    moderate: "moderation.moderate"
+  },
+  behaviors: ["@care_ethics", "@fairness_monitor", "@audit_log"]
+}

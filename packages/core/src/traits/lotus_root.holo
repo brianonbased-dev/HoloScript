@@ -1,0 +1,16 @@
+@trait {
+  name: "@lotus_root",
+  category: "lotus",
+  description: "Lotus root — the substrate layer that anchors the Lotus simulation to the HoloScript language substrate. substrate: parser (default), runtime, compiler. bloom_state_source is the prop path for bloom state. Port of LotusRootTrait.ts (handler name: lotus_root).",
+  props: {
+    substrate: enum("parser" | "runtime" | "compiler") = "parser",
+    bloom_state_source: string = "lotus.api.bloom_state",
+    early_pulse_intensity: number = 0.8,
+    mature_intensity: number = 0.4
+  },
+  events: {
+    on_anchored: "lotus_root:anchored",
+    on_detached: "lotus_root:detached"
+  },
+  behaviors: ["@lotus_center", "@absorb"]
+}

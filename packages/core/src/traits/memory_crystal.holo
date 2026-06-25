@@ -1,0 +1,22 @@
+@trait {
+  name: "@memory_crystal",
+  category: "storage",
+  description: "Semantic memory crystal — a persistent KV/vector store for scene node memories with TTL and pruning. capacity: semantic (default), episodic, hybrid. prune_threshold is the memory pressure trigger [0,1] (default: 0.8). backend: kv (default), postgres, local. time_window_ttl is the memory TTL in ms (default: 86,400,000 — 24 hours). max_entries is the memory cap (default: 10,000). warn_unpaired alerts on writes without a matching read (default: true). Port of MemoryCrystalTrait.ts (handler name: memory_crystal).",
+  props: {
+    capacity: enum("semantic" | "episodic" | "hybrid") = "semantic",
+    prune_threshold: number = 0.8,
+    backend: enum("kv" | "postgres" | "local") = "kv",
+    time_window_ttl: number = 86400000,
+    max_entries: number = 10000,
+    warn_unpaired: boolean = true
+  },
+  events: {
+    on_written: "memory_crystal:written",
+    on_pruned: "memory_crystal:pruned",
+    on_recalled: "memory_crystal:recalled",
+    write: "memory_crystal.write",
+    recall: "memory_crystal.recall",
+    prune: "memory_crystal.prune"
+  },
+  behaviors: ["@agent_memory", "@embedding_search", "@database"]
+}

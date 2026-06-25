@@ -1,0 +1,16 @@
+@trait {
+  name: "@lotus_stalk",
+  category: "lotus",
+  description: "Lotus stalk — the living connector between root and bloom, animated with procedural sway. format: holo (default), hsplus, hs. bloom_state_source is the prop path for bloom state. base_sway_amplitude_rad is the sway angle amplitude in radians (default: 0.15). max_stiffness is the spring stiffness at full bloom (default: 4.0). Port of LotusStalkTrait.ts (handler name: lotus_stalk).",
+  props: {
+    format: enum("holo" | "hsplus" | "hs") = "holo",
+    bloom_state_source: string = "lotus.api.bloom_state",
+    base_sway_amplitude_rad: number = 0.15,
+    max_stiffness: number = 4.0
+  },
+  events: {
+    on_sway: "lotus_stalk:sway",
+    on_stiff: "lotus_stalk:stiff"
+  },
+  behaviors: ["@lotus_root", "@cloth"]
+}

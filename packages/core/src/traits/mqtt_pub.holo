@@ -1,0 +1,15 @@
+@trait {
+  name: "@mqtt_pub",
+  category: "iot",
+  description: "MQTT publisher (simplified). broker_url is the MQTT broker URL (from env for production). default_qos is the default quality of service [0,1,2] (default: 1). Port of MqttPubTrait.ts (handler name: mqtt_pub). broker_url should be set from env in production; default is empty.",
+  props: {
+    broker_url: string = "",
+    default_qos: number = 1
+  },
+  events: {
+    on_published: "mqtt_pub:published",
+    on_error: "mqtt_pub:error",
+    publish: "mqtt_pub.publish"
+  },
+  behaviors: ["@mqtt_sink", "@digital_twin"]
+}

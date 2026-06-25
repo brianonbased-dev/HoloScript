@@ -1,0 +1,18 @@
+@trait {
+  name: "@messaging",
+  category: "communication",
+  description: "Chat bot messaging integration. platform: telegram (default), discord, slack, whatsapp. token is the bot API token (from env — never inline). command_prefix is the bot command prefix (default: /). allowed_users is the user allowlist (empty = all). Port of MessagingTrait.ts (handler name: messaging).",
+  props: {
+    platform: enum("telegram" | "discord" | "slack" | "whatsapp") = "telegram",
+    command_prefix: string = "/",
+    token: string = ""
+  },
+  events: {
+    on_message: "messaging:message",
+    on_command: "messaging:command",
+    on_error: "messaging:error",
+    send: "messaging.send",
+    reply: "messaging.reply"
+  },
+  behaviors: ["@discord", "@email"]
+}
