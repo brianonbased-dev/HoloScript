@@ -1,0 +1,45 @@
+// @render_holo — Single native entry: .holo source → RGBA pixels (zero foreign engine).
+//
+// Native .hsplus surface for render-holo.ts (holo-vm/src/render).
+//
+// End-to-end pipeline (render-holo.ts):
+//   .holo source
+//     → parseHolo (core, dynamic import)     [text → HoloComposition AST]
+//     → HolobCompiler.compile (core)         [AST → HoloBytecode]
+//     → HoloVM.load + tick                   [bytecode → executed ECSWorld]
+//     → NativeHoloRenderer.render            [world → RGBA NativeFramebuffer]
+//
+// Core dynamically imported at CALL time (not module load) — prevents
+// core→holo-vm→core module-eval cycle (HolobCompiler eagerly requires holo-vm).
+//
+// RenderHoloOptions (render-holo.ts):
+//   width?: Int = 256, height?: Int = 256
+//   camera?: Partial<OrthoCamera>
+//   clear?: RGBA = { r:18, g:18, b:22, a:255 } (dark slate)
+
+@trait render_holo {
+  default_width: Int = 256
+  default_height: Int = 256
+
+  capability_tags: ["render_holo", "sovereign_pipeline", "d083", "end_to_end", "holo_vm"]
+
+  @on_spawn => {
+    pipeline = init_render_holo_pipeline({ width: default_width, height: default_height })
+    emit("render_holo_ready", {})
+  }
+
+  // Render a .holo source string to a RGBA framebuffer
+  @on_render(source, options) => {
+    result = pipeline.render(source, options)
+    emit("render_holo_complete", { stats: result.stats })
+    return result
+  }
+
+  @receipt render_holo_config {
+    type: "RenderHoloReceipt"
+    pipeline: ".holo → AST → bytecode → ECS world → RGBA"
+    core_import: "dynamic at call time (cycle prevention)"
+    default_clear: "{r:18,g:18,b:22,a:255}"
+    timestamp: now()
+  }
+}

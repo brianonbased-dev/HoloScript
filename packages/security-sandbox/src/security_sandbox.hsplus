@@ -1,0 +1,43 @@
+// @security_sandbox — VM-based isolate for AI-generated HoloScript execution.
+//
+// Native .hsplus surface for index.ts (security-sandbox).
+//
+// SEC-01 / Paper #4. Isolates AI-generated .hs code from the host environment.
+//
+// Security features (index.ts):
+//   - Isolated VM execution (node:vm) — no host filesystem, network, or process access
+//   - Resource limits (memory + timeout)
+//   - Allowlist-based API access
+//   - Parser validation via parseHoloStrict + HoloScriptPlusParser before execution
+//   - Execution audit logging
+//
+// WebAssembly BLOCKED inside isolate (SEC-01):
+//   compile / instantiate / instantiateStreaming / validate
+//   Module / Instance / Memory / Table / Global / Tag — all throw SEC-01 error
+//
+// Depends on: @holoscript/core (parseHoloStrict), @holoscript/holo-vm (HoloBytecodeBuilder + HoloVM)
+
+@trait security_sandbox {
+  capability_tags: ["security_sandbox", "vm_isolation", "sec_01", "paper_4", "wasm_block", "security"]
+
+  @on_spawn => {
+    sandbox = init_security_sandbox()
+    emit("security_sandbox_ready", {})
+  }
+
+  // Execute .hs source in the isolate
+  @on_execute(source, options) => {
+    result = sandbox.execute(source, options)
+    emit("sandboxed_execution_complete", { success: result.success })
+    return result
+  }
+
+  @receipt security_sandbox_config {
+    type: "SecuritySandboxReceipt"
+    directive: "SEC-01 / Paper #4"
+    isolation: "node:vm — no FS, network, or process access"
+    wasm_blocked: true
+    validation: "parseHoloStrict before execution"
+    timestamp: now()
+  }
+}

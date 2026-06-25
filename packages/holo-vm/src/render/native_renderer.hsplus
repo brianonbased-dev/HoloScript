@@ -1,0 +1,43 @@
+// @native_renderer — Sovereign pixel rasterizer for HoloVM world state (D.083).
+//
+// Native .hsplus surface for native-renderer.ts (holo-vm/src/render).
+//
+// THE KEYSTONE: VM-state → native RGBA pixels with ZERO foreign engine
+// (no three.js, no react, no cannon). D.083 native-first sovereign execution.
+// Lives in holo-vm because holo-vm has zero foreign deps — structural guarantee.
+//
+// Components (native-renderer.ts):
+//   NativeFramebuffer { width, height, data: Uint8ClampedArray (RGBA row-major) }
+//   unpackColor(packed: 0xRRGGBB, opacity) → RGBA { r, g, b, a }
+//   RGBA { r, g, b, a }
+//   OrthoCamera — orthographic projection config
+//   RenderBackend — interface (software + future WebGPU implement same contract)
+//   SoftwareRasterBackend — CPU Canvas2D-fallback tier (proves path this slice)
+//   NativeHoloRenderer.render(ECSWorld) → RenderStats
+//
+// Scope: orthographic projection + per-entity quad fill (software backend).
+// WebGPU backend implements same RenderBackend interface — drop-in upgrade path.
+
+@trait native_renderer {
+  capability_tags: ["native_renderer", "sovereign_render", "d083", "zero_foreign_engine", "software_raster", "holo_vm"]
+
+  @on_spawn => {
+    renderer = init_native_renderer()
+    emit("native_renderer_ready", {})
+  }
+
+  // Render an ECSWorld to a NativeFramebuffer
+  @on_render(world, width, height, camera, clear_color) => {
+    stats = renderer.render(world, { width: width, height: height, camera: camera, clear: clear_color })
+    emit("native_render_complete", { width: width, height: height })
+    return stats
+  }
+
+  @receipt native_renderer_config {
+    type: "NativeRendererReceipt"
+    directive: "D.083 native-first sovereign execution"
+    zero_deps: "no three.js / react / cannon"
+    backend: "SoftwareRasterBackend (CPU); WebGPU backend implements same RenderBackend interface"
+    timestamp: now()
+  }
+}

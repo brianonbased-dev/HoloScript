@@ -1,0 +1,50 @@
+// @char_trigram — Char-trigram histogram encoding for HoloEmbed subword matching.
+//
+// Native .hsplus surface for charTrigram.ts (holoembed/src).
+//
+// Canonical char-trigram implementation for HoloEmbed 128-bin subword encoding.
+// Also used by HoloEmbedProvider in absorb-service (copy-import; avoids circular dep).
+//
+// Algorithm (charTrigram.ts):
+//   1. camelSplit: PascalCase/camelCase/snake_case/event:names → lowercase words
+//   2. Strip non-alphanumeric → clean token sequence
+//   3. Slide 3-char window over each word (no cross-word boundaries)
+//   4. FNV-1a hash each trigram → bucket in [0, 128)
+//   5. Normalize bucket counts by total → [0, 1] histogram (128-dim)
+//
+// Why char trigrams?
+//   "PillarSliceEmitter" → "pillar slice emitter" → same trigrams as NL query.
+//   BPE-lite: no vocabulary, no model, no training — pure character algebra.
+//   128-bin FNV: some collisions but overlap signal dominates for name-matched pairs.
+//
+// Functions: camelSplit(s) → String, charTrigramHistogram(text, bins=128) → Float[]
+
+@trait char_trigram {
+  bins: Int = 128
+
+  capability_tags: ["char_trigram", "holoembed", "subword_encoding", "fnv1a", "paper_26"]
+
+  @on_spawn => {
+    encoder = init_char_trigram({ bins: bins })
+    emit("char_trigram_ready", { bins: bins })
+  }
+
+  // Compute normalized char-trigram histogram for a symbol name or NL query
+  @on_encode(text) => {
+    return encoder.encode(text)
+  }
+
+  // Tokenize camelCase/PascalCase/snake_case/event:name → lowercase words
+  @on_camel_split(identifier) => {
+    return encoder.camel_split(identifier)
+  }
+
+  @receipt char_trigram_config {
+    type: "CharTrigramReceipt"
+    bins: bins
+    hash: "FNV-1a per 3-char window"
+    usage: "HoloEmbed subword block (128-dim out of 768 total)"
+    no_model: true
+    timestamp: now()
+  }
+}
