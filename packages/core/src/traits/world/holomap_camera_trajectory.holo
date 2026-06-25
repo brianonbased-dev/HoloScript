@@ -1,0 +1,15 @@
+@trait {
+  name: "@holomap_camera_trajectory",
+  category: "world",
+  description: "Per-frame camera pose stream from HoloMap reconstruction. Maintains a ring buffer of CameraPose entries (historyLength). Emits trajectory:tick every emitEveryN frames with latest poses, keyframes, and estimated drift in meters. Downstream consumers draw trajectory paths in Studio, enable timeline scrubbing, and detect drift for re-anchor triggers. Sprint 1 scaffold — live pose streaming lands in Sprint 2. Port of HoloMapCameraTrajectoryTrait.ts (handler name: holomap_camera_trajectory).",
+  props: {
+    history_length: number = 1024,
+    emit_every_n: number = 15
+  },
+  events: {
+    attached: "holomap:trajectory_ready",
+    on_tick: "trajectory:tick",
+    on_step_result: "holomap:step_result"
+  },
+  behaviors: ["@holomap_anchor_context", "@holomap_drift_correction"]
+}

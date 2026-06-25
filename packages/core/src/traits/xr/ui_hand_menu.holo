@@ -1,0 +1,23 @@
+@trait {
+  name: "@ui_hand_menu",
+  category: "xr",
+  description: "UI panel anchored to the user's wrist/hand with spring-animated show/hide transitions. Triggers: palm_up (gesture-activated), pinch, always. Hand: left/right. Offset in world units from wrist anchor. Scale multiplier for the panel. Spring animation uses @holoscript/engine SpringAnimator (lazy-loaded) with 'gentle' preset. Port of HandMenuTrait.ts (handler name: ui_hand_menu — uses defaultValue not defaultConfig; defaults from UIHandMenuTrait).",
+  props: {
+    hand: enum("left" | "right") = "left",
+    trigger: enum("palm_up" | "pinch" | "always") = "palm_up",
+    offset_x: number = 0.0,
+    offset_y: number = 0.2,
+    offset_z: number = 0.0,
+    scale: number = 1.0
+  },
+  events: {
+    attached: "hand_menu_ready",
+    detached: "hand_menu_removed",
+    on_shown: "hand_menu_shown",
+    on_hidden: "hand_menu_hidden",
+    show: "hand_menu_show",
+    hide: "hand_menu_hide",
+    toggle: "hand_menu_toggle"
+  },
+  behaviors: ["@interactable", "@vr_hands"]
+}

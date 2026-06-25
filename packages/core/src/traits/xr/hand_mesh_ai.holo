@@ -1,0 +1,25 @@
+@trait {
+  name: "@hand_mesh_ai",
+  category: "xr",
+  description: "AI-powered real-time hand mesh generation extending @hand_tracking. Four tracking models: mediapipe_hands (21-joint default), frankmocap, mano, handoccnet. Mesh resolution: low/medium/high/ultra (vertex_count 256 default). Bimanual tracking doubles joint count to 42. Optional texture generation. Gesture detection and temporal smoothing (IIR factor 0-1). Emits hand_mesh_result with mesh geometry. Port of HandMeshAITrait.ts (handler name: hand_mesh_ai, extends HandTrackingConfig).",
+  props: {
+    hand_model: enum("mediapipe_hands" | "frankmocap" | "mano" | "handoccnet") = "mediapipe_hands",
+    joint_count: number = 21,
+    bimanual_tracking: boolean = false,
+    mesh_resolution: enum("low" | "medium" | "high" | "ultra") = "medium",
+    texture_enabled: boolean = false,
+    vertex_count: number = 256,
+    real_time_generation: boolean = true,
+    gesture_detection: boolean = false,
+    inference_fps: number = 30,
+    temporal_smoothing: number = 0.3
+  },
+  events: {
+    attached: "hand_mesh_ai_ready",
+    on_generate: "hand_mesh_generate",
+    on_result: "hand_mesh_result",
+    on_gesture: "hand_mesh_gesture",
+    generate: "hand_mesh_ai_generate"
+  },
+  behaviors: ["@hand_tracking", "@ui_hand_menu"]
+}

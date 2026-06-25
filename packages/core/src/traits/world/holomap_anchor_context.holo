@@ -1,0 +1,14 @@
+@trait {
+  name: "@holomap_anchor_context",
+  category: "world",
+  description: "Coordinate-frame anchor for HoloMap reconstruction sessions. Declares the AnchorContext (coordinate system origin, pose, descriptor) used by downstream consumers: manifest export, provenance UI, Studio viewers. autoReanchor triggers re-anchoring when spatial drift exceeds threshold. Sprint 1 scaffold — anchor policy binding lands in Sprint 2. Port of HoloMapAnchorContextTrait.ts (handler name: holomap_anchor_context).",
+  props: {
+    auto_reanchor: boolean = true
+  },
+  events: {
+    attached: "holomap:anchor_ready",
+    on_state_changed: "holomap:anchor_state_changed",
+    anchor_update: "holomap:anchor_update"
+  },
+  behaviors: ["@holomap_drift_correction", "@geospatial_anchor", "@co_located"]
+}
