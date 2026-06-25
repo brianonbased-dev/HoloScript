@@ -1,0 +1,22 @@
+@trait {
+  name: "@world_foundation_model",
+  category: "generation",
+  description: "World Foundation Model provenance declaration — records the AI synthesis metadata for a generated world. schema is the CAEL schema identifier (default: cael.world_foundation_model.v1). synthesis_id is the unique generation run ID. provider and model identify the LLM/WFM used. generated_at is the ISO 8601 generation timestamp. prompt_hash is the SHA-256 of the input prompt for reproducibility. input_modalities is the list of input types used (e.g., text, image, audio). semantic_node_count and collider_count are the generated entity counts. source_asset_urls are the input asset URIs fed to the model. receipt_hash is the CAEL receipt hash. emit_cael triggers CAEL receipt generation on attach (default: true). Port of WorldFoundationModelTrait.ts (handler name: world_foundation_model).",
+  props: {
+    schema: string = "cael.world_foundation_model.v1",
+    synthesis_id: string = "uninitialized",
+    provider: string = "unknown",
+    model: string = "unknown",
+    prompt_hash: string = "unknown",
+    semantic_node_count: number = 0,
+    collider_count: number = 0,
+    receipt_hash: string = "unknown",
+    emit_cael: boolean = true
+  },
+  events: {
+    on_anchored: "world_foundation_model_anchored",
+    on_receipt: "world_foundation_model_receipt",
+    anchor: "world_foundation_model.anchor"
+  },
+  behaviors: ["@provenance", "@collaborative_world"]
+}

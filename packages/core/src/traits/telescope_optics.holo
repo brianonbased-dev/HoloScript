@@ -1,0 +1,20 @@
+@trait {
+  name: "@telescope_optics",
+  category: "science",
+  description: "Newtonian/refractor telescope optics model. objective_diameter_mm is the primary mirror/lens aperture (default: 200mm). focal_length_mm is the telescope focal length (default: 1000mm). eyepiece_focal_length_mm is the ocular focal length (default: 10mm → magnification = 100x). barlow_factor is the Barlow lens multiplier (default: 1.0 = no Barlow). apparent_fov_deg is the eyepiece apparent field of view in degrees (default: 52°). max_eye_pupil_mm is the maximum exit pupil for the observer's eye (default: 7mm). Computed properties (exit_pupil, true_fov_deg, magnification, limiting_magnitude) are derived and emitted on attach. Port of TelescopeOpticsTrait.ts (handler name: telescope_optics).",
+  props: {
+    objective_diameter_mm: number = 200,
+    focal_length_mm: number = 1000,
+    eyepiece_focal_length_mm: number = 10,
+    barlow_factor: number = 1.0,
+    apparent_fov_deg: number = 52,
+    max_eye_pupil_mm: number = 7.0
+  },
+  events: {
+    on_optics_computed: "telescope_optics_computed",
+    on_eyepiece_changed: "telescope_optics_eyepiece_changed",
+    change_eyepiece: "telescope_optics.change_eyepiece",
+    apply_barlow: "telescope_optics.apply_barlow"
+  },
+  behaviors: ["@corona_simulation", "@advanced_lighting"]
+}

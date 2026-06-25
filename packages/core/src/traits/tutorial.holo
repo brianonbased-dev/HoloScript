@@ -1,0 +1,16 @@
+@trait {
+  name: "@tutorial",
+  category: "ux",
+  description: "XR app guided tutorial overlay. heading is the tutorial section title (default: How it works). mock_qr provides a demo QR illustration for the tutorial screen {demo_url, caption, display_dp}. steps is an ordered list of tutorial step definitions {icon, text}. result_preview shows a sample decoded result to set user expectations {label, sample, open_action}. start_action is the CTA to exit the tutorial and start the main flow (default: Start scanning). Emits tutorial:show on attach; tutorial:done when the user completes the flow. Port of TutorialTrait.ts (handler name: tutorial).",
+  props: {
+    heading: string = "How it works",
+    start_action: string = "Start scanning"
+  },
+  events: {
+    on_show: "tutorial:show",
+    on_done: "tutorial:done",
+    show: "tutorial:show",
+    done: "tutorial:done"
+  },
+  behaviors: ["@app_onboarding", "@spatial_panel"]
+}

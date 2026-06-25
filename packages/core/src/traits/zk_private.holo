@@ -1,0 +1,22 @@
+@trait {
+  name: "@zk_private",
+  category: "privacy",
+  description: "Zero-knowledge proof privacy trait (Barretenberg/Noir backend). backend: mock (default — no real ZK, for dev/test), barretenberg (Aztec's BB native prover), or groth16. wasm_path is the path to the compiled circuit WASM artifact. timeout_ms is the proof generation timeout (default: 60,000ms). cache_circuits enables circuit caching after first load (default: true). circuits is a list of registered circuit definitions {name, publicInputs, privateInputs, ...}. predicate: proximity (default — prove you are within radius without revealing position), bounds, or ownership. radius is the proximity predicate radius in meters (default: 5m). bounds defines the bounding box [w, h, d] for the bounds predicate. fallback: transparent (reveal on ZK failure), opaque (deny on failure). Port of ZKPrivateTrait.ts (handler name: zk_private).",
+  props: {
+    backend: enum("mock" | "barretenberg" | "groth16") = "mock",
+    wasm_path: string = "",
+    timeout_ms: number = 60000,
+    cache_circuits: boolean = true,
+    predicate: enum("proximity" | "bounds" | "ownership") = "proximity",
+    radius: number = 5.0,
+    fallback: enum("transparent" | "opaque") = "transparent"
+  },
+  events: {
+    on_proof_generated: "zk_proof_generated",
+    on_proof_verified: "zk_proof_verified",
+    on_proof_failed: "zk_proof_failed",
+    generate_proof: "zk_private.generate_proof",
+    verify_proof: "zk_private.verify_proof"
+  },
+  behaviors: ["@provenance", "@core_transaction"]
+}

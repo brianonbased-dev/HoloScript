@@ -1,0 +1,19 @@
+@trait {
+  name: "@time_of_day",
+  category: "environment",
+  description: "Day/night cycle and time-of-day phase controller. cycle_duration_minutes is the real-world duration of one full day/night cycle (default: 24 min). start_phase is the initial time-of-day phase (default: golden). Phase sequence: dawn → morning → midday → afternoon → golden → dusk → night → midnight. emit_tick emits a time_of_day.tick event every cycle update (default: true). emit_phase_change emits time_of_day.phase_changed when the phase transitions (default: true). Port of TraitTimeOfDay.ts (handler name: time_of_day).",
+  props: {
+    cycle_duration_minutes: number = 24,
+    start_phase: enum("dawn" | "morning" | "midday" | "afternoon" | "golden" | "dusk" | "night" | "midnight") = "golden",
+    emit_tick: boolean = true,
+    emit_phase_change: boolean = true
+  },
+  events: {
+    on_tick: "time_of_day.tick",
+    on_phase_changed: "time_of_day.phase_changed",
+    set_phase: "time_of_day.set_phase",
+    pause: "time_of_day.pause",
+    resume: "time_of_day.resume"
+  },
+  behaviors: ["@advanced_lighting", "@corona_simulation"]
+}

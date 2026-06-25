@@ -1,0 +1,20 @@
+@trait {
+  name: "@world_portal",
+  category: "navigation",
+  description: "World portal — QR/URL-triggered immersive world entry. link_patterns is a list of URL prefix patterns that are recognized as world links (default: holoscript://, holoscript.studio, hololand.holoscript.studio). auto_immerse immediately enters the detected world without a confirmation step (default: true). keep_scanning continues scanning after portal entry to allow nested world links (default: true). entering_label is the transitional status label (default: Entered). leave_action is the exit CTA label (default: Leave world). demo_world_url is the default demo world invoked on test/tutorial events. Port of WorldPortalTrait.ts (handler name: world_portal).",
+  props: {
+    auto_immerse: boolean = true,
+    keep_scanning: boolean = true,
+    entering_label: string = "Entered",
+    leave_action: string = "Leave world",
+    demo_world_url: string = "holoscript://world/hololand"
+  },
+  events: {
+    on_world_detected: "world_portal_detected",
+    on_entered: "world_portal_entered",
+    on_left: "world_portal_left",
+    enter: "world_portal.enter",
+    leave: "world_portal.leave"
+  },
+  behaviors: ["@qr_decode", "@collaborative_world"]
+}

@@ -1,0 +1,15 @@
+@trait {
+  name: "@transaction",
+  category: "finance",
+  description: "Core transaction ledger handler — wallet-keyed economic transaction state machine with CAEL receipt integration. defaultConfig is empty; transaction parameters (amount, token, from, to) are supplied via transaction.submit events. State machine: idle → pending → confirming → confirmed | failed | cancelled. Emits CAEL receipts on confirmed/failed. __tx_ledger integrates with the HoloMesh x402 ledger. NOTE: this is the core ledger handler; banking-finance-plugin @transaction handles domain-specific banking transfer objects. Port of core/traits/TransactionTrait.ts (handler name: transaction).",
+  props: {},
+  events: {
+    on_submitted: "transaction_submitted",
+    on_confirmed: "transaction_confirmed",
+    on_failed: "transaction_failed",
+    on_cancelled: "transaction_cancelled",
+    submit: "transaction.submit",
+    cancel: "transaction.cancel"
+  },
+  behaviors: ["@zk_private", "@provenance"]
+}

@@ -1,0 +1,13 @@
+@trait {
+  name: "@sensor_sampling",
+  category: "sensing",
+  description: "Multi-sensor sampling and windowed statistics collector. sensors is a list of sensor binding definitions {id, field, windowSize, aggregate: last|mean|min|max|sum}. On each sensor_sampling.update event, the trait reads the named field from the node, appends it to the sliding window, and emits sensor_sampling.result with aggregated statistics. Port of SensorSamplingTrait.ts (handler name: sensor_sampling).",
+  props: {},
+  events: {
+    on_result: "sensor_sampling.result",
+    on_overflow: "sensor_sampling.overflow",
+    update: "sensor_sampling.update",
+    reset: "sensor_sampling.reset"
+  },
+  behaviors: ["@control_loop", "@fmu", "@ros2_hardware_loop"]
+}

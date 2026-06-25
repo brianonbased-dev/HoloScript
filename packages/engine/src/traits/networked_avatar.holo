@@ -1,0 +1,18 @@
+@trait {
+  name: "@networked_avatar",
+  category: "multiplayer",
+  description: "Networked avatar synchronization for multiplayer worlds. isLocal distinguishes the local player's avatar (true) from remote player replicas (false; default: false). updateRate is the network position/rotation sync frequency in Hz (default: 30 Hz). Manages a BoneSystem (55-bone humanoid) and IKSolver for full-body IK replication. Local avatars broadcast their bone transforms; remote avatars receive and interpolate. Port of NetworkedAvatarTrait.ts (handler name: networked_avatar).",
+  props: {
+    is_local: boolean = false,
+    update_rate: number = 30
+  },
+  events: {
+    on_spawned: "networked_avatar_spawned",
+    on_despawned: "networked_avatar_despawned",
+    on_pose_updated: "networked_avatar_pose_updated",
+    spawn: "networked_avatar.spawn",
+    despawn: "networked_avatar.despawn",
+    sync: "networked_avatar.sync"
+  },
+  behaviors: ["@auto_rig", "@animation", "@locomotion", "@collaborative_world"]
+}
