@@ -1,0 +1,25 @@
+@trait {
+  name: "@status_effect",
+  category: "game",
+  description: "Stackable timed status effect applicator. Applies a named buff or debuff (poison, burn, freeze, haste, shield, etc.) for a duration, with per-tick damage/heal, attribute modifiers, and a visual particle or color tint, removing itself when duration expires or it is dispelled. Authored from StatusEffectTrait.ts.",
+  props: {
+    effect_id: string = "",
+    type: enum("buff" | "debuff") = "debuff",
+    duration_s: number = 5,
+    tick_interval_s: number = 1,
+    tick_value: number = 0,
+    attribute_mods: dict<string, number> = {},
+    particle_url: string = "",
+    tint_color: string = "",
+    stackable: boolean = false
+  },
+  events: {
+    attached: "status_effect_attached",
+    detached: "status_effect_detached",
+    on_tick: "status_effect_tick",
+    on_expire: "status_effect_expire",
+    on_dispel: "status_effect_dispel",
+    dispel: "status_effect_trigger_dispel"
+  },
+  behaviors: ["@powerup", "@player_state", "@hit_reaction"]
+}

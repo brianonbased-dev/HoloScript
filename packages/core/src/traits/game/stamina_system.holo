@@ -1,0 +1,23 @@
+@trait {
+  name: "@stamina_system",
+  category: "game",
+  description: "Stamina resource tracker for action throttling. Drains stamina on sprint, dodge, or heavy-attack actions and regenerates at a configurable rate when idle, blocking further high-cost actions when below minimum, with HUD bar display. Authored from StaminaSystemTrait.ts.",
+  props: {
+    max_stamina: number = 100,
+    current_stamina: number = 100,
+    regen_rate: number = 20,
+    regen_delay_s: number = 1.5,
+    sprint_cost_per_s: number = 15,
+    dodge_cost: number = 25,
+    attack_cost: number = 10
+  },
+  events: {
+    attached: "stamina_system_attached",
+    detached: "stamina_system_detached",
+    on_drain: "stamina_system_drain",
+    on_exhaust: "stamina_system_exhaust",
+    on_regen: "stamina_system_regen",
+    drain: "stamina_system_trigger_drain"
+  },
+  behaviors: ["@player_state", "@player_stats", "@knockback"]
+}

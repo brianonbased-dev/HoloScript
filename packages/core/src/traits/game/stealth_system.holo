@@ -1,0 +1,22 @@
+@trait {
+  name: "@stealth_system",
+  category: "game",
+  description: "NPC/player stealth and detection system. Maintains a visibility meter per observer, accumulating detection based on light level, movement noise, and line-of-sight angle, transitioning through hidden/suspicious/detected states and broadcasting alerts on full detection. Authored from StealthSystemTrait.ts.",
+  props: {
+    detection_rate: number = 1.0,
+    light_sensitivity: number = 1.0,
+    noise_sensitivity: number = 1.0,
+    detection_threshold: number = 100,
+    suspicious_threshold: number = 50,
+    decay_rate: number = 0.5,
+    crouch_multiplier: number = 0.3
+  },
+  events: {
+    attached: "stealth_system_attached",
+    detached: "stealth_system_detached",
+    on_suspicious: "stealth_system_suspicious",
+    on_detected: "stealth_system_detected",
+    on_hidden: "stealth_system_hidden"
+  },
+  behaviors: ["@npc_brain", "@perception", "@player_state"]
+}

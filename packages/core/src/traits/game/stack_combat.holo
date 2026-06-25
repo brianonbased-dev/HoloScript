@@ -1,0 +1,22 @@
+@trait {
+  name: "@stack_combat",
+  category: "game",
+  description: "Stacking attack buff accumulator. Tracks successive hits within a time window, incrementing a stack count that multiplicatively amplifies damage or skill effects, resetting on idle timeout or damage taken, and capping at a configurable maximum. Authored from StackCombatTrait.ts.",
+  props: {
+    max_stacks: number = 10,
+    stack_window_ms: number = 1500,
+    multiplier_per_stack: number = 0.1,
+    reset_on_hit: boolean = false,
+    visual_entity_id: string = "",
+    sound_url: string = ""
+  },
+  events: {
+    attached: "stack_combat_attached",
+    detached: "stack_combat_detached",
+    on_stack: "stack_combat_stack",
+    on_reset: "stack_combat_reset",
+    on_max: "stack_combat_max",
+    add: "stack_combat_trigger_add"
+  },
+  behaviors: ["@combo_system", "@player_stats", "@hit_reaction"]
+}
