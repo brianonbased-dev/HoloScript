@@ -1,0 +1,18 @@
+@trait {
+  name: "@gotcha",
+  category: "audit",
+  description: "HoloScript authoring gotcha — a known trap pattern that agents and developers must avoid. id is the gotcha identifier (e.g., G.001). trap is a one-line description of the wrong pattern. severity: error (compile-time block), warning, or info. guard: warn (emit advisory) or block (fail the gate). filePatterns is a list of glob patterns for files where this trap applies. codePatterns is a list of regex patterns that detect the trap. remediation explains the correct approach. Port of GotchaTrait.ts (handler name: gotcha).",
+  props: {
+    gotcha_id: string = "",
+    trap: string = "",
+    severity: enum("error" | "warning" | "info") = "error",
+    guard: enum("warn" | "block") = "warn",
+    remediation: string = ""
+  },
+  events: {
+    on_triggered: "gotcha_triggered",
+    on_remediated: "gotcha_remediated",
+    check: "gotcha_check"
+  },
+  behaviors: ["@wisdom", "@interoperability_badge"]
+}

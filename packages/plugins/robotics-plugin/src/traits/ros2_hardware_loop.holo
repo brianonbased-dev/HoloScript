@@ -1,0 +1,20 @@
+@trait {
+  name: "@ros2_hardware_loop",
+  category: "robotics",
+  description: "ROS2 hardware abstraction loop for HoloScript robot entities. nodeName is the ROS2 node identifier (default: holo_rig_01). topicPrefix is the namespace prefix for all published/subscribed topics (default: /holo). updateFrequencyHz is the control loop rate in Hz (default: 60 Hz). bidirectional enables both publishing sensor data and subscribing to actuator commands. Port of ROS2HardwareLoopTrait.ts (handler name: ros2_hardware_loop).",
+  props: {
+    node_name: string = "holo_rig_01",
+    topic_prefix: string = "/holo",
+    update_frequency_hz: number = 60,
+    bidirectional: boolean = true
+  },
+  events: {
+    on_connected: "ros2_connected",
+    on_disconnected: "ros2_disconnected",
+    on_sensor_update: "ros2_sensor_update",
+    on_actuator_cmd: "ros2_actuator_cmd",
+    connect: "ros2_connect",
+    disconnect: "ros2_disconnect"
+  },
+  behaviors: ["@mqtt_sink", "@openxr_hal"]
+}

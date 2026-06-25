@@ -1,0 +1,19 @@
+@trait {
+  name: "@geofence",
+  category: "geo",
+  description: "Geofence trigger zone. center is the lat/lng anchor. radiusM is the radius in meters (default: 100m). shape: circle or polygon. triggerOnEnter fires an event when a tracked entity enters the zone. triggerOnExit fires when it exits. Port of GeofenceTrait.ts (handler name: geofence).",
+  props: {
+    radius_m: number = 100,
+    shape: enum("circle" | "polygon") = "circle",
+    trigger_on_enter: boolean = true,
+    trigger_on_exit: boolean = true
+  },
+  events: {
+    on_enter: "geofence_entered",
+    on_exit: "geofence_exited",
+    on_dwell: "geofence_dwell",
+    activate: "geofence_activate",
+    deactivate: "geofence_deactivate"
+  },
+  behaviors: ["@geocode", "@map_view", "@route"]
+}

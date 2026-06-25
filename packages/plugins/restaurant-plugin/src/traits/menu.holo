@@ -1,0 +1,19 @@
+@trait {
+  name: "@menu",
+  category: "restaurant",
+  description: "Restaurant menu definition. items is a list of menu item definitions (id, name, description, price, category, allergens, available). currency is ISO 4217 (default: USD). taxRate is the applicable food tax rate (default: 0.08 = 8%). serviceChargePercent adds a service charge to totals (default: 0%). Port of MenuTrait.ts (handler name: menu).",
+  props: {
+    currency: string = "USD",
+    tax_rate: number = 0.08,
+    service_charge_percent: number = 0
+  },
+  events: {
+    on_item_added: "menu_item_added",
+    on_item_removed: "menu_item_removed",
+    on_price_updated: "menu_price_updated",
+    add_item: "menu_add_item",
+    update_price: "menu_update_price",
+    set_available: "menu_set_available"
+  },
+  behaviors: ["@order", "@kitchen_display"]
+}

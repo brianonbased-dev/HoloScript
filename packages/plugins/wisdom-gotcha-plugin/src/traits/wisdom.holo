@@ -1,0 +1,21 @@
+@trait {
+  name: "@wisdom",
+  category: "audit",
+  description: "HoloScript ecosystem wisdom entry — a graduated insight about correct authoring, architecture, or runtime behavior. id is the wisdom identifier (e.g., W.001). message is the lesson summary. severity: info, warning, or critical. domain: correctness, performance, security, or architecture. autoFix enables automated remediation where possible. appliesTo is a list of file/trait patterns this wisdom applies to. references is a list of supporting doc paths or MEMORY entries. confidence is a 0-1 reliability score (default: 0.9). Port of WisdomTrait.ts (handler name: wisdom).",
+  props: {
+    wisdom_id: string = "",
+    message: string = "",
+    severity: enum("info" | "warning" | "critical") = "info",
+    domain: enum("correctness" | "performance" | "security" | "architecture") = "correctness",
+    auto_fix: boolean = false,
+    confidence: number = 0.9
+  },
+  events: {
+    on_applied: "wisdom_applied",
+    on_fixed: "wisdom_fixed",
+    on_ignored: "wisdom_ignored",
+    apply: "wisdom_apply",
+    graduate: "wisdom_graduate"
+  },
+  behaviors: ["@gotcha", "@interoperability_badge"]
+}

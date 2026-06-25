@@ -1,0 +1,18 @@
+@trait {
+  name: "@brain_region",
+  category: "neuroscience",
+  description: "Anatomical brain region node for @connectome graphs. name is the region label (e.g., hippocampus, prefrontal cortex). hemisphere: left, right, or bilateral. activationLevel is a 0-1 activity amplitude (from @eeg_stream or fMRI data). connections is a list of connected region IDs. Port of BrainRegionTrait.ts (handler name: brain_region).",
+  props: {
+    region_name: string = "",
+    hemisphere: enum("left" | "right" | "bilateral") = "left",
+    activation_level: number = 0
+  },
+  events: {
+    on_activated: "brain_region_activated",
+    on_deactivated: "brain_region_deactivated",
+    on_connection_added: "brain_region_connection_added",
+    add_connection: "brain_region_add_connection",
+    stimulate: "brain_region_stimulate"
+  },
+  behaviors: ["@connectome", "@eeg_stream"]
+}

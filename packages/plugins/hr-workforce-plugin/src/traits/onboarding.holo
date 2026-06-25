@@ -1,0 +1,16 @@
+@trait {
+  name: "@onboarding",
+  category: "hr",
+  description: "Employee onboarding checklist. employeeId links to the @employee record. steps is a list of onboarding step definitions (id, title, description, required, completedAt). targetCompletionDays is the expected onboarding window in calendar days (default: 30). Computes completedSteps/totalSteps/percentComplete reactively. Port of OnboardingTrait.ts (handler name: onboarding).",
+  props: {
+    employee_id: string = "",
+    target_completion_days: number = 30
+  },
+  events: {
+    on_step_completed: "onboarding_step_completed",
+    on_completed: "onboarding_completed",
+    on_overdue: "onboarding_overdue",
+    complete_step: "onboarding_complete_step"
+  },
+  behaviors: ["@employee", "@payroll"]
+}

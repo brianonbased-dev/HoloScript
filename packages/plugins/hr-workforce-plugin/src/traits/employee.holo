@@ -1,0 +1,22 @@
+@trait {
+  name: "@employee",
+  category: "hr",
+  description: "Employee master record. employeeId is the internal HR identifier. department is the organizational unit. title is the job title. status: active, inactive, leave, or terminated. hireDate is the ISO 8601 start date. Port of EmployeeTrait.ts (handler name: employee).",
+  props: {
+    employee_id: string = "",
+    employee_name: string = "",
+    department: string = "",
+    title: string = "",
+    status: enum("active" | "inactive" | "leave" | "terminated") = "active",
+    hire_date: string = ""
+  },
+  events: {
+    on_hired: "employee_hired",
+    on_terminated: "employee_terminated",
+    on_status_changed: "employee_status_changed",
+    transfer: "employee_transfer",
+    promote: "employee_promote",
+    terminate: "employee_terminate"
+  },
+  behaviors: ["@payroll", "@performance_review", "@onboarding"]
+}

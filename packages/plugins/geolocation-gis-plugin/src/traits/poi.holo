@@ -1,0 +1,19 @@
+@trait {
+  name: "@poi",
+  category: "geo",
+  description: "Point of Interest (POI) for map overlays and navigation. name is the display label. lat/lng is the geographic position. category: general, restaurant, hotel, attraction, transit, hospital, shopping, or government. Port of POITrait.ts (handler name: poi).",
+  props: {
+    poi_name: string = "",
+    lat: number = 0,
+    lng: number = 0,
+    category: enum("general" | "restaurant" | "hotel" | "attraction" | "transit" | "hospital" | "shopping" | "government") = "general"
+  },
+  events: {
+    on_added: "poi_added",
+    on_selected: "poi_selected",
+    on_removed: "poi_removed",
+    select: "poi_select",
+    navigate_to: "poi_navigate_to"
+  },
+  behaviors: ["@map_view", "@geocode", "@route"]
+}
