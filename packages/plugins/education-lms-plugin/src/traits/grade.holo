@@ -1,0 +1,18 @@
+@trait {
+  name: "@grade",
+  category: "education",
+  description: "Assessment grade record. score/maxScore defines the raw result. weight is the contribution to overall grade (default: 1.0). gradingScale: percentage (0-100), letter (A-F), or pass_fail. Port of GradeTrait.ts (handler name: grade).",
+  props: {
+    score: number = 0,
+    max_score: number = 100,
+    weight: number = 1,
+    grading_scale: enum("percentage" | "letter" | "pass_fail") = "percentage"
+  },
+  events: {
+    on_graded: "grade_recorded",
+    on_passing: "grade_passed",
+    on_failing: "grade_failed",
+    record: "grade_record"
+  },
+  behaviors: ["@enrollment", "@quiz"]
+}

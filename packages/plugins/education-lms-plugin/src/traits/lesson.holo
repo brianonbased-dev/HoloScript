@@ -1,0 +1,19 @@
+@trait {
+  name: "@lesson",
+  category: "education",
+  description: "LMS lesson content unit. contentType: text, video, audio, interactive, or lab. durationMinutes is estimated completion time. order is the position within a course module. completionCriteria: view (opened), read (scrolled), quiz (quiz passed), or lab (lab submitted). Port of LessonTrait.ts (handler name: lesson).",
+  props: {
+    title: string = "",
+    content_type: enum("text" | "video" | "audio" | "interactive" | "lab") = "text",
+    duration_minutes: number = 15,
+    order: number = 0,
+    completion_criteria: enum("view" | "read" | "quiz" | "lab") = "view"
+  },
+  events: {
+    on_started: "lesson_started",
+    on_completed: "lesson_completed",
+    start: "lesson_start",
+    complete: "lesson_complete"
+  },
+  behaviors: ["@course", "@quiz"]
+}

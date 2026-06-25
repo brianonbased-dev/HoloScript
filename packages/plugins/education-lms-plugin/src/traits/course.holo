@@ -1,0 +1,20 @@
+@trait {
+  name: "@course",
+  category: "education",
+  description: "LMS course definition. difficulty: beginner, intermediate, or advanced. prerequisites is a list of courseId strings. modules is an ordered list of module IDs. maxEnrollment caps learners. durationHours is the estimated completion time. Port of CourseTrait.ts (handler name: course).",
+  props: {
+    title: string = "",
+    description: string = "",
+    instructor: string = "",
+    duration_hours: number = 1,
+    difficulty: enum("beginner" | "intermediate" | "advanced") = "beginner",
+    max_enrollment: number = 100
+  },
+  events: {
+    on_enrollment: "course_enrolled",
+    on_completed: "course_completed",
+    enroll: "course_enroll",
+    complete: "course_complete"
+  },
+  behaviors: ["@enrollment", "@lesson"]
+}

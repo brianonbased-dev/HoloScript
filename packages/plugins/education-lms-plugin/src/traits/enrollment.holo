@@ -1,0 +1,20 @@
+@trait {
+  name: "@enrollment",
+  category: "education",
+  description: "Learner enrollment record binding a student to a course. status: enrolled, in_progress, completed, dropped. progressPercent tracks 0-100% completion. enrolledDate is ISO 8601. Port of EnrollmentTrait.ts (handler name: enrollment).",
+  props: {
+    student_id: string = "",
+    course_id: string = "",
+    status: enum("enrolled" | "in_progress" | "completed" | "dropped") = "enrolled",
+    enrolled_date: string = "",
+    progress_percent: number = 0
+  },
+  events: {
+    on_progress: "enrollment_progress",
+    on_completed: "enrollment_completed",
+    on_dropped: "enrollment_dropped",
+    update_progress: "enrollment_update_progress",
+    drop: "enrollment_drop"
+  },
+  behaviors: ["@course", "@grade"]
+}

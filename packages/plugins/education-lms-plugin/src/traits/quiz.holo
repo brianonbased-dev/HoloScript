@@ -1,0 +1,20 @@
+@trait {
+  name: "@quiz",
+  category: "education",
+  description: "LMS quiz engine. timeLimitMinutes=0 means no time limit. attemptsAllowed caps retries (default: 3). passingScore is the minimum % to pass (default: 70). shuffle randomizes question order. showCorrectAnswers reveals answers after submission. Port of QuizTrait.ts (handler name: quiz).",
+  props: {
+    time_limit_minutes: number = 0,
+    attempts_allowed: number = 3,
+    passing_score: number = 70,
+    shuffle: boolean = false,
+    show_correct_answers: boolean = true
+  },
+  events: {
+    on_submitted: "quiz_submitted",
+    on_passed: "quiz_passed",
+    on_failed: "quiz_failed",
+    on_time_up: "quiz_time_up",
+    submit: "quiz_submit"
+  },
+  behaviors: ["@lesson", "@grade"]
+}
