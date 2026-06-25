@@ -1,0 +1,31 @@
+@trait {
+  name: "@economy",
+  category: "agent",
+  description: "Credit-based micro-economy for agent nodes. Tracks credit accounts per entity (balance, spend limits, transaction history), bounties (task offers with deadline/reward/escrow), and subscriptions (recurring credit flows). Spend limit resets every spend_limit_period ms (0 = unlimited). Escrow holds credits atomically during bounty lifecycle. Base task completion reward credited on goal:complete. Port of EconomyPrimitivesTrait.ts (handler name: economy).",
+  props: {
+    initial_balance: number = 100,
+    default_spend_limit: number = 0,
+    spend_limit_period: number = 3600000,
+    max_transaction_history: number = 200,
+    default_bounty_deadline: number = 300000,
+    max_bounties_per_agent: number = 10,
+    escrow_enabled: boolean = true,
+    task_completion_reward: number = 10
+  },
+  events: {
+    attached: "economy_ready",
+    on_deposited: "economy_deposited",
+    on_withdrawn: "economy_withdrawn",
+    on_bounty_created: "economy_bounty_created",
+    on_bounty_claimed: "economy_bounty_claimed",
+    on_bounty_completed: "economy_bounty_completed",
+    on_bounty_cancelled: "economy_bounty_cancelled",
+    on_spend_limit_hit: "economy_spend_limit_hit",
+    deposit: "economy_deposit",
+    withdraw: "economy_withdraw",
+    create_bounty: "economy_create_bounty",
+    claim_bounty: "economy_claim_bounty",
+    complete_bounty: "economy_complete_bounty"
+  },
+  behaviors: ["@circuit_breaker", "@consensus"]
+}

@@ -1,0 +1,22 @@
+@trait {
+  name: "@goal_oriented",
+  category: "cognitive",
+  description: "GOAP (Goal-Oriented Action Planning) NPC planner. A* search over action precondition/effect graph to find cheapest action sequence satisfying goal conditions. Replans every replan_interval ms or when world state changes. Goals and actions provided at runtime via goal_oriented_set_goals / goal_oriented_add_action events. max_plan_depth caps A* depth to avoid combinatorial blowup. Port of GoalOrientedTrait.ts (handler name: goal_oriented — GOAPConfig).",
+  props: {
+    replan_interval: number = 5000,
+    max_plan_depth: number = 10
+  },
+  events: {
+    attached: "goal_oriented_ready",
+    detached: "goal_oriented_stopped",
+    on_plan_found: "goal_oriented_plan_found",
+    on_plan_failed: "goal_oriented_plan_failed",
+    on_action_started: "goal_oriented_action_started",
+    on_action_completed: "goal_oriented_action_completed",
+    on_goal_achieved: "goal_oriented_goal_achieved",
+    set_goals: "goal_oriented_set_goals",
+    add_action: "goal_oriented_add_action",
+    replan: "goal_oriented_replan"
+  },
+  behaviors: ["@behavior_tree", "@a_i_driver", "@caveman_drive"]
+}

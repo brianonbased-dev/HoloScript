@@ -1,0 +1,26 @@
+@trait {
+  name: "@gaze_focus_analytics",
+  category: "xr",
+  description: "Eye-tracking heatmap accumulator with exponential decay and multi-peer aggregation. Accumulates gaze hits onto a resolution grid (cols×rows); older gaze decays with half-life decay_rate_s (0 = no decay). Supports up to max_peers concurrent gaze streams merged via confidence-weighted sum (min_confidence gate). Exports on export_event (default: session_end) or explicit gaze_focus_export_request. Formats: json/binary/protobuf. Port of GazeFocusAnalyticsTrait.ts (handler name: gaze_focus_analytics).",
+  props: {
+    resolution_cols: number = 16,
+    resolution_rows: number = 9,
+    decay_rate_s: number = 30.0,
+    export_event: string = "session_end",
+    export_format: enum("json" | "binary" | "protobuf") = "json",
+    session_id: string = "",
+    max_peers: number = 64,
+    min_confidence: number = 0.5,
+    emit_live_updates: boolean = false
+  },
+  events: {
+    attached: "gaze_focus_analytics_ready",
+    on_exported: "gaze_focus_analytics_exported",
+    on_peer_data: "gaze_focus_analytics_peer_data",
+    gaze_hit: "gaze_focus_gaze_hit",
+    peer_update: "gaze_focus_peer_update",
+    export_request: "gaze_focus_export_request",
+    session_end: "session_end"
+  },
+  behaviors: ["@eye_tracking", "@spatial_analytics"]
+}

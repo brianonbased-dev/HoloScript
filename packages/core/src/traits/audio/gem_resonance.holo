@@ -1,0 +1,22 @@
+@trait {
+  name: "@gem_resonance",
+  category: "audio",
+  description: "Proximity-based harmonic chord generator for elemental gem entities. Probes nearby nodes within max_distance every probe_interval_ms. Maps element types (fire/water/earth/air/spirit/light/shadow/void) to base frequencies (Hz); 'auto' resolves from node element property. Blends up to chord_limit neighbor frequencies in harmonic/dissonant/perfect_fifth mode. Outputs spatial_audio or midi. Port of GemResonanceTrait.ts (handler name: gem_resonance).",
+  props: {
+    max_distance: number = 0.5,
+    blend_mode: enum("harmonic" | "dissonant" | "perfect_fifth") = "harmonic",
+    output: enum("spatial_audio" | "midi") = "spatial_audio",
+    volume: number = 0.45,
+    probe_interval_ms: number = 100,
+    chord_limit: number = 4
+  },
+  events: {
+    attached: "gem_resonance_ready",
+    detached: "gem_resonance_stopped",
+    on_chord: "gem_resonance_chord",
+    on_neighbor_changed: "gem_resonance_neighbor_changed",
+    on_silent: "gem_resonance_silent",
+    probe: "gem_resonance_probe"
+  },
+  behaviors: ["@voice_proximity", "@audio_reactivity", "@spatial_audio"]
+}
