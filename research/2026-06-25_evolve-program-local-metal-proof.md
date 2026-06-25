@@ -195,3 +195,26 @@ the accrual on the Jetson (free local metal) — e.g. `/scheduler` or a systemd 
 running the portfolio nightly, accumulating REC-SHAPE rows into
 `HOLOSCRIPT_AGENT_TRACE_DIR`. When the corpus is large enough, the staged HoloTune
 fine-tune (Vast fleet, GPU-spend gated) closes the loop to `brittney-edge:v0-5`.
+
+### Continuous accrual — registered, and the honest executor reality
+
+Scheduled as a HoloShell Team automation `evolve-corpus-accrual` (every 4h,
+`b913f9d3`). **Verified execution model** (`scripts/holoshell-team-automations.mjs`):
+the runner does NOT execute the command — every interval it **enqueues a BOARD
+TASK** ("claim, run the local commands from the workspace, validate, close via
+`/room done`"; false-green guard: only counts when a real task id returns). So the
+schedule is a recurring *reminder-as-board-task*, not a self-running cron.
+
+**Executor gap (W.GOLD.560, surfaced not papered over):** that task needs an agent
+that can run `pnpm vitest` from the HoloScript workspace with the Jetson reachable
+— i.e. this laptop. The Jetson agents can't (model store, not the repo+node_modules,
+W.755), and no autonomous laptop board-claimer runs. So the recurring task waits
+for a capable agent to execute it; the corpus grows when *run*, which is proven but
+not yet autonomous.
+
+**Bootstrapped the real corpus** (manual run into the persistent dir): 7 unique
+verifier-labeled rows across all 5 targets, cross-run dedup armed. The
+genuinely-autonomous executor is the **Jetson idle-loop** — the agent runs
+`runEvolution` IN-PROCESS via its own runtime (no `pnpm vitest`), emitting through
+the existing `recordTrace` path. That (a careful live-agent redeploy with
+backup/rollback) is the remaining piece for hands-off continuous accrual.
