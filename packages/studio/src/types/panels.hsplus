@@ -1,0 +1,9 @@
+// @studio_panels_types — Studio panels types: type definitions for Studio panel layout, configuration, and state.
+//
+// Native .hsplus surface for studio/src/types/panels.ts.
+
+@trait studio_panels_types {
+  capability_tags: ["studio_panels_types", "studio_panel_config_types", "panel_layout_state_types", "studio"]
+  @on_spawn => { emit("studio_panels_types_ready", {}) }
+  @receipt studio_panels_types_config { type: "StudioPanelsTypesReceipt"; timestamp: now() }
+}

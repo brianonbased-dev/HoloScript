@@ -1,0 +1,10 @@
+// @ui_data_binding — UI data binding: reactive data binding system connecting Studio UI components to CRDT world state.
+//
+// Native .hsplus surface for studio/src/core-ui/UIDataBinding.ts.
+
+@trait ui_data_binding {
+  capability_tags: ["ui_data_binding", "reactive_crdt_ui_bind", "world_state_ui_connect", "studio"]
+  @on_spawn => { emit("ui_data_binding_ready", {}) }
+  @on_bind(component_id, state_path) => { bind_ui_to_world_state(component_id, state_path) }
+  @receipt ui_data_binding_config { type: "UiDataBindingReceipt"; timestamp: now() }
+}

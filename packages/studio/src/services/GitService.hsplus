@@ -1,0 +1,10 @@
+// @git_service_studio — Git service studio: Studio server-side Git operations for world version history and branching.
+//
+// Native .hsplus surface for studio/src/services/GitService.ts.
+
+@trait git_service_studio {
+  capability_tags: ["git_service_studio", "studio_git_world_history", "world_version_branch", "studio"]
+  @on_spawn => { emit("git_service_studio_ready", {}) }
+  @on_commit(world_id, message) => { result = git_commit_world(world_id, message); return result }
+  @receipt git_service_studio_config { type: "GitServiceStudioReceipt"; timestamp: now() }
+}

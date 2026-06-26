@@ -1,0 +1,10 @@
+// @hand_menu — Hand menu: XR spatial hand-tracking menu for wrist-anchored studio controls.
+//
+// Native .hsplus surface for studio/src/core-ui/HandMenu.ts.
+
+@trait hand_menu {
+  capability_tags: ["hand_menu", "xr_hand_tracking_menu", "wrist_anchored_studio_controls", "studio"]
+  @on_spawn => { emit("hand_menu_ready", {}) }
+  @on_open() => { open_hand_menu() }
+  @receipt hand_menu_config { type: "HandMenuReceipt"; timestamp: now() }
+}

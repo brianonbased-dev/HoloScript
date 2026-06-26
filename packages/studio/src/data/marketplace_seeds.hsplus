@@ -1,0 +1,9 @@
+// @marketplace_seeds — Marketplace seeds: seed data for the Studio marketplace with starter templates and assets.
+//
+// Native .hsplus surface for studio/src/data/marketplace-seeds.ts.
+
+@trait marketplace_seeds {
+  capability_tags: ["marketplace_seeds", "studio_marketplace_seed", "starter_template_seed", "studio"]
+  @on_spawn => { emit("marketplace_seeds_ready", {}) }
+  @receipt marketplace_seeds_config { type: "MarketplaceSeedsReceipt"; timestamp: now() }
+}

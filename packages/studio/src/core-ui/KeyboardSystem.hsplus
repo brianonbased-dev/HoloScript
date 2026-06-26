@@ -1,0 +1,10 @@
+// @keyboard_system — Keyboard system: virtual + physical keyboard input system for Studio XR and desktop.
+//
+// Native .hsplus surface for studio/src/core-ui/KeyboardSystem.ts.
+
+@trait keyboard_system {
+  capability_tags: ["keyboard_system", "xr_desktop_keyboard_input", "studio_key_event_route", "studio"]
+  @on_spawn => { emit("keyboard_system_ready", {}) }
+  @on_key(event) => { route_keyboard_event(event) }
+  @receipt keyboard_system_config { type: "KeyboardSystemReceipt"; timestamp: now() }
+}

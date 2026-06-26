@@ -1,0 +1,12 @@
+// @studio_db_client — Studio DB client: Postgres/Drizzle database client for Studio server-side persistence.
+//
+// Native .hsplus surface for studio/src/db/client.ts.
+
+@trait studio_db_client {
+  capability_tags: ["studio_db_client", "studio_postgres_drizzle", "studio_server_persistence", "studio"]
+  @on_spawn => {
+    init_studio_db_client()
+    emit("studio_db_client_ready", {})
+  }
+  @receipt studio_db_client_config { type: "StudioDbClientReceipt"; timestamp: now() }
+}

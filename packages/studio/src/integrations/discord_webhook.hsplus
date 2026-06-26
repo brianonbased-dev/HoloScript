@@ -1,0 +1,10 @@
+// @discord_webhook_studio — Discord webhook studio: posts Studio events and world-publish notifications to Discord.
+//
+// Native .hsplus surface for studio/src/integrations/discordWebhook.ts.
+
+@trait discord_webhook_studio {
+  capability_tags: ["discord_webhook_studio", "studio_discord_notify", "world_publish_discord_post", "studio"]
+  @on_spawn => { emit("discord_webhook_studio_ready", {}) }
+  @on_notify(event) => { post_studio_discord_webhook(event) }
+  @receipt discord_webhook_studio_config { type: "DiscordWebhookStudioReceipt"; timestamp: now() }
+}

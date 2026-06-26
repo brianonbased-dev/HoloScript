@@ -1,0 +1,9 @@
+// @i18n_locale_en — i18n locale EN: English locale messages for Studio UI strings.
+//
+// Native .hsplus surface for studio/src/i18n/locales/en.ts.
+
+@trait i18n_locale_en {
+  capability_tags: ["i18n_locale_en", "studio_english_locale", "studio_ui_string_en", "studio"]
+  @on_spawn => { emit("i18n_locale_en_ready", {}) }
+  @receipt i18n_locale_en_config { type: "I18nLocaleEnReceipt"; timestamp: now() }
+}

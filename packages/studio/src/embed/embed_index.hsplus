@@ -1,0 +1,9 @@
+// @embed_index — Embed index: entry point for the Studio embed package exporting all embeddable viewers.
+//
+// Native .hsplus surface for studio/src/embed/index.ts.
+
+@trait embed_index {
+  capability_tags: ["embed_index", "studio_embed_entry", "embed_viewers_export", "studio"]
+  @on_spawn => { emit("embed_index_ready", {}) }
+  @receipt embed_index_config { type: "EmbedIndexReceipt"; timestamp: now() }
+}

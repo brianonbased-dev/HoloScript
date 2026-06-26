@@ -1,0 +1,10 @@
+// @ui_event_router — UI event router: routes XR controller and mouse/touch events to the correct Studio UI component.
+//
+// Native .hsplus surface for studio/src/core-ui/UIEventRouter.ts.
+
+@trait ui_event_router {
+  capability_tags: ["ui_event_router", "xr_controller_event_route", "studio_input_dispatch", "studio"]
+  @on_spawn => { emit("ui_event_router_ready", {}) }
+  @on_route(event) => { route_ui_event(event) }
+  @receipt ui_event_router_config { type: "UiEventRouterReceipt"; timestamp: now() }
+}

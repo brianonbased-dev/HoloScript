@@ -1,0 +1,10 @@
+// @webxr_viewer — WebXR viewer: embeddable WebXR viewer for immersive .holo scene playback in VR/AR headsets.
+//
+// Native .hsplus surface for studio/src/embed/WebXRViewer.tsx.
+
+@trait webxr_viewer {
+  capability_tags: ["webxr_viewer", "embed_webxr_immersive_view", "vr_ar_holo_playback", "studio"]
+  @on_spawn => { emit("webxr_viewer_ready", {}) }
+  @on_enter(scene_id) => { enter_webxr_viewer(scene_id) }
+  @receipt webxr_viewer_config { type: "WebxrViewerReceipt"; timestamp: now() }
+}

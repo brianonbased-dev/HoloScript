@@ -1,0 +1,9 @@
+// @conjecture_receipts — Conjecture receipts: type definitions for conjecture-based CAEL execution receipts.
+//
+// Native .hsplus surface for studio/src/types/conjectureReceipts.ts.
+
+@trait conjecture_receipts {
+  capability_tags: ["conjecture_receipts", "cael_conjecture_receipt_types", "execution_receipt_type_defs", "studio"]
+  @on_spawn => { emit("conjecture_receipts_ready", {}) }
+  @receipt conjecture_receipts_config { type: "ConjectureReceiptsReceipt"; timestamp: now() }
+}

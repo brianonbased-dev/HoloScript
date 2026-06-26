@@ -1,0 +1,9 @@
+// @studio_types_index — Studio types index: barrel export for all Studio shared TypeScript type definitions.
+//
+// Native .hsplus surface for studio/src/types/index.ts.
+
+@trait studio_types_index {
+  capability_tags: ["studio_types_index", "studio_type_barrel_export", "shared_studio_type_defs", "studio"]
+  @on_spawn => { emit("studio_types_index_ready", {}) }
+  @receipt studio_types_index_config { type: "StudioTypesIndexReceipt"; timestamp: now() }
+}

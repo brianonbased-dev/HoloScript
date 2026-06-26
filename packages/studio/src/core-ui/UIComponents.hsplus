@@ -1,0 +1,9 @@
+// @ui_components — UI components: shared spatial UI component library for Studio panels and overlays.
+//
+// Native .hsplus surface for studio/src/core-ui/UIComponents.ts.
+
+@trait ui_components {
+  capability_tags: ["ui_components", "studio_spatial_ui_library", "panel_overlay_components", "studio"]
+  @on_spawn => { emit("ui_components_ready", {}) }
+  @receipt ui_components_config { type: "UiComponentsReceipt"; timestamp: now() }
+}

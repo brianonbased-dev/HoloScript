@@ -1,0 +1,10 @@
+// @ui_slider — UI slider: spatial slider input for numeric parameter tuning in Studio panels.
+//
+// Native .hsplus surface for studio/src/core-ui/UISlider.ts.
+
+@trait ui_slider {
+  capability_tags: ["ui_slider", "spatial_numeric_slider", "studio_param_tune_input", "studio"]
+  @on_spawn => { emit("ui_slider_ready", {}) }
+  @on_change(slider_id, value) => { update_slider_value(slider_id, value) }
+  @receipt ui_slider_config { type: "UiSliderReceipt"; timestamp: now() }
+}

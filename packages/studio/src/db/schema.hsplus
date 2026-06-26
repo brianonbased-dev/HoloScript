@@ -1,0 +1,9 @@
+// @studio_db_schema — Studio DB schema: Drizzle ORM schema definitions for Studio server-side data models.
+//
+// Native .hsplus surface for studio/src/db/schema.ts.
+
+@trait studio_db_schema {
+  capability_tags: ["studio_db_schema", "drizzle_orm_schema_studio", "studio_data_model_def", "studio"]
+  @on_spawn => { emit("studio_db_schema_ready", {}) }
+  @receipt studio_db_schema_config { type: "StudioDbSchemaReceipt"; timestamp: now() }
+}

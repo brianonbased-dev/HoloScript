@@ -1,0 +1,10 @@
+// @studio_proxy — Studio proxy: Next.js API proxy for MCP server and external service routing.
+//
+// Native .hsplus surface for studio/src/proxy.ts.
+
+@trait studio_proxy {
+  capability_tags: ["studio_proxy", "nextjs_api_proxy", "mcp_server_route_proxy", "studio"]
+  @on_spawn => { emit("studio_proxy_ready", {}) }
+  @on_proxy(request) => { return proxy_studio_request(request) }
+  @receipt studio_proxy_config { type: "StudioProxyReceipt"; timestamp: now() }
+}

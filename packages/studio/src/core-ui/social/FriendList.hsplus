@@ -1,0 +1,10 @@
+// @friend_list — Friend list: Studio social friend list for inviting contacts into shared .holo worlds.
+//
+// Native .hsplus surface for studio/src/core-ui/social/FriendList.ts.
+
+@trait friend_list {
+  capability_tags: ["friend_list", "studio_social_friend_invite", "shared_world_contact_list", "studio"]
+  @on_spawn => { emit("friend_list_ready", {}) }
+  @on_invite(friend_id, world_id) => { result = invite_friend_to_world(friend_id, world_id); return result }
+  @receipt friend_list_config { type: "FriendListReceipt"; timestamp: now() }
+}

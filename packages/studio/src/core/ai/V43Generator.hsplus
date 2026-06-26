@@ -1,0 +1,10 @@
+// @v43_generator — V43 generator: V4.3-compatible scene and world generation pipeline for Studio AI authoring.
+//
+// Native .hsplus surface for studio/src/core/ai/V43Generator.ts.
+
+@trait v43_generator {
+  capability_tags: ["v43_generator", "v43_scene_generation", "studio_ai_world_author", "studio"]
+  @on_spawn => { emit("v43_generator_ready", {}) }
+  @on_generate(prompt) => { result = generate_v43_scene(prompt); return result }
+  @receipt v43_generator_config { type: "V43GeneratorReceipt"; timestamp: now() }
+}

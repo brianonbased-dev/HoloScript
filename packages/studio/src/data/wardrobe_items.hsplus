@@ -1,0 +1,10 @@
+// @wardrobe_items — Wardrobe items: catalog of avatar wardrobe items for character customization in Studio.
+//
+// Native .hsplus surface for studio/src/data/wardrobeItems.ts.
+
+@trait wardrobe_items {
+  capability_tags: ["wardrobe_items", "avatar_wardrobe_catalog", "character_customization_items", "studio"]
+  @on_spawn => { emit("wardrobe_items_ready", {}) }
+  @on_list(filter) => { items = list_wardrobe_items(filter); return items }
+  @receipt wardrobe_items_config { type: "WardrobeItemsReceipt"; timestamp: now() }
+}

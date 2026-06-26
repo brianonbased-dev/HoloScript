@@ -1,0 +1,10 @@
+// @ui_layout — UI layout: flexbox-style spatial layout engine for arranging Studio UI panels in XR and 2D.
+//
+// Native .hsplus surface for studio/src/core-ui/UILayout.ts.
+
+@trait ui_layout {
+  capability_tags: ["ui_layout", "spatial_flexbox_layout", "studio_panel_arrange", "studio"]
+  @on_spawn => { emit("ui_layout_ready", {}) }
+  @on_layout(container, children) => { result = layout_spatial_panels(container, children); return result }
+  @receipt ui_layout_config { type: "UiLayoutReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @scene_templates — Scene templates: pre-built .holo scene templates for quick-start world creation in Studio.
+//
+// Native .hsplus surface for studio/src/data/sceneTemplates.ts.
+
+@trait scene_templates {
+  capability_tags: ["scene_templates", "holo_scene_quickstart", "studio_world_template", "studio"]
+  @on_spawn => { emit("scene_templates_ready", {}) }
+  @on_get(template_id) => { return get_scene_template(template_id) }
+  @receipt scene_templates_config { type: "SceneTemplatesReceipt"; timestamp: now() }
+}

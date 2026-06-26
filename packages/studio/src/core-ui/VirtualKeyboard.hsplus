@@ -1,0 +1,11 @@
+// @virtual_keyboard — Virtual keyboard: XR floating virtual keyboard for text entry in the Studio headset surface.
+//
+// Native .hsplus surface for studio/src/core-ui/VirtualKeyboard.ts.
+
+@trait virtual_keyboard {
+  capability_tags: ["virtual_keyboard", "xr_floating_vr_keyboard", "studio_headset_text_entry", "studio"]
+  @on_spawn => { emit("virtual_keyboard_ready", {}) }
+  @on_show(field_id) => { show_virtual_keyboard(field_id) }
+  @on_hide() => { hide_virtual_keyboard() }
+  @receipt virtual_keyboard_config { type: "VirtualKeyboardReceipt"; timestamp: now() }
+}

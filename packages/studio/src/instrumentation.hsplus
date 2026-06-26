@@ -1,0 +1,12 @@
+// @studio_instrumentation — Studio instrumentation: Next.js OpenTelemetry instrumentation setup for studio tracing.
+//
+// Native .hsplus surface for studio/src/instrumentation.ts.
+
+@trait studio_instrumentation {
+  capability_tags: ["studio_instrumentation", "studio_otel_setup", "nextjs_tracing_init", "studio"]
+  @on_spawn => {
+    init_studio_otel_instrumentation()
+    emit("studio_instrumentation_ready", {})
+  }
+  @receipt studio_instrumentation_config { type: "StudioInstrumentationReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @ui_renderer — UI renderer: renders Studio spatial UI elements into the WebXR or canvas viewport.
+//
+// Native .hsplus surface for studio/src/core-ui/UIRenderer.ts.
+
+@trait ui_renderer {
+  capability_tags: ["ui_renderer", "studio_ui_xr_render", "canvas_ui_viewport_render", "studio"]
+  @on_spawn => { emit("ui_renderer_ready", {}) }
+  @on_render(frame) => { render_studio_ui_frame(frame) }
+  @receipt ui_renderer_config { type: "UiRendererReceipt"; timestamp: now() }
+}

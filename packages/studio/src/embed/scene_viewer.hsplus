@@ -1,0 +1,10 @@
+// @scene_viewer — Scene viewer: embeddable scene viewer for sharing .holo scenes via iframe or widget.
+//
+// Native .hsplus surface for studio/src/embed/SceneViewer.tsx.
+
+@trait scene_viewer {
+  capability_tags: ["scene_viewer", "embed_scene_iframe_widget", "holo_scene_share_view", "studio"]
+  @on_spawn => { emit("scene_viewer_ready", {}) }
+  @on_load(scene_url) => { load_scene_viewer(scene_url) }
+  @receipt scene_viewer_config { type: "SceneViewerReceipt"; timestamp: now() }
+}

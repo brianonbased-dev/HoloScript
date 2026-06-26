@@ -1,0 +1,10 @@
+// @studio_widget — Studio widget: embeddable Studio widget for third-party sites and plugin surfaces.
+//
+// Native .hsplus surface for studio/src/embed/StudioWidget.tsx.
+
+@trait studio_widget {
+  capability_tags: ["studio_widget", "studio_embed_widget", "third_party_studio_embed", "studio"]
+  @on_spawn => { emit("studio_widget_ready", {}) }
+  @on_mount(target, config) => { mount_studio_widget(target, config) }
+  @receipt studio_widget_config { type: "StudioWidgetReceipt"; timestamp: now() }
+}

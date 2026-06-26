@@ -1,0 +1,10 @@
+// @palette_commands — Palette commands: command registry and executor for the Studio UX command palette.
+//
+// Native .hsplus surface for studio/src/core-ui/PaletteCommands.ts.
+
+@trait palette_commands {
+  capability_tags: ["palette_commands", "studio_command_palette_exec", "command_registry_palette", "studio"]
+  @on_spawn => { emit("palette_commands_ready", {}) }
+  @on_execute(command_id) => { result = execute_palette_command(command_id); return result }
+  @receipt palette_commands_config { type: "PaletteCommandsReceipt"; timestamp: now() }
+}

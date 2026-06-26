@@ -1,0 +1,9 @@
+// @studio_index — Studio index: package entry point for the HoloScript Studio Next.js application.
+//
+// Native .hsplus surface for studio/src/index.ts.
+
+@trait studio_index {
+  capability_tags: ["studio_index", "studio_nextjs_entry", "universal_point_of_entry", "studio"]
+  @on_spawn => { emit("studio_index_ready", {}) }
+  @receipt studio_index_config { type: "StudioIndexReceipt"; timestamp: now() }
+}

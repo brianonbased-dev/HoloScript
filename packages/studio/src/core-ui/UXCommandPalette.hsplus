@@ -1,0 +1,11 @@
+// @ux_command_palette — UX command palette: Studio command palette UI (Cmd+K) for quick tool and scene actions.
+//
+// Native .hsplus surface for studio/src/core-ui/UXCommandPalette.ts.
+
+@trait ux_command_palette {
+  capability_tags: ["ux_command_palette", "studio_cmd_k_palette", "quick_tool_scene_action", "studio"]
+  @on_spawn => { emit("ux_command_palette_ready", {}) }
+  @on_open() => { open_command_palette() }
+  @on_select(command_id) => { execute_palette_command(command_id) }
+  @receipt ux_command_palette_config { type: "UxCommandPaletteReceipt"; timestamp: now() }
+}

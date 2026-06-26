@@ -1,0 +1,10 @@
+// @ui_text_input — UI text input: spatial text input field with VR keyboard support for Studio.
+//
+// Native .hsplus surface for studio/src/core-ui/UITextInput.ts.
+
+@trait ui_text_input {
+  capability_tags: ["ui_text_input", "spatial_text_input_vr", "studio_vr_keyboard_input", "studio"]
+  @on_spawn => { emit("ui_text_input_ready", {}) }
+  @on_submit(field_id, text) => { submit_text_input(field_id, text) }
+  @receipt ui_text_input_config { type: "UiTextInputReceipt"; timestamp: now() }
+}

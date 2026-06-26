@@ -1,0 +1,10 @@
+// @desktop_viewer — Desktop viewer: embeddable desktop 3D viewer for .holo scenes outside the main Studio UI.
+//
+// Native .hsplus surface for studio/src/embed/DesktopViewer.tsx.
+
+@trait desktop_viewer {
+  capability_tags: ["desktop_viewer", "embed_holo_desktop_view", "scene_embed_desktop", "studio"]
+  @on_spawn => { emit("desktop_viewer_ready", {}) }
+  @on_load(scene_id) => { load_desktop_viewer_scene(scene_id) }
+  @receipt desktop_viewer_config { type: "DesktopViewerReceipt"; timestamp: now() }
+}

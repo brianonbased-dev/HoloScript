@@ -1,0 +1,9 @@
+// @holo_composition_types — HoloComposition types: TypeScript type definitions for parsed .holo composition AST nodes.
+//
+// Native .hsplus surface for studio/src/parser/HoloCompositionTypes.ts.
+
+@trait holo_composition_types {
+  capability_tags: ["holo_composition_types", "holo_composition_ast_types", "parsed_holo_type_defs", "studio"]
+  @on_spawn => { emit("holo_composition_types_ready", {}) }
+  @receipt holo_composition_types_config { type: "HoloCompositionTypesReceipt"; timestamp: now() }
+}

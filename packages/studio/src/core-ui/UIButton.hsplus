@@ -1,0 +1,10 @@
+// @ui_button — UI button: spatial UI button primitive with hover, press, and click events for XR/desktop.
+//
+// Native .hsplus surface for studio/src/core-ui/UIButton.ts.
+
+@trait ui_button {
+  capability_tags: ["ui_button", "spatial_ui_button_xr", "hover_press_click_events", "studio"]
+  @on_spawn => { emit("ui_button_ready", {}) }
+  @on_press(button_id) => { fire_button_press(button_id) }
+  @receipt ui_button_config { type: "UiButtonReceipt"; timestamp: now() }
+}

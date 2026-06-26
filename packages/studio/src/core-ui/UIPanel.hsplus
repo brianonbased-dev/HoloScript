@@ -1,0 +1,11 @@
+// @ui_panel — UI panel: floating spatial panel container for Studio tool windows in XR and browser.
+//
+// Native .hsplus surface for studio/src/core-ui/UIPanel.ts.
+
+@trait ui_panel {
+  capability_tags: ["ui_panel", "spatial_panel_container", "studio_tool_window_xr", "studio"]
+  @on_spawn => { emit("ui_panel_ready", {}) }
+  @on_open(spec) => { open_ui_panel(spec) }
+  @on_close(panel_id) => { close_ui_panel(panel_id) }
+  @receipt ui_panel_config { type: "UiPanelReceipt"; timestamp: now() }
+}

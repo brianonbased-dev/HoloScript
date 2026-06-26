@@ -1,0 +1,10 @@
+// @studio_wasm_loader — Studio WASM loader: loads and initializes the HoloScript compiler-wasm module in the browser.
+//
+// Native .hsplus surface for studio/src/wasm-loader.ts.
+
+@trait studio_wasm_loader {
+  capability_tags: ["studio_wasm_loader", "compiler_wasm_browser_init", "holoscript_wasm_load", "studio"]
+  @on_spawn => { emit("studio_wasm_loader_ready", {}) }
+  @on_load() => { result = load_compiler_wasm(); return result }
+  @receipt studio_wasm_loader_config { type: "StudioWasmLoaderReceipt"; timestamp: now() }
+}

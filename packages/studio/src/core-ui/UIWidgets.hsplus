@@ -1,0 +1,9 @@
+// @ui_widgets — UI widgets: collection of pre-built Studio spatial UI widgets (toggle, dropdown, color picker).
+//
+// Native .hsplus surface for studio/src/core-ui/UIWidgets.ts.
+
+@trait ui_widgets {
+  capability_tags: ["ui_widgets", "studio_widget_collection", "toggle_dropdown_colorpicker", "studio"]
+  @on_spawn => { emit("ui_widgets_ready", {}) }
+  @receipt ui_widgets_config { type: "UiWidgetsReceipt"; timestamp: now() }
+}

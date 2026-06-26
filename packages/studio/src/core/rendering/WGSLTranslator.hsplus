@@ -1,0 +1,10 @@
+// @wgsl_translator — WGSL translator: translates HoloScript shader expressions to WGSL for WebGPU rendering.
+//
+// Native .hsplus surface for studio/src/core/rendering/WGSLTranslator.ts.
+
+@trait wgsl_translator {
+  capability_tags: ["wgsl_translator", "holoscript_to_wgsl", "webgpu_shader_translate", "studio"]
+  @on_spawn => { emit("wgsl_translator_ready", {}) }
+  @on_translate(shader_expr) => { wgsl = translate_to_wgsl(shader_expr); return wgsl }
+  @receipt wgsl_translator_config { type: "WgslTranslatorReceipt"; timestamp: now() }
+}

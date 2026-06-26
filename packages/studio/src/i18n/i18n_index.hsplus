@@ -1,0 +1,12 @@
+// @i18n_index — i18n index: internationalization setup for Studio with locale detection and message loading.
+//
+// Native .hsplus surface for studio/src/i18n/index.ts.
+
+@trait i18n_index {
+  capability_tags: ["i18n_index", "studio_i18n_setup", "locale_detect_message_load", "studio"]
+  @on_spawn => {
+    init_studio_i18n()
+    emit("i18n_index_ready", {})
+  }
+  @receipt i18n_index_config { type: "I18nIndexReceipt"; timestamp: now() }
+}

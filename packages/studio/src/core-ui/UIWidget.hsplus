@@ -1,0 +1,9 @@
+// @ui_widget — UI widget: base widget class for all Studio spatial UI elements.
+//
+// Native .hsplus surface for studio/src/core-ui/UIWidget.ts.
+
+@trait ui_widget {
+  capability_tags: ["ui_widget", "studio_spatial_widget_base", "xr_ui_widget_primitive", "studio"]
+  @on_spawn => { emit("ui_widget_ready", {}) }
+  @receipt ui_widget_config { type: "UiWidgetReceipt"; timestamp: now() }
+}
