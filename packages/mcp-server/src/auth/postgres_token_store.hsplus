@@ -1,0 +1,11 @@
+// @postgres_token_store — Postgres token store: Postgres-backed persistent token storage for MCP authentication.
+//
+// Native .hsplus surface for mcp-server/src/auth/postgres-token-store.ts.
+
+@trait postgres_token_store {
+  capability_tags: ["postgres_token_store", "pg_token_persistence", "mcp_auth_store", "mcp_server"]
+  @on_spawn => { emit("postgres_token_store_ready", {}) }
+  @on_store(token) => { store_token_to_postgres(token) }
+  @on_retrieve(token_id) => { return retrieve_postgres_token(token_id) }
+  @receipt postgres_token_store_config { type: "PostgresTokenStoreReceipt"; timestamp: now() }
+}

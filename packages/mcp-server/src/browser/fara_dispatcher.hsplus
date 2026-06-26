@@ -1,0 +1,10 @@
+// @fara_dispatcher — FARA dispatcher: dispatches browser automation requests to FARA worker agents.
+//
+// Native .hsplus surface for mcp-server/src/browser/fara-dispatcher.ts.
+
+@trait fara_dispatcher {
+  capability_tags: ["fara_dispatcher", "fara_worker_dispatch", "browser_automation_dispatch", "mcp_server"]
+  @on_spawn => { emit("fara_dispatcher_ready", {}) }
+  @on_dispatch(request) => { result = dispatch_to_fara(request); return result }
+  @receipt fara_dispatcher_config { type: "FaraDispatcherReceipt"; timestamp: now() }
+}

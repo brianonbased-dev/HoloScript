@@ -1,0 +1,9 @@
+// @collab_index — Collab index: entry point for the collaborative editing module in MCP server.
+//
+// Native .hsplus surface for mcp-server/src/collab/index.ts.
+
+@trait collab_index {
+  capability_tags: ["collab_index", "collab_module_entry", "mcp_collaborative_edit", "mcp_server"]
+  @on_spawn => { emit("collab_index_ready", {}) }
+  @receipt collab_index_config { type: "CollabIndexReceipt"; timestamp: now() }
+}

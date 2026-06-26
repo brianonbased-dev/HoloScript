@@ -1,0 +1,11 @@
+// @token_store — Token store: abstract token storage interface for MCP server authentication providers.
+//
+// Native .hsplus surface for mcp-server/src/auth/token-store.ts.
+
+@trait token_store {
+  capability_tags: ["token_store", "mcp_token_storage", "auth_token_interface", "mcp_server"]
+  @on_spawn => { emit("token_store_ready", {}) }
+  @on_store(token) => { store_auth_token(token) }
+  @on_retrieve(token_id) => { return retrieve_auth_token(token_id) }
+  @receipt token_store_config { type: "TokenStoreReceipt"; timestamp: now() }
+}

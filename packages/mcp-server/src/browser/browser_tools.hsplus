@@ -1,0 +1,10 @@
+// @browser_tools — Browser tools: MCP tools for headless browser execution, screenshots, and page automation.
+//
+// Native .hsplus surface for mcp-server/src/browser/browser-tools.ts.
+
+@trait browser_tools {
+  capability_tags: ["browser_tools", "headless_browser_mcp", "page_automation_tools", "mcp_server"]
+  @on_spawn => { emit("browser_tools_ready", {}) }
+  @on_execute(action) => { result = execute_browser_action(action); return result }
+  @receipt browser_tools_config { type: "BrowserToolsReceipt"; timestamp: now() }
+}

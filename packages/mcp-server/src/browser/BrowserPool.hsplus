@@ -1,0 +1,11 @@
+// @browser_pool — Browser pool: manages a pool of Chromium browser instances for headless MCP automation.
+//
+// Native .hsplus surface for mcp-server/src/browser/BrowserPool.ts.
+
+@trait browser_pool {
+  capability_tags: ["browser_pool", "chromium_pool", "headless_browser_pool", "mcp_server"]
+  @on_spawn => { emit("browser_pool_ready", {}) }
+  @on_acquire => { browser = acquire_browser_from_pool(); return browser }
+  @on_release(browser) => { release_browser_to_pool(browser) }
+  @receipt browser_pool_config { type: "BrowserPoolReceipt"; timestamp: now() }
+}

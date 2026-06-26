@@ -1,0 +1,10 @@
+// @graph_tools_mcp — Graph tools MCP: MCP tools exposing HoloGraph codebase query and analysis.
+//
+// Native .hsplus surface for mcp-server/src/graph-tools.ts.
+
+@trait graph_tools_mcp {
+  capability_tags: ["graph_tools_mcp", "holograph_query_mcp", "codebase_graph_mcp", "mcp_server"]
+  @on_spawn => { emit("graph_tools_mcp_ready", {}) }
+  @on_query(q) => { result = query_holograph(q); return result }
+  @receipt graph_tools_mcp_config { type: "GraphToolsMcpReceipt"; timestamp: now() }
+}

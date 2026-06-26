@@ -1,0 +1,10 @@
+// @mcp_handlers — MCP handlers: top-level MCP JSON-RPC request dispatch table.
+//
+// Native .hsplus surface for mcp-server/src/handlers.ts.
+
+@trait mcp_handlers {
+  capability_tags: ["mcp_handlers", "jsonrpc_dispatch", "mcp_request_routing", "mcp_server"]
+  @on_spawn => { emit("mcp_handlers_ready", {}) }
+  @on_dispatch(request) => { result = dispatch_mcp_request(request); return result }
+  @receipt mcp_handlers_config { type: "McpHandlersReceipt"; timestamp: now() }
+}

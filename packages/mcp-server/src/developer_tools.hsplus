@@ -1,0 +1,10 @@
+// @developer_tools_mcp — Developer tools MCP: MCP tools for dev-mode scaffolding, diagnostics, and local testing.
+//
+// Native .hsplus surface for mcp-server/src/developer-tools.ts.
+
+@trait developer_tools_mcp {
+  capability_tags: ["developer_tools_mcp", "dev_scaffold_mcp", "local_test_mcp", "mcp_server"]
+  @on_spawn => { emit("developer_tools_mcp_ready", {}) }
+  @on_scaffold(spec) => { result = scaffold_with_developer_tools(spec); return result }
+  @receipt developer_tools_mcp_config { type: "DeveloperToolsMcpReceipt"; timestamp: now() }
+}

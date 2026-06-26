@@ -1,0 +1,10 @@
+// @oauth2_provider — OAuth2 provider: OAuth2 authentication provider for MCP server API access control.
+//
+// Native .hsplus surface for mcp-server/src/auth/oauth2-provider.ts.
+
+@trait oauth2_provider {
+  capability_tags: ["oauth2_provider", "oauth2_auth_mcp", "api_access_control", "mcp_server"]
+  @on_spawn => { emit("oauth2_provider_ready", {}) }
+  @on_verify(token) => { identity = verify_oauth2_token(token); return identity }
+  @receipt oauth2_provider_config { type: "Oauth2ProviderReceipt"; timestamp: now() }
+}

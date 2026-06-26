@@ -1,0 +1,10 @@
+// @founder_handler — Founder handler: routes founder-gated decisions and governance approvals via MCP.
+//
+// Native .hsplus surface for mcp-server/src/founder-handler.ts.
+
+@trait founder_handler {
+  capability_tags: ["founder_handler", "founder_gate_mcp", "governance_approval_route", "mcp_server"]
+  @on_spawn => { emit("founder_handler_ready", {}) }
+  @on_handle(decision_request) => { result = handle_founder_decision(decision_request); return result }
+  @receipt founder_handler_config { type: "FounderHandlerReceipt"; timestamp: now() }
+}

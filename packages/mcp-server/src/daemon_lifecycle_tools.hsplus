@@ -1,0 +1,11 @@
+// @daemon_lifecycle_tools — Daemon lifecycle tools: MCP tools for managing daimōn agent lifecycle (spawn, halt, status).
+//
+// Native .hsplus surface for mcp-server/src/daemon-lifecycle-tools.ts.
+
+@trait daemon_lifecycle_tools {
+  capability_tags: ["daemon_lifecycle_tools", "daimon_spawn_halt", "agent_lifecycle_mcp", "mcp_server"]
+  @on_spawn => { emit("daemon_lifecycle_tools_ready", {}) }
+  @on_spawn_daemon(spec) => { result = spawn_daemon(spec); return result }
+  @on_halt(daemon_id) => { halt_daemon(daemon_id) }
+  @receipt daemon_lifecycle_tools_config { type: "DaemonLifecycleToolsReceipt"; timestamp: now() }
+}

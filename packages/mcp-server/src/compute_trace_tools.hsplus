@@ -1,0 +1,10 @@
+// @compute_trace_tools — Compute trace tools: MCP tools for querying and inspecting compute trace receipts.
+//
+// Native .hsplus surface for mcp-server/src/compute-trace-tools.ts.
+
+@trait compute_trace_tools {
+  capability_tags: ["compute_trace_tools", "trace_receipt_query_mcp", "compute_billing_trace", "mcp_server"]
+  @on_spawn => { emit("compute_trace_tools_ready", {}) }
+  @on_query(filter) => { traces = query_compute_trace_tools(filter); return traces }
+  @receipt compute_trace_tools_config { type: "ComputeTraceToolsReceipt"; timestamp: now() }
+}

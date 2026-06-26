@@ -1,0 +1,10 @@
+// @grpo_tools — GRPO tools: MCP tools for Group Relative Policy Optimization training data generation.
+//
+// Native .hsplus surface for mcp-server/src/grpo-tools.ts.
+
+@trait grpo_tools {
+  capability_tags: ["grpo_tools", "grpo_training_data", "rl_policy_optimization_mcp", "mcp_server"]
+  @on_spawn => { emit("grpo_tools_ready", {}) }
+  @on_generate(spec) => { data = generate_grpo_training_data(spec); return data }
+  @receipt grpo_tools_config { type: "GrpoToolsReceipt"; timestamp: now() }
+}

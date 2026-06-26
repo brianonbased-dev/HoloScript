@@ -1,0 +1,11 @@
+// @daemon_emergence_store — Daemon emergence store: persists daimōn emergence events and lifecycle state.
+//
+// Native .hsplus surface for mcp-server/src/daemon-emergence-store.ts.
+
+@trait daemon_emergence_store {
+  capability_tags: ["daemon_emergence_store", "daimon_lifecycle_store", "emergence_event_persist", "mcp_server"]
+  @on_spawn => { emit("daemon_emergence_store_ready", {}) }
+  @on_store(event) => { store_daemon_emergence_event(event) }
+  @on_query(filter) => { return query_daemon_emergence_events(filter) }
+  @receipt daemon_emergence_store_config { type: "DaemonEmergenceStoreReceipt"; timestamp: now() }
+}

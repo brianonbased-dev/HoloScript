@@ -1,0 +1,10 @@
+// @compiler_tools_mcp — Compiler tools MCP: MCP tools that expose HoloScript compilation to all compile targets.
+//
+// Native .hsplus surface for mcp-server/src/compiler-tools.ts.
+
+@trait compiler_tools_mcp {
+  capability_tags: ["compiler_tools_mcp", "holoscript_compile_mcp", "compile_target_tools", "mcp_server"]
+  @on_spawn => { emit("compiler_tools_mcp_ready", {}) }
+  @on_compile(source, target) => { result = mcp_compile_holoscript(source, target); return result }
+  @receipt compiler_tools_mcp_config { type: "CompilerToolsMcpReceipt"; timestamp: now() }
+}

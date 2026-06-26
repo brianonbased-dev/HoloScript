@@ -1,0 +1,11 @@
+// @compute_trace_store — Compute trace store: persists compute trace receipts for provenance and billing.
+//
+// Native .hsplus surface for mcp-server/src/compute-trace-store.ts.
+
+@trait compute_trace_store {
+  capability_tags: ["compute_trace_store", "compute_receipt_store", "trace_provenance_persist", "mcp_server"]
+  @on_spawn => { emit("compute_trace_store_ready", {}) }
+  @on_store(trace) => { store_compute_trace(trace) }
+  @on_query(filter) => { return query_compute_traces(filter) }
+  @receipt compute_trace_store_config { type: "ComputeTraceStoreReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @absorb_provenance_tools — Absorb provenance tools: MCP tools for provenance-enriched codebase absorption.
+//
+// Native .hsplus surface for mcp-server/src/absorb-provenance-tools.ts.
+
+@trait absorb_provenance_tools {
+  capability_tags: ["absorb_provenance_tools", "provenance_absorb_mcp", "codebase_provenance", "mcp_server"]
+  @on_spawn => { emit("absorb_provenance_tools_ready", {}) }
+  @on_absorb(repo_path) => { result = absorb_with_provenance(repo_path); return result }
+  @receipt absorb_provenance_tools_config { type: "AbsorbProvenanceToolsReceipt"; timestamp: now() }
+}

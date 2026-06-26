@@ -1,0 +1,10 @@
+// @ci_public_worker — CI public worker: public-facing CI worker that processes HoloScript validation pipelines.
+//
+// Native .hsplus surface for mcp-server/src/ci-public-worker.ts.
+
+@trait ci_public_worker {
+  capability_tags: ["ci_public_worker", "holoscript_ci_validate", "public_ci_pipeline", "mcp_server"]
+  @on_spawn => { emit("ci_public_worker_ready", {}) }
+  @on_run(pipeline_job) => { result = run_ci_public_worker(pipeline_job); return result }
+  @receipt ci_public_worker_config { type: "CiPublicWorkerReceipt"; timestamp: now() }
+}

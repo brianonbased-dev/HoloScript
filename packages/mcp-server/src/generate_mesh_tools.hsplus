@@ -1,0 +1,10 @@
+// @generate_mesh_tools — Generate mesh tools: MCP tools for procedural 3D mesh generation from .holo specifications.
+//
+// Native .hsplus surface for mcp-server/src/generate-mesh-tools.ts.
+
+@trait generate_mesh_tools {
+  capability_tags: ["generate_mesh_tools", "procedural_mesh_mcp", "3d_mesh_generation_mcp", "mcp_server"]
+  @on_spawn => { emit("generate_mesh_tools_ready", {}) }
+  @on_generate(spec) => { mesh = generate_mesh_from_spec(spec); return mesh }
+  @receipt generate_mesh_tools_config { type: "GenerateMeshToolsReceipt"; timestamp: now() }
+}

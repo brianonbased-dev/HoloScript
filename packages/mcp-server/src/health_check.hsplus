@@ -1,0 +1,10 @@
+// @health_check_mcp — Health check MCP: health and liveness probe endpoint for MCP server monitoring.
+//
+// Native .hsplus surface for mcp-server/src/health-check.ts.
+
+@trait health_check_mcp {
+  capability_tags: ["health_check_mcp", "liveness_probe", "mcp_server_health", "mcp_server"]
+  @on_spawn => { emit("health_check_mcp_ready", {}) }
+  @on_probe => { status = check_mcp_server_health(); return status }
+  @receipt health_check_mcp_config { type: "HealthCheckMcpReceipt"; timestamp: now() }
+}

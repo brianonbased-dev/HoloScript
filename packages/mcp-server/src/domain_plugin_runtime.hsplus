@@ -1,0 +1,11 @@
+// @domain_plugin_runtime — Domain plugin runtime: loads and executes domain plugins (robotics, medical, alphafold, etc.) at runtime.
+//
+// Native .hsplus surface for mcp-server/src/domain-plugin-runtime.ts.
+
+@trait domain_plugin_runtime {
+  capability_tags: ["domain_plugin_runtime", "domain_plugin_load", "plugin_execution_runtime", "mcp_server"]
+  @on_spawn => { emit("domain_plugin_runtime_ready", {}) }
+  @on_load(plugin_id) => { plugin = load_domain_plugin(plugin_id); return plugin }
+  @on_execute(plugin_id, input) => { return execute_domain_plugin(plugin_id, input) }
+  @receipt domain_plugin_runtime_config { type: "DomainPluginRuntimeReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @agent_orchestration_tools — Agent orchestration tools: MCP tools for multi-agent orchestration and routing.
+//
+// Native .hsplus surface for mcp-server/src/agent-orchestration-tools.ts.
+
+@trait agent_orchestration_tools {
+  capability_tags: ["agent_orchestration_tools", "multi_agent_routing", "agent_orchestration_mcp", "mcp_server"]
+  @on_spawn => { emit("agent_orchestration_tools_ready", {}) }
+  @on_orchestrate(task, agents) => { result = orchestrate_agents(task, agents); return result }
+  @receipt agent_orchestration_tools_config { type: "AgentOrchestrationToolsReceipt"; timestamp: now() }
+}

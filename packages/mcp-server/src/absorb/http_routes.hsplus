@@ -1,0 +1,10 @@
+// @absorb_http_routes — Absorb HTTP routes: Express routes for the absorb pipeline REST API.
+//
+// Native .hsplus surface for mcp-server/src/absorb/http-routes.ts.
+
+@trait absorb_http_routes {
+  capability_tags: ["absorb_http_routes", "absorb_rest_api", "absorb_pipeline_routes", "mcp_server"]
+  @on_spawn => { emit("absorb_http_routes_ready", {}) }
+  @on_register(app) => { register_absorb_http_routes(app) }
+  @receipt absorb_http_routes_config { type: "AbsorbHttpRoutesReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @brittney_lite — Brittney lite: lightweight Brittney agent runner for MCP tool delegations.
+//
+// Native .hsplus surface for mcp-server/src/brittney-lite.ts.
+
+@trait brittney_lite {
+  capability_tags: ["brittney_lite", "brittney_agent_lite", "mcp_agent_delegation", "mcp_server"]
+  @on_spawn => { emit("brittney_lite_ready", {}) }
+  @on_run(task) => { result = run_brittney_lite(task); return result }
+  @receipt brittney_lite_config { type: "BrittneyLiteReceipt"; timestamp: now() }
+}

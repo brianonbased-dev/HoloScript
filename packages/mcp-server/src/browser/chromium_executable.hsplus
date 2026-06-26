@@ -1,0 +1,12 @@
+// @chromium_executable — Chromium executable: locates and validates the Chromium binary for headless browser usage.
+//
+// Native .hsplus surface for mcp-server/src/browser/chromium-executable.ts.
+
+@trait chromium_executable {
+  capability_tags: ["chromium_executable", "chromium_binary_locate", "headless_chromium_setup", "mcp_server"]
+  @on_spawn => {
+    path = locate_chromium_executable()
+    emit("chromium_executable_ready", { path: path })
+  }
+  @receipt chromium_executable_config { type: "ChromiumExecutableReceipt"; timestamp: now() }
+}

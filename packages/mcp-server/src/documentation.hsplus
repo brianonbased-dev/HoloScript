@@ -1,0 +1,10 @@
+// @documentation_mcp — Documentation MCP: serves HoloScript documentation content via MCP tools.
+//
+// Native .hsplus surface for mcp-server/src/documentation.ts.
+
+@trait documentation_mcp {
+  capability_tags: ["documentation_mcp", "holoscript_docs_serve", "mcp_docs_tools", "mcp_server"]
+  @on_spawn => { emit("documentation_mcp_ready", {}) }
+  @on_get(doc_path) => { content = get_documentation(doc_path); return content }
+  @receipt documentation_mcp_config { type: "DocumentationMcpReceipt"; timestamp: now() }
+}

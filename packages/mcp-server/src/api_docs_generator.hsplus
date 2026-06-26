@@ -1,0 +1,10 @@
+// @api_docs_generator — API docs generator: generates MCP tool API documentation from registered tool manifests.
+//
+// Native .hsplus surface for mcp-server/src/api-docs-generator.ts.
+
+@trait api_docs_generator {
+  capability_tags: ["api_docs_generator", "mcp_tool_docs", "tool_manifest_docs", "mcp_server"]
+  @on_spawn => { emit("api_docs_generator_ready", {}) }
+  @on_generate(tools) => { docs = generate_api_docs(tools); return docs }
+  @receipt api_docs_generator_config { type: "ApiDocsGeneratorReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @critic_handler — Critic handler: routes critic analysis requests to the appropriate critic engine.
+//
+// Native .hsplus surface for mcp-server/src/critic-handler.ts.
+
+@trait critic_handler {
+  capability_tags: ["critic_handler", "critic_request_route", "critic_engine_dispatch", "mcp_server"]
+  @on_spawn => { emit("critic_handler_ready", {}) }
+  @on_handle(critic_request) => { result = handle_critic_request(critic_request); return result }
+  @receipt critic_handler_config { type: "CriticHandlerReceipt"; timestamp: now() }
+}

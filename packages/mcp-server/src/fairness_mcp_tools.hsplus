@@ -1,0 +1,10 @@
+// @fairness_mcp_tools — Fairness MCP tools: MCP tools for bias detection, fairness sweeps, and equity audits.
+//
+// Native .hsplus surface for mcp-server/src/fairness-mcp-tools.ts.
+
+@trait fairness_mcp_tools {
+  capability_tags: ["fairness_mcp_tools", "bias_detection_mcp", "fairness_sweep_mcp", "mcp_server"]
+  @on_spawn => { emit("fairness_mcp_tools_ready", {}) }
+  @on_sweep(dataset, dimensions) => { report = run_fairness_sweep(dataset, dimensions); return report }
+  @receipt fairness_mcp_tools_config { type: "FairnessMcpToolsReceipt"; timestamp: now() }
+}

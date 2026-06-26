@@ -1,0 +1,10 @@
+// @edit_holo_tools — Edit holo tools: MCP tools for editing .holo IR files with patch and diff semantics.
+//
+// Native .hsplus surface for mcp-server/src/edit-holo-tools.ts.
+
+@trait edit_holo_tools {
+  capability_tags: ["edit_holo_tools", "holo_ir_edit_mcp", "holo_patch_diff", "mcp_server"]
+  @on_spawn => { emit("edit_holo_tools_ready", {}) }
+  @on_edit(holo_path, patch) => { result = edit_holo_file(holo_path, patch); return result }
+  @receipt edit_holo_tools_config { type: "EditHoloToolsReceipt"; timestamp: now() }
+}

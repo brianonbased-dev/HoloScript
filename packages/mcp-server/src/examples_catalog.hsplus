@@ -1,0 +1,10 @@
+// @examples_catalog — Examples catalog: serves HoloScript code examples by topic for MCP tool discovery.
+//
+// Native .hsplus surface for mcp-server/src/examples-catalog.ts.
+
+@trait examples_catalog {
+  capability_tags: ["examples_catalog", "holoscript_examples_mcp", "code_example_serve", "mcp_server"]
+  @on_spawn => { emit("examples_catalog_ready", {}) }
+  @on_get(topic) => { examples = get_examples_by_topic(topic); return examples }
+  @receipt examples_catalog_config { type: "ExamplesCatalogReceipt"; timestamp: now() }
+}

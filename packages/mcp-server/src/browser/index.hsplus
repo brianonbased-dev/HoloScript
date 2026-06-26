@@ -1,0 +1,9 @@
+// @browser_index — Browser index: entry point for MCP server browser automation module.
+//
+// Native .hsplus surface for mcp-server/src/browser/index.ts.
+
+@trait browser_index {
+  capability_tags: ["browser_index", "browser_module_entry", "mcp_browser_automation", "mcp_server"]
+  @on_spawn => { emit("browser_index_ready", {}) }
+  @receipt browser_index_config { type: "BrowserIndexReceipt"; timestamp: now() }
+}

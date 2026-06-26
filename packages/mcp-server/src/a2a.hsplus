@@ -1,0 +1,10 @@
+// @a2a_mcp — A2A MCP: Agent-to-Agent protocol handler surface for HoloScript MCP server.
+//
+// Native .hsplus surface for mcp-server/src/a2a.ts.
+
+@trait a2a_mcp {
+  capability_tags: ["a2a_mcp", "agent_to_agent_protocol", "mcp_a2a_handler", "mcp_server"]
+  @on_spawn => { emit("a2a_mcp_ready", {}) }
+  @on_handle(a2a_request) => { result = handle_a2a_request(a2a_request); return result }
+  @receipt a2a_mcp_config { type: "A2AMcpReceipt"; timestamp: now() }
+}

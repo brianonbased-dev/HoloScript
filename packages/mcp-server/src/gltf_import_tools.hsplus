@@ -1,0 +1,10 @@
+// @gltf_import_tools — glTF import tools: MCP tools for importing glTF assets into .holo world representations.
+//
+// Native .hsplus surface for mcp-server/src/gltf-import-tools.ts.
+
+@trait gltf_import_tools {
+  capability_tags: ["gltf_import_tools", "gltf_to_holo_import", "3d_asset_import_mcp", "mcp_server"]
+  @on_spawn => { emit("gltf_import_tools_ready", {}) }
+  @on_import(gltf_url) => { holo = import_gltf_to_holo(gltf_url); return holo }
+  @receipt gltf_import_tools_config { type: "GltfImportToolsReceipt"; timestamp: now() }
+}

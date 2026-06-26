@@ -1,0 +1,10 @@
+// @mcp_server_cli — MCP server CLI: command-line entry point for starting and managing the HoloScript MCP server.
+//
+// Native .hsplus surface for mcp-server/src/cli.ts.
+
+@trait mcp_server_cli {
+  capability_tags: ["mcp_server_cli", "holoscript_mcp_start", "cli_entry_point", "mcp_server"]
+  @on_spawn => { emit("mcp_server_cli_ready", {}) }
+  @on_start(args) => { start_mcp_server_cli(args) }
+  @receipt mcp_server_cli_config { type: "McpServerCliReceipt"; timestamp: now() }
+}

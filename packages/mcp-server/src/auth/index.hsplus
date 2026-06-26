@@ -1,0 +1,9 @@
+// @auth_index — Auth index: entry point for MCP server authentication middleware and providers.
+//
+// Native .hsplus surface for mcp-server/src/auth/index.ts.
+
+@trait auth_index {
+  capability_tags: ["auth_index", "mcp_auth_entry", "auth_middleware_registry", "mcp_server"]
+  @on_spawn => { emit("auth_index_ready", {}) }
+  @receipt auth_index_config { type: "AuthIndexReceipt"; timestamp: now() }
+}

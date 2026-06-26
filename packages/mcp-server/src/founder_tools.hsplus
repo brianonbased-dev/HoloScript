@@ -1,0 +1,10 @@
+// @founder_tools — Founder tools: MCP tools for founder-level governance, policy, and approval operations.
+//
+// Native .hsplus surface for mcp-server/src/founder-tools.ts.
+
+@trait founder_tools {
+  capability_tags: ["founder_tools", "founder_governance_mcp", "policy_approval_mcp", "mcp_server"]
+  @on_spawn => { emit("founder_tools_ready", {}) }
+  @on_approve(action) => { result = approve_founder_action(action); return result }
+  @receipt founder_tools_config { type: "FounderToolsReceipt"; timestamp: now() }
+}

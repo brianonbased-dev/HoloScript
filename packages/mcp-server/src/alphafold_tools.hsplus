@@ -1,0 +1,10 @@
+// @alphafold_tools — AlphaFold tools: MCP tools for protein structure prediction via AlphaFold integration.
+//
+// Native .hsplus surface for mcp-server/src/alphafold-tools.ts.
+
+@trait alphafold_tools {
+  capability_tags: ["alphafold_tools", "protein_structure_prediction", "alphafold_mcp", "mcp_server"]
+  @on_spawn => { emit("alphafold_tools_ready", {}) }
+  @on_fetch(protein_id) => { structure = fetch_alphafold_structure(protein_id); return structure }
+  @receipt alphafold_tools_config { type: "AlphafoldToolsReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @holo_ci_tools — HoloCI tools: MCP tools for triggering and monitoring HoloScript CI pipelines.
+//
+// Native .hsplus surface for mcp-server/src/holo-ci-tools.ts.
+
+@trait holo_ci_tools {
+  capability_tags: ["holo_ci_tools", "holoscript_ci_mcp", "ci_pipeline_trigger", "mcp_server"]
+  @on_spawn => { emit("holo_ci_tools_ready", {}) }
+  @on_dispatch(job) => { result = dispatch_holo_ci_job(job); return result }
+  @receipt holo_ci_tools_config { type: "HoloCiToolsReceipt"; timestamp: now() }
+}

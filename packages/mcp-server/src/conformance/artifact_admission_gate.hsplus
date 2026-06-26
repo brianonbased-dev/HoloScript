@@ -1,0 +1,10 @@
+// @artifact_admission_gate — Artifact admission gate: validates artifacts against conformance rules before admission.
+//
+// Native .hsplus surface for mcp-server/src/conformance/artifact-admission-gate.ts.
+
+@trait artifact_admission_gate {
+  capability_tags: ["artifact_admission_gate", "conformance_artifact_validate", "admission_gate", "mcp_server"]
+  @on_spawn => { emit("artifact_admission_gate_ready", {}) }
+  @on_admit(artifact) => { result = admit_artifact_through_gate(artifact); return result }
+  @receipt artifact_admission_gate_config { type: "ArtifactAdmissionGateReceipt"; timestamp: now() }
+}

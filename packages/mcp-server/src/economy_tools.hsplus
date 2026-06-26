@@ -1,0 +1,10 @@
+// @economy_tools — Economy tools: MCP tools for x402 micropayment flows, creator earnings, and economy state.
+//
+// Native .hsplus surface for mcp-server/src/economy-tools.ts.
+
+@trait economy_tools {
+  capability_tags: ["economy_tools", "x402_micropayment_mcp", "creator_earnings_mcp", "mcp_server"]
+  @on_spawn => { emit("economy_tools_ready", {}) }
+  @on_get_earnings(wallet) => { earnings = get_creator_earnings(wallet); return earnings }
+  @receipt economy_tools_config { type: "EconomyToolsReceipt"; timestamp: now() }
+}

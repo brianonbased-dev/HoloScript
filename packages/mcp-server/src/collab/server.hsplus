@@ -1,0 +1,10 @@
+// @collab_server — Collab server: WebSocket-based collaborative editing server using Loro CRDT.
+//
+// Native .hsplus surface for mcp-server/src/collab/server.ts.
+
+@trait collab_server {
+  capability_tags: ["collab_server", "loro_crdt_collab", "websocket_collab_server", "mcp_server"]
+  @on_spawn => { emit("collab_server_ready", {}) }
+  @on_connect(session_id) => { join_collab_session(session_id) }
+  @receipt collab_server_config { type: "CollabServerReceipt"; timestamp: now() }
+}

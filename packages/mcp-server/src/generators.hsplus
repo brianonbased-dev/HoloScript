@@ -1,0 +1,10 @@
+// @generators_mcp — Generators MCP: general content and world generation utilities for MCP server tools.
+//
+// Native .hsplus surface for mcp-server/src/generators.ts.
+
+@trait generators_mcp {
+  capability_tags: ["generators_mcp", "world_content_generation", "mcp_generator_utils", "mcp_server"]
+  @on_spawn => { emit("generators_mcp_ready", {}) }
+  @on_generate(type, params) => { content = generate_mcp_content(type, params); return content }
+  @receipt generators_mcp_config { type: "GeneratorsMcpReceipt"; timestamp: now() }
+}

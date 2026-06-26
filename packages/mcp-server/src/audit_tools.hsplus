@@ -1,0 +1,10 @@
+// @audit_tools — Audit tools: MCP tools for code quality audits, security scans, and compliance checks.
+//
+// Native .hsplus surface for mcp-server/src/audit-tools.ts.
+
+@trait audit_tools {
+  capability_tags: ["audit_tools", "code_quality_audit", "security_scan_mcp", "mcp_server"]
+  @on_spawn => { emit("audit_tools_ready", {}) }
+  @on_audit(target, scope) => { report = run_audit(target, scope); return report }
+  @receipt audit_tools_config { type: "AuditToolsReceipt"; timestamp: now() }
+}

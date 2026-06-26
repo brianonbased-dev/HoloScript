@@ -1,0 +1,10 @@
+// @code_health_tools — Code health tools: MCP tools for code quality metrics, complexity analysis, and tech-debt reporting.
+//
+// Native .hsplus surface for mcp-server/src/code-health-tools.ts.
+
+@trait code_health_tools {
+  capability_tags: ["code_health_tools", "code_quality_metrics", "tech_debt_mcp", "mcp_server"]
+  @on_spawn => { emit("code_health_tools_ready", {}) }
+  @on_analyze(target) => { report = analyze_code_health(target); return report }
+  @receipt code_health_tools_config { type: "CodeHealthToolsReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @critic_tools — Critic tools: MCP tools for running structured code and architecture critiques.
+//
+// Native .hsplus surface for mcp-server/src/critic-tools.ts.
+
+@trait critic_tools {
+  capability_tags: ["critic_tools", "structured_critic_mcp", "architecture_critique", "mcp_server"]
+  @on_spawn => { emit("critic_tools_ready", {}) }
+  @on_critique(target, dimensions) => { report = run_critic_tools(target, dimensions); return report }
+  @receipt critic_tools_config { type: "CriticToolsReceipt"; timestamp: now() }
+}
