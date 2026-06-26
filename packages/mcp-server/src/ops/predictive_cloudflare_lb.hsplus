@@ -1,0 +1,10 @@
+// @predictive_cloudflare_lb — Predictive Cloudflare LB: predictive load-balancing using usage patterns for CF pool routing.
+//
+// Native .hsplus surface for mcp-server/src/ops/predictive-cloudflare-lb.ts.
+
+@trait predictive_cloudflare_lb {
+  capability_tags: ["predictive_cloudflare_lb", "predictive_lb_cf_pool", "usage_pattern_route", "mcp_server"]
+  @on_spawn => { emit("predictive_cloudflare_lb_ready", {}) }
+  @on_route(request) => { pool = predict_best_lb_pool(request); return pool }
+  @receipt predictive_cloudflare_lb_config { type: "PredictiveCloudflareLbReceipt"; timestamp: now() }
+}

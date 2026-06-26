@@ -1,0 +1,10 @@
+// @canary_probing — Canary probing: injects canary requests to detect trust violations and adversarial inputs.
+//
+// Native .hsplus surface for mcp-server/src/trust/defenses/canary-probing.ts.
+
+@trait canary_probing {
+  capability_tags: ["canary_probing", "trust_canary_inject", "adversarial_input_detect", "mcp_server"]
+  @on_spawn => { emit("canary_probing_ready", {}) }
+  @on_probe(request) => { result = probe_with_canary(request); return result }
+  @receipt canary_probing_config { type: "CanaryProbingReceipt"; timestamp: now() }
+}

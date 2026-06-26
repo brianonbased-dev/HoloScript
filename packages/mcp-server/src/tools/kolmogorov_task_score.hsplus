@@ -1,0 +1,10 @@
+// @kolmogorov_task_score — Kolmogorov task score: computes Kolmogorov-complexity-based difficulty score for tasks.
+//
+// Native .hsplus surface for mcp-server/src/tools/kolmogorov_task_score.ts.
+
+@trait kolmogorov_task_score {
+  capability_tags: ["kolmogorov_task_score", "task_complexity_kolmogorov", "difficulty_score_compute", "mcp_server"]
+  @on_spawn => { emit("kolmogorov_task_score_ready", {}) }
+  @on_score(task) => { score = compute_kolmogorov_task_score(task); return score }
+  @receipt kolmogorov_task_score_config { type: "KolmogorovTaskScoreReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @tool_ops_metrics — Tool ops metrics: Prometheus metrics emission for tool-call latency, error-rate, and throughput.
+//
+// Native .hsplus surface for mcp-server/src/ops/tool-ops-metrics.ts.
+
+@trait tool_ops_metrics {
+  capability_tags: ["tool_ops_metrics", "prometheus_tool_metrics", "latency_error_throughput_emit", "mcp_server"]
+  @on_spawn => { emit("tool_ops_metrics_ready", {}) }
+  @on_record(event) => { record_tool_ops_metric(event) }
+  @receipt tool_ops_metrics_config { type: "ToolOpsMetricsReceipt"; timestamp: now() }
+}

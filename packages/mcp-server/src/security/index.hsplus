@@ -1,0 +1,9 @@
+// @security_index — Security index: package entry point for the mcp-server security subsystem.
+//
+// Native .hsplus surface for mcp-server/src/security/index.ts.
+
+@trait security_index {
+  capability_tags: ["security_index", "security_subsystem_entry", "mcp_server_security", "mcp_server"]
+  @on_spawn => { emit("security_index_ready", {}) }
+  @receipt security_index_config { type: "SecurityIndexReceipt"; timestamp: now() }
+}

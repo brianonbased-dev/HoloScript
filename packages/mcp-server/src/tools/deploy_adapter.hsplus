@@ -1,0 +1,10 @@
+// @deploy_adapter — Deploy adapter: adapts deploy requests for Railway, Cloudflare, and Jetson deployment targets.
+//
+// Native .hsplus surface for mcp-server/src/tools/deploy-adapter.ts.
+
+@trait deploy_adapter {
+  capability_tags: ["deploy_adapter", "railway_cf_jetson_deploy", "deploy_target_adapt", "mcp_server"]
+  @on_spawn => { emit("deploy_adapter_ready", {}) }
+  @on_deploy(spec, target) => { result = deploy_to_target(spec, target); return result }
+  @receipt deploy_adapter_config { type: "DeployAdapterReceipt"; timestamp: now() }
+}

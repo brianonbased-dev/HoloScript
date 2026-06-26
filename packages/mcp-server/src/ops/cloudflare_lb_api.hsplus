@@ -1,0 +1,10 @@
+// @cloudflare_lb_api — Cloudflare LB API: Cloudflare load-balancer management and health-pool control.
+//
+// Native .hsplus surface for mcp-server/src/ops/cloudflare-lb-api.ts.
+
+@trait cloudflare_lb_api {
+  capability_tags: ["cloudflare_lb_api", "cf_lb_pool_manage", "loadbalancer_control_ops", "mcp_server"]
+  @on_spawn => { emit("cloudflare_lb_api_ready", {}) }
+  @on_probe(pool_id) => { result = probe_cf_lb_pool(pool_id); return result }
+  @receipt cloudflare_lb_api_config { type: "CloudflareLbApiReceipt"; timestamp: now() }
+}

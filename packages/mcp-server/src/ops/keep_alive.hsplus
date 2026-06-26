@@ -1,0 +1,12 @@
+// @keep_alive — Keep-alive: periodic heartbeat ping to prevent Railway service cold-start after inactivity.
+//
+// Native .hsplus surface for mcp-server/src/ops/keep-alive.ts.
+
+@trait keep_alive {
+  capability_tags: ["keep_alive", "railway_heartbeat_ping", "cold_start_prevent", "mcp_server"]
+  @on_spawn => {
+    start_keep_alive_loop()
+    emit("keep_alive_ready", {})
+  }
+  @receipt keep_alive_config { type: "KeepAliveReceipt"; timestamp: now() }
+}

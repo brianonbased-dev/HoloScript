@@ -1,0 +1,10 @@
+// @bypass_detection — Bypass detection: detects attempts to circumvent sandbox and gate controls.
+//
+// Native .hsplus surface for mcp-server/src/security/bypass-detection.ts.
+
+@trait bypass_detection {
+  capability_tags: ["bypass_detection", "sandbox_bypass_detect", "gate_circumvent_detect", "mcp_server"]
+  @on_spawn => { emit("bypass_detection_ready", {}) }
+  @on_inspect(request) => { result = detect_bypass_attempt(request); return result }
+  @receipt bypass_detection_config { type: "BypassDetectionReceipt"; timestamp: now() }
+}

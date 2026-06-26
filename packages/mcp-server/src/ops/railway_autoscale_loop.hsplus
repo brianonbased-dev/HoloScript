@@ -1,0 +1,12 @@
+// @railway_autoscale_loop — Railway autoscale loop: monitors compute load and triggers Railway replica scale-up/down.
+//
+// Native .hsplus surface for mcp-server/src/ops/railway-autoscale-loop.ts.
+
+@trait railway_autoscale_loop {
+  capability_tags: ["railway_autoscale_loop", "railway_replica_scale", "compute_load_monitor", "mcp_server"]
+  @on_spawn => {
+    start_autoscale_loop()
+    emit("railway_autoscale_loop_ready", {})
+  }
+  @receipt railway_autoscale_loop_config { type: "RailwayAutoscaleLoopReceipt"; timestamp: now() }
+}

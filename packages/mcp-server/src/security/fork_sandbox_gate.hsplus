@@ -1,0 +1,10 @@
+// @fork_sandbox_gate — Fork sandbox gate: admission gate that inspects forked-execution requests before granting access.
+//
+// Native .hsplus surface for mcp-server/src/security/fork-sandbox-gate.ts.
+
+@trait fork_sandbox_gate {
+  capability_tags: ["fork_sandbox_gate", "forked_exec_admission", "sandbox_access_gate", "mcp_server"]
+  @on_spawn => { emit("fork_sandbox_gate_ready", {}) }
+  @on_admit(request) => { verdict = admit_fork_sandbox(request); return verdict }
+  @receipt fork_sandbox_gate_config { type: "ForkSandboxGateReceipt"; timestamp: now() }
+}

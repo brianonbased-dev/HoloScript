@@ -1,0 +1,9 @@
+// @trust_defenses_types — Trust defenses types: shared type definitions for the trust-defense subsystem.
+//
+// Native .hsplus surface for mcp-server/src/trust/defenses/types.ts.
+
+@trait trust_defenses_types {
+  capability_tags: ["trust_defenses_types", "trust_defense_type_defs", "mcp_server_trust_types", "mcp_server"]
+  @on_spawn => { emit("trust_defenses_types_ready", {}) }
+  @receipt trust_defenses_types_config { type: "TrustDefensesTypesReceipt"; timestamp: now() }
+}

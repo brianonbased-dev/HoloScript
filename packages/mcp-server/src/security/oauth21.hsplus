@@ -1,0 +1,10 @@
+// @oauth21_security — OAuth 2.1 security: OAuth 2.1 PKCE flow handler for secure agent identity assertion.
+//
+// Native .hsplus surface for mcp-server/src/security/oauth21.ts.
+
+@trait oauth21_security {
+  capability_tags: ["oauth21_security", "oauth21_pkce_flow", "agent_identity_assert", "mcp_server"]
+  @on_spawn => { emit("oauth21_security_ready", {}) }
+  @on_exchange(code, verifier) => { token = exchange_oauth21_code(code, verifier); return token }
+  @receipt oauth21_security_config { type: "Oauth21SecurityReceipt"; timestamp: now() }
+}

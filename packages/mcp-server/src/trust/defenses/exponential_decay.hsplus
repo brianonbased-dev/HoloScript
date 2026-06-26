@@ -1,0 +1,10 @@
+// @exponential_decay_trust — Exponential decay trust: applies time-based exponential decay to trust scores for stale proofs.
+//
+// Native .hsplus surface for mcp-server/src/trust/defenses/exponential-decay.ts.
+
+@trait exponential_decay_trust {
+  capability_tags: ["exponential_decay_trust", "trust_score_time_decay", "stale_proof_decay", "mcp_server"]
+  @on_spawn => { emit("exponential_decay_trust_ready", {}) }
+  @on_decay(score, age) => { decayed = apply_trust_decay(score, age); return decayed }
+  @receipt exponential_decay_trust_config { type: "ExponentialDecayTrustReceipt"; timestamp: now() }
+}

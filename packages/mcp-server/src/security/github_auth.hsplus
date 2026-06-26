@@ -1,0 +1,10 @@
+// @github_auth_security — GitHub auth security: OAuth GitHub authentication and token validation for team members.
+//
+// Native .hsplus surface for mcp-server/src/security/github-auth.ts.
+
+@trait github_auth_security {
+  capability_tags: ["github_auth_security", "github_oauth_token_validate", "team_member_auth", "mcp_server"]
+  @on_spawn => { emit("github_auth_security_ready", {}) }
+  @on_validate(token) => { result = validate_github_oauth_token(token); return result }
+  @receipt github_auth_security_config { type: "GithubAuthSecurityReceipt"; timestamp: now() }
+}

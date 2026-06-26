@@ -1,0 +1,10 @@
+// @railway_replica_scaler — Railway replica scaler: direct Railway API calls to set replica count and read autoscale policy.
+//
+// Native .hsplus surface for mcp-server/src/ops/railway-replica-scaler.ts.
+
+@trait railway_replica_scaler {
+  capability_tags: ["railway_replica_scaler", "railway_set_replica_count", "autoscale_policy_read", "mcp_server"]
+  @on_spawn => { emit("railway_replica_scaler_ready", {}) }
+  @on_scale(target_count) => { result = set_railway_replica_count(target_count); return result }
+  @receipt railway_replica_scaler_config { type: "RailwayReplicaScalerReceipt"; timestamp: now() }
+}

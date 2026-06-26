@@ -1,0 +1,10 @@
+// @tenant_auth — Tenant auth: multi-tenant authentication middleware with per-tenant credential isolation.
+//
+// Native .hsplus surface for mcp-server/src/security/tenant-auth.ts.
+
+@trait tenant_auth {
+  capability_tags: ["tenant_auth", "multi_tenant_auth_middleware", "per_tenant_credential_isolate", "mcp_server"]
+  @on_spawn => { emit("tenant_auth_ready", {}) }
+  @on_authenticate(tenant_id, credentials) => { result = authenticate_tenant(tenant_id, credentials); return result }
+  @receipt tenant_auth_config { type: "TenantAuthReceipt"; timestamp: now() }
+}

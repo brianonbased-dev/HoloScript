@@ -1,0 +1,12 @@
+// @load_env — Load env: loads .env secrets at startup and validates required environment variables.
+//
+// Native .hsplus surface for mcp-server/src/utils/load-env.ts.
+
+@trait load_env {
+  capability_tags: ["load_env", "env_secrets_load", "required_env_validate", "mcp_server"]
+  @on_spawn => {
+    load_and_validate_env()
+    emit("load_env_ready", {})
+  }
+  @receipt load_env_config { type: "LoadEnvReceipt"; timestamp: now() }
+}

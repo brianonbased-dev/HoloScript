@@ -1,0 +1,10 @@
+// @mcp_tool_metrics — MCP tool metrics: records per-tool-call latency, success-rate, and cost metrics for OTLP.
+//
+// Native .hsplus surface for mcp-server/src/telemetry/mcp-tool-metrics.ts.
+
+@trait mcp_tool_metrics {
+  capability_tags: ["mcp_tool_metrics", "per_tool_latency_cost_otel", "otlp_tool_metrics_emit", "mcp_server"]
+  @on_spawn => { emit("mcp_tool_metrics_ready", {}) }
+  @on_record(tool_id, event) => { record_mcp_tool_metric(tool_id, event) }
+  @receipt mcp_tool_metrics_config { type: "McpToolMetricsReceipt"; timestamp: now() }
+}

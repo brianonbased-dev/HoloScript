@@ -1,0 +1,10 @@
+// @tool_scopes — Tool scopes: defines OAuth-style permission scopes required for each MCP tool.
+//
+// Native .hsplus surface for mcp-server/src/security/tool-scopes.ts.
+
+@trait tool_scopes {
+  capability_tags: ["tool_scopes", "oauth_tool_scopes", "mcp_tool_permission_scope", "mcp_server"]
+  @on_spawn => { emit("tool_scopes_ready", {}) }
+  @on_check(tool_id, token_scopes) => { return check_tool_scopes(tool_id, token_scopes) }
+  @receipt tool_scopes_config { type: "ToolScopesReceipt"; timestamp: now() }
+}

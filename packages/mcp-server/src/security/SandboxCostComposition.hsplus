@@ -1,0 +1,10 @@
+// @sandbox_cost_composition — Sandbox cost composition: computes per-operation sandbox cost for billing and audit.
+//
+// Native .hsplus surface for mcp-server/src/security/SandboxCostComposition.ts.
+
+@trait sandbox_cost_composition {
+  capability_tags: ["sandbox_cost_composition", "sandbox_billing_cost", "per_op_cost_compute", "mcp_server"]
+  @on_spawn => { emit("sandbox_cost_composition_ready", {}) }
+  @on_compute(operation) => { cost = compute_sandbox_cost(operation); return cost }
+  @receipt sandbox_cost_composition_config { type: "SandboxCostCompositionReceipt"; timestamp: now() }
+}

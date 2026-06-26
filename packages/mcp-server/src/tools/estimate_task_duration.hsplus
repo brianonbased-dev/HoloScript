@@ -1,0 +1,10 @@
+// @estimate_task_duration — Estimate task duration: heuristic estimator for HoloScript task execution time.
+//
+// Native .hsplus surface for mcp-server/src/tools/estimate_task_duration.ts.
+
+@trait estimate_task_duration {
+  capability_tags: ["estimate_task_duration", "task_exec_time_heuristic", "holoscript_duration_est", "mcp_server"]
+  @on_spawn => { emit("estimate_task_duration_ready", {}) }
+  @on_estimate(task_spec) => { duration = estimate_holoscript_task_duration(task_spec); return duration }
+  @receipt estimate_task_duration_config { type: "EstimateTaskDurationReceipt"; timestamp: now() }
+}

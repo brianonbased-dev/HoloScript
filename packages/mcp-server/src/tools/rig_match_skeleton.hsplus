@@ -1,0 +1,10 @@
+// @rig_match_skeleton_tool — Rig match skeleton tool: matches imported glTF rigs to the canonical HoloScript 55-bone skeleton.
+//
+// Native .hsplus surface for mcp-server/src/tools/rig_match_skeleton.ts.
+
+@trait rig_match_skeleton_tool {
+  capability_tags: ["rig_match_skeleton_tool", "gltf_rig_skeleton_match", "canonical_55_bone_match", "mcp_server"]
+  @on_spawn => { emit("rig_match_skeleton_tool_ready", {}) }
+  @on_match(rig) => { result = match_rig_to_skeleton(rig); return result }
+  @receipt rig_match_skeleton_tool_config { type: "RigMatchSkeletonToolReceipt"; timestamp: now() }
+}

@@ -1,0 +1,11 @@
+// @lru_cache_util — LRU cache utility: shared LRU cache for mcp-server request deduplication and hot-path memoization.
+//
+// Native .hsplus surface for mcp-server/src/utils/lru-cache.ts.
+
+@trait lru_cache_util {
+  capability_tags: ["lru_cache_util", "request_dedup_lru", "hot_path_memoize", "mcp_server"]
+  @on_spawn => { emit("lru_cache_util_ready", {}) }
+  @on_get(key) => { return lru_cache_get(key) }
+  @on_set(key, value) => { lru_cache_set(key, value) }
+  @receipt lru_cache_util_config { type: "LruCacheUtilReceipt"; timestamp: now() }
+}

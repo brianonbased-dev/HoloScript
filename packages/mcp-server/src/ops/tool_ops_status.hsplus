@@ -1,0 +1,10 @@
+// @tool_ops_status — Tool ops status: exposes live ops status of all registered tools for monitoring dashboards.
+//
+// Native .hsplus surface for mcp-server/src/ops/tool-ops-status.ts.
+
+@trait tool_ops_status {
+  capability_tags: ["tool_ops_status", "registered_tool_status_live", "ops_status_dashboard", "mcp_server"]
+  @on_spawn => { emit("tool_ops_status_ready", {}) }
+  @on_query() => { return get_all_tool_ops_status() }
+  @receipt tool_ops_status_config { type: "ToolOpsStatusReceipt"; timestamp: now() }
+}

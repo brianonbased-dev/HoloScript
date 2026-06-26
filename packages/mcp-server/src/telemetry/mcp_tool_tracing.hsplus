@@ -1,0 +1,10 @@
+// @mcp_tool_tracing — MCP tool tracing: OpenTelemetry distributed tracing for MCP tool-call spans.
+//
+// Native .hsplus surface for mcp-server/src/telemetry/mcp-tool-tracing.ts.
+
+@trait mcp_tool_tracing {
+  capability_tags: ["mcp_tool_tracing", "otel_distributed_trace_mcp", "tool_call_span_trace", "mcp_server"]
+  @on_spawn => { emit("mcp_tool_tracing_ready", {}) }
+  @on_start_span(tool_id, context) => { span = start_mcp_tool_span(tool_id, context); return span }
+  @receipt mcp_tool_tracing_config { type: "McpToolTracingReceipt"; timestamp: now() }
+}

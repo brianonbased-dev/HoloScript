@@ -1,0 +1,10 @@
+// @tool_anomaly_bridge — Tool anomaly bridge: detects and reports anomalous tool-call patterns to the ops dashboard.
+//
+// Native .hsplus surface for mcp-server/src/ops/tool-anomaly-bridge.ts.
+
+@trait tool_anomaly_bridge {
+  capability_tags: ["tool_anomaly_bridge", "tool_call_anomaly_detect", "ops_dashboard_report", "mcp_server"]
+  @on_spawn => { emit("tool_anomaly_bridge_ready", {}) }
+  @on_detect(event) => { result = detect_tool_anomaly(event); return result }
+  @receipt tool_anomaly_bridge_config { type: "ToolAnomalyBridgeReceipt"; timestamp: now() }
+}

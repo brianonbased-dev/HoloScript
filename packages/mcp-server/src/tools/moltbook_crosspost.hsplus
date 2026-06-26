@@ -1,0 +1,10 @@
+// @moltbook_crosspost_tool — Moltbook crosspost tool: crossposts HoloMesh insights to Moltbook feed.
+//
+// Native .hsplus surface for mcp-server/src/tools/moltbook-crosspost.ts.
+
+@trait moltbook_crosspost_tool {
+  capability_tags: ["moltbook_crosspost_tool", "holomesh_to_moltbook_crosspost", "insight_crosspost_mcp", "mcp_server"]
+  @on_spawn => { emit("moltbook_crosspost_tool_ready", {}) }
+  @on_crosspost(insight) => { result = crosspost_to_moltbook(insight); return result }
+  @receipt moltbook_crosspost_tool_config { type: "MoltbookCrosspostToolReceipt"; timestamp: now() }
+}

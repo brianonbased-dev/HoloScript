@@ -1,0 +1,10 @@
+// @hololand_fork_admission_gate — HoloLand fork admission gate: gates fork requests into HoloLand world execution.
+//
+// Native .hsplus surface for mcp-server/src/security/hololand-fork-admission-gate.ts.
+
+@trait hololand_fork_admission_gate {
+  capability_tags: ["hololand_fork_admission_gate", "hololand_fork_gate", "world_exec_admission", "mcp_server"]
+  @on_spawn => { emit("hololand_fork_admission_gate_ready", {}) }
+  @on_admit(request) => { verdict = admit_hololand_fork(request); return verdict }
+  @receipt hololand_fork_admission_gate_config { type: "HololandForkAdmissionGateReceipt"; timestamp: now() }
+}

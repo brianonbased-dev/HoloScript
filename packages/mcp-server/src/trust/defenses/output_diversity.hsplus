@@ -1,0 +1,10 @@
+// @output_diversity — Output diversity: enforces diverse tool-output sampling to counter mode-collapse in agent loops.
+//
+// Native .hsplus surface for mcp-server/src/trust/defenses/output-diversity.ts.
+
+@trait output_diversity {
+  capability_tags: ["output_diversity", "agent_mode_collapse_counter", "diverse_output_enforce", "mcp_server"]
+  @on_spawn => { emit("output_diversity_ready", {}) }
+  @on_evaluate(outputs) => { result = enforce_output_diversity(outputs); return result }
+  @receipt output_diversity_config { type: "OutputDiversityReceipt"; timestamp: now() }
+}

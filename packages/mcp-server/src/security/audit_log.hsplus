@@ -1,0 +1,10 @@
+// @security_audit_log — Security audit log: append-only tamper-evident audit log for security-sensitive operations.
+//
+// Native .hsplus surface for mcp-server/src/security/audit-log.ts.
+
+@trait security_audit_log {
+  capability_tags: ["security_audit_log", "tamper_evident_audit", "security_event_append", "mcp_server"]
+  @on_spawn => { emit("security_audit_log_ready", {}) }
+  @on_append(event) => { append_security_audit_event(event) }
+  @receipt security_audit_log_config { type: "SecurityAuditLogReceipt"; timestamp: now() }
+}

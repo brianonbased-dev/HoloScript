@@ -1,0 +1,13 @@
+// @security_gates — Security gates: core security gate registry and enforcement pipeline for all tool calls.
+//
+// Native .hsplus surface for mcp-server/src/security/gates.ts.
+
+@trait security_gates {
+  capability_tags: ["security_gates", "tool_call_gate_enforce", "security_gate_registry", "mcp_server"]
+  @on_spawn => {
+    register_security_gates()
+    emit("security_gates_ready", {})
+  }
+  @on_check(request) => { return run_security_gates(request) }
+  @receipt security_gates_config { type: "SecurityGatesReceipt"; timestamp: now() }
+}

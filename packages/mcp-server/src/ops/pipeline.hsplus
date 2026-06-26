@@ -1,0 +1,10 @@
+// @ops_pipeline — Ops pipeline: manages async tool-execution queues and rate-limited dispatch pipelines.
+//
+// Native .hsplus surface for mcp-server/src/ops/pipeline.ts.
+
+@trait ops_pipeline {
+  capability_tags: ["ops_pipeline", "async_tool_queue", "rate_limited_dispatch", "mcp_server"]
+  @on_spawn => { emit("ops_pipeline_ready", {}) }
+  @on_enqueue(task) => { result = enqueue_ops_task(task); return result }
+  @receipt ops_pipeline_config { type: "OpsPipelineReceipt"; timestamp: now() }
+}

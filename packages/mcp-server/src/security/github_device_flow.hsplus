@@ -1,0 +1,11 @@
+// @github_device_flow — GitHub device flow: implements GitHub OAuth device-code flow for headless agent authentication.
+//
+// Native .hsplus surface for mcp-server/src/security/github-device-flow.ts.
+
+@trait github_device_flow {
+  capability_tags: ["github_device_flow", "github_device_code_auth", "headless_agent_oauth", "mcp_server"]
+  @on_spawn => { emit("github_device_flow_ready", {}) }
+  @on_start() => { return start_github_device_flow() }
+  @on_poll(device_code) => { return poll_github_device_flow(device_code) }
+  @receipt github_device_flow_config { type: "GithubDeviceFlowReceipt"; timestamp: now() }
+}

@@ -1,0 +1,9 @@
+// @trust_defenses_index — Trust defenses index: entry point for the trust-defense subsystem (canary, decay, diversity, anchoring).
+//
+// Native .hsplus surface for mcp-server/src/trust/defenses/index.ts.
+
+@trait trust_defenses_index {
+  capability_tags: ["trust_defenses_index", "trust_defense_subsystem_entry", "mcp_server_trust", "mcp_server"]
+  @on_spawn => { emit("trust_defenses_index_ready", {}) }
+  @receipt trust_defenses_index_config { type: "TrustDefensesIndexReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @sandbox_policy — Sandbox policy: defines and enforces per-tenant, per-tool sandbox execution constraints.
+//
+// Native .hsplus surface for mcp-server/src/security/sandbox-policy.ts.
+
+@trait sandbox_policy {
+  capability_tags: ["sandbox_policy", "per_tenant_sandbox_policy", "tool_exec_constraint", "mcp_server"]
+  @on_spawn => { emit("sandbox_policy_ready", {}) }
+  @on_evaluate(tenant_id, tool_id) => { policy = evaluate_sandbox_policy(tenant_id, tool_id); return policy }
+  @receipt sandbox_policy_config { type: "SandboxPolicyReceipt"; timestamp: now() }
+}

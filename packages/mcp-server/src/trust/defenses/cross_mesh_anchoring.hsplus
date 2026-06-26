@@ -1,0 +1,10 @@
+// @cross_mesh_anchoring — Cross-mesh anchoring: anchors trust proofs across HoloMesh peers for cross-agent verification.
+//
+// Native .hsplus surface for mcp-server/src/trust/defenses/cross-mesh-anchoring.ts.
+
+@trait cross_mesh_anchoring {
+  capability_tags: ["cross_mesh_anchoring", "trust_proof_anchor_mesh", "cross_agent_verify", "mcp_server"]
+  @on_spawn => { emit("cross_mesh_anchoring_ready", {}) }
+  @on_anchor(proof) => { result = anchor_trust_cross_mesh(proof); return result }
+  @receipt cross_mesh_anchoring_config { type: "CrossMeshAnchoringReceipt"; timestamp: now() }
+}

@@ -1,0 +1,12 @@
+// @server_keys — Server keys: server-side key management for signing tokens and verifying peer agent messages.
+//
+// Native .hsplus surface for mcp-server/src/security/server-keys.ts.
+
+@trait server_keys {
+  capability_tags: ["server_keys", "server_signing_keys", "peer_message_verify", "mcp_server"]
+  @on_spawn => {
+    initialize_server_keys()
+    emit("server_keys_ready", {})
+  }
+  @receipt server_keys_config { type: "ServerKeysReceipt"; timestamp: now() }
+}
