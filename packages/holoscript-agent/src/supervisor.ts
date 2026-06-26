@@ -2,6 +2,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import type { ILLMProvider } from '@holoscript/llm-provider';
 import { AgentRunner } from './runner.js';
+import { makeIdleAccrual } from './idle-accrual.js';
 import { CostGuard } from './cost-guard.js';
 import { HolomeshClient } from './holomesh-client.js';
 import { loadBrain } from './brain.js';
@@ -144,6 +145,15 @@ export class Supervisor {
     const onTaskExecuted = effectiveSpec.enableCommitHook
       ? this.buildCommitHook(effectiveSpec, identity, mesh)
       : undefined;
+    // Corpus-accrual capability (I.023 executor), wired the same way as the single-agent
+    // run path (index.ts:cmdRun). Per-agent handle, env-gated default-OFF; the runner stays
+    // @holoscript/core-free (the capability dynamic-imports core from the composition root).
+    // In a multi-agent supervisor, every agent with the flags set accrues to the shared corpus
+    // (dedupRows keys on the proposed program; each row is agentId-tagged), one gated step per idle tick.
+    const idleAccrual = await makeIdleAccrual({
+      handle: effectiveSpec.handle,
+      logger: (ev) => this.log({ agent: effectiveSpec.handle, ...ev }),
+    });
     const runner = new AgentRunner({
       identity,
       brain,
@@ -153,6 +163,7 @@ export class Supervisor {
       onTaskExecuted,
       auditLog: this.auditLog,
       logger: (ev) => this.log({ agent: effectiveSpec.handle, ...ev }),
+      idleAccrual,
     });
     const status: SupervisorAgentStatus = {
       handle: effectiveSpec.handle,
