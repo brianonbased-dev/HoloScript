@@ -1,0 +1,10 @@
+// @simulation_tools — Simulation tools: MCP tools for running paid physics and structural simulations on the fleet.
+//
+// Native .hsplus surface for mcp-server/src/simulation-tools.ts.
+
+@trait simulation_tools {
+  capability_tags: ["simulation_tools", "fleet_simulation_run", "physics_structural_sim_mcp", "mcp_server"]
+  @on_spawn => { emit("simulation_tools_ready", {}) }
+  @on_run(sim_spec) => { result = run_simulation_on_fleet(sim_spec); return result }
+  @receipt simulation_tools_config { type: "SimulationToolsReceipt"; timestamp: now() }
+}

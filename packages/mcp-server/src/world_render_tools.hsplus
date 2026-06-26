@@ -1,0 +1,10 @@
+// @world_render_tools — World render tools: MCP tools for rendering .holo worlds to tiles, previews, and GLB exports.
+//
+// Native .hsplus surface for mcp-server/src/world-render-tools.ts.
+
+@trait world_render_tools {
+  capability_tags: ["world_render_tools", "holo_world_render_mcp", "tile_preview_glb_export", "mcp_server"]
+  @on_spawn => { emit("world_render_tools_ready", {}) }
+  @on_render(world_id, format) => { output = render_holo_world(world_id, format); return output }
+  @receipt world_render_tools_config { type: "WorldRenderToolsReceipt"; timestamp: now() }
+}

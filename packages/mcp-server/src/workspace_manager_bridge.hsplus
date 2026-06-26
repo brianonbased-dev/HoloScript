@@ -1,0 +1,10 @@
+// @workspace_manager_bridge — Workspace manager bridge: bridges MCP server to HoloShell workspace management operations.
+//
+// Native .hsplus surface for mcp-server/src/workspace-manager-bridge.ts.
+
+@trait workspace_manager_bridge {
+  capability_tags: ["workspace_manager_bridge", "holoshell_workspace_bridge", "workspace_manage_mcp", "mcp_server"]
+  @on_spawn => { emit("workspace_manager_bridge_ready", {}) }
+  @on_create(spec) => { workspace = create_workspace(spec); return workspace }
+  @receipt workspace_manager_bridge_config { type: "WorkspaceManagerBridgeReceipt"; timestamp: now() }
+}

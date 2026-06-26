@@ -1,0 +1,10 @@
+// @mcp_renderer — MCP renderer: server-side renderer for .holo world previews and image export.
+//
+// Native .hsplus surface for mcp-server/src/renderer.ts.
+
+@trait mcp_renderer {
+  capability_tags: ["mcp_renderer", "server_side_holo_render", "world_preview_export", "mcp_server"]
+  @on_spawn => { emit("mcp_renderer_ready", {}) }
+  @on_render(world, format) => { output = render_holo_server_side(world, format); return output }
+  @receipt mcp_renderer_config { type: "McpRendererReceipt"; timestamp: now() }
+}

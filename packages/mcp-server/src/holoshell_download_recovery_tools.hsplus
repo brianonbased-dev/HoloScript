@@ -1,0 +1,10 @@
+// @holoshell_download_recovery_tools — HoloShell download recovery tools: MCP tools for recovering stalled HoloShell downloads.
+//
+// Native .hsplus surface for mcp-server/src/holoshell-download-recovery-tools.ts.
+
+@trait holoshell_download_recovery_tools {
+  capability_tags: ["holoshell_download_recovery_tools", "holoshell_stalled_recover", "download_recovery_mcp", "mcp_server"]
+  @on_spawn => { emit("holoshell_download_recovery_tools_ready", {}) }
+  @on_recover(download_id) => { result = recover_holoshell_download(download_id); return result }
+  @receipt holoshell_download_recovery_tools_config { type: "HoloshellDownloadRecoveryToolsReceipt"; timestamp: now() }
+}

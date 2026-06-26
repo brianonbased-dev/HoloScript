@@ -1,0 +1,10 @@
+// @training_generators — Training generators: MCP tools for generating SFT and DPO training data from HoloScript executions.
+//
+// Native .hsplus surface for mcp-server/src/training-generators.ts.
+
+@trait training_generators {
+  capability_tags: ["training_generators", "sft_dpo_data_generate", "holoscript_train_data", "mcp_server"]
+  @on_spawn => { emit("training_generators_ready", {}) }
+  @on_generate(spec) => { data = generate_training_data(spec); return data }
+  @receipt training_generators_config { type: "TrainingGeneratorsReceipt"; timestamp: now() }
+}

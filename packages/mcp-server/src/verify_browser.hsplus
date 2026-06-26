@@ -1,0 +1,10 @@
+// @verify_browser — Verify browser: verifies browser-based execution receipts for headless automation correctness.
+//
+// Native .hsplus surface for mcp-server/src/verify-browser.ts.
+
+@trait verify_browser {
+  capability_tags: ["verify_browser", "browser_execution_verify", "headless_receipt_verify", "mcp_server"]
+  @on_spawn => { emit("verify_browser_ready", {}) }
+  @on_verify(receipt) => { result = verify_browser_receipt(receipt); return result }
+  @receipt verify_browser_config { type: "VerifyBrowserReceipt"; timestamp: now() }
+}

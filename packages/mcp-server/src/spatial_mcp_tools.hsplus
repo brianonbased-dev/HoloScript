@@ -1,0 +1,10 @@
+// @spatial_mcp_tools — Spatial MCP tools: MCP tools for spatial query, geospatial lookup, and anchor management.
+//
+// Native .hsplus surface for mcp-server/src/spatial-mcp-tools.ts.
+
+@trait spatial_mcp_tools {
+  capability_tags: ["spatial_mcp_tools", "geospatial_query_mcp", "anchor_management_mcp", "mcp_server"]
+  @on_spawn => { emit("spatial_mcp_tools_ready", {}) }
+  @on_query(spatial_filter) => { results = query_spatial_mcp(spatial_filter); return results }
+  @receipt spatial_mcp_tools_config { type: "SpatialMcpToolsReceipt"; timestamp: now() }
+}

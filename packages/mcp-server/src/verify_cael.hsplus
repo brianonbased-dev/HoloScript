@@ -1,0 +1,10 @@
+// @verify_cael — Verify CAEL: verifies CAEL trace receipts for execution correctness and provenance.
+//
+// Native .hsplus surface for mcp-server/src/verify-cael.ts.
+
+@trait verify_cael {
+  capability_tags: ["verify_cael", "cael_trace_verify", "execution_provenance_verify", "mcp_server"]
+  @on_spawn => { emit("verify_cael_ready", {}) }
+  @on_verify(trace) => { result = verify_cael_trace(trace); return result }
+  @receipt verify_cael_config { type: "VerifyCaelReceipt"; timestamp: now() }
+}

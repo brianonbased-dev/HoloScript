@@ -1,0 +1,10 @@
+// @holotune_mcp_tools — HoloTune MCP tools: MCP tools for launching and managing HoloTune fine-tuning runs.
+//
+// Native .hsplus surface for mcp-server/src/holotune-mcp-tools.ts.
+
+@trait holotune_mcp_tools {
+  capability_tags: ["holotune_mcp_tools", "holotune_finetune_mcp", "sovereign_model_train_mcp", "mcp_server"]
+  @on_spawn => { emit("holotune_mcp_tools_ready", {}) }
+  @on_launch(run_spec) => { result = launch_holotune_run(run_spec); return result }
+  @receipt holotune_mcp_tools_config { type: "HolotuneMcpToolsReceipt"; timestamp: now() }
+}

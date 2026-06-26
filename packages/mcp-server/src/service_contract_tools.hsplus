@@ -1,0 +1,10 @@
+// @service_contract_tools — Service contract tools: MCP tools for generating and explaining HoloScript service contracts.
+//
+// Native .hsplus surface for mcp-server/src/service-contract-tools.ts.
+
+@trait service_contract_tools {
+  capability_tags: ["service_contract_tools", "service_contract_generate", "holoscript_sla_mcp", "mcp_server"]
+  @on_spawn => { emit("service_contract_tools_ready", {}) }
+  @on_generate(spec) => { contract = generate_service_contract(spec); return contract }
+  @receipt service_contract_tools_config { type: "ServiceContractToolsReceipt"; timestamp: now() }
+}

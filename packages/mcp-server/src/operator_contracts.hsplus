@@ -1,0 +1,10 @@
+// @operator_contracts — Operator contracts: manages operator-level service contracts and SLA enforcement.
+//
+// Native .hsplus surface for mcp-server/src/operator-contracts.ts.
+
+@trait operator_contracts {
+  capability_tags: ["operator_contracts", "operator_sla_enforce", "service_contract_operator", "mcp_server"]
+  @on_spawn => { emit("operator_contracts_ready", {}) }
+  @on_enforce(contract_id) => { result = enforce_operator_contract(contract_id); return result }
+  @receipt operator_contracts_config { type: "OperatorContractsReceipt"; timestamp: now() }
+}

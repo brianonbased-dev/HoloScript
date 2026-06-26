@@ -1,0 +1,10 @@
+// @holotest_tools — HoloTest tools: MCP tools for running HoloScript test suites and validating trait correctness.
+//
+// Native .hsplus surface for mcp-server/src/holotest-tools.ts.
+
+@trait holotest_tools {
+  capability_tags: ["holotest_tools", "holoscript_test_suite", "trait_correctness_validate", "mcp_server"]
+  @on_spawn => { emit("holotest_tools_ready", {}) }
+  @on_run(test_spec) => { result = run_holotest(test_spec); return result }
+  @receipt holotest_tools_config { type: "HolotestToolsReceipt"; timestamp: now() }
+}

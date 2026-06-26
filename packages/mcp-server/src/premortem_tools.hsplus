@@ -1,0 +1,10 @@
+// @premortem_tools — Premortem tools: MCP tools for structured premortem risk analysis before shipping changes.
+//
+// Native .hsplus surface for mcp-server/src/premortem-tools.ts.
+
+@trait premortem_tools {
+  capability_tags: ["premortem_tools", "structured_premortem_mcp", "risk_before_ship", "mcp_server"]
+  @on_spawn => { emit("premortem_tools_ready", {}) }
+  @on_analyze(target, dimensions) => { report = run_premortem_analysis(target, dimensions); return report }
+  @receipt premortem_tools_config { type: "PremortemToolsReceipt"; timestamp: now() }
+}

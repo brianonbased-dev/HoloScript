@@ -1,0 +1,10 @@
+// @ide_tools — IDE tools: MCP tools for IDE integration (go-to-definition, autocomplete, diagnostics, scaffold).
+//
+// Native .hsplus surface for mcp-server/src/ide-tools.ts.
+
+@trait ide_tools {
+  capability_tags: ["ide_tools", "ide_integration_mcp", "autocomplete_diagnostics_mcp", "mcp_server"]
+  @on_spawn => { emit("ide_tools_ready", {}) }
+  @on_complete(context) => { result = ide_autocomplete(context); return result }
+  @receipt ide_tools_config { type: "IdeToolsReceipt"; timestamp: now() }
+}

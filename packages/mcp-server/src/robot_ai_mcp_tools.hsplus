@@ -1,0 +1,10 @@
+// @robot_ai_mcp_tools — Robot AI MCP tools: MCP tools for robot AI control, ROS2 integration, and actuator planning.
+//
+// Native .hsplus surface for mcp-server/src/robot-ai-mcp-tools.ts.
+
+@trait robot_ai_mcp_tools {
+  capability_tags: ["robot_ai_mcp_tools", "ros2_integration_mcp", "robot_actuator_plan", "mcp_server"]
+  @on_spawn => { emit("robot_ai_mcp_tools_ready", {}) }
+  @on_actuate(command) => { result = actuate_robot_ai(command); return result }
+  @receipt robot_ai_mcp_tools_config { type: "RobotAiMcpToolsReceipt"; timestamp: now() }
+}

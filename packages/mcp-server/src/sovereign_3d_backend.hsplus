@@ -1,0 +1,10 @@
+// @sovereign_3d_backend — Sovereign 3D backend: sovereign local 3D generation backend using Apache-licensed models.
+//
+// Native .hsplus surface for mcp-server/src/sovereign-3d-backend.ts.
+
+@trait sovereign_3d_backend {
+  capability_tags: ["sovereign_3d_backend", "local_3d_generation", "sovereign_open_weights_3d", "mcp_server"]
+  @on_spawn => { emit("sovereign_3d_backend_ready", {}) }
+  @on_generate(prompt) => { mesh = generate_3d_sovereign(prompt); return mesh }
+  @receipt sovereign_3d_backend_config { type: "Sovereign3dBackendReceipt"; timestamp: now() }
+}

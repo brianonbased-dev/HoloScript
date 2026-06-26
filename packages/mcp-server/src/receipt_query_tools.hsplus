@@ -1,0 +1,10 @@
+// @receipt_query_tools — Receipt query tools: MCP tools for querying execution receipts and provenance records.
+//
+// Native .hsplus surface for mcp-server/src/receipt-query-tools.ts.
+
+@trait receipt_query_tools {
+  capability_tags: ["receipt_query_tools", "execution_receipt_query", "provenance_record_mcp", "mcp_server"]
+  @on_spawn => { emit("receipt_query_tools_ready", {}) }
+  @on_query(filter) => { receipts = query_execution_receipts(filter); return receipts }
+  @receipt receipt_query_tools_config { type: "ReceiptQueryToolsReceipt"; timestamp: now() }
+}

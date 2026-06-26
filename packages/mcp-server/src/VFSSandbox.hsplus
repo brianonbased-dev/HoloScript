@@ -1,0 +1,11 @@
+// @vfs_sandbox — VFS sandbox: virtual filesystem sandbox for isolated plugin and compiler execution.
+//
+// Native .hsplus surface for mcp-server/src/VFSSandbox.ts.
+
+@trait vfs_sandbox {
+  capability_tags: ["vfs_sandbox", "virtual_filesystem_sandbox", "isolated_plugin_exec", "mcp_server"]
+  @on_spawn => { emit("vfs_sandbox_ready", {}) }
+  @on_create(config) => { sandbox = create_vfs_sandbox(config); return sandbox }
+  @on_destroy(sandbox_id) => { destroy_vfs_sandbox(sandbox_id) }
+  @receipt vfs_sandbox_config { type: "VfsSandboxReceipt"; timestamp: now() }
+}

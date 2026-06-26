@@ -1,0 +1,10 @@
+// @monitoring_tools — Monitoring tools: MCP tools for service health metrics, alerting, and dashboard state.
+//
+// Native .hsplus surface for mcp-server/src/monitoring-tools.ts.
+
+@trait monitoring_tools {
+  capability_tags: ["monitoring_tools", "service_health_mcp", "metrics_alerting_mcp", "mcp_server"]
+  @on_spawn => { emit("monitoring_tools_ready", {}) }
+  @on_probe(target) => { status = probe_service_health(target); return status }
+  @receipt monitoring_tools_config { type: "MonitoringToolsReceipt"; timestamp: now() }
+}

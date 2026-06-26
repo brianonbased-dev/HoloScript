@@ -1,0 +1,10 @@
+// @premortem_handler — Premortem handler: routes premortem risk analysis requests to the premortem engine.
+//
+// Native .hsplus surface for mcp-server/src/premortem-handler.ts.
+
+@trait premortem_handler {
+  capability_tags: ["premortem_handler", "premortem_risk_route", "risk_analysis_dispatch", "mcp_server"]
+  @on_spawn => { emit("premortem_handler_ready", {}) }
+  @on_handle(request) => { result = handle_premortem(request); return result }
+  @receipt premortem_handler_config { type: "PremortemHandlerReceipt"; timestamp: now() }
+}

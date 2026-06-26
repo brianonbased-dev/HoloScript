@@ -1,0 +1,10 @@
+// @simulation_billing_tools — Simulation billing tools: MCP tools for simulation billing, quotes, and receipt capture.
+//
+// Native .hsplus surface for mcp-server/src/simulation-billing-tools.ts.
+
+@trait simulation_billing_tools {
+  capability_tags: ["simulation_billing_tools", "sim_billing_quote_mcp", "simulation_receipt_mcp", "mcp_server"]
+  @on_spawn => { emit("simulation_billing_tools_ready", {}) }
+  @on_quote(sim_spec) => { quote = get_simulation_quote(sim_spec); return quote }
+  @receipt simulation_billing_tools_config { type: "SimulationBillingToolsReceipt"; timestamp: now() }
+}

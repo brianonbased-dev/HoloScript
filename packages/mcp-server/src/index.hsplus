@@ -1,0 +1,9 @@
+// @mcp_server_index — MCP server index: package entry point for HoloScript MCP server.
+//
+// Native .hsplus surface for mcp-server/src/index.ts.
+
+@trait mcp_server_index {
+  capability_tags: ["mcp_server_index", "mcp_server_entry", "holoscript_mcp_entry", "mcp_server"]
+  @on_spawn => { emit("mcp_server_index_ready", {}) }
+  @receipt mcp_server_index_config { type: "McpServerIndexReceipt"; timestamp: now() }
+}

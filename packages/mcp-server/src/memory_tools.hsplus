@@ -1,0 +1,11 @@
+// @memory_tools — Memory tools: MCP tools for agent memory store, recall, and knowledge graduation.
+//
+// Native .hsplus surface for mcp-server/src/memory-tools.ts.
+
+@trait memory_tools {
+  capability_tags: ["memory_tools", "agent_memory_store_recall", "knowledge_graduation_mcp", "mcp_server"]
+  @on_spawn => { emit("memory_tools_ready", {}) }
+  @on_store(entry) => { store_agent_memory(entry) }
+  @on_recall(query) => { return recall_agent_memory(query) }
+  @receipt memory_tools_config { type: "MemoryToolsReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @negotiation_mcp_tools — Negotiation MCP tools: MCP tools for agent capability and contract negotiation protocols.
+//
+// Native .hsplus surface for mcp-server/src/negotiation-mcp-tools.ts.
+
+@trait negotiation_mcp_tools {
+  capability_tags: ["negotiation_mcp_tools", "agent_contract_negotiate", "capability_negotiation_mcp", "mcp_server"]
+  @on_spawn => { emit("negotiation_mcp_tools_ready", {}) }
+  @on_negotiate(proposal) => { result = negotiate_agent_contract(proposal); return result }
+  @receipt negotiation_mcp_tools_config { type: "NegotiationMcpToolsReceipt"; timestamp: now() }
+}

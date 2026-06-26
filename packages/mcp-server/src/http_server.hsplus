@@ -1,0 +1,12 @@
+// @http_server_mcp — HTTP server MCP: Express HTTP server setup and route mounting for MCP server endpoints.
+//
+// Native .hsplus surface for mcp-server/src/http-server.ts.
+
+@trait http_server_mcp {
+  capability_tags: ["http_server_mcp", "express_server_setup", "mcp_route_mount", "mcp_server"]
+  @on_spawn => {
+    start_http_server_mcp()
+    emit("http_server_mcp_ready", {})
+  }
+  @receipt http_server_mcp_config { type: "HttpServerMcpReceipt"; timestamp: now() }
+}

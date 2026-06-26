@@ -1,0 +1,10 @@
+// @ollama_client — Ollama client: client for local Ollama inference used by sovereign agent brains.
+//
+// Native .hsplus surface for mcp-server/src/ollama-client.ts.
+
+@trait ollama_client {
+  capability_tags: ["ollama_client", "local_ollama_inference", "sovereign_brain_client", "mcp_server"]
+  @on_spawn => { emit("ollama_client_ready", {}) }
+  @on_infer(prompt) => { result = infer_ollama(prompt); return result }
+  @receipt ollama_client_config { type: "OllamaClientReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @self_improve_tools — Self-improve tools: MCP tools for gated self-improvement via the @evolve_program trait.
+//
+// Native .hsplus surface for mcp-server/src/self-improve-tools.ts.
+
+@trait self_improve_tools {
+  capability_tags: ["self_improve_tools", "evolve_program_mcp", "gated_self_improvement", "mcp_server"]
+  @on_spawn => { emit("self_improve_tools_ready", {}) }
+  @on_evolve(spec) => { result = trigger_gated_self_improvement(spec); return result }
+  @receipt self_improve_tools_config { type: "SelfImproveToolsReceipt"; timestamp: now() }
+}

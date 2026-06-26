@@ -1,0 +1,10 @@
+// @wisdom_gotcha_tools — Wisdom gotcha tools: MCP tools for querying and recording ecosystem gotchas from the wisdom store.
+//
+// Native .hsplus surface for mcp-server/src/wisdom-gotcha-tools.ts.
+
+@trait wisdom_gotcha_tools {
+  capability_tags: ["wisdom_gotcha_tools", "ecosystem_gotcha_mcp", "wisdom_store_query", "mcp_server"]
+  @on_spawn => { emit("wisdom_gotcha_tools_ready", {}) }
+  @on_query(topic) => { gotchas = query_wisdom_gotchas(topic); return gotchas }
+  @receipt wisdom_gotcha_tools_config { type: "WisdomGotchaToolsReceipt"; timestamp: now() }
+}

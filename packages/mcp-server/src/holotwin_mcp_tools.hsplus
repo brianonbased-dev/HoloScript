@@ -1,0 +1,10 @@
+// @holotwin_mcp_tools — HoloTwin MCP tools: MCP tools for digital twin creation and real-world asset capture.
+//
+// Native .hsplus surface for mcp-server/src/holotwin-mcp-tools.ts.
+
+@trait holotwin_mcp_tools {
+  capability_tags: ["holotwin_mcp_tools", "digital_twin_create_mcp", "asset_capture_mcp", "mcp_server"]
+  @on_spawn => { emit("holotwin_mcp_tools_ready", {}) }
+  @on_capture(asset_spec) => { twin = capture_digital_twin(asset_spec); return twin }
+  @receipt holotwin_mcp_tools_config { type: "HolotwinMcpToolsReceipt"; timestamp: now() }
+}

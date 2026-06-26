@@ -1,0 +1,9 @@
+// @trait_categories_from_core — Trait categories from core: imports and re-exports trait category enumerations from core.
+//
+// Native .hsplus surface for mcp-server/src/trait-categories-from-core.ts.
+
+@trait trait_categories_from_core {
+  capability_tags: ["trait_categories_from_core", "core_trait_category_reexport", "mcp_trait_taxonomy", "mcp_server"]
+  @on_spawn => { emit("trait_categories_from_core_ready", {}) }
+  @receipt trait_categories_from_core_config { type: "TraitCategoriesFromCoreReceipt"; timestamp: now() }
+}

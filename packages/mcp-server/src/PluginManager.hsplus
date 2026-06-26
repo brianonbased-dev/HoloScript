@@ -1,0 +1,11 @@
+// @plugin_manager — Plugin manager: manages domain plugin lifecycle (load, unload, register, discover).
+//
+// Native .hsplus surface for mcp-server/src/PluginManager.ts.
+
+@trait plugin_manager {
+  capability_tags: ["plugin_manager", "domain_plugin_lifecycle", "plugin_load_unload", "mcp_server"]
+  @on_spawn => { emit("plugin_manager_ready", {}) }
+  @on_load(plugin_id) => { plugin = load_plugin(plugin_id); return plugin }
+  @on_unload(plugin_id) => { unload_plugin(plugin_id) }
+  @receipt plugin_manager_config { type: "PluginManagerReceipt"; timestamp: now() }
+}

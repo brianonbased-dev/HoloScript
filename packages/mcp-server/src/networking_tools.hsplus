@@ -1,0 +1,10 @@
+// @networking_tools — Networking tools: MCP tools for network topology, tunnel, and mesh connectivity management.
+//
+// Native .hsplus surface for mcp-server/src/networking-tools.ts.
+
+@trait networking_tools {
+  capability_tags: ["networking_tools", "network_topology_mcp", "mesh_connectivity_mcp", "mcp_server"]
+  @on_spawn => { emit("networking_tools_ready", {}) }
+  @on_probe(endpoint) => { result = probe_network_endpoint(endpoint); return result }
+  @receipt networking_tools_config { type: "NetworkingToolsReceipt"; timestamp: now() }
+}

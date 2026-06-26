@@ -1,0 +1,10 @@
+// @protocol_tools — Protocol tools: MCP tools for HoloScript protocol publication, lookup, and revenue tracking.
+//
+// Native .hsplus surface for mcp-server/src/protocol-tools.ts.
+
+@trait protocol_tools {
+  capability_tags: ["protocol_tools", "holoscript_protocol_publish", "protocol_revenue_track", "mcp_server"]
+  @on_spawn => { emit("protocol_tools_ready", {}) }
+  @on_publish(protocol) => { result = publish_protocol(protocol); return result }
+  @receipt protocol_tools_config { type: "ProtocolToolsReceipt"; timestamp: now() }
+}

@@ -1,0 +1,11 @@
+// @workflow_memory — Workflow memory: cross-session workflow memory store for agentic pipeline state preservation.
+//
+// Native .hsplus surface for mcp-server/src/workflow-memory.ts.
+
+@trait workflow_memory {
+  capability_tags: ["workflow_memory", "cross_session_workflow_state", "pipeline_state_persist", "mcp_server"]
+  @on_spawn => { emit("workflow_memory_ready", {}) }
+  @on_write(key, value) => { write_workflow_memory(key, value) }
+  @on_read(key) => { return read_workflow_memory(key) }
+  @receipt workflow_memory_config { type: "WorkflowMemoryReceipt"; timestamp: now() }
+}

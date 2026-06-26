@@ -1,0 +1,10 @@
+// @oracle_handler — Oracle handler: routes NORTH_STAR oracle queries to the decision proxy.
+//
+// Native .hsplus surface for mcp-server/src/oracle-handler.ts.
+
+@trait oracle_handler {
+  capability_tags: ["oracle_handler", "north_star_oracle_route", "decision_proxy_mcp", "mcp_server"]
+  @on_spawn => { emit("oracle_handler_ready", {}) }
+  @on_handle(query) => { result = handle_oracle_query(query); return result }
+  @receipt oracle_handler_config { type: "OracleHandlerReceipt"; timestamp: now() }
+}

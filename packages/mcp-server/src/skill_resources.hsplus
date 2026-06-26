@@ -1,0 +1,10 @@
+// @skill_resources — Skill resources: serves MCP skill resource definitions and SKILL.md content.
+//
+// Native .hsplus surface for mcp-server/src/skill-resources.ts.
+
+@trait skill_resources {
+  capability_tags: ["skill_resources", "mcp_skill_resource_serve", "skill_md_content", "mcp_server"]
+  @on_spawn => { emit("skill_resources_ready", {}) }
+  @on_get(skill_name) => { content = get_skill_resource(skill_name); return content }
+  @receipt skill_resources_config { type: "SkillResourcesReceipt"; timestamp: now() }
+}

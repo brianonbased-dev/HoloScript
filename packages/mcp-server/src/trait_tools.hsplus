@@ -1,0 +1,11 @@
+// @trait_tools — Trait tools: MCP tools for listing, explaining, and composing HoloScript traits.
+//
+// Native .hsplus surface for mcp-server/src/trait-tools.ts.
+
+@trait trait_tools {
+  capability_tags: ["trait_tools", "holoscript_trait_list_explain", "trait_compose_mcp", "mcp_server"]
+  @on_spawn => { emit("trait_tools_ready", {}) }
+  @on_list(filter) => { traits = list_holoscript_traits(filter); return traits }
+  @on_explain(trait_id) => { return explain_holoscript_trait(trait_id) }
+  @receipt trait_tools_config { type: "TraitToolsReceipt"; timestamp: now() }
+}

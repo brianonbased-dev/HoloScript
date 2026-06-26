@@ -1,0 +1,10 @@
+// @schema_mapper — Schema mapper: maps external data schemas to .holo IR types for domain bridge ingestion.
+//
+// Native .hsplus surface for mcp-server/src/schema-mapper.ts.
+
+@trait schema_mapper {
+  capability_tags: ["schema_mapper", "external_schema_holo_map", "domain_bridge_ingest", "mcp_server"]
+  @on_spawn => { emit("schema_mapper_ready", {}) }
+  @on_map(schema, target_type) => { mapped = map_schema_to_holo(schema, target_type); return mapped }
+  @receipt schema_mapper_config { type: "SchemaMapperReceipt"; timestamp: now() }
+}

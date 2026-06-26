@@ -1,0 +1,10 @@
+// @refactor_codegen_tools — Refactor codegen tools: MCP tools for AI-assisted refactoring and code generation plans.
+//
+// Native .hsplus surface for mcp-server/src/refactor-codegen-tools.ts.
+
+@trait refactor_codegen_tools {
+  capability_tags: ["refactor_codegen_tools", "ai_refactor_plan_mcp", "codegen_assisted_mcp", "mcp_server"]
+  @on_spawn => { emit("refactor_codegen_tools_ready", {}) }
+  @on_plan(target) => { plan = generate_refactor_plan(target); return plan }
+  @receipt refactor_codegen_tools_config { type: "RefactorCodegenToolsReceipt"; timestamp: now() }
+}

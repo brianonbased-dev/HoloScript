@@ -1,0 +1,10 @@
+// @oracle_mcp_tools — Oracle MCP tools: MCP tools for NORTH_STAR oracle consult, curate, and discover.
+//
+// Native .hsplus surface for mcp-server/src/oracle-mcp-tools.ts.
+
+@trait oracle_mcp_tools {
+  capability_tags: ["oracle_mcp_tools", "north_star_consult_mcp", "oracle_curate_discover", "mcp_server"]
+  @on_spawn => { emit("oracle_mcp_tools_ready", {}) }
+  @on_consult(question) => { answer = consult_oracle(question); return answer }
+  @receipt oracle_mcp_tools_config { type: "OracleMcpToolsReceipt"; timestamp: now() }
+}

@@ -1,0 +1,11 @@
+// @plugin_management_tools — Plugin management tools: MCP tools for plugin install, uninstall, list, and update.
+//
+// Native .hsplus surface for mcp-server/src/plugin-management-tools.ts.
+
+@trait plugin_management_tools {
+  capability_tags: ["plugin_management_tools", "plugin_install_uninstall", "plugin_lifecycle_mcp", "mcp_server"]
+  @on_spawn => { emit("plugin_management_tools_ready", {}) }
+  @on_install(plugin_id) => { result = install_plugin(plugin_id); return result }
+  @on_uninstall(plugin_id) => { uninstall_plugin(plugin_id) }
+  @receipt plugin_management_tools_config { type: "PluginManagementToolsReceipt"; timestamp: now() }
+}

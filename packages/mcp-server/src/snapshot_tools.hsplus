@@ -1,0 +1,11 @@
+// @snapshot_tools — Snapshot tools: MCP tools for creating and restoring HoloMesh team state snapshots.
+//
+// Native .hsplus surface for mcp-server/src/snapshot-tools.ts.
+
+@trait snapshot_tools {
+  capability_tags: ["snapshot_tools", "team_state_snapshot_mcp", "snapshot_restore_mcp", "mcp_server"]
+  @on_spawn => { emit("snapshot_tools_ready", {}) }
+  @on_capture(team_id) => { snapshot = capture_team_snapshot(team_id); return snapshot }
+  @on_restore(snapshot_id) => { restore_team_snapshot(snapshot_id) }
+  @receipt snapshot_tools_config { type: "SnapshotToolsReceipt"; timestamp: now() }
+}

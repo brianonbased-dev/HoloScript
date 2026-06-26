@@ -1,0 +1,10 @@
+// @observability_tools — Observability tools: MCP tools for tracing, metrics, and OTLP telemetry export.
+//
+// Native .hsplus surface for mcp-server/src/observability-tools.ts.
+
+@trait observability_tools {
+  capability_tags: ["observability_tools", "otel_trace_metrics_mcp", "otlp_export_mcp", "mcp_server"]
+  @on_spawn => { emit("observability_tools_ready", {}) }
+  @on_export(traces) => { result = export_otlp_traces(traces); return result }
+  @receipt observability_tools_config { type: "ObservabilityToolsReceipt"; timestamp: now() }
+}

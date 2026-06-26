@@ -1,0 +1,10 @@
+// @moltbook_post — Moltbook post: creates and publishes Moltbook posts from HoloScript session outputs.
+//
+// Native .hsplus surface for mcp-server/src/moltbook/moltbook-post.ts.
+
+@trait moltbook_post {
+  capability_tags: ["moltbook_post", "moltbook_publish_post", "session_output_publish", "mcp_server"]
+  @on_spawn => { emit("moltbook_post_ready", {}) }
+  @on_publish(post) => { result = publish_moltbook_post(post); return result }
+  @receipt moltbook_post_config { type: "MoltbookPostReceipt"; timestamp: now() }
+}

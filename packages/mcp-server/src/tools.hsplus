@@ -1,0 +1,12 @@
+// @mcp_tools_registry — MCP tools registry: top-level tool registration and dispatch table for all MCP tools.
+//
+// Native .hsplus surface for mcp-server/src/tools.ts.
+
+@trait mcp_tools_registry {
+  capability_tags: ["mcp_tools_registry", "mcp_tool_dispatch_table", "holoscript_tool_register", "mcp_server"]
+  @on_spawn => {
+    register_all_mcp_tools()
+    emit("mcp_tools_registry_ready", {})
+  }
+  @receipt mcp_tools_registry_config { type: "McpToolsRegistryReceipt"; timestamp: now() }
+}

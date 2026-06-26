@@ -1,0 +1,10 @@
+// @validation_tools — Validation tools: MCP tools for validating HoloScript compositions, traits, and world correctness.
+//
+// Native .hsplus surface for mcp-server/src/validation-tools.ts.
+
+@trait validation_tools {
+  capability_tags: ["validation_tools", "holoscript_validate_mcp", "composition_trait_validate", "mcp_server"]
+  @on_spawn => { emit("validation_tools_ready", {}) }
+  @on_validate(target) => { result = validate_holoscript_target(target); return result }
+  @receipt validation_tools_config { type: "ValidationToolsReceipt"; timestamp: now() }
+}

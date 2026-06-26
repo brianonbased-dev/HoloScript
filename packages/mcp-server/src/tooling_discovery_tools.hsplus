@@ -1,0 +1,10 @@
+// @tooling_discovery_tools — Tooling discovery tools: MCP tools for discovering available tools, compilers, and capabilities.
+//
+// Native .hsplus surface for mcp-server/src/tooling-discovery-tools.ts.
+
+@trait tooling_discovery_tools {
+  capability_tags: ["tooling_discovery_tools", "tool_capability_discover", "compiler_catalog_mcp", "mcp_server"]
+  @on_spawn => { emit("tooling_discovery_tools_ready", {}) }
+  @on_discover(filter) => { tools = discover_available_tools(filter); return tools }
+  @receipt tooling_discovery_tools_config { type: "ToolingDiscoveryToolsReceipt"; timestamp: now() }
+}
