@@ -8,6 +8,9 @@
  * Scope (deliberately conservative — gate NEW violations, don't retro-break the backlog):
  *   - Scans the markdown files passed as args (pre-commit hands it the STAGED .md files), or
  *     `--all` to audit every doc, or `--staged` to scan `git diff --cached` markdown.
+ *   - DIFF-SCOPED on the pre-commit / `--staged` / file-arg path: only the lines you ADDED are
+ *     policed, so editing a doc that already carries legitimate point-in-time counts elsewhere
+ *     (e.g. design-record seeds) does not block your unrelated change. `--all` scans whole files.
  *   - Flags a bare integer directly preceding a known VOLATILE noun (traits, compilers, MCP tools,
  *     compile/export targets, knowledge entries, …).
  *   - SKIPS: docs/NUMBERS.md (the SSOT), archives, fenced code blocks, and any line carrying an
@@ -48,7 +51,7 @@ function isExcludedPath(p) {
   );
 }
 
-function scanFile(p) {
+function scanFile(p, onlyAdded = null) {
   const violations = [];
   const text = readFileSync(p, 'utf8');
   const lines = text.split(/\r?\n/);
@@ -59,11 +62,41 @@ function scanFile(p) {
       return;
     }
     if (inFence) return; // code blocks legitimately contain counts
+    if (onlyAdded && !onlyAdded.has(i + 1)) return; // diff-scoped: police only ADDED lines
     if (ESCAPE_RE.test(line)) return;
     const m = COUNT_RE.exec(line);
     if (m) violations.push({ line: i + 1, count: m[1], text: line.trim().slice(0, 140) });
   });
   return violations;
+}
+
+// New-file-side line numbers ADDED for a staged file (from `git diff --cached -U0`), so the
+// pre-commit path polices only what you add — not pre-existing legitimate counts in a doc you
+// merely touched. Returns null when the file has no staged diff (manual single-file check) → the
+// caller then scans the whole file.
+function addedLineSet(p) {
+  try {
+    const rel = relative(REPO, p).split(sep).join('/');
+    const out = execSync(`git diff --cached -U0 -- "${rel}"`, { encoding: 'utf8' });
+    if (!out.trim()) return null;
+    const set = new Set();
+    let newLine = 0;
+    for (const line of out.split('\n')) {
+      const h = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/.exec(line);
+      if (h) {
+        newLine = parseInt(h[1], 10);
+        continue;
+      }
+      if (line.startsWith('+') && !line.startsWith('+++')) {
+        set.add(newLine);
+        newLine += 1;
+      }
+      // '-' lines (deletions) do not advance the new-file counter; -U0 emits no context lines.
+    }
+    return set;
+  } catch {
+    return null;
+  }
 }
 
 function collectAllDocs() {
@@ -123,8 +156,13 @@ function main() {
     return;
   }
 
+  // --all = whole-file audit; every other path (pre-commit file-args / --staged) is diff-scoped.
+  const diffScoped = !args.includes('--all');
   const findings = [];
-  for (const f of files) for (const v of scanFile(f)) findings.push({ file: relative(REPO, f), ...v });
+  for (const f of files) {
+    const onlyAdded = diffScoped ? addedLineSet(f) : null;
+    for (const v of scanFile(f, onlyAdded)) findings.push({ file: relative(REPO, f), ...v });
+  }
 
   if (!findings.length) {
     console.log(`check:hardcoded-stats — OK (${files.length} file(s) clean).`);
