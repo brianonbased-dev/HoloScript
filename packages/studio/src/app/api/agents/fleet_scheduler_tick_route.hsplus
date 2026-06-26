@@ -1,0 +1,10 @@
+// @fleet_scheduler_tick_route — Fleet scheduler tick route: fires the fleet agent scheduler heartbeat tick.
+//
+// Native .hsplus surface for studio/src/app/api/agents/fleet/scheduler-tick/route.ts.
+
+@trait fleet_scheduler_tick_route {
+  capability_tags: ["fleet_scheduler_tick_route", "fleet_scheduler_heartbeat_api", "studio_fleet_tick", "studio"]
+  @on_spawn => { emit("fleet_scheduler_tick_route_ready", {}) }
+  @on_post(request) => { return fire_fleet_scheduler_tick(request) }
+  @receipt fleet_scheduler_tick_route_config { type: "FleetSchedulerTickRouteReceipt"; timestamp: now() }
+}

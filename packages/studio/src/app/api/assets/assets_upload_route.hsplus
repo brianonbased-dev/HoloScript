@@ -1,0 +1,10 @@
+// @assets_upload_route — Assets upload route: handles multipart file upload for scene assets.
+//
+// Native .hsplus surface for studio/src/app/api/assets/upload/route.ts.
+
+@trait assets_upload_route {
+  capability_tags: ["assets_upload_route", "asset_multipart_upload_api", "studio_asset_upload", "studio"]
+  @on_spawn => { emit("assets_upload_route_ready", {}) }
+  @on_post(request) => { return upload_scene_asset(request) }
+  @receipt assets_upload_route_config { type: "AssetsUploadRouteReceipt"; timestamp: now() }
+}

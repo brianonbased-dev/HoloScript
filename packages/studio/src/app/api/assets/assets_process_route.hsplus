@@ -1,0 +1,10 @@
+// @assets_process_route — Assets process route: triggers asset processing pipeline (optimize, transcode, generate LODs).
+//
+// Native .hsplus surface for studio/src/app/api/assets/process/route.ts.
+
+@trait assets_process_route {
+  capability_tags: ["assets_process_route", "asset_process_pipeline_api", "asset_optimize_transcode", "studio"]
+  @on_spawn => { emit("assets_process_route_ready", {}) }
+  @on_post(request) => { return trigger_asset_processing(request) }
+  @receipt assets_process_route_config { type: "AssetsProcessRouteReceipt"; timestamp: now() }
+}

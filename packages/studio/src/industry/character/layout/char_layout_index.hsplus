@@ -1,0 +1,9 @@
+// @industry_char_layout — Industry character layout: defines industry-specific layout panels for the character module.
+//
+// Native .hsplus surface for studio/src/industry/character/layout/index.ts.
+
+@trait industry_char_layout {
+  capability_tags: ["industry_char_layout", "char_industry_panel_layout", "studio_char_layout_hook", "studio"]
+  @on_spawn => { emit("industry_char_layout_ready", {}) }
+  @receipt industry_char_layout_config { type: "IndustryCharLayoutReceipt"; timestamp: now() }
+}

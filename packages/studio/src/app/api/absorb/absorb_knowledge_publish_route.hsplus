@@ -1,0 +1,10 @@
+// @absorb_knowledge_publish_route — Absorb knowledge publish route: publishes absorbed knowledge to the team knowledge store.
+//
+// Native .hsplus surface for studio/src/app/api/absorb/knowledge/publish/route.ts.
+
+@trait absorb_knowledge_publish_route {
+  capability_tags: ["absorb_knowledge_publish_route", "knowledge_publish_api", "team_knowledge_store_publish", "studio"]
+  @on_spawn => { emit("absorb_knowledge_publish_route_ready", {}) }
+  @on_post(request) => { return publish_knowledge(request) }
+  @receipt absorb_knowledge_publish_route_config { type: "AbsorbKnowledgePublishRouteReceipt"; timestamp: now() }
+}

@@ -1,0 +1,9 @@
+// @auth_nextauth_route — Auth NextAuth route: NextAuth.js catch-all handler for Studio OAuth/session auth.
+//
+// Native .hsplus surface for studio/src/app/api/auth/[...nextauth]/route.ts.
+
+@trait auth_nextauth_route {
+  capability_tags: ["auth_nextauth_route", "nextauth_oauth_session_api", "studio_auth_handler", "studio"]
+  @on_spawn => { emit("auth_nextauth_route_ready", {}) }
+  @receipt auth_nextauth_route_config { type: "AuthNextauthRouteReceipt"; timestamp: now() }
+}

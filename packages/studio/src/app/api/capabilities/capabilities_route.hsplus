@@ -1,0 +1,10 @@
+// @capabilities_route — Capabilities route: lists enabled Studio and HoloScript capabilities for the current session.
+//
+// Native .hsplus surface for studio/src/app/api/capabilities/route.ts.
+
+@trait capabilities_route {
+  capability_tags: ["capabilities_route", "studio_capability_list_api", "session_capability_check", "studio"]
+  @on_spawn => { emit("capabilities_route_ready", {}) }
+  @on_get(request) => { return list_session_capabilities(request) }
+  @receipt capabilities_route_config { type: "CapabilitiesRouteReceipt"; timestamp: now() }
+}

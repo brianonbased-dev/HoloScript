@@ -1,0 +1,10 @@
+// @assets_route — Assets route: list, search, and delete scene assets via the Studio API.
+//
+// Native .hsplus surface for studio/src/app/api/assets/route.ts.
+
+@trait assets_route {
+  capability_tags: ["assets_route", "asset_list_search_delete_api", "studio_assets_api", "studio"]
+  @on_spawn => { emit("assets_route_ready", {}) }
+  @on_get(request) => { return list_scene_assets(request) }
+  @receipt assets_route_config { type: "AssetsRouteReceipt"; timestamp: now() }
+}

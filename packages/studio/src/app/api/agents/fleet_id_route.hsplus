@@ -1,0 +1,10 @@
+// @fleet_agent_id_route — Fleet agent by-ID route: GET/PATCH/DELETE a specific fleet agent instance.
+//
+// Native .hsplus surface for studio/src/app/api/agents/fleet/[id]/route.ts.
+
+@trait fleet_agent_id_route {
+  capability_tags: ["fleet_agent_id_route", "fleet_agent_crud_api", "studio_fleet_agent_manage", "studio"]
+  @on_spawn => { emit("fleet_agent_id_route_ready", {}) }
+  @on_get(request, agent_id) => { return get_fleet_agent(request, agent_id) }
+  @receipt fleet_agent_id_route_config { type: "FleetAgentIdRouteReceipt"; timestamp: now() }
+}

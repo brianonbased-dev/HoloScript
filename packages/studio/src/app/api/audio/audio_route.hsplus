@@ -1,0 +1,10 @@
+// @audio_route — Audio route: streams and manages audio files attached to the current scene.
+//
+// Native .hsplus surface for studio/src/app/api/audio/route.ts.
+
+@trait audio_route {
+  capability_tags: ["audio_route", "scene_audio_stream_manage_api", "studio_audio_api", "studio"]
+  @on_spawn => { emit("audio_route_ready", {}) }
+  @on_get(request) => { return get_scene_audio(request) }
+  @receipt audio_route_config { type: "AudioRouteReceipt"; timestamp: now() }
+}

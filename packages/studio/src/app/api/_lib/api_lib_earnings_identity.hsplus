@@ -1,0 +1,10 @@
+// @api_lib_earnings_identity — API lib earnings identity: resolves wallet identity for creator earnings API calls.
+//
+// Native .hsplus surface for studio/src/app/api/_lib/earningsIdentity.ts.
+
+@trait api_lib_earnings_identity {
+  capability_tags: ["api_lib_earnings_identity", "creator_wallet_resolve_api", "earnings_identity_hook", "studio"]
+  @on_spawn => { emit("api_lib_earnings_identity_ready", {}) }
+  @on_resolve(request) => { return resolve_earnings_identity(request) }
+  @receipt api_lib_earnings_identity_config { type: "ApiLibEarningsIdentityReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @absorb_credits_route — Absorb credits route: GET/POST for absorb credit balance and consumption.
+//
+// Native .hsplus surface for studio/src/app/api/absorb/credits/route.ts.
+
+@trait absorb_credits_route {
+  capability_tags: ["absorb_credits_route", "absorb_credit_balance_api", "studio_absorb_credits", "studio"]
+  @on_spawn => { emit("absorb_credits_route_ready", {}) }
+  @on_get(request) => { return get_absorb_credits(request) }
+  @receipt absorb_credits_route_config { type: "AbsorbCreditsRouteReceipt"; timestamp: now() }
+}

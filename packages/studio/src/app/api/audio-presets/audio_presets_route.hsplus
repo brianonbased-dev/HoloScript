@@ -1,0 +1,10 @@
+// @audio_presets_route — Audio presets route: lists and creates spatial audio presets for the scene.
+//
+// Native .hsplus surface for studio/src/app/api/audio-presets/route.ts.
+
+@trait audio_presets_route {
+  capability_tags: ["audio_presets_route", "spatial_audio_preset_api", "scene_audio_preset_crud", "studio"]
+  @on_spawn => { emit("audio_presets_route_ready", {}) }
+  @on_get(request) => { return list_audio_presets(request) }
+  @receipt audio_presets_route_config { type: "AudioPresetsRouteReceipt"; timestamp: now() }
+}

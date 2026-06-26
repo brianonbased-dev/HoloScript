@@ -1,0 +1,11 @@
+// @absorb_projects_route — Absorb projects route: list and create absorb projects via the Studio API.
+//
+// Native .hsplus surface for studio/src/app/api/absorb/projects/route.ts.
+
+@trait absorb_projects_route {
+  capability_tags: ["absorb_projects_route", "absorb_project_list_create_api", "studio_absorb_projects_api", "studio"]
+  @on_spawn => { emit("absorb_projects_route_ready", {}) }
+  @on_get(request) => { return list_absorb_projects(request) }
+  @on_post(request) => { return create_absorb_project(request) }
+  @receipt absorb_projects_route_config { type: "AbsorbProjectsRouteReceipt"; timestamp: now() }
+}

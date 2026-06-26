@@ -1,0 +1,10 @@
+// @autocomplete_route — Autocomplete route: serves HoloScript token autocompletion suggestions via the Studio API.
+//
+// Native .hsplus surface for studio/src/app/api/autocomplete/route.ts.
+
+@trait autocomplete_route {
+  capability_tags: ["autocomplete_route", "holoscript_autocomplete_api", "token_suggestion_api", "studio"]
+  @on_spawn => { emit("autocomplete_route_ready", {}) }
+  @on_post(request) => { return get_autocomplete_suggestions(request) }
+  @receipt autocomplete_route_config { type: "AutocompleteRouteReceipt"; timestamp: now() }
+}

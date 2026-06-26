@@ -1,0 +1,10 @@
+// @api_lib_body_size — API lib body-size: middleware enforcing request body-size limits on Studio API routes.
+//
+// Native .hsplus surface for studio/src/app/api/_lib/body-size.ts.
+
+@trait api_lib_body_size {
+  capability_tags: ["api_lib_body_size", "request_body_size_limit", "studio_api_middleware", "studio"]
+  @on_spawn => { emit("api_lib_body_size_ready", {}) }
+  @on_check(request) => { return check_body_size(request) }
+  @receipt api_lib_body_size_config { type: "ApiLibBodySizeReceipt"; timestamp: now() }
+}

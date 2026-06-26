@@ -1,0 +1,9 @@
+// @absorb_components_index — Absorb components index: re-exports absorb UI components for the Studio absorb page.
+//
+// Native .hsplus surface for studio/src/app/absorb/components/index.ts.
+
+@trait absorb_components_index {
+  capability_tags: ["absorb_components_index", "absorb_ui_component_reexport", "studio_absorb_page_ui", "studio"]
+  @on_spawn => { emit("absorb_components_index_ready", {}) }
+  @receipt absorb_components_index_config { type: "AbsorbComponentsIndexReceipt"; timestamp: now() }
+}

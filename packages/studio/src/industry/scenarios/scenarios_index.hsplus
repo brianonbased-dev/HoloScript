@@ -1,0 +1,9 @@
+// @industry_scenarios_index — Industry scenarios index: entry for industry-specific pre-built scenario templates.
+//
+// Native .hsplus surface for studio/src/industry/scenarios/index.ts.
+
+@trait industry_scenarios_index {
+  capability_tags: ["industry_scenarios_index", "industry_scenario_template", "studio_scenario_industry", "studio"]
+  @on_spawn => { emit("industry_scenarios_index_ready", {}) }
+  @receipt industry_scenarios_index_config { type: "IndustryScenariosIndexReceipt"; timestamp: now() }
+}

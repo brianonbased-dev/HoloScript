@@ -1,0 +1,10 @@
+// @audit_route — Audit route: appends and queries the Studio audit log (who changed what, when).
+//
+// Native .hsplus surface for studio/src/app/api/audit/route.ts.
+
+@trait audit_route {
+  capability_tags: ["audit_route", "studio_audit_log_api", "change_audit_query_api", "studio"]
+  @on_spawn => { emit("audit_route_ready", {}) }
+  @on_get(request) => { return query_audit_log(request) }
+  @receipt audit_route_config { type: "AuditRouteReceipt"; timestamp: now() }
+}

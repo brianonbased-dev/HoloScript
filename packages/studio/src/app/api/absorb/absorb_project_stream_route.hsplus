@@ -1,0 +1,10 @@
+// @absorb_project_stream_route — Absorb project stream route: SSE stream of absorb pipeline progress events for a project.
+//
+// Native .hsplus surface for studio/src/app/api/absorb/projects/[id]/absorb/stream/route.ts.
+
+@trait absorb_project_stream_route {
+  capability_tags: ["absorb_project_stream_route", "absorb_sse_progress_stream", "project_absorb_sse_api", "studio"]
+  @on_spawn => { emit("absorb_project_stream_route_ready", {}) }
+  @on_get(request, project_id) => { return stream_absorb_progress(request, project_id) }
+  @receipt absorb_project_stream_route_config { type: "AbsorbProjectStreamRouteReceipt"; timestamp: now() }
+}

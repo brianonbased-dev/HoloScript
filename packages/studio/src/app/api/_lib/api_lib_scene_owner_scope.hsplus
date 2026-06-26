@@ -1,0 +1,10 @@
+// @api_lib_scene_owner_scope — API lib scene owner scope: enforces ownership scope checks for scene mutation APIs.
+//
+// Native .hsplus surface for studio/src/app/api/_lib/sceneOwnerScope.ts.
+
+@trait api_lib_scene_owner_scope {
+  capability_tags: ["api_lib_scene_owner_scope", "scene_ownership_scope_check", "studio_api_authz", "studio"]
+  @on_spawn => { emit("api_lib_scene_owner_scope_ready", {}) }
+  @on_check(request, scene_id) => { return check_scene_owner_scope(request, scene_id) }
+  @receipt api_lib_scene_owner_scope_config { type: "ApiLibSceneOwnerScopeReceipt"; timestamp: now() }
+}

@@ -1,0 +1,11 @@
+// @brittney_convos_route — Brittney conversations route: lists and creates Brittney NPC conversation threads.
+//
+// Native .hsplus surface for studio/src/app/api/brittney/conversations/route.ts.
+
+@trait brittney_convos_route {
+  capability_tags: ["brittney_convos_route", "brittney_convo_list_create", "studio_brittney_convo_api", "studio"]
+  @on_spawn => { emit("brittney_convos_route_ready", {}) }
+  @on_get(request) => { return list_brittney_conversations(request) }
+  @on_post(request) => { return create_brittney_conversation(request) }
+  @receipt brittney_convos_route_config { type: "BrittneyConvosRouteReceipt"; timestamp: now() }
+}

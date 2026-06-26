@@ -1,0 +1,10 @@
+// @conjecture_receipt_replay_route — Conjecture receipt replay route: replays an archived conjecture execution receipt.
+//
+// Native .hsplus surface for studio/src/app/api/conjecture/receipts/[receiptKey]/replay/route.ts.
+
+@trait conjecture_receipt_replay_route {
+  capability_tags: ["conjecture_receipt_replay_route", "conjecture_receipt_replay_api", "cael_receipt_replay", "studio"]
+  @on_spawn => { emit("conjecture_receipt_replay_route_ready", {}) }
+  @on_post(request, receipt_key) => { return replay_conjecture_receipt(request, receipt_key) }
+  @receipt conjecture_receipt_replay_route_config { type: "ConjectureReceiptReplayRouteReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @well_known_agent_card_route — Agent card route: serves the .well-known/agent-card.json for A2A discovery.
+//
+// Native .hsplus surface for studio/src/app/.well-known/agent-card.json/route.ts.
+
+@trait well_known_agent_card_route {
+  capability_tags: ["well_known_agent_card_route", "a2a_discovery_agent_card", "well_known_route_handler", "studio"]
+  @on_spawn => { emit("well_known_agent_card_route_ready", {}) }
+  @on_get(request) => { return serve_agent_card(request) }
+  @receipt well_known_agent_card_route_config { type: "WellKnownAgentCardRouteReceipt"; timestamp: now() }
+}

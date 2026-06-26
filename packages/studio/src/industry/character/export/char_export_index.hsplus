@@ -1,0 +1,10 @@
+// @industry_char_export — Industry character export: exports industry characters to GLB, USDZ, and VRM formats.
+//
+// Native .hsplus surface for studio/src/industry/character/export/index.ts.
+
+@trait industry_char_export {
+  capability_tags: ["industry_char_export", "char_glb_usdz_vrm_export", "industry_char_format_out", "studio"]
+  @on_spawn => { emit("industry_char_export_ready", {}) }
+  @on_export(char_id, format) => { result = export_industry_char(char_id, format); return result }
+  @receipt industry_char_export_config { type: "IndustryCharExportReceipt"; timestamp: now() }
+}

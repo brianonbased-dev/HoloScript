@@ -1,0 +1,10 @@
+// @brittney_route — Brittney route: top-level Brittney NPC API (invoke, status, configure voice).
+//
+// Native .hsplus surface for studio/src/app/api/brittney/route.ts.
+
+@trait brittney_route {
+  capability_tags: ["brittney_route", "brittney_npc_toplevel_api", "brittney_invoke_status_voice", "studio"]
+  @on_spawn => { emit("brittney_route_ready", {}) }
+  @on_post(request) => { return invoke_brittney(request) }
+  @receipt brittney_route_config { type: "BrittneyRouteReceipt"; timestamp: now() }
+}

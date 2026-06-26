@@ -1,0 +1,10 @@
+// @absorb_project_knowledge_route — Absorb project knowledge route: queries the knowledge graph for a specific project.
+//
+// Native .hsplus surface for studio/src/app/api/absorb/projects/[id]/knowledge/route.ts.
+
+@trait absorb_project_knowledge_route {
+  capability_tags: ["absorb_project_knowledge_route", "project_knowledge_query_api", "absorb_knowledge_graph_api", "studio"]
+  @on_spawn => { emit("absorb_project_knowledge_route_ready", {}) }
+  @on_post(request, project_id) => { return query_project_knowledge(request, project_id) }
+  @receipt absorb_project_knowledge_route_config { type: "AbsorbProjectKnowledgeRouteReceipt"; timestamp: now() }
+}

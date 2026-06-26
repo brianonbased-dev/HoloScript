@@ -1,0 +1,9 @@
+// @industry_char_customizer — Industry character customizer: domain-specific character customization options (appearance, attire).
+//
+// Native .hsplus surface for studio/src/industry/character/customizer/index.ts.
+
+@trait industry_char_customizer {
+  capability_tags: ["industry_char_customizer", "domain_char_customize_option", "char_appearance_attire", "studio"]
+  @on_spawn => { emit("industry_char_customizer_ready", {}) }
+  @receipt industry_char_customizer_config { type: "IndustryCharCustomizerReceipt"; timestamp: now() }
+}

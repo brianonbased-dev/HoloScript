@@ -1,0 +1,10 @@
+// @brittney_convo_id_route — Brittney conversation by-ID route: GET/PATCH/DELETE a specific Brittney conversation.
+//
+// Native .hsplus surface for studio/src/app/api/brittney/conversations/[id]/route.ts.
+
+@trait brittney_convo_id_route {
+  capability_tags: ["brittney_convo_id_route", "brittney_convo_crud_api", "studio_brittney_convo_manage", "studio"]
+  @on_spawn => { emit("brittney_convo_id_route_ready", {}) }
+  @on_get(request, convo_id) => { return get_brittney_conversation(request, convo_id) }
+  @receipt brittney_convo_id_route_config { type: "BrittneyConvoIdRouteReceipt"; timestamp: now() }
+}

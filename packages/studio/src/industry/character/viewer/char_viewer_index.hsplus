@@ -1,0 +1,9 @@
+// @industry_char_viewer — Industry character viewer: 3D character preview viewer for industry use cases.
+//
+// Native .hsplus surface for studio/src/industry/character/viewer/index.ts.
+
+@trait industry_char_viewer {
+  capability_tags: ["industry_char_viewer", "3d_char_preview_viewer", "industry_viewer_hook", "studio"]
+  @on_spawn => { emit("industry_char_viewer_ready", {}) }
+  @receipt industry_char_viewer_config { type: "IndustryCharViewerReceipt"; timestamp: now() }
+}

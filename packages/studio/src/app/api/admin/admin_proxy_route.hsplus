@@ -1,0 +1,10 @@
+// @admin_proxy_route — Admin proxy route: catch-all proxy for admin panel API requests.
+//
+// Native .hsplus surface for studio/src/app/api/admin/[[...path]]/route.ts.
+
+@trait admin_proxy_route {
+  capability_tags: ["admin_proxy_route", "admin_panel_api_proxy", "studio_admin_catchall_route", "studio"]
+  @on_spawn => { emit("admin_proxy_route_ready", {}) }
+  @on_request(request, path) => { return proxy_admin_request(request, path) }
+  @receipt admin_proxy_route_config { type: "AdminProxyRouteReceipt"; timestamp: now() }
+}

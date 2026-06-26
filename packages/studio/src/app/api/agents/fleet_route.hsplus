@@ -1,0 +1,11 @@
+// @fleet_route — Fleet route: lists and provisions fleet agents via the Studio API.
+//
+// Native .hsplus surface for studio/src/app/api/agents/fleet/route.ts.
+
+@trait fleet_route {
+  capability_tags: ["fleet_route", "fleet_agent_list_provision_api", "studio_fleet_api", "studio"]
+  @on_spawn => { emit("fleet_route_ready", {}) }
+  @on_get(request) => { return list_fleet_agents(request) }
+  @on_post(request) => { return provision_fleet_agent(request) }
+  @receipt fleet_route_config { type: "FleetRouteReceipt"; timestamp: now() }
+}

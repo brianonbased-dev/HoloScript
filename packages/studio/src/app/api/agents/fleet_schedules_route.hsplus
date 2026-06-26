@@ -1,0 +1,11 @@
+// @fleet_schedules_route — Fleet schedules route: CRUD for fleet agent scheduled job definitions.
+//
+// Native .hsplus surface for studio/src/app/api/agents/fleet/schedules/route.ts.
+
+@trait fleet_schedules_route {
+  capability_tags: ["fleet_schedules_route", "fleet_scheduled_job_crud", "studio_fleet_schedule_api", "studio"]
+  @on_spawn => { emit("fleet_schedules_route_ready", {}) }
+  @on_get(request) => { return list_fleet_schedules(request) }
+  @on_post(request) => { return create_fleet_schedule(request) }
+  @receipt fleet_schedules_route_config { type: "FleetSchedulesRouteReceipt"; timestamp: now() }
+}

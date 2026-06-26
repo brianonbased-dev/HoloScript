@@ -1,0 +1,9 @@
+// @industry_character_index — Industry character index: top-level entry for the character industry module.
+//
+// Native .hsplus surface for studio/src/industry/character/index.ts.
+
+@trait industry_character_index {
+  capability_tags: ["industry_character_index", "character_industry_module_entry", "studio_industry_char", "studio"]
+  @on_spawn => { emit("industry_character_index_ready", {}) }
+  @receipt industry_character_index_config { type: "IndustryCharacterIndexReceipt"; timestamp: now() }
+}

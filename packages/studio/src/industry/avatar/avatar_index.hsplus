@@ -1,0 +1,9 @@
+// @industry_avatar_index — Industry avatar index: entry point for the industry-specific avatar module in Studio.
+//
+// Native .hsplus surface for studio/src/industry/avatar/index.ts.
+
+@trait industry_avatar_index {
+  capability_tags: ["industry_avatar_index", "industry_avatar_module_entry", "studio_avatar_industry", "studio"]
+  @on_spawn => { emit("industry_avatar_index_ready", {}) }
+  @receipt industry_avatar_index_config { type: "IndustryAvatarIndexReceipt"; timestamp: now() }
+}

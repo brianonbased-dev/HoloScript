@@ -1,0 +1,10 @@
+// @absorb_project_absorb_route — Absorb project absorb route: triggers absorb pipeline for a specific project.
+//
+// Native .hsplus surface for studio/src/app/api/absorb/projects/[id]/absorb/route.ts.
+
+@trait absorb_project_absorb_route {
+  capability_tags: ["absorb_project_absorb_route", "project_absorb_pipeline_trigger", "studio_project_absorb_api", "studio"]
+  @on_spawn => { emit("absorb_project_absorb_route_ready", {}) }
+  @on_post(request, project_id) => { return trigger_project_absorb(request, project_id) }
+  @receipt absorb_project_absorb_route_config { type: "AbsorbProjectAbsorbRouteReceipt"; timestamp: now() }
+}

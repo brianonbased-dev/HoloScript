@@ -1,0 +1,10 @@
+// @asset_packs_route — Asset packs route: list and install asset packs via the Studio API.
+//
+// Native .hsplus surface for studio/src/app/api/asset-packs/route.ts.
+
+@trait asset_packs_route {
+  capability_tags: ["asset_packs_route", "asset_pack_list_install_api", "studio_asset_pack_api", "studio"]
+  @on_spawn => { emit("asset_packs_route_ready", {}) }
+  @on_get(request) => { return list_asset_packs(request) }
+  @receipt asset_packs_route_config { type: "AssetPacksRouteReceipt"; timestamp: now() }
+}

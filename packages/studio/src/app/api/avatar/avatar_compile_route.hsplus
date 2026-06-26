@@ -1,0 +1,10 @@
+// @avatar_compile_route — Avatar compile route: compiles avatar trait compositions to Quest/VRM/GLB targets.
+//
+// Native .hsplus surface for studio/src/app/api/avatar/compile/route.ts.
+
+@trait avatar_compile_route {
+  capability_tags: ["avatar_compile_route", "avatar_compile_quest_vrm_glb", "studio_avatar_compile_api", "studio"]
+  @on_spawn => { emit("avatar_compile_route_ready", {}) }
+  @on_post(request) => { return compile_avatar(request) }
+  @receipt avatar_compile_route_config { type: "AvatarCompileRouteReceipt"; timestamp: now() }
+}

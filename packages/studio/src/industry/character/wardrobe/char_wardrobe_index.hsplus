@@ -1,0 +1,9 @@
+// @industry_char_wardrobe — Industry character wardrobe: domain-specific wardrobe items and outfit management.
+//
+// Native .hsplus surface for studio/src/industry/character/wardrobe/index.ts.
+
+@trait industry_char_wardrobe {
+  capability_tags: ["industry_char_wardrobe", "domain_wardrobe_outfit_hook", "char_wardrobe_item_manage", "studio"]
+  @on_spawn => { emit("industry_char_wardrobe_ready", {}) }
+  @receipt industry_char_wardrobe_config { type: "IndustryCharWardrobeReceipt"; timestamp: now() }
+}

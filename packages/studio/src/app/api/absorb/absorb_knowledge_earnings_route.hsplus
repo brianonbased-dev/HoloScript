@@ -1,0 +1,10 @@
+// @absorb_knowledge_earnings_route — Absorb knowledge earnings route: reports creator earnings from knowledge queries.
+//
+// Native .hsplus surface for studio/src/app/api/absorb/knowledge/earnings/route.ts.
+
+@trait absorb_knowledge_earnings_route {
+  capability_tags: ["absorb_knowledge_earnings_route", "creator_knowledge_earnings_api", "absorb_earnings_report", "studio"]
+  @on_spawn => { emit("absorb_knowledge_earnings_route_ready", {}) }
+  @on_get(request) => { return get_knowledge_earnings(request) }
+  @receipt absorb_knowledge_earnings_route_config { type: "AbsorbKnowledgeEarningsRouteReceipt"; timestamp: now() }
+}

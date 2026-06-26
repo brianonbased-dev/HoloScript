@@ -1,0 +1,10 @@
+// @fleet_dispatch_route — Fleet dispatch route: dispatches tasks to fleet agents via the Studio API.
+//
+// Native .hsplus surface for studio/src/app/api/agents/fleet/dispatch/route.ts.
+
+@trait fleet_dispatch_route {
+  capability_tags: ["fleet_dispatch_route", "fleet_agent_task_dispatch_api", "studio_fleet_dispatch", "studio"]
+  @on_spawn => { emit("fleet_dispatch_route_ready", {}) }
+  @on_post(request) => { return dispatch_fleet_task(request) }
+  @receipt fleet_dispatch_route_config { type: "FleetDispatchRouteReceipt"; timestamp: now() }
+}

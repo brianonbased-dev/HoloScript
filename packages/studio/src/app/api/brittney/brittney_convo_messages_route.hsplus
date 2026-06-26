@@ -1,0 +1,11 @@
+// @brittney_convo_messages_route — Brittney conversation messages route: lists and adds messages to a Brittney conversation.
+//
+// Native .hsplus surface for studio/src/app/api/brittney/conversations/[id]/messages/route.ts.
+
+@trait brittney_convo_messages_route {
+  capability_tags: ["brittney_convo_messages_route", "brittney_convo_message_api", "brittney_chat_message_crud", "studio"]
+  @on_spawn => { emit("brittney_convo_messages_route_ready", {}) }
+  @on_get(request, convo_id) => { return list_brittney_messages(request, convo_id) }
+  @on_post(request, convo_id) => { return add_brittney_message(request, convo_id) }
+  @receipt brittney_convo_messages_route_config { type: "BrittneyConvoMessagesRouteReceipt"; timestamp: now() }
+}

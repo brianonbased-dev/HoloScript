@@ -1,0 +1,9 @@
+// @absorb_components_utils — Absorb component utils: shared utility functions for the Studio absorb UI components.
+//
+// Native .hsplus surface for studio/src/app/absorb/components/utils.ts.
+
+@trait absorb_components_utils {
+  capability_tags: ["absorb_components_utils", "absorb_ui_util_functions", "studio_absorb_ui_helper", "studio"]
+  @on_spawn => { emit("absorb_components_utils_ready", {}) }
+  @receipt absorb_components_utils_config { type: "AbsorbComponentsUtilsReceipt"; timestamp: now() }
+}

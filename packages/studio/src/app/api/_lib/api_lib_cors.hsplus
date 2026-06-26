@@ -1,0 +1,10 @@
+// @api_lib_cors — API lib CORS: configures CORS headers for Studio API route handlers.
+//
+// Native .hsplus surface for studio/src/app/api/_lib/cors.ts.
+
+@trait api_lib_cors {
+  capability_tags: ["api_lib_cors", "cors_header_config_middleware", "studio_api_cors", "studio"]
+  @on_spawn => { emit("api_lib_cors_ready", {}) }
+  @on_apply(response) => { return apply_cors_headers(response) }
+  @receipt api_lib_cors_config { type: "ApiLibCorsReceipt"; timestamp: now() }
+}

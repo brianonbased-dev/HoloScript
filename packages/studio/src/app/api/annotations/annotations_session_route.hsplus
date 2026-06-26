@@ -1,0 +1,10 @@
+// @annotations_session_route — Annotations session route: CRUD for scene annotations scoped to a session.
+//
+// Native .hsplus surface for studio/src/app/api/annotations/[sessionId]/route.ts.
+
+@trait annotations_session_route {
+  capability_tags: ["annotations_session_route", "scene_annotation_session_api", "studio_annotation_crud", "studio"]
+  @on_spawn => { emit("annotations_session_route_ready", {}) }
+  @on_get(request, session_id) => { return get_session_annotations(request, session_id) }
+  @receipt annotations_session_route_config { type: "AnnotationsSessionRouteReceipt"; timestamp: now() }
+}
