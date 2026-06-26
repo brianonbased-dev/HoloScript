@@ -1,0 +1,10 @@
+// @hologram_content_tools — Hologram content tools: MCP tools for hologram content lifecycle (render, send, publish).
+//
+// Native .hsplus surface for mcp-server/src/hologram-content-tools.ts.
+
+@trait hologram_content_tools {
+  capability_tags: ["hologram_content_tools", "hologram_render_send", "hologram_lifecycle_mcp", "mcp_server"]
+  @on_spawn => { emit("hologram_content_tools_ready", {}) }
+  @on_render(spec) => { hologram = render_hologram_content(spec); return hologram }
+  @receipt hologram_content_tools_config { type: "HologramContentToolsReceipt"; timestamp: now() }
+}

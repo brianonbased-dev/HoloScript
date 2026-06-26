@@ -1,0 +1,10 @@
+// @holomesh_scout_profile — HoloMesh scout profile: defines the scout agent capability profile for HoloMesh discovery.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/agent/scout-profile.ts.
+
+@trait holomesh_scout_profile {
+  capability_tags: ["holomesh_scout_profile", "scout_agent_profile", "holomesh_discovery_scout", "mcp_server"]
+  @on_spawn => { emit("holomesh_scout_profile_ready", {}) }
+  @on_scout(query) => { results = run_holomesh_scout(query); return results }
+  @receipt holomesh_scout_profile_config { type: "HolomeshScoutProfileReceipt"; timestamp: now() }
+}

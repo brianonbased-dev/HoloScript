@@ -1,0 +1,10 @@
+// @signing_middleware — Signing middleware: Express middleware that enforces EIP-712 request signing on HoloMesh routes.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/identity/signing-middleware.ts.
+
+@trait signing_middleware {
+  capability_tags: ["signing_middleware", "eip712_request_sign", "holomesh_route_auth", "mcp_server"]
+  @on_spawn => { emit("signing_middleware_ready", {}) }
+  @on_verify(request) => { result = verify_request_signature(request); return result }
+  @receipt signing_middleware_config { type: "SigningMiddlewareReceipt"; timestamp: now() }
+}

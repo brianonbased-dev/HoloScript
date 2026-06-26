@@ -1,0 +1,10 @@
+// @dual_signature_envelope — Dual signature envelope: wraps messages with dual EIP-712 signatures for co-signing workflows.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/identity/dual-signature-envelope.ts.
+
+@trait dual_signature_envelope {
+  capability_tags: ["dual_signature_envelope", "eip712_dual_sign", "cosign_envelope", "mcp_server"]
+  @on_spawn => { emit("dual_signature_envelope_ready", {}) }
+  @on_wrap(message, signers) => { envelope = wrap_dual_signature(message, signers); return envelope }
+  @receipt dual_signature_envelope_config { type: "DualSignatureEnvelopeReceipt"; timestamp: now() }
+}

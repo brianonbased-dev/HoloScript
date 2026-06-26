@@ -1,0 +1,11 @@
+// @holomesh_mesh_tool_registry — HoloMesh mesh tool registry: runtime registry of MCP tools available to HoloMesh agents.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/mesh-tool-registry.ts.
+
+@trait holomesh_mesh_tool_registry {
+  capability_tags: ["holomesh_mesh_tool_registry", "mcp_tool_runtime_registry", "holomesh_agent_tools", "mcp_server"]
+  @on_spawn => { emit("holomesh_mesh_tool_registry_ready", {}) }
+  @on_register(tool) => { register_mesh_tool(tool) }
+  @on_list => { return list_mesh_tools() }
+  @receipt holomesh_mesh_tool_registry_config { type: "HolomeshMeshToolRegistryReceipt"; timestamp: now() }
+}

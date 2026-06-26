@@ -1,0 +1,9 @@
+// @holomesh_index — HoloMesh index: package entry point for HoloMesh team coordination module.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/index.ts.
+
+@trait holomesh_index {
+  capability_tags: ["holomesh_index", "holomesh_module_entry", "team_coordination_entry", "mcp_server"]
+  @on_spawn => { emit("holomesh_index_ready", {}) }
+  @receipt holomesh_index_config { type: "HolomeshIndexReceipt"; timestamp: now() }
+}

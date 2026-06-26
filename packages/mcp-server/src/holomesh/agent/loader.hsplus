@@ -1,0 +1,10 @@
+// @holomesh_agent_loader — HoloMesh agent loader: loads agent configurations and .hsplus brain definitions for HoloMesh.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/agent/loader.ts.
+
+@trait holomesh_agent_loader {
+  capability_tags: ["holomesh_agent_loader", "agent_brain_load", "holomesh_agent_config", "mcp_server"]
+  @on_spawn => { emit("holomesh_agent_loader_ready", {}) }
+  @on_load(agent_id) => { agent = load_holomesh_agent(agent_id); return agent }
+  @receipt holomesh_agent_loader_config { type: "HolomeshAgentLoaderReceipt"; timestamp: now() }
+}

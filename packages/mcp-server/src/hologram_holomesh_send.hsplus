@@ -1,0 +1,10 @@
+// @hologram_holomesh_send — Hologram HoloMesh send: sends hologram content to HoloMesh team feed.
+//
+// Native .hsplus surface for mcp-server/src/hologram-holomesh-send.ts.
+
+@trait hologram_holomesh_send {
+  capability_tags: ["hologram_holomesh_send", "hologram_team_feed", "holomesh_hologram_publish", "mcp_server"]
+  @on_spawn => { emit("hologram_holomesh_send_ready", {}) }
+  @on_send(hologram, team_id) => { result = send_hologram_to_holomesh(hologram, team_id); return result }
+  @receipt hologram_holomesh_send_config { type: "HologramHolomeshSendReceipt"; timestamp: now() }
+}

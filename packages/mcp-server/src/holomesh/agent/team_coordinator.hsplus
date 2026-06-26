@@ -1,0 +1,10 @@
+// @holomesh_team_coordinator — HoloMesh team coordinator: coordinates task distribution across HoloMesh team agents.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/agent/team-coordinator.ts.
+
+@trait holomesh_team_coordinator {
+  capability_tags: ["holomesh_team_coordinator", "team_task_distribute", "holomesh_coordination", "mcp_server"]
+  @on_spawn => { emit("holomesh_team_coordinator_ready", {}) }
+  @on_coordinate(task) => { result = coordinate_team_task(task); return result }
+  @receipt holomesh_team_coordinator_config { type: "HolomeshTeamCoordinatorReceipt"; timestamp: now() }
+}

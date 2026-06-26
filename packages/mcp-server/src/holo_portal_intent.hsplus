@@ -1,0 +1,10 @@
+// @holo_portal_intent — Holo portal intent: MCP tools for pushing portal navigation intents to XR clients.
+//
+// Native .hsplus surface for mcp-server/src/holo-portal-intent.ts.
+
+@trait holo_portal_intent {
+  capability_tags: ["holo_portal_intent", "xr_portal_navigate", "portal_intent_mcp", "mcp_server"]
+  @on_spawn => { emit("holo_portal_intent_ready", {}) }
+  @on_push(intent) => { result = push_portal_intent(intent); return result }
+  @receipt holo_portal_intent_config { type: "HoloPortalIntentReceipt"; timestamp: now() }
+}

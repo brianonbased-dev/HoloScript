@@ -1,0 +1,10 @@
+// @identity_audit_log — Identity audit log: append-only audit log for identity and wallet operations on HoloMesh.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/identity/audit-log.ts.
+
+@trait identity_audit_log {
+  capability_tags: ["identity_audit_log", "wallet_op_audit", "identity_append_log", "mcp_server"]
+  @on_spawn => { emit("identity_audit_log_ready", {}) }
+  @on_log(operation) => { append_identity_audit_log(operation) }
+  @receipt identity_audit_log_config { type: "IdentityAuditLogReceipt"; timestamp: now() }
+}

@@ -1,0 +1,11 @@
+// @holo_tunnel_tools — Holo tunnel tools: MCP tools for creating and managing secure tunnels for HoloScript services.
+//
+// Native .hsplus surface for mcp-server/src/holo-tunnel-tools.ts.
+
+@trait holo_tunnel_tools {
+  capability_tags: ["holo_tunnel_tools", "secure_tunnel_mcp", "holoscript_tunnel", "mcp_server"]
+  @on_spawn => { emit("holo_tunnel_tools_ready", {}) }
+  @on_create(spec) => { tunnel = create_holo_tunnel(spec); return tunnel }
+  @on_close(tunnel_id) => { close_holo_tunnel(tunnel_id) }
+  @receipt holo_tunnel_tools_config { type: "HoloTunnelToolsReceipt"; timestamp: now() }
+}

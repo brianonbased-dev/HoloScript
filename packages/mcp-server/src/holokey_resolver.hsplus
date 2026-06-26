@@ -1,0 +1,10 @@
+// @holokey_resolver — HoloKey resolver: resolves service secrets via HoloKey vault for MCP server operations.
+//
+// Native .hsplus surface for mcp-server/src/holokey-resolver.ts.
+
+@trait holokey_resolver {
+  capability_tags: ["holokey_resolver", "holokey_vault_resolve", "service_secret_mcp", "mcp_server"]
+  @on_spawn => { emit("holokey_resolver_ready", {}) }
+  @on_resolve(secret_name) => { secret = resolve_holokey_secret(secret_name); return secret }
+  @receipt holokey_resolver_config { type: "HolokeyResolverReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @hologram_worker_client — Hologram worker client: client for dispatching hologram render jobs to worker pool.
+//
+// Native .hsplus surface for mcp-server/src/hologram-worker-client.ts.
+
+@trait hologram_worker_client {
+  capability_tags: ["hologram_worker_client", "hologram_render_worker", "render_job_dispatch", "mcp_server"]
+  @on_spawn => { emit("hologram_worker_client_ready", {}) }
+  @on_dispatch(job) => { result = dispatch_hologram_worker_job(job); return result }
+  @receipt hologram_worker_client_config { type: "HologramWorkerClientReceipt"; timestamp: now() }
+}

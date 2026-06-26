@@ -1,0 +1,10 @@
+// @holo_video_ingest — Holo video ingest: ingests video streams for frame extraction and 3D reconstruction input.
+//
+// Native .hsplus surface for mcp-server/src/holo-video-ingest.ts.
+
+@trait holo_video_ingest {
+  capability_tags: ["holo_video_ingest", "video_frame_extract", "3d_reconstruction_input", "mcp_server"]
+  @on_spawn => { emit("holo_video_ingest_ready", {}) }
+  @on_ingest(video_source) => { frames = ingest_holo_video(video_source); return frames }
+  @receipt holo_video_ingest_config { type: "HoloVideoIngestReceipt"; timestamp: now() }
+}

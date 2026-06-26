@@ -1,0 +1,10 @@
+// @agent_negotiation — Agent negotiation: protocol for capability negotiation between agents on HoloMesh.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/agent-negotiation.ts.
+
+@trait agent_negotiation {
+  capability_tags: ["agent_negotiation", "capability_negotiate", "agent_protocol_negotiate", "mcp_server"]
+  @on_spawn => { emit("agent_negotiation_ready", {}) }
+  @on_negotiate(proposal) => { result = negotiate_agent_capabilities(proposal); return result }
+  @receipt agent_negotiation_config { type: "AgentNegotiationReceipt"; timestamp: now() }
+}

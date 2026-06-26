@@ -1,0 +1,10 @@
+// @agent_capability_tools — Agent capability tools: MCP tools for querying and advertising agent capabilities on HoloMesh.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/agent-capability-tools.ts.
+
+@trait agent_capability_tools {
+  capability_tags: ["agent_capability_tools", "capability_advertise_mcp", "agent_discovery_tools", "mcp_server"]
+  @on_spawn => { emit("agent_capability_tools_ready", {}) }
+  @on_query(filter) => { caps = query_agent_capabilities(filter); return caps }
+  @receipt agent_capability_tools_config { type: "AgentCapabilityToolsReceipt"; timestamp: now() }
+}

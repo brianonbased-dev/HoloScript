@@ -1,0 +1,10 @@
+// @holomesh_entry_lookup — HoloMesh entry lookup: resolves HoloMesh entry IDs to canonical record payloads.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/entry-lookup.ts.
+
+@trait holomesh_entry_lookup {
+  capability_tags: ["holomesh_entry_lookup", "mesh_entry_resolve", "holomesh_id_lookup", "mcp_server"]
+  @on_spawn => { emit("holomesh_entry_lookup_ready", {}) }
+  @on_lookup(entry_id) => { record = lookup_holomesh_entry(entry_id); return record }
+  @receipt holomesh_entry_lookup_config { type: "HolomeshEntryLookupReceipt"; timestamp: now() }
+}

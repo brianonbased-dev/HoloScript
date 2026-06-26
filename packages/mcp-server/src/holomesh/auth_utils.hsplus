@@ -1,0 +1,10 @@
+// @holomesh_auth_utils — HoloMesh auth utils: shared authentication utilities for HoloMesh request validation.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/auth-utils.ts.
+
+@trait holomesh_auth_utils {
+  capability_tags: ["holomesh_auth_utils", "holomesh_request_auth", "mesh_auth_shared", "mcp_server"]
+  @on_spawn => { emit("holomesh_auth_utils_ready", {}) }
+  @on_validate(token) => { identity = validate_holomesh_auth(token); return identity }
+  @receipt holomesh_auth_utils_config { type: "HolomeshAuthUtilsReceipt"; timestamp: now() }
+}

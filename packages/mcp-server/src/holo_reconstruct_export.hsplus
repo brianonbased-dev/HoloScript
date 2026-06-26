@@ -1,0 +1,10 @@
+// @holo_reconstruct_export — Holo reconstruct export: MCP tools for exporting 3D reconstruction results to .holo IR.
+//
+// Native .hsplus surface for mcp-server/src/holo-reconstruct-export.ts.
+
+@trait holo_reconstruct_export {
+  capability_tags: ["holo_reconstruct_export", "3d_reconstruction_export", "reconstruct_to_holo_ir", "mcp_server"]
+  @on_spawn => { emit("holo_reconstruct_export_ready", {}) }
+  @on_export(session_id) => { holo = export_reconstruction_to_holo(session_id); return holo }
+  @receipt holo_reconstruct_export_config { type: "HoloReconstructExportReceipt"; timestamp: now() }
+}

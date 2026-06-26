@@ -1,0 +1,10 @@
+// @holomesh_tools — HoloMesh tools: primary MCP tool surface for HoloMesh team coordination and messaging.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/holomesh-tools.ts.
+
+@trait holomesh_tools {
+  capability_tags: ["holomesh_tools", "holomesh_primary_mcp", "team_coord_message_mcp", "mcp_server"]
+  @on_spawn => { emit("holomesh_tools_ready", {}) }
+  @on_send(message) => { result = send_holomesh_message(message); return result }
+  @receipt holomesh_tools_config { type: "HolomeshToolsReceipt"; timestamp: now() }
+}

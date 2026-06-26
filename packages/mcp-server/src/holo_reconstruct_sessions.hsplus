@@ -1,0 +1,11 @@
+// @holo_reconstruct_sessions — Holo reconstruct sessions: manages 3D reconstruction session lifecycle via MCP.
+//
+// Native .hsplus surface for mcp-server/src/holo-reconstruct-sessions.ts.
+
+@trait holo_reconstruct_sessions {
+  capability_tags: ["holo_reconstruct_sessions", "reconstruction_session_mcp", "3d_scan_session", "mcp_server"]
+  @on_spawn => { emit("holo_reconstruct_sessions_ready", {}) }
+  @on_start(params) => { session = start_reconstruction_session(params); return session }
+  @on_stop(session_id) => { stop_reconstruction_session(session_id) }
+  @receipt holo_reconstruct_sessions_config { type: "HoloReconstructSessionsReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @holomesh_team_agents — HoloMesh team agents: team-scoped agent registry and lifecycle for HoloMesh.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/agent/team-agents.ts.
+
+@trait holomesh_team_agents {
+  capability_tags: ["holomesh_team_agents", "team_agent_registry", "holomesh_team_lifecycle", "mcp_server"]
+  @on_spawn => { emit("holomesh_team_agents_ready", {}) }
+  @on_register(agent_spec) => { result = register_team_agent(agent_spec); return result }
+  @receipt holomesh_team_agents_config { type: "HolomeshTeamAgentsReceipt"; timestamp: now() }
+}

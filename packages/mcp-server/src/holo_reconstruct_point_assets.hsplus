@@ -1,0 +1,10 @@
+// @holo_reconstruct_point_assets — Holo reconstruct point assets: manages point cloud asset staging for reconstruction pipelines.
+//
+// Native .hsplus surface for mcp-server/src/holo-reconstruct-point-assets.ts.
+
+@trait holo_reconstruct_point_assets {
+  capability_tags: ["holo_reconstruct_point_assets", "point_cloud_asset_stage", "reconstruction_asset_mcp", "mcp_server"]
+  @on_spawn => { emit("holo_reconstruct_point_assets_ready", {}) }
+  @on_stage(assets) => { staged = stage_point_assets(assets); return staged }
+  @receipt holo_reconstruct_point_assets_config { type: "HoloReconstructPointAssetsReceipt"; timestamp: now() }
+}

@@ -1,0 +1,11 @@
+// @vault_lease_registry — Vault lease registry: tracks HoloKey vault leases issued to agent seats.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/identity/vault-lease-registry.ts.
+
+@trait vault_lease_registry {
+  capability_tags: ["vault_lease_registry", "holokey_lease_track", "vault_seat_lease", "mcp_server"]
+  @on_spawn => { emit("vault_lease_registry_ready", {}) }
+  @on_issue(seat_id, lease) => { register_vault_lease(seat_id, lease) }
+  @on_revoke(lease_id) => { revoke_vault_lease(lease_id) }
+  @receipt vault_lease_registry_config { type: "VaultLeaseRegistryReceipt"; timestamp: now() }
+}

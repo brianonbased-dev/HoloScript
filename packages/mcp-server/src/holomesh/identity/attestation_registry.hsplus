@@ -1,0 +1,11 @@
+// @attestation_registry — Attestation registry: stores and verifies agent identity attestations for HoloMesh seat trust.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/identity/attestation-registry.ts.
+
+@trait attestation_registry {
+  capability_tags: ["attestation_registry", "agent_attestation_store", "seat_trust_verify", "mcp_server"]
+  @on_spawn => { emit("attestation_registry_ready", {}) }
+  @on_attest(agent_id, proof) => { result = register_attestation(agent_id, proof); return result }
+  @on_verify(agent_id) => { return verify_attestation(agent_id) }
+  @receipt attestation_registry_config { type: "AttestationRegistryReceipt"; timestamp: now() }
+}

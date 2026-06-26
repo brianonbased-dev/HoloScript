@@ -1,0 +1,10 @@
+// @holomesh_http_routes — HoloMesh HTTP routes: Express route registration for all HoloMesh REST endpoints.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/http-routes.ts.
+
+@trait holomesh_http_routes {
+  capability_tags: ["holomesh_http_routes", "holomesh_rest_endpoints", "mesh_express_routes", "mcp_server"]
+  @on_spawn => { emit("holomesh_http_routes_ready", {}) }
+  @on_register(app) => { register_holomesh_http_routes(app) }
+  @receipt holomesh_http_routes_config { type: "HolomeshHttpRoutesReceipt"; timestamp: now() }
+}

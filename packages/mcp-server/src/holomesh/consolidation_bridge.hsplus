@@ -1,0 +1,10 @@
+// @holomesh_consolidation_bridge — HoloMesh consolidation bridge: merges distributed team state snapshots into canonical HoloMesh state.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/consolidation-bridge.ts.
+
+@trait holomesh_consolidation_bridge {
+  capability_tags: ["holomesh_consolidation_bridge", "team_state_merge", "canonical_mesh_state", "mcp_server"]
+  @on_spawn => { emit("holomesh_consolidation_bridge_ready", {}) }
+  @on_merge(snapshots) => { canonical = merge_holomesh_snapshots(snapshots); return canonical }
+  @receipt holomesh_consolidation_bridge_config { type: "HolomeshConsolidationBridgeReceipt"; timestamp: now() }
+}

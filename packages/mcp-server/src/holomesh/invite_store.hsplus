@@ -1,0 +1,11 @@
+// @holomesh_invite_store — HoloMesh invite store: persists player and creator invite records for HoloLand access control.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/invite-store.ts.
+
+@trait holomesh_invite_store {
+  capability_tags: ["holomesh_invite_store", "player_invite_persist", "hololand_access_invite", "mcp_server"]
+  @on_spawn => { emit("holomesh_invite_store_ready", {}) }
+  @on_create(invite) => { result = create_holomesh_invite(invite); return result }
+  @on_get(invite_id) => { return get_holomesh_invite(invite_id) }
+  @receipt holomesh_invite_store_config { type: "HolomeshInviteStoreReceipt"; timestamp: now() }
+}

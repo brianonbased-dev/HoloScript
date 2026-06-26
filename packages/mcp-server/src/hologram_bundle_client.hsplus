@@ -1,0 +1,11 @@
+// @hologram_bundle_client — Hologram bundle client: client for uploading and downloading hologram asset bundles.
+//
+// Native .hsplus surface for mcp-server/src/hologram-bundle-client.ts.
+
+@trait hologram_bundle_client {
+  capability_tags: ["hologram_bundle_client", "hologram_asset_bundle", "bundle_upload_download", "mcp_server"]
+  @on_spawn => { emit("hologram_bundle_client_ready", {}) }
+  @on_upload(bundle) => { result = upload_hologram_bundle(bundle); return result }
+  @on_download(bundle_id) => { return download_hologram_bundle(bundle_id) }
+  @receipt hologram_bundle_client_config { type: "HologramBundleClientReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @hologram_depth_estimator — Hologram depth estimator: estimates per-pixel depth maps for 2D-to-hologram conversion.
+//
+// Native .hsplus surface for mcp-server/src/hologram-depth-estimator.ts.
+
+@trait hologram_depth_estimator {
+  capability_tags: ["hologram_depth_estimator", "depth_map_estimate", "2d_to_hologram", "mcp_server"]
+  @on_spawn => { emit("hologram_depth_estimator_ready", {}) }
+  @on_estimate(image) => { depth_map = estimate_hologram_depth(image); return depth_map }
+  @receipt hologram_depth_estimator_config { type: "HologramDepthEstimatorReceipt"; timestamp: now() }
+}

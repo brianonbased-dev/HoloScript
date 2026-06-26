@@ -1,0 +1,10 @@
+// @custodial_wallet — Custodial wallet: manages custodial wallet operations for HoloMesh seat identity.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/identity/custodial-wallet.ts.
+
+@trait custodial_wallet {
+  capability_tags: ["custodial_wallet", "seat_custodial_wallet", "holomesh_wallet_ops", "mcp_server"]
+  @on_spawn => { emit("custodial_wallet_ready", {}) }
+  @on_sign(payload) => { sig = custodial_wallet_sign(payload); return sig }
+  @receipt custodial_wallet_config { type: "CustodialWalletReceipt"; timestamp: now() }
+}

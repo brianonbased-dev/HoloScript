@@ -1,0 +1,11 @@
+// @custody_registry — Custody registry: registry of all custodial wallet assignments and ownership records.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/identity/custody-registry.ts.
+
+@trait custody_registry {
+  capability_tags: ["custody_registry", "wallet_custody_record", "holomesh_ownership_registry", "mcp_server"]
+  @on_spawn => { emit("custody_registry_ready", {}) }
+  @on_register(assignment) => { register_custody(assignment) }
+  @on_lookup(seat_id) => { return lookup_custody_assignment(seat_id) }
+  @receipt custody_registry_config { type: "CustodyRegistryReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @holomesh_signaler — HoloMesh signaler: broadcasts real-time signals to HoloMesh SSE clients.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/HoloMeshSignaler.ts.
+
+@trait holomesh_signaler {
+  capability_tags: ["holomesh_signaler", "sse_signal_broadcast", "holomesh_realtime", "mcp_server"]
+  @on_spawn => { emit("holomesh_signaler_ready", {}) }
+  @on_signal(event, data) => { broadcast_holomesh_signal(event, data) }
+  @receipt holomesh_signaler_config { type: "HolomeshSignalerReceipt"; timestamp: now() }
+}

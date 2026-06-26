@@ -1,0 +1,10 @@
+// @holomesh_discovery — HoloMesh discovery: agent and world discovery protocol for HoloMesh peer finding.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/discovery.ts.
+
+@trait holomesh_discovery {
+  capability_tags: ["holomesh_discovery", "agent_peer_find", "holomesh_peer_discovery", "mcp_server"]
+  @on_spawn => { emit("holomesh_discovery_ready", {}) }
+  @on_discover(filter) => { peers = discover_holomesh_agents(filter); return peers }
+  @receipt holomesh_discovery_config { type: "HolomeshDiscoveryReceipt"; timestamp: now() }
+}

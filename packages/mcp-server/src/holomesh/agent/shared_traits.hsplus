@@ -1,0 +1,9 @@
+// @holomesh_shared_traits — HoloMesh shared traits: shared trait definitions reused across HoloMesh agent types.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/agent/shared-traits.ts.
+
+@trait holomesh_shared_traits {
+  capability_tags: ["holomesh_shared_traits", "agent_trait_shared", "holomesh_agent_common", "mcp_server"]
+  @on_spawn => { emit("holomesh_shared_traits_ready", {}) }
+  @receipt holomesh_shared_traits_config { type: "HolomeshSharedTraitsReceipt"; timestamp: now() }
+}

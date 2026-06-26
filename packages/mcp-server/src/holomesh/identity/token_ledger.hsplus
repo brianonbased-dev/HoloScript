@@ -1,0 +1,11 @@
+// @token_ledger — Token ledger: tracks x402 token balances and transfers for HoloMesh agent seats.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/identity/token-ledger.ts.
+
+@trait token_ledger {
+  capability_tags: ["token_ledger", "x402_balance_track", "agent_seat_ledger", "mcp_server"]
+  @on_spawn => { emit("token_ledger_ready", {}) }
+  @on_credit(seat_id, amount) => { credit_token_ledger(seat_id, amount) }
+  @on_debit(seat_id, amount) => { debit_token_ledger(seat_id, amount) }
+  @receipt token_ledger_config { type: "TokenLedgerReceipt"; timestamp: now() }
+}

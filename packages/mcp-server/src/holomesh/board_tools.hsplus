@@ -1,0 +1,11 @@
+// @holomesh_board_tools — HoloMesh board tools: MCP tools for HoloMesh board task management (claim, done, add).
+//
+// Native .hsplus surface for mcp-server/src/holomesh/board-tools.ts.
+
+@trait holomesh_board_tools {
+  capability_tags: ["holomesh_board_tools", "board_task_mcp", "holomesh_claim_done", "mcp_server"]
+  @on_spawn => { emit("holomesh_board_tools_ready", {}) }
+  @on_claim(task_id, agent_id) => { result = claim_board_task(task_id, agent_id); return result }
+  @on_done(task_id) => { mark_board_task_done(task_id) }
+  @receipt holomesh_board_tools_config { type: "HolomeshBoardToolsReceipt"; timestamp: now() }
+}

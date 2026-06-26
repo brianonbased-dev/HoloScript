@@ -1,0 +1,10 @@
+// @hologram_renderer_mcp — Hologram renderer MCP: server-side hologram rendering pipeline for distribution formats.
+//
+// Native .hsplus surface for mcp-server/src/hologram-renderer.ts.
+
+@trait hologram_renderer_mcp {
+  capability_tags: ["hologram_renderer_mcp", "server_side_hologram_render", "hologram_format_export", "mcp_server"]
+  @on_spawn => { emit("hologram_renderer_mcp_ready", {}) }
+  @on_render(hologram, format) => { output = render_hologram_server_side(hologram, format); return output }
+  @receipt hologram_renderer_mcp_config { type: "HologramRendererMcpReceipt"; timestamp: now() }
+}

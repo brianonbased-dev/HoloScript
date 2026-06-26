@@ -1,0 +1,10 @@
+// @hologram_mcp_tools — Hologram MCP tools: primary MCP tool surface for hologram creation and distribution.
+//
+// Native .hsplus surface for mcp-server/src/hologram-mcp-tools.ts.
+
+@trait hologram_mcp_tools {
+  capability_tags: ["hologram_mcp_tools", "hologram_create_distribute", "primary_hologram_mcp", "mcp_server"]
+  @on_spawn => { emit("hologram_mcp_tools_ready", {}) }
+  @on_create(spec) => { hologram = create_hologram(spec); return hologram }
+  @receipt hologram_mcp_tools_config { type: "HologramMcpToolsReceipt"; timestamp: now() }
+}

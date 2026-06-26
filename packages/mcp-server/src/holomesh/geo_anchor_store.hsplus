@@ -1,0 +1,11 @@
+// @holomesh_geo_anchor_store — HoloMesh geo anchor store: persists geospatial anchor records for HoloLand location anchoring.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/geo-anchor-store.ts.
+
+@trait holomesh_geo_anchor_store {
+  capability_tags: ["holomesh_geo_anchor_store", "geo_anchor_persist", "hololand_location_anchor", "mcp_server"]
+  @on_spawn => { emit("holomesh_geo_anchor_store_ready", {}) }
+  @on_store(anchor) => { store_geo_anchor(anchor) }
+  @on_get(anchor_id) => { return get_geo_anchor(anchor_id) }
+  @receipt holomesh_geo_anchor_store_config { type: "HolomeshGeoAnchorStoreReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @holomesh_export_package — HoloMesh export package: packages HoloMesh team state for cross-team or archival export.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/export-package.ts.
+
+@trait holomesh_export_package {
+  capability_tags: ["holomesh_export_package", "team_state_export", "holomesh_archival", "mcp_server"]
+  @on_spawn => { emit("holomesh_export_package_ready", {}) }
+  @on_export(team_id) => { pkg = export_holomesh_team_package(team_id); return pkg }
+  @receipt holomesh_export_package_config { type: "HolomeshExportPackageReceipt"; timestamp: now() }
+}

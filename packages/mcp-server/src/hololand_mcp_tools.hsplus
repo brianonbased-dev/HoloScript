@@ -1,0 +1,10 @@
+// @hololand_mcp_tools — HoloLand MCP tools: MCP tools for HoloLand world management, NPCs, and player provisioning.
+//
+// Native .hsplus surface for mcp-server/src/hololand-mcp-tools.ts.
+
+@trait hololand_mcp_tools {
+  capability_tags: ["hololand_mcp_tools", "hololand_world_management", "npc_player_provision_mcp", "mcp_server"]
+  @on_spawn => { emit("hololand_mcp_tools_ready", {}) }
+  @on_provision(spec) => { result = provision_hololand_entity(spec); return result }
+  @receipt hololand_mcp_tools_config { type: "HololandMcpToolsReceipt"; timestamp: now() }
+}

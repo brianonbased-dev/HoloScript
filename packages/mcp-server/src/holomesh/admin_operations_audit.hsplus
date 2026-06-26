@@ -1,0 +1,10 @@
+// @admin_operations_audit — Admin operations audit: logs and enforces audit trail for admin-level HoloMesh operations.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/admin-operations-audit.ts.
+
+@trait admin_operations_audit {
+  capability_tags: ["admin_operations_audit", "admin_audit_trail", "holomesh_admin_log", "mcp_server"]
+  @on_spawn => { emit("admin_operations_audit_ready", {}) }
+  @on_log(operation, actor) => { log_admin_operation(operation, actor) }
+  @receipt admin_operations_audit_config { type: "AdminOperationsAuditReceipt"; timestamp: now() }
+}

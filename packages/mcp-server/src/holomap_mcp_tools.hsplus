@@ -1,0 +1,10 @@
+// @holomap_mcp_tools — HoloMap MCP tools: MCP tools for HoloMap world twin creation and spatial querying.
+//
+// Native .hsplus surface for mcp-server/src/holomap-mcp-tools.ts.
+
+@trait holomap_mcp_tools {
+  capability_tags: ["holomap_mcp_tools", "holomap_world_twin", "spatial_query_mcp", "mcp_server"]
+  @on_spawn => { emit("holomap_mcp_tools_ready", {}) }
+  @on_query(spatial_filter) => { results = query_holomap_spatial(spatial_filter); return results }
+  @receipt holomap_mcp_tools_config { type: "HolomapMcpToolsReceipt"; timestamp: now() }
+}

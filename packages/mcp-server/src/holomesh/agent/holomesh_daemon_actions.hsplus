@@ -1,0 +1,10 @@
+// @holomesh_daemon_actions — HoloMesh daemon actions: action handlers for daimōn agents operating on HoloMesh.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/agent/holomesh-daemon-actions.ts.
+
+@trait holomesh_daemon_actions {
+  capability_tags: ["holomesh_daemon_actions", "daimon_holomesh_action", "agent_mesh_action_handler", "mcp_server"]
+  @on_spawn => { emit("holomesh_daemon_actions_ready", {}) }
+  @on_execute(action) => { result = execute_daemon_mesh_action(action); return result }
+  @receipt holomesh_daemon_actions_config { type: "HolomeshDaemonActionsReceipt"; timestamp: now() }
+}

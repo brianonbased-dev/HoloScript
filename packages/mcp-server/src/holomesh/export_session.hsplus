@@ -1,0 +1,10 @@
+// @holomesh_export_session — HoloMesh export session: manages session export lifecycle for HoloMesh state snapshots.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/export-session.ts.
+
+@trait holomesh_export_session {
+  capability_tags: ["holomesh_export_session", "mesh_session_snapshot", "team_session_export", "mcp_server"]
+  @on_spawn => { emit("holomesh_export_session_ready", {}) }
+  @on_start(session_spec) => { session = start_holomesh_export_session(session_spec); return session }
+  @receipt holomesh_export_session_config { type: "HolomeshExportSessionReceipt"; timestamp: now() }
+}

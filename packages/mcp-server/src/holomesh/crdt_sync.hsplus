@@ -1,0 +1,10 @@
+// @holomesh_crdt_sync — HoloMesh CRDT sync: synchronizes HoloMesh world state using Loro CRDT protocol.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/crdt-sync.ts.
+
+@trait holomesh_crdt_sync {
+  capability_tags: ["holomesh_crdt_sync", "loro_crdt_sync", "mesh_world_state_sync", "mcp_server"]
+  @on_spawn => { emit("holomesh_crdt_sync_ready", {}) }
+  @on_sync(delta) => { result = sync_holomesh_crdt(delta); return result }
+  @receipt holomesh_crdt_sync_config { type: "HolomeshCrdtSyncReceipt"; timestamp: now() }
+}
