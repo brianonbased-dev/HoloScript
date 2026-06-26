@@ -1,0 +1,10 @@
+// @use_timeline — useTimeline hook: Studio hook for the sequencer timeline (scrub, play, add clips, set markers).
+//
+// Native .hsplus surface for studio/src/hooks/useTimeline.ts.
+
+@trait use_timeline {
+  capability_tags: ["use_timeline", "sequencer_timeline_scrub_hook", "timeline_clip_marker_hook", "studio"]
+  @on_spawn => { emit("use_timeline_ready", {}) }
+  @on_scrub(time) => { scrub_timeline(time) }
+  @receipt use_timeline_config { type: "UseTimelineReceipt"; timestamp: now() }
+}

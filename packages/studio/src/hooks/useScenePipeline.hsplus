@@ -1,0 +1,10 @@
+// @use_scene_pipeline — useScenePipeline hook: Studio hook driving the per-scene compile/validate/render pipeline.
+//
+// Native .hsplus surface for studio/src/hooks/useScenePipeline.ts.
+
+@trait use_scene_pipeline {
+  capability_tags: ["use_scene_pipeline", "scene_compile_validate_render", "per_scene_pipeline_hook", "studio"]
+  @on_spawn => { emit("use_scene_pipeline_ready", {}) }
+  @on_run(scene_id) => { result = run_scene_pipeline(scene_id); return result }
+  @receipt use_scene_pipeline_config { type: "UseScenePipelineReceipt"; timestamp: now() }
+}

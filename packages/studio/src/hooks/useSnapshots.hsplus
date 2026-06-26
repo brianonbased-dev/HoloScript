@@ -1,0 +1,10 @@
+// @use_snapshots — useSnapshots hook: Studio hook for creating and listing HoloMesh team state snapshots.
+//
+// Native .hsplus surface for studio/src/hooks/useSnapshots.ts.
+
+@trait use_snapshots {
+  capability_tags: ["use_snapshots", "holomesh_snapshot_create_list", "team_state_snapshot_hook", "studio"]
+  @on_spawn => { emit("use_snapshots_ready", {}) }
+  @on_create(label) => { snap = create_team_snapshot(label); return snap }
+  @receipt use_snapshots_config { type: "UseSnapshotsReceipt"; timestamp: now() }
+}

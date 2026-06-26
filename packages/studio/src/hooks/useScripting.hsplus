@@ -1,0 +1,10 @@
+// @use_scripting — useScripting hook: Studio hook for live HoloScript scripting in the scripting panel.
+//
+// Native .hsplus surface for studio/src/hooks/useScripting.ts.
+
+@trait use_scripting {
+  capability_tags: ["use_scripting", "live_holoscript_scripting_hook", "scripting_panel_hook", "studio"]
+  @on_spawn => { emit("use_scripting_ready", {}) }
+  @on_run(script) => { result = run_holoscript_script(script); return result }
+  @receipt use_scripting_config { type: "UseScriptingReceipt"; timestamp: now() }
+}

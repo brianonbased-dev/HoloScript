@@ -1,0 +1,10 @@
+// @use_scene_versions — useSceneVersions hook: Studio hook for browsing and restoring scene version history.
+//
+// Native .hsplus surface for studio/src/hooks/useSceneVersions.ts.
+
+@trait use_scene_versions {
+  capability_tags: ["use_scene_versions", "scene_version_history_hook", "scene_restore_version", "studio"]
+  @on_spawn => { emit("use_scene_versions_ready", {}) }
+  @on_restore(scene_id, version) => { restore_scene_version(scene_id, version) }
+  @receipt use_scene_versions_config { type: "UseSceneVersionsReceipt"; timestamp: now() }
+}

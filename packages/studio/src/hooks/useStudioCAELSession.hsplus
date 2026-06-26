@@ -1,0 +1,11 @@
+// @use_studio_cael_session — useStudioCAELSession hook: Studio hook managing a CAEL provenance trace session.
+//
+// Native .hsplus surface for studio/src/hooks/useStudioCAELSession.ts.
+
+@trait use_studio_cael_session {
+  capability_tags: ["use_studio_cael_session", "cael_trace_session_hook", "provenance_session_hook", "studio"]
+  @on_spawn => { emit("use_studio_cael_session_ready", {}) }
+  @on_start() => { session = start_cael_session(); return session }
+  @on_verify(trace_id) => { return verify_cael_trace(trace_id) }
+  @receipt use_studio_cael_session_config { type: "UseStudioCaelSessionReceipt"; timestamp: now() }
+}

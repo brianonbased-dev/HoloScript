@@ -1,0 +1,10 @@
+// @use_trait_state — useTraitState hook: Studio hook for reading and watching live trait state on a world entity.
+//
+// Native .hsplus surface for studio/src/hooks/useTraitState.ts.
+
+@trait use_trait_state {
+  capability_tags: ["use_trait_state", "live_trait_state_watch_hook", "entity_trait_state_hook", "studio"]
+  @on_spawn => { emit("use_trait_state_ready", {}) }
+  @on_watch(entity_id, trait_name) => { watch_trait_state(entity_id, trait_name) }
+  @receipt use_trait_state_config { type: "UseTraitStateReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @use_scene_share — useSceneShare hook: Studio hook for generating shareable links and embeds for scenes.
+//
+// Native .hsplus surface for studio/src/hooks/useSceneShare.ts.
+
+@trait use_scene_share {
+  capability_tags: ["use_scene_share", "scene_share_link_embed_hook", "studio_scene_share_hook", "studio"]
+  @on_spawn => { emit("use_scene_share_ready", {}) }
+  @on_share(scene_id, options) => { link = generate_scene_share_link(scene_id, options); return link }
+  @receipt use_scene_share_config { type: "UseSceneShareReceipt"; timestamp: now() }
+}

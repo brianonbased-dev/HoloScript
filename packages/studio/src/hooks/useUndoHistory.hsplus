@@ -1,0 +1,10 @@
+// @use_undo_history — useUndoHistory hook: Studio hook for reading the global undo history stack.
+//
+// Native .hsplus surface for studio/src/hooks/useUndoHistory.ts.
+
+@trait use_undo_history {
+  capability_tags: ["use_undo_history", "global_undo_stack_read_hook", "studio_undo_history_hook", "studio"]
+  @on_spawn => { emit("use_undo_history_ready", {}) }
+  @on_list() => { return list_undo_history() }
+  @receipt use_undo_history_config { type: "UseUndoHistoryReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @use_voice_authoring — useVoiceAuthoring hook: Studio hook for voice-to-HoloScript authoring via speech recognition.
+//
+// Native .hsplus surface for studio/src/hooks/useVoiceAuthoring.ts.
+
+@trait use_voice_authoring {
+  capability_tags: ["use_voice_authoring", "voice_to_holoscript_hook", "speech_recognize_author", "studio"]
+  @on_spawn => { emit("use_voice_authoring_ready", {}) }
+  @on_transcribe(audio) => { code = transcribe_to_holoscript(audio); return code }
+  @receipt use_voice_authoring_config { type: "UseVoiceAuthoringReceipt"; timestamp: now() }
+}

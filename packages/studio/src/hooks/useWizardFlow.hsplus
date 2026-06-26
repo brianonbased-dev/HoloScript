@@ -1,0 +1,10 @@
+// @use_wizard_flow — useWizardFlow hook: Studio hook for multi-step wizard flows (onboarding, import, export wizards).
+//
+// Native .hsplus surface for studio/src/hooks/useWizardFlow.ts.
+
+@trait use_wizard_flow {
+  capability_tags: ["use_wizard_flow", "multi_step_wizard_flow_hook", "onboard_import_export_wizard", "studio"]
+  @on_spawn => { emit("use_wizard_flow_ready", {}) }
+  @on_next(step_data) => { result = advance_wizard_step(step_data); return result }
+  @receipt use_wizard_flow_config { type: "UseWizardFlowReceipt"; timestamp: now() }
+}

@@ -1,0 +1,11 @@
+// @use_undo_redo — useUndoRedo hook: Studio hook providing the global undo/redo action pair.
+//
+// Native .hsplus surface for studio/src/hooks/useUndoRedo.ts.
+
+@trait use_undo_redo {
+  capability_tags: ["use_undo_redo", "global_undo_redo_action_hook", "studio_undo_redo_hook", "studio"]
+  @on_spawn => { emit("use_undo_redo_ready", {}) }
+  @on_undo() => { undo_studio_action() }
+  @on_redo() => { redo_studio_action() }
+  @receipt use_undo_redo_config { type: "UseUndoRedoReceipt"; timestamp: now() }
+}

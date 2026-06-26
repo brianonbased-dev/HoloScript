@@ -1,0 +1,10 @@
+// @use_terrain — useTerrain hook: Studio hook for sculpting heightmap terrain and applying biome paint layers.
+//
+// Native .hsplus surface for studio/src/hooks/useTerrain.ts.
+
+@trait use_terrain {
+  capability_tags: ["use_terrain", "heightmap_sculpt_biome_paint", "terrain_edit_hook", "studio"]
+  @on_spawn => { emit("use_terrain_ready", {}) }
+  @on_sculpt(brush, position, strength) => { sculpt_terrain(brush, position, strength) }
+  @receipt use_terrain_config { type: "UseTerrainReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @use_trait_inspector — useTraitInspector hook: Studio hook for inspecting attached traits on a selected entity.
+//
+// Native .hsplus surface for studio/src/hooks/useTraitInspector.ts.
+
+@trait use_trait_inspector {
+  capability_tags: ["use_trait_inspector", "entity_trait_inspect_hook", "attached_trait_view_hook", "studio"]
+  @on_spawn => { emit("use_trait_inspector_ready", {}) }
+  @on_inspect(entity_id) => { traits = inspect_entity_traits(entity_id); return traits }
+  @receipt use_trait_inspector_config { type: "UseTraitInspectorReceipt"; timestamp: now() }
+}

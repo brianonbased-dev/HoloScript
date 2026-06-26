@@ -1,0 +1,10 @@
+// @use_snapshot_diff — useSnapshotDiff hook: Studio hook for diffing two HoloMesh team state snapshots.
+//
+// Native .hsplus surface for studio/src/hooks/useSnapshotDiff.ts.
+
+@trait use_snapshot_diff {
+  capability_tags: ["use_snapshot_diff", "holomesh_snapshot_diff_hook", "team_state_diff_hook", "studio"]
+  @on_spawn => { emit("use_snapshot_diff_ready", {}) }
+  @on_diff(snap_a, snap_b) => { diff = diff_snapshots(snap_a, snap_b); return diff }
+  @receipt use_snapshot_diff_config { type: "UseSnapshotDiffReceipt"; timestamp: now() }
+}

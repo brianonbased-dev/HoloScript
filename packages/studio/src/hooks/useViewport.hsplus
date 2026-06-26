@@ -1,0 +1,10 @@
+// @use_viewport — useViewport hook: Studio hook for managing viewport state (size, mode, fullscreen, split-screen).
+//
+// Native .hsplus surface for studio/src/hooks/useViewport.ts.
+
+@trait use_viewport {
+  capability_tags: ["use_viewport", "viewport_state_manage_hook", "viewport_fullscreen_split", "studio"]
+  @on_spawn => { emit("use_viewport_ready", {}) }
+  @on_resize(dimensions) => { resize_studio_viewport(dimensions) }
+  @receipt use_viewport_config { type: "UseViewportReceipt"; timestamp: now() }
+}

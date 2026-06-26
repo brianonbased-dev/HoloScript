@@ -1,0 +1,10 @@
+// @use_unified_brittney_history — useUnifiedBrittneyHistory hook: merges Brittney conversation + action history into one timeline.
+//
+// Native .hsplus surface for studio/src/hooks/useUnifiedBrittneyHistory.ts.
+
+@trait use_unified_brittney_history {
+  capability_tags: ["use_unified_brittney_history", "brittney_unified_timeline_hook", "convo_action_merge_hook", "studio"]
+  @on_spawn => { emit("use_unified_brittney_history_ready", {}) }
+  @on_load() => { return load_unified_brittney_history() }
+  @receipt use_unified_brittney_history_config { type: "UseUnifiedBrittneyHistoryReceipt"; timestamp: now() }
+}

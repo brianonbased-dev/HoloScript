@@ -1,0 +1,10 @@
+// @use_scene_search — useSceneSearch hook: Studio hook for full-text and semantic search within the current scene graph.
+//
+// Native .hsplus surface for studio/src/hooks/useSceneSearch.ts.
+
+@trait use_scene_search {
+  capability_tags: ["use_scene_search", "scene_graph_fulltext_search", "semantic_scene_search_hook", "studio"]
+  @on_spawn => { emit("use_scene_search_ready", {}) }
+  @on_search(query) => { results = search_scene_graph(query); return results }
+  @receipt use_scene_search_config { type: "UseSceneSearchReceipt"; timestamp: now() }
+}

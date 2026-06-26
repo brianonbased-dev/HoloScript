@@ -1,0 +1,10 @@
+// @use_yjs_collaboration — useYjsCollaboration hook: Studio hook for Yjs CRDT real-time collaboration (awareness + updates).
+//
+// Native .hsplus surface for studio/src/hooks/useYjsCollaboration.ts.
+
+@trait use_yjs_collaboration {
+  capability_tags: ["use_yjs_collaboration", "yjs_crdt_realtime_collab", "awareness_update_hook", "studio"]
+  @on_spawn => { emit("use_yjs_collaboration_ready", {}) }
+  @on_join(room_id) => { session = join_yjs_room(room_id); return session }
+  @receipt use_yjs_collaboration_config { type: "UseYjsCollaborationReceipt"; timestamp: now() }
+}

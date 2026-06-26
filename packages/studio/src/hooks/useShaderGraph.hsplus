@@ -1,0 +1,10 @@
+// @use_shader_graph — useShaderGraph hook: Studio hook for the node-based shader graph editor.
+//
+// Native .hsplus surface for studio/src/hooks/useShaderGraph.ts.
+
+@trait use_shader_graph {
+  capability_tags: ["use_shader_graph", "node_shader_graph_hook", "studio_shader_graph_editor", "studio"]
+  @on_spawn => { emit("use_shader_graph_ready", {}) }
+  @on_connect(from_node, to_node) => { connect_shader_graph_nodes(from_node, to_node) }
+  @receipt use_shader_graph_config { type: "UseShaderGraphReceipt"; timestamp: now() }
+}

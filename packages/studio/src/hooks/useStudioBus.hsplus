@@ -1,0 +1,11 @@
+// @use_studio_bus — useStudioBus hook: Studio hook for the internal Studio event bus (pub/sub between panels).
+//
+// Native .hsplus surface for studio/src/hooks/useStudioBus.ts.
+
+@trait use_studio_bus {
+  capability_tags: ["use_studio_bus", "studio_event_bus_pubsub", "inter_panel_event_hook", "studio"]
+  @on_spawn => { emit("use_studio_bus_ready", {}) }
+  @on_publish(topic, data) => { publish_studio_bus(topic, data) }
+  @on_subscribe(topic, handler) => { subscribe_studio_bus(topic, handler) }
+  @receipt use_studio_bus_config { type: "UseStudioBusReceipt"; timestamp: now() }
+}

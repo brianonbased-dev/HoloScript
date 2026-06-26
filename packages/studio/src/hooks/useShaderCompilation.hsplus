@@ -1,0 +1,10 @@
+// @use_shader_compilation — useShaderCompilation hook: Studio hook for compiling WGSL shaders and surfacing compile errors.
+//
+// Native .hsplus surface for studio/src/hooks/useShaderCompilation.ts.
+
+@trait use_shader_compilation {
+  capability_tags: ["use_shader_compilation", "wgsl_compile_error_hook", "studio_shader_compile_hook", "studio"]
+  @on_spawn => { emit("use_shader_compilation_ready", {}) }
+  @on_compile(source) => { result = compile_wgsl(source); return result }
+  @receipt use_shader_compilation_config { type: "UseShaderCompilationReceipt"; timestamp: now() }
+}

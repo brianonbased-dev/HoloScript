@@ -1,0 +1,10 @@
+// @use_texture_paint — useTexturePaint hook: Studio hook for painting texture channels directly on mesh surfaces.
+//
+// Native .hsplus surface for studio/src/hooks/useTexturePaint.ts.
+
+@trait use_texture_paint {
+  capability_tags: ["use_texture_paint", "texture_channel_paint_hook", "mesh_surface_paint_hook", "studio"]
+  @on_spawn => { emit("use_texture_paint_ready", {}) }
+  @on_paint(brush, uv, channel) => { paint_texture_channel(brush, uv, channel) }
+  @receipt use_texture_paint_config { type: "UseTexturePaintReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @use_spatial_engine — useSpatialEngine hook: Studio hook for spatial queries (raycasting, proximity, geo-anchor lookup).
+//
+// Native .hsplus surface for studio/src/hooks/useSpatialEngine.ts.
+
+@trait use_spatial_engine {
+  capability_tags: ["use_spatial_engine", "raycast_proximity_geo_hook", "spatial_query_engine_hook", "studio"]
+  @on_spawn => { emit("use_spatial_engine_ready", {}) }
+  @on_raycast(origin, direction) => { hit = spatial_raycast(origin, direction); return hit }
+  @receipt use_spatial_engine_config { type: "UseSpatialEngineReceipt"; timestamp: now() }
+}

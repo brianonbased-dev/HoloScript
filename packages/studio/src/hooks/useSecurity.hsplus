@@ -1,0 +1,10 @@
+// @use_security_studio — useSecurity hook (studio): Studio hook for checking content and execution security posture.
+//
+// Native .hsplus surface for studio/src/hooks/useSecurity.ts.
+
+@trait use_security_studio {
+  capability_tags: ["use_security_studio", "studio_security_posture_check", "content_exec_security_hook", "studio"]
+  @on_spawn => { emit("use_security_studio_ready", {}) }
+  @on_check(context) => { return check_studio_security(context) }
+  @receipt use_security_studio_config { type: "UseSecurityStudioReceipt"; timestamp: now() }
+}

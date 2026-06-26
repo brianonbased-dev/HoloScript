@@ -1,0 +1,10 @@
+// @use_state_machine_studio — useStateMachine hook (studio): Studio hook for authoring and stepping @state_machine behaviors.
+//
+// Native .hsplus surface for studio/src/hooks/useStateMachine.ts.
+
+@trait use_state_machine_studio {
+  capability_tags: ["use_state_machine_studio", "state_machine_author_step_hook", "holoscript_fsm_hook", "studio"]
+  @on_spawn => { emit("use_state_machine_studio_ready", {}) }
+  @on_transition(event_id) => { result = transition_state_machine(event_id); return result }
+  @receipt use_state_machine_studio_config { type: "UseStateMachineStudioReceipt"; timestamp: now() }
+}

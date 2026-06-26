@@ -1,0 +1,10 @@
+// @use_skeletal_animation — useSkeletalAnimation hook: Studio hook for previewing and blending skeletal animations.
+//
+// Native .hsplus surface for studio/src/hooks/useSkeletalAnimation.ts.
+
+@trait use_skeletal_animation {
+  capability_tags: ["use_skeletal_animation", "skeletal_anim_preview_blend", "bone_animation_hook", "studio"]
+  @on_spawn => { emit("use_skeletal_animation_ready", {}) }
+  @on_blend(clip_a, clip_b, weight) => { blend_skeletal_animations(clip_a, clip_b, weight) }
+  @receipt use_skeletal_animation_config { type: "UseSkeletalAnimationReceipt"; timestamp: now() }
+}

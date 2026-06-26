@@ -1,0 +1,10 @@
+// @use_version_control_studio — useVersionControl hook (studio): Studio hook for git-based project version control (status, commit, push).
+//
+// Native .hsplus surface for studio/src/hooks/useVersionControl.ts.
+
+@trait use_version_control_studio {
+  capability_tags: ["use_version_control_studio", "git_project_vc_hook", "studio_commit_push_hook", "studio"]
+  @on_spawn => { emit("use_version_control_studio_ready", {}) }
+  @on_commit(message, paths) => { result = git_commit_project(message, paths); return result }
+  @receipt use_version_control_studio_config { type: "UseVersionControlStudioReceipt"; timestamp: now() }
+}

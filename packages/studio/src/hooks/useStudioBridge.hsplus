@@ -1,0 +1,10 @@
+// @use_studio_bridge — useStudioBridge hook: Studio hook bridging Studio events to external MCP and HoloMesh surfaces.
+//
+// Native .hsplus surface for studio/src/hooks/useStudioBridge.ts.
+
+@trait use_studio_bridge {
+  capability_tags: ["use_studio_bridge", "studio_event_mcp_bridge", "studio_holomesh_bridge_hook", "studio"]
+  @on_spawn => { emit("use_studio_bridge_ready", {}) }
+  @on_emit(event, payload) => { bridge_studio_event(event, payload) }
+  @receipt use_studio_bridge_config { type: "UseStudioBridgeReceipt"; timestamp: now() }
+}
