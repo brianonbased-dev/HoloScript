@@ -1,0 +1,10 @@
+// @holomesh_team_routes — HoloMesh team routes: Express routes for HoloMesh team CRUD, membership, and mode management.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/routes/team-routes.ts.
+
+@trait holomesh_team_routes {
+  capability_tags: ["holomesh_team_routes", "team_crud_rest", "holomesh_membership_routes", "mcp_server"]
+  @on_spawn => { emit("holomesh_team_routes_ready", {}) }
+  @on_register(app) => { register_team_routes(app) }
+  @receipt holomesh_team_routes_config { type: "HolomeshTeamRoutesReceipt"; timestamp: now() }
+}

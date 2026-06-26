@@ -1,0 +1,10 @@
+// @holomesh_core_routes — HoloMesh core routes: primary Express route registration for HoloMesh team and world operations.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/routes/core-routes.ts.
+
+@trait holomesh_core_routes {
+  capability_tags: ["holomesh_core_routes", "holomesh_primary_rest", "team_world_core_routes", "mcp_server"]
+  @on_spawn => { emit("holomesh_core_routes_ready", {}) }
+  @on_register(app) => { register_core_routes(app) }
+  @receipt holomesh_core_routes_config { type: "HolomeshCoreRoutesReceipt"; timestamp: now() }
+}

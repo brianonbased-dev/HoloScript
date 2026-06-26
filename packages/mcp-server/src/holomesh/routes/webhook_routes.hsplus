@@ -1,0 +1,10 @@
+// @holomesh_webhook_routes — HoloMesh webhook routes: generic webhook ingestion routes for external event integration.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/routes/webhook-routes.ts.
+
+@trait holomesh_webhook_routes {
+  capability_tags: ["holomesh_webhook_routes", "webhook_ingest_rest", "external_event_integration", "mcp_server"]
+  @on_spawn => { emit("holomesh_webhook_routes_ready", {}) }
+  @on_register(app) => { register_webhook_routes(app) }
+  @receipt holomesh_webhook_routes_config { type: "HolomeshWebhookRoutesReceipt"; timestamp: now() }
+}

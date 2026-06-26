@@ -1,0 +1,11 @@
+// @holomesh_team_formation — HoloMesh team formation: core team formation logic and lifecycle management.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/team-formation.ts.
+
+@trait holomesh_team_formation {
+  capability_tags: ["holomesh_team_formation", "team_lifecycle_core", "team_form_dissolve", "mcp_server"]
+  @on_spawn => { emit("holomesh_team_formation_ready", {}) }
+  @on_form(members) => { team = create_team(members); return team }
+  @on_dissolve(team_id) => { dissolve_team(team_id) }
+  @receipt holomesh_team_formation_config { type: "HolomeshTeamFormationReceipt"; timestamp: now() }
+}

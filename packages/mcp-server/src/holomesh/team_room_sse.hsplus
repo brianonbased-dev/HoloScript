@@ -1,0 +1,10 @@
+// @holomesh_team_room_sse — HoloMesh team room SSE: Server-Sent Events stream for real-time team room updates.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/team-room-sse.ts.
+
+@trait holomesh_team_room_sse {
+  capability_tags: ["holomesh_team_room_sse", "team_room_sse_stream", "realtime_team_updates", "mcp_server"]
+  @on_spawn => { emit("holomesh_team_room_sse_ready", {}) }
+  @on_connect(team_id, client) => { connect_team_room_sse(team_id, client) }
+  @receipt holomesh_team_room_sse_config { type: "HolomeshTeamRoomSseReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @holomesh_board_routes — HoloMesh board routes: Express routes for HoloMesh board task CRUD and claim operations.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/routes/board-routes.ts.
+
+@trait holomesh_board_routes {
+  capability_tags: ["holomesh_board_routes", "board_task_rest", "holomesh_board_crud", "mcp_server"]
+  @on_spawn => { emit("holomesh_board_routes_ready", {}) }
+  @on_register(app) => { register_board_routes(app) }
+  @receipt holomesh_board_routes_config { type: "HolomeshBoardRoutesReceipt"; timestamp: now() }
+}

@@ -1,0 +1,9 @@
+// @holomesh_types — HoloMesh types: shared type definitions for HoloMesh agent, team, and world state schemas.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/types.ts.
+
+@trait holomesh_types {
+  capability_tags: ["holomesh_types", "holomesh_schema_defs", "team_world_type_defs", "mcp_server"]
+  @on_spawn => { emit("holomesh_types_ready", {}) }
+  @receipt holomesh_types_config { type: "HolomeshTypesReceipt"; timestamp: now() }
+}

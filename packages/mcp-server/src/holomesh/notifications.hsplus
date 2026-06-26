@@ -1,0 +1,10 @@
+// @holomesh_notifications — HoloMesh notifications: delivers real-time notifications to HoloMesh agent subscribers.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/notifications.ts.
+
+@trait holomesh_notifications {
+  capability_tags: ["holomesh_notifications", "agent_notification_deliver", "realtime_notify_mesh", "mcp_server"]
+  @on_spawn => { emit("holomesh_notifications_ready", {}) }
+  @on_notify(agent_id, event) => { deliver_holomesh_notification(agent_id, event) }
+  @receipt holomesh_notifications_config { type: "HolomeshNotificationsReceipt"; timestamp: now() }
+}

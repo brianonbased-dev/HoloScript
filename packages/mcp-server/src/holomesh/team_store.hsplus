@@ -1,0 +1,11 @@
+// @holomesh_team_store — HoloMesh team store: Postgres-backed storage for team records, members, and mode state.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/team-store.ts.
+
+@trait holomesh_team_store {
+  capability_tags: ["holomesh_team_store", "team_record_postgres", "team_member_mode_store", "mcp_server"]
+  @on_spawn => { emit("holomesh_team_store_ready", {}) }
+  @on_get(team_id) => { return get_team_record(team_id) }
+  @on_set(team) => { set_team_record(team) }
+  @receipt holomesh_team_store_config { type: "HolomeshTeamStoreReceipt"; timestamp: now() }
+}

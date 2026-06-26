@@ -1,0 +1,10 @@
+// @holomesh_invite_routes — HoloMesh invite routes: routes for HoloLand player invite issuance and redemption.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/routes/invite-routes.ts.
+
+@trait holomesh_invite_routes {
+  capability_tags: ["holomesh_invite_routes", "player_invite_rest", "hololand_invite_redeem", "mcp_server"]
+  @on_spawn => { emit("holomesh_invite_routes_ready", {}) }
+  @on_register(app) => { register_invite_routes(app) }
+  @receipt holomesh_invite_routes_config { type: "HolomeshInviteRoutesReceipt"; timestamp: now() }
+}

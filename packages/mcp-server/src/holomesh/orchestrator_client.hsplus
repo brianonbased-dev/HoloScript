@@ -1,0 +1,10 @@
+// @holomesh_orchestrator_client — HoloMesh orchestrator client: client for the MCP orchestrator service from within HoloMesh.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/orchestrator-client.ts.
+
+@trait holomesh_orchestrator_client {
+  capability_tags: ["holomesh_orchestrator_client", "mcp_orchestrator_mesh", "orchestrator_mesh_bridge", "mcp_server"]
+  @on_spawn => { emit("holomesh_orchestrator_client_ready", {}) }
+  @on_invoke(task) => { result = invoke_orchestrator(task); return result }
+  @receipt holomesh_orchestrator_client_config { type: "HolomeshOrchestratorClientReceipt"; timestamp: now() }
+}

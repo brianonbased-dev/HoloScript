@@ -1,0 +1,10 @@
+// @holomesh_token_routes — HoloMesh token routes: routes for x402 token balance, transfer, and minting operations.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/routes/token-routes.ts.
+
+@trait holomesh_token_routes {
+  capability_tags: ["holomesh_token_routes", "x402_token_rest", "token_balance_transfer_routes", "mcp_server"]
+  @on_spawn => { emit("holomesh_token_routes_ready", {}) }
+  @on_register(app) => { register_token_routes(app) }
+  @receipt holomesh_token_routes_config { type: "HolomeshTokenRoutesReceipt"; timestamp: now() }
+}

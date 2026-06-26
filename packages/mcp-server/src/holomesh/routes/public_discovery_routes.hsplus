@@ -1,0 +1,10 @@
+// @holomesh_public_discovery_routes — HoloMesh public discovery routes: unauthenticated discovery routes for agent and world lookups.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/routes/public-discovery-routes.ts.
+
+@trait holomesh_public_discovery_routes {
+  capability_tags: ["holomesh_public_discovery_routes", "public_agent_discovery_rest", "unauth_discovery_routes", "mcp_server"]
+  @on_spawn => { emit("holomesh_public_discovery_routes_ready", {}) }
+  @on_register(app) => { register_public_discovery_routes(app) }
+  @receipt holomesh_public_discovery_routes_config { type: "HolomeshPublicDiscoveryRoutesReceipt"; timestamp: now() }
+}

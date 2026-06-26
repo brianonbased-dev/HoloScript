@@ -1,0 +1,10 @@
+// @holomesh_team_formation_tools — HoloMesh team formation tools: MCP tools for forming teams from capability-matched agents.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/team-formation-tools.ts.
+
+@trait holomesh_team_formation_tools {
+  capability_tags: ["holomesh_team_formation_tools", "capability_match_team", "team_assemble_mcp", "mcp_server"]
+  @on_spawn => { emit("holomesh_team_formation_tools_ready", {}) }
+  @on_form(spec) => { team = form_capability_matched_team(spec); return team }
+  @receipt holomesh_team_formation_tools_config { type: "HolomeshTeamFormationToolsReceipt"; timestamp: now() }
+}

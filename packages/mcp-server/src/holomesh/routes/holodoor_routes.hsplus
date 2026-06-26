@@ -1,0 +1,10 @@
+// @holomesh_holodoor_routes — HoloMesh HoloDoor routes: routes for HoloDoor portal access and XR entry-point management.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/routes/holodoor-routes.ts.
+
+@trait holomesh_holodoor_routes {
+  capability_tags: ["holomesh_holodoor_routes", "holodoor_portal_rest", "xr_entry_point_routes", "mcp_server"]
+  @on_spawn => { emit("holomesh_holodoor_routes_ready", {}) }
+  @on_register(app) => { register_holodoor_routes(app) }
+  @receipt holomesh_holodoor_routes_config { type: "HolomeshHolodoorRoutesReceipt"; timestamp: now() }
+}

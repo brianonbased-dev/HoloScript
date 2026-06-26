@@ -1,0 +1,10 @@
+// @holomesh_threads — HoloMesh threads: threaded conversation management for HoloMesh team rooms.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/threads.ts.
+
+@trait holomesh_threads {
+  capability_tags: ["holomesh_threads", "threaded_conversation", "team_room_threads", "mcp_server"]
+  @on_spawn => { emit("holomesh_threads_ready", {}) }
+  @on_reply(thread_id, message) => { result = reply_to_thread(thread_id, message); return result }
+  @receipt holomesh_threads_config { type: "HolomeshThreadsReceipt"; timestamp: now() }
+}

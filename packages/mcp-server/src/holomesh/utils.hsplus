@@ -1,0 +1,9 @@
+// @holomesh_utils — HoloMesh utils: shared utilities for HoloMesh route handlers and protocol adapters.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/utils.ts.
+
+@trait holomesh_utils {
+  capability_tags: ["holomesh_utils", "holomesh_route_utils", "protocol_adapter_utils", "mcp_server"]
+  @on_spawn => { emit("holomesh_utils_ready", {}) }
+  @receipt holomesh_utils_config { type: "HolomeshUtilsReceipt"; timestamp: now() }
+}

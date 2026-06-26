@@ -1,0 +1,10 @@
+// @holomesh_lotus_routes — HoloMesh Lotus routes: routes for Lotus Genesis Trigger status and milestone tracking.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/routes/lotus-routes.ts.
+
+@trait holomesh_lotus_routes {
+  capability_tags: ["holomesh_lotus_routes", "lotus_genesis_rest", "milestone_track_routes", "mcp_server"]
+  @on_spawn => { emit("holomesh_lotus_routes_ready", {}) }
+  @on_register(app) => { register_lotus_routes(app) }
+  @receipt holomesh_lotus_routes_config { type: "HolomeshLotusRoutesReceipt"; timestamp: now() }
+}

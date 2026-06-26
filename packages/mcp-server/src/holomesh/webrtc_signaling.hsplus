@@ -1,0 +1,10 @@
+// @holomesh_webrtc_signaling — HoloMesh WebRTC signaling: WebRTC offer/answer/ICE signaling server for HoloMesh P2P connections.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/webrtc-signaling.ts.
+
+@trait holomesh_webrtc_signaling {
+  capability_tags: ["holomesh_webrtc_signaling", "webrtc_ice_signal", "p2p_mesh_signaling", "mcp_server"]
+  @on_spawn => { emit("holomesh_webrtc_signaling_ready", {}) }
+  @on_signal(peer_id, offer) => { answer = signal_webrtc_peer(peer_id, offer); return answer }
+  @receipt holomesh_webrtc_signaling_config { type: "HolomeshWebrtcSignalingReceipt"; timestamp: now() }
+}

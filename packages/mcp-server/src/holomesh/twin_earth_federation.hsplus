@@ -1,0 +1,10 @@
+// @holomesh_twin_earth_federation — HoloMesh Twin Earth federation: federated protocol for linking HoloMesh teams to Twin Earth.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/twin-earth-federation.ts.
+
+@trait holomesh_twin_earth_federation {
+  capability_tags: ["holomesh_twin_earth_federation", "twin_earth_federate", "mesh_twin_link", "mcp_server"]
+  @on_spawn => { emit("holomesh_twin_earth_federation_ready", {}) }
+  @on_federate(team_id) => { result = federate_team_to_twin_earth(team_id); return result }
+  @receipt holomesh_twin_earth_federation_config { type: "HolomeshTwinEarthFederationReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @holomesh_signer — HoloMesh signer: EIP-712 signer for wallet-keyed HoloMesh operations.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/signing/signer.ts.
+
+@trait holomesh_signer {
+  capability_tags: ["holomesh_signer", "eip712_wallet_signer", "holomesh_op_sign", "mcp_server"]
+  @on_spawn => { emit("holomesh_signer_ready", {}) }
+  @on_sign(payload) => { sig = holomesh_eip712_sign(payload); return sig }
+  @receipt holomesh_signer_config { type: "HolomeshSignerReceipt"; timestamp: now() }
+}

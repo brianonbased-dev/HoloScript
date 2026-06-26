@@ -1,0 +1,10 @@
+// @holomesh_ttu_feed — HoloMesh TTU feed: time-to-use feed delivering knowledge expiry and freshness signals.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/ttu-feed.ts.
+
+@trait holomesh_ttu_feed {
+  capability_tags: ["holomesh_ttu_feed", "knowledge_freshness_feed", "ttu_expiry_signal", "mcp_server"]
+  @on_spawn => { emit("holomesh_ttu_feed_ready", {}) }
+  @on_fetch(filter) => { entries = fetch_ttu_feed(filter); return entries }
+  @receipt holomesh_ttu_feed_config { type: "HolomeshTtuFeedReceipt"; timestamp: now() }
+}

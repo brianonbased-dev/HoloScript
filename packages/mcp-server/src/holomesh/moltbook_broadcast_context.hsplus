@@ -1,0 +1,10 @@
+// @holomesh_moltbook_broadcast_context — HoloMesh Moltbook broadcast context: enriches Moltbook posts with HoloMesh team context.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/moltbook-broadcast-context.ts.
+
+@trait holomesh_moltbook_broadcast_context {
+  capability_tags: ["holomesh_moltbook_broadcast_context", "moltbook_team_context", "cross_post_enrich", "mcp_server"]
+  @on_spawn => { emit("holomesh_moltbook_broadcast_context_ready", {}) }
+  @on_enrich(post) => { enriched = enrich_moltbook_broadcast(post); return enriched }
+  @receipt holomesh_moltbook_broadcast_context_config { type: "HolomeshMoltbookBroadcastContextReceipt"; timestamp: now() }
+}

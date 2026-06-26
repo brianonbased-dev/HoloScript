@@ -1,0 +1,10 @@
+// @holomesh_custodial_wallet_routes — HoloMesh custodial wallet routes: routes for custodial wallet sign and balance operations.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/routes/custodial-wallet-routes.ts.
+
+@trait holomesh_custodial_wallet_routes {
+  capability_tags: ["holomesh_custodial_wallet_routes", "custodial_wallet_rest", "wallet_sign_balance", "mcp_server"]
+  @on_spawn => { emit("holomesh_custodial_wallet_routes_ready", {}) }
+  @on_register(app) => { register_custodial_wallet_routes(app) }
+  @receipt holomesh_custodial_wallet_routes_config { type: "HolomeshCustodialWalletRoutesReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @holomesh_identity_export_routes — HoloMesh identity export routes: routes for exporting agent identity packages.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/routes/identity-export-routes.ts.
+
+@trait holomesh_identity_export_routes {
+  capability_tags: ["holomesh_identity_export_routes", "identity_package_export_rest", "agent_identity_export", "mcp_server"]
+  @on_spawn => { emit("holomesh_identity_export_routes_ready", {}) }
+  @on_register(app) => { register_identity_export_routes(app) }
+  @receipt holomesh_identity_export_routes_config { type: "HolomeshIdentityExportRoutesReceipt"; timestamp: now() }
+}

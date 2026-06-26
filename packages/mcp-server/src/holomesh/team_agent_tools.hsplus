@@ -1,0 +1,10 @@
+// @holomesh_team_agent_tools — HoloMesh team agent tools: MCP tools for managing team-scoped agent seats and assignments.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/team-agent-tools.ts.
+
+@trait holomesh_team_agent_tools {
+  capability_tags: ["holomesh_team_agent_tools", "team_seat_assign_mcp", "agent_seat_management", "mcp_server"]
+  @on_spawn => { emit("holomesh_team_agent_tools_ready", {}) }
+  @on_assign(agent_id, team_id) => { result = assign_team_agent(agent_id, team_id); return result }
+  @receipt holomesh_team_agent_tools_config { type: "HolomeshTeamAgentToolsReceipt"; timestamp: now() }
+}

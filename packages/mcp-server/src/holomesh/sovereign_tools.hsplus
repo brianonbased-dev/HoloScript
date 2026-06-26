@@ -1,0 +1,10 @@
+// @holomesh_sovereign_tools — HoloMesh sovereign tools: MCP tools for sovereign agent fleet management on HoloMesh.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/sovereign-tools.ts.
+
+@trait holomesh_sovereign_tools {
+  capability_tags: ["holomesh_sovereign_tools", "sovereign_fleet_mcp", "edge_agent_management", "mcp_server"]
+  @on_spawn => { emit("holomesh_sovereign_tools_ready", {}) }
+  @on_deploy(agent_spec) => { result = deploy_sovereign_agent(agent_spec); return result }
+  @receipt holomesh_sovereign_tools_config { type: "HolomeshSovereignToolsReceipt"; timestamp: now() }
+}

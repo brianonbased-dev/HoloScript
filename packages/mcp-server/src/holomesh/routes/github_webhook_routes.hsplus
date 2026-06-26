@@ -1,0 +1,10 @@
+// @holomesh_github_webhook_routes — HoloMesh GitHub webhook routes: routes for receiving and processing GitHub webhooks.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/routes/github-webhook-routes.ts.
+
+@trait holomesh_github_webhook_routes {
+  capability_tags: ["holomesh_github_webhook_routes", "github_webhook_receive", "gh_event_process_route", "mcp_server"]
+  @on_spawn => { emit("holomesh_github_webhook_routes_ready", {}) }
+  @on_register(app) => { register_github_webhook_routes(app) }
+  @receipt holomesh_github_webhook_routes_config { type: "HolomeshGithubWebhookRoutesReceipt"; timestamp: now() }
+}

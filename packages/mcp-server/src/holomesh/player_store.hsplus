@@ -1,0 +1,11 @@
+// @holomesh_player_store — HoloMesh player store: persists HoloLand player records and session state.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/player-store.ts.
+
+@trait holomesh_player_store {
+  capability_tags: ["holomesh_player_store", "hololand_player_persist", "player_session_state", "mcp_server"]
+  @on_spawn => { emit("holomesh_player_store_ready", {}) }
+  @on_get(player_id) => { return get_hololand_player(player_id) }
+  @on_set(player) => { set_hololand_player(player) }
+  @receipt holomesh_player_store_config { type: "HolomeshPlayerStoreReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @holomesh_request_signing — HoloMesh request signing: EIP-712 request signing for HoloMesh wallet authentication.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/request-signing.ts.
+
+@trait holomesh_request_signing {
+  capability_tags: ["holomesh_request_signing", "eip712_wallet_auth", "holomesh_sign_request", "mcp_server"]
+  @on_spawn => { emit("holomesh_request_signing_ready", {}) }
+  @on_sign(request, wallet) => { sig = sign_holomesh_request(request, wallet); return sig }
+  @receipt holomesh_request_signing_config { type: "HolomeshRequestSigningReceipt"; timestamp: now() }
+}

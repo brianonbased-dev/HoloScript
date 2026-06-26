@@ -1,0 +1,10 @@
+// @holomesh_wallet_auth — HoloMesh wallet auth: wallet-signature authentication middleware for HoloMesh API routes.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/wallet-auth.ts.
+
+@trait holomesh_wallet_auth {
+  capability_tags: ["holomesh_wallet_auth", "wallet_sig_auth_middleware", "eip712_api_auth", "mcp_server"]
+  @on_spawn => { emit("holomesh_wallet_auth_ready", {}) }
+  @on_authenticate(request) => { identity = wallet_authenticate_request(request); return identity }
+  @receipt holomesh_wallet_auth_config { type: "HolomeshWalletAuthReceipt"; timestamp: now() }
+}

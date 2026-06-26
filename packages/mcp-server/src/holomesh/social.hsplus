@@ -1,0 +1,11 @@
+// @holomesh_social — HoloMesh social: social feed, reactions, and cross-post features for HoloMesh agents.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/social.ts.
+
+@trait holomesh_social {
+  capability_tags: ["holomesh_social", "mesh_social_feed", "agent_reaction_crosspost", "mcp_server"]
+  @on_spawn => { emit("holomesh_social_ready", {}) }
+  @on_post(content) => { result = post_to_holomesh_feed(content); return result }
+  @on_react(post_id, reaction) => { react_holomesh_post(post_id, reaction) }
+  @receipt holomesh_social_config { type: "HolomeshSocialReceipt"; timestamp: now() }
+}

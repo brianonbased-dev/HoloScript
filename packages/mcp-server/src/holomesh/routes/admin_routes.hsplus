@@ -1,0 +1,10 @@
+// @holomesh_admin_routes — HoloMesh admin routes: Express routes for admin-level HoloMesh management operations.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/routes/admin-routes.ts.
+
+@trait holomesh_admin_routes {
+  capability_tags: ["holomesh_admin_routes", "holomesh_admin_rest", "admin_management_routes", "mcp_server"]
+  @on_spawn => { emit("holomesh_admin_routes_ready", {}) }
+  @on_register(app) => { register_admin_routes(app) }
+  @receipt holomesh_admin_routes_config { type: "HolomeshAdminRoutesReceipt"; timestamp: now() }
+}

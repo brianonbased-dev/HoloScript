@@ -1,0 +1,10 @@
+// @holomesh_attestation_routes — HoloMesh attestation routes: Express routes for agent identity attestation flows.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/routes/attestation-routes.ts.
+
+@trait holomesh_attestation_routes {
+  capability_tags: ["holomesh_attestation_routes", "agent_attest_rest", "identity_attestation_routes", "mcp_server"]
+  @on_spawn => { emit("holomesh_attestation_routes_ready", {}) }
+  @on_register(app) => { register_attestation_routes(app) }
+  @receipt holomesh_attestation_routes_config { type: "HolomeshAttestationRoutesReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @holomesh_team_room — HoloMesh team room: room substrate for team messaging, presence, and coordination.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/team-room.ts.
+
+@trait holomesh_team_room {
+  capability_tags: ["holomesh_team_room", "team_room_substrate", "team_message_presence", "mcp_server"]
+  @on_spawn => { emit("holomesh_team_room_ready", {}) }
+  @on_post(team_id, message) => { result = post_to_team_room(team_id, message); return result }
+  @receipt holomesh_team_room_config { type: "HolomeshTeamRoomReceipt"; timestamp: now() }
+}

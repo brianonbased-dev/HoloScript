@@ -1,0 +1,10 @@
+// @holomesh_storyweaver_generation_routes — HoloMesh Storyweaver generation routes: routes for AI-driven narrative generation in HoloLand.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/routes/storyweaver-generation-routes.ts.
+
+@trait holomesh_storyweaver_generation_routes {
+  capability_tags: ["holomesh_storyweaver_generation_routes", "narrative_ai_generate_rest", "hololand_story_routes", "mcp_server"]
+  @on_spawn => { emit("holomesh_storyweaver_generation_routes_ready", {}) }
+  @on_register(app) => { register_storyweaver_generation_routes(app) }
+  @receipt holomesh_storyweaver_generation_routes_config { type: "HolomeshStoryweaverGenerationRoutesReceipt"; timestamp: now() }
+}

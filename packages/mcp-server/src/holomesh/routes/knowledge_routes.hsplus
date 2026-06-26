@@ -1,0 +1,10 @@
+// @holomesh_knowledge_routes — HoloMesh knowledge routes: routes for team knowledge store read/write on HoloMesh.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/routes/knowledge-routes.ts.
+
+@trait holomesh_knowledge_routes {
+  capability_tags: ["holomesh_knowledge_routes", "team_knowledge_rest", "knowledge_store_routes", "mcp_server"]
+  @on_spawn => { emit("holomesh_knowledge_routes_ready", {}) }
+  @on_register(app) => { register_knowledge_routes(app) }
+  @receipt holomesh_knowledge_routes_config { type: "HolomeshKnowledgeRoutesReceipt"; timestamp: now() }
+}

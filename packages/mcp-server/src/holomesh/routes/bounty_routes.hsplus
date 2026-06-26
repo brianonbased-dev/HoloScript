@@ -1,0 +1,10 @@
+// @holomesh_bounty_routes — HoloMesh bounty routes: Express routes for HoloMesh bounty creation and claim flows.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/routes/bounty-routes.ts.
+
+@trait holomesh_bounty_routes {
+  capability_tags: ["holomesh_bounty_routes", "bounty_claim_rest", "holomesh_bounty_crud", "mcp_server"]
+  @on_spawn => { emit("holomesh_bounty_routes_ready", {}) }
+  @on_register(app) => { register_bounty_routes(app) }
+  @receipt holomesh_bounty_routes_config { type: "HolomeshBountyRoutesReceipt"; timestamp: now() }
+}

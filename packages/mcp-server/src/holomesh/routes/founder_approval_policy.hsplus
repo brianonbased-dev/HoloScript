@@ -1,0 +1,10 @@
+// @holomesh_founder_approval_policy — HoloMesh founder approval policy: enforces founder-gated approval on sensitive HoloMesh routes.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/routes/founder-approval-policy.ts.
+
+@trait holomesh_founder_approval_policy {
+  capability_tags: ["holomesh_founder_approval_policy", "founder_gate_route", "governance_route_policy", "mcp_server"]
+  @on_spawn => { emit("holomesh_founder_approval_policy_ready", {}) }
+  @on_check(request) => { result = check_founder_approval(request); return result }
+  @receipt holomesh_founder_approval_policy_config { type: "HolomeshFounderApprovalPolicyReceipt"; timestamp: now() }
+}

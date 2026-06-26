@@ -1,0 +1,11 @@
+// @holomesh_state — HoloMesh state: in-memory HoloMesh world state manager with CRDT delta tracking.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/state.ts.
+
+@trait holomesh_state {
+  capability_tags: ["holomesh_state", "in_memory_world_state", "crdt_delta_track", "mcp_server"]
+  @on_spawn => { emit("holomesh_state_ready", {}) }
+  @on_apply(delta) => { apply_holomesh_delta(delta) }
+  @on_get => { return get_holomesh_state() }
+  @receipt holomesh_state_config { type: "HolomeshStateReceipt"; timestamp: now() }
+}

@@ -1,0 +1,11 @@
+// @holomesh_messaging — HoloMesh messaging: core message routing and inbox delivery for HoloMesh agents.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/messaging.ts.
+
+@trait holomesh_messaging {
+  capability_tags: ["holomesh_messaging", "agent_message_route", "mesh_inbox_deliver", "mcp_server"]
+  @on_spawn => { emit("holomesh_messaging_ready", {}) }
+  @on_send(message) => { result = route_holomesh_message(message); return result }
+  @on_receive(agent_id) => { return drain_holomesh_inbox(agent_id) }
+  @receipt holomesh_messaging_config { type: "HolomeshMessagingReceipt"; timestamp: now() }
+}

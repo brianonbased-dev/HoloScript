@@ -1,0 +1,10 @@
+// @holomesh_chain_anchor — HoloMesh chain anchor: anchors HoloMesh state hashes to Base chain for provenance.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/signing/chain-anchor.ts.
+
+@trait holomesh_chain_anchor {
+  capability_tags: ["holomesh_chain_anchor", "base_chain_anchor", "state_hash_provenance", "mcp_server"]
+  @on_spawn => { emit("holomesh_chain_anchor_ready", {}) }
+  @on_anchor(state_hash) => { tx = anchor_state_to_chain(state_hash); return tx }
+  @receipt holomesh_chain_anchor_config { type: "HolomeshChainAnchorReceipt"; timestamp: now() }
+}

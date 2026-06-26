@@ -1,0 +1,10 @@
+// @holomesh_sse_edge_headers — HoloMesh SSE edge headers: sets SSE-specific headers for edge-cached streaming responses.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/sse-edge-headers.ts.
+
+@trait holomesh_sse_edge_headers {
+  capability_tags: ["holomesh_sse_edge_headers", "sse_cache_control", "edge_stream_headers", "mcp_server"]
+  @on_spawn => { emit("holomesh_sse_edge_headers_ready", {}) }
+  @on_apply(response) => { apply_sse_edge_headers(response) }
+  @receipt holomesh_sse_edge_headers_config { type: "HolomeshSseEdgeHeadersReceipt"; timestamp: now() }
+}

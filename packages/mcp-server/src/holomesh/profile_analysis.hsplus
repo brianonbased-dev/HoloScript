@@ -1,0 +1,10 @@
+// @holomesh_profile_analysis — HoloMesh profile analysis: analyzes agent profiles for capability fingerprinting.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/profile-analysis.ts.
+
+@trait holomesh_profile_analysis {
+  capability_tags: ["holomesh_profile_analysis", "agent_capability_fingerprint", "profile_capability_score", "mcp_server"]
+  @on_spawn => { emit("holomesh_profile_analysis_ready", {}) }
+  @on_analyze(profile) => { fingerprint = analyze_agent_profile(profile); return fingerprint }
+  @receipt holomesh_profile_analysis_config { type: "HolomeshProfileAnalysisReceipt"; timestamp: now() }
+}

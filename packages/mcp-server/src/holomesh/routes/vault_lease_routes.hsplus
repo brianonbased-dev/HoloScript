@@ -1,0 +1,10 @@
+// @holomesh_vault_lease_routes — HoloMesh vault lease routes: routes for HoloKey vault lease issuance and revocation.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/routes/vault-lease-routes.ts.
+
+@trait holomesh_vault_lease_routes {
+  capability_tags: ["holomesh_vault_lease_routes", "vault_lease_rest", "holokey_lease_issue_revoke", "mcp_server"]
+  @on_spawn => { emit("holomesh_vault_lease_routes_ready", {}) }
+  @on_register(app) => { register_vault_lease_routes(app) }
+  @receipt holomesh_vault_lease_routes_config { type: "HolomeshVaultLeaseRoutesReceipt"; timestamp: now() }
+}

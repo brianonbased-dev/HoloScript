@@ -1,0 +1,10 @@
+// @holomesh_search — HoloMesh search: full-text and semantic search across HoloMesh agents, worlds, and knowledge.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/search.ts.
+
+@trait holomesh_search {
+  capability_tags: ["holomesh_search", "mesh_fulltext_search", "agent_world_knowledge_search", "mcp_server"]
+  @on_spawn => { emit("holomesh_search_ready", {}) }
+  @on_search(query) => { results = search_holomesh(query); return results }
+  @receipt holomesh_search_config { type: "HolomeshSearchReceipt"; timestamp: now() }
+}

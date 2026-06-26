@@ -1,0 +1,10 @@
+// @holomesh_mode_provenance — HoloMesh mode provenance: tracks team-mode transitions with provenance receipts.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/mode-provenance.ts.
+
+@trait holomesh_mode_provenance {
+  capability_tags: ["holomesh_mode_provenance", "team_mode_audit", "mode_transition_track", "mcp_server"]
+  @on_spawn => { emit("holomesh_mode_provenance_ready", {}) }
+  @on_log(mode_transition) => { log_mode_provenance(mode_transition) }
+  @receipt holomesh_mode_provenance_config { type: "HolomeshModeProvenanceReceipt"; timestamp: now() }
+}

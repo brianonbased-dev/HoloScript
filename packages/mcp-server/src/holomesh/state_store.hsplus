@@ -1,0 +1,11 @@
+// @holomesh_state_store — HoloMesh state store: persists HoloMesh world state snapshots in Postgres.
+//
+// Native .hsplus surface for mcp-server/src/holomesh/state-store.ts.
+
+@trait holomesh_state_store {
+  capability_tags: ["holomesh_state_store", "world_state_postgres", "mesh_snapshot_persist", "mcp_server"]
+  @on_spawn => { emit("holomesh_state_store_ready", {}) }
+  @on_save(snapshot) => { save_holomesh_state(snapshot) }
+  @on_load(snapshot_id) => { return load_holomesh_state(snapshot_id) }
+  @receipt holomesh_state_store_config { type: "HolomeshStateStoreReceipt"; timestamp: now() }
+}
