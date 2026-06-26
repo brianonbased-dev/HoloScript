@@ -1,0 +1,10 @@
+// @use_ai_material — useAIMaterial hook: Studio hook for AI-driven material generation and parameter suggestion.
+//
+// Native .hsplus surface for studio/src/hooks/useAIMaterial.ts.
+
+@trait use_ai_material {
+  capability_tags: ["use_ai_material", "ai_material_generate_hook", "material_param_suggest", "studio"]
+  @on_spawn => { emit("use_ai_material_ready", {}) }
+  @on_generate(prompt) => { material = generate_ai_material(prompt); return material }
+  @receipt use_ai_material_config { type: "UseAiMaterialReceipt"; timestamp: now() }
+}

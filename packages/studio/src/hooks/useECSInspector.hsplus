@@ -1,0 +1,10 @@
+// @use_ecs_inspector — useECSInspector hook: Studio hook for inspecting ECS entity component state in real time.
+//
+// Native .hsplus surface for studio/src/hooks/useECSInspector.ts.
+
+@trait use_ecs_inspector {
+  capability_tags: ["use_ecs_inspector", "ecs_entity_component_inspect", "realtime_ecs_state_hook", "studio"]
+  @on_spawn => { emit("use_ecs_inspector_ready", {}) }
+  @on_inspect(entity_id) => { state = inspect_ecs_entity(entity_id); return state }
+  @receipt use_ecs_inspector_config { type: "UseEcsInspectorReceipt"; timestamp: now() }
+}

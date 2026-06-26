@@ -1,0 +1,10 @@
+// @use_brittney_voice — useBrittneyVoice hook: Studio hook for Brittney TTS voice synthesis and voice model selection.
+//
+// Native .hsplus surface for studio/src/hooks/useBrittneyVoice.ts.
+
+@trait use_brittney_voice {
+  capability_tags: ["use_brittney_voice", "brittney_tts_voice_hook", "npc_voice_synthesis", "studio"]
+  @on_spawn => { emit("use_brittney_voice_ready", {}) }
+  @on_speak(text) => { result = brittney_speak_tts(text); return result }
+  @receipt use_brittney_voice_config { type: "UseBrittneyVoiceReceipt"; timestamp: now() }
+}

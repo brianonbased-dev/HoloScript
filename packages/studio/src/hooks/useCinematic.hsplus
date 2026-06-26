@@ -1,0 +1,10 @@
+// @use_cinematic — useCinematic hook: Studio hook for cinematic camera sequencer, cuts, and dolly tracks.
+//
+// Native .hsplus surface for studio/src/hooks/useCinematic.ts.
+
+@trait use_cinematic {
+  capability_tags: ["use_cinematic", "cinematic_sequencer_hook", "camera_cut_dolly_hook", "studio"]
+  @on_spawn => { emit("use_cinematic_ready", {}) }
+  @on_play(sequence) => { play_cinematic_sequence(sequence) }
+  @receipt use_cinematic_config { type: "UseCinematicReceipt"; timestamp: now() }
+}

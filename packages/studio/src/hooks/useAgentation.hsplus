@@ -1,0 +1,10 @@
+// @use_agentation — useAgentation hook: Studio hook for spawning and tracking agent behaviors in the scene.
+//
+// Native .hsplus surface for studio/src/hooks/useAgentation.ts.
+
+@trait use_agentation {
+  capability_tags: ["use_agentation", "agent_spawn_track_hook", "scene_agent_behavior_hook", "studio"]
+  @on_spawn => { emit("use_agentation_ready", {}) }
+  @on_spawn_agent(spec) => { agent = spawn_scene_agent(spec); return agent }
+  @receipt use_agentation_config { type: "UseAgentationReceipt"; timestamp: now() }
+}

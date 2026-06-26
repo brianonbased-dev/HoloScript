@@ -1,0 +1,10 @@
+// @use_examples — useExamples hook: Studio hook for loading and browsing HoloScript example compositions.
+//
+// Native .hsplus surface for studio/src/hooks/useExamples.ts.
+
+@trait use_examples {
+  capability_tags: ["use_examples", "holoscript_example_load_hook", "example_composition_browse", "studio"]
+  @on_spawn => { emit("use_examples_ready", {}) }
+  @on_list(filter) => { examples = list_holoscript_examples(filter); return examples }
+  @receipt use_examples_config { type: "UseExamplesReceipt"; timestamp: now() }
+}

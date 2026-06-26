@@ -1,0 +1,11 @@
+// @shader_undo_redo — Shader undo-redo: undo/redo history stack for the Studio shader editor.
+//
+// Native .hsplus surface for studio/src/features/shader-editor/UndoRedoSystem.ts.
+
+@trait shader_undo_redo {
+  capability_tags: ["shader_undo_redo", "shader_edit_undo_history", "studio_shader_redo_stack", "studio"]
+  @on_spawn => { emit("shader_undo_redo_ready", {}) }
+  @on_undo() => { result = undo_shader_edit(); return result }
+  @on_redo() => { result = redo_shader_edit(); return result }
+  @receipt shader_undo_redo_config { type: "ShaderUndoRedoReceipt"; timestamp: now() }
+}

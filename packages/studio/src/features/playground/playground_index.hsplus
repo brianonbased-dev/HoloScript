@@ -1,0 +1,9 @@
+// @playground_index — Playground index: entry point for the Studio live HoloScript playground feature.
+//
+// Native .hsplus surface for studio/src/features/playground/index.ts.
+
+@trait playground_index {
+  capability_tags: ["playground_index", "studio_playground_entry", "live_holoscript_playground", "studio"]
+  @on_spawn => { emit("playground_index_ready", {}) }
+  @receipt playground_index_config { type: "PlaygroundIndexReceipt"; timestamp: now() }
+}

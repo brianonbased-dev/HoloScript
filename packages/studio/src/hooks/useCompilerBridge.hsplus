@@ -1,0 +1,10 @@
+// @use_compiler_bridge — useCompilerBridge hook: Studio hook bridging the WASM compiler to the Studio scene pipeline.
+//
+// Native .hsplus surface for studio/src/hooks/useCompilerBridge.ts.
+
+@trait use_compiler_bridge {
+  capability_tags: ["use_compiler_bridge", "wasm_compiler_scene_bridge", "studio_compile_pipeline_hook", "studio"]
+  @on_spawn => { emit("use_compiler_bridge_ready", {}) }
+  @on_bridge(ast) => { result = bridge_compiler_to_scene(ast); return result }
+  @receipt use_compiler_bridge_config { type: "UseCompilerBridgeReceipt"; timestamp: now() }
+}

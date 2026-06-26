@@ -1,0 +1,10 @@
+// @use_drag_snap — useDragSnap hook: Studio hook for grid snap and alignment assists during drag operations.
+//
+// Native .hsplus surface for studio/src/hooks/useDragSnap.ts.
+
+@trait use_drag_snap {
+  capability_tags: ["use_drag_snap", "grid_snap_drag_hook", "alignment_assist_drag", "studio"]
+  @on_spawn => { emit("use_drag_snap_ready", {}) }
+  @on_snap(position) => { snapped = snap_to_grid(position); return snapped }
+  @receipt use_drag_snap_config { type: "UseDragSnapReceipt"; timestamp: now() }
+}

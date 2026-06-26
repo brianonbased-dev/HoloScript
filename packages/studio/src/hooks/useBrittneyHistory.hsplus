@@ -1,0 +1,10 @@
+// @use_brittney_history — useBrittneyHistory hook: Studio hook for reading and replaying Brittney NPC conversation history.
+//
+// Native .hsplus surface for studio/src/hooks/useBrittneyHistory.ts.
+
+@trait use_brittney_history {
+  capability_tags: ["use_brittney_history", "brittney_convo_history_hook", "npc_replay_convo", "studio"]
+  @on_spawn => { emit("use_brittney_history_ready", {}) }
+  @on_load() => { return load_brittney_history() }
+  @receipt use_brittney_history_config { type: "UseBrittneyHistoryReceipt"; timestamp: now() }
+}

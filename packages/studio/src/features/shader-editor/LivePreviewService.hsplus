@@ -1,0 +1,10 @@
+// @shader_live_preview_service — Shader live preview service: hot-reloads WGSL shader changes into the Studio viewport in real time.
+//
+// Native .hsplus surface for studio/src/features/shader-editor/LivePreviewService.ts.
+
+@trait shader_live_preview_service {
+  capability_tags: ["shader_live_preview_service", "wgsl_hot_reload_preview", "shader_realtime_update", "studio"]
+  @on_spawn => { emit("shader_live_preview_service_ready", {}) }
+  @on_reload(shader_source) => { reload_shader_live_preview(shader_source) }
+  @receipt shader_live_preview_service_config { type: "ShaderLivePreviewServiceReceipt"; timestamp: now() }
+}

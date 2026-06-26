@@ -1,0 +1,11 @@
+// @playground_url_encoder — Playground URL encoder: encodes playground HoloScript state into shareable URL fragments.
+//
+// Native .hsplus surface for studio/src/features/playground/sharing/url-encoder.ts.
+
+@trait playground_url_encoder {
+  capability_tags: ["playground_url_encoder", "playground_share_url_encode", "holoscript_url_fragment", "studio"]
+  @on_spawn => { emit("playground_url_encoder_ready", {}) }
+  @on_encode(state) => { url = encode_playground_state(state); return url }
+  @on_decode(url) => { return decode_playground_state(url) }
+  @receipt playground_url_encoder_config { type: "PlaygroundUrlEncoderReceipt"; timestamp: now() }
+}

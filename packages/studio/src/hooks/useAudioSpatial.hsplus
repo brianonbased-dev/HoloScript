@@ -1,0 +1,10 @@
+// @use_audio_spatial — useAudioSpatial hook: Studio hook for spatial audio positioning and 3D sound management.
+//
+// Native .hsplus surface for studio/src/hooks/useAudioSpatial.ts.
+
+@trait use_audio_spatial {
+  capability_tags: ["use_audio_spatial", "spatial_audio_position_hook", "3d_sound_manage_hook", "studio"]
+  @on_spawn => { emit("use_audio_spatial_ready", {}) }
+  @on_position(source_id, coords) => { position_spatial_audio(source_id, coords) }
+  @receipt use_audio_spatial_config { type: "UseAudioSpatialReceipt"; timestamp: now() }
+}

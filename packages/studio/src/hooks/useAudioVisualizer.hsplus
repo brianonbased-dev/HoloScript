@@ -1,0 +1,10 @@
+// @use_audio_visualizer — useAudioVisualizer hook: Studio hook for real-time audio frequency visualization in the scene.
+//
+// Native .hsplus surface for studio/src/hooks/useAudioVisualizer.ts.
+
+@trait use_audio_visualizer {
+  capability_tags: ["use_audio_visualizer", "audio_freq_visualize_hook", "realtime_audio_viz_hook", "studio"]
+  @on_spawn => { emit("use_audio_visualizer_ready", {}) }
+  @on_tick(audio_data) => { update_audio_visualizer(audio_data) }
+  @receipt use_audio_visualizer_config { type: "UseAudioVisualizerReceipt"; timestamp: now() }
+}

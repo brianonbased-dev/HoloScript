@@ -1,0 +1,10 @@
+// @use_github_repos — useGitHubRepos hook: Studio hook for listing and importing GitHub repos as HoloScript projects.
+//
+// Native .hsplus surface for studio/src/hooks/useGitHubRepos.ts.
+
+@trait use_github_repos {
+  capability_tags: ["use_github_repos", "github_repo_list_import_hook", "holoscript_project_import", "studio"]
+  @on_spawn => { emit("use_github_repos_ready", {}) }
+  @on_list(user) => { repos = list_github_repos(user); return repos }
+  @receipt use_github_repos_config { type: "UseGithubReposReceipt"; timestamp: now() }
+}

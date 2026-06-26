@@ -1,0 +1,10 @@
+// @use_creator_stats — useCreatorStats hook: Studio hook for reading creator revenue, view counts, and usage analytics.
+//
+// Native .hsplus surface for studio/src/hooks/useCreatorStats.ts.
+
+@trait use_creator_stats {
+  capability_tags: ["use_creator_stats", "creator_revenue_analytics_hook", "view_count_usage_hook", "studio"]
+  @on_spawn => { emit("use_creator_stats_ready", {}) }
+  @on_fetch(creator_id) => { stats = fetch_creator_stats(creator_id); return stats }
+  @receipt use_creator_stats_config { type: "UseCreatorStatsReceipt"; timestamp: now() }
+}

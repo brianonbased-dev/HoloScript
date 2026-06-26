@@ -1,0 +1,12 @@
+// @use_game_loop — useGameLoop hook: Studio hook for running the physics-timestep game loop inside the Studio viewport.
+//
+// Native .hsplus surface for studio/src/hooks/useGameLoop.ts.
+
+@trait use_game_loop {
+  capability_tags: ["use_game_loop", "physics_timestep_game_loop", "studio_viewport_loop_hook", "studio"]
+  @on_spawn => {
+    start_studio_game_loop()
+    emit("use_game_loop_ready", {})
+  }
+  @receipt use_game_loop_config { type: "UseGameLoopReceipt"; timestamp: now() }
+}

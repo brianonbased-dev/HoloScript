@@ -1,0 +1,10 @@
+// @use_brittney_customizer — useBrittneyCustomizer hook: Studio hook for customizing Brittney NPC appearance and personality.
+//
+// Native .hsplus surface for studio/src/hooks/useBrittneyCustomizer.ts.
+
+@trait use_brittney_customizer {
+  capability_tags: ["use_brittney_customizer", "brittney_npc_customize_hook", "npc_appearance_personality", "studio"]
+  @on_spawn => { emit("use_brittney_customizer_ready", {}) }
+  @on_customize(options) => { result = customize_brittney(options); return result }
+  @receipt use_brittney_customizer_config { type: "UseBrittneyCustomizerReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @git_blame_service — Git blame service: provides per-line git blame information for HoloScript source files in Studio.
+//
+// Native .hsplus surface for studio/src/features/versionControl/gitBlameService.ts.
+
+@trait git_blame_service {
+  capability_tags: ["git_blame_service", "studio_git_blame_per_line", "holoscript_blame_info", "studio"]
+  @on_spawn => { emit("git_blame_service_ready", {}) }
+  @on_blame(file_path, line) => { return get_git_blame(file_path, line) }
+  @receipt git_blame_service_config { type: "GitBlameServiceReceipt"; timestamp: now() }
+}

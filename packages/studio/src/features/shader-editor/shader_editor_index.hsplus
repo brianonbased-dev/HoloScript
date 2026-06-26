@@ -1,0 +1,9 @@
+// @shader_editor_index — Shader editor index: entry point for the Studio shader editor feature module.
+//
+// Native .hsplus surface for studio/src/features/shader-editor/index.ts.
+
+@trait shader_editor_index {
+  capability_tags: ["shader_editor_index", "shader_editor_feature_entry", "studio_shader_module", "studio"]
+  @on_spawn => { emit("shader_editor_index_ready", {}) }
+  @receipt shader_editor_index_config { type: "ShaderEditorIndexReceipt"; timestamp: now() }
+}

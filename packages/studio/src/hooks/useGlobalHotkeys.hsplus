@@ -1,0 +1,12 @@
+// @use_global_hotkeys — useGlobalHotkeys hook: Studio hook registering global keyboard shortcuts that work across all panels.
+//
+// Native .hsplus surface for studio/src/hooks/useGlobalHotkeys.ts.
+
+@trait use_global_hotkeys {
+  capability_tags: ["use_global_hotkeys", "global_keyboard_shortcut_hook", "studio_cross_panel_hotkey", "studio"]
+  @on_spawn => {
+    register_global_hotkeys()
+    emit("use_global_hotkeys_ready", {})
+  }
+  @receipt use_global_hotkeys_config { type: "UseGlobalHotkeysReceipt"; timestamp: now() }
+}

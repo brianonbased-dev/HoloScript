@@ -1,0 +1,12 @@
+// @use_auto_save — useAutoSave hook: Studio hook for periodic auto-save of world state to prevent data loss.
+//
+// Native .hsplus surface for studio/src/hooks/useAutoSave.ts.
+
+@trait use_auto_save {
+  capability_tags: ["use_auto_save", "world_auto_save_hook", "periodic_state_save", "studio"]
+  @on_spawn => {
+    start_auto_save_timer()
+    emit("use_auto_save_ready", {})
+  }
+  @receipt use_auto_save_config { type: "UseAutoSaveReceipt"; timestamp: now() }
+}

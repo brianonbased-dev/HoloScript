@@ -1,0 +1,12 @@
+// @monaco_setup — Monaco setup: configures Monaco editor with HoloScript language support for the Studio playground.
+//
+// Native .hsplus surface for studio/src/features/playground/editor/monaco-setup.ts.
+
+@trait monaco_setup {
+  capability_tags: ["monaco_setup", "monaco_holoscript_lang", "studio_playground_editor", "studio"]
+  @on_spawn => {
+    setup_monaco_holoscript()
+    emit("monaco_setup_ready", {})
+  }
+  @receipt monaco_setup_config { type: "MonacoSetupReceipt"; timestamp: now() }
+}

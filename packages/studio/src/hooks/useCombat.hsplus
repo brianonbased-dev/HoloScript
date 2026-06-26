@@ -1,0 +1,10 @@
+// @use_combat — useCombat hook: Studio hook for wiring combat system parameters (damage, health, hitboxes) in game worlds.
+//
+// Native .hsplus surface for studio/src/hooks/useCombat.ts.
+
+@trait use_combat {
+  capability_tags: ["use_combat", "combat_param_wire_hook", "damage_health_hitbox_hook", "studio"]
+  @on_spawn => { emit("use_combat_ready", {}) }
+  @on_configure(params) => { configure_combat_system(params) }
+  @receipt use_combat_config { type: "UseCombatReceipt"; timestamp: now() }
+}

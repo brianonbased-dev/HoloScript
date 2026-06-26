@@ -1,0 +1,10 @@
+// @use_asset_registry — useAssetRegistry hook: Studio hook for registering and resolving assets in the world registry.
+//
+// Native .hsplus surface for studio/src/hooks/useAssetRegistry.ts.
+
+@trait use_asset_registry {
+  capability_tags: ["use_asset_registry", "asset_register_resolve_hook", "world_asset_registry_hook", "studio"]
+  @on_spawn => { emit("use_asset_registry_ready", {}) }
+  @on_register(asset) => { result = register_asset(asset); return result }
+  @receipt use_asset_registry_config { type: "UseAssetRegistryReceipt"; timestamp: now() }
+}

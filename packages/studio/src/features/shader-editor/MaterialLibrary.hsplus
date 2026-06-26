@@ -1,0 +1,10 @@
+// @shader_material_library — Shader material library: catalog of reusable shader materials for the Studio shader editor.
+//
+// Native .hsplus surface for studio/src/features/shader-editor/MaterialLibrary.ts.
+
+@trait shader_material_library {
+  capability_tags: ["shader_material_library", "shader_material_catalog", "reusable_shader_material", "studio"]
+  @on_spawn => { emit("shader_material_library_ready", {}) }
+  @on_get(material_id) => { return get_shader_material(material_id) }
+  @receipt shader_material_library_config { type: "ShaderMaterialLibraryReceipt"; timestamp: now() }
+}

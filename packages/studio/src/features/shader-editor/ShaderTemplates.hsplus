@@ -1,0 +1,10 @@
+// @shader_templates — Shader templates: pre-built WGSL shader templates for common material effects in Studio.
+//
+// Native .hsplus surface for studio/src/features/shader-editor/ShaderTemplates.ts.
+
+@trait shader_templates {
+  capability_tags: ["shader_templates", "wgsl_shader_templates", "common_material_effect_wgsl", "studio"]
+  @on_spawn => { emit("shader_templates_ready", {}) }
+  @on_list() => { return list_shader_templates() }
+  @receipt shader_templates_config { type: "ShaderTemplatesReceipt"; timestamp: now() }
+}

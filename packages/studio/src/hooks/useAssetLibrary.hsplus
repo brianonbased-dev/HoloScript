@@ -1,0 +1,10 @@
+// @use_asset_library — useAssetLibrary hook: Studio hook for browsing, importing, and searching the asset library.
+//
+// Native .hsplus surface for studio/src/hooks/useAssetLibrary.ts.
+
+@trait use_asset_library {
+  capability_tags: ["use_asset_library", "asset_browse_import_hook", "studio_asset_search_hook", "studio"]
+  @on_spawn => { emit("use_asset_library_ready", {}) }
+  @on_search(query) => { results = search_asset_library(query); return results }
+  @receipt use_asset_library_config { type: "UseAssetLibraryReceipt"; timestamp: now() }
+}

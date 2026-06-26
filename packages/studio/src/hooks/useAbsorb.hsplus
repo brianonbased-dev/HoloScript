@@ -1,0 +1,10 @@
+// @use_absorb — useAbsorb hook: Studio hook for triggering codebase absorb and reading absorb status.
+//
+// Native .hsplus surface for studio/src/hooks/useAbsorb.ts.
+
+@trait use_absorb {
+  capability_tags: ["use_absorb", "absorb_trigger_hook", "codebase_absorb_status", "studio"]
+  @on_spawn => { emit("use_absorb_ready", {}) }
+  @on_absorb(target) => { result = trigger_absorb(target); return result }
+  @receipt use_absorb_config { type: "UseAbsorbReceipt"; timestamp: now() }
+}

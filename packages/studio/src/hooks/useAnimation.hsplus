@@ -1,0 +1,10 @@
+// @use_animation — useAnimation hook: Studio hook for playing, pausing, and scrubbing entity animations.
+//
+// Native .hsplus surface for studio/src/hooks/useAnimation.ts.
+
+@trait use_animation {
+  capability_tags: ["use_animation", "entity_animation_control_hook", "anim_play_pause_scrub", "studio"]
+  @on_spawn => { emit("use_animation_ready", {}) }
+  @on_play(entity_id, clip) => { play_animation(entity_id, clip) }
+  @receipt use_animation_config { type: "UseAnimationReceipt"; timestamp: now() }
+}

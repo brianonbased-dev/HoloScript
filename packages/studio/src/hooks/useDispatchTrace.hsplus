@@ -1,0 +1,10 @@
+// @use_dispatch_trace — useDispatchTrace hook: Studio hook for tracing tool dispatch calls through the MCP layer.
+//
+// Native .hsplus surface for studio/src/hooks/useDispatchTrace.ts.
+
+@trait use_dispatch_trace {
+  capability_tags: ["use_dispatch_trace", "mcp_dispatch_trace_hook", "tool_call_trace_hook", "studio"]
+  @on_spawn => { emit("use_dispatch_trace_ready", {}) }
+  @on_trace(call) => { result = trace_mcp_dispatch(call); return result }
+  @receipt use_dispatch_trace_config { type: "UseDispatchTraceReceipt"; timestamp: now() }
+}

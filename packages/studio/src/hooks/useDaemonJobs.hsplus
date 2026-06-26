@@ -1,0 +1,10 @@
+// @use_daemon_jobs — useDaemonJobs hook: Studio hook for monitoring and managing long-running daemon background jobs.
+//
+// Native .hsplus surface for studio/src/hooks/useDaemonJobs.ts.
+
+@trait use_daemon_jobs {
+  capability_tags: ["use_daemon_jobs", "daemon_background_job_hook", "daemon_job_monitor_hook", "studio"]
+  @on_spawn => { emit("use_daemon_jobs_ready", {}) }
+  @on_list() => { return list_daemon_jobs() }
+  @receipt use_daemon_jobs_config { type: "UseDaemonJobsReceipt"; timestamp: now() }
+}

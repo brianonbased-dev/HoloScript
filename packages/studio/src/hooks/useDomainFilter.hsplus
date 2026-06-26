@@ -1,0 +1,10 @@
+// @use_domain_filter — useDomainFilter hook: Studio hook for filtering world entities and tools by active domain plugin.
+//
+// Native .hsplus surface for studio/src/hooks/useDomainFilter.ts.
+
+@trait use_domain_filter {
+  capability_tags: ["use_domain_filter", "domain_plugin_filter_hook", "entity_tool_domain_filter", "studio"]
+  @on_spawn => { emit("use_domain_filter_ready", {}) }
+  @on_filter(domain_id) => { apply_domain_filter(domain_id) }
+  @receipt use_domain_filter_config { type: "UseDomainFilterReceipt"; timestamp: now() }
+}

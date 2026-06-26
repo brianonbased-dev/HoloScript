@@ -1,0 +1,10 @@
+// @use_camera — useCamera hook: Studio hook for viewport camera control (orbit, pan, zoom, first-person).
+//
+// Native .hsplus surface for studio/src/hooks/useCamera.ts.
+
+@trait use_camera {
+  capability_tags: ["use_camera", "viewport_camera_control_hook", "orbit_pan_zoom_hook", "studio"]
+  @on_spawn => { emit("use_camera_ready", {}) }
+  @on_move(delta) => { move_studio_camera(delta) }
+  @receipt use_camera_config { type: "UseCameraReceipt"; timestamp: now() }
+}

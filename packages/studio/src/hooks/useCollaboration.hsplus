@@ -1,0 +1,10 @@
+// @use_collaboration — useCollaboration hook: Studio hook for real-time Loro CRDT multi-user scene collaboration.
+//
+// Native .hsplus surface for studio/src/hooks/useCollaboration.ts.
+
+@trait use_collaboration {
+  capability_tags: ["use_collaboration", "loro_crdt_collab_hook", "multiuser_scene_hook", "studio"]
+  @on_spawn => { emit("use_collaboration_ready", {}) }
+  @on_join(session_id) => { result = join_collaboration_session(session_id); return result }
+  @receipt use_collaboration_config { type: "UseCollaborationReceipt"; timestamp: now() }
+}

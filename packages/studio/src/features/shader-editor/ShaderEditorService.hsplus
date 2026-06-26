@@ -1,0 +1,10 @@
+// @shader_editor_service — Shader editor service: core service for the Studio shader editor — parse, validate, compile WGSL.
+//
+// Native .hsplus surface for studio/src/features/shader-editor/ShaderEditorService.ts.
+
+@trait shader_editor_service {
+  capability_tags: ["shader_editor_service", "wgsl_parse_validate_compile", "studio_shader_edit_core", "studio"]
+  @on_spawn => { emit("shader_editor_service_ready", {}) }
+  @on_compile(source) => { result = compile_wgsl_shader(source); return result }
+  @receipt shader_editor_service_config { type: "ShaderEditorServiceReceipt"; timestamp: now() }
+}

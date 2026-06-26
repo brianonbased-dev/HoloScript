@@ -1,0 +1,10 @@
+// @use_hotkeys — useHotkeys hook: Studio hook for binding context-specific keyboard shortcuts within a panel.
+//
+// Native .hsplus surface for studio/src/hooks/useHotkeys.ts.
+
+@trait use_hotkeys {
+  capability_tags: ["use_hotkeys", "context_hotkey_bind_hook", "panel_keyboard_shortcut", "studio"]
+  @on_spawn => { emit("use_hotkeys_ready", {}) }
+  @on_bind(key_combo, handler) => { bind_panel_hotkey(key_combo, handler) }
+  @receipt use_hotkeys_config { type: "UseHotkeysReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @use_chat — useChat hook: Studio hook for the HoloMesh in-world chat system in collaborative sessions.
+//
+// Native .hsplus surface for studio/src/hooks/useChat.ts.
+
+@trait use_chat {
+  capability_tags: ["use_chat", "holomesh_chat_collab_hook", "in_world_chat_hook", "studio"]
+  @on_spawn => { emit("use_chat_ready", {}) }
+  @on_send(message) => { result = send_chat_message(message); return result }
+  @receipt use_chat_config { type: "UseChatReceipt"; timestamp: now() }
+}

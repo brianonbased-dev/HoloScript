@@ -1,0 +1,10 @@
+// @use_absorb_service — useAbsorbService hook: Studio hook wrapping the absorb service for project graph ingest.
+//
+// Native .hsplus surface for studio/src/hooks/useAbsorbService.ts.
+
+@trait use_absorb_service {
+  capability_tags: ["use_absorb_service", "absorb_service_hook", "project_graph_ingest_hook", "studio"]
+  @on_spawn => { emit("use_absorb_service_ready", {}) }
+  @on_ingest(project_path) => { result = absorb_service_ingest(project_path); return result }
+  @receipt use_absorb_service_config { type: "UseAbsorbServiceReceipt"; timestamp: now() }
+}

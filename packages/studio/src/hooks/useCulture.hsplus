@@ -1,0 +1,10 @@
+// @use_culture — useCulture hook: Studio hook for applying cultural context and locale-specific world generation rules.
+//
+// Native .hsplus surface for studio/src/hooks/useCulture.ts.
+
+@trait use_culture {
+  capability_tags: ["use_culture", "cultural_context_world_hook", "locale_world_gen_rule", "studio"]
+  @on_spawn => { emit("use_culture_ready", {}) }
+  @on_apply(culture_id, world_id) => { apply_cultural_context(culture_id, world_id) }
+  @receipt use_culture_config { type: "UseCultureReceipt"; timestamp: now() }
+}

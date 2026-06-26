@@ -1,0 +1,10 @@
+// @use_brittney_voice_actions — useBrittneyVoiceActions hook: Studio hook for voice-command actions routed through Brittney.
+//
+// Native .hsplus surface for studio/src/hooks/useBrittneyVoiceActions.ts.
+
+@trait use_brittney_voice_actions {
+  capability_tags: ["use_brittney_voice_actions", "brittney_voice_command_hook", "voice_action_route_hook", "studio"]
+  @on_spawn => { emit("use_brittney_voice_actions_ready", {}) }
+  @on_command(voice_cmd) => { result = execute_brittney_voice_action(voice_cmd); return result }
+  @receipt use_brittney_voice_actions_config { type: "UseBrittneyVoiceActionsReceipt"; timestamp: now() }
+}

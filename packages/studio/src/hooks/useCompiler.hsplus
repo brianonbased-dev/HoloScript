@@ -1,0 +1,10 @@
+// @use_compiler — useCompiler hook: Studio hook for triggering HoloScript compilation and reading compile results.
+//
+// Native .hsplus surface for studio/src/hooks/useCompiler.ts.
+
+@trait use_compiler {
+  capability_tags: ["use_compiler", "holoscript_compile_trigger_hook", "compile_result_read_hook", "studio"]
+  @on_spawn => { emit("use_compiler_ready", {}) }
+  @on_compile(source, target) => { result = compile_holoscript(source, target); return result }
+  @receipt use_compiler_config { type: "UseCompilerReceipt"; timestamp: now() }
+}

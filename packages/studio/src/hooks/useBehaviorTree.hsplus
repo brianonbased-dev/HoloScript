@@ -1,0 +1,10 @@
+// @use_behavior_tree — useBehaviorTree hook: Studio hook for editing and running behavior trees for NPC AI.
+//
+// Native .hsplus surface for studio/src/hooks/useBehaviorTree.ts.
+
+@trait use_behavior_tree {
+  capability_tags: ["use_behavior_tree", "npc_behavior_tree_hook", "ai_bt_edit_run_hook", "studio"]
+  @on_spawn => { emit("use_behavior_tree_ready", {}) }
+  @on_run(tree_spec, context) => { result = run_behavior_tree(tree_spec, context); return result }
+  @receipt use_behavior_tree_config { type: "UseBehaviorTreeReceipt"; timestamp: now() }
+}

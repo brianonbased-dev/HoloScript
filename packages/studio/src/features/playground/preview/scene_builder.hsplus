@@ -1,0 +1,10 @@
+// @playground_scene_builder — Playground scene builder: builds live .holo preview scenes from playground editor content.
+//
+// Native .hsplus surface for studio/src/features/playground/preview/scene-builder.ts.
+
+@trait playground_scene_builder {
+  capability_tags: ["playground_scene_builder", "live_holo_preview_build", "playground_editor_preview", "studio"]
+  @on_spawn => { emit("playground_scene_builder_ready", {}) }
+  @on_build(source) => { scene = build_playground_preview(source); return scene }
+  @receipt playground_scene_builder_config { type: "PlaygroundSceneBuilderReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @use_environment — useEnvironment hook: Studio hook for configuring environment parameters (sky, fog, lighting).
+//
+// Native .hsplus surface for studio/src/hooks/useEnvironment.ts.
+
+@trait use_environment {
+  capability_tags: ["use_environment", "environment_sky_fog_light_hook", "world_env_param_hook", "studio"]
+  @on_spawn => { emit("use_environment_ready", {}) }
+  @on_set(params) => { set_world_environment(params) }
+  @receipt use_environment_config { type: "UseEnvironmentReceipt"; timestamp: now() }
+}

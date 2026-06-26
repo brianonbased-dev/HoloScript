@@ -1,0 +1,10 @@
+// @use_dialogue — useDialogue hook: Studio hook for authoring and triggering NPC dialogue trees.
+//
+// Native .hsplus surface for studio/src/hooks/useDialogue.ts.
+
+@trait use_dialogue {
+  capability_tags: ["use_dialogue", "npc_dialogue_tree_hook", "dialogue_author_trigger", "studio"]
+  @on_spawn => { emit("use_dialogue_ready", {}) }
+  @on_trigger(npc_id, node_id) => { result = trigger_dialogue_node(npc_id, node_id); return result }
+  @receipt use_dialogue_config { type: "UseDialogueReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @use_debugger — useDebugger hook: Studio hook for attaching the HoloScript runtime debugger to a world session.
+//
+// Native .hsplus surface for studio/src/hooks/useDebugger.ts.
+
+@trait use_debugger {
+  capability_tags: ["use_debugger", "holoscript_runtime_debugger", "world_session_debug_hook", "studio"]
+  @on_spawn => { emit("use_debugger_ready", {}) }
+  @on_attach(session_id) => { attach_holoscript_debugger(session_id) }
+  @receipt use_debugger_config { type: "UseDebuggerReceipt"; timestamp: now() }
+}

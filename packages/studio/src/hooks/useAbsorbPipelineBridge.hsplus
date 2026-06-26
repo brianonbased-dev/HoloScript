@@ -1,0 +1,10 @@
+// @use_absorb_pipeline_bridge — useAbsorbPipelineBridge hook: bridges Studio absorb results to the pipeline state machine.
+//
+// Native .hsplus surface for studio/src/hooks/useAbsorbPipelineBridge.ts.
+
+@trait use_absorb_pipeline_bridge {
+  capability_tags: ["use_absorb_pipeline_bridge", "absorb_to_pipeline_bridge", "studio_pipeline_state_hook", "studio"]
+  @on_spawn => { emit("use_absorb_pipeline_bridge_ready", {}) }
+  @on_sync(absorb_result) => { sync_absorb_to_pipeline(absorb_result) }
+  @receipt use_absorb_pipeline_bridge_config { type: "UseAbsorbPipelineBridgeReceipt"; timestamp: now() }
+}
