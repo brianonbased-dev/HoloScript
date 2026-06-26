@@ -23,6 +23,7 @@ import { resolveBearerViaBroker } from './bearer-broker.js';
 import { decideWalletCoherence } from './wallet-coherence.js';
 import { withVaultSecrets, resolveVaultSecret } from './vault-secrets.js';
 import { AgentRunner } from './runner.js';
+import { makeIdleAccrual } from './idle-accrual.js';
 import { makeCommitHook } from './commit-hook.js';
 import { runAblation, renderAblationMarkdown } from './ablation.js';
 import type { AblationProviderSpec, AblationTaskSpec } from './ablation.js';
@@ -194,16 +195,27 @@ async function cmdRun(opts: { once: boolean }): Promise<void> {
       }
     : undefined;
 
+  const log = (ev: Record<string, unknown>) =>
+    console.log(JSON.stringify({ ts: new Date().toISOString(), ...ev }));
+
+  // Corpus-accrual capability (I.023 executor) — built here at the composition root, NOT in
+  // the runner, so the runner keeps its @holoscript/core-free publish closure. Double
+  // default-OFF (HOLOSCRIPT_AGENT_EVOLVE_ACCRUAL=1 + HOLOSCRIPT_AGENT_EVOLVE_CORPUS=<path>);
+  // unset → undefined → the idle path is unchanged. On the published edge (no core) the
+  // dynamic import self-disables. Activation is a separate env flip, never a code change.
+  const idleAccrual = await makeIdleAccrual({ handle: identity.handle, logger: log });
+
   const runner = new AgentRunner({
     identity,
     brain,
     provider,
     costGuard,
     mesh,
-    logger: (ev) => console.log(JSON.stringify({ ts: new Date().toISOString(), ...ev })),
+    logger: log,
     onTaskExecuted: commitHook,
     auditLog,
     signReceipt,
+    idleAccrual,
   });
 
   console.log(

@@ -69,6 +69,19 @@ export interface AgentRunnerOptions {
    * the receipt is content-hashed but self-reports `signed:false` (honest).
    */
   signReceipt?: (canonical: string) => Promise<{ alg: string; signer: string; signature: string }>;
+  /**
+   * Optional injected corpus-accrual capability (I.023 executor last mile). When present,
+   * an idle tick (no claimable task) grows the agent's gated training corpus IN-PROCESS by
+   * running ONE sovereign-local evolution step instead of falling through to LLM
+   * self-direction. Injected from the composition root (idle-accrual.ts dynamic-imports
+   * `@holoscript/core/evolution`) so the runner stays @holoscript/core-free — the clean
+   * publish closure. Absent (default) → the idle path is exactly as before. $0 (local metal),
+   * bounded (one proposal/tick), propose-not-ship. Returns a summary, or null when nothing ran.
+   */
+  idleAccrual?: (ctx: {
+    tick: number;
+    agentId: string;
+  }) => Promise<{ target: string; written: number; deduped: number; outcome: string } | null>;
 }
 
 export class AgentRunner {
@@ -182,6 +195,14 @@ export class AgentRunner {
     const target = pickClaimableTask(tasks, brain.capabilityTags);
     if (!target) {
       log({ ev: 'no-claimable-task', open: tasks.length });
+      // Corpus accrual (I.023 executor): when an accrual capability is injected, grow the
+      // gated training corpus with ONE sovereign-local evolution step in-process — $0,
+      // bounded, propose-not-ship. Takes precedence over LLM self-direction so a dedicated
+      // accrual seat does deterministic corpus growth rather than free-form self-tasks. The
+      // runner stays @holoscript/core-free; the capability is injected from the composition root.
+      if (this.opts.idleAccrual) {
+        return await this.runIdleAccrual({ identity, costGuard, log });
+      }
       // Self-heal instead of idling (founder 2026-06-23): a brain that authors
       // `behavior on_idle` derives + executes one small language-advancing improvement
       // through the same tool primitives + W.107.b artifact gate as a real task. Opt-in —
@@ -814,6 +835,61 @@ export class AgentRunner {
       spentUsd: cost.spentUsd,
       remainingUsd: cost.remainingUsd,
     };
+  }
+
+  /**
+   * Corpus-accrual idle path (I.023 executor last mile). Invokes the injected accrual
+   * capability for ONE gated, sovereign-local evolution step and maps its summary to a
+   * TickResult. The runner stays @holoscript/core-free — all evolution + fs work lives in
+   * the injected function (idle-accrual.ts dynamic-imports @holoscript/core/evolution). $0:
+   * the proposer is local metal and there is no cloud spend to record (costGuard already
+   * short-circuited over-budget before this branch). Failures degrade to idle-skipped so a
+   * proposer outage can never crash the tick loop.
+   */
+  private async runIdleAccrual(ctx: {
+    identity: AgentIdentity;
+    costGuard: CostGuard;
+    log: (event: Record<string, unknown>) => void;
+  }): Promise<TickResult> {
+    const { identity, costGuard, log } = ctx;
+    this.idleTick++;
+    const spent = () => costGuard.getState().spentUsd;
+    const remaining = () => costGuard.getRemainingUsd();
+    try {
+      const r = await this.opts.idleAccrual!({ tick: this.idleTick, agentId: identity.handle });
+      if (!r || r.written === 0) {
+        log({ ev: 'idle-accrual-skipped', ...(r ?? {}) });
+        return {
+          action: 'idle-skipped',
+          spentUsd: spent(),
+          remainingUsd: remaining(),
+          message: r
+            ? `accrual produced no new rows (target=${r.target}, deduped=${r.deduped}, ${r.outcome})`
+            : 'accrual capability returned no result',
+        };
+      }
+      log({
+        ev: 'idle-accrual-worked',
+        target: r.target,
+        written: r.written,
+        deduped: r.deduped,
+        outcome: r.outcome,
+      });
+      return {
+        action: 'idle-worked',
+        spentUsd: spent(),
+        remainingUsd: remaining(),
+        message: `accrued ${r.written} gated row(s) for ${r.target} (deduped ${r.deduped})`,
+      };
+    } catch (err) {
+      log({ ev: 'idle-accrual-error', message: err instanceof Error ? err.message : String(err) });
+      return {
+        action: 'idle-skipped',
+        spentUsd: spent(),
+        remainingUsd: remaining(),
+        message: `accrual error: ${err instanceof Error ? err.message : String(err)}`,
+      };
+    }
   }
 
   /**
