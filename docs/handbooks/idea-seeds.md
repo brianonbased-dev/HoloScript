@@ -326,3 +326,57 @@ absorb page in git history before commit 527e2860643a).
 HoloMesh team-ops API surface work (agent health endpoint, restart/kill actions) that is currently only
 in the daemon-side MCP tools, not in a clean REST surface Studio can call without CORS issues. Wire once
 D.101 lifts or the ops surface becomes a language-deliverable (compile_to_agent → manage from Studio).
+
+---
+
+## Agentic Nutrition Layer — Ambient Diet Companion (`@nutritional_profile` / `@biomarker_state` / `@heritage_affinity` / `@private` / `@ambient_prompt`)
+
+> Founder idea, 2026-06-25. An NPC that lives alongside the user, observes eating habits, grounds advice in
+> the user's *bloodwork and heritage*, and gives timely **vocal** nudges to eat better — the U.001/U.002
+> "NPC in people's lives, making things easier/better/more efficient" vision in a concrete daily form.
+
+**What might be valuable**: A nutrition + heritage trait layer that turns "eat better" from a willpower-and-logging
+chore into an ambient, situated companion. It is **net-new on real adjacent ground** (verified 2026-06-25):
+- **Food-as-trait-node already ships** — `wine-food-beverage-plugin` has `tasting_profile`, `pairing_engine`,
+  `inventory_aging`. The "food is a graph node with semantic attributes" pattern is proven; nutrition traits extend it.
+- **Tracking spine ships** — `fitness-wellness-plugin` has `progress_tracker` / `workout` / `rep_counter`.
+- **`medical-plugin` exists but its traits dir is EMPTY** — the correctly-placed, blank home for the blood/heritage layer.
+- **Ambient surfaces are real** — the HoloLand NPC system (`hololand_create_npc`, `npc_generate_dialogue`, BYOK),
+  geo-anchors (kitchen vs office), `twin_earth_create_safety_envelope` (the structural `@private` zone), and the
+  **portable mind (D.102)** — which dissolves the singular-vs-per-space question: ONE wallet-keyed agent with consistent
+  memory that *embodies per-space* (kitchen geo-anchor and office are render-contexts of the same mind, not two agents).
+
+The native composition would look like:
+```
+composition "KitchenGuide" {
+  food_item "…" @nutritional_profile { macros, micros, glycemic_load, @allergen_profile }   // extends tasting_profile
+  person
+    @biomarker_state  { source: ["labs","cgm","lipid_panel"], validated_only: true }         // STRONGEST signal
+    @heritage_affinity { mode: "foodways", dna_snps: "validated-set-only" }                   // ancestry > raw SNP
+  envelope @private { grants: […], raw_data: "local-only", export: false }                    // consent = STRUCTURAL
+  npc "Guide" @ambient_prompt {
+    persona, anchor: geo("kitchen"),
+    invited: true, never_shame: true, silenceable: true                                       // ED/agency guardrails = traits
+  }
+}
+```
+The honest design rule baked in — **order the signals by how real they are**: bloodwork/biomarkers (glucose/CGM,
+lipids, ferritin, A1c — validated, diet-responsive) **>** heritage-as-foodways (cultural, honest) **>** the small
+validated-nutrigenomics set (MCM6/lactase, ALDH2/alcohol, CYP1A2/caffeine, HFE/iron, PAH/phenylalanine) **>>**
+general "your-DNA-says-eat-X" SNP claims (mostly noise — the overhyped extractive-AI playbook U.002 says to refuse).
+Model only what's validated and *say where you don't claim* — simulation-first, is-right-not-looks-right, applied to a body.
+This is also where HoloScript genuinely differentiates: consent and "blood data the agent literally can't exfiltrate"
+are **traits, not promises**, and the agency/ED guardrails (`invited`, `never_shame`, `silenceable`) are structural —
+the thing that makes it a companion under U.002's love-and-care constraint rather than diet-surveillance.
+
+**Why not now**: It is an **application**, and D.101 (build-the-language-only freeze) is active — so the move is to
+seed it, not build the app. The genuinely *language-shaped* pieces it implies — a `@biomarker_state` schema, a
+validated-only `@heritage_affinity` (foodways + the small real SNP set), and a `@private` consent-envelope trait the
+compiler can prove the agent cannot bypass — are the parts that could become language work *if/when scoped*, and each
+needs design that doesn't exist yet: (a) a defensible evidence model for which gene/biomarker→diet claims are admitted
+(the science is mostly weak; building on it uncritically fails the U.002 credibility test), (b) regulated-health-data
+handling (the sovereignty/local-first thesis fits, but the policy + encryption-at-rest design must be real), and (c)
+ED-safety/agency guardrails validated as structural traits, not afterthoughts. Computer-vision food recognition (the
+"observe the kitchen" leg) is unreliable (portion/prep/hidden ingredients) and should be a weak hint, never the source
+of truth. Revisit when D.101 lifts, or pull the consent-envelope / biomarker-schema piece forward earlier if it's scoped
+as a standalone language trait the rest of the ecosystem also needs.
