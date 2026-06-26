@@ -1,0 +1,11 @@
+// @use_physics_preview — usePhysicsPreview hook: Studio hook for running a physics preview sim in the viewport.
+//
+// Native .hsplus surface for studio/src/hooks/usePhysicsPreview.ts.
+
+@trait use_physics_preview {
+  capability_tags: ["use_physics_preview", "physics_preview_sim_hook", "viewport_physics_run", "studio"]
+  @on_spawn => { emit("use_physics_preview_ready", {}) }
+  @on_start() => { start_physics_preview() }
+  @on_stop() => { stop_physics_preview() }
+  @receipt use_physics_preview_config { type: "UsePhysicsPreviewReceipt"; timestamp: now() }
+}

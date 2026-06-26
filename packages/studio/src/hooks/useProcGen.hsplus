@@ -1,0 +1,10 @@
+// @use_proc_gen — useProcGen hook: Studio hook for procedural generation of terrain, buildings, and vegetation.
+//
+// Native .hsplus surface for studio/src/hooks/useProcGen.ts.
+
+@trait use_proc_gen {
+  capability_tags: ["use_proc_gen", "proc_gen_terrain_building_hook", "vegetation_procgen_hook", "studio"]
+  @on_spawn => { emit("use_proc_gen_ready", {}) }
+  @on_generate(spec) => { result = run_proc_gen(spec); return result }
+  @receipt use_proc_gen_config { type: "UseProcGenReceipt"; timestamp: now() }
+}

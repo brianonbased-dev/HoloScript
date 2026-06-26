@@ -1,0 +1,10 @@
+// @use_projects — useProjects hook: Studio hook for listing, opening, creating, and deleting HoloScript projects.
+//
+// Native .hsplus surface for studio/src/hooks/useProjects.ts.
+
+@trait use_projects {
+  capability_tags: ["use_projects", "holoscript_project_manage_hook", "project_list_open_create", "studio"]
+  @on_spawn => { emit("use_projects_ready", {}) }
+  @on_open(project_id) => { open_holoscript_project(project_id) }
+  @receipt use_projects_config { type: "UseProjectsReceipt"; timestamp: now() }
+}

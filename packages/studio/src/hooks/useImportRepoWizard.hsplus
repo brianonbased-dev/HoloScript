@@ -1,0 +1,10 @@
+// @use_import_repo_wizard — useImportRepoWizard hook: Studio hook driving the step-by-step wizard for importing a GitHub repo.
+//
+// Native .hsplus surface for studio/src/hooks/useImportRepoWizard.ts.
+
+@trait use_import_repo_wizard {
+  capability_tags: ["use_import_repo_wizard", "github_repo_import_wizard_hook", "step_wizard_import", "studio"]
+  @on_spawn => { emit("use_import_repo_wizard_ready", {}) }
+  @on_step(step_id, data) => { result = advance_import_wizard(step_id, data); return result }
+  @receipt use_import_repo_wizard_config { type: "UseImportRepoWizardReceipt"; timestamp: now() }
+}

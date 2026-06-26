@@ -1,0 +1,10 @@
+// @use_repl — useREPL hook: Studio hook for the HoloScript interactive REPL panel (read-eval-print loop).
+//
+// Native .hsplus surface for studio/src/hooks/useREPL.ts.
+
+@trait use_repl {
+  capability_tags: ["use_repl", "holoscript_repl_panel_hook", "interactive_eval_hook", "studio"]
+  @on_spawn => { emit("use_repl_ready", {}) }
+  @on_eval(expr) => { result = eval_holoscript_repl(expr); return result }
+  @receipt use_repl_config { type: "UseReplReceipt"; timestamp: now() }
+}

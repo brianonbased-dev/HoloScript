@@ -1,0 +1,10 @@
+// @use_scene_critique — useSceneCritique hook: Studio hook for running AI-driven quality critique on the current scene.
+//
+// Native .hsplus surface for studio/src/hooks/useSceneCritique.ts.
+
+@trait use_scene_critique {
+  capability_tags: ["use_scene_critique", "ai_scene_quality_critique_hook", "scene_feedback_hook", "studio"]
+  @on_spawn => { emit("use_scene_critique_ready", {}) }
+  @on_critique(scene_id) => { feedback = run_scene_critique(scene_id); return feedback }
+  @receipt use_scene_critique_config { type: "UseSceneCritiqueReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @use_scene_generator — useSceneGenerator hook: Studio hook for generating full scenes from text or structured prompts.
+//
+// Native .hsplus surface for studio/src/hooks/useSceneGenerator.ts.
+
+@trait use_scene_generator {
+  capability_tags: ["use_scene_generator", "full_scene_generate_hook", "structured_prompt_scene", "studio"]
+  @on_spawn => { emit("use_scene_generator_ready", {}) }
+  @on_generate(spec) => { scene = generate_full_scene(spec); return scene }
+  @receipt use_scene_generator_config { type: "UseSceneGeneratorReceipt"; timestamp: now() }
+}

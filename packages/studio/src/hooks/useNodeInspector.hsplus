@@ -1,0 +1,10 @@
+// @use_node_inspector — useNodeInspector hook: Studio hook for inspecting the properties of a selected node graph node.
+//
+// Native .hsplus surface for studio/src/hooks/useNodeInspector.ts.
+
+@trait use_node_inspector {
+  capability_tags: ["use_node_inspector", "node_property_inspect_hook", "selected_node_inspector", "studio"]
+  @on_spawn => { emit("use_node_inspector_ready", {}) }
+  @on_inspect(node_id) => { props = inspect_node_properties(node_id); return props }
+  @receipt use_node_inspector_config { type: "UseNodeInspectorReceipt"; timestamp: now() }
+}

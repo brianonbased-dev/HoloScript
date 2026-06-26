@@ -1,0 +1,10 @@
+// @use_lod — useLOD hook: Studio hook for configuring level-of-detail thresholds on meshes for performance.
+//
+// Native .hsplus surface for studio/src/hooks/useLOD.ts.
+
+@trait use_lod {
+  capability_tags: ["use_lod", "mesh_lod_threshold_hook", "performance_lod_config", "studio"]
+  @on_spawn => { emit("use_lod_ready", {}) }
+  @on_configure(entity_id, lod_config) => { configure_mesh_lod(entity_id, lod_config) }
+  @receipt use_lod_config { type: "UseLodReceipt"; timestamp: now() }
+}

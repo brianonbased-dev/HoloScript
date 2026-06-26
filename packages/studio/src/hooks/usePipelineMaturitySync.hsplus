@@ -1,0 +1,10 @@
+// @use_pipeline_maturity_sync — usePipelineMaturitySync hook: syncs pipeline maturity gates to Studio UI status indicators.
+//
+// Native .hsplus surface for studio/src/hooks/usePipelineMaturitySync.ts.
+
+@trait use_pipeline_maturity_sync {
+  capability_tags: ["use_pipeline_maturity_sync", "pipeline_maturity_gate_sync", "studio_status_indicator", "studio"]
+  @on_spawn => { emit("use_pipeline_maturity_sync_ready", {}) }
+  @on_sync(gate_status) => { sync_pipeline_maturity(gate_status) }
+  @receipt use_pipeline_maturity_sync_config { type: "UsePipelineMaturitySyncReceipt"; timestamp: now() }
+}

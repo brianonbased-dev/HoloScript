@@ -1,0 +1,10 @@
+// @use_keyframes — useKeyframes hook: Studio hook for adding, editing, and interpolating animation keyframes.
+//
+// Native .hsplus surface for studio/src/hooks/useKeyframes.ts.
+
+@trait use_keyframes {
+  capability_tags: ["use_keyframes", "animation_keyframe_edit_hook", "keyframe_interpolate_hook", "studio"]
+  @on_spawn => { emit("use_keyframes_ready", {}) }
+  @on_add(time, value) => { add_animation_keyframe(time, value) }
+  @receipt use_keyframes_config { type: "UseKeyframesReceipt"; timestamp: now() }
+}

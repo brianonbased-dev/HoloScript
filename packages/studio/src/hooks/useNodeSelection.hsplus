@@ -1,0 +1,10 @@
+// @use_node_selection — useNodeSelection hook: Studio hook tracking which node(s) are currently selected in the graph.
+//
+// Native .hsplus surface for studio/src/hooks/useNodeSelection.ts.
+
+@trait use_node_selection {
+  capability_tags: ["use_node_selection", "node_graph_selection_track", "selected_node_state_hook", "studio"]
+  @on_spawn => { emit("use_node_selection_ready", {}) }
+  @on_select(node_id) => { select_node(node_id) }
+  @receipt use_node_selection_config { type: "UseNodeSelectionReceipt"; timestamp: now() }
+}

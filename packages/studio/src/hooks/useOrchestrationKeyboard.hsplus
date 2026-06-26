@@ -1,0 +1,12 @@
+// @use_orchestration_keyboard — useOrchestrationKeyboard hook: Studio hook for keyboard shortcuts in the orchestration editor.
+//
+// Native .hsplus surface for studio/src/hooks/useOrchestrationKeyboard.ts.
+
+@trait use_orchestration_keyboard {
+  capability_tags: ["use_orchestration_keyboard", "orchestration_keyboard_hook", "workflow_editor_shortcut", "studio"]
+  @on_spawn => {
+    register_orchestration_hotkeys()
+    emit("use_orchestration_keyboard_ready", {})
+  }
+  @receipt use_orchestration_keyboard_config { type: "UseOrchestrationKeyboardReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @use_safety_pass — useSafetyPass hook: Studio hook for running the safety pass on AI-generated world content.
+//
+// Native .hsplus surface for studio/src/hooks/useSafetyPass.ts.
+
+@trait use_safety_pass {
+  capability_tags: ["use_safety_pass", "ai_content_safety_pass_hook", "generated_content_safety", "studio"]
+  @on_spawn => { emit("use_safety_pass_ready", {}) }
+  @on_check(content) => { result = run_safety_pass(content); return result }
+  @receipt use_safety_pass_config { type: "UseSafetyPassReceipt"; timestamp: now() }
+}

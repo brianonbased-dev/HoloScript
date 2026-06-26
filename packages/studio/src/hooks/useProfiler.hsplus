@@ -1,0 +1,10 @@
+// @use_profiler — useProfiler hook: Studio hook for sampling GPU/CPU frame time and surfacing perf hotspots.
+//
+// Native .hsplus surface for studio/src/hooks/useProfiler.ts.
+
+@trait use_profiler {
+  capability_tags: ["use_profiler", "gpu_cpu_frame_time_hook", "perf_hotspot_surface_hook", "studio"]
+  @on_spawn => { emit("use_profiler_ready", {}) }
+  @on_sample() => { return sample_profiler_frame() }
+  @receipt use_profiler_config { type: "UseProfilerReceipt"; timestamp: now() }
+}

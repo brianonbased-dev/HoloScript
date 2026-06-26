@@ -1,0 +1,10 @@
+// @use_multiplayer_room — useMultiplayerRoom hook: Studio hook for managing a single multiplayer room's state and members.
+//
+// Native .hsplus surface for studio/src/hooks/useMultiplayerRoom.ts.
+
+@trait use_multiplayer_room {
+  capability_tags: ["use_multiplayer_room", "multiplayer_room_state_hook", "room_member_manage_hook", "studio"]
+  @on_spawn => { emit("use_multiplayer_room_ready", {}) }
+  @on_kick(user_id) => { kick_multiplayer_member(user_id) }
+  @receipt use_multiplayer_room_config { type: "UseMultiplayerRoomReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @use_scene_manager — useSceneManager hook: Studio hook for opening, switching, and managing multiple scene workspaces.
+//
+// Native .hsplus surface for studio/src/hooks/useSceneManager.ts.
+
+@trait use_scene_manager {
+  capability_tags: ["use_scene_manager", "multi_scene_workspace_hook", "scene_open_switch_manage", "studio"]
+  @on_spawn => { emit("use_scene_manager_ready", {}) }
+  @on_open(scene_id) => { open_scene_workspace(scene_id) }
+  @receipt use_scene_manager_config { type: "UseSceneManagerReceipt"; timestamp: now() }
+}

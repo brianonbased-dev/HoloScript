@@ -1,0 +1,10 @@
+// @use_multiplayer — useMultiplayer hook: Studio hook for real-time multiplayer world sessions via Colyseus/WebRTC.
+//
+// Native .hsplus surface for studio/src/hooks/useMultiplayer.ts.
+
+@trait use_multiplayer {
+  capability_tags: ["use_multiplayer", "colyseus_webrtc_multiplayer", "realtime_world_session_hook", "studio"]
+  @on_spawn => { emit("use_multiplayer_ready", {}) }
+  @on_join(room_id) => { session = join_multiplayer_session(room_id); return session }
+  @receipt use_multiplayer_config { type: "UseMultiplayerReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @use_node_graph — useNodeGraph hook: Studio hook for reading and editing the HoloScript visual node graph.
+//
+// Native .hsplus surface for studio/src/hooks/useNodeGraph.ts.
+
+@trait use_node_graph {
+  capability_tags: ["use_node_graph", "holoscript_node_graph_hook", "visual_node_edit_hook", "studio"]
+  @on_spawn => { emit("use_node_graph_ready", {}) }
+  @on_connect(from_port, to_port) => { connect_node_graph_ports(from_port, to_port) }
+  @receipt use_node_graph_config { type: "UseNodeGraphReceipt"; timestamp: now() }
+}

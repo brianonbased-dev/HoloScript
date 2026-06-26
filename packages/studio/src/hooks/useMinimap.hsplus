@@ -1,0 +1,10 @@
+// @use_minimap — useMinimap hook: Studio hook for the 2D overhead minimap showing world entity positions.
+//
+// Native .hsplus surface for studio/src/hooks/useMinimap.ts.
+
+@trait use_minimap {
+  capability_tags: ["use_minimap", "overhead_minimap_hook", "entity_position_minimap", "studio"]
+  @on_spawn => { emit("use_minimap_ready", {}) }
+  @on_tick(entities) => { update_minimap(entities) }
+  @receipt use_minimap_config { type: "UseMinimapReceipt"; timestamp: now() }
+}

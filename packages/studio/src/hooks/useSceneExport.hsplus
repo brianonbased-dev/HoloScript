@@ -1,0 +1,10 @@
+// @use_scene_export — useSceneExport hook: Studio hook for exporting scenes to GLB, USD, Quest, and other targets.
+//
+// Native .hsplus surface for studio/src/hooks/useSceneExport.ts.
+
+@trait use_scene_export {
+  capability_tags: ["use_scene_export", "scene_export_glb_usd_hook", "quest_export_hook", "studio"]
+  @on_spawn => { emit("use_scene_export_ready", {}) }
+  @on_export(scene_id, target) => { result = export_scene_to_target(scene_id, target); return result }
+  @receipt use_scene_export_config { type: "UseSceneExportReceipt"; timestamp: now() }
+}

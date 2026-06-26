@@ -1,0 +1,10 @@
+// @use_plugin_host — usePluginHost hook: Studio hook for loading and sandboxing domain plugins in the Studio runtime.
+//
+// Native .hsplus surface for studio/src/hooks/usePluginHost.tsx.
+
+@trait use_plugin_host {
+  capability_tags: ["use_plugin_host", "domain_plugin_sandbox_hook", "studio_plugin_load_hook", "studio"]
+  @on_spawn => { emit("use_plugin_host_ready", {}) }
+  @on_load(plugin_id) => { result = load_sandboxed_plugin(plugin_id); return result }
+  @receipt use_plugin_host_config { type: "UsePluginHostReceipt"; timestamp: now() }
+}

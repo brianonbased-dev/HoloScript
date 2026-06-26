@@ -1,0 +1,10 @@
+// @use_prompt_library — usePromptLibrary hook: Studio hook for the reusable AI prompt library for world and scene generation.
+//
+// Native .hsplus surface for studio/src/hooks/usePromptLibrary.ts.
+
+@trait use_prompt_library {
+  capability_tags: ["use_prompt_library", "ai_prompt_library_hook", "world_scene_gen_prompt", "studio"]
+  @on_spawn => { emit("use_prompt_library_ready", {}) }
+  @on_get(category) => { prompts = get_prompt_library(category); return prompts }
+  @receipt use_prompt_library_config { type: "UsePromptLibraryReceipt"; timestamp: now() }
+}

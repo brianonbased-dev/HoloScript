@@ -1,0 +1,10 @@
+// @use_particles — useParticles hook: Studio hook for creating and tuning GPU particle systems in the scene.
+//
+// Native .hsplus surface for studio/src/hooks/useParticles.ts.
+
+@trait use_particles {
+  capability_tags: ["use_particles", "gpu_particle_system_hook", "particle_create_tune_hook", "studio"]
+  @on_spawn => { emit("use_particles_ready", {}) }
+  @on_emit(spec) => { emit_particles(spec) }
+  @receipt use_particles_config { type: "UseParticlesReceipt"; timestamp: now() }
+}

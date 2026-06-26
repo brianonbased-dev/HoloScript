@@ -1,0 +1,10 @@
+// @use_pathfinding — usePathfinding hook: Studio hook for computing and visualizing NavMesh pathfinding routes for NPCs.
+//
+// Native .hsplus surface for studio/src/hooks/usePathfinding.ts.
+
+@trait use_pathfinding {
+  capability_tags: ["use_pathfinding", "navmesh_pathfind_hook", "npc_route_visualize_hook", "studio"]
+  @on_spawn => { emit("use_pathfinding_ready", {}) }
+  @on_find(start, goal) => { path = find_navmesh_path(start, goal); return path }
+  @receipt use_pathfinding_config { type: "UsePathfindingReceipt"; timestamp: now() }
+}

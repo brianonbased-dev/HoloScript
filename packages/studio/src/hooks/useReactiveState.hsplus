@@ -1,0 +1,10 @@
+// @use_reactive_state — useReactiveState hook: Studio hook for subscribing to Loro CRDT reactive world state changes.
+//
+// Native .hsplus surface for studio/src/hooks/useReactiveState.ts.
+
+@trait use_reactive_state {
+  capability_tags: ["use_reactive_state", "loro_crdt_reactive_sub_hook", "world_state_change_hook", "studio"]
+  @on_spawn => { emit("use_reactive_state_ready", {}) }
+  @on_subscribe(path, handler) => { subscribe_reactive_state(path, handler) }
+  @receipt use_reactive_state_config { type: "UseReactiveStateReceipt"; timestamp: now() }
+}

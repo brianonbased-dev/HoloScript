@@ -1,0 +1,10 @@
+// @use_live_preview — useLivePreview hook: Studio hook for hot-reloading .holo scene changes into the viewport live.
+//
+// Native .hsplus surface for studio/src/hooks/useLivePreview.ts.
+
+@trait use_live_preview {
+  capability_tags: ["use_live_preview", "holo_hot_reload_viewport", "live_scene_preview_hook", "studio"]
+  @on_spawn => { emit("use_live_preview_ready", {}) }
+  @on_update(delta) => { update_live_preview(delta) }
+  @receipt use_live_preview_config { type: "UseLivePreviewReceipt"; timestamp: now() }
+}

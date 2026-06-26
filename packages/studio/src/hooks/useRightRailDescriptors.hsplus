@@ -1,0 +1,10 @@
+// @use_right_rail_descriptors — useRightRailDescriptors hook: Studio hook building the right-rail property inspector descriptors.
+//
+// Native .hsplus surface for studio/src/hooks/useRightRailDescriptors.tsx.
+
+@trait use_right_rail_descriptors {
+  capability_tags: ["use_right_rail_descriptors", "right_rail_property_inspector", "studio_property_panel_hook", "studio"]
+  @on_spawn => { emit("use_right_rail_descriptors_ready", {}) }
+  @on_build(entity_id) => { descriptors = build_right_rail_descriptors(entity_id); return descriptors }
+  @receipt use_right_rail_descriptors_config { type: "UseRightRailDescriptorsReceipt"; timestamp: now() }
+}

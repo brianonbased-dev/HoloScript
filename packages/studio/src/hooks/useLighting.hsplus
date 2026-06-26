@@ -1,0 +1,10 @@
+// @use_lighting — useLighting hook: Studio hook for adding, configuring, and baking lights in the scene.
+//
+// Native .hsplus surface for studio/src/hooks/useLighting.ts.
+
+@trait use_lighting {
+  capability_tags: ["use_lighting", "scene_light_config_bake_hook", "studio_lighting_add_hook", "studio"]
+  @on_spawn => { emit("use_lighting_ready", {}) }
+  @on_add(light_spec) => { result = add_scene_light(light_spec); return result }
+  @receipt use_lighting_config { type: "UseLightingReceipt"; timestamp: now() }
+}

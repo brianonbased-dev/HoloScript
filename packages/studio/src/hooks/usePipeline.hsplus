@@ -1,0 +1,10 @@
+// @use_pipeline — usePipeline hook: Studio hook for driving the Absorb→Compile→Preview pipeline from the UI.
+//
+// Native .hsplus surface for studio/src/hooks/usePipeline.ts.
+
+@trait use_pipeline {
+  capability_tags: ["use_pipeline", "absorb_compile_preview_pipeline", "studio_pipeline_drive_hook", "studio"]
+  @on_spawn => { emit("use_pipeline_ready", {}) }
+  @on_run(config) => { result = run_studio_pipeline(config); return result }
+  @receipt use_pipeline_config { type: "UsePipelineReceipt"; timestamp: now() }
+}

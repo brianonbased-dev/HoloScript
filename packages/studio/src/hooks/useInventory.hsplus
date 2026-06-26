@@ -1,0 +1,10 @@
+// @use_inventory — useInventory hook: Studio hook for managing player or agent inventory items in game worlds.
+//
+// Native .hsplus surface for studio/src/hooks/useInventory.ts.
+
+@trait use_inventory {
+  capability_tags: ["use_inventory", "player_agent_inventory_hook", "game_world_item_manage", "studio"]
+  @on_spawn => { emit("use_inventory_ready", {}) }
+  @on_add(item) => { add_inventory_item(item) }
+  @receipt use_inventory_config { type: "UseInventoryReceipt"; timestamp: now() }
+}

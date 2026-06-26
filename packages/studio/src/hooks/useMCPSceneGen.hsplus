@@ -1,0 +1,10 @@
+// @use_mcp_scene_gen — useMCPSceneGen hook: Studio hook for triggering MCP-backed AI scene generation from text prompts.
+//
+// Native .hsplus surface for studio/src/hooks/useMCPSceneGen.ts.
+
+@trait use_mcp_scene_gen {
+  capability_tags: ["use_mcp_scene_gen", "mcp_ai_scene_gen_hook", "text_prompt_scene_hook", "studio"]
+  @on_spawn => { emit("use_mcp_scene_gen_ready", {}) }
+  @on_generate(prompt) => { scene = generate_mcp_scene(prompt); return scene }
+  @receipt use_mcp_scene_gen_config { type: "UseMcpSceneGenReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @use_performance_regression_bridge — usePerformanceRegressionBridge hook: detects rendering performance regressions in Studio.
+//
+// Native .hsplus surface for studio/src/hooks/usePerformanceRegressionBridge.ts.
+
+@trait use_performance_regression_bridge {
+  capability_tags: ["use_performance_regression_bridge", "perf_regression_detect_hook", "render_perf_bridge_hook", "studio"]
+  @on_spawn => { emit("use_performance_regression_bridge_ready", {}) }
+  @on_check(frame_metrics) => { result = check_perf_regression(frame_metrics); return result }
+  @receipt use_performance_regression_bridge_config { type: "UsePerformanceRegressionBridgeReceipt"; timestamp: now() }
+}

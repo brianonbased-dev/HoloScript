@@ -1,0 +1,10 @@
+// @use_multi_select — useMultiSelect hook: Studio hook for rectangular and lasso multi-entity selection in the viewport.
+//
+// Native .hsplus surface for studio/src/hooks/useMultiSelect.ts.
+
+@trait use_multi_select {
+  capability_tags: ["use_multi_select", "rect_lasso_multi_select_hook", "viewport_entity_select_hook", "studio"]
+  @on_spawn => { emit("use_multi_select_ready", {}) }
+  @on_select(bounds) => { entities = select_entities_in_bounds(bounds); return entities }
+  @receipt use_multi_select_config { type: "UseMultiSelectReceipt"; timestamp: now() }
+}

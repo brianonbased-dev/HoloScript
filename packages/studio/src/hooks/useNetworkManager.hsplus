@@ -1,0 +1,12 @@
+// @use_network_manager — useNetworkManager hook: Studio hook managing P2P and server-relay network connections.
+//
+// Native .hsplus surface for studio/src/hooks/useNetworkManager.ts.
+
+@trait use_network_manager {
+  capability_tags: ["use_network_manager", "p2p_server_relay_network_hook", "studio_connection_manage", "studio"]
+  @on_spawn => {
+    init_studio_network_manager()
+    emit("use_network_manager_ready", {})
+  }
+  @receipt use_network_manager_config { type: "UseNetworkManagerReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @use_scene_graph_sync — useSceneGraphSync hook: Studio hook syncing the HoloGraph knowledge graph with the live scene state.
+//
+// Native .hsplus surface for studio/src/hooks/useSceneGraphSync.ts.
+
+@trait use_scene_graph_sync {
+  capability_tags: ["use_scene_graph_sync", "holograph_scene_state_sync", "knowledge_graph_scene_hook", "studio"]
+  @on_spawn => { emit("use_scene_graph_sync_ready", {}) }
+  @on_sync(delta) => { sync_scene_to_hologaph(delta) }
+  @receipt use_scene_graph_sync_config { type: "UseSceneGraphSyncReceipt"; timestamp: now() }
+}

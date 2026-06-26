@@ -1,0 +1,10 @@
+// @use_poly_haven — usePolyHaven hook: Studio hook for searching and importing Poly Haven CC0 HDRIs and textures.
+//
+// Native .hsplus surface for studio/src/hooks/usePolyHaven.ts.
+
+@trait use_poly_haven {
+  capability_tags: ["use_poly_haven", "poly_haven_cc0_import_hook", "hdri_texture_import_hook", "studio"]
+  @on_spawn => { emit("use_poly_haven_ready", {}) }
+  @on_search(query) => { results = search_poly_haven(query); return results }
+  @receipt use_poly_haven_config { type: "UsePolyHavenReceipt"; timestamp: now() }
+}

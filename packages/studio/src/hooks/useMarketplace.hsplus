@@ -1,0 +1,10 @@
+// @use_marketplace — useMarketplace hook: Studio hook for browsing, purchasing, and publishing assets on the marketplace.
+//
+// Native .hsplus surface for studio/src/hooks/useMarketplace.ts.
+
+@trait use_marketplace {
+  capability_tags: ["use_marketplace", "studio_marketplace_browse_hook", "asset_purchase_publish_hook", "studio"]
+  @on_spawn => { emit("use_marketplace_ready", {}) }
+  @on_search(query) => { results = search_marketplace(query); return results }
+  @receipt use_marketplace_config { type: "UseMarketplaceReceipt"; timestamp: now() }
+}

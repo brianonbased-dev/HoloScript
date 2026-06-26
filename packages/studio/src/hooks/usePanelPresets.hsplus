@@ -1,0 +1,11 @@
+// @use_panel_presets — usePanelPresets hook: Studio hook for saving and restoring Studio panel layout presets.
+//
+// Native .hsplus surface for studio/src/hooks/usePanelPresets.ts.
+
+@trait use_panel_presets {
+  capability_tags: ["use_panel_presets", "studio_layout_preset_hook", "panel_save_restore_hook", "studio"]
+  @on_spawn => { emit("use_panel_presets_ready", {}) }
+  @on_save(preset_name) => { save_panel_preset(preset_name) }
+  @on_load(preset_name) => { load_panel_preset(preset_name) }
+  @receipt use_panel_presets_config { type: "UsePanelPresetsReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @use_presence_studio — usePresence hook (studio): Studio hook for tracking collaborator presence cursors and avatars.
+//
+// Native .hsplus surface for studio/src/hooks/usePresence.ts.
+
+@trait use_presence_studio {
+  capability_tags: ["use_presence_studio", "collaborator_cursor_presence", "studio_presence_avatar_hook", "studio"]
+  @on_spawn => { emit("use_presence_studio_ready", {}) }
+  @on_update(position) => { update_presence_position(position) }
+  @receipt use_presence_studio_config { type: "UsePresenceStudioReceipt"; timestamp: now() }
+}

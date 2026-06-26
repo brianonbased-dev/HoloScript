@@ -1,0 +1,10 @@
+// @use_mobile_remote — useMobileRemote hook: Studio hook for bridging a mobile device as a remote control for Studio VR.
+//
+// Native .hsplus surface for studio/src/hooks/useMobileRemote.ts.
+
+@trait use_mobile_remote {
+  capability_tags: ["use_mobile_remote", "mobile_vr_remote_bridge", "studio_mobile_control_hook", "studio"]
+  @on_spawn => { emit("use_mobile_remote_ready", {}) }
+  @on_connect(device_id) => { connect_mobile_remote(device_id) }
+  @receipt use_mobile_remote_config { type: "UseMobileRemoteReceipt"; timestamp: now() }
+}

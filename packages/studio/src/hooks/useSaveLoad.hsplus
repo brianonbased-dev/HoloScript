@@ -1,0 +1,11 @@
+// @use_save_load — useSaveLoad hook: Studio hook for saving and loading world state from local and remote storage.
+//
+// Native .hsplus surface for studio/src/hooks/useSaveLoad.ts.
+
+@trait use_save_load {
+  capability_tags: ["use_save_load", "world_save_load_hook", "local_remote_storage_hook", "studio"]
+  @on_spawn => { emit("use_save_load_ready", {}) }
+  @on_save(world_id) => { result = save_world_state(world_id); return result }
+  @on_load(world_id) => { return load_world_state(world_id) }
+  @receipt use_save_load_config { type: "UseSaveLoadReceipt"; timestamp: now() }
+}

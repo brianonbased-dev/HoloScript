@@ -1,0 +1,10 @@
+// @use_platform_targets — usePlatformTargets hook: Studio hook for listing and switching active compile platform targets.
+//
+// Native .hsplus surface for studio/src/hooks/usePlatformTargets.ts.
+
+@trait use_platform_targets {
+  capability_tags: ["use_platform_targets", "compile_target_switch_hook", "platform_target_list", "studio"]
+  @on_spawn => { emit("use_platform_targets_ready", {}) }
+  @on_set(target) => { set_active_platform_target(target) }
+  @receipt use_platform_targets_config { type: "UsePlatformTargetsReceipt"; timestamp: now() }
+}

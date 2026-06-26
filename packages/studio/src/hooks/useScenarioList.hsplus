@@ -1,0 +1,10 @@
+// @use_scenario_list — useScenarioList hook: Studio hook for listing and selecting game/sim scenarios in a world.
+//
+// Native .hsplus surface for studio/src/hooks/useScenarioList.ts.
+
+@trait use_scenario_list {
+  capability_tags: ["use_scenario_list", "game_sim_scenario_list", "scenario_select_hook", "studio"]
+  @on_spawn => { emit("use_scenario_list_ready", {}) }
+  @on_list() => { return list_world_scenarios() }
+  @receipt use_scenario_list_config { type: "UseScenarioListReceipt"; timestamp: now() }
+}

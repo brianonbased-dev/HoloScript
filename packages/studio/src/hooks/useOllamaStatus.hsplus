@@ -1,0 +1,10 @@
+// @use_ollama_status — useOllamaStatus hook: Studio hook for polling local Ollama server health and model availability.
+//
+// Native .hsplus surface for studio/src/hooks/useOllamaStatus.ts.
+
+@trait use_ollama_status {
+  capability_tags: ["use_ollama_status", "ollama_server_health_hook", "local_model_availability", "studio"]
+  @on_spawn => { emit("use_ollama_status_ready", {}) }
+  @on_poll() => { return poll_ollama_status() }
+  @receipt use_ollama_status_config { type: "UseOllamaStatusReceipt"; timestamp: now() }
+}

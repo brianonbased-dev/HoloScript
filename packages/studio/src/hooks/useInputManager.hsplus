@@ -1,0 +1,12 @@
+// @use_input_manager — useInputManager hook: Studio hook managing unified keyboard, mouse, and XR controller input routing.
+//
+// Native .hsplus surface for studio/src/hooks/useInputManager.ts.
+
+@trait use_input_manager {
+  capability_tags: ["use_input_manager", "unified_input_route_hook", "xr_keyboard_mouse_input", "studio"]
+  @on_spawn => {
+    init_studio_input_manager()
+    emit("use_input_manager_ready", {})
+  }
+  @receipt use_input_manager_config { type: "UseInputManagerReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @use_orchestration_history — useOrchestrationHistory hook: Studio hook for undo/redo of orchestration workflow edits.
+//
+// Native .hsplus surface for studio/src/hooks/useOrchestrationHistory.ts.
+
+@trait use_orchestration_history {
+  capability_tags: ["use_orchestration_history", "orchestration_undo_redo_hook", "workflow_edit_history", "studio"]
+  @on_spawn => { emit("use_orchestration_history_ready", {}) }
+  @on_undo() => { undo_orchestration_edit() }
+  @receipt use_orchestration_history_config { type: "UseOrchestrationHistoryReceipt"; timestamp: now() }
+}

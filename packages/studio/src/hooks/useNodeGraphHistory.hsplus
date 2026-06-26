@@ -1,0 +1,10 @@
+// @use_node_graph_history — useNodeGraphHistory hook: Studio hook for undo/redo history in the node graph editor.
+//
+// Native .hsplus surface for studio/src/hooks/useNodeGraphHistory.ts.
+
+@trait use_node_graph_history {
+  capability_tags: ["use_node_graph_history", "node_graph_undo_redo_hook", "visual_graph_history_hook", "studio"]
+  @on_spawn => { emit("use_node_graph_history_ready", {}) }
+  @on_undo() => { undo_node_graph_edit() }
+  @receipt use_node_graph_history_config { type: "UseNodeGraphHistoryReceipt"; timestamp: now() }
+}
