@@ -15,6 +15,7 @@
  */
 
 import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, resolve, relative, basename, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -24,6 +25,11 @@ const DEFAULT_DATE = new Date().toISOString().slice(0, 10);
 
 // Common secret / build artifact patterns to redact or skip
 const SECRET_PATTERNS = [
+  /(^|[/\\])\.bench-logs([/\\]|$)/i,
+  /(^|[/\\])\.bench-logs-evidence([/\\]|$)/i,
+  /(^|[/\\])\.holo-ci-last-workload$/i,
+  /(^|[/\\])\.scratch([/\\]|$)/i,
+  /(^|[/\\])\.tmp([/\\]|$)/i,
   /\.env(\.|$)/i,
   /wallet\.enc$/i,
   /HOLOMESH_API_KEY/i,
@@ -38,6 +44,9 @@ const SECRET_PATTERNS = [
   /coverage/i,
   /\.log$/i,
   /tmp/i,
+  /test-results/i,
+  /temp_ts_morph/i,
+  /(^|[/\\])target([/\\]|$)/i,
 ];
 
 const MAX_FILES = 500;
@@ -78,6 +87,7 @@ function parseArgs(argv) {
     privacyClass: 'local-private',
     maxFiles: MAX_FILES,
     maxBytes: MAX_BYTES,
+    changedFirst: true,
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -99,6 +109,10 @@ function parseArgs(argv) {
       args.maxFiles = parseInt(argv[++i], 10);
     } else if (arg === '--max-bytes') {
       args.maxBytes = parseInt(argv[++i], 10);
+    } else if (arg === '--changed-first') {
+      args.changedFirst = true;
+    } else if (arg === '--no-changed-first') {
+      args.changedFirst = false;
     } else if (arg === '--help' || arg === '-h') {
       printHelp();
       process.exit(0);
@@ -130,6 +144,8 @@ Options:
   --date <yyyy-mm-dd>   Bench date folder when --out omitted.
   --max-files N         Hard cap on number of files (default 500).
   --max-bytes N         Hard cap on total source bytes (default 5 MiB).
+  --changed-first       Prioritize git-status changed files first (default).
+  --no-changed-first    Disable git-status prioritization for active repos.
 `);
 }
 
@@ -152,7 +168,62 @@ function isTextSourcePath(relPath) {
   return dot >= 0 && TEXT_SOURCE_EXTENSIONS.has(lower.slice(dot));
 }
 
-function walkDir(dir, base, results, stats, maxFiles, maxBytes) {
+function pushSourceFile(full, rel, results, stats, maxFiles, maxBytes, seen) {
+  if (results.length >= maxFiles) return false;
+
+  const normalizedRel = rel.replace(/\\/g, '/');
+  if (seen.has(normalizedRel)) return false;
+
+  if (shouldSkip(normalizedRel, full)) {
+    stats.skipped.push({ path: normalizedRel, reason: 'redacted-or-build-artifact' });
+    return false;
+  }
+
+  if (!isTextSourcePath(normalizedRel)) {
+    stats.skipped.push({ path: normalizedRel, reason: 'unsupported-file-type' });
+    return false;
+  }
+
+  let st;
+  try {
+    st = statSync(full);
+  } catch (e) {
+    stats.skipped.push({ path: normalizedRel, reason: `read-error: ${e.message}` });
+    return false;
+  }
+
+  if (!st.isFile()) return false;
+  if (stats.totalBytes + st.size > maxBytes) {
+    stats.skipped.push({ path: normalizedRel, reason: 'byte-cap-exceeded' });
+    return false;
+  }
+
+  try {
+    const contentBytes = readFileSync(full);
+    if (contentBytes.includes(0)) {
+      stats.skipped.push({ path: normalizedRel, reason: 'binary-content' });
+      return false;
+    }
+
+    const content = contentBytes.toString('utf8');
+    results.push({
+      path: normalizedRel,
+      content,
+      size: st.size,
+      hash: sha256Bytes(contentBytes),
+      mtime: st.mtime.toISOString(),
+    });
+    seen.add(normalizedRel);
+    stats.totalBytes += st.size;
+    stats.totalFiles += 1;
+    return true;
+  } catch (e) {
+    stats.skipped.push({ path: normalizedRel, reason: `read-error: ${e.message}` });
+    return false;
+  }
+}
+
+function walkDir(dir, base, results, stats, maxFiles, maxBytes, seen) {
   if (results.length >= maxFiles) return;
 
   let entries;
@@ -176,35 +247,53 @@ function walkDir(dir, base, results, stats, maxFiles, maxBytes) {
     try {
       const st = statSync(full);
       if (st.isDirectory()) {
-        walkDir(full, base, results, stats, maxFiles, maxBytes);
+        if (shouldSkip(rel, full)) {
+          stats.skipped.push({ path: rel, reason: 'redacted-or-build-artifact' });
+          continue;
+        }
+        walkDir(full, base, results, stats, maxFiles, maxBytes, seen);
       } else if (st.isFile()) {
-        if (!isTextSourcePath(rel)) {
-          stats.skipped.push({ path: rel, reason: 'unsupported-file-type' });
-          continue;
-        }
-        if (stats.totalBytes + st.size > maxBytes) {
-          stats.skipped.push({ path: rel, reason: 'byte-cap-exceeded' });
-          continue;
-        }
-        const contentBytes = readFileSync(full);
-        if (contentBytes.includes(0)) {
-          stats.skipped.push({ path: rel, reason: 'binary-content' });
-          continue;
-        }
-        const content = contentBytes.toString('utf8');
-        const hash = sha256Bytes(contentBytes);
-        results.push({
-          path: rel.replace(/\\/g, '/'),
-          content,
-          size: st.size,
-          hash,
-          mtime: st.mtime.toISOString(),
-        });
-        stats.totalBytes += st.size;
-        stats.totalFiles += 1;
+        pushSourceFile(full, rel, results, stats, maxFiles, maxBytes, seen);
       }
     } catch (e) {
       stats.skipped.push({ path: rel, reason: `read-error: ${e.message}` });
+    }
+  }
+}
+
+function getGitChangedPaths(root) {
+  try {
+    const out = execFileSync('git', ['-C', root, 'status', '--porcelain', '--untracked-files=all'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    return out
+      .split(/\r?\n/)
+      .filter(Boolean)
+      .map((line) => {
+        const rawPath = line.slice(3).trim();
+        return rawPath.includes(' -> ') ? rawPath.split(' -> ').pop().trim() : rawPath;
+      })
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+function addGitChangedFiles(root, results, stats, maxFiles, maxBytes, seen) {
+  const changedPaths = getGitChangedPaths(root);
+  stats.changedCandidates += changedPaths.length;
+
+  for (const rel of changedPaths) {
+    if (results.length >= maxFiles) break;
+
+    const full = join(root, rel);
+    if (!existsSync(full)) {
+      stats.skipped.push({ path: rel, reason: 'changed-path-missing' });
+      continue;
+    }
+    if (pushSourceFile(full, rel, results, stats, maxFiles, maxBytes, seen)) {
+      stats.changedIncluded += 1;
     }
   }
 }
@@ -229,6 +318,9 @@ function buildReceipt(roots, sourceFiles, stats, args) {
       totalFiles: stats.totalFiles,
       totalBytes: stats.totalBytes,
       skippedCount: stats.skipped.length,
+      changedFirst: args.changedFirst,
+      changedCandidates: stats.changedCandidates,
+      changedIncluded: stats.changedIncluded,
     },
     skipped: stats.skipped.slice(0, 50), // cap noise
     redactionPolicy: 'SECRET_PATTERNS + build artifacts + size caps',
@@ -250,8 +342,14 @@ function main() {
     mkdirSync(tmp, { recursive: true });
     writeFileSync(join(tmp, 'example.ts'), 'export const x = 42;\n');
     const results = [];
-    const stats = { totalFiles: 0, totalBytes: 0, skipped: [] };
-    walkDir(tmp, tmp, results, stats, 100, 1024 * 1024);
+    const stats = {
+      totalFiles: 0,
+      totalBytes: 0,
+      skipped: [],
+      changedCandidates: 0,
+      changedIncluded: 0,
+    };
+    walkDir(tmp, tmp, results, stats, 100, 1024 * 1024, new Set());
     const receipt = buildReceipt([tmp], results, stats, args);
     const toolPayloadOk = receipt.sourceFiles.every(
       (f) => typeof f.path === 'string' && typeof f.content === 'string'
@@ -270,14 +368,25 @@ function main() {
   }
 
   const sourceFiles = [];
-  const stats = { totalFiles: 0, totalBytes: 0, skipped: [] };
+  const stats = {
+    totalFiles: 0,
+    totalBytes: 0,
+    skipped: [],
+    changedCandidates: 0,
+    changedIncluded: 0,
+  };
+  const seen = new Set();
 
   for (const root of args.roots) {
     if (!existsSync(root)) {
       stats.skipped.push({ path: root, reason: 'root-not-found' });
       continue;
     }
-    walkDir(resolve(root), resolve(root), sourceFiles, stats, args.maxFiles, args.maxBytes);
+    const resolvedRoot = resolve(root);
+    if (args.changedFirst) {
+      addGitChangedFiles(resolvedRoot, sourceFiles, stats, args.maxFiles, args.maxBytes, seen);
+    }
+    walkDir(resolvedRoot, resolvedRoot, sourceFiles, stats, args.maxFiles, args.maxBytes, seen);
   }
 
   const receipt = buildReceipt(args.roots, sourceFiles, stats, args);
@@ -297,6 +406,11 @@ function main() {
   console.log('  files:', receipt.stats.totalFiles);
   console.log('  bytes:', receipt.stats.totalBytes);
   console.log('  skipped:', receipt.stats.skippedCount);
+  console.log(
+    '  changed:',
+    `${receipt.stats.changedIncluded}/${receipt.stats.changedCandidates}`,
+    receipt.stats.changedFirst ? '(changed-first)' : '(walk-order)'
+  );
   console.log('  replay:', receipt.replayCommand);
   console.log('\nFeed this receipt + sourceFiles into holo_absorb_repo from HoloShell context.');
 }
