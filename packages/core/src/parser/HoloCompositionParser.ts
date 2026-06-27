@@ -5082,6 +5082,26 @@ export class HoloCompositionParser {
       return true;
     }
 
+    if (key === 'blendMode' || key === 'blend_mode') {
+      const blendMode = String(this.parseValue() ?? '').toLowerCase();
+      if (blendMode === 'override' || blendMode === 'additive') {
+        state.blendMode = blendMode;
+      } else {
+        this.error(`Unknown animation blend mode "${blendMode}"`);
+      }
+      return true;
+    }
+
+    if (key === 'mask') {
+      state.mask = this.coerceStringArray(this.parseValue());
+      return true;
+    }
+
+    if (key === 'baseline') {
+      state.baseline = this.coerceNumberRecord(this.parseValue());
+      return true;
+    }
+
     return false;
   }
 
@@ -5096,6 +5116,16 @@ export class HoloCompositionParser {
       return Number.isFinite(single) ? [single] : [];
     }
     return value.map((entry) => Number(entry)).filter((entry) => Number.isFinite(entry));
+  }
+
+  private coerceNumberRecord(value: HoloValue): Record<string, number> {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+    const out: Record<string, number> = {};
+    for (const [key, raw] of Object.entries(value)) {
+      const numeric = Number(raw);
+      if (Number.isFinite(numeric)) out[key] = numeric;
+    }
+    return out;
   }
 
   private isStateNameToken(offset = 0): boolean {

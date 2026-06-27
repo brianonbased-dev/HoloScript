@@ -21,6 +21,8 @@ describe('Rive animation state-machine authoring', () => {
             parameter: speed
             thresholds: [0, 1, 3]
             blendType: "1d"
+            blendMode: "additive"
+            mask: ["hips", "spine"]
           }
 
           Idle -> Walk when speed > 0.15 over 0.2 easing spring
@@ -99,6 +101,8 @@ describe('Rive animation state-machine authoring', () => {
         parameter: 'speed',
         thresholds: [0, 1, 3],
         blendType: '1d',
+        blendMode: 'additive',
+        mask: ['hips', 'spine'],
       })
     );
   });
@@ -120,6 +124,8 @@ describe('Rive animation state-machine authoring', () => {
           parameter: speed
           thresholds: [0, 1, 3]
           blend: "1d"
+          blendMode: "additive"
+          mask: ["hips", "spine"]
         }
 
         Idle -> Walk when speed > 0.15 over 0.2 easing spring
@@ -167,6 +173,8 @@ describe('Rive animation state-machine authoring', () => {
         parameter: expect.objectContaining({ __ref: 'speed' }),
         thresholds: [0, 1, 3],
         blend: '1d',
+        blendMode: 'additive',
+        mask: ['hips', 'spine'],
       })
     );
   });

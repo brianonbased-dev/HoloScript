@@ -36,6 +36,8 @@ export type {
   AnimationBlendMode,
   AnimationClipDef,
   AnimationEventDef,
+  AnimationTrackKeyframe,
+  AnimationTrackDef,
   AnimationStateDef,
   TransitionCondition,
   AnimationTransition,
@@ -48,6 +50,9 @@ export type {
   ActiveBlendChild,
   ActiveBlendTree,
   AnimationClipWeight,
+  AnimationChannelContribution,
+  AnimationResolvedChannel,
+  AnimationOutputSnapshot,
   AnimationTransitionInspection,
   AnimationLayerInspection,
   AnimationInspectionSnapshot,
@@ -60,11 +65,15 @@ import type {
   ActiveBlendTree,
   AnimationClipDef,
   AnimationConfig,
+  AnimationOutputSnapshot,
+  AnimationResolvedChannel,
   AnimationEvent,
   AnimationEventCallback,
   AnimationEventType,
+  AnimationLayer,
   AnimationParameter,
   AnimationStateDef,
+  AnimationTrackDef,
   AnimationTransition,
   AnimationClipWeight,
   AnimationInspectionSnapshot,
@@ -73,6 +82,28 @@ import type {
 
 import { AnimationStateMachine } from './AnimationStateMachine';
 import { applyEasing } from '../runtime/easing';
+import { sampleTrack } from '../animation/sequencer';
+
+type OutputContribution = {
+  layer: number;
+  layerName?: string;
+  state: string;
+  stateDef?: AnimationStateDef;
+  clip: AnimationClipDef;
+  track: AnimationTrackDef;
+  time: number;
+  weight: number;
+};
+
+type PendingChannel = {
+  target: string;
+  baseline: number;
+  blendMode: 'override' | 'additive';
+  totalWeight: number;
+  weightedValue: number;
+  additiveDelta: number;
+  contributions: AnimationResolvedChannel['contributions'];
+};
 
 /**
  * Animation Trait — clip playback coordinator with state machine delegate
@@ -390,7 +421,61 @@ export class AnimationTrait {
     return anim ? this.collectClipWeights(anim, anim.weight) : [];
   }
 
+  public resolveOutputs(): AnimationOutputSnapshot {
+    const channelValues = new Map<string, number>();
+    const channelDetails = new Map<string, AnimationResolvedChannel>();
+    const layers = this.getOrderedLayerEntries();
+
+    for (const layerEntry of layers) {
+      const layerWeight = this.clamp01(layerEntry.layer.weight);
+      if (layerWeight <= 0) continue;
+
+      const pendingChannels = this.collectLayerChannels(
+        layerEntry.index,
+        layerEntry.layerName,
+        layerEntry.layer,
+        layerWeight
+      );
+
+      for (const pending of pendingChannels.values()) {
+        const previous = channelValues.get(pending.target) ?? pending.baseline;
+        const totalWeight = this.clamp01(pending.totalWeight);
+        const nextValue =
+          pending.blendMode === 'additive'
+            ? previous + pending.additiveDelta
+            : previous * (1 - totalWeight) + pending.weightedValue;
+
+        channelValues.set(pending.target, nextValue);
+
+        const details =
+          channelDetails.get(pending.target) ??
+          ({
+            target: pending.target,
+            value: previous,
+            contributions: [],
+          } satisfies AnimationResolvedChannel);
+
+        details.value = nextValue;
+        details.contributions.push(...pending.contributions);
+        channelDetails.set(pending.target, details);
+      }
+    }
+
+    return {
+      time: this.currentTime,
+      channels: Object.fromEntries(
+        Array.from(channelValues.entries()).sort(([a], [b]) => a.localeCompare(b))
+      ),
+      details: Array.from(channelDetails.values()).sort((a, b) => a.target.localeCompare(b.target)),
+    };
+  }
+
+  public getResolvedOutputs(): AnimationOutputSnapshot {
+    return this.resolveOutputs();
+  }
+
   public inspect(): AnimationInspectionSnapshot {
+    const outputs = this.resolveOutputs();
     const layers = Array.from(this.sm.layers.entries()).map(([layerName, layer], index) => {
       const anim = this.activeAnimations.get(index);
       const crossfade = this.crossfades.get(index);
@@ -421,6 +506,7 @@ export class AnimationTrait {
       time: this.currentTime,
       parameters: this.getParameterValues(),
       layers,
+      outputs,
     };
   }
 
@@ -525,6 +611,173 @@ export class AnimationTrait {
     }
 
     this.advanceAnimationPlayback(anim, deltaTime);
+  }
+
+  private getOrderedLayerEntries(): Array<{
+    index: number;
+    layerName: string;
+    layer: AnimationLayer;
+  }> {
+    return Array.from(this.sm.layers.entries())
+      .map(([layerName, layer], index) => ({ index, layerName, layer }))
+      .sort((a, b) => {
+        const priorityDelta = (a.layer.priority ?? 0) - (b.layer.priority ?? 0);
+        return priorityDelta !== 0 ? priorityDelta : a.index - b.index;
+      });
+  }
+
+  private collectLayerChannels(
+    layer: number,
+    layerName: string,
+    layerDef: AnimationLayer,
+    layerWeight: number
+  ): Map<string, PendingChannel> {
+    const pending = new Map<string, PendingChannel>();
+    const crossfade = this.crossfades.get(layer);
+    const sources = crossfade
+      ? [
+          ...this.collectOutputContributions(
+            crossfade.from,
+            crossfade.from.weight * layerWeight,
+            layer,
+            layerName,
+            layerDef
+          ),
+          ...this.collectOutputContributions(
+            crossfade.to,
+            crossfade.to.weight * layerWeight,
+            layer,
+            layerName,
+            layerDef
+          ),
+        ]
+      : this.collectOutputContributions(
+          this.activeAnimations.get(layer),
+          (this.activeAnimations.get(layer)?.weight ?? 0) * layerWeight,
+          layer,
+          layerName,
+          layerDef
+        );
+
+    for (const source of sources) {
+      const sampledValue = sampleTrack(source.track.keyframes, source.time);
+      const baseline = this.getTrackBaseline(source.stateDef, source.track);
+      const blendMode = this.getContributionBlendMode(layerDef, source.stateDef, source.clip);
+      const existing =
+        pending.get(source.track.target) ??
+        ({
+          target: source.track.target,
+          baseline,
+          blendMode,
+          totalWeight: 0,
+          weightedValue: 0,
+          additiveDelta: 0,
+          contributions: [],
+        } satisfies PendingChannel);
+
+      existing.baseline = existing.baseline ?? baseline;
+      existing.blendMode =
+        existing.blendMode === 'additive' || blendMode === 'additive' ? 'additive' : 'override';
+      existing.totalWeight += source.weight;
+      existing.weightedValue += sampledValue * source.weight;
+      existing.additiveDelta += (sampledValue - baseline) * source.weight;
+      existing.contributions.push({
+        layer: source.layer,
+        layerName: source.layerName,
+        state: source.state,
+        clip: source.clip.name,
+        target: source.track.target,
+        weight: source.weight,
+        sampledValue,
+        baseline,
+        blendMode,
+      });
+
+      pending.set(source.track.target, existing);
+    }
+
+    return pending;
+  }
+
+  private collectOutputContributions(
+    anim: ActiveAnimation | null | undefined,
+    parentWeight: number,
+    layer: number,
+    layerName: string,
+    layerDef: AnimationLayer
+  ): OutputContribution[] {
+    if (!anim || parentWeight <= 0) return [];
+
+    const stateDef = this.sm.states.get(anim.state);
+    const mask = this.mergeMasks(layerDef.mask, stateDef?.mask);
+    const sources = this.collectWeightedClipSources(anim, parentWeight);
+    const contributions: OutputContribution[] = [];
+
+    for (const source of sources) {
+      for (const track of source.clip.tracks ?? []) {
+        if (!this.isTargetAllowed(track.target, mask)) continue;
+        contributions.push({
+          layer,
+          layerName,
+          state: anim.state,
+          stateDef,
+          clip: source.clip,
+          track,
+          time: source.time,
+          weight: source.weight,
+        });
+      }
+    }
+
+    return contributions;
+  }
+
+  private collectWeightedClipSources(
+    anim: ActiveAnimation,
+    parentWeight: number
+  ): Array<{ clip: AnimationClipDef; time: number; weight: number }> {
+    if (!anim.blendTree) {
+      return [{ clip: anim.clip, time: anim.time, weight: parentWeight }];
+    }
+
+    this.refreshBlendTreeWeights(anim);
+    return anim.blendTree.children.map((child) => ({
+      clip: child.clip,
+      time: child.time,
+      weight: child.weight * parentWeight,
+    }));
+  }
+
+  private mergeMasks(layerMask?: string[], stateMask?: string[]): string[] | undefined {
+    if (!layerMask && !stateMask) return undefined;
+    if (layerMask && stateMask) {
+      const stateSet = new Set(stateMask);
+      return layerMask.filter((target) => stateSet.has(target));
+    }
+    return layerMask ?? stateMask;
+  }
+
+  private isTargetAllowed(target: string, mask?: string[]): boolean {
+    if (!mask || mask.length === 0) return true;
+    return mask.some((entry) => target === entry || target.startsWith(`${entry}.`));
+  }
+
+  private getTrackBaseline(state: AnimationStateDef | undefined, track: AnimationTrackDef): number {
+    return state?.baseline?.[track.target] ?? track.defaultValue ?? 0;
+  }
+
+  private getContributionBlendMode(
+    layer: AnimationLayer,
+    state: AnimationStateDef | undefined,
+    clip: AnimationClipDef
+  ): 'override' | 'additive' {
+    if (layer.additive || layer.blendMode === 'additive') return 'additive';
+    if (state?.blendMode === 'additive') return 'additive';
+    return clip.blendMode === 'additive' ? 'additive' : 'override';
+  }
+
+  private clamp01(value: number): number {
+    return Math.max(0, Math.min(1, value));
   }
 
   private createActiveAnimation(

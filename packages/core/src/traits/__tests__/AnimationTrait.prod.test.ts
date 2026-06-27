@@ -31,6 +31,31 @@ function clip(name: string, duration = 1.0, loop = false): AnimationClipDef {
   return { name, duration, wrapMode: loop ? 'loop' : 'once' };
 }
 
+function trackClip(
+  name: string,
+  target: string,
+  value: number,
+  options: Partial<AnimationClipDef> & { defaultValue?: number } = {}
+): AnimationClipDef {
+  const { defaultValue, ...clipOptions } = options;
+  return {
+    name,
+    duration: 1,
+    wrapMode: 'clamp',
+    ...clipOptions,
+    tracks: [
+      {
+        target,
+        defaultValue,
+        keyframes: [
+          { time: 0, value },
+          { time: 1, value },
+        ],
+      },
+    ],
+  };
+}
+
 function state(name: string, clipName: string): AnimationStateDef {
   return { name, clip: clipName };
 }
@@ -364,6 +389,131 @@ describe('AnimationTrait - blend states and inspection', () => {
     expect(t.getCurrentClip()).toBe('wave');
   });
 
+  it('samples direct blend tracks into resolved output channels', () => {
+    const t = mkTrait({
+      clips: [trackClip('idle', 'root.x', 0), trackClip('wave', 'root.x', 10)],
+      parameters: [
+        { name: 'idleWeight', type: 'float', value: 1 },
+        { name: 'waveWeight', type: 'float', value: 3 },
+      ],
+      states: [
+        {
+          name: 'gesture',
+          clips: ['idle', 'wave'],
+          blendType: 'direct',
+          parameters: ['idleWeight', 'waveWeight'],
+        },
+      ],
+      defaultState: 'gesture',
+    });
+
+    const outputs = t.resolveOutputs();
+    expect(outputs.channels['root.x']).toBeCloseTo(7.5);
+    expect(outputs.details[0].contributions).toEqual([
+      expect.objectContaining({ clip: 'idle', weight: 0.25, sampledValue: 0 }),
+      expect.objectContaining({ clip: 'wave', weight: 0.75, sampledValue: 10 }),
+    ]);
+  });
+
+  it('adds additive layer deltas over a baseline pose', () => {
+    const t = mkTrait({
+      clips: [
+        trackClip('base', 'hips.x', 10),
+        trackClip('lean', 'hips.x', 14, { defaultValue: 10 }),
+      ],
+      states: [
+        { name: 'basePose', clip: 'base' },
+        { name: 'leanPose', clip: 'lean', baseline: { 'hips.x': 10 } },
+      ],
+      layers: [
+        { name: 'Base', weight: 1, blendMode: 'override' },
+        { name: 'Additive Upper', weight: 0.5, blendMode: 'additive' },
+      ],
+      defaultState: 'basePose',
+    });
+
+    t.setState('leanPose', 1);
+
+    const outputs = t.resolveOutputs();
+    expect(outputs.channels['hips.x']).toBeCloseTo(12);
+    expect(outputs.details[0].contributions).toEqual([
+      expect.objectContaining({ layerName: 'Base', blendMode: 'override', sampledValue: 10 }),
+      expect.objectContaining({
+        layerName: 'Additive Upper',
+        blendMode: 'additive',
+        baseline: 10,
+        sampledValue: 14,
+        weight: 0.5,
+      }),
+    ]);
+  });
+
+  it('honors layer masks when resolving output channels', () => {
+    const t = mkTrait({
+      clips: [
+        trackClip('base', 'hips.x', 10),
+        trackClip('face', 'face.smile', 1),
+        trackClip('maskedHips', 'hips.x', 99),
+      ],
+      states: [
+        { name: 'basePose', clip: 'base' },
+        {
+          name: 'facePose',
+          clips: ['face', 'maskedHips'],
+          thresholds: [0, 1],
+          parameter: 'maskMix',
+        },
+      ],
+      parameters: [{ name: 'maskMix', type: 'float', value: 0.5 }],
+      layers: [
+        { name: 'Base', weight: 1, blendMode: 'override' },
+        { name: 'Face Only', weight: 1, blendMode: 'override', mask: ['face'] },
+      ],
+      defaultState: 'basePose',
+    });
+
+    t.setState('facePose', 1);
+
+    const outputs = t.resolveOutputs();
+    expect(outputs.channels['hips.x']).toBeCloseTo(10);
+    expect(outputs.channels['face.smile']).toBeCloseTo(0.5);
+    expect(outputs.details.find((channel) => channel.target === 'hips.x')?.contributions).toEqual([
+      expect.objectContaining({ layerName: 'Base', clip: 'base' }),
+    ]);
+  });
+
+  it('resolves override conflicts by layer priority then layer order', () => {
+    const t = mkTrait({
+      clips: [
+        trackClip('base', 'root.x', 1),
+        trackClip('low', 'root.x', 2),
+        trackClip('high', 'root.x', 8),
+      ],
+      states: [
+        { name: 'basePose', clip: 'base' },
+        { name: 'lowPose', clip: 'low' },
+        { name: 'highPose', clip: 'high' },
+      ],
+      layers: [
+        { name: 'Base', weight: 1, blendMode: 'override' },
+        { name: 'Low Override', weight: 1, blendMode: 'override', priority: 1 },
+        { name: 'High Override', weight: 1, blendMode: 'override', priority: 10 },
+      ],
+      defaultState: 'basePose',
+    });
+
+    t.setState('lowPose', 1);
+    t.setState('highPose', 2);
+
+    const outputs = t.resolveOutputs();
+    expect(outputs.channels['root.x']).toBeCloseTo(8);
+    expect(outputs.details[0].contributions.map((entry) => entry.layerName)).toEqual([
+      'Base',
+      'Low Override',
+      'High Override',
+    ]);
+  });
+
   it('inspect reports parameters, blend weights, and eased transition progress', () => {
     const t = mkTrait({
       clips: [clip('idle'), clip('walk')],
@@ -385,6 +535,7 @@ describe('AnimationTrait - blend states and inspection', () => {
 
     const snapshot = t.inspect();
     expect(snapshot.parameters.speed).toBe(0.5);
+    expect(snapshot.outputs.channels).toEqual({});
     expect(snapshot.layers[0]).toEqual(
       expect.objectContaining({
         currentState: 'idle',

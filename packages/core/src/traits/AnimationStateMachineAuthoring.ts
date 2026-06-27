@@ -21,6 +21,9 @@ export function animationConfigFromStateMachine(stateMachine: HoloStateMachine):
     parameters: state.parameters,
     thresholds: state.thresholds,
     blendType: state.blendType,
+    blendMode: state.blendMode,
+    mask: state.mask,
+    baseline: state.baseline,
   }));
 
   return {

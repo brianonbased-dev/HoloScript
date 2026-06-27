@@ -5047,7 +5047,11 @@ export class HoloScriptPlusParser {
       key === 'thresholds' ||
       key === 'blendType' ||
       key === 'blend_type' ||
-      key === 'blend'
+      key === 'blend' ||
+      key === 'blendMode' ||
+      key === 'blend_mode' ||
+      key === 'mask' ||
+      key === 'baseline'
     );
   }
 

@@ -1482,6 +1482,9 @@ export interface HoloState_Machine extends HoloNode {
   parameters?: string[];
   thresholds?: number[];
   blendType?: '1d' | 'direct';
+  blendMode?: 'override' | 'additive';
+  mask?: string[];
+  baseline?: Record<string, number>;
   entry?: HoloStatement[];
   exit?: HoloStatement[];
   actions: HoloBehaviorAction[];

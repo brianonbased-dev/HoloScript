@@ -48,6 +48,31 @@ export interface AnimationClipDef {
 
   /** Root motion */
   rootMotion?: boolean;
+
+  /** Numeric output tracks written to runtime/render channels */
+  tracks?: AnimationTrackDef[];
+}
+
+export interface AnimationTrackKeyframe {
+  /** Position along the clip timeline in seconds */
+  time: number;
+
+  /** Numeric channel value at this keyframe */
+  value: number;
+
+  /** Optional easing for the segment arriving at this keyframe */
+  easing?: string;
+}
+
+export interface AnimationTrackDef {
+  /** Runtime/render channel, e.g. "hips.x" or "material.opacity" */
+  target: string;
+
+  /** Sampled numeric keyframes */
+  keyframes: AnimationTrackKeyframe[];
+
+  /** Baseline pose/value used by additive blending */
+  defaultValue?: number;
 }
 
 /**
@@ -91,6 +116,15 @@ export interface AnimationStateDef {
 
   /** Blend tree mode */
   blendType?: '1d' | 'direct';
+
+  /** Override or additive output composition for this state */
+  blendMode?: AnimationBlendMode;
+
+  /** Optional per-state output channel mask */
+  mask?: string[];
+
+  /** Baseline/default pose values used by additive output channels */
+  baseline?: Record<string, number>;
 
   /** Speed multiplier */
   speed?: number;
@@ -246,6 +280,31 @@ export interface AnimationInspectionSnapshot {
   time: number;
   parameters: Record<string, number | boolean>;
   layers: AnimationLayerInspection[];
+  outputs: AnimationOutputSnapshot;
+}
+
+export interface AnimationChannelContribution {
+  layer: number;
+  layerName?: string;
+  state: string;
+  clip: string;
+  target: string;
+  weight: number;
+  sampledValue: number;
+  baseline: number;
+  blendMode: AnimationBlendMode;
+}
+
+export interface AnimationResolvedChannel {
+  target: string;
+  value: number;
+  contributions: AnimationChannelContribution[];
+}
+
+export interface AnimationOutputSnapshot {
+  time: number;
+  channels: Record<string, number>;
+  details: AnimationResolvedChannel[];
 }
 
 /**
@@ -277,6 +336,9 @@ export interface AnimationLayer {
 
   /** Blend mode */
   blendMode: AnimationBlendMode;
+
+  /** Composition priority. Higher priority resolves after lower priority. */
+  priority?: number;
 
   /** Avatar mask (body parts affected) */
   mask?: string[];
