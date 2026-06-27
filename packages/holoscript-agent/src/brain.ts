@@ -139,11 +139,10 @@ function extractIdentity(brain: string): {
  * lightweight regex KV parser — no full parser dependency. Only verbs whose
  * keys match known cognitive verbs are included; unknown keywords are skipped.
  *
- * Currently wired in AgentRunner: `llm_call` (prompt augmentation) and
- * `reflect` (extracted separately by extractReflect via sliceNamedBlock).
- * Future verbs (`recall`, `rag_query`, `plan`) are parsed so they appear in
- * the returned sequence but are logged-and-deferred by the runner until
- * Phase 2.2 (trait-backed stores, see idea-seeds.md).
+ * AgentRunner now passes the parsed sequence to augmentWithOnTaskCognition,
+ * the Phase 2.2 edge executor for `llm_call`, `rag_query`, `recall`, `plan`,
+ * `ask_peer`, `council`, and `discover`. `reflect` is still extracted
+ * separately via extractReflect because it runs as the post-artifact gate.
  */
 function extractOnTaskActions(brain: string): OnTaskAction[] {
   // `sliceNamedBlock` with 'on_task' matches `on_task {` inside `behavior on_task {`
