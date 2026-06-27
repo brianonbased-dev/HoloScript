@@ -66,7 +66,7 @@ export const languageAdapterHandler: TraitHandler<LanguageAdapterTraitConfig> = 
   ],
 
   onAttach(node: HSPlusNode, config: LanguageAdapterTraitConfig, context: TraitContext): void {
-    (node as Record<string, unknown>).__languageAdapterTrait = {
+    (node as unknown as Record<string, unknown>).__languageAdapterTrait = {
       config,
       registeredAt: Date.now(),
     } satisfies LanguageAdapterTraitState;
@@ -79,7 +79,7 @@ export const languageAdapterHandler: TraitHandler<LanguageAdapterTraitConfig> = 
   },
 
   onDetach(node: HSPlusNode): void {
-    delete (node as Record<string, unknown>).__languageAdapterTrait;
+    delete (node as unknown as Record<string, unknown>).__languageAdapterTrait;
   },
 };
 

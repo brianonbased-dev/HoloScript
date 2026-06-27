@@ -61,7 +61,7 @@ function composition(): HoloComposition {
 
 describe('FMUCompiler', () => {
   it('emits an FMI 3.0 source bundle with CAEL coupling provenance', () => {
-    const result = new FMUCompiler({ mode: 'both', modelIdentifier: 'PumpLoopFMU' }).compileToFiles(
+    const result = new FMUCompiler({ mode: 'both', modelIdentifier: 'PumpLoopFMU' }).compileToBundle(
       composition()
     );
 

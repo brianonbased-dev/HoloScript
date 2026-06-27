@@ -93,10 +93,15 @@ export class FMUCompiler extends CompilerBase {
 
   compile(composition: HoloComposition, agentToken?: string, outputPath?: string): string {
     this.validateCompilerAccess(agentToken, outputPath);
-    return JSON.stringify(this.compileToFiles(composition), null, 2);
+    return JSON.stringify(this.compileToBundle(composition), null, 2);
   }
 
-  compileToFiles(composition: HoloComposition): FMUCompileResult {
+  compileToFiles(composition: HoloComposition, agentToken?: string): Record<string, string> {
+    this.validateCompilerAccess(agentToken);
+    return this.compileToBundle(composition).files;
+  }
+
+  compileToBundle(composition: HoloComposition): FMUCompileResult {
     const manifest = this.createManifest(composition);
     const compositionJson = JSON.stringify(composition, null, 2);
     const files: Record<string, string> = {
@@ -289,7 +294,7 @@ export function compileToFMU(
   composition: HoloComposition,
   options: FMUCompilerOptions = {}
 ): FMUCompileResult {
-  return new FMUCompiler(options).compileToFiles(composition);
+  return new FMUCompiler(options).compileToBundle(composition);
 }
 
 export function absorbFMU(input: AbsorbFMUInput): AbsorbFMUResult {
@@ -315,6 +320,7 @@ export function absorbFMU(input: AbsorbFMUInput): AbsorbFMUResult {
     outputs,
     parameters,
   };
+  const compositionTraitConfig = toHoloFMUTraitConfig(traitConfig);
 
   return {
     kind: 'holoscript-fmu-import',
@@ -328,7 +334,7 @@ export function absorbFMU(input: AbsorbFMUInput): AbsorbFMUResult {
           type: 'Object',
           name: modelName,
           properties: [],
-          traits: [{ type: 'ObjectTrait', name: 'fmu', config: traitConfig }],
+          traits: [{ type: 'ObjectTrait', name: 'fmu', config: compositionTraitConfig }],
         },
       ],
       spatialGroups: [],
@@ -350,6 +356,32 @@ export function absorbFMU(input: AbsorbFMUInput): AbsorbFMUResult {
       shapes: [],
     },
   };
+}
+
+function toHoloFMUTraitConfig(config: AbsorbFMUResult['traitConfig']): Record<string, HoloValue> {
+  return {
+    source: config.source,
+    fmiVersion: config.fmiVersion,
+    modelIdentifier: config.modelIdentifier,
+    mode: config.mode,
+    inputs: config.inputs.map(portToHoloValue),
+    outputs: config.outputs.map(portToHoloValue),
+    parameters: config.parameters.map(portToHoloValue),
+  };
+}
+
+function portToHoloValue(port: FMUPort): Record<string, HoloValue> {
+  const value: Record<string, HoloValue> = {
+    name: port.name,
+    type: port.type,
+    causality: port.causality,
+    variability: port.variability,
+    valueReference: port.valueReference,
+  };
+
+  if (port.description !== undefined) value.description = port.description;
+  if (port.start !== undefined) value.start = port.start;
+  return value;
 }
 
 function flattenObjects(objects: HoloObjectDecl[]): HoloObjectDecl[] {

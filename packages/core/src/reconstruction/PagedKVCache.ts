@@ -253,7 +253,7 @@ export function createPagedKVCache(config: KVCacheConfig): PagedKVCache {
 
   function buildPageTable(layer: number, logicalPages: Iterable<number>): Uint32Array {
     const requiredPages = Array.from(new Set(logicalPages)).sort((a, b) => a - b);
-    const maxLogicalPage = requiredPages.at(-1) ?? 0;
+    const maxLogicalPage = requiredPages[requiredPages.length - 1] ?? 0;
     const pageTable = new Uint32Array(maxLogicalPage + 1);
     pageTable.fill(PAGE_TABLE_EMPTY);
     const layerState = layers[layer]!;

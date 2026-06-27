@@ -476,7 +476,7 @@ async function handleScaffold(args: Record<string, unknown>): Promise<MCPToolCal
   const composition = buildVRRCompositionFromDraft(parsed.data);
   const runParse = Boolean(args.runVrrParse);
 
-  let vrrSummary: Record<string, number> | undefined;
+  let vrrSummary: BusinessVRRTraitSummary | undefined;
   if (runParse) {
     vrrSummary = summarizeBusinessVRRComposition(composition);
   }
