@@ -24,7 +24,8 @@ export type CrossfadeRequestFn = (
   stateName: string,
   duration: number,
   layer: number,
-  easing?: string
+  easing?: string,
+  pauseWhenExiting?: boolean
 ) => boolean;
 
 /**
@@ -37,10 +38,22 @@ export class AnimationStateMachine {
   readonly layers: Map<string, AnimationLayer> = new Map();
 
   private onCrossfade: CrossfadeRequestFn = () => false;
+  private getLayerNormalizedTime: (layer: number) => number = () => 0;
+  private isLayerTransitioning: (layer: number) => boolean = () => false;
 
   /** Provide the crossfade callback (set by AnimationTrait after construction) */
   setCrossfadeCallback(fn: CrossfadeRequestFn): void {
     this.onCrossfade = fn;
+  }
+
+  /** Provide current active clip phase for exit-time transition checks. */
+  setLayerPhaseCallback(fn: (layer: number) => number): void {
+    this.getLayerNormalizedTime = fn;
+  }
+
+  /** Prevent transition polling from restarting an active crossfade. */
+  setLayerTransitioningCallback(fn: (layer: number) => boolean): void {
+    this.isLayerTransitioning = fn;
   }
 
   // ── States ──────────────────────────────────────────────────────────────
@@ -133,8 +146,6 @@ export class AnimationStateMachine {
     if (param && param.type === 'trigger') {
       param.value = true;
       this.checkTransitions();
-      // Triggers reset after being consumed
-      param.value = false;
     }
   }
 
@@ -169,18 +180,42 @@ export class AnimationStateMachine {
         layerIndex++;
         continue;
       }
+      if (this.isLayerTransitioning(layerIndex)) {
+        layerIndex++;
+        continue;
+      }
 
       for (const transition of this.transitions) {
         if (transition.from !== 'any' && transition.from !== currentState) continue;
         if (!transition.canTransitionToSelf && transition.to === currentState) continue;
+        if (transition.hasExitTime || transition.exitTime !== undefined) {
+          const requiredExitTime = transition.exitTime ?? 1;
+          if (this.getLayerNormalizedTime(layerIndex) < requiredExitTime) continue;
+        }
 
         if (this.evaluateConditions(transition.conditions ?? [])) {
-          this.onCrossfade(transition.to, transition.duration ?? 0.25, layerIndex, transition.easing);
+          const didStart = this.onCrossfade(
+            transition.to,
+            transition.duration ?? 0.25,
+            layerIndex,
+            transition.easing,
+            transition.pauseWhenExiting
+          );
+          if (didStart) this.consumeTransitionTriggers(transition.conditions ?? []);
           break;
         }
       }
 
       layerIndex++;
+    }
+  }
+
+  private consumeTransitionTriggers(conditions: TransitionCondition[]): void {
+    for (const condition of conditions) {
+      const param = this.parameters.get(condition.parameter);
+      if (param?.type === 'trigger') {
+        param.value = false;
+      }
     }
   }
 
@@ -286,7 +321,9 @@ export class AnimationStateMachine {
         const eased = applyEasing(crossfade.progress, crossfade.easing ?? 'linear');
         crossfade.from.weight = 1 - eased;
         crossfade.to.weight = eased;
-        updateAnimation(crossfade.from, deltaTime);
+        if (!crossfade.pauseWhenExiting) {
+          updateAnimation(crossfade.from, deltaTime);
+        }
         updateAnimation(crossfade.to, deltaTime);
       }
     } else {

@@ -4954,7 +4954,8 @@ export class HoloScriptPlusParser {
       this.advance(); // state_machine
     }
 
-    const name = this.expect('IDENTIFIER', 'Expected state machine name').value;
+    const name = this.parseStateMachineIdentifier('Expected state machine name');
+    const inputs: Array<Record<string, unknown>> = [];
     const states: Array<Record<string, unknown>> = [];
     const transitions: Array<Record<string, unknown>> = [];
     let initialState = '';
@@ -4970,7 +4971,11 @@ export class HoloScriptPlusParser {
       if (current.type === 'INITIAL' || current.value === 'initial') {
         this.advance();
         this.expect('COLON', 'Expected : after initial');
-        initialState = this.expect('STRING', 'Expected initial state name').value;
+        initialState = this.parseStateMachineIdentifier('Expected initial state name');
+      } else if (current.value === 'input') {
+        inputs.push(this.parseStateMachineInputDeclaration());
+      } else if (this.isStateMachineTransitionShorthandStart()) {
+        transitions.push(this.parseStateMachineTransitionShorthand());
       } else if (current.type === 'STATE' || current.value === 'state') {
         states.push(this.parseStateNode());
       } else if (current.type === 'TRANSITION' || current.value === 'transitions') {
@@ -4988,6 +4993,7 @@ export class HoloScriptPlusParser {
       type: 'state-machine',
       name,
       initialState,
+      inputs,
       states,
       transitions,
       loc: {
@@ -4999,7 +5005,7 @@ export class HoloScriptPlusParser {
 
   private parseStateNode(): Record<string, unknown> {
     this.advance(); // state
-    const name = this.expect('IDENTIFIER', 'Expected state name').value;
+    const name = this.parseStateMachineIdentifier('Expected state name');
     let onEntry: string | undefined;
     let onExit: string | undefined;
 
@@ -5076,8 +5082,8 @@ export class HoloScriptPlusParser {
     } as unknown as HSPlusNode;
   }
 
-  private parseTransitionsBlock(): Array<Record<string, string>> {
-    const transitions: Array<Record<string, string>> = [];
+  private parseTransitionsBlock(): Array<Record<string, unknown>> {
+    const transitions: Array<Record<string, unknown>> = [];
     this.advance(); // transitions
     this.expect('LBRACE', 'Expected {');
     this.skipNewlines();
@@ -5086,19 +5092,115 @@ export class HoloScriptPlusParser {
       this.skipNewlines();
       if (this.check('RBRACE') || this.check('EOF')) break;
 
-      // from_state -> to_state: event
-      const from = this.expect('IDENTIFIER', 'Expected source state').value;
-      this.expect('ARROW', 'Expected ->');
-      const to = this.expect('IDENTIFIER', 'Expected target state').value;
-      this.expect('COLON', 'Expected :');
-      const event = this.expect('IDENTIFIER', 'Expected event name').value;
-
-      transitions.push({ from, to, event });
+      if (this.isStateMachineTransitionShorthandStart()) {
+        transitions.push(this.parseStateMachineTransitionShorthand());
+      } else {
+        // from_state -> to_state: event
+        const from = this.parseStateMachineIdentifier('Expected source state');
+        this.expect('ARROW', 'Expected ->');
+        const to = this.parseStateMachineIdentifier('Expected target state');
+        this.expect('COLON', 'Expected :');
+        const event = this.parseStateMachineIdentifier('Expected event name');
+        transitions.push({ from, to, event });
+      }
       this.skipNewlines();
     }
 
     this.expect('RBRACE', 'Expected }');
     return transitions;
+  }
+
+  private parseStateMachineInputDeclaration(): Record<string, unknown> {
+    this.advance(); // input
+    const name = this.parseStateMachineIdentifier('Expected input name');
+    this.expect('COLON', 'Expected : after input name');
+    const rawType = this.parseStateMachineIdentifier('Expected input type');
+    const inputType = rawType === 'number' ? 'float' : rawType === 'boolean' ? 'bool' : rawType;
+    let defaultValue: unknown;
+
+    if (this.check('EQUALS')) {
+      this.advance();
+      defaultValue = this.parseValue();
+    }
+
+    return {
+      type: 'animation-input',
+      name,
+      inputType,
+      rawType,
+      default: defaultValue,
+    };
+  }
+
+  private isStateMachineTransitionShorthandStart(): boolean {
+    return this.isStateMachineIdentifierToken(0) && this.peek(1).type === 'ARROW';
+  }
+
+  private parseStateMachineTransitionShorthand(): Record<string, unknown> {
+    const fromRaw = this.parseStateMachineIdentifier('Expected source state');
+    const from = fromRaw.toLowerCase() === 'any' ? 'any' : fromRaw;
+    this.expect('ARROW', 'Expected ->');
+    const to = this.parseStateMachineIdentifier('Expected target state');
+    const transition: Record<string, unknown> = { from, to };
+
+    while (
+      !this.check('NEWLINE') &&
+      !this.check('RBRACE') &&
+      !this.check('COMMA') &&
+      !this.check('EOF')
+    ) {
+      if (!this.isStateMachineIdentifierToken(0)) break;
+      const clause = this.current().value.toLowerCase();
+      this.advance();
+
+      if (clause === 'when') {
+        transition.when = this.parseExpression();
+      } else if (clause === 'on') {
+        transition.event = this.parseStateMachineIdentifier('Expected trigger input');
+      } else if (clause === 'over' || clause === 'duration') {
+        transition.duration = this.parseValue();
+      } else if (clause === 'easing') {
+        transition.easing = this.parseStateMachineIdentifier('Expected easing name');
+      } else if (clause === 'exittime' || clause === 'exit_time') {
+        transition.exitTime = this.parseValue();
+        transition.hasExitTime = true;
+      } else if (clause === 'pausewhenexiting' || clause === 'pause_when_exiting') {
+        transition.pauseWhenExiting = this.parseOptionalStateMachineBoolean();
+      } else if (clause === 'priority') {
+        transition.priority = this.parseValue();
+      } else if (clause === 'cantransitiontoself' || clause === 'can_transition_to_self') {
+        transition.canTransitionToSelf = this.parseOptionalStateMachineBoolean();
+      } else {
+        break;
+      }
+    }
+
+    return transition;
+  }
+
+  private parseOptionalStateMachineBoolean(): boolean {
+    if (this.check('COLON')) this.advance();
+    if (this.check('BOOLEAN')) return this.advance().value === 'true';
+    if (this.check('IDENTIFIER')) {
+      const value = this.current().value.toLowerCase();
+      if (value === 'true' || value === 'false') {
+        this.advance();
+        return value === 'true';
+      }
+    }
+    return true;
+  }
+
+  private parseStateMachineIdentifier(message: string): string {
+    if (this.check('IDENTIFIER') || this.check('STRING')) {
+      return this.advance().value;
+    }
+    return this.expect('IDENTIFIER', message).value;
+  }
+
+  private isStateMachineIdentifierToken(offset: number): boolean {
+    const token = this.peek(offset);
+    return token.type === 'IDENTIFIER' || token.type === 'STRING';
   }
 
   private parseControlFlowBody(): HSPlusNode[] {

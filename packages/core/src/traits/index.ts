@@ -27,7 +27,7 @@ export * from './AltTextTrait';
 export * from './AmbisonicsTrait';
 export * from './AnalyticsTrait';
 export * from './AnchorTrait';
-export { AnimationTrait } from './AnimationTrait';
+export { AnimationTrait, animationConfigFromStateMachine } from './AnimationTrait';
 export * from './AudioMaterialTrait';
 export * from './AudioOcclusionTrait';
 export * from './AudioPortalTrait';

@@ -1468,7 +1468,9 @@ export interface HoloStateMachine extends HoloNode {
   type: 'StateMachine';
   name: string;
   initialState: string;
+  inputs?: HoloAnimationInput[];
   states: Record<string, HoloState_Machine>;
+  transitions?: HoloStateTransition[];
 }
 
 export interface HoloState_Machine extends HoloNode {
@@ -1485,9 +1487,36 @@ export interface HoloState_Machine extends HoloNode {
 
 export interface HoloStateTransition extends HoloNode {
   type: 'StateTransition';
+  from?: string | 'any';
   target: string;
   condition?: HoloExpression;
+  conditions?: HoloAnimationTransitionCondition[];
   event?: string;
+  duration?: number;
+  easing?: string;
+  exitTime?: number;
+  hasExitTime?: boolean;
+  pauseWhenExiting?: boolean;
+  priority?: number;
+  canTransitionToSelf?: boolean;
+}
+
+export type HoloAnimationInputType = 'bool' | 'float' | 'int' | 'trigger';
+
+export interface HoloAnimationInput extends HoloNode {
+  type: 'AnimationInput';
+  name: string;
+  inputType: HoloAnimationInputType;
+  rawType?: string;
+  default?: number | boolean;
+}
+
+export interface HoloAnimationTransitionCondition extends HoloNode {
+  type: 'AnimationTransitionCondition';
+  parameter: string;
+  operator: '==' | '!=' | '>' | '<' | '>=' | '<=';
+  value: number | boolean | string;
+  chain?: 'and' | 'or';
 }
 
 // =============================================================================

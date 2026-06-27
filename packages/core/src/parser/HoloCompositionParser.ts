@@ -82,6 +82,9 @@ import type {
   HoloAbilityProjectile,
   HoloDialogue,
   HoloDialogueOption,
+  HoloAnimationInput,
+  HoloAnimationInputType,
+  HoloAnimationTransitionCondition,
   HoloStateMachine,
   HoloState_Machine,
   HoloStateTransition,
@@ -352,11 +355,12 @@ export class HoloCompositionParser {
             } else if (decoratorName === 'state') {
               composition.state = this.parseStateBody();
             } else if (decoratorName === 'state_machine') {
-              // @state_machine { initial: "..." state "name" { ... } ... }
+              // @state_machine [Name] { initial: "..." state "name" { ... } ... }
               // Route through the real SM body parser so it lands in composition.stateMachines,
               // not as an opaque trait blob that compilers can't read.
+              const name = this.parseOptionalStateMachineName('implicit');
               if (this.check('LBRACE')) {
-                composition.stateMachines.push(this.parseStateMachineFromDecorator());
+                composition.stateMachines.push(this.parseStateMachineFromDecorator(name));
               }
             } else {
               // Capture unknown root-level traits (e.g., @page, @metadata)
@@ -913,10 +917,11 @@ export class HoloCompositionParser {
             } else if (decoratorName === 'world' || decoratorName === 'environment') {
               composition.environment = this.parseEnvironmentBody();
             } else if (decoratorName === 'state_machine') {
-              // @state_machine { initial: "..." state "name" { ... } ... }
+              // @state_machine [Name] { initial: "..." state "name" { ... } ... }
               // Route through the real SM body parser so it lands in composition.stateMachines.
+              const name = this.parseOptionalStateMachineName('implicit');
               if (this.check('LBRACE')) {
-                composition.stateMachines.push(this.parseStateMachineFromDecorator());
+                composition.stateMachines.push(this.parseStateMachineFromDecorator(name));
               }
             } else {
               // Capture unknown decorator arguments (e.g. @page, @metadata)
@@ -4642,7 +4647,10 @@ export class HoloCompositionParser {
   private parseStateMachine(): HoloStateMachine {
     const startLoc = this.currentLocation();
     this.expect('STATE_MACHINE');
-    const name = this.expectString();
+    const name = this.parseOptionalStateMachineName('');
+    if (!name) {
+      this.error('Expected state_machine name');
+    }
 
     this.pushContext(`StateMachine "${name}"`);
     this.expect('LBRACE');
@@ -4652,12 +4660,20 @@ export class HoloCompositionParser {
       type: 'StateMachine',
       name,
       initialState: '',
+      inputs: [],
       states: {},
+      transitions: [],
     };
 
     while (!this.check('RBRACE') && !this.isAtEnd()) {
       this.skipNewlines();
       if (this.check('RBRACE')) break;
+
+      if (this.isAnimationTransitionShorthandStart()) {
+        sm.transitions!.push(this.parseAnimationTransitionShorthand());
+        this.skipNewlines();
+        continue;
+      }
 
       // Handle inline `state "name" { }` blocks (alternative state_machine syntax)
       if (this.check('STATE')) {
@@ -4772,9 +4788,14 @@ export class HoloCompositionParser {
       if (key === 'initial' || key === 'initialState') {
         this.expect('COLON');
         sm.initialState = this.parseValue() as string;
+      } else if (key === 'input') {
+        sm.inputs!.push(this.parseAnimationInputDeclaration(startLoc));
       } else if (key === 'states' && this.check('COLON')) {
         this.advance(); // consume ':'
         sm.states = this.parseStateMachineStates();
+      } else if (key === 'transitions' && this.check('COLON')) {
+        this.advance(); // consume ':'
+        sm.transitions = this.parseStateTransitions();
       } else if (this.check('COLON')) {
         // Unknown key:value — skip value
         this.advance(); // consume ':'
@@ -4810,21 +4831,29 @@ export class HoloCompositionParser {
    * Without this, @state_machine blocks were stored as opaque traits and
    * invisible to compile_to_a2a_agent_card and other compilers.
    */
-  private parseStateMachineFromDecorator(): HoloStateMachine {
+  private parseStateMachineFromDecorator(name = 'implicit'): HoloStateMachine {
     const startLoc = this.currentLocation();
     this.expect('LBRACE');
     this.skipNewlines();
 
     const sm: HoloStateMachine = {
       type: 'StateMachine',
-      name: 'implicit',
+      name,
       initialState: '',
+      inputs: [],
       states: {},
+      transitions: [],
     };
 
     while (!this.check('RBRACE') && !this.isAtEnd()) {
       this.skipNewlines();
       if (this.check('RBRACE')) break;
+
+      if (this.isAnimationTransitionShorthandStart()) {
+        sm.transitions!.push(this.parseAnimationTransitionShorthand());
+        this.skipNewlines();
+        continue;
+      }
 
       if (this.check('STATE')) {
         this.advance(); // consume 'state'
@@ -4924,12 +4953,17 @@ export class HoloCompositionParser {
       if (key === 'initial' || key === 'initialState') {
         this.expect('COLON');
         sm.initialState = this.parseValue() as string;
+      } else if (key === 'input') {
+        sm.inputs!.push(this.parseAnimationInputDeclaration(startLoc));
       } else if (key === 'name') {
         this.expect('COLON');
         sm.name = this.parseValue() as string;
       } else if (key === 'states' && this.check('COLON')) {
         this.advance();
         sm.states = this.parseStateMachineStates();
+      } else if (key === 'transitions' && this.check('COLON')) {
+        this.advance();
+        sm.transitions = this.parseStateTransitions();
       } else if (this.check('COLON')) {
         this.advance();
         this.parseValue();
@@ -4998,7 +5032,293 @@ export class HoloCompositionParser {
     return states;
   }
 
+  private parseOptionalStateMachineName(defaultName: string): string {
+    if (this.check('STRING') || this.check('IDENTIFIER') || this.isKeywordAsIdentifier()) {
+      return this.advance().value;
+    }
+    return defaultName;
+  }
+
+  private isStateNameToken(offset = 0): boolean {
+    const token = this.peek(offset);
+    return token.type === 'STRING' || token.type === 'IDENTIFIER' || this.isKeywordAsIdentifierType(token.type);
+  }
+
+  private isAnimationTransitionShorthandStart(): boolean {
+    if (!this.isStateNameToken()) return false;
+    return (
+      this.peek(1).type === 'ARROW' ||
+      (this.peek(1).type === 'MINUS' && this.peek(2).type === 'GREATER')
+    );
+  }
+
+  private consumeStateTransitionArrow(): boolean {
+    if (this.match('ARROW')) return true;
+    if (this.check('MINUS') && this.peek(1).type === 'GREATER') {
+      this.advance();
+      this.advance();
+      return true;
+    }
+    return false;
+  }
+
+  private parseAnimationInputDeclaration(startLoc: SourceLocation): HoloAnimationInput {
+    const name = this.expectIdentifier();
+    this.expect('COLON');
+    const rawType = this.parseIdentifierOrStringValue();
+    const inputType = this.normalizeAnimationInputType(rawType);
+    let defaultValue: number | boolean | undefined;
+
+    if (this.match('EQUALS')) {
+      defaultValue = this.coerceAnimationInputDefault(inputType, this.parseValue());
+    }
+
+    return {
+      type: 'AnimationInput',
+      name,
+      inputType,
+      rawType,
+      default: defaultValue,
+      loc: { start: startLoc, end: this.currentLocation() },
+    };
+  }
+
+  private normalizeAnimationInputType(rawType: string): HoloAnimationInputType {
+    const normalized = rawType.toLowerCase();
+    if (normalized === 'number') return 'float';
+    if (normalized === 'boolean') return 'bool';
+    if (normalized === 'bool' || normalized === 'float' || normalized === 'int' || normalized === 'trigger') {
+      return normalized;
+    }
+    this.error(`Unknown animation input type "${rawType}", defaulting to float`);
+    return 'float';
+  }
+
+  private coerceAnimationInputDefault(
+    inputType: HoloAnimationInputType,
+    value: HoloValue
+  ): number | boolean | undefined {
+    if (inputType === 'bool' || inputType === 'trigger') return Boolean(value);
+    if (typeof value === 'number') return value;
+    if (typeof value === 'boolean') return value ? 1 : 0;
+    return undefined;
+  }
+
+  private parseAnimationTransitionShorthand(): HoloStateTransition {
+    const startLoc = this.currentLocation();
+    const rawFrom = this.parseStateNameValue();
+    const from = rawFrom.toLowerCase() === 'any' ? 'any' : rawFrom;
+
+    if (!this.consumeStateTransitionArrow()) {
+      this.error('Expected -> in animation transition');
+    }
+
+    const target = this.parseStateNameValue();
+    const transition: HoloStateTransition = {
+      type: 'StateTransition',
+      from,
+      target,
+      conditions: [],
+      loc: { start: startLoc, end: this.currentLocation() },
+    };
+
+    while (
+      !this.check('NEWLINE') &&
+      !this.check('SEMICOLON') &&
+      !this.check('COMMA') &&
+      !this.check('RBRACE') &&
+      !this.isAtEnd()
+    ) {
+      if (!this.isStateNameToken()) break;
+      const clause = this.current().value.toLowerCase();
+      this.advance();
+
+      if (clause === 'when') {
+        transition.condition = this.parseExpression();
+        transition.conditions = this.expressionToAnimationConditions(transition.condition);
+      } else if (clause === 'on') {
+        const event = this.parseIdentifierOrStringValue();
+        transition.event = event;
+        transition.conditions = [
+          {
+            type: 'AnimationTransitionCondition',
+            parameter: event,
+            operator: '==',
+            value: true,
+            loc: { start: startLoc, end: this.currentLocation() },
+          },
+        ];
+      } else if (clause === 'over' || clause === 'duration') {
+        transition.duration = this.parseNumberClauseValue();
+      } else if (clause === 'easing') {
+        transition.easing = this.parseIdentifierOrStringValue();
+      } else if (clause === 'exittime' || clause === 'exit_time') {
+        transition.exitTime = this.parseNumberClauseValue();
+        transition.hasExitTime = true;
+      } else if (clause === 'pausewhenexiting' || clause === 'pause_when_exiting') {
+        transition.pauseWhenExiting = this.parseOptionalBooleanFlag();
+      } else if (clause === 'priority') {
+        transition.priority = this.parseNumberClauseValue();
+      } else if (clause === 'cantransitiontoself' || clause === 'can_transition_to_self') {
+        transition.canTransitionToSelf = this.parseOptionalBooleanFlag();
+      } else {
+        this.error(`Unknown animation transition clause "${clause}"`);
+        break;
+      }
+    }
+
+    transition.loc = { start: startLoc, end: this.currentLocation() };
+    if (this.check('COMMA') || this.check('SEMICOLON')) this.advance();
+    return transition;
+  }
+
+  private parseStateNameValue(): string {
+    if (this.check('STRING') || this.check('IDENTIFIER') || this.isKeywordAsIdentifier()) {
+      return this.advance().value;
+    }
+    this.error(`Expected state name, got ${this.current().type}`);
+    return this.isAtEnd() ? '' : this.advance().value;
+  }
+
+  private parseNumberClauseValue(): number {
+    if (this.check('COLON')) this.advance();
+    const value = this.parseValue();
+    return typeof value === 'number' ? value : Number(value) || 0;
+  }
+
+  private parseIdentifierOrStringValue(): string {
+    if (this.check('COLON')) this.advance();
+    if (this.check('STRING') || this.check('IDENTIFIER') || this.isKeywordAsIdentifier()) {
+      return this.advance().value;
+    }
+    const value = this.parseValue();
+    return value == null ? '' : String(value);
+  }
+
+  private parseOptionalBooleanFlag(): boolean {
+    if (this.check('COLON')) this.advance();
+    if (this.check('BOOLEAN')) return this.advance().value === 'true';
+    if (this.check('IDENTIFIER')) {
+      const value = this.current().value.toLowerCase();
+      if (value === 'true' || value === 'false') {
+        this.advance();
+        return value === 'true';
+      }
+    }
+    return true;
+  }
+
+  private expressionToAnimationConditions(
+    expression: HoloExpression
+  ): HoloAnimationTransitionCondition[] {
+    if (expression.type === 'BinaryExpression' && (expression.operator === '&&' || expression.operator === '||')) {
+      const left = this.expressionToAnimationConditions(expression.left);
+      const right = this.expressionToAnimationConditions(expression.right);
+      if (left.length > 0 && right.length > 0) {
+        left[left.length - 1].chain = expression.operator === '||' ? 'or' : 'and';
+      }
+      return [...left, ...right];
+    }
+
+    const comparison = this.expressionToAnimationCondition(expression);
+    return comparison ? [comparison] : [];
+  }
+
+  private expressionToAnimationCondition(
+    expression: HoloExpression
+  ): HoloAnimationTransitionCondition | null {
+    const startLoc = expression.loc?.start ?? this.currentLocation();
+    const endLoc = expression.loc?.end ?? this.currentLocation();
+
+    if (expression.type === 'BinaryExpression') {
+      const normalizedOperator = this.normalizeAnimationConditionOperator(expression.operator);
+      if (normalizedOperator) {
+        const parameter = this.expressionToString(expression.left);
+        if (parameter) {
+          return {
+            type: 'AnimationTransitionCondition',
+            parameter,
+            operator: normalizedOperator,
+            value: this.expressionLiteralValue(expression.right),
+            loc: { start: startLoc, end: endLoc },
+          };
+        }
+      }
+    }
+
+    if (expression.type === 'Identifier' || expression.type === 'MemberExpression') {
+      return {
+        type: 'AnimationTransitionCondition',
+        parameter: this.expressionToString(expression),
+        operator: '==',
+        value: true,
+        loc: { start: startLoc, end: endLoc },
+      };
+    }
+
+    if (expression.type === 'UnaryExpression' && expression.operator === '!') {
+      const parameter = this.expressionToString(expression.argument);
+      if (parameter) {
+        return {
+          type: 'AnimationTransitionCondition',
+          parameter,
+          operator: '==',
+          value: false,
+          loc: { start: startLoc, end: endLoc },
+        };
+      }
+    }
+
+    return null;
+  }
+
+  private normalizeAnimationConditionOperator(
+    operator: string
+  ): HoloAnimationTransitionCondition['operator'] | null {
+    if (operator === '===') return '==';
+    if (operator === '!==') return '!=';
+    if (
+      operator === '==' ||
+      operator === '!=' ||
+      operator === '>' ||
+      operator === '<' ||
+      operator === '>=' ||
+      operator === '<='
+    ) {
+      return operator;
+    }
+    return null;
+  }
+
+  private expressionLiteralValue(expression: HoloExpression): number | boolean | string {
+    if (expression.type === 'Literal') {
+      if (expression.value === null) return 'null';
+      return expression.value;
+    }
+    const value = this.expressionToString(expression);
+    return value || '';
+  }
+
   private parseStateTransitions(): HoloStateTransition[] {
+    if (this.check('LBRACE')) {
+      this.expect('LBRACE');
+      this.skipNewlines();
+      const transitions: HoloStateTransition[] = [];
+      while (!this.check('RBRACE') && !this.isAtEnd()) {
+        this.skipNewlines();
+        if (this.check('RBRACE')) break;
+        if (this.isAnimationTransitionShorthandStart()) {
+          transitions.push(this.parseAnimationTransitionShorthand());
+        } else {
+          this.error(`Expected animation transition, got ${this.current().type}`);
+          this.advance();
+        }
+        this.skipNewlines();
+      }
+      this.expect('RBRACE');
+      return transitions;
+    }
+
     this.expect('LBRACKET');
     this.skipNewlines();
     const transitions: HoloStateTransition[] = [];
@@ -5006,6 +5326,12 @@ export class HoloCompositionParser {
     while (!this.check('RBRACKET') && !this.isAtEnd()) {
       this.skipNewlines();
       if (this.check('RBRACKET')) break;
+
+      if (this.isAnimationTransitionShorthandStart()) {
+        transitions.push(this.parseAnimationTransitionShorthand());
+        this.skipNewlines();
+        continue;
+      }
 
       this.expect('LBRACE');
       this.skipNewlines();
@@ -5022,9 +5348,46 @@ export class HoloCompositionParser {
         const key = this.expectIdentifier();
         this.expect('COLON');
 
-        if (key === 'target') transition.target = this.parseValue() as string;
-        else if (key === 'condition') transition.condition = this.parseExpression();
-        else if (key === 'event') transition.event = this.parseValue() as string;
+        if (key === 'from') {
+          const from = this.parseValue() as string;
+          transition.from = from.toLowerCase() === 'any' ? 'any' : from;
+        } else if (key === 'target' || key === 'to') {
+          transition.target = this.parseValue() as string;
+        } else if (key === 'condition' || key === 'when') {
+          transition.condition = this.parseExpression();
+          transition.conditions = this.expressionToAnimationConditions(transition.condition);
+        } else if (key === 'event' || key === 'on') {
+          transition.event = this.parseValue() as string;
+          transition.conditions = [
+            {
+              type: 'AnimationTransitionCondition',
+              parameter: transition.event,
+              operator: '==',
+              value: true,
+              loc: transition.loc,
+            },
+          ];
+        } else if (key === 'duration' || key === 'over') {
+          const duration = this.parseValue();
+          transition.duration = typeof duration === 'number' ? duration : Number(duration) || 0;
+        } else if (key === 'easing') {
+          transition.easing = this.parseValue() as string;
+        } else if (key === 'exitTime' || key === 'exit_time') {
+          const exitTime = this.parseValue();
+          transition.exitTime = typeof exitTime === 'number' ? exitTime : Number(exitTime) || 0;
+          transition.hasExitTime = true;
+        } else if (key === 'hasExitTime' || key === 'has_exit_time') {
+          transition.hasExitTime = Boolean(this.parseValue());
+        } else if (key === 'pauseWhenExiting' || key === 'pause_when_exiting') {
+          transition.pauseWhenExiting = Boolean(this.parseValue());
+        } else if (key === 'priority') {
+          const priority = this.parseValue();
+          transition.priority = typeof priority === 'number' ? priority : Number(priority) || 0;
+        } else if (key === 'canTransitionToSelf' || key === 'can_transition_to_self') {
+          transition.canTransitionToSelf = Boolean(this.parseValue());
+        } else {
+          this.parseValue();
+        }
 
         this.skipNewlines();
       }

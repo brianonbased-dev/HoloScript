@@ -1191,6 +1191,7 @@ export {
 // HoloScript+ Animation Trait (NEW - Phase 5: Animation)
 export {
   AnimationTrait,
+  animationConfigFromStateMachine,
   createAnimationTrait,
   type AnimationWrapMode,
   type AnimationBlendMode,

@@ -46,6 +46,7 @@ export type {
   AnimationConfig,
   AnimationEventCallback,
 } from './AnimationTypes';
+export { animationConfigFromStateMachine } from './AnimationStateMachineAuthoring';
 
 import type {
   ActiveAnimation,
@@ -89,7 +90,13 @@ export class AnimationTrait {
     };
 
     this.sm = new AnimationStateMachine();
-    this.sm.setCrossfadeCallback((state, dur, layer) => this.crossfade(state, dur, layer));
+    this.sm.setCrossfadeCallback((state, dur, layer, easing, pauseWhenExiting) =>
+      this.crossfade(state, dur, layer, easing, pauseWhenExiting)
+    );
+    this.sm.setLayerPhaseCallback(
+      (layer) => this.activeAnimations.get(layer)?.normalizedTime ?? 0
+    );
+    this.sm.setLayerTransitioningCallback((layer) => Boolean(this.crossfades.get(layer)));
 
     // Initialize clips
     if (config.clips) {
@@ -244,7 +251,8 @@ export class AnimationTrait {
     stateName: string,
     duration: number = 0.25,
     layer: number = 0,
-    easing?: string
+    easing?: string,
+    pauseWhenExiting?: boolean
   ): boolean {
     const resolved = this.sm.resolveClipForState(stateName, this.clips);
     if (!resolved) return false;
@@ -270,6 +278,7 @@ export class AnimationTrait {
       progress: 0,
       duration,
       easing,
+      pauseWhenExiting,
     });
 
     this.emit({
@@ -457,6 +466,7 @@ export class AnimationTrait {
       );
       layerIndex++;
     }
+    this.sm.checkTransitions();
   }
 
   private updateAnimation(anim: ActiveAnimation, deltaTime: number): void {

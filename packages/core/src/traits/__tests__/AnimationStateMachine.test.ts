@@ -214,13 +214,12 @@ describe('AnimationStateMachine – bool parameters', () => {
 // ---------------------------------------------------------------------------
 
 describe('AnimationStateMachine – trigger parameters', () => {
-  it('setTrigger fires and auto-resets', () => {
+  it('setTrigger latches until a transition consumes it', () => {
     const sm = makeSM();
     sm.addParameter({ name: 'jump', type: 'trigger', default: false });
-    // No layers → checkTransitions is a no-op
     sm.setTrigger('jump');
     const param = sm.parameters.get('jump');
-    expect(param?.value).toBe(false); // auto-reset after consume
+    expect(param?.value).toBe(true);
   });
 
   it('resetTrigger manually clears trigger', () => {
@@ -236,6 +235,24 @@ describe('AnimationStateMachine – trigger parameters', () => {
   it('setTrigger on missing param is safe', () => {
     const sm = makeSM();
     expect(() => sm.setTrigger('notExisting')).not.toThrow();
+  });
+
+  it('consumes trigger only after a transition starts', () => {
+    const sm = makeSM();
+    const cb = vi.fn(() => true);
+    sm.setCrossfadeCallback(cb);
+    addLayer(sm, 'base', 'idle');
+    sm.addParameter({ name: 'jump', type: 'trigger', default: false });
+    sm.addTransition(
+      makeTransition('idle', 'jump', {
+        conditions: [{ parameter: 'jump', operator: '==', value: true }],
+      })
+    );
+
+    sm.setTrigger('jump');
+
+    expect(cb).toHaveBeenCalled();
+    expect(sm.parameters.get('jump')?.value).toBe(false);
   });
 });
 
@@ -413,7 +430,7 @@ describe('AnimationStateMachine – checkTransitions', () => {
       })
     );
     sm.setFloat('speed', 1.0); // triggers checkTransitions
-    expect(cb).toHaveBeenCalledWith('run', 0.2, 0);
+    expect(cb).toHaveBeenCalledWith('run', 0.2, 0, undefined, undefined);
   });
 
   it('does NOT call crossfade when conditions not met', () => {
@@ -448,7 +465,7 @@ describe('AnimationStateMachine – checkTransitions', () => {
     addLayer(sm, 'base', 'run');
     sm.addTransition(makeTransition('any', 'idle')); // empty conditions → always true
     sm.checkTransitions();
-    expect(cb).toHaveBeenCalledWith('idle', expect.any(Number), 0);
+    expect(cb).toHaveBeenCalledWith('idle', expect.any(Number), 0, undefined, undefined);
   });
 
   it('skips layer with no currentState', () => {
@@ -458,6 +475,52 @@ describe('AnimationStateMachine – checkTransitions', () => {
     addLayer(sm, 'base', undefined); // no currentState
     sm.addTransition(makeTransition('any', 'idle'));
     sm.checkTransitions();
+    expect(cb).not.toHaveBeenCalled();
+  });
+
+  it('passes easing and pauseWhenExiting metadata to crossfade callback', () => {
+    const sm = makeSM();
+    const cb = vi.fn(() => true);
+    sm.setCrossfadeCallback(cb);
+    addLayer(sm, 'base', 'idle');
+    sm.addTransition(
+      makeTransition('idle', 'walk', {
+        easing: 'spring',
+        pauseWhenExiting: true,
+      })
+    );
+
+    sm.checkTransitions();
+
+    expect(cb).toHaveBeenCalledWith('walk', expect.any(Number), 0, 'spring', true);
+  });
+
+  it('gates transitions until exitTime is reached', () => {
+    const sm = makeSM();
+    const cb = vi.fn(() => true);
+    sm.setCrossfadeCallback(cb);
+    addLayer(sm, 'base', 'idle');
+    sm.addTransition(makeTransition('idle', 'walk', { exitTime: 0.5, hasExitTime: true }));
+    sm.setLayerPhaseCallback(() => 0.4);
+
+    sm.checkTransitions();
+    expect(cb).not.toHaveBeenCalled();
+
+    sm.setLayerPhaseCallback(() => 0.6);
+    sm.checkTransitions();
+    expect(cb).toHaveBeenCalledWith('walk', expect.any(Number), 0, undefined, undefined);
+  });
+
+  it('skips transition checks while the layer is already crossfading', () => {
+    const sm = makeSM();
+    const cb = vi.fn(() => true);
+    sm.setCrossfadeCallback(cb);
+    sm.setLayerTransitioningCallback(() => true);
+    addLayer(sm, 'base', 'idle');
+    sm.addTransition(makeTransition('idle', 'walk'));
+
+    sm.checkTransitions();
+
     expect(cb).not.toHaveBeenCalled();
   });
 });
@@ -555,6 +618,29 @@ describe('AnimationStateMachine – updateLayer crossfade', () => {
     sm.updateLayer(0, 0.25, activeAnimations, crossfades, updateAnimation, emit);
     expect(crossfade.progress).toBeCloseTo(0.25);
     expect(updateAnimation).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not advance source animation when pauseWhenExiting is true', () => {
+    const sm = makeSM();
+    addLayer(sm, 'base', 'idle');
+    const fromAnim = { state: 'idle', weight: 1 } as unknown as ActiveAnimation;
+    const toAnim = { state: 'run', weight: 0 } as unknown as ActiveAnimation;
+    const crossfade: CrossfadeState = {
+      from: fromAnim,
+      to: toAnim,
+      duration: 1,
+      progress: 0,
+      pauseWhenExiting: true,
+    } as CrossfadeState;
+    const activeAnimations = new Map<number, ActiveAnimation | null>([[0, fromAnim]]);
+    const crossfades = new Map<number, CrossfadeState | null>([[0, crossfade]]);
+    const updateAnimation = vi.fn();
+    const emit = vi.fn();
+
+    sm.updateLayer(0, 0.25, activeAnimations, crossfades, updateAnimation, emit);
+
+    expect(updateAnimation).toHaveBeenCalledOnce();
+    expect(updateAnimation).toHaveBeenCalledWith(toAnim, 0.25);
   });
 
   it('completes crossfade when progress ≥ 1, emits transition-end and state-enter', () => {

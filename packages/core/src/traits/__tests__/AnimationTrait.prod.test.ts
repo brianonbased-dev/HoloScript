@@ -13,7 +13,7 @@
  * - setSpeed / getSpeed
  * - getNormalizedTime
  * - crossfade: emits transition-start, crossfade state created
- * - Parameters: addParameter, setFloat/getFloat, setInteger/getInteger, setBool/getBool, setTrigger auto-reset
+ * - Parameters: addParameter, setFloat/getFloat, setInteger/getInteger, setBool/getBool, setTrigger latch/consume
  * - Event system: on/off/emit
  * - Layers: default Base Layer exists, addLayer via config
  */
@@ -297,6 +297,19 @@ describe('AnimationTrait — crossfade', () => {
     t.crossfade('walk', 0.3);
     expect(events).toContain('idle->walk');
   });
+
+  it('crossfade stores easing and pauseWhenExiting metadata', () => {
+    const t = mkTrait({
+      clips: [clip('idle'), clip('walk')],
+      states: [state('idle', 'idle'), state('walk', 'walk')],
+    });
+    t.setState('idle');
+    t.crossfade('walk', 0.3, 0, 'spring', true);
+
+    const crossfade = t['crossfades'].get(0);
+    expect(crossfade?.easing).toBe('spring');
+    expect(crossfade?.pauseWhenExiting).toBe(true);
+  });
 });
 
 // ─── Parameters ───────────────────────────────────────────────────────────────────
@@ -326,12 +339,11 @@ describe('AnimationTrait — parameters', () => {
     expect(t.getBool('isGrounded')).toBe(true);
   });
 
-  it('setTrigger resets to false after being set', () => {
+  it('setTrigger latches when no transition consumes it', () => {
     const t = mkTrait({ parameters: [{ name: 'attack', type: 'trigger', value: false }] });
     t.setTrigger('attack');
-    // Trigger auto-resets: value should be false after checkTransitions
     const p = t['parameters'].get('attack');
-    expect(p?.value).toBe(false);
+    expect(p?.value).toBe(true);
   });
 
   it('getFloat returns 0 for unknown param', () => {
