@@ -88,6 +88,12 @@ function parseArgs(argv) {
     maxFiles: MAX_FILES,
     maxBytes: MAX_BYTES,
     changedFirst: true,
+    chunkDir: undefined,
+    chunkPrefix: 'local-codebase-sourcefiles',
+    maxChunks: 8,
+    postMcp: false,
+    mcpUrl: 'https://mcp.holoscript.net',
+    postLimit: undefined,
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -113,6 +119,18 @@ function parseArgs(argv) {
       args.changedFirst = true;
     } else if (arg === '--no-changed-first') {
       args.changedFirst = false;
+    } else if (arg === '--chunk-dir') {
+      args.chunkDir = argv[++i];
+    } else if (arg === '--chunk-prefix') {
+      args.chunkPrefix = argv[++i];
+    } else if (arg === '--max-chunks') {
+      args.maxChunks = parseInt(argv[++i], 10);
+    } else if (arg === '--post-mcp') {
+      args.postMcp = true;
+    } else if (arg === '--mcp-url') {
+      args.mcpUrl = argv[++i];
+    } else if (arg === '--post-limit') {
+      args.postLimit = parseInt(argv[++i], 10);
     } else if (arg === '--help' || arg === '-h') {
       printHelp();
       process.exit(0);
@@ -146,6 +164,12 @@ Options:
   --max-bytes N         Hard cap on total source bytes (default 5 MiB).
   --changed-first       Prioritize git-status changed files first (default).
   --no-changed-first    Disable git-status prioritization for active repos.
+  --chunk-dir DIR       Emit multiple MCP-safe chunk receipts plus manifest.
+  --chunk-prefix NAME   Prefix for chunk receipt filenames.
+  --max-chunks N        Max chunk receipts to emit (default 8).
+  --post-mcp            Post emitted receipt/chunks to hosted MCP.
+  --mcp-url URL         MCP server base URL (default https://mcp.holoscript.net).
+  --post-limit N        Max chunks to post when --post-mcp is used.
 `);
 }
 
@@ -263,7 +287,19 @@ function walkDir(dir, base, results, stats, maxFiles, maxBytes, seen) {
 
 function getGitChangedPaths(root) {
   try {
-    const out = execFileSync('git', ['-C', root, 'status', '--porcelain', '--untracked-files=all'], {
+    const repoRoot = execFileSync('git', ['-C', root, 'rev-parse', '--show-toplevel'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    })
+      .trim()
+      .replace(/\\/g, '/');
+    const prefix = execFileSync('git', ['-C', root, 'rev-parse', '--show-prefix'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    })
+      .trim()
+      .replace(/\\/g, '/');
+    const out = execFileSync('git', ['-C', repoRoot, 'status', '--porcelain', '--untracked-files=all'], {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],
     });
@@ -274,6 +310,9 @@ function getGitChangedPaths(root) {
         const rawPath = line.slice(3).trim();
         return rawPath.includes(' -> ') ? rawPath.split(' -> ').pop().trim() : rawPath;
       })
+      .map((p) => p.replace(/\\/g, '/'))
+      .filter((p) => !prefix || p === prefix.replace(/\/$/, '') || p.startsWith(prefix))
+      .map((p) => (prefix ? p.slice(prefix.length) : p))
       .filter(Boolean);
   } catch {
     return [];
@@ -333,7 +372,218 @@ function buildReceipt(roots, sourceFiles, stats, args) {
   };
 }
 
-function main() {
+function sourceFileBytes(file) {
+  return Buffer.byteLength(file.content, 'utf8');
+}
+
+function splitSourceFilesIntoChunks(sourceFiles, args) {
+  const chunks = [];
+  const oversized = [];
+  let current = [];
+  let currentBytes = 0;
+
+  for (const file of sourceFiles) {
+    const bytes = sourceFileBytes(file);
+    if (bytes > args.maxBytes) {
+      oversized.push({ path: file.path, bytes });
+      continue;
+    }
+
+    const wouldOverflow =
+      current.length >= args.maxFiles || (current.length > 0 && currentBytes + bytes > args.maxBytes);
+    if (wouldOverflow) {
+      chunks.push({ sourceFiles: current, bytes: currentBytes });
+      current = [];
+      currentBytes = 0;
+      if (chunks.length >= args.maxChunks) break;
+    }
+
+    current.push(file);
+    currentBytes += bytes;
+  }
+
+  if (current.length > 0 && chunks.length < args.maxChunks) {
+    chunks.push({ sourceFiles: current, bytes: currentBytes });
+  }
+
+  return { chunks, oversized };
+}
+
+function buildChunkReceipt(baseReceipt, chunk, index, total, args) {
+  return {
+    ...baseReceipt,
+    schema: 'LocalCodebaseSnapshotReceipt.v1',
+    sourceFiles: chunk.sourceFiles,
+    chunk: {
+      index,
+      total,
+      files: chunk.sourceFiles.length,
+      bytes: chunk.bytes,
+      maxFiles: args.maxFiles,
+      maxBytes: args.maxBytes,
+    },
+    stats: {
+      ...baseReceipt.stats,
+      totalFiles: chunk.sourceFiles.length,
+      totalBytes: chunk.bytes,
+      chunkIndex: index,
+      chunkTotal: total,
+    },
+  };
+}
+
+function writeChunkReceipts(baseReceipt, args) {
+  const chunkDir = resolve(args.chunkDir);
+  mkdirSync(chunkDir, { recursive: true });
+
+  const { chunks, oversized } = splitSourceFilesIntoChunks(baseReceipt.sourceFiles, args);
+  const chunkFiles = [];
+  const chunkReceipts = [];
+
+  chunks.forEach((chunk, i) => {
+    const index = i + 1;
+    const name = `${args.chunkPrefix}-${String(index).padStart(3, '0')}.json`;
+    const out = join(chunkDir, name);
+    const receipt = buildChunkReceipt(baseReceipt, chunk, index, chunks.length, args);
+    writeFileSync(out, JSON.stringify(receipt, null, 2), 'utf8');
+    chunkFiles.push({
+      index,
+      path: out,
+      files: chunk.sourceFiles.length,
+      bytes: chunk.bytes,
+    });
+    chunkReceipts.push({ path: out, receipt });
+  });
+
+  const manifest = {
+    ...baseReceipt,
+    schema: 'LocalCodebaseSnapshotManifest.v1',
+    sourceFiles: [],
+    chunks: chunkFiles,
+    oversized,
+    stats: {
+      ...baseReceipt.stats,
+      emittedChunks: chunks.length,
+      emittedChunkFiles: chunks.reduce((sum, c) => sum + c.sourceFiles.length, 0),
+      emittedChunkBytes: chunks.reduce((sum, c) => sum + c.bytes, 0),
+      oversizedCount: oversized.length,
+    },
+  };
+
+  const manifestPath = join(chunkDir, `${args.chunkPrefix}-manifest.json`);
+  writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf8');
+
+  return { manifestPath, manifest, chunkReceipts };
+}
+
+async function postJson(baseUrl, path, body, headers = {}) {
+  const response = await fetch(`${baseUrl}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...headers },
+    body: JSON.stringify(body),
+  });
+  const text = await response.text();
+  let json = null;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    // Keep text snippet for diagnostics.
+  }
+  return { response, json, text };
+}
+
+async function getMcpAccessToken(args) {
+  const baseUrl = args.mcpUrl.replace(/\/+$/, '');
+  const registration = await postJson(baseUrl, '/oauth/register', {
+    client_name: `holoshell-local-absorb-${Date.now()}`,
+    redirect_uris: [],
+    scope: 'tools:codebase',
+    token_endpoint_auth_method: 'client_secret_post',
+  });
+  if (!registration.response.ok || !registration.json?.client_id) {
+    throw new Error(
+      `OAuth registration failed (${registration.response.status}): ${registration.text.slice(0, 300)}`
+    );
+  }
+
+  const token = await postJson(baseUrl, '/oauth/token', {
+    grant_type: 'client_credentials',
+    client_id: registration.json.client_id,
+    client_secret: registration.json.client_secret,
+    scope: 'tools:codebase',
+  });
+  if (!token.response.ok || !token.json?.access_token) {
+    throw new Error(`OAuth token failed (${token.response.status}): ${token.text.slice(0, 300)}`);
+  }
+
+  return { baseUrl, accessToken: token.json.access_token };
+}
+
+async function postReceiptToMcp(receipt, args, auth) {
+  const started = Date.now();
+  const response = await postJson(
+    auth.baseUrl,
+    '/mcp',
+    {
+      jsonrpc: '2.0',
+      id: Date.now(),
+      method: 'tools/call',
+      params: {
+        name: 'holo_absorb_repo',
+        arguments: {
+          sourceFiles: receipt.sourceFiles,
+          force: false,
+          outputFormat: 'stats',
+          embeddingProvider: 'holoembed',
+          maxFiles: 10000,
+        },
+      },
+    },
+    { Authorization: `Bearer ${auth.accessToken}` }
+  );
+
+  const content = response.json?.result?.content?.[0]?.text;
+  let parsed = null;
+  try {
+    parsed = content ? JSON.parse(content) : null;
+  } catch {
+    // Preserve null; JSON-RPC response is still recorded below.
+  }
+
+  return {
+    ok: response.response.ok && !response.json?.error,
+    httpStatus: response.response.status,
+    durationMs: Date.now() - started,
+    jsonrpcError: response.json?.error ?? null,
+    result: parsed,
+    textSnippet: parsed ? undefined : response.text.slice(0, 500),
+  };
+}
+
+async function postReceiptsToMcp(receipts, args, resultsPath) {
+  const auth = await getMcpAccessToken(args);
+  const limit = Number.isFinite(args.postLimit) ? Math.min(args.postLimit, receipts.length) : receipts.length;
+  const results = [];
+
+  for (let i = 0; i < limit; i += 1) {
+    const item = receipts[i];
+    console.log(
+      `Posting MCP chunk ${i + 1}/${limit}: ${item.receipt.sourceFiles.length} files, ${item.receipt.stats.totalBytes} bytes`
+    );
+    const result = await postReceiptToMcp(item.receipt, args, auth);
+    results.push({
+      path: item.path,
+      chunk: item.receipt.chunk ?? null,
+      ...result,
+    });
+    if (!result.ok) break;
+  }
+
+  writeFileSync(resultsPath, JSON.stringify({ emittedAt: new Date().toISOString(), results }, null, 2), 'utf8');
+  return results;
+}
+
+async function main() {
   const args = parseArgs(process.argv.slice(2));
 
   if (args.selfTest) {
@@ -376,6 +626,8 @@ function main() {
     changedIncluded: 0,
   };
   const seen = new Set();
+  const collectionMaxFiles = args.chunkDir ? args.maxFiles * args.maxChunks : args.maxFiles;
+  const collectionMaxBytes = args.chunkDir ? args.maxBytes * args.maxChunks : args.maxBytes;
 
   for (const root of args.roots) {
     if (!existsSync(root)) {
@@ -384,12 +636,41 @@ function main() {
     }
     const resolvedRoot = resolve(root);
     if (args.changedFirst) {
-      addGitChangedFiles(resolvedRoot, sourceFiles, stats, args.maxFiles, args.maxBytes, seen);
+      addGitChangedFiles(resolvedRoot, sourceFiles, stats, collectionMaxFiles, collectionMaxBytes, seen);
     }
-    walkDir(resolvedRoot, resolvedRoot, sourceFiles, stats, args.maxFiles, args.maxBytes, seen);
+    walkDir(resolvedRoot, resolvedRoot, sourceFiles, stats, collectionMaxFiles, collectionMaxBytes, seen);
   }
 
   const receipt = buildReceipt(args.roots, sourceFiles, stats, args);
+
+  if (args.chunkDir) {
+    const { manifestPath, manifest, chunkReceipts } = writeChunkReceipts(receipt, args);
+    console.log('Local codebase absorb chunks written:');
+    console.log('  manifest:', manifestPath);
+    console.log('  chunks:', manifest.stats.emittedChunks);
+    console.log('  files:', manifest.stats.emittedChunkFiles);
+    console.log('  bytes:', manifest.stats.emittedChunkBytes);
+    console.log('  skipped:', manifest.stats.skippedCount);
+    console.log(
+      '  changed:',
+      `${manifest.stats.changedIncluded}/${manifest.stats.changedCandidates}`,
+      manifest.stats.changedFirst ? '(changed-first)' : '(walk-order)'
+    );
+    if (manifest.stats.oversizedCount > 0) {
+      console.log('  oversized:', manifest.stats.oversizedCount);
+    }
+
+    if (args.postMcp) {
+      const postResultsPath = join(resolve(args.chunkDir), `${args.chunkPrefix}-post-results.json`);
+      const results = await postReceiptsToMcp(chunkReceipts, args, postResultsPath);
+      const okCount = results.filter((r) => r.ok).length;
+      console.log('  posted:', `${okCount}/${results.length}`);
+      console.log('  post-results:', postResultsPath);
+      if (okCount !== results.length) process.exit(1);
+    }
+
+    process.exit(0);
+  }
 
   let outPath = args.out;
   if (!outPath) {
@@ -413,6 +694,18 @@ function main() {
   );
   console.log('  replay:', receipt.replayCommand);
   console.log('\nFeed this receipt + sourceFiles into holo_absorb_repo from HoloShell context.');
+
+  if (args.postMcp) {
+    const postResultsPath = `${outPath}.post-results.json`;
+    const results = await postReceiptsToMcp([{ path: outPath, receipt }], args, postResultsPath);
+    const okCount = results.filter((r) => r.ok).length;
+    console.log('  posted:', `${okCount}/${results.length}`);
+    console.log('  post-results:', postResultsPath);
+    if (okCount !== results.length) process.exit(1);
+  }
 }
 
-main();
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
