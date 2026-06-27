@@ -314,6 +314,98 @@ describe('AnimationTrait — crossfade', () => {
 
 // ─── Parameters ───────────────────────────────────────────────────────────────────
 
+describe('AnimationTrait - blend states and inspection', () => {
+  it('computes 1D blend weights from a numeric parameter', () => {
+    const t = mkTrait({
+      clips: [clip('idle'), clip('walk'), clip('run')],
+      parameters: [{ name: 'speed', type: 'float', value: 0 }],
+      states: [
+        {
+          name: 'locomotion',
+          clips: ['idle', 'walk', 'run'],
+          parameter: 'speed',
+          thresholds: [0, 1, 3],
+        },
+      ],
+      defaultState: 'locomotion',
+    });
+
+    t.setFloat('speed', 2);
+
+    expect(t.getBlendWeights()).toEqual([
+      expect.objectContaining({ clip: 'idle', weight: 0, threshold: 0 }),
+      expect.objectContaining({ clip: 'walk', weight: 0.5, threshold: 1 }),
+      expect.objectContaining({ clip: 'run', weight: 0.5, threshold: 3 }),
+    ]);
+  });
+
+  it('computes direct blend weights from per-clip parameters', () => {
+    const t = mkTrait({
+      clips: [clip('idle'), clip('wave')],
+      parameters: [
+        { name: 'idleWeight', type: 'float', value: 1 },
+        { name: 'waveWeight', type: 'float', value: 3 },
+      ],
+      states: [
+        {
+          name: 'gesture',
+          clips: ['idle', 'wave'],
+          blendType: 'direct',
+          parameters: ['idleWeight', 'waveWeight'],
+        },
+      ],
+      defaultState: 'gesture',
+    });
+
+    expect(t.getBlendWeights()).toEqual([
+      expect.objectContaining({ clip: 'idle', weight: 0.25, parameter: 'idleWeight' }),
+      expect.objectContaining({ clip: 'wave', weight: 0.75, parameter: 'waveWeight' }),
+    ]);
+    expect(t.getCurrentClip()).toBe('wave');
+  });
+
+  it('inspect reports parameters, blend weights, and eased transition progress', () => {
+    const t = mkTrait({
+      clips: [clip('idle'), clip('walk')],
+      parameters: [{ name: 'speed', type: 'float', value: 0.5 }],
+      states: [
+        { name: 'idle', clip: 'idle' },
+        {
+          name: 'walk',
+          clips: ['idle', 'walk'],
+          parameter: 'speed',
+          thresholds: [0, 1],
+        },
+      ],
+      defaultState: 'idle',
+    });
+
+    t.crossfade('walk', 1, 0, 'easeIn', true);
+    t.update(0.5);
+
+    const snapshot = t.inspect();
+    expect(snapshot.parameters.speed).toBe(0.5);
+    expect(snapshot.layers[0]).toEqual(
+      expect.objectContaining({
+        currentState: 'idle',
+        transition: expect.objectContaining({
+          fromState: 'idle',
+          toState: 'walk',
+          progress: 0.5,
+          easedProgress: 0.25,
+          easing: 'easeIn',
+          pauseWhenExiting: true,
+        }),
+      })
+    );
+    expect(snapshot.layers[0].clipWeights).toEqual([
+      expect.objectContaining({ clip: 'idle', weight: 0.75 }),
+      expect.objectContaining({ clip: 'idle', weight: 0.125, threshold: 0 }),
+      expect.objectContaining({ clip: 'walk', weight: 0.125, threshold: 1 }),
+    ]);
+  });
+});
+
 describe('AnimationTrait — parameters', () => {
   it('setFloat / getFloat round-trip', () => {
     const t = mkTrait({ parameters: [{ name: 'speed', type: 'float', value: 0 }] });

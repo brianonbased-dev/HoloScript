@@ -5008,6 +5008,7 @@ export class HoloScriptPlusParser {
     const name = this.parseStateMachineIdentifier('Expected state name');
     let onEntry: string | undefined;
     let onExit: string | undefined;
+    const metadata: Record<string, unknown> = {};
 
     this.expect('LBRACE', 'Expected { after state name');
     this.skipNewlines();
@@ -5023,6 +5024,10 @@ export class HoloScriptPlusParser {
       } else if (current.type === 'ON_EXIT' || current.value === 'on_exit') {
         this.advance();
         onExit = this.parseCodeBlock();
+      } else if (this.isStateMachineStateMetadataKey(current.value) && this.peek(1).type === 'COLON') {
+        const key = this.advance().value;
+        this.expect('COLON', `Expected : after ${key}`);
+        metadata[key] = this.parseValue();
       } else {
         this.advance();
       }
@@ -5030,7 +5035,20 @@ export class HoloScriptPlusParser {
     }
 
     this.expect('RBRACE', 'Expected }');
-    return { name, onEntry, onExit };
+    return { name, onEntry, onExit, ...metadata };
+  }
+
+  private isStateMachineStateMetadataKey(key: string): boolean {
+    return (
+      key === 'clip' ||
+      key === 'clips' ||
+      key === 'parameter' ||
+      key === 'parameters' ||
+      key === 'thresholds' ||
+      key === 'blendType' ||
+      key === 'blend_type' ||
+      key === 'blend'
+    );
   }
 
   private parseOnErrorNode(): HSPlusNode {

@@ -1476,6 +1476,12 @@ export interface HoloStateMachine extends HoloNode {
 export interface HoloState_Machine extends HoloNode {
   type: 'State_Machine';
   name: string;
+  clip?: string;
+  clips?: string[];
+  parameter?: string;
+  parameters?: string[];
+  thresholds?: number[];
+  blendType?: '1d' | 'direct';
   entry?: HoloStatement[];
   exit?: HoloStatement[];
   actions: HoloBehaviorAction[];

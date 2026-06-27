@@ -83,8 +83,14 @@ export interface AnimationStateDef {
   /** Blend parameter name */
   parameter?: string;
 
+  /** Direct blend parameter names, one per clip */
+  parameters?: string[];
+
   /** Thresholds for 1D blend tree */
   thresholds?: number[];
+
+  /** Blend tree mode */
+  blendType?: '1d' | 'direct';
 
   /** Speed multiplier */
   speed?: number;
@@ -169,6 +175,30 @@ export interface ActiveAnimation {
   weight: number;
   speed: number;
   layer: number;
+  blendTree?: ActiveBlendTree;
+}
+
+/**
+ * Runtime child clip inside a blend tree.
+ */
+export interface ActiveBlendChild {
+  clip: AnimationClipDef;
+  weight: number;
+  time: number;
+  normalizedTime: number;
+  speed: number;
+  threshold?: number;
+  parameter?: string;
+}
+
+/**
+ * Runtime blend tree state.
+ */
+export interface ActiveBlendTree {
+  type: '1d' | 'direct';
+  parameter?: string;
+  parameters?: string[];
+  children: ActiveBlendChild[];
 }
 
 /**
@@ -183,6 +213,39 @@ export interface CrossfadeState {
   easing?: string;
   /** Freeze the source animation while blending to the destination. */
   pauseWhenExiting?: boolean;
+}
+
+export interface AnimationClipWeight {
+  clip: string;
+  weight: number;
+  threshold?: number;
+  parameter?: string;
+}
+
+export interface AnimationTransitionInspection {
+  fromState: string;
+  toState: string;
+  progress: number;
+  easedProgress: number;
+  duration: number;
+  easing?: string;
+  pauseWhenExiting?: boolean;
+}
+
+export interface AnimationLayerInspection {
+  layer: number;
+  layerName?: string;
+  currentState?: string;
+  currentClip?: string;
+  normalizedTime: number;
+  clipWeights: AnimationClipWeight[];
+  transition?: AnimationTransitionInspection;
+}
+
+export interface AnimationInspectionSnapshot {
+  time: number;
+  parameters: Record<string, number | boolean>;
+  layers: AnimationLayerInspection[];
 }
 
 /**

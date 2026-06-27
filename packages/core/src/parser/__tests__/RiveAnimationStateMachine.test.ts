@@ -16,6 +16,12 @@ describe('Rive animation state-machine authoring', () => {
           state "Idle" {}
           state "Walk" {}
           state "Jump" {}
+          state "LocomotionBlend" {
+            clips: ["idle", "walk", "run"]
+            parameter: speed
+            thresholds: [0, 1, 3]
+            blendType: "1d"
+          }
 
           Idle -> Walk when speed > 0.15 over 0.2 easing spring
           Walk -> Idle when speed <= 0.15 over 0.12 easing bounce
@@ -86,6 +92,15 @@ describe('Rive animation state-machine authoring', () => {
         priority: 10,
       })
     );
+    expect(config.states).toContainEqual(
+      expect.objectContaining({
+        name: 'LocomotionBlend',
+        clips: ['idle', 'walk', 'run'],
+        parameter: 'speed',
+        thresholds: [0, 1, 3],
+        blendType: '1d',
+      })
+    );
   });
 
   it('preserves .hsplus typed inputs and transition clauses on state-machine AST', () => {
@@ -100,6 +115,12 @@ describe('Rive animation state-machine authoring', () => {
         state Idle {}
         state Walk {}
         state Jump {}
+        state LocomotionBlend {
+          clips: ["idle", "walk", "run"]
+          parameter: speed
+          thresholds: [0, 1, 3]
+          blend: "1d"
+        }
 
         Idle -> Walk when speed > 0.15 over 0.2 easing spring
         Any -> Jump on jump exitTime 0.05 priority 10 pauseWhenExiting
@@ -113,6 +134,7 @@ describe('Rive animation state-machine authoring', () => {
       name: string;
       inputs: Array<Record<string, unknown>>;
       transitions: Array<Record<string, unknown>>;
+      states: Array<Record<string, unknown>>;
     };
     expect(stateMachine.type).toBe('state-machine');
     expect(stateMachine.name).toBe('Locomotion');
@@ -138,5 +160,14 @@ describe('Rive animation state-machine authoring', () => {
         pauseWhenExiting: true,
       }),
     ]);
+    expect(stateMachine.states).toContainEqual(
+      expect.objectContaining({
+        name: 'LocomotionBlend',
+        clips: ['idle', 'walk', 'run'],
+        parameter: expect.objectContaining({ __ref: 'speed' }),
+        thresholds: [0, 1, 3],
+        blend: '1d',
+      })
+    );
   });
 });

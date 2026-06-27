@@ -4722,6 +4722,8 @@ export class HoloCompositionParser {
                 this.expect('RBRACE');
               } else if (key === 'actions') {
                 state.actions = this.parseBehaviorActions();
+              } else if (this.parseAnimationStateMetadata(state, key)) {
+                // Metadata consumed by parseAnimationStateMetadata.
               } else if (key === 'transitions') {
                 state.transitions = this.parseStateTransitions();
               } else if (key === 'onDamage') {
@@ -4898,6 +4900,8 @@ export class HoloCompositionParser {
                 this.expect('RBRACE');
               } else if (key === 'actions') {
                 state.actions = this.parseBehaviorActions();
+              } else if (this.parseAnimationStateMetadata(state, key)) {
+                // Metadata consumed by parseAnimationStateMetadata.
               } else if (key === 'transitions') {
                 state.transitions = this.parseStateTransitions();
               } else if (key === 'timeout') {
@@ -5014,6 +5018,9 @@ export class HoloCompositionParser {
         if (key === 'entry') state.entry = this.parseStatementBlock();
         else if (key === 'exit') state.exit = this.parseStatementBlock();
         else if (key === 'actions') state.actions = this.parseBehaviorActions();
+        else if (this.parseAnimationStateMetadata(state, key)) {
+          // Metadata consumed by parseAnimationStateMetadata.
+        }
         else if (key === 'onDamage') state.onDamage = this.parseStatementBlock();
         else if (key === 'timeout') state.timeout = this.parseValue() as number;
         else if (key === 'onTimeout') state.onTimeout = this.parseStatementBlock();
@@ -5037,6 +5044,58 @@ export class HoloCompositionParser {
       return this.advance().value;
     }
     return defaultName;
+  }
+
+  private parseAnimationStateMetadata(state: HoloState_Machine, key: string): boolean {
+    if (key === 'clip') {
+      state.clip = String(this.parseValue() ?? '');
+      return true;
+    }
+
+    if (key === 'clips') {
+      state.clips = this.coerceStringArray(this.parseValue());
+      return true;
+    }
+
+    if (key === 'parameter') {
+      state.parameter = String(this.parseValue() ?? '');
+      return true;
+    }
+
+    if (key === 'parameters') {
+      state.parameters = this.coerceStringArray(this.parseValue());
+      return true;
+    }
+
+    if (key === 'thresholds') {
+      state.thresholds = this.coerceNumberArray(this.parseValue());
+      return true;
+    }
+
+    if (key === 'blendType' || key === 'blend_type' || key === 'blend') {
+      const blendType = String(this.parseValue() ?? '').toLowerCase();
+      if (blendType === '1d' || blendType === 'direct') {
+        state.blendType = blendType;
+      } else {
+        this.error(`Unknown animation blend type "${blendType}"`);
+      }
+      return true;
+    }
+
+    return false;
+  }
+
+  private coerceStringArray(value: HoloValue): string[] {
+    if (!Array.isArray(value)) return value == null ? [] : [String(value)];
+    return value.map((entry) => String(entry));
+  }
+
+  private coerceNumberArray(value: HoloValue): number[] {
+    if (!Array.isArray(value)) {
+      const single = Number(value);
+      return Number.isFinite(single) ? [single] : [];
+    }
+    return value.map((entry) => Number(entry)).filter((entry) => Number.isFinite(entry));
   }
 
   private isStateNameToken(offset = 0): boolean {

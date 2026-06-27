@@ -1205,6 +1205,12 @@ export {
   type AnimationEventType,
   type AnimationEvent as AnimationTraitEvent,
   type AnimationConfig,
+  type ActiveBlendChild,
+  type ActiveBlendTree,
+  type AnimationClipWeight,
+  type AnimationTransitionInspection,
+  type AnimationLayerInspection,
+  type AnimationInspectionSnapshot,
 } from './traits/AnimationTrait';
 
 // HoloScript+ Lip Sync Trait (NEW - AI Avatar Embodiment)

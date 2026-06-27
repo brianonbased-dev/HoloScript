@@ -45,11 +45,19 @@ export type {
   AnimationEvent,
   AnimationConfig,
   AnimationEventCallback,
+  ActiveBlendChild,
+  ActiveBlendTree,
+  AnimationClipWeight,
+  AnimationTransitionInspection,
+  AnimationLayerInspection,
+  AnimationInspectionSnapshot,
 } from './AnimationTypes';
 export { animationConfigFromStateMachine } from './AnimationStateMachineAuthoring';
 
 import type {
   ActiveAnimation,
+  ActiveBlendChild,
+  ActiveBlendTree,
   AnimationClipDef,
   AnimationConfig,
   AnimationEvent,
@@ -58,10 +66,13 @@ import type {
   AnimationParameter,
   AnimationStateDef,
   AnimationTransition,
+  AnimationClipWeight,
+  AnimationInspectionSnapshot,
   CrossfadeState,
 } from './AnimationTypes';
 
 import { AnimationStateMachine } from './AnimationStateMachine';
+import { applyEasing } from '../runtime/easing';
 
 /**
  * Animation Trait — clip playback coordinator with state machine delegate
@@ -226,15 +237,10 @@ export class AnimationTrait {
     }
 
     // Enter new state
-    this.activeAnimations.set(layer, {
-      clip: resolved.clip,
-      state: stateName,
-      time: 0,
-      normalizedTime: 0,
-      weight: 1,
-      speed: resolved.state.speed ?? resolved.clip.speed ?? 1,
+    this.activeAnimations.set(
       layer,
-    });
+      this.createActiveAnimation(stateName, resolved.state, resolved.clip, layer, 1)
+    );
 
     this.emit({ type: 'state-enter', state: stateName, timestamp: Date.now() });
     this.emit({
@@ -262,15 +268,7 @@ export class AnimationTrait {
       return this.setState(stateName, layer);
     }
 
-    const newAnim: ActiveAnimation = {
-      clip: resolved.clip,
-      state: stateName,
-      time: 0,
-      normalizedTime: 0,
-      weight: 0,
-      speed: resolved.state.speed ?? resolved.clip.speed ?? 1,
-      layer,
-    };
+    const newAnim = this.createActiveAnimation(stateName, resolved.state, resolved.clip, layer, 0);
 
     this.crossfades.set(layer, {
       from: currentAnim,
@@ -375,6 +373,57 @@ export class AnimationTrait {
     return this.activeAnimations.get(layer)?.normalizedTime ?? 0;
   }
 
+  public getParameterValues(): Record<string, number | boolean> {
+    return this.sm.exportParameters();
+  }
+
+  public getBlendWeights(layer: number = 0): AnimationClipWeight[] {
+    const crossfade = this.crossfades.get(layer);
+    if (crossfade) {
+      return [
+        ...this.collectClipWeights(crossfade.from, crossfade.from.weight),
+        ...this.collectClipWeights(crossfade.to, crossfade.to.weight),
+      ];
+    }
+
+    const anim = this.activeAnimations.get(layer);
+    return anim ? this.collectClipWeights(anim, anim.weight) : [];
+  }
+
+  public inspect(): AnimationInspectionSnapshot {
+    const layers = Array.from(this.sm.layers.entries()).map(([layerName, layer], index) => {
+      const anim = this.activeAnimations.get(index);
+      const crossfade = this.crossfades.get(index);
+      const transition = crossfade
+        ? {
+            fromState: crossfade.from.state,
+            toState: crossfade.to.state,
+            progress: crossfade.progress,
+            easedProgress: applyEasing(crossfade.progress, crossfade.easing ?? 'linear'),
+            duration: crossfade.duration,
+            easing: crossfade.easing,
+            pauseWhenExiting: crossfade.pauseWhenExiting,
+          }
+        : undefined;
+
+      return {
+        layer: index,
+        layerName,
+        currentState: layer.currentState,
+        currentClip: anim?.clip.name,
+        normalizedTime: anim?.normalizedTime ?? 0,
+        clipWeights: this.getBlendWeights(index),
+        transition,
+      };
+    });
+
+    return {
+      time: this.currentTime,
+      parameters: this.getParameterValues(),
+      layers,
+    };
+  }
+
   // ============================================================================
   // Parameters (delegates to AnimationStateMachine)
   // ============================================================================
@@ -470,6 +519,212 @@ export class AnimationTrait {
   }
 
   private updateAnimation(anim: ActiveAnimation, deltaTime: number): void {
+    if (anim.blendTree) {
+      this.updateBlendTree(anim, deltaTime);
+      return;
+    }
+
+    this.advanceAnimationPlayback(anim, deltaTime);
+  }
+
+  private createActiveAnimation(
+    stateName: string,
+    state: AnimationStateDef,
+    fallbackClip: AnimationClipDef,
+    layer: number,
+    weight: number
+  ): ActiveAnimation {
+    const anim: ActiveAnimation = {
+      clip: fallbackClip,
+      state: stateName,
+      time: 0,
+      normalizedTime: 0,
+      weight,
+      speed: state.speed ?? fallbackClip.speed ?? 1,
+      layer,
+      blendTree: this.createBlendTree(state),
+    };
+    this.refreshBlendTreeWeights(anim);
+    this.syncAnimationToDominantBlendChild(anim);
+    return anim;
+  }
+
+  private createBlendTree(state: AnimationStateDef): ActiveBlendTree | undefined {
+    if (!state.clips || state.clips.length < 2) return undefined;
+
+    const clips = state.clips
+      .map((clipName) => this.clips.get(clipName))
+      .filter((clip): clip is AnimationClipDef => Boolean(clip));
+    if (clips.length < 2) return undefined;
+
+    const type =
+      state.blendType ?? (state.parameters && state.parameters.length > 0 ? 'direct' : '1d');
+    const thresholds =
+      state.thresholds && state.thresholds.length === clips.length
+        ? state.thresholds
+        : clips.map((_, index) => index);
+
+    return {
+      type,
+      parameter: state.parameter,
+      parameters: state.parameters,
+      children: clips.map((clip, index) => ({
+        clip,
+        weight: index === 0 ? 1 : 0,
+        time: 0,
+        normalizedTime: 0,
+        speed: state.speed ?? clip.speed ?? 1,
+        threshold: thresholds[index],
+        parameter: state.parameters?.[index],
+      })),
+    };
+  }
+
+  private updateBlendTree(anim: ActiveAnimation, deltaTime: number): void {
+    if (!anim.blendTree) return;
+
+    this.refreshBlendTreeWeights(anim);
+    for (const child of anim.blendTree.children) {
+      this.advanceBlendChildPlayback(anim.state, child, deltaTime);
+    }
+    this.syncAnimationToDominantBlendChild(anim);
+  }
+
+  private refreshBlendTreeWeights(anim: ActiveAnimation): void {
+    const blendTree = anim.blendTree;
+    if (!blendTree) return;
+
+    if (blendTree.type === 'direct') {
+      const rawWeights = blendTree.children.map((child) =>
+        Math.max(0, this.getNumericParameter(child.parameter ?? ''))
+      );
+      const sum = rawWeights.reduce((total, weight) => total + weight, 0);
+      blendTree.children.forEach((child, index) => {
+        child.weight = sum > 0 ? (rawWeights[index] ?? 0) / sum : index === 0 ? 1 : 0;
+      });
+      return;
+    }
+
+    const parameterValue = this.getNumericParameter(blendTree.parameter ?? '');
+    const children = blendTree.children;
+    children.forEach((child) => {
+      child.weight = 0;
+    });
+
+    const first = children[0];
+    if (!first) return;
+
+    if (parameterValue <= (first.threshold ?? 0)) {
+      first.weight = 1;
+      return;
+    }
+
+    const last = children[children.length - 1];
+    if (!last) return;
+    if (parameterValue >= (last.threshold ?? children.length - 1)) {
+      last.weight = 1;
+      return;
+    }
+
+    for (let index = 0; index < children.length - 1; index++) {
+      const current = children[index];
+      const next = children[index + 1];
+      if (!current || !next) continue;
+      const currentThreshold = current.threshold ?? index;
+      const nextThreshold = next.threshold ?? index + 1;
+      if (parameterValue >= currentThreshold && parameterValue <= nextThreshold) {
+        const span = nextThreshold - currentThreshold;
+        const alpha = span === 0 ? 0 : (parameterValue - currentThreshold) / span;
+        current.weight = 1 - alpha;
+        next.weight = alpha;
+        return;
+      }
+    }
+  }
+
+  private getNumericParameter(name: string): number {
+    const value = this.sm.parameters.get(name)?.value;
+    return typeof value === 'number' ? value : 0;
+  }
+
+  private collectClipWeights(anim: ActiveAnimation, parentWeight: number): AnimationClipWeight[] {
+    if (!anim.blendTree) {
+      return [{ clip: anim.clip.name, weight: parentWeight }];
+    }
+
+    this.refreshBlendTreeWeights(anim);
+    return anim.blendTree.children.map((child) => ({
+      clip: child.clip.name,
+      weight: child.weight * parentWeight,
+      threshold: child.threshold,
+      parameter: child.parameter,
+    }));
+  }
+
+  private syncAnimationToDominantBlendChild(anim: ActiveAnimation): void {
+    if (!anim.blendTree) return;
+    const dominant = anim.blendTree.children.reduce((best, child) =>
+      child.weight > best.weight ? child : best
+    );
+    anim.clip = dominant.clip;
+    anim.time = dominant.time;
+    anim.normalizedTime = dominant.normalizedTime;
+    anim.speed = dominant.speed;
+  }
+
+  private advanceBlendChildPlayback(
+    stateName: string,
+    child: ActiveBlendChild,
+    deltaTime: number
+  ): void {
+    const clip = child.clip;
+    const prevTime = child.time;
+
+    child.time += deltaTime * child.speed;
+    child.normalizedTime = child.time / clip.duration;
+
+    if (child.weight > 0) this.checkEvents(clip, prevTime, child.time);
+
+    if (child.time >= clip.duration) {
+      switch (clip.wrapMode) {
+        case 'loop':
+          child.time %= clip.duration;
+          child.normalizedTime = child.time / clip.duration;
+          if (child.weight > 0) {
+            this.emit({
+              type: 'clip-loop',
+              clip: clip.name,
+              state: stateName,
+              timestamp: Date.now(),
+            });
+          }
+          break;
+
+        case 'ping-pong':
+          child.speed *= -1;
+          child.time = clip.duration;
+          break;
+
+        case 'clamp':
+          child.time = clip.duration;
+          child.normalizedTime = 1;
+          break;
+
+        default:
+          if (child.weight > 0) {
+            this.emit({
+              type: 'clip-end',
+              clip: clip.name,
+              state: stateName,
+              timestamp: Date.now(),
+            });
+          }
+          break;
+      }
+    }
+  }
+
+  private advanceAnimationPlayback(anim: ActiveAnimation, deltaTime: number): void {
     const clip = anim.clip;
     const prevTime = anim.time;
 

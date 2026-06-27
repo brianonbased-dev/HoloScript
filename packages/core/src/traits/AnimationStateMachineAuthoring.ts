@@ -15,6 +15,12 @@ import type {
 export function animationConfigFromStateMachine(stateMachine: HoloStateMachine): AnimationConfig {
   const states = Object.values(stateMachine.states).map<AnimationStateDef>((state) => ({
     name: state.name,
+    clip: state.clip,
+    clips: state.clips,
+    parameter: state.parameter,
+    parameters: state.parameters,
+    thresholds: state.thresholds,
+    blendType: state.blendType,
   }));
 
   return {
