@@ -51,6 +51,7 @@ const SECRET_PATTERNS = [
 
 const MAX_FILES = 500;
 const MAX_BYTES = 5 * 1024 * 1024; // Matches holo_absorb_repo sourceFiles cap
+const MAX_FILE_BYTES = 512 * 1024; // Keep sourceFiles[*].content below hosted MCP arg-string gates.
 const TEXT_SOURCE_EXTENSIONS = new Set([
   '.cjs',
   '.css',
@@ -87,6 +88,7 @@ function parseArgs(argv) {
     privacyClass: 'local-private',
     maxFiles: MAX_FILES,
     maxBytes: MAX_BYTES,
+    maxFileBytes: MAX_FILE_BYTES,
     changedFirst: true,
     chunkDir: undefined,
     chunkPrefix: 'local-codebase-sourcefiles',
@@ -115,6 +117,8 @@ function parseArgs(argv) {
       args.maxFiles = parseInt(argv[++i], 10);
     } else if (arg === '--max-bytes') {
       args.maxBytes = parseInt(argv[++i], 10);
+    } else if (arg === '--max-file-bytes') {
+      args.maxFileBytes = parseInt(argv[++i], 10);
     } else if (arg === '--changed-first') {
       args.changedFirst = true;
     } else if (arg === '--no-changed-first') {
@@ -162,6 +166,7 @@ Options:
   --date <yyyy-mm-dd>   Bench date folder when --out omitted.
   --max-files N         Hard cap on number of files (default 500).
   --max-bytes N         Hard cap on total source bytes (default 5 MiB).
+  --max-file-bytes N    Hard cap per source file (default 512 KiB).
   --changed-first       Prioritize git-status changed files first (default).
   --no-changed-first    Disable git-status prioritization for active repos.
   --chunk-dir DIR       Emit multiple MCP-safe chunk receipts plus manifest.
@@ -192,7 +197,7 @@ function isTextSourcePath(relPath) {
   return dot >= 0 && TEXT_SOURCE_EXTENSIONS.has(lower.slice(dot));
 }
 
-function pushSourceFile(full, rel, results, stats, maxFiles, maxBytes, seen) {
+function pushSourceFile(full, rel, results, stats, maxFiles, maxBytes, maxFileBytes, seen) {
   if (results.length >= maxFiles) return false;
 
   const normalizedRel = rel.replace(/\\/g, '/');
@@ -217,6 +222,15 @@ function pushSourceFile(full, rel, results, stats, maxFiles, maxBytes, seen) {
   }
 
   if (!st.isFile()) return false;
+  if (st.size > maxFileBytes) {
+    stats.skipped.push({
+      path: normalizedRel,
+      reason: 'file-byte-cap-exceeded',
+      bytes: st.size,
+      maxFileBytes,
+    });
+    return false;
+  }
   if (stats.totalBytes + st.size > maxBytes) {
     stats.skipped.push({ path: normalizedRel, reason: 'byte-cap-exceeded' });
     return false;
@@ -247,7 +261,7 @@ function pushSourceFile(full, rel, results, stats, maxFiles, maxBytes, seen) {
   }
 }
 
-function walkDir(dir, base, results, stats, maxFiles, maxBytes, seen) {
+function walkDir(dir, base, results, stats, maxFiles, maxBytes, maxFileBytes, seen) {
   if (results.length >= maxFiles) return;
 
   let entries;
@@ -275,9 +289,9 @@ function walkDir(dir, base, results, stats, maxFiles, maxBytes, seen) {
           stats.skipped.push({ path: rel, reason: 'redacted-or-build-artifact' });
           continue;
         }
-        walkDir(full, base, results, stats, maxFiles, maxBytes, seen);
+        walkDir(full, base, results, stats, maxFiles, maxBytes, maxFileBytes, seen);
       } else if (st.isFile()) {
-        pushSourceFile(full, rel, results, stats, maxFiles, maxBytes, seen);
+        pushSourceFile(full, rel, results, stats, maxFiles, maxBytes, maxFileBytes, seen);
       }
     } catch (e) {
       stats.skipped.push({ path: rel, reason: `read-error: ${e.message}` });
@@ -319,7 +333,7 @@ function getGitChangedPaths(root) {
   }
 }
 
-function addGitChangedFiles(root, results, stats, maxFiles, maxBytes, seen) {
+function addGitChangedFiles(root, results, stats, maxFiles, maxBytes, maxFileBytes, seen) {
   const changedPaths = getGitChangedPaths(root);
   stats.changedCandidates += changedPaths.length;
 
@@ -331,7 +345,7 @@ function addGitChangedFiles(root, results, stats, maxFiles, maxBytes, seen) {
       stats.skipped.push({ path: rel, reason: 'changed-path-missing' });
       continue;
     }
-    if (pushSourceFile(full, rel, results, stats, maxFiles, maxBytes, seen)) {
+    if (pushSourceFile(full, rel, results, stats, maxFiles, maxBytes, maxFileBytes, seen)) {
       stats.changedIncluded += 1;
     }
   }
@@ -360,6 +374,7 @@ function buildReceipt(roots, sourceFiles, stats, args) {
       changedFirst: args.changedFirst,
       changedCandidates: stats.changedCandidates,
       changedIncluded: stats.changedIncluded,
+      maxFileBytes: args.maxFileBytes,
     },
     skipped: stats.skipped.slice(0, 50), // cap noise
     redactionPolicy: 'SECRET_PATTERNS + build artifacts + size caps',
@@ -384,8 +399,12 @@ function splitSourceFilesIntoChunks(sourceFiles, args) {
 
   for (const file of sourceFiles) {
     const bytes = sourceFileBytes(file);
+    if (bytes > args.maxFileBytes) {
+      oversized.push({ path: file.path, bytes, maxFileBytes: args.maxFileBytes });
+      continue;
+    }
     if (bytes > args.maxBytes) {
-      oversized.push({ path: file.path, bytes });
+      oversized.push({ path: file.path, bytes, maxBytes: args.maxBytes });
       continue;
     }
 
@@ -421,6 +440,7 @@ function buildChunkReceipt(baseReceipt, chunk, index, total, args) {
       bytes: chunk.bytes,
       maxFiles: args.maxFiles,
       maxBytes: args.maxBytes,
+      maxFileBytes: args.maxFileBytes,
     },
     stats: {
       ...baseReceipt.stats,
@@ -591,6 +611,9 @@ async function main() {
     const tmp = join(tmpdir(), `holoscript-absorb-self-test-${Date.now()}`);
     mkdirSync(tmp, { recursive: true });
     writeFileSync(join(tmp, 'example.ts'), 'export const x = 42;\n');
+    writeFileSync(join(tmp, 'large.ts'), 'x'.repeat(1025));
+    mkdirSync(join(tmp, 'nested'), { recursive: true });
+    writeFileSync(join(tmp, 'nested', 'child.py'), 'def y():\n    return 42\n');
     const results = [];
     const stats = {
       totalFiles: 0,
@@ -599,16 +622,21 @@ async function main() {
       changedCandidates: 0,
       changedIncluded: 0,
     };
-    walkDir(tmp, tmp, results, stats, 100, 1024 * 1024, new Set());
+    walkDir(tmp, tmp, results, stats, 100, 1024 * 1024, 1024, new Set());
     const receipt = buildReceipt([tmp], results, stats, args);
     const toolPayloadOk = receipt.sourceFiles.every(
       (f) => typeof f.path === 'string' && typeof f.content === 'string'
     );
-    const contentOk = receipt.sourceFiles[0]?.content === 'export const x = 42;\n';
+    const contentOk = receipt.sourceFiles.some((f) => f.content === 'export const x = 42;\n');
+    const recursionOk = receipt.sourceFiles.some((f) => f.path === 'nested/child.py');
+    const capOk =
+      receipt.sourceFiles.length === 2 && stats.skipped.some((s) => s.reason === 'file-byte-cap-exceeded');
     console.log('receipt shape ok:', !!receipt.sourceFiles && !!receipt.stats);
     console.log('tool payload ok:', toolPayloadOk && contentOk);
+    console.log('recursive walk ok:', recursionOk);
+    console.log('per-file cap ok:', capOk);
     console.log('files captured:', receipt.stats.totalFiles);
-    if (!toolPayloadOk || !contentOk) process.exit(1);
+    if (!toolPayloadOk || !contentOk || !recursionOk || !capOk) process.exit(1);
     process.exit(0);
   }
 
@@ -636,9 +664,26 @@ async function main() {
     }
     const resolvedRoot = resolve(root);
     if (args.changedFirst) {
-      addGitChangedFiles(resolvedRoot, sourceFiles, stats, collectionMaxFiles, collectionMaxBytes, seen);
+      addGitChangedFiles(
+        resolvedRoot,
+        sourceFiles,
+        stats,
+        collectionMaxFiles,
+        collectionMaxBytes,
+        args.maxFileBytes,
+        seen
+      );
     }
-    walkDir(resolvedRoot, resolvedRoot, sourceFiles, stats, collectionMaxFiles, collectionMaxBytes, seen);
+    walkDir(
+      resolvedRoot,
+      resolvedRoot,
+      sourceFiles,
+      stats,
+      collectionMaxFiles,
+      collectionMaxBytes,
+      args.maxFileBytes,
+      seen
+    );
   }
 
   const receipt = buildReceipt(args.roots, sourceFiles, stats, args);
