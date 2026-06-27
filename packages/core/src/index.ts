@@ -60,6 +60,18 @@ export {
   type SeedFormat,
   type AccrueStepResult,
 } from './evolution/corpusPortfolio';
+export {
+  wasmFitnessBaselineFromScenario,
+  scoreWasmCompilerArtifact,
+  makeWasmCompilerFitnessGate,
+  type WasmFitnessArtifact,
+  type WasmFitnessBaseline,
+  type WasmFitnessMeasurement,
+  type WasmFitnessOptions,
+  type WasmCompileCandidate,
+  type WasmCandidateCorrectness,
+  type WasmFitnessGateOptions,
+} from './evolution/wasmCompilerFitness';
 
 // Perceptual color science (non-Riemannian). Sovereign primitive; see ./color.
 export * from './color';

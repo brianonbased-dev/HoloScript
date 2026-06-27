@@ -1508,6 +1508,7 @@ export class WASMCompiler extends CompilerBase {
   // ===========================================================================
 
   private emit(line: string): void {
+    if (line.length === 0) return;
     const indent = '  '.repeat(this.indentLevel);
     this.lines.push(indent + line);
   }

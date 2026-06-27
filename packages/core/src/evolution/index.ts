@@ -37,3 +37,16 @@ export {
   type EvolveSeed,
   type AccrueStepResult,
 } from './corpusPortfolio';
+
+export {
+  wasmFitnessBaselineFromScenario,
+  scoreWasmCompilerArtifact,
+  makeWasmCompilerFitnessGate,
+  type WasmFitnessArtifact,
+  type WasmFitnessBaseline,
+  type WasmFitnessMeasurement,
+  type WasmFitnessOptions,
+  type WasmCompileCandidate,
+  type WasmCandidateCorrectness,
+  type WasmFitnessGateOptions,
+} from './wasmCompilerFitness';

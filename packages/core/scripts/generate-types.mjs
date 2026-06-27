@@ -7857,6 +7857,49 @@ export declare function dedupRows(
   existingCorpus: string,
   rows: readonly GradedTraceRow[]
 ): { fresh: GradedTraceRow[]; deduped: number };
+export interface WasmFitnessArtifact {
+  wat: string;
+  memoryLayout: { totalSize: number };
+}
+export interface WasmFitnessBaseline {
+  scenarioId: string;
+  score: number;
+  watLength?: number;
+  memoryTotalSize?: number;
+  source?: string;
+}
+export interface WasmFitnessMeasurement {
+  passed: boolean;
+  score: number;
+  watLength: number;
+  memoryTotalSize: number;
+  baselineScore: number | null;
+  improvementPct: number | null;
+  note: string;
+}
+export interface WasmFitnessOptions {
+  baseline?: WasmFitnessBaseline | null;
+  minMemoryTotalSize?: number;
+  requireImprovement?: boolean;
+}
+export type WasmCompileCandidate = (candidateCode: string) => WasmFitnessArtifact | Promise<WasmFitnessArtifact>;
+export type WasmCandidateCorrectness = (candidateCode: string) => { passed: boolean; note?: string } | Promise<{ passed: boolean; note?: string }>;
+export interface WasmFitnessGateOptions extends WasmFitnessOptions {
+  correctness?: WasmCandidateCorrectness;
+}
+export declare function wasmFitnessBaselineFromScenario(
+  scenarioId: string,
+  scenario: Record<string, unknown>,
+  source?: string
+): WasmFitnessBaseline | null;
+export declare function scoreWasmCompilerArtifact(
+  artifact: WasmFitnessArtifact,
+  opts?: WasmFitnessOptions
+): WasmFitnessMeasurement;
+export declare function makeWasmCompilerFitnessGate(
+  compileCandidate: WasmCompileCandidate,
+  opts?: WasmFitnessGateOptions
+): Gate;
 `;
 
 // Create subdirectory declaration files

@@ -12,6 +12,10 @@
       "regression_threshold_pct": 30,
       "comparator": "lower-is-better"
     },
+    "wasmDensity": {
+      "regression_threshold_pct": 5,
+      "comparator": "lower-is-better"
+    },
     "latencyMs": {
       "regression_threshold_pct": 10,
       "comparator": "lower-is-better"
@@ -81,6 +85,19 @@
       "outputSizeBytes": 2650,
       "validationPassed": true,
       "recordedAt": "2026-05-14T10:38:19.706Z"
+    },
+    "wasm-evolve-density": {
+      "engine": "wasm",
+      "title": "WASMCompiler evolve density oracle",
+      "correctnessCommand": "pnpm --filter @holoscript/core exec vitest run src/compiler/WASMCompiler.test.ts",
+      "fitness": "watLength / memoryTotalSize",
+      "watLength": 4050,
+      "memoryTotalSize": 1076,
+      "wasmDensity": 3.763941,
+      "validationPassed": true,
+      "recordedAt": "2026-06-27T23:37:58.696Z",
+      "receipt": "research/evolve-receipts/2026-06-27_wasmcompiler-gate.json",
+      "receiptVerifyUrl": "cael:sha256:95886c0fe6c8e818a0d6400547b17cd313300569d7017704fea0edcc7ce83b0d"
     },
     "unity-minimal": {
       "engine": "unity",
