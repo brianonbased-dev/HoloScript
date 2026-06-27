@@ -55,6 +55,9 @@ export type {
   AnimationChannelContribution,
   AnimationResolvedChannel,
   AnimationOutputSnapshot,
+  AnimationUtilizationBackend,
+  AnimationOutputUtilization,
+  AnimationUtilizationEvidence,
   AnimationTransitionInspection,
   AnimationLayerInspection,
   AnimationInspectionSnapshot,
@@ -79,7 +82,11 @@ import type {
   AnimationTrackDef,
   AnimationTransition,
   AnimationClipWeight,
+  AnimationLayerInspection,
   AnimationInspectionSnapshot,
+  AnimationUtilizationBackend,
+  AnimationOutputUtilization,
+  AnimationUtilizationEvidence,
   CrossfadeState,
 } from './AnimationTypes';
 
@@ -495,9 +502,25 @@ export class AnimationTrait {
     return this.resolveOutputs();
   }
 
+  public getUtilizationEvidence(): AnimationUtilizationEvidence {
+    return this.buildUtilizationEvidence(this.resolveOutputs(), this.collectLayerInspections());
+  }
+
   public inspect(): AnimationInspectionSnapshot {
     const outputs = this.resolveOutputs();
-    const layers = Array.from(this.sm.layers.entries()).map(([layerName, layer], index) => {
+    const layers = this.collectLayerInspections();
+
+    return {
+      time: this.currentTime,
+      parameters: this.getParameterValues(),
+      layers,
+      outputs,
+      utilization: this.buildUtilizationEvidence(outputs, layers),
+    };
+  }
+
+  private collectLayerInspections(): AnimationLayerInspection[] {
+    return Array.from(this.sm.layers.entries()).map(([layerName, layer], index) => {
       const anim = this.activeAnimations.get(index);
       const crossfade = this.crossfades.get(index);
       const transition = crossfade
@@ -522,13 +545,91 @@ export class AnimationTrait {
         transition,
       };
     });
+  }
+
+  private buildUtilizationEvidence(
+    outputs: AnimationOutputSnapshot,
+    layers: AnimationLayerInspection[]
+  ): AnimationUtilizationEvidence {
+    const channels: AnimationOutputUtilization[] = outputs.details.map((detail) => ({
+      target: detail.target,
+      backend: this.inferOutputBackend(detail.target),
+      reached: detail.contributions.length > 0,
+      contributionCount: detail.contributions.length,
+    }));
+    const outputBackends: Record<AnimationUtilizationBackend, number> = {
+      cpu: 0,
+      render: 0,
+      gpu: 0,
+      webgpu: 0,
+      wasm: 0,
+      unknown: 0,
+    };
+
+    for (const channel of channels) {
+      if (channel.reached) outputBackends[channel.backend] += 1;
+    }
+
+    const reachedRenderChannels = channels.some(
+      (channel) => channel.reached && channel.backend === 'render'
+    );
+    const reachedGpuBackedChannels = channels.some(
+      (channel) =>
+        channel.reached &&
+        (channel.backend === 'gpu' || channel.backend === 'webgpu' || channel.backend === 'wasm')
+    );
+    const caveats: string[] = [];
+    if (channels.length === 0) {
+      caveats.push('No resolved animation output channels; evidence covers state/input/blend inspection only.');
+    } else if (!reachedRenderChannels && !reachedGpuBackedChannels) {
+      caveats.push('Resolved animation outputs did not target render or GPU-backed channels.');
+    }
+    if (!reachedGpuBackedChannels) {
+      caveats.push('No GPU/WebGPU/WASM-backed channel resolved; GPU utilization is not proven.');
+    }
 
     return {
-      time: this.currentTime,
-      parameters: this.getParameterValues(),
-      layers,
-      outputs,
+      activeLayerCount: layers.filter((layer) => layer.currentState).length,
+      transitioningLayerCount: layers.filter((layer) => layer.transition).length,
+      typedInputCount: Object.keys(this.getParameterValues()).length,
+      resolvedClipWeightCount: layers.reduce((sum, layer) => sum + layer.clipWeights.length, 0),
+      resolvedOutputCount: channels.filter((channel) => channel.reached).length,
+      outputBackends,
+      reachedRenderChannels,
+      reachedGpuBackedChannels,
+      channels,
+      caveats,
     };
+  }
+
+  private inferOutputBackend(target: string): AnimationUtilizationBackend {
+    const normalized = target.toLowerCase();
+    const head = normalized.split(/[.:/]/)[0] ?? '';
+    if (head === 'webgpu' || normalized.includes('webgpu')) return 'webgpu';
+    if (head === 'gpu' || head === 'shader' || normalized.includes('gpu')) return 'gpu';
+    if (head === 'wasm' || normalized.includes('wasm')) return 'wasm';
+    if (head === 'cpu' || head === 'logic' || head === 'parameter') return 'cpu';
+    if (
+      [
+        'render',
+        'scene',
+        'object',
+        'mesh',
+        'material',
+        'transform',
+        'root',
+        'hips',
+        'spine',
+        'face',
+        'bone',
+        'joint',
+        'skeleton',
+        'avatar',
+      ].includes(head)
+    ) {
+      return 'render';
+    }
+    return 'unknown';
   }
 
   // ============================================================================

@@ -10,6 +10,7 @@ import type {
   AnimationEventDef,
   AnimationInputBinding,
   AnimationOutputSnapshot,
+  AnimationUtilizationEvidence,
   AnimationStateDef,
 } from '../AnimationTypes';
 
@@ -117,5 +118,26 @@ describe('AnimationTypes — structural smoke', () => {
 
     expect(setBinding.source).toBe('event.value');
     expect(fireBinding.action).toBe('fire');
+  });
+
+  it('AnimationUtilizationEvidence distinguishes render and GPU-backed channels', () => {
+    const evidence: AnimationUtilizationEvidence = {
+      activeLayerCount: 1,
+      transitioningLayerCount: 0,
+      typedInputCount: 1,
+      resolvedClipWeightCount: 1,
+      resolvedOutputCount: 2,
+      outputBackends: { cpu: 0, render: 1, gpu: 0, webgpu: 1, wasm: 0, unknown: 0 },
+      reachedRenderChannels: true,
+      reachedGpuBackedChannels: true,
+      channels: [
+        { target: 'root.x', backend: 'render', reached: true, contributionCount: 1 },
+        { target: 'webgpu.skin.pose', backend: 'webgpu', reached: true, contributionCount: 1 },
+      ],
+      caveats: [],
+    };
+
+    expect(evidence.outputBackends.webgpu).toBe(1);
+    expect(evidence.reachedGpuBackedChannels).toBe(true);
   });
 });

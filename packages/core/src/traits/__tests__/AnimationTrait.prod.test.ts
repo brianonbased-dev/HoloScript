@@ -536,6 +536,16 @@ describe('AnimationTrait - blend states and inspection', () => {
     const snapshot = t.inspect();
     expect(snapshot.parameters.speed).toBe(0.5);
     expect(snapshot.outputs.channels).toEqual({});
+    expect(snapshot.utilization).toEqual(
+      expect.objectContaining({
+        activeLayerCount: 1,
+        transitioningLayerCount: 1,
+        typedInputCount: 1,
+        resolvedOutputCount: 0,
+        reachedRenderChannels: false,
+        reachedGpuBackedChannels: false,
+      })
+    );
     expect(snapshot.layers[0]).toEqual(
       expect.objectContaining({
         currentState: 'idle',
@@ -554,6 +564,48 @@ describe('AnimationTrait - blend states and inspection', () => {
       expect.objectContaining({ clip: 'idle', weight: 0.125, threshold: 0 }),
       expect.objectContaining({ clip: 'walk', weight: 0.125, threshold: 1 }),
     ]);
+  });
+
+  it('reports render and GPU-backed utilization evidence for resolved outputs', () => {
+    const t = mkTrait({
+      clips: [
+        {
+          name: 'pose',
+          duration: 1,
+          wrapMode: 'clamp',
+          tracks: [
+            {
+              target: 'root.x',
+              defaultValue: 0,
+              keyframes: [{ time: 0, value: 2 }],
+            },
+            {
+              target: 'webgpu.skin.pose',
+              defaultValue: 0,
+              keyframes: [{ time: 0, value: 1 }],
+            },
+          ],
+        },
+      ],
+      parameters: [{ name: 'speed', type: 'float', value: 1 }],
+      states: [{ name: 'pose', clip: 'pose' }],
+      defaultState: 'pose',
+    });
+
+    const utilization = t.getUtilizationEvidence();
+    expect(utilization.activeLayerCount).toBe(1);
+    expect(utilization.typedInputCount).toBe(1);
+    expect(utilization.resolvedClipWeightCount).toBe(1);
+    expect(utilization.resolvedOutputCount).toBe(2);
+    expect(utilization.reachedRenderChannels).toBe(true);
+    expect(utilization.reachedGpuBackedChannels).toBe(true);
+    expect(utilization.outputBackends.render).toBe(1);
+    expect(utilization.outputBackends.webgpu).toBe(1);
+    expect(utilization.channels).toEqual([
+      expect.objectContaining({ target: 'root.x', backend: 'render', reached: true }),
+      expect.objectContaining({ target: 'webgpu.skin.pose', backend: 'webgpu', reached: true }),
+    ]);
+    expect(t.inspect().utilization).toEqual(utilization);
   });
 });
 

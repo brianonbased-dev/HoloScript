@@ -295,11 +295,34 @@ export interface AnimationLayerInspection {
   transition?: AnimationTransitionInspection;
 }
 
+export type AnimationUtilizationBackend = 'cpu' | 'render' | 'gpu' | 'webgpu' | 'wasm' | 'unknown';
+
+export interface AnimationOutputUtilization {
+  target: string;
+  backend: AnimationUtilizationBackend;
+  reached: boolean;
+  contributionCount: number;
+}
+
+export interface AnimationUtilizationEvidence {
+  activeLayerCount: number;
+  transitioningLayerCount: number;
+  typedInputCount: number;
+  resolvedClipWeightCount: number;
+  resolvedOutputCount: number;
+  outputBackends: Record<AnimationUtilizationBackend, number>;
+  reachedRenderChannels: boolean;
+  reachedGpuBackedChannels: boolean;
+  channels: AnimationOutputUtilization[];
+  caveats: string[];
+}
+
 export interface AnimationInspectionSnapshot {
   time: number;
   parameters: Record<string, number | boolean>;
   layers: AnimationLayerInspection[];
   outputs: AnimationOutputSnapshot;
+  utilization: AnimationUtilizationEvidence;
 }
 
 export interface AnimationChannelContribution {
