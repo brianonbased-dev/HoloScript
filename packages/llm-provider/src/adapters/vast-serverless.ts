@@ -25,6 +25,7 @@
  * construction: our Qwen on our rented GPU, OpenAI PROTOCOL only.
  */
 
+import { Buffer } from 'node:buffer';
 import { BaseLLMAdapter } from '../base-adapter';
 import type {
   Capabilities,
@@ -92,6 +93,12 @@ interface RouteResponse {
   status?: unknown;
   error_msg?: string;
 }
+interface WorkerPostResult {
+  response: Response;
+  workerUrl: string;
+  authData: unknown;
+  requestIdx?: number;
+}
 
 function headerObject(headers: Headers): Record<string, string> {
   const out: Record<string, string> = {};
@@ -99,6 +106,53 @@ function headerObject(headers: Headers): Record<string, string> {
     out[key.toLowerCase()] = value;
   });
   return out;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return value !== null && typeof value === 'object' ? (value as Record<string, unknown>) : undefined;
+}
+
+function compactCaveat(value: unknown): string | undefined {
+  if (typeof value !== 'string' || value.length === 0) return undefined;
+  return value.slice(0, 300).replace(/[\r\n]+/g, ' ');
+}
+
+function headerJson(value: unknown): string | undefined {
+  try {
+    return Buffer.from(JSON.stringify(value), 'utf8').toString('base64url');
+  } catch {
+    return undefined;
+  }
+}
+
+function gpuTelemetryHeaders(
+  payload: unknown,
+  fallbackCaveat?: string
+): Record<string, string> {
+  const record = asRecord(payload);
+  if (!record && !fallbackCaveat) return {};
+
+  const start = (asRecord(record?.['start']) ?? record) as Record<string, unknown> | undefined;
+  const end = asRecord(record?.['end']);
+  const source =
+    (typeof record?.['source'] === 'string' ? record['source'] : undefined) ??
+    (typeof start?.['source'] === 'string' ? start['source'] : undefined) ??
+    (typeof end?.['source'] === 'string' ? end['source'] : undefined) ??
+    (fallbackCaveat ? 'worker:vast-serverless-telemetry' : undefined);
+  const caveat =
+    compactCaveat(record?.['caveat']) ??
+    compactCaveat(start?.['caveat']) ??
+    compactCaveat(end?.['caveat']) ??
+    compactCaveat(fallbackCaveat);
+
+  const headers: Record<string, string> = {};
+  const startJson = start ? headerJson(start) : undefined;
+  const endJson = end ? headerJson(end) : undefined;
+  if (startJson) headers['x-holoscript-gpu-start'] = startJson;
+  if (endJson) headers['x-holoscript-gpu-end'] = endJson;
+  if (source) headers['x-holoscript-gpu-source'] = source;
+  if (caveat) headers['x-holoscript-gpu-caveat'] = caveat;
+  return headers;
 }
 
 export class VastServerlessAdapter extends BaseLLMAdapter {
@@ -242,12 +296,15 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
   }
 
   /** POST the resolved worker with the {auth_data, session_id, payload} envelope. */
-  private async postWorker(payload: unknown): Promise<{ response: Response; workerUrl: string; requestIdx?: number }> {
+  private async postWorker(
+    payload: unknown,
+    route: string = '/v1/chat/completions'
+  ): Promise<WorkerPostResult> {
     const { url, authData, requestIdx } = await this.resolveWorker();
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
     try {
-      const response = await fetch(`${url}/v1/chat/completions`, {
+      const response = await fetch(`${url}${route}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.vastKey}` },
         body: JSON.stringify({ auth_data: authData, session_id: null, payload }),
@@ -266,7 +323,7 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
           response.status >= 500
         );
       }
-      return { response, workerUrl: url, requestIdx };
+      return { response, workerUrl: url, authData, requestIdx };
     } catch (err) {
       clearTimeout(timeoutId);
       if (err instanceof LLMProviderError) throw err;
@@ -277,6 +334,46 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
         undefined,
         true
       );
+    }
+  }
+
+  private async readWorkerGpuTelemetry(
+    workerUrl: string,
+    authData: unknown
+  ): Promise<Record<string, string>> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), Math.min(this.config.timeoutMs, 5000));
+    try {
+      const response = await fetch(`${workerUrl}/telemetry/gpu`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.vastKey}` },
+        body: JSON.stringify({ auth_data: authData, session_id: null, payload: {} }),
+        signal: controller.signal,
+      });
+      const text = await response.text().catch(() => '');
+      let parsed: unknown;
+      try {
+        parsed = text ? JSON.parse(text) : undefined;
+      } catch {
+        return gpuTelemetryHeaders(
+          undefined,
+          `worker GPU telemetry returned non-JSON body: HTTP ${response.status}`
+        );
+      }
+
+      const headers = gpuTelemetryHeaders(parsed);
+      if (!response.ok && !headers['x-holoscript-gpu-caveat']) {
+        return gpuTelemetryHeaders(
+          parsed,
+          `worker GPU telemetry unavailable: HTTP ${response.status}`
+        );
+      }
+      return headers;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return gpuTelemetryHeaders(undefined, `worker GPU telemetry unreachable: ${msg}`);
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 
@@ -317,6 +414,7 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
         }>;
         usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
         model?: string;
+        holo_gpu?: unknown;
       };
       const choice = data.choices?.[0];
       const content = choice?.message?.content ?? '';
@@ -349,7 +447,10 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
           totalTokens: data.usage?.total_tokens ?? 0,
         },
         requestId: this.buildRequestId(response, requestIdx),
-        responseHeaders: this.buildResponseHeaders(response, workerUrl, requestIdx),
+        responseHeaders: {
+          ...this.buildResponseHeaders(response, workerUrl, requestIdx),
+          ...gpuTelemetryHeaders(data.holo_gpu),
+        },
         ...(toolUses.length > 0
           ? { toolUses, assistantBlocks: [{ type: 'text' as const, text: content }, ...toolUses] }
           : {}),
@@ -362,14 +463,18 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
     request: LLMCompletionRequest,
     model: string = this.defaultHoloScriptModel
   ): AsyncIterable<LLMStreamChunk> {
-    const { response, workerUrl, requestIdx } = await this.postWorker(
+    const { response, workerUrl, authData, requestIdx } = await this.postWorker(
       this.buildPayload(request, model, true)
     );
     const requestId = this.buildRequestId(response, requestIdx);
     const responseHeaders = this.buildResponseHeaders(response, workerUrl, requestIdx);
 
     if (!response.body) {
-      yield { type: 'message_stop', finishReason: 'stop', usage: this.zeroUsage(), model, requestId, responseHeaders };
+      const finalResponseHeaders = {
+        ...responseHeaders,
+        ...(await this.readWorkerGpuTelemetry(workerUrl, authData)),
+      };
+      yield { type: 'message_stop', finishReason: 'stop', usage: this.zeroUsage(), model, requestId, responseHeaders: finalResponseHeaders };
       return;
     }
 
@@ -473,7 +578,11 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
     if (streamErrored) finishReason = 'error';
     else if (hadToolCalls && finishReason === 'stop') finishReason = 'tool_use';
 
-    yield { type: 'message_stop', finishReason, usage, model: finalModel, requestId, responseHeaders };
+    const finalResponseHeaders = {
+      ...responseHeaders,
+      ...(await this.readWorkerGpuTelemetry(workerUrl, authData)),
+    };
+    yield { type: 'message_stop', finishReason, usage, model: finalModel, requestId, responseHeaders: finalResponseHeaders };
     if (streamErrored) {
       throw new LLMProviderError('Stream error during vast serverless completion', this.name);
     }

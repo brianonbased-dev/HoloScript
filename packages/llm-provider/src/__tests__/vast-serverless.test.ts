@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { VastServerlessAdapter } from '../adapters/vast-serverless';
 import type { LLMCompletionRequest, LLMStreamChunk } from '../types';
@@ -20,6 +21,9 @@ function json(obj: unknown): Response {
     headers: { 'content-type': 'application/json' },
   });
 }
+function decodeHeaderJson(value: string): Record<string, unknown> {
+  return JSON.parse(Buffer.from(value, 'base64url').toString('utf8')) as Record<string, unknown>;
+}
 const req = (content = 'hi') =>
   ({ messages: [{ role: 'user', content }] }) as unknown as LLMCompletionRequest;
 
@@ -35,6 +39,16 @@ describe('VastServerlessAdapter', () => {
         calls.push({ url, body });
         if (url === ROUTE)
           return json({ url: 'http://worker.test:8000', signature: 'sig123', request_idx: 0 });
+        if (url === 'http://worker.test:8000/telemetry/gpu')
+          return json({
+            observed: true,
+            source: 'worker:nvidia-smi',
+            sampledAt: '2026-06-27T21:06:01.435146+00:00',
+            name: 'NVIDIA GeForce RTX 5090',
+            utilizationGpuPct: 42,
+            memoryUsedMiB: 2600,
+            memoryTotalMiB: 32607,
+          });
         return sse([
           'data: {"choices":[{"delta":{"content":"Hi"}}],"model":"qwen3:14b"}\n',
           'data: {"choices":[{"delta":{"tool_calls":[{"id":"c1","function":{"name":"find_tools","arguments":"{\\"goal\\""}}]}}]}\n',
@@ -68,6 +82,9 @@ describe('VastServerlessAdapter', () => {
     expect(calls[1].body.session_id).toBeNull();
     expect((calls[1].body.payload as Record<string, unknown>).stream).toBe(true);
     expect((calls[1].body.payload as Record<string, unknown>).model).toBe('qwen3:14b');
+    expect(calls[2].url).toBe('http://worker.test:8000/telemetry/gpu');
+    expect(calls[2].body.auth_data).toMatchObject({ signature: 'sig123' });
+    expect(calls[2].body.payload).toEqual({});
     // 3. SSE → LLMStreamChunk, tool args assembled across fragments
     const types = chunks.map((c) => c.type);
     expect(types).toEqual(
@@ -86,7 +103,9 @@ describe('VastServerlessAdapter', () => {
       'x-holoscript-fleet-endpoint': 'holoscript-qwen-coder',
       'x-holoscript-fleet-worker-url': 'http://worker.test:8000',
       'x-holoscript-fleet-request-idx': '0',
+      'x-holoscript-gpu-source': 'worker:nvidia-smi',
     });
+    expect(decodeHeaderJson(stop.responseHeaders!['x-holoscript-gpu-start']).utilizationGpuPct).toBe(42);
     const start = chunks.find((c) => c.type === 'tool_use_start') as Extract<
       LLMStreamChunk,
       { type: 'tool_use_start' }
