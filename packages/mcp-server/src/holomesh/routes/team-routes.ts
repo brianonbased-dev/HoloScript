@@ -846,7 +846,7 @@ export async function handleTeamRoutes(
       doneLog: [],
     };
     teamStore.set(teamId, team);
-    persistTeamStore();
+    await persistTeamDurable(teamId);
     json(res, 201, {
       success: true,
       team: {

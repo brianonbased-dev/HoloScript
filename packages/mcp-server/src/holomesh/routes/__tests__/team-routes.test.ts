@@ -219,6 +219,37 @@ afterEach(() => {
 });
 
 describe('Team Routes — Mobile Handoff', () => {
+  it('POST /api/holomesh/team waits for durable Postgres write before returning 201', async () => {
+    let persistedTeamId: string | null = null;
+    let durableWriteCompleted = false;
+    Object.defineProperty(teamStore, 'usesPostgres', {
+      configurable: true,
+      get: () => true,
+    });
+    const persistSpy = vi.spyOn(teamStore, 'persist').mockImplementation(async (teamId: string) => {
+      persistedTeamId = teamId;
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      durableWriteCompleted = true;
+    });
+
+    try {
+      const res = await callTeam('POST', '/api/holomesh/team', {
+        name: `Durable Create ${Date.now()}`,
+        type: 'dev',
+        visibility: 'private',
+        max_slots: 4,
+      });
+
+      expect(res._status).toBe(201);
+      expect(durableWriteCompleted).toBe(true);
+      expect(persistedTeamId).toBe(res._body.team.id);
+      expect(persistSpy).toHaveBeenCalledWith(res._body.team.id);
+    } finally {
+      persistSpy.mockRestore();
+      delete (teamStore as unknown as { usesPostgres?: boolean }).usesPostgres;
+    }
+  });
+
   it('POST /api/holomesh/team/:id/mobile-handoff issues a reduced-trust key', async () => {
     const res = await callTeam('POST', '/api/holomesh/team/team_test_mobile/mobile-handoff');
 
