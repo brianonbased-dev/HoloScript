@@ -4961,8 +4961,8 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
       if (!options.input) {
         cliError('E001', 'No question specified.', {
           usage:
-            'holoscript query "<question>" [--provider openai|xenova|ollama] [--with-llm] [--top-k <n>]',
-          hint: 'Wrap the question in quotes. Example: `holoscript query "what calls buildIndex"`. Add `--with-llm --llm openai` for a synthesised answer. Default provider is openai (bm25 is deprecated).',
+            'holoscript query "<question>" [--provider holoembed] [--with-llm] [--top-k <n>]',
+          hint: 'Wrap the question in quotes. Example: `holoscript query "what calls buildIndex"`. Add `--with-llm --llm openai` for a synthesised answer. GraphRAG embeddings use HoloEmbed.',
         });
         process.exit(1);
       }
@@ -5003,12 +5003,19 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
               ? `${(ms / 1000).toFixed(1)}s`
               : `${Math.floor(ms / 60000)}m ${Math.round((ms % 60000) / 1000)}s`;
 
-        let providerName = options.queryProvider ?? 'openai';
-        if (providerName === 'bm25') {
+        const requestedProvider = (options.queryProvider ?? 'holoembed').trim().toLowerCase();
+        if (requestedProvider !== 'holoembed' && requestedProvider !== 'structural') {
+          cliError('E009', `Unsupported GraphRAG embedding provider: ${requestedProvider}`, {
+            usage: 'holoscript query "<question>" [--provider holoembed]',
+            hint: 'Shared project GraphRAG uses HoloEmbed only. Use --with-llm --llm openai for OpenAI answer synthesis; do not use OpenAI embeddings.',
+          });
+          process.exit(1);
+        }
+        const providerName = 'holoembed' as const;
+        if (requestedProvider === 'structural') {
           console.warn(
-            `${YELLOW}⚠ bm25 is deprecated and has been removed. Using openai instead.${RESET}`
+            `${YELLOW}Warning: structural is a legacy alias. Using HoloEmbed for GraphRAG.${RESET}`
           );
-          providerName = 'openai';
         }
         const forceRescan = options.force === true;
         const queryStartTime = Date.now();
@@ -5118,7 +5125,7 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
 
         // ── 3. Embedding index (with caching) ────────────────────────────────
         // Use binary format (.bin) for efficient disk caching of large embedding indexes.
-        // JSON format crashes on OpenAI 1536-dim × 84K symbols (~1 GB string).
+        // JSON format can crash on large vector indexes (~1 GB strings).
         const indexCacheBin = path.join(cacheDir, `index-${cacheKey}.bin`);
         const indexCacheJson = path.join(cacheDir, `index-${cacheKey}.json`); // legacy fallback
         const provider = await createEmbeddingProvider({

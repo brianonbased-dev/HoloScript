@@ -43,7 +43,7 @@ const DECISION_TREES: Record<string, string> = {
     'User instruction > project CLAUDE.md > AGENTS.md > global CLAUDE.md > NORTH_STAR.md > memory files > research docs > README.',
   'which-repo': 'Default: HoloScript. Unless explicitly told otherwise.',
   'embedding-provider':
-    'Use HoloEmbed (provider: holoembed) — offline, NO API key, best NL→code recall. Factory default is structural (also keyless). OpenAI embeddings are opt-in only and NOT required — do not depend on OPENAI_API_KEY (F.106: HoloEmbed replaces it). BM25 is deprecated keyword-only.',
+    'Use HoloEmbed (provider: holoembed) for shared project GraphRAG. It is offline, keyless, and the only native embedding space for HoloScript graph caches. structural is a legacy alias that maps to HoloEmbed; OpenAI/Ollama/Xenova/BM25 are low-level experiments only and must not be used for shared GraphRAG.',
   'git-staging':
     'ALWAYS explicit file paths. NEVER git add -A or git add . (Windows nul device bug).',
 };

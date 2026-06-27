@@ -17,6 +17,12 @@ import * as os from 'os';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { resetGraphRAGStateForTests, setGraphRAGState } from './graph-rag-tools';
 import { ABSORB_CODEBASE_LOAD_ERROR, ABSORB_HOLO_ABSORB_REPO_HINT } from './graph-rag-prerequisite';
+import {
+  buildGraphRAGEmbeddingPolicyReceipt,
+  NATIVE_GRAPH_RAG_PROVIDER,
+  requireNativeGraphRAGProvider,
+  type GraphRAGEmbeddingPolicyReceipt,
+} from './graph-rag-embedding-policy';
 import type { EmbeddingProviderName } from '../engine/providers/EmbeddingProvider';
 
 // =============================================================================
@@ -162,23 +168,6 @@ async function fetchWithTimeout(
 // =============================================================================
 
 let cachedProviderName: string | null = null;
-const NATIVE_GRAPH_RAG_PROVIDER = 'holoembed';
-
-function requireNativeGraphRAGProvider(providerName: string, source: string): 'holoembed' {
-  const normalized = providerName.trim().toLowerCase();
-  if (normalized === 'structural') {
-    console.error(
-      `[EmbeddingProvider] ${source}=structural is a legacy alias; using ${NATIVE_GRAPH_RAG_PROVIDER}`
-    );
-    return NATIVE_GRAPH_RAG_PROVIDER;
-  }
-  if (normalized !== NATIVE_GRAPH_RAG_PROVIDER) {
-    throw new Error(
-      `GraphRAG embedding provider must be ${NATIVE_GRAPH_RAG_PROVIDER}; ${source} requested ${normalized}. Fix HoloEmbed instead of falling back.`
-    );
-  }
-  return NATIVE_GRAPH_RAG_PROVIDER;
-}
 
 /**
  * Select the native GraphRAG embedding provider.
@@ -370,6 +359,7 @@ interface GraphCacheEnvelope {
   gitCommitHash?: string;
   fileHashes?: Record<string, string>;
   embeddingProvider?: string;
+  embeddingPolicy?: GraphRAGEmbeddingPolicyReceipt;
 }
 
 interface AbsorbDiagnostics {
@@ -514,6 +504,7 @@ function saveGraphCache(
       gitCommitHash,
       fileHashes,
       embeddingProvider,
+      embeddingPolicy: buildGraphRAGEmbeddingPolicyReceipt(),
     };
     const cacheFile = getCacheFile();
     atomicWriteFileSync(cacheFile, JSON.stringify(envelope), 'utf-8');
@@ -585,6 +576,8 @@ function getCacheAge(): {
   ageMs?: number;
   rootDir?: string;
   stats?: Record<string, unknown>;
+  embeddingProvider?: string;
+  embeddingPolicy?: GraphRAGEmbeddingPolicyReceipt;
 } {
   try {
     const cacheFile = getCacheFile();
@@ -596,6 +589,8 @@ function getCacheAge(): {
       ageMs: Date.now() - envelope.timestamp,
       rootDir: envelope.rootDir,
       stats: envelope.stats,
+      embeddingProvider: envelope.embeddingProvider,
+      embeddingPolicy: envelope.embeddingPolicy,
     };
   } catch {
     return { exists: false };
@@ -1221,6 +1216,7 @@ async function runFullScan(
   const primaryRootDir = rootDirs[0];
 
   const startTime = Date.now();
+  const embeddingPolicy = buildGraphRAGEmbeddingPolicyReceipt();
 
   const rootDiagnostics = rootDirs.map((rootDir) =>
     buildAbsorbDiagnostics(rootDir, null, includeBuildArtifacts)
@@ -1241,6 +1237,7 @@ async function runFullScan(
       message:
         'One or more requested rootDirs are not accessible from this MCP runtime; graph cache was not updated.',
       rootDir: primaryRootDir,
+      embeddingPolicy,
       graphUnavailableReceipt,
       diagnostics: inaccessibleRoots[0],
       rootDiagnostics,
@@ -1299,6 +1296,7 @@ async function runFullScan(
         'Absorb scan found no supported source files; graph cache and in-memory graph state were not updated.',
       rootDir: primaryRootDir,
       stats,
+      embeddingPolicy,
       diagnostics,
       durationMs: Date.now() - startTime,
     };
@@ -1391,6 +1389,7 @@ async function runFullScan(
     result = {
       rootDir: primaryRootDir,
       stats,
+      embeddingPolicy,
       gitCommitHash,
       diagnostics,
       durationMs: Date.now() - startTime,
@@ -1399,6 +1398,7 @@ async function runFullScan(
     result = {
       stats,
       graph: graph.serialize(),
+      embeddingPolicy,
       gitCommitHash,
       diagnostics,
       durationMs: Date.now() - startTime,
@@ -1429,6 +1429,7 @@ async function runFullScan(
       stats,
       holoSource,
       interactiveScene: scene,
+      embeddingPolicy,
       gitCommitHash,
       diagnostics,
       durationMs: Date.now() - startTime,
@@ -1467,6 +1468,7 @@ async function runIncrementalPatch(
 ): Promise<unknown> {
   const { CodebaseScanner, CodebaseGraph, GitChangeDetector } = mod;
   const startTime = Date.now();
+  const embeddingPolicy = buildGraphRAGEmbeddingPolicyReceipt();
 
   if (jobId) trackAbsorbProgress(jobId, 'Loading cached graph', 10);
 
@@ -1669,6 +1671,7 @@ async function runIncrementalPatch(
     patchDurationMs,
     rootDir,
     stats: graphStats,
+    embeddingPolicy,
     holoSource,
     interactiveScene,
     gitCommitHash: changes.headCommit,
@@ -1905,6 +1908,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
       filesChanged: 0,
       rootDir,
       stats: envelope.stats,
+      embeddingPolicy: envelope.embeddingPolicy ?? buildGraphRAGEmbeddingPolicyReceipt(),
       gitCommitHash: changes.headCommit,
       message: `No changes since last scan (${changes.headCommit.slice(0, 7)})`,
       jobId,
@@ -2246,6 +2250,7 @@ async function handleDetectDrift(args: Record<string, unknown>): Promise<unknown
 
 async function handleGraphStatus(): Promise<unknown> {
   const cache = getCacheAge();
+  const embeddingPolicy = cache.embeddingPolicy ?? buildGraphRAGEmbeddingPolicyReceipt();
   const { getGraphRAGStateStatus, isGraphRAGReady } = await import('./graph-rag-tools');
   const cacheAgeMs = cache.ageMs;
   const diskCacheFreshByAge = cacheAgeMs !== undefined && cacheAgeMs < CACHE_MAX_AGE_MS;
@@ -2294,6 +2299,7 @@ async function handleGraphStatus(): Promise<unknown> {
   return {
     inMemory: cachedGraph !== null,
     rootDir: cachedRootDir || null,
+    embeddingPolicy,
     graphRAGReady: isGraphRAGReady(),
     graphAuthoritative,
     freshForCurrentRepo,
@@ -2323,6 +2329,8 @@ async function handleGraphStatus(): Promise<unknown> {
           freshForCurrentRepo: diskCacheFreshForCurrentRepo,
           rootDir: cache.rootDir,
           stats: cache.stats,
+          embeddingProvider: cache.embeddingProvider ?? embeddingPolicy.provider,
+          embeddingPolicy,
           hint: !diskCacheMatchesCwd
             ? `Cache rootDir (${cache.rootDir}) does not match current working directory (${currentCwd}). Call holo_absorb_repo for this workspace.`
             : diskCacheFreshByAge
@@ -2351,6 +2359,7 @@ async function handleGetAbsorbStatus(args: Record<string, unknown>): Promise<unk
     status: job.status,
     progress: job.progress,
     phase: job.phase,
+    embeddingPolicy: buildGraphRAGEmbeddingPolicyReceipt(),
     filesProcessed: job.filesProcessed,
     totalFiles: job.totalFiles,
     durationMs: Date.now() - job.startedAt,

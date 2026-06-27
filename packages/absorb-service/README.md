@@ -486,15 +486,15 @@ detection) and serialized `nodePositions` for stable visualization.
 
 ### EmbeddingIndex
 
-Vector index over symbol signatures. Configurable embedding provider
-(default: HoloEmbed — HoloScript-native, keyless; never auto-selects an
-external API per F.106):
+Vector index over symbol signatures. Shared GraphRAG usage is fixed to
+HoloEmbed (HoloScript-native, keyless) so every project writes the same
+embedding space into shared caches and receipts:
 
-- **HoloEmbedProvider** (default) -- HoloScript-native NL-to-code, keyless, offline
-- **StructuralEmbeddingProvider** -- HoloGraph structural, keyless, offline
-- **OllamaEmbeddingProvider** -- local, requires running Ollama instance (explicit opt-in)
-- **XenovaEmbeddingProvider** -- in-process via `@huggingface/transformers` (explicit opt-in)
-- **OpenAIEmbeddingProvider** -- explicit opt-in only (`EMBEDDING_PROVIDER=openai`); never auto-selected
+- **HoloEmbedProvider** (GraphRAG default and only shared provider) -- HoloScript-native NL-to-code, keyless, offline
+- **StructuralEmbeddingProvider** -- legacy alias accepted by GraphRAG and mapped to HoloEmbed
+- **OllamaEmbeddingProvider** -- low-level factory provider for experiments, not shared GraphRAG
+- **XenovaEmbeddingProvider** -- low-level factory provider for experiments, not shared GraphRAG
+- **OpenAIEmbeddingProvider** -- low-level factory provider for experiments, not shared GraphRAG
 
 Supports parallel embedding via worker threads (4-8x speedup). Serializable
 for caching between sessions.
@@ -617,13 +617,12 @@ embedding stack and **never auto-selects an external API** (F.106):
 1. **HoloEmbed** (HoloScript-native NL-to-code, keyless, offline) — the sole
    auto-selected provider.
 
-External providers (OpenAI, Ollama, Xenova) are **explicit opt-in only**: they
-are used solely when `EMBEDDING_PROVIDER` is set to that provider by name. The
-presence of `OPENAI_API_KEY` (or any external credential) in the environment is
-**never** sufficient to select an external embedding provider. For the GraphRAG
-path (`detectBestEmbeddingProvider`), HoloEmbed is the only permitted provider —
-if HoloEmbed cannot load, the call fails loudly rather than silently falling
-back, so native breakage is never masked.
+External providers (OpenAI, Ollama, Xenova) remain available only through the
+low-level factory for isolated experiments. The shared GraphRAG path
+(`detectBestEmbeddingProvider`) rejects them even when credentials are present.
+If HoloEmbed cannot load, the call fails loudly rather than silently falling
+back, so native breakage is never masked and projects cannot mix embedding
+spaces.
 
 ### Database
 

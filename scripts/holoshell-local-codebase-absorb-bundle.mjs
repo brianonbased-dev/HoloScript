@@ -22,6 +22,16 @@ import { tmpdir } from 'node:os';
 
 const VERSION = '0.1.0';
 const DEFAULT_DATE = new Date().toISOString().slice(0, 10);
+const GRAPH_RAG_EMBEDDING_POLICY = Object.freeze({
+  schemaVersion: 'holoscript.graphrag.embedding-policy.v1',
+  kind: 'GraphRAGEmbeddingPolicy',
+  provider: 'holoembed',
+  acceptedAliases: ['structural'],
+  externalProvidersAllowed: false,
+  externalFallbacksAllowed: false,
+  policy:
+    'HoloScript GraphRAG uses HoloGraph plus HoloEmbed for every project. External embedding providers are disabled so mixed embedding spaces cannot enter shared GraphRAG caches.',
+});
 
 // Common secret / build artifact patterns to redact or skip
 const SECRET_PATTERNS = [
@@ -367,6 +377,7 @@ function buildReceipt(roots, sourceFiles, stats, args) {
     roots: roots.map((r) => resolve(r)),
     rootHashes,
     sourceFiles,
+    embeddingPolicy: GRAPH_RAG_EMBEDDING_POLICY,
     stats: {
       totalFiles: stats.totalFiles,
       totalBytes: stats.totalBytes,
@@ -554,7 +565,7 @@ async function postReceiptToMcp(receipt, args, auth) {
           sourceFiles: receipt.sourceFiles,
           force: false,
           outputFormat: 'stats',
-          embeddingProvider: 'holoembed',
+          embeddingProvider: GRAPH_RAG_EMBEDDING_POLICY.provider,
           maxFiles: 10000,
         },
       },
@@ -632,11 +643,19 @@ async function main() {
     const capOk =
       receipt.sourceFiles.length === 2 && stats.skipped.some((s) => s.reason === 'file-byte-cap-exceeded');
     console.log('receipt shape ok:', !!receipt.sourceFiles && !!receipt.stats);
+    console.log('embedding policy ok:', receipt.embeddingPolicy?.provider === 'holoembed');
     console.log('tool payload ok:', toolPayloadOk && contentOk);
     console.log('recursive walk ok:', recursionOk);
     console.log('per-file cap ok:', capOk);
     console.log('files captured:', receipt.stats.totalFiles);
-    if (!toolPayloadOk || !contentOk || !recursionOk || !capOk) process.exit(1);
+    if (
+      receipt.embeddingPolicy?.provider !== 'holoembed' ||
+      !toolPayloadOk ||
+      !contentOk ||
+      !recursionOk ||
+      !capOk
+    )
+      process.exit(1);
     process.exit(0);
   }
 

@@ -55,20 +55,17 @@ By default `absorb` writes a `.holo` composition that can be loaded in HoloLand 
 
 Performs a Graph-RAG (Retrieval-Augmented Generation) search over a codebase. Each query:
 
-1. Embeds the question using the configured provider
+1. Embeds the question using the native HoloEmbed GraphRAG policy
 2. Retrieves semantically similar symbols from the index
 3. Enriches each result with graph context (callers, callees, impact radius, community)
 4. Re-ranks results by a composite score of semantic similarity, connection density, and impact
 
 ```bash
-# Basic keyword search (BM25, zero deps, default)
+# Native GraphRAG search (HoloEmbed default)
 holoscript query "what calls buildIndex"
 
-# Semantic search via local WASM model (~25 MB, no API key)
-holoscript query "how does the parser handle errors" --provider xenova
-
-# Semantic search via OpenAI (requires OPENAI_API_KEY)
-holoscript query "find all authentication middleware" --provider openai
+# Explicit native provider spelling (structural is accepted only as a legacy alias)
+holoscript query "find all authentication middleware" --provider holoembed
 
 # LLM-synthesised natural-language answer
 holoscript query "explain the compiler pipeline" --with-llm --llm openai
@@ -80,30 +77,20 @@ holoscript query "trace call chain from absorb" --with-llm --llm anthropic
 holoscript query "error handlers" --top-k 20 --json
 ```
 
-### Embedding Providers
+### GraphRAG Embedding Policy
 
-The `--provider` flag selects the backend used to embed the query and index symbols.
+Shared GraphRAG uses HoloEmbed only. This keeps every project in the same
+embedding space and prevents cache/query drift across HoloScript, HoloShell, and
+ecosystem project snapshots.
 
-| Provider      | Flag                | Deps                        | Dim    | Notes                                                              |
-| ------------- | ------------------- | --------------------------- | ------ | ------------------------------------------------------------------ |
-| BM25          | `--provider bm25`   | None                        | 1024   | Default. Keyword/identifier matching. Fast, zero setup.            |
-| Xenova (WASM) | `--provider xenova` | `@huggingface/transformers` | 384    | Semantic. Model downloaded once (~25 MB) and cached.               |
-| OpenAI        | `--provider openai` | `openai` package + API key  | 1536   | Highest quality. Requires `OPENAI_API_KEY` env var or `--llm-key`. |
-| Ollama        | `--provider ollama` | Running Ollama instance     | varies | Local server. Run `ollama pull nomic-embed-text` first.            |
+| Provider  | Flag                   | Deps | Notes                                                                 |
+| --------- | ---------------------- | ---- | --------------------------------------------------------------------- |
+| HoloEmbed | `--provider holoembed` | None | Default and only shared GraphRAG provider. Keyless, native, offline.  |
+| HoloEmbed | `--provider structural` | None | Legacy alias accepted for compatibility and mapped to `holoembed`.    |
 
-#### Installing optional providers
-
-```bash
-# Xenova WASM (semantic, local)
-pnpm add @huggingface/transformers --filter @holoscript/core
-
-# OpenAI
-pnpm add openai --filter @holoscript/core
-export OPENAI_API_KEY=sk-...
-
-# Ollama (separate install: https://ollama.ai)
-ollama pull nomic-embed-text
-```
+External embedding providers are rejected by the shared GraphRAG path even when
+credentials are present. Use external providers only in isolated low-level
+factory experiments, not for project GraphRAG caches.
 
 ### LLM-synthesised answers (`--with-llm`)
 
@@ -130,7 +117,7 @@ Use `--llm-key <key>` to pass the API key directly instead of via an environment
 
 | Flag              | Description                                                       |
 | ----------------- | ----------------------------------------------------------------- |
-| `--provider <b>`  | Embedding backend: `bm25` (default), `xenova`, `openai`, `ollama` |
+| `--provider <b>`  | GraphRAG embedding backend: `holoembed` (default), `structural` alias |
 | `--top-k <n>`     | Number of results to return (default: 10)                         |
 | `--with-llm`      | Synthesise a natural-language answer from the top results         |
 | `--llm <adapter>` | LLM backend for `--with-llm`: `openai`, `anthropic`, `gemini`     |
@@ -142,25 +129,15 @@ Use `--llm-key <key>` to pass the API key directly instead of via an environment
 
 ## EmbeddingProvider API
 
-You can use the provider system programmatically in your own code:
+The low-level provider factory is still useful for isolated experiments. Shared
+project GraphRAG should use HoloEmbed so indexes, receipts, and queries remain
+compatible across projects:
 
 ```typescript
-import {
-  createEmbeddingProvider,
-  BM25EmbeddingProvider,
-  XenovaEmbeddingProvider,
-  EmbeddingIndex,
-  GraphRAGEngine,
-} from '@holoscript/core';
+import { createEmbeddingProvider, EmbeddingIndex, GraphRAGEngine } from '@holoscript/core';
 
-// Factory — picks backend from options
-const provider = await createEmbeddingProvider({ provider: 'xenova' });
-
-// Or instantiate directly
-const bm25 = new BM25EmbeddingProvider(); // zero deps
-const xenova = new XenovaEmbeddingProvider(); // WASM semantics
-// const openai = new OpenAIEmbeddingProvider('sk-...'); // cloud
-// const ollama = new OllamaEmbeddingProvider();         // local server
+// Shared project GraphRAG uses the native HoloEmbed provider.
+const provider = await createEmbeddingProvider({ provider: 'holoembed' });
 
 // Build an index
 const index = new EmbeddingIndex({ provider });
@@ -353,29 +330,21 @@ git commit -m "Update authentication handler"
 
 1. Make code changes → 2. Commit → 3. Hook triggers → 4. Incremental absorb (~1s) → 5. Studio refreshes
 
-### Embedding Provider Performance
+### HoloEmbed Performance
 
-| Provider          | Speed (10K symbols)               | Quality            | Requirements                              |
-| ----------------- | --------------------------------- | ------------------ | ----------------------------------------- |
-| **BM25**          | **Instant** (<1s)                 | Good for keywords  | None (built-in)                           |
-| **Xenova (WASM)** | 25s                               | Good for semantics | `@huggingface/transformers` (~25MB model) |
-| **Ollama**        | 30s                               | Excellent          | Ollama server running locally             |
-| **OpenAI**        | 12s (parallel) / 47s (sequential) | Excellent          | API key + `openai` package                |
+HoloEmbed is the shared GraphRAG embedding provider for every project. It is
+keyless, native, cacheable, and worker-backed; external providers are not part
+of project GraphRAG performance guidance because they create incompatible
+embedding spaces.
 
-**OpenAI parallelization:**
+| Codebase Size               | Full Absorb | Incremental | GraphRAG Provider |
+| --------------------------- | ----------- | ----------- | ----------------- |
+| **Small** (<1K files)       | Measure locally | <1s-1m depending on changed symbols | HoloEmbed |
+| **Medium** (1-5K files)     | Measure locally | 1-2m depending on changed symbols | HoloEmbed |
+| **Large** (5K+ files)       | Measure locally | 2m+ depending on changed symbols | HoloEmbed |
 
-- Processes 4-8 batches concurrently via worker threads
-- Reduces embedding time from 47s → 6-12s
-- Cost unchanged: ~$0.006 per 10K symbols (text-embedding-3-small)
-
-### Scaling Recommendations
-
-| Codebase Size               | Full Absorb | Incremental | Best Embedding Provider   |
-| --------------------------- | ----------- | ----------- | ------------------------- |
-| **Small** (<1K files)       | <10s        | <1s         | BM25 or Xenova            |
-| **Medium** (1-5K files)     | 30-60s      | 1-2s        | OpenAI (with workers)     |
-| **Large** (5-10K files)     | 2-3min      | 2-5s        | OpenAI (with workers)     |
-| **Enterprise** (10K+ files) | 5-10min     | 5-10s       | Ollama (local, unlimited) |
+Use `holo_graph_status` to confirm that a cache is fresh, authoritative for
+the current project root, and reporting `embeddingPolicy.provider: holoembed`.
 
 ### Monitoring Performance
 

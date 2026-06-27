@@ -239,8 +239,8 @@ export interface CLIOptions {
   /** Comma-separated files for quick blast-radius query (relative to scan dir) */
   impactFiles?: string;
   // ── query command ────────────────────────────────────────────────────────
-  /** Embedding provider for holoscript query (default: 'openai') */
-  queryProvider?: 'bm25' | 'xenova' | 'openai' | 'ollama';
+  /** Embedding provider for holoscript query (default: 'holoembed') */
+  queryProvider?: 'holoembed' | 'structural';
   /** LLM provider name for queryWithLLM (e.g. 'openai', 'anthropic', 'gemini') */
   queryLlm?: string;
   /** Model name for the query LLM (e.g. 'gpt-4o-mini') */
@@ -740,7 +740,7 @@ Usage: holoscript <command> [options] [input]
                     Run Absorb then report blast radius for comma-separated files
                     Use --dir <root> to set scan root (default: cwd)
   query <question>  Semantic GraphRAG search over an absorbed codebase
-                    Use --provider openai|xenova|ollama (default: openai). bm25 is deprecated and maps to openai.
+                    Use --provider holoembed (default). structural is a legacy alias; external embedding providers are rejected for project GraphRAG.
                     Use --with-llm to get an LLM-synthesised answer
                     Use --llm openai|anthropic|gemini to select LLM backend
                     Use --model <name> to override default model
@@ -848,12 +848,12 @@ Usage: holoscript <command> [options] [input]
   --since <ref>       Limit absorb to files changed since git ref/date
   --max-files <n>     Bound absorb scan size for large local workspaces
   --impact <files>    Comma-separated files to compute blast-radius for
-  --provider <b>      Embedding backend: openai | xenova | ollama (default: openai). bm25 is deprecated and maps to openai.
+  --provider <b>      GraphRAG embedding backend: holoembed (default) | structural alias. External embedding providers are rejected.
   --dir <path>        Directory to scan for query (default: cwd)
   --with-llm          Synthesise a natural-language answer from GraphRAG context
   --llm <adapter>     LLM backend for --with-llm: openai | anthropic | gemini
   --llm-key <key>     API key for the LLM backend (overrides env vars)
-  --model <name>      Model name override for embedding or LLM backend
+  --model <name>      Model name override for LLM backend
   --top-k <n>         Number of GraphRAG results to return (default: 10)
 
 \x1b[1mExamples:\x1b[0m
@@ -952,10 +952,9 @@ Usage: holoscript <command> [options] [input]
   holoscript absorb . --for-agent               # Agent-optimized manifest
   holoscript absorb . --depth shallow           # Fast manifest-only scan
   holoscript absorb . --since HEAD~5            # Only files changed in last 5 commits
-  holoscript query "what calls buildIndex"                         # BM25 keyword search (default)
+  holoscript query "what calls buildIndex"                         # HoloEmbed GraphRAG search (default)
   holoscript query "how does the parser work" --dir packages/core  # Scan specific directory
-  holoscript query "find auth handlers" --provider xenova --dir .  # Semantic WASM search
-  holoscript query "find all auth handlers" --provider openai      # Cloud embeddings
+  holoscript query "find auth handlers" --provider holoembed --dir . # Explicit native provider
   holoscript query "explain the compiler pipeline" --with-llm --llm openai
   holoscript query "trace call chain from absorb" --with-llm --llm anthropic
   holoscript query "list error handlers" --top-k 20 --json         # Machine-readable output

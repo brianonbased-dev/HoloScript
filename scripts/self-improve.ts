@@ -74,14 +74,23 @@ const REPO_ROOT = process.env.HOLOSCRIPT_ROOT ?? path.resolve(__scriptDir, '..')
 
 loadEnvFile(REPO_ROOT);
 
-// Default to OpenAI embeddings (higher quality, persists index to disk).
-// Use --bm25 flag to force free/fast BM25 (no API cost, no persistence).
-// Override AFTER loadEnvFile so .env values are respected unless flagged.
+// GraphRAG embeddings are intentionally fixed to HoloEmbed so every project
+// shares the same native embedding space. Legacy flags/env values are ignored
+// here rather than letting self-improve drift into external providers.
 if (process.argv.includes('--bm25')) {
-  process.env.EMBEDDING_PROVIDER = 'bm25';
-} else if (!process.env.EMBEDDING_PROVIDER) {
-  process.env.EMBEDDING_PROVIDER = 'openai';
+  console.warn('[self-improve] --bm25 is deprecated; GraphRAG uses HoloEmbed.');
 }
+const requestedEmbeddingProvider = process.env.EMBEDDING_PROVIDER?.trim().toLowerCase();
+if (
+  requestedEmbeddingProvider &&
+  requestedEmbeddingProvider !== 'holoembed' &&
+  requestedEmbeddingProvider !== 'structural'
+) {
+  console.warn(
+    `[self-improve] Ignoring EMBEDDING_PROVIDER=${requestedEmbeddingProvider}; GraphRAG uses HoloEmbed.`
+  );
+}
+process.env.EMBEDDING_PROVIDER = 'holoembed';
 
 const STATE_DIR = path.join(REPO_ROOT, '.holoscript');
 // Unified state file — shared with `holoscript daemon` (holoscript-runner.ts)
@@ -1944,8 +1953,7 @@ async function main() {
   const daemonState = loadDaemonState();
   daemonStateRef.current = daemonState;
 
-  // Pre-load GraphRAG embeddings (default: OpenAI for quality + disk persistence).
-  // Use --bm25 flag for free/fast BM25 (no persistence, rebuilds each run).
+  // Pre-load GraphRAG embeddings with the native HoloEmbed policy.
   console.log(`Pre-loading GraphRAG (provider: ${process.env.EMBEDDING_PROVIDER})...`);
   let graphRAGReady = false;
   try {
@@ -1957,7 +1965,7 @@ async function main() {
       graphRAGReady = true;
     } else {
       // Absorb with force=false — uses disk cache if fresh (<24h), otherwise re-scans.
-      // BM25 rebuild from cache ~2s. OpenAI persists index to disk, reloads in ~5s.
+      // HoloEmbed persists the native index to disk for later runs.
       const label = status.diskCache?.fresh
         ? `Loading from disk cache (${status.diskCache.ageHuman})...`
         : 'Scanning codebase (first run)...';
@@ -1967,9 +1975,8 @@ async function main() {
         rootDir: config.rootDir,
         outputFormat: 'stats',
       });
-      // OpenAI embeddings can take 3-5 min on first run (full repo scan + API calls).
-      // BM25 rebuilds in ~2s from disk cache. 300s timeout covers both.
-      const absorbTimeoutMs = process.env.EMBEDDING_PROVIDER === 'bm25' ? 120_000 : 300_000;
+      // First-run native embedding builds can take several minutes on large repos.
+      const absorbTimeoutMs = 300_000;
       const timeoutPromise = new Promise<string>((_, reject) =>
         setTimeout(
           () => reject(new Error(`Absorb timed out after ${absorbTimeoutMs / 1000}s`)),

@@ -62,7 +62,7 @@ Use these surfaces when validating public claims:
 - Runtime and CLI: `packages/runtime`, `packages/cli`.
 - MCP surface: `packages/mcp-server`, live `https://mcp.holoscript.net/health`.
 - Builder surface: `packages/studio`, `services/holoscript-net`.
-- Codebase intelligence: `packages/absorb-service`, `holoscript graph-status`, `holoscript query --provider openai`.
+- Codebase intelligence: `packages/absorb-service`, `holoscript graph-status`, `holoscript query --provider holoembed`.
 - Simulation stack: `packages/engine/src/simulation`, with the gap caveat already documented in `AGENTS.md`.
 - Current metrics: verify through `docs/NUMBERS.md` commands rather than copying counts into homepage copy.
 
