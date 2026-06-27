@@ -44,6 +44,8 @@
     "holo-ci:holonews-proof-adjacency-test": "node scripts/__tests__/holonews-proof-adjacency.test.mjs",
     "bench:paper26:section7": "node scripts/run-paper26-section7-harness.mjs",
     "bench:paper26:section7-test": "node scripts/__tests__/paper26-section7-harness.test.mjs",
+    "bench:formats": "node benchmarks/format-ai-development/run.mjs",
+    "bench:formats-test": "node scripts/__tests__/format-ai-development-bench.test.mjs",
     "holoshell:format-gauntlet": "node scripts/holoshell-format-gauntlet.mjs",
     "holoshell:format-gauntlet-test": "node scripts/__tests__/holoshell-format-gauntlet.test.mjs",
     "holoshell:local-reality-node": "node scripts/holoshell-local-reality-node.mjs",

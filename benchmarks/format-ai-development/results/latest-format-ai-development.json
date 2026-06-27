@@ -1,0 +1,711 @@
+{
+  "schema": "holoscript.format-ai-development-benchmark.v0.1.0",
+  "generatedAt": "2026-06-27T19:45:00.000Z",
+  "host": {
+    "platform": "win32",
+    "arch": "x64",
+    "node": "v24.15.0",
+    "cpuCount": 16
+  },
+  "repoRoot": "C:\\Users\\josep\\Documents\\GitHub\\HoloScript",
+  "corpus": {
+    "files": 4772,
+    "formats": {
+      "holo": 2256,
+      "hs": 72,
+      "hsplus": 2444
+    },
+    "ignoredDirectories": [
+      ".bench-logs",
+      ".git",
+      ".holo-persist",
+      ".holoscript",
+      ".next",
+      ".scratch",
+      ".tmp",
+      "audit-results",
+      "build",
+      "coverage",
+      "dist",
+      "node_modules",
+      "target",
+      "test-results",
+      "tmp"
+    ]
+  },
+  "summaryByFormat": {
+    "holo": {
+      "files": 2256,
+      "totalLines": 186572,
+      "totalBytes": 6294565,
+      "totalTokens": 1707728,
+      "totalSemanticConstructs": 20862,
+      "medianTokens": 247,
+      "medianLines": 23,
+      "constructsPerThousandTokens": 12.22,
+      "avgUniqueTraitsPerFile": 4.63
+    },
+    "hs": {
+      "files": 72,
+      "totalLines": 16253,
+      "totalBytes": 497890,
+      "totalTokens": 136282,
+      "totalSemanticConstructs": 860,
+      "medianTokens": 1070,
+      "medianLines": 101.5,
+      "constructsPerThousandTokens": 6.31,
+      "avgUniqueTraitsPerFile": 2.74
+    },
+    "hsplus": {
+      "files": 2444,
+      "totalLines": 111179,
+      "totalBytes": 3498043,
+      "totalTokens": 897359,
+      "totalSemanticConstructs": 17163,
+      "medianTokens": 163,
+      "medianLines": 24,
+      "constructsPerThousandTokens": 19.13,
+      "avgUniqueTraitsPerFile": 5.53
+    }
+  },
+  "baselineComparisons": [
+    {
+      "scenario": "01-basic-scene",
+      "nativeFiles": [
+        "benchmarks/scenarios/01-basic-scene/basic-scene.holo"
+      ],
+      "baseline": "unity-handwritten",
+      "baselineFiles": [
+        "benchmarks/scenarios/01-basic-scene/unity-handwritten/BasicSceneSetup.cs"
+      ],
+      "native": {
+        "files": 1,
+        "lines": 67,
+        "bytes": 1535,
+        "tokens": 512
+      },
+      "handwritten": {
+        "files": 1,
+        "lines": 101,
+        "bytes": 3467,
+        "tokens": 837
+      },
+      "compression": {
+        "tokenRatio": 1.63,
+        "lineRatio": 1.51,
+        "byteRatio": 2.26
+      }
+    },
+    {
+      "scenario": "01-basic-scene",
+      "nativeFiles": [
+        "benchmarks/scenarios/01-basic-scene/basic-scene.holo"
+      ],
+      "baseline": "unreal-handwritten",
+      "baselineFiles": [
+        "benchmarks/scenarios/01-basic-scene/unreal-handwritten/BasicSceneSetup.cpp",
+        "benchmarks/scenarios/01-basic-scene/unreal-handwritten/BasicSceneSetup.h"
+      ],
+      "native": {
+        "files": 1,
+        "lines": 67,
+        "bytes": 1535,
+        "tokens": 512
+      },
+      "handwritten": {
+        "files": 2,
+        "lines": 201,
+        "bytes": 6181,
+        "tokens": 1616
+      },
+      "compression": {
+        "tokenRatio": 3.16,
+        "lineRatio": 3,
+        "byteRatio": 4.03
+      }
+    }
+  ],
+  "claimStatus": {
+    "headline": "format-level support, productivity claim still unproven",
+    "supportsNow": [
+      "Local files contain machine-extractable structure per token.",
+      "Native scene sources can be compared against handwritten platform baselines.",
+      "The benchmark is reproducible without an LLM call or paid API."
+    ],
+    "stillNeeded": [
+      "LLM task benchmark: prompt to valid artifact across .hs, .hsplus, .holo, TypeScript, and raw prose.",
+      "Repair benchmark: broken artifact to validated artifact, measuring attempts, tokens, and wall time.",
+      "Human study: time-to-first-valid scene or agent behavior with blinded tasks."
+    ],
+    "metrics": {
+      "hasAllCoreFormats": true,
+      "totalConstructsPerThousandTokens": 14.18,
+      "bestHandwrittenTokenCompressionRatio": 3.16
+    }
+  },
+  "topSemanticDensity": [
+    {
+      "path": "examples/services/cross-domain-service.holo",
+      "format": "holo",
+      "lines": 108,
+      "bytes": 3297,
+      "tokens": 551,
+      "semantic": {
+        "constructCount": 49,
+        "constructsPerThousandTokens": 88.93,
+        "uniqueTraits": [
+          "alert_rule",
+          "audit_column",
+          "cache",
+          "circuit_breaker",
+          "container",
+          "contract",
+          "cors_policy",
+          "db",
+          "deployment",
+          "dockerfile",
+          "endpoint",
+          "exponential_backoff",
+          "fallback",
+          "handler",
+          "health_check",
+          "health_endpoint",
+          "http",
+          "idempotent_consumer",
+          "json_schema",
+          "jwt_config",
+          "metric",
+          "middleware",
+          "migration",
+          "model",
+          "openapi_path",
+          "pipeline",
+          "queue",
+          "rate_limiter",
+          "repository",
+          "retry",
+          "scaling",
+          "scheduler",
+          "schema",
+          "secret",
+          "service",
+          "slo",
+          "soft_delete",
+          "structured_log",
+          "timeout",
+          "tls_config",
+          "trace",
+          "validator",
+          "worker"
+        ],
+        "counts": {
+          "traits": 46,
+          "objects": 0,
+          "templates": 0,
+          "stateBlocks": 0,
+          "behaviors": 0,
+          "actions": 0,
+          "events": 0,
+          "services": 0,
+          "endpoints": 2,
+          "contracts": 1,
+          "pipelines": 0,
+          "pipelineSteps": 0,
+          "platformBlocks": 0,
+          "metadataBlocks": 0,
+          "environmentBlocks": 0
+        }
+      }
+    },
+    {
+      "path": "packages/core/src/runtime/system_variables.hsplus",
+      "format": "hsplus",
+      "lines": 24,
+      "bytes": 708,
+      "tokens": 171,
+      "semantic": {
+        "constructCount": 15,
+        "constructsPerThousandTokens": 87.72,
+        "uniqueTraits": [
+          "camera",
+          "frame",
+          "on_resolve",
+          "on_spawn",
+          "receipt",
+          "self",
+          "system_variables",
+          "time",
+          "trait",
+          "world"
+        ],
+        "counts": {
+          "traits": 15,
+          "objects": 0,
+          "templates": 0,
+          "stateBlocks": 0,
+          "behaviors": 0,
+          "actions": 0,
+          "events": 0,
+          "services": 0,
+          "endpoints": 0,
+          "contracts": 0,
+          "pipelines": 0,
+          "pipelineSteps": 0,
+          "platformBlocks": 0,
+          "metadataBlocks": 0,
+          "environmentBlocks": 0
+        }
+      }
+    },
+    {
+      "path": "packages/core/src/semantics/property_annotations.hsplus",
+      "format": "hsplus",
+      "lines": 24,
+      "bytes": 722,
+      "tokens": 156,
+      "semantic": {
+        "constructCount": 13,
+        "constructsPerThousandTokens": 83.33,
+        "uniqueTraits": [
+          "deprecated",
+          "on_annotate",
+          "on_spawn",
+          "property_annotations",
+          "range",
+          "readonly",
+          "receipt",
+          "trait",
+          "unit"
+        ],
+        "counts": {
+          "traits": 13,
+          "objects": 0,
+          "templates": 0,
+          "stateBlocks": 0,
+          "behaviors": 0,
+          "actions": 0,
+          "events": 0,
+          "services": 0,
+          "endpoints": 0,
+          "contracts": 0,
+          "pipelines": 0,
+          "pipelineSteps": 0,
+          "platformBlocks": 0,
+          "metadataBlocks": 0,
+          "environmentBlocks": 0
+        }
+      }
+    },
+    {
+      "path": "packages/core/src/traits/semantic-2d/dynamic_visual.holo",
+      "format": "holo",
+      "lines": 12,
+      "bytes": 286,
+      "tokens": 75,
+      "semantic": {
+        "constructCount": 6,
+        "constructsPerThousandTokens": 80,
+        "uniqueTraits": [
+          "dynamic_hue",
+          "dynamic_visual",
+          "live_stream",
+          "procedural_field",
+          "trait"
+        ],
+        "counts": {
+          "traits": 6,
+          "objects": 0,
+          "templates": 0,
+          "stateBlocks": 0,
+          "behaviors": 0,
+          "actions": 0,
+          "events": 0,
+          "services": 0,
+          "endpoints": 0,
+          "contracts": 0,
+          "pipelines": 0,
+          "pipelineSteps": 0,
+          "platformBlocks": 0,
+          "metadataBlocks": 0,
+          "environmentBlocks": 0
+        }
+      }
+    },
+    {
+      "path": "packages/studio/holo-pages/start/page.holo",
+      "format": "holo",
+      "lines": 5,
+      "bytes": 44,
+      "tokens": 15,
+      "semantic": {
+        "constructCount": 1,
+        "constructsPerThousandTokens": 66.67,
+        "uniqueTraits": [
+          "page"
+        ],
+        "counts": {
+          "traits": 1,
+          "objects": 0,
+          "templates": 0,
+          "stateBlocks": 0,
+          "behaviors": 0,
+          "actions": 0,
+          "events": 0,
+          "services": 0,
+          "endpoints": 0,
+          "contracts": 0,
+          "pipelines": 0,
+          "pipelineSteps": 0,
+          "platformBlocks": 0,
+          "metadataBlocks": 0,
+          "environmentBlocks": 0
+        }
+      }
+    },
+    {
+      "path": "examples/services/user-api-contract.holo",
+      "format": "holo",
+      "lines": 88,
+      "bytes": 1792,
+      "tokens": 501,
+      "semantic": {
+        "constructCount": 32,
+        "constructsPerThousandTokens": 63.87,
+        "uniqueTraits": [
+          "contract",
+          "cors_policy",
+          "endpoint",
+          "handler",
+          "health_endpoint",
+          "jwt_config",
+          "rate_limiter",
+          "rest_resource",
+          "schema",
+          "service",
+          "structured_log",
+          "validator"
+        ],
+        "counts": {
+          "traits": 24,
+          "objects": 0,
+          "templates": 0,
+          "stateBlocks": 0,
+          "behaviors": 0,
+          "actions": 0,
+          "events": 0,
+          "services": 0,
+          "endpoints": 5,
+          "contracts": 3,
+          "pipelines": 0,
+          "pipelineSteps": 0,
+          "platformBlocks": 0,
+          "metadataBlocks": 0,
+          "environmentBlocks": 0
+        }
+      }
+    },
+    {
+      "path": "examples/integration/layered-architecture-demo/components/button.hsplus",
+      "format": "hsplus",
+      "lines": 25,
+      "bytes": 438,
+      "tokens": 141,
+      "semantic": {
+        "constructCount": 9,
+        "constructsPerThousandTokens": 63.83,
+        "uniqueTraits": [
+          "audio",
+          "clickable",
+          "glowing",
+          "hoverable",
+          "pointable"
+        ],
+        "counts": {
+          "traits": 7,
+          "objects": 0,
+          "templates": 2,
+          "stateBlocks": 0,
+          "behaviors": 0,
+          "actions": 0,
+          "events": 0,
+          "services": 0,
+          "endpoints": 0,
+          "contracts": 0,
+          "pipelines": 0,
+          "pipelineSteps": 0,
+          "platformBlocks": 0,
+          "metadataBlocks": 0,
+          "environmentBlocks": 0
+        }
+      }
+    },
+    {
+      "path": "packages/studio/holo-pages/learn/page.holo",
+      "format": "holo",
+      "lines": 5,
+      "bytes": 52,
+      "tokens": 16,
+      "semantic": {
+        "constructCount": 1,
+        "constructsPerThousandTokens": 62.5,
+        "uniqueTraits": [
+          "page"
+        ],
+        "counts": {
+          "traits": 1,
+          "objects": 0,
+          "templates": 0,
+          "stateBlocks": 0,
+          "behaviors": 0,
+          "actions": 0,
+          "events": 0,
+          "services": 0,
+          "endpoints": 0,
+          "contracts": 0,
+          "pipelines": 0,
+          "pipelineSteps": 0,
+          "platformBlocks": 0,
+          "metadataBlocks": 0,
+          "environmentBlocks": 0
+        }
+      }
+    },
+    {
+      "path": "packages/studio/holo-pages/templates/page.holo",
+      "format": "holo",
+      "lines": 5,
+      "bytes": 55,
+      "tokens": 16,
+      "semantic": {
+        "constructCount": 1,
+        "constructsPerThousandTokens": 62.5,
+        "uniqueTraits": [
+          "page"
+        ],
+        "counts": {
+          "traits": 1,
+          "objects": 0,
+          "templates": 0,
+          "stateBlocks": 0,
+          "behaviors": 0,
+          "actions": 0,
+          "events": 0,
+          "services": 0,
+          "endpoints": 0,
+          "contracts": 0,
+          "pipelines": 0,
+          "pipelineSteps": 0,
+          "platformBlocks": 0,
+          "metadataBlocks": 0,
+          "environmentBlocks": 0
+        }
+      }
+    },
+    {
+      "path": "packages/studio/holo-pages/pipeline/page.holo",
+      "format": "holo",
+      "lines": 18,
+      "bytes": 338,
+      "tokens": 98,
+      "semantic": {
+        "constructCount": 6,
+        "constructsPerThousandTokens": 61.22,
+        "uniqueTraits": [
+          "layout",
+          "page",
+          "slot",
+          "theme"
+        ],
+        "counts": {
+          "traits": 6,
+          "objects": 0,
+          "templates": 0,
+          "stateBlocks": 0,
+          "behaviors": 0,
+          "actions": 0,
+          "events": 0,
+          "services": 0,
+          "endpoints": 0,
+          "contracts": 0,
+          "pipelines": 0,
+          "pipelineSteps": 0,
+          "platformBlocks": 0,
+          "metadataBlocks": 0,
+          "environmentBlocks": 0
+        }
+      }
+    },
+    {
+      "path": "packages/studio/holo-pages/vibe/page.holo",
+      "format": "holo",
+      "lines": 5,
+      "bytes": 50,
+      "tokens": 17,
+      "semantic": {
+        "constructCount": 1,
+        "constructsPerThousandTokens": 58.82,
+        "uniqueTraits": [
+          "page"
+        ],
+        "counts": {
+          "traits": 1,
+          "objects": 0,
+          "templates": 0,
+          "stateBlocks": 0,
+          "behaviors": 0,
+          "actions": 0,
+          "events": 0,
+          "services": 0,
+          "endpoints": 0,
+          "contracts": 0,
+          "pipelines": 0,
+          "pipelineSteps": 0,
+          "platformBlocks": 0,
+          "metadataBlocks": 0,
+          "environmentBlocks": 0
+        }
+      }
+    },
+    {
+      "path": "examples/general/login-form.hs",
+      "format": "hs",
+      "lines": 28,
+      "bytes": 774,
+      "tokens": 208,
+      "semantic": {
+        "constructCount": 12,
+        "constructsPerThousandTokens": 57.69,
+        "uniqueTraits": [
+          "agent_attention",
+          "dynamic_hue",
+          "dynamic_visual",
+          "hsplus_contract",
+          "intent_driven",
+          "particle_feedback",
+          "procedural_field",
+          "semantic_entity",
+          "semantic_layout"
+        ],
+        "counts": {
+          "traits": 12,
+          "objects": 0,
+          "templates": 0,
+          "stateBlocks": 0,
+          "behaviors": 0,
+          "actions": 0,
+          "events": 0,
+          "services": 0,
+          "endpoints": 0,
+          "contracts": 0,
+          "pipelines": 0,
+          "pipelineSteps": 0,
+          "platformBlocks": 0,
+          "metadataBlocks": 0,
+          "environmentBlocks": 0
+        }
+      }
+    },
+    {
+      "path": "packages/core/src/traits/semantic-2d/semantic_entity.holo",
+      "format": "holo",
+      "lines": 14,
+      "bytes": 335,
+      "tokens": 88,
+      "semantic": {
+        "constructCount": 5,
+        "constructsPerThousandTokens": 56.82,
+        "uniqueTraits": [
+          "agent_attention",
+          "dynamic_visual",
+          "semantic_entity",
+          "trait"
+        ],
+        "counts": {
+          "traits": 5,
+          "objects": 0,
+          "templates": 0,
+          "stateBlocks": 0,
+          "behaviors": 0,
+          "actions": 0,
+          "events": 0,
+          "services": 0,
+          "endpoints": 0,
+          "contracts": 0,
+          "pipelines": 0,
+          "pipelineSteps": 0,
+          "platformBlocks": 0,
+          "metadataBlocks": 0,
+          "environmentBlocks": 0
+        }
+      }
+    },
+    {
+      "path": "packages/core/src/traits/semantic-2d/intent_driven.holo",
+      "format": "holo",
+      "lines": 10,
+      "bytes": 203,
+      "tokens": 53,
+      "semantic": {
+        "constructCount": 3,
+        "constructsPerThousandTokens": 56.6,
+        "uniqueTraits": [
+          "hs_behavior",
+          "intent_driven",
+          "trait"
+        ],
+        "counts": {
+          "traits": 3,
+          "objects": 0,
+          "templates": 0,
+          "stateBlocks": 0,
+          "behaviors": 0,
+          "actions": 0,
+          "events": 0,
+          "services": 0,
+          "endpoints": 0,
+          "contracts": 0,
+          "pipelines": 0,
+          "pipelineSteps": 0,
+          "platformBlocks": 0,
+          "metadataBlocks": 0,
+          "environmentBlocks": 0
+        }
+      }
+    },
+    {
+      "path": "packages/mcp-server/src/service_contract_tools.hsplus",
+      "format": "hsplus",
+      "lines": 11,
+      "bytes": 593,
+      "tokens": 126,
+      "semantic": {
+        "constructCount": 7,
+        "constructsPerThousandTokens": 55.56,
+        "uniqueTraits": [
+          "on_generate",
+          "on_spawn",
+          "receipt",
+          "service_contract_tools",
+          "trait"
+        ],
+        "counts": {
+          "traits": 5,
+          "objects": 0,
+          "templates": 0,
+          "stateBlocks": 0,
+          "behaviors": 0,
+          "actions": 0,
+          "events": 0,
+          "services": 1,
+          "endpoints": 0,
+          "contracts": 1,
+          "pipelines": 0,
+          "pipelineSteps": 0,
+          "platformBlocks": 0,
+          "metadataBlocks": 0,
+          "environmentBlocks": 0
+        }
+      }
+    }
+  ]
+}
