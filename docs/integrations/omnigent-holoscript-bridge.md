@@ -1,7 +1,7 @@
 # Omnigent / HoloScript Bridge Contract
 
 **Classification**: BRIDGE
-**Status**: Absorb-backed bridge contract
+**Status**: Export target implemented in `compile_to_omnigent_agent_yaml`
 **Snapshot consumed**: `omnigent-ai/omnigent` `15c6460c8f967c3dc7755bc70b3fa686296ed776` on 2026-06-27
 
 ## One-line
@@ -74,7 +74,7 @@ The import side should be append-only. Never rewrite HoloMesh history from Omnig
 
 ## Compiler Target Shape
 
-Future target: `compile_to_omnigent_agent_yaml`.
+Implemented target: `compile_to_omnigent_agent_yaml`.
 
 Minimum output:
 
@@ -118,10 +118,15 @@ Required warnings:
 - Do not assume Omnigent sandbox claims transfer across operating systems without a recorded backend.
 - Do not compile arbitrary Python policy handlers from HoloScript unless the handler is already a declared bridge dependency.
 
-## Next Implementation Slice
+## Implementation Receipt
 
-Add `compile_to_omnigent_agent_yaml` as an export-only compiler target that accepts a HoloScript agent composition and emits:
+`compile_to_omnigent_agent_yaml` is an export-only compiler target that accepts a HoloScript agent composition and emits:
 
 - Omnigent YAML.
 - A projection receipt.
-- A warning list for degraded sandboxing, missing policy provenance, and unowned function-tool schemas.
+- A warning list for inline secrets, degraded Windows sandboxing, missing policy provenance, and unowned function-tool schemas.
+
+Primary implementation:
+
+- `packages/core/src/compiler/OmnigentAgentYamlCompiler.ts`
+- `packages/mcp-server/src/compiler-tools.ts`

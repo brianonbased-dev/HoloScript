@@ -323,6 +323,18 @@ export function registerBuiltinDialects(): void {
       outputExtensions: ['.ts', '.py', '.json', '.md'],
     },
     {
+      name: 'omnigent-agent-yaml',
+      domain: 'ai',
+      description: 'Exports HoloScript agent compositions as Omnigent agent YAML plus projection receipt',
+      supportedTraits: ['agent', 'model', 'system_prompt', 'tool', 'mcp', 'policy', 'runtime'],
+      riskTier: 'high',
+      factory: (opts) => {
+        const { OmnigentAgentYamlCompiler } = require('./OmnigentAgentYamlCompiler');
+        return new OmnigentAgentYamlCompiler(opts);
+      },
+      outputExtensions: ['.yaml', '.json'],
+    },
+    {
       name: 'daimon-seed',
       domain: 'ai',
       description:

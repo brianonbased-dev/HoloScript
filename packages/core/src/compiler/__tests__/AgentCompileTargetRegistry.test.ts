@@ -36,11 +36,16 @@ function parseComposition(source: string): HoloComposition {
 describe('agent brain as an ExportTarget', () => {
   it('classifies agent-inference through the _AssertNever-guarded target registry', () => {
     const target: ExportTarget = 'agent-inference';
+    const omnigentTarget: ExportTarget = 'omnigent-agent-yaml';
     const daimonSeedTarget: ExportTarget = 'daimon-seed';
 
     expect(targetSovereignty(target)).toBe('bridge');
+    expect(targetSovereignty(omnigentTarget)).toBe('bridge');
     expect(targetSovereignty(daimonSeedTarget)).toBe('bridge');
     expect(getRegisteredCompilerANSName('AgentInferenceCompiler')).toBe('agent-inference');
+    expect(getRegisteredCompilerANSName('OmnigentAgentYamlCompiler')).toBe(
+      'omnigent-agent-yaml'
+    );
     expect(getRegisteredCompilerANSName('DaimonSeedCompiler')).toBe('daimon-seed');
     expect(getRegisteredCompilerANSName('WebGPUCompiler')).toBe('webgpu');
     expect(getRegisteredCompilerANSName('NIRCompiler')).toBe('nir');
@@ -62,6 +67,10 @@ describe('agent brain as an ExportTarget', () => {
           emergenceContractRef: 'emergence:t4:test',
         },
       });
+      const omnigentResult = await manager.export('omnigent-agent-yaml', composition, {
+        useFallback: false,
+        compilerOptions: { source: 'CompileTargetBrain.hsplus' },
+      });
       const nirResult = await manager.export('nir', composition, { useFallback: false });
       const sceneResult = await manager.export('webgpu', composition, { useFallback: false });
 
@@ -76,6 +85,15 @@ describe('agent brain as an ExportTarget', () => {
       expect(daimonSeedResult.usedFallback).toBe(false);
       expect(daimonSeedResult.output).toContain('"kind": "DaimonSeed"');
       expect(daimonSeedResult.output).toContain('ContentPolicyGate.jsonLogic');
+
+      expect(omnigentResult.success).toBe(true);
+      expect(omnigentResult.usedFallback).toBe(false);
+      const omnigentBridge = omnigentResult.output as unknown as {
+        agentYaml: string;
+        receipt: { target: string };
+      };
+      expect(omnigentBridge.agentYaml).toContain('harness: codex');
+      expect(omnigentBridge.receipt.target).toBe('omnigent-agent-yaml');
 
       expect(nirResult.success).toBe(true);
       expect(nirResult.usedFallback).toBe(false);

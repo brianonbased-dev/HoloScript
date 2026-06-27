@@ -78,8 +78,8 @@ describe('ANSNamespace', () => {
   });
 
   describe('ANSCapabilityPath constants', () => {
-    it('should define exactly 41 capability paths', () => {
-      expect(Object.keys(ANSCapabilityPath)).toHaveLength(41);
+    it('should define exactly 43 capability paths', () => {
+      expect(Object.keys(ANSCapabilityPath)).toHaveLength(43);
     });
 
     it('should follow /compile/DOMAIN/TARGET pattern', () => {
@@ -150,6 +150,9 @@ describe('ANSNamespace', () => {
       expect(ANSCapabilityPath.SCM).toBe('/compile/ai/scm');
       expect(ANSCapabilityPath.A2A_AGENT_CARD).toBe('/compile/ai/a2a-agent-card');
       expect(ANSCapabilityPath.AGENT_INFERENCE).toBe('/compile/ai/agent-inference');
+      expect(ANSCapabilityPath.OMNIGENT_AGENT_YAML).toBe(
+        '/compile/ai/omnigent-agent-yaml'
+      );
       expect(ANSCapabilityPath.MCP_CONFIG).toBe('/compile/ai/mcp-config');
       expect(ANSCapabilityPath.MCP_SERVER).toBe('/compile/ai/mcp-server');
     });
@@ -245,8 +248,8 @@ describe('ANSNamespace', () => {
   // -----------------------------------------------------------------------
 
   describe('COMPILER_DOMAIN_MAP', () => {
-    it('should map exactly 41 compilers', () => {
-      expect(Object.keys(COMPILER_DOMAIN_MAP)).toHaveLength(41);
+    it('should map exactly 43 compilers', () => {
+      expect(Object.keys(COMPILER_DOMAIN_MAP)).toHaveLength(43);
     });
 
     it('should map every compiler to a valid domain', () => {
@@ -257,8 +260,8 @@ describe('ANSNamespace', () => {
   });
 
   describe('COMPILER_ANS_MAP', () => {
-    it('should map exactly 41 compilers to paths', () => {
-      expect(Object.keys(COMPILER_ANS_MAP)).toHaveLength(41);
+    it('should map exactly 43 compilers to paths', () => {
+      expect(Object.keys(COMPILER_ANS_MAP)).toHaveLength(43);
     });
 
     it('should be consistent with COMPILER_DOMAIN_MAP', () => {
@@ -271,8 +274,8 @@ describe('ANSNamespace', () => {
   });
 
   describe('ALL_COMPILER_NAMES', () => {
-    it('should contain exactly 41 names', () => {
-      expect(ALL_COMPILER_NAMES).toHaveLength(41);
+    it('should contain exactly 43 names', () => {
+      expect(ALL_COMPILER_NAMES).toHaveLength(43);
     });
 
     it('should contain all expected compiler names', () => {
@@ -307,6 +310,7 @@ describe('ANSNamespace', () => {
         'scm',
         'a2a-agent-card',
         'agent-inference',
+        'omnigent-agent-yaml',
         'mcp-config',
         'mcp-server',
         'nir',
@@ -374,6 +378,9 @@ describe('ANSNamespace', () => {
       expect(getNamespaceForCompiler('scm')).toBe('/compile/ai/scm');
       expect(getNamespaceForCompiler('a2a-agent-card')).toBe('/compile/ai/a2a-agent-card');
       expect(getNamespaceForCompiler('agent-inference')).toBe('/compile/ai/agent-inference');
+      expect(getNamespaceForCompiler('omnigent-agent-yaml')).toBe(
+        '/compile/ai/omnigent-agent-yaml'
+      );
       expect(getNamespaceForCompiler('mcp-config')).toBe('/compile/ai/mcp-config');
       expect(getNamespaceForCompiler('mcp-server')).toBe('/compile/ai/mcp-server');
     });
@@ -557,12 +564,13 @@ describe('ANSNamespace', () => {
       expect(getAllCompilersInDomain('web3')).toEqual(['nft-marketplace']);
     });
 
-    it('should return 5 compilers for ai', () => {
+    it('should return 7 compilers for ai', () => {
       const compilers = getAllCompilersInDomain('ai');
-      expect(compilers).toHaveLength(5);
+      expect(compilers).toHaveLength(7);
       expect(compilers).toContain('scm');
       expect(compilers).toContain('a2a-agent-card');
       expect(compilers).toContain('agent-inference');
+      expect(compilers).toContain('omnigent-agent-yaml');
       expect(compilers).toContain('mcp-config');
       expect(compilers).toContain('mcp-server');
     });
@@ -585,12 +593,12 @@ describe('ANSNamespace', () => {
       expect(getAllCompilersInDomain('mixin')).toEqual(['domain-block']);
     });
 
-    it('total across all domains should equal 41', () => {
+    it('total across all domains should equal 43', () => {
       let total = 0;
       for (const domain of ALL_DOMAINS) {
         total += getAllCompilersInDomain(domain).length;
       }
-      expect(total).toBe(41);
+      expect(total).toBe(43);
     });
   });
 
@@ -610,8 +618,8 @@ describe('ANSNamespace', () => {
 
     it('should return compilers for HIGH tier', () => {
       const compilers = getAllCompilersWithRiskTier('HIGH');
-      // social-vr(1) + xr(8) + mobile(2) + runtime(3) + iot(1) + ai(5) + neuromorphic(1) + edge(1) = 22
-      expect(compilers).toHaveLength(22);
+      // social-vr(1) + xr(8) + mobile(2) + runtime(3) + iot(1) + ai(7) + neuromorphic(1) + edge(1) = 24
+      expect(compilers).toHaveLength(24);
       expect(compilers).toContain('vrchat');
       expect(compilers).toContain('openxr');
       expect(compilers).toContain('android');
@@ -621,6 +629,7 @@ describe('ANSNamespace', () => {
       expect(compilers).toContain('dtdl');
       expect(compilers).toContain('scm');
       expect(compilers).toContain('agent-inference');
+      expect(compilers).toContain('omnigent-agent-yaml');
       expect(compilers).toContain('quilt');
       expect(compilers).toContain('mv-hevc');
     });
@@ -634,11 +643,11 @@ describe('ANSNamespace', () => {
       expect(compilers).toContain('nft-marketplace');
     });
 
-    it('total across all tiers should equal 41', () => {
+    it('total across all tiers should equal 43', () => {
       const standard = getAllCompilersWithRiskTier('STANDARD').length;
       const high = getAllCompilersWithRiskTier('HIGH').length;
       const critical = getAllCompilersWithRiskTier('CRITICAL').length;
-      expect(standard + high + critical).toBe(41);
+      expect(standard + high + critical).toBe(43);
     });
   });
 
@@ -806,7 +815,7 @@ describe('ANSNamespace', () => {
   describe('getANSSummary()', () => {
     it('should return correct total counts', () => {
       const summary = getANSSummary();
-      expect(summary.totalCompilers).toBe(41);
+      expect(summary.totalCompilers).toBe(43);
       expect(summary.totalDomains).toBe(17);
     });
 
@@ -820,22 +829,22 @@ describe('ANSNamespace', () => {
       expect(summary.compilersByDomain['gamedev']).toBe(4);
       expect(summary.compilersByDomain['xr']).toBe(8);
       expect(summary.compilersByDomain['web3d']).toBe(1);
-      expect(summary.compilersByDomain['ai']).toBe(5);
+      expect(summary.compilersByDomain['ai']).toBe(7);
       expect(summary.compilersByDomain['meta']).toBe(5);
       expect(summary.compilersByDomain['neuromorphic']).toBe(1);
     });
 
-    it('should sum domain compiler counts to 41', () => {
+    it('should sum domain compiler counts to 43', () => {
       const summary = getANSSummary();
       const total = Object.values(summary.compilersByDomain).reduce((a, b) => a + b, 0);
-      expect(total).toBe(41);
+      expect(total).toBe(43);
     });
 
     it('should have all 3 risk tiers in compilersByRiskTier', () => {
       const summary = getANSSummary();
       expect(Object.keys(summary.compilersByRiskTier)).toHaveLength(3);
       expect(summary.compilersByRiskTier['STANDARD']).toBe(16); // gamedev(4)+web3d(1)+shader(1)+interchange(3)+meta(5)+mixin(1)+web2d(1)
-      expect(summary.compilersByRiskTier['HIGH']).toBe(22);     // social-vr(1)+xr(8)+mobile(2)+runtime(3)+iot(1)+ai(5)+neuromorphic(1)+edge(1)
+      expect(summary.compilersByRiskTier['HIGH']).toBe(24);     // social-vr(1)+xr(8)+mobile(2)+runtime(3)+iot(1)+ai(7)+neuromorphic(1)+edge(1)
       expect(summary.compilersByRiskTier['CRITICAL']).toBe(3);  // robotics(2)+web3(1)
     });
 

@@ -89,6 +89,38 @@ describe('compiler tools', () => {
     expect(files['config.json']).toContain('gpt-4o');
   });
 
+  it('exports an Omnigent agent YAML bridge through its convenience tool', async () => {
+    const result = (await handleCompilerTool('compile_to_omnigent_agent_yaml', {
+      code: `composition "PlannerBrain" {
+        object "planner_agent" {
+          @agent(role: "planner")
+          @model(provider: "openai", name: "gpt-4o")
+          @system_prompt(text: "Plan safely.")
+          @tool(name: "lookup_order", description: "Look up an order")
+        }
+      }`,
+      options: { source: 'planner.hsplus' },
+    })) as {
+      success?: boolean;
+      output?: string;
+      target?: string;
+    };
+
+    expect(result.success).toBe(true);
+    expect(result.target).toBe('omnigent-agent-yaml');
+    const bridge = JSON.parse(result.output ?? '{}') as {
+      agentYaml?: string;
+      receipt?: { source?: string; target?: string; warnings?: Array<{ code?: string }> };
+    };
+    expect(bridge.agentYaml).toContain('harness: codex');
+    expect(bridge.agentYaml).toContain('name: lookup_order');
+    expect(bridge.receipt?.source).toBe('planner.hsplus');
+    expect(bridge.receipt?.target).toBe('omnigent-agent-yaml');
+    expect(bridge.receipt?.warnings?.map((warning) => warning.code)).toContain(
+      'function_tool_unowned_schema'
+    );
+  });
+
   it('compiles DaimonSeed IR through its convenience tool', async () => {
     const result = (await handleCompilerTool('compile_to_daimon_seed', {
       code: `composition "SeedBrain" {

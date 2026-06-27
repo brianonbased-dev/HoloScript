@@ -64,6 +64,7 @@ export const BRIDGE_TARGETS = [
   'dtdl',
   'a2a-agent-card',
   'agent-inference', // Runnable agent scripts consumed by Node/Python + model/provider runtimes
+  'omnigent-agent-yaml', // Omnigent agent YAML bridge plus HoloScript projection receipt
   'daimon-seed', // Seed-only Daimon IR consumed by identity/emergence runtimes; soul stays runtime-only
   'openxr-spatial-entities',
   '3dgs',

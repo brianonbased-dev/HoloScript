@@ -1,0 +1,10 @@
+// @omnigent_agent_yaml_compiler - Omnigent bridge compiler: exports agent YAML plus projection receipt.
+//
+// Native .hsplus surface for core/src/compiler/OmnigentAgentYamlCompiler.ts.
+
+@trait omnigent_agent_yaml_compiler {
+  capability_tags: ["omnigent_agent_yaml_compiler", "omnigent_agent_yaml", "agent_bridge", "compiler", "core"]
+  @on_spawn => { emit("omnigent_agent_yaml_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_omnigent_agent_yaml(ast); return result }
+  @receipt omnigent_agent_yaml_compiler_config { type: "OmnigentAgentYamlCompilerReceipt"; timestamp: now() }
+}

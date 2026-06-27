@@ -52,6 +52,7 @@ import { TraitCompositionCompiler } from './TraitCompositionCompiler';
 import { TSLCompiler } from './TSLCompiler';
 import { A2AAgentCardCompiler } from './A2AAgentCardCompiler';
 import { AgentInferenceCompiler } from './AgentInferenceExportTarget';
+import { OmnigentAgentYamlCompiler } from './OmnigentAgentYamlCompiler';
 import { DaimonSeedCompiler } from './DaimonSeedCompiler';
 import { NIRCompiler } from './NIRCompiler';
 import { OpenXRSpatialEntitiesCompiler } from './OpenXRSpatialEntitiesCompiler';
@@ -275,6 +276,10 @@ class CompilerFactory {
       case 'agent-inference':
         return new AgentInferenceCompiler(
           options as unknown as ConstructorParameters<typeof AgentInferenceCompiler>[0]
+        );
+      case 'omnigent-agent-yaml':
+        return new OmnigentAgentYamlCompiler(
+          options as unknown as ConstructorParameters<typeof OmnigentAgentYamlCompiler>[0]
         );
       case 'daimon-seed':
         return new DaimonSeedCompiler(
@@ -659,6 +664,7 @@ export class ExportManager {
       'tsl',
       'a2a-agent-card',
       'agent-inference',
+      'omnigent-agent-yaml',
       'daimon-seed',
       'nir',
       'openxr-spatial-entities',

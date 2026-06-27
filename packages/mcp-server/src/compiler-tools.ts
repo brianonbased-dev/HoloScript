@@ -685,6 +685,7 @@ export async function handleListExportTargets(_args: Record<string, unknown>): P
     'AI/MCP': [
       'a2a-agent-card',
       'agent-inference',
+      'omnigent-agent-yaml',
       'daimon-seed',
       'mcp-server',
     ] as unknown as ExportTarget[],
@@ -838,6 +839,8 @@ export async function handleCompilerTool(
       return handleCompileToTarget({ ...args, target: 'a2a-agent-card' });
     case 'compile_to_agent_inference':
       return handleCompileToTarget({ ...args, target: 'agent-inference' });
+    case 'compile_to_omnigent_agent_yaml':
+      return handleCompileToTarget({ ...args, target: 'omnigent-agent-yaml' });
     case 'compile_to_daimon_seed':
       return handleCompileToTarget({ ...args, target: 'daimon-seed' });
     case 'compile_to_state':
@@ -1139,6 +1142,7 @@ export const compilerTools: Tool[] = [
             // 'ar' — retired apex-poison 2026-06-17
             // 'babylon' — retired apex-poison 2026-06-17
             'webgpu',
+            'character-webgpu',
             // 'r3f' — retired apex-poison 2026-06-17
             'wasm',
             // 'playcanvas' — retired apex-poison 2026-06-17
@@ -1150,6 +1154,9 @@ export const compilerTools: Tool[] = [
             'mcp-server',
             'state',
             'a2a-agent-card',
+            'agent-inference',
+            'omnigent-agent-yaml',
+            'daimon-seed',
             'nir',
             // 'native-2d' — retired apex-poison 2026-06-17
             'node-service',
@@ -1701,6 +1708,37 @@ export const compilerTools: Tool[] = [
             defaultModel: { type: 'string', description: 'Default model name' },
             defaultTemperature: { type: 'number', description: 'Default sampling temperature' },
             defaultMaxTokens: { type: 'number', description: 'Default max token budget' },
+          },
+        },
+      },
+      required: ['code'],
+    },
+  },
+  {
+    name: 'compile_to_omnigent_agent_yaml',
+    description:
+      'Export a HoloScript or HSPlus agent brain into Omnigent agent YAML plus a projection receipt with bridge warnings.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript / HSPlus agent brain source code' },
+        options: {
+          type: 'object',
+          properties: {
+            source: { type: 'string', description: 'Receipt source label or file path' },
+            harness: { type: 'string', description: 'Omnigent executor harness (default: codex)' },
+            defaultProvider: {
+              type: 'string',
+              description: 'Default model provider when no @model trait is present',
+            },
+            defaultModel: {
+              type: 'string',
+              description: 'Default model name when no @model trait is present',
+            },
+            authEnv: {
+              type: 'string',
+              description: 'Environment variable name used for provider auth',
+            },
           },
         },
       },

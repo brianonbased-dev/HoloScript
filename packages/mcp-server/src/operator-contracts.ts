@@ -258,6 +258,9 @@ compile_to_nir
 # compile_to_native_2d — retired apex-poison 2026-06-17
 compile_to_node_service
 compile_to_a2a_agent_card
+compile_to_agent_inference
+compile_to_omnigent_agent_yaml
+compile_to_daimon_seed
 compile_to_state
 compile_to_3dgs
 compile_to_edge

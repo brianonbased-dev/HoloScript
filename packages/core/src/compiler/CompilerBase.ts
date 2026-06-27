@@ -140,6 +140,7 @@ const COMPILER_CLASS_TO_ANS_NAME: Readonly<Record<string, CompilerName>> = {
   MCPConfigCompiler: 'mcp-config',
   HoloMCPCompiler: 'mcp-server',
   AgentInferenceCompiler: 'agent-inference',
+  OmnigentAgentYamlCompiler: 'omnigent-agent-yaml',
   DaimonSeedCompiler: 'daimon-seed',
   CodeEditorCompiler: 'code-editor',
   SVGCompiler: 'svg',

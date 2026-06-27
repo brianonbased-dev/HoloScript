@@ -167,6 +167,18 @@ export type {
   OutputLanguage,
   ToolDefinition,
 } from './AgentInferenceExportTarget';
+export {
+  OmnigentAgentYamlCompiler,
+  createOmnigentAgentYamlCompiler,
+} from './OmnigentAgentYamlCompiler';
+export type {
+  OmnigentAgentYamlCompilerOptions,
+  OmnigentAgentYamlResult,
+  OmnigentProjectionReceipt,
+  OmnigentProjectionTarget,
+  OmnigentProjectionWarning,
+  OmnigentWarningCode,
+} from './OmnigentAgentYamlCompiler';
 
 // DaimonSeed compiler: portable seed recipe, shared JSON-Logic thresholds, no soul serialization.
 export {
