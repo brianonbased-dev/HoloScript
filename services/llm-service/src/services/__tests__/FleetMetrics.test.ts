@@ -51,4 +51,54 @@ describe('FleetMetrics', () => {
       source: 'worker:nvidia-smi',
     });
   });
+
+  it('writes provider hardware telemetry and derives GPU utilization from it', () => {
+    const logs: unknown[][] = [];
+    vi.spyOn(console, 'log').mockImplementation((...args: unknown[]) => {
+      logs.push(args);
+    });
+
+    const metrics = new FleetMetrics();
+    const handle = metrics.begin();
+    metrics.end(handle, {
+      provider: 'fleet',
+      endpoint: 'vast-serverless:holoscript-qwen-coder',
+      model: 'qwen2.5-coder:1.5b',
+      requestId: 'vast:holoscript-qwen-coder:8',
+      promptTokens: 12,
+      completionTokens: 6,
+      responseHeaders: {
+        'x-holoscript-hardware-telemetry': headerJson({
+          observed: true,
+          source: 'worker:linux-procfs+nvidia-smi',
+          cpu: { observed: true, logicalCores: 16, utilizationPct: 38.5 },
+          memory: { observed: true, usedPct: 61.4 },
+          disk: { observed: true, usedPct: 28.2 },
+          gpu: {
+            observed: true,
+            source: 'worker:nvidia-smi',
+            end: { name: 'NVIDIA RTX 4000 Ada', utilizationGpuPct: 51 },
+          },
+        }),
+      },
+    });
+
+    const metricLine = logs.flat().find((line): line is string => (
+      typeof line === 'string' && line.includes('[fleet-metric]')
+    ));
+    expect(metricLine).toBeTruthy();
+    const metric = JSON.parse(metricLine!.slice(metricLine!.indexOf('{')));
+    expect(metric.hardwareTelemetry).toMatchObject({
+      observed: true,
+      source: 'worker:linux-procfs+nvidia-smi',
+      cpu: { logicalCores: 16, utilizationPct: 38.5 },
+      memory: { usedPct: 61.4 },
+      disk: { usedPct: 28.2 },
+    });
+    expect(metric.gpuUtilization).toMatchObject({
+      observed: true,
+      utilizationGpuPct: 51,
+      source: 'worker:nvidia-smi',
+    });
+  });
 });

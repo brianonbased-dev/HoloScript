@@ -39,15 +39,24 @@ describe('VastServerlessAdapter', () => {
         calls.push({ url, body });
         if (url === ROUTE)
           return json({ url: 'http://worker.test:8000', signature: 'sig123', request_idx: 0 });
-        if (url === 'http://worker.test:8000/telemetry/gpu')
+        if (url === 'http://worker.test:8000/telemetry/hardware')
           return json({
             observed: true,
-            source: 'worker:nvidia-smi',
+            source: 'worker:linux-procfs+nvidia-smi',
             sampledAt: '2026-06-27T21:06:01.435146+00:00',
-            name: 'NVIDIA GeForce RTX 5090',
-            utilizationGpuPct: 42,
-            memoryUsedMiB: 2600,
-            memoryTotalMiB: 32607,
+            cpu: { observed: true, logicalCores: 16, utilizationPct: 32.5 },
+            memory: { observed: true, usedPct: 64.1 },
+            disk: { observed: true, usedPct: 41.7 },
+            gpu: {
+              observed: true,
+              source: 'worker:nvidia-smi',
+              end: {
+                name: 'NVIDIA GeForce RTX 5090',
+                utilizationGpuPct: 42,
+                memoryUsedMiB: 2600,
+                memoryTotalMiB: 32607,
+              },
+            },
           });
         return sse([
           'data: {"choices":[{"delta":{"content":"Hi"}}],"model":"qwen3:14b"}\n',
@@ -82,7 +91,7 @@ describe('VastServerlessAdapter', () => {
     expect(calls[1].body.session_id).toBeNull();
     expect((calls[1].body.payload as Record<string, unknown>).stream).toBe(true);
     expect((calls[1].body.payload as Record<string, unknown>).model).toBe('qwen3:14b');
-    expect(calls[2].url).toBe('http://worker.test:8000/telemetry/gpu');
+    expect(calls[2].url).toBe('http://worker.test:8000/telemetry/hardware');
     expect(calls[2].body.auth_data).toMatchObject({ signature: 'sig123' });
     expect(calls[2].body.payload).toEqual({});
     // 3. SSE → LLMStreamChunk, tool args assembled across fragments
@@ -103,9 +112,14 @@ describe('VastServerlessAdapter', () => {
       'x-holoscript-fleet-endpoint': 'holoscript-qwen-coder',
       'x-holoscript-fleet-worker-url': 'http://worker.test:8000',
       'x-holoscript-fleet-request-idx': '0',
+      'x-holoscript-hardware-source': 'worker:linux-procfs+nvidia-smi',
       'x-holoscript-gpu-source': 'worker:nvidia-smi',
     });
-    expect(decodeHeaderJson(stop.responseHeaders!['x-holoscript-gpu-start']).utilizationGpuPct).toBe(42);
+    expect(decodeHeaderJson(stop.responseHeaders!['x-holoscript-hardware-telemetry']).cpu).toMatchObject({
+      logicalCores: 16,
+      utilizationPct: 32.5,
+    });
+    expect(decodeHeaderJson(stop.responseHeaders!['x-holoscript-gpu-end']).utilizationGpuPct).toBe(42);
     const start = chunks.find((c) => c.type === 'tool_use_start') as Extract<
       LLMStreamChunk,
       { type: 'tool_use_start' }
@@ -163,6 +177,18 @@ describe('VastServerlessAdapter', () => {
           ],
           model: 'qwen3:14b',
           usage: { prompt_tokens: 5, completion_tokens: 2, total_tokens: 7 },
+          holo_hardware: {
+            observed: true,
+            source: 'worker:linux-procfs+nvidia-smi',
+            cpu: { observed: true, logicalCores: 8 },
+            memory: { observed: true, usedPct: 55.5 },
+            disk: { observed: true, usedPct: 22.1 },
+            gpu: {
+              observed: true,
+              source: 'worker:nvidia-smi',
+              end: { utilizationGpuPct: 27 },
+            },
+          },
         });
       })
     );
@@ -178,7 +204,13 @@ describe('VastServerlessAdapter', () => {
       'x-holoscript-fleet-endpoint': 'e',
       'x-holoscript-fleet-worker-url': 'http://w:8000',
       'x-holoscript-fleet-request-idx': '7',
+      'x-holoscript-hardware-source': 'worker:linux-procfs+nvidia-smi',
+      'x-holoscript-gpu-source': 'worker:nvidia-smi',
     });
+    expect(decodeHeaderJson(res.responseHeaders!['x-holoscript-hardware-telemetry']).cpu).toMatchObject({
+      logicalCores: 8,
+    });
+    expect(decodeHeaderJson(res.responseHeaders!['x-holoscript-gpu-end']).utilizationGpuPct).toBe(27);
     expect(res.content).toBe('done');
     expect(res.finishReason).toBe('tool_use');
     expect(res.toolUses?.[0]).toMatchObject({ name: 'compile_to_unity', input: { x: 1 } });

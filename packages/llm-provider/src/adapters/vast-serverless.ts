@@ -155,6 +155,60 @@ function gpuTelemetryHeaders(
   return headers;
 }
 
+function gpuTelemetryFromHardware(payload: unknown): unknown {
+  const record = asRecord(payload);
+  if (!record) return undefined;
+  const directGpu = asRecord(record['gpu']);
+  if (directGpu) return directGpu;
+
+  const startGpu = asRecord(asRecord(record['start'])?.['gpu']);
+  const endGpu = asRecord(asRecord(record['end'])?.['gpu']);
+  if (!startGpu && !endGpu) return undefined;
+
+  return {
+    available: Boolean(startGpu?.['observed'] || endGpu?.['observed']),
+    observed: Boolean(startGpu?.['observed'] || endGpu?.['observed']),
+    source:
+      (typeof endGpu?.['source'] === 'string' ? endGpu['source'] : undefined) ??
+      (typeof startGpu?.['source'] === 'string' ? startGpu['source'] : undefined) ??
+      (typeof record['source'] === 'string' ? record['source'] : undefined),
+    ...(startGpu ? { start: startGpu } : {}),
+    ...(endGpu ? { end: endGpu } : {}),
+    caveat:
+      compactCaveat(endGpu?.['caveat']) ??
+      compactCaveat(startGpu?.['caveat']) ??
+      compactCaveat(record['caveat']),
+  };
+}
+
+function hardwareTelemetryHeaders(
+  payload: unknown,
+  fallbackCaveat?: string
+): Record<string, string> {
+  const record = asRecord(payload);
+  if (!record && !fallbackCaveat) return {};
+
+  const telemetry = record ?? {
+    available: false,
+    observed: false,
+    source: 'worker:vast-serverless-telemetry',
+    caveat: fallbackCaveat,
+  };
+  const source =
+    (typeof telemetry['source'] === 'string' ? telemetry['source'] : undefined) ??
+    (fallbackCaveat ? 'worker:vast-serverless-telemetry' : undefined);
+  const caveat = compactCaveat(telemetry['caveat']) ?? compactCaveat(fallbackCaveat);
+
+  const headers: Record<string, string> = {
+    ...gpuTelemetryHeaders(gpuTelemetryFromHardware(telemetry)),
+  };
+  const encoded = headerJson(telemetry);
+  if (encoded) headers['x-holoscript-hardware-telemetry'] = encoded;
+  if (source) headers['x-holoscript-hardware-source'] = source;
+  if (caveat) headers['x-holoscript-hardware-caveat'] = caveat;
+  return headers;
+}
+
 export class VastServerlessAdapter extends BaseLLMAdapter {
   readonly name = 'fleet' as const;
   readonly models: readonly string[];
@@ -337,14 +391,14 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
     }
   }
 
-  private async readWorkerGpuTelemetry(
+  private async readWorkerHardwareTelemetry(
     workerUrl: string,
     authData: unknown
   ): Promise<Record<string, string>> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), Math.min(this.config.timeoutMs, 5000));
     try {
-      const response = await fetch(`${workerUrl}/telemetry/gpu`, {
+      const response = await fetch(`${workerUrl}/telemetry/hardware`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.vastKey}` },
         body: JSON.stringify({ auth_data: authData, session_id: null, payload: {} }),
@@ -355,23 +409,23 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
       try {
         parsed = text ? JSON.parse(text) : undefined;
       } catch {
-        return gpuTelemetryHeaders(
+        return hardwareTelemetryHeaders(
           undefined,
-          `worker GPU telemetry returned non-JSON body: HTTP ${response.status}`
+          `worker hardware telemetry returned non-JSON body: HTTP ${response.status}`
         );
       }
 
-      const headers = gpuTelemetryHeaders(parsed);
-      if (!response.ok && !headers['x-holoscript-gpu-caveat']) {
-        return gpuTelemetryHeaders(
+      const headers = hardwareTelemetryHeaders(parsed);
+      if (!response.ok && !headers['x-holoscript-hardware-caveat']) {
+        return hardwareTelemetryHeaders(
           parsed,
-          `worker GPU telemetry unavailable: HTTP ${response.status}`
+          `worker hardware telemetry unavailable: HTTP ${response.status}`
         );
       }
       return headers;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      return gpuTelemetryHeaders(undefined, `worker GPU telemetry unreachable: ${msg}`);
+      return hardwareTelemetryHeaders(undefined, `worker hardware telemetry unreachable: ${msg}`);
     } finally {
       clearTimeout(timeoutId);
     }
@@ -415,6 +469,7 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
         usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
         model?: string;
         holo_gpu?: unknown;
+        holo_hardware?: unknown;
       };
       const choice = data.choices?.[0];
       const content = choice?.message?.content ?? '';
@@ -450,6 +505,7 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
         responseHeaders: {
           ...this.buildResponseHeaders(response, workerUrl, requestIdx),
           ...gpuTelemetryHeaders(data.holo_gpu),
+          ...hardwareTelemetryHeaders(data.holo_hardware),
         },
         ...(toolUses.length > 0
           ? { toolUses, assistantBlocks: [{ type: 'text' as const, text: content }, ...toolUses] }
@@ -472,7 +528,7 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
     if (!response.body) {
       const finalResponseHeaders = {
         ...responseHeaders,
-        ...(await this.readWorkerGpuTelemetry(workerUrl, authData)),
+        ...(await this.readWorkerHardwareTelemetry(workerUrl, authData)),
       };
       yield { type: 'message_stop', finishReason: 'stop', usage: this.zeroUsage(), model, requestId, responseHeaders: finalResponseHeaders };
       return;
@@ -580,7 +636,7 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
 
     const finalResponseHeaders = {
       ...responseHeaders,
-      ...(await this.readWorkerGpuTelemetry(workerUrl, authData)),
+      ...(await this.readWorkerHardwareTelemetry(workerUrl, authData)),
     };
     yield { type: 'message_stop', finishReason, usage, model: finalModel, requestId, responseHeaders: finalResponseHeaders };
     if (streamErrored) {

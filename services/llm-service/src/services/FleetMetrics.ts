@@ -40,6 +40,22 @@ export interface FleetGpuUtilization {
   end?: unknown;
 }
 
+export interface FleetHardwareTelemetry {
+  observed: boolean;
+  available?: boolean;
+  source?: string | null;
+  caveat?: string | null;
+  sampledAt?: string;
+  platform?: unknown;
+  cpu?: unknown;
+  memory?: unknown;
+  disk?: unknown;
+  thermal?: unknown;
+  gpu?: unknown;
+  start?: unknown;
+  end?: unknown;
+}
+
 export interface HourBucket {
   /** Bucket start, ISO hour key e.g. "2026-05-31T17:00:00.000Z". */
   hour: string;
@@ -97,6 +113,10 @@ function gpuUtilizationPct(value: unknown): number | undefined {
   return undefined;
 }
 
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return value !== null && typeof value === 'object' ? (value as Record<string, unknown>) : undefined;
+}
+
 function gpuUtilizationFromHeaders(headers: Record<string, string> | undefined): FleetGpuUtilization | undefined {
   if (!headers) return undefined;
   const normalized = Object.fromEntries(
@@ -116,6 +136,68 @@ function gpuUtilizationFromHeaders(headers: Record<string, string> | undefined):
     caveat: util !== undefined ? null : caveat,
     ...(start !== null ? { start } : {}),
     ...(end !== null ? { end } : {}),
+  };
+}
+
+function hardwareTelemetryFromHeaders(headers: Record<string, string> | undefined): FleetHardwareTelemetry | undefined {
+  if (!headers) return undefined;
+  const normalized = Object.fromEntries(
+    Object.entries(headers).map(([key, value]) => [key.toLowerCase(), value]),
+  );
+  const decoded = decodeHeaderJson(normalized['x-holoscript-hardware-telemetry']);
+  const record = asRecord(decoded);
+  const source =
+    (typeof record?.['source'] === 'string' ? record['source'] : undefined) ??
+    normalized['x-holoscript-hardware-source'] ??
+    null;
+  const caveat =
+    (typeof record?.['caveat'] === 'string' ? record['caveat'] : undefined) ??
+    normalized['x-holoscript-hardware-caveat'] ??
+    null;
+
+  if (!record && !source && !caveat) return undefined;
+
+  const observed =
+    record?.['observed'] === true ||
+    Boolean(record?.['cpu'] || record?.['memory'] || record?.['disk'] || record?.['gpu']);
+  return {
+    ...(record ?? {}),
+    observed,
+    source,
+    caveat,
+  };
+}
+
+function gpuUtilizationFromHardware(hardware: FleetHardwareTelemetry | undefined): FleetGpuUtilization | undefined {
+  const hardwareRecord = asRecord(hardware);
+  if (!hardwareRecord) return undefined;
+  const directGpu = asRecord(hardwareRecord['gpu']);
+  const startGpu = asRecord(asRecord(hardwareRecord['start'])?.['gpu']);
+  const endGpu = asRecord(asRecord(hardwareRecord['end'])?.['gpu']);
+  const start = asRecord(directGpu?.['start']) ?? startGpu ?? directGpu;
+  const end = asRecord(directGpu?.['end']) ?? endGpu;
+  const source =
+    (typeof directGpu?.['source'] === 'string' ? directGpu['source'] : undefined) ??
+    (typeof end?.['source'] === 'string' ? end['source'] : undefined) ??
+    (typeof start?.['source'] === 'string' ? start['source'] : undefined) ??
+    (typeof hardwareRecord['source'] === 'string' ? hardwareRecord['source'] : undefined) ??
+    null;
+  const caveat =
+    (typeof directGpu?.['caveat'] === 'string' ? directGpu['caveat'] : undefined) ??
+    (typeof end?.['caveat'] === 'string' ? end['caveat'] : undefined) ??
+    (typeof start?.['caveat'] === 'string' ? start['caveat'] : undefined) ??
+    (typeof hardwareRecord['caveat'] === 'string' ? hardwareRecord['caveat'] : undefined) ??
+    null;
+  const util = gpuUtilizationPct(end) ?? gpuUtilizationPct(start) ?? gpuUtilizationPct(directGpu);
+
+  if (!directGpu && !startGpu && !endGpu && util === undefined && !source && !caveat) return undefined;
+  return {
+    observed: util !== undefined || directGpu?.['observed'] === true,
+    ...(util !== undefined ? { utilizationGpuPct: util } : {}),
+    source,
+    caveat: util !== undefined ? null : caveat,
+    ...(start ? { start } : {}),
+    ...(end ? { end } : {}),
   };
 }
 
@@ -152,6 +234,7 @@ export class FleetMetrics {
       requestId?: string;
       responseHeaders?: Record<string, string>;
       gpuUtilization?: FleetGpuUtilization;
+      hardwareTelemetry?: FleetHardwareTelemetry;
     }
   ): void {
     if (this.active > 0) this.active -= 1;
@@ -161,7 +244,11 @@ export class FleetMetrics {
     const totalTokens = info.promptTokens + info.completionTokens;
     const tokensPerSecond = latencyMs > 0 ? Math.round((totalTokens / (latencyMs / 1000)) * 100) / 100 : 0;
     const bucket = this.bucketFor(handle.startMs);
-    const gpuUtilization = info.gpuUtilization ?? gpuUtilizationFromHeaders(info.responseHeaders);
+    const hardwareTelemetry = info.hardwareTelemetry ?? hardwareTelemetryFromHeaders(info.responseHeaders);
+    const gpuUtilization =
+      info.gpuUtilization ??
+      gpuUtilizationFromHeaders(info.responseHeaders) ??
+      gpuUtilizationFromHardware(hardwareTelemetry);
 
     bucket.requests += 1;
     bucket.promptTokens += info.promptTokens;
@@ -184,6 +271,7 @@ export class FleetMetrics {
         tokensPerSecond,
         concurrencyAtStart: handle.concurrencyAtStart,
         error: info.error ?? false,
+        hardwareTelemetry,
         gpuUtilization,
       })}`
     );
