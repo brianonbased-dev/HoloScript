@@ -1,11 +1,13 @@
 import type {
   HoloAnimationInput,
+  HoloAnimationListener,
   HoloAnimationTransitionCondition,
   HoloStateMachine,
   HoloStateTransition,
 } from '../parser/HoloCompositionTypes';
 import type {
   AnimationConfig,
+  AnimationInputBinding,
   AnimationParameter,
   AnimationStateDef,
   AnimationTransition,
@@ -29,6 +31,7 @@ export function animationConfigFromStateMachine(stateMachine: HoloStateMachine):
   return {
     states,
     parameters: (stateMachine.inputs ?? []).map(animationInputToParameter),
+    inputBindings: (stateMachine.listeners ?? []).map(animationListenerToInputBinding),
     transitions: collectAnimationTransitions(stateMachine),
     defaultState: stateMachine.initialState || states[0]?.name,
   };
@@ -42,6 +45,17 @@ function animationInputToParameter(input: HoloAnimationInput): AnimationParamete
     value: input.default ?? fallback,
     default: input.default ?? fallback,
   };
+}
+
+function animationListenerToInputBinding(listener: HoloAnimationListener): AnimationInputBinding {
+  const binding: AnimationInputBinding = {
+    event: listener.event,
+    parameter: listener.parameter,
+    action: listener.action,
+  };
+  if (listener.value !== undefined) binding.value = listener.value;
+  if (listener.source !== undefined) binding.source = listener.source;
+  return binding;
 }
 
 function collectAnimationTransitions(stateMachine: HoloStateMachine): AnimationTransition[] {

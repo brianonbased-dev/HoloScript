@@ -198,6 +198,25 @@ export interface AnimationTransition {
   easing?: string;
 }
 
+export type AnimationInputBindingAction = 'set' | 'fire' | 'reset';
+
+export interface AnimationInputBinding {
+  /** Trait/event type that drives the binding */
+  event: string;
+
+  /** Animation input parameter to mutate */
+  parameter: string;
+
+  /** Binding action. Defaults to set. */
+  action?: AnimationInputBindingAction;
+
+  /** Literal assignment value */
+  value?: number | boolean | string;
+
+  /** Event/payload path used as the assignment value, e.g. value or payload.speed */
+  source?: string;
+}
+
 /**
  * Active animation instance (internal runtime state)
  */
@@ -404,6 +423,9 @@ export interface AnimationConfig {
 
   /** Transitions */
   transitions?: AnimationTransition[];
+
+  /** Event/listener bindings that mutate typed animation inputs */
+  inputBindings?: AnimationInputBinding[];
 
   /** Parameters */
   parameters?: AnimationParameter[];

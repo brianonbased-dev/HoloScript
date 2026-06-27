@@ -596,6 +596,43 @@ describe('AnimationTrait — parameters', () => {
   it('getBool returns false for unknown param', () => {
     expect(mkTrait().getBool('ghost')).toBe(false);
   });
+
+  it('applies listener input bindings from trait events', () => {
+    const t = mkTrait({
+      parameters: [
+        { name: 'hovering', type: 'bool', value: false },
+        { name: 'speed', type: 'float', value: 0 },
+        { name: 'steps', type: 'int', value: 0 },
+        { name: 'jump', type: 'trigger', value: false },
+      ],
+      inputBindings: [
+        { event: 'pointer.enter', parameter: 'hovering', value: true },
+        { event: 'pointer.exit', parameter: 'hovering', value: false },
+        { event: 'agent.speed', parameter: 'speed', source: 'value' },
+        { event: 'agent.steps', parameter: 'steps', source: 'payload.count' },
+        { event: 'control.jump', parameter: 'jump', action: 'fire' },
+        { event: 'control.cancel', parameter: 'jump', action: 'reset' },
+      ],
+    });
+
+    t.onEvent({ type: 'pointer.enter' });
+    expect(t.getBool('hovering')).toBe(true);
+
+    t.onEvent({ type: 'pointer.exit' });
+    expect(t.getBool('hovering')).toBe(false);
+
+    t.onEvent({ type: 'agent.speed', value: 2.5 });
+    expect(t.getFloat('speed')).toBe(2.5);
+
+    t.onEvent({ type: 'agent.steps', payload: { count: 7.8 } });
+    expect(t.getInteger('steps')).toBe(7);
+
+    t.onEvent({ type: 'control.jump' });
+    expect(t.getParameterValues().jump).toBe(true);
+
+    t.onEvent({ type: 'control.cancel' });
+    expect(t.getParameterValues().jump).toBe(false);
+  });
 });
 
 // ─── Event system ─────────────────────────────────────────────────────────────────

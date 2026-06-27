@@ -84,6 +84,7 @@ import type {
   HoloDialogueOption,
   HoloAnimationInput,
   HoloAnimationInputType,
+  HoloAnimationListener,
   HoloAnimationTransitionCondition,
   HoloStateMachine,
   HoloState_Machine,
@@ -4661,6 +4662,7 @@ export class HoloCompositionParser {
       name,
       initialState: '',
       inputs: [],
+      listeners: [],
       states: {},
       transitions: [],
     };
@@ -4792,6 +4794,8 @@ export class HoloCompositionParser {
         sm.initialState = this.parseValue() as string;
       } else if (key === 'input') {
         sm.inputs!.push(this.parseAnimationInputDeclaration(startLoc));
+      } else if (key === 'listen') {
+        sm.listeners!.push(this.parseAnimationListenerDeclaration(startLoc));
       } else if (key === 'states' && this.check('COLON')) {
         this.advance(); // consume ':'
         sm.states = this.parseStateMachineStates();
@@ -4843,6 +4847,7 @@ export class HoloCompositionParser {
       name,
       initialState: '',
       inputs: [],
+      listeners: [],
       states: {},
       transitions: [],
     };
@@ -4959,6 +4964,8 @@ export class HoloCompositionParser {
         sm.initialState = this.parseValue() as string;
       } else if (key === 'input') {
         sm.inputs!.push(this.parseAnimationInputDeclaration(startLoc));
+      } else if (key === 'listen') {
+        sm.listeners!.push(this.parseAnimationListenerDeclaration(startLoc));
       } else if (key === 'name') {
         this.expect('COLON');
         sm.name = this.parseValue() as string;
@@ -5172,6 +5179,59 @@ export class HoloCompositionParser {
     };
   }
 
+  private parseAnimationListenerDeclaration(startLoc: SourceLocation): HoloAnimationListener {
+    const event = this.parseDottedIdentifierValue('Expected listener event');
+    if (!this.consumeStateTransitionArrow()) {
+      this.error('Expected -> in animation listener');
+    }
+
+    if (this.isIdentifierValue('fire')) {
+      this.advance();
+      return {
+        type: 'AnimationListener',
+        event,
+        parameter: this.parseDottedIdentifierValue('Expected trigger input'),
+        action: 'fire',
+        loc: { start: startLoc, end: this.currentLocation() },
+      };
+    }
+
+    if (this.isIdentifierValue('reset')) {
+      this.advance();
+      return {
+        type: 'AnimationListener',
+        event,
+        parameter: this.parseDottedIdentifierValue('Expected trigger input'),
+        action: 'reset',
+        loc: { start: startLoc, end: this.currentLocation() },
+      };
+    }
+
+    const parameter = this.parseDottedIdentifierValue('Expected animation input');
+    this.expect('EQUALS');
+    const assignment = this.parseAnimationListenerValue();
+    return {
+      type: 'AnimationListener',
+      event,
+      parameter,
+      action: 'set',
+      ...assignment,
+      loc: { start: startLoc, end: this.currentLocation() },
+    };
+  }
+
+  private parseAnimationListenerValue(): { value?: number | boolean | string; source?: string } {
+    if (this.isIdentifierValue('event')) {
+      return { source: this.parseDottedIdentifierValue('Expected event value source') };
+    }
+
+    const value = this.parseValue();
+    if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'string') {
+      return { value };
+    }
+    return { value: String(value ?? '') };
+  }
+
   private normalizeAnimationInputType(rawType: string): HoloAnimationInputType {
     const normalized = rawType.toLowerCase();
     if (normalized === 'number') return 'float';
@@ -5282,6 +5342,30 @@ export class HoloCompositionParser {
     }
     const value = this.parseValue();
     return value == null ? '' : String(value);
+  }
+
+  private parseDottedIdentifierValue(message: string): string {
+    let value = this.parseIdentifierOrStringValue();
+    if (!value) {
+      this.error(message);
+    }
+    while (this.check('DOT')) {
+      this.advance();
+      const part = this.parseIdentifierOrStringValue();
+      if (!part) {
+        this.error('Expected property name after dot');
+        break;
+      }
+      value += `.${part}`;
+    }
+    return value;
+  }
+
+  private isIdentifierValue(value: string): boolean {
+    return (
+      (this.current().type === 'IDENTIFIER' || this.isKeywordAsIdentifierType(this.current().type)) &&
+      this.current().value === value
+    );
   }
 
   private parseOptionalBooleanFlag(): boolean {

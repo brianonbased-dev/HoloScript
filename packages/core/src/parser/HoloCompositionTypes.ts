@@ -1469,6 +1469,7 @@ export interface HoloStateMachine extends HoloNode {
   name: string;
   initialState: string;
   inputs?: HoloAnimationInput[];
+  listeners?: HoloAnimationListener[];
   states: Record<string, HoloState_Machine>;
   transitions?: HoloStateTransition[];
 }
@@ -1518,6 +1519,17 @@ export interface HoloAnimationInput extends HoloNode {
   inputType: HoloAnimationInputType;
   rawType?: string;
   default?: number | boolean;
+}
+
+export type HoloAnimationListenerAction = 'set' | 'fire' | 'reset';
+
+export interface HoloAnimationListener extends HoloNode {
+  type: 'AnimationListener';
+  event: string;
+  parameter: string;
+  action: HoloAnimationListenerAction;
+  value?: number | boolean | string;
+  source?: string;
 }
 
 export interface HoloAnimationTransitionCondition extends HoloNode {

@@ -8,6 +8,7 @@ import type {
   AnimationBlendMode,
   AnimationClipDef,
   AnimationEventDef,
+  AnimationInputBinding,
   AnimationOutputSnapshot,
   AnimationStateDef,
 } from '../AnimationTypes';
@@ -99,5 +100,22 @@ describe('AnimationTypes — structural smoke', () => {
     };
 
     expect(snapshot.details[0].contributions[0].clip).toBe('idle_clip');
+  });
+
+  it('AnimationInputBinding accepts listener assignment and trigger shapes', () => {
+    const setBinding: AnimationInputBinding = {
+      event: 'agent.speed',
+      parameter: 'speed',
+      action: 'set',
+      source: 'event.value',
+    };
+    const fireBinding: AnimationInputBinding = {
+      event: 'control.jump',
+      parameter: 'jump',
+      action: 'fire',
+    };
+
+    expect(setBinding.source).toBe('event.value');
+    expect(fireBinding.action).toBe('fire');
   });
 });

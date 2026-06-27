@@ -11,7 +11,12 @@ describe('Rive animation state-machine authoring', () => {
           initial: "Idle"
           input grounded: bool = true
           input speed: number = 0
+          input hovering: bool = false
           input jump: trigger
+          listen pointer.enter -> hovering = true
+          listen pointer.exit -> hovering = false
+          listen control.jump -> fire jump
+          listen agent.speed -> speed = event.value
 
           state "Idle" {}
           state "Walk" {}
@@ -41,7 +46,33 @@ describe('Rive animation state-machine authoring', () => {
     expect(stateMachine.inputs).toEqual([
       expect.objectContaining({ name: 'grounded', inputType: 'bool', default: true }),
       expect.objectContaining({ name: 'speed', inputType: 'float', rawType: 'number', default: 0 }),
+      expect.objectContaining({ name: 'hovering', inputType: 'bool', default: false }),
       expect.objectContaining({ name: 'jump', inputType: 'trigger' }),
+    ]);
+    expect(stateMachine.listeners).toEqual([
+      expect.objectContaining({
+        event: 'pointer.enter',
+        parameter: 'hovering',
+        action: 'set',
+        value: true,
+      }),
+      expect.objectContaining({
+        event: 'pointer.exit',
+        parameter: 'hovering',
+        action: 'set',
+        value: false,
+      }),
+      expect.objectContaining({
+        event: 'control.jump',
+        parameter: 'jump',
+        action: 'fire',
+      }),
+      expect.objectContaining({
+        event: 'agent.speed',
+        parameter: 'speed',
+        action: 'set',
+        source: 'event.value',
+      }),
     ]);
 
     expect(stateMachine.transitions).toEqual([
@@ -82,7 +113,14 @@ describe('Rive animation state-machine authoring', () => {
     expect(config.parameters).toEqual([
       { name: 'grounded', type: 'bool', value: true, default: true },
       { name: 'speed', type: 'float', value: 0, default: 0 },
+      { name: 'hovering', type: 'bool', value: false, default: false },
       { name: 'jump', type: 'trigger', value: false, default: false },
+    ]);
+    expect(config.inputBindings).toEqual([
+      { event: 'pointer.enter', parameter: 'hovering', action: 'set', value: true },
+      { event: 'pointer.exit', parameter: 'hovering', action: 'set', value: false },
+      { event: 'control.jump', parameter: 'jump', action: 'fire' },
+      { event: 'agent.speed', parameter: 'speed', action: 'set', source: 'event.value' },
     ]);
     expect(config.transitions?.[2]).toEqual(
       expect.objectContaining({
@@ -114,7 +152,12 @@ describe('Rive animation state-machine authoring', () => {
         initial: Idle
         input grounded: bool = true
         input speed: number = 0
+        input hovering: bool = false
         input jump: trigger
+        listen pointer.enter -> hovering = true
+        listen pointer.exit -> hovering = false
+        listen control.jump -> fire jump
+        listen agent.speed -> speed = event.value
 
         state Idle {}
         state Walk {}
@@ -139,6 +182,7 @@ describe('Rive animation state-machine authoring', () => {
       type: string;
       name: string;
       inputs: Array<Record<string, unknown>>;
+      listeners: Array<Record<string, unknown>>;
       transitions: Array<Record<string, unknown>>;
       states: Array<Record<string, unknown>>;
     };
@@ -147,7 +191,33 @@ describe('Rive animation state-machine authoring', () => {
     expect(stateMachine.inputs).toEqual([
       expect.objectContaining({ name: 'grounded', inputType: 'bool', default: true }),
       expect.objectContaining({ name: 'speed', inputType: 'float', rawType: 'number', default: 0 }),
+      expect.objectContaining({ name: 'hovering', inputType: 'bool', default: false }),
       expect.objectContaining({ name: 'jump', inputType: 'trigger' }),
+    ]);
+    expect(stateMachine.listeners).toEqual([
+      expect.objectContaining({
+        event: 'pointer.enter',
+        parameter: 'hovering',
+        action: 'set',
+        value: true,
+      }),
+      expect.objectContaining({
+        event: 'pointer.exit',
+        parameter: 'hovering',
+        action: 'set',
+        value: false,
+      }),
+      expect.objectContaining({
+        event: 'control.jump',
+        parameter: 'jump',
+        action: 'fire',
+      }),
+      expect.objectContaining({
+        event: 'agent.speed',
+        parameter: 'speed',
+        action: 'set',
+        source: 'event.value',
+      }),
     ]);
     expect(stateMachine.transitions).toEqual([
       expect.objectContaining({

@@ -41,6 +41,8 @@ export type {
   AnimationStateDef,
   TransitionCondition,
   AnimationTransition,
+  AnimationInputBindingAction,
+  AnimationInputBinding,
   AnimationParameter,
   AnimationLayer,
   AnimationEventType,
@@ -70,6 +72,7 @@ import type {
   AnimationEvent,
   AnimationEventCallback,
   AnimationEventType,
+  AnimationInputBinding,
   AnimationLayer,
   AnimationParameter,
   AnimationStateDef,
@@ -114,6 +117,7 @@ export class AnimationTrait {
   private activeAnimations: Map<number, ActiveAnimation | null> = new Map();
   private crossfades: Map<number, CrossfadeState | null> = new Map();
   private eventListeners: Map<AnimationEventType, Set<AnimationEventCallback>> = new Map();
+  private inputBindings: AnimationInputBinding[] = [];
   private currentTime: number = 0;
 
   /** Delegate: state machine, transitions, parameters, layers */
@@ -139,6 +143,7 @@ export class AnimationTrait {
       (layer) => this.activeAnimations.get(layer)?.normalizedTime ?? 0
     );
     this.sm.setLayerTransitioningCallback((layer) => Boolean(this.crossfades.get(layer)));
+    this.inputBindings = (config.inputBindings ?? []).map((binding) => ({ ...binding }));
 
     // Initialize clips
     if (config.clips) {
@@ -408,6 +413,22 @@ export class AnimationTrait {
     return this.sm.exportParameters();
   }
 
+  public addInputBinding(binding: AnimationInputBinding): void {
+    this.inputBindings.push({ ...binding });
+    this.config.inputBindings = this.getInputBindings();
+  }
+
+  public getInputBindings(): AnimationInputBinding[] {
+    return this.inputBindings.map((binding) => ({ ...binding }));
+  }
+
+  public onEvent(event: TraitEvent): void {
+    for (const binding of this.inputBindings) {
+      if (binding.event !== event.type) continue;
+      this.applyInputBinding(binding, event);
+    }
+  }
+
   public getBlendWeights(layer: number = 0): AnimationClipWeight[] {
     const crossfade = this.crossfades.get(layer);
     if (crossfade) {
@@ -611,6 +632,81 @@ export class AnimationTrait {
     }
 
     this.advanceAnimationPlayback(anim, deltaTime);
+  }
+
+  private applyInputBinding(binding: AnimationInputBinding, event: TraitEvent): void {
+    const action = binding.action ?? 'set';
+    if (action === 'fire') {
+      this.setTrigger(binding.parameter);
+      return;
+    }
+    if (action === 'reset') {
+      this.resetTrigger(binding.parameter);
+      return;
+    }
+
+    const param = this.parameters.get(binding.parameter);
+    if (!param) return;
+
+    const value = this.resolveInputBindingValue(binding, event);
+    switch (param.type) {
+      case 'bool':
+        this.setBool(binding.parameter, this.coerceBindingBoolean(value));
+        break;
+      case 'int':
+        this.setInteger(binding.parameter, this.coerceBindingNumber(value));
+        break;
+      case 'float':
+        this.setFloat(binding.parameter, this.coerceBindingNumber(value));
+        break;
+      case 'trigger':
+        if (this.coerceBindingBoolean(value ?? true)) this.setTrigger(binding.parameter);
+        else this.resetTrigger(binding.parameter);
+        break;
+    }
+  }
+
+  private resolveInputBindingValue(binding: AnimationInputBinding, event: TraitEvent): unknown {
+    if (binding.source) {
+      return this.readEventPath(event, binding.source);
+    }
+    return binding.value;
+  }
+
+  private readEventPath(event: TraitEvent, source: string): unknown {
+    const path = source.startsWith('event.') ? source.slice('event.'.length) : source;
+    if (path.startsWith('payload.')) {
+      return this.readPath(event.payload, path.slice('payload.'.length));
+    }
+    const eventValue = this.readPath(event, path);
+    return eventValue === undefined ? this.readPath(event.payload, path) : eventValue;
+  }
+
+  private readPath(source: unknown, path: string): unknown {
+    if (!path) return source;
+    if (!source || typeof source !== 'object') return undefined;
+
+    let cursor: unknown = source;
+    for (const part of path.split('.')) {
+      if (!cursor || typeof cursor !== 'object') return undefined;
+      cursor = (cursor as Record<string, unknown>)[part];
+    }
+    return cursor;
+  }
+
+  private coerceBindingBoolean(value: unknown): boolean {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') return value !== 0;
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      return normalized !== '' && normalized !== 'false' && normalized !== '0';
+    }
+    return Boolean(value);
+  }
+
+  private coerceBindingNumber(value: unknown): number {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : 0;
   }
 
   private getOrderedLayerEntries(): Array<{

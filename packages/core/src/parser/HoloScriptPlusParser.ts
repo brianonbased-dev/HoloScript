@@ -4956,6 +4956,7 @@ export class HoloScriptPlusParser {
 
     const name = this.parseStateMachineIdentifier('Expected state machine name');
     const inputs: Array<Record<string, unknown>> = [];
+    const listeners: Array<Record<string, unknown>> = [];
     const states: Array<Record<string, unknown>> = [];
     const transitions: Array<Record<string, unknown>> = [];
     let initialState = '';
@@ -4974,6 +4975,8 @@ export class HoloScriptPlusParser {
         initialState = this.parseStateMachineIdentifier('Expected initial state name');
       } else if (current.value === 'input') {
         inputs.push(this.parseStateMachineInputDeclaration());
+      } else if (current.value === 'listen') {
+        listeners.push(this.parseStateMachineListenerDeclaration());
       } else if (this.isStateMachineTransitionShorthandStart()) {
         transitions.push(this.parseStateMachineTransitionShorthand());
       } else if (current.type === 'STATE' || current.value === 'state') {
@@ -4994,6 +4997,7 @@ export class HoloScriptPlusParser {
       name,
       initialState,
       inputs,
+      listeners,
       states,
       transitions,
       loc: {
@@ -5154,6 +5158,63 @@ export class HoloScriptPlusParser {
     };
   }
 
+  private parseStateMachineListenerDeclaration(): Record<string, unknown> {
+    this.advance(); // listen
+    const event = this.parseStateMachineDottedIdentifier('Expected listener event');
+    this.expect('ARROW', 'Expected -> after listener event');
+
+    if (this.current().value === 'fire') {
+      this.advance();
+      return {
+        type: 'animation-listener',
+        event,
+        action: 'fire',
+        parameter: this.parseStateMachineDottedIdentifier('Expected trigger input'),
+      };
+    }
+
+    if (this.current().value === 'reset') {
+      this.advance();
+      return {
+        type: 'animation-listener',
+        event,
+        action: 'reset',
+        parameter: this.parseStateMachineDottedIdentifier('Expected trigger input'),
+      };
+    }
+
+    const parameter = this.parseStateMachineDottedIdentifier('Expected animation input');
+    this.expect('EQUALS', 'Expected = in listener binding');
+    const parsedValue = this.parseValue();
+    const listener: Record<string, unknown> = {
+      type: 'animation-listener',
+      event,
+      action: 'set',
+      parameter,
+    };
+
+    if (parsedValue && typeof parsedValue === 'object' && '__ref' in parsedValue) {
+      const ref = (parsedValue as { __ref?: unknown }).__ref;
+      if (typeof ref === 'string' && (ref === 'event' || ref.startsWith('event.'))) {
+        listener.source = ref;
+      } else if (typeof ref === 'string') {
+        listener.value = ref;
+      } else {
+        listener.value = String(ref ?? '');
+      }
+    } else if (
+      typeof parsedValue === 'number' ||
+      typeof parsedValue === 'boolean' ||
+      typeof parsedValue === 'string'
+    ) {
+      listener.value = parsedValue;
+    } else {
+      listener.value = String(parsedValue ?? '');
+    }
+
+    return listener;
+  }
+
   private isStateMachineTransitionShorthandStart(): boolean {
     return this.isStateMachineIdentifierToken(0) && this.peek(1).type === 'ARROW';
   }
@@ -5218,6 +5279,15 @@ export class HoloScriptPlusParser {
       return this.advance().value;
     }
     return this.expect('IDENTIFIER', message).value;
+  }
+
+  private parseStateMachineDottedIdentifier(message: string): string {
+    let value = this.parseStateMachineIdentifier(message);
+    while (this.check('DOT')) {
+      this.advance();
+      value += `.${this.parseStateMachineIdentifier('Expected property name after dot')}`;
+    }
+    return value;
   }
 
   private isStateMachineIdentifierToken(offset: number): boolean {

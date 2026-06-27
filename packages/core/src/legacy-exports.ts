@@ -1202,6 +1202,8 @@ export {
   type AnimationStateDef,
   type TransitionCondition,
   type AnimationTransition,
+  type AnimationInputBindingAction,
+  type AnimationInputBinding,
   type AnimationParameter,
   type AnimationLayer as AnimationTraitLayer,
   type AnimationEventType,
