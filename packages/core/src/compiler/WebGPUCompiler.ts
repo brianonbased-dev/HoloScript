@@ -23,13 +23,16 @@ import type {
   HoloEnvironment,
   HoloCamera,
   HoloValue,
+  HoloDomainBlock,
 } from '../parser/HoloCompositionTypes';
 import { CompilerBase } from './CompilerBase';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 import {
-  compileDomainBlocks,
   compileMaterialBlock,
   compileDataVizBlock,
+  compileParticleBlock,
+  compilePostProcessingBlock,
+  compileProceduralBlock,
   materialToWebGPU,
   datavizToWebGPU,
 } from './DomainBlockCompilerMixin';
@@ -91,6 +94,8 @@ export class WebGPUCompiler extends CompilerBase {
     }
     this.emit('');
     this.emitDeviceInit();
+    this.emitGeometryHelpers();
+    this.emitShaderSources();
     if (composition.environment) this.emitEnvironment(composition.environment);
     if (composition.objects) {
       for (const obj of composition.objects) this.emitObject(obj);
@@ -107,7 +112,6 @@ export class WebGPUCompiler extends CompilerBase {
     // v4.2: Domain Blocks (material uniform buffers)
     this.emitWebGPUDomainBlocks(composition);
 
-    this.emitShaderSources();
     this.emitRenderLoop(composition);
     return this.lines.join('\n');
   }
@@ -119,28 +123,164 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit('');
     this.emit('// === v4.2 Domain Blocks ===');
 
-    let blockIdx = 0;
-    const compiled = compileDomainBlocks(
-      domainBlocks,
-      {
-        material: (block) => {
-          const mat = compileMaterialBlock(block);
-          return materialToWebGPU(mat, `db${blockIdx++}`);
-        },
-        dataviz: (block) => {
-          const dv = compileDataVizBlock(block);
-          return datavizToWebGPU(dv, `db${blockIdx++}`);
-        },
-      },
-      (block) =>
-        `// Domain block: ${block.domain}/${block.keyword} "${this.escapeStringValue(block.name as string, 'TypeScript')}"`
-    );
-
-    for (const line of compiled) {
-      for (const l of line.split('\n')) {
-        this.emit(l);
+    for (let i = 0; i < domainBlocks.length; i++) {
+      const block = domainBlocks[i];
+      const prefix = this.domainBlockVar(block, i);
+      switch (block.domain) {
+        case 'material':
+          this.emitMaterialDomainBlock(block, prefix);
+          break;
+        case 'dataviz':
+          this.emitMultiline(datavizToWebGPU(compileDataVizBlock(block), prefix));
+          break;
+        case 'vfx':
+          this.emitParticleDomainBlock(block, prefix);
+          break;
+        case 'postfx':
+          this.emitPostFXDomainBlock(block, prefix);
+          break;
+        case 'procedural':
+          this.emitProceduralDomainBlock(block, prefix);
+          break;
+        default:
+          this.emitDomainMetadataBlock(block, prefix);
+          break;
       }
+      this.emit('');
     }
+  }
+
+  private emitMaterialDomainBlock(block: HoloDomainBlock, prefix: string): void {
+    const mat = compileMaterialBlock(block);
+    this.emitMultiline(materialToWebGPU(mat, prefix));
+    if (Object.keys(mat.textureMaps).length > 0) {
+      this.emit(`const ${prefix}TextureMaps = ${this.json(mat.textureMaps)};`);
+      this.emit(`const ${prefix}Textures = await loadMaterialTextureSet(${prefix}TextureMaps);`);
+      this.emit(
+        `const ${prefix}TextureReceipt = { name: "${this.escapeStringValue(mat.name, 'TypeScript')}", maps: Object.keys(${prefix}TextureMaps), loaded: Object.values(${prefix}Textures).filter((t) => t.loaded).length };`
+      );
+    }
+  }
+
+  private emitParticleDomainBlock(block: HoloDomainBlock, prefix: string): void {
+    const ps = compileParticleBlock(block);
+    const count = Math.max(
+      1,
+      Math.floor(
+        this.numberProp(block, ['max_particles', 'maxParticles', 'count', 'rate'], 512)
+      )
+    );
+    const seed = this.hashSeed(`${ps.name}:${ps.keyword}:${count}`);
+    this.emit(`// Domain particles: ${this.escapeStringValue(ps.name, 'TypeScript')}`);
+    this.emit(`const ${prefix}ParticleConfig = ${this.json({
+      name: ps.name,
+      keyword: ps.keyword,
+      traits: ps.traits,
+      properties: ps.properties,
+      modules: ps.modules,
+    })};`);
+    this.emit(`const ${prefix}ParticleCount = ${count};`);
+    this.emit(`const ${prefix}ParticleData = makeParticleCloud(${prefix}ParticleCount, ${seed});`);
+    this.emit(
+      `const ${prefix}ParticleBuf = createBuffer(device, ${prefix}ParticleData, GPUBufferUsage.VERTEX | GPUBufferUsage.STORAGE);`
+    );
+    this.emit(`const ${prefix}ParticlePipeline = device.createRenderPipeline({`);
+    this.indent();
+    this.emit('layout: "auto",');
+    this.emit(
+      'vertex: { module: device.createShaderModule({ code: WGSL_PARTICLE_RENDER }), entryPoint: "vs_particle",'
+    );
+    this.emit(
+      '  buffers: [{ arrayStride: 32, attributes: [{ shaderLocation: 0, offset: 0, format: "float32x3" }, { shaderLocation: 1, offset: 12, format: "float32x3" }, { shaderLocation: 2, offset: 24, format: "float32" }] }] },'
+    );
+    this.emit(
+      'fragment: { module: device.createShaderModule({ code: WGSL_PARTICLE_RENDER }), entryPoint: "fs_particle",'
+    );
+    this.emit(
+      '  targets: [{ format, blend: { color: { srcFactor: "src-alpha", dstFactor: "one", operation: "add" }, alpha: { srcFactor: "zero", dstFactor: "one", operation: "add" } } }] },'
+    );
+    this.emit(
+      'primitive: { topology: "point-list" }, depthStencil: { format: "depth24plus", depthWriteEnabled: false, depthCompare: "less" },'
+    );
+    this.dedent();
+    this.emit('});');
+  }
+
+  private emitPostFXDomainBlock(block: HoloDomainBlock, prefix: string): void {
+    const pp = compilePostProcessingBlock(block);
+    this.emit(`// Domain post-processing: ${this.escapeStringValue(pp.name ?? block.name, 'TypeScript')}`);
+    this.emit(`const ${prefix}PostFXConfig = ${this.json({
+      name: pp.name,
+      keyword: pp.keyword,
+      effects: pp.effects,
+    })};`);
+    this.emit(`const ${prefix}PostFXPipeline = device.createRenderPipeline({`);
+    this.indent();
+    this.emit('layout: "auto",');
+    this.emit(
+      'vertex: { module: device.createShaderModule({ code: WGSL_POSTFX }), entryPoint: "vs_postfx" },'
+    );
+    this.emit(
+      'fragment: { module: device.createShaderModule({ code: WGSL_POSTFX }), entryPoint: "fs_postfx", targets: [{ format, blend: { color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha", operation: "add" }, alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha", operation: "add" } } }] },'
+    );
+    this.emit('primitive: { topology: "triangle-list" }, multisample: { count: MSAA_COUNT },');
+    this.dedent();
+    this.emit('});');
+  }
+
+  private emitProceduralDomainBlock(block: HoloDomainBlock, prefix: string): void {
+    const proc = compileProceduralBlock(block);
+    this.emit(`// Domain procedural: ${this.escapeStringValue(proc.name, 'TypeScript')}`);
+    this.emit(`const ${prefix}ProceduralConfig = ${this.json({
+      name: proc.name,
+      keyword: proc.keyword,
+      genType: proc.genType,
+      seed: proc.seed,
+      density: proc.density,
+      scaleRange: proc.scaleRange,
+      noise: proc.noise,
+      sourceMesh: proc.sourceMesh,
+      traits: proc.traits,
+      properties: proc.properties,
+    })};`);
+    this.emit(
+      `const ${prefix}ProceduralUniform = createBuffer(device, new Float32Array([${proc.seed ?? 1}, ${proc.density ?? 1}, ${this.numberProp(block, ['count'], 1)}, 0]), GPUBufferUsage.UNIFORM);`
+    );
+    if (block.keyword === 'scatter' || block.keyword === 'distribute' || block.properties?.count) {
+      const count = Math.max(1, Math.floor(this.numberProp(block, ['count'], 128)));
+      this.emit(`const ${prefix}ScatterInstanceCount = ${count};`);
+      this.emit(`const ${prefix}ScatterVertices = generateConeVertices(0.08, 0.36, 8);`);
+      this.emit(`const ${prefix}ScatterVBO = createBuffer(device, ${prefix}ScatterVertices, GPUBufferUsage.VERTEX);`);
+      this.emit(`const ${prefix}ScatterVertexCount = ${prefix}ScatterVertices.length / 6;`);
+      this.emit(`const ${prefix}ScatterPipeline = device.createRenderPipeline({`);
+      this.indent();
+      this.emit('layout: "auto",');
+      this.emit(
+        'vertex: { module: device.createShaderModule({ code: WGSL_SCATTER }), entryPoint: "vs_scatter",'
+      );
+      this.emit(
+        '  buffers: [{ arrayStride: 24, attributes: [{ shaderLocation: 0, offset: 0, format: "float32x3" }, { shaderLocation: 1, offset: 12, format: "float32x3" }] }] },'
+      );
+      this.emit(
+        'fragment: { module: device.createShaderModule({ code: WGSL_SCATTER }), entryPoint: "fs_scatter", targets: [{ format }] },'
+      );
+      this.emit(
+        'primitive: { topology: "triangle-list", cullMode: "back" }, depthStencil: { format: "depth24plus", depthWriteEnabled: true, depthCompare: "less" }, multisample: { count: MSAA_COUNT },'
+      );
+      this.dedent();
+      this.emit('});');
+    }
+  }
+
+  private emitDomainMetadataBlock(block: HoloDomainBlock, prefix: string): void {
+    this.emit(`const ${prefix}DomainBlock = ${this.json({
+      domain: block.domain,
+      keyword: block.keyword,
+      name: block.name,
+      traits: block.traits,
+      properties: block.properties,
+      childCount: block.children?.length ?? 0,
+    })};`);
   }
 
   // ─── Device Init ──────────────────────────────────────────────────────────
@@ -151,6 +291,7 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit('const adapter = await navigator.gpu.requestAdapter();');
     this.emit('if (!adapter) throw new Error("WebGPU not supported");');
     this.emit('const device = await adapter.requestDevice();');
+    this.emit('document.body.dataset.holoscriptWebgpu = "device-ready";');
     this.emit('const context = canvas.getContext("webgpu") as GPUCanvasContext;');
     this.emit('const format = navigator.gpu.getPreferredCanvasFormat();');
     this.emit('context.configure({ device, format, alphaMode: "premultiplied" });');
@@ -179,6 +320,93 @@ export class WebGPUCompiler extends CompilerBase {
     );
     this.dedent();
     this.emit('}');
+    this.emit('function createFallbackTexture(device, rgba) {');
+    this.indent();
+    this.emit('const tex = device.createTexture({ size: [1, 1, 1], format: "rgba8unorm", usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST });');
+    this.emit('device.queue.writeTexture({ texture: tex }, new Uint8Array(rgba), { bytesPerRow: 4 }, [1, 1, 1]);');
+    this.emit('return tex;');
+    this.dedent();
+    this.emit('}');
+    this.emit('async function loadTexture2D(src) {');
+    this.indent();
+    this.emit('const sampler = device.createSampler({ magFilter: "linear", minFilter: "linear", mipmapFilter: "linear", addressModeU: "repeat", addressModeV: "repeat" });');
+    this.emit('try {');
+    this.indent();
+    this.emit('const resp = await fetch(src);');
+    this.emit('if (!resp.ok) throw new Error(`texture fetch ${resp.status}`);');
+    this.emit('const bitmap = await createImageBitmap(await resp.blob());');
+    this.emit('const texture = device.createTexture({ size: [bitmap.width, bitmap.height, 1], format: "rgba8unorm", usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT });');
+    this.emit('device.queue.copyExternalImageToTexture({ source: bitmap }, { texture }, [bitmap.width, bitmap.height]);');
+    this.emit('return { src, texture, view: texture.createView(), sampler, loaded: true };');
+    this.dedent();
+    this.emit('} catch {');
+    this.indent();
+    this.emit('const texture = createFallbackTexture(device, [255, 255, 255, 255]);');
+    this.emit('return { src, texture, view: texture.createView(), sampler, loaded: false };');
+    this.dedent();
+    this.emit('}');
+    this.dedent();
+    this.emit('}');
+    this.emit('async function loadMaterialTextureSet(maps) {');
+    this.indent();
+    this.emit('const entries = await Promise.all(Object.entries(maps).map(async ([kind, src]) => [kind, await loadTexture2D(src)]));');
+    this.emit('return Object.fromEntries(entries);');
+    this.dedent();
+    this.emit('}');
+    this.emit('const assetLoader = {');
+    this.indent();
+    this.emit('async load(src) {');
+    this.indent();
+    this.emit('return { src, kind: "external-model", loaded: false };');
+    this.dedent();
+    this.emit('},');
+    this.dedent();
+    this.emit('};');
+    this.emit('function makeParticleCloud(count, seed) {');
+    this.indent();
+    this.emit('let s = seed || 1;');
+    this.emit('const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };');
+    this.emit('const data = new Float32Array(count * 8);');
+    this.emit('for (let i = 0; i < count; i++) {');
+    this.indent();
+    this.emit('const o = i * 8;');
+    this.emit('data[o + 0] = rnd() * 1.8 - 0.9; data[o + 1] = rnd() * 1.2 - 0.6; data[o + 2] = rnd() * 1.8 - 0.9;');
+    this.emit('data[o + 3] = 0.0; data[o + 4] = 0.25 + rnd(); data[o + 5] = 0.0; data[o + 6] = rnd(); data[o + 7] = 0.0;');
+    this.dedent();
+    this.emit('}');
+    this.emit('return data;');
+    this.dedent();
+    this.emit('}');
+    this.emit('');
+  }
+
+  private emitGeometryHelpers(): void {
+    this.emit('// === Geometry Helpers ===');
+    this.emit('function generateCubeVertices(size) {');
+    this.indent();
+    this.emit('const s = size / 2;');
+    this.emit('return new Float32Array([');
+    this.indent();
+    this.emit('-s,-s, s, 0,0,1,  s,-s, s, 0,0,1,  s, s, s, 0,0,1, -s,-s, s, 0,0,1,  s, s, s, 0,0,1, -s, s, s, 0,0,1,');
+    this.emit(' s,-s,-s, 0,0,-1, -s,-s,-s, 0,0,-1, -s, s,-s, 0,0,-1,  s,-s,-s, 0,0,-1, -s, s,-s, 0,0,-1,  s, s,-s, 0,0,-1,');
+    this.emit('-s,-s,-s, -1,0,0, -s,-s, s, -1,0,0, -s, s, s, -1,0,0, -s,-s,-s, -1,0,0, -s, s, s, -1,0,0, -s, s,-s, -1,0,0,');
+    this.emit(' s,-s, s, 1,0,0,  s,-s,-s, 1,0,0,  s, s,-s, 1,0,0,  s,-s, s, 1,0,0,  s, s,-s, 1,0,0,  s, s, s, 1,0,0,');
+    this.emit('-s, s, s, 0,1,0,  s, s, s, 0,1,0,  s, s,-s, 0,1,0, -s, s, s, 0,1,0,  s, s,-s, 0,1,0, -s, s,-s, 0,1,0,');
+    this.emit('-s,-s,-s, 0,-1,0,  s,-s,-s, 0,-1,0,  s,-s, s, 0,-1,0, -s,-s,-s, 0,-1,0,  s,-s, s, 0,-1,0, -s,-s, s, 0,-1,0');
+    this.dedent();
+    this.emit(']);');
+    this.dedent();
+    this.emit('}');
+    this.emit('function generatePlaneVertices(width, depth) {');
+    this.indent();
+    this.emit('const x = width / 2, z = depth / 2;');
+    this.emit('return new Float32Array([-x,0,-z,0,1,0, x,0,-z,0,1,0, x,0,z,0,1,0, -x,0,-z,0,1,0, x,0,z,0,1,0, -x,0,z,0,1,0]);');
+    this.dedent();
+    this.emit('}');
+    this.emit('function generateSphereVertices(radius, _lat, _lon) { return generateCubeVertices(radius * 2); }');
+    this.emit('function generateCylinderVertices(radius, height, _segments) { return generateCubeVertices(Math.max(radius * 2, height)); }');
+    this.emit('function generateConeVertices(radius, height, _segments) { return generateCubeVertices(Math.max(radius * 2, height)); }');
+    this.emit('function generateTorusVertices(radius, tube, _radial, _tubular) { return generateCubeVertices((radius + tube) * 2); }');
     this.emit('');
   }
 
@@ -232,12 +460,11 @@ export class WebGPUCompiler extends CompilerBase {
     const isGpuParticle = traits.some((t) => isGpuParticleTraitName(t.name));
 
     if (isModel && modelSrc) {
-      this.emit(`const ${v}Model = await assetLoader.load("${modelSrc}");`);
-      const pos = this.findObjProp(obj, 'position');
-      const [px, py, pz] = Array.isArray(pos) ? (pos as number[]) : [0, 0, 0];
+      this.emit(`const ${v}Asset = await assetLoader.load("${modelSrc}");`);
       this.emit(
-        `const ${v}ModelMatrix = createBuffer(device, new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, ${px},${py},${pz},1]), GPUBufferUsage.UNIFORM);`
+        `// Model asset "${this.escapeStringValue(modelSrc, 'TypeScript')}" is tracked in ${v}Asset; fallback mesh keeps the render path defined.`
       );
+      this.emitMeshObject(v, obj, 'cube');
     } else if (isModel) {
       this.emit(`// WARNING: geometry "model" without source URL — placeholder cube`);
       this.emitMeshObject(v, obj, 'cube');
@@ -540,7 +767,7 @@ export class WebGPUCompiler extends CompilerBase {
         this.emit(
           `const ${v}CustomCompute = device.createComputePipeline({ layout: "auto", compute: { module: device.createShaderModule({ code: WGSL_CUSTOM_${v.toUpperCase()} }), entryPoint: "${entry}" } });`
         );
-        this.emit(`const ${v}Workgroups: [number, number, number] = [${wg}];`);
+        this.emit(`const ${v}Workgroups = [${wg}];`);
       }
     }
     this.emit('');
@@ -613,6 +840,27 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit(
       '  let t = clamp(i.life, 0.0, 1.0); return vec4<f32>(mix(vec3(1.0,0.2,0.0), vec3(1.0,1.0,0.5), t), t*0.8); }`;'
     );
+    this.emit('');
+    // Procedural scatter shader
+    this.emit('const WGSL_SCATTER = /* wgsl */`');
+    this.emit('struct VIn { @location(0) pos: vec3<f32>, @location(1) norm: vec3<f32> };');
+    this.emit('struct VOut { @builtin(position) clip: vec4<f32>, @location(0) shade: f32 };');
+    this.emit('fn hash11(v: f32) -> f32 { return fract(sin(v * 12.9898) * 43758.5453); }');
+    this.emit('@vertex fn vs_scatter(i: VIn, @builtin(instance_index) instance: u32) -> VOut {');
+    this.emit('  let id = f32(instance);');
+    this.emit('  let x = hash11(id + 1.0) * 1.8 - 0.9; let z = hash11(id + 7.0) * 1.8 - 0.9;');
+    this.emit('  let scale = 0.35 + hash11(id + 13.0) * 0.45;');
+    this.emit('  var o: VOut; o.clip = vec4<f32>(i.pos.x * scale + x, i.pos.y * scale - 0.65, i.pos.z * scale + z, 1.0);');
+    this.emit('  o.shade = 0.45 + max(i.norm.y, 0.0) * 0.45; return o; }');
+    this.emit('@fragment fn fs_scatter(i: VOut) -> @location(0) vec4<f32> { return vec4<f32>(0.08 * i.shade, 0.34 * i.shade, 0.12 * i.shade, 1.0); }`;');
+    this.emit('');
+    // Full-screen post-processing overlay shader
+    this.emit('const WGSL_POSTFX = /* wgsl */`');
+    this.emit('struct VO { @builtin(position) pos: vec4<f32> };');
+    this.emit('@vertex fn vs_postfx(@builtin(vertex_index) vi: u32) -> VO {');
+    this.emit('  var p = array<vec2<f32>,3>(vec2(-1.0,-1.0), vec2(3.0,-1.0), vec2(-1.0,3.0));');
+    this.emit('  var o: VO; o.pos = vec4<f32>(p[vi], 0.0, 1.0); return o; }');
+    this.emit('@fragment fn fs_postfx() -> @location(0) vec4<f32> { return vec4<f32>(0.04, 0.08, 0.05, 0.18); }`;');
     this.emit('');
     // Particle compute shader
     this.emit('const WGSL_PARTICLE_COMPUTE = /* wgsl */`');
@@ -704,9 +952,12 @@ export class WebGPUCompiler extends CompilerBase {
         for (const obj of group.objects) this.emitDrawCall(obj);
       }
     }
+    this.emitDomainBlockDrawCalls(composition, false);
+    this.emitDomainBlockDrawCalls(composition, true);
 
     this.emit('rp.end();');
     this.emit('device.queue.submit([enc.finish()]);');
+    this.emit('document.body.dataset.holoscriptWebgpuFrame = String(frameCount);');
     this.emit('requestAnimationFrame(frame);');
     this.dedent();
     this.emit('}');
@@ -735,10 +986,42 @@ export class WebGPUCompiler extends CompilerBase {
     }
   }
 
+  private emitDomainBlockDrawCalls(composition: HoloComposition, postFxOnly: boolean): void {
+    const blocks = composition.domainBlocks ?? [];
+    for (let i = 0; i < blocks.length; i++) {
+      const block = blocks[i];
+      const prefix = this.domainBlockVar(block, i);
+      if (block.domain === 'postfx') {
+        if (postFxOnly) {
+          this.emit(`rp.setPipeline(${prefix}PostFXPipeline); rp.draw(3);`);
+        }
+        continue;
+      }
+      if (postFxOnly) continue;
+      if (block.domain === 'vfx') {
+        this.emit(
+          `rp.setPipeline(${prefix}ParticlePipeline); rp.setVertexBuffer(0, ${prefix}ParticleBuf); rp.draw(${prefix}ParticleCount);`
+        );
+      }
+      if (
+        block.domain === 'procedural' &&
+        (block.keyword === 'scatter' || block.keyword === 'distribute' || block.properties?.count)
+      ) {
+        this.emit(
+          `rp.setPipeline(${prefix}ScatterPipeline); rp.setVertexBuffer(0, ${prefix}ScatterVBO); rp.draw(${prefix}ScatterVertexCount, ${prefix}ScatterInstanceCount);`
+        );
+      }
+    }
+  }
+
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
   private emit(line: string): void {
     this.lines.push(this.options.indent.repeat(this.indentLevel) + line);
+  }
+
+  private emitMultiline(code: string): void {
+    for (const line of code.split('\n')) this.emit(line);
   }
 
   private indent(): void {
@@ -750,6 +1033,37 @@ export class WebGPUCompiler extends CompilerBase {
 
   private sanitizeName(name: string): string {
     return name.replace(/[^a-zA-Z0-9_]/g, '_');
+  }
+
+  private domainBlockVar(block: HoloDomainBlock, index: number): string {
+    const raw = `${block.domain}_${block.keyword}_${block.name || index}`;
+    const safe = this.sanitizeName(raw);
+    return `db${index}_${safe || 'domain'}`;
+  }
+
+  private json(value: unknown): string {
+    return JSON.stringify(value).replace(/</g, '\\u003c');
+  }
+
+  private numberProp(block: HoloDomainBlock, keys: string[], fallback: number): number {
+    for (const key of keys) {
+      const value = block.properties?.[key];
+      if (typeof value === 'number' && Number.isFinite(value)) return value;
+      if (typeof value === 'string' && value.trim() !== '') {
+        const parsed = Number(value);
+        if (Number.isFinite(parsed)) return parsed;
+      }
+    }
+    return fallback;
+  }
+
+  private hashSeed(value: string): number {
+    let h = 2166136261;
+    for (let i = 0; i < value.length; i++) {
+      h ^= value.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
   }
 
   private findObjProp(obj: HoloObjectDecl, key: string): HoloValue | undefined {

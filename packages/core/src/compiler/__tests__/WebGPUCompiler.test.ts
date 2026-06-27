@@ -32,6 +32,7 @@ describe('WebGPUCompiler', () => {
     const code = compiler.compile(makeComposition(), 'test-token');
     expect(code).toContain('requestAdapter');
     expect(code).toContain('requestDevice');
+    expect(code).toContain('document.body.dataset.holoscriptWebgpu = "device-ready"');
   });
 
   // =========== Options ===========
@@ -163,6 +164,7 @@ describe('WebGPUCompiler', () => {
   it('generates render loop', () => {
     const code = compiler.compile(makeComposition(), 'test-token');
     expect(code).toContain('requestAnimationFrame');
+    expect(code).toContain('document.body.dataset.holoscriptWebgpuFrame = String(frameCount)');
   });
 
   // =========== Multiple objects ===========
@@ -177,6 +179,84 @@ describe('WebGPUCompiler', () => {
     const code = compiler.compile(comp, 'test-token');
     expect(code).toContain('obj_1');
     expect(code).toContain('obj_2');
+  });
+
+  it('emits runnable resources for rich WebGPU domain blocks', () => {
+    const comp = makeComposition({
+      objects: [
+        {
+          name: 'Boulder',
+          properties: [
+            { key: 'model', value: 'models/boulder.glb' },
+            { key: 'position', value: [0.2, 0.0, 0.0] },
+          ],
+          traits: [],
+        },
+      ] as any,
+      domainBlocks: [
+        {
+          type: 'DomainBlock',
+          domain: 'material',
+          keyword: 'pbr_material',
+          name: 'ForestGround',
+          traits: ['pbr'],
+          properties: {
+            baseColor: '#5d4037',
+            roughness: 0.85,
+            albedo_map: 'textures/ground_albedo.png',
+            normal_map: 'textures/ground_normal.png',
+            ao_map: 'textures/ground_ao.png',
+            height_map: 'textures/ground_height.png',
+          },
+        },
+        {
+          type: 'DomainBlock',
+          domain: 'vfx',
+          keyword: 'particles',
+          name: 'CampfireSmoke',
+          traits: ['looping'],
+          properties: { max_particles: 64 },
+          children: [],
+        },
+        {
+          type: 'DomainBlock',
+          domain: 'postfx',
+          keyword: 'post_processing',
+          name: 'ForestAtmosphere',
+          traits: [],
+          properties: {},
+          children: [
+            { type: 'DomainBlock', domain: 'postfx', keyword: 'bloom', name: 'Bloom', traits: [], properties: { intensity: 0.4 } },
+          ],
+        },
+        {
+          type: 'DomainBlock',
+          domain: 'procedural',
+          keyword: 'scatter',
+          name: 'TreeDistribution',
+          traits: [],
+          properties: { count: 2000, source: 'ForestTerrain' },
+        },
+      ] as any,
+    });
+
+    const code = compiler.compile(comp, 'test-token');
+
+    expect(code).toContain('const BoulderAsset = await assetLoader.load("models/boulder.glb")');
+    expect(code).toContain('const BoulderPipeline = device.createRenderPipeline');
+    expect(code).toContain('const BoulderVBO = createBuffer');
+    expect(code).toContain('loadMaterialTextureSet');
+    expect(code).toContain('ground_normal.png');
+    expect(code).toContain('CampfireSmoke');
+    expect(code).toContain('ParticlePipeline');
+    expect(code).toContain('ForestAtmosphere');
+    expect(code).toContain('PostFXPipeline');
+    expect(code).toContain('TreeDistribution');
+    expect(code).toContain('ScatterPipeline');
+    expect(code).toContain('rp.draw(db3_procedural_scatter_TreeDistributionScatterVertexCount, db3_procedural_scatter_TreeDistributionScatterInstanceCount)');
+    expect(code).not.toContain('// Domain block: vfx/particles');
+    expect(code).not.toContain('// Domain block: postfx/post_processing');
+    expect(code).not.toContain('// Domain block: procedural/scatter');
   });
 
   // =========== Name sanitization ===========

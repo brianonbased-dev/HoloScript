@@ -591,10 +591,16 @@ export function generateWebGPUBrowserTemplate(compiledCode: string, title: strin
   const runnableCode = compiledCode
     // Remove `as <Type>` casts
     .replace(/\s+as\s+[A-Za-z0-9_<>\[\]|,\s]+(?=[;,)\s])/g, '')
-    // Remove `: <Type>` parameter / variable annotations (simplified)
+    // Remove `: <Type>` parameter / variable annotations without touching
+    // object-literal values such as `usage: GPUTextureUsage.RENDER_ATTACHMENT`.
     .replace(
-      /:\s*(?:GPU[A-Za-z0-9]+|HTMLCanvasElement|GPUColor|Float32Array|number|string|boolean)\b/g,
-      ''
+      /(\b[A-Za-z_$][\w$]*)\s*:\s*(?:GPU[A-Za-z0-9]+|HTMLCanvasElement|GPUColor|Float32Array|number|string|boolean)\b(?=\s*[,)=])/g,
+      '$1'
+    )
+    // Remove simple return type annotations.
+    .replace(
+      /\)\s*:\s*(?:GPU[A-Za-z0-9]+|HTMLCanvasElement|GPUColor|Float32Array|number|string|boolean)\b(?=\s*\{)/g,
+      ')'
     );
 
   const safeTitle = escapeHtml(title);
