@@ -40,6 +40,27 @@ describe('wasmCompilerFitness', () => {
     expect(measured.improvementPct).toBe(20);
   });
 
+  it('fails the improvement gate when a candidate only matches the baseline', () => {
+    const baseline = wasmFitnessBaselineFromScenario('wasm-evolve-density', {
+      wasmDensity: 4,
+      watLength: 80,
+      memoryTotalSize: 20,
+    });
+
+    const measured = scoreWasmCompilerArtifact(
+      { wat: 'x'.repeat(80), memoryLayout: { totalSize: 20 } },
+      { baseline, requireImprovement: true },
+    );
+
+    expect(measured).toMatchObject({
+      passed: false,
+      score: 4,
+      baselineScore: 4,
+      improvementPct: 0,
+      note: 'no_baseline_improvement',
+    });
+  });
+
   it('fails empty WAT and invalid memory layouts', () => {
     expect(
       scoreWasmCompilerArtifact({ wat: '', memoryLayout: { totalSize: 1 } }).passed,

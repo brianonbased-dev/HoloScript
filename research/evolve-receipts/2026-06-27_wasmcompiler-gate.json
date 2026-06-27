@@ -1,15 +1,26 @@
 {
   "schema": "holoscript-evolve-wasmcompiler-gate-v1",
   "target": "packages/core/src/compiler/WASMCompiler.ts",
+  "seed": "git:HEAD^:packages/core/src/compiler/WASMCompiler.ts",
   "candidate": "packages/core/src/compiler/WASMCompiler.ts",
-  "candidateApplied": false,
+  "candidateApplied": true,
+  "seedSha256": "e8b410cd626aa19f2e84090339c382af598a474d8172c88d389c02bc3aeb45a8",
   "candidateSha256": "438ae89ad1c8a60eaaf9be3ea05d76251b5fb2073df49ff8c8f4ccce88d4f01e",
+  "baselineMeasurement": {
+    "passed": true,
+    "score": 3.791822,
+    "watLength": 4080,
+    "memoryTotalSize": 1076,
+    "baselineScore": null,
+    "improvementPct": null,
+    "note": "wasm_density_measured"
+  },
   "correctness": {
     "label": "compiler-tests",
     "command": "corepack pnpm --filter @holoscript/core exec vitest run src/compiler/WASMCompiler.test.ts",
     "exitCode": 0,
-    "durationMs": 1883,
-    "stdoutTail": "\n RUN  v4.1.8 C:/Users/josep/Documents/GitHub/HoloScript/packages/core\n\n\n Test Files  1 passed (1)\n      Tests  27 passed (27)\n   Start at  16:37:56\n   Duration  842ms (transform 380ms, setup 0ms, import 615ms, tests 15ms, environment 0ms)\n\n",
+    "durationMs": 1723,
+    "stdoutTail": "\n RUN  v4.1.8 C:/Users/josep/Documents/GitHub/HoloScript/packages/core\n\n\n Test Files  1 passed (1)\n      Tests  27 passed (27)\n   Start at  16:46:53\n   Duration  770ms (transform 350ms, setup 0ms, import 568ms, tests 21ms, environment 0ms)\n\n",
     "stderrTail": ""
   },
   "measurement": {
@@ -17,20 +28,20 @@
     "score": 3.763941,
     "watLength": 4050,
     "memoryTotalSize": 1076,
-    "baselineScore": 3.763941,
-    "improvementPct": 0,
+    "baselineScore": 3.791822,
+    "improvementPct": 0.7,
     "note": "wasm_density_measured"
   },
   "measurementRun": {
     "label": "measure",
     "command": "corepack pnpm exec tsx .scratch/evolve-wasmcompiler/measure-wasmcompiler.mts",
     "exitCode": 0,
-    "durationMs": 1040,
-    "stdoutTail": "{\"fixture\":\"wasm_evolve_density_fixture\",\"artifactKind\":\"wat-scaffold\",\"format\":\"wat\",\"measurement\":{\"passed\":true,\"score\":3.763941,\"watLength\":4050,\"memoryTotalSize\":1076,\"baselineScore\":3.763941,\"improvementPct\":0,\"note\":\"wasm_density_measured\"}}\n",
+    "durationMs": 1213,
+    "stdoutTail": "{\"fixture\":\"wasm_evolve_density_fixture\",\"artifactKind\":\"wat-scaffold\",\"format\":\"wat\",\"measurement\":{\"passed\":true,\"score\":3.763941,\"watLength\":4050,\"memoryTotalSize\":1076,\"baselineScore\":3.791822,\"improvementPct\":0.7,\"note\":\"wasm_density_measured\"}}\n",
     "stderrTail": ""
   },
   "passed": true,
   "selfShips": false,
-  "ts": "2026-06-27T23:37:58.696Z",
-  "verifyUrl": "cael:sha256:95886c0fe6c8e818a0d6400547b17cd313300569d7017704fea0edcc7ce83b0d"
+  "ts": "2026-06-27T23:46:56.009Z",
+  "verifyUrl": "cael:sha256:afaeca5c174d371cf30a53939e05180bbc0433370af9fde3e7f1ea7ff6b3e1d3"
 }
