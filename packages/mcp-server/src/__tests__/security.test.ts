@@ -473,6 +473,23 @@ describe('Gate 1: Prompt Validation', () => {
     expect(result.reason).toContain('Prototype pollution');
   });
 
+  it('should allow injection-shaped text only inside inline source file content', () => {
+    const result = gate1ValidateRequest(
+      'holo_absorb_repo',
+      {
+        sourceFiles: [
+          {
+            path: 'fixture.ts',
+            content: 'export const marker = "__proto__ ../../etc/passwd ; rm -rf /";',
+          },
+        ],
+      },
+      'inline-source-content-client'
+    );
+
+    expect(result.passed).toBe(true);
+  });
+
   it('should enforce rate limiting', () => {
     const config = { ...DEFAULT_GATE1_CONFIG, rateLimitPerMinute: 3 };
 
@@ -633,6 +650,28 @@ describe('Triple-Gate Integration', () => {
     expect(result.passed).toBe(false);
     expect(result.gate).toBe(2);
     expect(result.reason).toContain('Insufficient scope');
+  });
+
+  it('should still run Gate 1 on non-content args for inline source absorb', () => {
+    const auth: TokenIntrospection = {
+      active: true,
+      scopes: ['tools:codebase'],
+      clientId: 'inline-source-absorb-client',
+      agentId: 'test-agent',
+    };
+
+    const result = runTripleGate(
+      'holo_absorb_repo',
+      {
+        rootDir: '; rm -rf /',
+        sourceFiles: [{ path: 'fixture.ts', content: 'export const ok = true;' }],
+      },
+      auth
+    );
+
+    expect(result.passed).toBe(false);
+    expect(result.gate).toBe(1);
+    expect(result.reason).toContain('Suspicious patterns');
   });
 
   it('should fail at gate 3 for policy violation', () => {

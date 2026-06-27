@@ -140,6 +140,10 @@ function isHoloSourceField(toolName: string, fieldPath: string): boolean {
   return isHoloSourceTool && HOLO_SOURCE_FIELDS.has(fieldPath);
 }
 
+function isInlineSourceFileContentField(toolName: string, fieldPath: string): boolean {
+  return toolName === 'holo_absorb_repo' && /^sourceFiles\[\d+\]\.content$/.test(fieldPath);
+}
+
 /** Rate limiter: sliding window per client */
 const rateLimitWindows = new Map<string, number[]>();
 
@@ -256,6 +260,8 @@ function measureDepth(obj: unknown, current = 0): number {
 function detectInjectionPatterns(obj: unknown, toolName = '', path = ''): string[] {
   const findings: string[] = [];
   if (typeof obj === 'string') {
+    if (isInlineSourceFileContentField(toolName, path)) return findings;
+
     // On a verified HoloScript-source field, skip templating-only patterns ({{ }}
     // bindings) — valid language syntax, not injection. Shell, path traversal,
     // ${process.}, proto-pollution and JSON-RPC patterns all still apply.
@@ -605,13 +611,10 @@ export function runTripleGate(
     };
   }
 
-  // Gate 1: Prompt validation
-  // sourceFiles absorb: disable injection pattern check — source code naturally contains
-  // patterns like __proto__, path traversal, and template literals that are false positives.
-  const resolvedGate1Config: Gate1Config =
-    toolName === 'holo_absorb_repo' && Array.isArray(args['sourceFiles'])
-      ? { ...(gate1Config ?? DEFAULT_GATE1_CONFIG), blockInjectionPatterns: false }
-      : (gate1Config ?? DEFAULT_GATE1_CONFIG);
+  // Gate 1: Prompt validation. Inline source upload can contain strings that
+  // look dangerous inside sourceFiles[*].content, but every other field still
+  // needs Gate 1.
+  const resolvedGate1Config: Gate1Config = gate1Config ?? DEFAULT_GATE1_CONFIG;
   const g1 = gate1ValidateRequest(toolName, args, auth.clientId || 'unknown', resolvedGate1Config);
   if (!g1.passed) {
     return {

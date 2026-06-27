@@ -16,7 +16,7 @@
 
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { extname, join, resolve, relative, basename } from 'node:path';
+import { join, resolve, relative, basename, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 
 const VERSION = '0.1.0';
@@ -40,8 +40,34 @@ const SECRET_PATTERNS = [
   /tmp/i,
 ];
 
-const MAX_FILES = 2000;
-const MAX_BYTES = 25 * 1024 * 1024; // 25 MiB total payload cap
+const MAX_FILES = 500;
+const MAX_BYTES = 5 * 1024 * 1024; // Matches holo_absorb_repo sourceFiles cap
+const TEXT_SOURCE_EXTENSIONS = new Set([
+  '.cjs',
+  '.css',
+  '.cts',
+  '.go',
+  '.holo',
+  '.hs',
+  '.hsplus',
+  '.html',
+  '.java',
+  '.js',
+  '.json',
+  '.jsx',
+  '.md',
+  '.mjs',
+  '.mts',
+  '.py',
+  '.rs',
+  '.scss',
+  '.toml',
+  '.ts',
+  '.tsx',
+  '.txt',
+  '.yaml',
+  '.yml',
+]);
 
 function parseArgs(argv) {
   const args = {
@@ -102,8 +128,8 @@ Options:
   --roots <p1,p2,...>   Comma-separated local Windows paths to scan.
   --out <receipt.json>  Output receipt path (defaults to bench-logs date folder).
   --date <yyyy-mm-dd>   Bench date folder when --out omitted.
-  --max-files N         Hard cap on number of files (default 2000).
-  --max-bytes N         Hard cap on total bytes (default 25 MiB).
+  --max-files N         Hard cap on number of files (default 500).
+  --max-bytes N         Hard cap on total source bytes (default 5 MiB).
 `);
 }
 
@@ -118,6 +144,12 @@ function sha256Text(text) {
 function shouldSkip(relPath, fullPath) {
   const lower = relPath.toLowerCase();
   return SECRET_PATTERNS.some((re) => re.test(lower) || re.test(basename(lower)));
+}
+
+function isTextSourcePath(relPath) {
+  const lower = relPath.toLowerCase();
+  const dot = lower.lastIndexOf('.');
+  return dot >= 0 && TEXT_SOURCE_EXTENSIONS.has(lower.slice(dot));
 }
 
 function walkDir(dir, base, results, stats, maxFiles, maxBytes) {
@@ -146,14 +178,24 @@ function walkDir(dir, base, results, stats, maxFiles, maxBytes) {
       if (st.isDirectory()) {
         walkDir(full, base, results, stats, maxFiles, maxBytes);
       } else if (st.isFile()) {
+        if (!isTextSourcePath(rel)) {
+          stats.skipped.push({ path: rel, reason: 'unsupported-file-type' });
+          continue;
+        }
         if (stats.totalBytes + st.size > maxBytes) {
           stats.skipped.push({ path: rel, reason: 'byte-cap-exceeded' });
           continue;
         }
-        const content = readFileSync(full);
-        const hash = sha256Bytes(content);
+        const contentBytes = readFileSync(full);
+        if (contentBytes.includes(0)) {
+          stats.skipped.push({ path: rel, reason: 'binary-content' });
+          continue;
+        }
+        const content = contentBytes.toString('utf8');
+        const hash = sha256Bytes(contentBytes);
         results.push({
           path: rel.replace(/\\/g, '/'),
+          content,
           size: st.size,
           hash,
           mtime: st.mtime.toISOString(),
@@ -211,8 +253,14 @@ function main() {
     const stats = { totalFiles: 0, totalBytes: 0, skipped: [] };
     walkDir(tmp, tmp, results, stats, 100, 1024 * 1024);
     const receipt = buildReceipt([tmp], results, stats, args);
+    const toolPayloadOk = receipt.sourceFiles.every(
+      (f) => typeof f.path === 'string' && typeof f.content === 'string'
+    );
+    const contentOk = receipt.sourceFiles[0]?.content === 'export const x = 42;\n';
     console.log('receipt shape ok:', !!receipt.sourceFiles && !!receipt.stats);
+    console.log('tool payload ok:', toolPayloadOk && contentOk);
     console.log('files captured:', receipt.stats.totalFiles);
+    if (!toolPayloadOk || !contentOk) process.exit(1);
     process.exit(0);
   }
 
