@@ -7778,6 +7778,12 @@ export class HoloCompositionParser {
           this.advance();
           this.advance();
         }
+        if (domain === 'input') {
+          properties[from] = this.parseValue();
+          if (this.check('COMMA')) this.advance();
+          this.skipNewlines();
+          continue;
+        }
         const to = this.isBarewordPathToken() ? this.parseBarewordPathValue() : '';
         const existing = properties.connections;
         const connection = { from, to };

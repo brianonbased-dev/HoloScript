@@ -215,6 +215,37 @@ describe('Domain Blocks and Specialized AST Nodes', () => {
       expect(result.ast!.domainBlocks![1].keyword).toBe('contract');
       expect(result.ast!.domainBlocks![1].name).toBe('DeFiProtocol');
     });
+
+    it('should parse string-named input blocks with arrow bindings', () => {
+      const source = `
+        composition "Example" {
+          input "ExplorerControls" {
+            move: "left_stick"
+            look: "right_stick"
+            interact => "button_a"
+            sprint => "left_trigger"
+            camera_mode: "right_bumper"
+            sensitivity: 2.5
+            invert_y: false
+            deadzone: 0.15
+          }
+        }
+      `;
+      const result = parser.parse(source);
+      expect(result.success).toBe(true);
+      expect(result.ast!.domainBlocks).toBeDefined();
+      expect(result.ast!.domainBlocks!.length).toBe(1);
+
+      const input = result.ast!.domainBlocks![0];
+      expect(input.domain).toBe('input');
+      expect(input.keyword).toBe('input');
+      expect(input.name).toBe('ExplorerControls');
+      expect(input.properties.move).toBe('left_stick');
+      expect(input.properties.interact).toBe('button_a');
+      expect(input.properties.sprint).toBe('left_trigger');
+      expect(input.properties.connections).toBeUndefined();
+      expect(input.properties.deadzone).toBe(0.15);
+    });
   });
 
   describe('Spawn Group Block', () => {
