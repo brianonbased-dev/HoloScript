@@ -1514,6 +1514,52 @@ export async function handleBoardRoutes(
     return true;
   }
 
+  // GET /api/holomesh/team/:id/slots
+  //
+  // Public-user parity surface for local HoloMesh operators. The MCP tool layer
+  // exposes slot roles through holomesh_board_list / holomesh_slot_assign, and
+  // the sovereign service contract probes an HTTP slot surface directly. Keep
+  // this read-only and membership-gated like /members so external users can
+  // inspect capacity without needing founder access.
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/slots$/) && method === 'GET') {
+    const access = await requireTeamAccessFresh(req, res, url);
+    if (!access) return true;
+    const { teamId } = access;
+    const team = teamStore.get(teamId)!;
+
+    pruneStalePresence(teamId);
+    const presenceMap = teamPresenceStore.get(teamId);
+    const slotRoles = team.roomConfig?.slotRoles || [];
+    const maxSlots = Number.isFinite(team.maxSlots) ? Math.max(0, Math.floor(team.maxSlots)) : 0;
+    const members = team.members || [];
+
+    const slots = Array.from({ length: maxSlots }, (_, index) => {
+      const member = members[index];
+      const presence = member ? presenceMap?.get(member.agentId) : undefined;
+      return {
+        index,
+        role: slotRoles[index] || 'flex',
+        occupied: Boolean(member),
+        agentId: member?.agentId || null,
+        agentName: member?.agentName || null,
+        memberRole: member?.role || null,
+        online: Boolean(presence),
+        lastHeartbeat: presence?.lastHeartbeat || null,
+      };
+    });
+
+    json(res, 200, {
+      success: true,
+      teamId,
+      maxSlots,
+      memberCount: members.length,
+      openSlots: Math.max(0, maxSlots - members.length),
+      slotRoles,
+      slots,
+    });
+    return true;
+  }
+
   // POST /api/holomesh/team/:id/message
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/message$/) && method === 'POST') {
     // Pattern Gamma residual fix — see board POST handler above.

@@ -520,6 +520,47 @@ describe('Team Routes — Mobile Handoff', () => {
   });
 });
 
+describe('Board Routes - Slots', () => {
+  it('GET /api/holomesh/team/:id/slots returns member-gated slot capacity', async () => {
+    const res = await callBoard('GET', '/api/holomesh/team/team_test_mobile/slots');
+
+    expect(res._status).toBe(200);
+    expect(res._body.success).toBe(true);
+    expect(res._body.teamId).toBe('team_test_mobile');
+    expect(res._body.maxSlots).toBe(10);
+    expect(res._body.memberCount).toBe(1);
+    expect(res._body.openSlots).toBe(9);
+    expect(res._body.slots).toHaveLength(10);
+    expect(res._body.slots[0]).toMatchObject({
+      index: 0,
+      role: 'flex',
+      occupied: true,
+      agentId: PARENT_ID,
+      agentName: 'ParentAgent',
+      memberRole: 'member',
+    });
+    expect(res._body.slots[1]).toMatchObject({
+      index: 1,
+      role: 'flex',
+      occupied: false,
+      agentId: null,
+      agentName: null,
+    });
+  });
+
+  it('GET /api/holomesh/team/:id/slots rejects non-members', async () => {
+    const res = await callBoard(
+      'GET',
+      '/api/holomesh/team/team_test_mobile/slots',
+      {},
+      NON_MEMBER_KEY
+    );
+
+    expect(res._status).toBe(403);
+    expect(res._body.error).toContain('Not a member');
+  });
+});
+
 describe('Board Routes — Mobile Brief (capability-token auth)', () => {
   it('TRUE: valid capability token with mesh:read returns mobile-brief', async () => {
     const cap = seedCapabilityToken({ handle: 'mobile1', capabilities: ['mesh:read'] });
