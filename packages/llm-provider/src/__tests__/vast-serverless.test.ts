@@ -189,4 +189,20 @@ describe('VastServerlessAdapter', () => {
     expect(health.error).toMatch(/latest route status/);
     expect(routeHits).toBe(1);
   });
+
+  it('surfaces Vast route error_msg immediately', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => json({ error_msg: 'endpoint 0 not found or unauthorized' }))
+    );
+
+    const adapter = new VastServerlessAdapter({
+      apiKey: 'vk',
+      endpointName: 'missing-endpoint',
+      model: 'qwen3:14b',
+      pollIntervalMs: 1,
+    });
+
+    await expect(adapter.complete(req())).rejects.toThrow(/endpoint 0 not found or unauthorized/);
+  });
 });

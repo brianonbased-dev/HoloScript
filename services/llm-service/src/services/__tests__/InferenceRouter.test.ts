@@ -20,6 +20,8 @@ const ENV_KEYS = [
   'VAST_SERVERLESS_COST',
   'VAST_SERVERLESS_MAX_WAIT_S',
   'VAST_SERVERLESS_POLL_INTERVAL_MS',
+  'VAST_SERVERLESS_WAIT_FOR_COLD_START',
+  'FLEET_WAIT_FOR_COLD_START',
   'BRITTNEY_PROVIDER',
   'FIREWORKS_API_KEY',
   'FIREWORKS_MODEL',
@@ -110,6 +112,30 @@ describe('FleetProvider', () => {
       request_idx: 0,
       replay_timeout: 60,
     });
+  });
+
+  it('treats a cold Vast pool as available when fleet is explicitly preferred', async () => {
+    process.env.VAST_API_KEY = 'vast-key';
+    process.env.BRITTNEY_PROVIDER = 'fleet';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse({ status: { ready: 0, total: 1 }, request_idx: 0 })),
+    );
+
+    const provider = new FleetProvider();
+    await expect(provider.isAvailable()).resolves.toBe(true);
+  });
+
+  it('does not mask deleted or unauthorized Vast endpoints as cold-startable', async () => {
+    process.env.VAST_API_KEY = 'vast-key';
+    process.env.BRITTNEY_PROVIDER = 'fleet';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse({ error_msg: 'endpoint 0 not found or unauthorized' })),
+    );
+
+    const provider = new FleetProvider();
+    await expect(provider.isAvailable()).resolves.toBe(false);
   });
 
   it('is available when the Vast route returns a ready worker URL', async () => {

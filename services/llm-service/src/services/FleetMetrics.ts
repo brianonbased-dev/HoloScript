@@ -31,6 +31,15 @@ export interface FleetRequestHandle {
   concurrencyAtStart: number;
 }
 
+export interface FleetGpuUtilization {
+  observed: boolean;
+  utilizationGpuPct?: number;
+  source?: string | null;
+  caveat?: string | null;
+  start?: unknown;
+  end?: unknown;
+}
+
 export interface HourBucket {
   /** Bucket start, ISO hour key e.g. "2026-05-31T17:00:00.000Z". */
   hour: string;
@@ -68,6 +77,48 @@ function hourKey(ms: number): string {
   return new Date(Math.floor(ms / HOUR_MS) * HOUR_MS).toISOString();
 }
 
+function decodeHeaderJson(value: string | undefined): unknown | null {
+  if (!value) return null;
+  try {
+    const padded = value.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(value.length / 4) * 4, '=');
+    return JSON.parse(Buffer.from(padded, 'base64').toString('utf8'));
+  } catch {
+    return null;
+  }
+}
+
+function gpuUtilizationPct(value: unknown): number | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const record = value as Record<string, unknown>;
+  for (const key of ['utilizationGpuPct', 'gpu_utilization_pct', 'gpuUtilizationPct']) {
+    const parsed = Number(record[key]);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return undefined;
+}
+
+function gpuUtilizationFromHeaders(headers: Record<string, string> | undefined): FleetGpuUtilization | undefined {
+  if (!headers) return undefined;
+  const normalized = Object.fromEntries(
+    Object.entries(headers).map(([key, value]) => [key.toLowerCase(), value]),
+  );
+  const start = decodeHeaderJson(normalized['x-holoscript-gpu-start']);
+  const end = decodeHeaderJson(normalized['x-holoscript-gpu-end']);
+  const source = normalized['x-holoscript-gpu-source'] || null;
+  const caveat = normalized['x-holoscript-gpu-caveat'] || null;
+  const util = gpuUtilizationPct(end) ?? gpuUtilizationPct(start);
+
+  if (start === null && end === null && !source && !caveat) return undefined;
+  return {
+    observed: util !== undefined,
+    ...(util !== undefined ? { utilizationGpuPct: util } : {}),
+    source,
+    caveat: util !== undefined ? null : caveat,
+    ...(start !== null ? { start } : {}),
+    ...(end !== null ? { end } : {}),
+  };
+}
+
 export class FleetMetrics {
   private active = 0;
   private peakAllTime = 0;
@@ -99,6 +150,8 @@ export class FleetMetrics {
       endpoint?: string;
       model?: string;
       requestId?: string;
+      responseHeaders?: Record<string, string>;
+      gpuUtilization?: FleetGpuUtilization;
     }
   ): void {
     if (this.active > 0) this.active -= 1;
@@ -108,6 +161,7 @@ export class FleetMetrics {
     const totalTokens = info.promptTokens + info.completionTokens;
     const tokensPerSecond = latencyMs > 0 ? Math.round((totalTokens / (latencyMs / 1000)) * 100) / 100 : 0;
     const bucket = this.bucketFor(handle.startMs);
+    const gpuUtilization = info.gpuUtilization ?? gpuUtilizationFromHeaders(info.responseHeaders);
 
     bucket.requests += 1;
     bucket.promptTokens += info.promptTokens;
@@ -130,6 +184,7 @@ export class FleetMetrics {
         tokensPerSecond,
         concurrencyAtStart: handle.concurrencyAtStart,
         error: info.error ?? false,
+        gpuUtilization,
       })}`
     );
 

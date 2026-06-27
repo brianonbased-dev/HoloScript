@@ -90,6 +90,7 @@ interface RouteResponse {
   url?: string;
   request_idx?: number;
   status?: unknown;
+  error_msg?: string;
 }
 
 function headerObject(headers: Headers): Record<string, string> {
@@ -190,6 +191,14 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
         );
       }
       const route = (await resp.json()) as RouteResponse;
+      if (route.error_msg) {
+        throw new LLMProviderError(
+          `vast serverless route error: ${route.error_msg}`,
+          this.name,
+          undefined,
+          /timeout|temporary|unavailable|try again/i.test(route.error_msg)
+        );
+      }
       requestIdx = route.request_idx ?? requestIdx;
       if (route.url)
         return { url: route.url.replace(/\/$/, ''), authData: route, requestIdx: route.request_idx };

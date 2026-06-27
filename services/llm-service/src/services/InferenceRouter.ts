@@ -481,8 +481,9 @@ class OllamaLocalProvider implements InferenceProvider {
 // Vast serverless is not plain OpenAI-at-a-URL. The route call wakes/resolves
 // a worker, then the worker call carries Vast's auth_data envelope around the
 // OpenAI-compatible payload. `isAvailable()` performs a single route probe:
-// ready worker => fleet available; cold/not-ready status => demand recorded and
-// the router falls through to the managed providers for this request.
+// ready worker => fleet available. Cold/not-ready status normally falls through
+// to managed providers, unless cold-start waiting is explicitly enabled for the
+// deployment; route/auth/deleted-endpoint errors still report unavailable.
 // ============================================================================
 
 function positiveEnvNumber(name: string, fallback: number): number {
@@ -497,6 +498,10 @@ function nonNegativeEnvNumber(name: string, fallback: number): number {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
 }
 
+function truthyEnv(name: string): boolean {
+  return /^(1|true|yes|on)$/i.test(String(process.env[name] || '').trim());
+}
+
 export class FleetProvider implements InferenceProvider {
   name = 'fleet';
   private apiKey: string;
@@ -505,6 +510,7 @@ export class FleetProvider implements InferenceProvider {
   private cost: number;
   private maxWaitS: number;
   private pollIntervalMs: number;
+  private waitForColdStart: boolean;
 
   constructor() {
     this.apiKey = process.env.VAST_API_KEY || '';
@@ -514,6 +520,10 @@ export class FleetProvider implements InferenceProvider {
     this.cost = positiveEnvNumber('VAST_SERVERLESS_COST', 100);
     this.maxWaitS = nonNegativeEnvNumber('VAST_SERVERLESS_MAX_WAIT_S', 540);
     this.pollIntervalMs = positiveEnvNumber('VAST_SERVERLESS_POLL_INTERVAL_MS', 10_000);
+    this.waitForColdStart =
+      String(process.env.BRITTNEY_PROVIDER || '').trim().toLowerCase() === this.name ||
+      truthyEnv('VAST_SERVERLESS_WAIT_FOR_COLD_START') ||
+      truthyEnv('FLEET_WAIT_FOR_COLD_START');
   }
 
   private createAdapter(maxWaitS = this.maxWaitS): VastServerlessAdapter {
@@ -530,7 +540,11 @@ export class FleetProvider implements InferenceProvider {
   async isAvailable(): Promise<boolean> {
     if (!this.apiKey) return false;
     const health = await this.createAdapter(0).healthCheck();
-    return health.ok;
+    if (health.ok) return true;
+    const error = health.error || '';
+    return this.waitForColdStart &&
+      /no worker became READY/i.test(error) &&
+      !/latest route status:\s*no status/i.test(error);
   }
 
   async *stream(request: ChatRequest): AsyncGenerator<StreamEvent> {
