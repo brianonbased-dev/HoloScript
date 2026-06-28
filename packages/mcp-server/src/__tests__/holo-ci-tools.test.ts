@@ -1,11 +1,48 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { buildWorkload, handleHoloCiTool, holoCiTools, resetSubmitLedger } from '../holo-ci-tools';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  buildWorkload,
+  handleHoloCiTool,
+  holoCiTools,
+  resetSubmitLedger,
+  submitWorkload,
+} from '../holo-ci-tools';
 
 const SHA = 'a'.repeat(40);
+const ORCHESTRATOR_ENV_KEYS = [
+  'HOLOSCRIPT_ORCHESTRATOR_API_KEY',
+  'MCP_ORCHESTRATOR_API_KEY',
+  'ORCHESTRATOR_API_KEY',
+  'HOLOSCRIPT_API_KEY',
+  'HOLOSCRIPT_MCP_API_KEY',
+  'HOLOMESH_API_KEY',
+] as const;
+
+function snapshotOrchestratorEnv(): Record<
+  (typeof ORCHESTRATOR_ENV_KEYS)[number],
+  string | undefined
+> {
+  return Object.fromEntries(ORCHESTRATOR_ENV_KEYS.map((key) => [key, process.env[key]])) as Record<
+    (typeof ORCHESTRATOR_ENV_KEYS)[number],
+    string | undefined
+  >;
+}
+
+function restoreOrchestratorEnv(
+  snapshot: Record<(typeof ORCHESTRATOR_ENV_KEYS)[number], string | undefined>
+): void {
+  for (const key of ORCHESTRATOR_ENV_KEYS) {
+    if (snapshot[key] === undefined) delete process.env[key];
+    else process.env[key] = snapshot[key];
+  }
+}
 
 // Reset per-caller ledger before each test so cap tests don't bleed into each other.
 beforeEach(() => {
   resetSubmitLedger();
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
 describe('holo-ci-tools', () => {
@@ -118,6 +155,65 @@ describe('holo-ci-tools', () => {
     } finally {
       if (prevA !== undefined) process.env.HOLOSCRIPT_API_KEY = prevA;
       if (prevB !== undefined) process.env.HOLOMESH_API_KEY = prevB;
+    }
+  });
+
+  it('does not use MCP-only or HoloMesh board keys for fleet submit auth', async () => {
+    const env = snapshotOrchestratorEnv();
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      delete process.env.HOLOSCRIPT_ORCHESTRATOR_API_KEY;
+      delete process.env.MCP_ORCHESTRATOR_API_KEY;
+      delete process.env.ORCHESTRATOR_API_KEY;
+      delete process.env.HOLOSCRIPT_API_KEY;
+      process.env.HOLOSCRIPT_MCP_API_KEY = 'mcp-only-key';
+      process.env.HOLOMESH_API_KEY = 'board-only-key';
+
+      const res = await submitWorkload({
+        id: 'ci-auth-test',
+        name: 'ci-auth-test',
+        description: 'auth selection test',
+        jobs: [],
+      });
+
+      expect(res.ok).toBe(false);
+      expect(res.error).toMatch(/not provisioned/i);
+      expect(res.error).toContain('HOLOSCRIPT_MCP_API_KEY');
+      expect(res.error).toContain('HOLOMESH_API_KEY');
+      expect(fetchMock).not.toHaveBeenCalled();
+    } finally {
+      restoreOrchestratorEnv(env);
+    }
+  });
+
+  it('prefers explicit orchestrator credentials over legacy HOLOSCRIPT_API_KEY', async () => {
+    const env = snapshotOrchestratorEnv();
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ workload_id: 'ci-auth-test', jobs: [] }),
+    } as Response);
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      delete process.env.HOLOSCRIPT_ORCHESTRATOR_API_KEY;
+      process.env.MCP_ORCHESTRATOR_API_KEY = 'explicit-orchestrator-key';
+      delete process.env.ORCHESTRATOR_API_KEY;
+      process.env.HOLOSCRIPT_API_KEY = 'legacy-holoscript-key';
+
+      const res = await submitWorkload({
+        id: 'ci-auth-test',
+        name: 'ci-auth-test',
+        description: 'auth selection test',
+        jobs: [],
+      });
+
+      expect(res.ok).toBe(true);
+      const init = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+      expect((init?.headers as Record<string, string>)['x-mcp-api-key']).toBe(
+        'explicit-orchestrator-key'
+      );
+    } finally {
+      restoreOrchestratorEnv(env);
     }
   });
 });

@@ -210,7 +210,13 @@ function buildWorldRenderWorkload(spec: WorldRenderSpec): BuiltWorldRender {
 
 // ─── Orchestrator helpers (mirror holo-ci-tools.ts) ──────────────────────────
 function readOrchestratorKey(): string {
-  return process.env.HOLOSCRIPT_API_KEY || process.env.HOLOMESH_API_KEY || '';
+  return (
+    process.env.HOLOSCRIPT_ORCHESTRATOR_API_KEY ||
+    process.env.MCP_ORCHESTRATOR_API_KEY ||
+    process.env.ORCHESTRATOR_API_KEY ||
+    process.env.HOLOSCRIPT_API_KEY ||
+    ''
+  );
 }
 function orchestratorUrl(): string {
   return (
@@ -325,7 +331,7 @@ export async function handleWorldRenderTool(
     return {
       ok: false,
       error:
-        'Orchestrator key not provisioned on this server (HOLOSCRIPT_API_KEY / HOLOMESH_API_KEY unset). Re-run with dryRun:true to preview, or provision the key.',
+        'Orchestrator key not provisioned on this server (HOLOSCRIPT_ORCHESTRATOR_API_KEY / MCP_ORCHESTRATOR_API_KEY / ORCHESTRATOR_API_KEY / HOLOSCRIPT_API_KEY unset). Re-run with dryRun:true to preview, or provision the key. Do not use HOLOSCRIPT_MCP_API_KEY or HOLOMESH_API_KEY for fleet submit auth.',
       workload: built.workload,
     };
   }

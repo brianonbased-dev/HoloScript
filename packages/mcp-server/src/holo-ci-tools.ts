@@ -428,7 +428,13 @@ export function buildWorkload(opts: {
 
 // ─── Orchestrator submit (server-side; uses the server's own key) ────────────
 function readOrchestratorKey(): string {
-  return process.env.HOLOSCRIPT_API_KEY || process.env.HOLOMESH_API_KEY || '';
+  return (
+    process.env.HOLOSCRIPT_ORCHESTRATOR_API_KEY ||
+    process.env.MCP_ORCHESTRATOR_API_KEY ||
+    process.env.ORCHESTRATOR_API_KEY ||
+    process.env.HOLOSCRIPT_API_KEY ||
+    ''
+  );
 }
 
 function orchestratorUrl(): string {
@@ -466,7 +472,7 @@ function tokenFingerprint(token: string): string {
  */
 function resolveCallerTier(callerFingerprint: string): CallerTier {
   // Server's own orchestrator key is always founder-tier (self-dispatch).
-  const serverKey = process.env.HOLOSCRIPT_API_KEY || process.env.HOLOMESH_API_KEY || '';
+  const serverKey = readOrchestratorKey();
   if (serverKey && tokenFingerprint(serverKey) === callerFingerprint) return 'founder';
 
   // Provisioned allowance table (deploy-time env JSON).
@@ -638,7 +644,8 @@ export async function submitWorkload(workload: HoloCiWorkload['workload']): Prom
   if (!apiKey) {
     return {
       ok: false,
-      error: 'orchestrator key not provisioned (HOLOSCRIPT_API_KEY / HOLOMESH_API_KEY unset)',
+      error:
+        'orchestrator key not provisioned (HOLOSCRIPT_ORCHESTRATOR_API_KEY / MCP_ORCHESTRATOR_API_KEY / ORCHESTRATOR_API_KEY / HOLOSCRIPT_API_KEY unset; HOLOSCRIPT_MCP_API_KEY and HOLOMESH_API_KEY are not fleet-submit keys)',
     };
   }
   try {

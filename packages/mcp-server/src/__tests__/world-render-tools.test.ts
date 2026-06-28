@@ -3,7 +3,7 @@
  * Studio world on the GPU fleet. Pure paths only (dryRun preview, fail-closed
  * rejects); no network, so no fleet spend.
  */
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { handleWorldRenderTool, worldRenderTools } from '../world-render-tools';
 
 type RenderResult = {
@@ -15,11 +15,39 @@ type RenderResult = {
   error?: string;
   note?: string;
   render?: { target: string; engine: string; mode: string; requiresGpu: boolean };
+  workloadId?: string;
   workload?: {
     id: string;
     jobs: { job_type: string; command: string; requires_webgpu: boolean }[];
   };
 };
+
+const AUTH_ENV_KEYS = [
+  'HOLOSCRIPT_ORCHESTRATOR_API_KEY',
+  'MCP_ORCHESTRATOR_API_KEY',
+  'ORCHESTRATOR_API_KEY',
+  'HOLOSCRIPT_API_KEY',
+  'HOLOSCRIPT_MCP_API_KEY',
+  'HOLOMESH_API_KEY',
+] as const;
+
+function snapshotAuthEnv(): Record<(typeof AUTH_ENV_KEYS)[number], string | undefined> {
+  return Object.fromEntries(AUTH_ENV_KEYS.map((key) => [key, process.env[key]])) as Record<
+    (typeof AUTH_ENV_KEYS)[number],
+    string | undefined
+  >;
+}
+
+function restoreAuthEnv(snapshot: Record<(typeof AUTH_ENV_KEYS)[number], string | undefined>): void {
+  for (const key of AUTH_ENV_KEYS) {
+    if (snapshot[key] === undefined) delete process.env[key];
+    else process.env[key] = snapshot[key];
+  }
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 async function call(args: Record<string, unknown>): Promise<RenderResult> {
   return (await handleWorldRenderTool('render_world_on_fleet', args)) as RenderResult;
@@ -88,6 +116,55 @@ describe('render_world_on_fleet — fail-closed', () => {
     expect(r.ok).toBe(false);
     expect(r.error).toMatch(/required/);
   });
+
+  it('does not use MCP or room keys as fleet-submit credentials', async () => {
+    const env = snapshotAuthEnv();
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      delete process.env.HOLOSCRIPT_ORCHESTRATOR_API_KEY;
+      delete process.env.MCP_ORCHESTRATOR_API_KEY;
+      delete process.env.ORCHESTRATOR_API_KEY;
+      delete process.env.HOLOSCRIPT_API_KEY;
+      process.env.HOLOSCRIPT_MCP_API_KEY = 'mcp-only-key';
+      process.env.HOLOMESH_API_KEY = 'room-only-key';
+
+      const r = await call({ world: 'composition "NoSpend" {}', target: 'gltf', dryRun: false });
+
+      expect(r.ok).toBe(false);
+      expect(r.error).toMatch(/not provisioned/);
+      expect(r.error).toContain('HOLOSCRIPT_MCP_API_KEY');
+      expect(fetchMock).not.toHaveBeenCalled();
+    } finally {
+      restoreAuthEnv(env);
+    }
+  });
+
+  it('prefers explicit orchestrator credentials over legacy HOLOSCRIPT_API_KEY', async () => {
+    const env = snapshotAuthEnv();
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify({ workload_id: 'world-render-test', jobs: [] }),
+    } as Response);
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      delete process.env.HOLOSCRIPT_ORCHESTRATOR_API_KEY;
+      process.env.MCP_ORCHESTRATOR_API_KEY = 'explicit-orchestrator-key';
+      delete process.env.ORCHESTRATOR_API_KEY;
+      process.env.HOLOSCRIPT_API_KEY = 'legacy-holoscript-key';
+
+      const r = await call({ world: 'composition "NoSpend" {}', target: 'gltf', dryRun: false });
+
+      expect(r.ok).toBe(true);
+      expect(r.dispatched).toBe(true);
+      const init = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+      expect((init?.headers as Record<string, string>)['x-mcp-api-key']).toBe(
+        'explicit-orchestrator-key'
+      );
+    } finally {
+      restoreAuthEnv(env);
+    }
+  });
 });
 
 describe('render_world_on_fleet — command always self-ensures the runtime', () => {
@@ -95,5 +172,40 @@ describe('render_world_on_fleet — command always self-ensures the runtime', ()
     const r = await call({ world: 'composition "D" {}', target: 'gltf', dryRun: true });
     expect(r.workload?.jobs[0].command).toContain('node scripts/world-render-runner.mjs');
     expect(r.workload?.jobs[0].command).not.toContain('/workspace/');
+  });
+});
+
+describe('render_world_on_fleet submit auth', () => {
+  it('uses an explicit orchestrator key alias for /gpu/workload submit', async () => {
+    const env = snapshotAuthEnv();
+    const fetchMock = vi.fn(
+      async (_input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
+        const headers = init?.headers as Record<string, string>;
+        expect(headers['x-mcp-api-key']).toBe('orchestrator-submit-key');
+        expect(headers.authorization).toBeUndefined();
+        return new Response(JSON.stringify({ workload_id: 'wl_world_render_123', jobs: [] }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      delete process.env.HOLOSCRIPT_ORCHESTRATOR_API_KEY;
+      delete process.env.MCP_ORCHESTRATOR_API_KEY;
+      delete process.env.HOLOSCRIPT_API_KEY;
+      process.env.ORCHESTRATOR_API_KEY = 'orchestrator-submit-key';
+      process.env.HOLOSCRIPT_MCP_API_KEY = 'mcp-wrong-for-submit';
+      process.env.HOLOMESH_API_KEY = 'room-wrong-for-submit';
+
+      const r = await call({ world: 'composition "Dispatch" {}', target: 'gltf', dryRun: false });
+
+      expect(r.ok).toBe(true);
+      expect(r.dispatched).toBe(true);
+      expect(r.workloadId).toBe('wl_world_render_123');
+      expect(fetchMock).toHaveBeenCalledOnce();
+    } finally {
+      restoreAuthEnv(env);
+    }
   });
 });
