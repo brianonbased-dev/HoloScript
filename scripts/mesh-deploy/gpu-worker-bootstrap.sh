@@ -178,7 +178,24 @@ while true; do
   fi
   kill "$hb" 2>/dev/null || true
 
-  done_body="$(python3 -c 'import json,sys;e=sys.argv[1];print(json.dumps({"error":None if e=="null" else json.loads(e)}))' "$err")"
+  done_body="$(python3 -c 'import json,re,sys
+e=sys.argv[1]
+log_path=sys.argv[2]
+payload={"error":None if e=="null" else json.loads(e)}
+try:
+    lines=open(log_path,encoding="utf-8",errors="replace").read().splitlines()
+except OSError:
+    lines=[]
+match=None
+for line in lines:
+    m=re.match(r"^WORLD_RENDER_ARTIFACT=(.+) SHA256=([0-9a-fA-F]{64})$", line.strip())
+    if m:
+        match=m
+if match and payload["error"] is None:
+    payload["artifact_path"]=match.group(1)
+    payload["artifact_sha256"]=match.group(2).lower()
+    payload["artifact_kind"]="world_render"
+print(json.dumps(payload))' "$err" "$out_log")"
   api POST "/gpu/job/$jid/done" "$done_body" >/dev/null 2>&1 \
     && echo "$LOG reported done $jid (error=$([ "$err" = null ] && echo none || echo yes))" \
     || echo "$LOG WARN: failed to report done for $jid"
