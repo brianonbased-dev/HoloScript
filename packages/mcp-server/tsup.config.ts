@@ -17,10 +17,13 @@ export default defineConfig({
   shims: true,
   external: [
     '@holoscript/core',
+    '@holoscript/crdt-spatial',
     '@holoscript/holomap',
     'pg',
     'loro-crdt',
     'ffmpeg-static',
+    'react',
+    '@react-three/fiber',
     '@opentelemetry/api',
     '@opentelemetry/sdk-trace-node',
     '@opentelemetry/exporter-trace-otlp-http',
