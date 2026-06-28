@@ -123,11 +123,19 @@ export class FlutterCompiler extends CompilerBase {
     const compositionName = composition.name || 'GeneratedScene';
     const isStateful = this.compositionHasTrait(composition, 'stateful');
     const hasRootScene = (composition.scenes?.length ?? 0) > 0;
+    const usesVideoPlayer = this.compositionUsesVideo(composition);
+    if (usesVideoPlayer) {
+      this.warnings.push('Flutter video output requires the video_player package in pubspec.yaml');
+    }
 
     this.emitFileHeader(compositionName);
-    this.emitImports();
+    this.emitImports(usesVideoPlayer);
     this.emitBlankLine();
     this.emitColorScheme(composition.theme);
+    if (usesVideoPlayer) {
+      this.emitBlankLine();
+      this.emitVideoPlayerWidget();
+    }
     this.emitBlankLine();
     this.emitWidgetClass(composition, compositionName, isStateful, hasRootScene);
 
@@ -145,8 +153,11 @@ export class FlutterCompiler extends CompilerBase {
     this.emitBlankLine();
   }
 
-  private emitImports(): void {
+  private emitImports(usesVideoPlayer: boolean): void {
     this.emit(`import 'package:flutter/material.dart';`);
+    if (usesVideoPlayer) {
+      this.emit(`import 'package:video_player/video_player.dart';`);
+    }
   }
 
   private emitColorScheme(theme?: HoloTheme): void {
@@ -392,13 +403,149 @@ export class FlutterCompiler extends CompilerBase {
     );
   }
 
-  private compileVideo(_node: HoloObjectDecl): string {
-    return (
-      `Placeholder(\n` +
-      `  // TODO: video_player package\n` +
-      `  fallbackHeight: 200,\n` +
-      `)`
-    );
+  private compileVideo(node: HoloObjectDecl): string {
+    const asset = this.getTraitString(node, 'video', ['asset']) ||
+      this.getTraitString(node, 'asset', ['asset']) ||
+      this.getPropString(node, 'asset');
+    const url = this.getTraitString(node, 'video', ['src', 'url', 'source']) ||
+      this.getTraitString(node, 'src', ['src', 'url', 'source']) ||
+      this.getPropString(node, 'url') ||
+      this.getPropString(node, 'src') ||
+      this.getPropString(node, 'source');
+    const sourceArg = asset
+      ? `asset: ${dartString(asset)}`
+      : url
+        ? `url: ${dartString(url)}`
+        : null;
+
+    if (!sourceArg) {
+      this.warnings.push(`Video object '${node.name}' has no source; emitted placeholder`);
+      return (
+        `Placeholder(\n` +
+        `  fallbackHeight: 200,\n` +
+        `)`
+      );
+    }
+
+    const args = [sourceArg];
+    const autoplay = this.getObjectBoolean(node, 'video', ['autoplay', 'autoPlay']);
+    const loop = this.getObjectBoolean(node, 'video', ['loop', 'looping']);
+    const muted = this.getObjectBoolean(node, 'video', ['muted', 'mute']);
+    const aspectRatio = this.getPropNumber(node, 'aspectRatio') ??
+      this.getPropNumber(node, 'aspect_ratio');
+    if (autoplay === true) args.push(`autoplay: true`);
+    if (loop === true) args.push(`loop: true`);
+    if (muted === true) args.push(`muted: true`);
+    if (aspectRatio !== undefined) args.push(`aspectRatio: ${aspectRatio}`);
+
+    return `HoloVideoPlayer(${args.join(', ')})`;
+  }
+
+  private emitVideoPlayerWidget(): void {
+    this.emit(`class HoloVideoPlayer extends StatefulWidget {`);
+    this.indent();
+    this.emit(`const HoloVideoPlayer({`);
+    this.indent();
+    this.emit(`super.key,`);
+    this.emit(`this.url,`);
+    this.emit(`this.asset,`);
+    this.emit(`this.autoplay = false,`);
+    this.emit(`this.loop = false,`);
+    this.emit(`this.muted = false,`);
+    this.emit(`this.aspectRatio = 16 / 9,`);
+    this.dedent();
+    this.emit(`}) : assert(url != null || asset != null, 'HoloVideoPlayer requires url or asset');`);
+    this.emitBlankLine();
+    this.emit(`final String? url;`);
+    this.emit(`final String? asset;`);
+    this.emit(`final bool autoplay;`);
+    this.emit(`final bool loop;`);
+    this.emit(`final bool muted;`);
+    this.emit(`final double aspectRatio;`);
+    this.emitBlankLine();
+    this.emit(`@override`);
+    this.emit(`State<HoloVideoPlayer> createState() => _HoloVideoPlayerState();`);
+    this.dedent();
+    this.emit(`}`);
+    this.emitBlankLine();
+    this.emit(`class _HoloVideoPlayerState extends State<HoloVideoPlayer> {`);
+    this.indent();
+    this.emit(`late final VideoPlayerController _controller;`);
+    this.emit(`late final Future<void> _initialize;`);
+    this.emitBlankLine();
+    this.emit(`@override`);
+    this.emit(`void initState() {`);
+    this.indent();
+    this.emit(`super.initState();`);
+    this.emit(`_controller = widget.asset != null`);
+    this.emit(`    ? VideoPlayerController.asset(widget.asset!)`);
+    this.emit(`    : VideoPlayerController.networkUrl(Uri.parse(widget.url!));`);
+    this.emit(`_controller.setLooping(widget.loop);`);
+    this.emit(`_controller.setVolume(widget.muted ? 0.0 : 1.0);`);
+    this.emit(`_initialize = _controller.initialize().then((_) {`);
+    this.indent();
+    this.emit(`if (widget.autoplay) _controller.play();`);
+    this.emit(`if (mounted) setState(() {});`);
+    this.dedent();
+    this.emit(`});`);
+    this.dedent();
+    this.emit(`}`);
+    this.emitBlankLine();
+    this.emit(`@override`);
+    this.emit(`void dispose() {`);
+    this.indent();
+    this.emit(`_controller.dispose();`);
+    this.emit(`super.dispose();`);
+    this.dedent();
+    this.emit(`}`);
+    this.emitBlankLine();
+    this.emit(`@override`);
+    this.emit(`Widget build(BuildContext context) {`);
+    this.indent();
+    this.emit(`return FutureBuilder<void>(`);
+    this.emit(`  future: _initialize,`);
+    this.emit(`  builder: (context, snapshot) {`);
+    this.indent();
+    this.emit(`if (snapshot.connectionState != ConnectionState.done) {`);
+    this.indent();
+    this.emit(`return const Center(child: CircularProgressIndicator());`);
+    this.dedent();
+    this.emit(`}`);
+    this.emit(`final ratio = _controller.value.aspectRatio == 0`);
+    this.emit(`    ? widget.aspectRatio`);
+    this.emit(`    : _controller.value.aspectRatio;`);
+    this.emit(`return AspectRatio(`);
+    this.indent();
+    this.emit(`aspectRatio: ratio,`);
+    this.emit(`child: Stack(`);
+    this.indent();
+    this.emit(`alignment: Alignment.center,`);
+    this.emit(`children: [`);
+    this.indent();
+    this.emit(`VideoPlayer(_controller),`);
+    this.emit(`if (!_controller.value.isPlaying)`);
+    this.indent();
+    this.emit(`IconButton(`);
+    this.indent();
+    this.emit(`icon: const Icon(Icons.play_arrow),`);
+    this.emit(`color: Colors.white,`);
+    this.emit(`onPressed: () => setState(() { _controller.play(); }),`);
+    this.dedent();
+    this.emit(`),`);
+    this.dedent();
+    this.dedent();
+    this.emit(`],`);
+    this.dedent();
+    this.emit(`),`);
+    this.dedent();
+    this.emit(`);`);
+    this.dedent();
+    this.emit(`},`);
+    this.emit(`);`);
+    this.dedent();
+    this.emit(`}`);
+    this.dedent();
+    this.emit(`}`);
   }
 
   private compileDefault(node: HoloObjectDecl, objType: string): string {
@@ -471,6 +618,17 @@ export class FlutterCompiler extends CompilerBase {
     return undefined;
   }
 
+  private getTraitString(
+    node: HoloObjectDecl,
+    traitName: string,
+    keys: string[]
+  ): string | undefined {
+    const value = this.getTraitValue(node, traitName, keys);
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    return undefined;
+  }
+
   private getPropString(node: HoloObjectDecl, key: string): string | undefined {
     const prop = node.properties.find((p) => p.key === key);
     if (prop === undefined) return undefined;
@@ -490,6 +648,49 @@ export class FlutterCompiler extends CompilerBase {
       if (Number.isFinite(n)) return n;
     }
     return undefined;
+  }
+
+  private getObjectBoolean(
+    node: HoloObjectDecl,
+    traitName: string,
+    keys: string[]
+  ): boolean | undefined {
+    for (const key of keys) {
+      const prop = node.properties.find((p) => p.key === key);
+      const propValue = this.coerceBoolean(prop?.value);
+      if (propValue !== undefined) return propValue;
+    }
+    const trait = this.getTrait(node, traitName);
+    const cfg = trait?.config ?? trait?.params ?? {};
+    for (const key of keys) {
+      const traitValue = this.coerceBoolean(cfg[key]);
+      if (traitValue !== undefined) return traitValue;
+    }
+    return undefined;
+  }
+
+  private coerceBoolean(value: HoloValue | undefined): boolean | undefined {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') return value !== 0;
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      if (['true', '1', 'yes', 'on'].includes(normalized)) return true;
+      if (['false', '0', 'no', 'off'].includes(normalized)) return false;
+    }
+    return undefined;
+  }
+
+  private compositionUsesVideo(composition: HoloComposition): boolean {
+    const objectUsesVideo = (node: HoloObjectDecl): boolean => {
+      const objType = this.getPropString(node, 'type') || node.name.toLowerCase();
+      return objType === 'video' || (node.children ?? []).some(objectUsesVideo);
+    };
+    const groupUsesVideo = (group: HoloSpatialGroup): boolean => (
+      group.objects.some(objectUsesVideo) || (group.groups ?? []).some(groupUsesVideo)
+    );
+    return composition.objects.some(objectUsesVideo) ||
+      composition.spatialGroups.some(groupUsesVideo) ||
+      (composition.scenes ?? []).some((scene) => scene.objects.some(objectUsesVideo));
   }
 
   // =========================================================================
