@@ -26,6 +26,7 @@ const AUTH_ENV_KEYS = [
   'HOLOSCRIPT_ORCHESTRATOR_API_KEY',
   'MCP_ORCHESTRATOR_API_KEY',
   'ORCHESTRATOR_API_KEY',
+  'MCP_API_KEY',
   'HOLOSCRIPT_API_KEY',
   'HOLOSCRIPT_MCP_API_KEY',
   'HOLOMESH_API_KEY',
@@ -125,6 +126,7 @@ describe('render_world_on_fleet — fail-closed', () => {
       delete process.env.HOLOSCRIPT_ORCHESTRATOR_API_KEY;
       delete process.env.MCP_ORCHESTRATOR_API_KEY;
       delete process.env.ORCHESTRATOR_API_KEY;
+      delete process.env.MCP_API_KEY;
       delete process.env.HOLOSCRIPT_API_KEY;
       process.env.HOLOSCRIPT_MCP_API_KEY = 'mcp-only-key';
       process.env.HOLOMESH_API_KEY = 'room-only-key';
@@ -151,6 +153,7 @@ describe('render_world_on_fleet — fail-closed', () => {
       delete process.env.HOLOSCRIPT_ORCHESTRATOR_API_KEY;
       process.env.MCP_ORCHESTRATOR_API_KEY = 'explicit-orchestrator-key';
       delete process.env.ORCHESTRATOR_API_KEY;
+      delete process.env.MCP_API_KEY;
       process.env.HOLOSCRIPT_API_KEY = 'legacy-holoscript-key';
 
       const r = await call({ world: 'composition "NoSpend" {}', target: 'gltf', dryRun: false });
@@ -168,8 +171,9 @@ describe('render_world_on_fleet — fail-closed', () => {
 });
 
 describe('render_world_on_fleet — command always self-ensures the runtime', () => {
-  it('emits a repo-relative runner invocation (no /workspace/ absolute path)', async () => {
+  it('bootstraps node before the repo-relative runner invocation', async () => {
     const r = await call({ world: 'composition "D" {}', target: 'gltf', dryRun: true });
+    expect(r.workload?.jobs[0].command).toContain('command -v node');
     expect(r.workload?.jobs[0].command).toContain('node scripts/world-render-runner.mjs');
     expect(r.workload?.jobs[0].command).not.toContain('/workspace/');
   });
@@ -194,6 +198,7 @@ describe('render_world_on_fleet submit auth', () => {
       delete process.env.HOLOSCRIPT_ORCHESTRATOR_API_KEY;
       delete process.env.MCP_ORCHESTRATOR_API_KEY;
       delete process.env.HOLOSCRIPT_API_KEY;
+      delete process.env.MCP_API_KEY;
       process.env.ORCHESTRATOR_API_KEY = 'orchestrator-submit-key';
       process.env.HOLOSCRIPT_MCP_API_KEY = 'mcp-wrong-for-submit';
       process.env.HOLOMESH_API_KEY = 'room-wrong-for-submit';
@@ -203,6 +208,39 @@ describe('render_world_on_fleet submit auth', () => {
       expect(r.ok).toBe(true);
       expect(r.dispatched).toBe(true);
       expect(r.workloadId).toBe('wl_world_render_123');
+      expect(fetchMock).toHaveBeenCalledOnce();
+    } finally {
+      restoreAuthEnv(env);
+    }
+  });
+
+  it('uses legacy MCP_API_KEY as an orchestrator submit key', async () => {
+    const env = snapshotAuthEnv();
+    const fetchMock = vi.fn(
+      async (_input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
+        const headers = init?.headers as Record<string, string>;
+        expect(headers['x-mcp-api-key']).toBe('legacy-mcp-submit-key');
+        return new Response(JSON.stringify({ workload_id: 'wl_world_render_mcp_legacy' }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      delete process.env.HOLOSCRIPT_ORCHESTRATOR_API_KEY;
+      delete process.env.MCP_ORCHESTRATOR_API_KEY;
+      delete process.env.ORCHESTRATOR_API_KEY;
+      process.env.MCP_API_KEY = 'legacy-mcp-submit-key';
+      delete process.env.HOLOSCRIPT_API_KEY;
+      process.env.HOLOSCRIPT_MCP_API_KEY = 'mcp-wrong-for-submit';
+      process.env.HOLOMESH_API_KEY = 'room-wrong-for-submit';
+
+      const r = await call({ world: 'composition "Dispatch" {}', target: 'gltf', dryRun: false });
+
+      expect(r.ok).toBe(true);
+      expect(r.dispatched).toBe(true);
+      expect(r.workloadId).toBe('wl_world_render_mcp_legacy');
       expect(fetchMock).toHaveBeenCalledOnce();
     } finally {
       restoreAuthEnv(env);

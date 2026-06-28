@@ -2,12 +2,12 @@
  * world-render-tools.ts — MCP tool surface for rendering a Studio world on the
  * GPU fleet (`render_world_on_fleet`).
  *
- * Why this exists: fleet dispatch needs the orchestrator key (`HOLOSCRIPT_API_KEY`,
- * sent as `x-mcp-api-key` to the mcp-orchestrator GPU queue) — a high-privilege
- * credential. We do NOT copy it into every client. Instead, a Bearer-authed MCP
- * client (Studio, Brittney, Cursor, a cloud Claude Code session) calls
- * `render_world_on_fleet` with the world source; THIS server holds the orchestrator
- * key and makes the privileged POST /gpu/workload server-side. This is the dispatch
+ * Why this exists: fleet dispatch needs an orchestrator submit key (resolved from
+ * HoloKey/env and sent as `x-mcp-api-key` to the mcp-orchestrator GPU queue) — a
+ * high-privilege credential. We do NOT copy it into every client. Instead, a
+ * Bearer-authed MCP client (Studio, Brittney, Cursor, a cloud Claude Code session)
+ * calls `render_world_on_fleet` with the world source; THIS server holds the key
+ * and makes the privileged POST /gpu/workload server-side. This is the dispatch
  * wiring that closes the FleetOrchestrator "can see the board, cannot dispatch" gap
  * for world rendering. Mirrors holo-ci-tools.ts (`holo_ci_dispatch`).
  *
@@ -24,6 +24,7 @@
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { resolveServiceSecret } from './holokey-resolver';
 
 // ─── Render-target registry (port of WORLD_RENDER_TARGETS) ───────────────────
 type RenderMode = 'compile' | 'rasterize';
@@ -119,6 +120,9 @@ function shellQuote(value: string): string {
   return `'${s.replace(/'/g, `'\\''`)}'`;
 }
 
+const NODE_SELF_BOOTSTRAP =
+  'command -v node >/dev/null 2>&1 || { curl -fsSL https://deb.nodesource.com/setup_20.x | bash - >/dev/null 2>&1 && apt-get install -y -qq nodejs >/dev/null 2>&1; }';
+
 interface WorldRenderSpec {
   world?: string; // inline HoloScript source text (preferred for MCP/Studio callers)
   worldUrl?: string; // OR a fetchable URL
@@ -161,7 +165,7 @@ function buildWorldRenderWorkload(spec: WorldRenderSpec): BuiltWorldRender {
     worldArg = `--world ${shellQuote(spec.worldPath as string)}`;
   }
 
-  const command = [
+  const runnerCommand = [
     'node',
     'scripts/world-render-runner.mjs',
     worldArg,
@@ -173,6 +177,7 @@ function buildWorldRenderWorkload(spec: WorldRenderSpec): BuiltWorldRender {
   ]
     .filter(Boolean)
     .join(' ');
+  const command = `${NODE_SELF_BOOTSTRAP}; ${runnerCommand}`;
 
   const workload = {
     id,
@@ -209,15 +214,22 @@ function buildWorldRenderWorkload(spec: WorldRenderSpec): BuiltWorldRender {
 }
 
 // ─── Orchestrator helpers (mirror holo-ci-tools.ts) ──────────────────────────
-function readOrchestratorKey(): string {
-  return (
-    process.env.HOLOSCRIPT_ORCHESTRATOR_API_KEY ||
-    process.env.MCP_ORCHESTRATOR_API_KEY ||
-    process.env.ORCHESTRATOR_API_KEY ||
-    process.env.HOLOSCRIPT_API_KEY ||
-    ''
-  );
+const ORCHESTRATOR_KEY_NAMES = [
+  'HOLOSCRIPT_ORCHESTRATOR_API_KEY',
+  'MCP_ORCHESTRATOR_API_KEY',
+  'ORCHESTRATOR_API_KEY',
+  'MCP_API_KEY',
+  'HOLOSCRIPT_API_KEY',
+] as const;
+
+async function resolveOrchestratorKey(): Promise<string> {
+  for (const name of ORCHESTRATOR_KEY_NAMES) {
+    const value = await resolveServiceSecret(name);
+    if (value) return value;
+  }
+  return '';
 }
+
 function orchestratorUrl(): string {
   return (
     process.env.MCP_ORCHESTRATOR_URL || 'https://mcp-orchestrator-production-45f9.up.railway.app'
@@ -326,12 +338,12 @@ export async function handleWorldRenderTool(
     };
   }
 
-  const apiKey = readOrchestratorKey();
+  const apiKey = await resolveOrchestratorKey();
   if (!apiKey) {
     return {
       ok: false,
       error:
-        'Orchestrator key not provisioned on this server (HOLOSCRIPT_ORCHESTRATOR_API_KEY / MCP_ORCHESTRATOR_API_KEY / ORCHESTRATOR_API_KEY / HOLOSCRIPT_API_KEY unset). Re-run with dryRun:true to preview, or provision the key. Do not use HOLOSCRIPT_MCP_API_KEY or HOLOMESH_API_KEY for fleet submit auth.',
+        'Orchestrator key not provisioned on this server via HoloKey/env (HOLOSCRIPT_ORCHESTRATOR_API_KEY / MCP_ORCHESTRATOR_API_KEY / ORCHESTRATOR_API_KEY / MCP_API_KEY / HOLOSCRIPT_API_KEY unset). Re-run with dryRun:true to preview, or provision the key. Do not use HOLOSCRIPT_MCP_API_KEY or HOLOMESH_API_KEY for fleet submit auth.',
       workload: built.workload,
     };
   }
