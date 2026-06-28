@@ -39,4 +39,14 @@ describe('Railway Postgres pool options', () => {
     expect(createComputeTracePostgresPoolOptions(expected.connectionString)).toEqual(expected);
     expect(createDaemonEmergencePostgresPoolOptions(expected.connectionString)).toEqual(expected);
   });
+
+  it('preserves explicit pool extras such as HoloKey max connections', () => {
+    delete process.env.DATABASE_SSL;
+
+    expect(createRailwayPostgresPoolOptions('postgres://unit-test/holokey', { max: 2 })).toEqual({
+      connectionString: 'postgres://unit-test/holokey',
+      ssl: { rejectUnauthorized: false },
+      max: 2,
+    });
+  });
 });

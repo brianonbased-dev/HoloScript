@@ -32,6 +32,7 @@ import {
   type ServiceSecretResolver,
 } from '@holoscript/secrets-broker';
 import type { SigningContext } from './holomesh/identity/signing-middleware';
+import { createRailwayPostgresPoolOptions } from './postgres-pool-options';
 
 let built = false;
 let vault: HoloKeyVault | null = null;
@@ -71,7 +72,7 @@ function ensure(): void {
   const dbUrl = process.env.DATABASE_URL;
   if (dbUrl) {
     try {
-      const pool = new Pool({ connectionString: dbUrl, max: 2 });
+      const pool = new Pool(createRailwayPostgresPoolOptions(dbUrl, { max: 2 }));
       void pool.query(SECRET_STORE_DDL).catch((e: unknown) => {
         // eslint-disable-next-line no-console
         console.warn(
