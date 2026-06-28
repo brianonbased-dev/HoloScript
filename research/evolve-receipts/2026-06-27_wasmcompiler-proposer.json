@@ -1,0 +1,65 @@
+{
+  "schema": "holoscript-evolve-wasmcompiler-proposer-v1",
+  "target": "packages/core/src/compiler/WASMCompiler.ts",
+  "seed": "git:HEAD:packages/core/src/compiler/WASMCompiler.ts",
+  "seedSha256": "438ae89ad1c8a60eaaf9be3ea05d76251b5fb2073df49ff8c8f4ccce88d4f01e",
+  "proposer": {
+    "kind": "ollama",
+    "endpoint": "http://127.0.0.1:11434",
+    "model": "qwen3:4b-instruct"
+  },
+  "policy": {
+    "goal": "Reduce WASMCompiler WAT output length while preserving every public compiler behavior and passing src/compiler/WASMCompiler.test.ts. Return the full TypeScript source only.",
+    "generations": 1,
+    "population": 1,
+    "archiveSize": 2,
+    "proposerModel": "qwen3:4b-instruct"
+  },
+  "result": {
+    "result": "NO_IMPROVEMENT",
+    "generations": 1,
+    "evaluated": 2,
+    "survivors": 1,
+    "discarded": 1,
+    "seedScore": 3.763941,
+    "bestScore": 3.763941,
+    "improvementPct": 0,
+    "proposerModel": "qwen3:4b-instruct",
+    "verifierGated": true,
+    "selfShips": false,
+    "traceJSONL": "{\"id\":0,\"gen\":0,\"parentId\":null,\"passed\":true,\"score\":3.763941,\"bytes\":52249,\"note\":\"seed\"}\n{\"id\":1,\"gen\":1,\"parentId\":0,\"passed\":false,\"score\":null,\"bytes\":5280,\"note\":\"gated_fail_discarded\"}",
+    "verifyUrl": "cael:sha256:48a9632494150cce5c7a703a3d6a117d4848b2d6e4366b9c637333d765f9ad08",
+    "ts": "2026-06-28T00:00:50.647Z"
+  },
+  "bestCandidate": null,
+  "trace": ".scratch/evolve-wasmcompiler/proposer/runs/qwen3-basic-2026-06-27/trace.jsonl",
+  "gatedCandidates": [
+    {
+      "candidate": ".scratch/evolve-wasmcompiler/proposer/runs/qwen3-basic-2026-06-27/candidates/candidate-000.ts",
+      "receipt": ".scratch/evolve-wasmcompiler/proposer/runs/qwen3-basic-2026-06-27/gates/gate-000.json",
+      "exitCode": 1,
+      "verifyUrl": "cael:sha256:2c3d359a01c356b044365c9e63a0fdf29b9fc5480569d7bdc3ec4ff180ce30c0",
+      "passed": false,
+      "score": 3.763941,
+      "note": "no_baseline_improvement",
+      "candidateSha256": "438ae89ad1c8a60eaaf9be3ea05d76251b5fb2073df49ff8c8f4ccce88d4f01e",
+      "correctnessExitCode": 0
+    },
+    {
+      "candidate": ".scratch/evolve-wasmcompiler/proposer/runs/qwen3-basic-2026-06-27/candidates/candidate-001.ts",
+      "receipt": ".scratch/evolve-wasmcompiler/proposer/runs/qwen3-basic-2026-06-27/gates/gate-001.json",
+      "exitCode": 1,
+      "verifyUrl": "cael:sha256:a9bcb920dedf14e0d81f3e75eaa6a123045e7246d6044a6cbd53be77b4813d31",
+      "passed": false,
+      "score": null,
+      "note": null,
+      "candidateSha256": "65dc3a1e1c78371cd942ea85cafc28dabbb9919e2211f4645c6c06bf85ecdffb",
+      "correctnessExitCode": 1
+    }
+  ],
+  "gatedTraceRecords": 1,
+  "selfShips": false,
+  "skipTests": false,
+  "ts": "2026-06-28T00:00:50.649Z",
+  "verifyUrl": "cael:sha256:20d79bc8a5a93e2d0e298d251c9eeeab7877c1154927a5e4de7c01fdf339afeb"
+}
