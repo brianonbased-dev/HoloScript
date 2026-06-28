@@ -23,7 +23,7 @@ import {
   persistKeyRegistry,
   persistAgentStore,
   teamStore,
-  persistTeamStore,
+  persistTeamDurable,
   reloadTeam,
   scalingOverrideStore,
   failoverStateStore,
@@ -579,7 +579,7 @@ export async function handleAdminRoutes(
 
     const before = team.adminRoom === true;
     team.adminRoom = body.enabled;
-    persistTeamStore();
+    await persistTeamDurable(teamId);
 
     recordAdminOperation({
       actor: {
@@ -770,7 +770,7 @@ export async function handleAdminRoutes(
       });
     }
 
-    persistTeamStore();
+    await persistTeamDurable(teamId);
 
     recordAdminOperation({
       actor: {

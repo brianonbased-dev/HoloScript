@@ -4,7 +4,7 @@ import {
   bountySubmissionStore,
   bountyMiniGameStore,
   bountyGovernanceStore,
-  persistTeamStore,
+  persistTeamDurable,
   persistSocialStore,
   reloadTeam,
 } from '../state';
@@ -151,7 +151,7 @@ export async function handleBountyRoutes(
       created.push({ target, task, bounty });
     }
 
-    persistTeamStore();
+    await persistTeamDurable(teamId);
     json(res, 201, { success: true, teamId, created, count: created.length });
     return true;
   }
@@ -347,7 +347,7 @@ export async function handleBountyRoutes(
       body.deadline ? Number(body.deadline) : undefined
     );
 
-    persistTeamStore();
+    await persistTeamDurable(teamId);
 
     broadcastToRoom(teamId, {
       type: 'bounty:created',
@@ -391,7 +391,7 @@ export async function handleBountyRoutes(
       return true;
     }
 
-    persistTeamStore();
+    await persistTeamDurable(team.id);
     json(res, 200, { success: true, message: 'Bounty claimed' });
     return true;
   }
@@ -462,7 +462,8 @@ export async function handleBountyRoutes(
     const list = bountySubmissionStore.get(bountyId) || [];
     list.push(submission);
     bountySubmissionStore.set(bountyId, list);
-    persistTeamStore();
+    await persistTeamDurable(team.id);
+    persistSocialStore();
 
     broadcastToRoom(team.id, {
       type: 'bounty:submitted',
@@ -563,7 +564,8 @@ export async function handleBountyRoutes(
       }
     }
 
-    persistTeamStore();
+    await persistTeamDurable(team.id);
+    persistSocialStore();
 
     broadcastToRoom(team.id, {
       type: 'bounty:completed',
@@ -861,7 +863,7 @@ export async function handleBountyRoutes(
     const games = bountyMiniGameStore.get(teamId) || [];
     games.push(game);
     bountyMiniGameStore.set(teamId, games);
-    persistTeamStore();
+    persistSocialStore();
 
     // Notify team about the new mini-game/room
     broadcastToRoom(teamId, {
@@ -939,7 +941,7 @@ export async function handleBountyRoutes(
     game.state = { ...((game.state as object) || {}), ...((body.state as object) || {}) };
     if (body.status) game.status = body.status;
 
-    persistTeamStore();
+    persistSocialStore();
 
     // Broadcast state update to the dedicated room
     if (game.roomId) {

@@ -5,7 +5,7 @@ import {
   teamMessageStore,
   teamFeedStore,
   agentKeyStore,
-  persistTeamStore,
+  persistTeamDurable,
   reloadTeam,
 } from '../state';
 import {
@@ -390,7 +390,7 @@ export async function handleBoardRoutes(
       health: evaluateFleetSnapshotHealth(snapshot, publishedAt),
     };
     team.fleetSnapshot = record;
-    persistTeamStore();
+    await persistTeamDurable(teamId);
 
     broadcastToTeam(teamId, {
       type: 'fleet:snapshot' as any,
@@ -629,7 +629,7 @@ export async function handleBoardRoutes(
       json(res, 400, { error: result.error || 'create failed' });
       return true;
     }
-    persistTeamStore();
+    await persistTeamDurable(teamId);
     json(res, 201, { success: true, suggestion: result.suggestion });
     return true;
   }
@@ -697,7 +697,7 @@ export async function handleBoardRoutes(
         },
       });
     }
-    persistTeamStore();
+    await persistTeamDurable(teamId);
     json(res, 200, {
       success: true,
       suggestion: result.suggestion,
@@ -772,7 +772,7 @@ export async function handleBoardRoutes(
           ];
         });
     team.taskBoard = result.updatedBoard;
-    persistTeamStore();
+    await persistTeamDurable(teamId);
 
     for (const task of result.added) {
       broadcastToTeam(teamId, {
@@ -880,7 +880,7 @@ export async function handleBoardRoutes(
     }
 
     if (addedTasks.length > 0) {
-      persistTeamStore();
+      await persistTeamDurable(teamId);
       for (const task of addedTasks) {
         broadcastToTeam(teamId, {
           type: 'board:added' as any,
@@ -1303,7 +1303,7 @@ export async function handleBoardRoutes(
       return true;
     }
 
-    persistTeamStore();
+    await persistTeamDurable(teamId);
 
     // Real-time broadcast
     broadcastToTeam(teamId, {
@@ -1604,7 +1604,7 @@ export async function handleBoardRoutes(
     const messages = teamMessageStore.get(teamId) || [];
     messages.push(message);
     teamMessageStore.set(teamId, messages.slice(-500));
-    persistTeamStore();
+    await persistTeamDurable(teamId);
 
     broadcastToTeam(teamId, {
       type: 'message:new',
@@ -1652,7 +1652,7 @@ export async function handleBoardRoutes(
       message.readBy = Array.from(readBy);
       message.readAt = new Date().toISOString();
       teamMessageStore.set(teamId, messages.slice(-500));
-      persistTeamStore();
+      await persistTeamDurable(teamId);
 
       json(res, 200, {
         success: true,
@@ -1762,7 +1762,7 @@ export async function handleBoardRoutes(
     const cap = 200;
     const trimmed = list.length > cap ? list.slice(-cap) : list;
     teamFeedStore.set(teamId, trimmed);
-    persistTeamStore();
+    await persistTeamDurable(teamId);
 
     json(res, 201, { success: true, item });
     return true;
@@ -1837,7 +1837,7 @@ export async function handleBoardRoutes(
     list.push(record);
     const cap = 200;
     team.founderApprovals = list.length > cap ? list.slice(-cap) : list;
-    persistTeamStore();
+    await persistTeamDurable(teamId);
 
     broadcastToTeam(teamId, {
       type: 'founder:approval' as any,
@@ -1904,7 +1904,7 @@ export async function handleBoardRoutes(
     if (typeof body.resultRef === 'string') {
       record.resultRef = body.resultRef.slice(0, 500);
     }
-    persistTeamStore();
+    await persistTeamDurable(teamId);
 
     broadcastToTeam(teamId, {
       type: 'founder:approval:update' as any,

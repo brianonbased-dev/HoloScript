@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { boardTools, handleBoardTool } from '../board-tools';
-import { teamStore, teamPresenceStore, persistTeamStore } from '../state';
+import { teamStore, teamPresenceStore, persistTeamDurable } from '../state';
 
-// Mock persistTeamStore to avoid file I/O in tests
+// Mock durable persistence to avoid file I/O in tests and assert await boundaries.
 vi.mock('../state', async (importOriginal) => {
   const actual = (await importOriginal()) as Record<string, unknown>;
   return {
     ...actual,
-    persistTeamStore: vi.fn(),
+    persistTeamDurable: vi.fn().mockResolvedValue(undefined),
   };
 });
 
@@ -41,17 +41,27 @@ function seedTeam(teamId: string, overrides: Record<string, unknown> = {}) {
   return team;
 }
 
+function deferred<T = void>() {
+  let resolve!: (value?: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
 // ── Tool Definition Tests ──
 
 describe('boardTools definitions', () => {
-  it('exports 13 tool definitions', () => {
-    expect(boardTools).toHaveLength(13);
+  it('exports 14 tool definitions', () => {
+    expect(boardTools).toHaveLength(14);
   });
 
   it('all tool names use expected holomesh prefixes', () => {
     for (const tool of boardTools) {
       expect(tool.name).toMatch(
-        /^holomesh_(board_|slot_|mode_|scout|suggest|heartbeat|knowledge_)/
+        /^holomesh_(board_|slot_|mode_|scout|suggest|heartbeat|presence|knowledge_)/
       );
     }
   });
@@ -69,6 +79,7 @@ describe('boardTools definitions', () => {
     'holomesh_suggest_vote',
     'holomesh_suggest_list',
     'holomesh_heartbeat',
+    'holomesh_presence',
     'holomesh_knowledge_read',
   ];
 
@@ -213,6 +224,8 @@ describe('handleBoardTool with in-memory store', () => {
   beforeEach(() => {
     teamStore.clear();
     teamPresenceStore.clear();
+    vi.mocked(persistTeamDurable).mockClear();
+    vi.mocked(persistTeamDurable).mockResolvedValue(undefined);
   });
 
   it('holomesh_board_list returns team not found for missing team', async () => {
@@ -240,11 +253,35 @@ describe('handleBoardTool with in-memory store', () => {
 
     expect(result.success).toBe(true);
     expect(result.added).toBe(2);
-    expect(persistTeamStore).toHaveBeenCalled();
+    expect(persistTeamDurable).toHaveBeenCalledWith('team-abc');
 
     const tasks = result.tasks as Array<Record<string, unknown>>;
     expect(tasks).toHaveLength(2);
     expect(tasks[0].title).toBe('Fix bug');
+  });
+
+  it('awaits durable persistence before returning from holomesh_board_add', async () => {
+    seedTeam('team-abc');
+    const durable = deferred<void>();
+    vi.mocked(persistTeamDurable).mockReturnValueOnce(durable.promise);
+
+    let settled = false;
+    const pending = handleBoardTool('holomesh_board_add', {
+      team_id: 'team-abc',
+      tasks: [{ title: 'Durable write boundary' }],
+    }).then((result) => {
+      settled = true;
+      return result as Record<string, unknown>;
+    });
+
+    await Promise.resolve();
+    expect(persistTeamDurable).toHaveBeenCalledWith('team-abc');
+    expect(settled).toBe(false);
+
+    durable.resolve();
+    const result = await pending;
+    expect(settled).toBe(true);
+    expect(result.success).toBe(true);
   });
 
   it('holomesh_board_claim claims an open task', async () => {
@@ -264,7 +301,7 @@ describe('handleBoardTool with in-memory store', () => {
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(true);
-    expect(persistTeamStore).toHaveBeenCalled();
+    expect(persistTeamDurable).toHaveBeenCalledWith('team-abc');
   });
 
   it('holomesh_board_complete marks a claimed task done', async () => {
@@ -293,7 +330,7 @@ describe('handleBoardTool with in-memory store', () => {
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(true);
-    expect(persistTeamStore).toHaveBeenCalled();
+    expect(persistTeamDurable).toHaveBeenCalledWith('team-abc');
   });
 
   it('holomesh_mode_set changes team mode', async () => {

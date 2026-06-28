@@ -814,6 +814,8 @@ export async function initStores(): Promise<void> {
       }
     } catch (e) {
       console.warn('[loadAllStores] PostgreSQL team load failed, falling back to file:', e);
+      (teamStore as TeamStore).fallbackToMemory();
+      console.warn('[loadAllStores] PostgreSQL team backend disabled for this process');
     }
   }
 

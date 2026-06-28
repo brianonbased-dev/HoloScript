@@ -23,7 +23,7 @@ import {
   type DoneLogEntry,
   type SuggestionCategory,
 } from '@holoscript/framework';
-import { teamStore, teamPresenceStore, persistTeamStore } from './state';
+import { teamStore, teamPresenceStore, persistTeamDurable } from './state';
 import { broadcastToTeam } from './team-room';
 import { recordTeamModeChange } from './mode-provenance';
 import { normalizePresenceSurface, getPresenceTtlMs, pruneStalePresence } from './utils';
@@ -574,7 +574,7 @@ async function handleBoardAdd(args: Record<string, unknown>): Promise<Record<str
           ];
         });
     team.taskBoard = result.updatedBoard;
-    persistTeamStore();
+    await persistTeamDurable(teamId);
 
     for (const task of result.added) {
       broadcastToTeam(teamId, {
@@ -636,7 +636,7 @@ async function handleBoardClaim(args: Record<string, unknown>): Promise<Record<s
 
     const result = claimTask(team.taskBoard!, taskId, effectiveAgentId, effectiveAgentName);
     if (!result.success) return { error: result.error || 'Claim failed' };
-    persistTeamStore();
+    await persistTeamDurable(teamId);
 
     broadcastToTeam(teamId, {
       type: 'board:claimed',
@@ -685,7 +685,7 @@ async function handleBoardComplete(
       if (!team.doneLog) team.doneLog = [];
       team.doneLog.push(wrap.result.doneEntry);
     }
-    persistTeamStore();
+    await persistTeamDurable(teamId);
 
     broadcastToTeam(teamId, {
       type: 'board:completed',
@@ -719,7 +719,7 @@ async function handleBoardAppendCommit(
     if (!wrap.success) {
       return { error: wrap.error || 'Append failed' };
     }
-    persistTeamStore();
+    await persistTeamDurable(teamId);
 
     broadcastToTeam(teamId, {
       type: 'board:commit_appended',
@@ -746,7 +746,7 @@ async function handleSlotAssign(args: Record<string, unknown>): Promise<Record<s
     const team = getTeam(teamId);
     if (!team.roomConfig) team.roomConfig = {};
     team.roomConfig.slotRoles = roles;
-    persistTeamStore();
+    await persistTeamDurable(teamId);
     return { success: true, roles };
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
@@ -762,7 +762,7 @@ async function handleModeSet(args: Record<string, unknown>): Promise<Record<stri
 
   try {
     const team = getTeam(teamId);
-    const { changed } = recordTeamModeChange({
+    const { changed } = await recordTeamModeChange({
       teamId,
       team,
       newMode: mode,
@@ -826,7 +826,7 @@ async function handleScout(args: Record<string, unknown>): Promise<Record<string
           ];
         });
     team.taskBoard = result.updatedBoard;
-    persistTeamStore();
+    await persistTeamDurable(teamId);
 
     return {
       success: true,
@@ -861,7 +861,7 @@ async function handleSuggest(args: Record<string, unknown>): Promise<Record<stri
     if (!result.success) {
       return { error: result.error || 'suggestion create failed' };
     }
-    persistTeamStore();
+    await persistTeamDurable(teamId);
     return { success: true, suggestion: result.suggestion };
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
@@ -893,7 +893,7 @@ async function handleSuggestVote(args: Record<string, unknown>): Promise<Record<
     if (!result.success) {
       return { error: result.error || 'vote failed' };
     }
-    persistTeamStore();
+    await persistTeamDurable(teamId);
     return { ...result, success: true };
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };

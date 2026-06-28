@@ -18,7 +18,7 @@ import {
   paidAccessStore,
   agentKeyStore,
   persistSocialStore,
-  persistTeamStore,
+  persistTeamDurable,
   HOLOMESH_DATA_DIR,
   teamStore,
   storyWeaverStore,
@@ -1417,7 +1417,7 @@ export async function handleKnowledgeRoutes(
       currency
     );
 
-    persistTeamStore();
+    await persistTeamDurable(teamId);
     json(res, 201, { success: true, listing });
     return true;
   }
@@ -1479,7 +1479,7 @@ export async function handleKnowledgeRoutes(
       timestamp: new Date().toISOString(),
     });
 
-    persistTeamStore();
+    await persistTeamDurable(teamId);
     persistSocialStore();
     json(res, 200, { success: true, purchase: result, listing });
     return true;

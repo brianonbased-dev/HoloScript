@@ -9,7 +9,6 @@ import {
   persistKeyRegistry,
   teamMessageStore,
   teamPresenceStore,
-  persistTeamStore,
   persistTeamDurable,
   persistAgentStore,
   challengeStore,
@@ -365,7 +364,7 @@ export async function handleTeamRoutes(
             x402Verified: agent.x402Verified === true,
             surfaceTag: agent.surfaceTag ?? ide,
           });
-          persistTeamStore();
+          await persistTeamDurable(team.id);
           broadcastToRoom(team.id, {
             type: 'team:member_joined',
             agent: agent.name,
@@ -1431,7 +1430,7 @@ export async function handleTeamRoutes(
     const messages = teamMessageStore.get(teamId) || [];
     messages.push(message);
     teamMessageStore.set(teamId, messages.slice(-500));
-    persistTeamStore();
+    await persistTeamDurable(teamId);
     broadcastToRoom(teamId, { type: 'team:message', agent: caller.name, data: message });
     json(res, 201, { success: true, message });
     return true;
@@ -1554,7 +1553,7 @@ export async function handleTeamRoutes(
     }));
     const synced = await getClient().contributeKnowledge(prepared);
     appendTeamKnowledgeMirror(team, prepared);
-    persistTeamStore();
+    await persistTeamDurable(teamId);
     json(res, 201, { success: true, synced, entries: prepared, workspace_id: workspaceId });
     return true;
   }
@@ -1638,7 +1637,7 @@ export async function handleTeamRoutes(
       typeof (body as { reason?: unknown }).reason === 'string'
         ? String((body as { reason?: string }).reason)
         : undefined;
-    const { changed } = recordTeamModeChange({
+    const { changed } = await recordTeamModeChange({
       teamId,
       team,
       newMode: mode,
@@ -1724,7 +1723,7 @@ export async function handleTeamRoutes(
       json(res, 400, { error: 'No mutable fields provided. Supported: max_slots' });
       return true;
     }
-    persistTeamStore();
+    await persistTeamDurable(teamId);
     json(res, 200, {
       success: true,
       team: {
@@ -1774,7 +1773,7 @@ export async function handleTeamRoutes(
     if (typeof body.objective === 'string') {
       (team.roomConfig as { objective?: string }).objective = body.objective;
     }
-    persistTeamStore();
+    await persistTeamDurable(teamId);
     json(res, 200, {
       success: true,
       communicationStyle: team.roomConfig.communicationStyle || 'task_first',
@@ -1845,7 +1844,7 @@ export async function handleTeamRoutes(
 
     if (!team.taskBoard) team.taskBoard = [];
     team.taskBoard.push(...tasks);
-    persistTeamStore();
+    await persistTeamDurable(teamId);
 
     json(res, 201, { success: true, tasks_added: tasks.length, tasks });
     return true;
@@ -1916,7 +1915,7 @@ export async function handleTeamRoutes(
         createdAt: new Date().toISOString(),
       });
       teamMessageStore.set(teamId, messages.slice(-500));
-      persistTeamStore();
+      await persistTeamDurable(teamId);
 
       broadcastToRoom(teamId, {
         type: 'moltbook:dm_batch_prepared',
@@ -1977,7 +1976,7 @@ export async function handleTeamRoutes(
       updatedAt: new Date().toISOString(),
     };
 
-    persistTeamStore();
+    await persistTeamDurable(teamId);
 
     const cmd = `node hooks/team-connect.mjs --daemon --name=${agentName} --ide=vscode`;
     json(res, 200, {
@@ -2091,7 +2090,7 @@ export async function handleTeamRoutes(
       createdAt: new Date().toISOString(),
     });
     teamMessageStore.set(teamId, messages.slice(-500));
-    persistTeamStore();
+    await persistTeamDurable(teamId);
 
     broadcastToRoom(teamId, {
       type: 'team:recruitment_invite_created',

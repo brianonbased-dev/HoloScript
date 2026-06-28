@@ -18,6 +18,20 @@
 import type { Pool, PoolClient } from 'pg';
 import type { Team } from './types';
 
+export interface TeamStorePostgresPoolOptions {
+  connectionString: string;
+  ssl: false | { rejectUnauthorized: false };
+}
+
+export function createTeamStorePostgresPoolOptions(
+  databaseUrl: string
+): TeamStorePostgresPoolOptions {
+  return {
+    connectionString: databaseUrl,
+    ssl: process.env.DATABASE_SSL === 'false' ? false : { rejectUnauthorized: false },
+  };
+}
+
 // ── Schema DDL ───────────────────────────────────────────────────────────────
 
 const SCHEMA_SQL = `
@@ -210,6 +224,17 @@ export class TeamStore {
     // We don't clear the backend — that's a separate explicit operation.
   }
 
+  fallbackToMemory(): void {
+    const memory = new InMemoryTeamStoreBackend();
+    for (const [teamId, team] of this.local.entries()) {
+      memory.set(teamId, team).catch((e) => {
+        console.error('[TeamStore] memory fallback seed failed:', e);
+      });
+    }
+    this.backend = memory;
+    this.usePostgres = false;
+  }
+
   forEach(
     callbackfn: (value: Team, key: string, map: Map<string, Team>) => void,
     thisArg?: any
@@ -257,7 +282,7 @@ export function createTeamStore(): TeamStore {
       // Lazy-import pg so local dev without DATABASE_URL doesn't crash
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { Pool } = require('pg');
-      const pool = new Pool({ connectionString: databaseUrl });
+      const pool = new Pool(createTeamStorePostgresPoolOptions(databaseUrl));
       const backend = new PostgresTeamStoreBackend(pool);
       console.log('[TeamStore] PostgreSQL backend active (multi-instance)');
       return new TeamStore(backend, true);

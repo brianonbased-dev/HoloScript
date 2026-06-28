@@ -4,7 +4,7 @@
  */
 import { ROOM_PRESETS } from '@holoscript/framework';
 import type { Team, TeamMessage, TeamModeChangeFeedItem } from './types';
-import { teamFeedStore, teamMessageStore, persistTeamStore } from './state';
+import { teamFeedStore, teamMessageStore, persistTeamDurable } from './state';
 import { broadcastToTeam } from './team-room';
 
 const MODE_HISTORY_MAX = 10;
@@ -51,14 +51,14 @@ export function getBoardModeFields(team: Team) {
  * Apply a mode change: team.mode, objective, provenance, history, message, feed, SSE.
  * No-op if newMode === current mode (objective may still be refreshed from preset).
  */
-export function recordTeamModeChange(opts: {
+export async function recordTeamModeChange(opts: {
   teamId: string;
   team: Team;
   newMode: string;
   source: ModeChangeSource;
   actor: { id: string; name: string };
   reason?: string;
-}): { changed: boolean; previousMode: string } {
+}): Promise<{ changed: boolean; previousMode: string }> {
   const { teamId, team, newMode, source, actor } = opts;
   const previousMode = team.mode || 'general';
   const preset = (ROOM_PRESETS as Record<string, { objective?: string }>)[newMode];
@@ -66,7 +66,7 @@ export function recordTeamModeChange(opts: {
   if (previousMode === newMode) {
     if (preset?.objective) {
       (team.roomConfig as { objective?: string }).objective = preset.objective;
-      persistTeamStore();
+      await persistTeamDurable(teamId);
     }
     return { changed: false, previousMode };
   }
@@ -128,7 +128,7 @@ export function recordTeamModeChange(opts: {
   list.push(feedItem);
   teamFeedStore.set(teamId, list.length > FEED_CAP ? list.slice(-FEED_CAP) : list);
 
-  persistTeamStore();
+  await persistTeamDurable(teamId);
   broadcastToTeam(teamId, {
     type: 'mode:changed' as any,
     agent: actor.name,
