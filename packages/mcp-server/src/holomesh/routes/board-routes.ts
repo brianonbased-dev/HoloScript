@@ -73,6 +73,7 @@ import type {
   TeamFleetSnapshotPayload,
   TeamFleetSnapshotRecord,
   FounderApprovalRecord,
+  RetiredDoneLogReceipt,
 } from '../types';
 import { getClient } from '../orchestrator-client';
 import { mergeTeamKnowledgeWithOrchestrator } from '../entry-lookup';
@@ -80,10 +81,33 @@ import { getBoardModeFields } from '../mode-provenance';
 import { deriveApprovalReversibility } from './founder-approval-policy';
 
 const MAX_FEED_QUERY = 100;
+const ROOM_DONE_LOG_ARCHIVE_SCHEMA = 'room-done-log-archive/v0.1.0';
+const JETSON_DONE_LOG_ARCHIVE_DIR =
+  '/mnt/nvme2/holo-volumes/service-data/mcp-server/room-task-archive';
+const SHA256_HEX = /^[a-f0-9]{64}$/i;
 
 type BoardProvenanceParseResult =
   | { provenance?: BoardMutationProvenance; error?: undefined }
   | { provenance?: undefined; error: string };
+
+type DoneLogArchiveCounts = RetiredDoneLogReceipt['archiveCounts'];
+
+type DoneLogArchiveGate =
+  | {
+      ok: true;
+      manifest: Record<string, unknown>;
+      manifestSha256: string;
+      counts: DoneLogArchiveCounts;
+      cutoffIso: string;
+      staleEntries: DoneLogEntry[];
+      hotEntries: DoneLogEntry[];
+      fileHashes: RetiredDoneLogReceipt['archiveFiles'];
+    }
+  | { ok: false; status: number; code: string; error: string; details?: Record<string, unknown> };
+
+type JetsonArchiveReceipt =
+  | { ok: true; host?: string; directory: string; files: string[] }
+  | { ok: false; code: string; error: string };
 
 function firstString(...values: unknown[]): string | undefined {
   for (const value of values) {
@@ -239,6 +263,292 @@ function isCloudIdentityEnvelope(envelope: HoloMeshIdentityEnvelope | undefined)
 
 function shortHash(value: string, len = 20): string {
   return createHash('sha256').update(value).digest('hex').slice(0, len);
+}
+
+function sha256Hex(value: string): string {
+  return createHash('sha256').update(value).digest('hex');
+}
+
+function stableJson(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stableJson);
+  if (!isRecord(value)) return value;
+  return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stableJson(value[key])]));
+}
+
+function stableJsonString(value: unknown): string {
+  return JSON.stringify(stableJson(value));
+}
+
+function parseArchiveCount(value: unknown): number | undefined {
+  const n =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string' && value.trim()
+        ? Number(value)
+        : Number.NaN;
+  return Number.isInteger(n) && n >= 0 ? n : undefined;
+}
+
+function doneEntryTimestamp(entry: DoneLogEntry): string | undefined {
+  const record = entry as unknown as Record<string, unknown>;
+  const task = isRecord(record.task) ? record.task : {};
+  return firstString(
+    record.timestamp,
+    record.completedAt,
+    record.completed_at,
+    record.doneAt,
+    record.done_at,
+    record.updatedAt,
+    task.timestamp,
+    task.completedAt,
+    task.updatedAt
+  );
+}
+
+function doneEntryRawSha256(entry: DoneLogEntry): string {
+  return sha256Hex(stableJsonString(entry));
+}
+
+function doneLogNdjsonSha256(entries: DoneLogEntry[]): string {
+  return sha256Hex(`${entries.map((entry) => stableJsonString(entry)).join('\n')}\n`);
+}
+
+function manifestFileSha256(
+  manifest: Record<string, unknown>,
+  key: 'sqlite' | 'allNdjson' | 'staleNdjson'
+): string | undefined {
+  const files = isRecord(manifest.files) ? manifest.files : {};
+  const info = isRecord(files[key]) ? files[key] : {};
+  const hash = firstString(info.sha256, info.hash);
+  return hash && SHA256_HEX.test(hash) ? hash.toLowerCase() : undefined;
+}
+
+function manifestCounts(manifest: Record<string, unknown>): DoneLogArchiveCounts | undefined {
+  const counts = isRecord(manifest.counts) ? manifest.counts : {};
+  const totalRows = parseArchiveCount(counts.totalRows);
+  const archiveEligibleRows = parseArchiveCount(counts.archiveEligibleRows);
+  const hotRows = parseArchiveCount(counts.hotRows);
+  const missingTimestampRows = parseArchiveCount(counts.missingTimestampRows);
+  if (
+    totalRows === undefined ||
+    archiveEligibleRows === undefined ||
+    hotRows === undefined ||
+    missingTimestampRows === undefined
+  ) {
+    return undefined;
+  }
+  return { totalRows, archiveEligibleRows, hotRows, missingTimestampRows };
+}
+
+function validateJetsonArchiveReceipt(body: Record<string, unknown>): JetsonArchiveReceipt {
+  const archiveReceipt = isRecord(body.archiveReceipt) ? body.archiveReceipt : {};
+  const candidate = body.jetson ?? body.jetsonReceipt ?? body.archiveJetson ?? archiveReceipt.jetson;
+  if (!isRecord(candidate) || candidate.ok !== true) {
+    return {
+      ok: false,
+      code: 'jetson_archive_receipt_required',
+      error: 'Jetson archive receipt with ok:true is required before compacting the hot done log',
+    };
+  }
+  const directory = firstString(candidate.directory, candidate.dir);
+  if (directory !== JETSON_DONE_LOG_ARCHIVE_DIR) {
+    return {
+      ok: false,
+      code: 'jetson_archive_directory_invalid',
+      error: `Jetson archive directory must be ${JETSON_DONE_LOG_ARCHIVE_DIR}`,
+    };
+  }
+  const files = Array.isArray(candidate.files) ? candidate.files.map(String) : [];
+  const requiredFiles = [
+    'room-done-log.sqlite',
+    'room-done-log.ndjson',
+    'room-done-log-stale.ndjson',
+    'manifest.json',
+  ];
+  const missing = requiredFiles.filter((file) => !files.includes(file));
+  if (missing.length > 0) {
+    return {
+      ok: false,
+      code: 'jetson_archive_files_missing',
+      error: `Jetson archive receipt missing files: ${missing.join(', ')}`,
+    };
+  }
+  return {
+    ok: true,
+    host: firstString(candidate.host),
+    directory,
+    files,
+  };
+}
+
+function validateDoneLogArchiveManifest(
+  manifest: Record<string, unknown>,
+  doneLog: DoneLogEntry[],
+  suppliedManifestSha256?: string
+): DoneLogArchiveGate {
+  const schemaVersion = firstString(manifest.schemaVersion, manifest.schema);
+  if (schemaVersion !== ROOM_DONE_LOG_ARCHIVE_SCHEMA) {
+    return {
+      ok: false,
+      status: 400,
+      code: 'archive_manifest_schema_invalid',
+      error: `archive manifest schemaVersion must be ${ROOM_DONE_LOG_ARCHIVE_SCHEMA}`,
+      details: { schemaVersion },
+    };
+  }
+
+  const generatedAt = firstString(manifest.generatedAt);
+  if (!generatedAt || !Number.isFinite(Date.parse(generatedAt))) {
+    return {
+      ok: false,
+      status: 400,
+      code: 'archive_manifest_generated_at_invalid',
+      error: 'archive manifest generatedAt must be a valid ISO timestamp',
+    };
+  }
+
+  const cutoffIso = firstString(manifest.cutoffIso, manifest.cutoff);
+  const cutoffMs = cutoffIso ? Date.parse(cutoffIso) : Number.NaN;
+  if (!cutoffIso || !Number.isFinite(cutoffMs)) {
+    return {
+      ok: false,
+      status: 400,
+      code: 'archive_manifest_cutoff_invalid',
+      error: 'archive manifest cutoffIso must be a valid ISO timestamp',
+    };
+  }
+
+  const counts = manifestCounts(manifest);
+  if (!counts) {
+    return {
+      ok: false,
+      status: 400,
+      code: 'archive_manifest_counts_invalid',
+      error:
+        'archive manifest counts must include totalRows, archiveEligibleRows, hotRows, and missingTimestampRows',
+    };
+  }
+
+  const liveCount = parseArchiveCount(manifest.liveCount);
+  if (liveCount !== undefined && liveCount !== doneLog.length) {
+    return {
+      ok: false,
+      status: 409,
+      code: 'archive_manifest_mismatch',
+      error: 'archive manifest liveCount does not match current done log',
+      details: { manifestLiveCount: liveCount, currentDoneLogCount: doneLog.length },
+    };
+  }
+
+  if (counts.totalRows !== doneLog.length) {
+    return {
+      ok: false,
+      status: 409,
+      code: 'archive_manifest_mismatch',
+      error: 'archive manifest totalRows does not match current done log',
+      details: { manifestTotalRows: counts.totalRows, currentDoneLogCount: doneLog.length },
+    };
+  }
+
+  const staleEntries: DoneLogEntry[] = [];
+  const hotEntries: DoneLogEntry[] = [];
+  let missingTimestampRows = 0;
+  for (const entry of doneLog) {
+    const timestamp = doneEntryTimestamp(entry);
+    const ms = timestamp ? Date.parse(timestamp) : Number.NaN;
+    if (!Number.isFinite(ms)) {
+      missingTimestampRows++;
+      hotEntries.push(entry);
+    } else if (ms < cutoffMs) {
+      staleEntries.push(entry);
+    } else {
+      hotEntries.push(entry);
+    }
+  }
+
+  const actualCounts: DoneLogArchiveCounts = {
+    totalRows: doneLog.length,
+    archiveEligibleRows: staleEntries.length,
+    hotRows: hotEntries.length - missingTimestampRows,
+    missingTimestampRows,
+  };
+  const countKeys: Array<keyof DoneLogArchiveCounts> = [
+    'totalRows',
+    'archiveEligibleRows',
+    'hotRows',
+    'missingTimestampRows',
+  ];
+  const mismatchedCount = countKeys.find((key) => counts[key] !== actualCounts[key]);
+  if (mismatchedCount) {
+    return {
+      ok: false,
+      status: 409,
+      code: 'archive_manifest_mismatch',
+      error: `archive manifest ${mismatchedCount} does not match current done log`,
+      details: { manifestCounts: counts, actualCounts },
+    };
+  }
+
+  const sqliteSha256 = manifestFileSha256(manifest, 'sqlite');
+  const allNdjsonSha256 = manifestFileSha256(manifest, 'allNdjson');
+  const staleNdjsonSha256 = manifestFileSha256(manifest, 'staleNdjson');
+  if (!sqliteSha256 || !allNdjsonSha256 || !staleNdjsonSha256) {
+    return {
+      ok: false,
+      status: 400,
+      code: 'archive_manifest_hashes_invalid',
+      error: 'archive manifest files must include sqlite, allNdjson, and staleNdjson SHA-256 hashes',
+    };
+  }
+
+  const archiveOrderedEntries = [...doneLog].reverse();
+  const expectedAllNdjsonSha256 = doneLogNdjsonSha256(archiveOrderedEntries);
+  const expectedStaleNdjsonSha256 = doneLogNdjsonSha256(
+    archiveOrderedEntries.filter((entry) => {
+      const timestamp = doneEntryTimestamp(entry);
+      const ms = timestamp ? Date.parse(timestamp) : Number.NaN;
+      return Number.isFinite(ms) && ms < cutoffMs;
+    })
+  );
+  if (
+    allNdjsonSha256 !== expectedAllNdjsonSha256 ||
+    staleNdjsonSha256 !== expectedStaleNdjsonSha256
+  ) {
+    return {
+      ok: false,
+      status: 409,
+      code: 'archive_manifest_mismatch',
+      error: 'archive manifest NDJSON hashes do not match current done log',
+      details: {
+        manifestAllNdjsonSha256: allNdjsonSha256,
+        expectedAllNdjsonSha256,
+        manifestStaleNdjsonSha256: staleNdjsonSha256,
+        expectedStaleNdjsonSha256,
+      },
+    };
+  }
+
+  const manifestSha256 = sha256Hex(stableJsonString(manifest));
+  if (suppliedManifestSha256 && suppliedManifestSha256.toLowerCase() !== manifestSha256) {
+    return {
+      ok: false,
+      status: 409,
+      code: 'archive_manifest_mismatch',
+      error: 'supplied archive manifest hash does not match manifest body',
+      details: { suppliedManifestSha256, manifestSha256 },
+    };
+  }
+
+  return {
+    ok: true,
+    manifest,
+    manifestSha256,
+    counts,
+    cutoffIso,
+    staleEntries,
+    hotEntries,
+    fileHashes: { sqliteSha256, allNdjsonSha256, staleNdjsonSha256 },
+  };
 }
 
 function getCloudSessionMap(teamId: string): Map<string, HoloMeshCloudSessionLease> {
@@ -768,7 +1078,125 @@ export async function handleBoardRoutes(
     return true;
   }
 
-  // GET /api/holomesh/team/:id/suggestions — list improvement suggestions (MCP: holomesh_suggest_list)
+  // POST /api/holomesh/team/:id/board/done/compact - retire archived stale rows
+  if (
+    pathname.match(/^\/api\/holomesh\/team\/[^/]+\/board\/done\/compact$/) &&
+    method === 'POST'
+  ) {
+    const access = await requireTeamAccessFresh(req, res, url, 'config:write');
+    if (!access) return true;
+    const { caller, teamId } = access;
+    const team = teamStore.get(teamId)!;
+    if (!team.doneLog) team.doneLog = [];
+
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    if (!isRecord(effectiveBody)) {
+      json(res, 400, { error: 'JSON object body required' });
+      return true;
+    }
+
+    const body = effectiveBody;
+    const dryRun = body.dryRun === true || body.dry_run === true;
+    const manifestCandidate = body.manifest ?? body.archiveManifest ?? body.archive_manifest;
+    if (!isRecord(manifestCandidate)) {
+      json(res, 400, {
+        error: 'archive manifest required',
+        code: 'archive_manifest_required',
+      });
+      return true;
+    }
+
+    const suppliedManifestSha256 = firstString(
+      body.manifestSha256,
+      body.archiveManifestSha256,
+      body.archive_manifest_sha256
+    );
+    if (suppliedManifestSha256 && !SHA256_HEX.test(suppliedManifestSha256)) {
+      json(res, 400, {
+        error: 'archive manifest hash must be a SHA-256 hex string',
+        code: 'archive_manifest_hash_invalid',
+      });
+      return true;
+    }
+
+    const jetsonReceipt = validateJetsonArchiveReceipt(body);
+    if (!dryRun && !jetsonReceipt.ok) {
+      json(res, 400, {
+        error: jetsonReceipt.error,
+        code: jetsonReceipt.code,
+      });
+      return true;
+    }
+
+    const gate = validateDoneLogArchiveManifest(
+      manifestCandidate,
+      team.doneLog,
+      suppliedManifestSha256?.toLowerCase()
+    );
+    if (!gate.ok) {
+      json(res, gate.status, {
+        error: gate.error,
+        code: gate.code,
+        details: gate.details,
+      });
+      return true;
+    }
+
+    const retiredAt = new Date().toISOString();
+    const receipts: RetiredDoneLogReceipt[] = gate.staleEntries.map((entry) => ({
+      taskId: entry.taskId,
+      title: entry.title,
+      completedAt: doneEntryTimestamp(entry),
+      rawSha256: doneEntryRawSha256(entry),
+      retiredAt,
+      retiredByAgentId: caller.id,
+      retiredByName: caller.name,
+      archiveManifestSha256: gate.manifestSha256,
+      archiveManifestGeneratedAt: String(gate.manifest.generatedAt),
+      archiveSchemaVersion: ROOM_DONE_LOG_ARCHIVE_SCHEMA,
+      archiveCutoffIso: gate.cutoffIso,
+      archiveCounts: gate.counts,
+      archiveFiles: gate.fileHashes,
+    }));
+
+    if (!dryRun) {
+      team.doneLog = gate.hotEntries;
+      team.retiredDoneLog = [...(team.retiredDoneLog || []), ...receipts];
+      await persistTeamDurable(teamId);
+      broadcastToTeam(teamId, {
+        type: 'board:done_compacted' as any,
+        agent: caller.name,
+        data: {
+          compacted: receipts.length,
+          retained: gate.hotEntries.length,
+          archiveManifestSha256: gate.manifestSha256,
+        },
+      });
+    }
+
+    json(res, 200, {
+      success: true,
+      teamId,
+      dryRun,
+      archiveManifestSha256: gate.manifestSha256,
+      archiveCounts: gate.counts,
+      compacted: receipts.length,
+      retained: gate.hotEntries.length,
+      jetsonArchive: jetsonReceipt.ok ? jetsonReceipt : undefined,
+      retiredTaskIds: receipts.map((receipt) => receipt.taskId),
+      retiredReceipts: receipts,
+    });
+    return true;
+  }
+
+  // GET /api/holomesh/team/:id/suggestions - list improvement suggestions (MCP: holomesh_suggest_list)
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/suggestions$/) && method === 'GET') {
     // Pattern Gamma read-path coverage (follow-up to 29e9a8da7): suggestions
     // posted on another replica must be visible without waiting for cache

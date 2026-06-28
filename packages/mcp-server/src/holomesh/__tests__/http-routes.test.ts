@@ -7,6 +7,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type http from 'http';
 import { EventEmitter } from 'events';
+import { createHash } from 'crypto';
 
 // ── Mock fs before import (prevents loadAgentStore from touching disk) ──
 
@@ -124,6 +125,99 @@ import {
 import { MOBILE_PRESENCE_TTL_MS } from '../types';
 
 // ── Test Helpers ──
+
+const DONE_LOG_ARCHIVE_SCHEMA = 'room-done-log-archive/v0.1.0';
+
+function stableJson(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stableJson);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(
+    Object.keys(value as Record<string, unknown>)
+      .sort()
+      .map((key) => [key, stableJson((value as Record<string, unknown>)[key])])
+  );
+}
+
+function sha256Hex(value: string): string {
+  return createHash('sha256').update(value).digest('hex');
+}
+
+function doneLogArchiveNdjsonSha256(entries: Array<Record<string, unknown>>): string {
+  return sha256Hex(`${entries.map((entry) => JSON.stringify(stableJson(entry))).join('\n')}\n`);
+}
+
+function buildDoneLogArchiveManifest(
+  doneLog: Array<Record<string, unknown>>,
+  cutoffIso = '2026-06-01T00:00:00.000Z'
+) {
+  const cutoffMs = Date.parse(cutoffIso);
+  const archiveOrderedEntries = [...doneLog].reverse();
+  const staleEntries = archiveOrderedEntries.filter((entry) => {
+    const timestamp = String(entry.timestamp || entry.completedAt || '');
+    const ms = Date.parse(timestamp);
+    return Number.isFinite(ms) && ms < cutoffMs;
+  });
+  const missingTimestampRows = doneLog.filter((entry) => {
+    const timestamp = String(entry.timestamp || entry.completedAt || '');
+    return !Number.isFinite(Date.parse(timestamp));
+  }).length;
+  const archiveEligibleRows = doneLog.filter((entry) => {
+    const timestamp = String(entry.timestamp || entry.completedAt || '');
+    const ms = Date.parse(timestamp);
+    return Number.isFinite(ms) && ms < cutoffMs;
+  }).length;
+  const hotRows = doneLog.length - archiveEligibleRows - missingTimestampRows;
+
+  return {
+    schemaVersion: DONE_LOG_ARCHIVE_SCHEMA,
+    generatedAt: '2026-06-28T00:00:00.000Z',
+    staleDays: 30,
+    cutoffIso,
+    source: 'http-routes-test',
+    liveCount: doneLog.length,
+    counts: {
+      totalRows: doneLog.length,
+      archiveEligibleRows,
+      hotRows,
+      missingTimestampRows,
+    },
+    files: {
+      sqlite: {
+        path: '/mnt/nvme2/holo-volumes/service-data/mcp-server/room-task-archive/room-done-log.sqlite',
+        bytes: 4096,
+        sha256: 'a'.repeat(64),
+      },
+      allNdjson: {
+        path: '/mnt/nvme2/holo-volumes/service-data/mcp-server/room-task-archive/room-done-log.ndjson',
+        bytes: 2048,
+        sha256: doneLogArchiveNdjsonSha256(archiveOrderedEntries),
+      },
+      staleNdjson: {
+        path: '/mnt/nvme2/holo-volumes/service-data/mcp-server/room-task-archive/room-done-log-stale.ndjson',
+        bytes: 1024,
+        sha256: doneLogArchiveNdjsonSha256(staleEntries),
+      },
+    },
+  };
+}
+
+function doneLogArchiveManifestSha256(manifest: Record<string, unknown>): string {
+  return sha256Hex(JSON.stringify(stableJson(manifest)));
+}
+
+function jetsonDoneLogArchiveReceipt() {
+  return {
+    ok: true,
+    host: 'holojetson.local',
+    directory: '/mnt/nvme2/holo-volumes/service-data/mcp-server/room-task-archive',
+    files: [
+      'room-done-log.sqlite',
+      'room-done-log.ndjson',
+      'room-done-log-stale.ndjson',
+      'manifest.json',
+    ],
+  };
+}
 
 /** Create a mock HTTP request */
 function mockReq(
@@ -3384,6 +3478,175 @@ describe('HoloMesh HTTP Routes', () => {
 
       expect(doneRes._status).toBe(400);
       expect(doneRes._body.code).toBe('verification_evidence_required');
+    });
+
+    it('POST /board/done/compact rejects archive manifests that do not match the hot log', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `done-compact-reject-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const doneLog = [
+        {
+          taskId: 'task_old',
+          title: 'old done task',
+          completedBy: 'codex',
+          timestamp: '2026-05-01T00:00:00.000Z',
+          summary: 'old',
+        },
+        {
+          taskId: 'task_recent',
+          title: 'recent done task',
+          completedBy: 'codex',
+          timestamp: '2026-06-27T00:00:00.000Z',
+          summary: 'recent',
+        },
+      ];
+      const team = teamStore.get(tid)!;
+      team.doneLog = doneLog as any;
+      teamStore.set(tid, team);
+      const manifest = buildDoneLogArchiveManifest(doneLog);
+      manifest.counts.archiveEligibleRows = 2;
+
+      const req = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/board/done/compact`,
+        {
+          manifest,
+          manifestSha256: doneLogArchiveManifestSha256(manifest),
+          jetson: jetsonDoneLogArchiveReceipt(),
+        },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/board/done/compact`);
+
+      expect(res._status).toBe(409);
+      expect(res._body.code).toBe('archive_manifest_mismatch');
+      expect(teamStore.get(tid)!.doneLog?.map((entry) => entry.taskId)).toEqual([
+        'task_old',
+        'task_recent',
+      ]);
+    });
+
+    it('POST /board/done/compact refuses hot-log mutation without a Jetson receipt', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `done-compact-no-jetson-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const doneLog = [
+        {
+          taskId: 'task_old',
+          title: 'old done task',
+          completedBy: 'codex',
+          timestamp: '2026-05-01T00:00:00.000Z',
+          summary: 'old',
+        },
+      ];
+      const team = teamStore.get(tid)!;
+      team.doneLog = doneLog as any;
+      teamStore.set(tid, team);
+      const manifest = buildDoneLogArchiveManifest(doneLog);
+
+      const req = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/board/done/compact`,
+        { manifest, manifestSha256: doneLogArchiveManifestSha256(manifest) },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/board/done/compact`);
+
+      expect(res._status).toBe(400);
+      expect(res._body.code).toBe('jetson_archive_receipt_required');
+      expect(teamStore.get(tid)!.doneLog?.map((entry) => entry.taskId)).toEqual(['task_old']);
+    });
+
+    it('POST /board/done/compact retires stale rows only after manifest count and hash gates pass', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `done-compact-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const oldEntry = {
+        taskId: 'task_old',
+        title: 'old done task',
+        completedBy: 'codex',
+        completedByTag: 'codex-hardware',
+        timestamp: '2026-05-01T00:00:00.000Z',
+        summary: 'old',
+        commitHash: 'abc1234',
+      };
+      const recentEntry = {
+        taskId: 'task_recent',
+        title: 'recent done task',
+        completedBy: 'codex',
+        timestamp: '2026-06-27T00:00:00.000Z',
+        summary: 'recent',
+        commitHash: 'def5678',
+      };
+      const doneLog = [oldEntry, recentEntry];
+      const team = teamStore.get(tid)!;
+      team.doneLog = doneLog as any;
+      teamStore.set(tid, team);
+      const manifest = buildDoneLogArchiveManifest(doneLog);
+      const manifestSha256 = doneLogArchiveManifestSha256(manifest);
+
+      const req = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/board/done/compact`,
+        { manifest, manifestSha256, jetson: jetsonDoneLogArchiveReceipt() },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/board/done/compact`);
+
+      expect(res._status).toBe(200);
+      expect(res._body.success).toBe(true);
+      expect(res._body.compacted).toBe(1);
+      expect(res._body.retained).toBe(1);
+      expect(res._body.archiveManifestSha256).toBe(manifestSha256);
+      expect(res._body.retiredTaskIds).toEqual(['task_old']);
+
+      const after = teamStore.get(tid)!;
+      expect(after.doneLog?.map((entry) => entry.taskId)).toEqual(['task_recent']);
+      expect(after.retiredDoneLog).toHaveLength(1);
+      expect(after.retiredDoneLog?.[0]).toMatchObject({
+        taskId: 'task_old',
+        rawSha256: sha256Hex(JSON.stringify(stableJson(oldEntry))),
+        archiveManifestSha256: manifestSha256,
+        archiveCounts: {
+          totalRows: 2,
+          archiveEligibleRows: 1,
+          hotRows: 1,
+          missingTimestampRows: 0,
+        },
+      });
+
+      const logReq = mockReq('GET', `/api/holomesh/team/${tid}/board/done?limit=10`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
+      const logRes = mockRes();
+      await handleHoloMeshRoute(logReq, logRes, `/api/holomesh/team/${tid}/board/done?limit=10`);
+      expect(logRes._status).toBe(200);
+      expect(logRes._body.count).toBe(1);
+      expect(logRes._body.entries[0].taskId).toBe('task_recent');
     });
 
     it('PATCH /board/:taskId rejects claim when description lacks Done when block', async () => {

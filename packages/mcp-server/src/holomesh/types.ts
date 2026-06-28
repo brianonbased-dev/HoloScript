@@ -504,6 +504,7 @@ export interface Team {
   // Board data
   taskBoard?: TeamTask[];
   doneLog?: DoneLogEntry[];
+  retiredDoneLog?: RetiredDoneLogReceipt[];
   suggestions?: TeamSuggestion[];
 
   /** Local mirror of team-scoped knowledge (orchestrator GET may lag or omit workspace-scoped rows). */
@@ -573,6 +574,31 @@ export interface Team {
   };
   treasuryWallet?: string;
   treasuryBalance?: number;
+}
+
+export interface RetiredDoneLogReceipt {
+  taskId: string;
+  title?: string;
+  completedAt?: string;
+  rawSha256: string;
+  retiredAt: string;
+  retiredByAgentId: string;
+  retiredByName: string;
+  archiveManifestSha256: string;
+  archiveManifestGeneratedAt: string;
+  archiveSchemaVersion: string;
+  archiveCutoffIso: string;
+  archiveCounts: {
+    totalRows: number;
+    archiveEligibleRows: number;
+    hotRows: number;
+    missingTimestampRows: number;
+  };
+  archiveFiles: {
+    sqliteSha256: string;
+    allNdjsonSha256: string;
+    staleNdjsonSha256: string;
+  };
 }
 
 /**
