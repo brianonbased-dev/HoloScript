@@ -1,0 +1,47 @@
+{
+  "schema": "holoscript-evolve-wasmcompiler-gate-v1",
+  "target": "packages/core/src/compiler/WASMCompiler.ts",
+  "seed": "git:HEAD:packages/core/src/compiler/WASMCompiler.ts",
+  "candidate": "research/evolve-receipts/2026-06-27_wasmcompiler-compact-wat-candidate.txt",
+  "candidateApplied": true,
+  "seedSha256": "438ae89ad1c8a60eaaf9be3ea05d76251b5fb2073df49ff8c8f4ccce88d4f01e",
+  "candidateSha256": "f6decdba23e2a11ff1157b5e2a1068072fe23cb11474acedfa11a7b917fb3222",
+  "baselineMeasurement": {
+    "passed": true,
+    "score": 3.763941,
+    "watLength": 4050,
+    "memoryTotalSize": 1076,
+    "baselineScore": null,
+    "improvementPct": null,
+    "note": "wasm_density_measured"
+  },
+  "correctness": {
+    "label": "compiler-tests",
+    "command": "corepack pnpm --filter @holoscript/core exec vitest run src/compiler/WASMCompiler.test.ts",
+    "exitCode": 0,
+    "durationMs": 1768,
+    "stdoutTail": "\n RUN  v4.1.8 C:/Users/josep/Documents/GitHub/HoloScript/packages/core\n\n\n Test Files  1 passed (1)\n      Tests  27 passed (27)\n   Start at  18:09:45\n   Duration  784ms (transform 364ms, setup 0ms, import 575ms, tests 14ms, environment 0ms)\n\n",
+    "stderrTail": ""
+  },
+  "measurement": {
+    "passed": true,
+    "score": 3.251859,
+    "watLength": 3499,
+    "memoryTotalSize": 1076,
+    "baselineScore": 3.763941,
+    "improvementPct": 13.6,
+    "note": "wasm_density_measured"
+  },
+  "measurementRun": {
+    "label": "measure",
+    "command": "corepack pnpm exec tsx .scratch/evolve-wasmcompiler/measure-wasmcompiler.mts",
+    "exitCode": 0,
+    "durationMs": 908,
+    "stdoutTail": "{\"fixture\":\"wasm_evolve_density_fixture\",\"artifactKind\":\"wat-scaffold\",\"format\":\"wat\",\"measurement\":{\"passed\":true,\"score\":3.251859,\"watLength\":3499,\"memoryTotalSize\":1076,\"baselineScore\":3.763941,\"improvementPct\":13.6,\"note\":\"wasm_density_measured\"}}\n",
+    "stderrTail": ""
+  },
+  "passed": true,
+  "selfShips": false,
+  "ts": "2026-06-28T01:09:47.478Z",
+  "verifyUrl": "cael:sha256:5aa6e9a05bc762a879afe58de6df94aac3a3f7f7ab219ef20b137ea1dacc3c98"
+}

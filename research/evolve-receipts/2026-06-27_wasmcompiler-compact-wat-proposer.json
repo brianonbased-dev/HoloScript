@@ -1,0 +1,65 @@
+{
+  "schema": "holoscript-evolve-wasmcompiler-proposer-v1",
+  "target": "packages/core/src/compiler/WASMCompiler.ts",
+  "seed": "git:HEAD:packages/core/src/compiler/WASMCompiler.ts",
+  "seedSha256": "438ae89ad1c8a60eaaf9be3ea05d76251b5fb2073df49ff8c8f4ccce88d4f01e",
+  "proposer": {
+    "kind": "mock-file",
+    "source": "research/evolve-receipts/2026-06-27_wasmcompiler-compact-wat-candidate.txt",
+    "model": "qwen3:4b-instruct"
+  },
+  "policy": {
+    "goal": "Reduce WASMCompiler WAT output length while preserving every public compiler behavior and passing src/compiler/WASMCompiler.test.ts. Return the full TypeScript source only.",
+    "generations": 1,
+    "population": 1,
+    "archiveSize": 2,
+    "proposerModel": "qwen3:4b-instruct"
+  },
+  "result": {
+    "result": "IMPROVED",
+    "generations": 1,
+    "evaluated": 2,
+    "survivors": 2,
+    "discarded": 0,
+    "seedScore": 3.763941,
+    "bestScore": 3.251859,
+    "improvementPct": 13.6,
+    "proposerModel": "qwen3:4b-instruct",
+    "verifierGated": true,
+    "selfShips": false,
+    "traceJSONL": "{\"id\":0,\"gen\":0,\"parentId\":null,\"passed\":true,\"score\":3.763941,\"bytes\":52249,\"note\":\"seed\"}\n{\"id\":1,\"gen\":1,\"parentId\":0,\"passed\":true,\"score\":3.251859,\"bytes\":51274,\"note\":\"gated_pass\"}",
+    "verifyUrl": "cael:sha256:dda165ee17313faa11846ed7110cbcca8ccdf7e0e51375cb3ed51114fc73dc22",
+    "ts": "2026-06-28T01:10:25.216Z"
+  },
+  "bestCandidate": "research/evolve-receipts/2026-06-27_wasmcompiler-compact-wat-candidate.txt",
+  "trace": ".scratch/evolve-wasmcompiler/proposer/compact-wat-trace.jsonl",
+  "gatedCandidates": [
+    {
+      "candidate": ".scratch/evolve-wasmcompiler/proposer/runs/compact-wat-2026-06-27-durable/candidates/candidate-000.ts",
+      "receipt": ".scratch/evolve-wasmcompiler/proposer/runs/compact-wat-2026-06-27-durable/gates/gate-000.json",
+      "exitCode": 1,
+      "verifyUrl": "cael:sha256:4da0751ee1e27981555eefb272fb4a198cfdc43362b0c60154d61abd161d51e0",
+      "passed": false,
+      "score": 3.763941,
+      "note": "no_baseline_improvement",
+      "candidateSha256": "438ae89ad1c8a60eaaf9be3ea05d76251b5fb2073df49ff8c8f4ccce88d4f01e",
+      "correctnessExitCode": 0
+    },
+    {
+      "candidate": ".scratch/evolve-wasmcompiler/proposer/runs/compact-wat-2026-06-27-durable/candidates/candidate-001.ts",
+      "receipt": ".scratch/evolve-wasmcompiler/proposer/runs/compact-wat-2026-06-27-durable/gates/gate-001.json",
+      "exitCode": 0,
+      "verifyUrl": "cael:sha256:1fed16b3dc82d69f77764c4cd57d8face130647e0b472f0edaa16e428d42ff2e",
+      "passed": true,
+      "score": 3.251859,
+      "note": "wasm_density_measured",
+      "candidateSha256": "f6decdba23e2a11ff1157b5e2a1068072fe23cb11474acedfa11a7b917fb3222",
+      "correctnessExitCode": 0
+    }
+  ],
+  "gatedTraceRecords": 1,
+  "selfShips": false,
+  "skipTests": false,
+  "ts": "2026-06-28T01:10:25.217Z",
+  "verifyUrl": "cael:sha256:44ec29590c2ae7663bc0811ff385b8f06741dab048e3d5c7b155f0b5753e4153"
+}

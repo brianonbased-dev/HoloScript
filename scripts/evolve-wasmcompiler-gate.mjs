@@ -172,6 +172,7 @@ const seedSource = seed && existsSync(seed) ? readFileSync(seed, 'utf8') : gitSh
 const applySeed = originalSource !== seedSource;
 const applyCandidate = seedSource !== candidateSource;
 let restored = false;
+let exitCode = 1;
 
 try {
   if (applySeed) {
@@ -229,7 +230,7 @@ try {
       `[evolve-wasmcompiler-gate] passed=${passed} score=${measurement?.score ?? 'n/a'} receipt=${rel(out)} verify=${receipt.verifyUrl}`,
     );
   }
-  process.exit(passed ? 0 : 1);
+  exitCode = passed ? 0 : 1;
 } finally {
   if (applyCandidate) {
     writeFileSync(target, originalSource, 'utf8');
@@ -242,3 +243,5 @@ try {
     console.error('[evolve-wasmcompiler-gate] restored original target file');
   }
 }
+
+process.exit(exitCode);
