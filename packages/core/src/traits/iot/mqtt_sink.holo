@@ -1,0 +1,30 @@
+@trait {
+  name: "@mqtt_sink",
+  category: "iot",
+  description: "MQTT publish sink for edge and IoT HoloScript nodes. Publishes selected node state fields to a broker topic with retain/QoS controls, optional throttling, JSON serialization, and timestamp emission. Port of MQTTSinkTrait.ts (handler name: mqtt_sink).",
+  props: {
+    broker: string = "mqtt://localhost:1883",
+    topic: string = "holoscript/{nodeId}/state",
+    retain: boolean = false,
+    qos: number = 0,
+    client_id: string = "",
+    username: string = "",
+    password: string = "",
+    fields: list<string> = [],
+    throttle: number = 0,
+    on_change_only: boolean = true,
+    auto_connect: boolean = true,
+    serialize_json: boolean = true,
+    include_timestamp: boolean = false
+  },
+  events: {
+    connected: "mqtt_sink:connected",
+    disconnected: "mqtt_sink:disconnected",
+    published: "mqtt_sink:published",
+    error: "mqtt_sink:error",
+    publish: "mqtt_sink:publish",
+    connect: "mqtt_sink:connect",
+    disconnect: "mqtt_sink:disconnect"
+  },
+  behaviors: []
+}

@@ -1,0 +1,20 @@
+@trait {
+  name: "@jetson_gpu",
+  category: "hardware",
+  description: "NVIDIA Jetson GPU configuration for edge HoloScript runtimes. Declares the SoC, power mode, nvpmodel index, JetPack/CUDA metadata, and CUDA core count used by EdgeCompiler and hardware receipts. Port of JetsonGPUTrait.ts (handler name: jetson_gpu).",
+  props: {
+    soc: enum("orin-nano" | "orin-nx" | "agx-orin" | "xavier-nx" | "nano" | "unknown") = "orin-nano",
+    power_mode: enum("MAXN" | "MAXN_SUPER" | "10W" | "15W" | "25W" | "DEFAULT") = "MAXN_SUPER",
+    nvpmodel_index: number = 0,
+    jetson_clocks: boolean = true,
+    jetpack_version: string = "6.2.1",
+    cuda_compute_capability: string = "8.7",
+    cuda_cores: number = 1024
+  },
+  events: {
+    ready: "jetson_gpu:ready",
+    clocks_set: "jetson_gpu:clocks_set",
+    thermal_warn: "jetson_gpu:thermal_warn"
+  },
+  behaviors: []
+}

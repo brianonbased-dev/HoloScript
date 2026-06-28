@@ -1,0 +1,27 @@
+@trait {
+  name: "@mqtt_source",
+  category: "iot",
+  description: "MQTT subscription source for edge and IoT HoloScript nodes. Subscribes to a broker topic filter, optionally parses JSON payloads, writes received values into node state, and emits message/connect/error events. Port of MQTTSourceTrait.ts (handler name: mqtt_source).",
+  props: {
+    broker: string = "mqtt://localhost:1883",
+    topic: string = "#",
+    qos: number = 0,
+    client_id: string = "",
+    username: string = "",
+    password: string = "",
+    parse_json: boolean = true,
+    state_field: string = "value",
+    transform: string = "",
+    debounce: number = 0,
+    auto_connect: boolean = true
+  },
+  events: {
+    connected: "mqtt_source:connected",
+    disconnected: "mqtt_source:disconnected",
+    message: "mqtt_source:message",
+    error: "mqtt_source:error",
+    connect: "mqtt_source:connect",
+    disconnect: "mqtt_source:disconnect"
+  },
+  behaviors: []
+}

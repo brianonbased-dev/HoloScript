@@ -1,16 +1,23 @@
 @trait {
   name: "@llm_agent",
   category: "agent",
-  description: "LLM-powered decision-making node with bounded autonomy and conversation history. model names the hosted or on-device model (e.g. 'gpt-4', 'claude-3-opus', 'llama-3.2-3b'). system_prompt seeds the agent's persona and policy at session start. max_tokens caps per-response generation. temperature controls sampling randomness (0 = deterministic, 1 = creative). tool_use enables function-calling/tool dispatch; on_response_event is the HoloScript event name the agent fires when it produces a text response; streaming enables token-by-token delivery via repeated on_response_event emissions. memory_key links the agent to a named @agent_memory store for persistent recall across sessions (empty string = ephemeral). Bounded autonomy: the handler tracks turn action counts and emits llm_agent:turn_limit_reached when max_tokens_per_turn is exceeded; escalation conditions can pause or escalate via llm_agent:escalation. Research: LLMAgentTrait.ts v2.0.0 + G.XR.04 XR context-limit + P.XR.05 spatial verification.",
+  description: "LLM-powered decision-making node with bounded autonomy and conversation history. model names the hosted or on-device model. system_prompt seeds the agent policy. context_window and xr_context_limit bound prompt memory, protecting XR/edge devices from KV-cache expansion. max_actions_per_turn, bounded_autonomy, and rate_limit_ms gate tool/action loops. memory_key links to @agent_memory for durable recall. Research: LLMAgentTrait.ts v2.0.0 + G.XR.04 XR context-limit + P.XR.05 spatial verification.",
   props: {
     model: string = "gpt-4",
     system_prompt: string = "",
+    context_window: number = 4096,
     max_tokens: number = 4096,
-    temperature: number = 0.7,
+    temperature: number = 0,
     tool_use: boolean = false,
     streaming: boolean = false,
     memory_key: string = "",
-    on_response_event: string = "llm_agent:response"
+    on_response_event: string = "llm_agent:response",
+    max_actions_per_turn: number = 3,
+    bounded_autonomy: boolean = true,
+    rate_limit_ms: number = 1000,
+    max_history_length: number = 50,
+    xr_context_limit: number = 4096,
+    enable_spatial_verification: boolean = false
   },
   events: {
     attached: "llm_agent:attached",
