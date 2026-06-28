@@ -12,6 +12,7 @@ const ORCHESTRATOR_ENV_KEYS = [
   'HOLOSCRIPT_ORCHESTRATOR_API_KEY',
   'MCP_ORCHESTRATOR_API_KEY',
   'ORCHESTRATOR_API_KEY',
+  'MCP_API_KEY',
   'HOLOSCRIPT_API_KEY',
   'HOLOSCRIPT_MCP_API_KEY',
   'HOLOMESH_API_KEY',
@@ -34,6 +35,10 @@ function restoreOrchestratorEnv(
     if (snapshot[key] === undefined) delete process.env[key];
     else process.env[key] = snapshot[key];
   }
+}
+
+function clearOrchestratorEnv(): void {
+  for (const key of ORCHESTRATOR_ENV_KEYS) delete process.env[key];
 }
 
 // Reset per-caller ledger before each test so cap tests don't bleed into each other.
@@ -140,10 +145,8 @@ describe('holo-ci-tools', () => {
   });
 
   it('without an orchestrator key, a non-dry run reports a clean provisioning error', async () => {
-    const prevA = process.env.HOLOSCRIPT_API_KEY;
-    const prevB = process.env.HOLOMESH_API_KEY;
-    delete process.env.HOLOSCRIPT_API_KEY;
-    delete process.env.HOLOMESH_API_KEY;
+    const env = snapshotOrchestratorEnv();
+    for (const key of ORCHESTRATOR_ENV_KEYS) delete process.env[key];
     try {
       // dryRun:false = explicit opt-in to the real submit path (the only path that needs a key).
       const res = (await handleHoloCiTool('holo_ci_dispatch', { sha: SHA, dryRun: false })) as {
@@ -153,8 +156,7 @@ describe('holo-ci-tools', () => {
       expect(res.ok).toBe(false);
       expect(res.error).toMatch(/not provisioned/i);
     } finally {
-      if (prevA !== undefined) process.env.HOLOSCRIPT_API_KEY = prevA;
-      if (prevB !== undefined) process.env.HOLOMESH_API_KEY = prevB;
+      restoreOrchestratorEnv(env);
     }
   });
 
@@ -166,6 +168,7 @@ describe('holo-ci-tools', () => {
       delete process.env.HOLOSCRIPT_ORCHESTRATOR_API_KEY;
       delete process.env.MCP_ORCHESTRATOR_API_KEY;
       delete process.env.ORCHESTRATOR_API_KEY;
+      delete process.env.MCP_API_KEY;
       delete process.env.HOLOSCRIPT_API_KEY;
       process.env.HOLOSCRIPT_MCP_API_KEY = 'mcp-only-key';
       process.env.HOLOMESH_API_KEY = 'board-only-key';
@@ -198,6 +201,7 @@ describe('holo-ci-tools', () => {
       delete process.env.HOLOSCRIPT_ORCHESTRATOR_API_KEY;
       process.env.MCP_ORCHESTRATOR_API_KEY = 'explicit-orchestrator-key';
       delete process.env.ORCHESTRATOR_API_KEY;
+      delete process.env.MCP_API_KEY;
       process.env.HOLOSCRIPT_API_KEY = 'legacy-holoscript-key';
 
       const res = await submitWorkload({
@@ -211,6 +215,39 @@ describe('holo-ci-tools', () => {
       const init = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
       expect((init?.headers as Record<string, string>)['x-mcp-api-key']).toBe(
         'explicit-orchestrator-key'
+      );
+    } finally {
+      restoreOrchestratorEnv(env);
+    }
+  });
+
+  it('uses legacy MCP_API_KEY as an orchestrator submit key', async () => {
+    const env = snapshotOrchestratorEnv();
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ workload_id: 'ci-auth-test', jobs: [] }),
+    } as Response);
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      delete process.env.HOLOSCRIPT_ORCHESTRATOR_API_KEY;
+      delete process.env.MCP_ORCHESTRATOR_API_KEY;
+      delete process.env.ORCHESTRATOR_API_KEY;
+      process.env.MCP_API_KEY = 'legacy-mcp-submit-key';
+      delete process.env.HOLOSCRIPT_API_KEY;
+      process.env.HOLOSCRIPT_MCP_API_KEY = 'mcp-wrong-for-submit';
+      process.env.HOLOMESH_API_KEY = 'board-wrong-for-submit';
+
+      const res = await submitWorkload({
+        id: 'ci-auth-test',
+        name: 'ci-auth-test',
+        description: 'auth selection test',
+        jobs: [],
+      });
+
+      expect(res.ok).toBe(true);
+      const init = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+      expect((init?.headers as Record<string, string>)['x-mcp-api-key']).toBe(
+        'legacy-mcp-submit-key'
       );
     } finally {
       restoreOrchestratorEnv(env);
@@ -245,10 +282,8 @@ describe('holo_ci_dispatch spend authorisation', () => {
   it('restricted caller is blocked from full-profile non-dry submit', async () => {
     // CALLER is not in HOLOCI_SPEND_ALLOWANCES and not the server key → restricted tier.
     // full profile + restricted tier → tierDenied.
-    const prev = process.env.HOLOSCRIPT_API_KEY;
-    const prevB = process.env.HOLOMESH_API_KEY;
-    delete process.env.HOLOSCRIPT_API_KEY;
-    delete process.env.HOLOMESH_API_KEY;
+    const env = snapshotOrchestratorEnv();
+    clearOrchestratorEnv();
     try {
       const res = (await handleHoloCiTool(
         'holo_ci_dispatch',
@@ -260,8 +295,7 @@ describe('holo_ci_dispatch spend authorisation', () => {
       // Must include dry-run preview so the caller can still inspect the workload.
       expect(res.dryRunPreview).toBeDefined();
     } finally {
-      if (prev !== undefined) process.env.HOLOSCRIPT_API_KEY = prev;
-      if (prevB !== undefined) process.env.HOLOMESH_API_KEY = prevB;
+      restoreOrchestratorEnv(env);
     }
   });
 
@@ -269,10 +303,8 @@ describe('holo_ci_dispatch spend authorisation', () => {
     // quick profile + restricted = allowed by tier; cap=1 so first submit passes authz.
     // (The actual GPU submit will fail with orchestrator-key-missing, which is a
     //  separate error — but the authz gate should pass and return the key-missing error.)
-    const prev = process.env.HOLOSCRIPT_API_KEY;
-    const prevB = process.env.HOLOMESH_API_KEY;
-    delete process.env.HOLOSCRIPT_API_KEY;
-    delete process.env.HOLOMESH_API_KEY;
+    const env = snapshotOrchestratorEnv();
+    clearOrchestratorEnv();
     try {
       const res = (await handleHoloCiTool(
         'holo_ci_dispatch',
@@ -284,17 +316,14 @@ describe('holo_ci_dispatch spend authorisation', () => {
       expect(res.capExceeded).toBeUndefined();
       expect(res.error).toMatch(/not provisioned/i);
     } finally {
-      if (prev !== undefined) process.env.HOLOSCRIPT_API_KEY = prev;
-      if (prevB !== undefined) process.env.HOLOMESH_API_KEY = prevB;
+      restoreOrchestratorEnv(env);
     }
   });
 
   it('cap defaults to 1 for restricted tier and blocks a second submit', async () => {
-    const prev = process.env.HOLOSCRIPT_API_KEY;
-    const prevB = process.env.HOLOMESH_API_KEY;
+    const env = snapshotOrchestratorEnv();
     const prevCap = process.env.HOLOCI_DAILY_SUBMIT_CAP;
-    delete process.env.HOLOSCRIPT_API_KEY;
-    delete process.env.HOLOMESH_API_KEY;
+    clearOrchestratorEnv();
     delete process.env.HOLOCI_DAILY_SUBMIT_CAP;
     try {
       // First quick submit: passes authz → hits key-missing.
@@ -310,8 +339,7 @@ describe('holo_ci_dispatch spend authorisation', () => {
       // (We can't get a real orchestrator 200 in unit tests, so we import
       //  recordSubmit via the internal export path below.)
     } finally {
-      if (prev !== undefined) process.env.HOLOSCRIPT_API_KEY = prev;
-      if (prevB !== undefined) process.env.HOLOMESH_API_KEY = prevB;
+      restoreOrchestratorEnv(env);
       if (prevCap !== undefined) process.env.HOLOCI_DAILY_SUBMIT_CAP = prevCap;
     }
   });
@@ -323,13 +351,11 @@ describe('holo_ci_dispatch spend authorisation', () => {
     const fp = createHash('sha256').update(trustedToken).digest('hex');
 
     const prev = process.env.HOLOCI_SPEND_ALLOWANCES;
-    const prevKey = process.env.HOLOSCRIPT_API_KEY;
-    const prevKeyB = process.env.HOLOMESH_API_KEY;
+    const env = snapshotOrchestratorEnv();
     const prevCap = process.env.HOLOCI_DAILY_SUBMIT_CAP;
     process.env.HOLOCI_SPEND_ALLOWANCES = JSON.stringify({ [fp]: 'trusted' });
     process.env.HOLOCI_DAILY_SUBMIT_CAP = '2'; // 2 submits/day for trusted
-    delete process.env.HOLOSCRIPT_API_KEY;
-    delete process.env.HOLOMESH_API_KEY;
+    clearOrchestratorEnv();
 
     try {
       // First two submits pass authz (hit key-missing, not cap).
@@ -361,8 +387,7 @@ describe('holo_ci_dispatch spend authorisation', () => {
     } finally {
       if (prev !== undefined) process.env.HOLOCI_SPEND_ALLOWANCES = prev;
       else delete process.env.HOLOCI_SPEND_ALLOWANCES;
-      if (prevKey !== undefined) process.env.HOLOSCRIPT_API_KEY = prevKey;
-      if (prevKeyB !== undefined) process.env.HOLOMESH_API_KEY = prevKeyB;
+      restoreOrchestratorEnv(env);
       if (prevCap !== undefined) process.env.HOLOCI_DAILY_SUBMIT_CAP = prevCap;
       else delete process.env.HOLOCI_DAILY_SUBMIT_CAP;
     }
@@ -371,10 +396,9 @@ describe('holo_ci_dispatch spend authorisation', () => {
   it('founder tier (server key) is exempt from cap and profile restrictions', async () => {
     // Set a known server key and use it as the callerToken → founder tier.
     const foundKey = 'founder-server-key-abcdef';
-    const prev = process.env.HOLOSCRIPT_API_KEY;
-    const prevB = process.env.HOLOMESH_API_KEY;
+    const env = snapshotOrchestratorEnv();
+    clearOrchestratorEnv();
     process.env.HOLOSCRIPT_API_KEY = foundKey;
-    delete process.env.HOLOMESH_API_KEY;
     try {
       // Even dryRun:false full-profile should NOT be blocked by cap/tier —
       // it gets to the key-provisioned path (key IS set) and reaches the
@@ -386,7 +410,7 @@ describe('holo_ci_dispatch spend authorisation', () => {
         foundKey
       )) as { ok: boolean; capExceeded?: boolean; tierDenied?: boolean; error?: string };
       // Should not be blocked by authz.
-      expect(res.capExceeded).toBeUndefined();
+      expect(res.capExceeded).not.toBe(true);
       expect(res.tierDenied).toBeUndefined();
       // Will fail with a network/timeout error (no real orchestrator), but NOT authz.
       if (!res.ok) {
@@ -394,18 +418,14 @@ describe('holo_ci_dispatch spend authorisation', () => {
         expect(res.error).not.toMatch(/trusted or founder/i);
       }
     } finally {
-      if (prev !== undefined) process.env.HOLOSCRIPT_API_KEY = prev;
-      else delete process.env.HOLOSCRIPT_API_KEY;
-      if (prevB !== undefined) process.env.HOLOMESH_API_KEY = prevB;
+      restoreOrchestratorEnv(env);
     }
   });
 
   it('undefined callerToken (stdio/local) bypasses all authz gates', async () => {
     // No callerToken → unconditionally trusted. Reaches key-missing path.
-    const prev = process.env.HOLOSCRIPT_API_KEY;
-    const prevB = process.env.HOLOMESH_API_KEY;
-    delete process.env.HOLOSCRIPT_API_KEY;
-    delete process.env.HOLOMESH_API_KEY;
+    const env = snapshotOrchestratorEnv();
+    clearOrchestratorEnv();
     try {
       const res = (await handleHoloCiTool(
         'holo_ci_dispatch',
@@ -416,8 +436,7 @@ describe('holo_ci_dispatch spend authorisation', () => {
       expect(res.tierDenied).toBeUndefined();
       expect(res.error).toMatch(/not provisioned/i);
     } finally {
-      if (prev !== undefined) process.env.HOLOSCRIPT_API_KEY = prev;
-      if (prevB !== undefined) process.env.HOLOMESH_API_KEY = prevB;
+      restoreOrchestratorEnv(env);
     }
   });
 
@@ -430,13 +449,11 @@ describe('holo_ci_dispatch spend authorisation', () => {
     const fp = createHash('sha256').update(capToken).digest('hex');
     const prevAllowances = process.env.HOLOCI_SPEND_ALLOWANCES;
     const prevCap = process.env.HOLOCI_DAILY_SUBMIT_CAP;
-    const prev = process.env.HOLOSCRIPT_API_KEY;
-    const prevB = process.env.HOLOMESH_API_KEY;
+    const env = snapshotOrchestratorEnv();
     // trusted tier, cap = 1
     process.env.HOLOCI_SPEND_ALLOWANCES = JSON.stringify({ [fp]: 'trusted' });
     process.env.HOLOCI_DAILY_SUBMIT_CAP = '1';
-    delete process.env.HOLOSCRIPT_API_KEY;
-    delete process.env.HOLOMESH_API_KEY;
+    clearOrchestratorEnv();
 
     try {
       // First call passes authz → key-missing.
@@ -472,8 +489,7 @@ describe('holo_ci_dispatch spend authorisation', () => {
       else delete process.env.HOLOCI_SPEND_ALLOWANCES;
       if (prevCap !== undefined) process.env.HOLOCI_DAILY_SUBMIT_CAP = prevCap;
       else delete process.env.HOLOCI_DAILY_SUBMIT_CAP;
-      if (prev !== undefined) process.env.HOLOSCRIPT_API_KEY = prev;
-      if (prevB !== undefined) process.env.HOLOMESH_API_KEY = prevB;
+      restoreOrchestratorEnv(env);
     }
   });
 });

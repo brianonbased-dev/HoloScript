@@ -1,16 +1,14 @@
 /**
  * holo-ci-tools.ts — MCP tool surface for HoloScript-native CI (HoloCI).
  *
- * Why this exists: HoloCI dispatch normally needs the orchestrator key
- * (`HOLOSCRIPT_API_KEY`, sent as `x-mcp-api-key` to the mcp-orchestrator GPU
- * queue) — a high-privilege credential that submits fleet workloads. We do NOT
- * want that key copied into every external client's config file. Instead we
+ * Why this exists: HoloCI dispatch normally needs an orchestrator submit key
+ * (resolved from HoloKey/env and sent as `x-mcp-api-key` to the mcp-orchestrator
+ * GPU queue) — a high-privilege credential that submits fleet workloads. We do
+ * NOT want that key copied into every external client's config file. Instead we
  * expose CI dispatch as an MCP tool: a Bearer-authed client (Claude Desktop,
  * Cursor, a cloud Claude Code session, …) calls `holo_ci_dispatch` with only
- * the MCP access token it already has, and THIS server — which already holds
- * the orchestrator key for its other orchestrator calls (see
- * absorb-provenance-tools.ts) — makes the privileged POST server-side. The
- * orchestrator key never leaves the server.
+ * the MCP access token it already has, and THIS server makes the privileged POST
+ * server-side. The orchestrator key never leaves the server.
  *
  * The gate catalog + workload builder below is a faithful TypeScript port of
  * ai-ecosystem/scripts/holo-ci/{gates,lib}.mjs. It is duplicated rather than
@@ -39,6 +37,7 @@
 
 import { createHash } from 'node:crypto';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { resolveServiceSecret } from './holokey-resolver';
 
 // ─── Gate catalog (port of gates.mjs) ───────────────────────────────────────
 type Profile = 'quick' | 'full';
@@ -427,14 +426,31 @@ export function buildWorkload(opts: {
 }
 
 // ─── Orchestrator submit (server-side; uses the server's own key) ────────────
-function readOrchestratorKey(): string {
+const ORCHESTRATOR_KEY_NAMES = [
+  'HOLOSCRIPT_ORCHESTRATOR_API_KEY',
+  'MCP_ORCHESTRATOR_API_KEY',
+  'ORCHESTRATOR_API_KEY',
+  'MCP_API_KEY',
+  'HOLOSCRIPT_API_KEY',
+] as const;
+
+function readEnvOrchestratorKey(): string {
   return (
     process.env.HOLOSCRIPT_ORCHESTRATOR_API_KEY ||
     process.env.MCP_ORCHESTRATOR_API_KEY ||
     process.env.ORCHESTRATOR_API_KEY ||
+    process.env.MCP_API_KEY ||
     process.env.HOLOSCRIPT_API_KEY ||
     ''
   );
+}
+
+async function resolveOrchestratorKey(): Promise<string> {
+  for (const name of ORCHESTRATOR_KEY_NAMES) {
+    const value = await resolveServiceSecret(name);
+    if (value) return value;
+  }
+  return '';
 }
 
 function orchestratorUrl(): string {
@@ -471,8 +487,8 @@ function tokenFingerprint(token: string): string {
  *   { "<sha256-fingerprint>": "trusted" | "founder" | "restricted", ... }
  */
 function resolveCallerTier(callerFingerprint: string): CallerTier {
-  // Server's own orchestrator key is always founder-tier (self-dispatch).
-  const serverKey = readOrchestratorKey();
+  // Server's env-present orchestrator key is always founder-tier (self-dispatch).
+  const serverKey = readEnvOrchestratorKey();
   if (serverKey && tokenFingerprint(serverKey) === callerFingerprint) return 'founder';
 
   // Provisioned allowance table (deploy-time env JSON).
@@ -627,7 +643,7 @@ export async function postGithubStatuses(
 
 /**
  * Submit a pre-built workload to the fleet orchestrator.
- * Uses the server's own orchestrator key (HOLOSCRIPT_API_KEY).
+ * Uses the server's own HoloKey/env-resolved orchestrator key.
  *
  * Returns `jobIdToGate`: a map from orchestrator job_id → logical gate name.
  * The orchestrator assigns its own IDs on submit and does not persist our logical
@@ -640,12 +656,12 @@ export async function submitWorkload(workload: HoloCiWorkload['workload']): Prom
   jobIdToGate?: Record<string, string>;
   error?: string;
 }> {
-  const apiKey = readOrchestratorKey();
+  const apiKey = await resolveOrchestratorKey();
   if (!apiKey) {
     return {
       ok: false,
       error:
-        'orchestrator key not provisioned (HOLOSCRIPT_ORCHESTRATOR_API_KEY / MCP_ORCHESTRATOR_API_KEY / ORCHESTRATOR_API_KEY / HOLOSCRIPT_API_KEY unset; HOLOSCRIPT_MCP_API_KEY and HOLOMESH_API_KEY are not fleet-submit keys)',
+        'orchestrator key not provisioned via HoloKey/env (HOLOSCRIPT_ORCHESTRATOR_API_KEY / MCP_ORCHESTRATOR_API_KEY / ORCHESTRATOR_API_KEY / MCP_API_KEY / HOLOSCRIPT_API_KEY unset; HOLOSCRIPT_MCP_API_KEY and HOLOMESH_API_KEY are not fleet-submit keys)',
     };
   }
   try {

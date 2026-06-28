@@ -62,6 +62,41 @@ if [ ! -d "$REPO_DIR/.git" ]; then
 fi
 cd "$REPO_DIR" || exit 2
 
+ensure_runtime_tools() {
+  if command -v curl >/dev/null 2>&1 && command -v python3 >/dev/null 2>&1 && command -v node >/dev/null 2>&1; then
+    return 0
+  fi
+
+  echo "$LOG installing missing runtime tools (curl/python3/nodejs) ..."
+  if command -v apt-get >/dev/null 2>&1; then
+    apt-get update -qq >/dev/null 2>&1 || true
+    command -v curl >/dev/null 2>&1 || apt-get install -y -qq curl >/dev/null 2>&1 || {
+      echo "$LOG FATAL: cannot install curl"; exit 2;
+    }
+    command -v python3 >/dev/null 2>&1 || apt-get install -y -qq python3 >/dev/null 2>&1 || {
+      echo "$LOG FATAL: cannot install python3"; exit 2;
+    }
+    if ! command -v node >/dev/null 2>&1; then
+      curl -fsSL https://deb.nodesource.com/setup_20.x | bash - >/dev/null 2>&1 || true
+      apt-get install -y -qq nodejs >/dev/null 2>&1 || {
+        echo "$LOG FATAL: cannot install nodejs"; exit 2;
+      }
+    fi
+  elif command -v yum >/dev/null 2>&1; then
+    yum install -y -q curl python3 nodejs >/dev/null 2>&1 || {
+      echo "$LOG FATAL: cannot install curl/python3/nodejs"; exit 2;
+    }
+  else
+    echo "$LOG FATAL: no supported package manager for runtime tools"; exit 2
+  fi
+
+  if ! node -e "process.exit(Number(process.versions.node.split('.')[0]) >= 18 ? 0 : 1)" >/dev/null 2>&1; then
+    echo "$LOG FATAL: node >=18 required for fleet job commands"; exit 2
+  fi
+}
+
+ensure_runtime_tools
+
 # 1a. Self-register the seat (gpu lane) so /gpu/next claims aren't rejected. dbClaimNextJob
 # REJECTS an unregistered seat ("register via POST /gpu/seats") — without this every worker
 # spins idle on HTTP 403 seat_rejected. POST /gpu/seats/self is the agent-key path (lane
