@@ -59,6 +59,8 @@ describe('render_world_on_fleet — tool surface', () => {
     const tool = worldRenderTools.find((t) => t.name === 'render_world_on_fleet');
     expect(tool).toBeDefined();
     expect(tool?.inputSchema.required).toEqual(['target']);
+    expect(tool?.description).toContain('/gpu/workload/:id');
+    expect(tool?.description).not.toContain('Poll GET /gpu/job/:id');
   });
 
   it('returns null for any other tool name', async () => {
@@ -208,6 +210,8 @@ describe('render_world_on_fleet submit auth', () => {
       expect(r.ok).toBe(true);
       expect(r.dispatched).toBe(true);
       expect(r.workloadId).toBe('wl_world_render_123');
+      expect(r.note).toContain('/gpu/workload/:id');
+      expect(r.note).not.toContain('Poll GET /gpu/job/:id');
       expect(fetchMock).toHaveBeenCalledOnce();
     } finally {
       restoreAuthEnv(env);

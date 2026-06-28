@@ -241,7 +241,7 @@ export const worldRenderTools: Tool[] = [
   {
     name: 'render_world_on_fleet',
     description:
-      'Render a HoloScript world on the vast.ai GPU fleet via the mcp-orchestrator GPU queue. The orchestrator key is held server-side, so any authenticated MCP client (Studio, Brittney, an agent) can dispatch a render without holding fleet credentials. SAFE-BY-DEFAULT: this PREVIEWS the workload and submits nothing unless dryRun:false (which incurs real GPU spend). Compile-backed targets (3dgs/gltf/webgpu/usd) render to render-ready data + a SHA-256 receipt today; rasterize targets (video/quilt/stills) need the GPU render-engine image and are refused on submit. Returns the submitted workload id; poll job status via GET /gpu/job/:id.',
+      'Render a HoloScript world on the vast.ai GPU fleet via the mcp-orchestrator GPU queue. The orchestrator key is held server-side, so any authenticated MCP client (Studio, Brittney, an agent) can dispatch a render without holding fleet credentials. SAFE-BY-DEFAULT: this PREVIEWS the workload and submits nothing unless dryRun:false (which incurs real GPU spend). Compile-backed targets (3dgs/gltf/webgpu/usd) render to render-ready data + a SHA-256 receipt today; rasterize targets (video/quilt/stills) need the GPU render-engine image and are refused on submit. Returns the submitted workload id; poll workload status and receipt fields via GET /gpu/workload/:id.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -381,7 +381,7 @@ export async function handleWorldRenderTool(
       estimateSeconds: built.estimateSeconds,
       render: built.workload.render,
       orchestrator: parsed,
-      note: 'Worker claims via GET /gpu/next; artifact + SHA-256 receipt return via POST /gpu/job/:id/done. Poll GET /gpu/job/:id.',
+      note: 'Worker claims via GET /gpu/next; artifact + SHA-256 receipt return via POST /gpu/job/:id/done. Poll GET /gpu/workload/:id for job status and receipt fields.',
     };
   } catch (err) {
     return {
