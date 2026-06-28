@@ -6,6 +6,7 @@ import type {
   TeamMessage,
   TeamFeedItem,
   TeamPresenceEntry,
+  HoloMeshCloudSessionLease,
   RegisteredAgent,
   StoredComment,
   StoredVote,
@@ -82,6 +83,8 @@ export const playerStore: PlayerStore = createPlayerStore(); // playerId → Sto
 export const inviteStore: InviteStore = createInviteStore(); // token → InviteRecord
 export const geoAnchorStore: GeoAnchorStore = createGeoAnchorStore(); // anchorId -> StoredGeoAnchor
 export const stateStore: StateStoreBackend = createStateStore(); // audit/defense/dispatch backend
+export const teamCloudSessionStore: Map<string, Map<string, HoloMeshCloudSessionLease>> =
+  new Map(); // teamId -> (leaseId -> cloud session lease)
 export const teamPresenceStore: Map<string, Map<string, TeamPresenceEntry>> = new Map(); // teamId → (agentId → presence)
 export const teamMessageStore: Map<string, TeamMessage[]> = new Map(); // teamId → messages
 /** Public team feed (hologram publishes, etc.) — poster identity is server-authoritative */

@@ -359,6 +359,54 @@ export interface TaskOrchestrationAgentRef {
   metadata?: Record<string, unknown>;
 }
 
+export interface HoloMeshIdentityPrincipal {
+  kind?: string;
+  id?: string | null;
+  source?: string;
+}
+
+export interface HoloMeshIdentityBrain {
+  id?: string | null;
+  name?: string | null;
+  source?: string;
+  path?: string | null;
+}
+
+export interface HoloMeshIdentitySigner {
+  agentId?: string | null;
+  agentName?: string | null;
+  surface?: string | null;
+  handle?: string | null;
+  bearerSource?: string | null;
+  seatSuffix?: string | null;
+  x402?: boolean;
+}
+
+export interface HoloMeshIdentitySession {
+  origin?: string | null;
+  family?: string | null;
+  surface?: string | null;
+  sessionId?: string | null;
+  threadId?: string | null;
+  windowId?: string | null;
+  windowMarker?: string | null;
+  markerSource?: string | null;
+  ideType?: string | null;
+}
+
+export interface HoloMeshIdentityEnvelope {
+  schema?: string;
+  generatedAt?: string;
+  principal?: HoloMeshIdentityPrincipal;
+  brain?: HoloMeshIdentityBrain;
+  signer?: HoloMeshIdentitySigner;
+  session?: HoloMeshIdentitySession;
+  runtime?: Record<string, unknown>;
+  custody?: Record<string, unknown>;
+  work?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
 export interface TaskDecompositionChild {
   id: string;
   title?: string;
@@ -433,9 +481,21 @@ export interface TeamTask {
    * without waiting for per-surface key issuance (task_1776820645291_*).
    */
   claimedByTag?: string;
+  /** Brain/principal/session/signing envelope captured at claim time. */
+  claimIdentity?: HoloMeshIdentityEnvelope;
+  /** Server-issued cloud-session lease that guarded this claim, when applicable. */
+  claimLeaseId?: string;
+  /** Expiry stamped with the server-issued cloud-session lease. */
+  claimLeaseExpiresAt?: string;
+  /** Provider/local session id captured from the claim heartbeat. */
+  claimSessionId?: string;
   completedBy?: string;
   /** Surface-attribution tag for the done action — see `claimedByTag`. */
   completedByTag?: string;
+  /** Brain/principal/session/signing envelope captured at completion time. */
+  completedIdentity?: HoloMeshIdentityEnvelope;
+  /** Server-issued cloud-session lease observed at completion time, when applicable. */
+  completionLeaseId?: string;
   /** Dual-origin provenance for desktop-relayed mobile drafts. */
   provenance?: BoardMutationProvenance;
   commitHash?: string;
@@ -498,6 +558,18 @@ export interface DoneLogEntry {
   completedBy: string;
   /** Surface-attribution tag for the done action — see `TeamTask.claimedByTag`. */
   completedByTag?: string;
+  /** Claim identity envelope preserved from the live task. */
+  claimIdentity?: HoloMeshIdentityEnvelope;
+  /** Server-issued cloud-session lease that guarded the claim, when applicable. */
+  claimLeaseId?: string;
+  /** Expiry stamped with the server-issued cloud-session lease. */
+  claimLeaseExpiresAt?: string;
+  /** Provider/local session id captured from the claim heartbeat. */
+  claimSessionId?: string;
+  /** Completion identity envelope preserved from the done mutation. */
+  completedIdentity?: HoloMeshIdentityEnvelope;
+  /** Server-issued cloud-session lease observed at completion time, when applicable. */
+  completionLeaseId?: string;
   /** Dual-origin provenance for desktop-relayed mobile drafts. */
   provenance?: BoardMutationProvenance;
   commitHash?: string;

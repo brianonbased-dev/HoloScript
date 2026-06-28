@@ -1,7 +1,9 @@
 import type http from 'http';
+import { createHash } from 'crypto';
 import {
   teamStore,
   teamPresenceStore,
+  teamCloudSessionStore,
   teamMessageStore,
   teamFeedStore,
   agentKeyStore,
@@ -55,10 +57,12 @@ import {
   type ArtifactReceipt,
   type TaskOrchestrationAgentRef,
   type TaskPolicyEvent,
+  type HoloMeshIdentityEnvelope,
 } from '@holoscript/framework';
 import type {
   Team,
   TeamPresenceEntry,
+  HoloMeshCloudSessionLease,
   TeamMessage,
   TeamHologramFeedItem,
   TeamIntelligenceFeedItem,
@@ -152,6 +156,10 @@ function parseBoardMutationProvenance(
 const CLAIM_HEARTBEAT_GRACE_MS = Number(
   process.env.HOLOMESH_CLAIM_HEARTBEAT_GRACE_MS || 2 * 60 * 1000
 );
+const CLOUD_SESSION_LEASE_MS = Number(
+  process.env.HOLOMESH_CLOUD_SESSION_LEASE_MS || 2 * 60 * 60 * 1000
+);
+const MAX_IDENTITY_ENVELOPE_BYTES = 16 * 1024;
 const DEFAULT_FLEET_SNAPSHOT_STALE_AFTER_MS = 2 * 60 * 60 * 1000;
 
 function normalizeVerificationEvidence(value: unknown): string | undefined {
@@ -175,6 +183,195 @@ function getFreshPresence(teamId: string, agentId: string): TeamPresenceEntry | 
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function cloneJsonRecord(value: Record<string, unknown>): Record<string, unknown> {
+  return JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
+}
+
+function normalizeIdentityEnvelope(value: unknown): HoloMeshIdentityEnvelope | undefined {
+  if (!isRecord(value)) return undefined;
+  try {
+    const bytes = Buffer.byteLength(JSON.stringify(value), 'utf8');
+    if (bytes > MAX_IDENTITY_ENVELOPE_BYTES) {
+      return {
+        schema: typeof value.schema === 'string' ? value.schema : 'holomesh.identity-envelope.v1',
+        truncated: true,
+        reason: 'identity_envelope_too_large',
+      } as HoloMeshIdentityEnvelope;
+    }
+    return cloneJsonRecord(value) as HoloMeshIdentityEnvelope;
+  } catch {
+    return { ...value } as HoloMeshIdentityEnvelope;
+  }
+}
+
+function identityEnvelopeFromBody(body: Record<string, unknown>): HoloMeshIdentityEnvelope | undefined {
+  return normalizeIdentityEnvelope(body.identity_envelope ?? body.identityEnvelope);
+}
+
+function identityString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
+}
+
+function identityOrigin(envelope: HoloMeshIdentityEnvelope | undefined): string | undefined {
+  return identityString(envelope?.session?.origin)?.toLowerCase();
+}
+
+function identitySessionId(envelope: HoloMeshIdentityEnvelope | undefined): string | undefined {
+  return firstString(
+    envelope?.session?.sessionId,
+    (envelope?.session as Record<string, unknown> | undefined)?.id,
+    envelope?.session?.windowMarker
+  );
+}
+
+function isCloudIdentityEnvelope(envelope: HoloMeshIdentityEnvelope | undefined): boolean {
+  const origin = identityOrigin(envelope);
+  const surface = identityString(envelope?.session?.surface)?.toLowerCase();
+  return Boolean(
+    origin === 'cloud' ||
+      origin === 'provider-cloud' ||
+      origin?.includes('cloud') ||
+      surface?.includes('cloud')
+  );
+}
+
+function shortHash(value: string, len = 20): string {
+  return createHash('sha256').update(value).digest('hex').slice(0, len);
+}
+
+function getCloudSessionMap(teamId: string): Map<string, HoloMeshCloudSessionLease> {
+  let map = teamCloudSessionStore.get(teamId);
+  if (!map) {
+    map = new Map();
+    teamCloudSessionStore.set(teamId, map);
+  }
+  return map;
+}
+
+function pruneCloudSessionLeases(teamId: string, nowMs = Date.now()): void {
+  const leases = teamCloudSessionStore.get(teamId);
+  if (!leases) return;
+  for (const lease of leases.values()) {
+    if (lease.status !== 'active') continue;
+    const expiresAtMs = Date.parse(lease.expiresAt);
+    if (!Number.isFinite(expiresAtMs) || expiresAtMs <= nowMs) {
+      lease.status = 'expired';
+    }
+  }
+}
+
+function upsertCloudSessionLease(
+  teamId: string,
+  caller: RegisteredAgent,
+  envelope: HoloMeshIdentityEnvelope | undefined,
+  heartbeatIso = new Date().toISOString()
+): HoloMeshCloudSessionLease | null {
+  if (!isCloudIdentityEnvelope(envelope)) return null;
+  const rawSessionId = identitySessionId(envelope);
+  const sessionId = rawSessionId || `cloud:${shortHash(`${teamId}|${caller.id}|${heartbeatIso}`)}`;
+  const leaseId = `cloud_${shortHash(`${teamId}|${caller.id}|${sessionId}`)}`;
+  const nowMs = Date.parse(heartbeatIso);
+  const safeNowMs = Number.isFinite(nowMs) ? nowMs : Date.now();
+  const leases = getCloudSessionMap(teamId);
+  const previous = leases.get(leaseId);
+  const lease: HoloMeshCloudSessionLease = {
+    leaseId,
+    teamId,
+    agentId: caller.id,
+    agentName: caller.name,
+    status: 'active',
+    sessionId,
+    origin: identityOrigin(envelope) || 'cloud',
+    surface:
+      identityString(envelope?.session?.surface) ||
+      caller.surfaceTag ||
+      caller.surface ||
+      caller.ideType,
+    family: identityString(envelope?.session?.family),
+    handle: identityString(envelope?.signer?.handle),
+    createdAt: previous?.createdAt || heartbeatIso,
+    lastHeartbeat: heartbeatIso,
+    expiresAt: new Date(safeNowMs + CLOUD_SESSION_LEASE_MS).toISOString(),
+    identityEnvelope: normalizeIdentityEnvelope(envelope),
+  };
+  leases.set(leaseId, lease);
+  return lease;
+}
+
+function endCloudSessionLeasesForAgent(
+  teamId: string,
+  agentId: string,
+  envelope: HoloMeshIdentityEnvelope | undefined,
+  endedAt = new Date().toISOString()
+): void {
+  const leases = teamCloudSessionStore.get(teamId);
+  if (!leases) return;
+  const sessionId = identitySessionId(envelope);
+  for (const lease of leases.values()) {
+    if (lease.agentId !== agentId) continue;
+    if (sessionId && lease.sessionId !== sessionId) continue;
+    lease.status = 'ended';
+    lease.lastHeartbeat = endedAt;
+    lease.expiresAt = endedAt;
+  }
+}
+
+function getActiveCloudSessionLease(
+  teamId: string,
+  leaseId: string | undefined
+): HoloMeshCloudSessionLease | null {
+  if (!leaseId) return null;
+  pruneCloudSessionLeases(teamId);
+  const lease = teamCloudSessionStore.get(teamId)?.get(leaseId);
+  if (!lease || lease.status !== 'active') return null;
+  const expiresAtMs = Date.parse(lease.expiresAt);
+  return Number.isFinite(expiresAtMs) && expiresAtMs > Date.now() ? lease : null;
+}
+
+function validateCloudClaimLeaseForDone(
+  teamId: string,
+  caller: RegisteredAgent,
+  task: TeamTask | undefined
+): { ok: true } | { ok: false; status: number; code: string; error: string; leaseId?: string } {
+  if (!task?.claimIdentity || !isCloudIdentityEnvelope(task.claimIdentity)) return { ok: true };
+  if (!task.claimLeaseId) {
+    return {
+      ok: false,
+      status: 409,
+      code: 'cloud_claim_missing_lease',
+      error: 'Cloud-claimed task is missing a server cloud-session lease; reclaim it before marking done.',
+    };
+  }
+  const lease = getActiveCloudSessionLease(teamId, task.claimLeaseId);
+  if (!lease) {
+    const persistedExpiresAtMs = Date.parse(task.claimLeaseExpiresAt || '');
+    if (
+      task.claimedBy === caller.id &&
+      Number.isFinite(persistedExpiresAtMs) &&
+      persistedExpiresAtMs > Date.now()
+    ) {
+      return { ok: true };
+    }
+    return {
+      ok: false,
+      status: 409,
+      code: 'cloud_claim_session_expired',
+      error: 'Cloud-claimed task session expired; reclaim it before marking done.',
+      leaseId: task.claimLeaseId,
+    };
+  }
+  if (lease.agentId !== caller.id) {
+    return {
+      ok: false,
+      status: 403,
+      code: 'cloud_claim_session_mismatch',
+      error: 'Cloud-claimed task must be completed by the same active cloud session owner.',
+      leaseId: task.claimLeaseId,
+    };
+  }
+  return { ok: true };
 }
 
 function numericCount(value: unknown): number {
@@ -507,6 +704,12 @@ export async function handleBoardRoutes(
         status: p.status,
         surfaceTag: p.surfaceTag,
         lastHeartbeat: p.lastHeartbeat,
+        identityEnvelope: p.identityEnvelope,
+        brainIdentity: p.identityEnvelope?.brain ?? p.identityEnvelope?.principal,
+        cloudSessionLeaseId: p.cloudSessionLeaseId,
+        sessionId: p.sessionId,
+        sessionOrigin: p.sessionOrigin,
+        sessionExpiresAt: p.sessionExpiresAt,
       })),
     });
     return true;
@@ -949,6 +1152,7 @@ export async function handleBoardRoutes(
       return true;
     }
     const body: any = effectiveBody;
+    const requestIdentityEnvelope = identityEnvelopeFromBody(body);
     const rawAction = body.action as string;
     // Alias normalization: `remove` and `archive` map to `delete` so the
     // known-404 responses from `delete|remove|archive` in W.073 all resolve.
@@ -1064,9 +1268,10 @@ export async function handleBoardRoutes(
             ? body.agentName.trim()
             : caller.name;
 
+        let claimPresence: TeamPresenceEntry | null = null;
         if (effectiveAgentId !== team.ownerId) {
-          const presence = getFreshPresence(teamId, effectiveAgentId);
-          if (!presence) {
+          claimPresence = getFreshPresence(teamId, effectiveAgentId);
+          if (!claimPresence) {
             json(res, 403, {
               error: 'Fresh heartbeat required before claiming a board task',
               code: 'heartbeat_required',
@@ -1075,13 +1280,15 @@ export async function handleBoardRoutes(
             });
             return true;
           }
+        } else {
+          claimPresence = getFreshPresence(teamId, effectiveAgentId);
         }
 
         // required_tags enforcement: if the task declares required_tags, the claiming
         // agent must have ALL of them in their presence capabilityTags.
         const claimTarget = team.taskBoard.find((t) => t.id === taskId);
         if (claimTarget?.required_tags && claimTarget.required_tags.length > 0) {
-          const agentPresence = getFreshPresence(teamId, effectiveAgentId);
+          const agentPresence = claimPresence ?? getFreshPresence(teamId, effectiveAgentId);
           const agentCaps = (agentPresence?.capabilityTags ?? []).map((c) => c.toLowerCase());
           const missing = claimTarget.required_tags.filter(
             (r) => !agentCaps.includes(r.toLowerCase())
@@ -1124,7 +1331,26 @@ export async function handleBoardRoutes(
               : 'agent';
         }
 
-        result = claimTask(team.taskBoard, taskId, effectiveAgentId, effectiveAgentName, claimedByTag);
+        const claimIdentity = claimPresence?.identityEnvelope || requestIdentityEnvelope;
+        const claimLeaseActor = claimPresence
+          ? ({ ...caller, id: effectiveAgentId, name: effectiveAgentName } as RegisteredAgent)
+          : caller;
+        const directClaimLease = claimPresence?.cloudSessionLeaseId
+          ? null
+          : upsertCloudSessionLease(teamId, claimLeaseActor, claimIdentity);
+        result = claimTask(
+          team.taskBoard,
+          taskId,
+          effectiveAgentId,
+          effectiveAgentName,
+          claimedByTag,
+          {
+            claimIdentity,
+            claimLeaseId: claimPresence?.cloudSessionLeaseId || directClaimLease?.leaseId,
+            claimLeaseExpiresAt: claimPresence?.sessionExpiresAt || directClaimLease?.expiresAt,
+            claimSessionId: claimPresence?.sessionId || identitySessionId(claimIdentity),
+          }
+        );
         if (result.success && result.task && mutationProvenance) {
           result.task.provenance = cloneBoardProvenance(mutationProvenance);
         }
@@ -1141,11 +1367,29 @@ export async function handleBoardRoutes(
           });
           return true;
         }
+        const doneTarget = team.taskBoard.find((t) => t.id === taskId);
+        const leaseCheck = validateCloudClaimLeaseForDone(teamId, caller, doneTarget);
+        if (!leaseCheck.ok) {
+          json(res, leaseCheck.status, {
+            error: leaseCheck.error,
+            code: leaseCheck.code,
+            taskId,
+            leaseId: leaseCheck.leaseId,
+          });
+          return true;
+        }
+        const completionPresence = getFreshPresence(teamId, caller.id);
+        const completionIdentity = completionPresence?.identityEnvelope || requestIdentityEnvelope;
+        const directCompletionLease = completionPresence?.cloudSessionLeaseId
+          ? null
+          : upsertCloudSessionLease(teamId, caller, completionIdentity);
         const wrap = completeTask(team.taskBoard, taskId, caller.name, {
           summary: body.summary as string,
           commit: body.commit as string | undefined,
           verificationEvidence,
           completedByTag,
+          completedIdentity: completionIdentity,
+          completionLeaseId: completionPresence?.cloudSessionLeaseId || directCompletionLease?.leaseId,
           provenance: mutationProvenance,
         });
         result = wrap.result;
@@ -1328,9 +1572,23 @@ export async function handleBoardRoutes(
     if (action === 'claim') {
       payload.claimedAs = { id: caller.id, name: caller.name };
       if (claimedByTag) (payload.claimedAs as Record<string, unknown>).surfaceTag = claimedByTag;
+      if (result.task?.claimIdentity) {
+        (payload.claimedAs as Record<string, unknown>).identityEnvelope = result.task.claimIdentity;
+      }
+      if (result.task?.claimLeaseId) {
+        (payload.claimedAs as Record<string, unknown>).cloudSessionLeaseId =
+          result.task.claimLeaseId;
+      }
     }
     if (action === 'done' && completedByTag) {
       payload.completedAs = { id: caller.id, name: caller.name, surfaceTag: completedByTag };
+    }
+    if (action === 'done' && result.task?.completedIdentity) {
+      payload.completedAs = {
+        ...(isRecord(payload.completedAs) ? payload.completedAs : { id: caller.id, name: caller.name }),
+        identityEnvelope: result.task.completedIdentity,
+        cloudSessionLeaseId: result.task.completionLeaseId,
+      };
     }
     if (action === 'done' && reviewRequest) {
       payload.reviewRequest = reviewRequest;
@@ -1366,6 +1624,7 @@ export async function handleBoardRoutes(
       return true;
     }
     const body: any = effectiveBody;
+    const requestIdentityEnvelope = identityEnvelopeFromBody(body);
     let presenceMap = teamPresenceStore.get(teamId);
     if (!presenceMap) {
       presenceMap = new Map();
@@ -1402,6 +1661,7 @@ export async function handleBoardRoutes(
     // posting offline with no row reports removed=false.
     const declaredStatus = (body.status as string) || 'active';
     if (declaredStatus === 'offline') {
+      endCloudSessionLeasesForAgent(teamId, caller.id, requestIdentityEnvelope);
       const had = presenceMap.has(caller.id);
       presenceMap.delete(caller.id);
       if (had) {
@@ -1418,6 +1678,12 @@ export async function handleBoardRoutes(
     }
     const lastHeartbeat = new Date().toISOString();
     const ttlMs = getPresenceTtlMs({ surface: declaredSurface });
+    const cloudLease = upsertCloudSessionLease(
+      teamId,
+      caller,
+      requestIdentityEnvelope,
+      lastHeartbeat
+    );
     const entry: TeamPresenceEntry = {
       agentId: caller.id,
       agentName: caller.name,
@@ -1433,6 +1699,11 @@ export async function handleBoardRoutes(
       capabilityTags: Array.isArray(body.capability_tags)
         ? (body.capability_tags as unknown[]).map(String)
         : undefined,
+      identityEnvelope: requestIdentityEnvelope,
+      cloudSessionLeaseId: cloudLease?.leaseId,
+      sessionId: identitySessionId(requestIdentityEnvelope),
+      sessionOrigin: identityOrigin(requestIdentityEnvelope),
+      sessionExpiresAt: cloudLease?.expiresAt,
     };
     presenceMap.set(caller.id, entry);
 
@@ -1468,6 +1739,150 @@ export async function handleBoardRoutes(
   //     observed presence entry's surfaceTag (heartbeats declare this)
   //
   // Auth: team membership (same gate as GET /presence). Non-members 403.
+  // GET /api/holomesh/team/:id/sessions - cloud-session lease inventory.
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/sessions$/) && method === 'GET') {
+    const access = await requireTeamAccessFresh(req, res, url);
+    if (!access) return true;
+    const { teamId } = access;
+    pruneCloudSessionLeases(teamId);
+    const status = new URL(url, 'http://localhost').searchParams.get('status');
+    const sessions = Array.from(teamCloudSessionStore.get(teamId)?.values() || [])
+      .filter((lease) => !status || lease.status === status)
+      .sort(
+        (a, b) =>
+          b.lastHeartbeat.localeCompare(a.lastHeartbeat) || a.leaseId.localeCompare(b.leaseId)
+      );
+    json(res, 200, {
+      success: true,
+      teamId,
+      leaseMs: CLOUD_SESSION_LEASE_MS,
+      count: sessions.length,
+      sessions,
+    });
+    return true;
+  }
+
+  // POST /api/holomesh/team/:id/session/start - open or renew a cloud-session lease.
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/session\/start$/) && method === 'POST') {
+    const access = await requireTeamAccessFresh(req, res, url);
+    if (!access) return true;
+    const { caller, teamId } = access;
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body = (effectiveBody || {}) as Record<string, unknown>;
+    const envelope = identityEnvelopeFromBody(body);
+    const lease = upsertCloudSessionLease(teamId, caller, envelope);
+    if (!lease) {
+      json(res, 400, {
+        error: 'identity_envelope must describe a cloud session',
+        code: 'identity_envelope_not_cloud',
+      });
+      return true;
+    }
+    json(res, 201, { success: true, lease });
+    return true;
+  }
+
+  // POST /api/holomesh/team/:id/session/:leaseId/heartbeat - renew a cloud lease.
+  if (
+    pathname.match(/^\/api\/holomesh\/team\/[^/]+\/session\/[^/]+\/heartbeat$/) &&
+    method === 'POST'
+  ) {
+    const access = await requireTeamAccessFresh(req, res, url);
+    if (!access) return true;
+    const { caller, teamId } = access;
+    const parts = pathname.split('/');
+    const leaseId = parts[parts.length - 2];
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    pruneCloudSessionLeases(teamId);
+    const lease = teamCloudSessionStore.get(teamId)?.get(leaseId);
+    if (!lease) {
+      json(res, 404, { error: 'cloud session lease not found', code: 'cloud_session_not_found' });
+      return true;
+    }
+    if (lease.agentId !== caller.id) {
+      json(res, 403, {
+        error: 'cloud session lease belongs to another agent',
+        code: 'cloud_session_owner_mismatch',
+      });
+      return true;
+    }
+    if (lease.status === 'ended') {
+      json(res, 409, { error: 'cloud session lease is ended', code: 'cloud_session_ended' });
+      return true;
+    }
+    const body = (effectiveBody || {}) as Record<string, unknown>;
+    const envelope = identityEnvelopeFromBody(body);
+    const envelopeSessionId = identitySessionId(envelope);
+    if (envelopeSessionId && envelopeSessionId !== lease.sessionId) {
+      json(res, 409, {
+        error: 'identity_envelope session does not match lease',
+        code: 'cloud_session_id_mismatch',
+        leaseSessionId: lease.sessionId,
+        envelopeSessionId,
+      });
+      return true;
+    }
+    const heartbeatAt = new Date().toISOString();
+    lease.status = 'active';
+    lease.lastHeartbeat = heartbeatAt;
+    lease.expiresAt = new Date(Date.parse(heartbeatAt) + CLOUD_SESSION_LEASE_MS).toISOString();
+    if (envelope) lease.identityEnvelope = envelope;
+    json(res, 200, { success: true, lease });
+    return true;
+  }
+
+  // POST /api/holomesh/team/:id/session/:leaseId/finish - end a cloud lease.
+  if (
+    pathname.match(/^\/api\/holomesh\/team\/[^/]+\/session\/[^/]+\/finish$/) &&
+    method === 'POST'
+  ) {
+    const access = await requireTeamAccessFresh(req, res, url);
+    if (!access) return true;
+    const { caller, teamId } = access;
+    const parts = pathname.split('/');
+    const leaseId = parts[parts.length - 2];
+    const rawBody = await parseJsonBody(req);
+    const { ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const lease = teamCloudSessionStore.get(teamId)?.get(leaseId);
+    if (!lease) {
+      json(res, 404, { error: 'cloud session lease not found', code: 'cloud_session_not_found' });
+      return true;
+    }
+    if (lease.agentId !== caller.id) {
+      json(res, 403, {
+        error: 'cloud session lease belongs to another agent',
+        code: 'cloud_session_owner_mismatch',
+      });
+      return true;
+    }
+    const finishedAt = new Date().toISOString();
+    lease.status = 'ended';
+    lease.lastHeartbeat = finishedAt;
+    lease.expiresAt = finishedAt;
+    json(res, 200, { success: true, lease });
+    return true;
+  }
+
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/members$/) && method === 'GET') {
     // Pattern Gamma read-path coverage (follow-up to 29e9a8da7): the W.087
     // vertex-C disambiguation endpoint must reflect the latest membership;
@@ -1502,6 +1917,12 @@ export async function handleBoardRoutes(
         surfaceTag,
         online: Boolean(presence),
         lastHeartbeat: presence?.lastHeartbeat,
+        identityEnvelope: presence?.identityEnvelope,
+        brainIdentity: presence?.identityEnvelope?.brain ?? presence?.identityEnvelope?.principal,
+        cloudSessionLeaseId: presence?.cloudSessionLeaseId,
+        sessionId: presence?.sessionId,
+        sessionOrigin: presence?.sessionOrigin,
+        sessionExpiresAt: presence?.sessionExpiresAt,
       };
     });
 
@@ -1545,6 +1966,11 @@ export async function handleBoardRoutes(
         memberRole: member?.role || null,
         online: Boolean(presence),
         lastHeartbeat: presence?.lastHeartbeat || null,
+        identityEnvelope: presence?.identityEnvelope,
+        brainIdentity: presence?.identityEnvelope?.brain ?? presence?.identityEnvelope?.principal,
+        cloudSessionLeaseId: presence?.cloudSessionLeaseId || null,
+        sessionOrigin: presence?.sessionOrigin || null,
+        sessionExpiresAt: presence?.sessionExpiresAt || null,
       };
     });
 
@@ -1974,6 +2400,11 @@ export async function handleBoardRoutes(
       score?: number;
       modeChange?: { previousMode: string; newMode: string; source: string; reason?: string };
       verificationEvidence?: string;
+      identityEnvelope?: HoloMeshIdentityEnvelope;
+      brainIdentity?: HoloMeshIdentityEnvelope['brain'] | HoloMeshIdentityEnvelope['principal'];
+      cloudSessionLeaseId?: string;
+      sessionOrigin?: string;
+      sessionExpiresAt?: string;
     }
 
     const entries: TraceTimelineEntry[] = [];
@@ -2000,6 +2431,11 @@ export async function handleBoardRoutes(
           agentId: task.claimedBy,
           agentName: task.claimedByName,
           surfaceTag: task.claimedByTag,
+          identityEnvelope: task.claimIdentity,
+          brainIdentity: task.claimIdentity?.brain ?? task.claimIdentity?.principal,
+          cloudSessionLeaseId: task.claimLeaseId,
+          sessionOrigin: identityOrigin(task.claimIdentity),
+          sessionExpiresAt: task.claimLeaseExpiresAt,
         });
       }
       if (task.status === 'done' && task.completedAt) {
@@ -2012,6 +2448,10 @@ export async function handleBoardRoutes(
           agentName: task.claimedByName,
           surfaceTag: task.completedByTag,
           commitHash: task.commitHash,
+          identityEnvelope: task.completedIdentity,
+          brainIdentity: task.completedIdentity?.brain ?? task.completedIdentity?.principal,
+          cloudSessionLeaseId: task.completionLeaseId,
+          sessionOrigin: identityOrigin(task.completedIdentity),
         });
       }
       if (task.status === 'blocked') {
@@ -2083,6 +2523,15 @@ export async function handleBoardRoutes(
         surfaceTag: entry.completedByTag,
         commitHash: entry.commitHash,
         verificationEvidence: entry.verificationEvidence,
+        identityEnvelope: entry.completedIdentity ?? entry.claimIdentity,
+        brainIdentity:
+          entry.completedIdentity?.brain ??
+          entry.completedIdentity?.principal ??
+          entry.claimIdentity?.brain ??
+          entry.claimIdentity?.principal,
+        cloudSessionLeaseId: entry.completionLeaseId ?? entry.claimLeaseId,
+        sessionOrigin: identityOrigin(entry.completedIdentity ?? entry.claimIdentity),
+        sessionExpiresAt: entry.claimLeaseExpiresAt,
         parentTaskId: entry.parentTaskId,
         childTaskIds: entry.childTaskIds,
         content: entry.summary,
@@ -2169,6 +2618,11 @@ export async function handleBoardRoutes(
         surfaceTag: p.surfaceTag,
         ideType: p.ideType,
         status: p.status,
+        identityEnvelope: p.identityEnvelope,
+        brainIdentity: p.identityEnvelope?.brain ?? p.identityEnvelope?.principal,
+        cloudSessionLeaseId: p.cloudSessionLeaseId,
+        sessionOrigin: p.sessionOrigin,
+        sessionExpiresAt: p.sessionExpiresAt,
       });
     }
 

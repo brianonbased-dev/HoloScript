@@ -17,8 +17,14 @@ export type {
   MemoryReceipt,
 } from '@holoscript/framework';
 
-import type { TeamTask, DoneLogEntry, BountyManager, TeamSuggestion } from '@holoscript/framework';
-export type { TeamTask, BountyManager };
+import type {
+  TeamTask,
+  DoneLogEntry,
+  BountyManager,
+  TeamSuggestion,
+  HoloMeshIdentityEnvelope,
+} from '@holoscript/framework';
+export type { TeamTask, BountyManager, HoloMeshIdentityEnvelope };
 export {
   /* TeamTask, BountyManager, */
   KNOWLEDGE_DOMAINS,
@@ -674,6 +680,33 @@ export interface TeamPresenceEntry {
   surfaceTag?: string;
   /** Capability tags declared by the agent on heartbeat. Used for server-side required_tags enforcement on board task claims. */
   capabilityTags?: string[];
+  /** Brain/principal/session/signing envelope captured from the heartbeat. */
+  identityEnvelope?: HoloMeshIdentityEnvelope;
+  /** Server-issued cloud-session lease associated with this heartbeat, when applicable. */
+  cloudSessionLeaseId?: string;
+  /** Provider/local session id captured from the identity envelope. */
+  sessionId?: string;
+  /** Normalized session origin, e.g. local, cloud, mobile. */
+  sessionOrigin?: string;
+  /** Expiry for the cloud lease. Distinct from short local presence expiry. */
+  sessionExpiresAt?: string;
+}
+
+export interface HoloMeshCloudSessionLease {
+  leaseId: string;
+  teamId: string;
+  agentId: string;
+  agentName: string;
+  status: 'active' | 'ended' | 'expired';
+  sessionId: string;
+  origin: string;
+  surface?: string;
+  family?: string;
+  handle?: string;
+  createdAt: string;
+  lastHeartbeat: string;
+  expiresAt: string;
+  identityEnvelope?: HoloMeshIdentityEnvelope;
 }
 
 export interface TeamMessage {

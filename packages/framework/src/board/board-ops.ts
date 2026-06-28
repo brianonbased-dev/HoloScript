@@ -18,6 +18,7 @@ import type {
   TaskPolicyEvent,
   TaskDecompositionPlan,
   SubagentEvent,
+  HoloMeshIdentityEnvelope,
 } from './board-types';
 import {
   normalizeTitle,
@@ -64,6 +65,17 @@ const DEFAULT_DONE_WHEN_BLOCK = [
   '## Done when:',
   '- Verification evidence names the concrete test, build, audit, receipt, or peer-review result required to close this task.',
 ].join('\n');
+
+function cloneIdentityEnvelope(
+  envelope: HoloMeshIdentityEnvelope | undefined
+): HoloMeshIdentityEnvelope | undefined {
+  if (!envelope) return undefined;
+  try {
+    return JSON.parse(JSON.stringify(envelope)) as HoloMeshIdentityEnvelope;
+  } catch {
+    return { ...envelope };
+  }
+}
 
 export function hasDefinitionOfDone(description: string | undefined): boolean {
   const lines = String(description || '').split(/\r?\n/);
@@ -154,7 +166,13 @@ export function claimTask(
   taskId: string,
   claimerId: string,
   claimerName: string,
-  claimerTag?: string
+  claimerTag?: string,
+  opts: {
+    claimIdentity?: TeamTask['claimIdentity'];
+    claimLeaseId?: string;
+    claimLeaseExpiresAt?: string;
+    claimSessionId?: string;
+  } = {}
 ): TaskActionResult {
   const task = board.find((t) => t.id === taskId);
   if (!task) return { success: false, error: 'Task not found' };
@@ -184,6 +202,11 @@ export function claimTask(
   task.claimedBy = claimerId;
   task.claimedByName = claimerName;
   if (claimerTag) task.claimedByTag = claimerTag;
+  const claimIdentity = cloneIdentityEnvelope(opts.claimIdentity);
+  if (claimIdentity) task.claimIdentity = claimIdentity;
+  if (opts.claimLeaseId) task.claimLeaseId = opts.claimLeaseId;
+  if (opts.claimLeaseExpiresAt) task.claimLeaseExpiresAt = opts.claimLeaseExpiresAt;
+  if (opts.claimSessionId) task.claimSessionId = opts.claimSessionId;
   return { success: true, task };
 }
 
@@ -204,6 +227,8 @@ export function completeTask(
     summary?: string;
     verificationEvidence?: string;
     completedByTag?: string;
+    completedIdentity?: DoneLogEntry['completedIdentity'];
+    completionLeaseId?: string;
     provenance?: DoneLogEntry['provenance'];
     artifacts?: ArtifactReceipt[];
     environmentReceipt?: TaskEnvironmentReceipt;
@@ -265,6 +290,9 @@ export function completeTask(
   task.status = 'done';
   task.completedBy = completedBy;
   if (opts.completedByTag) task.completedByTag = opts.completedByTag;
+  const completedIdentity = cloneIdentityEnvelope(opts.completedIdentity);
+  if (completedIdentity) task.completedIdentity = completedIdentity;
+  if (opts.completionLeaseId) task.completionLeaseId = opts.completionLeaseId;
   if (opts.provenance) {
     task.provenance = {
       ...opts.provenance,
@@ -284,6 +312,12 @@ export function completeTask(
     title: task.title,
     completedBy,
     ...(opts.completedByTag ? { completedByTag: opts.completedByTag } : {}),
+    ...(task.claimIdentity ? { claimIdentity: cloneIdentityEnvelope(task.claimIdentity) } : {}),
+    ...(task.claimLeaseId ? { claimLeaseId: task.claimLeaseId } : {}),
+    ...(task.claimLeaseExpiresAt ? { claimLeaseExpiresAt: task.claimLeaseExpiresAt } : {}),
+    ...(task.claimSessionId ? { claimSessionId: task.claimSessionId } : {}),
+    ...(completedIdentity ? { completedIdentity } : {}),
+    ...(opts.completionLeaseId ? { completionLeaseId: opts.completionLeaseId } : {}),
     ...(opts.provenance
       ? {
           provenance: {
