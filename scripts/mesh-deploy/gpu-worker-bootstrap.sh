@@ -187,14 +187,23 @@ try:
 except OSError:
     lines=[]
 match=None
+metrics=None
 for line in lines:
     m=re.match(r"^WORLD_RENDER_ARTIFACT=(.+) SHA256=([0-9a-fA-F]{64})$", line.strip())
     if m:
         match=m
+    mm=re.match(r"^WORLD_RENDER_METRICS=(\{.*\})$", line.strip())
+    if mm:
+        try:
+            metrics=json.loads(mm.group(1))
+        except json.JSONDecodeError:
+            metrics=None
 if match and payload["error"] is None:
     payload["artifact_path"]=match.group(1)
     payload["artifact_sha256"]=match.group(2).lower()
     payload["artifact_kind"]="world_render"
+    if metrics is not None:
+        payload["visual_parity_metrics"]=metrics
 print(json.dumps(payload))' "$err" "$out_log")"
   api POST "/gpu/job/$jid/done" "$done_body" >/dev/null 2>&1 \
     && echo "$LOG reported done $jid (error=$([ "$err" = null ] && echo none || echo yes))" \

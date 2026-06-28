@@ -123,6 +123,23 @@ function shellQuote(value: string): string {
 const NODE_SELF_BOOTSTRAP =
   'command -v node >/dev/null 2>&1 || { curl -fsSL https://deb.nodesource.com/setup_20.x | bash - >/dev/null 2>&1 && apt-get install -y -qq nodejs >/dev/null 2>&1; }';
 
+const MAX_WORKLOAD_ID_LENGTH = 64;
+
+function workloadIdSegment(value: string): string {
+  return (
+    String(value || 'world')
+      .replace(/[^A-Za-z0-9_.-]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 48) || 'world'
+  );
+}
+
+function buildWorldRenderWorkloadId(target: string, worldId: string): string {
+  const prefix = `world-render-${workloadIdSegment(target)}-`;
+  const room = Math.max(1, MAX_WORKLOAD_ID_LENGTH - prefix.length);
+  return `${prefix}${workloadIdSegment(worldId).slice(0, room)}`;
+}
+
 interface WorldRenderSpec {
   world?: string; // inline HoloScript source text (preferred for MCP/Studio callers)
   worldUrl?: string; // OR a fetchable URL
@@ -153,7 +170,7 @@ function buildWorldRenderWorkload(spec: WorldRenderSpec): BuiltWorldRender {
   const quality = spec.quality && spec.quality in QUALITY_MULTIPLIER ? spec.quality : 'standard';
   const estimateSeconds = Math.ceil(t.defaultEstimateSeconds * (QUALITY_MULTIPLIER[quality] ?? 1));
   const worldId = spec.worldId || 'world';
-  const id = `world-render-${spec.target}-${worldId}`;
+  const id = buildWorldRenderWorkloadId(spec.target, worldId);
   const outputDir = spec.outputDir || './render-output';
 
   let worldArg: string;
@@ -204,7 +221,17 @@ function buildWorldRenderWorkload(spec: WorldRenderSpec): BuiltWorldRender {
         description: `Render ${spec.target} (${t.label}) for world ${worldId}`,
         command,
         estimate_seconds: estimateSeconds,
+        lane: t.requiresGpu ? 'gpu' : 'ci',
+        requires_gpu: t.requiresGpu,
         requires_webgpu: t.requiresGpu,
+        device_preference: t.requiresGpu ? 'gpu' : 'cpu',
+        ...(t.requiresGpu ? { gpu_memory_mb: 8000 } : {}),
+        ...(t.requiresGpu
+          ? { resource_requirements: { min_vram_gb: 8, num_gpus: 1 } }
+          : {}),
+        resources: t.requiresGpu
+          ? { gpu: { count: 1, memory_mb: 8000 }, cpu_cores: 2, packing_group: 'world-render' }
+          : { cpu_cores: 2, packing_group: 'world-render' },
         tier: 'T2',
       },
     ],

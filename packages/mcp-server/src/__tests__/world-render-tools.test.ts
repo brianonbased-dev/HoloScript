@@ -18,7 +18,17 @@ type RenderResult = {
   workloadId?: string;
   workload?: {
     id: string;
-    jobs: { job_type: string; command: string; requires_webgpu: boolean }[];
+    jobs: {
+      job_type: string;
+      command: string;
+      lane: string;
+      requires_gpu: boolean;
+      requires_webgpu: boolean;
+      device_preference: string;
+      gpu_memory_mb?: number;
+      resource_requirements?: { min_vram_gb: number; num_gpus: number };
+      resources?: unknown;
+    }[];
   };
 };
 
@@ -79,11 +89,25 @@ describe('render_world_on_fleet — dryRun preview (default, no spend)', () => {
     expect(r.estimateSeconds).toBe(600); // 600 default × standard
     const job = r.workload?.jobs[0];
     expect(job?.job_type).toBe('render');
+    expect(job?.lane).toBe('gpu');
+    expect(job?.requires_gpu).toBe(true);
     expect(job?.requires_webgpu).toBe(true);
+    expect(job?.device_preference).toBe('gpu');
+    expect(job?.gpu_memory_mb).toBe(8000);
+    expect(job?.resource_requirements).toEqual({ min_vram_gb: 8, num_gpus: 1 });
     expect(job?.command).toContain('node scripts/world-render-runner.mjs');
     expect(job?.command).toContain('--target 3dgs');
     expect(job?.command).toContain('--world-b64'); // inline source shipped as base64
     expect(job?.command).not.toContain('/workspace/'); // repo-relative
+  });
+
+  it('keeps workload ids inside the orchestrator varchar(64) limit', async () => {
+    const longWorldId = 'codex-fleet-auth-3dgs-valid-2026-06-28-with-an-extra-long-suffix';
+    const r = await call({ world: 'composition "D" {}', target: '3dgs', worldId: longWorldId });
+
+    expect(r.ok).toBe(true);
+    expect(r.workload?.id.length).toBeLessThanOrEqual(64);
+    expect(r.workload?.id).toMatch(/^world-render-3dgs-/);
   });
 
   it('scales the estimate with quality', async () => {
