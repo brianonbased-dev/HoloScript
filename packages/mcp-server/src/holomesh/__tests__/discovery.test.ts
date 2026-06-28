@@ -139,6 +139,65 @@ describe('HoloMeshDiscovery', () => {
       expect(added).toBe(0);
     });
 
+    it('uses the local MCP URL for stripped cloud-family CRDT peer cards', async () => {
+      const mockClient = {
+        discoverPeers: vi.fn().mockResolvedValue([
+          {
+            id: 'cloud-peer',
+            name: 'Cloud Peer',
+            traits: ['@crdt-gossip', '@cloud-family'],
+          },
+          {
+            id: 'ordinary-peer',
+            name: 'Ordinary Peer',
+            traits: ['@knowledge-exchange'],
+          },
+        ]),
+      };
+
+      const d = new HoloMeshDiscovery('local-did', 'https://mcp.holoscript.net/mcp');
+      const added = await d.bootstrapFromOrchestrator(mockClient as any);
+
+      expect(added).toBe(1);
+      expect(d.getPeer('cloud-peer')?.mcpBaseUrl).toBe('https://mcp.holoscript.net');
+      expect(d.getPeer('ordinary-peer')).toBeUndefined();
+    });
+
+    it('normalizes endpoint aliases from cloud and local peer metadata', async () => {
+      const mockClient = {
+        discoverPeers: vi.fn().mockResolvedValue([
+          {
+            id: 'cloud-peer',
+            name: 'Cloud Peer',
+            metadata: {
+              mcp_endpoint: 'https://mcp.holoscript.net/mcp',
+              traits: ['@crdt-gossip'],
+            },
+          },
+          {
+            id: 'local-peer',
+            name: 'Local Peer',
+            endpoint: 'http://127.0.0.1:3000/a2a',
+          },
+          {
+            id: 'bad-peer',
+            name: 'Bad Peer',
+            metadata: {
+              mcpEndpoint: 'file:///tmp/socket',
+            },
+          },
+        ]),
+      };
+
+      const d = new HoloMeshDiscovery('local-did', 'https://local');
+      const added = await d.bootstrapFromOrchestrator(mockClient as any);
+
+      expect(added).toBe(2);
+      expect(d.getPeer('cloud-peer')?.mcpBaseUrl).toBe('https://mcp.holoscript.net');
+      expect(d.getPeer('local-peer')?.mcpBaseUrl).toBe('http://127.0.0.1:3000');
+      expect(d.getPeer('bad-peer')).toBeUndefined();
+    });
+
     it('does not duplicate existing peers', async () => {
       vi.mocked(fs.existsSync).mockReturnValue(true);
       vi.mocked(fs.readFileSync).mockReturnValue(
@@ -446,6 +505,29 @@ describe('HoloMeshDiscovery', () => {
 
       const result = await d.gossipSync(peer);
       expect(result).toBe(false);
+    });
+
+    it('does not trip memory backpressure on small V8 heaps', async () => {
+      vi.mocked(process.memoryUsage).mockReturnValueOnce({
+        ...originalMemoryUsage(),
+        heapUsed: 80 * 1024 * 1024,
+        heapTotal: 100 * 1024 * 1024,
+      });
+      const d = new HoloMeshDiscovery('local-did', 'https://local', mockWorldState as any);
+      const peer = makePeer({ did: 'peer-1', mcpBaseUrl: 'https://peer1' });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          success: true,
+          deltaBase64: Buffer.from([4, 5, 6]).toString('base64'),
+          frontiers: [{ peer: '2', counter: 10 }],
+          knownPeers: [],
+        }),
+      });
+
+      const result = await d.gossipSync(peer);
+      expect(result).toBe(true);
     });
 
     it('absorbs gossiped peers from response', async () => {

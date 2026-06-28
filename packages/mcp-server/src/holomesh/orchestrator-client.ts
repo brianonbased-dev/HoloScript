@@ -10,6 +10,7 @@
 
 import type { HoloMeshAgentCard, MeshConfig, MeshKnowledgeEntry, AgentReputation } from './types';
 import { computeReputation, resolveReputationTier, DEFAULT_MESH_CONFIG } from './types';
+import { normalizePeerEndpointUrl, resolvePeerEndpoint } from './discovery';
 import * as crypto from 'crypto';
 
 let clientInstance: HoloMeshOrchestratorClient | null = null;
@@ -32,6 +33,34 @@ export interface WalletAuth {
   did: string;
   address: string;
   signature: string;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function asString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+}
+
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
+}
+
+function configuredMcpBaseUrl(): string {
+  const railwayUrl = process.env.RAILWAY_PUBLIC_DOMAIN
+    ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+    : undefined;
+  return (
+    normalizePeerEndpointUrl(
+      process.env.MCP_LOCAL_URL ||
+        railwayUrl ||
+        process.env.HOLOSCRIPT_SERVER_URL ||
+        process.env.HOLOSCRIPT_MCP_URL ||
+        `http://localhost:${process.env.PORT || '3000'}`
+    ) || `http://localhost:${process.env.PORT || '3000'}`
+  );
 }
 
 export class HoloMeshOrchestratorClient {
@@ -59,15 +88,25 @@ export class HoloMeshOrchestratorClient {
   async registerAgent(traits: string[], walletAuth?: WalletAuth): Promise<string> {
     const id =
       walletAuth?.did || `holomesh-${this.config.agentName}-${crypto.randomUUID().slice(0, 8)}`;
+    const mcpEndpoint = configuredMcpBaseUrl();
     const res = await this.post('/agents/register', {
       id,
       name: this.config.agentName,
       role: 'holomesh-agent',
       capabilities: traits,
       workspace: this.config.workspace,
+      mcpEndpoint,
+      mcp_endpoint: mcpEndpoint,
       metadata: {
         type: 'holomesh',
         version: walletAuth ? '4.0' : '1.0',
+        did: walletAuth?.did || id,
+        mcpEndpoint,
+        mcp_endpoint: mcpEndpoint,
+        mcpBaseUrl: mcpEndpoint,
+        mcp_base_url: mcpEndpoint,
+        agentCardUrl: `${mcpEndpoint}/.well-known/agent-card.json`,
+        crdtGossipUrl: `${mcpEndpoint}/.well-known/crdt-gossip`,
       },
       ...(walletAuth && {
         walletAddress: walletAuth.address,
@@ -99,21 +138,42 @@ export class HoloMeshOrchestratorClient {
       .filter((a: any) => a.id !== this.agentId)
       .filter((a: any) => {
         if (!opts?.traits?.length) return true;
-        const caps: string[] = a.capabilities || [];
+        const metadata = isRecord(a.metadata) ? a.metadata : {};
+        const caps: string[] = [
+          ...asStringArray(a.capabilities),
+          ...asStringArray(a.traits),
+          ...asStringArray(metadata.capabilities),
+          ...asStringArray(metadata.traits),
+        ];
         return opts.traits!.some((t) => caps.includes(t));
       })
-      .map(
-        (a: any): HoloMeshAgentCard => ({
+      .map((a: any): HoloMeshAgentCard => {
+        const metadata = isRecord(a.metadata) ? a.metadata : {};
+        const endpoint = resolvePeerEndpoint(a);
+        const did = asString(a.did) || asString(metadata.did) || a.id;
+        const traits = [
+          ...asStringArray(a.capabilities),
+          ...asStringArray(a.traits),
+          ...asStringArray(metadata.capabilities),
+          ...asStringArray(metadata.traits),
+        ];
+        return {
           id: a.id,
           name: a.name || a.id,
+          did,
+          mcpEndpoint: endpoint || undefined,
+          mcpBaseUrl: endpoint || undefined,
+          endpoint: asString(a.endpoint) || asString(metadata.endpoint),
+          url: asString(a.url) || asString(metadata.url),
+          metadata,
           workspace: a.workspace || this.config.workspace,
-          traits: a.capabilities || [],
+          traits,
           reputation: a.metadata?.reputation || 0,
           contributionCount: a.metadata?.contributionCount || 0,
           queryCount: a.metadata?.queryCount || 0,
           joinedAt: a.createdAt || a.created_at || new Date().toISOString(),
-        })
-      );
+        };
+      });
   }
 
   /** Get a specific agent's DNA/capabilities. */

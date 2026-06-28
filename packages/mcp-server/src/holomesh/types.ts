@@ -44,6 +44,11 @@ export interface HoloMeshAgentCard {
   name: string;
   did?: string; // Decentralized ID (V2)
   mcpEndpoint?: string; // Direct P2P address (V2)
+  mcpBaseUrl?: string; // Normalized CRDT gossip base URL
+  mcp_base_url?: string; // Legacy snake_case alias
+  endpoint?: string; // A2A endpoint alias, normalized by discovery
+  url?: string; // Agent-card URL alias, normalized by discovery
+  metadata?: Record<string, unknown>;
   workspace: string;
   traits: string[]; // e.g., ['@economy', '@research', '@philosophy']
   reputation: number;

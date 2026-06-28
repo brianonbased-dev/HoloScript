@@ -22,6 +22,115 @@ const STALE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
 const MAX_FAILURE_COUNT = 3;
 const MAX_PEERS_TO_SHARE = 5;
 const MAX_GOSSIP_TARGETS = 3;
+const HEAP_BACKPRESSURE_MIN_BYTES = 512 * 1024 * 1024;
+
+const ENDPOINT_SUFFIXES = [
+  '/.well-known/agent-card.json',
+  '/.well-known/agent-card',
+  '/.well-known/agent.json',
+  '/.well-known/crdt-gossip',
+  '/.well-known/crdt-state',
+  '/mcp',
+  '/a2a',
+];
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function firstString(...values: unknown[]): string | null {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return null;
+}
+
+function stringList(...values: unknown[]): string[] {
+  return values
+    .flatMap((value) => (Array.isArray(value) ? value : [value]))
+    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    .map((value) => value.trim().toLowerCase());
+}
+
+function isCloudFamilyCrdtPeer(peer: Record<string, unknown>): boolean {
+  const metadata = isRecord(peer.metadata) ? peer.metadata : {};
+  const markers = stringList(
+    peer.role,
+    peer.type,
+    peer.family,
+    peer.surface,
+    peer.capabilities,
+    peer.traits,
+    metadata.type,
+    metadata.family,
+    metadata.surface,
+    metadata.capabilities,
+    metadata.traits
+  );
+  return markers.some(
+    (marker) =>
+      marker === '@crdt-gossip' ||
+      marker === '@p2p' ||
+      marker === '@cloud-family' ||
+      marker.includes('crdt') ||
+      marker.includes('cloud-family')
+  );
+}
+
+/**
+ * Normalize the mixed endpoint shapes emitted by cloud, local, A2A, and MCP
+ * surfaces into the base URL that hosts /.well-known/crdt-gossip.
+ */
+export function normalizePeerEndpointUrl(value: unknown): string | null {
+  const raw = firstString(value);
+  if (!raw) return null;
+
+  try {
+    const parsed = new URL(raw);
+    if (!['http:', 'https:'].includes(parsed.protocol)) return null;
+
+    let pathname = parsed.pathname.replace(/\/+$/, '');
+    for (const suffix of ENDPOINT_SUFFIXES) {
+      if (pathname === suffix || pathname.endsWith(suffix)) {
+        pathname = pathname.slice(0, -suffix.length);
+        break;
+      }
+    }
+
+    parsed.pathname = pathname.replace(/\/+$/, '') || '/';
+    parsed.search = '';
+    parsed.hash = '';
+    return parsed.toString().replace(/\/$/, '');
+  } catch {
+    return null;
+  }
+}
+
+export function resolvePeerEndpoint(peer: Record<string, unknown>): string | null {
+  const metadata = isRecord(peer.metadata) ? peer.metadata : {};
+  return normalizePeerEndpointUrl(
+    firstString(
+      peer.mcpEndpoint,
+      peer.mcpBaseUrl,
+      peer.mcp_base_url,
+      peer.mcp_endpoint,
+      peer.crdtEndpoint,
+      peer.crdt_endpoint,
+      metadata.mcpEndpoint,
+      metadata.mcpBaseUrl,
+      metadata.mcp_base_url,
+      metadata.mcp_endpoint,
+      metadata.crdtEndpoint,
+      metadata.crdt_endpoint,
+      peer.endpoint,
+      metadata.endpoint,
+      peer.url,
+      metadata.url,
+      metadata.publicUrl,
+      metadata.public_url
+    )
+  );
+}
 
 // V1 backwards compat export
 export interface SpatialGossipNode {
@@ -172,8 +281,11 @@ export class HoloMeshDiscovery {
 
       let added = 0;
       for (const peer of peers) {
-        const did = peer.did || peer.id;
-        const url = peer.mcpEndpoint;
+        const rawPeer = peer as unknown as Record<string, unknown>;
+        const did = firstString(rawPeer.did, rawPeer.id);
+        const url =
+          resolvePeerEndpoint(rawPeer) ||
+          (isCloudFamilyCrdtPeer(rawPeer) ? normalizePeerEndpointUrl(this.localMcpUrl) : null);
         if (!did || !url || did === this.localAgentDid) continue;
         if (this.peers.has(did)) continue;
 
@@ -399,7 +511,7 @@ export class HoloMeshDiscovery {
     // Prevent OOM crashes during large CRDT state synchronizations
     const memUsage = process.memoryUsage();
     const ramUtilization = memUsage.heapUsed / memUsage.heapTotal;
-    if (ramUtilization > 0.7) {
+    if (memUsage.heapUsed > HEAP_BACKPRESSURE_MIN_BYTES && ramUtilization > 0.7) {
       console.warn(
         `[HoloMesh] Memory backpressure active (RAM at ${(ramUtilization * 100).toFixed(1)}%). Skipping gossip sync with ${peer.did}.`
       );

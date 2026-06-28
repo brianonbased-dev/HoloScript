@@ -22,7 +22,7 @@ import type {
 } from './types';
 import { DEFAULT_MESH_CONFIG } from './types';
 import { HoloMeshWorldState } from './crdt-sync';
-import { HoloMeshDiscovery } from './discovery';
+import { HoloMeshDiscovery, normalizePeerEndpointUrl } from './discovery';
 import {
   buildMeshToolManifest,
   createMeshToolInvocationHop,
@@ -1466,8 +1466,17 @@ export async function handleInboundGossip(
 
 async function handleGossipSync(client: HoloMeshOrchestratorClient, args: Record<string, unknown>) {
   try {
-    const agentId = client.getAgentId() || 'did:agent:local';
-    const localMcpUrl = process.env.MCP_LOCAL_URL || 'http://localhost:3000';
+    const agentId =
+      client.getAgentId() ||
+      (await client.registerAgent(['@knowledge-exchange', '@crdt-gossip', '@p2p']));
+    const localMcpUrl =
+      normalizePeerEndpointUrl(process.env.MCP_LOCAL_URL) ||
+      normalizePeerEndpointUrl(
+        process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : null
+      ) ||
+      normalizePeerEndpointUrl(process.env.HOLOSCRIPT_SERVER_URL) ||
+      normalizePeerEndpointUrl(process.env.HOLOSCRIPT_MCP_URL) ||
+      `http://localhost:${process.env.PORT || '3000'}`;
     const worldStatePath = process.env.HOLOMESH_WORLD_STATE_PATH || './.holomesh/worldstate.crdt';
     const peerStorePath = process.env.HOLOMESH_PEER_STORE_PATH || './.holomesh/peers.json';
 
