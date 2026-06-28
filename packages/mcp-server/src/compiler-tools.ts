@@ -18,6 +18,7 @@
  * @package @holoscript/mcp-server
  */
 
+import { createHash } from 'node:crypto';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import {
   parseHolo,
@@ -43,6 +44,7 @@ import { handleAuditNumbers, auditTools } from './audit-tools';
 import { handleFetchStructure, alphafoldTools } from './alphafold-tools';
 import { generateWebGPUBrowserTemplate } from './renderer';
 import {
+  HoloMCPCompiler,
   targetSovereignty,
   DialectRegistry,
   registerBuiltinDialects,
@@ -92,6 +94,10 @@ export interface CompilationResult {
   jobId: string;
   target: ExportTarget;
   output?: string;
+  /** SHA-256 over the exact UTF-8 HoloScript source accepted by this compile. */
+  sourceSha256?: string;
+  /** SHA-256 over the exact UTF-8 output artifact returned by this compile. */
+  outputSha256?: string;
   /**
    * For sovereign (`webgpu`) compile targets: a self-contained HTML page that
    * boots the native WebGPU renderer with the compiled WGSL output embedded.
@@ -116,6 +122,9 @@ export interface CompilationResult {
     /** Mirror of top-level `degraded` for callers that read metadata. */
     degraded?: boolean;
     outputSizeBytes?: number;
+    sourceSha256?: string;
+    outputSha256?: string;
+    hashAlgorithm?: 'sha256';
   };
 }
 
@@ -157,6 +166,10 @@ const compilationJobs = new Map<string, CompilationJob>();
 
 function generateJobId(): string {
   return `compile_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+}
+
+function sha256Text(value: string): string {
+  return `sha256:${createHash('sha256').update(value, 'utf8').digest('hex')}`;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -274,8 +287,27 @@ async function compileToTarget(
   degraded: boolean;
   warnings: string[];
 }> {
-  const exportManager = getExportManager();
   const exportOptions = toExportOptions(options as Record<string, unknown>);
+  if (target === 'mcp-server') {
+    const compilerOptions = isRecord(exportOptions.compilerOptions)
+      ? exportOptions.compilerOptions
+      : {};
+    const compiler = new HoloMCPCompiler(compilerOptions);
+    const agentToken = typeof exportOptions.agentToken === 'string' ? exportOptions.agentToken : '';
+    const output =
+      compilerOptions.outputKind === 'manifest'
+        ? compiler.compile(composition, agentToken)
+        : compiler.compileModule(composition, agentToken);
+
+    return {
+      output,
+      usedFallback: false,
+      degraded: false,
+      warnings: [],
+    };
+  }
+
+  const exportManager = getExportManager();
   // ExportManager.export(target, composition, options) ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â target is first arg
   const result = await exportManager.export(
     target,
@@ -337,6 +369,7 @@ export async function handleCompileToTarget(
   trackJob(jobId, 'in_progress', 10);
 
   const startTime = Date.now();
+  const sourceSha256 = sha256Text(code);
 
   try {
     // Parse composition
@@ -362,6 +395,7 @@ export async function handleCompileToTarget(
     // Use ExportManager.getMetrics() ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â no static getInstance on CircuitBreakerRegistry
     const circuitMetrics = getExportManager().getMetrics(target);
     trackJob(jobId, 'in_progress', 100);
+    const outputSha256 = sha256Text(compileResult.output);
 
     // For sovereign (webgpu) target: embed compiled output in a self-contained
     // HTML page that boots the native WebGPU renderer — no Three.js / R3F bridge.
@@ -388,6 +422,8 @@ export async function handleCompileToTarget(
       jobId,
       target,
       output: compileResult.output,
+      sourceSha256,
+      outputSha256,
       ...(previewHtml !== undefined && { previewHtml }),
       warnings: mergedWarnings.length > 0 ? mergedWarnings : undefined,
       degraded: compileResult.degraded,
@@ -397,6 +433,9 @@ export async function handleCompileToTarget(
         usedFallback: compileResult.usedFallback,
         degraded: compileResult.degraded,
         outputSizeBytes: compileResult.output.length,
+        sourceSha256,
+        outputSha256,
+        hashAlgorithm: 'sha256',
       },
     };
 
@@ -413,6 +452,8 @@ export async function handleCompileToTarget(
         compilationTimeMs: Date.now() - startTime,
         circuitBreakerState: 'open' as any,
         usedFallback: false,
+        sourceSha256,
+        hashAlgorithm: 'sha256',
       },
     };
     trackJob(jobId, 'failed', 100, result);
@@ -2117,6 +2158,12 @@ export const compilerTools: Tool[] = [
           properties: {
             serverName: { type: 'string', description: 'MCP server name (default: holoscript-mcp)' },
             serverVersion: { type: 'string', description: 'Server version string (default: 1.0.0)' },
+            outputKind: {
+              type: 'string',
+              enum: ['module', 'manifest'],
+              description:
+                'module emits a self-contained .mcp-server.ts artifact (default); manifest emits the JSON Tool[] manifest.',
+            },
           },
         },
       },

@@ -92,6 +92,7 @@ import {
 } from './GaussianBudgetAnalyzer';
 import { CompilerDocumentationGenerator } from './CompilerDocumentationGenerator';
 import { generateSemanticSceneGraphObject, type JsonLdSceneGraph } from './SemanticSceneGraph';
+import { DialectRegistry } from './DialectRegistry';
 
 // =============================================================================
 // TYPES
@@ -336,6 +337,9 @@ class CompilerFactory {
       case 'world-shard':
         return new ShardRegistryCompiler(options);
       default:
+        if (DialectRegistry.has(target)) {
+          return DialectRegistry.create(target, options);
+        }
         throw new Error(`Unknown export target: ${target}`);
     }
   }
@@ -670,6 +674,7 @@ export class ExportManager {
       'openxr-spatial-entities',
       '3dgs',
       '3dtiles',
+      'mcp-server',
     ];
   }
 
@@ -711,6 +716,18 @@ export class ExportManager {
       // Some compilers expose compileComposition() for HoloComposition input
       // instead of compile() which expects HSPlusAST.
       const asRecord = compiler as Record<string, unknown>;
+      if (
+        target === 'mcp-server' &&
+        options.compilerOptions?.outputKind !== 'manifest' &&
+        typeof asRecord['compileModule'] === 'function'
+      ) {
+        const compileModuleFn = asRecord['compileModule'] as (
+          comp: HoloComposition,
+          token?: string,
+          path?: string
+        ) => unknown;
+        return compileModuleFn.call(compiler, composition, options.agentToken ?? '', undefined);
+      }
       if (typeof asRecord['compileComposition'] === 'function') {
         const compileFn = asRecord['compileComposition'] as (
           comp: unknown,
@@ -729,7 +746,7 @@ export class ExportManager {
       }
       const output = await compiler.compile(
         composition,
-        undefined as unknown as string,
+        options.agentToken ?? '',
         undefined,
         sceneGraph
       );
@@ -850,7 +867,17 @@ export class ExportManager {
         this.memoryMonitor.setIncrementalCompiler(compiler);
       }
 
-      const output = await compiler.compile(composition);
+      const asRecord = compiler as Record<string, unknown>;
+      const output =
+        target === 'mcp-server' &&
+        options.compilerOptions?.outputKind !== 'manifest' &&
+        typeof asRecord['compileModule'] === 'function'
+          ? await (asRecord['compileModule'] as (
+              comp: HoloComposition,
+              token?: string,
+              path?: string
+            ) => unknown).call(compiler, composition, options.agentToken ?? '', undefined)
+          : await compiler.compile(composition);
 
       // Capture memory stats after compilation
       const memoryStats = this.memoryMonitor?.captureMemoryStats();

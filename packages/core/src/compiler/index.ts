@@ -146,6 +146,12 @@ export type { ReproducibilityContext, ReproducibilityConfig } from './Reproducib
 export { SemanticSceneGraph } from './SemanticSceneGraph';
 export { MCPConfigCompiler } from './MCPConfigCompiler';
 export type { MCPConfigCompilerOptions, MCPConfigTarget } from './MCPConfigCompiler';
+export { HoloMCPCompiler } from './HoloMCPCompiler';
+export type {
+  HoloMCPCompilerOptions,
+  HoloMCPTool,
+  HoloParamAnnotation,
+} from './HoloMCPCompiler';
 
 // Studio native code editor compiler (CodeMirror 6 config bundle)
 export { CodeEditorCompiler } from './CodeEditorCompiler';

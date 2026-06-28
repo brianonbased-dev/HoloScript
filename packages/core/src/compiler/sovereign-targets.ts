@@ -82,6 +82,7 @@ export const BRIDGE_TARGETS = [
   'bot-swarm', // In-process MMO load/balance harness — consumed by a Node/vitest test runner
   'dungeon-instance', // Per-party instance pool + completion receipt — consumed by the game server
   'world-shard', // World AABB shard router + handoff bootstrap — consumed by the multi-room game server
+  'mcp-server', // MCP server module/manifest — consumed by a TypeScript/MCP server runtime
 ] as const satisfies readonly ExportTarget[];
 
 /**

@@ -91,6 +91,7 @@ export type ExportTarget =
   | 'bot-swarm' // In-process MMO load/balance test harness (bridge — pairs with colyseus)
   | 'dungeon-instance' // Per-party instanced-content pool + completion receipt (bridge)
   | 'world-shard' // World AABB shard router + receipt-sealed handoff bootstrap (bridge)
+  | 'mcp-server' // Standalone MCP server module/manifest export (bridge)
   | 'quest'; // Meta Quest (Horizon OS / Meta Spatial SDK) — distinct from Google android-xr
 
 /**
