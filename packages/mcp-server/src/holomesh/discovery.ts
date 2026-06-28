@@ -77,6 +77,15 @@ function isCloudFamilyCrdtPeer(peer: Record<string, unknown>): boolean {
   );
 }
 
+function isLoopbackEndpoint(url: string): boolean {
+  try {
+    const { hostname } = new URL(url);
+    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+  } catch {
+    return true;
+  }
+}
+
 /**
  * Normalize the mixed endpoint shapes emitted by cloud, local, A2A, and MCP
  * surfaces into the base URL that hosts /.well-known/crdt-gossip.
@@ -304,6 +313,10 @@ export class HoloMeshDiscovery {
         added++;
       }
 
+      if (added === 0 && peers.length === 0) {
+        added += this.seedCloudIngressPeer();
+      }
+
       if (added > 0) this.savePeerStore();
       return added;
     } catch {
@@ -312,6 +325,29 @@ export class HoloMeshDiscovery {
   }
 
   // ── V2: Health Tracking ──────────────────────────────────────────────────
+
+  private seedCloudIngressPeer(): number {
+    const url = normalizePeerEndpointUrl(this.localMcpUrl);
+    if (!url || isLoopbackEndpoint(url)) return 0;
+
+    const host = new URL(url).hostname.toLowerCase();
+    const did = `did:holomesh:cloud-ingress:${host}`;
+    if (did === this.localAgentDid || this.peers.has(did)) return 0;
+
+    this.peers.set(did, {
+      did,
+      mcpBaseUrl: url,
+      name: `Cloud CRDT ingress (${host})`,
+      traits: ['@crdt-gossip', '@cloud-family', '@p2p'],
+      reputation: 0,
+      lastSeen: new Date().toISOString(),
+      lastSyncAt: null,
+      lastKnownFrontiers: null,
+      source: 'orchestrator',
+      failureCount: 0,
+    });
+    return 1;
+  }
 
   /** Remove peers not seen in >5 minutes or with too many failures */
   public pruneStale(): string[] {

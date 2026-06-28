@@ -139,6 +139,32 @@ describe('HoloMeshDiscovery', () => {
       expect(added).toBe(0);
     });
 
+    it('seeds a cloud ingress peer when the orchestrator registry is empty on cloud', async () => {
+      const mockClient = {
+        discoverPeers: vi.fn().mockResolvedValue([]),
+      };
+
+      const d = new HoloMeshDiscovery('local-did', 'https://mcp.holoscript.net/mcp');
+      const added = await d.bootstrapFromOrchestrator(mockClient as any);
+
+      expect(added).toBe(1);
+      expect(d.getPeer('did:holomesh:cloud-ingress:mcp.holoscript.net')?.mcpBaseUrl).toBe(
+        'https://mcp.holoscript.net'
+      );
+    });
+
+    it('does not seed a cloud ingress peer for localhost', async () => {
+      const mockClient = {
+        discoverPeers: vi.fn().mockResolvedValue([]),
+      };
+
+      const d = new HoloMeshDiscovery('local-did', 'http://localhost:3000');
+      const added = await d.bootstrapFromOrchestrator(mockClient as any);
+
+      expect(added).toBe(0);
+      expect(d.getPeerCount()).toBe(0);
+    });
+
     it('uses the local MCP URL for stripped cloud-family CRDT peer cards', async () => {
       const mockClient = {
         discoverPeers: vi.fn().mockResolvedValue([
