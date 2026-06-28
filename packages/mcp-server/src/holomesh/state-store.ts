@@ -14,6 +14,7 @@
  */
 
 import type { Pool, PoolClient } from 'pg';
+import { createHoloMeshPostgresPoolOptions } from './postgres-pool-options';
 
 // ── Schema DDL ───────────────────────────────────────────────────────────────
 
@@ -171,15 +172,76 @@ export class PostgresStateStoreBackend implements StateStoreBackend {
 
 // ── Factory ───────────────────────────────────────────────────────────────────
 
+export class FallbackStateStoreBackend implements StateStoreBackend {
+  private backend: StateStoreBackend;
+  private readonly memory = new InMemoryStateStoreBackend();
+  private usePostgres = true;
+
+  constructor(backend: StateStoreBackend) {
+    this.backend = backend;
+  }
+
+  get usesPostgres(): boolean {
+    return this.usePostgres;
+  }
+
+  fallbackToMemory(): void {
+    this.backend = this.memory;
+    this.usePostgres = false;
+  }
+
+  private async withFallback<T>(
+    label: string,
+    fn: (backend: StateStoreBackend) => Promise<T>
+  ): Promise<T> {
+    try {
+      return await fn(this.backend);
+    } catch (e) {
+      if (!this.usePostgres) throw e;
+      console.warn(`[StateStore] PostgreSQL ${label} failed; using in-memory backend:`, e);
+      this.fallbackToMemory();
+      return fn(this.backend);
+    }
+  }
+
+  async get(namespace: string, handle: string): Promise<unknown | undefined> {
+    return this.withFallback('read', (backend) => backend.get(namespace, handle));
+  }
+
+  async set(namespace: string, handle: string, data: unknown): Promise<void> {
+    return this.withFallback('write', (backend) => backend.set(namespace, handle, data));
+  }
+
+  async append(namespace: string, handle: string, data: unknown): Promise<void> {
+    return this.withFallback('append', (backend) => backend.append(namespace, handle, data));
+  }
+
+  async getAll(namespace: string, handle: string): Promise<unknown[]> {
+    return this.withFallback('read-all', (backend) => backend.getAll(namespace, handle));
+  }
+
+  async listHandles(namespace: string): Promise<string[]> {
+    return this.withFallback('list-handles', (backend) => backend.listHandles(namespace));
+  }
+
+  async delete(namespace: string, handle: string): Promise<void> {
+    return this.withFallback('delete', (backend) => backend.delete(namespace, handle));
+  }
+
+  async close(): Promise<void> {
+    await this.backend.close?.();
+  }
+}
+
 export function createStateStore(): StateStoreBackend {
   const databaseUrl = process.env.DATABASE_URL;
   if (databaseUrl) {
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { Pool } = require('pg');
-      const pool = new Pool({ connectionString: databaseUrl });
+      const pool = new Pool(createHoloMeshPostgresPoolOptions(databaseUrl));
       console.log('[StateStore] PostgreSQL backend active (multi-instance)');
-      return new PostgresStateStoreBackend(pool);
+      return new FallbackStateStoreBackend(new PostgresStateStoreBackend(pool));
     } catch (e) {
       console.warn('[StateStore] DATABASE_URL set but pg failed to load:', e);
     }

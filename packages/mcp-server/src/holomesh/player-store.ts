@@ -14,6 +14,7 @@
  */
 
 import type { Pool } from 'pg';
+import { createHoloMeshPostgresPoolOptions } from './postgres-pool-options';
 
 // ── StoredPlayer Type ─────────────────────────────────────────────────────────
 
@@ -161,6 +162,17 @@ export class PlayerStore {
     return this._usePostgres;
   }
 
+  fallbackToMemory(): void {
+    const memory = new InMemoryPlayerStoreBackend();
+    for (const [playerId, player] of this.local.entries()) {
+      memory.set(playerId, player).catch((e) => {
+        console.error('[PlayerStore] memory fallback seed failed:', e);
+      });
+    }
+    this.backend = memory;
+    this._usePostgres = false;
+  }
+
   get size(): number {
     return this.local.size;
   }
@@ -170,7 +182,18 @@ export class PlayerStore {
   }
 
   async getFresh(playerId: string): Promise<StoredPlayer | undefined> {
-    const player = await this.backend.get(playerId);
+    let player: StoredPlayer | undefined;
+    try {
+      player = await this.backend.get(playerId);
+    } catch (e) {
+      if (this._usePostgres) {
+        console.warn('[PlayerStore] PostgreSQL read failed; using in-memory backend:', e);
+        this.fallbackToMemory();
+        player = await this.backend.get(playerId);
+      } else {
+        throw e;
+      }
+    }
     if (player) {
       this.local.set(playerId, player);
     } else {
@@ -183,6 +206,7 @@ export class PlayerStore {
     this.local.set(playerId, player);
     this.backend.set(playerId, player).catch((e) => {
       console.error('[PlayerStore] backend write failed:', e);
+      if (this._usePostgres) this.fallbackToMemory();
     });
     return this;
   }
@@ -195,6 +219,7 @@ export class PlayerStore {
     const had = this.local.delete(playerId);
     this.backend.delete(playerId).catch((e) => {
       console.error('[PlayerStore] backend delete failed:', e);
+      if (this._usePostgres) this.fallbackToMemory();
     });
     return had;
   }
@@ -220,14 +245,35 @@ export class PlayerStore {
   }
 
   async loadAll(): Promise<void> {
-    const all = await this.backend.getAll();
+    let all: Map<string, StoredPlayer>;
+    try {
+      all = await this.backend.getAll();
+    } catch (e) {
+      if (this._usePostgres) {
+        console.warn('[PlayerStore] PostgreSQL load failed; using in-memory backend:', e);
+        this.fallbackToMemory();
+        all = await this.backend.getAll();
+      } else {
+        throw e;
+      }
+    }
     this.local = all;
   }
 
   async persist(playerId: string): Promise<void> {
     const player = this.local.get(playerId);
     if (player) {
-      await this.backend.set(playerId, player);
+      try {
+        await this.backend.set(playerId, player);
+      } catch (e) {
+        if (this._usePostgres) {
+          console.warn('[PlayerStore] PostgreSQL persist failed; using in-memory backend:', e);
+          this.fallbackToMemory();
+          await this.backend.set(playerId, player);
+        } else {
+          throw e;
+        }
+      }
     }
   }
 }
@@ -240,7 +286,7 @@ export function createPlayerStore(): PlayerStore {
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { Pool } = require('pg');
-      const pool = new Pool({ connectionString: databaseUrl });
+      const pool = new Pool(createHoloMeshPostgresPoolOptions(databaseUrl));
       const backend = new PostgresPlayerStoreBackend(pool);
       console.log('[PlayerStore] PostgreSQL backend active (multi-instance)');
       return new PlayerStore(backend, true);

@@ -17,19 +17,17 @@
 
 import type { Pool, PoolClient } from 'pg';
 import type { Team } from './types';
+import {
+  createHoloMeshPostgresPoolOptions,
+  type HoloMeshPostgresPoolOptions,
+} from './postgres-pool-options';
 
-export interface TeamStorePostgresPoolOptions {
-  connectionString: string;
-  ssl: false | { rejectUnauthorized: false };
-}
+export type TeamStorePostgresPoolOptions = HoloMeshPostgresPoolOptions;
 
 export function createTeamStorePostgresPoolOptions(
   databaseUrl: string
 ): TeamStorePostgresPoolOptions {
-  return {
-    connectionString: databaseUrl,
-    ssl: process.env.DATABASE_SSL === 'false' ? false : { rejectUnauthorized: false },
-  };
+  return createHoloMeshPostgresPoolOptions(databaseUrl);
 }
 
 // ── Schema DDL ───────────────────────────────────────────────────────────────

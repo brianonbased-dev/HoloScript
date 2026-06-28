@@ -85,7 +85,15 @@ import type { TokenStoreBackend } from './auth/token-store';
 import { PostgresTokenStore } from './auth/postgres-token-store';
 import { handleInboundGossip, HoloMeshWorldState, HoloMeshDiscovery } from './holomesh/index';
 import { applyEdgeSafeSseHeaders } from './holomesh/sse-edge-headers';
-import { initStores, teamStore, keyRegistry } from './holomesh/state';
+import {
+  initStores,
+  teamStore,
+  playerStore,
+  inviteStore,
+  geoAnchorStore,
+  stateStore,
+  keyRegistry,
+} from './holomesh/state';
 import { hydrateEmergenceFromCorpus } from './daemon-lifecycle-tools';
 import { startCiPublicWorker } from './ci-public-worker';
 import { getConsolidationBridge } from './holomesh/consolidation-bridge';
@@ -936,8 +944,14 @@ const httpServer = http.createServer(async (req, res) => {
         // wiped on every redeploy) without code-spelunking. teamStore.usesPostgres
         // reflects whether DATABASE_URL was set at boot AND pg loaded successfully.
         storage: {
-          teamStore: teamStore.usesPostgres ? 'postgres' : 'memory',
           databaseUrl: Boolean(process.env.DATABASE_URL),
+          teamStore: teamStore.usesPostgres ? 'postgres' : 'memory',
+          playerStore: playerStore.usesPostgres ? 'postgres' : 'memory',
+          inviteStore: inviteStore.usesPostgres ? 'postgres' : 'memory',
+          geoAnchorStore: geoAnchorStore.usesPostgres ? 'postgres' : 'memory',
+          stateStore: (stateStore as { usesPostgres?: boolean }).usesPostgres
+            ? 'postgres'
+            : 'memory',
         },
         sse: {
           railway: IS_RAILWAY,

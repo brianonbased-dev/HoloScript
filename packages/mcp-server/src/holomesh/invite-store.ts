@@ -11,6 +11,7 @@
 
 import type { Pool } from 'pg';
 import * as crypto from 'crypto';
+import { createHoloMeshPostgresPoolOptions } from './postgres-pool-options';
 
 // ── InviteRecord Type ─────────────────────────────────────────────────────────
 
@@ -161,21 +162,46 @@ export class PostgresInviteStoreBackend implements InviteStoreBackend {
 
 export class InviteStore {
   private backend: InviteStoreBackend;
+  private usePostgres: boolean;
 
-  constructor(backend: InviteStoreBackend) {
+  constructor(backend: InviteStoreBackend, usePostgres = false) {
     this.backend = backend;
+    this.usePostgres = usePostgres;
+  }
+
+  get usesPostgres(): boolean {
+    return this.usePostgres;
+  }
+
+  fallbackToMemory(): void {
+    this.backend = new InMemoryInviteStoreBackend();
+    this.usePostgres = false;
+  }
+
+  private async withFallback<T>(
+    label: string,
+    fn: (backend: InviteStoreBackend) => Promise<T>
+  ): Promise<T> {
+    try {
+      return await fn(this.backend);
+    } catch (e) {
+      if (!this.usePostgres) throw e;
+      console.warn(`[InviteStore] PostgreSQL ${label} failed; using in-memory backend:`, e);
+      this.fallbackToMemory();
+      return fn(this.backend);
+    }
   }
 
   async get(token: string): Promise<InviteRecord | undefined> {
-    return this.backend.get(token);
+    return this.withFallback('read', (backend) => backend.get(token));
   }
 
   async set(invite: InviteRecord): Promise<void> {
-    return this.backend.set(invite);
+    return this.withFallback('write', (backend) => backend.set(invite));
   }
 
   async listByAgent(agentId: string): Promise<InviteRecord[]> {
-    return this.backend.listByAgent(agentId);
+    return this.withFallback('list', (backend) => backend.listByAgent(agentId));
   }
 
   isExpired(invite: InviteRecord): boolean {
@@ -195,14 +221,14 @@ export function createInviteStore(): InviteStore {
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { Pool } = require('pg');
-      const pool = new Pool({ connectionString: databaseUrl });
+      const pool = new Pool(createHoloMeshPostgresPoolOptions(databaseUrl));
       const backend = new PostgresInviteStoreBackend(pool);
       console.log('[InviteStore] PostgreSQL backend active');
-      return new InviteStore(backend);
+      return new InviteStore(backend, true);
     } catch (e) {
       console.warn('[InviteStore] DATABASE_URL set but pg failed to load:', e);
     }
   }
   console.log('[InviteStore] In-memory backend (dev)');
-  return new InviteStore(new InMemoryInviteStoreBackend());
+  return new InviteStore(new InMemoryInviteStoreBackend(), false);
 }

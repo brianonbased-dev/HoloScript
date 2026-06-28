@@ -7,6 +7,7 @@
  */
 
 import type { Pool } from 'pg';
+import { createHoloMeshPostgresPoolOptions } from './postgres-pool-options';
 
 export interface GeoAnchorSafetyEnvelope {
   targetingUseProhibited: true;
@@ -169,6 +170,17 @@ export class GeoAnchorStore {
     return this.usePostgres;
   }
 
+  fallbackToMemory(): void {
+    const memory = new InMemoryGeoAnchorStoreBackend();
+    for (const [anchorId, anchor] of this.local.entries()) {
+      memory.set(anchorId, anchor).catch((e) => {
+        console.error('[GeoAnchorStore] memory fallback seed failed:', e);
+      });
+    }
+    this.backend = memory;
+    this.usePostgres = false;
+  }
+
   get size(): number {
     return this.local.size;
   }
@@ -178,7 +190,18 @@ export class GeoAnchorStore {
   }
 
   async getFresh(anchorId: string): Promise<StoredGeoAnchor | undefined> {
-    const anchor = await this.backend.get(anchorId);
+    let anchor: StoredGeoAnchor | undefined;
+    try {
+      anchor = await this.backend.get(anchorId);
+    } catch (e) {
+      if (this.usePostgres) {
+        console.warn('[GeoAnchorStore] PostgreSQL read failed; using in-memory backend:', e);
+        this.fallbackToMemory();
+        anchor = await this.backend.get(anchorId);
+      } else {
+        throw e;
+      }
+    }
     if (anchor) {
       this.local.set(anchorId, anchor);
       return anchor;
@@ -196,7 +219,17 @@ export class GeoAnchorStore {
 
   async setDurable(anchorId: string, anchor: StoredGeoAnchor): Promise<this> {
     this.local.set(anchorId, anchor);
-    await this.backend.set(anchorId, anchor);
+    try {
+      await this.backend.set(anchorId, anchor);
+    } catch (e) {
+      if (this.usePostgres) {
+        console.warn('[GeoAnchorStore] PostgreSQL write failed; using in-memory backend:', e);
+        this.fallbackToMemory();
+        await this.backend.set(anchorId, anchor);
+      } else {
+        throw e;
+      }
+    }
     return this;
   }
 
@@ -204,6 +237,7 @@ export class GeoAnchorStore {
     const had = this.local.delete(anchorId);
     this.backend.delete(anchorId).catch((e) => {
       console.error('[GeoAnchorStore] backend delete failed:', e);
+      if (this.usePostgres) this.fallbackToMemory();
     });
     return had;
   }
@@ -216,6 +250,7 @@ export class GeoAnchorStore {
     this.local.clear();
     this.backend.clear().catch((e) => {
       console.error('[GeoAnchorStore] backend clear failed:', e);
+      if (this.usePostgres) this.fallbackToMemory();
     });
   }
 
@@ -239,7 +274,18 @@ export class GeoAnchorStore {
     const ephemeral = Array.from(this.local.entries()).filter(
       ([, anchor]) => anchor.persistent === false
     );
-    const all = await this.backend.getAll();
+    let all: Map<string, StoredGeoAnchor>;
+    try {
+      all = await this.backend.getAll();
+    } catch (e) {
+      if (this.usePostgres) {
+        console.warn('[GeoAnchorStore] PostgreSQL load failed; using in-memory backend:', e);
+        this.fallbackToMemory();
+        all = await this.backend.getAll();
+      } else {
+        throw e;
+      }
+    }
     for (const [id, anchor] of ephemeral) {
       all.set(id, anchor);
     }
@@ -253,7 +299,7 @@ export function createGeoAnchorStore(): GeoAnchorStore {
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { Pool } = require('pg');
-      const pool = new Pool({ connectionString: databaseUrl });
+      const pool = new Pool(createHoloMeshPostgresPoolOptions(databaseUrl));
       const backend = new PostgresGeoAnchorStoreBackend(pool);
       console.log('[GeoAnchorStore] PostgreSQL backend active (multi-instance)');
       return new GeoAnchorStore(backend, true);
