@@ -1,13 +1,12 @@
-export interface HoloMeshPostgresPoolOptions {
-  connectionString: string;
-  ssl: false | { rejectUnauthorized: false };
-}
+import {
+  createRailwayPostgresPoolOptions,
+  type RailwayPostgresPoolOptions,
+} from '../postgres-pool-options';
+
+export type HoloMeshPostgresPoolOptions = RailwayPostgresPoolOptions;
 
 export function createHoloMeshPostgresPoolOptions(
   databaseUrl: string
 ): HoloMeshPostgresPoolOptions {
-  return {
-    connectionString: databaseUrl,
-    ssl: process.env.DATABASE_SSL === 'false' ? false : { rejectUnauthorized: false },
-  };
+  return createRailwayPostgresPoolOptions(databaseUrl);
 }

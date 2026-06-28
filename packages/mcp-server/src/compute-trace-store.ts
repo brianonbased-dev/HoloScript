@@ -49,6 +49,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import {
+  createRailwayPostgresPoolOptions,
+  type RailwayPostgresPoolOptions,
+} from './postgres-pool-options';
 
 // ── Data dir (same root the rest of mcp-server persists under) ────────────────
 //
@@ -146,6 +150,14 @@ interface PgLike {
   ) => Promise<{ rows: Array<{ data: ComputeTraceRecord }> }>;
 }
 
+export type ComputeTracePostgresPoolOptions = RailwayPostgresPoolOptions;
+
+export function createComputeTracePostgresPoolOptions(
+  databaseUrl: string
+): ComputeTracePostgresPoolOptions {
+  return createRailwayPostgresPoolOptions(databaseUrl);
+}
+
 const COMPUTE_SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS compute_trace_corpus (
   id          BIGSERIAL PRIMARY KEY,
@@ -168,8 +180,10 @@ function maybeInitPg(): void {
   if (!databaseUrl) return;
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { Pool } = require('pg') as { Pool: new (cfg: { connectionString: string }) => PgLike };
-    const pool = new Pool({ connectionString: databaseUrl });
+    const { Pool } = require('pg') as {
+      Pool: new (cfg: ComputeTracePostgresPoolOptions) => PgLike;
+    };
+    const pool = new Pool(createComputeTracePostgresPoolOptions(databaseUrl));
     pgPool = pool;
     pgReady = pool
       .query(COMPUTE_SCHEMA_SQL)

@@ -45,6 +45,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import {
+  createRailwayPostgresPoolOptions,
+  type RailwayPostgresPoolOptions,
+} from './postgres-pool-options';
 
 // ── Data dir (same root the rest of mcp-server persists under) ────────────────
 //
@@ -115,6 +119,14 @@ interface PgLike {
   query: (sql: string, params?: unknown[]) => Promise<{ rows: Array<{ data: EmergenceRecord }> }>;
 }
 
+export type DaemonEmergencePostgresPoolOptions = RailwayPostgresPoolOptions;
+
+export function createDaemonEmergencePostgresPoolOptions(
+  databaseUrl: string
+): DaemonEmergencePostgresPoolOptions {
+  return createRailwayPostgresPoolOptions(databaseUrl);
+}
+
 const EMERGENCE_SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS daemon_emergence_corpus (
   id          BIGSERIAL PRIMARY KEY,
@@ -136,8 +148,10 @@ function maybeInitPg(): void {
   if (!databaseUrl) return;
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { Pool } = require('pg') as { Pool: new (cfg: { connectionString: string }) => PgLike };
-    const pool = new Pool({ connectionString: databaseUrl });
+    const { Pool } = require('pg') as {
+      Pool: new (cfg: DaemonEmergencePostgresPoolOptions) => PgLike;
+    };
+    const pool = new Pool(createDaemonEmergencePostgresPoolOptions(databaseUrl));
     pgPool = pool;
     pgReady = pool
       .query(EMERGENCE_SCHEMA_SQL)
