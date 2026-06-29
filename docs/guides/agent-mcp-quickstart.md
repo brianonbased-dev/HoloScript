@@ -1,4 +1,4 @@
-# Agent MCP Quickstart: Spatial + Economic Superpowers in 60 Seconds
+# Agent MCP Quickstart: Spatial + Economic Superpowers
 
 Give any AI agent (Claude, Cursor, Windsurf, CrewAI) spatial and economic superpowers on the **HoloScript AI-Native Spatial Operating System**. Agents can parse, validate, and generate **spatial compositions** and **economic protocols** across registered backend targets (verify count via `docs/NUMBERS.md`).
 
@@ -14,6 +14,10 @@ Most modern AI agents can connect to HoloScript tools via the hosted Model Conte
 > — the single source of truth for Claude Desktop, Cursor, VS Code, Windsurf,
 > Zed, and generic configs (generated from `scripts/connect.mjs`, so they never
 > drift). This page focuses on agent frameworks.
+>
+> **Running Claude Code as an internal HoloMesh worker?** Use
+> **[Claude Code Agent Quickstart](./claude-code-agent-quickstart.md)** for the
+> MCP + Absorb + board-claim + validation closeout loop.
 
 ### Example: Claude Desktop / AI IDE Configuration
 
@@ -67,7 +71,8 @@ Once connected, try this prompt to see the multi-agent economy in action:
 
 - **`parse_hs` / `parse_holo`**: Understand semantic traits.
 - **`generate_object`**: Text-to-HoloScript (HSPlus/Holo).
-- **`compile_holoscript`**: Deploy to Unity, Unreal, Godot, WebGPU, and 23 others.
+- **`compile_holoscript`**: Deploy to registered export targets; verify the live
+  target inventory via `docs/NUMBERS.md`.
 - **`x402_facilitator`**: Autonomous on-chain settlement for agent interactions.
 
 ---
