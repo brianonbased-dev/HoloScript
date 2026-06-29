@@ -31,8 +31,10 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { parseHolo } from '../../../packages/core/src/parser/HoloCompositionParser';
-import { R3FCompiler } from '../../../packages/core/src/compiler/R3FCompiler';
-import type { R3FNode } from '../../../packages/core/src/compiler/r3f';
+import {
+  SceneIRCompiler as R3FCompiler,
+  type R3FNode,
+} from '../../../packages/core/src/compiler/SceneIRCompiler';
 import {
   buildLotusSceneFromComposition,
   createBotanicalLotusRenderProfile,
