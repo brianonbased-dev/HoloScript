@@ -3,6 +3,10 @@
   "version": "6.1.3",
   "description": "Reusable VR/WebXR embodiment for HoloScript — user locomotion and agent-NPC avatars in one shared spatial world.",
   "type": "module",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -23,11 +27,36 @@
       "require": "./dist/react/index.cjs"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "holoscript",
+    "xr",
+    "webxr",
+    "vr",
+    "embodiment",
+    "avatar",
+    "three",
+    "react-three-fiber"
+  ],
+  "author": "Brian X Base Team",
+  "homepage": "https://holoscript.net",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/xr-embodiment"
+  },
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "peerDependencies": {
     "three": "^0.182.0",

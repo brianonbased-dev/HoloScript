@@ -17,6 +17,7 @@
     "@holoscript/framework",
     "@holoscript/holo-vm",
     "@holoscript/holoembed",
+    "@holoscript/holoscript-agent",
     "@holoscript/hololand-platform",
     "@holoscript/holomap",
     "@holoscript/linter",
@@ -41,6 +42,7 @@
     "@holoscript/ui",
     "@holoscript/visual",
     "@holoscript/wasm",
+    "@holoscript/xr-embodiment",
     "create-holoscript",
     "holoscript-vscode",
     "tree-sitter-holoscript"

@@ -335,6 +335,7 @@ HoloScript release lanes are managed under `scripts/version-policy.json`, and np
 - Use `pnpm release:publish` for production publish flows.
 - Raw `pnpm publish` at repo root is intentionally blocked.
 - Guard checks run via `node scripts/release-guard.js` (git cleanliness, strict version policy, private package rules, semver validation, and tag awareness).
+- npm v1 publish readiness is explicit in [`docs/handbooks/npm-v1-release-readiness.md`](./docs/handbooks/npm-v1-release-readiness.md) and `scripts/holo-ci/npm-v1-release-manifest.json`; run `corepack pnpm run check:npm-v1-release` before publish.
 
 ## Links
 

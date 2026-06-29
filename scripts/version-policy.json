@@ -13,6 +13,7 @@
         "@holoscript/cli",
         "@holoscript/core",
         "@holoscript/holo-vm",
+        "@holoscript/mcp-server",
         "@holoscript/snn-webgpu",
         "@holoscript/uaal"
       ]
@@ -33,14 +34,14 @@
         "@holoscript/framework",
         "@holoscript/hololand-platform",
         "@holoscript/holoembed",
-        "@holoscript/mcp-server",
         "@holoscript/mesh",
         "@holoscript/platform",
         "@holoscript/r3f-renderer",
         "@holoscript/runtime",
         "@holoscript/sdk",
         "@holoscript/secrets-broker",
-        "@holoscript/studio"
+        "@holoscript/studio",
+        "@holoscript/xr-embodiment"
       ]
     },
     {

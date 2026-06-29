@@ -1,0 +1,49 @@
+# npm v1 Release Readiness
+
+HoloScript npm publishing is green-lit by an explicit candidate set, not by every
+workspace package that happens to be public. The candidate set lives in
+`scripts/holo-ci/npm-v1-release-manifest.json`.
+
+## V0 vs V1
+
+- V0 package: installable or useful for internal agents, but not yet promised as
+  a stable cold-consume surface.
+- V1 package: a package a fresh user or agent can install from npm, import or run
+  from documented entrypoints, and trust as part of the public HoloScript runway.
+
+V1 candidates must have npm metadata, a bounded `files[]` surface, built
+entrypoints, non-private runtime dependencies, and registry versions that will
+not strand public installers on unpublished `@holoscript/*` pins.
+
+## Green-Light Flow
+
+Run these before publish:
+
+```bash
+corepack pnpm run check:publish-surface
+corepack pnpm run check:npm-v1-release
+corepack pnpm build
+corepack pnpm run check:npm-v1-release:built
+corepack pnpm release:guard
+node scripts/audit-published-install-tree.mjs @holoscript/cli@latest
+```
+
+`corepack pnpm` is intentional on local Codex seats because this repo pins
+`pnpm@9.15.9`; a newer global pnpm can try to rewrite or purge the install tree.
+
+Use `corepack pnpm release:publish` only after those checks are green. The root
+`publish` script stays blocked so raw `pnpm publish` cannot bypass the gates.
+
+## Current Candidate Lane
+
+The first v1 npm lane is intentionally small:
+
+- `@holoscript/core`: language core and cold importer surface.
+- `@holoscript/cli`: `holoscript` and `hs` binary.
+- `@holoscript/mcp-server`: agent MCP package for universal use.
+- `@holoscript/holoscript-agent`: headless HoloMesh agent runtime.
+- `@holoscript/xr-embodiment`: reusable VR/WebXR embodiment layer.
+
+Packages outside the manifest can still exist, build, or be published later, but
+they are not green-lit by this lane until they are added intentionally and pass
+the same checks.

@@ -1,0 +1,32 @@
+{
+  "schema": "holoscript.npm-v1-release-readiness/v1",
+  "_comment": "Explicit npm v1 release candidate set. Packages here must pass manifest, built-entry, dependency-closure, and registry-version checks before publish.",
+  "candidatePackages": [
+    {
+      "name": "@holoscript/core",
+      "role": "language-core",
+      "v1Intent": "Parser, AST, traits, compilers, and runtime entrypoints for cold consumers."
+    },
+    {
+      "name": "@holoscript/cli",
+      "role": "user-cli",
+      "v1Intent": "Installable holoscript/hs binary for users and agents."
+    },
+    {
+      "name": "@holoscript/mcp-server",
+      "role": "agent-mcp",
+      "v1Intent": "MCP server package for universal agent access to HoloScript."
+    },
+    {
+      "name": "@holoscript/holoscript-agent",
+      "role": "headless-agent-runtime",
+      "v1Intent": "Headless HoloMesh agent runtime package."
+    },
+    {
+      "name": "@holoscript/xr-embodiment",
+      "role": "xr-embodiment",
+      "allowFirstPublish": true,
+      "v1Intent": "Reusable VR/WebXR embodiment layer for users and agents in shared spatial worlds."
+    }
+  ]
+}
