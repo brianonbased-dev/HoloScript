@@ -1,0 +1,78 @@
+// Microsoft Foundry Toolbox adapter contract.
+// Phase 1 only: expose selected HoloScript MCP tools through a Foundry Toolbox-shaped boundary.
+
+@foundry_toolbox_adapter {
+  id: "holoscript-foundry-toolbox-v0"
+  source_gap: "CG-023"
+  board_task: "task_1782773705817_t3pk"
+  phase: "phase_1_contract"
+  foundry_surface: "toolbox_mcp_endpoint"
+  endpoint_shape: "single_mcp_compatible_endpoint"
+
+  exposed_tools: [
+    {
+      holoscript_tool: "validate_holoscript"
+      foundry_tool_name: "holoscript_validate"
+      scope: "tools:read"
+      receipt_policy: "validation_receipt"
+    },
+    {
+      holoscript_tool: "compile_holoscript"
+      foundry_tool_name: "holoscript_compile"
+      scope: "tools:write"
+      receipt_policy: "compile_receipt"
+    },
+    {
+      holoscript_tool: "holo_query_codebase"
+      foundry_tool_name: "holoscript_codebase_query"
+      scope: "tools:codebase"
+      receipt_policy: "graph_query_receipt"
+    },
+    {
+      holoscript_tool: "holo_generate_refactor_plan"
+      foundry_tool_name: "holoscript_refactor_plan"
+      scope: "tools:write"
+      receipt_policy: "refactor_plan_receipt"
+    },
+    {
+      holoscript_tool: "conformance_check_artifact"
+      foundry_tool_name: "holoscript_conformance_check"
+      scope: "tools:read"
+      receipt_policy: "conformance_report"
+    },
+    {
+      holoscript_tool: "verify_cael_trace"
+      foundry_tool_name: "holoscript_verify_cael_trace"
+      scope: "tools:read"
+      receipt_policy: "cael_verification_receipt"
+    }
+  ]
+
+  evidence_receipt_fields: [
+    "cael_trace_id",
+    "trace_jsonl_sha256",
+    "verify_url",
+    "conformance_report_id",
+    "evaluation_score",
+    "holo_sig_agent_fingerprint",
+    "x402_receipt_id",
+    "tool_invocation_id",
+    "source_manifest_sha256"
+  ]
+
+  identity_boundary: {
+    foundry_identity: "Entra Agent ID or Agent Application identity invokes the external MCP endpoint"
+    holoscript_identity: "HoloKey x402 signer and CAEL trace remain the source-of-truth provenance"
+    token_exchange: "scoped per tool call; secret values never appear in the toolbox manifest"
+    audit_join_key: "tool_invocation_id"
+  }
+
+  non_goals: [
+    "azure_deployment",
+    "paid_cloud_spend",
+    "hosted_agent_container",
+    "m365_copilot_publication",
+    "agent365_production_registration",
+    "production_readiness_claim"
+  ]
+}
