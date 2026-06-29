@@ -1,21 +1,21 @@
 {
-  "id": "source-owned-full",
+  "id": "r3f-baseline-source-owned",
   "contractVersion": "holoscript.native-render-contract.v1",
-  "title": "Source-owned native render chain covers R3F baseline semantics before any adapter",
+  "title": "R3F baseline semantics are source-owned before the React Three Fiber adapter",
   "source": {
-    "path": "fixtures/native-render/source-owned-studio-room.holo",
+    "path": "fixtures/native-render/r3f-baseline-scene.holo",
     "language": "holo",
-    "sha256": "golden-source-owned-full"
+    "sha256": "golden-r3f-baseline-source-owned"
   },
   "chain": [
     {
       "stage": "source",
-      "path": "fixtures/native-render/source-owned-studio-room.holo",
+      "path": "fixtures/native-render/r3f-baseline-scene.holo",
       "producedBy": "author"
     },
     {
       "stage": "semantic-ir",
-      "path": "fixtures/native-render/source-owned-studio-room.semantic-ir.json",
+      "path": "fixtures/native-render/r3f-baseline-scene.semantic-ir.json",
       "producedBy": "HoloScript semantic lowering"
     },
     {
@@ -25,8 +25,9 @@
     },
     {
       "stage": "backend-adapter",
-      "path": "packages/engine/src/rendering/webgpu/WebGPURenderer.ts",
-      "producedBy": "WebGPU backend adapter"
+      "path": "packages/r3f-renderer/src/components/MeshNode.tsx",
+      "producedBy": "React Three Fiber adapter",
+      "foreignRenderer": "r3f"
     }
   ],
   "semantics": [
@@ -34,239 +35,239 @@
       "key": "camera",
       "ownerStage": "source",
       "declaredIn": {
-        "path": "fixtures/native-render/source-owned-studio-room.holo",
+        "path": "fixtures/native-render/r3f-baseline-scene.holo",
         "language": "holo"
       },
       "loweredTo": {
-        "path": "fixtures/native-render/source-owned-studio-room.semantic-ir.json",
+        "path": "fixtures/native-render/r3f-baseline-scene.semantic-ir.json",
         "node": "camera.main"
       },
       "enforcedBy": {
         "path": "packages/holo-vm/src/render/native-renderer.ts",
         "runtime": "HoloVM"
       },
-      "evidence": ["camera projects origin to framebuffer center"]
+      "evidence": ["R3F canvas receives a camera packet already lowered from HoloScript"]
     },
     {
       "key": "sceneGraph",
       "ownerStage": "source",
       "declaredIn": {
-        "path": "fixtures/native-render/source-owned-studio-room.holo",
+        "path": "fixtures/native-render/r3f-baseline-scene.holo",
         "language": "holo"
       },
       "loweredTo": {
-        "path": "fixtures/native-render/source-owned-studio-room.semantic-ir.json",
+        "path": "fixtures/native-render/r3f-baseline-scene.semantic-ir.json",
         "node": "scene.entities"
       },
       "enforcedBy": {
         "path": "packages/holo-vm/src/executor.ts",
         "runtime": "HoloVM"
       },
-      "evidence": ["entity parent/child graph is present before adapter load"]
+      "evidence": ["MeshNode receives parent/child node data instead of creating graph semantics"]
     },
     {
       "key": "light",
       "ownerStage": "source",
       "declaredIn": {
-        "path": "fixtures/native-render/source-owned-studio-room.holo",
+        "path": "fixtures/native-render/r3f-baseline-scene.holo",
         "language": "holo"
       },
       "loweredTo": {
-        "path": "fixtures/native-render/source-owned-studio-room.semantic-ir.json",
-        "node": "lights.keyLight"
+        "path": "fixtures/native-render/r3f-baseline-scene.semantic-ir.json",
+        "node": "lights.key"
       },
       "enforcedBy": {
         "path": "packages/holo-vm/src/render/native-renderer.ts",
         "runtime": "HoloVM"
       },
-      "evidence": ["directional light intensity and color are in the native render packet"]
+      "evidence": ["light type, color, and intensity are runtime data before JSX projection"]
     },
     {
       "key": "geometry",
       "ownerStage": "source",
       "declaredIn": {
-        "path": "fixtures/native-render/source-owned-studio-room.holo",
+        "path": "fixtures/native-render/r3f-baseline-scene.holo",
         "language": "holo"
       },
       "loweredTo": {
-        "path": "fixtures/native-render/source-owned-studio-room.semantic-ir.json",
-        "node": "geometry.heroPanel"
+        "path": "fixtures/native-render/r3f-baseline-scene.semantic-ir.json",
+        "node": "geometry.heroMesh"
       },
       "enforcedBy": {
         "path": "packages/holo-vm/src/bytecode.ts",
         "runtime": "HoloVM"
       },
-      "evidence": ["mesh primitive is encoded before backend-specific JSX exists"]
+      "evidence": ["MeshNode chooses a primitive from native node props, not handwritten JSX intent"]
     },
     {
       "key": "material",
       "ownerStage": "source",
       "declaredIn": {
-        "path": "fixtures/native-render/source-owned-studio-room.holo",
+        "path": "fixtures/native-render/r3f-baseline-scene.holo",
         "language": "holo"
       },
       "loweredTo": {
-        "path": "fixtures/native-render/source-owned-studio-room.semantic-ir.json",
-        "node": "materials.heroPanel"
+        "path": "fixtures/native-render/r3f-baseline-scene.semantic-ir.json",
+        "node": "materials.heroPbr"
       },
       "enforcedBy": {
         "path": "packages/holo-vm/src/render/native-renderer.ts",
         "runtime": "HoloVM"
       },
-      "evidence": ["packed PBR color is decoded by native renderer"]
+      "evidence": ["R3F material props are projection of native PBR material receipt"]
     },
     {
       "key": "transform",
       "ownerStage": "source",
       "declaredIn": {
-        "path": "fixtures/native-render/source-owned-studio-room.holo",
+        "path": "fixtures/native-render/r3f-baseline-scene.holo",
         "language": "holo"
       },
       "loweredTo": {
-        "path": "fixtures/native-render/source-owned-studio-room.semantic-ir.json",
-        "node": "transforms.heroPanel"
+        "path": "fixtures/native-render/r3f-baseline-scene.semantic-ir.json",
+        "node": "transforms.heroMesh"
       },
       "enforcedBy": {
         "path": "packages/holo-vm/src/executor.ts",
         "runtime": "HoloVM"
       },
-      "evidence": ["position/rotation/scale are VM transform components before adapter load"]
+      "evidence": ["position, rotation, and scale are VM transform components before MeshNode"]
     },
     {
       "key": "interaction",
       "ownerStage": "source",
       "declaredIn": {
-        "path": "fixtures/native-render/source-owned-studio-room.holo",
+        "path": "fixtures/native-render/r3f-baseline-scene.holo",
         "language": "holo"
       },
       "loweredTo": {
-        "path": "fixtures/native-render/source-owned-studio-room.semantic-ir.json",
-        "node": "interactions.grab"
+        "path": "fixtures/native-render/r3f-baseline-scene.semantic-ir.json",
+        "node": "interactions.selectHero"
       },
       "enforcedBy": {
         "path": "packages/holo-vm/src/executor.ts",
         "runtime": "HoloVM"
       },
-      "evidence": ["interaction event binding exists in bytecode event table"]
+      "evidence": ["onSelect only forwards a source-declared interaction"]
     },
     {
       "key": "event",
       "ownerStage": "source",
       "declaredIn": {
-        "path": "fixtures/native-render/source-owned-studio-room.holo",
+        "path": "fixtures/native-render/r3f-baseline-scene.holo",
         "language": "holo"
       },
       "loweredTo": {
-        "path": "fixtures/native-render/source-owned-studio-room.semantic-ir.json",
-        "node": "events.activatePanel"
+        "path": "fixtures/native-render/r3f-baseline-scene.semantic-ir.json",
+        "node": "events.pointerSelect"
       },
       "enforcedBy": {
         "path": "packages/holo-vm/src/executor.ts",
         "runtime": "HoloVM"
       },
-      "evidence": ["event dispatch table is generated from source logic before R3F callbacks"]
+      "evidence": ["pointer callbacks dispatch native event names instead of owning behavior"]
     },
     {
       "key": "timing",
       "ownerStage": "source",
       "declaredIn": {
-        "path": "fixtures/native-render/source-owned-studio-room.holo",
+        "path": "fixtures/native-render/r3f-baseline-scene.holo",
         "language": "holo"
       },
       "loweredTo": {
-        "path": "fixtures/native-render/source-owned-studio-room.semantic-ir.json",
+        "path": "fixtures/native-render/r3f-baseline-scene.semantic-ir.json",
         "node": "timing.frameClock"
       },
       "enforcedBy": {
         "path": "packages/holo-vm/src/executor.ts",
         "runtime": "HoloVM"
       },
-      "evidence": ["timer opcode owns delayed handler schedule"]
+      "evidence": ["R3F frame callbacks consume native timing rather than defining it"]
     },
     {
       "key": "animation",
       "ownerStage": "source",
       "declaredIn": {
-        "path": "fixtures/native-render/source-owned-studio-room.holo",
+        "path": "fixtures/native-render/r3f-baseline-scene.holo",
         "language": "holo"
       },
       "loweredTo": {
-        "path": "fixtures/native-render/source-owned-studio-room.semantic-ir.json",
-        "node": "animation.heroPulse"
+        "path": "fixtures/native-render/r3f-baseline-scene.semantic-ir.json",
+        "node": "animation.heroLoop"
       },
       "enforcedBy": {
         "path": "packages/holo-vm/src/executor.ts",
         "runtime": "HoloVM"
       },
-      "evidence": ["animation timeline is source-owned rather than introduced in useFrame"]
+      "evidence": ["keyframes are source data consumed by useKeyframeAnimation"]
     },
     {
       "key": "input",
       "ownerStage": "source",
       "declaredIn": {
-        "path": "fixtures/native-render/source-owned-studio-room.holo",
+        "path": "fixtures/native-render/r3f-baseline-scene.holo",
         "language": "holo"
       },
       "loweredTo": {
-        "path": "fixtures/native-render/source-owned-studio-room.semantic-ir.json",
-        "node": "input.handPose"
+        "path": "fixtures/native-render/r3f-baseline-scene.semantic-ir.json",
+        "node": "input.pointer"
       },
       "enforcedBy": {
         "path": "packages/holo-vm/src/executor.ts",
         "runtime": "HoloVM"
       },
-      "evidence": ["XR_INPUT is a host opcode requested by VM bytecode"]
+      "evidence": ["pointer/controller inputs are canonicalized before adapter event props"]
     },
     {
       "key": "asset",
       "ownerStage": "source",
       "declaredIn": {
-        "path": "fixtures/native-render/source-owned-studio-room.holo",
+        "path": "fixtures/native-render/r3f-baseline-scene.holo",
         "language": "holo"
       },
       "loweredTo": {
-        "path": "fixtures/native-render/source-owned-studio-room.semantic-ir.json",
-        "node": "assets.heroMesh"
+        "path": "fixtures/native-render/r3f-baseline-scene.semantic-ir.json",
+        "node": "assets.heroTexture"
       },
       "enforcedBy": {
         "path": "packages/holo-vm/src/bytecode.ts",
         "runtime": "HoloVM"
       },
-      "evidence": ["asset table records URI and type before backend resolution"]
+      "evidence": ["texture and mesh asset refs are in the VM asset table before R3F loaders"]
     },
     {
       "key": "xr",
       "ownerStage": "source",
       "declaredIn": {
-        "path": "fixtures/native-render/source-owned-studio-room.holo",
+        "path": "fixtures/native-render/r3f-baseline-scene.holo",
         "language": "holo"
       },
       "loweredTo": {
-        "path": "fixtures/native-render/source-owned-studio-room.semantic-ir.json",
+        "path": "fixtures/native-render/r3f-baseline-scene.semantic-ir.json",
         "node": "xr.session"
       },
       "enforcedBy": {
         "path": "packages/holo-vm/src/executor.ts",
         "runtime": "HoloVM"
       },
-      "evidence": ["XR semantic is represented before WebXR adapter attachment"]
+      "evidence": ["XR reference-space requirements exist before @react-three/xr attachment"]
     },
     {
       "key": "lifecycle",
       "ownerStage": "source",
       "declaredIn": {
-        "path": "fixtures/native-render/source-owned-studio-room.holo",
+        "path": "fixtures/native-render/r3f-baseline-scene.holo",
         "language": "holo"
       },
       "loweredTo": {
-        "path": "fixtures/native-render/source-owned-studio-room.semantic-ir.json",
+        "path": "fixtures/native-render/r3f-baseline-scene.semantic-ir.json",
         "node": "lifecycle.scene"
       },
       "enforcedBy": {
         "path": "packages/holo-vm/src/executor.ts",
         "runtime": "HoloVM"
       },
-      "evidence": ["scene mount/update/unmount lifecycle is represented before adapter effects"]
+      "evidence": ["mount/update/unmount lifecycle is native state before React effects"]
     }
   ]
 }

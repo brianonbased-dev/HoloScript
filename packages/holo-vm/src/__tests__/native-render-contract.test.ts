@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   NATIVE_RENDER_SEMANTICS,
+  R3F_BASELINE_RENDER_SEMANTICS,
   assertNativeRenderFixture,
   evaluateNativeRenderFixture,
   type NativeRenderContractFailure,
@@ -30,6 +31,28 @@ describe('native render contract golden fixtures', () => {
     expect(receipt.coveredSemantics).toEqual([...NATIVE_RENDER_SEMANTICS]);
   });
 
+  it('accepts R3F only as a backend adapter after baseline semantics are source-owned', () => {
+    const fixture = loadFixture('r3f-baseline-source-owned');
+    const receipt = assertNativeRenderFixture(fixture);
+    const covered = new Set(receipt.coveredSemantics);
+
+    expect(receipt.ok).toBe(true);
+    expect(R3F_BASELINE_RENDER_SEMANTICS.every((semantic) => covered.has(semantic))).toBe(true);
+    expect(fixture.chain[fixture.chain.length - 1]).toMatchObject({
+      stage: 'backend-adapter',
+      foreignRenderer: 'r3f',
+      path: 'packages/r3f-renderer/src/components/MeshNode.tsx',
+    });
+
+    for (const semantic of R3F_BASELINE_RENDER_SEMANTICS) {
+      const claim = fixture.semantics.find((entry) => entry.key === semantic);
+      expect(claim?.ownerStage).not.toBe('backend-adapter');
+      expect(claim?.declaredIn.path).toMatch(/\.(holo|hsplus|hs)$/);
+      expect(claim?.loweredTo).toBeDefined();
+      expect(claim?.enforcedBy).toBeDefined();
+    }
+  });
+
   it.each([
     ['adapter-interaction-only', 'interaction'],
     ['adapter-timing-only', 'timing'],
@@ -40,6 +63,25 @@ describe('native render contract golden fixtures', () => {
     expect(receipt.ok).toBe(false);
     expect(failureFor(receipt.failures, 'ADAPTER_OWNED_SEMANTIC', semantic)).toBeDefined();
     expect(failureFor(receipt.failures, 'SEMANTIC_NOT_DECLARED_IN_NATIVE_SOURCE', semantic)).toBeDefined();
+  });
+
+  it('rejects an R3F baseline semantic when JSX becomes the owner', () => {
+    const fixture = loadFixture('r3f-baseline-source-owned');
+    const geometry = fixture.semantics.find((claim) => claim.key === 'geometry');
+    expect(geometry).toBeDefined();
+    geometry!.ownerStage = 'backend-adapter';
+    geometry!.declaredIn = {
+      path: 'packages/r3f-renderer/src/components/MeshNode.tsx',
+      language: 'holo',
+    };
+
+    const receipt = evaluateNativeRenderFixture(fixture);
+
+    expect(receipt.ok).toBe(false);
+    expect(failureFor(receipt.failures, 'ADAPTER_OWNED_SEMANTIC', 'geometry')).toBeDefined();
+    expect(
+      failureFor(receipt.failures, 'SEMANTIC_NOT_DECLARED_IN_NATIVE_SOURCE', 'geometry')
+    ).toBeDefined();
   });
 
   it('rejects a fixture when a foreign renderer appears before the backend adapter stage', () => {

@@ -58,6 +58,7 @@ export {
   NATIVE_RENDER_CONTRACT_VERSION,
   NATIVE_RENDER_CHAIN_STAGES,
   NATIVE_RENDER_SEMANTICS,
+  R3F_BASELINE_RENDER_SEMANTICS,
   assertNativeRenderFixture,
   evaluateNativeRenderFixture,
 } from './render/native-render-contract';

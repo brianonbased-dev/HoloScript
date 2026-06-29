@@ -12,13 +12,30 @@ export const NATIVE_RENDER_CONTRACT_VERSION = 'holoscript.native-render-contract
 export const NATIVE_RENDER_SEMANTICS = [
   'camera',
   'sceneGraph',
+  'light',
+  'geometry',
   'material',
+  'transform',
   'interaction',
+  'event',
   'timing',
+  'animation',
   'input',
   'asset',
   'xr',
+  'lifecycle',
 ] as const;
+
+export const R3F_BASELINE_RENDER_SEMANTICS = [
+  'camera',
+  'light',
+  'geometry',
+  'material',
+  'transform',
+  'event',
+  'animation',
+  'lifecycle',
+] as const satisfies readonly NativeRenderSemantic[];
 
 export const NATIVE_RENDER_CHAIN_STAGES = [
   'source',
