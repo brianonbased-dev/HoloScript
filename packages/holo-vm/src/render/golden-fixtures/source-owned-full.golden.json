@@ -1,0 +1,170 @@
+{
+  "id": "source-owned-full",
+  "contractVersion": "holoscript.native-render-contract.v1",
+  "title": "Source-owned native render chain covers camera, graph, material, interaction, timing, input, asset, and XR",
+  "source": {
+    "path": "fixtures/native-render/source-owned-studio-room.holo",
+    "language": "holo",
+    "sha256": "golden-source-owned-full"
+  },
+  "chain": [
+    {
+      "stage": "source",
+      "path": "fixtures/native-render/source-owned-studio-room.holo",
+      "producedBy": "author"
+    },
+    {
+      "stage": "semantic-ir",
+      "path": "fixtures/native-render/source-owned-studio-room.semantic-ir.json",
+      "producedBy": "HoloScript semantic lowering"
+    },
+    {
+      "stage": "holo-runtime",
+      "path": "packages/holo-vm/src/render/native-renderer.ts",
+      "producedBy": "NativeHoloRenderer"
+    },
+    {
+      "stage": "backend-adapter",
+      "path": "packages/engine/src/rendering/webgpu/WebGPURenderer.ts",
+      "producedBy": "WebGPU backend adapter"
+    }
+  ],
+  "semantics": [
+    {
+      "key": "camera",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/source-owned-studio-room.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/source-owned-studio-room.semantic-ir.json",
+        "node": "camera.main"
+      },
+      "enforcedBy": {
+        "path": "packages/holo-vm/src/render/native-renderer.ts",
+        "runtime": "HoloVM"
+      },
+      "evidence": ["camera projects origin to framebuffer center"]
+    },
+    {
+      "key": "sceneGraph",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/source-owned-studio-room.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/source-owned-studio-room.semantic-ir.json",
+        "node": "scene.entities"
+      },
+      "enforcedBy": {
+        "path": "packages/holo-vm/src/executor.ts",
+        "runtime": "HoloVM"
+      },
+      "evidence": ["entity parent/child graph is present before adapter load"]
+    },
+    {
+      "key": "material",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/source-owned-studio-room.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/source-owned-studio-room.semantic-ir.json",
+        "node": "materials.heroPanel"
+      },
+      "enforcedBy": {
+        "path": "packages/holo-vm/src/render/native-renderer.ts",
+        "runtime": "HoloVM"
+      },
+      "evidence": ["packed PBR color is decoded by native renderer"]
+    },
+    {
+      "key": "interaction",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/source-owned-studio-room.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/source-owned-studio-room.semantic-ir.json",
+        "node": "interactions.grab"
+      },
+      "enforcedBy": {
+        "path": "packages/holo-vm/src/executor.ts",
+        "runtime": "HoloVM"
+      },
+      "evidence": ["interaction event binding exists in bytecode event table"]
+    },
+    {
+      "key": "timing",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/source-owned-studio-room.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/source-owned-studio-room.semantic-ir.json",
+        "node": "timing.frameClock"
+      },
+      "enforcedBy": {
+        "path": "packages/holo-vm/src/executor.ts",
+        "runtime": "HoloVM"
+      },
+      "evidence": ["timer opcode owns delayed handler schedule"]
+    },
+    {
+      "key": "input",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/source-owned-studio-room.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/source-owned-studio-room.semantic-ir.json",
+        "node": "input.handPose"
+      },
+      "enforcedBy": {
+        "path": "packages/holo-vm/src/executor.ts",
+        "runtime": "HoloVM"
+      },
+      "evidence": ["XR_INPUT is a host opcode requested by VM bytecode"]
+    },
+    {
+      "key": "asset",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/source-owned-studio-room.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/source-owned-studio-room.semantic-ir.json",
+        "node": "assets.heroMesh"
+      },
+      "enforcedBy": {
+        "path": "packages/holo-vm/src/bytecode.ts",
+        "runtime": "HoloVM"
+      },
+      "evidence": ["asset table records URI and type before backend resolution"]
+    },
+    {
+      "key": "xr",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/source-owned-studio-room.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/source-owned-studio-room.semantic-ir.json",
+        "node": "xr.session"
+      },
+      "enforcedBy": {
+        "path": "packages/holo-vm/src/executor.ts",
+        "runtime": "HoloVM"
+      },
+      "evidence": ["XR semantic is represented before WebXR adapter attachment"]
+    }
+  ]
+}

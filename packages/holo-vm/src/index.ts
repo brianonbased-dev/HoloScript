@@ -53,6 +53,27 @@ export type {
 export { sceneSnapshot } from './scene-snapshot';
 export type { SceneSnapshot, SceneSnapshotEntity } from './scene-snapshot';
 
+// Native render contract
+export {
+  NATIVE_RENDER_CONTRACT_VERSION,
+  NATIVE_RENDER_CHAIN_STAGES,
+  NATIVE_RENDER_SEMANTICS,
+  assertNativeRenderFixture,
+  evaluateNativeRenderFixture,
+} from './render/native-render-contract';
+export type {
+  NativeRenderChainStage,
+  NativeRenderChainStep,
+  NativeRenderContractFailure,
+  NativeRenderContractReceipt,
+  NativeRenderFailureCode,
+  NativeRenderGoldenFixture,
+  NativeRenderSemantic,
+  NativeRenderSemanticClaim,
+  NativeRenderSourceLanguage,
+  NativeRenderSourceRef,
+} from './render/native-render-contract';
+
 // VM Executor
 export { HoloVM, ECSWorld, VMStatus, UnsupportedHostOpcodeError, isHostOpcode } from './executor';
 export type {

@@ -1,0 +1,43 @@
+{
+  "id": "adapter-timing-only",
+  "contractVersion": "holoscript.native-render-contract.v1",
+  "title": "Rejected: timing semantics only exist in a target adapter loop",
+  "source": {
+    "path": "fixtures/native-render/adapter-timing-only.holo",
+    "language": "holo"
+  },
+  "chain": [
+    {
+      "stage": "source",
+      "path": "fixtures/native-render/adapter-timing-only.holo",
+      "producedBy": "author"
+    },
+    {
+      "stage": "semantic-ir",
+      "path": "fixtures/native-render/adapter-timing-only.semantic-ir.json",
+      "producedBy": "HoloScript semantic lowering"
+    },
+    {
+      "stage": "holo-runtime",
+      "path": "packages/holo-vm/src/render/native-renderer.ts",
+      "producedBy": "NativeHoloRenderer"
+    },
+    {
+      "stage": "backend-adapter",
+      "path": "packages/r3f-renderer/src/components/AdapterFrameLoop.tsx",
+      "producedBy": "React Three Fiber adapter",
+      "foreignRenderer": "r3f"
+    }
+  ],
+  "semantics": [
+    {
+      "key": "timing",
+      "ownerStage": "backend-adapter",
+      "declaredIn": {
+        "path": "packages/r3f-renderer/src/components/AdapterFrameLoop.tsx",
+        "language": "holo"
+      },
+      "evidence": ["useFrame callback owns the only frame timing rule"]
+    }
+  ]
+}
