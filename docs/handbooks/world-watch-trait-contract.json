@@ -1,0 +1,114 @@
+{
+  "schema": "holoscript.world-watch-trait-contract.v1",
+  "updatedAt": "2026-06-29T23:34:00.000Z",
+  "sourceGap": "CG-094",
+  "phase": "phase_1_contract_only",
+  "contractDoc": "docs/handbooks/world-watch-trait-contract.md",
+  "checker": "scripts/holo-ci/check-world-watch-contract.mjs",
+  "traitName": "WorldWatchTrait",
+  "purpose": "Declare event-triggered world-integrity actions without binding HoloScript to GitHub, provider cloud, or automatic production writes.",
+  "sourceFiles": [
+    "packages/core/src/traits/SchedulerTrait.ts",
+    "packages/mcp-server/src/holo-ci-tools.ts",
+    "packages/mcp-server/src/hololand-mcp-tools.ts",
+    "packages/mcp-server/src/fairness-mcp-tools.ts",
+    "packages/mcp-server/src/critic-tools.ts",
+    "scripts/holo-ci/check-codex-mcp.mjs"
+  ],
+  "externalReferences": [
+    "ai-ecosystem:research/2026-06-29_provider-cloud-review-cg-094-copilot-world-watch.md",
+    "ai-ecosystem:research/2026-06-29_provider-cloud-review-cg-093-copilot-world-review.md",
+    "ai-ecosystem:docs/AGENT_AUTOMATIONS.md"
+  ],
+  "triggerFields": [
+    "id",
+    "file_pattern",
+    "event",
+    "agent_action",
+    "mode",
+    "schedule",
+    "trait_filter",
+    "threshold",
+    "receipt_sink",
+    "enabled",
+    "dry_run"
+  ],
+  "allowedEvents": [
+    "commit",
+    "push",
+    "schedule",
+    "trait_change"
+  ],
+  "allowedAgentActions": [
+    "validate_holoscript",
+    "conformance_check_artifact",
+    "fairness_sweep",
+    "holo_critic"
+  ],
+  "executionMappings": [
+    {
+      "surface": "SchedulerTrait",
+      "events": ["schedule"],
+      "source": "packages/core/src/traits/SchedulerTrait.ts",
+      "commandEvent": "scheduler:add_job",
+      "triggerEvent": "scheduler:job_triggered",
+      "worldWatchAction": "world_watch:run"
+    },
+    {
+      "surface": "HoloCI",
+      "events": ["commit", "push"],
+      "source": "packages/mcp-server/src/holo-ci-tools.ts",
+      "tool": "holo_ci_dispatch",
+      "defaultDryRun": true,
+      "spendRequiresExplicitFalseDryRun": true
+    },
+    {
+      "surface": "HoloShellTeamRegistry",
+      "events": ["schedule", "trait_change"],
+      "source": "ai-ecosystem:docs/AGENT_AUTOMATIONS.md",
+      "mode": "signed_board_task",
+      "note": "HoloShell registry remains the recurring-work scheduler of record; this contract only describes payload compatibility."
+    }
+  ],
+  "receiptFields": [
+    "triggerId",
+    "event",
+    "filePattern",
+    "matchedFiles",
+    "agentAction",
+    "toolInputs",
+    "toolOutputs",
+    "policyDecision",
+    "status",
+    "startedAt",
+    "finishedAt",
+    "sourceCommit",
+    "worldHash",
+    "caelTraceId",
+    "receiptDigest"
+  ],
+  "policy": {
+    "defaultMode": "dry_run",
+    "requireHumanReviewForWrite": true,
+    "allowAutomaticProductionWrite": false,
+    "allowProviderCloudDependence": false,
+    "allowGitHubLockIn": false,
+    "allowPaidCloudSpend": false,
+    "allowAcceleratorTelemetryClaim": false
+  },
+  "nonGoals": [
+    "live_webhook_mutation",
+    "automatic_production_write",
+    "direct_github_lock_in",
+    "provider_cloud_dependence",
+    "paid_cloud_spend",
+    "local_accelerator_proof",
+    "studio_trigger_editor",
+    "world_review_fix_branch_generation"
+  ],
+  "cg093Boundary": {
+    "worldReviewTrait": "Post-compile review and fix planning belongs to CG-093.",
+    "worldWatchTrait": "Event declaration and dispatch eligibility belongs to CG-094.",
+    "allowedLink": "WorldWatchTrait may trigger a CG-093 WorldReviewTrait action after compile, but it must not generate branches or write fixes in Phase 1."
+  }
+}
