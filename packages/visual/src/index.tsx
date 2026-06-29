@@ -13,6 +13,7 @@ export { default as HoloNode } from './components/HoloNode';
 
 // Types
 export * from './types';
+export * from './projection';
 
 // Node registry
 export {

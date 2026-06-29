@@ -2,6 +2,35 @@
 
 Node-based visual programming interface for HoloScript.
 
+## Visual Projection Contract
+
+HoloScript plugins can ship a base visual projection so agents and builders can
+remix them into Hololand-like projects without starting from a blank renderer.
+The projection is source-level data, not a finished product skin.
+
+```text
+HoloScript plugin
+  domain traits
+  validation
+  base scene projection
+  object and panel mappings
+  interaction verbs
+  remix prompts
+  receipt hooks
+
+Hololand plugin
+  consumes the HoloScript projection
+  adds polished spatial UX
+  adds multiplayer and agent workflows
+  proves enterprise runtime receipts
+```
+
+Use `VisualProjectionManifest` for plugin-authored projections and
+`createVisualRemixSeed()` to hand an agent the scene, object, panel,
+interaction, and prompt bundle it needs to remix the plugin.
+
+Example seed: `packages/plugins/geolocation-gis-plugin/visual.projection.json`.
+
 ## Features
 
 - **20+ Node Types**: Event, Action, Logic, and Data nodes

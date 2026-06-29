@@ -1,0 +1,143 @@
+{
+  "schemaVersion": "holoscript.visual.projection.v1",
+  "pluginId": "geolocation-gis",
+  "projectionId": "geolocation-gis.base-map-room",
+  "displayName": "Geolocation GIS Base Map Room",
+  "sourcePackage": "@holoscript/plugin-geolocation-gis",
+  "summary": "A remixable spatial map scene with points, routes, geofences, and receipt panels.",
+  "defaultScene": {
+    "id": "geo-map-room",
+    "template": "map",
+    "title": "Map Room",
+    "viewport": ["2d", "3d", "xr", "ar"],
+    "description": "Base visual projection for location-aware data and agent-assisted field operations.",
+    "slots": ["map-layer", "route-layer", "poi-layer", "controls", "receipts"],
+    "defaultCamera": {
+      "position": [0, 14, 18],
+      "target": [0, 0, 0]
+    }
+  },
+  "objectMappings": [
+    {
+      "id": "map-layer",
+      "sourceTrait": "map_view",
+      "visualRole": "base map plane or earth surface",
+      "primitive": "layer",
+      "label": "Map Layer",
+      "slots": ["map-layer"],
+      "affordances": ["pan", "zoom", "select"]
+    },
+    {
+      "id": "poi-marker",
+      "sourceTrait": "poi",
+      "visualRole": "location marker",
+      "primitive": "point",
+      "label": "Point Of Interest",
+      "slots": ["poi-layer"],
+      "affordances": ["select", "inspect", "route-to"]
+    },
+    {
+      "id": "route-path",
+      "sourceTrait": "route",
+      "visualRole": "travel or workflow path",
+      "primitive": "path",
+      "label": "Route",
+      "slots": ["route-layer"],
+      "affordances": ["playback", "compare", "annotate"]
+    },
+    {
+      "id": "geofence-zone",
+      "sourceTrait": "geofence",
+      "visualRole": "bounded region",
+      "primitive": "zone",
+      "label": "Geofence",
+      "slots": ["map-layer"],
+      "affordances": ["enter-exit-preview", "alert-review"]
+    }
+  ],
+  "panelMappings": [
+    {
+      "id": "location-detail-panel",
+      "title": "Location Detail",
+      "layout": "detail",
+      "source": "poi-marker",
+      "fields": ["name", "lat", "lon", "category", "metadata"]
+    },
+    {
+      "id": "route-timeline-panel",
+      "title": "Route Timeline",
+      "layout": "timeline",
+      "source": "route-path",
+      "fields": ["waypoints", "distance", "duration", "risk"]
+    },
+    {
+      "id": "geo-receipt-panel",
+      "title": "Geospatial Receipt",
+      "layout": "compact",
+      "source": "scene",
+      "fields": ["selection", "agentAction", "timestamp", "receiptHash"]
+    }
+  ],
+  "interactions": [
+    {
+      "verb": "inspect_location",
+      "label": "Inspect Location",
+      "target": "poi-marker",
+      "agentAction": "summarize selected point and nearby context",
+      "humanAction": "select a marker",
+      "receiptKey": "poi.inspect"
+    },
+    {
+      "verb": "compare_routes",
+      "label": "Compare Routes",
+      "target": "route-path",
+      "agentAction": "rank routes by distance, risk, and constraints",
+      "humanAction": "choose two or more routes",
+      "receiptKey": "route.compare"
+    },
+    {
+      "verb": "review_geofence",
+      "label": "Review Geofence",
+      "target": "geofence-zone",
+      "agentAction": "explain boundary purpose and triggered rules",
+      "humanAction": "open a zone",
+      "receiptKey": "geofence.review"
+    }
+  ],
+  "remixPrompts": [
+    {
+      "id": "field-ops-room",
+      "audience": "agent",
+      "prompt": "Remix this map room into a field-operations command space with route priorities, live incident markers, and a receipt panel.",
+      "guardrails": ["keep lat/lon provenance visible", "do not hide geofence trigger rules"]
+    },
+    {
+      "id": "customer-success-map",
+      "audience": "builder",
+      "prompt": "Remix this projection into a customer-success coverage room showing customers, visits, support regions, and next best actions.",
+      "guardrails": ["separate private customer data from public map labels"]
+    }
+  ],
+  "receiptHooks": [
+    {
+      "id": "geo-selection-receipt",
+      "event": "selection.changed",
+      "writes": ["selectedObject", "sourceTrait", "timestamp"],
+      "description": "Records which geospatial object was inspected and why."
+    },
+    {
+      "id": "geo-agent-action-receipt",
+      "event": "agent.action.completed",
+      "writes": ["verb", "target", "inputs", "summary"],
+      "description": "Records agent-assisted route, POI, or geofence operations."
+    }
+  ],
+  "consumerHints": {
+    "hololandPluginId": "@hololand/plugin-geolocation-gis",
+    "preferredRuntime": ["xr", "ar", "3d"],
+    "notes": [
+      "Hololand may add avatars, multiplayer review, live GPS feeds, and enterprise audit polish.",
+      "The HoloScript projection remains the remixable source contract."
+    ]
+  }
+}
