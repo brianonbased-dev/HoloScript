@@ -268,5 +268,143 @@
       },
       "evidence": ["scene mount/update/unmount lifecycle is represented before adapter effects"]
     }
+  ],
+  "capabilities": [
+    {
+      "key": "camera",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/source-owned-studio-room.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/source-owned-studio-room.semantic-ir.json",
+        "node": "render.camera.main"
+      },
+      "enforcedBy": {
+        "path": "packages/holo-vm/src/render/native-renderer.ts",
+        "runtime": "HoloVM"
+      },
+      "evidence": ["camera parameters are present before adapter selection"]
+    },
+    {
+      "key": "light",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/source-owned-studio-room.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/source-owned-studio-room.semantic-ir.json",
+        "node": "render.lights"
+      },
+      "enforcedBy": {
+        "path": "packages/holo-vm/src/executor.ts",
+        "runtime": "HoloVM"
+      },
+      "evidence": ["SET_LIGHT stores light components before backend adapter load"]
+    },
+    {
+      "key": "geometry",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/source-owned-studio-room.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/source-owned-studio-room.semantic-ir.json",
+        "node": "scene.entities.geometry"
+      },
+      "enforcedBy": {
+        "path": "packages/engine/src/native-render/draw-spec.ts",
+        "runtime": "HoloEngine"
+      },
+      "evidence": ["extractDrawSpecs emits pure-data geometry kinds for native rendering"]
+    },
+    {
+      "key": "material",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/source-owned-studio-room.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/source-owned-studio-room.semantic-ir.json",
+        "node": "materials.heroPanel"
+      },
+      "enforcedBy": {
+        "path": "packages/engine/src/native-render/draw-spec.ts",
+        "runtime": "HoloEngine"
+      },
+      "evidence": ["material scalar and texture refs are emitted as pure data before GPU upload"]
+    },
+    {
+      "key": "transform",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/source-owned-studio-room.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/source-owned-studio-room.semantic-ir.json",
+        "node": "scene.entities.transform"
+      },
+      "enforcedBy": {
+        "path": "packages/engine/src/native-render/draw-spec.ts",
+        "runtime": "HoloEngine"
+      },
+      "evidence": ["composeTRS builds the model matrix from native transform data"]
+    },
+    {
+      "key": "event",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/source-owned-studio-room.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/source-owned-studio-room.semantic-ir.json",
+        "node": "events"
+      },
+      "enforcedBy": {
+        "path": "packages/holo-vm/src/executor.ts",
+        "runtime": "HoloVM"
+      },
+      "evidence": ["event queue dispatches handlers from bytecode event bindings"]
+    },
+    {
+      "key": "animation",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/source-owned-studio-room.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/source-owned-studio-room.semantic-ir.json",
+        "node": "animation.clips"
+      },
+      "enforcedBy": {
+        "path": "packages/holo-vm/src/executor.ts",
+        "runtime": "HoloVM"
+      },
+      "evidence": ["tick and TIMER own time advancement before renderer adapter code runs"]
+    },
+    {
+      "key": "lifecycle",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/source-owned-studio-room.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/source-owned-studio-room.semantic-ir.json",
+        "node": "scene.lifecycle"
+      },
+      "enforcedBy": {
+        "path": "packages/holo-vm/src/executor.ts",
+        "runtime": "HoloVM"
+      },
+      "evidence": ["HoloVM load/reset/tick own scene activation lifecycle before adapters mount"]
+    }
   ]
 }

@@ -1,0 +1,149 @@
+{
+  "id": "r3f-baseline-parity.semantic-ir",
+  "source": "fixtures/native-render/r3f-baseline-parity.holo",
+  "title": "Native IR representation of the current R3F baseline",
+  "render": {
+    "camera": {
+      "id": "MainCamera",
+      "type": "perspective",
+      "position": [0, 0, 3],
+      "lookAt": [0, 0, 0],
+      "fov": 75,
+      "near": 0.1,
+      "far": 80
+    },
+    "lights": [
+      {
+        "id": "AmbientLight",
+        "type": "ambient",
+        "intensity": 0.18,
+        "color": "#aaccff"
+      },
+      {
+        "id": "KeyLight",
+        "type": "directional",
+        "position": [2, 6, 4],
+        "intensity": 0.55,
+        "color": "#e8f0ff"
+      },
+      {
+        "id": "FireGlow",
+        "type": "point",
+        "position": [0, -1, -2.25],
+        "intensity": 1.85,
+        "color": "#ff6622",
+        "distance": 7.5
+      }
+    ],
+    "entities": [
+      {
+        "id": "HeroPanel",
+        "geometry": {
+          "kind": "cube",
+          "params": {}
+        },
+        "transform": {
+          "position": [0, 0.2, -2.4],
+          "rotation": [0, 0, 0],
+          "scale": [1.4, 0.9, 0.08]
+        },
+        "material": {
+          "color": "#4ecdc4",
+          "roughness": 0.64,
+          "metalness": 0.08,
+          "texture": "textures/library-panel-albedo.png"
+        },
+        "traits": ["clickable", "hoverable", "animated"]
+      },
+      {
+        "id": "DustMotes",
+        "geometry": {
+          "kind": "points",
+          "params": {
+            "count": 26
+          }
+        },
+        "transform": {
+          "position": [0.3, 1.65, -2.8],
+          "rotation": [0, 0, 0],
+          "scale": [1, 1, 1]
+        },
+        "material": {
+          "color": "#ffcc77",
+          "transparent": true,
+          "emissive": "#ffcc77"
+        },
+        "animation": {
+          "kind": "frame_tick",
+          "pulseRate": 0.11
+        }
+      },
+      {
+        "id": "SceneDoor",
+        "geometry": {
+          "kind": "cube",
+          "params": {}
+        },
+        "transform": {
+          "position": [2.8, -0.35, -2.65],
+          "rotation": [0.01, -0.04, 0.005],
+          "scale": [1, 1, 1]
+        },
+        "material": {
+          "preset": "bookshelf"
+        },
+        "events": ["pointer.down", "scene.navigate"]
+      }
+    ],
+    "events": [
+      {
+        "event": "pointer.select",
+        "target": "HeroPanel",
+        "handler": "HeroPanel.on_click"
+      },
+      {
+        "event": "pointer.down",
+        "target": "SceneDoor",
+        "handler": "SceneDoor.on_click"
+      }
+    ],
+    "animation": {
+      "frameClock": "runtime.tick",
+      "clips": [
+        {
+          "target": "HeroPanel.scale",
+          "kind": "breathe",
+          "durationMs": 1400,
+          "amplitude": 0.05
+        },
+        {
+          "target": "DustMotes.material.opacity",
+          "kind": "pulse",
+          "rateHz": 0.11
+        }
+      ]
+    },
+    "assets": [
+      {
+        "id": "TextureAsset",
+        "kind": "texture",
+        "uri": "textures/library-panel-albedo.png"
+      }
+    ],
+    "input": {
+      "family": "xr_pointer",
+      "events": ["select", "hover", "pointer.down"]
+    },
+    "xr": {
+      "session": "optional",
+      "pointerRay": "host.XR_INPUT"
+    },
+    "sceneLifecycle": {
+      "sceneId": "WarmLibraryScene",
+      "onMount": "scene.loaded",
+      "onUnmount": "scene.disposed",
+      "transition": "crossfade"
+    }
+  },
+  "unsupported": []
+}

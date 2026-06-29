@@ -1,0 +1,100 @@
+// Native source fixture for the current R3F baseline surface.
+// This file is the authoring source; R3F/TSX files are adapter evidence only.
+
+composition "R3F Baseline Native Parity" {
+  object "MainCamera" {
+    type: "perspective_camera"
+    position: [0, 0, 3]
+    look_at: [0, 0, 0]
+    fov: 75
+    near: 0.1
+    far: 80
+  }
+
+  object "AmbientLight" {
+    type: "ambient_light"
+    intensity: 0.18
+    color: "#aaccff"
+  }
+
+  object "KeyLight" {
+    type: "directional_light"
+    position: [2, 6, 4]
+    intensity: 0.55
+    color: "#e8f0ff"
+  }
+
+  object "FireGlow" {
+    type: "point_light"
+    position: [0, -1.0, -2.25]
+    intensity: 1.85
+    color: "#ff6622"
+    distance: 7.5
+  }
+
+  object "HeroPanel" {
+    @clickable
+    @hoverable(highlight_color: "#3b82f6")
+    @animated(name: "breathe", duration: 1400, property: "scale", amplitude: 0.05)
+
+    geometry: "cube"
+    position: [0, 0.2, -2.4]
+    rotation: [0, 0, 0]
+    scale: [1.4, 0.9, 0.08]
+    color: "#4ecdc4"
+    roughness: 0.64
+    metalness: 0.08
+    texture: "textures/library-panel-albedo.png"
+
+    on_click {
+      toggle_trait "glowing"
+    }
+  }
+
+  object "DustMotes" {
+    type: "particle_field"
+    geometry: "points"
+    position: [0.3, 1.65, -2.8]
+    color: "#ffcc77"
+    count: 26
+    pulse_rate: 0.11
+    animation: "frame_tick"
+  }
+
+  object "SceneDoor" {
+    @clickable
+
+    type: "scene_door"
+    geometry: "cube"
+    position: [2.8, -0.35, -2.65]
+    rotation: [0.01, -0.04, 0.005]
+    scale: [1, 1, 1]
+    material_type: "bookshelf"
+    destination_scene: "ZenGardenScene"
+
+    on_click {
+      toggle_trait "open"
+    }
+  }
+
+  object "TextureAsset" {
+    type: "asset"
+    asset_type: "texture"
+    uri: "textures/library-panel-albedo.png"
+  }
+
+  object "XRInputBridge" {
+    type: "input"
+    input_family: "xr_pointer"
+    pointer_event: "select"
+    target: "HeroPanel"
+  }
+
+  object "SceneLifecycle" {
+    type: "scene_lifecycle"
+    scene_id: "WarmLibraryScene"
+    on_mount: "scene.loaded"
+    on_unmount: "scene.disposed"
+    transition: "crossfade"
+  }
+}

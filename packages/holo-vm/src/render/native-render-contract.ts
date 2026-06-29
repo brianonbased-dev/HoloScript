@@ -37,6 +37,8 @@ export const R3F_BASELINE_RENDER_SEMANTICS = [
   'lifecycle',
 ] as const satisfies readonly NativeRenderSemantic[];
 
+export const NATIVE_RENDER_CAPABILITIES = R3F_BASELINE_RENDER_SEMANTICS;
+
 export const NATIVE_RENDER_CHAIN_STAGES = [
   'source',
   'semantic-ir',
@@ -45,6 +47,7 @@ export const NATIVE_RENDER_CHAIN_STAGES = [
 ] as const;
 
 export type NativeRenderSemantic = (typeof NATIVE_RENDER_SEMANTICS)[number];
+export type NativeRenderCapability = (typeof NATIVE_RENDER_CAPABILITIES)[number];
 export type NativeRenderChainStage = (typeof NATIVE_RENDER_CHAIN_STAGES)[number];
 export type NativeRenderSourceLanguage = 'holo' | 'hsplus' | 'hs';
 
@@ -81,6 +84,36 @@ export interface NativeRenderSemanticClaim {
   evidence: string[];
 }
 
+export interface NativeRenderAdapterEvidence {
+  path: string;
+  construct: string;
+}
+
+export interface NativeRenderCapabilityClaim {
+  key: NativeRenderCapability;
+  ownerStage: NativeRenderChainStage;
+  declaredIn: NativeRenderSourceRef;
+  loweredTo?: {
+    path: string;
+    node: string;
+  };
+  enforcedBy?: {
+    path: string;
+    runtime: 'HoloRuntime' | 'HoloVM' | 'HoloEngine' | string;
+  };
+  /**
+   * Optional references to the foreign adapter behavior this native capability
+   * replaces. These references are evidence only; they never own semantics.
+   */
+  adapterEvidence?: NativeRenderAdapterEvidence[];
+  evidence: string[];
+}
+
+export interface NativeRenderAdapterBaseline {
+  renderer: 'r3f' | 'three' | 'react' | 'html' | string;
+  paths: string[];
+}
+
 export interface NativeRenderGoldenFixture {
   id: string;
   contractVersion: typeof NATIVE_RENDER_CONTRACT_VERSION;
@@ -88,6 +121,8 @@ export interface NativeRenderGoldenFixture {
   source: NativeRenderSourceRef;
   chain: NativeRenderChainStep[];
   semantics: NativeRenderSemanticClaim[];
+  capabilities?: NativeRenderCapabilityClaim[];
+  adapterBaseline?: NativeRenderAdapterBaseline;
 }
 
 export type NativeRenderFailureCode =
@@ -101,7 +136,13 @@ export type NativeRenderFailureCode =
   | 'SEMANTIC_NOT_DECLARED_IN_NATIVE_SOURCE'
   | 'MISSING_SEMANTIC_LOWERING'
   | 'MISSING_RUNTIME_ENFORCEMENT'
-  | 'MISSING_SEMANTIC_EVIDENCE';
+  | 'MISSING_SEMANTIC_EVIDENCE'
+  | 'MISSING_CAPABILITY'
+  | 'ADAPTER_OWNED_CAPABILITY'
+  | 'CAPABILITY_NOT_DECLARED_IN_NATIVE_SOURCE'
+  | 'MISSING_CAPABILITY_LOWERING'
+  | 'MISSING_CAPABILITY_RUNTIME_ENFORCEMENT'
+  | 'MISSING_CAPABILITY_EVIDENCE';
 
 export interface NativeRenderContractFailure {
   code: NativeRenderFailureCode;
@@ -115,6 +156,8 @@ export interface NativeRenderContractReceipt {
   ok: boolean;
   requiredSemantics: readonly NativeRenderSemantic[];
   coveredSemantics: NativeRenderSemantic[];
+  requiredCapabilities: readonly NativeRenderCapability[];
+  coveredCapabilities: NativeRenderCapability[];
   failures: NativeRenderContractFailure[];
 }
 
@@ -210,6 +253,48 @@ function validateSemantic(
   }
 }
 
+function validateCapability(
+  claim: NativeRenderCapabilityClaim,
+  failures: NativeRenderContractFailure[]
+): void {
+  if (claim.ownerStage === 'backend-adapter') {
+    failures.push({
+      code: 'ADAPTER_OWNED_CAPABILITY',
+      message: `${claim.key} is owned by a backend adapter instead of native source/IR/runtime.`,
+      path: claim.declaredIn.path,
+    });
+  }
+
+  if (!isNativeSource(claim.declaredIn)) {
+    failures.push({
+      code: 'CAPABILITY_NOT_DECLARED_IN_NATIVE_SOURCE',
+      message: `${claim.key} is not declared in a .holo, .hsplus, or .hs source file.`,
+      path: claim.declaredIn.path,
+    });
+  }
+
+  if (!claim.loweredTo) {
+    failures.push({
+      code: 'MISSING_CAPABILITY_LOWERING',
+      message: `${claim.key} has no semantic IR lowering receipt.`,
+    });
+  }
+
+  if (!claim.enforcedBy) {
+    failures.push({
+      code: 'MISSING_CAPABILITY_RUNTIME_ENFORCEMENT',
+      message: `${claim.key} has no runtime enforcement receipt.`,
+    });
+  }
+
+  if (claim.evidence.length === 0) {
+    failures.push({
+      code: 'MISSING_CAPABILITY_EVIDENCE',
+      message: `${claim.key} has no golden evidence.`,
+    });
+  }
+}
+
 export function evaluateNativeRenderFixture(
   fixture: NativeRenderGoldenFixture
 ): NativeRenderContractReceipt {
@@ -253,11 +338,36 @@ export function evaluateNativeRenderFixture(
     }
   }
 
+  const coveredCapabilities: NativeRenderCapability[] = [];
+  const claimsByCapability = new Map<NativeRenderCapability, NativeRenderCapabilityClaim[]>();
+  for (const claim of fixture.capabilities ?? []) {
+    const existing = claimsByCapability.get(claim.key) ?? [];
+    existing.push(claim);
+    claimsByCapability.set(claim.key, existing);
+    validateCapability(claim, failures);
+  }
+
+  const validatesCapabilities = (fixture.capabilities?.length ?? 0) > 0;
+  if (validatesCapabilities) {
+    for (const required of NATIVE_RENDER_CAPABILITIES) {
+      if (!claimsByCapability.has(required)) {
+        failures.push({
+          code: 'MISSING_CAPABILITY',
+          message: `Fixture does not cover required native renderer capability ${required}.`,
+        });
+      } else {
+        coveredCapabilities.push(required);
+      }
+    }
+  }
+
   return {
     fixtureId: fixture.id,
     ok: failures.length === 0,
     requiredSemantics: NATIVE_RENDER_SEMANTICS,
     coveredSemantics,
+    requiredCapabilities: validatesCapabilities ? NATIVE_RENDER_CAPABILITIES : [],
+    coveredCapabilities,
     failures,
   };
 }

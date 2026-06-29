@@ -1,0 +1,514 @@
+{
+  "id": "r3f-baseline-native-parity",
+  "contractVersion": "holoscript.native-render-contract.v1",
+  "title": "R3F baseline semantics are represented by native HoloScript source and IR",
+  "source": {
+    "path": "fixtures/native-render/r3f-baseline-parity.holo",
+    "language": "holo",
+    "sha256": "r3f-baseline-native-parity-source"
+  },
+  "chain": [
+    {
+      "stage": "source",
+      "path": "fixtures/native-render/r3f-baseline-parity.holo",
+      "producedBy": "author"
+    },
+    {
+      "stage": "semantic-ir",
+      "path": "fixtures/native-render/r3f-baseline-parity.semantic-ir.json",
+      "producedBy": "HoloScript semantic lowering"
+    },
+    {
+      "stage": "holo-runtime",
+      "path": "packages/holo-vm/src/render/native-render-contract.ts",
+      "producedBy": "HoloRuntime native renderer contract"
+    },
+    {
+      "stage": "backend-adapter",
+      "path": "packages/r3f-renderer/src/components/holoshell/HoloShellScene.tsx",
+      "producedBy": "React Three Fiber adapter",
+      "foreignRenderer": "r3f"
+    }
+  ],
+  "adapterBaseline": {
+    "renderer": "r3f",
+    "paths": [
+      "packages/r3f-renderer/src/components/holoshell/HoloShellScene.tsx",
+      "packages/r3f-renderer/src/components/MeshNode.tsx",
+      "packages/r3f-renderer/src/utils/materialUtils.tsx",
+      "packages/r3f-renderer/src/runtime/compiledMaterial.ts",
+      "packages/r3f-renderer/src/components/CompiledTraitMesh.tsx",
+      "packages/r3f-renderer/src/components/ProceduralMesh.tsx",
+      "packages/r3f-renderer/src/components/holoshell/phenomena/SceneDoor.tsx",
+      "packages/r3f-renderer/src/components/holoshell/phenomena/GlowField.tsx",
+      "packages/r3f-renderer/src/components/holoshell/phenomena/FireSource.tsx",
+      "packages/r3f-renderer/src/components/holoshell/scenes/WarmLibraryScene.tsx"
+    ]
+  },
+  "semantics": [
+    {
+      "key": "camera",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/r3f-baseline-parity.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/r3f-baseline-parity.semantic-ir.json",
+        "node": "render.camera"
+      },
+      "enforcedBy": {
+        "path": "packages/engine/src/native-render/scene-render.ts",
+        "runtime": "HoloEngine"
+      },
+      "evidence": ["R3F Canvas camera position/fov is represented in native IR before adapter selection"]
+    },
+    {
+      "key": "sceneGraph",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/r3f-baseline-parity.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/r3f-baseline-parity.semantic-ir.json",
+        "node": "render.entities"
+      },
+      "enforcedBy": {
+        "path": "packages/holo-vm/src/executor.ts",
+        "runtime": "HoloVM"
+      },
+      "evidence": ["entities and parent/child graph exist before any R3F component renders"]
+    },
+    {
+      "key": "light",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/r3f-baseline-parity.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/r3f-baseline-parity.semantic-ir.json",
+        "node": "render.lights"
+      },
+      "enforcedBy": {
+        "path": "packages/holo-vm/src/executor.ts",
+        "runtime": "HoloVM"
+      },
+      "evidence": ["ambient, directional, and point light semantics are native records before JSX"]
+    },
+    {
+      "key": "geometry",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/r3f-baseline-parity.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/r3f-baseline-parity.semantic-ir.json",
+        "node": "render.entities.geometry"
+      },
+      "enforcedBy": {
+        "path": "packages/engine/src/native-render/draw-spec.ts",
+        "runtime": "HoloEngine"
+      },
+      "evidence": ["primitive and procedural geometry lower to pure data before R3F projection"]
+    },
+    {
+      "key": "material",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/r3f-baseline-parity.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/r3f-baseline-parity.semantic-ir.json",
+        "node": "render.entities.HeroPanel.material"
+      },
+      "enforcedBy": {
+        "path": "packages/engine/src/native-render/draw-spec.ts",
+        "runtime": "HoloEngine"
+      },
+      "evidence": ["PBR scalars and texture refs are native material data, not TSX props"]
+    },
+    {
+      "key": "transform",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/r3f-baseline-parity.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/r3f-baseline-parity.semantic-ir.json",
+        "node": "render.entities.transform"
+      },
+      "enforcedBy": {
+        "path": "packages/engine/src/native-render/draw-spec.ts",
+        "runtime": "HoloEngine"
+      },
+      "evidence": ["position, rotation, and scale compose to native model matrices"]
+    },
+    {
+      "key": "interaction",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/r3f-baseline-parity.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/r3f-baseline-parity.semantic-ir.json",
+        "node": "render.events"
+      },
+      "enforcedBy": {
+        "path": "packages/holo-vm/src/executor.ts",
+        "runtime": "HoloVM"
+      },
+      "evidence": ["pointer select and door activation lower to VM event bindings"]
+    },
+    {
+      "key": "event",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/r3f-baseline-parity.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/r3f-baseline-parity.semantic-ir.json",
+        "node": "render.events"
+      },
+      "enforcedBy": {
+        "path": "packages/holo-vm/src/executor.ts",
+        "runtime": "HoloVM"
+      },
+      "evidence": ["pointer callbacks dispatch source-owned VM events"]
+    },
+    {
+      "key": "timing",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/r3f-baseline-parity.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/r3f-baseline-parity.semantic-ir.json",
+        "node": "render.animation.frameClock"
+      },
+      "enforcedBy": {
+        "path": "packages/holo-vm/src/executor.ts",
+        "runtime": "HoloVM"
+      },
+      "evidence": ["frame-clock and timer semantics exist before useFrame adapter code"]
+    },
+    {
+      "key": "animation",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/r3f-baseline-parity.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/r3f-baseline-parity.semantic-ir.json",
+        "node": "render.animation"
+      },
+      "enforcedBy": {
+        "path": "packages/holo-vm/src/executor.ts",
+        "runtime": "HoloVM"
+      },
+      "evidence": ["frame-clock animation is native timing data before useFrame adapter loops"]
+    },
+    {
+      "key": "input",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/r3f-baseline-parity.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/r3f-baseline-parity.semantic-ir.json",
+        "node": "render.input"
+      },
+      "enforcedBy": {
+        "path": "packages/holo-vm/src/executor.ts",
+        "runtime": "HoloVM"
+      },
+      "evidence": ["XR_INPUT and external queueEvent own input before adapter callbacks"]
+    },
+    {
+      "key": "asset",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/r3f-baseline-parity.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/r3f-baseline-parity.semantic-ir.json",
+        "node": "render.assets"
+      },
+      "enforcedBy": {
+        "path": "packages/holo-vm/src/bytecode.ts",
+        "runtime": "HoloVM"
+      },
+      "evidence": ["texture URI is recorded as native asset data before texture loader hooks"]
+    },
+    {
+      "key": "xr",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/r3f-baseline-parity.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/r3f-baseline-parity.semantic-ir.json",
+        "node": "render.xr"
+      },
+      "enforcedBy": {
+        "path": "packages/holo-vm/src/executor.ts",
+        "runtime": "HoloVM"
+      },
+      "evidence": ["XR pointer/session semantics are host opcodes, not R3F-only state"]
+    },
+    {
+      "key": "lifecycle",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/r3f-baseline-parity.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/r3f-baseline-parity.semantic-ir.json",
+        "node": "render.lifecycle"
+      },
+      "enforcedBy": {
+        "path": "packages/holo-vm/src/executor.ts",
+        "runtime": "HoloVM"
+      },
+      "evidence": ["scene load, dispose, and navigation are native lifecycle nodes"]
+    }
+  ],
+  "capabilities": [
+    {
+      "key": "camera",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/r3f-baseline-parity.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/r3f-baseline-parity.semantic-ir.json",
+        "node": "render.camera"
+      },
+      "enforcedBy": {
+        "path": "packages/engine/src/native-render/scene-render.ts",
+        "runtime": "HoloEngine"
+      },
+      "adapterEvidence": [
+        {
+          "path": "packages/r3f-renderer/src/components/holoshell/HoloShellScene.tsx",
+          "construct": "Canvas camera position/fov/near/far"
+        }
+      ],
+      "evidence": ["camera is a native IR node before a Canvas adapter reads it"]
+    },
+    {
+      "key": "light",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/r3f-baseline-parity.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/r3f-baseline-parity.semantic-ir.json",
+        "node": "render.lights"
+      },
+      "enforcedBy": {
+        "path": "packages/holo-vm/src/executor.ts",
+        "runtime": "HoloVM"
+      },
+      "adapterEvidence": [
+        {
+          "path": "packages/r3f-renderer/src/components/holoshell/HoloShellScene.tsx",
+          "construct": "ambientLight and directionalLight"
+        },
+        {
+          "path": "packages/r3f-renderer/src/components/holoshell/scenes/WarmLibraryScene.tsx",
+          "construct": "pointLight"
+        }
+      ],
+      "evidence": ["ambient, directional, and point lights lower to native light records"]
+    },
+    {
+      "key": "geometry",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/r3f-baseline-parity.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/r3f-baseline-parity.semantic-ir.json",
+        "node": "render.entities.geometry"
+      },
+      "enforcedBy": {
+        "path": "packages/engine/src/native-render/draw-spec.ts",
+        "runtime": "HoloEngine"
+      },
+      "adapterEvidence": [
+        {
+          "path": "packages/r3f-renderer/src/utils/materialUtils.tsx",
+          "construct": "getGeometry primitive/procedural geometry switch"
+        },
+        {
+          "path": "packages/r3f-renderer/src/components/ProceduralMesh.tsx",
+          "construct": "ProceduralGeometryComponent"
+        }
+      ],
+      "evidence": ["geometry kind and params are pure data extractable from the VM world"]
+    },
+    {
+      "key": "material",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/r3f-baseline-parity.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/r3f-baseline-parity.semantic-ir.json",
+        "node": "render.entities.material"
+      },
+      "enforcedBy": {
+        "path": "packages/engine/src/native-render/draw-spec.ts",
+        "runtime": "HoloEngine"
+      },
+      "adapterEvidence": [
+        {
+          "path": "packages/r3f-renderer/src/runtime/compiledMaterial.ts",
+          "construct": "CompiledMaterialSpec"
+        },
+        {
+          "path": "packages/r3f-renderer/src/hooks/useHoloTextures.ts",
+          "construct": "texture map extraction"
+        },
+        {
+          "path": "packages/r3f-renderer/src/hooks/useProceduralTexture.ts",
+          "construct": "procedural DataTexture maps"
+        }
+      ],
+      "evidence": ["PBR scalars, texture refs, and procedural maps are declared before TSX"]
+    },
+    {
+      "key": "transform",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/r3f-baseline-parity.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/r3f-baseline-parity.semantic-ir.json",
+        "node": "render.entities.transform"
+      },
+      "enforcedBy": {
+        "path": "packages/engine/src/native-render/draw-spec.ts",
+        "runtime": "HoloEngine"
+      },
+      "adapterEvidence": [
+        {
+          "path": "packages/r3f-renderer/src/components/MeshNode.tsx",
+          "construct": "mesh position/rotation/scale"
+        }
+      ],
+      "evidence": ["position, rotation, and scale compose to native model matrices"]
+    },
+    {
+      "key": "event",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/r3f-baseline-parity.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/r3f-baseline-parity.semantic-ir.json",
+        "node": "render.events"
+      },
+      "enforcedBy": {
+        "path": "packages/holo-vm/src/executor.ts",
+        "runtime": "HoloVM"
+      },
+      "adapterEvidence": [
+        {
+          "path": "packages/r3f-renderer/src/components/MeshNode.tsx",
+          "construct": "onClick selection/removal"
+        },
+        {
+          "path": "packages/r3f-renderer/src/components/holoshell/phenomena/SceneDoor.tsx",
+          "construct": "onPointerDown navigation activation"
+        },
+        {
+          "path": "packages/r3f-renderer/src/components/holoshell/phenomena/FireSource.tsx",
+          "construct": "onPointerMove proximity"
+        }
+      ],
+      "evidence": ["pointer events lower to VM event queue and bytecode event bindings"]
+    },
+    {
+      "key": "animation",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/r3f-baseline-parity.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/r3f-baseline-parity.semantic-ir.json",
+        "node": "render.animation"
+      },
+      "enforcedBy": {
+        "path": "packages/holo-vm/src/executor.ts",
+        "runtime": "HoloVM"
+      },
+      "adapterEvidence": [
+        {
+          "path": "packages/r3f-renderer/src/components/CompiledTraitMesh.tsx",
+          "construct": "useFrame trait ticking"
+        },
+        {
+          "path": "packages/r3f-renderer/src/components/ProceduralMesh.tsx",
+          "construct": "useKeyframeAnimation"
+        },
+        {
+          "path": "packages/r3f-renderer/src/components/holoshell/phenomena/GlowField.tsx",
+          "construct": "frame pulse/drift animation"
+        },
+        {
+          "path": "packages/r3f-renderer/src/components/holoshell/phenomena/SceneDoor.tsx",
+          "construct": "door open animation"
+        }
+      ],
+      "evidence": ["frame-clock animation is native timing data before useFrame adapter loops"]
+    },
+    {
+      "key": "lifecycle",
+      "ownerStage": "source",
+      "declaredIn": {
+        "path": "fixtures/native-render/r3f-baseline-parity.holo",
+        "language": "holo"
+      },
+      "loweredTo": {
+        "path": "fixtures/native-render/r3f-baseline-parity.semantic-ir.json",
+        "node": "render.lifecycle"
+      },
+      "enforcedBy": {
+        "path": "packages/holo-vm/src/executor.ts",
+        "runtime": "HoloVM"
+      },
+      "adapterEvidence": [
+        {
+          "path": "packages/r3f-renderer/src/components/holoshell/HoloShellScene.tsx",
+          "construct": "onSceneLoaded and Suspense fallback"
+        },
+        {
+          "path": "packages/r3f-renderer/src/components/holoshell/scenes/WarmLibraryScene.tsx",
+          "construct": "React mount/unmount effects"
+        }
+      ],
+      "evidence": ["scene load, dispose, and navigation are declared as native lifecycle nodes"]
+    }
+  ]
+}
