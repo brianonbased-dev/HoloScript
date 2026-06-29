@@ -140,6 +140,11 @@ Every gap shares the same pattern: the infrastructure traits exist, the domain p
 
 HoloScript is a 6-layer open platform. The same model anchors the [landing page](https://holoscript.net) and this repo, so the story reads the same whether someone (or an agent) starts from the site or the source.
 
+Universal use has a boundary: builders normally consume HoloScript through
+project files, npm packages, MCP/API, Studio workspaces, or service images;
+engine contributors clone this monorepo to change the platform itself. The full
+contract lives in [docs/architecture/universal-use-boundary.md](docs/architecture/universal-use-boundary.md).
+
 | Layer           | What it is                                                                    | Where it lives                                                              |
 | --------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
 | 6 · Marketplace | Traits + plugins + skills, Ed25519 signatures, x402 payments                  | `store.holoscript.net`, [`packages/plugins/`](./packages/plugins/)          |
