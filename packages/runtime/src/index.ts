@@ -297,6 +297,33 @@ export {
   type DOM2DRendererOptions,
 } from './browser/DOM2DRenderer.js';
 
+// Native renderer contract - HoloScript source -> scene IR -> runtime backend
+export {
+  NATIVE_RENDERER_CONTRACT_VERSION,
+  NATIVE_RENDERER_GOLDEN_FIXTURES,
+  REQUIRED_NATIVE_RENDERER_CAPABILITIES,
+  validateNativeRendererBackendContract,
+  validateNativeRendererGoldenFixtures,
+  type NativeRendererAssetExpectation,
+  type NativeRendererBackendContract,
+  type NativeRendererBackendValidationResult,
+  type NativeRendererCameraExpectation,
+  type NativeRendererContractVersion,
+  type NativeRendererGoldenCapability,
+  type NativeRendererGoldenFixture,
+  type NativeRendererInputExpectation,
+  type NativeRendererInteractionExpectation,
+  type NativeRendererMaterialExpectation,
+  type NativeRendererSceneGraphExpectation,
+  type NativeRendererSemanticsSource,
+  type NativeRendererSourceFormat,
+  type NativeRendererSourceReceipt,
+  type NativeRendererStateExpectation,
+  type NativeRendererTimelineExpectation,
+  type NativeRendererValidationResult,
+  type NativeRendererXRDeviceExpectation,
+} from './native-renderer-contract.js';
+
 // Import modules for runtime object
 import { eventBus, emit, on, once, off } from './events.js';
 import { storage, get, set, remove } from './storage.js';
