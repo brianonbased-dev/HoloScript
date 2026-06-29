@@ -1,0 +1,107 @@
+// WorldReviewTrait post-compile fixer contract.
+// Phase 1 only: declare the review/fix-planning boundary without live branch mutation.
+
+@world_review_trait {
+  id: "holoscript-world-review-trait-v0"
+  source_gap: "CG-093"
+  board_task: "task_1782775100484_owsp"
+  phase: "phase_1_contract"
+  native_bar: "post_compile_review_and_fix_plan"
+
+  post_compile_entrypoints: [
+    {
+      trigger: "compile_complete"
+      holoscript_tool: "compile_holoscript"
+      receipt_policy: "compile_receipt_required"
+    },
+    {
+      trigger: "ci_gate_complete"
+      holoscript_tool: "holo_ci_dispatch"
+      receipt_policy: "holo_ci_receipt_required"
+    }
+  ]
+
+  source_refs: {
+    quality_gates: "packages/core/src/compiler/QualityGates.ts#QualityGatePipeline"
+    critic_tool: "packages/mcp-server/src/critic-tools.ts#holo_critic"
+    conformance_tool: "packages/mcp-server/src/hololand-mcp-tools.ts#conformance_check_artifact"
+    refactor_codegen: "packages/mcp-server/src/refactor-codegen-tools.ts"
+  }
+
+  review_pipeline: [
+    {
+      step: "compile_receipt_intake"
+      source_tool: "compile_holoscript"
+      output: "compile_receipt"
+    },
+    {
+      step: "quality_gate_pipeline"
+      local_module: "QualityGatePipeline.createDefault"
+      minimum_tier: "TIER_2_NOTIFY"
+      output: "quality_gate_result"
+    },
+    {
+      step: "critic_review"
+      holoscript_tool: "holo_critic"
+      mode: "full"
+      output: "critic_verdict"
+    },
+    {
+      step: "conformance_review"
+      holoscript_tool: "conformance_check_artifact"
+      artifact_kinds: ["world", "receipt"]
+      output: "conformance_report"
+    },
+    {
+      step: "fix_plan"
+      holoscript_tool: "holo_generate_refactor_plan"
+      output: "human_reviewable_refactor_plan"
+    },
+    {
+      step: "scaffold_draft"
+      holoscript_tool: "holo_scaffold_code"
+      output: "human_reviewable_patch_draft"
+    }
+  ]
+
+  thresholds: {
+    min_critic_verdict: "ADEQUATE"
+    max_critical_findings: 0
+    max_high_findings: 0
+    require_quality_gate_pass: true
+    require_conformance_pass: true
+    require_cael_trace: true
+  }
+
+  evidence_receipt_fields: [
+    "compile_job_id",
+    "compile_target",
+    "cael_trace_id",
+    "trace_jsonl_sha256",
+    "verify_url",
+    "quality_gate_tier",
+    "critic_verdict",
+    "conformance_report_id",
+    "finding_counts",
+    "fix_plan_id",
+    "human_review_url"
+  ]
+
+  mutation_boundary: {
+    default_mode: "review_report_only"
+    fix_generation_mode: "patch_plan_or_draft_only"
+    branch_creation: "request_only"
+    production_write: "forbidden"
+    required_approval: "human_review"
+  }
+
+  non_goals: [
+    "paid_provider_cloud",
+    "local_accelerator_proof",
+    "automatic_production_write",
+    "automatic_branch_mutation",
+    "github_lock_in",
+    "hosted_provider_agent_deployment",
+    "production_readiness_claim"
+  ]
+}
