@@ -91,4 +91,5 @@ composition "Hello World" {
 - [Working Tree Triage](./working-tree-triage) - Keep large local change sets cleanly scoped
 - [Release Versioning](./release-versioning) - Version policy and current release info
 - [MCP Mesh Operations](./mcp-mesh-operations) - Health checks and first-response recovery
+- [HoloScript To Google Agent Platform](./holoscript-to-google-agent-platform) - Deployment boundary for Google Agent Platform adapters
 - [Metrics SSOT](./metrics-ssot) - Canonical commands for targets/tools/traits/package counts
