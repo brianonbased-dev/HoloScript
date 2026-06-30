@@ -54,6 +54,11 @@ const HS010_KEYWORDS = [
 ];
 
 const CANONICAL_COMPILER_VERSIONS = ['7.0.0', '6.0.2', '6.0.1', '6.0.0'];
+const TRUST_TIER_ORDER = ['founder', 'diamond', 'platinum', 'gold', 'verified', 'unverified'] as const;
+const READ_ONLY_VALIDATION_CAPABILITIES = [
+  'holoscript:validate',
+  'filesystem:read:local-source',
+] as const;
 
 export interface ForkDetectionResult {
   isSuspicious: boolean;
@@ -152,9 +157,8 @@ function validateCapabilityManifest(
         detail: 'Attestation required but missing',
       };
     }
-    const tierOrder = ['founder', 'diamond', 'platinum', 'gold', 'verified', 'unverified'];
-    const subjectIdx = tierOrder.indexOf(manifest.attestation.trustTier);
-    const requiredIdx = tierOrder.indexOf(policy.capabilityManifest.minAttestationTier);
+    const subjectIdx = TRUST_TIER_ORDER.indexOf(manifest.attestation.trustTier);
+    const requiredIdx = TRUST_TIER_ORDER.indexOf(policy.capabilityManifest.minAttestationTier);
     if (subjectIdx < 0 || subjectIdx > requiredIdx) {
       return {
         passed: false,
@@ -164,6 +168,18 @@ function validateCapabilityManifest(
   }
 
   return { passed: true, detail: 'Manifest valid' };
+}
+
+function isVerifiedReadOnlyValidationManifest(manifest: CapabilityManifest | undefined): boolean {
+  if (!manifest || manifest.protocol !== 'holoscript.capability.v1') return false;
+  const capabilities = new Set(manifest.declaredCapabilities);
+  if (!READ_ONLY_VALIDATION_CAPABILITIES.every((capability) => capabilities.has(capability))) {
+    return false;
+  }
+  if (!manifest.attestation) return false;
+  const subjectIdx = TRUST_TIER_ORDER.indexOf(manifest.attestation.trustTier);
+  const requiredIdx = TRUST_TIER_ORDER.indexOf('verified');
+  return subjectIdx >= 0 && subjectIdx <= requiredIdx;
 }
 
 // ── Permission Validation ────────────────────────────────────────────────────
@@ -345,7 +361,10 @@ export async function runForkSandboxGate(
       const detection = detectForkedHoloScript(subject.payload);
       if (detection.isSuspicious) {
         heuristicSignals = detection.signals;
-        if (effectiveSource === 'unknown' || effectiveSource === 'generated') {
+        const readOnlyValidationManifest =
+          options.toolName === 'validate_holoscript' &&
+          isVerifiedReadOnlyValidationManifest(subject.manifest);
+        if (!readOnlyValidationManifest && (effectiveSource === 'unknown' || effectiveSource === 'generated')) {
           effectiveSource = 'fork';
         }
       }

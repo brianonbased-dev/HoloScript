@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { handleTool } from '../handlers';
 
 vi.mock('@holoscript/llm-provider', () => ({
+  LOCAL_DEFAULT_MODEL: 'test-local-model',
   createProviderManager: vi.fn(() => ({
     getRegisteredProviders: () => ['mock'],
     getProvider: () => ({
@@ -12,6 +13,30 @@ vi.mock('@holoscript/llm-provider', () => ({
       })),
     }),
   })),
+}));
+
+vi.mock('../renderer', () => ({
+  renderPreview: vi.fn(async ({ code }: { code?: string }) => {
+    if (typeof code !== 'string') throw new Error('render_preview requires code');
+    return {
+      success: true,
+      url: 'http://localhost:3000/api/scene/test/thumbnail',
+      previewUrl: 'http://localhost:3000/scene/test',
+    };
+  }),
+  createShareLink: vi.fn(
+    async ({
+      title = 'HoloScript Scene',
+      description = 'Interactive 3D scene built with HoloScript',
+    }: {
+      title?: string;
+      description?: string;
+    }) => ({
+      playgroundUrl: 'http://localhost:3000/scene/test',
+      embedUrl: 'http://localhost:3000/embed/test',
+      tweetText: `${title} ${description} http://localhost:3000/scene/test`,
+    })
+  ),
 }));
 
 afterEach(() => {
@@ -83,6 +108,27 @@ describe('MCP Tool Error Cases', () => {
         'experiments/holoshell-human-os-frontier/unsafe.holo',
       ],
     });
+  });
+
+  it('validate_holoscript accepts local source with a verified read-only validation manifest', async () => {
+    const result = (await handleTool('validate_holoscript', {
+      code: 'composition "ManifestedLocal" { object "Runner" { note: "process" } }',
+      format: 'holo',
+      sourcePath: 'compositions/codex-brain.hsplus',
+      capabilityManifest: {
+        protocol: 'holoscript.capability.v1',
+        declaredCapabilities: ['holoscript:validate', 'filesystem:read:local-source'],
+        attestation: {
+          manifestHash: 'sha256:test',
+          signer: 'codex-test',
+          trustTier: 'verified',
+          attestedAt: '2026-06-30T00:00:00.000Z',
+        },
+      },
+    })) as Record<string, unknown>;
+
+    expect(result.error).toBeUndefined();
+    expect(result.valid).toBe(true);
   });
 
   it('parse_hs handles invalid syntax with error array', async () => {
