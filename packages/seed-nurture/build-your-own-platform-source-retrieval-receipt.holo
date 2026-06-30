@@ -1,0 +1,94 @@
+composition "BuildYourOwnPlatformSourceRetrievalReceipt" {
+  state {
+    RECEIPT_VERSION: 1
+    ARCHIVE_SCORE: 47
+    FOUND_SOURCE_FILES: 2
+    REQUESTED_COPY_COMPLETED: 0
+  }
+
+  environment {
+    task_id: "task_1782807772680_zw2d"
+    proof_boundary: "source-location and mount-availability receipt; not a refreshed platform guide"
+    requested_output_path: "/mnt/nvme/holo/agent/output/seed-nurture/seed-source.md"
+    desktop_mount_status: "not-mounted-on-codex-desktop"
+  }
+
+  object "SeedSourceLookup" {
+    kind: "source-retrieval"
+    expected_seed_path: "idea-seeds/archive-farm/2026-05-12_archive_build-your-own-platform-with-holoscript.md"
+    expected_seed_path_exists: true
+    source_context_path: "docs/archive/BUILD_YOUR_OWN_PLATFORM.md"
+    source_context_path_exists: true
+    git_tracked_paths: [
+      "idea-seeds/archive-farm/2026-05-12_archive_build-your-own-platform-with-holoscript.md",
+      "docs/archive/BUILD_YOUR_OWN_PLATFORM.md"
+    ]
+    retrieval_result: "found_in_holoscript_repo"
+  }
+
+  object "SourceSummary" {
+    kind: "archive-seed-summary"
+    title: "Build Your Own Platform with HoloScript"
+    source_tagline: "The Spatial OS for the Agentic Era"
+    platform_categories: [
+      "vr_social",
+      "corporate_training",
+      "robotics_platform",
+      "ar_ecommerce",
+      "digital_twin",
+      "vr_game"
+    ]
+    archive_warning: "Treat as historical or superseded until current HoloScript and HoloLand contracts verify each claim."
+    current_safe_use: "source retrieval, seed triage, and future platform-strategy review"
+  }
+
+  object "RequestedCopyStatus" {
+    kind: "copy-status"
+    copied_to_requested_path: false
+    block_reason: "The /mnt/nvme Jetson output path is not mounted on this Windows Codex desktop."
+    local_source_available: true
+    no_fake_mount_created: true
+  }
+
+  object "RecoveryPath" {
+    kind: "jetson-copy-instruction"
+    first_command_on_jetson: "mkdir -p /mnt/nvme/holo/agent/output/seed-nurture"
+    copy_command_on_jetson: "cp /mnt/nvme/holo/HoloScript/idea-seeds/archive-farm/2026-05-12_archive_build-your-own-platform-with-holoscript.md /mnt/nvme/holo/agent/output/seed-nurture/seed-source.md"
+    git_fallback_command: "git -C /mnt/nvme/holo/HoloScript show HEAD:idea-seeds/archive-farm/2026-05-12_archive_build-your-own-platform-with-holoscript.md > /mnt/nvme/holo/agent/output/seed-nurture/seed-source.md"
+    windows_source_path: "C:/Users/Josep/Documents/GitHub/HoloScript/idea-seeds/archive-farm/2026-05-12_archive_build-your-own-platform-with-holoscript.md"
+  }
+
+  object "ValidationGate" {
+    kind: "local-receipt-required"
+    seed_path_check: "Test-Path idea-seeds/archive-farm/2026-05-12_archive_build-your-own-platform-with-holoscript.md"
+    source_path_check: "Test-Path docs/archive/BUILD_YOUR_OWN_PLATFORM.md"
+    git_tracking_check: "git ls-files -- idea-seeds/archive-farm/2026-05-12_archive_build-your-own-platform-with-holoscript.md docs/archive/BUILD_YOUR_OWN_PLATFORM.md"
+    output_mount_check: "Test-Path /mnt/nvme/holo/agent/output/seed-nurture"
+    seed_index_check: "node C:/Users/josep/.ai-ecosystem/scripts/index-idea-seeds.mjs --root C:/Users/josep/Documents/GitHub/HoloScript --check"
+    seed_triage_check: "node C:/Users/josep/.ai-ecosystem/scripts/triage-idea-seeds.mjs --root C:/Users/josep/Documents/GitHub/HoloScript --check"
+  }
+
+  object "ReceiptController" {
+    kind: "source-retrieval-controller"
+    validate_event: "source_retrieval_validate"
+    recovery_event: "jetson_copy_needed"
+  }
+
+  on(ReceiptController, "source_retrieval_validate") {
+    emit(SeedSourceLookup, "source:found", {
+      seed_path: "idea-seeds/archive-farm/2026-05-12_archive_build-your-own-platform-with-holoscript.md"
+      source_path: "docs/archive/BUILD_YOUR_OWN_PLATFORM.md"
+    })
+    emit(RequestedCopyStatus, "copy:not_performed_on_desktop", {
+      requested_output_path: "/mnt/nvme/holo/agent/output/seed-nurture/seed-source.md"
+      reason: "desktop_mount_absent"
+    })
+  }
+
+  on(ReceiptController, "jetson_copy_needed") {
+    emit(RecoveryPath, "copy:run_on_jetson", {
+      source: "idea-seeds/archive-farm/2026-05-12_archive_build-your-own-platform-with-holoscript.md"
+      destination: "/mnt/nvme/holo/agent/output/seed-nurture/seed-source.md"
+    })
+  }
+}
