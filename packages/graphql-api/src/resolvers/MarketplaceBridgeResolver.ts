@@ -196,7 +196,8 @@ export class MarketplaceBridgeResolver {
             errors: [
               {
                 message:
-                  'BABYLON compiler target is retired. Use WEBGPU, OPENXR, or a native target.',
+                  'BABYLON bridge target is disabled until rebuilt as a HoloScript-native compiler. ' +
+                  'Use WEBGPU, OPENXR, R3F/SceneIR, or another native target.',
                 phase: 'compile',
               },
             ],

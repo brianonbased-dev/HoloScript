@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * validate-holo-compile.mjs — headless parse + R3FCompiler check for a .holo file.
+ * validate-holo-compile.mjs — headless parse + SceneIR/R3FNode check for a .holo file.
  *
  * Confirms the canonical .holo parses and dumps the resolved scene tree shape
  * (node types + the props a raw-three walker needs: hsType, color, materialProps,

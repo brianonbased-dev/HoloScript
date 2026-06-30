@@ -244,9 +244,13 @@ function normalizeCompileTarget(target: string): string {
   return COMPILE_TARGET_ALIASES[target] ?? target;
 }
 
-function printRetiredCompileTarget(target: string, replacement: string): never {
-  console.error(`\x1b[31mError: compile target "${target}" is retired.\x1b[0m`);
-  console.error(`\x1b[33mUse ${replacement} instead.\x1b[0m`);
+function printLegacyBridgeTarget(target: string, replacement: string): never {
+  console.error(
+    `\x1b[31mError: compile target "${target}" is on a disabled legacy bridge path.\x1b[0m`
+  );
+  console.error(
+    `\x1b[33mUse ${replacement}, or rebuild this target as a HoloScript-native compiler.\x1b[0m`
+  );
   process.exit(1);
 }
 
@@ -2227,10 +2231,9 @@ async function main(): Promise<void> {
           process.exit(0);
         }
 
-        // Special handling for babylon target — use core BabylonCompiler
-        // (aligns CLI output with MCP server which also routes through ExportManager→BabylonCompiler)
+        // The old Babylon bridge stays closed until rebuilt through a native compiler path.
         if (target === 'babylon') {
-          printRetiredCompileTarget('babylon', 'webgpu, openxr, unity, godot, or r3f/SceneIR');
+          printLegacyBridgeTarget('babylon', 'webgpu, openxr, unity, godot, or r3f/SceneIR');
         }
 
         // Special handling for unity target — use core UnityCompiler
@@ -2545,19 +2548,19 @@ async function main(): Promise<void> {
           process.exit(0);
         }
 
-        // Special handling for VRR target - use the reality-mirror compiler
+        // The old VRR bridge stays closed until rebuilt through a native compiler path.
         if (target === 'vrr') {
-          printRetiredCompileTarget('vrr', 'openxr, android-xr, visionos, or a native game/runtime target');
+          printLegacyBridgeTarget('vrr', 'openxr, android-xr, visionos, or a native game/runtime target');
         }
 
-        // Special handling for multi-layer target - compile VR/VRR/AR views together
+        // The old multi-layer public target stays closed until rebuilt through native orchestration.
         if (target === 'multi-layer') {
-          printRetiredCompileTarget('multi-layer', 'target-specific native compiler orchestration');
+          printLegacyBridgeTarget('multi-layer', 'target-specific native compiler orchestration');
         }
 
-        // Special handling for AR target - use ARCompiler
+        // The old AR bridge stays closed until rebuilt through a native compiler path.
         if (target === 'ar') {
-          printRetiredCompileTarget('ar', 'android-xr, openxr, quest, or visionos');
+          printLegacyBridgeTarget('ar', 'android-xr, openxr, quest, or visionos');
         }
 
         // V6 2D UI Revolution - Flat Semantic Target
@@ -2565,12 +2568,15 @@ async function main(): Promise<void> {
           target === 'flat-semantic' ||
           (target === 'web-2d' && (!options.projection || options.projection === 'flat-semantic'));
         if (isFlatSemantic) {
-          printRetiredCompileTarget('flat-semantic/web-2d', 'native-2d/NextJSCompiler-generated HoloScript UI');
+          printLegacyBridgeTarget(
+            'flat-semantic/web-2d',
+            'native-2d/NextJSCompiler-generated HoloScript UI'
+          );
         }
 
-        // Special handling for PlayCanvas target
+        // The old PlayCanvas bridge stays closed until rebuilt through a native compiler path.
         if (target === 'playcanvas') {
-          printRetiredCompileTarget('playcanvas', 'webgpu, openxr, unity, godot, or r3f/SceneIR');
+          printLegacyBridgeTarget('playcanvas', 'webgpu, openxr, unity, godot, or r3f/SceneIR');
         }
 
         // Special handling for Unreal target

@@ -175,6 +175,8 @@
     "render:competitor-gap-matrix": "node scripts/render-competitor-gap-matrix.mjs",
     "conjecture:runner": "tsx scripts/conjecture-runner.ts",
     "conjecture:cost-cell": "tsx scripts/conjecture-cost-cell.ts",
+    "check:legacy-bridge-surface": "node scripts/holo-ci/check-apex-poison-retired.mjs",
+    "check:legacy-bridge-surface:test": "node scripts/__tests__/check-apex-poison-retired.test.mjs",
     "check:apex-poison-retired": "node scripts/holo-ci/check-apex-poison-retired.mjs",
     "check:apex-poison-retired:test": "node scripts/__tests__/check-apex-poison-retired.test.mjs",
     "check:render-surface-native": "node scripts/holo-ci/check-render-surface-native.mjs",

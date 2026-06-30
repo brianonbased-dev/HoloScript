@@ -1,14 +1,15 @@
 #!/usr/bin/env node
 /**
- * Source-level canary for the compiler-poison retirement track.
+ * Source-level canary for legacy bridge compiler surfaces.
  *
- * Retirement has three lanes:
- *   1. public package subpaths stay retired (no build entry, no handwritten d.ts),
- *   2. removed compiler modules must not be imported from source,
- *   3. live native emitters may remain internal compiler machinery.
+ * This floor has three lanes:
+ *   1. old bridge package subpaths stay disabled until rebuilt natively,
+ *   2. stale compiler modules must not be imported from source,
+ *   3. live capabilities stay available through SceneIR/R3FNode and native emitters.
  *
- * This is the guard that would have caught stale service imports of the retired
- * R3FCompiler module while still allowing HoloScript-native UI generation through
+ * This guard catches stale service imports of the old R3FCompiler module while
+ * still allowing HoloScript to provide R3F-class scene capability through
+ * SceneIRCompiler / R3FNode and HoloScript-native UI generation through
  * Native2DCompiler / NextJSCompiler.
  */
 
@@ -41,73 +42,73 @@ const SKIP_DIRS = new Set([
 const SELF_REL = 'scripts/holo-ci/check-apex-poison-retired.mjs';
 const SELF_TEST_REL = 'scripts/__tests__/check-apex-poison-retired.test.mjs';
 
-const retiredImportModules = [
+const legacyBridgeSurfaces = [
   {
-    name: 'R3FCompiler',
+    name: 'legacy R3FCompiler module',
     symbols: ['R3FCompiler'],
     sourceFiles: ['R3FCompiler'],
     subpaths: ['r3f'],
-    replacement: 'SceneIRCompiler plus scene-ir-types',
+    replacement: 'SceneIRCompiler plus R3FNode scene IR',
   },
   {
-    name: 'ThreeJSCompiler',
+    name: 'legacy ThreeJSCompiler module',
     symbols: ['ThreeJSCompiler'],
     sourceFiles: ['ThreeJSCompiler'],
     subpaths: ['threejs'],
     replacement: 'SceneIRCompiler or a native target compiler',
   },
   {
-    name: 'BabylonCompiler',
+    name: 'legacy BabylonCompiler module',
     symbols: ['BabylonCompiler'],
     sourceFiles: ['BabylonCompiler'],
     subpaths: ['babylon'],
     replacement: 'SceneIRCompiler or a native target compiler',
   },
   {
-    name: 'PlayCanvasCompiler',
+    name: 'legacy PlayCanvasCompiler module',
     symbols: ['PlayCanvasCompiler'],
     sourceFiles: ['PlayCanvasCompiler'],
     subpaths: ['playcanvas'],
     replacement: 'SceneIRCompiler or a native target compiler',
   },
   {
-    name: 'PhoneSleeveVRCompiler',
+    name: 'legacy PhoneSleeveVRCompiler module',
     symbols: ['PhoneSleeveVRCompiler'],
     sourceFiles: ['PhoneSleeveVRCompiler'],
     subpaths: ['phone-sleeve-vr'],
     replacement: 'Quest/OpenXR/native XR compilers',
   },
   {
-    name: 'FlatSemanticCompiler',
+    name: 'legacy FlatSemanticCompiler module',
     symbols: ['FlatSemanticCompiler'],
     sourceFiles: ['FlatSemanticCompiler'],
     subpaths: ['flat-semantic'],
     replacement: 'semantic IR / native renderer contracts',
   },
   {
-    name: 'VRRCompiler',
+    name: 'legacy VRRCompiler module',
     symbols: ['VRRCompiler'],
     sourceFiles: ['VRRCompiler'],
     subpaths: ['vrr'],
     replacement: 'native rhythm/game targets',
   },
   {
-    name: 'ARCompiler',
+    name: 'legacy ARCompiler module',
     symbols: ['ARCompiler'],
     sourceFiles: ['ARCompiler'],
     subpaths: ['ar'],
     replacement: 'AndroidXR/OpenXR/Quest native targets',
   },
-  // These public subpaths are retired, but the source files are still valid
+  // These old public subpaths are disabled, but the source files are still valid
   // internal machinery/stubs. Do not ban local source imports for them here.
   {
-    name: 'Native2DCompiler public subpath',
+    name: 'legacy Native2DCompiler public subpath',
     sourceFiles: [],
     subpaths: ['native-2d'],
     replacement: 'NextJSCompiler / generated HoloScript-native UI output',
   },
   {
-    name: 'MultiLayerCompiler public subpath',
+    name: 'legacy MultiLayerCompiler public subpath',
     sourceFiles: [],
     subpaths: ['multi-layer'],
     replacement: 'target-specific native compiler orchestration',
@@ -247,38 +248,38 @@ function parseNamedImports(importsBlock) {
     .filter(Boolean);
 }
 
-function matchesRetiredImport(specifier, resolved) {
+function matchesLegacyBridgeImport(specifier, resolved) {
   const normalizedSpecifier = normalizeSpecifier(specifier);
-  for (const retired of retiredImportModules) {
-    for (const sourceFile of retired.sourceFiles) {
-      if (resolved === `packages/core/src/compiler/${sourceFile}`) return retired;
-      if (resolved.endsWith(`/compiler/${sourceFile}`)) return retired;
+  for (const bridge of legacyBridgeSurfaces) {
+    for (const sourceFile of bridge.sourceFiles) {
+      if (resolved === `packages/core/src/compiler/${sourceFile}`) return bridge;
+      if (resolved.endsWith(`/compiler/${sourceFile}`)) return bridge;
     }
-    for (const subpath of retired.subpaths) {
-      if (normalizedSpecifier === `@holoscript/core/compiler/${subpath}`) return retired;
-      if (normalizedSpecifier === `@holoscript/core/dist/compiler/${subpath}`) return retired;
-      if (resolved === `packages/core/src/compiler/${subpath}`) return retired;
-      if (resolved.endsWith(`/compiler/${subpath}`)) return retired;
+    for (const subpath of bridge.subpaths) {
+      if (normalizedSpecifier === `@holoscript/core/compiler/${subpath}`) return bridge;
+      if (normalizedSpecifier === `@holoscript/core/dist/compiler/${subpath}`) return bridge;
+      if (resolved === `packages/core/src/compiler/${subpath}`) return bridge;
+      if (resolved.endsWith(`/compiler/${subpath}`)) return bridge;
     }
   }
   return null;
 }
 
-function matchesRetiredSymbol(specifier, symbol) {
+function matchesLegacyBridgeSymbol(specifier, symbol) {
   const normalizedSpecifier = normalizeSpecifier(specifier);
   if (!['@holoscript/core', '@holoscript/core/compiler'].includes(normalizedSpecifier)) {
     return null;
   }
-  for (const retired of retiredImportModules) {
-    if (retired.symbols?.includes(symbol)) return retired;
+  for (const bridge of legacyBridgeSurfaces) {
+    if (bridge.symbols?.includes(symbol)) return bridge;
   }
   return null;
 }
 
-function reportRetiredSymbol(relFile, source, index, symbol, retired) {
+function reportLegacyBridgeSymbol(relFile, source, index, symbol, bridge) {
   errors.push(
-    `${relFile}:${lineForOffset(source, index)} RETIRED-COMPILER-SYMBOL ${symbol} -> ` +
-      `${retired.name} is retired; use ${retired.replacement}`
+    `${relFile}:${lineForOffset(source, index)} LEGACY-BRIDGE-SYMBOL ${symbol} -> ` +
+      `${bridge.name} is disabled; use ${bridge.replacement}`
   );
 }
 
@@ -303,8 +304,8 @@ function scanNamedCompilerImports(relFile, source) {
     let match;
     while ((match = pattern.exec(source))) {
       for (const symbol of parseNamedImports(match[1])) {
-        const retired = matchesRetiredSymbol(match[2], symbol);
-        if (retired) reportRetiredSymbol(relFile, source, match.index, symbol, retired);
+        const bridge = matchesLegacyBridgeSymbol(match[2], symbol);
+        if (bridge) reportLegacyBridgeSymbol(relFile, source, match.index, symbol, bridge);
       }
     }
   }
@@ -317,16 +318,16 @@ function scanNamedCompilerImports(relFile, source) {
     let destructureMatch;
     while ((destructureMatch = destructuring.exec(source))) {
       for (const symbol of parseNamedImports(destructureMatch[1])) {
-        const retired = matchesRetiredSymbol(specifier, symbol);
-        if (retired) reportRetiredSymbol(relFile, source, destructureMatch.index, symbol, retired);
+        const bridge = matchesLegacyBridgeSymbol(specifier, symbol);
+        if (bridge) reportLegacyBridgeSymbol(relFile, source, destructureMatch.index, symbol, bridge);
       }
     }
 
     const memberAccess = new RegExp(`\\b${varName}\\.([A-Za-z_$][\\w$]*)\\b`, 'g');
     let memberMatch;
     while ((memberMatch = memberAccess.exec(source))) {
-      const retired = matchesRetiredSymbol(specifier, memberMatch[1]);
-      if (retired) reportRetiredSymbol(relFile, source, memberMatch.index, memberMatch[1], retired);
+      const bridge = matchesLegacyBridgeSymbol(specifier, memberMatch[1]);
+      if (bridge) reportLegacyBridgeSymbol(relFile, source, memberMatch.index, memberMatch[1], bridge);
     }
   }
 }
@@ -344,11 +345,11 @@ function scanImports(relFile) {
     while ((match = pattern.exec(scanSource))) {
       const specifier = match[1];
       const resolved = resolvedSpecifier(relFile, specifier);
-      const retired = matchesRetiredImport(specifier, resolved);
-      if (!retired) continue;
+      const bridge = matchesLegacyBridgeImport(specifier, resolved);
+      if (!bridge) continue;
       errors.push(
-        `${relFile}:${lineForOffset(source, match.index)} RETIRED-COMPILER-IMPORT ${specifier} -> ` +
-        `${retired.name} is retired; use ${retired.replacement}`
+        `${relFile}:${lineForOffset(source, match.index)} LEGACY-BRIDGE-IMPORT ${specifier} -> ` +
+        `${bridge.name} is disabled; use ${bridge.replacement}`
       );
     }
   }
@@ -372,11 +373,11 @@ for (const relFile of gatherSourceFiles()) {
 }
 
 if (errors.length) {
-  console.error('[apex-poison-retired] retired compiler surface is still exposed:');
+  console.error('[apex-poison-retired] legacy bridge compiler surface is still exposed:');
   for (const error of errors) console.error(`  - ${error}`);
   process.exit(1);
 }
 
 console.log(
-  '[apex-poison-retired] OK - retired compiler package subpaths are not built/declared/imported'
+  '[apex-poison-retired] OK - legacy bridge surfaces stay closed; R3F capability remains SceneIR/R3FNode'
 );

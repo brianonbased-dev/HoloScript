@@ -2,9 +2,9 @@
 /**
  * Regression tests for scripts/holo-ci/check-apex-poison-retired.mjs.
  *
- * The gate keeps apex-poison bridge compilers retired without blocking the
- * HoloScript-native UI path: public bridge subpaths, direct source imports, and
- * root-package retired symbols fail; SceneIR/native imports and comments pass.
+ * The gate keeps stale apex-poison bridge modules out of the native compiler
+ * path: old public bridge subpaths, direct source imports, and root-package
+ * bridge symbols fail; SceneIR/R3FNode/native imports and comments pass.
  */
 
 import { spawnSync } from 'node:child_process';
@@ -42,7 +42,7 @@ function assertMatch(text, pattern, name) {
 }
 
 function setup(files) {
-  const root = mkdtempSync(join(tmpdir(), 'apex-poison-retired-'));
+  const root = mkdtempSync(join(tmpdir(), 'legacy-bridge-surface-'));
   mkdirSync(join(root, 'packages', 'core', 'scripts'), { recursive: true });
   writeFileSync(
     join(root, 'packages', 'core', 'tsup.config.ts'),
@@ -73,12 +73,14 @@ console.log('check-apex-poison-retired.test.mjs');
 {
   const root = setup({
     'packages/app/src/ok.ts':
-      "import { SceneIRCompiler } from '@holoscript/core/compiler';\nnew SceneIRCompiler();\n",
+      "import { SceneIRCompiler as R3FCompiler, type R3FNode } from '@holoscript/core/compiler';\n" +
+      "const node: R3FNode = { id: 'root', type: 'group', props: {}, children: [] };\n" +
+      "new R3FCompiler();\nvoid node;\n",
   });
   try {
     const result = run(root);
-    assertEq(result.code, 0, 'SceneIR import passes');
-    assertMatch(result.out, /OK - retired compiler package subpaths/, 'clean run prints OK');
+    assertEq(result.code, 0, 'SceneIR/R3FNode capability import passes');
+    assertMatch(result.out, /OK - legacy bridge surfaces/, 'clean run prints OK');
   } finally {
     cleanup(root);
   }
@@ -90,8 +92,8 @@ console.log('check-apex-poison-retired.test.mjs');
   });
   try {
     const result = run(root);
-    assertEq(result.code, 1, 'retired package subpath fails');
-    assertMatch(result.out, /RETIRED-COMPILER-IMPORT .*compiler\/r3f/, 'names retired subpath');
+    assertEq(result.code, 1, 'legacy package subpath fails');
+    assertMatch(result.out, /LEGACY-BRIDGE-IMPORT .*compiler\/r3f/, 'names legacy subpath');
   } finally {
     cleanup(root);
   }
@@ -103,8 +105,8 @@ console.log('check-apex-poison-retired.test.mjs');
   });
   try {
     const result = run(root);
-    assertEq(result.code, 1, 'retired source import fails');
-    assertMatch(result.out, /RETIRED-COMPILER-IMPORT .*BabylonCompiler/, 'names source import');
+    assertEq(result.code, 1, 'legacy source import fails');
+    assertMatch(result.out, /LEGACY-BRIDGE-IMPORT .*BabylonCompiler/, 'names source import');
   } finally {
     cleanup(root);
   }
@@ -117,8 +119,8 @@ console.log('check-apex-poison-retired.test.mjs');
   });
   try {
     const result = run(root);
-    assertEq(result.code, 1, 'retired root symbol import fails');
-    assertMatch(result.out, /RETIRED-COMPILER-SYMBOL R3FCompiler/, 'names root symbol');
+    assertEq(result.code, 1, 'legacy root symbol import fails');
+    assertMatch(result.out, /LEGACY-BRIDGE-SYMBOL R3FCompiler/, 'names root symbol');
   } finally {
     cleanup(root);
   }
@@ -131,8 +133,8 @@ console.log('check-apex-poison-retired.test.mjs');
   });
   try {
     const result = run(root);
-    assertEq(result.code, 1, 'retired namespace member fails');
-    assertMatch(result.out, /RETIRED-COMPILER-SYMBOL ARCompiler/, 'names namespace symbol');
+    assertEq(result.code, 1, 'legacy namespace member fails');
+    assertMatch(result.out, /LEGACY-BRIDGE-SYMBOL ARCompiler/, 'names namespace symbol');
   } finally {
     cleanup(root);
   }
@@ -159,7 +161,7 @@ console.log('check-apex-poison-retired.test.mjs');
   );
   try {
     const result = run(root);
-    assertEq(result.code, 1, 'retired package build entry fails');
+    assertEq(result.code, 1, 'legacy package build entry fails');
     assertMatch(result.out, /compiler\\\/r3f|compiler\/r3f/, 'names static package surface');
   } finally {
     cleanup(root);
@@ -175,7 +177,7 @@ console.log('check-apex-poison-retired.test.mjs');
     const cleanScoped = run(root, ['--files', 'packages/app/src/mine.ts']);
     assertEq(cleanScoped.code, 0, '--files ignores unlisted peer drift');
     const badScoped = run(root, ['--files', 'packages/app/src/peer.ts']);
-    assertEq(badScoped.code, 1, '--files catches listed retired symbol');
+    assertEq(badScoped.code, 1, '--files catches listed legacy bridge symbol');
   } finally {
     cleanup(root);
   }

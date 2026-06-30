@@ -126,24 +126,24 @@ if [ -f "scripts/check-workspace-deps.js" ]; then
     fi
 fi
 
-# Gate 4b: Retired compiler import floor.
-# Blocks re-opening apex-poison bridge compilers through package subpaths, direct
-# source imports, or root-package retired symbols. Native UI emitters remain
-# allowed as internal compiler machinery; production render .tsx is governed by
-# the render-surface native freeze below.
-echo "  ├─ Retired compiler import floor..."
+# Gate 4b: Legacy bridge compiler surface floor.
+# Blocks re-opening apex-poison bridge compilers through old package subpaths,
+# direct source imports, or root-package bridge symbols. R3F-class capability
+# remains live through SceneIR/R3FNode; production render .tsx is governed by the
+# render-surface native freeze below.
+echo "  ├─ Legacy bridge compiler surface floor..."
 STAGED_COMPILER_SURFACE=$(git diff --cached --name-only --diff-filter=ACM -- \
     'packages/**' 'services/**' 'apps/**' 'scripts/**' 2>/dev/null || true)
 if [ -n "$STAGED_COMPILER_SURFACE" ]; then
-    RETIRED_OUT=$(run_with_timeout 30 node scripts/holo-ci/check-apex-poison-retired.mjs --files "$STAGED_COMPILER_SURFACE" 2>&1)
-    RETIRED_STATUS=$?
-    if [ "$RETIRED_STATUS" -ne 0 ]; then
-        echo -e "  ${RED}❌ Retired compiler import/subpath reopened${NC}"
-        echo "$RETIRED_OUT"
-        echo "     Fix: use SceneIRCompiler/native targets; do not import retired compiler modules."
+    LEGACY_BRIDGE_OUT=$(run_with_timeout 30 node scripts/holo-ci/check-apex-poison-retired.mjs --files "$STAGED_COMPILER_SURFACE" 2>&1)
+    LEGACY_BRIDGE_STATUS=$?
+    if [ "$LEGACY_BRIDGE_STATUS" -ne 0 ]; then
+        echo -e "  ${RED}❌ Legacy bridge compiler import/subpath reopened${NC}"
+        echo "$LEGACY_BRIDGE_OUT"
+        echo "     Fix: use SceneIRCompiler/R3FNode or native targets; rebuild old bridge targets natively."
         FAILED=1
     else
-        echo -e "  ${GREEN}✓${NC} Retired compiler imports stay closed"
+        echo -e "  ${GREEN}✓${NC} Legacy bridge compiler surfaces stay closed"
     fi
 else
     echo -e "  ${GREEN}✓${NC} No staged compiler-surface files"
@@ -412,7 +412,7 @@ if [ -n "$STAGED_QUEST_BV" ]; then
 fi
 
 # Gate 5f: Trait parity — every R3F-emitted trait must be handled or noop-classified.
-# This is the INTERLOCK before R3FCompiler retirement (research/2026-06-15_trait-parity-and-tsx-deprecation.md §5.6).
+# This is the INTERLOCK for the legacy R3FCompiler-to-SceneIR transition.
 # Only runs when R3FCompiler.ts or the trait runtime files are staged — avoids blocking
 # unrelated commits. The check is fast (~100ms, pure read — no install/network).
 echo "  ├─ Trait parity gate..."
