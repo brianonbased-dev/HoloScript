@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 /**
  * GAPS Compilation Proof — Cross-backend benchmark
- * Compiles 3 representative .holo compositions to 18 backends,
+ * Compiles representative .holo compositions to active backends plus scene IR,
  * captures timing, output size, and first 20 lines of generated code.
  */
 import * as fs from 'fs';
@@ -11,8 +11,7 @@ import { HoloCompositionParser } from '../packages/core/src/parser/HoloCompositi
 import { UnityCompiler } from '../packages/core/src/compiler/UnityCompiler';
 import { UnrealCompiler } from '../packages/core/src/compiler/UnrealCompiler';
 import { GodotCompiler } from '../packages/core/src/compiler/GodotCompiler';
-import { R3FCompiler } from '../packages/core/src/compiler/R3FCompiler';
-import { BabylonCompiler } from '../packages/core/src/compiler/BabylonCompiler';
+import { SceneIRCompiler } from '../packages/core/src/compiler/SceneIRCompiler';
 import { OpenXRCompiler } from '../packages/core/src/compiler/OpenXRCompiler';
 import { VRChatCompiler } from '../packages/core/src/compiler/VRChatCompiler';
 import { VisionOSCompiler } from '../packages/core/src/compiler/VisionOSCompiler';
@@ -22,7 +21,6 @@ import { SDFCompiler } from '../packages/core/src/compiler/SDFCompiler';
 import { DTDLCompiler } from '../packages/core/src/compiler/DTDLCompiler';
 import { WebGPUCompiler } from '../packages/core/src/compiler/WebGPUCompiler';
 import { WASMCompiler } from '../packages/core/src/compiler/WASMCompiler';
-import { PlayCanvasCompiler } from '../packages/core/src/compiler/PlayCanvasCompiler';
 import { IOSCompiler } from '../packages/core/src/compiler/IOSCompiler';
 import { AndroidCompiler } from '../packages/core/src/compiler/AndroidCompiler';
 
@@ -44,8 +42,7 @@ const COMPILERS: Record<string, new (opts?: any) => any> = {
   unity: UnityCompiler,
   unreal: UnrealCompiler,
   godot: GodotCompiler,
-  r3f: R3FCompiler,
-  babylon: BabylonCompiler,
+  'scene-ir': SceneIRCompiler,
   openxr: OpenXRCompiler,
   vrchat: VRChatCompiler,
   visionos: VisionOSCompiler,
@@ -55,7 +52,6 @@ const COMPILERS: Record<string, new (opts?: any) => any> = {
   dtdl: DTDLCompiler,
   webgpu: WebGPUCompiler,
   wasm: WASMCompiler,
-  playcanvas: PlayCanvasCompiler,
   ios: IOSCompiler,
   android: AndroidCompiler,
 };
@@ -92,7 +88,7 @@ async function main() {
       try {
         const compiler = new CompilerClass();
         const start = performance.now();
-        // R3FCompiler.compile() expects HSPlusAST, use compileComposition() for .holo
+        // SceneIRCompiler exposes compileComposition() for .holo input.
         // Pass undefined to skip RBAC (CompilerBase line 541)
         const output =
           typeof compiler.compileComposition === 'function'

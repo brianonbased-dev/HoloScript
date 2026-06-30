@@ -2,8 +2,7 @@
 
 import { useMemo } from 'react';
 import { HoloScriptPlusParser, HoloCompositionParser } from '@holoscript/core/parser';
-import { R3FCompiler } from '@holoscript/core/compiler/r3f';
-import type { R3FNode } from '@holoscript/core/compiler/r3f';
+import { SceneIRCompiler as R3FCompiler, type R3FNode } from '@holoscript/core/compiler';
 export interface PipelineError {
   message: string;
   line?: number;

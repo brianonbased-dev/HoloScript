@@ -1,6 +1,10 @@
 import { Resolver, Mutation, Arg } from 'type-graphql';
 import { CompileInput, CompilePayload, CompilerTarget } from '../types/GraphQLTypes.js';
 
+function stringifyCompileOutput(output: unknown): string {
+  return typeof output === 'string' ? output : JSON.stringify(output, null, 2);
+}
+
 @Resolver()
 export class CompilerResolver {
   /**
@@ -47,13 +51,23 @@ export class CompilerResolver {
           break;
 
         case CompilerTarget.BABYLON:
-          compiler = new core.BabylonCompiler();
-          compiledOutput = compiler.compile(parseResult.ast);
-          break;
+          return {
+            success: false,
+            output: undefined,
+            errors: [
+              {
+                message:
+                  'BABYLON compiler target is retired. Use WEBGPU, OPENXR, or a native target.',
+                phase: 'compile',
+              },
+            ],
+            warnings: [],
+            metadata: undefined,
+          };
 
         case CompilerTarget.R3F:
-          compiler = new core.R3FCompiler();
-          compiledOutput = compiler.compile(parseResult.ast);
+          compiler = new core.SceneIRCompiler();
+          compiledOutput = stringifyCompileOutput(compiler.compile(parseResult.ast));
           break;
 
         default:

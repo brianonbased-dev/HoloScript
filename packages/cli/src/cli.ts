@@ -244,6 +244,12 @@ function normalizeCompileTarget(target: string): string {
   return COMPILE_TARGET_ALIASES[target] ?? target;
 }
 
+function printRetiredCompileTarget(target: string, replacement: string): never {
+  console.error(`\x1b[31mError: compile target "${target}" is retired.\x1b[0m`);
+  console.error(`\x1b[33mUse ${replacement} instead.\x1b[0m`);
+  process.exit(1);
+}
+
 function compileOutputFieldToFileName(field: string): string {
   const knownFiles: Record<string, string> = {
     activityFile: 'GeneratedXRActivity.kt',
@@ -2224,42 +2230,7 @@ async function main(): Promise<void> {
         // Special handling for babylon target — use core BabylonCompiler
         // (aligns CLI output with MCP server which also routes through ExportManager→BabylonCompiler)
         if (target === 'babylon') {
-          if (!isHolo) {
-            console.error(`\x1b[31mError: Babylon.js compilation requires .holo files.\x1b[0m`);
-            process.exit(1);
-          }
-
-          const { HoloCompositionParser, BabylonCompiler } = await import('@holoscript/core');
-          const compositionParser = new HoloCompositionParser();
-          const parseResult = compositionParser.parse(content);
-
-          if (!parseResult.success || !parseResult.ast) {
-            console.error(`\x1b[31mError parsing for Babylon.js:\x1b[0m`);
-            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
-            process.exit(1);
-          }
-
-          // Debug lines go to stderr so stdout contains only the compiled code
-          process.stderr.write(`\x1b[2m[DEBUG] Compiling to Babylon.js (TypeScript class-based)...\x1b[0m\n`);
-          const compiler = new BabylonCompiler({
-            className: 'GeneratedScene',
-            typescript: true,
-          });
-          const babylonOutput = compiler.compile(parseResult.ast, '');
-
-          process.stderr.write(`\x1b[2m[DEBUG] Code generation complete. Length: ${babylonOutput.length}\x1b[0m\n`);
-
-          if (options.output) {
-            const outputPath = path.resolve(options.output);
-            const tsPath = outputPath.endsWith('.ts') ? outputPath : outputPath + '.ts';
-            writeCompileOutputFile(tsPath, babylonOutput);
-            process.stderr.write(`\x1b[32m✓ Babylon.js written to ${tsPath}\x1b[0m\n`);
-          } else {
-            process.stdout.write(babylonOutput + '\n');
-          }
-
-          process.stderr.write(`\x1b[32m✓ Compilation successful!\x1b[0m\n\n`);
-          process.exit(0);
+          printRetiredCompileTarget('babylon', 'webgpu, openxr, unity, godot, or r3f/SceneIR');
         }
 
         // Special handling for unity target — use core UnityCompiler
@@ -2576,194 +2547,17 @@ async function main(): Promise<void> {
 
         // Special handling for VRR target - use the reality-mirror compiler
         if (target === 'vrr') {
-          if (!isHolo) {
-            console.error(`\x1b[31mError: VRR compilation requires .holo files.\x1b[0m`);
-            process.exit(1);
-          }
-
-          const { HoloCompositionParser } = await import('@holoscript/core');
-          const { VRRCompiler } = await import('@holoscript/core/compiler');
-          const compositionParser = new HoloCompositionParser();
-          const parseResult = compositionParser.parse(content);
-
-          if (!parseResult.success || !parseResult.ast) {
-            console.error(`\x1b[31mError parsing for VRR:\x1b[0m`);
-            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
-            process.exit(1);
-          }
-
-          console.log(`\x1b[2m[DEBUG] Compiling to VRR Three.js reality mirror...\x1b[0m`);
-          const compiler = new VRRCompiler({
-            target: 'threejs',
-            minify: false,
-            source_maps: false,
-            api_integrations: {},
-            performance: { target_fps: 60, max_players: 1000, lazy_loading: true },
-          });
-          const result = compiler.compile(parseResult.ast, '');
-
-          if (!result.success) {
-            console.error(`\x1b[31mVRR compilation failed:\x1b[0m`);
-            for (const error of result.errors) {
-              console.error(`  - ${error}`);
-            }
-            process.exit(1);
-          }
-
-          console.log(`\x1b[32m✓ VRR compilation successful!\x1b[0m`);
-          console.log(`\x1b[2m  Objects: ${parseResult.ast.objects?.length || 0}\x1b[0m`);
-          if (result.warnings.length > 0) {
-            for (const warning of result.warnings) {
-              console.log(`\x1b[33m  Warning: ${warning}\x1b[0m`);
-            }
-          }
-
-          if (options.output) {
-            const outputPath = path.resolve(options.output);
-            const jsPath = outputPath.endsWith('.js') ? outputPath : outputPath + '.js';
-            writeCompileOutputFile(jsPath, result.code);
-            console.log(`\x1b[32m✓ VRR JavaScript written to ${jsPath}\x1b[0m`);
-          } else {
-            console.log('\n--- VRR JavaScript Output ---\n');
-            console.log(result.code);
-          }
-
-          process.exit(0);
+          printRetiredCompileTarget('vrr', 'openxr, android-xr, visionos, or a native game/runtime target');
         }
 
         // Special handling for multi-layer target - compile VR/VRR/AR views together
         if (target === 'multi-layer') {
-          if (!isHolo) {
-            console.error(`\x1b[31mError: multi-layer compilation requires .holo files.\x1b[0m`);
-            process.exit(1);
-          }
-
-          const { HoloCompositionParser } = await import('@holoscript/core');
-          const { MultiLayerCompiler } = await import('@holoscript/core/compiler');
-          const compositionParser = new HoloCompositionParser();
-          const parseResult = compositionParser.parse(content);
-
-          if (!parseResult.success || !parseResult.ast) {
-            console.error(`\x1b[31mError parsing for multi-layer:\x1b[0m`);
-            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
-            process.exit(1);
-          }
-
-          console.log(`\x1b[2m[DEBUG] Compiling to multi-layer VR/VRR/AR bundle...\x1b[0m`);
-          const compiler = new MultiLayerCompiler({
-            targets: ['vr', 'vrr', 'ar'],
-            minify: false,
-            source_maps: false,
-          });
-          const result = compiler.compile(parseResult.ast, '');
-
-          if (!result.success) {
-            console.error(`\x1b[31mMulti-layer compilation failed:\x1b[0m`);
-            for (const error of result.errors) {
-              console.error(`  - ${error}`);
-            }
-            process.exit(1);
-          }
-
-          console.log(`\x1b[32m✓ Multi-layer compilation successful!\x1b[0m`);
-          console.log(`\x1b[2m  Objects: ${parseResult.ast.objects?.length || 0}\x1b[0m`);
-          console.log(
-            `\x1b[2m  Layers: ${['vr', 'vrr', 'ar'].filter((layer) => result[layer as 'vr' | 'vrr' | 'ar']).join(', ')}\x1b[0m`
-          );
-          if (result.warnings.length > 0) {
-            for (const warning of result.warnings) {
-              console.log(`\x1b[33m  Warning: ${warning}\x1b[0m`);
-            }
-          }
-
-          const serialized = JSON.stringify(result, null, 2);
-          if (options.output) {
-            const outputPath = path.resolve(options.output);
-            if (outputPath.endsWith('.json')) {
-              writeCompileOutputFile(outputPath, serialized);
-              console.log(`\x1b[32m✓ Multi-layer manifest written to ${outputPath}\x1b[0m`);
-            } else {
-              fs.mkdirSync(outputPath, { recursive: true });
-              if (result.vr) {
-                writeCompileOutputFile(path.join(outputPath, 'vr.js'), result.vr);
-                console.log(`\x1b[32m✓ Written vr.js\x1b[0m`);
-              }
-              if (result.vrr?.code) {
-                writeCompileOutputFile(path.join(outputPath, 'vrr.js'), result.vrr.code);
-                console.log(`\x1b[32m✓ Written vrr.js\x1b[0m`);
-              }
-              if (result.ar?.code) {
-                writeCompileOutputFile(path.join(outputPath, 'ar.js'), result.ar.code);
-                console.log(`\x1b[32m✓ Written ar.js\x1b[0m`);
-              }
-              writeCompileOutputFile(path.join(outputPath, 'multi-layer.json'), serialized);
-              console.log(`\x1b[32m✓ Written multi-layer.json\x1b[0m`);
-            }
-          } else {
-            console.log('\n--- Multi-layer Output ---\n');
-            console.log(serialized);
-          }
-
-          process.exit(0);
+          printRetiredCompileTarget('multi-layer', 'target-specific native compiler orchestration');
         }
 
         // Special handling for AR target - use ARCompiler
         if (target === 'ar') {
-          if (!isHolo) {
-            console.error(`\x1b[31mError: AR compilation requires .holo files.\x1b[0m`);
-            process.exit(1);
-          }
-
-          const { HoloCompositionParser } = await import('@holoscript/core');
-          const { ARCompiler } = await import('@holoscript/core/compiler');
-          const compositionParser = new HoloCompositionParser();
-          const parseResult = compositionParser.parse(content);
-
-          if (!parseResult.success || !parseResult.ast) {
-            console.error(`\x1b[31mError parsing for AR:\x1b[0m`);
-            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
-            process.exit(1);
-          }
-
-          console.log(`\x1b[2m[DEBUG] Compiling to WebXR AR JavaScript...\x1b[0m`);
-          const compiler = new ARCompiler({
-            target: 'webxr',
-            minify: false,
-            source_maps: false,
-            features: {
-              hit_test: true,
-              image_tracking: true,
-            },
-          });
-          const result = compiler.compile(parseResult.ast, '');
-
-          if (!result.success) {
-            console.error(`\x1b[31mAR compilation failed:\x1b[0m`);
-            for (const error of result.errors) {
-              console.error(`  - ${error}`);
-            }
-            process.exit(1);
-          }
-
-          console.log(`\x1b[32m✓ AR compilation successful!\x1b[0m`);
-          console.log(`\x1b[2m  Objects: ${parseResult.ast.objects?.length || 0}\x1b[0m`);
-          if (result.warnings.length > 0) {
-            for (const warning of result.warnings) {
-              console.log(`\x1b[33m  Warning: ${warning}\x1b[0m`);
-            }
-          }
-
-          if (options.output) {
-            const outputPath = path.resolve(options.output);
-            const jsPath = outputPath.endsWith('.js') ? outputPath : outputPath + '.js';
-            writeCompileOutputFile(jsPath, result.code);
-            console.log(`\x1b[32m✓ AR JavaScript written to ${jsPath}\x1b[0m`);
-          } else {
-            console.log('\n--- AR JavaScript Output ---\n');
-            console.log(result.code);
-          }
-
-          process.exit(0);
+          printRetiredCompileTarget('ar', 'android-xr, openxr, quest, or visionos');
         }
 
         // V6 2D UI Revolution - Flat Semantic Target
@@ -2771,81 +2565,12 @@ async function main(): Promise<void> {
           target === 'flat-semantic' ||
           (target === 'web-2d' && (!options.projection || options.projection === 'flat-semantic'));
         if (isFlatSemantic) {
-          if (!isHolo) {
-            console.error(
-              `\x1b[31mError: flat-semantic compilation requires .holo or .hsplus files.\x1b[0m`
-            );
-            process.exit(1);
-          }
-
-          const { HoloCompositionParser, FlatSemanticCompiler } = await import('@holoscript/core');
-          const compositionParser = new HoloCompositionParser();
-          const parseResult = compositionParser.parse(content);
-
-          if (!parseResult.success || !parseResult.ast) {
-            console.error(`\x1b[31mError parsing for flat-semantic:\x1b[0m`);
-            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
-            process.exit(1);
-          }
-
-          console.log(`\x1b[2m[DEBUG] Compiling to Flat Semantic React (V6)...\x1b[0m`);
-          const compiler = new FlatSemanticCompiler();
-          const reactOutput = compiler.compile(parseResult.ast, '', undefined, { format: 'react' });
-
-          console.log(`\x1b[32m✓ Flat Semantic compilation successful!\x1b[0m`);
-
-          if (options.output) {
-            const outputPath = path.resolve(options.output);
-            writeCompileOutputFile(outputPath, reactOutput);
-            console.log(`\x1b[32m✓ Component written to ${outputPath}\x1b[0m`);
-          } else {
-            console.log('\n--- React Code ---\n');
-            console.log(reactOutput.substring(0, 500) + '\\n... (truncated)');
-          }
-
-          process.exit(0);
+          printRetiredCompileTarget('flat-semantic/web-2d', 'native-2d/NextJSCompiler-generated HoloScript UI');
         }
 
         // Special handling for PlayCanvas target
         if (target === 'playcanvas') {
-          if (!isHolo) {
-            console.error(`\x1b[31mError: PlayCanvas compilation requires .holo files.\x1b[0m`);
-            process.exit(1);
-          }
-
-          const { HoloCompositionParser } = await import('@holoscript/core');
-          const { PlayCanvasCompiler } = await import('@holoscript/core/compiler');
-          const compositionParser = new HoloCompositionParser();
-          const parseResult = compositionParser.parse(content);
-
-          if (!parseResult.success || !parseResult.ast) {
-            console.error(`\x1b[31mError parsing for PlayCanvas:\x1b[0m`);
-            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
-            process.exit(1);
-          }
-
-          console.log(`\x1b[2m[DEBUG] Compiling to PlayCanvas TypeScript...\x1b[0m`);
-          const compiler = new PlayCanvasCompiler({
-            className: 'GeneratedScene',
-            enablePhysics: true,
-            enableXR: true,
-          });
-          const output = compiler.compile(parseResult.ast, '');
-
-          console.log(`\x1b[32m✓ PlayCanvas compilation successful!\x1b[0m`);
-          console.log(`\x1b[2m  Objects: ${parseResult.ast.objects?.length || 0}\x1b[0m`);
-
-          if (options.output) {
-            const outputPath = path.resolve(options.output);
-            const tsPath = outputPath.endsWith('.ts') ? outputPath : outputPath + '.ts';
-            writeCompileOutputFile(tsPath, output);
-            console.log(`\x1b[32m✓ PlayCanvas TypeScript written to ${tsPath}\x1b[0m`);
-          } else {
-            console.log('\n--- PlayCanvas TypeScript Output ---\n');
-            console.log(output);
-          }
-
-          process.exit(0);
+          printRetiredCompileTarget('playcanvas', 'webgpu, openxr, unity, godot, or r3f/SceneIR');
         }
 
         // Special handling for Unreal target
@@ -3237,7 +2962,7 @@ async function main(): Promise<void> {
           }
 
           const { HoloCompositionParser } = await import('@holoscript/core');
-          const { R3FCompiler } = await import('@holoscript/core/compiler');
+          const { SceneIRCompiler } = await import('@holoscript/core/compiler');
           const compositionParser = new HoloCompositionParser();
           const parseResult = compositionParser.parse(content);
 
@@ -3247,8 +2972,8 @@ async function main(): Promise<void> {
             process.exit(1);
           }
 
-          console.log(`\x1b[2m[DEBUG] Compiling to React Three Fiber scene graph...\x1b[0m`);
-          const compiler = new R3FCompiler();
+          console.log(`\x1b[2m[DEBUG] Compiling to SceneIR/R3FNode scene graph...\x1b[0m`);
+          const compiler = new SceneIRCompiler();
           const output = compiler.compileComposition(parseResult.ast);
           const serialized = JSON.stringify(output, null, 2);
 

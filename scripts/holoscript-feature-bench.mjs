@@ -286,11 +286,12 @@ composition "BenchScene" {
     }
 
     const targets = [
-      { name: 'R3F', Compiler: core.R3FCompiler, opts: {} },
+      { name: 'SceneIR', Compiler: core.SceneIRCompiler, opts: {} },
       { name: 'Unity', Compiler: core.UnityCompiler, opts: {} },
       { name: 'URDF', Compiler: core.URDFCompiler, opts: {} },
       { name: 'VisionOS', Compiler: core.VisionOSCompiler, opts: {} },
-      { name: 'Babylon', Compiler: core.BabylonCompiler, opts: {} },
+      { name: 'OpenXR', Compiler: core.OpenXRCompiler, opts: {} },
+      { name: 'WebGPU', Compiler: core.WebGPUCompiler, opts: {} },
     ].filter((t) => t.Compiler);
 
     const compilerResults = [];

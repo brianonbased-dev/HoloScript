@@ -9,10 +9,10 @@
     "lotus:check": "tsx scripts/compile-lotus-scene.mts --strict",
     "lotus:prove-engine": "tsx scripts/prove-engine-receipt.mts",
     "lotus:bake-seedpod": "tsx scripts/bake-lotus-seedpod.mts",
-    "prebuild": "pnpm run lotus:build",
+    "prebuild": "tsx scripts/compile-lotus-scene.mts",
     "build:client": "node build-client.mjs",
-    "build:server": "tsup server.ts --out-dir dist/server --external @holoscript/mcp-server --external @holoscript/core",
-    "build": "pnpm run build:client && pnpm run build:server",
+    "build:server": "tsup server.ts --out-dir dist/server --external @holoscript/mcp-server --external @holoscript/core --external @modelcontextprotocol/sdk --external @modelcontextprotocol/sdk/server/index.js --external @modelcontextprotocol/sdk/server/sse.js --external @modelcontextprotocol/sdk/types.js",
+    "build": "node build-client.mjs && tsup server.ts --out-dir dist/server --external @holoscript/mcp-server --external @holoscript/core --external @modelcontextprotocol/sdk --external @modelcontextprotocol/sdk/server/index.js --external @modelcontextprotocol/sdk/server/sse.js --external @modelcontextprotocol/sdk/types.js",
     "start": "node dist/server/server.js",
     "test": "vitest run --passWithNoTests",
     "test:coverage": "vitest run --coverage --passWithNoTests"

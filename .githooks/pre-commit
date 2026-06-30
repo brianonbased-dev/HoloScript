@@ -126,6 +126,29 @@ if [ -f "scripts/check-workspace-deps.js" ]; then
     fi
 fi
 
+# Gate 4b: Retired compiler import floor.
+# Blocks re-opening apex-poison bridge compilers through package subpaths, direct
+# source imports, or root-package retired symbols. Native UI emitters remain
+# allowed as internal compiler machinery; production render .tsx is governed by
+# the render-surface native freeze below.
+echo "  ├─ Retired compiler import floor..."
+STAGED_COMPILER_SURFACE=$(git diff --cached --name-only --diff-filter=ACM -- \
+    'packages/**' 'services/**' 'apps/**' 'scripts/**' 2>/dev/null || true)
+if [ -n "$STAGED_COMPILER_SURFACE" ]; then
+    RETIRED_OUT=$(run_with_timeout 30 node scripts/holo-ci/check-apex-poison-retired.mjs --files "$STAGED_COMPILER_SURFACE" 2>&1)
+    RETIRED_STATUS=$?
+    if [ "$RETIRED_STATUS" -ne 0 ]; then
+        echo -e "  ${RED}❌ Retired compiler import/subpath reopened${NC}"
+        echo "$RETIRED_OUT"
+        echo "     Fix: use SceneIRCompiler/native targets; do not import retired compiler modules."
+        FAILED=1
+    else
+        echo -e "  ${GREEN}✓${NC} Retired compiler imports stay closed"
+    fi
+else
+    echo -e "  ${GREEN}✓${NC} No staged compiler-surface files"
+fi
+
 # Gate 5: Stale build-artifact shadow check (fast, fails loud).
 # Background: ai-ecosystem 2026-04-20 SECURITY-mode audit found 224
 # stale .js/.d.ts/.map shadows in packages/engine/src/simulation/ that

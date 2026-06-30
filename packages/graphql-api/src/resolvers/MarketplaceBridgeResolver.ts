@@ -25,6 +25,10 @@ import {
  */
 const MARKETPLACE_API_URL = process.env.MARKETPLACE_API_URL || 'http://localhost:3000';
 
+function stringifyCompileOutput(output: unknown): string {
+  return typeof output === 'string' ? output : JSON.stringify(output, null, 2);
+}
+
 /** Shape of the GET /api/v1/traits/:id response from marketplace-api. */
 interface MarketplaceTraitResponse {
   success: boolean;
@@ -186,12 +190,24 @@ export class MarketplaceBridgeResolver {
           compiledOutput = compiler.compile(parseResult.ast);
           break;
         case CompilerTarget.BABYLON:
-          compiler = new core.BabylonCompiler();
-          compiledOutput = compiler.compile(parseResult.ast);
-          break;
+          return {
+            success: false,
+            output: undefined,
+            errors: [
+              {
+                message:
+                  'BABYLON compiler target is retired. Use WEBGPU, OPENXR, or a native target.',
+                phase: 'compile',
+              },
+            ],
+            warnings: [],
+            metadata: undefined,
+            traitName: traitData.name,
+            traitVersion: traitData.version,
+          };
         case CompilerTarget.R3F:
-          compiler = new core.R3FCompiler();
-          compiledOutput = compiler.compile(parseResult.ast);
+          compiler = new core.SceneIRCompiler();
+          compiledOutput = stringifyCompileOutput(compiler.compile(parseResult.ast));
           break;
         case CompilerTarget.UNREAL:
           compiler = new core.UnrealCompiler();
@@ -218,7 +234,7 @@ export class MarketplaceBridgeResolver {
           compiledOutput = compiler.compile(parseResult.ast);
           break;
         case CompilerTarget.IOS:
-          compiler = new core.ARCompiler();
+          compiler = new core.IOSCompiler();
           compiledOutput = compiler.compile(parseResult.ast);
           break;
         default:

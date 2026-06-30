@@ -82,6 +82,25 @@ const workspaceShimPatterns = [
   'node:*',
 ];
 
+const browserExternalModules = [
+  'react',
+  'react-dom',
+  'react-dom/client',
+  'react/jsx-runtime',
+  'react/jsx-dev-runtime',
+  'three',
+  'three/*',
+  'three-stdlib',
+  '@react-three/fiber',
+  '@react-three/drei',
+  '@react-three/rapier',
+  '@react-three/postprocessing',
+  'postprocessing',
+  'lucide-react',
+  'zustand',
+  'tunnel-rat',
+];
+
 const shimImportMapEntries = [...nodeShimModules, ...nodeProtocolShimModules]
   .map((moduleName) => `        "${moduleName}": "/native/assets/node-fs-shim.js"`)
   .join(',\n');
@@ -109,9 +128,10 @@ async function build() {
       'process.env.NODE_ENV': '"production"',
     },
     external: [
+      ...browserExternalModules,
       ...nodeShimModules,
       ...nodeProtocolShimModules,
-      ...workspaceShimPatterns
+      ...workspaceShimPatterns,
     ],
     loader: {
       '.tsx': 'tsx',
@@ -164,8 +184,11 @@ async function build() {
         "@react-three/fiber": "https://esm.sh/@react-three/fiber@8.15.11?deps=three@0.160.0,react@18.2.0",
         "@react-three/drei": "https://esm.sh/@react-three/drei@9.89.0?deps=three@0.160.0,react@18.2.0,@react-three/fiber@8.15.11",
         "@react-three/rapier": "https://esm.sh/@react-three/rapier@1.2.1?deps=three@0.160.0,react@18.2.0,@react-three/fiber@8.15.11",
+        "@react-three/postprocessing": "https://esm.sh/@react-three/postprocessing@3.0.4?deps=three@0.160.0,react@18.2.0,@react-three/fiber@8.15.11",
+        "postprocessing": "https://esm.sh/postprocessing@6.39.1?deps=three@0.160.0",
         "lucide-react": "https://esm.sh/lucide-react@0.314.0?deps=react@18.2.0",
         "zustand": "https://esm.sh/zustand@4.5.0?deps=react@18.2.0",
+        "tunnel-rat": "https://esm.sh/tunnel-rat@0.1.2?deps=react@18.2.0",
 ${shimImportMapEntries}
       }
     }

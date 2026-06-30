@@ -10,6 +10,10 @@ interface CompilationRequest {
   options?: any;
 }
 
+function stringifyCompileOutput(output: unknown): string {
+  return typeof output === 'string' ? output : JSON.stringify(output, null, 2);
+}
+
 /**
  * Creates a DataLoader instance for batch compilation
  * This prevents N+1 query problems when compiling multiple files
@@ -72,12 +76,22 @@ function createCompilationLoader() {
                 output = compiler.compile(parseResult.ast);
                 break;
               case CompilerTarget.BABYLON:
-                compiler = new core.BabylonCompiler();
-                output = compiler.compile(parseResult.ast);
-                break;
+                return {
+                  success: false,
+                  output: undefined,
+                  errors: [
+                    {
+                      message:
+                        'BABYLON compiler target is retired. Use WEBGPU, OPENXR, or a native target.',
+                      phase: 'compile',
+                    },
+                  ],
+                  warnings: [],
+                  metadata: undefined,
+                };
               case CompilerTarget.R3F:
-                compiler = new core.R3FCompiler();
-                output = compiler.compile(parseResult.ast);
+                compiler = new core.SceneIRCompiler();
+                output = stringifyCompileOutput(compiler.compile(parseResult.ast));
                 break;
               case CompilerTarget.UNREAL:
                 compiler = new core.UnrealCompiler();
@@ -108,8 +122,7 @@ function createCompilationLoader() {
                 output = compiler.compile(parseResult.ast);
                 break;
               case CompilerTarget.IOS:
-                // iOS uses ARKit - check if ARCompiler can handle it
-                compiler = new core.ARCompiler();
+                compiler = new core.IOSCompiler();
                 output = compiler.compile(parseResult.ast);
                 break;
               case CompilerTarget.WASM: {

@@ -2,7 +2,7 @@
 /**
  * validate-holo-compile.mjs — headless parse + R3FCompiler check for a .holo file.
  *
- * Confirms the canonical .holo parses and dumps the resolved R3FNode tree shape
+ * Confirms the canonical .holo parses and dumps the resolved scene tree shape
  * (node types + the props a raw-three walker needs: hsType, color, materialProps,
  * position, rotation, scale, light props). No render loop — runs in plain Node.
  *
@@ -14,7 +14,7 @@ const file = process.argv[2] || 'examples/asset-pipeline-warehouse.holo';
 const src = readFileSync(file, 'utf8');
 
 const core = await import('@holoscript/core');
-const { HoloCompositionParser, R3FCompiler } = core;
+const { HoloCompositionParser, SceneIRCompiler } = core;
 
 const parser = new HoloCompositionParser();
 const parsed = parser.parse(src);
@@ -27,7 +27,7 @@ const ast = parsed.ast;
 console.log('ast.type =', ast?.type, '| name =', ast?.name);
 console.log('ast.objects =', ast?.objects?.length, '| lights =', ast?.lights?.length, '| templates =', ast?.templates?.length);
 
-const compiler = new R3FCompiler();
+const compiler = new SceneIRCompiler();
 const root = compiler.compileComposition(ast);
 
 let n = 0;
