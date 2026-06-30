@@ -27,6 +27,7 @@ import { serviceContractTools } from './service-contract-tools';
 import { fairnessTools } from './fairness-mcp-tools';
 import { validationTools } from './validation-tools';
 import { agentOrchestrationTools } from './agent-orchestration-tools';
+import { agentIdentityTools } from './agent-identity-tools';
 import { observabilityTools } from './observability-tools';
 import { pluginManagementTools } from './plugin-management-tools';
 import { holoshellDownloadRecoveryToolDefinitions } from './holoshell-download-recovery-tools';
@@ -755,6 +756,7 @@ export const tools: Tool[] = [
   ...validationTools,
   ...absorbTypescriptTools,
   ...agentOrchestrationTools,
+  ...agentIdentityTools,
   ...observabilityTools,
   ...pluginManagementTools,
   ...holoshellDownloadRecoveryToolDefinitions,
@@ -805,4 +807,4 @@ export function getTool(name: string): Tool | undefined {
 }
 
 // Re-export tool arrays for selective registration
-export { graphTools, ideTools, brittneyLiteTools };
+export { graphTools, ideTools, brittneyLiteTools, agentIdentityTools };

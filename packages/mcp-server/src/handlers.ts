@@ -703,6 +703,17 @@ export async function handleTool(
     return handleAgentOrchestrationTool(name, args, workflowToolExecutor);
   }
 
+  // Agent identity tools
+  if (
+    name === 'issue_agent_token' ||
+    name === 'verify_agent_token' ||
+    name === 'check_permission' ||
+    name === 'get_delegation_chain'
+  ) {
+    const { handleAgentIdentityTool } = await import('./agent-identity-tools');
+    return handleAgentIdentityTool(name, args);
+  }
+
   // Observability tools (v5.6)
   if (
     name === 'query_traces' ||

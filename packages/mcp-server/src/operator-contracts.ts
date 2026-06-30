@@ -135,6 +135,10 @@ delegate_task
 get_task_status
 compose_workflow
 execute_workflow
+issue_agent_token
+verify_agent_token
+check_permission
+get_delegation_chain
 query_traces
 export_traces_otlp
 get_agent_health

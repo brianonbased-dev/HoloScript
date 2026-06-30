@@ -553,6 +553,7 @@ export * from './graph-tools';
 export * from './ide-tools';
 export * from './brittney-lite';
 export * from './compiler-tools';
+export * from './agent-identity-tools';
 export * from './gltf-import-tools';
 export * from './wisdom-gotcha-tools';
 export * from './oracle-mcp-tools';
