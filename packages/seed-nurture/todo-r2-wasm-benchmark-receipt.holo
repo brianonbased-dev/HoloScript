@@ -1,0 +1,140 @@
+composition "TodoR2WasmBenchmarkReceipt" {
+  state {
+    RECEIPT_VERSION: 1
+    FIXTURE_SMALL_LINES: 32
+    FIXTURE_MEDIUM_LINES: 78
+    FIXTURE_LARGE_LINES: 142
+    NATIVE_SMALL_US: 44.8
+    NATIVE_MEDIUM_US: 564.9
+    NATIVE_LARGE_US: 822.2
+    WASM_OPT_SMALL_US: 84.0
+    WASM_OPT_MEDIUM_US: 1078.2
+    WASM_OPT_LARGE_US: 1701.5
+    JS_SMALL_US: 37.5
+    JS_MEDIUM_US: 689.5
+    JS_LARGE_US: 1128.2
+  }
+
+  environment {
+    runtime_targets: ["rust-native", "node", "wasm-pack"]
+    benchmark_scope: "parser_hot_path"
+    proof_boundary: "variance snapshot and claim-resolution receipt; not a public benchmark canon entry"
+    current_default_parser: "HoloScriptPlusParser"
+    wasm_role: "browser_edge_or_sandboxed_runtime_without_node_class_v8"
+  }
+
+  object "SeedContext" {
+    kind: "seed-nurture-receipt"
+    seed_path: "idea-seeds/research-farm/2026-05-12_research_todo-r2-wasm-performance-benchmark-results.md"
+    source_path: "research/2026-04-19_todo-r2-wasm-bench-results.md"
+    target_path: "packages/seed-nurture/todo-r2-wasm-benchmark-receipt.holo"
+    source_task: "task_1776394509341_ztik"
+    promoted_by: "codex-hardware"
+    promoted_at: "2026-06-30"
+    closure_reason: "historical benchmark seed is represented as a current runtime receipt and gate"
+  }
+
+  object "ClaimResolution" {
+    kind: "runtime-claim-resolution"
+    stale_claim: "WASM parser provides 10x faster parsing compared to JavaScript"
+    falsified_at: "research/2026-04-19_todo-r2-wasm-bench-results.md"
+    current_claim_path: "packages/compiler-wasm/src/lib.rs"
+    current_claim_status: "corrected; no 10x claim remains in the package header"
+    current_guidance: "Native Rust parser is about 1.3-1.4x faster than JS without the WASM boundary; WASM is slower than JS on canonical fixtures due to JS-to-linear-memory string marshalling."
+  }
+
+  object "BenchmarkSnapshot" {
+    kind: "variance-snapshot"
+    host: "Intel Core i7-11800H Windows 11"
+    node_version: "22.20.0"
+    rust_profile: "native release opt-level-3"
+    wasm_opt: "O3 plus bulk-memory plus nontrapping-float-to-int"
+    raw_results: [
+      ".bench-logs/todo-r2-native-rust-2026-04-19.json",
+      ".bench-logs/todo-r2-wasm-vs-js-2026-04-19.json",
+      ".bench-logs/todo-r2-wasm-vs-js-opt-2026-04-19.json"
+    ]
+    fixtures: [
+      { name: "small", lines: 32, bytes: 434, native_rust_us: 44.8, wasm_opt_us: 84.0, js_us: 37.5, observed_winner: "js-parser" },
+      { name: "medium", lines: 78, bytes: 5297, native_rust_us: 564.9, wasm_opt_us: 1078.2, js_us: 689.5, observed_winner: "native-rust-no-wasm-boundary" },
+      { name: "large", lines: 142, bytes: 8279, native_rust_us: 822.2, wasm_opt_us: 1701.5, js_us: 1128.2, observed_winner: "native-rust-no-wasm-boundary" }
+    ]
+  }
+
+  object "PromotionPolicy" {
+    kind: "benchmark-canon-gate"
+    current_status: "do-not-promote-to-canon-yet"
+    canon_requirements: [
+      "cited_by_two_or_more_papers",
+      "rerun_on_same_host_across_three_or_more_days",
+      "needed_by_active_paper_revision"
+    ]
+    current_failures: [
+      "single_day_snapshot",
+      "not_yet_cited_by_papers",
+      "no_active_paper_requires_the_number"
+    ]
+  }
+
+  object "ReproductionGate" {
+    kind: "local-receipt-required"
+    native_command: "cd packages/compiler-wasm && cargo run --release --bin parser_bench"
+    wasm_build_command: "wasm-pack build --target nodejs --out-dir pkg-node --release"
+    wasm_opt_command: "wasm-opt pkg-node/holoscript_wasm_bg.wasm -o pkg-node/holoscript_wasm_bg.wasm -O3 --enable-bulk-memory --enable-nontrapping-float-to-int"
+    comparison_command: "node packages/benchmark/src/suites/wasm-vs-js.bench.mjs"
+    seed_index_check: "node C:/Users/josep/.ai-ecosystem/scripts/index-idea-seeds.mjs --root C:/Users/josep/Documents/GitHub/HoloScript --check"
+    seed_triage_check: "node C:/Users/josep/.ai-ecosystem/scripts/triage-idea-seeds.mjs --root C:/Users/josep/Documents/GitHub/HoloScript --check"
+    skip_behavior: "WASM comparison script skips gracefully when pkg-node is absent; do not claim current speed without a fresh run."
+  }
+
+  object "RuntimeDecision" {
+    kind: "parser-routing-guidance"
+    node_class_v8_default: "HoloScriptPlusParser"
+    native_upper_bound: "compiler-wasm parser logic is competitive when no WASM marshalling boundary exists"
+    wasm_use_when: [
+      "mobile_webview",
+      "edge_worker",
+      "browser_sandbox_without_node_class_v8",
+      "runtime_isolation_more_important_than_short_fixture_latency"
+    ]
+    rerun_trigger: [
+      "compiler-wasm parser algorithm changes",
+      "WasmParserBridge boundary changes",
+      "10k_line_scene_fixture_added",
+      "public benchmark or paper wants to cite the number"
+    ]
+  }
+
+  object "Phase2Handoff" {
+    kind: "cross-engine-benchmark-handoff"
+    status: "not_started"
+    needed_before_engine_harnesses: "research/2026-04-19_phase2-common-scene-spec.md"
+    engines: ["Unity WebGL", "Bevy WASM", "Godot HTML5", "HoloScript Studio"]
+    measurements: ["time_to_first_frame", "steady_state_fps", "frame_time_p99", "bundle_size", "time_to_interactive"]
+    publish_gate: "human_in_the_loop_required_for_public_blog_or_marketing_claim"
+  }
+
+  object "ReceiptController" {
+    kind: "runtime-receipt-controller"
+    validate_event: "receipt_validate"
+    phase2_event: "phase2_scope"
+  }
+
+  on(ReceiptController, "receipt_validate") {
+    emit(ClaimResolution, "claim:no_10x_wasm_speedup", {
+      source: "research/2026-04-19_todo-r2-wasm-bench-results.md"
+      current_claim_path: "packages/compiler-wasm/src/lib.rs"
+    })
+    emit(ReproductionGate, "benchmark:rerun_required_before_new_claim", {
+      commands: ["native_command", "wasm_build_command", "comparison_command"]
+      canon_policy: "PromotionPolicy"
+    })
+  }
+
+  on(ReceiptController, "phase2_scope") {
+    emit(Phase2Handoff, "benchmark:write_common_scene_spec_first", {
+      common_scene: "1024_dynamic_boxes_fixed_60hz"
+      engines: ["Unity WebGL", "Bevy WASM", "Godot HTML5", "HoloScript Studio"]
+    })
+  }
+}
