@@ -1,0 +1,136 @@
+composition "PhaseSixEightNavigationGuideReceipt" {
+  state {
+    RECEIPT_VERSION: 1
+    ARCHIVE_SCORE: 46
+    DELETED_PACKAGE_ROOTS_REFERENCED: 2
+    CURRENT_PACKAGE_ROUTES: 5
+    CURRENT_DEMO_SURFACES: 3
+  }
+
+  environment {
+    source_status: "archive"
+    proof_boundary: "navigation and disposition receipt; not proof that archived ROI, device, or production-readiness claims remain current"
+    current_surface_owner: "HoloScript monorepo plus Hololand platform repo for migrated runtime packages"
+    language_surface: "HoloScript+"
+  }
+
+  object "SeedContext" {
+    kind: "seed-nurture-receipt"
+    seed_path: "idea-seeds/archive-farm/2026-05-12_archive_holoscript-phase-6-8-complete-navigation-guide.md"
+    source_path: "docs/archive/NAVIGATION_GUIDE.md"
+    companion_index_path: "docs/archive/DELIVERABLES_INDEX.md"
+    target_path: "packages/seed-nurture/phase-6-8-navigation-guide-receipt.holo"
+    promoted_by: "codex-hardware"
+    promoted_at: "2026-06-30"
+    closure_reason: "historical navigation guide is represented as a current route-and-disposition receipt"
+  }
+
+  object "ArchiveDisposition" {
+    kind: "archive-disposition"
+    current_marker: "docs/archive/NAVIGATION_GUIDE.md declares archive status and stale package paths"
+    canonical_deletion_ledger: "docs/cross-language-deletion-ledger.md"
+    do_not_revive_wholesale: true
+    old_claim_policy: "archive_only_until_revalidated"
+    active_value: "route old Phase 6-8 terms to current packages, examples, and docs"
+  }
+
+  object "DeletedPackageMap" {
+    kind: "package-disposition-map"
+    deleted_packages: [
+      { package: "packages/creator-tools", disposition: "migrated", deletion_commit: "284b55757", current_owner: "Hololand platform repo and Studio creator surfaces" },
+      { package: "packages/demo-apps", disposition: "unfinished", deletion_commit: "d0a5317e0", current_owner: "examples, docs/demos, packages/core/src/demos.ts" }
+    ]
+    archived_artifacts: [
+      { old_path: "packages/demo-apps/src/MasterShowcase.ts", archive_path: "docs/archive/demos/MasterShowcase.ts", status: "reference_only" }
+    ]
+  }
+
+  object "CurrentCreatorRoutes" {
+    kind: "current-navigation-map"
+    package_routes: [
+      "packages/studio",
+      "packages/studio-plugin-sdk",
+      "packages/studio-ui-graph",
+      "packages/create-holoscript",
+      "packages/framework/src/board/creator-template.ts"
+    ]
+    guide_routes: [
+      "docs/guides/PHASE_6_UI_COMPONENTS_GUIDE.md",
+      "docs/guides/PHASES_3_5_IMPLEMENTATION_GUIDE.md",
+      "docs/graphics/GRAPHICS_REFERENCE_INDEX.md"
+    ]
+    demo_routes: [
+      "examples",
+      "docs/demos",
+      "packages/core/src/demos.ts"
+    ]
+  }
+
+  object "ClaimQuarantine" {
+    kind: "archive-claim-quarantine"
+    quarantined_claims: [
+      "99 percent code reduction",
+      "six device cross-platform testing verified",
+      "all Phase 6-8 components production-ready",
+      "market opportunity and cost-savings tables"
+    ]
+    allowed_current_use: "historical context and seed discovery"
+    denied_current_use: "marketing, roadmap proof, production-readiness evidence, or benchmark citation"
+    revalidation_requires: [
+      "current source path",
+      "current test or build receipt",
+      "current device or runtime receipt when device claims are used",
+      "human review before public marketing claims"
+    ]
+  }
+
+  object "BuildableTracerSlice" {
+    kind: "future-board-slice"
+    title: "Unify current Studio creator onboarding routes"
+    scope: "Link Studio creator template, guide docs, and demo surfaces into one current navigation entrypoint."
+    starting_files: [
+      "packages/framework/src/board/creator-template.ts",
+      "packages/studio",
+      "docs/guides/PHASE_6_UI_COMPONENTS_GUIDE.md",
+      "docs/demos"
+    ]
+    done_when: [
+      "no link points to deleted packages/creator-tools or packages/demo-apps",
+      "current examples route is discoverable from docs",
+      "Studio creator template has a validation receipt or targeted test"
+    ]
+  }
+
+  object "ValidationGate" {
+    kind: "local-receipt-required"
+    package_route_check: "Test-Path packages/studio; Test-Path packages/framework; Test-Path packages/studio-plugin-sdk; Test-Path packages/studio-ui-graph; Test-Path packages/create-holoscript"
+    deleted_route_check: "Test-Path packages/creator-tools; Test-Path packages/demo-apps should both be false"
+    archive_marker_check: "rg \"Status:\\*\\* ARCHIVE|Staleness:\" docs/archive/NAVIGATION_GUIDE.md docs/archive/DELIVERABLES_INDEX.md"
+    seed_index_check: "node C:/Users/josep/.ai-ecosystem/scripts/index-idea-seeds.mjs --root C:/Users/josep/Documents/GitHub/HoloScript --check"
+    seed_triage_check: "node C:/Users/josep/.ai-ecosystem/scripts/triage-idea-seeds.mjs --root C:/Users/josep/Documents/GitHub/HoloScript --check"
+  }
+
+  object "ReceiptController" {
+    kind: "navigation-receipt-controller"
+    validate_event: "navigation_receipt_validate"
+    future_slice_event: "navigation_future_slice"
+  }
+
+  on(ReceiptController, "navigation_receipt_validate") {
+    emit(ArchiveDisposition, "archive:do_not_revive_wholesale", {
+      ledger: "docs/cross-language-deletion-ledger.md"
+      active_value: "CurrentCreatorRoutes"
+    })
+    emit(ClaimQuarantine, "claims:require_revalidation", {
+      source: "docs/archive/NAVIGATION_GUIDE.md"
+      denied_current_use: "production_readiness_or_marketing_proof"
+    })
+  }
+
+  on(ReceiptController, "navigation_future_slice") {
+    emit(BuildableTracerSlice, "board:seed_when_navigation_work_resumes", {
+      first_file: "packages/framework/src/board/creator-template.ts"
+      docs_surface: "docs/guides/PHASE_6_UI_COMPONENTS_GUIDE.md"
+    })
+  }
+}
