@@ -12,6 +12,11 @@ import {
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, '..', '..', '..', '..');
+const fixtureCustomerSuccessGate = path.resolve(
+  here,
+  'fixtures',
+  'enterprise-package-gate.customer-success.json',
+);
 const siblingHololandCustomerSuccessGate = path.resolve(
   repoRoot,
   '..',
@@ -27,86 +32,7 @@ function customerSuccessGate(
   overrides: Partial<EnterprisePackageGateManifest> = {},
 ): EnterprisePackageGateManifest {
   return {
-    schema: ENTERPRISE_PACKAGE_GATE_SCHEMA_VERSION,
-    id: 'customer-success-room',
-    title: 'Customer Success Room',
-    vertical: 'customer_success',
-    packageClass: 'enterprise_business_solution',
-    humanUserSurface: 'deployed_hololand_room',
-    developerPackageSurface: false,
-    sourcePath: 'apps/holoshell/source/hololand-enterprise-customer-success-room-gate.hsplus',
-    businessWorkflow: {
-      id: 'customer_success_onboarding',
-      summary: 'A team reviews account health and captures follow-up receipts.',
-      actors: [
-        'customer_success_manager',
-        'implementation_specialist',
-        'customer_stakeholder',
-        'agent_copilot',
-      ],
-      criticalPath: [
-        'load_account_context',
-        'show_health_and_risk',
-        'surface_open_support_threads',
-        'propose_next_actions',
-        'capture_followup_receipt',
-      ],
-    },
-    holoscriptPackages: [
-      {
-        name: '@holoscript/core',
-        gates: ['composition', 'state', 'policy', 'action', 'emit'],
-      },
-      {
-        name: '@holoscript/framework',
-        gates: ['enterprise_gate_manifest', 'receipt_contract', 'workflow_admission'],
-      },
-      {
-        name: '@holoscript/ui',
-        gates: ['semantic_room_panel', 'agent_action_control', 'receipt_panel_projection'],
-      },
-      {
-        name: '@holoscript/agent-protocol',
-        gates: ['agent_intent', 'handoff_context', 'followup_receipt'],
-      },
-    ],
-    benchmarkGates: [
-      {
-        id: 'holoscript_enterprise_customer_success_room',
-        description: 'HoloScript can express a customer-success room and leave receipts.',
-        mustProve: [
-          'source_drives_manifest',
-          'validation_blocks_promotion',
-          'runtime_surface_is_projection',
-          'interaction_receipt_is_required',
-          'missing_reusable_primitives_go_upstream',
-        ],
-      },
-    ],
-    requiredReceipts: ['source', 'validation', 'runtime', 'render', 'interaction', 'hardware_browser'],
-    promotion: {
-      status: 'blocked_by_upstream_gaps',
-      requires: [
-        'mcp__holoscript.validate_holoscript pass',
-        'direct Node gate receipt pass',
-        'browser or hardware interaction receipt pass',
-      ],
-      blocksOn: [
-        'local TypeScript rewrite of enterprise semantics',
-        'missing source receipt',
-        'missing validation receipt',
-        'missing interaction receipt',
-      ],
-    },
-    upstreamGaps: [
-      {
-        id: 'hs-enterprise-package-gate-schema',
-        owner: 'HoloScript',
-        primitive: 'enterprise_package_gate',
-        description: 'HoloScript should own a reusable schema for enterprise package gates.',
-        localRewriteAllowed: false,
-      },
-    ],
+    ...readManifest(fixtureCustomerSuccessGate),
     ...overrides,
   };
 }
@@ -116,11 +42,20 @@ function readManifest(filePath: string): EnterprisePackageGateManifest {
 }
 
 describe('enterprise package gate contract', () => {
-  it('accepts a HoloScript-owned customer-success enterprise gate', () => {
+  it('accepts the fixture customer-success enterprise gate', () => {
     const result = validateEnterprisePackageGateManifest(customerSuccessGate());
     expect(result.valid).toBe(true);
     expect(result.errors).toEqual([]);
     expect(result.warnings).toEqual([]);
+  });
+
+  it('rejects malformed manifests without throwing', () => {
+    const result = validateEnterprisePackageGateManifest(null);
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContainEqual({
+      path: 'manifest',
+      message: 'Expected an enterprise package gate object.',
+    });
   });
 
   it.skipIf(!existsSync(siblingHololandCustomerSuccessGate))(

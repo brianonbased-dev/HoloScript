@@ -1,0 +1,25 @@
+// @enterprise_package_gate - Enterprise package gate manifest for HoloLand business-room packages.
+//
+// Native .hsplus surface for framework/board/enterprise-package-gate.ts.
+//
+// EnterprisePackageGateManifest: source-owned business workflow, package dependency gates,
+// benchmark proof obligations, promotion state, and required receipts.
+// Proves: source drives manifest; validation blocks promotion; runtime surface is projection;
+// interaction receipt is required.
+// HoloLand may render and operate the room, but cannot locally rewrite HoloScript-owned gaps.
+
+@trait enterprise_package_gate {
+  capability_tags: ["enterprise_package_gate", "enterprise_gate_manifest", "receipt_contract", "workflow_admission", "hololand", "framework"]
+  validator: "validateEnterprisePackageGateManifest"
+  admission_factory: "createEnterprisePackageGateAdmission"
+
+  @receipt enterprise_package_gate_config {
+    type: "EnterprisePackageGateManifest"
+    schema: "holoscript.enterprise-package-gate.v1"
+    accepted_projection_schema: "hololand.enterprise-package-gate.v0.1.0"
+    required_receipts: ["source", "validation", "runtime", "render", "interaction"]
+    required_proofs: ["source_drives_manifest", "validation_blocks_promotion", "runtime_surface_is_projection", "interaction_receipt_is_required"]
+    upstream_gap_policy: "HoloScript-owned gaps require localRewriteAllowed=false"
+    timestamp: now()
+  }
+}

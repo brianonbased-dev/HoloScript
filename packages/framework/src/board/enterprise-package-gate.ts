@@ -129,6 +129,14 @@ function stringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => hasText(item)) : [];
 }
 
+function manifestRecord(
+  value: unknown,
+): (Partial<EnterprisePackageGateManifest> & Record<string, unknown>) | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Partial<EnterprisePackageGateManifest> & Record<string, unknown>)
+    : null;
+}
+
 function validateWorkflow(
   errors: EnterprisePackageGateValidationIssue[],
   workflow: EnterprisePackageWorkflow | undefined,
@@ -219,37 +227,46 @@ function validateUpstreamGaps(
 }
 
 export function validateEnterprisePackageGateManifest(
-  manifest: EnterprisePackageGateManifest,
+  manifest: unknown,
 ): EnterprisePackageGateValidationResult {
   const errors: EnterprisePackageGateValidationIssue[] = [];
   const warnings: EnterprisePackageGateValidationIssue[] = [];
+  const candidate = manifestRecord(manifest);
 
-  if (!(ACCEPTED_MANIFEST_SCHEMAS as readonly string[]).includes(String(manifest.schema))) {
+  if (!candidate) {
+    return {
+      valid: false,
+      errors: [{ path: 'manifest', message: 'Expected an enterprise package gate object.' }],
+      warnings,
+    };
+  }
+
+  if (!(ACCEPTED_MANIFEST_SCHEMAS as readonly string[]).includes(String(candidate.schema))) {
     errors.push({
       path: 'schema',
       message: `Expected ${ENTERPRISE_PACKAGE_GATE_SCHEMA_VERSION} or a HoloLand enterprise-package gate projection schema.`,
     });
   }
 
-  pushRequiredString(errors, 'id', manifest.id);
-  pushRequiredString(errors, 'title', manifest.title);
-  pushRequiredString(errors, 'vertical', manifest.vertical);
-  pushRequiredString(errors, 'packageClass', manifest.packageClass);
-  pushRequiredString(errors, 'humanUserSurface', manifest.humanUserSurface);
-  pushRequiredString(errors, 'sourcePath', manifest.sourcePath);
+  pushRequiredString(errors, 'id', candidate.id);
+  pushRequiredString(errors, 'title', candidate.title);
+  pushRequiredString(errors, 'vertical', candidate.vertical);
+  pushRequiredString(errors, 'packageClass', candidate.packageClass);
+  pushRequiredString(errors, 'humanUserSurface', candidate.humanUserSurface);
+  pushRequiredString(errors, 'sourcePath', candidate.sourcePath);
 
-  if (manifest.packageClass === 'enterprise_business_solution' && manifest.developerPackageSurface !== false) {
+  if (candidate.packageClass === 'enterprise_business_solution' && candidate.developerPackageSurface !== false) {
     errors.push({
       path: 'developerPackageSurface',
       message: 'Enterprise business solutions are deployed room surfaces, not developer package surfaces.',
     });
   }
 
-  validateWorkflow(errors, manifest.businessWorkflow);
-  validatePackages(errors, manifest.holoscriptPackages);
-  validateBenchmarkGates(errors, warnings, manifest.benchmarkGates);
+  validateWorkflow(errors, candidate.businessWorkflow);
+  validatePackages(errors, candidate.holoscriptPackages);
+  validateBenchmarkGates(errors, warnings, candidate.benchmarkGates);
 
-  const missingReceipts = includesAll(stringArray(manifest.requiredReceipts), REQUIRED_RECEIPTS);
+  const missingReceipts = includesAll(stringArray(candidate.requiredReceipts), REQUIRED_RECEIPTS);
   for (const receipt of missingReceipts) {
     errors.push({
       path: 'requiredReceipts',
@@ -257,8 +274,8 @@ export function validateEnterprisePackageGateManifest(
     });
   }
 
-  validatePromotion(errors, manifest.promotion);
-  validateUpstreamGaps(errors, manifest.upstreamGaps);
+  validatePromotion(errors, candidate.promotion);
+  validateUpstreamGaps(errors, candidate.upstreamGaps);
 
   return {
     valid: errors.length === 0,

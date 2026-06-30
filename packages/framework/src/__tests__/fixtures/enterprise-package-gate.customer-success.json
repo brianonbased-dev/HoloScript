@@ -1,0 +1,108 @@
+{
+  "schema": "holoscript.enterprise-package-gate.v1",
+  "id": "customer-success-room",
+  "title": "Customer Success Room",
+  "vertical": "customer_success",
+  "packageClass": "enterprise_business_solution",
+  "humanUserSurface": "deployed_hololand_room",
+  "developerPackageSurface": false,
+  "sourcePath": "apps/holoshell/source/hololand-enterprise-customer-success-room-gate.hsplus",
+  "businessWorkflow": {
+    "id": "customer_success_onboarding",
+    "summary": "A business team guides a customer through onboarding, account health, support history, and next actions inside one spatial room.",
+    "actors": [
+      "customer_success_manager",
+      "implementation_specialist",
+      "customer_stakeholder",
+      "agent_copilot"
+    ],
+    "criticalPath": [
+      "load_account_context",
+      "show_health_and_risk",
+      "surface_open_support_threads",
+      "propose_next_actions",
+      "capture_followup_receipt"
+    ]
+  },
+  "holoscriptPackages": [
+    {
+      "name": "@holoscript/core",
+      "gates": [
+        "composition",
+        "state",
+        "policy",
+        "action",
+        "emit"
+      ]
+    },
+    {
+      "name": "@holoscript/framework",
+      "gates": [
+        "enterprise_gate_manifest",
+        "receipt_contract",
+        "workflow_admission"
+      ]
+    },
+    {
+      "name": "@holoscript/ui",
+      "gates": [
+        "semantic_room_panel",
+        "agent_action_control",
+        "receipt_panel_projection"
+      ]
+    },
+    {
+      "name": "@holoscript/agent-protocol",
+      "gates": [
+        "agent_intent",
+        "handoff_context",
+        "followup_receipt"
+      ]
+    }
+  ],
+  "benchmarkGates": [
+    {
+      "id": "holoscript_enterprise_customer_success_room",
+      "description": "HoloScript can express an enterprise customer-success room as source, validate it, project it into HoloLand, accept interaction, and leave receipts.",
+      "mustProve": [
+        "source_drives_manifest",
+        "validation_blocks_promotion",
+        "runtime_surface_is_projection",
+        "interaction_receipt_is_required",
+        "missing_reusable_primitives_go_upstream"
+      ]
+    }
+  ],
+  "requiredReceipts": [
+    "source",
+    "validation",
+    "runtime",
+    "render",
+    "interaction",
+    "hardware_browser"
+  ],
+  "promotion": {
+    "status": "blocked_by_upstream_gaps",
+    "requires": [
+      "mcp__holoscript.validate_holoscript pass",
+      "direct Node gate receipt pass",
+      "browser or hardware interaction receipt pass",
+      "all critical upstream gaps resolved or explicitly waived by HoloScript source authority"
+    ],
+    "blocksOn": [
+      "local TypeScript rewrite of enterprise semantics",
+      "missing source receipt",
+      "missing validation receipt",
+      "missing interaction receipt"
+    ]
+  },
+  "upstreamGaps": [
+    {
+      "id": "hs-enterprise-package-gate-schema",
+      "owner": "HoloScript",
+      "primitive": "enterprise_package_gate",
+      "description": "HoloScript owns the reusable schema and trait for enterprise package gates so HoloLand does not hardcode package-gate semantics locally.",
+      "localRewriteAllowed": false
+    }
+  ]
+}
