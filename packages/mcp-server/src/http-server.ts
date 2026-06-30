@@ -85,6 +85,7 @@ import type { TokenStoreBackend } from './auth/token-store';
 import { PostgresTokenStore } from './auth/postgres-token-store';
 import { handleInboundGossip, HoloMeshWorldState, HoloMeshDiscovery } from './holomesh/index';
 import { applyEdgeSafeSseHeaders } from './holomesh/sse-edge-headers';
+import type { SigningContext } from './holomesh/identity/signing-middleware';
 import {
   initStores,
   teamStore,
@@ -718,9 +719,16 @@ async function securedToolExecutionInner(
       }
     }
 
+    const signingCtx: SigningContext = {
+      signedRequest: false,
+      signingValid: true,
+      signer: auth.agentId ?? auth.clientId ?? null,
+      scopes: auth.scopes ?? [],
+    };
+
     // Execute the tool
     try {
-      const dispatchResult = await _handleSingleToolLogic(toolName, args);
+      const dispatchResult = await _handleSingleToolLogic(toolName, args, signingCtx);
 
       if ((dispatchResult as { isError?: boolean }).isError) {
         const errorText =
