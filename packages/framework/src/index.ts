@@ -375,6 +375,26 @@ export {
   cloneValidationReceipt,
 } from './board';
 
+// Enterprise package gates for HoloLand proof surfaces.
+export {
+  ENTERPRISE_PACKAGE_GATE_SCHEMA_VERSION,
+  type EnterprisePackageGateSchemaVersion,
+  type EnterprisePackageClass,
+  type EnterprisePackageWorkflow,
+  type EnterprisePackageDependencyGate,
+  type EnterprisePackageBenchmarkGate,
+  type EnterprisePackagePromotionGate,
+  type EnterprisePackageUpstreamGap,
+  type EnterprisePackageGateManifest,
+  type EnterprisePackageGateValidationIssue,
+  type EnterprisePackageGateValidationResult,
+  type EnterprisePackageGateAdmission,
+  validateEnterprisePackageGateManifest,
+  assertEnterprisePackageGateManifest,
+  createEnterprisePackageGateAdmission,
+  cloneEnterprisePackageGateManifest,
+} from './board';
+
 // HoloWeb Network Reality Schema Pack (HWEB-B3)
 export {
   HOLOWEB_NETWORK_REALITY_SCHEMA_VERSION,

@@ -338,6 +338,26 @@ export {
 } from './hololand-receipts';
 
 export {
+  // Enterprise package gates for HoloLand proof surfaces.
+  ENTERPRISE_PACKAGE_GATE_SCHEMA_VERSION,
+  type EnterprisePackageGateSchemaVersion,
+  type EnterprisePackageClass,
+  type EnterprisePackageWorkflow,
+  type EnterprisePackageDependencyGate,
+  type EnterprisePackageBenchmarkGate,
+  type EnterprisePackagePromotionGate,
+  type EnterprisePackageUpstreamGap,
+  type EnterprisePackageGateManifest,
+  type EnterprisePackageGateValidationIssue,
+  type EnterprisePackageGateValidationResult,
+  type EnterprisePackageGateAdmission,
+  validateEnterprisePackageGateManifest,
+  assertEnterprisePackageGateManifest,
+  createEnterprisePackageGateAdmission,
+  cloneEnterprisePackageGateManifest,
+} from './enterprise-package-gate';
+
+export {
   // HoloShell Browser Absorption Receipts (task_1778625587950_34rn)
   BROWSER_ACTION_KINDS,
   type BrowserActionKind,
