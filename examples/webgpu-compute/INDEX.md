@@ -14,6 +14,14 @@
 
 ---
 
+## Promotion Receipts
+
+| Receipt | File | Scope | Validation |
+| ------- | ---- | ----- | ---------- |
+| GPU Acceleration Month 1 | `gpu-acceleration-month-1-receipt.holo` | Binds the archived Month 1 WebGPU acceleration seed to the current example family, traits, frame-budget gate, and seed metadata. | Parse the `.holo` receipt, then run the idea-seed index and triage checks. |
+
+---
+
 ## Performance Tiers
 
 ### 🟢 Lightweight (>200 FPS)

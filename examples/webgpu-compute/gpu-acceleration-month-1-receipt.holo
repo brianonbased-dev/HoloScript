@@ -1,0 +1,117 @@
+/**
+ * GPU Acceleration Month 1 Receipt
+ *
+ * Current HoloScript-native receipt for the archived Month 1 WebGPU
+ * acceleration claim. This does not revive the archived implementation
+ * wholesale; it binds the claim to current example surfaces and validation
+ * gates that can be re-run when WebGPU or hardware receipts drift.
+ *
+ * Seed: idea-seeds/archive-farm/2026-05-12_features_gpu-acceleration-month-1-complete.md
+ * Source: docs/archive/features/GPU_ACCELERATION_MONTH_1_COMPLETE.md
+ */
+
+composition "GPUAccelerationMonth1Receipt" {
+  state {
+    ARCHIVE_PARTICLE_TARGET: 100000
+    TARGET_FPS: 60
+    TARGET_FRAME_MS: 16.67
+    WORKGROUP_SIZE: 256
+    CURRENT_EXAMPLE_COUNT: 5
+    RECEIPT_VERSION: 1
+  }
+
+  environment {
+    device: "webgpu"
+    power_preference: "high-performance"
+    required_features: ["timestamp-query"]
+    present_mode: "mailbox"
+    format: "bgra8unorm"
+    proof_boundary: "performance receipt, not a physics-proof guarantee"
+  }
+
+  object "ArchivedSeed" {
+    kind: "idea-seed"
+    seed_path: "idea-seeds/archive-farm/2026-05-12_features_gpu-acceleration-month-1-complete.md"
+    source_path: "docs/archive/features/GPU_ACCELERATION_MONTH_1_COMPLETE.md"
+    promoted_at: "2026-06-30"
+    promoted_by: "codex-hardware"
+    closure_reason: "represented by current WebGPU example family and receipt gates"
+  }
+
+  object "CurrentSurface" {
+    kind: "webgpu-example-family"
+    examples: [
+      "examples/webgpu-compute/gpu-fluid-simulation.holo",
+      "examples/webgpu-compute/gpu-particles-million.holo",
+      "examples/webgpu-compute/gpu-physics-rigid-body.holo",
+      "examples/webgpu-compute/n-body-gravity.holo",
+      "examples/webgpu-compute/gpu-cloth-simulation.holo"
+    ]
+    trait_contracts: [
+      "packages/core/src/traits/gpu_physics.holo",
+      "packages/core/src/traits/gpu_particle.holo",
+      "packages/core/src/traits/gpu_buffer.holo",
+      "packages/core/src/traits/compute_shader.holo"
+    ]
+  }
+
+  shader "PhysicsStepGate" @compute {
+    language: "wgsl"
+    workgroup_size: [256, 1, 1]
+    entry_point: "cs_physics_step_gate"
+    stage: "compute"
+    kernel_summary: "Verifies that a WebGPU physics step stays inside the frame budget envelope."
+    reads: ["ReceiptLedger", "FrameBudgetBuffer"]
+    writes: ["ReceiptLedger"]
+  }
+
+  shader "SpatialHashGate" @compute {
+    language: "wgsl"
+    workgroup_size: [256, 1, 1]
+    entry_point: "cs_spatial_hash_gate"
+    stage: "compute"
+    kernel_summary: "Checks that particle and rigid-body examples use spatial hashing rather than naive all-pairs collision."
+    reads: ["ReceiptLedger"]
+    writes: ["ReceiptLedger"]
+  }
+
+  buffer "ReceiptLedger" {
+    size: 4096
+    usage: ["storage", "copy_src"]
+    init: "receipt_metadata"
+  }
+
+  buffer "FrameBudgetBuffer" {
+    size: 64
+    usage: ["uniform", "copy_dst"]
+    init: "frame_budget_ms"
+  }
+
+  profiler "Month1ReceiptProfiler" {
+    enabled: true
+    gpu_timing: true
+    target_ms: 16.67
+    reference_gpu: "RTX 3080"
+    benchmarks: [
+      "Physics Step Gate",
+      "Spatial Hash Gate",
+      "Instanced Render Surface",
+      "Total Receipt Frame"
+    ]
+  }
+
+  object "ValidationGate" {
+    kind: "local-receipt-required"
+    parse_command: "node scripts/a009-parse-examples.mjs"
+    seed_index_check: "node C:/Users/josep/.ai-ecosystem/scripts/index-idea-seeds.mjs --root C:/Users/josep/Documents/GitHub/HoloScript --check"
+    seed_triage_check: "node C:/Users/josep/.ai-ecosystem/scripts/triage-idea-seeds.mjs --root C:/Users/josep/Documents/GitHub/HoloScript --check"
+    hardware_note: "Use browser WebGPU probe only when claiming live browser acceleration."
+  }
+
+  logic {
+    on_receipt_validate() {
+      dispatch(PhysicsStepGate, [1, 1, 1])
+      dispatch(SpatialHashGate, [1, 1, 1])
+    }
+  }
+}

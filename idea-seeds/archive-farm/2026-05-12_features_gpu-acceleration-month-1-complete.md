@@ -2,9 +2,10 @@
 
 **Date:** 2026-05-12
 **Class:** runtime-instinct
-**Status:** seed
+**Status:** promoted
 **Repository:** HoloScript
 **Source context:** docs/archive/features/GPU_ACCELERATION_MONTH_1_COMPLETE.md
+**Promotion receipt:** examples/webgpu-compute/gpu-acceleration-month-1-receipt.holo
 **Archive score:** 49
 **Archive signals:** future:1, roadmap:4, next steps:1, phase:30, coming soon:1, runtime:1, vr:6, ar:5
 
@@ -18,11 +19,11 @@ This came from an archive. Treat it as historical, incomplete, or superseded unt
 
 ## Smallest Next Experiment
 
-Open the source archive, extract one current claim or feature idea, and decide whether it should become a build task, research artifact, paper row, or remain dormant.
+Promoted 2026-06-30 into a current HoloScript-native receipt composition at `examples/webgpu-compute/gpu-acceleration-month-1-receipt.holo`.
 
 ## Reopen Trigger
 
-Reopen when current roadmap, paper work, HoloLand product planning, runtime cleanup, or tool development touches the same theme.
+Already represented by `examples/webgpu-compute/gpu-acceleration-month-1-receipt.holo` plus the current `examples/webgpu-compute/` family. Reopen only if those receipts are deleted, current WebGPU examples drift, or a new hardware receipt falsifies the frame-budget envelope.
 
 ## Do Not Preserve
 

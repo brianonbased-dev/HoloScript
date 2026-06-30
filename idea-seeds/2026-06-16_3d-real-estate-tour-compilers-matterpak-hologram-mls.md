@@ -4,7 +4,7 @@
 **Class:** deleted-work
 **Status:** seed
 **Repository:** HoloScript
-**Source context:** research/2026-05-10_3d-real-estate-virtual-tour.md; deleted compilers MatterpakCompiler + HoloGramMLSCompiler (dead/POC, zero importers, retired per 2026-06-15 compiler-poison capstone 3.6)
+**Source context:** research/2026-05-10_3d-real-estate-virtual-tour.md; deleted compilers MatterpakCompiler + HoloGramMLSCompiler (dead/POC, zero importers, retired during the compiler-poison capstone)
 
 ## What Might Be Valuable
 
