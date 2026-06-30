@@ -1,0 +1,180 @@
+composition "IsaacLabSimToRealInterop" {
+  state {
+    RECEIPT_VERSION: 1
+    ISAAC_LAB_PIN: "2.3.x"
+    POLICY_RATE_HZ: 60
+    ROS2_RATE_HZ: 30
+    MAX_COMMAND_LATENCY_MS: 40
+    MAX_SYNC_DRIFT_MS: 25
+    DOMAIN_RANDOMIZATION_SEED: 1776394509341
+    SECURITY_MODE: "fail_closed"
+  }
+
+  environment {
+    runtime_targets: ["holo-vm", "holomap", "holoscript-agent"]
+    simulation_target: "nvidia-isaac-lab"
+    transfer_direction: "holo_to_isaac_to_real"
+    physics_engine: "physx"
+    robot_frame: "base_link"
+    world_frame: "map"
+    evidence_boundary: "interop contract and validation receipt; not a physical robot claim"
+  }
+
+  object "SeedContext" {
+    kind: "seed-nurture-receipt"
+    source_path: "research/2026-04-19_isaac-lab-sim-to-real.md"
+    target_path: "packages/seed-nurture/isaac-lab-sim-to-real-interop.holo"
+    requested_jetson_path: "/mnt/nvme/holo/HoloScript/packages/seed-nurture/isaac-lab-sim-to-real-interop.holo"
+    desktop_mount_status: "not-mounted-on-codex-desktop"
+    promoted_by: "codex-hardware"
+    promoted_at: "2026-06-30"
+  }
+
+  object "SimToRealBridgeTrait" {
+    kind: "trait-contract"
+    trait_name: "@sim-to-real-bridge"
+    event_contracts: ["@isaccube-interop"]
+    owns: ["domain_randomization", "actuator_latency", "observation_noise", "isaac_lab_task_cfg"]
+    emits: ["isaaclab:event_term_cfg", "isaaclab:observation_term_cfg", "isaaclab:actuator_cfg"]
+    consumes: ["holoscript:robot_scene", "holomap:spatial_anchor", "agent:policy_candidate"]
+    compiler_hint: "Emit Isaac Lab references by name, not Python implementations."
+  }
+
+  object "SecurityInstinctGuardTrait" {
+    kind: "trait-contract"
+    trait_name: "@security-instinct"
+    mode: "fail_closed"
+    verifies: [
+      "simulation_contract_hash",
+      "policy_checkpoint_fingerprint",
+      "holomap_anchor_fingerprint",
+      "command_latency_budget",
+      "ros2_topic_allowlist"
+    ]
+    denies_on: ["missing_contract", "stale_anchor", "unsigned_policy", "latency_budget_exceeded"]
+    safe_stop_event: "physical:stop"
+  }
+
+  object "HoloMapEmbedTrait" {
+    kind: "trait-contract"
+    trait_name: "@holomap-embed"
+    anchor_kind: "world_locked_robot_cell"
+    anchor_id: "isaac_lab_cell_anchor_v1"
+    map_frame: "map"
+    robot_frame: "base_link"
+    replay_fingerprint_required: true
+    contract_kind: "holomap.simulation_contract.v1"
+  }
+
+  object "RobotCellTwin" {
+    kind: "robotic-workcell"
+    robot_model: "generic_6dof_arm"
+    usd_source: "assets/robots/generic_6dof_arm.usd"
+    traits: ["sim-to-real-bridge", "security-instinct", "holomap-embed"]
+    bridge_trait: "@sim-to-real-bridge"
+    guard_trait: "@security-instinct"
+    anchor_trait: "@holomap-embed"
+    interop_event: "@isaccube-interop"
+    position: [0, 0, 0]
+    rotation: [0, 0, 0]
+    scale: [1, 1, 1]
+  }
+
+  object "DomainRandomizationPlan" {
+    kind: "isaaclab-domain-randomization"
+    lifecycle_modes: ["startup", "reset", "interval"]
+    randomizes: [
+      "rigid_body_mass",
+      "static_friction",
+      "dynamic_friction",
+      "joint_damping",
+      "joint_armature",
+      "pd_gain_noise",
+      "sensor_noise",
+      "initial_object_pose",
+      "external_push_force"
+    ]
+    event_terms: [
+      { name: "randomize_rigid_body_mass", mode: "startup", target: "RobotCellTwin" },
+      { name: "randomize_joint_parameters", mode: "reset", target: "RobotCellTwin" },
+      { name: "apply_external_force_torque", mode: "interval", target: "RobotCellTwin" }
+    ]
+  }
+
+  object "DelayedActuatorGroup" {
+    kind: "isaaclab-actuator-group"
+    actuator_model: "DelayedPDActuator"
+    joint_group: "arm_joints"
+    command_latency_ms: 20
+    torque_limit_nm: 80
+    stiffness: 120.0
+    damping: 4.5
+    target_gap: "HoloScript actuator groups are not first-class yet; this object is the compiler contract."
+  }
+
+  object "ObservationNoisePlan" {
+    kind: "isaaclab-observation-noise"
+    observation_terms: [
+      { name: "joint_pos", noise: "uniform", min: -0.01, max: 0.01 },
+      { name: "joint_vel", noise: "gaussian", mean: 0.0, std: 0.02 },
+      { name: "imu", noise: "gaussian", mean: 0.0, std: 0.01 },
+      { name: "camera_rgb", noise: "replicator", texture_domain_randomization: true }
+    ]
+  }
+
+  object "PolicyRuntimeGate" {
+    kind: "holoscript-agent-policy-gate"
+    policy_source: "isaac_lab_onnx_export"
+    inference_runtime: "holo-vm"
+    action_topic: "/joint_targets"
+    telemetry_topic: "/joint_states"
+    replay_mode: "io_tape_until_deterministic_onnx_available"
+    receipt_fields: ["input_hash", "output_hash", "policy_hash", "anchor_hash", "prev_hash"]
+  }
+
+  object "RuntimeController" {
+    kind: "interop-event-controller"
+    boot_event: "runtime_boot"
+    policy_event: "policy_tick"
+    compile_event: "bridge_compile"
+  }
+
+  on(RobotCellTwin, "@isaccube-interop") {
+    emit(SimToRealBridgeTrait, "isaaclab:emit_task_cfg", {
+      robot: "RobotCellTwin"
+      domain_randomization: "DomainRandomizationPlan"
+      actuator_group: "DelayedActuatorGroup"
+      observation_noise: "ObservationNoisePlan"
+      spatial_anchor: "HoloMapEmbedTrait"
+    })
+    emit(SecurityInstinctGuardTrait, "runtime:verify_before_policy_step", {
+      policy_gate: "PolicyRuntimeGate"
+      max_latency_ms: 40
+      fail_mode: "physical:stop"
+    })
+  }
+
+  on(RuntimeController, "runtime_boot") {
+    emit(HoloMapEmbedTrait, "holomap:resolve_anchor", {
+      anchor_id: "isaac_lab_cell_anchor_v1"
+      require_replay_fingerprint: true
+    })
+  }
+
+  on(RuntimeController, "policy_tick") {
+    emit(SecurityInstinctGuardTrait, "runtime:verify_before_policy_step", {
+      policy_gate: "PolicyRuntimeGate"
+      max_latency_ms: 40
+      max_sync_drift_ms: 25
+    })
+  }
+
+  on(RuntimeController, "bridge_compile") {
+    emit(SimToRealBridgeTrait, "isaaclab:compile_interop_bundle", {
+      target_version: "2.3.x"
+      include_usd_joint_friction_schema: true
+      include_manager_based_env_cfg: true
+      include_event_term_cfg: true
+    })
+  }
+}
