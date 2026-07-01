@@ -31,6 +31,7 @@ import {
   Copy,
   ExternalLink,
 } from 'lucide-react';
+import { QRCodeImage } from '@/components/QRCodeImage';
 import { useSceneStore } from '@/lib/stores';
 import { SAVE_FEEDBACK_DURATION } from '@/lib/ui-timings';
 
@@ -57,12 +58,39 @@ interface ExtractionResult {
 
 interface PublishResult {
   url: string;
+  webxrUrl: string;
+  viewUrl: string;
   sceneId: string;
   contentHash: string;
   embedUrl: string;
   traits: string[];
   visibility: string;
   revenue: Record<string, unknown> | null;
+  qrCode: {
+    payload: string;
+    dataUrl: string;
+    receiptId: string;
+  };
+  share: {
+    title: string;
+    text: string;
+    url: string;
+    webxrUrl: string;
+  };
+  custody: {
+    expiresAt: string;
+    custodySurface: string;
+  };
+  receipts: {
+    compileReceiptId: string;
+    hostReceiptId: string;
+  };
+  customDomain: {
+    requestedDomain: string;
+    status: string;
+    mappedUrl: string;
+    receiptId: string;
+  } | null;
 }
 
 const TAGS = [
@@ -85,6 +113,7 @@ export function PublishPanel({ onClose }: PublishPanelProps) {
   const [title, setTitle] = useState(metadata.name || 'My World');
   const [desc, setDesc] = useState('');
   const [author, setAuthor] = useState('');
+  const [customDomain, setCustomDomain] = useState('');
   const [visibility, setVisibility] = useState<Visibility>('public');
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const [price, _setPrice] = useState('0');
@@ -147,6 +176,7 @@ export function PublishPanel({ onClose }: PublishPanelProps) {
           price: price !== '0' ? price : '0',
           visibility,
           tags: [...selectedTags],
+          customDomain: customDomain.trim() || undefined,
           metadata: { name: title, description: desc },
         }),
       });
@@ -161,7 +191,7 @@ export function PublishPanel({ onClose }: PublishPanelProps) {
       setErrMsg(e instanceof Error ? e.message : String(e));
       setStage('error');
     }
-  }, [code, title, desc, author, price, visibility, selectedTags]);
+  }, [code, title, desc, author, price, visibility, selectedTags, customDomain]);
 
   const handleCopy = useCallback(() => {
     if (!publishResult?.url) return;
@@ -284,6 +314,19 @@ export function PublishPanel({ onClose }: PublishPanelProps) {
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Custom domain */}
+              <div>
+                <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-studio-muted">
+                  Custom Domain <span className="text-studio-muted/50">(optional)</span>
+                </label>
+                <input
+                  value={customDomain}
+                  onChange={(e) => setCustomDomain(e.target.value)}
+                  className="w-full rounded-lg border border-studio-border bg-black/20 px-3 py-2 text-sm text-studio-text outline-none focus:border-studio-accent"
+                  placeholder="my-experience.com"
+                />
               </div>
 
               {/* Visibility */}
@@ -493,7 +536,7 @@ export function PublishPanel({ onClose }: PublishPanelProps) {
 
               {/* Share URL */}
               <div className="w-full rounded-lg border border-studio-border bg-black/20 px-3 py-2">
-                <p className="mb-1 text-[10px] text-studio-muted">Share Link</p>
+                <p className="mb-1 text-[10px] text-studio-muted">No-App WebXR Link</p>
                 <div className="flex items-center gap-2">
                   <p className="flex-1 truncate font-mono text-xs text-studio-accent">
                     {publishResult.url}
@@ -515,12 +558,65 @@ export function PublishPanel({ onClose }: PublishPanelProps) {
                 </div>
               </div>
 
+              {/* QR receipt */}
+              {publishResult.qrCode?.payload && (
+                <div className="flex w-full flex-col items-center gap-2 rounded-lg border border-studio-border bg-black/20 px-3 py-3">
+                  {publishResult.qrCode.dataUrl ? (
+                    <img
+                      src={publishResult.qrCode.dataUrl}
+                      alt="No-app WebXR QR code"
+                      width={120}
+                      height={120}
+                      className="rounded-lg border border-studio-border bg-white"
+                    />
+                  ) : (
+                    <QRCodeImage
+                      url={publishResult.qrCode.payload}
+                      size={120}
+                      alt="No-app WebXR QR code"
+                      className="rounded-lg border border-studio-border"
+                    />
+                  )}
+                  <p className="max-w-full truncate font-mono text-[9px] text-studio-text/60">
+                    {publishResult.qrCode.receiptId}
+                  </p>
+                </div>
+              )}
+
               {/* Embed URL */}
               {publishResult.embedUrl && (
                 <div className="w-full rounded-lg border border-studio-border bg-black/20 px-3 py-2">
                   <p className="mb-1 text-[10px] text-studio-muted">Embed URL</p>
                   <p className="font-mono text-[10px] text-studio-text/60 truncate">
                     {publishResult.embedUrl}
+                  </p>
+                </div>
+              )}
+
+              {/* Receipts */}
+              <div className="grid w-full grid-cols-2 gap-2 text-left">
+                <div className="min-w-0 rounded-lg border border-studio-border bg-black/20 px-3 py-2">
+                  <p className="mb-0.5 text-[9px] text-studio-muted">Compile Receipt</p>
+                  <p className="truncate font-mono text-[9px] text-studio-text/60">
+                    {publishResult.receipts.compileReceiptId}
+                  </p>
+                </div>
+                <div className="min-w-0 rounded-lg border border-studio-border bg-black/20 px-3 py-2">
+                  <p className="mb-0.5 text-[9px] text-studio-muted">Host Receipt</p>
+                  <p className="truncate font-mono text-[9px] text-studio-text/60">
+                    {publishResult.receipts.hostReceiptId}
+                  </p>
+                </div>
+              </div>
+
+              {publishResult.customDomain && (
+                <div className="w-full rounded-lg border border-studio-border bg-black/20 px-3 py-2">
+                  <p className="mb-0.5 text-[9px] text-studio-muted">Custom Domain</p>
+                  <p className="truncate font-mono text-[10px] text-studio-accent">
+                    {publishResult.customDomain.mappedUrl}
+                  </p>
+                  <p className="mt-1 text-[9px] text-studio-muted">
+                    {publishResult.customDomain.status}
                   </p>
                 </div>
               )}

@@ -9,6 +9,10 @@ import { getDb } from '../../../db/client';
 import { sharedScenes } from '../../../db/schema';
 import { sql } from 'drizzle-orm';
 import { logger } from '@/lib/logger';
+import {
+  buildNoAppWebxrPublishReceipt,
+  type ProtocolPublishResult,
+} from '@/lib/publish/noAppWebxrPublish';
 
 import { corsHeaders } from '../_lib/cors';
 /**
@@ -24,40 +28,28 @@ import { corsHeaders } from '../_lib/cors';
 
 const PUBLISH_DIR = path.join(process.cwd(), '.published');
 
-interface ProtocolPublishResult {
-  contentHash: string;
-  publish: Record<string, unknown> | null;
-  revenue: Record<string, unknown> | null;
-  error?: string;
-}
-
 async function ensurePublishDir() {
   if (!existsSync(PUBLISH_DIR)) {
     await mkdir(PUBLISH_DIR, { recursive: true });
   }
 }
 
-function publishResponseFields(
+async function publishResponseFields(
   body: Record<string, unknown>,
   protocol: ProtocolPublishResult | null,
   baseUrl: string,
   id: string
 ) {
-  const code = typeof body.code === 'string' ? body.code : '';
-  const traits = [...new Set(code.match(/@\w+/g) ?? [])];
-  const visibility = typeof body.visibility === 'string' ? body.visibility : 'public';
-
-  return {
-    id,
-    sceneId: id,
-    url: `${baseUrl}/view/${id}`,
-    embedUrl: `${baseUrl}/embed/${id}`,
-    contentHash: protocol?.contentHash ?? createHash('sha256').update(code).digest('hex'),
-    traits,
-    visibility,
-    revenue: protocol?.revenue ?? null,
+  return buildNoAppWebxrPublishReceipt({
+    body,
     protocol,
-  };
+    baseUrl,
+    id,
+  });
+}
+
+function requestBaseUrl(req: Request): string {
+  return req.headers.get('origin') ?? new URL(req.url).origin;
 }
 
 function protocolHeaders(req: Request): Record<string, string> {
@@ -158,9 +150,9 @@ export async function POST(req: Request) {
         .returning();
 
       const id = row.id.slice(0, 8);
-      const baseUrl = req.headers.get('origin') ?? '';
+      const baseUrl = requestBaseUrl(req);
       return NextResponse.json(
-        publishResponseFields(body as Record<string, unknown>, protocol, baseUrl, id)
+        await publishResponseFields(body as Record<string, unknown>, protocol, baseUrl, id)
       );
     }
 
@@ -175,9 +167,9 @@ export async function POST(req: Request) {
       'utf8'
     );
 
-    const baseUrl = req.headers.get('origin') ?? '';
+    const baseUrl = requestBaseUrl(req);
     return NextResponse.json(
-      publishResponseFields(body as Record<string, unknown>, protocol, baseUrl, id)
+      await publishResponseFields(body as Record<string, unknown>, protocol, baseUrl, id)
     );
   } catch (err) {
     logger.error('[publish] Error:', err);

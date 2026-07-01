@@ -1,0 +1,90 @@
+// CG-006 no-app WebXR publish proof.
+// HoloGate is the docs umbrella term; concrete proof is HoloKey custody,
+// umbrella routing, local QR/share metadata, custom-domain mapping receipts,
+// and triad compile-host-share receipt IDs.
+composition "NoAppWebxrPublishProof" {
+  metadata {
+    task: "CG-006"
+    native_authoring: "holo"
+    publish_route: "packages/studio/src/app/api/publish/route.ts"
+    publish_helper: "packages/studio/src/lib/publish/noAppWebxrPublish.ts"
+    webxr_launch_rewrite: "/w/:id -> /shared/:id"
+    migration_guide: "docs/guides/no-app-webxr-publish.md"
+    retired_hosted_platform: "8th Wall hosted platform retired 2026-02-28; existing published experiences remain live through 2027-02-28"
+  }
+
+  scene "PublishWorldPreview" {
+    object "HoloKeyCustody" @holokey @credential_receipt {
+      geometry: "cube"
+      position: [-2.4, 1.1, -3]
+      scale: [0.45, 0.45, 0.45]
+      color: "#16a34a"
+      state: {
+        custody_surface: "HoloKey"
+        verifies: ["issuedAt", "expiresAt", "ttlSeconds", "contentHash"]
+        secret_policy: "no_inline_keys"
+      }
+    }
+
+    object "UmbrellaRoute" @hologate @umbrella_route @webxr_publish {
+      geometry: "sphere"
+      position: [-0.8, 1.1, -3]
+      scale: [0.5, 0.5, 0.5]
+      color: "#2563eb"
+      state: {
+        umbrella_term: "HoloGate"
+        route: "/api/publish"
+        launch_url: "/w/:id"
+        canonical_viewer: "/shared/:id"
+      }
+    }
+
+    object "LocalQrShare" @qr_code @share_metadata @no_app_launch {
+      geometry: "plane"
+      position: [0.8, 1.1, -3]
+      scale: [0.7, 0.7, 0.1]
+      color: "#ffffff"
+      state: {
+        qr_format: "png-data-url"
+        share_fields: ["title", "text", "url", "webxrUrl"]
+        clients: ["phone-browser", "desktop-browser", "headset-browser"]
+      }
+    }
+
+    object "DomainReceipt" @custom_domain @dns_verification @mapping_receipt {
+      geometry: "cube"
+      position: [2.4, 1.1, -3]
+      scale: [0.45, 0.45, 0.45]
+      color: "#f59e0b"
+      state: {
+        status: "pending_dns_verification"
+        mapped_url: "https://<domain>/w/:id"
+        receipt: "customDomainReceiptId"
+      }
+    }
+
+    object "TriadReceipts" @triad_receipt @compile_receipt @host_receipt @share_receipt {
+      geometry: "torus"
+      position: [0, 2.2, -3.4]
+      scale: [0.8, 0.8, 0.8]
+      color: "#a855f7"
+      state: {
+        triad: ["compileReceiptId", "hostReceiptId", "shareReceiptId"]
+        qr: "qrReceiptId"
+        runtime: "studio-webxr-viewer"
+        no_app_install: true
+      }
+    }
+
+    camera "PublishProofCamera" {
+      position: [0, 2.4, 5]
+      lookAt: [0, 1.2, -3]
+    }
+
+    light "PublishProofKeyLight" {
+      type: "directional"
+      intensity: 1.4
+      position: [4, 6, 3]
+    }
+  }
+}
