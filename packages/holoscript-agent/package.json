@@ -106,6 +106,7 @@
   "dependencies": {
     "@holoscript/agent-protocol": "workspace:^",
     "@holoscript/llm-provider": "workspace:^",
+    "@holoscript/uaal": "workspace:^",
     "ethers": "^6.16.0"
   },
   "devDependencies": {
