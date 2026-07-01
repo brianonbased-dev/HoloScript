@@ -157,6 +157,7 @@
     "docs:roadmap:drift": "node scripts/check-roadmap-drift.mjs",
     "docs:counts:drift": "node scripts/check-doc-count-drift.mjs",
     "check:tropical-mentions": "node scripts/check-tropical-mentions.mjs",
+    "check:inference-registry": "node scripts/check-inference-registry.mjs",
     "check:security-audit": "node scripts/security-audit-io-network.mjs",
     "check:security-audit:strict": "node scripts/security-audit-io-network.mjs --strict",
     "check:security-audit:verbose": "node scripts/security-audit-io-network.mjs --verbose",

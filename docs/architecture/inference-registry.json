@@ -1,0 +1,273 @@
+{
+  "schema": "holoscript-inference-registry/v0.1.0",
+  "updated": "2026-07-01",
+  "summary": "Authoritative local map of HoloScript encoder, inference, embedding, and model-runtime surfaces. The registry distinguishes runtime-backed lanes from declarations and research lanes.",
+  "maturityLegend": {
+    "implemented": "Source and tests exist for the local contract or runtime path.",
+    "runtime-backed": "A concrete runtime and local model artifact are present on this machine.",
+    "runtime-backed-if-model-present": "The code path runs real inference when the optional model artifact is provisioned.",
+    "experimental": "Useful for research or demos, but not yet a general production contract.",
+    "declaration": "A trait or config contract exists; runtime wiring is target-specific or external."
+  },
+  "lanes": [
+    {
+      "id": "core-inference-trait",
+      "label": "Core adapter-backed inference trait",
+      "kind": ["inference", "adapter-contract"],
+      "maturity": "implemented",
+      "runtime": ["javascript"],
+      "entrypoints": ["inference:run", "inference:result", "inference:error"],
+      "sources": ["packages/core/src/traits/InferenceTrait.ts"],
+      "tests": ["packages/core/src/traits/__tests__/InferenceTrait.test.ts"],
+      "caveats": [
+        "Requires registered adapters; the trait does not discover models by itself."
+      ]
+    },
+    {
+      "id": "core-embedding-trait",
+      "label": "Core deterministic embedding trait",
+      "kind": ["encoder", "embedding"],
+      "maturity": "implemented",
+      "runtime": ["javascript"],
+      "entrypoints": ["embedding:generate", "embedding:result"],
+      "sources": ["packages/core/src/traits/EmbeddingTrait.ts"],
+      "tests": ["packages/core/src/traits/__tests__/EmbeddingTrait.test.ts"],
+      "caveats": [
+        "This is deterministic local vectorization, not a learned text-embedding model."
+      ]
+    },
+    {
+      "id": "absorb-embedding-providers",
+      "label": "Absorb GraphRAG embedding providers",
+      "kind": ["embedding", "retrieval", "graphrag"],
+      "maturity": "implemented",
+      "runtime": ["javascript", "optional-local-wasm", "optional-ollama", "optional-openai"],
+      "entrypoints": ["createEmbeddingProvider"],
+      "sources": [
+        "packages/absorb-service/src/engine/providers/EmbeddingProvider.ts",
+        "packages/absorb-service/src/engine/providers/EmbeddingProviderFactory.ts",
+        "packages/absorb-service/src/engine/providers/StructuralEmbeddingProvider.ts",
+        "packages/absorb-service/src/engine/providers/HoloEmbedProvider.ts",
+        "packages/absorb-service/src/engine/EmbeddingIndex.ts"
+      ],
+      "tests": [
+        "packages/absorb-service/src/engine/__tests__/StructuralEmbeddingProvider.test.ts",
+        "packages/absorb-service/src/engine/__tests__/HoloEmbedProvider.test.ts",
+        "packages/absorb-service/src/engine/__tests__/EmbeddingIndex.streaming.test.ts"
+      ],
+      "caveats": [
+        "Provider selection is explicit; OpenAI is not auto-selected from environment keys."
+      ]
+    },
+    {
+      "id": "holoembed-encoder",
+      "label": "HoloEmbed 768-dim structural/subword encoder",
+      "kind": ["encoder", "embedding", "retrieval", "snn-optional"],
+      "maturity": "implemented",
+      "runtime": ["cpu", "webgpu-optional"],
+      "entrypoints": ["HoloEmbedEncoder.encode", "HoloEmbedEncoder.encodeAsync", "HoloEmbedEncoder.encodeText"],
+      "sources": [
+        "packages/holoembed/src/HoloEmbedEncoder.ts",
+        "packages/holoembed/src/SnnAccelerator.ts",
+        "packages/holoembed/src/types.ts",
+        "packages/holoembed/src/index.ts"
+      ],
+      "tests": [
+        "packages/holoembed/src/__tests__/HoloEmbedEncoder.test.ts",
+        "packages/holoembed/src/__tests__/SnnAcceleratorGpuBench.test.ts"
+      ],
+      "caveats": [
+        "SNN acceleration is opportunistic; CPU fallback remains valid."
+      ]
+    },
+    {
+      "id": "jepa-world-model",
+      "label": "JEPA latent world-model objective and predictor",
+      "kind": ["encoder", "predictor", "world-model", "research"],
+      "maturity": "experimental",
+      "runtime": ["javascript", "research-training"],
+      "entrypoints": ["jepa:encode_pair", "JEPAPredictor.forward", "JEPAPredictor.plan"],
+      "sources": [
+        "packages/core/src/traits/JEPAObjective.ts",
+        "packages/core/src/traits/JEPAPredictor.ts",
+        "research/paper26/train_jepa_real.ts",
+        "packages/engine/src/simulation/__tests__/WorldModelReceipt.test.ts"
+      ],
+      "tests": [
+        "packages/core/src/traits/__tests__/JEPAObjective.test.ts",
+        "packages/engine/src/simulation/__tests__/WorldModelReceipt.test.ts"
+      ],
+      "optionalArtifacts": [
+        {
+          "path": "research/paper26/checkpoints/paper26-real-slice-001-latest.json",
+          "note": "Durable research checkpoint pointer, if the Paper 26 training slice has run."
+        }
+      ],
+      "caveats": [
+        "Research-grade training lane; do not represent as a general trained world model without a run receipt."
+      ]
+    },
+    {
+      "id": "onnx-runtime-trait",
+      "label": "ONNX runtime trait and adapter surface",
+      "kind": ["inference", "onnx", "adapter-contract"],
+      "maturity": "implemented",
+      "runtime": ["onnxruntime-node", "pure-js", "webgpu-or-wasm-adapter"],
+      "entrypoints": ["onnx:load", "onnx:run", "onnx:dispose"],
+      "sources": [
+        "packages/core/src/traits/OnnxRuntimeTrait.ts",
+        "packages/core/src/traits/engines/onnx-adapter.ts"
+      ],
+      "tests": [
+        "packages/core/src/traits/__tests__/OnnxRuntimeTrait.test.ts",
+        "packages/core/src/traits/engines/__tests__/onnx-adapter.test.ts",
+        "packages/core/src/traits/engines/__tests__/onnx-node-adapter.test.ts"
+      ],
+      "caveats": [
+        "The default adapter can be a test double; real inference requires injecting a real backend or using a lane that does so."
+      ]
+    },
+    {
+      "id": "motion-pfnn-onnx",
+      "label": "PFNN-style motion inference",
+      "kind": ["inference", "motion", "onnx", "pure-js"],
+      "maturity": "runtime-backed-if-model-present",
+      "runtime": ["pure-js", "onnxruntime-node"],
+      "entrypoints": ["createOnnxMotionMatchingEngine", "OnnxMotionMatchingEngine.infer", "OnnxMotionMatchingEngine.inferAsync"],
+      "sources": [
+        "packages/core/src/traits/engines/onnx-motion-matching.ts",
+        "packages/core/src/traits/engines/onnx-adapter.ts",
+        "scripts/provision-motion-model.mjs"
+      ],
+      "tests": [
+        "packages/core/src/traits/engines/__tests__/onnx-motion-matching.test.ts",
+        "packages/core/src/traits/engines/__tests__/onnx-node-adapter.test.ts"
+      ],
+      "optionalArtifacts": [
+        {
+          "path": ".models/motion/biped_humanoid_v2.onnx",
+          "note": "Generated deterministic ONNX graph for the biped bundled model."
+        },
+        {
+          "path": ".models/motion/quadruped_dog_v2.onnx",
+          "note": "Generated deterministic ONNX graph for the quadruped bundled model."
+        }
+      ],
+      "caveats": [
+        "Generated deterministic PFNN weights are real forward-pass artifacts, not externally trained production animation weights."
+      ]
+    },
+    {
+      "id": "hologram-depth-onnx",
+      "label": "HoloGram neural depth inference",
+      "kind": ["inference", "vision", "depth", "onnx"],
+      "maturity": "runtime-backed-if-model-present",
+      "runtime": ["onnxruntime-node", "luminance-fallback"],
+      "entrypoints": ["inferDepthForRaster"],
+      "sources": ["packages/hologram-worker/src/depth-infer.ts"],
+      "tests": [],
+      "optionalArtifacts": [
+        {
+          "path": ".models/depth-anything-v2-small/model.onnx",
+          "note": "Depth-Anything V2 Small local ONNX cache."
+        }
+      ],
+      "caveats": [
+        "Falls back to luminance depth when the model or backend is unavailable."
+      ]
+    },
+    {
+      "id": "local-llm-inference",
+      "label": "Local Ollama-compatible LLM inference trait",
+      "kind": ["inference", "llm", "local"],
+      "maturity": "declaration",
+      "runtime": ["ollama-compatible"],
+      "entrypoints": ["buildOllamaChatPayload", "local_inference_trigger"],
+      "sources": [
+        "packages/core/src/traits/LocalInferenceTrait.ts",
+        "packages/core/src/traits/cognitive/local_inference.holo"
+      ],
+      "tests": [],
+      "caveats": [
+        "Trait declares the local inference contract; a running Ollama-compatible service is required for calls."
+      ]
+    },
+    {
+      "id": "llm-service-router",
+      "label": "Brittney LLM inference router",
+      "kind": ["inference", "llm", "router"],
+      "maturity": "implemented",
+      "runtime": ["fireworks", "kimi", "together", "fleet", "ollama"],
+      "entrypoints": ["InferenceRouter.stream", "InferenceRouter.getStatus", "detectLane"],
+      "sources": ["services/llm-service/src/services/InferenceRouter.ts"],
+      "tests": ["services/llm-service/src/services/__tests__/InferenceRouter.test.ts"],
+      "caveats": [
+        "Hosted providers depend on credentials; local provider depends on Ollama availability."
+      ]
+    },
+    {
+      "id": "tensorrt-edge-inference",
+      "label": "TensorRT edge inference declaration",
+      "kind": ["inference", "edge", "tensorrt", "jetson"],
+      "maturity": "declaration",
+      "runtime": ["tensorrt", "jetson"],
+      "entrypoints": ["buildTrtexecCommand", "tensorrt_inference:infer"],
+      "sources": [
+        "packages/core/src/traits/TensorRTInferenceTrait.ts",
+        "packages/core/src/traits/hardware/tensorrt_inference.holo",
+        "packages/core/src/traits/devops/tensorrt_inference.holo"
+      ],
+      "tests": [],
+      "caveats": [
+        "TensorRT engines are device-specific and must be built per target with trtexec."
+      ]
+    },
+    {
+      "id": "snn-webgpu-encoding",
+      "label": "SNN-WebGPU spike encoding and cognition",
+      "kind": ["encoder", "decoder", "inference", "snn", "webgpu"],
+      "maturity": "implemented",
+      "runtime": ["webgpu", "cpu-reference"],
+      "entrypoints": ["SpikeEncoder.encode", "SpikeDecoder.decode", "SNNCognitionEngine.think"],
+      "sources": [
+        "packages/snn-webgpu/src/spike-codec.ts",
+        "packages/snn-webgpu/src/snn-network.ts",
+        "packages/engine/src/simulation/SNNCognitionEngine.ts"
+      ],
+      "tests": [
+        "packages/snn-webgpu/src/__tests__/spike-codec.test.ts",
+        "packages/snn-webgpu/src/__tests__/snn-network.test.ts",
+        "packages/engine/src/simulation/__tests__/SNNCognitionEngine.test.ts"
+      ],
+      "caveats": [
+        "The package includes STDP/plasticity surfaces; classify it as training-capable where that matters."
+      ]
+    },
+    {
+      "id": "semantic-novelty-encoder",
+      "label": "Local semantic novelty encoder",
+      "kind": ["encoder", "semantic", "advisory"],
+      "maturity": "experimental",
+      "runtime": ["transformers.js", "local-onnx"],
+      "entrypoints": ["embedSemantic", "assessSemanticNovelty"],
+      "sources": ["packages/engine/src/simulation/SemanticNoveltyEncoder.ts"],
+      "tests": ["packages/engine/src/simulation/__tests__/SemanticNoveltyEncoder.test.ts"],
+      "caveats": [
+        "Advisory-only; it must not become receipt-binding without deterministic receipt gates."
+      ]
+    },
+    {
+      "id": "holomap-micro-encoder",
+      "label": "HoloMap deterministic micro vision encoder",
+      "kind": ["encoder", "vision", "reconstruction", "webgpu"],
+      "maturity": "implemented",
+      "runtime": ["webgpu", "cpu-fallback"],
+      "entrypoints": ["createHoloMapMicroEncoder", "runHoloMapMicroEncoderCpu"],
+      "sources": ["packages/core/src/reconstruction/holoMapMicroEncoder.ts"],
+      "tests": ["packages/core/src/reconstruction/__tests__/holoMapMicroEncoder.weights.test.ts"],
+      "caveats": [
+        "Falls back to deterministic PRNG weights when checkpoint bytes are absent or malformed."
+      ]
+    }
+  ]
+}
