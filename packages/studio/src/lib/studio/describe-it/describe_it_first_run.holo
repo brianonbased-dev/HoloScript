@@ -1,0 +1,27 @@
+// Describe-It first-run activation slice.
+composition "DescribeItFirstRun" {
+  route: "/create"
+  source: "packages/studio/src/components/create/DescribeItFirstRunPanel.tsx"
+  api: "/api/studio/describe-it"
+  generated_target: "studio/generated/describe-it-*.holo"
+  concrete_tools: ["HoloKey", "UmbrellaRoute", "TriadReceipt", "CAELTrace", "WebXR/WebGPU preview"]
+  custody: {
+    holokey: "studio-describe-it-first-run-holokey"
+    umbrella_route: ["prompt", "plan-review", "holo-preview", "smoke-test", "receipt"]
+    triad_receipts: ["promptHash", "planHash", "generatedArtifactHash"]
+  }
+  scene "ActivationFlow" {
+    object "DescribeItInput" {
+      position: [-1.2, 1.4, -2]
+      @state_sync { channel: "describe-it-prompt" }
+    }
+    object "PlanModeReview" {
+      position: [0, 1.4, -2]
+      @state_sync { channel: "describe-it-plan" }
+    }
+    object "SmokeReceipt" {
+      position: [1.2, 1.4, -2]
+      @state_sync { channel: "describe-it-smoke" }
+    }
+  }
+}

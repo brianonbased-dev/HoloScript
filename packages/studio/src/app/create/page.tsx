@@ -102,6 +102,7 @@ import {
   type StudioViewId,
 } from '@/lib/studio/viewRegistry';
 import { useCreateModeStore, type CreateMode } from '@/components/create/createModeStore';
+import { DescribeItFirstRunPanel } from '@/components/create/DescribeItFirstRunPanel';
 import type { PrintabilityReport } from '@/components/manufacturing/PrintabilityReportPanel';
 import type { MeshResult } from '@/components/manufacturing/ParametricSlidersPanel';
 import { useSimState } from '@/components/simsci/useSimState';
@@ -858,10 +859,13 @@ export default function CreatePage() {
   // ── Create mode — ?mode=world|part|app query param ────────────────────────
   const createMode = useCreateModeStore((s) => s.createMode);
   const setCreateMode = useCreateModeStore((s) => s.setCreateMode);
+  const landingPrompt = useCreateModeStore((s) => s.landingPrompt);
   const setLandingPrompt = useCreateModeStore((s) => s.setLandingPrompt);
+  const clearLandingPrompt = useCreateModeStore((s) => s.clearLandingPrompt);
 
   // ── Repo import wizard — opened by ?intake=repo ──────────────────────────
   const [repoWizardOpen, setRepoWizardOpen] = useState(false);
+  const [describeItDismissed, setDescribeItDismissed] = useState(false);
 
   // ── Bottom code editor — collapsible (vibe chassis) ──────────────────────
   const [codeEditorCollapsed, setCodeEditorCollapsed] = useState(false);
@@ -1258,6 +1262,20 @@ export default function CreatePage() {
     },
     [addToast, setCode]
   );
+
+  const handleDescribeItCodeGenerated = useCallback(
+    (generated: string) => {
+      setCode(generated);
+      setMetadata({ name: 'Describe-It Preview' });
+      setCodeEditorCollapsed(false);
+      clearLandingPrompt();
+      addToast('Describe-It preview applied', 'success', 1800);
+    },
+    [addToast, clearLandingPrompt, setCode, setMetadata]
+  );
+
+  const showDescribeItFirstRun =
+    !describeItDismissed && (landingPrompt.trim().length > 0 || code.trim().length === 0);
 
   useEffect(() => {
     if (executionState === 'running') {
@@ -1669,6 +1687,16 @@ export default function CreatePage() {
               )}
               <ViewportToolbar profilerOpen={profilerOpen} onToggleProfiler={toggleProfilerOpen} />
               <AIPromptOverlay />
+              {showDescribeItFirstRun && (
+                <DescribeItFirstRunPanel
+                  initialPrompt={landingPrompt}
+                  onCodeGenerated={handleDescribeItCodeGenerated}
+                  onDismiss={() => {
+                    setDescribeItDismissed(true);
+                    clearLandingPrompt();
+                  }}
+                />
+              )}
               <ProfilerOverlay active={profilerOpen} />
               <AssetDropOverlay />
               <MinimapOverlay active={minimapOpen} onClose={() => setMinimapOpen(false)} />
