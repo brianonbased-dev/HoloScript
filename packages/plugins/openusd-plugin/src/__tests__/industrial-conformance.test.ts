@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'fs';
 import {
   buildIndustrialDigitalTwinFixture,
   exportToUsda,
@@ -37,6 +38,27 @@ describe('OpenUSD industrial conformance baseline', () => {
     expect(report.roundTrip.semanticSourcePaths).toContain('/FactoryCell/LineA/Conveyor');
     expect(report.roundTrip.semanticRoles).toEqual(
       expect.arrayContaining(['factory_cell', 'conveyor', 'motor', 'sensor', 'robot_actor'])
+    );
+  });
+
+  it('anchors semantic receipts to the industrial .holo demo source', () => {
+    const source = readFileSync(
+      new URL('../../../../../examples/openusd/industrial-factory-cell.holo', import.meta.url),
+      'utf8'
+    );
+    const fixture = buildIndustrialDigitalTwinFixture();
+    const demoObjectNames =
+      fixture.primitives
+        ?.map((primitive) => primitive.semantic?.sourcePath)
+        .filter((sourcePath): sourcePath is string => sourcePath?.startsWith('object:') ?? false)
+        .map((sourcePath) => sourcePath.slice('object:'.length)) ?? [];
+
+    for (const objectName of demoObjectNames) {
+      expect(source).toContain(`object "${objectName}"`);
+    }
+    expect(source).toContain('dtId: "dt:motor:lineA:m001"');
+    expect(source).toContain(
+      'simulationContract: "fixed_dt_60hz;z_up;semantic_receipts_required"'
     );
   });
 
