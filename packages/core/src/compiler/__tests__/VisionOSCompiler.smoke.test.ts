@@ -127,14 +127,21 @@ describe('VisionOSCompiler — Smoke Suite (CG-005)', () => {
       expect(swiftOutput).not.toContain('ARKit');
     });
 
-    it('GAP: window-specific volumetric properties are absent', () => {
-      expect(swiftOutput).not.toContain('VolumetricWindow');
-      expect(swiftOutput).not.toContain('WindowGroup');
-      expect(swiftOutput).not.toContain('corner_radius');
-      expect(swiftOutput).not.toContain('min_size');
-      expect(swiftOutput).not.toContain('max_size');
-      expect(swiftOutput).not.toContain('glass_background');
-      expect(swiftOutput).not.toContain('opacity');
+    it('@window volumetric properties emit WindowGroup scene declarations (gap CLOSED)', () => {
+      expect(swiftOutput).toContain('struct VolumetricWindowDescriptor');
+      expect(swiftOutput).toContain('static func windowScenes() -> some Scene');
+      expect(swiftOutput).toContain('WindowGroup(id: "BrowserWindow")');
+      expect(swiftOutput).toContain('.windowStyle(.volumetric)');
+      expect(swiftOutput).toContain(
+        '.defaultSize(width: 0.8, height: 0.5, depth: 0.01, in: .meters)'
+      );
+      expect(swiftOutput).toContain('minSize: CGSize(width: 400, height: 300), // min_size');
+      expect(swiftOutput).toContain('maxSize: CGSize(width: 1200, height: 800), // max_size');
+      expect(swiftOutput).toContain('cornerRadius: 20, // corner_radius');
+      expect(swiftOutput).toContain('glassBackground: true, // glass_background');
+      expect(swiftOutput).toContain('opacity: 0.95 // opacity');
+      expect(swiftOutput).toContain('NotesWindow.components.set(OpacityComponent(opacity: 0.95))');
+      expect(swiftOutput).toContain('.glassBackgroundEffect()');
     });
 
     it('GAP: webview, swiftui view, and AVPlayer content types are not generated', () => {
@@ -144,14 +151,17 @@ describe('VisionOSCompiler — Smoke Suite (CG-005)', () => {
       expect(swiftOutput).not.toContain('spatial_video.mov');
     });
 
-    it('GAP: ornament attach_to, position, and offset are not compiled', () => {
-      expect(swiftOutput).not.toContain('attachmentAnchor');
-      expect(swiftOutput).not.toContain('ornament(');
+    it('@ornament attach_to, position, and offset emit SwiftUI ornament modifiers (gap CLOSED)', () => {
+      expect(swiftOutput).toContain('.ornament(');
+      expect(swiftOutput).toContain('attachmentAnchor: .scene(.topLeading)');
+      expect(swiftOutput).toContain('contentAlignment: .topLeading');
+      expect(swiftOutput).toContain('.offset(x: -20, y: 10)');
     });
 
-    it('GAP: toolbar and button UI inside ornaments are not generated', () => {
-      expect(swiftOutput).not.toContain('ToolbarItem');
-      expect(swiftOutput).not.toContain('Button(');
+    it('ornament toolbar and button UI emit SwiftUI controls (gap CLOSED)', () => {
+      expect(swiftOutput).toContain('Button { } label: { Image(systemName: "xmark.circle.fill") }');
+      expect(swiftOutput).toContain('HStack {');
+      expect(swiftOutput).toContain('Button { } label: { Image(systemName: "pencil") }');
     });
 
     it('GAP: portal destination, preview, transition, and duration are ignored', () => {
@@ -173,26 +183,27 @@ describe('VisionOSCompiler — Smoke Suite (CG-005)', () => {
       expect(swiftOutput).not.toContain('folder');
     });
 
-    it('GAP: inline animation blocks are not emitted as RealityKit animations', () => {
-      expect(swiftOutput).not.toContain('rotation.y');
-      expect(swiftOutput).not.toContain('from: 0');
-      expect(swiftOutput).not.toContain('to: 360');
+    it('inline animation blocks emit RealityKit animation resources (gap CLOSED)', () => {
+      expect(swiftOutput).toContain('FromToByAnimation<Transform>');
+      expect(swiftOutput).toContain('AnimationResource.generate');
+      expect(swiftOutput).toContain('rotation.y from: 0');
+      expect(swiftOutput).toContain('to: 360');
     });
 
-    it('GAP: palm_menu gesture handlers not yet wired (documented-partial stub)', () => {
-      // on_pinch appears only inside palm_menu's documented-partial comment
-      // ("gestures wired to on_pinch etc."); the REAL gesture recognisers/handlers
-      // (on_release / on_gaze_tap / close_window actions) are still absent.
-      expect(swiftOutput).not.toContain('on_release');
-      expect(swiftOutput).not.toContain('on_gaze_tap');
-      expect(swiftOutput).not.toContain('close_window');
+    it('object event handlers emit targeted gesture wiring receipts (gap CLOSED)', () => {
+      expect(swiftOutput).toContain('let GlobeModelEventHandlers = ["on_pinch", "on_release"]');
+      expect(swiftOutput).toContain('let CloseButtonEventHandlers = ["on_gaze_tap"]');
+      expect(swiftOutput).toContain('close_window("BrowserWindow")');
+      expect(swiftOutput).toContain('dismissWindow(id: "BrowserWindow")');
     });
 
-    it('GAP: shareplay block is completely absent from output', () => {
-      expect(swiftOutput).not.toContain('SharePlay');
-      expect(swiftOutput).not.toContain('GroupActivity');
-      expect(swiftOutput).not.toContain('activity_type');
-      expect(swiftOutput).not.toContain('sync');
+    it('shareplay block emits GroupActivity and messenger support (gap CLOSED)', () => {
+      expect(swiftOutput).toContain('import GroupActivities');
+      expect(swiftOutput).toContain('struct VisionOSProductivitySpaceGroupActivity: GroupActivity');
+      expect(swiftOutput).toContain('collaborative_workspace');
+      expect(swiftOutput).toContain('GroupSessionMessenger');
+      expect(swiftOutput).toContain('sharePlaySyncKeys');
+      expect(swiftOutput).toContain('window_positions');
     });
 
     it('GAP: head_tracked and trigger_on audio properties are ignored', () => {
@@ -200,9 +211,13 @@ describe('VisionOSCompiler — Smoke Suite (CG-005)', () => {
       expect(swiftOutput).not.toContain('trigger_on');
     });
 
-    it('GAP: .usdz geometry references are emitted as generic boxes, not loaded', () => {
-      expect(swiftOutput).not.toContain('data_visualization.usdz');
-      expect(swiftOutput).not.toContain('earth_globe.usdz');
+    it('.usdz geometry references load through RealityKit content bundle (gap CLOSED)', () => {
+      expect(swiftOutput).toContain(
+        'ModelEntity(named: "model/data_visualization.usdz", in: realityKitContentBundle)'
+      );
+      expect(swiftOutput).toContain(
+        'ModelEntity(named: "model/earth_globe.usdz", in: realityKitContentBundle)'
+      );
     });
   });
 

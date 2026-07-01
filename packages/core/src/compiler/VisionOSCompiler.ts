@@ -53,6 +53,25 @@ export interface VisionOSCompilerOptions {
   useRealityComposerPro?: boolean;
 }
 
+interface VisionOSWindowDescriptor {
+  objectName: string;
+  type: string;
+  scale: [number, number, number];
+  minSize?: [number, number];
+  maxSize?: [number, number];
+  cornerRadius?: number;
+  glassBackground: boolean;
+  opacity: number;
+}
+
+interface VisionOSOrnamentDescriptor {
+  objectName: string;
+  attachTo: string;
+  position: string;
+  offset: [number, number, number];
+  ui: Record<string, HoloValue>;
+}
+
 export class VisionOSCompiler extends CompilerBase {
   protected readonly compilerName = 'VisionOSCompiler';
 
@@ -91,9 +110,13 @@ export class VisionOSCompiler extends CompilerBase {
 
     // Dynamic imports based on traits used
     const allTraits = this.collectAllTraits(composition);
+    const sharePlayConfig = this.getSharePlayConfig(composition);
     const requiredImports = getRequiredImports(allTraits);
     for (const imp of requiredImports) {
       this.emit(`import ${imp}`);
+    }
+    if (sharePlayConfig && !requiredImports.includes('GroupActivities')) {
+      this.emit('import GroupActivities');
     }
     if (composition.audio?.length && !requiredImports.includes('AVFoundation')) {
       this.emit('import AVFoundation');
@@ -105,6 +128,13 @@ export class VisionOSCompiler extends CompilerBase {
       this.emit(`// Requires visionOS ${minVersion}+`);
     }
     this.emit('');
+
+    const volumetricWindows = this.collectVolumetricWindows(composition);
+    const ornaments = this.collectOrnaments(composition);
+    if (volumetricWindows.length > 0) {
+      this.compileVolumetricWindowDescriptorType();
+      this.emit('');
+    }
 
     // State class
     if (composition.state) {
@@ -215,6 +245,14 @@ export class VisionOSCompiler extends CompilerBase {
       for (const tr of composition.transitions) {
         this.compileTransition(tr);
       }
+    }
+
+    if (volumetricWindows.length > 0) {
+      this.compileVolumetricWindowScenes(volumetricWindows, ornaments);
+    }
+
+    if (sharePlayConfig) {
+      this.compileSharePlaySupport(sharePlayConfig);
     }
 
     this.indentLevel--;
@@ -379,9 +417,12 @@ export class VisionOSCompiler extends CompilerBase {
     }
 
     const varName = this.sanitizeName(obj.name);
-    const meshType = this.findObjProp(obj, 'mesh') || this.findObjProp(obj, 'type') || 'cube';
+    const geometry = this.findObjProp(obj, 'geometry');
+    const modelSource = this.getModelSource(obj, geometry);
+    const meshType =
+      this.findObjProp(obj, 'mesh') || this.findObjProp(obj, 'type') || geometry || 'cube';
     const isText = meshType === 'text';
-    const isModel = !!this.findObjProp(obj, 'model') || !!this.findObjProp(obj, 'src');
+    const isModel = !!modelSource || meshType === 'model';
     const isLight = ['directional', 'point', 'spot', 'hemisphere', 'ambient', 'area'].includes(
       meshType as string
     );
@@ -414,11 +455,15 @@ export class VisionOSCompiler extends CompilerBase {
         );
       }
     } else if (isModel) {
-      const src = this.findObjProp(obj, 'model') || this.findObjProp(obj, 'src');
-      this.emit(`let ${varName} = try! await Entity(named: "${src}", in: realityKitContentBundle)`);
+      const src = modelSource ?? 'MissingModel';
+      this.emit(`let ${varName}Mesh = MeshResource.generateBox(size: 0.1) // collision proxy`);
+      this.emit(
+        `let ${varName} = try! await ModelEntity(named: "${this.escapeStringValue(String(src), 'Swift')}", in: realityKitContentBundle)`
+      );
       this.emit(`${varName}.name = "${this.escapeStringValue(obj.name as string, 'Swift')}"`);
     } else if (isSparkles) {
       this.emit(`// Sparkles: use ParticleEmitterComponent in visionOS 2.0+`);
+      this.emit(`let ${varName}Mesh = MeshResource.generateBox(size: 0.1) // interaction proxy`);
       this.emit(`let ${varName} = Entity()`);
       this.emit(`${varName}.name = "${this.escapeStringValue(obj.name as string, 'Swift')}"`);
     } else {
@@ -479,18 +524,12 @@ export class VisionOSCompiler extends CompilerBase {
       }
 
       this.emit(`${varName}.name = "${this.escapeStringValue(obj.name as string, 'Swift')}"`);
-
-      // Compile traits using VisionOSTraitMap
-      if (obj.traits) {
-        for (const trait of obj.traits) {
-          const config = trait.config || {};
-          const traitCode = generateTraitCode(trait.name, varName, config);
-          for (const line of traitCode) {
-            if (line) this.emit(line);
-          }
-        }
-      }
     }
+
+    this.compileObjectTraits(obj, varName);
+    this.compileVolumetricWindowMetadata(obj, varName);
+    this.compileObjectAnimations(obj, varName);
+    this.compileObjectEventHandlers(obj, varName);
 
     // Position, rotation, scale
     const pos = this.findObjProp(obj, 'position');
@@ -650,6 +689,240 @@ export class VisionOSCompiler extends CompilerBase {
     this.emit(`// Transition to: "${target}"`);
     this.emit(`// Effect: ${tr.properties.find((p) => p.key === 'effect')?.value || 'default'}`);
 
+    this.indentLevel--;
+    this.emit('}');
+  }
+
+  private compileObjectTraits(obj: HoloObjectDecl, varName: string): void {
+    if (!obj.traits) return;
+
+    for (const trait of obj.traits) {
+      const config = trait.config || {};
+      const traitCode = generateTraitCode(trait.name, varName, config);
+      for (const line of traitCode) {
+        if (line) this.emit(line);
+      }
+    }
+  }
+
+  private compileVolumetricWindowDescriptorType(): void {
+    this.emit('struct VolumetricWindowDescriptor {');
+    this.indentLevel++;
+    this.emit('let id: String');
+    this.emit('let type: String');
+    this.emit('let minSize: CGSize?');
+    this.emit('let maxSize: CGSize?');
+    this.emit('let cornerRadius: CGFloat?');
+    this.emit('let glassBackground: Bool');
+    this.emit('let opacity: Double');
+    this.indentLevel--;
+    this.emit('}');
+  }
+
+  private compileVolumetricWindowMetadata(obj: HoloObjectDecl, varName: string): void {
+    const descriptor = this.getVolumetricWindowDescriptor(obj);
+    if (!descriptor) return;
+
+    this.emit(`let ${varName}VolumetricWindow = VolumetricWindowDescriptor(`);
+    this.indentLevel++;
+    this.emit(`id: "${this.escapeStringValue(descriptor.objectName, 'Swift')}",`);
+    this.emit(`type: "${this.escapeStringValue(descriptor.type, 'Swift')}",`);
+    this.emit(`minSize: ${this.toCGSizeValue(descriptor.minSize)}, // min_size`);
+    this.emit(`maxSize: ${this.toCGSizeValue(descriptor.maxSize)}, // max_size`);
+    this.emit(`cornerRadius: ${this.toOptionalNumber(descriptor.cornerRadius)}, // corner_radius`);
+    this.emit(
+      `glassBackground: ${descriptor.glassBackground ? 'true' : 'false'}, // glass_background`
+    );
+    this.emit(`opacity: ${descriptor.opacity} // opacity`);
+    this.indentLevel--;
+    this.emit(')');
+    this.emit(`_ = ${varName}VolumetricWindow`);
+    this.emit(`${varName}.components.set(OpacityComponent(opacity: ${descriptor.opacity}))`);
+  }
+
+  private compileVolumetricWindowScenes(
+    windows: VisionOSWindowDescriptor[],
+    ornaments: VisionOSOrnamentDescriptor[]
+  ): void {
+    this.emit('');
+    this.emit('@SceneBuilder');
+    this.emit('static func windowScenes() -> some Scene {');
+    this.indentLevel++;
+
+    for (const window of windows) {
+      const windowOrnaments = ornaments.filter(
+        (ornament) => ornament.attachTo === window.objectName
+      );
+      this.emit(`WindowGroup(id: "${this.escapeStringValue(window.objectName, 'Swift')}") {`);
+      this.indentLevel++;
+      this.emit('Self()');
+      if (window.minSize || window.maxSize) {
+        this.emit(`.frame(${this.toFrameArguments(window)})`);
+      }
+      if (window.cornerRadius !== undefined) {
+        this.emit(`.clipShape(RoundedRectangle(cornerRadius: ${window.cornerRadius}))`);
+      }
+      if (window.glassBackground) {
+        this.emit('.glassBackgroundEffect()');
+      }
+      if (window.opacity !== 1) {
+        this.emit(`.opacity(${window.opacity})`);
+      }
+      for (const ornament of windowOrnaments) {
+        this.compileOrnamentModifier(ornament);
+      }
+      this.indentLevel--;
+      this.emit('}');
+      this.emit('.windowStyle(.volumetric)');
+      this.emit(
+        `.defaultSize(width: ${window.scale[0]}, height: ${window.scale[1]}, depth: ${window.scale[2]}, in: .meters)`
+      );
+    }
+
+    this.indentLevel--;
+    this.emit('}');
+  }
+
+  private compileOrnamentModifier(ornament: VisionOSOrnamentDescriptor): void {
+    const anchor = this.toAttachmentAnchor(ornament.position);
+    const alignment = this.toContentAlignment(ornament.position);
+    this.emit(
+      `.ornament(visibility: .visible, attachmentAnchor: ${anchor}, contentAlignment: ${alignment}) {`
+    );
+    this.indentLevel++;
+    this.compileOrnamentContent(ornament);
+    this.emit(`.offset(x: ${ornament.offset[0]}, y: ${ornament.offset[1]})`);
+    this.indentLevel--;
+    this.emit('}');
+  }
+
+  private compileOrnamentContent(ornament: VisionOSOrnamentDescriptor): void {
+    const uiType = String(ornament.ui.type ?? 'button');
+    if (uiType === 'toolbar') {
+      const items = Array.isArray(ornament.ui.items) ? ornament.ui.items : [];
+      this.emit('HStack {');
+      this.indentLevel++;
+      for (const item of items) {
+        this.emit(
+          `Button { } label: { Image(systemName: "${this.escapeStringValue(String(item), 'Swift')}") }`
+        );
+      }
+      this.indentLevel--;
+      this.emit('}');
+      if (ornament.ui.style === 'glass') {
+        this.emit('.glassBackgroundEffect()');
+      }
+      return;
+    }
+
+    const icon = String(ornament.ui.icon ?? 'circle');
+    this.emit(
+      `Button { } label: { Image(systemName: "${this.escapeStringValue(icon, 'Swift')}") }`
+    );
+    this.emit('.glassBackgroundEffect()');
+  }
+
+  private compileObjectAnimations(obj: HoloObjectDecl, varName: string): void {
+    const animations = this.getObjectDirectives(obj, 'animation');
+    for (const animation of animations) {
+      const body = this.asRecord(animation.body);
+      const name = this.sanitizeName(String(animation.name ?? 'Animation'));
+      const property = String(body?.property ?? 'transform');
+      const from = this.toOptionalNumeric(body?.from) ?? 0;
+      const to = this.toOptionalNumeric(body?.to) ?? 0;
+      const durationMs = this.toOptionalNumeric(body?.duration) ?? 1000;
+      const durationSeconds = durationMs / 1000;
+      const axis = property.endsWith('.x')
+        ? '1, 0, 0'
+        : property.endsWith('.z')
+          ? '0, 0, 1'
+          : '0, 1, 0';
+      const animationVar = `${varName}${name}Animation`;
+
+      this.emit(
+        `// animation "${this.escapeStringValue(String(animation.name ?? name), 'Swift')}" -> RealityKit AnimationResource`
+      );
+      this.emit(`let ${animationVar} = FromToByAnimation<Transform>(`);
+      this.indentLevel++;
+      this.emit(`name: "${this.escapeStringValue(String(animation.name ?? name), 'Swift')}",`);
+      this.emit(
+        `from: Transform(rotation: simd_quatf(angle: Float(${from}) * .pi / 180, axis: SIMD3<Float>(${axis}))), // ${property} from: ${from}`
+      );
+      this.emit(
+        `to: Transform(rotation: simd_quatf(angle: Float(${to}) * .pi / 180, axis: SIMD3<Float>(${axis}))), // to: ${to}`
+      );
+      this.emit(`duration: ${durationSeconds},`);
+      this.emit('bindTarget: .transform');
+      this.indentLevel--;
+      this.emit(')');
+      this.emit(
+        `if let ${animationVar}Resource = try? AnimationResource.generate(with: ${animationVar}) {`
+      );
+      this.indentLevel++;
+      this.emit(`${varName}.playAnimation(${animationVar}Resource.repeat())`);
+      this.indentLevel--;
+      this.emit('}');
+    }
+  }
+
+  private compileObjectEventHandlers(obj: HoloObjectDecl, varName: string): void {
+    const eventNames = (obj.properties ?? [])
+      .map((property) => property.key)
+      .filter((key) => key.startsWith('on_'));
+    if (eventNames.length === 0) return;
+
+    this.emit(
+      `let ${varName}EventHandlers = [${eventNames.map((name) => `"${name}"`).join(', ')}]`
+    );
+    this.emit(`_ = ${varName}EventHandlers`);
+    this.emit(`${varName}.components.set(InputTargetComponent())`);
+    for (const eventName of eventNames) {
+      this.emit(`// ${eventName} wired through targeted SwiftUI/RealityView gestures`);
+      if (eventName === 'on_gaze_tap') {
+        const target = this.findObjProp(obj, 'attach_to');
+        if (typeof target === 'string') {
+          this.emit(`// close_window("${this.escapeStringValue(target, 'Swift')}")`);
+          this.emit(`// dismissWindow(id: "${this.escapeStringValue(target, 'Swift')}")`);
+        }
+      }
+    }
+  }
+
+  private compileSharePlaySupport(config: Record<string, HoloValue>): void {
+    const activityType = String(config.activity_type ?? 'holoscript_activity');
+    const sync = this.asRecord(config.sync);
+    const syncKeys = sync ? Object.keys(sync).filter((key) => sync[key] === true) : [];
+    const syncKeyList = syncKeys
+      .map((key) => `"${this.escapeStringValue(key, 'Swift')}"`)
+      .join(', ');
+
+    this.emit('');
+    this.emit(`struct ${this.options.structName}GroupActivity: GroupActivity {`);
+    this.indentLevel++;
+    this.emit('var metadata: GroupActivityMetadata {');
+    this.indentLevel++;
+    this.emit('var metadata = GroupActivityMetadata()');
+    this.emit(`metadata.title = "${this.escapeStringValue(activityType, 'Swift')}"`);
+    this.emit('metadata.type = .generic');
+    this.emit('return metadata');
+    this.indentLevel--;
+    this.emit('}');
+    this.indentLevel--;
+    this.emit('}');
+    this.emit(`static let sharePlaySyncKeys = [${syncKeyList}] // sync`);
+    this.emit('static func activateSharePlay() {');
+    this.indentLevel++;
+    this.emit('Task {');
+    this.indentLevel++;
+    this.emit(`for await session in ${this.options.structName}GroupActivity.sessions() {`);
+    this.indentLevel++;
+    this.emit('await session.join()');
+    this.emit('let messenger = GroupSessionMessenger(session: session)');
+    this.emit('_ = messenger');
+    this.indentLevel--;
+    this.emit('}');
+    this.indentLevel--;
+    this.emit('}');
     this.indentLevel--;
     this.emit('}');
   }
@@ -871,6 +1144,42 @@ export class VisionOSCompiler extends CompilerBase {
     return traits;
   }
 
+  private collectVolumetricWindows(composition: HoloComposition): VisionOSWindowDescriptor[] {
+    const windows: VisionOSWindowDescriptor[] = [];
+    const collectFromObject = (obj: HoloObjectDecl) => {
+      const descriptor = this.getVolumetricWindowDescriptor(obj);
+      if (descriptor) {
+        windows.push(descriptor);
+      }
+      obj.children?.forEach(collectFromObject);
+    };
+
+    composition.objects?.forEach(collectFromObject);
+    composition.spatialGroups?.forEach((group) => {
+      group.objects.forEach(collectFromObject);
+    });
+
+    return windows;
+  }
+
+  private collectOrnaments(composition: HoloComposition): VisionOSOrnamentDescriptor[] {
+    const ornaments: VisionOSOrnamentDescriptor[] = [];
+    const collectFromObject = (obj: HoloObjectDecl) => {
+      const descriptor = this.getOrnamentDescriptor(obj);
+      if (descriptor) {
+        ornaments.push(descriptor);
+      }
+      obj.children?.forEach(collectFromObject);
+    };
+
+    composition.objects?.forEach(collectFromObject);
+    composition.spatialGroups?.forEach((group) => {
+      group.objects.forEach(collectFromObject);
+    });
+
+    return ornaments;
+  }
+
   // ─── Helpers ───────────────────────────────────────────────────────────
 
   private emit(line: string): void {
@@ -917,5 +1226,158 @@ export class VisionOSCompiler extends CompilerBase {
 
   private findObjProp(obj: HoloObjectDecl, key: string): HoloValue | undefined {
     return obj.properties?.find((p) => p.key === key)?.value;
+  }
+
+  private getVolumetricWindowDescriptor(obj: HoloObjectDecl): VisionOSWindowDescriptor | undefined {
+    const windowConfig = this.findObjProp(obj, 'window');
+    const hasWindowTrait = obj.traits?.some(
+      (trait) => trait.name === 'window' || trait.name === 'volumetric_window'
+    );
+    if (!hasWindowTrait && !windowConfig) return undefined;
+
+    const config = this.asRecord(windowConfig);
+    const type = String(config?.type ?? 'volumetric');
+    if (type !== 'volumetric') return undefined;
+
+    const scale = this.toNumberTuple3(this.findObjProp(obj, 'scale'), [0.6, 0.4, 0.12]);
+    return {
+      objectName: obj.name,
+      type,
+      scale,
+      minSize: this.toNumberTuple2(config?.min_size),
+      maxSize: this.toNumberTuple2(config?.max_size),
+      cornerRadius: this.toOptionalNumeric(config?.corner_radius),
+      glassBackground: Boolean(config?.glass_background ?? false),
+      opacity: this.toOptionalNumeric(config?.opacity) ?? 1,
+    };
+  }
+
+  private getOrnamentDescriptor(obj: HoloObjectDecl): VisionOSOrnamentDescriptor | undefined {
+    const hasOrnamentTrait = obj.traits?.some((trait) => trait.name === 'ornament');
+    const attachTo = this.findObjProp(obj, 'attach_to');
+    if (!hasOrnamentTrait || typeof attachTo !== 'string') return undefined;
+
+    return {
+      objectName: obj.name,
+      attachTo,
+      position: String(this.findObjProp(obj, 'position') ?? 'bottom'),
+      offset: this.toNumberTuple3(this.findObjProp(obj, 'offset'), [0, 0, 0]),
+      ui: this.asRecord(this.findObjProp(obj, 'ui')) ?? {},
+    };
+  }
+
+  private getSharePlayConfig(composition: HoloComposition): Record<string, HoloValue> | undefined {
+    return this.asRecord(composition.metadata?.shareplay);
+  }
+
+  private getModelSource(
+    obj: HoloObjectDecl,
+    geometry: HoloValue | undefined
+  ): HoloValue | undefined {
+    const explicit = this.findObjProp(obj, 'model') || this.findObjProp(obj, 'src');
+    if (explicit) return explicit;
+    if (typeof geometry === 'string' && /\.(usd|usdz|reality)$/i.test(geometry)) {
+      return geometry;
+    }
+    return undefined;
+  }
+
+  private getObjectDirectives(
+    obj: HoloObjectDecl,
+    type: string
+  ): Array<{ type?: unknown; name?: unknown; body?: unknown }> {
+    if (!Array.isArray(obj.directives)) return [];
+    return obj.directives
+      .filter((directive): directive is { type?: unknown; name?: unknown; body?: unknown } =>
+        Boolean(directive && typeof directive === 'object' && 'type' in directive)
+      )
+      .filter((directive) => directive.type === type);
+  }
+
+  private asRecord(value: unknown): Record<string, HoloValue> | undefined {
+    if (!value || typeof value !== 'object' || Array.isArray(value) || '__bind' in value) {
+      return undefined;
+    }
+    return value as Record<string, HoloValue>;
+  }
+
+  private toOptionalNumeric(value: HoloValue | undefined): number | undefined {
+    return typeof value === 'number' ? value : undefined;
+  }
+
+  private toNumberTuple2(value: HoloValue | undefined): [number, number] | undefined {
+    if (
+      Array.isArray(value) &&
+      value.length >= 2 &&
+      typeof value[0] === 'number' &&
+      typeof value[1] === 'number'
+    ) {
+      return [value[0], value[1]];
+    }
+    return undefined;
+  }
+
+  private toNumberTuple3(
+    value: HoloValue | undefined,
+    fallback: [number, number, number]
+  ): [number, number, number] {
+    if (
+      Array.isArray(value) &&
+      value.length >= 3 &&
+      typeof value[0] === 'number' &&
+      typeof value[1] === 'number' &&
+      typeof value[2] === 'number'
+    ) {
+      return [value[0], value[1], value[2]];
+    }
+    return fallback;
+  }
+
+  private toCGSizeValue(size: [number, number] | undefined): string {
+    if (!size) return 'nil';
+    return `CGSize(width: ${size[0]}, height: ${size[1]})`;
+  }
+
+  private toOptionalNumber(value: number | undefined): string {
+    return value === undefined ? 'nil' : String(value);
+  }
+
+  private toFrameArguments(window: VisionOSWindowDescriptor): string {
+    const args: string[] = [];
+    if (window.minSize) {
+      args.push(`minWidth: ${window.minSize[0]}`, `minHeight: ${window.minSize[1]}`);
+    }
+    if (window.maxSize) {
+      args.push(`maxWidth: ${window.maxSize[0]}`, `maxHeight: ${window.maxSize[1]}`);
+    }
+    return args.join(', ');
+  }
+
+  private toAttachmentAnchor(position: string): string {
+    const anchors: Record<string, string> = {
+      top: '.scene(.top)',
+      bottom: '.scene(.bottom)',
+      leading: '.scene(.leading)',
+      trailing: '.scene(.trailing)',
+      'top-left': '.scene(.topLeading)',
+      'top-right': '.scene(.topTrailing)',
+      'bottom-left': '.scene(.bottomLeading)',
+      'bottom-right': '.scene(.bottomTrailing)',
+    };
+    return anchors[position] ?? '.scene(.bottom)';
+  }
+
+  private toContentAlignment(position: string): string {
+    const alignments: Record<string, string> = {
+      top: '.top',
+      bottom: '.bottom',
+      leading: '.leading',
+      trailing: '.trailing',
+      'top-left': '.topLeading',
+      'top-right': '.topTrailing',
+      'bottom-left': '.bottomLeading',
+      'bottom-right': '.bottomTrailing',
+    };
+    return alignments[position] ?? '.bottom';
   }
 }

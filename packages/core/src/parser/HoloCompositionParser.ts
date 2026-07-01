@@ -451,6 +451,11 @@ export class HoloCompositionParser {
         } else if (this.check('CONNECT')) {
           if (!composition.connections) composition.connections = [];
           composition.connections.push(this.parseConnectionStmt());
+        } else if (this.check('IDENTIFIER') && this.current().value === 'shareplay') {
+          composition.metadata = {
+            ...(composition.metadata ?? {}),
+            shareplay: this.parseSharePlayBlock(),
+          };
         } else if (this.isLooseOnHandlerStart()) {
           this.skipLooseOnHandler();
           // MMO/AAA game constructs (v6.2)
@@ -843,6 +848,11 @@ export class HoloCompositionParser {
         } else if (this.check('CONNECT')) {
           if (!composition.connections) composition.connections = [];
           composition.connections.push(this.parseConnectionStmt());
+        } else if (this.check('IDENTIFIER') && this.current().value === 'shareplay') {
+          composition.metadata = {
+            ...(composition.metadata ?? {}),
+            shareplay: this.parseSharePlayBlock(),
+          };
           // MMO/AAA game constructs (v6.2)
         } else if (this.check('LOOT_TABLE')) {
           composition.lootTables!.push(this.parseLootTable());
@@ -3910,6 +3920,12 @@ export class HoloCompositionParser {
 
     this.expect('RBRACE');
     return config;
+  }
+
+  private parseSharePlayBlock(): Record<string, HoloValue> {
+    this.advance(); // consume shareplay
+    if (!this.check('LBRACE')) return {};
+    return this.parseBlockTraitConfig();
   }
 
   // ===========================================================================
