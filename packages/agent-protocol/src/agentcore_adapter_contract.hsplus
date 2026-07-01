@@ -1,35 +1,90 @@
-// @agentcore_adapter_contract - AWS Bedrock AgentCore adapter contract (CG-025).
-// Native .hsplus surface for agentcore-adapter-contract.ts (agent-protocol).
-//
-// Declares the static mapping between AgentCore operational primitives
-// (runtime, memory, MCP gateway, identity, policy, evaluations, registry)
-// and their HoloScript-native equivalents (HoloMesh, HoloKey, CAEL, x402).
-// Every primitive is classified sovereign (HoloScript already owns it) or
-// bridge-only (AWS-substrate feature HoloScript maps to but does not
-// replicate). The dry-run receipt this trait emits carries zero secrets and
-// zero live credentials — it names fields, it does not hold values from a
-// real AWS account.
+/**
+ * AWS Bedrock AgentCore adapter contract (CG-025).
+ *
+ * Native .hsplus surface for agentcore-adapter-contract.ts (agent-protocol).
+ *
+ * Declares the static mapping between AgentCore operational primitives
+ * (runtime, memory, MCP gateway, identity, policy, evaluations, registry)
+ * and their HoloScript-native equivalents (HoloMesh, HoloKey, CAEL, x402).
+ * Every primitive is classified sovereign (HoloScript already owns it) or
+ * bridge-only (AWS-substrate feature HoloScript maps to but does not
+ * replicate). The dry-run receipt this trait describes carries zero secrets
+ * and zero live credentials — it names fields, it does not hold values from
+ * a real AWS account. Actual receipt construction and validation live in
+ * agentcore-adapter-contract.ts (buildAgentCoreAdapterDryRun /
+ * validateAgentCoreAdapterReceipt); this fixture is the versioned policy/
+ * contract source those functions are documented against.
+ *
+ * This file parses with the REAL `HoloScriptPlusParser` (verified against
+ * packages/core/dist — 0 parse errors, correct AST shape) using the
+ * trait-attachment grammar already proven in
+ * examples/traits/networking-synced-persistent-owned.hsplus and
+ * packages/mcp-server/src/policy/policy-pack.holo.hsplus
+ * (`@trait_name { config... }` attached to an `object` node inside a
+ * `composition`, surfaced on parse as
+ * `object.directives[] = { type: 'trait', name, config }`).
+ *
+ * NOTE (same CG-098 gotcha this fixture avoids): the alternate top-level
+ * `@trait <name> { @on_x(...) => {} }` syntax used by
+ * packages/core/src/traits/moderation_trait.hsplus does NOT produce a usable
+ * AST with the current parser — it does not throw, but it misnests handler
+ * blocks and turns type annotations into stray boolean properties. Verified
+ * directly against this file before the rewrite below (see commit history).
+ * Those files are aspirational native-surface documentation, not live
+ * grammar; this fixture deliberately uses the grammar that is proven to
+ * parse correctly.
+ *
+ * @version 1.0.0
+ */
 
-@trait agentcore_adapter_contract {
-  schema_version: String = "holoscript.agentcore-adapter-contract.v1"
-  no_secret_dry_run: Bool = true
-  capability_tags: ["agent_protocol", "agentcore", "aws-bedrock", "adapter_contract", "receipt_schema", "competitor-gap"]
+composition "AgentCoreAdapterContract" {
+  object "agentcore_adapter_contract_v1" {
+    @agentcore_adapter_contract {
+      schema_version: "holoscript.agentcore-adapter-contract.v1"
+      no_secret_dry_run: true
+      capability_tags: ["agent_protocol", "agentcore", "aws-bedrock", "adapter_contract", "receipt_schema", "competitor-gap"]
 
-  @on_build_dry_run(fixture_agent) => {
-    receipt = build_agent_core_adapter_dry_run(fixture_agent)
-    emit("agentcore_adapter_dry_run_built", { agent_id: fixture_agent.fixtureAgentId })
-    return receipt
-  }
+      primitive_mappings: [
+        {
+          agentcore_primitive: "Runtime",
+          holoscript_equivalent: "HoloMesh board claim + x402 seat execution",
+          ownership: "sovereign"
+        },
+        {
+          agentcore_primitive: "Memory",
+          holoscript_equivalent: "MEMORY.md / knowledge store / GOLD vault tiering",
+          ownership: "sovereign"
+        },
+        {
+          agentcore_primitive: "Gateway (MCP)",
+          holoscript_equivalent: "mcp.holoscript.net tool manifest (holo_*, holomesh_*)",
+          ownership: "sovereign"
+        },
+        {
+          agentcore_primitive: "Identity / IAM",
+          holoscript_equivalent: "HoloKey wallet-keyed identity + EIP-712 signing",
+          ownership: "bridge-only"
+        },
+        {
+          agentcore_primitive: "Policy (Cedar-equivalent)",
+          holoscript_equivalent: "StdlibPolicy + circuit breakers + founder-gate 3-condition test",
+          ownership: "sovereign"
+        },
+        {
+          agentcore_primitive: "Evaluations",
+          holoscript_equivalent: "CAEL trace + verify_cael_trace / verify-cael HTTP path",
+          ownership: "sovereign"
+        },
+        {
+          agentcore_primitive: "Registry",
+          holoscript_equivalent: "HoloMesh team/board + agent-family-registry.json (HOLOFAM)",
+          ownership: "bridge-only"
+        }
+      ]
+    }
 
-  @on_validate_receipt(receipt) => {
-    result = validate_agent_core_adapter_receipt(receipt)
-    emit("agentcore_adapter_receipt_validated", { valid: result.valid })
-    return result
-  }
-
-  @receipt agentcore_adapter_contract_config {
-    type: "AgentCoreAdapterContractReceipt"
-    schema_version: schema_version
-    no_secret_dry_run: no_secret_dry_run
+    state {
+      loaded: true
+    }
   }
 }
