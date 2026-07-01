@@ -1,0 +1,286 @@
+// HoloScript Package Registry API — service contract (SSOT)
+//
+// This .holo composition is the single source of truth for the service that
+// packages/partner-sdk/src/api/RegistryClient.ts talks to. The hand-written
+// RegistryClient is scheduled to be replaced by `compile_to_sdk` (SDK 2-5/7),
+// which consumes THIS contract's AST to emit the typed client. Until then, this
+// file and the TS client MUST stay in lock-step — the client is derived from
+// this contract, not the other way around.
+//
+// Bootstrapped via generate_service_contract (OpenAPI → .holo) from the
+// RegistryClient method → verb/path mapping, then hand-corrected to add the
+// auth model, server binding, typed request bodies, and the rate-limit / error
+// envelope that the generator cannot infer from an interface surface.
+//
+// Board: SDK 1/7 (task_1782927346190_e2ww). Repo: HoloScript.
+
+composition "HoloScriptPackageRegistryAPI" {
+
+  // ── Schemas ──────────────────────────────────────────────────────────────
+  // Response and payload shapes. Mirror the exported interfaces in
+  // RegistryClient.ts (PackageInfo, VersionInfo, SearchResult, ...).
+
+  schema "PackageInfo" @schema @contract {
+    name: string
+    version: string
+    description?: string
+    license?: string
+    certified: boolean
+    certificationGrade?: string
+    publishedAt: string
+    updatedAt: string
+    keywords?: array<string>
+  }
+
+  schema "VersionInfo" @schema @contract {
+    version: string
+    publishedAt: string
+    deprecated?: boolean
+    deprecationReason?: string
+    downloadCount: number
+    tarballUrl: string
+    integrity: string
+  }
+
+  schema "SearchResult" @schema @contract {
+    total: number
+    page: number
+    pageSize: number
+  }
+
+  schema "DownloadPoint" @schema @contract {
+    date: string
+    downloads: number
+  }
+
+  schema "NameAvailability" @schema @contract {
+    available: boolean
+    reason?: string
+  }
+
+  schema "TransferToken" @schema @contract {
+    transferToken: string
+    expiresAt: string
+  }
+
+  schema "MyPackages" @schema @contract {
+    packages: array<PackageInfo>
+    total: number
+  }
+
+  schema "CredentialStatus" @schema @contract {
+    valid: boolean
+    partnerId: string
+    tier: string
+  }
+
+  // ── Request-body payload schemas ─────────────────────────────────────────
+  // Hand-corrected: the generator emitted `request_body: json`; these are the
+  // real typed bodies the endpoints require.
+
+  schema "DeprecateVersionRequest" @schema @contract {
+    reason: string
+  }
+
+  schema "UpdateKeywordsRequest" @schema @contract {
+    keywords: array<string>
+  }
+
+  schema "TransferOwnershipRequest" @schema @contract {
+    newOwnerId: string
+  }
+
+  // ── Envelope + error contract ────────────────────────────────────────────
+  // Hand-corrected from RegistryClient.ts: every response is wrapped in
+  // ApiResponse<T> and carries a rate-limit snapshot; 429 → RateLimitError,
+  // 401/403 → AuthenticationError. The SDK emitter uses these to generate the
+  // envelope-unwrapping + retry/backoff behavior.
+
+  schema "RateLimit" @schema @contract {
+    remaining: number
+    limit: number
+    resetAt: string
+  }
+
+  schema "ApiError" @schema @contract {
+    code: string
+    message: string
+    details?: any
+  }
+
+  // ── Auth model ───────────────────────────────────────────────────────────
+  // X-Partner-ID + X-API-Key on every request; when a secretKey is configured
+  // the client adds an HMAC-SHA256 X-Signature over
+  // `${method}:${endpoint}:${timestamp}:${body}` plus an X-Timestamp header.
+
+  auth "PartnerAuth" @auth @contract {
+    scheme: "api_key"
+    headers: {
+      partner_id: "X-Partner-ID"
+      api_key: "X-API-Key"
+    }
+    signature {
+      algorithm: "HMAC-SHA256"
+      optional: true
+      timestamp_header: "X-Timestamp"
+      signature_header: "X-Signature"
+      payload_template: "{method}:{endpoint}:{timestamp}:{body}"
+    }
+  }
+
+  // ── Endpoints ────────────────────────────────────────────────────────────
+  // 11 operations, one per public RegistryClient method. `auth` and
+  // `error_responses` are hand-added; every 200 body is wrapped by the
+  // ApiResponse<T> envelope described above.
+
+  endpoint "getPackage" @endpoint @handler {
+    method: "GET"
+    path: "/packages/{name}"
+    summary: "Get package information"
+    auth: "PartnerAuth"
+    params {
+      name: string // in: path
+    }
+    response_200: PackageInfo
+    error_responses: [401, 403, 404, 429]
+  }
+
+  endpoint "getVersion" @endpoint @handler {
+    method: "GET"
+    path: "/packages/{name}/versions/{version}"
+    summary: "Get specific version information"
+    auth: "PartnerAuth"
+    params {
+      name: string // in: path
+      version: string // in: path
+    }
+    response_200: VersionInfo
+    error_responses: [401, 403, 404, 429]
+  }
+
+  endpoint "listVersions" @endpoint @handler {
+    method: "GET"
+    path: "/packages/{name}/versions"
+    summary: "List all versions of a package"
+    auth: "PartnerAuth"
+    params {
+      name: string // in: path
+    }
+    response_200: array<VersionInfo>
+    error_responses: [401, 403, 404, 429]
+  }
+
+  endpoint "search" @endpoint @handler {
+    method: "GET"
+    path: "/packages/search"
+    summary: "Search for packages"
+    auth: "PartnerAuth"
+    params {
+      q: string // in: query
+      page?: number // in: query
+      pageSize?: number // in: query
+      certified?: boolean // in: query
+      keywords?: string // in: query (comma-joined)
+      sort?: string // in: query — relevance | downloads | recent
+    }
+    response_200: SearchResult
+    error_responses: [401, 403, 429]
+  }
+
+  endpoint "getDownloadStats" @endpoint @handler {
+    method: "GET"
+    path: "/packages/{name}/stats/downloads"
+    summary: "Get download statistics for a package"
+    auth: "PartnerAuth"
+    params {
+      name: string // in: path
+      period?: string // in: query — day | week | month | year (default month)
+    }
+    response_200: array<DownloadPoint>
+    error_responses: [401, 403, 404, 429]
+  }
+
+  endpoint "checkNameAvailability" @endpoint @handler {
+    method: "GET"
+    path: "/packages/check-name/{name}"
+    summary: "Check if a package name is available"
+    auth: "PartnerAuth"
+    params {
+      name: string // in: path
+    }
+    response_200: NameAvailability
+    error_responses: [401, 403, 429]
+  }
+
+  endpoint "getMyPackages" @endpoint @handler {
+    method: "GET"
+    path: "/partner/packages"
+    summary: "Get partner's published packages"
+    auth: "PartnerAuth"
+    params {
+      page?: number // in: query
+      pageSize?: number // in: query
+    }
+    response_200: MyPackages
+    error_responses: [401, 403, 429]
+  }
+
+  endpoint "deprecateVersion" @endpoint @handler {
+    method: "POST"
+    path: "/packages/{name}/versions/{version}/deprecate"
+    summary: "Deprecate a package version"
+    auth: "PartnerAuth"
+    params {
+      name: string // in: path
+      version: string // in: path
+    }
+    request_body: DeprecateVersionRequest
+    error_responses: [401, 403, 404, 429]
+  }
+
+  endpoint "updateKeywords" @endpoint @handler {
+    method: "PATCH"
+    path: "/packages/{name}"
+    summary: "Add or update package keywords"
+    auth: "PartnerAuth"
+    params {
+      name: string // in: path
+    }
+    request_body: UpdateKeywordsRequest
+    error_responses: [401, 403, 404, 429]
+  }
+
+  endpoint "transferOwnership" @endpoint @handler {
+    method: "POST"
+    path: "/packages/{name}/transfer"
+    summary: "Transfer package ownership"
+    auth: "PartnerAuth"
+    params {
+      name: string // in: path
+    }
+    request_body: TransferOwnershipRequest
+    response_200: TransferToken
+    error_responses: [401, 403, 404, 429]
+  }
+
+  endpoint "validateCredentials" @endpoint @handler {
+    method: "GET"
+    path: "/partner/validate"
+    summary: "Validate partner credentials"
+    auth: "PartnerAuth"
+    response_200: CredentialStatus
+    error_responses: [401, 403, 429]
+  }
+
+  // ── Service metadata ─────────────────────────────────────────────────────
+
+  service "HoloScriptPackageRegistryAPI" @service @rest_resource {
+    version: "1.0.0"
+    framework: "express"
+    base_url: "https://registry.holoscript.net/api/v1"
+    auth: "PartnerAuth"
+    response_envelope: "ApiResponse"
+    rate_limit: "RateLimit"
+    endpoints: 11
+  }
+}
