@@ -5,6 +5,11 @@ import {
   type SimulationProvenance,
 } from './SimulationContract';
 import {
+  buildSimulationEvidencePack,
+  type BuildSimulationEvidencePackInput,
+  type SimulationEvidencePack,
+} from './SimulationEvidencePack';
+import {
   type CAELTrace,
   type CAELTraceEntry,
   encodeCAELValue,
@@ -16,9 +21,11 @@ import type { HashMode } from './sha256';
 export class CAELRecorder {
   private readonly solver: SimSolver;
   private readonly contracted: ContractedSimulation;
+  private readonly contractConfig: ContractConfig;
   private readonly runId: string;
   private readonly trace: CAELTrace = [];
   private lastHash = 'cael.genesis';
+  private finalizedProvenance: SimulationProvenance | undefined;
   /** Hash mode sourced from the wrapped contract (Option C Prereq 1:
    *  per-recorder scope; Prereq 2: every append() threads this to
    *  hashCAELEntry). Immutable for the life of the recorder. */
@@ -30,6 +37,7 @@ export class CAELRecorder {
     contractConfig: ContractConfig = {}
   ) {
     this.solver = solver;
+    this.contractConfig = contractConfig;
     this.contracted = new ContractedSimulation(solver, config, contractConfig);
     this.hashMode = this.contracted.getHashMode();
     this.runId = `cael-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -144,11 +152,48 @@ export class CAELRecorder {
   }
 
   finalize(): SimulationProvenance {
+    if (this.finalizedProvenance) return this.finalizedProvenance;
+
     const prov = this.contracted.getProvenance();
     this.append('final', prov.totalSimTime, {
       provenance: encodeCAELValue(prov),
     });
+    this.finalizedProvenance = prov;
     return prov;
+  }
+
+  createEvidencePack(
+    options: Omit<
+      BuildSimulationEvidencePackInput,
+      'replay' | 'provenance' | 'trace' | 'contractConfig'
+    >
+  ): SimulationEvidencePack {
+    return buildSimulationEvidencePack({
+      ...options,
+      replay: this.contracted.createReplay(),
+      provenance: this.finalizedProvenance ?? this.contracted.getProvenance(),
+      trace: this.getTrace(),
+      contractConfig: this.contractConfig as Record<string, unknown>,
+    });
+  }
+
+  finalizeEvidencePack(
+    options: Omit<
+      BuildSimulationEvidencePackInput,
+      'replay' | 'provenance' | 'trace' | 'contractConfig'
+    >
+  ): SimulationEvidencePack {
+    this.finalize();
+    return this.createEvidencePack(options);
+  }
+
+  toEvidencePackJSON(
+    options: Omit<
+      BuildSimulationEvidencePackInput,
+      'replay' | 'provenance' | 'trace' | 'contractConfig'
+    >
+  ): string {
+    return JSON.stringify(this.finalizeEvidencePack(options), null, 2);
   }
 
   getTrace(): CAELTrace {

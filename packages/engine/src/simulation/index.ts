@@ -899,6 +899,27 @@ export {
   type RunComparison,
 } from './provenance/index';
 export {
+  SIMULATION_EVIDENCE_PACK_SCHEMA_VERSION,
+  buildSimulationEvidencePack,
+  createGeneratedArtifactReceipt,
+  hashEvidenceArtifact,
+  verifySimulationEvidencePack,
+  verifySimulationEvidencePackJson,
+  type BuildSimulationEvidencePackInput,
+  type EvidenceJsonValue,
+  type SimulationEvidenceFieldTolerance,
+  type SimulationEvidenceGeneratedArtifact,
+  type SimulationEvidenceHardwareValidation,
+  type SimulationEvidencePack,
+  type SimulationEvidencePackValidation,
+  type SimulationEvidenceReplayRecord,
+  type SimulationEvidenceRequirements,
+  type SimulationEvidenceSolverConfig,
+  type SimulationEvidenceToleranceTable,
+  type SimulationEvidenceVerificationResult,
+} from './SimulationEvidencePack';
+
+export {
   RoboticsImportValidationHarness,
   runRoboticsImportValidationDemo,
   validateRoboticsImport,

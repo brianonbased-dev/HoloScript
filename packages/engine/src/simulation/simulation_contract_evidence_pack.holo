@@ -1,0 +1,99 @@
+// CG-010 SimulationContract evidence-pack proof.
+// This is a replayable-evidence posture, not a Simulink clone. Concrete proof is
+// CAELRecorder output, SimulationContract replay/provenance, CLI verification,
+// artifact hashes, hardware validation, HoloKey custody, UmbrellaRoute routing,
+// and triad-style verification receipts.
+composition "SimulationContractEvidencePackPosture" {
+  metadata {
+    task: "CG-010"
+    native_authoring: "holo"
+    service: "packages/engine/src/simulation/SimulationEvidencePack.ts"
+    recorder: "packages/engine/src/simulation/CAELRecorder.ts"
+    cli: "pnpm run simulation:verify <pack.json>"
+    docs: "docs/strategy/simulation-contract-evidence-pack-template.md"
+    posture: "compete-on-replayable-evidence-not-clone-simulink"
+    concrete_tools: ["SimulationContract", "CAELRecorder", "CAELTrace", "simulation:verify", "HoloKey", "UmbrellaRoute", "TriadReceipt"]
+  }
+
+  scene "EvidencePackProof" {
+    object "RequirementsLink" @mbse_requirement @traceability {
+      geometry: "cube"
+      position: [-2.8, 1.0, -3.0]
+      scale: [0.45, 0.45, 0.45]
+      color: "#2563eb"
+      state: {
+        field: "requirements"
+        keys: ["requirementId", "requirementSource", "acceptanceCriteria"]
+        studio_affordance: "MBSE requirements-link UI"
+      }
+    }
+
+    object "ReplayAndProvenance" @simulation_contract @cael_replay {
+      geometry: "sphere"
+      position: [-1.4, 1.0, -3.0]
+      scale: [0.55, 0.55, 0.55]
+      color: "#16a34a"
+      state: {
+        fields: ["replay", "provenance", "contractId", "geometryHash"]
+        source: "ContractedSimulation.createReplay and getProvenance"
+      }
+    }
+
+    object "ToleranceAndArtifacts" @tolerance_table @artifact_hash {
+      geometry: "cylinder"
+      position: [0, 1.0, -3.0]
+      scale: [0.4, 0.8, 0.4]
+      color: "#f59e0b"
+      state: {
+        fields: ["toleranceTable", "generatedArtifacts"]
+        failure_gate: "missing tolerance field or artifact hash exits nonzero"
+      }
+    }
+
+    object "HardwareValidation" @hardware_receipt @local_reality {
+      geometry: "cube"
+      position: [1.4, 1.0, -3.0]
+      scale: [0.45, 0.45, 0.45]
+      color: "#0f766e"
+      state: {
+        fields: ["device", "runtime", "checkedAt", "adapterFingerprint"]
+        codex_role: "local hardware proof"
+      }
+    }
+
+    object "VerifierAndCustody" @simulation_verify @holokey @umbrella_route @triad_receipt {
+      geometry: "torus"
+      position: [2.8, 1.0, -3.0]
+      scale: [0.6, 0.6, 0.6]
+      color: "#db2777"
+      state: {
+        verifier: "simulation:verify"
+        holokey: "openai-codex-cg010-holokey"
+        umbrella_route: "simulation.contract.evidence-pack.verification"
+        triad: ["requirements", "provenance", "replay"]
+      }
+    }
+
+    object "HILAffordance" @hil_replay @followup_affordance {
+      geometry: "sphere"
+      position: [0, 2.1, -3.4]
+      scale: [0.45, 0.45, 0.45]
+      color: "#7c3aed"
+      state: {
+        future_hook: "HIL replay harness"
+        stable_inputs: ["replay", "provenance", "hardwareValidation", "generatedArtifacts"]
+      }
+    }
+
+    camera "EvidencePackProofCamera" {
+      position: [0, 2.5, 5.3]
+      lookAt: [0, 1.2, -3]
+    }
+
+    light "EvidencePackProofKeyLight" {
+      type: "directional"
+      intensity: 1.2
+      position: [4, 6, 3]
+    }
+  }
+}
