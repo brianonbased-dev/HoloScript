@@ -1,9 +1,9 @@
 /**
- * Native Shader Preview — wgpu render-to-texture pipeline for Tauri 2.0.
+ * Shader preview - browser-first shader preview surface.
  *
- * Provides GPU-accelerated shader preview without WebGL dependency.
- * Renders WGSL shaders to offscreen texture via wgpu, delivers frames
- * as base64 PNG data URIs through Tauri IPC.
+ * The public component name remains NativeShaderPreview for compatibility, but
+ * the active renderer runs in the browser through Three/WebGL with a deterministic
+ * SVG frame fallback for non-WebGL environments and tests.
  *
  * @module shader-editor/native-preview
  */
@@ -16,4 +16,5 @@ export type {
   BenchmarkResult,
   ShaderPreviewState,
   ShaderPreviewActions,
+  ShaderPreviewBackend,
 } from './useShaderPreview';

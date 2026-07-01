@@ -75,6 +75,9 @@ describe('E2 native panel — agentMonitor', () => {
     const out = compiler.generateReactComponent('agentMonitor', ast.objects ?? [], ast, {
       format: 'react',
     });
+    expect(out).toContain(
+      'const [agents, setAgents] = useState<Record<string, string | number | null | undefined> | null>(null);'
+    );
     expect(out).toContain('agents?.active');
   });
 });

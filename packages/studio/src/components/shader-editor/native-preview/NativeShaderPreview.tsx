@@ -1,25 +1,22 @@
 /**
- * NativeShaderPreview — GPU-accelerated shader preview via wgpu + Tauri IPC.
+ * NativeShaderPreview - compatibility wrapper for the browser shader preview.
  *
- * Renders shaders natively using the wgpu render-to-texture pipeline,
- * bypassing WebGL entirely. Frames are delivered as base64 PNG data URIs
- * and displayed in an <img> element.
- *
- * Falls back to a "not available" message when running outside Tauri
- * (e.g., in a browser-only dev environment).
- *
- * Performance target: 720p @ 30fps with <33ms per-frame budget.
+ * The exported name stays stable for older imports, but the implementation is
+ * browser-first: Three/WebGL when available, deterministic SVG frames in tests
+ * and non-WebGL environments.
  */
 
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useShaderPreview, type BenchmarkResult } from './useShaderPreview';
-
-// ─── Props ───────────────────────────────────────────────────────────────────
+import {
+  useShaderPreview,
+  type BenchmarkResult,
+  type ShaderPreviewBackend,
+} from './useShaderPreview';
 
 interface NativeShaderPreviewProps {
-  /** Initial WGSL fragment shader code. */
+  /** Initial fragment shader code. GLSL is rendered directly; other formats get a live fallback. */
   shaderCode?: string;
   /** Preview width (default: 1280). */
   width?: number;
@@ -35,7 +32,9 @@ interface NativeShaderPreviewProps {
   className?: string;
 }
 
-// ─── Component ───────────────────────────────────────────────────────────────
+function backendLabel(backend: ShaderPreviewBackend): string {
+  return backend === 'three-webgl' ? 'Three/WebGL' : 'SVG fallback';
+}
 
 export function NativeShaderPreview({
   shaderCode,
@@ -51,44 +50,47 @@ export function NativeShaderPreview({
   const [benchmarkResult, setBenchmarkResult] = useState<BenchmarkResult | null>(null);
   const [benchmarking, setBenchmarking] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const bootedRef = useRef(false);
   const prevShaderRef = useRef<string | undefined>(undefined);
 
-  // Initialize pipeline on mount
   useEffect(() => {
-    if (state.isTauri && !state.ready && !state.initializing) {
-      actions.init(width, height, shaderCode).then(() => {
-        if (autoStart) {
-          actions.start();
-        }
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.isTauri]);
+    if (bootedRef.current) return;
+    bootedRef.current = true;
+    prevShaderRef.current = shaderCode;
 
-  // Hot-reload shader when shaderCode changes
+    actions.init(width, height, shaderCode).then(() => {
+      if (autoStart) {
+        actions.start();
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
-    if (state.ready && shaderCode && shaderCode !== prevShaderRef.current) {
-      prevShaderRef.current = shaderCode;
-      actions.updateShader(shaderCode);
-    }
+    if (!state.ready || shaderCode === prevShaderRef.current) return;
+    prevShaderRef.current = shaderCode;
+    actions.updateShader(shaderCode ?? '');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shaderCode, state.ready]);
 
-  // Propagate errors
+  useEffect(() => {
+    if (!state.ready) return;
+    actions.resize(width, height);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [width, height, state.ready]);
+
   useEffect(() => {
     if (state.error && onError) {
       onError(state.error);
     }
   }, [state.error, onError]);
 
-  // Propagate frame metrics
   useEffect(() => {
     if (state.frameTiming && onFrame) {
       onFrame(state.frameTiming.frame_time_ms, state.fps);
     }
   }, [state.frameTiming, state.fps, onFrame]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       actions.destroy();
@@ -96,7 +98,6 @@ export function NativeShaderPreview({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Run benchmark
   const handleBenchmark = useCallback(async () => {
     setBenchmarking(true);
     actions.stop();
@@ -108,50 +109,13 @@ export function NativeShaderPreview({
     setBenchmarking(false);
   }, [actions]);
 
-  // Mouse tracking for shader uniforms
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    // Keep the pointer math here for future shader uniform wiring. The hook
+    // currently renders a centered preview when no pointer channel is exposed.
     const rect = e.currentTarget.getBoundingClientRect();
-    const _x = (e.clientX - rect.left) / rect.width;
-    const _y = (e.clientY - rect.top) / rect.height;
-    // Mouse position is read by the hook via ref
-    // We could also pass it to the frame call, but the hook handles it
+    void ((e.clientX - rect.left) / Math.max(rect.width, 1));
+    void ((e.clientY - rect.top) / Math.max(rect.height, 1));
   }, []);
-
-  // ─── Not in Tauri ─────────────────────────────────────────────────────────
-
-  if (!state.isTauri) {
-    return (
-      <div
-        className={`native-shader-preview bg-gray-900 border border-gray-700 rounded-lg p-6 flex flex-col items-center justify-center ${className}`}
-      >
-        <div className="text-gray-400 text-sm text-center">
-          <div className="text-lg font-medium mb-2">Native GPU Preview</div>
-          <div className="text-gray-500 mb-4">
-            Requires HoloScript Studio Desktop (Tauri) for native wgpu rendering.
-          </div>
-          <div className="text-xs text-gray-600">
-            The native preview renders shaders directly on your GPU via wgpu,
-            <br />
-            bypassing WebGL for maximum performance and WGSL compatibility.
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ─── Initializing ─────────────────────────────────────────────────────────
-
-  if (state.initializing) {
-    return (
-      <div
-        className={`native-shader-preview bg-gray-900 border border-gray-700 rounded-lg flex items-center justify-center ${className}`}
-      >
-        <div className="text-gray-400 text-sm">Initializing wgpu pipeline...</div>
-      </div>
-    );
-  }
-
-  // ─── Main Render ──────────────────────────────────────────────────────────
 
   return (
     <div
@@ -159,16 +123,16 @@ export function NativeShaderPreview({
       className={`native-shader-preview bg-gray-900 border border-gray-700 rounded-lg overflow-hidden flex flex-col ${className}`}
       onMouseMove={handleMouseMove}
     >
-      {/* Toolbar */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-gray-700 bg-gray-800">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-purple-400">wgpu</span>
+          <span className="text-xs font-medium text-cyan-300">Browser Shader Preview</span>
+          <span className="text-xs text-gray-400">{backendLabel(state.backend)}</span>
           <span className="text-xs text-gray-400">
             {width}x{height} @ {state.fps} fps
           </span>
           {state.frameTiming && (
             <span
-              className={`text-xs ${state.frameTiming.within_budget ? 'text-green-400' : 'text-red-400'}`}
+              className={`text-xs ${state.frameTiming.within_budget ? 'text-green-400' : 'text-yellow-300'}`}
             >
               {state.frameTiming.frame_time_ms.toFixed(1)}ms
             </span>
@@ -192,7 +156,6 @@ export function NativeShaderPreview({
         </div>
       </div>
 
-      {/* Preview Image */}
       <div className="flex-1 relative bg-black flex items-center justify-center">
         {state.frameDataUri ? (
           <img
@@ -201,11 +164,12 @@ export function NativeShaderPreview({
             className="max-w-full max-h-full object-contain"
             style={{ imageRendering: 'auto' }}
           />
+        ) : state.initializing ? (
+          <div className="text-gray-500 text-sm">Initializing browser preview...</div>
         ) : (
           <div className="text-gray-600 text-sm">No frame rendered</div>
         )}
 
-        {/* Error overlay */}
         {state.error && (
           <div className="absolute inset-x-0 bottom-0 mx-2 mb-2 rounded border border-red-500/60 bg-red-950/90 p-2 backdrop-blur-sm">
             <pre className="text-[10px] text-red-300 whitespace-pre-wrap overflow-auto max-h-24">
@@ -215,7 +179,6 @@ export function NativeShaderPreview({
         )}
       </div>
 
-      {/* Stats Panel */}
       {showStats && state.frameTiming && (
         <div className="px-3 py-2 border-t border-gray-700 bg-gray-800/80 text-[10px] text-gray-400 font-mono">
           <div className="grid grid-cols-4 gap-x-4 gap-y-0.5">
@@ -224,21 +187,18 @@ export function NativeShaderPreview({
             <div>Readback: {state.frameTiming.readback_time_ms.toFixed(2)}ms</div>
             <div>Encode: {state.frameTiming.encode_time_ms.toFixed(2)}ms</div>
             <div>Frame #{state.frameTiming.frame_number}</div>
-            <div>PNG: {(state.frameTiming.png_byte_length / 1024).toFixed(0)}KB</div>
+            <div>Payload: {(state.frameTiming.png_byte_length / 1024).toFixed(0)}KB</div>
             <div>Budget: {state.frameTiming.within_budget ? 'OK' : 'OVER'}</div>
-            <div>FPS: {state.fps}</div>
+            <div>Backend: {backendLabel(state.backend)}</div>
           </div>
 
-          {/* Init timings */}
           {state.initTimings && (
             <div className="mt-1 pt-1 border-t border-gray-700/50">
-              Init: {state.initTimings.total_init_ms.toFixed(0)}ms (device:{' '}
-              {state.initTimings.init_device_ms.toFixed(0)}ms, pipeline:{' '}
+              Init: {state.initTimings.total_init_ms.toFixed(0)}ms (pipeline:{' '}
               {state.initTimings.create_pipeline_ms.toFixed(0)}ms)
             </div>
           )}
 
-          {/* Benchmark results */}
           {benchmarkResult && (
             <div className="mt-1 pt-1 border-t border-gray-700/50 text-yellow-400">
               Benchmark ({benchmarkResult.frame_count} frames): avg=
@@ -246,7 +206,7 @@ export function NativeShaderPreview({
               {benchmarkResult.p95_frame_ms.toFixed(2)}ms fps=
               {benchmarkResult.effective_fps.toFixed(1)}
               budget={(benchmarkResult.budget_hit_rate * 100).toFixed(1)}%
-              {benchmarkResult.budget_hit_rate >= 0.95 ? ' PASS' : ' FAIL'}
+              {benchmarkResult.budget_hit_rate >= 0.95 ? ' PASS' : ' REVIEW'}
             </div>
           )}
         </div>

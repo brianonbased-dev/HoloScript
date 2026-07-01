@@ -119,8 +119,12 @@ export class Native2DCompiler extends CompilerBase {
     for (const [key, value] of this._stateFields) {
       const capitalKey = key.charAt(0).toUpperCase() + key.slice(1);
       const initValue = JSON.stringify(value);
+      const isFetchedRecord = initValue === 'null' && this._fetchCalls.some((f) => f.name === key);
+      const stateGeneric = isFetchedRecord
+        ? '<Record<string, string | number | null | undefined> | null>'
+        : '';
       stateHooks.push(
-        `  const [${key}, set${capitalKey}] = useState(${initValue === undefined ? 'null' : initValue});`
+        `  const [${key}, set${capitalKey}] = useState${stateGeneric}(${initValue === undefined ? 'null' : initValue});`
       );
     }
 
