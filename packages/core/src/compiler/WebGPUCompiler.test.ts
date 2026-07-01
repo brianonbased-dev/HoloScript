@@ -654,6 +654,107 @@ describe('WebGPUCompiler', () => {
     });
   });
 
+  // WS-3: render fidelity — un-stubbed primitives, wired camera, emissive.
+  describe('render fidelity (WS-3)', () => {
+    it('should emit a camera view-projection even with no camera declared', () => {
+      // A scene without a camera must still render under perspective.
+      const composition = createComposition({
+        objects: [createObject('lonely', { properties: [{ key: 'mesh', value: 'cube' }] })],
+      });
+      const result = compiler.compile(composition, 'test-token');
+      expect(result).toContain('const vpUniform');
+      expect(result).toContain('function buildViewProjection()');
+      expect(result).toContain('function lookAtMatrix');
+      expect(result).toContain('function mat4Multiply');
+    });
+
+    it('should apply the view-projection matrix in the vertex shader', () => {
+      const composition = createComposition({
+        objects: [createObject('obj', { properties: [] })],
+      });
+      const result = compiler.compile(composition, 'test-token');
+      // Camera uniform declared at binding 2 and multiplied into clip position.
+      expect(result).toContain('@group(0) @binding(2) var<uniform> cam: Camera');
+      expect(result).toContain('o.clip = cam.viewProj * w');
+    });
+
+    it('should bind the view-projection uniform into each mesh bind group', () => {
+      const composition = createComposition({
+        objects: [createObject('boundObj', { properties: [{ key: 'mesh', value: 'cube' }] })],
+      });
+      const result = compiler.compile(composition, 'test-token');
+      expect(result).toContain('{ binding: 2, resource: { buffer: vpUniform } }');
+    });
+
+    it('should generate real cylinder geometry (not a cube alias)', () => {
+      const composition = createComposition({
+        objects: [createObject('cyl', { properties: [{ key: 'mesh', value: 'cylinder' }] })],
+      });
+      const result = compiler.compile(composition, 'test-token');
+      // The generator body must build its own ring geometry, not delegate to the cube.
+      expect(result).toContain('function generateCylinderVertices(radius, height, segments)');
+      expect(result).not.toMatch(
+        /function generateCylinderVertices\([^)]*\)\s*\{\s*return generateCubeVertices/
+      );
+      expect(result).toContain('generateCylinderVertices(0.5, 1.0, 16)');
+    });
+
+    it('should generate real cone, sphere, and torus geometry (not cube aliases)', () => {
+      const composition = createComposition({
+        objects: [
+          createObject('c', { properties: [{ key: 'mesh', value: 'cone' }] }),
+          createObject('s', { properties: [{ key: 'mesh', value: 'sphere' }] }),
+          createObject('t', { properties: [{ key: 'mesh', value: 'torus' }] }),
+        ],
+      });
+      const result = compiler.compile(composition, 'test-token');
+      for (const fn of [
+        'generateConeVertices(radius, height, segments)',
+        'generateSphereVertices(radius, lat, lon)',
+        'generateTorusVertices(radius, tube, radial, tubular)',
+      ]) {
+        expect(result).toContain(`function ${fn}`);
+      }
+      // None of them may be a one-line cube delegation.
+      expect(result).not.toMatch(/generate(Cone|Sphere|Torus)Vertices\([^)]*\)\s*\{\s*return generateCubeVertices/);
+    });
+
+    it('should wire emissive from an object emissive property', () => {
+      const composition = createComposition({
+        objects: [
+          createObject('glow', {
+            properties: [
+              { key: 'mesh', value: 'sphere' },
+              { key: 'emissive', value: '#ff0000' },
+            ],
+          }),
+        ],
+      });
+      const result = compiler.compile(composition, 'test-token');
+      // Fragment shader has an emissive channel and adds it to lit output.
+      expect(result).toContain('emissive: vec4<f32>');
+      expect(result).toContain('mat.emissive.rgb * mat.rm[2]');
+      // The red emissive value made it into the material buffer (12-float layout).
+      expect(result).toMatch(/glowMat = createBuffer\(device, new Float32Array\(\[[^\]]*1,0,0,0\]\)/);
+    });
+
+    it('should wire emissive from a material.emissive property', () => {
+      const composition = createComposition({
+        objects: [
+          createObject('lamp', {
+            properties: [
+              { key: 'mesh', value: 'cube' },
+              { key: 'material', value: { emissive: [0, 1, 0], emissive_intensity: 2.5 } },
+            ],
+          }),
+        ],
+      });
+      const result = compiler.compile(composition, 'test-token');
+      expect(result).toContain('2.5');
+      expect(result).toMatch(/lampMat = createBuffer\(device, new Float32Array\(\[[^\]]*0,1,0,0\]\)/);
+    });
+  });
+
   describe('environment', () => {
     it('should compile environment with background color', () => {
       const composition = createComposition({

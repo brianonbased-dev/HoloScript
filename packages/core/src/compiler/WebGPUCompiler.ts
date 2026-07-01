@@ -97,6 +97,11 @@ export class WebGPUCompiler extends CompilerBase {
     this.emitGeometryHelpers();
     this.emitShaderSources();
     if (composition.environment) this.emitEnvironment(composition.environment);
+    // Camera must be emitted BEFORE objects so mesh pipelines can bind the
+    // view-projection uniform (vpUniform). Always emit — a scene with no camera
+    // still needs perspective, otherwise every mesh renders flat/orthographic
+    // in clip space (the "cylinder renders as a cube" class of bug).
+    this.emitCamera(composition.camera);
     if (composition.objects) {
       for (const obj of composition.objects) this.emitObject(obj);
     }
@@ -106,7 +111,6 @@ export class WebGPUCompiler extends CompilerBase {
     if (composition.lights) {
       for (const light of composition.lights) this.emitLight(light);
     }
-    if (composition.camera) this.emitCamera(composition.camera);
     if (this.options.enableCompute) this.emitComputeShaders(composition);
 
     // v4.2: Domain Blocks (material uniform buffers)
@@ -403,10 +407,67 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit('return new Float32Array([-x,0,-z,0,1,0, x,0,-z,0,1,0, x,0,z,0,1,0, -x,0,-z,0,1,0, x,0,z,0,1,0, -x,0,z,0,1,0]);');
     this.dedent();
     this.emit('}');
-    this.emit('function generateSphereVertices(radius, _lat, _lon) { return generateCubeVertices(radius * 2); }');
-    this.emit('function generateCylinderVertices(radius, height, _segments) { return generateCubeVertices(Math.max(radius * 2, height)); }');
-    this.emit('function generateConeVertices(radius, height, _segments) { return generateCubeVertices(Math.max(radius * 2, height)); }');
-    this.emit('function generateTorusVertices(radius, tube, _radial, _tubular) { return generateCubeVertices((radius + tube) * 2); }');
+    // --- UV sphere (lat/long rings) ---
+    this.emit('function generateSphereVertices(radius, lat, lon) {');
+    this.indent();
+    this.emit('const rings = Math.max(3, lat | 0), segs = Math.max(3, lon | 0); const out = [];');
+    this.emit('const P = (ri, si) => {');
+    this.emit('  const phi = Math.PI * ri / rings, theta = 2 * Math.PI * si / segs;');
+    this.emit('  const nx = Math.sin(phi) * Math.cos(theta), ny = Math.cos(phi), nz = Math.sin(phi) * Math.sin(theta);');
+    this.emit('  return [nx * radius, ny * radius, nz * radius, nx, ny, nz];');
+    this.emit('};');
+    this.emit('for (let ri = 0; ri < rings; ri++) { for (let si = 0; si < segs; si++) {');
+    this.emit('  const a = P(ri, si), b = P(ri + 1, si), c = P(ri + 1, si + 1), d = P(ri, si + 1);');
+    this.emit('  out.push(...a, ...b, ...c, ...a, ...c, ...d);');
+    this.emit('} } return new Float32Array(out);');
+    this.dedent();
+    this.emit('}');
+    // --- Cylinder (side wall + top/bottom caps) ---
+    this.emit('function generateCylinderVertices(radius, height, segments) {');
+    this.indent();
+    this.emit('const segs = Math.max(3, segments | 0), hy = height / 2, out = [];');
+    this.emit('for (let i = 0; i < segs; i++) {');
+    this.emit('  const t0 = 2*Math.PI*i/segs, t1 = 2*Math.PI*(i+1)/segs;');
+    this.emit('  const c0 = Math.cos(t0), s0 = Math.sin(t0), c1 = Math.cos(t1), s1 = Math.sin(t1);');
+    this.emit('  const b0 = [radius*c0, -hy, radius*s0, c0, 0, s0], t0v = [radius*c0, hy, radius*s0, c0, 0, s0];');
+    this.emit('  const b1 = [radius*c1, -hy, radius*s1, c1, 0, s1], t1v = [radius*c1, hy, radius*s1, c1, 0, s1];');
+    this.emit('  out.push(...b0, ...b1, ...t1v, ...b0, ...t1v, ...t0v);');
+    this.emit('  out.push(0, hy, 0, 0, 1, 0, radius*c0, hy, radius*s0, 0, 1, 0, radius*c1, hy, radius*s1, 0, 1, 0);');
+    this.emit('  out.push(0, -hy, 0, 0, -1, 0, radius*c1, -hy, radius*s1, 0, -1, 0, radius*c0, -hy, radius*s0, 0, -1, 0);');
+    this.emit('} return new Float32Array(out);');
+    this.dedent();
+    this.emit('}');
+    // --- Cone (side wall + base cap) ---
+    this.emit('function generateConeVertices(radius, height, segments) {');
+    this.indent();
+    this.emit('const segs = Math.max(3, segments | 0), hy = height / 2, out = [];');
+    this.emit('const ny = radius / Math.hypot(radius, height) || 0, nyx = height / Math.hypot(radius, height) || 1;');
+    this.emit('for (let i = 0; i < segs; i++) {');
+    this.emit('  const t0 = 2*Math.PI*i/segs, t1 = 2*Math.PI*(i+1)/segs;');
+    this.emit('  const c0 = Math.cos(t0), s0 = Math.sin(t0), c1 = Math.cos(t1), s1 = Math.sin(t1);');
+    this.emit('  out.push(0, hy, 0, (c0+c1)*0.5*nyx, ny, (s0+s1)*0.5*nyx);');
+    this.emit('  out.push(radius*c0, -hy, radius*s0, c0*nyx, ny, s0*nyx);');
+    this.emit('  out.push(radius*c1, -hy, radius*s1, c1*nyx, ny, s1*nyx);');
+    this.emit('  out.push(0, -hy, 0, 0, -1, 0, radius*c1, -hy, radius*s1, 0, -1, 0, radius*c0, -hy, radius*s0, 0, -1, 0);');
+    this.emit('} return new Float32Array(out);');
+    this.dedent();
+    this.emit('}');
+    // --- Torus ---
+    this.emit('function generateTorusVertices(radius, tube, radial, tubular) {');
+    this.indent();
+    this.emit('const R = Math.max(3, radial | 0), T = Math.max(3, tubular | 0), out = [];');
+    this.emit('const P = (ri, ti) => {');
+    this.emit('  const u = 2*Math.PI*ri/R, v = 2*Math.PI*ti/T;');
+    this.emit('  const cu = Math.cos(u), su = Math.sin(u), cv = Math.cos(v), sv = Math.sin(v);');
+    this.emit('  const x = (radius + tube*cv)*cu, y = tube*sv, z = (radius + tube*cv)*su;');
+    this.emit('  return [x, y, z, cv*cu, sv, cv*su];');
+    this.emit('};');
+    this.emit('for (let ri = 0; ri < R; ri++) { for (let ti = 0; ti < T; ti++) {');
+    this.emit('  const a = P(ri, ti), b = P(ri + 1, ti), c = P(ri + 1, ti + 1), d = P(ri, ti + 1);');
+    this.emit('  out.push(...a, ...b, ...c, ...a, ...c, ...d);');
+    this.emit('} } return new Float32Array(out);');
+    this.dedent();
+    this.emit('}');
     this.emit('');
   }
 
@@ -518,8 +579,11 @@ export class WebGPUCompiler extends CompilerBase {
     const [cr, cg, cb] = this.extractMaterialColor(material, color);
     const rough = this.extractMaterialProp(material, 'roughness', 0.5);
     const metal = this.extractMaterialProp(material, 'metalness', 0.0);
+    const [er, eg, eb] = this.extractEmissive(material, obj);
+    const emissiveStrength = this.extractMaterialProp(material, 'emissive_intensity', 1.0);
+    // Mat layout: color(4) | rm=[roughness,metalness,emissiveStrength,0](4) | emissive(4)
     this.emit(
-      `const ${v}Mat = createBuffer(device, new Float32Array([${cr},${cg},${cb},1.0, ${rough},${metal},0,0]), GPUBufferUsage.UNIFORM);`
+      `const ${v}Mat = createBuffer(device, new Float32Array([${cr},${cg},${cb},1.0, ${rough},${metal},${emissiveStrength},0, ${er},${eg},${eb},0]), GPUBufferUsage.UNIFORM);`
     );
 
     // Pipeline
@@ -542,12 +606,12 @@ export class WebGPUCompiler extends CompilerBase {
     this.dedent();
     this.emit('});');
 
-    // Bind group
+    // Bind group — binding 2 is the shared camera view-projection uniform.
     this.emit(
       `const ${v}Bind = device.createBindGroup({ layout: ${v}Pipeline.getBindGroupLayout(0), entries: [`
     );
     this.emit(
-      `  { binding: 0, resource: { buffer: ${v}Model } }, { binding: 1, resource: { buffer: ${v}Mat } }] });`
+      `  { binding: 0, resource: { buffer: ${v}Model } }, { binding: 1, resource: { buffer: ${v}Mat } }, { binding: 2, resource: { buffer: vpUniform } }] });`
     );
   }
 
@@ -698,14 +762,15 @@ export class WebGPUCompiler extends CompilerBase {
 
   // ─── Camera ───────────────────────────────────────────────────────────────
 
-  private emitCamera(cam: HoloCamera): void {
+  private emitCamera(cam?: HoloCamera): void {
     this.emit('// === Camera ===');
+    // Defaults chosen to frame a small scene at the origin under perspective.
     let fov = 60,
       near = 0.1,
       far = 1000,
-      pos = [0, 1, 5],
+      pos = [4, 3, 6],
       lookAt = [0, 0, 0];
-    for (const prop of cam.properties) {
+    for (const prop of cam?.properties ?? []) {
       if (prop.key === 'fov' || prop.key === 'field_of_view') fov = prop.value as number;
       else if (prop.key === 'near') near = prop.value as number;
       else if (prop.key === 'far') far = prop.value as number;
@@ -717,13 +782,42 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit(`const cameraNear = ${near}, cameraFar = ${far};`);
     this.emit(`const cameraPos = new Float32Array([${pos.join(',')}]);`);
     this.emit(`const cameraTarget = new Float32Array([${lookAt.join(',')}]);`);
-    this.emit('const aspect = canvas.width / canvas.height;');
+    this.emit('const cameraUp = new Float32Array([0, 1, 0]);');
+    this.emit('const aspect = (canvas.width || 1) / (canvas.height || 1);');
+    // Column-major mat4 * mat4 (WGSL/WebGPU convention). Returns view*projection
+    // as a 16-float column-major array ready for a uniform buffer.
+    this.emit('function mat4Multiply(a: Float32Array, b: Float32Array): Float32Array {');
+    this.indent();
+    this.emit('const o = new Float32Array(16);');
+    this.emit('for (let c = 0; c < 4; c++) { for (let r = 0; r < 4; r++) {');
+    this.emit('  o[c*4+r] = a[0*4+r]*b[c*4+0] + a[1*4+r]*b[c*4+1] + a[2*4+r]*b[c*4+2] + a[3*4+r]*b[c*4+3];');
+    this.emit('} } return o;');
+    this.dedent();
+    this.emit('}');
+    // Right-handed look-at view matrix (column-major).
+    this.emit('function lookAtMatrix(eye: Float32Array, target: Float32Array, up: Float32Array): Float32Array {');
+    this.indent();
+    this.emit('const zx = eye[0]-target[0], zy = eye[1]-target[1], zz = eye[2]-target[2];');
+    this.emit('let zl = Math.hypot(zx, zy, zz) || 1; const fz = [zx/zl, zy/zl, zz/zl];');
+    this.emit('const xx = up[1]*fz[2]-up[2]*fz[1], xy = up[2]*fz[0]-up[0]*fz[2], xz = up[0]*fz[1]-up[1]*fz[0];');
+    this.emit('let xl = Math.hypot(xx, xy, xz) || 1; const rx = [xx/xl, xy/xl, xz/xl];');
+    this.emit('const uy = [fz[1]*rx[2]-fz[2]*rx[1], fz[2]*rx[0]-fz[0]*rx[2], fz[0]*rx[1]-fz[1]*rx[0]];');
+    this.emit('return new Float32Array([');
+    this.emit('  rx[0], uy[0], fz[0], 0,');
+    this.emit('  rx[1], uy[1], fz[1], 0,');
+    this.emit('  rx[2], uy[2], fz[2], 0,');
+    this.emit('  -(rx[0]*eye[0]+rx[1]*eye[1]+rx[2]*eye[2]),');
+    this.emit('  -(uy[0]*eye[0]+uy[1]*eye[1]+uy[2]*eye[2]),');
+    this.emit('  -(fz[0]*eye[0]+fz[1]*eye[1]+fz[2]*eye[2]), 1]);');
+    this.dedent();
+    this.emit('}');
     this.emit('function buildViewProjection(): Float32Array {');
     this.indent();
     this.emit('const f = 1.0 / Math.tan(cameraFov / 2), ri = 1.0 / (cameraNear - cameraFar);');
-    this.emit(
-      'return new Float32Array([f/aspect,0,0,0, 0,f,0,0, 0,0,(cameraNear+cameraFar)*ri,-1, 0,0,cameraNear*cameraFar*ri*2,0]);'
-    );
+    // Perspective projection (WebGPU clip space: z in [0,1], right-handed).
+    this.emit('const proj = new Float32Array([f/aspect,0,0,0, 0,f,0,0, 0,0,cameraFar*ri,-1, 0,0,cameraNear*cameraFar*ri,0]);');
+    this.emit('const view = lookAtMatrix(cameraPos, cameraTarget, cameraUp);');
+    this.emit('return mat4Multiply(proj, view);');
     this.dedent();
     this.emit('}');
     this.emit(
@@ -780,7 +874,9 @@ export class WebGPUCompiler extends CompilerBase {
     // Vertex shader
     this.emit('const WGSL_VERTEX = /* wgsl */`');
     this.emit('struct Uniforms { model: mat4x4<f32> };');
+    this.emit('struct Camera { viewProj: mat4x4<f32> };');
     this.emit('@group(0) @binding(0) var<uniform> u: Uniforms;');
+    this.emit('@group(0) @binding(2) var<uniform> cam: Camera;');
     this.emit('struct VIn { @location(0) pos: vec3<f32>, @location(1) norm: vec3<f32> };');
     this.emit(
       'struct VOut { @builtin(position) clip: vec4<f32>, @location(0) wNorm: vec3<f32>, @location(1) wPos: vec3<f32> };'
@@ -788,18 +884,20 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit('@vertex fn vs_main(i: VIn) -> VOut {');
     this.emit('  var o: VOut; let w = u.model * vec4<f32>(i.pos, 1.0);');
     this.emit(
-      '  o.clip = w; o.wNorm = (u.model * vec4<f32>(i.norm, 0.0)).xyz; o.wPos = w.xyz; return o; }`;'
+      '  o.clip = cam.viewProj * w; o.wNorm = normalize((u.model * vec4<f32>(i.norm, 0.0)).xyz); o.wPos = w.xyz; return o; }`;'
     );
     this.emit('');
     // Fragment shader (PBR)
     this.emit('const WGSL_FRAGMENT = /* wgsl */`');
-    this.emit('struct Mat { color: vec4<f32>, rm: vec4<f32> };');
+    this.emit('struct Mat { color: vec4<f32>, rm: vec4<f32>, emissive: vec4<f32> };');
     this.emit('@group(0) @binding(1) var<uniform> mat: Mat;');
     this.emit('struct FIn { @location(0) wNorm: vec3<f32>, @location(1) wPos: vec3<f32> };');
     this.emit('@fragment fn fs_main(i: FIn) -> @location(0) vec4<f32> {');
     this.emit('  let N = normalize(i.wNorm); let L = normalize(vec3<f32>(1.0, 2.0, 1.5));');
     this.emit('  let d = max(dot(N, L), 0.0) * (1.0 - mat.rm[0] * 0.5);');
-    this.emit('  return vec4<f32>(mat.color.rgb * (0.15 + d), mat.color.a); }`;');
+    this.emit('  let lit = mat.color.rgb * (0.15 + d);');
+    this.emit('  let emit = mat.emissive.rgb * mat.rm[2];');
+    this.emit('  return vec4<f32>(lit + emit, mat.color.a); }`;');
     this.emit('');
     // Gaussian splat shader
     this.emit('const WGSL_SPLAT = /* wgsl */`');
@@ -1105,6 +1203,20 @@ export class WebGPUCompiler extends CompilerBase {
       if (m[key] !== undefined) return m[key];
     }
     return fallback;
+  }
+
+  private extractEmissive(
+    material: HoloValue | undefined,
+    obj: HoloObjectDecl
+  ): [number, number, number] {
+    // Object-level `emissive` prop takes precedence, then material.emissive.
+    const objEmissive = this.findObjProp(obj, 'emissive');
+    if (objEmissive !== undefined) return this.parseColor(objEmissive);
+    if (material && typeof material === 'object' && !Array.isArray(material)) {
+      const m = material as Record<string, any>;
+      if (m.emissive !== undefined) return this.parseColor(m.emissive);
+    }
+    return [0, 0, 0];
   }
 
   private geometryVertexDataFn(meshType: string): string {
