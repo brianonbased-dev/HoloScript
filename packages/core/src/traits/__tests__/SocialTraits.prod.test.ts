@@ -329,19 +329,21 @@ describe('generateTweetUrl — helper', () => {
 // ─── Tests: generateQRCodeUrl ────────────────────────────────────────────────
 
 describe('generateQRCodeUrl — helper', () => {
-  it('returns a qrserver URL', () => {
-    const url = generateQRCodeUrl('https://holo.dev/scene1');
-    expect(url).toMatch(/^https:\/\/api\.qrserver\.com\/v1\/create-qr-code/);
+  it('returns a local data URI, never a third-party qrserver URL', async () => {
+    const url = await generateQRCodeUrl('https://holo.dev/scene1');
+    expect(url).toMatch(/^data:image\/png;base64,/);
+    expect(url).not.toMatch(/api\.qrserver\.com/);
   });
 
-  it('URL-encodes the scene URL', () => {
-    const url = generateQRCodeUrl('https://example.com/scene?id=42&foo=bar');
-    expect(url).toContain(encodeURIComponent('https://example.com/scene?id=42&foo=bar'));
+  it('generates locally without leaking the scene URL to a remote host', async () => {
+    const url = await generateQRCodeUrl('https://example.com/scene?id=42&foo=bar');
+    expect(url).toMatch(/^data:image\/png;base64,/);
+    expect(url).not.toContain('example.com');
   });
 
-  it('includes size 200x200', () => {
-    const url = generateQRCodeUrl('https://holo.dev');
-    expect(url).toContain('200x200');
+  it('produces a non-trivial PNG payload', async () => {
+    const url = await generateQRCodeUrl('https://holo.dev');
+    expect(url.length).toBeGreaterThan(100);
   });
 });
 

@@ -375,7 +375,7 @@ export async function createShareLink(options: ShareOptions): Promise<ShareResul
   const tweetText = generateTweetText(title, description, playgroundUrl);
 
   // Generate QR code data URL (for mobile XR access)
-  const qrCode = generateQRCodeDataUrl(playgroundUrl);
+  const qrCode = await generateQRCodeDataUrl(playgroundUrl);
 
   // Generate Twitter Card meta tags (with thumbnail URL)
   const cardMeta = generateCardMeta(title, description, embedUrl, scene.id);
@@ -520,11 +520,15 @@ Try it in VR/AR: ${url}
 #HoloScript #VR #XR #Metaverse #3D`;
 }
 
-function generateQRCodeDataUrl(url: string): string {
-  // Simple QR code generation placeholder
-  // In production, use a library like 'qrcode'
-  // For now, return a service URL
-  return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
+async function generateQRCodeDataUrl(url: string): Promise<string> {
+  // Generated LOCALLY via the `qrcode` package — never routed through a
+  // third-party service. A hosted QR API leaks every shared/published
+  // scene URL to that third party (F.106/F.117: local generation only).
+  const QRCode = await import('qrcode');
+  return QRCode.toDataURL(url, {
+    width: 200,
+    margin: 2,
+  });
 }
 
 function generateCardMeta(

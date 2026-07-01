@@ -342,18 +342,19 @@ describe('generateTweetUrl', () => {
 });
 
 describe('generateQRCodeUrl', () => {
-  it('should generate valid QR code API URL', () => {
-    const url = generateQRCodeUrl('https://my-scene.com');
+  it('should generate a local QR code data URI, not a third-party service URL', async () => {
+    const url = await generateQRCodeUrl('https://my-scene.com');
 
-    expect(url).toBe(
-      'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Fmy-scene.com'
-    );
+    expect(url).toMatch(/^data:image\/png;base64,/);
+    expect(url).not.toContain('api.qrserver.com');
   });
 
-  it('should encode special characters in URL', () => {
-    const url = generateQRCodeUrl('https://example.com/?param=value&other=test');
+  it('should encode arbitrary scene URLs without leaking to a remote host', async () => {
+    const url = await generateQRCodeUrl('https://example.com/?param=value&other=test');
 
-    expect(url).toContain(encodeURIComponent('https://example.com/?param=value&other=test'));
+    expect(url).toMatch(/^data:image\/png;base64,/);
+    expect(url).not.toContain('api.qrserver.com');
+    expect(url).not.toContain('example.com');
   });
 });
 

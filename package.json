@@ -126,6 +126,8 @@
     "check:native-coverage-test": "node scripts/__tests__/check-native-coverage.test.mjs",
     "check:hardcoded-stats": "node scripts/holo-ci/check-hardcoded-stats.mjs --staged",
     "check:hardcoded-stats:audit": "node scripts/holo-ci/check-hardcoded-stats.mjs --all",
+    "check:no-third-party-qr": "node scripts/holo-ci/check-no-third-party-qr.mjs --staged",
+    "check:no-third-party-qr:audit": "node scripts/holo-ci/check-no-third-party-qr.mjs --all",
     "check:native-render-contract": "node scripts/holo-ci/check-native-render-contract.mjs",
     "check:world-watch-contract": "node scripts/holo-ci/check-world-watch-contract.mjs",
     "verify:core-engine-imports": "node scripts/verify-core-engine-import-allowlist.mjs",

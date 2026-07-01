@@ -307,6 +307,7 @@
     "@mediapipe/tasks-vision": "0.10.17",
     "jose": "^6.2.2",
     "jsonwebtoken": "^9.0.2",
+    "qrcode": "^1.5.3",
     "zod": "^4.3.6"
   },
   "optionalDependencies": {

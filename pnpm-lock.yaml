@@ -757,6 +757,9 @@ importers:
       puppeteer:
         specifier: ^23.0.0
         version: 23.11.1(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)
+      qrcode:
+        specifier: ^1.5.3
+        version: 1.5.4
       react:
         specifier: ^19.2.0
         version: 19.2.7
@@ -1828,6 +1831,9 @@ importers:
       playwright:
         specifier: ^1.58.2
         version: 1.60.0
+      qrcode:
+        specifier: ^1.5.3
+        version: 1.5.4
       viem:
         specifier: ^2.47.1
         version: 2.52.2(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@4.4.3)

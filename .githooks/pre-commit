@@ -460,6 +460,28 @@ else
     echo -e "  ${GREEN}✓${NC} No staged markdown"
 fi
 
+# Gate 5h: No third-party QR-code service gate (F.106/F.117: generate QR codes LOCALLY).
+# Scans STAGED packages/*/src files for a hosted QR-service hostname (api.qrserver.com et al).
+# Regression history: api.qrserver.com leaked every published .holo share/scan URL via
+# encodeURIComponent(sceneUrl) in SocialTraits.ts + renderer.ts (fixed 2026-07-01). This gate
+# prevents a third regression. Excludes docs/archive/ (dead reference HTML, not live code).
+echo "  ├─ No-third-party-QR gate (F.106/F.117)..."
+STAGED_SRC=$(git diff --cached --name-only --diff-filter=ACM -- 'packages/*/src/**/*.ts' 'packages/*/src/**/*.tsx' 'packages/*/src/**/*.js' 'packages/*/src/**/*.mjs' 2>/dev/null || true)
+if [ -n "$STAGED_SRC" ]; then
+    QR_OUT=$(run_with_timeout 20 node scripts/holo-ci/check-no-third-party-qr.mjs $STAGED_SRC 2>&1)
+    QR_STATUS=$?
+    if [ "$QR_STATUS" -ne 0 ]; then
+        echo -e "  ${RED}❌ Third-party QR-service literal in staged source${NC}"
+        echo "$QR_OUT"
+        echo "     Fix: generate QR codes locally via the 'qrcode' npm package (data: URI), never a hosted API."
+        FAILED=1
+    else
+        echo -e "  ${GREEN}✓${NC} No third-party QR-service literals"
+    fi
+else
+    echo -e "  ${GREEN}✓${NC} No staged source files"
+fi
+
 # Gate 6: Complexity — skipped (not configured)
 echo -e "  ├─ Complexity analysis... ${YELLOW}⚠ skipped${NC}"
 

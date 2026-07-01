@@ -266,10 +266,18 @@ export function generateTweetUrl(name: string, url: string, config: TweetableCon
 }
 
 /**
- * Generate a QR code URL for a scene
+ * Generate a QR code for a scene as a local data: URI.
+ *
+ * Generated LOCALLY via the `qrcode` package — never routed through a
+ * third-party service. Sending scene URLs to a hosted QR API leaks every
+ * shared/published `.holo` link (F.106/F.117: local generation only).
  */
-export function generateQRCodeUrl(sceneUrl: string): string {
-  return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(sceneUrl)}`;
+export async function generateQRCodeUrl(sceneUrl: string): Promise<string> {
+  const QRCode = await import('qrcode');
+  return QRCode.toDataURL(sceneUrl, {
+    width: 200,
+    margin: 2,
+  });
 }
 
 // =============================================================================

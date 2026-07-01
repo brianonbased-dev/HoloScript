@@ -97,10 +97,12 @@ describe('SocialTraits', () => {
       expect(decodeURIComponent(url)).toContain('https://holo.land/s/123');
     });
 
-    it('should generate QR code URL', () => {
-      const url = generateQRCodeUrl('https://holo.land/s/123');
-      expect(url).toContain('api.qrserver.com');
-      expect(url).toContain(encodeURIComponent('https://holo.land/s/123'));
+    it('should generate a local QR code data URI, never a third-party service URL', async () => {
+      const url = await generateQRCodeUrl('https://holo.land/s/123');
+      expect(url).toMatch(/^data:image\/png;base64,/);
+      expect(url).not.toContain('api.qrserver.com');
+      expect(url).not.toContain('http://');
+      expect(url).not.toContain('https://');
     });
   });
 });
