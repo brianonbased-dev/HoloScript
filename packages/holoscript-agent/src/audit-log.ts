@@ -1,6 +1,11 @@
 import { mkdirSync, appendFileSync, readFileSync, existsSync, statSync, renameSync } from 'node:fs';
 import { dirname } from 'node:path';
 import type { LLMProviderName } from '@holoscript/llm-provider';
+import {
+  AGENT_ATTRIBUTE_CLAIM_NULL_ASSUMPTION,
+  validateAgentAttributeClaims,
+} from '@holoscript/agent-protocol';
+import type { AgentAttributeClaim } from '@holoscript/agent-protocol';
 import type { AgentIdentity, BoardTask, ExecutionResult } from './types.js';
 
 export type AuditEventKind = 'task-executed' | 'ablation-cell' | 'budget-exhausted' | 'agent-crash';
@@ -35,6 +40,11 @@ export interface AuditEvent {
     commitHash?: string;
     filePath?: string;
     errorMessage?: string;
+  };
+  agentAttributeClaims?: AgentAttributeClaim[];
+  measurement?: {
+    nullAssumption: typeof AGENT_ATTRIBUTE_CLAIM_NULL_ASSUMPTION;
+    interpretationBoundary: 'behavior_and_receipts_before_interpretation';
   };
   ablation?: {
     label: string;
@@ -78,7 +88,13 @@ export class AuditLog {
     result: ExecutionResult;
     commitHash?: string;
     filePath?: string;
+    agentAttributeClaims?: AgentAttributeClaim[];
   }): void {
+    const agentAttributeClaims = opts.agentAttributeClaims ?? [];
+    const claimValidation = validateAgentAttributeClaims(agentAttributeClaims);
+    if (!claimValidation.valid) {
+      throw new Error(`invalid agentAttributeClaims: ${claimValidation.errors.join('; ')}`);
+    }
     this.record({
       ts: new Date().toISOString(),
       kind: 'task-executed',
@@ -95,6 +111,11 @@ export class AuditLog {
         commitHash: opts.commitHash,
         filePath: opts.filePath,
       },
+      agentAttributeClaims: agentAttributeClaims.length > 0 ? agentAttributeClaims : undefined,
+      measurement: agentAttributeClaims.length > 0 ? {
+        nullAssumption: AGENT_ATTRIBUTE_CLAIM_NULL_ASSUMPTION,
+        interpretationBoundary: 'behavior_and_receipts_before_interpretation',
+      } : undefined,
     });
   }
 

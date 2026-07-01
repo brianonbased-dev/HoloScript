@@ -1440,6 +1440,9 @@ importers:
 
   packages/holoscript-agent:
     dependencies:
+      '@holoscript/agent-protocol':
+        specifier: workspace:^
+        version: link:../agent-protocol
       '@holoscript/llm-provider':
         specifier: workspace:^
         version: link:../llm-provider

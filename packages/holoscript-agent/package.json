@@ -57,6 +57,10 @@
       "types": "./dist/audit-log.d.ts",
       "import": "./dist/audit-log.js"
     },
+    "./care-claims": {
+      "types": "./dist/care-claims.d.ts",
+      "import": "./dist/care-claims.js"
+    },
     "./mesh-character-mind": {
       "types": "./dist/mesh-character-mind.d.ts",
       "import": "./dist/mesh-character-mind.js"
@@ -100,6 +104,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
+    "@holoscript/agent-protocol": "workspace:^",
     "@holoscript/llm-provider": "workspace:^",
     "ethers": "^6.16.0"
   },
@@ -110,4 +115,3 @@
     "vitest": "^4.1.5"
   }
 }
-

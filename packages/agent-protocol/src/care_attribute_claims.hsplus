@@ -1,0 +1,26 @@
+// @care_attribute_claims - portable behavior-and-receipt contract for agent attributes.
+// Native .hsplus surface for care-attribute-claims.ts (agent-protocol).
+//
+// This trait is a schema declaration, not a hidden-state detector. Claims such
+// as care, intention, belief, preference, agency, or understanding must carry
+// observed behavior, receipt/verifier evidence, persistence, and a falsifier.
+
+@trait care_attribute_claims {
+  schema_version: String = "holoscript.agent-attribute-claims.v1"
+  null_assumption: String = "llm_non_uniqueness"
+  interpretation_boundary: String = "behavioral_contract_not_hidden_state_proof"
+  capability_tags: ["agent_protocol", "care", "attribute_claims", "receipt_schema"]
+
+  @on_validate_claims(claims) => {
+    result = validate_agent_attribute_claims(claims)
+    emit("agent_attribute_claims_validated", { valid: result.valid })
+    return result
+  }
+
+  @receipt care_attribute_claims_config {
+    type: "AgentAttributeClaimsContractReceipt"
+    schema_version: schema_version
+    null_assumption: null_assumption
+    interpretation_boundary: interpretation_boundary
+  }
+}

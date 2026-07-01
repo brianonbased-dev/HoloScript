@@ -64,6 +64,50 @@ describe('AuditLog', () => {
     expect(e.result.commitHash).toBe('abc123');
   });
 
+  it('records validated agent attribute claims on task audit events', () => {
+    const path = tmpLog();
+    const log = new AuditLog({ logPath: path });
+    log.recordTaskExecuted({
+      identity: IDENTITY,
+      task: TASK,
+      result: RESULT,
+      agentAttributeClaims: [
+        {
+          attribute: 'care',
+          claim: 'The agent preserved task evidence and bounded cost context.',
+          behaviorRefs: ['task:task_g10:executed'],
+          evidenceRefs: ['audit:task_g10'],
+          persistence: 'single_event',
+          falsifier: 'No task audit event exists.',
+          costOrPriority: 'costUsd=0.0825',
+        },
+      ],
+    });
+
+    const event = JSON.parse(readFileSync(path, 'utf8').trim());
+    expect(event.agentAttributeClaims).toHaveLength(1);
+    expect(event.measurement.nullAssumption).toBe('llm_non_uniqueness');
+  });
+
+  it('rejects unsupported human-like claims before writing audit lines', () => {
+    const path = tmpLog();
+    const log = new AuditLog({ logPath: path });
+
+    expect(() => log.recordTaskExecuted({
+      identity: IDENTITY,
+      task: TASK,
+      result: RESULT,
+      agentAttributeClaims: [
+        {
+          attribute: 'care',
+          claim: 'The agent cares.',
+          behaviorRefs: [],
+          evidenceRefs: ['audit:task_g10'],
+        } as never,
+      ],
+    })).toThrow(/invalid agentAttributeClaims/);
+  });
+
   it('appends multiple events without overwriting (audit trail must be immutable)', () => {
     const path = tmpLog();
     const log = new AuditLog({ logPath: path });

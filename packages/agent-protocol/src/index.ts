@@ -296,6 +296,23 @@ export { A2AHSNAPBridge } from './A2AHSNAPBridge';
 export type { BridgeEnvelopeOptions } from './A2AHSNAPBridge';
 
 export {
+  AGENT_ATTRIBUTE_CLAIM_ATTRIBUTES,
+  AGENT_ATTRIBUTE_CLAIM_INTERPRETATION_BOUNDARY,
+  AGENT_ATTRIBUTE_CLAIM_NULL_ASSUMPTION,
+  AGENT_ATTRIBUTE_CLAIM_SCHEMA_VERSION,
+  HUMAN_LIKE_AGENT_ATTRIBUTE_CLAIMS,
+  normalizeAgentAttributeClaims,
+  validateAgentAttributeClaims,
+} from './care-attribute-claims';
+export type {
+  AgentAttributeClaim,
+  AgentAttributeClaimAttribute,
+  AgentAttributeClaimPersistence,
+  AgentAttributeClaimValidation,
+  HumanLikeAgentAttributeClaim,
+} from './care-attribute-claims';
+
+export {
   CANONICAL_TASK_BRIDGE_SCHEMA,
   a2aSendMessageToCanonicalTaskEnvelope,
   canonicalTaskToA2ASendMessage,

@@ -9,6 +9,7 @@ import type { HolomeshClient } from './holomesh-client.js';
 import { pickClaimableTask } from './holomesh-client.js';
 import type { AuditLog } from './audit-log.js';
 import { buildCaelRecord } from './cael-builder.js';
+import { createTaskExecutionAttributeClaims } from './care-claims.js';
 import { resolveActiveTools, runTool, summarizeToolProductivity } from './tools.js';
 import { augmentWithOnTaskCognition } from './cognitive-verbs.js';
 import { DelegatedAuthorityHandler } from './delegated-authority.js';
@@ -727,6 +728,16 @@ export class AgentRunner {
           identity,
           task: target,
           result: execResult,
+          commitHash: lastCommitHash,
+          agentAttributeClaims: createTaskExecutionAttributeClaims({
+            agentHandle: identity.handle,
+            taskId: target.id,
+            taskTitle: target.title,
+            costUsd: cost.costUsd,
+            durationMs,
+            totalTokens: aggUsage.totalTokens,
+            commitHash: lastCommitHash,
+          }),
         });
       } catch (err) {
         log({ ev: 'audit-log-error', message: err instanceof Error ? err.message : String(err) });
