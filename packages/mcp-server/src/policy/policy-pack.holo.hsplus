@@ -1,0 +1,62 @@
+/**
+ * PolicyPackTrait fixture — CG-098 PolicyInterceptor tracer bullet.
+ *
+ * Versioned `.hsplus` policy source (NOT ad hoc JSON, per the CG-098
+ * requirement in research/2026-06-28_openclaw-nemoclaw-harvest.md line 83:
+ * "Policy source: versioned .holo/.hsplus PolicyPackTrait, not ad hoc JSON.").
+ *
+ * This file parses with the REAL `HoloScriptPlusParser` (verified against
+ * packages/core/dist — 0 parse errors) using the trait-attachment grammar
+ * already proven in examples/traits/networking-synced-persistent-owned.hsplus
+ * (`@trait_name { config... }` attached to an `object` node, surfaced on
+ * parse as `object.directives[] = { type: 'trait', name, config }`).
+ *
+ * NOTE: the `@trait <name> { @on_x(...) => {...} }` top-level syntax used by
+ * packages/core/src/traits/moderation_trait.hsplus and
+ * consent_management_trait.hsplus does NOT currently parse (verified:
+ * HSP001 "Unexpected token ARROW" on the `=>` handler shorthand) — those
+ * files are aspirational native-surface documentation, not live grammar.
+ * This fixture deliberately uses the grammar that is proven to compile so
+ * PolicyInterceptor loads a real artifact, not a decorative one.
+ *
+ * @version 1.0.0
+ */
+
+composition "PolicyPack" {
+  object "policy_pack_v1" {
+    @policy_pack {
+      policy_id: "policy-pack-v1"
+      schema_version: "1.0.0"
+
+      rules: [
+        {
+          rule_id: "secrets-grant-deny-blocked-agent",
+          tool: "holo_secrets_grant",
+          when_agent_in: ["blocked-agent-x"],
+          decision: "deny",
+          reason: "agent_denylisted"
+        },
+        {
+          rule_id: "secrets-grant-approval-financial",
+          tool: "holo_secrets_grant",
+          when_capability_ref_prefix: "cap://finance/",
+          decision: "approval_required",
+          reason: "financial_capability_requires_approval"
+        },
+        {
+          rule_id: "secrets-grant-audit-broker-only",
+          tool: "holo_secrets_grant",
+          when_capability_ref_prefix: "cap://daemon/secrets/broker-only",
+          decision: "audit",
+          reason: "broker_only_capability_audited"
+        }
+      ]
+
+      default_decision: "allow"
+    }
+
+    state {
+      loaded: true
+    }
+  }
+}

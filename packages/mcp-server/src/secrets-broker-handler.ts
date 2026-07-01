@@ -34,10 +34,102 @@ import {
   type SigningContext,
   type RequireCapabilityOptions,
 } from './holomesh/identity/signing-middleware';
+import {
+  interceptToolCall,
+  type PolicyInterceptorResult,
+} from './policy/PolicyInterceptor';
+import { randomUUID } from 'crypto';
 
 // Shared in-memory lease adapter for the MCP server process.
 // In production this would be backed by the vault-lease-registry PostgreSQL store.
 const leaseAdapter = createMemoryLeaseAdapter();
+
+/**
+ * Tools gated by the CG-098 PolicyInterceptor tracer bullet (declarative
+ * PolicyPackTrait, additive alongside the SigningContext capability gate
+ * above). Scoped to `holo_secrets_grant` only — the narrow tool family named
+ * in the board task; `holo_secrets_resolve`/`holo_secrets_revoke` are not
+ * gated by this tracer bullet.
+ */
+const POLICY_INTERCEPTED_TOOLS = new Set(['holo_secrets_grant']);
+
+export interface PolicyInterceptorAuthError {
+  readonly authError: true;
+  readonly reason: string;
+  readonly tool: string;
+  readonly policyReceipt: PolicyInterceptorResult['receipt'];
+}
+
+/**
+ * Run the PolicyInterceptor for a gated tool call. Returns `null` when the
+ * call is allowed to proceed (decision is `allow` or `audit` — audit records
+ * the decision but does not block execution). Returns a
+ * `PolicyInterceptorAuthError` when the decision is `deny` or
+ * `approval_required` (both block execution in this tracer bullet — no
+ * async approval workflow exists yet, so `approval_required` fails closed).
+ *
+ * Fail-safe: if the interceptor itself throws (e.g. the fixture is missing
+ * or fails to parse), the call is DENIED, never silently allowed — a broken
+ * policy source must not become an open gate.
+ */
+export function gatePolicyInterceptedTool(
+  name: string,
+  args: Record<string, unknown>,
+  callerId: string
+): { authError: PolicyInterceptorAuthError | null; result: PolicyInterceptorResult | null } {
+  if (!POLICY_INTERCEPTED_TOOLS.has(name)) return { authError: null, result: null };
+
+  const toolCallId = randomUUID();
+  let result: PolicyInterceptorResult;
+  try {
+    result = interceptToolCall({
+      callerId,
+      tool: name,
+      resource: String(args.secretRef ?? args.capabilityRef ?? 'unknown'),
+      lane: 'stdio',
+      args,
+      toolCallId,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return {
+      authError: {
+        authError: true,
+        reason: `policy_interceptor_failed: ${message}`,
+        tool: name,
+        policyReceipt: {
+          receiptId: `policy_error_${toolCallId}`,
+          schemaVersion: '1.0.0',
+          recordedAt: new Date().toISOString(),
+          policyId: 'unknown',
+          decision: 'deny',
+          caller: callerId,
+          action: name,
+          resource: String(args.secretRef ?? args.capabilityRef ?? 'unknown'),
+          reason: 'policy_interceptor_failed',
+          toolCallId,
+        },
+      },
+      result: null,
+    };
+  }
+
+  if (result.decision.decision === 'deny' || result.decision.decision === 'approval_required') {
+    return {
+      authError: {
+        authError: true,
+        reason: result.decision.reason,
+        tool: name,
+        policyReceipt: result.receipt,
+      },
+      result,
+    };
+  }
+
+  // 'allow' and 'audit' both proceed; 'audit' still carries a receipt the
+  // caller can inspect via `result`.
+  return { authError: null, result };
+}
 
 /**
  * Per-tool capability requirements. The MCP dispatch path passes a
@@ -89,6 +181,18 @@ export async function handleSecretsBrokerTool(
   const authError = gateSecretsBrokerTool(name, signingCtx, authOptions);
   if (authError) return authError;
 
+  // CG-098 PolicyInterceptor gate — declarative PolicyPackTrait decision,
+  // additive alongside the SigningContext capability gate above. Runs BEFORE
+  // the tool body so a `deny`/`approval_required` decision blocks execution
+  // (createSecretGrant / createPolicyGatedSecretGrant never run).
+  const callerId = signingCtx?.signer ?? String(args.agentId ?? 'unknown');
+  const { authError: policyAuthError, result: policyResult } = gatePolicyInterceptedTool(
+    name,
+    args,
+    callerId
+  );
+  if (policyAuthError) return policyAuthError;
+
   switch (name) {
     case 'holo_secrets_grant': {
       const namespaceId = String(args.namespaceId ?? '');
@@ -101,6 +205,7 @@ export async function handleSecretsBrokerTool(
           ? args.ttlSeconds
           : undefined;
       const policy = (args.policy as SecretBrokerPolicy | undefined) ?? undefined;
+      const policyReceipt = policyResult?.receipt;
 
       if (policy) {
         const result = createPolicyGatedSecretGrant(
@@ -120,6 +225,7 @@ export async function handleSecretsBrokerTool(
           policyDecision: result.policyDecision,
           leaseId: lease.leaseId,
           leaseExpiresAt: lease.expiresAt,
+          policyReceipt,
         };
       }
 
@@ -142,6 +248,7 @@ export async function handleSecretsBrokerTool(
         grant,
         leaseId: lease.leaseId,
         leaseExpiresAt: lease.expiresAt,
+        policyReceipt,
       };
     }
 
