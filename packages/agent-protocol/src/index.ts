@@ -343,3 +343,22 @@ export type {
   AgentCorePrimitiveOwnership,
   AgentCoreRegistryMetadata,
 } from './agentcore-adapter-contract';
+
+export {
+  HF_ARTIFACT_PUBLISHER_SCHEMA_VERSION,
+  buildHfCompatibleArtifactPublisherDryRun,
+  validateHfArtifactPublisherReceipt,
+} from './hf-compatible-artifact-publisher';
+export type {
+  HfArtifactPublisherInput,
+  HfArtifactPublisherReceipt,
+  HfArtifactPublisherSchema,
+  HfArtifactPublisherValidation,
+  HfCardMetadata,
+  HfHoloHubPublishClass,
+  HfSpacesDemoManifest,
+  HoloHubPublisherMetadata,
+  HoloScriptArtifactDescriptor,
+  HoloScriptArtifactKind,
+  HoloScriptArtifactProvenance,
+} from './hf-compatible-artifact-publisher';

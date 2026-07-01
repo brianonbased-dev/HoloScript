@@ -1,0 +1,26 @@
+// @hf_compatible_artifact_publisher - HF-compatible HoloScript artifact publisher (CG-026).
+// Native .hsplus surface for hf-compatible-artifact-publisher.ts.
+//
+// Bridge-not-replace: projects HoloScript semantic scenes, twins, agents,
+// target manifests, example datasets, and validation receipts into a
+// Hugging Face-compatible repository layout while preserving HoloHub curation,
+// HoloMesh signatures, x402 receipt hashes, and CAEL provenance. No HF token,
+// no network publish, no secrets.
+
+@trait hf_compatible_artifact_publisher {
+  schema_version: "holoscript.hf-artifact-publisher.v1"
+  no_token_dry_run: true
+  capability_tags: ["hf_compatible", "holohub", "artifact_publisher", "model_card", "dataset_card", "spaces_demo", "x402", "provenance", "competitor-gap"]
+  dry_run_builder: "buildHfCompatibleArtifactPublisherDryRun"
+  receipt_validator: "validateHfArtifactPublisherReceipt"
+  artifact_kinds: ["semantic-scene", "digital-twin", "agent", "target-manifest", "example-dataset", "validation-receipt"]
+  required_cards: ["model-card.md", "dataset-card.md"]
+  required_provenance: ["caelTraceHash", "holomeshSignature", "x402ReceiptHash", "sourceCommit"]
+  publishability_classes: ["hf-publishable", "holohub-only", "both"]
+
+  @receipt hf_compatible_artifact_publisher_config {
+    type: "HFCompatibleArtifactPublisherReceipt"
+    schema_version: schema_version
+    no_token_dry_run: no_token_dry_run
+  }
+}
