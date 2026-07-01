@@ -1,0 +1,100 @@
+// CG-008 twin service posture proof.
+// HoloGate is a docs umbrella term. Concrete integration proof is HoloKey
+// custody, UmbrellaRoute metadata, triad receipts, DTDLCompiler output, and
+// CAEL replay history.
+composition "TwinGraphServicePosture" {
+  metadata {
+    task: "CG-008"
+    native_authoring: "holo"
+    service: "packages/engine/src/simulation/TwinGraphService.ts"
+    fixture_test: "packages/engine/src/simulation/__tests__/TwinGraphService.test.ts"
+    dtdl_bridge: "DTDLCompiler v3"
+    docs_umbrella: "HoloGate"
+    concrete_tools: ["HoloKey", "UmbrellaRoute", "TriadReceipt", "DTDLCompiler", "CAELTrace"]
+  }
+
+  scene "IndustrialLineTwinGraph" {
+    object "DTDLBridgeContract" @dtdl_bridge @compiler_output {
+      geometry: "cube"
+      position: [-2.5, 1.0, -3.0]
+      scale: [0.45, 0.45, 0.45]
+      color: "#2563eb"
+      state: {
+        source: "IndustrialLineTwin.holo"
+        target: "dtmi:dtdl:context;3"
+        compiler: "DTDLCompiler"
+      }
+    }
+
+    object "TwinGraphQueryAPI" @twin_graph @query_api {
+      geometry: "sphere"
+      position: [-0.8, 1.0, -3.0]
+      scale: [0.5, 0.5, 0.5]
+      color: "#16a34a"
+      state: {
+        query: "twins related from line-a by hasPressCell where temperature >= 80"
+        returns: "press-1"
+        relationship: "line-a-has-press-1"
+      }
+    }
+
+    object "LiveIngressSimulator" @telemetry_ingress @mqtt_simulator {
+      geometry: "cylinder"
+      position: [0.8, 1.0, -3.0]
+      scale: [0.35, 0.7, 0.35]
+      color: "#f59e0b"
+      state: {
+        source: "mqtt-simulator://industrial-line-a/press-1"
+        samples: ["temperature", "vibrationRms"]
+        property_update: "status"
+      }
+    }
+
+    object "CAELReplayReceipts" @cael_replay @history_receipt {
+      geometry: "torus"
+      position: [2.5, 1.0, -3.0]
+      scale: [0.55, 0.55, 0.55]
+      color: "#7c3aed"
+      state: {
+        operations: ["register-models", "upsert-twin", "relationship-upsert", "property-update", "telemetry-ingress", "query"]
+        verification: ["hashChainValid", "replayValid", "graphHash"]
+      }
+    }
+
+    object "HoloKeyCustody" @holokey @custody_receipt {
+      geometry: "cube"
+      position: [-1.2, 2.1, -3.3]
+      scale: [0.4, 0.4, 0.4]
+      color: "#0f766e"
+      state: {
+        holokey: "openai-codex-cg008-holokey"
+        secret_policy: "no_inline_keys"
+        signer_surface: "codex-hardware"
+      }
+    }
+
+    object "UmbrellaAndTriad" @umbrella_route @triad_receipt {
+      geometry: "torus"
+      position: [1.2, 2.1, -3.3]
+      scale: [0.55, 0.55, 0.55]
+      color: "#db2777"
+      state: {
+        docs_umbrella: "HoloGate"
+        docs_umbrella_role: "umbrella term in docs, not an executable tool"
+        umbrella_route: "simulation.digital-twins.dtdl.cael-replay"
+        triad: ["semanticReceiptId", "provenanceReceiptId", "replayReceiptId"]
+      }
+    }
+
+    camera "TwinGraphProofCamera" {
+      position: [0, 2.4, 5]
+      lookAt: [0, 1.2, -3]
+    }
+
+    light "TwinGraphProofKeyLight" {
+      type: "directional"
+      intensity: 1.2
+      position: [4, 6, 3]
+    }
+  }
+}

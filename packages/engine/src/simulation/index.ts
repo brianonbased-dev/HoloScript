@@ -30,6 +30,35 @@ export {
   type SimulationMaterial,
 } from './MaterialDatabase';
 export { conjugateGradient, jacobiIteration, type ConvergenceResult } from './ConvergenceControl';
+export {
+  TwinGraphService,
+  runIndustrialLineTwinGraphDemo,
+  type IndustrialLineTwinDemoResult,
+  type TwinCustodyReceipt,
+  type TwinDtdlBridgeSource,
+  type TwinDtdlContent,
+  type TwinDtdlInterface,
+  type TwinGraphOperation,
+  type TwinGraphOperationAction,
+  type TwinGraphQuery,
+  type TwinGraphQueryResult,
+  type TwinGraphServiceOptions,
+  type TwinGraphSnapshot,
+  type TwinHistoryReceipt,
+  type TwinNode,
+  type TwinNodeInput,
+  type TwinPropertyPredicate,
+  type TwinPropertyRecord,
+  type TwinPropertyValue,
+  type TwinReceiptTriad,
+  type TwinRelationship,
+  type TwinRelationshipInput,
+  type TwinRelationshipPredicate,
+  type TwinReplayVerification,
+  type TwinTelemetryBatch,
+  type TwinTelemetryRecord,
+  type TwinTelemetrySample,
+} from './TwinGraphService';
 
 // Layer 1 — Domain Solvers
 export { ThermalSolver, type ThermalConfig, type ThermalSource } from './ThermalSolver';
