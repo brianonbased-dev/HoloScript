@@ -17,6 +17,13 @@
 
 import { createHash } from 'crypto';
 import type {
+  HoloHubInstallCompatibility,
+  HoloHubInstallDependencies,
+  HoloHubInstallReceipt,
+  HoloHubInstallSignature,
+  HoloHubInstallX402,
+} from '@holoscript/framework/economy';
+import type {
   PluginPackageManifest,
   PluginSummary,
   PluginVersionInfo,
@@ -34,8 +41,10 @@ import type {
   AuthorProfileData,
   IPluginMarketplaceAPI,
   SignatureVerificationResult,
+  PluginInstallReceiptRequest,
+  PluginInstallReceiptResult,
 } from './PluginPackageSpec.js';
-import type { Author, RateLimitTier } from './types.js';
+import type { Author, Platform, RateLimitTier } from './types.js';
 import { RATE_LIMITS } from './types.js';
 import { PluginSignatureService } from './PluginSignatureService.js';
 import { VerificationService, RateLimiter, SpamDetector } from './VerificationService.js';
@@ -401,7 +410,15 @@ export class InMemoryPluginDatabase implements IPluginDatabase {
  */
 export interface PluginProvenanceEvent {
   /** Event type */
-  type: 'published' | 'signed' | 'verified' | 'downloaded' | 'rated' | 'deprecated' | 'revoked';
+  type:
+    | 'published'
+    | 'signed'
+    | 'verified'
+    | 'downloaded'
+    | 'rated'
+    | 'deprecated'
+    | 'revoked'
+    | 'install_receipt';
   /** When the event occurred */
   timestamp: Date;
   /** Actor who triggered the event (author name, system, etc.) */
@@ -767,6 +784,7 @@ export class PluginMarketplaceService implements IPluginMarketplaceAPI {
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
       publishedAt: now,
+      signature: request.signature?.signature,
     };
 
     // Store manifest
@@ -1069,6 +1087,220 @@ export class PluginMarketplaceService implements IPluginMarketplaceAPI {
   }
 
   // ── Signature Verification ──────────────────────────────────────────────
+
+  private buildInstallCompatibility(
+    manifest: PluginPackageManifest,
+    targetStudioVersion?: string,
+    targetPlatform?: string
+  ): HoloHubInstallCompatibility {
+    const warnings: string[] = [];
+    const errors: string[] = [];
+
+    if (targetStudioVersion) {
+      const required = manifest.compatibility.studioVersion;
+      const targetMatch = targetStudioVersion.match(/^(\d+)\.(\d+)/);
+      const requiredMatch = required.match(/^(?:>=)?(\d+)\.(\d+)/);
+      if (targetMatch && requiredMatch) {
+        const targetMajor = parseInt(targetMatch[1], 10);
+        const targetMinor = parseInt(targetMatch[2], 10);
+        const reqMajor = parseInt(requiredMatch[1], 10);
+        const reqMinor = parseInt(requiredMatch[2], 10);
+        if (targetMajor < reqMajor || (targetMajor === reqMajor && targetMinor < reqMinor)) {
+          errors.push(`Studio version ${targetStudioVersion} is below the required ${required}`);
+        }
+      }
+    }
+
+    if (targetPlatform && manifest.compatibility.platforms) {
+      const supported = manifest.compatibility.platforms;
+      if (!supported.includes('all') && !supported.includes(targetPlatform as Platform)) {
+        warnings.push(
+          `Platform '${targetPlatform}' is not in the plugin's supported platforms: ${supported.join(', ')}`
+        );
+      }
+    }
+
+    return {
+      targetStudioVersion,
+      targetPlatform,
+      compatible: errors.length === 0,
+      warnings,
+      errors,
+    };
+  }
+
+  async createInstallReceipt(
+    pluginId: string,
+    request: PluginInstallReceiptRequest = {}
+  ): Promise<PluginInstallReceiptResult> {
+    const plugin = await this.getPlugin(pluginId, request.version);
+    const manifest = plugin.manifest;
+    const versionInfo = plugin.versions.find((version) => version.version === manifest.version);
+    const downloadInfo = await this.downloadPlugin(pluginId, manifest.version);
+    const shasum = versionInfo?.shasum ?? downloadInfo.shasum;
+    const packageUrl = versionInfo?.packageUrl ?? downloadInfo.downloadUrl;
+    const sizeBytes = versionInfo?.size ?? downloadInfo.size;
+    const installDependencies = request.installDependencies !== false;
+    const dependencies: HoloHubInstallDependencies = installDependencies
+      ? {
+          installDependencies,
+          ...(await this.resolvePluginDependencies(pluginId, manifest.version)),
+        }
+      : { installDependencies, resolved: [], conflicts: [] };
+    const compatibility = this.buildInstallCompatibility(
+      manifest,
+      request.targetStudioVersion,
+      request.targetPlatform
+    );
+    const provenance = await this.getPluginProvenance(pluginId);
+    const signatureStatus =
+      versionInfo?.signatureStatus ?? (manifest.signature ? 'signed' : 'unsigned');
+    const signature: HoloHubInstallSignature = {
+      status: signatureStatus,
+      trusted: provenance.latestSignature?.trusted ?? false,
+      keyFingerprint: provenance.latestSignature?.keyFingerprint,
+      author: provenance.latestSignature?.author,
+      signedAt: provenance.latestSignature?.signedAt,
+      errors: signatureStatus === 'invalid' ? ['Stored plugin signature is invalid.'] : [],
+      warnings:
+        signatureStatus === 'unsigned'
+          ? ['Plugin package is unsigned; install is allowed but not trusted-signed.']
+          : [],
+    };
+
+    const isPaid = Boolean(manifest.pricing && manifest.pricing.model !== 'free');
+    const payment = request.payment ?? { status: isPaid ? 'required' : 'not_required' };
+    const x402: HoloHubInstallX402 = {
+      status: payment.status,
+      paymentId: payment.paymentId,
+      transactionHash: payment.transactionHash,
+      payerAddress: payment.payerAddress,
+      amount: payment.amount,
+      asset: payment.asset,
+      network: payment.network,
+      contentId: payment.contentId ?? manifest.id,
+      verifiedAt: payment.verifiedAt,
+      facilitator: payment.facilitator,
+    };
+    const grantedPermissions = request.grantedPermissions ?? [];
+    const plan = {
+      pluginId: manifest.id,
+      version: manifest.version,
+      name: manifest.name,
+      packageUrl,
+      shasum,
+      requestedPermissions: manifest.security.permissions,
+      grantedPermissions,
+      paymentStatus: x402.status,
+      signatureStatus,
+      compatibility: {
+        compatible: compatibility.compatible,
+        warnings: compatibility.warnings,
+        errors: compatibility.errors,
+      },
+      dependencies,
+    };
+
+    if (isPaid && x402.status !== 'verified') {
+      return {
+        success: false,
+        plan,
+        errors: ['Verified x402 payment receipt is required before generating an install receipt.'],
+      };
+    }
+
+    const decision =
+      compatibility.compatible && dependencies.conflicts.length === 0 ? 'installable' : 'blocked';
+    const generatedAt = new Date().toISOString();
+    const replayKey = [
+      'holohub',
+      manifest.id,
+      manifest.version,
+      shasum,
+      x402.paymentId ?? x402.status,
+    ].join(':');
+    const receiptId = `holohub_install_${createHash('sha256')
+      .update(replayKey)
+      .digest('hex')
+      .slice(0, 16)}`;
+    const { createHoloHubInstallReceipt, validateHoloHubInstallReceipt } = await import(
+      '@holoscript/framework/economy'
+    );
+    const receipt: HoloHubInstallReceipt = createHoloHubInstallReceipt({
+      schemaVersion: 'holohub.install-receipt.v0.1.0',
+      id: receiptId,
+      generatedAt,
+      artifact: {
+        kind: 'plugin',
+        id: manifest.id,
+        name: manifest.name,
+        version: manifest.version,
+        packageUrl,
+        shasum,
+        sizeBytes,
+        category: manifest.category,
+        author: manifest.author.name,
+        license: manifest.license,
+      },
+      listing: {
+        pricingModel: manifest.pricing?.model ?? 'free',
+        priceCents: manifest.pricing?.price,
+        currency: 'USD',
+        marketplaceUrl: `/plugins/${encodeURIComponent(manifest.id)}`,
+      },
+      x402,
+      signature,
+      compatibility,
+      dependencies,
+      permissions: {
+        requested: manifest.security.permissions,
+        granted: grantedPermissions,
+        trustLevel: manifest.security.trustLevel,
+      },
+      decision,
+      installCommand: `holoscript plugin install ${manifest.id}@${manifest.version}`,
+      replayKey,
+      provenance: [
+        'packages/framework/src/economy/holohub-install-receipt.ts',
+        'packages/marketplace-api/src/PluginMarketplaceService.ts',
+      ],
+    });
+
+    const receiptErrors = validateHoloHubInstallReceipt(receipt);
+    if (receiptErrors.length > 0) {
+      return {
+        success: false,
+        plan,
+        errors: receiptErrors,
+      };
+    }
+
+    this.recordProvenanceEvent(pluginId, {
+      type: 'install_receipt',
+      actor: 'system',
+      payload: {
+        version: manifest.version,
+        receiptId: receipt.id,
+        receiptHash: receipt.hash,
+        decision,
+        paymentStatus: x402.status,
+        signatureStatus,
+      },
+    });
+
+    const warnings = [
+      ...compatibility.warnings,
+      ...signature.warnings,
+      ...dependencies.conflicts.map((conflict) => `Dependency conflict: ${conflict}`),
+    ];
+
+    return {
+      success: true,
+      receipt,
+      plan,
+      warnings: warnings.length > 0 ? warnings : undefined,
+    };
+  }
 
   async verifyPluginSignature(
     _pluginId: string,

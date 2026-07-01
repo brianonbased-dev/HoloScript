@@ -91,6 +91,110 @@ export interface VersionInfo {
   deprecationMessage?: string;
 }
 
+export type PluginCategory =
+  | TraitCategory
+  | 'editor'
+  | 'workflow'
+  | 'export'
+  | 'collaboration'
+  | 'analytics'
+  | 'accessibility'
+  | 'marketplace'
+  | 'integration';
+
+export type PluginPricingModel = 'free' | 'paid' | 'freemium' | 'subscription';
+
+export interface PluginPricing {
+  model: PluginPricingModel;
+  price?: number;
+  monthlyPrice?: number;
+  annualPrice?: number;
+  trialDays?: number;
+}
+
+export interface PluginSummary {
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  author: Pick<Author, 'name' | 'verified'> & { avatarUrl?: string };
+  category: PluginCategory;
+  keywords: string[];
+  iconUrl?: string;
+  pricing?: PluginPricing;
+  downloads: number;
+  rating: number;
+  ratingCount: number;
+  verified: boolean;
+  deprecated: boolean;
+  signatureStatus: 'signed' | 'unsigned' | 'invalid';
+  platforms: Platform[];
+  permissions: string[];
+  updatedAt: Date;
+  createdAt: Date;
+}
+
+export interface HoloHubInstallReceipt {
+  schemaVersion: string;
+  id: string;
+  generatedAt: string;
+  artifact: {
+    kind: 'plugin' | 'trait';
+    id: string;
+    name: string;
+    version: string;
+    packageUrl: string;
+    shasum: string;
+    sizeBytes: number;
+  };
+  x402: {
+    status: 'not_required' | 'required' | 'verified' | 'unavailable';
+    paymentId?: string;
+    transactionHash?: string;
+    payerAddress?: string;
+    amount?: number;
+    asset?: string;
+    network?: string;
+  };
+  signature: {
+    status: 'signed' | 'unsigned' | 'invalid';
+    trusted: boolean;
+    keyFingerprint?: string;
+  };
+  decision: 'installable' | 'blocked';
+  replayKey: string;
+  hash: string;
+  hashAlgorithm: 'sha256';
+}
+
+export interface PluginInstallReceiptRequest {
+  version?: string;
+  targetStudioVersion?: string;
+  targetPlatform?: string;
+  installDependencies?: boolean;
+  grantedPermissions?: string[];
+  paymentId?: string;
+  payerAddress?: string;
+}
+
+export interface PluginInstallReceiptResult {
+  success: boolean;
+  receipt?: HoloHubInstallReceipt;
+  plan?: {
+    pluginId: string;
+    version: string;
+    name: string;
+    packageUrl: string;
+    shasum: string;
+    requestedPermissions: string[];
+    grantedPermissions: string[];
+    paymentStatus: HoloHubInstallReceipt['x402']['status'];
+    signatureStatus: HoloHubInstallReceipt['signature']['status'];
+  };
+  errors?: string[];
+  warnings?: string[];
+}
+
 //=============================================================================
 // Search & Filter Types
 //=============================================================================

@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
+import { pluginsApi } from '../lib/api';
 
 // Replicate MarketplaceApiError for testing
 class MarketplaceApiError extends Error {
@@ -91,5 +92,54 @@ describe('Search URL builder', () => {
   it('omits undefined fields', () => {
     const params = buildSearchParams({ q: 'test', category: undefined });
     expect(params).not.toContain('category');
+  });
+});
+
+describe('pluginsApi', () => {
+  it('posts install receipt requests with the x402 payment header', async () => {
+    const fetchMock = vi.fn(async () => {
+      return {
+        ok: true,
+        json: async () => ({
+          success: true,
+          data: {
+            success: true,
+            receipt: {
+              id: 'holohub_install_001',
+              hash: `sha256:${'a'.repeat(64)}`,
+              x402: { status: 'verified' },
+              signature: { status: 'signed', trusted: true },
+              decision: 'installable',
+            },
+          },
+        }),
+      } as Response;
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    try {
+      const result = await pluginsApi.createInstallReceipt(
+        '@test/paid-widget',
+        {
+          version: '1.0.0',
+          grantedPermissions: ['ui:panel'],
+        },
+        { paymentId: 'pay_001' }
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.receipt?.x402.status).toBe('verified');
+
+      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe('/api/plugins/%40test%2Fpaid-widget/install-receipt');
+      expect(init.method).toBe('POST');
+      expect(init.headers).toMatchObject({ 'x-payment-id': 'pay_001' });
+      expect(JSON.parse(String(init.body))).toMatchObject({
+        version: '1.0.0',
+        grantedPermissions: ['ui:panel'],
+      });
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

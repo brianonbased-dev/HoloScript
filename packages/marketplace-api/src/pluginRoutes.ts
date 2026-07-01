@@ -16,7 +16,11 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import type { PluginMarketplaceService } from './PluginMarketplaceService.js';
-import type { PluginCategory, PluginSearchQuery } from './PluginPackageSpec.js';
+import type {
+  PluginCategory,
+  PluginInstallReceiptRequest,
+  PluginSearchQuery,
+} from './PluginPackageSpec.js';
 import type { Platform } from './types.js';
 import type { x402PaymentService } from './x402PaymentService.js';
 import type { PluginPublishRequest } from './PluginPackageSpec.js';
@@ -542,6 +546,12 @@ export function createPluginMarketplaceRoutes(
     installDependencies: z.boolean().optional().default(true),
   });
 
+  const installReceiptSchema = installPlanSchema.extend({
+    grantedPermissions: z.array(z.string()).optional(),
+    paymentId: z.string().optional(),
+    payerAddress: z.string().optional(),
+  });
+
   /** POST /plugins/:id/install-plan - Server-side install plan with compatibility warnings */
   router.post(
     '/plugins/:id/install-plan',
@@ -654,6 +664,120 @@ export function createPluginMarketplaceRoutes(
   );
 
   // ── Purchase ────────────────────────────────────────────────────────────
+
+  /** POST /plugins/:id/install-receipt - Create a signed/x402-bound install receipt */
+  router.post(
+    '/plugins/:id/install-receipt',
+    validate(installReceiptSchema),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const { id } = req.params as { id: string };
+        const body = (req as AuthenticatedRequest).validated as {
+          version?: string;
+          targetStudioVersion?: string;
+          targetPlatform?: string;
+          installDependencies?: boolean;
+          grantedPermissions?: string[];
+          paymentId?: string;
+          payerAddress?: string;
+        };
+        const plugin = await marketplace.getPlugin(id, body.version);
+        const pricing = plugin.manifest.pricing;
+        const isPaid = Boolean(pricing && pricing.model !== 'free');
+        let payment: PluginInstallReceiptRequest['payment'] = { status: 'not_required' };
+
+        if (isPaid) {
+          if (!paymentService) {
+            res.status(503).json({
+              success: false,
+              error: { code: 'PAYMENT_UNAVAILABLE', message: 'Payment service is not configured.' },
+            });
+            return;
+          }
+
+          const paymentHeader = req.headers['x-payment-id'];
+          const paymentId =
+            body.paymentId ?? (Array.isArray(paymentHeader) ? paymentHeader[0] : paymentHeader);
+
+          if (!paymentId) {
+            const price = pricing?.price ?? 0;
+            paymentService.return402Response(res, {
+              payment_id: `x402_plugin_install_${id}_${Date.now()}_${Math.random()
+                .toString(36)
+                .slice(2, 11)}`,
+              price: price / 100,
+              asset: 'USDC',
+              network: 'base',
+              facilitator: 'https://cdp.coinbase.com/x402',
+              content_id: id,
+            });
+            return;
+          }
+
+          const receipt = await paymentService.verifyPayment(paymentId);
+          if (!receipt || !receipt.access_granted) {
+            const price = pricing?.price ?? 0;
+            paymentService.return402Response(res, {
+              payment_id: `x402_plugin_install_${id}_${Date.now()}_${Math.random()
+                .toString(36)
+                .slice(2, 11)}`,
+              price: price / 100,
+              asset: 'USDC',
+              network: 'base',
+              facilitator: 'https://cdp.coinbase.com/x402',
+              content_id: id,
+            });
+            return;
+          }
+
+          payment = {
+            status: 'verified',
+            paymentId: receipt.payment_id,
+            transactionHash: receipt.transaction_hash,
+            payerAddress: body.payerAddress ?? receipt.payer_address,
+            amount: receipt.amount,
+            asset: receipt.asset,
+            network: receipt.network,
+            contentId: receipt.content_id,
+            verifiedAt: new Date().toISOString(),
+            facilitator: 'https://cdp.coinbase.com/x402',
+          };
+        }
+
+        const result = await marketplace.createInstallReceipt(id, {
+          version: body.version,
+          targetStudioVersion: body.targetStudioVersion,
+          targetPlatform: body.targetPlatform,
+          installDependencies: body.installDependencies,
+          grantedPermissions: body.grantedPermissions,
+          payment,
+        });
+
+        if (!result.success) {
+          res.status(409).json({
+            success: false,
+            error: {
+              code: 'INSTALL_RECEIPT_BLOCKED',
+              message: result.errors?.[0] ?? 'Install receipt could not be generated.',
+            },
+            data: result,
+          });
+          return;
+        }
+
+        res.status(201).json({ success: true, data: result });
+      } catch (err) {
+        if ((err as Error).message.includes('not found')) {
+          res.status(404).json({
+            success: false,
+            error: { code: 'NOT_FOUND', message: (err as Error).message },
+          });
+          return;
+        }
+        next(err);
+      }
+    }
+  );
 
   /** POST /plugins/:id/purchase - Initiate x402 payment for a paid plugin */
   router.post('/plugins/:id/purchase', async (req: Request, res: Response, next: NextFunction) => {

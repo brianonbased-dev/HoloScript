@@ -762,6 +762,107 @@ describe('PluginMarketplaceService', () => {
     });
   });
 
+  describe('HoloHub install receipts', () => {
+    it('should require verified x402 payment before issuing paid install receipts', async () => {
+      await marketplace.publishPlugin(
+        {
+          manifest: {
+            ...sampleManifest,
+            id: '@test/paid-dashboard',
+            name: 'Paid Dashboard',
+            pricing: { model: 'paid', price: 250 },
+          },
+          bundle: 'dGVzdA==',
+        },
+        'test-token'
+      );
+
+      const result = await marketplace.createInstallReceipt('@test/paid-dashboard');
+
+      expect(result.success).toBe(false);
+      expect(result.errors?.[0]).toContain('Verified x402 payment receipt');
+      expect(result.plan?.paymentStatus).toBe('required');
+    });
+
+    it('should create a signed paid install receipt with x402 evidence', async () => {
+      const { PluginSignatureService } = await import('../PluginSignatureService.js');
+      const { validateHoloHubInstallReceipt } = await import('@holoscript/framework/economy');
+      const keypair = PluginSignatureService.generateKeypair();
+      const registeredKey = await marketplace.registerSigningKey(
+        keypair.publicKeyBase64,
+        'test-token'
+      );
+      const bundle = Buffer.from('console.log("paid signed widget")').toString('base64');
+      const contentHash = marketplace.getSignatureService().computeContentHash(bundle);
+      const signature = marketplace
+        .getSignatureService()
+        .createSignature(
+          contentHash,
+          keypair.privateKeyPem,
+          keypair.publicKeyBase64,
+          registeredKey.keyId
+        );
+
+      const published = await marketplace.publishPlugin(
+        {
+          manifest: {
+            ...sampleManifest,
+            id: '@test/paid-widget',
+            name: 'Paid Widget',
+            category: 'ui',
+            pricing: { model: 'paid', price: 250 },
+            security: {
+              permissions: ['scene:read', 'ui:panel'],
+              trustLevel: 'sandboxed',
+            },
+          },
+          bundle,
+          signature: {
+            signature: signature.signature,
+            publicKey: signature.publicKey,
+            keyId: registeredKey.keyId,
+          },
+        },
+        'test-token'
+      );
+
+      expect(published.success).toBe(true);
+      expect(published.signatureVerification?.valid).toBe(true);
+      expect(published.signatureVerification?.trusted).toBe(true);
+
+      const result = await marketplace.createInstallReceipt('@test/paid-widget', {
+        targetStudioVersion: '3.40.0',
+        targetPlatform: 'web',
+        grantedPermissions: ['ui:panel'],
+        payment: {
+          status: 'verified',
+          paymentId: 'pay_001',
+          transactionHash: `0x${'1'.repeat(64)}`,
+          payerAddress: `0x${'2'.repeat(40)}`,
+          amount: 2.5,
+          asset: 'USDC',
+          network: 'base',
+          contentId: '@test/paid-widget',
+          verifiedAt: '2026-07-01T12:00:00.000Z',
+        },
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.receipt).toBeDefined();
+      expect(validateHoloHubInstallReceipt(result.receipt!)).toEqual([]);
+      expect(result.receipt?.x402.status).toBe('verified');
+      expect(result.receipt?.signature.status).toBe('signed');
+      expect(result.receipt?.permissions.granted).toEqual(['ui:panel']);
+      expect(result.receipt?.hash).toMatch(/^sha256:[a-f0-9]{64}$/);
+
+      const provenance = await marketplace.getPluginProvenance('@test/paid-widget');
+      const receiptEvent = provenance.events.find((event: { type: string }) => {
+        return event.type === 'install_receipt';
+      });
+      expect(receiptEvent).toBeDefined();
+    }, 15000);
+  });
+
   describe('health', () => {
     it('should return health status', async () => {
       const health = await marketplace.getHealth();

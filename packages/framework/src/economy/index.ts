@@ -124,6 +124,32 @@ export {
   type WalletInfo,
 } from './InvisibleWallet';
 
+export {
+  HOLOHUB_INSTALL_RECEIPT_VERSION,
+  HOLOHUB_INSTALL_ARTIFACT_KINDS,
+  HOLOHUB_INSTALL_PAYMENT_STATUSES,
+  HOLOHUB_INSTALL_SIGNATURE_STATUSES,
+  HOLOHUB_INSTALL_DECISIONS,
+  createHoloHubInstallReceipt,
+  validateHoloHubInstallReceipt,
+  cloneHoloHubInstallReceipt,
+  isSupportedHoloHubInstallPaymentStatus,
+  isSupportedHoloHubInstallSignatureStatus,
+  isSupportedHoloHubInstallDecision,
+  type HoloHubInstallArtifactKind,
+  type HoloHubInstallPaymentStatus,
+  type HoloHubInstallSignatureStatus,
+  type HoloHubInstallDecision,
+  type HoloHubInstallArtifact,
+  type HoloHubInstallListing,
+  type HoloHubInstallX402,
+  type HoloHubInstallSignature,
+  type HoloHubInstallCompatibility,
+  type HoloHubInstallDependencies,
+  type HoloHubInstallPermissions,
+  type HoloHubInstallReceipt,
+} from './holohub-install-receipt';
+
 // X402 AST Asset Licensing (Phase 2 task _zoje)
 export {
   LICENSE_KINDS,

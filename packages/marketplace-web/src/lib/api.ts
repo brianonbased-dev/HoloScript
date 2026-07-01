@@ -14,6 +14,8 @@ import type {
   DependencyTree,
   TraitRating,
   ApiError,
+  PluginInstallReceiptRequest,
+  PluginInstallReceiptResult,
 } from '../types';
 
 //=============================================================================
@@ -171,6 +173,35 @@ export const traitsApi = {
 };
 
 //=============================================================================
+// Plugin API
+//=============================================================================
+
+export const pluginsApi = {
+  /**
+   * Create a portable HoloHub install receipt for a plugin.
+   */
+  async createInstallReceipt(
+    id: string,
+    installRequest: PluginInstallReceiptRequest = {},
+    options: { paymentId?: string; signal?: AbortSignal } = {}
+  ): Promise<PluginInstallReceiptResult> {
+    const headers: Record<string, string> = {};
+    const paymentId = options.paymentId ?? installRequest.paymentId;
+    if (paymentId) headers['x-payment-id'] = paymentId;
+
+    return request<PluginInstallReceiptResult>(
+      `/plugins/${encodeURIComponent(id)}/install-receipt`,
+      {
+        method: 'POST',
+        body: installRequest,
+        headers,
+        signal: options.signal,
+      }
+    );
+  },
+};
+
+//=============================================================================
 // Dependency API
 //=============================================================================
 
@@ -295,6 +326,7 @@ export const healthApi = {
 
 export const marketplaceApi = {
   traits: traitsApi,
+  plugins: pluginsApi,
   dependencies: dependenciesApi,
   ratings: ratingsApi,
   users: usersApi,

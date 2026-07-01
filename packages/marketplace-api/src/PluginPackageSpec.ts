@@ -18,6 +18,7 @@
  * @module marketplace-api/PluginPackageSpec
  */
 
+import type { HoloHubInstallPaymentStatus, HoloHubInstallReceipt } from '@holoscript/framework/economy';
 import type { TraitCategory, Platform, LicenseType, Author } from './types.js';
 
 type SandboxPermission = string;
@@ -693,6 +694,76 @@ export interface PluginInstallResult {
   warnings?: string[];
 }
 
+/**
+ * x402 payment evidence bound into a HoloHub install receipt.
+ */
+export interface PluginInstallReceiptPayment {
+  status: HoloHubInstallPaymentStatus;
+  paymentId?: string;
+  transactionHash?: string;
+  payerAddress?: string;
+  amount?: number;
+  asset?: string;
+  network?: string;
+  contentId?: string;
+  verifiedAt?: string;
+  facilitator?: string;
+}
+
+/**
+ * Server-side request to generate a portable HoloHub install receipt.
+ */
+export interface PluginInstallReceiptRequest {
+  /** Specific version to install (default: latest) */
+  version?: string;
+  /** Studio version that will receive the plugin */
+  targetStudioVersion?: string;
+  /** Target platform for compatibility checks */
+  targetPlatform?: string;
+  /** Whether to include dependency resolution in the receipt */
+  installDependencies?: boolean;
+  /** Permissions granted by the installer/user */
+  grantedPermissions?: SandboxPermission[];
+  /** Verified payment evidence for paid plugins */
+  payment?: PluginInstallReceiptPayment;
+}
+
+/**
+ * Install plan summary returned beside the canonical receipt.
+ */
+export interface PluginInstallReceiptPlan {
+  pluginId: string;
+  version: string;
+  name: string;
+  packageUrl: string;
+  shasum: string;
+  requestedPermissions: SandboxPermission[];
+  grantedPermissions: SandboxPermission[];
+  paymentStatus: HoloHubInstallPaymentStatus;
+  signatureStatus: 'signed' | 'unsigned' | 'invalid';
+  compatibility: {
+    compatible: boolean;
+    warnings: string[];
+    errors: string[];
+  };
+  dependencies: {
+    installDependencies: boolean;
+    resolved: Array<{ pluginId: string; version: string }>;
+    conflicts: string[];
+  };
+}
+
+/**
+ * Result of creating a HoloHub install receipt.
+ */
+export interface PluginInstallReceiptResult {
+  success: boolean;
+  receipt?: HoloHubInstallReceipt;
+  plan?: PluginInstallReceiptPlan;
+  errors?: string[];
+  warnings?: string[];
+}
+
 // =============================================================================
 // MARKETPLACE UI DATA TYPES
 // =============================================================================
@@ -884,6 +955,10 @@ export interface IPluginMarketplaceAPI {
     pluginId: string,
     version?: string
   ): Promise<{ downloadUrl: string; shasum: string; size: number }>;
+  createInstallReceipt(
+    pluginId: string,
+    request?: PluginInstallReceiptRequest
+  ): Promise<PluginInstallReceiptResult>;
   recordPluginDownload(pluginId: string, version: string): Promise<void>;
 
   // ── Signature Verification ────────────────────────────────────────────────
