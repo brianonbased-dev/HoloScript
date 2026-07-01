@@ -227,6 +227,13 @@ export default defineConfig({
     'onnxruntime-node',
     'onnxruntime-web',
     'onnxruntime-common',
+    // Externalize Playwright's browser automation stack. ComputerUseTrait loads
+    // it lazily at runtime; bundling follows Playwright internal subpaths that
+    // are intentionally package-export guarded.
+    'playwright',
+    'playwright-core',
+    /^playwright-core\//,
+    /^chromium-bidi\//,
     // Externalize WebGPU Dawn binding — native C++ addon that must be
     // require()'d at runtime, not bundled. The ensureNodeWebGpuSync() path
     // uses require('webgpu') which only works if the package stays external.
