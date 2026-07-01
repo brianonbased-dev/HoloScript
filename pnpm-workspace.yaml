@@ -4,6 +4,9 @@ packages:
   - 'services/*'
   - 'benchmarks/*'
 
+# Fail before a global pnpm can mutate install state when packageManager pins a different pnpm.
+pmOnFail: error
+
 peerDependencyRules:
   ignoreMissing:
     - '@neondatabase/serverless'

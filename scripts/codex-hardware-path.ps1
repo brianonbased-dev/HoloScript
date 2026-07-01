@@ -1,4 +1,4 @@
-# Restore Codex hardware shell resolution for Node, Corepack, and pnpm.
+# Restore Codex hardware shell resolution for Node, Corepack, and packageManager-pinned pnpm.
 #
 # Codex Desktop can put an inaccessible WindowsApps-packaged node.exe ahead of
 # the real runtime. This script installs lightweight command shims in a stable
@@ -17,9 +17,8 @@ $NpmRoot = Join-Path $env:APPDATA "npm"
 $ShimRoot = Join-Path $env:USERPROFILE ".codex\hardware-bin"
 $NodeExe = Join-Path $NodeRoot "node.exe"
 $CorepackCmd = Join-Path $NodeRoot "corepack.cmd"
-$PnpmCmd = Join-Path $NpmRoot "pnpm.cmd"
 
-foreach ($required in @($NodeExe, $CorepackCmd, $PnpmCmd)) {
+foreach ($required in @($NodeExe, $CorepackCmd)) {
     if (-not (Test-Path -LiteralPath $required)) {
         throw "Required runtime component not found: $required"
     }
@@ -163,7 +162,6 @@ function Install-Shims {
     $NodeRootSh = Convert-ToShPath $NodeRoot
     $NpmRootSh = Convert-ToShPath $NpmRoot
     $CorepackCmdSh = Convert-ToShPath $CorepackCmd
-    $PnpmCmdSh = Convert-ToShPath $PnpmCmd
     $NodeGypPythonSh = Convert-ToShPath $ResolvedNodeGypPython
 
     Write-CmdShim -Root $Root -Name "node.cmd" -Body @"
@@ -182,7 +180,7 @@ call "$CorepackCmd" %*
 @echo off
 set "npm_config_python=$ResolvedNodeGypPython"
 set "PATH=$NodeRoot;$NpmRoot;%PATH%"
-call "$PnpmCmd" %*
+call "$CorepackCmd" pnpm %*
 "@
 
     Write-ShShim -Root $Root -Name "node" -Body @"
@@ -201,7 +199,7 @@ exec "$CorepackCmdSh" "`$@"
 #!/usr/bin/env sh
 export npm_config_python="$NodeGypPythonSh"
 export PATH="${NodeRootSh}:${NpmRootSh}:`$PATH"
-exec "$PnpmCmdSh" "`$@"
+exec "$CorepackCmdSh" pnpm "`$@"
 "@
 }
 

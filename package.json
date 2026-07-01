@@ -11,8 +11,11 @@
     "benchmarks/*"
   ],
   "scripts": {
-    "build": "node scripts/check-pnpm-install-needed.mjs && pnpm --filter @holoscript/core run build && pnpm -r --workspace-concurrency=1 --filter=!@holoscript/core --filter=!@holoscript/tauri-app run --if-present build",
-    "build:parallel": "pnpm -r build",
+    "preinstall": "node scripts/check-pnpm-package-manager.mjs",
+    "build": "node scripts/check-pnpm-package-manager.mjs && node scripts/check-pnpm-install-needed.mjs && corepack pnpm --filter @holoscript/core run build && corepack pnpm -r --workspace-concurrency=1 --filter=!@holoscript/core --filter=!@holoscript/tauri-app run --if-present build",
+    "build:parallel": "corepack pnpm -r build",
+    "check:pnpm-package-manager": "node scripts/check-pnpm-package-manager.mjs",
+    "check:pnpm-package-manager:test": "node scripts/__tests__/check-pnpm-package-manager.test.mjs",
     "dev": "pnpm -r --parallel dev",
     "test": "node scripts/run-root-tests.mjs",
     "test:coverage": "pnpm -r --filter=!holoscript test:coverage",
