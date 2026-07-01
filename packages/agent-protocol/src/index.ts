@@ -321,3 +321,25 @@ export {
   hsnapSourceToCanonicalTaskEnvelope,
 } from './task-bridge-schema';
 export type { A2ASendMessageRequest, CanonicalTaskEnvelope } from './task-bridge-schema';
+
+export {
+  AGENTCORE_ADAPTER_CONTRACT_SCHEMA_VERSION,
+  AGENTCORE_PRIMITIVE_MAPPINGS,
+  buildAgentCoreAdapterDryRun,
+  validateAgentCoreAdapterReceipt,
+} from './agentcore-adapter-contract';
+export type {
+  AgentCoreAdapterContractSchema,
+  AgentCoreAdapterReceipt,
+  AgentCoreAdapterReceiptInput,
+  AgentCoreAdapterReceiptValidation,
+  AgentCoreEvaluationReceiptRef,
+  AgentCoreGatewayExposure,
+  AgentCoreIdentityBoundary,
+  AgentCoreManifestFields,
+  AgentCoreMemoryMapping,
+  AgentCorePolicyPack,
+  AgentCorePrimitiveMapping,
+  AgentCorePrimitiveOwnership,
+  AgentCoreRegistryMetadata,
+} from './agentcore-adapter-contract';

@@ -1,0 +1,35 @@
+// @agentcore_adapter_contract - AWS Bedrock AgentCore adapter contract (CG-025).
+// Native .hsplus surface for agentcore-adapter-contract.ts (agent-protocol).
+//
+// Declares the static mapping between AgentCore operational primitives
+// (runtime, memory, MCP gateway, identity, policy, evaluations, registry)
+// and their HoloScript-native equivalents (HoloMesh, HoloKey, CAEL, x402).
+// Every primitive is classified sovereign (HoloScript already owns it) or
+// bridge-only (AWS-substrate feature HoloScript maps to but does not
+// replicate). The dry-run receipt this trait emits carries zero secrets and
+// zero live credentials — it names fields, it does not hold values from a
+// real AWS account.
+
+@trait agentcore_adapter_contract {
+  schema_version: String = "holoscript.agentcore-adapter-contract.v1"
+  no_secret_dry_run: Bool = true
+  capability_tags: ["agent_protocol", "agentcore", "aws-bedrock", "adapter_contract", "receipt_schema", "competitor-gap"]
+
+  @on_build_dry_run(fixture_agent) => {
+    receipt = build_agent_core_adapter_dry_run(fixture_agent)
+    emit("agentcore_adapter_dry_run_built", { agent_id: fixture_agent.fixtureAgentId })
+    return receipt
+  }
+
+  @on_validate_receipt(receipt) => {
+    result = validate_agent_core_adapter_receipt(receipt)
+    emit("agentcore_adapter_receipt_validated", { valid: result.valid })
+    return result
+  }
+
+  @receipt agentcore_adapter_contract_config {
+    type: "AgentCoreAdapterContractReceipt"
+    schema_version: schema_version
+    no_secret_dry_run: no_secret_dry_run
+  }
+}
