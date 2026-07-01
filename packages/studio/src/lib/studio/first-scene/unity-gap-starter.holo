@@ -1,0 +1,79 @@
+// CG-001 first-scene proof for Unity-gap onboarding.
+// HoloGate is the docs umbrella term; this scene names the concrete tool chain:
+// HoloKey custody, umbrella routing, triad receipts, profiler proof,
+// asset-pack loop, and R3F performance-regression evidence.
+composition "UnityGapFirstSceneProof" {
+  metadata {
+    task: "CG-001"
+    hologate_scope: "umbrella-docs-term"
+    native_authoring: "holo"
+    quickstart_entry: "packages/studio/src/app/api/studio/quickstart/route.ts"
+    quickstart_wizard: "packages/studio/src/components/wizard/QuickStartWizard.tsx"
+    profiler_panel: "packages/studio/src/lib/studio/panels/profiler.holo"
+    asset_pack_endpoint: "/api/asset-packs"
+    asset_pack_native_surface: "packages/studio/src/app/api/asset-packs/asset_packs_route.hsplus"
+    asset_pack_panel: "packages/studio/src/lib/studio/panels/assetPack.holo"
+    r3f_performance_receipt: "packages/r3f-renderer/src/hooks/usePerformanceRegression.hsplus"
+  }
+
+  scene "FirstHourStudioPath" {
+    object "HoloKeyCustody" @holokey @credential_receipt {
+      geometry: "cube"
+      position: [-1.8, 1, -3]
+      scale: [0.45, 0.45, 0.45]
+      color: "#16a34a"
+      state: {
+        custody_surface: "HoloKey"
+        secret_policy: "no_inline_keys"
+        verifies: "first_scene_entry"
+      }
+    }
+
+    object "UmbrellaRouter" @hologate @umbrella_route @quickstart_visible {
+      geometry: "sphere"
+      position: [0, 1, -3]
+      scale: [0.5, 0.5, 0.5]
+      color: "#2563eb"
+      state: {
+        umbrella_term: "HoloGate"
+        route: "/api/studio/quickstart"
+        concrete_tools: ["HoloKey", "umbrella", "triad", "profiler", "asset_pack", "r3f_perf"]
+      }
+    }
+
+    object "TriadReceipt" @triad_receipt @performance_proof @profiler {
+      geometry: "cube"
+      position: [1.8, 1, -3]
+      scale: [0.45, 0.45, 0.45]
+      color: "#f59e0b"
+      state: {
+        profiler_panel: "packages/studio/src/lib/studio/panels/profiler.holo"
+        renderer_receipt: "packages/r3f-renderer/src/hooks/usePerformanceRegression.hsplus"
+        triad: ["native_scene", "profiler_panel", "performance_receipt"]
+      }
+    }
+
+    object "StarterAssetLoop" @asset_pack @marketplace_loop @studio_onboarding {
+      geometry: "plane"
+      position: [0, 0.2, -2.4]
+      scale: [2.8, 0.1, 1]
+      color: "#14b8a6"
+      state: {
+        endpoint: "/api/asset-packs"
+        panel: "packages/studio/src/lib/studio/panels/assetPack.holo"
+        loop: ["browse_pack", "install_pack", "place_scene_node", "profile_frame_budget"]
+      }
+    }
+
+    camera "FirstSceneCamera" {
+      position: [0, 2.2, 4.8]
+      lookAt: [0, 0.9, -3]
+    }
+
+    light "StudioKeyLight" {
+      type: "directional"
+      intensity: 1.4
+      position: [4, 6, 3]
+    }
+  }
+}

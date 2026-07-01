@@ -16,6 +16,28 @@ const MCP_EXTERNAL_URL = ENDPOINTS.MCP_ORCHESTRATOR;
 const STUDIO_URL = process.env.NEXT_PUBLIC_STUDIO_URL || 'https://holoscript.studio';
 const MCP_URL = process.env.MCP_HOLOSCRIPT_URL || 'https://mcp.holoscript.net';
 
+export const FIRST_SCENE_PROOF = {
+  name: 'Unity Gap First Scene Proof',
+  source_path: 'packages/studio/src/lib/studio/first-scene/unity-gap-starter.holo',
+  studio_entry: '/api/studio/quickstart',
+  wizard_component: 'packages/studio/src/components/wizard/QuickStartWizard.tsx',
+  profiler_panel: 'packages/studio/src/lib/studio/panels/profiler.holo',
+  asset_pack_endpoint: '/api/asset-packs',
+  asset_pack_native_surface: 'packages/studio/src/app/api/asset-packs/asset_packs_route.hsplus',
+  asset_pack_panel: 'packages/studio/src/lib/studio/panels/assetPack.holo',
+  r3f_performance_receipt: 'packages/r3f-renderer/src/hooks/usePerformanceRegression.hsplus',
+  hologate_scope:
+    'HoloGate is a docs umbrella; this proof uses concrete HoloKey, umbrella routing, triad receipt, profiler, asset-pack, and R3F performance surfaces.',
+  proof_markers: [
+    'HoloKey custody',
+    'umbrella routing',
+    'triad receipt',
+    'native profiler panel',
+    'asset pack loop',
+    'R3F performance regression receipt',
+  ],
+} as const;
+
 const HELLO_WORLD_SCENE = `scene HelloWorld {
   object Cube {
     position: [0, 1, 0]
@@ -94,7 +116,23 @@ export async function POST(_request: NextRequest) {
         mcp_tool: 'generate_scene',
         example: { prompt: 'A floating island with a waterfall' },
       },
+      {
+        name: 'First Scene Proof',
+        description:
+          'Open the Unity-gap starter scene with HoloKey custody, umbrella routing, triad receipt, profiler, asset-pack, and R3F performance proof links.',
+        mcp_tool: 'compile_holoscript',
+        source: FIRST_SCENE_PROOF.source_path,
+        panels: [FIRST_SCENE_PROOF.profiler_panel, FIRST_SCENE_PROOF.asset_pack_panel],
+        endpoint: FIRST_SCENE_PROOF.asset_pack_endpoint,
+        performance_receipt: FIRST_SCENE_PROOF.r3f_performance_receipt,
+        example: {
+          code: `load("${FIRST_SCENE_PROOF.source_path}")`,
+          target: 'studio-first-scene',
+        },
+      },
     ],
+
+    first_scene: FIRST_SCENE_PROOF,
 
     mcp_config: {
       studio: `${STUDIO_URL}/api/mcp/call`,
@@ -114,6 +152,8 @@ export async function POST(_request: NextRequest) {
       compile: 'POST /api/mcp/call { tool: "compile_holoscript", args: { code, target } }',
       generate: 'POST /api/generate { prompt, style? }',
       export: 'POST /api/export { sceneId, format }',
+      asset_packs: 'GET /api/asset-packs',
+      first_scene: 'GET source: packages/studio/src/lib/studio/first-scene/unity-gap-starter.holo',
       health: 'GET /api/health',
       mcp_config: 'GET /api/studio/mcp-config?format=claude|cursor|generic',
       capabilities: 'GET /api/studio/capabilities',
