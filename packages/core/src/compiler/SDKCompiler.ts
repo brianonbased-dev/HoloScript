@@ -380,9 +380,10 @@ export class SDKCompiler extends CompilerBase {
       `  async ${endpoint.name}(${args}): Promise<${endpoint.responseType}> {`,
     ];
 
+    const paramsExpression = this.paramsExpression(endpoint);
     if (endpoint.params.some((param) => param.location === 'path')) {
       lines.push(
-        `    const path = SDKRuntime.interpolatePath('${this.escapeStringValue(endpoint.path, 'TypeScript')}', params);`
+        `    const path = SDKRuntime.interpolatePath('${this.escapeStringValue(endpoint.path, 'TypeScript')}', ${paramsExpression});`
       );
     } else {
       lines.push(`    const path = '${this.escapeStringValue(endpoint.path, 'TypeScript')}';`);
@@ -393,7 +394,7 @@ export class SDKCompiler extends CompilerBase {
       .map((param) => param.name);
     if (queryParamNames.length > 0) {
       lines.push(
-        `    const query = SDKRuntime.pickQuery(params, ${JSON.stringify(queryParamNames)});`
+        `    const query = SDKRuntime.pickQuery(${paramsExpression}, ${JSON.stringify(queryParamNames)});`
       );
     }
 
@@ -410,10 +411,21 @@ export class SDKCompiler extends CompilerBase {
 
   private methodArgs(endpoint: ContractEndpoint): string {
     const parts: string[] = [];
-    if (endpoint.params.length > 0) parts.push(`params: ${this.paramsInterfaceName(endpoint)}`);
+    if (endpoint.params.length > 0) {
+      const optional = this.allParamsOptional(endpoint) ? '?' : '';
+      parts.push(`params${optional}: ${this.paramsInterfaceName(endpoint)}`);
+    }
     if (endpoint.requestBodyType) parts.push(`body: ${endpoint.requestBodyType}`);
     parts.push('options?: SDKRequestOptions');
     return parts.join(', ');
+  }
+
+  private paramsExpression(endpoint: ContractEndpoint): string {
+    return this.allParamsOptional(endpoint) ? 'params ?? {}' : 'params';
+  }
+
+  private allParamsOptional(endpoint: ContractEndpoint): boolean {
+    return endpoint.params.length > 0 && endpoint.params.every((param) => param.optional);
   }
 
   private requestOptionsExpression(endpoint: ContractEndpoint): string {
@@ -724,18 +736,20 @@ export class SDKCompiler extends CompilerBase {
       '    return new Promise((resolve) => setTimeout(resolve, ms));',
       '  }',
       '',
-      '  static interpolatePath(path: string, params: Record<string, unknown>): string {',
+      '  static interpolatePath(path: string, params: object): string {',
+      '    const values = params as Record<string, unknown>;',
       '    return path.replace(/\\{([^}]+)\\}/g, (_match, name: string) => {',
-      '      const value = params[name];',
+      '      const value = values[name];',
       '      if (value === undefined || value === null) throw new Error(`Missing path param: ${name}`);',
       '      return encodeURIComponent(String(value));',
       '    });',
       '  }',
       '',
-      '  static pickQuery(params: Record<string, unknown>, names: readonly string[]): Record<string, unknown> {',
+      '  static pickQuery(params: object, names: readonly string[]): Record<string, unknown> {',
+      '    const values = params as Record<string, unknown>;',
       '    const query: Record<string, unknown> = {};',
       '    for (const name of names) {',
-      '      if (params[name] !== undefined) query[name] = params[name];',
+      '      if (values[name] !== undefined) query[name] = values[name];',
       '    }',
       '    return query;',
       '  }',
@@ -921,7 +935,7 @@ export class SDKCompiler extends CompilerBase {
   }
 
   private relativeRuntimeImport(): string {
-    return `./${this.options.runtimeFileName.replace(/\.ts$/, '')}`;
+    return `./${this.options.runtimeFileName.replace(/\.ts$/, '.js')}`;
   }
 }
 
