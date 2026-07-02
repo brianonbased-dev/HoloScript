@@ -882,16 +882,19 @@ async function handleParseHs(args: Record<string, unknown>) {
   try {
     const parser = new HoloScriptPlusParser();
     const result = parser.parse(code);
+    const errors = result.errors || [];
+    const warnings = result.warnings || [];
+    const success = result.success === true && errors.length === 0;
 
     // Deduplicate AST: root-level 'body' duplicates 'children'
     const ast = result.ast;
     if (ast && typeof ast === 'object' && 'body' in ast && 'children' in ast) {
       const { body: _body, ...cleanAst } = ast as Record<string, unknown>;
       return {
-        success: true,
+        success,
         ast: cleanAst,
-        errors: result.errors || [],
-        warnings: result.warnings || [],
+        errors,
+        warnings,
         ...(args.includeSourceMap
           ? { sourceMap: (result as unknown as Record<string, unknown>).sourceMap }
           : {}),
@@ -899,10 +902,10 @@ async function handleParseHs(args: Record<string, unknown>) {
     }
 
     return {
-      success: true,
+      success,
       ast,
-      errors: result.errors || [],
-      warnings: result.warnings || [],
+      errors,
+      warnings,
       ...(args.includeSourceMap
         ? { sourceMap: (result as unknown as Record<string, unknown>).sourceMap }
         : {}),
@@ -921,11 +924,13 @@ async function handleParseHolo(args: Record<string, unknown>) {
 
   try {
     const result = strict ? parseHoloStrict(code) : parseHolo(code);
+    const errors = ('errors' in result ? result.errors : []) || [];
+    const parseSuccess = 'success' in result ? result.success !== false : true;
 
     return {
-      success: true,
+      success: parseSuccess && errors.length === 0,
       composition: result,
-      errors: ('errors' in result ? result.errors : []) || [],
+      errors,
     };
   } catch (error) {
     return {

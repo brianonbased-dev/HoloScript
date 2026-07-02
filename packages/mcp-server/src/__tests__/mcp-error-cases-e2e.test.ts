@@ -135,9 +135,10 @@ describe('MCP Tool Error Cases', () => {
     const result = (await handleTool('parse_hs', {
       code: 'not valid holoscript {',
     })) as Record<string, unknown>;
-    // Parser may return success=true with warnings/errors rather than throwing
     expect(typeof result).toBe('object');
     expect(Array.isArray(result.errors)).toBe(true);
+    expect((result.errors as unknown[]).length).toBeGreaterThan(0);
+    expect(result.success).toBe(false);
   });
 
   it('generate_scene fails gracefully without description', async () => {
