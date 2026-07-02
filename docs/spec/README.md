@@ -26,14 +26,16 @@ uaa2-service genesis:
 |--------|------|---------------|----------------------------|--------|
 | `.holo` | Spatial **IR** — scenes, entities, transforms | **HOLO VM** (spatial) | `core/compiler/HolobCompiler.ts` → `@holoscript/holo-vm` (`executor.ts`) | ✅ wired + e2e-tested to pixels (2026-06-05) |
 | `.hsplus` | **Traits / brains** — declarative behavior authoring | uAAL handler-extension arch | parsed by `@holoscript/core` | ⚠️ parsed; native authoring coverage ~1.32% of traits |
-| `.hs` | **Logic** — imperative/cognitive programs | **uAAL** (cognitive) | Rust/WASM grammar (`packages/compiler-wasm`); `.hs→Kotlin` emitter (2026-06-21) | ⚠️ grammar parses; emitter young; not wired to the uaal VM |
+| `.hs` | **Logic** — imperative/cognitive programs | **uAAL** (cognitive) | Rust/WASM grammar (`packages/compiler-wasm`); `.hs→Kotlin` emitter (2026-06-21) | ⚠️ grammar parses; emitter young; direct `.hs`→UAAL lowering remains unwired |
 
 > **The load-bearing gap:** the cognitive runtime (`@holoscript/uaal`, 1,666 LOC, a real
-> compiler + VM) compiles from its **own "Intent DSL"**, *not* from the canonical
-> `.hs`/`.hsplus` parser. There is no `--target uaal` in the CLI and the core compiler does
-> not emit UAAL bytecode. The pipeline `(.hs/.hsplus → uAA2++ compiler → UAAL bytecode → VM)`
-> documented in [`../agents/uaal-vm.md`](../agents/uaal-vm.md) is **half-real**: the VM and a
-> compiler exist; the bridge from the real grammar does not. See
+> compiler + VM) still has an Intent-DSL compiler of its own, while the canonical
+> parser bridge is only partially wired. Current reality: `holo compile --target uaal`
+> exists for `.holo` compositions with behavior/action blocks and lowers through
+> `UaalBehaviorCompiler` into `.uaal` bytecode. The remaining gap is direct
+> `.hs`/`.hsplus` lowering to UAAL bytecode plus richer control-flow coverage. The pipeline
+> `(.hs/.hsplus → uAA2++ compiler → UAAL bytecode → VM)` documented in
+> [`../agents/uaal-vm.md`](../agents/uaal-vm.md) is therefore **partial**, not absent. See
 > [`spec-vs-reality-gap.md`](./spec-vs-reality-gap.md).
 
 ## Provenance
