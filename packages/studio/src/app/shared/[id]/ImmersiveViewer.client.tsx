@@ -51,6 +51,20 @@ type ParsedObject = {
   traits: string[];
 };
 
+type PortableMindSnapshot = {
+  identity: {
+    wallet?: string | null;
+    agentId?: string | null;
+  };
+  memories: Array<{ id?: string; content: string; score?: number }>;
+};
+
+function shortWallet(wallet?: string | null): string {
+  if (!wallet) return 'wallet pending';
+  if (wallet.length <= 12) return wallet;
+  return `${wallet.slice(0, 6)}...${wallet.slice(-4)}`;
+}
+
 /** Minimal AST -> ParsedObject extraction for the viewer. */
 function extractObjects(source: string): {
   objects: ParsedObject[];
@@ -651,6 +665,51 @@ export function ImmersiveViewer({ code, sceneName, name, agentId }: ImmersiveVie
     'idle'
   );
   const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
+  const [portableMind, setPortableMind] = useState<PortableMindSnapshot | null>(null);
+  const [portableMindError, setPortableMindError] = useState<string | null>(null);
+  const resolvedAgentId = useMemo(
+    () =>
+      agentId ??
+      (typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search).get('agent')
+        : null),
+    [agentId]
+  );
+
+  useEffect(() => {
+    if (!resolvedAgentId) {
+      setPortableMind(null);
+      setPortableMindError(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    let cancelled = false;
+    setPortableMind(null);
+    setPortableMindError(null);
+
+    fetch(`/api/portable-mind/${encodeURIComponent(resolvedAgentId)}`, {
+      signal: controller.signal,
+    })
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
+      .then((payload: PortableMindSnapshot) => {
+        if (!cancelled) setPortableMind(payload);
+      })
+      .catch((error: unknown) => {
+        const name =
+          error && typeof error === 'object' && 'name' in error
+            ? String((error as { name?: unknown }).name)
+            : '';
+        if (!cancelled && name !== 'AbortError') {
+          setPortableMindError(error instanceof Error ? error.message : 'mind load failed');
+        }
+      });
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [resolvedAgentId]);
 
   // Set up three.js scene + animation loop
   useEffect(() => {
@@ -662,7 +721,9 @@ export function ImmersiveViewer({ code, sceneName, name, agentId }: ImmersiveVie
     // Cap pixel ratio: the Quest Browser reports a high devicePixelRatio that,
     // multiplied by the flat panel size, can blow past the GL renderbuffer limit
     // and leave the canvas black. min(dpr, 2) keeps the buffer in-bounds.
-    renderer.setPixelRatio(Math.min(typeof window !== 'undefined' ? window.devicePixelRatio : 1, 2));
+    renderer.setPixelRatio(
+      Math.min(typeof window !== 'undefined' ? window.devicePixelRatio : 1, 2)
+    );
     renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
     renderer.xr.enabled = true;
     renderer.setClearColor(0x0a0a12, 1);
@@ -734,14 +795,6 @@ export function ImmersiveViewer({ code, sceneName, name, agentId }: ImmersiveVie
     camera.lookAt(0, 1, 0);
     cameraRef.current = camera;
 
-    // Embodied agent: the `agentId` prop (native page declaration) wins; otherwise
-    // fall back to ?agent= in the URL (the warehouse path — unchanged).
-    const resolvedAgentId =
-      agentId ??
-      (typeof window !== 'undefined'
-        ? new URLSearchParams(window.location.search).get('agent')
-        : null);
-
     // User locomotion (move + smooth-turn + teleport) and NPC embodiment, both
     // from the shared @holoscript/xr-embodiment package — no longer hardcoded here,
     // so every VR scene inherits the same mobility (F.118) and agent-avatar tracking.
@@ -792,7 +845,7 @@ export function ImmersiveViewer({ code, sceneName, name, agentId }: ImmersiveVie
       sceneRef.current = null;
       cameraRef.current = null;
     };
-  }, [parsed]);
+  }, [parsed, resolvedAgentId]);
 
   // Agent-avatar tracking now lives in the scene effect above (AgentAvatarTracker
   // from @holoscript/xr-embodiment) — no separate effect needed.
@@ -1020,6 +1073,14 @@ export function ImmersiveViewer({ code, sceneName, name, agentId }: ImmersiveVie
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [xrActive]);
 
+  const portableMindLabel = resolvedAgentId
+    ? portableMind?.identity.wallet
+      ? `${shortWallet(portableMind.identity.wallet)} | ${portableMind.memories.length} memories`
+      : portableMindError
+        ? 'mind offline'
+        : 'mind loading'
+    : null;
+
   return (
     <div
       style={{
@@ -1037,6 +1098,18 @@ export function ImmersiveViewer({ code, sceneName, name, agentId }: ImmersiveVie
       >
         <div style={{ color: '#e2e8f0', fontSize: 13, fontWeight: 500 }}>
           3D Preview — {parsed.objects.length} object{parsed.objects.length === 1 ? '' : 's'}
+          {portableMindLabel && (
+            <span
+              title={portableMindError ?? undefined}
+              style={{
+                color: portableMindError ? '#fca5a5' : '#93c5fd',
+                marginLeft: 8,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {portableMindLabel}
+            </span>
+          )}
           {!parsed.parseOk && (
             <span style={{ color: '#f97316', marginLeft: 8 }}>(parse failed: {parsed.error})</span>
           )}
