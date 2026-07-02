@@ -37,6 +37,13 @@ export interface StoredScene {
   thumbnail?: string;
   /** Whether thumbnail generation is in progress */
   thumbnailPending?: boolean;
+  /**
+   * Explicit opt-in flag: whether this scene may appear in the public feed
+   * (GET /api/public/feed). Default undefined/falsy = NOT feed-visible.
+   * Only the anonymous consumer-generation endpoint and createShareLink()
+   * set this to true -- every other storeScene() call site leaves it unset.
+   */
+  listPublic?: boolean;
 }
 
 /** In-memory scene store. Replace with Redis/SQLite for production persistence. */
@@ -56,6 +63,13 @@ export interface StoreSceneOptions {
   author?: string;
   license?: string;
   provenance?: SceneProvenance;
+  /**
+   * Explicit opt-in: mark this scene as feed-visible (GET /api/public/feed).
+   * Default undefined/falsy = NOT feed-visible. Only set `true` at genuine
+   * public-sharing-intent call sites (POST /api/public/generate,
+   * createShareLink()) -- never default this to true here.
+   */
+  listPublic?: boolean;
 }
 
 /**
@@ -96,6 +110,7 @@ export function storeScene(
     author: opts.author,
     license: opts.license,
     provenance: opts.provenance,
+    listPublic: opts.listPublic,
   };
   sceneStore.set(id, scene);
   return scene;
@@ -123,6 +138,35 @@ export function findSceneByAuthor(username: string, name: string): StoredScene |
     }
   }
   return null;
+}
+
+/**
+ * List the most recent PUBLIC-feed-visible scenes (listPublic === true only),
+ * newest first, projected to a lightweight field set (no `code` -- the full
+ * source is fetchable per-scene via GET /scene/:id).
+ *
+ * Safety design: this is the ONLY read path that turns "obscure but
+ * technically public" (GET /scene/:id with a random 8-char ID) into "actively
+ * discoverable". Scenes stored via /api/publish, /api/scene, /api/deploy,
+ * /api/protocol, etc. do NOT set listPublic and are therefore never returned
+ * here, even though they live in the same sceneStore.
+ */
+export function listRecentPublicScenes(
+  limit = 20
+): Array<Pick<StoredScene, 'id' | 'title' | 'description' | 'createdAt' | 'author' | 'thumbnail'>> {
+  const publicScenes = Array.from(sceneStore.values())
+    .filter((scene) => scene.listPublic === true)
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .slice(0, limit);
+
+  return publicScenes.map((scene) => ({
+    id: scene.id,
+    title: scene.title,
+    description: scene.description,
+    createdAt: scene.createdAt,
+    author: scene.author,
+    thumbnail: scene.thumbnail,
+  }));
 }
 
 // =============================================================================
@@ -366,8 +410,10 @@ export async function createShareLink(options: ShareOptions): Promise<ShareResul
     }
   }
 
-  // Store scene and generate short URLs
-  const scene = storeScene(code, title, description);
+  // Store scene and generate short URLs. listPublic:true is the explicit
+  // "share this" intent signal -- this call site is one of exactly two that
+  // may set it (see StoreSceneOptions / listRecentPublicScenes doc comments).
+  const scene = storeScene(code, { title, description, listPublic: true });
   const playgroundUrl = `${PLAYGROUND_URL}/scene/${scene.id}`;
   const embedUrl = `${PLAYGROUND_URL}/embed/${scene.id}`;
 

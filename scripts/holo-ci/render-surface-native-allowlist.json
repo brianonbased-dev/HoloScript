@@ -105,6 +105,7 @@
     "packages/studio/src/app/dev/ui-graph/page.tsx",
     "packages/studio/src/app/earn/page.tsx",
     "packages/studio/src/app/error.tsx",
+    "packages/studio/src/app/feed/page.tsx",
     "packages/studio/src/app/g/[hash]/HologramPageClient.tsx",
     "packages/studio/src/app/g/[hash]/page.tsx",
     "packages/studio/src/app/gram/[hash]/page.tsx",

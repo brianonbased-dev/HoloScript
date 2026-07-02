@@ -1,0 +1,10 @@
+// @use_feed — useFeed hook: Studio hook for fetching the WS-2 public feed of shared HoloScript worlds.
+//
+// Native .hsplus surface for studio/src/hooks/useFeed.ts.
+
+@trait use_feed {
+  capability_tags: ["use_feed", "public_shared_worlds_feed", "sovereign_web_consumer_loop", "studio"]
+  @on_spawn => { emit("use_feed_ready", {}) }
+  @on_reload(limit) => { feed = fetch_public_feed(limit); return feed }
+  @receipt use_feed_config { type: "UseFeedReceipt"; timestamp: now() }
+}

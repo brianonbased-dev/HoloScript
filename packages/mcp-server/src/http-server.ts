@@ -41,6 +41,7 @@ import {
   createShareLink,
   getScene,
   storeScene,
+  listRecentPublicScenes,
   type SceneProvenance,
   findSceneByAuthor,
   generateBrowserTemplate,
@@ -3655,6 +3656,33 @@ const httpServer = http.createServer(async (req, res) => {
     return;
   }
 
+  // GET /api/public/feed — WS-2 sovereign-web consumer loop MVP: public feed
+  // of shared worlds. Read-only, in-memory list operation -- deliberately NOT
+  // layered with rate limiting/quota/spend-cap machinery like the generation
+  // endpoints above; that machinery bounds LLM-generation cost, which does not
+  // apply here. Only scenes explicitly opted in via listPublic:true (set at
+  // exactly 2 call sites: POST /api/public/generate and createShareLink()) are
+  // returned -- every other storeScene() call site in this file is untouched
+  // and stays feed-invisible by default.
+  if (url?.startsWith('/api/public/feed') && req.method === 'GET') {
+    // Base is a parser anchor only (WHATWG URL requires an absolute base to
+    // parse a path+query string) -- no network request is made. Matches the
+    // existing `new URL(url, 'http://localhost')` pattern used elsewhere in
+    // this file for incoming-request query parsing (e.g. line ~2691).
+    const parsedUrl = new URL(url, 'http://localhost');
+    const limitParam = parseInt(parsedUrl.searchParams.get('limit') || '20', 10);
+    const limit = Number.isFinite(limitParam) ? Math.min(50, Math.max(1, limitParam)) : 20;
+
+    const scenes = listRecentPublicScenes(limit).map((scene) => ({
+      ...scene,
+      previewUrl: `/scene/${scene.id}`,
+    }));
+
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ scenes }));
+    return;
+  }
+
   // POST /api/public/generate — WS-1 anonymous consumer generation tier.
   // Deliberately NOT part of PUBLIC_ANON_TOOLS/_handleSingleToolLogic above --
   // this routes through the REAL ForkSandboxGate (handleTool -> runForkSandboxGate
@@ -3875,6 +3903,7 @@ const httpServer = http.createServer(async (req, res) => {
       const stored = storeScene(generatedCode, {
         title: 'Consumer-generated scene',
         description: promptText || 'Generated via the anonymous consumer tier',
+        listPublic: true,
       });
 
       // Budget is spent ONLY here, on a genuinely successful, validated
