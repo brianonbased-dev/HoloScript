@@ -903,6 +903,8 @@ export async function handleCompilerTool(
       return handleCompileToTarget({ ...args, target: 'holob' });
     case 'compile_to_openapi':
       return handleCompileToTarget({ ...args, target: 'openapi' });
+    case 'compile_to_sdk':
+      return handleCompileToTarget({ ...args, target: 'sdk' });
     case 'compile_to_onnx':
       return handleCompileToTarget({ ...args, target: 'onnx' });
     case 'compile_to_flutter':
@@ -2255,6 +2257,37 @@ export const compilerTools: Tool[] = [
           properties: {
             format: { type: 'string', enum: ['json', 'yaml'], description: 'Output format (default: json).' },
             title: { type: 'string', description: 'API title for the OpenAPI info block.' },
+          },
+        },
+      },
+      required: ['code'],
+    },
+  },
+
+  // SDK client generation
+  {
+    name: 'compile_to_sdk',
+    description:
+      'Compile a HoloScript .holo service-contract to a typed TypeScript SDK client + runtime shim. ' +
+      'Derives methods, request/response types, and error taxonomy from the same contract AST that ' +
+      'compile_to_openapi/compile_to_node_service/compile_to_a2a_agent_card consume — the client is a ' +
+      'pure derivation, never hand-authored.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript source code (.holo service-contract).' },
+        options: {
+          type: 'object',
+          properties: {
+            language: { type: 'string', enum: ['typescript'], description: 'Target SDK language (default: typescript).' },
+            clientClassName: { type: 'string', description: 'Generated client class name.' },
+            packageName: { type: 'string', description: 'npm package name for the generated SDK.' },
+            outputDir: { type: 'string', description: 'Output directory for generated SDK files.' },
+            clientFileName: { type: 'string', description: 'Filename for the generated client (default: <ClientClassName>.ts).' },
+            runtimeFileName: { type: 'string', description: 'Filename for the shared runtime shim (default: sdk-runtime.ts).' },
+            includePackageJson: { type: 'boolean', description: 'Emit a package.json for the generated SDK.' },
+            includeTsConfig: { type: 'boolean', description: 'Emit a tsconfig.json for the generated SDK.' },
+            includeReadme: { type: 'boolean', description: 'Emit a README.md for the generated SDK.' },
           },
         },
       },
