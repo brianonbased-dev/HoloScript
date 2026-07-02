@@ -135,7 +135,8 @@ function readMoltbookApiKeyForRoute(): string {
 }
 
 import { resolveStoreRoot } from './hologram-renderer';
-import { isHologramMcpResponse, wrapHologramMcpEnvelope } from '@holoscript/core';
+import { isHologramMcpResponse, wrapHologramMcpEnvelope, parseHolo } from '@holoscript/core';
+import { buildContentPolicyConfig, evaluateContentPolicySync } from '@holoscript/core/policy';
 import { promises as fsPromises } from 'fs';
 import { join as pathJoin, extname as pathExtname, basename as pathBasename } from 'path';
 import { handleSovereign3DRoute } from './sovereign-3d-backend';
@@ -373,6 +374,47 @@ const PUBLIC_ANON_TOOLS: ReadonlySet<string> = new Set([
   'list_export_targets',
 ]);
 const PUBLIC_ANON_RATE_LIMIT = parseInt(process.env.PUBLIC_ANON_RATE_LIMIT || '30', 10);
+
+// ── WS-1 (2026-07-02): anonymous consumer generation tier ──────────────────
+// Deliberately SEPARATE from PUBLIC_ANON_TOOLS/_handleSingleToolLogic above --
+// that path bypasses runForkSandboxGate entirely (verified: index.ts
+// _handleSingleToolLogic dispatches straight off TOOL_DISPATCH_REGISTRY, no
+// gate call). generate_scene/generate_world_from_prompt reach an LLM and must
+// stay gated. This endpoint routes through handleTool() -> runForkSandboxGate()
+// with source:'consumer', which only resolves to a real (non-denying) policy
+// when HOLOSCRIPT_CONSUMER_TIER_ENABLED='true' (see sandbox-policy.ts
+// resolvePolicy()) -- unset by default, so this endpoint 403s until explicitly
+// enabled per-environment (staged rollout, not a silent global flip).
+const CONSUMER_GENERATION_TOOLS: ReadonlySet<string> = new Set([
+  'generate_scene',
+  'generate_world_from_prompt',
+]);
+const CONSUMER_GEN_RATE_LIMIT = parseInt(process.env.HOLOSCRIPT_CONSUMER_GEN_RATE_LIMIT || '5', 10);
+// Mandatory daily quota per IP (founder decision 2026-07-02: a per-minute rate
+// limit alone bounds RATE, not total distinct-IP fan-out COST against an LLM
+// that anonymous, unauthenticated traffic can reach). Local counter -- kept
+// inside mcp-server's own dependency graph rather than importing studio's
+// creditGate cross-package for a security-sensitive anonymous path.
+const CONSUMER_GEN_DAILY_QUOTA = parseInt(process.env.HOLOSCRIPT_CONSUMER_GEN_DAILY_QUOTA || '20', 10);
+const consumerGenDailyBuckets = new Map<string, { count: number; resetAt: number }>();
+function checkConsumerGenDailyQuota(ip: string): { allowed: boolean; remaining: number; resetAt: number } {
+  const now = Date.now();
+  let bucket = consumerGenDailyBuckets.get(ip);
+  if (!bucket || bucket.resetAt <= now) {
+    bucket = { count: 0, resetAt: now + 24 * 60 * 60 * 1000 };
+    consumerGenDailyBuckets.set(ip, bucket);
+  }
+  const allowed = bucket.count < CONSUMER_GEN_DAILY_QUOTA;
+  if (allowed) bucket.count++;
+  return { allowed, remaining: Math.max(0, CONSUMER_GEN_DAILY_QUOTA - bucket.count), resetAt: bucket.resetAt };
+}
+// Family-tier content policy (same tier/pattern as hololandFamilyPolicyConfig in
+// hololand-mcp-tools.ts) -- anonymous callers get the strictest borderline
+// threshold and mandatory LLM consult, not a looser default.
+const consumerGenerationPolicyConfig = buildContentPolicyConfig({
+  tier: 'family',
+  region: process.env.HOLOLAND_POLICY_REGION || 'GLOBAL',
+});
 
 function getRateLimit(
   ip: string,
@@ -3606,6 +3648,188 @@ const httpServer = http.createServer(async (req, res) => {
       const result = await _handleSingleToolLogic(tool, args);
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify(result));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ error: 'tool_execution_failed', message }));
+    }
+    return;
+  }
+
+  // POST /api/public/generate — WS-1 anonymous consumer generation tier.
+  // Deliberately NOT part of PUBLIC_ANON_TOOLS/_handleSingleToolLogic above --
+  // this routes through the REAL ForkSandboxGate (handleTool -> runForkSandboxGate
+  // with source:'consumer'), which only allows a non-denying policy when
+  // HOLOSCRIPT_CONSUMER_TIER_ENABLED='true'. Every other sensitive tool is
+  // completely unreachable from this endpoint (CONSUMER_GENERATION_TOOLS is a
+  // fixed allowlist of exactly 2 tool names).
+  if (url === '/api/public/generate' && req.method === 'POST') {
+    // Per-minute rate limit (bounds request RATE).
+    const rl = getRateLimit(`consumer-gen:${clientIP}`, CONSUMER_GEN_RATE_LIMIT);
+    setRateLimitHeaders(res, rl);
+    if (rl.remaining === 0) {
+      res.writeHead(429, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(
+        JSON.stringify({
+          error: 'rate_limit_exceeded',
+          message: `Consumer generation tier limited to ${CONSUMER_GEN_RATE_LIMIT} requests/minute per IP.`,
+          retry_after_seconds: Math.max(1, Math.ceil((rl.resetAt - Date.now()) / 1000)),
+        })
+      );
+      return;
+    }
+
+    // Mandatory daily quota (bounds total distinct-IP fan-out COST against an
+    // LLM -- founder decision 2026-07-02, see the resolvePolicy() comment above).
+    const quota = checkConsumerGenDailyQuota(clientIP);
+    if (!quota.allowed) {
+      res.writeHead(429, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(
+        JSON.stringify({
+          error: 'daily_quota_exceeded',
+          message: `Consumer generation tier limited to ${CONSUMER_GEN_DAILY_QUOTA} generations/day per IP.`,
+          resets_at: new Date(quota.resetAt).toISOString(),
+        })
+      );
+      return;
+    }
+
+    // Abuse/evasion heuristics (subnet fan-out, bearer-token rotation, XFF spoofing) --
+    // the same detector every other MCP surface uses (http-server.ts:629 precedent).
+    try {
+      const bypass = await checkRateLimitBypass({
+        toolName: 'generate_scene_or_world',
+        directIp: clientIP,
+        rawXForwardedFor: readXForwardedFor(req),
+      });
+      if (!bypass.allowed) {
+        res.writeHead(429, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'bypass_denied', code: bypass.reason || 'bypass_denied' }));
+        return;
+      }
+    } catch {
+      // Fail-open on the detector's OWN internal error only (never on a real denial,
+      // which is handled above) -- an availability bug in the heuristic must not
+      // become an outage for legitimate anonymous traffic.
+    }
+
+    try {
+      const body = await parseJsonBody(req);
+      const tool = body.tool as string | undefined;
+      const args = (body.arguments as Record<string, unknown> | undefined) || {};
+
+      if (!tool || typeof tool !== 'string' || !CONSUMER_GENERATION_TOOLS.has(tool)) {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify({
+            error: 'invalid_request',
+            message: `tool must be one of: ${Array.from(CONSUMER_GENERATION_TOOLS).join(', ')}`,
+          })
+        );
+        return;
+      }
+
+      // Input content-policy screen (P.013 pattern, same as hololand-mcp-tools.ts
+      // NPC dialogue screening) BEFORE any model spend.
+      const promptText = typeof args.description === 'string' ? args.description : '';
+      if (promptText) {
+        const inputDecision = evaluateContentPolicySync(
+          { text: promptText, surface: 'consumer-generation', direction: 'input' },
+          consumerGenerationPolicyConfig
+        );
+        if (!inputDecision.allowed) {
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(
+            JSON.stringify({
+              success: false,
+              error: 'Input blocked by content policy.',
+              action: inputDecision.action,
+              category: inputDecision.category,
+            })
+          );
+          return;
+        }
+      }
+
+      // The real gate: handleTool() -> runForkSandboxGate({source:'consumer'}).
+      // Denies (unless HOLOSCRIPT_CONSUMER_TIER_ENABLED=true) exactly like every
+      // other caller of these 2 tool names today.
+      const gated = await handleTool(tool, args, undefined, 'consumer');
+      const gatedRecord = gated as { success?: boolean; error?: string; content?: Array<{ text?: string }> };
+      if (gatedRecord?.success === false) {
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify(gatedRecord));
+        return;
+      }
+
+      // Extract the generated .holo code from the tool's response envelope.
+      const rawText = gatedRecord?.content?.[0]?.text ?? '';
+      let generatedCode = '';
+      try {
+        const parsed = JSON.parse(rawText);
+        generatedCode = typeof parsed?.code === 'string' ? parsed.code : '';
+      } catch {
+        generatedCode = typeof rawText === 'string' ? rawText : '';
+      }
+
+      if (!generatedCode) {
+        res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ success: false, error: 'generation_produced_no_code' }));
+        return;
+      }
+
+      // Output content-policy screen BEFORE returning generated content to the client.
+      const outputDecision = evaluateContentPolicySync(
+        { text: generatedCode, surface: 'consumer-generation', direction: 'output' },
+        consumerGenerationPolicyConfig
+      );
+      if (!outputDecision.allowed) {
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify({
+            success: false,
+            error: 'Output blocked by content policy.',
+            action: outputDecision.action,
+            category: outputDecision.category,
+          })
+        );
+        return;
+      }
+
+      // Structural-validity backstop: reject garbage/empty output using the SAME
+      // parser every other HoloScript surface trusts (parseHolo, strict mode) --
+      // reused directly rather than importing studio's cross-package validator.
+      const parsedHolo = parseHolo(generatedCode, { tolerant: false, strict: true });
+      if (!parsedHolo.success || !parsedHolo.ast) {
+        res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify({
+            success: false,
+            error: 'generated_output_failed_structural_validation',
+            details: parsedHolo.errors,
+          })
+        );
+        return;
+      }
+
+      // Route through the capped, LRU-evicted preview store -- NEVER world
+      // persistence. generate_world_from_prompt's own handler already never
+      // calls worldRegistry.set (only handleCreateWorld does); this is a second,
+      // independent guarantee at the HTTP boundary.
+      const stored = storeScene(generatedCode, {
+        title: 'Consumer-generated scene',
+        description: promptText || 'Generated via the anonymous consumer tier',
+      });
+
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(
+        JSON.stringify({
+          success: true,
+          sceneId: stored.id,
+          previewUrl: `/scene/${stored.id}`,
+          code: generatedCode,
+        })
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });

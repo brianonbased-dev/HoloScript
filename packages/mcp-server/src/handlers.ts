@@ -298,7 +298,13 @@ const ALL_TRAITS: readonly string[] = VR_TRAITS;
 export async function handleTool(
   name: string,
   args: Record<string, unknown>,
-  signingCtx?: SigningContext
+  signingCtx?: SigningContext,
+  // WS-1 (2026-07-02): optional override for the ForkSandboxGate subject source,
+  // defaulting to 'unknown' for every existing caller (zero behavior change).
+  // The ONLY intended caller of a non-default value is the new anonymous
+  // consumer-generation endpoint (http-server.ts POST /api/public/generate),
+  // which passes 'consumer' -- never set this from any other call site.
+  subjectSourceOverride?: import('./security/sandbox-policy').SandboxSubjectSource
 ): Promise<unknown> {
   // ── Fork Sandbox Gate (canary task_1778618757735_zpt5) ──────────────────────────
   // Block forked/untrusted HoloScript code and sensitive tools before they
@@ -324,7 +330,7 @@ export async function handleTool(
   const gateResult = await runForkSandboxGate(
     {
       kind: 'mcp_tool',
-      source: 'unknown',
+      source: subjectSourceOverride ?? 'unknown',
       subjectId: `mcp:${name}`,
       payload: args,
       manifest: capabilityManifest,
