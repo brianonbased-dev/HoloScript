@@ -5,6 +5,23 @@ import type { HoloBrainDecl } from './HoloScriptPlusParser';
 describe('HoloScriptPlusParser - Extended Features', () => {
   const parser = new HoloScriptPlusParser({ enableVRTraits: true });
 
+  it('parses closing-brace EOF dedent the same as trailing newline', () => {
+    const withoutTrailingNewline = 'orb Sword @grabbable @throwable {\n  geometry: "model/sword.glb"\n}';
+    const withTrailingNewline = `${withoutTrailingNewline}\n`;
+
+    const withoutResult = parser.parse(withoutTrailingNewline);
+    const withResult = parser.parse(withTrailingNewline);
+
+    expect(withoutResult.success).toBe(true);
+    expect(withoutResult.errors).toEqual([]);
+    expect(withResult.success).toBe(true);
+    expect(withResult.errors).toEqual([]);
+    expect(withoutResult.ast.root.directives).toEqual(withResult.ast.root.directives);
+    expect(withoutResult.ast.root.directives.find((directive) => directive.name === 'throwable')).toMatchObject({
+      config: { geometry: 'model/sword.glb' },
+    });
+  });
+
   it('Parses @networked trait correctly', () => {
     const source = `cube#networked_box @networked(sync_mode: "reliable", authority: "owner") { position: [1, 2, 3] }`;
     const result = parser.parse(source);

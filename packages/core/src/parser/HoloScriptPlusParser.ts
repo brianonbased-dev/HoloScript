@@ -241,15 +241,25 @@ class Lexer {
         this.pendingDedents--;
       }
 
+      if (this.column === 1) {
+        const beforePos = this.pos;
+        const beforeTokenCount = this.tokens.length;
+        const beforePendingDedents = this.pendingDedents;
+        this.handleIndentation();
+        if (
+          this.pos !== beforePos ||
+          this.tokens.length !== beforeTokenCount ||
+          this.pendingDedents !== beforePendingDedents
+        ) {
+          continue;
+        }
+      }
+
       const char = this.source[this.pos];
 
       // Skip whitespace (but track indentation at line start)
       if (char === ' ' || char === '\t') {
-        if (this.column === 1) {
-          this.handleIndentation();
-        } else {
-          this.advance();
-        }
+        this.advance();
         continue;
       }
 
