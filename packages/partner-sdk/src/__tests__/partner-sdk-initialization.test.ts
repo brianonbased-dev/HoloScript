@@ -148,15 +148,15 @@ describe('createPartnerAnalytics', () => {
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 describe('Error classes', () => {
   it('RateLimitError is an Error subclass', () => {
-    const err = new RateLimitError();
+    const err = new RateLimitError('Rate limit exceeded', 429, 60);
     expect(err).toBeInstanceOf(Error);
-    expect(err.name).toBe('RateLimitError');
+    expect(err.name).toBe('SDKRateLimitError');
   });
 
   it('AuthenticationError is an Error subclass', () => {
-    const err = new AuthenticationError('Invalid key');
+    const err = new AuthenticationError('Invalid key', 401);
     expect(err).toBeInstanceOf(Error);
-    expect(err.name).toBe('AuthenticationError');
+    expect(err.name).toBe('SDKAuthenticationError');
     expect(err.message).toContain('Invalid key');
   });
 

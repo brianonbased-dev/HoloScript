@@ -1,10 +1,10 @@
 // HoloScript Package Registry API — service contract (SSOT)
 //
 // This .holo composition is the single source of truth for the service that
-// packages/partner-sdk/src/api/RegistryClient.ts talks to. The hand-written
-// RegistryClient is scheduled to be replaced by `compile_to_sdk` (SDK 2-5/7),
-// which consumes THIS contract's AST to emit the typed client. Until then, this
-// file and the TS client MUST stay in lock-step — the client is derived from
+// packages/partner-sdk/src/api/RegistryClient.ts talks to. RegistryClient.ts is
+// emitted by `compile_to_sdk` (SDK 2-5/7), which consumes THIS contract's AST to
+// emit the typed client. This file and the generated TS client MUST stay in
+// lock-step: the client is derived from
 // this contract, not the other way around.
 //
 // Bootstrapped via generate_service_contract (OpenAPI → .holo) from the
@@ -43,9 +43,18 @@ composition "HoloScriptPackageRegistryAPI" {
   }
 
   schema "SearchResult" @schema @contract {
+    packages: array<SearchPackage>
     total: number
     page: number
     pageSize: number
+  }
+
+  schema "SearchPackage" @schema @contract {
+    name: string
+    version: string
+    description?: string
+    certified: boolean
+    downloads: number
   }
 
   schema "DownloadPoint" @schema @contract {

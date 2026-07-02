@@ -4,7 +4,7 @@
  * Access download statistics, usage metrics, and engagement data.
  */
 
-import { RegistryClient, PartnerCredentials } from '../api/RegistryClient';
+import { RegistryClient, type PartnerCredentials } from '../api';
 
 /**
  * Time period for analytics queries

@@ -133,48 +133,47 @@ describe('RegistryClient', () => {
 
   describe('getPackage', () => {
     it('should fetch package information', async () => {
-      const response = await client.getPackage('@test/package');
+      const response = await client.getPackage({ name: '@test/package' });
 
-      expect(response.success).toBe(true);
-      expect(response.data).toBeDefined();
-      expect(response.data?.name).toBe('@test/package');
+      expect(response.name).toBe('@test/package');
     });
 
     it('should include rate limit information', async () => {
-      const response = await client.getPackage('@test/package');
+      await client.getPackage({ name: '@test/package' });
+      const status = client.getRateLimitStatus();
 
-      expect(response.rateLimit).toBeDefined();
-      expect(response.rateLimit?.remaining).toBeGreaterThan(0);
-      expect(response.rateLimit?.limit).toBeGreaterThan(0);
+      expect(status).toBeDefined();
+      expect(status?.remaining).toBeGreaterThan(0);
+      expect(status?.limit).toBeGreaterThan(0);
     });
   });
 
   describe('search', () => {
     it('should search for packages', async () => {
-      const response = await client.search('holoscript');
+      const response = await client.search({ q: 'holoscript' });
 
-      expect(response.success).toBe(true);
-      expect(response.data?.packages).toBeInstanceOf(Array);
-      expect(response.data?.total).toBeGreaterThanOrEqual(0);
+      expect(response.packages).toBeInstanceOf(Array);
+      expect(response.total).toBeGreaterThanOrEqual(0);
     });
 
     it('should support search options', async () => {
-      const response = await client.search('holoscript', {
+      const response = await client.search({
+        q: 'holoscript',
         page: 1,
         pageSize: 10,
         certified: true,
         sort: 'downloads',
       });
 
-      expect(response.success).toBe(true);
+      expect(response.total).toBeGreaterThanOrEqual(0);
     });
   });
 
   describe('getVersion', () => {
     it('should fetch specific version info', async () => {
-      const response = await client.getVersion('@test/package', '1.0.0');
+      const response = await client.getVersion({ name: '@test/package', version: '1.0.0' });
 
-      expect(response.success).toBe(true);
+      expect(response.version).toBe('1.0.0');
     });
   });
 
@@ -182,18 +181,17 @@ describe('RegistryClient', () => {
     it('should validate partner credentials', async () => {
       const response = await client.validateCredentials();
 
-      expect(response.success).toBe(true);
-      expect(response.data?.valid).toBe(true);
-      expect(response.data?.partnerId).toBe('test-partner');
+      expect(response.valid).toBe(true);
+      expect(response.partnerId).toBe('test-partner');
     });
   });
 
   describe('rate limit tracking', () => {
     it('should track rate limit status', async () => {
-      await client.getPackage('@test/package');
+      await client.getPackage({ name: '@test/package' });
 
       const status = client.getRateLimitStatus();
-      expect(status.remaining).toBeGreaterThan(0);
+      expect(status?.remaining).toBeGreaterThan(0);
     });
   });
 });
@@ -477,20 +475,24 @@ describe('PartnerAnalytics', () => {
 describe('Error Classes', () => {
   describe('RateLimitError', () => {
     it('should store retry information', () => {
-      const error = new RateLimitError(60, 1000);
+      const error = new RateLimitError('Rate limit exceeded', 429, 60, {
+        remaining: 0,
+        limit: 1000,
+        resetAt: new Date().toISOString(),
+      });
 
-      expect(error.name).toBe('RateLimitError');
-      expect(error.retryAfter).toBe(60);
-      expect(error.limit).toBe(1000);
-      expect(error.message).toContain('60 seconds');
+      expect(error.name).toBe('SDKRateLimitError');
+      expect(error.retryAfterSeconds).toBe(60);
+      expect(error.rateLimit?.limit).toBe(1000);
+      expect(error.message).toContain('Rate limit exceeded');
     });
   });
 
   describe('AuthenticationError', () => {
     it('should have correct name', () => {
-      const error = new AuthenticationError('Invalid credentials');
+      const error = new AuthenticationError('Invalid credentials', 401);
 
-      expect(error.name).toBe('AuthenticationError');
+      expect(error.name).toBe('SDKAuthenticationError');
       expect(error.message).toBe('Invalid credentials');
     });
   });
