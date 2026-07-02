@@ -79,6 +79,7 @@ import {
   readBearerToken,
   readXForwardedFor,
 } from './security/bypass-detection';
+import { checkConsumerGlobalSpendCap, recordConsumerGeneration } from './security/consumer-spend-guard';
 import { ensureMcpOtelTracer, withMcpToolExecutionSpan } from './telemetry/mcp-tool-tracing';
 import { getOAuth2Provider, OAUTH2_SCOPES } from './auth/oauth2-provider';
 import type { TokenStoreBackend } from './auth/token-store';
@@ -3663,6 +3664,12 @@ const httpServer = http.createServer(async (req, res) => {
   // HOLOSCRIPT_CONSUMER_TIER_ENABLED='true'. Every other sensitive tool is
   // completely unreachable from this endpoint (CONSUMER_GENERATION_TOOLS is a
   // fixed allowlist of exactly 2 tool names).
+  // Spend layering: the per-IP daily quota below bounds cost PER CALLER, but
+  // has no ceiling on aggregate cost across many distinct anonymous IPs each
+  // hitting their own quota. checkConsumerGlobalSpendCap()
+  // (security/consumer-spend-guard.ts) adds a SHARED rolling-24h call-count
+  // cap on top of the per-IP quota to bound total exposure to paid frontier
+  // LLM fallthrough (see that module's header for the full gap writeup).
   if (url === '/api/public/generate' && req.method === 'POST') {
     // Per-minute rate limit (bounds request RATE).
     const rl = getRateLimit(`consumer-gen:${clientIP}`, CONSUMER_GEN_RATE_LIMIT);
@@ -3689,6 +3696,34 @@ const httpServer = http.createServer(async (req, res) => {
           error: 'daily_quota_exceeded',
           message: `Consumer generation tier limited to ${CONSUMER_GEN_DAILY_QUOTA} generations/day per IP.`,
           resets_at: new Date(quota.resetAt).toISOString(),
+        })
+      );
+      return;
+    }
+
+    // Global (cross-IP) daily call-count cap -- bounds AGGREGATE spend across
+    // all anonymous callers, on top of the per-IP quota above (see
+    // security/consumer-spend-guard.ts header for the gap this closes).
+    // Fail-closed: any thrown error is treated as denied, never allowed.
+    try {
+      const globalCap = checkConsumerGlobalSpendCap();
+      if (!globalCap.allowed) {
+        res.writeHead(429, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify({
+            error: 'global_capacity_exceeded',
+            message: 'The shared daily generation budget for the anonymous consumer tier is exhausted across all users.',
+            resets_at: new Date(globalCap.resetAt).toISOString(),
+          })
+        );
+        return;
+      }
+    } catch {
+      res.writeHead(429, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(
+        JSON.stringify({
+          error: 'global_capacity_exceeded',
+          message: 'The shared daily generation budget check failed; failing closed.',
         })
       );
       return;
@@ -3820,6 +3855,11 @@ const httpServer = http.createServer(async (req, res) => {
         title: 'Consumer-generated scene',
         description: promptText || 'Generated via the anonymous consumer tier',
       });
+
+      // Budget is spent ONLY here, on a genuinely successful, validated
+      // generation -- never on a gate denial, content-policy block, or
+      // structural-validation failure (see consumer-spend-guard.ts).
+      recordConsumerGeneration();
 
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(

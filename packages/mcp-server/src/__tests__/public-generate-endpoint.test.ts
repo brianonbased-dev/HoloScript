@@ -27,6 +27,8 @@ const storeSceneMock = vi.fn();
 const evaluateContentPolicySyncMock = vi.fn();
 const parseHoloMock = vi.fn();
 const checkRateLimitBypassMock = vi.fn();
+const checkConsumerGlobalSpendCapMock = vi.fn();
+const recordConsumerGenerationMock = vi.fn();
 
 type Bucket = { count: number; resetAt: number };
 const RATE_WINDOW_MS = 60_000;
@@ -77,6 +79,21 @@ async function publicGenerateHandler(
     return {
       status: 429,
       body: { error: 'daily_quota_exceeded' },
+    };
+  }
+
+  try {
+    const globalCap = checkConsumerGlobalSpendCapMock();
+    if (!globalCap.allowed) {
+      return {
+        status: 429,
+        body: { error: 'global_capacity_exceeded' },
+      };
+    }
+  } catch {
+    return {
+      status: 429,
+      body: { error: 'global_capacity_exceeded' },
     };
   }
 
@@ -158,6 +175,8 @@ async function publicGenerateHandler(
 
   const stored = storeSceneMock(generatedCode, { title: 'Consumer-generated scene', description: promptText });
 
+  recordConsumerGenerationMock();
+
   return {
     status: 200,
     body: { success: true, sceneId: stored.id, previewUrl: `/scene/${stored.id}`, code: generatedCode },
@@ -171,10 +190,13 @@ describe('POST /api/public/generate — WS-1 consumer generation tier', () => {
     evaluateContentPolicySyncMock.mockReset();
     parseHoloMock.mockReset();
     checkRateLimitBypassMock.mockReset();
+    checkConsumerGlobalSpendCapMock.mockReset();
+    recordConsumerGenerationMock.mockReset();
     rateBuckets.clear();
     dailyBuckets.clear();
     checkRateLimitBypassMock.mockResolvedValue({ allowed: true });
     evaluateContentPolicySyncMock.mockReturnValue({ allowed: true, action: 'allow' });
+    checkConsumerGlobalSpendCapMock.mockReturnValue({ allowed: true, remaining: 199, resetAt: Date.now() + 1000, capValue: 200 });
   });
 
   describe('gate denial passthrough (default-off proof)', () => {
@@ -192,6 +214,7 @@ describe('POST /api/public/generate — WS-1 consumer generation tier', () => {
       expect(res.status).toBe(200);
       expect(res.body).toMatchObject({ success: false, error: expect.stringContaining('ForkSandboxGate') });
       expect(storeSceneMock).not.toHaveBeenCalled();
+      expect(recordConsumerGenerationMock).not.toHaveBeenCalled();
     });
   });
 
@@ -281,6 +304,7 @@ describe('POST /api/public/generate — WS-1 consumer generation tier', () => {
       expect(res.status).toBe(200);
       expect(res.body).toMatchObject({ success: false, error: expect.stringContaining('Input blocked') });
       expect(handleToolMock).not.toHaveBeenCalled();
+      expect(recordConsumerGenerationMock).not.toHaveBeenCalled();
     });
 
     it('blocks on output policy violation AFTER generation, never returning the code', async () => {
@@ -301,6 +325,7 @@ describe('POST /api/public/generate — WS-1 consumer generation tier', () => {
       expect(res.body).toMatchObject({ success: false, error: expect.stringContaining('Output blocked') });
       expect(res.body.code).toBeUndefined();
       expect(storeSceneMock).not.toHaveBeenCalled();
+      expect(recordConsumerGenerationMock).not.toHaveBeenCalled();
     });
   });
 
@@ -320,6 +345,7 @@ describe('POST /api/public/generate — WS-1 consumer generation tier', () => {
       expect(res.status).toBe(502);
       expect(res.body.error).toBe('generated_output_failed_structural_validation');
       expect(storeSceneMock).not.toHaveBeenCalled();
+      expect(recordConsumerGenerationMock).not.toHaveBeenCalled();
     });
 
     it('rejects a response with no extractable code', async () => {
@@ -332,6 +358,7 @@ describe('POST /api/public/generate — WS-1 consumer generation tier', () => {
 
       expect(res.status).toBe(502);
       expect(res.body.error).toBe('generation_produced_no_code');
+      expect(recordConsumerGenerationMock).not.toHaveBeenCalled();
     });
   });
 
@@ -365,6 +392,7 @@ describe('POST /api/public/generate — WS-1 consumer generation tier', () => {
         'composition "Cube" { object "Box" {} }',
         expect.objectContaining({ title: 'Consumer-generated scene' })
       );
+      expect(recordConsumerGenerationMock).toHaveBeenCalledTimes(1);
     });
 
     it('accepts generate_world_from_prompt as the second allowlisted tool', async () => {
@@ -397,6 +425,79 @@ describe('POST /api/public/generate — WS-1 consumer generation tier', () => {
       expect(res.status).toBe(429);
       expect(res.body.error).toBe('bypass_denied');
       expect(handleToolMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('global spend cap', () => {
+    it('blocks with 429 global_capacity_exceeded when the global cap reports !allowed, even though per-IP checks would pass', async () => {
+      checkConsumerGlobalSpendCapMock.mockReturnValue({
+        allowed: false,
+        remaining: 0,
+        resetAt: Date.now() + 1000,
+        capValue: 200,
+      });
+
+      const res = await publicGenerateHandler({
+        tool: 'generate_scene',
+        arguments: { description: 'a cube' },
+      });
+
+      expect(res.status).toBe(429);
+      expect(res.body.error).toBe('global_capacity_exceeded');
+      expect(handleToolMock).not.toHaveBeenCalled();
+      expect(storeSceneMock).not.toHaveBeenCalled();
+      expect(recordConsumerGenerationMock).not.toHaveBeenCalled();
+    });
+
+    it('checks the global cap AFTER the per-IP daily quota (quota exhaustion still wins on its own)', async () => {
+      for (let i = 0; i < CONSUMER_GEN_DAILY_QUOTA; i++) {
+        checkConsumerGenDailyQuota('10.4.0.1');
+      }
+      checkConsumerGlobalSpendCapMock.mockReturnValue({
+        allowed: true,
+        remaining: 199,
+        resetAt: Date.now() + 1000,
+        capValue: 200,
+      });
+
+      const res = await publicGenerateHandler({ tool: 'generate_scene', arguments: {} }, '10.4.0.1');
+
+      expect(res.status).toBe(429);
+      expect(res.body.error).toBe('daily_quota_exceeded');
+      expect(checkConsumerGlobalSpendCapMock).not.toHaveBeenCalled();
+    });
+
+    it('fails closed (429 global_capacity_exceeded) when the check itself throws', async () => {
+      checkConsumerGlobalSpendCapMock.mockImplementation(() => {
+        throw new Error('unexpected arithmetic failure');
+      });
+
+      const res = await publicGenerateHandler({
+        tool: 'generate_scene',
+        arguments: { description: 'a cube' },
+      });
+
+      expect(res.status).toBe(429);
+      expect(res.body.error).toBe('global_capacity_exceeded');
+      expect(handleToolMock).not.toHaveBeenCalled();
+      expect(recordConsumerGenerationMock).not.toHaveBeenCalled();
+    });
+
+    it('calls recordConsumerGeneration exactly once on a successful generation', async () => {
+      handleToolMock.mockResolvedValue({
+        success: true,
+        content: [{ type: 'text', text: JSON.stringify({ code: 'composition "Cube" { object "Box" {} }' }) }],
+      });
+      parseHoloMock.mockReturnValue({ success: true, ast: { type: 'HoloComposition' }, errors: [] });
+      storeSceneMock.mockReturnValue({ id: 'scene_ghi789' });
+
+      const res = await publicGenerateHandler({
+        tool: 'generate_scene',
+        arguments: { description: 'a red cube' },
+      });
+
+      expect(res.status).toBe(200);
+      expect(recordConsumerGenerationMock).toHaveBeenCalledTimes(1);
     });
   });
 
