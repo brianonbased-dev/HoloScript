@@ -6,7 +6,7 @@ describe('HoloScriptPlusParser - Extended Features', () => {
   const parser = new HoloScriptPlusParser({ enableVRTraits: true });
 
   it('parses closing-brace EOF dedent the same as trailing newline', () => {
-    const withoutTrailingNewline = 'orb Sword @grabbable @throwable {\n  geometry: "model/sword.glb"\n}';
+    const withoutTrailingNewline = 'orb Sword @grabbable @throwable() {\n  geometry: "model/sword.glb"\n}';
     const withTrailingNewline = `${withoutTrailingNewline}\n`;
 
     const withoutResult = parser.parse(withoutTrailingNewline);
@@ -18,8 +18,26 @@ describe('HoloScriptPlusParser - Extended Features', () => {
     expect(withResult.errors).toEqual([]);
     expect(withoutResult.ast.root.directives).toEqual(withResult.ast.root.directives);
     expect(withoutResult.ast.root.directives.find((directive) => directive.name === 'throwable')).toMatchObject({
-      config: { geometry: 'model/sword.glb' },
+      config: {},
     });
+    expect(withoutResult.ast.root.properties).toEqual({ geometry: 'model/sword.glb' });
+  });
+
+  it('fails loudly when a pre-body trait block swallows object-body properties', () => {
+    const base = 'orb Spirit @spatial_audio {\n  geometry: "sphere"\n}';
+
+    for (const source of [base, `${base}\n`]) {
+      const result = parser.parse(source);
+      expect(result.success).toBe(false);
+      expect(result.errors).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: 'HSP101',
+            message: expect.stringContaining('looks like an object body'),
+          }),
+        ])
+      );
+    }
   });
 
   it('Parses @networked trait correctly', () => {
@@ -44,12 +62,13 @@ describe('HoloScriptPlusParser - Extended Features', () => {
   });
 
   it('Handles multiple directives and traits', () => {
-    const source = `light#living_room @networked(sync_mode: "state-only") @external_api(url: "https://api.home.com/light", interval: "5m") @grabbable { color: "#ffffff" }`;
+    const source = `light#living_room @networked(sync_mode: "state-only") @external_api(url: "https://api.home.com/light", interval: "5m") @grabbable() { color: "#ffffff" }`;
     const result = parser.parse(source);
     expect(result.success).toBe(true);
     const node = result.ast.root;
     expect(node.traits.has('networked')).toBe(true);
     expect(node.traits.has('grabbable')).toBe(true);
+    expect(node.properties.color).toBe('#ffffff');
   });
 
   it('parses trait-level additive sums as unresolved semiring alternatives', () => {
@@ -117,6 +136,13 @@ describe('HoloScriptPlusParser - Control Flow', () => {
     }`;
     const result = parser.parse(source);
     expect(result.success).toBe(true);
+    const forEach = result.ast.root.directives.find((directive) => directive.type === 'forEach') as any;
+    expect(forEach?.body).toHaveLength(1);
+    expect(forEach.body[0]).toMatchObject({
+      type: 'orb',
+      id: 'item',
+      properties: { size: 1 },
+    });
   });
 
   it('Parses @for loop correctly', () => {
@@ -258,6 +284,23 @@ describe('HoloScriptPlusParser - Logic Block', () => {
     ]);
     expect(logicNode.body.actions[0].params).toEqual(['objectId']);
   });
+
+  it('preserves raw action bodies instead of re-tokenizing compound operators', () => {
+    const source = `composition "Game" {
+      logic {
+        action bump() {
+          this.checkCount += 1
+        }
+      }
+    }`;
+
+    const result = parser.parse(source);
+
+    expect(result.success).toBe(true);
+    const logicNode = result.ast.root.children?.find((child: any) => child.type === 'logic') as any;
+    expect(logicNode.body.actions[0].body).toContain('this.checkCount += 1');
+    expect(logicNode.body.actions[0].body).not.toContain('+ =');
+  });
 });
 
 describe('HoloScriptPlusParser - Environment & Lighting', () => {
@@ -325,6 +368,32 @@ describe('HoloScriptPlusParser - Environment & Lighting', () => {
     const trait = (mannequin?.directives || []).find((d: any) => d?.name === 'holographic_mesh');
     expect(trait).toBeDefined();
     expect((trait as any).config).toMatchObject({ density: 0.8, refraction: true });
+  });
+});
+
+describe('HoloScriptPlusParser - AST Fidelity Guards', () => {
+  const parser = new HoloScriptPlusParser({ enableVRTraits: true });
+
+  it('keeps sibling nodes distinct instead of dropping or leaking bodies', () => {
+    const source = `composition "SiblingCheck" {
+      orb One { geometry: "sphere" }
+      orb Two { geometry: "box" }
+      orb Three { geometry: "capsule" }
+    }`;
+
+    const result = parser.parse(source);
+
+    expect(result.success).toBe(true);
+    expect(result.ast.root.children?.map((child: any) => child.name)).toEqual([
+      'One',
+      'Two',
+      'Three',
+    ]);
+    expect(result.ast.root.children?.map((child: any) => child.properties.geometry)).toEqual([
+      'sphere',
+      'box',
+      'capsule',
+    ]);
   });
 });
 

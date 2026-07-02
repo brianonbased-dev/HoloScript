@@ -92,10 +92,11 @@ describe('Parser Edge Cases - Error Recovery', () => {
       expect(result).toBeDefined();
     });
 
-    it('should handle multiple consecutive operators', () => {
-      const source = `orb#test @grabbable @networked @collidable @hoverable @scalable { position: [1,2,3] }`;
+    it('should handle multiple consecutive traits without swallowing the node body', () => {
+      const source = `orb#test @grabbable @networked @collidable @hoverable @scalable() { position: [1,2,3] }`;
       const result = parser.parse(source);
       expect(result.success).toBe(true);
+      expect(result.ast.root.properties.position).toEqual([1, 2, 3]);
     });
 
     it('should handle comments within structures', () => {

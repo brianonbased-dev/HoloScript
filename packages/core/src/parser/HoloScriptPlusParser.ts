@@ -943,6 +943,8 @@ export class HoloScriptPlusParser {
   private source: string = '';
   private errors: RichParseError[] = [];
   private warnings: RichParseError[] = [];
+  private blockConfigDirectives: WeakSet<object> = new WeakSet();
+  private blockConfigDirectiveLocations: WeakMap<object, Token> = new WeakMap();
   private imports: Array<{
     path: string;
     alias: string;
@@ -1024,6 +1026,8 @@ export class HoloScriptPlusParser {
     this.source = source;
     this.errors = [];
     this.warnings = [];
+    this.blockConfigDirectives = new WeakSet();
+    this.blockConfigDirectiveLocations = new WeakMap();
     this.imports = [];
     this.hasState = false;
     this.hasVRTraits = false;
@@ -1849,6 +1853,7 @@ export class HoloScriptPlusParser {
     const children: HSPlusNode[] = [];
     const directives: HSPlusDirective[] = [];
     const traits = new Map<VRTraitName, unknown>();
+    let ambiguousPreBodyTrait: HSPlusTraitDirective | null = null;
 
     // Store template reference
     if (templateRef) {
@@ -1875,6 +1880,12 @@ export class HoloScriptPlusParser {
               traits.set(directive.name as VRTraitName, directive.config);
               this.hasVRTraits = true;
               directives.push(directive);
+              if (
+                this.blockConfigDirectives.has(directive as object) &&
+                this.traitConfigLooksLikeNodeBody(directive.config)
+              ) {
+                ambiguousPreBodyTrait = directive;
+              }
             } else {
               directives.push(directive);
             }
@@ -1932,6 +1943,14 @@ export class HoloScriptPlusParser {
         if (errorMessage !== 'ParseError') console.error(e);
         this.synchronizeProperty();
       }
+    }
+
+    if (!this.check('LBRACE') && ambiguousPreBodyTrait) {
+      this.errorAt(
+        this.blockConfigDirectiveLocations.get(ambiguousPreBodyTrait as object) || startToken,
+        `Trait @${ambiguousPreBodyTrait.name} used a block that looks like an object body, but no object body follows. Use @${ambiguousPreBodyTrait.name}(...) for trait config, or add a separate { ... } object body.`,
+        'HSP101'
+      );
     }
 
     // Node Body
@@ -2411,14 +2430,18 @@ export class HoloScriptPlusParser {
         return null;
       }
       let config: Record<string, unknown> = {};
+      let configStyle: 'none' | 'paren' | 'block' | 'colon' = 'none';
       if (this.check('LPAREN')) {
+        configStyle = 'paren';
         config = this.parseTraitConfig();
       } else if (this.check('LBRACE')) {
+        configStyle = 'block';
         config = this.parseBlockContent();
       } else if (this.check('COLON')) {
         // Colon-form trait config: @waypoint: { id: "wp_a" } / @emissive: { color: "#fff" }
         // Previously errored (HSP001 "Unexpected token COLON in node body"), so
         // accepting it here is strictly more permissive.
+        configStyle = 'colon';
         this.advance();
         if (this.check('LPAREN')) {
           config = this.parseTraitConfig();
@@ -2428,7 +2451,11 @@ export class HoloScriptPlusParser {
           config = { value: this.parseValue() };
         }
       }
-      return this.parseTraitSumTail({ type: 'trait', name: name as VRTraitName, config });
+      const directive = { type: 'trait' as const, name: name as VRTraitName, config };
+      if (configStyle === 'block') {
+        this.markBlockConfigDirective(directive, nameToken);
+      }
+      return this.parseTraitSumTail(directive);
     }
 
     // =========================================================================
@@ -2901,9 +2928,12 @@ export class HoloScriptPlusParser {
 
     // Parse config if present to avoid syntax errors
     let config: Record<string, unknown> = {};
+    let configStyle: 'none' | 'paren' | 'block' = 'none';
     if (this.check('LPAREN')) {
+      configStyle = 'paren';
       config = this.parseTraitConfig();
     } else if (this.check('LBRACE')) {
+      configStyle = 'block';
       config = this.parseBlockContent();
     }
 
@@ -2918,7 +2948,34 @@ export class HoloScriptPlusParser {
     }
 
     // Return as a generic trait so it appears in AST
-    return this.parseTraitSumTail({ type: 'trait', name, config });
+    const directive = { type: 'trait' as const, name, config };
+    if (configStyle === 'block') {
+      this.markBlockConfigDirective(directive, nameToken);
+    }
+    return this.parseTraitSumTail(directive);
+  }
+
+  private markBlockConfigDirective(directive: HSPlusDirective, token: Token): void {
+    this.blockConfigDirectives.add(directive as object);
+    this.blockConfigDirectiveLocations.set(directive as object, token);
+  }
+
+  private traitConfigLooksLikeNodeBody(config: Record<string, unknown> | undefined): boolean {
+    if (!config || typeof config !== 'object') return false;
+    const nodeBodyKeys = new Set([
+      'geometry',
+      'position',
+      'rotation',
+      'scale',
+      'size',
+      'color',
+      'material',
+      'model',
+      'mesh',
+      'src',
+      'url',
+    ]);
+    return Object.keys(config).some((key) => nodeBodyKeys.has(key));
   }
 
   private parseTraitSumTail(first: HSPlusTraitDirective): HSPlusDirective {
@@ -5368,43 +5425,11 @@ export class HoloScriptPlusParser {
   }
 
   private parseCodeBlock(): string {
-    let code = '';
-    let braceDepth = 0;
-
-    if (this.check('LBRACE')) {
-      this.advance();
-      braceDepth = 1;
-
-      try {
-        while (braceDepth > 0 && !this.check('EOF')) {
-          const token = this.advance();
-          if (token.type === 'LBRACE') {
-            braceDepth++;
-            code += '{';
-          } else if (token.type === 'RBRACE') {
-            braceDepth--;
-            if (braceDepth > 0) {
-              code += '}';
-            }
-          } else if (token.type === 'STRING') {
-            code += `"${token.value}"`;
-            code += ' ';
-          } else {
-            code += token.value;
-            if (token.type === 'NEWLINE') {
-              code += '\n';
-            } else {
-              code += ' ';
-            }
-          }
-        }
-      } catch (e: unknown) {
-        const errorMessage = e instanceof Error ? e.message : String(e);
-        if (errorMessage !== 'ParseError') console.error(e);
-        this.synchronize();
-      }
+    if (!this.check('LBRACE')) {
+      return '';
     }
-    return code.trim();
+
+    return this.parseRawBlock();
   }
 
   private parseInlineExpression(): string {
@@ -6349,6 +6374,15 @@ export class HoloScriptPlusParser {
       createRichError(code, message, line, column, {
         source: this.source,
         suggestion,
+        severity: 'error',
+      })
+    );
+  }
+
+  private errorAt(token: Token, message: string, code: RichErrorCode = 'HSP001'): void {
+    this.errors.push(
+      createRichError(code, message, token.line, token.column, {
+        source: this.source,
         severity: 'error',
       })
     );

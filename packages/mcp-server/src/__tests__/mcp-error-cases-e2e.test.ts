@@ -141,6 +141,16 @@ describe('MCP Tool Error Cases', () => {
     expect(result.success).toBe(false);
   });
 
+  it('parse_hs fails loudly when a trait block swallows an object body', async () => {
+    const result = (await handleTool('parse_hs', {
+      code: 'orb Spirit @spatial_audio {\n  geometry: "sphere"\n}',
+    })) as Record<string, unknown>;
+
+    expect(result.success).toBe(false);
+    expect(Array.isArray(result.errors)).toBe(true);
+    expect(JSON.stringify(result.errors)).toContain('looks like an object body');
+  });
+
   it('generate_scene fails gracefully without description', async () => {
     const result = (await handleTool('generate_scene', {
       description: '',
