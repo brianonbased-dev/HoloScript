@@ -14,10 +14,63 @@
 
 import fs from 'fs';
 import path from 'path';
-import { execSync } from 'child_process';
+import { spawnSync } from 'child_process';
 
-const STRICT_MODE = process.argv.includes('--strict');
-const VERBOSE = process.argv.includes('--verbose');
+function parseArgs(argv = process.argv.slice(2)) {
+  const options = {
+    strict: false,
+    verbose: false,
+    changedFiles: false,
+    base: 'HEAD',
+    root: process.cwd(),
+    files: [],
+  };
+
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === '--strict') {
+      options.strict = true;
+    } else if (arg === '--verbose') {
+      options.verbose = true;
+    } else if (arg === '--changed-files') {
+      options.changedFiles = true;
+    } else if (arg === '--base') {
+      const value = argv[++i];
+      if (!value) throw new Error('--base requires a git ref');
+      options.base = value;
+    } else if (arg === '--root') {
+      const value = argv[++i];
+      if (!value) throw new Error('--root requires a path');
+      options.root = path.resolve(value);
+    } else if (arg === '--file') {
+      const value = argv[++i];
+      if (!value) throw new Error('--file requires a path');
+      options.files.push(value);
+    } else if (arg === '--files') {
+      const value = argv[++i];
+      if (!value) throw new Error('--files requires a comma-separated path list');
+      options.files.push(...value.split(',').map((entry) => entry.trim()).filter(Boolean));
+    } else if (arg === '--help' || arg === '-h') {
+      options.help = true;
+    } else {
+      throw new Error(`Unknown option: ${arg}`);
+    }
+  }
+
+  return options;
+}
+
+const OPTIONS = parseArgs();
+const STRICT_MODE = OPTIONS.strict;
+const VERBOSE = OPTIONS.verbose;
+
+const SEARCH_DIRS = [
+  'packages/mcp-server/src',
+  'packages/security-sandbox/src',
+  'packages/studio/src',
+  'packages/platform/src',
+  'packages/core/src/security',
+];
 
 // ═════════════════════════════════════════════════════════════════════════════
 // Configuration
@@ -163,6 +216,62 @@ function findTypeScriptFiles(dir, maxDepth = 5) {
   return files;
 }
 
+function isScannableTypeScriptFile(filePath) {
+  return (
+    (filePath.endsWith('.ts') || filePath.endsWith('.tsx')) &&
+    !filePath.endsWith('.d.ts')
+  );
+}
+
+function toRelativePosix(root, filePath) {
+  return path.relative(root, path.resolve(filePath)).replace(/\\/g, '/');
+}
+
+function uniqueFiles(files) {
+  return [...new Set(files.map((file) => path.resolve(file)))];
+}
+
+function explicitTargetFiles(root, requestedFiles) {
+  return uniqueFiles(requestedFiles
+    .map((file) => path.resolve(root, file))
+    .filter((file) => fs.existsSync(file) && fs.statSync(file).isFile() && isScannableTypeScriptFile(file)));
+}
+
+function gitChangedFiles(root, base = 'HEAD') {
+  const commands = [
+    ['diff', '--name-only', '--diff-filter=ACMR', base, '--'],
+    ['diff', '--name-only', '--cached', '--diff-filter=ACMR', base, '--'],
+    ['ls-files', '--others', '--exclude-standard'],
+  ];
+  const files = [];
+
+  for (const args of commands) {
+    try {
+      const result = spawnSync('git', ['-C', root, ...args], {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      });
+      if (result.status !== 0) continue;
+      const output = result.stdout || '';
+      files.push(...output.split(/\r?\n/).map((line) => line.trim()).filter(Boolean));
+    } catch {
+      // Non-git temp fixtures and shallow CI checkouts can still use --files.
+    }
+  }
+
+  return uniqueFiles(files
+    .map((file) => path.resolve(root, file))
+    .filter((file) => fs.existsSync(file) && fs.statSync(file).isFile() && isScannableTypeScriptFile(file)));
+}
+
+function targetFilesForMode({ root, allFiles, files = [], changedFiles = false, base = 'HEAD' }) {
+  const configuredScanSet = new Set(allFiles.map((file) => path.resolve(file)));
+  const targets = [];
+  if (files.length) targets.push(...explicitTargetFiles(root, files));
+  if (changedFiles) targets.push(...gitChangedFiles(root, base));
+  return uniqueFiles(targets).filter((file) => configuredScanSet.has(path.resolve(file)));
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 // Security Scanning
 // ═════════════════════════════════════════════════════════════════════════════
@@ -239,19 +348,25 @@ function formatFinding(f) {
 }
 
 function main() {
-  const holoscriptRoot = path.join(process.cwd());
+  if (OPTIONS.help) {
+    console.log(`Usage: node scripts/security-audit-io-network.mjs [options]
 
-  // Find all TypeScript files in packages/{security*,mcp-server,studio,platform}/src
-  const searchDirs = [
-    'packages/mcp-server/src',
-    'packages/security-sandbox/src',
-    'packages/studio/src',
-    'packages/platform/src',
-    'packages/core/src/security',
-  ];
+Options:
+  --strict                 Fail on any whole-scan finding.
+  --verbose                Print extra diagnostics.
+  --changed-files          Gate only changed files from git diff/working tree.
+  --base <ref>             Git diff base for --changed-files (default: HEAD).
+  --file <path>            Gate one explicit file. Repeatable.
+  --files <a,b>            Gate comma-separated explicit files.
+  --root <path>            Repo root to scan (default: current working directory).
+`);
+    process.exit(0);
+  }
+
+  const holoscriptRoot = path.resolve(OPTIONS.root);
 
   const allFiles = [];
-  for (const searchDir of searchDirs) {
+  for (const searchDir of SEARCH_DIRS) {
     const fullPath = path.join(holoscriptRoot, searchDir);
     if (fs.existsSync(fullPath)) {
       allFiles.push(...findTypeScriptFiles(fullPath));
@@ -261,6 +376,25 @@ function main() {
   if (allFiles.length === 0) {
     console.log('⚠️  No TypeScript files found to scan');
     process.exit(1);
+  }
+
+  const targetFiles = targetFilesForMode({
+    root: holoscriptRoot,
+    allFiles,
+    files: OPTIONS.files,
+    changedFiles: OPTIONS.changedFiles,
+    base: OPTIONS.base,
+  });
+  const targetedMode = OPTIONS.changedFiles || OPTIONS.files.length > 0;
+  const targetFileSet = new Set(targetFiles.map((file) => path.resolve(file)));
+
+  if (targetedMode) {
+    console.log(`Changed-file gate: ${targetFiles.length} target file(s)`);
+    if (VERBOSE && targetFiles.length) {
+      for (const file of targetFiles) {
+        console.log(`  - ${toRelativePosix(holoscriptRoot, file)}`);
+      }
+    }
   }
 
   console.log(`🔍 Security Audit: File I/O & Network Validation`);
@@ -286,6 +420,13 @@ function main() {
     }
   }
 
+  const blockingFindings = targetedMode
+    ? allFindings.filter((finding) => targetFileSet.has(path.resolve(finding.file)))
+    : allFindings;
+  const residualFindings = targetedMode
+    ? allFindings.filter((finding) => !targetFileSet.has(path.resolve(finding.file)))
+    : [];
+
   // Summary by severity
   const bySeverity = {};
   for (const f of allFindings) {
@@ -300,6 +441,10 @@ function main() {
 
   console.log('📊 Summary:');
   console.log(`  Total findings: ${allFindings.length}`);
+  if (targetedMode) {
+    console.log(`  Blocking findings on target files: ${blockingFindings.length}`);
+    console.log(`  Residual backlog findings (non-blocking): ${residualFindings.length}`);
+  }
   if (bySeverity.critical) console.log(`  🔴 Critical: ${bySeverity.critical}`);
   if (bySeverity.high) console.log(`  🟠 High: ${bySeverity.high}`);
   if (bySeverity.medium) console.log(`  🟡 Medium: ${bySeverity.medium}`);
@@ -313,12 +458,17 @@ function main() {
   console.log('');
 
   // Report findings
-  if (allFindings.length > 0) {
+  const reportedFindings = targetedMode ? blockingFindings : allFindings;
+  if (reportedFindings.length > 0) {
     console.log('🚨 Findings:');
     console.log('');
 
-    for (const finding of allFindings) {
+    for (const finding of reportedFindings) {
       console.log(formatFinding(finding));
+      console.log('');
+    }
+    if (targetedMode && residualFindings.length) {
+      console.log(`Residual backlog omitted from target report: ${residualFindings.length} finding(s)`);
       console.log('');
     }
   } else {
@@ -327,15 +477,21 @@ function main() {
   }
 
   // Exit code logic
-  const hasCritical = allFindings.some((f) => f.severity === 'critical');
-  const hasHigh = allFindings.some((f) => f.severity === 'high');
+  const exitFindings = targetedMode ? blockingFindings : allFindings;
+  const hasCritical = exitFindings.some((f) => f.severity === 'critical');
+  const hasHigh = exitFindings.some((f) => f.severity === 'high');
+
+  if (targetedMode && blockingFindings.length > 0) {
+    console.log('Findings detected on target files');
+    process.exit(1);
+  }
 
   if (hasCritical) {
     console.log('❌ CRITICAL vulnerabilities found — fix immediately');
     process.exit(1);
   }
 
-  if (STRICT_MODE && allFindings.length > 0) {
+  if (STRICT_MODE && exitFindings.length > 0) {
     console.log('❌ Findings detected in strict mode');
     process.exit(1);
   }

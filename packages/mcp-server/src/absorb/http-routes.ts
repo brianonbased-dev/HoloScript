@@ -69,7 +69,8 @@ async function proxyToAbsorb(
     'Content-Type': 'application/json; charset=utf-8',
     Authorization: authHeader,
   };
-  const res = await fetch(`${ABSORB_URL}${path}`, {
+  const absorbEndpointUrl = new URL(path, ABSORB_URL).toString();
+  const res = await fetch(absorbEndpointUrl, {
     method,
     headers,
     body: body || undefined,
@@ -77,7 +78,7 @@ async function proxyToAbsorb(
   const data = await res.json().catch(async () => {
     const text = await res.text().catch(() => '<unreadable>');
     return {
-      error: `Absorb service at ${ABSORB_URL}${path} returned non-JSON (status ${res.status}): ${text.slice(0, 200)}`,
+      error: `Absorb service at ${absorbEndpointUrl} returned non-JSON (status ${res.status}): ${text.slice(0, 200)}`,
     };
   });
   return { status: res.status, data };

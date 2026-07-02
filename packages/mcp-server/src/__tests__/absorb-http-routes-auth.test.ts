@@ -28,7 +28,9 @@ function makeRes() {
   return {
     res,
     status: () => status,
-    json: () => JSON.parse(payload),
+    json: () => {
+      try { return JSON.parse(payload); } catch (error) { throw new Error(`Invalid JSON test payload: ${String(error)}`); }
+    },
   };
 }
 
