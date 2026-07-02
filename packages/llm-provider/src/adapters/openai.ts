@@ -441,6 +441,7 @@ export const OPENAI_CAPABILITIES: Capabilities = {
   audioInput: true, // Realtime API
   audioOutput: true, // Realtime API
   imageGeneration: true, // GPT Image
+  videoGeneration: true, // Sora video API
 
   visibleReasoning: true, // reasoning summaries/items; raw CoT is not exposed
   adjustableEffort: true, // reasoning effort: none/minimal/low/medium/high/xhigh

@@ -169,6 +169,7 @@ export const XAI_MODEL_CAPABILITIES = {
  * structured outputs, cached-token pricing, and reasoning.
  *
  * XAI_CAPABILITIES reflects grok-4.3 (the current default model) per A-020.
+ * Media fields describe the separate Grok Imagine API axis, not complete().
  * Exported as a constant so the capability-aware router can read it
  * without instantiating the adapter: single source of truth per W.GOLD.006.
  */
@@ -183,6 +184,10 @@ export const XAI_CAPABILITIES: Capabilities = {
   streaming: true,
   tools: true, // OpenAI-compatible function calling
   vision: true, // text + image input
+  imageGeneration: true, // Grok Imagine image API
+  videoGeneration: true, // Grok Imagine video API
+  videoEditing: true, // Grok Imagine Agent Mode / batch media edits
+  imageAnimation: true, // Grok Imagine 1.5 image-to-video preview
 
   visibleReasoning: true,
   adjustableEffort: true, // Grok 4 supports reasoning effort controls

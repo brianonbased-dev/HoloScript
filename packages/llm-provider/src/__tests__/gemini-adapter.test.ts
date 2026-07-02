@@ -59,6 +59,13 @@ describe('GEMINI_CAPABILITIES', () => {
     expect(adapter.capabilities.streamingSpeechGeneration).toBe(true);
     expect(adapter.capabilities.audioOutput).toBe(true);
   });
+
+  it('exposes Gemini Omni media-editing axes separately from video generation', () => {
+    expect(GEMINI_CAPABILITIES.videoGeneration).toBe(true);
+    expect(GEMINI_CAPABILITIES.videoEditing).toBe(true);
+    expect(GEMINI_CAPABILITIES.imageAnimation).toBe(true);
+    expect(GEMINI_CAPABILITIES.conversationalMediaEditing).toBe(true);
+  });
 });
 
 // ---------------------------------------------------------------------------

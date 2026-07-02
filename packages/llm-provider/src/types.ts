@@ -1018,8 +1018,14 @@ export interface Capabilities {
   /** Streaming TTS/audio chunks; distinct from normal text-token streaming. */
   streamingSpeechGeneration?: boolean;
   imageGeneration?: boolean;
-  /** Sora-class video generation. Anthropic = false; OpenAI Sora deprecated 2026-09-24. */
+  /** Provider-family video generation, separate from normal text completion. */
   videoGeneration?: boolean;
+  /** Provider-family video editing or refinement, separate from normal text completion. */
+  videoEditing?: boolean;
+  /** Still-image-to-video animation, separate from static image generation. */
+  imageAnimation?: boolean;
+  /** Conversational media refinement loop, e.g. iterative video/image edits. */
+  conversationalMediaEditing?: boolean;
 
   // ─── Reasoning ──────────────────────────────────────────────────
   /** Provider-visible reasoning artifacts/summaries; raw private CoT is not assumed. */
@@ -1210,6 +1216,12 @@ export interface OpenAIProviderExtensions {
    * Source: developers.openai.com/api/docs/changelog (verified 2026-06-08 A-020).
    */
   moderation?: InlineModerationRequest;
+  /** Sora/GPT Image route hint; current text completion path ignores media route hints. */
+  videoEditing?: boolean;
+  /** Sora route hint for still-image animation into video. */
+  imageAnimation?: boolean;
+  /** Conversational Sora/GPT Image refinement hint for future media adapters. */
+  conversationalMediaEditing?: boolean;
 }
 
 /**
@@ -1222,6 +1234,12 @@ export interface CodexProviderExtensions {}
 export interface GrokProviderExtensions {
   /** xAI Live Search — real-time web + X-platform results. */
   liveSearch?: boolean;
+  /** Grok Imagine route hint; current chat completion path ignores media route hints. */
+  videoEditing?: boolean;
+  /** Grok Imagine image-to-video route hint. */
+  imageAnimation?: boolean;
+  /** Grok Imagine Agent Mode refinement hint for future media adapters. */
+  conversationalMediaEditing?: boolean;
 }
 
 export interface GeminiProviderExtensions {
@@ -1231,6 +1249,12 @@ export interface GeminiProviderExtensions {
   cachedContent?: string;
   /** systemInstruction (split from top-level `system` if upstream call needs it). */
   systemInstruction?: string;
+  /** Gemini Omni/Interactions route hint; current generateContent path ignores media route hints. */
+  videoEditing?: boolean;
+  /** Gemini Omni still-image animation route hint. */
+  imageAnimation?: boolean;
+  /** Gemini Omni conversational media refinement route hint. */
+  conversationalMediaEditing?: boolean;
 }
 
 export interface OllamaProviderExtensions {

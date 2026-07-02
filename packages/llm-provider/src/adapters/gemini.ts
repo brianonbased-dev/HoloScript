@@ -160,6 +160,9 @@ export const GEMINI_CAPABILITIES: Capabilities = {
   streamingSpeechGeneration: true, // TTS audio chunks via streamGenerateContent / Interactions stream:true
   imageGeneration: true, // Imagen
   videoGeneration: true, // Veo (Sora is deprecated; Veo is GA)
+  videoEditing: true, // Gemini Omni Flash / Interactions media refinement
+  imageAnimation: true, // Gemini Omni Flash still-image animation
+  conversationalMediaEditing: true, // Gemini Omni Flash conversational edits
 
   visibleReasoning: true, // thinking
   liveWebSearch: true, // Search Grounding (first-party)
