@@ -77,7 +77,27 @@ export class HolomeshClient {
   }
 
   async heartbeat(payload: { agentName: string; surface: string; capabilityTags?: string[] }): Promise<void> {
-    await this.req('POST', `/team/${this.teamId}/presence`, await this.signBody(payload as Record<string, unknown>));
+    // Wire contract fix (regression, verified 2026-07-02): both the live REST
+    // presence handler (packages/mcp-server/src/holomesh/routes/board-routes.ts
+    // ~line 2127, which wins route precedence over the dead duplicate in
+    // team-routes.ts per http-routes.ts handler order) and the holomesh_heartbeat
+    // MCP tool (packages/mcp-server/src/holomesh/board-tools.ts handleHeartbeat)
+    // read `capability_tags` (snake_case) off the request body into
+    // TeamPresenceEntry.capabilityTags. This client previously sent the field
+    // as `capabilityTags` (camelCase) — silently dropped server-side on every
+    // read path, so presence never carried the tags declared in the agent's
+    // .hsplus brain and required_tags claim-gating always saw an empty array
+    // (agent_capability_tags:[] on every 403 capability_mismatch). Send the
+    // field under both keys: snake_case for the current server contract, and
+    // the historical camelCase key retained for any consumer that predates
+    // this fix reading the old (incorrect) shape.
+    const { capabilityTags, ...rest } = payload;
+    const body: Record<string, unknown> = { ...rest };
+    if (capabilityTags !== undefined) {
+      body.capability_tags = capabilityTags;
+      body.capabilityTags = capabilityTags;
+    }
+    await this.req('POST', `/team/${this.teamId}/presence`, await this.signBody(body));
   }
 
   /** Return live presence entries for the team (pruned of stale heartbeats). Best-effort — returns [] on error. */

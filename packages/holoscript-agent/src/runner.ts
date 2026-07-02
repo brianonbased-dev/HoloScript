@@ -112,8 +112,48 @@ export class AgentRunner {
   private idleTitleCounts = new Map<string, number>();
   private idleTitleSuppressed = new Map<string, number>();
   private idleTick = 0;
+  // Claim-retry backoff (regression fix, task_1783013704199_nomp, 2026-07-02):
+  // a task whose required_tags this agent structurally cannot satisfy (e.g. a
+  // Jetson agent hitting a task gated on "owned-metal") returns 403
+  // capability_mismatch on every claim attempt. Without a cooldown,
+  // pickClaimableTask re-selects the same unclaimable task every tick and the
+  // runner spins on the identical failing claim indefinitely (observed live:
+  // jetson-orin-super / jetson-orin-fara ticking once/minute for 1h+ on the
+  // same two task IDs). Map is taskId -> cooldown-expiry epoch ms. The task
+  // stays visible on the board and in getOpenTasks() — it is only excluded
+  // from THIS runner's own claim candidates for the cooldown window, never
+  // hidden from logs/board.
+  private capabilityMismatchCooldown = new Map<string, number>();
 
   constructor(private readonly opts: AgentRunnerOptions) {}
+
+  /** Cooldown window after a 403 capability_mismatch before retrying the same task ID. */
+  private static readonly CAPABILITY_MISMATCH_COOLDOWN_MS = 15 * 60_000; // 15 minutes
+
+  /** True when `taskId` is still within its post-capability_mismatch cooldown window. */
+  private isCoolingDown(taskId: string, now = Date.now()): boolean {
+    const until = this.capabilityMismatchCooldown.get(taskId);
+    if (until === undefined) return false;
+    if (now >= until) {
+      this.capabilityMismatchCooldown.delete(taskId);
+      return false;
+    }
+    return true;
+  }
+
+  /** Record a 403 capability_mismatch for `taskId` so it is skipped until the cooldown elapses. */
+  private startCapabilityMismatchCooldown(taskId: string, now = Date.now()): void {
+    this.capabilityMismatchCooldown.set(
+      taskId,
+      now + AgentRunner.CAPABILITY_MISMATCH_COOLDOWN_MS
+    );
+  }
+
+  /** True when an error thrown by mesh.claim()/mesh calls is a 403 capability_mismatch response. */
+  private static isCapabilityMismatchError(err: unknown): boolean {
+    const message = err instanceof Error ? err.message : String(err);
+    return message.includes(' 403') && message.includes('capability_mismatch');
+  }
 
   async tick(): Promise<TickResult> {
     const { identity, brain, mesh, costGuard, provider, logger } = this.opts;
@@ -193,9 +233,17 @@ export class AgentRunner {
     }
 
     const tasks = await mesh.getOpenTasks();
-    const target = pickClaimableTask(tasks, brain.capabilityTags);
+    // Exclude tasks currently in their post-capability_mismatch cooldown window
+    // (see startCapabilityMismatchCooldown below) from THIS tick's candidate
+    // pool. The task itself is untouched on the board/log — getOpenTasks()
+    // still returns it and `open` below counts it — it is only skipped as a
+    // claim candidate until the cooldown elapses.
+    const now = Date.now();
+    const claimable = tasks.filter((t) => !this.isCoolingDown(t.id, now));
+    const skippedForCooldown = tasks.length - claimable.length;
+    const target = pickClaimableTask(claimable, brain.capabilityTags);
     if (!target) {
-      log({ ev: 'no-claimable-task', open: tasks.length });
+      log({ ev: 'no-claimable-task', open: tasks.length, skippedForCooldown });
       // Corpus accrual (I.023 executor): when an accrual capability is injected, grow the
       // gated training corpus with ONE sovereign-local evolution step in-process — $0,
       // bounded, propose-not-ship. Takes precedence over LLM self-direction so a dedicated
@@ -219,7 +267,32 @@ export class AgentRunner {
     }
 
     log({ ev: 'claim', taskId: target.id, title: target.title });
-    await mesh.claim(target.id);
+    try {
+      await mesh.claim(target.id);
+    } catch (err) {
+      if (AgentRunner.isCapabilityMismatchError(err)) {
+        // Structurally unclaimable by this agent (required_tags this agent's
+        // presence doesn't carry) — start the cooldown so runForever's next
+        // tick doesn't immediately re-select and re-fail the same task, then
+        // report a distinct action instead of letting the error propagate to
+        // runForever's generic tick-error catch (which would look identical
+        // to a transient network/server failure in logs).
+        this.startCapabilityMismatchCooldown(target.id, now);
+        log({
+          ev: 'claim-capability-mismatch-cooldown',
+          taskId: target.id,
+          title: target.title,
+          cooldownMs: AgentRunner.CAPABILITY_MISMATCH_COOLDOWN_MS,
+        });
+        return {
+          action: 'no-claimable-task',
+          spentUsd: costGuard.getState().spentUsd,
+          remainingUsd: costGuard.getRemainingUsd(),
+          message: `capability_mismatch on ${target.id}; cooling down ${AgentRunner.CAPABILITY_MISMATCH_COOLDOWN_MS / 60_000}min`,
+        };
+      }
+      throw err;
+    }
 
     const start = Date.now();
     // Tool-use loop. The model gets MESH_TOOLS (read_file, list_dir,

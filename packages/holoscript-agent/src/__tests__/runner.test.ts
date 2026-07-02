@@ -102,6 +102,8 @@ function mockMesh(opts: {
   tasks: BoardTask[];
   heartbeatImpl?: () => Promise<void>;
   joinTeamImpl?: () => Promise<{ success: boolean; role?: string; members?: number }>;
+  /** Override claim() entirely — e.g. to simulate a 403 capability_mismatch from the live server. */
+  claimImpl?: (id: string) => Promise<BoardTask>;
 }) {
   const claimed: string[] = [];
   const messages: Array<{ taskId: string; body: string }> = [];
@@ -113,10 +115,13 @@ function mockMesh(opts: {
       opts.joinTeamImpl ?? (async () => ({ success: true, role: 'member', members: 31 }))
     ),
     getOpenTasks: vi.fn(async () => opts.tasks),
-    claim: vi.fn(async (id: string) => {
-      claimed.push(id);
-      return opts.tasks.find((t) => t.id === id)!;
-    }),
+    claim: vi.fn(
+      opts.claimImpl ??
+        (async (id: string) => {
+          claimed.push(id);
+          return opts.tasks.find((t) => t.id === id)!;
+        })
+    ),
     sendMessageOnTask: vi.fn(async (taskId: string, body: string) => {
       messages.push({ taskId, body });
     }),
@@ -943,5 +948,146 @@ describe('AgentRunner.tick', () => {
     expect(captured).toHaveLength(1);
     expect(captured[0].taskId).toBe('t-G10');
     expect(mesh.sendMessageOnTask).not.toHaveBeenCalled();
+  });
+
+  // Regression coverage for task_1783013704199_nomp (2026-07-02): live finding was
+  // jetson-orin-super / jetson-orin-fara spinning ~once/minute for 1h+, each tick
+  // re-attempting the identical claim and getting 403 capability_mismatch back
+  // (agent_capability_tags:[] every time), because the runner had no memory of a
+  // prior capability_mismatch for that task ID.
+  describe('claim-retry backoff on 403 capability_mismatch (regression: task_1783013704199_nomp)', () => {
+    const CAPABILITY_MISMATCH_TASK: BoardTask = {
+      id: 'task_owned_metal_only',
+      title: '[automation] owned-metal-gated automation',
+      description: '',
+      priority: 'medium',
+      // Tagged so this agent's brain (BRAIN.capabilityTags) scores it as a
+      // claim candidate via pickClaimableTask's text-match fallback, mirroring
+      // the live case: the task's tags/title matched the Jetson brain's
+      // capability tags, so pickClaimableTask happily re-selected it every
+      // tick — the failure was purely server-side required_tags gating.
+      tags: ['security'],
+      status: 'open',
+    };
+
+    function capabilityMismatchClaimImpl() {
+      return vi.fn(async (id: string) => {
+        throw new Error(
+          `HoloMesh PATCH /team/team_test/board/${id} 403: ` +
+            JSON.stringify({
+              error: 'Capability mismatch: agent lacks required tags for this task',
+              code: 'capability_mismatch',
+              required_tags: ['owned-metal'],
+              missing_tags: ['owned-metal'],
+              agent_capability_tags: [],
+            })
+        );
+      });
+    }
+
+    it('PRE-FIX-SHAPE CHECK: without backoff state, the same unclaimable task is re-selected and re-claimed on every tick (proves the spin the fix must stop)', async () => {
+      // This test does not disable the fix — it demonstrates that
+      // pickClaimableTask alone (the pre-fix selection logic, unchanged by
+      // this fix) has no memory of a prior failure and will deterministically
+      // re-pick the same task every time it is called with the same input,
+      // which is exactly the precondition that made the live spin possible.
+      const { pickClaimableTask } = await import('../holomesh-client.js');
+      const pick1 = pickClaimableTask([CAPABILITY_MISMATCH_TASK], BRAIN.capabilityTags);
+      const pick2 = pickClaimableTask([CAPABILITY_MISMATCH_TASK], BRAIN.capabilityTags);
+      const pick3 = pickClaimableTask([CAPABILITY_MISMATCH_TASK], BRAIN.capabilityTags);
+      expect(pick1?.id).toBe('task_owned_metal_only');
+      expect(pick2?.id).toBe('task_owned_metal_only');
+      expect(pick3?.id).toBe('task_owned_metal_only');
+    });
+
+    it('POST-FIX: a 403 capability_mismatch on claim() starts a cooldown, so the next tick does not re-attempt the same task', async () => {
+      const mesh = mockMesh({
+        tasks: [CAPABILITY_MISMATCH_TASK],
+        claimImpl: capabilityMismatchClaimImpl(),
+      });
+      const events: Array<Record<string, unknown>> = [];
+      const runner = new AgentRunner({
+        identity: IDENTITY,
+        brain: BRAIN,
+        provider: mockProvider({ promptTokens: 1, completionTokens: 1 }),
+        costGuard: freshGuard(),
+        mesh: mesh as never,
+        logger: (e) => events.push(e),
+      });
+
+      // Tick 1: picks the task, claim() 403s, runner absorbs it (does not throw)
+      // and reports no-claimable-task instead of propagating to tick-error.
+      const result1 = await runner.tick();
+      expect(result1.action).toBe('no-claimable-task');
+      expect(result1.message).toContain('capability_mismatch');
+      expect(mesh.claim).toHaveBeenCalledTimes(1);
+      expect(mesh.claim).toHaveBeenCalledWith('task_owned_metal_only');
+      expect(events.some((e) => e.ev === 'claim-capability-mismatch-cooldown')).toBe(true);
+
+      // Tick 2: the SAME task is still open on the board (server never granted
+      // the claim), but the runner must NOT re-attempt it — this is the actual
+      // spin the live regression exhibited (one claim attempt per tick,
+      // forever). claim() call count must stay at 1.
+      const result2 = await runner.tick();
+      expect(result2.action).toBe('no-claimable-task');
+      expect(mesh.claim).toHaveBeenCalledTimes(1); // <-- still 1, not 2: backoff held
+
+      // Tick 3: still within cooldown, still no re-attempt.
+      const result3 = await runner.tick();
+      expect(result3.action).toBe('no-claimable-task');
+      expect(mesh.claim).toHaveBeenCalledTimes(1);
+    });
+
+    it('the cooled-down task remains visible in getOpenTasks()/no-claimable-task open count — it is skipped as a candidate, not hidden from view', async () => {
+      const mesh = mockMesh({
+        tasks: [CAPABILITY_MISMATCH_TASK],
+        claimImpl: capabilityMismatchClaimImpl(),
+      });
+      const events: Array<Record<string, unknown>> = [];
+      const runner = new AgentRunner({
+        identity: IDENTITY,
+        brain: BRAIN,
+        provider: mockProvider({ promptTokens: 1, completionTokens: 1 }),
+        costGuard: freshGuard(),
+        mesh: mesh as never,
+        logger: (e) => events.push(e),
+      });
+
+      await runner.tick(); // triggers the cooldown
+      events.length = 0;
+      await runner.tick(); // second tick, task is cooling down but must still be "seen"
+
+      expect(mesh.getOpenTasks).toHaveBeenCalledTimes(2);
+      const noClaimableEvent = events.find((e) => e.ev === 'no-claimable-task');
+      expect(noClaimableEvent).toBeDefined();
+      // open reflects the true board state (server still reports it open);
+      // skippedForCooldown documents that it was excluded as a candidate.
+      expect(noClaimableEvent?.open).toBe(1);
+      expect(noClaimableEvent?.skippedForCooldown).toBe(1);
+    });
+
+    it('a claim() failure NOT tagged capability_mismatch still propagates unchanged (backoff is scoped to this one error code)', async () => {
+      const mesh = mockMesh({
+        tasks: [CAPABILITY_MISMATCH_TASK],
+        claimImpl: vi.fn(async () => {
+          throw new Error('HoloMesh PATCH /team/team_test/board/task_owned_metal_only 500: internal error');
+        }),
+      });
+      const runner = new AgentRunner({
+        identity: IDENTITY,
+        brain: BRAIN,
+        provider: mockProvider({ promptTokens: 1, completionTokens: 1 }),
+        costGuard: freshGuard(),
+        mesh: mesh as never,
+      });
+
+      await expect(runner.tick()).rejects.toThrow(/500: internal error/);
+      // Unlike capability_mismatch, a generic server error is NOT swallowed
+      // into a cooldown — it propagates to runForever's tick-error catch
+      // exactly as before this fix, preserving existing error visibility for
+      // transient/unrelated failures.
+      await expect(runner.tick()).rejects.toThrow(/500: internal error/);
+      expect(mesh.claim).toHaveBeenCalledTimes(2);
+    });
   });
 });

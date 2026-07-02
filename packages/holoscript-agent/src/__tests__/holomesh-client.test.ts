@@ -138,4 +138,68 @@ describe('HolomeshClient', () => {
     await expect(client.writePrivateKnowledge([])).resolves.toBe(false);
     expect(fetchImpl).not.toHaveBeenCalled();
   });
+
+  // Regression coverage for task_1783013704199_nomp (2026-07-02): the live
+  // presence handler (packages/mcp-server/src/holomesh/routes/board-routes.ts
+  // POST .../presence, and the holomesh_heartbeat MCP tool's handleHeartbeat)
+  // both read `capability_tags` (snake_case) off the request body into
+  // TeamPresenceEntry.capabilityTags. Before this fix, heartbeat() sent only
+  // `capabilityTags` (camelCase) — the value was silently dropped server-side
+  // on every real deployment, so a Jetson agent's declared brain tags never
+  // reached presence, and required_tags claim-gating always saw an empty
+  // array (reproduced live: agent_capability_tags:[] on every 403
+  // capability_mismatch, jetson-orin-super/fara spinning ~once/minute).
+  describe('heartbeat capability tag relay (regression: task_1783013704199_nomp)', () => {
+    it('sends capability_tags (snake_case) — the field the live server actually reads', async () => {
+      const calls: Array<{ url: string; body: unknown }> = [];
+      const fetchImpl: typeof fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+        calls.push({ url: String(url), body: init?.body ? JSON.parse(init.body as string) : undefined });
+        return new Response(JSON.stringify({ success: true }), { status: 200 });
+      }) as unknown as typeof fetch;
+      const client = new HolomeshClient({
+        apiBase: 'https://mcp.holoscript.net/api/holomesh',
+        bearer: 'b',
+        teamId: 't',
+        fetchImpl,
+      });
+
+      await client.heartbeat({
+        agentName: 'jetson-orin-super',
+        surface: 'jetson',
+        capabilityTags: ['local-inference', 'edge', 'cael-trace', 'holoscript-native', 'hardware-receipt'],
+      });
+
+      expect(calls).toHaveLength(1);
+      const sentBody = calls[0].body as Record<string, unknown>;
+      // This is the assertion that would have FAILED before the fix: the
+      // pre-fix client never set `capability_tags` at all, so a server that
+      // only reads that key (the actual live contract) always saw undefined.
+      expect(sentBody.capability_tags).toEqual([
+        'local-inference',
+        'edge',
+        'cael-trace',
+        'holoscript-native',
+        'hardware-receipt',
+      ]);
+      // Backward-compat: the historical camelCase key is still present too,
+      // so any consumer that predates this fix and reads the old shape keeps
+      // working during rollout.
+      expect(sentBody.capabilityTags).toEqual(sentBody.capability_tags);
+    });
+
+    it('omits both capability_tags keys entirely when no tags are declared (no spurious null/undefined field)', async () => {
+      const calls: Array<{ body: unknown }> = [];
+      const fetchImpl: typeof fetch = (async (_url, init?: RequestInit) => {
+        calls.push({ body: init?.body ? JSON.parse(init.body as string) : undefined });
+        return new Response(JSON.stringify({ success: true }), { status: 200 });
+      }) as unknown as typeof fetch;
+      const client = new HolomeshClient({ apiBase: 'https://x/api/holomesh', bearer: 'b', teamId: 't', fetchImpl });
+
+      await client.heartbeat({ agentName: 'brittney', surface: 'laptop' });
+
+      const sentBody = calls[0].body as Record<string, unknown>;
+      expect('capability_tags' in sentBody).toBe(false);
+      expect('capabilityTags' in sentBody).toBe(false);
+    });
+  });
 });

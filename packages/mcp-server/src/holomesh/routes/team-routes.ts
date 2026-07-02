@@ -1165,6 +1165,17 @@ export async function handleTeamRoutes(
   }
 
   // POST /api/holomesh/team/:id/presence
+  // NOTE (found during regression fix, 2026-07-02, task_1783013704199_nomp):
+  // this handler is DEAD CODE for live traffic. http-routes.ts calls
+  // handleBoardRoutes() before handleTeamRoutes() (see dispatch order in
+  // http-routes.ts), and board-routes.ts registers an identical
+  // POST .../presence route that always returns true — so this block below
+  // never executes on the deployed server. The live handler is
+  // board-routes.ts's presence POST (~line 2036), which also correctly reads
+  // `capability_tags` (snake_case) into TeamPresenceEntry.capabilityTags; this
+  // copy does not. Left in place (not deleted) to keep this fix a minimal,
+  // reviewable bugfix — a follow-up cleanup task should either delete this
+  // duplicate or make it authoritative and drop the one in board-routes.ts.
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/presence$/) && method === 'POST') {
     const caller = requireAuth(req, res);
     if (!caller) return true;
