@@ -11,11 +11,8 @@ import type http from 'http';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json; charset=utf-8' };
 const ABSORB_URL = process.env.ABSORB_SERVICE_URL || 'https://absorb.holoscript.net';
-const ABSORB_KEY =
-  process.env.ABSORB_API_KEY ||
-  process.env.HOLOSCRIPT_API_KEY ||
-  process.env.HOLOSCRIPT_API_KEY ||
-  '';
+const ABSORB_KEY = process.env.ABSORB_API_KEY || process.env.HOLOSCRIPT_API_KEY || '';
+const ALLOW_SERVICE_KEY_FALLBACK = process.env.ABSORB_PROXY_SERVICE_KEY_FALLBACK === 'true';
 
 // ── Helpers ──
 
@@ -32,17 +29,42 @@ function send(res: http.ServerResponse, status: number, data: unknown): void {
   res.end(JSON.stringify(data));
 }
 
+function resolveProxyAuth(req?: http.IncomingMessage): string | null {
+  const incomingAuth = req?.headers.authorization;
+  if (typeof incomingAuth === 'string' && incomingAuth.trim().length > 0) {
+    return incomingAuth;
+  }
+
+  const incomingApiKey = req?.headers['x-api-key'];
+  if (typeof incomingApiKey === 'string' && incomingApiKey.trim().length > 0) {
+    return `Bearer ${incomingApiKey.trim()}`;
+  }
+
+  // Opt-in only for trusted internal deployments. Public HTTP callers must not
+  // get an implicit server-side bearer just by omitting credentials.
+  if (ALLOW_SERVICE_KEY_FALLBACK && ABSORB_KEY) {
+    return `Bearer ${ABSORB_KEY}`;
+  }
+
+  return null;
+}
+
 async function proxyToAbsorb(
   path: string,
   method: string,
   body?: string,
   req?: http.IncomingMessage
 ): Promise<{ status: number; data: any }> {
-  const incomingAuth = req?.headers.authorization;
-  const authHeader =
-    typeof incomingAuth === 'string' && incomingAuth.length > 0
-      ? incomingAuth
-      : `Bearer ${ABSORB_KEY}`;
+  const authHeader = resolveProxyAuth(req);
+  if (!authHeader) {
+    return {
+      status: 401,
+      data: {
+        error: 'missing_absorb_proxy_auth',
+        message: 'Provide Authorization or x-api-key to proxy absorb-service requests.',
+      },
+    };
+  }
   const headers: Record<string, string> = {
     'Content-Type': 'application/json; charset=utf-8',
     Authorization: authHeader,
