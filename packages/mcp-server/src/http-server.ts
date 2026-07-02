@@ -3704,7 +3704,7 @@ const httpServer = http.createServer(async (req, res) => {
     // security/consumer-spend-guard.ts header for the gap this closes).
     // Fail-closed: any thrown error is treated as denied, never allowed.
     try {
-      const globalCap = checkConsumerGlobalSpendCap();
+      const globalCap = await checkConsumerGlobalSpendCap();
       if (!globalCap.allowed) {
         res.writeHead(429, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(
@@ -3880,7 +3880,7 @@ const httpServer = http.createServer(async (req, res) => {
       // Budget is spent ONLY here, on a genuinely successful, validated
       // generation -- never on a gate denial, content-policy block, or
       // structural-validation failure (see consumer-spend-guard.ts).
-      recordConsumerGeneration();
+      const { receiptId } = await recordConsumerGeneration();
 
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(
@@ -3889,6 +3889,7 @@ const httpServer = http.createServer(async (req, res) => {
           sceneId: stored.id,
           previewUrl: `/scene/${stored.id}`,
           code: generatedCode,
+          receiptId,
         })
       );
     } catch (err) {

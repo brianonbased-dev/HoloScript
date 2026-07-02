@@ -83,7 +83,7 @@ async function publicGenerateHandler(
   }
 
   try {
-    const globalCap = checkConsumerGlobalSpendCapMock();
+    const globalCap = await checkConsumerGlobalSpendCapMock();
     if (!globalCap.allowed) {
       return {
         status: 429,
@@ -180,11 +180,11 @@ async function publicGenerateHandler(
 
   const stored = storeSceneMock(generatedCode, { title: 'Consumer-generated scene', description: promptText });
 
-  recordConsumerGenerationMock();
+  const { receiptId } = await recordConsumerGenerationMock();
 
   return {
     status: 200,
-    body: { success: true, sceneId: stored.id, previewUrl: `/scene/${stored.id}`, code: generatedCode },
+    body: { success: true, sceneId: stored.id, previewUrl: `/scene/${stored.id}`, code: generatedCode, receiptId },
   };
 }
 
@@ -201,7 +201,8 @@ describe('POST /api/public/generate — WS-1 consumer generation tier', () => {
     dailyBuckets.clear();
     checkRateLimitBypassMock.mockResolvedValue({ allowed: true });
     evaluateContentPolicySyncMock.mockReturnValue({ allowed: true, action: 'allow' });
-    checkConsumerGlobalSpendCapMock.mockReturnValue({ allowed: true, remaining: 199, resetAt: Date.now() + 1000, capValue: 200 });
+    checkConsumerGlobalSpendCapMock.mockResolvedValue({ allowed: true, remaining: 199, resetAt: Date.now() + 1000, capValue: 200 });
+    recordConsumerGenerationMock.mockResolvedValue({ receiptId: 'receipt_default' });
   });
 
   describe('gate denial passthrough', () => {
@@ -372,6 +373,7 @@ describe('POST /api/public/generate — WS-1 consumer generation tier', () => {
       handleToolMock.mockResolvedValue({ code: 'composition "Cube" { object "Box" {} }', source: 'heuristic' });
       parseHoloMock.mockReturnValue({ success: true, ast: { type: 'HoloComposition' }, errors: [] });
       storeSceneMock.mockReturnValue({ id: 'scene_abc123' });
+      recordConsumerGenerationMock.mockResolvedValue({ receiptId: 'receipt_abc123' });
 
       const res = await publicGenerateHandler({
         tool: 'generate_scene',
@@ -383,6 +385,7 @@ describe('POST /api/public/generate — WS-1 consumer generation tier', () => {
         success: true,
         sceneId: 'scene_abc123',
         previewUrl: '/scene/scene_abc123',
+        receiptId: 'receipt_abc123',
       });
       expect(handleToolMock).toHaveBeenCalledWith(
         'generate_scene',
@@ -442,7 +445,7 @@ describe('POST /api/public/generate — WS-1 consumer generation tier', () => {
 
   describe('global spend cap', () => {
     it('blocks with 429 global_capacity_exceeded when the global cap reports !allowed, even though per-IP checks would pass', async () => {
-      checkConsumerGlobalSpendCapMock.mockReturnValue({
+      checkConsumerGlobalSpendCapMock.mockResolvedValue({
         allowed: false,
         remaining: 0,
         resetAt: Date.now() + 1000,
@@ -465,7 +468,7 @@ describe('POST /api/public/generate — WS-1 consumer generation tier', () => {
       for (let i = 0; i < CONSUMER_GEN_DAILY_QUOTA; i++) {
         checkConsumerGenDailyQuota('10.4.0.1');
       }
-      checkConsumerGlobalSpendCapMock.mockReturnValue({
+      checkConsumerGlobalSpendCapMock.mockResolvedValue({
         allowed: true,
         remaining: 199,
         resetAt: Date.now() + 1000,
