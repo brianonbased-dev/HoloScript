@@ -1,10 +1,8 @@
 'use client';
 
 import React, { useRef, useState, useEffect, useMemo } from 'react';
-import { Canvas, useFrame, _useThree } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
 import {
-  _Points,
-  _PointMaterial,
   Float,
   Text,
   Line,
@@ -12,7 +10,12 @@ import {
   MeshDistortMaterial,
 } from '@react-three/drei';
 import * as THREE from 'three';
-import { SpatialEvent } from '@/services/master-portal/core/MeshSpatialOrchestrator';
+
+type SpatialFeedEvent = {
+  id?: string;
+  position?: { x?: number; y?: number; z?: number };
+  intensity?: number;
+};
 
 /**
  * Quantum Radar 3D Component
@@ -25,7 +28,7 @@ function AgentNode({
   id,
   position,
   isCouncil,
-  _status,
+  status: _status,
 }: {
   id: string;
   position: [number, number, number];
@@ -148,7 +151,7 @@ function Scene() {
           if (data.events && Array.isArray(data.events)) {
             // Filter for new events or just take last 20
             // In a real implementation, we would use a lastId cursor
-            const newPulses = data.events.slice(-20).map((event: SpatialEvent) => {
+            const newPulses = data.events.slice(-20).map((event: SpatialFeedEvent, index: number) => {
               // Map event to pulse
               // We need positions.
               // If event.position is provided, use it.
@@ -158,16 +161,16 @@ function Scene() {
               // Since we don't have all agent positions dynamically mapped yet, we use the event position as end?
 
               // Simplification: Source 0,0,0 (CEO) to Event Position
-              const startPos = [0, 0, 0];
-              const endPos = event.position
-                ? [event.position.x, event.position.y, event.position.z]
+              const startPos: [number, number, number] = [0, 0, 0];
+              const endPos: [number, number, number] = event.position
+                ? [event.position.x ?? 10, event.position.y ?? 10, event.position.z ?? 10]
                 : [10, 10, 10];
 
               return {
-                id: event.id,
+                id: event.id ?? `spatial-event-${index}`,
                 start: startPos,
                 end: endPos,
-                intensity: event.intensity,
+                intensity: event.intensity ?? 1,
               };
             });
             setPulses(newPulses);
