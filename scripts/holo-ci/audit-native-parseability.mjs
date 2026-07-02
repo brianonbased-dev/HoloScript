@@ -1,46 +1,32 @@
 #!/usr/bin/env node
 /**
- * audit-native-parseability.mjs — BLAST 1/3 (board task_1783034628547_5ozt).
+ * audit-native-parseability.mjs - BLAST language-integrity audit.
  *
  * check-native-coverage.mjs (the D.104 gate) counts .hsplus/.holo/.hs files by
- * EXTENSION only — it never parses them. This script quantifies the real gap:
- * of the files that D.104 counts as "native", how many actually parse clean?
+ * extension only. This script quantifies the real gap: of the files that D.104
+ * counts as native, how many are really valid through the same guard used by
+ * corpus rows and eval gates?
  *
- * Root cause (research/2026-07-02_language-parser-integrity-gaps.md, G1-G5):
- * the .hs/.hsplus grammar (Rust+WASM, packages/compiler-wasm/src/) silently
- * corrupts ASTs, lies about success, and disagrees with its own docs. .holo
- * (a separate TS parser, packages/core/src/parser/HoloCompositionParser.ts)
- * is a different, largely-healthy code path.
- *
- * Each extension is parsed with its OWN canonical parser:
- *   .hsplus / .hs -> packages/compiler-wasm/pkg-node (Rust/WASM, parse())
- *   .holo         -> @holoscript/core HoloCompositionParser
- *
- * IMPORTANT — known staleness caveat (found while building this script,
- * 2026-07-02): the committed pkg-node/holoscript_wasm_bg.wasm predates commit
- * de8983409 "fix(compiler-wasm): detect unclosed braces at EOF in
- * consume_braced_body_raw" (WASM built 2026-06-22T23:55Z; that fix landed
- * 2026-06-24). No cargo/wasm-pack toolchain is available on this machine to
- * rebuild it, so this script is measuring the WASM binary CLI tools actually
- * ship with today, not a freshly-rebuilt one. If cargo/wasm-pack are
- * available in your environment, `pnpm --filter @holoscript/wasm build:nodejs`
- * before running this for the most current numbers, and note the WASM's
- * `version()` + git rev in the report either way.
+ * BLAST 2/3: each row uses assertReallyValid(), so "parse clean" means:
+ *   - errors.length === 0, regardless of raw success flags;
+ *   - verdict agrees with and without one trailing newline;
+ *   - source-declared semantic nodes are not silently lost from the AST where
+ *     a cheap node-count check is feasible.
  *
  * Usage:
- *   node scripts/holo-ci/audit-native-parseability.mjs           # human-readable
- *   node scripts/holo-ci/audit-native-parseability.mjs --json    # machine-readable
- *   node scripts/holo-ci/audit-native-parseability.mjs --samples 10  # more sample errors per bucket
+ *   node scripts/holo-ci/audit-native-parseability.mjs
+ *   node scripts/holo-ci/audit-native-parseability.mjs --json
+ *   node scripts/holo-ci/audit-native-parseability.mjs --samples 10
  */
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { createRequire } from 'module';
+import { checkReallyValid } from '../lang-audit/assert-really-valid.mjs';
 
-const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const SCAN_ROOT = path.join(REPO_ROOT, 'packages'); // matches check-native-coverage.mjs scope
+const NATIVE_EXT = new Set(['.hsplus', '.holo', '.hs']);
 
 const SKIP_DIRS = new Set([
   'node_modules', '.git', 'dist', 'build', 'coverage', '.next', '.turbo',
@@ -82,6 +68,18 @@ function recordThrow(b, file, detail, maxSamples) {
   }
 }
 
+function formatGuardDetail(result) {
+  const codes = result.diagnostics.map((d) => d.code).join(', ') || 'unknown';
+  const firstParserErrors = result.primary.errors
+    .map((error) => error.message ?? String(error))
+    .slice(0, 2)
+    .join(' | ');
+  const extra =
+    firstParserErrors ||
+    `sourceNodes=${result.sourceNodeCount.count} astNodes=${result.astNodeCount}`;
+  return `${codes}: ${extra}`;
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const asJson = args.includes('--json');
@@ -90,70 +88,16 @@ async function main() {
 
   const results = { '.hsplus': bucket(), '.hs': bucket(), '.holo': bucket() };
   const files = { '.hsplus': [], '.hs': [], '.holo': [] };
+  const guardErrorCounts = {};
 
   walk(SCAN_ROOT, (abs) => {
     const ext = path.extname(abs);
-    if (ext in files) files[ext].push(abs);
+    if (NATIVE_EXT.has(ext)) files[ext].push(abs);
   });
 
-  // --- .hsplus / .hs via compiler-wasm (Rust/WASM) ---
-  const wasmPkgPath = path.join(REPO_ROOT, 'packages', 'compiler-wasm', 'pkg-node', 'holoscript_wasm.js');
-  let wasm = null;
-  let wasmVersion = null;
-  let wasmError = null;
-  try {
-    wasm = require(wasmPkgPath);
-    wasmVersion = wasm.version();
-  } catch (err) {
-    wasmError = String(err);
-  }
-
-  if (wasm) {
-    for (const ext of ['.hsplus', '.hs']) {
-      const b = results[ext];
-      for (const abs of files[ext]) {
-        let src;
-        try {
-          src = fs.readFileSync(abs, 'utf8');
-        } catch (err) {
-          recordThrow(b, abs, String(err), maxSamples);
-          continue;
-        }
-        let out;
-        try {
-          out = wasm.parse(src);
-        } catch (err) {
-          recordThrow(b, abs, String(err).slice(0, 200), maxSamples);
-          continue;
-        }
-        let parsed;
-        try {
-          parsed = JSON.parse(out);
-        } catch {
-          parsed = null;
-        }
-        const hasErrors = parsed && Array.isArray(parsed.errors) && parsed.errors.length > 0;
-        const isErrorObj = parsed && typeof parsed.error === 'string';
-        if (hasErrors || isErrorObj) {
-          recordFail(b, abs, JSON.stringify(parsed).slice(0, 200), maxSamples);
-        } else {
-          b.pass++;
-        }
-      }
-    }
-  } else {
-    results['.hsplus'].skipped = true;
-    results['.hs'].skipped = true;
-  }
-
-  // --- .holo via @holoscript/core HoloCompositionParser ---
-  let coreError = null;
-  try {
-    const core = await import('@holoscript/core');
-    const { HoloCompositionParser } = core;
-    const parser = new HoloCompositionParser();
-    const b = results['.holo'];
-    for (const abs of files['.holo']) {
+  for (const ext of ['.hsplus', '.hs', '.holo']) {
+    const b = results[ext];
+    for (const abs of files[ext]) {
       let src;
       try {
         src = fs.readFileSync(abs, 'utf8');
@@ -161,23 +105,24 @@ async function main() {
         recordThrow(b, abs, String(err), maxSamples);
         continue;
       }
-      let result;
+
+      let guarded;
       try {
-        result = parser.parse(src);
+        guarded = await checkReallyValid(src, ext);
       } catch (err) {
         recordThrow(b, abs, String(err).slice(0, 200), maxSamples);
         continue;
       }
-      if (result && result.success) {
+
+      if (guarded.ok) {
         b.pass++;
       } else {
-        const errs = (result && result.errors) || [];
-        recordFail(b, abs, JSON.stringify(errs.slice(0, 2)).slice(0, 250), maxSamples);
+        for (const diagnostic of guarded.diagnostics) {
+          guardErrorCounts[diagnostic.code] = (guardErrorCounts[diagnostic.code] ?? 0) + 1;
+        }
+        recordFail(b, abs, formatGuardDetail(guarded).slice(0, 250), maxSamples);
       }
     }
-  } catch (err) {
-    coreError = String(err);
-    results['.holo'].skipped = true;
   }
 
   const totalCounted = Object.values(files).reduce((s, arr) => s + arr.length, 0);
@@ -188,8 +133,11 @@ async function main() {
   const report = {
     generatedAtIso: new Date().toISOString(),
     scanRoot: path.relative(REPO_ROOT, SCAN_ROOT),
-    wasm: { version: wasmVersion, loadError: wasmError },
-    coreParserLoadError: coreError,
+    guard: {
+      name: 'assertReallyValid',
+      rules: ['errors.length===0', 'trailing-newline-invariance', 'node-count-fidelity'],
+      errorCounts: guardErrorCounts,
+    },
     counts: {
       '.hsplus': { extensionTotal: files['.hsplus'].length, ...results['.hsplus'] },
       '.hs': { extensionTotal: files['.hs'].length, ...results['.hs'] },
@@ -201,10 +149,6 @@ async function main() {
       totalFailingOrThrowing: totalFail,
       realParseablePct: Number(parseablePct.toFixed(2)),
     },
-    caveat:
-      'compiler-wasm pkg-node binary may be stale relative to packages/compiler-wasm/src/*.rs ' +
-      '(no cargo/wasm-pack toolchain available to rebuild on this machine at audit time) — ' +
-      'see header comment. Rebuild with `pnpm --filter @holoscript/wasm build:nodejs` for current numbers.',
   };
 
   if (asJson) {
@@ -212,18 +156,14 @@ async function main() {
     return;
   }
 
-  console.log(`native-parseability audit (BLAST 1/3) — ${report.generatedAtIso}`);
-  console.log(`wasm version: ${wasmVersion ?? '(failed to load: ' + wasmError + ')'}`);
+  console.log(`native-parseability audit (guarded) - ${report.generatedAtIso}`);
+  console.log(`guard: ${report.guard.name} (${report.guard.rules.join(', ')})`);
   console.log('');
   for (const ext of ['.hsplus', '.hs', '.holo']) {
     const c = report.counts[ext];
-    if (c.skipped) {
-      console.log(`${ext}: SKIPPED (parser unavailable)`);
-      continue;
-    }
     const total = c.extensionTotal;
     const pct = total === 0 ? 0 : ((c.pass / total) * 100).toFixed(2);
-    console.log(`${ext}: ${c.pass}/${total} parse clean (${pct}%) — fail=${c.fail} threw=${c.threw}`);
+    console.log(`${ext}: ${c.pass}/${total} really valid (${pct}%) - fail=${c.fail} threw=${c.threw}`);
     for (const s of c.sampleErrors) {
       console.log(`    ${s.file}: ${s.detail}`);
     }
@@ -231,9 +171,9 @@ async function main() {
   console.log('');
   console.log(
     `D.104 counts ${report.summary.totalCountedByD104} files as "native" by extension. ` +
-      `Only ${report.summary.totalActuallyParseable} (${report.summary.realParseablePct}%) actually parse clean.`
+      `Only ${report.summary.totalActuallyParseable} (${report.summary.realParseablePct}%) are really valid.`
   );
-  console.log(`\nCAVEAT: ${report.caveat}`);
+  console.log(`Guard rejection codes: ${JSON.stringify(report.guard.errorCounts)}`);
 }
 
 main();

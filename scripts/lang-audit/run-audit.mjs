@@ -135,6 +135,8 @@ function main() {
     byExt: {},
     overall: { pass: 0, fail: 0, timeout: 0, exception: 0, 'read-error': 0 },
     newlineNonInvariant: [],
+    nodeCountNonFidelity: [],
+    guardErrorCounts: {},
   };
   for (const r of all) {
     summary.byExt[r.ext] ??= { pass: 0, fail: 0, timeout: 0, exception: 0, 'read-error': 0 };
@@ -142,6 +144,10 @@ function main() {
     summary.overall[bucket]++;
     summary.byExt[r.ext][bucket]++;
     if (r.newlineInvariant === false) summary.newlineNonInvariant.push(r.file);
+    if (r.nodeCountFidelity === false) summary.nodeCountNonFidelity.push(r.file);
+    for (const code of r.guardErrors ?? []) {
+      summary.guardErrorCounts[code] = (summary.guardErrorCounts[code] ?? 0) + 1;
+    }
   }
 
   const realPassRate = summary.overall.pass / summary.totalFiles;
@@ -154,6 +160,8 @@ function main() {
   console.log(`Overall: pass=${summary.overall.pass} fail=${summary.overall.fail} timeout=${summary.overall.timeout} exception=${summary.overall.exception}`);
   console.log(`REAL parse-pass rate: ${(realPassRate * 100).toFixed(2)}% (vs the extension-only D.104 metric's 87.48%, which assumes 100%)`);
   console.log(`Files that flip verdict on trailing-newline presence alone (G1 EOF-DEDENT bug): ${summary.newlineNonInvariant.length}`);
+  console.log(`Files whose AST loses source-declared semantic nodes (G3 fidelity bug): ${summary.nodeCountNonFidelity.length}`);
+  console.log(`Guard rejection codes: ${JSON.stringify(summary.guardErrorCounts)}`);
 
   const argIdx = process.argv.indexOf('--json-out');
   const jsonOutPath = argIdx >= 0 ? process.argv[argIdx + 1] : null;
