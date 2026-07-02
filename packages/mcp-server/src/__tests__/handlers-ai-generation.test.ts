@@ -79,6 +79,43 @@ describe('handlers AI generation path', () => {
     }
   });
 
+  it('does not inherit stdio-local admin bypass for consumer-source requests', async () => {
+    const generateSpy = vi.spyOn(generators, 'generateSceneForMCP').mockResolvedValue({
+      code: 'composition "ShouldNotRun" {}',
+      stats: { objects: 0, traits: 0, lines: 1 },
+      source: 'ai',
+      provider: 'mock',
+      attemptedProviders: ['mock'],
+    } as Awaited<ReturnType<typeof generators.generateSceneForMCP>>);
+
+    const originalDisabled = process.env.HOLOSCRIPT_CONSUMER_TIER_DISABLED;
+    const originalApiKey = process.env.HOLOSCRIPT_API_KEY;
+    try {
+      process.env.HOLOSCRIPT_CONSUMER_TIER_DISABLED = 'true';
+      process.env.HOLOSCRIPT_API_KEY = 'server-env-key-present';
+      const result = (await handleTool(
+        'generate_scene',
+        { description: 'a small cabin' },
+        undefined,
+        'consumer'
+      )) as {
+        success?: boolean;
+        error?: string;
+        policyId?: string;
+      };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('ForkSandboxGate denied tool "generate_scene"');
+      expect(result.policyId).toBe('holoscript-sensitive-default-v1');
+      expect(generateSpy).not.toHaveBeenCalled();
+    } finally {
+      if (originalDisabled === undefined) delete process.env.HOLOSCRIPT_CONSUMER_TIER_DISABLED;
+      else process.env.HOLOSCRIPT_CONSUMER_TIER_DISABLED = originalDisabled;
+      if (originalApiKey === undefined) delete process.env.HOLOSCRIPT_API_KEY;
+      else process.env.HOLOSCRIPT_API_KEY = originalApiKey;
+    }
+  });
+
   it('adds native auto-rig annotations and skeleton metadata to generated 3D objects', () => {
     const enriched = applyNativeAutoRigToGeneratedObject({
       holoCode: `composition "Hero" {

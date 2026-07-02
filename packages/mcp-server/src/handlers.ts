@@ -315,9 +315,12 @@ export async function handleTool(
   // so signingCtx is always undefined there. Bridge: if the process has a
   // valid HOLOSCRIPT_API_KEY in env (the same key that grants admin:* via the
   // OAuth2 provider) synthesize admin:* scopes so the gate honours that trust.
+  // Explicit source overrides are externally-originated lanes and must not
+  // inherit the stdio-local admin bridge.
+  const allowLocalAdminBridge = !subjectSourceOverride && process.env['HOLOSCRIPT_API_KEY'];
   const effectiveSigningCtx: SigningContext | undefined =
     signingCtx ??
-    (process.env['HOLOSCRIPT_API_KEY']
+    (allowLocalAdminBridge
       ? {
           signedRequest: false,
           signingValid: true,
