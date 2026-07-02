@@ -6,6 +6,7 @@
  */
 
 import { randomUUID } from 'crypto';
+import { buildContentPolicyConfig, evaluateContentPolicySync } from '@holoscript/core/policy';
 
 // =============================================================================
 // Scene Persistence Store
@@ -285,6 +286,9 @@ interface ShareResult {
   tweetText: string;
   qrCode?: string;
   cardMeta?: Record<string, string>;
+  blocked?: boolean;
+  blockReason?: string;
+  blockCategory?: string;
 }
 
 // Base URL for hosted services (configurable)
@@ -295,6 +299,16 @@ const RENDER_SERVICE_URL =
 const PLAYGROUND_URL =
   process.env.HOLOSCRIPT_PLAYGROUND_URL ||
   (RAILWAY_DOMAIN ? `https://${RAILWAY_DOMAIN}` : 'http://localhost:3000');
+
+// Family-tier content policy (same tier/pattern as consumerGenerationPolicyConfig
+// in http-server.ts) -- createShareLink()'s local-generation path stores with
+// listPublic:true, which lands directly in the public feed (GET /api/public/feed),
+// so it must be screened with the same strictness as the anonymous consumer
+// generation surface, not a looser default.
+const shareLinkPolicyConfig = buildContentPolicyConfig({
+  tier: 'family',
+  region: process.env.HOLOLAND_POLICY_REGION || 'GLOBAL',
+});
 
 /**
  * Generate a static preview render of HoloScript code
@@ -408,6 +422,61 @@ export async function createShareLink(options: ShareOptions): Promise<ShareResul
     } catch (_error) {
       // Fall through to local generation
     }
+  }
+
+  // Content-policy screen BEFORE storing anything. createShareLink()'s local
+  // path always sets listPublic:true (below), so unscreened content here would
+  // land directly in the public feed (GET /api/public/feed, WS-2) with zero
+  // moderation -- unlike POST /api/public/generate, which already screens both
+  // input and output via this same gate (http-server.ts consumerGenerationPolicyConfig).
+  // Screen the caller-supplied title/description (input) first, then the code
+  // (output), and return early WITHOUT calling storeScene on any violation so
+  // nothing -- public or private -- is ever persisted for blocked content.
+  if (title) {
+    const titleDecision = evaluateContentPolicySync(
+      { text: title, surface: 'create-share-link', direction: 'input' },
+      shareLinkPolicyConfig
+    );
+    if (!titleDecision.allowed) {
+      return {
+        blocked: true,
+        blockReason: 'Content blocked by policy.',
+        blockCategory: titleDecision.category,
+        playgroundUrl: '',
+        embedUrl: '',
+        tweetText: '',
+      };
+    }
+  }
+  if (description) {
+    const descriptionDecision = evaluateContentPolicySync(
+      { text: description, surface: 'create-share-link', direction: 'input' },
+      shareLinkPolicyConfig
+    );
+    if (!descriptionDecision.allowed) {
+      return {
+        blocked: true,
+        blockReason: 'Content blocked by policy.',
+        blockCategory: descriptionDecision.category,
+        playgroundUrl: '',
+        embedUrl: '',
+        tweetText: '',
+      };
+    }
+  }
+  const codeDecision = evaluateContentPolicySync(
+    { text: code, surface: 'create-share-link', direction: 'output' },
+    shareLinkPolicyConfig
+  );
+  if (!codeDecision.allowed) {
+    return {
+      blocked: true,
+      blockReason: 'Content blocked by policy.',
+      blockCategory: codeDecision.category,
+      playgroundUrl: '',
+      embedUrl: '',
+      tweetText: '',
+    };
   }
 
   // Store scene and generate short URLs. listPublic:true is the explicit
@@ -675,12 +744,25 @@ export function generateWebGPUBrowserTemplate(compiledCode: string, title: strin
       background: #0d0d0d; color: #ff6b6b;
       font: 14px/1.6 monospace; padding: 32px; white-space: pre-wrap;
     }
+    #hs-motion-gate {
+      display: none; position: fixed; inset: 0;
+      background: #000; color: #fff; z-index: 10;
+      align-items: center; justify-content: center;
+    }
+    #hs-motion-gate button {
+      padding: 12px 24px; background: #4a9eff; color: #fff;
+      border: none; border-radius: 8px; font-size: 1rem;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      cursor: pointer;
+    }
+    #hs-motion-gate button:hover { background: #3a8eff; }
   </style>
 </head>
 <body>
   <canvas id="webgpu-canvas"></canvas>
   <div id="hs-renderer-badge">HoloScript · sovereign WebGPU</div>
   <div id="hs-error"></div>
+  <div id="hs-motion-gate"><button id="hs-motion-gate-btn">Reduced motion is on. Click to view this scene.</button></div>
 
   <script type="module">
     // ── Sovereign WebGPU renderer ─────────────────────────────────────────
@@ -708,7 +790,7 @@ export function generateWebGPUBrowserTemplate(compiledCode: string, title: strin
       resizeCanvas();
       window.addEventListener('resize', resizeCanvas);
 
-      (async () => {
+      const startRender = async () => {
         try {
           // ── Compiled HoloScript (sovereign output) ──────────────────────
 ${runnableCode
@@ -719,7 +801,25 @@ ${runnableCode
         } catch (err) {
           showError(String(err && err.stack ? err.stack : err));
         }
-      })();
+      };
+
+      // WCAG 2.3.3 "Animation from Interactions": don't auto-play a rendering
+      // pipeline for users who have signaled an OS-level reduced-motion
+      // preference -- require an explicit click first. This is a general
+      // accessibility default (not a per-scene content scan), and it also
+      // naturally covers any future compiled content that drives more
+      // expressive per-frame visual behavior than today's output does.
+      const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReducedMotion) {
+        const gate = document.getElementById('hs-motion-gate');
+        gate.style.display = 'flex';
+        document.getElementById('hs-motion-gate-btn').addEventListener('click', () => {
+          gate.style.display = 'none';
+          startRender();
+        }, { once: true });
+      } else {
+        startRender();
+      }
     }
   </script>
 </body>
@@ -785,13 +885,29 @@ export function generateBrowserTemplate(code: string, title: string, sceneId?: s
     }
     #vr-button:hover { background: #3a8eff; }
     #vr-button:disabled { background: #666; cursor: not-allowed; }
+    #motion-button {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 24px;
+      background: #4a9eff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      display: none;
+    }
+    #motion-button:hover { background: #3a8eff; }
   </style>
 </head>
 <body>
   <div id="container"></div>
   <div id="loading">Loading HoloScript scene...</div>
   <button id="vr-button" disabled>Enter VR</button>
-  
+  <button id="motion-button">Reduced motion is on — click to enable animation</button>
+
   <script type="module">
     import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
     import { VRButton } from 'https://unpkg.com/three@0.160.0/examples/jsm/webxr/VRButton.js';
@@ -963,9 +1079,27 @@ export function generateBrowserTemplate(code: string, title: string, sceneId?: s
     function render() {
       renderer.render(scene, camera);
     }
-    
-    animate();
-    
+
+    // WCAG 2.3.3 "Animation from Interactions": today's animation here is a
+    // fixed, gentle 0.005rad/frame rotation with no seizure risk -- but this
+    // gate is a general accessibility default (not a per-scene content scan)
+    // that also future-proofs this template against any more expressive
+    // animation added later. When the OS-level reduced-motion preference is
+    // set, render a single static frame and require an explicit click before
+    // starting the animation loop; otherwise behavior is unchanged.
+    const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) {
+      render();
+      const motionButton = document.getElementById('motion-button');
+      motionButton.style.display = 'block';
+      motionButton.addEventListener('click', () => {
+        motionButton.style.display = 'none';
+        animate();
+      }, { once: true });
+    } else {
+      animate();
+    }
+
     // Handle resize
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
