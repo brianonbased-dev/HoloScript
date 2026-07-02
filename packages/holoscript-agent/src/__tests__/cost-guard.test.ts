@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mkdtempSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -10,6 +10,8 @@ import {
   defaultPricerForProvider,
   defaultXAIPricer,
   ANTHROPIC_PRICING_USD_PER_MTOK,
+  ANTHROPIC_PRICING_SCHEDULE_USD_PER_MTOK,
+  resolveAnthropicPricing,
 } from '../cost-guard.js';
 import type { CostState } from '../types.js';
 
@@ -35,6 +37,36 @@ describe('defaultAnthropicPricer', () => {
       ANTHROPIC_PRICING_USD_PER_MTOK['claude-opus-4-7'].input +
       ANTHROPIC_PRICING_USD_PER_MTOK['claude-opus-4-7'].output;
     expect(cost).toBeCloseTo(expected, 5);
+  });
+
+  it('uses the Claude Sonnet 5 intro price through 2026-08-31 and standard price after', () => {
+    expect(ANTHROPIC_PRICING_USD_PER_MTOK['claude-sonnet-5']).toEqual({
+      input: 2,
+      output: 10,
+    });
+    expect(ANTHROPIC_PRICING_SCHEDULE_USD_PER_MTOK['claude-sonnet-5']).toHaveLength(2);
+    expect(resolveAnthropicPricing('claude-sonnet-5', '2026-08-31')).toEqual({
+      input: 2,
+      output: 10,
+    });
+    expect(resolveAnthropicPricing('claude-sonnet-5', '2026-09-01')).toEqual({
+      input: 3,
+      output: 15,
+    });
+
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-09-01T00:00:00Z'));
+      expect(
+        defaultAnthropicPricer('claude-sonnet-5', {
+          promptTokens: 1_000_000,
+          completionTokens: 1_000_000,
+          totalTokens: 2_000_000,
+        })
+      ).toBeCloseTo(18, 5);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('throws on unknown model so callers cannot silently undercount', () => {

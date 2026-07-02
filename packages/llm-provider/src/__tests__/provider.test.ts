@@ -18,6 +18,7 @@ import {
   ANTHROPIC_MODELS,
   ANTHROPIC_MODEL_METADATA,
   ANTHROPIC_CAPABILITIES,
+  buildThinkingAndOutputForAnthropic,
   getAnthropicModelMetadata,
   isAnthropicDefaultRoutingEligible,
 } from '../adapters/anthropic';
@@ -283,13 +284,56 @@ describe('AnthropicAdapter (metadata)', () => {
     const adapter = new AnthropicAdapter({ apiKey: 'test-key' });
     // Adapter uses aliases (not date-suffixed IDs) — anthropic.ts:25 explicit
     // design decision. Aliases auto-resolve to the latest pinned build.
+    expect(adapter.models).toContain('claude-sonnet-5');
+    expect(adapter.models).toContain('claude-sonnet-4-6');
     expect(adapter.models).toContain('claude-sonnet-4-5');
     expect(adapter.models).toContain('claude-haiku-4-5');
   });
 
   it('ANTHROPIC_MODELS constant is populated', () => {
     expect(ANTHROPIC_MODELS.length).toBeGreaterThan(0);
+    expect(ANTHROPIC_MODELS).toContain('claude-sonnet-5');
     expect(ANTHROPIC_MODELS).toContain('claude-opus-4-6');
+  });
+
+  it('adds Claude Sonnet 5 as distinct GA metadata, not a Sonnet 4.6 alias', () => {
+    const modelList = ANTHROPIC_MODELS as readonly string[];
+    expect(modelList).toContain('claude-sonnet-5');
+    expect(modelList).toContain('claude-sonnet-4-6');
+
+    const metadata = ANTHROPIC_MODEL_METADATA['claude-sonnet-5'];
+    expect(metadata).toMatchObject({
+      id: 'claude-sonnet-5',
+      status: 'ga',
+      contextWindow: 1_000_000,
+      maxOutput: 128_000,
+      defaultRoutingEligible: true,
+      alwaysAdaptiveThinking: true,
+      supportsSamplingParams: false,
+      tokenizerFamily: 'claude-sonnet-5-compatible',
+    });
+    expect(metadata.pricingSchedule).toEqual([
+      {
+        effectiveFrom: '2026-06-30',
+        effectiveThrough: '2026-08-31',
+        costPerMillion: { input: 2, output: 10 },
+        notes: 'Introductory pricing.',
+      },
+      {
+        effectiveFrom: '2026-09-01',
+        costPerMillion: { input: 3, output: 15 },
+        notes: 'Standard pricing.',
+      },
+    ]);
+    expect(metadata.routingNotes.join('\n')).toContain('Do not alias to claude-sonnet-4-6');
+    expect(isAnthropicDefaultRoutingEligible('claude-sonnet-5')).toBe(true);
+
+    expect(
+      buildThinkingAndOutputForAnthropic('claude-sonnet-5', {
+        messages: [],
+        thinking: { type: 'disabled' },
+      }).thinking
+    ).toEqual({ type: 'adaptive', display: 'omitted' });
   });
 
   it('keeps Fable/Mythos opt-in with routing metadata guards', () => {

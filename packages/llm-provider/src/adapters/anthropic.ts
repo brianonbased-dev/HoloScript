@@ -182,12 +182,13 @@ function mapAnthropicFileMetadata(value: unknown): LLMFileMetadata {
 
 // Available Anthropic Claude models for HoloScript generation.
 // Use aliases (not date-suffixed IDs) — they auto-resolve to the latest pinned build.
-// Current as of 2026-06-08 (A-020 refresh). Retired/deprecated models removed; do not restore without
+// Current as of 2026-07-02 (A-020 refresh). Retired/deprecated models removed; do not restore without
 // verifying status at https://platform.claude.com/docs/en/about-claude/models/overview.
 export const ANTHROPIC_MODELS = [
   // Current — recommended defaults
   'claude-opus-4-8', // Most capable. $10/$50 per MTok (3× cheaper than 4.7). Adaptive thinking only; no temperature/top_p. Context 1M / maxOut 128K.
   'claude-opus-4-7', // Adaptive thinking only; no temperature/top_p.
+  'claude-sonnet-5', // GA 2026-06-30. Adaptive thinking default; no sampling params; intro pricing through 2026-08-31.
   'claude-sonnet-4-6', // Best speed/intelligence. Adaptive thinking.
   'claude-haiku-4-5', // Fast, cost-effective for simple tasks.
   // Legacy — still active, use only on explicit request
@@ -197,6 +198,13 @@ export const ANTHROPIC_MODELS = [
 ] as const;
 
 export type AnthropicModel = (typeof ANTHROPIC_MODELS)[number];
+
+export interface AnthropicPricingPeriod {
+  effectiveFrom: string;
+  effectiveThrough?: string;
+  costPerMillion: { input: number; output: number };
+  notes?: string;
+}
 
 export interface AnthropicModelMetadata {
   id: string;
@@ -209,7 +217,12 @@ export interface AnthropicModelMetadata {
   approvedAccessRequired?: boolean;
   alwaysAdaptiveThinking: boolean;
   supportsSamplingParams: boolean;
-  tokenizerFamily: 'claude-4' | 'claude-opus-4-7-compatible' | 'claude-fable-5-compatible';
+  tokenizerFamily:
+    | 'claude-4'
+    | 'claude-opus-4-7-compatible'
+    | 'claude-fable-5-compatible'
+    | 'claude-sonnet-5-compatible';
+  pricingSchedule?: readonly AnthropicPricingPeriod[];
   supportsFallbacks?: boolean;
   fallbackBeta?: string;
   supportsRefusalCategories?: boolean;
@@ -283,6 +296,30 @@ export const ANTHROPIC_MODEL_METADATA = {
     supportsSamplingParams: false,
     tokenizerFamily: 'claude-opus-4-7-compatible',
   }),
+  'claude-sonnet-5': modelMetadata('claude-sonnet-5', {
+    status: 'ga',
+    alwaysAdaptiveThinking: true,
+    supportsSamplingParams: false,
+    tokenizerFamily: 'claude-sonnet-5-compatible',
+    pricingSchedule: [
+      {
+        effectiveFrom: '2026-06-30',
+        effectiveThrough: '2026-08-31',
+        costPerMillion: { input: 2, output: 10 },
+        notes: 'Introductory pricing.',
+      },
+      {
+        effectiveFrom: '2026-09-01',
+        costPerMillion: { input: 3, output: 15 },
+        notes: 'Standard pricing.',
+      },
+    ],
+    routingNotes: [
+      'Do not alias to claude-sonnet-4-6; Sonnet 5 has distinct request semantics.',
+      'Manual extended-thinking budgets and non-default sampling params are rejected.',
+      'Tokenizer changed; use the token-counting API for cost estimation.',
+    ],
+  }),
   'claude-sonnet-4-6': modelMetadata('claude-sonnet-4-6'),
   'claude-haiku-4-5': modelMetadata('claude-haiku-4-5', {
     contextWindow: 200_000,
@@ -309,6 +346,7 @@ const SAMPLING_PARAMS_UNSUPPORTED: ReadonlySet<string> = new Set([
   'claude-mythos-5',
   'claude-opus-4-8',
   'claude-opus-4-7',
+  'claude-sonnet-5',
 ]);
 
 function supportsSamplingParams(model: string): boolean {
@@ -322,6 +360,7 @@ const ADAPTIVE_THINKING_DEFAULT_MODELS: ReadonlySet<string> = new Set([
   'claude-opus-4-8',
   'claude-opus-4-7',
   'claude-opus-4-6',
+  'claude-sonnet-5',
   'claude-sonnet-4-6',
   'claude-sonnet-4-5',
 ]);

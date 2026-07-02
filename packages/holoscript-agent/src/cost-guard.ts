@@ -3,17 +3,61 @@ import { dirname } from 'node:path';
 import type { TokenUsage } from '@holoscript/llm-provider';
 import type { CostState, ModelPricer } from './types.js';
 
+export interface PricingPeriodUsdPerMTok {
+  effectiveFrom: string;
+  effectiveThrough?: string;
+  price: { input: number; output: number };
+}
+
 export const ANTHROPIC_PRICING_USD_PER_MTOK: Record<string, { input: number; output: number }> = {
   'claude-opus-4-8': { input: 10, output: 50 }, // 3× cheaper than 4.7 on total cost; A-020 2026-06-08
   'claude-opus-4-7': { input: 5, output: 25 },
   'claude-opus-4-6': { input: 5, output: 25 },
+  'claude-sonnet-5': { input: 2, output: 10 }, // Intro pricing through 2026-08-31; schedule below flips after.
   'claude-sonnet-4-6': { input: 3, output: 15 },
   'claude-haiku-4-5-20251001': { input: 1, output: 5 },
   'claude-haiku-4-5': { input: 1, output: 5 },
 };
 
+export const ANTHROPIC_PRICING_SCHEDULE_USD_PER_MTOK: Record<
+  string,
+  readonly PricingPeriodUsdPerMTok[]
+> = {
+  'claude-sonnet-5': [
+    {
+      effectiveFrom: '2026-06-30',
+      effectiveThrough: '2026-08-31',
+      price: { input: 2, output: 10 },
+    },
+    {
+      effectiveFrom: '2026-09-01',
+      price: { input: 3, output: 15 },
+    },
+  ],
+};
+
+function priceDateKey(at: Date | string = new Date()): string {
+  return typeof at === 'string' ? at.slice(0, 10) : at.toISOString().slice(0, 10);
+}
+
+export function resolveAnthropicPricing(
+  model: string,
+  at: Date | string = new Date()
+): { input: number; output: number } | undefined {
+  const schedule = ANTHROPIC_PRICING_SCHEDULE_USD_PER_MTOK[model];
+  if (schedule) {
+    const key = priceDateKey(at);
+    const period = schedule.find(
+      (entry) =>
+        key >= entry.effectiveFrom && (!entry.effectiveThrough || key <= entry.effectiveThrough)
+    );
+    if (period) return period.price;
+  }
+  return ANTHROPIC_PRICING_USD_PER_MTOK[model];
+}
+
 export function defaultAnthropicPricer(model: string, usage: TokenUsage): number {
-  const price = ANTHROPIC_PRICING_USD_PER_MTOK[model];
+  const price = resolveAnthropicPricing(model);
   if (!price) {
     throw new Error(
       `No pricing configured for model "${model}" — add to ANTHROPIC_PRICING_USD_PER_MTOK or pass a custom pricer`
