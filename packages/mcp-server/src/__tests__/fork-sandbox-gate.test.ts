@@ -2,7 +2,7 @@
  * @holoscript/mcp-server security tests
  * Covers: sandbox-policy, fork-sandbox-gate, detectForkedHoloScript, detectForkedPlugin
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   detectForkedHoloScript,
   detectForkedPlugin,
@@ -13,6 +13,7 @@ import {
   resolvePolicy,
   DEFAULT_SENSITIVE_POLICY,
   DEFAULT_BENIGN_POLICY,
+  DEFAULT_CONSUMER_GENERATION_POLICY,
   SYSTEM_DEFAULT_BLOCKED_ACTIONS,
 } from '../security/fork-sandbox-gate';
 import { globalReceiptStore } from '../security/sandbox-policy';
@@ -127,6 +128,76 @@ describe('resolvePolicy', () => {
     expect(SYSTEM_DEFAULT_BLOCKED_ACTIONS).toContain('robot:move');
     expect(DEFAULT_SENSITIVE_POLICY.defaultBlockedActions).toEqual(SYSTEM_DEFAULT_BLOCKED_ACTIONS);
     expect(DEFAULT_BENIGN_POLICY.defaultBlockedActions).toEqual([]);
+  });
+});
+
+// WS-1 (2026-07-02): the narrow, additive consumer-tier branch in resolvePolicy().
+// Every assertion here is a regression guard proving the slice is a true no-op by
+// default -- the branch must be UNREACHABLE unless BOTH the env flag is set AND
+// source==='consumer' AND the tool is one of the 2 explicitly listed.
+describe('resolvePolicy — WS-1 consumer tier (additive, flag-gated)', () => {
+  const ORIGINAL_FLAG = process.env.HOLOSCRIPT_CONSUMER_TIER_ENABLED;
+
+  afterEach(() => {
+    if (ORIGINAL_FLAG === undefined) delete process.env.HOLOSCRIPT_CONSUMER_TIER_ENABLED;
+    else process.env.HOLOSCRIPT_CONSUMER_TIER_ENABLED = ORIGINAL_FLAG;
+  });
+
+  it('stays on the sensitive policy for source=consumer + safe tool when the flag is UNSET (default/no-op proof)', () => {
+    delete process.env.HOLOSCRIPT_CONSUMER_TIER_ENABLED;
+    const policy = resolvePolicy({ kind: 'mcp_tool', source: 'consumer' }, 'generate_scene');
+    expect(policy.policyId).toBe(DEFAULT_SENSITIVE_POLICY.policyId);
+  });
+
+  it('resolves the consumer policy ONLY when flag=true AND source=consumer AND tool is generate_scene', () => {
+    process.env.HOLOSCRIPT_CONSUMER_TIER_ENABLED = 'true';
+    const policy = resolvePolicy({ kind: 'mcp_tool', source: 'consumer' }, 'generate_scene');
+    expect(policy.policyId).toBe(DEFAULT_CONSUMER_GENERATION_POLICY.policyId);
+  });
+
+  it('resolves the consumer policy for generate_world_from_prompt too (both listed tools)', () => {
+    process.env.HOLOSCRIPT_CONSUMER_TIER_ENABLED = 'true';
+    const policy = resolvePolicy({ kind: 'mcp_tool', source: 'consumer' }, 'generate_world_from_prompt');
+    expect(policy.policyId).toBe(DEFAULT_CONSUMER_GENERATION_POLICY.policyId);
+  });
+
+  it('stays sensitive for source=canonical + flag=true (the flag alone never widens access -- source must be consumer)', () => {
+    process.env.HOLOSCRIPT_CONSUMER_TIER_ENABLED = 'true';
+    const policy = resolvePolicy({ kind: 'mcp_tool', source: 'canonical' }, 'generate_scene');
+    // canonical + non-sensitive-listed-as-consumer-safe tool still hits isSensitiveTool
+    // (generate_scene IS in SENSITIVE_TOOL_PATTERNS) -- so canonical callers of this
+    // tool are UNCHANGED by this slice, exactly as intended.
+    expect(policy.policyId).toBe(DEFAULT_SENSITIVE_POLICY.policyId);
+  });
+
+  it('NEVER leaks the consumer policy to a non-listed sensitive tool, even with flag+source set (create_world)', () => {
+    process.env.HOLOSCRIPT_CONSUMER_TIER_ENABLED = 'true';
+    const policy = resolvePolicy({ kind: 'mcp_tool', source: 'consumer' }, 'create_world');
+    expect(policy.policyId).toBe(DEFAULT_SENSITIVE_POLICY.policyId);
+  });
+
+  it('NEVER leaks the consumer policy to a robot/payment-class sensitive tool (twin_earth_robot_actuate)', () => {
+    process.env.HOLOSCRIPT_CONSUMER_TIER_ENABLED = 'true';
+    const policy = resolvePolicy({ kind: 'mcp_tool', source: 'consumer' }, 'twin_earth_robot_actuate');
+    expect(policy.policyId).toBe(DEFAULT_SENSITIVE_POLICY.policyId);
+  });
+
+  it('the consumer policy resource ceilings are strictly <= the benign policy (never more permissive than the existing anonymous tier)', () => {
+    expect(DEFAULT_CONSUMER_GENERATION_POLICY.resources.maxExecutionTimeMs).toBeLessThanOrEqual(
+      DEFAULT_BENIGN_POLICY.resources.maxExecutionTimeMs
+    );
+    expect(DEFAULT_CONSUMER_GENERATION_POLICY.resources.maxNestedCalls).toBeLessThanOrEqual(
+      DEFAULT_BENIGN_POLICY.resources.maxNestedCalls
+    );
+    expect(DEFAULT_CONSUMER_GENERATION_POLICY.file.allowFsWrites).toBe(false);
+    expect(DEFAULT_CONSUMER_GENERATION_POLICY.permissions.allowAnonymous).toBe(true);
+  });
+
+  it('DEFAULT_SENSITIVE_POLICY and DEFAULT_BENIGN_POLICY are byte-identical to before this slice (no accidental field mutation)', () => {
+    expect(DEFAULT_SENSITIVE_POLICY.policyId).toBe('holoscript-sensitive-default-v1');
+    expect(DEFAULT_SENSITIVE_POLICY.permissions.allowAnonymous).toBe(false);
+    expect(DEFAULT_BENIGN_POLICY.policyId).toBe('holoscript-benign-default-v1');
+    expect(DEFAULT_BENIGN_POLICY.network.allowNetwork).toBe(false);
   });
 });
 

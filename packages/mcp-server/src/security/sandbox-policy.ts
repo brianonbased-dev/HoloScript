@@ -126,7 +126,11 @@ export type SandboxSubjectKind =
   | 'runtime_adapter'
   | 'generated_plugin';
 
-export type SandboxSubjectSource = 'canonical' | 'fork' | 'generated' | 'unknown';
+// 'consumer' is additive (WS-1, 2026-07-02): a genuinely anonymous, non-privileged
+// public session. Nothing produces this value today -- every existing
+// `source === 'fork' | 'generated'` equality check is unaffected. See
+// resolvePolicy() below for the one narrow branch that consumes it.
+export type SandboxSubjectSource = 'canonical' | 'fork' | 'generated' | 'unknown' | 'consumer';
 
 export interface SandboxSubject {
   kind: SandboxSubjectKind;
@@ -266,6 +270,56 @@ export const DEFAULT_BENIGN_POLICY: SandboxPolicy = {
   defaultBlockedActions: [],
 };
 
+// WS-1 (2026-07-02): a narrow, additive policy for a genuinely anonymous consumer
+// session -- NOT a relaxation of DEFAULT_SENSITIVE_POLICY or DEFAULT_BENIGN_POLICY
+// (both untouched above). Reuses the exact SandboxPolicy/DenialReceipt shape
+// ForkSandboxGate already checks against; scoped ONLY to the 2 tools in
+// CONSUMER_SAFE_TOOL_PATTERNS below and ONLY reachable when a caller explicitly
+// sets subject.source='consumer' (nothing does yet -- see resolvePolicy()).
+// Resource ceilings are strictly <= DEFAULT_BENIGN_POLICY's; network is scoped to
+// the same allowlist as DEFAULT_SENSITIVE_POLICY (generation needs the same LLM
+// proxy, never an arbitrary external host).
+export const DEFAULT_CONSUMER_GENERATION_POLICY: SandboxPolicy = {
+  policyId: 'holoscript-consumer-generation-v1',
+  description:
+    'Narrow policy for anonymous, non-privileged consumer sessions calling ONLY generate_scene / generate_world_from_prompt (WS-1). Output is never persisted to HoloLand world state; every other sensitive tool stays on DEFAULT_SENSITIVE_POLICY.',
+  capabilityManifest: {
+    required: false,
+    attestationRequired: false,
+    minAttestationTier: 'unverified',
+  },
+  permissions: {
+    requiredScopes: [],
+    minTrustTier: 'unverified',
+    allowAnonymous: true,
+  },
+  network: {
+    allowNetwork: true,
+    allowedHosts: ['mcp.holoscript.net', 'holoscript.net', 'localhost'],
+    maxCallsPerMinute: 10,
+    maxTransferBytes: 2 * 1024 * 1024,
+  },
+  file: {
+    allowFsWrites: false,
+    allowedPaths: [],
+    maxFileBytes: 0,
+    blockTraversal: true,
+  },
+  resources: {
+    maxExecutionTimeMs: 3000,
+    maxMemoryBytes: 64 * 1024 * 1024,
+    maxCpuPercent: 50,
+    maxNestedCalls: 1,
+  },
+  receipt: {
+    emitReceipt: true,
+    receiptTTLMs: 30 * 24 * 60 * 60 * 1000, // 30 days, same retention as sensitive
+    includePayload: false,
+  },
+  defaultPosture: 'hostile',
+  defaultBlockedActions: [...SYSTEM_DEFAULT_BLOCKED_ACTIONS],
+};
+
 // ── Policy Resolution ──────────────────────────────────────────────────────
 
 /** Tools that can touch sensitive state (HoloLand, robot/AI, payments, player-impacting) */
@@ -332,11 +386,37 @@ export function isSensitiveTool(toolName: string): boolean {
   return SENSITIVE_TOOL_PATTERNS.some((pattern) => pattern.test(toolName));
 }
 
+// WS-1 (2026-07-02): the ONLY 2 tools a consumer session may reach -- deliberately
+// NOT generate_object / generate_semantic_ui / generate_3d_object / compile_to_* /
+// edit_holo / convert_format (plausible future candidates, explicitly out of this
+// slice's scope). Both entries mirror SENSITIVE_TOOL_PATTERNS's tool names exactly;
+// they are NOT removed from that list (removal would also exempt privileged/forked
+// callers from ForkSandboxGate, which is wrong -- this is an additive parallel path).
+export const CONSUMER_SAFE_TOOL_PATTERNS = [/^generate_scene$/, /^generate_world_from_prompt$/];
+
+export function isConsumerSafeTool(toolName: string): boolean {
+  return CONSUMER_SAFE_TOOL_PATTERNS.some((pattern) => pattern.test(toolName));
+}
+
 /** Resolve the appropriate policy for a subject based on kind, source, and target tool. */
 export function resolvePolicy(
   subject: Pick<SandboxSubject, 'kind' | 'source'>,
   toolName?: string
 ): SandboxPolicy {
+  // WS-1 consumer branch: checked BEFORE the sensitive-tool check, but only fires
+  // for the 2 explicitly-listed generation tools AND only when the caller has
+  // ALREADY marked the subject 'consumer' AND the tier is explicitly enabled.
+  // Nothing sets source='consumer' yet (see hololand-mcp-tools/http-server
+  // wiring, tracked separately) -- until a caller does, this branch is dead code,
+  // so adding it changes zero production behavior by construction.
+  if (
+    process.env.HOLOSCRIPT_CONSUMER_TIER_ENABLED === 'true' &&
+    subject.source === 'consumer' &&
+    toolName &&
+    isConsumerSafeTool(toolName)
+  ) {
+    return DEFAULT_CONSUMER_GENERATION_POLICY;
+  }
   // Sensitive tools always get sensitive policy regardless of source
   if (toolName && isSensitiveTool(toolName)) {
     return DEFAULT_SENSITIVE_POLICY;

@@ -20,8 +20,10 @@ import {
   hashPayload,
   globalReceiptStore,
   isSensitiveTool,
+  isConsumerSafeTool,
   DEFAULT_SENSITIVE_POLICY,
   DEFAULT_BENIGN_POLICY,
+  DEFAULT_CONSUMER_GENERATION_POLICY,
   SYSTEM_DEFAULT_BLOCKED_ACTIONS,
 } from './sandbox-policy';
 
@@ -555,8 +557,10 @@ export async function gatePluginRegistration(
 
 export {
   isSensitiveTool,
+  isConsumerSafeTool,
   resolvePolicy,
   DEFAULT_SENSITIVE_POLICY,
   DEFAULT_BENIGN_POLICY,
+  DEFAULT_CONSUMER_GENERATION_POLICY,
   SYSTEM_DEFAULT_BLOCKED_ACTIONS,
 };
