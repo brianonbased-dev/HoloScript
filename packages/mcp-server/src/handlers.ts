@@ -566,6 +566,12 @@ export async function handleTool(
     return handleGenerate3DObject(args);
   }
 
+  // GPU fleet world rendering
+  if (name === 'render_world_on_fleet') {
+    const { handleWorldRenderTool } = await import('./world-render-tools');
+    return handleWorldRenderTool(name, args);
+  }
+
   // HoloLand MCP tools (world CRUD + MMO + Twin Earth)
   if (
     name === 'generate_world_from_prompt' ||
@@ -598,6 +604,8 @@ export async function handleTool(
     name === 'hololand_shard_status' ||
     name === 'hololand_publish_zone' ||
     name === 'hololand_create_geo_anchor' ||
+    name === 'hololand_get_geo_anchor' ||
+    name === 'hololand_list_geo_anchors' ||
     name === 'hololand_steward_tick' ||
     name === 'hololand_capture_runtime_receipt' ||
     name === 'hololand_create_npc' ||

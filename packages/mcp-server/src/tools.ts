@@ -798,6 +798,50 @@ export const tools: Tool[] = [
   ...memoryTools,
 ];
 
+const toolDescriptionOverrides: Record<string, string> = {
+  render_world_on_fleet:
+    'Build or submit a HoloScript world render workload through the GPU-fleet orchestrator. Safe by default: dryRun is true unless explicitly set false. Compile-backed targets return render-ready data and receipts; raster targets fail closed until the render-engine image exists.',
+  compile_to_gaussian_train:
+    'Compile a @gaussian_train trait into a sovereign Gaussian-splat training job. Emits executor, dataset refs, hyperparameters, and validation metadata. Use compile_to_3dgs for KHR_gaussian_splatting export.',
+  compile_to_edge:
+    'Compile HoloScript to an edge-device deployment bundle for Ollama-capable Linux nodes. Default runtime is the canonical TS AgentRunner with gates and receipts; legacy python runtime remains explicit and deprecated.',
+  compile_to_bot_swarm:
+    'Compile an MMO composition to an in-process Colyseus bot-swarm balance harness. Emits runBotSwarm and assertBalance helpers that exercise legal moves, anti-cheat checks, and tick-budget receipts.',
+  compile_to_dungeon_instance:
+    'Compile dungeon_instance blocks into a server-authoritative instance-pool module with completion receipts and compile-time validation of declared completion quests.',
+  compile_to_world_shard:
+    'Compile world_shard blocks into a shard registry, shardForPosition helper, and handoff router. Cross-shard handoffs are receipt-sealed and validated against declared neighbors and bounds.',
+  compile_to_mcp_server:
+    'Compile a trait/brain composition with llm_agent, rag_knowledge, agent_memory, or tool traits into a standalone MCP server TypeScript module with Tool[] definitions, adapter registration, wiring checks, and governance metadata.',
+  compile_to_qasm:
+    'Compile HoloScript quantum-circuit traits to OpenQASM 3.0 plus metadata such as qubit counts, depth, circuit type, backend recommendation, warnings, molecule, and weight matrix. Supports vqe, qaoa, and stub circuits.',
+  create_shard:
+    'Create a HoloLand shard with region, capacity, and persistence metadata. Shards partition world state for MMO zones and runtime receipts.',
+  create_place:
+    'Create a HoloLand Place inside a Zone, with optional coordinates, owner, tags, AR anchors, and metadata for navigation, quests, and discovery.',
+  create_location_quest:
+    'Create a location quest bound to a Place or Zone, including objective, reward, start/end times, requirements, and optional AR marker metadata.',
+  hololand_shard_status:
+    'Return shard health, capacity, region, zone counts, active session hints, and integrity metadata for a HoloLand shard.',
+  hololand_publish_zone:
+    'Publish a Zone with tier and visibility metadata, returning a publication receipt for HoloLand discovery and runtime validation.',
+  hololand_create_geo_anchor:
+    'Create a Twin Earth geo anchor that binds a GPS coordinate to a Place or Zone for location gameplay, geofencing, and AR fallback.',
+  hololand_update_npc:
+    "Update a HoloLand NPC's dialogue, schedule, quest hooks, safety limits, memory tags, and metadata.",
+  sim_quote:
+    'Quote a paid simulation run without executing it. Returns estimated units, cost, policy checks, idempotency data, and payment instructions.',
+  sim_run_paid:
+    'Run a paid simulation after validating policy, idempotency, and payment proof. Returns execution status, receipt fields, and settlement metadata.',
+  rig_match_skeleton:
+    'Match a source skeleton to a target rig profile and return bone mapping, confidence, missing bones, and retargeting hints.',
+};
+
+for (const tool of tools) {
+  const description = toolDescriptionOverrides[tool.name];
+  if (description) tool.description = description;
+}
+
 // Tool name type for type safety
 export type ToolName = (typeof tools)[number]['name'];
 
