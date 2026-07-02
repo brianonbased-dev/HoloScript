@@ -382,10 +382,8 @@ const PUBLIC_ANON_RATE_LIMIT = parseInt(process.env.PUBLIC_ANON_RATE_LIMIT || '3
 // _handleSingleToolLogic dispatches straight off TOOL_DISPATCH_REGISTRY, no
 // gate call). generate_scene/generate_world_from_prompt reach an LLM and must
 // stay gated. This endpoint routes through handleTool() -> runForkSandboxGate()
-// with source:'consumer', which only resolves to a real (non-denying) policy
-// when HOLOSCRIPT_CONSUMER_TIER_ENABLED='true' (see sandbox-policy.ts
-// resolvePolicy()) -- unset by default, so this endpoint 403s until explicitly
-// enabled per-environment (staged rollout, not a silent global flip).
+// with source:'consumer', which resolves only these two tool names to the narrow
+// DEFAULT_CONSUMER_GENERATION_POLICY (see sandbox-policy.ts resolvePolicy()).
 const CONSUMER_GENERATION_TOOLS: ReadonlySet<string> = new Set([
   'generate_scene',
   'generate_world_from_prompt',
@@ -3660,8 +3658,8 @@ const httpServer = http.createServer(async (req, res) => {
   // POST /api/public/generate — WS-1 anonymous consumer generation tier.
   // Deliberately NOT part of PUBLIC_ANON_TOOLS/_handleSingleToolLogic above --
   // this routes through the REAL ForkSandboxGate (handleTool -> runForkSandboxGate
-  // with source:'consumer'), which only allows a non-denying policy when
-  // HOLOSCRIPT_CONSUMER_TIER_ENABLED='true'. Every other sensitive tool is
+  // with source:'consumer'), which only allows a non-denying policy for the two
+  // allowlisted consumer-generation tools. Every other sensitive tool is
   // completely unreachable from this endpoint (CONSUMER_GENERATION_TOOLS is a
   // fixed allowlist of exactly 2 tool names).
   // Spend layering: the per-IP daily quota below bounds cost PER CALLER, but
@@ -3798,8 +3796,8 @@ const httpServer = http.createServer(async (req, res) => {
       }
 
       // The real gate: handleTool() -> runForkSandboxGate({source:'consumer'}).
-      // Denies (unless HOLOSCRIPT_CONSUMER_TIER_ENABLED=true) exactly like every
-      // other caller of these 2 tool names today.
+      // The consumer source resolves to DEFAULT_CONSUMER_GENERATION_POLICY only
+      // for the two allowlisted tools; all other tool names stay sensitive.
       const gated = await handleTool(tool, args, undefined, 'consumer');
       // handleTool() returns the RAW handler object directly (no MCP
       // content[]-envelope wrapping -- that only happens at the JSON-RPC/

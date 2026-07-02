@@ -275,7 +275,7 @@ export const DEFAULT_BENIGN_POLICY: SandboxPolicy = {
 // (both untouched above). Reuses the exact SandboxPolicy/DenialReceipt shape
 // ForkSandboxGate already checks against; scoped ONLY to the 2 tools in
 // CONSUMER_SAFE_TOOL_PATTERNS below and ONLY reachable when a caller explicitly
-// sets subject.source='consumer' (nothing does yet -- see resolvePolicy()).
+// sets subject.source='consumer' (currently POST /api/public/generate).
 // Resource ceilings are strictly <= DEFAULT_BENIGN_POLICY's; network is scoped to
 // the same allowlist as DEFAULT_SENSITIVE_POLICY (generation needs the same LLM
 // proxy, never an arbitrary external host).
@@ -398,6 +398,10 @@ export function isConsumerSafeTool(toolName: string): boolean {
   return CONSUMER_SAFE_TOOL_PATTERNS.some((pattern) => pattern.test(toolName));
 }
 
+function isConsumerGenerationTierDisabled(): boolean {
+  return process.env.HOLOSCRIPT_CONSUMER_TIER_DISABLED === 'true';
+}
+
 /** Resolve the appropriate policy for a subject based on kind, source, and target tool. */
 export function resolvePolicy(
   subject: Pick<SandboxSubject, 'kind' | 'source'>,
@@ -405,15 +409,15 @@ export function resolvePolicy(
 ): SandboxPolicy {
   // WS-1 consumer branch: checked BEFORE the sensitive-tool check, but only fires
   // for the 2 explicitly-listed generation tools AND only when the caller has
-  // ALREADY marked the subject 'consumer' AND the tier is explicitly enabled.
-  // Nothing sets source='consumer' yet (see hololand-mcp-tools/http-server
-  // wiring, tracked separately) -- until a caller does, this branch is dead code,
-  // so adding it changes zero production behavior by construction.
+  // ALREADY marked the subject 'consumer'. That source is only set by the
+  // rate-limited/moderation-gated public generation endpoint. The optional
+  // HOLOSCRIPT_CONSUMER_TIER_DISABLED=true switch is an emergency brake, not a
+  // normal product-access prerequisite.
   if (
-    process.env.HOLOSCRIPT_CONSUMER_TIER_ENABLED === 'true' &&
     subject.source === 'consumer' &&
     toolName &&
-    isConsumerSafeTool(toolName)
+    isConsumerSafeTool(toolName) &&
+    !isConsumerGenerationTierDisabled()
   ) {
     return DEFAULT_CONSUMER_GENERATION_POLICY;
   }

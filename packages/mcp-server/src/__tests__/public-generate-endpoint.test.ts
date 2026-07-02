@@ -204,11 +204,11 @@ describe('POST /api/public/generate — WS-1 consumer generation tier', () => {
     checkConsumerGlobalSpendCapMock.mockReturnValue({ allowed: true, remaining: 199, resetAt: Date.now() + 1000, capValue: 200 });
   });
 
-  describe('gate denial passthrough (default-off proof)', () => {
-    it('passes through a ForkSandboxGate denial unchanged when the flag is unset', async () => {
+  describe('gate denial passthrough', () => {
+    it('passes through a ForkSandboxGate denial unchanged', async () => {
       handleToolMock.mockResolvedValue({
         success: false,
-        error: 'ForkSandboxGate denied: consumer tier not enabled',
+        error: 'ForkSandboxGate denied: policy violation',
       });
 
       const res = await publicGenerateHandler({

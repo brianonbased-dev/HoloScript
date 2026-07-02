@@ -45,6 +45,40 @@ describe('handlers AI generation path', () => {
     expect(result.stats.lines).toBeGreaterThan(0);
   });
 
+  it('generate_scene reaches the handler for an unsigned consumer session', async () => {
+    vi.spyOn(generators, 'generateSceneForMCP').mockResolvedValue({
+      code: 'composition "ConsumerCabin" { object "Cabin" { position: [0,0,0] } }',
+      stats: { objects: 1, traits: 0, lines: 4 },
+      source: 'ai',
+      provider: 'mock',
+      attemptedProviders: ['mock'],
+    } as Awaited<ReturnType<typeof generators.generateSceneForMCP>>);
+
+    const originalDisabled = process.env.HOLOSCRIPT_CONSUMER_TIER_DISABLED;
+    try {
+      delete process.env.HOLOSCRIPT_CONSUMER_TIER_DISABLED;
+      const result = (await handleTool(
+        'generate_scene',
+        { description: 'a small cabin' },
+        undefined,
+        'consumer'
+      )) as {
+        code?: string;
+        success?: boolean;
+        error?: string;
+        provider?: string;
+      };
+
+      expect(result.success).not.toBe(false);
+      expect(result.error).toBeUndefined();
+      expect(result.code).toContain('ConsumerCabin');
+      expect(result.provider).toBe('mock');
+    } finally {
+      if (originalDisabled === undefined) delete process.env.HOLOSCRIPT_CONSUMER_TIER_DISABLED;
+      else process.env.HOLOSCRIPT_CONSUMER_TIER_DISABLED = originalDisabled;
+    }
+  });
+
   it('adds native auto-rig annotations and skeleton metadata to generated 3D objects', () => {
     const enriched = applyNativeAutoRigToGeneratedObject({
       holoCode: `composition "Hero" {

@@ -132,37 +132,38 @@ describe('resolvePolicy', () => {
 });
 
 // WS-1 (2026-07-02): the narrow, additive consumer-tier branch in resolvePolicy().
-// Every assertion here is a regression guard proving the slice is a true no-op by
-// default -- the branch must be UNREACHABLE unless BOTH the env flag is set AND
-// source==='consumer' AND the tool is one of the 2 explicitly listed.
-describe('resolvePolicy — WS-1 consumer tier (additive, flag-gated)', () => {
-  const ORIGINAL_FLAG = process.env.HOLOSCRIPT_CONSUMER_TIER_ENABLED;
+// Every assertion here is a regression guard proving the slice is reachable only
+// for source==='consumer' and one of the 2 explicitly listed tools. A separate
+// emergency disable switch can close the tier without widening anything else.
+describe('resolvePolicy - WS-1 consumer tier (additive, default-enabled)', () => {
+  const ORIGINAL_DISABLED = process.env.HOLOSCRIPT_CONSUMER_TIER_DISABLED;
+
+  beforeEach(() => {
+    delete process.env.HOLOSCRIPT_CONSUMER_TIER_DISABLED;
+  });
 
   afterEach(() => {
-    if (ORIGINAL_FLAG === undefined) delete process.env.HOLOSCRIPT_CONSUMER_TIER_ENABLED;
-    else process.env.HOLOSCRIPT_CONSUMER_TIER_ENABLED = ORIGINAL_FLAG;
+    if (ORIGINAL_DISABLED === undefined) delete process.env.HOLOSCRIPT_CONSUMER_TIER_DISABLED;
+    else process.env.HOLOSCRIPT_CONSUMER_TIER_DISABLED = ORIGINAL_DISABLED;
   });
 
-  it('stays on the sensitive policy for source=consumer + safe tool when the flag is UNSET (default/no-op proof)', () => {
-    delete process.env.HOLOSCRIPT_CONSUMER_TIER_ENABLED;
-    const policy = resolvePolicy({ kind: 'mcp_tool', source: 'consumer' }, 'generate_scene');
-    expect(policy.policyId).toBe(DEFAULT_SENSITIVE_POLICY.policyId);
-  });
-
-  it('resolves the consumer policy ONLY when flag=true AND source=consumer AND tool is generate_scene', () => {
-    process.env.HOLOSCRIPT_CONSUMER_TIER_ENABLED = 'true';
+  it('resolves the consumer policy by default when source=consumer AND tool is generate_scene', () => {
     const policy = resolvePolicy({ kind: 'mcp_tool', source: 'consumer' }, 'generate_scene');
     expect(policy.policyId).toBe(DEFAULT_CONSUMER_GENERATION_POLICY.policyId);
   });
 
-  it('resolves the consumer policy for generate_world_from_prompt too (both listed tools)', () => {
-    process.env.HOLOSCRIPT_CONSUMER_TIER_ENABLED = 'true';
+  it('resolves the consumer policy for generate_world_from_prompt too', () => {
     const policy = resolvePolicy({ kind: 'mcp_tool', source: 'consumer' }, 'generate_world_from_prompt');
     expect(policy.policyId).toBe(DEFAULT_CONSUMER_GENERATION_POLICY.policyId);
   });
 
-  it('stays sensitive for source=canonical + flag=true (the flag alone never widens access -- source must be consumer)', () => {
-    process.env.HOLOSCRIPT_CONSUMER_TIER_ENABLED = 'true';
+  it('can be closed by the emergency disable switch', () => {
+    process.env.HOLOSCRIPT_CONSUMER_TIER_DISABLED = 'true';
+    const policy = resolvePolicy({ kind: 'mcp_tool', source: 'consumer' }, 'generate_scene');
+    expect(policy.policyId).toBe(DEFAULT_SENSITIVE_POLICY.policyId);
+  });
+
+  it('stays sensitive for source=canonical (the source must be consumer)', () => {
     const policy = resolvePolicy({ kind: 'mcp_tool', source: 'canonical' }, 'generate_scene');
     // canonical + non-sensitive-listed-as-consumer-safe tool still hits isSensitiveTool
     // (generate_scene IS in SENSITIVE_TOOL_PATTERNS) -- so canonical callers of this
@@ -170,14 +171,12 @@ describe('resolvePolicy — WS-1 consumer tier (additive, flag-gated)', () => {
     expect(policy.policyId).toBe(DEFAULT_SENSITIVE_POLICY.policyId);
   });
 
-  it('NEVER leaks the consumer policy to a non-listed sensitive tool, even with flag+source set (create_world)', () => {
-    process.env.HOLOSCRIPT_CONSUMER_TIER_ENABLED = 'true';
+  it('NEVER leaks the consumer policy to a non-listed sensitive tool, even with source=consumer (create_world)', () => {
     const policy = resolvePolicy({ kind: 'mcp_tool', source: 'consumer' }, 'create_world');
     expect(policy.policyId).toBe(DEFAULT_SENSITIVE_POLICY.policyId);
   });
 
   it('NEVER leaks the consumer policy to a robot/payment-class sensitive tool (twin_earth_robot_actuate)', () => {
-    process.env.HOLOSCRIPT_CONSUMER_TIER_ENABLED = 'true';
     const policy = resolvePolicy({ kind: 'mcp_tool', source: 'consumer' }, 'twin_earth_robot_actuate');
     expect(policy.policyId).toBe(DEFAULT_SENSITIVE_POLICY.policyId);
   });
@@ -245,6 +244,28 @@ describe('runForkSandboxGate', () => {
       { toolName: 'hs_diagnostics' }
     );
     expect(result.allowed).toBe(true);
+  });
+
+  it('allows consumer generate_scene without a capability manifest through the consumer policy', async () => {
+    const originalDisabled = process.env.HOLOSCRIPT_CONSUMER_TIER_DISABLED;
+    try {
+      delete process.env.HOLOSCRIPT_CONSUMER_TIER_DISABLED;
+      const result = await runForkSandboxGate(
+        {
+          kind: 'mcp_tool',
+          source: 'consumer',
+          subjectId: 'mcp:generate_scene',
+          payload: { description: 'a small cabin' },
+        },
+        { toolName: 'generate_scene' }
+      );
+      expect(result.allowed).toBe(true);
+      expect(result.appliedPolicy.policyId).toBe(DEFAULT_CONSUMER_GENERATION_POLICY.policyId);
+      expect(result.checks.some((c) => c.name === 'capability_manifest' && c.passed)).toBe(true);
+    } finally {
+      if (originalDisabled === undefined) delete process.env.HOLOSCRIPT_CONSUMER_TIER_DISABLED;
+      else process.env.HOLOSCRIPT_CONSUMER_TIER_DISABLED = originalDisabled;
+    }
   });
 
   it('blocks path traversal in args', async () => {
