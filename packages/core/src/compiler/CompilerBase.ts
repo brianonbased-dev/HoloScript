@@ -136,6 +136,7 @@ const COMPILER_CLASS_TO_ANS_NAME: Readonly<Record<string, CompilerName>> = {
   QuiltCompiler: 'quilt',
   MVHEVCCompiler: 'mv-hevc',
   NodeServiceCompiler: 'node-service',
+  SDKCompiler: 'sdk',
   NextJSAPICompiler: 'nextjs-api',
   MCPConfigCompiler: 'mcp-config',
   HoloMCPCompiler: 'mcp-server',

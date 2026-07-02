@@ -368,6 +368,8 @@ export type {
 // v6 Service compilers (v5.2 experimental)
 export { NodeServiceCompiler } from './NodeServiceCompiler';
 export type { NodeServiceCompilerOptions } from './NodeServiceCompiler';
+export { SDKCompiler } from './SDKCompiler';
+export type { SDKCompilerLanguage, SDKCompilerOptions } from './SDKCompiler';
 
 // SVG compiler (sovereign 2D vector output — no third-party engine required)
 export { SVGCompiler } from './SVGCompiler';

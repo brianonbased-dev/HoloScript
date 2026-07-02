@@ -66,6 +66,7 @@ import { CodeEditorCompiler } from './CodeEditorCompiler';
 import { SVGCompiler } from './SVGCompiler';
 import { HolobCompiler } from './HolobCompiler';
 import { OpenAPICompiler } from './OpenAPICompiler';
+import { SDKCompiler } from './SDKCompiler';
 import { ONNXCompiler } from './ONNXCompiler';
 import { FlutterCompiler } from './FlutterCompiler';
 import { STLExportCompiler } from './STLExportCompiler';
@@ -312,6 +313,8 @@ class CompilerFactory {
         return new HolobCompiler(options);
       case 'openapi':
         return new OpenAPICompiler(options);
+      case 'sdk':
+        return new SDKCompiler(options);
       case 'onnx':
         return new ONNXCompiler(options);
       case 'flutter':
@@ -657,6 +660,7 @@ export class ExportManager {
       'visionos',
       'webgpu',
       'wasm',
+      'sdk',
       'usd',
       'usdz',
       'fmu',

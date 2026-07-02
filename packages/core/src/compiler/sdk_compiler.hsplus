@@ -1,0 +1,18 @@
+// @sdk_compiler - SDK compiler: compiles .holo service contracts to typed TypeScript SDK clients.
+//
+// Native .hsplus surface for core/src/compiler/SDKCompiler.ts.
+
+@trait sdk_compiler {
+  capability_tags: ["sdk_compiler", "compile_to_sdk", "typescript_sdk", "service_contract", "compiler", "core"]
+  target: "packages/core/src/compiler/SDKCompiler.ts"
+  emits: ["typescript_sdk_client", "sdk_runtime_shim", "sdk_compiler_receipt"]
+  integration_surfaces: {
+    credential: "HoloKey"
+    routing: "UmbrellaRoute"
+    provenance: "triad_receipt"
+    docs_umbrella: "HoloGate"
+  }
+  action: "compile_to_sdk"
+  receipt_type: "SDKCompilerReceipt"
+  target_format: "sdk:typescript"
+}

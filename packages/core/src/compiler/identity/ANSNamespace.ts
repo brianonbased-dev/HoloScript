@@ -158,6 +158,7 @@ export type CompilerName =
   // runtime
   | 'wasm'
   | 'node-service'
+  | 'sdk'
   | 'nextjs-api'
   // shader
   | 'tsl'
@@ -243,6 +244,7 @@ export const ANSCapabilityPath = {
   // ── runtime ──────────────────────────────────────────────────────────
   WASM: '/compile/runtime/wasm',
   NODE_SERVICE: '/compile/runtime/node-service',
+  SDK: '/compile/runtime/sdk',
   NEXTJS_API: '/compile/runtime/nextjs-api',
 
   // ── shader ───────────────────────────────────────────────────────────
@@ -328,6 +330,7 @@ export const COMPILER_DOMAIN_MAP: Readonly<Record<CompilerName, ANSDomainValue>>
   // runtime
   wasm: ANSDomain.RUNTIME,
   'node-service': ANSDomain.RUNTIME,
+  sdk: ANSDomain.RUNTIME,
   'nextjs-api': ANSDomain.RUNTIME,
   // shader
   tsl: ANSDomain.SHADER,
@@ -395,6 +398,7 @@ export const COMPILER_ANS_MAP: Readonly<Record<CompilerName, ANSCapabilityPathVa
   webgpu: ANSCapabilityPath.WEBGPU,
   wasm: ANSCapabilityPath.WASM,
   'node-service': ANSCapabilityPath.NODE_SERVICE,
+  sdk: ANSCapabilityPath.SDK,
   'nextjs-api': ANSCapabilityPath.NEXTJS_API,
   tsl: ANSCapabilityPath.TSL,
   urdf: ANSCapabilityPath.URDF,

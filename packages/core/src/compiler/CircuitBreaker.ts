@@ -56,6 +56,7 @@ export type ExportTarget =
   | 'webgpu' // WebGPU API
   | 'character-webgpu' // Native-WebGPU skinned CHARACTER (.holo body/skeleton/materials → CharacterDrawSpec, sovereign)
   | 'wasm' // WebAssembly
+  | 'sdk' // Typed client SDK generated from service-contract AST
   | 'usd' // Pixar USD
   | 'usdz' // USDZ (iOS AR)
   | 'fmu' // FMI 3.0 Functional Mock-up Unit source bundle

@@ -29,6 +29,7 @@ export const ANSCapabilityPath = {
   PLAYCANVAS: '/compile/web3d/playcanvas',
   WASM: '/compile/runtime/wasm',
   NODE_SERVICE: '/compile/runtime/node-service',
+  SDK: '/compile/runtime/sdk',
   TSL: '/compile/shader/tsl',
   URDF: '/compile/robotics/urdf',
   SDF: '/compile/robotics/sdf',

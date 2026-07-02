@@ -34,6 +34,7 @@ export const SOVEREIGN_TARGETS = [
   'canvas2d-game', // Canvas2DGameCompiler → self-contained canvas game runtime (loop/physics/WebAudio)
   'tsl', // Trait Shader Language — our trait-to-shader codegen
   'wasm', // compiler-wasm Rust front-end → our own WASM artifact
+  'sdk', // SDKCompiler -> typed client source from service-contract AST; no third-party generator
   'svg', // SVGCompiler → sovereign SVG vector output (no third-party renderer needed)
   'holob', // HolobCompiler → HoloVM bytecode; executed by our own holo-vm runtime
   'gaussian-train', // GaussianTrainCompiler → native 3DGS training job run by GaussianTrainer3D (our own autodiff path, $0)

@@ -411,6 +411,20 @@ export function registerBuiltinDialects(): void {
       outputExtensions: ['.ts', '.js'],
       experimental: true,
     },
+    {
+      name: 'sdk',
+      domain: 'runtime',
+      description: 'Compiles .holo service contracts to typed TypeScript SDK clients',
+      supportedTraits: ['service', 'endpoint', 'schema', 'contract', 'auth', 'rest_resource'],
+      riskTier: 'standard',
+      ansPath: '/compile/runtime/sdk',
+      factory: (opts) => {
+        const { SDKCompiler } = require('./SDKCompiler');
+        return new SDKCompiler(opts);
+      },
+      outputExtensions: ['.ts', '.json', '.md'],
+      experimental: true,
+    },
   ];
 
   for (const desc of descriptors) {
