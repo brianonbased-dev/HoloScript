@@ -3910,9 +3910,17 @@ export class HoloCompositionParser {
       this.skipBlockMemberSeparators();
       if (this.check('RBRACE')) break;
 
-      const key = this.parsePropertyKey();
-      this.expect('COLON');
-      config[key] = this.parseValue();
+      // Doubly-nested property block, e.g.
+      // trajectory { target_state { restoration_progress: 1.0, curse_depth: 0.0 } }.
+      // Without this branch, `key {` unconditionally expects a COLON and fails.
+      if (this.isPropertyName() && this.peek(1).type === 'LBRACE') {
+        const nestedKey = this.parsePropertyKey();
+        config[nestedKey] = this.parseBlockTraitConfig();
+      } else {
+        const key = this.parsePropertyKey();
+        this.expect('COLON');
+        config[key] = this.parseValue();
+      }
 
       this.matchBlockMemberSeparator();
       this.skipNewlines();
@@ -4081,6 +4089,8 @@ export class HoloCompositionParser {
       name,
       properties: [],
       behaviors: [],
+      traits: [],
+      directives: [],
     };
 
     while (!this.check('RBRACE') && !this.isAtEnd()) {
@@ -4091,6 +4101,53 @@ export class HoloCompositionParser {
         npc.behaviors.push(this.parseBehavior());
       } else if (this.check('STATE')) {
         npc.state = this.parseState();
+      } else if (this.check('ACTION') || this.check('ASYNC')) {
+        // action name(params) { ... } — body is opaque, mirrors parseObject's handling.
+        const action = this.parseAction();
+        (npc.directives ??= []).push({
+          type: 'method',
+          name: action.name,
+          parameters: action.parameters || [],
+          body: action.body,
+          async: action.async,
+        });
+      } else if (
+        this.check('IDENTIFIER') &&
+        this.current().value === 'on' &&
+        this.peek(1).type === 'IDENTIFIER'
+      ) {
+        // on eventName(params) { ... } lifecycle hook — mirrors parseObject's handling.
+        const eventName = this.peek(1).value;
+        this.advance(); // consume 'on'
+        this.advance(); // consume event name
+
+        // Handle dot-notation event names: on msg.type(params) { }
+        while (this.check('DOT')) {
+          this.advance(); // consume '.'
+          if (this.check('IDENTIFIER')) this.advance(); // consume sub-name
+        }
+
+        let parameters: HoloParameter[] = [];
+        if (this.check('LPAREN')) {
+          parameters = this.parseParameterList();
+        }
+
+        // Use skipBlock() to safely skip handler body — may contain arrows, dot-chains, etc.
+        this.skipBlock();
+
+        (npc.directives ??= []).push({
+          type: 'lifecycle',
+          hook: eventName,
+          parameters,
+          body: [],
+        });
+      } else if (this.check('AT')) {
+        // @decorator { config } trait block attached to the NPC body
+        // (e.g. @verbalFingerprint { style { ... } }, @reputationLedger { ... }).
+        this.advance(); // consume @
+        const traitName = this.parseTraitName();
+        const config = this.parseOptionalTraitConfig(true);
+        (npc.traits ??= []).push({ type: 'ObjectTrait', name: traitName, config });
       } else {
         const key = this.expectIdentifier();
         this.expect('COLON');

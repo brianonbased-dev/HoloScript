@@ -1273,6 +1273,10 @@ export interface HoloNPC extends HoloNode {
   behaviors: HoloBehavior[];
   state?: HoloState;
   dialogueTree?: string; // Reference to dialogue ID
+  /** @decorator { config } trait blocks attached to the NPC body (e.g. @verbalFingerprint, @reputationLedger). */
+  traits?: HoloObjectTrait[];
+  /** action name(...) { ... } and on eventName(...) { ... } members declared in the NPC body. */
+  directives?: Array<Record<string, unknown>>;
 }
 
 export interface HoloNPCProperty extends HoloNode {
