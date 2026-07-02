@@ -31,7 +31,7 @@ import { renderPreview, createShareLink } from './renderer';
 import { handleEditHoloTool } from './edit-holo-tools';
 import { TRAIT_DOCS, SYNTAX_DOCS, EXAMPLES } from './documentation';
 import { EXAMPLE_CATALOG, EXAMPLE_INVENTORY, PUBLIC_LINK_POLICIES } from './examples-catalog';
-import { handleCodebaseTool } from '@holoscript/absorb-service/mcp';
+import { handleCodebaseTool, handleGraphRagTool } from '@holoscript/absorb-service/mcp';
 import { handleGraphTool } from './graph-tools';
 import { handleIDETool } from './ide-tools';
 import { handleBrittneyLiteTool } from './brittney-lite';
@@ -517,6 +517,29 @@ export async function handleTool(
   if (name === 'holo_service_scaffold') {
     const { handleObservabilityTool } = await import('./observability-tools');
     return handleObservabilityTool(name, args);
+  }
+
+  // Codebase graph tools (absorb_repo/graph_status/query_codebase) and GraphRAG
+  // tools (semantic_search/ask_codebase) live in @holoscript/absorb-service.
+  // index.ts's O(1) TOOL_DISPATCH_REGISTRY routes these correctly for the real
+  // request path (registerCategory(codebaseTools, handleCodebaseTool) /
+  // registerCategory(graphRagTools, handleGraphRagTool)), but this standalone
+  // handleTool() function is also called directly by get_tool_health's probe
+  // (see tooling-discovery-tools.ts) and previously had no branch for these
+  // names, so they fell through to the holo_ catch-all below and threw
+  // "Unknown graph tool" from handleGraphTool's switch (task_1783009395572_q3ro,
+  // root-caused from task_1782886422455_jken). Mirror index.ts's wiring here so
+  // both dispatch paths agree.
+  if (
+    name === 'holo_absorb_repo' ||
+    name === 'holo_graph_status' ||
+    name === 'holo_query_codebase'
+  ) {
+    return handleCodebaseTool(name, args);
+  }
+
+  if (name === 'holo_semantic_search' || name === 'holo_ask_codebase') {
+    return handleGraphRagTool(name, args);
   }
 
   // All remaining holo_ tools go to the Graph tool handler

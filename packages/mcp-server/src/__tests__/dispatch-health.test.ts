@@ -124,6 +124,34 @@ describe('dispatch health check', () => {
         // Placeholder: dispatch routing is tested in the integration suite.
       });
     }
+
+    // Regression guard (task_1783009395572_q3ro, root-caused from
+    // task_1782886422455_jken): these 5 tools live in @holoscript/absorb-service
+    // (codebaseTools/graphRagTools) and are correctly wired via index.ts's O(1)
+    // TOOL_DISPATCH_REGISTRY, but the standalone handleTool() in handlers.ts
+    // (also called directly by get_tool_health's probe) previously had no
+    // explicit branch for them and fell through to the generic holo_ catch-all
+    // -> handleGraphTool's switch, which threw "Unknown graph tool: <name>".
+    // The generic ^Unknown tool: check above does not catch this distinct
+    // message, so assert it directly here.
+    const absorbServiceGraphTools = [
+      'holo_absorb_repo',
+      'holo_graph_status',
+      'holo_query_codebase',
+      'holo_semantic_search',
+      'holo_ask_codebase',
+    ];
+    for (const toolName of absorbServiceGraphTools) {
+      it(`dispatches ${toolName} without "Unknown graph tool" (handleTool routes to absorb-service, not the graph-tools.ts catch-all)`, async () => {
+        try {
+          await handleTool(toolName, {});
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          expect(msg).not.toMatch(/^Unknown graph tool:/);
+          expect(msg).not.toMatch(/^Unknown tool:/);
+        }
+      }, 30_000);
+    }
   });
 
   describe('dedicated handler dispatch', () => {
