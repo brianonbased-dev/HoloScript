@@ -122,7 +122,15 @@ async function publicGenerateHandler(
     };
   }
 
-  const promptText = typeof args.description === 'string' ? args.description : '';
+  // generate_scene's schema field is `description`; generate_world_from_prompt's
+  // is `prompt` (confirmed live 2026-07-02 — see http-server.ts comment at the
+  // real promptText extraction). Check both.
+  const promptText =
+    typeof args.description === 'string'
+      ? args.description
+      : typeof args.prompt === 'string'
+        ? args.prompt
+        : '';
   if (promptText) {
     const inputDecision = evaluateContentPolicySyncMock(
       { text: promptText, surface: 'consumer-generation', direction: 'input' },
@@ -141,14 +149,11 @@ async function publicGenerateHandler(
     return { status: 200, body: gated };
   }
 
-  const rawText = gated?.content?.[0]?.text ?? '';
-  let generatedCode = '';
-  try {
-    const parsed = JSON.parse(rawText);
-    generatedCode = typeof parsed?.code === 'string' ? parsed.code : '';
-  } catch {
-    generatedCode = typeof rawText === 'string' ? rawText : '';
-  }
+  // handleTool() returns the RAW handler object, not an MCP content[]-envelope.
+  // generate_scene -> {code, ...}; generate_world_from_prompt -> {success:true,
+  // holoCode, ...} (confirmed live 2026-07-02).
+  const generatedCode =
+    typeof gated?.code === 'string' ? gated.code : typeof gated?.holoCode === 'string' ? gated.holoCode : '';
 
   if (!generatedCode) {
     return { status: 502, body: { success: false, error: 'generation_produced_no_code' } };
@@ -308,10 +313,7 @@ describe('POST /api/public/generate — WS-1 consumer generation tier', () => {
     });
 
     it('blocks on output policy violation AFTER generation, never returning the code', async () => {
-      handleToolMock.mockResolvedValue({
-        success: true,
-        content: [{ type: 'text', text: JSON.stringify({ code: 'composition "X" {}' }) }],
-      });
+      handleToolMock.mockResolvedValue({ code: 'composition "X" {}' });
       evaluateContentPolicySyncMock
         .mockReturnValueOnce({ allowed: true, action: 'allow' }) // input
         .mockReturnValueOnce({ allowed: false, action: 'block' }); // output
@@ -331,10 +333,7 @@ describe('POST /api/public/generate — WS-1 consumer generation tier', () => {
 
   describe('structural validation', () => {
     it('rejects malformed generated output that fails parseHolo strict mode', async () => {
-      handleToolMock.mockResolvedValue({
-        success: true,
-        content: [{ type: 'text', text: JSON.stringify({ code: 'not valid holo {{{' }) }],
-      });
+      handleToolMock.mockResolvedValue({ code: 'not valid holo {{{' });
       parseHoloMock.mockReturnValue({ success: false, errors: [{ message: 'unexpected token' }] });
 
       const res = await publicGenerateHandler({
@@ -349,7 +348,10 @@ describe('POST /api/public/generate — WS-1 consumer generation tier', () => {
     });
 
     it('rejects a response with no extractable code', async () => {
-      handleToolMock.mockResolvedValue({ success: true, content: [{ type: 'text', text: '' }] });
+      // Real shape when generate_world_from_prompt's own input validation fails
+      // (e.g. wrong field name) -- {error: '...'}, no `code`/`holoCode`, no
+      // `success:false` (confirmed live 2026-07-02).
+      handleToolMock.mockResolvedValue({ error: 'prompt or at least one multimodal input is required' });
 
       const res = await publicGenerateHandler({
         tool: 'generate_scene',
@@ -364,10 +366,10 @@ describe('POST /api/public/generate — WS-1 consumer generation tier', () => {
 
   describe('happy path', () => {
     it('returns a stored preview scene, never touching create_world', async () => {
-      handleToolMock.mockResolvedValue({
-        success: true,
-        content: [{ type: 'text', text: JSON.stringify({ code: 'composition "Cube" { object "Box" {} }' }) }],
-      });
+      // generate_scene's real return shape (handlers.ts:1170-1179 ->
+      // generateSceneForMCP): plain {code, stats, source, ...}, no `success`
+      // field, no MCP content[]-envelope (confirmed live 2026-07-02).
+      handleToolMock.mockResolvedValue({ code: 'composition "Cube" { object "Box" {} }', source: 'heuristic' });
       parseHoloMock.mockReturnValue({ success: true, ast: { type: 'HoloComposition' }, errors: [] });
       storeSceneMock.mockReturnValue({ id: 'scene_abc123' });
 
@@ -396,20 +398,30 @@ describe('POST /api/public/generate — WS-1 consumer generation tier', () => {
     });
 
     it('accepts generate_world_from_prompt as the second allowlisted tool', async () => {
-      handleToolMock.mockResolvedValue({
-        success: true,
-        content: [{ type: 'text', text: JSON.stringify({ code: 'composition "World" {}' }) }],
-      });
+      // generate_world_from_prompt's real return shape
+      // (hololand-mcp-tools.ts:2160-2175): {success:true, holoCode, source,
+      // format, ...} -- different field name (holoCode, not code) than
+      // generate_scene. Its input field is `prompt`, not `description`
+      // (resolveWorldPrompt reads args.prompt only -- confirmed live
+      // 2026-07-02: a request with only `description` set hit the tool's own
+      // "prompt or at least one multimodal input is required" early return).
+      handleToolMock.mockResolvedValue({ success: true, holoCode: 'composition "World" {}', source: 'heuristic' });
       parseHoloMock.mockReturnValue({ success: true, ast: {}, errors: [] });
       storeSceneMock.mockReturnValue({ id: 'scene_def456' });
 
       const res = await publicGenerateHandler({
         tool: 'generate_world_from_prompt',
-        arguments: { description: 'a small forest' },
+        arguments: { prompt: 'a small forest' },
       });
 
       expect(res.status).toBe(200);
       expect(res.body).toMatchObject({ success: true, sceneId: 'scene_def456' });
+      expect(handleToolMock).toHaveBeenCalledWith(
+        'generate_world_from_prompt',
+        { prompt: 'a small forest' },
+        undefined,
+        'consumer'
+      );
     });
   });
 
@@ -484,10 +496,7 @@ describe('POST /api/public/generate — WS-1 consumer generation tier', () => {
     });
 
     it('calls recordConsumerGeneration exactly once on a successful generation', async () => {
-      handleToolMock.mockResolvedValue({
-        success: true,
-        content: [{ type: 'text', text: JSON.stringify({ code: 'composition "Cube" { object "Box" {} }' }) }],
-      });
+      handleToolMock.mockResolvedValue({ code: 'composition "Cube" { object "Box" {} }' });
       parseHoloMock.mockReturnValue({ success: true, ast: { type: 'HoloComposition' }, errors: [] });
       storeSceneMock.mockReturnValue({ id: 'scene_ghi789' });
 

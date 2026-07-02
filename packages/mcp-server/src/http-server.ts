@@ -3766,7 +3766,18 @@ const httpServer = http.createServer(async (req, res) => {
 
       // Input content-policy screen (P.013 pattern, same as hololand-mcp-tools.ts
       // NPC dialogue screening) BEFORE any model spend.
-      const promptText = typeof args.description === 'string' ? args.description : '';
+      // generate_scene's schema field is `description` (handlers.ts:1171);
+      // generate_world_from_prompt's is `prompt` (hololand-mcp-tools.ts:332,
+      // resolveWorldPrompt reads args.prompt only) -- confirmed live 2026-07-02
+      // (a request with only `description` set hit generate_world_from_prompt's
+      // "prompt or at least one multimodal input is required" early return).
+      // Check both so either allowlisted tool's real user-text field is screened.
+      const promptText =
+        typeof args.description === 'string'
+          ? args.description
+          : typeof args.prompt === 'string'
+            ? args.prompt
+            : '';
       if (promptText) {
         const inputDecision = evaluateContentPolicySync(
           { text: promptText, surface: 'consumer-generation', direction: 'input' },
@@ -3790,22 +3801,34 @@ const httpServer = http.createServer(async (req, res) => {
       // Denies (unless HOLOSCRIPT_CONSUMER_TIER_ENABLED=true) exactly like every
       // other caller of these 2 tool names today.
       const gated = await handleTool(tool, args, undefined, 'consumer');
-      const gatedRecord = gated as { success?: boolean; error?: string; content?: Array<{ text?: string }> };
+      // handleTool() returns the RAW handler object directly (no MCP
+      // content[]-envelope wrapping -- that only happens at the JSON-RPC/
+      // stdio protocol layer, which this endpoint deliberately bypasses).
+      // Confirmed live 2026-07-02 (local http-server.ts boot, mock provider):
+      // generate_scene returns {code, stats, source, provider, ...} (no
+      // `success` field), generate_world_from_prompt returns {success:true,
+      // holoCode, source, format, ...} (hololand-mcp-tools.ts:2160-2175) --
+      // two different top-level field names for the code. A gate/content-
+      // policy denial always has success:false regardless of tool (set at
+      // the top of handleTool(), before either tool's handler ever runs).
+      const gatedRecord = gated as {
+        success?: boolean;
+        error?: string;
+        code?: string;
+        holoCode?: string;
+      };
       if (gatedRecord?.success === false) {
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify(gatedRecord));
         return;
       }
 
-      // Extract the generated .holo code from the tool's response envelope.
-      const rawText = gatedRecord?.content?.[0]?.text ?? '';
-      let generatedCode = '';
-      try {
-        const parsed = JSON.parse(rawText);
-        generatedCode = typeof parsed?.code === 'string' ? parsed.code : '';
-      } catch {
-        generatedCode = typeof rawText === 'string' ? rawText : '';
-      }
+      const generatedCode =
+        typeof gatedRecord?.code === 'string'
+          ? gatedRecord.code
+          : typeof gatedRecord?.holoCode === 'string'
+            ? gatedRecord.holoCode
+            : '';
 
       if (!generatedCode) {
         res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' });
