@@ -1,0 +1,190 @@
+/**
+ * DOCUMENTED COVERAGE GAP — not executed (`.skip` extension, vitest will not collect this file)
+ *
+ * These tests exercised `HoloScriptPlusParser.parseImportDirective`,
+ * `.parseExportDirective`, `.parseModuleHeader`, and `.parseWithModules` on the
+ * root-level DECOY parser (`packages/core/src/HoloScriptPlusParser.ts`), a
+ * narrow "Trait Annotation" wrapper around HoloScriptCodeParser -- NOT the real
+ * grammar/directive parser (`packages/core/src/parser/HoloScriptPlusParser.ts`,
+ * exported via `parser/index.ts`, what `@holoscript/core` actually ships).
+ *
+ * The decoy has been deleted (architecture cleanup, board task
+ * task_1783037937631_acwr). Before deleting, the real parser was checked for an
+ * equivalent standalone utility:
+ *
+ *   - The decoy's directive syntax is decorator-style: `@import @physics from
+ *     "./physics.hs"` (bare `@name` specifiers, no braces). The real parser's
+ *     native @import/@export grammar (parser/HoloScriptPlusParser.ts, ~lines
+ *     2569-2655) is braced-form: `@import { A, B } from "./path.hs"` /
+ *     `@import * as NS from "./path.hs"` -- a DIFFERENT, incompatible syntax,
+ *     not just a different implementation of the same syntax.
+ *   - No standalone `parseImportDirective(line): {specifiers, source, alias}`,
+ *     `parseExportDirective(line): string[]`, `parseModuleHeader(code, path):
+ *     {imports, exports}`, or `parseWithModules(code, path): {ast, imports,
+ *     exports}` utility exists on the real parser's public surface -- its
+ *     @import/@export handling is woven into full-grammar statement parsing,
+ *     not exposed as line-level standalone functions.
+ *
+ * Per the task's explicit instruction ("If the decoy's specific narrow behavior
+ * genuinely has no equivalent in the real parser, do NOT invent new production
+ * code to replace it -- flag this specific gap rather than guessing"), this
+ * coverage is preserved here, disabled, as a record of exactly what existed and
+ * why it could not be mechanically redirected. A human/follow-up decision is
+ * needed: either (a) the decorator-style `@import @name from "..."` syntax was
+ * decoy-only scaffolding that never shipped through the real compile path and
+ * this coverage should be retired intentionally, or (b) it represents a real,
+ * separate lightweight-header-scan use case (distinct from full-grammar
+ * parsing) worth re-exposing as new native surface on the real parser.
+ *
+ * ModuleResolver's OWN `parseHeader()` method (packages/core/src/compiler/
+ * ModuleResolver.ts, ~line 203) is INDEPENDENT of HoloScriptPlusParser (it does
+ * not import it) and implements its own header-scanning logic -- that coverage
+ * was NOT affected by the decoy's removal and remains fully intact in
+ * ModuleSystem.test.ts's `describe('ModuleResolver', ...)` block.
+ *
+ * Original test source (for reference -- NOT rewritten to avoid implying either
+ * resolution has been decided):
+ *
+ * import { describe, it, expect, beforeEach } from 'vitest';
+ * import * as path from 'path';
+ * import HoloScriptPlusParser from '../../HoloScriptPlusParser';
+ *
+ * function p(...parts: string[]): string {
+ *   return path.join(path.parse(process.cwd()).root, ...parts);
+ * }
+ *
+ * describe('HoloScriptPlusParser — @import / @export', () => {
+ *   let parser: HoloScriptPlusParser;
+ *
+ *   beforeEach(() => {
+ *     parser = new HoloScriptPlusParser();
+ *   });
+ *
+ *   describe('parseImportDirective()', () => {
+ *     it('parses a single named import', () => {
+ *       const result = parser.parseImportDirective('@import @physics from "./physics.hs"');
+ *       expect(result).toEqual({ specifiers: ['physics'], source: './physics.hs' });
+ *     });
+ *
+ *     it('parses multiple named imports', () => {
+ *       const result = parser.parseImportDirective('@import @physics, @ai_npc from "./shared.hs"');
+ *       expect(result).toEqual({ specifiers: ['physics', 'ai_npc'], source: './shared.hs' });
+ *     });
+ *
+ *     it('parses wildcard import', () => {
+ *       const result = parser.parseImportDirective('@import * from "./shared.hs"');
+ *       expect(result).toEqual({ specifiers: ['*'], source: './shared.hs' });
+ *     });
+ *
+ *     it('parses aliased import', () => {
+ *       const result = parser.parseImportDirective('@import @physics as @p from "./physics.hs"');
+ *       expect(result).toEqual({
+ *         specifiers: ['physics'],
+ *         source: './physics.hs',
+ *         alias: 'p',
+ *       });
+ *     });
+ *
+ *     it('returns null for non-import lines', () => {
+ *       expect(parser.parseImportDirective('scene World {')).toBeNull();
+ *       expect(parser.parseImportDirective('@physics')).toBeNull();
+ *       expect(parser.parseImportDirective('// comment')).toBeNull();
+ *     });
+ *
+ *     it('supports single-quote delimiters', () => {
+ *       const result = parser.parseImportDirective("@import @ai from './npc.hs'");
+ *       expect(result).toEqual({ specifiers: ['ai'], source: './npc.hs' });
+ *     });
+ *   });
+ *
+ *   describe('parseExportDirective()', () => {
+ *     it('parses a single export', () => {
+ *       expect(parser.parseExportDirective('@export @turret')).toEqual(['turret']);
+ *     });
+ *
+ *     it('parses multiple exports', () => {
+ *       expect(parser.parseExportDirective('@export @turret, @enemy, @npc')).toEqual([
+ *         'turret',
+ *         'enemy',
+ *         'npc',
+ *       ]);
+ *     });
+ *
+ *     it('returns null for non-export lines', () => {
+ *       expect(parser.parseExportDirective('scene World {')).toBeNull();
+ *       expect(parser.parseExportDirective('@import @a from "./b.hs"')).toBeNull();
+ *     });
+ *   });
+ *
+ *   describe('parseModuleHeader()', () => {
+ *     it('extracts imports and exports from a file header', () => {
+ *       const code = [
+ *         '@import @physics from "./physics.hs"',
+ *         '@import @ai_npc from "./ai.hs"',
+ *         '@export @turret, @enemy',
+ *         '',
+ *         'scene World {',
+ *         '  cube Player { @physics }',
+ *         '}',
+ *       ].join('\n');
+ *
+ *       const header = parser.parseModuleHeader(code, p('project', 'main.hs'));
+ *       expect(header.imports).toHaveLength(2);
+ *       expect(header.imports[0]).toEqual({
+ *         specifiers: ['physics'],
+ *         source: './physics.hs',
+ *       });
+ *       expect(header.imports[1]).toEqual({
+ *         specifiers: ['ai_npc'],
+ *         source: './ai.hs',
+ *       });
+ *       expect(header.exports).toEqual(['turret', 'enemy']);
+ *     });
+ *
+ *     it('stops at the first non-directive non-comment line', () => {
+ *       const code = [
+ *         '@import @physics from "./physics.hs"',
+ *         'scene World {', // stop here
+ *         '@import @ai from "./ai.hs"', // not parsed
+ *       ].join('\n');
+ *
+ *       const header = parser.parseModuleHeader(code);
+ *       expect(header.imports).toHaveLength(1);
+ *     });
+ *
+ *     it('skips comment lines', () => {
+ *       const code = [
+ *         '// Physics module',
+ *         '@import @physics from "./physics.hs"',
+ *         '// End of imports',
+ *         '@export @player',
+ *       ].join('\n');
+ *
+ *       const header = parser.parseModuleHeader(code);
+ *       expect(header.imports).toHaveLength(1);
+ *       expect(header.exports).toEqual(['player']);
+ *     });
+ *
+ *     it('handles files with no imports or exports', () => {
+ *       const code = 'scene World {\n  cube Foo {}\n}';
+ *       const header = parser.parseModuleHeader(code);
+ *       expect(header.imports).toEqual([]);
+ *       expect(header.exports).toEqual([]);
+ *     });
+ *   });
+ *
+ *   describe('parseWithModules()', () => {
+ *     it('returns ast, imports, and exports together', () => {
+ *       const code = ['@import @physics from "./physics.hs"', 'scene World { cube Foo {} }'].join(
+ *         '\n'
+ *       );
+ *
+ *       const result = parser.parseWithModules(code, p('project', 'main.hs'));
+ *       expect(result.ast).toBeDefined();
+ *       expect(Array.isArray(result.ast)).toBe(true);
+ *       expect(result.imports).toHaveLength(1);
+ *       expect(result.exports).toEqual([]);
+ *     });
+ *   });
+ * });
+ */

@@ -161,6 +161,13 @@ npm run build:bundler
 npm run test
 ```
 
+> **Note**: `npm run test` locally runs `cargo test || echo '...skipping'` — a
+> friendly no-op when cargo isn't installed, so `pnpm test` at the repo root
+> doesn't hard-fail for contributors without a Rust toolchain. CI does **not**
+> rely on this fallback: `.github/workflows/wasm-build.yml` installs a real
+> Rust toolchain (`dtolnay/rust-toolchain`) and invokes `cargo test` directly
+> in `packages/compiler-wasm`, so a genuine test failure fails the CI job.
+
 ## Performance
 
 **The WASM parser is currently SLOWER than the JS parser at canonical

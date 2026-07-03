@@ -12,7 +12,7 @@
  * - Cross-platform optimization (mobile/VR/desktop)
  */
 
-import type { GraphicsConfiguration } from '../HoloScriptPlusParser';
+import type { GraphicsConfiguration } from '../parser/graphics-config-types';
 import type { MaterialTrait } from '../traits/MaterialTrait';
 
 // ============================================================================

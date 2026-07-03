@@ -1,0 +1,131 @@
+/**
+ * DOCUMENTED COVERAGE GAP — not executed (`.skip` extension, vitest will not collect this file)
+ *
+ * These tests exercised `HoloScriptPlusParser.parseCompositionDirective` and
+ * `.parseCompositionBlock` on the root-level DECOY parser
+ * (`packages/core/src/HoloScriptPlusParser.ts`), a narrow "Trait Annotation"
+ * wrapper around HoloScriptCodeParser -- NOT the real grammar/directive
+ * parser (`packages/core/src/parser/HoloScriptPlusParser.ts`, exported via
+ * `parser/index.ts`, what `@holoscript/core` actually ships).
+ *
+ * The decoy has been deleted (architecture cleanup, board task
+ * task_1783037937631_acwr). Before deleting, the real parser was checked for an
+ * equivalent standalone utility:
+ *
+ *   - The decoy's composition-directive syntax is a bare decorator-assignment
+ *     form: `@turret = @physics + @targeting` (composing traits by name with a
+ *     `+` operator, no braces). No equivalent standalone
+ *     `parseCompositionDirective(line): {type, name, sources}` or
+ *     `parseCompositionBlock(code): CompositionDirective[]` utility exists on
+ *     the real parser's public surface -- its own trait-composition handling
+ *     (if any) is woven into full-grammar object/trait parsing, not exposed as
+ *     line-level standalone functions with this signature.
+ *
+ * Per the task's explicit instruction ("If the decoy's specific narrow behavior
+ * genuinely has no equivalent in the real parser, do NOT invent new production
+ * code to replace it -- flag this specific gap rather than guessing"), this
+ * coverage is preserved here, disabled, as a record of exactly what existed and
+ * why it could not be mechanically redirected. A human/follow-up decision is
+ * needed: either (a) the `@name = @a + @b` composition-directive syntax was
+ * decoy-only scaffolding that never shipped through the real compile path and
+ * this coverage should be retired intentionally, or (b) it represents a real
+ * trait-composition authoring shorthand worth re-exposing as new native
+ * surface on the real parser.
+ *
+ * `TraitBinder.registerComposed` (packages/core/src/runtime/TraitBinder.ts) is
+ * INDEPENDENT of HoloScriptPlusParser (it operates on already-resolved trait
+ * names, not on parsed directive syntax) -- that coverage was NOT affected by
+ * the decoy's removal and remains fully intact in
+ * TraitCompositionIntegration.test.ts's
+ * `describe('TraitBinder.registerComposed', ...)` block.
+ *
+ * Original test source (for reference -- NOT rewritten to avoid implying either
+ * resolution has been decided):
+ *
+ * import { describe, it, expect } from 'vitest';
+ * import HoloScriptPlusParser from '../../HoloScriptPlusParser';
+ *
+ * describe('HoloScriptPlusParser.parseCompositionDirective', () => {
+ *   const parser = new HoloScriptPlusParser();
+ *
+ *   it('parses a simple 2-source composition line', () => {
+ *     const result = parser.parseCompositionDirective('@turret = @physics + @targeting');
+ *     expect(result).toEqual({
+ *       type: 'trait_composition',
+ *       name: 'turret',
+ *       sources: ['physics', 'targeting'],
+ *     });
+ *   });
+ *
+ *   it('parses a 3-source composition line', () => {
+ *     const result = parser.parseCompositionDirective('@boss = @physics + @ai_npc + @shield');
+ *     expect(result).toEqual({
+ *       type: 'trait_composition',
+ *       name: 'boss',
+ *       sources: ['physics', 'ai_npc', 'shield'],
+ *     });
+ *   });
+ *
+ *   it('tolerates extra whitespace around operators', () => {
+ *     const result = parser.parseCompositionDirective('@hero  =  @run  +  @jump');
+ *     expect(result?.name).toBe('hero');
+ *     expect(result?.sources).toEqual(['run', 'jump']);
+ *   });
+ *
+ *   it('returns null for an @import line', () => {
+ *     expect(parser.parseCompositionDirective('@import @physics from "./physics.hs"')).toBeNull();
+ *   });
+ *
+ *   it('returns null for an empty line', () => {
+ *     expect(parser.parseCompositionDirective('')).toBeNull();
+ *   });
+ *
+ *   it('returns null for a plain @trait decorator (no equals)', () => {
+ *     expect(parser.parseCompositionDirective('@physics')).toBeNull();
+ *   });
+ *
+ *   it('returns null for a non-composition assignment', () => {
+ *     expect(parser.parseCompositionDirective('let x = 10')).toBeNull();
+ *   });
+ * });
+ *
+ * describe('HoloScriptPlusParser.parseCompositionBlock', () => {
+ *   const parser = new HoloScriptPlusParser();
+ *
+ *   it('extracts all composition lines from a multi-line source', () => {
+ *     const code = [
+ *       '@import @physics from "./physics.hs"',
+ *       '',
+ *       'scene World {',
+ *       '  @turret = @physics + @targeting',
+ *       '  @boss = @physics + @ai_npc + @shield',
+ *       '}',
+ *     ].join('\n');
+ *
+ *     const result = parser.parseCompositionBlock(code);
+ *     expect(result).toHaveLength(2);
+ *     expect(result[0]).toEqual({
+ *       type: 'trait_composition',
+ *       name: 'turret',
+ *       sources: ['physics', 'targeting'],
+ *     });
+ *     expect(result[1]).toEqual({
+ *       type: 'trait_composition',
+ *       name: 'boss',
+ *       sources: ['physics', 'ai_npc', 'shield'],
+ *     });
+ *   });
+ *
+ *   it('returns empty array when no composition lines present', () => {
+ *     const code = 'scene World { cube Player { @physics } }';
+ *     expect(parser.parseCompositionBlock(code)).toHaveLength(0);
+ *   });
+ *
+ *   it('handles composition lines at the very start of source', () => {
+ *     const code = '@hero = @run + @jump\nscene World {}';
+ *     const result = parser.parseCompositionBlock(code);
+ *     expect(result).toHaveLength(1);
+ *     expect(result[0].name).toBe('hero');
+ *   });
+ * });
+ */

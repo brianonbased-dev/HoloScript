@@ -270,10 +270,9 @@ export class WasmParserBridge {
 
     try {
       // Dynamic import to avoid circular deps
-      const { HoloScriptPlusParser } = await import('../HoloScriptPlusParser');
+      const { HoloScriptPlusParser } = await import('../parser/HoloScriptPlusParser');
       const parser = new HoloScriptPlusParser();
-      // HoloScriptPlusParser.parse() returns ASTNode[] directly
-      const ast = parser.parse(source);
+      const ast = parser.parse(source).ast;
 
       return {
         success: true,

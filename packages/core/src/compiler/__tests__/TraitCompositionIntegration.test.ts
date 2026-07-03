@@ -1,13 +1,14 @@
 /**
  * Sprint 2 — Trait Composition Integration Tests
  *
- * Tests the full parser → binder → composed-handler pipeline:
- *   parseCompositionDirective / parseCompositionBlock  (HoloScriptPlusParser)
- *   registerComposed                                    (TraitBinder)
+ * Tests registerComposed (TraitBinder). The parser-level
+ * parseCompositionDirective/parseCompositionBlock coverage (decoy
+ * HoloScriptPlusParser) was removed in architecture cleanup task
+ * task_1783037937631_acwr -- see
+ * TraitCompositionIntegration.decoy-coverage-gap.test.ts.skip.
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import HoloScriptPlusParser from '../../HoloScriptPlusParser';
 import { TraitBinder } from '../../runtime/TraitBinder';
 import type { TraitHandler } from '../../traits/TraitTypes';
 
@@ -25,98 +26,6 @@ function makeHandler(name: string, defaults: Record<string, unknown> = {}): Trai
     onEvent: vi.fn(),
   };
 }
-
-// ---------------------------------------------------------------------------
-// HoloScriptPlusParser — parseCompositionDirective
-// ---------------------------------------------------------------------------
-
-describe('HoloScriptPlusParser.parseCompositionDirective', () => {
-  const parser = new HoloScriptPlusParser();
-
-  it('parses a simple 2-source composition line', () => {
-    const result = parser.parseCompositionDirective('@turret = @physics + @targeting');
-    expect(result).toEqual({
-      type: 'trait_composition',
-      name: 'turret',
-      sources: ['physics', 'targeting'],
-    });
-  });
-
-  it('parses a 3-source composition line', () => {
-    const result = parser.parseCompositionDirective('@boss = @physics + @ai_npc + @shield');
-    expect(result).toEqual({
-      type: 'trait_composition',
-      name: 'boss',
-      sources: ['physics', 'ai_npc', 'shield'],
-    });
-  });
-
-  it('tolerates extra whitespace around operators', () => {
-    const result = parser.parseCompositionDirective('@hero  =  @run  +  @jump');
-    expect(result?.name).toBe('hero');
-    expect(result?.sources).toEqual(['run', 'jump']);
-  });
-
-  it('returns null for an @import line', () => {
-    expect(parser.parseCompositionDirective('@import @physics from "./physics.hs"')).toBeNull();
-  });
-
-  it('returns null for an empty line', () => {
-    expect(parser.parseCompositionDirective('')).toBeNull();
-  });
-
-  it('returns null for a plain @trait decorator (no equals)', () => {
-    expect(parser.parseCompositionDirective('@physics')).toBeNull();
-  });
-
-  it('returns null for a non-composition assignment', () => {
-    expect(parser.parseCompositionDirective('let x = 10')).toBeNull();
-  });
-});
-
-// ---------------------------------------------------------------------------
-// HoloScriptPlusParser — parseCompositionBlock
-// ---------------------------------------------------------------------------
-
-describe('HoloScriptPlusParser.parseCompositionBlock', () => {
-  const parser = new HoloScriptPlusParser();
-
-  it('extracts all composition lines from a multi-line source', () => {
-    const code = [
-      '@import @physics from "./physics.hs"',
-      '',
-      'scene World {',
-      '  @turret = @physics + @targeting',
-      '  @boss = @physics + @ai_npc + @shield',
-      '}',
-    ].join('\n');
-
-    const result = parser.parseCompositionBlock(code);
-    expect(result).toHaveLength(2);
-    expect(result[0]).toEqual({
-      type: 'trait_composition',
-      name: 'turret',
-      sources: ['physics', 'targeting'],
-    });
-    expect(result[1]).toEqual({
-      type: 'trait_composition',
-      name: 'boss',
-      sources: ['physics', 'ai_npc', 'shield'],
-    });
-  });
-
-  it('returns empty array when no composition lines present', () => {
-    const code = 'scene World { cube Player { @physics } }';
-    expect(parser.parseCompositionBlock(code)).toHaveLength(0);
-  });
-
-  it('handles composition lines at the very start of source', () => {
-    const code = '@hero = @run + @jump\nscene World {}';
-    const result = parser.parseCompositionBlock(code);
-    expect(result).toHaveLength(1);
-    expect(result[0].name).toBe('hero');
-  });
-});
 
 // ---------------------------------------------------------------------------
 // TraitBinder — registerComposed

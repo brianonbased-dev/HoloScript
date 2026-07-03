@@ -281,3 +281,24 @@ export function parseServerRoutes(raw: string): HSServerFile {
 
   return { meta, raw, routes, providers, port };
 }
+
+// =============================================================================
+// GrammarModuleRegistry self-registration (proof-slice, F.076 / task_1783037937631_acwr)
+// =============================================================================
+//
+// HSKnowledgeParser registers itself with GrammarModuleRegistry at import time
+// so callers can discover/invoke it via the registry instead of only a direct
+// hand-import. Existing direct imports (material-io-pipeline.ts barrel,
+// HSKnowledgeParser.test.ts) are left working unchanged — this is additive,
+// not a migration, to keep the proof-slice changeset minimal and low-risk.
+
+import { GrammarModuleRegistry } from './GrammarModuleRegistry';
+
+if (!GrammarModuleRegistry.has('hs-knowledge')) {
+  GrammarModuleRegistry.register({
+    name: 'hs-knowledge',
+    description:
+      'Lightweight regex-based parser for structured .hs knowledge/prompt/server files (subset of the full .hs grammar; no AST pipeline).',
+    parse: parseKnowledge,
+  });
+}

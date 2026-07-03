@@ -1,0 +1,141 @@
+/**
+ * DOCUMENTED COVERAGE GAP — not executed (`.skip` extension, vitest will not collect this file)
+ *
+ * These tests exercised `HoloScriptPlusParser.parseStateBlock` and `.parseOnBlock`
+ * on the root-level DECOY parser (`packages/core/src/HoloScriptPlusParser.ts`),
+ * a narrow "Trait Annotation" wrapper around HoloScriptCodeParser — NOT the real
+ * grammar/directive parser (`packages/core/src/parser/HoloScriptPlusParser.ts`,
+ * exported via `parser/index.ts`, what `@holoscript/core` actually ships).
+ *
+ * The decoy has been deleted (architecture cleanup, board task
+ * task_1783037937631_acwr). Before deleting, the real parser was checked for an
+ * equivalent standalone utility:
+ *
+ *   - `parseStateBlock`: the real parser has a *private* `parseStateBlock()`
+ *     method (parser/HoloScriptPlusParser.ts, ~line 4976) — but it is a private
+ *     token-stream-consuming method of the stateful Parser class (no `(code:
+ *     string) => X` standalone signature), and its return shape differs
+ *     (`Record<string, unknown>` keyed state map vs. the decoy's ordered
+ *     `Array<{name, value}>` list, which ReactiveState's constructor consumes
+ *     directly). It is not reachable or invokable the way this test suite used it.
+ *
+ *   - `parseOnBlock`: the real parser has inline `on <event> { ... }` handling
+ *     woven into its statement-level grammar (search `keyword === 'on'` around
+ *     line 4712) — but no standalone `parseOnBlock(code): Array<{event, body}>`
+ *     utility function exists anywhere in the real parser's public surface.
+ *
+ * Per the task's explicit instruction ("If the decoy's specific narrow behavior
+ * genuinely has no equivalent in the real parser, do NOT invent new production
+ * code to replace it — flag this specific gap rather than guessing"), this
+ * coverage is preserved here, disabled, as a record of exactly what existed and
+ * why it could not be mechanically redirected. A human/follow-up decision is
+ * needed: either (a) expose a real standalone parseStateBlock/parseOnBlock
+ * utility on the real parser as new native surface, or (b) confirm this
+ * regex-based reactive-state scanning was decoy-only scaffolding that never
+ * shipped through the real compile path and retire the coverage intentionally.
+ *
+ * Original test source (for reference — NOT rewritten to avoid implying either
+ * resolution has been decided):
+ *
+ * import { describe, it, expect } from 'vitest';
+ * import HoloScriptPlusParser from '../HoloScriptPlusParser'; // <- decoy, now deleted
+ *
+ * describe('HoloScriptPlusParser.parseStateBlock', () => {
+ *   const parser = new HoloScriptPlusParser();
+ *
+ *   it('parses integer values', () => {
+ *     const result = parser.parseStateBlock('state { hp = 100 }');
+ *     expect(result).toEqual([{ name: 'hp', value: 100 }]);
+ *   });
+ *
+ *   it('parses float values', () => {
+ *     const result = parser.parseStateBlock('state { speed = 5.5 }');
+ *     expect(result).toEqual([{ name: 'speed', value: 5.5 }]);
+ *   });
+ *
+ *   it('parses boolean true/false', () => {
+ *     const result = parser.parseStateBlock('state { alive = true }');
+ *     expect(result).toEqual([{ name: 'alive', value: true }]);
+ *
+ *     const result2 = parser.parseStateBlock('state { dead = false }');
+ *     expect(result2).toEqual([{ name: 'dead', value: false }]);
+ *   });
+ *
+ *   it('parses string literals', () => {
+ *     const result = parser.parseStateBlock('state { name = "hero" }');
+ *     expect(result).toEqual([{ name: 'name', value: 'hero' }]);
+ *   });
+ *
+ *   it('parses multiple vars from a multi-line block', () => {
+ *     const code = ['state {', '  hp = 100', '  speed = 5.5', '  alive = true', '}'].join('\n');
+ *     const result = parser.parseStateBlock(code)!;
+ *     expect(result).toHaveLength(3);
+ *     expect(result[0]).toEqual({ name: 'hp', value: 100 });
+ *     expect(result[1]).toEqual({ name: 'speed', value: 5.5 });
+ *     expect(result[2]).toEqual({ name: 'alive', value: true });
+ *   });
+ *
+ *   it('ignores comment lines inside the block', () => {
+ *     const code = 'state { // comment\nhp = 50 }';
+ *     const result = parser.parseStateBlock(code)!;
+ *     expect(result).toHaveLength(1);
+ *     expect(result[0].name).toBe('hp');
+ *   });
+ *
+ *   it('returns null when no state block is present', () => {
+ *     expect(parser.parseStateBlock('scene World { cube Player {} }')).toBeNull();
+ *   });
+ *
+ *   it('parses state block embedded inside a larger source', () => {
+ *     const code = 'scene World {\n  state { mana = 200 }\n  @physics\n}';
+ *     const result = parser.parseStateBlock(code)!;
+ *     expect(result).toEqual([{ name: 'mana', value: 200 }]);
+ *   });
+ * });
+ *
+ * describe('HoloScriptPlusParser.parseOnBlock', () => {
+ *   const parser = new HoloScriptPlusParser();
+ *
+ *   it('parses a single on block', () => {
+ *     const result = parser.parseOnBlock('on collide { hp = hp - 10 }');
+ *     expect(result).toHaveLength(1);
+ *     expect(result[0].event).toBe('collide');
+ *     expect(result[0].body).toBe('hp = hp - 10');
+ *   });
+ *
+ *   it('parses multiple on blocks', () => {
+ *     const code = 'on collide { hp = hp - 10 }\non death { alive = false }';
+ *     const result = parser.parseOnBlock(code);
+ *     expect(result).toHaveLength(2);
+ *     expect(result[0].event).toBe('collide');
+ *     expect(result[1].event).toBe('death');
+ *   });
+ *
+ *   it('returns empty array when no on blocks present', () => {
+ *     expect(parser.parseOnBlock('scene World { @physics }')).toHaveLength(0);
+ *   });
+ *
+ *   it('handles multi-line on blocks', () => {
+ *     const code = ['on hit {', '  hp = hp - 5', '  alive = hp > 0', '}'].join('\n');
+ *     const result = parser.parseOnBlock(code);
+ *     expect(result).toHaveLength(1);
+ *     expect(result[0].event).toBe('hit');
+ *     expect(result[0].body).toContain('hp = hp - 5');
+ *   });
+ *
+ *   it('handles on blocks embedded in larger source', () => {
+ *     const code = [
+ *       'scene World {',
+ *       '  state { hp = 100; alive = true }',
+ *       '  on collide { hp = hp - 1 }',
+ *       '  on respawn { hp = 100 }',
+ *       '}',
+ *     ].join('\n');
+ *     const result = parser.parseOnBlock(code);
+ *     expect(result).toHaveLength(2);
+ *     expect(result[0].event).toBe('collide');
+ *     expect(result[1].event).toBe('respawn');
+ *   });
+ * });
+ */
+export {};

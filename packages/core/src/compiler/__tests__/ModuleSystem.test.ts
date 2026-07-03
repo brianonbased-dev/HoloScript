@@ -1,15 +1,17 @@
 /**
  * ModuleSystem.test.ts
  *
- * Tests for ModuleResolver + HoloScriptPlusParser @import/@export support.
+ * Tests for ModuleResolver (independent of HoloScriptPlusParser -- see
+ * ModuleSystem.decoy-coverage-gap.test.ts.skip for the removed decoy-parser
+ * @import/@export directive-parsing coverage, architecture cleanup
+ * task_1783037937631_acwr).
  *
  * Sprint 1 — Module System
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import * as path from 'path';
 import { ModuleResolver, CircularImportError, ModuleNotFoundError } from '../ModuleResolver';
-import HoloScriptPlusParser from '../../HoloScriptPlusParser';
 import { TraitDependencyGraph } from '../TraitDependencyGraph';
 
 // =============================================================================
@@ -46,145 +48,6 @@ function makeResolver(files: Record<string, string>, graph?: TraitDependencyGrap
 function norm(s: string): string {
   return s.replace(/\\/g, '/');
 }
-
-// =============================================================================
-// PARSER — @import / @export directive parsing
-// =============================================================================
-
-describe('HoloScriptPlusParser — @import / @export', () => {
-  let parser: HoloScriptPlusParser;
-
-  beforeEach(() => {
-    parser = new HoloScriptPlusParser();
-  });
-
-  describe('parseImportDirective()', () => {
-    it('parses a single named import', () => {
-      const result = parser.parseImportDirective('@import @physics from "./physics.hs"');
-      expect(result).toEqual({ specifiers: ['physics'], source: './physics.hs' });
-    });
-
-    it('parses multiple named imports', () => {
-      const result = parser.parseImportDirective('@import @physics, @ai_npc from "./shared.hs"');
-      expect(result).toEqual({ specifiers: ['physics', 'ai_npc'], source: './shared.hs' });
-    });
-
-    it('parses wildcard import', () => {
-      const result = parser.parseImportDirective('@import * from "./shared.hs"');
-      expect(result).toEqual({ specifiers: ['*'], source: './shared.hs' });
-    });
-
-    it('parses aliased import', () => {
-      const result = parser.parseImportDirective('@import @physics as @p from "./physics.hs"');
-      expect(result).toEqual({
-        specifiers: ['physics'],
-        source: './physics.hs',
-        alias: 'p',
-      });
-    });
-
-    it('returns null for non-import lines', () => {
-      expect(parser.parseImportDirective('scene World {')).toBeNull();
-      expect(parser.parseImportDirective('@physics')).toBeNull();
-      expect(parser.parseImportDirective('// comment')).toBeNull();
-    });
-
-    it('supports single-quote delimiters', () => {
-      const result = parser.parseImportDirective("@import @ai from './npc.hs'");
-      expect(result).toEqual({ specifiers: ['ai'], source: './npc.hs' });
-    });
-  });
-
-  describe('parseExportDirective()', () => {
-    it('parses a single export', () => {
-      expect(parser.parseExportDirective('@export @turret')).toEqual(['turret']);
-    });
-
-    it('parses multiple exports', () => {
-      expect(parser.parseExportDirective('@export @turret, @enemy, @npc')).toEqual([
-        'turret',
-        'enemy',
-        'npc',
-      ]);
-    });
-
-    it('returns null for non-export lines', () => {
-      expect(parser.parseExportDirective('scene World {')).toBeNull();
-      expect(parser.parseExportDirective('@import @a from "./b.hs"')).toBeNull();
-    });
-  });
-
-  describe('parseModuleHeader()', () => {
-    it('extracts imports and exports from a file header', () => {
-      const code = [
-        '@import @physics from "./physics.hs"',
-        '@import @ai_npc from "./ai.hs"',
-        '@export @turret, @enemy',
-        '',
-        'scene World {',
-        '  cube Player { @physics }',
-        '}',
-      ].join('\n');
-
-      const header = parser.parseModuleHeader(code, p('project', 'main.hs'));
-      expect(header.imports).toHaveLength(2);
-      expect(header.imports[0]).toEqual({
-        specifiers: ['physics'],
-        source: './physics.hs',
-      });
-      expect(header.imports[1]).toEqual({
-        specifiers: ['ai_npc'],
-        source: './ai.hs',
-      });
-      expect(header.exports).toEqual(['turret', 'enemy']);
-    });
-
-    it('stops at the first non-directive non-comment line', () => {
-      const code = [
-        '@import @physics from "./physics.hs"',
-        'scene World {', // stop here
-        '@import @ai from "./ai.hs"', // not parsed
-      ].join('\n');
-
-      const header = parser.parseModuleHeader(code);
-      expect(header.imports).toHaveLength(1);
-    });
-
-    it('skips comment lines', () => {
-      const code = [
-        '// Physics module',
-        '@import @physics from "./physics.hs"',
-        '// End of imports',
-        '@export @player',
-      ].join('\n');
-
-      const header = parser.parseModuleHeader(code);
-      expect(header.imports).toHaveLength(1);
-      expect(header.exports).toEqual(['player']);
-    });
-
-    it('handles files with no imports or exports', () => {
-      const code = 'scene World {\n  cube Foo {}\n}';
-      const header = parser.parseModuleHeader(code);
-      expect(header.imports).toEqual([]);
-      expect(header.exports).toEqual([]);
-    });
-  });
-
-  describe('parseWithModules()', () => {
-    it('returns ast, imports, and exports together', () => {
-      const code = ['@import @physics from "./physics.hs"', 'scene World { cube Foo {} }'].join(
-        '\n'
-      );
-
-      const result = parser.parseWithModules(code, p('project', 'main.hs'));
-      expect(result.ast).toBeDefined();
-      expect(Array.isArray(result.ast)).toBe(true);
-      expect(result.imports).toHaveLength(1);
-      expect(result.exports).toEqual([]);
-    });
-  });
-});
 
 // =============================================================================
 // MODULE RESOLVER

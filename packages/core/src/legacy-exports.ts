@@ -179,8 +179,10 @@ export type {
 
 // HoloScript+ Enhanced Parser with Trait Annotations
 // NOTE: HoloScriptTraitAnnotationParser alias removed (deprecated, no consumers).
-// MaterialTraitAnnotation, LightingTraitAnnotation, RenderingTraitAnnotation,
-// GraphicsConfiguration are available via direct import from './HoloScriptPlusParser'.
+// The root-level decoy `HoloScriptPlusParser.ts` (a narrow "Trait Annotation"
+// wrapper, distinct from the real grammar/directive parser below) has been
+// deleted (board task task_1783037937631_acwr). GraphicsConfiguration now lives
+// in './parser/graphics-config-types'.
 
 // Advanced AST Types (from the new structural parser)
 export type {

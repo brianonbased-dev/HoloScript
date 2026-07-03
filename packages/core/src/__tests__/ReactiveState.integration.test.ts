@@ -1,120 +1,21 @@
 /**
  * Sprint 3 — Reactive State Integration Tests
  *
- * Tests: parseStateBlock / parseOnBlock (HoloScriptPlusParser)
- *        ReactiveState API (get / set / subscribe / update / snapshot)
+ * Tests: ReactiveState API (get / set / subscribe / update / snapshot)
  *        ExpressionEvaluator with reactive context
+ *
+ * NOTE: This file previously also covered HoloScriptPlusParser.parseStateBlock /
+ * parseOnBlock — those two describe blocks exercised the deleted root-level decoy
+ * `HoloScriptPlusParser.ts` (a narrow "Trait Annotation" wrapper, NOT the real
+ * grammar/directive parser at `parser/HoloScriptPlusParser.ts`). That coverage has
+ * been moved to `ReactiveState.decoy-coverage-gap.test.ts.skip` and is a documented,
+ * unresolved coverage gap — the real parser has no public standalone equivalent for
+ * `parseStateBlock(code): Array<{name,value}>` / `parseOnBlock(code): Array<{event,body}>`.
+ * See that file's header comment for detail.
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import HoloScriptPlusParser from '../HoloScriptPlusParser';
 import { ReactiveState, ExpressionEvaluator } from '../ReactiveState';
-
-// ---------------------------------------------------------------------------
-// parseStateBlock
-// ---------------------------------------------------------------------------
-
-describe('HoloScriptPlusParser.parseStateBlock', () => {
-  const parser = new HoloScriptPlusParser();
-
-  it('parses integer values', () => {
-    const result = parser.parseStateBlock('state { hp = 100 }');
-    expect(result).toEqual([{ name: 'hp', value: 100 }]);
-  });
-
-  it('parses float values', () => {
-    const result = parser.parseStateBlock('state { speed = 5.5 }');
-    expect(result).toEqual([{ name: 'speed', value: 5.5 }]);
-  });
-
-  it('parses boolean true/false', () => {
-    const result = parser.parseStateBlock('state { alive = true }');
-    expect(result).toEqual([{ name: 'alive', value: true }]);
-
-    const result2 = parser.parseStateBlock('state { dead = false }');
-    expect(result2).toEqual([{ name: 'dead', value: false }]);
-  });
-
-  it('parses string literals', () => {
-    const result = parser.parseStateBlock('state { name = "hero" }');
-    expect(result).toEqual([{ name: 'name', value: 'hero' }]);
-  });
-
-  it('parses multiple vars from a multi-line block', () => {
-    const code = ['state {', '  hp = 100', '  speed = 5.5', '  alive = true', '}'].join('\n');
-    const result = parser.parseStateBlock(code)!;
-    expect(result).toHaveLength(3);
-    expect(result[0]).toEqual({ name: 'hp', value: 100 });
-    expect(result[1]).toEqual({ name: 'speed', value: 5.5 });
-    expect(result[2]).toEqual({ name: 'alive', value: true });
-  });
-
-  it('ignores comment lines inside the block', () => {
-    const code = 'state { // comment\nhp = 50 }';
-    const result = parser.parseStateBlock(code)!;
-    expect(result).toHaveLength(1);
-    expect(result[0].name).toBe('hp');
-  });
-
-  it('returns null when no state block is present', () => {
-    expect(parser.parseStateBlock('scene World { cube Player {} }')).toBeNull();
-  });
-
-  it('parses state block embedded inside a larger source', () => {
-    const code = 'scene World {\n  state { mana = 200 }\n  @physics\n}';
-    const result = parser.parseStateBlock(code)!;
-    expect(result).toEqual([{ name: 'mana', value: 200 }]);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// parseOnBlock
-// ---------------------------------------------------------------------------
-
-describe('HoloScriptPlusParser.parseOnBlock', () => {
-  const parser = new HoloScriptPlusParser();
-
-  it('parses a single on block', () => {
-    const result = parser.parseOnBlock('on collide { hp = hp - 10 }');
-    expect(result).toHaveLength(1);
-    expect(result[0].event).toBe('collide');
-    expect(result[0].body).toBe('hp = hp - 10');
-  });
-
-  it('parses multiple on blocks', () => {
-    const code = 'on collide { hp = hp - 10 }\non death { alive = false }';
-    const result = parser.parseOnBlock(code);
-    expect(result).toHaveLength(2);
-    expect(result[0].event).toBe('collide');
-    expect(result[1].event).toBe('death');
-  });
-
-  it('returns empty array when no on blocks present', () => {
-    expect(parser.parseOnBlock('scene World { @physics }')).toHaveLength(0);
-  });
-
-  it('handles multi-line on blocks', () => {
-    const code = ['on hit {', '  hp = hp - 5', '  alive = hp > 0', '}'].join('\n');
-    const result = parser.parseOnBlock(code);
-    expect(result).toHaveLength(1);
-    expect(result[0].event).toBe('hit');
-    expect(result[0].body).toContain('hp = hp - 5');
-  });
-
-  it('handles on blocks embedded in larger source', () => {
-    const code = [
-      'scene World {',
-      '  state { hp = 100; alive = true }',
-      '  on collide { hp = hp - 1 }',
-      '  on respawn { hp = 100 }',
-      '}',
-    ].join('\n');
-    const result = parser.parseOnBlock(code);
-    expect(result).toHaveLength(2);
-    expect(result[0].event).toBe('collide');
-    expect(result[1].event).toBe('respawn');
-  });
-});
 
 // ---------------------------------------------------------------------------
 // ReactiveState — core API

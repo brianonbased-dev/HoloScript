@@ -7,7 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import { HololandGraphicsPipelineService } from '../services/HololandGraphicsPipelineService';
 import { PlatformPerformanceOptimizer } from '../services/PlatformPerformanceOptimizer';
-import type { GraphicsConfiguration } from '../HoloScriptPlusParser';
+import type { GraphicsConfiguration } from '../parser/graphics-config-types';
 
 // ============================================================================
 // Hololand Graphics Pipeline Service Tests
