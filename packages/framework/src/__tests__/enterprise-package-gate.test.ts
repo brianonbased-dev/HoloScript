@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   ENTERPRISE_PACKAGE_GATE_SCHEMA_VERSION,
+  assertEnterprisePackageGateManifest,
   cloneEnterprisePackageGateManifest,
   createEnterprisePackageGateAdmission,
   validateEnterprisePackageGateManifest,
@@ -47,6 +48,14 @@ describe('enterprise package gate contract', () => {
     expect(result.valid).toBe(true);
     expect(result.errors).toEqual([]);
     expect(result.warnings).toEqual([]);
+  });
+
+  it('accepts the HoloLand projection schema through the same HoloScript gate', () => {
+    const result = validateEnterprisePackageGateManifest(
+      customerSuccessGate({ schema: 'hololand.enterprise-package-gate.v0.1.0' }),
+    );
+    expect(result.valid).toBe(true);
+    expect(result.errors).toEqual([]);
   });
 
   it('rejects malformed manifests without throwing', () => {
@@ -128,6 +137,45 @@ describe('enterprise package gate contract', () => {
       path: 'upstreamGaps.0.localRewriteAllowed',
       message: 'HoloScript-owned gaps cannot be locally rewritten by a HoloLand gate.',
     });
+  });
+
+  it('warns when benchmark gates omit recommended proof obligations', () => {
+    const result = validateEnterprisePackageGateManifest(
+      customerSuccessGate({
+        benchmarkGates: [
+          {
+            id: 'thin_gate',
+            description: 'A gate with only source proof.',
+            mustProve: ['source_drives_manifest'],
+          },
+        ],
+      }),
+    );
+    expect(result.valid).toBe(true);
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([
+        {
+          path: 'benchmarkGates.0.mustProve',
+          message: 'Recommended proof obligation missing: validation_blocks_promotion.',
+        },
+        {
+          path: 'benchmarkGates.0.mustProve',
+          message: 'Recommended proof obligation missing: runtime_surface_is_projection.',
+        },
+        {
+          path: 'benchmarkGates.0.mustProve',
+          message: 'Recommended proof obligation missing: interaction_receipt_is_required.',
+        },
+      ]),
+    );
+  });
+
+  it('throws a path-rich error for invalid manifests in assertion mode', () => {
+    expect(() =>
+      assertEnterprisePackageGateManifest(
+        customerSuccessGate({ requiredReceipts: ['source'] }),
+      ),
+    ).toThrow(/requiredReceipts: Missing required receipt: validation\./);
   });
 
   it('turns validation into a compact admission receipt', () => {
