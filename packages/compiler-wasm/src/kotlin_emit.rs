@@ -42,7 +42,9 @@
 
 use std::collections::HashMap;
 
-use crate::ast::{Ast, AstNode, EnumDeclarationNode, ImportNode, PropertyNode, StructDeclarationNode};
+use crate::ast::{
+    Ast, AstNode, EnumDeclarationNode, ImportNode, PropertyNode, StructDeclarationNode,
+};
 
 /// An error raised while emitting Kotlin from a parsed `.hs` AST.
 #[derive(Debug, Clone)]
@@ -61,6 +63,84 @@ impl KotlinEmitError {
 impl std::fmt::Display for KotlinEmitError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.message)
+    }
+}
+
+/// A semantic validation error that can be surfaced both by `validate_detailed` and by emitters.
+#[derive(Debug, Clone)]
+pub(crate) struct SemanticDiagnostic {
+    pub(crate) message: String,
+    pub(crate) line: usize,
+    pub(crate) column: usize,
+}
+
+impl From<SemanticDiagnostic> for KotlinEmitError {
+    fn from(value: SemanticDiagnostic) -> Self {
+        KotlinEmitError::new(value.message)
+    }
+}
+
+#[derive(Debug, Clone)]
+struct DeclarationSite {
+    name: String,
+    kind: &'static str,
+    line: usize,
+    column: usize,
+}
+
+impl DeclarationSite {
+    fn from_loc(name: &str, kind: &'static str, loc: &Option<crate::ast::Location>) -> Self {
+        let (line, column) = loc
+            .as_ref()
+            .map(|loc| (loc.start.line, loc.start.column))
+            .unwrap_or((0, 0));
+        Self {
+            name: name.to_string(),
+            kind,
+            line,
+            column,
+        }
+    }
+}
+
+/// Reject top-level declaration names that would collide after caller-side import inlining.
+pub(crate) fn check_top_level_declaration_collisions(ast: &Ast) -> Result<(), SemanticDiagnostic> {
+    let mut declarations: HashMap<String, DeclarationSite> = HashMap::new();
+
+    for node in &ast.body {
+        let Some(site) = top_level_declaration_site(node) else {
+            continue;
+        };
+
+        if let Some(first) = declarations.get(&site.name) {
+            return Err(SemanticDiagnostic {
+                message: format!(
+                    "duplicate top-level declaration `{}` after caller-side import inlining: {} at line {}, column {} collides with {} at line {}, column {}",
+                    site.name,
+                    site.kind,
+                    site.line,
+                    site.column,
+                    first.kind,
+                    first.line,
+                    first.column
+                ),
+                line: site.line,
+                column: site.column,
+            });
+        }
+
+        declarations.insert(site.name.clone(), site);
+    }
+
+    Ok(())
+}
+
+fn top_level_declaration_site(node: &AstNode) -> Option<DeclarationSite> {
+    match node {
+        AstNode::Function(f) => Some(DeclarationSite::from_loc(&f.name, "function", &f.loc)),
+        AstNode::StructDeclaration(s) => Some(DeclarationSite::from_loc(&s.name, "struct", &s.loc)),
+        AstNode::EnumDeclaration(e) => Some(DeclarationSite::from_loc(&e.name, "enum", &e.loc)),
+        _ => None,
     }
 }
 
@@ -121,6 +201,8 @@ impl ValType {
 /// module's source was never concatenated in) now fails loudly instead of being dropped without a
 /// trace — see [`check_imports_resolved`].
 pub fn emit_functions(ast: &Ast, indent: &str) -> Result<String, KotlinEmitError> {
+    check_top_level_declaration_collisions(ast)?;
+
     // First pass: collect the declared enum names so return-type inference can recognize an
     // `Enum.Member` reference as that enum's value (and so a stray member name can't be read
     // as a plain identifier). `.hs` enums are data-only — name + bare member list.
@@ -2684,6 +2766,52 @@ function main(x) {
         assert!(out.contains("fun main(x: String): String {"), "{out}");
         assert!(out.contains("return helper(x)"), "{out}");
         assert!(!out.contains("import"), "{out}");
+    }
+
+    #[test]
+    fn import_inlined_duplicate_function_fails_with_both_locations() {
+        let helper_src = r#"function getValue() {
+  return 100
+}"#;
+        let caller_src = r#"import { getValue } from "./helper.hs"
+
+function getValue() {
+  return 5
+}
+
+function main() {
+  return getValue()
+}"#;
+        let combined = format!("{}\n\n{}", helper_src, caller_src);
+
+        let detail: serde_json::Value =
+            serde_json::from_str(&crate::validate_detailed(&combined)).expect("valid JSON");
+        assert_eq!(detail["valid"], false, "{detail}");
+        let validation_msg = detail["errors"][0]["message"]
+            .as_str()
+            .expect("message string");
+        assert!(
+            validation_msg.contains("duplicate top-level declaration `getValue`"),
+            "{validation_msg}"
+        );
+        assert!(
+            validation_msg.contains("function at line 7, column 1"),
+            "{validation_msg}"
+        );
+        assert!(
+            validation_msg.contains("function at line 1, column 1"),
+            "{validation_msg}"
+        );
+
+        let result = compile_source_to_kotlin(&combined, "  ");
+        assert!(
+            result.is_err(),
+            "expected duplicate declaration to fail emit"
+        );
+        let emit_msg = result.unwrap_err().message;
+        assert!(emit_msg.contains("getValue"), "{emit_msg}");
+        assert!(emit_msg.contains("line 7, column 1"), "{emit_msg}");
+        assert!(emit_msg.contains("line 1, column 1"), "{emit_msg}");
     }
 
     #[test]

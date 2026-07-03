@@ -133,7 +133,18 @@ pub fn validate(source: &str) -> bool {
 #[wasm_bindgen]
 pub fn validate_detailed(source: &str) -> String {
     match parser::Parser::new(source).parse() {
-        Ok(_) => r#"{"valid": true, "errors": []}"#.to_string(),
+        Ok(ast) => match kotlin_emit::check_top_level_declaration_collisions(&ast) {
+            Ok(()) => r#"{"valid": true, "errors": []}"#.to_string(),
+            Err(error) => serde_json::to_string(&serde_json::json!({
+                "valid": false,
+                "errors": [{
+                    "message": error.message,
+                    "line": error.line,
+                    "column": error.column,
+                }]
+            }))
+            .unwrap_or_else(|_| r#"{"valid": false, "errors": []}"#.to_string()),
+        },
         Err(errors) => {
             let error_json: Vec<_> = errors
                 .iter()
@@ -298,7 +309,10 @@ mod tests {
         let source = r#"orb test { name: "x""#; // missing closing }
         assert!(!validate(source));
         let detail = validate_detailed(source);
-        assert!(detail.contains("\"valid\":false"), "expected valid:false got: {detail}");
+        assert!(
+            detail.contains("\"valid\":false"),
+            "expected valid:false got: {detail}"
+        );
     }
 
     #[test]
