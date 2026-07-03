@@ -11,6 +11,7 @@ import {
   mcpStartReconstructFromVideo,
   mcpReconstructStep,
 } from './holo-reconstruct-sessions';
+import { assertPublicCaptureConsent, capturePrivacyInputSchema } from './capture-consent';
 
 export const holoMapToolDefinitions: Tool[] = [
   {
@@ -26,6 +27,7 @@ export const holoMapToolDefinitions: Tool[] = [
           description:
             'HoloMapConfig fields plus captureProfile? ("room" | "face"), scanKind? ("face" alias), ingestVideo?, maxIngestFrames?, weightCid? (content-addressed weights). Env: HOLOMAP_MCP_INGEST_VIDEO=0, HOLOMAP_MCP_MAX_VIDEO_BYTES, HOLOMAP_MCP_FETCH_VIDEO_TIMEOUT_MS, HOLOMAP_MCP_FFMPEG_ANALYZE_DURATION, HOLOMAP_MCP_FFMPEG_PROBE_SIZE, HOLOMAP_MCP_EXPORT_MAX_POINTS, FFPROBE_PATH, HOLOMAP_MCP_FFPROBE_TIMEOUT_MS.',
         },
+        privacy: capturePrivacyInputSchema,
       },
       required: ['videoUrl'],
     },
@@ -45,6 +47,7 @@ export const holoMapToolDefinitions: Tool[] = [
         frameIndex: { type: 'number', description: 'Monotonic frame index' },
         width: { type: 'number' },
         height: { type: 'number' },
+        privacy: capturePrivacyInputSchema,
       },
       required: ['sessionId', 'frameBase64', 'frameIndex', 'width', 'height'],
     },
@@ -134,6 +137,11 @@ export async function handleHoloMapTool(
       if (typeof videoUrl !== 'string' || !videoUrl.trim()) {
         throw new Error('holo_reconstruct_from_video: videoUrl (non-empty string) is required');
       }
+      assertPublicCaptureConsent(args, {
+        toolName: 'holo_reconstruct_from_video',
+        surface: 'HoloMap',
+        mediaKind: 'video',
+      });
       const started = await mcpStartReconstructFromVideo(videoUrl.trim(), args.config);
       return {
         ok: true,
@@ -161,6 +169,11 @@ export async function handleHoloMapTool(
       if (typeof frameBase64 !== 'string' || !frameBase64.trim()) {
         throw new Error('holo_reconstruct_step: frameBase64 is required');
       }
+      assertPublicCaptureConsent(args, {
+        toolName: 'holo_reconstruct_step',
+        surface: 'HoloMap',
+        mediaKind: 'frame',
+      });
       for (const k of ['frameIndex', 'width', 'height'] as const) {
         if (typeof args[k] !== 'number' || !Number.isFinite(args[k] as number)) {
           throw new Error(`holo_reconstruct_step: ${k} must be a finite number`);

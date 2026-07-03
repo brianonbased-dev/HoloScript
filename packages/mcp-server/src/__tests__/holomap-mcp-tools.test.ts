@@ -19,9 +19,19 @@ vi.mock('../holo-reconstruct-sessions', () => ({
 }));
 
 import { holoMapToolDefinitions, isHoloMapToolName, handleHoloMapTool } from '../holomap-mcp-tools';
-import { mcpStartReconstructFromVideo } from '../holo-reconstruct-sessions';
+import { mcpReconstructStep, mcpStartReconstructFromVideo } from '../holo-reconstruct-sessions';
 
 describe('holomap mcp tools', () => {
+  const publicConsent = {
+    captureContext: 'public',
+    bystanderMitigation: 'face_blur',
+    consent: {
+      tosAccepted: true,
+      bystanderPrivacyAccepted: true,
+      mediaRightsConfirmed: true,
+    },
+  };
+
   it('defines expected HoloMap tools', () => {
     const names = holoMapToolDefinitions.map((t) => t.name);
     expect(names).toContain('holo_reconstruct_from_video');
@@ -78,6 +88,50 @@ describe('holomap mcp tools', () => {
     expect(result.status).toBe('SESSION_OPEN');
     expect(result.sessionId).toBe('sess-1');
     expect(result.captureProfile).toBe('room');
+  });
+
+  it('rejects public from_video capture without consent before opening a session', async () => {
+    const callsBefore = vi.mocked(mcpStartReconstructFromVideo).mock.calls.length;
+
+    await expect(
+      handleHoloMapTool('holo_reconstruct_from_video', {
+        videoUrl: 'file:///tmp/public-room.mp4',
+        privacy: { captureContext: 'public' },
+      })
+    ).rejects.toThrow(/public HoloMap video capture requires privacy\.consent/);
+
+    expect(vi.mocked(mcpStartReconstructFromVideo).mock.calls).toHaveLength(callsBefore);
+  });
+
+  it('accepts public from_video capture with consent and mitigation receipt', async () => {
+    const result = (await handleHoloMapTool('holo_reconstruct_from_video', {
+      videoUrl: 'file:///tmp/public-room-consented.mp4',
+      config: { ingestVideo: false },
+      privacy: publicConsent,
+    })) as Record<string, unknown>;
+
+    expect(result.ok).toBe(true);
+    expect(vi.mocked(mcpStartReconstructFromVideo)).toHaveBeenLastCalledWith(
+      'file:///tmp/public-room-consented.mp4',
+      { ingestVideo: false }
+    );
+  });
+
+  it('rejects public frame streaming without consent before reconstruction step', async () => {
+    const callsBefore = vi.mocked(mcpReconstructStep).mock.calls.length;
+
+    await expect(
+      handleHoloMapTool('holo_reconstruct_step', {
+        sessionId: 'sess-1',
+        frameBase64: 'AAAA',
+        frameIndex: 0,
+        width: 1,
+        height: 1,
+        privacy: { captureContext: 'public' },
+      } as Record<string, unknown>)
+    ).rejects.toThrow(/public HoloMap frame capture requires privacy\.consent/);
+
+    expect(vi.mocked(mcpReconstructStep).mock.calls).toHaveLength(callsBefore);
   });
 
   it('passes face capture profile through from_video config', async () => {

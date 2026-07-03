@@ -48,6 +48,15 @@ import {
 
 describe('hologram mcp tools', () => {
   const prevWorkerUrl = process.env.HOLOGRAM_WORKER_URL;
+  const publicConsent = {
+    captureContext: 'public',
+    bystanderMitigation: 'face_blur',
+    consent: {
+      tosAccepted: true,
+      bystanderPrivacyAccepted: true,
+      mediaRightsConfirmed: true,
+    },
+  };
 
   beforeEach(() => {
     renderHologramBundleMock.mockReset();
@@ -106,6 +115,42 @@ describe('hologram mcp tools', () => {
         shareUrl: 'https://x',
       } as Record<string, unknown>)
     ).rejects.toThrow('recipientAgentId');
+  });
+
+  it('rejects public HoloGram media capture without consent before composition', async () => {
+    await expect(
+      handleHologramTool('holo_hologram_from_media', {
+        mediaType: 'image',
+        source: 'gallery/bystander-photo.jpg',
+        privacy: { captureContext: 'public' },
+      } as Record<string, unknown>)
+    ).rejects.toThrow(/public HoloGram image capture requires privacy\.consent/);
+  });
+
+  it('accepts public HoloGram media capture with consent and mitigation receipt', async () => {
+    const result = (await handleHologramTool('holo_hologram_from_media', {
+      mediaType: 'image',
+      source: 'gallery/consented-photo.jpg',
+      privacy: publicConsent,
+    } as Record<string, unknown>)) as Record<string, unknown>;
+
+    expect(result.ok).toBe(true);
+    expect(result.source).toBe('gallery/consented-photo.jpg');
+  });
+
+  it('rejects public HoloGram render without consent before worker or local render', async () => {
+    workerConfiguredMock.mockReturnValue(true);
+
+    await expect(
+      handleHologramTool('holo_hologram_render', {
+        mediaType: 'video',
+        sourceUrl: 'https://example.com/bystanders.mp4',
+        privacy: { captureContext: 'consumer' },
+      } as Record<string, unknown>)
+    ).rejects.toThrow(/public HoloGram video capture requires privacy\.consent/);
+
+    expect(callWorkerMock).not.toHaveBeenCalled();
+    expect(renderHologramBundleMock).not.toHaveBeenCalled();
   });
 
   // Matrix gap: .ai-ecosystem/scripts/hologram-reliability-matrix.json

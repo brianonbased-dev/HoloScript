@@ -17,6 +17,7 @@ import { callHologramWorkerRender, isHologramWorkerConfigured } from './hologram
 import { publishHologramTeamFeed, sendHologramTeamMessage } from './hologram-holomesh-send';
 import { getHologramAsset, uploadHologramBundle } from './hologram-bundle-client';
 import { resolveSecretWithLease, VaultLeaseError } from './holomesh/identity/vault-lease-registry';
+import { assertPublicCaptureConsent, capturePrivacyInputSchema } from './capture-consent';
 
 /**
  * Phase 2 wrapper around `process.env.HOLOMESH_API_KEY` for hot per-request
@@ -178,6 +179,7 @@ export const hologramToolDefinitions: Tool[] = [
           type: 'number',
           description: 'Displacement subdivision segments override.',
         },
+        privacy: capturePrivacyInputSchema,
       },
       required: ['mediaType'],
     },
@@ -209,6 +211,7 @@ export const hologramToolDefinitions: Tool[] = [
           description:
             'Optional QuiltConfig overrides (views, columns, rows, resolution, baseline, device, focusDistance).',
         },
+        privacy: capturePrivacyInputSchema,
       },
       required: ['mediaType'],
     },
@@ -240,6 +243,7 @@ export const hologramToolDefinitions: Tool[] = [
           description:
             'Optional MVHEVCConfig overrides (ipd, resolution, fps, convergenceDistance, fovDegrees, quality, container, disparityScale).',
         },
+        privacy: capturePrivacyInputSchema,
       },
       required: ['mediaType'],
     },
@@ -290,6 +294,7 @@ export const hologramToolDefinitions: Tool[] = [
           type: 'number',
           description: 'Stereo preview video duration for local render. Defaults to 2 seconds.',
         },
+        privacy: capturePrivacyInputSchema,
       },
       required: ['mediaType'],
     },
@@ -741,6 +746,11 @@ export async function handleHologramTool(
 
   const mediaType = assertMediaType(args.mediaType);
   const compositionSource = resolveCompositionSource(args, mediaType);
+  assertPublicCaptureConsent(args, {
+    toolName: name,
+    surface: 'HoloGram',
+    mediaKind: mediaType,
+  });
   const objectName = typeof args.name === 'string' ? args.name : undefined;
 
   const composition = buildComposition(mediaType, compositionSource, objectName);
