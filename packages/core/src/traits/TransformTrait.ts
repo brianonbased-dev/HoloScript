@@ -20,6 +20,7 @@
 
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 import { extractPayload } from './TraitTypes';
+import { parseExpressionToIR, evaluateExpressionIR } from '../runtime/expression-ir';
 
 // =============================================================================
 // TYPES
@@ -159,21 +160,23 @@ function applyOp(data: Record<string, unknown>, op: TransformOp): Record<string,
 }
 
 function evaluateExpr(expr: string, data: Record<string, unknown>): unknown {
-  // Safe expression evaluator — supports basic arithmetic with field references
-  // Field references use $ prefix: $fieldName
-  let resolved = expr;
+  // Safe expression evaluator — supports basic arithmetic with field references.
+  // Field references use $ prefix: $fieldName. Replaces the previous
+  // substitute-into-string + regex-allowlist + new Function() chain with a
+  // parsed ExpressionIR evaluated by a pure, allowlist-only interpreter —
+  // no new Function()/eval() anywhere in this path (see runtime/expression-ir.ts).
+  const allowedSlots: string[] = [];
+  const context: Record<string, unknown> = {};
   for (const [key, val] of Object.entries(data)) {
     if (typeof val === 'number') {
-      resolved = resolved.replace(new RegExp(`\\$${key}`, 'g'), String(val));
+      const slot = `$${key}`;
+      allowedSlots.push(slot);
+      context[slot] = val;
     }
   }
 
-  // Only allow numbers, operators, parens, and whitespace
-  if (!/^[\d\s+\-*/().]+$/.test(resolved)) {
-    throw new Error('Unsafe expression');
-  }
-
-  return new Function(`return (${resolved})`)();
+  const ir = parseExpressionToIR(expr, allowedSlots);
+  return evaluateExpressionIR(ir, context);
 }
 
 // =============================================================================

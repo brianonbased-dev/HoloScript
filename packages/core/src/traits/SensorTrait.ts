@@ -8,6 +8,8 @@
  */
 
 import type { TraitHandler } from './TraitTypes';
+import { parseExpressionToIR, evaluateExpressionIR } from '../runtime/expression-ir';
+import type { ExpressionIR } from '../runtime/expression-ir';
 
 // =============================================================================
 // TYPES
@@ -24,6 +26,8 @@ interface SensorState {
   connectionHandle: unknown;
   history: Array<{ timestamp: number; value: unknown }>;
   alertActive: boolean;
+  transformIR: ExpressionIR | null; // parsed once, lazily, from config.transform
+  transformIRError: boolean; // true if parsing failed — skip re-parsing on every event
 }
 
 interface SensorConfig {
@@ -68,6 +72,8 @@ export const sensorHandler: TraitHandler<SensorConfig> = {
       connectionHandle: null,
       history: [],
       alertActive: false,
+      transformIR: null,
+      transformIRError: false,
     };
     node.__sensorState = state;
 
@@ -114,13 +120,23 @@ export const sensorHandler: TraitHandler<SensorConfig> = {
     } else if (event.type === 'sensor_data') {
       let value = event.value;
 
-      // Apply transform if specified
+      // Apply transform if specified. Parsed once into an ExpressionIR and
+      // cached on state — never re-parsed per event, and never eval()'d/
+      // new Function()'d (see runtime/expression-ir.ts).
       if (config.transform) {
-        try {
-          const transformFn = new Function('value', `return ${config.transform}`);
-          value = transformFn(value);
-        } catch (_e) {
-          // Keep original value on transform error
+        if (state.transformIR === null && !state.transformIRError) {
+          try {
+            state.transformIR = parseExpressionToIR(config.transform, ['value']);
+          } catch (_e) {
+            state.transformIRError = true; // parse failed once — don't retry every event
+          }
+        }
+        if (state.transformIR) {
+          try {
+            value = evaluateExpressionIR(state.transformIR, { value });
+          } catch (_e) {
+            // Keep original value on evaluation error (same fallback as before)
+          }
         }
       }
 

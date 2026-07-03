@@ -207,6 +207,40 @@ describe('sensorHandler.onEvent — sensor_data', () => {
     sensorHandler.onEvent!(node, config, ctx, { type: 'sensor_data', value: 7 });
     expect(node.__sensorState.currentValue).toBe(7);
   });
+  it('SECURITY: transform referencing globalThis cannot execute — keeps original value instead', () => {
+    // Proves the fail-closed property at the real production seam (onEvent),
+    // not just the isolated expression-ir module. Under the old
+    // `new Function('value', 'return ' + config.transform)` implementation
+    // this string would have executed with full access to the global scope.
+    const { node, config, ctx } = attach({ transform: 'globalThis' });
+    sensorHandler.onEvent!(node, config, ctx, { type: 'sensor_data', value: 99 });
+    expect(node.__sensorState.currentValue).toBe(99); // transform rejected, original value kept
+  });
+  it('SECURITY: transform referencing process cannot execute — keeps original value instead', () => {
+    const { node, config, ctx } = attach({ transform: 'process.exit(1)' });
+    expect(() =>
+      sensorHandler.onEvent!(node, config, ctx, { type: 'sensor_data', value: 12 })
+    ).not.toThrow();
+    expect(node.__sensorState.currentValue).toBe(12);
+  });
+  it('SECURITY: transform referencing an unlisted identifier cannot execute', () => {
+    const { node, config, ctx } = attach({ transform: 'require("fs")' });
+    sensorHandler.onEvent!(node, config, ctx, { type: 'sensor_data', value: 3 });
+    expect(node.__sensorState.currentValue).toBe(3);
+  });
+  it('applies round() builtin transform (net-new: bare "round" was never a JS global under the old path)', () => {
+    const { node, config, ctx } = attach({ transform: 'round(value)' });
+    sensorHandler.onEvent!(node, config, ctx, { type: 'sensor_data', value: 3.7 });
+    expect(node.__sensorState.currentValue).toBe(4);
+  });
+  it('caches parsed transform IR across multiple sensor_data events (does not re-parse every event)', () => {
+    const { node, config, ctx } = attach({ transform: 'value * 2' });
+    sensorHandler.onEvent!(node, config, ctx, { type: 'sensor_data', value: 1 });
+    const irAfterFirst = node.__sensorState.transformIR;
+    sensorHandler.onEvent!(node, config, ctx, { type: 'sensor_data', value: 2 });
+    expect(node.__sensorState.transformIR).toBe(irAfterFirst); // same object reference, not re-parsed
+    expect(node.__sensorState.currentValue).toBe(4);
+  });
   it('alert fires when value above high threshold', () => {
     const { node, config, ctx } = attach({ alert_threshold: { high: 50 } });
     ctx.emit.mockClear();

@@ -370,6 +370,39 @@ describe('op: compute', () => {
     const out = emitted.find((e) => e.type === 'data:out');
     expect(out).toBeDefined();
   });
+
+  it('SECURITY: globalThis reference in compute expr is rejected — field is absent from output', () => {
+    // Proves the fail-closed property at the real production seam (applyOp's
+    // 'compute' case -> evaluateExpr), not just the isolated expression-ir
+    // module. Under the old `new Function(...)` implementation, a string
+    // that survived the regex (which globalThis/process do not, since they
+    // contain letters the /^[\d\s+\-*/().]+$/ guard already blocked) would
+    // have executed with full access to the global scope; this proves the
+    // new IR path also rejects it via parseExpressionToIR before any eval.
+    const node = makeNode();
+    const { ctx, emitted } = makeCtx();
+    const rule = makeRule({
+      ops: [{ type: 'compute', field: 'result', expr: 'globalThis' }],
+    });
+    transformHandler.onAttach!(node, { rules: [rule] }, ctx);
+
+    expect(() => transformHandler.onEvent!(node, cfg, ctx, evt('data:in', { a: 1 }))).not.toThrow();
+    const out = emitted.find((e) => e.type === 'data:out')!.payload as Record<string, unknown>;
+    expect(out.result).toBeUndefined();
+  });
+
+  it('SECURITY: unlisted identifier reference in compute expr is rejected', () => {
+    const node = makeNode();
+    const { ctx, emitted } = makeCtx();
+    const rule = makeRule({
+      ops: [{ type: 'compute', field: 'result', expr: '$secretKey + 1' }],
+    });
+    transformHandler.onAttach!(node, { rules: [rule] }, ctx);
+
+    transformHandler.onEvent!(node, cfg, ctx, evt('data:in', { a: 1 }));
+    const out = emitted.find((e) => e.type === 'data:out')!.payload as Record<string, unknown>;
+    expect(out.result).toBeUndefined(); // $secretKey not declared as a slot (no numeric field named secretKey)
+  });
 });
 
 describe('op: filter', () => {
