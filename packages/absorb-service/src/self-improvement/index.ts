@@ -81,12 +81,16 @@ export { computeRougeL } from './GRPOPromptExtractor';
 
 export {
   FocusedDPOSplitter,
+  checkHoloCorpusRowReallyValid,
   type ASTSegment,
   type SegmentKind,
   type DPOPair,
   type DPOPairMetadata,
   type DegradationStrategy,
   type FocusedDPOConfig,
+  type HoloCorpusQuarantineCode,
+  type HoloCorpusValidationDetails,
+  type HoloCorpusValidationDiagnostic,
   type SplitterStats,
 } from './FocusedDPOSplitter';
 

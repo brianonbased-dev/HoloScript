@@ -110,8 +110,53 @@ export interface DPOPairMetadata {
   rejectedInvalid: boolean;
   /** Quality score (0-1): 1.0 means chosen valid AND rejected invalid */
   qualityScore: number;
+  /** Guard reason codes when the chosen row was quarantined */
+  chosenQuarantineReasons?: HoloCorpusQuarantineCode[];
+  /** Guard reason codes when the rejected row was quarantined */
+  rejectedQuarantineReasons?: HoloCorpusQuarantineCode[];
   /** ISO timestamp */
   timestamp: string;
+}
+
+export type HoloCorpusQuarantineCode =
+  | 'parse-exception'
+  | 'parse-errors'
+  | 'newline-verdict-drift'
+  | 'newline-node-count-drift'
+  | 'node-count-loss';
+
+export interface HoloCorpusValidationDiagnostic {
+  code: HoloCorpusQuarantineCode;
+  message: string;
+  errors?: Array<{ message: string; [key: string]: unknown }>;
+  sourceNodeCount?: HoloCorpusNodeCount;
+  astNodeCount?: number;
+}
+
+export interface HoloCorpusNodeCount {
+  count: number;
+  byKeyword: Record<string, number>;
+}
+
+interface HoloCorpusParseSummary {
+  threw: boolean;
+  successFlag?: unknown;
+  errors: Array<{ message: string; [key: string]: unknown }>;
+  astNodeCount: number;
+  astNodeTypes: Record<string, number>;
+  exception?: string;
+}
+
+export interface HoloCorpusValidationDetails {
+  ok: boolean;
+  diagnostics: HoloCorpusValidationDiagnostic[];
+  primary: Omit<HoloCorpusParseSummary, 'exception'>;
+  newlineInvariant: boolean;
+  nodeCountFidelity: boolean;
+  sourceNodeCount: HoloCorpusNodeCount;
+  astNodeCount: number;
+  withoutTrailingNewline: Omit<HoloCorpusParseSummary, 'exception'>;
+  withTrailingNewline: Omit<HoloCorpusParseSummary, 'exception'>;
 }
 
 export type DegradationStrategy =
@@ -177,6 +222,378 @@ const DEFAULT_CONFIG: FocusedDPOConfig = {
   minQualityScore: 0.5,
   includeContext: true,
 };
+
+const HOLO_SOURCE_KEYWORDS = [
+  'composition',
+  'object',
+  'template',
+  'environment',
+  'state',
+  'material',
+  'light',
+  'timeline',
+  'audio',
+  'zone',
+  'ui',
+  'npc',
+  'quest',
+  'ability',
+  'dialogue',
+  'state_machine',
+  'spatial_group',
+  'domain_block',
+  'data_source',
+  'team_agent',
+  'shape',
+  'terrain',
+  'trigger',
+  'spawn_point',
+  'spawn_group',
+  'waypoint_set',
+  'constraint',
+  'policy_pack',
+  'world_chunk',
+  'world_layer',
+  'dungeon_instance',
+  'world_shard',
+  'movement_path',
+  'reaction_trigger',
+  'loot_table',
+];
+
+const HOLO_AST_TYPES = new Set([
+  'composition',
+  'object',
+  'template',
+  'environment',
+  'state',
+  'domainblock',
+  'light',
+  'timeline',
+  'audio',
+  'zone',
+  'ui',
+  'npc',
+  'quest',
+  'ability',
+  'dialogue',
+  'statemachine',
+  'spatialgroup',
+  'shape',
+  'terrain',
+  'trigger',
+  'spawnpoint',
+  'spawngroup',
+  'waypointset',
+  'constraint',
+  'policypack',
+  'worldchunk',
+  'worldlayer',
+  'dungeoninstance',
+  'worldshard',
+  'movementpath',
+  'reactiontrigger',
+  'loottable',
+]);
+
+/**
+ * Package-local equivalent of scripts/lang-audit/assert-really-valid.mjs for
+ * DPO corpus rows. A row is acceptable only when the parser reports zero
+ * errors, the verdict is trailing-newline invariant, and the AST preserves the
+ * source-level semantic node count we can cheaply infer.
+ */
+export function checkHoloCorpusRowReallyValid(
+  source: string,
+  parser: Pick<HoloCompositionParser, 'parse'>
+): HoloCorpusValidationDetails {
+  const primary = parseAndSummarizeHolo(parser, source);
+  const withoutTrailingNewlineSource = source.replace(/\n+$/u, '');
+  const withTrailingNewlineSource = `${withoutTrailingNewlineSource}\n`;
+  const withoutTrailingNewline = parseAndSummarizeHolo(parser, withoutTrailingNewlineSource);
+  const withTrailingNewline = parseAndSummarizeHolo(parser, withTrailingNewlineSource);
+  const sourceNodeCount = countHoloSourceDeclarations(source);
+  const diagnostics: HoloCorpusValidationDiagnostic[] = [];
+
+  if (primary.threw) {
+    diagnostics.push({
+      code: 'parse-exception',
+      message: `Parser threw: ${primary.exception ?? 'unknown exception'}`,
+    });
+  }
+
+  if (primary.errors.length > 0) {
+    diagnostics.push({
+      code: 'parse-errors',
+      message: `Parser reported ${primary.errors.length} error(s).`,
+      errors: primary.errors,
+    });
+  }
+
+  const noFinalOk = isZeroErrorParse(withoutTrailingNewline);
+  const oneFinalOk = isZeroErrorParse(withTrailingNewline);
+  if (noFinalOk !== oneFinalOk) {
+    diagnostics.push({
+      code: 'newline-verdict-drift',
+      message: 'Parse verdict changes when a single trailing newline is added or removed.',
+    });
+  }
+
+  if (noFinalOk && oneFinalOk && withoutTrailingNewline.astNodeCount !== withTrailingNewline.astNodeCount) {
+    diagnostics.push({
+      code: 'newline-node-count-drift',
+      message: 'AST semantic node count changes when a single trailing newline is added or removed.',
+    });
+  }
+
+  if (sourceNodeCount.count > 0 && primary.astNodeCount < sourceNodeCount.count) {
+    diagnostics.push({
+      code: 'node-count-loss',
+      message:
+        `AST kept ${primary.astNodeCount} semantic node(s), but source declares at least ` +
+        `${sourceNodeCount.count}.`,
+      sourceNodeCount,
+      astNodeCount: primary.astNodeCount,
+    });
+  }
+
+  return {
+    ok: diagnostics.length === 0,
+    diagnostics,
+    primary: summarizeHoloParse(primary),
+    newlineInvariant: noFinalOk === oneFinalOk,
+    nodeCountFidelity:
+      sourceNodeCount.count === 0 || primary.astNodeCount >= sourceNodeCount.count,
+    sourceNodeCount,
+    astNodeCount: primary.astNodeCount,
+    withoutTrailingNewline: summarizeHoloParse(withoutTrailingNewline),
+    withTrailingNewline: summarizeHoloParse(withTrailingNewline),
+  };
+}
+
+function parseAndSummarizeHolo(
+  parser: Pick<HoloCompositionParser, 'parse'>,
+  source: string
+): HoloCorpusParseSummary {
+  try {
+    const result = parser.parse(source) as any;
+    const errors = normalizeHoloErrors(result);
+    const ast = result?.ast ?? result?.root ?? null;
+    const astNodes = countHoloAstSemanticNodes(ast);
+    return {
+      threw: false,
+      successFlag: result?.success,
+      errors,
+      astNodeCount: astNodes.count,
+      astNodeTypes: astNodes.byType,
+    };
+  } catch (err) {
+    return {
+      threw: true,
+      successFlag: false,
+      errors: [{ message: err instanceof Error ? err.message : String(err) }],
+      astNodeCount: 0,
+      astNodeTypes: {},
+      exception: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
+function normalizeHoloErrors(result: any): Array<{ message: string; [key: string]: unknown }> {
+  if (Array.isArray(result?.errors)) {
+    return result.errors.map((error: any) =>
+      typeof error === 'string'
+        ? { message: error }
+        : { ...error, message: error?.message ? String(error.message) : String(error) }
+    );
+  }
+  if (result?.success === false) {
+    return [{ message: 'Parser returned success:false without an errors array.' }];
+  }
+  if (typeof result?.error === 'string') {
+    return [{ message: result.error }];
+  }
+  return [];
+}
+
+function isZeroErrorParse(parseSummary: HoloCorpusParseSummary): boolean {
+  return !parseSummary.threw && parseSummary.errors.length === 0;
+}
+
+function summarizeHoloParse(
+  parseSummary: HoloCorpusParseSummary
+): Omit<HoloCorpusParseSummary, 'exception'> {
+  return {
+    threw: parseSummary.threw,
+    successFlag: parseSummary.successFlag,
+    errors: parseSummary.errors.slice(0, 5),
+    astNodeCount: parseSummary.astNodeCount,
+    astNodeTypes: parseSummary.astNodeTypes,
+  };
+}
+
+function countHoloSourceDeclarations(source: string): HoloCorpusNodeCount {
+  const scrubbed = stripHoloCommentsAndStrings(source);
+  const alternatives = HOLO_SOURCE_KEYWORDS.slice()
+    .sort((a, b) => b.length - a.length)
+    .map(escapeRegExp)
+    .join('|');
+  const pattern = new RegExp(`(?:^|[\\n;{}])\\s*(${alternatives})\\b`, 'g');
+  const byKeyword: Record<string, number> = {};
+  let count = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = pattern.exec(scrubbed)) !== null) {
+    const keyword = match[1];
+    byKeyword[keyword] = (byKeyword[keyword] ?? 0) + 1;
+    count++;
+  }
+
+  return { count, byKeyword };
+}
+
+function countHoloAstSemanticNodes(ast: unknown): { count: number; byType: Record<string, number> } {
+  if (!ast || typeof ast !== 'object') return { count: 0, byType: {} };
+
+  const visited = new WeakSet<object>();
+  const counted = new Set<string>();
+  const byType: Record<string, number> = {};
+  let count = 0;
+
+  const visit = (value: unknown): void => {
+    if (!value || typeof value !== 'object') return;
+    if (visited.has(value)) return;
+    visited.add(value);
+
+    const node = value as Record<string, any>;
+    const nodeType = semanticHoloTypeForNode(node);
+    if (nodeType) {
+      const key = semanticHoloNodeKey(node, nodeType);
+      if (!counted.has(key)) {
+        counted.add(key);
+        byType[nodeType] = (byType[nodeType] ?? 0) + 1;
+        count++;
+      }
+    }
+
+    for (const [key, child] of Object.entries(node)) {
+      if (key === 'parent' || key === 'provenance') continue;
+      if (Array.isArray(child)) {
+        for (const item of child) visit(item);
+      } else {
+        visit(child);
+      }
+    }
+  };
+
+  visit(ast);
+  return { count, byType };
+}
+
+function semanticHoloTypeForNode(node: Record<string, any>): string | null {
+  if (typeof node.type !== 'string') return null;
+  const normalizedType = normalizeHoloType(node.type);
+  if (HOLO_AST_TYPES.has(normalizedType)) return normalizedType;
+  if (normalizedType === 'domainblock' && typeof node.keyword === 'string') {
+    const keywordType = normalizeHoloType(node.keyword);
+    if (HOLO_AST_TYPES.has(keywordType)) return keywordType;
+  }
+  return null;
+}
+
+function semanticHoloNodeKey(node: Record<string, any>, nodeType: string): string {
+  const loc = node.loc;
+  const start = loc?.start ? `${loc.start.line ?? '?'}:${loc.start.column ?? '?'}` : '?:?';
+  const end = loc?.end ? `${loc.end.line ?? '?'}:${loc.end.column ?? '?'}` : '?:?';
+  const name = node.name ?? node.id ?? node.keyword ?? '';
+  return `${nodeType}:${name}:${start}:${end}`;
+}
+
+function normalizeHoloType(type: string): string {
+  return String(type).replace(/[_-]/g, '').toLowerCase();
+}
+
+function stripHoloCommentsAndStrings(source: string): string {
+  let out = '';
+  let state: 'normal' | 'line-comment' | 'block-comment' | 'string' = 'normal';
+  let quote = '';
+  let escaped = false;
+
+  for (let i = 0; i < source.length; i++) {
+    const ch = source[i];
+    const next = source[i + 1];
+
+    if (state === 'line-comment') {
+      if (ch === '\n') {
+        state = 'normal';
+        out += '\n';
+      } else {
+        out += ' ';
+      }
+      continue;
+    }
+
+    if (state === 'block-comment') {
+      if (ch === '*' && next === '/') {
+        out += '  ';
+        i++;
+        state = 'normal';
+      } else {
+        out += ch === '\n' ? '\n' : ' ';
+      }
+      continue;
+    }
+
+    if (state === 'string') {
+      if (escaped) {
+        escaped = false;
+        out += ch === '\n' ? '\n' : ' ';
+      } else if (ch === '\\') {
+        escaped = true;
+        out += ' ';
+      } else if (ch === quote) {
+        state = 'normal';
+        quote = '';
+        out += ' ';
+      } else {
+        out += ch === '\n' ? '\n' : ' ';
+      }
+      continue;
+    }
+
+    if (ch === '/' && next === '/') {
+      out += '  ';
+      i++;
+      state = 'line-comment';
+      continue;
+    }
+
+    if (ch === '/' && next === '*') {
+      out += '  ';
+      i++;
+      state = 'block-comment';
+      continue;
+    }
+
+    if (ch === '"' || ch === "'" || ch === '`') {
+      state = 'string';
+      quote = ch;
+      out += ' ';
+      continue;
+    }
+
+    out += ch;
+  }
+
+  return out;
+}
+
+function quarantineCodes(details: HoloCorpusValidationDetails): HoloCorpusQuarantineCode[] {
+  return details.diagnostics.map((diagnostic) => diagnostic.code);
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 // =============================================================================
 // FOCUSED DPO SPLITTER
@@ -484,12 +901,16 @@ export class FocusedDPOSplitter {
       let qualityScore = 0.5; // default
       let chosenValid = true;
       let rejectedInvalid = true;
+      let chosenQuarantineReasons: HoloCorpusQuarantineCode[] = [];
+      let rejectedQuarantineReasons: HoloCorpusQuarantineCode[] = [];
 
       if (this.config.validatePairs) {
         const validation = this.validatePair(segment.source, rejected, fullSource);
         chosenValid = validation.chosenValid;
         rejectedInvalid = validation.rejectedInvalid;
         qualityScore = validation.qualityScore;
+        chosenQuarantineReasons = validation.chosenQuarantineReasons;
+        rejectedQuarantineReasons = validation.rejectedQuarantineReasons;
       }
 
       pairs.push({
@@ -504,6 +925,8 @@ export class FocusedDPOSplitter {
           chosenValid,
           rejectedInvalid,
           qualityScore,
+          chosenQuarantineReasons,
+          rejectedQuarantineReasons,
           timestamp,
         },
       });
@@ -523,12 +946,16 @@ export class FocusedDPOSplitter {
         let qualityScore = 0.5;
         let chosenValid = true;
         let rejectedInvalid = true;
+        let chosenQuarantineReasons: HoloCorpusQuarantineCode[] = [];
+        let rejectedQuarantineReasons: HoloCorpusQuarantineCode[] = [];
 
         if (this.config.validatePairs) {
           const validation = this.validatePair(segment.source, rejected, fullSource);
           chosenValid = validation.chosenValid;
           rejectedInvalid = validation.rejectedInvalid;
           qualityScore = validation.qualityScore;
+          chosenQuarantineReasons = validation.chosenQuarantineReasons;
+          rejectedQuarantineReasons = validation.rejectedQuarantineReasons;
         }
 
         pairs.push({
@@ -543,6 +970,8 @@ export class FocusedDPOSplitter {
             chosenValid,
             rejectedInvalid,
             qualityScore,
+            chosenQuarantineReasons,
+            rejectedQuarantineReasons,
             timestamp,
           },
         });
@@ -976,7 +1405,13 @@ export class FocusedDPOSplitter {
     chosen: string,
     rejected: string,
     _fullSource: string
-  ): { chosenValid: boolean; rejectedInvalid: boolean; qualityScore: number } {
+  ): {
+    chosenValid: boolean;
+    rejectedInvalid: boolean;
+    qualityScore: number;
+    chosenQuarantineReasons: HoloCorpusQuarantineCode[];
+    rejectedQuarantineReasons: HoloCorpusQuarantineCode[];
+  } {
     // Wrap in minimal composition if not already a composition
     const wrapInComposition = (code: string): string => {
       if (/composition\s+"/.test(code)) return code;
@@ -986,26 +1421,16 @@ export class FocusedDPOSplitter {
     const chosenWrapped = wrapInComposition(chosen);
     const rejectedWrapped = wrapInComposition(rejected);
 
-    let chosenValid = false;
-    let rejectedInvalid = false;
+    const chosenGuard = checkHoloCorpusRowReallyValid(chosenWrapped, this.parser);
+    const rejectedGuard = checkHoloCorpusRowReallyValid(rejectedWrapped, this.parser);
 
-    try {
-      const chosenResult = this.parser.parse(chosenWrapped);
-      // @ts-ignore - Automatic remediation for TS18046
-      chosenValid = chosenResult.success || chosenResult.errors.length === 0;
-    } catch {
-      chosenValid = false;
-    }
-
-    try {
-      const rejectedResult = this.parser.parse(rejectedWrapped);
-      // We WANT the rejected to fail (have errors)
-      // @ts-ignore - Automatic remediation for TS18046
-      rejectedInvalid = !rejectedResult.success || rejectedResult.errors.length > 0;
-    } catch {
-      // Parse threw an exception = definitely invalid, which is good
-      rejectedInvalid = true;
-    }
+    const chosenValid = chosenGuard.ok;
+    // We WANT the rejected row to fail the same guard before it becomes a
+    // contrastive example. If it passes, the degradation did not produce a
+    // quarantinable negative example.
+    const rejectedInvalid = !rejectedGuard.ok;
+    const chosenQuarantineReasons = quarantineCodes(chosenGuard);
+    const rejectedQuarantineReasons = quarantineCodes(rejectedGuard);
 
     // Quality scoring:
     // 1.0 = chosen valid AND rejected invalid (perfect pair)
@@ -1023,7 +1448,13 @@ export class FocusedDPOSplitter {
       qualityScore = 0.25; // both invalid
     }
 
-    return { chosenValid, rejectedInvalid, qualityScore };
+    return {
+      chosenValid,
+      rejectedInvalid,
+      qualityScore,
+      chosenQuarantineReasons,
+      rejectedQuarantineReasons,
+    };
   }
 
   // ---------------------------------------------------------------------------
