@@ -17,6 +17,7 @@
  *   - parse_pretty(source) -> pretty-printed JSON AST string
  *   - validate(source) -> boolean
  *   - validate_detailed(source) -> JSON validation result string
+ *   - compile_to_uaal(source) -> JSON UAAL bytecode packet or JSON error object
  *   - version() -> semver string
  *
  * APL WIT trait-evaluation surface (lifted 2026-05-22):
@@ -260,6 +261,28 @@ export interface ValidationResult {
   errors: ParseError[];
 }
 
+export type UAALWasmOperand =
+  | string
+  | number
+  | boolean
+  | Record<string, unknown>
+  | UAALWasmOperand[]
+  | null;
+
+export interface UAALWasmInstruction {
+  opCode: number;
+  operands?: UAALWasmOperand[];
+}
+
+export interface UAALWasmBytecode {
+  version: number;
+  instructions: UAALWasmInstruction[];
+}
+
+export interface CompileErrorResult {
+  error: string;
+}
+
 // ── APL WIT Trait-Evaluation Types ────────────────────────────────────
 
 /**
@@ -331,6 +354,8 @@ export interface HoloScriptWasmModule {
   validate(source: string): boolean;
   /** Get detailed validation results as JSON string */
   validate_detailed(source: string): string;
+  /** Compile `.hs` function declarations to a UAAL bytecode packet as JSON */
+  compile_to_uaal(source: string): string;
   /** Get the WASM compiler version */
   version(): string;
 }
@@ -387,6 +412,19 @@ export class HoloScriptWasm {
   validateDetailed(source: string): ValidationResult {
     const json = this.wasm.validate_detailed(source);
     return JSON.parse(json) as ValidationResult;
+  }
+
+  /**
+   * Compile top-level `.hs` functions to a typed UAAL bytecode packet.
+   * @throws HoloScriptCompileError if Rust returns a JSON error object
+   */
+  compileToUaal(source: string): UAALWasmBytecode {
+    const json = this.wasm.compile_to_uaal(source);
+    const result = JSON.parse(json) as UAALWasmBytecode | CompileErrorResult;
+    if ('error' in result) {
+      throw new HoloScriptCompileError(result.error);
+    }
+    return result;
   }
 
   /**
@@ -486,6 +524,16 @@ export class HoloScriptParseError extends Error {
 // The import is conditional so this file can be consumed in two ways:
 //   1. Full mode: @holoscript/core is available -> real registry queries
 //   2. WASM-only mode: no @holoscript/core -> conservative fallback
+
+/**
+ * Error class for compile target failures surfaced by Rust emitters.
+ */
+export class HoloScriptCompileError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'HoloScriptCompileError';
+  }
+}
 
 let _bridge: typeof import('@holoscript/core/compiler') | null = null;
 let _bridgeLoadAttempted = false;

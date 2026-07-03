@@ -38,6 +38,7 @@ mod lexer;
 mod parser;
 mod token;
 pub mod types;
+mod uaal_emit;
 
 use wasm_bindgen::prelude::*;
 
@@ -201,6 +202,28 @@ pub fn compile_to_kotlin(source: &str, indent: &str) -> String {
 #[doc(hidden)]
 pub fn __compile_to_kotlin(source: &str, indent: &str) -> Result<String, String> {
     kotlin_emit::compile_source_to_kotlin(source, indent).map_err(|e| e.message)
+}
+
+/// Compile top-level `.hs` functions to a UAAL bytecode packet.
+///
+/// This mirrors [`compile_to_kotlin`]'s JSON boundary but targets the stack-based
+/// UAAL VM: success returns `{"version":1,"instructions":[...]}`, failure returns
+/// `{"error":"..."}`.
+#[wasm_bindgen]
+pub fn compile_to_uaal(source: &str) -> String {
+    match uaal_emit::compile_source_to_uaal(source) {
+        Ok(bytecode) => serde_json::to_string(&bytecode)
+            .unwrap_or_else(|e| format!(r#"{{"error": "Serialization error: {}"}}"#, e)),
+        Err(e) => serde_json::to_string(&serde_json::json!({ "error": e.message }))
+            .unwrap_or_else(|_| r#"{"error": "Unknown UAAL emit error"}"#.to_string()),
+    }
+}
+
+/// Native-only re-export of the UAAL emitter for tests and local validation.
+#[cfg(not(target_arch = "wasm32"))]
+#[doc(hidden)]
+pub fn __compile_to_uaal(source: &str) -> Result<String, String> {
+    uaal_emit::compile_source_to_uaal_json(source).map_err(|e| e.message)
 }
 
 #[cfg(test)]

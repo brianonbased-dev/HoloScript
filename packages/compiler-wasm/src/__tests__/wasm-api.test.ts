@@ -10,8 +10,14 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { execFileSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { delimiter, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { UAALVirtualMachine, UAALOpCode, type UAALBytecode } from '../../../uaal/src/index';
 import {
   HoloScriptWasm,
+  HoloScriptCompileError,
   HoloScriptParseError,
   extractTraitNames,
   type HoloScriptWasmModule,
@@ -25,6 +31,7 @@ import {
   type TimelineNode,
   type TrackNode,
   type KeyframeNode,
+  type UAALWasmBytecode,
 } from '../wasm-api';
 
 // ── Helpers ─────────────────────────────────────────────────────────
@@ -35,9 +42,55 @@ function createMockWasm(overrides?: Partial<HoloScriptWasmModule>): HoloScriptWa
     parse_pretty: vi.fn().mockReturnValue(JSON.stringify(VALID_AST, null, 2)),
     validate: vi.fn().mockReturnValue(true),
     validate_detailed: vi.fn().mockReturnValue(JSON.stringify({ valid: true, errors: [] })),
+    compile_to_uaal: vi.fn().mockReturnValue(JSON.stringify(VALID_UAAL_BYTECODE)),
     version: vi.fn().mockReturnValue('3.7.0'),
     ...overrides,
   };
+}
+
+const VALID_UAAL_BYTECODE: UAALWasmBytecode = {
+  version: 1,
+  instructions: [
+    { opCode: 0x01, operands: [42] },
+    { opCode: 0xff },
+  ],
+};
+
+const TEST_DIR = fileURLToPath(new URL('.', import.meta.url));
+const REPO_ROOT = resolve(TEST_DIR, '../../../..');
+const COMPILER_WASM_MANIFEST = resolve(REPO_ROOT, 'packages/compiler-wasm/Cargo.toml');
+
+function resolveCargoCommand(): string {
+  const names = process.platform === 'win32' ? ['cargo.exe', 'cargo.cmd', 'cargo.bat'] : ['cargo'];
+  const fromPath = (process.env.PATH ?? '')
+    .split(delimiter)
+    .flatMap((entry) => names.map((name) => resolve(entry, name)));
+  const userHome = process.env.USERPROFILE ?? process.env.HOME ?? '';
+  const homeFallback = userHome
+    ? [resolve(userHome, process.platform === 'win32' ? '.cargo/bin/cargo.exe' : '.cargo/bin/cargo')]
+    : [];
+  const candidates = [process.env.CARGO, ...fromPath, ...homeFallback].filter(
+    (candidate): candidate is string => Boolean(candidate)
+  );
+  return candidates.find((candidate) => existsSync(candidate)) ?? 'cargo';
+}
+
+function compileHsToUaalViaRust(source: string): UAALBytecode {
+  const stdout = execFileSync(
+    resolveCargoCommand(),
+    ['run', '--quiet', '--manifest-path', COMPILER_WASM_MANIFEST, '--bin', 'compile_to_uaal'],
+    {
+      cwd: REPO_ROOT,
+      input: source,
+      encoding: 'utf8',
+      maxBuffer: 1024 * 1024,
+    }
+  );
+  const result = JSON.parse(stdout.trim()) as UAALBytecode | { error: string };
+  if ('error' in result) {
+    throw new Error(result.error);
+  }
+  return result;
 }
 
 const VALID_AST: Ast = {
@@ -323,6 +376,27 @@ describe('HoloScriptWasm', () => {
 
   // ── version() ───────────────────────────────────────────────────
 
+  describe('compileToUaal()', () => {
+    it('should return typed UAAL bytecode from the wasm JSON export', () => {
+      const result = wrapper.compileToUaal('function main() { return 42 }');
+
+      expect(result.version).toBe(1);
+      expect(result.instructions).toEqual(VALID_UAAL_BYTECODE.instructions);
+      expect(mockWasm.compile_to_uaal).toHaveBeenCalledWith('function main() { return 42 }');
+    });
+
+    it('should throw HoloScriptCompileError for compiler error objects', () => {
+      mockWasm = createMockWasm({
+        compile_to_uaal: vi.fn().mockReturnValue(JSON.stringify({ error: 'unresolved function call' })),
+      });
+      wrapper = new HoloScriptWasm(mockWasm);
+
+      expect(() => wrapper.compileToUaal('function main() { return missing() }')).toThrow(
+        HoloScriptCompileError
+      );
+    });
+  });
+
   describe('version()', () => {
     it('should return the WASM module version string', () => {
       expect(wrapper.version()).toBe('3.7.0');
@@ -366,13 +440,14 @@ describe('HoloScriptWasm', () => {
   // ── WASM Module Contract ────────────────────────────────────────
 
   describe('WASM module contract', () => {
-    it('should require all five wasm_bindgen exports', () => {
+    it('should require all wasm_bindgen exports', () => {
       // Verify the mock satisfies the full interface
       const mod = createMockWasm();
       expect(typeof mod.parse).toBe('function');
       expect(typeof mod.parse_pretty).toBe('function');
       expect(typeof mod.validate).toBe('function');
       expect(typeof mod.validate_detailed).toBe('function');
+      expect(typeof mod.compile_to_uaal).toBe('function');
       expect(typeof mod.version).toBe('function');
     });
 
@@ -383,16 +458,45 @@ describe('HoloScriptWasm', () => {
       wrapper.parsePretty(source);
       wrapper.validate(source);
       wrapper.validateDetailed(source);
+      wrapper.compileToUaal(source);
 
       expect(mockWasm.parse).toHaveBeenCalledWith(source);
       expect(mockWasm.parse_pretty).toHaveBeenCalledWith(source);
       expect(mockWasm.validate).toHaveBeenCalledWith(source);
       expect(mockWasm.validate_detailed).toHaveBeenCalledWith(source);
+      expect(mockWasm.compile_to_uaal).toHaveBeenCalledWith(source);
     });
   });
 });
 
 // ── APL WIT Trait-Evaluation Surface Tests ──────────────────────────────
+
+describe('compile_to_uaal e2e', () => {
+  it(
+    'compiles a non-recursive .hs function call to bytecode the UAAL VM executes',
+    async () => {
+      const bytecode = compileHsToUaalViaRust(`function helper() {
+  return 42
+}
+
+function main() {
+  return helper()
+}`);
+
+      expect(bytecode.version).toBe(1);
+      expect(bytecode.instructions.some((instruction) => instruction.opCode === UAALOpCode.CALL)).toBe(true);
+      expect(bytecode.instructions.some((instruction) => instruction.opCode === UAALOpCode.RET)).toBe(true);
+
+      const vm = new UAALVirtualMachine();
+      const result = await vm.execute(bytecode);
+
+      expect(result.taskStatus).toBe('HALTED');
+      expect(result.stackTop).toBe(42);
+      expect(result.state.callStack).toEqual([]);
+    },
+    60000
+  );
+});
 
 describe('extractTraitNames', () => {
   it('extracts @trait annotations from HoloScript source', () => {
