@@ -91,6 +91,48 @@ function canonical(value: unknown): unknown {
   return out;
 }
 
+function numericArrayFromCanonical(data: unknown, label: string): number[] {
+  if (!Array.isArray(data)) {
+    throw new Error(`CAEL typed array ${label} is missing array data`);
+  }
+  return data.map((entry, index) => {
+    const value = Number(entry);
+    if (!Number.isFinite(value)) {
+      throw new Error(`CAEL typed array ${label} has non-finite value at index ${index}`);
+    }
+    return value;
+  });
+}
+
+function rehydrateCanonical(value: unknown): unknown {
+  if (value === null || value === undefined) return value;
+  if (typeof value !== 'object') return value;
+  if (Array.isArray(value)) return value.map((entry) => rehydrateCanonical(entry));
+
+  const obj = value as Record<string, unknown>;
+  const typedArrayName = obj.__cael_typed_array;
+  if (typeof typedArrayName === 'string') {
+    const data = numericArrayFromCanonical(obj.data, typedArrayName);
+    if (typedArrayName === 'Float64Array') return new Float64Array(data);
+    if (typedArrayName === 'Float32Array') return new Float32Array(data);
+    if (typedArrayName === 'Uint32Array') return new Uint32Array(data);
+    throw new Error(`Unsupported CAEL typed array ${typedArrayName}`);
+  }
+
+  const out: Record<string, unknown> = {};
+  for (const key of Object.keys(obj)) {
+    out[key] = rehydrateCanonical(obj[key]);
+  }
+  return out;
+}
+
+function rehydrateTraceConfig(value: unknown): Record<string, unknown> {
+  const config = rehydrateCanonical(value);
+  const record = asRecord(config);
+  if (!record) throw new Error('CAEL trace config must be an object');
+  return record;
+}
+
 function hashEntry(entry: Omit<TraceEntry, 'hash'>): string {
   return fnv1a(JSON.stringify(canonical(entry)));
 }
@@ -882,12 +924,21 @@ async function verifyTrace(args: Record<string, unknown>): Promise<Record<string
     const Sim = await getSimulation();
 
     if (solverType === 'solve_structural') {
+      const solverConfig = rehydrateTraceConfig(init?.payload?.config ?? {});
       const solver = new Sim.StructuralSolverTET10(
-        (init?.payload?.config ?? {}) as unknown as ConstructorParameters<
-          typeof Sim.StructuralSolverTET10
-        >[0]
+        solverConfig as unknown as ConstructorParameters<typeof Sim.StructuralSolverTET10>[0]
       );
       await Promise.resolve(solver.solve());
+      const solveEvent = trace.find((e) => e.event === 'solve');
+      if (solveEvent) {
+        const stateDigest = computeStructuralStateDigest(
+          Sim,
+          solver.getDisplacements(),
+          solver.getVonMisesStress(),
+          hashMode
+        );
+        verifyStateDigests(solveEvent, stateDigest ? [stateDigest] : []);
+      }
     } else if (solverType === 'solve_thermal') {
       const solver = new Sim.ThermalSolver(
         (init?.payload?.config ?? {}) as unknown as ConstructorParameters<

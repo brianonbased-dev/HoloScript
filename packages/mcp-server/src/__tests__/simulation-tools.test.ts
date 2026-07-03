@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 const mockReplayState = vi.hoisted(() => ({
   thermalReplayOffset: 0,
+  structuralReplayOffset: 0,
 }));
 
 vi.mock('@holoscript/engine', () => {
@@ -34,12 +35,32 @@ vi.mock('@holoscript/engine', () => {
   }
 
   class StructuralSolverTET10 {
+    private readonly vertices: Float64Array | Float32Array;
+    private readonly tetrahedra: Uint32Array;
+
+    constructor(config: { vertices?: unknown; tetrahedra?: unknown }) {
+      if (!(config.vertices instanceof Float64Array || config.vertices instanceof Float32Array)) {
+        throw new Error('vertices typed array required');
+      }
+      if (!(config.tetrahedra instanceof Uint32Array)) {
+        throw new Error('tetrahedra typed array required');
+      }
+      this.vertices = config.vertices;
+      this.tetrahedra = config.tetrahedra;
+    }
+
     solve(): void {}
     getDisplacements(): number[] {
-      return [];
+      return Array.from(
+        { length: this.vertices.length },
+        (_, index) => index / 10 + mockReplayState.structuralReplayOffset
+      );
     }
     getVonMisesStress(): number[] {
-      return [];
+      return Array.from(
+        { length: this.tetrahedra.length / 10 },
+        (_, index) => 1 + index / 100 + mockReplayState.structuralReplayOffset
+      );
     }
     getSafetyFactor(): number {
       return 1;
@@ -221,6 +242,29 @@ describe('simulation tools with CAEL metadata', () => {
     expect(stateDigests.length).toBeGreaterThan(0);
     expect(typeof stateDigests[0]).toBe('string');
     expect(stateDigests[0]).not.toBe('');
+  });
+
+  it('verify_cael_trace rehydrates canonical structural typed arrays and verifies replay', async () => {
+    const solve = (await handleSimulationTool('solve_structural', {
+      config: minimalStructuralConfig,
+    })) as Record<string, unknown>;
+
+    expect(solve.success).toBe(true);
+    const traceJSONL = String(solve.traceJSONL);
+    const initLine = traceJSONL.split('\n').find((l) => l.includes('"event":"init"'));
+    expect(initLine).toBeTruthy();
+    const initEntry = JSON.parse(initLine!);
+    expect(initEntry.payload.config.vertices.__cael_typed_array).toBe('Float64Array');
+    expect(initEntry.payload.config.tetrahedra.__cael_typed_array).toBe('Uint32Array');
+
+    const verify = (await handleSimulationTool('verify_cael_trace', {
+      traceJSONL,
+    })) as Record<string, unknown>;
+
+    expect(verify.success).toBe(true);
+    expect(verify.hashChainValid).toBe(true);
+    expect(verify.replayValid).toBe(true);
+    expect(verify.solverType).toBe('solve_structural');
   });
 
   it('solve_thermal geometry hash in init trace entry is not the placeholder geo-unavailable', async () => {
