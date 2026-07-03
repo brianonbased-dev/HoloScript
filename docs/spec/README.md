@@ -1,6 +1,6 @@
 # HoloScript Language Specification
 
-> **Status (2026-06-22): reclaimed + reconciled.** This directory is the canonical home of
+> **Status (2026-07-03): reclaimed + reconciled.** This directory is the canonical home of
 > the HoloScript language specification. Its core — the uAAL/HOLO language definition — was
 > authored in **January 2026** but lived only in a Gemini/Antigravity knowledge silo
 > (`~/.gemini/antigravity/knowledge/uaa2_language_evolution_and_uaal/`), never committed to a
@@ -26,15 +26,16 @@ uaa2-service genesis:
 | Format | Role | Descends from | Canonical compiler/runtime | Status |
 |--------|------|---------------|----------------------------|--------|
 | `.holo` | Spatial **IR** — scenes, entities, transforms | **HOLO VM** (spatial) | `core/compiler/HolobCompiler.ts` → `@holoscript/holo-vm` (`executor.ts`) | ✅ wired + e2e-tested to pixels (2026-06-05) |
-| `.hsplus` | **Traits / brains** — declarative behavior authoring | uAAL handler-extension arch | parsed by `@holoscript/core` | ⚠️ parsed; native authoring coverage ~1.32% of traits |
+| `.hsplus` | **Traits / brains** — declarative behavior authoring | uAAL handler-extension arch | parsed by `@holoscript/core` | ⚠️ parsed; native authoring coverage is tracked separately |
 | `.hs` | **Logic** — imperative/cognitive programs | **uAAL** (cognitive) | Rust/WASM grammar (`packages/compiler-wasm`); `.hs→Kotlin` emitter (2026-06-21) | ⚠️ grammar parses; emitter young; direct `.hs`→UAAL lowering remains unwired |
 
-> **The load-bearing gap:** the cognitive runtime (`@holoscript/uaal`, 1,666 LOC, a real
+> **The load-bearing gap:** the cognitive runtime (`@holoscript/uaal`, a real
 > compiler + VM) still has an Intent-DSL compiler of its own, while the canonical
 > parser bridge is only partially wired. Current reality: `holo compile --target uaal`
 > exists for `.holo` compositions with behavior/action blocks and lowers through
 > `UaalBehaviorCompiler` into `.uaal` bytecode. The remaining gap is direct
-> `.hs`/`.hsplus` lowering to UAAL bytecode plus richer control-flow coverage. The pipeline
+> `.hs`/`.hsplus` lowering to UAAL bytecode plus richer argument/local semantics over the VM's
+> minimal return-address stack. The pipeline
 > `(.hs/.hsplus → uAA2++ compiler → UAAL bytecode → VM)` documented in
 > [`../agents/uaal-vm.md`](../agents/uaal-vm.md) is therefore **partial**, not absent. See
 > [`spec-vs-reality-gap.md`](./spec-vs-reality-gap.md).

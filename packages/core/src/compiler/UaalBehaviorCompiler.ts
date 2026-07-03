@@ -11,7 +11,9 @@
  *
  * SCOPE (premortem-bounded). It lowers ONLY the cognitive/behavioral subset of
  * a HoloComposition — `actions`, `eventHandlers`, and `logic` (their
- * HoloStatement bodies). It deliberately does NOT touch spatial nodes
+ * HoloStatement bodies). Named actions lower as real UAAL CALL/RET entry
+ * points with a patched name -> PC symbol table; `main` is the bootstrap entry
+ * when present. It deliberately does NOT touch spatial nodes
  * (objects/geometry/transforms): a "spawn a cube" node has no image in the
  * uAAL cognitive ISA, and lowering it would be a category error (that path is
  * HolobCompiler -> HoloVM, the spatial VM). Loops (While/For/ClassicFor) lower
@@ -36,6 +38,8 @@ import type {
   HoloForStatement,
   HoloClassicForStatement,
   HoloExpression,
+  HoloAction,
+  HoloEventHandler,
 } from '../parser/HoloCompositionTypes';
 
 // UAAL opcode subset used by this lowering. Mirrors @holoscript/uaal
@@ -45,6 +49,8 @@ const OP = {
   EXECUTE: 0x14,
   JUMP: 0x30,
   JUMP_IF: 0x31,
+  CALL: 0x32,
+  RET: 0x33,
   HALT: 0xff,
 } as const;
 
@@ -74,7 +80,7 @@ export interface UaalBehaviorCompileStats {
   instructions: number;
   executeCalls: number;
   branches: number;
-  /** Statement kinds intentionally not yet lowered (loops, animate, on-error). */
+  /** Statement kinds intentionally not yet lowered (animate, on-error). */
   unhandled: Record<string, number>;
   compilationMs: number;
 }
@@ -88,6 +94,9 @@ export interface UaalBehaviorCompileResult {
 export class UaalBehaviorCompiler {
   private instructions: UaalInstruction[] = [];
   private stats!: Omit<UaalBehaviorCompileStats, 'compilationMs'>;
+  private entryPoints = new Map<string, number>();
+  private actionNames = new Set<string>();
+  private callPatches: Array<{ instructionIndex: number; targetName: string }> = [];
 
   /**
    * Lower the behavioral subset of a HoloComposition to UAAL bytecode.
@@ -106,25 +115,40 @@ export class UaalBehaviorCompiler {
       unhandled: {},
     };
 
-    const actions = [
+    this.entryPoints = new Map();
+    this.actionNames = new Set();
+    this.callPatches = [];
+
+    const actions: HoloAction[] = [
       ...(composition.actions ?? []),
       ...(composition.logic?.actions ?? []),
     ];
-    const handlers = [
+    const handlers: HoloEventHandler[] = [
       ...(composition.eventHandlers ?? []),
       ...(composition.logic?.handlers ?? []),
     ];
 
+    this.collectActionSymbols(actions);
+
+    for (const targetName of this.bootstrapTargets(actions, handlers)) {
+      this.emitCall(targetName);
+    }
+    this.emit(OP.HALT);
+
     for (const action of actions) {
+      this.recordEntryPoint(action.name);
       this.stats.actions++;
       for (const stmt of action.body) this.lowerStatement(stmt);
+      this.ensureReturn();
     }
     for (const handler of handlers) {
+      this.recordEntryPoint(this.handlerEntryName(handler));
       this.stats.handlers++;
       for (const stmt of handler.body) this.lowerStatement(stmt);
+      this.ensureReturn();
     }
 
-    this.emit(OP.HALT);
+    this.patchCallTargets();
     this.stats.instructions = this.instructions.length;
 
     return {
@@ -139,10 +163,64 @@ export class UaalBehaviorCompiler {
     return this.instructions.length - 1;
   }
 
+  private collectActionSymbols(actions: HoloAction[]): void {
+    for (const action of actions) {
+      if (this.actionNames.has(action.name)) {
+        throw new Error(`Duplicate UAAL action entry point: ${action.name}`);
+      }
+      this.actionNames.add(action.name);
+    }
+  }
+
+  private bootstrapTargets(actions: HoloAction[], handlers: HoloEventHandler[]): string[] {
+    const main = actions.find((action) => action.name === 'main');
+    if (main) return [main.name];
+    return [
+      ...actions.map((action) => action.name),
+      ...handlers.map((handler) => this.handlerEntryName(handler)),
+    ];
+  }
+
+  private handlerEntryName(handler: HoloEventHandler): string {
+    return `event:${handler.event}`;
+  }
+
+  private recordEntryPoint(name: string): void {
+    if (this.entryPoints.has(name)) {
+      throw new Error(`Duplicate UAAL entry point: ${name}`);
+    }
+    this.entryPoints.set(name, this.instructions.length);
+  }
+
+  private emitCall(targetName: string): number {
+    const instructionIndex = this.emit(OP.CALL, [0]);
+    this.callPatches.push({ instructionIndex, targetName });
+    return instructionIndex;
+  }
+
+  private patchCallTargets(): void {
+    for (const patch of this.callPatches) {
+      const target = this.entryPoints.get(patch.targetName);
+      if (target === undefined) {
+        throw new Error(`Unresolved UAAL action call: ${patch.targetName}`);
+      }
+      this.instructions[patch.instructionIndex].operands = [target];
+    }
+  }
+
+  private ensureReturn(): void {
+    this.emit(OP.RET);
+  }
+
   private lowerStatement(stmt: HoloStatement): void {
     this.stats.statements++;
     switch (stmt.type) {
       case 'MethodCall': {
+        if (!stmt.object && this.actionNames.has(stmt.method)) {
+          for (const arg of stmt.arguments) this.emit(OP.PUSH, [this.lowerExpr(arg)]);
+          this.emitCall(stmt.method);
+          return;
+        }
         const key = stmt.object ? `${stmt.object}.${stmt.method}` : stmt.method;
         this.emit(OP.EXECUTE, [key, ...stmt.arguments.map((a) => this.lowerExpr(a))]);
         this.stats.executeCalls++;
@@ -169,12 +247,18 @@ export class UaalBehaviorCompiler {
         return;
       }
       case 'ExpressionStatement': {
+        if (this.lowerActionCallExpression(stmt.expression)) return;
         this.emit(OP.EXECUTE, ['expr', this.lowerExpr(stmt.expression)]);
         this.stats.executeCalls++;
         return;
       }
       case 'ReturnStatement': {
-        if (stmt.value) this.emit(OP.PUSH, [this.lowerExpr(stmt.value)]);
+        if (stmt.value) {
+          if (!this.lowerActionCallExpression(stmt.value)) {
+            this.emit(OP.PUSH, [this.lowerExpr(stmt.value)]);
+          }
+        }
+        this.emit(OP.RET);
         return;
       }
       case 'IfStatement': {
@@ -214,7 +298,7 @@ export class UaalBehaviorCompiler {
    * condition falls through to the alternate and the consequent is skipped.
    */
   private lowerIf(stmt: HoloIfStatement): void {
-    this.emit(OP.PUSH, [this.lowerExpr(stmt.condition)]);
+    this.lowerCondition(stmt.condition);
     const jumpIfIdx = this.emit(OP.JUMP_IF, [0]);
     if (stmt.alternate) for (const s of stmt.alternate) this.lowerStatement(s);
     const jumpEndIdx = this.emit(OP.JUMP, [0]);
@@ -224,6 +308,16 @@ export class UaalBehaviorCompiler {
     this.instructions[jumpIfIdx].operands = [thenStart];
     this.instructions[jumpEndIdx].operands = [end];
     this.stats.branches++;
+  }
+
+  private lowerCondition(expr: HoloExpression): void {
+    if (expr.type === 'Literal') {
+      this.emit(OP.PUSH, [expr.value]);
+      return;
+    }
+    if (this.lowerActionCallExpression(expr)) return;
+    this.emit(OP.EXECUTE, ['cond', this.lowerExpr(expr)]);
+    this.stats.executeCalls++;
   }
 
   /**
@@ -357,5 +451,21 @@ export class UaalBehaviorCompiler {
         return null;
       }
     }
+  }
+
+  private lowerActionCallExpression(expr: HoloExpression): boolean {
+    if (expr.type !== 'CallExpression') return false;
+    const targetName = this.resolveActionCallee(expr.callee);
+    if (!targetName) return false;
+    for (const arg of expr.arguments) this.emit(OP.PUSH, [this.lowerExpr(arg)]);
+    this.emitCall(targetName);
+    return true;
+  }
+
+  private resolveActionCallee(callee: HoloExpression): string | null {
+    if (callee.type === 'Identifier' && this.actionNames.has(callee.name)) {
+      return callee.name;
+    }
+    return null;
   }
 }

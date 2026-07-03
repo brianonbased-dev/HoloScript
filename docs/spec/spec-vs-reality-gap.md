@@ -1,7 +1,7 @@
 # uAAL/HOLO Spec ↔ Reality Gap (the language-build backlog)
 
 > Reconciles [`uaal-language-spec.md`](./uaal-language-spec.md) against the shipped code,
-> verified 2026-06-22 in the HoloScript repo. Each gap carries the F.076 four-question frame
+> verified initially 2026-06-22 and refreshed 2026-07-03 in the HoloScript repo. Each gap carries the F.076 four-question frame
 > (falsifiable claim · real seam · failing-if-broken evidence · scope/blast) so it is a
 > buildable slice, not a vibe. Ordered by leverage.
 
@@ -12,13 +12,13 @@
 
 | # | Spec claim | Reality | Status |
 |---|------------|---------|--------|
-| G1 | `.holo → bytecode → VM → render` | `HolobCompiler` + `holo-vm` (2,996 LOC), e2e-tested to pixels | ✅ |
-| G2 | `@holoscript/uaal` cognitive VM + compiler | `packages/uaal` 1,666 LOC, alive, consumed by agent-protocol/engine/studio | ✅ (runtime) |
-| G3 | `.hs/.hsplus → uAA2++ compiler → UAAL bytecode` | **slice 1 bridged**: `UaalBehaviorCompiler` lowers the behavioral subset (actions/handlers + if/else) to UAAL bytecode, e2e-tested on the real VM; loops deferred | ✅⚠️ **partial** |
+| G1 | `.holo → bytecode → VM → render` | `HolobCompiler` + `holo-vm`, e2e-tested to pixels | ✅ |
+| G2 | `@holoscript/uaal` cognitive VM + compiler | `packages/uaal` alive, consumed by agent-protocol/engine/studio | ✅ (runtime) |
+| G3 | `.hs/.hsplus → uAA2++ compiler → UAAL bytecode` | **behavior bridge active**: `UaalBehaviorCompiler` lowers `.holo` action/handler behavior to UAAL bytecode, including loops and named action `CALL`/`RET`; direct `.hs/.hsplus` lowering remains | ✅⚠️ **partial** |
 | G4 | `holo compile … --target uaal` (per `agents/uaal-vm.md`) | **shipped**: `--target uaal` parses `.holo` → `UaalBehaviorCompiler` → writes `.uaal` bytecode; verified end-to-end | ✅ |
 | G5 | cognitive ⇄ spatial via `SceneSnapshot` | **shipped**: `sceneSnapshot()` serializes HOLO world → perception; both real VMs proven against the shared contract (producer+act / cognitive decision); in-process adapter deferred (needs a package depping both) | ✅⚠️ **partial** |
 | G6 | `.hs` imperative logic is a real compiled language | Rust/WASM grammar parses; `.hs→Kotlin` emitter now covers a substantial subset — numerics, enums, structs (+per-field type inference), strings (+`${}` interpolation), arrays→`listOf` with `List<T>` inference on returns/params/locals (G6 + G7 slice-1/slice-2/G7c/G7d shipped 2026-06-21..23); still a *declared* subset (object-literals→`mapOf` = G7e, struct list-fields = G7f queued); TS parser can't parse `.hs` logic (HSP101) | ⚠️ growing |
-| G7 | native-authoring coverage is tracked + rising | **shipped**: `check:native-coverage` ratchet gate — real packages-scoped coverage **22.63%** (162 native vs 554 hand-TS), must rise/hold; replaces the unverified "1.32%" paper figure | ✅ |
+| G7 | native-authoring coverage is tracked + rising | **shipped**: `check:native-coverage` ratchet gate; live baseline is computed by the checker, must rise/hold, and replaces the unverified paper figure | ✅ |
 | G8 | the spec is the language's source of truth | spec lived only in the Gemini knowledge silo until 2026-06-22 | ✅ (reclaimed by this dir) |
 | G9 | fleet agents (Jetson/laptop/Vast) communicate as uAAL peers | mesh opcodes (`CALL_NODE`/`OP_OFFLOAD`/`OP_SYNC`) were inert; **now wired** to a `MeshTransport` (slice 1 in-process router, e2e proven); real HoloMesh adapter pending | ✅⚠️ **partial** |
 
@@ -26,9 +26,10 @@
 
 ## G3 — Wire `.hs`/`.hsplus` source into the uAAL compiler *(highest leverage)*
 
-The cognitive language exists but is unreachable from the real front-end: `packages/uaal/compiler.ts`
-tokenizes its own Intent-DSL (`INTAKE("…")`, `CYCLE("…")`, `IF…THEN…END`). The canonical
-`.hs`/`.hsplus` parser output is never lowered to UAAL bytecode.
+The cognitive language is now reachable from `.holo` behavior/action blocks, but direct
+`.hs`/`.hsplus` lowering remains incomplete. `packages/uaal/compiler.ts` still tokenizes its own
+Intent-DSL (`INTAKE("…")`, `CYCLE("…")`, `IF…THEN…END`), while the canonical `.hs`/`.hsplus`
+parser output needs a first-class UAAL lowering path.
 
 - **Falsifiable claim:** a `.hs`/`.hsplus` source file compiles, through the canonical parser,
   to a `UAALBytecode` packet that `packages/uaal` `vm.ts` executes — producing the same result
@@ -41,21 +42,22 @@ tokenizes its own Intent-DSL (`INTAKE("…")`, `CYCLE("…")`, `IF…THEN…END`
 - **Scope/blast:** new file under `core/src/compiler/` + a test; consumes existing
   `@holoscript/uaal`. Out of scope: changing the uaal VM ISA. Regression risk: low (additive
   target; does not touch `HolobCompiler` or the `.holo` path).
-- **STATUS — slice 1 SHIPPED 2026-06-22.** `core/src/compiler/UaalBehaviorCompiler.ts` +
-  `core/src/__tests__/compiler/UaalBehaviorCompiler.test.ts` (6/6 pass on the real
-  `@holoscript/uaal` VM; `tsc --noEmit` on core clean; **no new dependency / lockfile change** —
-  local opcode constants are drift-guarded against the real ISA in the test).
+- **STATUS — slice 1 SHIPPED 2026-06-22; CALL/RET slice shipped 2026-07-03.**
+  `core/src/compiler/UaalBehaviorCompiler.ts` +
+  `core/src/__tests__/compiler/UaalBehaviorCompiler.test.ts` pass on the real
+  `@holoscript/uaal` VM; `tsc --noEmit` on core is clean; **no new dependency / lockfile change** —
+  local opcode constants are drift-guarded against the real ISA in the test.
   - **Premortem correction applied:** lowers only the *behavioral* subset (actions /
     eventHandlers / logic → `HoloStatement` bodies), NOT spatial nodes (that would be the
     category error the premortem flagged — spatial is `HolobCompiler → HoloVM`). The test is
     non-vacuous: distinct inputs yield distinct observable EXECUTE traces, and `JUMP_IF` is
     proven to gate execution (a false condition skips the consequent).
   - **Covered:** MethodCall, EmitStatement, Assignment, VariableDeclaration, AwaitStatement,
-    ExpressionStatement, ReturnStatement, IfStatement (real `PUSH`/`JUMP_IF`/`JUMP` control
-    flow with back-patched targets).
-  - **Deferred (recorded as `stats.unhandled`, not faked):** For/While/ClassicFor (loop
-    back-edges), Animate, OnError — slice 2; idea-seed `2026-06-22_uaal-loop-control-flow-lowering`.
-  - **Remaining for G3:** loop lowering; then G4 wires this pass to a `--target uaal` CLI.
+    ExpressionStatement, ReturnStatement, IfStatement, For/While/ClassicFor, and named action
+    calls lowered to real UAAL `CALL`/`RET` with patched entry-point PCs.
+  - **Deferred (recorded as `stats.unhandled`, not faked):** Animate and OnError.
+  - **Remaining for G3:** direct `.hs`/`.hsplus` lowering, plus richer argument/local binding
+    semantics above the VM's intentionally minimal return-address stack.
 
 ## G4 — Register a `uaal` CLI compile target
 
@@ -129,8 +131,8 @@ and struct list-fields (G7f) are the next queued slices; broader grammar general
 
 TS capability must dissolve INTO native authoring (`.hsplus`/`.holo`/`.hs`), not grow as TS. This
 is the D.104 metric. Without a gate it stays a footnote — and the only figure that ever circulated
-("1.32% native trait annotation", 37/2801) was an **unverified paper claim with no code computing
-it** (a fitting irony for this whole thread). The gate replaces it with a real number from the tree.
+was an **unverified paper claim with no code computing it** (a fitting irony for this whole thread).
+The gate replaces it with a real number from the tree.
 
 - **Falsifiable claim:** a check reports `native / (native + hand-TS-traits)` over `packages/` and
   fails CI if either the native count or the ratio drops below a committed baseline.
@@ -140,13 +142,13 @@ it** (a fitting irony for this whole thread). The gate replaces it with a real n
   asserting the metric is real, the baseline is honest, and a simulated drop exits 1.
 - **Scope/blast:** new check script + baseline + test + package.json entries. Regression: none.
 - **STATUS — SHIPPED 2026-06-22.** `scripts/holo-ci/check-native-coverage.mjs` +
-  `native-coverage-baseline.json` + `scripts/__tests__/check-native-coverage.test.mjs` (9/9 pass).
-  Real packages-scoped baseline: **native 162** (.hsplus 24 / .holo 137 / .hs 1) vs **hand-TS
-  traits 554** = **22.63%**. (Note `.hs` = 1 in packages — the `.hs` logic format is barely used
-  yet, consistent with G6.) `package.json`: `check:native-coverage`, `:update`,
-  `check:native-coverage-test`. The gate fails if native count or ratio drops — coverage can only
-  rise or hold. **Pre-commit Gate wiring** (a `.githooks/pre-commit` block like Gate 5e) is an
-  optional follow-up; the `check:*` entry is the CI hook.
+  `native-coverage-baseline.json` + `scripts/__tests__/check-native-coverage.test.mjs` pass.
+  The baseline is live data from the tree; use `check:native-coverage` or the baseline file for
+  current values instead of copying numbers into prose. `package.json` exposes
+  `check:native-coverage`, `:update`, and `check:native-coverage-test`. The gate fails if native
+  count or ratio drops — coverage can only rise or hold. **Pre-commit Gate wiring** (a
+  `.githooks/pre-commit` block like Gate 5e) is an optional follow-up; the `check:*` entry is the
+  CI hook.
 
 ## G9 — Fleet agents communicate as uAAL peers *(Jetson / laptop / Vast)*
 
@@ -161,10 +163,10 @@ another. This is the "fleet agents all communicating with each other" gap (MEMOR
 - **Real seam:** `registerMeshHandlers(vm, transport)` registers handlers on the VM's
   handler-dispatch (`vm.ts` checks handlers before the built-in switch); `MeshTransport` is the
   pluggable transport.
-- **Failing-if-broken evidence:** `packages/uaal/src/__tests__/mesh-transport.test.ts` (6/6) —
-  jetson↔laptop↔Vast round-trip, 3-tier aggregation, offload, broadcast, bidirectional, fail-loud.
+- **Failing-if-broken evidence:** `packages/uaal/src/__tests__/mesh-transport.test.ts` —
+  jetson↔laptop↔Vast round-trip, tiered aggregation, offload, broadcast, bidirectional, fail-loud.
 - **Scope/blast:** `packages/uaal/src/mesh-transport.ts` + index export + test. `tsc` clean;
-  full uaal suite 47/47. Additive (handlers only active when registered); uaal stays dependency-free.
+  full uaal suite passes. Additive (handlers only active when registered); uaal stays dependency-free.
 - **STATUS — slice 1 SHIPPED 2026-06-22.** In-process `InMemoryMeshRouter` proves the semantics.
   **Remaining:** a HoloMesh-backed `MeshTransport` (`request`→`ask_peer`/`send_message`,
   `offload`→one-way message, `sync`→gossip) so the transport spans real machines — lives in an

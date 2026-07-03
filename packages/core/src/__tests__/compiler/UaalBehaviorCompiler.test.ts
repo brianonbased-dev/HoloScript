@@ -8,19 +8,33 @@ import { describe, it, expect } from 'vitest';
 import { UAALVirtualMachine, UAALOpCode } from '@holoscript/uaal';
 import type { UAALBytecode, UAALOperand } from '@holoscript/uaal';
 import { UaalBehaviorCompiler } from '../../compiler/UaalBehaviorCompiler';
-import type { HoloComposition, HoloStatement } from '../../parser/HoloCompositionTypes';
+import type { HoloAction, HoloComposition, HoloStatement } from '../../parser/HoloCompositionTypes';
 
 // Minimal behavioral-AST factories — only the fields the compiler reads.
 const lit = (value: string | number | boolean | null) => ({ type: 'Literal' as const, value });
+const id = (name: string) => ({ type: 'Identifier' as const, name });
+const callExpr = (name: string, ...args: (string | number | boolean | null)[]) => ({
+  type: 'CallExpression' as const,
+  callee: id(name),
+  arguments: args.map(lit),
+});
 const call = (method: string, ...args: (string | number | boolean | null)[]): HoloStatement =>
   ({ type: 'MethodCall', method, arguments: args.map(lit) } as unknown as HoloStatement);
+const actionCall = (name: string, ...args: (string | number | boolean | null)[]): HoloStatement =>
+  ({ type: 'ExpressionStatement', expression: callExpr(name, ...args) } as unknown as HoloStatement);
 const emit = (event: string): HoloStatement =>
   ({ type: 'EmitStatement', event } as unknown as HoloStatement);
 const iff = (cond: boolean, consequent: HoloStatement[], alternate?: HoloStatement[]): HoloStatement =>
   ({ type: 'IfStatement', condition: lit(cond), consequent, alternate } as unknown as HoloStatement);
+const ret = (value?: unknown): HoloStatement =>
+  ({ type: 'ReturnStatement', ...(value ? { value } : {}) } as unknown as HoloStatement);
+const action = (name: string, body: HoloStatement[]): HoloAction =>
+  ({ type: 'Action', name, parameters: [], body } as unknown as HoloAction);
 
 const comp = (body: HoloStatement[]): HoloComposition =>
-  ({ type: 'Composition', name: 'test', actions: [{ type: 'Action', name: 'main', parameters: [], body }] } as unknown as HoloComposition);
+  ({ type: 'Composition', name: 'test', actions: [action('main', body)] } as unknown as HoloComposition);
+const compActions = (actions: HoloAction[]): HoloComposition =>
+  ({ type: 'Composition', name: 'test', actions } as unknown as HoloComposition);
 
 async function run(c: HoloComposition): Promise<{ trace: UAALOperand[][]; status: string }> {
   const { bytecode } = new UaalBehaviorCompiler().compile(c);
@@ -41,6 +55,8 @@ describe('UaalBehaviorCompiler — G3 cognitive front-end bridge', () => {
     expect(UAALOpCode.EXECUTE).toBe(0x14);
     expect(UAALOpCode.JUMP).toBe(0x30);
     expect(UAALOpCode.JUMP_IF).toBe(0x31);
+    expect(UAALOpCode.CALL).toBe(0x32);
+    expect(UAALOpCode.RET).toBe(0x33);
     expect(UAALOpCode.HALT).toBe(0xff);
   });
 
@@ -77,6 +93,67 @@ describe('UaalBehaviorCompiler — G3 cognitive front-end bridge', () => {
     const a = await run(comp([call('log', 'alpha')]));
     const b = await run(comp([call('log', 'beta'), call('log', 'gamma')]));
     expect(a.trace).not.toEqual(b.trace);
+  });
+
+  it('CALL/RET: main calls a helper action, receives its return value, then resumes', async () => {
+    const c = compActions([
+      action('main', [actionCall('helper'), call('log', 'after')]),
+      action('helper', [call('log', 'helper'), ret(lit(42))]),
+    ]);
+    const { bytecode } = new UaalBehaviorCompiler().compile(c);
+    expect(bytecode.instructions.some((i) => i.opCode === UAALOpCode.CALL)).toBe(true);
+    expect(bytecode.instructions.some((i) => i.opCode === UAALOpCode.RET)).toBe(true);
+
+    const vm = new UAALVirtualMachine();
+    const trace: Array<{ tag: string; depth: number }> = [];
+    vm.registerHandler(UAALOpCode.EXECUTE, (proxy, operands) => {
+      trace.push({ tag: operands.join(':'), depth: proxy.getState().callStack.length });
+    });
+    const result = await vm.execute(bytecode as unknown as UAALBytecode);
+
+    expect(result.taskStatus).toBe('HALTED');
+    expect(trace).toEqual([
+      { tag: 'log:helper', depth: 2 },
+      { tag: 'log:after', depth: 1 },
+    ]);
+    expect(result.state.stack).toEqual([42]);
+    expect(result.state.callStack).toEqual([]);
+  });
+
+  it('CALL/RET: recursive action calls unwind through the real VM call stack', async () => {
+    const recursiveStep = {
+      type: 'IfStatement',
+      condition: id('hasMore'),
+      consequent: [actionCall('countdown')],
+    } as unknown as HoloStatement;
+    const c = compActions([
+      action('main', [actionCall('countdown')]),
+      action('countdown', [recursiveStep, call('markUnwind'), ret()]),
+    ]);
+    const { bytecode } = new UaalBehaviorCompiler().compile(c);
+
+    const vm = new UAALVirtualMachine();
+    const condDepths: number[] = [];
+    const unwindDepths: number[] = [];
+    let remaining = 3;
+    vm.registerHandler(UAALOpCode.EXECUTE, (proxy, operands) => {
+      const tag = operands[0] as string;
+      if (tag === 'cond') {
+        condDepths.push(proxy.getState().callStack.length);
+        const more = remaining > 0;
+        if (more) remaining--;
+        proxy.push(more);
+      }
+      if (tag === 'markUnwind') {
+        unwindDepths.push(proxy.getState().callStack.length);
+      }
+    });
+    const result = await vm.execute(bytecode as unknown as UAALBytecode);
+
+    expect(result.taskStatus).toBe('HALTED');
+    expect(condDepths).toEqual([2, 3, 4, 5]);
+    expect(unwindDepths).toEqual([5, 4, 3, 2]);
+    expect(result.state.callStack).toEqual([]);
   });
 
   it('records deferred statement kinds honestly rather than faking them', () => {
