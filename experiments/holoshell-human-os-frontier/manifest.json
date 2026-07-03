@@ -11,6 +11,7 @@
   "artifactPolicy": {
     "researchReceipts": ".bench-logs/holoshell-human-os-frontier/<date>/",
     "experimentSource": "experiments/holoshell-human-os-frontier/",
+    "sourceManifest": "experiments/holoshell-human-os-frontier/source-manifest.md",
     "hololandRepoWrites": "avoid by default; file tasks or write HoloScript-side artifacts unless explicitly directed"
   },
   "scorecardAxes": [

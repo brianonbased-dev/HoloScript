@@ -56,6 +56,18 @@ then ask how HoloShell should wrap it.
 - Operate a robot, printer, headset, or local device through safety envelopes.
 - Convert a terminal-only developer task into a spatial non-developer control room.
 
+## Source Manifest
+
+The cross-repo workflow matrix lives in
+[`source-manifest.md`](source-manifest.md). It maps each ordinary workflow to
+its `.holo`, `.hsplus`, and `.hs` source, owning repo, validation command,
+HoloLand embodiment state, and remaining HoloScript substrate gap.
+
+Use concrete proof terms in that matrix: HoloKey/x402 identity, routeTask or
+HoloMesh routing, room/policy/pipeline triads, uAAL target evidence,
+MCP/source-level validation, and receipts. HoloGate is a docs umbrella term, not
+runtime proof by itself.
+
 ## Scorecard
 
 Use this scorecard before claiming an idea works.
