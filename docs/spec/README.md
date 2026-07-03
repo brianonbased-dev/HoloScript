@@ -10,6 +10,7 @@
 
 | File | What it is |
 |------|------------|
+| [`holoscript-grammar-ssot.md`](./holoscript-grammar-ssot.md) | The accepted-grammar router: parser-backed sources only, plus the conformance test that keeps `get_syntax_reference` examples aligned with the production parser path. |
 | [`uaal-language-spec.md`](./uaal-language-spec.md) | The reclaimed uAAL (cognitive) + HOLO (spatial) language definition: primitives, instruction set, and a **real-vs-aspirational** reconciliation with the shipped code. |
 | [`spec-vs-reality-gap.md`](./spec-vs-reality-gap.md) | The language-build backlog: each spec claim mapped to its actual code status (shipped / island / absent), with the seam that would close it. |
 | [`motivation-trait.md`](./motivation-trait.md) | (pre-existing) trait-level spec note. |

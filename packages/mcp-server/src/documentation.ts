@@ -1433,7 +1433,7 @@ composition "Scene" {
       },
       {
         description: 'Legacy orb syntax (still works)',
-        code: `orb MyCube @grabbable @glowing {
+        code: `orb MyCube @grabbable() @glowing() {
   geometry: "cube"
   color: "#ff8800"
   position: [2, 1, 0]
@@ -1453,7 +1453,7 @@ composition "Scene" {
     examples: [
       {
         description: 'Basic object',
-        code: `object "Crystal" @glowing {
+        code: `object "Crystal" @glowing() {
   geometry: "model/crystal.glb"
   position: [0, 1, -2]
 }`,
@@ -1462,7 +1462,7 @@ composition "Scene" {
         description: 'Object using template',
         code: `object "Enemy_1" using "EnemyTemplate" {
   position: [5, 0, 5]
-  state.variant: "red"
+  state { variant: "red" }
 }`,
       },
     ],
@@ -1644,7 +1644,7 @@ composition "Scene" {
     examples: [
       {
         description: 'Hover animation',
-        code: `orb Gem @animated {
+        code: `orb Gem @animated() {
   geometry: "model/gem.glb"
   animation: {
     property: "position.y"
@@ -1673,7 +1673,7 @@ composition "Scene" {
     examples: [
       {
         description: 'Bouncy ball',
-        code: `orb Ball @physics @collidable {
+        code: `orb Ball @physics() @collidable() {
   geometry: "sphere"
   physics: {
     type: "dynamic"
@@ -1692,11 +1692,11 @@ composition "Scene" {
     syntax: `on<EventName>: { <handler code> }
 
 // Or with parameters:
-on<EventName>: |param1, param2| { <handler code> }`,
+on<EventName>(param1, param2) { <handler code> }`,
     examples: [
       {
         description: 'Event handlers',
-        code: `orb Button @clickable @hoverable {
+        code: `orb Button @clickable() @hoverable() {
   geometry: "cube"
   
   onClick: { door.toggle() }
@@ -1708,10 +1708,8 @@ on<EventName>: |param1, param2| { <handler code> }`,
   
   onHoverExit: { this.color = "#888888" }
   
-  onCollisionEnter: |other| {
-    if (other.tag === "projectile") {
-      this.health -= 10
-    }
+  onCollisionEnter(other) {
+    this.health -= 10
   }
 }`,
       },
@@ -1735,7 +1733,7 @@ object "Name" @networked @owned {
     examples: [
       {
         description: 'Multiplayer object',
-        code: `orb SharedBall @networked(sync_rate: "30hz") @grabbable {
+        code: `orb SharedBall @networked(sync_rate: "30hz") @grabbable() {
   geometry: "sphere"
   @networked position
   @networked rotation
@@ -1768,17 +1766,17 @@ object "Name" @networked @owned {
       {
         description: 'Trait combinations',
         code: `// Interactive weapon
-orb Sword @grabbable @throwable @spatial_audio {
+orb Sword @grabbable() @throwable() @spatial_audio() {
   geometry: "model/sword.glb"
 }
 
 // Physics puzzle piece
-orb Block @physics @collidable @stackable(max_stack: 10) {
+orb Block @physics() @collidable() @stackable(max_stack: 10) {
   geometry: "cube"
 }
 
 // Multiplayer avatar
-orb Avatar @networked @owned @hand_tracked {
+orb Avatar @networked() @owned() @hand_tracked() {
   geometry: "model/avatar.glb"
 }`,
       },
