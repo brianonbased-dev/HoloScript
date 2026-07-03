@@ -1,0 +1,4964 @@
+{
+  "schema": "format-stress-segmented-capture-v1",
+  "scenario": "humanoid-rock-throw",
+  "generatedAt": "2026-07-03T12:37:17.516Z",
+  "manifest": "experiments/format-realism-gauntlet/manifest.json",
+  "outputDir": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw",
+  "command": "node scripts/format-stress-segmented-capture.mjs experiments/format-realism-gauntlet/manifest.json",
+  "commands": [
+    {
+      "id": "parse-holo",
+      "command": "tsx packages/cli/src/cli.ts parse C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\experiments\\format-realism-gauntlet\\humanoid-rock-throw.holo --json",
+      "args": [
+        "parse",
+        "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\experiments\\format-realism-gauntlet\\humanoid-rock-throw.holo",
+        "--json"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 2894,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/parse-holo.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/parse-holo.stderr.txt"
+    },
+    {
+      "id": "parse-hsplus",
+      "command": "tsx packages/cli/src/cli.ts parse C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\experiments\\format-realism-gauntlet\\humanoid-rock-throw.hsplus --json",
+      "args": [
+        "parse",
+        "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\experiments\\format-realism-gauntlet\\humanoid-rock-throw.hsplus",
+        "--json"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 2215,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/parse-hsplus.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/parse-hsplus.stderr.txt"
+    },
+    {
+      "id": "parse-hs",
+      "command": "tsx packages/cli/src/cli.ts parse C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\experiments\\format-realism-gauntlet\\humanoid-rock-throw.hs --json",
+      "args": [
+        "parse",
+        "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\experiments\\format-realism-gauntlet\\humanoid-rock-throw.hs",
+        "--json"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 1958,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/parse-hs.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/parse-hs.stderr.txt"
+    },
+    {
+      "id": "compile-holo-threejs",
+      "command": "tsx packages/cli/src/cli.ts compile C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\experiments\\format-realism-gauntlet\\humanoid-rock-throw.holo --target threejs -o C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\compiled\\holo-threejs",
+      "args": [
+        "compile",
+        "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\experiments\\format-realism-gauntlet\\humanoid-rock-throw.holo",
+        "--target",
+        "threejs",
+        "-o",
+        "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\compiled\\holo-threejs"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 3333,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/compile-holo-threejs.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/compile-holo-threejs.stderr.txt"
+    },
+    {
+      "id": "compile-hsplus-threejs",
+      "command": "tsx packages/cli/src/cli.ts compile C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\experiments\\format-realism-gauntlet\\humanoid-rock-throw.hsplus --target threejs -o C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\compiled\\hsplus-threejs",
+      "args": [
+        "compile",
+        "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\experiments\\format-realism-gauntlet\\humanoid-rock-throw.hsplus",
+        "--target",
+        "threejs",
+        "-o",
+        "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\compiled\\hsplus-threejs"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 3356,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/compile-hsplus-threejs.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/compile-hsplus-threejs.stderr.txt"
+    },
+    {
+      "id": "compile-hs-node",
+      "command": "tsx packages/cli/src/cli.ts compile C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\experiments\\format-realism-gauntlet\\humanoid-rock-throw.hs --target node -o C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\compiled\\hs-node.mjs",
+      "args": [
+        "compile",
+        "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\experiments\\format-realism-gauntlet\\humanoid-rock-throw.hs",
+        "--target",
+        "node",
+        "-o",
+        "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\compiled\\hs-node.mjs"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 2154,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/compile-hs-node.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/compile-hs-node.stderr.txt"
+    },
+    {
+      "id": "headless-holo",
+      "command": "tsx packages/cli/src/cli.ts headless C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\experiments\\format-realism-gauntlet\\humanoid-rock-throw.holo --duration 250 --json",
+      "args": [
+        "headless",
+        "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\experiments\\format-realism-gauntlet\\humanoid-rock-throw.holo",
+        "--duration",
+        "250",
+        "--json"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 2491,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/headless-holo.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/headless-holo.stderr.txt"
+    },
+    {
+      "id": "screenshot-base",
+      "command": "tsx packages/cli/src/cli.ts screenshot C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\experiments\\format-realism-gauntlet\\humanoid-rock-throw.holo -o C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\stills\\00_scene_loaded.png --width 1280 --height 720 --wait-for 1000",
+      "args": [
+        "screenshot",
+        "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\experiments\\format-realism-gauntlet\\humanoid-rock-throw.holo",
+        "-o",
+        "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\stills\\00_scene_loaded.png",
+        "--width",
+        "1280",
+        "--height",
+        "720",
+        "--wait-for",
+        "1000"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 5607,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-base.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-base.stderr.txt"
+    },
+    {
+      "id": "world-model-humanoid-rock-throw",
+      "command": "tsx packages/cli/src/cli.ts world-model replay --scene humanoid-rock-throw-v1 --seed 4242 --json",
+      "args": [
+        "world-model",
+        "replay",
+        "--scene",
+        "humanoid-rock-throw-v1",
+        "--seed",
+        "4242",
+        "--json"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 410,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/world-model-humanoid-rock-throw.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/world-model-humanoid-rock-throw.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-01_avatar_approaches",
+      "command": "tsx packages/cli/src/cli.ts screenshot C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\segment-scenes\\01_avatar_approaches.holo -o C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\stills\\01_avatar_approaches.png --width 1280 --height 720 --wait-for 1000",
+      "args": [
+        "screenshot",
+        "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\segment-scenes\\01_avatar_approaches.holo",
+        "-o",
+        "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\stills\\01_avatar_approaches.png",
+        "--width",
+        "1280",
+        "--height",
+        "720",
+        "--wait-for",
+        "1000"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 3089,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-01_avatar_approaches.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-01_avatar_approaches.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-02_hand_reaches",
+      "command": "tsx packages/cli/src/cli.ts screenshot C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\segment-scenes\\02_hand_reaches.holo -o C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\stills\\02_hand_reaches.png --width 1280 --height 720 --wait-for 1000",
+      "args": [
+        "screenshot",
+        "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\segment-scenes\\02_hand_reaches.holo",
+        "-o",
+        "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\stills\\02_hand_reaches.png",
+        "--width",
+        "1280",
+        "--height",
+        "720",
+        "--wait-for",
+        "1000"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 3145,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-02_hand_reaches.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-02_hand_reaches.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-03_grab_constraint",
+      "command": "tsx packages/cli/src/cli.ts screenshot C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\segment-scenes\\03_grab_constraint.holo -o C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\stills\\03_grab_constraint.png --width 1280 --height 720 --wait-for 1000",
+      "args": [
+        "screenshot",
+        "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\segment-scenes\\03_grab_constraint.holo",
+        "-o",
+        "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\stills\\03_grab_constraint.png",
+        "--width",
+        "1280",
+        "--height",
+        "720",
+        "--wait-for",
+        "1000"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 3107,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-03_grab_constraint.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-03_grab_constraint.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-04_lift_pose",
+      "command": "tsx packages/cli/src/cli.ts screenshot C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\segment-scenes\\04_lift_pose.holo -o C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\stills\\04_lift_pose.png --width 1280 --height 720 --wait-for 1000",
+      "args": [
+        "screenshot",
+        "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\segment-scenes\\04_lift_pose.holo",
+        "-o",
+        "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\stills\\04_lift_pose.png",
+        "--width",
+        "1280",
+        "--height",
+        "720",
+        "--wait-for",
+        "1000"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 3080,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-04_lift_pose.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-04_lift_pose.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-05_windup",
+      "command": "tsx packages/cli/src/cli.ts screenshot C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\segment-scenes\\05_windup.holo -o C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\stills\\05_windup.png --width 1280 --height 720 --wait-for 1000",
+      "args": [
+        "screenshot",
+        "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\segment-scenes\\05_windup.holo",
+        "-o",
+        "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\stills\\05_windup.png",
+        "--width",
+        "1280",
+        "--height",
+        "720",
+        "--wait-for",
+        "1000"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 3017,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-05_windup.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-05_windup.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-06_release",
+      "command": "tsx packages/cli/src/cli.ts screenshot C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\segment-scenes\\06_release.holo -o C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\stills\\06_release.png --width 1280 --height 720 --wait-for 1000",
+      "args": [
+        "screenshot",
+        "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\segment-scenes\\06_release.holo",
+        "-o",
+        "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\stills\\06_release.png",
+        "--width",
+        "1280",
+        "--height",
+        "720",
+        "--wait-for",
+        "1000"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 2995,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-06_release.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-06_release.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-07_ballistic_arc",
+      "command": "tsx packages/cli/src/cli.ts screenshot C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\segment-scenes\\07_ballistic_arc.holo -o C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\stills\\07_ballistic_arc.png --width 1280 --height 720 --wait-for 1000",
+      "args": [
+        "screenshot",
+        "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\segment-scenes\\07_ballistic_arc.holo",
+        "-o",
+        "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\stills\\07_ballistic_arc.png",
+        "--width",
+        "1280",
+        "--height",
+        "720",
+        "--wait-for",
+        "1000"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 3050,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-07_ballistic_arc.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-07_ballistic_arc.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-08_impact",
+      "command": "tsx packages/cli/src/cli.ts screenshot C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\segment-scenes\\08_impact.holo -o C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\stills\\08_impact.png --width 1280 --height 720 --wait-for 1000",
+      "args": [
+        "screenshot",
+        "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\segment-scenes\\08_impact.holo",
+        "-o",
+        "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\stills\\08_impact.png",
+        "--width",
+        "1280",
+        "--height",
+        "720",
+        "--wait-for",
+        "1000"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 3215,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-08_impact.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-08_impact.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-09_aftermath",
+      "command": "tsx packages/cli/src/cli.ts screenshot C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\segment-scenes\\09_aftermath.holo -o C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\stills\\09_aftermath.png --width 1280 --height 720 --wait-for 1000",
+      "args": [
+        "screenshot",
+        "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\segment-scenes\\09_aftermath.holo",
+        "-o",
+        "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-07-03_codex-format-realism-gap-stress\\humanoid-rock-throw\\stills\\09_aftermath.png",
+        "--width",
+        "1280",
+        "--height",
+        "720",
+        "--wait-for",
+        "1000"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 3009,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-09_aftermath.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-09_aftermath.stderr.txt"
+    }
+  ],
+  "headlessScene": {
+    "schema": "format-stress-headless-scene-snapshot-v1",
+    "source": "hs-headless-json",
+    "runtimeSchema": "holoscript-headless-scene-receipt-v1",
+    "stage": "experiments/format-realism-gauntlet/humanoid-rock-throw.holo",
+    "objectCount": 63,
+    "templateCount": 15,
+    "runtimeStats": {
+      "instanceCount": 64,
+      "peakInstanceCount": 64,
+      "memoryEstimate": 32004,
+      "updateCount": 2,
+      "eventCount": 3,
+      "uptime": 255,
+      "avgTickDuration": 0.5
+    },
+    "objects": [
+      {
+        "id": "KeyLight",
+        "type": "object",
+        "name": "KeyLight",
+        "template": null,
+        "parentId": null,
+        "path": [
+          "KeyLight"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "directional_light": true,
+          "position": [
+            6,
+            10,
+            8
+          ],
+          "color": "#fff5e6",
+          "intensity": 1.4,
+          "cast_shadow": true
+        },
+        "transform": {
+          "position": [
+            6,
+            10,
+            8
+          ],
+          "rotation": null,
+          "scale": null
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "FillLight",
+        "type": "object",
+        "name": "FillLight",
+        "template": null,
+        "parentId": null,
+        "path": [
+          "FillLight"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "point_light": true,
+          "position": [
+            -4,
+            5,
+            -3
+          ],
+          "color": "#c7d9ff",
+          "intensity": 0.6,
+          "distance": 18
+        },
+        "transform": {
+          "position": [
+            -4,
+            5,
+            -3
+          ],
+          "rotation": null,
+          "scale": null
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "RimLight",
+        "type": "object",
+        "name": "RimLight",
+        "template": null,
+        "parentId": null,
+        "path": [
+          "RimLight"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "spot_light": true,
+          "position": [
+            -2,
+            4,
+            6
+          ],
+          "color": "#ffd4a3",
+          "intensity": 1,
+          "angle": 0.55,
+          "penumbra": 0.45,
+          "target": [
+            0,
+            1,
+            0
+          ]
+        },
+        "transform": {
+          "position": [
+            -2,
+            4,
+            6
+          ],
+          "rotation": null,
+          "scale": null
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "Ground",
+        "type": "object",
+        "name": "Ground",
+        "template": "FloorTile",
+        "parentId": null,
+        "path": [
+          "Ground"
+        ],
+        "groupPath": [],
+        "traits": [
+          "collidable",
+          "static"
+        ],
+        "properties": {
+          "geometry": "plane",
+          "color": "#202733",
+          "material": {
+            "color": "#1a2330",
+            "roughness": 0.85,
+            "metallic": 0.05,
+            "normalMap": "procedural-brushed-concrete-normal",
+            "aoMap": "stage-contact-ambient-occlusion",
+            "detailMap": "fine-dust-scratch-detail",
+            "contact_shadow": true
+          },
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            -90,
+            0,
+            0
+          ],
+          "scale": [
+            14,
+            10,
+            1
+          ],
+          "label": "stage floor",
+          "roughness": 0.85
+        },
+        "transform": {
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            -90,
+            0,
+            0
+          ],
+          "scale": [
+            14,
+            10,
+            1
+          ]
+        },
+        "physics": {
+          "collidable": true,
+          "kinematic": true,
+          "massKg": null
+        }
+      },
+      {
+        "id": "StageFrontEdge",
+        "type": "object",
+        "name": "StageFrontEdge",
+        "template": "StageEdge",
+        "parentId": null,
+        "path": [
+          "StageFrontEdge"
+        ],
+        "groupPath": [],
+        "traits": [
+          "collidable",
+          "static"
+        ],
+        "properties": {
+          "geometry": "cube",
+          "color": "#2a3442",
+          "material": {
+            "color": "#2a3442",
+            "roughness": 0.7,
+            "metallic": 0.15
+          },
+          "position": [
+            0,
+            0.04,
+            5.05
+          ],
+          "scale": [
+            14.2,
+            0.08,
+            0.12
+          ],
+          "label": "stage front lip",
+          "roughness": 0.7
+        },
+        "transform": {
+          "position": [
+            0,
+            0.04,
+            5.05
+          ],
+          "rotation": null,
+          "scale": [
+            14.2,
+            0.08,
+            0.12
+          ]
+        },
+        "physics": {
+          "collidable": true,
+          "kinematic": true,
+          "massKg": null
+        }
+      },
+      {
+        "id": "StageBackEdge",
+        "type": "object",
+        "name": "StageBackEdge",
+        "template": "StageEdge",
+        "parentId": null,
+        "path": [
+          "StageBackEdge"
+        ],
+        "groupPath": [],
+        "traits": [
+          "collidable",
+          "static"
+        ],
+        "properties": {
+          "geometry": "cube",
+          "color": "#2a3442",
+          "material": {
+            "color": "#2a3442",
+            "roughness": 0.7,
+            "metallic": 0.15
+          },
+          "position": [
+            0,
+            0.04,
+            -5.05
+          ],
+          "scale": [
+            14.2,
+            0.08,
+            0.12
+          ],
+          "label": "stage back lip",
+          "roughness": 0.7
+        },
+        "transform": {
+          "position": [
+            0,
+            0.04,
+            -5.05
+          ],
+          "rotation": null,
+          "scale": [
+            14.2,
+            0.08,
+            0.12
+          ]
+        },
+        "physics": {
+          "collidable": true,
+          "kinematic": true,
+          "massKg": null
+        }
+      },
+      {
+        "id": "StageLeftEdge",
+        "type": "object",
+        "name": "StageLeftEdge",
+        "template": "StageEdge",
+        "parentId": null,
+        "path": [
+          "StageLeftEdge"
+        ],
+        "groupPath": [],
+        "traits": [
+          "collidable",
+          "static"
+        ],
+        "properties": {
+          "geometry": "cube",
+          "color": "#2a3442",
+          "material": {
+            "color": "#2a3442",
+            "roughness": 0.7,
+            "metallic": 0.15
+          },
+          "position": [
+            -7.05,
+            0.04,
+            0
+          ],
+          "scale": [
+            0.12,
+            0.08,
+            10.2
+          ],
+          "label": "stage left lip",
+          "roughness": 0.7
+        },
+        "transform": {
+          "position": [
+            -7.05,
+            0.04,
+            0
+          ],
+          "rotation": null,
+          "scale": [
+            0.12,
+            0.08,
+            10.2
+          ]
+        },
+        "physics": {
+          "collidable": true,
+          "kinematic": true,
+          "massKg": null
+        }
+      },
+      {
+        "id": "StageRightEdge",
+        "type": "object",
+        "name": "StageRightEdge",
+        "template": "StageEdge",
+        "parentId": null,
+        "path": [
+          "StageRightEdge"
+        ],
+        "groupPath": [],
+        "traits": [
+          "collidable",
+          "static"
+        ],
+        "properties": {
+          "geometry": "cube",
+          "color": "#2a3442",
+          "material": {
+            "color": "#2a3442",
+            "roughness": 0.7,
+            "metallic": 0.15
+          },
+          "position": [
+            7.05,
+            0.04,
+            0
+          ],
+          "scale": [
+            0.12,
+            0.08,
+            10.2
+          ],
+          "label": "stage right lip",
+          "roughness": 0.7
+        },
+        "transform": {
+          "position": [
+            7.05,
+            0.04,
+            0
+          ],
+          "rotation": null,
+          "scale": [
+            0.12,
+            0.08,
+            10.2
+          ]
+        },
+        "physics": {
+          "collidable": true,
+          "kinematic": true,
+          "massKg": null
+        }
+      },
+      {
+        "id": "HumanoidTorso",
+        "type": "object",
+        "name": "HumanoidTorso",
+        "template": "AvatarPart",
+        "parentId": null,
+        "path": [
+          "HumanoidTorso"
+        ],
+        "groupPath": [],
+        "traits": [
+          "animated",
+          "collidable"
+        ],
+        "properties": {
+          "geometry": "capsule",
+          "color": "#7aa2f7",
+          "material": {
+            "color": "#7aa2f7",
+            "roughness": 0.5,
+            "metallic": 0.1,
+            "normalMap": "woven-suit-normal",
+            "detailMap": "joint-panel-detail",
+            "wear": "elbow-and-shoulder-edge-wear",
+            "emissive": "#2a3f6b",
+            "emissiveIntensity": 0.35
+          },
+          "position": [
+            -3,
+            1.35,
+            0
+          ],
+          "scale": [
+            0.38,
+            0.95,
+            0.32
+          ],
+          "label": "humanoid torso",
+          "roughness": 0.5
+        },
+        "transform": {
+          "position": [
+            -3,
+            1.35,
+            0
+          ],
+          "rotation": null,
+          "scale": [
+            0.38,
+            0.95,
+            0.32
+          ]
+        },
+        "physics": {
+          "collidable": true,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "HumanoidHead",
+        "type": "object",
+        "name": "HumanoidHead",
+        "template": null,
+        "parentId": null,
+        "path": [
+          "HumanoidHead"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "geometry": "sphere",
+          "position": [
+            -3,
+            2.15,
+            0
+          ],
+          "scale": [
+            0.28,
+            0.28,
+            0.28
+          ],
+          "color": "#c0caf5",
+          "material": {
+            "color": "#c0caf5",
+            "roughness": 0.35,
+            "metallic": 0.05,
+            "emissive": "#2a3f6b",
+            "emissiveIntensity": 0.2
+          },
+          "label": "head gaze toward rock",
+          "roughness": 0.35
+        },
+        "transform": {
+          "position": [
+            -3,
+            2.15,
+            0
+          ],
+          "rotation": null,
+          "scale": [
+            0.28,
+            0.28,
+            0.28
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "LeftHand",
+        "type": "object",
+        "name": "LeftHand",
+        "template": "HandProxy",
+        "parentId": null,
+        "path": [
+          "LeftHand"
+        ],
+        "groupPath": [],
+        "traits": [
+          "collidable",
+          "grabbable"
+        ],
+        "properties": {
+          "geometry": "sphere",
+          "color": "#9ece6a",
+          "material": {
+            "color": "#9ece6a",
+            "roughness": 0.4,
+            "metallic": 0.05,
+            "emissive": "#2a4a1a",
+            "emissiveIntensity": 0.25
+          },
+          "position": [
+            -3.45,
+            1.25,
+            0.18
+          ],
+          "scale": [
+            0.12,
+            0.12,
+            0.12
+          ],
+          "label": "left hand",
+          "roughness": 0.4
+        },
+        "transform": {
+          "position": [
+            -3.45,
+            1.25,
+            0.18
+          ],
+          "rotation": null,
+          "scale": [
+            0.12,
+            0.12,
+            0.12
+          ]
+        },
+        "physics": {
+          "collidable": true,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "RightHand",
+        "type": "object",
+        "name": "RightHand",
+        "template": "HandProxy",
+        "parentId": null,
+        "path": [
+          "RightHand"
+        ],
+        "groupPath": [],
+        "traits": [
+          "collidable",
+          "grabbable"
+        ],
+        "properties": {
+          "geometry": "sphere",
+          "color": "#9ece6a",
+          "material": {
+            "color": "#9ece6a",
+            "roughness": 0.4,
+            "metallic": 0.05,
+            "emissive": "#2a4a1a",
+            "emissiveIntensity": 0.25
+          },
+          "position": [
+            -2.55,
+            1.25,
+            0.18
+          ],
+          "scale": [
+            0.12,
+            0.12,
+            0.12
+          ],
+          "label": "right hand reaches rock",
+          "roughness": 0.4
+        },
+        "transform": {
+          "position": [
+            -2.55,
+            1.25,
+            0.18
+          ],
+          "rotation": null,
+          "scale": [
+            0.12,
+            0.12,
+            0.12
+          ]
+        },
+        "physics": {
+          "collidable": true,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "LeftLeg",
+        "type": "object",
+        "name": "LeftLeg",
+        "template": "LegProxy",
+        "parentId": null,
+        "path": [
+          "LeftLeg"
+        ],
+        "groupPath": [],
+        "traits": [
+          "animated",
+          "collidable"
+        ],
+        "properties": {
+          "geometry": "capsule",
+          "color": "#5c7aea",
+          "material": {
+            "color": "#5c7aea",
+            "roughness": 0.55,
+            "metallic": 0.1,
+            "emissive": "#1a2654",
+            "emissiveIntensity": 0.3
+          },
+          "position": [
+            -3.2,
+            0.55,
+            0
+          ],
+          "scale": [
+            0.14,
+            0.55,
+            0.14
+          ],
+          "label": "left leg",
+          "roughness": 0.55
+        },
+        "transform": {
+          "position": [
+            -3.2,
+            0.55,
+            0
+          ],
+          "rotation": null,
+          "scale": [
+            0.14,
+            0.55,
+            0.14
+          ]
+        },
+        "physics": {
+          "collidable": true,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "RightLeg",
+        "type": "object",
+        "name": "RightLeg",
+        "template": "LegProxy",
+        "parentId": null,
+        "path": [
+          "RightLeg"
+        ],
+        "groupPath": [],
+        "traits": [
+          "animated",
+          "collidable"
+        ],
+        "properties": {
+          "geometry": "capsule",
+          "color": "#5c7aea",
+          "material": {
+            "color": "#5c7aea",
+            "roughness": 0.55,
+            "metallic": 0.1,
+            "emissive": "#1a2654",
+            "emissiveIntensity": 0.3
+          },
+          "position": [
+            -2.8,
+            0.55,
+            0
+          ],
+          "scale": [
+            0.14,
+            0.55,
+            0.14
+          ],
+          "label": "right leg",
+          "roughness": 0.55
+        },
+        "transform": {
+          "position": [
+            -2.8,
+            0.55,
+            0
+          ],
+          "rotation": null,
+          "scale": [
+            0.14,
+            0.55,
+            0.14
+          ]
+        },
+        "physics": {
+          "collidable": true,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "Rock",
+        "type": "object",
+        "name": "Rock",
+        "template": "ThrowRock",
+        "parentId": null,
+        "path": [
+          "Rock"
+        ],
+        "groupPath": [],
+        "traits": [
+          "collidable",
+          "grabbable",
+          "physics",
+          "throwable"
+        ],
+        "properties": {
+          "geometry": "dodecahedron",
+          "color": "#7c6f64",
+          "material": {
+            "color": "#7c6f64",
+            "roughness": 0.92,
+            "metallic": 0,
+            "normalMap": "granite-chip-normal",
+            "displacementMap": "uneven-rock-displacement",
+            "aoMap": "rock-crevice-ambient-occlusion",
+            "detailMap": "sharp-facet-detail"
+          },
+          "position": [
+            -1.2,
+            0.35,
+            0
+          ],
+          "scale": [
+            0.28,
+            0.22,
+            0.25
+          ],
+          "label": "throw rock",
+          "roughness": 0.92
+        },
+        "transform": {
+          "position": [
+            -1.2,
+            0.35,
+            0
+          ],
+          "rotation": null,
+          "scale": [
+            0.28,
+            0.22,
+            0.25
+          ]
+        },
+        "physics": {
+          "collidable": true,
+          "kinematic": false,
+          "massKg": 1.8
+        }
+      },
+      {
+        "id": "Target",
+        "type": "object",
+        "name": "Target",
+        "template": "ImpactTarget",
+        "parentId": null,
+        "path": [
+          "Target"
+        ],
+        "groupPath": [],
+        "traits": [
+          "collidable",
+          "physics"
+        ],
+        "properties": {
+          "geometry": "cylinder",
+          "color": "#f7768e",
+          "material": {
+            "color": "#1e1e2e",
+            "roughness": 0.6,
+            "metallic": 0.2,
+            "normalMap": "painted-steel-normal",
+            "scratch": "impact-face-scratches",
+            "decal": "bullseye-registration-decals",
+            "emissive": "#f7768e",
+            "emissiveIntensity": 0.55
+          },
+          "position": [
+            3.5,
+            1,
+            0
+          ],
+          "scale": [
+            0.9,
+            1.8,
+            0.25
+          ],
+          "label": "impact target",
+          "roughness": 0.6
+        },
+        "transform": {
+          "position": [
+            3.5,
+            1,
+            0
+          ],
+          "rotation": null,
+          "scale": [
+            0.9,
+            1.8,
+            0.25
+          ]
+        },
+        "physics": {
+          "collidable": true,
+          "kinematic": false,
+          "massKg": 20
+        }
+      },
+      {
+        "id": "TargetBullseye",
+        "type": "object",
+        "name": "TargetBullseye",
+        "template": "TargetRing",
+        "parentId": null,
+        "path": [
+          "TargetBullseye"
+        ],
+        "groupPath": [],
+        "traits": [
+          "billboard"
+        ],
+        "properties": {
+          "geometry": "ring",
+          "color": "#f7768e",
+          "material": {
+            "color": "#f7768e",
+            "emissive": "#f7768e",
+            "emissiveIntensity": 0.8,
+            "transparent": true,
+            "opacity": 0.85,
+            "side": "double"
+          },
+          "position": [
+            3.5,
+            1,
+            0.14
+          ],
+          "scale": [
+            0.72,
+            0.72,
+            0.72
+          ],
+          "label": "target bullseye",
+          "opacity": 0.85,
+          "transparent": true
+        },
+        "transform": {
+          "position": [
+            3.5,
+            1,
+            0.14
+          ],
+          "rotation": null,
+          "scale": [
+            0.72,
+            0.72,
+            0.72
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "TargetOuterRing",
+        "type": "object",
+        "name": "TargetOuterRing",
+        "template": "TargetRing",
+        "parentId": null,
+        "path": [
+          "TargetOuterRing"
+        ],
+        "groupPath": [],
+        "traits": [
+          "billboard"
+        ],
+        "properties": {
+          "geometry": "ring",
+          "color": "#f7768e",
+          "material": {
+            "color": "#f7768e",
+            "emissive": "#f7768e",
+            "emissiveIntensity": 0.4,
+            "transparent": true,
+            "opacity": 0.55,
+            "side": "double"
+          },
+          "position": [
+            3.5,
+            1,
+            0.14
+          ],
+          "scale": [
+            1.05,
+            1.05,
+            1.05
+          ],
+          "label": "target outer ring",
+          "opacity": 0.55,
+          "transparent": true
+        },
+        "transform": {
+          "position": [
+            3.5,
+            1,
+            0.14
+          ],
+          "rotation": null,
+          "scale": [
+            1.05,
+            1.05,
+            1.05
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "TrajectoryArcPreview",
+        "type": "object",
+        "name": "TrajectoryArcPreview",
+        "template": null,
+        "parentId": null,
+        "path": [
+          "TrajectoryArcPreview"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "geometry": "cylinder",
+          "position": [
+            1.1,
+            1.65,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            62
+          ],
+          "scale": [
+            0.025,
+            3.6,
+            0.025
+          ],
+          "color": "#e0af68",
+          "material": {
+            "color": "#e0af68",
+            "emissive": "#e0af68",
+            "emissiveIntensity": 0.35,
+            "transparent": true,
+            "opacity": 0.75
+          },
+          "label": "ballistic arc preview",
+          "opacity": 0.75,
+          "transparent": true
+        },
+        "transform": {
+          "position": [
+            1.1,
+            1.65,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            62
+          ],
+          "scale": [
+            0.025,
+            3.6,
+            0.025
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "CaptureRail",
+        "type": "object",
+        "name": "CaptureRail",
+        "template": null,
+        "parentId": null,
+        "path": [
+          "CaptureRail"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "geometry": "cube",
+          "position": [
+            0,
+            0.05,
+            -3.2
+          ],
+          "scale": [
+            7,
+            0.04,
+            0.04
+          ],
+          "color": "#565f89",
+          "material": {
+            "color": "#565f89",
+            "emissive": "#414868",
+            "emissiveIntensity": 0.25
+          },
+          "label": "camera rail"
+        },
+        "transform": {
+          "position": [
+            0,
+            0.05,
+            -3.2
+          ],
+          "rotation": null,
+          "scale": [
+            7,
+            0.04,
+            0.04
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "RockFacetTopA",
+        "type": "object",
+        "name": "RockFacetTopA",
+        "template": "RockFacetMesh",
+        "parentId": null,
+        "path": [
+          "RockFacetTopA"
+        ],
+        "groupPath": [],
+        "traits": [
+          "static"
+        ],
+        "properties": {
+          "geometry": "icosahedron",
+          "color": "#9a8775",
+          "material": {
+            "color": "#8c7b6d",
+            "roughness": 0.96,
+            "metallic": 0,
+            "normalMap": "procedural-granite-normal",
+            "displacementMap": "fractured-facet-displacement",
+            "detailMap": "mineral-sparkle-detail",
+            "aoMap": "deep-crevice-ao"
+          },
+          "position": [
+            -1.22,
+            0.58,
+            0.04
+          ],
+          "rotation": [
+            17,
+            36,
+            8
+          ],
+          "scale": [
+            0.09,
+            0.05,
+            0.07
+          ],
+          "label": "procedural mesh normal displacement detail on rock crown",
+          "roughness": 0.96
+        },
+        "transform": {
+          "position": [
+            -1.22,
+            0.58,
+            0.04
+          ],
+          "rotation": [
+            17,
+            36,
+            8
+          ],
+          "scale": [
+            0.09,
+            0.05,
+            0.07
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": true,
+          "massKg": null
+        }
+      },
+      {
+        "id": "RockFacetTopB",
+        "type": "object",
+        "name": "RockFacetTopB",
+        "template": "RockFacetMesh",
+        "parentId": null,
+        "path": [
+          "RockFacetTopB"
+        ],
+        "groupPath": [],
+        "traits": [
+          "static"
+        ],
+        "properties": {
+          "geometry": "icosahedron",
+          "color": "#9a8775",
+          "material": {
+            "color": "#8c7b6d",
+            "roughness": 0.96,
+            "metallic": 0,
+            "normalMap": "procedural-granite-normal",
+            "displacementMap": "fractured-facet-displacement",
+            "detailMap": "mineral-sparkle-detail",
+            "aoMap": "deep-crevice-ao"
+          },
+          "position": [
+            -1.11,
+            0.48,
+            -0.08
+          ],
+          "rotation": [
+            -11,
+            68,
+            19
+          ],
+          "scale": [
+            0.07,
+            0.04,
+            0.06
+          ],
+          "label": "procedural mesh chipped highlight facet",
+          "roughness": 0.96
+        },
+        "transform": {
+          "position": [
+            -1.11,
+            0.48,
+            -0.08
+          ],
+          "rotation": [
+            -11,
+            68,
+            19
+          ],
+          "scale": [
+            0.07,
+            0.04,
+            0.06
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": true,
+          "massKg": null
+        }
+      },
+      {
+        "id": "RockFacetFrontA",
+        "type": "object",
+        "name": "RockFacetFrontA",
+        "template": "RockFacetMesh",
+        "parentId": null,
+        "path": [
+          "RockFacetFrontA"
+        ],
+        "groupPath": [],
+        "traits": [
+          "static"
+        ],
+        "properties": {
+          "geometry": "icosahedron",
+          "color": "#9a8775",
+          "material": {
+            "color": "#8c7b6d",
+            "roughness": 0.96,
+            "metallic": 0,
+            "normalMap": "procedural-granite-normal",
+            "displacementMap": "fractured-facet-displacement",
+            "detailMap": "mineral-sparkle-detail",
+            "aoMap": "deep-crevice-ao"
+          },
+          "position": [
+            -1.03,
+            0.35,
+            0.13
+          ],
+          "rotation": [
+            23,
+            10,
+            -15
+          ],
+          "scale": [
+            0.08,
+            0.04,
+            0.05
+          ],
+          "label": "granite scan-like face detail",
+          "roughness": 0.96
+        },
+        "transform": {
+          "position": [
+            -1.03,
+            0.35,
+            0.13
+          ],
+          "rotation": [
+            23,
+            10,
+            -15
+          ],
+          "scale": [
+            0.08,
+            0.04,
+            0.05
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": true,
+          "massKg": null
+        }
+      },
+      {
+        "id": "RockFacetFrontB",
+        "type": "object",
+        "name": "RockFacetFrontB",
+        "template": "RockFacetMesh",
+        "parentId": null,
+        "path": [
+          "RockFacetFrontB"
+        ],
+        "groupPath": [],
+        "traits": [
+          "static"
+        ],
+        "properties": {
+          "geometry": "icosahedron",
+          "color": "#9a8775",
+          "material": {
+            "color": "#8c7b6d",
+            "roughness": 0.96,
+            "metallic": 0,
+            "normalMap": "procedural-granite-normal",
+            "displacementMap": "fractured-facet-displacement",
+            "detailMap": "mineral-sparkle-detail",
+            "aoMap": "deep-crevice-ao"
+          },
+          "position": [
+            -1.33,
+            0.35,
+            0.12
+          ],
+          "rotation": [
+            -31,
+            25,
+            34
+          ],
+          "scale": [
+            0.06,
+            0.05,
+            0.05
+          ],
+          "label": "fractured mesh surface detail",
+          "roughness": 0.96
+        },
+        "transform": {
+          "position": [
+            -1.33,
+            0.35,
+            0.12
+          ],
+          "rotation": [
+            -31,
+            25,
+            34
+          ],
+          "scale": [
+            0.06,
+            0.05,
+            0.05
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": true,
+          "massKg": null
+        }
+      },
+      {
+        "id": "RockFacetSideA",
+        "type": "object",
+        "name": "RockFacetSideA",
+        "template": "RockFacetMesh",
+        "parentId": null,
+        "path": [
+          "RockFacetSideA"
+        ],
+        "groupPath": [],
+        "traits": [
+          "static"
+        ],
+        "properties": {
+          "geometry": "icosahedron",
+          "color": "#9a8775",
+          "material": {
+            "color": "#8c7b6d",
+            "roughness": 0.96,
+            "metallic": 0,
+            "normalMap": "procedural-granite-normal",
+            "displacementMap": "fractured-facet-displacement",
+            "detailMap": "mineral-sparkle-detail",
+            "aoMap": "deep-crevice-ao"
+          },
+          "position": [
+            -1.37,
+            0.42,
+            -0.04
+          ],
+          "rotation": [
+            9,
+            -44,
+            21
+          ],
+          "scale": [
+            0.06,
+            0.05,
+            0.07
+          ],
+          "label": "normal mapped mineral chip",
+          "roughness": 0.96
+        },
+        "transform": {
+          "position": [
+            -1.37,
+            0.42,
+            -0.04
+          ],
+          "rotation": [
+            9,
+            -44,
+            21
+          ],
+          "scale": [
+            0.06,
+            0.05,
+            0.07
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": true,
+          "massKg": null
+        }
+      },
+      {
+        "id": "RockFacetSideB",
+        "type": "object",
+        "name": "RockFacetSideB",
+        "template": "RockFacetMesh",
+        "parentId": null,
+        "path": [
+          "RockFacetSideB"
+        ],
+        "groupPath": [],
+        "traits": [
+          "static"
+        ],
+        "properties": {
+          "geometry": "icosahedron",
+          "color": "#9a8775",
+          "material": {
+            "color": "#8c7b6d",
+            "roughness": 0.96,
+            "metallic": 0,
+            "normalMap": "procedural-granite-normal",
+            "displacementMap": "fractured-facet-displacement",
+            "detailMap": "mineral-sparkle-detail",
+            "aoMap": "deep-crevice-ao"
+          },
+          "position": [
+            -1.04,
+            0.42,
+            -0.05
+          ],
+          "rotation": [
+            4,
+            42,
+            -27
+          ],
+          "scale": [
+            0.06,
+            0.05,
+            0.07
+          ],
+          "label": "displacement mapped mineral chip",
+          "roughness": 0.96
+        },
+        "transform": {
+          "position": [
+            -1.04,
+            0.42,
+            -0.05
+          ],
+          "rotation": [
+            4,
+            42,
+            -27
+          ],
+          "scale": [
+            0.06,
+            0.05,
+            0.07
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": true,
+          "massKg": null
+        }
+      },
+      {
+        "id": "RockFacetLowA",
+        "type": "object",
+        "name": "RockFacetLowA",
+        "template": "RockFacetMesh",
+        "parentId": null,
+        "path": [
+          "RockFacetLowA"
+        ],
+        "groupPath": [],
+        "traits": [
+          "static"
+        ],
+        "properties": {
+          "geometry": "icosahedron",
+          "color": "#9a8775",
+          "material": {
+            "color": "#8c7b6d",
+            "roughness": 0.96,
+            "metallic": 0,
+            "normalMap": "procedural-granite-normal",
+            "displacementMap": "fractured-facet-displacement",
+            "detailMap": "mineral-sparkle-detail",
+            "aoMap": "deep-crevice-ao"
+          },
+          "position": [
+            -1.25,
+            0.25,
+            0.02
+          ],
+          "rotation": [
+            35,
+            18,
+            42
+          ],
+          "scale": [
+            0.08,
+            0.04,
+            0.05
+          ],
+          "label": "shadowed crevice ao detail",
+          "roughness": 0.96
+        },
+        "transform": {
+          "position": [
+            -1.25,
+            0.25,
+            0.02
+          ],
+          "rotation": [
+            35,
+            18,
+            42
+          ],
+          "scale": [
+            0.08,
+            0.04,
+            0.05
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": true,
+          "massKg": null
+        }
+      },
+      {
+        "id": "RockFacetLowB",
+        "type": "object",
+        "name": "RockFacetLowB",
+        "template": "RockFacetMesh",
+        "parentId": null,
+        "path": [
+          "RockFacetLowB"
+        ],
+        "groupPath": [],
+        "traits": [
+          "static"
+        ],
+        "properties": {
+          "geometry": "icosahedron",
+          "color": "#9a8775",
+          "material": {
+            "color": "#8c7b6d",
+            "roughness": 0.96,
+            "metallic": 0,
+            "normalMap": "procedural-granite-normal",
+            "displacementMap": "fractured-facet-displacement",
+            "detailMap": "mineral-sparkle-detail",
+            "aoMap": "deep-crevice-ao"
+          },
+          "position": [
+            -1.15,
+            0.26,
+            -0.12
+          ],
+          "rotation": [
+            -28,
+            -22,
+            19
+          ],
+          "scale": [
+            0.07,
+            0.04,
+            0.06
+          ],
+          "label": "irregular scan facet",
+          "roughness": 0.96
+        },
+        "transform": {
+          "position": [
+            -1.15,
+            0.26,
+            -0.12
+          ],
+          "rotation": [
+            -28,
+            -22,
+            19
+          ],
+          "scale": [
+            0.07,
+            0.04,
+            0.06
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": true,
+          "massKg": null
+        }
+      },
+      {
+        "id": "RockFacetChipA",
+        "type": "object",
+        "name": "RockFacetChipA",
+        "template": "RockFacetMesh",
+        "parentId": null,
+        "path": [
+          "RockFacetChipA"
+        ],
+        "groupPath": [],
+        "traits": [
+          "static"
+        ],
+        "properties": {
+          "geometry": "icosahedron",
+          "color": "#9a8775",
+          "material": {
+            "color": "#8c7b6d",
+            "roughness": 0.96,
+            "metallic": 0,
+            "normalMap": "procedural-granite-normal",
+            "displacementMap": "fractured-facet-displacement",
+            "detailMap": "mineral-sparkle-detail",
+            "aoMap": "deep-crevice-ao"
+          },
+          "position": [
+            -1.45,
+            0.18,
+            0.24
+          ],
+          "rotation": [
+            12,
+            74,
+            0
+          ],
+          "scale": [
+            0.035,
+            0.025,
+            0.03
+          ],
+          "label": "loose rock chip foreground prop",
+          "roughness": 0.96
+        },
+        "transform": {
+          "position": [
+            -1.45,
+            0.18,
+            0.24
+          ],
+          "rotation": [
+            12,
+            74,
+            0
+          ],
+          "scale": [
+            0.035,
+            0.025,
+            0.03
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": true,
+          "massKg": null
+        }
+      },
+      {
+        "id": "RockFacetChipB",
+        "type": "object",
+        "name": "RockFacetChipB",
+        "template": "RockFacetMesh",
+        "parentId": null,
+        "path": [
+          "RockFacetChipB"
+        ],
+        "groupPath": [],
+        "traits": [
+          "static"
+        ],
+        "properties": {
+          "geometry": "icosahedron",
+          "color": "#9a8775",
+          "material": {
+            "color": "#8c7b6d",
+            "roughness": 0.96,
+            "metallic": 0,
+            "normalMap": "procedural-granite-normal",
+            "displacementMap": "fractured-facet-displacement",
+            "detailMap": "mineral-sparkle-detail",
+            "aoMap": "deep-crevice-ao"
+          },
+          "position": [
+            -0.93,
+            0.17,
+            -0.22
+          ],
+          "rotation": [
+            -10,
+            -51,
+            17
+          ],
+          "scale": [
+            0.032,
+            0.022,
+            0.03
+          ],
+          "label": "loose rock chip midground prop",
+          "roughness": 0.96
+        },
+        "transform": {
+          "position": [
+            -0.93,
+            0.17,
+            -0.22
+          ],
+          "rotation": [
+            -10,
+            -51,
+            17
+          ],
+          "scale": [
+            0.032,
+            0.022,
+            0.03
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": true,
+          "massKg": null
+        }
+      },
+      {
+        "id": "ApproachHeelScuff",
+        "type": "object",
+        "name": "ApproachHeelScuff",
+        "template": "ScuffDecalMesh",
+        "parentId": null,
+        "path": [
+          "ApproachHeelScuff"
+        ],
+        "groupPath": [],
+        "traits": [
+          "static"
+        ],
+        "properties": {
+          "geometry": "torus",
+          "color": "#4c5568",
+          "material": {
+            "color": "#4c5568",
+            "roughness": 0.88,
+            "metallic": 0.02,
+            "decal": "floor-contact-scuff-decal",
+            "scratch": "drag-scratch-lines",
+            "contact_shadow": true,
+            "transparent": true,
+            "opacity": 0.62
+          },
+          "position": [
+            -3.35,
+            0.075,
+            0.44
+          ],
+          "rotation": [
+            90,
+            0,
+            8
+          ],
+          "scale": [
+            0.34,
+            0.024,
+            0.18
+          ],
+          "label": "floor decal wear dust heel scuff foreground",
+          "roughness": 0.88,
+          "opacity": 0.62,
+          "transparent": true
+        },
+        "transform": {
+          "position": [
+            -3.35,
+            0.075,
+            0.44
+          ],
+          "rotation": [
+            90,
+            0,
+            8
+          ],
+          "scale": [
+            0.34,
+            0.024,
+            0.18
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": true,
+          "massKg": null
+        }
+      },
+      {
+        "id": "ApproachToeScuff",
+        "type": "object",
+        "name": "ApproachToeScuff",
+        "template": "ScuffDecalMesh",
+        "parentId": null,
+        "path": [
+          "ApproachToeScuff"
+        ],
+        "groupPath": [],
+        "traits": [
+          "static"
+        ],
+        "properties": {
+          "geometry": "torus",
+          "color": "#4c5568",
+          "material": {
+            "color": "#4c5568",
+            "roughness": 0.88,
+            "metallic": 0.02,
+            "decal": "floor-contact-scuff-decal",
+            "scratch": "drag-scratch-lines",
+            "contact_shadow": true,
+            "transparent": true,
+            "opacity": 0.62
+          },
+          "position": [
+            -2.7,
+            0.075,
+            0.36
+          ],
+          "rotation": [
+            90,
+            0,
+            -15
+          ],
+          "scale": [
+            0.28,
+            0.022,
+            0.14
+          ],
+          "label": "floor decal wear toe scuff midground",
+          "roughness": 0.88,
+          "opacity": 0.62,
+          "transparent": true
+        },
+        "transform": {
+          "position": [
+            -2.7,
+            0.075,
+            0.36
+          ],
+          "rotation": [
+            90,
+            0,
+            -15
+          ],
+          "scale": [
+            0.28,
+            0.022,
+            0.14
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": true,
+          "massKg": null
+        }
+      },
+      {
+        "id": "RockContactRing",
+        "type": "object",
+        "name": "RockContactRing",
+        "template": "ScuffDecalMesh",
+        "parentId": null,
+        "path": [
+          "RockContactRing"
+        ],
+        "groupPath": [],
+        "traits": [
+          "static"
+        ],
+        "properties": {
+          "geometry": "torus",
+          "color": "#4c5568",
+          "material": {
+            "color": "#4c5568",
+            "roughness": 0.88,
+            "metallic": 0.02,
+            "decal": "floor-contact-scuff-decal",
+            "scratch": "drag-scratch-lines",
+            "contact_shadow": true,
+            "transparent": true,
+            "opacity": 0.62
+          },
+          "position": [
+            -1.2,
+            0.08,
+            0
+          ],
+          "rotation": [
+            90,
+            0,
+            0
+          ],
+          "scale": [
+            0.46,
+            0.028,
+            0.32
+          ],
+          "label": "contact shadow decal around resting rock",
+          "roughness": 0.88,
+          "opacity": 0.62,
+          "transparent": true
+        },
+        "transform": {
+          "position": [
+            -1.2,
+            0.08,
+            0
+          ],
+          "rotation": [
+            90,
+            0,
+            0
+          ],
+          "scale": [
+            0.46,
+            0.028,
+            0.32
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": true,
+          "massKg": null
+        }
+      },
+      {
+        "id": "ThrowArcDustA",
+        "type": "object",
+        "name": "ThrowArcDustA",
+        "template": "DustSplatMesh",
+        "parentId": null,
+        "path": [
+          "ThrowArcDustA"
+        ],
+        "groupPath": [],
+        "traits": [
+          "static"
+        ],
+        "properties": {
+          "geometry": "icosahedron",
+          "color": "#b4a18b",
+          "material": {
+            "color": "#b4a18b",
+            "roughness": 1,
+            "metallic": 0,
+            "dust": "settled-throw-dust",
+            "detailMap": "powder-grain-detail",
+            "transparent": true,
+            "opacity": 0.44
+          },
+          "position": [
+            -0.45,
+            0.15,
+            0.18
+          ],
+          "rotation": [
+            0,
+            12,
+            0
+          ],
+          "scale": [
+            0.055,
+            0.018,
+            0.04
+          ],
+          "label": "dust prop scatter below lift path",
+          "roughness": 1,
+          "opacity": 0.44,
+          "transparent": true
+        },
+        "transform": {
+          "position": [
+            -0.45,
+            0.15,
+            0.18
+          ],
+          "rotation": [
+            0,
+            12,
+            0
+          ],
+          "scale": [
+            0.055,
+            0.018,
+            0.04
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": true,
+          "massKg": null
+        }
+      },
+      {
+        "id": "ThrowArcDustB",
+        "type": "object",
+        "name": "ThrowArcDustB",
+        "template": "DustSplatMesh",
+        "parentId": null,
+        "path": [
+          "ThrowArcDustB"
+        ],
+        "groupPath": [],
+        "traits": [
+          "static"
+        ],
+        "properties": {
+          "geometry": "icosahedron",
+          "color": "#b4a18b",
+          "material": {
+            "color": "#b4a18b",
+            "roughness": 1,
+            "metallic": 0,
+            "dust": "settled-throw-dust",
+            "detailMap": "powder-grain-detail",
+            "transparent": true,
+            "opacity": 0.44
+          },
+          "position": [
+            0.25,
+            0.18,
+            -0.1
+          ],
+          "rotation": [
+            0,
+            -28,
+            0
+          ],
+          "scale": [
+            0.045,
+            0.015,
+            0.035
+          ],
+          "label": "dust prop scatter under ballistic arc",
+          "roughness": 1,
+          "opacity": 0.44,
+          "transparent": true
+        },
+        "transform": {
+          "position": [
+            0.25,
+            0.18,
+            -0.1
+          ],
+          "rotation": [
+            0,
+            -28,
+            0
+          ],
+          "scale": [
+            0.045,
+            0.015,
+            0.035
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": true,
+          "massKg": null
+        }
+      },
+      {
+        "id": "ThrowArcDustC",
+        "type": "object",
+        "name": "ThrowArcDustC",
+        "template": "DustSplatMesh",
+        "parentId": null,
+        "path": [
+          "ThrowArcDustC"
+        ],
+        "groupPath": [],
+        "traits": [
+          "static"
+        ],
+        "properties": {
+          "geometry": "icosahedron",
+          "color": "#b4a18b",
+          "material": {
+            "color": "#b4a18b",
+            "roughness": 1,
+            "metallic": 0,
+            "dust": "settled-throw-dust",
+            "detailMap": "powder-grain-detail",
+            "transparent": true,
+            "opacity": 0.44
+          },
+          "position": [
+            0.95,
+            0.22,
+            0.08
+          ],
+          "rotation": [
+            0,
+            48,
+            0
+          ],
+          "scale": [
+            0.05,
+            0.018,
+            0.038
+          ],
+          "label": "powder grain detail along release path",
+          "roughness": 1,
+          "opacity": 0.44,
+          "transparent": true
+        },
+        "transform": {
+          "position": [
+            0.95,
+            0.22,
+            0.08
+          ],
+          "rotation": [
+            0,
+            48,
+            0
+          ],
+          "scale": [
+            0.05,
+            0.018,
+            0.038
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": true,
+          "massKg": null
+        }
+      },
+      {
+        "id": "ImpactScuffA",
+        "type": "object",
+        "name": "ImpactScuffA",
+        "template": "ScuffDecalMesh",
+        "parentId": null,
+        "path": [
+          "ImpactScuffA"
+        ],
+        "groupPath": [],
+        "traits": [
+          "static"
+        ],
+        "properties": {
+          "geometry": "torus",
+          "color": "#4c5568",
+          "material": {
+            "color": "#4c5568",
+            "roughness": 0.88,
+            "metallic": 0.02,
+            "decal": "floor-contact-scuff-decal",
+            "scratch": "drag-scratch-lines",
+            "contact_shadow": true,
+            "transparent": true,
+            "opacity": 0.62
+          },
+          "position": [
+            3.18,
+            0.09,
+            0.36
+          ],
+          "rotation": [
+            90,
+            0,
+            24
+          ],
+          "scale": [
+            0.42,
+            0.026,
+            0.18
+          ],
+          "label": "impact decal scratch mark foreground",
+          "roughness": 0.88,
+          "opacity": 0.62,
+          "transparent": true
+        },
+        "transform": {
+          "position": [
+            3.18,
+            0.09,
+            0.36
+          ],
+          "rotation": [
+            90,
+            0,
+            24
+          ],
+          "scale": [
+            0.42,
+            0.026,
+            0.18
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": true,
+          "massKg": null
+        }
+      },
+      {
+        "id": "ImpactScuffB",
+        "type": "object",
+        "name": "ImpactScuffB",
+        "template": "ScuffDecalMesh",
+        "parentId": null,
+        "path": [
+          "ImpactScuffB"
+        ],
+        "groupPath": [],
+        "traits": [
+          "static"
+        ],
+        "properties": {
+          "geometry": "torus",
+          "color": "#4c5568",
+          "material": {
+            "color": "#4c5568",
+            "roughness": 0.88,
+            "metallic": 0.02,
+            "decal": "floor-contact-scuff-decal",
+            "scratch": "drag-scratch-lines",
+            "contact_shadow": true,
+            "transparent": true,
+            "opacity": 0.62
+          },
+          "position": [
+            3.76,
+            0.09,
+            -0.24
+          ],
+          "rotation": [
+            90,
+            0,
+            -33
+          ],
+          "scale": [
+            0.36,
+            0.024,
+            0.16
+          ],
+          "label": "impact decal dust mark midground",
+          "roughness": 0.88,
+          "opacity": 0.62,
+          "transparent": true
+        },
+        "transform": {
+          "position": [
+            3.76,
+            0.09,
+            -0.24
+          ],
+          "rotation": [
+            90,
+            0,
+            -33
+          ],
+          "scale": [
+            0.36,
+            0.024,
+            0.16
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": true,
+          "massKg": null
+        }
+      },
+      {
+        "id": "ImpactScuffC",
+        "type": "object",
+        "name": "ImpactScuffC",
+        "template": "ScuffDecalMesh",
+        "parentId": null,
+        "path": [
+          "ImpactScuffC"
+        ],
+        "groupPath": [],
+        "traits": [
+          "static"
+        ],
+        "properties": {
+          "geometry": "torus",
+          "color": "#4c5568",
+          "material": {
+            "color": "#4c5568",
+            "roughness": 0.88,
+            "metallic": 0.02,
+            "decal": "floor-contact-scuff-decal",
+            "scratch": "drag-scratch-lines",
+            "contact_shadow": true,
+            "transparent": true,
+            "opacity": 0.62
+          },
+          "position": [
+            4.05,
+            0.09,
+            0.18
+          ],
+          "rotation": [
+            90,
+            0,
+            6
+          ],
+          "scale": [
+            0.3,
+            0.02,
+            0.12
+          ],
+          "label": "target base contact shadow mark",
+          "roughness": 0.88,
+          "opacity": 0.62,
+          "transparent": true
+        },
+        "transform": {
+          "position": [
+            4.05,
+            0.09,
+            0.18
+          ],
+          "rotation": [
+            90,
+            0,
+            6
+          ],
+          "scale": [
+            0.3,
+            0.02,
+            0.12
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": true,
+          "massKg": null
+        }
+      },
+      {
+        "id": "StageForegroundOccluder",
+        "type": "object",
+        "name": "StageForegroundOccluder",
+        "template": "DustSplatMesh",
+        "parentId": null,
+        "path": [
+          "StageForegroundOccluder"
+        ],
+        "groupPath": [],
+        "traits": [
+          "static"
+        ],
+        "properties": {
+          "geometry": "icosahedron",
+          "color": "#b4a18b",
+          "material": {
+            "color": "#b4a18b",
+            "roughness": 1,
+            "metallic": 0,
+            "dust": "settled-throw-dust",
+            "detailMap": "powder-grain-detail",
+            "transparent": true,
+            "opacity": 0.44
+          },
+          "position": [
+            -4.9,
+            0.16,
+            3.55
+          ],
+          "rotation": [
+            0,
+            0,
+            12
+          ],
+          "scale": [
+            0.09,
+            0.03,
+            0.05
+          ],
+          "label": "foreground dust scatter for depth occlusion",
+          "roughness": 1,
+          "opacity": 0.44,
+          "transparent": true
+        },
+        "transform": {
+          "position": [
+            -4.9,
+            0.16,
+            3.55
+          ],
+          "rotation": [
+            0,
+            0,
+            12
+          ],
+          "scale": [
+            0.09,
+            0.03,
+            0.05
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": true,
+          "massKg": null
+        }
+      },
+      {
+        "id": "StageBackgroundDressing",
+        "type": "object",
+        "name": "StageBackgroundDressing",
+        "template": "DustSplatMesh",
+        "parentId": null,
+        "path": [
+          "StageBackgroundDressing"
+        ],
+        "groupPath": [],
+        "traits": [
+          "static"
+        ],
+        "properties": {
+          "geometry": "icosahedron",
+          "color": "#b4a18b",
+          "material": {
+            "color": "#b4a18b",
+            "roughness": 1,
+            "metallic": 0,
+            "dust": "settled-throw-dust",
+            "detailMap": "powder-grain-detail",
+            "transparent": true,
+            "opacity": 0.44
+          },
+          "position": [
+            4.8,
+            0.14,
+            -3.6
+          ],
+          "rotation": [
+            0,
+            34,
+            0
+          ],
+          "scale": [
+            0.08,
+            0.026,
+            0.05
+          ],
+          "label": "background dust scatter environmental dressing",
+          "roughness": 1,
+          "opacity": 0.44,
+          "transparent": true
+        },
+        "transform": {
+          "position": [
+            4.8,
+            0.14,
+            -3.6
+          ],
+          "rotation": [
+            0,
+            34,
+            0
+          ],
+          "scale": [
+            0.08,
+            0.026,
+            0.05
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": true,
+          "massKg": null
+        }
+      },
+      {
+        "id": "TargetChipA",
+        "type": "object",
+        "name": "TargetChipA",
+        "template": "ImpactDebrisMesh",
+        "parentId": null,
+        "path": [
+          "TargetChipA"
+        ],
+        "groupPath": [],
+        "traits": [
+          "physics"
+        ],
+        "properties": {
+          "geometry": "cone",
+          "color": "#b9a083",
+          "material": {
+            "color": "#b9a083",
+            "roughness": 0.9,
+            "metallic": 0,
+            "normalMap": "fresh-chip-normal",
+            "dust": "impact-dust-coating",
+            "detailMap": "fracture-edge-detail"
+          },
+          "position": [
+            3.18,
+            0.34,
+            0.32
+          ],
+          "rotation": [
+            12,
+            38,
+            4
+          ],
+          "scale": [
+            0.055,
+            0.11,
+            0.055
+          ],
+          "label": "fresh impact debris prop",
+          "roughness": 0.9
+        },
+        "transform": {
+          "position": [
+            3.18,
+            0.34,
+            0.32
+          ],
+          "rotation": [
+            12,
+            38,
+            4
+          ],
+          "scale": [
+            0.055,
+            0.11,
+            0.055
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": 0.05
+        }
+      },
+      {
+        "id": "TargetChipB",
+        "type": "object",
+        "name": "TargetChipB",
+        "template": "ImpactDebrisMesh",
+        "parentId": null,
+        "path": [
+          "TargetChipB"
+        ],
+        "groupPath": [],
+        "traits": [
+          "physics"
+        ],
+        "properties": {
+          "geometry": "cone",
+          "color": "#b9a083",
+          "material": {
+            "color": "#b9a083",
+            "roughness": 0.9,
+            "metallic": 0,
+            "normalMap": "fresh-chip-normal",
+            "dust": "impact-dust-coating",
+            "detailMap": "fracture-edge-detail"
+          },
+          "position": [
+            3.42,
+            0.22,
+            0.5
+          ],
+          "rotation": [
+            -18,
+            -28,
+            15
+          ],
+          "scale": [
+            0.05,
+            0.08,
+            0.05
+          ],
+          "label": "fresh impact debris scatter",
+          "roughness": 0.9
+        },
+        "transform": {
+          "position": [
+            3.42,
+            0.22,
+            0.5
+          ],
+          "rotation": [
+            -18,
+            -28,
+            15
+          ],
+          "scale": [
+            0.05,
+            0.08,
+            0.05
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": 0.05
+        }
+      },
+      {
+        "id": "TargetChipC",
+        "type": "object",
+        "name": "TargetChipC",
+        "template": "ImpactDebrisMesh",
+        "parentId": null,
+        "path": [
+          "TargetChipC"
+        ],
+        "groupPath": [],
+        "traits": [
+          "physics"
+        ],
+        "properties": {
+          "geometry": "cone",
+          "color": "#b9a083",
+          "material": {
+            "color": "#b9a083",
+            "roughness": 0.9,
+            "metallic": 0,
+            "normalMap": "fresh-chip-normal",
+            "dust": "impact-dust-coating",
+            "detailMap": "fracture-edge-detail"
+          },
+          "position": [
+            3.78,
+            0.28,
+            0.35
+          ],
+          "rotation": [
+            26,
+            12,
+            -16
+          ],
+          "scale": [
+            0.046,
+            0.09,
+            0.046
+          ],
+          "label": "fractured target debris",
+          "roughness": 0.9
+        },
+        "transform": {
+          "position": [
+            3.78,
+            0.28,
+            0.35
+          ],
+          "rotation": [
+            26,
+            12,
+            -16
+          ],
+          "scale": [
+            0.046,
+            0.09,
+            0.046
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": 0.05
+        }
+      },
+      {
+        "id": "TargetChipD",
+        "type": "object",
+        "name": "TargetChipD",
+        "template": "ImpactDebrisMesh",
+        "parentId": null,
+        "path": [
+          "TargetChipD"
+        ],
+        "groupPath": [],
+        "traits": [
+          "physics"
+        ],
+        "properties": {
+          "geometry": "cone",
+          "color": "#b9a083",
+          "material": {
+            "color": "#b9a083",
+            "roughness": 0.9,
+            "metallic": 0,
+            "normalMap": "fresh-chip-normal",
+            "dust": "impact-dust-coating",
+            "detailMap": "fracture-edge-detail"
+          },
+          "position": [
+            4.02,
+            0.2,
+            0.06
+          ],
+          "rotation": [
+            -8,
+            54,
+            22
+          ],
+          "scale": [
+            0.04,
+            0.07,
+            0.04
+          ],
+          "label": "impact debris background",
+          "roughness": 0.9
+        },
+        "transform": {
+          "position": [
+            4.02,
+            0.2,
+            0.06
+          ],
+          "rotation": [
+            -8,
+            54,
+            22
+          ],
+          "scale": [
+            0.04,
+            0.07,
+            0.04
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": 0.05
+        }
+      },
+      {
+        "id": "TargetChipE",
+        "type": "object",
+        "name": "TargetChipE",
+        "template": "ImpactDebrisMesh",
+        "parentId": null,
+        "path": [
+          "TargetChipE"
+        ],
+        "groupPath": [],
+        "traits": [
+          "physics"
+        ],
+        "properties": {
+          "geometry": "cone",
+          "color": "#b9a083",
+          "material": {
+            "color": "#b9a083",
+            "roughness": 0.9,
+            "metallic": 0,
+            "normalMap": "fresh-chip-normal",
+            "dust": "impact-dust-coating",
+            "detailMap": "fracture-edge-detail"
+          },
+          "position": [
+            3,
+            0.16,
+            -0.22
+          ],
+          "rotation": [
+            31,
+            -45,
+            8
+          ],
+          "scale": [
+            0.036,
+            0.065,
+            0.036
+          ],
+          "label": "small debris fragment",
+          "roughness": 0.9
+        },
+        "transform": {
+          "position": [
+            3,
+            0.16,
+            -0.22
+          ],
+          "rotation": [
+            31,
+            -45,
+            8
+          ],
+          "scale": [
+            0.036,
+            0.065,
+            0.036
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": 0.05
+        }
+      },
+      {
+        "id": "TargetChipF",
+        "type": "object",
+        "name": "TargetChipF",
+        "template": "ImpactDebrisMesh",
+        "parentId": null,
+        "path": [
+          "TargetChipF"
+        ],
+        "groupPath": [],
+        "traits": [
+          "physics"
+        ],
+        "properties": {
+          "geometry": "cone",
+          "color": "#b9a083",
+          "material": {
+            "color": "#b9a083",
+            "roughness": 0.9,
+            "metallic": 0,
+            "normalMap": "fresh-chip-normal",
+            "dust": "impact-dust-coating",
+            "detailMap": "fracture-edge-detail"
+          },
+          "position": [
+            3.65,
+            0.14,
+            -0.48
+          ],
+          "rotation": [
+            14,
+            18,
+            47
+          ],
+          "scale": [
+            0.033,
+            0.058,
+            0.033
+          ],
+          "label": "small debris fragment",
+          "roughness": 0.9
+        },
+        "transform": {
+          "position": [
+            3.65,
+            0.14,
+            -0.48
+          ],
+          "rotation": [
+            14,
+            18,
+            47
+          ],
+          "scale": [
+            0.033,
+            0.058,
+            0.033
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": 0.05
+        }
+      },
+      {
+        "id": "TargetChipG",
+        "type": "object",
+        "name": "TargetChipG",
+        "template": "ImpactDebrisMesh",
+        "parentId": null,
+        "path": [
+          "TargetChipG"
+        ],
+        "groupPath": [],
+        "traits": [
+          "physics"
+        ],
+        "properties": {
+          "geometry": "cone",
+          "color": "#b9a083",
+          "material": {
+            "color": "#b9a083",
+            "roughness": 0.9,
+            "metallic": 0,
+            "normalMap": "fresh-chip-normal",
+            "dust": "impact-dust-coating",
+            "detailMap": "fracture-edge-detail"
+          },
+          "position": [
+            4.22,
+            0.12,
+            0.42
+          ],
+          "rotation": [
+            -20,
+            61,
+            -11
+          ],
+          "scale": [
+            0.03,
+            0.052,
+            0.03
+          ],
+          "label": "small debris fragment",
+          "roughness": 0.9
+        },
+        "transform": {
+          "position": [
+            4.22,
+            0.12,
+            0.42
+          ],
+          "rotation": [
+            -20,
+            61,
+            -11
+          ],
+          "scale": [
+            0.03,
+            0.052,
+            0.03
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": 0.05
+        }
+      },
+      {
+        "id": "TargetChipH",
+        "type": "object",
+        "name": "TargetChipH",
+        "template": "ImpactDebrisMesh",
+        "parentId": null,
+        "path": [
+          "TargetChipH"
+        ],
+        "groupPath": [],
+        "traits": [
+          "physics"
+        ],
+        "properties": {
+          "geometry": "cone",
+          "color": "#b9a083",
+          "material": {
+            "color": "#b9a083",
+            "roughness": 0.9,
+            "metallic": 0,
+            "normalMap": "fresh-chip-normal",
+            "dust": "impact-dust-coating",
+            "detailMap": "fracture-edge-detail"
+          },
+          "position": [
+            3.28,
+            0.13,
+            -0.58
+          ],
+          "rotation": [
+            7,
+            -72,
+            28
+          ],
+          "scale": [
+            0.032,
+            0.05,
+            0.032
+          ],
+          "label": "small debris fragment",
+          "roughness": 0.9
+        },
+        "transform": {
+          "position": [
+            3.28,
+            0.13,
+            -0.58
+          ],
+          "rotation": [
+            7,
+            -72,
+            28
+          ],
+          "scale": [
+            0.032,
+            0.05,
+            0.032
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": 0.05
+        }
+      },
+      {
+        "id": "TorsoChestPlate",
+        "type": "object",
+        "name": "TorsoChestPlate",
+        "template": "RigSurfaceMesh",
+        "parentId": null,
+        "path": [
+          "TorsoChestPlate"
+        ],
+        "groupPath": [],
+        "traits": [
+          "animated"
+        ],
+        "properties": {
+          "geometry": "torus",
+          "color": "#394b73",
+          "material": {
+            "color": "#394b73",
+            "roughness": 0.48,
+            "metallic": 0.22,
+            "normalMap": "hardsuit-panel-normal",
+            "detailMap": "micro-beveled-rig-detail",
+            "wear": "hand-shoulder-edge-wear"
+          },
+          "position": [
+            -3,
+            1.55,
+            0.22
+          ],
+          "rotation": [
+            90,
+            0,
+            0
+          ],
+          "scale": [
+            0.22,
+            0.035,
+            0.14
+          ],
+          "label": "rigged hardsuit chest plate",
+          "roughness": 0.48
+        },
+        "transform": {
+          "position": [
+            -3,
+            1.55,
+            0.22
+          ],
+          "rotation": [
+            90,
+            0,
+            0
+          ],
+          "scale": [
+            0.22,
+            0.035,
+            0.14
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "RightShoulderJoint",
+        "type": "object",
+        "name": "RightShoulderJoint",
+        "template": "RigSurfaceMesh",
+        "parentId": null,
+        "path": [
+          "RightShoulderJoint"
+        ],
+        "groupPath": [],
+        "traits": [
+          "animated"
+        ],
+        "properties": {
+          "geometry": "torus",
+          "color": "#394b73",
+          "material": {
+            "color": "#394b73",
+            "roughness": 0.48,
+            "metallic": 0.22,
+            "normalMap": "hardsuit-panel-normal",
+            "detailMap": "micro-beveled-rig-detail",
+            "wear": "hand-shoulder-edge-wear"
+          },
+          "position": [
+            -2.66,
+            1.72,
+            0.12
+          ],
+          "rotation": [
+            0,
+            12,
+            82
+          ],
+          "scale": [
+            0.12,
+            0.028,
+            0.12
+          ],
+          "label": "ik shoulder joint rig detail",
+          "roughness": 0.48
+        },
+        "transform": {
+          "position": [
+            -2.66,
+            1.72,
+            0.12
+          ],
+          "rotation": [
+            0,
+            12,
+            82
+          ],
+          "scale": [
+            0.12,
+            0.028,
+            0.12
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "RightElbowJoint",
+        "type": "object",
+        "name": "RightElbowJoint",
+        "template": "RigSurfaceMesh",
+        "parentId": null,
+        "path": [
+          "RightElbowJoint"
+        ],
+        "groupPath": [],
+        "traits": [
+          "animated"
+        ],
+        "properties": {
+          "geometry": "torus",
+          "color": "#394b73",
+          "material": {
+            "color": "#394b73",
+            "roughness": 0.48,
+            "metallic": 0.22,
+            "normalMap": "hardsuit-panel-normal",
+            "detailMap": "micro-beveled-rig-detail",
+            "wear": "hand-shoulder-edge-wear"
+          },
+          "position": [
+            -2.48,
+            1.5,
+            0.16
+          ],
+          "rotation": [
+            0,
+            -22,
+            74
+          ],
+          "scale": [
+            0.1,
+            0.026,
+            0.1
+          ],
+          "label": "ik elbow joint rig detail",
+          "roughness": 0.48
+        },
+        "transform": {
+          "position": [
+            -2.48,
+            1.5,
+            0.16
+          ],
+          "rotation": [
+            0,
+            -22,
+            74
+          ],
+          "scale": [
+            0.1,
+            0.026,
+            0.1
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "RightWristGrip",
+        "type": "object",
+        "name": "RightWristGrip",
+        "template": "GripWearMesh",
+        "parentId": null,
+        "path": [
+          "RightWristGrip"
+        ],
+        "groupPath": [],
+        "traits": [
+          "animated"
+        ],
+        "properties": {
+          "geometry": "icosahedron",
+          "color": "#d7c4a8",
+          "material": {
+            "color": "#d7c4a8",
+            "roughness": 0.72,
+            "metallic": 0.04,
+            "normalMap": "skin-glove-grip-normal",
+            "scratch": "finger-contact-scratches",
+            "detailMap": "palm-pressure-detail"
+          },
+          "position": [
+            -2.45,
+            1.27,
+            0.2
+          ],
+          "rotation": [
+            12,
+            18,
+            0
+          ],
+          "scale": [
+            0.045,
+            0.04,
+            0.045
+          ],
+          "label": "finger grip contact detail",
+          "roughness": 0.72
+        },
+        "transform": {
+          "position": [
+            -2.45,
+            1.27,
+            0.2
+          ],
+          "rotation": [
+            12,
+            18,
+            0
+          ],
+          "scale": [
+            0.045,
+            0.04,
+            0.045
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "LeftShoulderJoint",
+        "type": "object",
+        "name": "LeftShoulderJoint",
+        "template": "RigSurfaceMesh",
+        "parentId": null,
+        "path": [
+          "LeftShoulderJoint"
+        ],
+        "groupPath": [],
+        "traits": [
+          "animated"
+        ],
+        "properties": {
+          "geometry": "torus",
+          "color": "#394b73",
+          "material": {
+            "color": "#394b73",
+            "roughness": 0.48,
+            "metallic": 0.22,
+            "normalMap": "hardsuit-panel-normal",
+            "detailMap": "micro-beveled-rig-detail",
+            "wear": "hand-shoulder-edge-wear"
+          },
+          "position": [
+            -3.34,
+            1.72,
+            0.12
+          ],
+          "rotation": [
+            0,
+            -12,
+            -82
+          ],
+          "scale": [
+            0.12,
+            0.028,
+            0.12
+          ],
+          "label": "skeleton shoulder joint rig detail",
+          "roughness": 0.48
+        },
+        "transform": {
+          "position": [
+            -3.34,
+            1.72,
+            0.12
+          ],
+          "rotation": [
+            0,
+            -12,
+            -82
+          ],
+          "scale": [
+            0.12,
+            0.028,
+            0.12
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "LeftElbowJoint",
+        "type": "object",
+        "name": "LeftElbowJoint",
+        "template": "RigSurfaceMesh",
+        "parentId": null,
+        "path": [
+          "LeftElbowJoint"
+        ],
+        "groupPath": [],
+        "traits": [
+          "animated"
+        ],
+        "properties": {
+          "geometry": "torus",
+          "color": "#394b73",
+          "material": {
+            "color": "#394b73",
+            "roughness": 0.48,
+            "metallic": 0.22,
+            "normalMap": "hardsuit-panel-normal",
+            "detailMap": "micro-beveled-rig-detail",
+            "wear": "hand-shoulder-edge-wear"
+          },
+          "position": [
+            -3.52,
+            1.5,
+            0.16
+          ],
+          "rotation": [
+            0,
+            22,
+            -74
+          ],
+          "scale": [
+            0.1,
+            0.026,
+            0.1
+          ],
+          "label": "skeleton elbow joint rig detail",
+          "roughness": 0.48
+        },
+        "transform": {
+          "position": [
+            -3.52,
+            1.5,
+            0.16
+          ],
+          "rotation": [
+            0,
+            22,
+            -74
+          ],
+          "scale": [
+            0.1,
+            0.026,
+            0.1
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "LeftWristGrip",
+        "type": "object",
+        "name": "LeftWristGrip",
+        "template": "GripWearMesh",
+        "parentId": null,
+        "path": [
+          "LeftWristGrip"
+        ],
+        "groupPath": [],
+        "traits": [
+          "animated"
+        ],
+        "properties": {
+          "geometry": "icosahedron",
+          "color": "#d7c4a8",
+          "material": {
+            "color": "#d7c4a8",
+            "roughness": 0.72,
+            "metallic": 0.04,
+            "normalMap": "skin-glove-grip-normal",
+            "scratch": "finger-contact-scratches",
+            "detailMap": "palm-pressure-detail"
+          },
+          "position": [
+            -3.55,
+            1.27,
+            0.2
+          ],
+          "rotation": [
+            -9,
+            -18,
+            0
+          ],
+          "scale": [
+            0.045,
+            0.04,
+            0.045
+          ],
+          "label": "finger grip contact detail",
+          "roughness": 0.72
+        },
+        "transform": {
+          "position": [
+            -3.55,
+            1.27,
+            0.2
+          ],
+          "rotation": [
+            -9,
+            -18,
+            0
+          ],
+          "scale": [
+            0.045,
+            0.04,
+            0.045
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "LeftKneeJoint",
+        "type": "object",
+        "name": "LeftKneeJoint",
+        "template": "RigSurfaceMesh",
+        "parentId": null,
+        "path": [
+          "LeftKneeJoint"
+        ],
+        "groupPath": [],
+        "traits": [
+          "animated"
+        ],
+        "properties": {
+          "geometry": "torus",
+          "color": "#394b73",
+          "material": {
+            "color": "#394b73",
+            "roughness": 0.48,
+            "metallic": 0.22,
+            "normalMap": "hardsuit-panel-normal",
+            "detailMap": "micro-beveled-rig-detail",
+            "wear": "hand-shoulder-edge-wear"
+          },
+          "position": [
+            -3.2,
+            0.76,
+            0.1
+          ],
+          "rotation": [
+            90,
+            0,
+            0
+          ],
+          "scale": [
+            0.09,
+            0.024,
+            0.09
+          ],
+          "label": "leg rig knee joint detail",
+          "roughness": 0.48
+        },
+        "transform": {
+          "position": [
+            -3.2,
+            0.76,
+            0.1
+          ],
+          "rotation": [
+            90,
+            0,
+            0
+          ],
+          "scale": [
+            0.09,
+            0.024,
+            0.09
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "RightKneeJoint",
+        "type": "object",
+        "name": "RightKneeJoint",
+        "template": "RigSurfaceMesh",
+        "parentId": null,
+        "path": [
+          "RightKneeJoint"
+        ],
+        "groupPath": [],
+        "traits": [
+          "animated"
+        ],
+        "properties": {
+          "geometry": "torus",
+          "color": "#394b73",
+          "material": {
+            "color": "#394b73",
+            "roughness": 0.48,
+            "metallic": 0.22,
+            "normalMap": "hardsuit-panel-normal",
+            "detailMap": "micro-beveled-rig-detail",
+            "wear": "hand-shoulder-edge-wear"
+          },
+          "position": [
+            -2.8,
+            0.76,
+            0.1
+          ],
+          "rotation": [
+            90,
+            0,
+            0
+          ],
+          "scale": [
+            0.09,
+            0.024,
+            0.09
+          ],
+          "label": "leg rig knee joint detail",
+          "roughness": 0.48
+        },
+        "transform": {
+          "position": [
+            -2.8,
+            0.76,
+            0.1
+          ],
+          "rotation": [
+            90,
+            0,
+            0
+          ],
+          "scale": [
+            0.09,
+            0.024,
+            0.09
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "RightPalmPressureMark",
+        "type": "object",
+        "name": "RightPalmPressureMark",
+        "template": "GripWearMesh",
+        "parentId": null,
+        "path": [
+          "RightPalmPressureMark"
+        ],
+        "groupPath": [],
+        "traits": [
+          "animated"
+        ],
+        "properties": {
+          "geometry": "icosahedron",
+          "color": "#d7c4a8",
+          "material": {
+            "color": "#d7c4a8",
+            "roughness": 0.72,
+            "metallic": 0.04,
+            "normalMap": "skin-glove-grip-normal",
+            "scratch": "finger-contact-scratches",
+            "detailMap": "palm-pressure-detail"
+          },
+          "position": [
+            -2.48,
+            1.16,
+            0.28
+          ],
+          "rotation": [
+            22,
+            8,
+            0
+          ],
+          "scale": [
+            0.035,
+            0.03,
+            0.035
+          ],
+          "label": "palm pressure contact detail near rock",
+          "roughness": 0.72
+        },
+        "transform": {
+          "position": [
+            -2.48,
+            1.16,
+            0.28
+          ],
+          "rotation": [
+            22,
+            8,
+            0
+          ],
+          "scale": [
+            0.035,
+            0.03,
+            0.035
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "LeftPalmPressureMark",
+        "type": "object",
+        "name": "LeftPalmPressureMark",
+        "template": "GripWearMesh",
+        "parentId": null,
+        "path": [
+          "LeftPalmPressureMark"
+        ],
+        "groupPath": [],
+        "traits": [
+          "animated"
+        ],
+        "properties": {
+          "geometry": "icosahedron",
+          "color": "#d7c4a8",
+          "material": {
+            "color": "#d7c4a8",
+            "roughness": 0.72,
+            "metallic": 0.04,
+            "normalMap": "skin-glove-grip-normal",
+            "scratch": "finger-contact-scratches",
+            "detailMap": "palm-pressure-detail"
+          },
+          "position": [
+            -3.48,
+            1.16,
+            0.28
+          ],
+          "rotation": [
+            -18,
+            -8,
+            0
+          ],
+          "scale": [
+            0.035,
+            0.03,
+            0.035
+          ],
+          "label": "palm pressure contact detail near rock",
+          "roughness": 0.72
+        },
+        "transform": {
+          "position": [
+            -3.48,
+            1.16,
+            0.28
+          ],
+          "rotation": [
+            -18,
+            -8,
+            0
+          ],
+          "scale": [
+            0.035,
+            0.03,
+            0.035
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "HDRIReflectionProbe",
+        "type": "object",
+        "name": "HDRIReflectionProbe",
+        "template": null,
+        "parentId": null,
+        "path": [
+          "HDRIReflectionProbe"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "geometry": "torus",
+          "position": [
+            -5.7,
+            2.25,
+            -2.2
+          ],
+          "rotation": [
+            90,
+            0,
+            0
+          ],
+          "scale": [
+            0.18,
+            0.025,
+            0.18
+          ],
+          "color": "#d8e4ff",
+          "material": {
+            "color": "#d8e4ff",
+            "roughness": 0.18,
+            "metallic": 0.7,
+            "hdr": "studio-hdri-reflection-check",
+            "tone_mapping": "aces",
+            "exposure": 1.05,
+            "emissive": "#8fb7ff",
+            "emissiveIntensity": 0.28
+          },
+          "label": "hdr filmic color management reference",
+          "roughness": 0.18
+        },
+        "transform": {
+          "position": [
+            -5.7,
+            2.25,
+            -2.2
+          ],
+          "rotation": [
+            90,
+            0,
+            0
+          ],
+          "scale": [
+            0.18,
+            0.025,
+            0.18
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "SegmentPanel",
+        "type": "object",
+        "name": "SegmentPanel",
+        "template": "CaptureMarker",
+        "parentId": null,
+        "path": [
+          "SegmentPanel"
+        ],
+        "groupPath": [],
+        "traits": [
+          "anchor",
+          "billboard"
+        ],
+        "properties": {
+          "geometry": "plane",
+          "color": "#f5f5f5",
+          "material": {
+            "color": "#f5f5f5",
+            "emissive": "#e8e8e8",
+            "emissiveIntensity": 0.15,
+            "transparent": true,
+            "opacity": 0.94
+          },
+          "position": [
+            0,
+            3.05,
+            -2.6
+          ],
+          "scale": [
+            5.2,
+            0.82,
+            0.08
+          ],
+          "label": "segments: load approach reach grab lift windup release arc impact aftermath",
+          "opacity": 0.94,
+          "transparent": true
+        },
+        "transform": {
+          "position": [
+            0,
+            3.05,
+            -2.6
+          ],
+          "rotation": null,
+          "scale": [
+            5.2,
+            0.82,
+            0.08
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "ProvenancePanel",
+        "type": "object",
+        "name": "ProvenancePanel",
+        "template": "CaptureMarker",
+        "parentId": null,
+        "path": [
+          "ProvenancePanel"
+        ],
+        "groupPath": [],
+        "traits": [
+          "anchor",
+          "billboard"
+        ],
+        "properties": {
+          "geometry": "plane",
+          "color": "#d5f5e3",
+          "material": {
+            "color": "#d5f5e3",
+            "emissive": "#1a3a2a",
+            "emissiveIntensity": 0.15,
+            "transparent": true,
+            "opacity": 0.94
+          },
+          "position": [
+            0,
+            2.15,
+            -2.62
+          ],
+          "scale": [
+            5.2,
+            0.62,
+            0.08
+          ],
+          "label": "receipt: parse compile runtime stills physics tasks",
+          "opacity": 0.94,
+          "transparent": true
+        },
+        "transform": {
+          "position": [
+            0,
+            2.15,
+            -2.62
+          ],
+          "rotation": null,
+          "scale": [
+            5.2,
+            0.62,
+            0.08
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      }
+    ]
+  },
+  "worldModelReplay": {
+    "schema": "world-model-replay-v1",
+    "sceneId": "humanoid-rock-throw-v1",
+    "sceneHash": "fnv1a-4a96ba97",
+    "eventLogHash": "fnv1a-e5d35230",
+    "trajectoryId": "fnv1a-14ebc444",
+    "trajectoryStatus": "open",
+    "contactCount": 1,
+    "predicateViolationCount": 0
+  },
+  "replayInputs": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/segment-replay-inputs.json",
+  "segments": [
+    {
+      "id": "00_scene_loaded",
+      "title": "Scene Loaded",
+      "expectedStill": "00_scene_loaded.png",
+      "checks": [
+        "avatar_visible",
+        "rock_visible",
+        "target_visible",
+        "lights_visible",
+        "capture_markers_visible"
+      ],
+      "still": "stills/00_scene_loaded.png",
+      "stillMode": "captured-scene-loaded",
+      "liveSegmentScene": null,
+      "eventLog": "events/00_scene_loaded.json",
+      "posePhysicsJson": "pose-physics/00_scene_loaded.json",
+      "runtimeScene": {
+        "schema": "format-stress-headless-scene-snapshot-v1",
+        "source": "hs-headless-json",
+        "stage": "experiments/format-realism-gauntlet/humanoid-rock-throw.holo",
+        "objectCount": 63,
+        "templateCount": 15,
+        "status": "instantiated"
+      },
+      "worldModelEvents": [
+        {
+          "stepIndex": 0,
+          "timestampMs": 0,
+          "type": "scene_loaded",
+          "payload": {
+            "avatarId": "avatar",
+            "rockId": "rock",
+            "targetId": "target"
+          }
+        }
+      ],
+      "oracle": {
+        "status": "world-model-event-replay",
+        "owningSurface": "CLI screenshot and HoloLand visual debugger",
+        "findings": [
+          "Scene-loaded still and command evidence exist; visual realism remains a separate quality ratchet."
+        ]
+      },
+      "timing": {
+        "runnerMs": 52569,
+        "screenshotMs": 5607,
+        "headlessMs": 2491,
+        "frameBudget": {
+          "targetHz": 60,
+          "budgetMs": 16.67,
+          "observedMs": 2491,
+          "note": "Scene load command-level timing, not a render-frame profiler."
+        }
+      },
+      "taskSeed": "task-seeds/00_scene_loaded.json"
+    },
+    {
+      "id": "01_avatar_approaches",
+      "title": "Avatar Approaches",
+      "expectedStill": "01_avatar_approaches.png",
+      "checks": [
+        "locomotion_path_visible",
+        "feet_above_floor",
+        "avatar_faces_rock"
+      ],
+      "still": "stills/01_avatar_approaches.png",
+      "stillMode": "live-segment-screenshot",
+      "liveSegmentScene": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/segment-scenes/01_avatar_approaches.holo",
+      "eventLog": "events/01_avatar_approaches.json",
+      "posePhysicsJson": "pose-physics/01_avatar_approaches.json",
+      "runtimeScene": {
+        "schema": "format-stress-headless-scene-snapshot-v1",
+        "source": "hs-headless-json",
+        "stage": "experiments/format-realism-gauntlet/humanoid-rock-throw.holo",
+        "objectCount": 63,
+        "templateCount": 15,
+        "status": "instantiated"
+      },
+      "worldModelEvents": [
+        {
+          "stepIndex": 1,
+          "timestampMs": 100,
+          "type": "avatar_approached",
+          "payload": {
+            "avatarId": "avatar",
+            "from": {
+              "x": -3,
+              "y": 1.25,
+              "z": 0
+            },
+            "to": {
+              "x": -2.35,
+              "y": 1.25,
+              "z": 0
+            }
+          }
+        }
+      ],
+      "oracle": {
+        "status": "live-segment-screenshot",
+        "owningSurface": "HoloLand segmented camera choreography",
+        "findings": [
+          "Segment-specific HoloScript scene rendered through the live screenshot pipeline.",
+          "Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene.",
+          "Next owner: HoloLand segmented camera choreography."
+        ]
+      },
+      "timing": {
+        "runnerMs": 52570,
+        "screenshotMs": 5607,
+        "headlessMs": 2491,
+        "frameBudget": {
+          "targetHz": 60,
+          "budgetMs": 16.67,
+          "observedMs": 3089,
+          "note": "Live segment scene rendered through CLI screenshot; timing is per-segment capture duration."
+        }
+      },
+      "taskSeed": "task-seeds/01_avatar_approaches.json"
+    },
+    {
+      "id": "02_hand_reaches",
+      "title": "Hand Reaches",
+      "expectedStill": "02_hand_reaches.png",
+      "checks": [
+        "right_hand_near_rock",
+        "no_body_clipping",
+        "reach_pose_readable"
+      ],
+      "still": "stills/02_hand_reaches.png",
+      "stillMode": "live-segment-screenshot",
+      "liveSegmentScene": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/segment-scenes/02_hand_reaches.holo",
+      "eventLog": "events/02_hand_reaches.json",
+      "posePhysicsJson": "pose-physics/02_hand_reaches.json",
+      "runtimeScene": {
+        "schema": "format-stress-headless-scene-snapshot-v1",
+        "source": "hs-headless-json",
+        "stage": "experiments/format-realism-gauntlet/humanoid-rock-throw.holo",
+        "objectCount": 63,
+        "templateCount": 15,
+        "status": "instantiated"
+      },
+      "worldModelEvents": [
+        {
+          "stepIndex": 2,
+          "timestampMs": 200,
+          "type": "hand_reached",
+          "payload": {
+            "handId": "right-hand",
+            "rockId": "rock",
+            "handPosition": {
+              "x": -2.35,
+              "y": 0.9,
+              "z": 0.12
+            },
+            "clearanceM": 0.03
+          }
+        }
+      ],
+      "oracle": {
+        "status": "live-segment-screenshot",
+        "owningSurface": "HoloLand segmented camera choreography",
+        "findings": [
+          "Segment-specific HoloScript scene rendered through the live screenshot pipeline.",
+          "Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene.",
+          "Next owner: HoloLand segmented camera choreography."
+        ]
+      },
+      "timing": {
+        "runnerMs": 52572,
+        "screenshotMs": 5607,
+        "headlessMs": 2491,
+        "frameBudget": {
+          "targetHz": 60,
+          "budgetMs": 16.67,
+          "observedMs": 3145,
+          "note": "Live segment scene rendered through CLI screenshot; timing is per-segment capture duration."
+        }
+      },
+      "taskSeed": "task-seeds/02_hand_reaches.json"
+    },
+    {
+      "id": "03_grab_constraint",
+      "title": "Grab Constraint",
+      "expectedStill": "03_grab_constraint.png",
+      "checks": [
+        "rock_attached_to_hand",
+        "constraint_event_recorded",
+        "rock_not_intersecting_floor"
+      ],
+      "still": "stills/03_grab_constraint.png",
+      "stillMode": "live-segment-screenshot",
+      "liveSegmentScene": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/segment-scenes/03_grab_constraint.holo",
+      "eventLog": "events/03_grab_constraint.json",
+      "posePhysicsJson": "pose-physics/03_grab_constraint.json",
+      "runtimeScene": {
+        "schema": "format-stress-headless-scene-snapshot-v1",
+        "source": "hs-headless-json",
+        "stage": "experiments/format-realism-gauntlet/humanoid-rock-throw.holo",
+        "objectCount": 63,
+        "templateCount": 15,
+        "status": "instantiated"
+      },
+      "worldModelEvents": [
+        {
+          "stepIndex": 3,
+          "timestampMs": 300,
+          "type": "grab_constraint_attached",
+          "payload": {
+            "handId": "right-hand",
+            "rockId": "rock",
+            "constraint": "hand-rock-fixed"
+          }
+        }
+      ],
+      "oracle": {
+        "status": "live-segment-screenshot",
+        "owningSurface": "engine headless event playback and physics runtime",
+        "findings": [
+          "Segment-specific HoloScript scene rendered through the live screenshot pipeline.",
+          "Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene.",
+          "Next owner: engine headless event playback and physics runtime."
+        ]
+      },
+      "timing": {
+        "runnerMs": 52573,
+        "screenshotMs": 5607,
+        "headlessMs": 2491,
+        "frameBudget": {
+          "targetHz": 60,
+          "budgetMs": 16.67,
+          "observedMs": 3107,
+          "note": "Live segment scene rendered through CLI screenshot; timing is per-segment capture duration."
+        }
+      },
+      "taskSeed": "task-seeds/03_grab_constraint.json"
+    },
+    {
+      "id": "04_lift_pose",
+      "title": "Lift Pose",
+      "expectedStill": "04_lift_pose.png",
+      "checks": [
+        "rock_above_start_height",
+        "arm_pose_stable",
+        "mass_metadata_recorded"
+      ],
+      "still": "stills/04_lift_pose.png",
+      "stillMode": "live-segment-screenshot",
+      "liveSegmentScene": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/segment-scenes/04_lift_pose.holo",
+      "eventLog": "events/04_lift_pose.json",
+      "posePhysicsJson": "pose-physics/04_lift_pose.json",
+      "runtimeScene": {
+        "schema": "format-stress-headless-scene-snapshot-v1",
+        "source": "hs-headless-json",
+        "stage": "experiments/format-realism-gauntlet/humanoid-rock-throw.holo",
+        "objectCount": 63,
+        "templateCount": 15,
+        "status": "instantiated"
+      },
+      "worldModelEvents": [
+        {
+          "stepIndex": 4,
+          "timestampMs": 400,
+          "type": "lift_pose",
+          "payload": {
+            "rockId": "rock",
+            "rockPosition": {
+              "x": -2.15,
+              "y": 1.2,
+              "z": 0.12
+            }
+          }
+        }
+      ],
+      "oracle": {
+        "status": "live-segment-screenshot",
+        "owningSurface": "HoloLand segmented camera choreography",
+        "findings": [
+          "Segment-specific HoloScript scene rendered through the live screenshot pipeline.",
+          "Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene.",
+          "Next owner: HoloLand segmented camera choreography."
+        ]
+      },
+      "timing": {
+        "runnerMs": 52574,
+        "screenshotMs": 5607,
+        "headlessMs": 2491,
+        "frameBudget": {
+          "targetHz": 60,
+          "budgetMs": 16.67,
+          "observedMs": 3080,
+          "note": "Live segment scene rendered through CLI screenshot; timing is per-segment capture duration."
+        }
+      },
+      "taskSeed": "task-seeds/04_lift_pose.json"
+    },
+    {
+      "id": "05_windup",
+      "title": "Windup",
+      "expectedStill": "05_windup.png",
+      "checks": [
+        "torso_rotation_visible",
+        "throw_direction_visible",
+        "camera_clear"
+      ],
+      "still": "stills/05_windup.png",
+      "stillMode": "live-segment-screenshot",
+      "liveSegmentScene": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/segment-scenes/05_windup.holo",
+      "eventLog": "events/05_windup.json",
+      "posePhysicsJson": "pose-physics/05_windup.json",
+      "runtimeScene": {
+        "schema": "format-stress-headless-scene-snapshot-v1",
+        "source": "hs-headless-json",
+        "stage": "experiments/format-realism-gauntlet/humanoid-rock-throw.holo",
+        "objectCount": 63,
+        "templateCount": 15,
+        "status": "instantiated"
+      },
+      "worldModelEvents": [
+        {
+          "stepIndex": 5,
+          "timestampMs": 500,
+          "type": "windup_pose",
+          "payload": {
+            "avatarId": "avatar",
+            "rockId": "rock",
+            "shoulderYawDeg": -38,
+            "rockPosition": {
+              "x": -1.45,
+              "y": 1.55,
+              "z": 0.08
+            }
+          }
+        }
+      ],
+      "oracle": {
+        "status": "live-segment-screenshot",
+        "owningSurface": "HoloLand segmented camera choreography",
+        "findings": [
+          "Segment-specific HoloScript scene rendered through the live screenshot pipeline.",
+          "Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene.",
+          "Next owner: HoloLand segmented camera choreography."
+        ]
+      },
+      "timing": {
+        "runnerMs": 52576,
+        "screenshotMs": 5607,
+        "headlessMs": 2491,
+        "frameBudget": {
+          "targetHz": 60,
+          "budgetMs": 16.67,
+          "observedMs": 3017,
+          "note": "Live segment scene rendered through CLI screenshot; timing is per-segment capture duration."
+        }
+      },
+      "taskSeed": "task-seeds/05_windup.json"
+    },
+    {
+      "id": "06_release",
+      "title": "Release Frame",
+      "expectedStill": "06_release.png",
+      "checks": [
+        "rock_detached",
+        "release_velocity_recorded",
+        "hand_followthrough_visible"
+      ],
+      "still": "stills/06_release.png",
+      "stillMode": "live-segment-screenshot",
+      "liveSegmentScene": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/segment-scenes/06_release.holo",
+      "eventLog": "events/06_release.json",
+      "posePhysicsJson": "pose-physics/06_release.json",
+      "runtimeScene": {
+        "schema": "format-stress-headless-scene-snapshot-v1",
+        "source": "hs-headless-json",
+        "stage": "experiments/format-realism-gauntlet/humanoid-rock-throw.holo",
+        "objectCount": 63,
+        "templateCount": 15,
+        "status": "instantiated"
+      },
+      "worldModelEvents": [
+        {
+          "stepIndex": 6,
+          "timestampMs": 600,
+          "type": "release",
+          "payload": {
+            "rockId": "rock",
+            "releasePosition": {
+              "x": -0.95,
+              "y": 1.62,
+              "z": 0.02
+            },
+            "releaseVelocity": {
+              "x": 5.2,
+              "y": 3.4,
+              "z": 0
+            }
+          }
+        }
+      ],
+      "oracle": {
+        "status": "live-segment-screenshot",
+        "owningSurface": "engine headless event playback and physics runtime",
+        "findings": [
+          "Segment-specific HoloScript scene rendered through the live screenshot pipeline.",
+          "Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene.",
+          "Next owner: engine headless event playback and physics runtime."
+        ]
+      },
+      "timing": {
+        "runnerMs": 52577,
+        "screenshotMs": 5607,
+        "headlessMs": 2491,
+        "frameBudget": {
+          "targetHz": 60,
+          "budgetMs": 16.67,
+          "observedMs": 2995,
+          "note": "Live segment scene rendered through CLI screenshot; timing is per-segment capture duration."
+        }
+      },
+      "taskSeed": "task-seeds/06_release.json"
+    },
+    {
+      "id": "07_ballistic_arc",
+      "title": "Ballistic Arc",
+      "expectedStill": "07_ballistic_arc.png",
+      "checks": [
+        "trajectory_visible",
+        "arc_samples_recorded",
+        "gravity_plausible"
+      ],
+      "still": "stills/07_ballistic_arc.png",
+      "stillMode": "live-segment-screenshot",
+      "liveSegmentScene": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/segment-scenes/07_ballistic_arc.holo",
+      "eventLog": "events/07_ballistic_arc.json",
+      "posePhysicsJson": "pose-physics/07_ballistic_arc.json",
+      "runtimeScene": {
+        "schema": "format-stress-headless-scene-snapshot-v1",
+        "source": "hs-headless-json",
+        "stage": "experiments/format-realism-gauntlet/humanoid-rock-throw.holo",
+        "objectCount": 63,
+        "templateCount": 15,
+        "status": "instantiated"
+      },
+      "worldModelEvents": [
+        {
+          "stepIndex": 7,
+          "timestampMs": 700,
+          "type": "ballistic_sample",
+          "payload": {
+            "rockId": "rock",
+            "timeSeconds": 0.18,
+            "rockPosition": {
+              "x": -0.014000000000000012,
+              "y": 2.073078,
+              "z": 0.02
+            },
+            "gravity": -9.81
+          }
+        },
+        {
+          "stepIndex": 8,
+          "timestampMs": 800,
+          "type": "ballistic_sample",
+          "payload": {
+            "rockId": "rock",
+            "timeSeconds": 0.36,
+            "rockPosition": {
+              "x": 0.9219999999999999,
+              "y": 2.2083120000000003,
+              "z": 0.02
+            },
+            "gravity": -9.81
+          }
+        },
+        {
+          "stepIndex": 9,
+          "timestampMs": 900,
+          "type": "ballistic_sample",
+          "payload": {
+            "rockId": "rock",
+            "timeSeconds": 0.54,
+            "rockPosition": {
+              "x": 1.8580000000000003,
+              "y": 2.025702,
+              "z": 0.02
+            },
+            "gravity": -9.81
+          }
+        }
+      ],
+      "oracle": {
+        "status": "live-segment-screenshot",
+        "owningSurface": "physics trajectory solver and deterministic replay",
+        "findings": [
+          "Segment-specific HoloScript scene rendered through the live screenshot pipeline.",
+          "Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene.",
+          "Next owner: physics trajectory solver and deterministic replay."
+        ]
+      },
+      "timing": {
+        "runnerMs": 52579,
+        "screenshotMs": 5607,
+        "headlessMs": 2491,
+        "frameBudget": {
+          "targetHz": 60,
+          "budgetMs": 16.67,
+          "observedMs": 3050,
+          "note": "Live segment scene rendered through CLI screenshot; timing is per-segment capture duration."
+        }
+      },
+      "taskSeed": "task-seeds/07_ballistic_arc.json"
+    },
+    {
+      "id": "08_impact",
+      "title": "Impact",
+      "expectedStill": "08_impact.png",
+      "checks": [
+        "collision_event_recorded",
+        "target_reacts",
+        "impact_point_visible"
+      ],
+      "still": "stills/08_impact.png",
+      "stillMode": "live-segment-screenshot",
+      "liveSegmentScene": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/segment-scenes/08_impact.holo",
+      "eventLog": "events/08_impact.json",
+      "posePhysicsJson": "pose-physics/08_impact.json",
+      "runtimeScene": {
+        "schema": "format-stress-headless-scene-snapshot-v1",
+        "source": "hs-headless-json",
+        "stage": "experiments/format-realism-gauntlet/humanoid-rock-throw.holo",
+        "objectCount": 63,
+        "templateCount": 15,
+        "status": "instantiated"
+      },
+      "worldModelEvents": [
+        {
+          "stepIndex": 10,
+          "timestampMs": 1000,
+          "type": "target_contact",
+          "payload": {
+            "rockId": "rock",
+            "targetId": "target",
+            "rockPosition": {
+              "x": 2.55,
+              "y": 0.85,
+              "z": 0
+            },
+            "impulseNs": 8.6
+          }
+        }
+      ],
+      "oracle": {
+        "status": "live-segment-screenshot",
+        "owningSurface": "engine headless event playback and physics runtime",
+        "findings": [
+          "Segment-specific HoloScript scene rendered through the live screenshot pipeline.",
+          "Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene.",
+          "Next owner: engine headless event playback and physics runtime."
+        ]
+      },
+      "timing": {
+        "runnerMs": 52581,
+        "screenshotMs": 5607,
+        "headlessMs": 2491,
+        "frameBudget": {
+          "targetHz": 60,
+          "budgetMs": 16.67,
+          "observedMs": 3215,
+          "note": "Live segment scene rendered through CLI screenshot; timing is per-segment capture duration."
+        }
+      },
+      "taskSeed": "task-seeds/08_impact.json"
+    },
+    {
+      "id": "09_aftermath",
+      "title": "Aftermath",
+      "expectedStill": "09_aftermath.png",
+      "checks": [
+        "provenance_panel_visible",
+        "scorecard_visible",
+        "task_seed_generated_when_needed"
+      ],
+      "still": "stills/09_aftermath.png",
+      "stillMode": "live-segment-screenshot",
+      "liveSegmentScene": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/segment-scenes/09_aftermath.holo",
+      "eventLog": "events/09_aftermath.json",
+      "posePhysicsJson": "pose-physics/09_aftermath.json",
+      "runtimeScene": {
+        "schema": "format-stress-headless-scene-snapshot-v1",
+        "source": "hs-headless-json",
+        "stage": "experiments/format-realism-gauntlet/humanoid-rock-throw.holo",
+        "objectCount": 63,
+        "templateCount": 15,
+        "status": "instantiated"
+      },
+      "worldModelEvents": [
+        {
+          "stepIndex": 11,
+          "timestampMs": 1100,
+          "type": "aftermath",
+          "payload": {
+            "targetId": "target",
+            "observedImpact": true,
+            "provenancePanel": true
+          }
+        }
+      ],
+      "oracle": {
+        "status": "live-segment-screenshot",
+        "owningSurface": "HoloLand segmented camera choreography",
+        "findings": [
+          "Segment-specific HoloScript scene rendered through the live screenshot pipeline.",
+          "Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene.",
+          "Next owner: HoloLand segmented camera choreography."
+        ]
+      },
+      "timing": {
+        "runnerMs": 52582,
+        "screenshotMs": 5607,
+        "headlessMs": 2491,
+        "frameBudget": {
+          "targetHz": 60,
+          "budgetMs": 16.67,
+          "observedMs": 3009,
+          "note": "Live segment scene rendered through CLI screenshot; timing is per-segment capture duration."
+        }
+      },
+      "taskSeed": "task-seeds/09_aftermath.json"
+    }
+  ],
+  "visualEvidence": {
+    "stillFilesPresent": 10,
+    "uniqueStillHashes": 10,
+    "replayCandidateSegments": 10,
+    "replayDistinctSegments": 10,
+    "capturedReplaySegments": 10,
+    "replayDistinctSegmentIds": [
+      "00_scene_loaded",
+      "01_avatar_approaches",
+      "02_hand_reaches",
+      "03_grab_constraint",
+      "04_lift_pose",
+      "05_windup",
+      "06_release",
+      "07_ballistic_arc",
+      "08_impact",
+      "09_aftermath"
+    ],
+    "liveSegmentScreenshotSegments": 9,
+    "worldModelPixelReplaySegments": 0,
+    "staticCopySegments": 0,
+    "placeholderSegments": 0,
+    "staticCopyCoverageBlocked": false,
+    "dynamicReplayBlockedSegments": 0,
+    "falseGreenRisk": "none-detected",
+    "visualCoverageStatus": "replay-distinct"
+  },
+  "coverage": {
+    "segmentsRequested": 10,
+    "segmentsWithStill": 10,
+    "qualityAdjustedSegmentsWithStill": 10,
+    "uniqueStillHashes": 10,
+    "staticCopySegments": 0,
+    "placeholderStillSegments": 0,
+    "dynamicReplayBlockedSegments": 0,
+    "falseGreenRisk": "none-detected",
+    "segmentsWithRuntimeEventLog": 10,
+    "segmentsWithPosePhysicsJson": 10,
+    "segmentsWithTiming": 10,
+    "headlessRuntimeSceneObjects": 63,
+    "headlessRuntimeTemplates": 15,
+    "segmentsWithHeadlessSceneObjects": 10,
+    "segmentsWithWorldModelEvents": 10,
+    "segmentsWithLiveSegmentScreenshot": 9,
+    "segmentsWithWorldModelPixelReplay": 0
+  }
+}

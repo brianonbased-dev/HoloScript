@@ -1,0 +1,27 @@
+{
+  "stillFilesPresent": 10,
+  "uniqueStillHashes": 10,
+  "replayCandidateSegments": 10,
+  "replayDistinctSegments": 10,
+  "capturedReplaySegments": 10,
+  "replayDistinctSegmentIds": [
+    "00_scene_loaded",
+    "01_avatar_approaches",
+    "02_hand_reaches",
+    "03_grab_constraint",
+    "04_lift_pose",
+    "05_windup",
+    "06_release",
+    "07_ballistic_arc",
+    "08_impact",
+    "09_aftermath"
+  ],
+  "liveSegmentScreenshotSegments": 9,
+  "worldModelPixelReplaySegments": 0,
+  "staticCopySegments": 0,
+  "placeholderSegments": 0,
+  "staticCopyCoverageBlocked": false,
+  "dynamicReplayBlockedSegments": 0,
+  "falseGreenRisk": "none-detected",
+  "visualCoverageStatus": "replay-distinct"
+}

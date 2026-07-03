@@ -1,0 +1,322 @@
+{
+  "schema": "format-stress-pose-physics-v1",
+  "segmentId": "07_ballistic_arc",
+  "mode": "world-model-pixel-replay",
+  "complete": true,
+  "owningSurface": "physics trajectory solver and deterministic replay",
+  "sceneObjectCount": 63,
+  "sceneSnapshotSource": "hs-headless-json",
+  "runtimeScene": {
+    "schema": "format-stress-headless-scene-snapshot-v1",
+    "source": "hs-headless-json",
+    "stage": "experiments/format-realism-gauntlet/humanoid-rock-throw.holo",
+    "objectCount": 63,
+    "templateCount": 15,
+    "status": "instantiated"
+  },
+  "sceneObjectAnchors": [
+    {
+      "id": "KeyLight",
+      "type": "object",
+      "template": null,
+      "transform": {
+        "position": [
+          6,
+          10,
+          8
+        ],
+        "rotation": null,
+        "scale": null
+      },
+      "physics": {
+        "collidable": false,
+        "kinematic": false,
+        "massKg": null
+      }
+    },
+    {
+      "id": "FillLight",
+      "type": "object",
+      "template": null,
+      "transform": {
+        "position": [
+          -4,
+          5,
+          -3
+        ],
+        "rotation": null,
+        "scale": null
+      },
+      "physics": {
+        "collidable": false,
+        "kinematic": false,
+        "massKg": null
+      }
+    },
+    {
+      "id": "RimLight",
+      "type": "object",
+      "template": null,
+      "transform": {
+        "position": [
+          -2,
+          4,
+          6
+        ],
+        "rotation": null,
+        "scale": null
+      },
+      "physics": {
+        "collidable": false,
+        "kinematic": false,
+        "massKg": null
+      }
+    },
+    {
+      "id": "Ground",
+      "type": "object",
+      "template": "FloorTile",
+      "transform": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          -90,
+          0,
+          0
+        ],
+        "scale": [
+          14,
+          10,
+          1
+        ]
+      },
+      "physics": {
+        "collidable": true,
+        "kinematic": true,
+        "massKg": null
+      }
+    },
+    {
+      "id": "StageFrontEdge",
+      "type": "object",
+      "template": "StageEdge",
+      "transform": {
+        "position": [
+          0,
+          0.04,
+          5.05
+        ],
+        "rotation": null,
+        "scale": [
+          14.2,
+          0.08,
+          0.12
+        ]
+      },
+      "physics": {
+        "collidable": true,
+        "kinematic": true,
+        "massKg": null
+      }
+    },
+    {
+      "id": "StageBackEdge",
+      "type": "object",
+      "template": "StageEdge",
+      "transform": {
+        "position": [
+          0,
+          0.04,
+          -5.05
+        ],
+        "rotation": null,
+        "scale": [
+          14.2,
+          0.08,
+          0.12
+        ]
+      },
+      "physics": {
+        "collidable": true,
+        "kinematic": true,
+        "massKg": null
+      }
+    },
+    {
+      "id": "StageLeftEdge",
+      "type": "object",
+      "template": "StageEdge",
+      "transform": {
+        "position": [
+          -7.05,
+          0.04,
+          0
+        ],
+        "rotation": null,
+        "scale": [
+          0.12,
+          0.08,
+          10.2
+        ]
+      },
+      "physics": {
+        "collidable": true,
+        "kinematic": true,
+        "massKg": null
+      }
+    },
+    {
+      "id": "StageRightEdge",
+      "type": "object",
+      "template": "StageEdge",
+      "transform": {
+        "position": [
+          7.05,
+          0.04,
+          0
+        ],
+        "rotation": null,
+        "scale": [
+          0.12,
+          0.08,
+          10.2
+        ]
+      },
+      "physics": {
+        "collidable": true,
+        "kinematic": true,
+        "massKg": null
+      }
+    }
+  ],
+  "worldModelReplay": {
+    "schema": "world-model-replay-v1",
+    "sceneId": "humanoid-rock-throw-v1",
+    "sceneHash": "fnv1a-4a96ba97",
+    "eventLogHash": "fnv1a-e5d35230",
+    "trajectoryId": "fnv1a-14ebc444",
+    "trajectoryStatus": "open",
+    "contactCount": 1,
+    "predicateViolationCount": 0
+  },
+  "worldModelEvents": [
+    {
+      "stepIndex": 7,
+      "timestampMs": 700,
+      "type": "ballistic_sample",
+      "payload": {
+        "rockId": "rock",
+        "timeSeconds": 0.18,
+        "rockPosition": {
+          "x": -0.014000000000000012,
+          "y": 2.073078,
+          "z": 0.02
+        },
+        "gravity": -9.81
+      }
+    },
+    {
+      "stepIndex": 8,
+      "timestampMs": 800,
+      "type": "ballistic_sample",
+      "payload": {
+        "rockId": "rock",
+        "timeSeconds": 0.36,
+        "rockPosition": {
+          "x": 0.9219999999999999,
+          "y": 2.2083120000000003,
+          "z": 0.02
+        },
+        "gravity": -9.81
+      }
+    },
+    {
+      "stepIndex": 9,
+      "timestampMs": 900,
+      "type": "ballistic_sample",
+      "payload": {
+        "rockId": "rock",
+        "timeSeconds": 0.54,
+        "rockPosition": {
+          "x": 1.8580000000000003,
+          "y": 2.025702,
+          "z": 0.02
+        },
+        "gravity": -9.81
+      }
+    }
+  ],
+  "bodies": {
+    "avatar": {
+      "position": [
+        -2.35,
+        1.25,
+        0
+      ],
+      "facing": "rock-target-line"
+    },
+    "rightHand": {
+      "position": [
+        1.183,
+        1.589,
+        0.18
+      ],
+      "contact": null
+    },
+    "rock": {
+      "position": [
+        1.858,
+        2.026,
+        0.02
+      ],
+      "attachedToHand": false,
+      "released": true
+    },
+    "target": {
+      "position": [
+        2.55,
+        0.85,
+        0
+      ],
+      "impacted": false
+    }
+  },
+  "physics": {
+    "massKg": 1.8,
+    "releaseVelocityMps": [
+      5.2,
+      3.4,
+      0
+    ],
+    "arcSamples": [
+      [
+        -0.95,
+        1.62,
+        0.02
+      ],
+      [
+        -0.014,
+        2.073,
+        0.02
+      ],
+      [
+        0.922,
+        2.208,
+        0.02
+      ],
+      [
+        1.858,
+        2.026,
+        0.02
+      ]
+    ],
+    "solver": "world-model-humanoid-rock-throw-v1"
+  },
+  "notes": [
+    "Rendered still positions are driven by the world-model replay event payloads.",
+    "This is a deterministic 2D receipt renderer, not the full engine renderer yet."
+  ]
+}

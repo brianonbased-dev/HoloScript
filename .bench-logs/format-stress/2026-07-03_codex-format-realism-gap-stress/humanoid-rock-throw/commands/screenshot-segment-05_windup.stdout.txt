@@ -1,0 +1,8 @@
+
+[36mCapturing screenshot of C:\Users\josep\Documents\GitHub\HoloScript\.bench-logs\format-stress\2026-07-03_codex-format-realism-gap-stress\humanoid-rock-throw\segment-scenes\05_windup.holo...[0m
+
+[32m✓ Screenshot saved to C:\Users\josep\Documents\GitHub\HoloScript\.bench-logs\format-stress\2026-07-03_codex-format-realism-gap-stress\humanoid-rock-throw\stills\05_windup.png[0m
+  Size: 1280x720
+  Format: png
+  File size: 16.7 KB
+  Total time: 1652ms

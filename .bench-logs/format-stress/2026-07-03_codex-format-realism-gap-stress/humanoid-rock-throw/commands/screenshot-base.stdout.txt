@@ -1,0 +1,8 @@
+
+[36mCapturing screenshot of C:\Users\josep\Documents\GitHub\HoloScript\experiments\format-realism-gauntlet\humanoid-rock-throw.holo...[0m
+
+[32m✓ Screenshot saved to C:\Users\josep\Documents\GitHub\HoloScript\.bench-logs\format-stress\2026-07-03_codex-format-realism-gap-stress\humanoid-rock-throw\stills\00_scene_loaded.png[0m
+  Size: 1280x720
+  Format: png
+  File size: 149.5 KB
+  Total time: 3050ms

@@ -1,0 +1,2 @@
+
+[32m✓ Pipeline compiled to Node.js module: C:\Users\josep\Documents\GitHub\HoloScript\.bench-logs\format-stress\2026-07-03_codex-format-realism-gap-stress\humanoid-rock-throw\compiled\hs-node.mjs[0m

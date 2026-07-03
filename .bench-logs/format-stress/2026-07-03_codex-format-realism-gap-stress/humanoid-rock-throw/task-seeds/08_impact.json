@@ -1,0 +1,8 @@
+{
+  "schema": "holomesh-board-task-seed-v1",
+  "source": "format-realism-gauntlet",
+  "title": "[format-stress] Implement dynamic evidence for 08_impact",
+  "priority": 2,
+  "owningSurface": "engine headless event playback and physics runtime",
+  "description": "Segment: Impact (08_impact)\nObserved: Segment-specific HoloScript scene rendered through the live screenshot pipeline. Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene. Next owner: engine headless event playback and physics runtime.\nReceipt: 08_impact\nAcceptance: still, event log, pose/physics JSON, oracle, and timing come from real segment playback rather than static-copy evidence."
+}

@@ -1,0 +1,8 @@
+
+[36mCapturing screenshot of C:\Users\josep\Documents\GitHub\HoloScript\.bench-logs\format-stress\2026-07-03_codex-format-realism-gap-stress\humanoid-rock-throw\segment-scenes\03_grab_constraint.holo...[0m
+
+[32m✓ Screenshot saved to C:\Users\josep\Documents\GitHub\HoloScript\.bench-logs\format-stress\2026-07-03_codex-format-realism-gap-stress\humanoid-rock-throw\stills\03_grab_constraint.png[0m
+  Size: 1280x720
+  Format: png
+  File size: 18.8 KB
+  Total time: 1691ms

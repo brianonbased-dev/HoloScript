@@ -1,0 +1,82 @@
+[
+  {
+    "schema": "holomesh-board-task-seed-v1",
+    "source": "format-realism-gauntlet",
+    "title": "[format-stress] Implement dynamic evidence for 00_scene_loaded",
+    "priority": 2,
+    "owningSurface": "CLI screenshot and HoloLand visual debugger",
+    "description": "Segment: Scene Loaded (00_scene_loaded)\nObserved: Scene-loaded still and command evidence exist; visual realism remains a separate quality ratchet.\nReceipt: 00_scene_loaded\nAcceptance: still, event log, pose/physics JSON, oracle, and timing come from real segment playback rather than static-copy evidence."
+  },
+  {
+    "schema": "holomesh-board-task-seed-v1",
+    "source": "format-realism-gauntlet",
+    "title": "[format-stress] Implement dynamic evidence for 01_avatar_approaches",
+    "priority": 2,
+    "owningSurface": "HoloLand segmented camera choreography",
+    "description": "Segment: Avatar Approaches (01_avatar_approaches)\nObserved: Segment-specific HoloScript scene rendered through the live screenshot pipeline. Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene. Next owner: HoloLand segmented camera choreography.\nReceipt: 01_avatar_approaches\nAcceptance: still, event log, pose/physics JSON, oracle, and timing come from real segment playback rather than static-copy evidence."
+  },
+  {
+    "schema": "holomesh-board-task-seed-v1",
+    "source": "format-realism-gauntlet",
+    "title": "[format-stress] Implement dynamic evidence for 02_hand_reaches",
+    "priority": 2,
+    "owningSurface": "HoloLand segmented camera choreography",
+    "description": "Segment: Hand Reaches (02_hand_reaches)\nObserved: Segment-specific HoloScript scene rendered through the live screenshot pipeline. Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene. Next owner: HoloLand segmented camera choreography.\nReceipt: 02_hand_reaches\nAcceptance: still, event log, pose/physics JSON, oracle, and timing come from real segment playback rather than static-copy evidence."
+  },
+  {
+    "schema": "holomesh-board-task-seed-v1",
+    "source": "format-realism-gauntlet",
+    "title": "[format-stress] Implement dynamic evidence for 03_grab_constraint",
+    "priority": 2,
+    "owningSurface": "engine headless event playback and physics runtime",
+    "description": "Segment: Grab Constraint (03_grab_constraint)\nObserved: Segment-specific HoloScript scene rendered through the live screenshot pipeline. Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene. Next owner: engine headless event playback and physics runtime.\nReceipt: 03_grab_constraint\nAcceptance: still, event log, pose/physics JSON, oracle, and timing come from real segment playback rather than static-copy evidence."
+  },
+  {
+    "schema": "holomesh-board-task-seed-v1",
+    "source": "format-realism-gauntlet",
+    "title": "[format-stress] Implement dynamic evidence for 04_lift_pose",
+    "priority": 2,
+    "owningSurface": "HoloLand segmented camera choreography",
+    "description": "Segment: Lift Pose (04_lift_pose)\nObserved: Segment-specific HoloScript scene rendered through the live screenshot pipeline. Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene. Next owner: HoloLand segmented camera choreography.\nReceipt: 04_lift_pose\nAcceptance: still, event log, pose/physics JSON, oracle, and timing come from real segment playback rather than static-copy evidence."
+  },
+  {
+    "schema": "holomesh-board-task-seed-v1",
+    "source": "format-realism-gauntlet",
+    "title": "[format-stress] Implement dynamic evidence for 05_windup",
+    "priority": 2,
+    "owningSurface": "HoloLand segmented camera choreography",
+    "description": "Segment: Windup (05_windup)\nObserved: Segment-specific HoloScript scene rendered through the live screenshot pipeline. Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene. Next owner: HoloLand segmented camera choreography.\nReceipt: 05_windup\nAcceptance: still, event log, pose/physics JSON, oracle, and timing come from real segment playback rather than static-copy evidence."
+  },
+  {
+    "schema": "holomesh-board-task-seed-v1",
+    "source": "format-realism-gauntlet",
+    "title": "[format-stress] Implement dynamic evidence for 06_release",
+    "priority": 2,
+    "owningSurface": "engine headless event playback and physics runtime",
+    "description": "Segment: Release Frame (06_release)\nObserved: Segment-specific HoloScript scene rendered through the live screenshot pipeline. Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene. Next owner: engine headless event playback and physics runtime.\nReceipt: 06_release\nAcceptance: still, event log, pose/physics JSON, oracle, and timing come from real segment playback rather than static-copy evidence."
+  },
+  {
+    "schema": "holomesh-board-task-seed-v1",
+    "source": "format-realism-gauntlet",
+    "title": "[format-stress] Implement dynamic evidence for 07_ballistic_arc",
+    "priority": 2,
+    "owningSurface": "physics trajectory solver and deterministic replay",
+    "description": "Segment: Ballistic Arc (07_ballistic_arc)\nObserved: Segment-specific HoloScript scene rendered through the live screenshot pipeline. Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene. Next owner: physics trajectory solver and deterministic replay.\nReceipt: 07_ballistic_arc\nAcceptance: still, event log, pose/physics JSON, oracle, and timing come from real segment playback rather than static-copy evidence."
+  },
+  {
+    "schema": "holomesh-board-task-seed-v1",
+    "source": "format-realism-gauntlet",
+    "title": "[format-stress] Implement dynamic evidence for 08_impact",
+    "priority": 2,
+    "owningSurface": "engine headless event playback and physics runtime",
+    "description": "Segment: Impact (08_impact)\nObserved: Segment-specific HoloScript scene rendered through the live screenshot pipeline. Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene. Next owner: engine headless event playback and physics runtime.\nReceipt: 08_impact\nAcceptance: still, event log, pose/physics JSON, oracle, and timing come from real segment playback rather than static-copy evidence."
+  },
+  {
+    "schema": "holomesh-board-task-seed-v1",
+    "source": "format-realism-gauntlet",
+    "title": "[format-stress] Implement dynamic evidence for 09_aftermath",
+    "priority": 2,
+    "owningSurface": "HoloLand segmented camera choreography",
+    "description": "Segment: Aftermath (09_aftermath)\nObserved: Segment-specific HoloScript scene rendered through the live screenshot pipeline. Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene. Next owner: HoloLand segmented camera choreography.\nReceipt: 09_aftermath\nAcceptance: still, event log, pose/physics JSON, oracle, and timing come from real segment playback rather than static-copy evidence."
+  }
+]

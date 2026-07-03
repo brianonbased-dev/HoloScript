@@ -1,0 +1,200 @@
+{
+  "schema": "format-stress-segment-event-log-v1",
+  "segmentId": "06_release",
+  "source": "format-stress-segmented-capture",
+  "runtimeScene": {
+    "schema": "format-stress-headless-scene-snapshot-v1",
+    "source": "hs-headless-json",
+    "stage": "experiments/format-realism-gauntlet/humanoid-rock-throw.holo",
+    "objectCount": 63,
+    "templateCount": 15,
+    "status": "instantiated"
+  },
+  "worldModelReplay": {
+    "schema": "world-model-replay-v1",
+    "sceneId": "humanoid-rock-throw-v1",
+    "sceneHash": "fnv1a-4a96ba97",
+    "eventLogHash": "fnv1a-e5d35230",
+    "trajectoryId": "fnv1a-14ebc444",
+    "trajectoryStatus": "open",
+    "contactCount": 1,
+    "predicateViolationCount": 0
+  },
+  "events": [
+    {
+      "type": "segment_requested",
+      "segment": "06_release",
+      "atMs": 1500
+    },
+    {
+      "type": "runtime_scene_snapshot_loaded",
+      "segment": "06_release",
+      "atMs": 1500,
+      "objectCount": 63,
+      "source": "hs-headless-json"
+    },
+    {
+      "type": "live_segment_screenshot_emitted",
+      "segment": "06_release",
+      "atMs": 1501,
+      "still": "stills/06_release.png",
+      "stillMode": "live-segment-screenshot"
+    },
+    {
+      "type": "evidence_receipt_emitted",
+      "segment": "06_release",
+      "atMs": 1502
+    },
+    {
+      "type": "world_model_event_replayed",
+      "segment": "06_release",
+      "atMs": 1503,
+      "worldModelEvent": {
+        "stepIndex": 6,
+        "timestampMs": 600,
+        "type": "release",
+        "payload": {
+          "rockId": "rock",
+          "releasePosition": {
+            "x": -0.95,
+            "y": 1.62,
+            "z": 0.02
+          },
+          "releaseVelocity": {
+            "x": 5.2,
+            "y": 3.4,
+            "z": 0
+          }
+        }
+      }
+    }
+  ],
+  "commandEvidence": [
+    {
+      "id": "parse-holo",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/parse-holo.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/parse-holo.stderr.txt"
+    },
+    {
+      "id": "parse-hsplus",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/parse-hsplus.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/parse-hsplus.stderr.txt"
+    },
+    {
+      "id": "parse-hs",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/parse-hs.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/parse-hs.stderr.txt"
+    },
+    {
+      "id": "compile-holo-threejs",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/compile-holo-threejs.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/compile-holo-threejs.stderr.txt"
+    },
+    {
+      "id": "compile-hsplus-threejs",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/compile-hsplus-threejs.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/compile-hsplus-threejs.stderr.txt"
+    },
+    {
+      "id": "compile-hs-node",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/compile-hs-node.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/compile-hs-node.stderr.txt"
+    },
+    {
+      "id": "headless-holo",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/headless-holo.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/headless-holo.stderr.txt"
+    },
+    {
+      "id": "screenshot-base",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-base.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-base.stderr.txt"
+    },
+    {
+      "id": "world-model-humanoid-rock-throw",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/world-model-humanoid-rock-throw.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/world-model-humanoid-rock-throw.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-01_avatar_approaches",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-01_avatar_approaches.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-01_avatar_approaches.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-02_hand_reaches",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-02_hand_reaches.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-02_hand_reaches.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-03_grab_constraint",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-03_grab_constraint.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-03_grab_constraint.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-04_lift_pose",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-04_lift_pose.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-04_lift_pose.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-05_windup",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-05_windup.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-05_windup.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-06_release",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-06_release.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-06_release.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-07_ballistic_arc",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-07_ballistic_arc.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-07_ballistic_arc.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-08_impact",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-08_impact.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-08_impact.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-09_aftermath",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-09_aftermath.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-07-03_codex-format-realism-gap-stress/humanoid-rock-throw/commands/screenshot-segment-09_aftermath.stderr.txt"
+    }
+  ]
+}

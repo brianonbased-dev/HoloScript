@@ -1,0 +1,89 @@
+composition "Live Segment 05_windup Windup" {
+  environment {
+    backgroundColor: "#0b0f14"
+    ambient_light: 0.45
+    shadows: true
+  }
+
+  object "LiveSegmentFloor" {
+    geometry: "cube"
+    color: "#202733"
+    position: [0, -0.08, -2]
+    scale: [8.5, 0.06, 4.2]
+    label: "live segment 6 of 10"
+  }
+
+  object "AvatarTorso" {
+    geometry: "capsule"
+    color: "#7aa2f7"
+    position: [-2.35, 1.25, -2]
+    scale: [0.72, 1.25, 0.72]
+    rotation: [0, 0, -10]
+    label: "animated avatar pose"
+  }
+
+  object "AvatarHead" {
+    geometry: "sphere"
+    color: "#d8e2ff"
+    position: [-2.35, 2.03, -2]
+    scale: [0.42, 0.42, 0.42]
+  }
+
+  object "LeftLeg" {
+    geometry: "capsule"
+    color: "#5c7aea"
+    position: [-2.57, 0.48, -2]
+    scale: [0.36, 0.88, 0.36]
+    rotation: [0, 0, 0]
+  }
+
+  object "RightLeg" {
+    geometry: "capsule"
+    color: "#5c7aea"
+    position: [-2.13, 0.48, -2]
+    scale: [0.36, 0.88, 0.36]
+    rotation: [0, 0, 0]
+  }
+
+  object "RightHand" {
+    geometry: "sphere"
+    color: "#9ece6a"
+    position: [-1.45, 1.55, -2]
+    scale: [0.26, 0.26, 0.26]
+    label: "hand-rock contact"
+  }
+
+  object "ThrowRock" {
+    geometry: "sphere"
+    color: "#e0af68"
+    position: [-1.45, 1.55, -2]
+    scale: [0.34, 0.34, 0.34]
+    rotation: [0, 90, 55]
+    label: "rock transform"
+  }
+
+  object "ImpactTarget" {
+    geometry: "cylinder"
+    color: "#7dcfff"
+    position: [2.55, 0.85, -2]
+    scale: [0.42, 1.85, 0.42]
+    label: "target"
+  }
+
+  object "ProvenancePanel" {
+    geometry: "plane"
+    color: "#d5f5e3"
+    position: [0.4, 2.85, -2.42]
+    scale: [4.8, 0.64, 1]
+    label: "receipt 05_windup Windup"
+  }
+
+  camera perspective {
+    position: [-3.278, 2.4, 5.5]
+    look_at: [0.8, 1, -2]
+    fov: 42
+    near: 0.1
+    far: 50
+    label: "live segment capture camera"
+  }
+}

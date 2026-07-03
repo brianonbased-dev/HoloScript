@@ -1,0 +1,5 @@
+[2m[DEBUG] Starting code generation for target: threejs...[0m
+[2m[DEBUG] Code generation complete. Length: 6874[0m
+[32m✓ Written to C:\Users\josep\Documents\GitHub\HoloScript\.bench-logs\format-stress\2026-07-03_codex-format-realism-gap-stress\humanoid-rock-throw\compiled\hsplus-threejs[0m
+
+[32m✓ Compilation successful![0m

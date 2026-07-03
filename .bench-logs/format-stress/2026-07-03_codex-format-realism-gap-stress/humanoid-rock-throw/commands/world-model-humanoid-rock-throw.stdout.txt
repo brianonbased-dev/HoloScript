@@ -1,0 +1,1100 @@
+{
+  "schema_version": "world-model-replay-v1",
+  "generatedAt": "2026-07-03T12:36:49.316Z",
+  "requestedTrajectoryId": null,
+  "scene": {
+    "id": "humanoid-rock-throw-v1",
+    "seed": 4242,
+    "sceneHash": "fnv1a-4a96ba97"
+  },
+  "result": {
+    "sceneId": "humanoid-rock-throw-v1",
+    "seed": 4242,
+    "sceneHash": "fnv1a-4a96ba97",
+    "objects": [
+      {
+        "id": "avatar",
+        "kind": "avatar",
+        "center": {
+          "x": -3,
+          "y": 1.25,
+          "z": 0
+        }
+      },
+      {
+        "id": "right-hand",
+        "kind": "hand",
+        "center": {
+          "x": -2.72,
+          "y": 1.22,
+          "z": 0.16
+        }
+      },
+      {
+        "id": "rock",
+        "kind": "rock",
+        "center": {
+          "x": -2.35,
+          "y": 0.22,
+          "z": 0.12
+        },
+        "radiusM": 0.13,
+        "massKg": 1.8
+      },
+      {
+        "id": "target",
+        "kind": "target",
+        "center": {
+          "x": 2.55,
+          "y": 0.85,
+          "z": 0
+        },
+        "radiusM": 0.42,
+        "massKg": 20
+      },
+      {
+        "id": "stage",
+        "kind": "stage",
+        "center": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        }
+      }
+    ],
+    "events": [
+      {
+        "stepIndex": 0,
+        "timestampMs": 0,
+        "type": "scene_loaded",
+        "payload": {
+          "avatarId": "avatar",
+          "rockId": "rock",
+          "targetId": "target"
+        }
+      },
+      {
+        "stepIndex": 1,
+        "timestampMs": 100,
+        "type": "avatar_approached",
+        "payload": {
+          "avatarId": "avatar",
+          "from": {
+            "x": -3,
+            "y": 1.25,
+            "z": 0
+          },
+          "to": {
+            "x": -2.35,
+            "y": 1.25,
+            "z": 0
+          }
+        }
+      },
+      {
+        "stepIndex": 2,
+        "timestampMs": 200,
+        "type": "hand_reached",
+        "payload": {
+          "handId": "right-hand",
+          "rockId": "rock",
+          "handPosition": {
+            "x": -2.35,
+            "y": 0.9,
+            "z": 0.12
+          },
+          "clearanceM": 0.03
+        }
+      },
+      {
+        "stepIndex": 3,
+        "timestampMs": 300,
+        "type": "grab_constraint_attached",
+        "payload": {
+          "handId": "right-hand",
+          "rockId": "rock",
+          "constraint": "hand-rock-fixed"
+        }
+      },
+      {
+        "stepIndex": 4,
+        "timestampMs": 400,
+        "type": "lift_pose",
+        "payload": {
+          "rockId": "rock",
+          "rockPosition": {
+            "x": -2.15,
+            "y": 1.2,
+            "z": 0.12
+          }
+        }
+      },
+      {
+        "stepIndex": 5,
+        "timestampMs": 500,
+        "type": "windup_pose",
+        "payload": {
+          "avatarId": "avatar",
+          "rockId": "rock",
+          "shoulderYawDeg": -38,
+          "rockPosition": {
+            "x": -1.45,
+            "y": 1.55,
+            "z": 0.08
+          }
+        }
+      },
+      {
+        "stepIndex": 6,
+        "timestampMs": 600,
+        "type": "release",
+        "payload": {
+          "rockId": "rock",
+          "releasePosition": {
+            "x": -0.95,
+            "y": 1.62,
+            "z": 0.02
+          },
+          "releaseVelocity": {
+            "x": 5.2,
+            "y": 3.4,
+            "z": 0
+          }
+        }
+      },
+      {
+        "stepIndex": 7,
+        "timestampMs": 700,
+        "type": "ballistic_sample",
+        "payload": {
+          "rockId": "rock",
+          "timeSeconds": 0.18,
+          "rockPosition": {
+            "x": -0.014000000000000012,
+            "y": 2.073078,
+            "z": 0.02
+          },
+          "gravity": -9.81
+        }
+      },
+      {
+        "stepIndex": 8,
+        "timestampMs": 800,
+        "type": "ballistic_sample",
+        "payload": {
+          "rockId": "rock",
+          "timeSeconds": 0.36,
+          "rockPosition": {
+            "x": 0.9219999999999999,
+            "y": 2.2083120000000003,
+            "z": 0.02
+          },
+          "gravity": -9.81
+        }
+      },
+      {
+        "stepIndex": 9,
+        "timestampMs": 900,
+        "type": "ballistic_sample",
+        "payload": {
+          "rockId": "rock",
+          "timeSeconds": 0.54,
+          "rockPosition": {
+            "x": 1.8580000000000003,
+            "y": 2.025702,
+            "z": 0.02
+          },
+          "gravity": -9.81
+        }
+      },
+      {
+        "stepIndex": 10,
+        "timestampMs": 1000,
+        "type": "target_contact",
+        "payload": {
+          "rockId": "rock",
+          "targetId": "target",
+          "rockPosition": {
+            "x": 2.55,
+            "y": 0.85,
+            "z": 0
+          },
+          "impulseNs": 8.6
+        }
+      },
+      {
+        "stepIndex": 11,
+        "timestampMs": 1100,
+        "type": "aftermath",
+        "payload": {
+          "targetId": "target",
+          "observedImpact": true,
+          "provenancePanel": true
+        }
+      }
+    ],
+    "actionTrace": [
+      {
+        "stepIndex": 0,
+        "timestampMs": 0,
+        "type": "scene_loaded",
+        "payload": {
+          "avatarId": "avatar",
+          "rockId": "rock",
+          "targetId": "target"
+        }
+      },
+      {
+        "stepIndex": 1,
+        "timestampMs": 100,
+        "type": "avatar_approached",
+        "payload": {
+          "avatarId": "avatar",
+          "from": {
+            "x": -3,
+            "y": 1.25,
+            "z": 0
+          },
+          "to": {
+            "x": -2.35,
+            "y": 1.25,
+            "z": 0
+          }
+        }
+      },
+      {
+        "stepIndex": 2,
+        "timestampMs": 200,
+        "type": "hand_reached",
+        "payload": {
+          "handId": "right-hand",
+          "rockId": "rock",
+          "handPosition": {
+            "x": -2.35,
+            "y": 0.9,
+            "z": 0.12
+          },
+          "clearanceM": 0.03
+        }
+      },
+      {
+        "stepIndex": 3,
+        "timestampMs": 300,
+        "type": "grab_constraint_attached",
+        "payload": {
+          "handId": "right-hand",
+          "rockId": "rock",
+          "constraint": "hand-rock-fixed"
+        }
+      },
+      {
+        "stepIndex": 4,
+        "timestampMs": 400,
+        "type": "lift_pose",
+        "payload": {
+          "rockId": "rock",
+          "rockPosition": {
+            "x": -2.15,
+            "y": 1.2,
+            "z": 0.12
+          }
+        }
+      },
+      {
+        "stepIndex": 5,
+        "timestampMs": 500,
+        "type": "windup_pose",
+        "payload": {
+          "avatarId": "avatar",
+          "rockId": "rock",
+          "shoulderYawDeg": -38,
+          "rockPosition": {
+            "x": -1.45,
+            "y": 1.55,
+            "z": 0.08
+          }
+        }
+      },
+      {
+        "stepIndex": 6,
+        "timestampMs": 600,
+        "type": "release",
+        "payload": {
+          "rockId": "rock",
+          "releasePosition": {
+            "x": -0.95,
+            "y": 1.62,
+            "z": 0.02
+          },
+          "releaseVelocity": {
+            "x": 5.2,
+            "y": 3.4,
+            "z": 0
+          }
+        }
+      },
+      {
+        "stepIndex": 7,
+        "timestampMs": 700,
+        "type": "ballistic_sample",
+        "payload": {
+          "rockId": "rock",
+          "timeSeconds": 0.18,
+          "rockPosition": {
+            "x": -0.014000000000000012,
+            "y": 2.073078,
+            "z": 0.02
+          },
+          "gravity": -9.81
+        }
+      },
+      {
+        "stepIndex": 8,
+        "timestampMs": 800,
+        "type": "ballistic_sample",
+        "payload": {
+          "rockId": "rock",
+          "timeSeconds": 0.36,
+          "rockPosition": {
+            "x": 0.9219999999999999,
+            "y": 2.2083120000000003,
+            "z": 0.02
+          },
+          "gravity": -9.81
+        }
+      },
+      {
+        "stepIndex": 9,
+        "timestampMs": 900,
+        "type": "ballistic_sample",
+        "payload": {
+          "rockId": "rock",
+          "timeSeconds": 0.54,
+          "rockPosition": {
+            "x": 1.8580000000000003,
+            "y": 2.025702,
+            "z": 0.02
+          },
+          "gravity": -9.81
+        }
+      },
+      {
+        "stepIndex": 10,
+        "timestampMs": 1000,
+        "type": "target_contact",
+        "payload": {
+          "rockId": "rock",
+          "targetId": "target",
+          "rockPosition": {
+            "x": 2.55,
+            "y": 0.85,
+            "z": 0
+          },
+          "impulseNs": 8.6
+        }
+      },
+      {
+        "stepIndex": 11,
+        "timestampMs": 1100,
+        "type": "aftermath",
+        "payload": {
+          "targetId": "target",
+          "observedImpact": true,
+          "provenancePanel": true
+        }
+      }
+    ],
+    "observationTrace": [
+      {
+        "stepIndex": 0,
+        "timestampMs": 0,
+        "type": "humanoid-rock-throw-event",
+        "payload": {
+          "eventType": "scene_loaded",
+          "payload": {
+            "avatarId": "avatar",
+            "rockId": "rock",
+            "targetId": "target"
+          }
+        }
+      },
+      {
+        "stepIndex": 1,
+        "timestampMs": 100,
+        "type": "humanoid-rock-throw-event",
+        "payload": {
+          "eventType": "avatar_approached",
+          "payload": {
+            "avatarId": "avatar",
+            "from": {
+              "x": -3,
+              "y": 1.25,
+              "z": 0
+            },
+            "to": {
+              "x": -2.35,
+              "y": 1.25,
+              "z": 0
+            }
+          }
+        }
+      },
+      {
+        "stepIndex": 2,
+        "timestampMs": 200,
+        "type": "humanoid-rock-throw-event",
+        "payload": {
+          "eventType": "hand_reached",
+          "payload": {
+            "handId": "right-hand",
+            "rockId": "rock",
+            "handPosition": {
+              "x": -2.35,
+              "y": 0.9,
+              "z": 0.12
+            },
+            "clearanceM": 0.03
+          }
+        }
+      },
+      {
+        "stepIndex": 3,
+        "timestampMs": 300,
+        "type": "humanoid-rock-throw-event",
+        "payload": {
+          "eventType": "grab_constraint_attached",
+          "payload": {
+            "handId": "right-hand",
+            "rockId": "rock",
+            "constraint": "hand-rock-fixed"
+          }
+        }
+      },
+      {
+        "stepIndex": 4,
+        "timestampMs": 400,
+        "type": "humanoid-rock-throw-event",
+        "payload": {
+          "eventType": "lift_pose",
+          "payload": {
+            "rockId": "rock",
+            "rockPosition": {
+              "x": -2.15,
+              "y": 1.2,
+              "z": 0.12
+            }
+          }
+        }
+      },
+      {
+        "stepIndex": 5,
+        "timestampMs": 500,
+        "type": "humanoid-rock-throw-event",
+        "payload": {
+          "eventType": "windup_pose",
+          "payload": {
+            "avatarId": "avatar",
+            "rockId": "rock",
+            "shoulderYawDeg": -38,
+            "rockPosition": {
+              "x": -1.45,
+              "y": 1.55,
+              "z": 0.08
+            }
+          }
+        }
+      },
+      {
+        "stepIndex": 6,
+        "timestampMs": 600,
+        "type": "humanoid-rock-throw-event",
+        "payload": {
+          "eventType": "release",
+          "payload": {
+            "rockId": "rock",
+            "releasePosition": {
+              "x": -0.95,
+              "y": 1.62,
+              "z": 0.02
+            },
+            "releaseVelocity": {
+              "x": 5.2,
+              "y": 3.4,
+              "z": 0
+            }
+          }
+        }
+      },
+      {
+        "stepIndex": 7,
+        "timestampMs": 700,
+        "type": "humanoid-rock-throw-event",
+        "payload": {
+          "eventType": "ballistic_sample",
+          "payload": {
+            "rockId": "rock",
+            "timeSeconds": 0.18,
+            "rockPosition": {
+              "x": -0.014000000000000012,
+              "y": 2.073078,
+              "z": 0.02
+            },
+            "gravity": -9.81
+          }
+        }
+      },
+      {
+        "stepIndex": 8,
+        "timestampMs": 800,
+        "type": "humanoid-rock-throw-event",
+        "payload": {
+          "eventType": "ballistic_sample",
+          "payload": {
+            "rockId": "rock",
+            "timeSeconds": 0.36,
+            "rockPosition": {
+              "x": 0.9219999999999999,
+              "y": 2.2083120000000003,
+              "z": 0.02
+            },
+            "gravity": -9.81
+          }
+        }
+      },
+      {
+        "stepIndex": 9,
+        "timestampMs": 900,
+        "type": "humanoid-rock-throw-event",
+        "payload": {
+          "eventType": "ballistic_sample",
+          "payload": {
+            "rockId": "rock",
+            "timeSeconds": 0.54,
+            "rockPosition": {
+              "x": 1.8580000000000003,
+              "y": 2.025702,
+              "z": 0.02
+            },
+            "gravity": -9.81
+          }
+        }
+      },
+      {
+        "stepIndex": 10,
+        "timestampMs": 1000,
+        "type": "humanoid-rock-throw-event",
+        "payload": {
+          "eventType": "target_contact",
+          "payload": {
+            "rockId": "rock",
+            "targetId": "target",
+            "rockPosition": {
+              "x": 2.55,
+              "y": 0.85,
+              "z": 0
+            },
+            "impulseNs": 8.6
+          }
+        }
+      },
+      {
+        "stepIndex": 11,
+        "timestampMs": 1100,
+        "type": "humanoid-rock-throw-event",
+        "payload": {
+          "eventType": "aftermath",
+          "payload": {
+            "targetId": "target",
+            "observedImpact": true,
+            "provenancePanel": true
+          }
+        }
+      }
+    ],
+    "contactCount": 1,
+    "predicateViolationCount": 0,
+    "invalidActionCount": 0,
+    "eventLogHash": "fnv1a-e5d35230"
+  },
+  "trajectory": {
+    "id": "fnv1a-14ebc444",
+    "sceneHash": "fnv1a-4a96ba97",
+    "seed": 4242,
+    "trustTier": "replayable",
+    "caelReceiptHash": "fnv1a-e5d35230",
+    "simulationContract": {
+      "contractId": "world-model-humanoid-rock-throw-v1",
+      "hashMode": "fnv1a",
+      "adapterFingerprint": "core-world-model-humanoid-rock-throw-v1",
+      "replayDigestMode": "strict-same-adapter",
+      "fieldQuantization": [
+        {
+          "fieldPattern": "rock.position",
+          "quantum": 0.000001,
+          "units": "m"
+        },
+        {
+          "fieldPattern": "hand.position",
+          "quantum": 0.000001,
+          "units": "m"
+        },
+        {
+          "fieldPattern": "release.velocity",
+          "quantum": 0.000001,
+          "units": "m/s"
+        }
+      ]
+    },
+    "actionTrace": [
+      {
+        "stepIndex": 0,
+        "timestampMs": 0,
+        "type": "scene_loaded",
+        "payload": {
+          "avatarId": "avatar",
+          "rockId": "rock",
+          "targetId": "target"
+        }
+      },
+      {
+        "stepIndex": 1,
+        "timestampMs": 100,
+        "type": "avatar_approached",
+        "payload": {
+          "avatarId": "avatar",
+          "from": {
+            "x": -3,
+            "y": 1.25,
+            "z": 0
+          },
+          "to": {
+            "x": -2.35,
+            "y": 1.25,
+            "z": 0
+          }
+        }
+      },
+      {
+        "stepIndex": 2,
+        "timestampMs": 200,
+        "type": "hand_reached",
+        "payload": {
+          "handId": "right-hand",
+          "rockId": "rock",
+          "handPosition": {
+            "x": -2.35,
+            "y": 0.9,
+            "z": 0.12
+          },
+          "clearanceM": 0.03
+        }
+      },
+      {
+        "stepIndex": 3,
+        "timestampMs": 300,
+        "type": "grab_constraint_attached",
+        "payload": {
+          "handId": "right-hand",
+          "rockId": "rock",
+          "constraint": "hand-rock-fixed"
+        }
+      },
+      {
+        "stepIndex": 4,
+        "timestampMs": 400,
+        "type": "lift_pose",
+        "payload": {
+          "rockId": "rock",
+          "rockPosition": {
+            "x": -2.15,
+            "y": 1.2,
+            "z": 0.12
+          }
+        }
+      },
+      {
+        "stepIndex": 5,
+        "timestampMs": 500,
+        "type": "windup_pose",
+        "payload": {
+          "avatarId": "avatar",
+          "rockId": "rock",
+          "shoulderYawDeg": -38,
+          "rockPosition": {
+            "x": -1.45,
+            "y": 1.55,
+            "z": 0.08
+          }
+        }
+      },
+      {
+        "stepIndex": 6,
+        "timestampMs": 600,
+        "type": "release",
+        "payload": {
+          "rockId": "rock",
+          "releasePosition": {
+            "x": -0.95,
+            "y": 1.62,
+            "z": 0.02
+          },
+          "releaseVelocity": {
+            "x": 5.2,
+            "y": 3.4,
+            "z": 0
+          }
+        }
+      },
+      {
+        "stepIndex": 7,
+        "timestampMs": 700,
+        "type": "ballistic_sample",
+        "payload": {
+          "rockId": "rock",
+          "timeSeconds": 0.18,
+          "rockPosition": {
+            "x": -0.014000000000000012,
+            "y": 2.073078,
+            "z": 0.02
+          },
+          "gravity": -9.81
+        }
+      },
+      {
+        "stepIndex": 8,
+        "timestampMs": 800,
+        "type": "ballistic_sample",
+        "payload": {
+          "rockId": "rock",
+          "timeSeconds": 0.36,
+          "rockPosition": {
+            "x": 0.9219999999999999,
+            "y": 2.2083120000000003,
+            "z": 0.02
+          },
+          "gravity": -9.81
+        }
+      },
+      {
+        "stepIndex": 9,
+        "timestampMs": 900,
+        "type": "ballistic_sample",
+        "payload": {
+          "rockId": "rock",
+          "timeSeconds": 0.54,
+          "rockPosition": {
+            "x": 1.8580000000000003,
+            "y": 2.025702,
+            "z": 0.02
+          },
+          "gravity": -9.81
+        }
+      },
+      {
+        "stepIndex": 10,
+        "timestampMs": 1000,
+        "type": "target_contact",
+        "payload": {
+          "rockId": "rock",
+          "targetId": "target",
+          "rockPosition": {
+            "x": 2.55,
+            "y": 0.85,
+            "z": 0
+          },
+          "impulseNs": 8.6
+        }
+      },
+      {
+        "stepIndex": 11,
+        "timestampMs": 1100,
+        "type": "aftermath",
+        "payload": {
+          "targetId": "target",
+          "observedImpact": true,
+          "provenancePanel": true
+        }
+      }
+    ],
+    "observationTrace": [
+      {
+        "stepIndex": 0,
+        "timestampMs": 0,
+        "type": "humanoid-rock-throw-event",
+        "payload": {
+          "eventType": "scene_loaded",
+          "payload": {
+            "avatarId": "avatar",
+            "rockId": "rock",
+            "targetId": "target"
+          }
+        }
+      },
+      {
+        "stepIndex": 1,
+        "timestampMs": 100,
+        "type": "humanoid-rock-throw-event",
+        "payload": {
+          "eventType": "avatar_approached",
+          "payload": {
+            "avatarId": "avatar",
+            "from": {
+              "x": -3,
+              "y": 1.25,
+              "z": 0
+            },
+            "to": {
+              "x": -2.35,
+              "y": 1.25,
+              "z": 0
+            }
+          }
+        }
+      },
+      {
+        "stepIndex": 2,
+        "timestampMs": 200,
+        "type": "humanoid-rock-throw-event",
+        "payload": {
+          "eventType": "hand_reached",
+          "payload": {
+            "handId": "right-hand",
+            "rockId": "rock",
+            "handPosition": {
+              "x": -2.35,
+              "y": 0.9,
+              "z": 0.12
+            },
+            "clearanceM": 0.03
+          }
+        }
+      },
+      {
+        "stepIndex": 3,
+        "timestampMs": 300,
+        "type": "humanoid-rock-throw-event",
+        "payload": {
+          "eventType": "grab_constraint_attached",
+          "payload": {
+            "handId": "right-hand",
+            "rockId": "rock",
+            "constraint": "hand-rock-fixed"
+          }
+        }
+      },
+      {
+        "stepIndex": 4,
+        "timestampMs": 400,
+        "type": "humanoid-rock-throw-event",
+        "payload": {
+          "eventType": "lift_pose",
+          "payload": {
+            "rockId": "rock",
+            "rockPosition": {
+              "x": -2.15,
+              "y": 1.2,
+              "z": 0.12
+            }
+          }
+        }
+      },
+      {
+        "stepIndex": 5,
+        "timestampMs": 500,
+        "type": "humanoid-rock-throw-event",
+        "payload": {
+          "eventType": "windup_pose",
+          "payload": {
+            "avatarId": "avatar",
+            "rockId": "rock",
+            "shoulderYawDeg": -38,
+            "rockPosition": {
+              "x": -1.45,
+              "y": 1.55,
+              "z": 0.08
+            }
+          }
+        }
+      },
+      {
+        "stepIndex": 6,
+        "timestampMs": 600,
+        "type": "humanoid-rock-throw-event",
+        "payload": {
+          "eventType": "release",
+          "payload": {
+            "rockId": "rock",
+            "releasePosition": {
+              "x": -0.95,
+              "y": 1.62,
+              "z": 0.02
+            },
+            "releaseVelocity": {
+              "x": 5.2,
+              "y": 3.4,
+              "z": 0
+            }
+          }
+        }
+      },
+      {
+        "stepIndex": 7,
+        "timestampMs": 700,
+        "type": "humanoid-rock-throw-event",
+        "payload": {
+          "eventType": "ballistic_sample",
+          "payload": {
+            "rockId": "rock",
+            "timeSeconds": 0.18,
+            "rockPosition": {
+              "x": -0.014000000000000012,
+              "y": 2.073078,
+              "z": 0.02
+            },
+            "gravity": -9.81
+          }
+        }
+      },
+      {
+        "stepIndex": 8,
+        "timestampMs": 800,
+        "type": "humanoid-rock-throw-event",
+        "payload": {
+          "eventType": "ballistic_sample",
+          "payload": {
+            "rockId": "rock",
+            "timeSeconds": 0.36,
+            "rockPosition": {
+              "x": 0.9219999999999999,
+              "y": 2.2083120000000003,
+              "z": 0.02
+            },
+            "gravity": -9.81
+          }
+        }
+      },
+      {
+        "stepIndex": 9,
+        "timestampMs": 900,
+        "type": "humanoid-rock-throw-event",
+        "payload": {
+          "eventType": "ballistic_sample",
+          "payload": {
+            "rockId": "rock",
+            "timeSeconds": 0.54,
+            "rockPosition": {
+              "x": 1.8580000000000003,
+              "y": 2.025702,
+              "z": 0.02
+            },
+            "gravity": -9.81
+          }
+        }
+      },
+      {
+        "stepIndex": 10,
+        "timestampMs": 1000,
+        "type": "humanoid-rock-throw-event",
+        "payload": {
+          "eventType": "target_contact",
+          "payload": {
+            "rockId": "rock",
+            "targetId": "target",
+            "rockPosition": {
+              "x": 2.55,
+              "y": 0.85,
+              "z": 0
+            },
+            "impulseNs": 8.6
+          }
+        }
+      },
+      {
+        "stepIndex": 11,
+        "timestampMs": 1100,
+        "type": "humanoid-rock-throw-event",
+        "payload": {
+          "eventType": "aftermath",
+          "payload": {
+            "targetId": "target",
+            "observedImpact": true,
+            "provenancePanel": true
+          }
+        }
+      }
+    ],
+    "predicateScore": {
+      "violation": 0,
+      "novelty": 1,
+      "learnability": 0.7,
+      "regression": 0,
+      "invalidity": 0
+    },
+    "priority": {
+      "priority": 0,
+      "tieBreaker": 12,
+      "rationale": "violation=0.00 × novelty=1.00 × learn=0.70"
+    },
+    "replayHandle": {
+      "trajectoryId": "fnv1a-14ebc444",
+      "sceneHash": "fnv1a-4a96ba97",
+      "simulationContractId": "world-model-humanoid-rock-throw-v1",
+      "seed": 4242,
+      "replayCommand": "holoscript world-model replay --scene humanoid-rock-throw-v1 --trajectory fnv1a-14ebc444 --seed 4242"
+    },
+    "status": "open",
+    "discoveredAtMs": 1700000000000,
+    "lastReplayedAtMs": null
+  },
+  "score": {
+    "predicateScore": {
+      "violation": 0,
+      "novelty": 1,
+      "learnability": 0.7,
+      "regression": 0,
+      "invalidity": 0
+    },
+    "priority": {
+      "priority": 0,
+      "tieBreaker": 12,
+      "rationale": "violation=0.00 × novelty=1.00 × learn=0.70"
+    }
+  },
+  "predicateDeltas": [
+    {
+      "name": "violation",
+      "value": 0,
+      "threshold": 0.55,
+      "passed": false,
+      "delta": 0
+    },
+    {
+      "name": "novelty",
+      "value": 1,
+      "threshold": 0.45,
+      "passed": true,
+      "delta": 0
+    },
+    {
+      "name": "learnability",
+      "value": 0.7,
+      "threshold": 0.5,
+      "passed": true,
+      "delta": 0
+    },
+    {
+      "name": "regression",
+      "value": 0,
+      "threshold": 0.5,
+      "passed": false,
+      "delta": 0
+    },
+    {
+      "name": "invalidity",
+      "value": 0,
+      "threshold": 0.55,
+      "passed": false,
+      "delta": 0
+    }
+  ]
+}

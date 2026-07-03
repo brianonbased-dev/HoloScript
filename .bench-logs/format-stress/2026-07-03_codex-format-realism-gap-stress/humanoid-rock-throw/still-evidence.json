@@ -1,0 +1,92 @@
+[
+  {
+    "segment": "00_scene_loaded",
+    "still": "stills/00_scene_loaded.png",
+    "exists": true,
+    "bytes": 153046,
+    "sha256": "3d8e24041020c928030532b0b110737c560a2fd4fed4e2a30f956c87c586b13d",
+    "mode": "captured-scene-loaded",
+    "oracleStatus": "world-model-event-replay"
+  },
+  {
+    "segment": "01_avatar_approaches",
+    "still": "stills/01_avatar_approaches.png",
+    "exists": true,
+    "bytes": 21584,
+    "sha256": "f998fe33f137070010911a20a66b53f60f30c43cc9a12fc6f4d2f643653729bb",
+    "mode": "live-segment-screenshot",
+    "oracleStatus": "live-segment-screenshot"
+  },
+  {
+    "segment": "02_hand_reaches",
+    "still": "stills/02_hand_reaches.png",
+    "exists": true,
+    "bytes": 19312,
+    "sha256": "62e5f1dead553045aaf1cd9d58685f23dddc0fd7ac826dca00afba2a343bb166",
+    "mode": "live-segment-screenshot",
+    "oracleStatus": "live-segment-screenshot"
+  },
+  {
+    "segment": "03_grab_constraint",
+    "still": "stills/03_grab_constraint.png",
+    "exists": true,
+    "bytes": 19272,
+    "sha256": "498938acdf97ed7b8ab841a12e7538c239c2aa008d5f5bfdac50b3e3de855370",
+    "mode": "live-segment-screenshot",
+    "oracleStatus": "live-segment-screenshot"
+  },
+  {
+    "segment": "04_lift_pose",
+    "still": "stills/04_lift_pose.png",
+    "exists": true,
+    "bytes": 17363,
+    "sha256": "5b6e5e753d3cbf41d44d375f85a621eae784a07dd4cc4fde52b02a7f5c414439",
+    "mode": "live-segment-screenshot",
+    "oracleStatus": "live-segment-screenshot"
+  },
+  {
+    "segment": "05_windup",
+    "still": "stills/05_windup.png",
+    "exists": true,
+    "bytes": 17132,
+    "sha256": "ece9c5dbae598371d59ae7a4dadb9dd0207c5d5c5fc8190224d6843e8ef145e3",
+    "mode": "live-segment-screenshot",
+    "oracleStatus": "live-segment-screenshot"
+  },
+  {
+    "segment": "06_release",
+    "still": "stills/06_release.png",
+    "exists": true,
+    "bytes": 18817,
+    "sha256": "9b36117186e447f774652732a67dcb80e825681524fb78fd89dc53e6485b892e",
+    "mode": "live-segment-screenshot",
+    "oracleStatus": "live-segment-screenshot"
+  },
+  {
+    "segment": "07_ballistic_arc",
+    "still": "stills/07_ballistic_arc.png",
+    "exists": true,
+    "bytes": 21192,
+    "sha256": "47d2bcd2bf240cfd2ba581994b337c0ad844adb3c0db3c1cb36e004471371e79",
+    "mode": "live-segment-screenshot",
+    "oracleStatus": "live-segment-screenshot"
+  },
+  {
+    "segment": "08_impact",
+    "still": "stills/08_impact.png",
+    "exists": true,
+    "bytes": 18992,
+    "sha256": "23573feb94b3781b3d0f8027b7d8ae88588a5bcec806c2d428b9b6459790875a",
+    "mode": "live-segment-screenshot",
+    "oracleStatus": "live-segment-screenshot"
+  },
+  {
+    "segment": "09_aftermath",
+    "still": "stills/09_aftermath.png",
+    "exists": true,
+    "bytes": 20146,
+    "sha256": "2ef75efa08b6b0bf05793aa2be60136ded378fd0f20a980be76681e220bb9013",
+    "mode": "live-segment-screenshot",
+    "oracleStatus": "live-segment-screenshot"
+  }
+]

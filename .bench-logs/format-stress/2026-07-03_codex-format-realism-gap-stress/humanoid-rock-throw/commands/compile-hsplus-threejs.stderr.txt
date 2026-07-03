@@ -1,0 +1,2 @@
+
+[36mCompiling C:\Users\josep\Documents\GitHub\HoloScript\experiments\format-realism-gauntlet\humanoid-rock-throw.hsplus → threejs[0m
