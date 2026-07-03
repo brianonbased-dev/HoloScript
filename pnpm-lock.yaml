@@ -23,7 +23,7 @@ overrides:
   lodash-es: '>=4.18.1'
   lodash: '>=4.18.1'
   defu: '>=6.1.6'
-  undici: '>=7.24.0'
+  undici: 8.5.0
   jsdom@28.1.0>undici: 7.28.0
   flatted: '>=3.4.2'
   rollup: '>=4.59.0'
@@ -14138,7 +14138,7 @@ packages:
   native-fetch@4.0.2:
     resolution: {integrity: sha512-4QcVlKFtv2EYVS5MBgsGX5+NWKtbDbIECdUXDBGDMAZXq3Jkv9zf+y8iS7Ub8fEdga3GpYeazp9gauNqXHJOCg==}
     peerDependencies:
-      undici: '>=7.24.0'
+      undici: 8.5.0
 
   natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
@@ -16753,8 +16753,8 @@ packages:
     resolution: {integrity: sha512-cRZYrTDwWznlnRiPjggAGxZXanty6M8RV1ff8Wm4LWXBp7/IG8v5DnOm74DtUBp9OONpK75YlPnIjQqX0dBDtA==}
     engines: {node: '>=20.18.1'}
 
-  undici@8.4.1:
-    resolution: {integrity: sha512-RNHlB4fxZK0IrkhBsxhlbx7s8kFWwr7rzzOqj5nvZugw3ig3RsB7KW3zVlV0eu8POl+rx5d1hmL7rRg0z1owow==}
+  undici@8.5.0:
+    resolution: {integrity: sha512-xamtWoB1EshgjpmlXd7GGm2VfdDtw1+rD8uhry8pSNW3If6S8E0m2T2+orSKeZXEn/aPJMviCpDBA65WJt8zhg==}
     engines: {node: '>=22.19.0'}
 
   unified@11.0.5:
@@ -18843,7 +18843,7 @@ snapshots:
       discord-api-types: 0.38.48
       magic-bytes.js: 1.13.0
       tslib: 2.8.1
-      undici: 8.4.1
+      undici: 8.5.0
     optional: true
 
   '@discordjs/util@1.2.0':
@@ -27505,7 +27505,7 @@ snapshots:
       parse5: 7.3.0
       parse5-htmlparser2-tree-adapter: 7.1.0
       parse5-parser-stream: 7.1.2
-      undici: 8.4.1
+      undici: 8.5.0
       whatwg-mimetype: 4.0.0
 
   chokidar@3.6.0:
@@ -28279,7 +28279,7 @@ snapshots:
       lodash.snakecase: 4.1.1
       magic-bytes.js: 1.13.0
       tslib: 2.8.1
-      undici: 8.4.1
+      undici: 8.5.0
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -28290,9 +28290,9 @@ snapshots:
   dns-over-http-resolver@2.1.3:
     dependencies:
       debug: 4.4.3
-      native-fetch: 4.0.2(undici@8.4.1)
+      native-fetch: 4.0.2(undici@8.5.0)
       receptacle: 1.3.2
-      undici: 8.4.1
+      undici: 8.5.0
     transitivePeerDependencies:
       - supports-color
     optional: true
@@ -31630,9 +31630,9 @@ snapshots:
       node-fetch: 2.7.0(encoding@0.1.13)
     optional: true
 
-  native-fetch@4.0.2(undici@8.4.1):
+  native-fetch@4.0.2(undici@8.5.0):
     dependencies:
-      undici: 8.4.1
+      undici: 8.5.0
     optional: true
 
   natural-compare@1.4.0: {}
@@ -31781,7 +31781,7 @@ snapshots:
       semver: 7.8.4
       tar: 7.5.16
       tinyglobby: 0.2.17
-      undici: 8.4.1
+      undici: 8.5.0
       which: 6.0.1
 
   node-mock-http@1.0.4: {}
@@ -34777,7 +34777,7 @@ snapshots:
 
   undici@7.28.0: {}
 
-  undici@8.4.1: {}
+  undici@8.5.0: {}
 
   unified@11.0.5:
     dependencies:
