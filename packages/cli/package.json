@@ -9,6 +9,7 @@
     "dist"
   ],
   "bin": {
+    "holo": "./bin/holoscript.cjs",
     "holoscript": "./bin/holoscript.cjs",
     "hs": "./bin/holoscript.cjs"
   },
@@ -50,6 +51,7 @@
     "@holoscript/core": "workspace:^",
     "@holoscript/engine": "workspace:^",
     "@holoscript/core-types": "workspace:^",
+    "@holoscript/formatter": "workspace:^",
     "@holoscript/framework": "workspace:^",
     "@holoscript/hololand-platform": "workspace:^",
     "@holoscript/llm-provider": "workspace:^",

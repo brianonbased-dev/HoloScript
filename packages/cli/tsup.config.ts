@@ -31,6 +31,8 @@ export default defineConfig({
     /^@holoscript\/framework\//,
     '@holoscript/core',
     /^@holoscript\/core\//,
+    '@holoscript/formatter',
+    /^@holoscript\/formatter\//,
     '@holoscript/platform',
     /^@holoscript\/platform\//,
   ],

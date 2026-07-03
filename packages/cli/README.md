@@ -88,6 +88,8 @@ holoscript generate "a VR lobby"   # AI code generation
 holoscript templates               # Show available templates
 holoscript inspect output.js       # Inspect compiled output
 holoscript diff a.holo b.holo      # Show differences
+holo fmt src --check               # Check .hs/.hsplus/.holo formatting
+holo fmt world.hs --write          # Write canonical formatting
 ```
 
 ### Deployment

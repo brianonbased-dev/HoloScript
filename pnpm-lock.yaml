@@ -440,6 +440,9 @@ importers:
       '@holoscript/engine':
         specifier: workspace:^
         version: link:../engine
+      '@holoscript/formatter':
+        specifier: workspace:^
+        version: link:../formatter
       '@holoscript/framework':
         specifier: workspace:^
         version: link:../framework

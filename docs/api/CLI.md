@@ -84,17 +84,17 @@ holoscript validate scene.holo
 holoscript validate src/**/*.holo --strict
 ```
 
-### holoscript format
+### holo fmt
 
-Format HoloScript files.
+Format HoloScript `.hs`, `.hsplus`, and `.holo` files.
 
 ```bash
-holoscript format <input> [options]
+holo fmt <input...> [options]
 
 # Examples
-holoscript format scene.holo
-holoscript format src/**/*.holo --write
-holoscript format . --check  # Check without writing
+holo fmt scene.holo
+holo fmt src --write
+holo fmt . --check  # Check without writing
 ```
 
 ### holoscript watch

@@ -12,6 +12,7 @@ import { TRAITS, formatTrait, formatAllTraits, suggestTraits } from './traits';
 import { generateObject, listTemplates, getTemplate } from './generator';
 import { WatchService } from './WatchService';
 import { publishPackage } from './publish';
+import { fmtCommand } from './commands/fmt';
 import { hologramCommand } from './commands/hologram';
 import { quickstartCommand } from './commands/quickstart';
 import { runPhysicsSmoke, printSmokeReceipt } from './smoke';
@@ -1214,6 +1215,12 @@ async function main(): Promise<void> {
         console.log(JSON.stringify(info, null, 2));
       }
       process.exit(0);
+      break;
+    }
+
+    case 'fmt': {
+      const exitCode = await fmtCommand(options);
+      process.exit(exitCode);
       break;
     }
 

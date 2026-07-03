@@ -144,6 +144,12 @@ describe('HoloScriptFormatter â€” format()', () => {
     expect(result).toHaveProperty('formatted');
   });
 
+  it('formats with fileType hs', () => {
+    const result = formatter.format('object Test {\r\nvalue: 1   \r\n}', 'hs');
+    expect(result.formatted).toBe('object Test {\n  value: 1\n}\n');
+    expect(result.errors).toHaveLength(0);
+  });
+
   it('unchanged result when already formatted', () => {
     // Format once to get canonical form
     const result1 = formatter.format('entity Test {}');

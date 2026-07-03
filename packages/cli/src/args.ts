@@ -38,6 +38,7 @@ export interface CLIOptions {
     | 'repl'
     | 'watch'
     | 'compile'
+    | 'fmt'
     | 'build'
     | 'add'
     | 'remove'
@@ -103,6 +104,14 @@ export interface CLIOptions {
   unknownCommand?: string;
   input?: string;
   output?: string;
+  /** Check formatter conformance without writing changes */
+  check?: boolean;
+  /** Write formatter output back to source files */
+  write?: boolean;
+  /** Formatter config path */
+  configPath?: string;
+  /** Suppress formatter status output */
+  quiet?: boolean;
   verbose: boolean;
   json: boolean;
   maxDepth: number;
@@ -297,6 +306,7 @@ export function parseArgs(args: string[]): CLIOptions {
           'repl',
           'watch',
           'compile',
+          'fmt',
           'build',
           'add',
           'remove',
@@ -364,6 +374,11 @@ export function parseArgs(args: string[]): CLIOptions {
       } else if (['suggest', 'generate'].includes(options.command) && !options.description) {
         // Collect description for suggest/generate commands
         options.description = arg;
+      } else if (options.command === 'fmt') {
+        // Collect every formatter path, preserving the first as input for legacy callers.
+        if (!options.args) options.args = [];
+        options.args.push(arg);
+        if (!options.input) options.input = arg;
       } else if (options.command === 'help' && !options.input) {
         options.unknownCommand = arg;
         options.input = arg;
@@ -383,6 +398,28 @@ export function parseArgs(args: string[]): CLIOptions {
       case '-j':
       case '--json':
         options.json = true;
+        break;
+      case '-c':
+      case '--check':
+        if (options.command === 'fmt') {
+          options.check = true;
+        }
+        break;
+      case '--write':
+        if (options.command === 'fmt') {
+          options.write = true;
+        }
+        break;
+      case '--config':
+        if (options.command === 'fmt') {
+          options.configPath = args[++i];
+        }
+        break;
+      case '-q':
+      case '--quiet':
+        if (options.command === 'fmt') {
+          options.quiet = true;
+        }
         break;
       case '-o':
       case '--output':
@@ -420,6 +457,12 @@ export function parseArgs(args: string[]): CLIOptions {
         options.projection = args[++i];
         break;
       case '-w':
+        if (options.command === 'fmt') {
+          options.write = true;
+        } else {
+          options.watch = true;
+        }
+        break;
       case '--watch':
         options.watch = true;
         break;
@@ -662,6 +705,8 @@ Usage: holoscript <command> [options] [input]
   parse <file>      Parse a HoloScript file and validate syntax
   run <file>        Execute a HoloScript file
   compile <file>    Compile to target platform (threejs, unity, vrchat)
+  fmt <paths...>    Format .hs, .hsplus, and .holo source files
+                    Use --check to verify or --write to update files
   build <input>     Unified build/pack command (detects file vs dir)
                     Use -w or --watch for continuous build
   ast <file>        Output the AST as JSON
@@ -797,6 +842,12 @@ Usage: holoscript <command> [options] [input]
   --brittney-url      Brittney AI service URL (optional, enhances generation)
   -w, --watch         Enable watch mode for continuous execution/build
 
+  \x1b[2m# Formatter Options (fmt)\x1b[0m
+  -c, --check         Check formatting and exit nonzero if changes are needed
+  --write, -w         Write formatted output back to files when command is fmt
+  --config <path>     Use a formatter config file
+  -q, --quiet         Suppress formatter status output
+
   \x1b[2m# Edge Deployment Options\x1b[0m
   --platform <plat>   Target platform (linux-arm64, linux-x64, windows-x64, wasm)
   --host <host>       Remote host IP or hostname
@@ -861,6 +912,8 @@ Usage: holoscript <command> [options] [input]
   holoscript run world.hs --verbose
   holoscript compile world.holo --target threejs
   holoscript compile world.holo --target unity -o output/
+  holo fmt src --check
+  holo fmt world.hs --write
   holoscript ast world.hs -o ast.json
   holoscript repl
   holoscript watch world.hs
@@ -964,6 +1017,7 @@ Usage: holoscript <command> [options] [input]
   holoscript world-model trajectory-generate --count 20 --seed my-seed -o report.json
 
 \x1b[1mAliases:\x1b[0m
+  holo            Short alias for holoscript
   hs              Short alias for holoscript
 
 \x1b[2mBrittney AI: Set BRITTNEY_SERVICE_URL for enhanced generation.\x1b[0m

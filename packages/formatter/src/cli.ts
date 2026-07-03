@@ -12,7 +12,12 @@
 
 import { existsSync, readFileSync, writeFileSync, readdirSync, statSync } from 'fs';
 import { join, extname, resolve } from 'path';
-import { HoloScriptFormatter, FormatterConfig } from './index.js';
+import {
+  HoloScriptFormatter,
+  FormatterConfig,
+  type HoloScriptFileType,
+  getHoloScriptFileType,
+} from './index.js';
 
 interface CliOptions {
   check: boolean;
@@ -44,6 +49,7 @@ Examples:
   holoscript-format src/                     # Format all files in src/
   holoscript-format --check *.holo           # Check formatting
   holoscript-format --write src/**/*.hsplus  # Format and write files
+  holoscript-format --check src/**/*.hs      # Check .hs files
 `);
 }
 
@@ -118,14 +124,13 @@ function loadConfig(configPath?: string): Partial<FormatterConfig> {
   return {};
 }
 
-function getFileType(filePath: string): 'holo' | 'hsplus' {
-  const ext = extname(filePath).toLowerCase();
-  return ext === '.hsplus' ? 'hsplus' : 'holo';
+function getFileType(filePath: string): HoloScriptFileType {
+  return getHoloScriptFileType(filePath);
 }
 
 function collectFiles(paths: string[]): string[] {
   const files: string[] = [];
-  const validExtensions = ['.holo', '.hsplus'];
+  const validExtensions = ['.holo', '.hsplus', '.hs'];
 
   function walk(dir: string): void {
     const entries = readdirSync(dir);
@@ -182,7 +187,7 @@ async function main(): Promise<void> {
   const files = collectFiles(inputFiles);
 
   if (files.length === 0) {
-    console.error('No .holo or .hsplus files found.');
+    console.error('No .hs, .holo, or .hsplus files found.');
     process.exit(1);
   }
 

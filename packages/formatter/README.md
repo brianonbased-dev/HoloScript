@@ -1,6 +1,6 @@
 # @holoscript/formatter
 
-Code formatting tool for HoloScript (.holo) and HoloScript+ (.hsplus) files.
+Code formatting tool for HoloScript (.hs, .holo) and HoloScript+ (.hsplus) files.
 
 ## Features
 
@@ -26,6 +26,9 @@ holoscript-format src/scene.holo
 
 # Format directory recursively
 holoscript-format src/
+
+# Check all HoloScript source formats
+holoscript-format --check src/**/*.hs src/**/*.holo src/**/*.hsplus
 
 # Format and write to file
 holoscript-format --write src/
@@ -67,6 +70,7 @@ console.log(result.errors); // Array of formatting errors
 const isFormatted = formatter.check(code, 'holo');
 
 // Convenience functions (use default config)
+const result1 = format(code, 'hs');
 const result2 = format(code, 'hsplus');
 const isFormatted2 = check(code, 'holo');
 

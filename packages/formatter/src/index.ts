@@ -1,7 +1,7 @@
 /**
  * HoloScript Formatter
  *
- * Code formatting tool for HoloScript (.holo) and HoloScript+ (.hsplus) files.
+ * Code formatting tool for HoloScript (.hs, .holo) and HoloScript+ (.hsplus) files.
  * Enforces consistent code style and formatting across the codebase.
  *
  * @package @hololand/holoscript-formatter
@@ -46,6 +46,8 @@ export interface FormatError {
   column: number;
 }
 
+export type HoloScriptFileType = 'holo' | 'hsplus' | 'hs';
+
 // =============================================================================
 // FORMATTER CLASS
 // =============================================================================
@@ -60,13 +62,14 @@ export class HoloScriptFormatter {
   /**
    * Format HoloScript or HoloScript+ code
    */
-  format(source: string, fileType: 'holo' | 'hsplus' = 'holo'): FormatResult {
+  format(source: string, fileType: HoloScriptFileType = 'holo'): FormatResult {
     const errors: FormatError[] = [];
     let formatted = source;
 
     try {
-      // Step 0: Identify Raw Blocks (for .hsplus)
-      const rawRanges = fileType === 'hsplus' ? this.identifyRawBlocks(formatted) : [];
+      // Step 0: Identify Raw Blocks (for .hs/.hsplus)
+      const rawRanges =
+        fileType === 'hsplus' || fileType === 'hs' ? this.identifyRawBlocks(formatted) : [];
 
       // Step 1: Normalize line endings
       formatted = this.normalizeLineEndings(formatted);
@@ -111,7 +114,7 @@ export class HoloScriptFormatter {
   /**
    * Format a specific range of lines
    */
-  formatRange(source: string, range: Range, fileType: 'holo' | 'hsplus' = 'holo'): FormatResult {
+  formatRange(source: string, range: Range, fileType: HoloScriptFileType = 'holo'): FormatResult {
     // 1. Format entire source to calculate correct context
     const fullResult = this.format(source, fileType);
 
@@ -144,7 +147,7 @@ export class HoloScriptFormatter {
   /**
    * Check if code is properly formatted
    */
-  check(source: string, fileType: 'holo' | 'hsplus' = 'holo'): boolean {
+  check(source: string, fileType: HoloScriptFileType = 'holo'): boolean {
     const result = this.format(source, fileType);
     return !result.changed;
   }
@@ -501,7 +504,7 @@ export class HoloScriptFormatter {
 /**
  * Format HoloScript code with default config
  */
-export function format(source: string, fileType: 'holo' | 'hsplus' = 'holo'): FormatResult {
+export function format(source: string, fileType: HoloScriptFileType = 'holo'): FormatResult {
   const formatter = new HoloScriptFormatter();
   return formatter.format(source, fileType);
 }
@@ -512,7 +515,7 @@ export function format(source: string, fileType: 'holo' | 'hsplus' = 'holo'): Fo
 export function formatRange(
   source: string,
   range: Range,
-  fileType: 'holo' | 'hsplus' = 'holo'
+  fileType: HoloScriptFileType = 'holo'
 ): FormatResult {
   const formatter = new HoloScriptFormatter();
   return formatter.formatRange(source, range, fileType);
@@ -521,7 +524,7 @@ export function formatRange(
 /**
  * Check if HoloScript code is properly formatted
  */
-export function check(source: string, fileType: 'holo' | 'hsplus' = 'holo'): boolean {
+export function check(source: string, fileType: HoloScriptFileType = 'holo'): boolean {
   const formatter = new HoloScriptFormatter();
   return formatter.check(source, fileType);
 }
@@ -535,11 +538,12 @@ export function createFormatter(config: Partial<FormatterConfig> = {}): HoloScri
 
 // Config Loader integration
 import { ConfigLoader } from './ConfigLoader';
+export { ConfigLoader };
 
 /**
  * Load formatter configuration for a specific file
  */
-export function loadConfig(filePath: string): FormatterConfig {
+export function loadConfig(filePath: string = process.cwd()): FormatterConfig {
   const loader = new ConfigLoader();
   return loader.loadConfig(filePath);
 }
@@ -604,7 +608,7 @@ export async function formatFilesParallel(
   async function processFile(filePath: string): Promise<void> {
     try {
       const source = await fs.readFile(filePath, 'utf-8');
-      const fileType = filePath.endsWith('.hsplus') ? 'hsplus' : 'holo';
+      const fileType = getHoloScriptFileType(filePath);
       const formatted = formatter.format(source, fileType);
 
       if (formatted.changed) {
@@ -663,7 +667,7 @@ export async function* formatFilesStream(
   for (const filePath of files) {
     try {
       const source = await fs.readFile(filePath, 'utf-8');
-      const fileType = filePath.endsWith('.hsplus') ? 'hsplus' : 'holo';
+      const fileType = getHoloScriptFileType(filePath);
       const result = formatter.format(source, fileType);
       yield { file: filePath, result };
     } catch (err) {
@@ -687,3 +691,9 @@ export async function* formatFilesStream(
 
 // Default export
 export default HoloScriptFormatter;
+
+export function getHoloScriptFileType(filePath: string): HoloScriptFileType {
+  if (filePath.endsWith('.hsplus')) return 'hsplus';
+  if (filePath.endsWith('.hs')) return 'hs';
+  return 'holo';
+}

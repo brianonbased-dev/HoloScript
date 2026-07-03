@@ -48,6 +48,14 @@ describe('parseArgs â€” command parsing', () => {
     expect(opts.command).toBe('watch');
   });
 
+  it('parses fmt command with formatter paths', () => {
+    const opts = parseArgs(['fmt', 'src', 'scene.hs', '--check']);
+    expect(opts.command).toBe('fmt');
+    expect(opts.input).toBe('src');
+    expect(opts.args).toEqual(['src', 'scene.hs']);
+    expect(opts.check).toBe(true);
+  });
+
   it('parses help command', () => {
     const opts = parseArgs(['help']);
     expect(opts.command).toBe('help');
@@ -118,6 +126,12 @@ describe('parseArgs â€” flags', () => {
   it('--show-ast flag', () => {
     const opts = parseArgs(['parse', 'f.holo', '--show-ast']);
     expect(opts.showAST).toBe(true);
+  });
+
+  it('-w maps to write for fmt instead of watch', () => {
+    const opts = parseArgs(['fmt', 'scene.hs', '-w']);
+    expect(opts.write).toBe(true);
+    expect(opts.watch).toBe(false);
   });
 
   it('--help flag overrides command', () => {

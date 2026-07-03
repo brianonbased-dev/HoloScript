@@ -25,6 +25,10 @@ export default defineConfig({
         find: /^@holoscript\/core$/,
         replacement: path.resolve(__dirname, '../core/src/index.ts'),
       },
+      {
+        find: /^@holoscript\/formatter$/,
+        replacement: path.resolve(__dirname, '../formatter/src/index.ts'),
+      },
     ],
   },
   test: {
