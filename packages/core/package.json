@@ -365,7 +365,7 @@
     "tree-sitter-rust": "^0.24.0",
     "tree-sitter-typescript": "^0.23.2",
     "web-tree-sitter": "^0.24.0",
-    "ws": "^8.16.0"
+    "ws": "^8.21.0"
   },
   "peerDependencies": {
     "@holoscript/absorb-service": "workspace:*",
