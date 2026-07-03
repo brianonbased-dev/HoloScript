@@ -32,6 +32,25 @@ function run(command, args) {
   return result.status ?? 1;
 }
 
+function sleep(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+function cleanBuildDir(label) {
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      rmSync(buildDir, { recursive: true, force: true });
+      return;
+    } catch (err) {
+      if (attempt === 3) {
+        console.error(`${label}: unable to remove ${buildDir}: ${err.message}`);
+        process.exit(1);
+      }
+      sleep(250 * attempt);
+    }
+  }
+}
+
 function retryStep(label, command, args) {
   for (let attempt = 1; attempt <= 2; attempt++) {
     const status = run(command, args);
@@ -49,10 +68,12 @@ function retryStep(label, command, args) {
 }
 
 function runNodeGyp() {
+  cleanBuildDir('node-gyp preflight');
+
   for (let attempt = 1; attempt <= 2; attempt++) {
     if (attempt > 1) {
       console.warn(`node-gyp failed; removing generated build cache at ${buildDir}`);
-      rmSync(buildDir, { recursive: true, force: true });
+      cleanBuildDir('node-gyp retry cleanup');
     }
 
     const configureStatus = run(process.execPath, [nodeGypBin, 'configure']);

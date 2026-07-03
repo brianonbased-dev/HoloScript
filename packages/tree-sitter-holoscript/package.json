@@ -64,6 +64,7 @@
     "tree-sitter-cli": "^0.26.6"
   },
   "scripts": {
+    "install": "node scripts/install-native-optional.mjs",
     "build": "node scripts/build-native.mjs",
     "build:wasm": "tree-sitter build --wasm",
     "build:all": "npm run build && npm run build:wasm",
