@@ -74,7 +74,30 @@ PJ
   npx --yes playwright install chromium 2>&1 | tail -5
 fi
 
-# --- 4. Smoke probe ---
+# --- 4. OpenTimestamps dependencies for sign-receipt.mjs ---
+if ! command -v python3 >/dev/null 2>&1; then
+  log "Installing Python 3 for OpenTimestamps receipt signing..."
+  apt-get update -qq
+  DEBIAN_FRONTEND=noninteractive apt-get install -y -qq python3 python3-pip 2>&1 | tail -3 || true
+fi
+
+if command -v python3 >/dev/null 2>&1; then
+  if ! python3 - <<'PY' >/dev/null 2>&1
+import opentimestamps
+import requests
+PY
+  then
+    log "Installing OpenTimestamps Python dependencies..."
+    if ! python3 -m pip --version >/dev/null 2>&1; then
+      apt-get update -qq
+      DEBIAN_FRONTEND=noninteractive apt-get install -y -qq python3-pip 2>&1 | tail -3 || true
+    fi
+    python3 -m pip install --quiet --break-system-packages opentimestamps requests 2>&1 | tail -5 \
+      || python3 -m pip install --quiet --user opentimestamps requests 2>&1 | tail -5
+  fi
+fi
+
+# --- 5. Smoke probe ---
 log "Running WebGPU smoke probe…"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 cd "$REPO_ROOT"

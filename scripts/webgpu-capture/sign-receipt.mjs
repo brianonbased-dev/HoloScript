@@ -12,7 +12,7 @@
  *      always anchors the unmodified body).
  *   3. Compute SHA-256 of the canonical JSON bytes — this is the digest
  *      that reviewers can verify by hashing the receipt themselves.
- *   4. Invoke ai-ecosystem `scripts/anchor_ots.py` to produce a `.ots`
+ *   4. Invoke ai-ecosystem OpenTimestamps tooling to produce a `.ots`
  *      sidecar next to the receipt. Three public Bitcoin-anchored OTS
  *      calendars receive the digest (free, Bitcoin-confirmed within
  *      hours).
@@ -39,6 +39,7 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
+import { homedir } from 'node:os';
 import * as path from 'node:path';
 
 // ── CLI ──────────────────────────────────────────────────────────────────
@@ -76,20 +77,21 @@ console.log(`[sign-receipt] payload_digest: ${payloadDigest}`);
 // (Re-anchoring of a modified receipt produces a different digest, by design.)
 writeFileSync(receiptPath, canonical, 'utf8');
 
-// ── 4. OTS anchor via ai-ecosystem/scripts/anchor_ots.py ─────────────────
+// ── 4. OTS anchor via ai-ecosystem anchoring tools ────────────────────────
 const aiEcosystemRoot = findAiEcosystemRoot(receiptPath);
 if (!aiEcosystemRoot) {
-  console.error('[sign-receipt] cannot locate ai-ecosystem root for anchor_ots.py');
+  console.error('[sign-receipt] cannot locate ai-ecosystem root for OpenTimestamps tooling');
   process.exit(1);
 }
-const anchorOtsPy = path.join(aiEcosystemRoot, 'scripts', 'anchor_ots.py');
-if (!existsSync(anchorOtsPy)) {
-  console.error(`[sign-receipt] anchor_ots.py not found at ${anchorOtsPy}`);
+const anchorOtsPy = findAnchorOtsPy(aiEcosystemRoot);
+if (!anchorOtsPy) {
+  console.error(`[sign-receipt] anchor_ots.py not found under ${aiEcosystemRoot}`);
   process.exit(1);
 }
+const pythonBin = findPython();
 console.log(`[sign-receipt] OTS anchoring via ${anchorOtsPy}`);
 try {
-  execFileSync('python', [anchorOtsPy, receiptPath], {
+  execFileSync(pythonBin, [anchorOtsPy, receiptPath], {
     stdio: 'inherit',
     cwd: aiEcosystemRoot,
   });
@@ -179,14 +181,37 @@ console.log(`[sign-receipt] receipt updated with proof fields → ${receiptPath}
 function findAiEcosystemRoot(start) {
   // Walk up from the receipt path looking for a sibling .ai-ecosystem dir,
   // OR check the canonical Windows path. Falls back to env var if set.
-  if (process.env.HOLOSCRIPT_AI_ECOSYSTEM) return process.env.HOLOSCRIPT_AI_ECOSYSTEM;
   const candidates = [
+    process.env.HOLOSCRIPT_AI_ECOSYSTEM,
+    process.env.AI_ECOSYSTEM_ROOT,
+    path.join(homedir(), '.ai-ecosystem'),
     'C:/Users/josep/.ai-ecosystem',
     '/c/Users/josep/.ai-ecosystem',
     path.resolve(path.dirname(start), '..', '..', '..', '..', '.ai-ecosystem'),
-  ];
+  ].filter(Boolean);
   for (const c of candidates) {
-    if (existsSync(path.join(c, 'scripts', 'anchor_ots.py'))) return c;
+    if (findAnchorOtsPy(c)) return c;
   }
   return null;
+}
+
+function findAnchorOtsPy(root) {
+  const candidates = [
+    path.join(root, 'scripts', '_archived', 'anchoring', 'anchor_ots.py'),
+    path.join(root, 'scripts', 'anchor_ots.py'),
+  ];
+  return candidates.find((candidate) => existsSync(candidate)) || null;
+}
+
+function findPython() {
+  const candidates = [process.env.PYTHON, 'python3', 'python'].filter(Boolean);
+  for (const candidate of candidates) {
+    try {
+      execFileSync(candidate, ['--version'], { stdio: 'ignore' });
+      return candidate;
+    } catch {
+      // Try the next interpreter name.
+    }
+  }
+  return 'python3';
 }
