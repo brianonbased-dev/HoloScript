@@ -82,7 +82,7 @@ class StarterSampleActivity : AppSystemActivity() {
   @OptIn(SpatialSDKExperimentalSplatAPI::class)
   override fun registerFeatures(): List<SpatialFeature> =
       mutableListOf<SpatialFeature>(
-          VRFeature(this), ComposeFeature(), SplatFeature(spatial, systemManager))
+          VRFeature(this), ComposeFeature(), SplatFeature(this.spatialContext, systemManager))
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)

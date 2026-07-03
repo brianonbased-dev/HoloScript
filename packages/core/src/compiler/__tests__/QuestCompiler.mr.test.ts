@@ -85,16 +85,19 @@ describe('QuestCompiler immersive_mr (native trait-dispatch)', () => {
     expect(content).toContain('https://holoscript.studio');
     // onboarding.tagline + 4 how_to_use rows (array-of-objects parsed; the 4th, "Into a world",
     // was added with the world_portal feature — assertion kept in sync with scanner.holo)
-    expect(content).toContain('Read any QR code');
+    expect(content).toContain('Read QR codes — right in mixed reality');
     expect((content.match(/HowTo\(/g) ?? []).length).toBe(4);
-    // tutorial.steps (3 strings)
-    expect((content.match(/Look at any QR code|When it reads|Tap Open/g) ?? []).length).toBe(3);
+    // tutorial.steps
+    expect(content).toContain('Look at a QR code in your space');
+    expect(content).toContain('When it reads, a card appears');
+    expect(content).toContain('Tap Open to launch it');
+    expect(content).toContain('Scan a HoloScript world QR to step inside it');
   });
 
   it('strings.xml app_name comes from spatial_panel.title', () => {
     const out = new QuestCompiler().compile(parsed.ast!, '');
     const strings = out[Object.keys(out).find((k) => k.endsWith('strings.xml'))!];
-    expect(strings).toContain('<string name="app_name">Universal QR Scanner</string>');
+    expect(strings).toContain('<string name="app_name">HoloQR</string>');
   });
 
   it('an empty composition still emits the 2D panel (golden-compat fallback)', () => {
