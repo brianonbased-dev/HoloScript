@@ -14,9 +14,10 @@
  * HoloStatement bodies). It deliberately does NOT touch spatial nodes
  * (objects/geometry/transforms): a "spawn a cube" node has no image in the
  * uAAL cognitive ISA, and lowering it would be a category error (that path is
- * HolobCompiler -> HoloVM, the spatial VM). Loops/animate/on-error are recorded
- * as `stats.unhandled` rather than faked — an honest partial, not a stub that
- * discards its input.
+ * HolobCompiler -> HoloVM, the spatial VM). Loops (While/For/ClassicFor) lower
+ * to real back-edge bytecode (see lowerWhile/lowerFor/lowerClassicFor below);
+ * animate/on-error are still recorded as `stats.unhandled` rather than faked —
+ * an honest partial, not a stub that discards its input.
  *
  * The emitted bytecode is structurally `UAALBytecode` from `@holoscript/uaal`
  * but is built with local opcode constants so this pass adds NO dependency edge
@@ -31,6 +32,9 @@ import type {
   HoloComposition,
   HoloStatement,
   HoloIfStatement,
+  HoloWhileStatement,
+  HoloForStatement,
+  HoloClassicForStatement,
   HoloExpression,
 } from '../parser/HoloCompositionTypes';
 
@@ -177,11 +181,20 @@ export class UaalBehaviorCompiler {
         this.lowerIf(stmt);
         return;
       }
-      // Deferred to a later G3 slice: loops need back-edge handling; animate /
-      // on-error need domain ops. Recorded honestly rather than faked.
-      case 'ForStatement':
-      case 'WhileStatement':
-      case 'ClassicForStatement':
+      case 'WhileStatement': {
+        this.lowerWhile(stmt);
+        return;
+      }
+      case 'ForStatement': {
+        this.lowerFor(stmt);
+        return;
+      }
+      case 'ClassicForStatement': {
+        this.lowerClassicFor(stmt);
+        return;
+      }
+      // Deferred to a later G3 slice: animate/on-error need domain ops this
+      // pass has no lowering for yet. Recorded honestly rather than faked.
       case 'AnimateStatement':
       case 'OnErrorStatement': {
         this.stats.unhandled[stmt.type] = (this.stats.unhandled[stmt.type] ?? 0) + 1;
@@ -209,6 +222,99 @@ export class UaalBehaviorCompiler {
     for (const s of stmt.consequent) this.lowerStatement(s);
     const end = this.instructions.length;
     this.instructions[jumpIfIdx].operands = [thenStart];
+    this.instructions[jumpEndIdx].operands = [end];
+    this.stats.branches++;
+  }
+
+  /**
+   * Lower a while loop into a back-edge loop:
+   *   loopHead: EXECUTE('cond', <condition>); JUMP_IF bodyStart; JUMP end;
+   *   bodyStart: <body>; JUMP loopHead; end:
+   *
+   * Unlike `lowerIf`'s condition (a raw PUSH of the compiled expression
+   * operand), the condition here is wrapped in an EXECUTE call rather than a
+   * bare PUSH. This is deliberate, not cosmetic: PUSH+lowerExpr bakes a
+   * COMPILE-TIME-fixed operand into the instruction stream (fine for if/else,
+   * evaluated once), but a loop's condition must be re-examined every
+   * iteration against the CURRENT runtime state. Only a host-registered
+   * EXECUTE handler (the same extension point Assignment/VariableDeclaration
+   * already delegate real semantics through, see lowerStatement above) can
+   * produce a genuinely varying value across iterations; a bare PUSH of a
+   * structural expression object (e.g. `{op:'<', l:..., r:...}`) would be a
+   * non-null object and therefore always truthy to JUMP_IF regardless of the
+   * comparison it describes, silently producing an infinite loop.
+   */
+  private lowerWhile(stmt: HoloWhileStatement): void {
+    const loopHead = this.instructions.length;
+    this.emit(OP.EXECUTE, ['cond', this.lowerExpr(stmt.condition)]);
+    const jumpIfIdx = this.emit(OP.JUMP_IF, [0]);
+    const jumpEndIdx = this.emit(OP.JUMP, [0]);
+    const bodyStart = this.instructions.length;
+    for (const s of stmt.body) this.lowerStatement(s);
+    this.emit(OP.JUMP, [loopHead]);
+    const end = this.instructions.length;
+    this.instructions[jumpIfIdx].operands = [bodyStart];
+    this.instructions[jumpEndIdx].operands = [end];
+    this.stats.branches++;
+  }
+
+  /**
+   * Lower a for-of loop (`for (variable in iterable) { body }`) into the same
+   * back-edge shape as `lowerWhile`, with iteration state (the current index
+   * and current-element binding) delegated to the host via two dedicated
+   * EXECUTE tags -- `forHasNext:VAR` (host pushes a real boolean: more
+   * elements remain) and `forNext:VAR` (host advances the iterator and binds
+   * the current element to VAR in its own state/context). The VM has no
+   * native iterator/collection-indexing primitive, so -- consistent with how
+   * Assignment/VariableDeclaration already delegate real semantics rather
+   * than the compiler inventing them -- iteration mechanics are the host's
+   * responsibility, not this pass's. `forInit:VAR` binds the iterable once,
+   * before the loop head, so it is evaluated exactly once, not per-iteration.
+   */
+  private lowerFor(stmt: HoloForStatement): void {
+    this.emit(OP.EXECUTE, [`forInit:${stmt.variable}`, this.lowerExpr(stmt.iterable)]);
+    const loopHead = this.instructions.length;
+    this.emit(OP.EXECUTE, [`forHasNext:${stmt.variable}`]);
+    const jumpIfIdx = this.emit(OP.JUMP_IF, [0]);
+    const jumpEndIdx = this.emit(OP.JUMP, [0]);
+    const bodyStart = this.instructions.length;
+    this.emit(OP.EXECUTE, [`forNext:${stmt.variable}`]);
+    for (const s of stmt.body) this.lowerStatement(s);
+    this.emit(OP.JUMP, [loopHead]);
+    const end = this.instructions.length;
+    this.instructions[jumpIfIdx].operands = [bodyStart];
+    this.instructions[jumpEndIdx].operands = [end];
+    this.stats.branches++;
+  }
+
+  /**
+   * Lower a classic C-style for loop (`for (init; test; update) { body }`)
+   * into the same back-edge shape. `init`/`update` are themselves
+   * `HoloStatement`s (per HoloCompositionTypes) so they reuse
+   * `lowerStatement` directly rather than new machinery; `test` reuses the
+   * same `cond` EXECUTE-tag convention as `lowerWhile` for the same reason
+   * (a loop condition must be re-evaluated by the host every iteration, not
+   * baked in once at compile time). A missing `test` lowers to a literal
+   * `true` PUSH (an intentionally infinite loop, bounded only by the VM's
+   * `maxInstructions` guard or a future break-statement lowering) rather than
+   * silently treating "no test" as "never runs."
+   */
+  private lowerClassicFor(stmt: HoloClassicForStatement): void {
+    if (stmt.init) this.lowerStatement(stmt.init);
+    const loopHead = this.instructions.length;
+    if (stmt.test) {
+      this.emit(OP.EXECUTE, ['cond', this.lowerExpr(stmt.test)]);
+    } else {
+      this.emit(OP.PUSH, [true]);
+    }
+    const jumpIfIdx = this.emit(OP.JUMP_IF, [0]);
+    const jumpEndIdx = this.emit(OP.JUMP, [0]);
+    const bodyStart = this.instructions.length;
+    for (const s of stmt.body) this.lowerStatement(s);
+    if (stmt.update) this.lowerStatement(stmt.update);
+    this.emit(OP.JUMP, [loopHead]);
+    const end = this.instructions.length;
+    this.instructions[jumpIfIdx].operands = [bodyStart];
     this.instructions[jumpEndIdx].operands = [end];
     this.stats.branches++;
   }
