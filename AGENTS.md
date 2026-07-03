@@ -35,6 +35,21 @@ HoloScript turns descriptions into working interfaces. Describe a dashboard, a r
 
 MCP server at `mcp.holoscript.net` — discover tools via `POST /mcp` with `tools/list`.
 
+## HoloScript Tool Integration
+
+- HoloScript source/tool surface: `.holo`, `.hsplus`, `.hs`, validators,
+  compilers, and MCP tools are the native substrate rather than docs-only
+  references.
+- HoloKey/x402 custody: preserve HoloKey, x402, and seat wallet provenance for
+  credentialed tool calls, registry writes, signed receipts, and creator flows.
+- Umbrella/routeTask routing: use the HoloMesh room board, skill surface, and
+  `routeTask` umbrella to route work across HoloScript, HoloLand, orchestrator,
+  service, and research repos.
+- Triads/uAAL: use the competitor-paper-codebase triad and uAAL lens when a
+  change crosses language, runtime, research, or ecosystem boundaries.
+- HoloGate note: HoloGate is a docs umbrella term only; it does not replace
+  concrete HoloKey, routeTask, triad/uAAL, MCP, or source-level proof.
+
 ## First Surface: Skills
 
 Before raw grep, raw curl, or long-form code spelunking, check the skill surface. Skills are the front door for HoloScript work because they carry the current workflows, dispatch rules, gotchas, and validation habits.
