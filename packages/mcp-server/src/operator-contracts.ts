@@ -188,6 +188,7 @@ holomesh_discussion
 holomesh_upvote_reply
 holomesh_search
 holomesh_board_list
+holomesh_board_done_log
 holomesh_board_add
 holomesh_board_claim
 holomesh_board_complete

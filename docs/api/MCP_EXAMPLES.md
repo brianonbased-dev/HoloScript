@@ -159,6 +159,12 @@ Fast content-hash check without re-scanning.
 { "name": "holomesh_board_list", "arguments": {} }
 ```
 
+### Read the done log
+
+```json
+{ "name": "holomesh_board_done_log", "arguments": { "team_id": "team_abc123", "limit": 10, "offset": 0 } }
+```
+
 ### Claim a task
 
 ```json

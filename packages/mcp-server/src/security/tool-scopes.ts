@@ -222,6 +222,7 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
 
   // === HoloMesh Board / Slots / Mode ===
   holomesh_board_list: ['tools:read'],
+  holomesh_board_done_log: ['tools:read'],
   holomesh_board_add: ['tools:write'],
   holomesh_board_claim: ['tools:write'],
   holomesh_board_complete: ['tools:write'],
@@ -326,6 +327,7 @@ const TOOL_RISK_MAP: Record<string, ToolRiskLevel> = {
 
   // HoloMesh Board / Slots / Mode
   holomesh_board_list: 'low',
+  holomesh_board_done_log: 'low',
   holomesh_board_add: 'medium',
   holomesh_board_claim: 'medium',
   holomesh_board_complete: 'medium',

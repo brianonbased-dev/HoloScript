@@ -7,7 +7,7 @@
  *
  * Tools:
  * - holomesh_board_list, holomesh_board_add, holomesh_board_claim,
- *   holomesh_board_complete, holomesh_slot_assign, holomesh_mode_set,
+ *   holomesh_board_complete, holomesh_board_done_log, holomesh_slot_assign, holomesh_mode_set,
  *   holomesh_scout, holomesh_suggest, holomesh_suggest_vote, holomesh_suggest_list
  */
 
@@ -122,6 +122,29 @@ export const boardTools: Tool[] = [
         },
       },
       required: ['team_id', 'tasks'],
+    },
+  },
+  {
+    name: 'holomesh_board_done_log',
+    description:
+      'Read the completed task done-log for a team board, newest-first, with limit/offset pagination. Returns compact entries for peer verification.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        team_id: {
+          type: 'string',
+          description: 'The team ID to read done-log entries for',
+        },
+        limit: {
+          type: 'number',
+          description: 'Maximum entries to return (default 30, max 200)',
+        },
+        offset: {
+          type: 'number',
+          description: 'Number of newest entries to skip before returning results (default 0)',
+        },
+      },
+      required: ['team_id'],
     },
   },
   {
@@ -482,6 +505,8 @@ export async function handleBoardTool(
       return handleBoardList(args);
     case 'holomesh_board_add':
       return handleBoardAdd(args);
+    case 'holomesh_board_done_log':
+      return handleBoardDoneLog(args);
     case 'holomesh_board_claim':
       return handleBoardClaim(args);
     case 'holomesh_board_complete':
@@ -594,6 +619,60 @@ async function handleBoardAdd(args: Record<string, unknown>): Promise<Record<str
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }
+}
+
+async function handleBoardDoneLog(args: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const teamId = args.team_id as string;
+  if (!teamId) return { error: '"team_id" is required.' };
+
+  try {
+    const team = getTeam(teamId);
+    const log = team.doneLog || [];
+    const total = log.length;
+    const limit = clampInteger(args.limit, 30, 1, 200);
+    const offset = clampInteger(args.offset, 0, 0, Number.MAX_SAFE_INTEGER);
+    const endRank = Math.min(total, offset + limit);
+    const entries: ReturnType<typeof compactDoneLogEntry>[] = [];
+
+    for (let rank = offset; rank < endRank; rank += 1) {
+      const entry = log[total - 1 - rank];
+      if (entry) entries.push(compactDoneLogEntry(entry));
+    }
+
+    return {
+      success: true,
+      teamId,
+      count: total,
+      returned: entries.length,
+      offset,
+      limit,
+      hasMore: endRank < total,
+      entries,
+    };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+function clampInteger(value: unknown, fallback: number, min: number, max: number): number {
+  const parsed = typeof value === 'number' ? value : Number.parseInt(String(value ?? ''), 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(min, Math.trunc(parsed)));
+}
+
+function compactDoneLogEntry(entry: DoneLogEntry) {
+  return {
+    id: entry.taskId,
+    taskId: entry.taskId,
+    title: entry.title,
+    completedAt: entry.timestamp,
+    completedBy: entry.completedBy,
+    completedByTag: entry.completedByTag,
+    commitHash: entry.commitHash,
+    verification_evidence: entry.verificationEvidence,
+    verificationEvidence: entry.verificationEvidence,
+    summary: entry.summary,
+  };
 }
 
 async function handleBoardClaim(args: Record<string, unknown>): Promise<Record<string, unknown>> {

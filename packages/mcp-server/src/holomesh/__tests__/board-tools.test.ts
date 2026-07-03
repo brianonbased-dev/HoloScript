@@ -54,8 +54,8 @@ function deferred<T = void>() {
 // ── Tool Definition Tests ──
 
 describe('boardTools definitions', () => {
-  it('exports 14 tool definitions', () => {
-    expect(boardTools).toHaveLength(14);
+  it('exports 15 tool definitions', () => {
+    expect(boardTools).toHaveLength(15);
   });
 
   it('all tool names use expected holomesh prefixes', () => {
@@ -69,6 +69,7 @@ describe('boardTools definitions', () => {
   const expectedTools = [
     'holomesh_board_list',
     'holomesh_board_add',
+    'holomesh_board_done_log',
     'holomesh_board_claim',
     'holomesh_board_complete',
     'holomesh_board_append_commit',
@@ -101,6 +102,12 @@ describe('boardTools definitions', () => {
     const schema = tool.inputSchema as Record<string, unknown>;
     expect(schema.required).toContain('team_id');
     expect(schema.required).toContain('tasks');
+  });
+
+  it('holomesh_board_done_log requires team_id', () => {
+    const tool = boardTools.find((t) => t.name === 'holomesh_board_done_log')!;
+    const schema = tool.inputSchema as Record<string, unknown>;
+    expect(schema.required).toContain('team_id');
   });
 
   it('holomesh_board_claim requires team_id and task_id', () => {
@@ -164,6 +171,12 @@ describe('handleBoardTool validation', () => {
     })) as Record<string, unknown>;
     expect(result).toBeDefined();
     expect(result!.error).toMatch(/task_id/);
+  });
+
+  it('holomesh_board_done_log returns error when team_id missing', async () => {
+    const result = (await handleBoardTool('holomesh_board_done_log', {})) as Record<string, unknown>;
+    expect(result).toBeDefined();
+    expect(result!.error).toMatch(/team_id/);
   });
 
   it('holomesh_board_complete returns error when task_id missing', async () => {
@@ -258,6 +271,83 @@ describe('handleBoardTool with in-memory store', () => {
     const tasks = result.tasks as Array<Record<string, unknown>>;
     expect(tasks).toHaveLength(2);
     expect(tasks[0].title).toBe('Fix bug');
+  });
+
+  it('holomesh_board_done_log returns paginated newest-first compact entries', async () => {
+    seedTeam('team-abc', {
+      doneLog: [
+        {
+          taskId: 'task-old',
+          title: 'Old completion',
+          completedBy: 'claude1',
+          timestamp: '2026-01-01T00:00:00.000Z',
+          summary: 'old summary',
+          commitHash: 'aaa1111',
+          verificationEvidence: 'old proof',
+        },
+        {
+          taskId: 'task-mid',
+          title: 'Middle completion',
+          completedBy: 'codex1',
+          completedByTag: 'codex-hardware',
+          timestamp: '2026-01-02T00:00:00.000Z',
+          summary: 'middle summary',
+          commitHash: 'bbb2222',
+          verificationEvidence: 'middle proof',
+        },
+        {
+          taskId: 'task-new',
+          title: 'Newest completion',
+          completedBy: 'grok1',
+          timestamp: '2026-01-03T00:00:00.000Z',
+          summary: 'new summary',
+          commitHash: 'ccc3333',
+          verificationEvidence: 'new proof',
+        },
+      ],
+    });
+
+    const result = (await handleBoardTool('holomesh_board_done_log', {
+      team_id: 'team-abc',
+      limit: 2,
+      offset: 1,
+    })) as Record<string, unknown>;
+
+    expect(result).toMatchObject({
+      success: true,
+      teamId: 'team-abc',
+      count: 3,
+      returned: 2,
+      offset: 1,
+      limit: 2,
+      hasMore: false,
+    });
+    expect(result.entries).toEqual([
+      {
+        id: 'task-mid',
+        taskId: 'task-mid',
+        title: 'Middle completion',
+        completedAt: '2026-01-02T00:00:00.000Z',
+        completedBy: 'codex1',
+        completedByTag: 'codex-hardware',
+        commitHash: 'bbb2222',
+        verification_evidence: 'middle proof',
+        verificationEvidence: 'middle proof',
+        summary: 'middle summary',
+      },
+      {
+        id: 'task-old',
+        taskId: 'task-old',
+        title: 'Old completion',
+        completedAt: '2026-01-01T00:00:00.000Z',
+        completedBy: 'claude1',
+        completedByTag: undefined,
+        commitHash: 'aaa1111',
+        verification_evidence: 'old proof',
+        verificationEvidence: 'old proof',
+        summary: 'old summary',
+      },
+    ]);
   });
 
   it('awaits durable persistence before returning from holomesh_board_add', async () => {
