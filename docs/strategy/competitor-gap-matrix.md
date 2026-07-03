@@ -1,6 +1,6 @@
 # Competitor Gap Matrix
 
-> Generated: 2026-06-23T05:56:54Z | Next review: 2026-07-23
+> Generated: 2026-07-03T10:40:00Z | Next review: 2026-07-17
 
 | ID | Vertical | Competitor | Severity | Direction | Status | Title |
 |---|---|---|---|---|---|---|
@@ -34,7 +34,7 @@
 | CG-056 | Causal ML / simulation-for-ML | DoWhy / CausalML (causal inference frameworks) | 🟢 P3 | differentiator | 👁️ Watch | SCMCompiler positions HoloScript as a causal training data generator — undocumented niche |
 | CG-057 | Creator economy / on-chain assets | OpenSea / NFT Marketplaces | 🟢 P3 | watch | 👁️ Watch | NFT marketplace — WATCH + BUILD-INTERNAL (HoloScript Protocol is the sovereign answer) |
 | CG-058 | Phone-sleeve VR (sovereign revival) | Google Cardboard / phone-sleeve VR category | 🟡 P2 | differentiator | 👁️ Watch | PhoneSleeveVR sovereign revival — compiler exists, no product or marketing yet |
-| CG-073 | W.501 live MCP compile/generate surface coverage | Vercel v0 / Lovable / Bolt / Subframe / specialist SDK ecosystems | 🟡 P2 | differentiator | 👁️ Watch | W.501 live MCP compile/generate coverage row prevents unconsumed tool surfaces |
+| CG-073 | W.501 live MCP compile/generate surface coverage | Vercel v0 / Lovable / Bolt / Subframe / specialist SDK ecosystems | 🟡 P2 | differentiator | 👁️ Watch | W.501 live MCP compile/generate and substrate-tool coverage row prevents unconsumed tool surfaces |
 
 ## Detailed Gap Descriptions
 
@@ -48,7 +48,7 @@
 - **Board Task:** task_1778222134389_0uxt
 
 **Competitor Advantage:**
-Unity has 20+ years of editor maturity, 70K Asset Store assets, Unity Learn certifications, integrated Profiler + Frame Debugger, Plastic SCM collaboration, and a full LiveOps SaaS stack (Analytics, Remote Config, Cloud Build, Multiplay). This ecosystem lock-in is the primary reason teams choose Unity even when the runtime is not optimal for their use case.
+Unity has 20+ years of editor maturity, 70K Asset Store assets, Unity Learn certifications, integrated Profiler + Frame Debugger, Plastic SCM collaboration, and a full LiveOps SaaS stack (Analytics, Remote Config, Cloud Build, Multiplay). Unity 6.3 LTS is now the supported LTS line through December 2027 and Unity 6000.4 update releases continue to ship weekly/biweekly patch evidence. This ecosystem lock-in is the primary reason teams choose Unity even when the runtime is not optimal for their use case.
 
 **HoloScript State:**
 Editor: Studio is beta; lacks Scene/Game/Inspector/Hierarchy/Project window parity. Asset Store: No marketplace at scale. Learning: Docs + video-tutorials exist, but no structured certification or university partnerships. Profiler: Synthetic benchmarks only; no real-time in-editor profiler. Collaboration: CRDT multi-user editing exists but no Plastic/Git LFS large-asset workflow or cloud project sharing. LiveOps: No Analytics, Remote Config, Cloud Build, Multiplay, or User Reporting equivalents.
@@ -62,6 +62,8 @@ Editor: Studio is beta; lacks Scene/Game/Inspector/Hierarchy/Project window pari
 - Benchmark suite: packages/benchmark/
 - CRDT collab: packages/crdt/
 - Marketplace API: packages/marketplace-api/
+- Unity official Unity 6 page: Unity 6.3 LTS supported until December 2027; Unity 6.0 LTS supported through October 2026.
+- Unity official 6000.4.11f1 release page: released June 10, 2026.
 
 **Sources:**
 - docs/strategy/battlecards/unity.md
@@ -70,6 +72,8 @@ Editor: Studio is beta; lacks Scene/Game/Inspector/Hierarchy/Project window pari
 - packages/crdt/
 - packages/marketplace-api/
 - packages/video-tutorials/
+- https://unity.com/releases/unity-6
+- https://unity.com/releases/editor/whats-new/6000.4.11f1
 
 ### CG-037 — Unreal visual fidelity and toolchain depth vs HoloScript simulation fidelity
 
@@ -191,7 +195,7 @@ GodotCompiler.ts exists. No integration tutorial, no community presence in Godot
 - **Board Task:** task_1779252073335_vua1
 
 **Competitor Advantage:**
-Babylon 9.0 ships OpenPBR, geospatial rendering, improved navmesh + crowd agents. Community-contributed MCP server lets LLMs inspect/manipulate Babylon scenes live — creating an agent-native 3D narrative HoloScript must counter. Microsoft distribution (Windows Dev Blog, Azure examples) gives organic reach HoloScript lacks.
+Babylon 9.0 ships OpenPBR, geospatial rendering, improved navmesh + crowd agents. Babylon 9.15.0 shipped July 2, 2026 after 9.14.0 added HTML-in-Canvas support, Gaussian Splatting GPU-picking fixes, and continued streaming/LOD work. The community-contributed MCP server lets LLMs inspect/manipulate Babylon graph editors live — creating an agent-native 3D narrative HoloScript must counter. Microsoft distribution (Windows Dev Blog, Azure examples) gives organic reach HoloScript lacks.
 
 **HoloScript State:**
 HoloScript MCP has 215+ tools vs Babylon's scene-inspection-only plugin. BabylonCompiler.ts is a compile target. Studio inspector is newer/less mature than Babylon's.
@@ -201,11 +205,15 @@ HoloScript MCP has 215+ tools vs Babylon's scene-inspection-only plugin. Babylon
 
 **Evidence:**
 - docs/strategy/battlecards/babylon-js-9.md
+- Babylon.js 9.15.0 official release notes: latest release on July 2, 2026; core fixes include WebGPU sRGB conversion, tree-shaking side-effect fixes, and geospatial camera input changes.
+- Babylon.js 9.14.0 official release notes: HTML-in-Canvas support landed; Gaussian Splatting GPU picking, bucket sort, and streaming/LOD work continued.
 - Babylon.js 9.13.0 official release notes: Gaussian Splatting streaming/LOD work continued across core, inspector, and loaders; GPU picker depth point and normal support landed in core.
 - packages/core/src/compiler/BabylonCompiler.ts
 
 **Sources:**
 - docs/strategy/battlecards/babylon-js-9.md
+- https://github.com/BabylonJS/Babylon.js/releases/tag/9.15.0
+- https://github.com/BabylonJS/Babylon.js/releases/tag/9.14.0
 - https://github.com/BabylonJS/Babylon.js/releases/tag/9.13.0
 - packages/core/src/compiler/BabylonCompiler.ts
 
@@ -302,23 +310,27 @@ Ship a three-tier DispatchPolicy in core that routes per-trait by (trait class �
 - **Status:** watch
 
 **Competitor Advantage:**
-Cursor has the fastest-growing AI developer mindshare, native MCP client support, and a marketplace of MCP servers. The developers most likely to adopt HoloScript (AI-native, agent-first) are Cursor users. Whoever wins their MCP ecosystem wins the developer wedge.
+Cursor has the fastest-growing AI developer mindshare, native MCP client support, team MCP marketplaces, and automation surfaces that can now survive MCP auth setup without losing partial state. The developers most likely to adopt HoloScript (AI-native, agent-first) are Cursor users. Whoever wins their MCP ecosystem wins the developer wedge.
 
 **HoloScript State:**
-HoloScript MCP server exists at mcp.holoscript.net with 215+ tools. Not yet published to Cursor marketplace. No HoloScript-specific Cursor config template in docs.
+HoloScript MCP server exists at mcp.holoscript.net with 215+ tools. Not yet published to Cursor marketplace. No HoloScript-specific Cursor config template in docs. Cursor entry docs also do not yet show the full HoloScript substrate path: HoloKey/x402 custody, routeTask/umbrella routing, and competitor-paper-codebase triad review.
 
 **Needed Response:**
-1. Submit HoloScript MCP to Cursor marketplace immediately. 2. Publish Cursor-specific quickstart: add mcp.holoscript.net to cursor settings, first compile in 60 seconds. 3. Create docs/guides/cursor-holoscript.md. 4. The win condition: every Cursor user can author HoloScript without leaving their IDE.
+1. Submit HoloScript MCP to Cursor marketplace immediately. 2. Publish Cursor-specific quickstart: add mcp.holoscript.net to cursor settings, first compile in 60 seconds, then show HoloKey/x402 receipts, routeTask umbrella routing, and triad review. 3. Create docs/guides/cursor-holoscript.md. 4. The win condition: every Cursor user can author HoloScript without leaving their IDE and every repo-level Cursor entry translates back into HoloScript source, HoloMesh tasks, and portable receipts.
 
 **Evidence:**
 - docs/strategy/battlecards/cursor.md
 - mcp.holoscript.net — live MCP server
 - Cursor 3.8 official changelog: Automations now add /automate setup, GitHub and Slack triggers, marketplace templates for failed-action triage and PR-review autofix, and computer use for cloud agents.
+- Cursor June 30, 2026 official changelog: team marketplaces now support Team MCPs and organization groups.
+- Cursor June 18, 2026 official changelog: automations can save incomplete state during MCP auth setup, open PRs by default, and delete memory files from UI/prompted runs.
 - docs/guides/agent-mcp-quickstart.md
 
 **Sources:**
 - docs/strategy/battlecards/cursor.md
 - https://cursor.com/changelog
+- https://cursor.com/changelog/team-marketplace-updates
+- https://cursor.com/changelog/06-18-26
 - docs/guides/agent-mcp-quickstart.md
 
 ### CG-032 — HoloScript can become the cross-hardware semantic evidence layer competitors do not provide
@@ -385,19 +397,21 @@ USDPhysicsCompiler.ts (v1.0.0) explicitly targets isaac_sim | omniverse | generi
 - **Board Task:** task_1779252073335_592m
 
 **Competitor Advantage:**
-Native SwiftUI + RealityKit + Reality Composer Pro integration with full platform feature surface.
+Native SwiftUI + RealityKit + Reality Composer Pro integration with full platform feature surface. Reality Composer Pro 3 is now a standalone app with live preview, lightmaps, prototype/instance workflows, and an AI assistant for generating 3D content inside the editor.
 
 **HoloScript State:**
-VisionOSCompiler emits basic struct + RealityView + Entity tree. Many traits map to comments or stubs.
+VisionOSCompiler emits basic struct + RealityView + Entity tree. Many traits map to comments or stubs. HoloScript does not yet document a Reality Composer Pro 3 handoff for generated USDZ/RealityKit assets.
 
 **Needed Response:**
-Close fidelity gaps: environment.style, hand/eye tracking, window volumetrics, webview/AVPlayer, ornament attach_to, toolbar, portal transitions, palm_menu, visible_when, inline animations, gesture recognisers, SharePlay, audio head_tracking, .usdz geometry loading.
+Close fidelity gaps: environment.style, hand/eye tracking, window volumetrics, webview/AVPlayer, ornament attach_to, toolbar, portal transitions, palm_menu, visible_when, inline animations, gesture recognisers, SharePlay, audio head_tracking, .usdz geometry loading. Add a Reality Composer Pro 3 workflow note so compile_to_visionos / compile_to_usdz outputs land in Apple's current authoring lane.
 
 **Evidence:**
 - VisionOSCompiler.smoke.test.ts records 14+ named fidelity gaps.
+- Apple WWDC26 Reality Composer Pro 3 session: standalone app, live preview, lightmaps, prototype/instance workflows, and Reality Composer Pro Assistant for AI-assisted 3D content.
 
 **Sources:**
 - packages/core/src/compiler/__tests__/VisionOSCompiler.smoke.test.ts
+- https://developer.apple.com/videos/play/wwdc2026/280/
 
 ### CG-044 — USDZ export missing animation tracks and AR Quick Look metadata for iOS AR Quick Look
 
@@ -431,21 +445,25 @@ Audit USDZExportCompiler against Apple USDZ spec for AR Quick Look. Add animatio
 - **Status:** watch
 
 **Competitor Advantage:**
-Android XR (Google + Samsung, launching 2026) brings Android's 3B+ device developer ecosystem to spatial computing. AI Glasses with Jetpack Compose Glimmer UI create a new form factor. Google's distribution at device activation scale is unmatched.
+Android XR (Google + Samsung, launching 2026) brings Android's 3B+ device developer ecosystem to spatial computing. Android XR SDK Developer Preview 4 broadens the platform across headsets, wired XR glasses, audio glasses, and display glasses, with Jetpack Compose Glimmer for transparent displays. Google's distribution at device activation scale is unmatched.
 
 **HoloScript State:**
-AndroidXRCompiler.ts exists (Jetpack Compose XR). AIGlassesCompiler.ts exists (Jetpack Compose Glimmer UI for transparent optical see-through). Both are compile targets from .holo compositions. No integration guide, no real-device validation, no developer community presence.
+AndroidXRCompiler.ts exists (Jetpack Compose XR). AIGlassesCompiler.ts exists (Jetpack Compose Glimmer UI for transparent optical see-through). Both are compile targets from .holo compositions. No integration guide, no real-device validation, no developer community presence. Row language has been updated away from treating 'AI Glasses' as the sole current Google naming surface.
 
 **Needed Response:**
-1. Obtain Android XR developer hardware (Samsung Galaxy XR device) for compiler validation. 2. Write integration guide: .holo scene → compile_to_android_xr. 3. Publish on Android Developers Blog or via Google Developer Program. 4. Position: 'Android XR devs get physics simulation and multi-target compile for free.'
+1. Obtain Android XR developer hardware for compiler validation. 2. Write integration guide: .holo scene → compile_to_android_xr and .holo glanceable scene → compile_to_ai_glasses / display-glasses lane. 3. Publish on Android Developers Blog or via Google Developer Program. 4. Position: 'Android XR devs get physics simulation and multi-target compile for free.'
 
 **Evidence:**
 - packages/core/src/compiler/AndroidXRCompiler.ts
-- packages/core/src/compiler/AIGlassesCompiler.ts — Jetpack Compose Glimmer UI for AI Glasses
+- packages/core/src/compiler/AIGlassesCompiler.ts — Jetpack Compose Glimmer UI for transparent optical see-through
+- Android Developers official Developer Preview 4 post: Android XR now frames form factors as headsets, wired XR glasses, audio glasses, and display glasses; prior AI glasses naming is being replaced in docs.
+- Android Developers AI glasses / Android XR post: Developer Preview 3 opened AI-glasses development with Jetpack Compose Glimmer, Jetpack Projected, ARCore for Jetpack XR geospatial updates, and OpenXR engine integration.
 
 **Sources:**
 - packages/core/src/compiler/AndroidXRCompiler.ts
 - packages/core/src/compiler/AIGlassesCompiler.ts
+- https://developer.android.com/blog/posts/updates-to-the-android-xr-sdk-introducing-developer-preview-4
+- https://developer.android.com/blog/posts/start-building-for-glasses-new-devices-for-android-xr-and-more-in-the-android-show
 
 ### CG-046 — Google A2A Protocol — HoloScript compositions can be published as A2A agent cards
 
@@ -814,7 +832,7 @@ PhoneSleeveVRCompiler.ts generates self-contained WebXR HTML for stereoscopic VR
 **Sources:**
 - packages/core/src/compiler/PhoneSleeveVRCompiler.ts
 
-### CG-073 — W.501 live MCP compile/generate coverage row prevents unconsumed tool surfaces
+### CG-073 — W.501 live MCP compile/generate and substrate-tool coverage row prevents unconsumed tool surfaces
 
 - **Vertical:** W.501 live MCP compile/generate surface coverage
 - **Competitor:** Vercel v0 / Lovable / Bolt / Subframe / specialist SDK ecosystems
@@ -824,13 +842,13 @@ PhoneSleeveVRCompiler.ts generates self-contained WebXR HTML for stereoscopic VR
 - **Board Task:** task_1782181922840_1wma
 
 **Competitor Advantage:**
-Vercel v0, Lovable, Bolt, and Subframe own prompt-to-app or prompt-to-UI distribution; specialist ecosystems such as Qiskit/Cirq/PennyLane, FMI/Modelica/Simulink, ROS/Gazebo/Isaac, Lens Studio, and mobile SDKs own their category-specific docs, examples, and communities. Their advantage is not that they compile more targets; it is that users can see and consume each capability from an obvious surface.
+Vercel v0, Lovable, Bolt, and Subframe own prompt-to-app or prompt-to-UI distribution; specialist ecosystems such as Qiskit/Cirq/PennyLane, FMI/Modelica/Simulink, ROS/Gazebo/Isaac, Lens Studio, and mobile SDKs own their category-specific docs, examples, and communities. Their advantage is not that they compile more targets; it is that users can see and consume each capability from an obvious surface. HoloScript also risks losing its differentiator if repo entry points expose only compile/generate tools and omit custody, routing, and triad review tools.
 
 **HoloScript State:**
-Live MCP tools/list returned 407 tools. W.501 scope counted 62 compile/generate tools: 54 compile_to_* and 8 generate_* tools. This row records the exact names so the surface is auditable even when a tool is covered by a broader competitor row rather than a bespoke row.
+Live MCP tools/list returned 407 tools. W.501 scope counted 62 compile/generate tools: 54 compile_to_* and 8 generate_* tools. This row records the exact names so the surface is auditable even when a tool is covered by a broader competitor row rather than a bespoke row. The 2026-07-03 room-marathon gap adds a second coverage requirement: all repo entry points should integrate HoloKey/x402 provenance, routeTask/umbrella routing, and competitor-paper-codebase triad/uAAL review where applicable. HoloGate remains a docs umbrella term only, not a runtime proof substitute.
 
 **Needed Response:**
-Rerun W.501 monthly. Promote dedicated rows when a family needs product motion (current candidates: compile_to_qasm, compile_to_fmu, compile_to_lens_studio, compile_to_flutter/compile_to_ios, generate_semantic_ui). Keep internal emitters rolled into this coverage row unless they face a market/distribution competitor. Do not claim a compile/generate capability is strategically covered unless its exact tool name appears in this row or a dedicated row.
+Rerun W.501 monthly. Promote dedicated rows when a family needs product motion (current candidates: compile_to_qasm, compile_to_fmu, compile_to_lens_studio, compile_to_flutter/compile_to_ios, generate_semantic_ui). Keep internal emitters rolled into this coverage row unless they face a market/distribution competitor. Do not claim a compile/generate capability is strategically covered unless its exact tool name appears in this row or a dedicated row. For every repo-facing guide, quickstart, skill, and matrix row, check that HoloKey/x402 custody, routeTask/umbrella routing, and triad/uAAL review are either integrated or explicitly out of scope; HoloGate docs should route to concrete tools instead of being treated as evidence.
 
 **Evidence:**
 - Live MCP tools/list 2026-06-23: totalTools=407; W.501 scope=62 tools; compileTools=54; generateTools=8.
@@ -840,10 +858,12 @@ Rerun W.501 monthly. Promote dedicated rows when a family needs product motion (
 - Compile census C: compile_to_quest, compile_to_ros2_deploy, compile_to_scm, compile_to_sdf, compile_to_state, compile_to_stl_export, compile_to_svg, compile_to_tsl, compile_to_unity, compile_to_unreal, compile_to_urdf, compile_to_usd, compile_to_usdz, compile_to_visionos, compile_to_vrchat, compile_to_wasm, compile_to_webgpu, compile_to_world_shard.
 - Generate census: generate_3d_object, generate_hololand_training, generate_object, generate_scene, generate_semantic_ui, generate_service_contract, generate_world, generate_world_from_prompt.
 - Family rows already cover major external ecosystems: CG-043 covers compile_to_usd/compile_to_usdz/Omniverse/Isaac; CG-047 covers compile_to_dtdl/Azure Digital Twins; CG-055 covers compile_to_ros2_deploy/compile_to_urdf/ROS 2/Gazebo; CG-045/CG-046 cover compile_to_android/compile_to_android_xr/compile_to_a2a_agent_card; CG-054 covers compile_to_3dgs; CG-001 covers compile_to_nir; CG-056 covers compile_to_scm; CG-057 covers compile_to_nft_marketplace.
+- 2026-07-03 room-marathon directive: all repos should integrate HoloScript substrate tools such as HoloKey/x402, routeTask/umbrella routing, and triad/uAAL review; HoloGate is a docs umbrella term only.
 
 **Sources:**
 - https://mcp.holoscript.net/mcp tools/list queried 2026-06-23 with HOLOSCRIPT_MCP_API_KEY
 - docs/strategy/competitor-gap-matrix.json
+- AGENTS.md
 - https://v0.app/
 - https://bolt.new/
 - https://www.subframe.com/
