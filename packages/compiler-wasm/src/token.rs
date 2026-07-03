@@ -42,6 +42,8 @@ pub enum TokenType {
     // Operators
     Colon,
     Comma,
+    Semicolon,
+    Question,
     Dot,
     Range,
     Equals,

@@ -101,6 +101,10 @@ impl<'a> Lexer<'a> {
             // Operators and punctuation
             ':' => self.single_char_token(TokenType::Colon, ":"),
             ',' => self.single_char_token(TokenType::Comma, ","),
+            // Statement/property separator inside brace bodies (`type: "X"; ts: now()`).
+            ';' => self.single_char_token(TokenType::Semicolon, ";"),
+            // Optional-type marker in field declarations (`llm_provider_id: String?`).
+            '?' => self.single_char_token(TokenType::Question, "?"),
             '.' => {
                 self.advance();
                 if let Some(&(_, '.')) = self.chars.peek() {

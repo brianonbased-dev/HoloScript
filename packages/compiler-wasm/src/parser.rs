@@ -396,12 +396,9 @@ impl Parser {
 
         let mut keyframes = Vec::new();
         while !self.check(TokenType::RBrace) && !self.is_at_end() {
-            // Skip optional keyframe separators between entries. `;` lexes as an
-            // `Invalid` token (no Semicolon token type); `,` is a real Comma.
+            // Skip optional keyframe separators between entries (`;` / `,`).
             // Newlines are already filtered out, so separators are optional.
-            if self.check(TokenType::Comma)
-                || (self.check(TokenType::Invalid) && self.peek().value == ";")
-            {
+            if self.check(TokenType::Comma) || self.check(TokenType::Semicolon) {
                 self.advance();
                 continue;
             }
@@ -1333,7 +1330,9 @@ impl Parser {
         if self.check(TokenType::LParen) {
             self.advance();
             while !self.check(TokenType::RParen) && !self.is_at_end() {
-                params.push(self.expect_identifier()?);
+                // Accept identifiers OR keyword-lexed names (`world`, `action`,
+                // `entity`, `composition`, `context`, …) as handler param names.
+                params.push(self.advance().value.clone());
                 if self.check(TokenType::Comma) {
                     self.advance();
                 }
@@ -1401,13 +1400,20 @@ impl Parser {
         self.expect(TokenType::Colon)?;
         let value = self.parse_expression()?;
 
+        // Optional-type marker: `llm_provider_id: String?`.
+        if self.check(TokenType::Question) {
+            self.advance();
+        }
+
         // Optional typed-field default: `name: Type = default`.
         if self.check(TokenType::Equals) {
             self.advance();
             let _default = self.parse_expression()?;
         }
 
-        if !self.check(TokenType::RBrace) && self.check(TokenType::Comma) {
+        if !self.check(TokenType::RBrace)
+            && (self.check(TokenType::Comma) || self.check(TokenType::Semicolon))
+        {
             self.advance();
         }
 
@@ -1773,8 +1779,8 @@ impl Parser {
             });
 
             if !self.check(TokenType::RBrace) {
-                // Comma is optional
-                if self.check(TokenType::Comma) {
+                // Comma / semicolon separators are optional (`type: "X"; ts: now()`).
+                if self.check(TokenType::Comma) || self.check(TokenType::Semicolon) {
                     self.advance();
                 }
             }
@@ -2181,6 +2187,44 @@ mod tests {
         assert_eq!(t.name, "grabbable");
         assert!(t.members.is_empty(), "application must not collect members");
         assert!(matches!(t.config.as_deref(), Some(AstNode::ObjectLiteral(_))));
+    }
+
+    #[test]
+    fn test_trait_body_semicolon_optional_type_keyword_params() {
+        // Next corpus layer: `;` separators in brace bodies, `Type?` optional-type
+        // markers, and keyword-lexed handler params (world/action/entity/…).
+        let source = r#"@trait wasm_api {
+            llm_provider_id: String? = null
+            @on_compile(ast, world) => { return compile(ast, world) }
+            @receipt cfg { type: "WasmApiReceipt"; timestamp: now() }
+        }"#;
+        let mut parser = Parser::new(source);
+        let ast = parser
+            .parse()
+            .expect("semicolon / optional-type / keyword-params should parse");
+        let t = ast
+            .body
+            .iter()
+            .find_map(|n| match n {
+                AstNode::Trait(t) if t.name == "wasm_api" => Some(t),
+                _ => None,
+            })
+            .expect("wasm_api trait present");
+        // handler with a keyword-lexed param (`world`) captured with both params.
+        let h = t
+            .members
+            .iter()
+            .find_map(|m| match m {
+                AstNode::GameEventBlock(g) if g.name == "on_compile" => Some(g),
+                _ => None,
+            })
+            .expect("on_compile handler captured");
+        assert_eq!(h.params, vec!["ast".to_string(), "world".to_string()]);
+        // `;`-separated @receipt body captured.
+        assert!(t
+            .members
+            .iter()
+            .any(|m| matches!(m, AstNode::Trait(tr) if tr.name == "receipt")));
     }
 
     #[test]
