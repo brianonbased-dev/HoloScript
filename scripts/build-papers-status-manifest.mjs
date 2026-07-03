@@ -17,8 +17,8 @@
  *   git add docs/public/papers-status.json
  *   git commit -m "docs(papers): refresh status manifest"
  *
- * The site build (docs/.vitepress/) never touches ai-ecosystem; it reads the
- * committed manifest. Cross-repo coupling stays at refresh time only.
+ * The public site build never touches ai-ecosystem; it reads the committed
+ * manifest. Cross-repo coupling stays at refresh time only.
  *
  * Override the ai-ecosystem clone path with --ai-eco=<path> or AI_ECO_ROOT.
  */

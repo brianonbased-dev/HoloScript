@@ -104,7 +104,7 @@ function collectAllDocs() {
   const walk = (dir) => {
     for (const e of readdirSync(dir)) {
       const full = join(dir, e);
-      if (/node_modules|\.git|dist|\.vitepress/.test(full)) continue;
+      if (/node_modules|\.git|dist/.test(full)) continue;
       const st = statSync(full);
       if (st.isDirectory()) walk(full);
       else if (e.endsWith('.md')) out.push(full);

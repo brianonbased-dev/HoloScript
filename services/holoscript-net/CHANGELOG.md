@@ -1,5 +1,12 @@
 # @holoscript/net-service
 
+## Unreleased
+
+### Patch Changes
+
+- Retired the generated docs-site fallback. `holoscript-net` now serves the
+  native landing build and returns an explicit `410` for `/docs/*`.
+
 ## 1.0.6
 
 ### Patch Changes
@@ -21,13 +28,13 @@
 
 ### Patch Changes
 
-- **Routing:** explicit `GET /live-evidence.json` so a missing build artifact returns JSON 404 instead of the SPA `index.html` (which broke `fetch()` on the evidence strip). Tries `dist/client` then VitePress `docs/.vitepress/dist`; short cache headers.
+- **Routing:** explicit `GET /live-evidence.json` so a missing build artifact returns JSON 404 instead of the SPA `index.html` (which broke `fetch()` on the evidence strip). Serves the manifest from `dist/client`; short cache headers.
 
 ## 1.0.3
 
 ### Patch Changes
 
-- **Live evidence strip** on the root landing page (`LiveEvidenceStrip`): three tiles (fleet 24h / last Base anchor / last commit) from `/live-evidence.json`, refreshed every 30s. Manifest copied from `docs/public` at build time when present (same source as VitePress strip).
+- **Live evidence strip** on the root landing page (`LiveEvidenceStrip`): three tiles (fleet 24h / last Base anchor / last commit) from `/live-evidence.json`, refreshed every 30s. Manifest copied from `docs/public` at build time when present.
 
 ## 1.0.2
 

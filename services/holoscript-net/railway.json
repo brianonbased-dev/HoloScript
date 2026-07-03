@@ -3,7 +3,7 @@
   "build": {
     "builder": "DOCKERFILE",
     "dockerfilePath": "services/holoscript-net/Dockerfile",
-    "watchPatterns": ["services/holoscript-net/**", "docs/.vitepress/dist/**"]
+    "watchPatterns": ["services/holoscript-net/**", "docs/public/live-evidence.json"]
   },
   "deploy": {
     "numReplicas": 1,

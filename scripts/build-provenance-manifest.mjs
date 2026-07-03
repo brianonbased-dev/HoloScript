@@ -18,8 +18,8 @@
  *   git add docs/public/provenance-manifest.json
  *   git commit -m "docs(provenance): refresh manifest — round N"
  *
- * The site build (docs/.vitepress/) never touches ai-ecosystem; it reads
- * the committed manifest. Cross-repo coupling stays at refresh time.
+ * The public site build never touches ai-ecosystem; it reads the committed
+ * manifest. Cross-repo coupling stays at refresh time.
  */
 import fs from 'node:fs';
 import path from 'node:path';

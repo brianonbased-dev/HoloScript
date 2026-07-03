@@ -14,8 +14,8 @@
  *   An attacker who tampers with the client cannot reveal private fields
  *   because the bytes were never sent (W.GOLD.001: architecture beats alignment).
  *
- * The VitePress Lotus.vue component renders identically in both modes —
- * the server determines disclosure, not the client.
+ * The client renderer must render both modes from the same response shape.
+ * The server determines disclosure, not the client.
  *
  * @see docs/strategy/lotus-architecture.md — the lotus framing
  * @see packages/studio/src/lib/brittney/lotus/derive-bloom-state.ts — pure derivation

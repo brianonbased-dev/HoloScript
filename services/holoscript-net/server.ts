@@ -464,7 +464,6 @@ app.use(
 
 // Serve Static Files
 const ROOT = process.cwd();
-const DOCS_DIST = path.resolve(ROOT, '../../docs/.vitepress/dist');
 const NATIVE_ENGINE_DIST = path.resolve(ROOT, './dist/client');
 const COMPOSITIONS_DIR = path.resolve(ROOT, '../../docs');
 
@@ -479,26 +478,18 @@ app.use(express.static(NATIVE_ENGINE_DIST));
 // Live evidence manifest: explicit route so a missing file does not fall through to the SPA
 // index.html (which would break JSON fetch on the landing strip).
 app.get('/live-evidence.json', (_req, res) => {
-  const candidates = [
-    path.join(NATIVE_ENGINE_DIST, 'live-evidence.json'),
-    path.join(DOCS_DIST, 'live-evidence.json'),
-  ];
-  for (const p of candidates) {
-    if (fs.existsSync(p)) {
-      res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300');
-      res.setHeader('Content-Type', 'application/json; charset=utf-8');
-      res.sendFile(p);
-      return;
-    }
+  const manifestPath = path.join(NATIVE_ENGINE_DIST, 'live-evidence.json');
+  if (fs.existsSync(manifestPath)) {
+    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300');
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.sendFile(manifestPath);
+    return;
   }
   res
     .status(404)
     .type('application/json')
     .send(JSON.stringify({ error: 'live-evidence manifest not built', hint: 'run scripts/build-live-evidence-manifest.mjs and holoscript-net build' }));
 });
-
-// Serve VitePress Documentation at /docs
-app.use('/docs', express.static(DOCS_DIST));
 
 app.use('/native/assets/@holoscript/core', express.static(path.resolve(ROOT, '../../packages/core/dist')));
 app.use('/native/assets/@holoscript/runtime', express.static(path.resolve(ROOT, '../../packages/runtime/dist')));
@@ -542,12 +533,18 @@ Sitemap: https://holoscript.net/sitemap.xml`);
 
 app.get('/sitemap.xml', (req, res) => {
   res.type('application/xml');
-  res.sendFile(path.join(DOCS_DIST, 'sitemap.xml'));
+  res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://holoscript.net/</loc></url>
+</urlset>`);
 });
 
 // Fallbacks
 app.get(/^\/docs(?:\/.*)?$/, (req, res) => {
-  res.sendFile(path.join(DOCS_DIST, 'index.html'));
+  res
+    .status(410)
+    .type('text/plain')
+    .send('The generated /docs site has been retired. Use the repository Markdown docs or the holoscript.net native landing surface.');
 });
 
 app.get(/.*/, (req, res) => {

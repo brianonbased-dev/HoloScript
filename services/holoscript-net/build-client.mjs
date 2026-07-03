@@ -216,7 +216,7 @@ ${shimImportMapEntries}
     fs.cpSync('public', 'dist/client', { recursive: true });
   }
 
-  // Live evidence strip: prefer fresh manifest from docs/ (same build as VitePress)
+  // Live evidence strip: copy the committed manifest into the native client build.
   const docManifest = _path.resolve(__dirname, '../../docs/public/live-evidence.json');
   if (fs.existsSync(docManifest)) {
     fs.copyFileSync(docManifest, _path.join('dist/client', 'live-evidence.json'));

@@ -4,40 +4,16 @@
 
 ---
 
-## 📚 Documentation (GitHub Pages)
+## Documentation
 
-### Deploy Documentation
-
-```bash
-# Auto-deploys on push to main
-git push origin main
-
-# Manual trigger via GitHub Actions UI:
-# Actions → Deploy Docs → Run workflow
-```
-
-### Preview Documentation Locally
+The generated docs site is retired. Markdown under `docs/` remains repository
+source documentation; validate it from the root:
 
 ```bash
-cd docs/
-pnpm install
-pnpm dev
-# → http://localhost:5173
-```
-
-### Build Documentation
-
-```bash
-cd docs/
-pnpm build
-# Output: docs/.vitepress/dist/
-```
-
-### Check Documentation Links
-
-```bash
-cd docs/
-pnpm build  # Warnings show broken links
+pnpm docs:counts:drift
+pnpm docs:roadmap:drift
+pnpm docs:api
+git diff --check -- docs
 ```
 
 ---

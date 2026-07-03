@@ -17,7 +17,7 @@ git status --short
 1. Stage only the files for your current scope:
 
 ```bash
-git add docs/.vitepress/config.ts docs/packages/index.md
+git add docs/packages/index.md docs/deployment/DEPLOYMENT_QUICK_REFERENCE.md
 ```
 
 1. Verify staged set before commit:

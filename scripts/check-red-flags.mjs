@@ -23,7 +23,7 @@ const excludedDirNames = new Set([
   'node_modules',
   'out',
 ]);
-const excludedPaths = new Set(['docs/archive', 'docs/.vitepress/cache']);
+const excludedPaths = new Set(['docs/archive']);
 const sourceCodeExtensions = new Set(['.cjs', '.js', '.jsx', '.mjs', '.ts', '.tsx']);
 
 const textExtensions = new Set([
