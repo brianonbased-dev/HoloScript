@@ -120,6 +120,87 @@ describe('useSceneExport', () => {
     );
   });
 
+  describe('SDK Export', () => {
+    it('should call MCP proxy with compile_to_sdk and download the SDK bundle', async () => {
+      const code = `composition "RegistryContract" {
+        service endpoint "listPackages" {
+          method: "GET"
+          path: "/packages"
+        }
+      }`;
+      const sdkFiles = {
+        'src/PartnerRegistrySDKClient.ts': 'export class PartnerRegistrySDKClient {}',
+        'src/sdk-runtime.ts': 'export class SDKRuntime {}',
+        'sdk-compiler-receipt.json': '{"target":"sdk:typescript"}',
+      };
+      useSceneStore.setState({ code });
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            result: {
+              success: true,
+              target: 'sdk',
+              output: JSON.stringify(sdkFiles),
+              metadata: { outputSizeBytes: 123 },
+            },
+          }),
+      });
+
+      const { result } = renderHook(() => useSceneExport());
+
+      await act(async () => {
+        await result.current.exportScene('sdk', 'Partner Registry');
+      });
+
+      expect(global.fetch).toHaveBeenCalledWith('/api/mcp/call', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: expect.any(String),
+      });
+
+      const callBody = JSON.parse((global.fetch as any).mock.calls[0][1].body);
+      expect(callBody.tool).toBe('compile_to_sdk');
+      expect(callBody.input.code).toBe(code);
+      expect(callBody.input.options).toMatchObject({
+        language: 'typescript',
+        clientClassName: 'PartnerRegistrySDKClient',
+        packageName: '@holoscript/partner-registry-sdk',
+        includePackageJson: true,
+        includeTsConfig: true,
+        includeReadme: true,
+      });
+
+      const blob = (global.URL.createObjectURL as any).mock.calls[0][0] as Blob;
+      const bundle = JSON.parse(await blob.text());
+      expect(bundle.tool).toBe('compile_to_sdk');
+      expect(bundle.files['src/PartnerRegistrySDKClient.ts']).toContain(
+        'PartnerRegistrySDKClient'
+      );
+      expect(bundle.files['sdk-compiler-receipt.json']).toContain('sdk:typescript');
+      expect(bundle.source.code).toBe(code);
+      expect(result.current.status).toBe('done');
+    });
+
+    it('should surface compile_to_sdk proxy errors', async () => {
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: false,
+        status: 422,
+        json: () => Promise.resolve({ error: 'Failed to parse composition' }),
+      });
+
+      const { result } = renderHook(() => useSceneExport());
+
+      await act(async () => {
+        await result.current.exportScene('sdk');
+      });
+
+      expect(global.fetch).toHaveBeenCalledWith('/api/mcp/call', expect.any(Object));
+      expect(result.current.status).toBe('error');
+      expect(result.current.error).toContain('Failed to parse composition');
+    });
+  });
+
   describe('JSON Export', () => {
     it('should include nodes for JSON format', async () => {
       useSceneGraphStore.setState({

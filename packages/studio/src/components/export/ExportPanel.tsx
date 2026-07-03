@@ -1,31 +1,21 @@
 'use client';
 
 /**
- * ExportPanel — right-rail panel for exporting the current scene.
- * Format options: glTF 2.0, USDA, JSON. Downloads a ZIP archive.
+ * ExportPanel - right-rail panel for exporting the current scene.
  */
 
 import { useState } from 'react';
-import {
-  Download,
-  X,
-  FileCode,
-  Package,
-  Loader2,
-  CheckCircle,
-  AlertCircle,
-  ChevronDown,
-} from 'lucide-react';
+import { Download, X, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { useSceneExport, type ExportFormat } from '@/hooks/useSceneExport';
 import { PUBLISHING_PLATFORM_TERMS_URL } from '@/lib/docsUrls';
 import { useSceneStore } from '@/lib/stores';
 
-const FORMATS: { id: ExportFormat; label: string; ext: string; desc: string }[] = [
+export const EXPORT_FORMATS: { id: ExportFormat; label: string; ext: string; desc: string }[] = [
   {
     id: 'gltf',
     label: 'glTF 2.0',
     ext: '.gltf + assets',
-    desc: 'Industry standard 3D format. Compatible with Blender, Unity, Unreal, and threejs.',
+    desc: 'Industry standard 3D format. Compatible with Blender, Unity, Unreal, and three.js.',
   },
   {
     id: 'usd',
@@ -45,6 +35,12 @@ const FORMATS: { id: ExportFormat; label: string; ext: string; desc: string }[] 
     ext: '.json',
     desc: 'HoloScript scene graph as structured JSON. Useful for custom pipelines.',
   },
+  {
+    id: 'sdk',
+    label: 'Export SDK',
+    ext: '.sdk.json',
+    desc: 'Typed TypeScript client bundle generated through compile_to_sdk.',
+  },
 ];
 
 interface ExportPanelProps {
@@ -57,7 +53,7 @@ export function ExportPanel({ onClose }: ExportPanelProps) {
   const [sceneName, setSceneName] = useState('');
   const { status, error, exportScene } = useSceneExport();
 
-  const selected = FORMATS.find((f) => f.id === format)!;
+  const selected = EXPORT_FORMATS.find((f) => f.id === format)!;
   const lineCount = code.split('\n').length;
   const objCount = (code.match(/^\s*object\s+"/gm) ?? []).length;
 
@@ -101,7 +97,7 @@ export function ExportPanel({ onClose }: ExportPanelProps) {
         <div>
           <label className="mb-1 block text-[10px] text-studio-muted">Export format</label>
           <div className="space-y-1.5">
-            {FORMATS.map((f) => (
+            {EXPORT_FORMATS.map((f) => (
               <button
                 key={f.id}
                 onClick={() => setFormat(f.id)}
@@ -123,16 +119,34 @@ export function ExportPanel({ onClose }: ExportPanelProps) {
 
         {/* What's included */}
         <div className="rounded-xl border border-studio-border bg-studio-surface p-3 text-[11px] text-studio-muted space-y-1">
-          <p className="font-semibold text-studio-text">ZIP contents</p>
-          <p>
-            • <span className="font-mono">{selected.ext}</span> — scene geometry &amp; materials
+          <p className="font-semibold text-studio-text">
+            {format === 'sdk' ? 'SDK bundle contents' : 'ZIP contents'}
           </p>
-          <p>
-            • <span className="font-mono">source.holoscript</span> — original source
-          </p>
-          <p>
-            • <span className="font-mono">README.txt</span> — usage instructions
-          </p>
+          {format === 'sdk' ? (
+            <>
+              <p>
+                - <span className="font-mono">files</span> - generated SDK source file map
+              </p>
+              <p>
+                - <span className="font-mono">sdk-compiler-receipt.json</span> - compiler receipt
+              </p>
+              <p>
+                - <span className="font-mono">source.holoscript</span> - original source
+              </p>
+            </>
+          ) : (
+            <>
+              <p>
+                - <span className="font-mono">{selected.ext}</span> - scene geometry &amp; materials
+              </p>
+              <p>
+                - <span className="font-mono">source.holoscript</span> - original source
+              </p>
+              <p>
+                - <span className="font-mono">README.txt</span> - usage instructions
+              </p>
+            </>
+          )}
         </div>
 
         {/* Error */}
@@ -155,10 +169,12 @@ export function ExportPanel({ onClose }: ExportPanelProps) {
           {status === 'done' && <CheckCircle className="h-4 w-4" />}
           {status === 'idle' || status === 'error' ? <Download className="h-4 w-4" /> : null}
           {status === 'exporting'
-            ? 'Exporting…'
+            ? 'Exporting...'
             : status === 'done'
               ? 'Downloaded!'
-              : `Export as ${selected.label}`}
+              : format === 'sdk'
+                ? 'Export SDK'
+                : `Export as ${selected.label}`}
         </button>
         <p className="mt-2 text-center text-[9px] leading-snug text-studio-muted">
           Shipping to VRChat, Unity, app stores, or the web?{' '}
