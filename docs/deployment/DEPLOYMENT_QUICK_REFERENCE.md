@@ -280,7 +280,7 @@ pnpm outdated
 
 ```bash
 # HoloScript Studio
-curl https://studio.holoscript.net/api/health
+curl https://holoscript.studio/api/health
 
 # Marketplace API
 curl https://marketplace-api.holoscript.net/health

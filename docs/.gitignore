@@ -1,5 +1,6 @@
 # Build artifacts
 .vitepress/cache/
+.vitepress/dist/
 node_modules/
 
 # Generated files

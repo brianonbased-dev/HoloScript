@@ -131,7 +131,7 @@ railway status --service studio
 
 ```bash
 # Studio health check
-curl https://studio.holoscript.net/api/health
+curl https://holoscript.studio/api/health
 
 # Marketplace API health check
 curl https://marketplace-api.holoscript.net/health
@@ -390,7 +390,7 @@ railway logs --service studio --tail | tail -50
 railway rollback --service studio
 
 # Step 4: Verify health
-curl https://studio.holoscript.net/api/health
+curl https://holoscript.studio/api/health
 ```
 
 ### Rollback Deployment
@@ -421,7 +421,7 @@ railway up --service studio --detach
 railway logs --service studio --tail
 
 # 5. Verify fix
-curl https://studio.holoscript.net/api/health
+curl https://holoscript.studio/api/health
 ```
 
 ---
@@ -588,7 +588,7 @@ railway rollback --service studio
 railway run --service marketplace-api npm run migrate
 
 # Check health
-curl https://studio.holoscript.net/api/health
+curl https://holoscript.studio/api/health
 
 # Connect to database
 railway connect marketplace-api

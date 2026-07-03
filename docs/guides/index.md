@@ -4,7 +4,7 @@ HoloScript helps you describe interfaces, workflows, robots, and spatial scenes 
 
 ## 🚀 Start with Studio (Recommended)
 
-[HoloScript Studio](https://studio.holoscript.net) is a web-based IDE that helps you generate a first draft from natural language, preview it, and keep the underlying HoloScript files editable.
+[HoloScript Studio](https://holoscript.studio) is a web-based IDE that helps you generate a first draft from natural language, preview it, and keep the underlying HoloScript files editable.
 
 ### New User? Start Here
 
@@ -22,7 +22,7 @@ HoloScript helps you describe interfaces, workflows, robots, and spatial scenes 
 - 🤝 **Real-time Collaboration** - Multi-user editing with CRDT
 - 📤 **One-click Publish** - Share scenes with a URL
 
-**[Launch Studio →](https://studio.holoscript.net)**
+**[Launch Studio →](https://holoscript.studio)**
 
 ---
 

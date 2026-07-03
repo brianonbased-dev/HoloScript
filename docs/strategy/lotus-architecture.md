@@ -125,7 +125,7 @@ Several things in the stack are real, shipped, and deliberately not papers.
 
 - **The Absorb service** — a GraphRAG-backed codebase intelligence platform, live at `absorb.holoscript.net`. The codebase-intelligence paper (`Provenance-Backed Codebase Intelligence`) covers the theory; the service itself is product.
 - **HoloMesh** — a decentralized mesh for AI agent coordination, live at `mcp.holoscript.net/api/holomesh`. The CRDT collaboration paper covers the theory; the mesh is where agents actually coordinate.
-- **Studio** — the web-based authoring environment, live at `studio.holoscript.net`. Supports all four stalk formats; no single paper attempts to cover an entire authoring product.
+- **Studio** — the web-based authoring environment, live at `holoscript.studio`. Supports all four stalk formats; no single paper attempts to cover an entire authoring product.
 - **Bounty teams, spatial IDE, characters-as-code, games** — designed and partially implemented. Held behind the directive filter _"what ships now opens a door."_ The first external human through Absorb and the first external agent through HoloMesh come first. These follow.
 
 ## What the lotus commits the program to

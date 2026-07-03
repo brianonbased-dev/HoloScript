@@ -275,7 +275,7 @@ object "Title" {
 | Key | Type | Description |
 |---|---|---|
 | `variant` | `"h1" \| "h2" \| "h3" \| "subtitle" \| "caption" \| "emoji" \| "body"` | Maps to `h1`–`h4`, `span`, or `p`. Also drives Tailwind class injection. |
-| `content` | `string` | Text content. Supports `{{field}}` interpolation when inside an `@fetch` container. |
+| `content` | `string` | Text content. Supports <code v-pre>{{field}}</code> interpolation when inside an `@fetch` container. |
 | `align` | `string` | CSS `text-align` value. |
 | `maxWidth` | `string \| number` | CSS `max-width`. |
 | `weight` | `string` | CSS `font-weight`. |
@@ -397,7 +397,7 @@ object "Inbox" {
 | `endpoint` | `string` | URL to fetch. |
 | `method` | `string` | HTTP method. Defaults to `"GET"`. |
 
-In HTML output, a vanilla-JS runtime in the generated `<script>` block handles the fetch, clones the first `[data-holo-template]` child per item, and interpolates `{{field}}` (including dotted paths like `{{vetting.glance}}`). No React, no hydration.
+In HTML output, a vanilla-JS runtime in the generated `<script>` block handles the fetch, clones the first `[data-holo-template]` child per item, and interpolates <code v-pre>{{field}}</code> (including dotted paths like <code v-pre>{{vetting.glance}}</code>). No React, no hydration.
 
 ### `@bind` — Reactive state binding
 
@@ -562,7 +562,7 @@ composition "FounderConsole" {
 }
 ```
 
-This compiles to a self-contained HTML page with zero framework dependencies. The `@fetch` runtime fetches `/api/quest-proof/inbox` after DOM load, clones the `Row` template per item, and interpolates `{{field}}` placeholders.
+This compiles to a self-contained HTML page with zero framework dependencies. The `@fetch` runtime fetches `/api/quest-proof/inbox` after DOM load, clones the `Row` template per item, and interpolates <code v-pre>{{field}}</code> placeholders.
 
 ---
 

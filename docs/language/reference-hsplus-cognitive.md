@@ -51,7 +51,7 @@ state assess_situation {
 
 | Field | Type | Description |
 |---|---|---|
-| `prompt` | string | The prompt text; `{{ context.field }}` interpolates runtime context. Also accepted as `message`. |
+| `prompt` | string | The prompt text; <code v-pre>{{ context.field }}</code> interpolates runtime context. Also accepted as `message`. |
 | `temperature` | float | Sampling temperature (0.0–1.0). |
 | `max_tokens` | int | Maximum response length in tokens. |
 | `system` | string | Optional system message override. |

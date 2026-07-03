@@ -80,37 +80,41 @@ graph TB
 
 ## Package Index
 
-| Layer | Package                        | Version | Description                                                                                                    |
-| ----- | ------------------------------ | ------- | -------------------------------------------------------------------------------------------------------------- |
-| L0    | `@holoscript/core-types`       | 7.0.0   | Pure type definitions, zero runtime deps                                                                       |
-| L0    | `@holoscript/core`             | 7.0.0   | Parser, AST, compilers (verify: `find packages -name '*Compiler.ts' -not -path '*/__tests__/*'`), trait system |
-| L1    | `@holoscript/engine`           | 7.0.0   | Rendering, physics, animation, ECS (extracted from core)                                                       |
-| L1    | `@holoscript/framework`        | 7.0.0   | Agent orchestration, BT, economy (extracted from core)                                                         |
-| L1    | `@holoscript/auth`             | 7.0.0   | JWT auth library (extracted from core)                                                                         |
-| L1    | `@holoscript/agent-protocol`   | 7.0.0   | uAA2++ agent lifecycle (extracted from core)                                                                   |
-| L2    | `@holoscript/linter`           | 7.0.0   | Static analysis for .holo/.hsplus                                                                              |
-| L2    | `@holoscript/formatter`        | 3.1.0   | Code formatting                                                                                                |
-| L2    | `@holoscript/lsp`              | 7.0.0   | Language Server Protocol                                                                                       |
-| L2    | `@holoscript/compiler-wasm`    | 7.0.0   | Rust WASM parser                                                                                               |
-| L3    | `@holoscript/runtime`          | 7.0.0   | Browser runtime with R3F integration                                                                           |
-| L3    | `@holoscript/r3f-renderer`     | 7.0.0   | Shared React Three Fiber components                                                                            |
-| L3    | `@holoscript/crdt`             | 1.1.0   | Authenticated CRDTs for distributed state                                                                      |
-| L3    | `@holoscript/snn-webgpu`       | 7.0.0   | GPU spiking neural networks                                                                                    |
-| L4    | `@holoscript/absorb-service`   | 7.0.0   | Codebase intelligence pipeline                                                                                 |
-| L4    | `@holoscript/marketplace-api`  | 1.2.3   | Trait marketplace                                                                                              |
-| L4    | `@holoscript/mcp-server`       | 7.0.0   | MCP tools + REST API + WebSocket collab relay                                                                  |
-| L4    | `@holoscript/security-sandbox` | 1.2.2   | node:vm sandbox for safe execution (post-vm2 migration, see W.GOLD.193)                                        |
-| L5    | `@holoscript/mcp-server`       | 7.0.0   | MCP tools + REST API                                                                                           |
-| L5    | `@holoscript/cli`              | 7.0.0   | CLI: compile, validate, dev-serve                                                                              |
-| L5    | `@holoscript/studio`           | 7.0.0   | Next.js scene builder (private)                                                                                |
-| L5    | `create-holoscript`            | 1.4.0   | Zero-config scaffolding                                                                                        |
+Package versions are intentionally omitted here. They are lane-managed and can
+diverge across packages; read each `package.json` before citing a version.
+
+| Layer | Package                        | Description                                                                                                    |
+| ----- | ------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| L0    | `@holoscript/core-types`       | Pure type definitions, zero runtime deps                                                                       |
+| L0    | `@holoscript/core`             | Parser, AST, compilers (verify: `find packages -name '*Compiler.ts' -not -path '*/__tests__/*'`), trait system |
+| L1    | `@holoscript/engine`           | Rendering, physics, animation, ECS (extracted from core)                                                       |
+| L1    | `@holoscript/framework`        | Agent orchestration, BT, economy (extracted from core)                                                         |
+| L1    | `@holoscript/auth`             | JWT auth library (extracted from core)                                                                         |
+| L1    | `@holoscript/agent-protocol`   | uAA2++ agent lifecycle (extracted from core)                                                                   |
+| L2    | `@holoscript/linter`           | Static analysis for .holo/.hsplus                                                                              |
+| L2    | `@holoscript/formatter`        | Code formatting                                                                                                |
+| L2    | `@holoscript/lsp`              | Language Server Protocol                                                                                       |
+| L2    | `@holoscript/compiler-wasm`    | Rust WASM parser                                                                                               |
+| L3    | `@holoscript/runtime`          | Browser runtime with R3F integration                                                                           |
+| L3    | `@holoscript/r3f-renderer`     | Shared React Three Fiber components                                                                            |
+| L3    | `@holoscript/crdt`             | Authenticated CRDTs for distributed state                                                                      |
+| L3    | `@holoscript/snn-webgpu`       | GPU spiking neural networks                                                                                    |
+| L4    | `@holoscript/absorb-service`   | Codebase intelligence pipeline                                                                                 |
+| L4    | `@holoscript/marketplace-api`  | Trait marketplace                                                                                              |
+| L4    | `@holoscript/mcp-server`       | MCP tools + REST API + WebSocket collab relay                                                                  |
+| L4    | `@holoscript/security-sandbox` | node:vm sandbox for safe execution (post-vm2 migration, see W.GOLD.193)                                        |
+| L5    | `@holoscript/mcp-server`       | MCP tools + REST API                                                                                           |
+| L5    | `@holoscript/cli`              | CLI: compile, validate, dev-serve                                                                              |
+| L5    | `@holoscript/studio`           | Next.js scene builder (private)                                                                                |
+| L5    | `create-holoscript`            | Zero-config scaffolding                                                                                        |
 
 ## Dependency Rules
 
 1. **No cycles.** Layers only depend downward (L5 -> L4 -> ... -> L0).
 2. **`core-types` is the bottom.** Pure types, zero runtime. Everything can depend on it.
 3. **`core` is the gravity well.** Most packages depend on it. Keep it lean.
-4. **Extracted packages (L1) match core's major version** (currently 7.x).
+4. **Extracted packages (L1) should track core's major-version lane.** Verify
+   the current package majors in `package.json` before citing them.
 5. **Domain vocabulary stays in plugins**, never in core (`packages/plugins/`).
 6. **`workspace:*`** for internal deps. Never pin internal versions.
 7. **Core↔Engine Boundary:** `@holoscript/core` (L0) must never have a runtime dependency on `@holoscript/engine` (L1). The runtime mutual dependency cycle is explicitly severed. Any shared types must be extracted to `core-types` or imported as `import type`.

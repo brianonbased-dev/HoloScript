@@ -307,7 +307,7 @@ async function onCompositionSave(composition: Composition) {
 ```typescript
 // Monitor Studio API health
 await connector.executeTool('upstash_schedule_health_ping', {
-  url: 'https://studio.holoscript.net/api/health',
+  url: 'https://holoscript.studio/api/health',
   intervalMinutes: 5,
 });
 ```

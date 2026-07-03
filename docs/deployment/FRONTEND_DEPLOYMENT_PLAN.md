@@ -247,15 +247,15 @@ railway up
 
 #### Step 3: Configure Custom Domains
 
-**Studio**: studio.holoscript.net
+**Studio**: holoscript.studio
 **Marketplace**: marketplace.holoscript.net
 
 ```bash
 # In Railway Dashboard:
 # 1. Select service → Settings → Domains
-# 2. Add custom domain: studio.holoscript.net
+# 2. Add custom domain: holoscript.studio
 # 3. Update DNS CNAME:
-#    CNAME studio.holoscript.net → [railway-generated-domain]
+#    CNAME holoscript.studio → [railway-generated-domain]
 # 4. Railway auto-provisions SSL certificate
 ```
 

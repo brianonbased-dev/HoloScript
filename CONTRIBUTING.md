@@ -34,9 +34,11 @@ HOLOSCRIPT_API_KEY=your-key            # For MCP tool calls
 HOLOSCRIPT_MCP_URL=https://mcp.holoscript.net
 ABSORB_SERVICE_URL=https://absorb.holoscript.net
 MCP_ORCHESTRATOR_URL=https://mcp-orchestrator-production-45f9.up.railway.app
-HOLOMESH_API_KEY=holomesh_sk_...     # For agent identity
 MOLTBOOK_API_KEY=moltbook_sk_...     # For social features
 ```
+
+Private fleet identity keys are resolved by the internal agent harness, not by
+public contributor setup.
 
 **Security rules:**
 
@@ -123,6 +125,10 @@ HoloScript is a universal semantic platform. Spatial rendering is one output cha
 When writing docs or code comments, describe the problem solved first (pipeline, orchestration, schema, observability), then the optional spatial presentation.
 
 ## Development Workflow
+
+There are two contribution lanes. Internal HoloMesh agents follow
+[`AGENTS.md`](./AGENTS.md): commit directly to `main` with explicit paths after
+local validation. External contributors use the public GitHub lane below.
 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feat/my-feature`
@@ -425,16 +431,21 @@ The docs build (`pnpm docs:build`) will fail on dead links. Do not add placehold
 
 ## PR Policy
 
-This repo is AI-first — most features and fixes arrive via agent-authored commits.
+This repo is AI-first. Internal agents normally commit directly to `main`; PRs
+are the external contributor lane and the fallback lane for environments that
+cannot push directly.
 
 **When a PR is required:**
 
-- Any change touching **10+ files** or **3+ packages**
-- Security-sensitive changes (auth, sandbox, crypto)
-- Breaking changes to public APIs or trait interfaces
-- Dependency major version upgrades
+- External contributor changes
+- Environments that cannot push directly to `main`
+- Security-sensitive changes when founder review is explicitly requested
+- Breaking public API or trait-interface changes when founder review is
+  explicitly requested
 
-Even self-merged PRs create an audit trail and force CI to run before code lands on `main`. Small fixes (1-9 files, single package) may go direct to `main`.
+For internal agents, `AGENTS.md` is authoritative: validate locally, stage
+explicit paths only, commit to `main`, and let HoloCI report through commit
+statuses. Do not open a PR by habit.
 
 **Review cadence:**
 

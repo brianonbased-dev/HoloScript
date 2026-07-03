@@ -1,7 +1,8 @@
 # Gemini -- HoloScript
 
-> **NORTH STAR**: `NORTH_STAR.md` (this repo) + `~/.ai-ecosystem/NORTH_STAR.md` (10 decision trees).
-> **GOLD Drive**: Vault root = **`GOLD_ROOT`** env or default (`D:\GOLD` / `/mnt/d/GOLD`). 5-tier knowledge (Diamond > Platinum > GOLD). Overrides knowledge store. See `~/.ai-ecosystem/CLAUDE.md` (GOLD Drive).
+> **NORTH STAR**: read `NORTH_STAR.md` in this repo for HoloScript-specific
+> decisions. Private fleet, GOLD, and local credential routing live in
+> `.ai-ecosystem`, not in this public repo.
 
 ## Role
 
@@ -43,7 +44,8 @@ If MCP is unavailable: diagnose → start server → retry. If still down, **ski
 |- Ask user? -> only for: novel features, budget >$5, destructive ops
 ```
 
-Full decision trees (10 total): ~/.ai-ecosystem/NORTH_STAR.md
+For ecosystem-wide decisions, use the current `.ai-ecosystem` contract available
+in the local harness.
 
 ## Key Paths
 
@@ -55,6 +57,6 @@ Full decision trees (10 total): ~/.ai-ecosystem/NORTH_STAR.md
 
 ## Credentials
 
-```bash
-ENV_FILE="C:/Users/Josep/.ai-ecosystem/.env"; set -a && source "$ENV_FILE" 2>/dev/null && set +a
-```
+Do not copy local `.env` paths or secrets into this file. Use the harness or the
+private `.ai-ecosystem` contract to resolve credentials, then call HoloScript
+through MCP or the documented public endpoints.

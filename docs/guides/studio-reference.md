@@ -35,13 +35,13 @@ head:
 
 **Version:** 0.1.0-beta
 **Tech Stack:** React 19 + Next.js 15 + Three.js + WebXR
-**URL:** [studio.holoscript.net](https://studio.holoscript.net)
+**URL:** [holoscript.studio](https://holoscript.studio)
 
 ---
 
 ## Overview
 
-HoloScript Studio is a **web-based IDE** for building VR/AR/XR scenes without writing code. Powered by **Brittney AI**, Studio enables natural language scene generation, real-time collaboration, and one-click publishing.
+HoloScript Studio is a web-based IDE for building HoloScript projects from natural language while keeping the underlying `.holo`, `.hsplus`, and `.hs` files inspectable. Spatial rendering is one output channel; Studio also supports data, agent, service, and deployment workflows.
 
 **Key Features:**
 
@@ -595,7 +595,7 @@ Brittney will:
 
 1. Click **Publish**
 2. Studio uploads scene to CDN
-3. Returns shareable URL: `studio.holoscript.net/s/abc123`
+3. Returns shareable URL: `holoscript.studio/s/abc123`
 4. Anyone can view (no account needed)
 
 **Privacy Options:**

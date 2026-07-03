@@ -56,7 +56,7 @@ A complete VR scene with AI-generated content in under 15 minutes:
 
 ### Option A: Web (Recommended for First Time)
 
-Visit **[studio.holoscript.net](https://studio.holoscript.net)** in your browser.
+Visit **[holoscript.studio](https://holoscript.studio)** in your browser.
 
 ### Option B: Local Development
 

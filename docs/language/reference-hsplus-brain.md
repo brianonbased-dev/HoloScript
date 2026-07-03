@@ -235,7 +235,7 @@ state threat_assessment {
 
 | Field | Description |
 |---|---|
-| `prompt` | The prompt string sent to the LLM. Supports `{{ context.field }}` interpolation from the agent's runtime context. |
+| `prompt` | The prompt string sent to the LLM. Supports <code v-pre>{{ context.field }}</code> interpolation from the agent's runtime context. |
 | `system` | Optional system-level instruction prepended to the prompt. |
 | `temperature` | Optional float passed to the model. |
 

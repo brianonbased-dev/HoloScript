@@ -604,7 +604,7 @@ tracking.
 | `OPENAI_API_KEY`        | Optional         | OpenAI key, used ONLY for the generic factory with explicit `provider: 'openai'`. The GraphRAG path (`detectBestEmbeddingProvider`) ignores it entirely (F.106). |
 | `OLLAMA_URL`            | Optional         | Ollama base URL (default: `http://localhost:11434`)                                                                                                              |
 | `EMBEDDING_PROVIDER`    | Optional         | GraphRAG override — only `holoembed` is accepted (`structural` is a legacy alias mapped to `holoembed`); any other value (incl. `openai`) is rejected (F.106).   |
-| `HOLOSCRIPT_STUDIO_URL` | Optional         | Studio URL override (default: `https://studio.holoscript.net`)                                                                                                   |
+| `HOLOSCRIPT_STUDIO_URL` | Optional         | Studio URL override (default: `https://holoscript.studio`)                                                                                                       |
 | `HOLOSCRIPT_API_KEY`    | For orchestrator | MCP orchestrator API key                                                                                                                                         |
 | `ANTHROPIC_API_KEY`     | Optional         | Anthropic API key for LLM-powered queries                                                                                                                        |
 | `GEMINI_API_KEY`        | Optional         | Google Gemini API key for LLM-powered queries                                                                                                                    |
