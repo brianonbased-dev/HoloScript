@@ -783,6 +783,7 @@ export async function handleTool(
     name === 'check_agent_budget' ||
     name === 'get_usage_summary' ||
     name === 'get_creator_earnings' ||
+    name === 'settle_creator_payout' ||
     name === 'optimize_scene_budget' ||
     name === 'validate_marketplace_pricing' ||
     name === 'get_unified_budget_state'

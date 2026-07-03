@@ -82,6 +82,7 @@ hs_ai_fix_code
 hs_ai_review
 hs_ai_scaffold
 generate_3d_object
+holo_generate_mesh
 browser_launch
 browser_execute
 browser_screenshot
@@ -114,6 +115,7 @@ holo_check_gotchas
 import_gltf
 compile_to_gltf
 edit_holo
+absorb_fmu
 absorb_query
 absorb_diff
 absorb_list_projects
@@ -152,6 +154,7 @@ manage_plugin
 check_agent_budget
 get_usage_summary
 get_creator_earnings
+settle_creator_payout
 optimize_scene_budget
 validate_marketplace_pricing
 get_unified_budget_state
@@ -212,14 +215,29 @@ holomesh_sovereign_topology
 holomesh_sovereign_lifepod_snapshot
 holomesh_sovereign_lifepod_restore
 holomesh_federate_twin_earth
+holomesh_presence
+holoshell_download_recovery_forensic_export
+holoshell_download_recovery_import_handoff
+holoshell_download_recovery_list
+holoshell_download_recovery_quarantine
+holoshell_download_recovery_resume
 holo_protocol_publish
 holo_protocol_collect
 holo_protocol_revenue
 holo_protocol_lookup
+holotune_status
+holotune_curate
+holotune_launch
+holotune_download
+holotune_eval
+holotune_promote
+holotune_serve
 holoscript_code_health
 holo_oracle_consult
+solve_logic
 solve_structural
 solve_thermal
+stream_world_tiles
 verify_cael_trace
 absorb_provenance_answer
 get_tool_manifest
@@ -240,6 +258,31 @@ compile_to_unity
 compile_to_unreal
 compile_to_urdf
 compile_to_webgpu
+compile_to_3dtiles
+compile_to_ai_glasses
+compile_to_bias_audit_report
+compile_to_bot_swarm
+compile_to_character_webgpu
+compile_to_colyseus
+compile_to_dungeon_instance
+compile_to_flutter
+compile_to_fmu
+compile_to_gaussian_train
+compile_to_holob
+compile_to_lens_studio
+compile_to_mcp_server
+compile_to_nft_marketplace
+compile_to_onnx
+compile_to_openapi
+compile_to_openxr_spatial_entities
+compile_to_pcg_graph
+compile_to_quest
+compile_to_scm
+compile_to_sdk
+compile_to_stl_export
+compile_to_svg
+compile_to_tsl
+compile_to_world_shard
 # compile_to_r3f — retired apex-poison 2026-06-17
 compile_to_godot
 compile_to_visionos
@@ -320,6 +363,8 @@ list_location_quests
 hololand_shard_status
 hololand_publish_zone
 hololand_create_geo_anchor
+hololand_get_geo_anchor
+hololand_list_geo_anchors
 hololand_steward_tick
 hololand_capture_runtime_receipt
 hololand_create_npc
@@ -370,6 +415,7 @@ holo_hologram_from_media
 holo_hologram_compile_quilt
 holo_hologram_compile_mvhevc
 holo_hologram_render
+holo_hologram_inject_world
 holo_hologram_publish_feed
 holo_hologram_send
 holo_hologram_upload_bundle
@@ -389,12 +435,21 @@ holo_secrets_resolve
 holo_secrets_revoke
 holo_query_receipts
 holo_list_receipt_capabilities
+holo_memory_store
+holo_memory_recall
+holo_memory_list
+holo_memory_stats
+holo_memory_graduate
+holo_memory_farm
 holo_tunnel_create
 holo_tunnel_close
 holo_tunnel_status
 sim_quote
 sim_run_paid
 sim_fleet_status
+workflow_memory_read
+workflow_memory_write
+workflow_memory_subscribe
 compile_to_canvas2d_game
 compile_to_code_editor
 explain_fairness_receipt
@@ -402,8 +457,10 @@ fairness_sweep
 holo_ci_dispatch
 render_world_on_fleet
 `
-  .trim()
-  .split(/\s+/);
+  .split(/\r?\n/)
+  .map((line) => line.replace(/#.*/, '').trim())
+  .filter((line) => line.length > 0)
+  .flatMap((line) => line.split(/\s+/));
 
 export const operatorContractExemptions: Record<string, OperatorContractExemption> = {};
 

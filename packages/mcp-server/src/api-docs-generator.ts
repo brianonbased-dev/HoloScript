@@ -132,6 +132,7 @@ const DEFAULT_CATEGORY_RULES: Record<string, string> = {
   check_agent_budget: 'Economy',
   get_usage_summary: 'Economy',
   get_creator_earnings: 'Economy',
+  settle_creator_payout: 'Economy',
   get_api_reference: 'Developer Tools',
   serve_preview: 'Developer Tools',
   get_workspace_info: 'Developer Tools',

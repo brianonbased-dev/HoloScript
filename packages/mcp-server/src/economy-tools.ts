@@ -1,9 +1,10 @@
 /**
  * MCP Economy Tools — v5.8 "Live Economy" + v6.1 "Unified Budget"
  *
- * 6 tools:
+ * 7 tools:
  *   v5.8: check_agent_budget, get_usage_summary, get_creator_earnings
  *   v6.1: optimize_scene_budget, validate_marketplace_pricing, get_unified_budget_state
+ *   WS-9: settle_creator_payout
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
@@ -11,6 +12,7 @@ import {
   AgentBudgetEnforcer,
   UsageMeter,
   CreatorRevenueAggregator,
+  PaymentGateway,
   UnifiedBudgetOptimizer,
   DEFAULT_COST_FLOOR,
 } from '@holoscript/framework/economy';
@@ -23,6 +25,10 @@ import type {
   UnifiedOptimizerConfig,
   TraitAllocation,
   UnifiedBudgetState,
+  SettlementChain,
+  SettlementMode,
+  X402PaymentPayload,
+  X402SettlementResult,
 } from '@holoscript/framework/economy';
 type ResourceUsageNode = any;
 
@@ -136,6 +142,52 @@ export const economyTools: Tool[] = [
         },
       },
       required: ['creatorId'],
+    },
+  },
+  {
+    name: 'settle_creator_payout',
+    description:
+      'Settle an unpaid creator earning through the x402 micro-payment path, record the payout, and return a receipt. Requires an X-PAYMENT header or decoded x402 payment payload; on-chain settlement is disabled by default so one-cent test payouts stay in the micro-ledger.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        creatorId: { type: 'string', description: 'Creator ID with unpaid earnings' },
+        recipientWallet: {
+          type: 'string',
+          description: 'Seat wallet receiving the payout; must match the x402 authorization recipient',
+        },
+        amountBaseUnits: {
+          type: 'number',
+          description: 'USDC base units to pay out (10000 = $0.01). Defaults to unpaid net earnings.',
+        },
+        period: {
+          type: 'string',
+          enum: ['daily', 'weekly', 'monthly', 'all-time'],
+          description: 'Earnings period to settle (default: all-time)',
+        },
+        chain: {
+          type: 'string',
+          enum: ['base', 'base-sepolia', 'solana', 'solana-devnet'],
+          description: 'x402 settlement chain (default: base-sepolia)',
+        },
+        xPaymentHeader: {
+          type: 'string',
+          description: 'Base64-encoded X-PAYMENT header. Alternative to paymentPayload.',
+        },
+        paymentPayload: {
+          type: 'object',
+          description: 'Decoded x402 payment payload. Alternative to xPaymentHeader.',
+        },
+        resource: {
+          type: 'string',
+          description: 'Receipt resource label (default: creator-payout:<creatorId>)',
+        },
+        allowOnChain: {
+          type: 'boolean',
+          description: 'Opt in to on-chain settlement for amounts at/above the micro threshold.',
+        },
+      },
+      required: ['creatorId', 'recipientWallet'],
     },
   },
 
@@ -264,6 +316,8 @@ export async function handleEconomyTool(
       return handleGetUsageSummary(args);
     case 'get_creator_earnings':
       return handleGetCreatorEarnings(args);
+    case 'settle_creator_payout':
+      return handleSettleCreatorPayout(args);
     case 'optimize_scene_budget':
       return handleOptimizeSceneBudget(args);
     case 'validate_marketplace_pricing':
@@ -380,7 +434,14 @@ function handleGetCreatorEarnings(args: Record<string, unknown>): {
       uniquePayers: number;
     }>;
   };
-  payouts: Array<{ id: string; amount: number; status: string; paidAt: string }>;
+  payouts: Array<{
+    id: string;
+    amount: number;
+    method: string;
+    status: string;
+    paidAt: string;
+    transactionHash?: string;
+  }>;
   platformFeeRate: number;
 } {
   const aggregator = getRevenueAggregator();
@@ -411,10 +472,254 @@ function handleGetCreatorEarnings(args: Record<string, unknown>): {
     payouts: payouts.map((p: any) => ({
       id: p.id,
       amount: p.amount,
+      method: p.method,
       status: p.status,
       paidAt: p.paidAt,
+      transactionHash: p.transactionHash,
     })),
     platformFeeRate: aggregator.getPlatformFeeRate(),
+  };
+}
+
+type EconomyError = { status: 'error'; error: string; message: string };
+
+type CreatorPayoutSettlementReceipt = {
+  schema: 'holoscript.creator-payout.receipt.v1';
+  tool: 'settle_creator_payout';
+  creatorId: string;
+  period: RevenuePeriod;
+  amountBaseUnits: number;
+  amountUSDC: number;
+  recipientWallet: string;
+  resource: string;
+  unpaidBefore: number;
+  earningsBefore: {
+    totalGross: number;
+    totalFees: number;
+    totalNet: number;
+    eventCount: number;
+  };
+  settlement: Pick<
+    X402SettlementResult,
+    'success' | 'transaction' | 'network' | 'payer' | 'errorReason' | 'mode' | 'settledAt'
+  >;
+  payoutRecord: {
+    id: string;
+    amount: number;
+    method: string;
+    status: string;
+    paidAt: string;
+    transactionHash?: string;
+  };
+  x402: {
+    chain: SettlementChain;
+    settlementMode: SettlementMode;
+    microPaymentThresholdBaseUnits: number;
+    signatureVerification: string;
+  };
+};
+
+function stringParam(
+  value: unknown,
+  fieldName: string
+): string | EconomyError {
+  if (typeof value !== 'string' || value.trim() === '') {
+    return {
+      status: 'error',
+      error: 'INVALID_PARAMS',
+      message: `${fieldName} must be a non-empty string`,
+    };
+  }
+  return value;
+}
+
+function parseRevenuePeriod(value: unknown, fallback: RevenuePeriod): RevenuePeriod | EconomyError {
+  if (value === undefined || value === null) return fallback;
+  if (value === 'daily' || value === 'weekly' || value === 'monthly' || value === 'all-time') {
+    return value;
+  }
+  return {
+    status: 'error',
+    error: 'INVALID_PARAMS',
+    message: 'period must be one of daily, weekly, monthly, all-time',
+  };
+}
+
+function parseSettlementChain(value: unknown, fallback: SettlementChain): SettlementChain | EconomyError {
+  if (value === undefined || value === null) return fallback;
+  if (value === 'base' || value === 'base-sepolia' || value === 'solana' || value === 'solana-devnet') {
+    return value;
+  }
+  return {
+    status: 'error',
+    error: 'INVALID_PARAMS',
+    message: 'chain must be one of base, base-sepolia, solana, solana-devnet',
+  };
+}
+
+function parseAmountBaseUnits(value: unknown, fallback: number): number | EconomyError {
+  if (value === undefined || value === null) return fallback;
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value <= 0) {
+    return {
+      status: 'error',
+      error: 'INVALID_PARAMS',
+      message: 'amountBaseUnits must be a positive safe integer',
+    };
+  }
+  return value;
+}
+
+function completedPayoutTotal(
+  payouts: ReturnType<CreatorRevenueAggregator['getCreatorPayouts']>
+): number {
+  return payouts.reduce((sum, payout) => sum + (payout.status === 'completed' ? payout.amount : 0), 0);
+}
+
+async function handleSettleCreatorPayout(
+  args: Record<string, unknown>
+): Promise<
+  | {
+      status: 'success';
+      creatorId: string;
+      receipt: CreatorPayoutSettlementReceipt;
+    }
+  | {
+      status: 'settlement_failed';
+      creatorId: string;
+      settlement: X402SettlementResult;
+      message: string;
+    }
+  | EconomyError
+> {
+  const creatorId = stringParam(args.creatorId, 'creatorId');
+  if (typeof creatorId !== 'string') return creatorId;
+
+  const recipientWallet = stringParam(args.recipientWallet, 'recipientWallet');
+  if (typeof recipientWallet !== 'string') return recipientWallet;
+
+  const period = parseRevenuePeriod(args.period, 'all-time');
+  if (typeof period !== 'string') return period;
+
+  const chain = parseSettlementChain(args.chain, 'base-sepolia');
+  if (typeof chain !== 'string') return chain;
+
+  const aggregator = getRevenueAggregator();
+  const earnings = aggregator.getCreatorEarnings(creatorId, period);
+  const priorPayouts = aggregator.getCreatorPayouts(creatorId, period);
+  const unpaidBefore = earnings.totalNet - completedPayoutTotal(priorPayouts);
+  const amountBaseUnits = parseAmountBaseUnits(args.amountBaseUnits, unpaidBefore);
+  if (typeof amountBaseUnits !== 'number') return amountBaseUnits;
+
+  if (amountBaseUnits > unpaidBefore) {
+    return {
+      status: 'error',
+      error: 'INSUFFICIENT_EARNINGS',
+      message: `creator ${creatorId} has ${unpaidBefore} unpaid base units; requested ${amountBaseUnits}`,
+    };
+  }
+
+  const microPaymentThresholdBaseUnits = 100_000;
+  if (args.allowOnChain !== true && amountBaseUnits >= microPaymentThresholdBaseUnits) {
+    return {
+      status: 'error',
+      error: 'ON_CHAIN_DISABLED',
+      message:
+        'settle_creator_payout defaults to x402 micro-ledger settlement only; pass allowOnChain=true to use an external facilitator for larger amounts',
+    };
+  }
+
+  const payment =
+    typeof args.xPaymentHeader === 'string'
+      ? args.xPaymentHeader
+      : typeof args.paymentPayload === 'object' && args.paymentPayload !== null
+        ? (args.paymentPayload as X402PaymentPayload)
+        : null;
+
+  if (!payment) {
+    return {
+      status: 'error',
+      error: 'MISSING_X402_PAYMENT',
+      message: 'xPaymentHeader or paymentPayload is required to settle a creator payout',
+    };
+  }
+
+  const resource =
+    typeof args.resource === 'string' && args.resource.trim() !== ''
+      ? args.resource
+      : `creator-payout:${creatorId}`;
+
+  const gateway = new PaymentGateway({
+    recipientAddress: recipientWallet,
+    chain,
+    microPaymentThreshold: microPaymentThresholdBaseUnits,
+    optimisticExecution: false,
+  });
+
+  const settlement = await gateway.settlePayment(payment, resource, String(amountBaseUnits));
+  gateway.dispose();
+
+  if (!settlement.success) {
+    return {
+      status: 'settlement_failed',
+      creatorId,
+      settlement,
+      message: settlement.errorReason ?? 'x402 settlement failed',
+    };
+  }
+
+  const payoutRecord = aggregator.recordPayout(
+    creatorId,
+    amountBaseUnits,
+    settlement.mode === 'in_memory' ? 'batch_settlement' : 'usdc_transfer',
+    settlement.transaction ?? undefined
+  );
+
+  return {
+    status: 'success',
+    creatorId,
+    receipt: {
+      schema: 'holoscript.creator-payout.receipt.v1',
+      tool: 'settle_creator_payout',
+      creatorId,
+      period,
+      amountBaseUnits,
+      amountUSDC: amountBaseUnits / 1_000_000,
+      recipientWallet,
+      resource,
+      unpaidBefore,
+      earningsBefore: {
+        totalGross: earnings.totalGross,
+        totalFees: earnings.totalFees,
+        totalNet: earnings.totalNet,
+        eventCount: earnings.eventCount,
+      },
+      settlement: {
+        success: settlement.success,
+        transaction: settlement.transaction,
+        network: settlement.network,
+        payer: settlement.payer,
+        errorReason: settlement.errorReason,
+        mode: settlement.mode,
+        settledAt: settlement.settledAt,
+      },
+      payoutRecord: {
+        id: payoutRecord.id,
+        amount: payoutRecord.amount,
+        method: payoutRecord.method,
+        status: payoutRecord.status,
+        paidAt: payoutRecord.paidAt,
+        transactionHash: payoutRecord.transactionHash,
+      },
+      x402: {
+        chain,
+        settlementMode: settlement.mode,
+        microPaymentThresholdBaseUnits,
+        signatureVerification:
+          settlement.mode === 'in_memory'
+            ? 'structural x402 payload verified by X402Facilitator; no external facilitator call for micro-ledger settlement'
+            : 'external facilitator settlement',
+      },
+    },
   };
 }
 

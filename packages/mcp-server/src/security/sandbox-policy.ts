@@ -363,6 +363,7 @@ export const SENSITIVE_TOOL_PATTERNS = [
   /^holo_protocol_/,
   /^check_agent_budget$/,
   /^get_creator_earnings$/,
+  /^settle_creator_payout$/,
   /^optimize_scene_budget$/,
   /^validate_marketplace_pricing$/,
   // Plugin management (plugins can inject arbitrary code)

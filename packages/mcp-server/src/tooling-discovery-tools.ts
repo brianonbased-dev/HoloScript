@@ -584,7 +584,7 @@ const REPRESENTATIVE_TOOLS: Record<string, string[]> = {
   browser: ['browser_screenshot'],
   observability: ['get_agent_health', 'holoscript_code_health'],
   plugins: ['list_plugins'],
-  economy: ['get_creator_earnings'],
+  economy: ['get_creator_earnings', 'settle_creator_payout'],
   simulation: ['verify_cael_trace'],
   holotune: ['holotune_status', 'holotune_launch'],
   discovery: ['get_tool_manifest', 'suggest_tools_for_goal'],
@@ -613,6 +613,7 @@ const CANARY_ARGS: Record<string, Record<string, unknown>> = {
   holoscript_code_health: { code: 'object Cube { geometry: "cube" }' },
   list_plugins: {},
   get_creator_earnings: {},
+  settle_creator_payout: {},
   verify_cael_trace: { trace: [] },
   holotune_status: {},
   holotune_curate: {
