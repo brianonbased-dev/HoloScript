@@ -140,6 +140,38 @@ describe('compiler tools', () => {
     expect(receipt.serviceBaseUrl).toBe('https://mcp.holoscript.net/api/v1');
   });
 
+  it('passes SDK fan-out target options through compile_to_sdk', async () => {
+    const code = readFileSync(
+      resolve(testDir, '../../../partner-sdk/src/api/registry-client.contract.holo'),
+      'utf8'
+    );
+
+    const result = (await handleCompilerTool('compile_to_sdk', {
+      code,
+      target: 'sdk:python',
+      options: {
+        clientClassName: 'RegistryClient',
+        packageName: 'holoscript-registry-client',
+      },
+    })) as {
+      success?: boolean;
+      output?: string;
+      target?: string;
+    };
+
+    expect(result.success).toBe(true);
+    expect(result.target).toBe('sdk');
+    const files = JSON.parse(result.output ?? '{}') as Record<string, string>;
+    expect(files['holoscript_sdk/registry_client.py']).toContain('class RegistryClient:');
+    expect(files['holoscript_sdk/sdk_runtime.py']).toContain('holo_key');
+    const receipt = JSON.parse(files['sdk-compiler-receipt.json']) as {
+      target?: string;
+      fanOut?: { targets?: string[] };
+    };
+    expect(receipt.target).toBe('sdk:python');
+    expect(receipt.fanOut?.targets).toContain('sdk:connectors');
+  });
+
   it('exports an Omnigent agent YAML bridge through its convenience tool', async () => {
     const result = (await handleCompilerTool('compile_to_omnigent_agent_yaml', {
       code: `composition "PlannerBrain" {

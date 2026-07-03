@@ -12,9 +12,15 @@ import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity';
 import type { HoloComposition, HoloDomainBlock, HoloValue } from '../parser/HoloCompositionTypes';
 import { DialectRegistry } from './DialectRegistry';
 
-export type SDKCompilerLanguage = 'typescript';
+export type SDKCompilerTarget =
+  | 'sdk:typescript'
+  | 'sdk:python'
+  | 'sdk:react'
+  | 'sdk:connectors';
+export type SDKCompilerLanguage = 'typescript' | 'python' | 'react' | 'connectors';
 
 export interface SDKCompilerOptions {
+  target?: SDKCompilerTarget | SDKCompilerLanguage;
   language?: SDKCompilerLanguage;
   clientClassName?: string;
   packageName?: string;
@@ -85,6 +91,7 @@ interface ServiceContractIR {
 }
 
 interface SDKCompilerResolvedOptions {
+  target: SDKCompilerTarget;
   language: SDKCompilerLanguage;
   clientClassName: string;
   packageName: string;
@@ -103,14 +110,17 @@ export class SDKCompiler extends CompilerBase {
 
   constructor(options: SDKCompilerOptions = {}) {
     super();
+    const target = this.resolveTarget(options.target ?? options.language);
     const clientClassName = options.clientClassName ?? 'GeneratedSDKClient';
+    const defaultOutputDir = target === 'sdk:python' ? 'holoscript_sdk' : 'src';
     this.options = {
-      language: options.language ?? 'typescript',
+      target,
+      language: this.languageForTarget(target),
       clientClassName,
       packageName: options.packageName ?? '@holoscript/generated-sdk',
-      outputDir: this.trimSlashes(options.outputDir ?? 'src'),
-      clientFileName: options.clientFileName ?? `${clientClassName}.ts`,
-      runtimeFileName: options.runtimeFileName ?? 'sdk-runtime.ts',
+      outputDir: this.trimSlashes(options.outputDir ?? defaultOutputDir),
+      clientFileName: options.clientFileName ?? this.defaultClientFileName(target, clientClassName),
+      runtimeFileName: options.runtimeFileName ?? this.defaultRuntimeFileName(target),
       includePackageJson: options.includePackageJson ?? true,
       includeTsConfig: options.includeTsConfig ?? true,
       includeReadme: options.includeReadme ?? true,
@@ -127,27 +137,100 @@ export class SDKCompiler extends CompilerBase {
     outputPath?: string
   ): Record<string, string> {
     this.validateCompilerAccess(agentToken, outputPath);
-    if (this.options.language !== 'typescript') {
-      throw new Error(
-        `SDKCompiler only supports TypeScript in SDK 2/7, got ${this.options.language}`
-      );
-    }
-
     const contract = this.extractContract(composition);
+
+    switch (this.options.target) {
+      case 'sdk:typescript':
+        return this.emitTypeScriptFiles(contract);
+      case 'sdk:python':
+        return this.emitPythonFiles(contract);
+      case 'sdk:react':
+        return this.emitReactFiles(contract);
+      case 'sdk:connectors':
+        return this.emitConnectorFiles(contract);
+      default:
+        throw new Error(`Unsupported SDKCompiler target: ${this.options.target}`);
+    }
+  }
+
+  private emitTypeScriptFiles(contract: ServiceContractIR): Record<string, string> {
     const files: Record<string, string> = {};
     files[this.joinOutputPath(this.options.clientFileName)] = this.emitClient(contract);
     files[this.joinOutputPath(this.options.runtimeFileName)] = this.emitRuntime(contract);
-    files['sdk-compiler-receipt.json'] = this.emitReceipt(contract);
 
     if (this.options.includePackageJson) files['package.json'] = this.emitPackageJson(contract);
     if (this.options.includeTsConfig) files['tsconfig.json'] = this.emitTsConfig();
     if (this.options.includeReadme) files['README.md'] = this.emitReadme(contract);
 
-    return files;
+    return this.attachReceipt(files, contract);
   }
 
   protected override defaultOutputFileName(): string {
     return this.joinOutputPath(this.options.clientFileName);
+  }
+
+  private resolveTarget(rawTarget: SDKCompilerOptions['target']): SDKCompilerTarget {
+    switch (rawTarget ?? 'sdk:typescript') {
+      case 'typescript':
+      case 'sdk:typescript':
+        return 'sdk:typescript';
+      case 'python':
+      case 'sdk:python':
+        return 'sdk:python';
+      case 'react':
+      case 'sdk:react':
+        return 'sdk:react';
+      case 'connectors':
+      case 'sdk:connectors':
+        return 'sdk:connectors';
+      default:
+        throw new Error(
+          `Unsupported SDKCompiler target "${String(rawTarget)}"; expected sdk:typescript, sdk:python, sdk:react, or sdk:connectors`
+        );
+    }
+  }
+
+  private languageForTarget(target: SDKCompilerTarget): SDKCompilerLanguage {
+    switch (target) {
+      case 'sdk:typescript':
+        return 'typescript';
+      case 'sdk:python':
+        return 'python';
+      case 'sdk:react':
+        return 'react';
+      case 'sdk:connectors':
+        return 'connectors';
+    }
+  }
+
+  private defaultClientFileName(target: SDKCompilerTarget, clientClassName: string): string {
+    switch (target) {
+      case 'sdk:python':
+        return `${this.toSnake(clientClassName)}.py`;
+      case 'sdk:react':
+      case 'sdk:connectors':
+      case 'sdk:typescript':
+        return `${clientClassName}.ts`;
+    }
+  }
+
+  private defaultRuntimeFileName(target: SDKCompilerTarget): string {
+    switch (target) {
+      case 'sdk:python':
+        return 'sdk_runtime.py';
+      case 'sdk:react':
+      case 'sdk:connectors':
+      case 'sdk:typescript':
+        return 'sdk-runtime.ts';
+    }
+  }
+
+  private attachReceipt(
+    files: Record<string, string>,
+    contract: ServiceContractIR
+  ): Record<string, string> {
+    files['sdk-compiler-receipt.json'] = this.emitReceipt(contract, Object.keys(files));
+    return files;
   }
 
   private extractContract(composition: HoloComposition): ServiceContractIR {
@@ -757,6 +840,419 @@ export class SDKCompiler extends CompilerBase {
     ].join('\n');
   }
 
+  private emitPythonFiles(contract: ServiceContractIR): Record<string, string> {
+    const files: Record<string, string> = {};
+    files[this.joinOutputPath(this.options.clientFileName)] = this.emitPythonClient(contract);
+    files[this.joinOutputPath(this.options.runtimeFileName)] = this.emitPythonRuntime(contract);
+    if (this.options.includePackageJson) files['pyproject.toml'] = this.emitPythonProjectToml(contract);
+    if (this.options.includeTsConfig) files[this.joinOutputPath('py.typed')] = '';
+    if (this.options.includeReadme) files['README.md'] = this.emitReadme(contract);
+    return this.attachReceipt(files, contract);
+  }
+
+  private emitPythonClient(contract: ServiceContractIR): string {
+    const runtimeModule = this.options.runtimeFileName.replace(/\.py$/, '');
+    const lines: string[] = [
+      '"""',
+      'Generated by HoloScript SDKCompiler - DO NOT EDIT.',
+      `Source composition: ${contract.compositionName}.`,
+      '"""',
+      '',
+      'from __future__ import annotations',
+      '',
+      'from typing import Any, NotRequired, TypedDict',
+      '',
+      `from .${runtimeModule} import SDKRuntime`,
+      '',
+    ];
+
+    for (const schema of contract.schemas) {
+      lines.push(...this.emitPythonTypedDict(schema.name, schema.fields), '');
+    }
+
+    for (const endpoint of contract.endpoints) {
+      if (endpoint.params.length > 0) {
+        lines.push(
+          ...this.emitPythonTypedDict(this.paramsInterfaceName(endpoint), endpoint.params),
+          ''
+        );
+      }
+    }
+
+    lines.push(`DEFAULT_BASE_URL = "${this.escapeStringValue(contract.service.baseUrl, 'JSON')}"`, '');
+    lines.push(`class ${this.options.clientClassName}:`);
+    lines.push('    """Typed client generated from the .holo service-contract AST."""');
+    lines.push('');
+    lines.push(
+      '    def __init__(self, base_url: str = DEFAULT_BASE_URL, *, partner_id: str | None = None, api_key: str | None = None, holo_key: str | None = None, secret_key: str | None = None, headers: dict[str, str] | None = None) -> None:'
+    );
+    lines.push(
+      '        self.runtime = SDKRuntime(base_url, partner_id=partner_id, api_key=api_key, holo_key=holo_key, secret_key=secret_key, headers=headers)'
+    );
+    lines.push('');
+
+    contract.endpoints.forEach((endpoint, index) => {
+      lines.push(...this.emitPythonEndpointMethod(endpoint));
+      if (index < contract.endpoints.length - 1) lines.push('');
+    });
+
+    return lines.join('\n');
+  }
+
+  private emitPythonTypedDict(
+    name: string,
+    fields: Array<{ name: string; optional: boolean; tsType: string }>
+  ): string[] {
+    const lines = [`class ${name}(TypedDict):`];
+    if (fields.length === 0) {
+      lines.push('    pass');
+      return lines;
+    }
+
+    for (const field of fields) {
+      const key = /^[A-Za-z_][A-Za-z0-9_]*$/.test(field.name)
+        ? field.name
+        : JSON.stringify(field.name);
+      const valueType = this.pythonTypeFromTsType(field.tsType);
+      lines.push(
+        field.optional
+          ? `    ${key}: NotRequired[${valueType}]`
+          : `    ${key}: ${valueType}`
+      );
+    }
+    return lines;
+  }
+
+  private emitPythonEndpointMethod(endpoint: ContractEndpoint): string[] {
+    const paramsName = this.paramsInterfaceName(endpoint);
+    const args: string[] = [];
+    if (endpoint.params.length > 0) {
+      const optional = this.allParamsOptional(endpoint) ? ' | None = None' : '';
+      args.push(`params: ${paramsName}${optional}`);
+    }
+    if (endpoint.requestBodyType) {
+      args.push(`body: ${this.pythonTypeFromTsType(endpoint.requestBodyType)} | dict[str, Any]`);
+    }
+    args.push('options: dict[str, Any] | None = None');
+
+    const responseType = this.pythonTypeFromTsType(endpoint.responseType);
+    const lines = [
+      `    def ${this.toSnake(endpoint.name)}(self, ${args.join(', ')}) -> ${responseType}:`,
+      `        """${this.escapeStringValue(endpoint.summary ?? endpoint.name, 'Python')}"""`,
+    ];
+    const paramsExpression = this.allParamsOptional(endpoint) ? '(params or {})' : 'params';
+    if (endpoint.params.some((param) => param.location === 'path')) {
+      lines.push(
+        `        path = SDKRuntime.interpolate_path("${this.escapeStringValue(endpoint.path, 'JSON')}", ${paramsExpression})`
+      );
+    } else {
+      lines.push(`        path = "${this.escapeStringValue(endpoint.path, 'JSON')}"`);
+    }
+
+    const queryParamNames = endpoint.params
+      .filter((param) => param.location === 'query')
+      .map((param) => param.name);
+    if (queryParamNames.length > 0) {
+      lines.push(
+        `        query = SDKRuntime.pick_query(${paramsExpression}, ${JSON.stringify(queryParamNames)})`
+      );
+    } else {
+      lines.push('        query = None');
+    }
+
+    const bodyArg = endpoint.requestBodyType ? 'body' : 'None';
+    lines.push(
+      `        return self.runtime.request("${endpoint.method}", path, body=${bodyArg}, query=query, options=options)`
+    );
+    return lines;
+  }
+
+  private emitPythonRuntime(contract: ServiceContractIR): string {
+    const authHeaders = JSON.stringify({
+      partnerId: contract.auth?.headers['partner_id'] ?? 'X-Partner-ID',
+      apiKey: contract.auth?.headers['api_key'] ?? 'X-API-Key',
+      timestamp: contract.auth?.signature?.timestampHeader ?? 'X-Timestamp',
+      signature: contract.auth?.signature?.signatureHeader ?? 'X-Signature',
+    });
+
+    return [
+      '"""Generated fixed runtime shim for HoloScript SDKCompiler Python clients."""',
+      '',
+      'from __future__ import annotations',
+      '',
+      'import hashlib',
+      'import hmac',
+      'import json',
+      'import time',
+      'from typing import Any',
+      'from urllib import parse, request',
+      '',
+      `SDK_AUTH_HEADERS = ${authHeaders}`,
+      `SDK_SIGNATURE_PAYLOAD_TEMPLATE = "${this.escapeStringValue(contract.auth?.signature?.payloadTemplate ?? '{method}:{endpoint}:{timestamp}:{body}', 'JSON')}"`,
+      '',
+      'class SDKError(Exception):',
+      '    def __init__(self, message: str, status: int = 0, code: str = "sdk_error", details: Any = None) -> None:',
+      '        super().__init__(message)',
+      '        self.status = status',
+      '        self.code = code',
+      '        self.details = details',
+      '',
+      'class SDKRuntime:',
+      '    def __init__(self, base_url: str, *, partner_id: str | None = None, api_key: str | None = None, holo_key: str | None = None, secret_key: str | None = None, headers: dict[str, str] | None = None) -> None:',
+      '        self.base_url = base_url.rstrip("/")',
+      '        self.partner_id = partner_id',
+      '        self.api_key = api_key or holo_key',
+      '        self.secret_key = secret_key',
+      '        self.headers = headers or {}',
+      '',
+      '    def request(self, method: str, path: str, *, body: Any = None, query: dict[str, Any] | None = None, options: dict[str, Any] | None = None) -> Any:',
+      '        url = self.build_url(path, query)',
+      '        body_text = None if body is None else json.dumps(body).encode("utf-8")',
+      '        headers = self.build_headers(method, path, body_text.decode("utf-8") if body_text else None, (options or {}).get("headers"))',
+      '        req = request.Request(url, data=body_text, headers=headers, method=method)',
+      '        try:',
+      '            with request.urlopen(req, timeout=(options or {}).get("timeout", 30)) as response:',
+      '                text = response.read().decode("utf-8")',
+      '                return json.loads(text) if text else None',
+      '        except Exception as error:',
+      '            raise SDKError(str(error)) from error',
+      '',
+      '    def build_url(self, path: str, query: dict[str, Any] | None) -> str:',
+      '        base = path if path.startswith("http") else f"{self.base_url}{path}"',
+      '        if not query:',
+      '            return base',
+      '        clean_query = {key: value for key, value in query.items() if value is not None}',
+      '        return f"{base}?{parse.urlencode(clean_query, doseq=True)}"',
+      '',
+      '    def build_headers(self, method: str, path: str, body_text: str | None, extra: dict[str, str] | None) -> dict[str, str]:',
+      '        headers = {"Accept": "application/json", "Content-Type": "application/json", **self.headers, **(extra or {})}',
+      '        if self.partner_id:',
+      '            headers[SDK_AUTH_HEADERS["partnerId"]] = self.partner_id',
+      '        if self.api_key:',
+      '            headers[SDK_AUTH_HEADERS["apiKey"]] = self.api_key',
+      '        if self.secret_key:',
+      '            timestamp = str(int(time.time() * 1000))',
+      '            headers[SDK_AUTH_HEADERS["timestamp"]] = timestamp',
+      '            headers[SDK_AUTH_HEADERS["signature"]] = self.sign(method, path, timestamp, body_text or "")',
+      '        return headers',
+      '',
+      '    def sign(self, method: str, path: str, timestamp: str, body_text: str) -> str:',
+      '        payload = SDK_SIGNATURE_PAYLOAD_TEMPLATE.replace("{method}", method).replace("{endpoint}", path).replace("{path}", path).replace("{timestamp}", timestamp).replace("{body}", body_text)',
+      '        secret = (self.secret_key or self.api_key or "").encode("utf-8")',
+      '        return hmac.new(secret, payload.encode("utf-8"), hashlib.sha256).hexdigest()',
+      '',
+      '    @staticmethod',
+      '    def interpolate_path(path: str, params: dict[str, Any]) -> str:',
+      '        for key, value in params.items():',
+      '            path = path.replace("{" + key + "}", parse.quote(str(value), safe=""))',
+      '        return path',
+      '',
+      '    @staticmethod',
+      '    def pick_query(params: dict[str, Any], names: list[str]) -> dict[str, Any]:',
+      '        return {name: params.get(name) for name in names if params.get(name) is not None}',
+      '',
+    ].join('\n');
+  }
+
+  private emitReactFiles(contract: ServiceContractIR): Record<string, string> {
+    const files = this.emitTypeScriptFilesWithoutReceipt(contract);
+    files[this.joinOutputPath(`use${this.options.clientClassName}.tsx`)] =
+      this.emitReactHooks(contract);
+    if (this.options.includePackageJson) files['package.json'] = this.emitReactPackageJson(contract);
+    if (this.options.includeTsConfig) files['tsconfig.json'] = this.emitTsConfig();
+    if (this.options.includeReadme) files['README.md'] = this.emitReadme(contract);
+    return this.attachReceipt(files, contract);
+  }
+
+  private emitTypeScriptFilesWithoutReceipt(contract: ServiceContractIR): Record<string, string> {
+    const files: Record<string, string> = {};
+    files[this.joinOutputPath(this.options.clientFileName)] = this.emitClient(contract);
+    files[this.joinOutputPath(this.options.runtimeFileName)] = this.emitRuntime(contract);
+    return files;
+  }
+
+  private emitReactHooks(contract: ServiceContractIR): string {
+    const clientModule = this.options.clientFileName.replace(/\.ts$/, '.js');
+    const hookName = `use${this.options.clientClassName}`;
+    const lines = [
+      "'use client';",
+      '',
+      '/**',
+      ' * @generated by HoloScript SDKCompiler React emitter - DO NOT EDIT.',
+      ` * Source composition: ${this.escapeStringValue(contract.compositionName, 'TypeScript')}.`,
+      ' */',
+      '',
+      "import { useCallback, useMemo } from 'react';",
+      `import { ${this.options.clientClassName}, type ${this.options.clientClassName}Config } from './${clientModule}';`,
+      '',
+      `export function ${hookName}(config: ${this.options.clientClassName}Config = {}) {`,
+      `  const client = useMemo(() => new ${this.options.clientClassName}(config), [config]);`,
+      '',
+    ];
+
+    for (const endpoint of contract.endpoints) {
+      lines.push(
+        `  const ${endpoint.name} = useCallback((...args: Parameters<${this.options.clientClassName}['${endpoint.name}']>) => client.${endpoint.name}(...args), [client]);`
+      );
+    }
+
+    lines.push('', '  return {', '    client,');
+    for (const endpoint of contract.endpoints) {
+      lines.push(`    ${endpoint.name},`);
+    }
+    lines.push('  };', '}', '', `export type ${hookName}Result = ReturnType<typeof ${hookName}>;`);
+    return lines.join('\n');
+  }
+
+  private emitConnectorFiles(contract: ServiceContractIR): Record<string, string> {
+    const files = this.emitTypeScriptFilesWithoutReceipt(contract);
+    const connectorFileName = `${this.connectorClassName()}Connector.ts`;
+    files[this.joinOutputPath(connectorFileName)] = this.emitConnector(contract);
+    files[this.joinOutputPath('tools.ts')] = this.emitConnectorTools(contract);
+    files[this.joinOutputPath('index.ts')] = [
+      `export * from './${this.options.clientFileName.replace(/\.ts$/, '.js')}';`,
+      `export * from './${connectorFileName.replace(/\.ts$/, '.js')}';`,
+      "export * from './tools.js';",
+      '',
+    ].join('\n');
+    if (this.options.includePackageJson) files['package.json'] = this.emitConnectorPackageJson(contract);
+    if (this.options.includeTsConfig) files['tsconfig.json'] = this.emitTsConfig();
+    if (this.options.includeReadme) files['README.md'] = this.emitReadme(contract);
+    return this.attachReceipt(files, contract);
+  }
+
+  private emitConnector(contract: ServiceContractIR): string {
+    const connectorClassName = `${this.connectorClassName()}Connector`;
+    const clientModule = this.options.clientFileName.replace(/\.ts$/, '.js');
+    const lines = [
+      '/**',
+      ' * @generated by HoloScript SDKCompiler connector emitter - DO NOT EDIT.',
+      ` * Source composition: ${this.escapeStringValue(contract.compositionName, 'TypeScript')}.`,
+      ' */',
+      '',
+      "import { ServiceConnector } from '@holoscript/connector-core';",
+      "import type { Tool } from '@modelcontextprotocol/sdk/types.js';",
+      `import { ${this.options.clientClassName}, type ${this.options.clientClassName}Config } from './${clientModule}';`,
+      "import { createConnectorTools } from './tools.js';",
+      '',
+      `export class ${connectorClassName} extends ServiceConnector {`,
+      `  private readonly client: ${this.options.clientClassName};`,
+      '',
+      `  constructor(config: ${this.options.clientClassName}Config = {}) {`,
+      '    super();',
+      `    this.client = new ${this.options.clientClassName}(config);`,
+      '  }',
+      '',
+      '  async connect(): Promise<void> {',
+      '    this.isConnected = true;',
+      '  }',
+      '',
+      '  async disconnect(): Promise<void> {',
+      '    this.isConnected = false;',
+      '  }',
+      '',
+      '  async health(): Promise<boolean> {',
+      '    return this.isConnected;',
+      '  }',
+      '',
+      '  async listTools(): Promise<Tool[]> {',
+      '    return createConnectorTools();',
+      '  }',
+      '',
+      '  async executeTool(name: string, args: Record<string, unknown>): Promise<unknown> {',
+      '    switch (name) {',
+    ];
+
+    for (const endpoint of contract.endpoints) {
+      lines.push(`      case '${this.connectorToolName(endpoint)}':`);
+      lines.push(`        return this.client.${endpoint.name}(${this.connectorCallArgs(endpoint)});`);
+    }
+
+    lines.push(
+      '      default:',
+      '        throw new Error(`Unknown connector tool: ${name}`);',
+      '    }',
+      '  }',
+      '}',
+      ''
+    );
+    return lines.join('\n');
+  }
+
+  private emitConnectorTools(contract: ServiceContractIR): string {
+    const lines = [
+      '/** @generated by HoloScript SDKCompiler connector emitter - DO NOT EDIT. */',
+      '',
+      "import type { Tool } from '@modelcontextprotocol/sdk/types.js';",
+      '',
+      'export function createConnectorTools(): Tool[] {',
+      '  return [',
+    ];
+
+    for (const endpoint of contract.endpoints) {
+      lines.push('    {');
+      lines.push(`      name: '${this.connectorToolName(endpoint)}',`);
+      lines.push(`      description: '${this.escapeStringValue(endpoint.summary ?? endpoint.name, 'TypeScript')}',`);
+      lines.push(`      inputSchema: ${JSON.stringify(this.connectorInputSchema(endpoint), null, 8)},`);
+      lines.push('    },');
+    }
+
+    lines.push('  ];', '}', '');
+    return lines.join('\n');
+  }
+
+  private emitPythonProjectToml(contract: ServiceContractIR): string {
+    return [
+      '[project]',
+      `name = "${this.options.packageName.replace(/^@[^/]+\//, '')}"`,
+      `version = "${contract.service.version}"`,
+      'requires-python = ">=3.11"',
+      'dependencies = []',
+      '',
+    ].join('\n');
+  }
+
+  private emitReactPackageJson(contract: ServiceContractIR): string {
+    return JSON.stringify(
+      {
+        name: this.options.packageName,
+        version: contract.service.version,
+        type: 'module',
+        main: `dist/${this.options.clientFileName.replace(/\.ts$/, '.js')}`,
+        types: `dist/${this.options.clientFileName.replace(/\.ts$/, '.d.ts')}`,
+        peerDependencies: {
+          react: '>=18',
+        },
+        devDependencies: {
+          typescript: '^5.5.0',
+        },
+      },
+      null,
+      2
+    );
+  }
+
+  private emitConnectorPackageJson(contract: ServiceContractIR): string {
+    return JSON.stringify(
+      {
+        name: this.options.packageName,
+        version: contract.service.version,
+        type: 'module',
+        main: 'dist/index.js',
+        types: 'dist/index.d.ts',
+        dependencies: {
+          '@holoscript/connector-core': 'workspace:*',
+          '@modelcontextprotocol/sdk': '^1.0.0',
+        },
+        devDependencies: {
+          typescript: '^5.5.0',
+        },
+      },
+      null,
+      2
+    );
+  }
+
   private emitPackageJson(contract: ServiceContractIR): string {
     const pkg = {
       name: this.options.packageName,
@@ -811,21 +1307,19 @@ export class SDKCompiler extends CompilerBase {
     ].join('\n');
   }
 
-  private emitReceipt(contract: ServiceContractIR): string {
+  private emitReceipt(contract: ServiceContractIR, generatedFiles: string[]): string {
     return JSON.stringify(
       {
         type: 'SDKCompilerReceipt',
-        target: 'sdk:typescript',
+        target: this.options.target,
+        language: this.options.language,
         sourceComposition: contract.compositionName,
         service: contract.service.name,
         clientClassName: this.options.clientClassName,
         serviceBaseUrl: contract.service.baseUrl,
         schemaCount: contract.schemas.length,
         endpointCount: contract.endpoints.length,
-        generatedFiles: [
-          this.joinOutputPath(this.options.clientFileName),
-          this.joinOutputPath(this.options.runtimeFileName),
-        ],
+        generatedFiles,
         contractSurfaces: {
           auth: contract.auth?.name,
           responseEnvelope: contract.service.responseEnvelope,
@@ -835,6 +1329,12 @@ export class SDKCompiler extends CompilerBase {
           credential: 'HoloKey-compatible apiKey/holoKey credential headers',
           routing: 'UmbrellaRoute-compatible baseUrl and endpoint path contract',
           provenance: 'triad-ready sourceComposition/service/generatedFiles receipt',
+          holoGate:
+            'documentation umbrella only; generated SDKs bind concrete HoloKey, UmbrellaRoute, and triad receipt surfaces',
+        },
+        fanOut: {
+          source: 'single ServiceContractIR extracted from the .holo contract AST',
+          targets: ['sdk:typescript', 'sdk:python', 'sdk:react', 'sdk:connectors'],
         },
       },
       null,
@@ -868,6 +1368,92 @@ export class SDKCompiler extends CompilerBase {
         return 'unknown';
       default:
         return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(trimmed) ? trimmed : 'unknown';
+    }
+  }
+
+  private pythonTypeFromTsType(tsType: string): string {
+    if (tsType.endsWith('[]')) {
+      return `list[${this.pythonTypeFromTsType(tsType.slice(0, -2))}]`;
+    }
+
+    switch (tsType) {
+      case 'string':
+        return 'str';
+      case 'number':
+        return 'float';
+      case 'boolean':
+        return 'bool';
+      case 'void':
+        return 'None';
+      case 'unknown':
+      case 'Record<string, unknown>':
+        return 'Any';
+      default:
+        return /^[A-Za-z_][A-Za-z0-9_]*$/.test(tsType) ? tsType : 'Any';
+    }
+  }
+
+  private connectorClassName(): string {
+    return this.options.clientClassName.replace(/Client$/, '') || this.options.clientClassName;
+  }
+
+  private connectorToolName(endpoint: ContractEndpoint): string {
+    const prefix = this.toSnake(this.connectorClassName());
+    return `${prefix}_${this.toSnake(endpoint.name)}`;
+  }
+
+  private connectorCallArgs(endpoint: ContractEndpoint): string {
+    const args: string[] = [];
+    if (endpoint.params.length > 0) args.push('args.params as any');
+    if (endpoint.requestBodyType) args.push('args.body as any');
+    args.push('args.options as any');
+    return args.join(', ');
+  }
+
+  private connectorInputSchema(endpoint: ContractEndpoint): Record<string, unknown> {
+    const properties: Record<string, unknown> = {};
+    const required: string[] = [];
+
+    if (endpoint.params.length > 0) {
+      const paramProperties: Record<string, unknown> = {};
+      const requiredParams: string[] = [];
+      for (const param of endpoint.params) {
+        paramProperties[param.name] = { type: this.jsonSchemaTypeFromTsType(param.tsType) };
+        if (!param.optional) requiredParams.push(param.name);
+      }
+      properties.params = {
+        type: 'object',
+        properties: paramProperties,
+        ...(requiredParams.length > 0 ? { required: requiredParams } : {}),
+      };
+      if (requiredParams.length > 0) required.push('params');
+    }
+
+    if (endpoint.requestBodyType) {
+      properties.body = { type: 'object' };
+      required.push('body');
+    }
+
+    properties.options = { type: 'object' };
+
+    return {
+      type: 'object',
+      properties,
+      ...(required.length > 0 ? { required } : {}),
+    };
+  }
+
+  private jsonSchemaTypeFromTsType(tsType: string): string {
+    if (tsType.endsWith('[]')) return 'array';
+    switch (tsType) {
+      case 'string':
+        return 'string';
+      case 'number':
+        return 'number';
+      case 'boolean':
+        return 'boolean';
+      default:
+        return 'object';
     }
   }
 
@@ -924,6 +1510,10 @@ export class SDKCompiler extends CompilerBase {
       .replace(/[^A-Za-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '')
       .toLowerCase();
+  }
+
+  private toSnake(value: string): string {
+    return this.toKebab(value).replace(/-/g, '_') || 'sdk';
   }
 
   private trimSlashes(value: string): string {

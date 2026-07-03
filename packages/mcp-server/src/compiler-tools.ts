@@ -903,8 +903,16 @@ export async function handleCompilerTool(
       return handleCompileToTarget({ ...args, target: 'holob' });
     case 'compile_to_openapi':
       return handleCompileToTarget({ ...args, target: 'openapi' });
-    case 'compile_to_sdk':
-      return handleCompileToTarget({ ...args, target: 'sdk' });
+    case 'compile_to_sdk': {
+      const rawOptions = isRecord(args.options) ? args.options : {};
+      const requestedSdkTarget =
+        typeof args.target === 'string' && args.target.startsWith('sdk:') ? args.target : undefined;
+      return handleCompileToTarget({
+        ...args,
+        options: requestedSdkTarget ? { ...rawOptions, target: requestedSdkTarget } : rawOptions,
+        target: 'sdk',
+      });
+    }
     case 'compile_to_onnx':
       return handleCompileToTarget({ ...args, target: 'onnx' });
     case 'compile_to_flutter':
@@ -2268,7 +2276,7 @@ export const compilerTools: Tool[] = [
   {
     name: 'compile_to_sdk',
     description:
-      'Compile a HoloScript .holo service-contract to a typed TypeScript SDK client + runtime shim. ' +
+      'Compile a HoloScript .holo service-contract to typed SDK clients, React hooks, or connector scaffolds from one contract AST. ' +
       'Derives methods, request/response types, and error taxonomy from the same contract AST that ' +
       'compile_to_openapi/compile_to_node_service/compile_to_a2a_agent_card consume — the client is a ' +
       'pure derivation, never hand-authored.',
@@ -2279,7 +2287,12 @@ export const compilerTools: Tool[] = [
         options: {
           type: 'object',
           properties: {
-            language: { type: 'string', enum: ['typescript'], description: 'Target SDK language (default: typescript).' },
+            target: {
+              type: 'string',
+              enum: ['sdk:typescript', 'sdk:python', 'sdk:react', 'sdk:connectors'],
+              description: 'SDK emitter target (default: sdk:typescript).',
+            },
+            language: { type: 'string', enum: ['typescript', 'python', 'react', 'connectors'], description: 'Legacy SDK language alias for target.' },
             clientClassName: { type: 'string', description: 'Generated client class name.' },
             packageName: { type: 'string', description: 'npm package name for the generated SDK.' },
             outputDir: { type: 'string', description: 'Output directory for generated SDK files.' },
