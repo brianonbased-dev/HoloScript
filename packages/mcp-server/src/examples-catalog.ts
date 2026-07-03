@@ -92,9 +92,9 @@ export const EXAMPLE_CATALOG: ExampleCatalogEntry[] = [
     "path": "examples/novel-use-cases/05-robot-training-metaverse.hs",
     "format": "hs",
     "category": "novel-use-cases",
-    "status": "aspirational-grammar",
-    "linkPolicy": "public-aspirational-label-required",
-    "reason": "Uses on_error(...) pipeline handler syntax; PipelineParser does not accept that handler form yet.",
+    "status": "supported",
+    "linkPolicy": "public-supported",
+    "reason": "Verified 2026-07-03: on_error(...) pipeline handler syntax now parses (compiler-wasm grammar work in flight); promoted from aspirational-grammar.",
     "priority": true
   },
   {
@@ -102,9 +102,9 @@ export const EXAMPLE_CATALOG: ExampleCatalogEntry[] = [
     "path": "examples/novel-use-cases/05-robot-training-metaverse.hsplus",
     "format": "hsplus",
     "category": "novel-use-cases",
-    "status": "aspirational-grammar",
-    "linkPolicy": "public-aspirational-label-required",
-    "reason": "Uses arrow transition shorthand in state-machine maps; HoloScriptPlusParser does not accept that shorthand yet.",
+    "status": "supported",
+    "linkPolicy": "public-supported",
+    "reason": "Verified 2026-07-03: arrow transition shorthand in state-machine maps now parses (compiler-wasm grammar work in flight); promoted from aspirational-grammar.",
     "priority": true
   },
   {
@@ -112,9 +112,9 @@ export const EXAMPLE_CATALOG: ExampleCatalogEntry[] = [
     "path": "examples/novel-use-cases/13-disaster-robotics-swarm.holo",
     "format": "holo",
     "category": "novel-use-cases",
-    "status": "aspirational-grammar",
-    "linkPolicy": "public-aspirational-label-required",
-    "reason": "Uses full disaster-training scene grammar that is ahead of the current .holo parser.",
+    "status": "supported",
+    "linkPolicy": "public-supported",
+    "reason": "Verified 2026-07-03: full disaster-training scene grammar now parses (compiler-wasm grammar work in flight); promoted from aspirational-grammar.",
     "priority": true
   },
   {
@@ -122,9 +122,9 @@ export const EXAMPLE_CATALOG: ExampleCatalogEntry[] = [
     "path": "examples/novel-use-cases/13-disaster-robotics-swarm.hs",
     "format": "hs",
     "category": "novel-use-cases",
-    "status": "aspirational-grammar",
-    "linkPolicy": "public-aspirational-label-required",
-    "reason": "Uses dotted property expressions in pipeline properties; PipelineParser does not accept that expression shape yet.",
+    "status": "supported",
+    "linkPolicy": "public-supported",
+    "reason": "Verified 2026-07-03: dotted property expressions in pipeline properties now parse (compiler-wasm grammar work in flight); promoted from aspirational-grammar.",
     "priority": true
   },
   {
@@ -132,9 +132,9 @@ export const EXAMPLE_CATALOG: ExampleCatalogEntry[] = [
     "path": "examples/novel-use-cases/13-disaster-robotics-swarm.hsplus",
     "format": "hsplus",
     "category": "novel-use-cases",
-    "status": "aspirational-grammar",
-    "linkPolicy": "public-aspirational-label-required",
-    "reason": "Uses arrow transition shorthand in behavior state maps; HoloScriptPlusParser does not accept that shorthand yet.",
+    "status": "supported",
+    "linkPolicy": "public-supported",
+    "reason": "Verified 2026-07-03: arrow transition shorthand in behavior state maps now parses (compiler-wasm grammar work in flight); promoted from aspirational-grammar.",
     "priority": true
   },
   {
@@ -142,9 +142,9 @@ export const EXAMPLE_CATALOG: ExampleCatalogEntry[] = [
     "path": "examples/sample-projects/physics-playground.holo",
     "format": "holo",
     "category": "sample-projects",
-    "status": "aspirational-grammar",
-    "linkPolicy": "public-aspirational-label-required",
-    "reason": "Uses nested post_processing blocks such as bloom { ... }; HoloCompositionParser currently expects property-value pairs there.",
+    "status": "supported",
+    "linkPolicy": "public-supported",
+    "reason": "Verified 2026-07-03: nested post_processing blocks (bloom { ... }) now parse (compiler-wasm grammar work in flight); promoted from aspirational-grammar.",
     "priority": true
   },
   {
@@ -152,9 +152,9 @@ export const EXAMPLE_CATALOG: ExampleCatalogEntry[] = [
     "path": "examples/showcase/physics-playground.holo",
     "format": "holo",
     "category": "showcase",
-    "status": "aspirational-grammar",
-    "linkPolicy": "public-aspirational-label-required",
-    "reason": "Uses showcase-scale physics grammar beyond the current declarative parser surface.",
+    "status": "supported",
+    "linkPolicy": "public-supported",
+    "reason": "Verified 2026-07-03: showcase-scale physics grammar now parses (compiler-wasm grammar work in flight); promoted from aspirational-grammar.",
     "priority": true
   },
   {
@@ -182,9 +182,9 @@ export const EXAMPLE_CATALOG: ExampleCatalogEntry[] = [
     "path": "examples/physics/advanced-physics-showcase.holo",
     "format": "holo",
     "category": "physics",
-    "status": "aspirational-grammar",
-    "linkPolicy": "public-aspirational-label-required",
-    "reason": "Uses nested post_processing blocks and advanced physics traits ahead of the current parser grammar.",
+    "status": "supported",
+    "linkPolicy": "public-supported",
+    "reason": "Verified 2026-07-03: nested post_processing blocks and advanced physics traits now parse (compiler-wasm grammar work in flight); promoted from aspirational-grammar.",
     "priority": true
   },
   {
@@ -202,9 +202,9 @@ export const EXAMPLE_CATALOG: ExampleCatalogEntry[] = [
     "path": "examples/hololand/vv-results-visualization-space.holo",
     "format": "holo",
     "category": "hololand",
-    "status": "aspirational-grammar",
-    "linkPolicy": "public-aspirational-label-required",
-    "reason": "Uses HoloLand V&V visualization grammar with nested post-processing and dashboard constructs not yet accepted by the parser.",
+    "status": "supported",
+    "linkPolicy": "public-supported",
+    "reason": "Verified 2026-07-03: HoloLand V&V visualization grammar with nested post-processing and dashboard constructs now parses (compiler-wasm grammar work in flight); promoted from aspirational-grammar.",
     "priority": true
   },
   {
