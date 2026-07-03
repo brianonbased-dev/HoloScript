@@ -53,6 +53,7 @@ describe('SDKCompiler', () => {
     expect(client).toContain('async getMyPackages(params?: GetMyPackagesParams');
     expect(client).toContain('SDKRuntime.pickQuery(params ?? {}, ["page","pageSize"])');
     expect(client).toContain("this.runtime.request<PackageInfo>('GET', path");
+    expect(client).toContain("const DEFAULT_BASE_URL = 'https://mcp.holoscript.net/api/v1';");
     expect(client).toContain(
       'export { SDKRuntime, SDKAuthenticationError, SDKError, SDKRateLimitError }'
     );
@@ -72,6 +73,7 @@ describe('SDKCompiler', () => {
       endpointCount: number;
       schemaCount: number;
       target: string;
+      serviceBaseUrl: string;
       integrationSurfaces: {
         credential: string;
         routing: string;
@@ -80,6 +82,7 @@ describe('SDKCompiler', () => {
     };
     expect(receipt.type).toBe('SDKCompilerReceipt');
     expect(receipt.target).toBe('sdk:typescript');
+    expect(receipt.serviceBaseUrl).toBe('https://mcp.holoscript.net/api/v1');
     expect(receipt.endpointCount).toBe(11);
     expect(receipt.schemaCount).toBeGreaterThanOrEqual(10);
     expect(receipt.integrationSurfaces.credential).toContain('HoloKey-compatible');

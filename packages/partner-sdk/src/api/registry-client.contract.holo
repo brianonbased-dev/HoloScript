@@ -286,7 +286,9 @@ composition "HoloScriptPackageRegistryAPI" {
   service "HoloScriptPackageRegistryAPI" @service @rest_resource {
     version: "1.0.0"
     framework: "express"
-    base_url: "https://registry.holoscript.net/api/v1"
+    // Umbrella-routed registry endpoint. HoloGate is docs umbrella language;
+    // the concrete runtime proof is HoloKey/x402 over this base URL.
+    base_url: "https://mcp.holoscript.net/api/v1"
     auth: "PartnerAuth"
     response_envelope: "ApiResponse"
     rate_limit: "RateLimit"

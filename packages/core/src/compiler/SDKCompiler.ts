@@ -819,6 +819,7 @@ export class SDKCompiler extends CompilerBase {
         sourceComposition: contract.compositionName,
         service: contract.service.name,
         clientClassName: this.options.clientClassName,
+        serviceBaseUrl: contract.service.baseUrl,
         schemaCount: contract.schemas.length,
         endpointCount: contract.endpoints.length,
         generatedFiles: [

@@ -149,7 +149,7 @@ export interface RegistryClientConfig extends SDKRuntimeConfig {
   baseUrl?: string;
 }
 
-const DEFAULT_BASE_URL = 'https://registry.holoscript.net/api/v1';
+const DEFAULT_BASE_URL = 'https://mcp.holoscript.net/api/v1';
 
 export class RegistryClient {
   private readonly runtime: SDKRuntime;

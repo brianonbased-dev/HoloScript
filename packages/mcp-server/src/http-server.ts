@@ -29,6 +29,7 @@ import {
 import { randomUUID, createHash } from 'crypto';
 import http from 'http';
 import { resolveServiceSecret, migrateEnvKeys } from './holokey-resolver';
+import { handlePartnerRegistryValidateRoute } from './partner-registry-route';
 import { tools } from './tools';
 import { handleTool } from './handlers';
 import { _handleSingleToolLogic } from './index';
@@ -1116,6 +1117,15 @@ const httpServer = http.createServer(async (req, res) => {
     ]);
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify(result));
+    return;
+  }
+
+  // Partner SDK registry credential validation. This is the concrete umbrella
+  // route behind the generated RegistryClient contract: clients send a HoloKey
+  // through X-API-Key (or bearer compatibility), and the response preserves the
+  // generated SDK ApiResponse<T> envelope. HoloGate remains docs umbrella
+  // language only; this route proves HoloKey/x402 + UmbrellaRoute behavior.
+  if (handlePartnerRegistryValidateRoute(req, res, HOLOSCRIPT_API_KEY)) {
     return;
   }
 

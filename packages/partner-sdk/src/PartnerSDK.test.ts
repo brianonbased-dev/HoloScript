@@ -184,6 +184,35 @@ describe('RegistryClient', () => {
       expect(response.valid).toBe(true);
       expect(response.partnerId).toBe('test-partner');
     });
+
+    it('uses the umbrella registry route and sends holoKey as X-API-Key', async () => {
+      const holoKeyClient = createRegistryClient({
+        credentials: {
+          holoKey: 'test-holokey',
+        },
+      });
+
+      await holoKeyClient.validateCredentials();
+
+      const fetchMock = globalThis.fetch as unknown as {
+        mock: { calls: Array<[string | URL | Request, RequestInit | undefined]> };
+      };
+      const [input, init] = fetchMock.mock.calls.at(-1) ?? [];
+      expect(input).toBeDefined();
+      const requestInput = input as string | URL | Request;
+      const url =
+        typeof requestInput === 'string'
+          ? requestInput
+          : requestInput instanceof URL
+            ? requestInput.toString()
+            : requestInput.url;
+      expect(url).toBe('https://mcp.holoscript.net/api/v1/partner/validate');
+      expect(init?.headers).toMatchObject({
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-API-Key': 'test-holokey',
+      });
+    });
   });
 
   describe('rate limit tracking', () => {
