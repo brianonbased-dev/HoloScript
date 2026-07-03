@@ -3,6 +3,8 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
+import ts from 'typescript';
+import vm from 'node:vm';
 import {
   WASMCompiler,
   createWASMCompiler,
@@ -40,6 +42,84 @@ function createTestComposition(
     })),
     state: options.state ? { declarations: options.state } : undefined,
   } as HoloComposition;
+}
+
+type GeneratedBindingInstance = {
+  load(wasmSource: ArrayBuffer): Promise<void>;
+  update(dt: number): void;
+  on(event: string, handler: (payload: unknown) => void): () => void;
+  getObjectCount(): number;
+  isObjectActive(index: number): boolean;
+  setObjectActive(index: number, active: boolean): void;
+  getMemoryLayout(): object;
+};
+
+type GeneratedBindingClass = new () => GeneratedBindingInstance;
+
+type GeneratedBindingImports = {
+  env: {
+    emit_event(eventId: number, payloadPtr: number): void;
+  };
+};
+
+function createSmartFarmComposition(): HoloComposition {
+  return createTestComposition({
+    name: 'smart_farm_dashboard',
+    objects: [
+      { name: 'TemperatureSensor' },
+      { name: 'TemperatureLabel' },
+      { name: 'HumiditySensor' },
+      { name: 'HumidityLabel' },
+      { name: 'SoilMoistureSensor' },
+      { name: 'MoistureLabel' },
+      { name: 'DashboardBase' },
+      { name: 'TitleLabel' },
+      { name: 'StatusIndicator' },
+    ],
+  });
+}
+
+function loadGeneratedBindingClass(source: string): GeneratedBindingClass {
+  const output = ts.transpileModule(source, {
+    compilerOptions: {
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.ES2020,
+    },
+  }).outputText;
+  const module = { exports: {} as Record<string, unknown> };
+  const context = vm.createContext({
+    exports: module.exports,
+    module,
+    console,
+    DataView,
+    Float32Array,
+    JSON,
+    Map,
+    Object,
+    Set,
+    TextDecoder,
+    Uint8Array,
+    WebAssembly,
+    performance,
+  });
+  vm.runInContext(output, context);
+
+  const bindingClass = module.exports.HoloScriptWASM;
+  expect(bindingClass).toBeTypeOf('function');
+  return bindingClass as GeneratedBindingClass;
+}
+
+function writePayload(
+  memory: WebAssembly.Memory,
+  ptr: number,
+  payloadType: number,
+  payload: string
+): void {
+  const bytes = new TextEncoder().encode(payload);
+  const view = new DataView(memory.buffer);
+  view.setUint8(ptr, payloadType);
+  view.setUint32(ptr + 1, bytes.byteLength, true);
+  new Uint8Array(memory.buffer, ptr + 5, bytes.byteLength).set(bytes);
 }
 
 // Helper to create test AST
@@ -310,6 +390,71 @@ describe('WASMCompiler', () => {
       const result = compileToWASM(comp);
 
       expect(result.bindings).toContain('getMemoryLayout()');
+    });
+
+    it('should execute generated smart-farm bindings against the WASM export contract', async () => {
+      const comp = createSmartFarmComposition();
+      const result = compileToWASM(comp);
+      const HoloScriptWASM = loadGeneratedBindingClass(result.bindings);
+      const memory = new WebAssembly.Memory({ initial: 1 });
+      const wasmExports = {
+        memory,
+        init: vi.fn(),
+        update: vi.fn(),
+        get_object_count: vi.fn(() => comp.objects.length),
+        is_object_active: vi.fn((index: number) => (index === 2 ? 1 : 0)),
+        set_object_active: vi.fn(),
+      };
+      const instance = {
+        exports: wasmExports as unknown as WebAssembly.Exports,
+      } as WebAssembly.Instance;
+      let capturedImports: GeneratedBindingImports | undefined;
+      const instantiate = vi
+        .spyOn(WebAssembly, 'instantiate')
+        .mockImplementation(async (_source: BufferSource, imports?: WebAssembly.Imports) => {
+          capturedImports = imports as GeneratedBindingImports;
+          return {
+            instance,
+            module: {} as WebAssembly.Module,
+          };
+        });
+
+      const wrapper = new HoloScriptWASM();
+      await wrapper.load(new ArrayBuffer(8));
+
+      expect(instantiate).toHaveBeenCalledWith(
+        expect.any(ArrayBuffer),
+        expect.objectContaining({ env: expect.any(Object) })
+      );
+      expect(wasmExports.init).toHaveBeenCalledOnce();
+
+      wrapper.update(0.016);
+      expect(wasmExports.update).toHaveBeenCalledWith(0.016);
+      expect(wrapper.getObjectCount()).toBe(9);
+      expect(wrapper.isObjectActive(2)).toBe(true);
+      expect(wrapper.isObjectActive(3)).toBe(false);
+
+      wrapper.setObjectActive(4, true);
+      wrapper.setObjectActive(4, false);
+      expect(wasmExports.set_object_active).toHaveBeenNthCalledWith(1, 4, 1);
+      expect(wasmExports.set_object_active).toHaveBeenNthCalledWith(2, 4, 0);
+      expect(wrapper.getMemoryLayout()).toEqual(result.memoryLayout);
+
+      const updateHandler = vi.fn();
+      const unsubscribe = wrapper.on('update', updateHandler);
+      writePayload(memory, 32, 3, 'irrigation-ready');
+      capturedImports?.env.emit_event(0, 32);
+      expect(updateHandler).toHaveBeenCalledWith('irrigation-ready');
+
+      unsubscribe();
+      capturedImports?.env.emit_event(0, 32);
+      expect(updateHandler).toHaveBeenCalledTimes(1);
+
+      const stateHandler = vi.fn();
+      wrapper.on('state_change', stateHandler);
+      writePayload(memory, 96, 4, JSON.stringify({ soil: 'dry', pump: true }));
+      capturedImports?.env.emit_event(1, 96);
+      expect(stateHandler).toHaveBeenCalledWith({ soil: 'dry', pump: true });
     });
   });
 
