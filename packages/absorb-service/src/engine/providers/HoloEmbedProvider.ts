@@ -61,15 +61,26 @@ const DIM = STRUCTURAL_DIM + SUBWORD_BINS * SUBWORD_BLOCKS; // 768
  * content/name blocks (dims 384–767), applied before L2 normalization.
  *
  * The structural base is near-identical across sibling symbols (same file,
- * same shape, same call topology), so at full weight it dominates cosine
- * similarity and drowns the content signal — scores cluster within ~0.003 and
- * the actual name/content match can't win the ranking. Both NL→name (code)
- * and NL→content (memory) queries are hurt by this. Downweighting the
- * structural base lets the subword trigram features decide NL ranking while
- * preserving topology signal for graph-shaped queries. Tuned against the
- * Paper 26 Table 2 recall benchmark (must hold ≥ baseline).
+ * same shape, same call topology), and — more importantly for NL search — a
+ * text QUERY has no real structural features, so its structural block is almost
+ * entirely `spreadHash` fingerprint noise. Because that block is 384 dims vs
+ * 128 for the name/sig trigrams, even at weight 0.35 it still carried the
+ * majority of the vector's L2 energy and dominated cosine: on the 14.8K-symbol
+ * laptop index every hit scored a uniform ~0.84 and the genuine name/content
+ * match could not win the ranking (NL→code search returned unrelated
+ * `.holo`/`.hsplus` files). A weight sweep over a realistic mixed corpus showed
+ * the correct symbols only take the top ranks once the structural pre-norm
+ * scale drops to ≲0.15; the previous 0.35 left them buried at rank 10+.
+ *
+ * 0.12 keeps the structural base as a genuine tie-breaker (topology still nudges
+ * ranking among otherwise-equal name matches, so graph-shaped queries are not
+ * regressed) while letting the subword trigram features decide NL ranking.
+ * Pairs with the zero-mean `spreadHash` in StructuralEmbeddingProvider, which
+ * removes the uniform positive cosine floor. Applied identically at build and
+ * query time, so symbol and query vectors stay in the same space.
+ * Tuned against the Paper 26 Table 2 recall benchmark (must hold ≥ baseline).
  */
-const STRUCTURAL_WEIGHT = 0.35;
+const STRUCTURAL_WEIGHT = 0.12;
 
 /** Scale a contiguous region of a vector in place (used to reweight blocks). */
 function scaleRegion(vec: Float32Array, offset: number, len: number, factor: number): void {

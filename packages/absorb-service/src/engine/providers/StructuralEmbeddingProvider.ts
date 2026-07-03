@@ -255,14 +255,33 @@ function hashString(s: string): number {
 
 /**
  * Spread a 32-bit hash deterministically into `count` consecutive dims of vec,
- * starting at `offset`. Each dim gets a value in [0, 1].
+ * starting at `offset`. Each dim gets a ZERO-MEAN value in [-1, 1].
+ *
+ * ## Why zero-mean (not [0,1])?
+ *
+ * These hash-spread dims are pseudorandom fingerprints (file path, signature,
+ * docComment, event names, content) that fill most of every 384-dim structural
+ * vector. With values in [0, 1] (mean ≈ 0.5), ANY two vectors — even unrelated
+ * ones — share a large positive dot product from these dims (E[a·b] ≈ n·0.25),
+ * which after L2 normalization becomes a high, uniform cosine FLOOR. Centering to
+ * [-1, 1] makes E[a_i] ≈ 0 so unrelated fingerprints have ≈0 expected dot product
+ * while matching fingerprints (same seed → identical dims) still align. This is
+ * necessary but not sufficient on its own — see STRUCTURAL_QUERY_WEIGHT in
+ * HoloEmbedProvider, which stops the noise-dominated structural block from
+ * outvoting the real trigram name/content match on text queries.
+ *
+ * NOTE: changing this function changes every stored vector, so persisted
+ * embedding caches (~/.holoscript/embeddings-cache.bin) must be rebuilt (re-absorb)
+ * for query and symbol vectors to live in the same space again.
  */
 function spreadHash(hash: number, vec: Float32Array, offset: number, count: number): void {
   // Use LCG to generate `count` values from the seed hash
   let state = hash;
   for (let i = 0; i < count; i++) {
     state = (state * 1664525 + 1013904223) >>> 0; // LCG
-    vec[offset + i] = (state >>> 0) / 4294967295; // normalize to [0,1]
+    // Map LCG output to zero-mean [-1, 1] so unrelated fingerprints have ~0 dot
+    // product (kills the uniform cosine floor); matching fingerprints still align.
+    vec[offset + i] = ((state >>> 0) / 4294967295) * 2 - 1;
   }
 }
 
