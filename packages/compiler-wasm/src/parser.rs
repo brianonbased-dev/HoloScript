@@ -1369,8 +1369,8 @@ impl Parser {
         let token = self.advance(); // consume `@word`
         let name = token.value.trim_start_matches('@').to_string();
 
-        let label = if self.check(TokenType::Identifier) {
-            Some(self.expect_identifier()?)
+        let label = if self.check(TokenType::Identifier) || self.check(TokenType::String) {
+            Some(self.advance().value.clone())
         } else {
             None
         };
@@ -1396,7 +1396,7 @@ impl Parser {
     /// Parse a trait definition property, tolerating a typed field default:
     ///   `maxHealth: 100` | `capability_tags: [ ... ]` | `auto_register: Bool = true`
     fn parse_trait_property(&mut self) -> Result<PropertyNode, ParseError> {
-        let key = self.expect_identifier_or_string()?;
+        let key = self.expect_property_key()?;
         self.expect(TokenType::Colon)?;
         // `mode: enum("a" | "b")` — enum type annotations aren't expressions.
         let value = if self.check(TokenType::Enum) {
@@ -1806,7 +1806,7 @@ impl Parser {
         let mut properties = Vec::new();
 
         while !self.check(TokenType::RBrace) && !self.is_at_end() {
-            let key = self.expect_identifier_or_string()?;
+            let key = self.expect_property_key()?;
             self.expect(TokenType::Colon)?;
             let value = self.parse_expression()?;
 
@@ -2065,6 +2065,24 @@ impl Parser {
         self.expect_string_or_identifier()
     }
 
+    /// A property key inside a `{ key: value }` config / receipt body. Accepts
+    /// plain identifiers and strings, but ALSO keyword-lexed words used
+    /// contextually as keys (`action:`, `from:`, `to:`, `extends:`, `using:`) —
+    /// these lex as keyword tokens yet are valid property names in this position.
+    fn expect_property_key(&mut self) -> Result<String, ParseError> {
+        let is_word = self
+            .peek()
+            .value
+            .chars()
+            .next()
+            .is_some_and(|c| c.is_ascii_alphabetic() || c == '_');
+        if self.check(TokenType::String) || self.check(TokenType::Identifier) || is_word {
+            Ok(self.advance().value.clone())
+        } else {
+            Err(self.error("Expected property key"))
+        }
+    }
+
     fn error(&self, message: &str) -> ParseError {
         let token = self.peek();
         ParseError::new(message, token.line, token.column)
@@ -2290,6 +2308,18 @@ mod tests {
         assert!(
             matches!(mode.value.as_ref(), AstNode::Identifier(id) if id.name.contains("t1")),
             "enum variants must be preserved in the value"
+        );
+    }
+
+    #[test]
+    fn test_trait_body_keyword_property_keys() {
+        // Keyword-lexed words (`action`, `from`, `using`) are valid property keys
+        // in a config body — the cutover-gap fix for e.g. sdk_compiler.hsplus.
+        let source = r#"@trait sdk { action: "compile_to_sdk"; from: "core"; using: "Box" }"#;
+        let mut parser = Parser::new(source);
+        assert!(
+            parser.parse().is_ok(),
+            "keyword-lexed property keys should parse"
         );
     }
 
