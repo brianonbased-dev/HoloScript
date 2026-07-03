@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Idempotent installer for the WebGPU capture driver on a Linux GPU host
-# (vast.ai, runpod, lambda labs, self-hosted). Verifies via probe-webgpu.mjs.
+# (vast.ai, runpod, lambda labs, self-hosted). Verifies via capture-bench.mjs.
 #
 # Usage:
 #   bash scripts/webgpu-capture/setup-host.sh
@@ -78,12 +78,20 @@ fi
 log "Running WebGPU smoke probe…"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 cd "$REPO_ROOT"
-WEBGPU_PROBE_HEADLESS=1 node scripts/probe-webgpu.mjs 2>&1 | tee /tmp/webgpu-probe.log | tail -25
+SMOKE_RECEIPT="${WEBGPU_SETUP_SMOKE_RECEIPT:-/tmp/webgpu-capture-smoke.json}"
+WEBGPU_PROBE_HEADLESS=1 \
+  node scripts/webgpu-capture/capture-bench.mjs \
+    scripts/webgpu-capture/configs/smoke.json \
+    --out "$SMOKE_RECEIPT" 2>&1 | tee /tmp/webgpu-probe.log | tail -25
 
-if grep -q '"ok": true' /tmp/webgpu-probe.log; then
-  log "✓ WebGPU smoke PASSED. Host is ready for capture-bench.mjs runs."
+if node -e '
+const fs = require("fs");
+const receipt = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+process.exit(receipt.adapter_info && Array.isArray(receipt.results) && receipt.results.length > 0 ? 0 : 1);
+' "$SMOKE_RECEIPT"; then
+  log "WebGPU smoke PASSED. Host is ready for capture-bench.mjs runs."
 else
-  log "✗ WebGPU smoke FAILED. See /tmp/webgpu-probe.log for details."
+  log "WebGPU smoke FAILED. See /tmp/webgpu-probe.log and $SMOKE_RECEIPT for details."
   log "Common causes: missing nvidia-vulkan ICD, kernel mismatch, container without --device=/dev/dri."
   exit 2
 fi
