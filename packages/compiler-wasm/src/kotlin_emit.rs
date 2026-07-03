@@ -41,7 +41,7 @@
 
 use std::collections::HashMap;
 
-use crate::ast::{Ast, AstNode, EnumDeclarationNode, PropertyNode, StructDeclarationNode};
+use crate::ast::{Ast, AstNode, EnumDeclarationNode, ImportNode, PropertyNode, StructDeclarationNode};
 
 /// An error raised while emitting Kotlin from a parsed `.hs` AST.
 #[derive(Debug, Clone)]
@@ -103,7 +103,22 @@ impl ValType {
 /// declarations live inside a Kotlin `object`). Declarations are separated by a blank line,
 /// with `enum class` blocks emitted before the functions (so a function may name an enum as
 /// its return type). Non-function/non-enum top-level nodes are ignored (they belong to the
-/// object-graph surface, not the logic surface this emitter targets).
+/// object-graph surface, not the logic surface this emitter targets) — EXCEPT `import`, which
+/// is validated (see [`check_imports_resolved`]) rather than silently ignored.
+///
+/// ## Import contract
+///
+/// The crate has no filesystem/module-loader layer: [`compile_source_to_kotlin`] takes a single
+/// source string, so there is no path on which `import { helper } from "./file.hs"` could reach
+/// out and read `./file.hs` itself. The supported linking model is therefore **caller-side
+/// inlining**: whoever drives compilation concatenates the imported module's source ahead of the
+/// importing module's source into one string before calling in (so both modules' declarations
+/// land in the same `ast.body`). Given that, an `import` is satisfied when every specifier it
+/// names already resolves to a function/struct/enum declared somewhere in `ast.body` — the
+/// emitter does not need to emit a Kotlin `import` for a same-compilation-unit declaration, so a
+/// resolved `Import` node is a silent no-op by design. An UNRESOLVED specifier (the referenced
+/// module's source was never concatenated in) now fails loudly instead of being dropped without a
+/// trace — see [`check_imports_resolved`].
 pub fn emit_functions(ast: &Ast, indent: &str) -> Result<String, KotlinEmitError> {
     // First pass: collect the declared enum names so return-type inference can recognize an
     // `Enum.Member` reference as that enum's value (and so a stray member name can't be read
@@ -129,6 +144,23 @@ pub fn emit_functions(ast: &Ast, indent: &str) -> Result<String, KotlinEmitError
         })
         .collect();
     let struct_names: Vec<String> = structs.iter().map(|s| s.name.clone()).collect();
+
+    // Collect every top-level `function` name too, so an imported *function* specifier (the
+    // common case — `import { helper } from "./file.hs"`) can be resolved. Enums/structs are
+    // already named above; a specifier may legitimately name any of the three declaration kinds.
+    let function_names: Vec<String> = ast
+        .body
+        .iter()
+        .filter_map(|n| match n {
+            AstNode::Function(f) => Some(f.name.clone()),
+            _ => None,
+        })
+        .collect();
+
+    // Fail loudly on any `import` whose specifiers don't resolve within this compilation unit,
+    // instead of the previous behavior of silently discarding the Import node entirely (the
+    // caller then got Kotlin that referenced an undefined symbol with no diagnostic at all).
+    check_imports_resolved(ast, &function_names, &struct_names, &enum_names)?;
 
     // Infer each struct's per-field Kotlin type from its constructor-call sites (defaults to the
     // all-`Float` record when a struct is unconstructed or its args carry no literal signal).
@@ -160,6 +192,48 @@ pub fn emit_functions(ast: &Ast, indent: &str) -> Result<String, KotlinEmitError
         }
     }
     Ok(blocks.join("\n\n"))
+}
+
+/// Validate every top-level `import { a, b, .. } from "source"` against the declarations that
+/// actually exist in this compilation unit (see the "Import contract" note on [`emit_functions`]
+/// for why resolution — not codegen — is the import's job here). A specifier resolves if it
+/// names a top-level function, struct, or enum declared anywhere in `ast.body`. The first
+/// unresolved specifier fails the whole compile with a message naming both the missing symbol
+/// and the import's declared source path, so the caller knows exactly which module's source it
+/// still needs to concatenate in.
+fn check_imports_resolved(
+    ast: &Ast,
+    function_names: &[String],
+    struct_names: &[String],
+    enum_names: &[String],
+) -> Result<(), KotlinEmitError> {
+    let imports: Vec<&ImportNode> = ast
+        .body
+        .iter()
+        .filter_map(|n| match n {
+            AstNode::Import(i) => Some(i),
+            _ => None,
+        })
+        .collect();
+
+    for import in imports {
+        for spec in &import.specifiers {
+            let resolved = function_names.iter().any(|n| n == &spec.imported)
+                || struct_names.iter().any(|n| n == &spec.imported)
+                || enum_names.iter().any(|n| n == &spec.imported);
+            if !resolved {
+                return Err(KotlinEmitError::new(format!(
+                    "unresolved import: `{}` from \"{}\" has no matching function/struct/enum \
+                     declaration in this compilation unit — the compiler-wasm crate has no \
+                     filesystem access, so the imported module's source must be concatenated \
+                     ahead of the importing module's source before calling compile_to_kotlin \
+                     (caller-side inlining; see emit_functions doc comment)",
+                    spec.imported, import.source
+                )));
+            }
+        }
+    }
+    Ok(())
 }
 
 /// Emit `data class <Name>(val <field>: <Type>, …)` for a `.hs` struct declaration. Fields are
@@ -2501,5 +2575,111 @@ function mk() {
             out.contains("return Bag(mapOf(\"label\" to \"alpha\", \"alt\" to \"beta\"))"),
             "{out}"
         );
+    }
+
+    // ===== import resolution (task_1783070734198_xa40) =====
+    //
+    // The `.hs` grammar parses `import { a, b } from "./file.hs"` into a real `Import` AST node
+    // (parser.rs `parse_import`), but prior to this fix `emit_functions`'s top-level loop only
+    // ever matched `AstNode::Function` — every other node, including `Import`, was silently
+    // skipped. A two-file program (a helper `.hs` defining a function, and a caller `.hs`
+    // importing and calling it) would compile the caller alone into Kotlin that calls an
+    // undefined symbol, with zero diagnostic. These tests exercise the caller-side-inlining
+    // contract described on `emit_functions`: concatenate the helper's source ahead of the
+    // caller's source into one string; a resolved import is then a no-op, and an unresolved one
+    // fails loudly instead of vanishing.
+
+    #[test]
+    fn resolved_import_is_a_no_op_and_both_functions_emit() {
+        // Simulates the caller-side inlining contract: the "helper.hs" module's source is
+        // concatenated ahead of the "caller.hs" module's source into one compilation unit.
+        let helper_src = r#"function helper(x) {
+  return x
+}"#;
+        let caller_src = r#"import { helper } from "./helper.hs"
+
+function main(x) {
+  return helper(x)
+}"#;
+        let combined = format!("{}\n\n{}", helper_src, caller_src);
+        let out = kotlin(&combined);
+        // Both functions are emitted; the import itself produces no Kotlin output.
+        assert!(out.contains("fun helper(x: String): String {"), "{out}");
+        assert!(out.contains("fun main(x: String): String {"), "{out}");
+        assert!(out.contains("return helper(x)"), "{out}");
+        assert!(!out.contains("import"), "{out}");
+    }
+
+    #[test]
+    fn resolved_import_of_struct_specifier() {
+        let combined = r#"struct Vec3 { x, y, z }
+import { Vec3 } from "./vec3.hs"
+
+function origin() {
+  return Vec3(0, 0, 0)
+}"#;
+        let out = kotlin(combined);
+        assert!(out.contains("data class Vec3("), "{out}");
+        assert!(out.contains("fun origin()"), "{out}");
+    }
+
+    #[test]
+    fn unresolved_import_fails_loudly_instead_of_silently_dropping() {
+        // The helper's source was NEVER concatenated in — this is exactly the prior silent-drop
+        // bug's trigger. It must now fail the compile instead of emitting a call to an undefined
+        // `helper` symbol with no diagnostic.
+        let caller_only_src = r#"import { helper } from "./helper.hs"
+
+function main(x) {
+  return helper(x)
+}"#;
+        let result = compile_source_to_kotlin(caller_only_src, "  ");
+        assert!(result.is_err(), "expected unresolved import to fail emit");
+        let msg = result.unwrap_err().message;
+        assert!(msg.contains("unresolved import"), "{msg}");
+        assert!(msg.contains("helper"), "{msg}");
+        assert!(msg.contains("./helper.hs"), "{msg}");
+    }
+
+    #[test]
+    fn unresolved_import_reports_the_correct_missing_specifier_among_several() {
+        let src = r#"function helper(x) {
+  return x
+}
+import { helper, missingFn } from "./mixed.hs"
+
+function main(x) {
+  return helper(x)
+}"#;
+        let result = compile_source_to_kotlin(src, "  ");
+        assert!(result.is_err(), "one unresolved specifier must still fail");
+        let msg = result.unwrap_err().message;
+        assert!(msg.contains("missingFn"), "{msg}");
+    }
+
+    #[test]
+    fn import_alias_specifier_resolves_by_imported_name_not_local_alias() {
+        // `import { helper as h } from "./helper.hs"` — resolution is keyed on the ORIGINAL
+        // exported name (`ImportSpecifier.imported`, "helper"), not the local alias ("h"),
+        // matching how `parse_import` records both fields (ast.rs `ImportSpecifier`). So this
+        // import resolves (the `helper` function is declared in-unit) and compilation succeeds.
+        //
+        // NOTE — scope boundary: resolution is the only contract this fix adds. Rewriting call
+        // sites from a local alias to the declared name is a SEPARATE, not-yet-built concern (the
+        // emitter has no identifier-rewrite pass), so `main`'s body still emits a literal `h(x)`
+        // call, which would not compile as real Kotlin. That gap is pre-existing and out of scope
+        // for task_1783070734198_xa40 (whose contract is "resolve or fail loudly", not "alias
+        // rewriting"); this test only asserts the resolution half doesn't false-positive-reject.
+        let combined = r#"function helper(x) {
+  return x
+}
+import { helper as h } from "./helper.hs"
+
+function main(x) {
+  return helper(x)
+}"#;
+        let out = kotlin(combined);
+        assert!(out.contains("fun helper(x: String): String {"), "{out}");
+        assert!(out.contains("fun main(x: String): String {"), "{out}");
     }
 }
