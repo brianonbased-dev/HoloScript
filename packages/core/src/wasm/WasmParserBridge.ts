@@ -3,10 +3,11 @@
  *
  * High-performance bridge between JavaScript and the Rust WASM parser.
  * Features:
+ * - Node pkg-node loading before browser URL fetch
  * - Streaming compilation
  * - Web Worker offloading
  * - Module caching
- * - Fallback to JS parser
+ * - TypeScript parser fallback while Rust .hsplus coverage converges
  *
  * @version 3.3.0
  * @Sprint Sprint 2: Performance Optimization
@@ -14,6 +15,12 @@
 
 import { logger } from '../logger';
 import { readJson } from '../errors/safeJsonParse';
+import {
+  TypeScriptHsplusGrammar,
+  normalizeHsplusGrammarErrors,
+  type HsplusGrammar,
+  type HsplusGrammarSource,
+} from '../parser/HsplusGrammar';
 import { wasmModuleCache } from './WasmModuleCache';
 
 // WASM module exports interface (from Rust)
@@ -35,6 +42,7 @@ export interface ParseResult {
   }>;
   parseTimeMs: number;
   usedWasm: boolean;
+  grammarSource: HsplusGrammarSource;
 }
 
 export interface WasmParserConfig {
@@ -48,6 +56,8 @@ export interface WasmParserConfig {
   enableFallback?: boolean;
   /** Preload WASM module */
   preload?: boolean;
+  /** Test/host injection for the Rust grammar loader; defaults to pkg-node/browser WASM. */
+  nodeGrammarLoader?: () => Promise<HsplusGrammar | null>;
 }
 
 /**
@@ -56,6 +66,7 @@ export interface WasmParserConfig {
 export class WasmParserBridge {
   private config: Required<WasmParserConfig>;
   private wasmInstance: HoloScriptWasmExports | null = null;
+  private grammar: HsplusGrammar | null = null;
   private loadPromise: Promise<void> | null = null;
   private workersAvailable: Worker[] = [];
   private workersPending: Map<number, (result: ParseResult) => void> = new Map();
@@ -69,6 +80,7 @@ export class WasmParserBridge {
       maxWorkers: config.maxWorkers ?? Math.min(4, globalThis.navigator?.hardwareConcurrency ?? 2),
       enableFallback: config.enableFallback ?? true,
       preload: config.preload ?? true,
+      nodeGrammarLoader: config.nodeGrammarLoader ?? this.loadDefaultNodeGrammar.bind(this),
     };
 
     if (this.config.preload) {
@@ -93,6 +105,14 @@ export class WasmParserBridge {
     const cacheKey = 'holoscript-parser';
 
     try {
+      const nodeGrammar = await this.config.nodeGrammarLoader();
+      if (nodeGrammar) {
+        this.grammar = nodeGrammar;
+        this.initialized = true;
+        logger.info(`[WasmParserBridge] Loaded ${nodeGrammar.source} grammar`);
+        return;
+      }
+
       // Try to get from cache first
       const cachedModule = await wasmModuleCache.get(cacheKey, version);
       if (cachedModule) {
@@ -158,6 +178,7 @@ export class WasmParserBridge {
     try {
       const instance = await WebAssembly.instantiate(module, imports);
       this.wasmInstance = instance.exports as unknown as HoloScriptWasmExports;
+      this.grammar = new WasmHsplusGrammar(this.wasmInstance, 'rust-wasm-browser');
       this.initialized = true;
     } catch (err) {
       logger.error('[WasmParserBridge] Instantiation failed:', { error: String(err) });
@@ -177,28 +198,25 @@ export class WasmParserBridge {
         await this.load();
       }
 
-      if (!this.wasmInstance) {
-        throw new Error('WASM not initialized');
+      const grammar = this.grammar;
+      if (!grammar) {
+        throw new Error('WASM grammar not initialized');
       }
 
-      const resultJson = this.wasmInstance.parse(source);
+      const result = await grammar.parse(source);
       const parseTime = performance.now() - startTime;
-      const parsed = readJson(resultJson) as Record<string, unknown>;
 
-      if (parsed.errors) {
-        return {
-          success: false,
-          errors: parsed.errors as ParseResult['errors'],
-          parseTimeMs: parseTime,
-          usedWasm: true,
-        };
+      if (!result.success && this.config.enableFallback) {
+        return this.fallbackParse(source);
       }
 
       return {
-        success: true,
-        ast: parsed,
+        success: result.success,
+        ast: result.ast,
+        errors: result.errors,
         parseTimeMs: parseTime,
         usedWasm: true,
+        grammarSource: grammar.source,
       };
     } catch (err) {
       const parseTime = performance.now() - startTime;
@@ -215,6 +233,7 @@ export class WasmParserBridge {
         errors: [{ message: String(err), line: 0, column: 0 }],
         parseTimeMs: parseTime,
         usedWasm: false,
+        grammarSource: this.grammar?.source ?? 'rust-wasm-browser',
       };
     }
   }
@@ -230,17 +249,43 @@ export class WasmParserBridge {
         await this.load();
       }
 
-      if (!this.wasmInstance) {
-        throw new Error('WASM not initialized');
+      const grammar = this.grammar;
+      if (!grammar) {
+        throw new Error('WASM grammar not initialized');
       }
 
-      const resultJson = this.wasmInstance.validate_detailed(source);
-      return readJson(resultJson) as {
-        valid: boolean;
-        errors: Array<{ message: string; line: number; column: number }>;
+      const result = await grammar.validateDetailed(source);
+      if (!result.valid && this.config.enableFallback) {
+        return this.fallbackValidate(source);
+      }
+
+      return {
+        valid: result.valid,
+        errors: result.errors,
       };
     } catch (err) {
       logger.warn('[WasmParserBridge] Validation failed:', { error: String(err) });
+      if (this.config.enableFallback) {
+        return this.fallbackValidate(source);
+      }
+      return {
+        valid: false,
+        errors: [{ message: String(err), line: 0, column: 0 }],
+      };
+    }
+  }
+
+  private async fallbackValidate(
+    source: string
+  ): Promise<{ valid: boolean; errors: Array<{ message: string; line: number; column: number }> }> {
+    try {
+      const grammar = new TypeScriptHsplusGrammar();
+      const result = await grammar.validateDetailed(source);
+      return {
+        valid: result.valid,
+        errors: result.errors,
+      };
+    } catch (err) {
       return {
         valid: false,
         errors: [{ message: String(err), line: 0, column: 0 }],
@@ -256,7 +301,7 @@ export class WasmParserBridge {
       if (!this.initialized) {
         await this.load();
       }
-      return this.wasmInstance?.version() ?? 'unknown';
+      return (await this.grammar?.version()) ?? 'unknown';
     } catch {
       return 'unavailable';
     }
@@ -269,17 +314,16 @@ export class WasmParserBridge {
     const startTime = performance.now();
 
     try {
-      // Dynamic import to avoid circular deps
-      const { HoloScriptPlusParser } = await import('../parser/HoloScriptPlusParser');
-      const parser = new HoloScriptPlusParser();
-      const ast = parser.parse(source).ast;
+      const grammar = new TypeScriptHsplusGrammar();
+      const result = await grammar.parse(source);
 
       return {
-        success: true,
-        ast,
-        errors: [],
+        success: result.success,
+        ast: result.ast,
+        errors: result.errors,
         parseTimeMs: performance.now() - startTime,
         usedWasm: false,
+        grammarSource: grammar.source,
       };
     } catch (err) {
       return {
@@ -287,6 +331,7 @@ export class WasmParserBridge {
         errors: [{ message: String(err), line: 0, column: 0 }],
         parseTimeMs: performance.now() - startTime,
         usedWasm: false,
+        grammarSource: 'typescript-fallback',
       };
     }
   }
@@ -295,7 +340,11 @@ export class WasmParserBridge {
    * Check if WASM is available
    */
   isAvailable(): boolean {
-    return this.initialized && this.wasmInstance !== null;
+    return (
+      this.initialized &&
+      this.grammar !== null &&
+      (this.grammar.source === 'rust-wasm-node' || this.grammar.source === 'rust-wasm-browser')
+    );
   }
 
   /**
@@ -310,6 +359,30 @@ export class WasmParserBridge {
       cacheStats: wasmModuleCache.getStats(),
     };
   }
+
+  private async loadDefaultNodeGrammar(): Promise<HsplusGrammar | null> {
+    if (!isNodeLikeRuntime()) return null;
+
+    try {
+      const moduleUrl = new URL('../../../compiler-wasm/pkg-node/holoscript_wasm.js', import.meta.url);
+      const imported = (await import(/* @vite-ignore */ moduleUrl.href)) as Record<string, unknown>;
+      const candidate = hasWasmExports(imported.default) ? imported.default : imported;
+      if (!hasWasmExports(candidate)) return null;
+
+      const maybeInit = (candidate as { init?: () => void }).init;
+      if (typeof maybeInit === 'function') {
+        maybeInit.call(candidate);
+      }
+
+      this.wasmInstance = candidate;
+      return new WasmHsplusGrammar(candidate, 'rust-wasm-node');
+    } catch (err) {
+      logger.warn('[WasmParserBridge] pkg-node grammar load failed, trying browser WASM:', {
+        error: String(err),
+      });
+      return null;
+    }
+  }
 }
 
 // Singleton instance for convenience
@@ -317,3 +390,58 @@ export const wasmParser = new WasmParserBridge();
 
 // Re-export for convenience
 export { wasmModuleCache };
+
+function hasWasmExports(value: unknown): value is HoloScriptWasmExports {
+  const record = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+  return (
+    typeof record.parse === 'function' &&
+    typeof record.validate === 'function' &&
+    typeof record.validate_detailed === 'function' &&
+    typeof record.version === 'function'
+  );
+}
+
+function isNodeLikeRuntime(): boolean {
+  const maybeProcess = (globalThis as { process?: { versions?: { node?: string } } }).process;
+  return typeof maybeProcess?.versions?.node === 'string';
+}
+
+class WasmHsplusGrammar implements HsplusGrammar {
+  constructor(
+    private readonly wasm: HoloScriptWasmExports,
+    readonly source: HsplusGrammarSource
+  ) {}
+
+  parse(source: string) {
+    const parsed = readJson(this.wasm.parse(source)) as Record<string, unknown>;
+    const errors = normalizeHsplusGrammarErrors(parsed.errors);
+    const singleError =
+      typeof parsed.error === 'string'
+        ? [{ message: parsed.error, line: 0, column: 0 }]
+        : [];
+
+    return {
+      success: errors.length === 0 && singleError.length === 0,
+      ast: errors.length === 0 && singleError.length === 0 ? parsed : undefined,
+      errors: [...errors, ...singleError],
+      raw: parsed,
+    };
+  }
+
+  validate(source: string): boolean {
+    return this.wasm.validate(source);
+  }
+
+  validateDetailed(source: string) {
+    const parsed = readJson(this.wasm.validate_detailed(source)) as Record<string, unknown>;
+    return {
+      valid: parsed.valid === true,
+      errors: normalizeHsplusGrammarErrors(parsed.errors),
+      raw: parsed,
+    };
+  }
+
+  version(): string {
+    return this.wasm.version();
+  }
+}

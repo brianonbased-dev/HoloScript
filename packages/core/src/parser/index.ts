@@ -1,4 +1,13 @@
 export { HoloScriptPlusParser, createParser, parse } from './HoloScriptPlusParser';
+export {
+  TypeScriptHsplusGrammar,
+  normalizeHsplusGrammarErrors,
+  type HsplusGrammar,
+  type HsplusGrammarError,
+  type HsplusGrammarParseResult,
+  type HsplusGrammarSource,
+  type HsplusGrammarValidationResult,
+} from './HsplusGrammar';
 
 export {
   HoloCompositionParser,

@@ -6,6 +6,27 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { WasmParserBridge, WasmModuleCache } from '../index';
+import type { HsplusGrammar } from '../../parser/HsplusGrammar';
+
+const noNodeGrammarLoader = async () => null;
+
+function createMockRustGrammar(overrides: Partial<HsplusGrammar> = {}): HsplusGrammar {
+  return {
+    source: 'rust-wasm-node',
+    parse: vi.fn(() => ({
+      success: true,
+      ast: { type: 'Program', body: [] },
+      errors: [],
+    })),
+    validate: vi.fn(() => true),
+    validateDetailed: vi.fn(() => ({
+      valid: true,
+      errors: [],
+    })),
+    version: vi.fn(() => 'mock-rust'),
+    ...overrides,
+  };
+}
 
 // ============================================================================
 // WasmModuleCache Tests
@@ -98,6 +119,7 @@ describe('WasmParserBridge', () => {
     bridge = new WasmParserBridge({
       preload: false,
       enableFallback: true,
+      nodeGrammarLoader: noNodeGrammarLoader,
     });
   });
 
@@ -189,6 +211,7 @@ describe('WasmParserBridge', () => {
       const noFallbackBridge = new WasmParserBridge({
         preload: false,
         enableFallback: false,
+        nodeGrammarLoader: noNodeGrammarLoader,
       });
 
       const source = 'object Test {}';
@@ -216,6 +239,46 @@ describe('WasmParserBridge', () => {
 
       expect(result).toBeDefined();
       expect(result.errors).toBeDefined();
+    });
+  });
+
+  describe('Rust grammar binding', () => {
+    it('should prefer an available Rust grammar before TypeScript fallback', async () => {
+      const grammar = createMockRustGrammar();
+      const rustBridge = new WasmParserBridge({
+        preload: false,
+        enableFallback: true,
+        nodeGrammarLoader: async () => grammar,
+      });
+
+      const result = await rustBridge.parse('object Test {}');
+
+      expect(result.success).toBe(true);
+      expect(result.usedWasm).toBe(true);
+      expect(result.grammarSource).toBe('rust-wasm-node');
+      expect(result.ast).toEqual({ type: 'Program', body: [] });
+      expect(await rustBridge.getVersion()).toBe('mock-rust');
+      expect(rustBridge.isAvailable()).toBe(true);
+    });
+
+    it('should fall back to TypeScript when Rust rejects transitional source', async () => {
+      const grammar = createMockRustGrammar({
+        parse: vi.fn(() => ({
+          success: false,
+          errors: [{ message: 'unsupported construct', line: 1, column: 1 }],
+        })),
+      });
+      const rustBridge = new WasmParserBridge({
+        preload: false,
+        enableFallback: true,
+        nodeGrammarLoader: async () => grammar,
+      });
+
+      const result = await rustBridge.parse('object Test {}');
+
+      expect(result.success).toBe(true);
+      expect(result.usedWasm).toBe(false);
+      expect(result.grammarSource).toBe('typescript-fallback');
     });
   });
 
@@ -263,7 +326,11 @@ describe('WASM Module Integration', () => {
 
 describe('ParseResult structure', () => {
   it('should have correct success result structure', async () => {
-    const bridge = new WasmParserBridge({ preload: false, enableFallback: true });
+    const bridge = new WasmParserBridge({
+      preload: false,
+      enableFallback: true,
+      nodeGrammarLoader: noNodeGrammarLoader,
+    });
     const result = await bridge.parse('object Test {}');
 
     if (result.success) {
@@ -274,7 +341,11 @@ describe('ParseResult structure', () => {
   });
 
   it('should have correct error result structure', async () => {
-    const bridge = new WasmParserBridge({ preload: false, enableFallback: false });
+    const bridge = new WasmParserBridge({
+      preload: false,
+      enableFallback: false,
+      nodeGrammarLoader: noNodeGrammarLoader,
+    });
     const result = await bridge.parse('object Test {}');
 
     if (!result.success) {

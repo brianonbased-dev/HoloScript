@@ -7,10 +7,12 @@
  * `dialogue`, `state_machine`, `achievement`, `talent_tree`, `import`, `export`,
  * `function`, `move`, `action`, and `on_*` event blocks.
  *
- * For full-grammar parsing use `HoloScriptPlusParser` (TS, covers `.hsplus`
- * brain/pipeline/cognitive constructs) or `HoloCompositionParser` (TS, covers
- * the spatial/game/normative composition surface).  `WasmParserBridge` falls
- * back to `HoloScriptPlusParser` automatically when WASM is unavailable.
+ * `WasmParserBridge` is the migration boundary: it loads the real Rust
+ * `pkg-node` / browser WASM artifact first, then falls back to
+ * `HoloScriptPlusParser` while `.hsplus` construct coverage converges.
+ * Direct consumers that require today's complete TS behavior can still use
+ * `HoloScriptPlusParser` or `HoloCompositionParser` explicitly until they move
+ * behind the binding interface.
  *
  * Mirrors the Rust wasm_bindgen exports from lib.rs:
  *   - parse(source) -> JSON AST string
