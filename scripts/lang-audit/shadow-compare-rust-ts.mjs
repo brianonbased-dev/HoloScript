@@ -95,10 +95,16 @@ function parseWithRustWasm(source, _format) {
   };
 }
 
+function toRelFile(absFile) {
+  return path.relative(REPO_ROOT, absFile).split(path.sep).join('/');
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const limitIdx = args.indexOf('--limit');
   const limit = limitIdx >= 0 ? parseInt(args[limitIdx + 1], 10) : Infinity;
+  const baselineIdx = args.indexOf('--baseline');
+  const baselinePath = baselineIdx >= 0 ? args[baselineIdx + 1] : null;
 
   console.log('[shadow-compare] Walking packages/ for .hsplus files...');
   const files = collectHsplusFiles().slice(0, limit);
@@ -145,6 +151,7 @@ async function main() {
 
     results.push({
       file,
+      relFile: toRelFile(file),
       bucket,
       tsPass,
       rustPass,
@@ -199,6 +206,42 @@ async function main() {
       )
     );
     console.log(`\n[shadow-compare] Full per-file results written to ${jsonOutPath}`);
+  }
+
+  // Regression gate (Step 0 of the lang-arch B/C sequencing synthesis,
+  // 2026-07-02): the meaningful CI invariant is NOT "total disagreement must
+  // not increase" -- Rust's .hsplus coverage is a moving target under active
+  // improvement, so new ts-fail-rust-pass agreement is expected and good. The
+  // invariant that actually matters is "files Rust already parses correctly
+  // must keep parsing correctly" -- a file flipping from rustPass:true in the
+  // baseline to rustPass:false today is a genuine regression in the parser
+  // that would eventually be the sole grammar authority, and should fail CI.
+  if (baselinePath) {
+    const baseline = JSON.parse(fs.readFileSync(baselinePath, 'utf-8'));
+    const baselineByRelFile = new Map(
+      (baseline.results || []).map((r) => [r.relFile || toRelFile(r.file), r])
+    );
+    const regressions = [];
+    for (const r of results) {
+      const baseRow = baselineByRelFile.get(r.relFile);
+      if (baseRow && baseRow.rustPass === true && r.rustPass === false) {
+        regressions.push({
+          relFile: r.relFile,
+          wasPass: true,
+          nowError: r.rustFirstError,
+        });
+      }
+    }
+    if (regressions.length > 0) {
+      console.error(`\n[shadow-compare] REGRESSION GATE FAILED: ${regressions.length} file(s) that Rust previously parsed correctly now fail:`);
+      for (const reg of regressions) {
+        console.error(`  - ${reg.relFile}: ${reg.nowError}`);
+      }
+      process.exitCode = 1;
+      return;
+    }
+    const baselineRustPassCount = [...baselineByRelFile.values()].filter((r) => r.rustPass === true).length;
+    console.log(`\n[shadow-compare] Regression gate passed vs baseline (0 files regressed out of ${baselineRustPassCount} baseline Rust-pass files; ${baselineByRelFile.size} files compared).`);
   }
 }
 
