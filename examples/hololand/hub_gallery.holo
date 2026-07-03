@@ -17,11 +17,33 @@ composition "HoloHub Spatial Gallery" {
         ambient_occlusion { intensity: 0.3, radius: 0.5 }
     }
 
+    // ----------------------------------------------------------
+    // MATERIALS
+    // ----------------------------------------------------------
+    // Named @advanced_pbr materials for the room shell and pedestals.
+
+    material "HubFloorPolished" @advanced_pbr {
+        base_color: "#0a0a20"
+        roughness: 0.2
+        metallic: 0.1
+        albedo_map: "textures/hub_floor_albedo.png"
+        normal_map: "textures/hub_floor_normal.png"
+        ao_map: "textures/hub_floor_ao.png"
+    }
+
+    material "HubPedestalMetal" @advanced_pbr {
+        base_color: "#3a3a55"
+        roughness: 0.35
+        metallic: 0.7
+        albedo_map: "textures/hub_pedestal_albedo.png"
+        normal_map: "textures/hub_pedestal_normal.png"
+    }
+
     // Main Gallery Structure
     object "Gallery_Floor" {
         geometry: "plane"
         scale: [100, 1, 100]
-        material: "grid_dark"
+        material: "HubFloorPolished"
     }
 
     // Welcome Hologram
@@ -67,8 +89,10 @@ composition "HoloHub Spatial Gallery" {
         position: [0, 0.1, -15]
         geometry: "cylinder"
         scale: [4, 0.2, 4]
-        material: "neon_blue"
-        
+        material: "HubPedestalMetal"
+        emissive: "#00ffff"
+        emissiveIntensity: 0.6
+
         @tooltip("Drop Hub Previews here to instantiate them")
     }
 

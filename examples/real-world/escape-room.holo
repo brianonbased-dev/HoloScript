@@ -19,6 +19,36 @@ composition "VR Escape Room" {
     ambient_occlusion { intensity: 0.4, radius: 0.5 }
   }
 
+  // ========== Room Shell Materials ==========
+  // Named @advanced_pbr materials grounded in the room's original
+  // bare-string material names (wood_dark, brick_old, plaster_dark).
+
+  material "wood_dark" @advanced_pbr {
+    base_color: "#3a2a1a"
+    roughness: 0.75
+    metallic: 0.0
+    albedo_map: "textures/wood_dark_albedo.png"
+    normal_map: "textures/wood_dark_normal.png"
+    ao_map: "textures/wood_dark_ao.png"
+  }
+
+  material "brick_old" @advanced_pbr {
+    base_color: "#5a3f33"
+    roughness: 0.9
+    metallic: 0.0
+    albedo_map: "textures/brick_old_albedo.png"
+    normal_map: "textures/brick_old_normal.png"
+    ao_map: "textures/brick_old_ao.png"
+  }
+
+  material "plaster_dark" @advanced_pbr {
+    base_color: "#26242a"
+    roughness: 0.85
+    metallic: 0.0
+    albedo_map: "textures/plaster_dark_albedo.png"
+    normal_map: "textures/plaster_dark_normal.png"
+  }
+
   // ========== Game State ==========
 
   state GameState {

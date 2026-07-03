@@ -50,11 +50,19 @@ composition "VR Showroom" {
     }
   }
 
+  material "ShowroomPedestalGloss" @advanced_pbr {
+    base_color: "#222222"
+    roughness: 0.2
+    metallic: 0.3
+    albedo_map: "textures/showroom_pedestal_albedo.png"
+    normal_map: "textures/showroom_pedestal_normal.png"
+  }
+
   template "ProductPedestal" {
     geometry: "cylinder"
     scale: [0.4, 0.05, 0.4]
-    color: "#222222"
-    
+    material: "ShowroomPedestalGloss"
+
     light: {
       type: "spot"
       position: [0, 1.5, 0]

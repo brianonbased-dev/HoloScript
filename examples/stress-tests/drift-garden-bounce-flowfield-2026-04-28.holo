@@ -211,6 +211,7 @@ composition "The Drift Garden" {
     position: { x: 0, y: 0, z: 0 }
     scale: { x: 20, y: 0.05, z: 20 }
     visible: false
+    material: { baseColor: "#020510", roughness: 0.9, metallic: 0.0, albedo_map: "textures/drift_floor_albedo.png", normal_map: "textures/drift_floor_normal.png", ao_map: "textures/drift_floor_ao.png" }
     @collidable { shape: "box", layer: "ground", static: true }
     @physics { mass: 0, static: true }
   }
