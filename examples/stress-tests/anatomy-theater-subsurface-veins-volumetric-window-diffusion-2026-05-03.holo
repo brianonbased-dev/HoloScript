@@ -110,7 +110,7 @@ composition "AnatomyTheater" {
     geometry: "box"
     position: [0, 0.6, 0]
     scale: [1.8, 0.04, 0.9]
-    material: { baseColor: "#d8dde4", roughness: 0.35, metallic: 0.6 }
+    material: { baseColor: "#d8dde4", roughness: 0.35, metallic: 0.6, normalMap: "textures/clinical_steel_brushed_normal.png" }
     receiveShadow: true
   }
 
@@ -300,7 +300,7 @@ composition "AnatomyTheater" {
     geometry: "box"
     position: [0, 0.5, 1.1]
     scale: [0.4, 1.0, 0.4]
-    material: { baseColor: "#cfd8dc", roughness: 0.4, metallic: 0.5 }
+    material: { baseColor: "#cfd8dc", roughness: 0.4, metallic: 0.5, normalMap: "textures/clinical_steel_brushed_normal.png" }
   }
 
   object "podium_top" {
@@ -308,7 +308,7 @@ composition "AnatomyTheater" {
     geometry: "box"
     position: [0, 1.05, 1.1]
     scale: [0.55, 0.04, 0.45]
-    material: { baseColor: "#b0bec5", roughness: 0.3, metallic: 0.7 }
+    material: { baseColor: "#b0bec5", roughness: 0.3, metallic: 0.7, normalMap: "textures/clinical_steel_brushed_normal.png" }
   }
 
   object "podium_glow" {

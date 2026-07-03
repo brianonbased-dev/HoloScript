@@ -14,13 +14,25 @@ light "SpotRed" { type: "spot", position: [-4, 6, -2], target: [0, 0, 0], intens
 light "SpotBlue" { type: "spot", position: [4, 6, -2], target: [0, 0, 0], intensity: 2000, color: "#2255ff", angle: 25 }
 light "SpotWhite" { type: "spot", position: [0, 8, 2], target: [0, 1, -2], intensity: 3000, color: "#ffffff", angle: 15 }
 
+// --- Materials ---
+material "StageDeck" @advanced_pbr {
+  base_color: "#1a1a1a"
+  roughness: 0.2
+  metallic: 0.85
+  albedo_map: "textures/stage_deck_albedo.png"
+  normal_map: "textures/stage_deck_normal.png"
+  ao_map: "textures/stage_deck_ao.png"
+  // Scuffed, worn-in touring stage — not showroom-clean
+  roughness_map: "textures/stage_deck_roughness.png"
+}
+
 // --- Ground ---
 object "Stage" {
   @collidable
   geometry: "plane"
   position: [0, 0, 0]
   scale: [12, 1, 8]
-  material: { baseColor: "#1a1a1a", roughness: 0.2, metallic: 0.85 }
+  material: "StageDeck"
 }
 
 // --- Post-Processing ---

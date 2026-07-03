@@ -59,14 +59,27 @@ composition "Vault of Elemental Crystals" {
     geometry: "cylinder"
     position: [0, 0, 0]
     scale: [10, 0.25, 10]
-    material: { baseColor: "#2a2030", roughness: 0.82, metallic: 0.08 }
+    material: {
+      baseColor: "#2a2030"
+      roughness: 0.82
+      metallic: 0.08
+      normalMap: "textures/vault_flagstone_normal.png"
+      aoMap: "textures/vault_flagstone_ao.png"
+      tiling: [5.0, 5.0]
+    }
   }
 
   object "CeilingDome" {
     geometry: "sphere"
     position: [0, 4, 0]
     scale: [9, 5, 9]
-    material: { baseColor: "#1a1525", roughness: 0.9, metallic: 0.0, opacity: 0.8 }
+    material: {
+      baseColor: "#1a1525"
+      roughness: 0.9
+      metallic: 0.0
+      opacity: 0.8
+      normalMap: "textures/vault_dome_stone_normal.png"
+    }
   }
 
   // Seven perimeter plinths at 51.4° intervals, radius 4 m
@@ -74,7 +87,13 @@ composition "Vault of Elemental Crystals" {
     @collidable
     geometry: "cylinder"
     scale: [0.25, 0.9, 0.25]
-    material: { baseColor: "#3a2a50", roughness: 0.7, metallic: 0.15 }
+    material: {
+      baseColor: "#3a2a50"
+      roughness: 0.7
+      metallic: 0.15
+      normalMap: "textures/vault_stone_normal.png"
+      aoMap: "textures/vault_stone_ao.png"
+    }
   }
 
   object "Plinth_Fire"   using "CrystalPlinth" { position: [4.0, 0.45, 0.0] }
@@ -308,7 +327,12 @@ composition "Vault of Elemental Crystals" {
     geometry: "cube"
     position: [0, 1.5, -7]
     scale: [3.5, 3.0, 0.2]
-    material: { baseColor: "#3a2a40", roughness: 0.6, metallic: 0.4 }
+    material: {
+      baseColor: "#3a2a40"
+      roughness: 0.6
+      metallic: 0.4
+      normalMap: "textures/vault_gate_bronze_normal.png"
+    }
     state { locked: true }
   }
 

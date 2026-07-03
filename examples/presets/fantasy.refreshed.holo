@@ -52,6 +52,29 @@ composition "Moonlit Enchanted Grove" {
     radius: 3
   }
 
+  // ── Materials ────────────────────────────────────────────────────────────
+
+  material "GroveFloor" @advanced_pbr {
+    base_color: "#2a1f10"
+    roughness: 0.92
+    metallic: 0.0
+    albedo_map: "textures/forest_floor_albedo.png"
+    normal_map: "textures/forest_floor_normal.png"
+    ao_map: "textures/forest_floor_ao.png"
+    // Damp leaf litter beyond the stone circle, moonlit
+    wetness: 0.15
+  }
+
+  material "AltarPaving" @advanced_pbr {
+    base_color: "#3c3040"
+    roughness: 0.8
+    metallic: 0.05
+    albedo_map: "textures/altar_paving_albedo.png"
+    normal_map: "textures/altar_paving_normal.png"
+    ao_map: "textures/altar_paving_ao.png"
+    // Ancient fitted flagstones, worn smooth at the circle's center
+  }
+
   // ── Ground ───────────────────────────────────────────────────────────────
 
   object "ForestFloor" {
@@ -59,12 +82,7 @@ composition "Moonlit Enchanted Grove" {
     geometry: "plane"
     position: [0, 0, 0]
     scale: [40, 1, 40]
-    material: {
-      baseColor: "#2a1f10"
-      roughness: 0.92
-      metallic: 0.0
-      normal_map: "textures/forest_floor_normal.png"
-    }
+    material: "GroveFloor"
   }
 
   object "StonePaving" {
@@ -72,7 +90,7 @@ composition "Moonlit Enchanted Grove" {
     geometry: "plane"
     position: [0, 0.01, 0]
     scale: [8, 1, 8]
-    material: { baseColor: "#3c3040", roughness: 0.8, metallic: 0.05 }
+    material: "AltarPaving"
   }
 
   // ── Central Obsidian Altar ───────────────────────────────────────────────

@@ -37,6 +37,104 @@ composition "Workplace Safety Training" {
     tone_mapping: { enabled: true, type: "aces" }
   }
 
+  // ── Materials ──────────────────────────────────────────────────────────────
+  // Named @advanced_pbr materials for the training-room shell,
+  // hazard props, and safety equipment.
+
+  material "TrainingConcrete" @advanced_pbr {
+    base_color: "#cccccc"
+    roughness: 0.85
+    metallic: 0.0
+    albedo_map: "textures/concrete_albedo.png"
+    normal_map: "textures/concrete_normal.png"
+    ao_map: "textures/concrete_ao.png"
+  }
+
+  material "TrainingCeilingPlaster" @advanced_pbr {
+    base_color: "#f5f5f5"
+    roughness: 0.8
+    metallic: 0.0
+    albedo_map: "textures/plaster_albedo.png"
+    normal_map: "textures/plaster_normal.png"
+  }
+
+  material "PaintedDrywall" @advanced_pbr {
+    base_color: "#f0f0f0"
+    roughness: 0.7
+    metallic: 0.0
+    albedo_map: "textures/painted_drywall_albedo.png"
+    normal_map: "textures/painted_drywall_normal.png"
+  }
+
+  material "HazardPlasticSign" @advanced_pbr {
+    base_color: "#ffff00"
+    roughness: 0.35
+    metallic: 0.0
+  }
+
+  material "RubberInsulation" @advanced_pbr {
+    base_color: "#ff6600"
+    roughness: 0.6
+    metallic: 0.0
+    normal_map: "textures/rubber_normal.png"
+  }
+
+  material "DebrisWood" @advanced_pbr {
+    base_color: "#8b4513"
+    roughness: 0.8
+    metallic: 0.0
+    albedo_map: "textures/rough_wood_albedo.png"
+    normal_map: "textures/rough_wood_normal.png"
+  }
+
+  material "ChemicalLiquid" @advanced_pbr {
+    base_color: "#00cc66"
+    roughness: 0.05
+    metallic: 0.0
+    opacity: 0.7
+    ior: 1.33
+  }
+
+  material "ExtinguisherMetal" @advanced_pbr {
+    base_color: "#ff0000"
+    roughness: 0.3
+    metallic: 0.8
+    normal_map: "textures/painted_metal_normal.png"
+  }
+
+  material "FirstAidPlastic" @advanced_pbr {
+    base_color: "#ffffff"
+    roughness: 0.4
+    metallic: 0.0
+  }
+
+  material "WorkbenchOak" @advanced_pbr {
+    base_color: "#a0522d"
+    roughness: 0.5
+    metallic: 0.0
+    albedo_map: "textures/oak_albedo.png"
+    normal_map: "textures/oak_normal.png"
+  }
+
+  material "ToolMetal" @advanced_pbr {
+    base_color: "#c0c0c0"
+    roughness: 0.25
+    metallic: 0.9
+    normal_map: "textures/brushed_metal_normal.png"
+  }
+
+  material "HelmetPolycarbonate" @advanced_pbr {
+    base_color: "#ffff00"
+    roughness: 0.2
+    metallic: 0.0
+  }
+
+  material "CautionPlasticTape" @advanced_pbr {
+    base_color: "#ffff00"
+    roughness: 0.5
+    metallic: 0.0
+  }
+
   // Training room environment
   object "Floor" {
     @collidable
@@ -45,7 +143,7 @@ composition "Workplace Safety Training" {
     position: [0, 0, 0]
     scale: [20, 1, 20]
     color: "#cccccc"
-    material: "concrete"
+    material: "TrainingConcrete"
     receiveShadows: true
   }
 
@@ -55,7 +153,7 @@ composition "Workplace Safety Training" {
     rotation: [180, 0, 0]
     scale: [20, 1, 20]
     color: "#f5f5f5"
-    material: "plaster"
+    material: "TrainingCeilingPlaster"
   }
 
   object "Walls" {
@@ -65,7 +163,7 @@ composition "Workplace Safety Training" {
     position: [0, 2.5, -10]
     scale: [20, 5, 0.2]
     color: "#f0f0f0"
-    material: "painted_drywall"
+    material: "PaintedDrywall"
   }
 
   object "WallEast" {
@@ -76,7 +174,7 @@ composition "Workplace Safety Training" {
     rotation: [0, 90, 0]
     scale: [20, 5, 0.2]
     color: "#f0f0f0"
-    material: "painted_drywall"
+    material: "PaintedDrywall"
   }
 
   object "WallWest" {
@@ -87,7 +185,7 @@ composition "Workplace Safety Training" {
     rotation: [0, 90, 0]
     scale: [20, 5, 0.2]
     color: "#f0f0f0"
-    material: "painted_drywall"
+    material: "PaintedDrywall"
   }
 
   object "WallSouth" {
@@ -97,7 +195,7 @@ composition "Workplace Safety Training" {
     position: [0, 2.5, 10]
     scale: [20, 5, 0.2]
     color: "#f0f0f0"
-    material: "painted_drywall"
+    material: "PaintedDrywall"
   }
 
   // ── Hazard Identification Targets ─────────────────────────────────────────
@@ -112,7 +210,7 @@ composition "Workplace Safety Training" {
     position: [-3, 0.5, -5]
     scale: [0.3, 0.8, 0.3]
     color: "#ffff00"
-    material: "plastic"
+    material: "HazardPlasticSign"
 
     behavior "HazardHighlight" {
       highlightColor: "#ff0000"
@@ -131,7 +229,7 @@ composition "Workplace Safety Training" {
     position: [3, 1, -5]
     scale: [0.5, 0.3, 0.1]
     color: "#ff6600"
-    material: "rubber_insulation"
+    material: "RubberInsulation"
 
     behavior "ElectricalHazard" {
       severity: "high"
@@ -152,7 +250,7 @@ composition "Workplace Safety Training" {
     rotation: [0, 45, 0]
     scale: 0.4
     color: "#8b4513"
-    material: "wood"
+    material: "DebrisWood"
     mass: 2.5
     friction: 0.6
   }
@@ -166,7 +264,7 @@ composition "Workplace Safety Training" {
     position: [4, 0.01, 3]
     scale: [1.5, 1, 1.5]
     color: "#00cc66"
-    material: "liquid"
+    material: "ChemicalLiquid"
 
     behavior "HazardZone" {
       hazardType: "chemical"
@@ -204,7 +302,7 @@ composition "Workplace Safety Training" {
     rotation: [0, 0, 0]
     scale: [0.2, 0.8, 0.2]
     color: "#ff0000"
-    material: "metal"
+    material: "ExtinguisherMetal"
     weight: 6.0
 
     behavior "Extinguisher" {
@@ -224,7 +322,7 @@ composition "Workplace Safety Training" {
     position: [5, 1.5, -7]
     scale: [0.4, 0.3, 0.1]
     color: "#ffffff"
-    material: "plastic"
+    material: "FirstAidPlastic"
 
     behavior "MedicalSupply" {
       contentsIntact: true
@@ -399,7 +497,7 @@ composition "Workplace Safety Training" {
     position: [0, 0.5, -6]
     scale: [2, 1, 1]
     color: "#a0522d"
-    material: "oak_wood"
+    material: "WorkbenchOak"
   }
 
   // Workbench leg 1
@@ -433,7 +531,7 @@ composition "Workplace Safety Training" {
     rotation: [0, 0, 90]
     scale: [0.05, 0.3, 0.05]
     color: "#c0c0c0"
-    material: "metal"
+    material: "ToolMetal"
     weight: 0.8
   }
 
@@ -464,7 +562,7 @@ composition "Workplace Safety Training" {
     position: [-1, 1.2, -6]
     scale: [0.3, 0.25, 0.3]
     color: "#ffff00"
-    material: "polycarbonate"
+    material: "HelmetPolycarbonate"
   }
 
   // Caution tape
@@ -476,7 +574,7 @@ composition "Workplace Safety Training" {
     rotation: [0, 45, 0]
     scale: [3, 0.1, 0.05]
     color: "#ffff00"
-    material: "plastic_tape"
+    material: "CautionPlasticTape"
   }
 
   // Additional caution tape segment
@@ -488,7 +586,7 @@ composition "Workplace Safety Training" {
     rotation: [0, -45, 0]
     scale: [3, 0.1, 0.05]
     color: "#ffff00"
-    material: "plastic_tape"
+    material: "CautionPlasticTape"
   }
 
   // ── Ambient & Lighting ─────────────────────────────────────────────────────

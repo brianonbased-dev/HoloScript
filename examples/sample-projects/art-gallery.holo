@@ -28,6 +28,71 @@ composition "Interactive Art Gallery" {
   }
 
   // ----------------------------------------------------------
+  // MATERIALS
+  // ----------------------------------------------------------
+  // Named @advanced_pbr materials for the room shell and props.
+  // Paintings keep their own emissive color per-canvas (set on
+  // each Painting_* object below) since each artwork is a
+  // distinct hue; this material only carries the woven-canvas
+  // surface response shared by all of them.
+
+  material "GalleryCanvas" @advanced_pbr {
+    base_color: "#e8e3d8"
+    roughness: 0.95
+    metallic: 0.0
+    albedo_map: "textures/canvas_albedo.png"
+    normal_map: "textures/canvas_weave_normal.png"
+  }
+
+  material "PolishedDarkStone" @advanced_pbr {
+    base_color: "#1a1a24"
+    roughness: 0.25
+    metallic: 0.0
+    albedo_map: "textures/dark_stone_albedo.png"
+    normal_map: "textures/dark_stone_normal.png"
+    ao_map: "textures/dark_stone_ao.png"
+  }
+
+  material "GalleryPlaster" @advanced_pbr {
+    base_color: "#1c1c28"
+    roughness: 0.88
+    metallic: 0.0
+    albedo_map: "textures/plaster_albedo.png"
+    normal_map: "textures/plaster_normal.png"
+  }
+
+  material "GoldFrameMetal" @advanced_pbr {
+    base_color: "#c8a84e"
+    roughness: 0.3
+    metallic: 0.9
+    normal_map: "textures/brushed_metal_normal.png"
+  }
+
+  material "PedestalMarble" @advanced_pbr {
+    base_color: "#2d2d3d"
+    roughness: 0.15
+    metallic: 0.0
+    albedo_map: "textures/marble_albedo.png"
+    normal_map: "textures/marble_normal.png"
+    ao_map: "textures/marble_ao.png"
+  }
+
+  material "SculptureGlass" @advanced_pbr {
+    base_color: "#00ffff"
+    roughness: 0.02
+    metallic: 0.0
+    opacity: 0.55
+    ior: 1.5
+  }
+
+  material "BronzePostMetal" @advanced_pbr {
+    base_color: "#8b7355"
+    roughness: 0.4
+    metallic: 0.85
+    normal_map: "textures/brushed_metal_normal.png"
+  }
+
+  // ----------------------------------------------------------
   // TEMPLATES
   // ----------------------------------------------------------
   // Reusable definitions to keep painting objects consistent.
@@ -37,7 +102,7 @@ composition "Interactive Art Gallery" {
     @hoverable
 
     geometry: "cube"
-    material: "canvas"
+    material: "GalleryCanvas"
 
     // When hovered, a subtle glow highlights the frame
     on_hover_enter() {
@@ -74,7 +139,7 @@ composition "Interactive Art Gallery" {
     position: [0, -0.05, 0]
     scale: [12, 0.1, 8]
     color: "#1a1a24"
-    material: "stone"
+    material: "PolishedDarkStone"
   }
 
   // Ceiling
@@ -91,7 +156,7 @@ composition "Interactive Art Gallery" {
     position: [0, 2, -4]
     scale: [12, 4, 0.15]
     color: "#1c1c28"
-    material: "plaster"
+    material: "GalleryPlaster"
   }
 
   // Front wall (south) -- entrance side
@@ -100,7 +165,7 @@ composition "Interactive Art Gallery" {
     position: [0, 2, 4]
     scale: [12, 4, 0.15]
     color: "#1c1c28"
-    material: "plaster"
+    material: "GalleryPlaster"
   }
 
   // Left wall (west)
@@ -109,7 +174,7 @@ composition "Interactive Art Gallery" {
     position: [-6, 2, 0]
     scale: [0.15, 4, 8]
     color: "#1c1c28"
-    material: "plaster"
+    material: "GalleryPlaster"
   }
 
   // Right wall (east)
@@ -118,7 +183,7 @@ composition "Interactive Art Gallery" {
     position: [6, 2, 0]
     scale: [0.15, 4, 8]
     color: "#1c1c28"
-    material: "plaster"
+    material: "GalleryPlaster"
   }
 
   // ----------------------------------------------------------
@@ -182,7 +247,7 @@ composition "Interactive Art Gallery" {
     position: [-3.5, 2.2, -3.90]
     scale: [1.72, 1.32, 0.03]
     color: "#c8a84e"
-    material: "metal"
+    material: "GoldFrameMetal"
   }
 
   object "Frame_DigitalOcean" {
@@ -190,7 +255,7 @@ composition "Interactive Art Gallery" {
     position: [0, 2.2, -3.90]
     scale: [2.12, 1.52, 0.03]
     color: "#c8a84e"
-    material: "metal"
+    material: "GoldFrameMetal"
   }
 
   object "Frame_SolarFlare" {
@@ -198,7 +263,7 @@ composition "Interactive Art Gallery" {
     position: [3.5, 2.2, -3.90]
     scale: [1.72, 1.32, 0.03]
     color: "#c8a84e"
-    material: "metal"
+    material: "GoldFrameMetal"
   }
 
   object "Frame_EmeraldDream" {
@@ -206,7 +271,7 @@ composition "Interactive Art Gallery" {
     position: [-5.90, 2.2, -1]
     scale: [0.03, 1.32, 1.72]
     color: "#c8a84e"
-    material: "metal"
+    material: "GoldFrameMetal"
   }
 
   object "Frame_VioletNebula" {
@@ -214,7 +279,7 @@ composition "Interactive Art Gallery" {
     position: [5.90, 2.2, 1]
     scale: [0.03, 1.52, 1.92]
     color: "#c8a84e"
-    material: "metal"
+    material: "GoldFrameMetal"
   }
 
   // ----------------------------------------------------------
@@ -229,7 +294,7 @@ composition "Interactive Art Gallery" {
     position: [0, 0.4, 0]
     scale: [0.6, 0.8, 0.6]
     color: "#2d2d3d"
-    material: "marble"
+    material: "PedestalMarble"
   }
 
   // Sculpture -- a spinning, glowing shape
@@ -241,7 +306,7 @@ composition "Interactive Art Gallery" {
     color: "#00ffff"
     emissive: "#00ffff"
     emissiveIntensity: 0.6
-    material: "glass"
+    material: "SculptureGlass"
     spinSpeed: 0.3
   }
 
@@ -317,7 +382,7 @@ composition "Interactive Art Gallery" {
     position: [-1.2, 0.4, 1]
     scale: [0.06, 0.8, 0.06]
     color: "#8b7355"
-    material: "metal"
+    material: "BronzePostMetal"
   }
 
   object "RopePost_Right" @collidable {
@@ -325,6 +390,6 @@ composition "Interactive Art Gallery" {
     position: [1.2, 0.4, 1]
     scale: [0.06, 0.8, 0.06]
     color: "#8b7355"
-    material: "metal"
+    material: "BronzePostMetal"
   }
 }

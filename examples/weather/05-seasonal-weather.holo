@@ -32,10 +32,17 @@ composition SeasonalWeatherShowcase {
     ambient_occlusion { intensity: 0.35, radius: 0.5 }
   }
 
-  // Environment
+  // Environment — weathered seasonal earth, shared ground plane spanning blizzard through drought events
   entity Ground {
     mesh: { type: "plane", width: 300.0, height: 300.0 },
-    advanced_pbr: { base_color: [0.35, 0.32, 0.28], metallic: 0.0, roughness: 0.9 },
+    advanced_pbr: {
+      base_color: [0.33, 0.3, 0.26],
+      metallic: 0.0,
+      roughness: 0.88,                  // Dry packed earth base; BlizzardSystem/SandstormSystem overlay their own particle coverage
+      albedo_map: "textures/seasonal_earth_albedo.png",
+      normal_map: "textures/seasonal_earth_normal.png",
+      ao_map: "textures/seasonal_earth_ao.png",
+    },
     transform: { position: [0.0, 0.0, 0.0], rotation: [-90.0, 0.0, 0.0] },
   }
 

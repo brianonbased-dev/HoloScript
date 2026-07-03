@@ -29,13 +29,32 @@ post_processing {
   tone_mapping: { enabled: true, type: "aces" }
 }
 
+// ── Materials ────────────────────────────────────────────────────────────
+
+material "AncientBark" @advanced_pbr {
+  base_color: "#4a3728"
+  roughness: 0.9
+  metallic: 0.0
+  albedo_map: "textures/bark_albedo.png"
+  normal_map: "textures/bark_normal.png"
+}
+
+material "MossyGround" @advanced_pbr {
+  base_color: "#1a3a1a"
+  roughness: 0.95
+  metallic: 0.0
+  albedo_map: "textures/moss_albedo.png"
+  normal_map: "textures/moss_normal.png"
+  ao_map: "textures/moss_ao.png"
+}
+
 // Ancient tree
-object "tree_trunk" @collidable {
+object "tree_trunk" @collidable @advanced_pbr {
   position: [0, 2, -3]
   scale: [0.8, 4, 0.8]
   color: "#4a3728"
   geometry: "cylinder"
-  material: "wood"
+  material: "AncientBark"
 }
 
 object "tree_crown" {
@@ -109,11 +128,12 @@ orb "crystal" @grabbable @glowing {
 }
 
 // Forest floor
-object "ground" @collidable {
+object "ground" @collidable @advanced_pbr {
   position: [0, 0, 0]
   scale: [15, 0.1, 15]
   color: "#1a3a1a"
   geometry: "cube"
+  material: "MossyGround"
 }
 
 // Pond
@@ -124,4 +144,6 @@ object "pond" @glowing {
   geometry: "cylinder"
   emissive: "#00aaff"
   emissiveIntensity: 0.2
+  roughness: 0.05
+  metallic: 0.1
 }

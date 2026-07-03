@@ -16,97 +16,100 @@ composition "StreetLamp" {
     ambient_occlusion { intensity: 0.3, radius: 0.4 }
   }
 
+  // ── Shared Materials ──────────────────────────────────────────────────────
+  // Wrought-iron system for the cast body (base/pole/scrollwork share one
+  // finish instead of restating metalness ad hoc) plus a named amber-glass
+  // material for the four housing panes, matching the reuse pattern robot.holo
+  // and space-station.holo use for their own hard-surface parts.
+  template "WroughtIron" {
+    material: { metalness: 0.8, roughness: 0.32 }
+  }
+  template "CastIronDetail" {
+    material: { metalness: 0.85, roughness: 0.2 }
+  }
+  template "AmberGlass" {
+    material: { emissive: "#FFE8B0", emissiveIntensity: 0.8, opacity: 0.5, roughness: 0.1 }
+  }
+
   object "Lamp" @physics {
     position: [0, 0, 0]
 
     // ── Base ──────────────────────────────────────────────────────────────
-    object "FootPlate" {
+    object "FootPlate" using "WroughtIron" {
       geometry: "cylinder"
       position: [0, 0.05, 0]
       scale: [0.45, 0.1, 0.45]
       color: "#2a2a2a"
-      material: { metalness: 0.8, roughness: 0.3 }
     }
-    object "BaseRing" {
+    object "BaseRing" using "CastIronDetail" {
       geometry: "torus"
       position: [0, 0.12, 0]
       scale: [0.35, 0.35, 0.08]
       color: "#333333"
-      material: { metalness: 0.85 }
     }
-    object "BaseBulge" {
+    object "BaseBulge" using "WroughtIron" {
       geometry: "sphere"
       position: [0, 0.3, 0]
       scale: [0.22, 0.25, 0.22]
       color: "#2a2a2a"
-      material: { metalness: 0.8 }
     }
 
     // ── Pole ──────────────────────────────────────────────────────────────
-    object "LowerPole" {
+    object "LowerPole" using "WroughtIron" {
       geometry: "cylinder"
       position: [0, 1.2, 0]
       scale: [0.08, 1.6, 0.08]
       color: "#2d2d2d"
-      material: { metalness: 0.7, roughness: 0.35 }
     }
-    object "MidRing" {
+    object "MidRing" using "CastIronDetail" {
       geometry: "torus"
       position: [0, 2.0, 0]
       scale: [0.12, 0.12, 0.03]
       color: "#333333"
-      material: { metalness: 0.85 }
     }
-    object "UpperPole" {
+    object "UpperPole" using "WroughtIron" {
       geometry: "cylinder"
       position: [0, 2.6, 0]
       scale: [0.06, 1.0, 0.06]
       color: "#2d2d2d"
-      material: { metalness: 0.7, roughness: 0.35 }
     }
 
     // ── Lamp Head ─────────────────────────────────────────────────────────
-    object "LampCap" {
+    object "LampCap" using "CastIronDetail" {
       geometry: "cone"
       position: [0, 3.45, 0]
       scale: [0.35, 0.2, 0.35]
       color: "#222222"
-      material: { metalness: 0.9 }
     }
-    object "LampHousing" {
+    object "LampHousing" using "WroughtIron" {
       geometry: "cylinder"
       position: [0, 3.2, 0]
       scale: [0.25, 0.35, 0.25]
       color: "#333333"
-      material: { metalness: 0.7, roughness: 0.3 }
 
-      object "GlassPane1" {
+      object "GlassPane1" using "AmberGlass" {
         geometry: "cube"
         position: [0.22, 0, 0]
         scale: [0.02, 0.28, 0.2]
         color: "#FFE8B0"
-        material: { emissive: "#FFE8B0", emissiveIntensity: 0.8, opacity: 0.5 }
       }
-      object "GlassPane2" {
+      object "GlassPane2" using "AmberGlass" {
         geometry: "cube"
         position: [-0.22, 0, 0]
         scale: [0.02, 0.28, 0.2]
         color: "#FFE8B0"
-        material: { emissive: "#FFE8B0", emissiveIntensity: 0.8, opacity: 0.5 }
       }
-      object "GlassPane3" {
+      object "GlassPane3" using "AmberGlass" {
         geometry: "cube"
         position: [0, 0, 0.22]
         scale: [0.2, 0.28, 0.02]
         color: "#FFE8B0"
-        material: { emissive: "#FFE8B0", emissiveIntensity: 0.8, opacity: 0.5 }
       }
-      object "GlassPane4" {
+      object "GlassPane4" using "AmberGlass" {
         geometry: "cube"
         position: [0, 0, -0.22]
         scale: [0.2, 0.28, 0.02]
         color: "#FFE8B0"
-        material: { emissive: "#FFE8B0", emissiveIntensity: 0.8, opacity: 0.5 }
       }
     }
 
@@ -127,37 +130,33 @@ composition "StreetLamp" {
     }
 
     // ── Decorative Scrollwork ─────────────────────────────────────────────
-    object "ScrollArm1" {
+    object "ScrollArm1" using "CastIronDetail" {
       geometry: "cylinder"
       position: [0.15, 3.0, 0]
       rotation: [0, 0, -30]
       scale: [0.025, 0.25, 0.025]
       color: "#2a2a2a"
-      material: { metalness: 0.85 }
     }
-    object "ScrollArm2" {
+    object "ScrollArm2" using "CastIronDetail" {
       geometry: "cylinder"
       position: [-0.15, 3.0, 0]
       rotation: [0, 0, 30]
       scale: [0.025, 0.25, 0.025]
       color: "#2a2a2a"
-      material: { metalness: 0.85 }
     }
-    object "ScrollArm3" {
+    object "ScrollArm3" using "CastIronDetail" {
       geometry: "cylinder"
       position: [0, 3.0, 0.15]
       rotation: [30, 0, 0]
       scale: [0.025, 0.25, 0.025]
       color: "#2a2a2a"
-      material: { metalness: 0.85 }
     }
-    object "ScrollArm4" {
+    object "ScrollArm4" using "CastIronDetail" {
       geometry: "cylinder"
       position: [0, 3.0, -0.15]
       rotation: [-30, 0, 0]
       scale: [0.025, 0.25, 0.025]
       color: "#2a2a2a"
-      material: { metalness: 0.85 }
     }
   }
 

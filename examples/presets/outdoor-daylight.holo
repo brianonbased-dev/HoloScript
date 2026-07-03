@@ -14,13 +14,24 @@ environment {
 light "Sun" { type: "directional", position: [8, 12, 4], intensity: 1.2, color: "#fff5e0", castShadow: true }
 light "SkyFill" { type: "directional", position: [-4, 8, -3], intensity: 0.3, color: "#88bbff" }
 
+// --- Materials ---
+material "DaylightGrass" @advanced_pbr {
+  base_color: "#4a7c59"
+  roughness: 0.9
+  metallic: 0.0
+  albedo_map: "textures/grass_albedo.png"
+  normal_map: "textures/grass_normal.png"
+  ao_map: "textures/grass_ao.png"
+  tiling: [8.0, 8.0]
+}
+
 // --- Ground ---
 object "Ground" {
   @collidable
   geometry: "plane"
   position: [0, 0, 0]
   scale: [50, 1, 50]
-  material: { baseColor: "#4a7c59", roughness: 0.9, metallic: 0.0 }
+  material: "DaylightGrass"
 }
 
 // --- Post-Processing ---

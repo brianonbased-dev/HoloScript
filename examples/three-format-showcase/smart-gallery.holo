@@ -46,7 +46,11 @@ composition "SmartGallery" {
 
   // -- Reusable Templates --------------------------------------------------------
 
-  // Painting with interaction, info popup, and spotlight
+  // Painting with interaction, info popup, and spotlight. Canvas material
+  // carries roughness/metallic + a shared canvas-weave normal map; each
+  // painting instance below overrides `color` for its own artwork (load-
+  // bearing per-artwork intent, kept as an override rather than folded
+  // into a single named material).
   template "PaintingFrame" {
     @interactable {
       action: "tap"
@@ -59,6 +63,9 @@ composition "SmartGallery" {
     scale: [1.5, 1.0, 1]
     material: {
       roughness: 0.9
+      metalness: 0.0
+      normal_map: "textures/canvas_weave_normal.png"
+      ao_map: "textures/canvas_weave_ao.png"
     }
   }
 
@@ -79,7 +86,8 @@ composition "SmartGallery" {
     @collidable
   }
 
-  // Spotlight for artwork
+  // Spotlight for artwork — paired with a real point_light so it actually
+  // illuminates the painting it hangs in front of, not just itself (Pattern 2).
   template "ArtSpotlight" {
     geometry: "sphere"
     radius: 0.05
@@ -87,6 +95,13 @@ composition "SmartGallery" {
       color: "#ffffee"
       emissive: "#ffffee"
       emissiveIntensity: 2.0
+    }
+
+    point_light {
+      color: "#ffffee"
+      intensity: 2.5
+      range: 4
+      cast_shadows: true
     }
   }
 
@@ -108,16 +123,33 @@ composition "SmartGallery" {
 
   // -- Gallery Structure ---------------------------------------------------------
 
+  // Polished dark gallery floor + warm plaster walls, both with real texture
+  // maps (not flat color) — see docs/handbooks/holoscript-realistic-authoring-patterns.md
+  // Pattern 1. Only this .holo lane is enriched; .hs/.hsplus stay untouched
+  // for format-parity comparison.
+  material "GalleryFloorPolish" @advanced_pbr {
+    base_color: "#2a2a3a"
+    roughness: 0.3
+    metallic: 0.6
+    albedo_map: "textures/gallery_floor_albedo.png"
+    normal_map: "textures/gallery_floor_normal.png"
+    ao_map: "textures/gallery_floor_ao.png"
+  }
+
+  material "GalleryWallPlaster" @advanced_pbr {
+    base_color: "#e8e0d8"
+    roughness: 0.9
+    metallic: 0.0
+    albedo_map: "textures/plaster_wall_albedo.png"
+    normal_map: "textures/plaster_wall_normal.png"
+  }
+
   object "Floor" {
     geometry: "plane"
     width: 15
     height: 10
     position: { x: 0, y: 0, z: 0 }
-    material: {
-      color: "#2a2a3a"
-      metalness: 0.6
-      roughness: 0.3
-    }
+    material: "GalleryFloorPolish"
   }
 
   // Walls
@@ -125,28 +157,28 @@ composition "SmartGallery" {
     geometry: "box"
     scale: [15, 4, 0.2]
     position: { x: 0, y: 2, z: -5 }
-    material: { color: "#e8e0d8", roughness: 0.9 }
+    material: "GalleryWallPlaster"
   }
 
   object "WallSouth" {
     geometry: "box"
     scale: [15, 4, 0.2]
     position: { x: 0, y: 2, z: 5 }
-    material: { color: "#e8e0d8", roughness: 0.9 }
+    material: "GalleryWallPlaster"
   }
 
   object "WallEast" {
     geometry: "box"
     scale: [0.2, 4, 10]
     position: { x: 7.5, y: 2, z: 0 }
-    material: { color: "#e8e0d8", roughness: 0.9 }
+    material: "GalleryWallPlaster"
   }
 
   object "WallWest" {
     geometry: "box"
     scale: [0.2, 4, 10]
     position: { x: -7.5, y: 2, z: 0 }
-    material: { color: "#e8e0d8", roughness: 0.9 }
+    material: "GalleryWallPlaster"
   }
 
   // -- Paintings -----------------------------------------------------------------
@@ -219,21 +251,21 @@ composition "SmartGallery" {
       geometry: "sphere"
       radius: 0.4
       position: { x: -2, y: 1.0, z: 0 }
-      material: { color: "#ccaa44", metalness: 0.9, roughness: 0.1 }
+      material: { color: "#ccaa44", metalness: 0.9, roughness: 0.1, normal_map: "textures/burnished_gold_normal.png" }
     }
 
     object "Sculpture_Cube" using "InteractiveSculpture" {
       geometry: "box"
       scale: [0.5, 0.5, 0.5]
       position: { x: 0, y: 1.0, z: 1 }
-      material: { color: "#44aacc", metalness: 0.7, roughness: 0.3 }
+      material: { color: "#44aacc", metalness: 0.7, roughness: 0.3, normal_map: "textures/patina_copper_normal.png" }
     }
 
     object "Sculpture_Torus" using "InteractiveSculpture" {
       geometry: "torus"
       scale: [0.4, 0.4, 0.15]
       position: { x: 2, y: 1.2, z: 0 }
-      material: { color: "#cc4488", metalness: 0.8, roughness: 0.2 }
+      material: { color: "#cc4488", metalness: 0.8, roughness: 0.2, normal_map: "textures/anodized_metal_normal.png" }
     }
   }
 

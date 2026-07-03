@@ -31,7 +31,7 @@ composition StormSystemsShowcase {
     ambient_occlusion { intensity: 0.4, radius: 0.6 }
   }
 
-  // Environment
+  // Environment — storm-soaked grassland, darkened and slicked under the thunderstorm/tornado systems
   entity Terrain {
     mesh: {
       type: "plane",
@@ -39,7 +39,15 @@ composition StormSystemsShowcase {
       height: 200.0,
       subdivisions: 64,
     },
-    advanced_pbr: { base_color: [0.3, 0.4, 0.2], metallic: 0.0, roughness: 0.9 },
+    advanced_pbr: {
+      base_color: [0.22, 0.28, 0.16],   // Darkened storm-light grass, not the dry daylight green
+      metallic: 0.0,
+      roughness: 0.6,                    // Rain-slicked blades, lower than a dry-turf 0.9
+      albedo_map: "textures/storm_grass_albedo.png",
+      normal_map: "textures/storm_grass_normal.png",
+      ao_map: "textures/storm_grass_ao.png",
+      wetness: 0.55,                     // Standing water sheen from the thunderstorm's heavy rain
+    },
     transform: { position: [0.0, 0.0, 0.0], rotation: [-90.0, 0.0, 0.0] },
   }
 

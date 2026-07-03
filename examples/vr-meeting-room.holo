@@ -26,6 +26,35 @@ composition "VR Meeting Room" {
     distance: 8
   }
 
+  // ===================
+  // ROOM MATERIALS — wood floor, upholstered chairs, dark table finish
+  // ===================
+
+  material "ConferenceWoodFloor" @advanced_pbr {
+    base_color: "#8B6914"
+    roughness: 0.75
+    metallic: 0.03
+    albedo_map: "textures/oak_floor_albedo.png"
+    normal_map: "textures/oak_floor_normal.png"
+    ao_map: "textures/oak_floor_ao.png"
+  }
+
+  material "ChairUpholstery" @advanced_pbr {
+    base_color: "#34495e"
+    roughness: 0.6
+    metallic: 0.15
+    albedo_map: "textures/chair_fabric_albedo.png"
+    normal_map: "textures/chair_fabric_normal.png"
+  }
+
+  material "TableDarkVeneer" @advanced_pbr {
+    base_color: "#2c3e50"
+    roughness: 0.7
+    metallic: 0.04
+    albedo_map: "textures/dark_veneer_albedo.png"
+    normal_map: "textures/dark_veneer_normal.png"
+  }
+
   // Wood floor
   object "Floor" {
     @collidable
@@ -33,7 +62,7 @@ composition "VR Meeting Room" {
     position: [0, 0, 0]
     scale: [8, 0.08, 6]
     geometry: "cube"
-    material: { baseColor: "#8B6914", roughness: 0.75, metallic: 0.03 }
+    material: "ConferenceWoodFloor"
   }
 
   // ===================
@@ -45,16 +74,23 @@ composition "VR Meeting Room" {
     @sittable
 
     geometry: "cube"
-    material: { baseColor: "#34495e", roughness: 0.6, metallic: 0.15 }
+    material: "ChairUpholstery"
   }
 
   template "LightOrb" {
     @glowing
-    
+
     geometry: "sphere"
     color: "#f0f0f0"
     emissive: "#ffffff"
     emissiveIntensity: 1
+
+    point_light {
+      color: "#ffe4c4"
+      intensity: 1.5
+      range: 6
+      cast_shadows: false
+    }
   }
 
   // ===================
@@ -68,7 +104,7 @@ composition "VR Meeting Room" {
     position: [0, 0.75, 0]
     scale: [3, 0.1, 1.5]
     geometry: "cube"
-    material: { baseColor: "#2c3e50", roughness: 0.7, metallic: 0.04 }
+    material: "TableDarkVeneer"
   }
 
   // Chairs around table

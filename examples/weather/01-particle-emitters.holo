@@ -36,10 +36,18 @@ composition ParticleEmittersShowcase {
     ambient_occlusion { intensity: 0.35, radius: 0.5 }
   }
 
-  // Environment
+  // Environment — wet asphalt catching the rain sheen and snow dust from the emitters above
   entity Ground {
     mesh: { type: "plane", width: 50.0, height: 50.0 },
-    advanced_pbr: { base_color: [0.3, 0.3, 0.3], metallic: 0.0, roughness: 0.9 },
+    advanced_pbr: {
+      base_color: [0.27, 0.27, 0.29],
+      metallic: 0.0,
+      roughness: 0.55,             // Lowered from a dry 0.9 — rain sheen sharpens reflections
+      albedo_map: "textures/wet_asphalt_albedo.png",
+      normal_map: "textures/wet_asphalt_normal.png",
+      ao_map: "textures/wet_asphalt_ao.png",
+      wetness: 0.6,                 // Puddles + sheen from the RainSystem emitter overhead
+    },
     transform: { position: [0.0, 0.0, 0.0], rotation: [-90.0, 0.0, 0.0] },
   }
 

@@ -54,24 +54,40 @@ composition "GhostArcade" {
     range: 8
   }
 
-  object "ArcadeFloor" {
+  object "ArcadeFloor" @advanced_pbr {
     geometry: "plane"
     width: 20
     height: 16
     position: [0, 0, 0]
     rotation: [-90, 0, 0]
-    material: { base_color: "#080810", roughness: 0.7, metallic: 0.05, emissive: "#0a0a20", emissiveIntensity: 0.08 }
+    material: {
+      base_color: "#080810"
+      roughness: 0.7
+      metallic: 0.05
+      emissive: "#0a0a20"
+      emissiveIntensity: 0.08
+      albedo_map: "textures/arcade_carpet_albedo.png"
+      normal_map: "textures/arcade_carpet_normal.png"
+      ao_map: "textures/arcade_carpet_ao.png"
+    }
     @collidable
   }
 
   template "Cabinet" {
     @collidable
     @networked { sync_properties: ["position", "power_state"] }
+    @advanced_pbr
     geometry: "box"
     width: 0.65
     height: 1.8
     depth: 0.75
-    material: { base_color: "#111118", roughness: 0.6, metallic: 0.25 }
+    material: {
+      base_color: "#111118"
+      roughness: 0.6
+      metallic: 0.25
+      albedo_map: "textures/cabinet_wrap_albedo.png"
+      normal_map: "textures/cabinet_wrap_normal.png"
+    }
   }
 
   // Cabinet A — Vector Blitz

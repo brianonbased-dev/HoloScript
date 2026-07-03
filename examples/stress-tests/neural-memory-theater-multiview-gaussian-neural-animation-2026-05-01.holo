@@ -85,11 +85,17 @@ composition "NeuralMemoryTheater" {
   // ----------------------------------------------------------
   // FLOOR — black Marley dance floor, matte
   // ----------------------------------------------------------
-  object "stage_floor" @collidable {
+  object "stage_floor" @collidable @advanced_pbr {
     geometry: "box"
     position: [0, 0, 0]
     scale: [18, 0.08, 14]
-    material: { baseColor: "#0d0d0d", roughness: 0.9, metallic: 0.0 }
+    material: {
+      baseColor: "#0d0d0d"
+      roughness: 0.9
+      metallic: 0.0
+      albedo_map: "textures/marley_floor_albedo.png"
+      normal_map: "textures/marley_floor_normal.png"
+    }
     receiveShadow: true
   }
 
@@ -104,11 +110,17 @@ composition "NeuralMemoryTheater" {
   // ----------------------------------------------------------
   // THEATER WALLS + BACK CURTAIN
   // ----------------------------------------------------------
-  object "back_wall" @collidable {
+  object "back_wall" @collidable @advanced_pbr {
     geometry: "box"
     position: [0, 5, -7.2]
     scale: [18, 10, 0.2]
-    material: { baseColor: "#060608", roughness: 1.0, metallic: 0.0 }
+    material: {
+      baseColor: "#060608"
+      roughness: 1.0
+      metallic: 0.0
+      albedo_map: "textures/black_curtain_albedo.png"
+      normal_map: "textures/black_curtain_normal.png"
+    }
   }
 
   object "side_wall_left" @collidable {
@@ -401,25 +413,25 @@ composition "NeuralMemoryTheater" {
   // ----------------------------------------------------------
   // PROSCENIUM ARCH — frames the stage
   // ----------------------------------------------------------
-  object "arch_left_column" @collidable {
+  object "arch_left_column" @collidable @advanced_pbr {
     geometry: "box"
     position: [-7, 4, 6.5]
     scale: [0.5, 8, 0.4]
-    material: { baseColor: "#1c1c22", roughness: 0.6, metallic: 0.5 }
+    material: { baseColor: "#1c1c22", roughness: 0.6, metallic: 0.5, normal_map: "textures/proscenium_trim_normal.png" }
   }
 
-  object "arch_right_column" @collidable {
+  object "arch_right_column" @collidable @advanced_pbr {
     geometry: "box"
     position: [7, 4, 6.5]
     scale: [0.5, 8, 0.4]
-    material: { baseColor: "#1c1c22", roughness: 0.6, metallic: 0.5 }
+    material: { baseColor: "#1c1c22", roughness: 0.6, metallic: 0.5, normal_map: "textures/proscenium_trim_normal.png" }
   }
 
-  object "arch_header" @collidable {
+  object "arch_header" @collidable @advanced_pbr {
     geometry: "box"
     position: [0, 8.2, 6.5]
     scale: [14.5, 0.5, 0.4]
-    material: { baseColor: "#1c1c22", roughness: 0.6, metallic: 0.5 }
+    material: { baseColor: "#1c1c22", roughness: 0.6, metallic: 0.5, normal_map: "textures/proscenium_trim_normal.png" }
   }
 
   // Arch accent strip — subtle glow band

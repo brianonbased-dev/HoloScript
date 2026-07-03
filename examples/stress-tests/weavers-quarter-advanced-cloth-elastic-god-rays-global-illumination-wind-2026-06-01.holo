@@ -90,18 +90,26 @@ composition "WeaversQuarter" {
     }
   }
 
-  object "PlazaFloor" {
+  object "PlazaFloor" @advanced_pbr {
     geometry: "plane"
     position: [0, 0, 0]
     scale: [30, 30, 1]
     rotation: [-90, 0, 0]
-    material: { baseColor: "#5a4a38", roughness: 0.95, metallic: 0.02 }
+    material: {
+      baseColor: "#5a4a38"
+      roughness: 0.95
+      metallic: 0.02
+      albedo_map: "textures/cobblestone_albedo.png"
+      normal_map: "textures/cobblestone_normal.png"
+      ao_map: "textures/cobblestone_ao.png"
+    }
     @collidable
   }
 
   template "ArchPost" {
+    @advanced_pbr
     geometry: "cylinder"
-    material: { baseColor: "#6e5230", roughness: 0.9, metallic: 0.05 }
+    material: { baseColor: "#6e5230", roughness: 0.9, metallic: 0.05, normal_map: "textures/weathered_timber_normal.png" }
     @collidable
   }
 
@@ -265,8 +273,9 @@ composition "WeaversQuarter" {
   }
 
   template "StallBody" {
+    @advanced_pbr
     geometry: "box"
-    material: { baseColor: "#6e5230", roughness: 0.9, metallic: 0.05 }
+    material: { baseColor: "#6e5230", roughness: 0.9, metallic: 0.05, normal_map: "textures/weathered_timber_normal.png" }
     @collidable
   }
 

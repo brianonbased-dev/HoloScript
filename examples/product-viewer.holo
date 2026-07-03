@@ -33,6 +33,44 @@ composition "Product Viewer" {
   }
 
   // ===================
+  // STUDIO MATERIALS — matte ground, gloss pedestal, brushed product finish
+  // ===================
+
+  material "StudioGroundMatte" @advanced_pbr {
+    base_color: "#e8e8e8"
+    roughness: 0.8
+    metallic: 0.05
+    albedo_map: "textures/studio_ground_albedo.png"
+    normal_map: "textures/studio_ground_normal.png"
+    ao_map: "textures/studio_ground_ao.png"
+  }
+
+  material "PedestalGloss" @advanced_pbr {
+    base_color: "#ffffff"
+    roughness: 0.15
+    metallic: 0.02
+    albedo_map: "textures/pedestal_gloss_albedo.png"
+    normal_map: "textures/pedestal_gloss_normal.png"
+  }
+
+  material "WatchBrushedSteel" @advanced_pbr {
+    base_color: "#c0c0c0"
+    roughness: 0.25
+    metallic: 0.9
+    albedo_map: "textures/brushed_steel_albedo.png"
+    normal_map: "textures/brushed_steel_normal.png"
+    ao_map: "textures/brushed_steel_ao.png"
+  }
+
+  material "PriceCardMatte" @advanced_pbr {
+    base_color: "#ffffff"
+    roughness: 0.5
+    metallic: 0.0
+    albedo_map: "textures/card_matte_albedo.png"
+    normal_map: "textures/card_matte_normal.png"
+  }
+
+  // ===================
   // PRODUCT STATE
   // ===================
   
@@ -64,7 +102,7 @@ composition "Product Viewer" {
     position: [0, 0, 0]
     scale: [8, 0.05, 8]
     geometry: "cube"
-    material: { baseColor: "#e8e8e8", roughness: 0.8, metallic: 0.05 }
+    material: "StudioGroundMatte"
   }
 
   // Display pedestal
@@ -74,18 +112,18 @@ composition "Product Viewer" {
     position: [0, 0.5, 0]
     scale: [1, 1, 1]
     geometry: "cylinder"
-    material: { baseColor: "#ffffff", roughness: 0.15, metallic: 0.02 }
+    material: "PedestalGloss"
   }
 
   // Product model (watch example)
   object "Product" {
     @grabbable
     @animated
-    
+
     position: [0, 1.5, 0]
     scale: [0.5, 0.5, 0.5]
     geometry: "torus"
-    material: { baseColor: "#c0c0c0", roughness: 0.25, metallic: 0.9 }
+    material: "WatchBrushedSteel"
     animate: "spin"
     animSpeed: 0.3
     
@@ -121,19 +159,27 @@ composition "Product Viewer" {
     position: [0, 0.2, 1]
     scale: [0.5, 0.3, 0.02]
     geometry: "cube"
-    material: { baseColor: "#ffffff", roughness: 0.5, metallic: 0.0 }
+    material: "PriceCardMatte"
   }
 
-  // Spotlight effect
+  // Spotlight effect — emissive paired with a real point_light so it actually
+  // casts studio key light onto the product, not just self-glows (Pattern 2).
   object "Spotlight" {
     @glowing
-    
+
     position: [0, 3, 0]
     scale: [0.1, 0.1, 0.1]
     geometry: "sphere"
     color: "#ffffff"
     emissive: "#ffffff"
     emissiveIntensity: 2
+
+    point_light {
+      color: "#ffffff"
+      intensity: 3.0
+      range: 6
+      cast_shadows: true
+    }
   }
 
   // ===================

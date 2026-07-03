@@ -77,7 +77,7 @@ composition "MonsoonAtelier" {
   // ARCHITECTURE — stone floor, plaster walls, beamed ceiling
   // ============================================================
 
-  object "StudioFloor" @collidable {
+  object "StudioFloor" @collidable @advanced_pbr {
     geometry: "plane"
     width: 9
     height: 11
@@ -87,34 +87,35 @@ composition "MonsoonAtelier" {
       roughness: 0.85
       metallic: 0.0
       normalMap: "builtin://stone_floor_normal"
+      aoMap: "builtin://stone_floor_ao"
     }
   }
 
-  object "NorthWall" {
+  object "NorthWall" @advanced_pbr {
     geometry: "plane"
     width: 9
     height: 4
     position: [0, 2, -5.5]
     rotation: [90, 0, 0]
-    material: { baseColor: "#d4c9b4", roughness: 0.92, metallic: 0.0 }
+    material: { baseColor: "#d4c9b4", roughness: 0.92, metallic: 0.0, normalMap: "builtin://plaster_wall_normal" }
   }
 
-  object "EastWall" {
+  object "EastWall" @advanced_pbr {
     geometry: "plane"
     width: 11
     height: 4
     position: [4.5, 2, 0]
     rotation: [90, 0, 90]
-    material: { baseColor: "#cdc2ae", roughness: 0.9, metallic: 0.0 }
+    material: { baseColor: "#cdc2ae", roughness: 0.9, metallic: 0.0, normalMap: "builtin://plaster_wall_normal" }
   }
 
-  object "WestWall" {
+  object "WestWall" @advanced_pbr {
     geometry: "plane"
     width: 11
     height: 4
     position: [-4.5, 2, 0]
     rotation: [90, 0, -90]
-    material: { baseColor: "#cdc2ae", roughness: 0.9, metallic: 0.0 }
+    material: { baseColor: "#cdc2ae", roughness: 0.9, metallic: 0.0, normalMap: "builtin://plaster_wall_normal" }
   }
 
   // South wall = tall windows — rain streams against them from outside.
@@ -153,12 +154,12 @@ composition "MonsoonAtelier" {
   // @stable_diffusion drives the primary never-exercised path.
   // ============================================================
 
-  object "EaselCenter" @collidable {
+  object "EaselCenter" @collidable @advanced_pbr {
     geometry: "mesh"
     mesh_uri: "builtin://easel_wood"
     position: [0, 0, -2]
     scale: [1, 1, 1]
-    material: { baseColor: "#5c3d1e", roughness: 0.8, metallic: 0.0 }
+    material: { baseColor: "#5c3d1e", roughness: 0.8, metallic: 0.0, normalMap: "builtin://easel_wood_normal" }
   }
 
   object "CanvasCenter" @stable_diffusion @glowing {
@@ -189,12 +190,12 @@ composition "MonsoonAtelier" {
   // CANVAS B — left easel: abstract monsoon — ink and wash
   // ============================================================
 
-  object "EaselLeft" @collidable {
+  object "EaselLeft" @collidable @advanced_pbr {
     geometry: "mesh"
     mesh_uri: "builtin://easel_wood"
     position: [-2.8, 0, -1.2]
     rotation: [0, 18, 0]
-    material: { baseColor: "#5c3d1e", roughness: 0.8, metallic: 0.0 }
+    material: { baseColor: "#5c3d1e", roughness: 0.8, metallic: 0.0, normalMap: "builtin://easel_wood_normal" }
   }
 
   object "CanvasLeft" @stable_diffusion @glowing {
@@ -223,12 +224,12 @@ composition "MonsoonAtelier" {
   // CANVAS C — right easel: storm portrait — the absent painter
   // ============================================================
 
-  object "EaselRight" @collidable {
+  object "EaselRight" @collidable @advanced_pbr {
     geometry: "mesh"
     mesh_uri: "builtin://easel_wood"
     position: [2.6, 0, -0.8]
     rotation: [0, -14, 0]
-    material: { baseColor: "#5c3d1e", roughness: 0.8, metallic: 0.0 }
+    material: { baseColor: "#5c3d1e", roughness: 0.8, metallic: 0.0, normalMap: "builtin://easel_wood_normal" }
   }
 
   object "CanvasRight" @stable_diffusion @animated {
@@ -264,13 +265,13 @@ composition "MonsoonAtelier" {
   // ARTIST'S TABLE — palette, rags, brushes
   // ============================================================
 
-  object "PaintingTable" @collidable {
+  object "PaintingTable" @collidable @advanced_pbr {
     geometry: "box"
     width: 1.2
     height: 0.82
     depth: 0.6
     position: [1.8, 0.41, 1.5]
-    material: { baseColor: "#6b4a2a", roughness: 0.75, metallic: 0.0 }
+    material: { baseColor: "#6b4a2a", roughness: 0.75, metallic: 0.0, normalMap: "builtin://wood_table_normal" }
   }
 
   object "Palette" @glowing {

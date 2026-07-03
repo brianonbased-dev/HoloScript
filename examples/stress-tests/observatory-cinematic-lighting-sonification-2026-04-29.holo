@@ -112,12 +112,18 @@ composition "AsteroidObservatory" {
   // ----------------------------------------------------------
   // DOME STRUCTURE
   // ----------------------------------------------------------
-  object "dome_shell" @collidable {
+  object "dome_shell" @collidable @advanced_pbr {
     geometry: "sphere"
     position: [0, 5, 0]
     scale: [10, 5.5, 10]
     color: "#1c1c28"
-    material: { baseColor: "#1c1c28", roughness: 0.7, metallic: 0.6 }
+    material: {
+      baseColor: "#1c1c28"
+      roughness: 0.7
+      metallic: 0.6
+      normal_map: "textures/dome_panel_normal.png"
+      ao_map: "textures/dome_panel_ao.png"
+    }
     interior_faces: true
   }
 
@@ -161,11 +167,18 @@ composition "AsteroidObservatory" {
   // ----------------------------------------------------------
   // FLOOR — asteroid rock
   // ----------------------------------------------------------
-  object "floor" @collidable {
+  object "floor" @collidable @advanced_pbr {
     geometry: "box"
     position: [0, 0, 0]
     scale: [22, 0.25, 22]
-    material: { baseColor: "#2c2420", roughness: 0.98, metallic: 0.01 }
+    material: {
+      baseColor: "#2c2420"
+      roughness: 0.98
+      metallic: 0.01
+      albedo_map: "textures/asteroid_rock_albedo.png"
+      normal_map: "textures/asteroid_rock_normal.png"
+      ao_map: "textures/asteroid_rock_ao.png"
+    }
   }
 
   object "floor_center_ring" {
@@ -248,18 +261,18 @@ composition "AsteroidObservatory" {
   // ----------------------------------------------------------
   // CONTROL CONSOLE
   // ----------------------------------------------------------
-  object "console_body" @collidable {
+  object "console_body" @collidable @advanced_pbr {
     geometry: "box"
     position: [-2.5, 0.9, -1.8]
     scale: [1.8, 0.9, 0.7]
-    material: { baseColor: "#1e1e2c", roughness: 0.55, metallic: 0.6 }
+    material: { baseColor: "#1e1e2c", roughness: 0.55, metallic: 0.6, normal_map: "textures/console_housing_normal.png" }
   }
 
-  object "console_surface" @collidable {
+  object "console_surface" @collidable @advanced_pbr {
     geometry: "box"
     position: [-2.5, 1.38, -1.8]
     scale: [1.75, 0.06, 0.65]
-    material: { baseColor: "#252535", roughness: 0.4, metallic: 0.7 }
+    material: { baseColor: "#252535", roughness: 0.4, metallic: 0.7, normal_map: "textures/console_panel_normal.png" }
   }
 
   // Status LEDs on the console

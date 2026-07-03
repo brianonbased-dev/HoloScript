@@ -29,6 +29,79 @@ composition "Multiplayer Meeting Room" {
   }
 
   // ----------------------------------------------------------
+  // MATERIALS
+  // ----------------------------------------------------------
+  // Named @advanced_pbr materials for the room shell, furniture,
+  // and networked props. The biophilic corner (planters, Monstera
+  // stems/leaves below) already carries its own inline material
+  // blocks and is left untouched.
+
+  material "ChairLeather" @advanced_pbr {
+    base_color: "#2c3e50"
+    roughness: 0.35
+    metallic: 0.0
+    albedo_map: "textures/leather_albedo.png"
+    normal_map: "textures/leather_normal.png"
+  }
+
+  material "CarpetTile" @advanced_pbr {
+    base_color: "#34495e"
+    roughness: 0.92
+    metallic: 0.0
+    albedo_map: "textures/carpet_tile_albedo.png"
+    normal_map: "textures/carpet_tile_normal.png"
+  }
+
+  material "OfficeDrywall" @advanced_pbr {
+    base_color: "#bdc3c7"
+    roughness: 0.85
+    metallic: 0.0
+    albedo_map: "textures/drywall_albedo.png"
+    normal_map: "textures/drywall_normal.png"
+  }
+
+  material "TableWood" @advanced_pbr {
+    base_color: "#5d4037"
+    roughness: 0.4
+    metallic: 0.0
+    albedo_map: "textures/walnut_albedo.png"
+    normal_map: "textures/walnut_normal.png"
+  }
+
+  material "TableLegWood" @advanced_pbr {
+    base_color: "#4e342e"
+    roughness: 0.45
+    metallic: 0.0
+    albedo_map: "textures/walnut_albedo.png"
+    normal_map: "textures/walnut_normal.png"
+  }
+
+  material "WhiteboardMatte" @advanced_pbr {
+    base_color: "#ffffff"
+    roughness: 0.65
+    metallic: 0.0
+  }
+
+  material "BrushedSteel" @advanced_pbr {
+    base_color: "#7f8c8d"
+    roughness: 0.3
+    metallic: 0.85
+    normal_map: "textures/brushed_steel_normal.png"
+  }
+
+  material "PaperMatte" @advanced_pbr {
+    base_color: "#f1c40f"
+    roughness: 0.8
+    metallic: 0.0
+  }
+
+  material "CeramicGlossy" @advanced_pbr {
+    base_color: "#ecf0f1"
+    roughness: 0.12
+    metallic: 0.0
+  }
+
+  // ----------------------------------------------------------
   // TEMPLATES
   // ----------------------------------------------------------
 
@@ -39,7 +112,7 @@ composition "Multiplayer Meeting Room" {
 
     geometry: "cube"
     color: "#2c3e50"
-    material: "leather"
+    material: "ChairLeather"
   }
 
   template "AvatarSpawn" {
@@ -68,7 +141,7 @@ composition "Multiplayer Meeting Room" {
     position: [0, -0.05, 0]
     scale: [10, 0.1, 8]
     color: "#34495e"
-    material: "carpet"
+    material: "CarpetTile"
   }
 
   // Ceiling with recessed lighting look
@@ -85,7 +158,7 @@ composition "Multiplayer Meeting Room" {
     position: [0, 1.6, -4]
     scale: [10, 3.2, 0.12]
     color: "#bdc3c7"
-    material: "drywall"
+    material: "OfficeDrywall"
   }
 
   object "WallSouth" @collidable {
@@ -93,7 +166,7 @@ composition "Multiplayer Meeting Room" {
     position: [0, 1.6, 4]
     scale: [10, 3.2, 0.12]
     color: "#bdc3c7"
-    material: "drywall"
+    material: "OfficeDrywall"
   }
 
   object "WallWest" @collidable {
@@ -101,7 +174,7 @@ composition "Multiplayer Meeting Room" {
     position: [-5, 1.6, 0]
     scale: [0.12, 3.2, 8]
     color: "#bdc3c7"
-    material: "drywall"
+    material: "OfficeDrywall"
   }
 
   object "WallEast" @collidable {
@@ -109,7 +182,7 @@ composition "Multiplayer Meeting Room" {
     position: [5, 1.6, 0]
     scale: [0.12, 3.2, 8]
     color: "#bdc3c7"
-    material: "drywall"
+    material: "OfficeDrywall"
   }
 
   // ----------------------------------------------------------
@@ -123,7 +196,7 @@ composition "Multiplayer Meeting Room" {
     position: [0, 0.72, 0]
     scale: [3.5, 0.08, 1.6]
     color: "#5d4037"
-    material: "wood"
+    material: "TableWood"
   }
 
   // Table legs
@@ -132,7 +205,7 @@ composition "Multiplayer Meeting Room" {
     position: [-1.6, 0.34, 0.7]
     scale: [0.08, 0.68, 0.08]
     color: "#4e342e"
-    material: "wood"
+    material: "TableLegWood"
   }
 
   object "TableLeg_FR" @collidable {
@@ -140,7 +213,7 @@ composition "Multiplayer Meeting Room" {
     position: [1.6, 0.34, 0.7]
     scale: [0.08, 0.68, 0.08]
     color: "#4e342e"
-    material: "wood"
+    material: "TableLegWood"
   }
 
   object "TableLeg_BL" @collidable {
@@ -148,7 +221,7 @@ composition "Multiplayer Meeting Room" {
     position: [-1.6, 0.34, -0.7]
     scale: [0.08, 0.68, 0.08]
     color: "#4e342e"
-    material: "wood"
+    material: "TableLegWood"
   }
 
   object "TableLeg_BR" @collidable {
@@ -156,7 +229,7 @@ composition "Multiplayer Meeting Room" {
     position: [1.6, 0.34, -0.7]
     scale: [0.08, 0.68, 0.08]
     color: "#4e342e"
-    material: "wood"
+    material: "TableLegWood"
   }
 
   // ----------------------------------------------------------
@@ -215,7 +288,7 @@ composition "Multiplayer Meeting Room" {
     position: [0, 1.9, -3.88]
     scale: [3.0, 1.6, 0.06]
     color: "#ffffff"
-    material: "matte"
+    material: "WhiteboardMatte"
 
     state {
       drawing_active: false
@@ -238,7 +311,7 @@ composition "Multiplayer Meeting Room" {
     position: [0, 1.9, -3.90]
     scale: [3.15, 1.75, 0.04]
     color: "#7f8c8d"
-    material: "metal"
+    material: "BrushedSteel"
   }
 
   // Whiteboard marker tray
@@ -247,7 +320,7 @@ composition "Multiplayer Meeting Room" {
     position: [0, 1.0, -3.82]
     scale: [1.5, 0.04, 0.1]
     color: "#95a5a6"
-    material: "metal"
+    material: "BrushedSteel"
   }
 
   // Colored markers on the tray -- clickable to change draw color
@@ -335,7 +408,7 @@ composition "Multiplayer Meeting Room" {
     position: [4.90, 1.8, 0]
     scale: [0.04, 1.65, 2.65]
     color: "#2c3e50"
-    material: "metal"
+    material: "BrushedSteel"
   }
 
   // ----------------------------------------------------------
@@ -435,7 +508,7 @@ composition "Multiplayer Meeting Room" {
     position: [-0.5, 0.8, 0.3]
     scale: [0.25, 0.02, 0.35]
     color: "#f1c40f"
-    material: "paper"
+    material: "PaperMatte"
 
     on_click() {
       trigger "open_notepad"
@@ -448,7 +521,7 @@ composition "Multiplayer Meeting Room" {
     position: [0.8, 0.82, -0.4]
     scale: [0.05, 0.1, 0.05]
     color: "#ecf0f1"
-    material: "ceramic"
+    material: "CeramicGlossy"
   }
 
   // Pointer stick -- for gesturing at the whiteboard
@@ -458,7 +531,7 @@ composition "Multiplayer Meeting Room" {
     scale: [0.015, 0.4, 0.015]
     rotation: [0, 0, 90]
     color: "#e74c3c"
-    material: "metal"
+    material: "BrushedSteel"
   }
 
   // ----------------------------------------------------------

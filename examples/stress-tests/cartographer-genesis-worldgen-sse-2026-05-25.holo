@@ -124,6 +124,8 @@ composition "CartographersTable" {
       baseColor: "#0c0c14"
       metallic: 0.4
       roughness: 0.88
+      normalMap: "textures/obsidian_chamber_wall_normal.png"
+      tiling: [8.0, 4.0]
     }
     face: "interior"
   }
@@ -136,6 +138,7 @@ composition "CartographersTable" {
       baseColor: "#1a1a2c"
       metallic: 0.85
       roughness: 0.22
+      normalMap: "textures/hexagonal_table_base_normal.png"
     }
     @collidable { friction: 0.9 }
     castShadow: true

@@ -37,6 +37,98 @@ composition "VR Target Practice" {
     tone_mapping: { enabled: true, type: "aces" }
   }
 
+  // ── Materials ──────────────────────────────────────────────────────────────
+  // Named @advanced_pbr materials for the arena shell, targets,
+  // weapons, and cover props.
+
+  material "RubberMat" @advanced_pbr {
+    base_color: "#2f4f4f"
+    roughness: 0.9
+    metallic: 0.0
+    albedo_map: "textures/rubber_mat_albedo.png"
+    normal_map: "textures/rubber_mat_normal.png"
+  }
+
+  material "IndustrialCeiling" @advanced_pbr {
+    base_color: "#1a1a2e"
+    roughness: 0.6
+    metallic: 0.4
+    normal_map: "textures/industrial_panel_normal.png"
+  }
+
+  material "PaddedWall" @advanced_pbr {
+    base_color: "#333355"
+    roughness: 0.8
+    metallic: 0.0
+    albedo_map: "textures/padded_wall_albedo.png"
+    normal_map: "textures/padded_wall_normal.png"
+  }
+
+  material "PaintedMetalTarget" @advanced_pbr {
+    base_color: "#ff0000"
+    roughness: 0.35
+    metallic: 0.7
+    normal_map: "textures/painted_metal_normal.png"
+  }
+
+  material "Gunmetal" @advanced_pbr {
+    base_color: "#808080"
+    roughness: 0.3
+    metallic: 0.95
+    normal_map: "textures/gunmetal_normal.png"
+  }
+
+  material "PolymerGrip" @advanced_pbr {
+    base_color: "#556677"
+    roughness: 0.4
+    metallic: 0.1
+  }
+
+  material "WoodCrate" @advanced_pbr {
+    base_color: "#8b4513"
+    roughness: 0.75
+    metallic: 0.0
+    albedo_map: "textures/wood_crate_albedo.png"
+    normal_map: "textures/wood_crate_normal.png"
+  }
+
+  material "MetalCrate" @advanced_pbr {
+    base_color: "#8b4513"
+    roughness: 0.5
+    metallic: 0.6
+    normal_map: "textures/metal_crate_normal.png"
+  }
+
+  material "ConcreteBlock" @advanced_pbr {
+    base_color: "#696969"
+    roughness: 0.95
+    metallic: 0.0
+    albedo_map: "textures/concrete_albedo.png"
+    normal_map: "textures/concrete_normal.png"
+    ao_map: "textures/concrete_ao.png"
+  }
+
+  material "SandBag" @advanced_pbr {
+    base_color: "#7a6533"
+    roughness: 0.98
+    metallic: 0.0
+    albedo_map: "textures/sandbag_albedo.png"
+    normal_map: "textures/sandbag_normal.png"
+  }
+
+  material "Steel" @advanced_pbr {
+    base_color: "#555555"
+    roughness: 0.25
+    metallic: 0.9
+    normal_map: "textures/steel_normal.png"
+  }
+
+  material "PlasticBarrier" @advanced_pbr {
+    base_color: "#ff6600"
+    roughness: 0.4
+    metallic: 0.0
+  }
+
   // ── Arena Environment ─────────────────────────────────────────────────────
 
   object "ArenaFloor" {
@@ -45,7 +137,7 @@ composition "VR Target Practice" {
     position: [0, 0, 0]
     scale: [20, 1, 20]
     color: "#2f4f4f"
-    material: "rubber_mat"
+    material: "RubberMat"
     receiveShadows: true
   }
 
@@ -55,7 +147,7 @@ composition "VR Target Practice" {
     rotation: [180, 0, 0]
     scale: [20, 1, 20]
     color: "#1a1a2e"
-    material: "industrial_ceiling"
+    material: "IndustrialCeiling"
   }
 
   object "ArenaWallNorth" {
@@ -64,7 +156,7 @@ composition "VR Target Practice" {
     position: [0, 3, -10]
     scale: [20, 6, 0.2]
     color: "#333355"
-    material: "padded_wall"
+    material: "PaddedWall"
   }
 
   object "ArenaWallSouth" {
@@ -73,7 +165,7 @@ composition "VR Target Practice" {
     position: [0, 3, 10]
     scale: [20, 6, 0.2]
     color: "#333355"
-    material: "padded_wall"
+    material: "PaddedWall"
   }
 
   object "ArenaWallEast" {
@@ -83,7 +175,7 @@ composition "VR Target Practice" {
     rotation: [0, 90, 0]
     scale: [20, 6, 0.2]
     color: "#333355"
-    material: "padded_wall"
+    material: "PaddedWall"
   }
 
   object "ArenaWallWest" {
@@ -93,7 +185,7 @@ composition "VR Target Practice" {
     rotation: [0, 90, 0]
     scale: [20, 6, 0.2]
     color: "#333355"
-    material: "padded_wall"
+    material: "PaddedWall"
   }
 
   // Ambient floor glow
@@ -115,7 +207,7 @@ composition "VR Target Practice" {
     position: [-3, 1.5, -5]
     scale: 0.5
     color: "#ff0000"
-    material: "painted_metal"
+    material: "PaintedMetalTarget"
     behavior "TargetBehavior" {
       pointValue: 100
       respawnDelay: 2.0
@@ -132,7 +224,7 @@ composition "VR Target Practice" {
     position: [0, 2, -6]
     scale: 0.5
     color: "#ff0000"
-    material: "painted_metal"
+    material: "PaintedMetalTarget"
     behavior "TargetBehavior" {
       pointValue: 100
       respawnDelay: 2.0
@@ -146,7 +238,7 @@ composition "VR Target Practice" {
     position: [3, 1.5, -5]
     scale: 0.5
     color: "#ff0000"
-    material: "painted_metal"
+    material: "PaintedMetalTarget"
     behavior "TargetBehavior" {
       pointValue: 100
       respawnDelay: 2.0
@@ -160,7 +252,7 @@ composition "VR Target Practice" {
     position: [-5, 3, -7]
     scale: 0.4
     color: "#ff6600"
-    material: "painted_metal"
+    material: "PaintedMetalTarget"
     behavior "TargetBehavior" {
       pointValue: 150
       respawnDelay: 1.5
@@ -175,7 +267,7 @@ composition "VR Target Practice" {
     position: [5, 3, -7]
     scale: 0.4
     color: "#ff6600"
-    material: "painted_metal"
+    material: "PaintedMetalTarget"
     behavior "TargetBehavior" {
       pointValue: 150
       respawnDelay: 1.5
@@ -191,7 +283,7 @@ composition "VR Target Practice" {
     position: [0, 4, -8]
     scale: 0.35
     color: "#ffff00"
-    material: "painted_metal"
+    material: "PaintedMetalTarget"
     emissionIntensity: 0.5
     behavior "TargetBehavior" {
       pointValue: 500
@@ -241,7 +333,7 @@ composition "VR Target Practice" {
     position: [0, 1, -2]
     scale: [0.3, 0.2, 0.6]
     color: "#808080"
-    material: "gunmetal"
+    material: "Gunmetal"
     behavior "WeaponController" {
       type: 'pistol'
       damage: 50
@@ -261,7 +353,7 @@ composition "VR Target Practice" {
     position: [-3, 1, -2]
     scale: [0.25, 0.18, 0.8]
     color: "#556677"
-    material: "polymer"
+    material: "PolymerGrip"
     behavior "WeaponController" {
       type: 'rifle'
       damage: 80
@@ -279,7 +371,7 @@ composition "VR Target Practice" {
     position: [2, 0.5, -2]
     scale: 0.4
     color: "#8b4513"
-    material: "wood_crate"
+    material: "WoodCrate"
     behavior "AmmoSupply" {
       ammoType: 'universal'
       ammoCount: 30
@@ -295,7 +387,7 @@ composition "VR Target Practice" {
     position: [3, 0.5, -2]
     scale: 0.4
     color: "#8b4513"
-    material: "metal_crate"
+    material: "MetalCrate"
     behavior "AmmoSupply" {
       ammoCount: 30
       respawnDelay: 15.0
@@ -327,7 +419,7 @@ composition "VR Target Practice" {
     position: [-6, 1, -4]
     scale: [2, 2, 0.3]
     color: "#696969"
-    material: "concrete_block"
+    material: "ConcreteBlock"
   }
 
   object "CoverWall2" {
@@ -336,7 +428,7 @@ composition "VR Target Practice" {
     position: [6, 1, -4]
     scale: [2, 2, 0.3]
     color: "#696969"
-    material: "concrete_block"
+    material: "ConcreteBlock"
   }
 
   object "CoverBox1" {
@@ -345,7 +437,7 @@ composition "VR Target Practice" {
     position: [-3, 0.4, -3]
     scale: [0.8, 0.8, 0.8]
     color: "#7a6533"
-    material: "sand_bag"
+    material: "SandBag"
   }
 
   object "CoverBox2" {
@@ -354,7 +446,7 @@ composition "VR Target Practice" {
     position: [3, 0.4, -3]
     scale: [0.8, 0.8, 0.8]
     color: "#7a6533"
-    material: "sand_bag"
+    material: "SandBag"
   }
 
   object "CoverPillar1" {
@@ -363,7 +455,7 @@ composition "VR Target Practice" {
     position: [-4, 1.5, -6]
     scale: [0.3, 3, 0.3]
     color: "#555555"
-    material: "steel"
+    material: "Steel"
   }
 
   object "CoverPillar2" {
@@ -372,7 +464,7 @@ composition "VR Target Practice" {
     position: [4, 1.5, -6]
     scale: [0.3, 3, 0.3]
     color: "#555555"
-    material: "steel"
+    material: "Steel"
   }
 
   object "Barrier" {
@@ -382,7 +474,7 @@ composition "VR Target Practice" {
     rotation: [0, 45, 0]
     scale: [5, 1, 0.2]
     color: "#ff6600"
-    material: "plastic_barrier"
+    material: "PlasticBarrier"
   }
 
   // ── Scoring & HUD ─────────────────────────────────────────────────────────

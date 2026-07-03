@@ -36,9 +36,17 @@ composition AtmosphericEventsShowcase {
     transform: { position: [0.0, 0.0, 0.0] },
   }
 
+  // Night-ground — cold rocky terrain lit only by starlight and the aurora curtains overhead
   entity Ground {
     mesh: { type: "plane", width: 200.0, height: 200.0 },
-    advanced_pbr: { base_color: [0.1, 0.12, 0.15], metallic: 0.0, roughness: 0.9 },
+    advanced_pbr: {
+      base_color: [0.09, 0.1, 0.13],
+      metallic: 0.0,
+      roughness: 0.85,                  // Dry cold rock, near-matte under the night sky
+      albedo_map: "textures/night_rock_albedo.png",
+      normal_map: "textures/night_rock_normal.png",
+      ao_map: "textures/night_rock_ao.png",
+    },
     transform: { position: [0.0, 0.0, 0.0], rotation: [-90.0, 0.0, 0.0] },
   }
 

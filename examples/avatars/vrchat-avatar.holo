@@ -373,6 +373,7 @@ composition "VRChatAvatar" {
     position: [2, 0.25, 0]
     scale: [0.5, 0.5, 0.5]
     color: "#4a4a6a"
+    material: "StationSeat"
   }
 
   // ─── Performance Stats Display ──────────────────────────────────────────────
@@ -396,18 +397,27 @@ composition "VRChatAvatar" {
 
   // ─── Avatar Platform ─────────────────────────────────────────────────────────
 
+  material "PlatformBrushedMetal" @advanced_pbr {
+    base_color: "#2a2a4a"
+    roughness: 0.4
+    metallic: 0.6
+    // Rim glow reads as the platform's active/selected state
+    emission_color: "#0088ff"
+    emission_intensity: 0.2
+  }
+
+  material "StationSeat" @advanced_pbr {
+    base_color: "#4a4a6a"
+    roughness: 0.55
+    metallic: 0.1
+  }
+
   object "Platform" {
     geometry: "cylinder"
     position: [0, 0, 0]
     scale: [1.2, 0.08, 1.2]
     color: "#2a2a4a"
-
-    material: {
-      metalness: 0.6
-      roughness: 0.4
-      emissive: "#0088ff"
-      emissiveIntensity: 0.2
-    }
+    material: "PlatformBrushedMetal"
   }
 
   // ─── Lighting ────────────────────────────────────────────────────────────────

@@ -34,18 +34,29 @@ composition "Procedural Fashion Holographic Mesh" {
     color: "#00d6ff"
   }
 
-  object "Runway" {
+  object "Runway" @advanced_pbr {
     geometry: "cube"
     position: [0, -0.05, 0]
     scale: [6, 0.1, 9]
-    material: { baseColor: "#10182a", roughness: 0.72, metallic: 0.1 }
+    material: {
+      baseColor: "#10182a"
+      roughness: 0.72
+      metallic: 0.1
+      albedo_map: "textures/runway_gloss_albedo.png"
+      normal_map: "textures/runway_gloss_normal.png"
+    }
   }
 
-  object "Mannequin" {
+  object "Mannequin" @advanced_pbr {
     geometry: "capsule"
     position: [0, 1.1, 0]
     scale: [0.48, 1.9, 0.32]
-    material: { baseColor: "#d8dce8", roughness: 0.38, metallic: 0.0 }
+    material: {
+      baseColor: "#d8dce8"
+      roughness: 0.38
+      metallic: 0.0
+      normal_map: "textures/mannequin_composite_normal.png"
+    }
   }
 
   object "HolographicDressBodice" {

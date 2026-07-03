@@ -171,6 +171,8 @@ composition "AlpineObservatoryMidnight" {
     roughness: 0.88
     metalness: 0.0
     color: "#8a8070"
+    normal_map: "textures/limestone_block_normal.png"
+    ao_map: "textures/limestone_block_ao.png"
 
     @collidable
   }
@@ -242,6 +244,7 @@ composition "AlpineObservatoryMidnight" {
     color: "#111111"
     metalness: 0.2
     roughness: 0.6
+    normal_map: "textures/carbon_fibre_weave_normal.png"
 
     @collidable
   }
@@ -297,6 +300,9 @@ composition "AlpineObservatoryMidnight" {
     height: 0.7
     material: "brushed_metal"
     color: "#2a2a2a"
+    metalness: 0.75
+    roughness: 0.35
+    normal_map: "textures/brushed_metal_normal.png"
 
     @collidable
     @glowing(
@@ -403,6 +409,9 @@ composition "AlpineObservatoryMidnight" {
     roughness: 0.94
     metalness: 0.0
     color: "#555048"
+    normal_map: "textures/concrete_worn_normal.png"
+    ao_map: "textures/concrete_worn_ao.png"
+    tiling: [4.0, 4.0]
 
     @collidable
   }

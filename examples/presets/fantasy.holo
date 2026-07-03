@@ -15,13 +15,25 @@ light "MoonLight" { type: "directional", position: [-3, 8, 5], intensity: 0.7, c
 light "MagicGlow" { type: "point", position: [0, 2, -3], intensity: 300, color: "#ff66cc" }
 light "FireLight" { type: "point", position: [3, 1, -1], intensity: 200, color: "#ff9944" }
 
+// --- Materials ---
+material "GroveFloor" @advanced_pbr {
+  base_color: "#3d2b1f"
+  roughness: 0.88
+  metallic: 0.05
+  albedo_map: "textures/grove_floor_albedo.png"
+  normal_map: "textures/grove_floor_normal.png"
+  ao_map: "textures/grove_floor_ao.png"
+  // Damp moss and leaf litter under moonlight
+  wetness: 0.2
+}
+
 // --- Ground ---
 object "Ground" {
   @collidable
   geometry: "plane"
   position: [0, 0, 0]
   scale: [30, 1, 30]
-  material: { baseColor: "#3d2b1f", roughness: 0.88, metallic: 0.05 }
+  material: "GroveFloor"
 }
 
 // --- Post-Processing ---

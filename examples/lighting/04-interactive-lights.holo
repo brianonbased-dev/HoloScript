@@ -73,11 +73,14 @@ composition InteractiveLightsShowcase {
     },
   }
 
-  // Visual indicator
+  // Visual indicator — glossy glass bulb envelope so the flicker reads as a
+  // real light-bulb glow (tight specular highlight) rather than a flat disc.
   entity FlickerBulb {
     mesh: { type: "sphere", radius: 0.1, segments: 16 },
     advanced_pbr: {
       base_color: [0.0, 0.0, 0.0],
+      metallic: 0.0,
+      roughness: 0.08,
       emissive_color: [0.9, 0.95, 1.0],
       emissive_intensity: 2.0,
     },

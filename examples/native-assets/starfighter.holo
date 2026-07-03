@@ -16,64 +16,86 @@ composition "Starfighter" {
     ambient_occlusion { intensity: 0.3, radius: 0.4 }
   }
 
+  // ── Shared Materials ──────────────────────────────────────────────────────
+  // Hull is a graduated brushed-metal system (nose darkest/roughest at the
+  // leading edge, hull panels progressively smoother) instead of copy-pasted
+  // metalness/roughness pairs per part (smell list §4).
+  template "HullDark" {
+    material: { metalness: 0.85, roughness: 0.15 }
+  }
+  template "HullPanel" {
+    material: { metalness: 0.78, roughness: 0.2 }
+  }
+  template "GunmetalTrim" {
+    material: { metalness: 0.95, roughness: 0.08 }
+  }
+  template "CanopyGlass" {
+    material: { metalness: 0.2, roughness: 0.0, opacity: 0.7 }
+  }
+  template "NavRed" {
+    material: { emissive: "#ff0000", emissiveIntensity: 3.0 }
+  }
+  template "NavGreen" {
+    material: { emissive: "#00ff00", emissiveIntensity: 3.0 }
+  }
+  template "ThrustBlue" {
+    material: { emissive: "#00aaff", emissiveIntensity: 5.0, opacity: 0.6 }
+  }
+  template "ThrustCore" {
+    material: { emissive: "#ffffff", emissiveIntensity: 8.0, opacity: 0.8 }
+  }
+
   object "Ship" @physics @animation {
     position: [0, 0, 0]
 
     // ── Fuselage ──────────────────────────────────────────────────────────
-    object "NoseCone" {
+    object "NoseCone" using "HullDark" {
       geometry: "cone"
       position: [0, 0, 3.5]
       rotation: [90, 0, 0]
       scale: [0.35, 1.5, 0.25]
       color: "#303540"
-      material: { metalness: 0.85, roughness: 0.15 }
     }
-    object "ForwardFuselage" {
+    object "ForwardFuselage" using "HullPanel" {
       geometry: "cylinder"
       position: [0, 0, 2.0]
       rotation: [90, 0, 0]
       scale: [0.4, 1.5, 0.3]
       color: "#353a45"
-      material: { metalness: 0.8, roughness: 0.2 }
     }
-    object "MainBody" {
+    object "MainBody" using "HullPanel" {
       geometry: "cube"
       position: [0, 0, 0]
       scale: [1.0, 0.5, 3.0]
       color: "#404550"
-      material: { metalness: 0.75, roughness: 0.2 }
     }
-    object "RearFuselage" {
+    object "RearFuselage" using "HullPanel" {
       geometry: "cube"
       position: [0, 0, -2.0]
       scale: [0.8, 0.45, 1.5]
       color: "#383d48"
-      material: { metalness: 0.8, roughness: 0.2 }
     }
 
     // ── Cockpit ───────────────────────────────────────────────────────────
-    object "CockpitCanopy" {
+    object "CockpitCanopy" using "CanopyGlass" {
       geometry: "sphere"
       position: [0, 0.35, 1.5]
       scale: [0.35, 0.25, 0.6]
       color: "#3388cc"
-      material: { metalness: 0.2, roughness: 0.0, opacity: 0.7 }
     }
-    object "CockpitFrame" {
+    object "CockpitFrame" using "GunmetalTrim" {
       geometry: "cube"
       position: [0, 0.28, 1.5]
       scale: [0.38, 0.04, 0.65]
       color: "#2a2e35"
-      material: { metalness: 0.9 }
     }
 
     // ── Wings ─────────────────────────────────────────────────────────────
-    object "LeftWing" {
+    object "LeftWing" using "HullPanel" {
       geometry: "cube"
       position: [-2.5, -0.05, -0.3]
       scale: [4.0, 0.08, 1.5]
       color: "#404550"
-      material: { metalness: 0.75, roughness: 0.2 }
 
       object "LeftWingtip" {
         geometry: "cube"
@@ -81,20 +103,18 @@ composition "Starfighter" {
         scale: [0.4, 0.06, 0.8]
         color: "#353a45"
       }
-      object "LeftNavLight" {
+      object "LeftNavLight" using "NavRed" {
         geometry: "sphere"
         position: [-2.1, 0.05, -0.6]
         scale: [0.08, 0.08, 0.08]
         color: "#ff0000"
-        material: { emissive: "#ff0000", emissiveIntensity: 3.0 }
       }
     }
-    object "RightWing" {
+    object "RightWing" using "HullPanel" {
       geometry: "cube"
       position: [2.5, -0.05, -0.3]
       scale: [4.0, 0.08, 1.5]
       color: "#404550"
-      material: { metalness: 0.75, roughness: 0.2 }
 
       object "RightWingtip" {
         geometry: "cube"
@@ -102,23 +122,21 @@ composition "Starfighter" {
         scale: [0.4, 0.06, 0.8]
         color: "#353a45"
       }
-      object "RightNavLight" {
+      object "RightNavLight" using "NavGreen" {
         geometry: "sphere"
         position: [2.1, 0.05, -0.6]
         scale: [0.08, 0.08, 0.08]
         color: "#00ff00"
-        material: { emissive: "#00ff00", emissiveIntensity: 3.0 }
       }
     }
 
     // ── Engines ────────────────────────────────────────────────────────────
-    object "LeftEngine" {
+    object "LeftEngine" using "GunmetalTrim" {
       geometry: "cylinder"
       position: [-0.6, -0.1, -2.8]
       rotation: [90, 0, 0]
       scale: [0.3, 1.2, 0.3]
       color: "#2a2e35"
-      material: { metalness: 0.9, roughness: 0.1 }
 
       object "LeftNozzle" {
         geometry: "cylinder"
@@ -127,28 +145,36 @@ composition "Starfighter" {
         color: "#222222"
         material: { metalness: 0.95 }
       }
-      object "LeftThrust" {
+      object "LeftThrust" using "ThrustBlue" {
         geometry: "cone"
         position: [0, -0.9, 0]
         scale: [0.8, 1.2, 0.8]
         color: "#00aaff"
-        material: { emissive: "#00aaff", emissiveIntensity: 5.0, opacity: 0.6 }
       }
-      object "LeftThrustCore" {
+      object "LeftThrustCore" using "ThrustCore" {
         geometry: "sphere"
         position: [0, -0.7, 0]
         scale: [0.3, 0.3, 0.3]
         color: "#ffffff"
-        material: { emissive: "#ffffff", emissiveIntensity: 8.0, opacity: 0.8 }
+
+        // Pairs the thrust glow with a real light so the engine actually
+        // illuminates the rear fuselage/wings instead of only self-glowing
+        // (smell list §4: emissive with no paired light).
+        point_light "LeftThrustGlow" {
+          color: "#66ccff"
+          intensity: 1.8
+          position: [0, 0, 0]
+          distance: 6
+          decay: 2
+        }
       }
     }
-    object "RightEngine" {
+    object "RightEngine" using "GunmetalTrim" {
       geometry: "cylinder"
       position: [0.6, -0.1, -2.8]
       rotation: [90, 0, 0]
       scale: [0.3, 1.2, 0.3]
       color: "#2a2e35"
-      material: { metalness: 0.9, roughness: 0.1 }
 
       object "RightNozzle" {
         geometry: "cylinder"
@@ -157,29 +183,34 @@ composition "Starfighter" {
         color: "#222222"
         material: { metalness: 0.95 }
       }
-      object "RightThrust" {
+      object "RightThrust" using "ThrustBlue" {
         geometry: "cone"
         position: [0, -0.9, 0]
         scale: [0.8, 1.2, 0.8]
         color: "#00aaff"
-        material: { emissive: "#00aaff", emissiveIntensity: 5.0, opacity: 0.6 }
       }
-      object "RightThrustCore" {
+      object "RightThrustCore" using "ThrustCore" {
         geometry: "sphere"
         position: [0, -0.7, 0]
         scale: [0.3, 0.3, 0.3]
         color: "#ffffff"
-        material: { emissive: "#ffffff", emissiveIntensity: 8.0, opacity: 0.8 }
+
+        point_light "RightThrustGlow" {
+          color: "#66ccff"
+          intensity: 1.8
+          position: [0, 0, 0]
+          distance: 6
+          decay: 2
+        }
       }
     }
 
     // ── Tail Fin ──────────────────────────────────────────────────────────
-    object "TailFin" {
+    object "TailFin" using "HullPanel" {
       geometry: "cube"
       position: [0, 0.7, -2.5]
       scale: [0.06, 1.2, 0.8]
       color: "#404550"
-      material: { metalness: 0.75 }
 
       object "TailLight" {
         geometry: "sphere"
@@ -191,21 +222,19 @@ composition "Starfighter" {
     }
 
     // ── Weapon Hardpoints ─────────────────────────────────────────────────
-    object "LeftCannon" {
+    object "LeftCannon" using "GunmetalTrim" {
       geometry: "cylinder"
       position: [-1.5, -0.15, 1.0]
       rotation: [90, 0, 0]
       scale: [0.06, 1.2, 0.06]
       color: "#222222"
-      material: { metalness: 0.95 }
     }
-    object "RightCannon" {
+    object "RightCannon" using "GunmetalTrim" {
       geometry: "cylinder"
       position: [1.5, -0.15, 1.0]
       rotation: [90, 0, 0]
       scale: [0.06, 1.2, 0.06]
       color: "#222222"
-      material: { metalness: 0.95 }
     }
   }
 

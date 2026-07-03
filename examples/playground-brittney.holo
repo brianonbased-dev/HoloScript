@@ -22,13 +22,33 @@ composition "Brittney Playground" {
     tone_mapping: "aces"
   }
 
+  // ── Room materials ──────────────────────────────────────────────────────
+  // Studio-concrete floor + dark composite pedestal, both with real texture
+  // maps (not flat base_color) per the pattern library's Pattern 1.
+  material "StudioConcrete" @advanced_pbr {
+    base_color: "#15151f"
+    roughness: 0.92
+    metallic: 0.0
+    albedo_map: "textures/studio_concrete_albedo.png"
+    normal_map: "textures/studio_concrete_normal.png"
+    ao_map: "textures/studio_concrete_ao.png"
+  }
+
+  material "PedestalComposite" @advanced_pbr {
+    base_color: "#23233a"
+    roughness: 0.5
+    metallic: 0.3
+    albedo_map: "textures/pedestal_composite_albedo.png"
+    normal_map: "textures/pedestal_composite_normal.png"
+  }
+
   // ── Floor ────────────────────────────────────────────────────────────────
   object "Floor" {
     geometry: "plane"
     position: [0, 0, -4]
     scale: [16, 1, 16]
     color: "#15151f"
-    material: { roughness: 0.92, metalness: 0.0 }
+    material: "StudioConcrete"
   }
 
   // ── Central focal pedestal (where a build-in-progress would sit) ──────────
@@ -37,7 +57,9 @@ composition "Brittney Playground" {
     position: [0, 0.35, -4]
     scale: [1.4, 0.7, 1.4]
     color: "#23233a"
-    material: { roughness: 0.5, metalness: 0.3, emissive: "#3a2a66", emissiveIntensity: 0.15 }
+    material: "PedestalComposite"
+    emissive: "#3a2a66"
+    emissiveIntensity: 0.15
   }
 
   // ── Patrol waypoints (Brittney's route — read by the brain driver) ────────

@@ -56,16 +56,19 @@ composition LightTypesShowcase {
     },
   }
 
-  // Test spheres for lighting comparison
+  // Test spheres for lighting comparison — roughness ramps 0.05 -> 0.95 across
+  // the row so each light type's specular response (tight highlight on the
+  // polished sphere vs. broad diffuse falloff on the chalky one) is visible
+  // side-by-side, instead of five identical flat-gray balls.
   entity TestSphere1 {
     mesh: { type: "sphere", radius: 0.5, segments: 64 },
-    advanced_pbr: { base_color: [0.8, 0.8, 0.8], metallic: 0.0, roughness: 0.5 },
+    advanced_pbr: { base_color: [0.8, 0.8, 0.8], metallic: 0.0, roughness: 0.05 },
     transform: { position: [-4.0, 0.5, 0.0] },
   }
 
   entity TestSphere2 {
     mesh: { type: "sphere", radius: 0.5, segments: 64 },
-    advanced_pbr: { base_color: [0.8, 0.8, 0.8], metallic: 0.0, roughness: 0.5 },
+    advanced_pbr: { base_color: [0.8, 0.8, 0.8], metallic: 0.0, roughness: 0.3 },
     transform: { position: [-2.0, 0.5, 0.0] },
   }
 
@@ -77,13 +80,13 @@ composition LightTypesShowcase {
 
   entity TestSphere4 {
     mesh: { type: "sphere", radius: 0.5, segments: 64 },
-    advanced_pbr: { base_color: [0.8, 0.8, 0.8], metallic: 0.0, roughness: 0.5 },
+    advanced_pbr: { base_color: [0.8, 0.8, 0.8], metallic: 0.0, roughness: 0.7 },
     transform: { position: [2.0, 0.5, 0.0] },
   }
 
   entity TestSphere5 {
     mesh: { type: "sphere", radius: 0.5, segments: 64 },
-    advanced_pbr: { base_color: [0.8, 0.8, 0.8], metallic: 0.0, roughness: 0.5 },
+    advanced_pbr: { base_color: [0.8, 0.8, 0.8], metallic: 0.0, roughness: 0.95 },
     transform: { position: [4.0, 0.5, 0.0] },
   }
 

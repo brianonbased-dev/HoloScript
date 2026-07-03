@@ -13,13 +13,25 @@ environment {
 light "KeyLight" { type: "directional", position: [3, 6, 2], intensity: 0.6, color: "#8090ff", castShadow: true }
 light "AccentLight" { type: "point", position: [0, 3, -2], intensity: 400, color: "#00ffcc" }
 
+// --- Materials ---
+material "CyberFloor" @advanced_pbr {
+  base_color: "#0a0a1a"
+  roughness: 0.15
+  metallic: 0.8
+  albedo_map: "textures/cyber_floor_albedo.png"
+  normal_map: "textures/cyber_floor_normal.png"
+  // Etched circuit-trace panel lines catching AccentLight's cyan
+  emission_map: "textures/cyber_floor_emission.png"
+  emission_intensity: 0.3
+}
+
 // --- Ground ---
 object "Ground" {
   @collidable
   geometry: "plane"
   position: [0, 0, 0]
   scale: [20, 1, 20]
-  material: { baseColor: "#0a0a1a", roughness: 0.15, metallic: 0.8 }
+  material: "CyberFloor"
 }
 
 // --- Post-Processing ---

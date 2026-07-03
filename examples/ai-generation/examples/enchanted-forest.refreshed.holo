@@ -56,14 +56,66 @@ post_processing {
   vignette: { enabled: true, intensity: 0.28 }
 }
 
+// === MATERIALS ===
+
+material "ForestMoss" @advanced_pbr {
+  base_color: "#122212"
+  roughness: 0.95
+  metallic: 0.0
+  albedo_map: "textures/moss_albedo.png"
+  normal_map: "textures/moss_normal.png"
+  ao_map: "textures/moss_ao.png"
+  wetness: 0.4
+}
+
+material "AncientBark" @advanced_pbr {
+  base_color: "#3d2b1d"
+  roughness: 0.88
+  metallic: 0.0
+  albedo_map: "textures/bark_albedo.png"
+  normal_map: "textures/bark_normal.png"
+  roughness_map: "textures/bark_roughness.png"
+  subsurface: 0.03
+  subsurface_color: "#4a3010"
+}
+
+material "HollowLogBark" @advanced_pbr {
+  base_color: "#2a1e14"
+  roughness: 0.95
+  metallic: 0.0
+  albedo_map: "textures/bark_albedo.png"
+  normal_map: "textures/bark_normal.png"
+  wetness: 0.2
+}
+
+material "CrystalGlass" @advanced_pbr {
+  base_color: "#00ffff"
+  roughness: 0.08
+  metallic: 0.3
+  opacity: 0.85
+  ior: 1.5
+  emission_map: "textures/crystal_glow.png"
+  emission_intensity: 0.6
+}
+
+material "PondWater" @advanced_pbr {
+  base_color: "#1a3f5a"
+  roughness: 0.05
+  metallic: 0.2
+  opacity: 0.85
+  ior: 1.33
+  emission_map: "textures/water_caustics.png"
+  emission_intensity: 0.2
+}
+
 // === GROUND ===
 
-object "ground" @collidable @bioluminescent {
+object "ground" @collidable @bioluminescent @advanced_pbr {
   position: [0, 0, 0]
   scale: [20, 0.12, 20]
   geometry: "cube"
   color: "#122212"
-  material: "moss"
+  material: "ForestMoss"
   roughness: 0.95
 
   @bioluminescent {
@@ -83,12 +135,12 @@ object "ground" @collidable @bioluminescent {
 // Emits a low 40 Hz subsonic hum — felt more than heard.
 // Spores drift from the crown in a slow golden cascade.
 
-object "tree_trunk" @collidable {
+object "tree_trunk" @collidable @advanced_pbr {
   position: [0, 3, -4]
   scale: [0.9, 6, 0.9]
   geometry: "cylinder"
   color: "#3d2b1d"
-  material: "bark"
+  material: "AncientBark"
   roughness: 0.88
 
   @spatial_audio {
@@ -252,12 +304,12 @@ orb "firefly_d" @glowing @animated {
 // === CRYSTAL CLUSTER ===
 // Primary crystal — glowing cyan, throwable, bounces with physics.
 
-orb "crystal_main" @grabbable @glowing @throwable @physics @collidable {
+orb "crystal_main" @grabbable @glowing @throwable @physics @collidable @advanced_pbr {
   position: [3.1, 0.55, -2.2]
   scale: [0.32, 0.65, 0.28]
   geometry: "cone"
   color: "#00ffff"
-  material: "glass"
+  material: "CrystalGlass"
   roughness: 0.08
   metallic: 0.3
   emissive: "#00ffff"
@@ -294,13 +346,13 @@ orb "crystal_shard_b" @glowing {
 // === FALLEN HOLLOW LOG ===
 // An old tree, collapsed and colonized by moss. Gives the forest depth.
 
-object "log_body" @collidable {
+object "log_body" @collidable @advanced_pbr {
   position: [-3.5, 0.22, 1.5]
   scale: [2.5, 0.45, 0.5]
   rotation: [0, 28, 0]
   geometry: "cylinder"
   color: "#2a1e14"
-  material: "bark"
+  material: "HollowLogBark"
   roughness: 0.95
 }
 
@@ -342,11 +394,12 @@ orb "berries_cluster" @glowing @collidable {
 // === ENCHANTED POND ===
 // Still water catching moonlight with slow bioluminescent ripples.
 
-object "pond_water" @glowing @bioluminescent {
+object "pond_water" @glowing @bioluminescent @advanced_pbr {
   position: [-3.2, 0.06, 2.8]
   scale: [2.2, 0.06, 2.2]
   geometry: "cylinder"
   color: "#1a3f5a"
+  material: "PondWater"
   emissive: "#0088bb"
   emissiveIntensity: 0.18
   opacity: 0.85

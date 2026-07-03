@@ -36,6 +36,167 @@ composition "Virtual Museum Exhibition" {
     tone_mapping: { enabled: true, type: "aces" }
   }
 
+  // ── Materials ────────────────────────────────────────────────────────────
+  // Named @advanced_pbr materials for the gallery shell, frames,
+  // pedestals, and sculptures. Canvas base_color stays per-artwork
+  // (set on each painting object) since each piece is a distinct
+  // hue; this material only supplies the shared woven-canvas response.
+
+  material "WhiteOakParquet" @advanced_pbr {
+    base_color: "#c9a56a"
+    roughness: 0.45
+    metallic: 0.0
+    albedo_map: "textures/white_oak_parquet_albedo.png"
+    normal_map: "textures/white_oak_parquet_normal.png"
+    ao_map: "textures/white_oak_parquet_ao.png"
+  }
+
+  material "GalleryPlaster" @advanced_pbr {
+    base_color: "#ffffff"
+    roughness: 0.9
+    metallic: 0.0
+    albedo_map: "textures/plaster_albedo.png"
+    normal_map: "textures/plaster_normal.png"
+  }
+
+  material "SmoothPlaster" @advanced_pbr {
+    base_color: "#ffffff"
+    roughness: 0.78
+    metallic: 0.0
+    albedo_map: "textures/smooth_plaster_albedo.png"
+    normal_map: "textures/smooth_plaster_normal.png"
+  }
+
+  material "GalleryCanvas" @advanced_pbr {
+    base_color: "#e8e3d8"
+    roughness: 0.95
+    metallic: 0.0
+    albedo_map: "textures/canvas_albedo.png"
+    normal_map: "textures/canvas_weave_normal.png"
+  }
+
+  material "GiltFrame" @advanced_pbr {
+    base_color: "#8b7355"
+    roughness: 0.28
+    metallic: 0.9
+    normal_map: "textures/gilt_frame_normal.png"
+  }
+
+  material "EbonyFrame" @advanced_pbr {
+    base_color: "#2c2c2c"
+    roughness: 0.35
+    metallic: 0.0
+    albedo_map: "textures/ebony_albedo.png"
+    normal_map: "textures/ebony_normal.png"
+  }
+
+  material "RusticFrame" @advanced_pbr {
+    base_color: "#5c4033"
+    roughness: 0.75
+    metallic: 0.0
+    albedo_map: "textures/rustic_wood_albedo.png"
+    normal_map: "textures/rustic_wood_normal.png"
+  }
+
+  material "PedestalMarble" @advanced_pbr {
+    base_color: "#d3d3d3"
+    roughness: 0.15
+    metallic: 0.0
+    albedo_map: "textures/marble_albedo.png"
+    normal_map: "textures/marble_normal.png"
+    ao_map: "textures/marble_ao.png"
+  }
+
+  material "PedestalMarbleBlack" @advanced_pbr {
+    base_color: "#2a2a2a"
+    roughness: 0.12
+    metallic: 0.0
+    albedo_map: "textures/black_marble_albedo.png"
+    normal_map: "textures/black_marble_normal.png"
+  }
+
+  material "PedestalPlinthBlack" @advanced_pbr {
+    base_color: "#1a1a1a"
+    roughness: 0.5
+    metallic: 0.0
+  }
+
+  material "PolishedBronze" @advanced_pbr {
+    base_color: "#4169e1"
+    roughness: 0.2
+    metallic: 1.0
+    normal_map: "textures/polished_bronze_normal.png"
+  }
+
+  material "Copper" @advanced_pbr {
+    base_color: "#b87333"
+    roughness: 0.25
+    metallic: 1.0
+    normal_map: "textures/copper_normal.png"
+  }
+
+  material "BlownGlass" @advanced_pbr {
+    base_color: "#a0d8ef"
+    roughness: 0.03
+    metallic: 0.0
+    opacity: 0.3
+    ior: 1.5
+  }
+
+  material "TeakWood" @advanced_pbr {
+    base_color: "#8b4513"
+    roughness: 0.5
+    metallic: 0.0
+    albedo_map: "textures/teak_albedo.png"
+    normal_map: "textures/teak_normal.png"
+  }
+
+  material "Limestone" @advanced_pbr {
+    base_color: "#c8b88a"
+    roughness: 0.7
+    metallic: 0.0
+    albedo_map: "textures/limestone_albedo.png"
+    normal_map: "textures/limestone_normal.png"
+    ao_map: "textures/limestone_ao.png"
+  }
+
+  material "PolishedMarble" @advanced_pbr {
+    base_color: "#b0bec5"
+    roughness: 0.1
+    metallic: 0.0
+    albedo_map: "textures/polished_marble_albedo.png"
+    normal_map: "textures/polished_marble_normal.png"
+  }
+
+  material "CastBronze" @advanced_pbr {
+    base_color: "#78909c"
+    roughness: 0.3
+    metallic: 1.0
+    normal_map: "textures/cast_bronze_normal.png"
+  }
+
+  material "PolishedAluminum" @advanced_pbr {
+    base_color: "#cfd8dc"
+    roughness: 0.08
+    metallic: 1.0
+  }
+
+  material "PlinthMarble" @advanced_pbr {
+    base_color: "#ffffff"
+    roughness: 0.18
+    metallic: 0.0
+    albedo_map: "textures/marble_albedo.png"
+    normal_map: "textures/marble_normal.png"
+  }
+
+  material "Mahogany" @advanced_pbr {
+    base_color: "#4e342e"
+    roughness: 0.35
+    metallic: 0.0
+    albedo_map: "textures/mahogany_albedo.png"
+    normal_map: "textures/mahogany_normal.png"
+  }
+
   // ── Architecture ──────────────────────────────────────────────────────────
 
   object "GalleryFloor" {
@@ -44,7 +205,7 @@ composition "Virtual Museum Exhibition" {
     position: [0, 0, 0]
     scale: [30, 1, 30]
     color: "#f5f5dc"
-    material: "white_oak_parquet"
+    material: "WhiteOakParquet"
     receiveShadows: true
   }
 
@@ -54,7 +215,7 @@ composition "Virtual Museum Exhibition" {
     rotation: [180, 0, 0]
     scale: [30, 1, 30]
     color: "#ffffff"
-    material: "plaster"
+    material: "GalleryPlaster"
   }
 
   object "NorthWall" {
@@ -63,7 +224,7 @@ composition "Virtual Museum Exhibition" {
     position: [0, 3, -15]
     scale: [30, 6, 0.2]
     color: "#ffffff"
-    material: "smooth_plaster"
+    material: "SmoothPlaster"
   }
 
   object "SouthWall" {
@@ -72,7 +233,7 @@ composition "Virtual Museum Exhibition" {
     position: [0, 3, 15]
     scale: [30, 6, 0.2]
     color: "#ffffff"
-    material: "smooth_plaster"
+    material: "SmoothPlaster"
   }
 
   object "EastWall" {
@@ -82,7 +243,7 @@ composition "Virtual Museum Exhibition" {
     rotation: [0, 90, 0]
     scale: [30, 6, 0.2]
     color: "#ffffff"
-    material: "smooth_plaster"
+    material: "SmoothPlaster"
   }
 
   object "WestWall" {
@@ -92,7 +253,7 @@ composition "Virtual Museum Exhibition" {
     rotation: [0, 90, 0]
     scale: [30, 6, 0.2]
     color: "#ffffff"
-    material: "smooth_plaster"
+    material: "SmoothPlaster"
   }
 
   object "PartitionWall" {
@@ -101,7 +262,7 @@ composition "Virtual Museum Exhibition" {
     position: [0, 3, 0]
     scale: [0.2, 6, 10]
     color: "#f8f8f0"
-    material: "smooth_plaster"
+    material: "SmoothPlaster"
   }
 
   // ── Main Gallery Artworks ─────────────────────────────────────────────────
@@ -114,7 +275,7 @@ composition "Virtual Museum Exhibition" {
     position: [0, 2, -14.8]
     scale: [2, 1.5, 1]
     color: "#ff6347"
-    material: "canvas"
+    material: "GalleryCanvas"
     behavior "ArtworkInfo" {
       title: 'Chromatic Resonance No. 7'
       artist: 'Isabella Fontaine'
@@ -131,7 +292,7 @@ composition "Virtual Museum Exhibition" {
     position: [0, 2, -14.85]
     scale: [2.1, 1.6, 0.05]
     color: "#8b7355"
-    material: "gilt_frame"
+    material: "GiltFrame"
   }
 
   object "AbstractSpotlight" {
@@ -153,7 +314,7 @@ composition "Virtual Museum Exhibition" {
     position: [-5, 2, -14.8]
     scale: [2, 1.5, 1]
     color: "#87ceeb"
-    material: "canvas"
+    material: "GalleryCanvas"
     behavior "ArtworkInfo" {
       title: 'Autumn Valley at Dusk'
       artist: 'Marcus Chen'
@@ -169,7 +330,7 @@ composition "Virtual Museum Exhibition" {
     position: [-5, 2, -14.85]
     scale: [2.1, 1.6, 0.05]
     color: "#2c2c2c"
-    material: "ebony_frame"
+    material: "EbonyFrame"
   }
 
   object "LandscapeSpotlight" {
@@ -190,7 +351,7 @@ composition "Virtual Museum Exhibition" {
     position: [5, 2, -14.8]
     scale: [2, 1.5, 1]
     color: "#daa520"
-    material: "canvas"
+    material: "GalleryCanvas"
     behavior "ArtworkInfo" {
       title: 'The Philosopher\'s Gaze'
       artist: 'Elena Morozova'
@@ -206,7 +367,7 @@ composition "Virtual Museum Exhibition" {
     position: [5, 2, -14.85]
     scale: [2.1, 1.6, 0.05]
     color: "#8b7355"
-    material: "gilt_frame"
+    material: "GiltFrame"
   }
 
   object "PortraitSpotlight" {
@@ -229,7 +390,7 @@ composition "Virtual Museum Exhibition" {
     rotation: [0, 90, 0]
     scale: [2.5, 1.8, 1]
     color: "#6a0dad"
-    material: "canvas"
+    material: "GalleryCanvas"
     behavior "ArtworkInfo" {
       title: 'Violet Dissolution'
       artist: 'Henri Leblanc'
@@ -245,7 +406,7 @@ composition "Virtual Museum Exhibition" {
     rotation: [0, 90, 0]
     scale: [2.6, 1.9, 0.05]
     color: "#5c4033"
-    material: "rustic_frame"
+    material: "RusticFrame"
   }
 
   object "ContemporaryPainting" {
@@ -256,7 +417,7 @@ composition "Virtual Museum Exhibition" {
     rotation: [0, 90, 0]
     scale: [2, 1.5, 1]
     color: "#ff4500"
-    material: "canvas"
+    material: "GalleryCanvas"
     behavior "ArtworkInfo" {
       title: 'Urban Fragments IV'
       artist: 'Rosa Fuentes'
@@ -274,7 +435,7 @@ composition "Virtual Museum Exhibition" {
     rotation: [0, 90, 0]
     scale: [2, 2, 1]
     color: "#f5f5f5"
-    material: "canvas"
+    material: "GalleryCanvas"
     behavior "ArtworkInfo" {
       title: 'White on White Study'
       artist: 'Erik Strand'
@@ -292,7 +453,7 @@ composition "Virtual Museum Exhibition" {
     position: [0, 0.5, -5]
     scale: [0.5, 1, 0.5]
     color: "#d3d3d3"
-    material: "marble"
+    material: "PedestalMarble"
   }
 
   object "ModernSculpture" {
@@ -302,7 +463,7 @@ composition "Virtual Museum Exhibition" {
     position: [0, 1.5, -5]
     scale: 0.6
     color: "#4169e1"
-    material: "polished_bronze"
+    material: "PolishedBronze"
     behavior "ArtworkInfo" {
       title: 'Infinite Loop'
       artist: 'James Nakamura'
@@ -323,7 +484,7 @@ composition "Virtual Museum Exhibition" {
     position: [8, 0.5, -5]
     scale: [0.4, 1, 0.4]
     color: "#d3d3d3"
-    material: "marble_black"
+    material: "PedestalMarbleBlack"
   }
 
   object "CopperSculpture" {
@@ -333,7 +494,7 @@ composition "Virtual Museum Exhibition" {
     rotation: [0, 45, 0]
     scale: [0.5, 0.5, 0.5]
     color: "#b87333"
-    material: "copper"
+    material: "Copper"
     behavior "ArtworkInfo" {
       title: 'Tessellation Study IV'
       artist: 'Amara Diallo'
@@ -348,7 +509,7 @@ composition "Virtual Museum Exhibition" {
     position: [-8, 0.5, -5]
     scale: [0.4, 1, 0.4]
     color: "#d3d3d3"
-    material: "plinth_black"
+    material: "PedestalPlinthBlack"
   }
 
   object "GlassSculpture" {
@@ -358,7 +519,7 @@ composition "Virtual Museum Exhibition" {
     position: [-8, 1.5, -5]
     scale: [0.4, 0.7, 0.4]
     color: "#a0d8ef"
-    material: "blown_glass"
+    material: "BlownGlass"
     transparency: 0.3
     behavior "ArtworkInfo" {
       title: 'Ocean Memory'
@@ -376,7 +537,7 @@ composition "Virtual Museum Exhibition" {
     position: [-8, 0.3, -8]
     scale: [2, 0.6, 0.5]
     color: "#8b4513"
-    material: "teak_wood"
+    material: "TeakWood"
   }
 
   object "BenchRight" {
@@ -385,7 +546,7 @@ composition "Virtual Museum Exhibition" {
     position: [8, 0.3, -8]
     scale: [2, 0.6, 0.5]
     color: "#8b4513"
-    material: "teak_wood"
+    material: "TeakWood"
   }
 
   object "BenchCenter" {
@@ -394,7 +555,7 @@ composition "Virtual Museum Exhibition" {
     position: [0, 0.3, -8]
     scale: [2, 0.6, 0.5]
     color: "#8b4513"
-    material: "teak_wood"
+    material: "TeakWood"
   }
 
   object "InfoPlaque1" {
@@ -438,7 +599,7 @@ composition "Virtual Museum Exhibition" {
     position: [0, 4, 13]
     scale: [5, 2, 0.3]
     color: "#c8b88a"
-    material: "limestone"
+    material: "Limestone"
   }
 
   // ── Ambient Lighting ──────────────────────────────────────────────────────
@@ -539,7 +700,7 @@ composition "Virtual Museum Exhibition" {
     position: [-6, 0.8, -6]
     scale: [0.6, 1.2, 0.6]
     color: "#b0bec5"
-    material: "polished_marble"
+    material: "PolishedMarble"
     behavior "ArtworkInfo" {
       title: 'Convergence I'
       artist: 'Elena Vasquez'
@@ -557,7 +718,7 @@ composition "Virtual Museum Exhibition" {
     scale: [0.5, 1.8, 0.5]
     rotation: [0, 45, 0]
     color: "#78909c"
-    material: "cast_bronze"
+    material: "CastBronze"
     behavior "ArtworkInfo" {
       title: 'Ascending Form'
       artist: 'Marcus Chen'
@@ -574,7 +735,7 @@ composition "Virtual Museum Exhibition" {
     position: [0, 1, 6]
     scale: [0.4, 2, 0.4]
     color: "#cfd8dc"
-    material: "polished_aluminum"
+    material: "PolishedAluminum"
     behavior "ArtworkInfo" {
       title: 'Infinite Loop'
       artist: 'Sophie Laurent'
@@ -590,7 +751,7 @@ composition "Virtual Museum Exhibition" {
     position: [-6, 0.3, -6]
     scale: [0.8, 0.6, 0.8]
     color: "#ffffff"
-    material: "plinth_marble"
+    material: "PlinthMarble"
   }
 
   object "SculpturePedestal2" {
@@ -617,7 +778,7 @@ composition "Virtual Museum Exhibition" {
     position: [8, 0.5, 8]
     scale: [2, 1, 0.6]
     color: "#4e342e"
-    material: "mahogany"
+    material: "Mahogany"
   }
 
   object "ArtBookDisplay" {

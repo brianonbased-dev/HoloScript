@@ -13,13 +13,25 @@ environment {
 light "OverheadBank" { type: "directional", position: [0, 10, 0], intensity: 1.1, color: "#f0f0ff", castShadow: true }
 light "WallBounce" { type: "directional", position: [5, 3, -3], intensity: 0.3, color: "#e0e0e0" }
 
+// --- Materials ---
+material "FactoryFloor" @advanced_pbr {
+  base_color: "#808080"
+  roughness: 0.92
+  metallic: 0.02
+  albedo_map: "textures/factory_floor_albedo.png"
+  normal_map: "textures/factory_floor_normal.png"
+  ao_map: "textures/factory_floor_ao.png"
+  // Sealed concrete with faint oil-stain variation
+  roughness_map: "textures/factory_floor_roughness.png"
+}
+
 // --- Ground ---
 object "Ground" {
   @collidable
   geometry: "plane"
   position: [0, 0, 0]
   scale: [30, 1, 30]
-  material: { baseColor: "#808080", roughness: 0.92, metallic: 0.02 }
+  material: "FactoryFloor"
 }
 
 // --- Post-Processing ---

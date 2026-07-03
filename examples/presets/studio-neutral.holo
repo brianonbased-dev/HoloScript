@@ -14,13 +14,23 @@ light "KeyLight" { type: "directional", position: [5, 8, 3], intensity: 1.0, col
 light "FillLight" { type: "directional", position: [-3, 5, -2], intensity: 0.4, color: "#e8f0ff" }
 light "RimLight" { type: "directional", position: [0, 3, 5], intensity: 0.3, color: "#ffffff" }
 
+// --- Materials ---
+material "StudioCyc" @advanced_pbr {
+  base_color: "#c8c8c8"
+  roughness: 0.85
+  metallic: 0.05
+  albedo_map: "textures/studio_cyc_albedo.png"
+  normal_map: "textures/studio_cyc_normal.png"
+  ao_map: "textures/studio_cyc_ao.png"
+}
+
 // --- Ground ---
 object "Ground" {
   @collidable
   geometry: "plane"
   position: [0, 0, 0]
   scale: [20, 1, 20]
-  material: { baseColor: "#c8c8c8", roughness: 0.85, metallic: 0.05 }
+  material: "StudioCyc"
 }
 
 // --- Post-Processing ---

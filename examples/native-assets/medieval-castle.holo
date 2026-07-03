@@ -16,64 +16,83 @@ composition "MedievalCastle" {
     ambient_occlusion { intensity: 0.35, radius: 0.5 }
   }
 
+  // ── Shared Materials ──────────────────────────────────────────────────────
+  // Weathered-stone system: foundation is the darkest, most eroded course;
+  // walls/towers/keep share a lichen-toned ashlar but vary roughness slightly
+  // per part so the castle doesn't read as one flat-painted mesh (smell list §4).
+  template "FoundationStone" {
+    material: { roughness: 0.95, metalness: 0.0 }
+  }
+  template "WallAshlar" {
+    material: { roughness: 0.88, metalness: 0.0 }
+  }
+  template "TowerAshlar" {
+    material: { roughness: 0.83, metalness: 0.0 }
+  }
+  template "RoofSlate" {
+    material: { roughness: 0.65, metalness: 0.0 }
+  }
+  template "TimberDark" {
+    material: { roughness: 0.8, metalness: 0.0 }
+  }
+  template "IronWork" {
+    material: { roughness: 0.4, metalness: 0.75 }
+  }
+  template "WindowGlow" {
+    material: { emissive: "#FFDD44", emissiveIntensity: 1.5, roughness: 0.3 }
+  }
+
   object "Castle" @physics @collidable {
     position: [0, 0, 0]
 
     // ── Foundation ────────────────────────────────────────────────────────
-    object "Foundation" {
+    object "Foundation" using "FoundationStone" {
       geometry: "cube"
       position: [0, 0.25, 0]
       scale: [12, 0.5, 10]
       color: "#4a4a3a"
-      material: { roughness: 0.95 }
     }
 
     // ── Main Walls ────────────────────────────────────────────────────────
-    object "WallFront" {
+    object "WallFront" using "WallAshlar" {
       geometry: "cube"
       position: [0, 2, 5]
       scale: [12, 3.5, 0.5]
       color: "#8C7B6B"
-      material: { roughness: 0.9 }
     }
-    object "WallBack" {
+    object "WallBack" using "WallAshlar" {
       geometry: "cube"
       position: [0, 2, -5]
       scale: [12, 3.5, 0.5]
       color: "#8C7B6B"
-      material: { roughness: 0.9 }
     }
-    object "WallLeft" {
+    object "WallLeft" using "WallAshlar" {
       geometry: "cube"
       position: [-6, 2, 0]
       scale: [0.5, 3.5, 10]
       color: "#8C7B6B"
-      material: { roughness: 0.9 }
     }
-    object "WallRight" {
+    object "WallRight" using "WallAshlar" {
       geometry: "cube"
       position: [6, 2, 0]
       scale: [0.5, 3.5, 10]
       color: "#8C7B6B"
-      material: { roughness: 0.9 }
     }
 
     // ── Corner Towers ─────────────────────────────────────────────────────
-    object "TowerFL" {
+    object "TowerFL" using "TowerAshlar" {
       geometry: "cylinder"
       position: [-6, 2.5, 5]
       scale: [1.2, 5.0, 1.2]
       color: "#7A6B5C"
-      material: { roughness: 0.85 }
 
-      object "RoofFL" {
+      object "RoofFL" using "RoofSlate" {
         geometry: "cone"
         position: [0, 3.2, 0]
         scale: [1.5, 2.0, 1.5]
         color: "#6B2D2D"
-        material: { roughness: 0.7 }
       }
-      object "FlagPoleFL" {
+      object "FlagPoleFL" using "IronWork" {
         geometry: "cylinder"
         position: [0, 4.8, 0]
         scale: [0.04, 1.5, 0.04]
@@ -86,42 +105,39 @@ composition "MedievalCastle" {
         color: "#cc1111"
       }
     }
-    object "TowerFR" {
+    object "TowerFR" using "TowerAshlar" {
       geometry: "cylinder"
       position: [6, 2.5, 5]
       scale: [1.2, 5.0, 1.2]
       color: "#7A6B5C"
-      material: { roughness: 0.85 }
 
-      object "RoofFR" {
+      object "RoofFR" using "RoofSlate" {
         geometry: "cone"
         position: [0, 3.2, 0]
         scale: [1.5, 2.0, 1.5]
         color: "#6B2D2D"
       }
     }
-    object "TowerBL" {
+    object "TowerBL" using "TowerAshlar" {
       geometry: "cylinder"
       position: [-6, 2.5, -5]
       scale: [1.2, 5.0, 1.2]
       color: "#7A6B5C"
-      material: { roughness: 0.85 }
 
-      object "RoofBL" {
+      object "RoofBL" using "RoofSlate" {
         geometry: "cone"
         position: [0, 3.2, 0]
         scale: [1.5, 2.0, 1.5]
         color: "#6B2D2D"
       }
     }
-    object "TowerBR" {
+    object "TowerBR" using "TowerAshlar" {
       geometry: "cylinder"
       position: [6, 2.5, -5]
       scale: [1.2, 5.0, 1.2]
       color: "#7A6B5C"
-      material: { roughness: 0.85 }
 
-      object "RoofBR" {
+      object "RoofBR" using "RoofSlate" {
         geometry: "cone"
         position: [0, 3.2, 0]
         scale: [1.5, 2.0, 1.5]
@@ -130,99 +146,100 @@ composition "MedievalCastle" {
     }
 
     // ── Gate House ────────────────────────────────────────────────────────
-    object "GateFrame" {
+    object "GateFrame" using "WallAshlar" {
       geometry: "cube"
       position: [0, 1.8, 5.3]
       scale: [2.5, 3.6, 0.8]
       color: "#6B5C4D"
-      material: { roughness: 0.9 }
 
-      object "GateArch" {
+      object "GateArch" using "TimberDark" {
         geometry: "cylinder"
         position: [0, 0.4, 0.1]
         rotation: [90, 0, 0]
         scale: [0.8, 0.5, 0.8]
         color: "#3D2B1F"
       }
-      object "Portcullis" {
+      object "Portcullis" using "IronWork" {
         geometry: "cube"
         position: [0, -0.2, 0.2]
         scale: [1.4, 2.2, 0.08]
         color: "#4a4a4a"
-        material: { metalness: 0.7 }
       }
     }
 
     // ── Keep (Central Tower) ──────────────────────────────────────────────
-    object "Keep" {
+    object "Keep" using "TowerAshlar" {
       geometry: "cube"
       position: [0, 3.5, -1.5]
       scale: [4, 6.5, 3.5]
       color: "#7A6B5C"
-      material: { roughness: 0.85 }
 
-      object "KeepRoof" {
+      object "KeepRoof" using "RoofSlate" {
         geometry: "cone"
         position: [0, 3.8, 0]
         scale: [3.0, 2.5, 2.5]
         color: "#5C2020"
-        material: { roughness: 0.7 }
       }
-      object "KeepWindow1" {
+      object "KeepWindow1" using "WindowGlow" {
         geometry: "cube"
         position: [0, 1.5, 1.8]
         scale: [0.5, 0.8, 0.1]
         color: "#FFDD44"
-        material: { emissive: "#FFDD44", emissiveIntensity: 1.5 }
+
+        point_light "KeepWindow1Glow" {
+          color: "#FFDD44"
+          intensity: 1.2
+          position: [0, 0, 0.3]
+          distance: 4
+          decay: 2
+        }
       }
-      object "KeepWindow2" {
+      object "KeepWindow2" using "WindowGlow" {
         geometry: "cube"
         position: [1.0, 1.5, 1.8]
         scale: [0.5, 0.8, 0.1]
         color: "#FFDD44"
-        material: { emissive: "#FFDD44", emissiveIntensity: 1.5 }
       }
-      object "KeepWindow3" {
+      object "KeepWindow3" using "WindowGlow" {
         geometry: "cube"
         position: [-1.0, 1.5, 1.8]
         scale: [0.5, 0.8, 0.1]
         color: "#FFDD44"
-        material: { emissive: "#FFDD44", emissiveIntensity: 1.5 }
       }
     }
 
     // ── Battlements (Wall Top Teeth) ──────────────────────────────────────
-    object "Merlon1" {
+    object "Merlon1" using "TowerAshlar" {
       geometry: "cube"
       position: [-5, 4.0, 5]
       scale: [0.6, 0.5, 0.6]
       color: "#7A6B5C"
     }
-    object "Merlon2" {
+    object "Merlon2" using "TowerAshlar" {
       geometry: "cube"
       position: [-3, 4.0, 5]
       scale: [0.6, 0.5, 0.6]
       color: "#7A6B5C"
     }
-    object "Merlon3" {
+    object "Merlon3" using "TowerAshlar" {
       geometry: "cube"
       position: [-1, 4.0, 5]
       scale: [0.6, 0.5, 0.6]
       color: "#7A6B5C"
     }
-    object "Merlon4" {
+    object "Merlon4" using "TowerAshlar" {
       geometry: "cube"
       position: [1, 4.0, 5]
       scale: [0.6, 0.5, 0.6]
       color: "#7A6B5C"
     }
-    object "Merlon5" {
+    object "Merlon5" using "TowerAshlar" {
       geometry: "cube"
       position: [3, 4.0, 5]
       scale: [0.6, 0.5, 0.6]
       color: "#7A6B5C"
     }
-    object "Merlon6" {
+    object "Merlon6" using "TowerAshlar" {
       geometry: "cube"
       position: [5, 4.0, 5]
       scale: [0.6, 0.5, 0.6]

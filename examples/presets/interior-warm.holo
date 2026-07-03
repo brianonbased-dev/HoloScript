@@ -13,13 +13,23 @@ light "CeilingLight" { type: "point", position: [0, 3, 0], intensity: 600, color
 light "WallSconce" { type: "point", position: [3, 2, -3], intensity: 200, color: "#ffeedd" }
 light "WindowLight" { type: "directional", position: [-4, 5, 2], intensity: 0.5, color: "#e8f0ff" }
 
+// --- Materials ---
+material "WoodFloor" @advanced_pbr {
+  base_color: "#8b6f47"
+  roughness: 0.75
+  metallic: 0.1
+  albedo_map: "textures/wood_floor_albedo.png"
+  normal_map: "textures/wood_floor_normal.png"
+  ao_map: "textures/wood_floor_ao.png"
+}
+
 // --- Ground ---
 object "Floor" {
   @collidable
   geometry: "plane"
   position: [0, 0, 0]
   scale: [8, 1, 8]
-  material: { baseColor: "#8b6f47", roughness: 0.75, metallic: 0.1 }
+  material: "WoodFloor"
 }
 
 // --- Post-Processing ---

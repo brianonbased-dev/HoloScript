@@ -11,6 +11,27 @@ composition "Brittney Workspace" {
   }
 
   // ═══════════════════════════════════════════════════════════
+  // ROOM MATERIALS — dark glass panels + brushed-metal floor
+  // ═══════════════════════════════════════════════════════════
+
+  material "PanelGlass" @advanced_pbr {
+    base_color: "#0d1117"
+    roughness: 0.12
+    metallic: 0.0
+    albedo_map: "textures/panel_glass_albedo.png"
+    normal_map: "textures/panel_glass_normal.png"
+  }
+
+  material "StudioFloorMetal" @advanced_pbr {
+    base_color: "#111122"
+    roughness: 0.35
+    metallic: 0.85
+    albedo_map: "textures/brushed_metal_albedo.png"
+    normal_map: "textures/brushed_metal_normal.png"
+    ao_map: "textures/brushed_metal_ao.png"
+  }
+
+  // ═══════════════════════════════════════════════════════════
   // TEMPLATES
   // ═══════════════════════════════════════════════════════════
 
@@ -19,7 +40,7 @@ composition "Brittney Workspace" {
     @glowing
     @pointable
     geometry: "plane"
-    material: "glass"
+    material: "PanelGlass"
     color: "#0d1117"
     opacity: 0.92
     emissive: "#1a1a3a"
@@ -162,7 +183,7 @@ composition "Brittney Workspace" {
       position: [4, 0, -1]
       scale: [3, 0.05, 3]
       color: "#1a1a3a"
-      material: "glass"
+      material: "PanelGlass"
       opacity: 0.3
     }
 
@@ -301,16 +322,25 @@ composition "Brittney Workspace" {
     position: [0, -0.05, 0]
     scale: [12, 0.05, 12]
     color: "#111122"
-    material: "brushed_metal"
+    material: "StudioFloorMetal"
   }
 
-  // Ambient light orbs
+  // Ambient light orbs — each pairs its emissive glow with a real point_light
+  // so it actually lights the surrounding panels/floor, not just itself (see
+  // docs/handbooks/holoscript-realistic-authoring-patterns.md Pattern 2).
   spatial_group "AmbientLights" {
     object "AmbientOrb1" using "GlowOrb" {
       position: [-5, 4, -3]
       scale: [0.15, 0.15, 0.15]
       color: "#6e40c9"
       emissive: "#6e40c9"
+
+      point_light {
+        color: "#6e40c9"
+        intensity: 1.2
+        range: 6
+        cast_shadows: false
+      }
     }
 
     object "AmbientOrb2" using "GlowOrb" {
@@ -318,6 +348,13 @@ composition "Brittney Workspace" {
       scale: [0.1, 0.1, 0.1]
       color: "#00ffff"
       emissive: "#00ffff"
+
+      point_light {
+        color: "#00ffff"
+        intensity: 1.0
+        range: 5
+        cast_shadows: false
+      }
     }
 
     object "AmbientOrb3" using "GlowOrb" {
@@ -326,6 +363,13 @@ composition "Brittney Workspace" {
       color: "#ff6ec7"
       emissive: "#ff6ec7"
       emissiveIntensity: 0.3
+
+      point_light {
+        color: "#ff6ec7"
+        intensity: 0.9
+        range: 7
+        cast_shadows: false
+      }
     }
   }
 

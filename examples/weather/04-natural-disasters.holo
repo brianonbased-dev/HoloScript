@@ -32,10 +32,18 @@ composition NaturalDisastersShowcase {
     ambient_occlusion { intensity: 0.4, radius: 0.6 }
   }
 
-  // Terrain
+  // Terrain — cracked, ash-dusted earth bearing the marks of seismic and volcanic disaster events
   entity Terrain {
     mesh: { type: "plane", width: 500.0, height: 500.0, subdivisions: 128 },
-    advanced_pbr: { base_color: [0.4, 0.35, 0.25], metallic: 0.0, roughness: 0.9 },
+    advanced_pbr: {
+      base_color: [0.36, 0.31, 0.22],
+      metallic: 0.0,
+      roughness: 0.92,                   // Dry, cracked, ash-dusted — the roughest ground in this batch
+      albedo_map: "textures/scorched_earth_albedo.png",
+      normal_map: "textures/scorched_earth_normal.png",
+      ao_map: "textures/scorched_earth_ao.png",
+      height_map: "textures/scorched_earth_height.png",  // Fault cracks + fissures from EarthquakeEvent
+    },
     transform: { position: [0.0, 0.0, 0.0], rotation: [-90.0, 0.0, 0.0] },
   }
 

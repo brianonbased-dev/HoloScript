@@ -44,6 +44,56 @@ composition "Customizable VR Avatar" {
   }
 
   // ----------------------------------------------------------
+  // MATERIALS - real PBR decomposition for skin, hair-adjacent
+  // fabric, and the third-person mirror surface. Referenced by
+  // name from @body / @clothing / AvatarMirror below instead of
+  // leaving those as bare color + material-name-string labels.
+  // ----------------------------------------------------------
+
+  material "AvatarSkin" @advanced_pbr {
+    base_color: "#c68642"
+    roughness: 0.55
+    metallic: 0.0
+    albedo_map: "textures/skin_albedo.png"
+    normal_map: "textures/skin_normal.png"
+    // Skin scatters light beneath the surface — subtle backlit warmth
+    subsurface: 0.25
+    subsurface_color: "#c9573f"
+  }
+
+  material "HenleyCotton" @advanced_pbr {
+    base_color: "#2c3e50"
+    roughness: 0.75
+    metallic: 0.0
+    albedo_map: "textures/cotton_albedo.png"
+    normal_map: "textures/cotton_weave_normal.png"
+  }
+
+  material "SlimJeansDenim" @advanced_pbr {
+    base_color: "#1a1a2e"
+    roughness: 0.65
+    metallic: 0.0
+    albedo_map: "textures/denim_albedo.png"
+    normal_map: "textures/denim_twill_normal.png"
+  }
+
+  material "BomberLeather" @advanced_pbr {
+    base_color: "#3d2b1f"
+    roughness: 0.35
+    metallic: 0.0
+    albedo_map: "textures/leather_albedo.png"
+    normal_map: "textures/leather_grain_normal.png"
+    ao_map: "textures/leather_ao.png"
+  }
+
+  material "MirrorGlass" @advanced_pbr {
+    base_color: "#e0e0e0"
+    roughness: 0.02
+    metallic: 1.0
+    reflectivity: 0.95
+  }
+
+  // ----------------------------------------------------------
   // PRIMARY AVATAR OBJECT
   // ----------------------------------------------------------
   // @skeleton - Bone hierarchy for animation and IK
@@ -56,7 +106,8 @@ composition "Customizable VR Avatar" {
       mesh: "model/avatar_base_v2.glb",
       height: 1.75,
       build: "athletic",
-      skin_tone: "#c68642"
+      skin_tone: "#c68642",
+      skin_material: "AvatarSkin"
     )
     @avatar_embodiment(
       first_person: true,
@@ -254,7 +305,7 @@ composition "Customizable VR Avatar" {
       cloth_stiffness: 0.7,
       body_conform: true,
       color: "#2c3e50",
-      material: "cotton"
+      material: "HenleyCotton"
     )
 
     parent: "PlayerAvatar"
@@ -268,7 +319,7 @@ composition "Customizable VR Avatar" {
       cloth_sim: false,
       body_conform: true,
       color: "#1a1a2e",
-      material: "denim"
+      material: "SlimJeansDenim"
     )
 
     parent: "PlayerAvatar"
@@ -283,7 +334,7 @@ composition "Customizable VR Avatar" {
       cloth_stiffness: 0.85,
       body_conform: true,
       color: "#3d2b1f",
-      material: "leather"
+      material: "BomberLeather"
     )
 
     parent: "PlayerAvatar"
@@ -299,7 +350,7 @@ composition "Customizable VR Avatar" {
     geometry: "cube"
     position: [0, 1.5, -3]
     scale: [2, 2.5, 0.05]
-    material: "mirror"
+    material: "MirrorGlass"
     color: "#e0e0e0"
     reflectivity: 0.95
   }
