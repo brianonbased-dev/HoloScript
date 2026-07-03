@@ -127,8 +127,15 @@ export {
 } from './adapters/anthropic';
 export type { AnthropicModel, AnthropicModelMetadata } from './adapters/anthropic';
 
-export { GeminiAdapter, GEMINI_MODELS, GEMINI_CAPABILITIES } from './adapters/gemini';
-export type { GeminiModel } from './adapters/gemini';
+export {
+  GeminiAdapter,
+  GEMINI_MODELS,
+  GEMINI_MODEL_METADATA,
+  GEMINI_CAPABILITIES,
+  getGeminiModelMetadata,
+  isGeminiDefaultRoutingEligible,
+} from './adapters/gemini';
+export type { GeminiModel, GeminiModelMetadata } from './adapters/gemini';
 
 export { MockAdapter, MOCK_CAPABILITIES } from './adapters/mock';
 

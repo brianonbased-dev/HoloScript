@@ -432,6 +432,7 @@ describe('GeminiAdapter (metadata)', () => {
   it('has expected available models', () => {
     const adapter = new GeminiAdapter({ apiKey: 'test-key' });
     expect(adapter.models).toContain('gemini-3.5-flash');
+    expect(adapter.models).toContain('gemini-omni-flash-preview');
     expect(adapter.models).toContain('gemini-3-flash-preview');
     expect(adapter.models).toContain('gemini-1.5-pro');
     expect(adapter.models).not.toContain('gemini-2.0-flash');
@@ -441,6 +442,7 @@ describe('GeminiAdapter (metadata)', () => {
   it('GEMINI_MODELS constant is populated', () => {
     expect(GEMINI_MODELS.length).toBeGreaterThan(0);
     expect(GEMINI_MODELS).toContain('gemini-3.5-flash');
+    expect(GEMINI_MODELS).toContain('gemini-omni-flash-preview');
     expect(GEMINI_MODELS).toContain('gemini-3-flash-preview');
     expect(GEMINI_MODELS).not.toContain('gemini-2.0-flash');
     expect(GEMINI_MODELS).not.toContain('gemini-2.0-flash-lite');

@@ -3,7 +3,8 @@
  *
  * Implements the unified ILLMProvider interface for Google Gemini's API.
  * Uses fetch-based HTTP requests (no SDK dependency) for maximum compatibility.
- * Supports Gemini 3.5 Flash, Gemini 3 Flash Preview, and legacy Gemini 1.5 models.
+ * Supports Gemini 3.5 Flash, Gemini 3 Flash Preview, Gemini Omni Flash Preview
+ * route metadata, and legacy Gemini 1.5 models.
  *
  * Function calling uses the standard generateContent API (not the Interactions/
  * Live API). Tool calls appear as `functionCall` parts in the response
@@ -48,9 +49,13 @@ import {
 // changes notice (ai.google.dev/gemini-api/docs/interactions-breaking-changes-may-2026).
 // gemini-2.0-flash and gemini-2.0-flash-lite are NOT included; Google lists
 // them as shut down June 1 2026 in Gemini API pricing/docs (A-020, 2026-06-21).
+// gemini-omni-flash-preview is included for routing metadata only: Google's
+// 2026-06-30 public preview docs route video generation/editing through the
+// Interactions API, not this adapter's generateContent chat path.
 export const GEMINI_MODELS = [
   'gemini-3.5-flash',
   'gemini-3.1-flash-tts-preview',
+  'gemini-omni-flash-preview',
   'gemini-3-flash-preview',
   'gemini-1.5-pro',
   'gemini-1.5-flash',
@@ -58,6 +63,87 @@ export const GEMINI_MODELS = [
 ] as const;
 
 export type GeminiModel = (typeof GEMINI_MODELS)[number];
+
+export type GeminiApiSurface = 'generateContent' | 'interactions';
+
+export interface GeminiModelMetadata {
+  id: GeminiModel;
+  status: 'ga' | 'preview' | 'legacy';
+  apiSurface: GeminiApiSurface;
+  defaultRoutingEligible: boolean;
+  supportsTextCompletion: boolean;
+  supportsFunctionCalling: boolean;
+  supportsVideoGeneration?: boolean;
+  supportsVideoEditing?: boolean;
+  supportsImageAnimation?: boolean;
+  supportsConversationalMediaEditing?: boolean;
+  lastVerified: string;
+  routingNotes: readonly string[];
+  sources: readonly string[];
+}
+
+function geminiModelMetadata(
+  id: GeminiModel,
+  overrides: Partial<Omit<GeminiModelMetadata, 'id'>> = {}
+): GeminiModelMetadata {
+  return {
+    id,
+    status: 'ga',
+    apiSurface: 'generateContent',
+    defaultRoutingEligible: true,
+    supportsTextCompletion: true,
+    supportsFunctionCalling: true,
+    lastVerified: '2026-06-30',
+    routingNotes: [],
+    sources: ['https://ai.google.dev/gemini-api/docs/models'],
+    ...overrides,
+  };
+}
+
+export const GEMINI_MODEL_METADATA = {
+  'gemini-3.5-flash': geminiModelMetadata('gemini-3.5-flash'),
+  'gemini-3.1-flash-tts-preview': geminiModelMetadata('gemini-3.1-flash-tts-preview', {
+    status: 'preview',
+    routingNotes: ['Streaming speech generation remains on the generateContent/stream axis.'],
+  }),
+  'gemini-omni-flash-preview': geminiModelMetadata('gemini-omni-flash-preview', {
+    status: 'preview',
+    apiSurface: 'interactions',
+    defaultRoutingEligible: false,
+    supportsTextCompletion: false,
+    supportsFunctionCalling: false,
+    supportsVideoGeneration: true,
+    supportsVideoEditing: true,
+    supportsImageAnimation: true,
+    supportsConversationalMediaEditing: true,
+    routingNotes: [
+      'Public preview released 2026-06-30 for high-speed video generation and conversational video editing.',
+      'Use the Gemini Interactions API for media generation/editing; do not route normal HoloScript text completion here.',
+      'Provider extension hints are provider.gemini.videoEditing, imageAnimation, and conversationalMediaEditing.',
+    ],
+    sources: [
+      'https://ai.google.dev/gemini-api/docs/changelog',
+      'https://ai.google.dev/gemini-api/docs/omni',
+      'https://ai.google.dev/gemini-api/docs/models/gemini-omni-flash',
+    ],
+  }),
+  'gemini-3-flash-preview': geminiModelMetadata('gemini-3-flash-preview', {
+    status: 'preview',
+  }),
+  'gemini-1.5-pro': geminiModelMetadata('gemini-1.5-pro', { status: 'legacy' }),
+  'gemini-1.5-flash': geminiModelMetadata('gemini-1.5-flash', { status: 'legacy' }),
+  'gemini-1.5-flash-8b': geminiModelMetadata('gemini-1.5-flash-8b', {
+    status: 'legacy',
+  }),
+} as const satisfies Record<GeminiModel, GeminiModelMetadata>;
+
+export function getGeminiModelMetadata(model: string): GeminiModelMetadata | undefined {
+  return GEMINI_MODEL_METADATA[model as GeminiModel];
+}
+
+export function isGeminiDefaultRoutingEligible(model: string): boolean {
+  return getGeminiModelMetadata(model)?.defaultRoutingEligible === true;
+}
 
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 
@@ -194,6 +280,18 @@ export class GeminiAdapter extends BaseLLMAdapter {
     request: LLMCompletionRequest,
     model: string = this.defaultHoloScriptModel
   ): Promise<LLMCompletionResponse> {
+    const modelMetadata = getGeminiModelMetadata(model);
+    if (modelMetadata?.apiSurface === 'interactions') {
+      throw new LLMProviderError(
+        `${model} uses the Gemini Interactions API for media generation/editing; ` +
+          'GeminiAdapter.complete() only supports generateContent text/tool calls. ' +
+          'Route media requests via provider.gemini media hints and an Interactions adapter.',
+        'gemini',
+        400,
+        false
+      );
+    }
+
     const baseURL = this.config.baseURL || GEMINI_API_BASE;
     const url = `${baseURL}/models/${model}:generateContent?key=${this.config.apiKey}`;
 

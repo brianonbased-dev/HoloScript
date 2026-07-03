@@ -10,9 +10,12 @@
 import { describe, it, expect } from 'vitest';
 import {
   GEMINI_CAPABILITIES,
+  GEMINI_MODEL_METADATA,
   GEMINI_MODELS,
   GeminiAdapter,
   geminiToolsFromToolSpecs,
+  getGeminiModelMetadata,
+  isGeminiDefaultRoutingEligible,
   mapGeminiFinishReason,
   parseGeminiResponse,
 } from '../adapters/gemini';
@@ -38,8 +41,37 @@ describe('GEMINI_MODELS', () => {
   it('contains the expected current models', () => {
     expect(GEMINI_MODELS).toContain('gemini-3.5-flash');
     expect(GEMINI_MODELS).toContain('gemini-3.1-flash-tts-preview');
+    expect(GEMINI_MODELS).toContain('gemini-omni-flash-preview');
     expect(GEMINI_MODELS).toContain('gemini-3-flash-preview');
     expect(GEMINI_MODELS).toContain('gemini-1.5-pro');
+  });
+
+  it('marks Gemini Omni Flash Preview as Interactions-only media metadata', () => {
+    const metadata = GEMINI_MODEL_METADATA['gemini-omni-flash-preview'];
+
+    expect(metadata).toMatchObject({
+      id: 'gemini-omni-flash-preview',
+      status: 'preview',
+      apiSurface: 'interactions',
+      defaultRoutingEligible: false,
+      supportsTextCompletion: false,
+      supportsFunctionCalling: false,
+      supportsVideoGeneration: true,
+      supportsVideoEditing: true,
+      supportsImageAnimation: true,
+      supportsConversationalMediaEditing: true,
+      lastVerified: '2026-06-30',
+    });
+    expect(metadata.routingNotes.join('\n')).toContain('do not route normal HoloScript text');
+    expect(metadata.sources).toContain('https://ai.google.dev/gemini-api/docs/omni');
+  });
+
+  it('keeps Interactions-only Gemini models out of default text routing', () => {
+    expect(isGeminiDefaultRoutingEligible('gemini-3.5-flash')).toBe(true);
+    expect(isGeminiDefaultRoutingEligible('gemini-omni-flash-preview')).toBe(false);
+    expect(getGeminiModelMetadata('gemini-omni-flash-preview')?.apiSurface).toBe(
+      'interactions'
+    );
   });
 });
 
@@ -65,6 +97,25 @@ describe('GEMINI_CAPABILITIES', () => {
     expect(GEMINI_CAPABILITIES.videoEditing).toBe(true);
     expect(GEMINI_CAPABILITIES.imageAnimation).toBe(true);
     expect(GEMINI_CAPABILITIES.conversationalMediaEditing).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// generateContent route guard
+// ---------------------------------------------------------------------------
+
+describe('GeminiAdapter route guards', () => {
+  it('rejects Gemini Omni Flash Preview before making a generateContent request', async () => {
+    const adapter = new GeminiAdapter({ apiKey: 'test-key' });
+
+    await expect(
+      adapter.complete(
+        {
+          messages: [{ role: 'user', content: 'Generate a short video of a marble run.' }],
+        },
+        'gemini-omni-flash-preview'
+      )
+    ).rejects.toThrow(/Interactions API/);
   });
 });
 
