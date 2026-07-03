@@ -1,12 +1,13 @@
 import { spawnSync } from 'node:child_process';
-import { createDecipheriv, createHash, type DecipherGCM } from 'node:crypto';
+import { createDecipheriv, type DecipherGCM } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
-import { homedir, hostname } from 'node:os';
+import { homedir } from 'node:os';
 import { join } from 'node:path';
 
 import type { buildPortableMind as buildPortableMindFn } from '@holoscript/holoscript-agent/portable-mind';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
+import { seatIdCandidatesForAgent } from './seatIds';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -107,7 +108,7 @@ async function loadBuildPortableMind(): Promise<BuildPortableMind> {
   return mod.buildPortableMind;
 }
 
-export function resolvePortableMindSeat(
+function resolvePortableMindSeat(
   agentId: string,
   env: NodeJS.ProcessEnv = process.env
 ): SeatWallet | null {
@@ -117,29 +118,11 @@ export function resolvePortableMindSeat(
   return loadEncryptedSeatWallet(agentId, env);
 }
 
-export function resolvePortableMindBearer(
+function resolvePortableMindBearer(
   agentId: string,
   env: NodeJS.ProcessEnv = process.env
 ): string | undefined {
   return firstSecret(bearerSecretNames(agentId), agentId, env);
-}
-
-export function seatIdCandidatesForAgent(
-  agentId: string,
-  env: NodeJS.ProcessEnv = process.env
-): string[] {
-  const suffix = envSuffix(agentId);
-  const fp = env.PORTABLE_MIND_MACHINE_FINGERPRINT ?? machineFingerprint();
-  return uniqueStrings([
-    env[`PORTABLE_MIND_SEAT_ID_${suffix}`],
-    env.PORTABLE_MIND_SEAT_ID,
-    env[`HOLOSCRIPT_AGENT_SEAT_ID_${suffix}`],
-    env.HOLOSCRIPT_AGENT_SEAT_ID,
-    `holoscript-${agentId}-${fp}-x402`,
-    `${agentId}-${fp}-x402`,
-    `${agentId}-x402`,
-    agentId,
-  ]);
 }
 
 function loadEncryptedSeatWallet(
@@ -281,13 +264,6 @@ function envSuffix(value: string): string {
     .toUpperCase()
     .replace(/[^A-Z0-9]+/gu, '_')
     .replace(/^_+|_+$/gu, '');
-}
-
-function machineFingerprint(): string {
-  return createHash('sha256')
-    .update(hostname() + homedir())
-    .digest('hex')
-    .slice(0, 8);
 }
 
 function uniqueStrings(values: Array<string | undefined>): string[] {

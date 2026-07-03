@@ -7,7 +7,8 @@ vi.mock('@holoscript/holoscript-agent/portable-mind', () => ({
   buildPortableMind: buildPortableMindMock,
 }));
 
-import { GET, seatIdCandidatesForAgent } from './route';
+import { GET } from './route';
+import { seatIdCandidatesForAgent } from './seatIds';
 
 const PRIVATE_KEY = `0x${'1'.repeat(64)}`;
 const WALLET = `0x${'2'.repeat(40)}`;

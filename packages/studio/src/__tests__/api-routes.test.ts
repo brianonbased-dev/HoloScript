@@ -141,6 +141,77 @@ describe('fleet dispatch auth guards (regression)', () => {
     }
   });
 
+  it('POST dry-run reports required_tags mismatches as unassigned', async () => {
+    const { requireAuth, requireFounder } = await import('@/lib/api-auth');
+    vi.mocked(requireAuth).mockResolvedValue({ user: { id: 'u1' } } as never);
+    vi.mocked(requireFounder).mockResolvedValue(
+      NextResponse.json({ error: 'Founder access required' }, { status: 403 }) as never
+    );
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('/board')) {
+        return new Response(
+          JSON.stringify({
+            tasks: [
+              {
+                id: 'needs-metal',
+                title: 'Owned-metal workload',
+                status: 'open',
+                priority: 'P2',
+                required_tags: ['owned-metal'],
+              },
+            ],
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } }
+        );
+      }
+      if (url.includes('/members')) {
+        return new Response(
+          JSON.stringify({ members: [{ agentId: 'cloud-agent', agentName: 'Cloud Agent' }] }),
+          { status: 200, headers: { 'content-type': 'application/json' } }
+        );
+      }
+      if (url.includes('/presence')) {
+        return new Response(
+          JSON.stringify({
+            online: [
+              {
+                agentId: 'cloud-agent',
+                agentName: 'Cloud Agent',
+                capabilityTags: ['cloud-lane'],
+              },
+            ],
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } }
+        );
+      }
+      if (url.includes('/agents/fleet')) {
+        return new Response(JSON.stringify({ agents: [] }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+      return new Response('{}', { status: 404, headers: { 'content-type': 'application/json' } });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      const { POST } = await import(ROUTE);
+      const req = new NextRequest('http://studio.test/api/agents/fleet/dispatch', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ teamId: 'team_x', dryRun: true }),
+      });
+      const res = await POST(req);
+      const json = (await res.json()) as { plan: { decisions: unknown[]; unassigned: string[] } };
+      expect(res.status).toBe(200);
+      expect(json.plan.decisions).toHaveLength(0);
+      expect(json.plan.unassigned).toEqual(['needs-metal']);
+      expect(vi.mocked(requireFounder)).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('POST accepts the founder-provisioned service token, bypassing the session gate', async () => {
     const { requireAuth, requireFounder } = await import('@/lib/api-auth');
     // BOTH session guards DENY — only the service token can let this through.

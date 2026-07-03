@@ -492,7 +492,8 @@ export class TwinGraphService {
       twins = twins.filter((twin) => ids.has(twin.id));
     }
     if (where.property) {
-      twins = twins.filter((twin) => propertyMatches(twin.properties, where.property));
+      const property = where.property;
+      twins = twins.filter((twin) => propertyMatches(twin.properties, property));
     }
     if (where.telemetryName) {
       twins = twins.filter((twin) => (twin.telemetry[where.telemetryName ?? ''] ?? []).length > 0);

@@ -49,6 +49,14 @@ function holomeshHeaders(clientAuth?: string | null): Record<string, string> {
   return h;
 }
 
+function stringList(value: unknown): string[] {
+  return Array.isArray(value) ? value.map(String).map((s) => s.trim()).filter(Boolean) : [];
+}
+
+function uniqueStrings(values: string[]): string[] {
+  return Array.from(new Set(values));
+}
+
 // ── Board + fleet fetch ───────────────────────────────────────────────────────
 
 async function fetchBoardTasks(teamId: string, clientAuth?: string | null): Promise<BoardTask[]> {
@@ -72,7 +80,11 @@ async function fetchBoardTasks(teamId: string, clientAuth?: string | null): Prom
         description: task['description'] ? String(task['description']) : undefined,
         priority: task['priority'] as BoardTask['priority'],
         role: task['role'] ? String(task['role']) : undefined,
-        tags: Array.isArray(task['tags']) ? (task['tags'] as string[]) : undefined,
+        tags: stringList(task['tags']),
+        required_tags: uniqueStrings([
+          ...stringList(task['required_tags']),
+          ...stringList(task['requiredTags']),
+        ]),
         status: task['status'] ? String(task['status']) : 'open',
         claimedBy: task['claimedBy'] ? String(task['claimedBy']) : null,
         createdAt: task['createdAt'] ? String(task['createdAt']) : undefined,
@@ -102,13 +114,23 @@ async function fetchFleetAgents(teamId: string, clientAuth?: string | null): Pro
 
   // Build a set of agent IDs with a live heartbeat
   const liveAgentIds = new Set<string>();
+  const liveCapabilityTagsByAgentId = new Map<string, string[]>();
   if (presenceRes.status === 'fulfilled' && presenceRes.value.ok) {
     const data: unknown = await presenceRes.value.json();
     const body = data as { online?: unknown[] };
     for (const p of body.online ?? []) {
       const entry = p as Record<string, unknown>;
       const id = String(entry['agentId'] ?? entry['id'] ?? '');
-      if (id) liveAgentIds.add(id);
+      if (id) {
+        liveAgentIds.add(id);
+        liveCapabilityTagsByAgentId.set(
+          id,
+          uniqueStrings([
+            ...stringList(entry['capabilityTags']),
+            ...stringList(entry['capability_tags']),
+          ])
+        );
+      }
     }
   }
 
@@ -124,14 +146,21 @@ async function fetchFleetAgents(teamId: string, clientAuth?: string | null): Pro
     // selected — avoids picking legacy/stale seats (e.g. antigravity-seed).
     const heartbeatGated = liveAgentIds.size > 0 && !liveAgentIds.has(id);
     const rawStatus = raw['status'] ? String(raw['status']) : 'online';
+    const staticSkills = uniqueStrings([
+      ...stringList(raw['skills']),
+      ...stringList(raw['defaultSkills']),
+    ]);
+    const registryCapabilityTags = uniqueStrings([
+      ...stringList(raw['capabilityTags']),
+      ...stringList(raw['capability_tags']),
+    ]);
+    const liveCapabilityTags = liveCapabilityTagsByAgentId.get(id);
+    const capabilityTags = liveCapabilityTags ?? registryCapabilityTags;
     agents.push({
       id,
       handle: String(raw['handle'] ?? raw['name'] ?? id),
-      skills: Array.isArray(raw['skills'])
-        ? (raw['skills'] as string[])
-        : Array.isArray(raw['defaultSkills'])
-          ? (raw['defaultSkills'] as string[])
-          : [],
+      skills: uniqueStrings([...staticSkills, ...registryCapabilityTags, ...capabilityTags]),
+      capabilityTags,
       status: heartbeatGated ? 'offline' : rawStatus,
       currentTask: raw['currentTask'] ? String(raw['currentTask']) : null,
       mission: raw['mission'] ? String(raw['mission']) : undefined,

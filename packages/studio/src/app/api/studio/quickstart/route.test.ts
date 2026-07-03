@@ -3,7 +3,8 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { parseHolo } from '../../../../../../core/src/parser/HoloCompositionParser';
 
-import { FIRST_SCENE_PROOF, POST } from './route';
+import { FIRST_SCENE_PROOF } from './firstSceneProof';
+import { POST } from './route';
 
 type QuickstartWorkflow = {
   name?: string;

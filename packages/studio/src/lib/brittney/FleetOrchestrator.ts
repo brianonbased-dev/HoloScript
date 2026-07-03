@@ -55,6 +55,10 @@ export interface BoardTask {
   role?: string;
   /** Free-form tags; used as capability signals (e.g. 'security', 'docs'). */
   tags?: string[];
+  /** Hard claim gate from HoloMesh board tasks. Agents must satisfy every tag. */
+  required_tags?: string[];
+  /** Camel-case alias accepted by local callers before route normalization. */
+  requiredTags?: string[];
   status?: 'open' | 'claimed' | 'blocked' | 'done' | string;
   /** Agent id/handle currently holding the task, if any. */
   claimedBy?: string | null;
@@ -67,6 +71,10 @@ export interface FleetAgent {
   handle: string;
   /** Capability tokens, e.g. ['codebase','holoscript-dev','frontend','compile']. */
   skills: string[];
+  /** Live heartbeat capability tags; used for required_tags parity with HoloMesh claims. */
+  capabilityTags?: string[];
+  /** Snake-case alias accepted from raw HoloMesh payloads. */
+  capability_tags?: string[];
   status?: 'online' | 'offline' | 'busy' | string;
   /** Task id the agent is currently working, or null if idle. */
   currentTask?: string | null;
@@ -141,10 +149,41 @@ const KEYWORD_SKILL_HINTS: Array<[RegExp, string]> = [
 export function deriveTaskSkills(task: BoardTask): Set<string> {
   const skills = new Set<string>();
   for (const tag of task.tags ?? []) skills.add(tag.toLowerCase());
+  for (const tag of requiredTagsForTask(task)) skills.add(tag.toLowerCase());
   if (task.role) for (const s of ROLE_SKILL_HINTS[task.role.toLowerCase()] ?? []) skills.add(s);
   const haystack = `${task.title} ${task.description ?? ''}`;
   for (const [re, skill] of KEYWORD_SKILL_HINTS) if (re.test(haystack)) skills.add(skill);
   return skills;
+}
+
+function normalizeTags(tags: string[] | undefined): string[] {
+  return (tags ?? []).map((t) => t.trim()).filter(Boolean);
+}
+
+/** Required tags are a hard HoloMesh claim gate, not a soft scoring hint. */
+export function requiredTagsForTask(task: BoardTask): string[] {
+  return Array.from(new Set([...normalizeTags(task.required_tags), ...normalizeTags(task.requiredTags)]));
+}
+
+/** Agent capability set used for strict required_tags gating. */
+export function claimCapabilityTagsForAgent(agent: FleetAgent): string[] {
+  const explicit =
+    agent.capabilityTags !== undefined
+      ? agent.capabilityTags
+      : agent.capability_tags !== undefined
+        ? agent.capability_tags
+        : undefined;
+  return Array.from(new Set(normalizeTags(explicit ?? agent.skills)));
+}
+
+/** Agent capability set used for soft scoring after the hard claim gate passes. */
+export function capabilityTagsForAgent(agent: FleetAgent): string[] {
+  return Array.from(new Set([...claimCapabilityTagsForAgent(agent), ...normalizeTags(agent.skills)]));
+}
+
+export function missingRequiredTags(task: BoardTask, agent: FleetAgent): string[] {
+  const have = new Set(claimCapabilityTagsForAgent(agent).map((s) => s.toLowerCase()));
+  return requiredTagsForTask(task).filter((tag) => !have.has(tag.toLowerCase()));
 }
 
 /**
@@ -159,9 +198,10 @@ export function scoreAgentForTask(task: BoardTask, agent: FleetAgent): number {
   if (status === 'offline') return Number.NEGATIVE_INFINITY;
   if (agent.currentTask) return Number.NEGATIVE_INFINITY; // one task at a time
   if (status === 'busy') return Number.NEGATIVE_INFINITY;
+  if (missingRequiredTags(task, agent).length > 0) return Number.NEGATIVE_INFINITY;
 
   const needed = deriveTaskSkills(task);
-  const have = new Set(agent.skills.map((s) => s.toLowerCase()));
+  const have = new Set(capabilityTagsForAgent(agent).map((s) => s.toLowerCase()));
   let matched = 0;
   for (const skill of needed) if (have.has(skill)) matched += 1;
 

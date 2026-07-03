@@ -9,6 +9,7 @@ import { describe, it, expect } from 'vitest';
 import {
   normalizePriority,
   deriveTaskSkills,
+  missingRequiredTags,
   scoreAgentForTask,
   matchAgentToTask,
   isClaimable,
@@ -72,6 +73,11 @@ describe('deriveTaskSkills', () => {
     expect(skills.has('security')).toBe(true); // keyword
   });
 
+  it('treats required_tags as capability signals', () => {
+    const skills = deriveTaskSkills(task({ title: 'run local workload', required_tags: ['owned-metal'] }));
+    expect(skills.has('owned-metal')).toBe(true);
+  });
+
   it('returns an empty-ish set for a vague task', () => {
     const skills = deriveTaskSkills(task({ title: 'misc' }));
     expect(skills.size).toBe(0);
@@ -98,6 +104,16 @@ describe('scoreAgentForTask', () => {
   it('keeps an idle generalist eligible (positive score)', () => {
     expect(scoreAgentForTask(task({ title: 'misc' }), agent())).toBeGreaterThan(0);
   });
+
+  it('makes agents missing required_tags ineligible before dispatch claim', () => {
+    const t = task({ title: 'owned metal workload', required_tags: ['owned-metal', 'gpu'] });
+    const local = agent({ skills: ['owned-metal'], capabilityTags: ['owned-metal'] });
+    const gpu = agent({ skills: ['owned-metal', 'gpu'], capabilityTags: ['owned-metal', 'gpu'] });
+
+    expect(missingRequiredTags(t, local)).toEqual(['gpu']);
+    expect(scoreAgentForTask(t, local)).toBe(Number.NEGATIVE_INFINITY);
+    expect(scoreAgentForTask(t, gpu)).toBeGreaterThan(0);
+  });
 });
 
 describe('matchAgentToTask', () => {
@@ -114,6 +130,19 @@ describe('matchAgentToTask', () => {
   it('returns null when no agent is eligible', () => {
     expect(matchAgentToTask(task(), [agent({ status: 'offline' })])).toBeNull();
     expect(matchAgentToTask(task(), [])).toBeNull();
+  });
+
+  it('skips higher-soft-score agents that lack required_tags', () => {
+    const t = task({
+      title: 'fix GPU scheduler regression',
+      tags: ['holoscript-dev'],
+      required_tags: ['owned-metal'],
+    });
+    const best = matchAgentToTask(t, [
+      agent({ id: 'cloud', skills: ['holoscript-dev'] }),
+      agent({ id: 'metal', skills: ['owned-metal'], capabilityTags: ['owned-metal'] }),
+    ]);
+    expect(best?.agent.id).toBe('metal');
   });
 });
 
@@ -255,6 +284,23 @@ describe('planFleetDispatch', () => {
     );
     expect(plan.decisions).toHaveLength(0);
     expect(plan.unassigned.map((t) => t.id)).toEqual(['orphan']);
+  });
+
+  it('reports required_tags mismatches as unassigned instead of planning a doomed claim', () => {
+    const plan = planFleetDispatch(
+      [task({ id: 'jetson-only', priority: 'P2', required_tags: ['jetson', 'owned-metal'] })],
+      [
+        agent({
+          id: 'cloud-lane',
+          skills: ['builder', 'holoscript-dev'],
+          capabilityTags: ['builder', 'cloud-lane'],
+        }),
+      ],
+      new SpendGovernor(),
+      { maxDispatches: 1 }
+    );
+    expect(plan.decisions).toHaveLength(0);
+    expect(plan.unassigned.map((t) => t.id)).toEqual(['jetson-only']);
   });
 
   it('shuts off on an EMPTY board — no decisions, no spend (founder condition)', () => {
