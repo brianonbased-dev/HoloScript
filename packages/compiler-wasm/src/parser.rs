@@ -1241,7 +1241,20 @@ impl Parser {
         let start_loc = self.current_location();
         let token = self.advance(); // consume trait token
 
-        let name = token.value.trim_start_matches('@').to_string();
+        let mut name = token.value.trim_start_matches('@').to_string();
+
+        // Definition form `@trait NAME { ... }`: the `@trait` keyword is followed
+        // by a separate identifier naming the trait. (Decorator form `@grabbable
+        // { ... }` carries the name in the `@`-token itself.) Without this branch
+        // the NAME identifier is left dangling and the next token errors with
+        // "Unexpected identifier: <name>" — the FIRST parse error on ~99.78% of
+        // the .hsplus corpus. Fixing it clears the header and exposes the
+        // still-unimplemented trait-body grammar (=> handlers, nested blocks,
+        // assignments) beneath — so this lifts .hsplus parse from 0.22% to 0.65%,
+        // not to 100%.
+        if name == "trait" && self.check(TokenType::Identifier) {
+            name = self.expect_identifier()?;
+        }
 
         let config = if self.check(TokenType::LBrace) {
             self.advance();
