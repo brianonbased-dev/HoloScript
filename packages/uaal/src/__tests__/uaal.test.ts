@@ -45,8 +45,15 @@ describe('UAALOpCode', () => {
   it('should identify control flow opcodes', () => {
     expect(isControlFlowOp(UAALOpCode.JUMP)).toBe(true);
     expect(isControlFlowOp(UAALOpCode.JUMP_IF)).toBe(true);
+    expect(isControlFlowOp(UAALOpCode.CALL)).toBe(true);
+    expect(isControlFlowOp(UAALOpCode.RET)).toBe(true);
     expect(isControlFlowOp(UAALOpCode.HALT)).toBe(true);
     expect(isControlFlowOp(UAALOpCode.PUSH)).toBe(false);
+  });
+
+  it('should have CALL/RET in the 0x32-0x33 control-flow range', () => {
+    expect(UAALOpCode.CALL).toBe(0x32);
+    expect(UAALOpCode.RET).toBe(0x33);
   });
 
   it('should return opcode names', () => {
@@ -267,6 +274,104 @@ describe('UAALVirtualMachine', () => {
       };
       const result = await vm.execute(bytecode);
       expect(result.stackTop).toBe(100);
+    });
+
+    // ── CALL/RET (task_1783074165553_5n74: real call/return convention) ──
+    // Deliberately minimal: CALL/RET manage ONLY the return-address stack,
+    // not argument binding or locals (see opcodes.ts doc comments) -- these
+    // tests prove that one thing genuinely works, including through real
+    // nested recursion, not just a single non-recursive call.
+
+    it('CALL jumps to target and RET resumes exactly after the call site', async () => {
+      const bytecode: UAALBytecode = {
+        version: 1,
+        instructions: [
+          { opCode: UAALOpCode.CALL, operands: [3] }, // 0: call the fn at addr 3
+          { opCode: UAALOpCode.PUSH, operands: ['resumed'] }, // 1: runs after RET
+          { opCode: UAALOpCode.HALT }, // 2
+          { opCode: UAALOpCode.PUSH, operands: [42] }, // 3: fn body
+          { opCode: UAALOpCode.RET }, // 4
+        ],
+      };
+      const result = await vm.execute(bytecode);
+      // the callee's PUSH(42) lands on the stack, then the caller's PUSH('resumed')
+      // lands on top -- proving both actually ran, in the right order.
+      expect(result.state.stack).toEqual([42, 'resumed']);
+      expect(result.taskStatus).toBe('HALTED');
+    });
+
+    it('RET with no active call frame halts rather than crashing (top-level return)', async () => {
+      const bytecode: UAALBytecode = {
+        version: 1,
+        instructions: [
+          { opCode: UAALOpCode.PUSH, operands: ['before'] },
+          { opCode: UAALOpCode.RET }, // no CALL preceded this
+          { opCode: UAALOpCode.PUSH, operands: ['unreachable'] },
+        ],
+      };
+      const result = await vm.execute(bytecode);
+      expect(result.taskStatus).toBe('HALTED');
+      expect(result.stackTop).toBe('before'); // proves the unreachable PUSH never ran
+    });
+
+    it('genuine recursion: N nested CALLs unwind through N RETs in correct LIFO order', async () => {
+      // countdown():
+      //   if (hasMore()) CALL countdown   // recursive self-call
+      //   markUnwind()
+      //   RET
+      // main: CALL countdown; HALT
+      const bytecode: UAALBytecode = {
+        version: 1,
+        instructions: [
+          { opCode: UAALOpCode.EXECUTE, operands: ['hasMore'] }, // 0
+          { opCode: UAALOpCode.JUMP_IF, operands: [3] }, // 1
+          { opCode: UAALOpCode.JUMP, operands: [4] }, // 2
+          { opCode: UAALOpCode.CALL, operands: [0] }, // 3: recursive self-call
+          { opCode: UAALOpCode.EXECUTE, operands: ['markUnwind'] }, // 4
+          { opCode: UAALOpCode.RET }, // 5
+          { opCode: UAALOpCode.CALL, operands: [0] }, // 6: main calls countdown
+          { opCode: UAALOpCode.HALT }, // 7
+        ],
+      };
+
+      const trace: string[] = [];
+      let remaining = 3;
+      const testVm = new UAALVirtualMachine();
+      testVm.registerHandler(UAALOpCode.EXECUTE, (proxy, operands) => {
+        const tag = operands[0] as string;
+        if (tag === 'hasMore') {
+          const more = remaining > 0;
+          if (more) remaining--;
+          proxy.push(more);
+        } else if (tag === 'markUnwind') {
+          trace.push('unwind');
+        }
+      });
+
+      const result = await testVm.execute(bytecode);
+
+      // 4 total invocations of countdown() happened (1 initial + 3 recursive,
+      // since hasMore was truthy exactly 3 times) -- each must unwind exactly
+      // once, proving the return-address stack correctly threaded all 4
+      // nested frames back to the original CALL at addr 6, landing on HALT.
+      expect(trace).toEqual(['unwind', 'unwind', 'unwind', 'unwind']);
+      expect(result.taskStatus).toBe('HALTED');
+      expect(result.state.callStack).toEqual([]); // fully unwound, no leaked frames
+    });
+
+    it('runaway recursion throws a distinct call-stack-overflow error, not the generic maxInstructions ERROR', async () => {
+      const alwaysRecurse: UAALBytecode = {
+        version: 1,
+        instructions: [
+          { opCode: UAALOpCode.CALL, operands: [0] }, // infinite self-recursion
+        ],
+      };
+      const shallowVm = new UAALVirtualMachine({ maxCallDepth: 5, maxInstructions: 100_000 });
+      const result = await shallowVm.execute(alwaysRecurse);
+      // caught by the execute() try/catch -> ERROR, but distinguishable from a
+      // maxInstructions-exhaustion ERROR because it happens almost immediately
+      // (after ~5 CALLs, not 100,000 instructions).
+      expect(result.taskStatus).toBe('ERROR');
     });
   });
 

@@ -29,6 +29,15 @@ export interface VMState {
   pc: number;
   context: Record<string, UAALOperand>;
   isHalted: boolean;
+  /**
+   * Return-address stack for CALL/RET. Each entry is the pc to resume at
+   * when the matching RET executes. Deliberately just return addresses, not
+   * full call frames with locals -- argument/local scoping stays a
+   * compiler/host concern layered on the operand stack + EXECUTE-delegated
+   * conventions, the same way it already is for every other construct this
+   * VM runs (see CALL's doc comment in opcodes.ts).
+   */
+  callStack: number[];
 }
 
 export interface VMResult {
@@ -63,6 +72,16 @@ export interface UAALVMOptions {
   enableLogging?: boolean;
   maxStackSize?: number;
   maxInstructions?: number;
+  /**
+   * Max simultaneous CALL depth before RET can unwind it. Distinct from
+   * maxInstructions: runaway recursion should fail with a specific,
+   * diagnosable "call stack overflow" rather than the generic
+   * max-instructions-reached ERROR that also covers unrelated infinite
+   * loops -- the same class of ambiguous-failure risk already flagged for
+   * unregistered EXECUTE handlers (see UaalBehaviorCompiler's loop-lowering
+   * doc comments) is worth avoiding here too.
+   */
+  maxCallDepth?: number;
 }
 
 // =============================================================================
@@ -75,11 +94,13 @@ export class UAALVirtualMachine {
   private enableLogging: boolean;
   private maxStackSize: number;
   private maxInstructions: number;
+  private maxCallDepth: number;
 
   constructor(options: UAALVMOptions = {}) {
     this.enableLogging = options.enableLogging ?? false;
     this.maxStackSize = options.maxStackSize ?? 4096;
     this.maxInstructions = options.maxInstructions ?? 100_000;
+    this.maxCallDepth = options.maxCallDepth ?? 1000;
     this.state = this.createInitialState();
     this.registerDefaultHandlers();
   }
@@ -90,6 +111,7 @@ export class UAALVirtualMachine {
       pc: 0,
       context: { ...context },
       isHalted: false,
+      callStack: [],
     };
   }
 
@@ -156,7 +178,12 @@ export class UAALVirtualMachine {
    * Get current VM state
    */
   getState(): VMState {
-    return { ...this.state, stack: [...this.state.stack], context: { ...this.state.context } };
+    return {
+      ...this.state,
+      stack: [...this.state.stack],
+      context: { ...this.state.context },
+      callStack: [...this.state.callStack],
+    };
   }
 
   /**
@@ -268,6 +295,35 @@ export class UAALVirtualMachine {
           return true;
         }
         return false;
+      }
+
+      case UAALOpCode.CALL: {
+        if (this.state.callStack.length >= this.maxCallDepth) {
+          throw new Error(
+            `Call stack overflow: exceeded maxCallDepth (${this.maxCallDepth}). ` +
+              'This is a distinct signal from maxInstructions -- it specifically ' +
+              'means CALL recursed deeper than the configured limit, not that ' +
+              'total execution ran long.'
+          );
+        }
+        const target = operands[0] as number;
+        this.state.callStack.push(this.state.pc + 1);
+        this.state.pc = target;
+        return true;
+      }
+
+      case UAALOpCode.RET: {
+        const returnPc = this.state.callStack.pop();
+        if (returnPc === undefined) {
+          // Return with no active call frame: nowhere to return to -- halt
+          // rather than throw, since a top-level RET is a valid (if unusual)
+          // "this program is done" signal, the same way falling off the end
+          // of the instruction list already halts.
+          this.state.isHalted = true;
+          return false;
+        }
+        this.state.pc = returnPc;
+        return true;
       }
 
       case UAALOpCode.HALT:

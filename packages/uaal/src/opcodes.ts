@@ -8,7 +8,7 @@
  *   0x01–0x03  Stack Operations
  *   0x10–0x17  Cognitive Operations (7-Phase Protocol)
  *   0x20–0x2B  Execution & Mesh Operations
- *   0x30–0x31  Control Flow
+ *   0x30–0x33  Control Flow
  *   0x40–0x47  Temporal & Multiversal
  *   0x50–0x54  Transcendence
  *   0x60–0x62  Real-World Integration
@@ -57,6 +57,28 @@ export enum UAALOpCode {
   // ── Control Flow ──────────────────────────────────────────────────────────
   JUMP = 0x30,
   JUMP_IF = 0x31,
+  /**
+   * CALL[targetPc]: push a call frame recording the return address (current
+   * pc + 1), then jump to targetPc. Pairs with RET. Deliberately minimal —
+   * this manages ONLY the return-address stack (a real VM-ISA control-flow
+   * primitive, the same category as JUMP/JUMP_IF), not argument binding or
+   * lexical scoping. Argument passing and locals remain a compiler/host
+   * concern layered on top (e.g. via the operand stack and/or the existing
+   * EXECUTE-delegated declare:/assign: convention), exactly as they already
+   * are for every other construct this VM lowers — CALL/RET do not introduce
+   * a second, VM-native variable-scoping model alongside that one.
+   */
+  CALL = 0x32,
+  /**
+   * RET: pop the current call frame and jump to its return address. Any
+   * value the callee wants to return should already be on top of the operand
+   * stack when RET executes (the same convention `ReturnStatement`'s PUSH
+   * already uses) -- RET does not itself push or pop a return value, only
+   * the control-flow return address. RET with no active call frame (a
+   * top-level return) halts execution, since there is nowhere left to
+   * return to.
+   */
+  RET = 0x33,
 
   // ── Temporal & Multiversal ────────────────────────────────────────────────
   OP_FORK_UNIVERSE = 0x40,
@@ -186,5 +208,11 @@ export function isCognitiveOp(opcode: UAALOpCode): boolean {
  * Check if opcode is a control flow instruction
  */
 export function isControlFlowOp(opcode: UAALOpCode): boolean {
-  return opcode === UAALOpCode.JUMP || opcode === UAALOpCode.JUMP_IF || opcode === UAALOpCode.HALT;
+  return (
+    opcode === UAALOpCode.JUMP ||
+    opcode === UAALOpCode.JUMP_IF ||
+    opcode === UAALOpCode.CALL ||
+    opcode === UAALOpCode.RET ||
+    opcode === UAALOpCode.HALT
+  );
 }
