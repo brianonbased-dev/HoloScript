@@ -65,7 +65,7 @@
     "vitest": "^4.1.5"
   },
   "peerDependencies": {
-    "@anthropic-ai/sdk": "^0.88.0",
+    "@anthropic-ai/sdk": "^0.91.1",
     "openai": "^6.32.0"
   },
   "peerDependenciesMeta": {

@@ -175,7 +175,7 @@ interface HolotestResult {
 // ── LLM Judge types ────────────────────────────────────────────────────────
 
 interface LLMJudgeConfig {
-  /** Judge model — any provider-qualified model string, e.g. "claude-3-5-sonnet-20241022" */
+  /** Judge model — any provider-qualified model string, e.g. "claude-opus-4-7" */
   model?: string;
   /** Free-text rubric the judge evaluates against */
   rubric: string;
@@ -374,7 +374,7 @@ export const holotestTools: Tool[] = [
             model: {
               type: 'string',
               description:
-                'Judge model to use (e.g. "claude-3-5-sonnet-20241022"). ' +
+                'Judge model to use (e.g. "claude-opus-4-7"). ' +
                 'Defaults to the highest-priority registered provider.',
             },
             rubric: {
@@ -439,7 +439,7 @@ export const holotestTools: Tool[] = [
         },
         model: {
           type: 'string',
-          description: 'Judge model override (e.g. "claude-3-5-sonnet-20241022").',
+          description: 'Judge model override (e.g. "claude-opus-4-7").',
         },
         reference_output: {
           type: 'string',

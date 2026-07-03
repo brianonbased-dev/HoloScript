@@ -199,7 +199,7 @@
     "check:trait-parity:verbose": "node scripts/holo-ci/check-trait-parity.mjs --verbose"
   },
   "devDependencies": {
-    "@anthropic-ai/sdk": "^0.88.0",
+    "@anthropic-ai/sdk": "^0.91.1",
     "@changesets/cli": "^2.29.4",
     "@types/node": "^24.10.1",
     "@typescript-eslint/eslint-plugin": "^8.56.1",
