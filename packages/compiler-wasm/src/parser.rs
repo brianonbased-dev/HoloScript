@@ -1398,7 +1398,12 @@ impl Parser {
     fn parse_trait_property(&mut self) -> Result<PropertyNode, ParseError> {
         let key = self.expect_identifier_or_string()?;
         self.expect(TokenType::Colon)?;
-        let value = self.parse_expression()?;
+        // `mode: enum("a" | "b")` — enum type annotations aren't expressions.
+        let value = if self.check(TokenType::Enum) {
+            self.parse_enum_type()?
+        } else {
+            self.parse_expression()?
+        };
 
         // Optional-type marker: `llm_provider_id: String?`.
         if self.check(TokenType::Question) {
@@ -1422,6 +1427,39 @@ impl Parser {
             value: Box::new(value),
             loc: None,
         })
+    }
+
+    /// Parse an enum type annotation used as a field value:
+    ///   `mode: enum("t0" | "t1" | "t2")`
+    /// The variant list mixes string literals and `|` separators (lexed as
+    /// `Invalid`), so it is captured raw into an `Identifier` node — the full
+    /// `enum(...)` text is preserved rather than dropped.
+    fn parse_enum_type(&mut self) -> Result<AstNode, ParseError> {
+        let mut text = self.advance().value.clone(); // "enum"
+        if self.check(TokenType::LParen) {
+            self.advance();
+            text.push('(');
+            let mut depth = 1;
+            while depth > 0 && !self.is_at_end() {
+                let t = self.peek().clone();
+                if t.token_type == TokenType::LParen {
+                    depth += 1;
+                } else if t.token_type == TokenType::RParen {
+                    depth -= 1;
+                    if depth == 0 {
+                        self.advance();
+                        text.push(')');
+                        break;
+                    }
+                }
+                text.push_str(&t.value);
+                self.advance();
+            }
+        }
+        Ok(AstNode::Identifier(IdentifierNode {
+            name: text,
+            loc: None,
+        }))
     }
 
     fn parse_property(&mut self) -> Result<PropertyNode, ParseError> {
@@ -2225,6 +2263,34 @@ mod tests {
             .members
             .iter()
             .any(|m| matches!(m, AstNode::Trait(tr) if tr.name == "receipt")));
+    }
+
+    #[test]
+    fn test_trait_body_enum_type() {
+        let source = r#"@trait agent { mode: enum("t0" | "t1" | "t2") }"#;
+        let mut parser = Parser::new(source);
+        let ast = parser.parse().expect("enum type annotation should parse");
+        let t = ast
+            .body
+            .iter()
+            .find_map(|n| match n {
+                AstNode::Trait(t) if t.name == "agent" => Some(t),
+                _ => None,
+            })
+            .expect("agent trait present");
+        let Some(AstNode::ObjectLiteral(o)) = t.config.as_deref() else {
+            panic!("config should be ObjectLiteral");
+        };
+        let mode = o
+            .properties
+            .iter()
+            .find(|p| p.key == "mode")
+            .expect("mode property present");
+        // enum members preserved (not dropped).
+        assert!(
+            matches!(mode.value.as_ref(), AstNode::Identifier(id) if id.name.contains("t1")),
+            "enum variants must be preserved in the value"
+        );
     }
 
     #[test]
