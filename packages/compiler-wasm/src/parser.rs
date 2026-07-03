@@ -1243,18 +1243,138 @@ impl Parser {
 
         let mut name = token.value.trim_start_matches('@').to_string();
 
-        // Definition form `@trait NAME { ... }`: the `@trait` keyword is followed
-        // by a separate identifier naming the trait. (Decorator form `@grabbable
-        // { ... }` carries the name in the `@`-token itself.) Without this branch
-        // the NAME identifier is left dangling and the next token errors with
-        // "Unexpected identifier: <name>" — the FIRST parse error on ~99.78% of
-        // the .hsplus corpus. Fixing it clears the header and exposes the
-        // still-unimplemented trait-body grammar (=> handlers, nested blocks,
-        // assignments) beneath — so this lifts .hsplus parse from 0.22% to 0.65%,
-        // not to 100%.
-        if name == "trait" && self.check(TokenType::Identifier) {
+        // `@trait NAME { ... }` DEFINITION form: the `@trait` keyword is followed
+        // by a separate identifier naming the trait. (Decorator applications like
+        // `@grabbable { ... }` carry their name in the `@`-token itself.) Consuming
+        // the NAME here is what lets the header parse; the definition BODY is then
+        // parsed by `parse_trait_definition_body` — which understands `@on_*`
+        // handlers, nested `@receipt`/`@synced` annotations, and `field: Type =
+        // default` — whereas a plain application body stays on the property-only
+        // `parse_object_literal_body`. Gating the richer body on the definition
+        // form keeps the (shared) application/decorator path byte-identical.
+        let is_definition = name == "trait";
+        if is_definition && self.check(TokenType::Identifier) {
             name = self.expect_identifier()?;
         }
+
+        let mut members = Vec::new();
+        let config = if self.check(TokenType::LBrace) {
+            self.advance();
+            let obj = if is_definition {
+                self.parse_trait_definition_body(&mut members)?
+            } else {
+                self.parse_object_literal_body()?
+            };
+            self.expect(TokenType::RBrace)?;
+            Some(Box::new(obj))
+        } else {
+            None
+        };
+
+        Ok(TraitNode {
+            name,
+            label: None,
+            config,
+            members,
+            loc: Some(self.location_from(start_loc)),
+        })
+    }
+
+    /// Parse the body of a trait DEFINITION (`@trait NAME { ... }`). Unlike a
+    /// trait application's config (plain `key: value` only), a definition body
+    /// mixes several member kinds:
+    ///   - `key: value` / `key: Type = default` properties -> the returned
+    ///     `ObjectLiteral` (so existing `TraitNode.config` consumers keep working)
+    ///   - `@on_*[(params)] [=>] { ... }` event handlers    -> `members`
+    ///   - `@receipt NAME { ... }` / `@synced { ... }` annotations -> `members`
+    ///   - bare keyword reaction blocks `on_grab { ... }`   -> `members`
+    /// The opening `{` has already been consumed; this stops at the matching `}`,
+    /// which the caller consumes.
+    fn parse_trait_definition_body(
+        &mut self,
+        members: &mut Vec<AstNode>,
+    ) -> Result<AstNode, ParseError> {
+        let mut properties = Vec::new();
+
+        while !self.check(TokenType::RBrace) && !self.is_at_end() {
+            if self.check(TokenType::Trait) {
+                // `@word ...` — an `@on_*` handler or a nested annotation.
+                let word = self.peek().value.trim_start_matches('@').to_string();
+                if word.starts_with("on_") {
+                    members.push(self.parse_trait_arrow_handler()?);
+                } else {
+                    members.push(self.parse_trait_annotation()?);
+                }
+            } else if self.check(TokenType::OnEvent) {
+                // Bare keyword reaction block `on_grab { ... }` (no `@`).
+                members.push(self.parse_game_event_block()?);
+            } else {
+                properties.push(self.parse_trait_property()?);
+            }
+        }
+
+        Ok(AstNode::ObjectLiteral(ObjectLiteralNode {
+            properties,
+            loc: None,
+        }))
+    }
+
+    /// Parse an `@on_*` event handler inside a trait definition body:
+    ///   `@on_spawn { ... }` | `@on_grab(event) { ... }` | `@on_x(a, b) => { ... }`
+    /// The `=>` arrow is accepted but OPTIONAL: the canonical native form omits it,
+    /// the current corpus includes it. The body is captured raw (matching the
+    /// existing `.hs` `on_*` blocks) so it tolerates any in-body statement form.
+    fn parse_trait_arrow_handler(&mut self) -> Result<AstNode, ParseError> {
+        let start_loc = self.current_location();
+        let token = self.advance(); // consume `@on_*`
+        let name = token.value.trim_start_matches('@').to_string();
+
+        let mut params = Vec::new();
+        if self.check(TokenType::LParen) {
+            self.advance();
+            while !self.check(TokenType::RParen) && !self.is_at_end() {
+                params.push(self.expect_identifier()?);
+                if self.check(TokenType::Comma) {
+                    self.advance();
+                }
+            }
+            self.expect(TokenType::RParen)?;
+        }
+
+        // Optional `=>` between the (params) and the body block.
+        if self.check(TokenType::Arrow) {
+            self.advance();
+        }
+
+        let body = if self.check(TokenType::LBrace) {
+            self.consume_braced_body_raw()?
+        } else {
+            String::new()
+        };
+
+        Ok(AstNode::GameEventBlock(GameEventBlockNode {
+            name: name.clone(),
+            params,
+            body,
+            category: Some(reaction_category(&name).to_string()),
+            loc: Some(self.location_from(start_loc)),
+        }))
+    }
+
+    /// Parse a nested annotation inside a trait definition body:
+    ///   `@receipt NAME { ... }` (named) | `@synced { ... }` / `@physics { ... }`
+    /// Represented as a `TraitNode` whose `label` carries the optional instance
+    /// NAME and whose `config` is the `{ key: value }` body.
+    fn parse_trait_annotation(&mut self) -> Result<AstNode, ParseError> {
+        let start_loc = self.current_location();
+        let token = self.advance(); // consume `@word`
+        let name = token.value.trim_start_matches('@').to_string();
+
+        let label = if self.check(TokenType::Identifier) {
+            Some(self.expect_identifier()?)
+        } else {
+            None
+        };
 
         let config = if self.check(TokenType::LBrace) {
             self.advance();
@@ -1265,10 +1385,36 @@ impl Parser {
             None
         };
 
-        Ok(TraitNode {
+        Ok(AstNode::Trait(TraitNode {
             name,
+            label,
             config,
+            members: Vec::new(),
             loc: Some(self.location_from(start_loc)),
+        }))
+    }
+
+    /// Parse a trait definition property, tolerating a typed field default:
+    ///   `maxHealth: 100` | `capability_tags: [ ... ]` | `auto_register: Bool = true`
+    fn parse_trait_property(&mut self) -> Result<PropertyNode, ParseError> {
+        let key = self.expect_identifier_or_string()?;
+        self.expect(TokenType::Colon)?;
+        let value = self.parse_expression()?;
+
+        // Optional typed-field default: `name: Type = default`.
+        if self.check(TokenType::Equals) {
+            self.advance();
+            let _default = self.parse_expression()?;
+        }
+
+        if !self.check(TokenType::RBrace) && self.check(TokenType::Comma) {
+            self.advance();
+        }
+
+        Ok(PropertyNode {
+            key,
+            value: Box::new(value),
+            loc: None,
         })
     }
 
@@ -1953,6 +2099,89 @@ pub fn reaction_category(trigger: &str) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // --- Trait-definition body grammar (handlers / @receipt / field-defaults) ---
+
+    #[test]
+    fn test_trait_definition_captures_handlers_and_receipt() {
+        // The corpus `=>` handler form + @receipt + a typed field default must
+        // parse AND be captured in the AST — not silently dropped (the G3 guard).
+        let source = r#"@trait Health {
+            maxHP: 100
+            auto: Bool = true
+            @on_spawn(e) => { hp = maxHP }
+            @receipt cfg { type: "HealthReceipt" }
+        }"#;
+        let mut parser = Parser::new(source);
+        let ast = parser.parse().expect("trait definition body should parse");
+        let t = ast
+            .body
+            .iter()
+            .find_map(|n| match n {
+                AstNode::Trait(t) if t.name == "Health" => Some(t),
+                _ => None,
+            })
+            .expect("Health trait present");
+
+        // config stays a property-only ObjectLiteral so existing consumers (e.g.
+        // FrameDeclarationNode::try_from_directive) are unaffected.
+        assert!(matches!(t.config.as_deref(), Some(AstNode::ObjectLiteral(_))));
+
+        // handler captured with its param and a non-empty body (no silent drop).
+        let h = t
+            .members
+            .iter()
+            .find_map(|m| match m {
+                AstNode::GameEventBlock(g) if g.name == "on_spawn" => Some(g),
+                _ => None,
+            })
+            .expect("on_spawn handler captured in members");
+        assert_eq!(h.params, vec!["e".to_string()]);
+        assert!(!h.body.is_empty(), "handler body must not be empty");
+
+        // receipt captured with its instance label.
+        let r = t
+            .members
+            .iter()
+            .find_map(|m| match m {
+                AstNode::Trait(tr) if tr.name == "receipt" => Some(tr),
+                _ => None,
+            })
+            .expect("receipt captured in members");
+        assert_eq!(r.label.as_deref(), Some("cfg"));
+    }
+
+    #[test]
+    fn test_trait_handler_arrow_is_optional() {
+        // Native canonical form (no `=>`) and current corpus form (`=>`) both parse.
+        for src in [
+            "@trait T { @on_spawn { hp = 1 } }",
+            "@trait T { @on_spawn => { hp = 1 } }",
+        ] {
+            let mut parser = Parser::new(src);
+            assert!(parser.parse().is_ok(), "should parse: {}", src);
+        }
+    }
+
+    #[test]
+    fn test_trait_application_body_unchanged() {
+        // Regression guard: a decorator application (name != "trait") must NOT run
+        // the definition body loop — members stays empty, config property-only.
+        let source = r#"@grabbable { color: "red" }"#;
+        let mut parser = Parser::new(source);
+        let ast = parser.parse().expect("decorator application should parse");
+        let t = ast
+            .body
+            .iter()
+            .find_map(|n| match n {
+                AstNode::Trait(t) => Some(t),
+                _ => None,
+            })
+            .expect("trait node present");
+        assert_eq!(t.name, "grabbable");
+        assert!(t.members.is_empty(), "application must not collect members");
+        assert!(matches!(t.config.as_deref(), Some(AstNode::ObjectLiteral(_))));
+    }
 
     #[test]
     fn test_parse_simple_orb() {

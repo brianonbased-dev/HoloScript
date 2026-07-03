@@ -349,8 +349,21 @@ pub struct PropertyNode {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TraitNode {
     pub name: String,
+    /// Instance/label name for named annotations inside a trait definition body,
+    /// e.g. the `mcp_registrar_config` in `@receipt mcp_registrar_config { … }`.
+    /// `None` for plain `@decorator` applications and for `@trait NAME` (whose
+    /// NAME lives in `name`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub config: Option<Box<AstNode>>,
+    /// Trait-DEFINITION body members that are not plain `key: value` properties:
+    /// `@on_*` event handlers and nested `@receipt`/`@synced`/… annotations.
+    /// Empty for trait applications (`@grabbable`). `config` still carries the
+    /// plain properties as an `ObjectLiteral`, so existing config consumers are
+    /// unaffected.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub members: Vec<AstNode>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub loc: Option<Location>,
 }
