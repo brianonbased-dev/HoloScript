@@ -135,6 +135,8 @@ async function callSign(
 // ── Setup / teardown ──────────────────────────────────────────────────────────
 
 let wrappingKeyB64: string;
+const originalNodeEnv = process.env.NODE_ENV;
+const originalRequire2FA = process.env.REQUIRE_2FA;
 
 beforeEach(() => {
   // Generate a fresh wrapping key per test so tests don't share state.
@@ -146,6 +148,16 @@ beforeEach(() => {
 
 afterEach(() => {
   delete process.env.HOLOMESH_KMS_WRAPPING_KEY_B64;
+  if (originalNodeEnv === undefined) {
+    delete process.env.NODE_ENV;
+  } else {
+    process.env.NODE_ENV = originalNodeEnv;
+  }
+  if (originalRequire2FA === undefined) {
+    delete process.env.REQUIRE_2FA;
+  } else {
+    process.env.REQUIRE_2FA = originalRequire2FA;
+  }
   keyRegistry.clear();
   _resetCustodialWalletForTests();
   _resetAuditLogForTests();
@@ -192,6 +204,21 @@ describe('POST /api/identity/custodial/sign — happy path', () => {
     const signature = Buffer.from(res._body.signature_base64 as string, 'base64');
     const valid = crypto.verify(null, payload, publicKey, signature);
     expect(valid).toBe(true);
+  });
+
+  it('requires 2FA by default in production when REQUIRE_2FA is unset', async () => {
+    delete process.env.REQUIRE_2FA;
+    process.env.NODE_ENV = 'production';
+
+    const wrappingKey = Buffer.from(wrappingKeyB64, 'base64');
+    provisionCustodialWallet(TEST_USER_ID, TEST_USER_ID, { wrappingKey });
+
+    const res = await callSign({
+      payload_base64: Buffer.from('production default gate').toString('base64'),
+    });
+
+    expect(res._status).toBe(403);
+    expect(res._body.error).toBe('two_factor_required');
   });
 });
 

@@ -22,10 +22,10 @@
  *      changes, swap the guard in prepareHandler.
  *
  *   2. Step-up 2FA (spec Invariant #4): this server does NOT currently ship a 2FA
- *      layer. The prepare handler gates on `REQUIRE_2FA` env — when set truthy, a
- *      `two_factor_token` is required in the request body. Token verification is
- *      delegated to a stub (`verifyTwoFactorToken`) that only accepts tokens shaped
- *      like `2fa:<non-empty>` in dev; production swap lands with the 2FA service.
+ *      layer. The prepare handler gates on `REQUIRE_2FA` env, and production
+ *      defaults to required when the env is unset. Token verification is delegated
+ *      to a stub (`verifyTwoFactorToken`) that only accepts tokens shaped like
+ *      `2fa:<non-empty>` in dev; production swap lands with the 2FA service.
  *      Skipping 2FA is logged loudly so the gap is never silent.
  *
  *   3. Rate-limit on /prepare (spec rate-limit): 3/hour per authenticated agent.
@@ -151,10 +151,11 @@ function getPlatformSigningKey(): { publicKey: crypto.KeyObject; privateKey: cry
 /**
  * Spec Invariant #4: Export requires step-up 2FA even for authenticated users.
  * Current server has no 2FA layer. This stub is the integration seam:
- *   - When `REQUIRE_2FA=true`, prepare requires `two_factor_token` in body and
- *     validates shape via this function.
- *   - When `REQUIRE_2FA` is unset, prepare skips 2FA but logs a WARN so the
- *     gap is observable in production logs.
+ *   - When `REQUIRE_2FA=true`, or NODE_ENV=production with REQUIRE_2FA unset,
+ *     prepare requires `two_factor_token` in body and validates shape via this
+ *     function.
+ *   - When `REQUIRE_2FA` is unset outside production, prepare skips 2FA but
+ *     logs a WARN so the gap is observable during dev/test.
  *   - Production swap: replace the body of this function with a call to the
  *     2FA service (TOTP verify, WebAuthn attestation, etc.). The route contract
  *     stays the same.
@@ -167,8 +168,11 @@ function verifyTwoFactorToken(token: string | undefined): boolean {
 }
 
 function twoFactorRequired(): boolean {
-  const v = (process.env.REQUIRE_2FA || '').trim().toLowerCase();
-  return v === 'true' || v === '1' || v === 'yes';
+  const raw = process.env.REQUIRE_2FA;
+  const v = (raw || '').trim().toLowerCase();
+  if (v === 'false' || v === '0' || v === 'no') return false;
+  if (v === 'true' || v === '1' || v === 'yes') return true;
+  return process.env.NODE_ENV === 'production';
 }
 
 // ── Rate limiting ────────────────────────────────────────────────────────────

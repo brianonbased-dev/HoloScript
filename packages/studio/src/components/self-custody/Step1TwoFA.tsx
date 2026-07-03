@@ -5,8 +5,8 @@ import React, { useState } from 'react';
 /**
  * Step 1 — 2FA step-up challenge.
  *
- * Server gates on REQUIRE_2FA env var. When unset, server accepts requests
- * without a 2FA token but logs a WARN. We still show this step for a clear
+ * Server gates on REQUIRE_2FA env var and defaults to requiring 2FA in
+ * production. Non-production servers may skip enforcement and show this
  * dev-surface banner so operators know the gap exists.
  */
 export interface Step1Props {
@@ -45,8 +45,8 @@ export function Step1TwoFA({ devSkipBanner, onContinue, onCancel }: Step1Props) 
           role="alert"
           aria-label="dev-banner"
         >
-          <strong>DEV MODE:</strong> REQUIRE_2FA is disabled on this server. The migration will
-          proceed without 2FA. Do not ship this configuration to production.
+          <strong>DEV MODE:</strong> REQUIRE_2FA is disabled on this non-production server. The
+          migration will proceed without 2FA. Do not ship an explicit disable to production.
         </div>
       )}
 

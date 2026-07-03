@@ -44,15 +44,19 @@ import { rejectIfMigratedToSelfCustody } from './identity-export-routes';
 // ── 2FA verification stub ──────────────────────────────────────────────────
 // Per identity-export-routes.ts: the current server has no 2FA service.
 // This stub accepts tokens shaped like `2fa:<non-empty>` when REQUIRE_2FA
-// is set. Production swaps the body with a real 2FA service call.
+// is set, or when NODE_ENV=production and REQUIRE_2FA is unset. Production
+// swaps the body with a real 2FA service call.
 function verifyTwoFactorToken(token: string | undefined): boolean {
   if (!token || typeof token !== 'string') return false;
   return /^2fa:.+/.test(token.trim());
 }
 
 function twoFactorRequired(): boolean {
-  const v = (process.env.REQUIRE_2FA || '').trim().toLowerCase();
-  return v === 'true' || v === '1' || v === 'yes';
+  const raw = process.env.REQUIRE_2FA;
+  const v = (raw || '').trim().toLowerCase();
+  if (v === 'false' || v === '0' || v === 'no') return false;
+  if (v === 'true' || v === '1' || v === 'yes') return true;
+  return process.env.NODE_ENV === 'production';
 }
 
 function checkTwoFactor(

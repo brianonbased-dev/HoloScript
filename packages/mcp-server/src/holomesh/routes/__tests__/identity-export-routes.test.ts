@@ -489,6 +489,14 @@ describe('two-factor gate', () => {
     const res = await callRoute('POST', ROUTE_PREPARE, { idempotency_key: 'test' }, authHeader());
     expect(res._status).toBe(200);
   });
+
+  it('prepare requires 2FA by default in production when REQUIRE_2FA is unset', async () => {
+    delete process.env.REQUIRE_2FA;
+    process.env.NODE_ENV = 'production';
+    const res = await callRoute('POST', ROUTE_PREPARE, { idempotency_key: 'test' }, authHeader());
+    expect(res._status).toBe(403);
+    expect(res._body.error).toBe('two_factor_required');
+  });
 });
 
 // ── Idempotency ────────────────────────────────────────────────────────────
