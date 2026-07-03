@@ -2,6 +2,7 @@
 
 **Role**: Core platform. Language, compilers, traits, MCP server, Studio, renderer.
 **Upstream oracle**: `~/.ai-ecosystem/NORTH_STAR.md` (read that for decision trees, workflow patterns, cost thresholds)
+**No local STRATEGY.md or SYSTEM_MAP.md**: ratified-directions and system-map content live upstream at `~/.ai-ecosystem/STRATEGY.md` and `~/.ai-ecosystem/SYSTEM_MAP.md` — cross-repo citations naming those files unqualified mean the ai-ecosystem repo, not this one.
 **GOLD Drive**: `GOLD_ROOT` or default vault root when mounted (Diamond > Platinum > GOLD > knowledge store) — intake per `~/.ai-ecosystem/CLAUDE.md`. **Live entry counts** are only authoritative in `$GOLD_ROOT/INDEX.md` (not this file).
 
 ## ∞ The Thesis (founder-ratified 2026-06-15) — read before any architectural call
