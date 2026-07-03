@@ -1,0 +1,13 @@
+{
+  "generatedAt": "2026-07-03T22:17:26.228Z",
+  "scanDir": "examples",
+  "totalFiles": 380,
+  "counts": {
+    "rich": 28,
+    "primitive-only": 269,
+    "non-visual": 83
+  },
+  "richPercent": 7.4,
+  "primitiveOnlyPercent": 70.8,
+  "nonVisualPercent": 21.8
+}

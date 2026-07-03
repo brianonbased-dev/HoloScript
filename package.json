@@ -125,6 +125,7 @@
     "check:native-coverage": "node scripts/holo-ci/check-native-coverage.mjs",
     "check:native-coverage:update": "node scripts/holo-ci/check-native-coverage.mjs --update",
     "check:native-coverage-test": "node scripts/__tests__/check-native-coverage.test.mjs",
+    "check:authoring-richness": "node scripts/check-authoring-richness.mjs",
     "check:hardcoded-stats": "node scripts/holo-ci/check-hardcoded-stats.mjs --staged",
     "check:hardcoded-stats:audit": "node scripts/holo-ci/check-hardcoded-stats.mjs --all",
     "check:no-third-party-qr": "node scripts/holo-ci/check-no-third-party-qr.mjs --staged",

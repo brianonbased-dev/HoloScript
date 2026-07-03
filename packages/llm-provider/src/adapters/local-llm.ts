@@ -69,20 +69,26 @@ export type LocalLLMModel = (typeof LOCAL_LLM_MODELS)[number];
 
 const LOCAL_LLM_HOLOSCRIPT_SYSTEM_PROMPT = `You are a HoloScript code generator. Output ONLY valid HoloScript code, no markdown or explanation.
 
-HoloScript syntax:
+HoloScript syntax (placeholders — use only for a test/mock object):
   cube { @color(red) @position(0,1,0) @grabbable @physics }
   sphere { @color(blue) @position(2,1,0) @emissive(cyan) }
   plane { @color(gray) @position(0,0,0) @scale(10,1,10) @static }
 
+HoloScript syntax (realistic object — prefer this when the request is not a placeholder):
+  material "Stone" @advanced_pbr { base_color: "#8a8378" roughness: 0.75 metallic: 0.0 }
+  object "Rock" @collidable @advanced_pbr { model: "models/rock.glb" material: "Stone" }
+
 Traits: @color(x) @position(x,y,z) @rotation(x,y,z) @scale(x,y,z)
         @grabbable @clickable @throwable @physics @gravity @collidable @static
         @emissive(color) @transparent(0.5) @glowing @networked @agent @llm_agent
+        @advanced_pbr(material trait: base_color, roughness, metallic, albedo_map, normal_map)
 
 Rules:
 - Return code only
 - y >= 0 for objects on ground level
 - Use @static on floors/walls
-- Group related objects together`;
+- Group related objects together
+- A bare primitive + flat color is a placeholder; use @advanced_pbr + model for a real object`;
 
 // =============================================================================
 // LocalLLM Adapter

@@ -1541,6 +1541,73 @@ composition "Scene" {
     ],
   },
 
+  materials: {
+    topic: 'materials',
+    description:
+      'Define a PBR material with @advanced_pbr and compose it onto an object alongside an imported model. Use this instead of a flat color/geometry primitive whenever visual realism matters — full pattern library: docs/handbooks/holoscript-realistic-authoring-patterns.md.',
+    syntax: `material "<Name>" @advanced_pbr {
+  base_color: "<hex>"
+  roughness: <0-1>
+  metallic: <0-1>
+  albedo_map: "<path>"
+  normal_map: "<path>"
+  ao_map: "<path>"
+  height_map: "<path>"
+  subsurface: <0-1>
+  translucency: <0-1>
+  wetness: <0-1>
+  ior: <number>
+  emission_intensity: <0-1>
+}
+
+object "<Name>" @collidable @advanced_pbr() {
+  position: [x, y, z]
+  model: "<path.glb>"
+  material: "<Name>"
+}`,
+    examples: [
+      {
+        description: 'Weathered ground material with full texture-map decomposition',
+        code: `material "ForestGround" @advanced_pbr {
+  base_color: "#5d4037"
+  roughness: 0.85
+  metallic: 0.0
+  albedo_map: "textures/ground_albedo.png"
+  normal_map: "textures/ground_normal.png"
+  ao_map: "textures/ground_ao.png"
+  height_map: "textures/ground_height.png"
+  tiling: [4.0, 4.0]
+  displacement_strength: 0.15
+  wetness: 0.35
+}`,
+      },
+      {
+        description: 'Imported model composed with a named material (not an inline primitive)',
+        code: `object "Boulder" @collidable @advanced_pbr() {
+  position: [12, 3, -5]
+  model: "models/boulder.glb"
+  collider: { type: "mesh", convex: true, friction: 0.8, restitution: 0.1 }
+  rigidbody: { mass: 500, angular_damping: 0.95, linear_damping: 0.1 }
+  material: "ForestGround"
+}`,
+      },
+      {
+        description: 'Organic material using subsurface/translucency for backlit realism',
+        code: `material "Foliage" @advanced_pbr {
+  base_color: "#1e4020"
+  roughness: 0.7
+  metallic: 0.0
+  albedo_map: "textures/foliage_albedo.png"
+  normal_map: "textures/foliage_normal.png"
+  subsurface: 0.45
+  subsurface_color: "#3a7030"
+  translucency: 0.3
+  two_sided: true
+}`,
+      },
+    ],
+  },
+
   environment: {
     topic: 'environment',
     description: 'Configure scene environment (skybox, lighting, fog).',

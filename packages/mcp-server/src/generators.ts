@@ -220,6 +220,16 @@ const UNIVERSAL_TRAIT_KEYWORDS: Record<string, { traits: string[]; domain: strin
   canary: { traits: ['@canary_release'], domain: 'resilience' },
   'blue green': { traits: ['@blue_green_deploy'], domain: 'resilience' },
   idempotent: { traits: ['@idempotency_key', '@idempotent_consumer'], domain: 'resilience' },
+
+  // Visual/material domain — realistic rendering, PBR materials, named presets
+  realistic: { traits: ['@advanced_pbr', '@material_preset'], domain: 'visual' },
+  material: { traits: ['@advanced_pbr', '@material_preset'], domain: 'visual' },
+  texture: { traits: ['@advanced_pbr'], domain: 'visual' },
+  pbr: { traits: ['@advanced_pbr'], domain: 'visual' },
+  lighting: { traits: ['@advanced_pbr', '@emissive'], domain: 'visual' },
+  glow: { traits: ['@material_preset', '@emissive'], domain: 'visual' },
+  subsurface: { traits: ['@advanced_pbr'], domain: 'visual' },
+  weathered: { traits: ['@material_preset'], domain: 'visual' },
 };
 
 // Geometry keywords
@@ -262,6 +272,30 @@ const COLOR_KEYWORDS: Record<string, string> = {
   grey: '#888888',
   gold: '#ffd700',
   silver: '#c0c0c0',
+};
+
+// Material preset keywords — named, referenceable @advanced_pbr presets (OpenUSD
+// "Look" pattern, see research/2026-07-03_holoscript-realistic-authoring-docs-PLAN.md
+// §4). Maps a material-flavored description keyword to a PRESET IDENTIFIER, never a
+// raw hand-derived hex/roughness/metallic value — the identifier is composed onto the
+// generated object as `@material_preset("<identifier>")` in generateObject() below.
+const MATERIAL_PRESET_KEYWORDS: Record<string, string> = {
+  weathered: 'weathered_stone',
+  stone: 'weathered_stone',
+  rock: 'weathered_stone',
+  metal: 'brushed_metal',
+  metallic: 'brushed_metal',
+  wood: 'polished_wood',
+  wooden: 'polished_wood',
+  glowing: 'bioluminescent_glow',
+  bioluminescent: 'bioluminescent_glow',
+  organic: 'organic_moss',
+  moss: 'organic_moss',
+  glass: 'frosted_glass',
+  fabric: 'woven_fabric',
+  cloth: 'woven_fabric',
+  rusty: 'oxidized_metal',
+  rust: 'oxidized_metal',
 };
 
 interface GenerateOptions {
@@ -333,6 +367,8 @@ function isUsableObjectCode(code: string, format: 'hs' | 'hsplus' | 'holo'): boo
   return (
     code.includes('composition ') ||
     code.includes('template ') ||
+    code.includes('object ') ||
+    code.includes('material ') ||
     /\b(cube|sphere|plane|cylinder|cone|torus|capsule)\b/.test(code)
   );
 }
@@ -1542,8 +1578,23 @@ export function generateObject(
     }
   }
 
+  // Extract material preset (additive — does not replace the primitive-geometry
+  // fallback above, which is still correct for genuine placeholder/test requests).
+  // When a material-flavored keyword is present, richen the generated object with a
+  // named @material_preset trait instead of leaving it flat-color-only.
+  let materialPreset: string | undefined;
+  for (const [keyword, preset] of Object.entries(MATERIAL_PRESET_KEYWORDS)) {
+    if (lowerDesc.includes(keyword)) {
+      materialPreset = preset;
+      break;
+    }
+  }
+
   // Get traits
   const { traits } = suggestTraits(description);
+  if (materialPreset) {
+    traits.push(`@material_preset("${materialPreset}")`);
+  }
 
   // Extract name
   const words = description.split(/\s+/);

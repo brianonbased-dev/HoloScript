@@ -158,6 +158,26 @@ export const EXAMPLE_CATALOG: ExampleCatalogEntry[] = [
     "priority": true
   },
   {
+    "slug": "showcase/realistic-forest-refreshed",
+    "path": "examples/showcase/realistic-forest.refreshed.holo",
+    "format": "holo",
+    "category": "showcase",
+    "status": "supported",
+    "linkPolicy": "public-supported",
+    "reason": "Parser success (verified 2026-07-03); flagship example for docs/handbooks/holoscript-realistic-authoring-patterns.md — @advanced_pbr materials, imported glb models, @time_of_day/@volumetric_clouds/@wind environment drivers.",
+    "priority": true
+  },
+  {
+    "slug": "showcase/realistic-forest",
+    "path": "examples/showcase/realistic-forest.holo",
+    "format": "holo",
+    "category": "showcase",
+    "status": "expected-fail",
+    "linkPolicy": "internal-only",
+    "reason": "Pre-refresh version; parser rejects legacy composition syntax at line 352 (Expected LBRACE, got AT). Superseded by realistic-forest.refreshed.holo — kept as a before/after reference in the authoring-patterns handbook, not a working example.",
+    "priority": false
+  },
+  {
     "slug": "physics/advanced-physics-showcase",
     "path": "examples/physics/advanced-physics-showcase.holo",
     "format": "holo",
@@ -201,9 +221,9 @@ export const EXAMPLE_CATALOG: ExampleCatalogEntry[] = [
 
 /** Full-tree inventory of examples/, resolved at build time (no runtime fs). */
 export const EXAMPLE_INVENTORY: ExampleInventory = {
-  "total": 458,
+  "total": 463,
   "byFormat": {
-    "holo": 356,
+    "holo": 361,
     "hs": 47,
     "hsplus": 55
   },
@@ -220,6 +240,7 @@ export const EXAMPLE_INVENTORY: ExampleInventory = {
     "audio": 2,
     "autonomous-ecosystems": 12,
     "avatars": 5,
+    "biomedical": 1,
     "compute": 1,
     "cross-domain": 3,
     "cross-reality": 3,
@@ -236,7 +257,7 @@ export const EXAMPLE_INVENTORY: ExampleInventory = {
     "government-civic": 1,
     "hololand": 27,
     "hsplus": 8,
-    "integration": 3,
+    "integration": 5,
     "interaction": 1,
     "interoperability": 1,
     "iot": 1,
@@ -264,6 +285,7 @@ export const EXAMPLE_INVENTORY: ExampleInventory = {
     "procedural": 4,
     "quickstart": 6,
     "real-world": 3,
+    "reconstruction": 1,
     "rendering": 5,
     "robotics": 3,
     "sample-projects": 3,
@@ -282,7 +304,7 @@ export const EXAMPLE_INVENTORY: ExampleInventory = {
     "volumetric": 6,
     "volumetric-advanced": 5,
     "weather": 5,
-    "webgpu-compute": 5,
+    "webgpu-compute": 6,
     "wisdom-demo": 1,
     "xr": 4
   }

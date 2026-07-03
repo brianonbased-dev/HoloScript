@@ -120,6 +120,14 @@ services/
 
 **Native-first — read this before the hygiene rules below.** These conventions govern **platform-tooling code only** (the CLI, parser, compilers, adapters, and tests written in TypeScript). They are NOT how you author HoloScript *content or behavior*. A trait, a render surface, an agent brain, or a compile target is authored as **declarative data a tool consumes** — not hand-written imperative TypeScript — and its correctness is **enforced by a structural gate, never asserted** (the two principles: behavior-as-data; gate-enforced/derived correctness). Authoring those the pretrained TS/React way produces code that passes a generic lint but is structurally wrong here: invisible to the compiler, unverifiable by provenance, or uncompilable to non-TS targets. Use the File Format table above (`.hs`/`.hsplus`/`.holo` vs `.ts`/`.tsx`) to decide what you're writing, and **before authoring any HoloScript content read** [`docs/handbooks/holoscript-native-authoring-vs-pretrained.md`](docs/handbooks/holoscript-native-authoring-vs-pretrained.md) — the surface→authoring map is the table at its top. The rules below are the floor for tooling, not the shape of HoloScript.
 
+**Authoring visual richness (not code structure):** before authoring or generating visual scene
+content (materials, lighting, environment, terrain), read
+[`docs/handbooks/holoscript-realistic-authoring-patterns.md`](docs/handbooks/holoscript-realistic-authoring-patterns.md) —
+a pattern library (target/conventions/constraints/scope briefs) for composing `@advanced_pbr`
+materials, paired light sources, and environment drivers instead of defaulting to a bare
+primitive + flat color. Disjoint concern from the native-authoring doc above: that doc is about
+code *structure*, this one is about visual *content*.
+
 TypeScript-tooling hygiene (platform/tooling code only):
 
 - **TypeScript strict mode**: `strict: true`, target ES2020, ESNext modules, bundler resolution

@@ -93,6 +93,20 @@
       "linkPolicy": "public-aspirational-label-required"
     },
     {
+      "path": "examples/showcase/realistic-forest.refreshed.holo",
+      "status": "supported",
+      "reason": "Parser success (verified 2026-07-03); flagship example for docs/handbooks/holoscript-realistic-authoring-patterns.md — @advanced_pbr materials, imported glb models, @time_of_day/@volumetric_clouds/@wind environment drivers.",
+      "priority": true,
+      "linkPolicy": "public-supported"
+    },
+    {
+      "path": "examples/showcase/realistic-forest.holo",
+      "status": "expected-fail",
+      "reason": "Pre-refresh version; parser rejects legacy composition syntax at line 352 (Expected LBRACE, got AT). Superseded by realistic-forest.refreshed.holo — kept as a before/after reference in the authoring-patterns handbook, not a working example.",
+      "priority": false,
+      "linkPolicy": "internal-only"
+    },
+    {
       "path": "examples/physics/advanced-physics-showcase.holo",
       "status": "aspirational-grammar",
       "reason": "Uses nested post_processing blocks and advanced physics traits ahead of the current parser grammar.",

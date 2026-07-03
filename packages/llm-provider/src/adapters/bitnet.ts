@@ -73,6 +73,7 @@ Syntax:
     sphere { @color(blue) @position(2,1,0) @emissive(cyan) }
     plane { @color(gray) @position(0,0,0) @scale(10,1,10) @static }
   }
+For a real object (not a test cube/sphere), use @advanced_pbr instead of @color.
 
 Rules: Return code only. y >= 0. Use @static on floors.`;
 
