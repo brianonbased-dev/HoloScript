@@ -1500,7 +1500,26 @@ impl Parser {
     }
 
     fn parse_expression(&mut self) -> Result<AstNode, ParseError> {
-        self.parse_or_expression()
+        self.parse_null_coalescing()
+    }
+
+    /// Null-coalescing `a ?? b` (lexes as two consecutive `?` tokens). Binds just
+    /// below the logical operators. The single-`?` forms (optional-type marker,
+    /// ternary) are handled by callers, so only the doubled `??` is consumed here.
+    fn parse_null_coalescing(&mut self) -> Result<AstNode, ParseError> {
+        let mut left = self.parse_or_expression()?;
+        while self.check(TokenType::Question) && self.peek_next_is(TokenType::Question) {
+            self.advance();
+            self.advance();
+            let right = self.parse_or_expression()?;
+            left = AstNode::BinaryExpression(BinaryExpression {
+                operator: "??".to_string(),
+                left: Box::new(left),
+                right: Box::new(right),
+                loc: None,
+            });
+        }
+        Ok(left)
     }
 
     fn parse_or_expression(&mut self) -> Result<AstNode, ParseError> {
@@ -1808,7 +1827,19 @@ impl Parser {
         while !self.check(TokenType::RBrace) && !self.is_at_end() {
             let key = self.expect_property_key()?;
             self.expect(TokenType::Colon)?;
-            let value = self.parse_expression()?;
+            let value = if self.check(TokenType::Enum) {
+                self.parse_enum_type()?
+            } else {
+                self.parse_expression()?
+            };
+            // Optional-type marker + typed-field default: `x: Type? = default`.
+            if self.check(TokenType::Question) {
+                self.advance();
+            }
+            if self.check(TokenType::Equals) {
+                self.advance();
+                let _default = self.parse_expression()?;
+            }
 
             properties.push(PropertyNode {
                 key,
@@ -2320,6 +2351,21 @@ mod tests {
         assert!(
             parser.parse().is_ok(),
             "keyword-lexed property keys should parse"
+        );
+    }
+
+    #[test]
+    fn test_trait_body_null_coalescing_and_nested_defaults() {
+        // `??` null-coalescing in a value + `= default` inside a nested annotation
+        // body — the fleet brain-trait patterns (portable_mind, wallet_identity).
+        let source = r#"@trait brain {
+            home: host ?? "host-default"
+            @synced { mode: String = "auto"; tags: List = ["a", "b"] }
+        }"#;
+        let mut parser = Parser::new(source);
+        assert!(
+            parser.parse().is_ok(),
+            "?? and nested field-defaults should parse"
         );
     }
 
