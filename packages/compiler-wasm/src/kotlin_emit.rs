@@ -18,7 +18,8 @@
 //! - `while (cond) { … }`                       → Kotlin `while (cond) { … }`
 //! - `for (i in 0..n) { … }`                    → Kotlin `for (i in 0..n) { … }`
 //! - `return <expr>` / bare `return`           → Kotlin `return <expr>` / `return`
-//! - expressions: binary / unary / call / member / index / range / literals / identifiers
+//! - expressions: binary / unary / lambda / call / member / index / range / literals /
+//!   identifiers
 //!
 //! Type policy: `.hs` logic functions are untyped. For the Quest logic surface the return
 //! type is inferred (`Boolean` when the function only ever returns boolean-shaped
@@ -986,6 +987,10 @@ fn expr_uses_param_as_range_bound(param: &str, node: &AstNode) -> bool {
             .arguments
             .iter()
             .any(|a| expr_uses_param_as_range_bound(param, a)),
+        AstNode::LambdaExpression(lambda) => {
+            !lambda.params.iter().any(|p| p == param)
+                && expr_uses_param_as_range_bound(param, &lambda.body)
+        }
         _ => false,
     }
 }
@@ -1048,6 +1053,10 @@ fn expr_uses_param_as_boolean(param: &str, node: &AstNode) -> bool {
             expr_uses_param_as_boolean(param, &m.object)
                 || expr_uses_param_as_boolean(param, &m.property)
         }
+        AstNode::LambdaExpression(lambda) => {
+            !lambda.params.iter().any(|p| p == param)
+                && expr_uses_param_as_boolean(param, &lambda.body)
+        }
         _ => false,
     }
 }
@@ -1088,7 +1097,8 @@ fn stmt_uses_param_numerically(param: &str, node: &AstNode) -> bool {
         AstNode::CallExpression(_)
         | AstNode::MemberExpression(_)
         | AstNode::BinaryExpression(_)
-        | AstNode::UnaryExpression(_) => expr_uses_param_numerically(param, node),
+        | AstNode::UnaryExpression(_)
+        | AstNode::LambdaExpression(_) => expr_uses_param_numerically(param, node),
         _ => false,
     }
 }
@@ -1119,6 +1129,10 @@ fn expr_uses_param_numerically(param: &str, node: &AstNode) -> bool {
         AstNode::MemberExpression(m) => {
             expr_uses_param_numerically(param, &m.object)
                 || expr_uses_param_numerically(param, &m.property)
+        }
+        AstNode::LambdaExpression(lambda) => {
+            !lambda.params.iter().any(|p| p == param)
+                && expr_uses_param_numerically(param, &lambda.body)
         }
         _ => false,
     }
@@ -1188,7 +1202,12 @@ fn emit_statement(
         AstNode::VariableDeclaration(v) => {
             let value = emit_expr(&v.value)?;
             let kw = if v.mutable { "var" } else { "val" };
-            lines.push(format!("{}{} {} = {}", indent, kw, v.name, value));
+            if let AstNode::LambdaExpression(lambda) = v.value.as_ref() {
+                let ty = emit_lambda_type(lambda)?;
+                lines.push(format!("{}{} {}: {} = {}", indent, kw, v.name, ty, value));
+            } else {
+                lines.push(format!("{}{} {} = {}", indent, kw, v.name, value));
+            }
             Ok(())
         }
         // Defensive: an object-graph `Property` reaching the logic emitter is treated as an
@@ -1331,6 +1350,10 @@ fn emit_expr(node: &AstNode) -> Result<String, KotlinEmitError> {
                 .join(", ");
             Ok(format!("{}({})", callee, args))
         }
+        AstNode::LambdaExpression(lambda) => {
+            let params = lambda.params.join(", ");
+            Ok(format!("{{ {} -> {} }}", params, emit_expr(&lambda.body)?))
+        }
         AstNode::Array(arr) => {
             let elems = arr
                 .elements
@@ -1355,6 +1378,43 @@ fn emit_expr(node: &AstNode) -> Result<String, KotlinEmitError> {
             "unsupported expression node in .hs logic body: {}",
             node_kind(other)
         ))),
+    }
+}
+
+fn emit_lambda_type(lambda: &crate::ast::LambdaExpression) -> Result<String, KotlinEmitError> {
+    if lambda.params.len() != 1 {
+        return Err(KotlinEmitError::new(
+            "unsupported lambda expression in .hs logic body: only single-parameter lambdas are supported",
+        ));
+    }
+
+    let param_types = lambda
+        .params
+        .iter()
+        .map(|param| infer_lambda_param_type(param, lambda.body.as_ref()).kotlin())
+        .collect::<Vec<_>>()
+        .join(", ");
+    let ret = infer_lambda_return_type(lambda.body.as_ref()).kotlin();
+    Ok(format!("({}) -> {}", param_types, ret))
+}
+
+fn infer_lambda_param_type(param: &str, body: &AstNode) -> ValType {
+    if expr_uses_param_numerically(param, body) {
+        ValType::Float
+    } else if expr_uses_param_as_boolean(param, body) {
+        ValType::Bool
+    } else {
+        ValType::Str
+    }
+}
+
+fn infer_lambda_return_type(body: &AstNode) -> ValType {
+    if is_boolean_expr(body) {
+        ValType::Bool
+    } else if is_numeric_expr(body) {
+        ValType::Float
+    } else {
+        ValType::Str
     }
 }
 
@@ -1577,6 +1637,7 @@ fn node_kind(node: &AstNode) -> &'static str {
         AstNode::BinaryExpression(_) => "BinaryExpression",
         AstNode::UnaryExpression(_) => "UnaryExpression",
         AstNode::CallExpression(_) => "CallExpression",
+        AstNode::LambdaExpression(_) => "LambdaExpression",
         AstNode::MemberExpression(_) => "MemberExpression",
         AstNode::SpreadElement(_) => "SpreadElement",
         AstNode::Using(_) => "Using",
@@ -1820,6 +1881,21 @@ mod tests {
             out.contains("fun gazeLen(fx: Float, fz: Float): Float {"),
             "{out}"
         );
+    }
+
+    #[test]
+    fn emits_single_expression_lambda_with_capture() {
+        let src = r#"function addWith(x) {
+  let inc = (y) => x + y
+  return x + inc(1)
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("fun addWith(x: Float): Float {"), "{out}");
+        assert!(
+            out.contains("val inc: (Float) -> Float = { y -> x + y }"),
+            "{out}"
+        );
+        assert!(out.contains("return x + inc(1f)"), "{out}");
     }
 
     #[test]

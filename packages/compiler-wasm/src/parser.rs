@@ -1500,7 +1500,50 @@ impl Parser {
     }
 
     fn parse_expression(&mut self) -> Result<AstNode, ParseError> {
+        if self.is_lambda_start() {
+            return self.parse_lambda_expression();
+        }
         self.parse_null_coalescing()
+    }
+
+    fn is_lambda_start(&self) -> bool {
+        if self.check_offset(0, TokenType::Identifier) && self.check_offset(1, TokenType::Arrow) {
+            return true;
+        }
+
+        if !self.check_offset(0, TokenType::LParen) {
+            return false;
+        }
+
+        let mut i = 1;
+        if !self.check_offset(i, TokenType::Identifier) {
+            return false;
+        }
+        i += 1;
+
+        self.check_offset(i, TokenType::RParen) && self.check_offset(i + 1, TokenType::Arrow)
+    }
+
+    fn parse_lambda_expression(&mut self) -> Result<AstNode, ParseError> {
+        let start_loc = self.current_location();
+        let mut params = Vec::new();
+
+        if self.check(TokenType::Identifier) && self.peek_next_is(TokenType::Arrow) {
+            params.push(self.expect_identifier()?);
+        } else {
+            self.expect(TokenType::LParen)?;
+            params.push(self.expect_identifier()?);
+            self.expect(TokenType::RParen)?;
+        }
+
+        self.expect(TokenType::Arrow)?;
+        let body = self.parse_expression()?;
+
+        Ok(AstNode::LambdaExpression(LambdaExpression {
+            params,
+            body: Box::new(body),
+            loc: Some(self.location_from(start_loc)),
+        }))
     }
 
     /// Null-coalescing `a ?? b` (lexes as two consecutive `?` tokens). Binds just
@@ -2050,6 +2093,11 @@ impl Parser {
 
     fn check(&self, token_type: TokenType) -> bool {
         !self.is_at_end() && self.peek().token_type == token_type
+    }
+
+    fn check_offset(&self, offset: usize, token_type: TokenType) -> bool {
+        self.peek_at(offset)
+            .is_some_and(|token| token.token_type == token_type)
     }
 
     fn is_at_end(&self) -> bool {
@@ -2885,6 +2933,33 @@ function decideRoute(isWorldLink) {
             other => panic!("expected VariableDeclaration, got {:?}", other),
         };
         assert!(!let_decl.mutable, "let must be immutable");
+    }
+
+    #[test]
+    fn test_parse_single_expression_lambda() {
+        let source = r#"function addWith(x) {
+  let inc = (y) => x + y
+  return inc(1)
+}"#;
+        let mut parser = Parser::new(source);
+        let program = parser.parse().expect("lambda should parse");
+        let func = match &program.body[0] {
+            AstNode::Function(f) => f,
+            other => panic!("expected Function, got {:?}", other),
+        };
+        let decl = match &func.body[0] {
+            AstNode::VariableDeclaration(v) => v,
+            other => panic!("expected VariableDeclaration, got {:?}", other),
+        };
+        let lambda = match decl.value.as_ref() {
+            AstNode::LambdaExpression(lambda) => lambda,
+            other => panic!("expected LambdaExpression, got {:?}", other),
+        };
+        assert_eq!(lambda.params, vec!["y".to_string()]);
+        match lambda.body.as_ref() {
+            AstNode::BinaryExpression(b) => assert_eq!(b.operator, "+"),
+            other => panic!("expected binary lambda body, got {:?}", other),
+        }
     }
 
     #[test]

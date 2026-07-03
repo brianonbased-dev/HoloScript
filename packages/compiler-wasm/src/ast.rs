@@ -67,6 +67,7 @@ pub enum AstNode {
     BinaryExpression(BinaryExpression),
     UnaryExpression(UnaryExpression),
     CallExpression(CallExpression),
+    LambdaExpression(LambdaExpression),
     MemberExpression(MemberExpression),
     SpreadElement(SpreadElement),
 
@@ -449,6 +450,15 @@ pub struct UnaryExpression {
 pub struct CallExpression {
     pub callee: Box<AstNode>,
     pub arguments: Vec<AstNode>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub loc: Option<Location>,
+}
+
+/// Lambda expression (`(x) => x + 1`), intentionally scoped to expression bodies.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LambdaExpression {
+    pub params: Vec<String>,
+    pub body: Box<AstNode>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub loc: Option<Location>,
 }

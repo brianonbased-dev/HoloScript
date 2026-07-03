@@ -8,7 +8,7 @@
 //! `group`, `environment`, `logic`, `npc`, `quest`, `ability`, `dialogue`,
 //! `state_machine`, `achievement`, `talent_tree`, `import`, `export`, `function`,
 //! `move`, `action`, `on_*` event blocks, and the standard expression grammar
-//! (binary ops, call expressions, member access, arrays, object literals).
+//! (binary ops, lambda expressions, call expressions, member access, arrays, object literals).
 //!
 //! **Not supported** (use `HoloScriptPlusParser` / `HoloCompositionParser` in TS):
 //! - `.hsplus` constructs: `brain` declarations, cognitive actions (`@llm_call`,

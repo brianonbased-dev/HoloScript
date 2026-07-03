@@ -167,6 +167,13 @@ export interface IdentifierNode {
   loc?: Location;
 }
 
+export interface LambdaExpressionNode {
+  type: 'LambdaExpression';
+  params: string[];
+  body: AstNode;
+  loc?: Location;
+}
+
 // ── Behavioral construct nodes (mirror ast.rs serde tags) ─────────────
 
 /**
@@ -224,6 +231,7 @@ export type AstNode =
   | BooleanLiteral
   | ArrayNode
   | IdentifierNode
+  | LambdaExpressionNode
   | MovementStatementNode
   | ActionDeclNode
   | GameEventBlockNode
