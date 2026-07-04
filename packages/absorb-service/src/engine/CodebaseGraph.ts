@@ -223,6 +223,20 @@ export class CodebaseGraph {
       this.symbolsByName.get(name)!.push(id);
     }
 
+    // Resolve relative import specifiers to absolute in-graph file paths so
+    // `imp.resolvedPath` is populated for every internal edge. Nothing upstream
+    // fills it (the type says "filled by scanner" but the scanner never did),
+    // which left every consumer — the reverse-import index below, community
+    // detection, HoloEmitter, and the scene compiler — unable to connect files,
+    // yielding zero edges and degenerate communities. Resolve it once here.
+    const normFileIndex = this.buildNormalizedFileIndex();
+    for (const imp of this.imports) {
+      if (imp.resolvedPath === undefined) {
+        const resolved = this.resolveImportPath(imp.fromFile, imp.toModule, normFileIndex);
+        if (resolved) imp.resolvedPath = resolved;
+      }
+    }
+
     // Index imports
     for (const imp of this.imports) {
       if (!this.importsByFile.has(imp.fromFile)) {
@@ -478,6 +492,48 @@ export class CodebaseGraph {
    */
   getFilePaths(): string[] {
     return Array.from(this.files.keys());
+  }
+
+  /**
+   * Index of forward-slash-normalized file path -> the actual `this.files` key.
+   * Import resolution works in normalized space (specifiers use `/`, Windows
+   * paths use `\`), then maps back to the real key so lookups match.
+   */
+  private buildNormalizedFileIndex(): Map<string, string> {
+    const index = new Map<string, string>();
+    for (const p of this.files.keys()) index.set(p.replace(/\\/g, '/'), p);
+    return index;
+  }
+
+  /**
+   * Resolve a relative import specifier (e.g. `./types`, `../providers/x`) from
+   * `fromFile` to the absolute in-graph file path it names, trying the common
+   * extension and `/index` forms. Returns undefined for bare/external modules
+   * (e.g. `@holoscript/core`, `node:fs`) — those have no in-graph node.
+   */
+  private resolveImportPath(
+    fromFile: string,
+    toModule: string,
+    normFileIndex: Map<string, string>
+  ): string | undefined {
+    if (!toModule.startsWith('.')) return undefined; // external module — not a graph node
+    const fromDir = fromFile.replace(/\\/g, '/').split('/').slice(0, -1);
+    const stack = [...fromDir];
+    for (const part of toModule.split('/')) {
+      if (part === '' || part === '.') continue;
+      else if (part === '..') stack.pop();
+      else stack.push(part);
+    }
+    const base = stack.join('/');
+    const CANDIDATES = [
+      '', '.ts', '.tsx', '.hs', '.hsplus', '.holo', '.js', '.jsx', '.mjs', '.cjs',
+      '/index.ts', '/index.tsx', '/index.hsplus', '/index.holo', '/index.js',
+    ];
+    for (const ext of CANDIDATES) {
+      const actual = normFileIndex.get(base + ext);
+      if (actual) return actual;
+    }
+    return undefined;
   }
 
   // ── Impact Analysis ──────────────────────────────────────────────────────

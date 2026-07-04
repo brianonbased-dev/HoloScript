@@ -90,29 +90,56 @@ export class CodebaseSceneCompiler {
     // 1. Detect communities
     const communities = graph.detectCommunities();
 
-    // 2. Collect symbols per community
+    // 2. Collect symbols per community, capped at maxPerGroup for visual density.
+    // Pick ROUND-ROBIN across files (each file's first visible symbol, then each
+    // file's second, …) so every file contributes a representative node before
+    // any file contributes a second. A naive slice(0, maxPerGroup) took all of
+    // the high-symbol files first and left most files with no node — which broke
+    // file->file import edges, since an edge needs a node at both ends.
     const communitySymbols = new Map<string, ExternalSymbolDefinition[]>();
     let maxLoc = 0;
 
     for (const [community, files] of communities) {
-      const symbols: ExternalSymbolDefinition[] = [];
+      const perFile: ExternalSymbolDefinition[][] = [];
       for (const file of files) {
+        const fileSyms: ExternalSymbolDefinition[] = [];
         for (const sym of graph.getSymbolsInFile(file)) {
           if (VISIBILITY_ORDER[sym.visibility] <= minVis) {
-            symbols.push(sym);
+            fileSyms.push(sym);
             if (sym.lineCount && sym.lineCount > maxLoc) maxLoc = sym.lineCount;
           }
         }
+        if (fileSyms.length > 0) perFile.push(fileSyms);
       }
-      if (symbols.length > 0) {
-        communitySymbols.set(community, symbols.slice(0, maxPerGroup));
+      const picked: ExternalSymbolDefinition[] = [];
+      for (let depth = 0; picked.length < maxPerGroup; depth++) {
+        let advanced = false;
+        for (const fileSyms of perFile) {
+          if (depth < fileSyms.length) {
+            picked.push(fileSyms[depth]);
+            advanced = true;
+            if (picked.length >= maxPerGroup) break;
+          }
+        }
+        if (!advanced) break;
+      }
+      if (picked.length > 0) {
+        communitySymbols.set(community, picked);
       }
     }
+
+    // Representative scene node per file: the first included symbol. File->file
+    // import edges connect these, so a dependency survives as an edge between two
+    // nodes that are actually in the scene (the old first-symbol-of-file lookup
+    // used any-visibility symbols that were usually absent from the public,
+    // size-capped scene, so almost every edge was dropped).
+    const fileRep = this.buildFileRepIndex(communitySymbols);
 
     // 3. Build layout
     const { layoutNodes, layoutEdges } = this.buildLayoutGraph(
       graph,
       communitySymbols,
+      fileRep,
       options.lastPositions
     );
 
@@ -178,28 +205,9 @@ export class CodebaseSceneCompiler {
       });
     }
 
-    // 5. Render edges
-    const edgeInputs: Array<{ from: string; to: string; type: 'import' | 'call' }> = [];
+    // 5. Render edges — file->file import dependencies between representative nodes.
+    const edgeInputs = this.buildImportEdgeInputs(graph, fileRep);
 
-    // Import edges
-    for (const filePath of graph.getFilePaths()) {
-      const imports = graph.getImportsOf(filePath);
-      for (const imp of imports) {
-        const sourceSyms = graph.getSymbolsInFile(filePath);
-        const target = imp.resolvedPath ?? imp.toModule;
-        const targetSyms = graph.getSymbolsInFile(target);
-        if (sourceSyms.length > 0 && targetSyms.length > 0) {
-          edgeInputs.push({
-            from: this.makeObjectId(sourceSyms[0]),
-            to: this.makeObjectId(targetSyms[0]),
-            type: 'import',
-          });
-        }
-      }
-    }
-
-    // Call edges (simplified: use first symbol per file)
-    // Full call resolution would require cross-referencing symbol IDs
     const positionMap = new Map(
       allObjects.map((o) => [o.name, { x: o.position[0], y: o.position[1], z: o.position[2] }])
     );
@@ -309,6 +317,7 @@ export class CodebaseSceneCompiler {
   private buildLayoutGraph(
     graph: CodebaseGraph,
     communitySymbols: Map<string, ExternalSymbolDefinition[]>,
+    fileRep: Map<string, string>,
     lastPositions?: Map<string, [number, number, number]>
   ): { layoutNodes: LayoutNode[]; layoutEdges: LayoutEdge[] } {
     const layoutNodes: LayoutNode[] = [];
@@ -325,28 +334,65 @@ export class CodebaseSceneCompiler {
       }
     }
 
+    // Import dependencies between file-representative nodes drive the layout, so
+    // connected files attract and communities pull together spatially.
     const layoutEdges: LayoutEdge[] = [];
+    const seen = new Set<string>();
     for (const filePath of graph.getFilePaths()) {
-      const imports = graph.getImportsOf(filePath);
-      for (const imp of imports) {
-        const target = imp.resolvedPath ?? imp.toModule;
-        const sourceSyms = graph.getSymbolsInFile(filePath);
-        const targetSyms = graph.getSymbolsInFile(target);
-        if (sourceSyms.length > 0 && targetSyms.length > 0) {
-          const sourceId = this.makeObjectId(sourceSyms[0]);
-          const targetId = this.makeObjectId(targetSyms[0]);
-          if (nodeIds.has(sourceId) && nodeIds.has(targetId)) {
-            layoutEdges.push({
-              source: sourceId,
-              target: targetId,
-              weight: imp.namedImports?.length ?? 1,
-            });
-          }
-        }
+      const sourceId = fileRep.get(filePath);
+      if (!sourceId || !nodeIds.has(sourceId)) continue;
+      for (const imp of graph.getImportsOf(filePath)) {
+        if (!imp.resolvedPath) continue;
+        const targetId = fileRep.get(imp.resolvedPath);
+        if (!targetId || targetId === sourceId || !nodeIds.has(targetId)) continue;
+        const key = sourceId + '=>' + targetId;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        layoutEdges.push({ source: sourceId, target: targetId, weight: imp.namedImports?.length ?? 1 });
       }
     }
 
     return { layoutNodes, layoutEdges };
+  }
+
+  /** First included (scene) symbol per file — the node an import edge attaches to. */
+  private buildFileRepIndex(
+    communitySymbols: Map<string, ExternalSymbolDefinition[]>
+  ): Map<string, string> {
+    const rep = new Map<string, string>();
+    for (const [, symbols] of communitySymbols) {
+      for (const sym of symbols) {
+        if (!rep.has(sym.filePath)) rep.set(sym.filePath, this.makeObjectId(sym));
+      }
+    }
+    return rep;
+  }
+
+  /**
+   * File->file import edges as `{from,to}` between representative scene nodes,
+   * de-duplicated. Skips external modules (no `resolvedPath`) and files whose
+   * endpoints aren't in the scene.
+   */
+  private buildImportEdgeInputs(
+    graph: CodebaseGraph,
+    fileRep: Map<string, string>
+  ): Array<{ from: string; to: string; type: 'import' | 'call' }> {
+    const inputs: Array<{ from: string; to: string; type: 'import' | 'call' }> = [];
+    const seen = new Set<string>();
+    for (const filePath of graph.getFilePaths()) {
+      const from = fileRep.get(filePath);
+      if (!from) continue;
+      for (const imp of graph.getImportsOf(filePath)) {
+        if (!imp.resolvedPath) continue;
+        const to = fileRep.get(imp.resolvedPath);
+        if (!to || to === from) continue;
+        const key = from + '=>' + to;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        inputs.push({ from, to, type: 'import' });
+      }
+    }
+    return inputs;
   }
 
   private getTraits(sym: ExternalSymbolDefinition): string[] {
