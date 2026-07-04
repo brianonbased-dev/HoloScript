@@ -2203,7 +2203,7 @@ export class HoloCompositionParser {
         this.check('OBJECT') ||
         this.check('SPATIAL_AGENT') ||
         this.check('TOOL_SLOT') ||
-        this.check('BEHAVIOR') ||
+        (this.check('BEHAVIOR') && this.peek(1).type !== 'COLON') ||
         this.current().type.startsWith('UI_')
       ) {
         const nestedType = this.check('OBJECT') ? undefined : this.current().value.toLowerCase();
@@ -2276,7 +2276,7 @@ export class HoloCompositionParser {
             this.check('OBJECT') ||
             this.check('SPATIAL_AGENT') ||
             this.check('TOOL_SLOT') ||
-            this.check('BEHAVIOR') ||
+            (this.check('BEHAVIOR') && this.peek(1).type !== 'COLON') ||
             this.current().type.startsWith('UI_')
           ) {
             const nestedType = this.check('OBJECT')
@@ -3545,6 +3545,7 @@ export class HoloCompositionParser {
       'QUEST',
       'ABILITY',
       'DIALOGUE',
+      'BEHAVIOR',
       'SHAPE',
       'IMPORT',
       'USING',
@@ -4001,7 +4002,10 @@ export class HoloCompositionParser {
       // Doubly-nested property block, e.g.
       // trajectory { target_state { restoration_progress: 1.0, curse_depth: 0.0 } }.
       // Without this branch, `key {` unconditionally expects a COLON and fails.
-      if (this.isPropertyName() && this.peek(1).type === 'LBRACE') {
+      if (this.isNamedOrTraitedPropertyBlockStart()) {
+        const { key, value } = this.parseNamedOrTraitedPropertyBlock();
+        config[key] = value;
+      } else if (this.isPropertyName() && this.peek(1).type === 'LBRACE') {
         const nestedKey = this.parsePropertyKey();
         config[nestedKey] = this.parseBlockTraitConfig();
       } else {
@@ -4016,6 +4020,88 @@ export class HoloCompositionParser {
 
     this.expect('RBRACE');
     return config;
+  }
+
+  private isNamedOrTraitedPropertyBlockStart(): boolean {
+    if (!this.isPropertyName()) return false;
+
+    let index = this.pos + 1;
+    const hasName =
+      this.tokens[index]?.type === 'STRING' || this.tokens[index]?.type === 'IDENTIFIER';
+    if (hasName) {
+      index++;
+    }
+
+    while (this.tokens[index]?.type === 'NEWLINE') index++;
+
+    let hasTrait = false;
+    while (this.tokens[index]?.type === 'AT') {
+      hasTrait = true;
+      index++;
+      if (this.tokens[index]?.type === 'EOF') return false;
+      index++;
+
+      if (this.tokens[index]?.type === 'LPAREN') {
+        index = this.indexAfterBalancedTokens(index, 'LPAREN', 'RPAREN');
+      }
+
+      while (this.tokens[index]?.type === 'NEWLINE') index++;
+    }
+
+    return (hasName || hasTrait) && this.tokens[index]?.type === 'LBRACE';
+  }
+
+  private indexAfterBalancedTokens(
+    startIndex: number,
+    openType: TokenType,
+    closeType: TokenType
+  ): number {
+    let depth = 0;
+    let index = startIndex;
+    while (index < this.tokens.length) {
+      if (this.tokens[index].type === openType) depth++;
+      if (this.tokens[index].type === closeType) {
+        depth--;
+        index++;
+        if (depth === 0) return index;
+        continue;
+      }
+      index++;
+    }
+    return index;
+  }
+
+  private parseNamedOrTraitedPropertyBlock(): {
+    key: string;
+    value: Record<string, HoloValue>;
+  } {
+    const key = this.parsePropertyKey();
+    const name =
+      this.check('STRING') || this.check('IDENTIFIER') ? this.advance().value : undefined;
+    const traits = this.parseInlineTraitNamesBeforeBlock();
+    const body = this.check('LBRACE') ? this.parseBlockTraitConfig() : {};
+    return {
+      key,
+      value: {
+        ...(name !== undefined ? { name } : {}),
+        ...(traits.length > 0 ? { traits } : {}),
+        ...body,
+      },
+    };
+  }
+
+  private parseInlineTraitNamesBeforeBlock(): string[] {
+    const traits: string[] = [];
+    while (this.check('AT')) {
+      this.advance();
+      const traitName = this.parseTraitName();
+      if (traitName) traits.push(traitName);
+      if (this.check('LPAREN')) {
+        this.skipParens();
+      }
+      this.skipNewlines();
+    }
+    return traits;
   }
 
   private parseSharePlayBlock(): Record<string, HoloValue> {
@@ -7923,7 +8009,10 @@ export class HoloCompositionParser {
         }
       }
       // Nested domain property block: post_processing { bloom { intensity: 0.3 } }
-      else if (this.isPropertyName() && this.peek(1).type === 'LBRACE') {
+      else if (this.isNamedOrTraitedPropertyBlockStart()) {
+        const { key, value } = this.parseNamedOrTraitedPropertyBlock();
+        properties[key] = value;
+      } else if (this.isPropertyName() && this.peek(1).type === 'LBRACE') {
         const key = this.parsePropertyKey();
         properties[key] = this.parseBlockTraitConfig();
       }

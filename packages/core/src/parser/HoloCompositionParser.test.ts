@@ -970,6 +970,72 @@ describe('HoloCompositionParser', () => {
       expect(result.success).toBe(true);
       expect(result.errors).toEqual([]);
     });
+
+    it('parses labeled and traited custom domain property blocks', () => {
+      const result = parseHolo(`agent "SensorAgent" @agent @iot {
+        capability "collect" @analyze @iot {
+          description: "Collect raw sensor telemetry"
+          domain: "iot"
+        }
+        endpoint @local {
+          protocol: "local"
+          primary: true
+        }
+      }`);
+
+      expect(result.success).toBe(true);
+      expect(result.errors).toEqual([]);
+    });
+
+    it('parses labeled property blocks inside block configs', () => {
+      const result = parseHolo(`plugin "WeatherPlugin" {
+        tools {
+          tool "get_weather" {
+            description: "Get current weather for a location"
+            params: {
+              latitude: number
+              longitude: number
+            }
+          }
+        }
+      }`);
+
+      expect(result.success).toBe(true);
+      expect(result.errors).toEqual([]);
+    });
+
+    it('parses behavior blocks in templates as labeled directives', () => {
+      const result = parseHolo(`composition "IndustrialStarter" {
+        template "TelemetrySensor" {
+          state {
+            reading: 0
+          }
+          behavior "DigitalTwin" {
+            dtId: ""
+            telemetry: {
+              value: { unit: "", live: true }
+            }
+          }
+        }
+      }`);
+
+      expect(result.success).toBe(true);
+      expect(result.errors).toEqual([]);
+    });
+
+    it('parses behavior as a colon property inside object bodies', () => {
+      const result = parseHolo(`composition "RoboticsStarter" {
+        object "J1" {
+          behavior: {
+            axis: [0, 1, 0]
+            maxTorque: 150.0
+          }
+        }
+      }`);
+
+      expect(result.success).toBe(true);
+      expect(result.errors).toEqual([]);
+    });
   });
 
   describe('Error Handling', () => {
