@@ -27,15 +27,26 @@ composition "Brittney - Embodied Agent" {
     @character_voice { spatial_audio: true, lip_sync: true }
     @avatar_embodiment(first_person: false, mirror_visible: true)
 
+    // D.102 mind-carry seam: the SAME wallet-keyed agent that ran on the Jetson node
+    // now inhabits this body at spawn, loading private:<wallet> memory across the
+    // substrate hop — proven by the CrossSubstrateIdentityReceipt the seam emits. With
+    // this the flagship body no longer renders soulless (check:embodied-mind).
+    @portable_mind_seam(
+      bearer: env("HOLOSCRIPT_AGENT_X402_BEARER"),
+      mesh_api_base: env("HOLOMESH_API_BASE"),
+      team_id: env("HOLOMESH_TEAM_ID"),
+      agent_id: "brittney"
+    )
+
     geometry: "avatar"
     position: [0, 0, 0]
 
     // Embodied-agent state: the body is a projection of authoritative world-state (entity_id).
-    // identity_wallet + memory_scope are the D.102 seams (declared; bridged in a later task).
+    // The @portable_mind_seam above binds identity + private:<wallet> memory at spawn;
+    // the identity wallet is derived from the seat bearer, never declared literally (G.GOLD.016).
     state {
       activity: "idle"
       entity_id: "brittney"
-      identity_wallet: ""
       memory_scope: "private:<wallet>"
     }
 
