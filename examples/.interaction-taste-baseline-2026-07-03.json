@@ -1,0 +1,16 @@
+{
+  "generatedAt": "2026-07-04T02:24:55.105Z",
+  "scanDir": "examples",
+  "totalFiles": 380,
+  "interactive": 126,
+  "counts": {
+    "considered": 54,
+    "assembled": 0,
+    "bare": 72,
+    "non-interactive": 190,
+    "parse-error": 64,
+    "unreadable": 0
+  },
+  "assembledCount": 0,
+  "profileMismatchCount": 0
+}

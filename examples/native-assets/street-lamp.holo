@@ -44,6 +44,24 @@ composition "StreetLamp" {
   object "Lamp" @physics {
     position: [0, 0, 0]
 
+    // ── Behavior: the lamp LIVES on a clock and notices passers-by ──────────
+    // A gas lamp isn't a prop you click. It lights itself at dusk, sleeps at
+    // dawn, and flares as someone steps into its pool of light. Declared
+    // reactivity below is cross-checked against these handlers by check:interaction-taste.
+    @interaction_profile(react_to: "dusk dawn approach", stateful: true)
+
+    on_dusk() {
+      set bulb_emissive: 4.0
+      trigger "ignite"
+    }
+    on_dawn() {
+      set bulb_emissive: 0.0
+      trigger "extinguish"
+    }
+    on_approach(within: 3) {
+      set bulb_emissive: 4.8
+    }
+
     // ── Base ──────────────────────────────────────────────────────────────
     object "FootPlate" using "WroughtIron" {
       geometry: "cylinder"
@@ -263,5 +281,13 @@ composition "StreetLamp" {
     position: [0, 3.2, 0]
     distance: 12
     decay: 2
+  }
+
+  // The lamp's day/night cycle as a state graph the compiler can read — the
+  // point of view "this lamp lives on a clock" authored as data, not a script.
+  state_machine "LampCycle" {
+    initial: "dark"
+    state "dark" { on_dusk: transition("lit") }
+    state "lit" { on_dawn: transition("dark") }
   }
 }

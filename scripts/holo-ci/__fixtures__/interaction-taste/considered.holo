@@ -1,0 +1,27 @@
+composition "ConsideredLamp" {
+  // FIXTURE (considered): a gas lamp with a point of view about how it LIVES.
+  // It declares its reactivity (@interaction_profile) and DELIVERS it — every event
+  // it claims has a matching handler — plus a state cycle. The gate must classify
+  // this CONSIDERED with zero assembled hits and zero profile mismatches.
+  object "GasLamp" {
+    geometry: "cylinder"
+    position: [0, 1.5, 0]
+    color: "#2d2d2d"
+
+    @interaction_profile(react_to: "dusk approach", stateful: true)
+
+    on_dusk() {
+      set mantle_emissive: 4.0
+      trigger "ignite"
+    }
+    on_approach(within: 3) {
+      set mantle_emissive: 4.6
+    }
+  }
+
+  state_machine "LampCycle" {
+    initial: "dormant"
+    state "dormant" { on_dusk: transition("lit") }
+    state "lit" { on_dawn: transition("dormant") }
+  }
+}

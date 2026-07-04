@@ -1,0 +1,19 @@
+composition "AssembledGallery" {
+  // FIXTURE (assembled): the statistical-average interaction. Every clickable object
+  // does the identical generic thing — its whole handler body is one bare trigger of
+  // a generic info panel. The gate must FLAG each of these (assembled).
+  object "Painting_A" {
+    geometry: "cube"
+    position: [-2, 2, -4]
+    color: "#e74c3c"
+    @clickable
+    on_click() { trigger "show_info_panel" }
+  }
+  object "Painting_B" {
+    geometry: "cube"
+    position: [2, 2, -4]
+    color: "#3498db"
+    @clickable
+    on_click() { trigger "show_info_panel" }
+  }
+}

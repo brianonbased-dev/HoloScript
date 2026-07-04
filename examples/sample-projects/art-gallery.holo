@@ -115,21 +115,32 @@ composition "Interactive Art Gallery" {
   template "Painting" {
     @clickable
     @hoverable
+    // Interaction with a point of view: a work in a retrospective doesn't just
+    // "show an info panel" — it NOTICES a viewer's gaze and, when chosen, makes
+    // itself the room's focus (house lights drop, the piece is spotlit). The
+    // declared reactivity is cross-checked against the handlers by check:interaction-taste.
+    @interaction_profile(react_to: "gaze click", stateful: true)
 
     geometry: "cube"
     material: "GalleryCanvas"
 
-    // When hovered, a subtle glow highlights the frame
+    // A viewer's gaze warms the canvas — the work registers attention.
+    on_gaze(within: 8) {
+      set emissiveIntensity: 0.35
+    }
     on_hover_enter() {
-      set emissiveIntensity: 0.4
+      set emissiveIntensity: 0.5
     }
     on_hover_exit() {
       set emissiveIntensity: 0.0
     }
 
-    // When clicked, display artwork information panel
+    // Clicking doesn't pop a generic panel — it makes THIS work the room's focus:
+    // the house lights drop and the piece is spotlit while its statement is read.
     on_click() {
-      trigger "show_info_panel"
+      set roomDim: 0.15
+      set emissiveIntensity: 0.9
+      trigger "focus_artwork"
     }
   }
 
@@ -390,8 +401,16 @@ composition "Interactive Art Gallery" {
     emissive: "#ffffff"
     emissiveIntensity: 0.1
 
+    @interaction_profile(react_to: "approach click", stateful: true)
+
+    // Approaching the placard wakes it; clicking begins the guided walk that
+    // leads the visitor from the entrance to the hero wall — not a generic panel.
+    on_approach(within: 2) {
+      set emissiveIntensity: 0.4
+    }
     on_click() {
-      trigger "show_gallery_info"
+      set emissiveIntensity: 0.8
+      trigger "begin_guided_route"
     }
   }
 

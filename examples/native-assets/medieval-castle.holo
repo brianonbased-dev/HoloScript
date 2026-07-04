@@ -56,6 +56,26 @@ composition "MedievalCastle" {
   object "Castle" @physics @collidable {
     position: [0, 0, 0]
 
+    // ── Behavior: the fortress responds to the approach and the hour ────────
+    // The drawbridge lowers as someone crosses the causeway; the sea-watch
+    // beacon kindles at dusk and is doused at dawn. The castle's point of view
+    // — a fortified FRONT that reacts to threat and time — authored as data the
+    // gate cross-checks (declared reactivity must match the handlers below).
+    @interaction_profile(react_to: "approach dusk dawn", stateful: true)
+
+    on_approach(within: 8) {
+      set drawbridge_angle: 0
+      trigger "lower_drawbridge"
+    }
+    on_dusk() {
+      set beacon_emissive: 3.0
+      trigger "kindle_beacon"
+    }
+    on_dawn() {
+      set beacon_emissive: 0.0
+      trigger "douse_beacon"
+    }
+
     // ── Foundation ────────────────────────────────────────────────────────
     object "Foundation" using "FoundationStone" {
       geometry: "cube"
