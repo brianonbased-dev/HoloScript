@@ -25,7 +25,7 @@
 //! type is inferred (`Boolean` when the function only ever returns boolean-shaped
 //! expressions; `Float` when it only ever returns numeric-shaped expressions; otherwise
 //! `String`), and each parameter is typed by usage (`Float` when it participates in
-//! arithmetic or is passed to a numeric builtin like `sqrt`, otherwise `String`). This is a
+//! arithmetic or is passed to a numeric builtin from the shared builtin table, otherwise `String`). This is a
 //! deliberately small, predictable inference — the emitter's contract is "behaviourally
 //! matches the hand-Kotlin", verified by golden I/O parity, not byte-identity.
 //!
@@ -33,7 +33,7 @@
 //! emit with the Kotlin `Float` `f` suffix; `+ - * /` arithmetic is re-parenthesized from the
 //! parsed precedence so grouping survives (the parser discards parentheses, keeping only the
 //! precedence-correct tree — the emitter must restore the parentheses the math needs); and a
-//! `.hs` `sqrt(x)` call maps to Kotlin `kotlin.math.sqrt(x)`. Statefulness, SDK/host calls, and
+//! `.hs` numeric builtin calls (`sqrt`, `abs`, `floor`, `min`, `max`, `pow`) map to Kotlin/JVM math. Statefulness, SDK/host calls, and
 //! loops stay in the Kotlin shell — only pure single-assignment math lives in `.hs`.
 //!
 //! Anything outside the subset (the behavioural `move`/`action`/`on_*` blocks, object-graph
@@ -297,6 +297,60 @@ impl ValType {
             ValType::Map(inner) => format!("Map<String, {}>", inner.kotlin()),
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum KotlinBuiltinEmission {
+    Function(&'static str),
+    Pow,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct KotlinBuiltin {
+    name: &'static str,
+    emission: KotlinBuiltinEmission,
+    numeric: bool,
+}
+
+const KOTLIN_BUILTINS: &[KotlinBuiltin] = &[
+    KotlinBuiltin {
+        name: "abs",
+        emission: KotlinBuiltinEmission::Function("kotlin.math.abs"),
+        numeric: true,
+    },
+    KotlinBuiltin {
+        name: "floor",
+        emission: KotlinBuiltinEmission::Function("kotlin.math.floor"),
+        numeric: true,
+    },
+    KotlinBuiltin {
+        name: "max",
+        emission: KotlinBuiltinEmission::Function("kotlin.math.max"),
+        numeric: true,
+    },
+    KotlinBuiltin {
+        name: "min",
+        emission: KotlinBuiltinEmission::Function("kotlin.math.min"),
+        numeric: true,
+    },
+    KotlinBuiltin {
+        name: "pow",
+        emission: KotlinBuiltinEmission::Pow,
+        numeric: true,
+    },
+    KotlinBuiltin {
+        name: "sqrt",
+        emission: KotlinBuiltinEmission::Function("kotlin.math.sqrt"),
+        numeric: true,
+    },
+];
+
+fn kotlin_builtin(name: &str) -> Option<&'static KotlinBuiltin> {
+    KOTLIN_BUILTINS.iter().find(|builtin| builtin.name == name)
+}
+
+fn is_numeric_builtin_call(name: &str) -> bool {
+    kotlin_builtin(name).is_some_and(|builtin| builtin.numeric)
 }
 
 /// Emit Kotlin declarations for every top-level `enum` and `function` in `ast`.
@@ -1602,7 +1656,8 @@ fn stmt_uses_param_numerically(param: &str, node: &AstNode) -> bool {
 }
 
 /// Is `param` used in a numeric position anywhere inside `node`? A numeric position is: an
-/// operand of an arithmetic operator, the operand of a unary `-`, or an argument to `sqrt`.
+/// operand of an arithmetic operator, the operand of a unary `-`, or an argument to a shared
+/// numeric builtin.
 fn expr_uses_param_numerically(param: &str, node: &AstNode) -> bool {
     let direct_hit =
         |operand: &AstNode| matches!(operand, AstNode::Identifier(id) if id.name == param);
@@ -1618,8 +1673,11 @@ fn expr_uses_param_numerically(param: &str, node: &AstNode) -> bool {
                 || expr_uses_param_numerically(param, &u.argument)
         }
         AstNode::CallExpression(c) => {
-            let is_sqrt = matches!(c.callee.as_ref(), AstNode::Identifier(id) if id.name == "sqrt");
-            (is_sqrt && c.arguments.iter().any(direct_hit))
+            let is_numeric_builtin = matches!(
+                c.callee.as_ref(),
+                AstNode::Identifier(id) if is_numeric_builtin_call(&id.name)
+            );
+            (is_numeric_builtin && c.arguments.iter().any(direct_hit))
                 || c.arguments
                     .iter()
                     .any(|a| expr_uses_param_numerically(param, a))
@@ -1672,7 +1730,7 @@ fn is_boolean_expr(node: &AstNode) -> bool {
 }
 
 /// Is this expression numeric-shaped? A numeric literal, a unary `-`, an arithmetic binary
-/// operator (`+ - * /` / `%`), or a `sqrt(...)` builtin call all read as `Float`. Used only
+/// operator (`+ - * /` / `%`), or a shared numeric builtin call all read as `Float`. Used only
 /// for return-type inference. Plain identifiers are NOT numeric on their own — a function that
 /// just returns a parameter is conservatively `String` unless arithmetic forces `Float`,
 /// which keeps the existing naming functions unchanged.
@@ -1684,7 +1742,7 @@ fn is_numeric_expr(node: &AstNode) -> bool {
             matches!(b.operator.as_str(), "+" | "-" | "*" | "/" | "%")
         }
         AstNode::CallExpression(c) => {
-            matches!(c.callee.as_ref(), AstNode::Identifier(id) if id.name == "sqrt")
+            matches!(c.callee.as_ref(), AstNode::Identifier(id) if is_numeric_builtin_call(&id.name))
         }
         _ => false,
     }
@@ -1854,20 +1912,21 @@ fn emit_expr(node: &AstNode, int_locals: &[String]) -> Result<String, KotlinEmit
             }
         }
         AstNode::CallExpression(c) => {
-            // A bare `sqrt(x)` call maps to the Kotlin stdlib `kotlin.math.sqrt(x)` so the
-            // gaze-length math can be authored in `.hs` instead of kept in the Kotlin shell.
-            // Member-call forms (e.g. `x.trim()`) pass through unchanged.
-            let callee = match c.callee.as_ref() {
-                AstNode::Identifier(id) => map_builtin_call(&id.name).to_string(),
-                other => emit_expr(other, int_locals)?,
-            };
             let args = c
                 .arguments
                 .iter()
                 .map(|arg| emit_expr(arg, int_locals))
-                .collect::<Result<Vec<_>, _>>()?
-                .join(", ");
-            Ok(format!("{}({})", callee, args))
+                .collect::<Result<Vec<_>, _>>()?;
+            // Bare numeric builtins map through the shared table so emission and type inference
+            // stay in lockstep. Member-call forms (e.g. `x.trim()`) pass through unchanged.
+            if let AstNode::Identifier(id) = c.callee.as_ref() {
+                if let Some(builtin) = kotlin_builtin(&id.name) {
+                    return emit_builtin_call(builtin, &args);
+                }
+                return Ok(format!("{}({})", id.name, args.join(", ")));
+            }
+            let callee = emit_expr(&c.callee, int_locals)?;
+            Ok(format!("{}({})", callee, args.join(", ")))
         }
         AstNode::LambdaExpression(lambda) => {
             let params = lambda.params.join(", ");
@@ -1952,13 +2011,37 @@ fn map_binary_operator(op: &str) -> &str {
     }
 }
 
-/// Map a bare `.hs` builtin call name to its Kotlin equivalent. `sqrt` → `kotlin.math.sqrt`;
-/// every other identifier callee passes through unchanged (it is a local helper the shell
-/// defines, e.g. `matchedPattern`).
+/// Emit a table-backed bare `.hs` builtin call.
+/// Most builtins are ordinary qualified functions; `pow` lowers through
+/// `java.lang.Math.pow(...).toFloat()` because Kotlin's stdlib `pow` is an extension-style
+/// call while `.hs` exposes a bare function.
+fn emit_builtin_call(builtin: &KotlinBuiltin, args: &[String]) -> Result<String, KotlinEmitError> {
+    match builtin.emission {
+        KotlinBuiltinEmission::Function(_) => Ok(format!(
+            "{}({})",
+            map_builtin_call(builtin.name),
+            args.join(", ")
+        )),
+        KotlinBuiltinEmission::Pow => {
+            if args.len() != 2 {
+                return Err(KotlinEmitError::new(format!(
+                    "builtin pow expects 2 arguments, got {}",
+                    args.len()
+                )));
+            }
+            Ok(format!(
+                "java.lang.Math.pow(({}).toDouble(), ({}).toDouble()).toFloat()",
+                args[0], args[1]
+            ))
+        }
+    }
+}
+
 fn map_builtin_call(name: &str) -> &str {
-    match name {
-        "sqrt" => "kotlin.math.sqrt",
-        other => other,
+    match kotlin_builtin(name).map(|builtin| builtin.emission) {
+        Some(KotlinBuiltinEmission::Function(path)) => path,
+        Some(KotlinBuiltinEmission::Pow) => "java.lang.Math.pow",
+        None => name,
     }
 }
 
@@ -2413,6 +2496,42 @@ mod tests {
         );
         assert!(
             out.contains("fun gazeLen(fx: Float, fz: Float): Float {"),
+            "{out}"
+        );
+    }
+
+    #[test]
+    fn maps_common_numeric_builtins_to_shared_kotlin_table() {
+        assert_eq!(map_builtin_call("sqrt"), "kotlin.math.sqrt");
+        assert_eq!(map_builtin_call("abs"), "kotlin.math.abs");
+        assert_eq!(map_builtin_call("floor"), "kotlin.math.floor");
+        assert_eq!(map_builtin_call("min"), "kotlin.math.min");
+        assert_eq!(map_builtin_call("max"), "kotlin.math.max");
+        assert_eq!(map_builtin_call("pow"), "java.lang.Math.pow");
+        assert_eq!(map_builtin_call("localHelper"), "localHelper");
+    }
+
+    #[test]
+    fn emits_common_numeric_builtins_and_infers_float_params() {
+        let src = r#"function shapeScore(x, y, z) {
+  let ax = abs(x)
+  let fy = floor(y)
+  let cap = min(ax, max(fy, z))
+  return pow(cap, 2)
+}"#;
+        let out = kotlin(src);
+        assert!(
+            out.contains("fun shapeScore(x: Float, y: Float, z: Float): Float {"),
+            "{out}"
+        );
+        assert!(out.contains("val ax = kotlin.math.abs(x)"), "{out}");
+        assert!(out.contains("val fy = kotlin.math.floor(y)"), "{out}");
+        assert!(
+            out.contains("val cap = kotlin.math.min(ax, kotlin.math.max(fy, z))"),
+            "{out}"
+        );
+        assert!(
+            out.contains("return java.lang.Math.pow((cap).toDouble(), (2f).toDouble()).toFloat()"),
             "{out}"
         );
     }
