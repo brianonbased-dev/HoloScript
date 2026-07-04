@@ -134,7 +134,7 @@ pub fn validate(source: &str) -> bool {
 #[wasm_bindgen]
 pub fn validate_detailed(source: &str) -> String {
     match parser::Parser::new(source).parse() {
-        Ok(ast) => match kotlin_emit::check_top_level_declaration_collisions(&ast) {
+        Ok(ast) => match kotlin_emit::check_semantics(&ast) {
             Ok(()) => r#"{"valid": true, "errors": []}"#.to_string(),
             Err(error) => serde_json::to_string(&serde_json::json!({
                 "valid": false,
@@ -351,6 +351,21 @@ mod tests {
         let source = r#"orb test { color: "blue" }"#;
         let result = validate_detailed(source);
         assert!(result.contains("\"valid\": true"));
+    }
+
+    #[test]
+    fn test_validate_detailed_rejects_immutable_reassignment() {
+        let source = r#"function f() {
+  let x = 1
+  x = x + 1
+  return x
+}"#;
+        let result = validate_detailed(source);
+        assert!(result.contains("\"valid\":false"), "{result}");
+        assert!(
+            result.contains("cannot assign to immutable binding `x`"),
+            "{result}"
+        );
     }
 
     #[test]

@@ -40,7 +40,7 @@
 //! nodes) is skipped at the top level and reported via [`KotlinEmitError`] for function-body
 //! constructs, so an unhandled node fails loud instead of silently emitting wrong Kotlin.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::ast::{
     Ast, AstNode, EnumDeclarationNode, ImportNode, PropertyNode, StructDeclarationNode,
@@ -135,12 +135,133 @@ pub(crate) fn check_top_level_declaration_collisions(ast: &Ast) -> Result<(), Se
     Ok(())
 }
 
+pub(crate) fn check_semantics(ast: &Ast) -> Result<(), SemanticDiagnostic> {
+    check_top_level_declaration_collisions(ast)?;
+    check_assignment_mutability(ast)
+}
+
 fn top_level_declaration_site(node: &AstNode) -> Option<DeclarationSite> {
     match node {
         AstNode::Function(f) => Some(DeclarationSite::from_loc(&f.name, "function", &f.loc)),
         AstNode::StructDeclaration(s) => Some(DeclarationSite::from_loc(&s.name, "struct", &s.loc)),
         AstNode::EnumDeclaration(e) => Some(DeclarationSite::from_loc(&e.name, "enum", &e.loc)),
         _ => None,
+    }
+}
+
+fn check_assignment_mutability(ast: &Ast) -> Result<(), SemanticDiagnostic> {
+    for node in &ast.body {
+        match node {
+            AstNode::Function(function) => {
+                let mut scopes = vec![HashMap::new()];
+                check_assignment_mutability_in_body(&function.body, &mut scopes)?;
+            }
+            AstNode::Export(export) => {
+                if let AstNode::Function(function) = export.declaration.as_ref() {
+                    let mut scopes = vec![HashMap::new()];
+                    check_assignment_mutability_in_body(&function.body, &mut scopes)?;
+                }
+            }
+            _ => {}
+        }
+    }
+    Ok(())
+}
+
+fn check_assignment_mutability_in_body(
+    body: &[AstNode],
+    scopes: &mut Vec<HashMap<String, bool>>,
+) -> Result<(), SemanticDiagnostic> {
+    for node in body {
+        match node {
+            AstNode::VariableDeclaration(v) => {
+                if let Some(scope) = scopes.last_mut() {
+                    scope.insert(v.name.clone(), v.mutable);
+                }
+            }
+            AstNode::Assignment(a) => {
+                let Some(target) = assignment_target_identifier(&a.target) else {
+                    return Err(semantic_error(
+                        "assignment target in .hs logic must be a local `var` identifier",
+                        &a.loc,
+                    ));
+                };
+
+                match lookup_binding_mutability(scopes, target) {
+                    Some(true) => {}
+                    Some(false) => {
+                        return Err(semantic_error(
+                            format!(
+                                "cannot assign to immutable binding `{}`; declare it with `var` to opt into local mutable state",
+                                target
+                            ),
+                            &a.loc,
+                        ));
+                    }
+                    None => {
+                        return Err(semantic_error(
+                            format!(
+                                "assignment to `{}` requires a previously-declared `var` binding",
+                                target
+                            ),
+                            &a.loc,
+                        ));
+                    }
+                }
+            }
+            AstNode::ForOf(f) => {
+                scopes.push(HashMap::from([(f.var_name.clone(), false)]));
+                check_assignment_mutability_in_body(&f.body, scopes)?;
+                scopes.pop();
+            }
+            AstNode::While(w) => {
+                scopes.push(HashMap::new());
+                check_assignment_mutability_in_body(&w.body, scopes)?;
+                scopes.pop();
+            }
+            AstNode::If(if_node) => {
+                scopes.push(HashMap::new());
+                check_assignment_mutability_in_body(&if_node.consequent, scopes)?;
+                scopes.pop();
+
+                if let Some(alt) = &if_node.alternate {
+                    scopes.push(HashMap::new());
+                    check_assignment_mutability_in_body(alt, scopes)?;
+                    scopes.pop();
+                }
+            }
+            _ => {}
+        }
+    }
+    Ok(())
+}
+
+fn lookup_binding_mutability(scopes: &[HashMap<String, bool>], name: &str) -> Option<bool> {
+    scopes
+        .iter()
+        .rev()
+        .find_map(|scope| scope.get(name).copied())
+}
+
+fn assignment_target_identifier(node: &AstNode) -> Option<&str> {
+    match node {
+        AstNode::Identifier(id) => Some(&id.name),
+        _ => None,
+    }
+}
+
+fn semantic_error(
+    message: impl Into<String>,
+    loc: &Option<crate::ast::Location>,
+) -> SemanticDiagnostic {
+    let (line, column) = loc
+        .as_ref()
+        .map(|loc| (loc.start.line, loc.start.column))
+        .unwrap_or((0, 0));
+    SemanticDiagnostic {
+        message: message.into(),
+        line,
+        column,
     }
 }
 
@@ -201,7 +322,7 @@ impl ValType {
 /// module's source was never concatenated in) now fails loudly instead of being dropped without a
 /// trace — see [`check_imports_resolved`].
 pub fn emit_functions(ast: &Ast, indent: &str) -> Result<String, KotlinEmitError> {
-    check_top_level_declaration_collisions(ast)?;
+    check_semantics(ast)?;
 
     // First pass: collect the declared enum names so return-type inference can recognize an
     // `Enum.Member` reference as that enum's value (and so a stray member name can't be read
@@ -389,16 +510,17 @@ fn emit_function(
     struct_names: &[String],
 ) -> Result<String, KotlinEmitError> {
     let ret = infer_return_type(body, enum_names, struct_names);
+    let int_locals = collect_index_local_bindings(body);
     let param_list = params
         .iter()
-        .map(|p| format!("{}: {}", p, infer_param_type(p, body).kotlin()))
+        .map(|p| format!("{}: {}", p, infer_param_type(p, body, &int_locals).kotlin()))
         .collect::<Vec<_>>()
         .join(", ");
 
     let body_indent = format!("{}  ", indent);
     let mut lines: Vec<String> = Vec::new();
     for stmt in body {
-        emit_statement(stmt, &body_indent, &mut lines)?;
+        emit_statement(stmt, &body_indent, &mut lines, &int_locals)?;
     }
 
     let mut out = String::new();
@@ -496,6 +618,30 @@ fn infer_return_type(body: &[AstNode], enum_names: &[String], struct_names: &[St
     // `return total` ⇒ `Float`). Additive: only fires when a list local is both declared AND returned.
     let list_locals = collect_list_local_bindings(body, enum_names, struct_names);
     if !list_locals.is_empty() {
+        let elem_at = |n: &AstNode| -> Option<ValType> {
+            match n {
+                AstNode::MemberExpression(member) if member.computed => {
+                    if let AstNode::Identifier(id) = member.object.as_ref() {
+                        list_locals
+                            .iter()
+                            .find(|(name, _)| name == &id.name)
+                            .map(|(_, t)| t.clone())
+                    } else {
+                        None
+                    }
+                }
+                _ => None,
+            }
+        };
+        if let Some(first_elem) = returns.first().and_then(|n| elem_at(n)) {
+            if returns
+                .iter()
+                .all(|n| elem_at(n).as_ref() == Some(&first_elem))
+            {
+                return first_elem;
+            }
+        }
+
         let elem_of = |n: &AstNode| -> Option<ValType> {
             match n {
                 AstNode::Identifier(id) => list_locals
@@ -958,12 +1104,15 @@ fn arg_literal_signal(node: &AstNode, struct_names: &[String]) -> Option<ValType
 /// (or booleanly) anywhere is that type everywhere. Numeric is checked first so a value used in
 /// both arithmetic and a comparison reads as `Float`; the routing decision's flags
 /// (`isWorldLink` / `autoImmerse` / `isOpenAction`) are used only as bare `if` tests → `Boolean`.
-fn infer_param_type(param: &str, body: &[AstNode]) -> ValType {
+fn infer_param_type(param: &str, body: &[AstNode], int_locals: &[String]) -> ValType {
     // A param iterated as a bare list (`for (v in param)`) is a `List<T>` — checked first since that
     // usage carries the most specific signal (the element type comes from how the loop var is used).
     if let Some(elem) = body_uses_param_as_list(param, body) {
         ValType::List(Box::new(elem))
-    } else if body_uses_param_as_range_bound(param, body) {
+    } else if body_uses_param_as_range_bound(param, body)
+        || body_uses_param_as_index(param, body)
+        || body_uses_param_as_index_local_initializer(param, body, int_locals)
+    {
         // A param that bounds a range (`for (i in 0..n)`) is definitively `Int` — Kotlin ranges are
         // integer-typed — so this is checked before the Float/Boolean/String fallbacks.
         ValType::Int
@@ -973,6 +1122,139 @@ fn infer_param_type(param: &str, body: &[AstNode]) -> ValType {
         ValType::Bool
     } else {
         ValType::Str
+    }
+}
+
+/// Collect local bindings whose names are used in computed list indexes (`arr[i]`). These locals
+/// are emitted in an integer context so a plain `let i = 1` becomes `val i = 1`, not `1f`.
+fn collect_index_local_bindings(body: &[AstNode]) -> Vec<String> {
+    let mut index_identifiers = HashSet::new();
+    collect_index_identifiers_in_body(body, &mut index_identifiers);
+
+    let mut locals = Vec::new();
+    collect_declared_locals_matching(body, &index_identifiers, &mut locals);
+    locals
+}
+
+fn collect_declared_locals_matching(
+    body: &[AstNode],
+    wanted: &HashSet<String>,
+    out: &mut Vec<String>,
+) {
+    for node in body {
+        match node {
+            AstNode::VariableDeclaration(v)
+                if wanted.contains(&v.name) && !out.iter().any(|n| n == &v.name) =>
+            {
+                out.push(v.name.clone());
+            }
+            AstNode::ForOf(f) => collect_declared_locals_matching(&f.body, wanted, out),
+            AstNode::While(w) => collect_declared_locals_matching(&w.body, wanted, out),
+            AstNode::If(if_node) => {
+                collect_declared_locals_matching(&if_node.consequent, wanted, out);
+                if let Some(alt) = &if_node.alternate {
+                    collect_declared_locals_matching(alt, wanted, out);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+fn collect_index_identifiers_in_body(body: &[AstNode], out: &mut HashSet<String>) {
+    for node in body {
+        collect_index_identifiers_in_stmt(node, out);
+    }
+}
+
+fn collect_index_identifiers_in_stmt(node: &AstNode, out: &mut HashSet<String>) {
+    match node {
+        AstNode::VariableDeclaration(v) => collect_index_identifiers_in_expr(&v.value, out),
+        AstNode::Assignment(a) => {
+            collect_index_identifiers_in_expr(&a.target, out);
+            collect_index_identifiers_in_expr(&a.value, out);
+        }
+        AstNode::Return(r) => {
+            if let Some(arg) = &r.argument {
+                collect_index_identifiers_in_expr(arg, out);
+            }
+        }
+        AstNode::If(if_node) => {
+            collect_index_identifiers_in_expr(&if_node.test, out);
+            collect_index_identifiers_in_body(&if_node.consequent, out);
+            if let Some(alt) = &if_node.alternate {
+                collect_index_identifiers_in_body(alt, out);
+            }
+        }
+        AstNode::While(w) => {
+            collect_index_identifiers_in_expr(&w.test, out);
+            collect_index_identifiers_in_body(&w.body, out);
+        }
+        AstNode::ForOf(f) => {
+            collect_index_identifiers_in_expr(&f.range, out);
+            collect_index_identifiers_in_body(&f.body, out);
+        }
+        other => collect_index_identifiers_in_expr(other, out),
+    }
+}
+
+fn collect_index_identifiers_in_expr(node: &AstNode, out: &mut HashSet<String>) {
+    match node {
+        AstNode::MemberExpression(m) if m.computed => {
+            collect_identifiers(&m.property, out);
+            collect_index_identifiers_in_expr(&m.object, out);
+        }
+        AstNode::MemberExpression(m) => {
+            collect_index_identifiers_in_expr(&m.object, out);
+            collect_index_identifiers_in_expr(&m.property, out);
+        }
+        AstNode::BinaryExpression(b) => {
+            collect_index_identifiers_in_expr(&b.left, out);
+            collect_index_identifiers_in_expr(&b.right, out);
+        }
+        AstNode::UnaryExpression(u) => collect_index_identifiers_in_expr(&u.argument, out),
+        AstNode::CallExpression(c) => {
+            collect_index_identifiers_in_expr(&c.callee, out);
+            for arg in &c.arguments {
+                collect_index_identifiers_in_expr(arg, out);
+            }
+        }
+        AstNode::LambdaExpression(lambda) => collect_index_identifiers_in_expr(&lambda.body, out),
+        AstNode::Array(arr) => {
+            for element in &arr.elements {
+                collect_index_identifiers_in_expr(element, out);
+            }
+        }
+        AstNode::ObjectLiteral(obj) => {
+            for prop in &obj.properties {
+                collect_index_identifiers_in_expr(prop.value.as_ref(), out);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn collect_identifiers(node: &AstNode, out: &mut HashSet<String>) {
+    match node {
+        AstNode::Identifier(id) => {
+            out.insert(id.name.clone());
+        }
+        AstNode::BinaryExpression(b) => {
+            collect_identifiers(&b.left, out);
+            collect_identifiers(&b.right, out);
+        }
+        AstNode::UnaryExpression(u) => collect_identifiers(&u.argument, out),
+        AstNode::MemberExpression(m) => {
+            collect_identifiers(&m.object, out);
+            collect_identifiers(&m.property, out);
+        }
+        AstNode::CallExpression(c) => {
+            collect_identifiers(&c.callee, out);
+            for arg in &c.arguments {
+                collect_identifiers(arg, out);
+            }
+        }
+        _ => {}
     }
 }
 
@@ -1080,6 +1362,140 @@ fn expr_uses_param_as_range_bound(param: &str, node: &AstNode) -> bool {
 /// Walk every statement in `body` looking for a bare-boolean use of `param`: it appears directly
 /// as an `if (...)` test, or as a `&& || !` operand. A param NOT used this way (e.g. only compared
 /// or returned) stays `String` under the conservative default.
+fn body_uses_param_as_index(param: &str, body: &[AstNode]) -> bool {
+    body.iter().any(|n| stmt_uses_param_as_index(param, n))
+}
+
+fn stmt_uses_param_as_index(param: &str, node: &AstNode) -> bool {
+    match node {
+        AstNode::ForOf(f) => {
+            expr_uses_param_as_index(param, &f.range) || body_uses_param_as_index(param, &f.body)
+        }
+        AstNode::While(w) => {
+            expr_uses_param_as_index(param, &w.test) || body_uses_param_as_index(param, &w.body)
+        }
+        AstNode::If(if_node) => {
+            expr_uses_param_as_index(param, &if_node.test)
+                || body_uses_param_as_index(param, &if_node.consequent)
+                || if_node
+                    .alternate
+                    .as_ref()
+                    .is_some_and(|alt| body_uses_param_as_index(param, alt))
+        }
+        AstNode::VariableDeclaration(v) => expr_uses_param_as_index(param, &v.value),
+        AstNode::Assignment(a) => {
+            expr_uses_param_as_index(param, &a.target) || expr_uses_param_as_index(param, &a.value)
+        }
+        AstNode::Return(r) => r
+            .argument
+            .as_ref()
+            .is_some_and(|a| expr_uses_param_as_index(param, a)),
+        other => expr_uses_param_as_index(param, other),
+    }
+}
+
+fn expr_uses_param_as_index(param: &str, node: &AstNode) -> bool {
+    let is_param = |n: &AstNode| matches!(n, AstNode::Identifier(id) if id.name == param);
+    match node {
+        AstNode::MemberExpression(m) if m.computed => {
+            expr_contains_node(&m.property, &is_param) || expr_uses_param_as_index(param, &m.object)
+        }
+        AstNode::MemberExpression(m) => {
+            expr_uses_param_as_index(param, &m.object)
+                || expr_uses_param_as_index(param, &m.property)
+        }
+        AstNode::BinaryExpression(b) => {
+            expr_uses_param_as_index(param, &b.left) || expr_uses_param_as_index(param, &b.right)
+        }
+        AstNode::UnaryExpression(u) => expr_uses_param_as_index(param, &u.argument),
+        AstNode::CallExpression(c) => {
+            expr_uses_param_as_index(param, &c.callee)
+                || c.arguments
+                    .iter()
+                    .any(|a| expr_uses_param_as_index(param, a))
+        }
+        AstNode::LambdaExpression(lambda) => {
+            !lambda.params.iter().any(|p| p == param)
+                && expr_uses_param_as_index(param, &lambda.body)
+        }
+        AstNode::Array(arr) => arr
+            .elements
+            .iter()
+            .any(|element| expr_uses_param_as_index(param, element)),
+        AstNode::ObjectLiteral(obj) => obj
+            .properties
+            .iter()
+            .any(|prop| expr_uses_param_as_index(param, prop.value.as_ref())),
+        _ => false,
+    }
+}
+
+fn body_uses_param_as_index_local_initializer(
+    param: &str,
+    body: &[AstNode],
+    int_locals: &[String],
+) -> bool {
+    body.iter()
+        .any(|n| stmt_uses_param_as_index_local_initializer(param, n, int_locals))
+}
+
+fn stmt_uses_param_as_index_local_initializer(
+    param: &str,
+    node: &AstNode,
+    int_locals: &[String],
+) -> bool {
+    match node {
+        AstNode::VariableDeclaration(v) if int_locals.iter().any(|n| n == &v.name) => {
+            expr_contains_identifier(&v.value, param)
+        }
+        AstNode::ForOf(f) => body_uses_param_as_index_local_initializer(param, &f.body, int_locals),
+        AstNode::While(w) => body_uses_param_as_index_local_initializer(param, &w.body, int_locals),
+        AstNode::If(if_node) => {
+            body_uses_param_as_index_local_initializer(param, &if_node.consequent, int_locals)
+                || if_node.alternate.as_ref().is_some_and(|alt| {
+                    body_uses_param_as_index_local_initializer(param, alt, int_locals)
+                })
+        }
+        _ => false,
+    }
+}
+
+fn expr_contains_identifier(node: &AstNode, name: &str) -> bool {
+    expr_contains_node(
+        node,
+        &|n| matches!(n, AstNode::Identifier(id) if id.name == name),
+    )
+}
+
+fn expr_contains_node(node: &AstNode, predicate: &impl Fn(&AstNode) -> bool) -> bool {
+    if predicate(node) {
+        return true;
+    }
+    match node {
+        AstNode::BinaryExpression(b) => {
+            expr_contains_node(&b.left, predicate) || expr_contains_node(&b.right, predicate)
+        }
+        AstNode::UnaryExpression(u) => expr_contains_node(&u.argument, predicate),
+        AstNode::CallExpression(c) => {
+            expr_contains_node(&c.callee, predicate)
+                || c.arguments.iter().any(|a| expr_contains_node(a, predicate))
+        }
+        AstNode::LambdaExpression(lambda) => expr_contains_node(&lambda.body, predicate),
+        AstNode::MemberExpression(m) => {
+            expr_contains_node(&m.object, predicate) || expr_contains_node(&m.property, predicate)
+        }
+        AstNode::Array(arr) => arr
+            .elements
+            .iter()
+            .any(|element| expr_contains_node(element, predicate)),
+        AstNode::ObjectLiteral(obj) => obj
+            .properties
+            .iter()
+            .any(|prop| expr_contains_node(prop.value.as_ref(), predicate)),
+        _ => false,
+    }
+}
+
 fn body_uses_param_as_boolean(param: &str, body: &[AstNode]) -> bool {
     let is_param = |n: &AstNode| matches!(n, AstNode::Identifier(id) if id.name == param);
     body.iter().any(|node| match node {
@@ -1278,11 +1694,16 @@ fn emit_statement(
     node: &AstNode,
     indent: &str,
     lines: &mut Vec<String>,
+    int_locals: &[String],
 ) -> Result<(), KotlinEmitError> {
     match node {
         // `let`/`const x = expr` → immutable `val`; `var x = expr` → mutable `var`.
         AstNode::VariableDeclaration(v) => {
-            let value = emit_expr(&v.value)?;
+            let value = if int_locals.iter().any(|n| n == &v.name) {
+                emit_int_expr(&v.value, int_locals)?
+            } else {
+                emit_expr(&v.value, int_locals)?
+            };
             let kw = if v.mutable { "var" } else { "val" };
             if let AstNode::LambdaExpression(lambda) = v.value.as_ref() {
                 let ty = emit_lambda_type(lambda)?;
@@ -1295,23 +1716,27 @@ fn emit_statement(
         // Defensive: an object-graph `Property` reaching the logic emitter is treated as an
         // immutable binding (the parser now emits `VariableDeclaration` for `.hs` logic bindings).
         AstNode::Property(p) => {
-            let value = emit_expr(&p.value)?;
+            let value = emit_expr(&p.value, int_locals)?;
             lines.push(format!("{}val {} = {}", indent, p.key, value));
             Ok(())
         }
         // `x = expr` / `acc += expr` reassignment of a LOCAL `var`.
         AstNode::Assignment(a) => {
-            let target = emit_expr(&a.target)?;
-            let value = emit_expr(&a.value)?;
+            let target = emit_expr(&a.target, int_locals)?;
+            let value = emit_expr(&a.value, int_locals)?;
             lines.push(format!("{}{} {} {}", indent, target, a.operator, value));
             Ok(())
         }
         // `while (cond) { … }` → Kotlin `while (cond) { … }`.
         AstNode::While(w) => {
-            lines.push(format!("{}while ({}) {{", indent, emit_expr(&w.test)?));
+            lines.push(format!(
+                "{}while ({}) {{",
+                indent,
+                emit_expr(&w.test, int_locals)?
+            ));
             let inner = format!("{}  ", indent);
             for stmt in &w.body {
-                emit_statement(stmt, &inner, lines)?;
+                emit_statement(stmt, &inner, lines, int_locals)?;
             }
             lines.push(format!("{}}}", indent));
             Ok(())
@@ -1322,32 +1747,38 @@ fn emit_statement(
                 "{}for ({} in {}) {{",
                 indent,
                 f.var_name,
-                emit_expr(&f.range)?
+                emit_expr(&f.range, int_locals)?
             ));
             let inner = format!("{}  ", indent);
             for stmt in &f.body {
-                emit_statement(stmt, &inner, lines)?;
+                emit_statement(stmt, &inner, lines, int_locals)?;
             }
             lines.push(format!("{}}}", indent));
             Ok(())
         }
         AstNode::Return(r) => {
             match &r.argument {
-                Some(arg) => lines.push(format!("{}return {}", indent, emit_expr(arg)?)),
+                Some(arg) => {
+                    lines.push(format!("{}return {}", indent, emit_expr(arg, int_locals)?))
+                }
                 None => lines.push(format!("{}return", indent)),
             }
             Ok(())
         }
         AstNode::If(if_node) => {
-            lines.push(format!("{}if ({}) {{", indent, emit_expr(&if_node.test)?));
+            lines.push(format!(
+                "{}if ({}) {{",
+                indent,
+                emit_expr(&if_node.test, int_locals)?
+            ));
             let inner = format!("{}  ", indent);
             for stmt in &if_node.consequent {
-                emit_statement(stmt, &inner, lines)?;
+                emit_statement(stmt, &inner, lines, int_locals)?;
             }
             if let Some(alt) = &if_node.alternate {
                 lines.push(format!("{}}} else {{", indent));
                 for stmt in alt {
-                    emit_statement(stmt, &inner, lines)?;
+                    emit_statement(stmt, &inner, lines, int_locals)?;
                 }
             }
             lines.push(format!("{}}}", indent));
@@ -1359,7 +1790,7 @@ fn emit_statement(
         | AstNode::Identifier(_)
         | AstNode::BinaryExpression(_)
         | AstNode::UnaryExpression(_) => {
-            lines.push(format!("{}{}", indent, emit_expr(node)?));
+            lines.push(format!("{}{}", indent, emit_expr(node, int_locals)?));
             Ok(())
         }
         AstNode::Comment(_) => Ok(()),
@@ -1370,7 +1801,7 @@ fn emit_statement(
     }
 }
 
-fn emit_expr(node: &AstNode) -> Result<String, KotlinEmitError> {
+fn emit_expr(node: &AstNode, int_locals: &[String]) -> Result<String, KotlinEmitError> {
     match node {
         AstNode::String(s) => Ok(emit_string_literal(&s.value)),
         AstNode::Number(n) => Ok(emit_float_literal(&n.raw)),
@@ -1382,8 +1813,8 @@ fn emit_expr(node: &AstNode) -> Result<String, KotlinEmitError> {
             // Its operands live in an Int context, so numeric literals drop the Float `f` suffix.
             if b.operator == ".." {
                 let parent = precedence(&b.operator);
-                let left = emit_range_operand(&b.left, parent, false)?;
-                let right = emit_range_operand(&b.right, parent, true)?;
+                let left = emit_range_operand(&b.left, parent, false, int_locals)?;
+                let right = emit_range_operand(&b.right, parent, true, int_locals)?;
                 return Ok(format!("{}..{}", left, right));
             }
             // The parser discards parentheses, keeping only a precedence-correct tree. To emit
@@ -1392,26 +1823,32 @@ fn emit_expr(node: &AstNode) -> Result<String, KotlinEmitError> {
             // shares this precedence (so `a - (b - c)` and `(a + b) * c` survive intact).
             let parent = precedence(&b.operator);
             let op = map_binary_operator(&b.operator);
-            let left = emit_operand(&b.left, parent, false)?;
-            let right = emit_operand(&b.right, parent, true)?;
+            let left = emit_operand(&b.left, parent, false, int_locals)?;
+            let right = emit_operand(&b.right, parent, true, int_locals)?;
             Ok(format!("{} {} {}", left, op, right))
         }
         AstNode::UnaryExpression(u) => {
             // Parenthesize a binary argument so `-(a + b)` / `!(a && b)` keep their grouping.
             let arg = match u.argument.as_ref() {
-                AstNode::BinaryExpression(_) => format!("({})", emit_expr(&u.argument)?),
-                _ => emit_expr(&u.argument)?,
+                AstNode::BinaryExpression(_) => {
+                    format!("({})", emit_expr(&u.argument, int_locals)?)
+                }
+                _ => emit_expr(&u.argument, int_locals)?,
             };
             Ok(format!("{}{}", u.operator, arg))
         }
         AstNode::MemberExpression(m) => {
-            let object = emit_expr(&m.object)?;
+            let object = emit_expr(&m.object, int_locals)?;
             if m.computed {
-                Ok(format!("{}[{}]", object, emit_expr(&m.property)?))
+                Ok(format!(
+                    "{}[{}]",
+                    object,
+                    emit_int_expr(&m.property, int_locals)?
+                ))
             } else {
                 let prop = match m.property.as_ref() {
                     AstNode::Identifier(id) => id.name.clone(),
-                    other => emit_expr(other)?,
+                    other => emit_expr(other, int_locals)?,
                 };
                 Ok(format!("{}.{}", object, prop))
             }
@@ -1422,25 +1859,29 @@ fn emit_expr(node: &AstNode) -> Result<String, KotlinEmitError> {
             // Member-call forms (e.g. `x.trim()`) pass through unchanged.
             let callee = match c.callee.as_ref() {
                 AstNode::Identifier(id) => map_builtin_call(&id.name).to_string(),
-                other => emit_expr(other)?,
+                other => emit_expr(other, int_locals)?,
             };
             let args = c
                 .arguments
                 .iter()
-                .map(emit_expr)
+                .map(|arg| emit_expr(arg, int_locals))
                 .collect::<Result<Vec<_>, _>>()?
                 .join(", ");
             Ok(format!("{}({})", callee, args))
         }
         AstNode::LambdaExpression(lambda) => {
             let params = lambda.params.join(", ");
-            Ok(format!("{{ {} -> {} }}", params, emit_expr(&lambda.body)?))
+            Ok(format!(
+                "{{ {} -> {} }}",
+                params,
+                emit_expr(&lambda.body, int_locals)?
+            ))
         }
         AstNode::Array(arr) => {
             let elems = arr
                 .elements
                 .iter()
-                .map(emit_expr)
+                .map(|element| emit_expr(element, int_locals))
                 .collect::<Result<Vec<_>, _>>()?
                 .join(", ");
             Ok(format!("listOf({})", elems))
@@ -1451,7 +1892,7 @@ fn emit_expr(node: &AstNode) -> Result<String, KotlinEmitError> {
                 entries.push(format!(
                     "{} to {}",
                     emit_string_literal(&prop.key),
-                    emit_expr(prop.value.as_ref())?
+                    emit_expr(prop.value.as_ref(), int_locals)?
                 ));
             }
             Ok(format!("mapOf({})", entries.join(", ")))
@@ -1542,8 +1983,13 @@ fn precedence(op: &str) -> u8 {
 /// binds looser than the parent (`is_right` additionally forces a wrap at EQUAL precedence so
 /// the right child of a left-associative operator — `a - (b - c)`, `a / (b / c)` — is not
 /// silently reassociated). Atoms (identifiers, literals, calls, members, unary) never wrap.
-fn emit_operand(node: &AstNode, parent: u8, is_right: bool) -> Result<String, KotlinEmitError> {
-    let emitted = emit_expr(node)?;
+fn emit_operand(
+    node: &AstNode,
+    parent: u8,
+    is_right: bool,
+    int_locals: &[String],
+) -> Result<String, KotlinEmitError> {
+    let emitted = emit_expr(node, int_locals)?;
     if let AstNode::BinaryExpression(b) = node {
         let child = precedence(&b.operator);
         if child < parent || (is_right && child == parent) {
@@ -1560,8 +2006,9 @@ fn emit_range_operand(
     node: &AstNode,
     parent: u8,
     is_right: bool,
+    int_locals: &[String],
 ) -> Result<String, KotlinEmitError> {
-    let emitted = emit_int_expr(node)?;
+    let emitted = emit_int_expr(node, int_locals)?;
     if let AstNode::BinaryExpression(b) = node {
         let child = precedence(&b.operator);
         if child < parent || (is_right && child == parent) {
@@ -1575,7 +2022,7 @@ fn emit_range_operand(
 /// integers (no Float `f` suffix); arithmetic sub-expressions recurse in the same Int context;
 /// everything else falls back to the normal expression emitter (identifiers, calls, members pass
 /// through — they are assumed to already be Int-typed in a range position).
-fn emit_int_expr(node: &AstNode) -> Result<String, KotlinEmitError> {
+fn emit_int_expr(node: &AstNode, int_locals: &[String]) -> Result<String, KotlinEmitError> {
     match node {
         AstNode::Number(n) => Ok(emit_int_literal(&n.raw)),
         AstNode::BinaryExpression(b)
@@ -1583,16 +2030,21 @@ fn emit_int_expr(node: &AstNode) -> Result<String, KotlinEmitError> {
         {
             let parent = precedence(&b.operator);
             let op = map_binary_operator(&b.operator);
-            let left = emit_int_operand(&b.left, parent, false)?;
-            let right = emit_int_operand(&b.right, parent, true)?;
+            let left = emit_int_operand(&b.left, parent, false, int_locals)?;
+            let right = emit_int_operand(&b.right, parent, true, int_locals)?;
             Ok(format!("{} {} {}", left, op, right))
         }
-        other => emit_expr(other),
+        other => emit_expr(other, int_locals),
     }
 }
 
-fn emit_int_operand(node: &AstNode, parent: u8, is_right: bool) -> Result<String, KotlinEmitError> {
-    let emitted = emit_int_expr(node)?;
+fn emit_int_operand(
+    node: &AstNode,
+    parent: u8,
+    is_right: bool,
+    int_locals: &[String],
+) -> Result<String, KotlinEmitError> {
+    let emitted = emit_int_expr(node, int_locals)?;
     if let AstNode::BinaryExpression(b) = node {
         let child = precedence(&b.operator);
         if child < parent || (is_right && child == parent) {
@@ -2135,6 +2587,23 @@ function f(x) {
     }
 
     #[test]
+    fn rejects_reassignment_of_immutable_let_binding() {
+        let src = r#"function f() {
+  let x = 1
+  x = x + 1
+  return x
+}"#;
+        let result = compile_source_to_kotlin(src, "  ");
+        assert!(result.is_err(), "immutable reassignment must fail");
+        let msg = result.unwrap_err().message;
+        assert!(
+            msg.contains("cannot assign to immutable binding `x`"),
+            "{msg}"
+        );
+        assert!(msg.contains("declare it with `var`"), "{msg}");
+    }
+
+    #[test]
     fn emits_compound_assignment() {
         let src = r#"function f(x) {
   var acc = 0
@@ -2540,6 +3009,33 @@ function points() {
 }"#;
         let out = kotlin(src);
         assert!(out.contains("val xs = listOf(1f, 2f, 3f)"), "{out}");
+    }
+
+    #[test]
+    fn local_array_index_uses_int_binding_and_infers_element_return() {
+        let src = r#"function pick() {
+  let arr = [10, 20, 30]
+  let i = 1
+  return arr[i]
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("fun pick(): Float {"), "{out}");
+        assert!(out.contains("val arr = listOf(10f, 20f, 30f)"), "{out}");
+        assert!(out.contains("val i = 1"), "{out}");
+        assert!(!out.contains("val i = 1f"), "{out}");
+        assert!(out.contains("return arr[i]"), "{out}");
+    }
+
+    #[test]
+    fn literal_array_index_uses_int_context() {
+        let src = r#"function pick() {
+  let arr = [10, 20, 30]
+  return arr[1]
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("fun pick(): Float {"), "{out}");
+        assert!(out.contains("return arr[1]"), "{out}");
+        assert!(!out.contains("return arr[1f]"), "{out}");
     }
 
     #[test]

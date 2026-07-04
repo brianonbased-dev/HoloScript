@@ -10,7 +10,7 @@ use serde::Serialize;
 use serde_json::Value;
 
 use crate::ast::{Ast, AstNode, CallExpression, FunctionNode};
-use crate::kotlin_emit::{check_top_level_declaration_collisions, SemanticDiagnostic};
+use crate::kotlin_emit::{check_semantics, SemanticDiagnostic};
 
 const OP_PUSH: u16 = 0x01;
 const OP_CALL: u16 = 0x32;
@@ -93,7 +93,7 @@ pub fn compile_source_to_uaal_json(source: &str) -> Result<String, UaalEmitError
 }
 
 pub fn emit_uaal_bytecode(ast: &Ast) -> Result<UaalBytecode, UaalEmitError> {
-    check_top_level_declaration_collisions(ast)?;
+    check_semantics(ast)?;
 
     let functions = collect_functions(ast)?;
     if functions.is_empty() {
