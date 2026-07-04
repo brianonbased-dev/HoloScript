@@ -1995,7 +1995,7 @@ export class HoloCompositionParser {
 
       if (this.check('STATE') && this.peek(1).type !== 'COLON') {
         template.state = this.parseState();
-      } else if (this.check('ACTION') || this.check('ASYNC')) {
+      } else if ((this.check('ACTION') && this.peek(1).type !== 'COLON') || this.check('ASYNC')) {
         const action = this.parseAction();
         template.actions.push(action);
         template.directives!.push({
@@ -2210,7 +2210,7 @@ export class HoloCompositionParser {
         children.push(this.parseObject(nestedType));
       } else if (this.check('SUB_ORB')) {
         subOrbs.push(this.parseSubOrb());
-      } else if (this.check('ACTION') || this.check('ASYNC')) {
+      } else if ((this.check('ACTION') && this.peek(1).type !== 'COLON') || this.check('ASYNC')) {
         const action = this.parseAction();
         directives.push({
           type: 'method',
@@ -7964,7 +7964,11 @@ export class HoloCompositionParser {
       // Nested objects
       if (this.check('OBJECT')) {
         children.push(this.parseObject());
-      } else if (this.check('IDENTIFIER') && this.isPrimitiveShape(this.current().value)) {
+      } else if (
+        this.check('IDENTIFIER') &&
+        this.isPrimitiveShape(this.current().value) &&
+        this.peek(1).type !== 'COLON'
+      ) {
         children.push(this.parsePrimitiveObject());
       }
       // Event handlers

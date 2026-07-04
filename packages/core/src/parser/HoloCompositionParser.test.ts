@@ -1036,6 +1036,31 @@ describe('HoloCompositionParser', () => {
       expect(result.success).toBe(true);
       expect(result.errors).toEqual([]);
     });
+
+    it('parses primitive shape names as colon properties inside domain blocks', () => {
+      const result = parseHolo(`input "GestureStarter" {
+        system "GestureClassifier" {
+          type: "gesture-recognition"
+          model: "mediapipe-hands"
+          updateRate: 30
+        }
+      }`);
+
+      expect(result.success).toBe(true);
+      expect(result.errors).toEqual([]);
+    });
+
+    it('parses action as a colon property inside object bodies', () => {
+      const result = parseHolo(`composition "PortalOverlay" {
+        object "exit_button" @pointable @glowing {
+          geometry: "box"
+          action: "close_portal"
+        }
+      }`);
+
+      expect(result.success).toBe(true);
+      expect(result.errors).toEqual([]);
+    });
   });
 
   describe('Error Handling', () => {
