@@ -42,6 +42,8 @@ import {
   compileMaterialBlock,
   compileMaterialGraphBlock,
   materialGraphToWGSL,
+  compileParticleFieldBlock,
+  particleFieldToWGSL,
   compilePhysicsBlock,
   compileParticleBlock,
   compilePostProcessingBlock,
@@ -722,6 +724,23 @@ export class TSLCompiler extends CompilerBase {
 
           result[`_domain.material_graph.${safeName}.wgsl`] = `${wgsl}\n${usage}`;
           return `// TSL Material Graph: "${this.escapeStringValue(graph.name as string, 'TypeScript')}" nodes=${graph.nodes.length} edges=${graph.edges.length}`;
+        },
+
+        particle_field: (block) => {
+          // Typed force-stack → real WGSL compute integrator (Niagara outbuild, CG-312).
+          const field = compileParticleFieldBlock(block);
+          const safeName = this.sanitizeName(field.name);
+          const { fnName, wgsl } = particleFieldToWGSL(field);
+
+          const dispatch = [
+            '',
+            `// Dispatch ceil(${field.count} / 64) workgroups per simulation step:`,
+            `//   pass.setPipeline(${fnName}Pipeline);`,
+            `//   pass.dispatchWorkgroups(Math.ceil(${field.count} / 64));`,
+          ].join('\n');
+
+          result[`_domain.particle_field.${safeName}.compute.wgsl`] = `${wgsl}\n${dispatch}`;
+          return `// TSL Particle Field: "${this.escapeStringValue(field.name as string, 'TypeScript')}" count=${field.count} forces=${field.forces.length}`;
         },
 
         physics: (block) => {

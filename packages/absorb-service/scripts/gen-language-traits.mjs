@@ -55,7 +55,10 @@ function loadTraits() {
         pathImports: c.pathImports || undefined,
         moduleImports: c.moduleImports || undefined,
         useImports: c.useImports || undefined,
+        clauseImports: c.clauseImports || undefined,
         calls: c.calls || undefined,
+        eventSites: c.eventSites || undefined,
+        callerScope: c.callerScope || undefined,
         visibilityFromModifier: c.visibilityFromModifier || undefined,
       });
     }

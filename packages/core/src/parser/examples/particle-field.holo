@@ -1,0 +1,22 @@
+// HoloScript `particle_field` — a typed force-stack GPU particle system.
+//
+// The sovereign, $0-on-fleet answer to Unreal's Niagara module stack (CG-312):
+// where a fixed particle system integrates one hard-coded gravity term, a
+// particle_field composes an arbitrary stack of typed forces — each authored as
+// `<id> { type: "<force>", ...params }` — that lower to a real WGSL compute
+// shader accumulating per-particle acceleration. The world model EMITS the
+// simulation kernel from typed structure; it is not hand-written per target.
+//
+// Supported forces (first increment): gravity, drag, vortex, attractor,
+// curl_noise, turbulence.
+composition "ParticleFieldDemo" {
+  particle_field "embers" {
+    count: 20000
+    lifetime: 3.0
+
+    grav  { type: "gravity", strength: -2.0 }
+    swirl { type: "vortex", strength: 4.0 }
+    wind  { type: "curl_noise", scale: 0.5, strength: 1.5 }
+    air   { type: "drag", coefficient: 0.1 }
+  }
+}

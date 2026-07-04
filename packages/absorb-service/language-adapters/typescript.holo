@@ -1,0 +1,139 @@
+@language_adapter {
+  id: "typescript"
+  language: "typescript"
+  grammarPackage: "tree-sitter-typescript"
+  extensions: [".ts", ".tsx", ".js", ".jsx", ".mts", ".cts", ".mjs", ".cjs"]
+  symbols: [
+    {
+      nodeType: "interface_declaration",
+      kind: "interface",
+      nameField: "name",
+      exportedByExportStatement: true,
+      signatureTemplate: "interface {name}"
+    },
+    {
+      nodeType: "type_alias_declaration",
+      kind: "type_alias",
+      nameField: "name",
+      exportedByExportStatement: true,
+      noSignature: true
+    },
+    {
+      nodeType: "enum_declaration",
+      kind: "enum",
+      nameField: "name",
+      exportedByExportStatement: true,
+      noSignature: true
+    },
+    {
+      nodeType: "class_declaration",
+      kind: "class",
+      nameField: "name",
+      container: true,
+      exportedByExportStatement: true,
+      signatureTemplate: "class {name}"
+    },
+    {
+      nodeType: "abstract_class_declaration",
+      kind: "class",
+      nameField: "name",
+      container: true,
+      exportedByExportStatement: true,
+      signatureTemplate: "class {name}"
+    },
+    {
+      nodeType: "function_declaration",
+      kind: "function",
+      nameField: "name",
+      exportedByExportStatement: true,
+      signatureTemplate: "function {name}({field:parameters}){?field:return_type:: }{field:return_type}"
+    },
+    {
+      nodeType: "method_definition",
+      kind: "method",
+      nameField: "name",
+      signatureTemplateWhenOwned: "{owner}.{name}({field:parameters})"
+    },
+    {
+      nodeType: "public_field_definition",
+      kind: "field",
+      nameField: "name",
+      noSignature: true
+    },
+    {
+      nodeType: "lexical_declaration",
+      kind: "constant",
+      exportedByExportStatement: true,
+      declarators: {
+        declaratorType: "variable_declarator",
+        nameField: "name",
+        valueField: "value",
+        functionValueTypes: ["arrow_function", "function_expression", "function"],
+        functionKind: "function",
+        functionSignatureTemplate: "const {name} = ({field:parameters}) => ..."
+      }
+    },
+    {
+      nodeType: "variable_declaration",
+      kind: "constant",
+      exportedByExportStatement: true,
+      declarators: {
+        declaratorType: "variable_declarator",
+        nameField: "name",
+        valueField: "value",
+        functionValueTypes: ["arrow_function", "function_expression", "function"],
+        functionKind: "function",
+        functionSignatureTemplate: "const {name} = ({field:parameters}) => ..."
+      }
+    }
+  ]
+  clauseImports: {
+    declNodeType: "import_statement",
+    sourceField: "source",
+    clauseType: "import_clause",
+    defaultType: "identifier",
+    namedImportsType: "named_imports",
+    specifierType: "import_specifier",
+    specifierNameField: "name",
+    namespaceType: "namespace_import",
+    callImports: {
+      callNodeType: "call_expression",
+      functionField: "function",
+      functionNodeTypes: ["import"],
+      functionNames: ["require"],
+      argumentsField: "arguments",
+      stringType: "string"
+    }
+  }
+  calls: [
+    {
+      callNodeType: "call_expression",
+      functionField: "function",
+      selector: {
+        nodeType: "member_expression",
+        ownerField: "object",
+        nameField: "property",
+        bareType: "identifier"
+      }
+    }
+  ]
+  eventSites: {
+    callNodeType: "call_expression",
+    functionField: "function",
+    selectorType: "member_expression",
+    propertyField: "property",
+    argumentsField: "arguments",
+    emitMethods: ["emit"],
+    listenMethods: ["on", "subscribe", "addListener"],
+    stringType: "string",
+    stringFragmentType: "string_fragment",
+    templateStringType: "template_string",
+    templateFragmentTypes: ["string_fragment", "template_chars"]
+  }
+  callerScope: {
+    scopeTypes: ["function_declaration", "method_definition", "arrow_function"],
+    nameField: "name",
+    anonymousName: "<anonymous>",
+    moduleName: "<module>"
+  }
+}

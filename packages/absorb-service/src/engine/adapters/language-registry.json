@@ -17,20 +17,26 @@
     {
       "id": "typescript",
       "status": "implemented",
-      "adapter": "TypeScriptAdapter",
+      "adapter": "TreeSitterTraitAdapter",
       "grammarPackage": "tree-sitter-typescript",
       "extensions": [
         ".ts",
         ".tsx",
+        ".js",
+        ".jsx",
         ".mts",
-        ".cts"
+        ".cts",
+        ".mjs",
+        ".cjs"
       ],
-      "notes": "Generated from TypeScriptAdapter.ts."
+      "declaration": "packages/absorb-service/language-adapters/typescript.holo",
+      "extractorRules": 13,
+      "notes": "Generated from @language_adapter .holo data."
     },
     {
       "id": "javascript",
       "status": "implemented",
-      "adapter": "TypeScriptAdapter",
+      "adapter": "TreeSitterTraitAdapter",
       "grammarPackage": "tree-sitter-javascript",
       "extensions": [
         ".js",
@@ -38,7 +44,9 @@
         ".mjs",
         ".cjs"
       ],
-      "notes": "Generated from TypeScriptAdapter.ts shared JavaScript support."
+      "declaration": "packages/absorb-service/language-adapters/typescript.holo",
+      "extractorRules": 13,
+      "notes": "Generated from the typescript @language_adapter .holo (shared JavaScript support)."
     },
     {
       "id": "python",

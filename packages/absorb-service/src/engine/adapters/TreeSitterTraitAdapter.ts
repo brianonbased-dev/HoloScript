@@ -18,9 +18,17 @@ import type {
   ExternalSymbolDefinition,
   ImportEdge,
   CallEdge,
+  EmitSite,
+  ListenSite,
 } from '../types';
 import { walkTree, nodeToSymbol, getFieldText, extractVisibility, hasModifier } from './BaseAdapter';
-import type { LanguageTrait, SymbolRule } from './language-traits';
+import type {
+  LanguageTrait,
+  SymbolRule,
+  ClauseImportRule,
+  EventSiteRule,
+  CallerScopeRule,
+} from './language-traits';
 import type { ExtendedSymbolType } from '../types';
 
 export class TreeSitterTraitAdapter implements LanguageAdapter {
@@ -43,18 +51,29 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
 
   extractSymbols(tree: ParseTree, filePath: string): ExternalSymbolDefinition[] {
     const out: ExternalSymbolDefinition[] = [];
+    // Collect ES-module export names once when any rule uses TS-style export
+    // detection (mirrors the bespoke `collectExports` pre-pass).
+    const exportedNames = this.trait.symbols.some((r) => r.exportedByExportStatement)
+      ? this.collectExportNames(tree.rootNode)
+      : null;
     walkTree(tree.rootNode, (node) => {
       const rule = this.symbolRulesByType.get(node.type);
       if (!rule) return;
+      if (rule.declarators) {
+        // Declarator-list node (TS `lexical_declaration`): each declarator is a
+        // `function` (arrow/fn value) or `constant`, positioned by THIS node.
+        this.emitDeclarators(node, rule, filePath, out, exportedNames);
+        return false; // handled — don't descend generically
+      }
       if (rule.specChild) {
         // Declaration node whose SYMBOLS live in its named `specChild` children
         // (Go `type_declaration` → `type_spec`, `const_declaration` → `const_spec`).
         for (const spec of node.namedChildren) {
-          if (spec.type === rule.specChild) this.emitSymbol(spec, rule, filePath, out);
+          if (spec.type === rule.specChild) this.emitSymbol(spec, rule, filePath, out, exportedNames);
         }
         return false; // handled — don't also treat descendants generically
       }
-      this.emitSymbol(node, rule, filePath, out);
+      this.emitSymbol(node, rule, filePath, out, exportedNames);
     });
     return out;
   }
@@ -64,7 +83,8 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
     node: SyntaxNode,
     rule: SymbolRule,
     filePath: string,
-    out: ExternalSymbolDefinition[]
+    out: ExternalSymbolDefinition[],
+    exportedNames: Set<string> | null = null
   ): void {
     const name = getFieldText(node, rule.nameField ?? 'name');
     if (!name) return;
@@ -88,15 +108,20 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
         : owner
           ? `${owner}.${name}`
           : name;
-    // isExported: capitalization (Go) OR modifier presence (Rust `pub`). The
-    // modifier form is suppressed when the symbol is owned (a member), because
-    // the bespoke RustAdapter set isExported on free items but never on impl
-    // methods — one function_item rule serves both, so the flag must not leak.
+    // isExported: capitalization (Go) OR modifier presence (Rust `pub`) OR ES
+    // export syntax (TS `export …` / `export { … }`). The modifier form is
+    // suppressed when the symbol is owned (a member), because the bespoke
+    // RustAdapter set isExported on free items but never on impl methods — one
+    // function_item rule serves both, so the flag must not leak. TS members
+    // (field/method) use their own rules WITHOUT exportedByExportStatement, so
+    // they naturally stay undefined here, matching the bespoke.
     const isExported = rule.exportedByCapitalization
       ? startsUppercase(name)
       : rule.exportedByModifier && !owner
         ? hasModifier(node, rule.exportedByModifier)
-        : undefined;
+        : rule.exportedByExportStatement
+          ? this.isExportedByStatement(node, name, exportedNames)
+          : undefined;
     // Visibility: a modifier-driven uniform rule (Rust `pub`→public else
     // private, for every symbol including methods) overrides the per-language
     // extractVisibility heuristic when the trait declares it.
@@ -135,6 +160,88 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
         }
       }
     }
+  }
+
+  /**
+   * Emit a symbol for each declarator in a declarator-list node (TS
+   * `lexical_declaration`/`variable_declaration`). A declarator whose value is
+   * an arrow/function expression becomes a `function` (signature rendered
+   * against the VALUE node); any other value becomes the rule's `kind`
+   * (constant, no signature). Positions / visibility / isExported come from the
+   * OUTER declaration `node`, matching the bespoke `nodeToSymbol(declNode, …)`.
+   */
+  private emitDeclarators(
+    node: SyntaxNode,
+    rule: SymbolRule,
+    filePath: string,
+    out: ExternalSymbolDefinition[],
+    exportedNames: Set<string> | null
+  ): void {
+    const d = rule.declarators!;
+    for (const declarator of node.namedChildren) {
+      if (declarator.type !== d.declaratorType) continue;
+      const name = getFieldText(declarator, d.nameField);
+      const value = declarator.childForFieldName(d.valueField);
+      if (!name || !value) continue;
+      const isFn = d.functionValueTypes.includes(value.type);
+      const kind = isFn ? d.functionKind : rule.kind;
+      const signature =
+        isFn && d.functionSignatureTemplate
+          ? this.renderSignature(value, d.functionSignatureTemplate, name)
+          : undefined;
+      const isExported = rule.exportedByExportStatement
+        ? this.isExportedByStatement(node, name, exportedNames)
+        : undefined;
+      out.push(
+        nodeToSymbol(node, name, kind, this.language, filePath, {
+          visibility: extractVisibility(node, this.language),
+          signature,
+          isExported,
+        })
+      );
+    }
+  }
+
+  /**
+   * Collect names appearing in file-level ES `export { … }` clauses and on
+   * `export class/function/…` declarations — the bespoke `collectExports`
+   * pre-pass. Reused to set `isExported` on symbols whose declaration is not
+   * itself under an `export_statement` (re-export clauses).
+   */
+  private collectExportNames(root: SyntaxNode): Set<string> {
+    const names = new Set<string>();
+    walkTree(root, (node) => {
+      if (node.type !== 'export_statement') return;
+      for (const child of node.namedChildren) {
+        if (child.type === 'export_clause') {
+          for (const spec of child.namedChildren) {
+            if (spec.type === 'export_specifier') {
+              names.add(getFieldText(spec, 'name') ?? spec.text);
+            }
+          }
+        }
+        const declName = getFieldText(child, 'name');
+        if (declName) names.add(declName);
+      }
+      return false;
+    });
+    return names;
+  }
+
+  /**
+   * True when a declaration is ES-exported: its name is in a file-level
+   * `export { … }` clause, its parent is an `export_statement`, or it carries a
+   * leading `export` keyword — the bespoke `exportedNames.has(name) ||
+   * hasExportModifier(node)`.
+   */
+  private isExportedByStatement(
+    node: SyntaxNode,
+    name: string,
+    exportedNames: Set<string> | null
+  ): boolean {
+    if (exportedNames?.has(name)) return true;
+    if (node.parent?.type === 'export_statement') return true;
+    return node.children[0]?.text === 'export';
   }
 
   /** The type-field to inspect for `fields`/`kindByChildType` (both use 'type' in Go). */
@@ -217,14 +324,30 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
     const pathRules = this.trait.pathImports ?? [];
     const moduleRules = this.trait.moduleImports ?? [];
     const useRules = this.trait.useImports ?? [];
+    const clauseRule = this.trait.clauseImports;
     if (
       callRules.length === 0 &&
       pathRules.length === 0 &&
       moduleRules.length === 0 &&
-      useRules.length === 0
+      useRules.length === 0 &&
+      !clauseRule
     )
       return out;
     walkTree(tree.rootNode, (node) => {
+      // ES-module clause imports (TS `import { a } from 'x'` and friends) plus
+      // dynamic-import / require calls. The statement form is fully handled
+      // here (return false); the call forms are found by the continuing walk
+      // (they nest inside declarator values), so they do NOT stop descent.
+      if (clauseRule) {
+        if (node.type === clauseRule.declNodeType) {
+          this.collectClauseImport(node, clauseRule, filePath, out);
+          return false; // statement fully handled
+        }
+        if (clauseRule.callImports && node.type === clauseRule.callImports.callNodeType) {
+          this.collectCallImport(node, clauseRule.callImports, filePath, out);
+          // do not return false — allow generic descent (no other rule claims it)
+        }
+      }
       // `use`-tree imports (Rust `use a::b::c;` / `use a::{b,c};` / …) and the
       // file-reference `mod external;` that doubles as an import.
       for (const rule of useRules) {
@@ -438,11 +561,95 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
     });
   }
 
+  /**
+   * Emit one ImportEdge for an ES-module `import_statement`, walking its
+   * `import_clause` for a default binding, a namespace import (`* as ns`), and
+   * a `named_imports` list — reproducing the bespoke TypeScriptAdapter
+   * `extractImports` clause walk (including the `isDefault`/`isWildcard` flags
+   * and the pre-alias specifier name). A side-effect import (`import 'x'`) has
+   * no clause and emits an edge with empty `namedImports`.
+   */
+  private collectClauseImport(
+    node: SyntaxNode,
+    rule: ClauseImportRule,
+    filePath: string,
+    out: ImportEdge[]
+  ): void {
+    const source = node.childForFieldName(rule.sourceField);
+    if (!source) return;
+    const edge: ImportEdge = {
+      fromFile: filePath,
+      toModule: stripImportQuotes(source.text),
+      line: node.startPosition.row + 1,
+      namedImports: [],
+      isWildcard: false,
+      isDefault: false,
+    };
+    for (const child of node.namedChildren) {
+      if (child.type !== rule.clauseType) continue;
+      for (const spec of child.namedChildren) {
+        if (spec.type === rule.defaultType) {
+          edge.isDefault = true;
+          edge.namedImports!.push(spec.text);
+        } else if (spec.type === rule.namedImportsType) {
+          for (const specifier of spec.namedChildren) {
+            if (specifier.type === rule.specifierType) {
+              edge.namedImports!.push(
+                getFieldText(specifier, rule.specifierNameField) ?? specifier.text
+              );
+            }
+          }
+        } else if (spec.type === rule.namespaceType) {
+          edge.isWildcard = true;
+        }
+      }
+    }
+    out.push(edge);
+  }
+
+  /**
+   * Emit a bare `{ toModule }` ImportEdge for a dynamic-import or require call
+   * (`import('x')` / `require('x')`) — matching the bespoke, which recorded no
+   * named-import flags for these. Identified by the call's function-child TYPE
+   * (dynamic `import`) or TEXT (`require`).
+   */
+  private collectCallImport(
+    node: SyntaxNode,
+    spec: NonNullable<ClauseImportRule['callImports']>,
+    filePath: string,
+    out: ImportEdge[]
+  ): void {
+    const fn = node.childForFieldName(spec.functionField);
+    if (!fn) return;
+    const matches =
+      (spec.functionNodeTypes?.includes(fn.type) ?? false) ||
+      (spec.functionNames?.includes(fn.text) ?? false);
+    if (!matches) return;
+    const args = node.childForFieldName(spec.argumentsField);
+    if (!args) return;
+    const firstArg = args.namedChildren[0];
+    if (!firstArg || firstArg.type !== spec.stringType) return;
+    out.push({
+      fromFile: filePath,
+      toModule: stripImportQuotes(firstArg.text),
+      line: node.startPosition.row + 1,
+    });
+  }
+
   extractCalls(tree: ParseTree, filePath: string): CallEdge[] {
     const out: CallEdge[] = [];
     const rules = this.trait.calls ?? [];
     if (rules.length === 0) return out;
+    // TS/JS attribute a call's `callerId` with a push-only scope stack (see
+    // CallerScopeRule): the top is the most-recently-ENTERED scope node in DFS
+    // pre-order, never popped — so calls inside an anonymous arrow read
+    // `<anonymous>`. Other languages keep the ancestor-walk `enclosingSymbol`.
+    const scope = this.trait.callerScope;
+    const stack: string[] = [];
     walkTree(tree.rootNode, (node) => {
+      if (scope && scope.scopeTypes.includes(node.type)) {
+        stack.push(getFieldText(node, scope.nameField) ?? scope.anonymousName);
+      }
       for (const rule of rules) {
         if (node.type !== rule.callNodeType) continue;
 
@@ -475,7 +682,7 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
         if (this.importMethodNames.has(calleeName)) continue;
 
         out.push({
-          callerId: this.enclosingSymbol(node),
+          callerId: scope ? (stack[stack.length - 1] ?? scope.moduleName) : this.enclosingSymbol(node),
           calleeName,
           calleeOwner,
           filePath,
@@ -485,6 +692,97 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
       }
     });
     return out;
+  }
+
+  /**
+   * Extract emit()-site event links (HoloGraph Phase 1). Present only when the
+   * trait declares `eventSites` — the scanner calls this via optional chaining,
+   * so languages without an event bus expose nothing. Reproduces the bespoke
+   * TypeScriptAdapter `extractEmitSites`.
+   */
+  extractEmitSites(tree: ParseTree, filePath: string): EmitSite[] {
+    const rule = this.trait.eventSites;
+    if (!rule) return [];
+    return this.collectEventSites(tree, filePath, rule, new Set(rule.emitMethods));
+  }
+
+  /**
+   * Extract on()/subscribe()-site event links (HoloGraph Phase 1). Symmetric to
+   * `extractEmitSites`; present only when the trait declares `eventSites`.
+   */
+  extractListenSites(tree: ParseTree, filePath: string): ListenSite[] {
+    const rule = this.trait.eventSites;
+    if (!rule) return [];
+    return this.collectEventSites(tree, filePath, rule, new Set(rule.listenMethods));
+  }
+
+  /**
+   * Shared emit/listen walk: a `callNodeType` whose `functionField` is a
+   * member/selector with a property in `methods`, whose first argument is a
+   * string literal, is an event site named by that literal. `callerId` uses the
+   * same push-only scope stack as `extractCalls` (CallerScopeRule) so an
+   * anonymous-arrow site reads `<anonymous>`.
+   */
+  private collectEventSites(
+    tree: ParseTree,
+    filePath: string,
+    rule: EventSiteRule,
+    methods: Set<string>
+  ): EmitSite[] {
+    const sites: EmitSite[] = [];
+    const scope = this.trait.callerScope;
+    const stack: string[] = [];
+    walkTree(tree.rootNode, (node) => {
+      if (scope && scope.scopeTypes.includes(node.type)) {
+        stack.push(getFieldText(node, scope.nameField) ?? scope.anonymousName);
+      }
+      if (node.type !== rule.callNodeType) return;
+      const fn = node.childForFieldName(rule.functionField);
+      if (!fn || fn.type !== rule.selectorType) return;
+      const prop = fn.childForFieldName(rule.propertyField);
+      if (!prop || !methods.has(prop.text)) return;
+      const args = node.childForFieldName(rule.argumentsField);
+      const eventName = this.stringLiteralValue(args?.namedChildren[0], rule);
+      if (!eventName) return;
+      sites.push({
+        callerId: scope ? (stack[stack.length - 1] ?? scope.moduleName) : this.enclosingSymbol(node),
+        eventName,
+        filePath,
+        line: node.startPosition.row + 1,
+        column: node.startPosition.column,
+      });
+    });
+    return sites;
+  }
+
+  /**
+   * String value of a tree-sitter string / non-interpolated template-string
+   * node, else null (variables, computed, interpolated). Mirrors the bespoke
+   * `_stringLiteralValue`.
+   */
+  private stringLiteralValue(
+    node: SyntaxNode | undefined,
+    rule: EventSiteRule
+  ): string | null {
+    if (!node) return null;
+    if (node.type === rule.stringType) {
+      const fragment = node.namedChildren.find((c) => c.type === rule.stringFragmentType);
+      if (fragment) return fragment.text;
+      const raw = node.text;
+      if (
+        (raw.startsWith('"') && raw.endsWith('"')) ||
+        (raw.startsWith("'") && raw.endsWith("'"))
+      ) {
+        return raw.slice(1, -1);
+      }
+    }
+    if (node.type === rule.templateStringType) {
+      const parts = node.namedChildren.filter((c) =>
+        rule.templateFragmentTypes.includes(c.type)
+      );
+      if (parts.length === 1 && parts[0]) return parts[0].text;
+    }
+    return null;
   }
 
   /** Nearest ancestor container symbol's name (class/module), for `owner`. */
@@ -519,6 +817,16 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
 
 function stripQuotes(text: string): string {
   return text.replace(/^['"`]|['"`]$/g, '').trim();
+}
+
+/**
+ * Strip a single leading/trailing `'` or `"` — the exact module-path
+ * normalization the bespoke TypeScriptAdapter used (`/^['"]|['"]$/g`). Unlike
+ * `stripQuotes` it does NOT trim or handle backticks, so ESM import paths stay
+ * byte-identical to the bespoke output.
+ */
+function stripImportQuotes(text: string): string {
+  return text.replace(/^['"]|['"]$/g, '');
 }
 
 /**

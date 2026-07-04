@@ -44,10 +44,12 @@ export {
 } from './adapters';
 
 // Individual adapters
-export { TypeScriptAdapter } from './adapters/TypeScriptAdapter';
-// Rust, Go, Python, and Ruby are data-driven (language-adapters/{rust,go,python,ruby}.holo →
-// LANGUAGE_TRAITS → TreeSitterTraitAdapter); there is no RustAdapter / GoAdapter / PythonAdapter
-// class to re-export.
+// TypeScript/JavaScript, Rust, Go, Python, and Ruby are ALL data-driven
+// (language-adapters/*.holo → LANGUAGE_TRAITS → TreeSitterTraitAdapter); there
+// is no TypeScriptAdapter / RustAdapter / GoAdapter / PythonAdapter class to
+// re-export. Use the generic TreeSitterTraitAdapter (re-exported from
+// ./adapters) with the desired LanguageTrait for direct extraction.
+export { TreeSitterTraitAdapter } from './adapters/TreeSitterTraitAdapter';
 export { HoloAdapter, isNativeAdapter } from './adapters/HoloAdapter';
 export type { HoloParseTree } from './adapters/HoloAdapter';
 

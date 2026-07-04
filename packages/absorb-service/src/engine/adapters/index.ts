@@ -13,7 +13,6 @@
  */
 
 import type { LanguageAdapter, SupportedLanguage } from '../types';
-import { TypeScriptAdapter } from './TypeScriptAdapter';
 import { HoloAdapter } from './HoloAdapter';
 import { TreeSitterTraitAdapter } from './TreeSitterTraitAdapter';
 import { LANGUAGE_TRAITS } from './language-traits';
@@ -78,14 +77,16 @@ function getExtension(filePath: string): string {
 
 // ── Register built-in adapters ──────────────────────────────────────────────
 
-registerAdapter(new TypeScriptAdapter());
-// Rust, Go, Python, and Ruby are now AUTHORED as `language-adapters/{rust,go,python,ruby}.holo`
-// (@language_adapter) — they register via the LANGUAGE_TRAITS loop below through the generic
-// TreeSitterTraitAdapter, at parity with the deleted bespoke GoAdapter / PythonAdapter /
-// RustAdapter (see the *AdapterParity tests).
-// Data-driven languages are AUTHORED as `language-adapters/*.holo` (@language_adapter) and
-// @generated into LANGUAGE_TRAITS — no per-language adapter class, and no edit here to add one.
-// The generic TreeSitterTraitAdapter provides the full symbol/import/call extraction.
+// TypeScript/JavaScript, Rust, Go, Python, and Ruby are ALL now AUTHORED as
+// `language-adapters/*.holo` (@language_adapter) — they register via the
+// LANGUAGE_TRAITS loop below through the generic TreeSitterTraitAdapter, at
+// parity with the deleted bespoke TypeScriptAdapter / RustAdapter / GoAdapter /
+// PythonAdapter (see the *AdapterParity tests). The typescript trait claims the
+// JavaScript extensions (.js/.jsx/.mjs/.cjs) too, exactly as the bespoke
+// TypeScriptAdapter did, so JS files route to it via the extension map.
+// Adding/editing a language is authoring a .holo, NOT writing a class here.
+// The generic TreeSitterTraitAdapter provides the full symbol / import / call /
+// emit-site / listen-site extraction.
 for (const trait of LANGUAGE_TRAITS) {
   registerAdapter(new TreeSitterTraitAdapter(trait));
 }
@@ -95,8 +96,8 @@ for (const trait of LANGUAGE_TRAITS) {
 registerAdapter(new HoloAdapter());
 
 // Re-export adapters for direct use
-export { TypeScriptAdapter } from './TypeScriptAdapter';
 export { HoloAdapter, isNativeAdapter, type HoloParseTree } from './HoloAdapter';
+export { TreeSitterTraitAdapter } from './TreeSitterTraitAdapter';
 // Re-export base utilities
 export {
   walkTree,

@@ -154,6 +154,66 @@ export interface SymbolRule {
    * `signatureTemplate`, plus `{owner}` (the resolved owner name).
    */
   signatureTemplateWhenOwned?: string;
+  /**
+   * Set `isExported` from ES-module export syntax (TypeScript/JavaScript):
+   * true when the symbol name appears in a file-level `export { … }` clause OR
+   * the declaration node is directly under an `export_statement` / carries a
+   * leading `export` keyword. This is the third export-detection form beside
+   * `exportedByCapitalization` (Go) and `exportedByModifier` (Rust) — TS export
+   * is neither a name convention nor a same-node modifier, so it needs its own
+   * flag. Omit to leave `isExported` untouched. For `declarators` rules the
+   * check runs against the OUTER declaration node (and its name), matching the
+   * bespoke `exportedNames.has(name) || hasExportModifier(declNode)`.
+   */
+  exportedByExportStatement?: boolean;
+  /**
+   * Declarator-list extraction (TypeScript/JavaScript `const a = …, b = …`).
+   * When set, THIS node (a `lexical_declaration` / `variable_declaration`) is a
+   * declaration container: iterate its named children of type
+   * `declaratorType`, read each name from `nameField`, and choose the emitted
+   * kind from the declarator's `valueField` child type — a value whose type is
+   * in `functionValueTypes` emits `functionKind` (an arrow/function const is a
+   * `function` symbol), any other value emits the rule's own `kind`
+   * (a plain `constant`). Positions, `isExported`, and visibility come from the
+   * OUTER declaration node (so `export const f = () => {}` spans the whole
+   * statement), exactly like the bespoke `nodeToSymbol(declNode, …)`. The
+   * function form renders `functionSignatureTemplate` against the VALUE node
+   * (the arrow/function itself), so `{field:parameters}` reads the arrow's
+   * params; the constant form emits no signature. Omit for languages without
+   * declarator lists — behavior is then unchanged.
+   */
+  declarators?: DeclaratorRule;
+}
+
+/**
+ * Declarator-list rule (see SymbolRule.declarators). Reproduces the bespoke
+ * TypeScriptAdapter `lexical_declaration` / `variable_declaration` branch:
+ * each `variable_declarator` becomes a `function` symbol when its value is an
+ * arrow/function expression, else a `constant`.
+ */
+export interface DeclaratorRule {
+  /** Node type of each declarator child, e.g. 'variable_declarator'. */
+  declaratorType: string;
+  /** Field on the declarator holding its name, e.g. 'name'. */
+  nameField: string;
+  /** Field on the declarator holding its initializer value, e.g. 'value'. */
+  valueField: string;
+  /**
+   * Value node types that make the declarator a FUNCTION symbol, e.g.
+   * ['arrow_function', 'function_expression', 'function'].
+   */
+  functionValueTypes: string[];
+  /** Symbol kind for a function-valued declarator, e.g. 'function'. */
+  functionKind: ExtendedSymbolType;
+  /**
+   * Signature template for a function-valued declarator, rendered against the
+   * VALUE node (the arrow/function), with the declarator name available as
+   * `{name}`. e.g. `const {name} = ({field:parameters}) => ...`. When the value
+   * has no `parameters` field the bespoke used a fixed `(...)` form; author the
+   * template so `{field:parameters}` collapses to '' and add a literal fallback
+   * only if a language needs it. Omit to emit no signature.
+   */
+  functionSignatureTemplate?: string;
 }
 
 /** A call expression whose method name marks an import (e.g. Ruby `require`). */
@@ -311,6 +371,118 @@ export interface UseImportRule {
   modNameField?: string;
 }
 
+/**
+ * ES-module / clause-based import rule (TypeScript / JavaScript). Unlike Go's
+ * spec-path, Python's statement, or Rust's use-tree imports, an ESM
+ * `import_statement` carries an `import_clause` that mixes a default binding,
+ * a `namespace_import` (`* as ns`), and a `named_imports` list of
+ * `import_specifier`s — each optionally aliased (`gamma as g`). One rule
+ * describes all of that plus the dynamic `import('x')` and `require('x')`
+ * call forms, reproducing the bespoke TypeScriptAdapter `extractImports`
+ * byte-for-byte: one edge per `import_statement` (with `namedImports`,
+ * `isWildcard`, `isDefault` flags) and one bare `{ toModule }` edge per
+ * dynamic-import / require call. Note re-exports (`export … from`) are
+ * deliberately NOT imports here — the bespoke never emitted them.
+ */
+export interface ClauseImportRule {
+  /** Node type of the import statement, e.g. 'import_statement'. */
+  declNodeType: string;
+  /** Field on the statement holding the module string, e.g. 'source'. */
+  sourceField: string;
+  /** Node type of the import clause wrapper, e.g. 'import_clause'. */
+  clauseType: string;
+  /** Node type of a default binding inside the clause, e.g. 'identifier'. */
+  defaultType: string;
+  /** Node type of the named-imports wrapper, e.g. 'named_imports'. */
+  namedImportsType: string;
+  /** Node type of each named specifier, e.g. 'import_specifier'. */
+  specifierType: string;
+  /** Field on a specifier holding the (pre-alias) name, e.g. 'name'. */
+  specifierNameField: string;
+  /** Node type of a namespace import (`* as ns`), e.g. 'namespace_import'. */
+  namespaceType: string;
+  /**
+   * Dynamic + call-style imports (`import('x')`, `require('x')`). Each is a
+   * `callNodeType` whose `functionField` child identifies it: either its node
+   * TYPE is in `functionNodeTypes` (dynamic `import` keyword) or its TEXT is in
+   * `functionNames` (`require`). The first string-literal argument is the
+   * module. Emits a bare `{ toModule }` edge (no named-import flags).
+   */
+  callImports?: {
+    callNodeType: string;
+    functionField: string;
+    /** Node types of the call's function child that mark it (e.g. ['import']). */
+    functionNodeTypes?: string[];
+    /** Function-child TEXT values that mark it (e.g. ['require']). */
+    functionNames?: string[];
+    /** Field holding the call arguments, e.g. 'arguments'. */
+    argumentsField: string;
+    /** Node type of a string-literal argument, e.g. 'string'. */
+    stringType: string;
+  };
+}
+
+/**
+ * Event-site rule (HoloGraph Phase 1, TypeScript/JavaScript). Declares the
+ * `handler.emit('name', …)` / `handler.on('name', cb)` extraction the bespoke
+ * TypeScriptAdapter implemented via `extractEmitSites` / `extractListenSites`.
+ * A call whose `functionField` is a member/selector node (`member_expression`)
+ * with a property in `emitMethods` is an EMIT site; a property in
+ * `listenMethods` is a LISTEN site. The first argument, when a string literal
+ * (or single-fragment template string), is the event name; non-literal first
+ * args are skipped. `callerId` follows the same push-only scope stack the
+ * bespoke used (see `LanguageTrait.callerScope`). Omit for languages without
+ * an event bus — the interpreter then leaves `extractEmitSites` /
+ * `extractListenSites` undefined (the scanner skips them via optional chaining).
+ */
+export interface EventSiteRule {
+  /** Node type of the call expression, e.g. 'call_expression'. */
+  callNodeType: string;
+  /** Field holding the callee, e.g. 'function'. */
+  functionField: string;
+  /** Node type of the member/selector callee, e.g. 'member_expression'. */
+  selectorType: string;
+  /** Field on the selector holding the method name, e.g. 'property'. */
+  propertyField: string;
+  /** Field holding the call arguments, e.g. 'arguments'. */
+  argumentsField: string;
+  /** Property names that mark an emit site, e.g. ['emit']. */
+  emitMethods: string[];
+  /** Property names that mark a listen site, e.g. ['on','subscribe','addListener']. */
+  listenMethods: string[];
+  /** Node type of a plain string literal, e.g. 'string'. */
+  stringType: string;
+  /** Node type of the inner text fragment of a string, e.g. 'string_fragment'. */
+  stringFragmentType: string;
+  /** Node type of a template string, e.g. 'template_string'. */
+  templateStringType: string;
+  /** Node types counted as template text fragments, e.g. ['string_fragment','template_chars']. */
+  templateFragmentTypes: string[];
+}
+
+/**
+ * Push-only caller-scope config (TypeScript/JavaScript). The bespoke
+ * TypeScriptAdapter tracked the enclosing function for `callerId` with a stack
+ * it PUSHED on entering a scope node but NEVER popped — so a call's `callerId`
+ * is the name of the most-recently-entered scope node in DFS pre-order, and an
+ * anonymous scope (an arrow with no `name` field) contributes `anonymousName`.
+ * When a trait sets `callerScope`, the interpreter reproduces that exact
+ * push-only walk for `extractCalls` and the event sites (instead of the
+ * ancestor-walk `enclosingSymbol` other languages use), preserving the quirk
+ * where calls inside an anonymous arrow are attributed to `<anonymous>`. Omit
+ * to keep the ancestor-walk behavior (Go/Python/Rust/Ruby) unchanged.
+ */
+export interface CallerScopeRule {
+  /** Node types that push a scope, e.g. ['function_declaration','method_definition','arrow_function']. */
+  scopeTypes: string[];
+  /** Field holding a scope's name, e.g. 'name'. */
+  nameField: string;
+  /** Name used for a scope node with no name field, e.g. '<anonymous>'. */
+  anonymousName: string;
+  /** callerId used when no scope has been entered, e.g. '<module>'. */
+  moduleName: string;
+}
+
 /** A language fully declared as data. */
 export interface LanguageTrait {
   language: SupportedLanguage;
@@ -325,7 +497,13 @@ export interface LanguageTrait {
   moduleImports?: ModuleImportRule[];
   /** `use`-tree imports (Rust `use a::b::c;` and friends). */
   useImports?: UseImportRule[];
+  /** ES-module clause imports + dynamic-import/require calls (TypeScript/JavaScript). */
+  clauseImports?: ClauseImportRule;
   calls?: CallRule[];
+  /** Emit/listen event-site extraction (TypeScript/JavaScript HoloGraph Phase 1). */
+  eventSites?: EventSiteRule;
+  /** Push-only caller-scope semantics for calls + event sites (TypeScript/JavaScript). */
+  callerScope?: CallerScopeRule;
   /**
    * Derive symbol `visibility` from a modifier keyword instead of the built-in
    * per-language `extractVisibility` heuristic. Rust visibility is uniform:

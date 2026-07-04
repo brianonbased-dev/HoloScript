@@ -186,6 +186,7 @@ export type TokenType =
   | 'PARTICLES'
   | 'EMITTER'
   | 'VFX'
+  | 'PARTICLE_FIELD'
   | 'POST_PROCESSING'
   | 'POST_FX'
   | 'AUDIO_SOURCE'
@@ -511,6 +512,7 @@ export const KEYWORDS: Record<string, TokenType> = {
   particles: 'PARTICLES',
   emitter: 'EMITTER',
   vfx: 'VFX',
+  particle_field: 'PARTICLE_FIELD',
   post_processing: 'POST_PROCESSING',
   post_fx: 'POST_FX',
   render_pipeline: 'POST_PROCESSING',

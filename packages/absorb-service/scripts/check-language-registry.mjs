@@ -143,12 +143,18 @@ function requireStringArray(config, key, sourcePath) {
 
 function countRules(config) {
   const count = (key) => (Array.isArray(config[key]) ? config[key].length : 0);
+  // Single-object rule families (TypeScript clauseImports / eventSites) count
+  // as one rule each when present, so the registry's extractorRules total
+  // reflects them alongside the array-valued families.
+  const one = (key) => (config[key] && typeof config[key] === 'object' ? 1 : 0);
   return (
     count('symbols') +
     count('imports') +
     count('pathImports') +
     count('moduleImports') +
-    count('calls')
+    count('calls') +
+    one('clauseImports') +
+    one('eventSites')
   );
 }
 
@@ -274,6 +280,21 @@ function generateRegistry() {
       continue;
     }
     entries.set(declaration.id, declaration);
+    // The typescript @language_adapter also serves JavaScript (its extensions
+    // cover .js/.jsx/.mjs/.cjs), exactly as the deleted bespoke TypeScriptAdapter
+    // did — the extension map routes JS files to the typescript trait adapter.
+    // Project a javascript registry entry off the same declaration (with the
+    // JavaScript grammar + extensions) so the registry keeps reporting JS as
+    // implemented, matching the pre-migration shape.
+    if (declaration.id === 'typescript' && entries.has('javascript')) {
+      entries.set('javascript', {
+        ...declaration,
+        id: 'javascript',
+        grammarPackage: DEFAULTS.javascript.grammarPackage,
+        extensions: DEFAULTS.javascript.extensions,
+        notes: 'Generated from the typescript @language_adapter .holo (shared JavaScript support).',
+      });
+    }
   }
 
   const languages = supportedLanguages.map((id) => entries.get(id));

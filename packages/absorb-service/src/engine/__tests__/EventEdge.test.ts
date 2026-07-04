@@ -2,14 +2,21 @@
  * EventEdge — unit tests (HoloGraph Phase 1)
  *
  * Tests the full emit/listen extraction + cross-file resolution pipeline:
- *   TypeScriptAdapter.extractEmitSites()
- *   TypeScriptAdapter.extractListenSites()
+ *   TreeSitterTraitAdapter(typescript trait).extractEmitSites()
+ *   TreeSitterTraitAdapter(typescript trait).extractListenSites()
  *   CodebaseGraph.buildEventEdges() (called internally by buildIndexes)
  *   CodebaseGraph.getEventEmitters / getEventListeners / getEventChain / allEventNames
+ *
+ * The bespoke TypeScriptAdapter was migrated to a data-driven
+ * language-adapters/typescript.holo trait; emit/listen extraction is now
+ * provided by the generic TreeSitterTraitAdapter (see TypeScriptAdapterParity
+ * for byte-exact parity). This suite exercises the adapter's structural
+ * contract plus the CodebaseGraph resolution with injected ScannedFile data.
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { TypeScriptAdapter } from '../adapters/TypeScriptAdapter';
+import { TreeSitterTraitAdapter } from '../adapters/TreeSitterTraitAdapter';
+import { LANGUAGE_TRAITS } from '../adapters/language-traits';
 import { CodebaseGraph } from '../CodebaseGraph';
 import type { ScannedFile } from '../types';
 
@@ -51,10 +58,11 @@ function makeFile(
   };
 }
 
-// ─── TypeScriptAdapter — extractEmitSites / extractListenSites ────────────────
+// ─── typescript trait — extractEmitSites / extractListenSites ─────────────────
 
-describe('TypeScriptAdapter — event site extraction (structural test)', () => {
-  const adapter = new TypeScriptAdapter();
+describe('typescript trait — event site extraction (structural test)', () => {
+  const tsTrait = LANGUAGE_TRAITS.find((t) => t.language === 'typescript')!;
+  const adapter = new TreeSitterTraitAdapter(tsTrait);
 
   it('exports extractEmitSites method', () => {
     expect(typeof adapter.extractEmitSites).toBe('function');
