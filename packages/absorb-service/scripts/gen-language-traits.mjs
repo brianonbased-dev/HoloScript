@@ -52,6 +52,7 @@ function loadTraits() {
         grammarPackage: stripGrammarVersion(c.grammarPackage ?? c.grammar),
         symbols: c.symbols || [],
         imports: c.imports || undefined,
+        pathImports: c.pathImports || undefined,
         calls: c.calls || undefined,
       });
     }

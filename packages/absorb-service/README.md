@@ -465,9 +465,11 @@ Each adapter extends `BaseAdapter` and uses tree-sitter to extract symbols:
 - **TypeScriptAdapter** -- `.ts`, `.tsx`, `.js`, `.jsx`
 - **PythonAdapter** -- `.py`
 - **RustAdapter** -- `.rs`
-- **GoAdapter** -- `.go`
 
-Register custom adapters via `registerAdapter()` or `AdapterManager`.
+Data-driven adapters are authored as `language-adapters/*.holo` (`@language_adapter`
+declarations) and generated into `LANGUAGE_TRAITS`; the generic `TreeSitterTraitAdapter`
+provides their extraction. **Go** (`.go`) and **Ruby** (`.rb`) ship this way -- no bespoke
+adapter class. Register custom adapters via `registerAdapter()` or `AdapterManager`.
 
 ### CodebaseGraph
 
@@ -706,7 +708,6 @@ export {
   TypeScriptAdapter,
   PythonAdapter,
   RustAdapter,
-  GoAdapter,
   GitChangeDetector,
   DeprecatedInventoryBuilder,
 };

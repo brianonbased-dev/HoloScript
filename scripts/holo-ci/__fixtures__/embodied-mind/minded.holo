@@ -1,0 +1,16 @@
+composition "MindedAgent" {
+  // FIXTURE (minded): an agent body that actually LOADS its mind. It carries the
+  // XR spawn seam with the config needed to resolve identity + private:<wallet>
+  // memory across substrates. The gate must classify this MINDED (zero soulless).
+  object "GuideBody" @agent_identity @avatar_embodiment {
+    model: "avatars/guide.glb"
+    position: [0, 0, 0]
+
+    @portable_mind_seam(
+      bearer: env("HOLOSCRIPT_AGENT_X402_BEARER"),
+      mesh_api_base: env("HOLOMESH_API_BASE"),
+      team_id: env("HOLOMESH_TEAM_ID"),
+      agent_id: "museum-guide"
+    )
+  }
+}

@@ -1,0 +1,15 @@
+composition "SoullessAgent" {
+  // FIXTURE (soulless): the D.102 gap. An agent body that renders and adapts, but
+  // never loads a mind — @agent_identity + a rendered avatar body, yet no
+  // @portable_mind / @portable_mind_seam. The gate must FLAG this (soulless body).
+  object "GuideBody" @agent_identity @avatar_embodiment {
+    model: "avatars/guide.glb"
+    position: [0, 0, 0]
+
+    // identity_wallet is declared but empty and nothing binds a mind to the body.
+    state {
+      identity_wallet: ""
+      memory_scope: "private:<wallet>"
+    }
+  }
+}

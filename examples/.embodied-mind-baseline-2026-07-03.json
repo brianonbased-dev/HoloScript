@@ -1,0 +1,19 @@
+{
+  "generatedAt": "2026-07-04T02:43:28.344Z",
+  "scanDirs": [
+    "examples",
+    "compositions"
+  ],
+  "totalFiles": 383,
+  "embodiedAgents": 1,
+  "counts": {
+    "minded": 1,
+    "soulless": 0,
+    "incomplete": 0,
+    "none": 318,
+    "parse-error": 64,
+    "unreadable": 0
+  },
+  "soullessCount": 0,
+  "incompleteCount": 0
+}

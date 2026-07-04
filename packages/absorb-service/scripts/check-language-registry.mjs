@@ -143,7 +143,7 @@ function requireStringArray(config, key, sourcePath) {
 
 function countRules(config) {
   const count = (key) => (Array.isArray(config[key]) ? config[key].length : 0);
-  return count('symbols') + count('imports') + count('calls');
+  return count('symbols') + count('imports') + count('pathImports') + count('calls');
 }
 
 function loadTraitDeclarations() {

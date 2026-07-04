@@ -64,12 +64,14 @@
     {
       "id": "go",
       "status": "implemented",
-      "adapter": "GoAdapter",
+      "adapter": "TreeSitterTraitAdapter",
       "grammarPackage": "tree-sitter-go",
       "extensions": [
         ".go"
       ],
-      "notes": "Generated from GoAdapter.ts."
+      "declaration": "packages/absorb-service/language-adapters/go.holo",
+      "extractorRules": 7,
+      "notes": "Generated from @language_adapter .holo data."
     },
     {
       "id": "java",
