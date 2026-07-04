@@ -92,6 +92,119 @@ export const CORPUS_PORTFOLIO: readonly EvolveSeed[] = [
     ].join('\n'),
     preserved: [/MiniScene/, /Cube/, /Light/],
   },
+  // ── portfolio widening (2026-07-04): the original 3 seeds saturated the
+  // accrual feeder (qwen3:4b converges to one dense candidate per constrained
+  // seed → dedupRows rejects re-proposals → corpus froze at 14 rows). Six more
+  // parse-clean seeds across the SAME surface classes (traits / state machines /
+  // scenes) give the round-robin more distinct targets so novel gated rows keep
+  // accruing. Each source was validated against its native parser via
+  // `parsesClean` before landing. Appended AFTER index 2 so the positional
+  // tests (CORPUS_PORTFOLIO[0]/[1]) stay green. ──
+  {
+    name: 'timer-trait',
+    format: 'holo',
+    goal: 'Tighten this trait while keeping its name, tags, and the on_attach emit identical.',
+    source: [
+      '@trait cooldown_timer {',
+      '  duration: Number = 3',
+      '  capability_tags: ["timer", "cooldown"]',
+      '  @on_attach => {',
+      '    emit("timer_started", { duration: duration })',
+      '  }',
+      '}',
+    ].join('\n'),
+    preserved: [/cooldown_timer/, /capability_tags/, /timer/, /timer_started/],
+  },
+  {
+    name: 'health-trait',
+    format: 'holo',
+    goal: 'Tighten this trait while keeping its name, tags, and the on_attach emit identical.',
+    source: [
+      '@trait health_pool {',
+      '  hp: Number = 100',
+      '  capability_tags: ["health", "damageable"]',
+      '  @on_attach => {',
+      '    emit("health_ready", { hp: hp })',
+      '  }',
+      '}',
+    ].join('\n'),
+    preserved: [/health_pool/, /capability_tags/, /health/, /health_ready/],
+  },
+  {
+    name: 'door-statemachine',
+    format: 'hsplus',
+    goal: 'Add a fifth state reachable from "open" on "jam", keeping the original states and transitions.',
+    source: [
+      'composition "SmartDoor" {',
+      '  state { entityId: "door" status: "closed" }',
+      '  @state_machine {',
+      '    initial: "closed"',
+      '    states: {',
+      '      closed: { approach: -> "opening" }',
+      '      opening: { done: -> "open" }',
+      '      open: { leave: -> "closed" }',
+      '    }',
+      '  }',
+      '}',
+    ].join('\n'),
+    preserved: [/SmartDoor/, /\bclosed\b/, /\bopening\b/, /\bopen\b/],
+  },
+  {
+    name: 'trafficlight-statemachine',
+    format: 'hsplus',
+    goal: 'Add a flashing state reachable from "red" on "fault", keeping the original phases and transitions.',
+    source: [
+      'composition "TrafficLight" {',
+      '  state { entityId: "light" phase: "red" }',
+      '  @state_machine {',
+      '    initial: "red"',
+      '    states: {',
+      '      red: { tick: -> "green" }',
+      '      green: { tick: -> "yellow" }',
+      '      yellow: { tick: -> "red" }',
+      '    }',
+      '  }',
+      '}',
+    ].join('\n'),
+    preserved: [/TrafficLight/, /\bred\b/, /\bgreen\b/, /\byellow\b/],
+  },
+  {
+    name: 'room-scene',
+    format: 'holo',
+    goal: 'Group the objects under a reusable template, keeping every object name and position.',
+    source: [
+      'composition "RoomScene" {',
+      '  environment { skybox: "studio" }',
+      '  object "Table" {',
+      '    position: [0, 0, 0]',
+      '  }',
+      '  object "Chair" {',
+      '    position: [1, 0, 0]',
+      '  }',
+      '  object "Lamp" {',
+      '    position: [0, 2, 0]',
+      '  }',
+      '}',
+    ].join('\n'),
+    preserved: [/RoomScene/, /Table/, /Chair/, /Lamp/],
+  },
+  {
+    name: 'garden-scene',
+    format: 'holo',
+    goal: 'Group the objects under a reusable template, keeping every object name and position.',
+    source: [
+      'composition "GardenScene" {',
+      '  environment { skybox: "sky" }',
+      '  object "Tree" {',
+      '    position: [3, 0, 3]',
+      '  }',
+      '  object "Bench" {',
+      '    position: [0, 0, 5]',
+      '  }',
+      '}',
+    ].join('\n'),
+    preserved: [/GardenScene/, /Tree/, /Bench/],
+  },
 ];
 
 /** Native parse — clean iff success AND zero errors (tolerant parse can flag
