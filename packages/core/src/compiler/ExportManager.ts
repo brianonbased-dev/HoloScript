@@ -31,6 +31,7 @@ import { ReferenceExporterRegistry, usdStageHasGeometry } from './ReferenceExpor
 import { URDFCompiler } from './URDFCompiler';
 import { SDFCompiler } from './SDFCompiler';
 import { MJCFCompiler } from './MJCFCompiler';
+import { MJXCompiler } from './MJXCompiler';
 import { UnityCompiler } from './UnityCompiler';
 import { UnrealCompiler } from './UnrealCompiler';
 import { PCGGraphCompiler } from './PCGGraphCompiler';
@@ -234,6 +235,8 @@ class CompilerFactory {
         return new SDFCompiler(options);
       case 'mjcf':
         return new MJCFCompiler(options);
+      case 'mjx':
+        return new MJXCompiler(options);
       case 'unity':
         return new UnityCompiler(options);
       case 'unreal':
@@ -652,6 +655,7 @@ export class ExportManager {
       'urdf',
       'sdf',
       'mjcf',
+      'mjx',
       'unity',
       'unreal',
       'pcg-graph',

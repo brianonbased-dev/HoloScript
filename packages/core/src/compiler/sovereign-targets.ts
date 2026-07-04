@@ -49,6 +49,7 @@ export const BRIDGE_TARGETS = [
   'urdf',
   'sdf',
   'mjcf', // MuJoCo MJCF XML consumed by the MuJoCo physics engine
+  'mjx', // MuJoCo MJX (JAX) differentiable-physics env — consumed by the jax + mujoco.mjx runtimes
   'unity',
   'unreal',
   'pcg-graph', // Unreal PCG graph XML consumed by Unreal PCG

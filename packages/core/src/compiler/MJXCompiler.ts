@@ -1,0 +1,193 @@
+/**
+ * HoloScript → MuJoCo MJX (JAX) Compiler
+ *
+ * Exports a HoloScript physics composition to a MuJoCo **MJX** differentiable-physics
+ * training environment (a Python module). MJX is MuJoCo's JAX backend: the same rigid
+ * body dynamics, but as pure JAX so `jax.jit` / `jax.grad` flow through `mjx.step`.
+ *
+ * This target builds ON compile_to_mjcf (CG-046): it REUSES MJCFCompiler to produce the
+ * physics scene XML from the SAME .holo, then emits a Python module that loads that XML
+ * into an MJX model, exposes a jittable step, and provides a real reverse-mode gradient
+ * of a control-rollout loss — a working differentiable env, not a full RL trainer.
+ *
+ * Native-first (F.137): differentiable joints/bodies are declared in the .holo via a
+ * native `@differentiable_physics` trait annotation; the compiler reads it off the parsed
+ * AST (zero grammar change) and surfaces the marked elements in the emitted env.
+ *
+ * BRIDGE target (closes competitor gap CG-110). The emitted artifact runs on the
+ * third-party jax + mujoco.mjx runtimes, so — like compile_to_mjcf (MuJoCo) — it is
+ * classified BRIDGE, not sovereign: legit sim reach we genuinely lack, never a render
+ * bridge. Sim/format/domain export is the blessed exception to build-the-language.
+ *
+ * @version 1.0.0
+ */
+
+import { CompilerBase } from './CompilerBase';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
+import { MJCFCompiler, type MJCFCompilerOptions } from './MJCFCompiler';
+import type { HoloComposition, HoloObjectDecl } from '../parser/HoloCompositionTypes';
+
+export interface MJXCompilerOptions extends MJCFCompilerOptions {
+  /** Python class name for the emitted env wrapper (default 'HoloScriptMJXEnv') */
+  envClassName?: string;
+  /** Rollout length for the gradient demo (default 50) */
+  rolloutSteps?: number;
+  /** Treat every body as gradient-differentiable even without the trait (default false) */
+  differentiableByDefault?: boolean;
+}
+
+export class MJXCompiler extends CompilerBase {
+  protected readonly compilerName = 'MJXCompiler';
+
+  protected override getRequiredCapability(): ANSCapabilityPathValue {
+    return ANSCapabilityPath.MJX;
+  }
+
+  /** MJCF pass-through options — MJCFCompiler applies its own defaults on undefined. */
+  private readonly mjcfOptions: MJCFCompilerOptions;
+  private readonly envClassName: string;
+  private readonly rolloutSteps: number;
+  private readonly differentiableByDefault: boolean;
+
+  constructor(options: MJXCompilerOptions = {}) {
+    super();
+    this.mjcfOptions = options;
+    this.envClassName = this.sanitizePyIdent(options.envClassName || 'HoloScriptMJXEnv');
+    this.rolloutSteps = Math.max(1, Math.floor(options.rolloutSteps ?? 50));
+    this.differentiableByDefault = options.differentiableByDefault ?? false;
+  }
+
+  compile(composition: HoloComposition, agentToken: string, outputPath?: string): string {
+    this.validateCompilerAccess(agentToken, outputPath);
+
+    // 1. Reuse MJCFCompiler to produce the physics XML from the SAME scene shape.
+    //    Guarantees compile_to_mjx and compile_to_mjcf agree on physics semantics.
+    const xml = new MJCFCompiler(this.mjcfOptions).compile(composition, agentToken);
+
+    // 2. Collect the @differentiable_physics-marked elements (native-first).
+    const diffNames = this.collectDifferentiable(composition);
+
+    // 3. Emit the MJX differentiable-env Python module.
+    return this.emitPython(composition, xml, diffNames);
+  }
+
+  private getTraitName(trait: string | { name: string }): string {
+    return typeof trait === 'string' ? trait : trait.name;
+  }
+
+  private hasDifferentiableTrait(obj: HoloObjectDecl): boolean {
+    return obj.traits?.some((t) => this.getTraitName(t) === 'differentiable_physics') ?? false;
+  }
+
+  /** Names of bodies/joints marked gradient-differentiable, sanitized to Python identifiers. */
+  private collectDifferentiable(composition: HoloComposition): string[] {
+    const out: string[] = [];
+    for (const obj of composition.objects ?? []) {
+      if (this.differentiableByDefault || this.hasDifferentiableTrait(obj)) {
+        out.push(this.sanitizePyIdent(obj.name).toLowerCase());
+      }
+    }
+    return out;
+  }
+
+  private sanitizePyIdent(name: string): string {
+    const s = String(name).replace(/[^a-zA-Z0-9_]/g, '_');
+    return /^[0-9]/.test(s) ? `_${s}` : s || 'unnamed';
+  }
+
+  private emitPython(composition: HoloComposition, xml: string, diffNames: string[]): string {
+    const compName = String(composition.name ?? 'composition');
+    // Raw triple-quoted embed. MJCF XML uses "-attributes and never emits a """ run,
+    // so a raw triple-double-quoted literal is safe; guard defensively just in case.
+    const safeXml = xml.includes('"""') ? xml.replace(/"""/g, '\\"\\"\\"') : xml;
+    const diffList = JSON.stringify(diffNames);
+    const diffComment = diffNames.length ? diffNames.join(', ') : '(none declared)';
+
+    return [
+      '"""Auto-generated by HoloScript MJXCompiler — MuJoCo MJX differentiable-physics env.',
+      '',
+      `Source composition: "${compName}"`,
+      `Differentiable elements (@differentiable_physics): ${diffComment}`,
+      '',
+      'MJX supports jax.grad through mjx.step for rigid-body dynamics. Contact/collision',
+      'gradients are limited upstream (CG-solver reverse-mode; box/capsule/cylinder contact',
+      'offsets), so the gradient demo below uses a contact-light terminal-position objective.',
+      '',
+      'Requires: pip install "mujoco>=3.0" jax jaxlib',
+      'Emitted from one .holo physics scene — the same source that drives compile_to_mjcf.',
+      '"""',
+      'from __future__ import annotations',
+      '',
+      'import jax',
+      'import jax.numpy as jp',
+      'import mujoco',
+      'from mujoco import mjx',
+      '',
+      '# --- MJCF physics scene (emitted by HoloScript MJCFCompiler from the same .holo) ---',
+      'MJCF_XML = r"""',
+      safeXml,
+      '"""',
+      '',
+      '# Joints/bodies marked @differentiable_physics (gradient-differentiable):',
+      `DIFFERENTIABLE_ELEMENTS = ${diffList}`,
+      '',
+      'ROLLOUT_STEPS = ' + this.rolloutSteps,
+      '',
+      '# --- model load (MuJoCo >= 3.0 MJX API) ---',
+      '_mj_model = mujoco.MjModel.from_xml_string(MJCF_XML)',
+      'mjx_model = mjx.put_model(_mj_model)',
+      '',
+      '',
+      '@jax.jit',
+      'def step(data, ctrl):',
+      '    """One jittable MJX physics step; ctrl set immutably via .replace()."""',
+      '    data = data.replace(ctrl=ctrl)',
+      '    return mjx.step(mjx_model, data)',
+      '',
+      '',
+      `class ${this.envClassName}:`,
+      '    """Bounded differentiable env wrapper around the MJX model (not a full RL loop)."""',
+      '',
+      '    differentiable_elements = DIFFERENTIABLE_ELEMENTS',
+      '',
+      '    def __init__(self):',
+      '        self.model = mjx_model',
+      '',
+      '    def reset(self):',
+      '        return mjx.make_data(self.model)',
+      '',
+      '    def step(self, data, ctrl):',
+      '        return step(data, ctrl)',
+      '',
+      '',
+      'def rollout_loss(ctrl_seq, target_qpos):',
+      '    """Terminal sum-of-squares position loss over a control rollout — the grad objective."""',
+      '    data = mjx.make_data(mjx_model)',
+      '',
+      '    def _body(d, u):',
+      '        d = d.replace(ctrl=u)',
+      '        d = mjx.step(mjx_model, d)',
+      '        return d, None',
+      '',
+      '    data, _ = jax.lax.scan(_body, data, ctrl_seq)',
+      '    return jp.sum((data.qpos - target_qpos) ** 2)',
+      '',
+      '',
+      '# Analytic gradient of the rollout loss w.r.t. the control sequence (reverse-mode autodiff).',
+      'grad_rollout = jax.jit(jax.grad(rollout_loss))',
+      '',
+      '',
+      'if __name__ == "__main__":',
+      '    nu = int(_mj_model.nu)',
+      '    ctrl_seq = jp.zeros((ROLLOUT_STEPS, nu))',
+      '    target = mjx.make_data(mjx_model).qpos',
+      '    g = grad_rollout(ctrl_seq, target)',
+      '    print("HoloScript MJX env ready.")',
+      '    print("  differentiable elements:", DIFFERENTIABLE_ELEMENTS)',
+      '    print("  dLoss/dCtrl shape:", g.shape)',
+      '',
+    ].join('\n');
+  }
+}
+
+export default MJXCompiler;

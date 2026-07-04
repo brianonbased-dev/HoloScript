@@ -285,6 +285,18 @@ export function registerBuiltinDialects(): void {
       outputExtensions: ['.xml'],
     },
     {
+      name: 'mjx',
+      domain: 'robotics',
+      description: 'Compiles to a MuJoCo MJX (JAX) differentiable-physics training env (Python)',
+      supportedTraits: ['joint', 'actuator', 'sensor', 'collider', 'physics', 'differentiable_physics'],
+      riskTier: 'standard',
+      factory: (opts) => {
+        const { MJXCompiler } = require('./MJXCompiler');
+        return new MJXCompiler(opts);
+      },
+      outputExtensions: ['.py'],
+    },
+    {
       name: 'dtdl',
       domain: 'iot',
       description: 'Compiles to DTDL digital twin definitions',

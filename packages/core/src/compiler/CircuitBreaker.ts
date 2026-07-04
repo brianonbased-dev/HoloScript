@@ -44,6 +44,7 @@ export type ExportTarget =
   | 'urdf' // ROS 2 / Gazebo robotics
   | 'sdf' // Gazebo simulation
   | 'mjcf' // MuJoCo MJCF XML (robotics simulation)
+  | 'mjx' // MuJoCo MJX (JAX) differentiable-physics training env
   | 'unity' // Unity Engine
   | 'unreal' // Unreal Engine
   | 'pcg-graph' // Unreal PCG graph asset XML
