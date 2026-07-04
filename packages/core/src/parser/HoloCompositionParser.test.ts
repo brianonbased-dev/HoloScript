@@ -199,6 +199,86 @@ describe('HoloCompositionParser', () => {
     });
   });
 
+  describe('Function Helpers', () => {
+    it('parses JavaScript-style function values in object literals', () => {
+      const source = `
+        composition "Function Values" {
+          object "Tracker" {
+            state {
+              handlers: {
+                detectExpression: function(shapes) {
+                  const jawOpen = shapes.jawOpen || 0;
+                  return jawOpen;
+                }
+              }
+            }
+          }
+        }
+      `;
+
+      const result = parseHolo(source);
+
+      expect(result.success).toBe(true);
+      expect(result.errors).toEqual([]);
+      expect(result.ast?.objects[0].state?.properties[0].value).toMatchObject({
+        detectExpression: {
+          type: 'FunctionValue',
+          params: ['shapes'],
+        },
+      });
+    });
+
+    it('parses composition and logic helper function declarations', () => {
+      const source = `
+        composition "Function Helpers" {
+          function "rgbToHex" {
+            params: ["rgb"]
+            logic: {
+              const r = Math.round(rgb.r * 255);
+              return "#fff";
+            }
+          }
+
+          logic {
+            function forward_kinematics(theta1, theta2) {
+              const x = theta1;
+              return { x, theta2 };
+            }
+          }
+        }
+      `;
+
+      const result = parseHolo(source);
+
+      expect(result.success).toBe(true);
+      expect(result.errors).toEqual([]);
+      expect(result.ast?.logic).toBeDefined();
+    });
+  });
+
+  describe('Light Header Traits', () => {
+    it('parses inline traits between a light name and body', () => {
+      const source = `
+        composition "Light Trait" {
+          light "AREnvironmentLight" @light_estimation {
+            type: "environment"
+            apply_ambient: true
+          }
+        }
+      `;
+
+      const result = parseHolo(source);
+
+      expect(result.success).toBe(true);
+      expect(result.errors).toEqual([]);
+      expect(result.ast?.lights[0].properties).toContainEqual({
+        type: 'LightProperty',
+        key: 'light_estimation',
+        value: true,
+      });
+    });
+  });
+
   describe('State', () => {
     it('parses state block', () => {
       const source = `

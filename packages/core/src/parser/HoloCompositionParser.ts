@@ -945,6 +945,11 @@ export class HoloCompositionParser {
           // action / async action at composition level
           composition.actions = composition.actions || [];
           composition.actions.push(this.parseAction());
+        } else if (this.check('FUNCTION')) {
+          // Helper blocks such as `function "rgbToHex" { params: [...] logic: { ... } }`.
+          // The composition AST has no stable functions collection, so preserve parser health
+          // by consuming the helper without inventing a schema field.
+          this.skipFunctionDeclaration();
         } else if (this.check('USING')) {
           // using "path/to/module" [as Name] at composition level
           this.advance(); // consume USING
@@ -1324,10 +1329,15 @@ export class HoloCompositionParser {
       }
     }
 
+    const inlineTraitProperties: HoloLightProperty[] = [];
+    while (this.check('AT')) {
+      inlineTraitProperties.push(this.parseTraitAsLightProperty(true));
+    }
+
     this.expect('LBRACE');
     this.skipNewlines();
 
-    const properties: HoloLightProperty[] = [];
+    const properties: HoloLightProperty[] = [...inlineTraitProperties];
     while (!this.check('RBRACE') && !this.isAtEnd()) {
       this.skipBlockMemberSeparators();
       if (this.check('RBRACE')) break;
@@ -1336,17 +1346,7 @@ export class HoloCompositionParser {
       // instead of canonical key:value properties. Capture each as a light property (collapsing
       // positional args to an array) so nothing is lost; native-2d ignores lights anyway.
       if (this.check('AT')) {
-        this.advance();
-        const traitName = this.parseTraitName();
-        const cfg = this.parseOptionalTraitConfig();
-        const cfgKeys = Object.keys(cfg);
-        let traitValue: HoloValue;
-        if (cfgKeys.length === 0) traitValue = true;
-        else if (cfgKeys.every((k) => /^_arg\d+$/.test(k))) {
-          const arr = cfgKeys.sort().map((k) => cfg[k]);
-          traitValue = (arr.length === 1 ? arr[0] : arr) as HoloValue;
-        } else traitValue = cfg as HoloValue;
-        properties.push({ type: 'LightProperty', key: traitName, value: traitValue });
+        properties.push(this.parseTraitAsLightProperty());
         this.skipNewlines();
         continue;
       }
@@ -1390,6 +1390,21 @@ export class HoloCompositionParser {
       lightType,
       properties,
     };
+  }
+
+  private parseTraitAsLightProperty(requireBodyAfterBareBrace = false): HoloLightProperty {
+    this.expect('AT');
+    const traitName = this.parseTraitName();
+    const cfg = this.parseOptionalTraitConfig(requireBodyAfterBareBrace);
+    const cfgKeys = Object.keys(cfg);
+    let traitValue: HoloValue;
+    if (cfgKeys.length === 0) traitValue = true;
+    else if (cfgKeys.every((k) => /^_arg\d+$/.test(k))) {
+      const arr = cfgKeys.sort().map((k) => cfg[k]);
+      traitValue = (arr.length === 1 ? arr[0] : arr) as HoloValue;
+    } else traitValue = cfg as HoloValue;
+
+    return { type: 'LightProperty', key: traitName, value: traitValue };
   }
 
   // ===========================================================================
@@ -2619,6 +2634,8 @@ export class HoloCompositionParser {
 
       if (this.check('ACTION') || this.check('ASYNC')) {
         actions.push(this.parseAction());
+      } else if (this.check('FUNCTION')) {
+        this.skipFunctionDeclaration();
       } else if (this.check('IDENTIFIER')) {
         const name = this.advance().value;
         // Handle `function name(params) { }` pattern — skip function name if next is IDENTIFIER
@@ -3119,6 +3136,9 @@ export class HoloCompositionParser {
     if (this.check('ENUM')) {
       return this.parseEnumTypeSpec();
     }
+    if (this.check('FUNCTION')) {
+      return this.parseFunctionValue();
+    }
     if (this.isBarewordPathToken()) {
       return this.parseBarewordPathValue();
     }
@@ -3153,6 +3173,69 @@ export class HoloCompositionParser {
       spec += this.parseParenthesizedLiteral();
     }
     return spec;
+  }
+
+  private parseFunctionValue(): HoloValue {
+    this.expect('FUNCTION');
+
+    let name = '';
+    if (this.check('STRING') || this.check('IDENTIFIER')) {
+      name = this.advance().value;
+    }
+
+    const params = this.check('LPAREN') ? this.collectFunctionParameterNames() : [];
+    if (this.check('LBRACE')) {
+      this.skipBlock();
+    }
+
+    return {
+      type: 'FunctionValue',
+      name,
+      params,
+    };
+  }
+
+  private skipFunctionDeclaration(): void {
+    this.expect('FUNCTION');
+
+    if (this.check('STRING') || this.check('IDENTIFIER')) {
+      this.advance();
+    }
+
+    if (this.check('LPAREN')) {
+      this.skipParens();
+    }
+
+    if (this.check('LBRACE')) {
+      this.skipBlock();
+    }
+  }
+
+  private collectFunctionParameterNames(): string[] {
+    const params: string[] = [];
+    if (!this.check('LPAREN')) return params;
+
+    this.advance(); // (
+    let parenDepth = 1;
+    while (parenDepth > 0 && !this.isAtEnd()) {
+      if (this.check('LPAREN')) {
+        parenDepth++;
+        this.advance();
+        continue;
+      }
+      if (this.check('RPAREN')) {
+        parenDepth--;
+        this.advance();
+        continue;
+      }
+      if (parenDepth === 1 && this.check('IDENTIFIER')) {
+        params.push(this.advance().value);
+        continue;
+      }
+      this.advance();
+    }
+
+    return params;
   }
 
   private isBarewordPathToken(): boolean {
@@ -5100,8 +5183,7 @@ export class HoloCompositionParser {
         else if (key === 'actions') state.actions = this.parseBehaviorActions();
         else if (this.parseAnimationStateMetadata(state, key)) {
           // Metadata consumed by parseAnimationStateMetadata.
-        }
-        else if (key === 'onDamage') state.onDamage = this.parseStatementBlock();
+        } else if (key === 'onDamage') state.onDamage = this.parseStatementBlock();
         else if (key === 'timeout') state.timeout = this.parseValue() as number;
         else if (key === 'onTimeout') state.onTimeout = this.parseStatementBlock();
         else if (key === 'transitions') state.transitions = this.parseStateTransitions();
@@ -5210,7 +5292,11 @@ export class HoloCompositionParser {
 
   private isStateNameToken(offset = 0): boolean {
     const token = this.peek(offset);
-    return token.type === 'STRING' || token.type === 'IDENTIFIER' || this.isKeywordAsIdentifierType(token.type);
+    return (
+      token.type === 'STRING' ||
+      token.type === 'IDENTIFIER' ||
+      this.isKeywordAsIdentifierType(token.type)
+    );
   }
 
   private isAnimationTransitionShorthandStart(): boolean {
@@ -5309,7 +5395,12 @@ export class HoloCompositionParser {
     const normalized = rawType.toLowerCase();
     if (normalized === 'number') return 'float';
     if (normalized === 'boolean') return 'bool';
-    if (normalized === 'bool' || normalized === 'float' || normalized === 'int' || normalized === 'trigger') {
+    if (
+      normalized === 'bool' ||
+      normalized === 'float' ||
+      normalized === 'int' ||
+      normalized === 'trigger'
+    ) {
       return normalized;
     }
     this.error(`Unknown animation input type "${rawType}", defaulting to float`);
@@ -5436,7 +5527,8 @@ export class HoloCompositionParser {
 
   private isIdentifierValue(value: string): boolean {
     return (
-      (this.current().type === 'IDENTIFIER' || this.isKeywordAsIdentifierType(this.current().type)) &&
+      (this.current().type === 'IDENTIFIER' ||
+        this.isKeywordAsIdentifierType(this.current().type)) &&
       this.current().value === value
     );
   }
@@ -5457,7 +5549,10 @@ export class HoloCompositionParser {
   private expressionToAnimationConditions(
     expression: HoloExpression
   ): HoloAnimationTransitionCondition[] {
-    if (expression.type === 'BinaryExpression' && (expression.operator === '&&' || expression.operator === '||')) {
+    if (
+      expression.type === 'BinaryExpression' &&
+      (expression.operator === '&&' || expression.operator === '||')
+    ) {
       const left = this.expressionToAnimationConditions(expression.left);
       const right = this.expressionToAnimationConditions(expression.right);
       if (left.length > 0 && right.length > 0) {
