@@ -125,7 +125,11 @@ const SEMANTIC_ALIAS_RULES: SemanticAliasRule[] = [
     aliases: ['walk syntax tree pull out declarations parsed symbols'],
   },
   {
-    triggers: [/\bscene compiler\b/, /\bvisuali[sz]ation\b/, /\binteractive scene\b/],
+    triggers: [
+      /\bscene compiler\b/,
+      /\bholo ?composition ast\b/,
+      /\btransforms? a codebase ?graph\b/,
+    ],
     aliases: ['render graph navigable 3d scene three dimensional view'],
   },
   {
@@ -393,7 +397,7 @@ export class EmbeddingIndex {
 
     scored.sort((a, b) => b.score - a.score);
 
-    return scored.slice(0, topK).map(({ idx, score }) => ({
+    return this.pickDiverseTopResults(scored, topK).map(({ idx, score }) => ({
       symbol: this.entries[idx].symbol,
       score: Math.round(score * 10000) / 10000,
       file: this.entries[idx].symbol.filePath,
@@ -429,7 +433,7 @@ export class EmbeddingIndex {
 
     scored.sort((a, b) => b.score - a.score);
 
-    return scored.slice(0, topK).map(({ idx, score }) => ({
+    return this.pickDiverseTopResults(scored, topK).map(({ idx, score }) => ({
       symbol: this.entries[idx].symbol,
       score: Math.round(score * 10000) / 10000,
       file: this.entries[idx].symbol.filePath,
@@ -649,6 +653,36 @@ export class EmbeddingIndex {
     context?: GraphTextContext
   ): string[] {
     return symbols.map((symbol) => this.symbolToText(symbol, context));
+  }
+
+  private pickDiverseTopResults(
+    scored: Array<{ idx: number; score: number }>,
+    topK: number
+  ): Array<{ idx: number; score: number }> {
+    const selected: Array<{ idx: number; score: number }> = [];
+    const selectedIndexes = new Set<number>();
+    const seenFiles = new Set<string>();
+
+    for (const item of scored) {
+      const fileKey = this.fileDiversityKey(this.entries[item.idx].symbol.filePath);
+      if (seenFiles.has(fileKey)) continue;
+      selected.push(item);
+      selectedIndexes.add(item.idx);
+      seenFiles.add(fileKey);
+      if (selected.length >= topK) return selected;
+    }
+
+    for (const item of scored) {
+      if (selectedIndexes.has(item.idx)) continue;
+      selected.push(item);
+      if (selected.length >= topK) return selected;
+    }
+
+    return selected;
+  }
+
+  private fileDiversityKey(filePath: string): string {
+    return filePath.replace(/\\/g, '/').toLowerCase();
   }
 
   private createGraphTextContext(graph?: CodebaseGraph): GraphTextContext | undefined {

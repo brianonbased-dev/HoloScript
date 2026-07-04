@@ -235,4 +235,65 @@ describe('EmbeddingIndex streaming batches', () => {
     expect(embeddedTexts[0]).toContain('semantic aliases:');
     expect(embeddedTexts[0]).toContain('group related files clusters');
   });
+
+  it('keeps semantic search results diverse by file before returning duplicates', async () => {
+    const provider: EmbeddingProvider = {
+      name: 'rank-provider',
+      getEmbeddings: vi.fn(async (texts: string[]) =>
+        texts.map((text) => {
+          if (text === 'find query') return [1, 0];
+          if (text.includes('firstDuplicate')) return [1, 0];
+          if (text.includes('secondDuplicate')) return [0.999, 0.001];
+          if (text.includes('otherFileMatch')) return [0.998, 0.002];
+          return [0, 1];
+        })
+      ),
+    };
+    const firstDuplicate = makeNamedSymbol('firstDuplicate', 'src/same.ts');
+    const secondDuplicate = makeNamedSymbol('secondDuplicate', 'src/same.ts', { line: 2 });
+    const otherFileMatch = makeNamedSymbol('otherFileMatch', 'src/other.ts');
+    const index = new EmbeddingIndex({ provider, batchSize: 10, useWorkers: false });
+
+    await index.addSymbols([firstDuplicate, secondDuplicate, otherFileMatch]);
+    const results = await index.search('find query', 2);
+
+    expect(results.map((result) => result.file)).toEqual(['src/same.ts', 'src/other.ts']);
+    expect(results.map((result) => result.symbol.name)).toEqual([
+      'firstDuplicate',
+      'otherFileMatch',
+    ]);
+  });
+
+  it('does not give generic interactive scenes the codebase scene compiler alias', async () => {
+    const embeddedTexts: string[] = [];
+    const provider: EmbeddingProvider = {
+      name: 'test-provider',
+      getEmbeddings: vi.fn(async (texts: string[]) => {
+        embeddedTexts.push(...texts);
+        return texts.map((_, index) => [1, index]);
+      }),
+    };
+    const enricher = makeNamedSymbol(
+      'InteractiveSceneEnricher',
+      'src/InteractiveSceneEnricher.ts',
+      {
+        type: 'class',
+        signature: 'class InteractiveSceneEnricher',
+        docComment: 'Adds hover and click behavior to an interactive scene.',
+      }
+    );
+    const compiler = makeNamedSymbol('CodebaseSceneCompiler', 'src/CodebaseSceneCompiler.ts', {
+      type: 'class',
+      signature: 'class CodebaseSceneCompiler',
+      docComment: 'Transforms a CodebaseGraph into a HoloComposition scene.',
+    });
+    const index = new EmbeddingIndex({ provider, batchSize: 10, useWorkers: false });
+
+    await index.addSymbols([enricher, compiler]);
+
+    const enricherText = embeddedTexts.find((text) => text.includes('InteractiveSceneEnricher'));
+    const compilerText = embeddedTexts.find((text) => text.includes('CodebaseSceneCompiler'));
+    expect(enricherText).not.toContain('render graph navigable 3d scene');
+    expect(compilerText).toContain('render graph navigable 3d scene');
+  });
 });
