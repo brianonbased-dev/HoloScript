@@ -118,6 +118,26 @@ export interface SymbolRule {
    */
   exportedByCapitalization?: boolean;
   /**
+   * Set `isExported` from the presence of a modifier keyword on the node (Rust
+   * `pub` → exported). Like `exportedByCapitalization` but modifier-driven.
+   * Deliberately suppressed when the symbol is OWNED (a member) — the bespoke
+   * RustAdapter set `isExported` on free-standing items but never on impl
+   * methods, so a single `function_item` rule serving both `function` (free)
+   * and `method` (owned) must not leak an export flag onto methods. Omit to
+   * leave `isExported` untouched. Mutually independent from
+   * `exportedByCapitalization` (which is unchanged and never owner-suppressed).
+   */
+  exportedByModifier?: string;
+  /**
+   * When THIS node is a container (`container: true`), the field findOwner reads
+   * to name the owner it confers on descendants. Defaults to `nameField ?? 'name'`.
+   * Rust `impl_item` sets `ownerNameField: 'type'` — the impl owns its methods
+   * under the implemented TYPE, while the impl itself has no `name` field and so
+   * emits no self-symbol. Omit for containers whose own name IS the owner name
+   * (Python `class`, Ruby `module`/`class`) — behavior is then unchanged.
+   */
+  ownerNameField?: string;
+  /**
    * Context-dependent kind: when this node has an enclosing container ancestor
    * (an owner is found), emit THIS kind instead of `kind`. Languages where the
    * same node type is both a top-level definition and a member use this —
@@ -232,7 +252,63 @@ export interface CallRule {
     nameField: string;
     /** Node type of a bare (owner-less) callee, e.g. 'identifier'. */
     bareType: string;
+    /**
+     * Additional bare (owner-less) callee node types whose FULL text is the
+     * callee name. Rust needs both `identifier` (`helper()`) and
+     * `scoped_identifier` (`Point::origin()` → calleeName `Point::origin`, no
+     * owner). Checked in addition to `bareType`. Omit for single-bare-type
+     * languages (Go/Python) — behavior is then unchanged.
+     */
+    bareTypes?: string[];
   };
+}
+
+/**
+ * A `use`-tree import rule (Rust `use a::b::c;` / `use a::{b, c};` /
+ * `use a as b;` / `use a::*;`). Unlike Python's statement imports or Go's
+ * spec-path imports, Rust's `use` argument is a recursively nested scoped path
+ * whose leaf shape (single item, brace list, alias clause, wildcard) selects
+ * the module string and named-import set. One rule declares the node types the
+ * recursive walk pivots on; the interpreter (`collectUseImports`) reproduces the
+ * bespoke RustAdapter `extractUsePath` walk byte-for-byte:
+ *   - `scoped_identifier` → `path::name` (recurse the `pathField`)
+ *   - `scopedListNodeType` (`scoped_use_list`) → recurse `pathField` for the
+ *     module prefix, gather `listNodeType` items as `namedImports`
+ *   - `asClauseNodeType` (`use_as_clause`) → the module string is the clause's
+ *     WHOLE text (`std::fmt as formatting`), matching the bespoke fall-through
+ *   - `wildcardNodeType` (`use_wildcard`) → module `*`, `isWildcard: true`
+ *   - `listNodeType` (`use_list`) at the root → gather items, empty module
+ * A `modAsImportNodeType` (Rust `mod external;` — a `mod_item` with a name but
+ * no `body`) additionally emits a bare `{ toModule: name }` edge.
+ */
+export interface UseImportRule {
+  /** Node type of the use statement, e.g. 'use_declaration'. */
+  declNodeType: string;
+  /** Node types that are a scoped `path::name` (recurse `pathField`). */
+  scopedNodeTypes: string[];
+  /** Node type of a scoped path that ends in a brace list, e.g. 'scoped_use_list'. */
+  scopedListNodeType: string;
+  /** Node type of a brace list of imported names, e.g. 'use_list'. */
+  listNodeType: string;
+  /** Node type of an `X as Y` alias clause, e.g. 'use_as_clause'. */
+  asClauseNodeType: string;
+  /** Node type of a glob import, e.g. 'use_wildcard'. */
+  wildcardNodeType: string;
+  /** Field holding the recursive path prefix on scoped nodes, e.g. 'path'. */
+  pathField: string;
+  /** Field holding the leaf name on a scoped_identifier, e.g. 'name'. */
+  nameField: string;
+  /** Field holding the brace list on a scoped_use_list, e.g. 'list'. */
+  listField: string;
+  /**
+   * Node type of a file-reference module declaration that doubles as an import
+   * (Rust `mod external;` — a named node with no `bodyField` child). Optional.
+   */
+  modAsImportNodeType?: string;
+  /** Field whose ABSENCE marks a file-reference module (`mod_item` `body`). */
+  modBodyField?: string;
+  /** Field holding the module name on a file-reference module. Default 'name'. */
+  modNameField?: string;
 }
 
 /** A language fully declared as data. */
@@ -247,7 +323,17 @@ export interface LanguageTrait {
   pathImports?: PathImportRule[];
   /** Statement-based imports (e.g. Python `import X` / `from X import Y`). */
   moduleImports?: ModuleImportRule[];
+  /** `use`-tree imports (Rust `use a::b::c;` and friends). */
+  useImports?: UseImportRule[];
   calls?: CallRule[];
+  /**
+   * Derive symbol `visibility` from a modifier keyword instead of the built-in
+   * per-language `extractVisibility` heuristic. Rust visibility is uniform:
+   * `pub` present → 'public', absent → 'private' (for every symbol including
+   * impl methods). Set `{ modifier: 'pub' }`. Omit to keep `extractVisibility`
+   * (Go uppercase / Python underscore / C-family modifiers) unchanged.
+   */
+  visibilityFromModifier?: { modifier: string };
 }
 
 /**

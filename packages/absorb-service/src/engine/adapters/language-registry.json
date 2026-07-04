@@ -56,12 +56,14 @@
     {
       "id": "rust",
       "status": "implemented",
-      "adapter": "RustAdapter",
+      "adapter": "TreeSitterTraitAdapter",
       "grammarPackage": "tree-sitter-rust",
       "extensions": [
         ".rs"
       ],
-      "notes": "Generated from RustAdapter.ts."
+      "declaration": "packages/absorb-service/language-adapters/rust.holo",
+      "extractorRules": 10,
+      "notes": "Generated from @language_adapter .holo data."
     },
     {
       "id": "go",

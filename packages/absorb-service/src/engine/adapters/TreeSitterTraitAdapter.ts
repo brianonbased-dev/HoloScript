@@ -19,7 +19,7 @@ import type {
   ImportEdge,
   CallEdge,
 } from '../types';
-import { walkTree, nodeToSymbol, getFieldText, extractVisibility } from './BaseAdapter';
+import { walkTree, nodeToSymbol, getFieldText, extractVisibility, hasModifier } from './BaseAdapter';
 import type { LanguageTrait, SymbolRule } from './language-traits';
 import type { ExtendedSymbolType } from '../types';
 
@@ -88,11 +88,27 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
         : owner
           ? `${owner}.${name}`
           : name;
-    const isExported = rule.exportedByCapitalization ? startsUppercase(name) : undefined;
+    // isExported: capitalization (Go) OR modifier presence (Rust `pub`). The
+    // modifier form is suppressed when the symbol is owned (a member), because
+    // the bespoke RustAdapter set isExported on free items but never on impl
+    // methods — one function_item rule serves both, so the flag must not leak.
+    const isExported = rule.exportedByCapitalization
+      ? startsUppercase(name)
+      : rule.exportedByModifier && !owner
+        ? hasModifier(node, rule.exportedByModifier)
+        : undefined;
+    // Visibility: a modifier-driven uniform rule (Rust `pub`→public else
+    // private, for every symbol including methods) overrides the per-language
+    // extractVisibility heuristic when the trait declares it.
+    const visibility = this.trait.visibilityFromModifier
+      ? hasModifier(node, this.trait.visibilityFromModifier.modifier)
+        ? 'public'
+        : 'private'
+      : extractVisibility(node, this.language);
 
     out.push(
       nodeToSymbol(node, name, kind, this.language, filePath, {
-        visibility: extractVisibility(node, this.language),
+        visibility,
         owner,
         signature,
         isExported,
@@ -200,8 +216,33 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
     const callRules = this.trait.imports ?? [];
     const pathRules = this.trait.pathImports ?? [];
     const moduleRules = this.trait.moduleImports ?? [];
-    if (callRules.length === 0 && pathRules.length === 0 && moduleRules.length === 0) return out;
+    const useRules = this.trait.useImports ?? [];
+    if (
+      callRules.length === 0 &&
+      pathRules.length === 0 &&
+      moduleRules.length === 0 &&
+      useRules.length === 0
+    )
+      return out;
     walkTree(tree.rootNode, (node) => {
+      // `use`-tree imports (Rust `use a::b::c;` / `use a::{b,c};` / …) and the
+      // file-reference `mod external;` that doubles as an import.
+      for (const rule of useRules) {
+        if (node.type === rule.declNodeType) {
+          this.collectUseImports(node, rule, filePath, out);
+          return false; // decl fully handled; don't descend into it generically
+        }
+        if (
+          rule.modAsImportNodeType &&
+          node.type === rule.modAsImportNodeType &&
+          !node.childForFieldName(rule.modBodyField ?? 'body')
+        ) {
+          const name = getFieldText(node, rule.modNameField ?? 'name');
+          if (name)
+            out.push({ fromFile: filePath, toModule: name, line: node.startPosition.row + 1 });
+          return false;
+        }
+      }
       // Call-based imports (Ruby `require 'x'`).
       for (const rule of callRules) {
         if (node.type !== rule.callNodeType) continue;
@@ -331,6 +372,72 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
     }
   }
 
+  /**
+   * Emit one ImportEdge for a Rust `use` declaration by walking its recursively
+   * nested scoped-path argument. A faithful port of the bespoke RustAdapter
+   * `extractUsePath`: `namedImports` and the wildcard flag accumulate as the
+   * recursion descends, and the module string is the collected path prefix.
+   */
+  private collectUseImports(
+    node: SyntaxNode,
+    rule: NonNullable<LanguageTrait['useImports']>[number],
+    filePath: string,
+    out: ImportEdge[]
+  ): void {
+    const names: string[] = [];
+    let isGlob = false;
+
+    const collectPath = (n: SyntaxNode): string => {
+      if (rule.scopedNodeTypes.includes(n.type) || n.type === rule.scopedListNodeType) {
+        const path = n.childForFieldName(rule.pathField);
+        const name = n.childForFieldName(rule.nameField);
+        const list = n.childForFieldName(rule.listField);
+        const prefix = path ? collectPath(path) : '';
+        if (name) return prefix ? `${prefix}::${name.text}` : name.text;
+        if (list) {
+          // `use foo::{Bar, Baz}` — gather the brace-list members as names.
+          for (const item of list.namedChildren) {
+            if (item.type === 'identifier') names.push(item.text);
+            else if (rule.scopedNodeTypes.includes(item.type)) names.push(collectPath(item));
+          }
+          return prefix;
+        }
+        return prefix;
+      }
+      if (n.type === 'identifier') return n.text;
+      if (n.type === rule.wildcardNodeType) {
+        isGlob = true;
+        return '*';
+      }
+      if (n.type === rule.listNodeType) {
+        for (const item of n.namedChildren) {
+          if (item.type === 'identifier') names.push(item.text);
+        }
+        return '';
+      }
+      // `use x as y` alias clause (and any other leaf): the whole text is the
+      // module string — matching the bespoke fall-through exactly.
+      return n.text || '';
+    };
+
+    let modulePath = '';
+    for (const child of node.namedChildren) {
+      if (child.type !== 'visibility_modifier') {
+        modulePath = collectPath(child);
+        break;
+      }
+    }
+
+    if (!modulePath && names.length === 0) return;
+    out.push({
+      fromFile: filePath,
+      toModule: modulePath,
+      line: node.startPosition.row + 1,
+      namedImports: names,
+      isWildcard: isGlob,
+    });
+  }
+
   extractCalls(tree: ParseTree, filePath: string): CallEdge[] {
     const out: CallEdge[] = [];
     const rules = this.trait.calls ?? [];
@@ -346,10 +453,13 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
           // Selector style (Go): callee nested under `functionField`.
           const fn = node.childForFieldName(rule.functionField);
           if (!fn) continue;
+          const bareTypes = rule.selector.bareTypes ?? [rule.selector.bareType];
           if (fn.type === rule.selector.nodeType) {
             calleeName = getFieldText(fn, rule.selector.nameField);
             calleeOwner = getFieldText(fn, rule.selector.ownerField);
-          } else if (fn.type === rule.selector.bareType) {
+          } else if (bareTypes.includes(fn.type)) {
+            // Bare (owner-less) callee — its full text is the callee name
+            // (Rust `Point::origin` stays a single scoped name, no owner split).
             calleeName = fn.text;
           } else {
             continue;
@@ -382,7 +492,11 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
     let p = node.parent;
     while (p) {
       if (this.containerTypes.has(p.type)) {
-        return getFieldText(p, this.symbolRulesByType.get(p.type)?.nameField ?? 'name');
+        // A container may name the owner it confers via a field other than its
+        // own `nameField` — Rust `impl_item` owns methods under its `type`
+        // field while having no `name` field of its own.
+        const r = this.symbolRulesByType.get(p.type);
+        return getFieldText(p, r?.ownerNameField ?? r?.nameField ?? 'name');
       }
       p = p.parent;
     }

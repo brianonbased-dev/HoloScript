@@ -1,0 +1,103 @@
+@language_adapter {
+  id: "rust"
+  language: "rust"
+  grammarPackage: "tree-sitter-rust"
+  extensions: [".rs"]
+  visibilityFromModifier: { modifier: "pub" }
+  symbols: [
+    {
+      nodeType: "struct_item",
+      kind: "struct",
+      nameField: "name",
+      exportedByModifier: "pub",
+      signatureTemplate: "struct {name}"
+    },
+    {
+      nodeType: "enum_item",
+      kind: "enum",
+      nameField: "name",
+      exportedByModifier: "pub",
+      noSignature: true
+    },
+    {
+      nodeType: "trait_item",
+      kind: "trait",
+      nameField: "name",
+      exportedByModifier: "pub",
+      signatureTemplate: "trait {name}"
+    },
+    {
+      nodeType: "type_item",
+      kind: "type_alias",
+      nameField: "name",
+      exportedByModifier: "pub",
+      noSignature: true
+    },
+    {
+      nodeType: "const_item",
+      kind: "constant",
+      nameField: "name",
+      exportedByModifier: "pub",
+      noSignature: true
+    },
+    {
+      nodeType: "static_item",
+      kind: "constant",
+      nameField: "name",
+      exportedByModifier: "pub",
+      noSignature: true
+    },
+    {
+      nodeType: "mod_item",
+      kind: "module",
+      nameField: "name",
+      exportedByModifier: "pub",
+      noSignature: true
+    },
+    {
+      nodeType: "impl_item",
+      kind: "struct",
+      nameField: "name",
+      container: true,
+      ownerNameField: "type"
+    },
+    {
+      nodeType: "function_item",
+      kind: "function",
+      nameField: "name",
+      kindWhenOwned: "method",
+      exportedByModifier: "pub",
+      signatureTemplate: "fn {name}({field:parameters}){?wrap:return_type: -> :}",
+      signatureTemplateWhenOwned: "{owner}::{name}({field:parameters}){?wrap:return_type: -> :}"
+    }
+  ]
+  useImports: [
+    {
+      declNodeType: "use_declaration",
+      scopedNodeTypes: ["scoped_identifier"],
+      scopedListNodeType: "scoped_use_list",
+      listNodeType: "use_list",
+      asClauseNodeType: "use_as_clause",
+      wildcardNodeType: "use_wildcard",
+      pathField: "path",
+      nameField: "name",
+      listField: "list",
+      modAsImportNodeType: "mod_item",
+      modBodyField: "body",
+      modNameField: "name"
+    }
+  ]
+  calls: [
+    {
+      callNodeType: "call_expression",
+      functionField: "function",
+      selector: {
+        nodeType: "field_expression",
+        ownerField: "value",
+        nameField: "field",
+        bareType: "identifier",
+        bareTypes: ["identifier", "scoped_identifier"]
+      }
+    }
+  ]
+}

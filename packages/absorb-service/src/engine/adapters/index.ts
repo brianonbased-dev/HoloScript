@@ -14,7 +14,6 @@
 
 import type { LanguageAdapter, SupportedLanguage } from '../types';
 import { TypeScriptAdapter } from './TypeScriptAdapter';
-import { RustAdapter } from './RustAdapter';
 import { HoloAdapter } from './HoloAdapter';
 import { TreeSitterTraitAdapter } from './TreeSitterTraitAdapter';
 import { LANGUAGE_TRAITS } from './language-traits';
@@ -80,10 +79,10 @@ function getExtension(filePath: string): string {
 // ── Register built-in adapters ──────────────────────────────────────────────
 
 registerAdapter(new TypeScriptAdapter());
-registerAdapter(new RustAdapter());
-// Go and Python are now AUTHORED as `language-adapters/{go,python}.holo` (@language_adapter) —
-// they register via the LANGUAGE_TRAITS loop below through the generic TreeSitterTraitAdapter,
-// at parity with the deleted bespoke GoAdapter / PythonAdapter (see the *AdapterParity tests).
+// Rust, Go, Python, and Ruby are now AUTHORED as `language-adapters/{rust,go,python,ruby}.holo`
+// (@language_adapter) — they register via the LANGUAGE_TRAITS loop below through the generic
+// TreeSitterTraitAdapter, at parity with the deleted bespoke GoAdapter / PythonAdapter /
+// RustAdapter (see the *AdapterParity tests).
 // Data-driven languages are AUTHORED as `language-adapters/*.holo` (@language_adapter) and
 // @generated into LANGUAGE_TRAITS — no per-language adapter class, and no edit here to add one.
 // The generic TreeSitterTraitAdapter provides the full symbol/import/call extraction.
@@ -97,7 +96,6 @@ registerAdapter(new HoloAdapter());
 
 // Re-export adapters for direct use
 export { TypeScriptAdapter } from './TypeScriptAdapter';
-export { RustAdapter } from './RustAdapter';
 export { HoloAdapter, isNativeAdapter, type HoloParseTree } from './HoloAdapter';
 // Re-export base utilities
 export {

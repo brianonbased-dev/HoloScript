@@ -35,7 +35,7 @@ separate deployable API host.
 absorb-service/
   src/
     engine/            Core scanning, graph, embeddings, visualization
-      adapters/        Tree-sitter adapters: bespoke classes (TS, Rust) + generic TreeSitterTraitAdapter driven by language-adapters/*.holo (Python, Go, Ruby)
+      adapters/        Tree-sitter adapters: bespoke TypeScriptAdapter + generic TreeSitterTraitAdapter driven by language-adapters/*.holo (Rust, Python, Go, Ruby)
       layouts/         Force-directed and layered graph layouts
       providers/       Embedding providers (OpenAI, Ollama, Xenova/HuggingFace)
       visualization/   Scene compilation, theming, tooltips, interactive enrichment
@@ -460,16 +460,17 @@ Default exclusions: `node_modules`, `.git`, `dist`, `build`, `out`, `target`,
 
 ### Language Adapters
 
-Each adapter extends `BaseAdapter` and uses tree-sitter to extract symbols:
+The one remaining bespoke adapter extends `BaseAdapter` and uses tree-sitter to
+extract symbols:
 
 - **TypeScriptAdapter** -- `.ts`, `.tsx`, `.js`, `.jsx`
-- **RustAdapter** -- `.rs`
 
-Data-driven adapters are authored as `language-adapters/*.holo` (`@language_adapter`
-declarations) and generated into `LANGUAGE_TRAITS`; the generic `TreeSitterTraitAdapter`
-provides their extraction. **Python** (`.py`, `.pyi`), **Go** (`.go`) and **Ruby** (`.rb`)
-ship this way -- no bespoke adapter class. Register custom adapters via `registerAdapter()`
-or `AdapterManager`.
+Every other language is data-driven: authored as `language-adapters/*.holo`
+(`@language_adapter` declarations) and generated into `LANGUAGE_TRAITS`; the generic
+`TreeSitterTraitAdapter` provides their extraction. **Rust** (`.rs`), **Python**
+(`.py`, `.pyi`), **Go** (`.go`) and **Ruby** (`.rb`) ship this way -- no bespoke
+adapter class (each guarded by a `*AdapterParity` snapshot test). Register custom
+adapters via `registerAdapter()` or `AdapterManager`.
 
 ### CodebaseGraph
 
@@ -706,7 +707,6 @@ export {
   WorkerPool,
   AdapterManager,
   TypeScriptAdapter,
-  RustAdapter,
   GitChangeDetector,
   DeprecatedInventoryBuilder,
 };
