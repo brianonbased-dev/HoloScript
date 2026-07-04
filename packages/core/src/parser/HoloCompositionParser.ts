@@ -6265,6 +6265,7 @@ export class HoloCompositionParser {
     // Perception & simulation layer
     'MATERIAL',
     'MATERIAL_GRAPH',
+    'LIGHT_FIELD',
     'PBR_MATERIAL',
     'UNLIT_MATERIAL',
     'SHADER',
@@ -6400,6 +6401,7 @@ export class HoloCompositionParser {
     // Perception & simulation layer
     MATERIAL: 'material',
     MATERIAL_GRAPH: 'material_graph',
+    LIGHT_FIELD: 'light_field',
     PBR_MATERIAL: 'material',
     UNLIT_MATERIAL: 'material',
     SHADER: 'material',

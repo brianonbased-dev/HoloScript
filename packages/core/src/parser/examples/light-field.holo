@@ -1,0 +1,21 @@
+// HoloScript `light_field` — a typed multi-light + GI lighting model.
+//
+// The sovereign answer to Unreal's Lumen (CG-309): block-level ambient/bounces
+// form a cheap indirect-GI lift, and each light is authored as
+// `<id> { type: "<kind>", ...params }`, all lowering to a real WGSL lighting
+// function that accumulates radiance per fragment. The world model EMITS the
+// lighting pass from typed structure — dynamic and target-portable — instead of
+// a proprietary GI black box.
+//
+// Supported lights (first increment): directional, point, spot, ambient.
+composition "LightFieldDemo" {
+  light_field "interior" {
+    ambient: "#202028"
+    bounces: 2
+    intensity: 1.0
+
+    sun  { type: "directional", dir_x: -0.4, dir_y: -1.0, dir_z: -0.2, color: "#FFF4E0", intensity: 3.0 }
+    fill { type: "point", pos_x: 2.0, pos_y: 3.0, pos_z: -1.0, color: "#88AAFF", intensity: 1.5, range: 12.0 }
+    sky  { type: "ambient", color: "#3A4A6A", intensity: 0.4 }
+  }
+}

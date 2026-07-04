@@ -1700,6 +1700,7 @@ export type HoloDomainType =
   // Perception & simulation layer (v4.2)
   | 'material' // material, pbr_material, unlit_material, shader
   | 'material_graph' // material_graph: typed node-DAG material lowered to WGSL/TSL (Unreal Material Editor / Substrate outbuild, CG-323)
+  | 'light_field' // light_field: typed multi-light + GI model lowered to a WGSL lighting pass (Unreal Lumen outbuild, CG-309)
   | 'physics' // collider (box/sphere/capsule/mesh/convex), rigidbody, force_field (gravity_zone/wind_zone/buoyancy_zone), articulation with joint sub-blocks
   | 'vfx' // particles, emitter, vfx
   | 'particle_field' // particle_field: typed force-stack GPU particle system lowered to a WGSL compute emitter (Niagara outbuild, CG-312)

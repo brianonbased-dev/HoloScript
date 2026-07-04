@@ -176,6 +176,7 @@ export type TokenType =
   // Perception & simulation layer (v4.2 — March 2026)
   | 'MATERIAL'
   | 'MATERIAL_GRAPH'
+  | 'LIGHT_FIELD'
   | 'PBR_MATERIAL'
   | 'UNLIT_MATERIAL'
   | 'SHADER'
@@ -491,6 +492,7 @@ export const KEYWORDS: Record<string, TokenType> = {
   // Perception & simulation layer (v4.2 — March 2026)
   material: 'MATERIAL',
   material_graph: 'MATERIAL_GRAPH',
+  light_field: 'LIGHT_FIELD',
   pbr_material: 'PBR_MATERIAL',
   unlit_material: 'UNLIT_MATERIAL',
   shader: 'SHADER',

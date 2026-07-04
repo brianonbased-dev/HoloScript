@@ -584,6 +584,171 @@ export function particleFieldToWGSL(field: CompiledParticleField): { fnName: str
 }
 
 // =============================================================================
+// Light Field Compilation (light_field domain — typed multi-light + GI model)
+// =============================================================================
+//
+// A light_field is a typed lighting rig: block-level ambient/bounces/intensity
+// (a cheap indirect-GI lift) plus a stack of typed lights (directional / point /
+// spot / ambient) that lower to a real WGSL lighting function accumulating
+// radiance per fragment. The sovereign answer to Unreal's Lumen (CG-309): the
+// world model EMITS the lighting pass from typed structure — dynamic, provable,
+// and target-portable — instead of a proprietary GI black box.
+//
+// Authoring shape (verified against HoloCompositionParser):
+//   light_field "interior" {
+//     ambient: "#202028"
+//     bounces: 2
+//     sun  { type: "directional", dir_y: -1.0, color: "#FFF4E0", intensity: 3.0 }
+//     fill { type: "point", pos_y: 3.0, color: "#88AAFF", intensity: 1.5, range: 10.0 }
+//   }
+// → properties = { ambient, bounces, intensity?, <lightId>: {type, ...params} }
+
+export interface CompiledLight {
+  id: string;
+  /** directional | point | spot | ambient */
+  lightType: string;
+  params: Record<string, unknown>;
+}
+
+export interface CompiledLightField {
+  name: string;
+  ambient: string;
+  bounces: number;
+  intensity: number;
+  lights: CompiledLight[];
+  traits: string[];
+}
+
+/** Normalize a `light_field` domain block: scalars stay GI config, typed
+ *  sub-blocks (objects carrying a `type`) become the light stack. */
+export function compileLightFieldBlock(block: HoloDomainBlock): CompiledLightField {
+  const props = (block.properties || {}) as Record<string, unknown>;
+  const lights: CompiledLight[] = [];
+  let ambient = '#000000';
+  let bounces = 1;
+  let intensity = 1.0;
+
+  for (const [key, raw] of Object.entries(props)) {
+    if (key === 'ambient' && typeof raw === 'string') {
+      ambient = raw;
+      continue;
+    }
+    if (key === 'bounces' && typeof raw === 'number') {
+      bounces = raw;
+      continue;
+    }
+    if (key === 'intensity' && typeof raw === 'number') {
+      intensity = raw;
+      continue;
+    }
+    if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+      const { type, ...params } = raw as Record<string, unknown>;
+      if (typeof type === 'string') lights.push({ id: key, lightType: type, params });
+    }
+  }
+
+  return { name: block.name || 'unnamed', ambient, bounces, intensity, lights, traits: block.traits || [] };
+}
+
+/**
+ * Lower a CompiledLightField to a WGSL fragment lighting function that
+ * accumulates a GI ambient base plus each typed light's direct contribution.
+ * Real executable WGSL — each light integrates, GI bounces lift the ambient.
+ */
+export function lightFieldToWGSL(field: CompiledLightField): { fnName: string; wgsl: string } {
+  const safe = sanitizeMgIdent(field.name);
+  const fnName = `evalLightField_${safe}`;
+  const warnings: string[] = [];
+  const num = (p: Record<string, unknown>, k: string, d: number): number =>
+    typeof p[k] === 'number' ? (p[k] as number) : d;
+
+  const lightBlocks: string[] = [];
+  for (const l of field.lights) {
+    const p = l.params;
+    const color = mgHexToVec3(p.color);
+    const intensity = num(p, 'intensity', 1.0).toFixed(4);
+    switch (l.lightType) {
+      case 'directional':
+      case 'sun':
+        lightBlocks.push(
+          [
+            `  { // directional:${esc(l.id, 'TypeScript')}`,
+            `    let L = normalize(-vec3<f32>(${num(p, 'dir_x', 0).toFixed(4)}, ${num(p, 'dir_y', -1).toFixed(4)}, ${num(p, 'dir_z', 0).toFixed(4)}));`,
+            `    let NdotL = max(dot(N, L), 0.0);`,
+            `    radiance += albedo * ${color} * ${intensity} * NdotL;`,
+            `  }`,
+          ].join('\n')
+        );
+        break;
+      case 'point':
+        lightBlocks.push(
+          [
+            `  { // point:${esc(l.id, 'TypeScript')}`,
+            `    let d = vec3<f32>(${num(p, 'pos_x', 0).toFixed(4)}, ${num(p, 'pos_y', 0).toFixed(4)}, ${num(p, 'pos_z', 0).toFixed(4)}) - worldPos;`,
+            `    let dist = length(d);`,
+            `    let L = d / max(dist, 1e-4);`,
+            `    let NdotL = max(dot(N, L), 0.0);`,
+            `    let atten = 1.0 / (1.0 + (dist * dist) / (${num(p, 'range', 10).toFixed(4)} * ${num(p, 'range', 10).toFixed(4)}));`,
+            `    radiance += albedo * ${color} * ${intensity} * NdotL * atten;`,
+            `  }`,
+          ].join('\n')
+        );
+        break;
+      case 'spot':
+        lightBlocks.push(
+          [
+            `  { // spot:${esc(l.id, 'TypeScript')}`,
+            `    let d = vec3<f32>(${num(p, 'pos_x', 0).toFixed(4)}, ${num(p, 'pos_y', 5).toFixed(4)}, ${num(p, 'pos_z', 0).toFixed(4)}) - worldPos;`,
+            `    let dist = length(d);`,
+            `    let L = d / max(dist, 1e-4);`,
+            `    let spotDir = normalize(vec3<f32>(${num(p, 'dir_x', 0).toFixed(4)}, ${num(p, 'dir_y', -1).toFixed(4)}, ${num(p, 'dir_z', 0).toFixed(4)}));`,
+            `    let cone = smoothstep(${Math.cos((num(p, 'cone', 30) * Math.PI) / 180).toFixed(4)}, 1.0, dot(-L, spotDir));`,
+            `    let NdotL = max(dot(N, L), 0.0);`,
+            `    let atten = 1.0 / (1.0 + (dist * dist) / (${num(p, 'range', 10).toFixed(4)} * ${num(p, 'range', 10).toFixed(4)}));`,
+            `    radiance += albedo * ${color} * ${intensity} * NdotL * atten * cone;`,
+            `  }`,
+          ].join('\n')
+        );
+        break;
+      case 'ambient':
+      case 'ambient_probe':
+      case 'sky':
+        lightBlocks.push(
+          [
+            `  { // ambient:${esc(l.id, 'TypeScript')}`,
+            `    radiance += albedo * ${color} * ${intensity};`,
+            `  }`,
+          ].join('\n')
+        );
+        break;
+      default:
+        warnings.push(`unknown light "${l.lightType}" (node "${l.id}") — skipped`);
+        lightBlocks.push(`  // unknown light ${esc(l.lightType, 'TypeScript')}:${esc(l.id, 'TypeScript')}`);
+    }
+  }
+
+  const giScale = `(${field.intensity.toFixed(4)} * (1.0 + f32(${Math.round(field.bounces)}) * 0.5))`;
+
+  const wgsl = [
+    `// Light Field "${esc(field.name, 'TypeScript')}" — generated by HoloScript TSLCompiler`,
+    `// ambient: ${esc(field.ambient, 'TypeScript')} | bounces: ${field.bounces} | lights: [${field.lights
+      .map((l) => `${esc(l.lightType, 'TypeScript')}:${esc(l.id, 'TypeScript')}`)
+      .join(', ')}]`,
+    ...warnings.map((w) => `// WARNING: ${esc(w, 'TypeScript')}`),
+    '',
+    `fn ${fnName}(worldPos: vec3<f32>, N: vec3<f32>, V: vec3<f32>, albedo: vec3<f32>, roughness: f32, metallic: f32) -> vec3<f32> {`,
+    '  var radiance = vec3<f32>(0.0);',
+    '  // ambient / GI base — bounces approximated as an indirect ambient lift',
+    `  radiance += albedo * ${mgHexToVec3(field.ambient)} * ${giScale};`,
+    ...lightBlocks,
+    '  return radiance;',
+    '}',
+  ].join('\n');
+
+  return { fnName, wgsl };
+}
+
+// =============================================================================
 // Physics Compilation
 // =============================================================================
 

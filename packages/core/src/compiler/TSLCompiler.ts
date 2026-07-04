@@ -44,6 +44,8 @@ import {
   materialGraphToWGSL,
   compileParticleFieldBlock,
   particleFieldToWGSL,
+  compileLightFieldBlock,
+  lightFieldToWGSL,
   compilePhysicsBlock,
   compileParticleBlock,
   compilePostProcessingBlock,
@@ -741,6 +743,22 @@ export class TSLCompiler extends CompilerBase {
 
           result[`_domain.particle_field.${safeName}.compute.wgsl`] = `${wgsl}\n${dispatch}`;
           return `// TSL Particle Field: "${this.escapeStringValue(field.name as string, 'TypeScript')}" count=${field.count} forces=${field.forces.length}`;
+        },
+
+        light_field: (block) => {
+          // Typed multi-light + GI model → real WGSL lighting function (Lumen outbuild, CG-309).
+          const field = compileLightFieldBlock(block);
+          const safeName = this.sanitizeName(field.name);
+          const { fnName, wgsl } = lightFieldToWGSL(field);
+
+          const usage = [
+            '',
+            `// Usage in fs_main (replaces the single-light PBR term):`,
+            `//   color = ${fnName}(in.worldPosition, N, V, baseColor, roughness, metallic) + emission;`,
+          ].join('\n');
+
+          result[`_domain.light_field.${safeName}.wgsl`] = `${wgsl}\n${usage}`;
+          return `// TSL Light Field: "${this.escapeStringValue(field.name as string, 'TypeScript')}" lights=${field.lights.length} bounces=${field.bounces}`;
         },
 
         physics: (block) => {
