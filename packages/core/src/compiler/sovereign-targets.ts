@@ -48,6 +48,7 @@ export const SOVEREIGN_TARGETS = [
 export const BRIDGE_TARGETS = [
   'urdf',
   'sdf',
+  'mjcf', // MuJoCo MJCF XML consumed by the MuJoCo physics engine
   'unity',
   'unreal',
   'pcg-graph', // Unreal PCG graph XML consumed by Unreal PCG

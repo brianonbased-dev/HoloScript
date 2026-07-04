@@ -43,6 +43,7 @@ export enum CircuitState {
 export type ExportTarget =
   | 'urdf' // ROS 2 / Gazebo robotics
   | 'sdf' // Gazebo simulation
+  | 'mjcf' // MuJoCo MJCF XML (robotics simulation)
   | 'unity' // Unity Engine
   | 'unreal' // Unreal Engine
   | 'pcg-graph' // Unreal PCG graph asset XML

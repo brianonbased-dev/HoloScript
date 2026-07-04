@@ -33,6 +33,7 @@ export const ANSCapabilityPath = {
   TSL: '/compile/shader/tsl',
   URDF: '/compile/robotics/urdf',
   SDF: '/compile/robotics/sdf',
+  MJCF: '/compile/robotics/mjcf',
   USD: '/compile/interchange/usd',
   GLTF: '/compile/interchange/gltf',
   GAUSSIAN_SPLATTING: '/compile/interchange/3dgs',

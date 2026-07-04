@@ -720,7 +720,7 @@ export async function handleListExportTargets(_args: Record<string, unknown>): P
     'Mobile AR': ['android', 'android-xr', 'ios', 'visionos'] as unknown as ExportTarget[],
     // ar, babylon, r3f, playcanvas, vrr retired as apex-poison 2026-06-17
     'Web Platforms': ['webgpu', 'character-webgpu', 'wasm'] as unknown as ExportTarget[],
-    'Robotics/IoT': ['urdf', 'sdf', 'dtdl'] as unknown as ExportTarget[],
+    'Robotics/IoT': ['urdf', 'sdf', 'mjcf', 'dtdl'] as unknown as ExportTarget[],
     '3D Formats': ['usd', 'usdz', 'fmu', '3dgs', '3dtiles'] as unknown as ExportTarget[],
     'Studio Tools': ['code-editor'] as unknown as ExportTarget[],
     'AI/MCP': [
@@ -793,6 +793,8 @@ export async function handleCompilerTool(
       return handleCompileToTarget({ ...args, target: 'urdf' });
     case 'compile_to_sdf':
       return handleCompileToTarget({ ...args, target: 'sdf' });
+    case 'compile_to_mjcf':
+      return handleCompileToTarget({ ...args, target: 'mjcf' });
     case 'compile_to_ros2_deploy': {
       const {
         code,
@@ -1525,6 +1527,19 @@ export const compilerTools: Tool[] = [
     name: 'compile_to_sdf',
     description:
       'Compile HoloScript to Gazebo SDF (Simulation Description Format) XML; not signed-distance-field ray marching',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code' },
+        options: { type: 'object' },
+      },
+      required: ['code'],
+    },
+  },
+  {
+    name: 'compile_to_mjcf',
+    description:
+      'Compile HoloScript to MuJoCo MJCF XML (physics simulation). Bridge target consumed by the MuJoCo engine.',
     inputSchema: {
       type: 'object',
       properties: {

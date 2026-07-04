@@ -273,6 +273,18 @@ export function registerBuiltinDialects(): void {
       outputExtensions: ['.sdf'],
     },
     {
+      name: 'mjcf',
+      domain: 'robotics',
+      description: 'Compiles to MuJoCo MJCF XML (physics simulation)',
+      supportedTraits: ['joint', 'actuator', 'sensor', 'collider', 'physics', 'environment'],
+      riskTier: 'standard',
+      factory: (opts) => {
+        const { MJCFCompiler } = require('./MJCFCompiler');
+        return new MJCFCompiler(opts);
+      },
+      outputExtensions: ['.xml'],
+    },
+    {
       name: 'dtdl',
       domain: 'iot',
       description: 'Compiles to DTDL digital twin definitions',
