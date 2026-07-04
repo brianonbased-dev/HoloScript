@@ -53,6 +53,7 @@ function loadTraits() {
         symbols: c.symbols || [],
         imports: c.imports || undefined,
         pathImports: c.pathImports || undefined,
+        moduleImports: c.moduleImports || undefined,
         calls: c.calls || undefined,
       });
     }

@@ -45,10 +45,9 @@ export {
 
 // Individual adapters
 export { TypeScriptAdapter } from './adapters/TypeScriptAdapter';
-export { PythonAdapter } from './adapters/PythonAdapter';
 export { RustAdapter } from './adapters/RustAdapter';
-// Go is data-driven (language-adapters/go.holo → LANGUAGE_TRAITS → TreeSitterTraitAdapter);
-// there is no GoAdapter class to re-export.
+// Go and Python are data-driven (language-adapters/{go,python}.holo → LANGUAGE_TRAITS →
+// TreeSitterTraitAdapter); there is no GoAdapter / PythonAdapter class to re-export.
 export { HoloAdapter, isNativeAdapter } from './adapters/HoloAdapter';
 export type { HoloParseTree } from './adapters/HoloAdapter';
 

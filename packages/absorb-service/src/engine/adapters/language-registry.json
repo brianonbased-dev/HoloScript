@@ -43,13 +43,15 @@
     {
       "id": "python",
       "status": "implemented",
-      "adapter": "PythonAdapter",
+      "adapter": "TreeSitterTraitAdapter",
       "grammarPackage": "tree-sitter-python",
       "extensions": [
         ".py",
         ".pyi"
       ],
-      "notes": "Generated from PythonAdapter.ts."
+      "declaration": "packages/absorb-service/language-adapters/python.holo",
+      "extractorRules": 5,
+      "notes": "Generated from @language_adapter .holo data."
     },
     {
       "id": "rust",

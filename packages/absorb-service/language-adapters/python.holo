@@ -1,0 +1,51 @@
+@language_adapter {
+  id: "python"
+  language: "python"
+  grammarPackage: "tree-sitter-python"
+  extensions: [".py", ".pyi"]
+  symbols: [
+    {
+      nodeType: "class_definition",
+      kind: "class",
+      nameField: "name",
+      container: true,
+      signatureTemplate: "class {name}{?wrap:superclasses:(:)}"
+    },
+    {
+      nodeType: "function_definition",
+      kind: "function",
+      nameField: "name",
+      kindWhenOwned: "method",
+      signatureTemplate: "def {name}({field:parameters})",
+      signatureTemplateWhenOwned: "{owner}.{name}({field:parameters})"
+    }
+  ]
+  moduleImports: [
+    {
+      declNodeType: "import_statement",
+      moduleChildTypes: ["dotted_name", "aliased_import"],
+      aliasChildType: "aliased_import",
+      aliasNameField: "name"
+    },
+    {
+      declNodeType: "import_from_statement",
+      moduleField: "module_name",
+      namedImportChildTypes: ["dotted_name", "aliased_import"],
+      aliasChildType: "aliased_import",
+      aliasNameField: "name",
+      wildcardChildType: "wildcard_import"
+    }
+  ]
+  calls: [
+    {
+      callNodeType: "call",
+      functionField: "function",
+      selector: {
+        nodeType: "attribute",
+        ownerField: "object",
+        nameField: "attribute",
+        bareType: "identifier"
+      }
+    }
+  ]
+}

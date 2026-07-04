@@ -69,14 +69,22 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
     const name = getFieldText(node, rule.nameField ?? 'name');
     if (!name) return;
 
-    const kind = this.resolveKind(node, rule);
     const owner = rule.ownerFromField
       ? this.ownerFromReceiver(node, rule.ownerFromField)
       : this.findOwner(node);
+    // Context-dependent kind: same node type is a member when owned (Python
+    // `function_definition` → 'method' inside a class, 'function' at module level).
+    const kind =
+      owner && rule.kindWhenOwned ? rule.kindWhenOwned : this.resolveKind(node, rule);
+    // When owned, a rule may prefer a member-shaped signature template.
+    const activeTemplate =
+      owner && rule.signatureTemplateWhenOwned
+        ? rule.signatureTemplateWhenOwned
+        : rule.signatureTemplate;
     const signature = rule.noSignature
       ? undefined
-      : rule.signatureTemplate
-        ? this.renderSignature(node, rule.signatureTemplate, name)
+      : activeTemplate
+        ? this.renderSignature(node, activeTemplate, name, owner)
         : owner
           ? `${owner}.${name}`
           : name;
@@ -145,10 +153,28 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
   }
 
   /** Render a signatureTemplate against a node. See SymbolRule.signatureTemplate. */
-  private renderSignature(node: SyntaxNode, template: string, name: string): string {
+  private renderSignature(
+    node: SyntaxNode,
+    template: string,
+    name: string,
+    owner?: string
+  ): string {
+    // {?wrap:X:OPEN:CLOSE} — OPEN + field-X text + CLOSE, but only when field X
+    // is present; else ''. OPEN/CLOSE are brace-free literal delimiters (e.g.
+    // '(' and ')'), so — unlike {?field:X:LIT} — the wrapped value may itself
+    // contain characters the brace-terminated LIT form cannot carry. Used for
+    // Python `class Name(Bases)` where the base list must be wrapped in parens
+    // only when a superclass list exists.
+    let out = template.replace(
+      /\{\?wrap:([A-Za-z_]+):([^:{}]*):([^:{}]*)\}/g,
+      (_m, field: string, open: string, close: string) => {
+        const child = node.childForFieldName(field);
+        return child ? `${open}${child.text}${close}` : '';
+      }
+    );
     // {?field:X:LIT} — literal LIT only when field X is present (LIT may include
     // leading spaces and a nested {field:X}, expanded by the pass below).
-    let out = template.replace(
+    out = out.replace(
       /\{\?field:([A-Za-z_]+):([^}]*)\}/g,
       (_m, field: string, lit: string) => (node.childForFieldName(field) ? lit : '')
     );
@@ -162,6 +188,8 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
       /\{field:([A-Za-z_]+)\}/g,
       (_m, field: string) => node.childForFieldName(field)?.text ?? ''
     );
+    // {owner} — the resolved owner name ('' when free-standing).
+    out = out.replace(/\{owner\}/g, owner ?? '');
     // {name}
     out = out.replace(/\{name\}/g, name);
     return out;
@@ -171,7 +199,8 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
     const out: ImportEdge[] = [];
     const callRules = this.trait.imports ?? [];
     const pathRules = this.trait.pathImports ?? [];
-    if (callRules.length === 0 && pathRules.length === 0) return out;
+    const moduleRules = this.trait.moduleImports ?? [];
+    if (callRules.length === 0 && pathRules.length === 0 && moduleRules.length === 0) return out;
     walkTree(tree.rootNode, (node) => {
       // Call-based imports (Ruby `require 'x'`).
       for (const rule of callRules) {
@@ -190,8 +219,92 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
         this.collectPathImports(node, rule, filePath, out);
         return false; // decl fully handled; don't descend into it generically
       }
+      // Statement-based imports (Python `import X` / `from X import Y`).
+      for (const rule of moduleRules) {
+        if (node.type !== rule.declNodeType) continue;
+        this.collectModuleImports(node, rule, filePath, out);
+        return false; // statement fully handled; don't descend into it generically
+      }
     });
     return out;
+  }
+
+  /**
+   * Emit ImportEdge(s) for a statement-based import (Python).
+   *  - `import X, Y.Z as w` (no `moduleField`, `moduleChildTypes` set): one edge
+   *    per module child, `toModule` = the aliased original name or the child text.
+   *  - `from X import a, b as c` / `from . import s` / `from x import *`
+   *    (`moduleField` set): one edge, `toModule` = module field text, with
+   *    `namedImports` gathered from the named-import children and `isWildcard`
+   *    when a wildcard child is present.
+   */
+  private collectModuleImports(
+    stmt: SyntaxNode,
+    rule: NonNullable<LanguageTrait['moduleImports']>[number],
+    filePath: string,
+    out: ImportEdge[]
+  ): void {
+    const line = stmt.startPosition.row + 1;
+
+    // `import X` style: each module child becomes its own edge.
+    if (!rule.moduleField && rule.moduleChildTypes) {
+      for (const child of stmt.namedChildren) {
+        if (!rule.moduleChildTypes.includes(child.type)) continue;
+        const toModule = this.moduleNameOf(child, rule);
+        if (toModule) out.push({ fromFile: filePath, toModule, line });
+      }
+      return;
+    }
+
+    // `from X import …` style: one edge with named imports + wildcard flag.
+    if (rule.moduleField) {
+      const moduleNode = stmt.childForFieldName(rule.moduleField);
+      if (!moduleNode) return;
+      // Exclude the module child by POSITION, not object identity. The bespoke
+      // PythonAdapter used `child !== module` (reference identity), but the
+      // tree-sitter Node.js binding hands out fresh wrapper objects as its
+      // internal cache evicts, so identity is unstable in larger trees — the
+      // module could leak into namedImports depending on how many nodes were
+      // walked first. Comparing startIndex is what that check meant and is
+      // deterministic. (Documented in PythonAdapterParity.test.ts.)
+      const moduleStart = moduleNode.startIndex;
+      const edge: ImportEdge = {
+        fromFile: filePath,
+        toModule: moduleNode.text,
+        line,
+        namedImports: [],
+      };
+      for (const child of stmt.namedChildren) {
+        if (child.startIndex === moduleStart) continue;
+        if (rule.wildcardChildType && child.type === rule.wildcardChildType) {
+          edge.isWildcard = true;
+          continue;
+        }
+        if (rule.namedImportChildTypes?.includes(child.type)) {
+          const name = this.moduleNameOf(child, rule);
+          if (name) edge.namedImports!.push(name);
+        }
+      }
+      out.push(edge);
+    }
+  }
+
+  /**
+   * Resolve the module / named-import name for a child, honoring alias children
+   * (Python `os.path as osp` → the original `os.path`, matching the bespoke
+   * adapter which records the pre-alias name).
+   */
+  private moduleNameOf(
+    child: SyntaxNode,
+    rule: NonNullable<LanguageTrait['moduleImports']>[number]
+  ): string {
+    if (rule.aliasChildType && child.type === rule.aliasChildType) {
+      const original = rule.aliasNameField
+        ? getFieldText(child, rule.aliasNameField)
+        : undefined;
+      return original ?? child.text;
+    }
+    return child.text;
   }
 
   /** Emit an ImportEdge for each import spec directly under the decl or inside a spec-list. */

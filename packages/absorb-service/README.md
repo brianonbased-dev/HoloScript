@@ -35,7 +35,7 @@ separate deployable API host.
 absorb-service/
   src/
     engine/            Core scanning, graph, embeddings, visualization
-      adapters/        Language-specific tree-sitter adapters (TS, Python, Rust, Go)
+      adapters/        Tree-sitter adapters: bespoke classes (TS, Rust) + generic TreeSitterTraitAdapter driven by language-adapters/*.holo (Python, Go, Ruby)
       layouts/         Force-directed and layered graph layouts
       providers/       Embedding providers (OpenAI, Ollama, Xenova/HuggingFace)
       visualization/   Scene compilation, theming, tooltips, interactive enrichment
@@ -463,13 +463,13 @@ Default exclusions: `node_modules`, `.git`, `dist`, `build`, `out`, `target`,
 Each adapter extends `BaseAdapter` and uses tree-sitter to extract symbols:
 
 - **TypeScriptAdapter** -- `.ts`, `.tsx`, `.js`, `.jsx`
-- **PythonAdapter** -- `.py`
 - **RustAdapter** -- `.rs`
 
 Data-driven adapters are authored as `language-adapters/*.holo` (`@language_adapter`
 declarations) and generated into `LANGUAGE_TRAITS`; the generic `TreeSitterTraitAdapter`
-provides their extraction. **Go** (`.go`) and **Ruby** (`.rb`) ship this way -- no bespoke
-adapter class. Register custom adapters via `registerAdapter()` or `AdapterManager`.
+provides their extraction. **Python** (`.py`, `.pyi`), **Go** (`.go`) and **Ruby** (`.rb`)
+ship this way -- no bespoke adapter class. Register custom adapters via `registerAdapter()`
+or `AdapterManager`.
 
 ### CodebaseGraph
 
@@ -706,7 +706,6 @@ export {
   WorkerPool,
   AdapterManager,
   TypeScriptAdapter,
-  PythonAdapter,
   RustAdapter,
   GitChangeDetector,
   DeprecatedInventoryBuilder,

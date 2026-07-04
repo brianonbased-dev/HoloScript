@@ -93,9 +93,17 @@ export interface SymbolRule {
    * the symbol-bearing node. Omit to fall back to the default (`owner.name` /
    * `name`). Supported placeholders:
    *   {name}                 → the symbol name
+   *   {owner}                → the resolved owner name ('' when free-standing);
+   *                            only meaningful in `signatureTemplateWhenOwned`
    *   {field:X}              → text of the childForFieldName('X'), '' if absent
    *   {?field:X: LIT}        → literal LIT (which may itself contain {field:X})
    *                            only when field X is present; else ''
+   *   {?wrap:X:OPEN:CLOSE}   → OPEN + field-X text + CLOSE when field X is
+   *                            present, else ''. OPEN/CLOSE are brace-free
+   *                            literals (Python: `{?wrap:superclasses:(:)}` →
+   *                            `(Base, Mixin)` only when bases exist). Use this
+   *                            instead of {?field:} when the wrapped value must
+   *                            itself contain a `}` the LIT form cannot carry.
    *   {kindWord:X}          → node type of field X with a trailing '_type'
    *                            stripped (Go: struct_type→struct)
    * A single space collapse is NOT applied — templates render literally so
@@ -109,6 +117,23 @@ export interface SymbolRule {
    * where capitalization = export). Omit to leave `isExported` undefined.
    */
   exportedByCapitalization?: boolean;
+  /**
+   * Context-dependent kind: when this node has an enclosing container ancestor
+   * (an owner is found), emit THIS kind instead of `kind`. Languages where the
+   * same node type is both a top-level definition and a member use this —
+   * Python `function_definition` is a `function` at module level but a `method`
+   * inside a `class_definition`. Omit for node types whose kind is fixed.
+   */
+  kindWhenOwned?: ExtendedSymbolType;
+  /**
+   * Alternate `signatureTemplate` used only when an owner is found (the same
+   * condition that triggers `kindWhenOwned`). Lets a member render a different
+   * signature from the free-standing form — Python method
+   * `{owner}.{name}({field:parameters})` vs top-level function
+   * `def {name}({field:parameters})`. Templates support the same placeholders as
+   * `signatureTemplate`, plus `{owner}` (the resolved owner name).
+   */
+  signatureTemplateWhenOwned?: string;
 }
 
 /** A call expression whose method name marks an import (e.g. Ruby `require`). */
@@ -138,6 +163,45 @@ export interface PathImportRule {
   pathField: string;
   /** Strip surrounding quotes from the path text. Default true. */
   stripQuotes?: boolean;
+}
+
+/**
+ * A statement-based import rule for languages whose imports are their own
+ * statement nodes (not calls, not spec-path fields) — Python `import X` and
+ * `from X import Y, Z`. One `ModuleImportRule` describes one statement node type
+ * and how to read the module path plus (for `from`-style) the named imports and
+ * wildcard flag off its children. Both Python styles are two separate rules.
+ */
+export interface ModuleImportRule {
+  /** Node type of the import statement, e.g. 'import_statement' or 'import_from_statement'. */
+  declNodeType: string;
+  /**
+   * Field holding the module path, e.g. 'module_name' (Python `from X import …`).
+   * Omit for plain `import X` where each named child IS a module (see `moduleChildTypes`).
+   */
+  moduleField?: string;
+  /**
+   * Node types of the per-module children under the statement (plain `import X`
+   * emits one edge per module child). e.g. ['dotted_name', 'aliased_import'].
+   * When set, one ImportEdge is emitted per matching named child.
+   */
+  moduleChildTypes?: string[];
+  /**
+   * For an aliased child (`import os.path as osp`, `from x import y as z`): the
+   * field holding the ORIGINAL (pre-alias) name to use as the module / named
+   * import. e.g. 'name'. The bespoke Python adapter records the original name,
+   * not the alias.
+   */
+  aliasNameField?: string;
+  /** Node type of an alias wrapper child, e.g. 'aliased_import'. */
+  aliasChildType?: string;
+  /**
+   * `from X import …` style: node types of children to collect as `namedImports`
+   * (excluding the module child), e.g. ['dotted_name', 'aliased_import'].
+   */
+  namedImportChildTypes?: string[];
+  /** Node type whose presence sets `isWildcard` (Python `wildcard_import`, `*`). */
+  wildcardChildType?: string;
 }
 
 /** A call expression to extract as a call edge. */
@@ -181,6 +245,8 @@ export interface LanguageTrait {
   imports?: ImportRule[];
   /** Declaration-based imports whose path is a field of a spec (e.g. Go `import`). */
   pathImports?: PathImportRule[];
+  /** Statement-based imports (e.g. Python `import X` / `from X import Y`). */
+  moduleImports?: ModuleImportRule[];
   calls?: CallRule[];
 }
 

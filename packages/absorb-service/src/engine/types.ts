@@ -225,6 +225,8 @@ export interface SyntaxNode {
   text: string;
   startPosition: { row: number; column: number };
   endPosition: { row: number; column: number };
+  /** Absolute byte offset of the node's start — stable node identity across wrapper churn. */
+  startIndex: number;
   childCount: number;
   children: SyntaxNode[];
   namedChildren: SyntaxNode[];
