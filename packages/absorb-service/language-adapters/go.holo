@@ -9,7 +9,7 @@
       kind: "function",
       nameField: "name",
       exportedByCapitalization: true,
-      signatureTemplate: "func {name}({field:parameters}){?field:result: {field:result}}"
+      signatureTemplate: "func {name}({field:parameters}){?wrap:result: :}"
     },
     {
       nodeType: "method_declaration",

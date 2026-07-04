@@ -56,6 +56,9 @@ func (p *Point) Move(dx int) {
 	str.ToUpper("x")
 	os.Exit(0)
 }
+
+func doThing(x int) {
+}
 `;
 
 const FILE = 'main.go';
@@ -71,6 +74,11 @@ const EXPECTED_SYMBOLS: ExternalSymbolDefinition[] = [
   { name: 'count', type: 'constant', language: 'go', filePath: FILE, line: 23, column: 4, endLine: 23, endColumn: 13, visibility: 'internal', isExported: false, lineCount: 1 },
   { name: 'Add', type: 'function', language: 'go', filePath: FILE, line: 25, column: 0, endLine: 28, endColumn: 1, visibility: 'public', signature: 'func Add((a int, b int)) int', isExported: true, lineCount: 4 },
   { name: 'Move', type: 'method', language: 'go', filePath: FILE, line: 30, column: 0, endLine: 34, endColumn: 1, visibility: 'public', signature: 'func ((p *Point)) Move((dx int))', owner: 'Point', lineCount: 5 },
+  // No-return func: guards the {?wrap:result: :} signature fix — the old
+  // {?field:result: {field:result}} template left a stray '}' here
+  // (`func doThing((x int))}`) because {?field:X:LIT} LIT is [^}]* and cannot
+  // carry a nested '}'. Lowercase name => internal / not exported.
+  { name: 'doThing', type: 'function', language: 'go', filePath: FILE, line: 36, column: 0, endLine: 37, endColumn: 1, visibility: 'internal', signature: 'func doThing((x int))', isExported: false, lineCount: 2 },
 ];
 
 const EXPECTED_IMPORTS: ImportEdge[] = [
