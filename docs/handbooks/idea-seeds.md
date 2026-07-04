@@ -380,3 +380,33 @@ ED-safety/agency guardrails validated as structural traits, not afterthoughts. C
 "observe the kitchen" leg) is unreliable (portion/prep/hidden ingredients) and should be a weak hint, never the source
 of truth. Revisit when D.101 lifts, or pull the consent-envelope / biomarker-schema piece forward earlier if it's scoped
 as a standalone language trait the rest of the ecosystem also needs.
+
+---
+
+## HoloScriptPlusParser: emit a consistent declaration shape regardless of parse-success
+
+> Found 2026-07-04 while shipping absorb `.hs` slice-2 (commit `542625fa9`). A real latent fragility in
+> the shared `.hs`/`.hsplus` parser, deferred because the fix is parser-internal, not absorb-side.
+
+**What might be valuable**: `HoloScriptPlusParser` represents the *same* declaration two different ways depending on
+whether the file fully parses. On a clean full parse (verified: the `.hs` exp-grpo oracles, `success: true`) a
+declaration comes out as `node.type` = the KEYWORD (`function` / `object` / `trait`) with `node.name` = the identifier.
+On an error-recovery partial parse (verified: the real `.hsplus` trait files, `success: false`) the *same* kind of
+declaration comes out inverted — `node.type` = the IDENTIFIER, the keyword demoted into `node.directives`, and
+`node.name` = undefined. Because of this split, absorb needs TWO extractors (`extractHsSymbols` reads `node.name`;
+`extractHsplusSymbols` reads `node.type` as the name), and symbol-extraction correctness is silently coupled to whether
+a given file happens to fully parse: a partially-parsing `.hs` file or a cleanly-parsing `.hsplus` file would mis-extract
+(a function named `"function"`, or a trait whose name is lost). Making the parser emit ONE consistent
+`{ kind, name, directives }` shape for a declaration — independent of the success/recovery path — would let a single
+extractor serve both formats, delete the dual-convention branch, and remove the parse-success coupling. It also likely
+fixes latent wrongness anywhere else in the ecosystem that walks the HoloScriptPlus AST assuming one convention.
+
+**Why not now**: The fix is inside `HoloScriptPlusParser` (packages/core) — reconciling the full-parse and
+error-recovery emitters so both produce the same declaration node — which is a core-parser change with its own
+regression surface (every consumer of that AST, incl. the mcp-server `parse_hs`/`parse_hsplus` handlers and the
+`.hsplus`-authored trait/brain tooling). Absorb's slice-2 works correctly for the *current* corpus (real `.hsplus`
+files partial-parse into the identifier shape `extractHsplusSymbols` expects; the `.hs` oracles clean-parse into the
+`node.name` shape `extractHsSymbols` expects), so there is no live breakage forcing the parser change now. Revisit when
+touching `HoloScriptPlusParser` for other reasons, or if a real `.hs` file starts partial-parsing (or a `.hsplus` file
+starts clean-parsing) and its symbols go missing — that regression is the trigger. Absorb's dual-extractor design is the
+correct interim shim and documents the split it compensates for.
