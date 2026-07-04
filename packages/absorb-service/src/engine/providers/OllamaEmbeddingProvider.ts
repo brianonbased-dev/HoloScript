@@ -40,23 +40,31 @@ export class OllamaEmbeddingProvider implements EmbeddingProvider {
    * @throws If the Ollama instance is unreachable or returns a non-2xx response.
    */
   async getEmbeddings(texts: string[]): Promise<number[][]> {
-    const results: number[][] = [];
+    // Ollama embeds one prompt per request, so a naive sequential loop makes a
+    // full-repo index build painfully slow. Run a bounded pool of concurrent
+    // requests (order preserved by index). Tune with OLLAMA_EMBED_CONCURRENCY.
+    const results: number[][] = new Array(texts.length);
+    const concurrency = Math.max(1, Number(process.env.OLLAMA_EMBED_CONCURRENCY ?? 6));
+    let next = 0;
 
-    for (const text of texts) {
-      const response = await fetch(`${this.url}/api/embeddings`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: this.model, prompt: text }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Ollama Embeddings API error: ${response.statusText}`);
+    const worker = async (): Promise<void> => {
+      for (let i = next++; i < texts.length; i = next++) {
+        const response = await fetch(`${this.url}/api/embeddings`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model: this.model, prompt: texts[i] }),
+        });
+        if (!response.ok) {
+          throw new Error(`Ollama Embeddings API error: ${response.statusText}`);
+        }
+        const data = await response.json();
+        results[i] = data.embedding as number[];
       }
+    };
 
-      const data = await response.json();
-      results.push(data.embedding as number[]);
-    }
-
+    await Promise.all(
+      Array.from({ length: Math.min(concurrency, texts.length) }, () => worker())
+    );
     return results;
   }
 }

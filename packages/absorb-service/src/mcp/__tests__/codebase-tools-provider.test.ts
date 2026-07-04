@@ -46,6 +46,22 @@ describe('detectBestEmbeddingProvider', () => {
     await expect(detectBestEmbeddingProvider()).resolves.toBe('holoembed');
   });
 
+  it('accepts sovereign local Ollama as an explicit provider (nomic learned lane)', async () => {
+    // Ollama runs a learned encoder on-device — sovereign, so it is permitted
+    // beside HoloEmbed. (Auto-selection of it is skipped under VITEST.)
+    vi.stubEnv('EMBEDDING_PROVIDER', ' Ollama ');
+
+    await expect(detectBestEmbeddingProvider()).resolves.toBe('ollama');
+  });
+
+  it('still rejects cloud providers even as explicit overrides', async () => {
+    vi.stubEnv('EMBEDDING_PROVIDER', 'xenova');
+
+    await expect(detectBestEmbeddingProvider()).rejects.toThrow(
+      /External\/cloud providers are disabled/
+    );
+  });
+
   it('defaults to HoloEmbed even when external provider credentials exist', async () => {
     vi.stubEnv('OPENAI_API_KEY', 'present-but-not-default');
 
