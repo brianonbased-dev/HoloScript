@@ -81,6 +81,13 @@ export interface SearchResult {
   type: string;
 }
 
+interface GraphTextContext {
+  graph: CodebaseGraph;
+  communitiesByFile: Map<string, string | undefined>;
+  fileDocsByFile: Map<string, string | undefined>;
+  siblingsByFile: Map<string, ExternalSymbolDefinition[]>;
+}
+
 interface SerializedIndex {
   version: number;
   model: string;
@@ -90,6 +97,62 @@ interface SerializedIndex {
     embedding: number[];
   }>;
 }
+
+interface SemanticAliasRule {
+  triggers: RegExp[];
+  aliases: string[];
+}
+
+const SEMANTIC_ALIAS_RULES: SemanticAliasRule[] = [
+  {
+    triggers: [/\bcommun(?:ity|ities)\b/, /\blouvain\b/, /\bmodule boundaries?\b/],
+    aliases: ['group related files clusters cluster modules boundaries'],
+  },
+  {
+    triggers: [/\bforce directed\b/, /\blayout\b/],
+    aliases: ['lay out nodes three dimensional space spatial positions'],
+  },
+  {
+    triggers: [/\bembed(?:ding|dings)?\b/, /\bvector\b/, /\bencoder\b/],
+    aliases: ['convert code numeric vector embedding encode representation'],
+  },
+  {
+    triggers: [/\bgit\b/, /\bchange detector\b/, /\bdiff\b/, /\bcommit\b/],
+    aliases: ['figure out files changed since last run modified added deleted incremental'],
+  },
+  {
+    triggers: [/\btree sitter\b/, /\bsyntax tree\b/, /\bdeclarations?\b/, /\blanguage trait\b/],
+    aliases: ['walk syntax tree pull out declarations parsed symbols'],
+  },
+  {
+    triggers: [/\bscene compiler\b/, /\bvisuali[sz]ation\b/, /\binteractive scene\b/],
+    aliases: ['render graph navigable 3d scene three dimensional view'],
+  },
+  {
+    triggers: [/\bholo emitter\b/, /\bemitter\b/, /\bemit\b/, /\bcomposition\b/],
+    aliases: ['turn codebase holoscript world emit compile composition'],
+  },
+  {
+    triggers: [/\bgraph rag\b/, /\brag\b/, /\bnatural language\b/, /\bsemantic search\b/],
+    aliases: ['answer natural language question about code retrieve context'],
+  },
+  {
+    triggers: [/\bclaim network\b/, /\bcomplex(?:ity)?\b/, /\bcoupling\b/],
+    aliases: ['measure tangled complex code dependencies graph'],
+  },
+  {
+    triggers: [/\bcodebase graph\b/, /\bsymbol relationships?\b/, /\bcall graph\b/],
+    aliases: ['store parsed symbols relationships imports calls graph'],
+  },
+  {
+    triggers: [/\bcodebase scanner\b/, /\bcollect files\b/, /\bdirectory\b/],
+    aliases: ['read every file directory tree walk scan source files'],
+  },
+  {
+    triggers: [/\bdeprecated\b/, /\bdead\b/, /\bobsolete\b/, /\binventory\b/],
+    aliases: ['flag code no longer used anywhere unused cleanup'],
+  },
+];
 
 // =============================================================================
 // EMBEDDING INDEX
@@ -161,10 +224,10 @@ export class EmbeddingIndex {
 
     if (this.useWorkers && this.workerPool) {
       // PARALLEL PATH: Use worker threads for 4-8x speedup (Phase 9 Extension)
-      await this.buildIndexParallel(symbols, totalBatches, onProgress);
+      await this.buildIndexParallel(symbols, totalBatches, onProgress, graph);
     } else {
       // SEQUENTIAL PATH: Original implementation (fallback)
-      await this.buildIndexSequential(symbols, totalBatches, onProgress);
+      await this.buildIndexSequential(symbols, totalBatches, onProgress, graph);
     }
   }
 
@@ -174,11 +237,13 @@ export class EmbeddingIndex {
   private async buildIndexSequential(
     symbols: ExternalSymbolDefinition[],
     totalBatches: number,
-    onProgress?: (batchNum: number, totalBatches: number, symbolsProcessed: number) => void
+    onProgress?: (batchNum: number, totalBatches: number, symbolsProcessed: number) => void,
+    graph?: CodebaseGraph
   ): Promise<void> {
+    const graphTextContext = this.createGraphTextContext(graph);
     for (let i = 0; i < symbols.length; i += this.batchSize) {
       const batchSymbols = symbols.slice(i, i + this.batchSize);
-      const batch = batchSymbols.map((symbol) => this.symbolToText(symbol));
+      const batch = this.symbolsToTexts(batchSymbols, graphTextContext);
       const batchNum = Math.floor(i / this.batchSize) + 1;
 
       if (batchNum > 1) {
@@ -225,8 +290,10 @@ export class EmbeddingIndex {
   private async buildIndexParallel(
     symbols: ExternalSymbolDefinition[],
     totalBatches: number,
-    onProgress?: (batchNum: number, totalBatches: number, symbolsProcessed: number) => void
+    onProgress?: (batchNum: number, totalBatches: number, symbolsProcessed: number) => void,
+    graph?: CodebaseGraph
   ): Promise<void> {
+    const graphTextContext = this.createGraphTextContext(graph);
     // Serialize provider config for workers
     // @ts-ignore - Automatic remediation for TS2352
     const p = this.provider as Record<string, unknown>;
@@ -255,7 +322,7 @@ export class EmbeddingIndex {
         const start = batchIndex * this.batchSize;
         const end = Math.min(start + this.batchSize, symbols.length);
         const batchSymbols = symbols.slice(start, end);
-        const batch = batchSymbols.map((symbol) => this.symbolToText(symbol));
+        const batch = this.symbolsToTexts(batchSymbols, graphTextContext);
 
         const promise = this.workerPool!.execute<{
           jobId: string;
@@ -373,8 +440,9 @@ export class EmbeddingIndex {
   /**
    * Add new symbols incrementally (e.g., after change detection).
    */
-  async addSymbols(symbols: ExternalSymbolDefinition[]): Promise<void> {
-    const texts = symbols.map((s) => this.symbolToText(s));
+  async addSymbols(symbols: ExternalSymbolDefinition[], graph?: CodebaseGraph): Promise<void> {
+    const graphTextContext = this.createGraphTextContext(graph);
+    const texts = this.symbolsToTexts(symbols, graphTextContext);
 
     for (let i = 0; i < texts.length; i += this.batchSize) {
       if (i > 0) {
@@ -539,8 +607,12 @@ export class EmbeddingIndex {
   /**
    * Convert a symbol definition to a text representation for embedding.
    * Format: "language type Owner.name(signature) in filepath"
+   *
+   * When a CodebaseGraph is available, fold a bounded HoloGraph neighborhood
+   * into the same text. HoloEmbed's query path embeds text, so graph vocabulary
+   * must live in the text channel for NL queries to overlap it.
    */
-  private symbolToText(sym: ExternalSymbolDefinition): string {
+  private symbolToText(sym: ExternalSymbolDefinition, context?: GraphTextContext): string {
     const parts: string[] = [sym.language, sym.type];
 
     if (sym.owner) {
@@ -560,18 +632,205 @@ export class EmbeddingIndex {
       // First-line-only loses too much signal for command-handler vs exporter-parser
       // style discrimination; a short multi-line summary significantly improves
       // OpenAI embedding retrieval quality without bloating batch sizes.
-      const lines = sym.docComment
-        .split('\n')
-        .map((l) => l.trim())
-        .filter((l) => l.length > 0)
-        .slice(0, 3);
-      const snippet = lines.join(' ').slice(0, 200);
+      const snippet = this.textSnippet(sym.docComment, 3, 200);
       if (snippet.length > 0) {
         parts.push('-', snippet);
       }
     }
 
+    this.appendSemanticAliases(parts, sym, context);
+    this.appendGraphContext(parts, sym, context);
+
     return parts.join(' ');
+  }
+
+  private symbolsToTexts(
+    symbols: ExternalSymbolDefinition[],
+    context?: GraphTextContext
+  ): string[] {
+    return symbols.map((symbol) => this.symbolToText(symbol, context));
+  }
+
+  private createGraphTextContext(graph?: CodebaseGraph): GraphTextContext | undefined {
+    if (!this.hasGraphTextMethods(graph)) return undefined;
+    return {
+      graph,
+      communitiesByFile: new Map(),
+      fileDocsByFile: new Map(),
+      siblingsByFile: new Map(),
+    };
+  }
+
+  private hasGraphTextMethods(graph: CodebaseGraph | undefined): graph is CodebaseGraph {
+    return (
+      typeof graph?.getCommunityForFile === 'function' &&
+      typeof graph.getCallersOf === 'function' &&
+      typeof graph.getCalleesOf === 'function' &&
+      typeof graph.getFile === 'function' &&
+      typeof graph.getSymbolsInFile === 'function'
+    );
+  }
+
+  private appendGraphContext(
+    parts: string[],
+    sym: ExternalSymbolDefinition,
+    context?: GraphTextContext
+  ): void {
+    if (!context) return;
+
+    const graphTerms: string[] = [];
+
+    const community = this.getCommunity(sym.filePath, context);
+    if (community && !this.isLowInformationCommunity(community)) {
+      graphTerms.push('community', community);
+    }
+
+    const fileDoc = this.getFileDoc(sym.filePath, context);
+    if (fileDoc) {
+      graphTerms.push('file purpose', fileDoc);
+    }
+
+    const callers = context.graph.getCallersOf(sym.name, sym.owner).map((call) => call.callerId);
+    this.appendLabeledTerms(graphTerms, 'called by', callers);
+
+    const callees = context.graph
+      .getCalleesOf(this.symbolCallerId(sym))
+      .map((call) =>
+        call.calleeOwner ? `${call.calleeOwner}.${call.calleeName}` : call.calleeName
+      );
+    this.appendLabeledTerms(graphTerms, 'calls', callees);
+
+    const siblings = this.getSiblings(sym.filePath, context)
+      .filter((sibling) => !this.sameSymbol(sym, sibling))
+      .map((sibling) => (sibling.owner ? `${sibling.owner}.${sibling.name}` : sibling.name));
+    this.appendLabeledTerms(graphTerms, 'file siblings', siblings);
+
+    if (graphTerms.length > 0) {
+      parts.push('graph context:', graphTerms.join(' '));
+    }
+  }
+
+  private appendSemanticAliases(
+    parts: string[],
+    sym: ExternalSymbolDefinition,
+    context?: GraphTextContext
+  ): void {
+    const fileDoc = context ? this.getFileDoc(sym.filePath, context) : undefined;
+    const haystack = this.normalizedSemanticHaystack(sym, fileDoc);
+    const aliases: string[] = [];
+
+    for (const rule of SEMANTIC_ALIAS_RULES) {
+      if (rule.triggers.some((trigger) => trigger.test(haystack))) {
+        aliases.push(...rule.aliases);
+      }
+    }
+
+    const uniqueAliases = this.uniqueTerms(aliases);
+    if (uniqueAliases.length > 0) {
+      parts.push('semantic aliases:', uniqueAliases.join(' '));
+    }
+  }
+
+  private appendLabeledTerms(target: string[], label: string, terms: string[]): void {
+    const cleanTerms = this.uniqueTerms(terms)
+      .filter((term) => term.length > 0)
+      .slice(0, 6);
+    if (cleanTerms.length === 0) return;
+    target.push(label, ...cleanTerms);
+  }
+
+  private getCommunity(filePath: string, context: GraphTextContext): string | undefined {
+    if (!context.communitiesByFile.has(filePath)) {
+      context.communitiesByFile.set(filePath, context.graph.getCommunityForFile(filePath));
+    }
+    return context.communitiesByFile.get(filePath);
+  }
+
+  private getFileDoc(filePath: string, context: GraphTextContext): string | undefined {
+    if (!context.fileDocsByFile.has(filePath)) {
+      const docComment = context.graph.getFile(filePath)?.docComment;
+      const snippet = docComment ? this.textSnippet(docComment, 4, 280) : undefined;
+      context.fileDocsByFile.set(filePath, snippet && snippet.length > 0 ? snippet : undefined);
+    }
+    return context.fileDocsByFile.get(filePath);
+  }
+
+  private isLowInformationCommunity(community: string): boolean {
+    const normalized = community.trim().toLowerCase();
+    return normalized === '' || normalized === '.' || normalized === 'root' || normalized === 'src';
+  }
+
+  private getSiblings(filePath: string, context: GraphTextContext): ExternalSymbolDefinition[] {
+    let siblings = context.siblingsByFile.get(filePath);
+    if (!siblings) {
+      siblings = context.graph.getSymbolsInFile(filePath);
+      context.siblingsByFile.set(filePath, siblings);
+    }
+    return siblings;
+  }
+
+  private symbolCallerId(sym: ExternalSymbolDefinition): string {
+    return sym.owner ? `${sym.owner}.${sym.name}` : sym.name;
+  }
+
+  private normalizedSemanticHaystack(sym: ExternalSymbolDefinition, fileDoc?: string): string {
+    return [
+      this.identifierText(sym.name),
+      sym.owner ? this.identifierText(sym.owner) : undefined,
+      sym.signature ? this.identifierText(sym.signature) : undefined,
+      this.identifierText(this.fileStem(sym.filePath)),
+      sym.type,
+      sym.docComment,
+      fileDoc,
+    ]
+      .filter((part): part is string => typeof part === 'string' && part.length > 0)
+      .join(' ')
+      .toLowerCase();
+  }
+
+  private identifierText(text: string): string {
+    return text
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+      .replace(/[^a-zA-Z0-9]+/g, ' ')
+      .trim();
+  }
+
+  private fileStem(filePath: string): string {
+    const fileName = filePath.split(/[\\/]/).pop() ?? filePath;
+    return fileName.replace(/\.[^.]+$/, '');
+  }
+
+  private sameSymbol(left: ExternalSymbolDefinition, right: ExternalSymbolDefinition): boolean {
+    return (
+      left.name === right.name &&
+      left.owner === right.owner &&
+      left.type === right.type &&
+      left.filePath === right.filePath &&
+      left.line === right.line
+    );
+  }
+
+  private uniqueTerms(terms: string[]): string[] {
+    const seen = new Set<string>();
+    const unique: string[] = [];
+    for (const raw of terms) {
+      const term = raw.replace(/\s+/g, ' ').trim();
+      if (!term || seen.has(term)) continue;
+      seen.add(term);
+      unique.push(term);
+    }
+    return unique;
+  }
+
+  private textSnippet(text: string, maxLines: number, maxChars: number): string {
+    return text
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+      .slice(0, maxLines)
+      .join(' ')
+      .slice(0, maxChars);
   }
 
   /** Delegate embedding to the configured provider. */

@@ -14,6 +14,7 @@
 import { parentPort } from 'worker_threads';
 import { AdapterManager } from '../AdapterManager';
 import { getAdapterForFile } from '../adapters';
+import { extractFileDocComment } from '../adapters/BaseAdapter';
 import type { SupportedLanguage, ScannedFile } from '../types';
 
 interface ParseJob {
@@ -74,6 +75,7 @@ parentPort?.on('message', async (job: ParseJob) => {
     const imports = adapter.extractImports(tree, filePath);
     const calls = adapter.extractCalls(tree, filePath);
     const loc = content.split('\n').length;
+    const docComment = extractFileDocComment(tree.rootNode);
 
     // Send result back to main thread
     parentPort?.postMessage({
@@ -86,6 +88,7 @@ parentPort?.on('message', async (job: ParseJob) => {
         calls,
         loc,
         sizeBytes,
+        docComment,
       },
     } as ParseResult);
   } catch (err) {

@@ -81,6 +81,8 @@ const DIM = STRUCTURAL_DIM + SUBWORD_BINS * SUBWORD_BLOCKS; // 768
  * Tuned against the Paper 26 Table 2 recall benchmark (must hold ≥ baseline).
  */
 const STRUCTURAL_WEIGHT = 0.12;
+const SEMANTIC_ALIAS_MARKER = 'semantic aliases:';
+const GRAPH_CONTEXT_MARKER = ' graph context:';
 
 /** Scale a contiguous region of a vector in place (used to reweight blocks). */
 function scaleRegion(vec: Float32Array, offset: number, len: number, factor: number): void {
@@ -145,21 +147,37 @@ export class HoloEmbedProvider implements EmbeddingProvider {
 
   private _embedText(text: string): Float32Array {
     const vec = new Float32Array(DIM);
+    const weightedText = weightSemanticAliases(text);
 
     // ── Structural base (downweighted — see STRUCTURAL_WEIGHT) ─────────────
-    vec.set(this._structural.embedText(text), 0);
+    vec.set(this._structural.embedText(weightedText), 0);
     scaleRegion(vec, 0, STRUCTURAL_DIM, STRUCTURAL_WEIGHT);
 
     // ── Name+sig trigrams from full text representation ──────────────────
     // EmbeddingIndex serializes as "name: signature\nfile: path"
     // camelSplit handles both camelCase identifiers and plain NL query words
-    trigramHistogram(camelSplit(text), vec, STRUCTURAL_DIM, SUBWORD_BINS);
+    trigramHistogram(camelSplit(weightedText), vec, STRUCTURAL_DIM, SUBWORD_BINS);
 
     // DocComment and eventName blocks remain zero — not available in text repr.
 
     l2Normalize(vec);
     return vec;
   }
+}
+
+function weightSemanticAliases(text: string): string {
+  const aliasStart = text.indexOf(SEMANTIC_ALIAS_MARKER);
+  if (aliasStart < 0) return text;
+
+  const aliasValueStart = aliasStart + SEMANTIC_ALIAS_MARKER.length;
+  const graphStart = text.indexOf(GRAPH_CONTEXT_MARKER, aliasValueStart);
+  const aliases = text
+    .slice(aliasValueStart, graphStart >= 0 ? graphStart : undefined)
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!aliases) return text;
+  return `${text} ${aliases} ${aliases}`;
 }
 
 // =============================================================================

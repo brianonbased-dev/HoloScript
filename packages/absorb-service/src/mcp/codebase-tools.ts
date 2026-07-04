@@ -1637,7 +1637,7 @@ async function runIncrementalPatch(
       try {
         if (newSymbols.length > 0) {
           await withPhaseTimeout(
-            index.addSymbols(newSymbols),
+            index.addSymbols(newSymbols, graph),
             INCREMENTAL_EMBEDDING_TIMEOUT_MS,
             'holo_absorb_repo incremental embedding update',
             () => disposeEmbeddingIndex(index)

@@ -238,6 +238,24 @@ describe('HoloEmbedProvider', () => {
 
   // ── Different inputs produce different vectors ──────────────────────────
 
+  it('weights semantic alias fields in text embeddings', async () => {
+    const [[queryVec], [withAlias], [withoutAlias]] = await Promise.all([
+      provider.getEmbeddings(['group related files clusters']),
+      provider.getEmbeddings([
+        [
+          'typescript class CommunityDetector in src/CommunityDetector.ts',
+          'semantic aliases: group related files clusters cluster modules boundaries',
+          'graph context: file purpose Detects module boundaries with Louvain communities.',
+        ].join(' '),
+      ]),
+      provider.getEmbeddings([
+        'typescript class CommunityDetector in src/CommunityDetector.ts graph context: file purpose Detects module boundaries with Louvain communities.',
+      ]),
+    ]);
+
+    expect(cosine(queryVec!, withAlias!)).toBeGreaterThan(cosine(queryVec!, withoutAlias!));
+  });
+
   it('distinct symbols produce distinct vectors', () => {
     const v1 = provider.embedSymbol(makeSym({ name: 'FunctionA' }));
     const v2 = provider.embedSymbol(makeSym({ name: 'FunctionB' }));
