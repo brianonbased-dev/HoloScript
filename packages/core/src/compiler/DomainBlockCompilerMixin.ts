@@ -749,6 +749,158 @@ export function lightFieldToWGSL(field: CompiledLightField): { fnName: string; w
 }
 
 // =============================================================================
+// Nav Field Compilation (nav_field domain — typed crowd-steering behaviors)
+// =============================================================================
+//
+// A nav_field is a typed steering rig for a crowd: top-level agents/max_speed
+// plus a stack of typed field-based behaviors (seek / flee / flow / arrive) that
+// lower to a WGSL compute shader accumulating a per-agent steering force, then
+// integrating clamped velocity. The sovereign answer to Unreal's AI/nav +
+// crowd framework (CG-325): the behavior stack is typed data the compiler
+// lowers to a real solve, not a per-engine behavior-tree binary.
+//
+// Authoring shape (verified against HoloCompositionParser):
+//   nav_field "crowd" {
+//     agents: 500
+//     max_speed: 3.0
+//     goal { type: "seek",   target_x: 10.0, weight: 1.0 }
+//     lane { type: "flow",   dir_x: 1.0,     weight: 0.5 }
+//   }
+// → properties = { agents, max_speed, <behaviorId>: {type, ...params} }
+
+export interface CompiledNavBehavior {
+  id: string;
+  /** seek | flee | flow | arrive */
+  behaviorType: string;
+  params: Record<string, unknown>;
+}
+
+export interface CompiledNavField {
+  name: string;
+  agents: number;
+  maxSpeed: number;
+  behaviors: CompiledNavBehavior[];
+  traits: string[];
+}
+
+/** Normalize a `nav_field` domain block: scalars stay config, typed sub-blocks
+ *  (objects carrying a `type`) become the steering-behavior stack. */
+export function compileNavFieldBlock(block: HoloDomainBlock): CompiledNavField {
+  const props = (block.properties || {}) as Record<string, unknown>;
+  const behaviors: CompiledNavBehavior[] = [];
+  let agents = 256;
+  let maxSpeed = 2.0;
+
+  for (const [key, raw] of Object.entries(props)) {
+    if (key === 'agents' && typeof raw === 'number') {
+      agents = raw;
+      continue;
+    }
+    if ((key === 'max_speed' || key === 'maxSpeed') && typeof raw === 'number') {
+      maxSpeed = raw;
+      continue;
+    }
+    if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+      const { type, ...params } = raw as Record<string, unknown>;
+      if (typeof type === 'string') behaviors.push({ id: key, behaviorType: type, params });
+    }
+  }
+
+  return { name: block.name || 'unnamed', agents, maxSpeed, behaviors, traits: block.traits || [] };
+}
+
+/**
+ * Lower a CompiledNavField to a WGSL compute shader that accumulates each typed
+ * steering behavior into a per-agent force, then integrates velocity clamped to
+ * max_speed. Real executable compute WGSL — each behavior steers, not a comment.
+ */
+export function navFieldToWGSL(field: CompiledNavField): { fnName: string; wgsl: string } {
+  const safe = sanitizeMgIdent(field.name);
+  const fnName = `cs_nav_field_${safe}`;
+  const ms = field.maxSpeed.toFixed(4);
+  const warnings: string[] = [];
+  const num = (p: Record<string, unknown>, k: string, d: number): number =>
+    typeof p[k] === 'number' ? (p[k] as number) : d;
+
+  const steerLines: string[] = [];
+  for (const b of field.behaviors) {
+    const p = b.params;
+    const w = num(p, 'weight', 1.0).toFixed(4);
+    const target = `vec3<f32>(${num(p, 'target_x', 0).toFixed(4)}, ${num(p, 'target_y', 0).toFixed(4)}, ${num(p, 'target_z', 0).toFixed(4)})`;
+    switch (b.behaviorType) {
+      case 'seek':
+        steerLines.push(
+          `  { let desired = normalize(${target} - a.pos + vec3<f32>(1e-4)) * ${ms}; steer += (desired - a.vel) * ${w}; } // seek:${esc(b.id, 'TypeScript')}`
+        );
+        break;
+      case 'flee':
+        steerLines.push(
+          `  { let desired = normalize(a.pos - ${target} + vec3<f32>(1e-4)) * ${ms}; steer += (desired - a.vel) * ${w}; } // flee:${esc(b.id, 'TypeScript')}`
+        );
+        break;
+      case 'flow':
+        steerLines.push(
+          `  { let desired = normalize(vec3<f32>(${num(p, 'dir_x', 1).toFixed(4)}, ${num(p, 'dir_y', 0).toFixed(4)}, ${num(p, 'dir_z', 0).toFixed(4)}) + vec3<f32>(1e-4)) * ${ms}; steer += (desired - a.vel) * ${w}; } // flow:${esc(b.id, 'TypeScript')}`
+        );
+        break;
+      case 'arrive':
+        steerLines.push(
+          [
+            `  { // arrive:${esc(b.id, 'TypeScript')}`,
+            `    let to = ${target} - a.pos;`,
+            `    let dist = length(to);`,
+            `    let speed = ${ms} * clamp(dist / ${num(p, 'slow_radius', 3).toFixed(4)}, 0.0, 1.0);`,
+            `    let desired = normalize(to + vec3<f32>(1e-4)) * speed;`,
+            `    steer += (desired - a.vel) * ${w};`,
+            `  }`,
+          ].join('\n')
+        );
+        break;
+      default:
+        warnings.push(`unknown behavior "${b.behaviorType}" (node "${b.id}") — skipped`);
+        steerLines.push(`  // unknown behavior ${esc(b.behaviorType, 'TypeScript')}:${esc(b.id, 'TypeScript')}`);
+    }
+  }
+  if (steerLines.length === 0) steerLines.push('  // no behaviors declared — agents coast');
+
+  const wgsl = [
+    `// Nav Field "${esc(field.name, 'TypeScript')}" — generated by HoloScript TSLCompiler`,
+    `// agents: ${field.agents} | max_speed: ${field.maxSpeed} | behaviors: [${field.behaviors
+      .map((b) => `${esc(b.behaviorType, 'TypeScript')}:${esc(b.id, 'TypeScript')}`)
+      .join(', ')}]`,
+    ...warnings.map((w) => `// WARNING: ${esc(w, 'TypeScript')}`),
+    '',
+    `struct NavAgent_${safe} {`,
+    '  pos: vec3<f32>,',
+    '  _pad0: f32,',
+    '  vel: vec3<f32>,',
+    '  _pad1: f32,',
+    '};',
+    '',
+    `@group(0) @binding(0) var<storage, read> navIn_${safe}: array<NavAgent_${safe}>;`,
+    `@group(0) @binding(1) var<storage, read_write> navOut_${safe}: array<NavAgent_${safe}>;`,
+    `@group(0) @binding(2) var<uniform> navDt_${safe}: f32;`,
+    '',
+    '@compute @workgroup_size(64)',
+    `fn ${fnName}(@builtin(global_invocation_id) gid: vec3<u32>) {`,
+    `  let i = gid.x;`,
+    `  if (i >= arrayLength(&navIn_${safe})) { return; }`,
+    `  var a = navIn_${safe}[i];`,
+    `  let dt = navDt_${safe};`,
+    '  var steer = vec3<f32>(0.0);',
+    ...steerLines,
+    '  a.vel += steer * dt;',
+    `  let sp = length(a.vel);`,
+    `  if (sp > ${ms}) { a.vel = a.vel / sp * ${ms}; }`,
+    '  a.pos += a.vel * dt;',
+    `  navOut_${safe}[i] = a;`,
+    '}',
+  ].join('\n');
+
+  return { fnName, wgsl };
+}
+
+// =============================================================================
 // Physics Compilation
 // =============================================================================
 

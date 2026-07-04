@@ -46,6 +46,8 @@ import {
   particleFieldToWGSL,
   compileLightFieldBlock,
   lightFieldToWGSL,
+  compileNavFieldBlock,
+  navFieldToWGSL,
   compilePhysicsBlock,
   compileParticleBlock,
   compilePostProcessingBlock,
@@ -759,6 +761,22 @@ export class TSLCompiler extends CompilerBase {
 
           result[`_domain.light_field.${safeName}.wgsl`] = `${wgsl}\n${usage}`;
           return `// TSL Light Field: "${this.escapeStringValue(field.name as string, 'TypeScript')}" lights=${field.lights.length} bounces=${field.bounces}`;
+        },
+
+        nav_field: (block) => {
+          // Typed crowd-steering behaviors → real WGSL compute solve (Unreal AI/nav outbuild, CG-325).
+          const field = compileNavFieldBlock(block);
+          const safeName = this.sanitizeName(field.name);
+          const { fnName, wgsl } = navFieldToWGSL(field);
+
+          const dispatch = [
+            '',
+            `// Dispatch ceil(${field.agents} / 64) workgroups per steering step:`,
+            `//   pass.dispatchWorkgroups(Math.ceil(${field.agents} / 64));`,
+          ].join('\n');
+
+          result[`_domain.nav_field.${safeName}.compute.wgsl`] = `${wgsl}\n${dispatch}`;
+          return `// TSL Nav Field: "${this.escapeStringValue(field.name as string, 'TypeScript')}" agents=${field.agents} behaviors=${field.behaviors.length}`;
         },
 
         physics: (block) => {
