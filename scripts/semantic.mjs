@@ -90,10 +90,18 @@ function loadSymbols(limit) {
   const syms = [];
   for (const f of gj.files) {
     const rel = f.path.split('\\').join('/').replace(rootDir.split('\\').join('/') + '/', '');
-    for (const s of (f.symbols || [])) {
+    if (!f.symbols || !f.symbols.length) continue;
+    // Read the file once to enrich each symbol's embed-text with its DECLARATION LINE — nomic
+    // ranks far better on real code than on names alone. Degrade gracefully if unreadable.
+    let srcLines = null;
+    try { srcLines = fs.readFileSync(f.path, 'utf8').split('\n'); } catch { /* ignore */ }
+    for (const s of f.symbols) {
       if (!s.name) continue;
-      // embed text: kind + name + location context (nomic reads meaning from this)
-      const text = `${s.type || 'symbol'} ${s.name} — ${rel}`;
+      const decl = srcLines && s.line ? (srcLines[s.line - 1] || '').trim().slice(0, 200) : '';
+      // embed text: kind + name + actual declaration + location (nomic reads meaning from this)
+      const text = decl
+        ? `${s.type || 'symbol'} ${s.name}: ${decl} (${rel})`
+        : `${s.type || 'symbol'} ${s.name} — ${rel}`;
       syms.push({ file: f.path.split('\\').join('/'), rel, name: s.name, type: s.type || null, language: s.language || null, line: s.line ?? null, text });
     }
   }
