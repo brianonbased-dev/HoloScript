@@ -1702,6 +1702,7 @@ export type HoloDomainType =
   | 'material_graph' // material_graph: typed node-DAG material lowered to WGSL/TSL (Unreal Material Editor / Substrate outbuild, CG-323)
   | 'light_field' // light_field: typed multi-light + GI model lowered to a WGSL lighting pass (Unreal Lumen outbuild, CG-309)
   | 'nav_field' // nav_field: typed crowd-steering behaviors lowered to a WGSL compute solve (Unreal AI/nav outbuild, CG-325)
+  | 'physics_contract' // physics_contract: typed rigid-body + constraint stack lowered to a WGSL semi-implicit-Euler + PBD compute solve (Unreal Chaos / PhysX outbuild, CG-313)
   | 'physics' // collider (box/sphere/capsule/mesh/convex), rigidbody, force_field (gravity_zone/wind_zone/buoyancy_zone), articulation with joint sub-blocks
   | 'vfx' // particles, emitter, vfx
   | 'particle_field' // particle_field: typed force-stack GPU particle system lowered to a WGSL compute emitter (Niagara outbuild, CG-312)

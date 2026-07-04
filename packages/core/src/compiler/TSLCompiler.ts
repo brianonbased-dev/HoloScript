@@ -48,6 +48,8 @@ import {
   lightFieldToWGSL,
   compileNavFieldBlock,
   navFieldToWGSL,
+  compilePhysicsContractBlock,
+  physicsContractToWGSL,
   compilePhysicsBlock,
   compileParticleBlock,
   compilePostProcessingBlock,
@@ -777,6 +779,22 @@ export class TSLCompiler extends CompilerBase {
 
           result[`_domain.nav_field.${safeName}.compute.wgsl`] = `${wgsl}\n${dispatch}`;
           return `// TSL Nav Field: "${this.escapeStringValue(field.name as string, 'TypeScript')}" agents=${field.agents} behaviors=${field.behaviors.length}`;
+        },
+
+        physics_contract: (block) => {
+          // Typed rigid-body + constraint stack → real WGSL semi-implicit-Euler + PBD compute solve (Unreal Chaos / PhysX outbuild, CG-313).
+          const field = compilePhysicsContractBlock(block);
+          const safeName = this.sanitizeName(field.name);
+          const { fnName, wgsl } = physicsContractToWGSL(field);
+
+          const dispatch = [
+            '',
+            `// Dispatch ceil(${field.bodies.length} / 64) workgroups per physics step:`,
+            `//   pass.dispatchWorkgroups(Math.ceil(${field.bodies.length} / 64));`,
+          ].join('\n');
+
+          result[`_domain.physics_contract.${safeName}.compute.wgsl`] = `${wgsl}\n${dispatch}`;
+          return `// TSL Physics Contract: "${this.escapeStringValue(field.name as string, 'TypeScript')}" bodies=${field.bodies.length} constraints=${field.constraints.length}`;
         },
 
         physics: (block) => {

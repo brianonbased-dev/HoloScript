@@ -1,0 +1,31 @@
+// HoloScript `physics_contract` — a typed rigid-body + constraint stack.
+//
+// The sovereign answer to Unreal's Chaos / PhysX (CG-313): a physics rig is a
+// stack of typed unique-id sub-blocks — bodies (`kind: "body"`) and constraints
+// (`kind: "constraint"`, discriminated by `type`) — all lowering to a real WGSL
+// compute shader that runs a semi-implicit-Euler integration step under gravity
+// and a PBD-style positional constraint projection, substepped for convergence.
+// The rig is typed data the compiler solves — not a per-engine physics binary.
+//
+// Authoring note: bodies and constraints MUST use the unique-id sub-block form
+// (`ground { kind: "body", ... }`), never `body "ground" { }` — the keyword-named
+// form collides in properties. `mass: 0.0` marks a static/anchor body.
+//
+// Supported constraints (first increment): distance, hinge (positional pin,
+// angular limit deferred), fixed (3-DoF weld, rotational lock deferred).
+composition "PhysicsContractDemo" {
+  physics_contract "stack" {
+    gravity_y: -9.81
+    substeps: 2
+
+    // bodies — each a unique-id sub-block discriminated by kind:"body"
+    ground { kind: "body", mass: 0.0, shape: "box",    pos_y: 0.0 }
+    crate  { kind: "body", mass: 2.0, shape: "box",    pos_y: 4.0 }
+    ball   { kind: "body", mass: 1.0, shape: "sphere", pos_y: 8.0 }
+
+    // constraints — discriminated by kind:"constraint" + type:
+    tether { kind: "constraint", type: "distance", body_a: "crate", body_b: "ball", rest: 2.0, stiffness: 1.0 }
+    pin    { kind: "constraint", type: "hinge",    body_a: "ground", body_b: "crate", axis_y: 1.0 }
+    weld   { kind: "constraint", type: "fixed",    body_a: "ground", body_b: "crate" }
+  }
+}

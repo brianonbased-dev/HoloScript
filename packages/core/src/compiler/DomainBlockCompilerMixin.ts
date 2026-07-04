@@ -901,6 +901,211 @@ export function navFieldToWGSL(field: CompiledNavField): { fnName: string; wgsl:
 }
 
 // =============================================================================
+// Physics Contract Compilation (physics_contract domain — typed rigid-body + constraint stack)
+// =============================================================================
+//
+// A physics_contract is a typed rigid-body rig: top-level gravity/substeps plus
+// two kinds of unique-id sub-blocks — bodies (kind:"body") and constraints
+// (kind:"constraint", discriminated further by type). It lowers to a WGSL compute
+// shader that runs a semi-implicit-Euler integration step and a PBD-style
+// positional constraint projection, substepped for convergence. The sovereign
+// answer to Unreal's Chaos / PhysX (CG-313): the rig is typed data the compiler
+// lowers to a real deterministic solve, not a per-engine physics binary.
+//
+// Authoring shape (verified against HoloCompositionParser — MUST use the unique-id
+// sub-block form; the `body "name" { }` keyword-named form collides in properties):
+//   physics_contract "stack" {
+//     gravity_y: -9.81
+//     substeps: 2
+//     ground { kind: "body", mass: 0.0, shape: "box",    pos_y: 0.0 }   // mass 0 = static
+//     crate  { kind: "body", mass: 2.0, shape: "box",    pos_y: 4.0 }
+//     tether { kind: "constraint", type: "distance", body_a: "crate", body_b: "ground", rest: 2.0 }
+//   }
+// → properties = { gravity_y, substeps, <bodyId|constraintId>: {kind, ...} }
+
+export interface CompiledPhysBody {
+  id: string;
+  mass: number;
+  /** box | sphere | capsule | ... — kept for downstream; increment-1 treats bodies as point masses */
+  shape: string;
+  pos: [number, number, number];
+}
+
+export interface CompiledPhysConstraint {
+  id: string;
+  /** distance | hinge | fixed */
+  constraintType: string;
+  bodyA: string;
+  bodyB: string;
+  params: Record<string, unknown>;
+}
+
+export interface CompiledPhysicsContract {
+  name: string;
+  gravity: [number, number, number];
+  substeps: number;
+  bodies: CompiledPhysBody[];
+  constraints: CompiledPhysConstraint[];
+  traits: string[];
+}
+
+/** Normalize a `physics_contract` domain block: scalars stay config, unique-id
+ *  sub-blocks split into bodies (kind:"body") and constraints (kind:"constraint"). */
+export function compilePhysicsContractBlock(block: HoloDomainBlock): CompiledPhysicsContract {
+  const props = (block.properties || {}) as Record<string, unknown>;
+  const bodies: CompiledPhysBody[] = [];
+  const constraints: CompiledPhysConstraint[] = [];
+  const gravity: [number, number, number] = [0, -9.81, 0];
+  let substeps = 1;
+
+  const numOf = (v: unknown, d: number): number => (typeof v === 'number' ? v : d);
+
+  for (const [key, raw] of Object.entries(props)) {
+    if (key === 'gravity' && Array.isArray(raw)) {
+      gravity[0] = numOf(raw[0], gravity[0]);
+      gravity[1] = numOf(raw[1], gravity[1]);
+      gravity[2] = numOf(raw[2], gravity[2]);
+      continue;
+    }
+    if (key === 'gravity_x' && typeof raw === 'number') { gravity[0] = raw; continue; }
+    if (key === 'gravity_y' && typeof raw === 'number') { gravity[1] = raw; continue; }
+    if (key === 'gravity_z' && typeof raw === 'number') { gravity[2] = raw; continue; }
+    if (key === 'substeps' && typeof raw === 'number') {
+      substeps = Math.max(1, Math.floor(raw));
+      continue;
+    }
+    if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+      const sub = raw as Record<string, unknown>;
+      const kind = sub.kind;
+      if (kind === 'body') {
+        bodies.push({
+          id: key,
+          mass: numOf(sub.mass, 1.0),
+          shape: typeof sub.shape === 'string' ? sub.shape : 'box',
+          pos: [numOf(sub.pos_x, 0), numOf(sub.pos_y, 0), numOf(sub.pos_z, 0)],
+        });
+      } else if (kind === 'constraint') {
+        const { kind: _k, type, body_a, body_b, ...params } = sub;
+        constraints.push({
+          id: key,
+          constraintType: typeof type === 'string' ? type : 'distance',
+          bodyA: typeof body_a === 'string' ? body_a : '',
+          bodyB: typeof body_b === 'string' ? body_b : '',
+          params,
+        });
+      }
+    }
+  }
+
+  return { name: block.name || 'unnamed', gravity, substeps, bodies, constraints, traits: block.traits || [] };
+}
+
+/**
+ * Lower a CompiledPhysicsContract to a WGSL compute shader. Each thread owns one
+ * rigid body: semi-implicit-Euler integrate under gravity (static bodies, mass 0
+ * ⇒ invMass 0, skip), then PBD-style positional constraint projection in declared
+ * order, wrapped in a substep loop. Body ids resolve to buffer indices at emit
+ * time (unresolved refs ⇒ WARNING + skip). Real executable, deterministic compute
+ * WGSL — each constraint corrects position, not a decorative comment.
+ *
+ * Increment-1 scope (explicit, like particle_field's force stack): bodies are
+ * point masses; constraints are distance / hinge (positional pin, angular limit
+ * deferred) / fixed (3-DoF weld, rotational lock deferred); one Jacobi projection
+ * per substep against step-start neighbor positions. No broadphase, no contact
+ * generation, no full 6-DoF solver.
+ */
+export function physicsContractToWGSL(field: CompiledPhysicsContract): { fnName: string; wgsl: string } {
+  const safe = sanitizeMgIdent(field.name);
+  const fnName = `cs_physics_contract_${safe}`;
+  const warnings: string[] = [];
+  const idx = new Map(field.bodies.map((b, i) => [b.id, i]));
+  const num = (p: Record<string, unknown>, k: string, d: number): number =>
+    typeof p[k] === 'number' ? (p[k] as number) : d;
+
+  const g = `vec3<f32>(${field.gravity[0].toFixed(4)}, ${field.gravity[1].toFixed(4)}, ${field.gravity[2].toFixed(4)})`;
+  const substeps = Math.max(1, field.substeps);
+
+  const constraintLines: string[] = [];
+  for (const c of field.constraints) {
+    const aIdx = idx.get(c.bodyA);
+    const bIdx = idx.get(c.bodyB);
+    if (aIdx === undefined || bIdx === undefined) {
+      warnings.push(`constraint "${c.id}" (${c.constraintType}) references unknown body — skipped`);
+      constraintLines.push(`      // ${esc(c.constraintType, 'TypeScript')}:${esc(c.id, 'TypeScript')} — unresolved body ref, skipped`);
+      continue;
+    }
+    const a = `${aIdx}u`;
+    const b = `${bIdx}u`;
+    const p = c.params;
+    if (c.constraintType === 'distance' || c.constraintType === 'hinge') {
+      // hinge = positional pin (rest 0 by default) + documented axis; angular limit deferred.
+      const rest = (c.constraintType === 'hinge' ? num(p, 'rest', 0.0) : num(p, 'rest', 1.0)).toFixed(4);
+      const stiff = num(p, 'stiffness', 1.0).toFixed(4);
+      const axisNote =
+        c.constraintType === 'hinge'
+          ? ` axis (${num(p, 'axis_x', 0).toFixed(2)},${num(p, 'axis_y', 1).toFixed(2)},${num(p, 'axis_z', 0).toFixed(2)}) — angular limit deferred`
+          : '';
+      constraintLines.push(
+        [
+          `      // ${c.constraintType}:${esc(c.id, 'TypeScript')}${axisNote}`,
+          `      if (i == ${a}) { let o = physIn_${safe}[${b}]; let d = p.pos - o.pos; let dist = length(d) + 1e-6; let n = d / dist; let C = dist - ${rest}; let w = p.invMass + o.invMass + 1e-6; p.pos -= n * (C * (p.invMass / w) * ${stiff}); }`,
+          `      if (i == ${b}) { let o = physIn_${safe}[${a}]; let d = p.pos - o.pos; let dist = length(d) + 1e-6; let n = d / dist; let C = dist - ${rest}; let w = p.invMass + o.invMass + 1e-6; p.pos -= n * (C * (p.invMass / w) * ${stiff}); }`,
+        ].join('\n')
+      );
+    } else if (c.constraintType === 'fixed') {
+      const off = `vec3<f32>(${num(p, 'rest_x', 0).toFixed(4)}, ${num(p, 'rest_y', 0).toFixed(4)}, ${num(p, 'rest_z', 0).toFixed(4)})`;
+      constraintLines.push(
+        [
+          `      // fixed:${esc(c.id, 'TypeScript')} — 3-DoF weld (rotational lock deferred)`,
+          `      if (i == ${a}) { let o = physIn_${safe}[${b}]; let e = (o.pos - p.pos) - ${off}; let w = p.invMass + o.invMass + 1e-6; p.pos += e * (p.invMass / w); }`,
+          `      if (i == ${b}) { let o = physIn_${safe}[${a}]; let e = (p.pos - o.pos) - ${off}; let w = p.invMass + o.invMass + 1e-6; p.pos -= e * (p.invMass / w); }`,
+        ].join('\n')
+      );
+    } else {
+      warnings.push(`unknown constraint "${c.constraintType}" (node "${c.id}") — skipped`);
+      constraintLines.push(`      // unknown constraint ${esc(c.constraintType, 'TypeScript')}:${esc(c.id, 'TypeScript')} — skipped`);
+    }
+  }
+  if (constraintLines.length === 0) constraintLines.push('      // no constraints declared — free integration only');
+
+  const wgsl = [
+    `// Physics Contract "${esc(field.name, 'TypeScript')}" — generated by HoloScript TSLCompiler`,
+    `// bodies: ${field.bodies.length} | constraints: ${field.constraints.length} | gravity: [${field.gravity.join(', ')}] | substeps: ${substeps}`,
+    `// Upload: physIn[i] = { pos, invMass (= mass>0 ? 1/mass : 0), vel, _pad } from the authored body stack.`,
+    ...warnings.map((w) => `// WARNING: ${esc(w, 'TypeScript')}`),
+    '',
+    `struct PhysBody_${safe} {`,
+    '  pos: vec3<f32>,',
+    '  invMass: f32,',
+    '  vel: vec3<f32>,',
+    '  _pad: f32,',
+    '};',
+    '',
+    `@group(0) @binding(0) var<storage, read> physIn_${safe}: array<PhysBody_${safe}>;`,
+    `@group(0) @binding(1) var<storage, read_write> physOut_${safe}: array<PhysBody_${safe}>;`,
+    `@group(0) @binding(2) var<uniform> physDt_${safe}: f32;`,
+    '',
+    '@compute @workgroup_size(64)',
+    `fn ${fnName}(@builtin(global_invocation_id) gid: vec3<u32>) {`,
+    `  let i = gid.x;`,
+    `  if (i >= arrayLength(&physIn_${safe})) { return; }`,
+    `  var p = physIn_${safe}[i];`,
+    `  let subDt = physDt_${safe} / ${substeps}.0;`,
+    `  for (var s = 0u; s < ${substeps}u; s = s + 1u) {`,
+    '    if (p.invMass > 0.0) {',
+    `      p.vel += ${g} * subDt;`,
+    '      p.pos += p.vel * subDt;',
+    '    }',
+    ...constraintLines,
+    '  }',
+    `  physOut_${safe}[i] = p;`,
+    '}',
+  ].join('\n');
+
+  return { fnName, wgsl };
+}
+
+// =============================================================================
 // Physics Compilation
 // =============================================================================
 

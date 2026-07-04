@@ -178,6 +178,7 @@ export type TokenType =
   | 'MATERIAL_GRAPH'
   | 'LIGHT_FIELD'
   | 'NAV_FIELD'
+  | 'PHYSICS_CONTRACT'
   | 'PBR_MATERIAL'
   | 'UNLIT_MATERIAL'
   | 'SHADER'
@@ -495,6 +496,7 @@ export const KEYWORDS: Record<string, TokenType> = {
   material_graph: 'MATERIAL_GRAPH',
   light_field: 'LIGHT_FIELD',
   nav_field: 'NAV_FIELD',
+  physics_contract: 'PHYSICS_CONTRACT',
   pbr_material: 'PBR_MATERIAL',
   unlit_material: 'UNLIT_MATERIAL',
   shader: 'SHADER',
