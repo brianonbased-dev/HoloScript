@@ -1698,6 +1698,7 @@ export type HoloDomainType =
   | 'web3' // contract, token, wallet, marketplace, governance
   // Perception & simulation layer (v4.2)
   | 'material' // material, pbr_material, unlit_material, shader
+  | 'material_graph' // material_graph: typed node-DAG material lowered to WGSL/TSL (Unreal Material Editor / Substrate outbuild, CG-323)
   | 'physics' // collider (box/sphere/capsule/mesh/convex), rigidbody, force_field (gravity_zone/wind_zone/buoyancy_zone), articulation with joint sub-blocks
   | 'vfx' // particles, emitter, vfx
   | 'postfx' // post_processing, post_fx

@@ -127,6 +127,299 @@ export function compileMaterialBlock(block: HoloDomainBlock): CompiledMaterial {
 }
 
 // =============================================================================
+// Material Graph Compilation (material_graph domain — node-DAG materials)
+// =============================================================================
+//
+// A material_graph is the typed node-graph generalization of a flat material:
+// a DAG of value/math/sample nodes whose edges feed a terminal `output` node's
+// surface ports (base_color / roughness / metallic / emissive). It lowers to a
+// real WGSL function that evaluates the graph in topological order — the
+// sovereign, exact answer to Unreal's Material Editor / Substrate (CG-323).
+//
+// Authoring shape (verified against HoloCompositionParser):
+//   material_graph "name" {
+//     base   { type: "constant", value: "#8B4513" }
+//     rust   { type: "noise",    scale: 8.0 }
+//     albedo { type: "lerp" }
+//     out    { type: "output" }
+//     base -> albedo.a
+//     rust -> albedo.t
+//     albedo -> out.base_color
+//   }
+// → HoloDomainBlock.properties = { <nodeId>: {type, ...params}, connections: [{from,to}] }
+
+/** A single node in a compiled material graph. */
+export interface CompiledMaterialGraphNode {
+  id: string;
+  /** Node kind: constant | noise | fresnel | multiply | add | lerp | output */
+  nodeType: string;
+  /** Scalar/string params authored on the node (value, scale, power, ...). */
+  params: Record<string, unknown>;
+}
+
+/** A directed edge: fromNodeId → toNodeId.port */
+export interface CompiledMaterialGraphEdge {
+  from: string;
+  toNode: string;
+  toPort: string;
+}
+
+export interface CompiledMaterialGraph {
+  name: string;
+  nodes: CompiledMaterialGraphNode[];
+  edges: CompiledMaterialGraphEdge[];
+  traits: string[];
+}
+
+/**
+ * Normalize a `material_graph` domain block into a typed node/edge graph.
+ * Mirrors compileMaterialBlock: reads the shared HoloDomainBlock.properties bag
+ * (each non-`connections` key is a node; `connections` are the edges).
+ */
+export function compileMaterialGraphBlock(block: HoloDomainBlock): CompiledMaterialGraph {
+  const props = (block.properties || {}) as Record<string, unknown>;
+  const nodes: CompiledMaterialGraphNode[] = [];
+
+  for (const [key, raw] of Object.entries(props)) {
+    if (key === 'connections') continue;
+    const nodeObj = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+    const { type: nodeType, ...params } = nodeObj;
+    nodes.push({
+      id: key,
+      nodeType: typeof nodeType === 'string' ? nodeType : 'constant',
+      params,
+    });
+  }
+
+  const rawConns = Array.isArray(props.connections)
+    ? (props.connections as Array<{ from?: unknown; to?: unknown }>)
+    : [];
+  const edges: CompiledMaterialGraphEdge[] = [];
+  for (const c of rawConns) {
+    const from = typeof c.from === 'string' ? c.from : '';
+    const to = typeof c.to === 'string' ? c.to : '';
+    if (!from || !to) continue;
+    const dot = to.indexOf('.');
+    const toNode = dot >= 0 ? to.slice(0, dot) : to;
+    const toPort = dot >= 0 ? to.slice(dot + 1) : 'in';
+    edges.push({ from, toNode, toPort });
+  }
+
+  return {
+    name: block.name || 'unnamed',
+    nodes,
+    edges,
+    traits: block.traits || [],
+  };
+}
+
+/** WGSL-safe identifier from a node id (letters/digits/underscore). */
+function sanitizeMgIdent(id: string): string {
+  const s = id.replace(/[^A-Za-z0-9_]/g, '_');
+  return /^[A-Za-z_]/.test(s) ? s : `n_${s}`;
+}
+
+/** Parse a hex color to a WGSL vec3<f32> literal (falls back to mid-grey). */
+function mgHexToVec3(value: unknown): string {
+  const hex = typeof value === 'string' ? value : '';
+  const m = /^#?([0-9a-fA-F]{6})$/.exec(hex.trim());
+  if (!m) return 'vec3<f32>(0.5, 0.5, 0.5)';
+  const n = parseInt(m[1], 16);
+  const r = ((n >> 16) & 0xff) / 255;
+  const g = ((n >> 8) & 0xff) / 255;
+  const b = (n & 0xff) / 255;
+  return `vec3<f32>(${r.toFixed(4)}, ${g.toFixed(4)}, ${b.toFixed(4)})`;
+}
+
+/** A resolved WGSL expression plus its type, for graph wiring. */
+interface MgValue {
+  ref: string;
+  type: 'vec3' | 'f32';
+}
+
+const mgToVec3 = (v: MgValue | undefined): string =>
+  !v ? 'vec3<f32>(0.0)' : v.type === 'vec3' ? v.ref : `vec3<f32>(${v.ref})`;
+const mgToF32 = (v: MgValue | undefined, fallback = '0.0'): string =>
+  !v ? fallback : v.type === 'f32' ? v.ref : `(${v.ref}).x`;
+
+/**
+ * Lower a CompiledMaterialGraph to an evaluatable WGSL fragment function.
+ *
+ * Topologically orders the DAG (Kahn) so every `let mg_<id>` references only
+ * already-emitted values; the terminal `output` node's ports become the
+ * returned surface struct. This is real executable WGSL, not a scaffold.
+ */
+export function materialGraphToWGSL(graph: CompiledMaterialGraph): { fnName: string; wgsl: string } {
+  const safeName = sanitizeMgIdent(graph.name);
+  const fnName = `evalMaterialGraph_${safeName}`;
+  const warnings: string[] = [];
+
+  const nodeById = new Map(graph.nodes.map((n) => [n.id, n]));
+  // incoming edges per node: port -> fromNodeId
+  const inputs = new Map<string, Map<string, string>>();
+  for (const n of graph.nodes) inputs.set(n.id, new Map());
+  for (const e of graph.edges) {
+    if (!nodeById.has(e.from)) {
+      warnings.push(`edge from unknown node "${e.from}"`);
+      continue;
+    }
+    if (!inputs.has(e.toNode)) {
+      warnings.push(`edge to unknown node "${e.toNode}"`);
+      continue;
+    }
+    inputs.get(e.toNode)!.set(e.toPort, e.from);
+  }
+
+  // Kahn topological sort over dependency edges (from -> toNode).
+  const indeg = new Map<string, number>();
+  const adj = new Map<string, string[]>();
+  for (const n of graph.nodes) {
+    indeg.set(n.id, 0);
+    adj.set(n.id, []);
+  }
+  for (const e of graph.edges) {
+    if (!nodeById.has(e.from) || !nodeById.has(e.toNode)) continue;
+    adj.get(e.from)!.push(e.toNode);
+    indeg.set(e.toNode, (indeg.get(e.toNode) || 0) + 1);
+  }
+  const queue = graph.nodes.filter((n) => (indeg.get(n.id) || 0) === 0).map((n) => n.id);
+  const order: string[] = [];
+  while (queue.length) {
+    const id = queue.shift()!;
+    order.push(id);
+    for (const next of adj.get(id) || []) {
+      indeg.set(next, (indeg.get(next) || 0) - 1);
+      if ((indeg.get(next) || 0) === 0) queue.push(next);
+    }
+  }
+  if (order.length < graph.nodes.length) {
+    warnings.push('material graph has a cycle; emitting nodes in declaration order');
+    for (const n of graph.nodes) if (!order.includes(n.id)) order.push(n.id);
+  }
+
+  const values = new Map<string, MgValue>();
+  const inPort = (nodeId: string, port: string): MgValue | undefined => {
+    const from = inputs.get(nodeId)?.get(port);
+    return from ? values.get(from) : undefined;
+  };
+
+  const body: string[] = [];
+  let output: { id: string } | null = null;
+
+  for (const id of order) {
+    const node = nodeById.get(id)!;
+    const v = sanitizeMgIdent(id);
+    switch (node.nodeType) {
+      case 'constant': {
+        if (typeof node.params.value === 'number') {
+          body.push(`  let mg_${v} = ${(node.params.value as number).toFixed(4)}; // constant`);
+          values.set(id, { ref: `mg_${v}`, type: 'f32' });
+        } else {
+          body.push(`  let mg_${v} = ${mgHexToVec3(node.params.value)}; // constant`);
+          values.set(id, { ref: `mg_${v}`, type: 'vec3' });
+        }
+        break;
+      }
+      case 'noise': {
+        const scale = typeof node.params.scale === 'number' ? node.params.scale : 1;
+        body.push(`  let mg_${v} = mgNoise(uv * ${scale.toFixed(4)}); // noise`);
+        values.set(id, { ref: `mg_${v}`, type: 'f32' });
+        break;
+      }
+      case 'fresnel': {
+        const power = typeof node.params.power === 'number' ? node.params.power : 5;
+        body.push(
+          `  let mg_${v} = pow(1.0 - max(dot(N, V), 0.0), ${power.toFixed(4)}); // fresnel`
+        );
+        values.set(id, { ref: `mg_${v}`, type: 'f32' });
+        break;
+      }
+      case 'multiply':
+      case 'add': {
+        const a = inPort(id, 'a');
+        const b = inPort(id, 'b');
+        const op = node.nodeType === 'multiply' ? '*' : '+';
+        const asVec = a?.type === 'vec3' || b?.type === 'vec3';
+        if (asVec) {
+          body.push(`  let mg_${v} = ${mgToVec3(a)} ${op} ${mgToVec3(b)}; // ${node.nodeType}`);
+          values.set(id, { ref: `mg_${v}`, type: 'vec3' });
+        } else {
+          body.push(`  let mg_${v} = ${mgToF32(a)} ${op} ${mgToF32(b)}; // ${node.nodeType}`);
+          values.set(id, { ref: `mg_${v}`, type: 'f32' });
+        }
+        break;
+      }
+      case 'lerp': {
+        const a = inPort(id, 'a');
+        const b = inPort(id, 'b');
+        const t = inPort(id, 't');
+        body.push(
+          `  let mg_${v} = mix(${mgToVec3(a)}, ${mgToVec3(b)}, vec3<f32>(${mgToF32(t)})); // lerp`
+        );
+        values.set(id, { ref: `mg_${v}`, type: 'vec3' });
+        break;
+      }
+      case 'output': {
+        output = { id };
+        break;
+      }
+      default: {
+        warnings.push(`unknown node type "${node.nodeType}" (node "${id}") — treated as black`);
+        body.push(`  let mg_${v} = vec3<f32>(0.0); // unknown:${esc(node.nodeType, 'TypeScript')}`);
+        values.set(id, { ref: `mg_${v}`, type: 'vec3' });
+      }
+    }
+  }
+
+  // Unconnected surface ports fall back to neutral material defaults (grey
+  // dielectric), whether the output node is absent or its port is just unwired.
+  const baseColorIn = output ? inPort(output.id, 'base_color') : undefined;
+  const roughnessIn = output ? inPort(output.id, 'roughness') : undefined;
+  const metallicIn = output ? inPort(output.id, 'metallic') : undefined;
+  const emissiveIn = output ? inPort(output.id, 'emissive') : undefined;
+  const baseColor = baseColorIn ? mgToVec3(baseColorIn) : 'vec3<f32>(0.8)';
+  const roughness = roughnessIn ? mgToF32(roughnessIn, '0.5') : '0.5';
+  const metallic = metallicIn ? mgToF32(metallicIn, '0.0') : '0.0';
+  const emissive = emissiveIn ? mgToVec3(emissiveIn) : 'vec3<f32>(0.0)';
+
+  const header = [
+    `// Material Graph "${esc(graph.name, 'TypeScript')}" — generated by HoloScript TSLCompiler`,
+    `// Nodes: ${graph.nodes.length} | Edges: ${graph.edges.length} | topo-ordered: [${order
+      .map((o) => esc(o, 'TypeScript'))
+      .join(' -> ')}]`,
+    ...warnings.map((w) => `// WARNING: ${esc(w, 'TypeScript')}`),
+  ];
+
+  const wgsl = [
+    ...header,
+    '',
+    'struct MaterialGraphSurface {',
+    '  baseColor: vec3<f32>,',
+    '  roughness: f32,',
+    '  metallic: f32,',
+    '  emissive: vec3<f32>,',
+    '};',
+    '',
+    '// Cheap value-noise helper (hash-based); replace with a texture sample for AAA fidelity.',
+    'fn mgNoise(p: vec2<f32>) -> f32 {',
+    '  return fract(sin(dot(p, vec2<f32>(12.9898, 78.233))) * 43758.5453);',
+    '}',
+    '',
+    `fn ${fnName}(uv: vec2<f32>, N: vec3<f32>, V: vec3<f32>, time: f32) -> MaterialGraphSurface {`,
+    ...body,
+    '  var surface: MaterialGraphSurface;',
+    `  surface.baseColor = ${baseColor};`,
+    `  surface.roughness = ${roughness};`,
+    `  surface.metallic = ${metallic};`,
+    `  surface.emissive = ${emissive};`,
+    '  return surface;',
+    '}',
+  ].join('\n');
+
+  return { fnName, wgsl };
+}
+
+// =============================================================================
 // Physics Compilation
 // =============================================================================
 

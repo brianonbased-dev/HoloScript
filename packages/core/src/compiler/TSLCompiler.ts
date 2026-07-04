@@ -40,6 +40,8 @@ import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core
 import {
   compileDomainBlocks,
   compileMaterialBlock,
+  compileMaterialGraphBlock,
+  materialGraphToWGSL,
   compilePhysicsBlock,
   compileParticleBlock,
   compilePostProcessingBlock,
@@ -700,6 +702,26 @@ export class TSLCompiler extends CompilerBase {
 
           result[`_domain.material.${safeName}.wgsl`] = lines.join('\n');
           return `// TSL Material: "${this.escapeStringValue(mat.name as string, 'TypeScript')}" type=${mat.type}`;
+        },
+
+        material_graph: (block) => {
+          // Node-DAG material → evaluatable WGSL fragment function (CG-323).
+          const graph = compileMaterialGraphBlock(block);
+          const safeName = this.sanitizeName(graph.name);
+          const { fnName, wgsl } = materialGraphToWGSL(graph);
+
+          const usage = [
+            '',
+            `// Usage in fs_main (after declaring baseColor/roughness/metallic/emission):`,
+            `//   let mg = ${fnName}(in.uv, N, V, scene.time);`,
+            `//   baseColor = mg.baseColor;`,
+            `//   roughness = mg.roughness;`,
+            `//   metallic  = mg.metallic;`,
+            `//   emission  = emission + mg.emissive;`,
+          ].join('\n');
+
+          result[`_domain.material_graph.${safeName}.wgsl`] = `${wgsl}\n${usage}`;
+          return `// TSL Material Graph: "${this.escapeStringValue(graph.name as string, 'TypeScript')}" nodes=${graph.nodes.length} edges=${graph.edges.length}`;
         },
 
         physics: (block) => {

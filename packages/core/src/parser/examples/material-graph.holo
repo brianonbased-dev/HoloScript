@@ -1,0 +1,37 @@
+// HoloScript `material_graph` — a typed node-DAG material lowered to WGSL/TSL.
+//
+// The sovereign, exact answer to Unreal's Material Editor / Substrate (CG-323):
+// the world model itself EMITS the shader graph from typed structure — it is not
+// hand-authored per target, and every node is provable/replayable. Each node is
+// authored as `<id> { type: "<kind>", ...params }`; edges as `from -> to.port`.
+//
+// Supported node kinds (first increment): constant, noise, fresnel, multiply,
+// add, lerp, output. The `output` node's ports (base_color / roughness /
+// metallic / emissive) become the returned surface.
+composition "MaterialGraphDemo" {
+  material_graph "rusty_metal" {
+    base_metal { type: "constant", value: "#B0B0B0" }
+    base_rust  { type: "constant", value: "#8B4513" }
+    rust_mask  { type: "noise", scale: 8.0 }
+    albedo     { type: "lerp" }
+
+    rim_color  { type: "constant", value: "#FF7A18" }
+    rim        { type: "fresnel", power: 4.0 }
+    rim_glow   { type: "multiply" }
+
+    surface    { type: "output" }
+
+    // clean metal blended toward rust by the noise mask
+    base_metal -> albedo.a
+    base_rust  -> albedo.b
+    rust_mask  -> albedo.t
+
+    // warm fresnel rim light as emissive
+    rim_color -> rim_glow.a
+    rim       -> rim_glow.b
+
+    albedo    -> surface.base_color
+    rust_mask -> surface.roughness
+    rim_glow  -> surface.emissive
+  }
+}
