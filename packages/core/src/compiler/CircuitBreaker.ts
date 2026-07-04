@@ -45,6 +45,7 @@ export type ExportTarget =
   | 'sdf' // Gazebo simulation
   | 'mjcf' // MuJoCo MJCF XML (robotics simulation)
   | 'mjx' // MuJoCo MJX (JAX) differentiable-physics training env
+  | 'embodied-dataset' // Embodied-AI training dataset generator (Python: RLDS | LeRobot | HDF5)
   | 'unity' // Unity Engine
   | 'unreal' // Unreal Engine
   | 'pcg-graph' // Unreal PCG graph asset XML

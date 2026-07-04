@@ -720,7 +720,7 @@ export async function handleListExportTargets(_args: Record<string, unknown>): P
     'Mobile AR': ['android', 'android-xr', 'ios', 'visionos'] as unknown as ExportTarget[],
     // ar, babylon, r3f, playcanvas, vrr retired as apex-poison 2026-06-17
     'Web Platforms': ['webgpu', 'character-webgpu', 'wasm'] as unknown as ExportTarget[],
-    'Robotics/IoT': ['urdf', 'sdf', 'mjcf', 'mjx', 'dtdl'] as unknown as ExportTarget[],
+    'Robotics/IoT': ['urdf', 'sdf', 'mjcf', 'mjx', 'embodied-dataset', 'dtdl'] as unknown as ExportTarget[],
     '3D Formats': ['usd', 'usdz', 'fmu', '3dgs', '3dtiles'] as unknown as ExportTarget[],
     'Studio Tools': ['code-editor'] as unknown as ExportTarget[],
     'AI/MCP': [
@@ -797,6 +797,8 @@ export async function handleCompilerTool(
       return handleCompileToTarget({ ...args, target: 'mjcf' });
     case 'compile_to_mjx':
       return handleCompileToTarget({ ...args, target: 'mjx' });
+    case 'compile_to_embodied_dataset':
+      return handleCompileToTarget({ ...args, target: 'embodied-dataset' });
     case 'compile_to_ros2_deploy': {
       const {
         code,
@@ -1555,6 +1557,19 @@ export const compilerTools: Tool[] = [
     name: 'compile_to_mjx',
     description:
       'Compile HoloScript to a MuJoCo MJX (JAX) differentiable-physics training env (Python). Bridge target consumed by the jax + mujoco.mjx runtimes; builds on compile_to_mjcf and reads @differentiable_physics traits.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code' },
+        options: { type: 'object' },
+      },
+      required: ['code'],
+    },
+  },
+  {
+    name: 'compile_to_embodied_dataset',
+    description:
+      'Compile HoloScript to an embodied-AI dataset generator (Python) that produces N simulation episodes as a structured dataset (RLDS | LeRobot | HDF5). Bridge target; builds on compile_to_mjcf and reads the @sim_to_real_dataset trait (episode_count, output_format, sensor_modalities, domain_randomization).',
     inputSchema: {
       type: 'object',
       properties: {

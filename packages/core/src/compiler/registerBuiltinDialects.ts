@@ -297,6 +297,19 @@ export function registerBuiltinDialects(): void {
       outputExtensions: ['.py'],
     },
     {
+      name: 'embodied-dataset',
+      domain: 'robotics',
+      description:
+        'Compiles to an embodied-AI dataset generator (Python) producing N sim episodes as RLDS | LeRobot | HDF5',
+      supportedTraits: ['joint', 'actuator', 'sensor', 'collider', 'physics', 'sim_to_real_dataset'],
+      riskTier: 'standard',
+      factory: (opts) => {
+        const { EmbodiedDatasetCompiler } = require('./EmbodiedDatasetCompiler');
+        return new EmbodiedDatasetCompiler(opts);
+      },
+      outputExtensions: ['.py'],
+    },
+    {
       name: 'dtdl',
       domain: 'iot',
       description: 'Compiles to DTDL digital twin definitions',

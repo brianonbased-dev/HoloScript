@@ -35,6 +35,7 @@ export const ANSCapabilityPath = {
   SDF: '/compile/robotics/sdf',
   MJCF: '/compile/robotics/mjcf',
   MJX: '/compile/robotics/mjx',
+  EMBODIED_DATASET: '/compile/robotics/embodied-dataset',
   USD: '/compile/interchange/usd',
   GLTF: '/compile/interchange/gltf',
   GAUSSIAN_SPLATTING: '/compile/interchange/3dgs',

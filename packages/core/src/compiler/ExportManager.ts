@@ -32,6 +32,7 @@ import { URDFCompiler } from './URDFCompiler';
 import { SDFCompiler } from './SDFCompiler';
 import { MJCFCompiler } from './MJCFCompiler';
 import { MJXCompiler } from './MJXCompiler';
+import { EmbodiedDatasetCompiler } from './EmbodiedDatasetCompiler';
 import { UnityCompiler } from './UnityCompiler';
 import { UnrealCompiler } from './UnrealCompiler';
 import { PCGGraphCompiler } from './PCGGraphCompiler';
@@ -237,6 +238,8 @@ class CompilerFactory {
         return new MJCFCompiler(options);
       case 'mjx':
         return new MJXCompiler(options);
+      case 'embodied-dataset':
+        return new EmbodiedDatasetCompiler(options);
       case 'unity':
         return new UnityCompiler(options);
       case 'unreal':
@@ -656,6 +659,7 @@ export class ExportManager {
       'sdf',
       'mjcf',
       'mjx',
+      'embodied-dataset',
       'unity',
       'unreal',
       'pcg-graph',

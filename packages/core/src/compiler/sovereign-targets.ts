@@ -50,6 +50,7 @@ export const BRIDGE_TARGETS = [
   'sdf',
   'mjcf', // MuJoCo MJCF XML consumed by the MuJoCo physics engine
   'mjx', // MuJoCo MJX (JAX) differentiable-physics env — consumed by the jax + mujoco.mjx runtimes
+  'embodied-dataset', // Embodied-AI dataset generator (Python) — runs on mujoco + h5py/pyarrow/tf-datasets; emits RLDS|LeRobot|HDF5
   'unity',
   'unreal',
   'pcg-graph', // Unreal PCG graph XML consumed by Unreal PCG
