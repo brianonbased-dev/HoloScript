@@ -65,4 +65,29 @@ describe('SVGCompiler — nested geometry projection', () => {
     const widthOf = (svg: string) => Number(svg.match(/<rect[^>]*width="([\d.]+)"/)?.[1] ?? 0);
     expect(widthOf(big)).toBeGreaterThan(widthOf(small) * 4);
   });
+
+  it('accumulates parent scale into child SIZE (a nested part sizes to its parent)', () => {
+    const widthOf = (svg: string) => Number(svg.match(/<rect[^>]*width="([\d.]+)"/)?.[1] ?? 0);
+    // Same leaf box, once under a 3x-scaled container, once at top level.
+    const nested = new SVGCompiler({ background: false }).compile(
+      composition([obj('P', { scale: [3, 1, 3] }, [obj('C', { geometry: 'cube', position: [0, 0, 0], scale: [1, 0.1, 1] })])]) as never,
+      ''
+    ).svg;
+    const flat = new SVGCompiler({ background: false }).compile(
+      composition([obj('C', { geometry: 'cube', position: [0, 0, 0], scale: [1, 0.1, 1] })]) as never,
+      ''
+    ).svg;
+    expect(widthOf(nested)).toBeCloseTo(widthOf(flat) * 3, 0);
+  });
+
+  it('does NOT scale child POSITION by parent scale (world-authored offsets)', () => {
+    // A child at x=1.6 under a 4x-scaled parent must stay at world x≈1.6 (svg 464),
+    // not be flung to x=6.4 (svg 656). Default origin 400, scale 40.
+    const svg = new SVGCompiler({ background: false }).compile(
+      composition([obj('P', { scale: [4, 1, 1] }, [obj('C', { geometry: 'sphere', position: [1.6, 0, 0], scale: [0.1, 0.1, 0.1] })])]) as never,
+      ''
+    ).svg;
+    const cx = Number(svg.match(/<circle cx="([\d.]+)"/)?.[1] ?? 0);
+    expect(cx).toBeCloseTo(464, 0);
+  });
 });

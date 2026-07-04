@@ -402,11 +402,16 @@ export class SVGCompiler extends CompilerBase {
     originX: number,
     originY: number,
     parentX = 0,
-    parentZ = 0
+    parentZ = 0,
+    accX = 1,
+    accZ = 1
   ): string[] {
     const pos = resolvePosition(node);
-    // Children position RELATIVE to the parent — accumulate the world offset so a
-    // scene authored under a container object ("Ship" { ...all geometry }) renders.
+    const own = resolveScale(node);
+    // Child POSITIONS are world-authored offsets (not multiplied by parent scale — that
+    // would fling a pod at [1.6] under a 4x-scaled wing to x=8.8). Child SIZE, however,
+    // DOES inherit the accumulated parent scale (accX/accZ below), so a nested
+    // small-parent/large-child (a pod sensor) sizes to its parent, not to the world.
     const worldX = parentX + pos.x;
     const worldZ = parentZ + pos.z;
     const svgX = projectX(worldX, this.opts.scale, originX);
@@ -441,17 +446,17 @@ export class SVGCompiler extends CompilerBase {
     if (hasOwnShape) {
       this.elementCount++;
       switch (shapeHint) {
-        case 'sphere': out.push(this.compileSphere(node, svgX, svgY, fill, indent, dataAttr)); break;
-        case 'box': case 'cube': out.push(this.compileBox(node, svgX, svgY, fill, indent, dataAttr)); break;
-        case 'cylinder': out.push(this.compileCylinder(node, svgX, svgY, fill, indent, dataAttr)); break;
-        case 'cone': out.push(this.compileCone(node, svgX, svgY, fill, indent, dataAttr)); break;
-        case 'plane': case 'floor': case 'ground': out.push(this.compilePlane(node, svgX, svgY, fill, indent, dataAttr)); break;
+        case 'sphere': out.push(this.compileSphere(node, svgX, svgY, fill, indent, dataAttr, accX, accZ)); break;
+        case 'box': case 'cube': out.push(this.compileBox(node, svgX, svgY, fill, indent, dataAttr, accX, accZ)); break;
+        case 'cylinder': out.push(this.compileCylinder(node, svgX, svgY, fill, indent, dataAttr, accX, accZ)); break;
+        case 'cone': out.push(this.compileCone(node, svgX, svgY, fill, indent, dataAttr, accX, accZ)); break;
+        case 'plane': case 'floor': case 'ground': out.push(this.compilePlane(node, svgX, svgY, fill, indent, dataAttr, accX, accZ)); break;
         case 'text': out.push(this.compileText(node, svgX, svgY, fill, indent, dataAttr)); break;
-        default: out.push(this.compileUnknown(node, svgX, svgY, fill, indent, dataAttr)); break;
+        default: out.push(this.compileUnknown(node, svgX, svgY, fill, indent, dataAttr, accX, accZ)); break;
       }
     }
     for (const child of children) {
-      out.push(...this.compileObject(child, indent, originX, originY, worldX, worldZ));
+      out.push(...this.compileObject(child, indent, originX, originY, worldX, worldZ, accX * Math.abs(own.x), accZ * Math.abs(own.z)));
     }
     return out;
   }
@@ -464,9 +469,11 @@ export class SVGCompiler extends CompilerBase {
     cy: number,
     fill: string,
     indent: string,
-    dataAttr: string
+    dataAttr: string,
+    accX = 1,
+    accZ = 1
   ): string {
-    const r = resolveRadius(node, this.opts.scale);
+    const r = resolveRadius(node, this.opts.scale) * Math.max(accX, accZ);
     return `${indent}<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r.toFixed(1)}" fill="${escapeAttr(fill)}" ${dataAttr} />`;
   }
 
@@ -476,9 +483,13 @@ export class SVGCompiler extends CompilerBase {
     cy: number,
     fill: string,
     indent: string,
-    dataAttr: string
+    dataAttr: string,
+    accX = 1,
+    accZ = 1
   ): string {
-    const { w, h } = resolveWidthHeight(node, this.opts.scale);
+    const wh = resolveWidthHeight(node, this.opts.scale);
+    const w = wh.w * accX;
+    const h = wh.h * accZ;
     const x = (cx - w / 2).toFixed(1);
     const y = (cy - h / 2).toFixed(1);
     const yaw = resolveRotationY(node);
@@ -493,9 +504,13 @@ export class SVGCompiler extends CompilerBase {
     cy: number,
     fill: string,
     indent: string,
-    dataAttr: string
+    dataAttr: string,
+    accX = 1,
+    accZ = 1
   ): string {
-    const { w, h } = resolveWidthHeight(node, this.opts.scale);
+    const wh = resolveWidthHeight(node, this.opts.scale);
+    const w = wh.w * accX;
+    const h = wh.h * accZ;
     const hw = Math.max(w / 2, 2);
     const hh = Math.max(h / 2, 2);
     const yaw = resolveRotationY(node);
@@ -510,11 +525,14 @@ export class SVGCompiler extends CompilerBase {
     cy: number,
     fill: string,
     indent: string,
-    dataAttr: string
+    dataAttr: string,
+    accX = 1,
+    accZ = 1
   ): string {
-    const rx = resolveRadius(node, this.opts.scale);
+    const acc = Math.max(accX, accZ);
+    const rx = resolveRadius(node, this.opts.scale) * acc;
     const ryProp = toNumber(objProp(node, 'depth'), -1);
-    const ry = ryProp >= 0 ? ryProp * this.opts.scale : rx * 0.4;
+    const ry = ryProp >= 0 ? ryProp * this.opts.scale * accZ : rx * 0.4;
     return `${indent}<ellipse cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" rx="${rx.toFixed(1)}" ry="${ry.toFixed(1)}" fill="${escapeAttr(fill)}" ${dataAttr} />`;
   }
 
@@ -524,9 +542,13 @@ export class SVGCompiler extends CompilerBase {
     cy: number,
     fill: string,
     indent: string,
-    dataAttr: string
+    dataAttr: string,
+    accX = 1,
+    accZ = 1
   ): string {
-    const { w, h } = resolveWidthHeight(node, this.opts.scale);
+    const wh = resolveWidthHeight(node, this.opts.scale);
+    const w = wh.w * accX;
+    const h = wh.h * accZ;
     const x = (cx - w / 2).toFixed(1);
     const y = (cy - h / 2).toFixed(1);
     return `${indent}<rect x="${x}" y="${y}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="${escapeAttr(fill)}" opacity="0.3" ${dataAttr} />`;
@@ -551,10 +573,14 @@ export class SVGCompiler extends CompilerBase {
     cy: number,
     fill: string,
     indent: string,
-    dataAttr: string
+    dataAttr: string,
+    accX = 1,
+    accZ = 1
   ): string {
     // Unknown types rendered as dashed rect to signal unrecognised shape
-    const { w, h } = resolveWidthHeight(node, this.opts.scale);
+    const wh = resolveWidthHeight(node, this.opts.scale);
+    const w = wh.w * accX;
+    const h = wh.h * accZ;
     const x = (cx - w / 2).toFixed(1);
     const y = (cy - h / 2).toFixed(1);
     return `${indent}<rect x="${x}" y="${y}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="none" stroke="${escapeAttr(fill)}" stroke-dasharray="4 2" ${dataAttr} />`;
