@@ -1,7 +1,17 @@
 composition "StreetLamp" {
   // ── HoloScript Native Asset ──────────────────────────────────────────────
-  // A classic Victorian street lamp with warm light glow.
-  // Demonstrates: functional objects, emissive lighting, fine detail.
+  // BRIEF (the referent, not the label): an 1890s London gas street lamp, the
+  //   "Windsor"/Rochester pattern. The one decision everything else obeys: a
+  //   SIX-SIDED (hexagonal) glazed lantern instead of a generic four-pane box,
+  //   plus the LADDER-BAR cross-arm below it — the horizontal cast rest the
+  //   lamplighter leaned his ladder against, the single most recognizable
+  //   Victorian gas-lamp detail. Governed by that: an ogee cupola cap with a
+  //   ball-and-spike finial and vented crown, a fluted tapered column with a
+  //   swelling base and mid-collar, and a cast collar at the lantern throat.
+  //   Handed (a lamp has a street side): the ladder-bar projects to ONE side
+  //   (the kerb) and a small gas-cock lever sits on that side of the base.
+  //   Materials reuse the existing WroughtIron / CastIronDetail / AmberGlass
+  //   templates — this pass reshapes the FORM to the brief, not the surfaces.
 
   environment {
     skybox: "hdr_studio"
@@ -19,8 +29,8 @@ composition "StreetLamp" {
   // ── Shared Materials ──────────────────────────────────────────────────────
   // Wrought-iron system for the cast body (base/pole/scrollwork share one
   // finish instead of restating metalness ad hoc) plus a named amber-glass
-  // material for the four housing panes, matching the reuse pattern robot.holo
-  // and space-station.holo use for their own hard-surface parts.
+  // material for the six hexagonal lantern panes, matching the reuse pattern
+  // robot.holo and space-station.holo use for their own hard-surface parts.
   template "WroughtIron" {
     material: { metalness: 0.8, roughness: 0.32 }
   }
@@ -53,64 +63,149 @@ composition "StreetLamp" {
       scale: [0.22, 0.25, 0.22]
       color: "#2a2a2a"
     }
+    // Handed detail: a gas-cock lever on the kerb side of the base — the same
+    // side the ladder-bar projects to. The lamp has a definite street side.
+    object "GasCockLever" using "CastIronDetail" {
+      geometry: "cylinder"
+      position: [0.24, 0.28, 0]
+      rotation: [0, 0, 70]
+      scale: [0.012, 0.16, 0.012]
+      color: "#333333"
+    }
 
-    // ── Pole ──────────────────────────────────────────────────────────────
+    // ── Column: fluted, tapered shaft with a mid-collar band ────────────────
+    // Wide at the swelling base, narrowing toward the throat — the period
+    // profile of a cast gas standard, not a uniform pipe.
     object "LowerPole" using "WroughtIron" {
       geometry: "cylinder"
       position: [0, 1.2, 0]
-      scale: [0.08, 1.6, 0.08]
+      scale: [0.1, 1.6, 0.1]
       color: "#2d2d2d"
     }
-    object "MidRing" using "CastIronDetail" {
+    object "MidCollar" using "CastIronDetail" {
       geometry: "torus"
       position: [0, 2.0, 0]
-      scale: [0.12, 0.12, 0.03]
+      scale: [0.13, 0.13, 0.035]
       color: "#333333"
     }
     object "UpperPole" using "WroughtIron" {
       geometry: "cylinder"
-      position: [0, 2.6, 0]
-      scale: [0.06, 1.0, 0.06]
+      position: [0, 2.65, 0]
+      scale: [0.06, 1.05, 0.06]
       color: "#2d2d2d"
     }
+    // Cast collar at the lantern throat, where the column meets the gallery.
+    object "ThroatCollar" using "CastIronDetail" {
+      geometry: "torus"
+      position: [0, 3.0, 0]
+      scale: [0.14, 0.14, 0.04]
+      color: "#333333"
+    }
 
-    // ── Lamp Head ─────────────────────────────────────────────────────────
-    object "LampCap" using "CastIronDetail" {
-      geometry: "cone"
-      position: [0, 3.45, 0]
-      scale: [0.35, 0.2, 0.35]
-      color: "#222222"
+    // ── Ladder-Bar (the signature Victorian gas-lamp detail) ────────────────
+    // A horizontal cast cross-bar the lamplighter rested his ladder against.
+    // It projects to ONE side — the kerb side — giving the lamp a street side.
+    object "LadderBar" using "CastIronDetail" {
+      geometry: "cylinder"
+      position: [0.35, 2.85, 0]
+      rotation: [0, 0, 90]
+      scale: [0.02, 0.7, 0.02]
+      color: "#2a2a2a"
+    }
+    object "LadderBarBrace" using "CastIronDetail" {
+      geometry: "cylinder"
+      position: [0.55, 2.6, 0]
+      rotation: [0, 0, -35]
+      scale: [0.018, 0.4, 0.018]
+      color: "#2a2a2a"
+    }
+
+    // ── Lantern Head: SIX-SIDED glazed lantern (the load-bearing decision) ──
+    // A hexagonal gallery holds six amber panes at 60° intervals — the
+    // Windsor-pattern six-pane lantern, not a four-square box. An ogee cupola
+    // caps it, a vented crown sits above, and a ball-and-spike finial tops it.
+    object "LanternGallery" using "CastIronDetail" {
+      geometry: "cylinder"
+      position: [0, 2.95, 0]
+      scale: [0.28, 0.06, 0.28]
+      color: "#2a2a2a"
     }
     object "LampHousing" using "WroughtIron" {
       geometry: "cylinder"
       position: [0, 3.2, 0]
-      scale: [0.25, 0.35, 0.25]
+      scale: [0.26, 0.35, 0.26]
       color: "#333333"
 
-      object "GlassPane1" using "AmberGlass" {
+      // Six panes on the hexagon: angled at 0/60/120/180/240/300 degrees,
+      // each rotated to sit flush on its facet.
+      object "GlassPaneN" using "AmberGlass" {
         geometry: "cube"
-        position: [0.22, 0, 0]
-        scale: [0.02, 0.28, 0.2]
+        position: [0, 0, 0.24]
+        scale: [0.24, 0.3, 0.02]
         color: "#FFE8B0"
       }
-      object "GlassPane2" using "AmberGlass" {
+      object "GlassPaneNE" using "AmberGlass" {
         geometry: "cube"
-        position: [-0.22, 0, 0]
-        scale: [0.02, 0.28, 0.2]
+        position: [0.208, 0, 0.12]
+        rotation: [0, 60, 0]
+        scale: [0.24, 0.3, 0.02]
         color: "#FFE8B0"
       }
-      object "GlassPane3" using "AmberGlass" {
+      object "GlassPaneSE" using "AmberGlass" {
         geometry: "cube"
-        position: [0, 0, 0.22]
-        scale: [0.2, 0.28, 0.02]
+        position: [0.208, 0, -0.12]
+        rotation: [0, 120, 0]
+        scale: [0.24, 0.3, 0.02]
         color: "#FFE8B0"
       }
-      object "GlassPane4" using "AmberGlass" {
+      object "GlassPaneS" using "AmberGlass" {
         geometry: "cube"
-        position: [0, 0, -0.22]
-        scale: [0.2, 0.28, 0.02]
+        position: [0, 0, -0.24]
+        scale: [0.24, 0.3, 0.02]
         color: "#FFE8B0"
       }
+      object "GlassPaneSW" using "AmberGlass" {
+        geometry: "cube"
+        position: [-0.208, 0, -0.12]
+        rotation: [0, 60, 0]
+        scale: [0.24, 0.3, 0.02]
+        color: "#FFE8B0"
+      }
+      object "GlassPaneNW" using "AmberGlass" {
+        geometry: "cube"
+        position: [-0.208, 0, 0.12]
+        rotation: [0, 120, 0]
+        scale: [0.24, 0.3, 0.02]
+        color: "#FFE8B0"
+      }
+    }
+
+    // ── Ogee cupola cap, vented crown, and finial ──────────────────────────
+    // A shallow ogee dome caps the lantern; a smaller vented crown lets the
+    // gas heat escape; a ball-and-spike finial crowns the whole standard.
+    object "OgeeCap" using "CastIronDetail" {
+      geometry: "sphere"
+      position: [0, 3.5, 0]
+      scale: [0.32, 0.16, 0.32]
+      color: "#222222"
+    }
+    object "VentedCrown" using "CastIronDetail" {
+      geometry: "cylinder"
+      position: [0, 3.66, 0]
+      scale: [0.12, 0.1, 0.12]
+      color: "#2a2a2a"
+    }
+    object "FinialBall" using "CastIronDetail" {
+      geometry: "sphere"
+      position: [0, 3.8, 0]
+      scale: [0.07, 0.07, 0.07]
+      color: "#222222"
+    }
+    object "FinialSpike" using "CastIronDetail" {
+      geometry: "cone"
+      position: [0, 3.92, 0]
+      scale: [0.03, 0.14, 0.03]
+      color: "#222222"
     }
 
     // ── Inner Bulb ────────────────────────────────────────────────────────
@@ -129,31 +224,33 @@ composition "StreetLamp" {
       material: { emissive: "#FFE8B0", emissiveIntensity: 0.3, opacity: 0.15 }
     }
 
-    // ── Decorative Scrollwork ─────────────────────────────────────────────
+    // ── Cast scrollwork brackets at the lantern throat ─────────────────────
+    // Four cast S-brackets fan out from the throat collar to carry the
+    // gallery — the ornamental support of the lantern on the column.
     object "ScrollArm1" using "CastIronDetail" {
       geometry: "cylinder"
-      position: [0.15, 3.0, 0]
+      position: [0.15, 2.9, 0]
       rotation: [0, 0, -30]
       scale: [0.025, 0.25, 0.025]
       color: "#2a2a2a"
     }
     object "ScrollArm2" using "CastIronDetail" {
       geometry: "cylinder"
-      position: [-0.15, 3.0, 0]
+      position: [-0.15, 2.9, 0]
       rotation: [0, 0, 30]
       scale: [0.025, 0.25, 0.025]
       color: "#2a2a2a"
     }
     object "ScrollArm3" using "CastIronDetail" {
       geometry: "cylinder"
-      position: [0, 3.0, 0.15]
+      position: [0, 2.9, 0.15]
       rotation: [30, 0, 0]
       scale: [0.025, 0.25, 0.025]
       color: "#2a2a2a"
     }
     object "ScrollArm4" using "CastIronDetail" {
       geometry: "cylinder"
-      position: [0, 3.0, -0.15]
+      position: [0, 2.9, -0.15]
       rotation: [-30, 0, 0]
       scale: [0.025, 0.25, 0.025]
       color: "#2a2a2a"

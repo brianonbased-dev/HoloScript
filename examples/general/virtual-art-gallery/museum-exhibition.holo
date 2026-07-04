@@ -1,5 +1,12 @@
-// Virtual Art Gallery
-// Museum exhibition with interactive artwork
+// Contemporary Masters — a processional route, not a floor plan.
+// The visitor enters south under the EntranceArch, is drawn down the
+// entry axis (z) to the HERO piece — Sculpture2, the $45k "Ascending
+// Form" bronze — set on-axis and lit hardest. The PartitionWall is the
+// SPINE that bends the path left around itself, past a sequence of
+// subordinate sculptures, and out through the gift shop at the NE
+// corner. Seating and lighting are handed toward the hero: nothing is
+// mirror-symmetric. One decision governs — a directed path culminating
+// in a single centerpiece.
 // Platforms: Unity, Unreal, BabylonJS, WebXR
 
 composition "Virtual Museum Exhibition" {
@@ -259,8 +266,12 @@ composition "Virtual Museum Exhibition" {
   object "PartitionWall" {
     @collidable
     geometry: "cube"
-    position: [0, 3, 0]
-    scale: [0.2, 6, 10]
+    // SPINE: offset east of the entry axis and rotated so its south end
+    // meets the visitor head-on, forcing the route to bend left (west)
+    // around it toward the hero rather than running straight through.
+    position: [4, 3, 2]
+    rotation: [0, 22, 0]
+    scale: [0.2, 6, 14]
     color: "#f8f8f0"
     material: "SmoothPlaster"
   }
@@ -272,8 +283,10 @@ composition "Virtual Museum Exhibition" {
     @pointable
     @glowing
     geometry: "plane"
-    position: [0, 2, -14.8]
-    scale: [2, 1.5, 1]
+    // Dominant canvas on the north wall: larger and slightly left of the
+    // hero axis, the anchor the two smaller works read out from.
+    position: [-1.5, 2.4, -14.8]
+    scale: [3, 2.3, 1]
     color: "#ff6347"
     material: "GalleryCanvas"
     behavior "ArtworkInfo" {
@@ -289,8 +302,8 @@ composition "Virtual Museum Exhibition" {
 
   object "AbstractPaintingFrame" {
     geometry: "cube"
-    position: [0, 2, -14.85]
-    scale: [2.1, 1.6, 0.05]
+    position: [-1.5, 2.4, -14.85]
+    scale: [3.1, 2.4, 0.05]
     color: "#8b7355"
     material: "GiltFrame"
   }
@@ -298,7 +311,7 @@ composition "Virtual Museum Exhibition" {
   object "AbstractSpotlight" {
     @glowing
     geometry: "cylinder"
-    position: [0, 5.5, -14]
+    position: [-1.5, 5.5, -14]
     rotation: [-20, 0, 0]
     scale: [0.1, 0.5, 0.1]
     color: "#fffacd"
@@ -311,8 +324,9 @@ composition "Virtual Museum Exhibition" {
     @pointable
     @glowing
     geometry: "plane"
-    position: [-5, 2, -14.8]
-    scale: [2, 1.5, 1]
+    // Smaller left flank, hung low beside the dominant canvas.
+    position: [-6.5, 1.9, -14.8]
+    scale: [1.6, 1.2, 1]
     color: "#87ceeb"
     material: "GalleryCanvas"
     behavior "ArtworkInfo" {
@@ -327,8 +341,8 @@ composition "Virtual Museum Exhibition" {
 
   object "LandscapeFrame" {
     geometry: "cube"
-    position: [-5, 2, -14.85]
-    scale: [2.1, 1.6, 0.05]
+    position: [-6.5, 1.9, -14.85]
+    scale: [1.7, 1.3, 0.05]
     color: "#2c2c2c"
     material: "EbonyFrame"
   }
@@ -336,11 +350,11 @@ composition "Virtual Museum Exhibition" {
   object "LandscapeSpotlight" {
     @glowing
     geometry: "cylinder"
-    position: [-5, 5.5, -14]
+    position: [-6.5, 5.5, -14]
     rotation: [-20, 0, 0]
     scale: [0.1, 0.5, 0.1]
     color: "#fffacd"
-    emissionIntensity: 4.0
+    emissionIntensity: 2.5
   }
 
   object "PortraitPainting" {
@@ -348,8 +362,10 @@ composition "Virtual Museum Exhibition" {
     @pointable
     @glowing
     geometry: "plane"
-    position: [5, 2, -14.8]
-    scale: [2, 1.5, 1]
+    // Smallest, furthest right — the tail of the reading order, so the
+    // eye is released back toward the hero on the entry axis.
+    position: [2.2, 1.9, -14.8]
+    scale: [1.4, 1.7, 1]
     color: "#daa520"
     material: "GalleryCanvas"
     behavior "ArtworkInfo" {
@@ -364,8 +380,8 @@ composition "Virtual Museum Exhibition" {
 
   object "PortraitFrame" {
     geometry: "cube"
-    position: [5, 2, -14.85]
-    scale: [2.1, 1.6, 0.05]
+    position: [2.2, 1.9, -14.85]
+    scale: [1.5, 1.8, 0.05]
     color: "#8b7355"
     material: "GiltFrame"
   }
@@ -373,11 +389,11 @@ composition "Virtual Museum Exhibition" {
   object "PortraitSpotlight" {
     @glowing
     geometry: "cylinder"
-    position: [5, 5.5, -14]
+    position: [2.2, 5.5, -14]
     rotation: [-20, 0, 0]
     scale: [0.1, 0.5, 0.1]
     color: "#fffacd"
-    emissionIntensity: 4.0
+    emissionIntensity: 2.5
   }
 
   // ── West Wall Gallery ─────────────────────────────────────────────────────
@@ -531,10 +547,13 @@ composition "Virtual Museum Exhibition" {
 
   // ── Seating & Wayfinding ──────────────────────────────────────────────────
 
+  // Seating clusters as a small viewing gallery south of the hero, all
+  // three benches facing the bronze — no longer one-each-side-and-center.
   object "BenchLeft" {
     @collidable
     geometry: "cube"
-    position: [-8, 0.3, -8]
+    position: [-2.5, 0.3, -3]
+    rotation: [0, 18, 0]
     scale: [2, 0.6, 0.5]
     color: "#8b4513"
     material: "TeakWood"
@@ -543,7 +562,8 @@ composition "Virtual Museum Exhibition" {
   object "BenchRight" {
     @collidable
     geometry: "cube"
-    position: [8, 0.3, -8]
+    position: [2.5, 0.3, -3]
+    rotation: [0, -18, 0]
     scale: [2, 0.6, 0.5]
     color: "#8b4513"
     material: "TeakWood"
@@ -552,8 +572,8 @@ composition "Virtual Museum Exhibition" {
   object "BenchCenter" {
     @collidable
     geometry: "cube"
-    position: [0, 0.3, -8]
-    scale: [2, 0.6, 0.5]
+    position: [0, 0.3, -1.5]
+    scale: [2.4, 0.6, 0.5]
     color: "#8b4513"
     material: "TeakWood"
   }
@@ -562,7 +582,7 @@ composition "Virtual Museum Exhibition" {
     @clickable
     @glowing
     geometry: "plane"
-    position: [0, 1, -14.5]
+    position: [-1.5, 1, -14.5]
     scale: [0.5, 0.3, 1]
     color: "#000000"
   }
@@ -571,7 +591,7 @@ composition "Virtual Museum Exhibition" {
     @clickable
     @glowing
     geometry: "plane"
-    position: [-5, 1, -14.5]
+    position: [-6.5, 0.9, -14.5]
     scale: [0.5, 0.3, 1]
     color: "#000000"
   }
@@ -580,16 +600,19 @@ composition "Virtual Museum Exhibition" {
     @clickable
     @glowing
     geometry: "plane"
-    position: [5, 1, -14.5]
+    position: [2.2, 0.9, -14.5]
     scale: [0.5, 0.3, 1]
     color: "#000000"
   }
 
+  // Wayfinding hangs over the entry, angled to point down the path
+  // toward the hero the moment the visitor passes under the arch.
   object "WayfindingSign" {
     @glowing
     geometry: "plane"
-    position: [0, 3.5, -12]
-    scale: [1.5, 0.5, 1]
+    position: [-1.5, 4, 9]
+    rotation: [0, 8, 0]
+    scale: [1.8, 0.6, 1]
     color: "#222222"
   }
 
@@ -604,42 +627,45 @@ composition "Virtual Museum Exhibition" {
 
   // ── Ambient Lighting ──────────────────────────────────────────────────────
 
+  // Lighting is handed toward the hero: two bright sources crown the
+  // bronze, the rest fall as dimmer markers along the entry path — the
+  // four-corner box is gone.
   object "AmbientLight1" {
     @glowing
     geometry: "sphere"
-    position: [-8, 5.5, -8]
-    scale: 0.2
+    position: [-0.8, 5.5, -9.5]
+    scale: 0.28
     color: "#fff8f0"
-    emissionIntensity: 3.0
+    emissionIntensity: 5.0
     castShadows: true
   }
 
   object "AmbientLight2" {
     @glowing
     geometry: "sphere"
-    position: [8, 5.5, -8]
-    scale: 0.2
+    position: [0.8, 5.5, -10.5]
+    scale: 0.28
     color: "#fff8f0"
-    emissionIntensity: 3.0
+    emissionIntensity: 5.0
     castShadows: true
   }
 
   object "AmbientLight3" {
     @glowing
     geometry: "sphere"
-    position: [-8, 5.5, 8]
-    scale: 0.2
+    position: [-3, 5.5, 5]
+    scale: 0.18
     color: "#fff8f0"
-    emissionIntensity: 3.0
+    emissionIntensity: 2.0
   }
 
   object "AmbientLight4" {
     @glowing
     geometry: "sphere"
-    position: [8, 5.5, 8]
-    scale: 0.2
+    position: [-4.5, 5.5, -7]
+    scale: 0.18
     color: "#fff8f0"
-    emissionIntensity: 3.0
+    emissionIntensity: 2.2
   }
 
   object "SkyLight" {
@@ -697,7 +723,9 @@ composition "Virtual Museum Exhibition" {
     @clickable
     @collidable
     geometry: "sphere"
-    position: [-6, 0.8, -6]
+    // Second waypoint: the $28k marble sits west of the entry axis after
+    // the route bends around the partition — a pause before the hero.
+    position: [-4.5, 0.8, -7]
     scale: [0.6, 1.2, 0.6]
     color: "#b0bec5"
     material: "PolishedMarble"
@@ -714,8 +742,11 @@ composition "Virtual Museum Exhibition" {
     @clickable
     @collidable
     geometry: "cube"
-    position: [6, 0.9, -6]
-    scale: [0.5, 1.8, 0.5]
+    // HERO. The $45k "Ascending Form" bronze stands dead on the entry
+    // axis at the culmination of the route — the deepest, tallest object
+    // the visitor walks toward from the door. Everything defers to it.
+    position: [0, 1.4, -10]
+    scale: [0.7, 2.8, 0.7]
     rotation: [0, 45, 0]
     color: "#78909c"
     material: "CastBronze"
@@ -732,7 +763,9 @@ composition "Virtual Museum Exhibition" {
     @clickable
     @collidable
     geometry: "cylinder"
-    position: [0, 1, 6]
+    // First waypoint: met just inside the door, set west of the axis so
+    // it opens the leftward bend of the route toward the hero.
+    position: [-3, 1, 5]
     scale: [0.4, 2, 0.4]
     color: "#cfd8dc"
     material: "PolishedAluminum"
@@ -748,26 +781,51 @@ composition "Virtual Museum Exhibition" {
   object "SculpturePedestal1" {
     @collidable
     geometry: "cube"
-    position: [-6, 0.3, -6]
+    position: [-4.5, 0.3, -7]
     scale: [0.8, 0.6, 0.8]
     color: "#ffffff"
     material: "PlinthMarble"
   }
 
+  // HERO plinth: taller and wider than the others so the bronze reads as
+  // the culmination the moment the visitor clears the door.
   object "SculpturePedestal2" {
     @collidable
     geometry: "cube"
-    position: [6, 0.3, -6]
-    scale: [0.8, 0.6, 0.8]
+    position: [0, 0.4, -10]
+    scale: [1.1, 0.8, 1.1]
     color: "#ffffff"
   }
 
   object "SculpturePedestal3" {
     @collidable
     geometry: "cube"
-    position: [0, 0.3, 6]
+    position: [-3, 0.3, 5]
     scale: [0.8, 0.6, 0.8]
     color: "#ffffff"
+  }
+
+  // Hero spotlights: two hard sources rake the bronze from front and
+  // side so it out-lights every other piece in the room.
+  object "HeroSpotlight" {
+    @glowing
+    geometry: "cylinder"
+    position: [0, 5.6, -8]
+    rotation: [-28, 0, 0]
+    scale: [0.12, 0.6, 0.12]
+    color: "#fffacd"
+    emissionIntensity: 6.0
+    castShadows: true
+  }
+
+  object "HeroSpotlightRake" {
+    @glowing
+    geometry: "cylinder"
+    position: [-2.5, 5.6, -10]
+    rotation: [-25, 0, 22]
+    scale: [0.1, 0.5, 0.1]
+    color: "#fffacd"
+    emissionIntensity: 5.0
   }
 
   // ── Gift Shop ─────────────────────────────────────────────────────────────

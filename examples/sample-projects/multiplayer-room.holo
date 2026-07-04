@@ -6,6 +6,15 @@
 // a shared whiteboard, avatar spawn points, spatial audio
 // zones, and networked objects that stay synchronized across
 // all connected clients.
+//
+// PRESENTATION-FOCUS ORIENTATION: the room has a front. The
+// whiteboard (north wall, z=-4) and presentation screen (east
+// wall, x=+5) form a north-east presenter corner, and the room
+// addresses it. A head-of-table seat anchors the far (west/south)
+// end, remaining seats fan toward that corner facing the
+// presenter, the table skews to point at it, and ceiling lighting
+// is weighted over the presentation end and the table rather than
+// spread as an even grid.
 // ============================================================
 
 composition "Multiplayer Meeting Room" {
@@ -191,10 +200,14 @@ composition "Multiplayer Meeting Room" {
   // A large rectangular table that serves as the room's
   // centerpiece. Networked so all users see the same state.
 
+  // Skewed slightly so the table's long axis addresses the
+  // north-east presenter corner (whiteboard + screen) instead of
+  // sitting square to the walls.
   object "ConferenceTable" @collidable @networked {
     geometry: "cube"
     position: [0, 0.72, 0]
     scale: [3.5, 0.08, 1.6]
+    rotation: [0, -12, 0]
     color: "#5d4037"
     material: "TableWood"
   }
@@ -235,43 +248,55 @@ composition "Multiplayer Meeting Room" {
   // ----------------------------------------------------------
   // CHAIRS
   // ----------------------------------------------------------
-  // Six chairs positioned around the table. The @sittable trait
-  // lets avatar sit down. @networked keeps seat states in sync
-  // so others see who is seated where.
+  // Seating is arranged around the presentation focus rather than
+  // in a symmetric ring. Every seat faces the north-east presenter
+  // corner (whiteboard on the north wall, screen on the east wall).
+  // The @sittable trait lets avatars sit; @networked keeps seat
+  // states in sync so others see who is seated where.
 
-  // Front side (facing north wall)
-  object "Chair_F1" using "OfficeChair" {
-    position: [-1.2, 0.35, 1.4]
-    scale: [0.45, 0.7, 0.45]
+  // HEAD OF TABLE -- host anchor at the far (west/south) end,
+  // set back off the short edge and turned to look straight into
+  // the north-east presenter corner. This seat orients the room.
+  object "Chair_Head" using "OfficeChair" {
+    position: [-2.15, 0.35, 0.55]
+    scale: [0.45, 0.72, 0.45]
+    rotation: [0, -55, 0]
   }
 
-  object "Chair_F2" using "OfficeChair" {
-    position: [0, 0.35, 1.4]
+  // South side -- the long run of seats that faces the presenter
+  // corner across the table. Weighted toward the presentation end
+  // (three seats, pulled toward the whiteboard/screen).
+  object "Chair_S1" using "OfficeChair" {
+    position: [-0.7, 0.35, 1.45]
     scale: [0.45, 0.7, 0.45]
+    rotation: [0, -28, 0]
   }
 
-  object "Chair_F3" using "OfficeChair" {
-    position: [1.2, 0.35, 1.4]
+  object "Chair_S2" using "OfficeChair" {
+    position: [0.5, 0.35, 1.5]
     scale: [0.45, 0.7, 0.45]
+    rotation: [0, -38, 0]
   }
 
-  // Back side (facing south wall)
-  object "Chair_B1" using "OfficeChair" {
-    position: [-1.2, 0.35, -1.4]
+  object "Chair_S3" using "OfficeChair" {
+    position: [1.65, 0.35, 1.35]
     scale: [0.45, 0.7, 0.45]
-    rotation: [0, 180, 0]
+    rotation: [0, -52, 0]
   }
 
-  object "Chair_B2" using "OfficeChair" {
-    position: [0, 0.35, -1.4]
+  // North side -- fewer seats (two), tucked between the table and
+  // the whiteboard so they still read toward the presenter corner
+  // without blocking the head-of-table sightline.
+  object "Chair_N1" using "OfficeChair" {
+    position: [0.85, 0.35, -1.35]
     scale: [0.45, 0.7, 0.45]
-    rotation: [0, 180, 0]
+    rotation: [0, -18, 0]
   }
 
-  object "Chair_B3" using "OfficeChair" {
-    position: [1.2, 0.35, -1.4]
+  object "Chair_N2" using "OfficeChair" {
+    position: [2.0, 0.35, -1.15]
     scale: [0.45, 0.7, 0.45]
-    rotation: [0, 180, 0]
+    rotation: [0, -30, 0]
   }
 
   // ----------------------------------------------------------
@@ -537,43 +562,56 @@ composition "Multiplayer Meeting Room" {
   // ----------------------------------------------------------
   // LIGHTING
   // ----------------------------------------------------------
-  // Overhead panel lights to simulate fluorescent office
-  // lighting. Soft glowing panels on the ceiling.
+  // Lighting is weighted toward the presentation end rather than an
+  // even grid. The brightest panel washes the north-east presenter
+  // corner (whiteboard + screen); a second panel lights the table;
+  // the far / head-of-table end gets a single dimmer fill so the
+  // room clearly brightens toward the focus.
 
+  // Presenter-corner wash -- brightest, over the north-east
+  // whiteboard/screen zone, turned to run along that corner.
   object "CeilingLight_1" @glowing {
     geometry: "cube"
-    position: [-2, 3.1, -1.5]
-    scale: [1.5, 0.04, 0.4]
+    position: [2.6, 3.1, -2.4]
+    scale: [1.9, 0.04, 0.45]
+    rotation: [0, -35, 0]
     color: "#ffffff"
     emissive: "#ffffff"
-    emissiveIntensity: 0.9
+    emissiveIntensity: 1.15
   }
 
+  // Screen-side panel -- reinforces the east screen wall.
   object "CeilingLight_2" @glowing {
     geometry: "cube"
-    position: [2, 3.1, -1.5]
+    position: [3.2, 3.1, 0.4]
     scale: [1.5, 0.04, 0.4]
+    rotation: [0, -70, 0]
     color: "#ffffff"
     emissive: "#ffffff"
-    emissiveIntensity: 0.9
+    emissiveIntensity: 1.0
   }
 
+  // Table panel -- lights the working surface, aligned with the
+  // skewed table so it reads with the room's orientation.
   object "CeilingLight_3" @glowing {
     geometry: "cube"
-    position: [-2, 3.1, 1.5]
-    scale: [1.5, 0.04, 0.4]
+    position: [0.2, 3.1, -0.3]
+    scale: [1.7, 0.04, 0.4]
+    rotation: [0, -12, 0]
     color: "#ffffff"
     emissive: "#ffffff"
-    emissiveIntensity: 0.9
+    emissiveIntensity: 0.85
   }
 
+  // Far-end fill -- dimmer panel over the head-of-table / west end
+  // so the room falls off away from the presentation focus.
   object "CeilingLight_4" @glowing {
     geometry: "cube"
-    position: [2, 3.1, 1.5]
+    position: [-2.6, 3.1, 1.4]
     scale: [1.5, 0.04, 0.4]
     color: "#ffffff"
     emissive: "#ffffff"
-    emissiveIntensity: 0.9
+    emissiveIntensity: 0.55
   }
 
   // ----------------------------------------------------------

@@ -1,9 +1,24 @@
 // ============================================================
-// Interactive Art Gallery - HoloScript Sample Project
+// "Neon Horizon" — a single-artist retrospective
 // ============================================================
-// A virtual museum with paintings on the walls, a central
-// sculpture, and ambient lighting. Visitors can click on
-// paintings to view details and hover to highlight frames.
+// BRIEF (the referent, not the label): not "a gallery" but ONE
+// curated show. The centerpiece work, "Neon Horizon," hangs on
+// the north wall and the whole room is staged to serve it.
+//   The one decision everything else obeys: an ENTRY SIGHTLINE.
+//   The visitor enters from the south and looks straight down
+//   the axis (-z) into a HERO WALL — one large centerpiece
+//   flanked by two SMALLER studies. Not five equal canvases;
+//   a show with a reading order: hero first, side studies next,
+//   the two subordinate west/east works last.
+//   Governed by that decision: the sculpture is pushed OFF the
+//   central axis so it never blocks the hero sightline; the
+//   lighting is weighted onto the centerpiece instead of spread
+//   evenly; a single bench sits on the axis FACING the hero so a
+//   viewer can sit and contemplate it. The room has a clear
+//   FRONT (hero wall) and BACK (entrance), not four equal sides.
+//   Every @advanced_pbr material and all @clickable/@hoverable
+//   behavior is unchanged — this pass reshapes the STAGING to the
+//   brief, not the surfaces.
 // ============================================================
 
 composition "Interactive Art Gallery" {
@@ -187,122 +202,123 @@ composition "Interactive Art Gallery" {
   }
 
   // ----------------------------------------------------------
-  // PAINTINGS
+  // THE HERO WALL (north) -- the show's centerpiece
   // ----------------------------------------------------------
-  // Five paintings distributed across the walls. Each uses the
-  // Painting template for consistent click/hover behavior.
+  // What the entry sightline lands on. The reading order is set
+  // by SIZE, not even spacing: the large centerpiece dominates
+  // the axis, two smaller studies flank it and defer to it.
 
-  // Painting 1 -- "Neon Horizon" on the north wall, left side
+  // CENTERPIECE -- "Neon Horizon" on the entry axis, oversized.
+  // This is the work the whole room is built to present.
   object "Painting_NeonHorizon" using "Painting" {
-    position: [-3.5, 2.2, -3.88]
-    scale: [1.6, 1.2, 0.05]
+    position: [0, 2.3, -3.88]
+    scale: [3.2, 2.2, 0.05]
     color: "#e74c3c"
     emissive: "#e74c3c"
     emissiveIntensity: 0.0
   }
 
-  // Painting 2 -- "Digital Ocean" on the north wall, center
-  object "Painting_DigitalOcean" using "Painting" {
-    position: [0, 2.2, -3.88]
-    scale: [2.0, 1.4, 0.05]
-    color: "#3498db"
-    emissive: "#3498db"
-    emissiveIntensity: 0.0
-  }
-
-  // Painting 3 -- "Solar Flare" on the north wall, right side
+  // Flanking study (left) -- smaller, subordinate to the hero.
   object "Painting_SolarFlare" using "Painting" {
-    position: [3.5, 2.2, -3.88]
-    scale: [1.6, 1.2, 0.05]
+    position: [-3.6, 2.2, -3.88]
+    scale: [1.1, 0.85, 0.05]
     color: "#f39c12"
     emissive: "#f39c12"
     emissiveIntensity: 0.0
   }
 
-  // Painting 4 -- "Emerald Dream" on the west wall
-  object "Painting_EmeraldDream" using "Painting" {
-    position: [-5.88, 2.2, -1]
-    scale: [0.05, 1.2, 1.6]
-    color: "#2ecc71"
-    emissive: "#2ecc71"
+  // Flanking study (right) -- smaller, subordinate to the hero.
+  object "Painting_DigitalOcean" using "Painting" {
+    position: [3.6, 2.2, -3.88]
+    scale: [1.1, 0.85, 0.05]
+    color: "#3498db"
+    emissive: "#3498db"
     emissiveIntensity: 0.0
   }
 
-  // Painting 5 -- "Violet Nebula" on the east wall
-  object "Painting_VioletNebula" using "Painting" {
-    position: [5.88, 2.2, 1]
-    scale: [0.05, 1.4, 1.8]
-    color: "#9b59b6"
-    emissive: "#9b59b6"
+  // ----------------------------------------------------------
+  // SIDE STUDIES -- last in the reading order
+  // ----------------------------------------------------------
+  // A single small work on ONE side wall (west). The east wall is
+  // deliberately left bare so the room reads as having a front and
+  // a back, not four equal hanging surfaces.
+
+  object "Painting_EmeraldDream" using "Painting" {
+    position: [-5.88, 2.2, -2.4]
+    scale: [0.05, 0.85, 1.1]
+    color: "#2ecc71"
+    emissive: "#2ecc71"
     emissiveIntensity: 0.0
   }
 
   // ----------------------------------------------------------
   // PAINTING FRAMES
   // ----------------------------------------------------------
-  // Thin gold borders around each painting for realism.
+  // Gold borders. The hero frame is the heaviest in the room;
+  // the flanking studies and the side study carry thinner ones,
+  // reinforcing the reading order by weight.
 
+  // Hero frame -- oversized to match the centerpiece on the axis.
   object "Frame_NeonHorizon" {
     geometry: "cube"
-    position: [-3.5, 2.2, -3.90]
-    scale: [1.72, 1.32, 0.03]
+    position: [0, 2.3, -3.90]
+    scale: [3.34, 2.34, 0.03]
     color: "#c8a84e"
     material: "GoldFrameMetal"
   }
 
-  object "Frame_DigitalOcean" {
-    geometry: "cube"
-    position: [0, 2.2, -3.90]
-    scale: [2.12, 1.52, 0.03]
-    color: "#c8a84e"
-    material: "GoldFrameMetal"
-  }
-
+  // Flanking study frame (left) -- thin, subordinate.
   object "Frame_SolarFlare" {
     geometry: "cube"
-    position: [3.5, 2.2, -3.90]
-    scale: [1.72, 1.32, 0.03]
+    position: [-3.6, 2.2, -3.90]
+    scale: [1.2, 0.95, 0.03]
     color: "#c8a84e"
     material: "GoldFrameMetal"
   }
 
+  // Flanking study frame (right) -- thin, subordinate.
+  object "Frame_DigitalOcean" {
+    geometry: "cube"
+    position: [3.6, 2.2, -3.90]
+    scale: [1.2, 0.95, 0.03]
+    color: "#c8a84e"
+    material: "GoldFrameMetal"
+  }
+
+  // Side study frame (west wall).
   object "Frame_EmeraldDream" {
     geometry: "cube"
-    position: [-5.90, 2.2, -1]
-    scale: [0.03, 1.32, 1.72]
-    color: "#c8a84e"
-    material: "GoldFrameMetal"
-  }
-
-  object "Frame_VioletNebula" {
-    geometry: "cube"
-    position: [5.90, 2.2, 1]
-    scale: [0.03, 1.52, 1.92]
+    position: [-5.90, 2.2, -2.4]
+    scale: [0.03, 0.95, 1.2]
     color: "#c8a84e"
     material: "GoldFrameMetal"
   }
 
   // ----------------------------------------------------------
-  // CENTRAL SCULPTURE
+  // SUPPORTING SCULPTURE (off-axis)
   // ----------------------------------------------------------
-  // An abstract geometric sculpture on a pedestal. It spins
-  // slowly and emits a soft cyan glow.
+  // A supporting piece in the show, deliberately pushed off the
+  // central axis toward the east so it NEVER stands between the
+  // entrance and the hero wall. Its form is a slender upright
+  // shard on a tall plinth -- a vertical accent that leads the
+  // eye up and back toward the centerpiece, not a centered cube
+  // competing for the middle of the room.
 
-  // Pedestal
+  // Plinth -- taller and narrower, set to the east of the axis.
   object "Pedestal" @collidable {
     geometry: "cylinder"
-    position: [0, 0.4, 0]
-    scale: [0.6, 0.8, 0.6]
+    position: [3.2, 0.55, 1.4]
+    scale: [0.45, 1.1, 0.45]
     color: "#2d2d3d"
     material: "PedestalMarble"
   }
 
-  // Sculpture -- a spinning, glowing shape
+  // Sculpture -- a slender upright glass shard, tilted, off-axis.
   object "Sculpture" @spinning @glowing {
-    geometry: "cube"
-    position: [0, 1.4, 0]
-    scale: [0.5, 0.5, 0.5]
-    rotation: [45, 45, 0]
+    geometry: "cone"
+    position: [3.2, 1.9, 1.4]
+    scale: [0.32, 0.9, 0.32]
+    rotation: [0, 0, 14]
     color: "#00ffff"
     emissive: "#00ffff"
     emissiveIntensity: 0.6
@@ -311,58 +327,61 @@ composition "Interactive Art Gallery" {
   }
 
   // ----------------------------------------------------------
-  // AMBIENT LIGHTING OBJECTS
+  // LIGHTING -- weighted toward the hero
   // ----------------------------------------------------------
-  // Small glowing orbs mounted near the ceiling act as
-  // spotlights for each painting.
+  // The light follows the curation. Three bright, close spots
+  // wash the centerpiece; the flanking studies and the side study
+  // get one dimmer spot each. The mirror-symmetric corner orbs are
+  // gone -- light is staging here, not wallpaper.
 
-  // Spot lights above paintings -- north wall
-  object "SpotLight_1" using "SpotLightOrb" {
-    position: [-3.5, 3.6, -3.5]
+  // Hero centerpiece -- a triad of bright, tight spots.
+  object "HeroSpot_Center" using "SpotLightOrb" {
+    position: [0, 3.7, -3.4]
+    scale: 0.11
+    emissiveIntensity: 1.8
   }
 
-  object "SpotLight_2" using "SpotLightOrb" {
-    position: [0, 3.6, -3.5]
+  object "HeroSpot_Left" using "SpotLightOrb" {
+    position: [-1.3, 3.7, -3.4]
+    scale: 0.1
+    emissiveIntensity: 1.6
   }
 
-  object "SpotLight_3" using "SpotLightOrb" {
-    position: [3.5, 3.6, -3.5]
+  object "HeroSpot_Right" using "SpotLightOrb" {
+    position: [1.3, 3.7, -3.4]
+    scale: 0.1
+    emissiveIntensity: 1.6
   }
 
-  // Spot light for west wall painting
-  object "SpotLight_4" using "SpotLightOrb" {
-    position: [-5.5, 3.6, -1]
+  // Flanking studies -- one dim spot each, subordinate.
+  object "StudySpot_Left" using "SpotLightOrb" {
+    position: [-3.6, 3.6, -3.5]
+    scale: 0.06
+    emissiveIntensity: 0.7
   }
 
-  // Spot light for east wall painting
-  object "SpotLight_5" using "SpotLightOrb" {
-    position: [5.5, 3.6, 1]
+  object "StudySpot_Right" using "SpotLightOrb" {
+    position: [3.6, 3.6, -3.5]
+    scale: 0.06
+    emissiveIntensity: 0.7
   }
 
-  // Ambient corner orbs -- subtle warm glow in the corners
-  object "AmbientOrb_SW" @glowing @floating {
-    geometry: "sphere"
-    position: [-5, 3.2, 3]
-    scale: 0.12
-    color: "#ffddaa"
-    emissive: "#ffddaa"
+  // Side study (west wall) -- the dimmest, last in the reading order.
+  object "SideStudySpot" using "SpotLightOrb" {
+    position: [-5.5, 3.6, -2.4]
+    scale: 0.06
     emissiveIntensity: 0.6
   }
 
-  object "AmbientOrb_SE" @glowing @floating {
-    geometry: "sphere"
-    position: [5, 3.2, 3]
-    scale: 0.12
-    color: "#ffddaa"
-    emissive: "#ffddaa"
-    emissiveIntensity: 0.6
-  }
-
   // ----------------------------------------------------------
-  // DECORATIVE ELEMENTS
+  // ENTRANCE + SEATING -- the room's back, facing the hero
   // ----------------------------------------------------------
+  // Everything here flows from the entrance toward the hero wall.
+  // The welcome placard greets the visitor at the back; the bench
+  // sits on the entry axis, turned to FACE the centerpiece, so a
+  // viewer can sit and contemplate "Neon Horizon" head-on.
 
-  // Information placard near the entrance
+  // Welcome placard -- greets the visitor at the entrance (back).
   object "WelcomePlacard" @clickable {
     geometry: "cube"
     position: [0, 1.4, 3.5]
@@ -376,20 +395,28 @@ composition "Interactive Art Gallery" {
     }
   }
 
-  // Velvet rope posts near the sculpture (decorative boundaries)
-  object "RopePost_Left" @collidable {
-    geometry: "cylinder"
-    position: [-1.2, 0.4, 1]
-    scale: [0.06, 0.8, 0.06]
+  // Viewing bench -- on the axis, set back from the hero wall,
+  // its seat oriented for a viewer facing the centerpiece.
+  object "ViewingBench" @collidable {
+    geometry: "cube"
+    position: [0, 0.35, 0.8]
+    scale: [1.8, 0.12, 0.5]
     color: "#8b7355"
     material: "BronzePostMetal"
-  }
 
-  object "RopePost_Right" @collidable {
-    geometry: "cylinder"
-    position: [1.2, 0.4, 1]
-    scale: [0.06, 0.8, 0.06]
-    color: "#8b7355"
-    material: "BronzePostMetal"
+    object "BenchLeg_Front" {
+      geometry: "cube"
+      position: [0, -0.18, 0.18]
+      scale: [1.7, 0.24, 0.06]
+      color: "#8b7355"
+      material: "BronzePostMetal"
+    }
+    object "BenchLeg_Back" {
+      geometry: "cube"
+      position: [0, -0.18, -0.18]
+      scale: [1.7, 0.24, 0.06]
+      color: "#8b7355"
+      material: "BronzePostMetal"
+    }
   }
 }

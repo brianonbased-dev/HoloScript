@@ -1,5 +1,16 @@
-// AR Furniture Preview
-// E-commerce AR experience for furniture visualization
+// AR Furniture Preview — Staged Three-Vignette Showroom
+// E-commerce AR experience for furniture visualization. The catalog is
+// arranged as a walkable showroom of three non-overlapping room vignettes,
+// each with one focal piece its accessories orient around:
+//   LIVING (x≈0)  — sofa facing a coffee table on a rug, floor lamp beside it, pendant overhead
+//   DINING (x≈+6) — dining table centered under its own pendant, chairs tucked in
+//   BEDROOM (x≈-6) — bed flanked by nightstands, dresser against the wall, rug beneath
+// Previously the pieces were dumped into one overlapping space (a QueenBed at the
+// origin sat on top of the living-room sofa/rug) so it read as a pile, not a showroom.
+// This pass also fixes duplicate object names: the two "FloorLamp" objects are now
+// LivingFloorLamp / DiningFloorLamp, and the two "DiningChair2" objects are now
+// EamesChairB (living/dining accent) / WindsorChair2 (dining set). Every object name is unique.
+// Only names, positions, rotations, and scales changed — all materials, behaviors, and systems are intact.
 // Platform targets: ARKit, ARCore, WebXR
 
 composition "AR Furniture Catalog" {
@@ -292,7 +303,7 @@ composition "AR Furniture Catalog" {
     material: "SofaFabric"
   }
 
-  // ── Coffee Table Collection ────────────────────────────────────────────────
+  // ── Coffee Table Collection (LIVING · in front of the sofa) ────────────────
 
   object "CoffeeTable" {
     @grabbable
@@ -300,7 +311,7 @@ composition "AR Furniture Catalog" {
     @rotatable
 
     geometry: "cube"
-    position: [0, 0.3, -3.5]
+    position: [0, 0.3, -0.8]
     scale: [1.2, 0.6, 0.8]
     color: "#daa520"
     material: "OakWood"
@@ -331,7 +342,7 @@ composition "AR Furniture Catalog" {
   // Coffee table legs
   object "CoffeeTableLeg1" {
     geometry: "cylinder"
-    position: [-0.5, 0.1, -3.1]
+    position: [-0.5, 0.1, -0.4]
     scale: [0.05, 0.2, 0.05]
     color: "#daa520"
     material: "OakWood"
@@ -339,7 +350,7 @@ composition "AR Furniture Catalog" {
 
   object "CoffeeTableLeg2" {
     geometry: "cylinder"
-    position: [0.5, 0.1, -3.1]
+    position: [0.5, 0.1, -0.4]
     scale: [0.05, 0.2, 0.05]
     color: "#daa520"
     material: "OakWood"
@@ -347,7 +358,7 @@ composition "AR Furniture Catalog" {
 
   object "CoffeeTableLeg3" {
     geometry: "cylinder"
-    position: [-0.5, 0.1, -3.9]
+    position: [-0.5, 0.1, -1.2]
     scale: [0.05, 0.2, 0.05]
     color: "#daa520"
     material: "OakWood"
@@ -355,15 +366,15 @@ composition "AR Furniture Catalog" {
 
   object "CoffeeTableLeg4" {
     geometry: "cylinder"
-    position: [0.5, 0.1, -3.9]
+    position: [0.5, 0.1, -1.2]
     scale: [0.05, 0.2, 0.05]
     color: "#daa520"
     material: "OakWood"
   }
 
-  // ── Lighting Collection ────────────────────────────────────────────────────
+  // ── Lighting Collection (LIVING · lamp beside sofa, pendant over seating) ───
 
-  object "FloorLamp" {
+  object "LivingFloorLamp" {
     @grabbable
     @scalable
 
@@ -404,7 +415,7 @@ composition "AR Furniture Catalog" {
     @glowing
 
     geometry: "sphere"
-    position: [-3, 2.2, -2]
+    position: [0, 2.2, -1.4]
     scale: 0.25
     color: "#fff8e7"
     emissionIntensity: 1.5
@@ -491,14 +502,14 @@ composition "AR Furniture Catalog" {
     color: "#22aa44"
   }
 
-  // ── Rug Collection ─────────────────────────────────────────────────────────
+  // ── Rug Collection (LIVING · grounds the sofa + coffee table) ──────────────
 
   object "Rug" {
     @scalable
     @rotatable
 
     geometry: "plane"
-    position: [0, 0.01, -2.5]
+    position: [0, 0.01, -1.4]
     scale: [3, 1, 2]
     color: "#dc143c"
     material: "WoolRug"
@@ -522,15 +533,16 @@ composition "AR Furniture Catalog" {
     }
   }
 
-  // ── Dining Chairs Collection ───────────────────────────────────────────────
+  // ── Eames Accent Chairs (DINING · molded-plastic pair by the dining table) ──
 
-  object "DiningChair" {
+  object "EamesChairA" {
     @grabbable
     @scalable
     @rotatable
 
     geometry: "cube"
-    position: [3, 0.5, -3]
+    position: [7.5, 0.5, -1.3]
+    rotation: [0, -90, 0]
     scale: [0.5, 1, 0.5]
     color: "#696969"
     material: "MoldedPlastic"
@@ -545,21 +557,23 @@ composition "AR Furniture Catalog" {
     }
   }
 
-  object "DiningChair2" {
+  object "EamesChairB" {
     @grabbable
     @scalable
     @rotatable
 
     geometry: "cube"
-    position: [3.7, 0.5, -3]
+    position: [7.5, 0.5, -3.7]
+    rotation: [0, -90, 0]
     scale: [0.5, 1, 0.5]
     color: "#696969"
     material: "MoldedPlastic"
   }
 
-  object "DiningChairBack" {
+  object "EamesChairBack" {
     geometry: "cube"
-    position: [3, 1.0, -3.3]
+    position: [7.8, 1.0, -1.3]
+    rotation: [0, -90, 0]
     scale: [0.48, 0.5, 0.05]
     color: "#696969"
     material: "MoldedPlastic"
@@ -649,14 +663,14 @@ composition "AR Furniture Catalog" {
     }
   }
 
-  // ── Bedroom Furniture ─────────────────────────────────────────────────────
+  // ── Bedroom Vignette (BEDROOM · x≈-6 · bed flanked by nightstands) ─────────
 
   object "QueenBed" {
     @grabbable
     @scalable
     @collidable
     geometry: "cube"
-    position: [0, 0.3, 0]
+    position: [-6, 0.3, -2.5]
     scale: [1.6, 0.6, 2.1]
     color: "#5d4037"
     material: "UpholsteredWood"
@@ -675,7 +689,7 @@ composition "AR Furniture Catalog" {
     @scalable
     @collidable
     geometry: "cube"
-    position: [-1.0, 0.3, 0]
+    position: [-7.1, 0.3, -3.4]
     scale: [0.5, 0.6, 0.5]
     color: "#8d6e63"
     material: "WalnutWood"
@@ -691,7 +705,7 @@ composition "AR Furniture Catalog" {
     @scalable
     @collidable
     geometry: "cube"
-    position: [1.0, 0.3, 0]
+    position: [-4.9, 0.3, -3.4]
     scale: [0.5, 0.6, 0.5]
     color: "#8d6e63"
     material: "WalnutWood"
@@ -707,7 +721,7 @@ composition "AR Furniture Catalog" {
     @scalable
     @collidable
     geometry: "cube"
-    position: [2, 0.5, -3]
+    position: [-6, 0.5, -4.5]
     scale: [1.2, 1.0, 0.5]
     color: "#795548"
     material: "OakLacquered"
@@ -718,14 +732,14 @@ composition "AR Furniture Catalog" {
     }
   }
 
-  // ── Dining Room Furniture ──────────────────────────────────────────────────
+  // ── Dining Vignette (DINING · x≈+6 · table centered, chairs tucked in) ─────
 
   object "DiningTable" {
     @grabbable
     @scalable
     @collidable
     geometry: "cube"
-    position: [0, 0.4, -8]
+    position: [6, 0.4, -2.5]
     scale: [2, 0.8, 1]
     color: "#4e342e"
     material: "ReclaimedWood"
@@ -738,12 +752,12 @@ composition "AR Furniture Catalog" {
     }
   }
 
-  object "DiningChair1" {
+  object "WindsorChair1" {
     @grabbable
     @scalable
     @collidable
     geometry: "cube"
-    position: [-0.8, 0.4, -7.3]
+    position: [5.2, 0.4, -1.8]
     rotation: [0, 0, 0]
     scale: [0.45, 0.85, 0.5]
     color: "#37474f"
@@ -755,12 +769,12 @@ composition "AR Furniture Catalog" {
     }
   }
 
-  object "DiningChair2" {
+  object "WindsorChair2" {
     @grabbable
     @scalable
     @collidable
     geometry: "cube"
-    position: [0.8, 0.4, -7.3]
+    position: [6.8, 0.4, -1.8]
     scale: [0.45, 0.85, 0.5]
     color: "#37474f"
     material: "LinenSeat"
@@ -771,12 +785,12 @@ composition "AR Furniture Catalog" {
     }
   }
 
-  object "DiningChair3" {
+  object "WindsorChair3" {
     @grabbable
     @scalable
     @collidable
     geometry: "cube"
-    position: [-0.8, 0.4, -8.7]
+    position: [5.2, 0.4, -3.2]
     rotation: [0, 180, 0]
     scale: [0.45, 0.85, 0.5]
     color: "#37474f"
@@ -787,12 +801,12 @@ composition "AR Furniture Catalog" {
     }
   }
 
-  object "DiningChair4" {
+  object "WindsorChair4" {
     @grabbable
     @scalable
     @collidable
     geometry: "cube"
-    position: [0.8, 0.4, -8.7]
+    position: [6.8, 0.4, -3.2]
     rotation: [0, 180, 0]
     scale: [0.45, 0.85, 0.5]
     color: "#37474f"
@@ -808,7 +822,7 @@ composition "AR Furniture Catalog" {
     @scalable
     @collidable
     geometry: "cube"
-    position: [3, 0.4, -8]
+    position: [6, 0.4, -4.5]
     scale: [1.5, 0.8, 0.5]
     color: "#5d4037"
     material: "PaintedMdf"
@@ -819,13 +833,13 @@ composition "AR Furniture Catalog" {
     }
   }
 
-  // ── Lighting Fixtures ─────────────────────────────────────────────────────
+  // ── Lighting Fixtures (DINING pendant + floor lamp · BEDROOM table lamp) ───
 
   object "PendantLight" {
     @grabbable
     @glowing
     geometry: "sphere"
-    position: [0, 2.8, 0]
+    position: [6, 2.8, -2.5]
     scale: 0.3
     color: "#ffecb3"
     emissionIntensity: 2.0
@@ -837,11 +851,11 @@ composition "AR Furniture Catalog" {
     }
   }
 
-  object "FloorLamp" {
+  object "DiningFloorLamp" {
     @grabbable
     @glowing
     geometry: "cylinder"
-    position: [3, 1, -2]
+    position: [7.6, 1, -3.9]
     scale: [0.05, 2, 0.05]
     color: "#b0bec5"
     behavior "FurnitureItem" {
@@ -855,7 +869,7 @@ composition "AR Furniture Catalog" {
   object "FloorLampShade" {
     @glowing
     geometry: "sphere"
-    position: [3, 2.1, -2]
+    position: [7.6, 2.1, -3.9]
     scale: [0.3, 0.25, 0.3]
     color: "#fff8e1"
     emissionIntensity: 2.5
@@ -865,7 +879,7 @@ composition "AR Furniture Catalog" {
     @grabbable
     @glowing
     geometry: "cylinder"
-    position: [1.2, 0.7, -0.1]
+    position: [-4.9, 0.7, -3.4]
     scale: [0.1, 0.5, 0.1]
     color: "#78909c"
     behavior "FurnitureItem" {
@@ -876,13 +890,13 @@ composition "AR Furniture Catalog" {
     }
   }
 
-  // ── Home Decor ────────────────────────────────────────────────────────────
+  // ── Home Decor (BEDROOM rug + wall art · DINING plant accent) ──────────────
 
   object "AreaRug" {
     @grabbable
     @scalable
     geometry: "plane"
-    position: [0, 0.01, 0]
+    position: [-6, 0.01, -2.5]
     scale: [3, 1, 2]
     color: "#6d4c41"
     material: "PersianRug"
@@ -897,7 +911,7 @@ composition "AR Furniture Catalog" {
     @grabbable
     @scalable
     geometry: "cylinder"
-    position: [4, 0.5, -4]
+    position: [4.4, 0.5, -4.2]
     scale: [0.3, 0.9, 0.3]
     color: "#4caf50"
     material: "CeramicGlossy"
@@ -912,7 +926,7 @@ composition "AR Furniture Catalog" {
   object "WallArt" {
     @grabbable
     geometry: "plane"
-    position: [-3, 1.5, -5]
+    position: [-6, 1.6, -4.9]
     scale: [1.2, 0.9, 1]
     color: "#eceff1"
     material: "CanvasPrint"

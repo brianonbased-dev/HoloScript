@@ -1,7 +1,13 @@
 composition "MedievalCastle" {
   // ── HoloScript Native Asset ──────────────────────────────────────────────
-  // A medieval castle with towers, walls, gate, and flag poles.
-  // Demonstrates: architectural composition, repeated patterns, detail layering.
+  // BRIEF (the referent, not the label): an Edwardian Welsh concentric castle
+  //   in the Harlech / Beaumaris lineage. The one decision everything obeys:
+  //   the GATEHOUSE IS THE KEEP — a massive twin-drum gatehouse REPLACES the
+  //   central keep as the strongpoint, so the castle has a fortified FRONT
+  //   (barbican + drawbridge + banner + sea-watch beacon) and a quiet, blank
+  //   defended REAR. No two towers share height or girth; battlement density
+  //   follows the threat, thinning toward the back. This pass reshapes FORM to
+  //   that brief; the weathered-stone materials are the already-correct system.
 
   environment {
     skybox: "hdr_studio"
@@ -41,6 +47,11 @@ composition "MedievalCastle" {
   template "WindowGlow" {
     material: { emissive: "#FFDD44", emissiveIntensity: 1.5, roughness: 0.3 }
   }
+  // Sea-watch beacon — a single warm brazier, lit once, on the starboard gate
+  // flank only. No other tower carries fire; it marks the watch tower alone.
+  template "BeaconFire" {
+    material: { emissive: "#ff6a1a", emissiveIntensity: 4.0, roughness: 0.5 }
+  }
 
   object "Castle" @physics @collidable {
     position: [0, 0, 0]
@@ -53,11 +64,20 @@ composition "MedievalCastle" {
       color: "#4a4a3a"
     }
 
-    // ── Main Walls ────────────────────────────────────────────────────────
-    object "WallFront" using "WallAshlar" {
+    // ── Curtain Walls ───────────────────────────────────────────────────────
+    // The front wall is broken open by the gatehouse (the gatehouse IS the front
+    // strongpoint), so it runs only as two short flanking stubs. Rear and sides
+    // are unbroken plain curtain — the quiet defended back of a concentric plan.
+    object "WallFrontLeft" using "WallAshlar" {
       geometry: "cube"
-      position: [0, 2, 5]
-      scale: [12, 3.5, 0.5]
+      position: [-4.1, 2, 5]
+      scale: [3.8, 3.5, 0.5]
+      color: "#8C7B6B"
+    }
+    object "WallFrontRight" using "WallAshlar" {
+      geometry: "cube"
+      position: [4.1, 2, 5]
+      scale: [3.8, 3.5, 0.5]
       color: "#8C7B6B"
     }
     object "WallBack" using "WallAshlar" {
@@ -79,114 +99,30 @@ composition "MedievalCastle" {
       color: "#8C7B6B"
     }
 
-    // ── Corner Towers ─────────────────────────────────────────────────────
-    object "TowerFL" using "TowerAshlar" {
+    // ── THE GATEHOUSE-KEEP (the load-bearing decision) ─────────────────────
+    // Two tall, fat drum towers pinched close around one central gate passage,
+    // taller and heavier than everything else on the field — THIS is the
+    // silhouette. It stands where a central keep would in a lesser castle; here
+    // the strongpoint is the entrance itself. Front-centre, straddling the wall.
+    object "GatehouseDrumLeft" using "TowerAshlar" {
       geometry: "cylinder"
-      position: [-6, 2.5, 5]
-      scale: [1.2, 5.0, 1.2]
+      position: [-1.9, 3.6, 5.2]
+      scale: [2.1, 7.2, 2.1]
       color: "#7A6B5C"
 
-      object "RoofFL" using "RoofSlate" {
+      object "DrumLeftRoof" using "RoofSlate" {
         geometry: "cone"
-        position: [0, 3.2, 0]
-        scale: [1.5, 2.0, 1.5]
-        color: "#6B2D2D"
-      }
-      object "FlagPoleFL" using "IronWork" {
-        geometry: "cylinder"
-        position: [0, 4.8, 0]
-        scale: [0.04, 1.5, 0.04]
-        color: "#cccccc"
-      }
-      object "FlagFL" {
-        geometry: "cube"
-        position: [0.3, 5.3, 0]
-        scale: [0.6, 0.35, 0.02]
-        color: "#cc1111"
-      }
-    }
-    object "TowerFR" using "TowerAshlar" {
-      geometry: "cylinder"
-      position: [6, 2.5, 5]
-      scale: [1.2, 5.0, 1.2]
-      color: "#7A6B5C"
-
-      object "RoofFR" using "RoofSlate" {
-        geometry: "cone"
-        position: [0, 3.2, 0]
-        scale: [1.5, 2.0, 1.5]
-        color: "#6B2D2D"
-      }
-    }
-    object "TowerBL" using "TowerAshlar" {
-      geometry: "cylinder"
-      position: [-6, 2.5, -5]
-      scale: [1.2, 5.0, 1.2]
-      color: "#7A6B5C"
-
-      object "RoofBL" using "RoofSlate" {
-        geometry: "cone"
-        position: [0, 3.2, 0]
-        scale: [1.5, 2.0, 1.5]
-        color: "#6B2D2D"
-      }
-    }
-    object "TowerBR" using "TowerAshlar" {
-      geometry: "cylinder"
-      position: [6, 2.5, -5]
-      scale: [1.2, 5.0, 1.2]
-      color: "#7A6B5C"
-
-      object "RoofBR" using "RoofSlate" {
-        geometry: "cone"
-        position: [0, 3.2, 0]
-        scale: [1.5, 2.0, 1.5]
-        color: "#6B2D2D"
-      }
-    }
-
-    // ── Gate House ────────────────────────────────────────────────────────
-    object "GateFrame" using "WallAshlar" {
-      geometry: "cube"
-      position: [0, 1.8, 5.3]
-      scale: [2.5, 3.6, 0.8]
-      color: "#6B5C4D"
-
-      object "GateArch" using "TimberDark" {
-        geometry: "cylinder"
-        position: [0, 0.4, 0.1]
-        rotation: [90, 0, 0]
-        scale: [0.8, 0.5, 0.8]
-        color: "#3D2B1F"
-      }
-      object "Portcullis" using "IronWork" {
-        geometry: "cube"
-        position: [0, -0.2, 0.2]
-        scale: [1.4, 2.2, 0.08]
-        color: "#4a4a4a"
-      }
-    }
-
-    // ── Keep (Central Tower) ──────────────────────────────────────────────
-    object "Keep" using "TowerAshlar" {
-      geometry: "cube"
-      position: [0, 3.5, -1.5]
-      scale: [4, 6.5, 3.5]
-      color: "#7A6B5C"
-
-      object "KeepRoof" using "RoofSlate" {
-        geometry: "cone"
-        position: [0, 3.8, 0]
-        scale: [3.0, 2.5, 2.5]
+        position: [0, 4.3, 0]
+        scale: [2.4, 2.6, 2.4]
         color: "#5C2020"
       }
-      object "KeepWindow1" using "WindowGlow" {
+      object "DrumLeftArrowLoop" using "WindowGlow" {
         geometry: "cube"
-        position: [0, 1.5, 1.8]
-        scale: [0.5, 0.8, 0.1]
+        position: [0, 1.2, 1.05]
+        scale: [0.22, 1.0, 0.12]
         color: "#FFDD44"
 
-        point_light "KeepWindow1Glow" {
+        point_light "DrumLeftLoopGlow" {
           color: "#FFDD44"
           intensity: 1.2
           position: [0, 0, 0.3]
@@ -194,55 +130,226 @@ composition "MedievalCastle" {
           decay: 2
         }
       }
-      object "KeepWindow2" using "WindowGlow" {
+    }
+    object "GatehouseDrumRight" using "TowerAshlar" {
+      geometry: "cylinder"
+      position: [1.9, 3.6, 5.2]
+      scale: [2.1, 7.2, 2.1]
+      color: "#7A6B5C"
+
+      object "DrumRightRoof" using "RoofSlate" {
+        geometry: "cone"
+        position: [0, 4.3, 0]
+        scale: [2.4, 2.6, 2.4]
+        color: "#5C2020"
+      }
+      object "DrumRightArrowLoop" using "WindowGlow" {
         geometry: "cube"
-        position: [1.0, 1.5, 1.8]
-        scale: [0.5, 0.8, 0.1]
+        position: [0, 1.2, 1.05]
+        scale: [0.22, 1.0, 0.12]
         color: "#FFDD44"
       }
-      object "KeepWindow3" using "WindowGlow" {
-        geometry: "cube"
-        position: [-1.0, 1.5, 1.8]
-        scale: [0.5, 0.8, 0.1]
-        color: "#FFDD44"
+
+      // ── Sea-watch BEACON (starboard gate flank ONLY) ────────────────────
+      // The one tower that carries fire. A watch brazier on the right drum
+      // marks the approach as the seaward face — no other tower has this, so
+      // the whole front reads as the dominant, watched side.
+      object "BeaconBrazier" using "IronWork" {
+        geometry: "cylinder"
+        position: [0, 4.6, 0]
+        scale: [0.5, 0.4, 0.5]
+        color: "#2a2a2a"
+
+        object "BeaconFlame" using "BeaconFire" {
+          geometry: "sphere"
+          position: [0, 0.4, 0]
+          scale: [0.55, 0.7, 0.55]
+          color: "#ff6a1a"
+
+          point_light "BeaconGlow" {
+            color: "#ff8a3a"
+            intensity: 3.5
+            position: [0, 0.2, 0]
+            distance: 12
+            decay: 2
+          }
+        }
       }
     }
 
-    // ── Battlements (Wall Top Teeth) ──────────────────────────────────────
-    object "Merlon1" using "TowerAshlar" {
+    // ── Gate passage pinched between the two drums ─────────────────────────
+    // The central gate is the seat of power: the lord's banner flies from HERE,
+    // above the passage, not from a random corner tower.
+    object "GatePassage" using "WallAshlar" {
       geometry: "cube"
-      position: [-5, 4.0, 5]
-      scale: [0.6, 0.5, 0.6]
+      position: [0, 2.6, 5.2]
+      scale: [1.8, 5.2, 1.0]
+      color: "#6B5C4D"
+
+      object "GateArch" using "TimberDark" {
+        geometry: "cylinder"
+        position: [0, -1.3, 0.5]
+        rotation: [90, 0, 0]
+        scale: [0.7, 0.6, 0.7]
+        color: "#3D2B1F"
+      }
+      object "Portcullis" using "IronWork" {
+        geometry: "cube"
+        position: [0, -1.5, 0.55]
+        scale: [1.3, 2.0, 0.08]
+        color: "#4a4a4a"
+      }
+      // ── The lord's BANNER — flown from the gatehouse, its seat of power ───
+      object "GatehouseBannerPole" using "IronWork" {
+        geometry: "cylinder"
+        position: [0, 3.4, 0]
+        scale: [0.05, 1.8, 0.05]
+        color: "#cccccc"
+      }
+      object "GatehouseBanner" {
+        geometry: "cube"
+        position: [0.45, 3.7, 0]
+        scale: [0.9, 1.1, 0.02]
+        color: "#cc1111"
+      }
+    }
+
+    // ── Forward BARBICAN (projecting outwork gate ahead of the main gate) ──
+    // A low walled outwork thrust forward of the gatehouse, so the approach is
+    // read before the gate itself — you pass through the barbican, cross the
+    // drawbridge, THEN reach the twin drums. This is what makes the front the
+    // front from any angle.
+    object "BarbicanWallLeft" using "WallAshlar" {
+      geometry: "cube"
+      position: [-1.4, 1.4, 7.4]
+      scale: [0.4, 2.4, 2.6]
+      color: "#83725F"
+    }
+    object "BarbicanWallRight" using "WallAshlar" {
+      geometry: "cube"
+      position: [1.4, 1.4, 7.4]
+      scale: [0.4, 2.4, 2.6]
+      color: "#83725F"
+    }
+    object "BarbicanGate" using "TimberDark" {
+      geometry: "cube"
+      position: [0, 1.3, 8.6]
+      scale: [2.4, 2.2, 0.35]
+      color: "#3D2B1F"
+
+      object "BarbicanArch" using "IronWork" {
+        geometry: "cube"
+        position: [0, 1.2, 0]
+        scale: [2.6, 0.3, 0.4]
+        color: "#4a4a4a"
+      }
+    }
+    // ── DRAWBRIDGE ramp bridging barbican to gate over the (implied) ditch ──
+    object "Drawbridge" using "TimberDark" {
+      geometry: "cube"
+      position: [0, 0.55, 6.5]
+      rotation: [-6, 0, 0]
+      scale: [2.2, 0.18, 2.2]
+      color: "#4A3524"
+
+      object "DrawbridgeChainLeft" using "IronWork" {
+        geometry: "cylinder"
+        position: [-0.9, 0.6, 0.9]
+        rotation: [35, 0, 0]
+        scale: [0.03, 1.6, 0.03]
+        color: "#3a3a3a"
+      }
+      object "DrawbridgeChainRight" using "IronWork" {
+        geometry: "cylinder"
+        position: [0.9, 0.6, 0.9]
+        rotation: [35, 0, 0]
+        scale: [0.03, 1.6, 0.03]
+        color: "#3a3a3a"
+      }
+    }
+
+    // ── Rear corner angle-towers (UNEQUAL — no two towers alike) ────────────
+    // The quiet back of the concentric plan. Both are shorter and thinner than
+    // the gatehouse drums; and they differ from EACH OTHER — the back-left is a
+    // taller slim angle-tower, the back-right a squat stub. No mirror symmetry.
+    object "AngleTowerBackLeft" using "TowerAshlar" {
+      geometry: "cylinder"
+      position: [-6, 2.9, -5]
+      scale: [1.3, 5.8, 1.3]
+      color: "#7A6B5C"
+
+      object "AngleTowerBLRoof" using "RoofSlate" {
+        geometry: "cone"
+        position: [0, 3.4, 0]
+        scale: [1.6, 2.1, 1.6]
+        color: "#6B2D2D"
+      }
+    }
+    object "StubTowerBackRight" using "TowerAshlar" {
+      geometry: "cylinder"
+      position: [6, 1.9, -5]
+      scale: [1.6, 3.8, 1.6]
+      color: "#7A6B5C"
+
+      object "StubTowerBRRoof" using "RoofSlate" {
+        geometry: "cone"
+        position: [0, 2.4, 0]
+        scale: [1.9, 1.5, 1.9]
+        color: "#6B2D2D"
+      }
+    }
+
+    // ── Battlements: density follows the threat direction ───────────────────
+    // Merlons crowd the gatehouse and wrap onto the FRONT of the side walls;
+    // they thin as they run back and the rear curtain carries none. Not six
+    // identical teeth on one wall — a graded crest that points at the approach.
+    object "MerlonGateLeft" using "TowerAshlar" {
+      geometry: "cube"
+      position: [-3.4, 4.0, 5]
+      scale: [0.7, 0.6, 0.6]
       color: "#7A6B5C"
     }
-    object "Merlon2" using "TowerAshlar" {
+    object "MerlonGateLeft2" using "TowerAshlar" {
       geometry: "cube"
-      position: [-3, 4.0, 5]
-      scale: [0.6, 0.5, 0.6]
+      position: [-4.6, 4.0, 5]
+      scale: [0.7, 0.6, 0.6]
       color: "#7A6B5C"
     }
-    object "Merlon3" using "TowerAshlar" {
+    object "MerlonGateRight" using "TowerAshlar" {
       geometry: "cube"
-      position: [-1, 4.0, 5]
-      scale: [0.6, 0.5, 0.6]
+      position: [3.4, 4.0, 5]
+      scale: [0.7, 0.6, 0.6]
       color: "#7A6B5C"
     }
-    object "Merlon4" using "TowerAshlar" {
+    object "MerlonGateRight2" using "TowerAshlar" {
       geometry: "cube"
-      position: [1, 4.0, 5]
-      scale: [0.6, 0.5, 0.6]
+      position: [4.6, 4.0, 5]
+      scale: [0.7, 0.6, 0.6]
       color: "#7A6B5C"
     }
-    object "Merlon5" using "TowerAshlar" {
+    // Side-wall crest — present near the front corners, then stops mid-run.
+    object "MerlonSideLeftFront" using "TowerAshlar" {
       geometry: "cube"
-      position: [3, 4.0, 5]
-      scale: [0.6, 0.5, 0.6]
+      position: [-6, 4.0, 3.4]
+      scale: [0.6, 0.5, 0.7]
       color: "#7A6B5C"
     }
-    object "Merlon6" using "TowerAshlar" {
+    object "MerlonSideLeftMid" using "TowerAshlar" {
       geometry: "cube"
-      position: [5, 4.0, 5]
-      scale: [0.6, 0.5, 0.6]
+      position: [-6, 4.0, 1.4]
+      scale: [0.5, 0.4, 0.7]
+      color: "#7A6B5C"
+    }
+    object "MerlonSideRightFront" using "TowerAshlar" {
+      geometry: "cube"
+      position: [6, 4.0, 3.4]
+      scale: [0.6, 0.5, 0.7]
+      color: "#7A6B5C"
+    }
+    object "MerlonSideRightMid" using "TowerAshlar" {
+      geometry: "cube"
+      position: [6, 4.0, 1.4]
+      scale: [0.5, 0.4, 0.7]
       color: "#7A6B5C"
     }
   }
