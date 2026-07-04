@@ -75,6 +75,19 @@ const DEFAULT_EXCLUDE = [
 const DEFAULT_MAX_FILE_SIZE = 1024 * 1024; // 1MB
 const DEFAULT_MAX_FILES = 10_000;
 const BUILD_ARTIFACT_DIRS = new Set(['dist', 'build', 'out']);
+// Binary/asset extensions skipped during file discovery — they can't be absorbed and in
+// asset-heavy example dirs would flood the candidate pool and truncate discovery before
+// source packages are reached (fair-coverage fix, 2026-07-03).
+const NON_ABSORBABLE_EXT = new Set([
+  'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'ico', 'bmp', 'tif', 'tiff', 'avif', 'heic',
+  'mp4', 'mov', 'avi', 'webm', 'mkv', 'mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a',
+  'woff', 'woff2', 'ttf', 'otf', 'eot',
+  'zip', 'tar', 'gz', 'tgz', 'bz2', 'xz', 'rar', '7z',
+  'pdf', 'glb', 'gltf', 'fbx', 'obj', 'stl', 'ply', 'usdz', 'draco', 'ktx2', 'basis',
+  'bin', 'wasm', 'exe', 'dll', 'so', 'dylib', 'node', 'map',
+  'onnx', 'safetensors', 'gguf', 'pt', 'pth', 'ckpt', 'npy', 'npz', 'parquet',
+  'lock', 'woff', 'ds_store',
+]);
 
 export class CodebaseScanner {
   private adapterManager: AdapterManager;
@@ -715,40 +728,78 @@ export class CodebaseScanner {
     maxFiles: number,
     languages?: SupportedLanguage[]
   ): string[] {
-    const files: string[] = [];
     const langFilter = languages ? new Set(languages) : null;
 
+    // Phase 1 — DISCOVER candidate paths. Skip binary/asset files (they can't be absorbed and,
+    // in asset-heavy example dirs, would flood the pool and truncate discovery before packages/
+    // is reached). A high ceiling then only guards truly pathological repos.
+    const HARD = Math.max(maxFiles * 20, 120000);
+    const all: string[] = [];
     const walk = (dir: string): void => {
-      if (files.length >= maxFiles) return;
-
+      if (all.length >= HARD) return;
       let entries: fs.Dirent[];
       try {
         entries = fs.readdirSync(dir, { withFileTypes: true });
       } catch {
         return;
       }
-
       for (const entry of entries) {
-        if (files.length >= maxFiles) break;
-
+        if (all.length >= HARD) break;
         const name = entry.name;
         if (exclude.has(name)) continue;
         if (name.startsWith('.') && name !== '.') continue;
-
         const fullPath = path.join(dir, name);
-
         if (entry.isDirectory()) {
           walk(fullPath);
         } else if (entry.isFile()) {
+          const dot = name.lastIndexOf('.');
+          const ext = dot >= 0 ? name.slice(dot + 1).toLowerCase() : '';
+          if (NON_ABSORBABLE_EXT.has(ext)) continue;
           const lang = detectLanguage(fullPath) || 'plaintext';
           if (langFilter && !langFilter.has(lang)) continue;
-          files.push(fullPath);
+          all.push(fullPath);
         }
       }
     };
-
     walk(rootDir);
-    return files;
+    if (all.length <= maxFiles) return all;
+
+    // Phase 2 — FAIR selection. A plain depth-first cap lets whatever directory sorts first
+    // (e.g. examples/) exhaust the whole budget before packages/ is ever reached. Group by a
+    // coverage key (each monorepo PACKAGE is its own group) and round-robin WITHIN priority
+    // tiers so source is covered before examples/docs/fixtures and no single package dominates.
+    const CONTAINERS = new Set(['packages', 'apps', 'libs', 'lib', 'modules', 'plugins']);
+    const keyOf = (fp: string): string => {
+      const segs = path.relative(rootDir, fp).split(path.sep);
+      if (segs.length > 1 && CONTAINERS.has(segs[0].toLowerCase())) return `${segs[0]}/${segs[1]}`;
+      return segs[0] || '.';
+    };
+    const SOURCE = /(^|[\/\\])(packages|apps?|libs?|src|engine|core|services?|modules|plugins)([\/\\]|$)/i;
+    const CHAFF = /(^|[\/\\])(examples?|experiments?|demos?|samples?|fixtures?|__fixtures__|docs?|archive|benchmarks?|stress-tests?)([\/\\]|$)/i;
+    const tierOf = (key: string): number => (CHAFF.test(key) ? 2 : SOURCE.test(key) ? 0 : 1);
+
+    const groups = new Map<string, string[]>();
+    for (const fp of all) {
+      const k = keyOf(fp);
+      let arr = groups.get(k);
+      if (!arr) { arr = []; groups.set(k, arr); }
+      arr.push(fp);
+    }
+    const selected: string[] = [];
+    for (const tier of [0, 1, 2]) {
+      const tierGroups = [...groups.entries()].filter(([k]) => tierOf(k) === tier).map(([, arr]) => arr);
+      let progressed = true;
+      while (selected.length < maxFiles && progressed) {
+        progressed = false;
+        for (const arr of tierGroups) {
+          if (selected.length >= maxFiles) break;
+          const next = arr.shift();
+          if (next !== undefined) { selected.push(next); progressed = true; }
+        }
+      }
+      if (selected.length >= maxFiles) break;
+    }
+    return selected;
   }
 
   private buildExcludeSet(userExclude?: string[], includeBuildArtifacts = false): Set<string> {

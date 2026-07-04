@@ -35,6 +35,7 @@ async function refresh(rootDir = REPO, maxFiles = 2500) {
     rootDir,
     embeddingProvider: 'holoembed',
     maxFiles,
+    force: true, // bypass incremental/cache reuse — always a full fresh scan
   }));
   const stats = res?.stats || res?.graph?.stats || {};
   console.log(`[holo-graph] done in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
