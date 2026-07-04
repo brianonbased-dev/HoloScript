@@ -1,0 +1,21 @@
+composition "ConsideredForest" {
+  // FIXTURE (considered): a seeded generator — ONE source expanded into a unique set
+  // per seed, every instance varied. seed pins reproducibility; random_scale +
+  // random_rotation make each tree its own. Same seed → the same forest byte-for-byte;
+  // a different seed → a different considered forest, never the average one. The gate
+  // must classify this CONSIDERED (zero clones).
+  procedural "ForestTerrain" {
+    resolution: [512, 512]
+    world_size: [500, 500]
+    seed: 2026
+  }
+  scatter "Trees" {
+    source: "PineTree"
+    count: 2000
+    seed: 2026
+    min_distance: 3.0
+    slope_limit: 35
+    random_rotation: [0, 360]
+    random_scale: [0.8, 1.4]
+  }
+}

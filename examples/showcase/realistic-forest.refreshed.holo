@@ -417,6 +417,11 @@ composition "RealisticForest_Twilight" {
   scatter "TreeDistribution" {
     source: "ForestTerrain"
     count: 2000
+    // seed pins reproducibility: THIS forest from seed 2026, byte-for-byte, every time —
+    // and a different (still considered) forest from a different seed. Per-instance
+    // random_rotation + random_scale keep every one of the 2000 trees its own, so it is
+    // never a field of identical clones. Unique-per-seed, not the average forest.
+    seed: 2026
     min_distance: 3.0
     slope_limit: 35
     align_to_normal: true

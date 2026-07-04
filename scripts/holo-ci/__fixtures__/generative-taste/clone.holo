@@ -1,0 +1,11 @@
+composition "CloneForest" {
+  // FIXTURE (clone / assembled): the statistical-average generator — an instance set
+  // with a count but NO per-instance variation and no declared seed, so it stamps out
+  // N identical copies of one source (a forest of 2000 identical trees). The gate must
+  // FLAG this (clone generativity).
+  scatter "Trees" {
+    source: "PineTree"
+    count: 2000
+    min_distance: 3.0
+  }
+}

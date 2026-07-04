@@ -1,0 +1,16 @@
+{
+  "generatedAt": "2026-07-04T03:06:21.439Z",
+  "scanDir": "examples",
+  "totalFiles": 380,
+  "generativeFiles": 2,
+  "counts": {
+    "considered": 2,
+    "clone": 0,
+    "unseeded": 0,
+    "none": 314,
+    "parse-error": 64,
+    "unreadable": 0
+  },
+  "cloneCount": 0,
+  "unseededCount": 0
+}
