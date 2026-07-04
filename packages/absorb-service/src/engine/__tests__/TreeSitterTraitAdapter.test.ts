@@ -8,8 +8,12 @@
  */
 import { describe, it, expect } from 'vitest';
 import { TreeSitterTraitAdapter } from '../adapters/TreeSitterTraitAdapter';
-import { RUBY_TRAIT } from '../adapters/language-traits';
+import { LANGUAGE_TRAITS } from '../adapters/language-traits';
 import type { ParseTree, SyntaxNode } from '../types';
+
+// Ruby is now authored solely as language-adapters/ruby.holo and @generated into
+// LANGUAGE_TRAITS — derive it here rather than importing a hand-duplicated const.
+const RUBY_TRAIT = LANGUAGE_TRAITS.find((t) => t.language === 'ruby')!;
 
 // ── Minimal SyntaxNode mock factory ───────────────────────────────────────────
 interface NodeSpec {

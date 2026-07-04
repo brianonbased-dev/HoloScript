@@ -57,30 +57,11 @@ export interface LanguageTrait {
 }
 
 /**
- * Ruby — added entirely as data (tree-sitter-ruby node grammar). No RubyAdapter
- * class exists; TreeSitterTraitAdapter(RUBY_TRAIT) provides symbol/import/call
- * extraction. This is the falsifier for "a language can be added without core
- * extraction code."
+ * The concrete language traits are @generated from `language-adapters/*.holo`
+ * (@language_adapter declarations) by `scripts/gen-language-traits.mjs` — the .holo is the
+ * single source of truth; this module only re-exports the build artifact. Author a new
+ * data-driven language by adding a `.holo`, NOT by editing TypeScript (D.104, founder
+ * 2026-07-03: "HoloScript formats make the product like absorb"). The hand-duplicated
+ * RUBY_TRAIT const was deleted — Ruby now lives solely in `language-adapters/ruby.holo`.
  */
-export const RUBY_TRAIT: LanguageTrait = {
-  language: 'ruby',
-  extensions: ['.rb', '.rake', '.gemspec'],
-  grammarPackage: 'tree-sitter-ruby',
-  symbols: [
-    { nodeType: 'module', kind: 'module', nameField: 'name', container: true },
-    { nodeType: 'class', kind: 'class', nameField: 'name', container: true },
-    { nodeType: 'method', kind: 'method', nameField: 'name' },
-    { nodeType: 'singleton_method', kind: 'method', nameField: 'name' },
-  ],
-  imports: [
-    {
-      callNodeType: 'call',
-      methodField: 'method',
-      methodNames: ['require', 'require_relative', 'load', 'autoload'],
-    },
-  ],
-  calls: [{ callNodeType: 'call', methodField: 'method', receiverField: 'receiver' }],
-};
-
-/** All languages currently provided as traits (vs. bespoke adapter classes). */
-export const LANGUAGE_TRAITS: LanguageTrait[] = [RUBY_TRAIT];
+export { LANGUAGE_TRAITS } from './language-traits.generated';

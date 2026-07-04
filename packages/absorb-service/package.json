@@ -70,6 +70,8 @@
     "test": "vitest run --passWithNoTests",
     "generate:language-registry": "tsx scripts/check-language-registry.mjs --write",
     "check:language-registry": "tsx scripts/check-language-registry.mjs",
+    "generate:language-traits": "tsx scripts/gen-language-traits.mjs",
+    "check:language-traits": "tsx scripts/gen-language-traits.mjs --check",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage --passWithNoTests"
   },
