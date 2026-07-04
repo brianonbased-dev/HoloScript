@@ -169,35 +169,54 @@ function resolvePosition(
 }
 
 /**
- * Resolve a uniform radius/size from a HoloObjectDecl for SVG sizing.
- * Checks `radius`, `size`, `width`, `scale` properties in order.
+ * Resolve the object's scale as {x,y,z}. Scale may be a typed field OR a
+ * `scale: [x,y,z]` property array (the common .holo form). The previous code only
+ * read the typed field, so array-scaled primitives collapsed to unit size.
  */
-function resolveRadius(node: HoloObjectDecl, scale: number): number {
-  const r =
-    toNumber(objProp(node, 'radius'), -1) !== -1
-      ? toNumber(objProp(node, 'radius'), 0.5)
-      : toNumber(objProp(node, 'size'), -1) !== -1
-      ? toNumber(objProp(node, 'size'), 0.5)
-      : toNumber(objProp(node, 'width'), -1) !== -1
-      ? toNumber(objProp(node, 'width'), 0.5)
-      : 0.5;
-  // Also check node.scale.x if set
-  if (node.scale) {
-    const sx = toNumber(node.scale.x as HoloValue, 1);
-    return r * sx * scale;
+function resolveScale(node: HoloObjectDecl): { x: number; y: number; z: number } {
+  const typed = (node as unknown as { scale?: { x?: HoloValue; y?: HoloValue; z?: HoloValue } }).scale;
+  if (typed && typeof typed === 'object') {
+    return { x: toNumber(typed.x, 1), y: toNumber(typed.y, 1), z: toNumber(typed.z, 1) };
   }
-  return r * scale;
+  const s = objProp(node, 'scale');
+  if (Array.isArray(s)) return { x: toNumber(s[0], 1), y: toNumber(s[1], 1), z: toNumber(s[2], 1) };
+  if (s && typeof s === 'object' && !('__bind' in s)) {
+    const rec = s as Record<string, HoloValue>;
+    return { x: toNumber(rec['x'], 1), y: toNumber(rec['y'], 1), z: toNumber(rec['z'], 1) };
+  }
+  if (typeof s === 'number') return { x: s, y: s, z: s };
+  return { x: 1, y: 1, z: 1 };
 }
 
-function resolveWidthHeight(
-  node: HoloObjectDecl,
-  scale: number
-): { w: number; h: number } {
-  const w = toNumber(objProp(node, 'width'), toNumber(objProp(node, 'size'), 1));
-  const h = toNumber(objProp(node, 'height'), toNumber(objProp(node, 'depth'), w));
-  const sx = node.scale ? toNumber(node.scale.x as HoloValue, 1) : 1;
-  const sz = node.scale ? toNumber(node.scale.z as HoloValue, 1) : 1;
-  return { w: w * sx * scale, h: h * sz * scale };
+/** Resolve the Y-axis (yaw) rotation in degrees, for the top-down planform. */
+function resolveRotationY(node: HoloObjectDecl): number {
+  const typed = (node as unknown as { rotation?: { y?: HoloValue } }).rotation;
+  if (typed && typeof typed === 'object') return toNumber(typed.y, 0);
+  const r = objProp(node, 'rotation');
+  if (Array.isArray(r)) return toNumber(r[1], 0);
+  if (r && typeof r === 'object' && !('__bind' in r)) return toNumber((r as Record<string, HoloValue>)['y'], 0);
+  return 0;
+}
+
+/**
+ * Resolve a footprint radius for round primitives. Uses an explicit radius/size
+ * property when present, otherwise the object's scale (unit primitives sized by scale).
+ */
+function resolveRadius(node: HoloObjectDecl, scale: number): number {
+  const explicit = toNumber(objProp(node, 'radius'), -1);
+  if (explicit !== -1) return explicit * scale;
+  const size = toNumber(objProp(node, 'size'), -1);
+  if (size !== -1) return size * scale;
+  const s = resolveScale(node);
+  return Math.max(Math.abs(s.x), Math.abs(s.z)) * scale;
+}
+
+/** Resolve the top-down width (x) and depth (z) footprint in SVG pixels. */
+function resolveWidthHeight(node: HoloObjectDecl, scale: number): { w: number; h: number } {
+  const s = resolveScale(node);
+  const baseW = toNumber(objProp(node, 'width'), 1);
+  const baseD = toNumber(objProp(node, 'depth'), toNumber(objProp(node, 'height'), 1));
+  return { w: Math.abs(baseW * s.x) * scale, h: Math.abs(baseD * s.z) * scale };
 }
 
 // ─── Compiler class ───────────────────────────────────────────────────────────
@@ -285,9 +304,9 @@ export class SVGCompiler extends CompilerBase {
       lines.push(...groupLines);
     }
 
-    // ── Top-level objects ────────────────────────────────────────────────
+    // ── Top-level objects (each recurses into its own children) ──────────
     for (const obj of composition.objects ?? []) {
-      lines.push(this.compileObject(obj, indent, originX, originY));
+      lines.push(...this.compileObject(obj, indent, originX, originY));
     }
 
     lines.push('</svg>');
@@ -363,7 +382,7 @@ export class SVGCompiler extends CompilerBase {
 
     // Child objects
     for (const obj of group.objects ?? []) {
-      lines.push(this.compileObject(obj, indent + '  ', originX, originY));
+      lines.push(...this.compileObject(obj, indent + '  ', originX, originY));
     }
 
     // Nested groups
@@ -381,56 +400,60 @@ export class SVGCompiler extends CompilerBase {
     node: HoloObjectDecl,
     indent: string,
     originX: number,
-    originY: number
-  ): string {
-    this.elementCount++;
+    originY: number,
+    parentX = 0,
+    parentZ = 0
+  ): string[] {
     const pos = resolvePosition(node);
-    const svgX = projectX(pos.x, this.opts.scale, originX);
-    const svgY = projectY(pos.z, this.opts.scale, originY);
+    // Children position RELATIVE to the parent — accumulate the world offset so a
+    // scene authored under a container object ("Ship" { ...all geometry }) renders.
+    const worldX = parentX + pos.x;
+    const worldZ = parentZ + pos.z;
+    const svgX = projectX(worldX, this.opts.scale, originX);
+    const svgY = projectY(worldZ, this.opts.scale, originY);
     const fill = resolveColor(node, '#4a9eff');
-    const label = escapeAttr(node.name);
-    const dataAttr = `data-holo-object="${label}"`;
+    const dataAttr = `data-holo-object="${escapeAttr(node.name)}"`;
 
-    // Derive the primitive type from the `type` object property or the name heuristic
+    // The primitive: prefer the actual `geometry` property (the real .holo form),
+    // then a `type` property, then a name heuristic. (The old code ignored `geometry`.)
+    const geom = toString(objProp(node, 'geometry'), '').toLowerCase();
     const typeProp = toString(objProp(node, 'type'), '').toLowerCase();
     const nameLower = node.name.toLowerCase();
+    const children = (node.children ?? []) as HoloObjectDecl[];
+    const nameHint =
+      nameLower.includes('sphere') || nameLower.includes('ball') || nameLower.includes('orb') ? 'sphere'
+      : nameLower.includes('box') || nameLower.includes('cube') || nameLower.includes('wall') ? 'box'
+      : nameLower.includes('cylinder') || nameLower.includes('column') || nameLower.includes('pillar') ? 'cylinder'
+      : nameLower.includes('cone') ? 'cone'
+      : nameLower.includes('plane') || nameLower.includes('floor') || nameLower.includes('ground') ? 'plane'
+      : nameLower.includes('text') || nameLower.includes('label') || nameLower.includes('sign') ? 'text'
+      : 'unknown';
+    const shapeHint = geom || typeProp || nameHint;
 
-    const shapeHint =
-      typeProp ||
-      (nameLower.includes('sphere') || nameLower.includes('ball') || nameLower.includes('orb')
-        ? 'sphere'
-        : nameLower.includes('box') || nameLower.includes('cube') || nameLower.includes('wall')
-        ? 'box'
-        : nameLower.includes('cylinder') || nameLower.includes('column') || nameLower.includes('pillar')
-        ? 'cylinder'
-        : nameLower.includes('plane') || nameLower.includes('floor') || nameLower.includes('ground')
-        ? 'plane'
-        : nameLower.includes('text') || nameLower.includes('label') || nameLower.includes('sign')
-        ? 'text'
-        : 'unknown');
+    // A pure container (no geometry of its own, but has children) emits no shape —
+    // it only positions its children, rather than a spurious dashed placeholder box.
+    const hasOwnShape =
+      geom !== '' || typeProp !== '' ||
+      objProp(node, 'radius') !== undefined || objProp(node, 'width') !== undefined ||
+      children.length === 0;
 
-    switch (shapeHint) {
-      case 'sphere':
-        return this.compileSphere(node, svgX, svgY, fill, indent, dataAttr);
-
-      case 'box':
-      case 'cube':
-        return this.compileBox(node, svgX, svgY, fill, indent, dataAttr);
-
-      case 'cylinder':
-        return this.compileCylinder(node, svgX, svgY, fill, indent, dataAttr);
-
-      case 'plane':
-      case 'floor':
-      case 'ground':
-        return this.compilePlane(node, svgX, svgY, fill, indent, dataAttr);
-
-      case 'text':
-        return this.compileText(node, svgX, svgY, fill, indent, dataAttr);
-
-      default:
-        return this.compileUnknown(node, svgX, svgY, fill, indent, dataAttr);
+    const out: string[] = [];
+    if (hasOwnShape) {
+      this.elementCount++;
+      switch (shapeHint) {
+        case 'sphere': out.push(this.compileSphere(node, svgX, svgY, fill, indent, dataAttr)); break;
+        case 'box': case 'cube': out.push(this.compileBox(node, svgX, svgY, fill, indent, dataAttr)); break;
+        case 'cylinder': out.push(this.compileCylinder(node, svgX, svgY, fill, indent, dataAttr)); break;
+        case 'cone': out.push(this.compileCone(node, svgX, svgY, fill, indent, dataAttr)); break;
+        case 'plane': case 'floor': case 'ground': out.push(this.compilePlane(node, svgX, svgY, fill, indent, dataAttr)); break;
+        case 'text': out.push(this.compileText(node, svgX, svgY, fill, indent, dataAttr)); break;
+        default: out.push(this.compileUnknown(node, svgX, svgY, fill, indent, dataAttr)); break;
+      }
     }
+    for (const child of children) {
+      out.push(...this.compileObject(child, indent, originX, originY, worldX, worldZ));
+    }
+    return out;
   }
 
   // ─── Shape emitters ──────────────────────────────────────────────────
@@ -458,7 +481,27 @@ export class SVGCompiler extends CompilerBase {
     const { w, h } = resolveWidthHeight(node, this.opts.scale);
     const x = (cx - w / 2).toFixed(1);
     const y = (cy - h / 2).toFixed(1);
-    return `${indent}<rect x="${x}" y="${y}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="${escapeAttr(fill)}" ${dataAttr} />`;
+    const yaw = resolveRotationY(node);
+    const transform = Math.abs(yaw) > 0.5 ? ` transform="rotate(${(-yaw).toFixed(1)} ${cx.toFixed(1)} ${cy.toFixed(1)})"` : '';
+    return `${indent}<rect x="${x}" y="${y}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="${escapeAttr(fill)}"${transform} ${dataAttr} />`;
+  }
+
+  /** Cone → a triangle in the top-down planform (apex forward along -z / up). */
+  private compileCone(
+    node: HoloObjectDecl,
+    cx: number,
+    cy: number,
+    fill: string,
+    indent: string,
+    dataAttr: string
+  ): string {
+    const { w, h } = resolveWidthHeight(node, this.opts.scale);
+    const hw = Math.max(w / 2, 2);
+    const hh = Math.max(h / 2, 2);
+    const yaw = resolveRotationY(node);
+    const pts = `${cx.toFixed(1)},${(cy - hh).toFixed(1)} ${(cx - hw).toFixed(1)},${(cy + hh).toFixed(1)} ${(cx + hw).toFixed(1)},${(cy + hh).toFixed(1)}`;
+    const transform = Math.abs(yaw) > 0.5 ? ` transform="rotate(${(-yaw).toFixed(1)} ${cx.toFixed(1)} ${cy.toFixed(1)})"` : '';
+    return `${indent}<polygon points="${pts}" fill="${escapeAttr(fill)}"${transform} ${dataAttr} />`;
   }
 
   private compileCylinder(
