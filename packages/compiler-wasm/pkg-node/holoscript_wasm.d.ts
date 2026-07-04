@@ -20,6 +20,15 @@
  */
 export function compile_to_kotlin(source: string, indent: string): string;
 
+/**
+ * Compile top-level `.hs` functions to a UAAL bytecode packet.
+ *
+ * This mirrors [`compile_to_kotlin`]'s JSON boundary but targets the stack-based
+ * UAAL VM: success returns `{"version":1,"instructions":[...]}`, failure returns
+ * `{"error":"..."}`.
+ */
+export function compile_to_uaal(source: string): string;
+
 export function init(): void;
 
 /**

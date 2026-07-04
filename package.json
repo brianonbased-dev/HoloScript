@@ -115,6 +115,8 @@
     "check:boundary": "node scripts/boundary-ratchet.mjs",
     "check:boundary:update": "node scripts/boundary-ratchet.mjs --update",
     "check:studio-typecheck": "node scripts/holo-ci/studio-typecheck.mjs",
+    "check:compiler-wasm-drift": "node scripts/holo-ci/check-compiler-wasm-drift.mjs",
+    "check:compiler-wasm-drift:test": "node --test scripts/__tests__/check-compiler-wasm-drift.test.mjs",
     "check:publish-surface": "node scripts/holo-ci/check-publish-surface.mjs",
     "check:publish-surface:update": "node scripts/holo-ci/check-publish-surface.mjs --update",
     "check:npm-v1-release": "node scripts/holo-ci/check-npm-v1-release-readiness.mjs",

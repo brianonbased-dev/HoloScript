@@ -42,6 +42,35 @@ function compile_to_kotlin(source, indent) {
 }
 exports.compile_to_kotlin = compile_to_kotlin;
 
+/**
+ * Compile top-level `.hs` functions to a UAAL bytecode packet.
+ *
+ * This mirrors [`compile_to_kotlin`]'s JSON boundary but targets the stack-based
+ * UAAL VM: success returns `{"version":1,"instructions":[...]}`, failure returns
+ * `{"error":"..."}`.
+ * @param {string} source
+ * @returns {string}
+ */
+function compile_to_uaal(source) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(source, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.compile_to_uaal(retptr, ptr0, len0);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        deferred2_0 = r0;
+        deferred2_1 = r1;
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_export(deferred2_0, deferred2_1, 1);
+    }
+}
+exports.compile_to_uaal = compile_to_uaal;
+
 function init() {
     wasm.init();
 }
