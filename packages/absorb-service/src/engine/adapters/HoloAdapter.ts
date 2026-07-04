@@ -55,6 +55,37 @@ interface HoloCoreSurface {
     warnings: unknown[];
     partial: boolean;
   };
+  /** The REAL .hsplus (trait/brain) parser — core's `parse`. Distinct grammar from
+   *  parseHoloPartial (the .holo composition parser). Present only when core exports it. */
+  parseHsplus?(source: string): {
+    success: boolean;
+    ast: HsplusAstLite;
+    errors?: Array<{ message: string; line?: number; column?: number }>;
+    warnings?: unknown[];
+  };
+}
+
+/** Minimal shape of an hsplus AST node (trait/brain/agent/object declaration). The
+ *  identifier lands in `type`; @trait/@brain/@on_* directives + capability_tags carry the
+ *  semantics the .holo composition parser flattened away. */
+interface HsplusNodeLite {
+  type: string;
+  name?: string;
+  properties?: Record<string, unknown>;
+  directives?: Array<{ type?: string; name: string; config?: Record<string, unknown> }>;
+  children?: HsplusNodeLite[];
+  traits?: unknown[];
+  loc?: LocLite;
+}
+interface HsplusAstLite {
+  type: string;
+  properties?: Record<string, unknown>;
+  directives?: Array<{ type?: string; name: string; config?: Record<string, unknown> }>;
+  children?: HsplusNodeLite[];
+  compositions?: HsplusNodeLite[];
+  worlds?: HsplusNodeLite[];
+  npcs?: HsplusNodeLite[];
+  loc?: LocLite;
 }
 
 interface LocLite {
@@ -132,8 +163,11 @@ interface HoloCompositionLite extends HoloNodeLite {
 export interface HoloParseTree extends ParseTree {
   /** Raw source — for range slicing and line-based recovery */
   __holoSource: string;
-  /** Parsed composition AST from `parseHoloPartial()` */
-  __holoAST: HoloCompositionLite;
+  /** Which grammar produced __holoAST: 'holo' = parseHoloPartial (composition),
+   *  'hsplus' = parseHsplus (trait/brain). Governs which extractor runs. */
+  __holoKind: 'holo' | 'hsplus';
+  /** Parsed AST — a composition (holo) or an hsplus declaration tree */
+  __holoAST: HoloCompositionLite | HsplusAstLite;
   /** Parse errors (non-fatal thanks to tolerant mode) */
   __holoErrors: Array<{ message: string; loc?: { line: number; column: number } }>;
   /** True whenever the parse was partial (i.e. the source had errors) */
@@ -175,10 +209,30 @@ export class HoloAdapter implements LanguageAdapter {
     const core = await this.loadCore();
     if (!core) return null;
 
-    const { ast, errors, partial } = core.parseHoloPartial(source, {
-      locations: true,
-      tolerant: true,
-    });
+    // Route by extension: .hsplus (trait/brain) -> the real hsplus parser; .holo (and .hs for
+    // now, until slice 2) -> the composition parser. Using the .holo parser on .hsplus flattened
+    // every trait to a nameless `composition` — the bug this fixes.
+    const isHsplus = filePath.endsWith('.hsplus');
+    let kind: 'holo' | 'hsplus' = 'holo';
+    let ast: HoloCompositionLite | HsplusAstLite;
+    let errors: Array<{ message: string; loc?: { line: number; column: number } }>;
+    let partial: boolean;
+
+    if (isHsplus && core.parseHsplus) {
+      const r = core.parseHsplus(source);
+      kind = 'hsplus';
+      ast = r.ast;
+      errors = (r.errors ?? []).map((e) => ({
+        message: e.message,
+        loc: e.line != null ? { line: e.line, column: e.column ?? 0 } : undefined,
+      }));
+      partial = !r.success;
+    } else {
+      const r = core.parseHoloPartial(source, { locations: true, tolerant: true });
+      ast = r.ast;
+      errors = r.errors;
+      partial = r.partial;
+    }
 
     const lineCount = source.split('\n').length;
 
@@ -201,6 +255,7 @@ export class HoloAdapter implements LanguageAdapter {
     return {
       rootNode: rootNode as unknown as HoloParseTree['rootNode'],
       __holoSource: source,
+      __holoKind: kind,
       __holoAST: ast,
       __holoErrors: errors,
       __holoPartial: partial,
@@ -211,9 +266,13 @@ export class HoloAdapter implements LanguageAdapter {
 
   extractSymbols(tree: ParseTree, filePath: string): ExternalSymbolDefinition[] {
     const holoTree = tree as HoloParseTree;
-    const ast = holoTree.__holoAST;
-    if (!ast) return [];
+    const rawAst = holoTree.__holoAST;
+    if (!rawAst) return [];
+    if (holoTree.__holoKind === 'hsplus') {
+      return this.extractHsplusSymbols(rawAst as HsplusAstLite, filePath);
+    }
 
+    const ast = rawAst as HoloCompositionLite;
     const symbols: ExternalSymbolDefinition[] = [];
 
     // Composition itself = one top-level symbol.
@@ -290,7 +349,8 @@ export class HoloAdapter implements LanguageAdapter {
 
   extractImports(tree: ParseTree, filePath: string): ImportEdge[] {
     const holoTree = tree as HoloParseTree;
-    const ast = holoTree.__holoAST;
+    if (holoTree.__holoKind === 'hsplus') return []; // hsplus import edges: slice 3
+    const ast = holoTree.__holoAST as HoloCompositionLite;
     if (!ast) return [];
 
     const edges: ImportEdge[] = [];
@@ -316,7 +376,8 @@ export class HoloAdapter implements LanguageAdapter {
    */
   extractCalls(tree: ParseTree, filePath: string): CallEdge[] {
     const holoTree = tree as HoloParseTree;
-    const ast = holoTree.__holoAST;
+    if (holoTree.__holoKind === 'hsplus') return []; // hsplus trait-composition edges: slice 3
+    const ast = holoTree.__holoAST as HoloCompositionLite;
     if (!ast) return [];
 
     const edges: CallEdge[] = [];
@@ -491,6 +552,63 @@ export class HoloAdapter implements LanguageAdapter {
     return parts.length > 0 ? parts.join(' ') : undefined;
   }
 
+  /**
+   * Extract trait/brain/agent declarations from an hsplus AST as first-class symbols with their
+   * REAL identifiers — the .holo composition parser flattened these to nameless `composition`
+   * nodes (identifier dropped). Each top-level declaration -> a symbol whose signature carries
+   * kind + capability_tags (the declarative semantics HoloEmbed/nomic match on); each `@on_*`
+   * directive -> a handler symbol. Robust to partial parses (repo .hsplus often parse with errors).
+   */
+  private extractHsplusSymbols(ast: HsplusAstLite, filePath: string): ExternalSymbolDefinition[] {
+    const symbols: ExternalSymbolDefinition[] = [];
+    const KIND_KEYWORDS = new Set([
+      'trait', 'brain', 'agent', 'daemon', 'world', 'npc', 'object', 'composition', 'template',
+    ]);
+    const decls: HsplusNodeLite[] = [
+      ...(ast.children ?? []),
+      ...(ast.compositions ?? []),
+      ...(ast.worlds ?? []),
+      ...(ast.npcs ?? []),
+    ];
+    for (const node of decls) {
+      const name = (node.type || node.name || '').trim();
+      if (!name) continue;
+      const directives = node.directives ?? [];
+      // kind = the declaration keyword among directives (trait/brain/agent/...), else 'trait'
+      const kind = directives.map((d) => d.name).find((n) => KIND_KEYWORDS.has(n)) ?? 'trait';
+      const rawTags = (node.properties as Record<string, unknown> | undefined)?.capability_tags;
+      const tags = Array.isArray(rawTags) ? rawTags.map(String) : [];
+      symbols.push(
+        this.makeSymbol({
+          name,
+          type: 'trait', // ExternalSymbolType has no brain/agent — real kind lives in the signature
+          filePath,
+          loc: node.loc,
+          signature: `${kind} ${name}${tags.length ? ` [${tags.join(', ')}]` : ''}`,
+          docComment: tags.length ? `capability_tags: ${tags.join(', ')}` : undefined,
+          isExported: true,
+        })
+      );
+      // @on_* directives -> handler symbols (on_spawn / on_grab / on_task / ...)
+      for (const d of directives) {
+        if (/^on_/.test(d.name)) {
+          symbols.push(
+            this.makeSymbol({
+              name: `${name}.${d.name}`,
+              type: 'method',
+              filePath,
+              loc: node.loc,
+              owner: name,
+              signature: `@${d.name} of ${kind} ${name}`,
+              isExported: false,
+            })
+          );
+        }
+      }
+    }
+    return symbols;
+  }
+
   private async loadCore(): Promise<HoloCoreSurface | null> {
     if (this.coreRef) return this.coreRef;
     if (this.coreLoadAttempted) return null;
@@ -499,14 +617,21 @@ export class HoloAdapter implements LanguageAdapter {
     try {
       const mod = (await import('@holoscript/core')) as unknown as {
         parseHoloPartial?: HoloCoreSurface['parseHoloPartial'];
-        default?: { parseHoloPartial?: HoloCoreSurface['parseHoloPartial'] };
+        parse?: HoloCoreSurface['parseHsplus'];
+        default?: {
+          parseHoloPartial?: HoloCoreSurface['parseHoloPartial'];
+          parse?: HoloCoreSurface['parseHsplus'];
+        };
       };
       const parseHoloPartial = mod.parseHoloPartial ?? mod.default?.parseHoloPartial;
       if (typeof parseHoloPartial !== 'function') {
         this.coreLoadError = '@holoscript/core does not export parseHoloPartial';
         return null;
       }
-      this.coreRef = { parseHoloPartial };
+      // The .hsplus (trait/brain) parser is core's `parse`. Optional — .hsplus falls back to
+      // the composition parser (shallow) if absent, rather than hard-failing the whole adapter.
+      const parseHsplus = mod.parse ?? mod.default?.parse;
+      this.coreRef = { parseHoloPartial, parseHsplus: typeof parseHsplus === 'function' ? parseHsplus : undefined };
       return this.coreRef;
     } catch (err) {
       this.coreLoadError = err instanceof Error ? err.message : String(err);
