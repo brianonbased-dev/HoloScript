@@ -164,9 +164,11 @@ export interface HoloParseTree extends ParseTree {
   /** Raw source — for range slicing and line-based recovery */
   __holoSource: string;
   /** Which grammar produced __holoAST: 'holo' = parseHoloPartial (composition),
-   *  'hsplus' = parseHsplus (trait/brain). Governs which extractor runs. */
-  __holoKind: 'holo' | 'hsplus';
-  /** Parsed AST — a composition (holo) or an hsplus declaration tree */
+   *  'hsplus' = parseHsplus (trait/brain), 'hs' = parseHsplus over base logic
+   *  (functions/objects — the .hs logic layer shares the HoloScriptPlus parser,
+   *  as the canonical `parse_hs` handler does). Governs which extractor runs. */
+  __holoKind: 'holo' | 'hsplus' | 'hs';
+  /** Parsed AST — a composition (holo) or an hsplus/hs declaration tree */
   __holoAST: HoloCompositionLite | HsplusAstLite;
   /** Parse errors (non-fatal thanks to tolerant mode) */
   __holoErrors: Array<{ message: string; loc?: { line: number; column: number } }>;
@@ -209,18 +211,21 @@ export class HoloAdapter implements LanguageAdapter {
     const core = await this.loadCore();
     if (!core) return null;
 
-    // Route by extension: .hsplus (trait/brain) -> the real hsplus parser; .holo (and .hs for
-    // now, until slice 2) -> the composition parser. Using the .holo parser on .hsplus flattened
-    // every trait to a nameless `composition` — the bug this fixes.
+    // Route by extension: .hsplus (trait/brain) AND .hs (base logic — functions/objects)
+    // -> the real HoloScriptPlus parser; .holo -> the composition parser. The .hs logic
+    // layer shares the HoloScriptPlus parser (the canonical `parse_hs` handler does the
+    // same), so slice 2 routes it here instead of the composition parser, which used to
+    // flatten every function/object to a nameless `composition`.
     const isHsplus = filePath.endsWith('.hsplus');
-    let kind: 'holo' | 'hsplus' = 'holo';
+    const isHs = filePath.endsWith('.hs');
+    let kind: 'holo' | 'hsplus' | 'hs' = 'holo';
     let ast: HoloCompositionLite | HsplusAstLite;
     let errors: Array<{ message: string; loc?: { line: number; column: number } }>;
     let partial: boolean;
 
-    if (isHsplus && core.parseHsplus) {
+    if ((isHsplus || isHs) && core.parseHsplus) {
       const r = core.parseHsplus(source);
-      kind = 'hsplus';
+      kind = isHsplus ? 'hsplus' : 'hs';
       ast = r.ast;
       errors = (r.errors ?? []).map((e) => ({
         message: e.message,
@@ -270,6 +275,9 @@ export class HoloAdapter implements LanguageAdapter {
     if (!rawAst) return [];
     if (holoTree.__holoKind === 'hsplus') {
       return this.extractHsplusSymbols(rawAst as HsplusAstLite, filePath);
+    }
+    if (holoTree.__holoKind === 'hs') {
+      return this.extractHsSymbols(rawAst as HsplusAstLite, filePath);
     }
 
     const ast = rawAst as HoloCompositionLite;
@@ -349,7 +357,7 @@ export class HoloAdapter implements LanguageAdapter {
 
   extractImports(tree: ParseTree, filePath: string): ImportEdge[] {
     const holoTree = tree as HoloParseTree;
-    if (holoTree.__holoKind === 'hsplus') return []; // hsplus import edges: slice 3
+    if (holoTree.__holoKind !== 'holo') return []; // hsplus/hs import edges: slice 3
     const ast = holoTree.__holoAST as HoloCompositionLite;
     if (!ast) return [];
 
@@ -376,7 +384,7 @@ export class HoloAdapter implements LanguageAdapter {
    */
   extractCalls(tree: ParseTree, filePath: string): CallEdge[] {
     const holoTree = tree as HoloParseTree;
-    if (holoTree.__holoKind === 'hsplus') return []; // hsplus trait-composition edges: slice 3
+    if (holoTree.__holoKind !== 'holo') return []; // hsplus/hs trait-composition + call edges: slice 3
     const ast = holoTree.__holoAST as HoloCompositionLite;
     if (!ast) return [];
 
@@ -604,6 +612,70 @@ export class HoloAdapter implements LanguageAdapter {
             })
           );
         }
+      }
+    }
+    return symbols;
+  }
+
+  /**
+   * Extract symbols from a `.hs` (base logic) parse tree. Unlike `.hsplus`,
+   * where a declaration's identifier lives in `node.type` (keyword in
+   * `directives`), the HoloScriptPlus parser represents `.hs` logic
+   * declarations the other way round: `node.type` is the KEYWORD
+   * (`function` / `object` / …) and `node.name` is the identifier
+   * (verified against the real `.hs` corpus — gcd.hs => function:gcd,
+   * demo-cube.hs => object:Cube). So `.hs` gets its own extractor rather than
+   * reusing `extractHsplusSymbols`, which would name a function `"function"`.
+   * Top-level declarations only; nested-function / call / import edges are
+   * slice 3.
+   */
+  private extractHsSymbols(ast: HsplusAstLite, filePath: string): ExternalSymbolDefinition[] {
+    const symbols: ExternalSymbolDefinition[] = [];
+    const decls: HsplusNodeLite[] = [
+      ...(ast.children ?? []),
+      ...(ast.compositions ?? []),
+      ...(ast.worlds ?? []),
+      ...(ast.npcs ?? []),
+    ];
+    for (const node of decls) {
+      const name = (node.name || '').trim();
+      if (!name) continue;
+      const keyword = (node.type || '').trim();
+      if (keyword === 'function') {
+        symbols.push(
+          this.makeSymbol({
+            name,
+            type: 'function',
+            filePath,
+            loc: node.loc,
+            signature: `function ${name}`,
+            isExported: true,
+          })
+        );
+      } else if (keyword === 'object') {
+        symbols.push(
+          this.makeSymbol({
+            name,
+            type: 'orb', // matches the composition path's object typing
+            filePath,
+            loc: node.loc,
+            signature: `object "${name}"`,
+            isExported: true,
+          })
+        );
+      } else {
+        // Other logic-layer constructs — preserve the real keyword in the
+        // signature (ExtendedSymbolType has no dedicated member for them).
+        symbols.push(
+          this.makeSymbol({
+            name,
+            type: 'trait',
+            filePath,
+            loc: node.loc,
+            signature: keyword ? `${keyword} ${name}` : name,
+            isExported: true,
+          })
+        );
       }
     }
     return symbols;
