@@ -1,8 +1,9 @@
 //! Minimal `.hs` function-to-UAAL bytecode emitter.
 //!
 //! This backend intentionally starts at the narrow symbol-resolution seam the
-//! VM can prove today: top-level functions, literal return values, and
-//! non-recursive direct calls lowered to real `CALL`/`RET` instructions.
+//! VM can prove today: top-level functions, literal return values, stack-passed
+//! call arguments, simple state-backed slots, and direct calls lowered to real
+//! `CALL`/`RET` instructions.
 
 use std::collections::{HashMap, HashSet};
 
@@ -13,8 +14,12 @@ use crate::ast::{Ast, AstNode, CallExpression, FunctionNode};
 use crate::kotlin_emit::{check_semantics, SemanticDiagnostic};
 
 const OP_PUSH: u16 = 0x01;
+const OP_JUMP: u16 = 0x30;
+const OP_JUMP_IF: u16 = 0x31;
 const OP_CALL: u16 = 0x32;
 const OP_RET: u16 = 0x33;
+const OP_STATE_SET: u16 = 0xcb;
+const OP_STATE_GET: u16 = 0xcc;
 const OP_HALT: u16 = 0xff;
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -68,9 +73,12 @@ struct PendingCall {
 struct UaalEmitter<'a> {
     functions: Vec<&'a FunctionNode>,
     function_names: HashSet<String>,
+    function_params: HashMap<String, Vec<String>>,
     entry_points: HashMap<String, usize>,
     pending_calls: Vec<PendingCall>,
     instructions: Vec<UaalInstruction>,
+    current_function: Option<String>,
+    current_bindings: HashSet<String>,
 }
 
 pub fn compile_source_to_uaal(source: &str) -> Result<UaalBytecode, UaalEmitError> {
@@ -106,15 +114,22 @@ pub fn emit_uaal_bytecode(ast: &Ast) -> Result<UaalBytecode, UaalEmitError> {
         .iter()
         .map(|f| f.name.clone())
         .collect::<HashSet<_>>();
+    let function_params = functions
+        .iter()
+        .map(|f| (f.name.clone(), f.params.clone()))
+        .collect::<HashMap<_, _>>();
 
     validate_imports_resolved(ast, &function_names)?;
 
     let mut emitter = UaalEmitter {
         functions,
         function_names,
+        function_params,
         entry_points: HashMap::new(),
         pending_calls: Vec::new(),
         instructions: Vec::new(),
+        current_function: None,
+        current_bindings: HashSet::new(),
     };
 
     emitter.emit_bootstrap()?;
@@ -188,20 +203,24 @@ impl<'a> UaalEmitter<'a> {
     fn emit_functions(&mut self) -> Result<(), UaalEmitError> {
         let functions = self.functions.clone();
         for function in functions {
-            if !function.params.is_empty() {
-                return Err(UaalEmitError::new(format!(
-                    "compile_to_uaal does not support function parameters yet: `{}` has {}",
-                    function.name,
-                    function.params.len()
-                )));
-            }
-
             self.entry_points
                 .insert(function.name.clone(), self.instructions.len());
+            self.current_function = Some(function.name.clone());
+            self.current_bindings = function.params.iter().cloned().collect();
+
+            for param in function.params.iter().rev() {
+                self.emit_op(
+                    OP_STATE_SET,
+                    vec![Value::from(Self::slot_key(&function.name, param))],
+                );
+            }
+
             for statement in &function.body {
                 self.emit_statement(statement)?;
             }
             self.emit_op(OP_RET, Vec::new());
+            self.current_function = None;
+            self.current_bindings.clear();
         }
         Ok(())
     }
@@ -230,6 +249,41 @@ impl<'a> UaalEmitter<'a> {
                 Ok(())
             }
             AstNode::CallExpression(call) => self.emit_call_expression(call),
+            AstNode::If(if_node) => self.emit_if(if_node),
+            AstNode::VariableDeclaration(var) => {
+                self.emit_expression(&var.value)?;
+                let slot = Self::slot_key(self.current_function_name()?, &var.name);
+                self.current_bindings.insert(var.name.clone());
+                self.emit_op(OP_STATE_SET, vec![Value::from(slot)]);
+                Ok(())
+            }
+            AstNode::Assignment(assignment) => {
+                let target = match assignment.target.as_ref() {
+                    AstNode::Identifier(identifier) => &identifier.name,
+                    other => {
+                        return Err(UaalEmitError::new(format!(
+                            "unsupported assignment target for compile_to_uaal: {}",
+                            node_kind(other)
+                        )));
+                    }
+                };
+                if assignment.operator != "=" {
+                    return Err(UaalEmitError::new(format!(
+                        "unsupported assignment operator for compile_to_uaal: `{}`",
+                        assignment.operator
+                    )));
+                }
+                if !self.current_bindings.contains(target) {
+                    return Err(UaalEmitError::new(format!(
+                        "assignment to unknown slot `{}` in compile_to_uaal",
+                        target
+                    )));
+                }
+                self.emit_expression(&assignment.value)?;
+                let slot = Self::slot_key(self.current_function_name()?, target);
+                self.emit_op(OP_STATE_SET, vec![Value::from(slot)]);
+                Ok(())
+            }
             AstNode::Comment(_) => Ok(()),
             other => Err(UaalEmitError::new(format!(
                 "unsupported statement node for compile_to_uaal: {}",
@@ -254,6 +308,17 @@ impl<'a> UaalEmitter<'a> {
             }
             AstNode::Null(_) => {
                 self.emit_op(OP_PUSH, vec![Value::Null]);
+                Ok(())
+            }
+            AstNode::Identifier(identifier) => {
+                if !self.current_bindings.contains(&identifier.name) {
+                    return Err(UaalEmitError::new(format!(
+                        "unresolved slot `{}` in compile_to_uaal",
+                        identifier.name
+                    )));
+                }
+                let slot = Self::slot_key(self.current_function_name()?, &identifier.name);
+                self.emit_op(OP_STATE_GET, vec![Value::from(slot)]);
                 Ok(())
             }
             AstNode::CallExpression(call) => self.emit_call_expression(call),
@@ -281,15 +346,48 @@ impl<'a> UaalEmitter<'a> {
                 callee
             )));
         }
-        if !call.arguments.is_empty() {
+        let expected_arity = self
+            .function_params
+            .get(callee)
+            .map(|params| params.len())
+            .unwrap_or(0);
+        if call.arguments.len() != expected_arity {
             return Err(UaalEmitError::new(format!(
-                "compile_to_uaal does not support call arguments yet: `{}` has {}",
+                "arity mismatch calling `{}` in compile_to_uaal: expected {}, got {}",
                 callee,
+                expected_arity,
                 call.arguments.len()
             )));
         }
 
+        for argument in &call.arguments {
+            self.emit_expression(argument)?;
+        }
         self.emit_call(callee);
+        Ok(())
+    }
+
+    fn emit_if(&mut self, if_node: &crate::ast::IfNode) -> Result<(), UaalEmitError> {
+        self.emit_expression(&if_node.test)?;
+
+        let jump_to_consequent = self.emit_op(OP_JUMP_IF, Vec::new());
+
+        if let Some(alternate) = &if_node.alternate {
+            for statement in alternate {
+                self.emit_statement(statement)?;
+            }
+        }
+
+        let jump_to_end = self.emit_op(OP_JUMP, Vec::new());
+        let consequent_start = self.instructions.len();
+        self.instructions[jump_to_consequent].operands = vec![Value::from(consequent_start)];
+
+        for statement in &if_node.consequent {
+            self.emit_statement(statement)?;
+        }
+
+        let end = self.instructions.len();
+        self.instructions[jump_to_end].operands = vec![Value::from(end)];
         Ok(())
     }
 
@@ -306,6 +404,16 @@ impl<'a> UaalEmitter<'a> {
         self.instructions
             .push(UaalInstruction { op_code, operands });
         index
+    }
+
+    fn current_function_name(&self) -> Result<&str, UaalEmitError> {
+        self.current_function
+            .as_deref()
+            .ok_or_else(|| UaalEmitError::new("internal compile_to_uaal error: no active function"))
+    }
+
+    fn slot_key(function_name: &str, name: &str) -> String {
+        format!("__hs::{function_name}::{name}")
     }
 }
 
@@ -402,6 +510,91 @@ function main() {
     }
 
     #[test]
+    fn lowers_function_parameter_to_state_slot_and_call_argument() {
+        let bytecode = compile(
+            r#"function echo(x) {
+  return x
+}
+
+function main() {
+  return echo(42)
+}"#,
+        );
+
+        let ops = bytecode
+            .instructions
+            .iter()
+            .map(|instruction| instruction.op_code)
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            ops,
+            vec![
+                OP_CALL,
+                OP_HALT,
+                OP_STATE_SET,
+                OP_STATE_GET,
+                OP_RET,
+                OP_RET,
+                OP_PUSH,
+                OP_CALL,
+                OP_RET,
+                OP_RET
+            ]
+        );
+        assert_eq!(bytecode.instructions[0].operands, vec![Value::from(6)]);
+        assert_eq!(
+            bytecode.instructions[2].operands,
+            vec![Value::from("__hs::echo::x")]
+        );
+        assert_eq!(
+            bytecode.instructions[3].operands,
+            vec![Value::from("__hs::echo::x")]
+        );
+        assert_eq!(bytecode.instructions[6].operands, vec![Value::from(42.0)]);
+        assert_eq!(bytecode.instructions[7].operands, vec![Value::from(2)]);
+    }
+
+    #[test]
+    fn lowers_recursive_parameterized_if_to_jumps_and_calls() {
+        let bytecode = compile(
+            r#"function countdown(active) {
+  if (active) {
+    return countdown(false)
+  } else {
+    return "done"
+  }
+}
+
+function main() {
+  return countdown(true)
+}"#,
+        );
+
+        let ops = bytecode
+            .instructions
+            .iter()
+            .map(|instruction| instruction.op_code)
+            .collect::<Vec<_>>();
+
+        assert!(ops.contains(&OP_JUMP_IF), "{ops:?}");
+        assert!(ops.contains(&OP_JUMP), "{ops:?}");
+        assert_eq!(
+            ops.iter().filter(|op| **op == OP_CALL).count(),
+            3,
+            "{ops:?}"
+        );
+        assert_eq!(
+            bytecode.instructions[2].operands,
+            vec![Value::from("__hs::countdown::active")]
+        );
+        assert_eq!(
+            bytecode.instructions[3].operands,
+            vec![Value::from("__hs::countdown::active")]
+        );
+    }
+
+    #[test]
     fn rejects_unresolved_function_calls() {
         let error = compile_source_to_uaal(
             r#"function main() {
@@ -411,6 +604,28 @@ function main() {
         .expect_err("missing function should fail");
 
         assert!(error.message.contains("unresolved function call `missing`"));
+    }
+
+    #[test]
+    fn rejects_function_call_arity_mismatch() {
+        let error = compile_source_to_uaal(
+            r#"function echo(x) {
+  return x
+}
+
+function main() {
+  return echo()
+}"#,
+        )
+        .expect_err("arity mismatch should fail");
+
+        assert!(
+            error
+                .message
+                .contains("arity mismatch calling `echo` in compile_to_uaal: expected 1, got 0"),
+            "{}",
+            error.message
+        );
     }
 
     #[test]

@@ -496,6 +496,38 @@ function main() {
     },
     60000
   );
+
+  it(
+    'executes a recursive .hs function with one parameter and an if branch',
+    async () => {
+      const bytecode = compileHsToUaalViaRust(`function countdown(active) {
+  if (active) {
+    return countdown(false)
+  } else {
+    return "done"
+  }
+}
+
+function main() {
+  return countdown(true)
+}`);
+
+      const opCodes = bytecode.instructions.map((instruction) => instruction.opCode);
+      expect(opCodes).toContain(UAALOpCode.OP_STATE_SET);
+      expect(opCodes).toContain(UAALOpCode.OP_STATE_GET);
+      expect(opCodes).toContain(UAALOpCode.JUMP_IF);
+      expect(opCodes).toContain(UAALOpCode.JUMP);
+      expect(opCodes.filter((opCode) => opCode === UAALOpCode.CALL)).toHaveLength(3);
+
+      const vm = new UAALVirtualMachine();
+      const result = await vm.execute(bytecode);
+
+      expect(result.taskStatus).toBe('HALTED');
+      expect(result.stackTop).toBe('done');
+      expect(result.state.callStack).toEqual([]);
+    },
+    60000
+  );
 });
 
 describe('extractTraitNames', () => {
