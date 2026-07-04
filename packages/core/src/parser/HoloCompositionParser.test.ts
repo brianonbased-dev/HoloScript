@@ -1061,6 +1061,107 @@ describe('HoloCompositionParser', () => {
       expect(result.success).toBe(true);
       expect(result.errors).toEqual([]);
     });
+
+    it('parses keyword trait names on norm blocks', () => {
+      const result = parseHolo(`composition "Governance" {
+        norm "QuietInGallery" @norm {
+          lifecycle: constituted
+          scope: zone:ModernArtGallery
+          representation {
+            visual: "muted_icon"
+          }
+          condition {
+            when: state.userPreferences.accessibilityReducedMotion == true
+          }
+          sanction {
+            violation: "loud_speech"
+            severity: low
+          }
+        }
+      }`);
+
+      expect(result.success).toBe(true);
+      expect(result.errors).toEqual([]);
+      expect(result.ast?.norms?.[0]?.traits).toEqual(['norm']);
+      expect(result.ast?.norms?.[0]?.properties.scope).toBe('zone:ModernArtGallery');
+      expect(result.ast?.norms?.[0]?.properties.sanction).toEqual({
+        violation: 'loud_speech',
+        severity: 'low',
+      });
+      expect(result.ast?.norms?.[0]?.properties.condition).toEqual({
+        when: 'state.userPreferences.accessibilityReducedMotion == true',
+      });
+    });
+
+    it('parses keyword trait names on metanorm blocks', () => {
+      const result = parseHolo(`composition "Governance" {
+        metanorm "NormAmendmentProcess" @governance {
+          description: "Rules governing how existing norms can be amended"
+          applies_to: "all_norms"
+          rules {
+            amendment_quorum: 0.75
+          }
+        }
+      }`);
+
+      expect(result.success).toBe(true);
+      expect(result.errors).toEqual([]);
+      expect(result.ast?.metanorms?.[0]?.traits).toEqual(['governance']);
+    });
+
+    it('parses trait directives inside nested custom domain block configs', () => {
+      const result = parseHolo(`composition "Classroom" {
+        group "Station2_DataExplorer" {
+          group "ScatterPlot" {
+            @scatter_plot { size: "proportional" }
+            position: { x: 0, y: 1.2, z: 0 }
+          }
+        }
+      }`);
+
+      expect(result.success).toBe(true);
+      expect(result.errors).toEqual([]);
+    });
+
+    it('keeps parenthesized trait configs from consuming following block tokens', () => {
+      const result = parseHolo(`composition "Physics" {
+        object "VV_Floor" {
+          geometry: "plane"
+          @physics(type: "static")
+        }
+
+        template "ThrowableStone" {
+          @throwable(velocity_scale: 1.3, release_assist: true, arc_preview: true)
+          @throwable(max_speed: 20, spin_transfer: 0.5)
+          @holdable(grip: "sphere", hand_pose: "relaxed_grip", haptic_on_grab: true)
+          @physics
+          geometry: "sphere"
+        }
+      }`);
+
+      expect(result.success).toBe(true);
+      expect(result.errors).toEqual([]);
+    });
+
+    it('parses string-labeled on handlers inside logic blocks', () => {
+      const result = parseHolo(`composition "Tour" {
+        logic {
+          on "tour:start" {
+            state.tourProgress = 0.1
+          }
+          on "navigate:exhibit" (exhibit) {
+            state.currentExhibit = exhibit
+          }
+        }
+      }`);
+
+      expect(result.success).toBe(true);
+      expect(result.errors).toEqual([]);
+      expect(result.ast?.logic?.handlers.map((handler) => handler.event)).toEqual([
+        'tour:start',
+        'navigate:exhibit',
+      ]);
+    });
   });
 
   describe('Error Handling', () => {

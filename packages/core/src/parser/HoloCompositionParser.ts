@@ -2640,6 +2640,20 @@ export class HoloCompositionParser {
         actions.push(this.parseAction());
       } else if (this.check('FUNCTION')) {
         this.skipFunctionDeclaration();
+      } else if (
+        this.check('IDENTIFIER') &&
+        this.current().value === 'on' &&
+        (this.peek(1).type === 'STRING' || this.peek(1).type === 'IDENTIFIER')
+      ) {
+        this.advance(); // consume on
+        const event = this.advance().value;
+        const parameters = this.check('LPAREN') ? this.parseParameterList() : [];
+        if (this.check('LBRACE')) {
+          this.skipBlock();
+          handlers.push({ type: 'EventHandler' as const, event, parameters, body: [] });
+        } else {
+          handlers.push({ type: 'EventHandler' as const, event, parameters, body: [] });
+        }
       } else if (this.check('IDENTIFIER')) {
         const name = this.advance().value;
         // Handle `function name(params) { }` pattern — skip function name if next is IDENTIFIER
@@ -3242,8 +3256,8 @@ export class HoloCompositionParser {
     return params;
   }
 
-  private isBarewordPathToken(): boolean {
-    const type = this.current().type;
+  private isBarewordPathToken(token = this.current()): boolean {
+    const type = token.type;
     return (
       type === 'IDENTIFIER' ||
       type === 'STATE' ||
@@ -3261,6 +3275,11 @@ export class HoloCompositionParser {
         break;
       }
       value += `.${this.advance().value}`;
+    }
+
+    while (this.check('COLON') && this.isBarewordPathToken(this.peek(1))) {
+      this.advance();
+      value += `:${this.advance().value}`;
     }
 
     if (this.match('LESS')) {
@@ -4005,13 +4024,19 @@ export class HoloCompositionParser {
       if (this.isNamedOrTraitedPropertyBlockStart()) {
         const { key, value } = this.parseNamedOrTraitedPropertyBlock();
         config[key] = value;
+      } else if (this.check('AT')) {
+        this.advance();
+        const traitName = this.parseTraitName();
+        if (traitName) {
+          config[`@${traitName}`] = this.parseOptionalTraitConfig();
+        }
       } else if (this.isPropertyName() && this.peek(1).type === 'LBRACE') {
         const nestedKey = this.parsePropertyKey();
         config[nestedKey] = this.parseBlockTraitConfig();
       } else {
         const key = this.parsePropertyKey();
         this.expect('COLON');
-        config[key] = this.parseValue();
+        config[key] = this.parseInlineExpressionTail(this.parseValue());
       }
 
       this.matchBlockMemberSeparator();
@@ -4020,6 +4045,42 @@ export class HoloCompositionParser {
 
     this.expect('RBRACE');
     return config;
+  }
+
+  private parseInlineExpressionTail(value: HoloValue): HoloValue {
+    if (
+      value === null ||
+      (typeof value === 'object' && !Array.isArray(value)) ||
+      !this.isInlineExpressionTailStart()
+    ) {
+      return value;
+    }
+
+    let text = String(value);
+    while (!this.check(['NEWLINE', 'COMMA', 'SEMICOLON', 'RBRACE', 'RPAREN', 'RBRACKET', 'EOF'])) {
+      const token = this.current();
+      const raw = token.type === 'STRING' ? `"${token.value}"` : token.value;
+      text += ` ${raw}`;
+      this.advance();
+    }
+    return text;
+  }
+
+  private isInlineExpressionTailStart(): boolean {
+    return this.check([
+      'EQUALS_EQUALS',
+      'BANG_EQUALS',
+      'LESS',
+      'LESS_EQUALS',
+      'GREATER',
+      'GREATER_EQUALS',
+      'AND',
+      'OR',
+      'PLUS',
+      'MINUS',
+      'STAR',
+      'SLASH',
+    ]);
   }
 
   private isNamedOrTraitedPropertyBlockStart(): boolean {
@@ -7234,16 +7295,7 @@ export class HoloCompositionParser {
     }
 
     // Parse optional inline traits (@enforceable @community_driven)
-    const traits: string[] = [];
-    while (this.check('AT') && this.peek(1)?.type === 'IDENTIFIER') {
-      this.advance(); // consume @
-      traits.push(this.current().value);
-      this.advance(); // consume trait name
-      // Handle trait with parenthesized config: @trait(key: value)
-      if (this.check('LPAREN')) {
-        this.skipParens();
-      }
-    }
+    const traits = this.parseInlineTraitNamesBeforeBlock();
 
     this.expect('LBRACE');
     this.skipNewlines();
@@ -7310,6 +7362,11 @@ export class HoloCompositionParser {
             body,
           } as HoloEventHandler);
         }
+      }
+      // Extension blocks used by examples, e.g. condition { ... } or sanction { ... }.
+      else if (this.isPropertyName() && this.peek(1)?.type === 'LBRACE') {
+        const key = this.parsePropertyKey();
+        properties[key] = this.parseBlockTraitConfig();
       }
       // Regular key: value properties
       else if (this.check('IDENTIFIER') || this.check('STRING')) {
@@ -7409,16 +7466,7 @@ export class HoloCompositionParser {
     }
 
     // Parse optional inline traits
-    const traits: string[] = [];
-    while (this.check('AT') && this.peek(1)?.type === 'IDENTIFIER') {
-      this.advance(); // consume @
-      traits.push(this.current().value);
-      this.advance(); // consume trait name
-      // Handle trait with parenthesized config: @trait(key: value)
-      if (this.check('LPAREN')) {
-        this.skipParens();
-      }
-    }
+    const traits = this.parseInlineTraitNamesBeforeBlock();
 
     this.expect('LBRACE');
     this.skipNewlines();
@@ -7473,6 +7521,11 @@ export class HoloCompositionParser {
             body,
           } as HoloEventHandler);
         }
+      }
+      // Extension blocks used by examples beyond rules/escalation.
+      else if (this.isPropertyName() && this.peek(1)?.type === 'LBRACE') {
+        const key = this.parsePropertyKey();
+        properties[key] = this.parseBlockTraitConfig();
       }
       // Regular properties
       else if (this.check('IDENTIFIER') || this.check('STRING')) {
