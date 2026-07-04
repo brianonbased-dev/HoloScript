@@ -540,6 +540,27 @@ describe('HoloCompositionParser', () => {
       expect(result.success).toBe(true);
       expect(result.ast?.spatialGroups[0].groups).toHaveLength(2);
     });
+
+    it('parses first-class lights nested inside spatial groups', () => {
+      const source = `
+        composition "LightingRig" {
+          spatial_group "Lighting" {
+            light "KeyLight_Sun" {
+              @usd_light {
+                light_type: "DistantLight"
+              }
+              rotation: [-45, -30, 0]
+            }
+          }
+        }
+      `;
+
+      const result = parseHolo(source);
+
+      expect(result.success).toBe(true);
+      expect(result.errors).toEqual([]);
+      expect(result.ast?.spatialGroups[0].lights?.[0].name).toBe('KeyLight_Sun');
+    });
   });
 
   describe('Logic', () => {
@@ -914,6 +935,40 @@ describe('HoloCompositionParser', () => {
       );
       expect(block?.properties.bloom).toEqual({ intensity: 0.3, threshold: 0.9 });
       expect(block?.properties.tone_mapping).toEqual({ mode: 'aces', exposure: 1.1 });
+    });
+
+    it('parses metadata property blocks inside explicit domain blocks', () => {
+      const result = parseHolo(`composition "MetadataDomain" {
+        usd_stage {
+          metadata: {
+            name: "Root Stage"
+            export_target: "usd"
+          }
+          animation_clip {
+            metadata: {
+              source: "take_01"
+            }
+          }
+        }
+      }`);
+
+      expect(result.success).toBe(true);
+      expect(result.errors).toEqual([]);
+    });
+
+    it('parses metadata properties inside implicit web3 domain blocks', () => {
+      const result = parseHolo(`nft marketplace "ArtisticCreations" {
+        contract "ArtisticNFT" {
+          symbol: "ART"
+          metadata: {
+            baseURI: "ipfs://collection/"
+            dynamic: true
+          }
+        }
+      }`);
+
+      expect(result.success).toBe(true);
+      expect(result.errors).toEqual([]);
     });
   });
 

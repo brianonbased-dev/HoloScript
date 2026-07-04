@@ -2545,6 +2545,7 @@ export class HoloCompositionParser {
     this.skipNewlines();
 
     const objects: HoloObjectDecl[] = [];
+    const lights: HoloLight[] = [];
     const groups: HoloSpatialGroup[] = [];
     const body: HoloStatement[] = [];
 
@@ -2554,6 +2555,8 @@ export class HoloCompositionParser {
 
       if (this.check('OBJECT')) {
         objects.push(this.parseObject());
+      } else if (this.check('LIGHT')) {
+        lights.push(this.parseLight());
       } else if (this.check('SPATIAL_GROUP')) {
         groups.push(this.parseSpatialGroup());
       } else if (this.check('TEMPLATE')) {
@@ -2610,6 +2613,7 @@ export class HoloCompositionParser {
       name,
       properties,
       objects,
+      lights: lights.length > 0 ? lights : undefined,
       groups: groups.length > 0 ? groups : undefined,
       body: body.length > 0 ? body : undefined,
     };
@@ -3560,6 +3564,7 @@ export class HoloCompositionParser {
       'CONSTRAINT',
       'TERRAIN',
       'PARTICLES',
+      'METADATA_BLOCK',
       'HOLO_TOPIC',
       'HOLO_CHANNEL',
       'CONNECT',

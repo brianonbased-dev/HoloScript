@@ -917,6 +917,7 @@ export interface HoloSpatialGroup extends HoloNode {
   name: string;
   properties: HoloGroupProperty[];
   objects: HoloObjectDecl[];
+  lights?: HoloLight[];
   groups?: HoloSpatialGroup[]; // nested groups
   body?: HoloStatement[]; // logic statements inside the group
   /** @platform() conditional compilation constraint */
