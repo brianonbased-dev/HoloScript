@@ -1,0 +1,28 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "src/math/tropicalSpmv.ts",
+    "src/traits/engines/index.ts",
+    "src/parameter-envelope/index.ts",
+    "src/plugin-manifest/index.ts",
+    "src/keyword-registry/index.ts",
+    "src/plugin-solver-contract/index.ts",
+    "src/proof-composition/index.ts",
+    "src/traits/KinematicChainTrait.ts",
+    "src/traits/ControlLoopTrait.ts",
+    "src/traits/SensorSamplingTrait.ts",
+    "src/traits/TransactionTrait.ts",
+    "src/matter/StagedMatter.ts"
+  ],
+  "exclude": ["src/**/__tests__/**", "src/**/*.test.ts", "src/**/*.bench.ts"],
+  "compilerOptions": {
+    "declaration": true,
+    "declarationMap": false,
+    "emitDeclarationOnly": true,
+    "noEmit": false,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "types": ["@webgpu/types", "node"],
+    "strict": false
+  }
+}

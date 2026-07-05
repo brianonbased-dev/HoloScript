@@ -407,6 +407,9 @@
       "optional": true
     }
   },
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "devDependencies": {
     "@holoscript/engine": "workspace:*",
     "@holoscript/framework": "workspace:*",

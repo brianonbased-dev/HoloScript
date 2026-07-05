@@ -86,6 +86,9 @@
   "peerDependencies": {
     "@holoscript/core": "workspace:^"
   },
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "keywords": [
     "holoscript",
     "mcp",

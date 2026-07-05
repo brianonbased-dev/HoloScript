@@ -1,0 +1,94 @@
+{
+  "schema": "holoscript.package-consumption-matrix/v1",
+  "_comment": "Packages consumed by the owned laptop, Jetson, and Vast fleet lanes. The check script validates packaging metadata, platform compatibility, npm pack contents, and PyPI build artifacts.",
+  "consumers": [
+    {
+      "id": "laptop-windows",
+      "label": "Founder laptop / HoloShell",
+      "os": "win32",
+      "cpu": "x64",
+      "node": ">=20.0.0",
+      "python": ">=3.10"
+    },
+    {
+      "id": "jetson-orin",
+      "label": "Jetson owned-metal lane",
+      "os": "linux",
+      "cpu": "arm64",
+      "node": ">=20.0.0",
+      "python": ">=3.10"
+    },
+    {
+      "id": "vast-linux-gpu",
+      "label": "Vast.ai Linux GPU fleet",
+      "os": "linux",
+      "cpu": "x64",
+      "node": ">=20.0.0",
+      "python": ">=3.10"
+    }
+  ],
+  "npmPackages": [
+    {
+      "name": "@holoscript/core",
+      "packageDir": "packages/core",
+      "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "requireFiles": ["dist/index.js", "dist/index.cjs", "dist/index.d.ts"],
+      "forbidBundledNativeAddons": true
+    },
+    {
+      "name": "@holoscript/cli",
+      "packageDir": "packages/cli",
+      "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "requireBins": ["holo", "holoscript", "hs"],
+      "requireFiles": ["bin/holoscript.cjs", "dist/index.js"],
+      "forbidBundledNativeAddons": true
+    },
+    {
+      "name": "@holoscript/mcp-server",
+      "packageDir": "packages/mcp-server",
+      "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "requireBins": ["holoscript-mcp", "holoscript-mcp-http", "holoscript-mcp-cli"],
+      "requireFiles": ["bin/holoscript-mcp-http.cjs", "dist/http-server.js", "dist/index.js", "dist/index.d.ts"],
+      "forbidBundledNativeAddons": true
+    },
+    {
+      "name": "@holoscript/holoscript-agent",
+      "packageDir": "packages/holoscript-agent",
+      "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "requireBins": ["holoscript-agent"],
+      "requireFiles": ["bin/holoscript-agent.cjs", "dist/index.js", "dist/index.d.ts"],
+      "forbidBundledNativeAddons": true
+    },
+    {
+      "name": "@holoscript/xr-embodiment",
+      "packageDir": "packages/xr-embodiment",
+      "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "requireFiles": ["dist/index.js", "dist/index.cjs", "dist/index.d.ts"],
+      "forbidBundledNativeAddons": true
+    }
+  ],
+  "pypiPackages": [
+    {
+      "name": "holoscript",
+      "packageDir": "packages/python-bindings",
+      "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "imports": ["holoscript"],
+      "extrasByConsumer": {
+        "laptop-windows": ["scientific"],
+        "jetson-orin": ["robotics", "scientific"],
+        "vast-linux-gpu": ["scientific"]
+      }
+    },
+    {
+      "name": "holoscript-trait-inference",
+      "packageDir": "packages/trait-inference",
+      "requiredBy": ["laptop-windows", "vast-linux-gpu"],
+      "imports": ["trait_inference"],
+      "consoleScripts": ["trait-inference"],
+      "extrasByConsumer": {
+        "vast-linux-gpu": ["model"]
+      }
+    }
+  ]
+}
+

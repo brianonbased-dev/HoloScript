@@ -6822,6 +6822,38 @@ for (const file of files) {
   }
 }
 
+try {
+  const tscBin = path.join(coreRoot, 'node_modules', 'typescript', 'bin', 'tsc');
+  execFileSync(process.execPath, [tscBin, '-p', 'tsconfig.public-subpaths.json'], {
+    cwd: coreRoot,
+    stdio: 'inherit',
+  });
+  console.log('✓ Created public subpath declarations');
+} catch (err) {
+  console.error('✗ public subpath declaration emit failed:', err?.message ?? err);
+  process.exit(1);
+}
+
+const publicSubpathDeclarationAliases = [
+  { name: 'math/tropical-spmv.d.ts', target: './tropicalSpmv.js' },
+  { name: 'traits/kinematic-chain.d.ts', target: './KinematicChainTrait.js' },
+  { name: 'traits/control-loop.d.ts', target: './ControlLoopTrait.js' },
+  { name: 'traits/sensor-sampling.d.ts', target: './SensorSamplingTrait.js' },
+  { name: 'traits/transaction.d.ts', target: './TransactionTrait.js' },
+  { name: 'matter/index.d.ts', target: './StagedMatter.js' },
+];
+
+for (const { name, target } of publicSubpathDeclarationAliases) {
+  try {
+    const aliasPath = path.join(distDir, name);
+    fs.mkdirSync(path.dirname(aliasPath), { recursive: true });
+    fs.writeFileSync(aliasPath, `export * from '${target}';\n`, 'utf8');
+    console.log(`✓ Created ${name}`);
+  } catch (err) {
+    console.error(`✗ Failed to create ${name}:`, err.message);
+  }
+}
+
 // Stub DTS for subpaths missing from hand-crafted declarations
 const codebaseDTS = `// @holoscript/core/codebase — local dedup + god-file detection utilities
 export declare class DedupFilter {

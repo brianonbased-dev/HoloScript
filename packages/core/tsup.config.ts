@@ -18,6 +18,7 @@ export default defineConfig({
     testing: 'src/testing/DeterminismHarness.ts',
     'math/vec3': 'src/math/vec3.ts',
     'math/tropical-spmv': 'src/math/tropicalSpmv.ts',
+    constants: 'src/constants.ts',
     parser: 'src/parser/index.ts',
     runtime: 'src/runtime.ts',
     'type-checker': 'src/HoloScriptTypeChecker.ts',
@@ -86,6 +87,7 @@ export default defineConfig({
     'traits/engines/index': 'src/traits/engines/index.ts',
     // Consumer-bus coordinators (Pattern E remediation per /stub-audit Phase 3.5)
     'coordinators/index': 'src/coordinators/index.ts',
+    'tools/index': 'src/tools/index.ts',
 
     // Compiler barrel (re-exports all compilers for @holoscript/compiler)
     'compiler/index': 'src/compiler/index.ts',
