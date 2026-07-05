@@ -29,6 +29,24 @@ const KNOWN_LIFECYCLE_CHECKS = new Set([
   'llama-cpp-vision-preflight',
   'serve-health-probe',
 ]);
+const KNOWN_UTILITY_FAMILIES = new Set([
+  'control-plane',
+  'native-serving',
+  'agent-runtime',
+  'memory',
+  'authoring',
+  'language-runtime',
+  'python-runtime',
+  'ml-workload',
+  'fleet-dispatch',
+]);
+const KNOWN_DEPLOYMENT_ROLES = new Set([
+  'library',
+  'local-client',
+  'edge-node',
+  'gpu-worker',
+  'hosted-coordinator',
+]);
 const REQUIRED_HOLOLLAMA_LIFECYCLE_CHECKS = [
   'doctor',
   'mesh-readonly-bridge',
@@ -99,6 +117,8 @@ function checkPackageCommands(utility, pkg) {
 function checkUtility(utility, context) {
   rows.push({
     id: utility.id,
+    utilityFamily: utility.utilityFamily || null,
+    deploymentRoles: utility.deploymentRoles || [],
     packageName: utility.packageName || null,
     pypiPackage: utility.pypiPackage || null,
     requiredBy: utility.requiredBy || [],
@@ -108,6 +128,18 @@ function checkUtility(utility, context) {
     errors.push(`utility id is missing or invalid: ${String(utility.id || '<missing>')}`);
   }
   if (!utility.label) errors.push(`${utility.id}: missing label`);
+  if (!KNOWN_UTILITY_FAMILIES.has(utility.utilityFamily)) {
+    errors.push(`${utility.id}: unknown or missing utilityFamily '${utility.utilityFamily || ''}'`);
+  }
+  if (!Array.isArray(utility.deploymentRoles) || utility.deploymentRoles.length === 0) {
+    errors.push(`${utility.id}: missing deploymentRoles[]`);
+  } else {
+    for (const role of utility.deploymentRoles) {
+      if (!KNOWN_DEPLOYMENT_ROLES.has(role)) {
+        errors.push(`${utility.id}: unknown deployment role '${role}'`);
+      }
+    }
+  }
   if (!Array.isArray(utility.useCases) || utility.useCases.length === 0) {
     errors.push(`${utility.id}: missing useCases[]`);
   }
@@ -154,6 +186,17 @@ function checkUtility(utility, context) {
   if (utility.mcpTools?.length && utility.packageName !== '@holoscript/mcp-server') {
     warnings.push(`${utility.id}: mcpTools declared outside @holoscript/mcp-server`);
   }
+  if (utility.utilityFamily === 'fleet-dispatch') {
+    if (!utility.mcpTools?.length) {
+      errors.push(`${utility.id}: fleet-dispatch utilities must declare mcpTools[]`);
+    }
+    if (!utility.deploymentRoles?.includes('hosted-coordinator')) {
+      errors.push(`${utility.id}: fleet-dispatch utilities must include hosted-coordinator role`);
+    }
+  }
+  if (utility.pypiPackage && !['python-runtime', 'ml-workload'].includes(utility.utilityFamily)) {
+    warnings.push(`${utility.id}: PyPI utility is outside python-runtime/ml-workload family`);
+  }
 }
 
 if (!existsSync(MANIFEST)) errors.push(`manifest missing: ${MANIFEST}`);
@@ -197,7 +240,9 @@ if (JSON_OUT) {
 } else {
   for (const row of rows) {
     const target = row.packageName || row.pypiPackage;
-    console.log(`[fleet-utilities] ${row.id} -> ${target} (${row.requiredBy.join(',')})`);
+    console.log(
+      `[fleet-utilities] ${row.id} -> ${target} (${row.requiredBy.join(',')}) ${row.utilityFamily}:${row.deploymentRoles.join('+')}`
+    );
   }
   for (const warning of warnings) console.warn(`[fleet-utilities] WARN: ${warning}`);
   if (errors.length) {

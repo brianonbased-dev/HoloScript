@@ -13,7 +13,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
 const JSON_OUT = args.includes('--json');
 const PACK_NPM = args.includes('--pack-npm');
-const BUILD_PYTHON = args.includes('--build-python');
+const SMOKE_PYTHON_ARTIFACTS = args.includes('--smoke-python-artifacts');
+const SMOKE_PYPI_INSTALL = args.includes('--smoke-pypi-install');
+const BUILD_PYTHON = args.includes('--build-python') || SMOKE_PYTHON_ARTIFACTS;
 const INSPECT_PYTHON_ARTIFACTS = args.includes('--inspect-python-artifacts');
 const AUDIT_PYPI = args.includes('--audit-pypi');
 const SELF_TEST = args.includes('--self-test');
@@ -43,6 +45,36 @@ function run(cmd, cmdArgs, opts = {}) {
     shell: cmd === 'npm' && process.platform === 'win32',
     ...opts,
   });
+}
+
+function safeName(name) {
+  return String(name || 'package').replace(/[^\w.-]+/g, '_');
+}
+
+function truncateForError(value, max = 800) {
+  const text = String(value || '').trim();
+  return text.length > max ? `${text.slice(0, max)}...` : text;
+}
+
+function formatRunError(error) {
+  return truncateForError(error.stderr || error.stdout || error.message || error);
+}
+
+function venvPython(venvDir) {
+  return join(venvDir, process.platform === 'win32' ? 'Scripts/python.exe' : 'bin/python');
+}
+
+function venvScript(venvDir, scriptName) {
+  const binDir = join(venvDir, process.platform === 'win32' ? 'Scripts' : 'bin');
+  const candidates =
+    process.platform === 'win32'
+      ? [
+          join(binDir, `${scriptName}.exe`),
+          join(binDir, `${scriptName}.cmd`),
+          join(binDir, scriptName),
+        ]
+      : [join(binDir, scriptName)];
+  return candidates.find((candidate) => existsSync(candidate)) || candidates[0];
 }
 
 function supportsNpmSelector(selectors, value) {
@@ -198,6 +230,53 @@ print(json.dumps(out))
       if (!files.has(importPath))
         errors.push(`${pkg.name}: sdist missing import package ${importPath}`);
     }
+  }
+}
+
+function smokePythonInstall(pkg, row, scope, installArgs, errors) {
+  const venvDir = join(OUT_DIR, '_venvs', `${safeName(pkg.name)}-${scope}`);
+  row[scope === 'artifact' ? 'artifactSmoke' : 'pypiSmoke'] = {
+    scope,
+    imports: pkg.imports || [],
+    consoleScripts: pkg.consoleScripts || [],
+  };
+
+  try {
+    rmSync(venvDir, { recursive: true, force: true });
+    mkdirSync(dirname(venvDir), { recursive: true });
+    run(PYTHON_BIN, ['-m', 'venv', venvDir], { cwd: ROOT, timeout: 60_000 });
+    const python = venvPython(venvDir);
+    if (!existsSync(python)) {
+      errors.push(`${pkg.name}: ${scope} smoke venv did not create ${python}`);
+      return;
+    }
+
+    run(
+      python,
+      ['-m', 'pip', 'install', '--disable-pip-version-check', '--no-deps', ...installArgs],
+      { cwd: ROOT, timeout: 120_000 }
+    );
+
+    const importScript = `
+import importlib
+import json
+modules = ${JSON.stringify(pkg.imports || [])}
+for module in modules:
+    importlib.import_module(module)
+print(json.dumps({"imports": modules}))
+`;
+    run(python, ['-c', importScript], { cwd: ROOT, timeout: 30_000 });
+
+    for (const scriptName of pkg.consoleScripts || []) {
+      const script = venvScript(venvDir, scriptName);
+      if (!existsSync(script)) {
+        errors.push(`${pkg.name}: ${scope} smoke missing console script ${scriptName}`);
+        continue;
+      }
+      run(script, ['--help'], { cwd: ROOT, timeout: 30_000 });
+    }
+  } catch (error) {
+    errors.push(`${pkg.name}: ${scope} smoke failed: ${formatRunError(error)}`);
   }
 }
 
@@ -376,6 +455,8 @@ async function checkPyPackage(pkg, consumers, errors, warnings, rows) {
     requiredBy: pkg.requiredBy || [],
     built: [],
     inspected: false,
+    artifactSmoke: null,
+    pypiSmoke: null,
     pypi: null,
   };
   rows.push(row);
@@ -428,6 +509,16 @@ async function checkPyPackage(pkg, consumers, errors, warnings, rows) {
 
   if (AUDIT_PYPI && version) await auditPyPiPackage(pkg, version, row, errors, warnings);
 
+  if (SMOKE_PYPI_INSTALL && version) {
+    smokePythonInstall(
+      pkg,
+      row,
+      'pypi',
+      ['--only-binary=:all:', `${pkg.name}==${version}`],
+      errors
+    );
+  }
+
   if (!BUILD_PYTHON) return;
   const outDir = join(OUT_DIR, pkg.name.replace(/[^\w.-]+/g, '_'));
   rmSync(outDir, { recursive: true, force: true });
@@ -446,6 +537,14 @@ async function checkPyPackage(pkg, consumers, errors, warnings, rows) {
     inspectPythonArtifacts(pkg, artifactPaths, errors);
     row.inspected = true;
   }
+  if (SMOKE_PYTHON_ARTIFACTS) {
+    const wheel = artifactPaths.find((file) => file.endsWith('.whl'));
+    if (!wheel) {
+      errors.push(`${pkg.name}: artifact smoke found no wheel to install`);
+    } else {
+      smokePythonInstall(pkg, row, 'artifact', [wheel], errors);
+    }
+  }
   try {
     run(PYTHON_BIN, ['-m', 'twine', 'check', ...artifactPaths], {
       cwd: ROOT,
@@ -455,6 +554,7 @@ async function checkPyPackage(pkg, consumers, errors, warnings, rows) {
       `${pkg.name}: twine check failed: ${String(error.stderr || error.message).slice(0, 800)}`
     );
   }
+
 }
 
 function runSelfTest() {
@@ -500,6 +600,8 @@ async function main() {
     packNpm: PACK_NPM,
     buildPython: BUILD_PYTHON,
     inspectPythonArtifacts: INSPECT_PYTHON_ARTIFACTS,
+    smokePythonArtifacts: SMOKE_PYTHON_ARTIFACTS,
+    smokePyPiInstall: SMOKE_PYPI_INSTALL,
     auditPyPi: AUDIT_PYPI,
     consumers: [...consumers.keys()],
     rows,
@@ -513,10 +615,12 @@ async function main() {
       const detail =
         row.type === 'npm' && row.packEntries !== null
           ? ` packEntries=${row.packEntries}`
-          : row.type === 'pypi' && row.built.length
-            ? ` built=${row.built.join(',')}${row.inspected ? ' inspected=true' : ''}${
-                row.pypi ? ` pypi=${row.pypi.status}` : ''
-              }`
+          : row.type === 'pypi'
+            ? `${row.built.length ? ` built=${row.built.join(',')}` : ''}${
+                row.inspected ? ' inspected=true' : ''
+              }${row.artifactSmoke ? ' artifactSmoke=true' : ''}${
+                row.pypiSmoke ? ' pypiSmoke=true' : ''
+              }${row.pypi ? ` pypi=${row.pypi.status}` : ''}`
             : '';
       console.log(
         `[package-consumption] ${row.type} ${row.name} -> ${row.requiredBy.join(',')}${detail}`

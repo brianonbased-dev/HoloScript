@@ -347,20 +347,20 @@ async function main() {
     );
   }
 
-  process.exit(ok ? 0 : 1);
+  process.exitCode = ok ? 0 : 1;
 }
 
 if (SELF_TEST) {
   try {
     runSelfTest();
-    process.exit(0);
+    process.exitCode = 0;
   } catch (e) {
     console.error('[audit-published-install-tree] error:', e.message);
-    process.exit(1);
+    process.exitCode = 1;
   }
 } else {
   main().catch((e) => {
     console.error('[audit-published-install-tree] error:', e.message);
-    process.exit(2);
+    process.exitCode = 2;
   });
 }

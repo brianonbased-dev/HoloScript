@@ -11,6 +11,8 @@
     {
       "id": "agent-tool-gateway",
       "label": "MCP tool gateway",
+      "utilityFamily": "control-plane",
+      "deploymentRoles": ["local-client", "edge-node", "gpu-worker", "hosted-coordinator"],
       "packageName": "@holoscript/mcp-server",
       "commands": ["holoscript-mcp", "holoscript-mcp-http", "holoscript-mcp-cli"],
       "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu", "hosted-service"],
@@ -24,6 +26,8 @@
     {
       "id": "native-llm-serving",
       "label": "HoloLlama serving planner",
+      "utilityFamily": "native-serving",
+      "deploymentRoles": ["local-client", "edge-node", "gpu-worker"],
       "packageName": "@holoscript/holollama",
       "commands": ["holollama"],
       "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
@@ -38,6 +42,8 @@
     {
       "id": "headless-agent-runtime",
       "label": "Headless agent runtime",
+      "utilityFamily": "agent-runtime",
+      "deploymentRoles": ["local-client", "edge-node", "gpu-worker"],
       "packageName": "@holoscript/holoscript-agent",
       "commands": ["holoscript-agent"],
       "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
@@ -50,6 +56,8 @@
     {
       "id": "sovereign-memory-client",
       "label": "Shared memory client",
+      "utilityFamily": "memory",
+      "deploymentRoles": ["library", "local-client", "edge-node", "gpu-worker"],
       "packageName": "@holoscript/memory",
       "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
       "useCases": [
@@ -61,6 +69,8 @@
     {
       "id": "language-authoring-cli",
       "label": "HoloScript CLI",
+      "utilityFamily": "authoring",
+      "deploymentRoles": ["local-client", "edge-node", "gpu-worker"],
       "packageName": "@holoscript/cli",
       "commands": ["holo", "holoscript", "hs"],
       "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
@@ -73,6 +83,8 @@
     {
       "id": "core-language-runtime",
       "label": "Core language package",
+      "utilityFamily": "language-runtime",
+      "deploymentRoles": ["library", "local-client", "edge-node", "gpu-worker"],
       "packageName": "@holoscript/core",
       "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
       "useCases": [
@@ -84,6 +96,8 @@
     {
       "id": "python-runtime-bindings",
       "label": "Python HoloScript bindings",
+      "utilityFamily": "python-runtime",
+      "deploymentRoles": ["library", "local-client", "edge-node", "gpu-worker"],
       "pypiPackage": "holoscript",
       "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
       "useCases": [
@@ -95,6 +109,8 @@
     {
       "id": "trait-inference-python",
       "label": "Python trait inference utility",
+      "utilityFamily": "ml-workload",
+      "deploymentRoles": ["local-client", "gpu-worker"],
       "pypiPackage": "holoscript-trait-inference",
       "requiredBy": ["laptop-windows", "vast-linux-gpu"],
       "useCases": [
@@ -106,6 +122,8 @@
     {
       "id": "gpu-ci-dispatch",
       "label": "HoloCI GPU fleet dispatch",
+      "utilityFamily": "fleet-dispatch",
+      "deploymentRoles": ["hosted-coordinator", "gpu-worker"],
       "packageName": "@holoscript/mcp-server",
       "mcpTools": ["holo_ci_dispatch"],
       "requiredBy": ["hosted-service", "vast-linux-gpu"],
@@ -119,6 +137,8 @@
     {
       "id": "world-render-dispatch",
       "label": "World render fleet dispatch",
+      "utilityFamily": "fleet-dispatch",
+      "deploymentRoles": ["hosted-coordinator", "gpu-worker"],
       "packageName": "@holoscript/mcp-server",
       "mcpTools": ["render_world_on_fleet"],
       "requiredBy": ["hosted-service", "vast-linux-gpu"],
@@ -132,6 +152,8 @@
     {
       "id": "paid-simulation-dispatch",
       "label": "Simulation quote/run/status utilities",
+      "utilityFamily": "fleet-dispatch",
+      "deploymentRoles": ["hosted-coordinator", "gpu-worker"],
       "packageName": "@holoscript/mcp-server",
       "mcpTools": ["sim_quote", "sim_run_paid", "sim_fleet_status"],
       "requiredBy": ["hosted-service", "vast-linux-gpu"],

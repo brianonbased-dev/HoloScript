@@ -547,8 +547,8 @@ if (
 
 // Also export for programmatic use
 export { server, tools, handleTool };
-export { MCP_SERVER_SIZING_PROFILES, getMcpServerSizing };
-export type { McpServerSize, McpServerSizing, McpServerTransportHint };
+export { MCP_SERVER_SIZING_PROFILES, getMcpServerSizing } from './server-sizing';
+export type { McpServerSize, McpServerSizing, McpServerTransportHint } from './server-sizing';
 export * from './tools';
 export * from './handlers';
 export * from './generators';
