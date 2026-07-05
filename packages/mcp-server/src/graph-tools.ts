@@ -7,7 +7,7 @@
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { SemanticSceneGraph, HoloScriptCompiler } from '@holoscript/core';
+import { SemanticSceneGraph, parseHoloStrict } from '@holoscript/core';
 import {
   holoMapToolDefinitions,
   handleHoloMapTool,
@@ -768,7 +768,7 @@ export async function handleGraphTool(
       if (!code) throw new Error('code is required');
 
       try {
-        const ast = (HoloScriptCompiler as any).parse(code);
+        const ast = parseHoloStrict(code);
         const jsonld = SemanticSceneGraph.generateObject(ast, { includeMetadata: true });
         return {
           sceneGraph: jsonld,
