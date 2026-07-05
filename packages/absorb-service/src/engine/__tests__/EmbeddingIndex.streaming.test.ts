@@ -236,6 +236,65 @@ describe('EmbeddingIndex streaming batches', () => {
     expect(embeddedTexts[0]).toContain('group related files clusters');
   });
 
+  it('anchors outbuild intent aliases on implementation files rather than tests', async () => {
+    const embeddedTexts: string[] = [];
+    const provider: EmbeddingProvider = {
+      name: 'test-provider',
+      getEmbeddings: vi.fn(async (texts: string[]) => {
+        embeddedTexts.push(...texts);
+        return texts.map((_, index) => [1, index]);
+      }),
+    };
+    const index = new EmbeddingIndex({ provider, batchSize: 10, useWorkers: false });
+
+    await index.addSymbols([
+      makeNamedSymbol('GitChangeDetector', 'src/GitChangeDetector.ts', {
+        type: 'class',
+        signature: 'class GitChangeDetector',
+      }),
+      makeNamedSymbol('GitChangeDetector', 'src/__tests__/GitChangeDetector.test.ts', {
+        type: 'class',
+        signature: 'class GitChangeDetector',
+      }),
+      makeNamedSymbol('CodebaseSceneCompiler', 'src/visualization/CodebaseSceneCompiler.ts', {
+        type: 'class',
+        signature: 'class CodebaseSceneCompiler',
+      }),
+      makeNamedSymbol('GraphRAGEngine', 'src/GraphRAGEngine.ts', {
+        type: 'class',
+        signature: 'class GraphRAGEngine',
+      }),
+      makeNamedSymbol('HoloEmitter', 'src/HoloEmitter.ts', {
+        type: 'class',
+        signature: 'class HoloEmitter',
+      }),
+      makeNamedSymbol('ClaimNetworkGraph', 'src/ClaimNetworkGraph.ts', {
+        type: 'class',
+        signature: 'class ClaimNetworkGraph',
+      }),
+    ]);
+
+    const gitSourceText = embeddedTexts.find((text) =>
+      text.includes('in src/GitChangeDetector.ts')
+    );
+    const gitTestText = embeddedTexts.find((text) =>
+      text.includes('in src/__tests__/GitChangeDetector.test.ts')
+    );
+    const sceneCompilerText = embeddedTexts.find((text) =>
+      text.includes('CodebaseSceneCompiler')
+    );
+    const graphRagText = embeddedTexts.find((text) => text.includes('GraphRAGEngine'));
+    const holoEmitterText = embeddedTexts.find((text) => text.includes('HoloEmitter'));
+    const claimNetworkText = embeddedTexts.find((text) => text.includes('ClaimNetworkGraph'));
+
+    expect(gitSourceText).toContain('figure out files changed since last run');
+    expect(gitTestText).not.toContain('semantic aliases:');
+    expect(sceneCompilerText).toContain('render graph navigable 3d scene');
+    expect(graphRagText).toContain('answer natural language question about code');
+    expect(holoEmitterText).toContain('turn codebase into holoscript world');
+    expect(claimNetworkText).toContain('measure how tangled and complex code is');
+  });
+
   it('keeps semantic search results diverse by file before returning duplicates', async () => {
     const provider: EmbeddingProvider = {
       name: 'rank-provider',

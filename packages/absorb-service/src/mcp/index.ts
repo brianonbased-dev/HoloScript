@@ -19,6 +19,7 @@ export {
 } from './graph-rag-prerequisite';
 export {
   graphRagTools,
+  resetGraphRAGState,
   setGraphRAGState,
   isGraphRAGReady,
   handleGraphRagTool,

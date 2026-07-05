@@ -63,6 +63,11 @@ export const graphRagTools: Tool[] = [
           description:
             'Optional path to a canonical HoloGraph/HoloEmbed two-tower manifest. When omitted, search uses HOLOGRAPH_HOLOEMBED_MANIFEST or the promoted local ai-ecosystem HoloGraph/HoloEmbed release when present, then falls back to cached absorb state.',
         },
+        useCachedAbsorbIndex: {
+          type: 'boolean',
+          description:
+            'When true, search the current holo_absorb_repo in-memory index even if a default HoloGraph/HoloEmbed manifest is present. Intended for repo-local benchmarks and validation.',
+        },
       },
       required: ['query'],
     },
@@ -158,12 +163,14 @@ export function getGraphRAGStateStatus(): {
   };
 }
 
-export function resetGraphRAGStateForTests(): void {
+export function resetGraphRAGState(): void {
   cachedEmbeddingIndex = null;
   cachedGraphRAGEngine = null;
   cachedGraphRAGRootDir = null;
   cachedGraphRAGTimestamp = 0;
 }
+
+export const resetGraphRAGStateForTests = resetGraphRAGState;
 
 export async function handleGraphRagTool(
   name: string,
@@ -261,6 +268,15 @@ async function resolveSemanticSearchIndex(
   | { index: SymbolSearchIndex; source: string; manifestPath?: string }
   | { error: string; hint: string }
 > {
+  if (args.useCachedAbsorbIndex === true) {
+    return cachedEmbeddingIndex
+      ? { index: cachedEmbeddingIndex, source: 'cached-embedding-index' }
+      : {
+          error: ABSORB_EMBEDDING_INDEX_ERROR,
+          hint: ABSORB_HOLO_ABSORB_REPO_HINT,
+        };
+  }
+
   const manifestPath =
     stringArg(args.holoGraphHoloEmbedManifest) ??
     stringArg(process.env.HOLOGRAPH_HOLOEMBED_MANIFEST) ??

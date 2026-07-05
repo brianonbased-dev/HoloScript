@@ -103,6 +103,61 @@ interface SemanticAliasRule {
   aliases: string[];
 }
 
+interface SourceIntentAliasRule {
+  fileStems: string[];
+  aliases: string[];
+}
+
+const SOURCE_INTENT_ALIAS_RULES: SourceIntentAliasRule[] = [
+  {
+    fileStems: ['GitChangeDetector'],
+    aliases: [
+      'figure out files changed since last run',
+      'figure out which files changed since last run',
+      'changed files since last run',
+      'detect modified added deleted files',
+      'incremental git diff file delta',
+    ],
+  },
+  {
+    fileStems: ['CodebaseSceneCompiler'],
+    aliases: [
+      'render graph navigable 3d scene',
+      'codebase graph visualization scene',
+      'turn graph nodes edges into spatial view',
+    ],
+  },
+  {
+    fileStems: ['GraphRAGEngine'],
+    aliases: [
+      'answer natural language question about code',
+      'answer natural language code question',
+      'natural language code question answering',
+      'retrieve code context for question answering',
+      'respond to codebase question from retrieved context',
+      'graph rag semantic search response engine',
+    ],
+  },
+  {
+    fileStems: ['HoloEmitter'],
+    aliases: [
+      'turn codebase into holoscript world',
+      'emit holoscript composition from codebase graph',
+      'generate holoscript world from code graph',
+      'convert codebase graph into holo composition',
+    ],
+  },
+  {
+    fileStems: ['ClaimNetworkGraph'],
+    aliases: [
+      'measure tangled complex code',
+      'measure how tangled and complex code is',
+      'analyze coupling dependency complexity',
+      'claim network graph dependency tangles',
+    ],
+  },
+];
+
 const SEMANTIC_ALIAS_RULES: SemanticAliasRule[] = [
   {
     triggers: [/\bcommun(?:ity|ities)\b/, /\blouvain\b/, /\bmodule boundaries?\b/],
@@ -771,9 +826,11 @@ export class EmbeddingIndex {
     sym: ExternalSymbolDefinition,
     context?: GraphTextContext
   ): void {
+    if (this.isTestFile(sym.filePath)) return;
+
     const fileDoc = context ? this.getFileDoc(sym.filePath, context) : undefined;
     const haystack = this.normalizedSemanticHaystack(sym, fileDoc);
-    const aliases: string[] = [];
+    const aliases = this.sourceIntentAliases(sym);
 
     for (const rule of SEMANTIC_ALIAS_RULES) {
       if (rule.triggers.some((trigger) => trigger.test(haystack))) {
@@ -855,6 +912,27 @@ export class EmbeddingIndex {
   private fileStem(filePath: string): string {
     const fileName = filePath.split(/[\\/]/).pop() ?? filePath;
     return fileName.replace(/\.[^.]+$/, '');
+  }
+
+  private sourceIntentAliases(sym: ExternalSymbolDefinition): string[] {
+    const stem = this.fileStem(sym.filePath);
+    const aliases: string[] = [];
+    for (const rule of SOURCE_INTENT_ALIAS_RULES) {
+      if (rule.fileStems.includes(stem)) {
+        aliases.push(...rule.aliases);
+      }
+    }
+    return aliases;
+  }
+
+  private isTestFile(filePath: string): boolean {
+    const normalized = filePath.replace(/\\/g, '/').toLowerCase();
+    return (
+      normalized.includes('/__tests__/') ||
+      normalized.includes('/test/') ||
+      normalized.includes('/tests/') ||
+      /\.(test|spec)\.[cm]?[jt]sx?$/.test(normalized)
+    );
   }
 
   private sameSymbol(left: ExternalSymbolDefinition, right: ExternalSymbolDefinition): boolean {

@@ -6,7 +6,13 @@ import {
   DEFAULT_HOLOGRAPH_HOLOEMBED_RELEASE_MANIFEST,
   HOLOGRAPH_HOLOEMBED_MANIFEST_SCHEMA,
 } from '../engine/HoloGraphHoloEmbedManifest';
-import { handleGraphRagTool, resetGraphRAGStateForTests } from './graph-rag-tools';
+import type { GraphRAGEngine } from '../engine/GraphRAGEngine';
+import type { SymbolSearchIndex } from '../engine/SearchIndex';
+import {
+  handleGraphRagTool,
+  resetGraphRAGStateForTests,
+  setGraphRAGState,
+} from './graph-rag-tools';
 
 const originalManifestEnv = process.env.HOLOGRAPH_HOLOEMBED_MANIFEST;
 const originalAiEcosystemRootEnv = process.env.AI_ECOSYSTEM_ROOT;
@@ -166,6 +172,96 @@ describe('holo_semantic_search HoloGraph/HoloEmbed manifest mode', () => {
     expect(result.holoGraphHoloEmbedManifest).toBe(manifestPath);
     expect(result.count).toBe(1);
     expect(result.results?.[0]?.name).toBe('defaultTarget');
+  });
+
+  it('can force the current absorbed index even when a promoted manifest exists', async () => {
+    resetGraphRAGStateForTests();
+    delete process.env.HOLOGRAPH_HOLOEMBED_MANIFEST;
+    delete process.env.HOLO_ECOSYSTEM_ROOT;
+    delete process.env.ECOSYSTEM_ROOT;
+
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'holograph-holoembed-cached-mcp-'));
+    process.env.AI_ECOSYSTEM_ROOT = root;
+    const manifestPath = path.join(root, DEFAULT_HOLOGRAPH_HOLOEMBED_RELEASE_MANIFEST);
+    const dir = path.dirname(manifestPath);
+    const graphPath = path.join(dir, 'graph.json');
+    const nodeEmbPath = path.join(dir, 'nodeemb.npy');
+    const dim = 768;
+    fs.mkdirSync(dir, { recursive: true });
+
+    fs.writeFileSync(
+      graphPath,
+      JSON.stringify({
+        nodes: [
+          {
+            name: 'manifestTarget',
+            type: 'function',
+            language: 'typescript',
+            filePath: 'packages/core/src/manifest-target.ts',
+            line: 5,
+            text: 'typescript function manifest target',
+          },
+        ],
+      })
+    );
+    writeFloat32Npy(nodeEmbPath, [Array.from({ length: dim }, (_, i) => (i === 0 ? 1 : 0))]);
+    fs.writeFileSync(
+      manifestPath,
+      JSON.stringify({
+        schema: HOLOGRAPH_HOLOEMBED_MANIFEST_SCHEMA,
+        name: 'default mcp fixture',
+        holoGraph: {
+          kind: 'HoloGraphIndexedTower',
+          graphPath: 'graph.json',
+          nodeEmbeddingPath: 'nodeemb.npy',
+          nodeEmbeddingFormat: 'npy.float32.row-major.v1',
+          nodeCount: 1,
+          embeddingDim: dim,
+        },
+        holoEmbed: {
+          kind: 'HoloEmbedQueryTower',
+          provider: 'holoembed',
+          embeddingDim: dim,
+        },
+      })
+    );
+
+    const cachedIndex: SymbolSearchIndex = {
+      search: async () => [
+        {
+          symbol: {
+            name: 'cachedTarget',
+            type: 'function',
+            filePath: 'packages/core/src/cached-target.ts',
+            line: 9,
+            column: 1,
+            language: 'typescript',
+            visibility: 'public',
+          },
+          score: 1,
+          file: 'packages/core/src/cached-target.ts',
+          type: 'function',
+        },
+      ],
+      searchWithFilters: async () => [],
+    };
+    setGraphRAGState(cachedIndex, {} as unknown as GraphRAGEngine);
+
+    const result = (await handleGraphRagTool('holo_semantic_search', {
+      query: 'cached target',
+      topK: 1,
+      useCachedAbsorbIndex: true,
+    })) as {
+      indexSource?: string;
+      holoGraphHoloEmbedManifest?: string;
+      count?: number;
+      results?: Array<{ name?: string }>;
+    };
+
+    expect(result.indexSource).toBe('cached-embedding-index');
+    expect(result.holoGraphHoloEmbedManifest).toBeUndefined();
+    expect(result.count).toBe(1);
+    expect(result.results?.[0]?.name).toBe('cachedTarget');
   });
 });
 

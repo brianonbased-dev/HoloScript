@@ -18,7 +18,7 @@ import os from 'node:os';
 import path from 'node:path';
 process.env.HOLOSCRIPT_CACHE_DIR = process.env.HOLOSCRIPT_CACHE_DIR || path.join(os.homedir(), '.holoscript');
 
-const { handleCodebaseTool, handleGraphRagTool } = await import('@holoscript/absorb-service/mcp');
+const { handleCodebaseTool, handleGraphRagTool, resetGraphRAGState } = await import('@holoscript/absorb-service/mcp');
 const parse = (x) => (typeof x === 'string' ? JSON.parse(x) : x);
 const ROOT = 'C:/Users/Josep/Documents/GitHub/HoloScript/packages/absorb-service/src/engine';
 
@@ -43,6 +43,7 @@ const GROUND_TRUTH = [
 const K = [1, 5, 10];
 
 async function scoreProvider(provider) {
+  resetGraphRAGState();
   await handleCodebaseTool('holo_absorb_repo', {
     rootDir: ROOT, embeddingProvider: provider, maxFiles: 2000, force: true, outputFormat: 'stats',
   });
@@ -50,7 +51,11 @@ async function scoreProvider(provider) {
   let mrrSum = 0;
   const hits = { 1: 0, 5: 0, 10: 0 };
   for (const { q, target } of GROUND_TRUTH) {
-    const r = parse(await handleGraphRagTool('holo_semantic_search', { query: q, topK: 10 }));
+    const r = parse(await handleGraphRagTool('holo_semantic_search', {
+      query: q,
+      topK: 10,
+      useCachedAbsorbIndex: true,
+    }));
     const results = r?.results || r?.matches || [];
     const files = results.map((h) => (h.file || h.filePath || h.path || '').split(/[\\/]/).pop());
     const rank = files.findIndex((f) => f && f.includes(target)) + 1; // 1-based, 0 = miss
@@ -79,3 +84,8 @@ const fmt = (s) => `R@1=${(s.recall[1] * 100).toFixed(0)}%  R@5=${(s.recall[5] *
 console.error(`${pad(pa, 12)} ${fmt(A)}`);
 console.error(`${pad(pb, 12)} ${fmt(B)}`);
 console.error(`\n◀ = ${pa} ranked the target higher   ▶ = ${pb} did`);
+
+// The MCP absorb path can leave worker-thread handles alive after the report is
+// printed. This script is a one-shot benchmark, so terminate explicitly.
+await new Promise((resolve) => setImmediate(resolve));
+process.exit(0);
