@@ -410,3 +410,35 @@ files partial-parse into the identifier shape `extractHsplusSymbols` expects; th
 touching `HoloScriptPlusParser` for other reasons, or if a real `.hs` file starts partial-parsing (or a `.hsplus` file
 starts clean-parsing) and its symbols go missing — that regression is the trigger. Absorb's dual-extractor design is the
 correct interim shim and documents the split it compensates for.
+
+---
+
+## Unified `/api/deploy` Multi-Target Compile-Dispatch + Per-Target Deployment Manifest
+
+> Recorded 2026-07-05 on deleting the dead `deploy-adapter.ts` (task_1783211750571_02rn). The
+> router never linked (phantom `HoloScriptCompiler` import), was never registered/bundled, and its
+> `/api/deploy` path is already taken by a live publish-with-provenance handler. Deleted rather than
+> resurrected; the *idea* it gestured at is preserved here.
+
+**What might be valuable**: A single REST surface that takes one `.holo`/`.hs` source + a `target`, compiles
+it, and returns not just the emitted code but a **deployment manifest** — entry point, dependencies, a build
+script, and step-by-step integration instructions (the dead adapter had genuinely useful per-target prose:
+"copy the .cs into Assets/Scripts, attach to a GameObject" for Unity; `colcon build --packages-select` for
+ROS 2; `wasm-pack build --release` for WASM; Xcode/RealityKit steps for iOS). That "here is your artifact
+AND exactly how to ship it" envelope is a real convenience layer over the raw `compile_to_*` output, and a
+`GET /targets` / `GET /targets/:name` catalog gives agents a discoverable deploy-capability map.
+
+**Why not now**: Three reasons it should not be rebuilt as-was. (1) **Route + capability already exist** — the
+live `POST /api/deploy` in `http-server.ts` is a *publish-a-composition-with-provenance* endpoint (calls
+`storeScene()`), and target compilation is already fully served by the individual `compile_to_*` MCP tools and
+`POST /api/compile`. A compile-dispatch aggregator is a convenience wrapper, not new capability, and would need
+a *different* path (e.g. `/api/build`) to avoid colliding with the provenance route. (2) **The manifest prose
+must be native, not hand-authored** — the deleted file froze Unity/ROS2/WASM instructions as inline string
+literals that rot independently of the compilers. The right source of truth is a `deploymentManifest()` /
+`deploymentDocs()` method on each `ExportTarget` in `packages/core/src/compiler/`, so the manifest is *derived*
+from the compiler that actually emits the code (D.104 — TS dissolving into compiler-owned metadata, not glue
+growing). Build that metadata surface first. (3) **D.101 build-the-language-only** — a new peripheral REST
+route is exactly the kind of surface growth the freeze guards against; re-admit only when the deployment-manifest
+metadata is a compiler-owned language deliverable and there is a concrete consumer asking for the aggregated
+`/api/build` envelope. Reference: deleted `packages/mcp-server/src/tools/deploy-adapter.ts` +
+`deploy_adapter.hsplus` (git history); phantom-import fix pattern in commit `d881120e1`.
