@@ -16,7 +16,8 @@
 import { LOCAL_DEFAULT_MODEL } from '@holoscript/llm-provider';
 import type { ExternalSymbolDefinition, CallEdge } from './types';
 import type { CodebaseGraph, CallChain, CallChainOptions } from './CodebaseGraph';
-import type { EmbeddingIndex, SearchResult } from './EmbeddingIndex';
+import type { SearchResult } from './EmbeddingIndex';
+import type { SymbolSearchIndex } from './SearchIndex';
 
 // =============================================================================
 // TYPES
@@ -126,14 +127,14 @@ export interface TraceWithContextOptions {
 
 export class GraphRAGEngine {
   public graph: CodebaseGraph;
-  private index: EmbeddingIndex;
+  private index: SymbolSearchIndex;
   private ollamaUrl: string;
   private llmModel: string;
   private llmProvider?: LLMProvider;
 
   constructor(
     graph: CodebaseGraph,
-    index: EmbeddingIndex,
+    index: SymbolSearchIndex,
     options?: Pick<GraphRAGOptions, 'ollamaUrl' | 'llmModel' | 'llmProvider'>
   ) {
     this.graph = graph;

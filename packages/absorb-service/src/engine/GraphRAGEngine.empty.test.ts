@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { GraphRAGEngine } from './GraphRAGEngine';
 import { CodebaseGraph } from './CodebaseGraph';
-import type { EmbeddingIndex } from './EmbeddingIndex';
+import type { SymbolSearchIndex } from './SearchIndex';
 
 describe('GraphRAGEngine.query', () => {
   it('returns stable empty result when semantic search finds nothing', async () => {
@@ -9,7 +9,7 @@ describe('GraphRAGEngine.query', () => {
     const index = {
       search: vi.fn().mockResolvedValue([]),
       searchWithFilters: vi.fn().mockResolvedValue([]),
-    } as unknown as EmbeddingIndex;
+    } satisfies SymbolSearchIndex;
 
     const engine = new GraphRAGEngine(graph, index);
     const out = await engine.query('no matches for this query string');
