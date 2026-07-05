@@ -23,6 +23,17 @@ const SERVER_SIZING = join(ROOT, 'packages', 'mcp-server', 'src', 'server-sizing
 const HOLOLLAMA_INDEX = join(ROOT, 'packages', 'holollama', 'src', 'index.ts');
 const WORKSPACE_ROOTS = ['packages', 'services', 'benchmarks'];
 const SKIP_DIRS = new Set(['node_modules', 'dist', '.next', 'coverage', '.turbo', '.git']);
+const KNOWN_LIFECYCLE_CHECKS = new Set([
+  'doctor',
+  'mesh-readonly-bridge',
+  'llama-cpp-vision-preflight',
+  'serve-health-probe',
+]);
+const REQUIRED_HOLOLLAMA_LIFECYCLE_CHECKS = [
+  'doctor',
+  'mesh-readonly-bridge',
+  'llama-cpp-vision-preflight',
+];
 
 const errors = [];
 const warnings = [];
@@ -115,6 +126,18 @@ function checkUtility(utility, context) {
   for (const profile of utility.holollamaProfiles || []) {
     if (!context.holollamaProfiles.has(profile)) {
       errors.push(`${utility.id}: unknown HoloLlama profile '${profile}'`);
+    }
+  }
+  for (const lifecycleCheck of utility.lifecycleChecks || []) {
+    if (!KNOWN_LIFECYCLE_CHECKS.has(lifecycleCheck)) {
+      errors.push(`${utility.id}: unknown lifecycle check '${lifecycleCheck}'`);
+    }
+  }
+  if (utility.id === 'native-llm-serving') {
+    for (const lifecycleCheck of REQUIRED_HOLOLLAMA_LIFECYCLE_CHECKS) {
+      if (!utility.lifecycleChecks?.includes(lifecycleCheck)) {
+        errors.push(`${utility.id}: missing required lifecycle check '${lifecycleCheck}'`);
+      }
     }
   }
   if (utility.packageName) {

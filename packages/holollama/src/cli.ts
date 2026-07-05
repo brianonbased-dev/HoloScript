@@ -1,11 +1,14 @@
 import { readFile } from 'node:fs/promises';
 import {
   assertHoloLlamaBundleConsumable,
+  buildHoloLlamaFleetLifecycleReport,
+  buildHoloMeshReadOnlyBridge,
   buildLlamaServeComposition,
   compileHoloLlamaBundle,
   doctorHoloLlamaProfiles,
   listHoloLlamaBrains,
   listHoloLlamaProfiles,
+  preflightHoloLlamaVision,
   selectHoloLlamaBrain,
   summarizeHoloLlamaBundle,
   writeHoloLlamaBundleFiles,
@@ -17,7 +20,8 @@ type FlagMap = Map<string, string | true>;
 
 export async function runCli(args = process.argv.slice(2)): Promise<void> {
   const command = args[0] && !args[0].startsWith('-') ? args[0] : 'plan';
-  const rest = command === 'plan' ? (args[0]?.startsWith('-') ? args : args.slice(1)) : args.slice(1);
+  const rest =
+    command === 'plan' ? (args[0]?.startsWith('-') ? args : args.slice(1)) : args.slice(1);
   const flags = parseFlags(rest);
 
   if (command === 'help' || flags.has('help')) {
@@ -33,6 +37,51 @@ export async function runCli(args = process.argv.slice(2)): Promise<void> {
       process.stdout.write(formatDoctorReport(report));
     }
     if (!report.ok) process.exitCode = 1;
+    return;
+  }
+
+  if (command === 'mesh') {
+    const receipt = buildHoloMeshReadOnlyBridge({
+      profile: readOptionalProfile(flags),
+      teamId: readString(flags, 'team-id'),
+      orchestratorUrl: readString(flags, 'orchestrator-url'),
+      apiKeyEnv: readString(flags, 'api-key-env'),
+    });
+    if (flags.has('json')) {
+      process.stdout.write(`${JSON.stringify(receipt, null, 2)}\n`);
+      return;
+    }
+    process.stdout.write(formatMeshBridge(receipt));
+    return;
+  }
+
+  if (command === 'preflight') {
+    const receipt = preflightHoloLlamaVision(readProfile(flags), {
+      checkFilesystem: flags.has('check-filesystem'),
+    });
+    if (flags.has('json')) {
+      process.stdout.write(`${JSON.stringify(receipt, null, 2)}\n`);
+      return;
+    }
+    process.stdout.write(formatVisionPreflight(receipt));
+    if (!receipt.ok) process.exitCode = 1;
+    return;
+  }
+
+  if (command === 'lifecycle') {
+    const receipt = buildHoloLlamaFleetLifecycleReport({
+      profile: readOptionalProfile(flags),
+      teamId: readString(flags, 'team-id'),
+      orchestratorUrl: readString(flags, 'orchestrator-url'),
+      apiKeyEnv: readString(flags, 'api-key-env'),
+      checkFilesystem: flags.has('check-filesystem'),
+    });
+    if (flags.has('json')) {
+      process.stdout.write(`${JSON.stringify(receipt, null, 2)}\n`);
+      return;
+    }
+    process.stdout.write(formatLifecycleReport(receipt));
+    if (!receipt.ok) process.exitCode = 1;
     return;
   }
 
@@ -98,7 +147,9 @@ export async function runCli(args = process.argv.slice(2)): Promise<void> {
   const profile = readProfile(flags);
   const overrides = readOverrides(flags);
   const codePath = readString(flags, 'code');
-  const code = codePath ? await readFile(codePath, 'utf8') : buildLlamaServeComposition(profile, overrides);
+  const code = codePath
+    ? await readFile(codePath, 'utf8')
+    : buildLlamaServeComposition(profile, overrides);
   const bundle = compileHoloLlamaBundle({ code });
   assertHoloLlamaBundleConsumable(bundle);
 
@@ -226,11 +277,59 @@ function formatDoctorReport(report: ReturnType<typeof doctorHoloLlamaProfiles>):
   return lines.join('\n');
 }
 
+function formatMeshBridge(report: ReturnType<typeof buildHoloMeshReadOnlyBridge>): string {
+  const lines = [
+    `HoloLlama mesh bridge: ${report.ok ? 'PASS' : 'FAIL'} (${report.mode})`,
+    `  profile: ${report.profile}`,
+    `  handle:  ${report.registryHandle}`,
+    `  team:    ${report.mesh.teamId}`,
+    `  base:    ${report.mesh.orchestratorUrl}`,
+    `  reads:   ${report.endpoints.length}`,
+  ];
+  for (const warning of report.warnings) lines.push(`  warning: ${warning}`);
+  for (const blocker of report.blockers) lines.push(`  blocker: ${blocker}`);
+  lines.push('');
+  return lines.join('\n');
+}
+
+function formatVisionPreflight(report: ReturnType<typeof preflightHoloLlamaVision>): string {
+  const lines = [
+    `HoloLlama vision preflight: ${report.ok ? 'PASS' : 'FAIL'}`,
+    `  profile: ${report.profile}`,
+    `  handle:  ${report.registryHandle}`,
+    `  vision:  ${report.visionRequested ? 'on' : 'off'}`,
+  ];
+  for (const item of report.checks) {
+    if (item.required || !item.ok) lines.push(`  ${item.ok ? 'ok' : 'block'}: ${item.id}`);
+  }
+  for (const warning of report.warnings) lines.push(`  warning: ${warning}`);
+  for (const blocker of report.blockers) lines.push(`  blocker: ${blocker}`);
+  lines.push('');
+  return lines.join('\n');
+}
+
+function formatLifecycleReport(
+  report: ReturnType<typeof buildHoloLlamaFleetLifecycleReport>
+): string {
+  const lines = [`HoloLlama lifecycle: ${report.ok ? 'PASS' : 'FAIL'}`];
+  for (const profile of report.profiles) {
+    lines.push(`  ${profile.profile}: ${profile.ok ? 'ok' : 'blocked'} (${profile.consumer})`);
+    for (const stage of profile.stages) {
+      lines.push(`    ${stage.ok ? 'ok' : 'block'} ${stage.id}: ${stage.summary}`);
+    }
+  }
+  lines.push('');
+  return lines.join('\n');
+}
+
 function printHelp(): void {
   process.stdout.write(`HoloLlama native serving utilities
 
 Usage:
   holollama doctor [--profile <id>] [--json]
+  holollama mesh [--profile <id>] [--team-id <team>] [--json]
+  holollama preflight [--profile <id>] [--check-filesystem] [--json]
+  holollama lifecycle [--profile <id>] [--team-id <team>] [--check-filesystem] [--json]
   holollama profiles
   holollama brains
   holollama brain --task <text> [--brain <id>|--skill <id>] [--json]
@@ -243,6 +342,10 @@ Options:
   --profile-id <jetson-edge|laptop-owned-metal|vast-sovereign-overflow>
   --device <device-handle>
   --profile <jetson-orin|laptop-windows|vast-linux-gpu>
+  --team-id <holomesh-team-id>
+  --orchestrator-url <url>
+  --api-key-env <env-var>
+  --check-filesystem
   --code <file.holo>
   --out <dir>
   --json

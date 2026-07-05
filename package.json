@@ -126,6 +126,7 @@
     "check:package-consumption": "node scripts/holo-ci/check-package-consumption-matrix.mjs",
     "check:package-consumption:full": "node scripts/holo-ci/check-package-consumption-matrix.mjs --pack-npm --build-python",
     "check:package-consumption:test": "node scripts/holo-ci/check-package-consumption-matrix.mjs --self-test",
+    "check:pypi-consumption": "node scripts/holo-ci/check-package-consumption-matrix.mjs --build-python --inspect-python-artifacts --audit-pypi",
     "check:holollama-consumption": "node scripts/holo-ci/check-holollama-consumption.mjs",
     "check:fleet-utilities": "node scripts/holo-ci/check-fleet-utilities.mjs",
     "check:solver-smoke": "node scripts/holo-ci/solver-smoke-check.mjs",

@@ -13,6 +13,9 @@ health probe, and sovereign-device registry JSON.
 npm install -g @holoscript/holollama
 
 holollama doctor --json
+holollama mesh --profile jetson-orin --team-id team_... --json
+holollama preflight --profile laptop-windows --json
+holollama lifecycle --team-id team_... --json
 holollama profiles
 holollama brains
 holollama brain --task "compose eerie ambience for a cave level" --json
@@ -30,6 +33,16 @@ Profiles are operating defaults for the fleet lanes, not hardware claims:
 Override the authored plan with flags such as `--model`, `--model-path`,
 `--host`, `--port`, `--ctx`, `--ngl`, `--parallel`, `--register-as`, `--node`,
 `--platform`, `--executable`, `--service-user`, `--grammar`, and `--vision`.
+
+Operational receipts:
+
+- `doctor`: compiles profile artifacts and emits `holollama.doctor.v1`.
+- `mesh`: resolves read-only HoloMesh board, room, done-log, slot, and
+  knowledge endpoints as `holollama.holomesh-readonly-bridge.v1`.
+- `preflight`: proves llama.cpp vision flags and registry capability as
+  `holollama.llama-cpp-vision-preflight.v1`.
+- `lifecycle`: joins plan, preflight, mesh bridge, and health probe stages as
+  `holollama.fleet-lifecycle.v1`.
 
 ## Brains
 
@@ -82,4 +95,5 @@ owned local model serving. Fleet hosts consume this package to author, inspect,
 and materialize serving bundles without installing the full MCP server.
 
 Run `corepack pnpm check:holollama-consumption` after building to prove the
-built API and CLI are consumable by laptop, Jetson, and Vast fleet lanes.
+built API and CLI are consumable by laptop, Jetson, and Vast fleet lanes. The
+gate exercises the operational receipts from built artifacts before publish.

@@ -14,6 +14,8 @@ const args = process.argv.slice(2);
 const JSON_OUT = args.includes('--json');
 const PACK_NPM = args.includes('--pack-npm');
 const BUILD_PYTHON = args.includes('--build-python');
+const INSPECT_PYTHON_ARTIFACTS = args.includes('--inspect-python-artifacts');
+const AUDIT_PYPI = args.includes('--audit-pypi');
 const SELF_TEST = args.includes('--self-test');
 const rootIdx = args.indexOf('--root');
 const manifestIdx = args.indexOf('--manifest');
@@ -24,9 +26,7 @@ const MANIFEST =
     ? resolve(args[manifestIdx + 1])
     : join(ROOT, 'scripts', 'holo-ci', 'package-consumption-manifest.json');
 const OUT_DIR =
-  outIdx >= 0
-    ? resolve(args[outIdx + 1])
-    : join(ROOT, '.scratch', 'package-consumption-matrix');
+  outIdx >= 0 ? resolve(args[outIdx + 1]) : join(ROOT, '.scratch', 'package-consumption-matrix');
 const NPM_BIN = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const PYTHON_BIN = process.env.PYTHON || 'python';
 
@@ -60,6 +60,17 @@ function normalizePackPath(path) {
     .replace(/^package\//, '')
     .replace(/^\.\//, '')
     .replace(/\\/g, '/');
+}
+
+function archiveNameSet(names) {
+  const out = new Set();
+  for (const name of names || []) {
+    const normalized = normalizePackPath(name);
+    out.add(normalized);
+    const parts = normalized.split('/');
+    if (parts.length > 1) out.add(parts.slice(1).join('/'));
+  }
+  return out;
 }
 
 function parsePyprojectValue(text, key) {
@@ -103,8 +114,12 @@ function minimumVersionFromRange(range) {
 }
 
 function compareDottedVersions(a, b) {
-  const left = String(a).split('.').map((part) => Number(part));
-  const right = String(b).split('.').map((part) => Number(part));
+  const left = String(a)
+    .split('.')
+    .map((part) => Number(part));
+  const right = String(b)
+    .split('.')
+    .map((part) => Number(part));
   const length = Math.max(left.length, right.length, 3);
   for (let i = 0; i < length; i += 1) {
     const l = Number.isFinite(left[i]) ? left[i] : 0;
@@ -115,7 +130,128 @@ function compareDottedVersions(a, b) {
   return 0;
 }
 
-function checkRuntimeMinimum(pkgName, runtimeName, packageRange, consumerId, consumerRange, errors, warnings) {
+function inspectPythonArtifacts(pkg, artifacts, errors) {
+  const script = String.raw`
+import json
+import sys
+import tarfile
+import zipfile
+
+out = {}
+for path in sys.argv[1:]:
+    if path.endswith(".whl"):
+        with zipfile.ZipFile(path) as wheel:
+            files = wheel.namelist()
+            texts = {}
+            for name in files:
+                if name.endswith(("/METADATA", "/WHEEL", "/entry_points.txt")):
+                    texts[name] = wheel.read(name).decode("utf-8", "replace")
+            out[path] = {"kind": "wheel", "files": files, "texts": texts}
+    elif path.endswith(".tar.gz"):
+        with tarfile.open(path, "r:*") as sdist:
+            files = sdist.getnames()
+            texts = {}
+            for member in sdist.getmembers():
+                if member.name.endswith(("pyproject.toml", "PKG-INFO")):
+                    extracted = sdist.extractfile(member)
+                    if extracted is not None:
+                        texts[member.name] = extracted.read().decode("utf-8", "replace")
+            out[path] = {"kind": "sdist", "files": files, "texts": texts}
+print(json.dumps(out))
+`;
+  const inspected = JSON.parse(run(PYTHON_BIN, ['-c', script, ...artifacts], { cwd: ROOT }));
+  const wheels = Object.entries(inspected).filter(([, value]) => value.kind === 'wheel');
+  const sdists = Object.entries(inspected).filter(([, value]) => value.kind === 'sdist');
+  if (wheels.length === 0) errors.push(`${pkg.name}: artifact inspection found no wheel`);
+  if (sdists.length === 0) errors.push(`${pkg.name}: artifact inspection found no sdist`);
+
+  for (const [, wheel] of wheels) {
+    const files = archiveNameSet(wheel.files);
+    if (![...files].some((file) => file.endsWith('.dist-info/METADATA'))) {
+      errors.push(`${pkg.name}: wheel missing dist-info/METADATA`);
+    }
+    if (![...files].some((file) => file.endsWith('.dist-info/WHEEL'))) {
+      errors.push(`${pkg.name}: wheel missing dist-info/WHEEL`);
+    }
+    for (const importName of pkg.imports || []) {
+      const importPath = `${importName.replace(/\./g, '/')}/__init__.py`;
+      if (!files.has(importPath))
+        errors.push(`${pkg.name}: wheel missing import package ${importPath}`);
+    }
+    const entryPointText = Object.entries(wheel.texts || {})
+      .filter(([name]) => name.endsWith('/entry_points.txt'))
+      .map(([, text]) => text)
+      .join('\n');
+    for (const scriptName of pkg.consoleScripts || []) {
+      if (!entryPointText.includes(`${scriptName} =`)) {
+        errors.push(`${pkg.name}: wheel missing console script entry point ${scriptName}`);
+      }
+    }
+  }
+
+  for (const [, sdist] of sdists) {
+    const files = archiveNameSet(sdist.files);
+    if (!files.has('pyproject.toml')) errors.push(`${pkg.name}: sdist missing pyproject.toml`);
+    if (!files.has('README.md')) errors.push(`${pkg.name}: sdist missing README.md`);
+    for (const importName of pkg.imports || []) {
+      const importPath = `${importName.replace(/\./g, '/')}/__init__.py`;
+      if (!files.has(importPath))
+        errors.push(`${pkg.name}: sdist missing import package ${importPath}`);
+    }
+  }
+}
+
+async function auditPyPiPackage(pkg, localVersion, row, errors, warnings) {
+  const url = `https://pypi.org/pypi/${encodeURIComponent(pkg.name)}/json`;
+  try {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'holoscript-package-consumption-matrix/1.0' },
+    });
+    if (res.status === 404) {
+      row.pypi = {
+        status: 'publish-new',
+        localVersion,
+        publishedVersion: null,
+        url: `https://pypi.org/project/${pkg.name}/`,
+      };
+      return;
+    }
+    if (!res.ok) {
+      warnings.push(`${pkg.name}: PyPI registry audit returned HTTP ${res.status}`);
+      return;
+    }
+    const data = await res.json();
+    const publishedVersion = data?.info?.version;
+    if (typeof publishedVersion !== 'string' || publishedVersion.length === 0) {
+      warnings.push(`${pkg.name}: PyPI registry audit did not return info.version`);
+      return;
+    }
+    const cmp = compareDottedVersions(localVersion, publishedVersion);
+    row.pypi = {
+      status: cmp === 0 ? 'current' : cmp > 0 ? 'publish-update' : 'local-behind',
+      localVersion,
+      publishedVersion,
+      url: `https://pypi.org/project/${pkg.name}/`,
+    };
+    if (cmp < 0) {
+      errors.push(`${pkg.name}: local version ${localVersion} is behind PyPI ${publishedVersion}`);
+    }
+  } catch (error) {
+    warnings.push(
+      `${pkg.name}: PyPI registry audit failed: ${String(error.message || error).slice(0, 240)}`
+    );
+  }
+}
+
+function checkRuntimeMinimum(
+  pkgName,
+  runtimeName,
+  packageRange,
+  consumerId,
+  consumerRange,
+  errors,
+  warnings
+) {
   const packageMin = minimumVersionFromRange(packageRange);
   const consumerMin = minimumVersionFromRange(consumerRange);
   if (!packageMin) {
@@ -198,7 +334,8 @@ function checkNpmPackage(pkg, consumers, errors, warnings, rows) {
     if (!json.bin?.[binName]) errors.push(`${pkg.name}: missing required bin '${binName}'`);
   }
   for (const file of pkg.requireFiles || []) {
-    if (!existsSync(join(dir, file))) errors.push(`${pkg.name}: required artifact missing before pack: ${file}`);
+    if (!existsSync(join(dir, file)))
+      errors.push(`${pkg.name}: required artifact missing before pack: ${file}`);
   }
 
   if (!PACK_NPM) return;
@@ -211,7 +348,8 @@ function checkNpmPackage(pkg, consumers, errors, warnings, rows) {
   }
   for (const binPath of Object.values(json.bin || {})) {
     const normalized = normalizePackPath(binPath);
-    if (!files.has(normalized)) errors.push(`${pkg.name}: npm pack does not include bin target ${normalized}`);
+    if (!files.has(normalized))
+      errors.push(`${pkg.name}: npm pack does not include bin target ${normalized}`);
   }
   if (pkg.forbidBundledNativeAddons) {
     const nativeAddons = [...files].filter((file) => file.endsWith('.node'));
@@ -223,7 +361,7 @@ function checkNpmPackage(pkg, consumers, errors, warnings, rows) {
   }
 }
 
-function checkPyPackage(pkg, consumers, errors, warnings, rows) {
+async function checkPyPackage(pkg, consumers, errors, warnings, rows) {
   assertConsumersKnown(pkg, consumers, errors);
   const dir = resolve(ROOT, pkg.packageDir || '');
   const pyproject = join(dir, 'pyproject.toml');
@@ -232,13 +370,21 @@ function checkPyPackage(pkg, consumers, errors, warnings, rows) {
     return;
   }
   const text = readFileSync(pyproject, 'utf8');
-  const row = { type: 'pypi', name: pkg.name, requiredBy: pkg.requiredBy || [], built: [] };
+  const row = {
+    type: 'pypi',
+    name: pkg.name,
+    requiredBy: pkg.requiredBy || [],
+    built: [],
+    inspected: false,
+    pypi: null,
+  };
   rows.push(row);
 
   const projectName = parsePyprojectValue(text, 'name');
   const version = parsePyprojectValue(text, 'version');
   const requiresPython = parsePyprojectValue(text, 'requires-python');
-  if (projectName !== pkg.name) errors.push(`${pkg.name}: pyproject name is ${projectName || 'missing'}`);
+  if (projectName !== pkg.name)
+    errors.push(`${pkg.name}: pyproject name is ${projectName || 'missing'}`);
   if (!version || !/^\d+\.\d+\.\d+(?:-.+)?$/.test(version)) {
     errors.push(`${pkg.name}: version is not semver-ish (${version || 'missing'})`);
   }
@@ -247,7 +393,15 @@ function checkPyPackage(pkg, consumers, errors, warnings, rows) {
     for (const id of pkg.requiredBy || []) {
       const consumer = consumers.get(id);
       if (!consumer) continue;
-      checkRuntimeMinimum(pkg.name, 'python', requiresPython, id, consumer.python, errors, warnings);
+      checkRuntimeMinimum(
+        pkg.name,
+        'python',
+        requiresPython,
+        id,
+        consumer.python,
+        errors,
+        warnings
+      );
     }
   }
   if (!/^license\s*=\s*"[^"]+"/m.test(text)) {
@@ -264,11 +418,15 @@ function checkPyPackage(pkg, consumers, errors, warnings, rows) {
   }
   const extras = parseProjectOptionalDependencyGroups(text);
   for (const [consumerId, requestedExtras] of Object.entries(pkg.extrasByConsumer || {})) {
-    if (!consumers.has(consumerId)) errors.push(`${pkg.name}: extrasByConsumer references unknown consumer '${consumerId}'`);
+    if (!consumers.has(consumerId))
+      errors.push(`${pkg.name}: extrasByConsumer references unknown consumer '${consumerId}'`);
     for (const extra of requestedExtras || []) {
-      if (!extras.has(extra)) errors.push(`${pkg.name}: missing optional dependency extra '${extra}' for ${consumerId}`);
+      if (!extras.has(extra))
+        errors.push(`${pkg.name}: missing optional dependency extra '${extra}' for ${consumerId}`);
     }
   }
+
+  if (AUDIT_PYPI && version) await auditPyPiPackage(pkg, version, row, errors, warnings);
 
   if (!BUILD_PYTHON) return;
   const outDir = join(OUT_DIR, pkg.name.replace(/[^\w.-]+/g, '_'));
@@ -276,15 +434,26 @@ function checkPyPackage(pkg, consumers, errors, warnings, rows) {
   mkdirSync(outDir, { recursive: true });
   const stdout = run(PYTHON_BIN, ['-m', 'build', '--outdir', outDir, dir], { cwd: ROOT });
   row.built = parseDistInfoFromBuildOutput(stdout);
-  const artifacts = readdirSync(outDir).filter((file) => file.endsWith('.whl') || file.endsWith('.tar.gz'));
-  if (!artifacts.some((file) => file.endsWith('.whl'))) errors.push(`${pkg.name}: build produced no wheel`);
-  if (!artifacts.some((file) => file.endsWith('.tar.gz'))) errors.push(`${pkg.name}: build produced no sdist`);
+  const artifacts = readdirSync(outDir).filter(
+    (file) => file.endsWith('.whl') || file.endsWith('.tar.gz')
+  );
+  if (!artifacts.some((file) => file.endsWith('.whl')))
+    errors.push(`${pkg.name}: build produced no wheel`);
+  if (!artifacts.some((file) => file.endsWith('.tar.gz')))
+    errors.push(`${pkg.name}: build produced no sdist`);
+  const artifactPaths = artifacts.map((file) => join(outDir, file));
+  if (INSPECT_PYTHON_ARTIFACTS) {
+    inspectPythonArtifacts(pkg, artifactPaths, errors);
+    row.inspected = true;
+  }
   try {
-    run(PYTHON_BIN, ['-m', 'twine', 'check', ...artifacts.map((file) => join(outDir, file))], {
+    run(PYTHON_BIN, ['-m', 'twine', 'check', ...artifactPaths], {
       cwd: ROOT,
     });
   } catch (error) {
-    errors.push(`${pkg.name}: twine check failed: ${String(error.stderr || error.message).slice(0, 800)}`);
+    errors.push(
+      `${pkg.name}: twine check failed: ${String(error.stderr || error.message).slice(0, 800)}`
+    );
   }
 }
 
@@ -293,11 +462,17 @@ function runSelfTest() {
   if (!supportsNpmSelector(undefined, 'linux')) errors.push('empty selector should allow linux');
   if (!supportsNpmSelector(['linux'], 'linux')) errors.push('positive selector should allow match');
   if (supportsNpmSelector(['linux'], 'win32')) errors.push('positive selector should reject miss');
-  if (supportsNpmSelector(['!linux'], 'linux')) errors.push('negative selector should reject match');
-  if (normalizePackPath('package/bin/x.cjs') !== 'bin/x.cjs') errors.push('pack path normalization failed');
-  const scripts = parseProjectScripts('[project.scripts]\ntrait-inference = "trait_inference.cli:main"\n\n[tool.x]\n');
+  if (supportsNpmSelector(['!linux'], 'linux'))
+    errors.push('negative selector should reject match');
+  if (normalizePackPath('package/bin/x.cjs') !== 'bin/x.cjs')
+    errors.push('pack path normalization failed');
+  const scripts = parseProjectScripts(
+    '[project.scripts]\ntrait-inference = "trait_inference.cli:main"\n\n[tool.x]\n'
+  );
   if (!scripts.has('trait-inference')) errors.push('project script parser failed');
-  const extras = parseProjectOptionalDependencyGroups('[project.optional-dependencies]\nmodel = [\n  "torch"\n]\n\n[tool.x]\n');
+  const extras = parseProjectOptionalDependencyGroups(
+    '[project.optional-dependencies]\nmodel = [\n  "torch"\n]\n\n[tool.x]\n'
+  );
   if (!extras.has('model')) errors.push('optional dependency parser failed');
   if (minimumVersionFromRange('>=3.10') !== '3.10') errors.push('version range parser failed');
   if (compareDottedVersions('20.0.0', '18.0.0') <= 0) errors.push('version comparator failed');
@@ -308,20 +483,24 @@ function runSelfTest() {
   console.log('[package-consumption] self-test PASS');
 }
 
-function main() {
+async function main() {
   if (SELF_TEST) return runSelfTest();
   const errors = [];
   const warnings = [];
   const rows = [];
   const manifest = readJson(MANIFEST);
   const consumers = checkConsumerShape(manifest, errors);
-  for (const pkg of manifest.npmPackages || []) checkNpmPackage(pkg, consumers, errors, warnings, rows);
-  for (const pkg of manifest.pypiPackages || []) checkPyPackage(pkg, consumers, errors, warnings, rows);
+  for (const pkg of manifest.npmPackages || [])
+    checkNpmPackage(pkg, consumers, errors, warnings, rows);
+  for (const pkg of manifest.pypiPackages || [])
+    await checkPyPackage(pkg, consumers, errors, warnings, rows);
 
   const output = {
     ok: errors.length === 0,
     packNpm: PACK_NPM,
     buildPython: BUILD_PYTHON,
+    inspectPythonArtifacts: INSPECT_PYTHON_ARTIFACTS,
+    auditPyPi: AUDIT_PYPI,
     consumers: [...consumers.keys()],
     rows,
     warnings,
@@ -335,9 +514,13 @@ function main() {
         row.type === 'npm' && row.packEntries !== null
           ? ` packEntries=${row.packEntries}`
           : row.type === 'pypi' && row.built.length
-            ? ` built=${row.built.join(',')}`
+            ? ` built=${row.built.join(',')}${row.inspected ? ' inspected=true' : ''}${
+                row.pypi ? ` pypi=${row.pypi.status}` : ''
+              }`
             : '';
-      console.log(`[package-consumption] ${row.type} ${row.name} -> ${row.requiredBy.join(',')}${detail}`);
+      console.log(
+        `[package-consumption] ${row.type} ${row.name} -> ${row.requiredBy.join(',')}${detail}`
+      );
     }
     for (const warning of warnings) console.warn(`[package-consumption] WARN: ${warning}`);
     if (errors.length) {
@@ -350,4 +533,7 @@ function main() {
   process.exit(errors.length === 0 ? 0 : 1);
 }
 
-main();
+main().catch((error) => {
+  console.error(`[package-consumption] FAIL: ${String(error.stack || error)}`);
+  process.exit(1);
+});

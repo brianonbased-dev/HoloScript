@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   assertHoloLlamaBundleConsumable,
+  buildHoloLlamaFleetLifecycleReport,
+  buildHoloMeshReadOnlyBridge,
   buildLlamaServeComposition,
   compileHoloLlamaBundle,
   compileHoloLlamaFiles,
@@ -8,6 +10,7 @@ import {
   extractSovereignDeviceRegistry,
   listHoloLlamaBrains,
   listHoloLlamaProfiles,
+  preflightHoloLlamaVision,
   selectHoloLlamaBrain,
   summarizeHoloLlamaBundle,
 } from '../index.js';
@@ -131,7 +134,9 @@ describe('@holoscript/holollama', () => {
   });
 
   it('extracts the sovereign-device registry document fleet routers consume', () => {
-    const registry = extractSovereignDeviceRegistry(compileHoloLlamaBundle({ profile: 'vast-linux-gpu' }));
+    const registry = extractSovereignDeviceRegistry(
+      compileHoloLlamaBundle({ profile: 'vast-linux-gpu' })
+    );
     expect(registry.handle).toBe('vast-holollama');
     expect(registry.capabilities).toEqual(
       expect.arrayContaining([
@@ -148,6 +153,76 @@ describe('@holoscript/holollama', () => {
     const files = compileHoloLlamaFiles({ profile: 'laptop-windows' });
     expect(files['launch-llama-server.ps1']).toContain('llama-server.exe');
     expect(files['health-probe.ps1']).toContain('http://127.0.0.1:18080/health');
-    expect(files['sovereign-devices/laptop-fara-7b-llama.json']).toContain('"backend": "llama.cpp"');
+    expect(files['sovereign-devices/laptop-fara-7b-llama.json']).toContain(
+      '"backend": "llama.cpp"'
+    );
+  });
+
+  it('builds a read-only HoloMesh bridge receipt for fleet consumers', () => {
+    const bridge = buildHoloMeshReadOnlyBridge({
+      profile: 'jetson-orin',
+      teamId: 'team_test',
+      generatedAt: '2026-07-05T00:00:00.000Z',
+    });
+
+    expect(bridge.schema).toBe('holollama.holomesh-readonly-bridge.v1');
+    expect(bridge.ok).toBe(true);
+    expect(bridge.registryHandle).toBe('jetson-brittney-edge');
+    expect(bridge.access.allowedMethods).toEqual(['GET']);
+    expect(bridge.access.forbiddenMethods).toEqual(['POST', 'PATCH', 'PUT', 'DELETE']);
+    expect(bridge.access.writeScopes).toEqual([]);
+    expect(bridge.endpoints).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'team-board',
+          method: 'GET',
+          path: '/api/holomesh/team/team_test/board',
+        }),
+      ])
+    );
+  });
+
+  it('preflights llama.cpp vision flags for the laptop lane', () => {
+    const preflight = preflightHoloLlamaVision('laptop-windows', {
+      generatedAt: '2026-07-05T00:00:00.000Z',
+    });
+
+    expect(preflight.schema).toBe('holollama.llama-cpp-vision-preflight.v1');
+    expect(preflight.ok).toBe(true);
+    expect(preflight.visionRequested).toBe(true);
+    expect(preflight.launchCommand).toContain('--mmproj');
+    expect(preflight.checks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'launch-mmproj-flag', required: true, ok: true }),
+        expect.objectContaining({ id: 'launch-image-token-flags', required: true, ok: true }),
+        expect.objectContaining({ id: 'registry-vision-capability', required: true, ok: true }),
+      ])
+    );
+  });
+
+  it('promotes doctor, vision preflight, and mesh bridge into lifecycle checks', () => {
+    const lifecycle = buildHoloLlamaFleetLifecycleReport({
+      teamId: 'team_test',
+      generatedAt: '2026-07-05T00:00:00.000Z',
+    });
+
+    expect(lifecycle.schema).toBe('holollama.fleet-lifecycle.v1');
+    expect(lifecycle.ok).toBe(true);
+    expect(lifecycle.profiles.map((profile) => profile.profile)).toEqual([
+      'jetson-orin',
+      'laptop-windows',
+      'vast-linux-gpu',
+    ]);
+    const laptop = lifecycle.profiles.find((profile) => profile.profile === 'laptop-windows');
+    expect(laptop?.stages.map((stage) => stage.id)).toEqual([
+      'plan',
+      'vision-preflight',
+      'mesh-readonly-bridge',
+      'serve-health-probe',
+    ]);
+    expect(laptop?.visionPreflight.visionRequested).toBe(true);
+    expect(
+      laptop?.meshReadOnlyBridge.endpoints.some((endpoint) => endpoint.id === 'team-board')
+    ).toBe(true);
   });
 });

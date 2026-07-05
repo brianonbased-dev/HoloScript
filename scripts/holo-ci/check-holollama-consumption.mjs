@@ -53,7 +53,11 @@ function runProcess(command, args, cwd = ROOT) {
 
 function runPnpm(args, cwd = ROOT) {
   if (process.platform !== 'win32') return runProcess('corepack', ['pnpm', ...args], cwd);
-  return runProcess(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', ['corepack', 'pnpm', ...args].join(' ')], cwd);
+  return runProcess(
+    process.env.ComSpec || 'cmd.exe',
+    ['/d', '/s', '/c', ['corepack', 'pnpm', ...args].join(' ')],
+    cwd
+  );
 }
 
 function parseCliJson(args) {
@@ -80,16 +84,61 @@ for (const expected of EXPECTED_PROFILES) {
 }
 for (const profile of doctor.profiles) {
   if (EXPECTED_CONSUMERS.get(profile.profile) !== profile.consumer) {
-    fail(`${profile.profile} maps to ${profile.consumer}, expected ${EXPECTED_CONSUMERS.get(profile.profile)}`);
+    fail(
+      `${profile.profile} maps to ${profile.consumer}, expected ${EXPECTED_CONSUMERS.get(profile.profile)}`
+    );
   }
 }
 
 const cliDoctor = parseCliJson(['doctor', '--json']);
 if (!cliDoctor.ok) fail(`doctor CLI reported blockers: ${JSON.stringify(cliDoctor.profiles)}`);
 
+const cliMesh = parseCliJson([
+  'mesh',
+  '--profile',
+  'jetson-orin',
+  '--team-id',
+  'team_test',
+  '--json',
+]);
+if (cliMesh.schema !== 'holollama.holomesh-readonly-bridge.v1') {
+  fail(`mesh CLI emitted unexpected schema: ${cliMesh.schema}`);
+}
+if (cliMesh.access?.allowedMethods?.join(',') !== 'GET') fail('mesh CLI is not read-only');
+if (
+  !cliMesh.endpoints?.some((endpoint) => endpoint.id === 'team-board' && endpoint.method === 'GET')
+) {
+  fail('mesh CLI omitted read-only team-board endpoint');
+}
+
+const cliVisionPreflight = parseCliJson(['preflight', '--profile', 'laptop-windows', '--json']);
+if (cliVisionPreflight.schema !== 'holollama.llama-cpp-vision-preflight.v1') {
+  fail(`preflight CLI emitted unexpected schema: ${cliVisionPreflight.schema}`);
+}
+if (!cliVisionPreflight.ok || !cliVisionPreflight.visionRequested) {
+  fail(`preflight CLI did not prove laptop vision lane: ${JSON.stringify(cliVisionPreflight)}`);
+}
+
+const cliLifecycle = parseCliJson(['lifecycle', '--team-id', 'team_test', '--json']);
+if (cliLifecycle.schema !== 'holollama.fleet-lifecycle.v1') {
+  fail(`lifecycle CLI emitted unexpected schema: ${cliLifecycle.schema}`);
+}
+if (!cliLifecycle.ok)
+  fail(`lifecycle CLI reported blockers: ${JSON.stringify(cliLifecycle.profiles)}`);
+for (const expected of EXPECTED_PROFILES) {
+  const profile = cliLifecycle.profiles?.find((candidate) => candidate.profile === expected);
+  if (!profile) fail(`lifecycle CLI omitted profile ${expected}`);
+  for (const stage of ['plan', 'vision-preflight', 'mesh-readonly-bridge', 'serve-health-probe']) {
+    if (!profile.stages?.some((candidate) => candidate.id === stage && candidate.ok === true)) {
+      fail(`lifecycle CLI profile ${expected} did not pass stage ${stage}`);
+    }
+  }
+}
+
 const cliProfiles = parseCliJson(['profiles']);
 for (const expected of EXPECTED_PROFILES) {
-  if (!cliProfiles.some((profile) => profile.id === expected)) fail(`profiles CLI omitted ${expected}`);
+  if (!cliProfiles.some((profile) => profile.id === expected))
+    fail(`profiles CLI omitted ${expected}`);
 }
 
 const brainSelection = parseCliJson([
@@ -110,10 +159,16 @@ const packOutput = runPnpm(['pack', '--pack-destination', PACK_DIR], PACKAGE_DIR
 const tarballLine = packOutput.trim().split(/\r?\n/).filter(Boolean).at(-1);
 if (!tarballLine) fail('pnpm pack did not return a tarball path');
 const tarball = resolve(PACKAGE_DIR, tarballLine);
-const packedManifest = JSON.parse(runProcess(TAR, ['-xOf', tarball, 'package/package.json'], PACKAGE_DIR));
+const packedManifest = JSON.parse(
+  runProcess(TAR, ['-xOf', tarball, 'package/package.json'], PACKAGE_DIR)
+);
 const coreDependency = packedManifest.dependencies?.['@holoscript/core'];
 if (typeof coreDependency !== 'string' || coreDependency.startsWith('workspace:')) {
-  fail(`packed manifest has non-publishable @holoscript/core dependency: ${String(coreDependency)}`);
+  fail(
+    `packed manifest has non-publishable @holoscript/core dependency: ${String(coreDependency)}`
+  );
 }
 
-console.log('[holollama-consumption] PASS: built API and CLI are consumable by laptop, Jetson, and Vast lanes.');
+console.log(
+  '[holollama-consumption] PASS: built API and CLI are consumable by laptop, Jetson, and Vast lanes.'
+);

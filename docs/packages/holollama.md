@@ -15,6 +15,9 @@ npm install -g @holoscript/holollama
 
 ```bash
 holollama doctor --json
+holollama mesh --profile jetson-orin --team-id team_... --json
+holollama preflight --profile laptop-windows --json
+holollama lifecycle --team-id team_... --json
 holollama profiles
 holollama brains
 holollama brain --task "compose eerie ambience for a cave level" --json
@@ -36,6 +39,21 @@ Common overrides include `--model`, `--model-path`, `--host`, `--port`, `--ctx`,
 `holollama doctor` compiles and inspects every serving profile, then emits a
 `holollama.doctor.v1` receipt proving that the profile registry handle, health
 URL, and required bundle files are internally coherent.
+
+`holollama mesh` emits a `holollama.holomesh-readonly-bridge.v1` receipt. It
+resolves the read-only HoloMesh endpoints a node may consume for room, board,
+messages, done-log, slot, and knowledge state without granting package-level
+write authority.
+
+`holollama preflight` emits a `holollama.llama-cpp-vision-preflight.v1` receipt.
+For vision profiles it proves the multimodal projector path, llama.cpp
+`--mmproj` launch flag, image-token flags, and registry vision capability are
+coherent. Add `--check-filesystem` on the target node when you want local proof
+that the executable, model, and projector files exist.
+
+`holollama lifecycle` emits a `holollama.fleet-lifecycle.v1` receipt that joins
+the serving plan, vision preflight, read-only HoloMesh bridge, and health-probe
+stage for every fleet profile.
 
 ## Brains
 
@@ -83,4 +101,6 @@ serving. The broader utility split is tracked in
 `corepack pnpm check:fleet-utilities`.
 
 Run `corepack pnpm check:holollama-consumption` after building to prove the
-built package API and CLI are consumable by laptop, Jetson, and Vast lanes.
+built package API and CLI are consumable by laptop, Jetson, and Vast lanes. The
+gate exercises `doctor`, `mesh`, `preflight`, `lifecycle`, `profiles`, and Brain
+routing from built artifacts before publish.

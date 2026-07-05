@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import {
@@ -118,9 +119,128 @@ export interface HoloLlamaDoctorReport {
   profiles: HoloLlamaProfileDoctorResult[];
 }
 
+export interface HoloLlamaMeshReadOnlyBridgeOptions {
+  profile?: HoloLlamaProfile;
+  teamId?: string;
+  orchestratorUrl?: string;
+  apiKeyEnv?: string;
+  generatedAt?: string;
+}
+
+export interface HoloLlamaReadOnlyEndpoint {
+  id: string;
+  method: 'GET';
+  path: string;
+  url: string;
+  purpose: string;
+}
+
+export interface HoloLlamaMeshReadOnlyBridgeReceipt {
+  schema: typeof HOLOLLAMA_MESH_READONLY_BRIDGE_SCHEMA;
+  generatedAt: string;
+  ok: boolean;
+  profile: HoloLlamaProfile;
+  consumer: HoloLlamaProfileDefinition['consumer'];
+  registryHandle: string;
+  node: string;
+  mode: 'read-only';
+  mesh: {
+    orchestratorUrl: string;
+    teamId: string;
+    apiKeyEnv: string;
+    authHeader: string;
+  };
+  access: {
+    allowedMethods: ['GET'];
+    forbiddenMethods: ['POST', 'PATCH', 'PUT', 'DELETE'];
+    writeScopes: [];
+  };
+  deviceRegistry: {
+    handle: string;
+    endpoint: string;
+    healthUrl: string;
+    capabilities: LlamaServerBundle['registryEntry']['capabilities'];
+  };
+  endpoints: HoloLlamaReadOnlyEndpoint[];
+  lifecycleUse: string[];
+  warnings: string[];
+  blockers: string[];
+}
+
+export interface HoloLlamaVisionPreflightOptions {
+  generatedAt?: string;
+  checkFilesystem?: boolean;
+  exists?: (path: string) => boolean;
+}
+
+export interface HoloLlamaPreflightCheck {
+  id: string;
+  required: boolean;
+  ok: boolean;
+  detail: string;
+}
+
+export interface HoloLlamaFilesystemCheck {
+  id: string;
+  path: string;
+  required: boolean;
+  exists: boolean;
+}
+
+export interface HoloLlamaVisionPreflightReceipt {
+  schema: typeof HOLOLLAMA_VISION_PREFLIGHT_SCHEMA;
+  generatedAt: string;
+  ok: boolean;
+  profile: HoloLlamaProfile;
+  consumer: HoloLlamaProfileDefinition['consumer'];
+  registryHandle: string;
+  visionRequested: boolean;
+  launchCommand: string;
+  checks: HoloLlamaPreflightCheck[];
+  filesystemChecks: HoloLlamaFilesystemCheck[];
+  warnings: string[];
+  blockers: string[];
+}
+
+export interface HoloLlamaFleetLifecycleOptions
+  extends
+    HoloLlamaMeshReadOnlyBridgeOptions,
+    Pick<HoloLlamaVisionPreflightOptions, 'checkFilesystem' | 'exists'> {}
+
+export interface HoloLlamaFleetLifecycleStage {
+  id: 'plan' | 'vision-preflight' | 'mesh-readonly-bridge' | 'serve-health-probe';
+  ok: boolean;
+  receiptSchema: string;
+  summary: string;
+}
+
+export interface HoloLlamaFleetLifecycleProfile {
+  profile: HoloLlamaProfile;
+  consumer: HoloLlamaProfileDefinition['consumer'];
+  registryHandle: string;
+  ok: boolean;
+  stages: HoloLlamaFleetLifecycleStage[];
+  doctor: HoloLlamaProfileDoctorResult;
+  visionPreflight: HoloLlamaVisionPreflightReceipt;
+  meshReadOnlyBridge: HoloLlamaMeshReadOnlyBridgeReceipt;
+}
+
+export interface HoloLlamaFleetLifecycleReport {
+  schema: typeof HOLOLLAMA_FLEET_LIFECYCLE_SCHEMA;
+  generatedAt: string;
+  ok: boolean;
+  profiles: HoloLlamaFleetLifecycleProfile[];
+}
+
 const DEFAULT_IMAGE_MIN_TOKENS = 1024;
 const DEFAULT_IMAGE_MAX_TOKENS = 1536;
+const DEFAULT_HOLOMESH_ORCHESTRATOR_URL = 'https://mcp-orchestrator-production-45f9.up.railway.app';
+const DEFAULT_HOLOMESH_TEAM_ID = 'TEAM_ID';
+const DEFAULT_HOLOMESH_API_KEY_ENV = 'HOLOSCRIPT_API_KEY';
 export const HOLOLLAMA_DOCTOR_SCHEMA = 'holollama.doctor.v1';
+export const HOLOLLAMA_MESH_READONLY_BRIDGE_SCHEMA = 'holollama.holomesh-readonly-bridge.v1';
+export const HOLOLLAMA_VISION_PREFLIGHT_SCHEMA = 'holollama.llama-cpp-vision-preflight.v1';
+export const HOLOLLAMA_FLEET_LIFECYCLE_SCHEMA = 'holollama.fleet-lifecycle.v1';
 export const HOLOLLAMA_PROFILE_DEFINITIONS: Record<HoloLlamaProfile, HoloLlamaProfileDefinition> = {
   'jetson-orin': {
     id: 'jetson-orin',
@@ -283,7 +403,9 @@ export function buildLlamaServeComposition(
   return `${lines.join('\n')}\n`;
 }
 
-export function compileHoloLlamaBundle(input: string | CompileHoloLlamaInput = {}): LlamaServerBundle {
+export function compileHoloLlamaBundle(
+  input: string | CompileHoloLlamaInput = {}
+): LlamaServerBundle {
   const normalized = normalizeCompileInput(input);
   const result = parseHolo(normalized.code);
   if (!result.success || !result.ast) {
@@ -296,7 +418,9 @@ export function compileHoloLlamaBundle(input: string | CompileHoloLlamaInput = {
   return JSON.parse(compiler.compile(result.ast, '')) as LlamaServerBundle;
 }
 
-export function compileHoloLlamaFiles(input: string | CompileHoloLlamaInput = {}): Record<string, string> {
+export function compileHoloLlamaFiles(
+  input: string | CompileHoloLlamaInput = {}
+): Record<string, string> {
   const bundle = compileHoloLlamaBundle(input);
   return Object.fromEntries(bundle.files.map((file) => [file.path, file.content]));
 }
@@ -338,7 +462,9 @@ export function summarizeHoloLlamaBundle(bundle: LlamaServerBundle): HoloLlamaBu
   };
 }
 
-export function doctorHoloLlamaProfiles(options: HoloLlamaDoctorOptions = {}): HoloLlamaDoctorReport {
+export function doctorHoloLlamaProfiles(
+  options: HoloLlamaDoctorOptions = {}
+): HoloLlamaDoctorReport {
   const profileIds = options.profile
     ? [options.profile]
     : (Object.keys(HOLOLLAMA_PROFILE_DEFINITIONS) as HoloLlamaProfile[]);
@@ -347,6 +473,236 @@ export function doctorHoloLlamaProfiles(options: HoloLlamaDoctorOptions = {}): H
     schema: HOLOLLAMA_DOCTOR_SCHEMA,
     generatedAt: options.generatedAt ?? new Date().toISOString(),
     ok: profiles.every((result) => result.ok),
+    profiles,
+  };
+}
+
+export function buildHoloMeshReadOnlyBridge(
+  options: HoloLlamaMeshReadOnlyBridgeOptions = {}
+): HoloLlamaMeshReadOnlyBridgeReceipt {
+  const profile = options.profile ?? 'jetson-orin';
+  const definition = HOLOLLAMA_PROFILE_DEFINITIONS[profile];
+  const bundle = compileHoloLlamaBundle({ profile });
+  const summary = summarizeHoloLlamaBundle(bundle);
+  const orchestratorUrl = trimTrailingSlash(
+    options.orchestratorUrl ?? DEFAULT_HOLOMESH_ORCHESTRATOR_URL
+  );
+  const teamId = options.teamId ?? DEFAULT_HOLOMESH_TEAM_ID;
+  const apiKeyEnv = options.apiKeyEnv ?? DEFAULT_HOLOMESH_API_KEY_ENV;
+  const teamPath = `/api/holomesh/team/${encodeURIComponent(teamId)}`;
+  const endpoints = [
+    endpoint(
+      'orchestrator-health',
+      orchestratorUrl,
+      '/health',
+      'Read orchestrator service health.'
+    ),
+    endpoint('team-slots', orchestratorUrl, `${teamPath}/slots`, 'Read live team slot health.'),
+    endpoint(
+      'team-board',
+      orchestratorUrl,
+      `${teamPath}/board`,
+      'Read open, claimed, and done board state.'
+    ),
+    endpoint('team-done', orchestratorUrl, `${teamPath}/done`, 'Read permanent done log.'),
+    endpoint(
+      'team-messages',
+      orchestratorUrl,
+      `${teamPath}/messages`,
+      'Read room feed and handoffs.'
+    ),
+    endpoint(
+      'team-knowledge',
+      orchestratorUrl,
+      `${teamPath}/knowledge`,
+      'Read team knowledge entries.'
+    ),
+  ];
+  const warnings = options.teamId
+    ? []
+    : ['teamId is a placeholder; pass --team-id for a live bridge receipt.'];
+
+  return {
+    schema: HOLOLLAMA_MESH_READONLY_BRIDGE_SCHEMA,
+    generatedAt: options.generatedAt ?? new Date().toISOString(),
+    ok: true,
+    profile,
+    consumer: definition.consumer,
+    registryHandle: summary.registryHandle,
+    node: definition.spec.node,
+    mode: 'read-only',
+    mesh: {
+      orchestratorUrl,
+      teamId,
+      apiKeyEnv,
+      authHeader: `Authorization: Bearer $${apiKeyEnv}`,
+    },
+    access: {
+      allowedMethods: ['GET'],
+      forbiddenMethods: ['POST', 'PATCH', 'PUT', 'DELETE'],
+      writeScopes: [],
+    },
+    deviceRegistry: {
+      handle: bundle.registryEntry.handle,
+      endpoint: bundle.registryEntry.endpoint,
+      healthUrl: bundle.registryEntry.healthUrl,
+      capabilities: bundle.registryEntry.capabilities,
+    },
+    endpoints,
+    lifecycleUse: [
+      'observe HoloMesh room and board state before registering a node',
+      'attach fleet receipts without granting package-level write authority',
+      'keep package consumers pointed at the canonical HoloMesh control plane',
+    ],
+    warnings,
+    blockers: [],
+  };
+}
+
+export function preflightHoloLlamaVision(
+  profile: HoloLlamaProfile = 'laptop-windows',
+  options: HoloLlamaVisionPreflightOptions = {}
+): HoloLlamaVisionPreflightReceipt {
+  const definition = HOLOLLAMA_PROFILE_DEFINITIONS[profile];
+  const spec = definition.spec;
+  const bundle = compileHoloLlamaBundle({ profile });
+  const args = bundle.launch.args;
+  const checks: HoloLlamaPreflightCheck[] = [
+    check(
+      'mmproj-path',
+      spec.vision,
+      !spec.vision || Boolean(spec.mmprojPath),
+      spec.mmprojPath || 'none'
+    ),
+    check(
+      'launch-mmproj-flag',
+      spec.vision,
+      !spec.vision ||
+        (args.includes('--mmproj') && Boolean(spec.mmprojPath && args.includes(spec.mmprojPath))),
+      spec.vision ? '--mmproj must point at the multimodal projector' : 'text-only profile'
+    ),
+    check(
+      'image-token-window',
+      spec.vision,
+      !spec.vision ||
+        (isPositive(spec.imageMinTokens) &&
+          isPositive(spec.imageMaxTokens) &&
+          Number(spec.imageMinTokens) <= Number(spec.imageMaxTokens)),
+      `${String(spec.imageMinTokens ?? 'unset')}..${String(spec.imageMaxTokens ?? 'unset')}`
+    ),
+    check(
+      'launch-image-token-flags',
+      spec.vision,
+      !spec.vision || (args.includes('--image-min-tokens') && args.includes('--image-max-tokens')),
+      spec.vision ? 'llama.cpp mtmd image token flags are present' : 'text-only profile'
+    ),
+    check(
+      'registry-vision-capability',
+      spec.vision,
+      !spec.vision || bundle.registryEntry.capabilities.vision === true,
+      `registry vision=${String(bundle.registryEntry.capabilities.vision)}`
+    ),
+  ];
+  const filesystemChecks = options.checkFilesystem
+    ? buildVisionFilesystemChecks(spec, options.exists ?? existsSync)
+    : [];
+  const blockers = [
+    ...checks
+      .filter((item) => item.required && !item.ok)
+      .map((item) => `${item.id}: ${item.detail}`),
+    ...filesystemChecks
+      .filter((item) => item.required && !item.exists)
+      .map((item) => `${item.id}: missing ${item.path}`),
+  ];
+  const warnings = [
+    ...(spec.vision ? [] : ['profile is text-only; llama.cpp vision preflight is not required.']),
+    ...(options.checkFilesystem
+      ? []
+      : ['filesystem checks skipped; pass --check-filesystem for node-local proof.']),
+  ];
+
+  return {
+    schema: HOLOLLAMA_VISION_PREFLIGHT_SCHEMA,
+    generatedAt: options.generatedAt ?? new Date().toISOString(),
+    ok: blockers.length === 0,
+    profile,
+    consumer: definition.consumer,
+    registryHandle: spec.registerAs,
+    visionRequested: spec.vision,
+    launchCommand: bundle.launch.command,
+    checks,
+    filesystemChecks,
+    warnings,
+    blockers,
+  };
+}
+
+export function buildHoloLlamaFleetLifecycleReport(
+  options: HoloLlamaFleetLifecycleOptions = {}
+): HoloLlamaFleetLifecycleReport {
+  const generatedAt = options.generatedAt ?? new Date().toISOString();
+  const profileIds = options.profile
+    ? [options.profile]
+    : (Object.keys(HOLOLLAMA_PROFILE_DEFINITIONS) as HoloLlamaProfile[]);
+  const profiles = profileIds.map((profile) => {
+    const doctor = doctorHoloLlamaProfiles({ profile, generatedAt }).profiles[0];
+    const visionPreflight = preflightHoloLlamaVision(profile, {
+      generatedAt,
+      checkFilesystem: options.checkFilesystem,
+      exists: options.exists,
+    });
+    const meshReadOnlyBridge = buildHoloMeshReadOnlyBridge({
+      profile,
+      teamId: options.teamId,
+      orchestratorUrl: options.orchestratorUrl,
+      apiKeyEnv: options.apiKeyEnv,
+      generatedAt,
+    });
+    const stages: HoloLlamaFleetLifecycleStage[] = [
+      {
+        id: 'plan',
+        ok: doctor.ok,
+        receiptSchema: HOLOLLAMA_DOCTOR_SCHEMA,
+        summary: `${doctor.files.length} serving artifact(s) compile for ${doctor.registryHandle}.`,
+      },
+      {
+        id: 'vision-preflight',
+        ok: visionPreflight.ok,
+        receiptSchema: HOLOLLAMA_VISION_PREFLIGHT_SCHEMA,
+        summary: visionPreflight.visionRequested
+          ? 'llama.cpp vision flags and registry capability are coherent.'
+          : 'text-only profile does not require multimodal projector checks.',
+      },
+      {
+        id: 'mesh-readonly-bridge',
+        ok: meshReadOnlyBridge.ok,
+        receiptSchema: HOLOLLAMA_MESH_READONLY_BRIDGE_SCHEMA,
+        summary: `${meshReadOnlyBridge.endpoints.length} read-only HoloMesh endpoint(s) resolved.`,
+      },
+      {
+        id: 'serve-health-probe',
+        ok: doctor.files.includes('health-probe.ps1') && Boolean(doctor.healthUrl),
+        receiptSchema: HOLOLLAMA_DOCTOR_SCHEMA,
+        summary: doctor.healthUrl || 'health URL missing',
+      },
+    ];
+
+    return {
+      profile,
+      consumer: doctor.consumer,
+      registryHandle: doctor.registryHandle,
+      ok: stages.every((stage) => stage.ok),
+      stages,
+      doctor,
+      visionPreflight,
+      meshReadOnlyBridge,
+    };
+  });
+
+  return {
+    schema: HOLOLLAMA_FLEET_LIFECYCLE_SCHEMA,
+    generatedAt,
+    ok: profiles.every((profile) => profile.ok),
     profiles,
   };
 }
@@ -381,7 +737,9 @@ function doctorHoloLlamaProfile(profile: HoloLlamaProfile): HoloLlamaProfileDoct
       );
     }
     if (check.healthUrl !== summary.healthUrl) {
-      blockers.push(`bundle health ${summary.healthUrl} does not match registry health ${check.healthUrl}`);
+      blockers.push(
+        `bundle health ${summary.healthUrl} does not match registry health ${check.healthUrl}`
+      );
     }
     if (summary.warnings.length) warnings.push(...summary.warnings);
     return {
@@ -411,7 +769,9 @@ function doctorHoloLlamaProfile(profile: HoloLlamaProfile): HoloLlamaProfileDoct
   }
 }
 
-function normalizeCompileInput(input: string | CompileHoloLlamaInput): Required<CompileHoloLlamaInput> {
+function normalizeCompileInput(
+  input: string | CompileHoloLlamaInput
+): Required<CompileHoloLlamaInput> {
   if (typeof input === 'string') {
     return {
       code: input,
@@ -431,12 +791,70 @@ function normalizeCompileInput(input: string | CompileHoloLlamaInput): Required<
 }
 
 function defined<T extends Record<string, unknown>>(value: T): Partial<T> {
-  return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined)) as Partial<T>;
+  return Object.fromEntries(
+    Object.entries(value).filter(([, item]) => item !== undefined)
+  ) as Partial<T>;
 }
 
 function readRegistryString(registry: Record<string, unknown>, key: string): string {
   const value = registry[key];
   return typeof value === 'string' ? value : '';
+}
+
+function endpoint(
+  id: string,
+  baseUrl: string,
+  path: string,
+  purpose: string
+): HoloLlamaReadOnlyEndpoint {
+  return {
+    id,
+    method: 'GET',
+    path,
+    url: `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`,
+    purpose,
+  };
+}
+
+function trimTrailingSlash(value: string): string {
+  return value.replace(/\/+$/g, '');
+}
+
+function check(
+  id: string,
+  required: boolean,
+  ok: boolean,
+  detail: string
+): HoloLlamaPreflightCheck {
+  return { id, required, ok, detail };
+}
+
+function isPositive(value: unknown): boolean {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0;
+}
+
+function buildVisionFilesystemChecks(
+  spec: HoloLlamaServeSpec,
+  exists: (path: string) => boolean
+): HoloLlamaFilesystemCheck[] {
+  const checks: HoloLlamaFilesystemCheck[] = [
+    {
+      id: 'llama-server-executable',
+      path: spec.executable,
+      required: true,
+      exists: exists(spec.executable),
+    },
+    { id: 'model-gguf', path: spec.modelPath, required: true, exists: exists(spec.modelPath) },
+  ];
+  if (spec.vision && spec.mmprojPath) {
+    checks.push({
+      id: 'mmproj-gguf',
+      path: spec.mmprojPath,
+      required: true,
+      exists: exists(spec.mmprojPath),
+    });
+  }
+  return checks;
 }
 
 function quote(value: string): string {

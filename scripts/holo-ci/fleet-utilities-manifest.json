@@ -28,6 +28,7 @@
       "commands": ["holollama"],
       "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
       "holollamaProfiles": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "lifecycleChecks": ["doctor", "mesh-readonly-bridge", "llama-cpp-vision-preflight"],
       "useCases": [
         "llama.cpp serving plan generation",
         "owned-metal model node registry artifacts",
