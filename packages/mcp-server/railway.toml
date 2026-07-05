@@ -17,6 +17,7 @@ restartPolicyMaxRetries = 10
 [env]
 NODE_ENV = "production"
 PORT = "3000"
+MCP_SERVER_SIZE = "standard"
 # P.009 — keep container warm to prevent ~14s cold-start on first MCP initialize.
 # Railway sleeps containers after ~5 min idle; self-ping at 4.5 min keeps it live.
 MCP_KEEP_ALIVE_ENABLED = "true"

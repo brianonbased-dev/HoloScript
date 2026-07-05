@@ -1,12 +1,11 @@
 Metadata-Version: 2.4
 Name: holoscript
-Version: 6.0.6
+Version: 6.0.7
 Summary: Python bindings for HoloScript — parsing, validation, and domain bridges for scientific computing
 Author: Brian X Base Team
-License: MIT
+License-Expression: MIT
 Classifier: Development Status :: 4 - Beta
 Classifier: Intended Audience :: Developers
-Classifier: License :: OSI Approved :: MIT License
 Classifier: Programming Language :: Python :: 3
 Classifier: Programming Language :: Python :: 3 :: Only
 Classifier: Programming Language :: Python :: 3.8
@@ -36,6 +35,8 @@ Requires-Dist: holoscript[alphafold,astronomy,medical,robotics,scientific]; extr
 # holoscript
 
 Python bindings for [HoloScript](https://github.com/brianonbased-dev/HoloScript) — parse, validate, and bridge domain-specific scientific tools into the HoloScript spatial computing ecosystem.
+
+The README you see on [pypi.org/project/holoscript](https://pypi.org/project/holoscript/) comes from this file in the published wheel and sdist. Bump the package version (e.g. 6.0.7) when refreshing PyPI-facing docs so the project page picks up changes after the next release.
 
 ## Install
 

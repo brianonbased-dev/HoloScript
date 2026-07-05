@@ -76,6 +76,38 @@ Run the server locally via stdio:
 }
 ```
 
+### Option 3: Local HTTP server
+
+Run the Streamable HTTP server locally:
+
+```bash
+npx -p @holoscript/mcp-server holoscript-mcp-http --size small --port 3000
+```
+
+Server sizing controls body limits, Postgres pool size, and public/OAuth rate
+buckets. The default profile is `standard`, preserving the hosted server's
+existing defaults. Use profiles for common footprints, then override individual
+knobs when a deployment needs tighter or larger limits.
+
+| Setting | Values |
+| --- | --- |
+| `MCP_SERVER_SIZE` | `tiny`, `small`, `standard`, `large`, `xlarge` |
+| `MCP_REQUEST_BODY_MAX_BYTES` | Maximum JSON/form request body in bytes |
+| `MCP_POSTGRES_POOL_MAX` | Maximum shared Postgres pool connections |
+| `OAUTH_RATE_LIMIT` | OAuth endpoint requests per minute |
+| `PUBLIC_ANON_RATE_LIMIT` | Public anonymous endpoint requests per minute |
+| `HOLOSCRIPT_CONSUMER_GEN_RATE_LIMIT` | Anonymous generation requests per minute |
+| `HOLOSCRIPT_CONSUMER_GEN_DAILY_QUOTA` | Anonymous generation requests per day |
+
+CLI flags map to the same environment variables:
+
+```bash
+holoscript-mcp-http --size large --max-body-bytes 20971520 --pg-pool-max 20 --oauth-rate-limit 250
+```
+
+The active profile and resolved numeric limits are returned by `GET /health` and
+`GET /api/health`.
+
 ## Tool Categories
 
 ### Compiler Tools (9) - NEW - Export to Any Platform

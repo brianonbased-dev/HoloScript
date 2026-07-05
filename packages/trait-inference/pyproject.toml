@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Paper 19 (ATI) — Automated Trait Inference for HoloScript .hsplus. Phase 3 training pipeline + baselines + eval harness."
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = "MIT"
 authors = [{ name = "HoloScript Core" }]
 keywords = ["holoscript", "trait-inference", "paper-19", "ml"]
 

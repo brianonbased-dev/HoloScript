@@ -29,6 +29,8 @@ import {
 import { randomUUID, createHash } from 'crypto';
 import http from 'http';
 import { resolveServiceSecret, migrateEnvKeys } from './holokey-resolver';
+import { createRailwayPostgresPoolOptions } from './postgres-pool-options';
+import { getMcpServerSizing } from './server-sizing';
 import { handlePartnerRegistryValidateRoute } from './partner-registry-route';
 import { tools } from './tools';
 import { handleTool } from './handlers';
@@ -159,6 +161,7 @@ const HOLOSCRIPT_API_KEY = process.env.HOLOSCRIPT_API_KEY || '';
 const SERVICE_NAME = 'holoscript-mcp';
 declare const __SERVICE_VERSION__: string;
 const SERVICE_VERSION = typeof __SERVICE_VERSION__ !== 'undefined' ? __SERVICE_VERSION__ : '0.0.0';
+const SERVER_SIZING = getMcpServerSizing();
 
 const IS_RAILWAY = Boolean(
   process.env.RAILWAY_PUBLIC_DOMAIN ||
@@ -179,10 +182,11 @@ let tokenBackend: TokenStoreBackend | undefined;
 if (process.env.DATABASE_URL) {
   try {
     const { Pool } = require('pg') as typeof import('pg');
-    pgPool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: process.env.DATABASE_SSL !== 'false' ? { rejectUnauthorized: false } : false,
-    });
+    pgPool = new Pool(
+      createRailwayPostgresPoolOptions(process.env.DATABASE_URL, {
+        max: SERVER_SIZING.postgresPoolMax,
+      })
+    );
     tokenBackend = new PostgresTokenStore(pgPool);
     // Auto-create credit tables if they don't exist
     pgPool
@@ -359,7 +363,7 @@ async function persistIssuedTokens(
 }
 
 // ── Simple per-IP rate limiter for OAuth endpoints ──────────────────────────
-const RATE_LIMIT = parseInt(process.env.OAUTH_RATE_LIMIT || '100', 10);
+const RATE_LIMIT = SERVER_SIZING.oauthRateLimit;
 const RATE_WINDOW_MS = 60_000;
 const rateBuckets = new Map<string, { count: number; resetAt: number }>();
 
@@ -376,7 +380,7 @@ const PUBLIC_ANON_TOOLS: ReadonlySet<string> = new Set([
   'get_examples',
   'list_export_targets',
 ]);
-const PUBLIC_ANON_RATE_LIMIT = parseInt(process.env.PUBLIC_ANON_RATE_LIMIT || '30', 10);
+const PUBLIC_ANON_RATE_LIMIT = SERVER_SIZING.publicAnonRateLimit;
 
 // ── WS-1 (2026-07-02): anonymous consumer generation tier ──────────────────
 // Deliberately SEPARATE from PUBLIC_ANON_TOOLS/_handleSingleToolLogic above --
@@ -390,13 +394,13 @@ const CONSUMER_GENERATION_TOOLS: ReadonlySet<string> = new Set([
   'generate_scene',
   'generate_world_from_prompt',
 ]);
-const CONSUMER_GEN_RATE_LIMIT = parseInt(process.env.HOLOSCRIPT_CONSUMER_GEN_RATE_LIMIT || '5', 10);
+const CONSUMER_GEN_RATE_LIMIT = SERVER_SIZING.consumerGenRateLimit;
 // Mandatory daily quota per IP (founder decision 2026-07-02: a per-minute rate
 // limit alone bounds RATE, not total distinct-IP fan-out COST against an LLM
 // that anonymous, unauthenticated traffic can reach). Local counter -- kept
 // inside mcp-server's own dependency graph rather than importing studio's
 // creditGate cross-package for a security-sensitive anonymous path.
-const CONSUMER_GEN_DAILY_QUOTA = parseInt(process.env.HOLOSCRIPT_CONSUMER_GEN_DAILY_QUOTA || '20', 10);
+const CONSUMER_GEN_DAILY_QUOTA = SERVER_SIZING.consumerGenDailyQuota;
 const consumerGenDailyBuckets = new Map<string, { count: number; resetAt: number }>();
 function checkConsumerGenDailyQuota(ip: string): { allowed: boolean; remaining: number; resetAt: number } {
   const now = Date.now();
@@ -589,7 +593,7 @@ function parseJsonBody(req: http.IncomingMessage): Promise<Record<string, unknow
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
     let totalSize = 0;
-    const MAX_BODY = 10 * 1024 * 1024; // 10MB hard limit (increased for inline sourceFiles absorb)
+    const MAX_BODY = SERVER_SIZING.requestBodyMaxBytes;
 
     req.on('data', (chunk: Buffer) => {
       totalSize += chunk.length;
@@ -743,15 +747,11 @@ async function securedToolExecutionInner(
       }
 
       // Abstracted async usage tracking for billing
-      if (process.env.DATABASE_URL) {
+      const billingPool = pgPool;
+      if (billingPool) {
         Promise.resolve().then(async () => {
           try {
-            const { Pool } = require('pg');
-            const pool = new Pool({
-              connectionString: process.env.DATABASE_URL,
-              ssl: process.env.DATABASE_SSL !== 'false' ? { rejectUnauthorized: false } : false,
-            });
-            await pool.query(
+            await billingPool.query(
               'UPDATE api_keys SET usage_count = usage_count + 1, spent_usd = spent_usd + 0.001 WHERE tenant_id = $1',
               [tenantCtx.tenantId]
             );
@@ -1020,6 +1020,17 @@ const httpServer = http.createServer(async (req, res) => {
           activeTokens: oauthStats.activeAccessTokens,
         },
         keepAlive: getKeepAliveStatus(),
+        sizing: {
+          profile: SERVER_SIZING.profile,
+          requestBodyMaxBytes: SERVER_SIZING.requestBodyMaxBytes,
+          postgresPoolMax: SERVER_SIZING.postgresPoolMax,
+          rateLimits: {
+            oauthPerMinute: RATE_LIMIT,
+            publicAnonPerMinute: PUBLIC_ANON_RATE_LIMIT,
+            consumerGenerationPerMinute: CONSUMER_GEN_RATE_LIMIT,
+            consumerGenerationDailyQuota: CONSUMER_GEN_DAILY_QUOTA,
+          },
+        },
       })
     );
     return;
@@ -1038,6 +1049,11 @@ const httpServer = http.createServer(async (req, res) => {
         render_url: process.env.RAILWAY_PUBLIC_DOMAIN
           ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
           : `http://localhost:${PORT}`,
+        sizing: {
+          profile: SERVER_SIZING.profile,
+          requestBodyMaxBytes: SERVER_SIZING.requestBodyMaxBytes,
+          postgresPoolMax: SERVER_SIZING.postgresPoolMax,
+        },
       })
     );
     return;
@@ -4167,6 +4183,9 @@ new WebRTCSignalingServer(httpServer, '/webrtc-signaling');
     );
     console.info(`   Port: ${PORT}`);
     console.info(`   Auth: OAuth 2.1 (migration: ${migrationMode})`);
+    console.info(
+      `   Sizing: ${SERVER_SIZING.profile} (body=${SERVER_SIZING.requestBodyMaxBytes}B, pgPool=${SERVER_SIZING.postgresPoolMax}, oauth=${RATE_LIMIT}/min, anon=${PUBLIC_ANON_RATE_LIMIT}/min, gen=${CONSUMER_GEN_RATE_LIMIT}/min/${CONSUMER_GEN_DAILY_QUOTA}/day)`
+    );
     console.info(
       `   Token TTL: access=${oauth2.getStore().ttl.accessTokenTTL}s, refresh=${oauth2.getStore().ttl.refreshTokenTTL}s`
     );

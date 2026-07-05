@@ -15,6 +15,7 @@
   },
   "bin": {
     "holoscript-mcp": "./bin/holoscript-mcp.cjs",
+    "holoscript-mcp-http": "./bin/holoscript-mcp-http.cjs",
     "holoscript-mcp-cli": "./bin/holoscript-mcp-cli.cjs"
   },
   "files": [
