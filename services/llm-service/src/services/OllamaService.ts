@@ -1,5 +1,5 @@
 /**
- * Ollama inference service
+ * HoloLLama local compatibility service.
  */
 
 import { logger } from '../utils/logger.js';
@@ -42,7 +42,7 @@ export class OllamaService {
       };
     } catch (error) {
       logger.warn(
-        'Ollama status check failed:',
+        'HoloLLama local compatibility status check failed:',
         error instanceof Error ? error.message : String(error)
       );
       return {

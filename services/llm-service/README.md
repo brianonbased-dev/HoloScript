@@ -6,13 +6,13 @@ A lightweight service that powers Brittney chat and HoloScript code generation. 
 
 > **⚠️ Deployment reality — read before quoting "local" or "free":**
 > - **Default / cloud (Railway):** routes to **external, paid GPU LLM clouds** — **Fireworks** (default, `BRITTNEY_PROVIDER=fireworks`) and **Together**, with the Pro tier (Kimi K2.5) served via Fireworks. These require API keys and bill per token. This is what `railway.toml` deploys ("Lightweight API gateway proxying to GPU inference (Fireworks/Together)").
-> - **Optional / fully-local:** set `BRITTNEY_PROVIDER=ollama` (or run with no cloud keys and a reachable Ollama) to route to a **local Ollama** instance. This path is genuinely local, private, and free **only because you supply the machine and the downloaded model weights** — it is not weightless and not "free CPU inference."
+> - **Optional / fully-local:** set `BRITTNEY_PROVIDER=ollama` (or run with no cloud keys and a reachable Ollama-compatible endpoint) to route through the **HoloLLama local path**. This path is genuinely local and private **only because you supply the machine and the downloaded model weights**; it is not weightless and not "free CPU inference."
 >
 > The routing logic is in [`src/services/InferenceRouter.ts`](src/services/InferenceRouter.ts). With no provider configured, the service returns: *"No inference provider available. Set FIREWORKS_API_KEY, TOGETHER_API_KEY, or start Ollama."*
 
-## Quick Start (fully-local Ollama mode)
+## Quick Start (HoloLLama local compatibility mode)
 
-This is the **opt-in local path**. For the default cloud path, set `FIREWORKS_API_KEY` (or `TOGETHER_API_KEY`) instead of running Ollama.
+This is the **opt-in local path**. For the default cloud path, set `FIREWORKS_API_KEY` (or `TOGETHER_API_KEY`) instead of running a local compatibility endpoint.
 
 ```bash
 # 1. Start Ollama (if not running)
@@ -34,13 +34,13 @@ npm run dev
 
 ## Features
 
-- ✅ **Provider-flexible** - Routes to Fireworks/Together (cloud, default) or a local Ollama (opt-in)
+- ✅ **Provider-flexible** - Routes to Fireworks/Together (cloud, default) or HoloLLama local compatibility serving (opt-in)
 - ✅ **Optional fully-local mode** - With `BRITTNEY_PROVIDER=ollama` + your own model weights, no data leaves your machine
 - ✅ **Simple login** - Basic user authentication
 - ✅ **Natural language to HoloScript** - Describe what you want, get code
 - ✅ **Live preview** - See your HoloScript code in real-time
 - ✅ **Build history** - Save and manage your creations
-- ✅ **Ollama integration** - Plug-and-play with local LLMs
+- ✅ **HoloLLama local serving** - Plug-and-play with Ollama-compatible local LLM endpoints
 
 ## Architecture
 

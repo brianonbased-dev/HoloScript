@@ -6,7 +6,7 @@
  *
  * Port: 8000
  * Storage: .holoscript-llm/ (local file storage)
- * LLM: Ollama (local inference)
+ * LLM: HoloLLama local compatibility inference
  *
  * Pattern: P.HOLOSCRIPT.LLM_SERVICE.01 - User-friendly local AI
  */

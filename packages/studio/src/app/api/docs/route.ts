@@ -37,7 +37,8 @@ export async function GET() {
         get: {
           tags: ['admin'],
           summary: 'Health check',
-          description: 'Returns Ollama status and available models',
+          description:
+            'Returns HoloLLama/local AI provider status and available compatibility models',
           responses: { '200': { description: 'Health status' } },
         },
       },

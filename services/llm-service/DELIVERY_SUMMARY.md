@@ -398,7 +398,7 @@ MIT - Free to use, modify, distribute
 **Created**: January 15, 2026  
 **Version**: 1.0.0-alpha.1  
 **Status**: ✅ Deployed as a multi-provider gateway (Railway); local mode available  
-**Architecture**: Provider-routing gateway — cloud by default (Fireworks/Together), optionally fully-local via Ollama
+**Architecture**: Provider-routing gateway — cloud by default (Fireworks/Together), optionally fully-local via HoloLLama local compatibility serving
 
 ---
 

@@ -62,17 +62,17 @@
            │                            │
            │  1. Create system prompt   │
            │  2. Combine with user text │
-           │  3. Send to OllamaService  │
+           │  3. Send to local provider │
            └───────────┬────────────────┘
                        │
            ┌───────────▼────────────────┐
-           │   OllamaService.generate() │
+           │   LocalProvider.generate() │
            │                            │
            │  POST http://localhost:    │
            │        11434/api/generate  │
            │                            │
-           │  Ollama (Running on user   │
-           │  machine with GPU/CPU)     │
+           │  HoloLLama-compatible      │
+           │  endpoint on user machine  │
            │                            │
            │  • Load Mistral (or other) │
            │  • Generate tokens         │
@@ -405,7 +405,7 @@ TOTAL: 11 files, ~1,500 lines of code
 | **Express.js**          | Lightweight HTTP   | Fast startup, minimal overhead |
 | **JSON Storage**        | No database needed | Zero setup, easy backup        |
 | **Session tokens**      | Simple auth        | Quick implementation           |
-| **Ollama**              | Free, open-source  | User-friendly, extensible      |
+| **HoloLLama local**     | Self-hosted route  | User-owned, extensible         |
 | **Vanilla HTML/CSS/JS** | No frameworks      | Zero webpack, instant reload   |
 | **Local-first**         | Privacy & autonomy | Users own their data           |
 | **Modular services**    | Clean separation   | Easy to test, extend, maintain |

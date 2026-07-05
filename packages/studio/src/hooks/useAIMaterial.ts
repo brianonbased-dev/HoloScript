@@ -2,7 +2,7 @@
 
 /**
  * useAIMaterial — generates a GLSL fragment shader + HoloScript @material trait
- * from a natural-language prompt via Ollama.
+ * from a natural-language prompt via the configured HoloLLama/local AI route.
  *
  * Usage:
  *   const { generate, glsl, traits, status, error, reset } = useAIMaterial();

@@ -84,7 +84,7 @@ const provider = createLLMProvider({
 });
 ```
 
-### Local (Ollama)
+### Local (HoloLLama/Ollama-Compatible)
 
 ```typescript
 const provider = createLLMProvider({

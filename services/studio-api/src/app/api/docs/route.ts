@@ -31,7 +31,7 @@ export async function GET() {
     ],
     paths: {
       '/api/health': {
-        get: { tags: ['admin'], summary: 'Health check', description: 'Returns Ollama status and available models', responses: { '200': { description: 'Health status' } } },
+        get: { tags: ['admin'], summary: 'Health check', description: 'Returns HoloLLama/local AI provider status and available compatibility models', responses: { '200': { description: 'Health status' } } },
       },
       '/api/auth/{...nextauth}': {
         get: { tags: ['auth'], summary: 'NextAuth.js handler', description: 'Handles /signin, /signout, /callback, /session, /csrf, /providers', parameters: [{ name: '...nextauth', in: 'path', required: true, schema: { type: 'string' } }], responses: { '200': { description: 'Auth response' } } },

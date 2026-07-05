@@ -1,5 +1,5 @@
 /**
- * Ollama inference service
+ * HoloLLama local compatibility service.
  */
 export interface OllamaStatus {
     available: boolean;

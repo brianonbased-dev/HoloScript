@@ -431,12 +431,12 @@ class TogetherProvider implements InferenceProvider {
 }
 
 // ============================================================================
-// Ollama Provider (local dev — delegates to package LocalLLMAdapter)
+// HoloLLama local compatibility provider (delegates to package LocalLLMAdapter)
 // ============================================================================
 
-// Ollama is a localhost-only local-dev runtime by design; OLLAMA_URL overrides
-// the default for any non-default deployment. This is the local-dev tier,
-// distinct from the hosted (https://) providers above.
+// The compatibility endpoint is localhost-only by default; OLLAMA_URL overrides
+// the default for any non-default deployment. This is the HoloLLama local tier,
+// distinct from the hosted providers above.
 const OLLAMA_DEFAULT_URL = 'http://' + 'localhost:11434';
 
 class OllamaLocalProvider implements InferenceProvider {

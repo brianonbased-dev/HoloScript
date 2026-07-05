@@ -43,7 +43,7 @@ Generate valid HoloScript code based on user descriptions.
 Only output the HoloScript code, no explanations.
 Use proper syntax with shape, animation, and positioning blocks.`;
 
-      // Generate code via Ollama
+      // Generate code through the configured HoloLLama/local compatibility service.
       const fullPrompt = `${systemPrompt}\n\nUser request: ${prompt}`;
       const generatedText = await this.ollama.generate(fullPrompt, options.context);
 

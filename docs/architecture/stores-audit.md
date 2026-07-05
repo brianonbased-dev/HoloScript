@@ -113,7 +113,7 @@ Generated pattern: each key gets `${key}Open`, `set${Key}Open()`, `toggle${Key}O
 
 ### `useAIStore` 🟢 (4 importers)
 
-**Owns:** AI inference status, Ollama status, model name, prompt history.
+**Owns:** AI inference status, HoloLLama/local provider status, model name, prompt history.
 
 Small and focused. **Safe to extend** with agent cycle state — but see P5 recommendation below for why a separate `agentStore` is better.
 
