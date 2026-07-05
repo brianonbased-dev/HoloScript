@@ -32,5 +32,15 @@
   "publishConfig": {
     "access": "public"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "author": "Brian X Base Team",
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/memory"
+  },
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  }
 }

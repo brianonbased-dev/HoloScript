@@ -18,6 +18,12 @@
       "v1Intent": "MCP server package for universal agent access to HoloScript."
     },
     {
+      "name": "@holoscript/memory",
+      "role": "sovereign-memory-client",
+      "allowFirstPublish": true,
+      "v1Intent": "Installable client for the shared sovereign HoloScript agent-memory substrate required by MCP."
+    },
+    {
       "name": "@holoscript/holoscript-agent",
       "role": "headless-agent-runtime",
       "v1Intent": "Headless HoloMesh agent runtime package."
