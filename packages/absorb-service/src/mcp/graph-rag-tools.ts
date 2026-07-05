@@ -11,8 +11,10 @@
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { SearchResult } from '../engine/EmbeddingIndex';
-import type { EmbeddingIndex } from '../engine/EmbeddingIndex';
+import type { SymbolSearchIndex } from '../engine/SearchIndex';
 import { GraphRAGEngine, type EnrichedResult, type LLMProvider } from '../engine/GraphRAGEngine';
+import { createEmbeddingProvider } from '../engine/providers/EmbeddingProviderFactory';
+import { createHoloGraphHoloEmbedSearchIndexFromManifest } from '../engine/HoloGraphHoloEmbedManifest';
 import { LLMCreditExhaustedError } from '@holoscript/llm-provider';
 import { validateCitations, type Citation } from '../engine/ProvenanceIntegrityGuard';
 import {
@@ -53,6 +55,11 @@ export const graphRagTools: Tool[] = [
         file: {
           type: 'string',
           description: 'Filter to file path containing this substring',
+        },
+        holoGraphHoloEmbedManifest: {
+          type: 'string',
+          description:
+            'Optional path to a canonical HoloGraph/HoloEmbed two-tower manifest. When provided, search uses its HoloGraph node embeddings with a HoloEmbed query provider. Defaults remain unchanged when omitted.',
         },
       },
       required: ['query'],
@@ -109,7 +116,7 @@ export const graphRagTools: Tool[] = [
 // =============================================================================
 
 // These will be set by codebase-tools.ts when absorb completes
-let cachedEmbeddingIndex: EmbeddingIndex | null = null;
+let cachedEmbeddingIndex: SymbolSearchIndex | null = null;
 let cachedGraphRAGEngine: GraphRAGEngine | null = null;
 let cachedGraphRAGRootDir: string | null = null;
 let cachedGraphRAGTimestamp = 0;
@@ -118,7 +125,7 @@ let cachedGraphRAGTimestamp = 0;
  * Set the cached embedding index and RAG engine (called from codebase-tools after absorb).
  */
 export function setGraphRAGState(
-  embeddingIndex: EmbeddingIndex,
+  embeddingIndex: SymbolSearchIndex,
   ragEngine: GraphRAGEngine,
   provenance: { rootDir?: string; timestamp?: number } = {}
 ): void {
@@ -195,7 +202,12 @@ function graphRagFailureHint(provider: string | undefined): string {
 // ── Handlers ─────────────────────────────────────────────────────────────────
 
 async function handleSemanticSearch(args: Record<string, unknown>): Promise<unknown> {
-  if (!cachedEmbeddingIndex) {
+  const resolvedIndex = await resolveSemanticSearchIndex(args);
+  if ('error' in resolvedIndex) {
+    return resolvedIndex;
+  }
+
+  if (!resolvedIndex.index) {
     return {
       error: ABSORB_EMBEDDING_INDEX_ERROR,
       hint: ABSORB_HOLO_ABSORB_REPO_HINT,
@@ -213,11 +225,13 @@ async function handleSemanticSearch(args: Record<string, unknown>): Promise<unkn
 
   try {
     const results = hasFilters
-      ? await cachedEmbeddingIndex.searchWithFilters(query, topK, filters)
-      : await cachedEmbeddingIndex.search(query, topK);
+      ? await resolvedIndex.index.searchWithFilters(query, topK, filters)
+      : await resolvedIndex.index.search(query, topK);
 
     return {
       query,
+      indexSource: resolvedIndex.source,
+      ...(resolvedIndex.manifestPath ? { holoGraphHoloEmbedManifest: resolvedIndex.manifestPath } : {}),
       results: results.map((r: SearchResult) => ({
         name: r.symbol.owner ? `${r.symbol.owner}.${r.symbol.name}` : r.symbol.name,
         type: r.type,
@@ -237,6 +251,45 @@ async function handleSemanticSearch(args: Record<string, unknown>): Promise<unkn
       hint: 'Embedding search failed. Default provider is keyless (structural / HoloEmbed — no API key, offline). For exact structural code-intelligence prefer HoloGraph (holo_query_codebase). OpenAI/Ollama embeddings are opt-in only — not required (F.106).',
     };
   }
+}
+
+async function resolveSemanticSearchIndex(
+  args: Record<string, unknown>
+): Promise<
+  | { index: SymbolSearchIndex; source: string; manifestPath?: string }
+  | { error: string; hint: string }
+> {
+  const manifestPath = stringArg(args.holoGraphHoloEmbedManifest) ?? process.env.HOLOGRAPH_HOLOEMBED_MANIFEST;
+  if (!manifestPath) {
+    return cachedEmbeddingIndex
+      ? { index: cachedEmbeddingIndex, source: 'cached-embedding-index' }
+      : {
+          error: ABSORB_EMBEDDING_INDEX_ERROR,
+          hint: ABSORB_HOLO_ABSORB_REPO_HINT,
+        };
+  }
+
+  try {
+    const queryProvider = await createEmbeddingProvider({ provider: 'holoembed' });
+    const index = await createHoloGraphHoloEmbedSearchIndexFromManifest({
+      manifestPath,
+      queryProvider,
+    });
+    return {
+      index,
+      source: 'holograph-holoembed-manifest',
+      manifestPath,
+    };
+  } catch (err) {
+    return {
+      error: `HoloGraph/HoloEmbed manifest search failed: ${err instanceof Error ? err.message : String(err)}`,
+      hint: 'Verify the manifest schema, graphPath, nodeEmbeddingPath, and that the HoloEmbed query provider dimension matches the HoloGraph node embedding dimension.',
+    };
+  }
+}
+
+function stringArg(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
 }
 
 async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown> {

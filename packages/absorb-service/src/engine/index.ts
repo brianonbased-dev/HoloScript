@@ -130,6 +130,16 @@ export type {
   TwoTowerSearchEntry,
   TwoTowerSearchIndexOptions,
 } from './TwoTowerSearchIndex';
+export {
+  HOLOGRAPH_HOLOEMBED_MANIFEST_SCHEMA,
+  createHoloGraphHoloEmbedSearchIndexFromManifest,
+  loadHoloGraphHoloEmbedManifest,
+  readFloat32NpyMatrix,
+} from './HoloGraphHoloEmbedManifest';
+export type {
+  CreateHoloGraphHoloEmbedSearchIndexOptions,
+  HoloGraphHoloEmbedManifest,
+} from './HoloGraphHoloEmbedManifest';
 export { GraphRAGEngine } from './GraphRAGEngine';
 export type {
   GraphRAGOptions,

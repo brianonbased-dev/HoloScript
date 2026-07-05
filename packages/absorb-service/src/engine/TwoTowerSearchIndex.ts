@@ -144,13 +144,13 @@ function toFloat32Array(vector: ArrayLike<number>, label: string): Float32Array 
     throw new Error(`TwoTowerSearchIndex ${label} must be a non-empty numeric vector.`);
   }
 
-  const out = new Float32Array(vector.length);
+  const out = vector instanceof Float32Array ? vector : new Float32Array(vector.length);
   for (let i = 0; i < vector.length; i++) {
     const value = vector[i];
     if (typeof value !== 'number' || !Number.isFinite(value)) {
       throw new Error(`TwoTowerSearchIndex ${label} contains a non-finite value at index ${i}.`);
     }
-    out[i] = value;
+    if (out !== vector) out[i] = value;
   }
   return out;
 }
