@@ -98,9 +98,11 @@ describe('LlamaServerCompiler', () => {
     expect(files['install-s4u-task.ps1']).toContain('Register-ScheduledTask');
 
     const registry = JSON.parse(files['sovereign-devices/laptop-fara-7b-llama.json']);
-    expect(registry.backend).toBe('llama.cpp');
-    expect(registry.endpoint).toBe('http://127.0.0.1:18080/v1');
-    expect(registry.capabilities.vision).toBe(true);
+    // Canonical sovereign-devices format: capabilities[] the fleet router resolves.
+    const cap = registry.capabilities.find((c: { id: string }) => c.id === 'local-llm');
+    expect(cap.backend).toBe('llama.cpp');
+    expect(cap.endpoint).toBe('http://127.0.0.1:18080'); // base url (no /v1) — discovery appends paths
+    expect(cap.vision).toBe(true);
   });
 
   it('marks grammar and LoRA capabilities when authored', () => {
@@ -256,6 +258,22 @@ describe('LlamaServerCompiler', () => {
     expect(bundle.config.loras).toHaveLength(1);
     expect(bundle.launch.command).toContain('--lora-scaled a.gguf:0.5');
     expect(bundle.launch.command).not.toContain('--lora a.gguf ');
+  });
+
+  it('suppresses --mmproj for a text-only node (mmproj: "none" or vision: false)', () => {
+    const compiler = new LlamaServerCompiler();
+
+    const noneBundle = JSON.parse(
+      compiler.compile(composition({ ...faraConfig, mmproj_path: 'none' }), token)
+    ) as LlamaServerBundle;
+    expect(noneBundle.launch.command).not.toContain('--mmproj');
+    expect(noneBundle.registryEntry.capabilities.vision).toBe(false);
+
+    const visionFalse = JSON.parse(
+      compiler.compile(composition({ model: 'qwen3-4b', model_path: 'm.gguf', vision: false }), token)
+    ) as LlamaServerBundle;
+    expect(visionFalse.launch.command).not.toContain('--mmproj');
+    expect(visionFalse.registryEntry.capabilities.vision).toBe(false);
   });
 
   it('applies a top-level lora_scale to every array adapter that lacks its own', () => {

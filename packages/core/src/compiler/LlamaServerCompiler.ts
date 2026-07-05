@@ -325,10 +325,7 @@ export class LlamaServerCompiler extends CompilerBase {
         this.opts.modelPath ??
         this.stringValue(raw, 'modelPath', 'model_path', 'gguf') ??
         DEFAULTS.modelPath,
-      mmprojPath:
-        this.opts.mmprojPath ??
-        this.stringValue(raw, 'mmprojPath', 'mmproj_path', 'mmproj') ??
-        DEFAULTS.mmprojPath,
+      mmprojPath: this.resolveMmproj(raw),
       host: this.opts.host ?? this.stringValue(raw, 'host') ?? DEFAULTS.host,
       port: this.opts.port ?? this.numberValue(raw, DEFAULTS.port, 'port'),
       contextLength:
@@ -396,14 +393,19 @@ export class LlamaServerCompiler extends CompilerBase {
       '-ngl',
       String(cfg.gpuLayers),
       '--fit',
-      cfg.fit,
-      '--image-min-tokens',
-      String(cfg.imageMinTokens),
-      '--image-max-tokens',
-      String(cfg.imageMaxTokens),
-      '--parallel',
-      String(cfg.parallel)
+      cfg.fit
     );
+    // Image-token gates are mtmd (vision) flags — only meaningful with a projector, so a
+    // text-only node (no mmproj) omits them. Order preserved for the Fara vision command.
+    if (cfg.mmprojPath) {
+      argv.push(
+        '--image-min-tokens',
+        String(cfg.imageMinTokens),
+        '--image-max-tokens',
+        String(cfg.imageMaxTokens)
+      );
+    }
+    argv.push('--parallel', String(cfg.parallel));
 
     if (cfg.metrics) argv.push('--metrics');
     // `--grammar-file` and inline `--grammar` write the SAME llama.cpp field — never emit
@@ -445,6 +447,20 @@ export class LlamaServerCompiler extends CompilerBase {
       return { grammarPath, grammarPreset: grammarRaw };
     }
     return { grammarPath, grammar: grammarRaw };
+  }
+
+  /**
+   * Resolve the multimodal projector. Vision is the Fara-first default, but a text-only
+   * node (e.g. a Jetson serving qwen3:4b-instruct) must be able to author OUT of it —
+   * `mmproj: "none"` (or `off`/`false`/`no`) or `vision: false` suppresses `--mmproj`,
+   * so a non-vision model is not handed a projector it cannot load.
+   */
+  private resolveMmproj(raw: RawConfig): string | undefined {
+    if (this.opts.mmprojPath !== undefined) return this.opts.mmprojPath || undefined;
+    const authored = this.stringValue(raw, 'mmprojPath', 'mmproj_path', 'mmproj');
+    if (authored) return /^(none|off|false|no)$/i.test(authored) ? undefined : authored;
+    if (!this.booleanValue(raw, true, 'vision')) return undefined; // vision: false → text-only
+    return DEFAULTS.mmprojPath;
   }
 
   /**
@@ -539,11 +555,41 @@ export class LlamaServerCompiler extends CompilerBase {
       { path: `${this.slug(cfg.registerAs)}.service`, content: systemdUnit },
       { path: 'install-s4u-task.ps1', content: windowsS4UTask, executable: true },
       {
+        // Canonical sovereign-devices registry format the fleet router consumes:
+        // { capabilities: [{ id: "local-llm", endpoint: <base>, ... }] }. The endpoint is
+        // the BASE url (no /v1) because discovery appends its own paths (/health, /props,
+        // /slots for llama.cpp; /v1/... for the OpenAI client).
         path: `sovereign-devices/${cfg.registerAs}.json`,
-        content: JSON.stringify(registryEntry, null, 2),
+        content: JSON.stringify(this.buildRegistryDoc(cfg), null, 2),
       },
       { path: 'llama-server-manifest.json', content: JSON.stringify(manifest, null, 2) },
     ];
+  }
+
+  /** The canonical sovereign-devices registry document `resolveNodeEndpoint` reads. */
+  private buildRegistryDoc(cfg: ResolvedLlamaConfig): {
+    handle: string;
+    node: string;
+    capabilities: Array<Record<string, unknown>>;
+  } {
+    return {
+      handle: cfg.registerAs,
+      node: cfg.node,
+      capabilities: [
+        {
+          id: 'local-llm',
+          status: 'proven',
+          endpoint: this.baseUrl(cfg),
+          backend: 'llama.cpp',
+          serverKind: 'llama-server',
+          model: cfg.model,
+          healthUrl: this.healthUrl(cfg),
+          grammarConstrained: Boolean(cfg.grammarPath || cfg.grammar),
+          vision: Boolean(cfg.mmprojPath),
+          loraHotSwap: cfg.loras.length > 0,
+        },
+      ],
+    };
   }
 
   private buildRegistryEntry(
