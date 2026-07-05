@@ -193,9 +193,14 @@ const DEFAULTS = {
   node: 'laptop-rtx3060',
 };
 
+// The HOLO-patched llama.cpp build (LLM_ARCH_HOLO + LLAMA_VOCAB_PRE_TYPE_HOLO). Windows points at the
+// verified reproducible build output (`cmake -B build-holo ... --config Release`); MSVC multi-config
+// nests binaries under bin/Release. This is a real, on-disk binary (superset: loads arch=holo AND every
+// stock arch), NOT the aspirational `build/bin` path that never existed. Linux is the Jetson's HOLO
+// build (-DGGML_CUDA=ON) produced by HOLO #6; verify the clone path there before relying on it.
 const DEFAULT_HOLO_PATCHED_EXECUTABLES = {
-  windows: 'C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build\\bin\\llama-server.exe',
-  linux: '/opt/holoscript/llama.cpp/build/bin/llama-server',
+  windows: 'C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build-holo\\bin\\Release\\llama-server.exe',
+  linux: '/opt/holoscript/llama.cpp/build-holo/bin/llama-server',
 } as const;
 
 export class LlamaServerCompiler extends CompilerBase {

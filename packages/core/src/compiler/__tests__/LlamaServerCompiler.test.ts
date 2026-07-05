@@ -10,8 +10,8 @@ import type {
 
 const token = createTestCompilerToken();
 const patchedWindowsExecutable =
-  'C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build\\bin\\llama-server.exe';
-const patchedWindowsBinDir = 'C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build\\bin';
+  'C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build-holo\\bin\\Release\\llama-server.exe';
+const patchedWindowsBinDir = 'C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build-holo\\bin\\Release';
 
 function llamaTrait(config: Record<string, HoloValue>): HoloObjectTrait {
   return {
@@ -86,7 +86,7 @@ describe('LlamaServerCompiler', () => {
     expect(bundle.dryRun).toBe(true);
     expect(bundle.launch.command).toBe(expectedFaraCommand);
     expect(bundle.launch.powershell).toContain(
-      "$env:PATH = 'C:\\Users\\josep\\AppData\\Local\\Programs\\Ollama\\lib\\ollama\\cuda_v12;C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build\\bin;' + $env:PATH"
+      "$env:PATH = 'C:\\Users\\josep\\AppData\\Local\\Programs\\Ollama\\lib\\ollama\\cuda_v12;C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build-holo\\bin\\Release;' + $env:PATH"
     );
     expect(bundle.launch.powershell).toContain(expectedFaraCommand);
   });
