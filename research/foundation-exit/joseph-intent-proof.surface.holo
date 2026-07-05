@@ -1,0 +1,26 @@
+composition "JosephIntentProof" {
+  environment {
+    background_color: "#101820"
+    ambient_light: 0.45
+  }
+
+  object "SignalCube" {
+    position: [0, 1.35, -2]
+    scale: [1.25, 1.25, 1.25]
+    geometry: "cube"
+    color: "#00d4ff"
+    emissive: "#006b7f"
+    emissiveIntensity: 0.6
+    label: "syntax repaired"
+  }
+
+  object "ReceiptBeacon" {
+    position: [0, 2.95, -2]
+    scale: [0.55, 0.55, 0.55]
+    geometry: "sphere"
+    color: "#ffffff"
+    emissive: "#00d4ff"
+    emissiveIntensity: 1.2
+    label: "parse + compile proof"
+  }
+}

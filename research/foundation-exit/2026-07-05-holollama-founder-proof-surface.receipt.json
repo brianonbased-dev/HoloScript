@@ -1,0 +1,95 @@
+{
+  "schema": "holollama.founder-proof-surface.receipt.v1",
+  "generatedAt": "2026-07-05T23:33:07Z",
+  "taskId": "task_1783288625409_cvix",
+  "josephIntent": "Render or operate the constrained/generated artifact in the smallest local surface Joseph can actually open, without requiring him to become the build engineer.",
+  "founderFeltValueLine": "One generated HoloScript object moves from invalid syntax to parser proof, compiler proof, and a visible local render without asking Joseph to become the build engineer.",
+  "origin": {
+    "receiptPath": "2026-07-05-holollama-constrained-native-generation.receipt.json",
+    "receiptSha256": "b79c0d128d6663eb0943aa4f04e64edefbfad66a65dabc673ab0fb44857158a7",
+    "promotedAttemptId": "attempt-2-repaired-valid",
+    "constraintId": "holoscript-subset.gbnf"
+  },
+  "source": {
+    "path": "joseph-intent-proof.surface.holo",
+    "sha256": "03c5c9df9fbe2daae7b61d71eb9a5d0b5704c3a74886831b92ea2753da39512a",
+    "composition": "JosephIntentProof",
+    "objectCount": 2,
+    "objects": [
+      "SignalCube",
+      "ReceiptBeacon"
+    ]
+  },
+  "parse": {
+    "parser": "@holoscript/core parseHolo",
+    "ok": true,
+    "objectCount": 2
+  },
+  "compile": {
+    "compiler": "@holoscript/core WebGPUCompiler",
+    "target": "webgpu",
+    "ok": true,
+    "outputBytes": 18226,
+    "outputSha256": "10ffbc158a3db364bf19e031966d0a9fa7ad3fdbb204db983f59c9ca3e4b19c7",
+    "markers": [
+      "navigator.gpu",
+      "requestAdapter",
+      "requestAnimationFrame"
+    ]
+  },
+  "surface": {
+    "kind": "local-static-html-with-rendered-holoscript-screenshot",
+    "htmlPath": "joseph-intent-proof.surface.html",
+    "htmlSha256": "881478f2ab3bad4172c8d2bc54099ec862cf7045b71e2065a1d9756727600646",
+    "localUrl": "file:///C:/Users/josep/Documents/GitHub/HoloScript/research/foundation-exit/joseph-intent-proof.surface.html",
+    "reachableWithoutBuildStep": true
+  },
+  "render": {
+    "renderer": "pnpm exec holoscript screenshot",
+    "command": "pnpm exec holoscript screenshot research\\foundation-exit\\joseph-intent-proof.surface.holo --output research\\foundation-exit\\joseph-intent-proof.surface.png --width 1280 --height 720 --wait-for 800",
+    "ok": true,
+    "width": 1280,
+    "height": 720,
+    "format": "png",
+    "reportedFileSizeKb": 8.3,
+    "reportedTotalTimeMs": 1572
+  },
+  "browserWitness": {
+    "runtime": "installed Chrome via Playwright channel=chrome; msedge fallback configured but not used",
+    "url": "file:///C:/Users/josep/Documents/GitHub/HoloScript/research/foundation-exit/joseph-intent-proof.surface.html",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 1
+    },
+    "title": "Joseph Intent Proof Surface",
+    "imageNaturalWidth": 1280,
+    "imageNaturalHeight": 720,
+    "imageComplete": true,
+    "consoleMessages": [],
+    "pageErrors": []
+  },
+  "images": [
+    {
+      "id": "cli-render",
+      "path": "joseph-intent-proof.surface.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 8510,
+      "sha256": "11b698a4d09896672d386765e66fc3e1ac8c716fa3eebf365ab4b121be6bed16"
+    },
+    {
+      "id": "browser-surface",
+      "path": "joseph-intent-proof.browser.png",
+      "width": 1440,
+      "height": 900,
+      "bytes": 45682,
+      "sha256": "6b4bd9bb0c9043cc76fd62695e9f9c343020842523f2afa9bf07b9f5f0ff4698"
+    }
+  ],
+  "semanticDisposition": {
+    "status": "not_proven",
+    "reason": "This receipt proves parser promotion, WebGPU compiler output, local screenshot rendering, and browser reachability. It does not prove domain semantics, CAEL behavior, WebXR/Quest behavior, or runtime interaction beyond opening the local proof surface."
+  },
+  "finalDisposition": "founder_facing_local_surface_rendered"
+}
