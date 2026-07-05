@@ -22,6 +22,41 @@
       "replacement": "@holoscript/core",
       "deprecatedOn": "2026-07-05",
       "message": "Deprecated: traits are merged into @holoscript/core. Use @holoscript/core trait exports instead."
+    },
+    {
+      "name": "@holoscript/agent-sdk",
+      "version": "5.1.0",
+      "replacement": "@holoscript/framework, @holoscript/mesh, and @holoscript/memory",
+      "deprecatedOn": "2026-07-05",
+      "message": "Deprecated: use @holoscript/framework for agent protocol/mesh helpers, @holoscript/mesh for network runtime, and @holoscript/memory for shared memory."
+    },
+    {
+      "name": "@holoscript/agent-sdk",
+      "version": "6.0.0",
+      "replacement": "@holoscript/framework, @holoscript/mesh, and @holoscript/memory",
+      "deprecatedOn": "2026-07-05",
+      "message": "Deprecated: use @holoscript/framework for agent protocol/mesh helpers, @holoscript/mesh for network runtime, and @holoscript/memory for shared memory."
+    },
+    {
+      "name": "@holoscript/intelligence",
+      "version": "1.0.0",
+      "replacement": "@holoscript/framework, @holoscript/holoscript-agent, and @holoscript/memory",
+      "deprecatedOn": "2026-07-05",
+      "message": "Deprecated: use @holoscript/framework for AI/swarm/training APIs, @holoscript/holoscript-agent for headless runtime, and @holoscript/memory for shared memory."
+    },
+    {
+      "name": "@holoscript/intelligence",
+      "version": "1.1.0",
+      "replacement": "@holoscript/framework, @holoscript/holoscript-agent, and @holoscript/memory",
+      "deprecatedOn": "2026-07-05",
+      "message": "Deprecated: use @holoscript/framework for AI/swarm/training APIs, @holoscript/holoscript-agent for headless runtime, and @holoscript/memory for shared memory."
+    },
+    {
+      "name": "@holoscript/state-sync",
+      "version": "1.0.0",
+      "replacement": "@holoscript/crdt, @holoscript/crdt-spatial, and @holoscript/mesh",
+      "deprecatedOn": "2026-07-05",
+      "message": "Deprecated: use @holoscript/crdt for CRDT primitives, @holoscript/crdt-spatial for spatial sync, and @holoscript/mesh for transport."
     }
   ]
 }

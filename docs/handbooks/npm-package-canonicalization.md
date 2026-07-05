@@ -15,6 +15,8 @@ does not make every live package a current cold-consume surface.
 - Package docs and ownership:
   `docs/packages/index.md`, `docs/packages/governance.md`, and
   `docs/PACKAGE_OWNERSHIP.md`.
+- Legacy agent package migrations:
+  `docs/handbooks/npm-agent-package-migrations.md`.
 
 Use live npm evidence before changing this document:
 
@@ -45,9 +47,9 @@ packages so existing consumers get a clear migration path.
 | `@holoscript/parser` | `@holoscript/core` | Deprecated on npm; keep docs pointing at core parser exports. |
 | `@holoscript/compiler` | `@holoscript/core` and `@holoscript/cli` | Deprecated on npm; compiler implementations live in core and user commands live in CLI. |
 | `@holoscript/traits` | `@holoscript/core` | Deprecated on npm; traits are not a standalone canonical package. |
-| `@holoscript/agent-sdk` | `@holoscript/framework`, `@holoscript/mesh`, `@holoscript/memory` | Deprecate after the framework/memory migration examples are current. |
-| `@holoscript/intelligence` | `@holoscript/framework` and `@holoscript/holoscript-agent` | Deprecate; current intelligence work lands in framework and headless agent runtime. |
-| `@holoscript/state-sync` | `@holoscript/crdt`, `@holoscript/crdt-spatial`, `@holoscript/mesh` | Deprecate once CRDT docs include the migration path. |
+| `@holoscript/agent-sdk` | `@holoscript/framework`, `@holoscript/mesh`, `@holoscript/memory` | Deprecated on npm; see `docs/handbooks/npm-agent-package-migrations.md`. |
+| `@holoscript/intelligence` | `@holoscript/framework`, `@holoscript/holoscript-agent`, `@holoscript/memory` | Deprecated on npm; see `docs/handbooks/npm-agent-package-migrations.md`. |
+| `@holoscript/state-sync` | `@holoscript/crdt`, `@holoscript/crdt-spatial`, `@holoscript/mesh` | Deprecated on npm; see `docs/handbooks/npm-agent-package-migrations.md`. |
 | `holoscript` | `@holoscript/cli` | Keep only as an optional compatibility wrapper if revived; the canonical install is scoped. |
 | `create-holoscript` | `create-holoscript-app` | Keep docs on the app scaffolder name. |
 | `@holoscript/sdk` | `@holoscript/core` | Compatibility shim only; do not describe as the primary SDK. |
@@ -58,8 +60,9 @@ packages so existing consumers get a clear migration path.
    laptop, Jetson, and Vast.
 2. Promote the cognition wave next, starting with `@holoscript/uaal` only after
    the VM package has the same pack/install/consumer checks as HoloLlama.
-3. Add npm deprecation messages for the remaining legacy packages before
-   publishing more domain packages.
+3. Keep npm deprecation messages synced with
+   `scripts/holo-ci/npm-deprecation-manifest.json` before publishing more domain
+   packages.
 4. Convert registry-live-but-local-private packages into one of two states:
    public and supported with docs/tests, or deprecated with a replacement path.
 5. Treat domain plugins as marketplace inventory, not core install surface, until
