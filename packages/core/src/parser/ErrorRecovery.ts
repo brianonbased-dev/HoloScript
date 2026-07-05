@@ -111,7 +111,11 @@ const VALID_GEOMETRIES = [
 // VALID_TRAITS is derived from VR_TRAITS (1,525+ traits across 61 category modules).
 // Source: traits/constants/index.ts barrel → re-exported via constants.ts.
 // All traits are parser-accepted; no UNKNOWN_TRAIT errors for any VR_TRAITS entry.
-const VALID_TRAITS: string[] = [...VR_TRAITS];
+// Keep materialization lazy: tsup's parser subpath can load this module before
+// the generated trait-registry chunk has run its initializer.
+function validTraits(): string[] {
+  return [...VR_TRAITS];
+}
 
 const COMMON_PROPERTIES = [
   'position',
@@ -246,7 +250,7 @@ export class ErrorRecovery {
    * SSOT set when provided, otherwise the built-in `VALID_TRAITS` fallback.
    */
   private traitCandidates(): string[] {
-    return this.knownTraits ? [...this.knownTraits] : VALID_TRAITS;
+    return this.knownTraits ? [...this.knownTraits] : validTraits();
   }
 
   /**
@@ -570,7 +574,7 @@ export function enrichErrorWithSuggestions(
     return error;
   }
 
-  const traitCandidates = knownTraits ? [...knownTraits] : VALID_TRAITS;
+  const traitCandidates = knownTraits ? [...knownTraits] : validTraits();
 
   const suggestions: ErrorSuggestion[] = [];
 
@@ -737,5 +741,5 @@ function getLineStart(source: string, lineNumber: number): number {
 
 export const HOLOSCHEMA_KEYWORDS = VALID_KEYWORDS;
 export const HOLOSCHEMA_GEOMETRIES = VALID_GEOMETRIES;
-export const HOLOSCHEMA_TRAITS = VALID_TRAITS;
+export const HOLOSCHEMA_TRAITS = VR_TRAITS;
 export const HOLOSCHEMA_PROPERTIES = COMMON_PROPERTIES;
