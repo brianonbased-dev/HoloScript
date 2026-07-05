@@ -75,6 +75,15 @@ export const NATIVE2D_TRAITS = [
 export const CODE_GRAPH_TRAITS = ['route', 'file', 'reused_in', 'uses_stores', 'calls_apis'] as const;
 
 /**
+ * Runtime/serving directive traits — top-level `@name { ... }` authoring blocks that
+ * configure a sovereign runtime rather than a scene object. `@llama_serve` is read by
+ * `compiler/LlamaServerCompiler.ts`; `@model_fleet` / `@provider_policy` by the fleet
+ * router (`@holoscript/llm-provider` fleet-router.ts). Listed here so authoring them in a
+ * `.holo`/`.hsplus` never trips the unknown-trait warning.
+ */
+export const RUNTIME_DIRECTIVE_TRAITS = ['llama_serve', 'model_fleet', 'provider_policy'] as const;
+
+/**
  * Build the injectable union of all known trait names.
  *
  * The base is `VR_TRAITS` (back-compat: the existing parser fallback), unioned
@@ -93,6 +102,7 @@ export function buildKnownTraitSet(
     ...VR_TRAITS,
     ...NATIVE2D_TRAITS,
     ...CODE_GRAPH_TRAITS,
+    ...RUNTIME_DIRECTIVE_TRAITS,
     ...extras.flat(),
   ]);
 }

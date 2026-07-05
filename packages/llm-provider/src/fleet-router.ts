@@ -30,6 +30,9 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { isBlacklistedModel } from './model-policy';
 
+/** Serving backend a fleet node runs. Default (unset) = Ollama. */
+export type FleetBackend = 'ollama' | 'llama.cpp';
+
 /** One declared fleet node. Addresses are NOT here — only the registry handle. */
 export interface FleetNode {
   /** sovereign-devices registry handle, e.g. "jetson-orin". */
@@ -40,6 +43,14 @@ export interface FleetNode {
   role?: string;
   /** Whether the node is expected to be always-on (diagnostics only). */
   alwaysOn?: boolean;
+  /**
+   * Serving backend. Unset/`ollama` → discovered via Ollama `/api/tags` + `/api/ps`.
+   * `llama.cpp` → discovered via a HoloLlama llama-server's `/health` + `/props` +
+   * `/slots`. The same least-loaded / warm-preferred ranking applies to both, so a
+   * llama.cpp node authored with `backend: "llama.cpp"` load-balances beside the
+   * Ollama nodes on the two owned GPUs.
+   */
+  backend?: FleetBackend;
 }
 
 /** The parsed `@model_fleet` declaration. */
@@ -174,11 +185,15 @@ export function parseFleetSpec(brainSrc: string): FleetSpec | null {
     if (!sub) continue;
     const handle = scalarString(sub.inner, 'node');
     if (handle) {
+      const backendRaw = scalarString(sub.inner, 'backend');
+      const backend: FleetBackend | undefined =
+        backendRaw === 'llama.cpp' || backendRaw === 'ollama' ? backendRaw : undefined;
       nodes.push({
         handle,
         models: listField(sub.inner, 'models') ?? [],
         role: scalarString(sub.inner, 'role'),
         alwaysOn: scalarBool(sub.inner, 'alwaysOn'),
+        ...(backend ? { backend } : {}),
       });
       // Remove the node sub-block from the top-level view so its keys
       // (models:, role:) cannot be mis-read as fleet-level fields.
@@ -256,6 +271,16 @@ interface PsResponse {
   models?: Array<{ name?: string; size_vram?: number }>;
 }
 
+// llama-server (build 7885) discovery surface: /props reports the single loaded
+// model, /slots reports per-slot busy state. A llama-server serves exactly ONE
+// model and holds it resident once /health is ok, so there is no cold/warm split.
+interface PropsResponse {
+  model?: string;
+  model_path?: string;
+  default_generation_settings?: { model?: string; model_path?: string };
+}
+interface SlotsResponse extends Array<{ id?: number; state?: number; is_processing?: boolean }> {}
+
 async function fetchJson<T>(
   fetchImpl: FetchLike,
   url: string,
@@ -304,6 +329,67 @@ export async function discoverNode(
   return { handle, baseURL: base, installed, warm, loadScore };
 }
 
+/** Basename of a model path without directory or extension (for a friendly model id). */
+function modelIdFromPath(p: string): string {
+  const base = p.split(/[\\/]/).pop() ?? p;
+  return base.replace(/\.(gguf|bin|safetensors)$/i, '');
+}
+
+/**
+ * Probe one HoloLlama llama-server node: gate on `/health`, read the single loaded
+ * model from `/props`, and derive load from busy `/slots`. Returns the SAME
+ * {@link NodeDiscovery} shape as {@link discoverNode} so the router ranks llama.cpp
+ * and Ollama nodes identically. Returns null when `/health` is unreachable/not-ok
+ * (so the node is dropped from routing this turn).
+ *
+ * A llama-server serves exactly one model and holds it resident once `/health` is
+ * ok, so `installed` is that one model and `warm` is the same single element — there
+ * is no cold state to distinguish. loadScore is the count of busy slots (a small
+ * integer); cross-backend load magnitudes are nominal, but the model-match filter
+ * plus the primary/warm tiers (checked before loadScore) keep routing sensible.
+ */
+export async function discoverLlamaCppNode(
+  handle: string,
+  baseURL: string,
+  isBlocked: (name: string) => boolean,
+  opts: { timeoutMs?: number; fetchImpl?: FetchLike } = {}
+): Promise<NodeDiscovery | null> {
+  const fetchImpl = opts.fetchImpl ?? (globalThis.fetch as unknown as FetchLike);
+  const timeoutMs = opts.timeoutMs ?? 6000;
+  const base = baseURL.replace(/\/$/, '');
+
+  const health = await fetchJson<unknown>(fetchImpl, `${base}/health`, timeoutMs);
+  if (health === null) return null; // unreachable / not ok → not a routable node this turn
+
+  const props = await fetchJson<PropsResponse>(fetchImpl, `${base}/props`, timeoutMs);
+  const rawModel =
+    props?.default_generation_settings?.model ??
+    props?.model ??
+    (props?.model_path ? modelIdFromPath(props.model_path) : undefined) ??
+    (props?.default_generation_settings?.model_path
+      ? modelIdFromPath(props.default_generation_settings.model_path)
+      : undefined);
+  // /props gave no servable model (unreachable/flaky/empty) → drop the node rather than
+  // fabricating the handle as a model id the server cannot actually serve. Same "no usable
+  // model → dropped" contract as the Ollama path (an empty installed list is filtered out).
+  if (!rawModel) return null;
+  const installed = isBlocked(rawModel) ? [] : [rawModel];
+  const warm = new Set<string>(installed);
+
+  const slots = await fetchJson<SlotsResponse>(fetchImpl, `${base}/slots`, timeoutMs);
+  const busySlots = Array.isArray(slots)
+    ? slots.filter((s) => s?.is_processing === true || (typeof s?.state === 'number' && s.state !== 0))
+        .length
+    : 0;
+  // Scale busy slots into a byte-ish magnitude comparable to Ollama's size_vram-based
+  // loadScore, so a busy llama.cpp node does not read as ~1e9x freer than a resident
+  // Ollama node in the shared least-loaded sort. Idle (0 slots) = 0 = genuinely free;
+  // cross-backend comparison remains nominal (Ollama load conflates resident with active).
+  const loadScore = busySlots * 1_000_000_000;
+
+  return { handle, baseURL: base, installed, warm, loadScore };
+}
+
 // ── Routing ─────────────────────────────────────────────────────────────────────
 
 /**
@@ -344,7 +430,8 @@ export async function pickFleetModel(
       spec.nodes.map(async (n) => {
         const endpoint = await resolveEndpoint(n.handle);
         if (!endpoint) return null;
-        return discoverNode(n.handle, endpoint, isBlocked, {
+        const discover = n.backend === 'llama.cpp' ? discoverLlamaCppNode : discoverNode;
+        return discover(n.handle, endpoint, isBlocked, {
           timeoutMs: opts.timeoutMs,
           fetchImpl: opts.fetchImpl,
         });

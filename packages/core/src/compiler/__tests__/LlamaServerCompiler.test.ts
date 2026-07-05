@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { LlamaServerCompiler, type LlamaServerBundle } from '../LlamaServerCompiler';
 import { createTestCompilerToken } from '../CompilerBase';
+import { parseHolo } from '../../parser/HoloCompositionParser';
 import type {
   HoloComposition,
   HoloObjectTrait,
@@ -117,10 +118,155 @@ describe('LlamaServerCompiler', () => {
     ) as LlamaServerBundle;
 
     expect(bundle.launch.command).toContain('--grammar-file grammars\\holoscript.gbnf');
-    expect(bundle.launch.command).toContain(
-      '--lora adapters\\holotune-fara.gguf --lora-scaled 0.75'
-    );
+    // llama.cpp --lora-scaled takes FNAME:SCALE together (build 7885), not a bare
+    // --lora plus a dangling scale.
+    expect(bundle.launch.command).toContain('--lora-scaled adapters\\holotune-fara.gguf:0.75');
+    expect(bundle.launch.command).not.toContain('--lora adapters\\holotune-fara.gguf --lora-scaled');
     expect(bundle.registryEntry.capabilities.grammarConstrained).toBe(true);
     expect(bundle.registryEntry.capabilities.loraHotSwap).toBe(true);
+  });
+
+  it('loads multiple LoRA adapters from a native array and marks hot-swap', () => {
+    const compiler = new LlamaServerCompiler();
+    const bundle = JSON.parse(
+      compiler.compile(
+        composition({
+          ...faraConfig,
+          lora: ['adapters\\a.gguf', 'adapters\\b.gguf'],
+          lora_init_without_apply: true,
+        }),
+        token
+      )
+    ) as LlamaServerBundle;
+
+    expect(bundle.launch.command).toContain('--lora adapters\\a.gguf');
+    expect(bundle.launch.command).toContain('--lora adapters\\b.gguf');
+    expect(bundle.launch.command).toContain('--lora-init-without-apply');
+    expect(bundle.config.loras).toHaveLength(2);
+    expect(bundle.registryEntry.capabilities.loraHotSwap).toBe(true);
+  });
+
+  it('generates a HoloScript GBNF grammar file for the "holoscript" preset', () => {
+    const compiler = new LlamaServerCompiler();
+    const files = compiler.compileToFiles(
+      composition({ ...faraConfig, grammar: 'holoscript' }),
+      token
+    );
+
+    const gbnf = files['grammars/holoscript-subset.gbnf'];
+    expect(gbnf).toBeDefined();
+    expect(gbnf).toContain('root ::=');
+    expect(gbnf).toContain('trait ::= "@" ident');
+
+    const bundle = JSON.parse(
+      compiler.compile(composition({ ...faraConfig, grammar: 'holoscript' }), token)
+    ) as LlamaServerBundle;
+    // The preset resolves to the generated grammar file, not a literal --grammar holoscript.
+    expect(bundle.launch.command).toContain('--grammar-file grammars/holoscript-subset.gbnf');
+    expect(bundle.launch.command).not.toContain('--grammar holoscript');
+    expect(bundle.registryEntry.capabilities.grammarConstrained).toBe(true);
+  });
+
+  it('parses and compiles a real .holo @llama_serve block (native authoring path)', () => {
+    // End-to-end: author native HoloScript, parse via the production parser
+    // (HoloCompositionParser — the trait lands in composition.traits), compile.
+    const result = parseHolo(`
+      composition "FaraNode" {
+        @llama_serve {
+          model: "fara-7b"
+          model_path: ".scratch/fara.gguf"
+          grammar: "holoscript"
+          lora: ["adapters/a.gguf", "adapters/b.gguf"]
+          register_as: "laptop-fara"
+          node: "laptop-rtx3060"
+        }
+      }
+    `);
+    expect(result.success).toBe(true);
+    expect(result.ast).toBeDefined();
+
+    const compiler = new LlamaServerCompiler();
+    const bundle = JSON.parse(compiler.compile(result.ast!, token)) as LlamaServerBundle;
+
+    expect(bundle.warnings).not.toContain('No @llama_serve trait found; used compiler options/defaults.');
+    expect(bundle.registryEntry.handle).toBe('laptop-fara');
+    expect(bundle.registryEntry.model).toBe('fara-7b');
+    expect(bundle.launch.command).toContain('-m .scratch/fara.gguf');
+    expect(bundle.launch.command).toContain('--grammar-file grammars/holoscript-subset.gbnf');
+    expect(bundle.launch.command).toContain('--lora adapters/a.gguf');
+    expect(bundle.launch.command).toContain('--lora adapters/b.gguf');
+
+    const files = compiler.compileToFiles(result.ast!, token);
+    expect(files['grammars/holoscript-subset.gbnf']).toContain('root ::=');
+    expect(files['sovereign-devices/laptop-fara.json']).toContain('"backend": "llama.cpp"');
+  });
+
+  // ── Review fixes (adversarial review 2026-07-05) ──────────────────────────────
+
+  it('emits an inline grammar with PowerShell-correct single-quoting (not backslash)', () => {
+    const compiler = new LlamaServerCompiler();
+    const bundle = JSON.parse(
+      compiler.compile(composition({ ...faraConfig, grammar: 'root ::= "x"' }), token)
+    ) as LlamaServerBundle;
+    // Reference command line: cmd-style double-quote with escaped inner quotes.
+    expect(bundle.launch.command).toContain('--grammar "root ::= \\"x\\""');
+    // The PowerShell launcher single-quotes the grammar (PS does not honor backslash escapes).
+    expect(bundle.launch.powershell).toContain(`--grammar 'root ::= "x"'`);
+    expect(bundle.launch.powershell).not.toContain('\\"x\\"');
+  });
+
+  it('quotes an executable path containing a space in both the command and the .ps1', () => {
+    const compiler = new LlamaServerCompiler({ executable: 'C:/llama cpp/llama-server.exe' });
+    const bundle = JSON.parse(compiler.compile(composition(faraConfig), token)) as LlamaServerBundle;
+    expect(bundle.launch.command.startsWith('"C:/llama cpp/llama-server.exe" -m')).toBe(true);
+    expect(bundle.launch.powershell).toContain(`& 'C:/llama cpp/llama-server.exe' -m`);
+  });
+
+  it('accepts a single {path, scale} LoRA object (not only arrays)', () => {
+    const compiler = new LlamaServerCompiler();
+    const bundle = JSON.parse(
+      compiler.compile(
+        composition({ ...faraConfig, lora: { path: 'adapters/x.gguf', scale: 0.5 } }),
+        token
+      )
+    ) as LlamaServerBundle;
+    expect(bundle.config.loras).toHaveLength(1);
+    expect(bundle.launch.command).toContain('--lora-scaled adapters/x.gguf:0.5');
+    expect(bundle.registryEntry.capabilities.loraHotSwap).toBe(true);
+  });
+
+  it('warns and uses --grammar-file when both a grammar file and inline grammar are set', () => {
+    const compiler = new LlamaServerCompiler();
+    const bundle = JSON.parse(
+      compiler.compile(
+        composition({ ...faraConfig, grammar: 'root ::= x', grammar_path: 'g.gbnf' }),
+        token
+      )
+    ) as LlamaServerBundle;
+    expect(bundle.launch.command).toContain('--grammar-file g.gbnf');
+    expect(bundle.launch.command).not.toContain('--grammar root');
+    expect(bundle.warnings.some((w) => w.includes('inline grammar'))).toBe(true);
+  });
+
+  it('keeps an explicit scale when a later unscaled entry repeats the same LoRA path', () => {
+    const compiler = new LlamaServerCompiler({ loras: [{ path: 'a.gguf', scale: 0.5 }] });
+    const bundle = JSON.parse(
+      compiler.compile(composition({ ...faraConfig, lora: ['a.gguf'] }), token)
+    ) as LlamaServerBundle;
+    expect(bundle.config.loras).toHaveLength(1);
+    expect(bundle.launch.command).toContain('--lora-scaled a.gguf:0.5');
+    expect(bundle.launch.command).not.toContain('--lora a.gguf ');
+  });
+
+  it('applies a top-level lora_scale to every array adapter that lacks its own', () => {
+    const compiler = new LlamaServerCompiler();
+    const bundle = JSON.parse(
+      compiler.compile(
+        composition({ ...faraConfig, lora: ['a.gguf', 'b.gguf'], lora_scale: 0.7 }),
+        token
+      )
+    ) as LlamaServerBundle;
+    expect(bundle.launch.command).toContain('--lora-scaled a.gguf:0.7');
+    expect(bundle.launch.command).toContain('--lora-scaled b.gguf:0.7');
   });
 });

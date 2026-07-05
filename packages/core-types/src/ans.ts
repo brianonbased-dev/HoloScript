@@ -62,6 +62,7 @@ export const ANSCapabilityPath = {
   HOLOB: '/compile/interchange/holob',
   COMPILE_SVG: '/compile/web2d/svg',
   EDGE: '/compile/edge/arm64',
+  LLAMA_SERVER: '/compile/runtime/llama-server',
 } as const;
 
 export type ANSCapabilityPathValue = (typeof ANSCapabilityPath)[keyof typeof ANSCapabilityPath];

@@ -10,6 +10,7 @@ import { describe, expect, test } from 'vitest';
 import {
   parseFleetSpec,
   pickFleetModel,
+  discoverLlamaCppNode,
   embedAcrossFleet,
   cosineSimilarity,
   type FleetSpec,
@@ -285,6 +286,144 @@ describe('primary-node preference (jetson main, laptop overflow)', () => {
     });
     const route = await pickFleetModel(PRIMARY_SPEC, { model: 'qwen3:4b-instruct', resolveEndpoint, fetchImpl });
     expect(route!.handle).toBe('laptop-rtx3060');
+  });
+});
+
+// ── llama.cpp backend node kind (HoloLlama) ────────────────────────────────────
+// A fleet where one node runs a llama-server (backend: "llama.cpp"), discovered
+// via /health + /props + /slots instead of Ollama /api/tags + /api/ps.
+
+/**
+ * Injected fetch answering BOTH backends: llama-server (/health, /props, /slots)
+ * and Ollama (/api/tags, /api/ps). `llama` maps baseURL → the served model, busy
+ * slot count, and health; `ollama` reuses the tags/ps shape.
+ */
+function fakeFetchLlama(
+  llama: Record<string, { model: string; busySlots?: number; healthy?: boolean }>,
+  ollama: Record<string, { tags: string[]; ps?: Array<{ name: string; vram: number }> }> = {}
+): FetchLike {
+  return async (url: string) => {
+    if (/\/(health|props|slots)$/.test(url)) {
+      const base = url.replace(/\/(health|props|slots)$/, '');
+      const n = llama[base];
+      if (!n) throw new Error('ECONNREFUSED');
+      if (url.endsWith('/health')) {
+        return n.healthy === false
+          ? { ok: false, json: async () => ({}) }
+          : { ok: true, json: async () => ({ status: 'ok' }) };
+      }
+      if (url.endsWith('/props')) {
+        return {
+          ok: true,
+          json: async () => ({
+            default_generation_settings: { model: n.model },
+            model_path: `/models/${n.model}.gguf`,
+          }),
+        };
+      }
+      // /slots — an array of slot objects; state !== 0 (or is_processing) counts as busy.
+      const busy = n.busySlots ?? 0;
+      const slots = Array.from({ length: Math.max(busy, 1) }, (_, i) => ({ id: i, state: i < busy ? 1 : 0 }));
+      return { ok: true, json: async () => slots };
+    }
+    const base = url.replace(/\/api\/(tags|ps)$/, '');
+    const node = ollama[base];
+    if (!node) throw new Error('ECONNREFUSED');
+    if (url.endsWith('/api/tags')) {
+      return { ok: true, json: async () => ({ models: node.tags.map((name) => ({ name })) }) };
+    }
+    return {
+      ok: true,
+      json: async () => ({ models: (node.ps ?? []).map((p) => ({ name: p.name, size_vram: p.vram })) }),
+    };
+  };
+}
+
+const LLAMA_BRAIN = `
+@model_fleet {
+  jetson {
+    node: "jetson-orin"
+    models: ["qwen3:4b-instruct"]
+  }
+  laptopLlama {
+    node: "laptop-fara"
+    backend: "llama.cpp"
+    models: ["fara-7b"]
+  }
+  strategy: "least-loaded"
+  warm_preferred: true
+}
+`;
+const LLAMA_SPEC: FleetSpec = parseFleetSpec(LLAMA_BRAIN)!;
+const LLAMA_ENDPOINTS: Record<string, string> = {
+  'jetson-orin': 'http://holojetson.local:11434',
+  'laptop-fara': 'http://192.168.0.23:18080',
+};
+const resolveLlama = async (h: string): Promise<string | null> => LLAMA_ENDPOINTS[h] ?? null;
+
+describe('llama.cpp backend node kind', () => {
+  test('parseFleetSpec reads the per-node backend discriminator', () => {
+    const jetson = LLAMA_SPEC.nodes.find((n) => n.handle === 'jetson-orin')!;
+    const llama = LLAMA_SPEC.nodes.find((n) => n.handle === 'laptop-fara')!;
+    expect(llama.backend).toBe('llama.cpp');
+    expect(jetson.backend).toBeUndefined(); // default = ollama
+  });
+
+  test('routes to a llama-server node, model resolved from /props (always warm)', async () => {
+    const fetchImpl = fakeFetchLlama(
+      { 'http://192.168.0.23:18080': { model: 'fara-7b', busySlots: 0 } },
+      { 'http://holojetson.local:11434': { tags: ['qwen3:4b-instruct'], ps: [] } }
+    );
+    const route = await pickFleetModel(LLAMA_SPEC, { model: 'fara-7b', resolveEndpoint: resolveLlama, fetchImpl });
+    expect(route!.handle).toBe('laptop-fara');
+    expect(route!.model).toBe('fara-7b'); // from /props default_generation_settings.model
+    expect(route!.warm).toBe(true); // a llama-server holds its one model resident
+  });
+
+  test('an unhealthy llama-server (/health not ok) is dropped; the Ollama node still answers', async () => {
+    const fetchImpl = fakeFetchLlama(
+      { 'http://192.168.0.23:18080': { model: 'fara-7b', healthy: false } },
+      { 'http://holojetson.local:11434': { tags: ['qwen3:4b-instruct'], ps: [] } }
+    );
+    const route = await pickFleetModel(LLAMA_SPEC, { model: 'qwen3:4b-instruct', resolveEndpoint: resolveLlama, fetchImpl });
+    expect(route!.handle).toBe('jetson-orin');
+    expect(route!.model).toBe('qwen3:4b-instruct');
+  });
+
+  test('discoverLlamaCppNode derives installed/warm from /props and load from busy /slots', async () => {
+    const fetchImpl = fakeFetchLlama({ 'http://192.168.0.23:18080': { model: 'fara-7b', busySlots: 2 } });
+    const d = await discoverLlamaCppNode('laptop-fara', 'http://192.168.0.23:18080', () => false, { fetchImpl });
+    expect(d).not.toBeNull();
+    expect(d!.installed).toEqual(['fara-7b']); // the single loaded model
+    expect(d!.warm.has('fara-7b')).toBe(true); // resident by definition once /health is ok
+    // Busy-slot count scaled to a byte-ish magnitude so it is comparable to Ollama VRAM load.
+    expect(d!.loadScore).toBe(2_000_000_000);
+  });
+
+  test('discoverLlamaCppNode returns null when /health is not ok', async () => {
+    const fetchImpl = fakeFetchLlama({ 'http://192.168.0.23:18080': { model: 'fara-7b', healthy: false } });
+    const d = await discoverLlamaCppNode('laptop-fara', 'http://192.168.0.23:18080', () => false, { fetchImpl });
+    expect(d).toBeNull();
+  });
+
+  test('discoverLlamaCppNode drops the node when /health passes but /props yields no model', async () => {
+    // /health ok, but /props returns null (503 mid-load / transient) → no fabricated handle-as-model.
+    const fetchImpl: FetchLike = async (url: string) => {
+      if (url.endsWith('/health')) return { ok: true, json: async () => ({ status: 'ok' }) };
+      if (url.endsWith('/props')) return { ok: false, json: async () => ({}) };
+      if (url.endsWith('/slots')) return { ok: true, json: async () => [] };
+      throw new Error('ECONNREFUSED');
+    };
+    const d = await discoverLlamaCppNode('laptop-fara', 'http://192.168.0.23:18080', () => false, { fetchImpl });
+    expect(d).toBeNull(); // dropped, not offered as model 'laptop-fara'
+  });
+
+  test('a blacklisted served model yields no installed candidate (node dropped)', async () => {
+    const fetchImpl = fakeFetchLlama({ 'http://192.168.0.23:18080': { model: 'qwen2.5-coder' } });
+    const d = await discoverLlamaCppNode('laptop-fara', 'http://192.168.0.23:18080', (n) => n.includes('qwen2.5'), {
+      fetchImpl,
+    });
+    expect(d!.installed).toEqual([]); // blocked → not a routable model
   });
 });
 

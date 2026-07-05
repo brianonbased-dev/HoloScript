@@ -140,4 +140,45 @@ describe('holotune MCP tools', () => {
     expect(download.ok).toBe(true);
     expect((download.manifest as Record<string, unknown>).manifestHash).toMatch(/^sha256:/);
   });
+
+  it('emits a native @llama_serve spec + authorable block when a GGUF is present', async () => {
+    const serve = (await handleHoloTuneTool('holotune_serve', {
+      identity: 'brittney-edge',
+      version: 'v0-8',
+      ggufUri: 'file:///models/brittney-edge-v0-8.gguf',
+      loraGgufUri: 'file:///adapters/brittney-edge_v0-8/adapter.gguf',
+    })) as Record<string, unknown>;
+    expect(serve.ok).toBe(true);
+
+    const spec = serve.llamaServe as Record<string, unknown>;
+    expect(spec.schema).toBe('holotune.llama-serve.v1');
+    expect(spec.gguf).toBe('file:///models/brittney-edge-v0-8.gguf');
+    expect(spec.lora).toBe('file:///adapters/brittney-edge_v0-8/adapter.gguf');
+    expect(spec.handle).toBe('brittney-edge-v0-8');
+
+    const snippet = serve.llamaServeHsplus as string;
+    expect(snippet).toContain('@llama_serve {');
+    expect(snippet).toContain('grammar: "holoscript"'); // wires the GBNF constrained-decode preset
+    expect(snippet).toContain('lora: "file:///adapters/brittney-edge_v0-8/adapter.gguf"');
+  });
+
+  it('keeps a PEFT adapter directory OUT of the @llama_serve.lora slot (back-compat)', async () => {
+    const serve = (await handleHoloTuneTool('holotune_serve', {
+      identity: 'agent-a',
+      adapterUri: 'file:///adapter', // a PEFT dir, not a .gguf
+    })) as Record<string, unknown>;
+    expect(serve.serveReady).toBe(true); // unchanged legacy behavior
+    expect(serve.llamaServe).toBeNull(); // no real gguf/lora → no native spec fabricated
+  });
+
+  it('escapes quotes in @llama_serve snippet values so the block stays parseable', async () => {
+    const serve = (await handleHoloTuneTool('holotune_serve', {
+      identity: 'agent-a',
+      version: 'v1',
+      ggufUri: 'file:///m"odel.gguf', // stray quote in the URI
+    })) as Record<string, unknown>;
+    const snippet = serve.llamaServeHsplus as string;
+    expect(snippet).toContain('gguf: "file:///m\\"odel.gguf"'); // quote escaped, string not terminated early
+    expect(snippet).not.toContain('gguf: "file:///m"odel.gguf"');
+  });
 });

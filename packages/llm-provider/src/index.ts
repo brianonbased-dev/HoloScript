@@ -232,6 +232,7 @@ export {
   loadFleetSpec,
   resolveNodeEndpoint,
   discoverNode,
+  discoverLlamaCppNode,
   pickFleetModel,
   resolveLocalFleet,
   embedAcrossFleet,
@@ -239,6 +240,7 @@ export {
 } from './fleet-router';
 export type {
   FleetNode,
+  FleetBackend,
   FleetSpec,
   NodeDiscovery,
   FleetCandidate,

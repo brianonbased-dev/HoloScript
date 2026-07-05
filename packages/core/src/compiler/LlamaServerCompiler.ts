@@ -9,6 +9,7 @@
 
 import { CompilerBase } from './CompilerBase';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
+import { generateHoloScriptGbnf, isHoloScriptGrammarPreset } from './holoscript-gbnf';
 import type {
   HoloComposition,
   HoloObjectDecl,
@@ -35,6 +36,18 @@ export interface LlamaServerCompilerOptions {
   grammar?: string;
   loraPath?: string;
   loraScale?: number;
+  /**
+   * One or more LoRA adapters to load, as plain paths or `{ path, scale }`.
+   * Merged with the single `loraPath`/`loraScale` (back-compat) and with any
+   * `lora`/`lora_path` authored on the @llama_serve trait (string or array).
+   */
+  loras?: Array<string | { path: string; scale?: number }>;
+  /**
+   * Emit `--lora-init-without-apply` so adapters are loaded cold and applied
+   * later via `POST /lora-adapters` — the hot-swap path for serving HoloTune
+   * adapters live without restarting the server.
+   */
+  loraInitWithoutApply?: boolean;
   executable?: string;
   cudaPath?: string;
   llamaBinDir?: string;
@@ -44,6 +57,12 @@ export interface LlamaServerCompilerOptions {
   node?: string;
   registerAs?: string;
   dryRun?: boolean;
+}
+
+/** A single resolved LoRA adapter: a file path with an optional per-adapter scale. */
+export interface LlamaServerLoraAdapter {
+  path: string;
+  scale?: number;
 }
 
 export interface LlamaServerBundleFile {
@@ -114,8 +133,9 @@ export interface LlamaServerBundle {
     mmprojPath?: string;
     grammarPath?: string;
     grammar?: string;
-    loraPath?: string;
-    loraScale?: number;
+    grammarPreset?: string;
+    loras: LlamaServerLoraAdapter[];
+    loraInitWithoutApply: boolean;
     cudaPath?: string;
     llamaBinDir?: string;
     workingDirectory?: string;
@@ -141,8 +161,9 @@ interface ResolvedLlamaConfig {
   metrics: boolean;
   grammarPath?: string;
   grammar?: string;
-  loraPath?: string;
-  loraScale?: number;
+  grammarPreset?: string;
+  loras: LlamaServerLoraAdapter[];
+  loraInitWithoutApply: boolean;
   executable: string;
   cudaPath?: string;
   llamaBinDir?: string;
@@ -177,7 +198,7 @@ export class LlamaServerCompiler extends CompilerBase {
   protected readonly compilerName = 'LlamaServerCompiler';
 
   protected override getRequiredCapability(): ANSCapabilityPathValue {
-    return ANSCapabilityPath.EDGE;
+    return ANSCapabilityPath.LLAMA_SERVER;
   }
 
   constructor(private readonly opts: LlamaServerCompilerOptions = {}) {
@@ -189,9 +210,12 @@ export class LlamaServerCompiler extends CompilerBase {
 
     const { traitConfig, foundTrait } = this.findLlamaServeConfig(composition);
     const cfg = this.resolveConfig(composition, traitConfig);
-    const args = this.buildArgs(cfg);
-    const command = [cfg.executable, ...args].join(' ');
-    const powershell = this.genPowerShellLaunch(cfg, command);
+    // `grammar: "holoscript"` resolves to a generated GBNF written into the bundle;
+    // this mutates cfg.grammarPath so buildArgv emits --grammar-file for it.
+    const grammarFile = this.resolveGrammarPreset(cfg);
+    const args = this.buildArgv(cfg);
+    const command = this.cmdLine(cfg.executable, args);
+    const powershell = this.genPowerShellLaunch(cfg, args);
     const healthProbe = this.genHealthProbe(cfg);
     const systemdUnit = this.genSystemdUnit(cfg, args);
     const windowsS4UTask = this.genWindowsS4UTask(cfg);
@@ -204,9 +228,15 @@ export class LlamaServerCompiler extends CompilerBase {
       windowsS4UTask,
       registryEntry
     );
+    if (grammarFile) files.unshift(grammarFile);
     const warnings = foundTrait
       ? []
       : ['No @llama_serve trait found; used compiler options/defaults.'];
+    if (cfg.grammarPath && cfg.grammar) {
+      warnings.push(
+        'Both a grammar file and an inline grammar were supplied; using --grammar-file and ignoring the inline grammar.'
+      );
+    }
 
     const bundle: LlamaServerBundle = {
       name: cfg.name,
@@ -323,12 +353,11 @@ export class LlamaServerCompiler extends CompilerBase {
         this.numberValue(raw, DEFAULTS.imageMaxTokens, 'imageMaxTokens', 'image_max_tokens'),
       parallel: this.opts.parallel ?? this.numberValue(raw, DEFAULTS.parallel, 'parallel'),
       metrics: this.opts.metrics ?? this.booleanValue(raw, DEFAULTS.metrics, 'metrics'),
-      grammarPath: this.opts.grammarPath ?? this.stringValue(raw, 'grammarPath', 'grammar_path'),
-      grammar: this.opts.grammar ?? this.stringValue(raw, 'grammar'),
-      loraPath: this.opts.loraPath ?? this.stringValue(raw, 'loraPath', 'lora_path', 'lora'),
-      loraScale:
-        this.opts.loraScale ??
-        this.optionalNumberValue(raw, 'loraScale', 'lora_scale', 'lora_scaled'),
+      ...this.resolveGrammar(raw),
+      loras: this.resolveLoras(raw),
+      loraInitWithoutApply:
+        this.opts.loraInitWithoutApply ??
+        this.booleanValue(raw, false, 'loraInitWithoutApply', 'lora_init_without_apply'),
       executable:
         this.opts.executable ?? this.stringValue(raw, 'executable') ?? DEFAULTS.executable,
       cudaPath: this.opts.cudaPath ?? this.stringValue(raw, 'cudaPath', 'cuda_path'),
@@ -347,12 +376,17 @@ export class LlamaServerCompiler extends CompilerBase {
     };
   }
 
-  private buildArgs(cfg: ResolvedLlamaConfig): string[] {
-    const args = ['-m', this.shellArg(cfg.modelPath)];
+  /**
+   * Build the RAW argv token stream (flag names + unquoted values). Quoting is applied
+   * per target — cmd-style for the reference command / systemd, PowerShell for the .ps1 —
+   * so a value with a space, quote, or backtick is never mis-escaped (see cmdArg/psArg).
+   */
+  private buildArgv(cfg: ResolvedLlamaConfig): string[] {
+    const argv = ['-m', cfg.modelPath];
 
-    if (cfg.mmprojPath) args.push('--mmproj', this.shellArg(cfg.mmprojPath));
+    if (cfg.mmprojPath) argv.push('--mmproj', cfg.mmprojPath);
 
-    args.push(
+    argv.push(
       '--host',
       cfg.host,
       '--port',
@@ -371,14 +405,115 @@ export class LlamaServerCompiler extends CompilerBase {
       String(cfg.parallel)
     );
 
-    if (cfg.metrics) args.push('--metrics');
-    if (cfg.grammarPath) args.push('--grammar-file', this.shellArg(cfg.grammarPath));
-    if (cfg.grammar) args.push('--grammar', this.shellArg(cfg.grammar));
-    if (cfg.loraPath) args.push('--lora', this.shellArg(cfg.loraPath));
-    if (cfg.loraPath && cfg.loraScale !== undefined)
-      args.push('--lora-scaled', String(cfg.loraScale));
+    if (cfg.metrics) argv.push('--metrics');
+    // `--grammar-file` and inline `--grammar` write the SAME llama.cpp field — never emit
+    // both. An explicit grammar file (incl. the resolved "holoscript" preset) wins; the
+    // dual-spec conflict is surfaced as a warning in compile().
+    if (cfg.grammarPath) argv.push('--grammar-file', cfg.grammarPath);
+    else if (cfg.grammar) argv.push('--grammar', cfg.grammar);
 
-    return args;
+    // One flag per adapter. llama.cpp's --lora-scaled takes FNAME:SCALE together
+    // (build 7885 --help), so a scaled adapter is a single --lora-scaled arg, not
+    // a bare --lora plus a dangling scale. Unscaled adapters use plain --lora.
+    for (const lora of cfg.loras) {
+      if (lora.scale !== undefined) {
+        argv.push('--lora-scaled', `${lora.path}:${lora.scale}`);
+      } else {
+        argv.push('--lora', lora.path);
+      }
+    }
+    // Load adapters cold for POST /lora-adapters hot-swap (serve HoloTune adapters live).
+    if (cfg.loraInitWithoutApply && cfg.loras.length > 0) argv.push('--lora-init-without-apply');
+
+    return argv;
+  }
+
+  /**
+   * Resolve the `grammar:` field into either a preset (a built-in HoloScript GBNF
+   * that gets generated into the bundle) or an inline grammar / grammar file. A
+   * preset name (`holoscript`) is NOT passed to `--grammar` verbatim — it names a
+   * grammar we generate.
+   */
+  private resolveGrammar(raw: RawConfig): {
+    grammarPath?: string;
+    grammar?: string;
+    grammarPreset?: string;
+  } {
+    const grammarPath = this.opts.grammarPath ?? this.stringValue(raw, 'grammarPath', 'grammar_path');
+    const grammarRaw = this.opts.grammar ?? this.stringValue(raw, 'grammar');
+    if (grammarRaw && isHoloScriptGrammarPreset(grammarRaw)) {
+      return { grammarPath, grammarPreset: grammarRaw };
+    }
+    return { grammarPath, grammar: grammarRaw };
+  }
+
+  /**
+   * Generate the GBNF for a `grammar:` preset and return it as a bundle file. Sets
+   * `cfg.grammarPath` to the emitted file unless the author supplied an explicit
+   * grammar path (which then wins). Returns null when no preset was requested.
+   */
+  private resolveGrammarPreset(cfg: ResolvedLlamaConfig): LlamaServerBundleFile | null {
+    if (!cfg.grammarPreset) return null;
+    // An author-supplied grammar path wins — don't also emit (and point away from) the
+    // preset file. Only generate the preset GBNF when nothing else claimed grammarPath.
+    if (cfg.grammarPath) return null;
+    const path = 'grammars/holoscript-subset.gbnf';
+    cfg.grammarPath = path;
+    return { path, content: generateHoloScriptGbnf() };
+  }
+
+  /**
+   * Collect every LoRA adapter from compiler options and authored config. Accepts
+   * `loraPath`+`loraScale` (single, back-compat) and `lora`/`lora_path` as a string
+   * OR an array of strings / `{ path, scale }` objects. Deduped by path (last wins),
+   * order-preserving, so a native `lora: [...]` list serves multiple adapters at once.
+   */
+  private resolveLoras(raw: RawConfig): LlamaServerLoraAdapter[] {
+    const collected: LlamaServerLoraAdapter[] = [];
+    const add = (path: unknown, scale?: unknown): void => {
+      if (typeof path !== 'string' || path.length === 0) return;
+      const s = typeof scale === 'number' && Number.isFinite(scale) ? scale : undefined;
+      collected.push(s !== undefined ? { path, scale: s } : { path });
+    };
+
+    // Accept a string, an array (of strings / {path,scale}), OR a bare {path,scale}
+    // object — the same shapes the array elements accept, so the single-object form is
+    // not a silent trap. `defaultScale` seeds any entry that carries no scale of its own,
+    // so a top-level `lora_scale` applies to every array entry that lacks one.
+    const addValue = (value: unknown, defaultScale?: number): void => {
+      if (typeof value === 'string') {
+        add(value, defaultScale);
+      } else if (Array.isArray(value)) {
+        for (const item of value) addValue(item, defaultScale);
+      } else if (value && typeof value === 'object') {
+        const obj = value as Record<string, unknown>;
+        add(obj.path, typeof obj.scale === 'number' ? obj.scale : defaultScale);
+      }
+    };
+
+    for (const entry of this.opts.loras ?? []) {
+      if (typeof entry === 'string') add(entry);
+      else add(entry.path, entry.scale);
+    }
+    if (this.opts.loraPath) add(this.opts.loraPath, this.opts.loraScale);
+
+    const rawScale = this.optionalNumberValue(raw, 'loraScale', 'lora_scale');
+    addValue(raw.lora ?? raw.lora_path ?? raw.loraPath, rawScale);
+
+    // Dedupe by path, preserving first-seen order; MERGE so an explicit scale is never
+    // lost to a later unscaled entry for the same path (scale is sticky).
+    const order: string[] = [];
+    const byPath = new Map<string, LlamaServerLoraAdapter>();
+    for (const lora of collected) {
+      const prev = byPath.get(lora.path);
+      if (!prev) {
+        order.push(lora.path);
+        byPath.set(lora.path, lora);
+      } else if (lora.scale !== undefined || prev.scale !== undefined) {
+        byPath.set(lora.path, { path: lora.path, scale: lora.scale ?? prev.scale });
+      }
+    }
+    return order.map((path) => byPath.get(path)!);
   }
 
   private buildFiles(
@@ -394,7 +529,7 @@ export class LlamaServerCompiler extends CompilerBase {
       target: 'llama-server',
       dryRun: true,
       generatedBy: 'LlamaServerCompiler',
-      command: [cfg.executable, ...this.buildArgs(cfg)].join(' '),
+      command: this.cmdLine(cfg.executable, this.buildArgv(cfg)),
       registryHandle: registryEntry.handle,
     };
 
@@ -428,12 +563,12 @@ export class LlamaServerCompiler extends CompilerBase {
       capabilities: {
         vision: Boolean(cfg.mmprojPath),
         grammarConstrained: Boolean(cfg.grammarPath || cfg.grammar),
-        loraHotSwap: Boolean(cfg.loraPath),
+        loraHotSwap: cfg.loras.length > 0,
       },
     };
   }
 
-  private genPowerShellLaunch(cfg: ResolvedLlamaConfig, command: string): string {
+  private genPowerShellLaunch(cfg: ResolvedLlamaConfig, argv: string[]): string {
     const pathEntries = [cfg.cudaPath, cfg.llamaBinDir].filter(Boolean) as string[];
     const pathPrelude =
       pathEntries.length > 0
@@ -442,10 +577,12 @@ export class LlamaServerCompiler extends CompilerBase {
     const cwd = cfg.workingDirectory
       ? `Set-Location -LiteralPath '${this.psSingle(cfg.workingDirectory)}'\n`
       : '';
+    // PowerShell call operator with PS-literal (single-quoted) tokens — correct for an
+    // exe path with spaces and for an inline GBNF grammar (which contains double-quotes).
     return [
       '# Generated by HoloScript LlamaServerCompiler. Dry artifact; run explicitly.',
       "$ErrorActionPreference = 'Stop'",
-      `${pathPrelude}${cwd}${command}`,
+      `${pathPrelude}${cwd}${this.psCommandLine(cfg.executable, argv)}`,
       '',
     ].join('\n');
   }
@@ -461,7 +598,7 @@ export class LlamaServerCompiler extends CompilerBase {
     ].join('\n');
   }
 
-  private genSystemdUnit(cfg: ResolvedLlamaConfig, args: string[]): string {
+  private genSystemdUnit(cfg: ResolvedLlamaConfig, argv: string[]): string {
     const serviceName = this.slug(cfg.registerAs);
     const workingDirectory = cfg.workingDirectory ?? '/opt/holoscript/llama-server';
     const linuxPathEntries = [cfg.cudaPath, cfg.llamaBinDir]
@@ -480,7 +617,7 @@ Wants=network-online.target
 Type=simple
 User=${cfg.serviceUser}
 WorkingDirectory=${workingDirectory}
-${pathLine}ExecStart=${cfg.executable} ${args.join(' ')}
+${pathLine}ExecStart=${this.cmdLine(cfg.executable, argv)}
 Restart=on-failure
 RestartSec=5
 StandardOutput=journal
@@ -525,9 +662,36 @@ WantedBy=multi-user.target
     );
   }
 
-  private shellArg(value: string): string {
-    if (!/[\s"`']/.test(value)) return value;
+  /**
+   * cmd.exe / CreateProcess quoting: double-quote a value with whitespace or quotes and
+   * backslash-escape inner quotes. Used for the reference command string, the sovereign-
+   * devices launchCommand, the manifest, and the systemd ExecStart (systemd honors "" +
+   * C-style \" escapes). NOT valid for a PowerShell script — see psArg.
+   */
+  private cmdArg(value: string): string {
+    if (!/[\s"]/.test(value)) return value;
     return `"${value.replace(/"/g, '\\"')}"`;
+  }
+
+  /**
+   * PowerShell literal quoting for the `&` call operator: single-quote any token with
+   * whitespace or a PS-special char (' " ` $ ; parens/braces), doubling inner single
+   * quotes. Inside PS single-quotes every other char (incl. " and the backtick) is
+   * literal, so an inline GBNF grammar or a path with a space/backtick survives intact.
+   */
+  private psArg(value: string): string {
+    if (!/[\s"'`$;(){}]/.test(value)) return value;
+    return `'${value.replace(/'/g, "''")}'`;
+  }
+
+  /** cmd/reference command line: `<exe> <arg>...` with cmd-style quoting on every token. */
+  private cmdLine(executable: string, argv: string[]): string {
+    return [this.cmdArg(executable), ...argv.map((a) => this.cmdArg(a))].join(' ');
+  }
+
+  /** PowerShell launch line: `& <exe> <arg>...` (call operator so a spaced exe path runs). */
+  private psCommandLine(executable: string, argv: string[]): string {
+    return ['&', this.psArg(executable), ...argv.map((a) => this.psArg(a))].join(' ');
   }
 
   private psSingle(value: string): string {

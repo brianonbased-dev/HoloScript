@@ -383,7 +383,18 @@ export type {
   LlamaServerBundle,
   LlamaServerBundleFile,
   LlamaServerCompilerOptions,
+  LlamaServerLoraAdapter,
 } from './LlamaServerCompiler';
+// HoloScript -> GBNF grammar generator — the `grammar: "holoscript"` constrained-decode path.
+export {
+  generateHoloScriptGbnf,
+  isHoloScriptGrammarPreset,
+  HOLOSCRIPT_GRAMMAR_PRESETS,
+  DEFAULT_OBJECT_KEYWORDS,
+  DEFAULT_PRIMITIVE_SHAPES,
+  DEFAULT_MATERIAL_KEYWORDS,
+} from './holoscript-gbnf';
+export type { HoloScriptGbnfOptions, HoloScriptGrammarPreset } from './holoscript-gbnf';
 
 // MLIR-style dialect registry
 export { DialectRegistry, ensureDialectsBooted } from './DialectRegistry';

@@ -257,6 +257,8 @@ compile_holoscript
 compile_to_unity
 compile_to_unreal
 compile_to_urdf
+compile_to_mjcf
+compile_to_mjx
 compile_to_webgpu
 compile_to_3dtiles
 compile_to_ai_glasses
@@ -301,6 +303,7 @@ compile_to_sdf
 # compile_to_vrr — retired apex-poison 2026-06-17
 compile_to_multi_layer
 compile_to_ros2_deploy
+compile_to_embodied_dataset
 compile_to_dtdl
 compile_to_nir
 # compile_to_native_2d — retired apex-poison 2026-06-17
@@ -312,6 +315,7 @@ compile_to_daimon_seed
 compile_to_state
 compile_to_3dgs
 compile_to_edge
+compile_to_llama_server
 compile_to_mcp_config
 compile_to_qasm
 get_compilation_status

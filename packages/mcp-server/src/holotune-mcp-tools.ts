@@ -123,7 +123,7 @@ export const holotuneToolDefinitions: Tool[] = [
   {
     name: 'holotune_serve',
     description:
-      'Resolve the active HoloTune adapter into a serving plan. Does not mutate serving state.',
+      'Resolve the active HoloTune adapter into a serving plan, including a native @llama_serve spec (compile with compile_to_llama_server). Does not mutate serving state.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -131,6 +131,11 @@ export const holotuneToolDefinitions: Tool[] = [
         version: { type: 'string' },
         adapterUri: { type: 'string' },
         ggufUri: { type: 'string' },
+        loraGgufUri: {
+          type: 'string',
+          description:
+            'A llama.cpp LoRA .gguf (from holotune-gguf-convert) for the @llama_serve.lora hot-swap slot — distinct from the PEFT adapterUri directory.',
+        },
       },
     },
   },
@@ -405,12 +410,60 @@ function promote(args: JsonRecord): JsonRecord {
   };
 }
 
+/** Sanitize an id segment into a sovereign-devices registry handle fragment. */
+function serveHandleSegment(value: string): string {
+  return value.replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'adapter';
+}
+
+/**
+ * Render the native `@llama_serve { ... }` block a caller can drop into a `.holo`
+ * and compile with `compile_to_llama_server`. This is the M5 seam: HoloTune no
+ * longer hands back a bare CLI string — it hands back authorable HoloScript that
+ * the sovereign llama.cpp compiler consumes, and it wires the `grammar: "holoscript"`
+ * constrained-decode preset so the served adapter emits valid HoloScript by construction.
+ */
+function buildLlamaServeSnippet(spec: {
+  handle: string;
+  model: string;
+  gguf: string | null;
+  lora: string | null;
+}): string {
+  // Escape values interpolated into double-quoted HoloScript fields: collapse newlines
+  // and backslash-escape inner quotes (the lexer accepts \" ), so a stray quote in a URI
+  // can't terminate the string early and emit an unparseable @llama_serve block.
+  const esc = (v: string): string => v.replace(/[\r\n]+/g, ' ').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  const lines = ['@llama_serve {', `  model: "${esc(spec.model)}"`];
+  if (spec.gguf) lines.push(`  gguf: "${esc(spec.gguf)}"`);
+  if (spec.lora) lines.push(`  lora: "${esc(spec.lora)}"`);
+  lines.push(`  register_as: "${esc(spec.handle)}"`, '  grammar: "holoscript"', '}');
+  return lines.join('\n');
+}
+
 function serve(args: JsonRecord): JsonRecord {
   const identity = stringArg(args, 'identity', 'unknown-agent');
   const adapterUri = stringArg(args, 'adapterUri');
   const ggufUri = stringArg(args, 'ggufUri');
+  const loraGgufUri = stringArg(args, 'loraGgufUri');
   const version = stringArg(args, 'version', 'active');
   const serveReady = Boolean(adapterUri || ggufUri);
+
+  // The LoRA slot for a real llama.cpp hot-serve must be a .gguf adapter (produced by
+  // holotune-gguf-convert.mjs), NOT the PEFT adapter directory (adapterUri). Prefer an
+  // explicit loraGgufUri; accept adapterUri only when it already points at a .gguf.
+  const loraPath = loraGgufUri || (adapterUri.endsWith('.gguf') ? adapterUri : null);
+  const handle = `${serveHandleSegment(identity)}-${serveHandleSegment(version)}`;
+  const llamaServe =
+    ggufUri || loraPath
+      ? {
+          schema: 'holotune.llama-serve.v1',
+          handle,
+          model: `${identity}:${version}`,
+          gguf: ggufUri || null,
+          lora: loraPath,
+          source: 'holotune' as const,
+        }
+      : null;
+
   return {
     ok: true,
     identity,
@@ -418,10 +471,21 @@ function serve(args: JsonRecord): JsonRecord {
     serveReady,
     adapterUri: adapterUri || null,
     ggufUri: ggufUri || null,
+    loraGgufUri: loraGgufUri || null,
+    // Native @llama_serve spec (compile with target 'llama-server') + its authorable block.
+    llamaServe,
+    llamaServeHsplus: llamaServe ? buildLlamaServeSnippet(llamaServe) : null,
     command: serveReady
       ? 'node scripts/holotune.mjs serve --identity <id>'
       : 'register an adapter with holotune_promote before serving',
-    receipt: operationReceipt('serve', { identity, version, serveReady, adapterUri, ggufUri }),
+    receipt: operationReceipt('serve', {
+      identity,
+      version,
+      serveReady,
+      adapterUri,
+      ggufUri,
+      loraGgufUri,
+    }),
   };
 }
 
