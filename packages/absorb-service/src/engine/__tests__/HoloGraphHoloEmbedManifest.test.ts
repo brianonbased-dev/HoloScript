@@ -3,9 +3,11 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  DEFAULT_HOLOGRAPH_HOLOEMBED_RELEASE_MANIFEST,
   HOLOGRAPH_HOLOEMBED_MANIFEST_SCHEMA,
   createHoloGraphHoloEmbedSearchIndexFromManifest,
   readFloat32NpyMatrix,
+  resolveDefaultHoloGraphHoloEmbedManifestPath,
 } from '../HoloGraphHoloEmbedManifest';
 import type { EmbeddingProvider } from '../providers/EmbeddingProvider';
 
@@ -95,6 +97,60 @@ describe('HoloGraph/HoloEmbed manifest loader', () => {
     ).rejects.toThrow(/Unsupported HoloGraph\/HoloEmbed manifest schema/);
   });
 
+  it('rejects HoloGraph artifacts whose pinned sha256 no longer matches', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'holograph-holoembed-sha-'));
+    const graphPath = path.join(dir, 'graph.json');
+    const nodeEmbPath = path.join(dir, 'nodeemb.npy');
+    const manifestPath = path.join(dir, 'manifest.json');
+
+    fs.writeFileSync(
+      graphPath,
+      JSON.stringify({
+        nodes: [
+          {
+            name: 'target',
+            type: 'function',
+            language: 'typescript',
+            filePath: 'packages/core/src/target.ts',
+            line: 7,
+            text: 'typescript function target',
+          },
+        ],
+      })
+    );
+    writeFloat32Npy(nodeEmbPath, [[1, 0, 0]]);
+    fs.writeFileSync(
+      manifestPath,
+      JSON.stringify({
+        schema: HOLOGRAPH_HOLOEMBED_MANIFEST_SCHEMA,
+        name: 'sha fixture',
+        holoGraph: {
+          kind: 'HoloGraphIndexedTower',
+          graphPath: 'graph.json',
+          nodeEmbeddingPath: 'nodeemb.npy',
+          nodeEmbeddingFormat: 'npy.float32.row-major.v1',
+          nodeCount: 1,
+          embeddingDim: 3,
+        },
+        holoEmbed: {
+          kind: 'HoloEmbedQueryTower',
+          provider: 'holoembed-fixture',
+          embeddingDim: 3,
+        },
+        artifactSha256: {
+          holoGraphNodeEmbeddings: '0'.repeat(64),
+        },
+      })
+    );
+
+    await expect(
+      createHoloGraphHoloEmbedSearchIndexFromManifest({
+        manifestPath,
+        queryProvider: new StaticHoloEmbedProvider(),
+      })
+    ).rejects.toThrow(/sha256 mismatch for holoGraphNodeEmbeddings/);
+  });
+
   it('auto-selects the HoloDistill M1a HoloEmbed query tower from the manifest', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'holograph-holodistill-'));
     const graphPath = path.join(dir, 'graph.json');
@@ -178,6 +234,21 @@ describe('HoloGraph/HoloEmbed manifest loader', () => {
 
     expect(matrix.shape).toEqual([2, 2]);
     expect(Array.from(matrix.data)).toEqual([1.5, 2.5, 3.5, 4.5]);
+  });
+
+  it('finds the promoted HoloGraph/HoloEmbed release under AI_ECOSYSTEM_ROOT', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'holograph-holoembed-root-'));
+    const manifestPath = path.join(root, DEFAULT_HOLOGRAPH_HOLOEMBED_RELEASE_MANIFEST);
+    fs.mkdirSync(path.dirname(manifestPath), { recursive: true });
+    fs.writeFileSync(manifestPath, '{}');
+
+    const resolved = resolveDefaultHoloGraphHoloEmbedManifestPath({
+      env: { AI_ECOSYSTEM_ROOT: root },
+      cwd: path.join(os.tmpdir(), 'missing-holoscript-root'),
+      homeDir: path.join(os.tmpdir(), 'missing-home'),
+    });
+
+    expect(resolved).toBe(manifestPath);
   });
 });
 

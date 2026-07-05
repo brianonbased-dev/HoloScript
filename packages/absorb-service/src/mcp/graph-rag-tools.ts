@@ -13,7 +13,10 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { SearchResult } from '../engine/EmbeddingIndex';
 import type { SymbolSearchIndex } from '../engine/SearchIndex';
 import { GraphRAGEngine, type EnrichedResult, type LLMProvider } from '../engine/GraphRAGEngine';
-import { createHoloGraphHoloEmbedSearchIndexFromManifest } from '../engine/HoloGraphHoloEmbedManifest';
+import {
+  createHoloGraphHoloEmbedSearchIndexFromManifest,
+  resolveDefaultHoloGraphHoloEmbedManifestPath,
+} from '../engine/HoloGraphHoloEmbedManifest';
 import { LLMCreditExhaustedError } from '@holoscript/llm-provider';
 import { validateCitations, type Citation } from '../engine/ProvenanceIntegrityGuard';
 import {
@@ -58,7 +61,7 @@ export const graphRagTools: Tool[] = [
         holoGraphHoloEmbedManifest: {
           type: 'string',
           description:
-            'Optional path to a canonical HoloGraph/HoloEmbed two-tower manifest. When provided, search uses its HoloGraph node embeddings with a HoloEmbed query provider. Defaults remain unchanged when omitted.',
+            'Optional path to a canonical HoloGraph/HoloEmbed two-tower manifest. When omitted, search uses HOLOGRAPH_HOLOEMBED_MANIFEST or the promoted local ai-ecosystem HoloGraph/HoloEmbed release when present, then falls back to cached absorb state.',
         },
       },
       required: ['query'],
@@ -258,7 +261,10 @@ async function resolveSemanticSearchIndex(
   | { index: SymbolSearchIndex; source: string; manifestPath?: string }
   | { error: string; hint: string }
 > {
-  const manifestPath = stringArg(args.holoGraphHoloEmbedManifest) ?? process.env.HOLOGRAPH_HOLOEMBED_MANIFEST;
+  const manifestPath =
+    stringArg(args.holoGraphHoloEmbedManifest) ??
+    stringArg(process.env.HOLOGRAPH_HOLOEMBED_MANIFEST) ??
+    resolveDefaultHoloGraphHoloEmbedManifestPath();
   if (!manifestPath) {
     return cachedEmbeddingIndex
       ? { index: cachedEmbeddingIndex, source: 'cached-embedding-index' }

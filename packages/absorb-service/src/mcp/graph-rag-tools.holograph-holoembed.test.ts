@@ -2,10 +2,16 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { HOLOGRAPH_HOLOEMBED_MANIFEST_SCHEMA } from '../engine/HoloGraphHoloEmbedManifest';
+import {
+  DEFAULT_HOLOGRAPH_HOLOEMBED_RELEASE_MANIFEST,
+  HOLOGRAPH_HOLOEMBED_MANIFEST_SCHEMA,
+} from '../engine/HoloGraphHoloEmbedManifest';
 import { handleGraphRagTool, resetGraphRAGStateForTests } from './graph-rag-tools';
 
 const originalManifestEnv = process.env.HOLOGRAPH_HOLOEMBED_MANIFEST;
+const originalAiEcosystemRootEnv = process.env.AI_ECOSYSTEM_ROOT;
+const originalHoloEcosystemRootEnv = process.env.HOLO_ECOSYSTEM_ROOT;
+const originalEcosystemRootEnv = process.env.ECOSYSTEM_ROOT;
 
 describe('holo_semantic_search HoloGraph/HoloEmbed manifest mode', () => {
   afterEach(() => {
@@ -14,6 +20,21 @@ describe('holo_semantic_search HoloGraph/HoloEmbed manifest mode', () => {
       delete process.env.HOLOGRAPH_HOLOEMBED_MANIFEST;
     } else {
       process.env.HOLOGRAPH_HOLOEMBED_MANIFEST = originalManifestEnv;
+    }
+    if (originalAiEcosystemRootEnv === undefined) {
+      delete process.env.AI_ECOSYSTEM_ROOT;
+    } else {
+      process.env.AI_ECOSYSTEM_ROOT = originalAiEcosystemRootEnv;
+    }
+    if (originalHoloEcosystemRootEnv === undefined) {
+      delete process.env.HOLO_ECOSYSTEM_ROOT;
+    } else {
+      process.env.HOLO_ECOSYSTEM_ROOT = originalHoloEcosystemRootEnv;
+    }
+    if (originalEcosystemRootEnv === undefined) {
+      delete process.env.ECOSYSTEM_ROOT;
+    } else {
+      process.env.ECOSYSTEM_ROOT = originalEcosystemRootEnv;
     }
   });
 
@@ -77,6 +98,74 @@ describe('holo_semantic_search HoloGraph/HoloEmbed manifest mode', () => {
     expect(result.holoGraphHoloEmbedManifest).toBe(manifestPath);
     expect(result.count).toBe(1);
     expect(result.results?.[0]?.name).toBe('target');
+  });
+
+  it('uses the promoted local HoloGraph/HoloEmbed release when the manifest arg is omitted', async () => {
+    resetGraphRAGStateForTests();
+    delete process.env.HOLOGRAPH_HOLOEMBED_MANIFEST;
+    delete process.env.HOLO_ECOSYSTEM_ROOT;
+    delete process.env.ECOSYSTEM_ROOT;
+
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'holograph-holoembed-default-mcp-'));
+    process.env.AI_ECOSYSTEM_ROOT = root;
+    const manifestPath = path.join(root, DEFAULT_HOLOGRAPH_HOLOEMBED_RELEASE_MANIFEST);
+    const dir = path.dirname(manifestPath);
+    const graphPath = path.join(dir, 'graph.json');
+    const nodeEmbPath = path.join(dir, 'nodeemb.npy');
+    const dim = 768;
+    fs.mkdirSync(dir, { recursive: true });
+
+    fs.writeFileSync(
+      graphPath,
+      JSON.stringify({
+        nodes: [
+          {
+            name: 'defaultTarget',
+            type: 'function',
+            language: 'typescript',
+            filePath: 'packages/core/src/default-target.ts',
+            line: 5,
+            text: 'typescript function default target',
+          },
+        ],
+      })
+    );
+    writeFloat32Npy(nodeEmbPath, [Array.from({ length: dim }, (_, i) => (i === 0 ? 1 : 0))]);
+    fs.writeFileSync(
+      manifestPath,
+      JSON.stringify({
+        schema: HOLOGRAPH_HOLOEMBED_MANIFEST_SCHEMA,
+        name: 'default mcp fixture',
+        holoGraph: {
+          kind: 'HoloGraphIndexedTower',
+          graphPath: 'graph.json',
+          nodeEmbeddingPath: 'nodeemb.npy',
+          nodeEmbeddingFormat: 'npy.float32.row-major.v1',
+          nodeCount: 1,
+          embeddingDim: dim,
+        },
+        holoEmbed: {
+          kind: 'HoloEmbedQueryTower',
+          provider: 'holoembed',
+          embeddingDim: dim,
+        },
+      })
+    );
+
+    const result = (await handleGraphRagTool('holo_semantic_search', {
+      query: 'default target',
+      topK: 1,
+    })) as {
+      indexSource?: string;
+      holoGraphHoloEmbedManifest?: string;
+      count?: number;
+      results?: Array<{ name?: string }>;
+    };
+
+    expect(result.indexSource).toBe('holograph-holoembed-manifest');
+    expect(result.holoGraphHoloEmbedManifest).toBe(manifestPath);
+    expect(result.count).toBe(1);
+    expect(result.results?.[0]?.name).toBe('defaultTarget');
   });
 });
 
