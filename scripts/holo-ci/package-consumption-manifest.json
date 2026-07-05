@@ -59,6 +59,14 @@
       "forbidBundledNativeAddons": true
     },
     {
+      "name": "@holoscript/holollama",
+      "packageDir": "packages/holollama",
+      "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "requireBins": ["holollama"],
+      "requireFiles": ["bin/holollama.cjs", "dist/index.js", "dist/index.cjs", "dist/index.d.ts", "dist/cli.js"],
+      "forbidBundledNativeAddons": true
+    },
+    {
       "name": "@holoscript/holoscript-agent",
       "packageDir": "packages/holoscript-agent",
       "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],

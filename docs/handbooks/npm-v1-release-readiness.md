@@ -41,6 +41,10 @@ The first v1 npm lane is intentionally small:
 - `@holoscript/core`: language core and cold importer surface.
 - `@holoscript/cli`: `holoscript` and `hs` binary.
 - `@holoscript/mcp-server`: agent MCP package for universal use.
+- `@holoscript/memory`: shared sovereign memory client used by MCP and fleet
+  agents.
+- `@holoscript/holollama`: native local model serving utilities for HoloLlama
+  llama.cpp nodes.
 - `@holoscript/holoscript-agent`: headless HoloMesh agent runtime.
 - `@holoscript/xr-embodiment`: reusable VR/WebXR embodiment layer.
 

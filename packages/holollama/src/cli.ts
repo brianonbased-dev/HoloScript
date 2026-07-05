@@ -1,0 +1,178 @@
+import { readFile } from 'node:fs/promises';
+import {
+  assertHoloLlamaBundleConsumable,
+  buildLlamaServeComposition,
+  compileHoloLlamaBundle,
+  listHoloLlamaProfiles,
+  summarizeHoloLlamaBundle,
+  writeHoloLlamaBundleFiles,
+  type HoloLlamaProfile,
+  type HoloLlamaServeSpec,
+} from './index.js';
+
+type FlagMap = Map<string, string | true>;
+
+export async function runCli(args = process.argv.slice(2)): Promise<void> {
+  const command = args[0] && !args[0].startsWith('-') ? args[0] : 'plan';
+  const rest = command === 'plan' ? (args[0]?.startsWith('-') ? args : args.slice(1)) : args.slice(1);
+  const flags = parseFlags(rest);
+
+  if (command === 'help' || flags.has('help')) {
+    printHelp();
+    return;
+  }
+
+  if (command === 'profiles') {
+    const profiles = listHoloLlamaProfiles().map(({ id, label, consumer, description, spec }) => ({
+      id,
+      label,
+      consumer,
+      description,
+      model: spec.model,
+      platform: spec.platform,
+      registerAs: spec.registerAs,
+    }));
+    process.stdout.write(`${JSON.stringify(profiles, null, 2)}\n`);
+    return;
+  }
+
+  if (command !== 'plan') {
+    throw new Error(`Unknown holollama command: ${command}`);
+  }
+
+  const profile = readProfile(flags);
+  const overrides = readOverrides(flags);
+  const codePath = readString(flags, 'code');
+  const code = codePath ? await readFile(codePath, 'utf8') : buildLlamaServeComposition(profile, overrides);
+  const bundle = compileHoloLlamaBundle({ code });
+  assertHoloLlamaBundleConsumable(bundle);
+
+  const outDir = readString(flags, 'out');
+  if (outDir) {
+    const written = await writeHoloLlamaBundleFiles(bundle, outDir);
+    process.stderr.write(`[holollama] wrote ${written.length} file(s) to ${outDir}\n`);
+  }
+
+  if (flags.has('json')) {
+    process.stdout.write(`${JSON.stringify(bundle, null, 2)}\n`);
+    return;
+  }
+
+  const summary = summarizeHoloLlamaBundle(bundle);
+  process.stdout.write(
+    [
+      `HoloLlama plan: ${summary.name}`,
+      `  command: ${summary.command}`,
+      `  health:  ${summary.healthUrl}`,
+      `  handle:  ${summary.registryHandle}`,
+      `  files:   ${summary.files.length}`,
+      '',
+    ].join('\n')
+  );
+}
+
+function parseFlags(args: string[]): FlagMap {
+  const flags: FlagMap = new Map();
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+    if (!arg.startsWith('--')) continue;
+    const name = arg.slice(2);
+    const next = args[i + 1];
+    if (!next || next.startsWith('--')) {
+      flags.set(name, true);
+    } else {
+      flags.set(name, next);
+      i += 1;
+    }
+  }
+  return flags;
+}
+
+function readProfile(flags: FlagMap): HoloLlamaProfile {
+  const value = readString(flags, 'profile') ?? 'jetson-orin';
+  if (value === 'jetson-orin' || value === 'laptop-windows' || value === 'vast-linux-gpu') {
+    return value;
+  }
+  throw new Error(`Unknown --profile ${value}`);
+}
+
+function readOverrides(flags: FlagMap): Partial<HoloLlamaServeSpec> {
+  return {
+    model: readString(flags, 'model'),
+    modelPath: readString(flags, 'model-path'),
+    mmprojPath: readString(flags, 'mmproj-path'),
+    host: readString(flags, 'host'),
+    port: readNumber(flags, 'port'),
+    contextLength: readNumber(flags, 'ctx') ?? readNumber(flags, 'context-length'),
+    gpuLayers: readNumber(flags, 'ngl') ?? readNumber(flags, 'gpu-layers'),
+    parallel: readNumber(flags, 'parallel'),
+    registerAs: readString(flags, 'register-as'),
+    node: readString(flags, 'node'),
+    platform: readPlatform(flags),
+    executable: readString(flags, 'executable'),
+    serviceUser: readString(flags, 'service-user'),
+    grammar: readString(flags, 'grammar'),
+    vision: readBoolean(flags, 'vision'),
+    metrics: flags.has('no-metrics') ? false : undefined,
+  };
+}
+
+function readString(flags: FlagMap, name: string): string | undefined {
+  const value = flags.get(name);
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+function readNumber(flags: FlagMap, name: string): number | undefined {
+  const raw = readString(flags, name);
+  if (!raw) return undefined;
+  const value = Number(raw);
+  if (!Number.isFinite(value)) throw new Error(`--${name} must be a number`);
+  return value;
+}
+
+function readBoolean(flags: FlagMap, name: string): boolean | undefined {
+  const raw = flags.get(name);
+  if (raw === undefined) return undefined;
+  if (raw === true) return true;
+  if (raw === 'true') return true;
+  if (raw === 'false') return false;
+  throw new Error(`--${name} must be true or false`);
+}
+
+function readPlatform(flags: FlagMap): 'windows' | 'linux' | undefined {
+  const raw = readString(flags, 'platform');
+  if (!raw) return undefined;
+  if (raw === 'windows' || raw === 'linux') return raw;
+  throw new Error('--platform must be windows or linux');
+}
+
+function printHelp(): void {
+  process.stdout.write(`HoloLlama native serving utilities
+
+Usage:
+  holollama profiles
+  holollama plan [options]
+
+Options:
+  --profile <jetson-orin|laptop-windows|vast-linux-gpu>
+  --code <file.holo>
+  --out <dir>
+  --json
+  --model <name>
+  --model-path <path>
+  --mmproj-path <path>
+  --host <host>
+  --port <number>
+  --ctx <tokens>
+  --ngl <layers>
+  --parallel <number>
+  --register-as <handle>
+  --node <node-id>
+  --platform <windows|linux>
+  --executable <path>
+  --service-user <user>
+  --grammar <preset-or-inline-grammar>
+  --vision <true|false>
+  --no-metrics
+`);
+}

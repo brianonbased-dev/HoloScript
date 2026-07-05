@@ -24,6 +24,12 @@
       "v1Intent": "Installable client for the shared sovereign HoloScript agent-memory substrate required by MCP."
     },
     {
+      "name": "@holoscript/holollama",
+      "role": "native-local-llm-serving",
+      "allowFirstPublish": true,
+      "v1Intent": "Installable HoloLlama utility package for planning llama.cpp serving nodes and emitting fleet registry artifacts."
+    },
+    {
       "name": "@holoscript/holoscript-agent",
       "role": "headless-agent-runtime",
       "v1Intent": "Headless HoloMesh agent runtime package."
