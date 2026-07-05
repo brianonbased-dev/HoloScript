@@ -10,6 +10,7 @@ guards.
 - Utility map: `scripts/holo-ci/fleet-utilities-manifest.json`.
 - Coherence gate: `corepack pnpm check:fleet-utilities`.
 - Package consumption gate: `corepack pnpm check:package-consumption:full`.
+- HoloLlama consumption gate: `corepack pnpm check:holollama-consumption`.
 - v1 package lane: `scripts/holo-ci/npm-v1-release-manifest.json`.
 
 ## Utility Classes
@@ -42,8 +43,9 @@ programmatic `getMcpServerSizing()` export.
 
 ## Strategy
 
-1. Keep `@holoscript/holollama` narrow: it emits deterministic serving bundles;
-   it should not become the board, memory, or CI gateway.
+1. Keep `@holoscript/holollama` narrow: it emits deterministic serving bundles,
+   Brain routing receipts, and `holollama doctor` profile checks; it should not
+   become the board, memory, or CI gateway.
 2. Keep `@holoscript/mcp-server` as the authenticated tool gateway and dispatch
    control plane; it should expose profile choices without bundling model
    weights or fleet secrets.
