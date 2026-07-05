@@ -48,6 +48,7 @@ COPY packages/llm-provider/ packages/llm-provider/
 COPY packages/config/ packages/config/
 COPY packages/holoembed/ packages/holoembed/
 COPY packages/secrets-broker/ packages/secrets-broker/
+COPY packages/memory/ packages/memory/
 COPY packages/absorb-service/ packages/absorb-service/
 COPY packages/mcp-server/ packages/mcp-server/
 COPY packages/platform/ packages/platform/
@@ -82,6 +83,7 @@ RUN cd packages/config && pnpm exec tsup --no-dts
 RUN cd packages/holoembed && pnpm exec tsup --no-dts
 RUN cd packages/llm-provider && pnpm exec tsup --no-dts
 RUN cd packages/secrets-broker && pnpm exec tsup --no-dts
+RUN cd packages/memory && pnpm run build
 # platform/mesh/engine/framework are inlined into core's Docker bundle — no separate build needed
 RUN cd packages/absorb-service && pnpm exec tsup --no-dts
 # security-sandbox + its holo-vm dep: the solve_logic MCP tool dynamically imports
@@ -150,6 +152,7 @@ COPY --from=builder /app/packages/config/dist packages/config/dist
 COPY --from=builder /app/packages/holoembed/dist packages/holoembed/dist
 COPY --from=builder /app/packages/llm-provider/dist packages/llm-provider/dist
 COPY --from=builder /app/packages/secrets-broker/dist packages/secrets-broker/dist
+COPY --from=builder /app/packages/memory/dist packages/memory/dist
 COPY --from=builder /app/packages/platform/dist packages/platform/dist
 COPY --from=builder /app/packages/mesh/dist packages/mesh/dist
 COPY --from=builder /app/packages/absorb-service/dist packages/absorb-service/dist
@@ -179,6 +182,7 @@ RUN mkdir -p /app/node_modules/@holoscript && \
     ln -sfn /app/packages/config /app/node_modules/@holoscript/config && \
     ln -sfn /app/packages/holoembed /app/node_modules/@holoscript/holoembed && \
     ln -sfn /app/packages/secrets-broker /app/node_modules/@holoscript/secrets-broker && \
+    ln -sfn /app/packages/memory /app/node_modules/@holoscript/memory && \
     ln -sfn /app/packages/llm-provider /app/node_modules/@holoscript/llm-provider
 
 # Fail fast if critical build artifacts are missing
@@ -193,6 +197,7 @@ RUN test -f /app/packages/core/dist/index.cjs && \
     test -f /app/packages/crdt-spatial/dist/index.js && \
     test -f /app/packages/snn-webgpu/dist/index.js && \
     test -f /app/packages/holoembed/dist/index.js && \
+    test -f /app/packages/memory/dist/index.cjs && \
     test -f /app/packages/core-types/dist/ans.cjs && \
     test -f /app/packages/engine/dist/choreography/index.cjs && \
     test -f /app/packages/secrets-broker/dist/index.cjs && \
