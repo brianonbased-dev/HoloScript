@@ -19,6 +19,7 @@ export const SIMULATION_DOMAIN_TRAITS = [
   'hydraulic_reservoir',
   'hydraulic_valve',
   'hydraulic_pump',
+  'reduced_order_model',
   'scalar_field_overlay',
   'colormap_jet',
   'colormap_viridis',

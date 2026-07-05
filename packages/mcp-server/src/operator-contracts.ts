@@ -237,6 +237,7 @@ holo_oracle_consult
 solve_logic
 solve_structural
 solve_thermal
+train_rom
 stream_world_tiles
 verify_cael_trace
 absorb_provenance_answer
@@ -259,6 +260,7 @@ compile_to_unreal
 compile_to_urdf
 compile_to_mjcf
 compile_to_mjx
+compile_to_rom_twin
 compile_to_webgpu
 compile_to_3dtiles
 compile_to_ai_glasses

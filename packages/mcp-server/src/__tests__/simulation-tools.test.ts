@@ -182,6 +182,71 @@ describe('simulation tools with CAEL metadata', () => {
     expect(typeof solve.traceJSONL).toBe('string');
   });
 
+  it('train_rom fits a CAEL-backed surrogate and compile_to_rom_twin emits a step artifact', async () => {
+    const config = {
+      gridResolution: [3, 3, 3],
+      domainSize: [1, 1, 1],
+      timeStep: 0.01,
+      materials: {},
+      defaultMaterial: 'water',
+      boundaryConditions: [],
+      sources: [],
+      initialTemperature: 20,
+    };
+    const samples = [
+      { inputs: { heat: 1, ambient: 10 }, outputs: { maxTemperature: 12 } },
+      { inputs: { heat: 2, ambient: 10 }, outputs: { maxTemperature: 14 } },
+      { inputs: { heat: 1, ambient: 20 }, outputs: { maxTemperature: 22 } },
+      { inputs: { heat: 3, ambient: 20 }, outputs: { maxTemperature: 26 } },
+    ];
+
+    const trainingExamples: Array<{
+      traceJSONL: string;
+      inputs: Record<string, number>;
+      outputs: Record<string, number>;
+    }> = [];
+    for (const sample of samples) {
+      const solve = (await handleSimulationTool('solve_thermal', { config, steps: 1 })) as Record<
+        string,
+        unknown
+      >;
+      trainingExamples.push({
+        traceJSONL: String(solve.traceJSONL),
+        inputs: sample.inputs,
+        outputs: sample.outputs,
+      });
+    }
+
+    const trained = (await handleSimulationTool('train_rom', {
+      trainingExamples,
+      inputNames: ['heat', 'ambient'],
+      outputNames: ['maxTemperature'],
+      solverType: 'solve_thermal',
+      modelId: 'rom-test-thermal',
+      maxError: 0.001,
+    })) as Record<string, unknown>;
+
+    expect(trained.success).toBe(true);
+    const validation = trained.validation as Record<string, unknown>;
+    expect(validation.passed).toBe(true);
+    const receipt = trained.caelReceipt as Record<string, unknown>;
+    expect(receipt.sourceScale).toBe('empirical-surrogate');
+    expect(receipt.trainingTraceHashes).toHaveLength(samples.length);
+
+    const compiled = (await handleSimulationTool('compile_to_rom_twin', {
+      modelId: 'rom-test-thermal',
+      sampleInput: { heat: 4, ambient: 30 },
+    })) as Record<string, unknown>;
+
+    expect(compiled.success).toBe(true);
+    const artifact = compiled.artifact as Record<string, unknown>;
+    expect(artifact.stepInterface).toBe('step(inputs) -> outputs');
+    expect(artifact.source).toContain('export function step');
+    expect(artifact.wasmReady).toBe(true);
+    const preview = compiled.stepPreview as Record<string, number>;
+    expect(preview.maxTemperature).toBeCloseTo(38, 3);
+  });
+
   it('verify_cael_trace detects tampered trace', async () => {
     const config = {
       gridResolution: [3, 3, 3],

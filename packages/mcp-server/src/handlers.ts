@@ -698,7 +698,9 @@ export async function handleTool(
     name === 'solve_structural' ||
     name === 'solve_thermal' ||
     name === 'verify_cael_trace' ||
-    name === 'solve_logic'
+    name === 'solve_logic' ||
+    name === 'train_rom' ||
+    name === 'compile_to_rom_twin'
   ) {
     const { handleSimulationTool } = await import('./simulation-tools');
     return handleSimulationTool(name, args);
