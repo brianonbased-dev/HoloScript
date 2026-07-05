@@ -41,8 +41,7 @@ describe('compiler tools', () => {
     // Convenience tools normalise hyphenated target ids to underscores
     // (android-xr → compile_to_android_xr, a2a-agent-card → compile_to_a2a_agent_card, …).
     // Non-hyphenated ids (quest, 3dgs, webgpu) pass through unchanged.
-    const targetToolName = (target: string): string =>
-      `compile_to_${target.replace(/-/g, '_')}`;
+    const targetToolName = (target: string): string => `compile_to_${target.replace(/-/g, '_')}`;
 
     expect(Array.isArray(result.targets)).toBe(true);
     const missing = result.targets
@@ -107,7 +106,10 @@ describe('compiler tools', () => {
 
     const result = (await handleCompilerTool('compile_to_sdk', {
       code,
-      options: { clientClassName: 'RegistryClient', packageName: '@holoscript/generated-registry-client' },
+      options: {
+        clientClassName: 'RegistryClient',
+        packageName: '@holoscript/generated-registry-client',
+      },
     })) as {
       success?: boolean;
       output?: string;
@@ -278,6 +280,46 @@ describe('compiler tools', () => {
       options: { serverName: 'parity-server', serverVersion: '1.2.3' },
     })) as { outputSha256?: string };
     expect(second.outputSha256).toBe(result.outputSha256);
+  });
+
+  it('compiles llama.cpp server bundles through compile_to_llama_server', async () => {
+    const code = 'composition "FaraVision" {}';
+    const result = (await handleCompilerTool('compile_to_llama_server', {
+      code,
+      options: {
+        model: 'fara-7b',
+        modelPath: '.scratch\\llama-cpp-models\\fara-7b-q4-k-m.gguf',
+        mmprojPath: '.scratch\\llama-cpp-models\\fara-7b-mmproj.gguf',
+        host: '127.0.0.1',
+        port: 18080,
+        contextLength: 4096,
+        gpuLayers: 12,
+        imageMinTokens: 1024,
+        imageMaxTokens: 1536,
+        parallel: 1,
+        executable: 'llama-server.exe',
+        registerAs: 'laptop-fara-7b-llama',
+      },
+    })) as {
+      success?: boolean;
+      output?: string;
+      target?: string;
+    };
+
+    expect(result.success).toBe(true);
+    expect(result.target).toBe('llama-server');
+    const bundle = JSON.parse(result.output ?? '{}') as {
+      launch?: { command?: string };
+      registryEntry?: { backend?: string; endpoint?: string };
+    };
+    expect(bundle.launch?.command).toBe(
+      'llama-server.exe -m .scratch\\llama-cpp-models\\fara-7b-q4-k-m.gguf ' +
+        '--mmproj .scratch\\llama-cpp-models\\fara-7b-mmproj.gguf --host 127.0.0.1 ' +
+        '--port 18080 -c 4096 -ngl 12 --fit on --image-min-tokens 1024 ' +
+        '--image-max-tokens 1536 --parallel 1 --metrics'
+    );
+    expect(bundle.registryEntry?.backend).toBe('llama.cpp');
+    expect(bundle.registryEntry?.endpoint).toBe('http://127.0.0.1:18080/v1');
   });
 
   it('returns a 3D Tiles stream manifest through stream_world_tiles', async () => {

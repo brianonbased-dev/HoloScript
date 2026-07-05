@@ -60,7 +60,8 @@ export type ExportTarget =
   | 'nir'
   | 'openxr-spatial-entities'
   | 'context'
-  | '3dgs';
+  | '3dgs'
+  | 'llama-server';
 
 export interface HolomapPointCloudPayload {
   positionsB64: string;
@@ -222,6 +223,56 @@ export interface MCPConfigCompilerOptions {
 export class MCPConfigCompiler extends CompilerBase {
   constructor(options?: MCPConfigCompilerOptions);
   compile(composition: any, agentToken: string, outputPath?: string): string;
+}
+export interface LlamaServerCompilerOptions {
+  name?: string;
+  model?: string;
+  modelPath?: string;
+  mmprojPath?: string;
+  host?: string;
+  port?: number;
+  contextLength?: number;
+  gpuLayers?: number;
+  fit?: 'on' | 'off';
+  imageMinTokens?: number;
+  imageMaxTokens?: number;
+  parallel?: number;
+  metrics?: boolean;
+  grammarPath?: string;
+  grammar?: string;
+  loraPath?: string;
+  loraScale?: number;
+  executable?: string;
+  cudaPath?: string;
+  llamaBinDir?: string;
+  workingDirectory?: string;
+  platform?: 'windows' | 'linux';
+  serviceUser?: string;
+  node?: string;
+  registerAs?: string;
+  dryRun?: boolean;
+}
+export interface LlamaServerBundleFile {
+  path: string;
+  content: string;
+  executable?: boolean;
+}
+export interface LlamaServerBundle {
+  name: string;
+  target: 'llama-server';
+  dryRun: true;
+  launch: { executable: string; args: string[]; command: string; powershell: string };
+  healthProbe: { url: string; openaiModelsUrl: string; powershell: string };
+  service: { systemdUnit: string; windowsS4UTask: string };
+  registryEntry: Record<string, any>;
+  files: LlamaServerBundleFile[];
+  config: Record<string, any>;
+  warnings: string[];
+}
+export class LlamaServerCompiler extends CompilerBase {
+  constructor(options?: LlamaServerCompilerOptions);
+  compile(composition: any, agentToken: string, outputPath?: string): string;
+  compileToFiles(composition: any, agentToken?: string): Record<string, string>;
 }
 export class AgentInferenceExportTarget extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
 export type ContextSurface = 'claude' | 'codex' | 'cursor' | 'copilot' | 'gemini' | 'any';

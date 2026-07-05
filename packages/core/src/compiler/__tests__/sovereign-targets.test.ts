@@ -37,6 +37,13 @@ describe('sovereign-targets registry', () => {
     }
   });
 
+  it('classifies llama-server as a native authoring mode', () => {
+    expect(NATIVE_COMPILE_MODES).toContain('llama-server');
+    expect(isBridgeTarget('llama-server')).toBe(false);
+    expect(isSovereignTarget('llama-server')).toBe(false);
+    expect(targetSovereignty('llama-server')).toBe('mode');
+  });
+
   it('tracks at least one native renderer and the SNN runtime', () => {
     const ids = SOVEREIGN_ENGINES.map((e) => e.id);
     expect(ids).toContain('webgpu-renderer'); // the sovereign GPU renderer

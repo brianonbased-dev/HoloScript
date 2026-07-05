@@ -378,6 +378,12 @@ export type { SVGCompilerOptions, SVGCompilationResult } from './SVGCompiler';
 // Edge compiler — generic Ollama-capable edge device deployment bundle (Jetson, RPi, The Unit)
 export { EdgeCompiler } from './EdgeCompiler';
 export type { EdgeCompilerOptions, EdgeBundle, EdgeBundleFile } from './EdgeCompiler';
+export { LlamaServerCompiler } from './LlamaServerCompiler';
+export type {
+  LlamaServerBundle,
+  LlamaServerBundleFile,
+  LlamaServerCompilerOptions,
+} from './LlamaServerCompiler';
 
 // MLIR-style dialect registry
 export { DialectRegistry, ensureDialectsBooted } from './DialectRegistry';

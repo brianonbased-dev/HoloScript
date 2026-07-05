@@ -79,6 +79,7 @@ import { AIGlassesCompiler } from './AIGlassesCompiler';
 import { SCMCompiler } from './SCMCompiler';
 import { NFTMarketplaceCompiler } from './NFTMarketplaceCompiler';
 import { EdgeCompiler } from './EdgeCompiler';
+import { LlamaServerCompiler } from './LlamaServerCompiler';
 import { BotSwarmCompiler } from './BotSwarmCompiler';
 import { DungeonInstancePoolCompiler } from './DungeonInstancePoolCompiler';
 import { ShardRegistryCompiler } from './ShardRegistryCompiler';
@@ -342,6 +343,8 @@ class CompilerFactory {
         return new NFTMarketplaceCompiler(options);
       case 'edge':
         return new EdgeCompiler(options);
+      case 'llama-server':
+        return new LlamaServerCompiler(options);
       case 'bot-swarm':
         return new BotSwarmCompiler(options);
       case 'dungeon-instance':
@@ -691,6 +694,7 @@ export class ExportManager {
       '3dgs',
       '3dtiles',
       'mcp-server',
+      'llama-server',
     ];
   }
 

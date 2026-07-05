@@ -398,6 +398,28 @@ export function registerBuiltinDialects(): void {
       outputExtensions: ['.mcp-server.json'],
     },
     {
+      name: 'llama-server',
+      domain: 'runtime',
+      description:
+        'Compiles @llama_serve into a llama.cpp server launch bundle: command, health probe, service definitions, and sovereign-devices registry entry',
+      supportedTraits: [
+        'llama_serve',
+        'model_fleet',
+        'local_inference',
+        'vision',
+        'grammar',
+        'lora',
+      ],
+      riskTier: 'high',
+      ansPath: '/compile/runtime/llama-server',
+      factory: (opts) => {
+        const { LlamaServerCompiler } = require('./LlamaServerCompiler');
+        return new LlamaServerCompiler(opts);
+      },
+      outputExtensions: ['.json', '.ps1', '.service'],
+      experimental: true,
+    },
+    {
       name: 'nir',
       domain: 'neuromorphic',
       description: 'Compiles to Neuromorphic Intermediate Representation',

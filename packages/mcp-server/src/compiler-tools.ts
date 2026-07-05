@@ -729,6 +729,7 @@ export async function handleListExportTargets(_args: Record<string, unknown>): P
       'omnigent-agent-yaml',
       'daimon-seed',
       'mcp-server',
+      'llama-server',
     ] as unknown as ExportTarget[],
   };
 
@@ -942,6 +943,8 @@ export async function handleCompilerTool(
       return handleCompileToTarget({ ...args, target: 'openxr-spatial-entities' });
     case 'compile_to_edge':
       return handleCompileToTarget({ ...args, target: 'edge' });
+    case 'compile_to_llama_server':
+      return handleCompileToTarget({ ...args, target: 'llama-server' });
     case 'compile_to_bot_swarm':
       return handleCompileToTarget({ ...args, target: 'bot-swarm' });
     case 'compile_to_dungeon_instance':
@@ -2088,6 +2091,65 @@ export const compilerTools: Tool[] = [
               description:
                 'Edge runtime the unit runs. "agentrunner" (DEFAULT) = canonical TS AgentRunner ' +
                 '(full gate stack). "python" = deprecated, gate-less standalone agent.',
+            },
+          },
+        },
+      },
+      required: ['code'],
+    },
+  },
+
+  {
+    name: 'compile_to_llama_server',
+    description:
+      'Compile @llama_serve HoloScript into a dry llama.cpp server deployment bundle. ' +
+      'Emits the llama-server launch command, PowerShell launcher, health probe, systemd unit, ' +
+      'Windows S4U scheduled-task installer, and sovereign-devices registry entry. ' +
+      'Use this for HoloLlama native local model serving; it does not start a process.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code carrying @llama_serve' },
+        options: {
+          type: 'object',
+          description: 'LlamaServerCompiler options',
+          properties: {
+            model: {
+              type: 'string',
+              description: 'Model label for registry/routing (default: fara-7b)',
+            },
+            modelPath: { type: 'string', description: 'GGUF model path passed to -m' },
+            mmprojPath: {
+              type: 'string',
+              description: 'Vision mmproj GGUF path passed to --mmproj',
+            },
+            host: { type: 'string', description: 'Bind host (default: 127.0.0.1)' },
+            port: { type: 'number', description: 'Bind port (default: 18080)' },
+            contextLength: { type: 'number', description: 'Context length passed to -c' },
+            gpuLayers: { type: 'number', description: 'GPU layers passed to -ngl' },
+            imageMinTokens: {
+              type: 'number',
+              description: 'Minimum image tokens for vision models',
+            },
+            imageMaxTokens: {
+              type: 'number',
+              description: 'Maximum image tokens for vision models',
+            },
+            grammarPath: {
+              type: 'string',
+              description: 'GBNF grammar file path passed to --grammar-file',
+            },
+            loraPath: { type: 'string', description: 'LoRA adapter path passed to --lora' },
+            executable: { type: 'string', description: 'llama-server executable name/path' },
+            cudaPath: { type: 'string', description: 'CUDA runtime directory prepended to PATH' },
+            llamaBinDir: {
+              type: 'string',
+              description: 'llama.cpp bin directory prepended to PATH',
+            },
+            node: { type: 'string', description: 'Sovereign-devices node handle' },
+            registerAs: {
+              type: 'string',
+              description: 'Sovereign-devices registry handle to emit',
             },
           },
         },

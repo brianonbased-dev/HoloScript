@@ -95,6 +95,7 @@ export const BRIDGE_TARGETS = [
  * delegates its VR slice to the Babylon bridge — see MultiLayerCompiler (partial).
  */
 export const NATIVE_COMPILE_MODES = [
+  'llama-server', // HoloLlama authoring mode: llama.cpp launch/service/registry bundle for owned local runtime nodes
   'state', // StateCompiler → reactive state-shape extraction
   'trait-composition', // native trait composition
   'incremental', // incremental compilation mode
