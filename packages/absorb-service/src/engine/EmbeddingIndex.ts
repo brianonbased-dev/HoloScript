@@ -550,17 +550,39 @@ export class EmbeddingIndex {
 
     const index = new EmbeddingIndex(options);
     const dimension = metadata.dimension;
-    let offset = 4 + metaLength;
+    const count = metadata.entries.length;
+    const payloadStart = 4 + metaLength;
+
+    // Fast bulk load: instead of allocating `count` separate Float32Array(dim)
+    // objects and reading `count*dim` floats one-by-one (343k allocations +
+    // ~264M readFloatLE calls for a whole-monorepo cache — minutes of GC churn
+    // and >5 GB peak RSS), copy the entire float payload ONCE into a single
+    // contiguous ArrayBuffer and hand each entry a zero-copy `.subarray()` view.
+    // The on-disk payload is little-endian (serializeBinary uses writeFloatLE);
+    // Node's supported hosts are little-endian, so a direct Float32Array view is
+    // correct. The Buffer's byteOffset is not guaranteed 4-aligned, so copy the
+    // payload slice into a fresh aligned ArrayBuffer first.
+    const payloadBytes = count * dimension * 4;
+    const available = buffer.length - payloadStart;
+    if (available < payloadBytes) {
+      throw new Error(
+        `EmbeddingIndex.deserializeBinary: payload truncated (need ${payloadBytes} bytes, have ${available}). Cache is corrupt.`
+      );
+    }
+    const aligned = new ArrayBuffer(payloadBytes);
+    new Uint8Array(aligned).set(
+      new Uint8Array(buffer.buffer, buffer.byteOffset + payloadStart, payloadBytes)
+    );
+    const allFloats = new Float32Array(aligned);
 
     index.entries = metadata.entries.map(
-      (e: { symbol: ExternalSymbolDefinition; text: string }) => {
-        const embedding = new Float32Array(dimension);
-        for (let i = 0; i < dimension; i++) {
-          embedding[i] = buffer.readFloatLE(offset);
-          offset += 4;
-        }
-        return { symbol: e.symbol, text: e.text, embedding };
-      }
+      (e: { symbol: ExternalSymbolDefinition; text: string }, i: number) => ({
+        symbol: e.symbol,
+        text: e.text,
+        // Zero-copy view into the shared contiguous buffer. cosineSimilarity and
+        // serializeBinary only read via [i]/.length, so a subarray view is safe.
+        embedding: allFloats.subarray(i * dimension, (i + 1) * dimension),
+      })
     );
 
     return index;

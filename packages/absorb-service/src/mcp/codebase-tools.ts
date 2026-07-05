@@ -15,7 +15,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { resetGraphRAGStateForTests, setGraphRAGState } from './graph-rag-tools';
+import { isGraphRAGReady, resetGraphRAGStateForTests, setGraphRAGState } from './graph-rag-tools';
 import { ABSORB_CODEBASE_LOAD_ERROR, ABSORB_HOLO_ABSORB_REPO_HINT } from './graph-rag-prerequisite';
 import {
   buildGraphRAGEmbeddingPolicyReceipt,
@@ -1270,6 +1270,14 @@ async function runFullScan(
   const startTime = Date.now();
   const embeddingPolicy = buildGraphRAGEmbeddingPolicyReceipt();
 
+  // FAST-HYDRATE: capture the prior on-disk envelope's git hash BEFORE
+  // saveGraphCache (below) overwrites it. If the freshly-scanned graph is at the
+  // same commit as the persisted embeddings, the disk `.bin` is still valid — we
+  // can load it instead of re-embedding 343k symbols. Read here, at the top,
+  // because the save at the end of the scan-persist step clobbers the file.
+  const priorEnvelopeForHydrate = loadGraphCache();
+  const priorGitCommitHash = priorEnvelopeForHydrate?.gitCommitHash;
+
   const rootDiagnostics = rootDirs.map((rootDir) =>
     buildAbsorbDiagnostics(rootDir, null, includeBuildArtifacts)
   );
@@ -1388,43 +1396,89 @@ async function runFullScan(
   // Build embedding index with granular progress (Phase 8 Extension)
   try {
     const { GraphRAGEngine } = mod;
-    const embeddingIndex = await createDynamicEmbeddingIndex(
-      mod,
-      embeddingProvider,
-      embeddingApiKey,
-      embeddingModel
-    );
 
-    // Wire progress callback for granular embedding updates
-    try {
-      await withPhaseTimeout(
-        embeddingIndex.buildIndex(
-          graph,
-          jobId
-            ? (batchNum: number, totalBatches: number, symbolsProcessed: number) => {
-                // Map batch progress to 80-95% range (Phase 8 Extension)
-                const embeddingProgress = 80 + Math.floor((batchNum / totalBatches) * 15);
-                trackAbsorbProgress(
-                  jobId,
-                  `Embedding batch ${batchNum}/${totalBatches} (${symbolsProcessed} symbols)`,
-                  embeddingProgress
-                );
-              }
-            : undefined
-        ),
-        EMBEDDING_BUILD_TIMEOUT_MS,
-        'holo_absorb_repo embedding build',
-        () => disposeEmbeddingIndex(embeddingIndex)
-      );
-    } finally {
-      await disposeEmbeddingIndex(embeddingIndex);
+    // FAST-HYDRATE: when this scan is at the SAME commit as the persisted
+    // embeddings, the on-disk `.bin` is still valid for this exact graph — load
+    // it (seconds) instead of re-embedding 343k symbols (minutes). The provider
+    // guard in loadEmbeddingsCache still rejects a `.bin` built by a different
+    // provider, so a holoembed cache is never served to an ollama query and
+    // vice-versa. Never weakens requireNativeGraphRAGProvider.
+    const providerName = embeddingProvider
+      ? requireNativeGraphRAGProvider(embeddingProvider, 'embeddingProvider argument')
+      : await detectBestEmbeddingProvider();
+    const gitHashMatches =
+      !!priorGitCommitHash && !!gitCommitHash && priorGitCommitHash === gitCommitHash;
+
+    let hydratedIndex: any = null;
+    if (gitHashMatches) {
+      try {
+        const providerObj = await mod.createEmbeddingProvider({
+          provider: providerName as EmbeddingProviderName,
+          ollamaUrl: process.env.OLLAMA_URL,
+          ollamaModel: process.env.OLLAMA_MODEL,
+          openaiApiKey: embeddingApiKey || process.env.OPENAI_API_KEY,
+          openaiModel: embeddingModel || process.env.OPENAI_MODEL,
+          xenovaModel: process.env.XENOVA_MODEL,
+        });
+        hydratedIndex = await loadEmbeddingsCache(mod, providerObj);
+        if (hydratedIndex) {
+          console.error(
+            `[AbsorbEmbeddings] Fast-hydrate: loaded embeddings from disk (git ${gitCommitHash?.slice(0, 7)} match, provider ${providerName}) — skipping re-embed.`
+          );
+          if (jobId) trackAbsorbProgress(jobId, 'Loaded embeddings from disk cache', 95);
+          // The disk `.bin` is already current for this commit; do NOT re-save.
+          setGraphRAGState(hydratedIndex, new GraphRAGEngine(graph, hydratedIndex), {
+            rootDir: primaryRootDir,
+            timestamp: cacheTimestamp,
+          });
+        }
+      } catch (err) {
+        console.warn(
+          `[AbsorbEmbeddings] Fast-hydrate load failed, will rebuild: ${String(err)}`
+        );
+        hydratedIndex = null;
+      }
     }
 
-    saveEmbeddingsCache(embeddingIndex, primaryRootDir);
-    setGraphRAGState(embeddingIndex, new GraphRAGEngine(graph, embeddingIndex), {
-      rootDir: primaryRootDir,
-      timestamp: cacheTimestamp,
-    });
+    if (!hydratedIndex) {
+      const embeddingIndex = await createDynamicEmbeddingIndex(
+        mod,
+        embeddingProvider,
+        embeddingApiKey,
+        embeddingModel
+      );
+
+      // Wire progress callback for granular embedding updates
+      try {
+        await withPhaseTimeout(
+          embeddingIndex.buildIndex(
+            graph,
+            jobId
+              ? (batchNum: number, totalBatches: number, symbolsProcessed: number) => {
+                  // Map batch progress to 80-95% range (Phase 8 Extension)
+                  const embeddingProgress = 80 + Math.floor((batchNum / totalBatches) * 15);
+                  trackAbsorbProgress(
+                    jobId,
+                    `Embedding batch ${batchNum}/${totalBatches} (${symbolsProcessed} symbols)`,
+                    embeddingProgress
+                  );
+                }
+              : undefined
+          ),
+          EMBEDDING_BUILD_TIMEOUT_MS,
+          'holo_absorb_repo embedding build',
+          () => disposeEmbeddingIndex(embeddingIndex)
+        );
+      } finally {
+        await disposeEmbeddingIndex(embeddingIndex);
+      }
+
+      saveEmbeddingsCache(embeddingIndex, primaryRootDir);
+      setGraphRAGState(embeddingIndex, new GraphRAGEngine(graph, embeddingIndex), {
+        rootDir: primaryRootDir,
+        timestamp: cacheTimestamp,
+      });
+    }
   } catch (err) {
     console.warn(`[AbsorbEmbeddings] Full-scan GraphRAG skipped: ${String(err)}`);
     // Embedding provider may not be available
@@ -1854,7 +1908,12 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     return { ...(result as Record<string, unknown>), jobId };
   }
 
-  if (envelope.rootDir !== primaryRootDir) {
+  // Root-match gate: a raw string !== forces a needless full re-scan when the
+  // only difference is path casing or a trailing slash (e.g. the merged cache's
+  // rootDir "C:/Users/Josep/..." vs a request "C:\\Users\\josep\\..."). Normalize
+  // both sides (case-insensitive on win32, slash/trailing-slash agnostic) so the
+  // fast-hydrate path is reached when they refer to the same repo.
+  if (!rootMatchesCurrentRepo(envelope.rootDir, primaryRootDir)) {
     const result = await runFullScan(
       mod,
       effectiveRootDirs,
@@ -1943,6 +2002,43 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
       }
     }
 
+    // FAST-HYDRATE: zero changes → the on-disk `.bin` is valid for this exact
+    // graph. If GraphRAG isn't already warm (the pre-warm ensureCachedGraph may
+    // have taken the background-rebuild branch, or this is a fresh process that
+    // set cachedGraph another way), load the embeddings from disk NOW so
+    // holo_semantic_search / holo_ask_codebase light up without re-embedding.
+    // This is the zero-change mirror of the incremental path's loadEmbeddingsCache.
+    if (!isGraphRAGReady()) {
+      try {
+        const { GraphRAGEngine } = mod;
+        const providerName = embeddingProvider
+          ? requireNativeGraphRAGProvider(embeddingProvider, 'embeddingProvider argument')
+          : await detectBestEmbeddingProvider();
+        const providerObj = await mod.createEmbeddingProvider({
+          provider: providerName as EmbeddingProviderName,
+          ollamaUrl: process.env.OLLAMA_URL,
+          ollamaModel: process.env.OLLAMA_MODEL,
+          openaiApiKey: embeddingApiKey || process.env.OPENAI_API_KEY,
+          openaiModel: embeddingModel || process.env.OPENAI_MODEL,
+          xenovaModel: process.env.XENOVA_MODEL,
+        });
+        const diskIndex = await loadEmbeddingsCache(mod, providerObj);
+        if (diskIndex) {
+          console.error(
+            `[AbsorbEmbeddings] Fast-hydrate (zero-change): loaded embeddings from disk (git ${changes.headCommit.slice(0, 7)} match, provider ${providerName}) — no re-embed.`
+          );
+          setGraphRAGState(diskIndex, new GraphRAGEngine(cachedGraph, diskIndex), {
+            rootDir,
+            timestamp: envelope.timestamp,
+          });
+        }
+      } catch (err) {
+        console.warn(
+          `[AbsorbEmbeddings] Zero-change fast-hydrate skipped: ${String(err)}`
+        );
+      }
+    }
+
     // Mark job as complete immediately (fast path)
     if (jobId) {
       const job = absorbJobs.get(jobId);
@@ -1962,6 +2058,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
       stats: envelope.stats,
       embeddingPolicy: envelope.embeddingPolicy ?? buildGraphRAGEmbeddingPolicyReceipt(),
       gitCommitHash: changes.headCommit,
+      graphRagReady: isGraphRAGReady(),
       message: `No changes since last scan (${changes.headCommit.slice(0, 7)})`,
       jobId,
     };
