@@ -1,5 +1,11 @@
 # @holoscript/domain-plugin-template
 
+## 0.1.1
+
+### Patch Changes
+
+- Added a publishable package surface for npm dependency closure.
+
 ## 0.0.1
 
 ### Patch Changes

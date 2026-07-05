@@ -5,15 +5,17 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..', '..');
+const CORE_PACKAGE_DIR = join(ROOT, 'packages', 'core');
 const PACKAGE_DIR = join(ROOT, 'packages', 'holollama');
 const BIN = join(PACKAGE_DIR, 'bin', 'holollama.cjs');
 const PACK_DIR = join(ROOT, '.scratch', 'holollama-consumption-pack');
+const COLD_CONSUMER_DIR = join(ROOT, '.scratch', 'holollama-cold-install-consumer');
 const NODE = process.execPath;
 const TAR = process.platform === 'win32' ? 'tar.exe' : 'tar';
 
@@ -60,6 +62,11 @@ function runPnpm(args, cwd = ROOT) {
   );
 }
 
+function runNpm(args, cwd = ROOT) {
+  if (process.platform !== 'win32') return runProcess('npm', args, cwd);
+  return runProcess(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', ['npm', ...args].join(' ')], cwd);
+}
+
 function parseCliJson(args) {
   return JSON.parse(run(args));
 }
@@ -67,6 +74,15 @@ function parseCliJson(args) {
 function fail(message) {
   console.error(`[holollama-consumption] FAIL: ${message}`);
   process.exit(1);
+}
+
+function packPackage(packageDir) {
+  const packOutput = runPnpm(['pack', '--pack-destination', PACK_DIR], packageDir);
+  const tarballLine = packOutput.trim().split(/\r?\n/).filter(Boolean).at(-1);
+  if (!tarballLine) fail(`pnpm pack did not return a tarball path for ${packageDir}`);
+  const tarball = resolve(packageDir, tarballLine);
+  if (!existsSync(tarball)) fail(`packed tarball missing: ${tarball}`);
+  return tarball;
 }
 
 for (const file of REQUIRED_FILES) {
@@ -155,12 +171,10 @@ if (brainSelection.selectedConsumerProfile?.id !== 'vast-sovereign-overflow') {
 
 rmSync(PACK_DIR, { recursive: true, force: true });
 mkdirSync(PACK_DIR, { recursive: true });
-const packOutput = runPnpm(['pack', '--pack-destination', PACK_DIR], PACKAGE_DIR);
-const tarballLine = packOutput.trim().split(/\r?\n/).filter(Boolean).at(-1);
-if (!tarballLine) fail('pnpm pack did not return a tarball path');
-const tarball = resolve(PACKAGE_DIR, tarballLine);
+const coreTarball = packPackage(CORE_PACKAGE_DIR);
+const holollamaTarball = packPackage(PACKAGE_DIR);
 const packedManifest = JSON.parse(
-  runProcess(TAR, ['-xOf', tarball, 'package/package.json'], PACKAGE_DIR)
+  runProcess(TAR, ['-xOf', holollamaTarball, 'package/package.json'], PACKAGE_DIR)
 );
 const coreDependency = packedManifest.dependencies?.['@holoscript/core'];
 if (typeof coreDependency !== 'string' || coreDependency.startsWith('workspace:')) {
@@ -169,6 +183,53 @@ if (typeof coreDependency !== 'string' || coreDependency.startsWith('workspace:'
   );
 }
 
+rmSync(COLD_CONSUMER_DIR, { recursive: true, force: true });
+mkdirSync(COLD_CONSUMER_DIR, { recursive: true });
+writeFileSync(
+  join(COLD_CONSUMER_DIR, 'package.json'),
+  JSON.stringify(
+    {
+      name: 'holollama-cold-install-consumer',
+      version: '0.0.0',
+      private: true,
+      type: 'module',
+    },
+    null,
+    2
+  )
+);
+runNpm(
+  ['install', '--no-audit', '--no-fund', '--ignore-scripts', coreTarball, holollamaTarball],
+  COLD_CONSUMER_DIR
+);
+runProcess(
+  NODE,
+  [
+    '--input-type=module',
+    '-e',
+    "import { LlamaServerCompiler } from '@holoscript/core/compiler'; if (typeof LlamaServerCompiler !== 'function') throw new Error('LlamaServerCompiler export missing');",
+  ],
+  COLD_CONSUMER_DIR
+);
+const coldBin = join(
+  COLD_CONSUMER_DIR,
+  'node_modules',
+  '@holoscript',
+  'holollama',
+  'bin',
+  'holollama.cjs'
+);
+const coldLifecycle = JSON.parse(
+  runProcess(
+    NODE,
+    [coldBin, 'lifecycle', '--profile', 'vast-linux-gpu', '--team-id', 'team_test', '--json'],
+    COLD_CONSUMER_DIR
+  )
+);
+if (coldLifecycle.schema !== 'holollama.fleet-lifecycle.v1' || !coldLifecycle.ok) {
+  fail(`cold install lifecycle check failed: ${JSON.stringify(coldLifecycle)}`);
+}
+
 console.log(
-  '[holollama-consumption] PASS: built API and CLI are consumable by laptop, Jetson, and Vast lanes.'
+  '[holollama-consumption] PASS: built API, CLI, and cold install are consumable by laptop, Jetson, and Vast lanes.'
 );

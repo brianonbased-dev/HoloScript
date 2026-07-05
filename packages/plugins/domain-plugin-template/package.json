@@ -1,9 +1,23 @@
 {
   "name": "@holoscript/domain-plugin-template",
-  "version": "0.0.2",
+  "version": "0.1.1",
   "description": "Multi-domain plugin template. Fork this, add your domain context, ship a vertical. Composes: agriculture, retail, manufacturing, compliance, science, genetics modules.",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./contexts/*": "./contexts/*"
+  },
+  "files": [
+    "dist",
+    "contexts",
+    "CHANGELOG.md"
+  ],
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts",
     "dev": "tsup src/index.ts --format esm,cjs --dts --watch",
@@ -20,7 +34,15 @@
   ],
   "author": "brianonbased-dev",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/plugins/domain-plugin-template"
+  },
   "peerDependencies": {
     "@holoscript/core": ">=8.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
