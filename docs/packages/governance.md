@@ -47,6 +47,9 @@ This matrix assigns a support level to each documented package so contributors c
 | `@holoscript/sdk`                    | stable       | HoloScript Core Team   |
 | `@holoscript/cdn`                    | beta         | Platform Services Team |
 | `@holoscript/mcp-server`             | stable       | Agent Systems Team     |
+| `@holoscript/memory`                 | beta         | Agent Systems Team     |
+| `@holoscript/holollama`              | experimental | Agent Systems Team     |
+| `@holoscript/holoscript-agent`       | beta         | Agent Systems Team     |
 | `@holoscript/r3f-renderer`           | beta         | Studio Team            |
 | `@holoscript/llm-provider`           | stable       | Agent Systems Team     |
 | `@holoscript/ai-validator`           | stable       | Agent Systems Team     |

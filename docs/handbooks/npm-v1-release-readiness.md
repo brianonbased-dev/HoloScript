@@ -51,3 +51,17 @@ The first v1 npm lane is intentionally small:
 Packages outside the manifest can still exist, build, or be published later, but
 they are not green-lit by this lane until they are added intentionally and pass
 the same checks.
+
+## Canonicalization
+
+The npm registry also contains historical split packages, compatibility shims,
+domain plugins, services, and experimental packages. The v1 manifest is the
+fleet lane, not the full registry surface. Use
+[npm package canonicalization](./npm-package-canonicalization.md) to decide
+whether a package is canonical, next-wave, plugin inventory, service-only, or a
+legacy name that should receive an npm deprecation notice.
+
+`@holoscript/uaal`, `@holoscript/agent-protocol`, `@holoscript/framework`, and
+`@holoscript/holo-vm` are the next cognition wave, but they stay outside the v1
+fleet manifest until the same cold-install and package-consumption checks are
+green for laptop, Jetson, and Vast.

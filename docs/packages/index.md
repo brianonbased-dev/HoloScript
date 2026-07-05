@@ -47,10 +47,12 @@ HoloScript currently ships as a monorepo with **real packages** under `packages/
 
 | Package                                             | Purpose                                   |
 | --------------------------------------------------- | ----------------------------------------- |
-| [**@holoscript/sdk**](./sdk.md)                     | Primary JavaScript and TypeScript SDK     |
-| [**@holoscript/sdk** distribution](./holoscript.md) | Consolidated SDK distribution entry point |
+| [**@holoscript/core**](./core.md)                   | Primary JavaScript and TypeScript SDK     |
+| [**@holoscript/sdk**](./sdk.md)                     | Compatibility shim for older consumers    |
 | [**@holoscript/cdn**](./holoscript-cdn.md)          | CDN-oriented browser embedding            |
 | [**@holoscript/mcp-server**](./mcp-server.md)       | MCP tools for AI agents and IDEs          |
+| [**@holoscript/memory**](./memory.md)               | Sovereign agent-memory client             |
+| [**@holoscript/holollama**](./holollama.md)         | Native llama.cpp serving utilities        |
 | [**@holoscript/r3f-renderer**](./r3f-renderer.md)   | React Three Fiber renderer helpers        |
 
 ## AI, Agents, and Virtual Machines
@@ -61,6 +63,8 @@ HoloScript currently ships as a monorepo with **real packages** under `packages/
 | [**@holoscript/ai-validator**](./ai-validator.md)     | Validation for AI-generated output       |
 | [**@holoscript/agent-protocol**](./agent-protocol.md) | uAA2++ lifecycle framework               |
 | [**@holoscript/uaal**](./uaal.md)                     | Universal Autonomous Agent Language VM   |
+| [**@holoscript/framework**](./framework.md)           | Agent memory, learning, and orchestration |
+| [**@holoscript/holoscript-agent**](./holoscript-agent.md) | Headless HoloMesh agent runtime       |
 | [**@hololand/react-agent-sdk**](./react-agent-sdk.md) | React hooks and components for agent UIs |
 
 > `@holoscript/agent-sdk` was superseded by `@holoscript/framework`. `@holoscript/intelligence` was retired. See the [deletion ledger](../cross-language-deletion-ledger.md).
@@ -107,3 +111,4 @@ Those directories are documented separately in [Support Directories](./support-d
 4. Start with [Studio](./studio.md), [Studio Plugin SDK](./studio-plugin-sdk.md), and [Visual](./visual.md) if you want authoring workflows.
 5. Read [Support Directories](./support-directories.md) if you are navigating repo-only surfaces under `packages/`.
 6. Read [Governance Matrix](./governance.md) for per-package support levels and owners.
+7. Read [npm Package Canonicalization](../handbooks/npm-package-canonicalization.md) before publishing, deprecating, or promoting npm packages.
