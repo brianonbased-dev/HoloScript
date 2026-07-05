@@ -155,6 +155,17 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# Registry cold-start gate
+# ---------------------------------------------------------------------------
+if [ "${HOLOSCRIPT_SKIP_REGISTRY_COLD_START:-0}" != "1" ]; then
+  REGISTRY_COLD_START_PACKAGE="${HOLOSCRIPT_REGISTRY_COLD_START_PACKAGE:-@holoscript/core@latest}"
+  echo "[bootstrap] registry cold-start gate: $REGISTRY_COLD_START_PACKAGE"
+  node scripts/holo-ci/check-registry-cold-start.mjs --package "$REGISTRY_COLD_START_PACKAGE" --json
+else
+  echo "[bootstrap] registry cold-start gate skipped by HOLOSCRIPT_SKIP_REGISTRY_COLD_START=1"
+fi
+
+# ---------------------------------------------------------------------------
 # Verify brain composition file exists
 # ---------------------------------------------------------------------------
 BRAIN_PATH="$HOLOSCRIPT_AGENT_BRAIN"
