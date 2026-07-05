@@ -396,12 +396,22 @@ export class LlamaServerCompiler extends CompilerBase {
     const normalized = trimmed.replace(/\\/g, '/');
     if (/^llama-server(?:\.exe)?$/i.test(trimmed)) {
       throw new Error(
-        'LlamaServerCompiler requires a HOLO-patched llama.cpp build binary; use build/bin/llama-server(.exe), not a bare PATH lookup.'
+        'LlamaServerCompiler requires a HOLO-patched llama.cpp build binary; use build-holo/bin/.../llama-server(.exe), not a bare PATH lookup.'
       );
     }
     if (/\/?\.docker\/bin\/inference\/llama-server(?:\.exe)?$/i.test(normalized)) {
       throw new Error(
-        'LlamaServerCompiler rejects the prebuilt .docker/bin/inference llama-server binary because HOLO patching it is a silent no-op; use the rebuilt build/bin/llama-server(.exe).'
+        'LlamaServerCompiler rejects the prebuilt .docker/bin/inference llama-server binary because HOLO patching it is a silent no-op; use the rebuilt build-holo/bin/.../llama-server(.exe).'
+      );
+    }
+    if (/\/llama\.cpp\/build\/bin\/(?:release\/)?llama-server(?:\.exe)?$/i.test(normalized)) {
+      throw new Error(
+        'LlamaServerCompiler rejects the legacy llama.cpp build/bin llama-server path; use the HOLO-patched build-holo/bin/.../llama-server(.exe).'
+      );
+    }
+    if (/\/ollama\/.*\/llama-server(?:\.exe)?$/i.test(normalized)) {
+      throw new Error(
+        'LlamaServerCompiler rejects Ollama-owned llama-server binaries for HoloLlama serving; use the HOLO-patched llama.cpp build-holo binary.'
       );
     }
   }

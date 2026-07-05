@@ -1,0 +1,24 @@
+composition "laptop-fara-vision" {
+  @llama_serve {
+    name: "laptop-fara-vision"
+    model: "fara-7b"
+    model_path: ".scratch\\llama-cpp-models\\fara-7b-q4-k-m.gguf"
+    mmproj_path: ".scratch\\llama-cpp-models\\fara-7b-mmproj.gguf"
+    vision: true
+    host: "127.0.0.1"
+    port: 18080
+    ctx: 4096
+    ngl: 12
+    fit: "on"
+    image_min_tokens: 1024
+    image_max_tokens: 1536
+    parallel: 1
+    metrics: true
+    executable: "C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build-holo\\bin\\Release\\llama-server.exe"
+    llama_bin_dir: "C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build-holo\\bin\\Release"
+    platform: "windows"
+    service_user: "holoscript"
+    node: "laptop-rtx3060"
+    register_as: "laptop-fara-7b-llama"
+  }
+}

@@ -11,14 +11,15 @@ import {
   listHoloLlamaBrains,
   listHoloLlamaProfiles,
   preflightHoloLlamaVision,
+  readHoloLlamaProfileSource,
   selectHoloLlamaBrain,
   summarizeHoloLlamaBundle,
 } from '../index.js';
 import { selectHoloLlamaBrain as selectHoloLlamaBrainFromSubpath } from '../brain.js';
 
-const patchedJetsonExecutable = '/opt/holoscript/llama.cpp/build/bin/llama-server';
+const patchedJetsonExecutable = '/opt/holoscript/llama.cpp/build-holo/bin/llama-server';
 const patchedLaptopExecutable =
-  'C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build\\bin\\llama-server.exe';
+  'C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build-holo\\bin\\Release\\llama-server.exe';
 
 describe('@holoscript/holollama', () => {
   it('exposes all fleet serving profiles', () => {
@@ -85,9 +86,12 @@ describe('@holoscript/holollama', () => {
 
   it('builds a native @llama_serve composition for Jetson', () => {
     const code = buildLlamaServeComposition('jetson-orin');
+    expect(code).toBe(readHoloLlamaProfileSource('jetson-orin'));
     expect(code).toContain('@llama_serve');
     expect(code).toContain('vision: false');
     expect(code).toContain('grammar: "holoscript"');
+    expect(code).toContain(patchedJetsonExecutable);
+    expect(code).not.toContain('/llama.cpp/build/bin/llama-server');
   });
 
   it('compiles a HoloLlama plan into required serving artifacts', () => {
@@ -146,6 +150,8 @@ describe('@holoscript/holollama', () => {
     expect(laptop.launch.executable).toBe(patchedLaptopExecutable);
     expect(laptop.launch.command.startsWith(`${patchedLaptopExecutable} -m`)).toBe(true);
     expect(laptop.launch.command).not.toContain('.docker\\bin\\inference');
+    expect(laptop.launch.command).not.toContain('llama.cpp\\build\\bin');
+    expect(laptop.launch.command).not.toContain('AppData\\Local\\Programs\\Ollama');
   });
 
   it('extracts the sovereign-device registry document fleet routers consume', () => {

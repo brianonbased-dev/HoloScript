@@ -1,0 +1,23 @@
+composition "jetson-brittney-edge" {
+  @llama_serve {
+    name: "jetson-brittney-edge"
+    model: "brittney-edge:v0-4"
+    model_path: "/opt/holoscript/models/brittney-edge-v0-4.gguf"
+    mmproj_path: "none"
+    vision: false
+    host: "0.0.0.0"
+    port: 18080
+    ctx: 4096
+    ngl: 32
+    fit: "on"
+    parallel: 1
+    metrics: true
+    grammar: "holoscript"
+    executable: "/opt/holoscript/llama.cpp/build-holo/bin/llama-server"
+    working_directory: "/opt/holoscript/holollama"
+    platform: "linux"
+    service_user: "holoscript"
+    node: "jetson-orin"
+    register_as: "jetson-brittney-edge"
+  }
+}

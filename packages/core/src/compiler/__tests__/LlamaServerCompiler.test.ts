@@ -103,6 +103,26 @@ describe('LlamaServerCompiler', () => {
         token
       )
     ).toThrow(/prebuilt \.docker\/bin\/inference/);
+    expect(() =>
+      compiler.compile(
+        composition({
+          ...faraConfig,
+          executable:
+            'C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build\\bin\\llama-server.exe',
+        }),
+        token
+      )
+    ).toThrow(/legacy llama\.cpp build\/bin/);
+    expect(() =>
+      compiler.compile(
+        composition({
+          ...faraConfig,
+          executable:
+            'C:\\Users\\josep\\AppData\\Local\\Programs\\Ollama\\lib\\ollama\\llama-server.exe',
+        }),
+        token
+      )
+    ).toThrow(/Ollama-owned llama-server/);
   });
 
   it('emits health, service, and sovereign-devices registry artifacts', () => {
@@ -241,12 +261,20 @@ describe('LlamaServerCompiler', () => {
   });
 
   it('quotes an executable path containing a space in both the command and the .ps1', () => {
-    const compiler = new LlamaServerCompiler({ executable: 'C:/llama cpp/llama-server.exe' });
+    const compiler = new LlamaServerCompiler({
+      executable: 'C:/llama cpp/build-holo/bin/Release/llama-server.exe',
+    });
     const bundle = JSON.parse(
       compiler.compile(composition(faraConfig), token)
     ) as LlamaServerBundle;
-    expect(bundle.launch.command.startsWith('"C:/llama cpp/llama-server.exe" -m')).toBe(true);
-    expect(bundle.launch.powershell).toContain(`& 'C:/llama cpp/llama-server.exe' -m`);
+    expect(
+      bundle.launch.command.startsWith(
+        '"C:/llama cpp/build-holo/bin/Release/llama-server.exe" -m'
+      )
+    ).toBe(true);
+    expect(bundle.launch.powershell).toContain(
+      `& 'C:/llama cpp/build-holo/bin/Release/llama-server.exe' -m`
+    );
   });
 
   it('accepts a single {path, scale} LoRA object (not only arrays)', () => {

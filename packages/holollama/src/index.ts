@@ -1,6 +1,7 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   LlamaServerCompiler,
   type LlamaServerBundle,
@@ -234,12 +235,20 @@ export interface HoloLlamaFleetLifecycleReport {
 
 const DEFAULT_IMAGE_MIN_TOKENS = 1024;
 const DEFAULT_IMAGE_MAX_TOKENS = 1536;
-const DEFAULT_JETSON_HOLO_LLAMA_EXECUTABLE = '/opt/holoscript/llama.cpp/build/bin/llama-server';
+const DEFAULT_JETSON_HOLO_LLAMA_EXECUTABLE =
+  '/opt/holoscript/llama.cpp/build-holo/bin/llama-server';
 const DEFAULT_LAPTOP_HOLO_LLAMA_EXECUTABLE =
-  'C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build\\bin\\llama-server.exe';
+  'C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build-holo\\bin\\Release\\llama-server.exe';
+const DEFAULT_LAPTOP_HOLO_LLAMA_BIN_DIR =
+  'C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build-holo\\bin\\Release';
 const DEFAULT_HOLOMESH_ORCHESTRATOR_URL = 'https://mcp-orchestrator-production-45f9.up.railway.app';
 const DEFAULT_HOLOMESH_TEAM_ID = 'TEAM_ID';
 const DEFAULT_HOLOMESH_API_KEY_ENV = 'HOLOSCRIPT_API_KEY';
+const HOLOLLAMA_PROFILE_SOURCE_DIR = join(
+  dirname(fileURLToPath(import.meta.url)),
+  '..',
+  'profiles'
+);
 export const HOLOLLAMA_DOCTOR_SCHEMA = 'holollama.doctor.v1';
 export const HOLOLLAMA_MESH_READONLY_BRIDGE_SCHEMA = 'holollama.holomesh-readonly-bridge.v1';
 export const HOLOLLAMA_VISION_PREFLIGHT_SCHEMA = 'holollama.llama-cpp-vision-preflight.v1';
@@ -292,7 +301,7 @@ export const HOLOLLAMA_PROFILE_DEFINITIONS: Record<HoloLlamaProfile, HoloLlamaPr
       parallel: 1,
       metrics: true,
       executable: DEFAULT_LAPTOP_HOLO_LLAMA_EXECUTABLE,
-      llamaBinDir: 'C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build\\bin',
+      llamaBinDir: DEFAULT_LAPTOP_HOLO_LLAMA_BIN_DIR,
       platform: 'windows',
       serviceUser: 'holoscript',
       node: 'laptop-rtx3060',
@@ -317,7 +326,7 @@ export const HOLOLLAMA_PROFILE_DEFINITIONS: Record<HoloLlamaProfile, HoloLlamaPr
       parallel: 4,
       metrics: true,
       grammar: 'holoscript',
-      executable: '/usr/local/bin/llama-server',
+      executable: '/srv/holoscript/llama.cpp/build-holo/bin/llama-server',
       workingDirectory: '/srv/holoscript/holollama',
       platform: 'linux',
       serviceUser: 'holoscript',
@@ -359,14 +368,30 @@ export function resolveHoloLlamaServeSpec(
   return { ...definition.spec, ...defined(overrides) };
 }
 
+export function getHoloLlamaProfileSourcePath(profile: HoloLlamaProfile): string {
+  return join(HOLOLLAMA_PROFILE_SOURCE_DIR, `${profile}.holo`);
+}
+
+export function readHoloLlamaProfileSource(profile: HoloLlamaProfile = 'jetson-orin'): string {
+  return readFileSync(getHoloLlamaProfileSourcePath(profile), 'utf8');
+}
+
 export function buildLlamaServeComposition(
   profileOrSpec: HoloLlamaProfile | HoloLlamaServeSpec = 'jetson-orin',
   overrides: Partial<HoloLlamaServeSpec> = {}
 ): string {
+  const cleanOverrides = defined(overrides);
+  if (typeof profileOrSpec === 'string' && Object.keys(cleanOverrides).length === 0) {
+    return readHoloLlamaProfileSource(profileOrSpec);
+  }
   const spec =
     typeof profileOrSpec === 'string'
-      ? resolveHoloLlamaServeSpec(profileOrSpec, overrides)
-      : { ...profileOrSpec, ...defined(overrides) };
+      ? resolveHoloLlamaServeSpec(profileOrSpec, cleanOverrides)
+      : { ...profileOrSpec, ...cleanOverrides };
+  return renderLlamaServeComposition(spec);
+}
+
+function renderLlamaServeComposition(spec: HoloLlamaServeSpec): string {
   const lines = [
     `composition ${quote(spec.name)} {`,
     '  @llama_serve {',

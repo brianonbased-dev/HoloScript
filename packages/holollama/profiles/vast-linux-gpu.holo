@@ -1,0 +1,23 @@
+composition "vast-holollama" {
+  @llama_serve {
+    name: "vast-holollama"
+    model: "brittney-edge:v0-4"
+    model_path: "/models/holoscript/brittney-edge-v0-4.gguf"
+    mmproj_path: "none"
+    vision: false
+    host: "0.0.0.0"
+    port: 18080
+    ctx: 8192
+    ngl: 99
+    fit: "on"
+    parallel: 4
+    metrics: true
+    grammar: "holoscript"
+    executable: "/srv/holoscript/llama.cpp/build-holo/bin/llama-server"
+    working_directory: "/srv/holoscript/holollama"
+    platform: "linux"
+    service_user: "holoscript"
+    node: "vast-linux-gpu"
+    register_as: "vast-holollama"
+  }
+}

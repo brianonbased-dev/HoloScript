@@ -24,6 +24,7 @@
   "files": [
     "bin",
     "dist",
+    "profiles",
     "README.md"
   ],
   "scripts": {
