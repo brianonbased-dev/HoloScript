@@ -42,9 +42,9 @@ packages so existing consumers get a clear migration path.
 
 | Legacy package | Canonical replacement | Action |
 | --- | --- | --- |
-| `@holoscript/parser` | `@holoscript/core` | Deprecate on npm; keep docs pointing at core parser exports. |
-| `@holoscript/compiler` | `@holoscript/core` and `@holoscript/cli` | Deprecate on npm; compiler implementations live in core and user commands live in CLI. |
-| `@holoscript/traits` | `@holoscript/core` | Deprecate on npm; traits are not a standalone canonical package. |
+| `@holoscript/parser` | `@holoscript/core` | Deprecated on npm; keep docs pointing at core parser exports. |
+| `@holoscript/compiler` | `@holoscript/core` and `@holoscript/cli` | Deprecated on npm; compiler implementations live in core and user commands live in CLI. |
+| `@holoscript/traits` | `@holoscript/core` | Deprecated on npm; traits are not a standalone canonical package. |
 | `@holoscript/agent-sdk` | `@holoscript/framework`, `@holoscript/mesh`, `@holoscript/memory` | Deprecate after the framework/memory migration examples are current. |
 | `@holoscript/intelligence` | `@holoscript/framework` and `@holoscript/holoscript-agent` | Deprecate; current intelligence work lands in framework and headless agent runtime. |
 | `@holoscript/state-sync` | `@holoscript/crdt`, `@holoscript/crdt-spatial`, `@holoscript/mesh` | Deprecate once CRDT docs include the migration path. |
@@ -58,8 +58,8 @@ packages so existing consumers get a clear migration path.
    laptop, Jetson, and Vast.
 2. Promote the cognition wave next, starting with `@holoscript/uaal` only after
    the VM package has the same pack/install/consumer checks as HoloLlama.
-3. Add npm deprecation messages for the legacy split packages before publishing
-   more domain packages.
+3. Add npm deprecation messages for the remaining legacy packages before
+   publishing more domain packages.
 4. Convert registry-live-but-local-private packages into one of two states:
    public and supported with docs/tests, or deprecated with a replacement path.
 5. Treat domain plugins as marketplace inventory, not core install surface, until
@@ -72,6 +72,7 @@ Run these before claiming the npm surface is coherent:
 ```powershell
 corepack pnpm check:publish-surface
 node scripts/holo-ci/check-npm-v1-release-readiness.mjs --require-built
+corepack pnpm check:npm-deprecations
 corepack pnpm check:package-consumption:full
 ```
 

@@ -1,0 +1,27 @@
+{
+  "schema": "holoscript.npm-deprecation-manifest/v1",
+  "_comment": "Intentional npm deprecation notices for historical package names. Do not unpublish; route consumers to canonical replacements.",
+  "deprecations": [
+    {
+      "name": "@holoscript/parser",
+      "version": "1.0.0",
+      "replacement": "@holoscript/core",
+      "deprecatedOn": "2026-07-05",
+      "message": "Deprecated: parser is merged into @holoscript/core. Use @holoscript/core parser exports instead."
+    },
+    {
+      "name": "@holoscript/compiler",
+      "version": "1.0.0",
+      "replacement": "@holoscript/core and @holoscript/cli",
+      "deprecatedOn": "2026-07-05",
+      "message": "Deprecated: compiler implementations live in @holoscript/core and user commands live in @holoscript/cli."
+    },
+    {
+      "name": "@holoscript/traits",
+      "version": "1.0.0",
+      "replacement": "@holoscript/core",
+      "deprecatedOn": "2026-07-05",
+      "message": "Deprecated: traits are merged into @holoscript/core. Use @holoscript/core trait exports instead."
+    }
+  ]
+}
