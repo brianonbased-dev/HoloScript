@@ -1,0 +1,107 @@
+{
+  "schema": "holollama.npm-brain-release.receipt.v1",
+  "generatedAt": "2026-07-05T23:40:00Z",
+  "taskId": "task_1783283030545_r3fp",
+  "package": {
+    "name": "@holoscript/holollama",
+    "version": "0.1.4",
+    "distTagLatest": "0.1.4",
+    "distIntegrity": "sha512-CCrwBM//DgbgU8jFQZTKDpNSjABqxuYf9Ba67rGMSDmgB1SqmzcWWOT+LP4hLcDSPrV+DPicObaHOpyJSvdgWQ==",
+    "dependencies": {
+      "@holoscript/core": "^8.0.10"
+    },
+    "bin": {
+      "holollama": "bin/holollama.cjs"
+    },
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js",
+        "require": "./dist/index.cjs"
+      },
+      "./brain": {
+        "types": "./dist/brain.d.ts",
+        "import": "./dist/brain.js",
+        "require": "./dist/brain.cjs"
+      }
+    }
+  },
+  "releaseDisposition": {
+    "status": "already_published_no_republish_performed",
+    "reason": "Public npm latest already equals @holoscript/holollama@0.1.4 and exposes the ./brain subpath. Republishing the same npm version is impossible and would be an irreversible release action."
+  },
+  "coldInstall": {
+    "tempDir": "C:\\Users\\josep\\AppData\\Local\\Temp\\holollama-npm-brain-proof-20260705163735",
+    "commands": [
+      "npm init -y",
+      "npm install @holoscript/holollama@0.1.4 --ignore-scripts --no-audit --fund=false",
+      "node --input-type=module - <import @holoscript/holollama/brain and root package>",
+      "node node_modules\\@holoscript\\holollama\\bin\\holollama.cjs plan --profile laptop-windows --json",
+      "node node_modules\\@holoscript\\holollama\\bin\\holollama.cjs brains --json",
+      "node node_modules\\@holoscript\\holollama\\bin\\holollama.cjs brain --task \"select a local HoloScript generation brain\" --json"
+    ],
+    "installOk": true,
+    "installedPackageCount": 394
+  },
+  "brainSubpathProof": {
+    "importOk": true,
+    "exportedKeys": [
+      "HOLOLLAMA_BRAIN_CONSUMER_PROFILE_DEFINITIONS",
+      "HOLOLLAMA_BRAIN_DEFINITIONS",
+      "HOLOLLAMA_BRAIN_LEXICON",
+      "HOLOLLAMA_BRAIN_SELECTION_SCHEMA",
+      "listHoloLlamaBrainConsumerProfiles",
+      "listHoloLlamaBrains",
+      "profileIdForHoloLlamaDevice",
+      "scoreHoloLlamaBrain",
+      "scoreHoloLlamaBrains",
+      "selectHoloLlamaBrain"
+    ],
+    "rootPackageImportOk": true,
+    "rootHasCompileHoloLlamaBundle": true
+  },
+  "cliBrainProof": {
+    "helpListsBrainCommands": true,
+    "brainsCommandOk": true,
+    "brainsCount": 9,
+    "brainSelectionOk": true,
+    "selectionSchema": "holollama-brain-router.selection.v1",
+    "selectedBrain": "narrative",
+    "selectedConsumerProfile": "jetson-edge",
+    "selectionBlockers": []
+  },
+  "cliPlanProof": {
+    "planCommandOk": true,
+    "profile": "laptop-windows",
+    "selectedPlanName": "laptop-fara-vision",
+    "selectedExecutable": "C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build\\bin\\llama-server.exe",
+    "dryRun": true,
+    "vision": true,
+    "warnings": []
+  },
+  "ciObservation": {
+    "command": "gh run list --repo brianonbased-dev/HoloScript --branch main --limit 10 --json databaseId,headSha,status,conclusion,name,createdAt,updatedAt,event",
+    "currentHead": "b4e29a72268fc3ed7739c898a080ab9b1e53dea6",
+    "currentHeadRunFound": false,
+    "latestCompletedRun": {
+      "name": "Quest QR Scanner - build APK",
+      "headSha": "3f8c208d040ff2880a3f4f79108adbcf8646f92a",
+      "createdAt": "2026-07-03T06:19:43Z",
+      "conclusion": "success"
+    },
+    "note": "No new publish was attempted from this room turn. The release card is closed on public npm consumption evidence for the existing Brain subpath release."
+  },
+  "observedGaps": [
+    {
+      "id": "published-release-precedes-checked-in-profile-source-work",
+      "status": "open",
+      "detail": "The public @holoscript/holollama@0.1.4 Brain release does not expose the newer readHoloLlamaProfileSource root helper observed in the current local package."
+    },
+    {
+      "id": "published-laptop-plan-still-uses-legacy-build-bin",
+      "status": "open",
+      "detail": "The public CLI plan for laptop-windows selects llama.cpp build\\bin, while current local foundation-exit work moved defaults to build-holo\\bin."
+    }
+  ],
+  "finalDisposition": "brain_subpath_release_publicly_consumable"
+}
