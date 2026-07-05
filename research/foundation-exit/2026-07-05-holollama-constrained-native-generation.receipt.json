@@ -1,0 +1,109 @@
+{
+  "schema": "holollama.constrained-native-generation.receipt.v1",
+  "generatedAt": "2026-07-05T23:24:00Z",
+  "taskId": "task_1783288625409_nm2y",
+  "sourceContext": "C:/Users/josep/.ai-ecosystem/research/2026-07-05_foundation-to-serving-exit-gate.md#T3",
+  "josephIntent": "Create one small HoloScript-native proof object that demonstrates constrained generation can reject invalid syntax before render work and promote only parser/compiler-verified .holo source.",
+  "holollamaPath": {
+    "profile": "laptop-windows",
+    "profileSourcePath": "packages/holollama/profiles/laptop-windows.holo",
+    "profileSourceSha256": "b407cf805479d8efe78ca6853a8a6527b00a07b41ea70fc51d87eb30a912e414",
+    "selectedExecutable": "C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build-holo\\bin\\Release\\llama-server.exe",
+    "selectedExecutablePolicy": "must include build-holo/bin and must not select bare PATH, .docker/bin/inference, legacy llama.cpp/build/bin, or Ollama-owned llama-server",
+    "servingPlanTarget": "llama-server",
+    "servingPlanCommandSha256": "5944b4749d25f17e87f3c01855b12f8e8b826e959fb98b9e3dcf698142dd17f5",
+    "servingPlanRegistryHandle": "laptop-fara-7b-llama"
+  },
+  "constraint": {
+    "id": "holoscript-subset.gbnf",
+    "source": "@holoscript/core/compiler generateHoloScriptGbnf()",
+    "sha256": "902d2c9ecfc3783f95b38c1da79be8fa657ef733638cecbeee359824427d743a",
+    "bytes": 1455,
+    "role": "grammar/constraint identifier for constrained native .holo generation; not semantic proof"
+  },
+  "attempts": [
+    {
+      "id": "attempt-1-invalid",
+      "modelPath": "HoloLlama constrained path (dry receipt, no inference server launched)",
+      "prompt": "Generate a minimal .holo proof object for Joseph that compiles before render promotion.",
+      "generatedSource": "composition \"JosephIntentProof\" {\n  object \"SignalCube\" {\n    geometry: \"cube\"\n",
+      "generatedSourceSha256": "9d25db56fa8a0374dee67cfe8213b038c2acceeeb83e73009a54d541c8bde213",
+      "parse": {
+        "ok": false,
+        "parser": "@holoscript/core parseHolo",
+        "diagnostics": [
+          {
+            "message": "Expected RBRACE, got EOF (in composition)",
+            "line": 4,
+            "column": 1,
+            "severity": "error"
+          },
+          {
+            "message": "Expected RBRACE, got EOF (in composition)",
+            "line": 4,
+            "column": 1,
+            "severity": "error"
+          }
+        ]
+      },
+      "compile": {
+        "attempted": false,
+        "reason": "parse failed, so compile/render promotion was blocked"
+      },
+      "repairLoop": {
+        "action": "close the composition/object braces and preserve the same intent under the grammar constraint",
+        "nextAttemptId": "attempt-2-repaired-valid"
+      },
+      "finalDisposition": "rejected_invalid_syntax"
+    },
+    {
+      "id": "attempt-2-repaired-valid",
+      "modelPath": "HoloLlama constrained path (dry receipt, no inference server launched)",
+      "prompt": "Repair attempt-1 into valid HoloScript without claiming runtime/render semantics.",
+      "generatedSource": "composition \"JosephIntentProof\" {\n  environment {\n    background_color: \"#101820\"\n    ambient_light: 0.45\n  }\n\n  object \"SignalCube\" {\n    position: [0, 1.2, -2]\n    scale: [0.8, 0.8, 0.8]\n    geometry: \"cube\"\n    color: \"#00d4ff\"\n  }\n\n  object \"ReceiptBeacon\" {\n    position: [0, 2.4, -2]\n    scale: [0.3, 0.3, 0.3]\n    geometry: \"sphere\"\n    color: \"#ffffff\"\n    emissive: \"#00d4ff\"\n    emissiveIntensity: 1.2\n  }\n}\n",
+      "generatedSourceSha256": "552ad08badfb22fbe20b801ea72bbb492a52a873d927a205adfb2d07e062af29",
+      "parse": {
+        "ok": true,
+        "parser": "@holoscript/core parseHolo",
+        "diagnostics": [],
+        "compositionName": "JosephIntentProof",
+        "objectCount": 2
+      },
+      "compile": {
+        "attempted": true,
+        "ok": true,
+        "compiler": "@holoscript/core WebGPUCompiler",
+        "target": "webgpu",
+        "outputBytes": 18209,
+        "outputSha256": "8ef2defd8bcb3371707c13a668b5269b815ac758658523bd0eb74a94c898547c",
+        "markers": [
+          "navigator.gpu",
+          "requestAdapter",
+          "requestAnimationFrame"
+        ]
+      },
+      "semantic": {
+        "status": "not_proven",
+        "reason": "parse and WebGPU compile succeeded, but no browser render, screenshot, CAEL, SimulationContract, or founder-facing proof surface was run in this T3 receipt"
+      },
+      "finalDisposition": "promoted_to_t4_candidate_after_parse_compile"
+    }
+  ],
+  "promotionPolicy": {
+    "invalidSyntax": "reject before compile or render work",
+    "validSource": "promote only after parse and compile proof",
+    "semanticSuccess": "must remain not_proven until T4 proof-surface evidence exists"
+  },
+  "finalDisposition": {
+    "syntaxValidity": "passed_after_one_repair",
+    "compileProof": "passed_webgpu_compile",
+    "semanticSuccess": "not_proven",
+    "promotedAttemptId": "attempt-2-repaired-valid",
+    "promotedSourceSha256": "552ad08badfb22fbe20b801ea72bbb492a52a873d927a205adfb2d07e062af29"
+  },
+  "validationCommands": [
+    "pnpm --filter @holoscript/core build",
+    "pnpm --filter @holoscript/holollama build",
+    "node scripts/validate-holollama-generation-receipt.mjs research/foundation-exit/2026-07-05-holollama-constrained-native-generation.receipt.json"
+  ]
+}
