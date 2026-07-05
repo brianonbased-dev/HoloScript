@@ -1,6 +1,6 @@
 # @holoscript/mcp-server
 
-> **The programmatic bridge** for AI agents to read, write, compile, and transform HoloScript entities — spatial, backend, or anything in between. [Read the V6 Vision →](../../VISION.md)
+> **The programmatic bridge** for AI agents to read, write, compile, and transform HoloScript entities — spatial, backend, or anything in between. [Read the V6 Vision →](../../docs/reference/VISION.md)
 
 Model Context Protocol (MCP) server for HoloScript AI assistance. Tool/target counts via `curl mcp.holoscript.net/health` (changes as deploys evolve), including sovereign + bridge compilation targets, team board tools, and agent fleet tools. Free and open-source.
 
@@ -84,25 +84,38 @@ Run the Streamable HTTP server locally:
 npx -p @holoscript/mcp-server holoscript-mcp-http --size small --port 3000
 ```
 
-Server sizing controls body limits, Postgres pool size, and public/OAuth rate
-buckets. The default profile is `standard`, preserving the hosted server's
-existing defaults. Use profiles for common footprints, then override individual
-knobs when a deployment needs tighter or larger limits.
+Server sizing controls body limits, Postgres pool size, public/OAuth rate
+buckets, and the advertised tool/cache/memory envelope. The default profile is
+`standard`, preserving the hosted server's existing defaults.
 
-| Setting | Values |
-| --- | --- |
-| `MCP_SERVER_SIZE` | `tiny`, `small`, `standard`, `large`, `xlarge` |
-| `MCP_REQUEST_BODY_MAX_BYTES` | Maximum JSON/form request body in bytes |
-| `MCP_POSTGRES_POOL_MAX` | Maximum shared Postgres pool connections |
-| `OAUTH_RATE_LIMIT` | OAuth endpoint requests per minute |
-| `PUBLIC_ANON_RATE_LIMIT` | Public anonymous endpoint requests per minute |
-| `HOLOSCRIPT_CONSUMER_GEN_RATE_LIMIT` | Anonymous generation requests per minute |
-| `HOLOSCRIPT_CONSUMER_GEN_DAILY_QUOTA` | Anonymous generation requests per day |
+Use-case profiles:
+
+- `laptop`: founder laptop or HoloShell local agent tooling.
+- `jetson`: owned-metal Jetson edge node.
+- `vast`: single Vast.ai GPU worker or render/inference utility node.
+- `fleet`: hosted coordinator or multi-worker fleet gateway.
+
+Legacy generic profiles remain valid: `tiny`, `small`, `standard`, `large`,
+and `xlarge`.
+
+| Setting                               | Values                                                                              |
+| ------------------------------------- | ----------------------------------------------------------------------------------- |
+| `MCP_SERVER_SIZE`                     | `tiny`, `small`, `standard`, `large`, `xlarge`, `laptop`, `jetson`, `vast`, `fleet` |
+| `MCP_REQUEST_BODY_MAX_BYTES`          | Maximum JSON/form request body in bytes                                             |
+| `MCP_POSTGRES_POOL_MAX`               | Maximum shared Postgres pool connections                                            |
+| `OAUTH_RATE_LIMIT`                    | OAuth endpoint requests per minute                                                  |
+| `PUBLIC_ANON_RATE_LIMIT`              | Public anonymous endpoint requests per minute                                       |
+| `HOLOSCRIPT_CONSUMER_GEN_RATE_LIMIT`  | Anonymous generation requests per minute                                            |
+| `HOLOSCRIPT_CONSUMER_GEN_DAILY_QUOTA` | Anonymous generation requests per day                                               |
+| `MCP_MAX_CONCURRENT_TOOL_CALLS`       | Advertised concurrent tool-call envelope                                            |
+| `MCP_TOOL_TIMEOUT_MS`                 | Advertised per-tool timeout budget                                                  |
+| `MCP_CACHE_MAX_ENTRIES`               | Advertised cache entry budget                                                       |
+| `MCP_MEMORY_BUDGET_MB`                | Advertised memory budget                                                            |
 
 CLI flags map to the same environment variables:
 
 ```bash
-holoscript-mcp-http --size large --max-body-bytes 20971520 --pg-pool-max 20 --oauth-rate-limit 250
+holoscript-mcp-http --size vast --max-concurrent-tools 8 --tool-timeout-ms 120000
 ```
 
 The active profile and resolved numeric limits are returned by `GET /health` and

@@ -10,6 +10,10 @@ const optionMap = new Map([
   ['--public-anon-rate-limit', 'PUBLIC_ANON_RATE_LIMIT'],
   ['--consumer-gen-rate-limit', 'HOLOSCRIPT_CONSUMER_GEN_RATE_LIMIT'],
   ['--consumer-gen-daily-quota', 'HOLOSCRIPT_CONSUMER_GEN_DAILY_QUOTA'],
+  ['--max-concurrent-tools', 'MCP_MAX_CONCURRENT_TOOL_CALLS'],
+  ['--tool-timeout-ms', 'MCP_TOOL_TIMEOUT_MS'],
+  ['--cache-max-entries', 'MCP_CACHE_MAX_ENTRIES'],
+  ['--memory-budget-mb', 'MCP_MEMORY_BUDGET_MB'],
 ]);
 
 function printHelp() {
@@ -19,7 +23,7 @@ Usage:
   holoscript-mcp-http [options]
 
 Options:
-  --size <tiny|small|standard|large|xlarge>
+  --size <tiny|small|standard|large|xlarge|laptop|jetson|vast|fleet>
   --port <number>
   --max-body-bytes <bytes>
   --pg-pool-max <connections>
@@ -27,6 +31,10 @@ Options:
   --public-anon-rate-limit <requests-per-minute>
   --consumer-gen-rate-limit <requests-per-minute>
   --consumer-gen-daily-quota <generations-per-day>
+  --max-concurrent-tools <count>
+  --tool-timeout-ms <milliseconds>
+  --cache-max-entries <entries>
+  --memory-budget-mb <megabytes>
   --enable-sse
   --help
 `);

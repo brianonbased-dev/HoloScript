@@ -69,6 +69,37 @@ const server = await startMCPServer({
 });
 ```
 
+### Local HTTP Sizing
+
+Run the Streamable HTTP server locally with a use-case profile:
+
+```bash
+npx -p @holoscript/mcp-server holoscript-mcp-http --size jetson --port 3000
+```
+
+The default profile is `standard` for backward compatibility. Prefer these
+profile names for fleet lanes:
+
+| Profile  | Use case                                                    |
+| -------- | ----------------------------------------------------------- |
+| `laptop` | Founder laptop or HoloShell local agent tooling.            |
+| `jetson` | Owned-metal Jetson edge node.                               |
+| `vast`   | Single Vast.ai GPU worker or render/inference utility node. |
+| `fleet`  | Hosted coordinator or multi-worker fleet gateway.           |
+
+Generic profiles remain valid: `tiny`, `small`, `standard`, `large`, and
+`xlarge`.
+
+Sizing can also be inspected programmatically:
+
+```typescript
+import { getMcpServerSizing } from '@holoscript/mcp-server';
+
+const sizing = getMcpServerSizing({ MCP_SERVER_SIZE: 'vast' });
+```
+
+Resolved sizing is returned by `GET /health` and `GET /api/health`.
+
 ## Tools (live inventory)
 
 Verify current tool inventory via:

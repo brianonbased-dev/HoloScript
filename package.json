@@ -126,6 +126,7 @@
     "check:package-consumption": "node scripts/holo-ci/check-package-consumption-matrix.mjs",
     "check:package-consumption:full": "node scripts/holo-ci/check-package-consumption-matrix.mjs --pack-npm --build-python",
     "check:package-consumption:test": "node scripts/holo-ci/check-package-consumption-matrix.mjs --self-test",
+    "check:fleet-utilities": "node scripts/holo-ci/check-fleet-utilities.mjs",
     "check:solver-smoke": "node scripts/holo-ci/solver-smoke-check.mjs",
     "check:codex-mcp": "node scripts/holo-ci/check-codex-mcp.mjs",
     "check:cross-platform-paths": "node scripts/holo-ci/check-cross-platform-paths.mjs",

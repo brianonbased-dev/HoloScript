@@ -1,0 +1,145 @@
+{
+  "schema": "holoscript.fleet-utilities/v1",
+  "_comment": "Canonical utility map for laptop, Jetson, Vast, and hosted fleet use cases. Utility classes are not interchangeable; each names the package, command/tool, and consumer lane it serves.",
+  "virtualConsumers": [
+    {
+      "id": "hosted-service",
+      "label": "Hosted MCP/orchestrator service lane"
+    }
+  ],
+  "utilities": [
+    {
+      "id": "agent-tool-gateway",
+      "label": "MCP tool gateway",
+      "packageName": "@holoscript/mcp-server",
+      "commands": ["holoscript-mcp", "holoscript-mcp-http", "holoscript-mcp-cli"],
+      "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu", "hosted-service"],
+      "sizingProfiles": ["laptop", "jetson", "vast", "fleet"],
+      "useCases": [
+        "agent access to HoloScript tools",
+        "HoloKey/OAuth mediated tool calls",
+        "board, knowledge, and fleet dispatch control plane"
+      ]
+    },
+    {
+      "id": "native-llm-serving",
+      "label": "HoloLlama serving planner",
+      "packageName": "@holoscript/holollama",
+      "commands": ["holollama"],
+      "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "holollamaProfiles": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "useCases": [
+        "llama.cpp serving plan generation",
+        "owned-metal model node registry artifacts",
+        "local inference startup bundles"
+      ]
+    },
+    {
+      "id": "headless-agent-runtime",
+      "label": "Headless agent runtime",
+      "packageName": "@holoscript/holoscript-agent",
+      "commands": ["holoscript-agent"],
+      "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "useCases": [
+        "unattended HoloMesh agent process",
+        "room/board execution worker",
+        "portable agent runtime entrypoint"
+      ]
+    },
+    {
+      "id": "sovereign-memory-client",
+      "label": "Shared memory client",
+      "packageName": "@holoscript/memory",
+      "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "useCases": [
+        "identity-keyed agent memory",
+        "cross-family memory read/write client",
+        "de-siloed local and hosted memory substrate"
+      ]
+    },
+    {
+      "id": "language-authoring-cli",
+      "label": "HoloScript CLI",
+      "packageName": "@holoscript/cli",
+      "commands": ["holo", "holoscript", "hs"],
+      "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "useCases": [
+        "parse, validate, compile, and run source files",
+        "agent-local source authoring",
+        "edge packaging and deployment commands"
+      ]
+    },
+    {
+      "id": "core-language-runtime",
+      "label": "Core language package",
+      "packageName": "@holoscript/core",
+      "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "useCases": [
+        "parser and AST API",
+        "compiler and trait runtime substrate",
+        "shared language dependency for utility packages"
+      ]
+    },
+    {
+      "id": "python-runtime-bindings",
+      "label": "Python HoloScript bindings",
+      "pypiPackage": "holoscript",
+      "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "useCases": [
+        "Python scripts that need HoloScript runtime access",
+        "robotics/scientific fleet utilities",
+        "cross-language smoke tests"
+      ]
+    },
+    {
+      "id": "trait-inference-python",
+      "label": "Python trait inference utility",
+      "pypiPackage": "holoscript-trait-inference",
+      "requiredBy": ["laptop-windows", "vast-linux-gpu"],
+      "useCases": [
+        "trait inference model runs",
+        "GPU-backed trait classification",
+        "Python model utility surface"
+      ]
+    },
+    {
+      "id": "gpu-ci-dispatch",
+      "label": "HoloCI GPU fleet dispatch",
+      "packageName": "@holoscript/mcp-server",
+      "mcpTools": ["holo_ci_dispatch"],
+      "requiredBy": ["hosted-service", "vast-linux-gpu"],
+      "sizingProfiles": ["fleet", "vast"],
+      "useCases": [
+        "safe-by-default HoloCI workload preview",
+        "authenticated Vast.ai fleet submission",
+        "commit-status reporting control plane"
+      ]
+    },
+    {
+      "id": "world-render-dispatch",
+      "label": "World render fleet dispatch",
+      "packageName": "@holoscript/mcp-server",
+      "mcpTools": ["render_world_on_fleet"],
+      "requiredBy": ["hosted-service", "vast-linux-gpu"],
+      "sizingProfiles": ["fleet", "vast"],
+      "useCases": [
+        "compile-backed world render workload preview",
+        "GPU fleet rendering receipt generation",
+        "render dispatch without exposing fleet submit credentials to clients"
+      ]
+    },
+    {
+      "id": "paid-simulation-dispatch",
+      "label": "Simulation quote/run/status utilities",
+      "packageName": "@holoscript/mcp-server",
+      "mcpTools": ["sim_quote", "sim_run_paid", "sim_fleet_status"],
+      "requiredBy": ["hosted-service", "vast-linux-gpu"],
+      "sizingProfiles": ["fleet", "vast"],
+      "useCases": [
+        "paid solver quotes",
+        "fail-closed fleet simulation dispatch",
+        "fleet job status checks"
+      ]
+    }
+  ]
+}

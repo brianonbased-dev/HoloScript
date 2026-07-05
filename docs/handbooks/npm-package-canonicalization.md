@@ -10,6 +10,8 @@ does not make every live package a current cold-consume surface.
   `scripts/holo-ci/npm-v1-release-manifest.json`.
 - Owned laptop, Jetson, and Vast consumption matrix:
   `scripts/holo-ci/package-consumption-manifest.json`.
+- Differentiated fleet utilities:
+  `scripts/holo-ci/fleet-utilities-manifest.json`.
 - Workspace public-package allowlist:
   `scripts/holo-ci/publish-surface-allowlist.json`.
 - Package docs and ownership:
@@ -77,6 +79,7 @@ corepack pnpm check:publish-surface
 node scripts/holo-ci/check-npm-v1-release-readiness.mjs --require-built
 corepack pnpm check:npm-deprecations
 corepack pnpm check:package-consumption:full
+corepack pnpm check:fleet-utilities
 ```
 
 For live registry drift, also run the registry search command from this handbook

@@ -83,7 +83,10 @@ import {
   readBearerToken,
   readXForwardedFor,
 } from './security/bypass-detection';
-import { checkConsumerGlobalSpendCap, recordConsumerGeneration } from './security/consumer-spend-guard';
+import {
+  checkConsumerGlobalSpendCap,
+  recordConsumerGeneration,
+} from './security/consumer-spend-guard';
 import { ensureMcpOtelTracer, withMcpToolExecutionSpan } from './telemetry/mcp-tool-tracing';
 import { getOAuth2Provider, OAUTH2_SCOPES } from './auth/oauth2-provider';
 import type { TokenStoreBackend } from './auth/token-store';
@@ -402,7 +405,11 @@ const CONSUMER_GEN_RATE_LIMIT = SERVER_SIZING.consumerGenRateLimit;
 // creditGate cross-package for a security-sensitive anonymous path.
 const CONSUMER_GEN_DAILY_QUOTA = SERVER_SIZING.consumerGenDailyQuota;
 const consumerGenDailyBuckets = new Map<string, { count: number; resetAt: number }>();
-function checkConsumerGenDailyQuota(ip: string): { allowed: boolean; remaining: number; resetAt: number } {
+function checkConsumerGenDailyQuota(ip: string): {
+  allowed: boolean;
+  remaining: number;
+  resetAt: number;
+} {
   const now = Date.now();
   let bucket = consumerGenDailyBuckets.get(ip);
   if (!bucket || bucket.resetAt <= now) {
@@ -411,7 +418,11 @@ function checkConsumerGenDailyQuota(ip: string): { allowed: boolean; remaining: 
   }
   const allowed = bucket.count < CONSUMER_GEN_DAILY_QUOTA;
   if (allowed) bucket.count++;
-  return { allowed, remaining: Math.max(0, CONSUMER_GEN_DAILY_QUOTA - bucket.count), resetAt: bucket.resetAt };
+  return {
+    allowed,
+    remaining: Math.max(0, CONSUMER_GEN_DAILY_QUOTA - bucket.count),
+    resetAt: bucket.resetAt,
+  };
 }
 // Family-tier content policy (same tier/pattern as hololandFamilyPolicyConfig in
 // hololand-mcp-tools.ts) -- anonymous callers get the strictest borderline
@@ -1022,8 +1033,15 @@ const httpServer = http.createServer(async (req, res) => {
         keepAlive: getKeepAliveStatus(),
         sizing: {
           profile: SERVER_SIZING.profile,
+          useCase: SERVER_SIZING.useCase,
+          recommendedConsumer: SERVER_SIZING.recommendedConsumer,
+          transport: SERVER_SIZING.transport,
           requestBodyMaxBytes: SERVER_SIZING.requestBodyMaxBytes,
           postgresPoolMax: SERVER_SIZING.postgresPoolMax,
+          maxConcurrentToolCalls: SERVER_SIZING.maxConcurrentToolCalls,
+          toolTimeoutMs: SERVER_SIZING.toolTimeoutMs,
+          cacheMaxEntries: SERVER_SIZING.cacheMaxEntries,
+          memoryBudgetMb: SERVER_SIZING.memoryBudgetMb,
           rateLimits: {
             oauthPerMinute: RATE_LIMIT,
             publicAnonPerMinute: PUBLIC_ANON_RATE_LIMIT,
@@ -1051,8 +1069,15 @@ const httpServer = http.createServer(async (req, res) => {
           : `http://localhost:${PORT}`,
         sizing: {
           profile: SERVER_SIZING.profile,
+          useCase: SERVER_SIZING.useCase,
+          recommendedConsumer: SERVER_SIZING.recommendedConsumer,
+          transport: SERVER_SIZING.transport,
           requestBodyMaxBytes: SERVER_SIZING.requestBodyMaxBytes,
           postgresPoolMax: SERVER_SIZING.postgresPoolMax,
+          maxConcurrentToolCalls: SERVER_SIZING.maxConcurrentToolCalls,
+          toolTimeoutMs: SERVER_SIZING.toolTimeoutMs,
+          cacheMaxEntries: SERVER_SIZING.cacheMaxEntries,
+          memoryBudgetMb: SERVER_SIZING.memoryBudgetMb,
         },
       })
     );
@@ -1199,7 +1224,9 @@ const httpServer = http.createServer(async (req, res) => {
     }
     // Other providers (config status only) — keys resolved from the HoloKey vault if present,
     // else process.env (Phase 2 rollout; fallback-safe — identical until the key is in the vault).
-    providers.openrouter = { configured: Boolean(await resolveServiceSecret('OPENROUTER_API_KEY')) };
+    providers.openrouter = {
+      configured: Boolean(await resolveServiceSecret('OPENROUTER_API_KEY')),
+    };
     providers.openai = { configured: Boolean(await resolveServiceSecret('OPENAI_API_KEY')) };
     providers.gemini = {
       configured: Boolean(
@@ -2074,7 +2101,12 @@ const httpServer = http.createServer(async (req, res) => {
       // survive redeploys of the in-memory maps. Fire-and-forget: durable
       // write failure must not fail the grant.
       void persistIssuedTokens(
-        tokenResponse as { access_token?: string; refresh_token?: string; expires_in?: number; scope?: string },
+        tokenResponse as {
+          access_token?: string;
+          refresh_token?: string;
+          expires_in?: number;
+          scope?: string;
+        },
         body.client_id as string,
         body.agent_id as string | undefined
       );
@@ -3764,7 +3796,8 @@ const httpServer = http.createServer(async (req, res) => {
         res.end(
           JSON.stringify({
             error: 'global_capacity_exceeded',
-            message: 'The shared daily generation budget for the anonymous consumer tier is exhausted across all users.',
+            message:
+              'The shared daily generation budget for the anonymous consumer tier is exhausted across all users.',
             resets_at: new Date(globalCap.resetAt).toISOString(),
           })
         );
@@ -4184,7 +4217,7 @@ new WebRTCSignalingServer(httpServer, '/webrtc-signaling');
     console.info(`   Port: ${PORT}`);
     console.info(`   Auth: OAuth 2.1 (migration: ${migrationMode})`);
     console.info(
-      `   Sizing: ${SERVER_SIZING.profile} (body=${SERVER_SIZING.requestBodyMaxBytes}B, pgPool=${SERVER_SIZING.postgresPoolMax}, oauth=${RATE_LIMIT}/min, anon=${PUBLIC_ANON_RATE_LIMIT}/min, gen=${CONSUMER_GEN_RATE_LIMIT}/min/${CONSUMER_GEN_DAILY_QUOTA}/day)`
+      `   Sizing: ${SERVER_SIZING.profile} (${SERVER_SIZING.recommendedConsumer}, body=${SERVER_SIZING.requestBodyMaxBytes}B, pgPool=${SERVER_SIZING.postgresPoolMax}, tools=${SERVER_SIZING.maxConcurrentToolCalls}, timeout=${SERVER_SIZING.toolTimeoutMs}ms, oauth=${RATE_LIMIT}/min, anon=${PUBLIC_ANON_RATE_LIMIT}/min, gen=${CONSUMER_GEN_RATE_LIMIT}/min/${CONSUMER_GEN_DAILY_QUOTA}/day)`
     );
     console.info(
       `   Token TTL: access=${oauth2.getStore().ttl.accessTokenTTL}s, refresh=${oauth2.getStore().ttl.refreshTokenTTL}s`

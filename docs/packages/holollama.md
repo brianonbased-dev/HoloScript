@@ -49,4 +49,6 @@ await writeHoloLlamaBundleFiles(bundle, './holollama-bundle');
 This package is part of the v1 fleet lane. `@holoscript/core` owns parsing and
 compilation, `@holoscript/mcp-server` owns the agent tool server, and
 `@holoscript/holollama` owns the installable operator surface for local model
-serving.
+serving. The broader utility split is tracked in
+`docs/handbooks/fleet-utilities-strategy.md` and enforced by
+`corepack pnpm check:fleet-utilities`.

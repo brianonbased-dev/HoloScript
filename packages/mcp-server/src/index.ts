@@ -386,7 +386,9 @@ registerCategory(graphRagTools, (name, args, _signingCtx) => handleGraphRagTool(
 registerCategory(selfImproveTools, (name, args, _signingCtx) => handleSelfImproveTool(name, args));
 registerCategory(grpoTools, (name, args, _signingCtx) => handleGrpoTool(name, args));
 registerCategory(gltfImportTools, (name, args, _signingCtx) => handleGltfTool(name, args));
-registerCategory(generateMeshTools, (name, args, _signingCtx) => handleGenerateMeshTool(name, args));
+registerCategory(generateMeshTools, (name, args, _signingCtx) =>
+  handleGenerateMeshTool(name, args)
+);
 registerCategory(wisdomGotchaTools, (name, args, _signingCtx) =>
   handleWisdomGotchaTool(name, args)
 );
@@ -545,6 +547,8 @@ if (
 
 // Also export for programmatic use
 export { server, tools, handleTool };
+export { MCP_SERVER_SIZING_PROFILES, getMcpServerSizing };
+export type { McpServerSize, McpServerSizing, McpServerTransportHint };
 export * from './tools';
 export * from './handlers';
 export * from './generators';

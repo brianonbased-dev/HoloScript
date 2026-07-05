@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/mcp-server",
-  "version": "8.0.9",
+  "version": "8.0.10",
   "description": "Model Context Protocol server for HoloScript - enables AI agents to parse, validate, and generate HoloScript code",
   "license": "MIT",
   "main": "./dist/index.js",
@@ -14,9 +14,9 @@
     }
   },
   "bin": {
-    "holoscript-mcp": "./bin/holoscript-mcp.cjs",
-    "holoscript-mcp-http": "./bin/holoscript-mcp-http.cjs",
-    "holoscript-mcp-cli": "./bin/holoscript-mcp-cli.cjs"
+    "holoscript-mcp": "bin/holoscript-mcp.cjs",
+    "holoscript-mcp-http": "bin/holoscript-mcp-http.cjs",
+    "holoscript-mcp-cli": "bin/holoscript-mcp-cli.cjs"
   },
   "files": [
     "bin",
