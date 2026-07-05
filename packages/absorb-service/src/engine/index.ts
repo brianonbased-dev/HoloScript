@@ -132,6 +132,7 @@ export type {
 } from './TwoTowerSearchIndex';
 export {
   HOLOGRAPH_HOLOEMBED_MANIFEST_SCHEMA,
+  createHoloGraphHoloEmbedQueryProvider,
   createHoloGraphHoloEmbedSearchIndexFromManifest,
   loadHoloGraphHoloEmbedManifest,
   readFloat32NpyMatrix,
@@ -169,6 +170,8 @@ export { OllamaEmbeddingProvider } from './providers/OllamaEmbeddingProvider';
 export { OpenAIEmbeddingProvider } from './providers/OpenAIEmbeddingProvider';
 export { StructuralEmbeddingProvider } from './providers/StructuralEmbeddingProvider';
 export { HoloEmbedProvider } from './providers/HoloEmbedProvider';
+export { HoloDistillStudentProvider } from './providers/HoloDistillStudentProvider';
+export type { HoloDistillStudentProviderOptions } from './providers/HoloDistillStudentProvider';
 
 // HoloGraph: semantic community detection + brain-coord spatial routing (Phase 1 + 2)
 export { TraitCommunityDetector } from './TraitCommunityDetector';

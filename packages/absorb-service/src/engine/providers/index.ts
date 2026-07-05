@@ -18,3 +18,6 @@ export { OllamaEmbeddingProvider } from './OllamaEmbeddingProvider';
 export { OpenAIEmbeddingProvider } from './OpenAIEmbeddingProvider';
 /** HoloGraph Phase 1: deterministic structural embeddings — zero API/model dep */
 export { StructuralEmbeddingProvider } from './StructuralEmbeddingProvider';
+export { HoloEmbedProvider } from './HoloEmbedProvider';
+export { HoloDistillStudentProvider } from './HoloDistillStudentProvider';
+export type { HoloDistillStudentProviderOptions } from './HoloDistillStudentProvider';

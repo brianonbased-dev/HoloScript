@@ -2,7 +2,12 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { ExternalSymbolDefinition, ExtendedSymbolType, SupportedLanguage } from './types';
 import { TwoTowerSearchIndex, type TwoTowerScoreMode } from './TwoTowerSearchIndex';
-import type { EmbeddingProvider } from './providers/EmbeddingProvider';
+import type {
+  EmbeddingProvider,
+  EmbeddingProviderName,
+  EmbeddingProviderOptions,
+} from './providers/EmbeddingProvider';
+import { createEmbeddingProvider } from './providers/EmbeddingProviderFactory';
 
 export const HOLOGRAPH_HOLOEMBED_MANIFEST_SCHEMA =
   'holoscript.holograph-holoembed.two-tower-manifest.v1';
@@ -39,7 +44,8 @@ export interface CreateHoloGraphHoloEmbedSearchIndexOptions {
   manifest?: HoloGraphHoloEmbedManifest;
   manifestPath?: string;
   baseDir?: string;
-  queryProvider: EmbeddingProvider;
+  queryProvider?: EmbeddingProvider;
+  queryProviderOptions?: Omit<EmbeddingProviderOptions, 'provider'>;
 }
 
 interface HoloGraphNode {
@@ -111,6 +117,14 @@ export async function createHoloGraphHoloEmbedSearchIndexFromManifest(
     );
   }
 
+  const queryProvider =
+    options.queryProvider ??
+    (await createHoloGraphHoloEmbedQueryProvider({
+      manifest,
+      baseDir,
+      providerOptions: options.queryProviderOptions,
+    }));
+
   const entries = nodes.map((node, row) => ({
     symbol: nodeToSymbol(node, row),
     embedding: matrix.data.subarray(row * dim, (row + 1) * dim),
@@ -119,10 +133,45 @@ export async function createHoloGraphHoloEmbedSearchIndexFromManifest(
   }));
 
   return new TwoTowerSearchIndex({
-    queryProvider: options.queryProvider,
+    queryProvider,
     entries,
     scoreMode: manifest.scoreMode ?? 'cosine',
     name: manifest.name ?? 'HoloGraph/HoloEmbed two-tower search',
+  });
+}
+
+export async function createHoloGraphHoloEmbedQueryProvider(options: {
+  manifest: HoloGraphHoloEmbedManifest;
+  baseDir?: string;
+  providerOptions?: Omit<EmbeddingProviderOptions, 'provider'>;
+}): Promise<EmbeddingProvider> {
+  const manifest = validateHoloGraphHoloEmbedManifest(options.manifest);
+  const providerName = manifest.holoEmbed.provider;
+  if (!isEmbeddingProviderName(providerName)) {
+    throw new Error(`Unsupported HoloEmbed query provider in manifest: ${providerName}`);
+  }
+
+  const baseDir = options.baseDir ?? process.cwd();
+  const providerOptions = options.providerOptions ?? {};
+
+  if (providerName === 'holodistill-m1a-student') {
+    if (!manifest.holoEmbed.studentPath) {
+      throw new Error('HoloDistill HoloEmbed manifest requires holoEmbed.studentPath.');
+    }
+    return createEmbeddingProvider({
+      ...providerOptions,
+      provider: providerName,
+      holodistillStudentPath:
+        providerOptions.holodistillStudentPath ??
+        resolveManifestPath(baseDir, manifest.holoEmbed.studentPath),
+      holodistillBaseModel: providerOptions.holodistillBaseModel ?? manifest.holoEmbed.baseModel,
+      holodistillOutDim: providerOptions.holodistillOutDim ?? manifest.holoEmbed.embeddingDim,
+    });
+  }
+
+  return createEmbeddingProvider({
+    ...providerOptions,
+    provider: providerName,
   });
 }
 
@@ -199,6 +248,17 @@ function validateHoloGraphHoloEmbedManifest(value: unknown): HoloGraphHoloEmbedM
 
 function resolveManifestPath(baseDir: string, rawPath: string): string {
   return path.isAbsolute(rawPath) ? rawPath : path.resolve(baseDir, rawPath);
+}
+
+function isEmbeddingProviderName(value: string): value is EmbeddingProviderName {
+  return (
+    value === 'xenova' ||
+    value === 'openai' ||
+    value === 'ollama' ||
+    value === 'structural' ||
+    value === 'holoembed' ||
+    value === 'holodistill-m1a-student'
+  );
 }
 
 function nodeToSymbol(node: HoloGraphNode, row: number): ExternalSymbolDefinition {

@@ -65,6 +65,24 @@ export async function createEmbeddingProvider(
       const { HoloEmbedProvider } = await import('./HoloEmbedProvider');
       return new HoloEmbedProvider();
     }
+    case 'holodistill-m1a-student': {
+      if (!opts.holodistillStudentPath) {
+        throw new Error(
+          'HoloDistill provider requires holodistillStudentPath (student.safetensors).'
+        );
+      }
+      const { HoloDistillStudentProvider } = await import('./HoloDistillStudentProvider');
+      return new HoloDistillStudentProvider({
+        studentPath: opts.holodistillStudentPath,
+        baseModel: opts.holodistillBaseModel,
+        pythonCommand: opts.holodistillPythonCommand,
+        maxLength: opts.holodistillMaxLength,
+        outDim: opts.holodistillOutDim,
+        timeoutMs: opts.holodistillTimeoutMs,
+        encoderScript: opts.holodistillEncoderScript,
+        encoder: opts.holodistillEncoder,
+      });
+    }
     case 'xenova': {
       const { XenovaEmbeddingProvider } = await import('./XenovaEmbeddingProvider');
       return new XenovaEmbeddingProvider(opts.xenovaModel);

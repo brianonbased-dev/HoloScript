@@ -95,6 +95,77 @@ describe('HoloGraph/HoloEmbed manifest loader', () => {
     ).rejects.toThrow(/Unsupported HoloGraph\/HoloEmbed manifest schema/);
   });
 
+  it('auto-selects the HoloDistill M1a HoloEmbed query tower from the manifest', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'holograph-holodistill-'));
+    const graphPath = path.join(dir, 'graph.json');
+    const nodeEmbPath = path.join(dir, 'nodeemb.npy');
+    const manifestPath = path.join(dir, 'manifest.json');
+    const studentPath = path.join(dir, 'student.safetensors');
+    fs.writeFileSync(studentPath, 'fixture');
+
+    fs.writeFileSync(
+      graphPath,
+      JSON.stringify({
+        nodes: [
+          {
+            name: 'target',
+            type: 'function',
+            language: 'typescript',
+            filePath: 'packages/core/src/target.ts',
+            line: 7,
+            text: 'typescript function target',
+          },
+          {
+            name: 'studentMatch',
+            type: 'function',
+            language: 'typescript',
+            filePath: 'packages/core/src/student-match.ts',
+            line: 11,
+            text: 'typescript function student match',
+          },
+        ],
+      })
+    );
+    writeFloat32Npy(nodeEmbPath, [
+      [1, 0, 0],
+      [0, 1, 0],
+    ]);
+    fs.writeFileSync(
+      manifestPath,
+      JSON.stringify({
+        schema: HOLOGRAPH_HOLOEMBED_MANIFEST_SCHEMA,
+        name: 'holodistill fixture',
+        scoreMode: 'dot',
+        holoGraph: {
+          kind: 'HoloGraphIndexedTower',
+          graphPath: 'graph.json',
+          nodeEmbeddingPath: 'nodeemb.npy',
+          nodeEmbeddingFormat: 'npy.float32.row-major.v1',
+          nodeCount: 2,
+          embeddingDim: 3,
+        },
+        holoEmbed: {
+          kind: 'HoloEmbedQueryTower',
+          provider: 'holodistill-m1a-student',
+          baseModel: 'sentence-transformers/all-MiniLM-L6-v2',
+          studentPath: 'student.safetensors',
+          embeddingDim: 3,
+        },
+      })
+    );
+
+    const index = await createHoloGraphHoloEmbedSearchIndexFromManifest({
+      manifestPath,
+      queryProviderOptions: {
+        holodistillEncoder: async () => ({ embeddings: [[0, 1, 0]] }),
+      },
+    });
+    const [first] = await index.search('use student tower', 2);
+
+    expect(first?.symbol.name).toBe('studentMatch');
+    expect(first?.score).toBe(1);
+  });
+
   it('parses rank-2 little-endian float32 NPY matrices', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'holograph-holoembed-npy-'));
     const nodeEmbPath = path.join(dir, 'nodeemb.npy');

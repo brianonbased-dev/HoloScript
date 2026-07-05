@@ -13,7 +13,6 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { SearchResult } from '../engine/EmbeddingIndex';
 import type { SymbolSearchIndex } from '../engine/SearchIndex';
 import { GraphRAGEngine, type EnrichedResult, type LLMProvider } from '../engine/GraphRAGEngine';
-import { createEmbeddingProvider } from '../engine/providers/EmbeddingProviderFactory';
 import { createHoloGraphHoloEmbedSearchIndexFromManifest } from '../engine/HoloGraphHoloEmbedManifest';
 import { LLMCreditExhaustedError } from '@holoscript/llm-provider';
 import { validateCitations, type Citation } from '../engine/ProvenanceIntegrityGuard';
@@ -270,10 +269,8 @@ async function resolveSemanticSearchIndex(
   }
 
   try {
-    const queryProvider = await createEmbeddingProvider({ provider: 'holoembed' });
     const index = await createHoloGraphHoloEmbedSearchIndexFromManifest({
       manifestPath,
-      queryProvider,
     });
     return {
       index,

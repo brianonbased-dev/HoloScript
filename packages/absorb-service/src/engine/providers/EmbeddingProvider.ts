@@ -38,7 +38,21 @@ export interface EmbeddingProvider {
 // FACTORY OPTIONS
 // =============================================================================
 
-export type EmbeddingProviderName = 'xenova' | 'openai' | 'ollama' | 'structural' | 'holoembed';
+export type EmbeddingProviderName =
+  | 'xenova'
+  | 'openai'
+  | 'ollama'
+  | 'structural'
+  | 'holoembed'
+  | 'holodistill-m1a-student';
+
+export type HoloDistillEncoder = (payload: {
+  studentPath: string;
+  baseModel: string;
+  maxLength: number;
+  outDim: number;
+  texts: string[];
+}) => Promise<{ embeddings: unknown }>;
 
 export interface EmbeddingProviderOptions {
   /**
@@ -64,4 +78,22 @@ export interface EmbeddingProviderOptions {
   // ── Xenova / @huggingface/transformers ───────────────────────────────────
   /** HuggingFace model id (default: 'Xenova/all-MiniLM-L6-v2') */
   xenovaModel?: string;
+
+  // HoloDistill M1a student query tower
+  /** student.safetensors path emitted by the HoloDistill M1a recipe */
+  holodistillStudentPath?: string;
+  /** Base sentence-transformers model used by the student backbone */
+  holodistillBaseModel?: string;
+  /** Python executable used to run the safetensors bridge (default: python) */
+  holodistillPythonCommand?: string;
+  /** Token cap used by the HoloTune recipe (default: 128) */
+  holodistillMaxLength?: number;
+  /** Expected output dimension (default: 768) */
+  holodistillOutDim?: number;
+  /** Encoder timeout in milliseconds (default: 120000) */
+  holodistillTimeoutMs?: number;
+  /** Test hook for lightweight fixtures; production uses the built-in Python bridge */
+  holodistillEncoderScript?: string;
+  /** Test hook for lightweight in-process fixtures */
+  holodistillEncoder?: HoloDistillEncoder;
 }
