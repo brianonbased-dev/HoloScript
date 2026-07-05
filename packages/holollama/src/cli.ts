@@ -3,7 +3,10 @@ import {
   assertHoloLlamaBundleConsumable,
   buildLlamaServeComposition,
   compileHoloLlamaBundle,
+  doctorHoloLlamaProfiles,
+  listHoloLlamaBrains,
   listHoloLlamaProfiles,
+  selectHoloLlamaBrain,
   summarizeHoloLlamaBundle,
   writeHoloLlamaBundleFiles,
   type HoloLlamaProfile,
@@ -22,6 +25,17 @@ export async function runCli(args = process.argv.slice(2)): Promise<void> {
     return;
   }
 
+  if (command === 'doctor') {
+    const report = doctorHoloLlamaProfiles({ profile: readOptionalProfile(flags) });
+    if (flags.has('json')) {
+      process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+    } else {
+      process.stdout.write(formatDoctorReport(report));
+    }
+    if (!report.ok) process.exitCode = 1;
+    return;
+  }
+
   if (command === 'profiles') {
     const profiles = listHoloLlamaProfiles().map(({ id, label, consumer, description, spec }) => ({
       id,
@@ -33,6 +47,47 @@ export async function runCli(args = process.argv.slice(2)): Promise<void> {
       registerAs: spec.registerAs,
     }));
     process.stdout.write(`${JSON.stringify(profiles, null, 2)}\n`);
+    return;
+  }
+
+  if (command === 'brains') {
+    const brains = listHoloLlamaBrains().map((brain) => ({
+      id: brain.id,
+      displayName: brain.displayName,
+      packageName: brain.packageName,
+      version: brain.version,
+      brainPath: brain.brainPath,
+      compatibilityUnit: 'skill',
+      consumerProfileIds: brain.consumerProfileIds,
+    }));
+    process.stdout.write(`${JSON.stringify(brains, null, 2)}\n`);
+    return;
+  }
+
+  if (command === 'brain') {
+    const task = readString(flags, 'task');
+    if (!task) throw new Error('holollama brain requires --task <text>');
+    const selection = selectHoloLlamaBrain({
+      task,
+      brain: readString(flags, 'brain'),
+      skill: readString(flags, 'skill'),
+      profileId: readString(flags, 'profile-id'),
+      selectedDevice: readString(flags, 'device'),
+    });
+    if (flags.has('json')) {
+      process.stdout.write(`${JSON.stringify(selection, null, 2)}\n`);
+      return;
+    }
+    process.stdout.write(
+      [
+        `HoloLlama Brain: ${selection.selectedBrain.displayName}`,
+        `  id:      ${selection.selectedBrain.id}`,
+        `  package: ${selection.selectedBrain.packageName}@${selection.selectedBrain.version}`,
+        `  profile: ${selection.selectedConsumerProfile.id}`,
+        `  reason:  ${selection.score.reason}`,
+        '',
+      ].join('\n')
+    );
     return;
   }
 
@@ -90,6 +145,15 @@ function parseFlags(args: string[]): FlagMap {
 
 function readProfile(flags: FlagMap): HoloLlamaProfile {
   const value = readString(flags, 'profile') ?? 'jetson-orin';
+  return assertProfile(value);
+}
+
+function readOptionalProfile(flags: FlagMap): HoloLlamaProfile | undefined {
+  const value = readString(flags, 'profile');
+  return value ? assertProfile(value) : undefined;
+}
+
+function assertProfile(value: string): HoloLlamaProfile {
   if (value === 'jetson-orin' || value === 'laptop-windows' || value === 'vast-linux-gpu') {
     return value;
   }
@@ -146,14 +210,38 @@ function readPlatform(flags: FlagMap): 'windows' | 'linux' | undefined {
   throw new Error('--platform must be windows or linux');
 }
 
+function formatDoctorReport(report: ReturnType<typeof doctorHoloLlamaProfiles>): string {
+  const lines = [`HoloLlama doctor: ${report.ok ? 'PASS' : 'FAIL'}`];
+  for (const profile of report.profiles) {
+    lines.push(
+      `  ${profile.profile}: ${profile.ok ? 'ok' : 'blocked'} (${profile.consumer})`,
+      `    handle: ${profile.registryHandle}`,
+      `    health: ${profile.healthUrl || 'n/a'}`,
+      `    files:  ${profile.files.length}`
+    );
+    for (const warning of profile.warnings) lines.push(`    warning: ${warning}`);
+    for (const blocker of profile.blockers) lines.push(`    blocker: ${blocker}`);
+  }
+  lines.push('');
+  return lines.join('\n');
+}
+
 function printHelp(): void {
   process.stdout.write(`HoloLlama native serving utilities
 
 Usage:
+  holollama doctor [--profile <id>] [--json]
   holollama profiles
+  holollama brains
+  holollama brain --task <text> [--brain <id>|--skill <id>] [--json]
   holollama plan [options]
 
 Options:
+  --task <text>
+  --brain <id|auto>
+  --skill <compatibility-id>
+  --profile-id <jetson-edge|laptop-owned-metal|vast-sovereign-overflow>
+  --device <device-handle>
   --profile <jetson-orin|laptop-windows|vast-linux-gpu>
   --code <file.holo>
   --out <dir>

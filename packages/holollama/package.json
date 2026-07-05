@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/holollama",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Native HoloScript utilities for planning and operating llama.cpp HoloLlama serving nodes.",
   "type": "module",
   "main": "./dist/index.js",
@@ -14,6 +14,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./brain": {
+      "types": "./dist/brain.d.ts",
+      "import": "./dist/brain.js",
+      "require": "./dist/brain.cjs"
     }
   },
   "files": [
@@ -23,6 +28,7 @@
   ],
   "scripts": {
     "build": "tsup",
+    "doctor": "node bin/holollama.cjs doctor",
     "test": "vitest run"
   },
   "dependencies": {

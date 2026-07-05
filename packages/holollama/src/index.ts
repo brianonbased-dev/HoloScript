@@ -7,6 +7,28 @@ import {
 } from '@holoscript/core/compiler';
 import { parseHolo, type HoloParseError } from '@holoscript/core/parser';
 
+export {
+  HOLOLLAMA_BRAIN_LEXICON,
+  HOLOLLAMA_BRAIN_SELECTION_SCHEMA,
+  HOLOLLAMA_BRAIN_CONSUMER_PROFILE_DEFINITIONS,
+  HOLOLLAMA_BRAIN_DEFINITIONS,
+  listHoloLlamaBrainConsumerProfiles,
+  listHoloLlamaBrains,
+  profileIdForHoloLlamaDevice,
+  scoreHoloLlamaBrain,
+  scoreHoloLlamaBrains,
+  selectHoloLlamaBrain,
+} from './brain.js';
+export type {
+  HoloLlamaBrainConsumerProfileDefinition,
+  HoloLlamaBrainConsumerProfileId,
+  HoloLlamaBrainDefinition,
+  HoloLlamaBrainId,
+  HoloLlamaBrainScore,
+  HoloLlamaBrainSelection,
+  SelectHoloLlamaBrainOptions,
+} from './brain.js';
+
 export type HoloLlamaProfile = 'jetson-orin' | 'laptop-windows' | 'vast-linux-gpu';
 
 export interface HoloLlamaServeSpec {
@@ -72,9 +94,33 @@ export interface HoloLlamaBundleSummary {
   warnings: string[];
 }
 
+export interface HoloLlamaDoctorOptions {
+  profile?: HoloLlamaProfile;
+  generatedAt?: string;
+}
+
+export interface HoloLlamaProfileDoctorResult {
+  profile: HoloLlamaProfile;
+  consumer: HoloLlamaProfileDefinition['consumer'];
+  ok: boolean;
+  registryHandle: string;
+  healthUrl: string;
+  endpoint: string;
+  files: string[];
+  warnings: string[];
+  blockers: string[];
+}
+
+export interface HoloLlamaDoctorReport {
+  schema: typeof HOLOLLAMA_DOCTOR_SCHEMA;
+  generatedAt: string;
+  ok: boolean;
+  profiles: HoloLlamaProfileDoctorResult[];
+}
+
 const DEFAULT_IMAGE_MIN_TOKENS = 1024;
 const DEFAULT_IMAGE_MAX_TOKENS = 1536;
-
+export const HOLOLLAMA_DOCTOR_SCHEMA = 'holollama.doctor.v1';
 export const HOLOLLAMA_PROFILE_DEFINITIONS: Record<HoloLlamaProfile, HoloLlamaProfileDefinition> = {
   'jetson-orin': {
     id: 'jetson-orin',
@@ -292,6 +338,19 @@ export function summarizeHoloLlamaBundle(bundle: LlamaServerBundle): HoloLlamaBu
   };
 }
 
+export function doctorHoloLlamaProfiles(options: HoloLlamaDoctorOptions = {}): HoloLlamaDoctorReport {
+  const profileIds = options.profile
+    ? [options.profile]
+    : (Object.keys(HOLOLLAMA_PROFILE_DEFINITIONS) as HoloLlamaProfile[]);
+  const profiles = profileIds.map((profile) => doctorHoloLlamaProfile(profile));
+  return {
+    schema: HOLOLLAMA_DOCTOR_SCHEMA,
+    generatedAt: options.generatedAt ?? new Date().toISOString(),
+    ok: profiles.every((result) => result.ok),
+    profiles,
+  };
+}
+
 export async function writeHoloLlamaBundleFiles(
   bundle: LlamaServerBundle,
   outDir: string
@@ -304,6 +363,52 @@ export async function writeHoloLlamaBundleFiles(
     written.push(target);
   }
   return written;
+}
+
+function doctorHoloLlamaProfile(profile: HoloLlamaProfile): HoloLlamaProfileDoctorResult {
+  const definition = HOLOLLAMA_PROFILE_DEFINITIONS[profile];
+  const blockers: string[] = [];
+  const warnings: string[] = [];
+  try {
+    const bundle = compileHoloLlamaBundle({ profile });
+    const check = assertHoloLlamaBundleConsumable(bundle);
+    const summary = summarizeHoloLlamaBundle(bundle);
+    const registry = extractSovereignDeviceRegistry(bundle);
+    const registryHandle = readRegistryString(registry, 'handle') || check.registryHandle;
+    if (registryHandle !== definition.spec.registerAs) {
+      blockers.push(
+        `registry handle ${registryHandle} does not match profile registerAs ${definition.spec.registerAs}`
+      );
+    }
+    if (check.healthUrl !== summary.healthUrl) {
+      blockers.push(`bundle health ${summary.healthUrl} does not match registry health ${check.healthUrl}`);
+    }
+    if (summary.warnings.length) warnings.push(...summary.warnings);
+    return {
+      profile,
+      consumer: definition.consumer,
+      ok: blockers.length === 0,
+      registryHandle,
+      healthUrl: summary.healthUrl,
+      endpoint: summary.endpoint,
+      files: summary.files,
+      warnings,
+      blockers,
+    };
+  } catch (error) {
+    blockers.push(error instanceof Error ? error.message : String(error));
+    return {
+      profile,
+      consumer: definition.consumer,
+      ok: false,
+      registryHandle: definition.spec.registerAs,
+      healthUrl: '',
+      endpoint: '',
+      files: [],
+      warnings,
+      blockers,
+    };
+  }
 }
 
 function normalizeCompileInput(input: string | CompileHoloLlamaInput): Required<CompileHoloLlamaInput> {
@@ -327,6 +432,11 @@ function normalizeCompileInput(input: string | CompileHoloLlamaInput): Required<
 
 function defined<T extends Record<string, unknown>>(value: T): Partial<T> {
   return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined)) as Partial<T>;
+}
+
+function readRegistryString(registry: Record<string, unknown>, key: string): string {
+  const value = registry[key];
+  return typeof value === 'string' ? value : '';
 }
 
 function quote(value: string): string {
