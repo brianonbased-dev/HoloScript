@@ -65,12 +65,37 @@ describe('hololand-mcp-tools', () => {
       schema: 'cael.world_foundation_model.v1',
       videoReconstructionSessionId: 'sess-world-video',
     });
+    expect(result.structuredAssetGraph).toMatchObject({
+      schema: 'holoscript.structured_asset_graph.v1',
+      benchmarkBoundary: 'marble_gap_sovereign_structured_asset_graph',
+    });
+    expect(
+      (result.structuredAssetGraph as Record<string, unknown>).occlusionCompletions as string[]
+    ).toContain('occluded_volume_completion');
     expect(result.videoReconstruction).toMatchObject({ sessionId: 'sess-world-video' });
     expect(result.holoCode).toEqual(expect.stringContaining('@world_foundation_model'));
+    expect(result.holoCode).toEqual(expect.stringContaining('@structured_asset_graph'));
     expect(result.holoCode).toEqual(expect.stringContaining('@collider'));
     expect(vi.mocked(mcpStartReconstructFromVideo)).toHaveBeenCalledWith('file:///dock.mp4', {
       ingestVideo: false,
     });
+  });
+
+  it('generate_world returns a sovereign structured asset graph for image seeds', async () => {
+    const result = (await handleHololandMcpTool('generate_world', {
+      prompt: 'turn this marble-like city image into a navigable world',
+      input_image: 'file:///city.png',
+      navEnabled: true,
+      interactiveMode: true,
+    })) as Record<string, unknown>;
+
+    expect(result.success).toBe(true);
+    expect(result.inputModalities).toEqual(['text', 'image']);
+    expect(result.structuredAssetGraph).toMatchObject({
+      schema: 'holoscript.structured_asset_graph.v1',
+      benchmarkBoundary: 'marble_gap_sovereign_structured_asset_graph',
+    });
+    expect(result.holoCode).toEqual(expect.stringContaining('@structured_asset_node'));
   });
 
   // ---------------------------------------------------------------------------

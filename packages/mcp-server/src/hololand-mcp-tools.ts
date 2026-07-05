@@ -183,13 +183,7 @@ async function gateHololandArtifact(
 // =============================================================================
 
 /** Resource kinds that the mutation authority gate covers. */
-const MUTATION_RESOURCE_KINDS = new Set([
-  'world',
-  'shard',
-  'zone',
-  'place',
-  'location_quest',
-]);
+const MUTATION_RESOURCE_KINDS = new Set(['world', 'shard', 'zone', 'place', 'location_quest']);
 
 /** Allowed mutation operations. */
 type MutationOp = 'create' | 'update' | 'delete';
@@ -243,7 +237,11 @@ async function checkMutationAuthority(
   args: Record<string, unknown>,
   resourceId: string,
   _artifact?: unknown
-): Promise<null | { error: string; authority_denied: true; receipt: Partial<MutationAuthorityReceipt> }> {
+): Promise<null | {
+  error: string;
+  authority_denied: true;
+  receipt: Partial<MutationAuthorityReceipt>;
+}> {
   // ── 1. Identify ─────────────────────────────────────────────────────────────
   // requesterId is advisory at the handler level — the transport layer is the
   // authoritative authentication point. Extract from args when provided; default
@@ -325,7 +323,7 @@ export const hololandMcpTools: Tool[] = [
   {
     name: 'generate_world_from_prompt',
     description:
-      'Generate a physics-bearing .holo scene graph from unified text, image, and video inputs. Returns semantic nodes, inline collider meshes, a world_foundation_model CAEL provenance receipt, and optional HoloMap video reconstruction evidence.',
+      'Generate a physics-bearing .holo scene graph from unified text, image, and video inputs. Returns semantic nodes, a sovereign structured asset graph, inline collider meshes, a world_foundation_model CAEL provenance receipt, and optional HoloMap video reconstruction evidence.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -384,10 +382,10 @@ export const hololandMcpTools: Tool[] = [
   {
     name: 'generate_world',
     description:
-      'Generate a persistent, navigable 3D world using the native HoloScript sovereign-3d engine (Brittney v43+). ' +
+      'Generate a persistent, navigable 3D world using the native HoloScript sovereign-3d engine (Brittney v43+) or structured .holo fallback. ' +
       'Supports neural_field, 3dgs, mesh, or both output formats. ' +
       'Optional navmesh generation, multi-view photogrammetry, physics-interactive mode, and reproducible seed. ' +
-      'Returns asset URL, optional navmesh/point-cloud URLs, spatial metadata, and a ready-to-run .holo composition.',
+      'Returns asset URL, optional navmesh/point-cloud URLs, semantic nodes, a sovereign structured asset graph, spatial metadata, and a ready-to-run .holo composition.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1806,11 +1804,21 @@ export function clearHololandRegistries(): void {
 
 /** 16 mutation tools that require HoloGate authority checks. */
 const MUTATION_TOOLS = new Set([
-  'create_world', 'update_world', 'delete_world',
-  'create_shard', 'update_shard', 'delete_shard',
-  'create_zone', 'update_zone', 'delete_zone',
-  'create_place', 'update_place', 'delete_place',
-  'create_location_quest', 'update_location_quest', 'delete_location_quest',
+  'create_world',
+  'update_world',
+  'delete_world',
+  'create_shard',
+  'update_shard',
+  'delete_shard',
+  'create_zone',
+  'update_zone',
+  'delete_zone',
+  'create_place',
+  'update_place',
+  'delete_place',
+  'create_location_quest',
+  'update_location_quest',
+  'delete_location_quest',
   'create_temporal_snapshot',
 ]);
 
@@ -2084,7 +2092,10 @@ function collectWorldPromptInputs(args: Record<string, unknown>): Array<{
   return inputs;
 }
 
-function resolveWorldPrompt(args: Record<string, unknown>, inputs: readonly { text?: string }[]): string {
+function resolveWorldPrompt(
+  args: Record<string, unknown>,
+  inputs: readonly { text?: string }[]
+): string {
   if (typeof args.prompt === 'string' && args.prompt.trim()) return args.prompt.trim();
   const textInput = inputs.find((input) => input.text?.trim());
   return textInput?.text?.trim() ?? '';
@@ -2104,7 +2115,10 @@ async function maybeOpenVideoReconstruction(
     }
   | undefined
 > {
-  if (isPlainRecord(args.videoReconstruction) && typeof args.videoReconstruction.sessionId === 'string') {
+  if (
+    isPlainRecord(args.videoReconstruction) &&
+    typeof args.videoReconstruction.sessionId === 'string'
+  ) {
     return {
       sessionId: args.videoReconstruction.sessionId,
       ...(typeof args.videoReconstruction.replayFingerprint === 'string'
@@ -2164,6 +2178,7 @@ async function handleGenerateWorldFromPrompt(args: Record<string, unknown>): Pro
     inputModalities: result.inputModalities,
     semanticNodes: result.semanticNodes,
     colliderMeshes: result.colliderMeshes,
+    structuredAssetGraph: result.structuredAssetGraph,
     provenance: result.provenance,
     ...(result.videoReconstruction ? { videoReconstruction: result.videoReconstruction } : {}),
     ...(result.generationId ? { generationId: result.generationId } : {}),
@@ -2176,17 +2191,38 @@ async function handleGenerateWorldFromPrompt(args: Record<string, unknown>): Pro
 }
 
 async function handleGenerateWorld(args: Record<string, unknown>): Promise<unknown> {
-  const { generateWorldNative } = await import('./generators');
+  const { generateWorldFromPrompt } = await import('./generators');
   const prompt = args.prompt as string;
   if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
     return { error: 'prompt is required and must be a non-empty string' };
   }
 
-  const result = await generateWorldNative(prompt, {
+  const inputs: Array<{
+    type: 'image';
+    url?: string;
+    data?: string;
+    label: string;
+  }> = [];
+  const addImageInput = (source: unknown, label: string): void => {
+    if (typeof source !== 'string' || !source.trim()) return;
+    const value = source.trim();
+    const isUrl = /^(https?:|file:|data:)/i.test(value);
+    inputs.push(
+      isUrl ? { type: 'image', url: value, label } : { type: 'image', data: value, label }
+    );
+  };
+
+  addImageInput(args.input_image, 'input_image');
+  if (Array.isArray(args.input_images)) {
+    args.input_images.forEach((source, index) =>
+      addImageInput(source, `input_images_${index + 1}`)
+    );
+  }
+
+  const result = await generateWorldFromPrompt(prompt, {
+    inputs,
     format: args.format as 'mesh' | '3dgs' | 'both' | 'neural_field' | undefined,
     quality: args.quality as 'low' | 'medium' | 'high' | 'ultra' | undefined,
-    input_image: args.input_image as string | undefined,
-    input_images: (args.input_images as string[]) ?? undefined,
     navEnabled: args.navEnabled as boolean | undefined,
     interactiveMode: args.interactiveMode as boolean | undefined,
     seed: args.seed as number | undefined,
@@ -2198,6 +2234,11 @@ async function handleGenerateWorld(args: Record<string, unknown>): Promise<unkno
     ...(result.generationId ? { generationId: result.generationId } : {}),
     ...(result.assetUrl ? { assetUrl: result.assetUrl } : {}),
     format: result.format,
+    inputModalities: result.inputModalities,
+    semanticNodes: result.semanticNodes,
+    colliderMeshes: result.colliderMeshes,
+    structuredAssetGraph: result.structuredAssetGraph,
+    provenance: result.provenance,
     ...(result.navmeshUrl ? { navmeshUrl: result.navmeshUrl } : {}),
     ...(result.pointCloudUrl ? { pointCloudUrl: result.pointCloudUrl } : {}),
     metrics: result.metrics,
@@ -2962,7 +3003,11 @@ async function handleHololandCreateGeoAnchor(args: Record<string, unknown>): Pro
     lng: anchor.lng,
     radius: anchor.radius,
     persistent: anchor.persistent,
-    storage: anchor.persistent ? (geoAnchorStore.usesPostgres ? 'postgres' : 'memory') : 'ephemeral',
+    storage: anchor.persistent
+      ? geoAnchorStore.usesPostgres
+        ? 'postgres'
+        : 'memory'
+      : 'ephemeral',
     safety: anchor.safety,
     boundTo: placeId ? { placeId } : zoneId ? { zoneId } : null,
   };
@@ -2979,7 +3024,11 @@ async function handleHololandGetGeoAnchor(args: Record<string, unknown>): Promis
     success: true,
     anchorId,
     anchor,
-    storage: anchor.persistent ? (geoAnchorStore.usesPostgres ? 'postgres' : 'memory') : 'ephemeral',
+    storage: anchor.persistent
+      ? geoAnchorStore.usesPostgres
+        ? 'postgres'
+        : 'memory'
+      : 'ephemeral',
   };
 }
 

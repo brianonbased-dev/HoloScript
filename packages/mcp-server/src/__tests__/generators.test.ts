@@ -450,7 +450,24 @@ describe('generateWorldFromPrompt', () => {
     expect(result.provenance.videoReconstructionSessionId).toBe('sess-video');
     expect(result.semanticNodes.some((node) => node.kind === 'video_reconstruction')).toBe(true);
     expect(result.colliderMeshes.length).toBeGreaterThanOrEqual(3);
+    expect(result.structuredAssetGraph.schema).toBe('holoscript.structured_asset_graph.v1');
+    expect(result.structuredAssetGraph.benchmarkBoundary).toBe(
+      'marble_gap_sovereign_structured_asset_graph'
+    );
+    expect(
+      result.structuredAssetGraph.nodes.some((node) => node.kind === 'semantic_observation')
+    ).toBe(true);
+    expect(
+      result.structuredAssetGraph.nodes.some((node) => node.kind === 'occluder_completion')
+    ).toBe(true);
+    expect(result.structuredAssetGraph.occlusionCompletions).toContain(
+      'occluded_volume_completion'
+    );
+    expect(result.structuredAssetGraph.textureMapRefs).toContain('file:///scan.png');
+    expect(result.provenance.structuredAssetGraphHash).toBe(result.structuredAssetGraph.graphHash);
     expect(result.holoCode).toContain('@world_foundation_model');
+    expect(result.holoCode).toContain('@structured_asset_graph');
+    expect(result.holoCode).toContain('@structured_asset_node');
     expect(result.holoCode).toContain('@collider');
     expect(result.holoCode).toContain('VideoReconstructionBounds');
   });

@@ -852,6 +852,67 @@ export interface WorldColliderMesh {
   source: 'semantic_node' | 'video_reconstruction' | 'navmesh';
 }
 
+export type WorldAssetGraphNodeKind =
+  | 'terrain'
+  | 'landmark'
+  | 'surface'
+  | 'semantic_observation'
+  | 'occluder_completion'
+  | 'navigation_path'
+  | 'agent_start'
+  | 'video_reconstruction';
+
+export type WorldAssetGraphProvenance = 'observed' | 'inferred' | 'completed' | 'generated';
+
+export interface WorldAssetGraphNode {
+  id: string;
+  name: string;
+  kind: WorldAssetGraphNodeKind;
+  geometry: 'plane' | 'box' | 'capsule' | 'mesh';
+  position: [number, number, number];
+  scale: [number, number, number];
+  material: string;
+  provenance: WorldAssetGraphProvenance;
+  confidence: number;
+  sourceInputLabels: string[];
+  sourceNodeIds: string[];
+  traits: string[];
+  navigationRole?: 'walkable' | 'spawn' | 'target' | 'path';
+  colliderRole?: 'static' | 'dynamic' | 'navmesh';
+}
+
+export interface WorldAssetGraphEdge {
+  id: string;
+  from: string;
+  to: string;
+  relationship:
+    | 'supports'
+    | 'blocks'
+    | 'leads_to'
+    | 'occludes'
+    | 'completes'
+    | 'anchors'
+    | 'observes';
+  confidence: number;
+}
+
+export interface WorldStructuredAssetGraph {
+  schema: 'holoscript.structured_asset_graph.v1';
+  graphId: string;
+  graphHash: string;
+  sourcePromptHash: string;
+  inputModalities: WorldPromptInputType[];
+  nodes: WorldAssetGraphNode[];
+  edges: WorldAssetGraphEdge[];
+  navigationPath: [number, number, number][];
+  colliderMeshIds: string[];
+  occlusionCompletions: string[];
+  materialAtlas: Record<string, string>;
+  textureMapRefs: string[];
+  matrixRefs: string[];
+  benchmarkBoundary: 'marble_gap_sovereign_structured_asset_graph';
+}
+
 export interface WorldFoundationModelProvenance {
   schema: 'cael.world_foundation_model.v1';
   synthesisId: string;
@@ -865,6 +926,9 @@ export interface WorldFoundationModelProvenance {
   videoReconstructionSessionId?: string;
   replayFingerprint?: string;
   sourceAssetUrls: string[];
+  structuredAssetGraphHash?: string;
+  structuredAssetGraphNodeCount?: number;
+  occlusionCompletionCount?: number;
   receiptHash: string;
 }
 
@@ -880,6 +944,7 @@ export interface WorldPromptGenerationResult extends NativeWorldGenerationResult
   inputModalities: WorldPromptInputType[];
   semanticNodes: WorldSemanticNode[];
   colliderMeshes: WorldColliderMesh[];
+  structuredAssetGraph: WorldStructuredAssetGraph;
   provenance: WorldFoundationModelProvenance;
   videoReconstruction?: VideoReconstructionSummary;
 }
@@ -941,7 +1006,9 @@ export async function generateWorldNative(
         ...(options.input_image ? { input_image: options.input_image } : {}),
         ...(options.input_images?.length ? { input_images: options.input_images } : {}),
         ...(options.navEnabled !== undefined ? { navEnabled: options.navEnabled } : {}),
-        ...(options.interactiveMode !== undefined ? { interactiveMode: options.interactiveMode } : {}),
+        ...(options.interactiveMode !== undefined
+          ? { interactiveMode: options.interactiveMode }
+          : {}),
         ...(options.seed !== undefined ? { seed: options.seed } : {}),
       });
 
@@ -1074,7 +1141,11 @@ export async function generateWorldFromPrompt(
     .filter((input) => input.type === 'image')
     .map((input) => input.data ?? input.url)
     .filter((source): source is string => typeof source === 'string' && source.trim().length > 0);
-  const foundationPrompt = composeWorldFoundationPrompt(prompt, inputs, options.videoReconstruction);
+  const foundationPrompt = composeWorldFoundationPrompt(
+    prompt,
+    inputs,
+    options.videoReconstruction
+  );
 
   const nativeResult = await generateWorldNative(foundationPrompt, {
     format: options.format,
@@ -1088,12 +1159,20 @@ export async function generateWorldFromPrompt(
 
   const semanticNodes = deriveWorldSemanticNodes(prompt, options.videoReconstruction);
   const colliderMeshes = deriveWorldColliderMeshes(semanticNodes, options.videoReconstruction);
+  const structuredAssetGraph = deriveStructuredAssetGraph({
+    prompt,
+    inputs,
+    semanticNodes,
+    colliderMeshes,
+    videoReconstruction: options.videoReconstruction,
+  });
   const provenance = buildWorldFoundationModelProvenance({
     prompt,
     inputs,
     nativeResult,
     semanticNodes,
     colliderMeshes,
+    structuredAssetGraph,
     videoReconstruction: options.videoReconstruction,
     provider: options.provider,
     model: options.model,
@@ -1104,6 +1183,7 @@ export async function generateWorldFromPrompt(
     provenance,
     semanticNodes,
     colliderMeshes,
+    structuredAssetGraph,
   });
 
   return {
@@ -1112,6 +1192,7 @@ export async function generateWorldFromPrompt(
     inputModalities: modalities,
     semanticNodes,
     colliderMeshes,
+    structuredAssetGraph,
     provenance,
     ...(options.videoReconstruction ? { videoReconstruction: options.videoReconstruction } : {}),
   };
@@ -1241,12 +1322,170 @@ function deriveWorldColliderMeshes(
   return colliders;
 }
 
+function deriveStructuredAssetGraph(input: {
+  prompt: string;
+  inputs: readonly WorldPromptInput[];
+  semanticNodes: readonly WorldSemanticNode[];
+  colliderMeshes: readonly WorldColliderMesh[];
+  videoReconstruction?: VideoReconstructionSummary;
+}): WorldStructuredAssetGraph {
+  const inputModalities = [
+    ...new Set(input.inputs.map((worldInput) => worldInput.type)),
+  ] as WorldPromptInputType[];
+  const inputLabels = input.inputs.map(describeWorldPromptInput);
+  const graphId = `sag_${stableHash(
+    JSON.stringify({
+      prompt: input.prompt,
+      inputs: inputLabels,
+      replay: input.videoReconstruction?.replayFingerprint,
+    })
+  )}`;
+
+  const nodes: WorldAssetGraphNode[] = input.semanticNodes.map((node) => ({
+    id: node.id,
+    name: node.name,
+    kind: mapSemanticNodeToAssetKind(node.kind),
+    geometry: node.geometry,
+    position: node.position,
+    scale: node.scale,
+    material: node.material,
+    provenance:
+      node.kind === 'terrain'
+        ? 'generated'
+        : node.kind === 'agent_start'
+          ? 'generated'
+          : node.kind === 'video_reconstruction'
+            ? 'observed'
+            : 'inferred',
+    confidence:
+      node.kind === 'video_reconstruction' ? 0.92 : node.kind === 'agent_start' ? 1 : 0.82,
+    sourceInputLabels: inputLabels,
+    sourceNodeIds: [node.id],
+    traits: traitsForSemanticNode(node),
+    ...(node.kind === 'terrain' ? { navigationRole: 'walkable' as const } : {}),
+    ...(node.kind === 'agent_start' ? { navigationRole: 'spawn' as const } : {}),
+    ...(node.kind === 'landmark' ? { navigationRole: 'target' as const } : {}),
+    ...(node.kind === 'video_reconstruction' ? { colliderRole: 'static' as const } : {}),
+    ...(node.kind !== 'agent_start' && node.kind !== 'video_reconstruction'
+      ? { colliderRole: 'static' as const }
+      : {}),
+  }));
+
+  const imageInputs = input.inputs.filter((worldInput) => worldInput.type === 'image');
+  imageInputs.forEach((worldInput, index) => {
+    nodes.push({
+      id: `image_observation_${index + 1}`,
+      name: `ImageObservation${index + 1}`,
+      kind: 'semantic_observation',
+      geometry: 'plane',
+      position: [-6 + index * 2.5, 2.2, -3.5],
+      scale: [2.2, 1.25, 0.04],
+      material: 'source_image_semantic_observation',
+      provenance: 'observed',
+      confidence: 0.88,
+      sourceInputLabels: [describeWorldPromptInput(worldInput, index)],
+      sourceNodeIds: [],
+      traits: ['@semantic_input', '@image_observation', '@structured_asset_seed'],
+    });
+  });
+
+  const hasOcclusionEvidence = imageInputs.length > 0 || Boolean(input.videoReconstruction);
+  if (hasOcclusionEvidence) {
+    nodes.push({
+      id: 'occluded_volume_completion',
+      name: 'OccludedVolumeCompletion',
+      kind: 'occluder_completion',
+      geometry: 'box',
+      position: [0, 1.35, -8.5],
+      scale: [5.5, 2.7, 1.5],
+      material: 'completed_backside_geometry',
+      provenance: 'completed',
+      confidence: input.videoReconstruction ? 0.72 : 0.64,
+      sourceInputLabels: inputLabels,
+      sourceNodeIds: input.semanticNodes.map((node) => node.id),
+      traits: ['@occlusion_completed', '@collidable', '@world_locked'],
+      colliderRole: 'static',
+    });
+  }
+
+  const terrain = input.semanticNodes.find((node) => node.kind === 'terrain');
+  const landmark = input.semanticNodes.find((node) => node.kind === 'landmark');
+  const agentStart = input.semanticNodes.find((node) => node.kind === 'agent_start');
+  const edges: WorldAssetGraphEdge[] = [];
+  const addEdge = (
+    from: string | undefined,
+    to: string | undefined,
+    relationship: WorldAssetGraphEdge['relationship'],
+    confidence: number
+  ): void => {
+    if (!from || !to) return;
+    edges.push({
+      id: `edge_${edges.length + 1}_${relationship}`,
+      from,
+      to,
+      relationship,
+      confidence,
+    });
+  };
+
+  addEdge(terrain?.id, landmark?.id, 'supports', 0.86);
+  addEdge(terrain?.id, agentStart?.id, 'supports', 0.94);
+  addEdge(agentStart?.id, landmark?.id, 'leads_to', 0.81);
+
+  for (const observation of nodes.filter((node) => node.kind === 'semantic_observation')) {
+    addEdge(observation.id, landmark?.id, 'observes', 0.78);
+    addEdge(observation.id, 'occluded_volume_completion', 'anchors', 0.66);
+  }
+
+  if (nodes.some((node) => node.id === 'occluded_volume_completion')) {
+    addEdge(landmark?.id, 'occluded_volume_completion', 'occludes', 0.62);
+    addEdge('occluded_volume_completion', landmark?.id, 'completes', 0.7);
+  }
+
+  if (input.videoReconstruction) {
+    addEdge('video_reconstruction_bounds', landmark?.id, 'anchors', 0.84);
+    addEdge('video_reconstruction_bounds', 'occluded_volume_completion', 'anchors', 0.74);
+  }
+
+  const navigationPath: [number, number, number][] = [
+    agentStart?.position ?? [0, 1.7, 4],
+    [0, 1.2, 0],
+    landmark?.position ?? [0, 1.5, -6],
+  ];
+
+  const unsigned = {
+    schema: 'holoscript.structured_asset_graph.v1' as const,
+    graphId,
+    sourcePromptHash: stableHash(input.prompt),
+    inputModalities,
+    nodes,
+    edges,
+    navigationPath,
+    colliderMeshIds: input.colliderMeshes.map((collider) => collider.id),
+    occlusionCompletions: nodes
+      .filter((node) => node.provenance === 'completed')
+      .map((node) => node.id),
+    materialAtlas: buildWorldAssetMaterialAtlas(nodes),
+    textureMapRefs: buildTextureMapRefs(input.inputs),
+    matrixRefs: nodes.map(
+      (node) => `${node.id}:position=${formatVec(node.position)};scale=${formatVec(node.scale)}`
+    ),
+    benchmarkBoundary: 'marble_gap_sovereign_structured_asset_graph' as const,
+  };
+
+  return {
+    ...unsigned,
+    graphHash: stableHash(JSON.stringify(unsigned)),
+  };
+}
+
 function buildWorldFoundationModelProvenance(input: {
   prompt: string;
   inputs: readonly WorldPromptInput[];
   nativeResult: NativeWorldGenerationResult;
   semanticNodes: readonly WorldSemanticNode[];
   colliderMeshes: readonly WorldColliderMesh[];
+  structuredAssetGraph?: WorldStructuredAssetGraph;
   videoReconstruction?: VideoReconstructionSummary;
   provider?: string;
   model?: string;
@@ -1273,7 +1512,7 @@ function buildWorldFoundationModelProvenance(input: {
     )}`;
 
   const unsigned = {
-    schema: 'cael.world_foundation_model.v1',
+    schema: 'cael.world_foundation_model.v1' as const,
     synthesisId,
     provider: input.provider ?? input.nativeResult.source,
     model: input.model ?? defaultWorldFoundationModel(input.nativeResult.source),
@@ -1285,6 +1524,9 @@ function buildWorldFoundationModelProvenance(input: {
     videoReconstructionSessionId: input.videoReconstruction?.sessionId,
     replayFingerprint: input.videoReconstruction?.replayFingerprint,
     sourceAssetUrls,
+    structuredAssetGraphHash: input.structuredAssetGraph?.graphHash,
+    structuredAssetGraphNodeCount: input.structuredAssetGraph?.nodes.length,
+    occlusionCompletionCount: input.structuredAssetGraph?.occlusionCompletions.length,
   };
 
   return {
@@ -1299,12 +1541,21 @@ function attachWorldFoundationSceneGraph(
     provenance: WorldFoundationModelProvenance;
     semanticNodes: readonly WorldSemanticNode[];
     colliderMeshes: readonly WorldColliderMesh[];
+    structuredAssetGraph?: WorldStructuredAssetGraph;
   }
 ): string {
   const blocks = [
     renderWorldFoundationProvenanceObject(input.provenance),
+    ...(input.structuredAssetGraph
+      ? [renderStructuredAssetGraphObject(input.structuredAssetGraph)]
+      : []),
     ...input.semanticNodes.map(renderSemanticNodeObject),
     ...input.colliderMeshes.map(renderColliderObject),
+    ...(input.structuredAssetGraph
+      ? input.structuredAssetGraph.nodes.map((node) =>
+          renderAssetGraphNodeObject(node, input.structuredAssetGraph?.graphId ?? '')
+        )
+      : []),
   ];
   const trimmed = holoCode.trim();
   const rootClose = trimmed.lastIndexOf('}');
@@ -1328,8 +1579,15 @@ function renderWorldFoundationProvenanceObject(provenance: WorldFoundationModelP
     `      semantic_node_count: ${provenance.semanticNodeCount}`,
     `      collider_count: ${provenance.colliderCount}`,
     `      source_asset_urls: ${renderStringList(provenance.sourceAssetUrls)}`,
-    `      receipt_hash: "${provenance.receiptHash}"`,
   ];
+  if (provenance.structuredAssetGraphHash) {
+    lines.push(
+      `      structured_asset_graph_hash: "${provenance.structuredAssetGraphHash}"`,
+      `      structured_asset_graph_node_count: ${provenance.structuredAssetGraphNodeCount ?? 0}`,
+      `      occlusion_completion_count: ${provenance.occlusionCompletionCount ?? 0}`
+    );
+  }
+  lines.push(`      receipt_hash: "${provenance.receiptHash}"`);
   if (provenance.videoReconstructionSessionId) {
     lines.push(
       `      video_reconstruction_session_id: "${escapeHoloString(provenance.videoReconstructionSessionId)}"`
@@ -1341,6 +1599,52 @@ function renderWorldFoundationProvenanceObject(provenance: WorldFoundationModelP
   lines.push('    }');
   lines.push('  }');
   return lines.join('\n');
+}
+
+function renderStructuredAssetGraphObject(graph: WorldStructuredAssetGraph): string {
+  const materialAtlas = Object.entries(graph.materialAtlas).map(
+    ([material, ref]) => `${material}:${ref}`
+  );
+  return `  object "StructuredAssetGraph" {
+    @structured_asset_graph {
+      schema: "${graph.schema}"
+      graph_id: "${graph.graphId}"
+      graph_hash: "${graph.graphHash}"
+      source_prompt_hash: "${graph.sourcePromptHash}"
+      benchmark_boundary: "${graph.benchmarkBoundary}"
+      input_modalities: ${renderStringList(graph.inputModalities)}
+      node_count: ${graph.nodes.length}
+      edge_count: ${graph.edges.length}
+      collider_mesh_ids: ${renderStringList(graph.colliderMeshIds)}
+      occlusion_completions: ${renderStringList(graph.occlusionCompletions)}
+      navigation_path: ${renderStringList(graph.navigationPath.map(formatVec))}
+      material_atlas: ${renderStringList(materialAtlas)}
+      texture_map_refs: ${renderStringList(graph.textureMapRefs)}
+      matrix_refs: ${renderStringList(graph.matrixRefs)}
+    }
+  }`;
+}
+
+function renderAssetGraphNodeObject(node: WorldAssetGraphNode, graphId: string): string {
+  return `  object "${toPascalCase(`asset_graph_${node.id}`)}" {
+    geometry: "${node.geometry}"
+    position: ${formatVec(node.position)}
+    scale: ${formatVec(node.scale)}
+    @structured_asset_node {
+      graph_id: "${graphId}"
+      node_id: "${node.id}"
+      kind: "${node.kind}"
+      provenance: "${node.provenance}"
+      confidence: ${Number(node.confidence.toFixed(3))}
+      material: "${node.material}"
+      source_inputs: ${renderStringList(node.sourceInputLabels)}
+      source_nodes: ${renderStringList(node.sourceNodeIds)}
+      traits: ${renderStringList(node.traits)}
+      navigation_role: "${node.navigationRole ?? 'none'}"
+      collider_role: "${node.colliderRole ?? 'none'}"
+    }
+    @material { preset: "${node.material}" }
+  }`;
 }
 
 function renderSemanticNodeObject(node: WorldSemanticNode): string {
@@ -1379,6 +1683,48 @@ function defaultWorldFoundationModel(source: NativeWorldGenerationResult['source
   if (source === 'sovereign-3d') return 'sovereign-3d-world-foundation';
   if (source === 'text-llm') return 'text-to-world-semantic-synthesis';
   return 'heuristic-world-foundation-fallback';
+}
+
+function describeWorldPromptInput(input: WorldPromptInput, index = 0): string {
+  if (input.label?.trim()) return input.label.trim();
+  if (input.url?.trim()) return input.url.trim();
+  if (input.type === 'text' && input.text?.trim()) return 'prompt';
+  if (input.data?.trim()) return `${input.type}_embedded_${stableHash(input.data.trim())}`;
+  return `${input.type}_${index + 1}`;
+}
+
+function mapSemanticNodeToAssetKind(kind: WorldSemanticNode['kind']): WorldAssetGraphNodeKind {
+  if (kind === 'video_reconstruction') return 'video_reconstruction';
+  if (kind === 'agent_start') return 'agent_start';
+  if (kind === 'terrain') return 'terrain';
+  return 'landmark';
+}
+
+function traitsForSemanticNode(node: WorldSemanticNode): string[] {
+  if (node.kind === 'terrain') return ['@walkable', '@collidable', '@world_locked'];
+  if (node.kind === 'agent_start') return ['@spawn_anchor', '@tracked'];
+  if (node.kind === 'video_reconstruction') return ['@holomap_evidence', '@collidable'];
+  return ['@semantic_landmark', '@collidable', '@anchor'];
+}
+
+function buildWorldAssetMaterialAtlas(
+  nodes: readonly Pick<WorldAssetGraphNode, 'material'>[]
+): Record<string, string> {
+  const atlas: Record<string, string> = {};
+  for (const material of [...new Set(nodes.map((node) => node.material))].sort()) {
+    atlas[material] = `materials/generated/${material}.mat`;
+  }
+  return atlas;
+}
+
+function buildTextureMapRefs(inputs: readonly WorldPromptInput[]): string[] {
+  return inputs
+    .filter((input) => input.type === 'image')
+    .map((input, index) => {
+      if (input.url?.trim()) return input.url.trim();
+      if (input.data?.trim()) return `embedded_image_${index + 1}:${stableHash(input.data.trim())}`;
+      return input.label?.trim() ?? `image_${index + 1}`;
+    });
 }
 
 function deriveLandmarkName(prompt: string): string {
