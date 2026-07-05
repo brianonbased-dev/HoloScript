@@ -103,6 +103,10 @@ export interface KnowledgeInsight {
   domain: string;
   confidence: number;
   source: string;
+  /** uAA2 section letter (F|D|W|I|P|S|R|G) — preserves section identity that the 3-value `type` collapses. */
+  section?: string;
+  /** Free-form tags for filtering and clustering. */
+  tags?: string[];
 }
 
 // ── Team ──

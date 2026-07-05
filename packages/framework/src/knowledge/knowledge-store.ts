@@ -191,6 +191,9 @@ export class KnowledgeStore {
         domain: e.domain,
         confidence: e.confidence,
         source: e.authorAgent,
+        author_agent: e.authorAgent,
+        section: e.section,
+        tags: e.tags ?? [],
         taskId: e.taskId,
         cycleId: e.cycleId,
         verifierId: e.verifierId,
@@ -253,6 +256,9 @@ export class KnowledgeStore {
               domain: entry.domain,
               confidence: entry.confidence,
               source: entry.authorAgent,
+              author_agent: entry.authorAgent,
+              section: entry.section,
+              tags: entry.tags ?? [],
               taskId: entry.taskId,
               cycleId: entry.cycleId,
               verifierId: entry.verifierId,
@@ -395,6 +401,12 @@ export class KnowledgeStore {
         ? String(e.provenanceHash)
         : meta.provenanceHash
           ? String(meta.provenanceHash)
+          : undefined,
+      section: e.section ? String(e.section) : meta.section ? String(meta.section) : undefined,
+      tags: Array.isArray(e.tags)
+        ? (e.tags as unknown[]).map(String)
+        : Array.isArray(meta.tags)
+          ? (meta.tags as unknown[]).map(String)
           : undefined,
     };
   }

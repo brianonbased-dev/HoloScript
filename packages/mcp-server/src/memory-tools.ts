@@ -102,7 +102,8 @@ function formatEntry(entry: StoredEntry): Record<string, unknown> {
     confidence: entry.confidence,
     source: entry.source,
     authorAgent: entry.authorAgent,
-    tags: (entry as unknown as { tags?: string[] }).tags ?? [],
+    section: entry.section,
+    tags: entry.tags ?? [],
     queryCount: entry.queryCount,
     reuseCount: entry.reuseCount,
     createdAt: entry.createdAt,
@@ -348,7 +349,13 @@ async function handleMemoryStore(args: Record<string, unknown>): Promise<unknown
     typeof args.confidence === 'number' ? Math.max(0, Math.min(1, args.confidence)) : 0.8;
 
   const source = typeof args.source === 'string' ? args.source : 'mcp';
-  const authorAgent = typeof args.authorAgent === 'string' ? args.authorAgent : 'mcp';
+  // Identity-keyed authorship (de-silo P0): explicit arg → per-surface seat handle → 'mcp'.
+  const authorAgent =
+    typeof args.authorAgent === 'string' && args.authorAgent.trim()
+      ? args.authorAgent
+      : process.env.HOLOMESH_AGENT_NAME || 'mcp';
+  // Preserve the uAA2 section letter (W/P/G/F/D) that the 3-value insight type collapses.
+  const section = typeof args.type === 'string' ? args.type.toUpperCase() : 'W';
   const syncRemote = args.syncRemote === true;
 
   const insight: KnowledgeInsight = {
@@ -357,6 +364,8 @@ async function handleMemoryStore(args: Record<string, unknown>): Promise<unknown
     domain,
     confidence,
     source,
+    section,
+    tags,
   };
 
   const store = getStore();
