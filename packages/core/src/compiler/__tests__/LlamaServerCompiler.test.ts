@@ -9,6 +9,9 @@ import type {
 } from '../../parser/HoloCompositionTypes';
 
 const token = createTestCompilerToken();
+const patchedWindowsExecutable =
+  'C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build\\bin\\llama-server.exe';
+const patchedWindowsBinDir = 'C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build\\bin';
 
 function llamaTrait(config: Record<string, HoloValue>): HoloObjectTrait {
   return {
@@ -59,15 +62,15 @@ const faraConfig: Record<string, HoloValue> = {
   image_max_tokens: 1536,
   parallel: 1,
   metrics: true,
-  executable: 'llama-server.exe',
+  executable: patchedWindowsExecutable,
   cuda_path: 'C:\\Users\\josep\\AppData\\Local\\Programs\\Ollama\\lib\\ollama\\cuda_v12',
-  llama_bin_dir: 'C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\bin-release',
+  llama_bin_dir: patchedWindowsBinDir,
   node: 'laptop-rtx3060',
   register_as: 'laptop-fara-7b-llama',
 };
 
 const expectedFaraCommand =
-  'llama-server.exe -m .scratch\\llama-cpp-models\\fara-7b-q4-k-m.gguf ' +
+  `${patchedWindowsExecutable} -m .scratch\\llama-cpp-models\\fara-7b-q4-k-m.gguf ` +
   '--mmproj .scratch\\llama-cpp-models\\fara-7b-mmproj.gguf --host 127.0.0.1 ' +
   '--port 18080 -c 4096 -ngl 12 --fit on --image-min-tokens 1024 ' +
   '--image-max-tokens 1536 --parallel 1 --metrics';
@@ -83,9 +86,23 @@ describe('LlamaServerCompiler', () => {
     expect(bundle.dryRun).toBe(true);
     expect(bundle.launch.command).toBe(expectedFaraCommand);
     expect(bundle.launch.powershell).toContain(
-      "$env:PATH = 'C:\\Users\\josep\\AppData\\Local\\Programs\\Ollama\\lib\\ollama\\cuda_v12;C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\bin-release;' + $env:PATH"
+      "$env:PATH = 'C:\\Users\\josep\\AppData\\Local\\Programs\\Ollama\\lib\\ollama\\cuda_v12;C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build\\bin;' + $env:PATH"
     );
     expect(bundle.launch.powershell).toContain(expectedFaraCommand);
+  });
+
+  it('rejects stock or prebuilt llama-server binaries', () => {
+    const compiler = new LlamaServerCompiler();
+
+    expect(() =>
+      compiler.compile(composition({ ...faraConfig, executable: 'llama-server.exe' }), token)
+    ).toThrow(/HOLO-patched llama\.cpp build binary/);
+    expect(() =>
+      compiler.compile(
+        composition({ ...faraConfig, executable: '.docker\\bin\\inference\\llama-server.exe' }),
+        token
+      )
+    ).toThrow(/prebuilt \.docker\/bin\/inference/);
   });
 
   it('emits health, service, and sovereign-devices registry artifacts', () => {
@@ -94,7 +111,9 @@ describe('LlamaServerCompiler', () => {
 
     expect(files['launch-llama-server.ps1']).toContain(expectedFaraCommand);
     expect(files['health-probe.ps1']).toContain('http://127.0.0.1:18080/health');
-    expect(files['laptop-fara-7b-llama.service']).toContain('ExecStart=llama-server.exe');
+    expect(files['laptop-fara-7b-llama.service']).toContain(
+      `ExecStart=${patchedWindowsExecutable}`
+    );
     expect(files['install-s4u-task.ps1']).toContain('Register-ScheduledTask');
 
     const registry = JSON.parse(files['sovereign-devices/laptop-fara-7b-llama.json']);
@@ -123,7 +142,9 @@ describe('LlamaServerCompiler', () => {
     // llama.cpp --lora-scaled takes FNAME:SCALE together (build 7885), not a bare
     // --lora plus a dangling scale.
     expect(bundle.launch.command).toContain('--lora-scaled adapters\\holotune-fara.gguf:0.75');
-    expect(bundle.launch.command).not.toContain('--lora adapters\\holotune-fara.gguf --lora-scaled');
+    expect(bundle.launch.command).not.toContain(
+      '--lora adapters\\holotune-fara.gguf --lora-scaled'
+    );
     expect(bundle.registryEntry.capabilities.grammarConstrained).toBe(true);
     expect(bundle.registryEntry.capabilities.loraHotSwap).toBe(true);
   });
@@ -190,7 +211,9 @@ describe('LlamaServerCompiler', () => {
     const compiler = new LlamaServerCompiler();
     const bundle = JSON.parse(compiler.compile(result.ast!, token)) as LlamaServerBundle;
 
-    expect(bundle.warnings).not.toContain('No @llama_serve trait found; used compiler options/defaults.');
+    expect(bundle.warnings).not.toContain(
+      'No @llama_serve trait found; used compiler options/defaults.'
+    );
     expect(bundle.registryEntry.handle).toBe('laptop-fara');
     expect(bundle.registryEntry.model).toBe('fara-7b');
     expect(bundle.launch.command).toContain('-m .scratch/fara.gguf');
@@ -219,7 +242,9 @@ describe('LlamaServerCompiler', () => {
 
   it('quotes an executable path containing a space in both the command and the .ps1', () => {
     const compiler = new LlamaServerCompiler({ executable: 'C:/llama cpp/llama-server.exe' });
-    const bundle = JSON.parse(compiler.compile(composition(faraConfig), token)) as LlamaServerBundle;
+    const bundle = JSON.parse(
+      compiler.compile(composition(faraConfig), token)
+    ) as LlamaServerBundle;
     expect(bundle.launch.command.startsWith('"C:/llama cpp/llama-server.exe" -m')).toBe(true);
     expect(bundle.launch.powershell).toContain(`& 'C:/llama cpp/llama-server.exe' -m`);
   });
@@ -270,7 +295,10 @@ describe('LlamaServerCompiler', () => {
     expect(noneBundle.registryEntry.capabilities.vision).toBe(false);
 
     const visionFalse = JSON.parse(
-      compiler.compile(composition({ model: 'qwen3-4b', model_path: 'm.gguf', vision: false }), token)
+      compiler.compile(
+        composition({ model: 'qwen3-4b', model_path: 'm.gguf', vision: false }),
+        token
+      )
     ) as LlamaServerBundle;
     expect(visionFalse.launch.command).not.toContain('--mmproj');
     expect(visionFalse.registryEntry.capabilities.vision).toBe(false);

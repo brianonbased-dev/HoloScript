@@ -16,6 +16,10 @@ import {
 } from '../index.js';
 import { selectHoloLlamaBrain as selectHoloLlamaBrainFromSubpath } from '../brain.js';
 
+const patchedJetsonExecutable = '/opt/holoscript/llama.cpp/build/bin/llama-server';
+const patchedLaptopExecutable =
+  'C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build\\bin\\llama-server.exe';
+
 describe('@holoscript/holollama', () => {
   it('exposes all fleet serving profiles', () => {
     expect(listHoloLlamaProfiles().map((profile) => profile.id)).toEqual([
@@ -133,6 +137,17 @@ describe('@holoscript/holollama', () => {
     });
   });
 
+  it('points owned fleet profiles at HOLO-patched llama.cpp build binaries', () => {
+    const jetson = compileHoloLlamaBundle({ profile: 'jetson-orin' });
+    const laptop = compileHoloLlamaBundle({ profile: 'laptop-windows' });
+
+    expect(jetson.launch.executable).toBe(patchedJetsonExecutable);
+    expect(jetson.launch.command.startsWith(`${patchedJetsonExecutable} -m`)).toBe(true);
+    expect(laptop.launch.executable).toBe(patchedLaptopExecutable);
+    expect(laptop.launch.command.startsWith(`${patchedLaptopExecutable} -m`)).toBe(true);
+    expect(laptop.launch.command).not.toContain('.docker\\bin\\inference');
+  });
+
   it('extracts the sovereign-device registry document fleet routers consume', () => {
     const registry = extractSovereignDeviceRegistry(
       compileHoloLlamaBundle({ profile: 'vast-linux-gpu' })
@@ -151,7 +166,7 @@ describe('@holoscript/holollama', () => {
 
   it('returns a path-keyed file map for package consumers', () => {
     const files = compileHoloLlamaFiles({ profile: 'laptop-windows' });
-    expect(files['launch-llama-server.ps1']).toContain('llama-server.exe');
+    expect(files['launch-llama-server.ps1']).toContain(patchedLaptopExecutable);
     expect(files['health-probe.ps1']).toContain('http://127.0.0.1:18080/health');
     expect(files['sovereign-devices/laptop-fara-7b-llama.json']).toContain(
       '"backend": "llama.cpp"'

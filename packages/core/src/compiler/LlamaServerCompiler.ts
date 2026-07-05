@@ -188,11 +188,15 @@ const DEFAULTS = {
   imageMaxTokens: 1536,
   parallel: 1,
   metrics: true,
-  executable: 'llama-server.exe',
   platform: 'windows' as const,
   serviceUser: 'holoscript',
   node: 'laptop-rtx3060',
 };
+
+const DEFAULT_HOLO_PATCHED_EXECUTABLES = {
+  windows: 'C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build\\bin\\llama-server.exe',
+  linux: '/opt/holoscript/llama.cpp/build/bin/llama-server',
+} as const;
 
 export class LlamaServerCompiler extends CompilerBase {
   protected readonly compilerName = 'LlamaServerCompiler';
@@ -317,6 +321,7 @@ export class LlamaServerCompiler extends CompilerBase {
       this.stringValue(raw, 'registerAs', 'register_as', 'handle') ??
       `${this.slug(name)}-${model.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`;
     const node = this.opts.node ?? this.stringValue(raw, 'node') ?? DEFAULTS.node;
+    const platform = this.opts.platform ?? this.platformValue(raw, 'platform') ?? DEFAULTS.platform;
 
     return {
       name,
@@ -355,14 +360,13 @@ export class LlamaServerCompiler extends CompilerBase {
       loraInitWithoutApply:
         this.opts.loraInitWithoutApply ??
         this.booleanValue(raw, false, 'loraInitWithoutApply', 'lora_init_without_apply'),
-      executable:
-        this.opts.executable ?? this.stringValue(raw, 'executable') ?? DEFAULTS.executable,
+      executable: this.resolveExecutable(raw, platform),
       cudaPath: this.opts.cudaPath ?? this.stringValue(raw, 'cudaPath', 'cuda_path'),
       llamaBinDir: this.opts.llamaBinDir ?? this.stringValue(raw, 'llamaBinDir', 'llama_bin_dir'),
       workingDirectory:
         this.opts.workingDirectory ??
         this.stringValue(raw, 'workingDirectory', 'working_directory'),
-      platform: this.opts.platform ?? this.platformValue(raw, 'platform') ?? DEFAULTS.platform,
+      platform,
       serviceUser:
         this.opts.serviceUser ??
         this.stringValue(raw, 'serviceUser', 'service_user') ??
@@ -371,6 +375,30 @@ export class LlamaServerCompiler extends CompilerBase {
       registerAs,
       dryRun: true,
     };
+  }
+
+  private resolveExecutable(raw: RawConfig, platform: 'windows' | 'linux'): string {
+    const executable =
+      this.opts.executable ??
+      this.stringValue(raw, 'executable') ??
+      DEFAULT_HOLO_PATCHED_EXECUTABLES[platform];
+    this.assertHoloPatchedExecutable(executable);
+    return executable;
+  }
+
+  private assertHoloPatchedExecutable(executable: string): void {
+    const trimmed = executable.trim();
+    const normalized = trimmed.replace(/\\/g, '/');
+    if (/^llama-server(?:\.exe)?$/i.test(trimmed)) {
+      throw new Error(
+        'LlamaServerCompiler requires a HOLO-patched llama.cpp build binary; use build/bin/llama-server(.exe), not a bare PATH lookup.'
+      );
+    }
+    if (/\/?\.docker\/bin\/inference\/llama-server(?:\.exe)?$/i.test(normalized)) {
+      throw new Error(
+        'LlamaServerCompiler rejects the prebuilt .docker/bin/inference llama-server binary because HOLO patching it is a silent no-op; use the rebuilt build/bin/llama-server(.exe).'
+      );
+    }
   }
 
   /**
@@ -441,7 +469,8 @@ export class LlamaServerCompiler extends CompilerBase {
     grammar?: string;
     grammarPreset?: string;
   } {
-    const grammarPath = this.opts.grammarPath ?? this.stringValue(raw, 'grammarPath', 'grammar_path');
+    const grammarPath =
+      this.opts.grammarPath ?? this.stringValue(raw, 'grammarPath', 'grammar_path');
     const grammarRaw = this.opts.grammar ?? this.stringValue(raw, 'grammar');
     if (grammarRaw && isHoloScriptGrammarPreset(grammarRaw)) {
       return { grammarPath, grammarPreset: grammarRaw };

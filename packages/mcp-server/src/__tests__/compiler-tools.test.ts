@@ -284,6 +284,8 @@ describe('compiler tools', () => {
 
   it('compiles llama.cpp server bundles through compile_to_llama_server', async () => {
     const code = 'composition "FaraVision" {}';
+    const executable =
+      'C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build\\bin\\llama-server.exe';
     const result = (await handleCompilerTool('compile_to_llama_server', {
       code,
       options: {
@@ -297,7 +299,7 @@ describe('compiler tools', () => {
         imageMinTokens: 1024,
         imageMaxTokens: 1536,
         parallel: 1,
-        executable: 'llama-server.exe',
+        executable,
         registerAs: 'laptop-fara-7b-llama',
       },
     })) as {
@@ -313,7 +315,7 @@ describe('compiler tools', () => {
       registryEntry?: { backend?: string; endpoint?: string };
     };
     expect(bundle.launch?.command).toBe(
-      'llama-server.exe -m .scratch\\llama-cpp-models\\fara-7b-q4-k-m.gguf ' +
+      `${executable} -m .scratch\\llama-cpp-models\\fara-7b-q4-k-m.gguf ` +
         '--mmproj .scratch\\llama-cpp-models\\fara-7b-mmproj.gguf --host 127.0.0.1 ' +
         '--port 18080 -c 4096 -ngl 12 --fit on --image-min-tokens 1024 ' +
         '--image-max-tokens 1536 --parallel 1 --metrics'

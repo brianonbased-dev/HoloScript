@@ -234,6 +234,9 @@ export interface HoloLlamaFleetLifecycleReport {
 
 const DEFAULT_IMAGE_MIN_TOKENS = 1024;
 const DEFAULT_IMAGE_MAX_TOKENS = 1536;
+const DEFAULT_JETSON_HOLO_LLAMA_EXECUTABLE = '/opt/holoscript/llama.cpp/build/bin/llama-server';
+const DEFAULT_LAPTOP_HOLO_LLAMA_EXECUTABLE =
+  'C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build\\bin\\llama-server.exe';
 const DEFAULT_HOLOMESH_ORCHESTRATOR_URL = 'https://mcp-orchestrator-production-45f9.up.railway.app';
 const DEFAULT_HOLOMESH_TEAM_ID = 'TEAM_ID';
 const DEFAULT_HOLOMESH_API_KEY_ENV = 'HOLOSCRIPT_API_KEY';
@@ -260,7 +263,7 @@ export const HOLOLLAMA_PROFILE_DEFINITIONS: Record<HoloLlamaProfile, HoloLlamaPr
       parallel: 1,
       metrics: true,
       grammar: 'holoscript',
-      executable: '/usr/local/bin/llama-server',
+      executable: DEFAULT_JETSON_HOLO_LLAMA_EXECUTABLE,
       workingDirectory: '/opt/holoscript/holollama',
       platform: 'linux',
       serviceUser: 'holoscript',
@@ -288,7 +291,8 @@ export const HOLOLLAMA_PROFILE_DEFINITIONS: Record<HoloLlamaProfile, HoloLlamaPr
       imageMaxTokens: DEFAULT_IMAGE_MAX_TOKENS,
       parallel: 1,
       metrics: true,
-      executable: 'llama-server.exe',
+      executable: DEFAULT_LAPTOP_HOLO_LLAMA_EXECUTABLE,
+      llamaBinDir: 'C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build\\bin',
       platform: 'windows',
       serviceUser: 'holoscript',
       node: 'laptop-rtx3060',
