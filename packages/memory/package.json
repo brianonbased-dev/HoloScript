@@ -22,7 +22,9 @@
     "pg": "^8.13.0"
   },
   "devDependencies": {
-    "@types/pg": "^8.11.0"
+    "@types/pg": "^8.11.0",
+    "tsup": "^8.0.1",
+    "typescript": "~5.9.3"
   },
   "engines": {
     "node": ">=20.0.0"

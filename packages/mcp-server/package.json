@@ -48,6 +48,7 @@
     "@holoscript/hololand-platform": "workspace:^",
     "@holoscript/holomap": "workspace:^",
     "@holoscript/llm-provider": "workspace:^",
+    "@holoscript/memory": "workspace:^",
     "@holoscript/mesh": "workspace:^",
     "@holoscript/secrets-broker": "workspace:^",
     "@holoscript/security-sandbox": "workspace:^",

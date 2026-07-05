@@ -18,6 +18,14 @@
  *   holo_memory_stats    — counts by type, hot/cold sizes, decay state
  *   holo_memory_farm     — cluster mature entries by theme
  *   holo_memory_graduate — mark a cluster as GOLD-graduation candidate
+ *
+ * De-silo (P0): holo_memory_store + holo_memory_recall route to the shared sovereign
+ * SoT (Jetson `memory_entries`, via the `@holoscript/memory` client) when
+ * HOLO_MEMORY_SOT_HOST is set and MEMORY_SVC_PASSWORD resolves (HoloKey vault → env).
+ * Otherwise — and on ANY SoT error — they degrade to the KnowledgeStore + orchestrator
+ * path (the cloud fallback for non-LAN seats). list/stats/farm/graduate operate on the
+ * local KnowledgeStore curation buffer. Every surface consuming this same package reads
+ * and writes the SAME identity-keyed memory — the de-silo, not a per-family silo.
  */
 
 import * as os from 'os';
@@ -26,6 +34,9 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { KnowledgeStore } from '@holoscript/framework';
 import { ConsolidationEngine } from '@holoscript/framework';
 import type { KnowledgeInsight, StoredEntry } from '@holoscript/framework';
+import { SovereignMemoryStore } from '@holoscript/memory';
+import type { MemoryEntry, MemorySection } from '@holoscript/memory';
+import { resolveServiceSecret } from './holokey-resolver';
 
 // ── Singleton store ──────────────────────────────────────────────────────────
 
@@ -51,6 +62,66 @@ function getStore(): KnowledgeStore {
 // Expose for tests to inject a fresh store
 export function _setStoreForTest(store: KnowledgeStore): void {
   _store = store;
+}
+
+// ── Sovereign SoT (de-silo): direct cross-family memory_entries on the Jetson node ──
+//
+// Opt-in + fail-safe: active ONLY when HOLO_MEMORY_SOT_HOST is set AND a credential
+// resolves (HoloKey vault → env). Unprovisioned / non-LAN / cloud seats leave it unset
+// and transparently use the KnowledgeStore + orchestrator path — the cloud fallback.
+// `undefined` = unresolved, `null` = disabled/failed (cached so we probe env+vault once).
+let _sovereign: SovereignMemoryStore | null | undefined;
+
+async function getSovereignStore(): Promise<SovereignMemoryStore | null> {
+  if (_sovereign !== undefined) return _sovereign;
+  const host = process.env.HOLO_MEMORY_SOT_HOST;
+  if (!host) {
+    _sovereign = null;
+    return null;
+  }
+  // Resolve the scoped credential the sovereign way: HoloKey vault first, env fallback.
+  const password = await resolveServiceSecret('MEMORY_SVC_PASSWORD');
+  if (!password) {
+    _sovereign = null;
+    return null;
+  }
+  try {
+    _sovereign = new SovereignMemoryStore({
+      host,
+      port: Number(process.env.HOLO_MEMORY_SOT_PORT) || 5434,
+      database: process.env.HOLO_MEMORY_SOT_DB || 'knowledge',
+      user: process.env.HOLO_MEMORY_SOT_USER || 'memory_svc',
+      password,
+      max: 4,
+      connectionTimeoutMillis: 3000,
+      workspaceId: process.env.HOLO_MEMORY_WORKSPACE || 'ai-ecosystem',
+    });
+  } catch {
+    _sovereign = null;
+  }
+  return _sovereign;
+}
+
+// Expose for tests to force-disable or inject the sovereign store.
+export function _setSovereignForTest(store: SovereignMemoryStore | null): void {
+  _sovereign = store;
+}
+
+/** Shape a sovereign SoT row for MCP output (parallels formatEntry). */
+function formatSovereignEntry(e: MemoryEntry): Record<string, unknown> {
+  return {
+    id: e.id,
+    // Prefer the preserved uAA2 section letter; fall back to the collapsed mnemonic.
+    type: e.section ?? toMnemonic(e.type as KnowledgeInsightType),
+    insightType: e.type,
+    content: e.content,
+    domain: e.domain,
+    confidence: e.confidence,
+    authorAgent: e.authorAgent,
+    section: e.section,
+    tags: e.tags ?? [],
+    createdAt: e.createdAt,
+  };
 }
 
 // ── Taxonomy helpers ─────────────────────────────────────────────────────────
@@ -118,7 +189,8 @@ export const memoryTools: Tool[] = [
     name: 'holo_memory_store',
     description:
       'Write a memory entry to the shared agent knowledge store. All agent surfaces (Claude/Cursor/Gemini/Copilot) can query it. ' +
-      'Returns: { id, type, status, synced }.',
+      'When the sovereign SoT is reachable the entry lands there (identity-keyed, cross-family); otherwise it degrades to the local+orchestrator path. ' +
+      'Returns: { id, type, status, synced, sovereignSoT }.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -168,7 +240,8 @@ export const memoryTools: Tool[] = [
     name: 'holo_memory_recall',
     description:
       'Query the shared agent knowledge store by keyword or semantic similarity. Returns ranked entries. ' +
-      'Returns: { results: Entry[], total, query, mode }.',
+      'Recalls across ALL families from the sovereign SoT when reachable (optional authorAgent filter); degrades to local+orchestrator otherwise. ' +
+      'Returns: { results: Entry[], total, query, mode, sovereignSoT }.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -193,6 +266,12 @@ export const memoryTools: Tool[] = [
         minConfidence: {
           type: 'number',
           description: 'Minimum confidence threshold (0–1). Default 0.',
+        },
+        authorAgent: {
+          type: 'string',
+          description:
+            'Filter to memory written by a specific family/agent handle (e.g. claude1, gemini1). ' +
+            'Cross-family recall over the sovereign SoT; omit to recall across all families.',
         },
       },
       required: ['query'],
@@ -368,6 +447,36 @@ async function handleMemoryStore(args: Record<string, unknown>): Promise<unknown
     tags,
   };
 
+  // De-silo: write to the shared sovereign SoT when active; degrade to KnowledgeStore.
+  const sovereign = await getSovereignStore();
+  if (sovereign) {
+    try {
+      const id = await sovereign.store({
+        content,
+        authorAgent,
+        type: insightType,
+        section: section as MemorySection,
+        tags,
+        domain,
+        confidence,
+      });
+      return {
+        success: true,
+        id,
+        type: typeMnemonic,
+        insightType,
+        status: 'stored_sovereign',
+        synced: true,
+        sovereignSoT: true,
+      };
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[memory] sovereign store failed — falling back to KnowledgeStore: ${e instanceof Error ? e.message : String(e)}`
+      );
+    }
+  }
+
   const store = getStore();
 
   if (syncRemote) {
@@ -380,6 +489,7 @@ async function handleMemoryStore(args: Record<string, unknown>): Promise<unknown
       status: result.synced ? 'stored_and_synced' : 'stored_local',
       synced: result.synced,
       remoteId: result.remoteId,
+      sovereignSoT: false,
     };
   }
 
@@ -391,6 +501,7 @@ async function handleMemoryStore(args: Record<string, unknown>): Promise<unknown
     insightType,
     status: 'stored_local',
     synced: false,
+    sovereignSoT: false,
   };
 }
 
@@ -413,6 +524,37 @@ async function handleMemoryRecall(args: Record<string, unknown>): Promise<unknow
     typeMnemonic && typeMnemonic in MNEMONIC_TO_INSIGHT_TYPE
       ? MNEMONIC_TO_INSIGHT_TYPE[typeMnemonic as MemoryTypeMnemonic]
       : null;
+
+  const authorFilter =
+    typeof args.authorAgent === 'string' && args.authorAgent.trim() ? args.authorAgent.trim() : undefined;
+
+  // De-silo: recall from the shared sovereign SoT when active; degrade to KnowledgeStore.
+  // The SoT preserves the uAA2 section letter, so `type` filters exactly (F stays F,
+  // rather than collapsing into wisdom the way the local 3-value insight type does).
+  const sovereign = await getSovereignStore();
+  if (sovereign) {
+    try {
+      const rows = await sovereign.recall(query, {
+        limit,
+        section: (typeMnemonic as MemorySection) ?? undefined,
+        authorAgent: authorFilter,
+      });
+      const filtered = minConfidence > 0 ? rows.filter((r) => r.confidence >= minConfidence) : rows;
+      return {
+        success: true,
+        query,
+        mode: 'sovereign',
+        total: filtered.length,
+        results: filtered.map(formatSovereignEntry),
+        sovereignSoT: true,
+      };
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[memory] sovereign recall failed — falling back to KnowledgeStore: ${e instanceof Error ? e.message : String(e)}`
+      );
+    }
+  }
 
   const store = getStore();
 
@@ -441,6 +583,7 @@ async function handleMemoryRecall(args: Record<string, unknown>): Promise<unknow
     mode: semantic ? 'semantic' : 'keyword',
     total: results.length,
     results: results.map(formatEntry),
+    sovereignSoT: false,
   };
 }
 
