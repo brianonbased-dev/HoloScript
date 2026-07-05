@@ -299,23 +299,30 @@ function main() {
 
     log(`[cold-repro-onramp] mode=${mode} target=${installTarget}`);
     log('[cold-repro-onramp] clean install (NO optional peers, NO dev tree)...');
+    // --local installs a `file:` tarball whose manifest declares OPTIONAL peer
+    // deps (peerDependenciesMeta.optional). npm's arborist, when it prunes those
+    // optional-peer edges under `--omit=peer`, ALSO drops the top-level tarball
+    // package itself from the tree — `npm install <tarball>` exits 0 but
+    // node_modules/@holoscript/core is never linked, so the probe crashes with a
+    // FALSE `ERR_MODULE_NOT_FOUND` that has nothing to do with the on-ramp under
+    // test (board task task_1783289543138_spka). `--legacy-peer-deps` restores
+    // the classic resolver, which links the tarball root correctly while STILL
+    // honoring --omit=optional/--omit=peer, so the gate keeps its falsifying
+    // power (a genuinely broken barrel still crashes the probe). This only
+    // affects the tarball path; --published installs @holoscript/core@latest by
+    // registry NAME, which the arborist handles correctly, so it is left as-is.
+    const installArgs = [
+      'install',
+      installTarget,
+      '--no-audit',
+      '--no-fund',
+      '--omit=optional',
+      '--omit=peer',
+      '--loglevel=error',
+    ];
+    if (LOCAL) installArgs.push('--legacy-peer-deps');
     try {
-      // --omit=optional / --omit=peer is the whole point: a fresh user who runs
-      // `npm install @holoscript/core` does NOT get optional peers. If the barrel
-      // needs one to merely import, this is where it breaks.
-      run(
-        'npm',
-        [
-          'install',
-          installTarget,
-          '--no-audit',
-          '--no-fund',
-          '--omit=optional',
-          '--omit=peer',
-          '--loglevel=error',
-        ],
-        { cwd: work }
-      );
+      run('npm', installArgs, { cwd: work });
     } catch (e) {
       fail('install-failed', (e.stderr || e.stdout || e.message || '').slice(0, 2000));
     }
