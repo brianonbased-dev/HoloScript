@@ -2,8 +2,8 @@
  * charTrigram — char-trigram histogram utilities
  *
  * Canonical implementation for HoloEmbed subword encoding.
- * Also used by HoloEmbedProvider in absorb-service (via copy-import pattern;
- * absorb-service does not take @holoscript/holoembed as a dep to avoid cycles).
+ * Used by HoloEmbedEncoder. Absorb's HoloEmbedProvider delegates to that
+ * encoder so GraphRAG and standalone HoloEmbed share one vector algorithm.
  *
  * ## Algorithm
  *
@@ -127,13 +127,16 @@ export function hashString(s: string): number {
 
 /**
  * Spread a 32-bit hash deterministically into `count` dims of `vec`
- * starting at `offset`. Each dim is in [0, 1] via LCG.
+ * starting at `offset`. Each dim is zero-mean in [-1, 1] via LCG.
+ *
+ * Zero-mean structural fingerprints avoid a uniform positive cosine floor
+ * between unrelated symbols, while matching fingerprints still align.
  */
 export function spreadHash(hash: number, vec: Float32Array, offset: number, count: number): void {
   let state = hash;
   for (let i = 0; i < count; i++) {
     state = (state * 1664525 + 1013904223) >>> 0;
-    vec[offset + i] = (state >>> 0) / 4294967295;
+    vec[offset + i] = ((state >>> 0) / 4294967295) * 2 - 1;
   }
 }
 

@@ -168,12 +168,12 @@ const GLOBAL_DENYLIST = [
 
 /**
  * Phase 0: Build a dependency graph of the isolated workspace using
- * CodebaseScanner + CodebaseGraph from @holoscript/core/codebase.
+ * CodebaseScanner + CodebaseGraph from @holoscript/absorb-service/engine.
  *
  * Returns leaf-first file ordering and in-degree map so fix cycles
  * can target the safest (lowest-dependency) files first.
  *
- * Gracefully degrades: if @holoscript/core/codebase is unavailable (e.g.
+ * Gracefully degrades: if @holoscript/absorb-service/engine is unavailable (e.g.
  * build failure during CI), the function returns an empty AbsorbGraphData
  * so the rest of the pipeline continues without the graph.
  */
@@ -196,26 +196,43 @@ async function runAbsorbPhase(
   try {
     // Runtime import with webpackIgnore keeps optional deep deps out of the Studio bundle.
     // @ts-ignore - Automatic remediation for TS2352
-    const coreCb = await import(/* webpackIgnore: true */ '@holoscript/core/codebase') as {
-      CodebaseScanner: { new(): { scan(opts: { rootDir: string; depth?: string }): Promise<AbsorbScanResult> } };
+    const absorbEngine = await import(/* webpackIgnore: true */ '@holoscript/absorb-service/engine') as {
+      CodebaseScanner: {
+        new(): {
+          scan(opts: { rootDir: string; maxFiles?: number }): Promise<AbsorbScanResult>;
+          dispose?: () => Promise<void>;
+        };
+      };
       CodebaseGraph: {
         new(): {
           buildFromScanResult(r: AbsorbScanResult): void;
+          detectCommunities?: () => Map<string, string[]>;
           serialize(): string;
-          communities?: Record<string, number>;
         };
         deserialize(json: string): unknown;
       };
     };
 
-    const { CodebaseScanner, CodebaseGraph } = coreCb;
+    const { CodebaseScanner, CodebaseGraph } = absorbEngine;
 
     const scanner = new CodebaseScanner();
-    const scanResult: AbsorbScanResult = await scanner.scan({ rootDir: workDir, depth });
+    let scanResult: AbsorbScanResult | null = null;
+    let communityMap = new Map<string, string[]>();
+    let graphJson = '{}';
 
-    const graph = new CodebaseGraph();
-    graph.buildFromScanResult(scanResult);
-    const graphJson = graph.serialize();
+    try {
+      const maxFiles = depth === 'shallow' ? 500 : depth === 'medium' ? 3_000 : 10_000;
+      scanResult = await scanner.scan({ rootDir: workDir, maxFiles });
+
+      const graph = new CodebaseGraph();
+      graph.buildFromScanResult(scanResult);
+      communityMap = graph.detectCommunities?.() ?? communityMap;
+      graphJson = graph.serialize();
+    } finally {
+      await scanner.dispose?.();
+    }
+
+    if (!scanResult) return { ...empty, durationMs: Date.now() - absorbStart };
 
     // Build in-degree map: for each file, count how many other files import it
     const inDegree: Record<string, number> = {};
@@ -233,10 +250,17 @@ async function runAbsorbPhase(
       .map((f) => f.path)
       .sort((a, b) => (inDegree[a] ?? 0) - (inDegree[b] ?? 0));
 
+    const communities: Record<string, number> = {};
+    let communityIndex = 0;
+    for (const files of communityMap.values()) {
+      for (const file of files) communities[file] = communityIndex;
+      communityIndex++;
+    }
+
     return {
       leafFirstOrder,
       inDegree,
-      communities: graph.communities ?? {},
+      communities,
       totalFiles: scanResult.stats.totalFiles,
       totalSymbols: scanResult.stats.totalSymbols,
       durationMs: Date.now() - absorbStart,

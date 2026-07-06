@@ -52,6 +52,11 @@ export {
   spreadHash,
   l2Normalize,
 } from './charTrigram.js';
-export type { SymbolInput, GraphEnrichment, EncoderOptions } from './types.js';
+export type {
+  SymbolInput,
+  GraphEnrichment,
+  EncoderOptions,
+  HoloEmbedEncoderConfig,
+} from './types.js';
 export type { LIFPopulationParams, LIFPopulationCpuOptions } from './SnnAccelerator.js';
 export { HOLOEMBED_DIM, STRUCTURAL_DIM, SUBWORD_BINS, SUBWORD_BLOCKS } from './types.js';

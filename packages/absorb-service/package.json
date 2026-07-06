@@ -110,6 +110,7 @@
   "dependencies": {
     "@holoscript/core": "workspace:^",
     "@holoscript/config": "workspace:^",
+    "@holoscript/holoembed": "workspace:^",
     "@holoscript/holollama": "workspace:^",
     "@holoscript/llm-provider": "workspace:^",
     "drizzle-orm": ">=0.45.2",

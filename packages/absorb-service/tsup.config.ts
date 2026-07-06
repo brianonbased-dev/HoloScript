@@ -13,6 +13,7 @@ const shared = {
     '@holoscript/core/runtime',
     '@holoscript/core/traits',
     '@holoscript/core/scripting',
+    '@holoscript/holoembed',
     'tree-sitter',
     'tree-sitter-typescript',
     'tree-sitter-python',

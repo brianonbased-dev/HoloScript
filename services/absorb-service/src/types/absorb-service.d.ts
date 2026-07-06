@@ -1,5 +1,5 @@
-// Module declarations for @holoscript/absorb-service sub-path exports
-// The library is built with dts: false (tsup), so we declare the modules here
+// Compatibility module declarations for dynamic host imports.
+// TODO: shrink these as the host consumes generated absorb-service declarations.
 
 declare module '@holoscript/absorb-service/engine' {
   export const CodebaseScanner: unknown;
@@ -166,11 +166,6 @@ declare module '@holoscript/absorb-service/bridge' {
 declare module 'stripe' {
   const Stripe: unknown;
   export default Stripe;
-}
-
-declare module '@holoscript/core/codebase' {
-  const _default: unknown;
-  export = _default;
 }
 
 declare module '@holoscript/core/parser' {

@@ -38,7 +38,12 @@ import {
   camelSplit,
 } from './charTrigram.js';
 import { SnnAccelerator } from './SnnAccelerator.js';
-import type { SymbolInput, GraphEnrichment, EncoderOptions } from './types.js';
+import type {
+  SymbolInput,
+  GraphEnrichment,
+  EncoderOptions,
+  HoloEmbedEncoderConfig,
+} from './types.js';
 import { STRUCTURAL_DIM, SUBWORD_BINS, HOLOEMBED_DIM } from './types.js';
 
 // =============================================================================
@@ -54,6 +59,10 @@ const KNOWN_PACKAGES = [
   'packages/r3f-renderer',
 ];
 
+const DEFAULT_STRUCTURAL_WEIGHT = 0.12;
+const SEMANTIC_ALIAS_MARKER = 'semantic aliases:';
+const GRAPH_CONTEXT_MARKER = ' graph context:';
+
 // =============================================================================
 // HOLOEMBED ENCODER
 // =============================================================================
@@ -61,6 +70,13 @@ const KNOWN_PACKAGES = [
 export class HoloEmbedEncoder {
   private _accel = new SnnAccelerator();
   private _snnEnabled = false;
+  private readonly _structuralWeight: number;
+  private readonly _weightSemanticAliases: boolean;
+
+  constructor(config: HoloEmbedEncoderConfig = {}) {
+    this._structuralWeight = config.structuralWeight ?? DEFAULT_STRUCTURAL_WEIGHT;
+    this._weightSemanticAliases = config.weightSemanticAliases ?? true;
+  }
 
   /**
    * Initialize the encoder.
@@ -86,6 +102,8 @@ export class HoloEmbedEncoder {
   encode(sym: SymbolInput, graph: GraphEnrichment = {}): Float32Array {
     const vec = new Float32Array(HOLOEMBED_DIM);
     this._fillStructural(vec, sym, graph);
+    this._normalizeStructural(vec);
+    this._scaleStructural(vec);
     this._fillSubword(vec, sym, graph);
     l2Normalize(vec);
     return vec;
@@ -98,6 +116,8 @@ export class HoloEmbedEncoder {
   async encodeAsync(sym: SymbolInput, graph: GraphEnrichment = {}): Promise<Float32Array> {
     const vec = new Float32Array(HOLOEMBED_DIM);
     this._fillStructural(vec, sym, graph);
+    this._normalizeStructural(vec);
+    this._scaleStructural(vec);
 
     if (this._snnEnabled) {
       await this._fillSubwordSnn(vec, sym, graph);
@@ -115,8 +135,11 @@ export class HoloEmbedEncoder {
    */
   encodeText(text: string): Float32Array {
     const vec = new Float32Array(HOLOEMBED_DIM);
-    this._fillStructuralFromText(vec, text);
-    trigramHistogram(text, vec, STRUCTURAL_DIM, SUBWORD_BINS);
+    const weightedText = this._normalizeQueryText(text);
+    this._fillStructuralFromText(vec, weightedText);
+    this._normalizeStructural(vec);
+    this._scaleStructural(vec);
+    trigramHistogram(camelSplit(weightedText), vec, STRUCTURAL_DIM, SUBWORD_BINS);
     // docComment and eventName blocks remain zero — not in text repr
     l2Normalize(vec);
     return vec;
@@ -131,19 +154,22 @@ export class HoloEmbedEncoder {
     }
 
     // GPU path: compute trigram histograms on CPU, run SNN batch on GPU
-    const histograms = texts.map((t) => {
+    const weightedTexts = texts.map((t) => this._normalizeQueryText(t));
+    const histograms = weightedTexts.map((t) => {
       const hist = new Float32Array(SUBWORD_BINS);
       const tmp = new Float32Array(HOLOEMBED_DIM);
-      trigramHistogram(t, tmp, STRUCTURAL_DIM, SUBWORD_BINS);
+      trigramHistogram(camelSplit(t), tmp, STRUCTURAL_DIM, SUBWORD_BINS);
       hist.set(tmp.slice(STRUCTURAL_DIM, STRUCTURAL_DIM + SUBWORD_BINS));
       return hist;
     });
 
     const snnRates = await this._accel.encodeBatch(histograms);
 
-    return texts.map((t, i) => {
+    return weightedTexts.map((t, i) => {
       const vec = new Float32Array(HOLOEMBED_DIM);
       this._fillStructuralFromText(vec, t);
+      this._normalizeStructural(vec);
+      this._scaleStructural(vec);
       vec.set(snnRates[i]!, STRUCTURAL_DIM);
       l2Normalize(vec);
       return vec;
@@ -203,6 +229,42 @@ export class HoloEmbedEncoder {
     spreadHash(hashString(contentKey), vec, 320, 64);
   }
 
+  private _scaleStructural(vec: Float32Array): void {
+    for (let i = 0; i < STRUCTURAL_DIM; i++) {
+      vec[i]! *= this._structuralWeight;
+    }
+  }
+
+  private _normalizeStructural(vec: Float32Array): void {
+    let norm = 0;
+    for (let i = 0; i < STRUCTURAL_DIM; i++) {
+      norm += vec[i]! * vec[i]!;
+    }
+
+    norm = Math.sqrt(norm);
+    if (norm === 0) return;
+
+    for (let i = 0; i < STRUCTURAL_DIM; i++) {
+      vec[i]! /= norm;
+    }
+  }
+
+  private _normalizeQueryText(text: string): string {
+    if (!this._weightSemanticAliases) return text;
+
+    const aliasStart = text.indexOf(SEMANTIC_ALIAS_MARKER);
+    if (aliasStart < 0) return text;
+
+    const aliasValueStart = aliasStart + SEMANTIC_ALIAS_MARKER.length;
+    const graphStart = text.indexOf(GRAPH_CONTEXT_MARKER, aliasValueStart);
+    const aliases = text
+      .slice(aliasValueStart, graphStart >= 0 ? graphStart : undefined)
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    return aliases ? `${text} ${aliases} ${aliases}` : text;
+  }
+
   private _fillStructuralFromText(vec: Float32Array, text: string): void {
     // Parse "file: path" from EmbeddingIndex serialization
     const fileMatch = /file:\s*(\S+)/i.exec(text);
@@ -227,7 +289,7 @@ export class HoloEmbedEncoder {
   private _fillSubword(vec: Float32Array, sym: SymbolInput, graph: GraphEnrichment): void {
     // Block 1 (384–511): name + type + signature
     trigramHistogram(
-      `${sym.name} ${sym.type} ${sym.signature ?? ''}`,
+      camelSplit(`${sym.name} ${sym.type} ${sym.signature ?? ''}`),
       vec,
       STRUCTURAL_DIM,
       SUBWORD_BINS
@@ -256,7 +318,12 @@ export class HoloEmbedEncoder {
     const h3 = new Float32Array(SUBWORD_BINS);
     const tmp = new Float32Array(SUBWORD_BINS * 3); // scratch
 
-    trigramHistogram(`${sym.name} ${sym.type} ${sym.signature ?? ''}`, tmp, 0, SUBWORD_BINS);
+    trigramHistogram(
+      camelSplit(`${sym.name} ${sym.type} ${sym.signature ?? ''}`),
+      tmp,
+      0,
+      SUBWORD_BINS
+    );
     trigramHistogram(sym.docComment ?? '', tmp, SUBWORD_BINS, SUBWORD_BINS);
     trigramHistogram(
       camelSplit((graph.eventNames ?? []).join(' ')),

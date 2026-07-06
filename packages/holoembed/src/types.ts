@@ -75,6 +75,24 @@ export interface EncoderOptions {
   snnTimesteps?: number;
 }
 
+export interface HoloEmbedEncoderConfig {
+  /**
+   * Pre-normalization scale for dims 0-383.
+   *
+   * Shared Absorb GraphRAG uses a low structural weight so file/topology
+   * fingerprints remain useful tie-breakers without overwhelming NL subword
+   * matches in dims 384-767.
+   */
+  structuralWeight?: number;
+  /**
+   * Whether encodeText() should duplicate content between
+   * "semantic aliases:" and " graph context:" markers. Absorb's indexed text
+   * stores curator aliases there, and weighting them keeps query intent from
+   * being washed out by long graph-context prose.
+   */
+  weightSemanticAliases?: boolean;
+}
+
 // =============================================================================
 // OUTPUT
 // =============================================================================
