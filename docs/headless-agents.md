@@ -8,6 +8,12 @@ deployment status, and the composition file that drives it.
 > `compositions/*.hsplus` (all compositions, including spec-only).
 > This file is the human-readable index.
 
+> **Model advisory (W.738)**: the `qwen2.5*` family is **BLACKLISTED** for
+> agent/tool-calling lanes (emits prose instead of `tool_calls`). The Model
+> rows below mirror `agents.json` as deployed — do not copy these pins into
+> new or revived agents; pin from the current Model SSOT (qwen3 family) and
+> re-pin `agents.json` before extending this fleet.
+
 ---
 
 ## Deployed Brains (active in `agents.json`)

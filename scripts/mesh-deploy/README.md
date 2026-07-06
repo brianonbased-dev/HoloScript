@@ -173,13 +173,18 @@ For each successfully bootstrapped instance:
 
 ## Tear-down
 
-When done, destroy instances via Vast.ai dashboard or:
+Per R.029, never blanket-destroy or hand-roll Vast API teardown — the account
+also hosts autoscaler workers and live training boxes (a util-judged blanket
+reap nearly destroyed 4 live training boxes; W.761). Autoscaler-managed workers
+self-clean via the `holo-fleet-autoscaler` scheduled task. To retire a specific
+mesh-agent instance, verify its log shows the job is done, then reap it through
+the canonical ledger-closing route:
 
 ```powershell
-vastai show instances --raw | ConvertFrom-Json | ForEach-Object {
-    vastai destroy instance $_.id
-}
+node ~/.ai-ecosystem/scripts/fleet-reap.mjs <instance-id> --why "log shows job complete" --log-verified --apply
 ```
+
+Ledger truth stays reconciled via `reconcile-vast-ledger.mjs --apply`.
 
 Agent state (cost-guard persistence, x402 seat) is local to each instance —
 destroyed with it. Board tasks claimed-but-not-done get auto-released by

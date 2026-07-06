@@ -500,7 +500,7 @@ Compare two git references to see what changed structurally. Always performs a f
 
 ### holo_semantic_search
 
-Semantic similarity search over the absorbed graph. Requires Ollama running locally.
+Semantic similarity search over the absorbed graph. The default embedding provider is HoloEmbed — keyless and offline, no daemon required. A sovereign-local Ollama embedding provider is opt-in only (legacy fallback, being retired in favor of the native HoloLlama stack).
 
 **Input:**
 
@@ -515,7 +515,7 @@ Semantic similarity search over the absorbed graph. Requires Ollama running loca
 
 ### holo_ask_codebase
 
-Ask a natural language question about the codebase. Requires Ollama running locally.
+Ask a natural language question about the codebase. Answer generation auto-detects an LLM provider from environment API keys (cloud keys first), with local Ollama only as a last-resort legacy fallback — Ollama is not a prerequisite.
 
 **Input:**
 

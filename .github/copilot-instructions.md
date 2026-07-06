@@ -56,8 +56,8 @@ The hand-off triggers are stuck-states, not complexity:
 
 - **Third regex/script attempt failing on the same class of error.** Stop, file a board task with "type contract X diverges from runtime Y", and let Claude Code root-cause it. Iteration in filenames (`fix-foo.ts` → `fix-foo-v2.ts` → `fix-foo-final.ts`) is the tell.
 - **Need cross-file refactor spanning 5+ packages.** Claude has the deeper context window — file the task and tag.
-- **Need to drive a real browser** (E2E test, live-site verification, multimodal screenshot diff) → Gemini-in-Antigravity has native Playwright/Chrome.
-- **Need parallel sub-agent orchestration in the IDE** → Gemini-in-Antigravity Manager Mode.
+- **Need to drive a real browser** (E2E test, live-site verification, multimodal screenshot diff) → tag the per-window handle of whichever active peer surface has native browser automation (live handles: `~/.ai-ecosystem/seats/.handles.json`). Don't hardcode a family — families rotate with what the human is running (F.088).
+- **Need parallel sub-agent orchestration in the IDE** → tag the per-window handle of whichever active peer surface offers manager-mode parallel orchestration; same rule — route by capability, never by family.
 
 Otherwise, your full-surface authority on the team means: claim, ship, push, `/room done`. Don't reflexively punt full implementations as if they're out of scope.
 

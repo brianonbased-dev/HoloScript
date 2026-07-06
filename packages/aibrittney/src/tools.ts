@@ -2,8 +2,10 @@
  * Static tool catalog exposed to the local model.
  *
  * Format mirrors Ollama's OpenAI-compatible tools array (function-style),
- * which qwen2.5-coder, llama3.1, and the other tool-capable Ollama models
- * understand natively. Each entry maps to one orchestrator-routed call.
+ * which qwen3, llama3.1, and the other tool-capable Ollama models
+ * understand natively (qwen2.5* is blacklisted for this lane — it emits
+ * prose instead of structured tool_calls; see the model SSOT). Each entry
+ * maps to one orchestrator-routed call.
  *
  * Why a small curated catalog instead of dumping every orchestrator tool:
  *   - 200+ tools blow the context for a 7B local model

@@ -5,7 +5,7 @@
  * 
  * Tiers (how much capability/cost):
  *   - pro:      Kimi K2.5 (1T MoE, 32B active) — advanced reasoning, vision, agentic
- *   - standard: Fireworks (Qwen2.5-Coder-7B fine-tuned) — fast, cheap, code-optimized
+ *   - standard: Fireworks (llama-v3p1-8b-instruct default, override via FIREWORKS_MODEL) — fast, cheap
  *   - fallback: Together AI, Ollama (local dev)
  *
  * Lanes (what kind of work — task-type modulation, see "Lane Routing" below):

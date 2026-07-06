@@ -289,7 +289,7 @@ object "twin_museum_guide_ai" @ai_agent_actor @actor @ai_npc {
   emissiveIntensity: 0.5
   actor: { mailbox_size: 500, role: "guide" }
   ai_npc: { name: "Aurelia", role: "museum_guide", awareness_radius: 8.0 }
-  ai_agent_actor: { kind: "ai", mode: "BYOK", model_provider: "sovereign", model_id: "qwen2.5-coder:7b" }
+  ai_agent_actor: { kind: "ai", mode: "BYOK", model_provider: "sovereign", model_id: "qwen3:4b-instruct-2507" }
 }
 
 // Sensor Feed — Environmental monitoring stream

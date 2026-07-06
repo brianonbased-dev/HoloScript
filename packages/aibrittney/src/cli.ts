@@ -122,8 +122,9 @@ tool calling (v0.2, opt-in):
     edit_holo, trait_swap (local refusable diff previews)
   - tool calls are dispatched via the orchestrator at MCP_ORCHESTRATOR_URL
     (default https://mcp-orchestrator-production-45f9.up.railway.app)
-  - the model must natively support function/tool calls (qwen2.5-coder,
-    llama3.1+, kimi-k2.6, etc). Models without tool tokens fall back to
+  - the model must natively support function/tool calls (qwen3:4b-instruct-2507,
+    llama3.1+, kimi-k2.6, etc). qwen2.5* is blacklisted for the tool lane —
+    it emits tool calls as prose. Models without tool tokens fall back to
     plain chat with no calls.
 
 prerequisites (local mode):

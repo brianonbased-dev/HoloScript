@@ -4,7 +4,9 @@
 
 ## ⚡ 5-Minute Setup
 
-### Step 1: Install Ollama (3 minutes)
+### Step 1 (optional, legacy lane): Install Ollama (3 minutes)
+
+> **D.117 (2026-07-05)**: The sovereign local inference lane is **HoloLlama** — native `llama-server` (`:18080` on the Jetson node; SSOT `~/.ai-ecosystem/research/2026-07-05_holollama-native-llama-cpp-server-design.md`). The Ollama path below is a legacy, opt-in compat lane (`BRITTNEY_PROVIDER=ollama`), not the canonical local route. The service defaults to cloud providers (Fireworks/Together) and runs without Ollama — skip this step unless you specifically want the legacy local lane.
 
 Ollama runs local AI models on your machine - no APIs, no subscriptions.
 

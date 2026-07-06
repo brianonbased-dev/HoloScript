@@ -30,7 +30,7 @@ A tool that exists but doesn't work is worse than no tool — it wastes agent ti
 
 ## Ecosystem Inventory
 
-### MCP Tools (158 live at mcp.holoscript.net)
+### MCP Tools (count via `GET http://127.0.0.1:7411/health` — sovereign local, canonical for FS/codebase tools per R.027 — or `GET https://mcp.holoscript.net/health` for the remote; never pin the number, see docs/NUMBERS.md)
 
 **Tool definition files** in `packages/mcp-server/src/`:
 

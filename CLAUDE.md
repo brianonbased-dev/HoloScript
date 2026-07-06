@@ -196,7 +196,7 @@ Step 2: holo_absorb_repo({ rootDir: "<pkg-path>" })        → Omit force; reads
 Step 3: holo_query_codebase({ query: "<question>" })       → Auto-loads disk cache if needed
          holo_impact_analysis({ symbol: "<name>" })        → Blast radius (auto-loads cache)
          holo_detect_changes({ before: "ref", after: "ref" }) → Always fresh, compares two states
-Step 4: holo_semantic_search / holo_ask_codebase           → Require Ollama (graceful error without it)
+Step 4: holo_semantic_search / holo_ask_codebase           → Embeddings: HoloEmbed (keyless, offline — no Ollama). ask_codebase answer LLM: cloud-first; Ollama = last-resort local fallback only (retiring per D.117)
 ```
 
 **Rules:**
@@ -350,7 +350,7 @@ If any box is unchecked → complete that step before responding.
 
 ## HoloScript Absorb — Codebase Intelligence
 
-This project is scanned by **HoloScript Absorb** (`absorb.holoscript.net`). Run `holo_graph_status` for current symbol / relationship / execution-flow counts, or `GET https://absorb.holoscript.net/health` for service-level stats.
+Codebase intelligence for this repo runs on the **sovereign local MCP** (`http://127.0.0.1:7411/mcp` — R.027; start with `node packages/mcp-server/dist/http-server.js`). Run `holo_graph_status` there for current symbol / relationship / execution-flow counts. `absorb.holoscript.net` is the public remote Absorb service for remote repos — it cannot see this working tree, so never route this repo's absorption there.
 
 ## Always Start Here
 
@@ -366,8 +366,8 @@ This project is scanned by **HoloScript Absorb** (`absorb.holoscript.net`). Run 
 
 | Task                                                          | First choice (try this)                                                                                                                                                                              | Fallback if it errors                                                                |
 | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| Understand architecture / "How does X work?"                  | `holo_ask_codebase({ question: "..." })` via mcp.holoscript.net                                                                                                                                      | Read `packages/*/src/index.ts` barrel + symbol's defining file via Read tool         |
-| Blast radius / "What breaks if I change X?"                   | `holo_impact_analysis({ symbol: "..." })` via mcp.holoscript.net                                                                                                                                     | `git grep -n "<symbol>" packages/*/src/` to enumerate consumers                      |
+| Understand architecture / "How does X work?"                  | `holo_ask_codebase({ question: "..." })` via the sovereign local MCP (http://127.0.0.1:7411/mcp — `node packages/mcp-server/dist/http-server.js`; R.027)                                             | Read `packages/*/src/index.ts` barrel + symbol's defining file via Read tool         |
+| Blast radius / "What breaks if I change X?"                   | `holo_impact_analysis({ symbol: "..." })` via the sovereign local MCP (http://127.0.0.1:7411/mcp — `node packages/mcp-server/dist/http-server.js`; R.027)                                            | `git grep -n "<symbol>" packages/*/src/` to enumerate consumers                      |
 | Trace bugs / "Why is X failing?"                              | `engineering:debug` plugin skill                                                                                                                                                                     | Read the failing test + Grep for the symbol; cross-check `git log -p -- <file>`      |
 | Rename / extract / split / refactor                           | `holo_query_codebase({ query: "callers", symbol: "..." })`                                                                                                                                           | `git grep -n "<symbol>"` for call sites, then Edit each                              |
 | Studio UI structure (which pages, which stores, which APIs)   | `node packages/studio-ui-graph/dist/cli.js generate` → `packages/studio/.holo/studio.ui.holo` (also live in mesh knowledge store as `id=studio-ui-graph`). In-Studio HTML viewer at `/dev/ui-graph`. | `find packages/studio/src/app -name page.tsx` and grep blindly across 393 components |

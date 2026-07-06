@@ -53,9 +53,10 @@ holoscript query "what calls buildIndex"
 
 | Service | URL | Auth |
 |---------|-----|------|
-| MCP Server (tool count via `/health`) | `https://mcp.holoscript.net` | None (free tools). SSE transport broken (Railway CDN). Use REST. |
-| Absorb Service | `https://absorb.holoscript.net` | Bearer `ABSORB_API_KEY` |
-| MCP Protocol | `POST https://mcp.holoscript.net/mcp` | None |
+| **Sovereign local MCP** (canonical for local-repo absorb/codebase tools — R.027) | `POST http://127.0.0.1:7411/mcp` — start: `node packages/mcp-server/dist/http-server.js`; Jetson anchor `http://192.168.0.119:7411/mcp` | None |
+| MCP Server (remote — FS-blind, public-repo/shared lanes only; do NOT route local-repo absorption here) | `https://mcp.holoscript.net` | None (free tools). SSE transport broken (Railway CDN). Use REST. |
+| Absorb Service (remote) | `https://absorb.holoscript.net` | Bearer `ABSORB_API_KEY` |
+| MCP Protocol (remote — FS-blind, cannot see local paths) | `POST https://mcp.holoscript.net/mcp` | None |
 | Studio (paid ops) | `https://studio.holoscript.net` | Bearer `ABSORB_API_KEY` |
 | Orchestrator | `https://mcp-orchestrator-production-45f9.up.railway.app` | `x-mcp-api-key` header |
 

@@ -3,8 +3,11 @@ import type { ToolCall } from './ollama-chat.js';
 /**
  * Text-based tool-call fallback parser.
  *
- * Tool-capable models (qwen2.5-coder, llama3.1) return structured
- * `message.tool_calls` natively. Weaker / inconsistently-tooled open models
+ * Tool-capable models (qwen3:4b-instruct-2507, llama3.1) return structured
+ * `message.tool_calls` natively. qwen2.5-coder does NOT (blacklisted for
+ * agent lanes — it writes the call as text instead of tool_calls, W.738);
+ * it is one of the cases this fallback parser exists for. Weaker /
+ * inconsistently-tooled open models
  * (e.g. Gemma's E-series on some Ollama backends) instead emit the tool call
  * as text inside `message.content` — a `<tool_call>` block, a fenced ```json
  * block, or a bare JSON object. Without a fallback, agent.ts treats that text

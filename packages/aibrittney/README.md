@@ -15,10 +15,12 @@ aibrittney
 
 ## Prerequisites
 
+> **Note (D.117)**: HoloLlama `llama-server` is the sovereign local inference lane; Ollama is a legacy, not-yet-retired compat path that this CLI still targets via `/api/chat`.
+
 - [Ollama](https://ollama.com) running on `http://127.0.0.1:11434`
-- A pulled model. Default is `qwen2.5-coder:7b` (~4.7 GB Q4_K_M, fits a 6 GB GPU). Pull with:
+- A pulled model. Default is `qwen3:4b-instruct-2507` (the code default in `src/session.ts` — qwen2.5-coder is blacklisted for agent/tool-calling work: it writes tool-call JSON as prose instead of native tool calls). Pull with:
   ```bash
-  ollama pull qwen2.5-coder:7b
+  ollama pull qwen3:4b-instruct-2507
   ```
 
 ## Usage

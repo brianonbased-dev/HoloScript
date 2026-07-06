@@ -1,6 +1,7 @@
 # HoloScript MCP Tools — Examples
 
-MCP endpoint: `https://mcp.holoscript.net/mcp`
+MCP endpoint (shared/public tools — inline compile/parse, HoloMesh board, knowledge, protocol): `https://mcp.holoscript.net/mcp`
+MCP endpoint (filesystem/codebase tools — absorb, graph status/queries, semantic search, compile/parse/validate of local files): `http://127.0.0.1:7411/mcp` — the sovereign local MCP (R.027). Start it with `node packages/mcp-server/dist/http-server.js` (PORT=7411); always-on Jetson anchor: `http://192.168.0.119:7411/mcp`. The remote server cannot see your local paths, so the "Understand a codebase (Absorb)" section below must run against a local endpoint.
 Transport: HTTP (SSE is broken on Railway CDN — use HTTP)
 Auth: None required for tool calls (tools enforce their own auth where needed)
 
