@@ -21,6 +21,7 @@ Run these before publish:
 
 ```bash
 corepack pnpm run check:publish-surface
+corepack pnpm run check:package-architecture
 corepack pnpm run check:npm-v1-release
 corepack pnpm build
 corepack pnpm run check:npm-v1-release:built

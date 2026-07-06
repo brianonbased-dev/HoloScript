@@ -123,6 +123,8 @@
     "check:npm-v1-release:built": "node scripts/holo-ci/check-npm-v1-release-readiness.mjs --require-built",
     "check:npm-v1-release:test": "node scripts/__tests__/check-npm-v1-release-readiness.test.mjs",
     "check:npm-deprecations": "node scripts/holo-ci/check-npm-deprecations.mjs",
+    "check:package-architecture": "node scripts/holo-ci/check-package-architecture.mjs",
+    "check:package-architecture:test": "node scripts/holo-ci/check-package-architecture.mjs --self-test",
     "check:package-consumption": "node scripts/holo-ci/check-package-consumption-matrix.mjs",
     "check:package-consumption:full": "node scripts/holo-ci/check-package-consumption-matrix.mjs --pack-npm --build-python --inspect-python-artifacts --smoke-python-artifacts",
     "check:package-consumption:test": "node scripts/holo-ci/check-package-consumption-matrix.mjs --self-test",

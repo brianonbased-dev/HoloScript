@@ -94,6 +94,19 @@
       ]
     },
     {
+      "id": "xr-embodiment-runtime",
+      "label": "XR embodiment runtime",
+      "utilityFamily": "embodiment",
+      "deploymentRoles": ["library", "local-client", "edge-node", "gpu-worker"],
+      "packageName": "@holoscript/xr-embodiment",
+      "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "useCases": [
+        "shared locomotion and avatar substrate for HoloLand and HoloShell XR clients",
+        "agent-NPC embodiment in WebXR and three.js scenes",
+        "portable XR client package consumed by local, edge, and GPU fleet lanes"
+      ]
+    },
+    {
       "id": "python-runtime-bindings",
       "label": "Python HoloScript bindings",
       "utilityFamily": "python-runtime",

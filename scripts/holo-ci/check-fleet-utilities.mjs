@@ -36,6 +36,7 @@ const KNOWN_UTILITY_FAMILIES = new Set([
   'memory',
   'authoring',
   'language-runtime',
+  'embodiment',
   'python-runtime',
   'ml-workload',
   'fleet-dispatch',

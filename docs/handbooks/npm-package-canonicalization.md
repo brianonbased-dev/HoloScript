@@ -76,6 +76,7 @@ Run these before claiming the npm surface is coherent:
 
 ```powershell
 corepack pnpm check:publish-surface
+corepack pnpm check:package-architecture
 node scripts/holo-ci/check-npm-v1-release-readiness.mjs --require-built
 corepack pnpm check:npm-deprecations
 corepack pnpm check:holollama-consumption

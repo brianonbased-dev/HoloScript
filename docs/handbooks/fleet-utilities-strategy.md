@@ -8,6 +8,7 @@ guards.
 ## Source Of Truth
 
 - Utility map: `scripts/holo-ci/fleet-utilities-manifest.json`.
+- Package architecture gate: `corepack pnpm check:package-architecture`.
 - Coherence gate: `corepack pnpm check:fleet-utilities`.
 - Package consumption gate: `corepack pnpm check:package-consumption:full`.
 - HoloLlama consumption gate: `corepack pnpm check:holollama-consumption`.
@@ -23,6 +24,7 @@ guards.
 | Headless agent runtime    | `@holoscript/holoscript-agent`             | laptop, Jetson, Vast                 | Unattended HoloMesh agent process and room/board execution worker.                                 |
 | Shared memory client      | `@holoscript/memory`                       | laptop, Jetson, Vast                 | Identity-keyed memory reads/writes across agent families.                                          |
 | HoloScript CLI            | `@holoscript/cli`                          | laptop, Jetson, Vast                 | Parse, validate, compile, run, package, and deploy source.                                         |
+| XR embodiment runtime     | `@holoscript/xr-embodiment`                | laptop, Jetson, Vast                 | Shared locomotion and avatar substrate for WebXR clients and agent NPC embodiment.                 |
 | Python bindings           | `holoscript`, `holoscript-trait-inference` | laptop, Jetson, Vast as declared     | Python runtime utilities, robotics/scientific scripts, and model-backed trait inference.           |
 | GPU dispatch tools        | `@holoscript/mcp-server` MCP tools         | hosted service, Vast                 | Safe-by-default CI, world render, and paid simulation dispatch.                                    |
 
