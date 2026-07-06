@@ -300,6 +300,38 @@ describe('holo_absorb_repo root validation', () => {
     });
   });
 
+  it('does not auto-load an incomplete disk cache for queries', async () => {
+    resetCodebaseToolStateForTests(false);
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-incomplete-query-cache-'));
+    const requestedRoot = process.cwd();
+    const head = getHeadCommit();
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    writeGraphCache(cacheDir, requestedRoot, Date.now() - 5 * 60 * 1000, head, 1);
+
+    const result = (await handleCodebaseTool('holo_query_codebase', {
+      query: 'stats',
+      queryType: 'stats',
+    })) as {
+      error?: string;
+      graphUnavailableReceipt?: GraphUnavailableReceipt;
+      coverage?: { complete?: boolean; graphFileCount?: number };
+    };
+
+    expect(result.error).toContain('No codebase graph loaded');
+    expect(result.graphUnavailableReceipt).toMatchObject({
+      kind: 'GraphUnavailableReceipt',
+      reason: 'cache_incomplete',
+      authoritative: false,
+    });
+    expect(result.coverage?.complete).toBe(false);
+    expect(result.coverage?.graphFileCount).toBe(1);
+
+    const status = (await handleCodebaseTool('holo_graph_status', {})) as {
+      inMemory?: boolean;
+    };
+    expect(status.inMemory).toBe(false);
+  });
+
   it('repairs a git-stale cache through incremental stats without embeddings', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-incremental-stats-cache-'));
@@ -367,9 +399,9 @@ describe('holo_absorb_repo root validation', () => {
     expect(patched.embeddingSkipReason).toBe('outputFormat:stats');
     expect(patched.gitCommitHash).toBe(secondCommit);
 
-    const cache = JSON.parse(
-      fs.readFileSync(path.join(cacheDir, 'graph-cache.json'), 'utf-8')
-    ) as { gitCommitHash?: string };
+    const cache = JSON.parse(fs.readFileSync(path.join(cacheDir, 'graph-cache.json'), 'utf-8')) as {
+      gitCommitHash?: string;
+    };
     expect(cache.gitCommitHash).toBe(secondCommit);
   }, 20_000);
 
@@ -470,6 +502,33 @@ describe('holo_absorb_repo root validation', () => {
       reason: 'cache_root_mismatch',
       authoritative: false,
     });
+  });
+
+  it('does not auto-load a root-mismatched disk cache for impact analysis', async () => {
+    resetCodebaseToolStateForTests(false);
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-mismatch-impact-cache-'));
+    const mismatchedRoot = path.join(os.tmpdir(), 'holoscript-absorb-QpPEqg');
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    writeGraphCache(cacheDir, mismatchedRoot, Date.now() - 5 * 60 * 1000, undefined, 10_000);
+
+    const result = (await handleCodebaseTool('holo_impact_analysis', {
+      changedFiles: ['packages/absorb-service/src/engine/workers/WorkerPool.ts'],
+    })) as {
+      error?: string;
+      graphUnavailableReceipt?: GraphUnavailableReceipt;
+    };
+
+    expect(result.error).toContain('No codebase graph loaded');
+    expect(result.graphUnavailableReceipt).toMatchObject({
+      kind: 'GraphUnavailableReceipt',
+      reason: 'cache_root_mismatch',
+      authoritative: false,
+    });
+
+    const status = (await handleCodebaseTool('holo_graph_status', {})) as {
+      inMemory?: boolean;
+    };
+    expect(status.inMemory).toBe(false);
   });
 });
 

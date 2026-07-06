@@ -1,12 +1,27 @@
 import { describe, it, expect } from 'vitest';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { WorkerPool } from './WorkerPool';
+import { getFileWorkerExecArgv, WorkerPool } from './WorkerPool';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 describe('WorkerPool telemetry (internal)', () => {
+  it('strips eval-only Node flags before launching file-backed workers', () => {
+    expect(
+      getFileWorkerExecArgv([
+        '--input-type=module',
+        '-e',
+        'console.log(process.execArgv)',
+        '--trace-warnings',
+        '--input-type',
+        'module',
+        '--require',
+        './register.cjs',
+      ])
+    ).toEqual(['--trace-warnings', '--require', './register.cjs']);
+  });
+
   it('tracks job throughput and emits telemetry logs for concurrent jobs', async () => {
     const workerPath = resolve(__dirname, '__fixtures__/telemetry-worker.js');
     const pool = new WorkerPool(workerPath, 2);

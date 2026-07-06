@@ -21,6 +21,34 @@
 import { Worker } from 'worker_threads';
 import * as os from 'os';
 
+const EXEC_ARGV_FLAGS_WITH_VALUES = new Set(['--eval', '-e', '--print', '-p', '--input-type']);
+
+function stripInlineNodeExecArgv(execArgv: string[]): string[] {
+  const sanitized: string[] = [];
+
+  for (let i = 0; i < execArgv.length; i++) {
+    const arg = execArgv[i];
+    if (arg === undefined) continue;
+
+    if (EXEC_ARGV_FLAGS_WITH_VALUES.has(arg)) {
+      i += 1;
+      continue;
+    }
+
+    if (arg.startsWith('--input-type=')) continue;
+    if (arg.startsWith('--eval=')) continue;
+    if (arg.startsWith('--print=')) continue;
+
+    sanitized.push(arg);
+  }
+
+  return sanitized;
+}
+
+export function getFileWorkerExecArgv(execArgv = process.execArgv): string[] {
+  return stripInlineNodeExecArgv(execArgv);
+}
+
 function isReadySignal(msg: unknown): msg is { type: 'ready' } {
   return typeof msg === 'object' && msg !== null && (msg as { type?: unknown }).type === 'ready';
 }
@@ -99,7 +127,7 @@ export class WorkerPool {
     const size = poolSize ?? Math.max(2, os.cpus().length - 2); // Leave 2 cores free
 
     for (let i = 0; i < size; i++) {
-      const worker = new Worker(this.workerFile);
+      const worker = new Worker(this.workerFile, { execArgv: getFileWorkerExecArgv() });
 
       worker.on('message', (raw: unknown) => {
         if (isReadySignal(raw)) {

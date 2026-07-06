@@ -619,6 +619,17 @@ function buildGraphCoverageStatus(
   };
 }
 
+function graphCoverageIsComplete(coverage: GraphCoverageStatus): boolean {
+  return !coverage.available || coverage.complete !== false;
+}
+
+function getEnvelopeGraphFileCount(envelope: GraphCacheEnvelope): number {
+  const fileHashCount = envelope.fileHashes ? Object.keys(envelope.fileHashes).length : undefined;
+  const statsTotalFiles = Number((envelope.stats as { totalFiles?: unknown })?.totalFiles ?? 0);
+  if (fileHashCount !== undefined) return fileHashCount;
+  return Number.isFinite(statsTotalFiles) ? Math.max(0, statsTotalFiles) : 0;
+}
+
 function hashInlineSourceFiles(sourceFiles: SourceFileEntry[]): Record<string, string> {
   return Object.fromEntries(
     sourceFiles.map((file) => [
@@ -643,7 +654,9 @@ function cacheGitMatchesHead(
   cacheGitCommitHash: string | null | undefined,
   currentGitCommitHash: string | null | undefined
 ): boolean {
-  return !cacheGitCommitHash || !currentGitCommitHash || cacheGitCommitHash === currentGitCommitHash;
+  return (
+    !cacheGitCommitHash || !currentGitCommitHash || cacheGitCommitHash === currentGitCommitHash
+  );
 }
 
 function shortGitHash(hash: string | null | undefined): string {
@@ -1317,6 +1330,8 @@ async function ensureCachedGraph(): Promise<{
   ageMs?: number;
   rootDir?: string;
   stale?: boolean;
+  coverage?: GraphCoverageStatus;
+  graphUnavailableReceipt?: GraphUnavailableReceipt;
 }> {
   if (cachedGraph) {
     return {
@@ -1331,15 +1346,37 @@ async function ensureCachedGraph(): Promise<{
   const envelope = loadGraphCache();
   if (envelope) {
     try {
+      const currentCwd = path.resolve(process.cwd());
+      const ageMs = Date.now() - envelope.timestamp;
       const currentGitCommitHash = await getCurrentGitCommit(envelope.rootDir);
-      if (!cacheGitMatchesHead(envelope.gitCommitHash, currentGitCommitHash)) {
-        const ageMs = Date.now() - envelope.timestamp;
+      const cacheMatchesCwd = rootMatchesCurrentRepo(envelope.rootDir, currentCwd);
+      const gitMatchesHead = cacheGitMatchesHead(envelope.gitCommitHash, currentGitCommitHash);
+      const freshByAge = ageMs < CACHE_MAX_AGE_MS;
+      const coverage = buildGraphCoverageStatus(
+        cacheMatchesCwd ? currentCwd : envelope.rootDir,
+        getEnvelopeGraphFileCount(envelope)
+      );
+      const coverageComplete = graphCoverageIsComplete(coverage);
+
+      if (!cacheMatchesCwd || !gitMatchesHead || !freshByAge || !coverageComplete) {
+        const reason: GraphUnavailableReason = !cacheMatchesCwd
+          ? 'cache_root_mismatch'
+          : !gitMatchesHead || !freshByAge
+            ? 'cache_stale'
+            : 'cache_incomplete';
         return {
           loaded: false,
           source: 'none',
           ageMs,
           rootDir: envelope.rootDir,
           stale: true,
+          coverage,
+          graphUnavailableReceipt: buildGraphUnavailableReceipt({
+            reason,
+            requestedPath: envelope.rootDir,
+            runtimePath: path.resolve(envelope.rootDir),
+            cacheAgeMs: ageMs,
+          }),
         };
       }
       const mod = await loadCodebaseModule();
@@ -1404,13 +1441,13 @@ async function ensureCachedGraph(): Promise<{
       } catch (err) {
         console.warn(`[AbsorbCacheWarm] GraphRAG warmup skipped: ${String(err)}`);
       }
-      const ageMs = Date.now() - envelope.timestamp;
       return {
         loaded: true,
         source: 'disk-cache',
         ageMs,
         rootDir: envelope.rootDir,
         stale: ageMs >= CACHE_MAX_AGE_MS,
+        coverage,
       };
     } catch {
       /* Deserialization failed */
@@ -2419,6 +2456,10 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
     return {
       error: ABSORB_CODEBASE_LOAD_ERROR,
       hint: ABSORB_HOLO_ABSORB_REPO_HINT,
+      ...(graphState.graphUnavailableReceipt && {
+        graphUnavailableReceipt: graphState.graphUnavailableReceipt,
+      }),
+      ...(graphState.coverage && { coverage: graphState.coverage }),
     };
   }
   const fromCache = graphState.source === 'disk-cache';
@@ -2577,7 +2618,14 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
 async function handleImpact(args: Record<string, unknown>): Promise<unknown> {
   const graphState = await ensureCachedGraph();
   if (!graphState.loaded) {
-    return { error: ABSORB_CODEBASE_LOAD_ERROR, hint: ABSORB_HOLO_ABSORB_REPO_HINT };
+    return {
+      error: ABSORB_CODEBASE_LOAD_ERROR,
+      hint: ABSORB_HOLO_ABSORB_REPO_HINT,
+      ...(graphState.graphUnavailableReceipt && {
+        graphUnavailableReceipt: graphState.graphUnavailableReceipt,
+      }),
+      ...(graphState.coverage && { coverage: graphState.coverage }),
+    };
   }
   const cacheNote =
     graphState.source === 'disk-cache'
@@ -2814,10 +2862,10 @@ async function handleGraphStatus(): Promise<unknown> {
                 (!activeFreshByAge || !activeGitMatchesHead)
               ? 'cache_stale'
               : (cache.exists || cachedGraph !== null) && !activeCoverageComplete
-              ? 'cache_incomplete'
-              : cache.exists || cachedGraph !== null || graphRAGState.ready
-                ? 'cache_stale'
-              : 'cache_missing',
+                ? 'cache_incomplete'
+                : cache.exists || cachedGraph !== null || graphRAGState.ready
+                  ? 'cache_stale'
+                  : 'cache_missing',
         requestedPath,
         runtimePath: requestedPath ? path.resolve(requestedPath) : null,
         cacheAgeMs: activeAgeMs ?? graphRAGState.ageMs ?? undefined,
