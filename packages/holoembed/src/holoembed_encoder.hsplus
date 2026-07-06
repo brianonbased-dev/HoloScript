@@ -1,65 +1,112 @@
-// @holoembed_encoder — 768-dim structural + trigram embedding encoder.
+// @holoembed_encoder -- 768-dim structural + trigram embedding encoder.
 //
 // Native .hsplus surface for HoloEmbedEncoder.ts (holoembed).
 //
 // Produces 768-dimensional embedding vectors for HoloScript symbols/code:
 //
-//   Dims   0–383: structural base (file topology, call-graph, event-chain)
-//   Dims 384–511: char-trigram of name + type + signature (128 bins)
-//   Dims 512–639: char-trigram of docComment (128 bins)
-//   Dims 640–767: char-trigram of event names (128 bins)
+//   Dims   0-383: structural base (file topology, call-graph, event-chain)
+//   Dims 384-511: char-trigram of name + type + signature (128 bins)
+//   Dims 512-639: char-trigram of docComment (128 bins)
+//   Dims 640-767: char-trigram of event names (128 bins)
 //
 // Optional SNN-WebGPU acceleration (Phase 2, HoloEmbedEncoder.ts):
-//   Each trigram block → 128-neuron LIF population → spike-rate vector (sparse).
+//   Each trigram block -> 128-neuron LIF population -> spike-rate vector.
 //   Falls back to raw histogram when GPU unavailable (always safe).
 //
 // Used by HoloEmbedProvider in @holoscript/absorb-service (EmbeddingProvider iface).
-// encode(sym, opts) — for code symbols
-// encodeText(str)   — for NL queries (query vector matched against symbol vecs)
+// encode(sym, opts) -- for code symbols
+// encodeText(str)   -- for NL queries (query vector matched against symbol vecs)
 
-@trait holoembed_encoder {
-  // Enable SNN-WebGPU acceleration (falls back to CPU if GPU unavailable)
-  enable_snn: Bool = true
+composition "HoloEmbedEncoderSurface" {
+  module HoloEmbedEncoderModule {
+    state {
+      enable_snn: true
+      embedding_dim: 768
+      structural_weight: 0.12
+      capability_tags: [
+        "holoembed_encoder",
+        "embedding",
+        "768_dim",
+        "snn_webgpu",
+        "trigram",
+        "absorb_service",
+        "holoscript_code_search"
+      ]
+    }
 
-  // Embedding dimensionality (HOLOEMBED_DIM = 768, fixed)
-  embedding_dim: Int = 768
+    action initialize() {
+      emit("holoembed_encoder_ready", {
+        enable_snn: this.state.enable_snn,
+        embedding_dim: this.state.embedding_dim,
+        provider: "holoembed"
+      });
 
-  capability_tags: ["holoembed_encoder", "embedding", "768_dim", "snn_webgpu", "trigram", "absorb_service", "holoscript_code_search"]
+      return {
+        provider: "holoembed",
+        embedding_dim: this.state.embedding_dim,
+        snn_requested: this.state.enable_snn,
+        fallback: "raw_char_trigram_histogram"
+      };
+    }
 
-  @on_spawn => {
-    encoder = init_holoembed_encoder({ enable_snn: enable_snn })
-    // initialize() starts SNN-WebGPU if requested; no-op on GPU miss
-    init_result = encoder.initialize({ enable_snn: enable_snn })
-    emit("holoembed_encoder_ready", {
-      enable_snn: init_result.snn_enabled,
-      embedding_dim: embedding_dim
-    })
-  }
+    action encode(symbol, fan_in, event_names) {
+      emit("holoembed_symbol_encode_requested", {
+        symbol: symbol,
+        fan_in: fan_in,
+        event_names: event_names,
+        embedding_dim: this.state.embedding_dim
+      });
 
-  // Encode a code symbol (file-topology + call-graph + trigram dims)
-  @on_encode(symbol, fan_in, event_names) => {
-    vec = encoder.encode(symbol, { fan_in: fan_in ?? 0, event_names: event_names ?? [] })
-    return vec
-  }
+      return {
+        symbol: symbol,
+        fan_in: fan_in,
+        event_names: event_names,
+        output: "768_dim_holoembed_vector",
+        dimensions: {
+          structural: "0-383",
+          trigram_name: "384-511",
+          trigram_doc: "512-639",
+          trigram_event: "640-767"
+        }
+      };
+    }
 
-  // Encode a natural-language query for similarity search
-  @on_encode_text(text) => {
-    return encoder.encode_text(text)
-  }
+    action encode_text(text) {
+      emit("holoembed_text_encode_requested", {
+        text: text,
+        embedding_dim: this.state.embedding_dim
+      });
 
-  // Cosine similarity between two 768-dim vectors
-  @on_similarity(vec_a, vec_b) => {
-    return cosine_similarity(vec_a, vec_b)
-  }
+      return {
+        text: text,
+        output: "768_dim_holoembed_query_vector",
+        query_blocks: ["name_signature", "doc_comment", "event_names"]
+      };
+    }
 
-  @receipt holoembed_encoder_config {
-    type: "HoloEmbedEncoderReceipt"
-    enable_snn: enable_snn
-    embedding_dim: embedding_dim
-    structural_dims: "0-383"
-    trigram_name_dims: "384-511"
-    trigram_doc_dims: "512-639"
-    trigram_event_dims: "640-767"
-    timestamp: now()
+    action similarity(vec_a, vec_b) {
+      return {
+        vec_a: vec_a,
+        vec_b: vec_b,
+        metric: "cosine_similarity",
+        expected_dim: this.state.embedding_dim
+      };
+    }
+
+    action receipt() {
+      return {
+        type: "HoloEmbedEncoderReceipt",
+        provider: "holoembed",
+        enable_snn: this.state.enable_snn,
+        embedding_dim: this.state.embedding_dim,
+        structural_dims: "0-383",
+        trigram_name_dims: "384-511",
+        trigram_doc_dims: "512-639",
+        trigram_event_dims: "640-767",
+        timestamp: current_time()
+      };
+    }
+
+    exports { initialize, encode, encode_text, similarity, receipt, state }
   }
 }

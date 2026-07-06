@@ -1,9 +1,9 @@
-// @snn_accelerator — SNN-WebGPU LIF population coding for HoloEmbed.
+// @snn_accelerator -- SNN-WebGPU LIF population coding for HoloEmbed.
 //
 // Native .hsplus surface for SnnAccelerator.ts (holoembed).
 //
 // Replaces static char-trigram histogram blocks with Leaky Integrate-and-Fire
-// population coding (see Paper 33 — brain white-matter routing):
+// population coding (see Paper 33 -- brain white-matter routing):
 //
 //   Input:   128-dim normalized trigram histogram h[0..127]
 //   Process: inject h[i] as synaptic current into LIF neuron i
@@ -24,52 +24,90 @@
 // Falls back to CPU passthrough (histogram unchanged) when GPU unavailable.
 // Behavior is identical; only performance differs for large batches.
 //
-// Used by HoloEmbedEncoder for dims 384–767 (three trigram blocks).
+// Used by HoloEmbedEncoder for dims 384-767 (three trigram blocks).
 
-@trait snn_accelerator {
-  // Attempt WebGPU acceleration (falls back to CPU automatically)
-  enable_gpu: Bool = true
+composition "SnnAcceleratorSurface" {
+  module SnnAcceleratorModule {
+    state {
+      enable_gpu: true
+      time_steps: 50
+      workgroup_size: 64
+      neuron_count: 128
+      capability_tags: [
+        "snn_accelerator",
+        "lif_population_coding",
+        "webgpu_wgsl",
+        "holoembed",
+        "sparse_embedding",
+        "brain_inspired"
+      ]
+    }
 
-  // LIF timestep count (default 50 = 50ms simulation)
-  time_steps: Int = 50
+    action initialize() {
+      emit("snn_accelerator_ready", {
+        enable_gpu: this.state.enable_gpu,
+        time_steps: this.state.time_steps,
+        neuron_count: this.state.neuron_count
+      });
 
-  // Workgroup size for WGSL compute dispatch (must divide neuron_count)
-  workgroup_size: Int = 64
+      return {
+        accelerator: "snn_webgpu_lif",
+        gpu_requested: this.state.enable_gpu,
+        cpu_fallback: "histogram_passthrough",
+        time_steps: this.state.time_steps
+      };
+    }
 
-  capability_tags: ["snn_accelerator", "lif_population_coding", "webgpu_wgsl", "holoembed", "sparse_embedding", "brain_inspired"]
+    action encode(histogram_128) {
+      emit("snn_histogram_encode_requested", {
+        histogram: histogram_128,
+        neuron_count: this.state.neuron_count,
+        time_steps: this.state.time_steps
+      });
 
-  @on_spawn => {
-    accel = init_snn_accelerator({ enable_gpu: enable_gpu, time_steps: time_steps })
-    init_result = accel.initialize()
-    emit("snn_accelerator_ready", {
-      gpu_available: init_result.gpu_available,
-      time_steps: time_steps
-    })
-  }
+      return {
+        input: "128_dim_trigram_histogram",
+        output: "128_dim_spike_rate_vector",
+        fallback_output: "128_dim_trigram_histogram",
+        neuron_count: this.state.neuron_count
+      };
+    }
 
-  // Encode 128-dim trigram histogram → 128-dim spike-rate vector
-  // (GPU path via WGSL; CPU fallback returns histogram unchanged)
-  @on_encode(histogram_128) => {
-    return accel.encode(histogram_128)
-  }
+    action encode_batch(histograms) {
+      emit("snn_histogram_batch_encode_requested", {
+        histograms: histograms,
+        neuron_count: this.state.neuron_count,
+        time_steps: this.state.time_steps
+      });
 
-  // Encode a batch of histograms efficiently (single GPU dispatch)
-  @on_encode_batch(histograms) => {
-    results = accel.encode_batch(histograms)
-    return results
-  }
+      return {
+        input: "batch_of_128_dim_histograms",
+        output: "batch_of_128_dim_spike_rate_vectors",
+        dispatch: "single_webgpu_compute_batch_when_available"
+      };
+    }
 
-  @on_is_gpu_available => {
-    return accel.is_gpu_available()
-  }
+    action is_gpu_available() {
+      return {
+        requested: this.state.enable_gpu,
+        runtime_probe: "SnnAccelerator.initialize",
+        fallback: "cpu_histogram_passthrough"
+      };
+    }
 
-  @receipt snn_accelerator_config {
-    type: "SnnAcceleratorReceipt"
-    enable_gpu: enable_gpu
-    time_steps: time_steps
-    neuron_count: 128
-    lif_params: "tau=20ms, vThreshold=-55mV, vReset=-75mV, vRest=-65mV, dt=1ms, currentScale=240"
-    paper_ref: "Paper 33 — brain white-matter routing"
-    timestamp: now()
+    action receipt() {
+      return {
+        type: "SnnAcceleratorReceipt",
+        enable_gpu: this.state.enable_gpu,
+        time_steps: this.state.time_steps,
+        neuron_count: this.state.neuron_count,
+        workgroup_size: this.state.workgroup_size,
+        lif_params: "tau=20ms, vThreshold=-55mV, vReset=-75mV, vRest=-65mV, dt=1ms, currentScale=240",
+        paper_ref: "Paper 33 -- brain white-matter routing",
+        timestamp: current_time()
+      };
+    }
+
+    exports { initialize, encode, encode_batch, is_gpu_available, receipt, state }
   }
 }
