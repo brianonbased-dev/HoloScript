@@ -131,6 +131,17 @@ export class CommunityDetector {
       degree.set(node, d);
     }
 
+    // Sum of node degrees per community, maintained INCREMENTALLY across moves.
+    // Recomputing this per node (a full O(V) scan of nodeToComm each time) made
+    // louvain O(iterations * V^2) and hung impact analysis on large graphs
+    // (getCommunityAwareImpact -> detectCommunities -> here) for 300s+. Keeping it
+    // incremental makes each pass O(V + E) with identical community output.
+    const commDegreeTotal: Map<string, number> = new Map();
+    for (const node of nodes) {
+      const comm = nodeToComm.get(node)!;
+      commDegreeTotal.set(comm, (commDegreeTotal.get(comm) ?? 0) + (degree.get(node) ?? 0));
+    }
+
     // Iterate: greedily move nodes to best community
     let improved = true;
     let iteration = 0;
@@ -153,25 +164,20 @@ export class CommunityDetector {
           commEdges.set(neighborComm, (commEdges.get(neighborComm) ?? 0) + weight);
         }
 
-        // Compute sum of degrees in each candidate community
-        const commDegree: Map<string, number> = new Map();
-        for (const [n, comm] of nodeToComm) {
-          if (n === node) continue;
-          commDegree.set(comm, (commDegree.get(comm) ?? 0) + (degree.get(n) ?? 0));
-        }
-
         // Find best community (max modularity gain)
         let bestComm = currentComm;
         let bestGain = 0;
 
-        // Current community edges (for removal cost)
+        // Current community edges (for removal cost). currentCommDeg excludes the
+        // node itself (it is about to be removed from its current community); a
+        // candidate community never contains the node, so its total is used as-is.
         const edgesToCurrent = commEdges.get(currentComm) ?? 0;
-        const currentCommDeg = commDegree.get(currentComm) ?? 0;
+        const currentCommDeg = (commDegreeTotal.get(currentComm) ?? 0) - nodeDeg;
 
         for (const [candidateComm, edgesToCandidate] of commEdges) {
           if (candidateComm === currentComm) continue;
 
-          const candidateCommDeg = commDegree.get(candidateComm) ?? 0;
+          const candidateCommDeg = commDegreeTotal.get(candidateComm) ?? 0;
 
           // Modularity gain = edges_to_candidate / totalWeight
           //   - nodeDeg * candidateCommDeg / (2 * totalWeight^2)
@@ -188,6 +194,10 @@ export class CommunityDetector {
         }
 
         if (bestComm !== currentComm) {
+          // Keep commDegreeTotal consistent with the move so the next node in this
+          // pass sees up-to-date community degrees (matches the old per-node recompute).
+          commDegreeTotal.set(currentComm, (commDegreeTotal.get(currentComm) ?? 0) - nodeDeg);
+          commDegreeTotal.set(bestComm, (commDegreeTotal.get(bestComm) ?? 0) + nodeDeg);
           nodeToComm.set(node, bestComm);
           improved = true;
         }
