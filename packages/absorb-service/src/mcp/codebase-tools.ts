@@ -173,26 +173,10 @@ let cachedProviderName: string | null = null;
  * Select the native GraphRAG embedding provider.
  * Cached for the session (only probes once).
  *
- * Product rule: GraphRAG uses HoloGraph + HoloEmbed, or a sovereign LOCAL learned
- * encoder (Ollama at a loopback URL). No external/cloud provider is ever
- * auto-selected, and no weaker fallback hides native breakage.
+ * Product rule: shared GraphRAG uses HoloGraph + HoloEmbed only. Local model
+ * serving belongs in HoloLlama / LLM synthesis, not the embedding substrate.
+ * No external or low-level experiment provider is ever auto-selected.
  */
-async function isLocalOllamaNomicAvailable(): Promise<boolean> {
-  const url = process.env.OLLAMA_URL ?? 'http://localhost:11434';
-  // Sovereignty: only a LOOPBACK Ollama may auto-activate — a remote URL would
-  // move code text off-device. A remote Ollama is still reachable via an explicit
-  // EMBEDDING_PROVIDER=ollama opt-in, but never by auto-detection.
-  if (!/^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?(\/|$)/.test(url)) return false;
-  const model = process.env.OLLAMA_MODEL ?? 'nomic-embed-text';
-  try {
-    const res = await fetch(`${url}/api/tags`, { signal: AbortSignal.timeout(2000) });
-    if (!res.ok) return false;
-    const data = (await res.json()) as { models?: Array<{ name?: string }> };
-    return (data.models ?? []).some((m) => (m.name ?? '').startsWith(model));
-  } catch {
-    return false;
-  }
-}
 
 export async function detectBestEmbeddingProvider(): Promise<string> {
   if (cachedProviderName) return cachedProviderName;
@@ -203,19 +187,6 @@ export async function detectBestEmbeddingProvider(): Promise<string> {
       'EMBEDDING_PROVIDER'
     );
     console.error(`[EmbeddingProvider] Using explicit env: ${cachedProviderName}`);
-    return cachedProviderName;
-  }
-
-  // Prefer a LOCAL sovereign learned encoder (Ollama + nomic-embed-text) when it
-  // is reachable on a loopback URL: mean-based semantic search ("execute" ~ "run")
-  // instead of HoloEmbed's lexical/trigram match, still $0 and on-device. Falls
-  // back to HoloEmbed when Ollama is not running. Skipped under test (VITEST) so
-  // the suite is deterministic regardless of whether a box happens to run Ollama.
-  if (!process.env.VITEST && (await isLocalOllamaNomicAvailable())) {
-    cachedProviderName = 'ollama';
-    console.error(
-      '[EmbeddingProvider] Local Ollama nomic-embed-text reachable; using sovereign learned lane (ollama)'
-    );
     return cachedProviderName;
   }
 
@@ -568,8 +539,8 @@ async function loadEmbeddingsCache(mod: any, providerInstance: any): Promise<any
     // No mixed embedding spaces: a cache built by a different provider holds
     // vectors from a different semantic space, so querying it with this provider's
     // vectors returns garbage. The .bin header records the building provider —
-    // reject a mismatch so the index rebuilds. This is what lets the sovereign
-    // Ollama lane coexist with HoloEmbed without corrupting a shared cache.
+    // reject a mismatch so the index rebuilds. Shared GraphRAG should normally
+    // be HoloEmbed; this guard also protects legacy/experiment caches.
     try {
       const metaLength = buffer.readUInt32LE(0);
       const meta = JSON.parse(buffer.subarray(4, 4 + metaLength).toString('utf-8')) as {
@@ -808,7 +779,10 @@ function writeSourceFilesToTemp(files: SourceFileEntry[]): string {
   return tmpDir;
 }
 
-function buildInlineSourceScan(rootDir: string, files: SourceFileEntry[]): {
+function buildInlineSourceScan(
+  rootDir: string,
+  files: SourceFileEntry[]
+): {
   filePaths: string[];
   readFile: (filePath: string) => Promise<string>;
 } {
@@ -1445,8 +1419,7 @@ async function runFullScan(
     // embeddings, the on-disk `.bin` is still valid for this exact graph — load
     // it (seconds) instead of re-embedding 343k symbols (minutes). The provider
     // guard in loadEmbeddingsCache still rejects a `.bin` built by a different
-    // provider, so a holoembed cache is never served to an ollama query and
-    // vice-versa. Never weakens requireNativeGraphRAGProvider.
+    // provider. Never weakens requireNativeGraphRAGProvider.
     const providerName = embeddingProvider
       ? requireNativeGraphRAGProvider(embeddingProvider, 'embeddingProvider argument')
       : await detectBestEmbeddingProvider();
@@ -1477,9 +1450,7 @@ async function runFullScan(
           });
         }
       } catch (err) {
-        console.warn(
-          `[AbsorbEmbeddings] Fast-hydrate load failed, will rebuild: ${String(err)}`
-        );
+        console.warn(`[AbsorbEmbeddings] Fast-hydrate load failed, will rebuild: ${String(err)}`);
         hydratedIndex = null;
       }
     }
@@ -2087,9 +2058,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
           });
         }
       } catch (err) {
-        console.warn(
-          `[AbsorbEmbeddings] Zero-change fast-hydrate skipped: ${String(err)}`
-        );
+        console.warn(`[AbsorbEmbeddings] Zero-change fast-hydrate skipped: ${String(err)}`);
       }
     }
 

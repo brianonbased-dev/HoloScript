@@ -261,7 +261,7 @@ async function handleSemanticSearch(args: Record<string, unknown>): Promise<unkn
   } catch (err: unknown) {
     return {
       error: `Semantic search failed: ${err instanceof Error ? err.message : String(err)}`,
-      hint: 'Embedding search failed. Default provider is keyless (structural / HoloEmbed — no API key, offline). For exact structural code-intelligence prefer HoloGraph (holo_query_codebase). OpenAI/Ollama embeddings are opt-in only — not required (F.106).',
+      hint: 'Embedding search failed. Shared GraphRAG uses HoloEmbed (structural is a legacy alias) with no API key. For exact structural code intelligence prefer HoloGraph (holo_query_codebase). OpenAI/Ollama/Xenova providers are low-level experiments only and are not valid shared GraphRAG embedding providers.',
     };
   }
 }

@@ -46,24 +46,33 @@ describe('detectBestEmbeddingProvider', () => {
     await expect(detectBestEmbeddingProvider()).resolves.toBe('holoembed');
   });
 
-  it('accepts sovereign local Ollama as an explicit provider (nomic learned lane)', async () => {
-    // Ollama runs a learned encoder on-device — sovereign, so it is permitted
-    // beside HoloEmbed. (Auto-selection of it is skipped under VITEST.)
+  it('rejects Ollama as a shared GraphRAG embedding provider', async () => {
+    // HoloLlama/Ollama may serve LLM synthesis, but shared Absorb indexes stay
+    // in the canonical HoloGraph + HoloEmbed vector space.
     vi.stubEnv('EMBEDDING_PROVIDER', ' Ollama ');
 
-    await expect(detectBestEmbeddingProvider()).resolves.toBe('ollama');
+    await expect(detectBestEmbeddingProvider()).rejects.toThrow(
+      /not valid shared GraphRAG embedding providers/
+    );
   });
 
   it('still rejects cloud providers even as explicit overrides', async () => {
     vi.stubEnv('EMBEDDING_PROVIDER', 'xenova');
 
     await expect(detectBestEmbeddingProvider()).rejects.toThrow(
-      /External\/cloud providers are disabled/
+      /not valid shared GraphRAG embedding providers/
     );
   });
 
   it('defaults to HoloEmbed even when external provider credentials exist', async () => {
     vi.stubEnv('OPENAI_API_KEY', 'present-but-not-default');
+
+    await expect(detectBestEmbeddingProvider()).resolves.toBe('holoembed');
+  });
+
+  it('defaults to HoloEmbed even when local Ollama environment is present', async () => {
+    vi.stubEnv('OLLAMA_URL', 'http://localhost:11434');
+    vi.stubEnv('OLLAMA_MODEL', 'nomic-embed-text');
 
     await expect(detectBestEmbeddingProvider()).resolves.toBe('holoembed');
   });

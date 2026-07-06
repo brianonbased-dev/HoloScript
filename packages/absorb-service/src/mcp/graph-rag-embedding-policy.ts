@@ -4,21 +4,12 @@ export const NATIVE_GRAPH_RAG_PROVIDER = 'holoembed' as const;
 export const LEGACY_GRAPH_RAG_PROVIDER_ALIASES = ['structural'] as const;
 
 /**
- * Sovereign LOCAL providers permitted beside HoloEmbed. `ollama` runs a learned
- * encoder (e.g. nomic-embed-text) on-device at a loopback URL — $0, no cloud
- * call — so it satisfies the sovereignty intent while giving mean-based semantic
- * search. External/cloud providers (openai, remote xenova) stay forbidden. The
- * "no mixed embedding spaces in a shared cache" guarantee is preserved by the
- * cache layer, which rejects a cache built by a different provider.
+ * Shared project GraphRAG has one native embedding space: HoloGraph + HoloEmbed.
+ * Low-level factory providers such as Ollama, OpenAI, and Xenova are useful for
+ * isolated experiments, but they must not enter shared Absorb caches. Local model
+ * serving belongs in HoloLlama / LLM synthesis, not the embedding substrate.
  */
-export const SOVEREIGN_LOCAL_GRAPH_RAG_PROVIDERS = ['ollama'] as const;
-
 export type NativeGraphRAGProvider = typeof NATIVE_GRAPH_RAG_PROVIDER;
-export type SovereignLocalGraphRAGProvider =
-  (typeof SOVEREIGN_LOCAL_GRAPH_RAG_PROVIDERS)[number];
-export type SovereignGraphRAGProvider =
-  | NativeGraphRAGProvider
-  | SovereignLocalGraphRAGProvider;
 
 export interface GraphRAGEmbeddingPolicyReceipt {
   schemaVersion: typeof GRAPH_RAG_EMBEDDING_POLICY_VERSION;
@@ -33,19 +24,14 @@ export interface GraphRAGEmbeddingPolicyReceipt {
 export function requireNativeGraphRAGProvider(
   providerName: string,
   source: string
-): SovereignGraphRAGProvider {
+): NativeGraphRAGProvider {
   const normalized = providerName.trim().toLowerCase();
   if ((LEGACY_GRAPH_RAG_PROVIDER_ALIASES as readonly string[]).includes(normalized)) {
     return NATIVE_GRAPH_RAG_PROVIDER;
   }
-  if ((SOVEREIGN_LOCAL_GRAPH_RAG_PROVIDERS as readonly string[]).includes(normalized)) {
-    return normalized as SovereignLocalGraphRAGProvider;
-  }
   if (normalized !== NATIVE_GRAPH_RAG_PROVIDER) {
     throw new Error(
-      `GraphRAG embedding provider must be ${NATIVE_GRAPH_RAG_PROVIDER} or a sovereign local provider (${SOVEREIGN_LOCAL_GRAPH_RAG_PROVIDERS.join(
-        ', '
-      )}); ${source} requested ${normalized}. External/cloud providers are disabled.`
+      `GraphRAG embedding provider must be ${NATIVE_GRAPH_RAG_PROVIDER}; ${source} requested ${normalized}. structural is a legacy alias. Ollama/HoloLlama and cloud embedding providers are not valid shared GraphRAG embedding providers.`
     );
   }
   return NATIVE_GRAPH_RAG_PROVIDER;
@@ -60,6 +46,6 @@ export function buildGraphRAGEmbeddingPolicyReceipt(): GraphRAGEmbeddingPolicyRe
     externalProvidersAllowed: false,
     externalFallbacksAllowed: false,
     policy:
-      'HoloScript GraphRAG uses HoloGraph plus HoloEmbed, or a sovereign LOCAL learned encoder (Ollama at a loopback URL, e.g. nomic-embed-text), for every project. External/cloud embedding providers are disabled, and the cache rejects any index built by a different provider, so mixed embedding spaces cannot enter shared GraphRAG caches.',
+      'HoloScript GraphRAG uses HoloGraph plus HoloEmbed for every shared project cache. structural is accepted only as a legacy alias and maps to holoembed. Ollama/HoloLlama may serve LLM synthesis, and low-level factory providers may support isolated experiments, but they are not valid shared GraphRAG embedding providers.',
   };
 }
