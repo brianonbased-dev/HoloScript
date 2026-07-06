@@ -101,6 +101,37 @@ export interface OllamaBaselineOptions {
   apiKey: string;
   model?: string;
   baseURL?: string;
+  fetchImpl?: typeof fetch;
+}
+
+function isQwen3VlModel(modelId: string | undefined): boolean {
+  const normalized = (modelId ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  return normalized.includes('qwen3vl');
+}
+
+function finalOutputGateError(opts: {
+  modelId: string;
+  outputText: string;
+  thinkingText: string;
+  finishReason: string;
+  mutationCount: number;
+}): string | undefined {
+  if (!isQwen3VlModel(opts.modelId)) return undefined;
+  if (opts.outputText.trim().length > 0) return undefined;
+  if (opts.mutationCount > 0) return undefined;
+
+  const hasThinking = opts.thinkingText.trim().length > 0;
+  const stoppedByLength = opts.finishReason === 'length';
+  if (!hasThinking && !stoppedByLength) return undefined;
+
+  const signals = [
+    hasThinking ? 'thinking-only output' : undefined,
+    stoppedByLength ? 'finish_reason=length' : undefined,
+  ]
+    .filter(Boolean)
+    .join(', ');
+
+  return `final-output-gate: ${opts.modelId} produced empty message.content with no scene mutations (${signals}); qwen3-vl is not eligible for Tower C output promotion until bounded thinking/final-output routing is fixed.`;
 }
 
 export function makeOllamaBaseline(opts: OllamaBaselineOptions): ConfigRunner {
@@ -108,6 +139,7 @@ export function makeOllamaBaseline(opts: OllamaBaselineOptions): ConfigRunner {
     apiKey: opts.apiKey,
     model: opts.model ?? 'qwen3.5:397b',
     baseURL: opts.baseURL,
+    fetchImpl: opts.fetchImpl,
   });
 
   return {
@@ -141,15 +173,17 @@ export function makeOllamaBaseline(opts: OllamaBaselineOptions): ConfigRunner {
 
         const choice = response.choices[0];
         const message = choice?.message;
+        const finishReason = choice?.finish_reason ?? 'unknown';
         const usage: TokenUsage = {
           input_tokens: response.usage?.prompt_tokens ?? 0,
           output_tokens: response.usage?.completion_tokens ?? 0,
         };
 
         const outputText = message?.content ?? '';
+        const thinkingText = message?.thinking ?? '';
         const mutations: SceneMutation[] = [];
 
-        if (message?.tool_calls) {
+        if (message?.tool_calls?.length) {
           for (const tc of message.tool_calls) {
             if (tc.function.name === 'create_object') {
               let args: Record<string, unknown>;
@@ -167,12 +201,22 @@ export function makeOllamaBaseline(opts: OllamaBaselineOptions): ConfigRunner {
           }
         }
 
+        const gateError = finalOutputGateError({
+          modelId: response.model,
+          outputText,
+          thinkingText,
+          finishReason,
+          mutationCount: mutations.length,
+        });
+
         return {
           output_text: outputText,
-          tool_rounds: message?.tool_calls ? 1 : 0,
+          tool_rounds: message?.tool_calls?.length ? 1 : 0,
           usage,
           model_id: response.model,
           scene_mutations: mutations,
+          thinking_content: thinkingText || undefined,
+          error: gateError,
         };
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);

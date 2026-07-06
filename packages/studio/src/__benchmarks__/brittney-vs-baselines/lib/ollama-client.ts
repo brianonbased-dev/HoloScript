@@ -35,7 +35,8 @@ export interface OllamaChatResponse {
     index: number;
     message: {
       role: string;
-      content: string;
+      content: string | null;
+      thinking?: string | null;
       tool_calls?: OllamaToolCall[];
     };
     finish_reason: string;

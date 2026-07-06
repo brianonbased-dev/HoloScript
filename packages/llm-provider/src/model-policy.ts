@@ -125,7 +125,7 @@ export const MODEL_LIBRARY: readonly ModelLibraryEntry[] = [
   // ── LOCAL (Ollama / on-device) ──
   { id: 'qwen3:4b-instruct-2507', lanes: ['code_local', 'operator'], paramsB: 4, license: 'apache-2.0', tier: 'local', note: 'Proven Hermes tool-calls, non-thinking, 256K — current local default.' },
   { id: 'qwen3:4b', lanes: ['operator'], paramsB: 4, license: 'apache-2.0', tier: 'local', note: 'Fast operator chat (suppress thinking via /no_think).' },
-  { id: 'qwen3-vl:4b', lanes: ['vision'], paramsB: 4, license: 'apache-2.0', tier: 'local', note: 'GUI/screenshot agent; tops OS-World; 3.3GB.' },
+  { id: 'qwen3-vl:4b', lanes: ['vision'], paramsB: 4, license: 'apache-2.0', tier: 'local', note: 'GUI/screenshot perception agent; final-output gated for Tower C until thinking-only length regressions clear.' },
   { id: 'granite4:1b', lanes: ['fleet_worker'], paramsB: 1, license: 'apache-2.0', tier: 'local', note: 'BFCLv3 54.8 (class-leading); CPU/browser-runnable; closes fleet Gap #1.' },
   { id: 'gemma4:12b', lanes: ['vision'], paramsB: 12, license: 'gemma', tier: 'local', note: 'OCR/doc/chart vision; ~16GB. Do NOT think:false (breaks tool mask).' },
   // ── FLEET (sovereign GPU / vLLM) ──
@@ -148,6 +148,25 @@ export function modelsForLane(lane: ModelLane): ModelLibraryEntry[] {
 /** Look up a library entry by exact id. */
 export function modelLibraryEntry(id: string): ModelLibraryEntry | undefined {
   return MODEL_LIBRARY.find((m) => m.id === id);
+}
+
+// =============================================================================
+// FINAL OUTPUT GATE - models allowed for perception, not Tower C output promotion
+// =============================================================================
+
+/**
+ * Models that may still be useful inside their lane but must not be promoted as
+ * usable final-output towers without an additional final-output gate.
+ */
+export const FINAL_OUTPUT_GATED_MODELS: readonly string[] = ['qwen3-vl'];
+
+/** True when a model id belongs to a family barred from Tower C final output promotion. */
+export function isFinalOutputGatedModel(name: string | undefined | null): boolean {
+  if (!name) return false;
+  const normalized = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+  return FINAL_OUTPUT_GATED_MODELS.some((gated) =>
+    normalized.includes(gated.toLowerCase().replace(/[^a-z0-9]/g, ''))
+  );
 }
 
 // =============================================================================

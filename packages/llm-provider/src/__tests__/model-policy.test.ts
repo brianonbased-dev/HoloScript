@@ -10,7 +10,9 @@ import {
   modelsForLane,
   modelLibraryEntry,
   MODEL_BLACKLIST,
+  FINAL_OUTPUT_GATED_MODELS,
   isBlacklistedModel,
+  isFinalOutputGatedModel,
   resolveAllowedModel,
   type ModelLane,
 } from '../model-policy';
@@ -87,6 +89,15 @@ describe('model-policy SSOT', () => {
     expect(isBlacklistedModel('qwen3.5:4b')).toBe(false);
     expect(isBlacklistedModel('claude-opus-4-8')).toBe(false);
     expect(isBlacklistedModel(undefined)).toBe(false);
+  });
+
+  it('keeps qwen3-vl gated away from Tower C final-output promotion', () => {
+    expect(FINAL_OUTPUT_GATED_MODELS).toContain('qwen3-vl');
+    expect(isFinalOutputGatedModel('qwen3-vl:4b')).toBe(true);
+    expect(isFinalOutputGatedModel('Qwen3_VL_4B')).toBe(true);
+    expect(isFinalOutputGatedModel(LANE_DEFAULTS.vision)).toBe(true);
+    expect(isFinalOutputGatedModel(LOCAL_DEFAULT_MODEL)).toBe(false);
+    expect(modelLibraryEntry('qwen3-vl:4b')?.note).toContain('final-output gated');
   });
 
   describe('resolveAllowedModel', () => {
