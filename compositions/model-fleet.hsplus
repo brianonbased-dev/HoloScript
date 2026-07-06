@@ -126,6 +126,19 @@ traits [
     role: "RELIABLY-ON on-demand co-node — up ~as much as the Jetson, but the founder's machine FIRST. Default = FREE for the founder (freedom-when-available); the fleet draws on it READILY when it needs extra GPU (on-demand-when-needed), ~4x the Jetson's tok/s on GPU (cuda_v12, W.810). It is NOT a rare last-resort spill — it is a ready second card. The YIELD is automatic, not a manual toggle: founder use (PCVR / heavy GPU) spikes its VRAM load, the load-based router reads that as saturated and stops routing to it; when it frees up it returns to the pool. Reactivated 2026-06-20; endpoint by handle; shares the 6GB with WebGPU + cuQuantum."
   }
 
+  holo_runtime_m1 {
+    node: "holo-runtime-m1"
+    kind: "holo-runtime-m1-cpu-decoder"
+    backend: "@holoscript/holo-runtime"
+    gpu: "CPU-only TypeScript decoder seed"
+    vramGb: 0
+    alwaysOn: false
+    availability: "developer-local"
+    models: ["holorunner-s0-state-dict"]
+    tokenizer: "holorunner-tokenizer-v0.mjs direct import"
+    role: "M1 sovereign runtime seed — loads HoloRunner S0 PyTorch state_dict keys and runs pure-TS CPU logits, KV-cache decode, and sampler gates. This is a model_fleet node KIND for owned checkpoint verification and small CPU fallback, not a parallel fleet/router."
+  }
+
   endpoints: "resolved by handle from config/sovereign-devices/<handle>.json (LAN-absolute, never hardcoded)"
   strategy: "least-loaded"
   warm_preferred: true

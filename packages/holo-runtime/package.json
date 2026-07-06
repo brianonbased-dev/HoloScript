@@ -1,0 +1,54 @@
+{
+  "name": "@holoscript/holo-runtime",
+  "version": "0.1.0",
+  "description": "Pure TypeScript CPU decoder seed for sovereign HoloRunner checkpoints",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "tsup": "^8.0.1",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.5"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "keywords": [
+    "holoscript",
+    "holo-runtime",
+    "holorunner",
+    "decoder",
+    "cpu",
+    "sovereign-model"
+  ],
+  "license": "MIT",
+  "author": "Brian X Base Team",
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/holo-runtime"
+  },
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  }
+}
