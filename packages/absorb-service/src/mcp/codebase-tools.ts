@@ -808,6 +808,32 @@ function writeSourceFilesToTemp(files: SourceFileEntry[]): string {
   return tmpDir;
 }
 
+function buildInlineSourceScan(rootDir: string, files: SourceFileEntry[]): {
+  filePaths: string[];
+  readFile: (filePath: string) => Promise<string>;
+} {
+  const contentsByPath = new Map<string, string>();
+  const filePaths: string[] = [];
+
+  for (const file of files) {
+    const filePath = path.resolve(rootDir, file.path);
+    contentsByPath.set(normalizeRootForComparison(filePath), file.content);
+    filePaths.push(filePath);
+  }
+
+  return {
+    filePaths,
+    readFile: async (filePath: string) => {
+      const key = normalizeRootForComparison(filePath);
+      const content = contentsByPath.get(key);
+      if (content === undefined) {
+        throw new Error(`Inline source file not found: ${path.relative(rootDir, filePath)}`);
+      }
+      return content;
+    },
+  };
+}
+
 // =============================================================================
 // TOOL DEFINITIONS
 // =============================================================================
@@ -1252,7 +1278,8 @@ async function runFullScan(
   jobId?: string,
   embeddingProvider?: string,
   embeddingApiKey?: string,
-  embeddingModel?: string
+  embeddingModel?: string,
+  inlineSourceFiles?: SourceFileEntry[]
 ): Promise<unknown> {
   const {
     CodebaseScanner,
@@ -1278,9 +1305,9 @@ async function runFullScan(
   const priorEnvelopeForHydrate = loadGraphCache();
   const priorGitCommitHash = priorEnvelopeForHydrate?.gitCommitHash;
 
-  const rootDiagnostics = rootDirs.map((rootDir) =>
-    buildAbsorbDiagnostics(rootDir, null, includeBuildArtifacts)
-  );
+  const rootDiagnostics = inlineSourceFiles
+    ? []
+    : rootDirs.map((rootDir) => buildAbsorbDiagnostics(rootDir, null, includeBuildArtifacts));
   const inaccessibleRoots = rootDiagnostics.filter(
     (diagnostic) => !diagnostic.resolvedDirExists || !diagnostic.resolvedDirReadable
   );
@@ -1315,19 +1342,36 @@ async function runFullScan(
   if (jobId) trackAbsorbProgress(jobId, 'Scanning codebase', 10);
 
   try {
-    scanResult = await scanner.scan({
-      rootDir: primaryRootDir, // for backward compat mapping
-      rootDirs,
-      languages,
-      maxFiles,
-      includeBuildArtifacts,
-      onProgress: (processed: number, total: number, file: string) => {
-        if (jobId) {
-          const scanPercent = 10 + (processed / Math.max(total, 1)) * 50; // 10-60%
-          trackAbsorbProgress(jobId, `Parsing ${file}`, scanPercent, processed, total);
-        }
-      },
-    });
+    if (inlineSourceFiles) {
+      const inlineScan = buildInlineSourceScan(primaryRootDir, inlineSourceFiles);
+      const selectedFilePaths = maxFiles
+        ? inlineScan.filePaths.slice(0, maxFiles)
+        : inlineScan.filePaths;
+      scanResult = await scanner.scanFiles(primaryRootDir, selectedFilePaths, {
+        includeBuildArtifacts,
+        readFile: inlineScan.readFile,
+        onProgress: (processed: number, total: number, file: string) => {
+          if (jobId) {
+            const scanPercent = 10 + (processed / Math.max(total, 1)) * 50; // 10-60%
+            trackAbsorbProgress(jobId, `Parsing ${file}`, scanPercent, processed, total);
+          }
+        },
+      });
+    } else {
+      scanResult = await scanner.scan({
+        rootDir: primaryRootDir, // for backward compat mapping
+        rootDirs,
+        languages,
+        maxFiles,
+        includeBuildArtifacts,
+        onProgress: (processed: number, total: number, file: string) => {
+          if (jobId) {
+            const scanPercent = 10 + (processed / Math.max(total, 1)) * 50; // 10-60%
+            trackAbsorbProgress(jobId, `Parsing ${file}`, scanPercent, processed, total);
+          }
+        },
+      });
+    }
   } finally {
     await scanner.dispose?.();
   }
@@ -1809,15 +1853,24 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   let primaryRootDir = '';
   let tempDir: string | undefined;
   let fromSourceFiles = false;
+  let inlineSourceFiles: SourceFileEntry[] | undefined;
 
   if (sourceFilesRaw && Array.isArray(sourceFilesRaw)) {
     const validation = validateSourceFiles(sourceFilesRaw);
     if (!validation.valid) {
       return { error: 'sourceFiles_validation_failed', message: validation.error };
     }
-    tempDir = writeSourceFilesToTemp(validation.files);
-    effectiveRootDirs = [tempDir];
-    primaryRootDir = tempDir;
+    inlineSourceFiles = validation.files;
+    const provenanceRoot =
+      rootDir || (rootDirsRaw && rootDirsRaw.length > 0 ? rootDirsRaw[0] : undefined);
+    if (provenanceRoot) {
+      primaryRootDir = path.resolve(provenanceRoot);
+      effectiveRootDirs = [primaryRootDir];
+    } else {
+      tempDir = writeSourceFilesToTemp(validation.files);
+      effectiveRootDirs = [tempDir];
+      primaryRootDir = tempDir;
+    }
     fromSourceFiles = true;
   } else {
     effectiveRootDirs =
@@ -1863,7 +1916,8 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
       jobId,
       embeddingProvider,
       embeddingApiKey,
-      embeddingModel
+      embeddingModel,
+      inlineSourceFiles
     );
     return { ...(result as Record<string, unknown>), jobId, fromSourceFiles };
   }

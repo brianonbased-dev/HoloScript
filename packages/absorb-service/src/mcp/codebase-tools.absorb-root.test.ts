@@ -1,9 +1,9 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { handleCodebaseTool, resetCodebaseToolStateForTests } from './codebase-tools';
-import { setGraphRAGState } from './graph-rag-tools';
+import { handleGraphRagTool, setGraphRAGState } from './graph-rag-tools';
 
 const originalCacheDir = process.env.HOLOSCRIPT_CACHE_DIR;
 
@@ -40,6 +40,7 @@ describe('holo_absorb_repo root validation', () => {
     } else {
       process.env.HOLOSCRIPT_CACHE_DIR = originalCacheDir;
     }
+    vi.restoreAllMocks();
     resetCodebaseToolStateForTests(false);
   });
 
@@ -259,11 +260,19 @@ describe('holo_absorb_repo root validation', () => {
 
 describe('holo_absorb_repo sourceFiles upload', () => {
   afterEach(() => {
+    if (originalCacheDir === undefined) {
+      delete process.env.HOLOSCRIPT_CACHE_DIR;
+    } else {
+      process.env.HOLOSCRIPT_CACHE_DIR = originalCacheDir;
+    }
+    vi.restoreAllMocks();
     resetCodebaseToolStateForTests(false);
   });
 
   it('absorbs inline sourceFiles without filesystem access', async () => {
     resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-sourcefiles-temp-'));
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
 
     const result = (await handleCodebaseTool('holo_absorb_repo', {
       sourceFiles: [
@@ -288,6 +297,91 @@ describe('holo_absorb_repo sourceFiles upload', () => {
       jobId: result.jobId,
     })) as { status?: string };
     expect(status.status).toBe('complete');
+  }, 15_000);
+
+  it('preserves rootDir as graph provenance when sourceFiles are uploaded inline', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-sourcefiles-root-'));
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    const requestedRoot = process.cwd();
+
+    const result = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: requestedRoot,
+      sourceFiles: [
+        {
+          path: 'packages/core/src/parser/InlineFixture.ts',
+          content: 'export function parseHoloScriptPlusFixture(): string { return "hsplus"; }',
+        },
+      ],
+      outputFormat: 'stats',
+    })) as {
+      error?: string;
+      rootDir?: string;
+      stats?: { totalFiles?: number; totalSymbols?: number };
+      fromSourceFiles?: boolean;
+    };
+
+    expect(result.error).toBeUndefined();
+    expect(result.fromSourceFiles).toBe(true);
+    expect(result.rootDir).toBe(path.resolve(requestedRoot));
+    expect(result.stats?.totalFiles).toBe(1);
+    expect(result.stats?.totalSymbols).toBeGreaterThanOrEqual(1);
+
+    const status = (await handleCodebaseTool('holo_graph_status', {})) as {
+      graphAuthoritative?: boolean;
+      freshForCurrentRepo?: boolean;
+      graphUnavailableReceipt?: GraphUnavailableReceipt;
+      diskCache?: { rootDir?: string; freshForCurrentRepo?: boolean };
+      localGraph?: { rootDir?: string | null; freshForCurrentRepo?: boolean };
+    };
+
+    expect(status.graphAuthoritative).toBe(true);
+    expect(status.freshForCurrentRepo).toBe(true);
+    expect(status.graphUnavailableReceipt).toBeUndefined();
+    expect(status.diskCache?.rootDir).toBe(path.resolve(requestedRoot));
+    expect(status.diskCache?.freshForCurrentRepo).toBe(true);
+    expect(status.localGraph?.rootDir).toBe(path.resolve(requestedRoot));
+    expect(status.localGraph?.freshForCurrentRepo).toBe(true);
+  }, 15_000);
+
+  it('returns an extractive cited answer when holo_ask_codebase cannot reach an LLM', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-ask-fallback-'));
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+
+    const absorb = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: process.cwd(),
+      sourceFiles: [
+        {
+          path: 'packages/core/src/parser/InlineAskFixture.ts',
+          content:
+            'export class HoloScriptPlusParserFixture { parseHoloScriptPlusGrammar(): string { return "trait object pipeline"; } }',
+        },
+      ],
+      outputFormat: 'stats',
+    })) as { error?: string };
+    expect(absorb.error).toBeUndefined();
+
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('llm offline'));
+
+    const answer = (await handleGraphRagTool('holo_ask_codebase', {
+      question: 'How is .hsplus grammar parsed?',
+      topK: 3,
+      llmProvider: 'ollama',
+    })) as {
+      error?: string;
+      fallback?: string;
+      citations?: Array<{ file?: string; line?: number }>;
+      provenanceGuard?: { passed?: boolean };
+      answer?: string;
+    };
+
+    expect(answer.error).toBeUndefined();
+    expect(answer.fallback).toBe('extractive-graphrag');
+    expect(answer.answer).toContain('extractive GraphRAG answer');
+    expect(answer.provenanceGuard?.passed).toBe(true);
+    expect(answer.citations?.length).toBeGreaterThan(0);
+    expect(answer.citations?.[0]?.file).toContain('InlineAskFixture.ts');
   }, 15_000);
 
   it('rejects sourceFiles with path traversal', async () => {

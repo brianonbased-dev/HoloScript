@@ -320,6 +320,92 @@ function stringArg(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() ? value.trim() : undefined;
 }
 
+function contextName(r: EnrichedResult): string {
+  return r.symbol.owner ? `${r.symbol.owner}.${r.symbol.name}` : r.symbol.name;
+}
+
+function contextPayload(context: EnrichedResult[]): Array<Record<string, unknown>> {
+  return context.slice(0, 5).map((r: EnrichedResult) => ({
+    name: contextName(r),
+    type: r.symbol.type,
+    file: r.file,
+    line: r.symbol.line,
+    score: r.score,
+    callers: r.callers.slice(0, 3),
+    callees: r.callees.slice(0, 3),
+    impactRadius: r.impactRadius,
+    community: r.community ?? null,
+  }));
+}
+
+async function buildExtractiveCodebaseAnswer(options: {
+  engine: GraphRAGEngine;
+  question: string;
+  topK: number;
+  language?: string;
+  type?: string;
+  effectiveProvider?: string;
+  fallbackReason: string;
+}): Promise<Record<string, unknown>> {
+  const { engine, question, topK, language, type, effectiveProvider, fallbackReason } = options;
+  const ragResult = await engine.query(question, { topK, language, type });
+  const context = ragResult.results.slice(0, 10);
+
+  if (context.length === 0) {
+    return {
+      question,
+      error: 'Graph RAG query returned no context for extractive answer fallback.',
+      fallback: 'extractive-graphrag',
+      fallbackReason,
+    };
+  }
+
+  const citations = context.map((r) => ({
+    name: contextName(r),
+    file: r.file,
+    line: r.symbol.line,
+  }));
+  const guard = validateCitations(citations as Citation[], engine.graph);
+  const filteredCitations = guard.passed
+    ? guard.resolved.map(({ name, file, line }) => ({ name, file, line }))
+    : [];
+
+  const citedLines = context.slice(0, 5).map((r, index) => {
+    const signature = r.symbol.signature ? ` ${r.symbol.signature}` : '';
+    return `${index + 1}. ${contextName(r)} (${r.symbol.type}) at ${r.file}:${r.symbol.line}.${signature}`;
+  });
+
+  return {
+    question,
+    answer: guard.passed
+      ? [
+          `LLM generation was unavailable (${fallbackReason}); returning an extractive GraphRAG answer from cited code context.`,
+          '',
+          ...citedLines,
+        ].join('\n')
+      : `[Provenance guard rejected: ${guard.rejectionReason}]`,
+    citations: filteredCitations,
+    provenanceGuard: {
+      resolvedCount: guard.resolvedCount,
+      unresolvedCount: guard.unresolvedCount,
+      passed: guard.passed,
+      ...(guard.unresolvedCount > 0
+        ? {
+            unresolvedCitations: guard.unresolved.map(({ name, file, line }) => ({
+              name,
+              file,
+              line,
+            })),
+          }
+        : {}),
+    },
+    context: contextPayload(context),
+    llmProvider: effectiveProvider ?? 'ollama',
+    fallback: 'extractive-graphrag',
+    fallbackReason,
+  };
+}
+
 async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown> {
   if (!cachedEmbeddingIndex || !cachedGraphRAGEngine) {
     return {
@@ -546,9 +632,23 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
         }
       }
     }
-    return {
-      error: `Graph RAG query failed: ${err instanceof Error ? err.message : String(err)}`,
-      hint: graphRagFailureHint(effectiveProvider),
-    };
+    const failureReason = err instanceof Error ? err.message : String(err);
+    try {
+      return await buildExtractiveCodebaseAnswer({
+        engine: cachedGraphRAGEngine,
+        question,
+        topK,
+        language,
+        type,
+        effectiveProvider,
+        fallbackReason: failureReason,
+      });
+    } catch (fallbackErr: unknown) {
+      return {
+        error: `Graph RAG query failed: ${failureReason}`,
+        hint: graphRagFailureHint(effectiveProvider),
+        fallbackError: fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr),
+      };
+    }
   }
 }
