@@ -25,6 +25,7 @@ import {
   LocalLLMAdapter,
   LLMProviderManager,
 } from '@holoscript/llm-provider';
+import { resolveConfigSecret } from '@holoscript/config';
 
 // ─── Chat Adapter ──────────────────────────────────────────────────────────
 
@@ -110,6 +111,92 @@ export function createPipelineLLMProvider(): LLMProvider {
   return adaptToChatProvider(
     new LocalLLMAdapter({ baseURL: ollamaUrl.replace(/\/+$/, ''), model: ollamaModel })
   );
+}
+
+interface ResolvedPipelineKeys {
+  openrouter: string;
+  anthropic: string;
+  xai: string;
+  openai: string;
+}
+
+async function resolvePipelineKeys(): Promise<ResolvedPipelineKeys> {
+  const [openrouter, anthropic, xai, openai] = await Promise.all([
+    resolveConfigSecret('OPENROUTER_API_KEY'),
+    resolveConfigSecret('ANTHROPIC_API_KEY'),
+    resolveConfigSecret('XAI_API_KEY'),
+    resolveConfigSecret('OPENAI_API_KEY'),
+  ]);
+
+  return {
+    openrouter: openrouter.trim(),
+    anthropic: anthropic.trim(),
+    xai: xai.trim(),
+    openai: openai.trim(),
+  };
+}
+
+/**
+ * HoloKey-aware async variant of createPipelineLLMProvider().
+ *
+ * Resolves service keys through @holoscript/config first, which uses the
+ * npm secrets-broker/HoloKey bridge when configured and falls back to env.
+ */
+export async function createPipelineLLMProviderAsync(): Promise<LLMProvider> {
+  const keys = await resolvePipelineKeys();
+
+  if (keys.openrouter) {
+    const model = process.env.OPENROUTER_MODEL ?? 'anthropic/claude-sonnet-4';
+    return adaptToChatProvider(
+      new OpenRouterAdapter({
+        apiKey: keys.openrouter,
+        defaultModel: model,
+        referer: 'https://holoscript.net',
+        title: 'HoloScript Absorb',
+      })
+    );
+  }
+
+  if (keys.anthropic) {
+    const model = process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-5-20250929';
+    return adaptToChatProvider(
+      new AnthropicAdapter({ apiKey: keys.anthropic, defaultModel: model })
+    );
+  }
+
+  if (keys.xai) {
+    const model = process.env.XAI_MODEL ?? 'grok-3-mini';
+    return adaptToChatProvider(new XAIAdapter({ apiKey: keys.xai, defaultModel: model }));
+  }
+
+  if (keys.openai) {
+    const model = process.env.OPENAI_MODEL ?? 'gpt-4o-mini';
+    return adaptToChatProvider(new OpenAIAdapter({ apiKey: keys.openai, defaultModel: model }));
+  }
+
+  const ollamaUrl = process.env.OLLAMA_URL ?? process.env.OLLAMA_BASE_URL;
+  if (!ollamaUrl) {
+    throw new Error(
+      '[LLMProvider] No AI provider configured. Set OPENROUTER_API_KEY, ANTHROPIC_API_KEY, XAI_API_KEY, OPENAI_API_KEY, or OLLAMA_URL in .env/HoloKey'
+    );
+  }
+  const ollamaModel = process.env.OLLAMA_MODEL ?? process.env.BRITTNEY_MODEL ?? 'llama3.1:8b';
+  console.warn(
+    '[LLMProvider] No cloud API keys found (OPENROUTER_API_KEY, ANTHROPIC_API_KEY, XAI_API_KEY, OPENAI_API_KEY). Falling back to Ollama.'
+  );
+  return adaptToChatProvider(
+    new LocalLLMAdapter({ baseURL: ollamaUrl.replace(/\/+$/, ''), model: ollamaModel })
+  );
+}
+
+/** HoloKey-aware provider-name detection. */
+export async function detectLLMProviderNameAsync(): Promise<string> {
+  const keys = await resolvePipelineKeys();
+  if (keys.openrouter) return 'openrouter';
+  if (keys.anthropic) return 'anthropic';
+  if (keys.xai) return 'xai';
+  if (keys.openai) return 'openai';
+  return 'ollama';
 }
 
 /**

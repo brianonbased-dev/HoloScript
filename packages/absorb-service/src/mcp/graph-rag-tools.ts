@@ -25,6 +25,7 @@ import {
   ABSORB_GRAPH_RAG_ENGINE_ERROR,
   ABSORB_HOLO_ABSORB_REPO_HINT,
 } from './graph-rag-prerequisite';
+import { resolveConfigSecret } from '@holoscript/config';
 
 // =============================================================================
 // TOOL DEFINITIONS
@@ -193,11 +194,11 @@ export async function handleGraphRagTool(
  * Auto-detect the best LLM provider from environment variables.
  * Cloud-first: OpenRouter → Anthropic → OpenAI → Ollama (last resort).
  */
-function detectDefaultLLMProvider(): string {
-  if (process.env.OPENROUTER_API_KEY) return 'openrouter';
-  if (process.env.ANTHROPIC_API_KEY) return 'anthropic';
-  if (process.env.OPENAI_API_KEY) return 'openai';
-  if (process.env.GEMINI_API_KEY) return 'gemini';
+async function detectDefaultLLMProvider(): Promise<string> {
+  if (await resolveConfigSecret('OPENROUTER_API_KEY')) return 'openrouter';
+  if (await resolveConfigSecret('ANTHROPIC_API_KEY')) return 'anthropic';
+  if (await resolveConfigSecret('OPENAI_API_KEY')) return 'openai';
+  if (await resolveConfigSecret('GEMINI_API_KEY')) return 'gemini';
   return 'ollama';
 }
 
@@ -241,7 +242,9 @@ async function handleSemanticSearch(args: Record<string, unknown>): Promise<unkn
     return {
       query,
       indexSource: resolvedIndex.source,
-      ...(resolvedIndex.manifestPath ? { holoGraphHoloEmbedManifest: resolvedIndex.manifestPath } : {}),
+      ...(resolvedIndex.manifestPath
+        ? { holoGraphHoloEmbedManifest: resolvedIndex.manifestPath }
+        : {}),
       results: results.map((r: SearchResult) => ({
         name: r.symbol.owner ? `${r.symbol.owner}.${r.symbol.name}` : r.symbol.name,
         type: r.type,
@@ -421,7 +424,7 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
   const llmProvider = args.llmProvider as string | undefined;
   const llmApiKey = args.llmApiKey as string | undefined;
   const llmModel = args.llmModel as string | undefined;
-  const effectiveProvider = llmProvider ?? detectDefaultLLMProvider();
+  const effectiveProvider = llmProvider ?? (await detectDefaultLLMProvider());
 
   try {
     // If a custom LLM provider is specified, create a new engine with that provider
@@ -429,7 +432,8 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
     if (effectiveProvider && effectiveProvider !== 'ollama') {
       try {
         const llmPkg = await import('@holoscript/llm-provider');
-        const apiKey = llmApiKey || process.env[`${effectiveProvider.toUpperCase()}_API_KEY`] || '';
+        const apiKey =
+          llmApiKey || (await resolveConfigSecret(`${effectiveProvider.toUpperCase()}_API_KEY`));
 
         // The adapter classes from @holoscript/llm-provider satisfy the
         // structural LLMProvider interface from ../engine/GraphRAGEngine
@@ -440,7 +444,7 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
         switch (effectiveProvider) {
           case 'openrouter':
             llmAdapter = new llmPkg.OpenAIAdapter({
-              apiKey: apiKey || process.env.OPENROUTER_API_KEY || '',
+              apiKey,
               defaultModel: llmModel ?? 'anthropic/claude-sonnet-4',
               baseURL: 'https://openrouter.ai/api/v1',
             }) as unknown as LLMProvider;

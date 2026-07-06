@@ -1,10 +1,13 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import {
   createPipelineLLMProvider,
+  createPipelineLLMProviderAsync,
   detectLLMProviderName,
+  detectLLMProviderNameAsync,
   adaptToChatProvider,
 } from '../llmProvider';
 import { AnthropicAdapter, MockAdapter } from '@holoscript/llm-provider';
+import { configureConfigSecretResolver, resetConfigSecretResolver } from '@holoscript/config';
 
 /** All env vars that influence provider detection/creation. */
 const PROVIDER_ENV_KEYS = [
@@ -40,6 +43,7 @@ describe('detectLLMProviderName', () => {
 
   afterEach(() => {
     process.env = { ...originalEnv };
+    resetConfigSecretResolver();
   });
 
   it('returns openrouter when OPENROUTER_API_KEY is set (highest priority)', () => {
@@ -86,6 +90,16 @@ describe('detectLLMProviderName', () => {
     process.env.OPENAI_API_KEY = 'sk-test';
     expect(detectLLMProviderName()).toBe('xai');
   });
+
+  it('detects a HoloKey-resolved provider in the async path', async () => {
+    configureConfigSecretResolver({
+      async resolve(nameOrRef: string) {
+        return nameOrRef === 'OPENROUTER_API_KEY' ? 'vault-openrouter-key' : undefined;
+      },
+    });
+
+    expect(await detectLLMProviderNameAsync()).toBe('openrouter');
+  });
 });
 
 // ─── Factory ─────────────────────────────────────────────────────────────────
@@ -99,6 +113,7 @@ describe('createPipelineLLMProvider', () => {
 
   afterEach(() => {
     process.env = { ...originalEnv };
+    resetConfigSecretResolver();
   });
 
   it('creates a provider when ANTHROPIC_API_KEY is set', () => {
@@ -134,6 +149,17 @@ describe('createPipelineLLMProvider', () => {
 
   it('throws when no provider env vars are set', () => {
     expect(() => createPipelineLLMProvider()).toThrow('No AI provider configured');
+  });
+
+  it('creates a provider from HoloKey in the async path', async () => {
+    configureConfigSecretResolver({
+      async resolve(nameOrRef: string) {
+        return nameOrRef === 'ANTHROPIC_API_KEY' ? 'vault-anthropic-key' : undefined;
+      },
+    });
+
+    const provider = await createPipelineLLMProviderAsync();
+    expect(typeof provider.chat).toBe('function');
   });
 });
 

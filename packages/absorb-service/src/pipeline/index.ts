@@ -18,7 +18,9 @@ export type { PipelineStoreAdapter } from './pipelineOrchestrator';
 export {
   adaptToChatProvider,
   createPipelineLLMProvider,
+  createPipelineLLMProviderAsync,
   detectLLMProviderName,
+  detectLLMProviderNameAsync,
   type ILLMProvider,
   AnthropicAdapter,
   OpenAIAdapter,
