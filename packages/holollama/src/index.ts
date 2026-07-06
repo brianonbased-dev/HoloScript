@@ -203,13 +203,64 @@ export interface HoloLlamaVisionPreflightReceipt {
   blockers: string[];
 }
 
+export interface HoloLlamaRuntimePortOwnerEvidence {
+  ok: boolean;
+  detail: string;
+  pid?: number;
+  executable?: string;
+  commandLine?: string;
+}
+
+export interface HoloLlamaStaleServerCleanupEvidence {
+  ok: boolean;
+  detail: string;
+  stalePids?: number[];
+  cleanedPids?: number[];
+}
+
+export interface HoloLlamaRuntimeObservation {
+  portOwner: HoloLlamaRuntimePortOwnerEvidence;
+  staleServerCleanup: HoloLlamaStaleServerCleanupEvidence;
+  openaiModels: unknown;
+  props: unknown;
+}
+
+export interface HoloLlamaRuntimeReadinessOptions {
+  generatedAt?: string;
+  requireRuntimeReadiness?: boolean;
+  observation?: HoloLlamaRuntimeObservation;
+}
+
+export interface HoloLlamaRuntimeReadinessReceipt {
+  schema: typeof HOLOLLAMA_RUNTIME_READINESS_SCHEMA;
+  generatedAt: string;
+  ok: boolean;
+  profile: HoloLlamaProfile;
+  consumer: HoloLlamaProfileDefinition['consumer'];
+  registryHandle: string;
+  endpoint: string;
+  visionRequested: boolean;
+  runtimeRequired: boolean;
+  checks: HoloLlamaPreflightCheck[];
+  warnings: string[];
+  blockers: string[];
+}
+
 export interface HoloLlamaFleetLifecycleOptions
   extends
     HoloLlamaMeshReadOnlyBridgeOptions,
-    Pick<HoloLlamaVisionPreflightOptions, 'checkFilesystem' | 'exists'> {}
+    Pick<HoloLlamaVisionPreflightOptions, 'checkFilesystem' | 'exists'> {
+  requireRuntimeReadiness?: boolean;
+  runtimeObservations?: Partial<Record<HoloLlamaProfile, HoloLlamaRuntimeObservation>>;
+}
 
 export interface HoloLlamaFleetLifecycleStage {
-  id: 'plan' | 'vision-preflight' | 'mesh-readonly-bridge' | 'serve-health-probe';
+  id:
+    | 'plan'
+    | 'vision-preflight'
+    | 'runtime-readiness'
+    | 'mesh-readonly-bridge'
+    | 'serve-health-probe';
   ok: boolean;
   receiptSchema: string;
   summary: string;
@@ -223,6 +274,7 @@ export interface HoloLlamaFleetLifecycleProfile {
   stages: HoloLlamaFleetLifecycleStage[];
   doctor: HoloLlamaProfileDoctorResult;
   visionPreflight: HoloLlamaVisionPreflightReceipt;
+  runtimeReadiness: HoloLlamaRuntimeReadinessReceipt;
   meshReadOnlyBridge: HoloLlamaMeshReadOnlyBridgeReceipt;
 }
 
@@ -252,6 +304,8 @@ const HOLOLLAMA_PROFILE_SOURCE_DIR = join(
 export const HOLOLLAMA_DOCTOR_SCHEMA = 'holollama.doctor.v1';
 export const HOLOLLAMA_MESH_READONLY_BRIDGE_SCHEMA = 'holollama.holomesh-readonly-bridge.v1';
 export const HOLOLLAMA_VISION_PREFLIGHT_SCHEMA = 'holollama.llama-cpp-vision-preflight.v1';
+export const HOLOLLAMA_RUNTIME_READINESS_SCHEMA =
+  'holollama.llama-cpp-runtime-readiness.v1';
 export const HOLOLLAMA_FLEET_LIFECYCLE_SCHEMA = 'holollama.fleet-lifecycle.v1';
 export const HOLOLLAMA_PROFILE_DEFINITIONS: Record<HoloLlamaProfile, HoloLlamaProfileDefinition> = {
   'jetson-orin': {
@@ -666,6 +720,86 @@ export function preflightHoloLlamaVision(
   };
 }
 
+export function assessHoloLlamaRuntimeReadiness(
+  profile: HoloLlamaProfile = 'laptop-windows',
+  options: HoloLlamaRuntimeReadinessOptions = {}
+): HoloLlamaRuntimeReadinessReceipt {
+  const definition = HOLOLLAMA_PROFILE_DEFINITIONS[profile];
+  const spec = definition.spec;
+  const bundle = compileHoloLlamaBundle({ profile });
+  const observation = options.observation;
+  const runtimeRequired = Boolean(spec.vision && options.requireRuntimeReadiness);
+  const checks: HoloLlamaPreflightCheck[] = [];
+  const warnings: string[] = [];
+
+  if (!spec.vision) {
+    warnings.push('profile is text-only; llama.cpp vision runtime readiness is not required.');
+  }
+
+  if (!observation) {
+    const detail = runtimeRequired
+      ? 'missing launched-node observation before benchmark/routing'
+      : 'runtime observation not supplied; static lifecycle report only';
+    checks.push(check('runtime-observation', runtimeRequired, !runtimeRequired, detail));
+  } else {
+    checks.push(
+      check(
+        'port-ownership',
+        runtimeRequired,
+        observation.portOwner.ok,
+        observation.portOwner.detail
+      )
+    );
+    checks.push(
+      check(
+        'stale-llama-server-cleanup',
+        runtimeRequired,
+        observation.staleServerCleanup.ok,
+        observation.staleServerCleanup.detail
+      )
+    );
+    checks.push(
+      check(
+        'openai-models-multimodal-capability',
+        runtimeRequired,
+        modelsDeclareVision(observation.openaiModels, spec.model),
+        '/v1/models must expose vision or multimodal capability for the served model'
+      )
+    );
+    checks.push(
+      check(
+        'props-modalities-vision',
+        runtimeRequired,
+        propsDeclareVision(observation.props),
+        '/props modalities.vision must be true'
+      )
+    );
+  }
+
+  if (!runtimeRequired) {
+    warnings.push('pass requireRuntimeReadiness with launched-node evidence before benchmarks or routing.');
+  }
+
+  const blockers = checks
+    .filter((item) => item.required && !item.ok)
+    .map((item) => `${item.id}: ${item.detail}`);
+
+  return {
+    schema: HOLOLLAMA_RUNTIME_READINESS_SCHEMA,
+    generatedAt: options.generatedAt ?? new Date().toISOString(),
+    ok: blockers.length === 0,
+    profile,
+    consumer: definition.consumer,
+    registryHandle: spec.registerAs,
+    endpoint: bundle.registryEntry.endpoint,
+    visionRequested: spec.vision,
+    runtimeRequired,
+    checks,
+    warnings,
+    blockers,
+  };
+}
+
 export function buildHoloLlamaFleetLifecycleReport(
   options: HoloLlamaFleetLifecycleOptions = {}
 ): HoloLlamaFleetLifecycleReport {
@@ -679,6 +813,11 @@ export function buildHoloLlamaFleetLifecycleReport(
       generatedAt,
       checkFilesystem: options.checkFilesystem,
       exists: options.exists,
+    });
+    const runtimeReadiness = assessHoloLlamaRuntimeReadiness(profile, {
+      generatedAt,
+      requireRuntimeReadiness: options.requireRuntimeReadiness,
+      observation: options.runtimeObservations?.[profile],
     });
     const meshReadOnlyBridge = buildHoloMeshReadOnlyBridge({
       profile,
@@ -703,6 +842,16 @@ export function buildHoloLlamaFleetLifecycleReport(
           : 'text-only profile does not require multimodal projector checks.',
       },
       {
+        id: 'runtime-readiness',
+        ok: runtimeReadiness.ok,
+        receiptSchema: HOLOLLAMA_RUNTIME_READINESS_SCHEMA,
+        summary: runtimeReadiness.runtimeRequired
+          ? runtimeReadiness.ok
+            ? 'launched-node port owner, stale cleanup, /v1/models, and /props checks passed.'
+            : `${runtimeReadiness.blockers.length} launched-node runtime blocker(s).`
+          : 'runtime readiness not required for this static lifecycle report.',
+      },
+      {
         id: 'mesh-readonly-bridge',
         ok: meshReadOnlyBridge.ok,
         receiptSchema: HOLOLLAMA_MESH_READONLY_BRIDGE_SCHEMA,
@@ -724,6 +873,7 @@ export function buildHoloLlamaFleetLifecycleReport(
       stages,
       doctor,
       visionPreflight,
+      runtimeReadiness,
       meshReadOnlyBridge,
     };
   });
@@ -884,6 +1034,65 @@ function buildVisionFilesystemChecks(
     });
   }
   return checks;
+}
+
+function modelsDeclareVision(value: unknown, expectedModel: string): boolean {
+  const entries = modelEntries(value);
+  if (entries.length === 0) return false;
+  const matching = entries.filter((entry) => modelEntryMatches(entry, expectedModel));
+  const candidates = matching.length > 0 ? matching : entries;
+  return candidates.some((entry) => valueDeclaresVision(entry));
+}
+
+function propsDeclareVision(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  const modalities = value.modalities;
+  return isRecord(modalities) && modalities.vision === true;
+}
+
+function modelEntries(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value;
+  if (!isRecord(value)) return [];
+  if (Array.isArray(value.data)) return value.data;
+  if (Array.isArray(value.models)) return value.models;
+  return [value];
+}
+
+function modelEntryMatches(entry: unknown, expectedModel: string): boolean {
+  if (!isRecord(entry)) return false;
+  const id = stringField(entry, 'id') ?? stringField(entry, 'model') ?? stringField(entry, 'name');
+  if (!id) return false;
+  return normalizeModelId(id) === normalizeModelId(expectedModel);
+}
+
+function valueDeclaresVision(value: unknown, depth = 0): boolean {
+  if (depth > 4) return false;
+  if (typeof value === 'string') return /vision|image|multimodal/i.test(value);
+  if (typeof value === 'boolean') return value;
+  if (Array.isArray(value)) return value.some((item) => valueDeclaresVision(item, depth + 1));
+  if (!isRecord(value)) return false;
+
+  for (const key of ['vision', 'multimodal', 'image']) {
+    if (value[key] === true) return true;
+  }
+  for (const key of ['modalities', 'capabilities', 'input_modalities', 'inputModalities']) {
+    const nested = value[key];
+    if (valueDeclaresVision(nested, depth + 1)) return true;
+  }
+  return false;
+}
+
+function normalizeModelId(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, '');
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function stringField(record: Record<string, unknown>, key: string): string | undefined {
+  const value = record[key];
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
 
 function quote(value: string): string {

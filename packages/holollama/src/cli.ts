@@ -75,6 +75,7 @@ export async function runCli(args = process.argv.slice(2)): Promise<void> {
       orchestratorUrl: readString(flags, 'orchestrator-url'),
       apiKeyEnv: readString(flags, 'api-key-env'),
       checkFilesystem: flags.has('check-filesystem'),
+      requireRuntimeReadiness: flags.has('require-runtime-readiness'),
     });
     if (flags.has('json')) {
       process.stdout.write(`${JSON.stringify(receipt, null, 2)}\n`);
@@ -329,7 +330,7 @@ Usage:
   holollama doctor [--profile <id>] [--json]
   holollama mesh [--profile <id>] [--team-id <team>] [--json]
   holollama preflight [--profile <id>] [--check-filesystem] [--json]
-  holollama lifecycle [--profile <id>] [--team-id <team>] [--check-filesystem] [--json]
+  holollama lifecycle [--profile <id>] [--team-id <team>] [--check-filesystem] [--require-runtime-readiness] [--json]
   holollama profiles
   holollama brains
   holollama brain --task <text> [--brain <id>|--skill <id>] [--json]
@@ -346,6 +347,7 @@ Options:
   --orchestrator-url <url>
   --api-key-env <env-var>
   --check-filesystem
+  --require-runtime-readiness
   --code <file.holo>
   --out <dir>
   --json

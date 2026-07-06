@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   assertHoloLlamaBundleConsumable,
+  assessHoloLlamaRuntimeReadiness,
   buildHoloLlamaFleetLifecycleReport,
   buildHoloMeshReadOnlyBridge,
   buildLlamaServeComposition,
@@ -238,12 +239,117 @@ describe('@holoscript/holollama', () => {
     expect(laptop?.stages.map((stage) => stage.id)).toEqual([
       'plan',
       'vision-preflight',
+      'runtime-readiness',
       'mesh-readonly-bridge',
       'serve-health-probe',
     ]);
     expect(laptop?.visionPreflight.visionRequested).toBe(true);
+    expect(laptop?.runtimeReadiness.runtimeRequired).toBe(false);
     expect(
       laptop?.meshReadOnlyBridge.endpoints.some((endpoint) => endpoint.id === 'team-board')
     ).toBe(true);
+  });
+
+  it('requires launched-node runtime evidence before vision benchmark routing', () => {
+    const receipt = assessHoloLlamaRuntimeReadiness('laptop-windows', {
+      generatedAt: '2026-07-05T00:00:00.000Z',
+      requireRuntimeReadiness: true,
+      observation: {
+        portOwner: {
+          ok: true,
+          detail: '127.0.0.1:18080 owned by expected build-holo llama-server pid 1234',
+          pid: 1234,
+          executable: patchedLaptopExecutable,
+        },
+        staleServerCleanup: {
+          ok: true,
+          detail: 'no stale text-only llama-server process remained after cleanup',
+          stalePids: [],
+          cleanedPids: [991],
+        },
+        openaiModels: {
+          data: [
+            {
+              id: 'fara-7b',
+              modalities: ['text', 'vision'],
+              capabilities: { multimodal: true },
+            },
+          ],
+        },
+        props: {
+          modalities: { vision: true },
+        },
+      },
+    });
+
+    expect(receipt.schema).toBe('holollama.llama-cpp-runtime-readiness.v1');
+    expect(receipt.ok).toBe(true);
+    expect(receipt.runtimeRequired).toBe(true);
+    expect(receipt.checks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'port-ownership', required: true, ok: true }),
+        expect.objectContaining({ id: 'stale-llama-server-cleanup', required: true, ok: true }),
+        expect.objectContaining({
+          id: 'openai-models-multimodal-capability',
+          required: true,
+          ok: true,
+        }),
+        expect.objectContaining({ id: 'props-modalities-vision', required: true, ok: true }),
+      ])
+    );
+  });
+
+  it('blocks missing launched-node evidence when runtime readiness is required', () => {
+    const receipt = assessHoloLlamaRuntimeReadiness('laptop-windows', {
+      generatedAt: '2026-07-05T00:00:00.000Z',
+      requireRuntimeReadiness: true,
+    });
+
+    expect(receipt.ok).toBe(false);
+    expect(receipt.blockers).toEqual([
+      'runtime-observation: missing launched-node observation before benchmark/routing',
+    ]);
+  });
+
+  it('blocks stale text-only runtime evidence for vision benchmark routing', () => {
+    const lifecycle = buildHoloLlamaFleetLifecycleReport({
+      profile: 'laptop-windows',
+      teamId: 'team_test',
+      generatedAt: '2026-07-05T00:00:00.000Z',
+      requireRuntimeReadiness: true,
+      runtimeObservations: {
+        'laptop-windows': {
+          portOwner: {
+            ok: false,
+            detail: '127.0.0.1:18080 is still owned by stale text-only llama-server pid 991',
+            pid: 991,
+          },
+          staleServerCleanup: {
+            ok: false,
+            detail: 'stale llama-server pid 991 was detected but not cleaned',
+            stalePids: [991],
+            cleanedPids: [],
+          },
+          openaiModels: {
+            data: [{ id: 'fara-7b', modalities: ['text'] }],
+          },
+          props: {
+            modalities: { vision: false },
+          },
+        },
+      },
+    });
+
+    expect(lifecycle.ok).toBe(false);
+    const laptop = lifecycle.profiles[0];
+    expect(laptop.stages.find((stage) => stage.id === 'runtime-readiness')?.ok).toBe(false);
+    expect(laptop.runtimeReadiness.blockers).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('port-ownership'),
+        expect.stringContaining('stale-llama-server-cleanup'),
+        expect.stringContaining('openai-models-multimodal-capability'),
+        expect.stringContaining('props-modalities-vision'),
+      ])
+    );
   });
 });

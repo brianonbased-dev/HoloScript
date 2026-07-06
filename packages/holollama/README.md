@@ -41,8 +41,11 @@ Operational receipts:
   knowledge endpoints as `holollama.holomesh-readonly-bridge.v1`.
 - `preflight`: proves llama.cpp vision flags and registry capability as
   `holollama.llama-cpp-vision-preflight.v1`.
-- `lifecycle`: joins plan, preflight, mesh bridge, and health probe stages as
-  `holollama.fleet-lifecycle.v1`.
+- `lifecycle`: joins plan, preflight, runtime-readiness, mesh bridge, and
+  health probe stages as `holollama.fleet-lifecycle.v1`. Runtime-readiness is
+  the launched-node gate for benchmark/routing callers: port owner, stale
+  `llama-server` cleanup, `/v1/models` multimodal capability, and
+  `/props.modalities.vision`.
 
 ## Brains
 

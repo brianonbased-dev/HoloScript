@@ -144,7 +144,13 @@ if (!cliLifecycle.ok)
 for (const expected of EXPECTED_PROFILES) {
   const profile = cliLifecycle.profiles?.find((candidate) => candidate.profile === expected);
   if (!profile) fail(`lifecycle CLI omitted profile ${expected}`);
-  for (const stage of ['plan', 'vision-preflight', 'mesh-readonly-bridge', 'serve-health-probe']) {
+  for (const stage of [
+    'plan',
+    'vision-preflight',
+    'runtime-readiness',
+    'mesh-readonly-bridge',
+    'serve-health-probe',
+  ]) {
     if (!profile.stages?.some((candidate) => candidate.id === stage && candidate.ok === true)) {
       fail(`lifecycle CLI profile ${expected} did not pass stage ${stage}`);
     }
