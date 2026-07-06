@@ -67,8 +67,9 @@ absorb-service/
    and impact radius, then re-ranked by a weighted score
    (semantic 0.6 + connections 0.2 + impact 0.2 by default).
 5. **Answer** -- `queryWithLLM()` condenses top results into a structured prompt
-   and feeds it to a configurable LLM (Ollama, OpenAI, Anthropic, Gemini) to
-   produce a natural-language answer with citations.
+   and feeds it to a configurable synthesis provider (OpenAI, Anthropic,
+   Gemini, OpenRouter, Ollama, or explicit HoloLlama) to produce a
+   natural-language answer with citations.
 6. **Improve** -- The pipeline orchestrator runs L0 (code fixer), L1 (strategy
    optimizer), and L2 (meta-strategist/skill generator) in sequence, each with
    budget caps and human-review gates.
@@ -324,6 +325,10 @@ differently to get useful results.
   "How does R3FCompiler handle animated traits?" finds the specific path.
 - **Use `llmProvider: "anthropic"` or `"openai"`** for highest quality answers.
   Ollama works but produces shallower reasoning.
+- **Use `llmProvider: "holollama"`** when you want owned llama.cpp-compatible
+  synthesis through the selected HoloLlama profile. This returns a
+  `holoLlamaReceipt`; it does not change GraphRAG embeddings, which remain
+  HoloEmbed.
 - **The graph matters.** Unlike plain RAG, Graph RAG enriches every match with
   callers, callees, community membership, and impact radius — so answers include
   "what depends on this" not just "where is this."
@@ -624,6 +629,8 @@ tracking.
 | `ABSORB_API_KEY`        | For paid tools   | API key for Studio authentication                                                                                                                                |
 | `OPENAI_API_KEY`        | Optional         | OpenAI key, used ONLY for the generic factory with explicit `provider: 'openai'`. The GraphRAG path (`detectBestEmbeddingProvider`) ignores it entirely (F.106). |
 | `OLLAMA_URL`            | Optional         | Ollama base URL (default: `http://localhost:11434`)                                                                                                              |
+| `HOLOLLAMA_PROFILE`     | Optional         | Default HoloLlama profile for `llmProvider: "holollama"` answer synthesis (`jetson-orin`, `laptop-windows`, or `vast-linux-gpu`).                                |
+| `HOLOLLAMA_ENDPOINT`    | Optional         | OpenAI-compatible HoloLlama endpoint override for answer synthesis. Accepts a base URL, `/v1` URL, or `/v1/chat/completions` URL.                                |
 | `EMBEDDING_PROVIDER`    | Optional         | GraphRAG override — only `holoembed` is accepted (`structural` is a legacy alias mapped to `holoembed`); any other value (incl. `openai`) is rejected (F.106).   |
 | `HOLOSCRIPT_STUDIO_URL` | Optional         | Studio URL override (default: `https://holoscript.studio`)                                                                                                       |
 | `HOLOSCRIPT_API_KEY`    | For orchestrator | MCP orchestrator API key                                                                                                                                         |

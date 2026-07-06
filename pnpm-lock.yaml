@@ -225,6 +225,9 @@ importers:
       '@holoscript/core':
         specifier: workspace:^
         version: link:../core
+      '@holoscript/holollama':
+        specifier: workspace:^
+        version: link:../holollama
       '@holoscript/llm-provider':
         specifier: workspace:^
         version: link:../llm-provider

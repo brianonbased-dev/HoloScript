@@ -21,6 +21,7 @@ const shared = {
     'web-tree-sitter',
     '@modelcontextprotocol/sdk',
     '@modelcontextprotocol/sdk/types.js',
+    '@holoscript/holollama',
     'drizzle-orm',
     'drizzle-orm/pg-core',
     '@huggingface/transformers',

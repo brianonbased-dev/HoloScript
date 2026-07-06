@@ -13,6 +13,11 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { SearchResult } from '../engine/EmbeddingIndex';
 import type { SymbolSearchIndex } from '../engine/SearchIndex';
 import { GraphRAGEngine, type EnrichedResult, type LLMProvider } from '../engine/GraphRAGEngine';
+import type {
+  HoloLlamaBundleSummary,
+  HoloLlamaProfile,
+  HoloLlamaServeSpec,
+} from '@holoscript/holollama';
 import {
   createHoloGraphHoloEmbedSearchIndexFromManifest,
   DEFAULT_HOLOGRAPH_HOLOEMBED_STUDENT_SHA256,
@@ -26,6 +31,45 @@ import {
   ABSORB_HOLO_ABSORB_REPO_HINT,
 } from './graph-rag-prerequisite';
 import { resolveConfigSecret } from '@holoscript/config';
+
+export const HOLOLLAMA_SYNTHESIS_RECEIPT_SCHEMA = 'holoscript.absorb.holollama-synthesis.v1';
+
+const HOLOLLAMA_PROFILES: HoloLlamaProfile[] = ['jetson-orin', 'laptop-windows', 'vast-linux-gpu'];
+
+type LLMProviderName = 'openrouter' | 'anthropic' | 'openai' | 'gemini' | 'ollama' | 'holollama';
+
+type FetchLike = (input: string | URL, init?: RequestInit) => Promise<Response>;
+
+export interface HoloLlamaSynthesisReceipt {
+  schema: typeof HOLOLLAMA_SYNTHESIS_RECEIPT_SCHEMA;
+  generatedAt: string;
+  provider: 'holollama';
+  role: 'answer-synthesis';
+  profile: HoloLlamaProfile;
+  registryHandle: string;
+  endpoint: string;
+  chatCompletionsUrl: string;
+  healthUrl: string;
+  model: string;
+  node: string;
+  registerAs: string;
+  embeddingProvider: 'holoembed';
+  embeddingPolicy: 'holoembed-query-tower-only';
+  graphProvider: 'holograph';
+  warnings: string[];
+}
+
+export interface HoloLlamaSynthesisProvider extends LLMProvider {
+  receipt: HoloLlamaSynthesisReceipt;
+}
+
+export interface HoloLlamaSynthesisProviderOptions {
+  profile?: unknown;
+  endpoint?: unknown;
+  model?: string;
+  generatedAt?: string;
+  fetchImpl?: FetchLike;
+}
 
 // =============================================================================
 // TOOL DEFINITIONS
@@ -100,19 +144,30 @@ export const graphRagTools: Tool[] = [
         },
         llmProvider: {
           type: 'string',
-          enum: ['openrouter', 'anthropic', 'openai', 'gemini', 'ollama'],
+          enum: ['openrouter', 'anthropic', 'openai', 'gemini', 'ollama', 'holollama'],
           description:
-            'LLM provider for answer generation (default: auto-detect from env, cloud-first). Priority: openrouter → anthropic → openai → gemini → ollama.',
+            'LLM provider for answer generation (default: auto-detect from env, cloud-first). Priority: openrouter -> anthropic -> openai -> gemini -> ollama. Use holollama explicitly for owned llama.cpp-compatible synthesis.',
         },
         llmApiKey: {
           type: 'string',
           description:
-            'API key for the LLM provider (required for openai/anthropic/gemini, not needed for ollama). Falls back to OPENAI_API_KEY, ANTHROPIC_API_KEY, or GEMINI_API_KEY environment variables if not provided.',
+            'API key for the LLM provider (required for openai/anthropic/gemini, not needed for ollama or holollama). Falls back to OPENAI_API_KEY, ANTHROPIC_API_KEY, or GEMINI_API_KEY environment variables if not provided.',
         },
         llmModel: {
           type: 'string',
           description:
             'Model name override (e.g., "gpt-4o-mini", "claude-haiku-4-5", "gemini-1.5-flash"). Defaults to provider-specific defaults.',
+        },
+        holoLlamaProfile: {
+          type: 'string',
+          enum: HOLOLLAMA_PROFILES,
+          description:
+            'HoloLlama serving profile used when llmProvider is "holollama" (default: HOLOLLAMA_PROFILE or "jetson-orin").',
+        },
+        holoLlamaEndpoint: {
+          type: 'string',
+          description:
+            'OpenAI-compatible HoloLlama endpoint override used when llmProvider is "holollama" (default: HOLOLLAMA_ENDPOINT or the selected profile registry endpoint). Accepts a base URL, /v1 URL, or /v1/chat/completions URL.',
         },
       },
       required: ['question'],
@@ -194,7 +249,7 @@ export async function handleGraphRagTool(
  * Auto-detect the best LLM provider from environment variables.
  * Cloud-first: OpenRouter → Anthropic → OpenAI → Ollama (last resort).
  */
-async function detectDefaultLLMProvider(): Promise<string> {
+async function detectDefaultLLMProvider(): Promise<LLMProviderName> {
   if (await resolveConfigSecret('OPENROUTER_API_KEY')) return 'openrouter';
   if (await resolveConfigSecret('ANTHROPIC_API_KEY')) return 'anthropic';
   if (await resolveConfigSecret('OPENAI_API_KEY')) return 'openai';
@@ -203,6 +258,10 @@ async function detectDefaultLLMProvider(): Promise<string> {
 }
 
 function graphRagFailureHint(provider: string | undefined): string {
+  if (provider === 'holollama') {
+    return 'Ensure the selected HoloLlama profile is serving an OpenAI-compatible endpoint. Set HOLOLLAMA_ENDPOINT or pass holoLlamaEndpoint; embeddings remain fixed to HoloEmbed.';
+  }
+
   if (provider && provider !== 'ollama') {
     return `Ensure ${provider.toUpperCase()}_API_KEY is set or passed via llmApiKey parameter`;
   }
@@ -211,6 +270,144 @@ function graphRagFailureHint(provider: string | undefined): string {
 }
 
 // ── Handlers ─────────────────────────────────────────────────────────────────
+
+export async function createHoloLlamaSynthesisProvider(
+  options: HoloLlamaSynthesisProviderOptions = {}
+): Promise<HoloLlamaSynthesisProvider> {
+  const holoLlama = await import('@holoscript/holollama');
+  const profile = resolveHoloLlamaProfile(options.profile);
+  const spec = holoLlama.resolveHoloLlamaServeSpec(profile);
+  const bundle = holoLlama.compileHoloLlamaBundle({ profile });
+  const summary = holoLlama.summarizeHoloLlamaBundle(bundle);
+  const endpoint =
+    stringArg(options.endpoint) ??
+    stringArg(process.env.HOLOLLAMA_ENDPOINT) ??
+    summary.endpoint ??
+    `http://${spec.host}:${spec.port}/v1`;
+  const chatCompletionsUrl = normalizeHoloLlamaChatCompletionsUrl(endpoint);
+  const model = options.model ?? spec.model;
+  const fetchImpl = options.fetchImpl ?? fetch;
+  const receipt = buildHoloLlamaSynthesisReceipt({
+    generatedAt: options.generatedAt ?? new Date().toISOString(),
+    profile,
+    spec,
+    summary,
+    endpoint: trimTrailingSlashes(endpoint),
+    chatCompletionsUrl,
+    model,
+  });
+
+  return {
+    receipt,
+    async complete(request, modelOverride) {
+      const response = await fetchImpl(chatCompletionsUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: modelOverride ?? model,
+          messages: request.messages,
+          stream: false,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `HoloLlama chat completions error: ${response.status} ${response.statusText}`
+        );
+      }
+
+      return { content: extractChatCompletionContent(await response.json()) };
+    },
+  };
+}
+
+function resolveHoloLlamaProfile(value: unknown): HoloLlamaProfile {
+  const candidate = stringArg(value) ?? stringArg(process.env.HOLOLLAMA_PROFILE) ?? 'jetson-orin';
+  if (HOLOLLAMA_PROFILES.includes(candidate as HoloLlamaProfile)) {
+    return candidate as HoloLlamaProfile;
+  }
+  throw new Error(`Unknown HoloLlama profile: ${candidate}`);
+}
+
+export function normalizeHoloLlamaChatCompletionsUrl(endpoint: string): string {
+  const normalized = trimTrailingSlashes(endpoint);
+  if (/\/v1\/chat\/completions$/i.test(normalized)) return normalized;
+  if (/\/chat\/completions$/i.test(normalized)) return normalized;
+  if (/\/v1$/i.test(normalized)) return `${normalized}/chat/completions`;
+  return `${normalized}/v1/chat/completions`;
+}
+
+function buildHoloLlamaSynthesisReceipt(options: {
+  generatedAt: string;
+  profile: HoloLlamaProfile;
+  spec: HoloLlamaServeSpec;
+  summary: HoloLlamaBundleSummary;
+  endpoint: string;
+  chatCompletionsUrl: string;
+  model: string;
+}): HoloLlamaSynthesisReceipt {
+  const { generatedAt, profile, spec, summary, endpoint, chatCompletionsUrl, model } = options;
+  return {
+    schema: HOLOLLAMA_SYNTHESIS_RECEIPT_SCHEMA,
+    generatedAt,
+    provider: 'holollama',
+    role: 'answer-synthesis',
+    profile,
+    registryHandle: summary.registryHandle,
+    endpoint,
+    chatCompletionsUrl,
+    healthUrl: summary.healthUrl,
+    model,
+    node: spec.node,
+    registerAs: spec.registerAs,
+    embeddingProvider: 'holoembed',
+    embeddingPolicy: 'holoembed-query-tower-only',
+    graphProvider: 'holograph',
+    warnings: summary.warnings,
+  };
+}
+
+function trimTrailingSlashes(value: string): string {
+  return value.replace(/\/+$/g, '');
+}
+
+function extractChatCompletionContent(data: unknown): string {
+  const root = asRecord(data);
+  const choices = Array.isArray(root?.choices) ? root.choices : [];
+  const firstChoice = asRecord(choices[0]);
+  const message = asRecord(firstChoice?.message);
+  const messageContent = readContentValue(message?.content);
+  if (messageContent) return messageContent;
+
+  const text = readStringValue(firstChoice?.text);
+  if (text) return text;
+
+  const content = readStringValue(root?.content);
+  if (content) return content;
+
+  const response = readStringValue(root?.response);
+  if (response) return response;
+
+  throw new Error('HoloLlama response did not include message content');
+}
+
+function readContentValue(value: unknown): string | undefined {
+  const direct = readStringValue(value);
+  if (direct) return direct;
+  if (!Array.isArray(value)) return undefined;
+  const parts = value
+    .map((part) => readStringValue(asRecord(part)?.text))
+    .filter((part): part is string => Boolean(part));
+  return parts.length ? parts.join('') : undefined;
+}
+
+function readStringValue(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === 'object' ? (value as Record<string, unknown>) : undefined;
+}
 
 async function handleSemanticSearch(args: Record<string, unknown>): Promise<unknown> {
   const resolvedIndex = await resolveSemanticSearchIndex(args);
@@ -348,9 +545,19 @@ async function buildExtractiveCodebaseAnswer(options: {
   language?: string;
   type?: string;
   effectiveProvider?: string;
+  holoLlamaReceipt?: HoloLlamaSynthesisReceipt;
   fallbackReason: string;
 }): Promise<Record<string, unknown>> {
-  const { engine, question, topK, language, type, effectiveProvider, fallbackReason } = options;
+  const {
+    engine,
+    question,
+    topK,
+    language,
+    type,
+    effectiveProvider,
+    holoLlamaReceipt,
+    fallbackReason,
+  } = options;
   const ragResult = await engine.query(question, { topK, language, type });
   const context = ragResult.results.slice(0, 10);
 
@@ -404,6 +611,7 @@ async function buildExtractiveCodebaseAnswer(options: {
     },
     context: contextPayload(context),
     llmProvider: effectiveProvider ?? 'ollama',
+    ...(holoLlamaReceipt ? { holoLlamaReceipt } : {}),
     fallback: 'extractive-graphrag',
     fallbackReason,
   };
@@ -421,57 +629,68 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
   const topK = (args.topK as number) ?? 20;
   const language = args.language as string | undefined;
   const type = args.type as string | undefined;
-  const llmProvider = args.llmProvider as string | undefined;
+  const llmProvider = args.llmProvider as LLMProviderName | undefined;
   const llmApiKey = args.llmApiKey as string | undefined;
   const llmModel = args.llmModel as string | undefined;
   const effectiveProvider = llmProvider ?? (await detectDefaultLLMProvider());
+  let holoLlamaReceipt: HoloLlamaSynthesisReceipt | undefined;
 
   try {
     // If a custom LLM provider is specified, create a new engine with that provider
     let engine = cachedGraphRAGEngine;
     if (effectiveProvider && effectiveProvider !== 'ollama') {
       try {
-        const llmPkg = await import('@holoscript/llm-provider');
-        const apiKey =
-          llmApiKey || (await resolveConfigSecret(`${effectiveProvider.toUpperCase()}_API_KEY`));
-
         // The adapter classes from @holoscript/llm-provider satisfy the
         // structural LLMProvider interface from ../engine/GraphRAGEngine
         // at runtime, but signatures drifted during peer's refactor. Cast
         // at construction; runtime invariant intact. (Fix 2026-04-25 to
         // unblock deploy.)
         let llmAdapter: LLMProvider;
-        switch (effectiveProvider) {
-          case 'openrouter':
-            llmAdapter = new llmPkg.OpenAIAdapter({
-              apiKey,
-              defaultModel: llmModel ?? 'anthropic/claude-sonnet-4',
-              baseURL: 'https://openrouter.ai/api/v1',
-            }) as unknown as LLMProvider;
-            break;
-          case 'openai':
-            llmAdapter = new llmPkg.OpenAIAdapter({
-              apiKey,
-              defaultModel: llmModel ?? 'gpt-4o-mini',
-            }) as unknown as LLMProvider;
-            break;
-          case 'anthropic':
-            llmAdapter = new llmPkg.AnthropicAdapter({
-              apiKey,
-              defaultModel: llmModel ?? 'claude-haiku-4-5',
-            }) as unknown as LLMProvider;
-            break;
-          case 'gemini':
-            llmAdapter = new llmPkg.GeminiAdapter({
-              apiKey,
-              defaultModel: llmModel ?? 'gemini-1.5-flash',
-            }) as unknown as LLMProvider;
-            break;
-          default:
-            return {
-              error: `Unknown LLM provider: ${effectiveProvider}`,
-              hint: 'Supported providers: openrouter, anthropic, openai, gemini, ollama',
-            };
+        if (effectiveProvider === 'holollama') {
+          const provider = await createHoloLlamaSynthesisProvider({
+            profile: args.holoLlamaProfile,
+            endpoint: args.holoLlamaEndpoint,
+            model: llmModel,
+          });
+          llmAdapter = provider;
+          holoLlamaReceipt = provider.receipt;
+        } else {
+          const llmPkg = await import('@holoscript/llm-provider');
+          const apiKey =
+            llmApiKey || (await resolveConfigSecret(`${effectiveProvider.toUpperCase()}_API_KEY`));
+
+          switch (effectiveProvider) {
+            case 'openrouter':
+              llmAdapter = new llmPkg.OpenAIAdapter({
+                apiKey,
+                defaultModel: llmModel ?? 'anthropic/claude-sonnet-4',
+                baseURL: 'https://openrouter.ai/api/v1',
+              }) as unknown as LLMProvider;
+              break;
+            case 'openai':
+              llmAdapter = new llmPkg.OpenAIAdapter({
+                apiKey,
+                defaultModel: llmModel ?? 'gpt-4o-mini',
+              }) as unknown as LLMProvider;
+              break;
+            case 'anthropic':
+              llmAdapter = new llmPkg.AnthropicAdapter({
+                apiKey,
+                defaultModel: llmModel ?? 'claude-haiku-4-5',
+              }) as unknown as LLMProvider;
+              break;
+            case 'gemini':
+              llmAdapter = new llmPkg.GeminiAdapter({
+                apiKey,
+                defaultModel: llmModel ?? 'gemini-1.5-flash',
+              }) as unknown as LLMProvider;
+              break;
+            default:
+              return {
+                error: `Unknown LLM provider: ${effectiveProvider}`,
+                hint: 'Supported providers: openrouter, anthropic, openai, gemini, ollama, holollama',
+              };
+          }
         }
 
         // Create a temporary engine with the custom LLM provider
@@ -484,7 +703,10 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
       } catch (err: unknown) {
         return {
           error: `Failed to initialize ${effectiveProvider} provider: ${err instanceof Error ? err.message : String(err)}`,
-          hint: 'Ensure @holoscript/llm-provider is installed and API key is valid',
+          hint:
+            effectiveProvider === 'holollama'
+              ? 'Ensure @holoscript/holollama is installed and the requested HoloLlama profile compiles.'
+              : 'Ensure @holoscript/llm-provider is installed and API key is valid',
         };
       }
     }
@@ -539,6 +761,7 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
         community: r.community ?? null,
       })),
       llmProvider: effectiveProvider ?? 'ollama',
+      ...(holoLlamaReceipt ? { holoLlamaReceipt } : {}),
     };
   } catch (err: unknown) {
     // Fallback on auto-detected Anthropic credit exhaustion
@@ -645,6 +868,7 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
         language,
         type,
         effectiveProvider,
+        holoLlamaReceipt,
         fallbackReason: failureReason,
       });
     } catch (fallbackErr: unknown) {
