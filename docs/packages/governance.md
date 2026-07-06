@@ -81,6 +81,7 @@ This matrix assigns a support level to each documented package so contributors c
 | `@holoscript/animation-presets`      | stable       | Studio Team            |
 | `@holoscript/snn-webgpu`             | experimental | R&D Team               |
 | `@holoscript/plugin-film-vfx`        | beta         | Plugin Team            |
+| `@holoscript/qm-bridge`              | beta         | Plugin Team            |
 
 ## Retired / Merged Packages
 

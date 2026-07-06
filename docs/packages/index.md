@@ -110,6 +110,7 @@ HoloScript currently ships as a monorepo with **real packages** under `packages/
 | Package                                                   | Purpose                         |
 | --------------------------------------------------------- | ------------------------------- |
 | [**@holoscript/plugin-film-vfx**](./plugin-film-vfx.md)   | Film, VFX, and virtual production traits |
+| [**@holoscript/qm-bridge**](./qm-bridge.md)               | Quantum mechanics solver bridge |
 
 ## What Is Not Counted Here
 
