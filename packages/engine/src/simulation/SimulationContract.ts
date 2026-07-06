@@ -55,6 +55,28 @@ export type {
   EnvelopeCheckResult,
 } from '@holoscript/core/parameter-envelope';
 
+export type ParameterEnvelopeInheritanceStatus =
+  | 'inside'
+  | 'inside-with-warnings'
+  | 'redischarge-required'
+  | 'outside'
+  | 'no-envelope'
+  | 'source-unverified';
+
+export interface ParameterEnvelopeProofSource {
+  parameterEnvelope?: ParameterEnvelope;
+  envelopeCheck?: EnvelopeCheckResult;
+  verified?: boolean;
+}
+
+export interface ParameterEnvelopeInheritanceResult {
+  status: ParameterEnvelopeInheritanceStatus;
+  insideProof: boolean;
+  requiresRedischarge: boolean;
+  envelopeCheck?: EnvelopeCheckResult;
+  diagnostics: string[];
+}
+
 // ── Scale Tag & Acceptance Envelopes ──────────────────────────────────────────
 
 /**
@@ -603,6 +625,12 @@ export interface SimulationProvenance {
    */
   continuesFrom?: ContinuationLink;
   /**
+   * Valid-parameter domain carried by this receipt. This is the reusable proof
+   * envelope: adjusted/remixed configs can be checked against it without
+   * trusting the original caller's local ContractConfig.
+   */
+  parameterEnvelope?: ParameterEnvelope;
+  /**
    * Parameter-envelope check result (H1 proof machinery).
    * Present iff `ContractConfig.parameterEnvelope` was declared at construction.
    * `passed: false` → at least one error-severity violation (would have thrown).
@@ -1088,10 +1116,7 @@ export function buildProvenanceChainReceiptV2(
     ? canonicalizeFingerprint(input.substrateGenerator)
     : undefined;
   const custodyScore = computeCustodyScore(input.custody);
-  const specCoverage = computeSpecCoverage(
-    input.tierR.scoredValueAxes,
-    input.tierR.totalValueAxes
-  );
+  const specCoverage = computeSpecCoverage(input.tierR.scoredValueAxes, input.tierR.totalValueAxes);
   const measuredValueIndependence = computeMeasuredValueIndependence(probeUnscored);
   const preferenceCorrelation = computePreferenceCorrelation(input.preferenceArm);
   const exp2 = runExp2ValueLeakFalsifier({
@@ -1213,11 +1238,10 @@ export function verifyProvenanceChainReceiptV2(
     diagnostics.push('specCoverage does not match TIER-R scored/total value axes');
   }
 
-  const expectedIndependence = computeMeasuredValueIndependence(receipt.fingerprints.probe_unscored);
-  if (
-    Math.abs(measured.measuredValueIndependence.value - expectedIndependence) >
-    Number.EPSILON
-  ) {
+  const expectedIndependence = computeMeasuredValueIndependence(
+    receipt.fingerprints.probe_unscored
+  );
+  if (Math.abs(measured.measuredValueIndependence.value - expectedIndependence) > Number.EPSILON) {
     diagnostics.push('measuredValueIndependence does not match probe_unscored confidence');
   }
 
@@ -1630,6 +1654,108 @@ export interface AdapterInfo {
   driver?: string;
   /** Browser user-agent (pins Chrome version etc.) */
   userAgent?: string;
+}
+
+function cloneParameterEnvelope(envelope: ParameterEnvelope): ParameterEnvelope {
+  return envelope.map((record) => ({
+    ...record,
+    ...(record.allowed !== undefined ? { allowed: [...record.allowed] } : {}),
+  }));
+}
+
+export function checkSimulationParameterEnvelopeInheritance(
+  proofSource: ParameterEnvelopeProofSource,
+  adjustedConfig: Record<string, unknown>
+): ParameterEnvelopeInheritanceResult {
+  const diagnostics: string[] = [];
+  const envelope = proofSource.parameterEnvelope;
+
+  if (envelope === undefined || envelope.length === 0) {
+    return {
+      status: 'no-envelope',
+      insideProof: false,
+      requiresRedischarge: false,
+      diagnostics: ['source receipt has no parameterEnvelope; proof inheritance is undefined'],
+    };
+  }
+
+  const envelopeCheck = checkParameterEnvelope(adjustedConfig, envelope);
+
+  if (proofSource.verified === false) {
+    diagnostics.push('source receipt is not verified; adjusted config cannot inherit its proof');
+  }
+  if (proofSource.envelopeCheck?.passed === false) {
+    diagnostics.push('source receipt has a failing parameter-envelope check');
+  }
+  if (proofSource.envelopeCheck?.redischarge === true) {
+    diagnostics.push('source receipt already requires parameter-envelope redischarge');
+  }
+
+  if (diagnostics.length > 0) {
+    return {
+      status: 'source-unverified',
+      insideProof: false,
+      requiresRedischarge: true,
+      envelopeCheck,
+      diagnostics,
+    };
+  }
+
+  const errorViolations = envelopeCheck.violations.filter((v) => v.verdict === 'error');
+  if (errorViolations.length > 0) {
+    return {
+      status: 'outside',
+      insideProof: false,
+      requiresRedischarge: false,
+      envelopeCheck,
+      diagnostics: errorViolations.map((v) => v.message),
+    };
+  }
+
+  if (envelopeCheck.redischarge) {
+    return {
+      status: 'redischarge-required',
+      insideProof: false,
+      requiresRedischarge: true,
+      envelopeCheck,
+      diagnostics: envelopeCheck.violations
+        .filter((v) => v.verdict === 'redischarge')
+        .map((v) => v.message),
+    };
+  }
+
+  if (envelopeCheck.violations.length > 0) {
+    return {
+      status: 'inside-with-warnings',
+      insideProof: true,
+      requiresRedischarge: false,
+      envelopeCheck,
+      diagnostics: envelopeCheck.violations.map((v) => v.message),
+    };
+  }
+
+  return {
+    status: 'inside',
+    insideProof: true,
+    requiresRedischarge: false,
+    envelopeCheck,
+    diagnostics,
+  };
+}
+
+export function assertSimulationParameterEnvelopeInheritance(
+  proofSource: ParameterEnvelopeProofSource,
+  adjustedConfig: Record<string, unknown>
+): ParameterEnvelopeInheritanceResult {
+  const result = checkSimulationParameterEnvelopeInheritance(proofSource, adjustedConfig);
+  if (!result.insideProof) {
+    const diagnostic =
+      result.diagnostics.length > 0 ? result.diagnostics.join('; ') : result.status;
+    throw new Error(
+      `[SimulationContract] ParameterEnvelope inheritance failed (${result.status}): ${diagnostic}`
+    );
+  }
+  return result;
 }
 
 /**
@@ -2382,6 +2508,8 @@ export class ContractedSimulation {
   private clauseViolations: ClauseViolation[] = [];
   /** Result of envelope check at construction (null when no envelope was declared). */
   private envelopeCheckResult: EnvelopeCheckResult | null = null;
+  /** Valid-parameter domain frozen into provenance and replay receipts. */
+  private parameterEnvelope: ParameterEnvelope | undefined = undefined;
   private previousEnergy: number | undefined;
   private vvMeasurements: VVMeasurement[] = [];
   private vvViolations: ContractViolation[] = [];
@@ -2491,6 +2619,12 @@ export class ContractedSimulation {
    *  `subgridParams`. */
   getSubgridAttestation(): SubgridAttestation | undefined {
     return this.subgridAttestation;
+  }
+
+  getParameterEnvelope(): ParameterEnvelope | undefined {
+    return this.parameterEnvelope === undefined
+      ? undefined
+      : cloneParameterEnvelope(this.parameterEnvelope);
   }
 
   /** Stable Contract-ID used to identify a contracted run. Composes
@@ -2666,9 +2800,10 @@ export class ContractedSimulation {
     // recorded and carried into provenance so the receipt witnesses out-of-envelope
     // params without blocking the run.
     if (contractConfig.parameterEnvelope && contractConfig.parameterEnvelope.length > 0) {
+      this.parameterEnvelope = cloneParameterEnvelope(contractConfig.parameterEnvelope);
       this.envelopeCheckResult = checkParameterEnvelope(
         config as Record<string, unknown>,
-        contractConfig.parameterEnvelope
+        this.parameterEnvelope
       );
       const errorViolations = this.envelopeCheckResult.violations.filter(
         (v) => v.verdict === 'error'
@@ -3160,6 +3295,9 @@ export class ContractedSimulation {
           }
         : {}),
       ...(this.continuesFrom !== undefined ? { continuesFrom: this.continuesFrom } : {}),
+      ...(this.parameterEnvelope !== undefined
+        ? { parameterEnvelope: cloneParameterEnvelope(this.parameterEnvelope) }
+        : {}),
       ...(this.envelopeCheckResult !== null ? { envelopeCheck: this.envelopeCheckResult } : {}),
     };
   }
@@ -3180,6 +3318,8 @@ export class ContractedSimulation {
     interactions: InteractionEvent[];
     fixedDt: number;
     totalSteps: number;
+    parameterEnvelope?: ParameterEnvelope;
+    envelopeCheck?: EnvelopeCheckResult;
     /** Continuation link, when this run was declared to continue from a prior
      *  run — lineage survives replay so the chain can be re-verified. */
     continuesFrom?: ContinuationLink;
@@ -3200,6 +3340,10 @@ export class ContractedSimulation {
       interactions: this.interactions,
       fixedDt: this.stepper.getFixedDt(),
       totalSteps: this.stepper.getStepCount(),
+      ...(this.parameterEnvelope !== undefined
+        ? { parameterEnvelope: cloneParameterEnvelope(this.parameterEnvelope) }
+        : {}),
+      ...(this.envelopeCheckResult !== null ? { envelopeCheck: this.envelopeCheckResult } : {}),
       ...(this.continuesFrom !== undefined ? { continuesFrom: this.continuesFrom } : {}),
       useCryptographicHash: this.hashMode === 'sha256',
     };
@@ -3233,6 +3377,7 @@ export class ContractedSimulation {
       interactions: InteractionEvent[];
       fixedDt: number;
       totalSteps: number;
+      parameterEnvelope?: ParameterEnvelope;
       /** Hash mode of the original run (createReplay records this). When
        *  omitted, falls back to the default mode for backward compatibility. */
       useCryptographicHash?: boolean;
@@ -3247,6 +3392,9 @@ export class ContractedSimulation {
       // Preserve the original run's hash mode so per-step state digests match.
       ...(replay.useCryptographicHash !== undefined
         ? { useCryptographicHash: replay.useCryptographicHash }
+        : {}),
+      ...(replay.parameterEnvelope !== undefined
+        ? { parameterEnvelope: replay.parameterEnvelope }
         : {}),
     });
 

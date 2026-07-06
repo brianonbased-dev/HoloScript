@@ -206,6 +206,8 @@ export {
   validateUnits,
   validateMeshSanity,
   validatePhysicsSanity,
+  checkSimulationParameterEnvelopeInheritance,
+  assertSimulationParameterEnvelopeInheritance,
   acceptsCrossScale,
   coarsestCommonScale,
   verifyContinuation,
@@ -220,6 +222,9 @@ export {
   type InteractionEvent,
   type ContractViolation,
   type ContractConfig,
+  type ParameterEnvelopeProofSource,
+  type ParameterEnvelopeInheritanceResult,
+  type ParameterEnvelopeInheritanceStatus,
   type SimulationScale,
   type ScaleEnvelope,
 } from './SimulationContract';

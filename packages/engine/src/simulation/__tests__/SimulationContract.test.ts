@@ -18,6 +18,8 @@ import {
   computeSpecCoverage,
   guardClauseFalsifiability,
   runExp2ValueLeakFalsifier,
+  checkSimulationParameterEnvelopeInheritance,
+  assertSimulationParameterEnvelopeInheritance,
   type AdapterInfo,
   type ContractClause,
   acceptsCrossScale,
@@ -1851,6 +1853,128 @@ describe('Receipt Chaining', () => {
 // Contract Clauses — semantic proof witnesses (H1 keystone)
 // ═══════════════════════════════════════════════════════════════════════
 
+describe('ParameterEnvelope proof inheritance', () => {
+  it('carries the parameter envelope into provenance and replay receipts', () => {
+    const parameterEnvelope = [{ param: 'load', min: 0, max: 10 }];
+    const sim = new ContractedSimulation(
+      mockSolver(),
+      { load: 5 },
+      { fixedDt: 0.01, parameterEnvelope }
+    );
+
+    const provenance = sim.getProvenance();
+    expect(provenance.parameterEnvelope).toEqual(parameterEnvelope);
+    expect(provenance.envelopeCheck?.violations).toEqual([]);
+
+    const replay = sim.createReplay();
+    expect(replay.parameterEnvelope).toEqual(parameterEnvelope);
+
+    const replayed = ContractedSimulation.replayFromProvenance(() => mockSolver(), replay);
+    expect(replayed.getProvenance().parameterEnvelope).toEqual(parameterEnvelope);
+  });
+
+  it('accepts an adjusted config that remains inside the proof envelope', () => {
+    const sim = new ContractedSimulation(
+      mockSolver(),
+      { load: 5 },
+      { fixedDt: 0.01, parameterEnvelope: [{ param: 'load', min: 0, max: 10 }] }
+    );
+
+    const result = checkSimulationParameterEnvelopeInheritance(sim.getProvenance(), { load: 7 });
+    expect(result.status).toBe('inside');
+    expect(result.insideProof).toBe(true);
+    expect(result.requiresRedischarge).toBe(false);
+    expect(() =>
+      assertSimulationParameterEnvelopeInheritance(sim.getProvenance(), { load: 7 })
+    ).not.toThrow();
+  });
+
+  it('rejects an adjusted config outside an error envelope', () => {
+    const sim = new ContractedSimulation(
+      mockSolver(),
+      { load: 5 },
+      { fixedDt: 0.01, parameterEnvelope: [{ param: 'load', min: 0, max: 10 }] }
+    );
+
+    const result = checkSimulationParameterEnvelopeInheritance(sim.getProvenance(), { load: 99 });
+    expect(result.status).toBe('outside');
+    expect(result.insideProof).toBe(false);
+    expect(result.diagnostics[0]).toContain('load');
+    expect(() =>
+      assertSimulationParameterEnvelopeInheritance(sim.getProvenance(), { load: 99 })
+    ).toThrow(/ParameterEnvelope inheritance failed \(outside\)/);
+  });
+
+  it('marks redischarge-required when an adjusted config exits a redischarge envelope', () => {
+    const sim = new ContractedSimulation(
+      mockSolver(),
+      { resolution: 8 },
+      {
+        fixedDt: 0.01,
+        parameterEnvelope: [{ param: 'resolution', min: 4, max: 16, onViolation: 'redischarge' }],
+      }
+    );
+
+    const result = checkSimulationParameterEnvelopeInheritance(sim.getProvenance(), {
+      resolution: 32,
+    });
+    expect(result.status).toBe('redischarge-required');
+    expect(result.insideProof).toBe(false);
+    expect(result.requiresRedischarge).toBe(true);
+    expect(() =>
+      assertSimulationParameterEnvelopeInheritance(sim.getProvenance(), { resolution: 32 })
+    ).toThrow(/redischarge-required/);
+  });
+
+  it('keeps warn-only envelope exits nonfatal but visible', () => {
+    const sim = new ContractedSimulation(
+      mockSolver(),
+      { damping: 0.5 },
+      {
+        fixedDt: 0.01,
+        parameterEnvelope: [{ param: 'damping', min: 0, max: 1, onViolation: 'warn' }],
+      }
+    );
+
+    const result = assertSimulationParameterEnvelopeInheritance(sim.getProvenance(), {
+      damping: 1.5,
+    });
+    expect(result.status).toBe('inside-with-warnings');
+    expect(result.insideProof).toBe(true);
+    expect(result.diagnostics[0]).toContain('damping');
+  });
+
+  it('refuses inheritance from a source receipt that already needs redischarge', () => {
+    const sim = new ContractedSimulation(
+      mockSolver(),
+      { resolution: 32 },
+      {
+        fixedDt: 0.01,
+        parameterEnvelope: [{ param: 'resolution', min: 4, max: 16, onViolation: 'redischarge' }],
+      }
+    );
+    const provenance = sim.getProvenance();
+    expect(provenance.verified).toBe(false);
+    expect(provenance.envelopeCheck?.redischarge).toBe(true);
+
+    const result = checkSimulationParameterEnvelopeInheritance(provenance, { resolution: 8 });
+    expect(result.status).toBe('source-unverified');
+    expect(result.insideProof).toBe(false);
+    expect(result.requiresRedischarge).toBe(true);
+    expect(result.diagnostics.join(' ')).toContain('source receipt');
+  });
+
+  it('fails loudly when no source receipt envelope exists', () => {
+    const sim = new ContractedSimulation(mockSolver(), {}, { fixedDt: 0.01 });
+    const result = checkSimulationParameterEnvelopeInheritance(sim.getProvenance(), {});
+    expect(result.status).toBe('no-envelope');
+    expect(result.insideProof).toBe(false);
+    expect(() => assertSimulationParameterEnvelopeInheritance(sim.getProvenance(), {})).toThrow(
+      /no-envelope/
+    );
+  });
+});
+
 describe('Provenance-chain receipt v2', () => {
   const measuredAt = '2026-06-21T00:00:00.000Z';
   const preferenceArm = [
@@ -1924,14 +2048,10 @@ describe('Provenance-chain receipt v2', () => {
     ).toBeCloseTo(2 / 3);
     expect(receipt.measurements.specCoverage.value).toBe(1);
     expect(receipt.measurements.measuredValueIndependence.value).toBeCloseTo(0.65);
-    expect(computeMeasuredValueIndependence(receipt.fingerprints.probe_unscored)).toBeCloseTo(
-      0.65
-    );
+    expect(computeMeasuredValueIndependence(receipt.fingerprints.probe_unscored)).toBeCloseTo(0.65);
     expect(receipt.measurements.preference_correlation.value).toBeGreaterThan(0.98);
     expect(computePreferenceCorrelation(preferenceArm)).toBeGreaterThan(0.98);
-    expect(receipt.fingerprints.probe_unscored.perExampleTags).toContain(
-      'probe_unscored:sample-0'
-    );
+    expect(receipt.fingerprints.probe_unscored.perExampleTags).toContain('probe_unscored:sample-0');
     expect(receipt.receiptHash).toMatch(/^pcv2-sha-[0-9a-f]{64}$/);
     expect(receipt.theoremStatus).toBe('hypothesis');
   });
