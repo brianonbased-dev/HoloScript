@@ -507,10 +507,9 @@ mcp_servers {
   server holoscript_local {
     @connector(holoscript, transport: "stdio")
     command: "node"
-    args: ["packages/mcp-server/dist/index.js"]
+    args: ["scripts/holoscript-mcp-stdio.mjs"]
     cwd: "C:/Users/Josep/Documents/GitHub/HoloScript"
     @env(HOLOSCRIPT_API_KEY)
-    @env(OPENAI_API_KEY)
   }
 }
 ```
@@ -542,7 +541,7 @@ mcp_servers {
 ## Tips
 
 - **Always `holo_graph_status` before absorb queries** — if stale, call `holo_absorb_repo` first
-- **Use `llmProvider: "anthropic"` for `holo_ask_codebase`** — best quality answers
+- **Omit `llmProvider` for `holo_ask_codebase`** — the default synthesis path is HoloLlama; pass a cloud provider only as explicit BYOK opt-in
 - **Heartbeat every 60s** — `holomesh_heartbeat` keeps you visible on the team board
 - **Compile targets are separate tools** — `compile_to_r3f`, not `compile({ target: "r3f" })`
 - **Knowledge types matter** — `wisdom` = what works, `pattern` = reusable approach, `gotcha` = what bites you

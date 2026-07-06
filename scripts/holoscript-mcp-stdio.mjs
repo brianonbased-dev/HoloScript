@@ -1,0 +1,197 @@
+#!/usr/bin/env node
+/**
+ * Resilient local HoloScript MCP stdio launcher.
+ *
+ * Codex/Claude/VS Code often point directly at packages/mcp-server/dist/index.js.
+ * That works only when every workspace dist entry it imports already exists. After
+ * a clean, prune, or partial build, the MCP process exits before the stdio
+ * handshake and clients report only "Transport closed".
+ *
+ * This launcher keeps stdout reserved for MCP protocol traffic, repairs missing
+ * local build entrypoints on stderr, then delegates to the packaged stdio bin.
+ */
+
+import { spawn, spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+export const ROOT = resolve(__dirname, '..');
+
+export const BUILD_GROUPS = [
+  {
+    id: 'core',
+    label: '@holoscript/core',
+    filter: '@holoscript/core',
+    requiredFiles: [
+      'packages/core/dist/index.js',
+      'packages/core/dist/index.cjs',
+      'packages/core/dist/index.d.ts',
+      'packages/core/dist/compiler/index.js',
+    ],
+  },
+  {
+    id: 'absorb-service',
+    label: '@holoscript/absorb-service',
+    filter: '@holoscript/absorb-service',
+    requiredFiles: [
+      'packages/absorb-service/dist/index.js',
+      'packages/absorb-service/dist/mcp/index.js',
+      'packages/absorb-service/dist/mcp/index.cjs',
+    ],
+  },
+  {
+    id: 'mcp-server',
+    label: '@holoscript/mcp-server',
+    filter: '@holoscript/mcp-server',
+    requiredFiles: [
+      'packages/mcp-server/bin/holoscript-mcp.cjs',
+      'packages/mcp-server/dist/index.js',
+      'packages/mcp-server/dist/index.d.ts',
+    ],
+  },
+];
+
+function commandName(name) {
+  return process.platform === 'win32' ? `${name}.cmd` : name;
+}
+
+function stderr(line) {
+  process.stderr.write(`${line}\n`);
+}
+
+export function missingBuildGroups(exists = existsSync, root = ROOT) {
+  return BUILD_GROUPS.filter((group) =>
+    group.requiredFiles.some((file) => !exists(resolve(root, file)))
+  );
+}
+
+export function stdioServerPath(root = ROOT) {
+  return join(root, 'packages', 'mcp-server', 'bin', 'holoscript-mcp.cjs');
+}
+
+export function buildCommandForGroup(group) {
+  return {
+    command: commandName('corepack'),
+    args: ['pnpm', '--filter', group.filter, 'run', 'build'],
+  };
+}
+
+function runBuild(group) {
+  const { command, args } = buildCommandForGroup(group);
+  stderr(`[holoscript-mcp-stdio] Building ${group.label} before local MCP startup...`);
+  const result = spawnSync(command, args, {
+    cwd: ROOT,
+    env: process.env,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    shell: process.platform === 'win32',
+  });
+
+  if (result.status !== 0) {
+    if (result.stdout) process.stderr.write(result.stdout);
+    if (result.stderr) process.stderr.write(result.stderr);
+    throw new Error(`${group.label} build failed with exit code ${result.status ?? 'unknown'}`);
+  }
+}
+
+function runImportProbe() {
+  const probe = `
+await import('@holoscript/core');
+await import('@holoscript/core/compiler');
+await import('@holoscript/absorb-service/mcp');
+`;
+  const result = spawnSync(process.execPath, ['--input-type=module', '-e', probe], {
+    cwd: ROOT,
+    env: process.env,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  return {
+    ok: result.status === 0,
+    stderr: result.stderr?.trim() || result.stdout?.trim() || '',
+  };
+}
+
+function ensureBuild({ noBuild = false } = {}) {
+  const missing = missingBuildGroups();
+  if (missing.length > 0) {
+    if (noBuild) {
+      throw new Error(
+        `Missing local MCP build artifacts for: ${missing.map((group) => group.id).join(', ')}`
+      );
+    }
+    for (const group of missing) runBuild(group);
+  }
+
+  let probe = runImportProbe();
+  if (!probe.ok && !noBuild) {
+    stderr(
+      '[holoscript-mcp-stdio] Local package import probe failed; rebuilding MCP dependency chain...'
+    );
+    if (probe.stderr) stderr(probe.stderr);
+    for (const group of BUILD_GROUPS) runBuild(group);
+    probe = runImportProbe();
+  }
+
+  if (!probe.ok) {
+    throw new Error(`Local package import probe failed: ${probe.stderr || 'no stderr'}`);
+  }
+
+  return {
+    missingGroupsBeforeBuild: missing.map((group) => group.id),
+    serverPath: stdioServerPath(),
+  };
+}
+
+function startServer() {
+  const child = spawn(process.execPath, [stdioServerPath()], {
+    cwd: ROOT,
+    env: { ...process.env, START_MCP_STDIO: 'true' },
+    stdio: ['inherit', 'inherit', 'inherit'],
+  });
+
+  const forwardSignal = (signal) => {
+    if (!child.killed) child.kill(signal);
+  };
+  process.on('SIGINT', () => forwardSignal('SIGINT'));
+  process.on('SIGTERM', () => forwardSignal('SIGTERM'));
+
+  child.on('exit', (code, signal) => {
+    if (signal) {
+      process.kill(process.pid, signal);
+      return;
+    }
+    process.exit(code ?? 1);
+  });
+}
+
+async function main() {
+  const args = new Set(process.argv.slice(2));
+  const noBuild = args.has('--no-build') || process.env.HOLOSCRIPT_LOCAL_MCP_NO_BUILD === '1';
+  const selfTest = args.has('--self-test');
+  const json = args.has('--json');
+
+  try {
+    const result = ensureBuild({ noBuild });
+    if (selfTest) {
+      const payload = {
+        ok: true,
+        root: ROOT,
+        serverPath: result.serverPath,
+        missingGroupsBeforeBuild: result.missingGroupsBeforeBuild,
+      };
+      process.stdout.write(json ? `${JSON.stringify(payload, null, 2)}\n` : 'OK\n');
+      return;
+    }
+    startServer();
+  } catch (error) {
+    stderr(`[holoscript-mcp-stdio] ERROR: ${error instanceof Error ? error.message : error}`);
+    process.exit(1);
+  }
+}
+
+if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
+  main();
+}

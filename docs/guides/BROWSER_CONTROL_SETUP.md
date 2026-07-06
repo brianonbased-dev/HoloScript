@@ -100,8 +100,8 @@ Edit: `C:/Users/josep/Documents/GitHub/HoloScript/.vscode/mcp.json`
   "mcpServers": {
     "holoscript-local": {
       "command": "node",
-      "args": ["dist/index.js"],
-      "cwd": "C:/Users/josep/Documents/GitHub/HoloScript/packages/mcp-server",
+      "args": ["scripts/holoscript-mcp-stdio.mjs"],
+      "cwd": "C:/Users/josep/Documents/GitHub/HoloScript",
       "description": "HoloScript with browser control (live tool inventory)"
     }
   }
@@ -116,11 +116,13 @@ This only activates when you open the HoloScript folder in VSCode.
 
 ### "Server not found" error
 
-**Fix**: Build the server first
+**Fix**: Use `scripts/holoscript-mcp-stdio.mjs` from the repository root. It checks the local
+build entrypoints and rebuilds missing `@holoscript/core`, `@holoscript/absorb-service`, or
+`@holoscript/mcp-server` artifacts before the stdio handshake.
 
 ```bash
-cd C:/Users/josep/Documents/GitHub/HoloScript/packages/mcp-server
-pnpm build
+cd C:/Users/josep/Documents/GitHub/HoloScript
+node scripts/holoscript-mcp-stdio.mjs --self-test --json
 ```
 
 ### "Browser won't launch"
