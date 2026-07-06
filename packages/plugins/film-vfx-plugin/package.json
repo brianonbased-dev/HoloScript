@@ -30,6 +30,9 @@
   ],
   "author": "HoloScript Contributors",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/brianonbased-dev/HoloScript.git",

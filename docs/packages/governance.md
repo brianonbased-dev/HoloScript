@@ -17,6 +17,7 @@ This matrix assigns a support level to each documented package so contributors c
 - Agent/AI packages: Agent Systems Team
 - Spatial/HoloLand packages: HoloLand Team
 - Services/data packages: Platform Services Team
+- Domain plugin packages: Plugin Team
 - Research packages: R&D Team
 
 ## Matrix
@@ -79,6 +80,7 @@ This matrix assigns a support level to each documented package so contributors c
 | `@holoscript/spatial-index`          | stable       | HoloScript Core Team   |
 | `@holoscript/animation-presets`      | stable       | Studio Team            |
 | `@holoscript/snn-webgpu`             | experimental | R&D Team               |
+| `@holoscript/plugin-film-vfx`        | beta         | Plugin Team            |
 
 ## Retired / Merged Packages
 

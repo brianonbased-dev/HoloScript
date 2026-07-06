@@ -105,9 +105,15 @@ HoloScript currently ships as a monorepo with **real packages** under `packages/
 
 > `@holoscript/snn-poc` was superseded by `@holoscript/snn-webgpu` (2026-04-29). See the [deletion ledger](../cross-language-deletion-ledger.md).
 
+## Domain Plugins
+
+| Package                                                   | Purpose                         |
+| --------------------------------------------------------- | ------------------------------- |
+| [**@holoscript/plugin-film-vfx**](./plugin-film-vfx.md)   | Film, VFX, and virtual production traits |
+
 ## What Is Not Counted Here
 
-The repo also contains support directories under `packages/` that are useful internally but do **not** currently expose their own `package.json`. Examples include `plugins` and `python-bindings`.
+The repo also contains support directories under `packages/` that are useful internally but do **not** currently expose their own `package.json`. Nested plugin directories with package manifests are documented above as domain plugins; package-free support directories are documented separately.
 
 Those directories are documented separately in [Support Directories](./support-directories.md), but they are not part of the current public package manifest count used in this reference. Historical packages (retired, merged, or migrated) are recorded in the [Cross-Language Deletion Ledger](../cross-language-deletion-ledger.md) and archived under `docs/archive/packages/`.
 
