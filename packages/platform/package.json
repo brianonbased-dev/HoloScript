@@ -54,6 +54,9 @@
   ],
   "author": "Brian X Base Team",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
   "bugs": {
     "url": "https://github.com/brianonbased-dev/HoloScript/issues"

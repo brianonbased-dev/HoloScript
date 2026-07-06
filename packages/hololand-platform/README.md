@@ -3,6 +3,22 @@
 HoloLand platform services that consume upstream HoloScript and framework
 primitives.
 
+## Install
+
+```bash
+npm install @holoscript/hololand-platform
+```
+
+## Use
+
+```ts
+import {
+  AffectiveMemory,
+  buildHoloTunnelSharePacket,
+  stewardTick,
+} from '@holoscript/hololand-platform';
+```
+
 ## Device Lab
 
 Run the hardware-native readiness probe before claiming HoloLand device support:
@@ -44,3 +60,10 @@ pnpm --filter @holoscript/hololand-platform run evidence-envelope -- \
 The envelope records runtime environment hash, hardware tier, seed, harness
 command, artifact paths, and one-command rerun. Papers cite the public JSON path
 instead of restating those fields by hand.
+
+## Boundary
+
+Use this package for HoloLand world services and device receipts. Use
+`@holoscript/xr-embodiment` for reusable WebXR embodiment, `@holoscript/mesh`
+for lower-level collaboration/network primitives, and `@holoscript/runtime` for
+general HoloScript scene execution.

@@ -3,6 +3,11 @@
   "version": "6.1.1",
   "description": "Hololand VR Platform Services (Affective Memory, State, etc)",
   "type": "module",
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md"
+  ],
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -17,6 +22,29 @@
     "hololand-adversarial-trajectory": "dist/adversarial-trajectory.js",
     "hololand-headset-share": "dist/headset-share.js",
     "holo-tunnel": "dist/holo-tunnel.cjs"
+  },
+  "keywords": [
+    "holoscript",
+    "hololand",
+    "vr",
+    "xr",
+    "device-lab",
+    "world-state",
+    "holo-tunnel"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "author": "Brian X Base Team",
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/hololand-platform"
+  },
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
   },
   "scripts": {
     "build": "tsup",
