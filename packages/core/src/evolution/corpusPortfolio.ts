@@ -23,6 +23,7 @@ import {
   toGradedTraceRow,
   type Proposer,
   type Gate,
+  type EvolveReceipt,
   type GradedTraceRow,
 } from './EvolveProgramBackend';
 
@@ -232,6 +233,8 @@ export interface AccrueStepResult {
   target: string;
   /** Verifier-labeled REC-SHAPE rows (one per gated candidate) ready for the harvest. */
   rows: GradedTraceRow[];
+  /** Full gated-evolution receipt, including proposer-error notes when a backend is down. */
+  receipt: EvolveReceipt;
 }
 
 /**
@@ -252,7 +255,7 @@ export async function accrueOneStep(opts: {
     opts.seed ?? CORPUS_PORTFOLIO[(opts.tick ?? 0) % CORPUS_PORTFOLIO.length];
   const now = opts.now ?? (() => new Date().toISOString());
   const rows: GradedTraceRow[] = [];
-  await runEvolution(
+  const { receipt } = await runEvolution(
     seed.source,
     { goal: seed.goal, generations: 1, population: 1, archiveSize: 4, proposerModel: 'sovereign-local' },
     {
@@ -262,7 +265,7 @@ export async function accrueOneStep(opts: {
         rows.push(toGradedTraceRow(rec, { agentId: opts.agentId, ts: now(), source: `evolve-corpus:${seed.name}` })),
     },
   );
-  return { target: seed.name, rows };
+  return { target: seed.name, rows, receipt };
 }
 
 /**

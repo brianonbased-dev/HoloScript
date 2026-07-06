@@ -40,6 +40,7 @@ export * from './barrel';
 export {
   runEvolution,
   makeOllamaProposer,
+  makeOpenAICompatibleProposer,
   toGradedTraceRow,
   type Proposer,
   type Gate,
@@ -47,6 +48,7 @@ export {
   type EvolveIO,
   type EvolveResult,
   type EvolveReceipt,
+  type OpenAICompatibleProposerOptions,
   type EvolveTraceRecord,
   type GradedTraceRow,
 } from './evolution/EvolveProgramBackend';

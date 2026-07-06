@@ -127,7 +127,7 @@ export type {
   GenerativeDensifierBackend,
 } from '../reconstruction/densifyByInterpolation';
 // Gated evolutionary self-improvement — the @evolve_program trait's executor backend.
-export { runEvolution, makeOllamaProposer, toGradedTraceRow } from '../evolution/EvolveProgramBackend';
+export { runEvolution, makeOllamaProposer, makeOpenAICompatibleProposer, toGradedTraceRow } from '../evolution/EvolveProgramBackend';
 export type {
   EvolvePolicy,
   EvolveCandidate,
@@ -137,6 +137,7 @@ export type {
   EvolveOutcome,
   EvolveReceipt,
   EvolveResult,
+  OpenAICompatibleProposerOptions,
   EvolveTraceRecord,
   GradedTraceRow,
 } from '../evolution/EvolveProgramBackend';

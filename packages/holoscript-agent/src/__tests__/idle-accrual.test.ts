@@ -25,6 +25,7 @@ function memFs() {
 function fakeModule(rows: Array<{ target: string; [k: string]: unknown }>): EvolutionModule {
   return {
     makeOllamaProposer: () => 'PROPOSER_FN',
+    makeOpenAICompatibleProposer: () => 'OPENAI_PROPOSER_FN',
     accrueOneStep: async ({ agentId, tick }) => ({
       target: 'companion-trait',
       rows: rows.map((r) => ({ ...r, agentId, tick })),
@@ -46,6 +47,8 @@ const ENV_KEYS = [
   'HOLOSCRIPT_AGENT_EVOLVE_ACCRUAL',
   'HOLOSCRIPT_AGENT_EVOLVE_CORPUS',
   'HOLOSCRIPT_AGENT_EVOLVE_OLLAMA_URL',
+  'HOLOSCRIPT_AGENT_EVOLVE_OPENAI_BASE_URL',
+  'HOLOSCRIPT_AGENT_EVOLVE_PROTOCOL',
   'HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL',
   'HOLOSCRIPT_AGENT_EVOLVE_MODEL',
   'HOLOSCRIPT_AGENT_LOCAL_LLM_MODEL',
@@ -108,6 +111,28 @@ describe('makeIdleAccrual — enabled orchestration', () => {
     const lines = fs.store[CORPUS].trim().split('\n');
     expect(lines).toHaveLength(1);
     expect(JSON.parse(lines[0]).target).toBe('CANDIDATE_A');
+  });
+
+  it('prefers an OpenAI-compatible endpoint over the legacy Ollama endpoint', async () => {
+    const fs = memFs();
+    const logs: Array<Record<string, unknown>> = [];
+    process.env.HOLOSCRIPT_AGENT_EVOLVE_OPENAI_BASE_URL = 'http://localhost:18080';
+    const accrual = await makeIdleAccrual({
+      handle: 'local-holollama',
+      logger: (ev) => logs.push(ev),
+      _module: fakeModule([{ target: 'CANDIDATE_OPENAI', grader: { passed: true } }]),
+      _fs: fs,
+    });
+    expect(accrual).toBeDefined();
+    const r = await accrual!({ tick: 1, agentId: 'local-holollama' });
+    expect(r?.written).toBe(1);
+    expect(logs).toContainEqual(
+      expect.objectContaining({
+        ev: 'idle-accrual-enabled',
+        endpoint: 'http://localhost:18080',
+        protocol: 'openai-compatible',
+      }),
+    );
   });
 
   it('cross-run dedups against the existing corpus (re-run accrues nothing)', async () => {

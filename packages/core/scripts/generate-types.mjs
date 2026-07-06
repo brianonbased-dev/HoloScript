@@ -7886,6 +7886,12 @@ export interface EvolveResult {
   bestCode: string | null;
   receipt: EvolveReceipt;
 }
+export interface OpenAICompatibleProposerOptions {
+  apiKey?: string;
+  temperature?: number;
+  maxTokens?: number;
+  fetchImpl?: typeof fetch;
+}
 /** A graded training row in the ecosystem REC-SHAPE (harvest_real.py reads this). */
 export interface GradedTraceRow {
   system: string;
@@ -7903,6 +7909,8 @@ export interface GradedTraceRow {
 export declare function runEvolution(seedCode: string, policy: EvolvePolicy, io: EvolveIO): Promise<EvolveResult>;
 /** Default sovereign proposer wired to a local Ollama endpoint (local metal). */
 export declare function makeOllamaProposer(endpoint: string, model: string): Proposer;
+/** Proposer for HoloLlama/OpenAI-compatible chat-completions servers. */
+export declare function makeOpenAICompatibleProposer(endpoint: string, model: string, opts?: OpenAICompatibleProposerOptions): Proposer;
 /** Convert a gated evolve candidate into a graded REC-SHAPE training row. */
 export declare function toGradedTraceRow(rec: EvolveTraceRecord, opts: { agentId: string; ts: string; source?: string }): GradedTraceRow;
 
@@ -7924,6 +7932,7 @@ export declare function makeSeedGate(seed: EvolveSeed): Gate;
 export interface AccrueStepResult {
   target: string;
   rows: GradedTraceRow[];
+  receipt: EvolveReceipt;
 }
 /** Run ONE gated evolution step over a single portfolio seed (round-robin by \`tick\`)
  *  and return graded REC-SHAPE rows — the unit an autonomous idle loop calls per tick. */

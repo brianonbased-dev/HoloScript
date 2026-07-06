@@ -11,6 +11,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import {
+  makeOpenAICompatibleProposer,
   runEvolution,
   toGradedTraceRow,
   type EvolvePolicy,
@@ -36,6 +37,60 @@ function scriptedProposer(outputs: string[]) {
 }
 
 const NOW = () => '2026-06-25T00:00:00.000Z';
+
+describe('makeOpenAICompatibleProposer', () => {
+  it('posts chat-completions requests and strips markdown fences from the answer', async () => {
+    let seen: { url: string; init?: RequestInit } | undefined;
+    const fetchImpl: typeof fetch = async (url, init) => {
+      seen = { url: String(url), init };
+      return new Response(
+        JSON.stringify({ choices: [{ message: { content: '```holo\nOK revised\n```' } }] }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      );
+    };
+
+    const propose = makeOpenAICompatibleProposer('http://localhost:18080/', 'qwen3:4b', {
+      apiKey: 'test-key',
+      temperature: 0.2,
+      maxTokens: 1024,
+      fetchImpl,
+    });
+    const code = await propose('OK seed', 'shorten');
+
+    expect(code).toBe('OK revised');
+    expect(seen?.url).toBe('http://localhost:18080/v1/chat/completions');
+    expect((seen?.init?.headers as Record<string, string>).authorization).toBe('Bearer test-key');
+    const body = JSON.parse(String(seen?.init?.body));
+    expect(body).toMatchObject({
+      model: 'qwen3:4b',
+      stream: false,
+      temperature: 0.2,
+      max_tokens: 1024,
+    });
+    expect(body.messages[1].content).toContain('GOAL: shorten');
+    expect(body.messages[1].content).toContain('OK seed');
+  });
+
+  it('keeps full chat-completions URLs and fails on empty model output', async () => {
+    let seenUrl = '';
+    const fetchImpl: typeof fetch = async (url) => {
+      seenUrl = String(url);
+      return new Response(JSON.stringify({ choices: [{ message: { content: '   ' } }] }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    };
+
+    const propose = makeOpenAICompatibleProposer(
+      'http://localhost:18080/v1/chat/completions',
+      'qwen3:4b',
+      { fetchImpl },
+    );
+
+    await expect(propose('OK seed', 'shorten')).rejects.toThrow('openai-compatible empty response');
+    expect(seenUrl).toBe('http://localhost:18080/v1/chat/completions');
+  });
+});
 
 describe('runEvolution (gated evolutionary loop)', () => {
   it('archives improving survivors, DISCARDS gate failures, and returns the best (IMPROVED)', async () => {

@@ -36,6 +36,7 @@ interface GradedRow {
  */
 export interface EvolutionModule {
   makeOllamaProposer(endpoint: string, model: string): unknown;
+  makeOpenAICompatibleProposer?: (endpoint: string, model: string) => unknown;
   accrueOneStep(opts: {
     propose: unknown;
     agentId: string;
@@ -74,6 +75,18 @@ const nodeFs: AccrualFs = {
 
 function truthy(v: string | undefined): boolean {
   return v === '1' || v?.toLowerCase() === 'true';
+}
+
+type EvolveEndpointProtocol = 'ollama' | 'openai-compatible';
+
+function endpointProtocol(endpoint: string): EvolveEndpointProtocol {
+  const override = process.env.HOLOSCRIPT_AGENT_EVOLVE_PROTOCOL?.toLowerCase();
+  if (override === 'openai-compatible' || override === 'openai') return 'openai-compatible';
+  if (override === 'ollama') return 'ollama';
+  if (process.env.HOLOSCRIPT_AGENT_EVOLVE_OPENAI_BASE_URL) return 'openai-compatible';
+  if (/\/v1(?:\/chat\/completions)?\/?$/i.test(endpoint)) return 'openai-compatible';
+  if (/:(18080|8000|8080)(?:\/|$)/.test(endpoint)) return 'openai-compatible';
+  return 'ollama';
 }
 
 /**
@@ -124,12 +137,14 @@ export async function makeIdleAccrual(opts: {
   // already uses on a local-metal seat). No resolvable endpoint → DISABLE cleanly rather
   // than silently default — accrual must point at real sovereign metal or not run at all.
   const endpoint =
-    process.env.HOLOSCRIPT_AGENT_EVOLVE_OLLAMA_URL ??
-    process.env.HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL;
+    process.env.HOLOSCRIPT_AGENT_EVOLVE_OPENAI_BASE_URL ??
+    process.env.HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL ??
+    process.env.HOLOSCRIPT_AGENT_EVOLVE_OLLAMA_URL;
   if (!endpoint) {
     log({
       ev: 'idle-accrual-disabled',
-      reason: 'no sovereign-local inference endpoint (set HOLOSCRIPT_AGENT_EVOLVE_OLLAMA_URL or HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL)',
+      reason:
+        'no sovereign-local inference endpoint (set HOLOSCRIPT_AGENT_EVOLVE_OPENAI_BASE_URL, HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL, or HOLOSCRIPT_AGENT_EVOLVE_OLLAMA_URL)',
     });
     return undefined;
   }
@@ -138,8 +153,21 @@ export async function makeIdleAccrual(opts: {
     process.env.HOLOSCRIPT_AGENT_EVOLVE_MODEL ??
     process.env.HOLOSCRIPT_AGENT_LOCAL_LLM_MODEL ??
     'qwen3:4b';
-  const propose = mod.makeOllamaProposer(endpoint, model);
-  log({ ev: 'idle-accrual-enabled', corpus: corpusPath, endpoint, model });
+  const protocol = endpointProtocol(endpoint);
+  if (protocol === 'openai-compatible' && !mod.makeOpenAICompatibleProposer) {
+    log({
+      ev: 'idle-accrual-disabled',
+      reason: 'core/evolution lacks makeOpenAICompatibleProposer',
+      endpoint,
+      protocol,
+    });
+    return undefined;
+  }
+  const propose =
+    protocol === 'openai-compatible'
+      ? mod.makeOpenAICompatibleProposer!(endpoint, model)
+      : mod.makeOllamaProposer(endpoint, model);
+  log({ ev: 'idle-accrual-enabled', corpus: corpusPath, endpoint, model, protocol });
 
   return async (ctx) => {
     // Read the existing corpus for cross-run dedup (first run: no file yet → empty).

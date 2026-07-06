@@ -14,6 +14,7 @@
 export {
   runEvolution,
   makeOllamaProposer,
+  makeOpenAICompatibleProposer,
   toGradedTraceRow,
   type EvolvePolicy,
   type EvolveCandidate,
@@ -23,6 +24,7 @@ export {
   type EvolveOutcome,
   type EvolveReceipt,
   type EvolveResult,
+  type OpenAICompatibleProposerOptions,
   type EvolveTraceRecord,
   type GradedTraceRow,
 } from './EvolveProgramBackend';

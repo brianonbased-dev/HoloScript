@@ -125,6 +125,13 @@ export interface EvolveResult {
   receipt: EvolveReceipt;
 }
 
+export interface OpenAICompatibleProposerOptions {
+  apiKey?: string;
+  temperature?: number;
+  maxTokens?: number;
+  fetchImpl?: typeof fetch;
+}
+
 interface Member {
   cand: EvolveCandidate;
   code: string;
@@ -136,6 +143,29 @@ async function sha256Hex(s: string): Promise<string> {
   return Array.from(new Uint8Array(digest))
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
+}
+
+function buildProposerPrompt(parentCode: string, goal: string): string {
+  return (
+    `You are improving a program toward a goal. GOAL: ${goal}\n\n` +
+    `Return ONLY the full revised program - no prose, no explanation, no markdown code fences.\n\n` +
+    `--- CURRENT PROGRAM ---\n${parentCode}\n--- END ---`
+  );
+}
+
+function stripMarkdownFences(text: string): string {
+  return text
+    .trim()
+    .replace(/^```[a-z]*\n?/i, '')
+    .replace(/\n?```$/i, '')
+    .trim();
+}
+
+function openAICompatibleChatUrl(endpoint: string): string {
+  const base = endpoint.replace(/\/+$/, '');
+  if (/\/chat\/completions$/i.test(base)) return base;
+  if (/\/v1$/i.test(base)) return `${base}/chat/completions`;
+  return `${base}/v1/chat/completions`;
 }
 
 /**
@@ -309,10 +339,7 @@ export async function runEvolution(
 export function makeOllamaProposer(endpoint: string, model: string): Proposer {
   const base = endpoint.replace(/\/+$/, '');
   return async (parentCode, goal) => {
-    const prompt =
-      `You are improving a program toward a goal. GOAL: ${goal}\n\n` +
-      `Return ONLY the full revised program — no prose, no explanation, no markdown code fences.\n\n` +
-      `--- CURRENT PROGRAM ---\n${parentCode}\n--- END ---`;
+    const prompt = buildProposerPrompt(parentCode, goal);
     const res = await fetch(`${base}/api/generate`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -320,11 +347,57 @@ export function makeOllamaProposer(endpoint: string, model: string): Proposer {
     });
     if (!res.ok) throw new Error(`ollama ${res.status}`);
     const body = (await res.json()) as { response?: string };
-    return (body.response ?? '')
-      .trim()
-      .replace(/^```[a-z]*\n?/i, '')
-      .replace(/\n?```$/i, '')
-      .trim();
+    return stripMarkdownFences(body.response ?? '');
+  };
+}
+
+/**
+ * Proposer for HoloLlama/OpenAI-compatible chat-completions servers. This keeps
+ * the evolution core vendor-neutral while preserving the same prompt contract as
+ * the legacy Ollama path.
+ */
+export function makeOpenAICompatibleProposer(
+  endpoint: string,
+  model: string,
+  opts: OpenAICompatibleProposerOptions = {},
+): Proposer {
+  const fetchImpl = opts.fetchImpl ?? fetch;
+  const temperature = opts.temperature ?? 0.7;
+  return async (parentCode, goal) => {
+    const headers: Record<string, string> = { 'content-type': 'application/json' };
+    if (opts.apiKey) headers.authorization = `Bearer ${opts.apiKey}`;
+    const res = await fetchImpl(openAICompatibleChatUrl(endpoint), {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        model,
+        stream: false,
+        temperature,
+        ...(opts.maxTokens == null ? {} : { max_tokens: opts.maxTokens }),
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You are a HoloScript program-evolution proposer. Return only the full revised program.',
+          },
+          { role: 'user', content: buildProposerPrompt(parentCode, goal) },
+        ],
+      }),
+    });
+    const raw = await res.text();
+    if (!res.ok) throw new Error(`openai-compatible ${res.status}: ${raw.slice(0, 160)}`);
+    let body: {
+      choices?: Array<{ message?: { content?: string | null }; text?: string | null }>;
+    };
+    try {
+      body = JSON.parse(raw) as typeof body;
+    } catch {
+      throw new Error('openai-compatible invalid JSON response');
+    }
+    const content = body.choices?.[0]?.message?.content ?? body.choices?.[0]?.text ?? '';
+    const code = stripMarkdownFences(content);
+    if (!code) throw new Error('openai-compatible empty response');
+    return code;
   };
 }
 

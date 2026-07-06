@@ -26,7 +26,9 @@ import { dirname } from 'node:path';
 
 const CORPUS = process.env.HOLOSCRIPT_AGENT_EVOLVE_CORPUS;
 const ENDPOINT =
-  process.env.HOLOSCRIPT_AGENT_EVOLVE_OLLAMA_URL ?? process.env.HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL;
+  process.env.HOLOSCRIPT_AGENT_EVOLVE_OPENAI_BASE_URL ??
+  process.env.HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL ??
+  process.env.HOLOSCRIPT_AGENT_EVOLVE_OLLAMA_URL;
 // qwen3:4b-instruct (local) / qwen3:4b (Jetson). W.738/W.745: NEVER qwen2.5.
 const MODEL = process.env.HOLOSCRIPT_AGENT_EVOLVE_MODEL ?? 'qwen3:4b-instruct';
 const AGENT_ID = process.env.HOLOSCRIPT_AGENT_EVOLVE_AGENT_ID ?? 'laptop-evolve';
@@ -39,20 +41,65 @@ const MAX_TICKS = process.argv.includes('--once')
 
 const log = (ev) => console.log(JSON.stringify({ ts: new Date().toISOString(), ...ev }));
 
+function endpointProtocol(endpoint) {
+  const override = process.env.HOLOSCRIPT_AGENT_EVOLVE_PROTOCOL?.toLowerCase();
+  if (override === 'openai-compatible' || override === 'openai') return 'openai-compatible';
+  if (override === 'ollama') return 'ollama';
+  if (process.env.HOLOSCRIPT_AGENT_EVOLVE_OPENAI_BASE_URL) return 'openai-compatible';
+  if (/\/v1(?:\/chat\/completions)?\/?$/i.test(endpoint)) return 'openai-compatible';
+  if (/:(18080|8000|8080)(?:\/|$)/.test(endpoint)) return 'openai-compatible';
+  return 'ollama';
+}
+
+function countProposerErrors(receipt) {
+  if (!receipt?.traceJSONL) return 0;
+  let count = 0;
+  for (const line of receipt.traceJSONL.split('\n')) {
+    if (!line.trim()) continue;
+    try {
+      const row = JSON.parse(line);
+      if (typeof row.note === 'string' && row.note.startsWith('propose_error:')) count++;
+    } catch {
+      /* ignore malformed receipt lines */
+    }
+  }
+  return count;
+}
+
 if (!CORPUS || !ENDPOINT) {
   log({
     ev: 'fatal',
-    reason: 'require HOLOSCRIPT_AGENT_EVOLVE_CORPUS + (HOLOSCRIPT_AGENT_EVOLVE_OLLAMA_URL|HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL)',
+    reason:
+      'require HOLOSCRIPT_AGENT_EVOLVE_CORPUS + (HOLOSCRIPT_AGENT_EVOLVE_OPENAI_BASE_URL|HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL|HOLOSCRIPT_AGENT_EVOLVE_OLLAMA_URL)',
   });
   process.exit(1);
 }
 
 // Same core primitives the in-agent path uses — the gate is core's SSOT.
-const { makeOllamaProposer, accrueOneStep, dedupRows } = await import('@holoscript/core/evolution');
-const propose = makeOllamaProposer(ENDPOINT, MODEL);
-log({ ev: 'accrual-daemon-start', corpus: CORPUS, endpoint: ENDPOINT, model: MODEL, agentId: AGENT_ID, once: ONCE, intervalMs: ONCE ? null : INTERVAL_MS });
+const { makeOllamaProposer, makeOpenAICompatibleProposer, accrueOneStep, dedupRows } = await import(
+  '@holoscript/core/evolution'
+);
+const PROTOCOL = endpointProtocol(ENDPOINT);
+const propose =
+  PROTOCOL === 'openai-compatible'
+    ? makeOpenAICompatibleProposer(ENDPOINT, MODEL, {
+        apiKey: process.env.HOLOSCRIPT_AGENT_EVOLVE_API_KEY,
+      })
+    : makeOllamaProposer(ENDPOINT, MODEL);
+log({
+  ev: 'accrual-daemon-start',
+  corpus: CORPUS,
+  endpoint: ENDPOINT,
+  protocol: PROTOCOL,
+  model: MODEL,
+  agentId: AGENT_ID,
+  once: ONCE,
+  intervalMs: ONCE ? null : INTERVAL_MS,
+});
 
 let tick = 0;
+let errorCount = 0;
+let writtenTotal = 0;
 let stopped = false;
 const onSig = () => {
   stopped = true;
@@ -71,7 +118,9 @@ async function step() {
     /* first run: no corpus yet */
   }
   try {
-    const { target, rows } = await accrueOneStep({ propose, agentId: AGENT_ID, tick });
+    const { target, rows, receipt } = await accrueOneStep({ propose, agentId: AGENT_ID, tick });
+    const proposerErrors = countProposerErrors(receipt);
+    if (proposerErrors > 0) throw new Error(`proposer failed for ${proposerErrors} candidate(s)`);
     const { fresh, deduped } = dedupRows(existing, rows);
     if (fresh.length) {
       mkdirSync(dirname(CORPUS), { recursive: true });
@@ -85,16 +134,20 @@ async function step() {
       deduped,
       outcome: rows.length === 0 ? 'no-candidate' : fresh.length ? 'accrued' : 'all-dup',
     });
+    writtenTotal += fresh.length;
+    return { ok: true, written: fresh.length };
   } catch (err) {
+    errorCount++;
     log({ ev: 'accrual-error', tick, message: err?.message ?? String(err) });
+    return { ok: false, written: 0 };
   }
 }
 
 await step(); // immediate first step
 if (ONCE) {
   while (tick < MAX_TICKS && !stopped) await step();
-  log({ ev: 'accrual-daemon-done', ticks: tick });
-  process.exit(0);
+  log({ ev: 'accrual-daemon-done', ticks: tick, errors: errorCount, written: writtenTotal });
+  process.exit(errorCount > 0 ? 1 : 0);
 }
 const timer = setInterval(() => {
   if (stopped) clearInterval(timer);
