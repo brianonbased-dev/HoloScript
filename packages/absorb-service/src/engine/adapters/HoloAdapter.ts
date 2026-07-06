@@ -21,7 +21,8 @@
  *   - Preserve source locations (`SourceRange`) for provenance semiring
  *     continuity across parse -> graph -> output.
  *
- * If `@holoscript/core` is not installed (it is an optional peer dep of
+ * If `@holoscript/core/parser` is not installed (it is exposed by the optional
+ * `@holoscript/core` peer dep of
  * `@holoscript/absorb-service`), the adapter loads lazily and the file
  * falls through to the regex `extractLooseImports()` path in the scanner.
  */
@@ -41,7 +42,7 @@ import type {
 // =============================================================================
 
 /**
- * Minimal shape of the `@holoscript/core` surface we consume. We keep a
+ * Minimal shape of the `@holoscript/core/parser` surface we consume. We keep a
  * local structural type to avoid a hard compile-time dependency on core.
  */
 interface HoloCoreSurface {
@@ -570,7 +571,15 @@ export class HoloAdapter implements LanguageAdapter {
   private extractHsplusSymbols(ast: HsplusAstLite, filePath: string): ExternalSymbolDefinition[] {
     const symbols: ExternalSymbolDefinition[] = [];
     const KIND_KEYWORDS = new Set([
-      'trait', 'brain', 'agent', 'daemon', 'world', 'npc', 'object', 'composition', 'template',
+      'trait',
+      'brain',
+      'agent',
+      'daemon',
+      'world',
+      'npc',
+      'object',
+      'composition',
+      'template',
     ]);
     const decls: HsplusNodeLite[] = [
       ...(ast.children ?? []),
@@ -687,7 +696,7 @@ export class HoloAdapter implements LanguageAdapter {
     this.coreLoadAttempted = true;
 
     try {
-      const mod = (await import('@holoscript/core')) as unknown as {
+      const mod = (await import('@holoscript/core/parser')) as unknown as {
         parseHoloPartial?: HoloCoreSurface['parseHoloPartial'];
         parse?: HoloCoreSurface['parseHsplus'];
         default?: {
@@ -697,13 +706,16 @@ export class HoloAdapter implements LanguageAdapter {
       };
       const parseHoloPartial = mod.parseHoloPartial ?? mod.default?.parseHoloPartial;
       if (typeof parseHoloPartial !== 'function') {
-        this.coreLoadError = '@holoscript/core does not export parseHoloPartial';
+        this.coreLoadError = '@holoscript/core/parser does not export parseHoloPartial';
         return null;
       }
       // The .hsplus (trait/brain) parser is core's `parse`. Optional — .hsplus falls back to
       // the composition parser (shallow) if absent, rather than hard-failing the whole adapter.
       const parseHsplus = mod.parse ?? mod.default?.parse;
-      this.coreRef = { parseHoloPartial, parseHsplus: typeof parseHsplus === 'function' ? parseHsplus : undefined };
+      this.coreRef = {
+        parseHoloPartial,
+        parseHsplus: typeof parseHsplus === 'function' ? parseHsplus : undefined,
+      };
       return this.coreRef;
     } catch (err) {
       this.coreLoadError = err instanceof Error ? err.message : String(err);

@@ -9,6 +9,7 @@ const shared = {
   minify: false,
   external: [
     '@holoscript/core',
+    '@holoscript/core/parser',
     '@holoscript/core/runtime',
     '@holoscript/core/traits',
     '@holoscript/core/scripting',

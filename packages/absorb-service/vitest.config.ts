@@ -8,6 +8,10 @@ export default defineConfig({
         find: /^@holoscript\/core\/runtime$/,
         replacement: path.resolve(__dirname, '../core/src/runtime.ts'),
       },
+      {
+        find: /^@holoscript\/core\/parser$/,
+        replacement: path.resolve(__dirname, '../core/src/parser/index.ts'),
+      },
       { find: /^@holoscript\/core$/, replacement: path.resolve(__dirname, '../core/src/index.ts') },
     ],
   },
