@@ -6,11 +6,12 @@ package net.holoscript.qrscanner
  * Maps a scanned world id (WorldPortal.worldId) to its compiled HoloScript world.
  */
 object Worlds {
-  val ids: Set<String> = setOf("aurora", "hololand", "s23-capture", "shangri-la", "splat-test")
+  val ids: Set<String> = setOf("apartment-twin", "aurora", "hololand", "s23-capture", "shangri-la", "splat-test")
 
   /** Build the compiled world for [worldId], or null if no such HoloScript world is bundled. */
   fun build(worldId: String): WorldBuild? =
       when (worldId.lowercase()) {
+      "apartment-twin" -> World_apartment_twin.build()
       "aurora" -> World_aurora.build()
       "hololand" -> World_hololand.build()
       "s23-capture" -> World_s23_capture.build()
@@ -22,6 +23,7 @@ object Worlds {
   /** The world's own display name (from its composition), or null if unknown. */
   fun displayName(worldId: String): String? =
       when (worldId.lowercase()) {
+      "apartment-twin" -> World_apartment_twin.displayName
       "aurora" -> World_aurora.displayName
       "hololand" -> World_hololand.displayName
       "s23-capture" -> World_s23_capture.displayName

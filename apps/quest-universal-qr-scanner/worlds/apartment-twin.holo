@@ -1,0 +1,168 @@
+// Apartment Twin - privacy-redacted room source for the apartment vertical.
+//
+// This is source, not a captured media dump. It declares the local-floor coordinate frame,
+// room zones, anchor candidates, surface proxies, reconstruction asset references, and a
+// procedural fallback shell so downstream render/game tasks have a stable contract even when
+// the private capture asset is not available in a checkout.
+
+composition "ApartmentTwin" {
+  environment {
+    backgroundColor: "#10141c"
+    ambient_light: 0.58
+    coordinate_frame: "apartment-local-floor-v0"
+    unit: "meters"
+    privacy_mode: "redacted-fixture"
+    fallback_mode: "procedural-room-shell"
+  }
+
+  object "CoordinateFrame_LocalFloor" {
+    geometry: "box"
+    position: [0, 0.03, 0]
+    scale: [0.18, 0.06, 0.18]
+    color: "#f8fafc"
+    coordinate_frame_id: "apartment-local-floor-v0"
+    origin: "entry-threshold-floor-center"
+    axes: "x-right-y-up-z-forward"
+    units: "meters"
+    confidence: 0.72
+  }
+
+  object "Surface_FloorPlane" {
+    geometry: "plane"
+    position: [0, 0, 0]
+    scale: [6.4, 5.2, 1]
+    color: "#2f3745"
+    surface_id: "floor-main"
+    surface_kind: "floor"
+    coordinate_frame_id: "apartment-local-floor-v0"
+    material_hint: "matte-neutral"
+  }
+
+  object "Surface_NorthWall" {
+    geometry: "box"
+    position: [0, 1.35, -2.6]
+    scale: [6.4, 2.7, 0.08]
+    color: "#364256"
+    surface_id: "wall-north"
+    surface_kind: "wall"
+    coordinate_frame_id: "apartment-local-floor-v0"
+  }
+
+  object "Surface_EastWall" {
+    geometry: "box"
+    position: [3.2, 1.35, 0]
+    scale: [0.08, 2.7, 5.2]
+    color: "#334155"
+    surface_id: "wall-east"
+    surface_kind: "wall"
+    coordinate_frame_id: "apartment-local-floor-v0"
+  }
+
+  object "Surface_WindowWall" {
+    geometry: "box"
+    position: [-3.2, 1.35, 0.3]
+    scale: [0.08, 2.7, 3.1]
+    color: "#293548"
+    surface_id: "wall-window-redacted"
+    surface_kind: "redacted-wall"
+    coordinate_frame_id: "apartment-local-floor-v0"
+  }
+
+  object "Zone_LivingWorkspace" {
+    geometry: "plane"
+    position: [-1.25, 0.025, -0.85]
+    scale: [2.6, 2.1, 1]
+    color: "#1d4ed8"
+    zone_id: "living-workspace"
+    zone_kind: "workspace"
+    bounds_min: [-2.55, 0, -1.9]
+    bounds_max: [0.05, 2.4, 0.2]
+    coordinate_frame_id: "apartment-local-floor-v0"
+  }
+
+  object "Zone_PortalPath" {
+    geometry: "plane"
+    position: [1.15, 0.03, -0.25]
+    scale: [1.9, 3.1, 1]
+    color: "#0f766e"
+    zone_id: "portal-path"
+    zone_kind: "navigation"
+    bounds_min: [0.2, 0, -1.8]
+    bounds_max: [2.1, 2.4, 1.3]
+    coordinate_frame_id: "apartment-local-floor-v0"
+  }
+
+  object "Zone_DeviceBench" {
+    geometry: "plane"
+    position: [-1.6, 0.035, 1.45]
+    scale: [2.8, 1.15, 1]
+    color: "#7c3aed"
+    zone_id: "device-bench"
+    zone_kind: "iot-device-workbench"
+    bounds_min: [-3.0, 0, 0.9]
+    bounds_max: [-0.2, 2.2, 2.05]
+    coordinate_frame_id: "apartment-local-floor-v0"
+  }
+
+  object "Anchor_EntryThreshold" {
+    geometry: "sphere"
+    position: [0, 0.18, 2.35]
+    scale: [0.16, 0.16, 0.16]
+    color: "#f59e0b"
+    glow: true
+    anchor_id: "entry-threshold"
+    anchor_kind: "physical-edge"
+    coordinate_frame_id: "apartment-local-floor-v0"
+    confidence: 0.7
+  }
+
+  object "Anchor_WorkSurface" {
+    geometry: "sphere"
+    position: [-1.75, 0.82, -0.72]
+    scale: [0.14, 0.14, 0.14]
+    color: "#22c55e"
+    glow: true
+    anchor_id: "work-surface"
+    anchor_kind: "horizontal-plane"
+    coordinate_frame_id: "apartment-local-floor-v0"
+    confidence: 0.64
+  }
+
+  object "Anchor_QRPortal" {
+    geometry: "sphere"
+    position: [1.1, 1.28, -1.95]
+    scale: [0.18, 0.18, 0.18]
+    color: "#38bdf8"
+    glow: true
+    motion: "bob"
+    speed: 0.7
+    amplitude: 0.08
+    anchor_id: "qr-portal-spawn"
+    anchor_kind: "virtual-entry"
+    coordinate_frame_id: "apartment-local-floor-v0"
+    confidence: 0.9
+  }
+
+  object "ReconstructionAsset_PrivateCapture" {
+    geometry: "box"
+    position: [0, 1.15, 0]
+    scale: [5.8, 2.3, 4.6]
+    color: "#475569"
+    reconstruction_asset: "holomap://captures/apartment-redacted/v0/apartment-room.spz"
+    reconstruction_asset_sha256: "pending-private-capture"
+    asset_kind: "gaussian-splat-or-room-mesh"
+    redaction_policy: "replace-private-media-with-procedural-shell"
+    coordinate_frame_id: "apartment-local-floor-v0"
+  }
+
+  object "FallbackRoomShell" {
+    geometry: "box"
+    position: [0, 1.2, 0]
+    scale: [6.35, 2.4, 5.15]
+    color: "#1f2937"
+    fallback_mode: "render-when-reconstruction-asset-missing"
+    fallback_source: "procedural-room-shell"
+    fallback_contract: "preserve coordinate frame, zones, anchors, and gameplay bounds"
+    coordinate_frame_id: "apartment-local-floor-v0"
+  }
+}
