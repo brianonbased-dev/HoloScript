@@ -71,6 +71,30 @@ function parseCliJson(args) {
   return JSON.parse(run(args));
 }
 
+function fakeLiveFetch(url) {
+  const body = url.endsWith('/health')
+    ? { status: 'ok' }
+    : url.endsWith('/v1/models')
+      ? {
+          data: [
+            {
+              id: 'qwen3-4b-instruct.gguf',
+              owned_by: 'llamacpp',
+              meta: { n_vocab: 151936, n_ctx: 4096, n_params: 4022468096 },
+            },
+          ],
+        }
+      : {
+          choices: [{ message: { content: 'ready' } }],
+        };
+  return Promise.resolve({
+    ok: true,
+    status: 200,
+    statusText: 'OK',
+    text: async () => JSON.stringify(body),
+  });
+}
+
 function fail(message) {
   console.error(`[holollama-consumption] FAIL: ${message}`);
   process.exit(1);
@@ -104,6 +128,42 @@ for (const profile of doctor.profiles) {
       `${profile.profile} maps to ${profile.consumer}, expected ${EXPECTED_CONSUMERS.get(profile.profile)}`
     );
   }
+}
+
+const liveSystemd = api.parseHoloLlamaSystemdShow(
+  [
+    'LoadState=loaded',
+    'ActiveState=active',
+    'SubState=running',
+    'FragmentPath=/etc/systemd/system/jetson-orin-llamacpp.service',
+    'ExecMainPID=1863',
+  ].join('\n'),
+  'jetson-orin-llamacpp.service'
+);
+const liveProof = await api.probeHoloLlamaLiveLifecycle({
+  profile: 'jetson-orin',
+  generatedAt: '2026-07-05T00:00:00.000Z',
+  endpoint: 'http://127.0.0.1:18080',
+  systemdProbe: liveSystemd,
+  fetchImpl: fakeLiveFetch,
+});
+if (liveProof.schema !== 'holollama.lifecycle-doctor.v1' || !liveProof.ok) {
+  fail(`live lifecycle API proof failed: ${JSON.stringify(liveProof)}`);
+}
+const liveLifecycle = api.buildHoloLlamaFleetLifecycleReport({
+  profile: 'jetson-orin',
+  teamId: 'team_test',
+  generatedAt: '2026-07-05T00:00:00.000Z',
+  requireLiveLifecycle: true,
+  liveLifecycleReceipts: { 'jetson-orin': liveProof },
+});
+if (
+  !liveLifecycle.ok ||
+  !liveLifecycle.profiles?.[0]?.stages?.some(
+    (stage) => stage.id === 'live-lifecycle' && stage.ok === true
+  )
+) {
+  fail(`live lifecycle stage was not promoted: ${JSON.stringify(liveLifecycle)}`);
 }
 
 const cliDoctor = parseCliJson(['doctor', '--json']);
@@ -245,6 +305,15 @@ runProcess(
     '--input-type=module',
     '-e',
     "import { LlamaServerCompiler } from '@holoscript/core/compiler'; if (typeof LlamaServerCompiler !== 'function') throw new Error('LlamaServerCompiler export missing');",
+  ],
+  COLD_CONSUMER_DIR
+);
+runProcess(
+  NODE,
+  [
+    '--input-type=module',
+    '-e',
+    "import { buildHoloLlamaFleetLifecycleReport, parseHoloLlamaSystemdShow, probeHoloLlamaLiveLifecycle } from '@holoscript/holollama'; const fetchImpl = async (url) => ({ ok: true, status: 200, statusText: 'OK', text: async () => JSON.stringify(url.endsWith('/health') ? { status: 'ok' } : url.endsWith('/v1/models') ? { data: [{ id: 'qwen3-4b-instruct.gguf', owned_by: 'llamacpp', meta: { n_vocab: 151936, n_ctx: 4096, n_params: 4022468096 } }] } : { choices: [{ message: { content: 'ready' } }] }) }); const systemd = parseHoloLlamaSystemdShow('LoadState=loaded\\nActiveState=active\\nSubState=running', 'jetson-orin-llamacpp.service'); const proof = await probeHoloLlamaLiveLifecycle({ profile: 'jetson-orin', endpoint: 'http://127.0.0.1:18080', systemdProbe: systemd, fetchImpl }); if (!proof.ok || proof.schema !== 'holollama.lifecycle-doctor.v1') throw new Error('cold live proof failed'); const lifecycle = buildHoloLlamaFleetLifecycleReport({ profile: 'jetson-orin', teamId: 'team_test', requireLiveLifecycle: true, liveLifecycleReceipts: { 'jetson-orin': proof } }); if (!lifecycle.ok || !lifecycle.profiles[0].stages.some((stage) => stage.id === 'live-lifecycle' && stage.ok)) throw new Error('cold live lifecycle promotion failed');",
   ],
   COLD_CONSUMER_DIR
 );
