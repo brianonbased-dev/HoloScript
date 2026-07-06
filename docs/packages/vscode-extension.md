@@ -1,6 +1,9 @@
-# @holoscript/vscode
+# holoscript-vscode
 
 **HoloScript language support for Visual Studio Code.** Syntax highlighting, IntelliSense, real-time error checking, and one-click compilation.
+
+The repo package name is `holoscript-vscode`; the installed VS Code extension is
+published under the Hololand/HoloScript extension identity.
 
 ## Installation
 

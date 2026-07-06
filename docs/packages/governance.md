@@ -40,7 +40,7 @@ This matrix assigns a support level to each documented package so contributors c
 | `@holoscript/studio-bridge`          | beta         | Studio Team            |
 | `@holoscript/studio-plugin-sdk`      | beta         | Studio Team            |
 | `@holoscript/studio-desktop`         | beta         | Studio Team            |
-| `@holoscript/vscode`                 | stable       | Studio Team            |
+| `holoscript-vscode`                  | stable       | Studio Team            |
 | `@holoscript/visual`                 | beta         | Studio Team            |
 | `@holoscript/preview-component`      | stable       | Studio Team            |
 | `@holoscript/video-tutorials`        | beta         | Studio Team            |
@@ -67,6 +67,7 @@ This matrix assigns a support level to each documented package so contributors c
 | `@holoscript/marketplace-web`        | beta         | Platform Services Team |
 | `@holoscript/graphql-api`            | beta         | Platform Services Team |
 | `@holoscript/adapter-postgres`       | beta         | Platform Services Team |
+| `@holoscript/mesh`                   | beta         | Platform Services Team |
 | `@holoscript/crdt`                   | beta         | Platform Services Team |
 | `@holoscript/crdt-spatial`           | experimental | Platform Services Team |
 | `@holoscript/mvc-schema`             | beta         | Platform Services Team |

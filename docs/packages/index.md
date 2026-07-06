@@ -37,7 +37,7 @@ HoloScript currently ships as a monorepo with **real packages** under `packages/
 | [**@holoscript/studio-bridge**](./studio-bridge.md)         | Visual-to-AST synchronization layer    |
 | [**@holoscript/studio-plugin-sdk**](./studio-plugin-sdk.md) | Plugin SDK for Studio extensions       |
 | [**@holoscript/studio-desktop**](./tauri-app.md)            | Native desktop shell for Studio        |
-| [**@holoscript/vscode**](./vscode-extension.md)             | VS Code extension                      |
+| [**holoscript-vscode**](./vscode-extension.md)              | VS Code extension                      |
 | [**@holoscript/visual**](./visual.md)                       | Node-based visual programming layer    |
 | [**@holoscript/preview-component**](./preview-component.md) | Embeddable React preview component     |
 | [**@holoscript/video-tutorials**](./video-tutorials.md)     | Programmatic tutorial video generation |
@@ -83,6 +83,7 @@ HoloScript currently ships as a monorepo with **real packages** under `packages/
 | [**@holoscript/marketplace-web**](./marketplace-web.md)   | Marketplace web frontend                    |
 | [**@holoscript/graphql-api**](./graphql-api.md)           | GraphQL service layer                       |
 | [**@holoscript/adapter-postgres**](./adapter-postgres.md) | PostgreSQL adapter                          |
+| [**@holoscript/mesh**](./mesh.md)                         | Network and collaboration runtime           |
 | [**@holoscript/crdt**](./crdt.md)                         | Distributed CRDT primitives                 |
 | [**@holoscript/crdt-spatial**](./crdt-spatial.md)         | Spatial synchronization via CRDTs           |
 | [**@holoscript/mvc-schema**](./mvc-schema.md)             | Context schema for synchronized agent state |
