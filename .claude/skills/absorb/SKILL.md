@@ -1,9 +1,11 @@
 ---
 name: absorb
 description: >
-  Codebase intelligence via HoloScript Absorb — scan repos into knowledge graphs,
-  semantic search, Graph RAG Q&A, impact analysis, and recursive self-improvement.
-  Use when you need to understand, map, or analyze any codebase before refactoring,
+  Codebase intelligence via HoloScript Absorb — the GEV absorb-service (Graph · RAG ·
+  Embedding · Vision): scan repos into knowledge graphs, semantic search, Graph RAG Q&A,
+  impact analysis, and recursive self-improvement. Sovereign by default (HoloEmbed
+  embeddings, HoloLlama synthesis); route local repos to the holoscript-local MCP, not
+  the FS-blind remote. Use to understand, map, or analyze any codebase before refactoring,
   planning, or investigating dependencies.
 argument-hint: "[status|repo|query|ask|diff|provenance|fmu] [args]"
 disable-model-invocation: false
@@ -13,6 +15,31 @@ allowed-tools: Bash, Read, Grep, Glob
 # HoloScript Absorb — Codebase Intelligence Skill
 
 **Working directory**: `C:/Users/Josep/Documents/GitHub/HoloScript` (MANDATORY)
+
+## This skill IS GEV — the whole absorb-service (D.123)
+
+Absorb is not four tools — it is one service, **GEV = Graph · RAG · Embedding · Vision**
+(`@holoscript/absorb-service`). Every query you run flows through all four pillars:
+
+- **G**raph — `CodebaseGraph` + community detection (structure, call/import edges)
+- **R**AG — `GraphRAGEngine` fuses `0.6·semantic + 0.2·connections + 0.2·impact` and
+  synthesizes with an LLM (sovereign **HoloLlama** by default — see below)
+- **E**mbedding — `EmbeddingIndex` over **sovereign HoloEmbed** vectors by default
+- **V**ision — `CodebaseSceneCompiler` / `HoloEmitter` emit a navigable `graph.holo`
+
+Judge results at the **service** level (embed + graph re-rank + synthesis), never one
+pillar alone — weak embedding-only recall is by-design, the graph fixes precision (W.764).
+
+## Route to the sovereign LOCAL MCP — the remote is FS-blind (R.027)
+
+**The #1 reason agents "battle" absorb: their MCP client routes codebase tools to the
+remote `holoscript` server (railway / holoscript.net, `cwd=/app`), which cannot see your
+local files** → `cache_root_mismatch` / "No Graph RAG engine initialized". For any
+**local repo**, call the **`holoscript-local`** MCP (tools appear as
+`mcp__holoscript-local__*`) — see the `/holoscript-local` skill. The remote handles only
+shared state (board, knowledge, seats) and public-repo lanes. If you just rebuilt the
+`dist`, **restart the MCP client** before calling it (W.766 — a live stdio server loses its
+content-hashed chunks when the dist is rebuilt underneath it).
 
 ## When to Use This Skill
 
@@ -153,7 +180,7 @@ holoscript query "what calls buildIndex"
 ```
 scan (CodebaseScanner + language adapters)
   → graph (CodebaseGraph + community detection)
-    → embed (EmbeddingIndex: BM25 / OpenAI / Ollama / Xenova)
+    → embed (EmbeddingIndex: HoloEmbed sovereign default | Xenova offline | OpenAI/nomic opt-in | BM25 floor)
       → cache (~/.holoscript/graph-cache.json + embeddings)
         → emit (.holo scene | JSON graph | stats)
 ```
@@ -192,20 +219,30 @@ holoscript self-improve --cycles 10 --commit     # Auto-commit fixes (uses canon
 holoscript self-improve --daemon                 # Continuous until convergence
 ```
 
-## Embedding Provider (MANDATORY: OpenAI)
+## Embedding Provider — Sovereign HoloEmbed by default (F.106 / D.118 / W.GOLD.005)
 
-**ALWAYS use OpenAI embeddings for best quality.** BM25 is keyword-only and produces poor results for semantic queries. The `OPENAI_API_KEY` is set in `~/.ai-ecosystem/.env` — it's free for the founder tier.
+**The default is sovereign `HoloEmbed` — native, zero-cost, no key, no egress
+(`@holoscript/holoembed`, 768-dim). Do NOT reach for OpenAI or nomic by reflex; foreign
+vectors are opt-in, never the silent default.** The embedding *space* is the sovereignty
+boundary (W.763): once the graph/memory is indexed with HoloEmbed vectors, a foreign
+provider's vectors are not comparable to it — mixing them silently corrupts recall.
 
-**Required**: Set `EMBEDDING_PROVIDER=openai` or ensure `OPENAI_API_KEY` is in the environment.
+**Weak embedding-only recall is BY DESIGN, not a defect (W.764 / D.123).** HoloEmbed's
+natural-language recall *on embeddings alone* is lower than a giant cloud model
+(R@1 ~40% vs nomic ~81%). That is expected and fine — GEV never retrieves on embeddings
+alone. `GraphRAGEngine` re-ranks candidates with graph signal, and the graph is what makes
+precision good. Never judge (or "fix") retrieval by swapping in a foreign embedder.
 
-Provider priority (auto-detected):
-1. `EMBEDDING_PROVIDER` env var (explicit override) — **set to `openai`**
-2. `openai` — if `OPENAI_API_KEY` set (**this is what we want**)
-3. `ollama` — local, acceptable fallback if OpenAI unavailable
-4. `bm25` — keyword-only, **NEVER use for production queries**
-5. `xenova` — local WASM transformer, OK for offline
+Provider tiers (sovereign first):
+1. **`holoembed`** — native `@holoscript/holoembed`, **the default; $0, offline, no key**
+2. **`xenova`** — local WASM transformer, offline fallback
+3. **`bm25`** — keyword-only floor; correct for exact-symbol lookups, weak for semantic
+4. **`openai` / `nomic`** — **foreign, opt-in ONLY** via explicit `EMBEDDING_PROVIDER=openai`;
+   use only for a deliberate cross-model comparison, never as the ambient default
 
-**If you see BM25 being used**: check that `OPENAI_API_KEY` is exported in the current shell. Source it via: `ENV_FILE="${HOME}/.ai-ecosystem/.env"; [ ! -f "$ENV_FILE" ] && ENV_FILE="/c/Users/Josep/.ai-ecosystem/.env"; set -a && source "$ENV_FILE" 2>/dev/null && set +a`
+**If a foreign provider is active unexpectedly**: unset `EMBEDDING_PROVIDER` /
+`OPENAI_API_KEY` in the shell so the service falls back to sovereign HoloEmbed. Re-index if
+foreign vectors leaked into a HoloEmbed graph — the two spaces are not queryable together.
 
 ## Example Questions for Graph RAG (`holo_ask_codebase`)
 
@@ -305,10 +342,12 @@ Filter for precision:
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
+| `cache_root_mismatch` / "No Graph RAG engine initialized" | Routed to the **remote** FS-blind `holoscript` MCP (`cwd=/app`) | Route to **`holoscript-local`** instead (R.027) — see the `/holoscript-local` skill |
+| `Cannot find module ...graph-rag-tools-HASH.cjs` | The `dist` was rebuilt while the stdio MCP was running | **Restart the MCP client** (W.766) — the live process lost its content-hashed chunks |
 | Empty results | Graph not loaded | Run `holo_graph_status`, then `holo_absorb_repo` if stale |
 | Shallow/obvious answers | topK too low for a large monorepo (verify package count via `pnpm ls -r --depth -1`) | Bump to `topK: 40` |
 | LLM hallucinates details | Real answer ranked below top 10 | Bump topK or narrow with `file`/`language` filter |
-| BM25 keyword matches only | OpenAI embeddings not active | Check `OPENAI_API_KEY` is exported (see Embedding Provider section) |
+| Weak semantic recall on NL query | Expecting embedding-alone recall to match a cloud model | Working as designed (W.764) — the graph re-rank fixes precision; do NOT swap to a foreign embedder |
 | Stale results after code changes | Graph cache is old | `holo_absorb_repo({ force: true })` to rebuild |
 
 ## Workflow: Before Refactoring
@@ -335,8 +374,10 @@ Filter for precision:
 1. holo_graph_status({})  → ensure graph is loaded
 
 2. holo_ask_codebase({
-     question: "How does the trait registration pipeline work?",
-     llmProvider: "anthropic"
+     question: "How does the trait registration pipeline work?"
+     // llmProvider defaults to sovereign HoloLlama (D.117):
+     // detectDefaultLLMProvider() ?? 'holollama' — llama.cpp llama-server at :18080.
+     // Omit it to stay sovereign; pass 'anthropic'/'openai' only for a deliberate override.
    })
    → Returns synthesized answer with file citations
 
@@ -360,8 +401,11 @@ Filter for precision:
 
 ## Key Rules
 
+- **ROUTE LOCAL**: for local repos, use the `holoscript-local` MCP (`mcp__holoscript-local__*`), never the FS-blind remote `holoscript` (R.027)
+- **STAY SOVEREIGN**: HoloEmbed embeddings + HoloLlama synthesis by default; foreign OpenAI/nomic/anthropic are explicit opt-in only (F.106 / D.117 / D.118)
 - **ALWAYS** call `holo_graph_status` before any scan or query operation
 - **NEVER** use `force: true` on `holo_absorb_repo` unless `holo_graph_status` says cache is corrupt
+- **RESTART after rebuild**: if you rebuilt `packages/*/dist`, restart the MCP client before querying (W.766)
 - **Cache TTL**: 24 hours. Incremental re-scan detects changes via git content hashes.
 - **Cost awareness**: Free tools for local ops. Paid tools deduct credits. Check with `absorb_check_credits`.
 - **Graph cache**: `~/.holoscript/graph-cache.json` (local), `/app/.holoscript` (Docker)
