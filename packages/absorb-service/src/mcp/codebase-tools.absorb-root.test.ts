@@ -471,10 +471,28 @@ describe('holo_absorb_repo root validation', () => {
       force: true,
       outputFormat: 'stats',
       embeddingProvider: 'holoembed',
-    })) as { error?: string; embeddingSkipped?: boolean; gitCommitHash?: string };
+    })) as {
+      error?: string;
+      embeddingSkipped?: boolean;
+      graphRagReady?: boolean;
+      semanticIndexReady?: boolean;
+      semanticIndexReadiness?: {
+        kind?: string;
+        embeddingSkipReason?: string;
+        priorGraphRagReady?: boolean;
+      };
+      gitCommitHash?: string;
+    };
 
     expect(first.error).toBeUndefined();
     expect(first.embeddingSkipped).toBe(true);
+    expect(first.graphRagReady).toBe(false);
+    expect(first.semanticIndexReady).toBe(false);
+    expect(first.semanticIndexReadiness).toMatchObject({
+      kind: 'SemanticIndexReadinessReceipt',
+      embeddingSkipReason: 'outputFormat:stats',
+      priorGraphRagReady: false,
+    });
     const firstCommit = getHeadCommit(repoDir);
     expect(first.gitCommitHash).toBe(firstCommit);
 
@@ -488,6 +506,7 @@ describe('holo_absorb_repo root validation', () => {
     const secondCommit = getHeadCommit(repoDir);
 
     resetCodebaseToolStateForTests(false);
+    setGraphRAGState({} as any, {} as any, { rootDir: repoDir, timestamp: Date.now() });
     const patched = (await handleCodebaseTool('holo_absorb_repo', {
       rootDir: repoDir,
       outputFormat: 'stats',
@@ -498,6 +517,13 @@ describe('holo_absorb_repo root validation', () => {
       filesChanged?: number;
       embeddingSkipped?: boolean;
       embeddingSkipReason?: string;
+      graphRagReady?: boolean;
+      semanticIndexReady?: boolean;
+      semanticIndexReadiness?: {
+        kind?: string;
+        embeddingSkipReason?: string;
+        priorGraphRagReady?: boolean;
+      };
       gitCommitHash?: string;
     };
 
@@ -506,6 +532,13 @@ describe('holo_absorb_repo root validation', () => {
     expect(patched.filesChanged).toBe(1);
     expect(patched.embeddingSkipped).toBe(true);
     expect(patched.embeddingSkipReason).toBe('outputFormat:stats');
+    expect(patched.graphRagReady).toBe(false);
+    expect(patched.semanticIndexReady).toBe(false);
+    expect(patched.semanticIndexReadiness).toMatchObject({
+      kind: 'SemanticIndexReadinessReceipt',
+      embeddingSkipReason: 'outputFormat:stats',
+      priorGraphRagReady: true,
+    });
     expect(patched.gitCommitHash).toBe(secondCommit);
 
     const cache = JSON.parse(fs.readFileSync(path.join(cacheDir, 'graph-cache.json'), 'utf-8')) as {
@@ -524,6 +557,8 @@ describe('holo_absorb_repo root validation', () => {
 
     const status = (await handleCodebaseTool('holo_graph_status', {})) as {
       graphRAGReady?: boolean;
+      semanticIndexReady?: boolean;
+      semanticIndex?: { ready?: boolean; freshForCurrentRepo?: boolean };
       graphAuthoritative?: boolean;
       freshForCurrentRepo?: boolean;
       graphUnavailableReceipt?: GraphUnavailableReceipt;
@@ -538,6 +573,8 @@ describe('holo_absorb_repo root validation', () => {
 
     expect(status.diskCache?.exists).toBe(false);
     expect(status.graphRAGReady).toBe(true);
+    expect(status.semanticIndexReady).toBe(true);
+    expect(status.semanticIndex).toMatchObject({ ready: true, freshForCurrentRepo: true });
     expect(status.localGraph).toMatchObject({
       ready: true,
       rootDir: requestedRoot,
@@ -556,6 +593,8 @@ describe('holo_absorb_repo root validation', () => {
 
     const status = (await handleCodebaseTool('holo_graph_status', {})) as {
       graphRAGReady?: boolean;
+      semanticIndexReady?: boolean;
+      semanticIndex?: { ready?: boolean; freshForCurrentRepo?: boolean };
       graphAuthoritative?: boolean;
       graphUnavailableReceipt?: GraphUnavailableReceipt;
       localGraph?: { ready?: boolean; authoritative?: boolean };
@@ -564,6 +603,8 @@ describe('holo_absorb_repo root validation', () => {
 
     expect(status.diskCache?.exists).toBe(false);
     expect(status.graphRAGReady).toBe(false);
+    expect(status.semanticIndexReady).toBe(false);
+    expect(status.semanticIndex).toMatchObject({ ready: false, freshForCurrentRepo: false });
     expect(status.localGraph).toMatchObject({ ready: false, authoritative: false });
     expect(status.graphAuthoritative).toBe(false);
     expect(status.graphUnavailableReceipt).toMatchObject({
@@ -656,6 +697,7 @@ describe('holo_absorb_repo sourceFiles upload', () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-sourcefiles-temp-'));
     process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    setGraphRAGState({} as any, {} as any, { rootDir: process.cwd(), timestamp: Date.now() });
 
     const result = (await handleCodebaseTool('holo_absorb_repo', {
       sourceFiles: [
@@ -670,6 +712,14 @@ describe('holo_absorb_repo sourceFiles upload', () => {
       fromSourceFiles?: boolean;
       embeddingSkipped?: boolean;
       embeddingSkipReason?: string;
+      graphRagReady?: boolean;
+      semanticIndexReady?: boolean;
+      semanticIndexReadiness?: {
+        kind?: string;
+        semanticIndexReady?: boolean;
+        priorGraphRagReady?: boolean;
+        nextStep?: string;
+      };
       jobId?: string;
     };
 
@@ -677,8 +727,22 @@ describe('holo_absorb_repo sourceFiles upload', () => {
     expect(result.fromSourceFiles).toBe(true);
     expect(result.embeddingSkipped).toBe(true);
     expect(result.embeddingSkipReason).toBe('outputFormat:stats');
+    expect(result.graphRagReady).toBe(false);
+    expect(result.semanticIndexReady).toBe(false);
+    expect(result.semanticIndexReadiness).toMatchObject({
+      kind: 'SemanticIndexReadinessReceipt',
+      semanticIndexReady: false,
+      priorGraphRagReady: true,
+    });
+    expect(result.semanticIndexReadiness?.nextStep).toContain('outputFormat "graph" or "holo"');
     expect(result.stats?.totalFiles).toBeGreaterThanOrEqual(2);
     expect(result.stats?.totalSymbols).toBeGreaterThanOrEqual(2);
+
+    const semanticSearch = (await handleGraphRagTool('holo_semantic_search', {
+      query: 'hello',
+      useCachedAbsorbIndex: true,
+    })) as { error?: string };
+    expect(semanticSearch.error).toContain('No embedding index');
 
     const status = (await handleCodebaseTool('holo_get_absorb_status', {
       jobId: result.jobId,

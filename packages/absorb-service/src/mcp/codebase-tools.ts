@@ -17,7 +17,12 @@ import * as os from 'os';
 import { execFileSync } from 'child_process';
 import { createHash } from 'crypto';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { isGraphRAGReady, resetGraphRAGStateForTests, setGraphRAGState } from './graph-rag-tools';
+import {
+  isGraphRAGReady,
+  resetGraphRAGState,
+  resetGraphRAGStateForTests,
+  setGraphRAGState,
+} from './graph-rag-tools';
 import { ABSORB_CODEBASE_LOAD_ERROR, ABSORB_HOLO_ABSORB_REPO_HINT } from './graph-rag-prerequisite';
 import {
   buildGraphRAGEmbeddingPolicyReceipt,
@@ -351,6 +356,8 @@ function createAbsorbJob(rootDir: string): string {
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
 const DEFAULT_SCAN_MAX_FILES = 10_000;
 const GRAPH_UNAVAILABLE_RECEIPT_SCHEMA = 'holoscript.codebase.graph-unavailable-receipt.v0.1.0';
+const SEMANTIC_INDEX_READINESS_RECEIPT_SCHEMA =
+  'holoscript.codebase.semantic-index-readiness-receipt.v0.1.0';
 const LOCAL_ADAPTER_RECOMMENDATION_SCHEMA =
   'holoscript.codebase.local-adapter-recommendation.v0.1.0';
 const LOCAL_CODEBASE_SNAPSHOT_RECEIPT_SCHEMA = 'LocalCodebaseSnapshotReceipt.v1';
@@ -511,6 +518,23 @@ interface GraphUnavailableReceipt {
   authoritative: false;
   recommendation: string;
   localAdapter: LocalAdapterRecommendation;
+  createdAt: string;
+}
+
+interface SemanticIndexReadinessReceipt {
+  schemaVersion: typeof SEMANTIC_INDEX_READINESS_RECEIPT_SCHEMA;
+  kind: 'SemanticIndexReadinessReceipt';
+  rootDir: string;
+  semanticIndexReady: boolean;
+  graphRagReady: boolean;
+  embeddingIndexReady: boolean;
+  embeddingSkipped: boolean;
+  embeddingSkipReason: 'outputFormat:stats';
+  priorGraphRagReady: boolean;
+  provider: typeof NATIVE_GRAPH_RAG_PROVIDER;
+  graphProvider: 'holograph';
+  message: string;
+  nextStep: string;
   createdAt: string;
 }
 
@@ -756,6 +780,27 @@ function buildGraphUnavailableReceipt(options: {
     authoritative: false,
     recommendation: LOCAL_ADAPTER_RECOMMENDATION,
     localAdapter: buildLocalAdapterRecommendation(options.requestedPath),
+    createdAt: new Date().toISOString(),
+  };
+}
+
+function buildStatsOnlySemanticIndexReceipt(rootDir: string): SemanticIndexReadinessReceipt {
+  return {
+    schemaVersion: SEMANTIC_INDEX_READINESS_RECEIPT_SCHEMA,
+    kind: 'SemanticIndexReadinessReceipt',
+    rootDir,
+    semanticIndexReady: false,
+    graphRagReady: false,
+    embeddingIndexReady: false,
+    embeddingSkipped: true,
+    embeddingSkipReason: 'outputFormat:stats',
+    priorGraphRagReady: isGraphRAGReady(),
+    provider: NATIVE_GRAPH_RAG_PROVIDER,
+    graphProvider: 'holograph',
+    message:
+      'outputFormat "stats" updates the HoloGraph cache only; it does not build or validate the HoloEmbed semantic index for this absorb result.',
+    nextStep:
+      'Run holo_absorb_repo with outputFormat "graph" or "holo" before relying on holo_semantic_search or holo_ask_codebase for this graph.',
     createdAt: new Date().toISOString(),
   };
 }
@@ -2142,13 +2187,17 @@ async function runFullScan(
 
   if (outputFormat === 'stats') {
     if (jobId) trackAbsorbProgress(jobId, 'Complete', 100);
+    const semanticIndexReadiness = buildStatsOnlySemanticIndexReceipt(primaryRootDir);
+    resetGraphRAGState();
     const result = {
       rootDir: primaryRootDir,
       stats,
       embeddingPolicy,
       gitCommitHash,
       diagnostics,
-      graphRagReady: isGraphRAGReady(),
+      graphRagReady: semanticIndexReadiness.graphRagReady,
+      semanticIndexReady: semanticIndexReadiness.semanticIndexReady,
+      semanticIndexReadiness,
       embeddingSkipped: true,
       embeddingSkipReason: 'outputFormat:stats',
       ...(localCodebaseSnapshotReceipt && { localCodebaseSnapshotReceipt }),
@@ -2435,6 +2484,8 @@ async function runIncrementalPatch(
 
     if (jobId) trackAbsorbProgress(jobId, 'Complete', 100);
     const patchDurationMs = Date.now() - startTime;
+    const semanticIndexReadiness = buildStatsOnlySemanticIndexReceipt(rootDir);
+    resetGraphRAGState();
     const result = {
       incremental: true,
       filesChanged: filesToRescan.length,
@@ -2446,7 +2497,9 @@ async function runIncrementalPatch(
       stats: statsOnlyGraphStats,
       embeddingPolicy,
       gitCommitHash: changes.headCommit,
-      graphRagReady: isGraphRAGReady(),
+      graphRagReady: semanticIndexReadiness.graphRagReady,
+      semanticIndexReady: semanticIndexReadiness.semanticIndexReady,
+      semanticIndexReadiness,
       embeddingSkipped: true,
       embeddingSkipReason: 'outputFormat:stats',
       message: `Incremental stats update: patched ${filesToRescan.length} files in ${patchDurationMs}ms (${statsOnlyGraphStats.totalFiles} total)`,
@@ -2897,6 +2950,9 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
       }
     }
 
+    const semanticIndexReadiness =
+      outputFormat === 'stats' ? buildStatsOnlySemanticIndexReceipt(rootDir) : undefined;
+
     return {
       cached: true,
       incremental: false,
@@ -2905,7 +2961,13 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
       stats: envelope.stats,
       embeddingPolicy: envelope.embeddingPolicy ?? buildGraphRAGEmbeddingPolicyReceipt(),
       gitCommitHash: changes.headCommit,
-      graphRagReady: isGraphRAGReady(),
+      graphRagReady: semanticIndexReadiness?.graphRagReady ?? isGraphRAGReady(),
+      ...(semanticIndexReadiness && {
+        semanticIndexReady: semanticIndexReadiness.semanticIndexReady,
+        semanticIndexReadiness,
+        embeddingSkipped: true,
+        embeddingSkipReason: 'outputFormat:stats',
+      }),
       message: `No changes since last scan (${changes.headCommit.slice(0, 7)})`,
       jobId,
     };
@@ -3258,7 +3320,8 @@ async function handleDetectDrift(args: Record<string, unknown>): Promise<unknown
 async function handleGraphStatus(): Promise<unknown> {
   const cache = getCacheAge();
   const embeddingPolicy = cache.embeddingPolicy ?? buildGraphRAGEmbeddingPolicyReceipt();
-  const { getGraphRAGStateStatus, isGraphRAGReady } = await import('./graph-rag-tools');
+  const { getGraphRAGStateStatus } = await import('./graph-rag-tools');
+  const embeddingsCacheExists = fs.existsSync(getEmbeddingsFile());
   const cacheAgeMs = cache.ageMs;
   const diskCacheFreshByAge = cacheAgeMs !== undefined && cacheAgeMs < CACHE_MAX_AGE_MS;
   const inMemoryAgeMs =
@@ -3368,7 +3431,25 @@ async function handleGraphStatus(): Promise<unknown> {
     inMemory: cachedGraph !== null,
     rootDir: cachedRootDir || null,
     embeddingPolicy,
-    graphRAGReady: isGraphRAGReady(),
+    graphRAGReady: localGraphLive,
+    semanticIndexReady: localGraphLive,
+    semanticIndex: {
+      ready: localGraphLive,
+      rootDir: graphRAGState.rootDir,
+      ageMs: graphRAGState.ageMs,
+      ageHuman: graphRAGState.ageMs === null ? null : formatCacheAge(graphRAGState.ageMs),
+      freshForCurrentRepo: localGraphLive,
+      cachedEmbeddingIndexReady: graphRAGState.ready,
+      cachedEmbeddingIndexMatchesCwd: graphRAGMatchesCwd,
+      diskEmbeddingCacheExists: embeddingsCacheExists,
+      provider: embeddingPolicy.provider,
+      graphProvider: 'holograph',
+      hint: localGraphLive
+        ? 'HoloEmbed semantic index is ready for this repo.'
+        : graphAuthoritative
+          ? 'HoloGraph cache is available, but the HoloEmbed semantic index is not initialized for this repo. Run holo_absorb_repo with outputFormat "graph" or "holo", or wait for cache warmup, before relying on holo_semantic_search or holo_ask_codebase.'
+          : 'Run holo_absorb_repo with outputFormat "graph" or "holo" to build a HoloGraph cache and HoloEmbed semantic index for this repo.',
+    },
     graphAuthoritative,
     freshForCurrentRepo,
     currentCwd,
@@ -3415,7 +3496,7 @@ async function handleGraphStatus(): Promise<unknown> {
               : !diskCoverageComplete
                 ? `Cache covers ${diskCoverage.graphFileCount}/${diskCoverage.expectedGraphFileCount ?? 'unknown'} expected files for this checkout. Refresh with holo_absorb_repo before trusting whole-repo queries.`
                 : diskCacheFreshByAge
-                  ? 'Cache is fresh — query tools will auto-load it without re-scanning.'
+                  ? 'HoloGraph cache is fresh; structural query tools can auto-load it without re-scanning. Semantic tools still require a ready HoloEmbed index.'
                   : 'Cache is older than 24h — call holo_absorb_repo to refresh.',
         }
       : {
