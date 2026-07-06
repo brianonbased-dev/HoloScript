@@ -15,6 +15,7 @@
     "@holoscript/engine",
     "@holoscript/formatter",
     "@holoscript/framework",
+    "@holoscript/holo-runtime",
     "@holoscript/holo-vm",
     "@holoscript/holoembed",
     "@holoscript/holollama",

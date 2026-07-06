@@ -76,6 +76,7 @@ Ownership is inferred from package domain and the team structure. Update this fi
 | `@holoscript/ai-validator`     | Hallucination guard             | `vitest run`                           | Yes      |
 | `@holoscript/aibrittney`       | Interactive CLI agent           | `vitest run --config vitest.config.ts` | Yes      |
 | `@holoscript/holoscript-agent` | Headless agent runtime          | `vitest run`                           | Yes      |
+| `@holoscript/holo-runtime`     | HoloRunner CPU decoder          | `vitest run`                           | Yes      |
 | `@holoscript/snn-webgpu`       | Spiking neural networks         | `vitest run`                           | Yes      |
 | `@hololand/react-agent-sdk`    | React hooks for agents          | `vitest run`                           | Yes      |
 

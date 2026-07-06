@@ -102,6 +102,7 @@ export default defineConfig({
       resolve(__dirname, 'packages/visualizer-client/vitest.config.ts'),
       resolve(__dirname, 'packages/tree-sitter-holoscript/vitest.config.ts'),
       resolve(__dirname, 'packages/video-tutorials/vitest.config.ts'),
+      resolve(__dirname, 'packages/holo-runtime/vitest.config.ts'),
 
       // ── Packages without a vitest.config.ts (inline) ─────────────────
       // 'packages/test/vitest.config.ts', // removed: package deleted

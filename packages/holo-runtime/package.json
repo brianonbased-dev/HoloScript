@@ -41,6 +41,9 @@
     "sovereign-model"
   ],
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "author": "Brian X Base Team",
   "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
   "repository": {

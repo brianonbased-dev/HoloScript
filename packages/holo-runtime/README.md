@@ -2,6 +2,12 @@
 
 Pure TypeScript CPU decoder seed for HoloRunner S0 checkpoints.
 
+## Install
+
+```bash
+npm install @holoscript/holo-runtime
+```
+
 M1 scope:
 
 - Loads the S0 PyTorch `state_dict` key shape used by `train_holorunner_s0.py`.
@@ -12,19 +18,37 @@ M1 scope:
 The loader accepts JSON-safe tensor records:
 
 ```ts
-import { HoloRuntimeDecoder, loadHoloRunnerS0StateDict } from '@holoscript/holo-runtime';
+import { readFile } from 'node:fs/promises';
+import {
+  HoloRuntimeDecoder,
+  loadHoloRunnerS0StateDict,
+  type HoloRunnerS0StateDictInput,
+} from '@holoscript/holo-runtime';
 
-const loaded = loadHoloRunnerS0StateDict({
-  config: { vocab_size: 512, n_layer: 4, n_head: 4, n_embd: 128, block_size: 128 },
-  state: {
-    'tok.weight': { shape: [512, 128], data: [...] },
-    'pos.weight': { shape: [128, 128], data: [...] },
-    // blocks.N.* tensors, final lnf.*, and head.weight
-  },
-});
+const checkpoint = JSON.parse(
+  await readFile('checkpoints/holorunner-s0.json', 'utf8'),
+) as HoloRunnerS0StateDictInput;
+const loaded = loadHoloRunnerS0StateDict(checkpoint);
 
 const decoder = new HoloRuntimeDecoder(loaded);
 const logits = decoder.forward([1, 42, 7]).logits;
 ```
 
 Set `HOLOAI_ECOSYSTEM_ROOT` to point at the private academy repo if it is not at `~/.ai-ecosystem`.
+
+## Boundary
+
+`@holoscript/holo-runtime` is not the browser scene runtime and not the bytecode
+VM. Use `@holoscript/runtime` for compiled HoloScript scene execution and
+`@holoscript/holo-vm` for HoloScript bytecode workloads. This package is the
+experimental HoloRunner S0 model-checkpoint decoder.
+
+Keep model weights, private training artifacts, and tokenizer source outside
+the public package.
+
+## Validation
+
+```bash
+corepack pnpm --filter @holoscript/holo-runtime run build
+corepack pnpm --filter @holoscript/holo-runtime run test
+```

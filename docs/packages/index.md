@@ -64,6 +64,7 @@ HoloScript currently ships as a monorepo with **real packages** under `packages/
 | [**@holoscript/ai-validator**](./ai-validator.md)     | Validation for AI-generated output       |
 | [**@holoscript/agent-protocol**](./agent-protocol.md) | uAA2++ lifecycle framework               |
 | [**@holoscript/uaal**](./uaal.md)                     | Universal Autonomous Agent Language VM   |
+| [**@holoscript/holo-runtime**](./holo-runtime.md)     | HoloRunner S0 CPU decoder runtime        |
 | [**@holoscript/framework**](./framework.md)           | Agent memory, learning, and orchestration |
 | [**@holoscript/holoscript-agent**](./holoscript-agent.md) | Headless HoloMesh agent runtime       |
 | [**@hololand/react-agent-sdk**](./react-agent-sdk.md) | React hooks and components for agent UIs |
