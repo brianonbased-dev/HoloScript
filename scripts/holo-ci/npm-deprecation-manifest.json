@@ -57,6 +57,13 @@
       "replacement": "@holoscript/crdt, @holoscript/crdt-spatial, and @holoscript/mesh",
       "deprecatedOn": "2026-07-05",
       "message": "Deprecated: use @holoscript/crdt for CRDT primitives, @holoscript/crdt-spatial for spatial sync, and @holoscript/mesh for transport."
+    },
+    {
+      "name": "create-holoscript",
+      "version": "1.4.0",
+      "replacement": "create-holoscript-app",
+      "deprecatedOn": "2026-07-06",
+      "message": "renamed: install create-holoscript-app instead (npm create-*-app convention; same scaffolder, new name)"
     }
   ]
 }

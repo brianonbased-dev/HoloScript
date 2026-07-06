@@ -1,24 +1,22 @@
 # create-holoscript
 
-`create-holoscript` is the repo-canonical npm scaffolder for first-touch
-HoloScript projects. It is the fastest public entry point for creating a local
-scene, trying the `instant` zero-install template, or bootstrapping agent setup
-files into an existing workspace.
+`packages/create-holoscript` is the repo source package for first-touch
+HoloScript project scaffolding. The public npm quickstart currently uses
+`create-holoscript-app` because live npm deprecates `create-holoscript@1.4.0`
+in favor of `create-holoscript-app@1.5.0`.
 
 ## Install
 
 ```bash
-npm create holoscript@latest my-world -- --go
-# or
-npx create-holoscript@latest my-world --go
+npx create-holoscript-app@latest my-world --go
 ```
 
 ## Use
 
 ```bash
-npx create-holoscript my-world --go
-npx create-holoscript my-world --template hello-world --yes
-npx create-holoscript my-world --template 2d-revolution
+npx create-holoscript-app my-world --go
+npx create-holoscript-app my-world --template hello-world --yes
+npx create-holoscript-app my-world --template 2d-revolution
 agent-setup
 holoscript-agents
 ```
@@ -37,9 +35,17 @@ holoscript-agents
 ## Packaging Note
 
 The workspace package is named `create-holoscript` and publishes the
-`create-holoscript`, `agent-setup`, and `holoscript-agents` binaries. The
-published `create-holoscript-app` package is a compatibility sibling from the
-same repo path; check both npm versions before claiming they are release-synced.
+`create-holoscript`, `agent-setup`, and `holoscript-agents` binaries from
+`packages/create-holoscript`.
+
+Public registry policy:
+
+- Recommend `create-holoscript-app` for npm quickstarts while
+  `create-holoscript@1.4.0` remains deprecated.
+- Treat `create-holoscript` as the historical npm entry point and workspace
+  filter name until a deliberate release-sync changes the registry state.
+- Check both npm versions and deprecation fields before claiming they are
+  release-synced.
 
 The npm payload is build-first: `bin/` wrappers import `dist/` outputs, and the
 published files list includes `bin/`, `dist/`, templates, README, and changelog.
@@ -60,6 +66,6 @@ corepack pnpm --filter create-holoscript run test
 corepack pnpm run check:publish-surface
 corepack pnpm run check:package-architecture
 corepack pnpm run package:opportunity-map
-npm view create-holoscript version
-npm view create-holoscript-app version
+npm view create-holoscript version deprecated
+npm view create-holoscript-app version deprecated
 ```

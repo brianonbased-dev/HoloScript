@@ -1,4 +1,4 @@
-# 🌐 create-holoscript
+# create-holoscript
 
 **Create HoloScript apps with zero configuration.** Scaffold a working 3D scene and open it in your browser in **30 seconds**.
 
@@ -7,14 +7,16 @@
 ## 30-Second Quick Start (`--go`)
 
 ```bash
-npx create-holoscript my-world --go
+npx create-holoscript-app my-world --go
 ```
 
 That's it. `--go` scaffolds the zero-install `instant` template, starts a dev server, and opens your browser automatically. No `cd`, no `npm install`, no second command.
 
-### Compatibility package name
+### Package names
 
-The same style of scaffold is also published as [`create-holoscript-app`](https://www.npmjs.com/package/create-holoscript-app), so **`npx create-holoscript-app my-world --go`** works for users who expect an `-app` suffix. The workspace-canonical package is **`create-holoscript`**; compare both npm versions before claiming they are release-synced.
+The public npm package currently recommended by the registry is [`create-holoscript-app`](https://www.npmjs.com/package/create-holoscript-app). The repo source still lives in `packages/create-holoscript`, and the workspace filter remains `create-holoscript`.
+
+`create-holoscript` remains a historical npm entry point, but `create-holoscript@1.4.0` is deprecated on npm in favor of `create-holoscript-app@1.5.0`. Compare both registry versions before claiming they are release-synced.
 
 ### Published package surface
 
@@ -31,7 +33,7 @@ The npm payload is build-first: `bin/` wrappers import `dist/` outputs, and the 
 ## Full Quick Start (any template)
 
 ```bash
-npx create-holoscript my-world
+npx create-holoscript-app my-world
 cd my-world
 npm install
 npm run dev
@@ -68,7 +70,7 @@ Art gallery with clickable glowing panels, portal rings, and a floating sculptur
 ## CLI Options
 
 ```bash
-npx create-holoscript <project-name> [options]
+npx create-holoscript-app <project-name> [options]
 
 Options:
   --go, -g             30-second mode: scaffold `instant` + auto-serve + open browser
@@ -89,7 +91,7 @@ Total time (warm npx cache, typical broadband): ~15–25 seconds. Compare:
 
 | Tool                           | Time-to-wow |
 | ------------------------------ | ----------- |
-| **create-holoscript --go**     | **~15–25s** |
+| **create-holoscript-app --go** | **~15–25s** |
 | A-Frame (HTML paste)           | 30–60s      |
 | Babylon.js (playground + edit) | 1–2 min     |
 | Three.js from scratch          | ~5 min      |
@@ -144,8 +146,8 @@ object "MyObject" {
 ```bash
 corepack pnpm --filter create-holoscript run build
 corepack pnpm --filter create-holoscript run test
-npm view create-holoscript version
-npm view create-holoscript-app version
+npm view create-holoscript version deprecated
+npm view create-holoscript-app version deprecated
 ```
 
 ## License
