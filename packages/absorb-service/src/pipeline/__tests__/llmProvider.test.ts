@@ -9,15 +9,25 @@ import {
 import { AnthropicAdapter, MockAdapter } from '@holoscript/llm-provider';
 import { configureConfigSecretResolver, resetConfigSecretResolver } from '@holoscript/config';
 
-/** All env vars that influence provider detection/creation. */
+/** All env vars that influence provider detection/creation (sovereign-first resolver). */
 const PROVIDER_ENV_KEYS = [
-  'OPENROUTER_API_KEY',
+  // sovereign-serving + local (these WIN over frontier BYOK)
+  'HOLO_LLM_PROVIDER',
+  'BRITTNEY_PROVIDER',
+  'HOLO_LLM_SERVICE_URL',
+  'BRITTNEY_SERVICE_URL',
+  'OLLAMA_HOST',
+  'OLLAMA_URL',
+  'OLLAMA_BASE_URL',
+  'VAST_API_KEY',
+  'FLEET_PROVIDER_ENDPOINT',
+  // frontier BYOK fallback
   'ANTHROPIC_API_KEY',
   'XAI_API_KEY',
   'OPENAI_API_KEY',
-  'OLLAMA_URL',
-  'OLLAMA_BASE_URL',
-  'OPENROUTER_MODEL',
+  'OPENROUTER_API_KEY',
+  // model overrides
+  'HOLO_LLM_MODEL',
   'ANTHROPIC_MODEL',
   'XAI_MODEL',
   'OPENAI_MODEL',
@@ -46,59 +56,58 @@ describe('detectLLMProviderName', () => {
     resetConfigSecretResolver();
   });
 
-  it('returns openrouter when OPENROUTER_API_KEY is set (highest priority)', () => {
-    process.env.OPENROUTER_API_KEY = 'or-test';
-    expect(detectLLMProviderName()).toBe('openrouter');
+  it('returns the sovereign local provider (ollama) when OLLAMA_URL is set', () => {
+    process.env.OLLAMA_URL = 'http://localhost:11434';
+    expect(detectLLMProviderName()).toBe('ollama');
   });
 
-  it('returns anthropic when ANTHROPIC_API_KEY is set', () => {
+  it('prefers the sovereign local provider over frontier BYOK keys', () => {
+    process.env.OLLAMA_URL = 'http://localhost:11434';
+    process.env.ANTHROPIC_API_KEY = 'sk-ant-test';
+    process.env.OPENAI_API_KEY = 'sk-test';
+    expect(detectLLMProviderName()).toBe('ollama');
+  });
+
+  it('returns anthropic BYOK when only ANTHROPIC_API_KEY is set (no sovereign env)', () => {
     process.env.ANTHROPIC_API_KEY = 'sk-ant-test';
     expect(detectLLMProviderName()).toBe('anthropic');
   });
 
-  it('returns xai when XAI_API_KEY is set (no anthropic/openrouter)', () => {
+  it('returns xai BYOK when only XAI_API_KEY is set', () => {
     process.env.XAI_API_KEY = 'xai-test';
     expect(detectLLMProviderName()).toBe('xai');
   });
 
-  it('returns openai when OPENAI_API_KEY is set (no anthropic/xai/openrouter)', () => {
+  it('returns openai BYOK when only OPENAI_API_KEY is set', () => {
     process.env.OPENAI_API_KEY = 'sk-test';
     expect(detectLLMProviderName()).toBe('openai');
   });
 
-  it('returns ollama as fallback', () => {
-    expect(detectLLMProviderName()).toBe('ollama');
+  it('returns none when nothing is configured (sovereign-by-default, no silent cloud)', () => {
+    expect(detectLLMProviderName()).toBe('none');
   });
 
-  it('prefers openrouter over all others', () => {
-    process.env.OPENROUTER_API_KEY = 'or-test';
-    process.env.ANTHROPIC_API_KEY = 'sk-ant-test';
-    process.env.XAI_API_KEY = 'xai-test';
-    process.env.OPENAI_API_KEY = 'sk-test';
-    expect(detectLLMProviderName()).toBe('openrouter');
-  });
-
-  it('prefers anthropic over xai and openai', () => {
+  it('prefers anthropic over xai and openai in the BYOK fallback order', () => {
     process.env.ANTHROPIC_API_KEY = 'sk-ant-test';
     process.env.XAI_API_KEY = 'xai-test';
     process.env.OPENAI_API_KEY = 'sk-test';
     expect(detectLLMProviderName()).toBe('anthropic');
   });
 
-  it('prefers xai over openai', () => {
+  it('prefers xai over openai in the BYOK fallback order', () => {
     process.env.XAI_API_KEY = 'xai-test';
     process.env.OPENAI_API_KEY = 'sk-test';
     expect(detectLLMProviderName()).toBe('xai');
   });
 
-  it('detects a HoloKey-resolved provider in the async path', async () => {
+  it('detects a HoloKey-resolved BYOK provider (anthropic) in the async path', async () => {
     configureConfigSecretResolver({
       async resolve(nameOrRef: string) {
-        return nameOrRef === 'OPENROUTER_API_KEY' ? 'vault-openrouter-key' : undefined;
+        return nameOrRef === 'ANTHROPIC_API_KEY' ? 'vault-anthropic-key' : undefined;
       },
     });
 
-    expect(await detectLLMProviderNameAsync()).toBe('openrouter');
+    expect(await detectLLMProviderNameAsync()).toBe('anthropic');
   });
 });
 
@@ -116,39 +125,33 @@ describe('createPipelineLLMProvider', () => {
     resetConfigSecretResolver();
   });
 
-  it('creates a provider when ANTHROPIC_API_KEY is set', () => {
-    process.env.ANTHROPIC_API_KEY = 'sk-ant-test';
+  it('creates the sovereign local provider when OLLAMA_URL is set', () => {
+    process.env.OLLAMA_URL = 'http://localhost:11434';
     const provider = createPipelineLLMProvider();
     // Provider has the chat() method (the pipeline LLMProvider interface)
     expect(typeof provider.chat).toBe('function');
   });
 
-  it('creates a provider when OPENROUTER_API_KEY is set', () => {
-    process.env.OPENROUTER_API_KEY = 'or-test';
+  it('creates a provider when ANTHROPIC_API_KEY is set (BYOK fallback)', () => {
+    process.env.ANTHROPIC_API_KEY = 'sk-ant-test';
     const provider = createPipelineLLMProvider();
     expect(typeof provider.chat).toBe('function');
   });
 
-  it('creates a provider when XAI_API_KEY is set', () => {
+  it('creates a provider when XAI_API_KEY is set (BYOK fallback)', () => {
     process.env.XAI_API_KEY = 'xai-test';
     const provider = createPipelineLLMProvider();
     expect(typeof provider.chat).toBe('function');
   });
 
-  it('creates a provider when OPENAI_API_KEY is set', () => {
+  it('creates a provider when OPENAI_API_KEY is set (BYOK fallback)', () => {
     process.env.OPENAI_API_KEY = 'sk-test';
     const provider = createPipelineLLMProvider();
     expect(typeof provider.chat).toBe('function');
   });
 
-  it('creates a provider when OLLAMA_URL is set (fallback)', () => {
-    process.env.OLLAMA_URL = 'http://localhost:11434';
-    const provider = createPipelineLLMProvider();
-    expect(typeof provider.chat).toBe('function');
-  });
-
-  it('throws when no provider env vars are set', () => {
-    expect(() => createPipelineLLMProvider()).toThrow('No AI provider configured');
+  it('throws when no provider env vars are set (sovereign-by-default, no silent cloud)', () => {
+    expect(() => createPipelineLLMProvider()).toThrow('No LLM provider configured');
   });
 
   it('creates a provider from HoloKey in the async path', async () => {

@@ -17,13 +17,8 @@
 import type { LLMProvider } from './layerExecutors';
 import {
   type ILLMProvider,
-  type LLMProviderName as PkgProviderName,
-  AnthropicAdapter,
-  OpenAIAdapter,
-  XAIAdapter,
-  OpenRouterAdapter,
-  LocalLLMAdapter,
-  LLMProviderManager,
+  resolveSovereignProvider,
+  resolveSovereignProviderAsync,
 } from '@holoscript/llm-provider';
 import { resolveConfigSecret } from '@holoscript/config';
 
@@ -59,156 +54,62 @@ export function adaptToChatProvider(provider: ILLMProvider): LLMProvider {
 // ─── Factory ───────────────────────────────────────────────────────────────
 
 /**
- * Auto-detect available LLM provider from environment variables and return
- * a pipeline-compatible LLMProvider.
+ * Resolve a pipeline-compatible LLMProvider, SOVEREIGN-FIRST.
  *
- * Fallback chain: OPENROUTER_API_KEY → ANTHROPIC_API_KEY → XAI_API_KEY →
- * OPENAI_API_KEY → OLLAMA_URL (last resort)
+ * Converges on the canonical `resolveSovereignProvider` (F.112 ecosystem-wide,
+ * D.118 sovereign-at-every-layer): sovereign serving fleet → sovereign serving
+ * endpoint → local model (HoloLlama/Ollama) by default, frontier APIs
+ * (anthropic/xai/openai) as BYOK fallback LAST. This replaces the previous
+ * FOREIGN-first chain (OpenRouter→Anthropic→xAI→OpenAI→Ollama-last-resort) that
+ * defaulted the GEV/absorb synthesis pillar to cloud. Explicit override via
+ * HOLO_LLM_PROVIDER; the whole ecosystem now runs sovereign by default and the
+ * absorb synthesis "generation" leg is native unless a frontier key is the only
+ * thing configured. OpenRouter-only setups: point OPENAI_BASE_URL at OpenRouter.
  */
 export function createPipelineLLMProvider(): LLMProvider {
-  const openRouterKey = process.env.OPENROUTER_API_KEY;
-  if (openRouterKey) {
-    const model = process.env.OPENROUTER_MODEL ?? 'anthropic/claude-sonnet-4';
-    return adaptToChatProvider(
-      new OpenRouterAdapter({
-        apiKey: openRouterKey,
-        defaultModel: model,
-        referer: 'https://holoscript.net',
-        title: 'HoloScript Absorb',
-      })
-    );
-  }
-
-  const anthropicKey = process.env.ANTHROPIC_API_KEY;
-  if (anthropicKey) {
-    const model = process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-5-20250929';
-    return adaptToChatProvider(new AnthropicAdapter({ apiKey: anthropicKey, defaultModel: model }));
-  }
-
-  const xaiKey = process.env.XAI_API_KEY;
-  if (xaiKey) {
-    const model = process.env.XAI_MODEL ?? 'grok-3-mini';
-    return adaptToChatProvider(new XAIAdapter({ apiKey: xaiKey, defaultModel: model }));
-  }
-
-  const openaiKey = process.env.OPENAI_API_KEY;
-  if (openaiKey) {
-    const model = process.env.OPENAI_MODEL ?? 'gpt-4o-mini';
-    return adaptToChatProvider(new OpenAIAdapter({ apiKey: openaiKey, defaultModel: model }));
-  }
-
-  // Ollama / local-llm fallback — only used when no cloud API keys are set
-  const ollamaUrl = process.env.OLLAMA_URL ?? process.env.OLLAMA_BASE_URL;
-  if (!ollamaUrl) {
-    throw new Error(
-      '[LLMProvider] No AI provider configured. Set OPENROUTER_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY, or OLLAMA_URL in .env'
-    );
-  }
-  const ollamaModel = process.env.OLLAMA_MODEL ?? process.env.BRITTNEY_MODEL ?? 'llama3.1:8b';
-  console.warn(
-    '[LLMProvider] No cloud API keys found (OPENROUTER_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY). Falling back to Ollama.'
-  );
-  return adaptToChatProvider(
-    new LocalLLMAdapter({ baseURL: ollamaUrl.replace(/\/+$/, ''), model: ollamaModel })
-  );
+  return adaptToChatProvider(resolveSovereignProvider().provider);
 }
 
-interface ResolvedPipelineKeys {
-  openrouter: string;
-  anthropic: string;
-  xai: string;
-  openai: string;
-}
-
-async function resolvePipelineKeys(): Promise<ResolvedPipelineKeys> {
-  const [openrouter, anthropic, xai, openai] = await Promise.all([
-    resolveConfigSecret('OPENROUTER_API_KEY'),
-    resolveConfigSecret('ANTHROPIC_API_KEY'),
-    resolveConfigSecret('XAI_API_KEY'),
-    resolveConfigSecret('OPENAI_API_KEY'),
-  ]);
-
-  return {
-    openrouter: openrouter.trim(),
-    anthropic: anthropic.trim(),
-    xai: xai.trim(),
-    openai: openai.trim(),
-  };
+/** Resolve the BYOK Anthropic key via HoloKey (vault) → env, for the last-resort frontier fallback. */
+async function resolveAnthropicByokKey(): Promise<string | null> {
+  const k = (await resolveConfigSecret('ANTHROPIC_API_KEY')).trim();
+  return k || null;
 }
 
 /**
- * HoloKey-aware async variant of createPipelineLLMProvider().
+ * HoloKey-aware, SOVEREIGN-FIRST async variant of createPipelineLLMProvider().
  *
- * Resolves service keys through @holoscript/config first, which uses the
- * npm secrets-broker/HoloKey bridge when configured and falls back to env.
+ * Same sovereign policy as the sync path (serving fleet / sovereign endpoint /
+ * local first, frontier BYOK last) but additionally (a) prefers the serving
+ * fleet when VAST_API_KEY is set (async route probe with graceful cold fallback)
+ * and (b) resolves the Anthropic BYOK key through the HoloKey vault.
  */
 export async function createPipelineLLMProviderAsync(): Promise<LLMProvider> {
-  const keys = await resolvePipelineKeys();
-
-  if (keys.openrouter) {
-    const model = process.env.OPENROUTER_MODEL ?? 'anthropic/claude-sonnet-4';
-    return adaptToChatProvider(
-      new OpenRouterAdapter({
-        apiKey: keys.openrouter,
-        defaultModel: model,
-        referer: 'https://holoscript.net',
-        title: 'HoloScript Absorb',
-      })
-    );
-  }
-
-  if (keys.anthropic) {
-    const model = process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-5-20250929';
-    return adaptToChatProvider(
-      new AnthropicAdapter({ apiKey: keys.anthropic, defaultModel: model })
-    );
-  }
-
-  if (keys.xai) {
-    const model = process.env.XAI_MODEL ?? 'grok-3-mini';
-    return adaptToChatProvider(new XAIAdapter({ apiKey: keys.xai, defaultModel: model }));
-  }
-
-  if (keys.openai) {
-    const model = process.env.OPENAI_MODEL ?? 'gpt-4o-mini';
-    return adaptToChatProvider(new OpenAIAdapter({ apiKey: keys.openai, defaultModel: model }));
-  }
-
-  const ollamaUrl = process.env.OLLAMA_URL ?? process.env.OLLAMA_BASE_URL;
-  if (!ollamaUrl) {
-    throw new Error(
-      '[LLMProvider] No AI provider configured. Set OPENROUTER_API_KEY, ANTHROPIC_API_KEY, XAI_API_KEY, OPENAI_API_KEY, or OLLAMA_URL in .env/HoloKey'
-    );
-  }
-  const ollamaModel = process.env.OLLAMA_MODEL ?? process.env.BRITTNEY_MODEL ?? 'llama3.1:8b';
-  console.warn(
-    '[LLMProvider] No cloud API keys found (OPENROUTER_API_KEY, ANTHROPIC_API_KEY, XAI_API_KEY, OPENAI_API_KEY). Falling back to Ollama.'
-  );
-  return adaptToChatProvider(
-    new LocalLLMAdapter({ baseURL: ollamaUrl.replace(/\/+$/, ''), model: ollamaModel })
-  );
+  const anthropicKey = await resolveAnthropicByokKey();
+  const resolved = await resolveSovereignProviderAsync({ anthropicKey });
+  return adaptToChatProvider(resolved.provider);
 }
 
-/** HoloKey-aware provider-name detection. */
+/** HoloKey-aware provider-name detection (sovereign-first). */
 export async function detectLLMProviderNameAsync(): Promise<string> {
-  const keys = await resolvePipelineKeys();
-  if (keys.openrouter) return 'openrouter';
-  if (keys.anthropic) return 'anthropic';
-  if (keys.xai) return 'xai';
-  if (keys.openai) return 'openai';
-  return 'ollama';
+  const anthropicKey = await resolveAnthropicByokKey();
+  try {
+    return (await resolveSovereignProviderAsync({ anthropicKey })).providerName;
+  } catch {
+    return 'none';
+  }
 }
 
 /**
  * Returns which provider would be used, for diagnostics.
- * Mirrors the fallback chain in createPipelineLLMProvider().
+ * Mirrors the sovereign-first resolution in createPipelineLLMProvider().
  */
 export function detectLLMProviderName(): string {
-  if (process.env.OPENROUTER_API_KEY) return 'openrouter';
-  if (process.env.ANTHROPIC_API_KEY) return 'anthropic';
-  if (process.env.XAI_API_KEY) return 'xai';
-  if (process.env.OPENAI_API_KEY) return 'openai';
-  return 'ollama';
+  try {
+    return resolveSovereignProvider().providerName;
+  } catch {
+    return 'none';
+  }
 }
 
 // ─── Re-exports from @holoscript/llm-provider ──────────────────────────────
