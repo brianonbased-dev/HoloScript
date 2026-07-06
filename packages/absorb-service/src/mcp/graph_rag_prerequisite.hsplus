@@ -1,33 +1,54 @@
-// @graph_rag_prerequisite — Shared prerequisite error messages for MCP / GraphRAG tools.
+// @graph_rag_prerequisite -- Shared prerequisite messages for MCP GraphRAG tools.
 //
 // Native .hsplus surface for graph-rag-prerequisite.ts (absorb-service/mcp).
 //
-// Pure constants module — no classes, no side effects.
-// Ensures agents see consistent "call holo_absorb_repo first" messaging.
-//
-// Constants (graph-rag-prerequisite.ts):
-//   ABSORB_HOLO_ABSORB_REPO_HINT    — general hint to call holo_absorb_repo
-//   ABSORB_CODEBASE_LOAD_ERROR      — no codebase graph in memory or disk cache
-//   ABSORB_GRAPH_RAG_ENGINE_ERROR   — no GraphRAG engine initialized (post-absorb)
-//   ABSORB_EMBEDDING_INDEX_ERROR    — no embedding index (allow creation to complete)
+// Pure constants module with no side effects. Agents see one canonical next
+// step when GraphRAG is missing its codebase graph, engine, or embedding index.
 
-@trait graph_rag_prerequisite {
-  capability_tags: ["graph_rag_prerequisite", "mcp", "prerequisite_errors", "graph_rag", "absorb_service"]
+composition "GraphRagPrerequisiteSurface" {
+  module GraphRagPrerequisiteMessages {
+    state {
+      pure_module: true
+      capability_tags: [
+        "graph_rag_prerequisite",
+        "mcp",
+        "prerequisite_errors",
+        "graph_rag",
+        "absorb_service"
+      ]
+      holo_absorb_repo_hint: "Run holo_absorb_repo with rootDir set to the repository root, or sourceFiles for inline upload, then retry this tool."
+      codebase_load_error: "No codebase graph loaded in memory or disk cache. Call holo_absorb_repo first."
+      graph_rag_engine_error: "No Graph RAG engine initialized. Call holo_absorb_repo first with rootDir pointing to the project root, or sourceFiles for inline upload."
+      embedding_index_error: "No embedding index initialized. Call holo_absorb_repo first and allow embedding index creation to complete."
+    }
 
-  @on_spawn => {
-    prereq = init_graph_rag_prerequisite()
-    emit("graph_rag_prerequisite_ready", {})
-  }
+    action get(key) {
+      return {
+        key: key,
+        hint: this.state.holo_absorb_repo_hint,
+        available_keys: [
+          "holo_absorb_repo_hint",
+          "codebase_load_error",
+          "graph_rag_engine_error",
+          "embedding_index_error"
+        ]
+      };
+    }
 
-  // Get the prerequisite hint/error string by key
-  @on_get(key) => {
-    return prereq.get(key)
-  }
+    action receipt() {
+      return {
+        type: "GraphRagPrerequisiteReceipt",
+        constants: [
+          "holo_absorb_repo_hint",
+          "codebase_load_error",
+          "graph_rag_engine_error",
+          "embedding_index_error"
+        ],
+        pure_module: this.state.pure_module,
+        timestamp: current_time()
+      };
+    }
 
-  @receipt graph_rag_prerequisite_config {
-    type: "GraphRagPrerequisiteReceipt"
-    constants: ["holo_absorb_repo_hint", "codebase_load_error", "graph_rag_engine_error", "embedding_index_error"]
-    pure_module: true
-    timestamp: now()
+    exports { get, receipt, state }
   }
 }

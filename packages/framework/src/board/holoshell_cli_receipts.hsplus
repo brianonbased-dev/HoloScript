@@ -1,21 +1,104 @@
-// @holoshell_cli_receipts — Receipt contracts for CLI command execution provenance.
+// @holoshell_cli_receipts -- CLI command execution provenance contracts.
 //
 // Native .hsplus surface for framework/board/holoshell-cli-receipts.ts.
 //
-// CLICommandReceipt: { command, args, exitCode, stdout, stderr, workingDir, durationMs }
-// Proves: command ran, its exact parameters, and its output
-// Used by: automation traces, task evidence chains, HoloShell command logs
+// LocalCliAbsorptionReceipt proves a local command workflow ran under a policy
+// envelope with recorded actions, hashes, outcome, and verification commands.
 
-@trait holoshell_cli_receipts {
-  capability_tags: ["holoshell_cli_receipts", "cli_execution", "command_provenance", "exit_code", "framework"]
+composition "HoloShellCliReceiptsSurface" {
+  module HoloShellCliReceiptsContract {
+    state {
+      trust_floor: "known"
+      hash_algorithm: "sha256"
+      action_kinds: [
+        "exec",
+        "install",
+        "build",
+        "test",
+        "lint",
+        "format",
+        "clean",
+        "deploy",
+        "other"
+      ]
+      outcomes: ["success", "failure", "timeout", "blocked_by_policy"]
+      capability_tags: [
+        "holoshell_cli_receipts",
+        "cli_execution",
+        "command_provenance",
+        "policy_envelope",
+        "exit_code",
+        "framework"
+      ]
+    }
 
-  @on_spawn => {
-    emit("holoshell_cli_receipts_ready", {})
-  }
+    action validate_policy(policy) {
+      return {
+        policy: policy,
+        required_fields: [
+          "allowedBinaries",
+          "blockedBinaries",
+          "allowedPaths",
+          "blockedPaths",
+          "maxDurationMs",
+          "captureStdout",
+          "captureStderr",
+          "captureExitCode",
+          "captureLockfileDiff",
+          "captureNetworkLog",
+          "auditEnvironment"
+        ],
+        optional_fields: ["maxMemoryMb"]
+      };
+    }
 
-  @receipt holoshell_cli_receipts_config {
-    type: "CLICommandReceipt"
-    fields: ["command", "args", "exitCode", "stdout", "stderr", "workingDir", "durationMs"]
-    timestamp: now()
+    action validate_receipt(receipt) {
+      emit("holoshell_cli_receipt_validate_requested", {
+        receipt: receipt,
+        outcomes: this.state.outcomes
+      });
+
+      return {
+        receipt: receipt,
+        required_fields: [
+          "id",
+          "projectPath",
+          "binary",
+          "args",
+          "startedAt",
+          "endedAt",
+          "policy",
+          "exitCode",
+          "actions",
+          "outcome",
+          "hash",
+          "hashAlgorithm"
+        ],
+        optional_fields: [
+          "stdoutHash",
+          "stderrHash",
+          "lockfileDiffHash",
+          "buildArtifactHash",
+          "networkLogHash",
+          "environmentAuditHash",
+          "provenance",
+          "verificationCommands",
+          "metadata"
+        ]
+      };
+    }
+
+    action receipt() {
+      return {
+        type: "LocalCliAbsorptionReceipt",
+        action_kinds: this.state.action_kinds,
+        outcomes: this.state.outcomes,
+        trust_floor: this.state.trust_floor,
+        hash_algorithm: this.state.hash_algorithm,
+        timestamp: current_time()
+      };
+    }
+
+    exports { validate_policy, validate_receipt, receipt, state }
   }
 }

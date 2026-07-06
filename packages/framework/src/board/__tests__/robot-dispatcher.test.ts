@@ -54,6 +54,7 @@ const grant: PermissionGrant = {
 
 /** A fresh, substrate-enforced envelope that allows robot:move. */
 function allowingEnvelope(overrides: Partial<SafetyEnvelope> = {}): SafetyEnvelope {
+  const freshTimestamp = new Date(Date.now() - 60 * 1000).toISOString();
   return {
     id: 'env_1',
     agentId: 'agent_123',
@@ -65,6 +66,10 @@ function allowingEnvelope(overrides: Partial<SafetyEnvelope> = {}): SafetyEnvelo
     deterministic: true,
     localOnly: false,
     substrateEnforced: true,
+    updatedAt: freshTimestamp,
+    freshnessTtlMs: 30 * 24 * 60 * 60 * 1000,
+    humanApprovalGrantedAt: freshTimestamp,
+    humanApprovalTtlMs: 24 * 60 * 60 * 1000,
     ...overrides,
   };
 }
@@ -156,7 +161,10 @@ describe('gatedDispatch — denied verdict refuses dispatch + emits NO receipt',
   });
 
   it("refuses on 'human_approval_required' (no dispatcher call, no receipt)", async () => {
-    const needsApproval = allowingEnvelope({ humanApprovalRequired: true });
+    const needsApproval = allowingEnvelope({
+      humanApprovalRequired: true,
+      humanApprovalGrantedAt: undefined,
+    });
     const dispatchSpy = vi.fn(async () => ({
       dispatched: true,
       dispatchedTo: 'stub' as const,

@@ -1,65 +1,91 @@
-// @holoembed_provider — 768-dim hybrid structural+subword embeddings for Graph RAG.
+// @holoembed_provider -- Absorb GraphRAG adapter for @holoscript/holoembed.
 //
 // Native .hsplus surface for HoloEmbedProvider.ts (absorb-service/engine/providers).
 //
-// Phase 1 NL→code semantic embeddings. No API key, no network, no training.
-//
-// Dimension layout (HoloEmbedProvider.ts):
-//   Dims   0–383 (384-dim): StructuralEmbeddingProvider base (topology, call-graph, events)
-//   Dims 384–511 (128-dim): char-trigram histogram of symbol name + type + signature
-//   Dims 512–639 (128-dim): char-trigram histogram of docComment text
-//   Dims 640–767 (128-dim): char-trigram histogram of event name tokens
-//
-// Why char trigrams (BPE-lite subword without vocabulary)?
-//   "PillarSliceEmitter" → trigrams → bins → cosine similarity with
-//   "pillar slice emitter" (NL query) → ~50-70% recall@10 on name queries
-//   vs StructuralEmbeddingProvider ~3% recall@10.
-//
-// getEmbeddings(text) — only fills block 0 (name+sig); blocks 1+2 are zero.
-// embedSymbol(symbol)  — fills all 3 blocks for full 768-dim fidelity.
-//
-// Paper 26 Table 2: "best embedding baseline" at zero external dependency cost.
-// Phase 2 standalone at packages/holoembed with SNN-WebGPU acceleration.
+// Vector math is canonical in @holoscript/holoembed. Absorb keeps only the
+// EmbeddingProvider and ExternalSymbolDefinition adapter so GraphRAG, HoloEmbed,
+// and GEV stay in one embedding space.
 
-@trait holoembed_provider {
-  capability_tags: ["holoembed_provider", "768_dim_embeddings", "char_trigram", "graph_rag", "nl_to_code", "structural_embedding", "absorb_service", "paper_26"]
-
-  @on_spawn => {
-    provider = init_holoembed_provider()
-    emit("holoembed_provider_ready", { dim: 768 })
-  }
-
-  // Embed a full symbol (all 3 blocks — full 768-dim fidelity)
-  @on_embed_symbol(symbol) => {
-    embedding = provider.embed_symbol(symbol)
-    return embedding
-  }
-
-  // Embed a text string (block 0 only; blocks 1+2 are zero-padded)
-  @on_get_embeddings(text) => {
-    embedding = provider.get_embeddings(text)
-    return embedding
-  }
-
-  // Batch embed a list of symbols
-  @on_embed_batch(symbols) => {
-    embeddings = provider.embed_batch(symbols)
-    emit("holoembed_batch_complete", { count: symbols.size })
-    return embeddings
-  }
-
-  @receipt holoembed_provider_config {
-    type: "HoloEmbedProviderReceipt"
-    dim: 768
-    layout: {
-      dims_0_383: "StructuralEmbeddingProvider (topology+call-graph+events)",
-      dims_384_511: "char-trigram: name+type+signature",
-      dims_512_639: "char-trigram: docComment",
-      dims_640_767: "char-trigram: event names"
+composition "AbsorbHoloEmbedProviderSurface" {
+  module AbsorbHoloEmbedProvider {
+    state {
+      provider: "holoembed"
+      canonical_encoder: "@holoscript/holoembed/HoloEmbedEncoder"
+      embedding_dim: 768
+      structural_weight: 0.12
+      weight_semantic_aliases: true
+      capability_tags: [
+        "holoembed_provider",
+        "768_dim_embeddings",
+        "graph_rag",
+        "nl_to_code",
+        "absorb_service",
+        "canonical_holoembed",
+        "gev"
+      ]
     }
-    recall_at_10: "~50-70% for symbol-name queries (vs ~3% structural baseline)"
-    paper: "Paper 26 Table 2"
-    phase2: "packages/holoembed (SNN-WebGPU accelerated)"
-    timestamp: now()
+
+    action initialize() {
+      emit("holoembed_provider_ready", {
+        provider: this.state.provider,
+        dim: this.state.embedding_dim,
+        canonical_encoder: this.state.canonical_encoder
+      });
+
+      return {
+        provider: this.state.provider,
+        embedding_dim: this.state.embedding_dim,
+        structural_weight: this.state.structural_weight,
+        no_external_key: true
+      };
+    }
+
+    action get_embeddings(texts) {
+      emit("holoembed_text_batch_requested", {
+        texts: texts,
+        embedding_dim: this.state.embedding_dim
+      });
+
+      return {
+        input: "string_array",
+        output: "number_matrix",
+        encoder_method: "HoloEmbedEncoder.encodeText"
+      };
+    }
+
+    action embed_symbol(symbol, graph_enrichment) {
+      emit("holoembed_symbol_requested", {
+        symbol: symbol,
+        graph_enrichment: graph_enrichment,
+        embedding_dim: this.state.embedding_dim
+      });
+
+      return {
+        input: "ExternalSymbolDefinition",
+        enrichment: "GraphEnrichment",
+        output: "Float32Array",
+        encoder_method: "HoloEmbedEncoder.encode"
+      };
+    }
+
+    action receipt() {
+      return {
+        type: "HoloEmbedProviderReceipt",
+        provider: this.state.provider,
+        canonical_encoder: this.state.canonical_encoder,
+        dim: this.state.embedding_dim,
+        structural_weight: this.state.structural_weight,
+        layout: {
+          structural_dims: "0-383",
+          trigram_name_dims: "384-511",
+          trigram_doc_dims: "512-639",
+          trigram_event_dims: "640-767"
+        },
+        adapter_only: true,
+        timestamp: current_time()
+      };
+    }
+
+    exports { initialize, get_embeddings, embed_symbol, receipt, state }
   }
 }

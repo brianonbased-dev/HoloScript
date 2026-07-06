@@ -1,21 +1,102 @@
-// @holoshell_package_mutation_receipt — Receipt for package install/upgrade/remove operations.
+// @holoshell_package_mutation_receipt -- Package install/update custody receipt.
 //
 // Native .hsplus surface for framework/board/holoshell-package-mutation-receipt.ts.
 //
-// PackageMutationReceipt: { manager, operation: install|upgrade|remove, packageName, version, lockfileHash }
-// Proves: exact package change; lockfile state before/after; prevents silent drift
+// Keeps package-manager mutation out of ambient shell execution by requiring
+// explicit candidate, preflight, approval, verification, summary, and hash data.
 
-@trait holoshell_package_mutation_receipt {
-  capability_tags: ["holoshell_package_mutation_receipt", "package_mutation", "lockfile_hash", "dependency_provenance", "framework"]
+composition "HoloShellPackageMutationReceiptSurface" {
+  module HoloShellPackageMutationReceiptContract {
+    state {
+      schema_version: "hololand.holoshell.package-custody.v0.1.0"
+      workflow: "install-update-tool-custody"
+      hash_algorithm: "sha256"
+      mutation_kinds: ["inventory", "install", "upgrade", "uninstall"]
+      mutation_statuses: [
+        "inventory_only",
+        "approval_required",
+        "blocked",
+        "approved",
+        "mutating",
+        "verified"
+      ]
+      permission_envelopes: ["read_only", "break_glass"]
+      package_managers: [
+        "winget",
+        "choco",
+        "scoop",
+        "brew",
+        "apt",
+        "dnf",
+        "yum",
+        "npm",
+        "pnpm",
+        "yarn",
+        "pip",
+        "cargo",
+        "msi",
+        "exe",
+        "unknown"
+      ]
+      preflight_statuses: ["pass", "warn", "fail", "unknown"]
+      capability_tags: [
+        "holoshell_package_mutation_receipt",
+        "package_mutation",
+        "approval_gate",
+        "lockfile_hash",
+        "dependency_provenance",
+        "framework"
+      ]
+    }
 
-  @on_spawn => {
-    emit("holoshell_package_mutation_receipt_ready", {})
-  }
+    action validate_receipt(receipt) {
+      emit("holoshell_package_mutation_validate_requested", {
+        receipt: receipt,
+        schema_version: this.state.schema_version
+      });
 
-  @receipt holoshell_package_mutation_receipt_config {
-    type: "PackageMutationReceipt"
-    operations: ["install", "upgrade", "remove"]
-    fields: ["manager", "packageName", "version", "lockfileHash before/after"]
-    timestamp: now()
+      return {
+        receipt: receipt,
+        required_fields: [
+          "schemaVersion",
+          "id",
+          "workflow",
+          "generatedAt",
+          "startedAt",
+          "endedAt",
+          "mutationKind",
+          "status",
+          "permissionEnvelope",
+          "candidate",
+          "preflight",
+          "approval",
+          "verification",
+          "mutationPerformed",
+          "replayKey",
+          "hash",
+          "hashAlgorithm",
+          "summary",
+          "metadata"
+        ],
+        optional_fields: ["sourceAnchors", "output", "verificationCommands", "provenance"]
+      };
+    }
+
+    action receipt() {
+      return {
+        type: "HoloShellPackageMutationReceipt",
+        schema_version: this.state.schema_version,
+        workflow: this.state.workflow,
+        mutation_kinds: this.state.mutation_kinds,
+        mutation_statuses: this.state.mutation_statuses,
+        permission_envelopes: this.state.permission_envelopes,
+        package_managers: this.state.package_managers,
+        preflight_statuses: this.state.preflight_statuses,
+        hash_algorithm: this.state.hash_algorithm,
+        timestamp: current_time()
+      };
+    }
+
+    exports { validate_receipt, receipt, state }
   }
 }
