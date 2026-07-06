@@ -354,6 +354,9 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
    */
   private globalPosSum: [number, number, number] = [0, 0, 0];
   private globalConfSum = 0;
+  private globalPrincipalMomentXX = 0;
+  private globalPrincipalMomentZZ = 0;
+  private globalPrincipalMomentXZ = 0;
   /** Previous frame camera pose (centroid of that frame's points). */
   private prevPose: [number, number, number] | null = null;
   /** Previous full camera pose, including scan-derived principal-axis rotation. */
@@ -370,6 +373,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
   private static readonly LOOP_CLOSURE_RADIUS = 0.05;
   private static readonly POSE_HISTORY_CAP = 512;
   private static readonly TRAJECTORY_KEYFRAME_CAP = 512;
+  private static readonly TRAJECTORY_STEP_SNAPSHOT_CAP = 64;
   /** Maps normalized measured depth [0=near,1=far] to a point Z range matching
    *  the monocular estimate's spread (±~0.17), so sensor and estimate paths
    *  produce geometry in the same coordinate scale. */
@@ -695,6 +699,24 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     return HoloMapRuntimeImpl.yawToQuaternion(yaw);
   }
 
+  private static estimatePrincipalAxisRotationFromMoments(
+    momentXX: number,
+    momentZZ: number,
+    momentXZ: number,
+    pointCount: number,
+    centroid: [number, number, number]
+  ): [number, number, number, number] {
+    if (pointCount < 2) return [0, 0, 0, 1];
+
+    const xx = momentXX - pointCount * centroid[0] * centroid[0];
+    const zz = momentZZ - pointCount * centroid[2] * centroid[2];
+    const xz = momentXZ - pointCount * centroid[0] * centroid[2];
+    if (xx + zz < 1e-12) return [0, 0, 0, 1];
+
+    const yaw = 0.5 * Math.atan2(2 * xz, xx - zz);
+    return HoloMapRuntimeImpl.yawToQuaternion(yaw);
+  }
+
   private static yawToQuaternion(yaw: number): [number, number, number, number] {
     const half = yaw / 2;
     return [0, Math.sin(half), 0, Math.cos(half)];
@@ -743,18 +765,25 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
   }
 
   private static cloneTrajectoryKeyframes(
-    keyframes: readonly TrajectoryKeyframe[]
+    keyframes: readonly TrajectoryKeyframe[],
+    maxCount = keyframes.length
   ): TrajectoryKeyframe[] {
-    return keyframes.map((keyframe) => ({
-      frameIndex: keyframe.frameIndex,
-      timestampMs: keyframe.timestampMs,
-      pose: {
-        position: [...keyframe.pose.position] as [number, number, number],
-        rotation: [...keyframe.pose.rotation] as [number, number, number, number],
-        confidence: keyframe.pose.confidence,
-      },
-      embedding: new Float32Array(keyframe.embedding),
-    }));
+    const start = Math.max(0, keyframes.length - Math.max(0, maxCount));
+    const out: TrajectoryKeyframe[] = [];
+    for (let i = start; i < keyframes.length; i += 1) {
+      const keyframe = keyframes[i]!;
+      out.push({
+        frameIndex: keyframe.frameIndex,
+        timestampMs: keyframe.timestampMs,
+        pose: {
+          position: [...keyframe.pose.position] as [number, number, number],
+          rotation: [...keyframe.pose.rotation] as [number, number, number, number],
+          confidence: keyframe.pose.confidence,
+        },
+        embedding: new Float32Array(keyframe.embedding),
+      });
+    }
+    return out;
   }
 
   private pushTrajectoryKeyframe(keyframe: TrajectoryKeyframe): void {
@@ -803,6 +832,9 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     this.trajectoryKeyframes.length = 0;
     this.globalPosSum = [0, 0, 0];
     this.globalConfSum = 0;
+    this.globalPrincipalMomentXX = 0;
+    this.globalPrincipalMomentZZ = 0;
+    this.globalPrincipalMomentXZ = 0;
     this.lastAcceptedFrameTimestampMs = null;
     this.sessionStartMs = performance.now();
     this.perfMetrics = {
@@ -1126,9 +1158,15 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       // retained window by subtracting the evicted step's contribution.
       const ep = evicted.points.positions;
       for (let i = 0; i < ep.length; i += 3) {
-        this.globalPosSum[0] -= ep[i]!;
-        this.globalPosSum[1] -= ep[i + 1]!;
-        this.globalPosSum[2] -= ep[i + 2]!;
+        const x = ep[i]!;
+        const y = ep[i + 1]!;
+        const z = ep[i + 2]!;
+        this.globalPosSum[0] -= x;
+        this.globalPosSum[1] -= y;
+        this.globalPosSum[2] -= z;
+        this.globalPrincipalMomentXX -= x * x;
+        this.globalPrincipalMomentZZ -= z * z;
+        this.globalPrincipalMomentXZ -= x * z;
       }
       const ec = evicted.points.confidence;
       for (let i = 0; i < ec.length; i += 1) this.globalConfSum -= ec[i]!;
@@ -1237,6 +1275,9 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     let centroidY = 0;
     let centroidZ = 0;
     let confidenceSum = 0;
+    let framePrincipalMomentXX = 0;
+    let framePrincipalMomentZZ = 0;
+    let framePrincipalMomentXZ = 0;
 
     for (let t = 0; t < numPoints; t += 1) {
       const { meanColor, centerUv, texture, latent, rawDepthSignal } = encodedTiles[t]!;
@@ -1301,6 +1342,9 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       centroidX += px;
       centroidY += py;
       centroidZ += pz;
+      framePrincipalMomentXX += px * px;
+      framePrincipalMomentZZ += pz * pz;
+      framePrincipalMomentXZ += px * pz;
     }
 
     const inv = 1 / Math.max(1, numPoints);
@@ -1406,6 +1450,9 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     this.globalPosSum[1] += centroidY;
     this.globalPosSum[2] += centroidZ;
     this.globalConfSum += confidenceSum;
+    this.globalPrincipalMomentXX += framePrincipalMomentXX;
+    this.globalPrincipalMomentZZ += framePrincipalMomentZZ;
+    this.globalPrincipalMomentXZ += framePrincipalMomentXZ;
     const totalPoints = this.totalPointCount + numPoints;
     const ginv = 1 / Math.max(1, totalPoints);
     const anchorCenter: [number, number, number] = [
@@ -1418,8 +1465,11 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     const extentX = b.max[0] - b.min[0];
     const extentY = b.max[1] - b.min[1];
     const extentZ = b.max[2] - b.min[2];
-    const anchorRotation = HoloMapRuntimeImpl.estimatePrincipalAxisRotation(
-      HoloMapRuntimeImpl.retainedPositionChunks(this.steps, positions),
+    const anchorRotation = HoloMapRuntimeImpl.estimatePrincipalAxisRotationFromMoments(
+      this.globalPrincipalMomentXX,
+      this.globalPrincipalMomentZZ,
+      this.globalPrincipalMomentXZ,
+      totalPoints,
       anchorCenter
     );
     const anchorDescriptor = new Float32Array([extentX, extentY, extentZ, globalMeanConfidence]);
@@ -1435,7 +1485,8 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       ),
     });
     const trajectoryKeyframes = HoloMapRuntimeImpl.cloneTrajectoryKeyframes(
-      this.trajectoryKeyframes
+      this.trajectoryKeyframes,
+      HoloMapRuntimeImpl.TRAJECTORY_STEP_SNAPSHOT_CAP
     );
 
     const step: ReconstructionStep = {
@@ -1454,7 +1505,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
         revision: frame.index + 1,
       },
       anchor: {
-        anchorFrameIndex: trajectoryKeyframes[0]?.frameIndex ?? frame.index,
+        anchorFrameIndex: this.trajectoryKeyframes[0]?.frameIndex ?? frame.index,
         anchorPose: {
           position: anchorCenter,
           rotation: anchorRotation,
@@ -1592,6 +1643,9 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     this.trajectoryKeyframes.length = 0;
     this.globalPosSum = [0, 0, 0];
     this.globalConfSum = 0;
+    this.globalPrincipalMomentXX = 0;
+    this.globalPrincipalMomentZZ = 0;
+    this.globalPrincipalMomentXZ = 0;
     this.boundsValid = false;
     this.lastAcceptedFrameTimestampMs = null;
     this.perfMetrics = {

@@ -209,6 +209,30 @@ describe('PagedKVCache factory', () => {
     await cache.dispose();
   });
 
+  it('retrieves high-token CPU windows without depending on a dense zero-based page table', async () => {
+    const cache = createPagedKVCache({
+      pageSize: 2,
+      maxResidentPages: 2,
+      hiddenDim: 2,
+      numHeads: 1,
+      numLayers: 1,
+    });
+
+    await cache.append(
+      0,
+      new Float32Array([10, 11, 12, 13]),
+      new Float32Array([20, 21, 22, 23]),
+      70_000
+    );
+
+    const lookup = await cache.lookup(0, 70_000, 2);
+    expect(Array.from(lookup.keys)).toEqual([10, 11, 12, 13]);
+    expect(Array.from(lookup.values)).toEqual([20, 21, 22, 23]);
+    expect(cache.residentPagesForLayer(0).map((ref) => ref.firstToken)).toEqual([70_000]);
+
+    await cache.dispose();
+  });
+
   it('rejects single operations wider than the resident page window', async () => {
     const cache = createPagedKVCache({
       pageSize: 1,

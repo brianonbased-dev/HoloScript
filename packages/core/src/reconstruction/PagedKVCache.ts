@@ -124,9 +124,12 @@ export function createPagedKVCache(config: KVCacheConfig): PagedKVCache {
   const lookupKernel: PagedKVLookupKernel | null = config.device
     ? createPagedKVLookupKernel(config.device)
     : null;
+  const residentPageStates = new Set<PageState>();
   let disposed = false;
   let nextPageId = 0;
   let accessClock = 0;
+  let devicePageCount = 0;
+  let hostPageCount = 0;
 
   function assertLive(): void {
     if (disposed) throw new Error('PagedKVCache has been disposed.');
@@ -168,9 +171,7 @@ export function createPagedKVCache(config: KVCacheConfig): PagedKVCache {
   }
 
   function residentPages(): PageState[] {
-    return layers.flatMap((layer) =>
-      Array.from(layer.pages.values()).filter((page) => page.residency === 'device')
-    );
+    return Array.from(residentPageStates);
   }
 
   function evictPage(page: PageState): PageRef {
@@ -185,6 +186,9 @@ export function createPagedKVCache(config: KVCacheConfig): PagedKVCache {
     page.hostKeys = hostKeys;
     page.hostValues = hostValues;
     page.residency = 'host';
+    residentPageStates.delete(page);
+    devicePageCount -= 1;
+    hostPageCount += 1;
     return pageSnapshot(page);
   }
 
@@ -216,7 +220,10 @@ export function createPagedKVCache(config: KVCacheConfig): PagedKVCache {
     }
     const physicalPage = allocatePhysicalPage(page);
     page.physicalPage = physicalPage;
+    if (page.residency === 'host') hostPageCount -= 1;
     page.residency = 'device';
+    residentPageStates.add(page);
+    devicePageCount += 1;
     page.lastAccess = ++accessClock;
     if (page.hostKeys) {
       keyPages.set(page.hostKeys, pageOffset(physicalPage));
@@ -248,6 +255,8 @@ export function createPagedKVCache(config: KVCacheConfig): PagedKVCache {
       lastAccess: ++accessClock,
     };
     layerState.pages.set(logicalPage, page);
+    residentPageStates.add(page);
+    devicePageCount += 1;
     return page;
   }
 
@@ -267,29 +276,31 @@ export function createPagedKVCache(config: KVCacheConfig): PagedKVCache {
     return pageTable;
   }
 
-  function appendCpu(
+  function appendCpuInPlace(
     pages: Float32Array,
-    pageTable: Uint32Array,
-    slotMap: Uint32Array,
-    vectors: Float32Array
-  ): Float32Array {
-    const out = new Float32Array(pages);
+    touchedPages: ReadonlyMap<number, PageState>,
+    vectors: Float32Array,
+    startToken: number
+  ): void {
     const numVecs = vectors.length / config.hiddenDim;
     for (let v = 0; v < numVecs; v += 1) {
-      const logicalPage = slotMap[v]! >>> 16;
-      const inPage = slotMap[v]! & 0xffff;
-      const physicalPage = pageTable[logicalPage]!;
+      const token = startToken + v;
+      const logicalPage = Math.floor(token / config.pageSize);
+      const inPage = token % config.pageSize;
+      const physicalPage = touchedPages.get(logicalPage)?.physicalPage;
+      if (physicalPage === undefined || physicalPage === null) {
+        throw new Error(`PagedKVCache append misses resident logical page ${logicalPage}.`);
+      }
       const base = physicalPage * config.pageSize * config.hiddenDim;
       for (let d = 0; d < config.hiddenDim; d += 1) {
-        out[base + inPage * config.hiddenDim + d] = vectors[v * config.hiddenDim + d]!;
+        pages[base + inPage * config.hiddenDim + d] = vectors[v * config.hiddenDim + d]!;
       }
     }
-    return out;
   }
 
-  function lookupCpu(
+  function lookupCpuDirect(
     pages: Float32Array,
-    pageTable: Uint32Array,
+    layerState: LayerState,
     tokenCount: number,
     startToken: number
   ): Float32Array {
@@ -298,7 +309,10 @@ export function createPagedKVCache(config: KVCacheConfig): PagedKVCache {
       const logicalSlot = startToken + v;
       const logicalPage = Math.floor(logicalSlot / config.pageSize);
       const inPage = logicalSlot % config.pageSize;
-      const physicalPage = pageTable[logicalPage]!;
+      const physicalPage = layerState.pages.get(logicalPage)?.physicalPage;
+      if (physicalPage === undefined || physicalPage === null) {
+        throw new Error(`PagedKVCache lookup misses resident logical page ${logicalPage}.`);
+      }
       const base = physicalPage * config.pageSize * config.hiddenDim;
       for (let d = 0; d < config.hiddenDim; d += 1) {
         out[v * config.hiddenDim + d] = pages[base + inPage * config.hiddenDim + d]!;
@@ -323,8 +337,8 @@ export function createPagedKVCache(config: KVCacheConfig): PagedKVCache {
     residentPagesForLayer(layer: number): PageRef[] {
       assertLive();
       validateLayer(layer);
-      return Array.from(layers[layer]!.pages.values())
-        .filter((page) => page.residency === 'device')
+      return Array.from(residentPageStates)
+        .filter((page) => page.layer === layer)
         .sort((a, b) => a.firstToken - b.firstToken)
         .map((page) => pageSnapshot(page));
     },
@@ -339,24 +353,19 @@ export function createPagedKVCache(config: KVCacheConfig): PagedKVCache {
 
     memoryUsage(): { device: number; host: number } {
       assertLive();
-      let devicePages = 0;
-      let hostPages = 0;
-      for (const layer of layers) {
-        for (const page of layer.pages.values()) {
-          if (page.residency === 'device') devicePages += 1;
-          if (page.residency === 'host') hostPages += 1;
-        }
-      }
       return {
-        device: devicePages * pageBytes * 2,
-        host: hostPages * pageBytes * 2,
+        device: devicePageCount * pageBytes * 2,
+        host: hostPageCount * pageBytes * 2,
       };
     },
 
     async dispose(): Promise<void> {
       disposed = true;
       for (const layer of layers) layer.pages.clear();
+      residentPageStates.clear();
       freePhysicalPages.length = 0;
+      devicePageCount = 0;
+      hostPageCount = 0;
     },
 
     async append(
@@ -383,14 +392,11 @@ export function createPagedKVCache(config: KVCacheConfig): PagedKVCache {
       }
 
       const touchedPages = new Map<number, PageState>();
-      const slotMap = new Uint32Array(tokenCount);
       const requiredPages = new Set<number>();
       for (let i = 0; i < tokenCount; i += 1) {
         const token = startToken + i;
         const logicalPage = Math.floor(token / config.pageSize);
-        const slot = token % config.pageSize;
         requiredPages.add(logicalPage);
-        slotMap[i] = (logicalPage << 16) | slot;
       }
       if (requiredPages.size > config.maxResidentPages) {
         throw new Error(
@@ -401,9 +407,16 @@ export function createPagedKVCache(config: KVCacheConfig): PagedKVCache {
         const page = allocatePageInternal(layer, logicalPage);
         touchedPages.set(logicalPage, page);
       }
-      const pageTable = buildPageTable(layer, touchedPages.keys());
 
       if (appendKernel) {
+        const slotMap = new Uint32Array(tokenCount);
+        for (let i = 0; i < tokenCount; i += 1) {
+          const token = startToken + i;
+          const logicalPage = Math.floor(token / config.pageSize);
+          const slot = token % config.pageSize;
+          slotMap[i] = (logicalPage << 16) | slot;
+        }
+        const pageTable = buildPageTable(layer, touchedPages.keys());
         keyPages.set(
           await appendKernel.run(
             keyPages,
@@ -425,8 +438,8 @@ export function createPagedKVCache(config: KVCacheConfig): PagedKVCache {
           )
         );
       } else {
-        keyPages.set(appendCpu(keyPages, pageTable, slotMap, keyVectors));
-        valuePages.set(appendCpu(valuePages, pageTable, slotMap, valueVectors));
+        appendCpuInPlace(keyPages, touchedPages, keyVectors, startToken);
+        appendCpuInPlace(valuePages, touchedPages, valueVectors, startToken);
       }
 
       for (const page of touchedPages.values()) page.lastAccess = ++accessClock;
@@ -472,9 +485,9 @@ export function createPagedKVCache(config: KVCacheConfig): PagedKVCache {
       for (const logicalPage of requiredPages) {
         ensurePageResident(layers[layer]!.pages.get(logicalPage)!);
       }
-      const pageTable = buildPageTable(layer, requiredPages);
 
       if (lookupKernel) {
+        const pageTable = buildPageTable(layer, requiredPages);
         return {
           keys: await lookupKernel.run(
             keyPages,
@@ -496,8 +509,8 @@ export function createPagedKVCache(config: KVCacheConfig): PagedKVCache {
       }
 
       return {
-        keys: lookupCpu(keyPages, pageTable, tokenCount, startToken),
-        values: lookupCpu(valuePages, pageTable, tokenCount, startToken),
+        keys: lookupCpuDirect(keyPages, layers[layer]!, tokenCount, startToken),
+        values: lookupCpuDirect(valuePages, layers[layer]!, tokenCount, startToken),
       };
     },
   };

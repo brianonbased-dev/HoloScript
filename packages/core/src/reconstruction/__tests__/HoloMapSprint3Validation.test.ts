@@ -266,6 +266,27 @@ describe('HoloMapRuntime Sprint-3 — performance metrics', () => {
     await r.dispose();
   });
 
+  it('keeps per-step trajectory snapshots compact during long captures', async () => {
+    const r = createHoloMapRuntime();
+    await r.init({
+      ...HOLOMAP_DEFAULTS,
+      seed: 11,
+      modelHash: 'compact-trajectory-snapshot',
+      targetFPS: 10000,
+      tileGrid: 1,
+    });
+
+    let latest = await r.step(makeFrame(0));
+    for (let i = 1; i < 80; i += 1) {
+      latest = await r.step(makeFrame(i));
+    }
+
+    expect(latest!.trajectory.keyframes.length).toBeLessThanOrEqual(64);
+    expect(latest!.trajectory.keyframes.at(-1)?.frameIndex).toBe(79);
+
+    await r.dispose();
+  });
+
   it('finalize includes deterministic replay contract', async () => {
     const r = createHoloMapRuntime();
     await r.init({ ...HOLOMAP_DEFAULTS, seed: 7, modelHash: 'contract-test', targetFPS: 10000 });
