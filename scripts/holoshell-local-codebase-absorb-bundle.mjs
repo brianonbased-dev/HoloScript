@@ -7,7 +7,7 @@
  * containerized MCP context (/app) but the agent is on real Windows paths.
  *
  * Usage:
- *   node scripts/holoshell-local-codebase-absorb-bundle.mjs --roots "C:/Users/Josep/Documents/GitHub/HoloScript,C:/Users/Josep/Documents/GitHub/Hololand" --out receipt.json
+ *   node scripts/holoshell-local-codebase-absorb-bundle.mjs --agent codex-local --surface codex-desktop --roots "C:/Users/Josep/Documents/GitHub/HoloScript,C:/Users/Josep/Documents/GitHub/Hololand" --out receipt.json
  *   node scripts/holoshell-local-codebase-absorb-bundle.mjs --self-test
  *
  * Emits: sourceFiles payload + LocalCodebaseSnapshotReceipt (hashes, freshness,
@@ -62,6 +62,12 @@ const SECRET_PATTERNS = [
 const MAX_FILES = 500;
 const MAX_BYTES = 5 * 1024 * 1024; // Matches holo_absorb_repo sourceFiles cap
 const MAX_FILE_BYTES = 512 * 1024; // Keep sourceFiles[*].content below hosted MCP arg-string gates.
+const DEFAULT_AGENT =
+  process.env.HOLOSHELL_AGENT_ID ?? process.env.HOLOMESH_AGENT_ID ?? 'holoshell-local';
+const DEFAULT_SURFACE =
+  process.env.HOLOSHELL_AGENT_SURFACE ??
+  process.env.HOLOMESH_AGENT_SURFACE ??
+  'holoshell-local';
 const TEXT_SOURCE_EXTENSIONS = new Set([
   '.cjs',
   '.css',
@@ -94,6 +100,8 @@ function parseArgs(argv) {
     roots: [],
     out: undefined,
     date: DEFAULT_DATE,
+    agent: DEFAULT_AGENT,
+    surface: DEFAULT_SURFACE,
     selfTest: false,
     privacyClass: 'local-private',
     maxFiles: MAX_FILES,
@@ -121,6 +129,10 @@ function parseArgs(argv) {
       args.out = argv[++i];
     } else if (arg === '--date') {
       args.date = argv[++i];
+    } else if (arg === '--agent') {
+      args.agent = argv[++i];
+    } else if (arg === '--surface') {
+      args.surface = argv[++i];
     } else if (arg === '--privacy-class') {
       args.privacyClass = argv[++i];
     } else if (arg === '--max-files') {
@@ -174,6 +186,8 @@ Options:
   --roots <p1,p2,...>   Comma-separated local Windows paths to scan.
   --out <receipt.json>  Output receipt path (defaults to bench-logs date folder).
   --date <yyyy-mm-dd>   Bench date folder when --out omitted.
+  --agent NAME          Receipt agent id (default env HOLOSHELL_AGENT_ID/HOLOMESH_AGENT_ID or holoshell-local).
+  --surface NAME        Receipt surface id (default env HOLOSHELL_AGENT_SURFACE/HOLOMESH_AGENT_SURFACE or holoshell-local).
   --max-files N         Hard cap on number of files (default 500).
   --max-bytes N         Hard cap on total source bytes (default 5 MiB).
   --max-file-bytes N    Hard cap per source file (default 512 KiB).
@@ -376,8 +390,8 @@ function buildReceipt(roots, sourceFiles, stats, args) {
     schema: 'LocalCodebaseSnapshotReceipt.v1',
     version: VERSION,
     emittedAt: now,
-    agent: 'grok1-x402',
-    surface: 'grok-hardware',
+    agent: args.agent,
+    surface: args.surface,
     roots: roots.map((r) => resolve(r)),
     rootHashes,
     sourceFiles,
@@ -656,12 +670,15 @@ async function main() {
       stats.skipped.some((s) => s.reason === 'file-byte-cap-exceeded');
     console.log('receipt shape ok:', !!receipt.sourceFiles && !!receipt.stats);
     console.log('embedding policy ok:', receipt.embeddingPolicy?.provider === 'holoembed');
+    console.log('receipt identity ok:', receipt.agent === args.agent && receipt.surface === args.surface);
     console.log('tool payload ok:', toolPayloadOk && contentOk);
     console.log('recursive walk ok:', recursionOk);
     console.log('per-file cap ok:', capOk);
     console.log('files captured:', receipt.stats.totalFiles);
     if (
       receipt.embeddingPolicy?.provider !== 'holoembed' ||
+      receipt.agent !== args.agent ||
+      receipt.surface !== args.surface ||
       !toolPayloadOk ||
       !contentOk ||
       !recursionOk ||

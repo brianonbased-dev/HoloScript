@@ -31,6 +31,8 @@ declared hashes before scanning.
 node scripts/holoshell-local-codebase-absorb-bundle.mjs --self-test
 
 node scripts/holoshell-local-codebase-absorb-bundle.mjs `
+  --agent codex-local `
+  --surface codex-desktop `
   --roots C:/Users/josep/.ai-ecosystem/.scratch/omnigent-inspect/omnigent `
   --chunk-dir .scratch/omnigent-core-absorb-YYYY-MM-DD `
   --chunk-prefix omnigent-core `
@@ -42,6 +44,8 @@ node scripts/holoshell-local-codebase-absorb-bundle.mjs `
 ```
 
 Run `holo_graph_status` before trusting cache-backed graph answers. If the graph receipt reports a root mismatch, use its `localAdapter.command` or refresh through `localCodebaseSnapshotReceipt` rather than `rootDir`.
+
+Set `--agent` and `--surface` for the active HoloShell/Codex/Grok/Claude seat, or export `HOLOSHELL_AGENT_ID` / `HOLOSHELL_AGENT_SURFACE`. Receipt identity is provenance only; Absorb still verifies source hashes before scanning.
 
 The adapter must enforce three caps before posting to MCP:
 
