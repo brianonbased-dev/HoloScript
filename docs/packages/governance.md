@@ -87,6 +87,7 @@ This matrix assigns a support level to each documented package so contributors c
 | `@holoscript/plugin-legal-document`  | beta         | Plugin Team            |
 | `@holoscript/qm-bridge`              | beta         | Plugin Team            |
 | `@holoscript/radio-astronomy-plugin` | beta         | Plugin Team            |
+| `@holoscript/plugin-threat-intelligence` | beta     | Plugin Team            |
 | `@holoscript/plugin-urban-planning`  | beta         | Plugin Team            |
 
 ## Retired / Merged Packages
