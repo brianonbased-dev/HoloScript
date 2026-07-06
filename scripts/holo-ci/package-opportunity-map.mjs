@@ -60,6 +60,11 @@ function safeIncludes(haystack, needle) {
   return haystack.includes(String(needle || ''));
 }
 
+function isGeneratedWasmPackManifest(root, manifestPath) {
+  const rel = normalizeRepoPath(relative(root, manifestPath));
+  return /^packages\/compiler-wasm\/pkg(?:-node|-bundler)?\/package\.json$/.test(rel);
+}
+
 function walkPackageJsons(root) {
   const roots = [join(root, 'packages')];
   const found = [];
@@ -75,7 +80,9 @@ function walkPackageJsons(root) {
       for (const nested of readdirSync(nestedRoot, { withFileTypes: true })) {
         if (!nested.isDirectory()) continue;
         const nestedPackage = join(nestedRoot, nested.name, 'package.json');
-        if (existsSync(nestedPackage)) found.push(nestedPackage);
+        if (existsSync(nestedPackage) && !isGeneratedWasmPackManifest(root, nestedPackage)) {
+          found.push(nestedPackage);
+        }
       }
     }
   }
@@ -413,6 +420,23 @@ function buildMap(root = ROOT, since = SINCE) {
 }
 
 function runSelfTest() {
+  assert.equal(
+    isGeneratedWasmPackManifest('C:/repo', 'C:/repo/packages/compiler-wasm/pkg/package.json'),
+    true
+  );
+  assert.equal(
+    isGeneratedWasmPackManifest('C:/repo', 'C:/repo/packages/compiler-wasm/pkg-node/package.json'),
+    true
+  );
+  assert.equal(
+    isGeneratedWasmPackManifest('C:/repo', 'C:/repo/packages/compiler-wasm/pkg-bundler/package.json'),
+    true
+  );
+  assert.equal(
+    isGeneratedWasmPackManifest('C:/repo', 'C:/repo/packages/compiler-wasm/package.json'),
+    false
+  );
+
   const root = 'C:/repo';
   const packages = [
     {
