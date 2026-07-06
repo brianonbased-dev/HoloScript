@@ -22,6 +22,9 @@ export const DEFAULT_HOLOGRAPH_HOLOEMBED_RELEASE_MANIFEST = path.join(
   'holograph-holoembed-manifest.json'
 );
 
+export const DEFAULT_HOLOGRAPH_HOLOEMBED_STUDENT_SHA256 =
+  '2ed1808133738b3bb3c776420341b052d502ea0f7aed4485c3e876e0a71bb33f';
+
 export interface HoloGraphHoloEmbedManifest {
   schema: typeof HOLOGRAPH_HOLOEMBED_MANIFEST_SCHEMA;
   name?: string;
@@ -59,6 +62,7 @@ export interface CreateHoloGraphHoloEmbedSearchIndexOptions {
   queryProvider?: EmbeddingProvider;
   queryProviderOptions?: Omit<EmbeddingProviderOptions, 'provider'>;
   verifyArtifactSha256?: boolean;
+  expectedHoloEmbedQueryTowerSha256?: string;
 }
 
 export interface ResolveDefaultHoloGraphHoloEmbedManifestPathOptions {
@@ -141,6 +145,11 @@ export async function createHoloGraphHoloEmbedSearchIndexFromManifest(
   if (!manifest) {
     throw new Error('HoloGraph/HoloEmbed manifest or manifestPath is required.');
   }
+
+  verifyExpectedHoloEmbedQueryTowerSha256(
+    manifest,
+    options.expectedHoloEmbedQueryTowerSha256
+  );
 
   const baseDir = options.baseDir ?? (options.manifestPath ? path.dirname(options.manifestPath) : process.cwd());
   const graphPath = resolveManifestPath(baseDir, manifest.holoGraph.graphPath);
@@ -324,6 +333,21 @@ function verifyHoloGraphHoloEmbedArtifacts(
     expected.holoGraphNodeEmbeddings
   );
   verifyArtifactSha256('holoEmbedQueryTower', paths.holoEmbedQueryTower, expected.holoEmbedQueryTower);
+}
+
+function verifyExpectedHoloEmbedQueryTowerSha256(
+  manifest: HoloGraphHoloEmbedManifest,
+  expected: string | undefined
+): void {
+  if (!expected) return;
+  const actual = manifest.artifactSha256?.holoEmbedQueryTower;
+  if (actual !== expected) {
+    throw new Error(
+      `HoloGraph/HoloEmbed default student sha256 mismatch: expected ${expected}, manifest declares ${
+        actual ?? 'missing'
+      }.`
+    );
+  }
 }
 
 function verifyArtifactSha256(label: string, filePath: string | undefined, expected: string | undefined): void {

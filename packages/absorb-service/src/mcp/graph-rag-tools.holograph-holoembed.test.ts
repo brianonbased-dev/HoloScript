@@ -106,7 +106,7 @@ describe('holo_semantic_search HoloGraph/HoloEmbed manifest mode', () => {
     expect(result.results?.[0]?.name).toBe('target');
   });
 
-  it('uses the promoted local HoloGraph/HoloEmbed release when the manifest arg is omitted', async () => {
+  it('fails closed when the promoted local release does not declare the pinned HoloEmbed student hash', async () => {
     resetGraphRAGStateForTests();
     delete process.env.HOLOGRAPH_HOLOEMBED_MANIFEST;
     delete process.env.HOLO_ECOSYSTEM_ROOT;
@@ -162,16 +162,12 @@ describe('holo_semantic_search HoloGraph/HoloEmbed manifest mode', () => {
       query: 'default target',
       topK: 1,
     })) as {
-      indexSource?: string;
-      holoGraphHoloEmbedManifest?: string;
-      count?: number;
-      results?: Array<{ name?: string }>;
+      error?: string;
+      hint?: string;
     };
 
-    expect(result.indexSource).toBe('holograph-holoembed-manifest');
-    expect(result.holoGraphHoloEmbedManifest).toBe(manifestPath);
-    expect(result.count).toBe(1);
-    expect(result.results?.[0]?.name).toBe('defaultTarget');
+    expect(result.error).toMatch(/default student sha256 mismatch/);
+    expect(result.error).toContain(manifestPath);
   });
 
   it('can force the current absorbed index even when a promoted manifest exists', async () => {

@@ -15,6 +15,7 @@ import type { SymbolSearchIndex } from '../engine/SearchIndex';
 import { GraphRAGEngine, type EnrichedResult, type LLMProvider } from '../engine/GraphRAGEngine';
 import {
   createHoloGraphHoloEmbedSearchIndexFromManifest,
+  DEFAULT_HOLOGRAPH_HOLOEMBED_STUDENT_SHA256,
   resolveDefaultHoloGraphHoloEmbedManifestPath,
 } from '../engine/HoloGraphHoloEmbedManifest';
 import { LLMCreditExhaustedError } from '@holoscript/llm-provider';
@@ -277,10 +278,13 @@ async function resolveSemanticSearchIndex(
         };
   }
 
-  const manifestPath =
+  const explicitManifestPath =
     stringArg(args.holoGraphHoloEmbedManifest) ??
-    stringArg(process.env.HOLOGRAPH_HOLOEMBED_MANIFEST) ??
-    resolveDefaultHoloGraphHoloEmbedManifestPath();
+    stringArg(process.env.HOLOGRAPH_HOLOEMBED_MANIFEST);
+  const defaultManifestPath = explicitManifestPath
+    ? undefined
+    : resolveDefaultHoloGraphHoloEmbedManifestPath();
+  const manifestPath = explicitManifestPath ?? defaultManifestPath;
   if (!manifestPath) {
     return cachedEmbeddingIndex
       ? { index: cachedEmbeddingIndex, source: 'cached-embedding-index' }
@@ -293,6 +297,9 @@ async function resolveSemanticSearchIndex(
   try {
     const index = await createHoloGraphHoloEmbedSearchIndexFromManifest({
       manifestPath,
+      expectedHoloEmbedQueryTowerSha256: defaultManifestPath
+        ? DEFAULT_HOLOGRAPH_HOLOEMBED_STUDENT_SHA256
+        : undefined,
     });
     return {
       index,
@@ -301,7 +308,9 @@ async function resolveSemanticSearchIndex(
     };
   } catch (err) {
     return {
-      error: `HoloGraph/HoloEmbed manifest search failed: ${err instanceof Error ? err.message : String(err)}`,
+      error: `HoloGraph/HoloEmbed manifest search failed (${manifestPath}): ${
+        err instanceof Error ? err.message : String(err)
+      }`,
       hint: 'Verify the manifest schema, graphPath, nodeEmbeddingPath, and that the HoloEmbed query provider dimension matches the HoloGraph node embedding dimension.',
     };
   }

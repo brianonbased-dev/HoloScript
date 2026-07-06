@@ -1,4 +1,5 @@
 import * as fs from 'node:fs';
+import * as crypto from 'node:crypto';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -220,6 +221,73 @@ describe('HoloGraph/HoloEmbed manifest loader', () => {
 
     expect(first?.symbol.name).toBe('studentMatch');
     expect(first?.score).toBe(1);
+  });
+
+  it('fails closed when an expected HoloEmbed query tower hash is not declared', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'holograph-holodistill-pin-'));
+    const graphPath = path.join(dir, 'graph.json');
+    const nodeEmbPath = path.join(dir, 'nodeemb.npy');
+    const manifestPath = path.join(dir, 'manifest.json');
+    const studentPath = path.join(dir, 'student.safetensors');
+    fs.writeFileSync(studentPath, 'fixture');
+    const studentHash = crypto.createHash('sha256').update('fixture').digest('hex');
+
+    fs.writeFileSync(
+      graphPath,
+      JSON.stringify({
+        nodes: [
+          {
+            name: 'target',
+            type: 'function',
+            language: 'typescript',
+            filePath: 'packages/core/src/target.ts',
+            line: 7,
+            text: 'typescript function target',
+          },
+        ],
+      })
+    );
+    writeFloat32Npy(nodeEmbPath, [[1, 0, 0]]);
+    fs.writeFileSync(
+      manifestPath,
+      JSON.stringify({
+        schema: HOLOGRAPH_HOLOEMBED_MANIFEST_SCHEMA,
+        name: 'holodistill pin fixture',
+        holoGraph: {
+          kind: 'HoloGraphIndexedTower',
+          graphPath: 'graph.json',
+          nodeEmbeddingPath: 'nodeemb.npy',
+          nodeEmbeddingFormat: 'npy.float32.row-major.v1',
+          nodeCount: 1,
+          embeddingDim: 3,
+        },
+        holoEmbed: {
+          kind: 'HoloEmbedQueryTower',
+          provider: 'holodistill-m1a-student',
+          studentPath: 'student.safetensors',
+          embeddingDim: 3,
+        },
+        artifactSha256: {
+          holoEmbedQueryTower: studentHash,
+        },
+      })
+    );
+
+    await expect(
+      createHoloGraphHoloEmbedSearchIndexFromManifest({
+        manifestPath,
+        expectedHoloEmbedQueryTowerSha256: '0'.repeat(64),
+        queryProvider: new StaticHoloEmbedProvider(),
+      })
+    ).rejects.toThrow(/default student sha256 mismatch/);
+
+    await expect(
+      createHoloGraphHoloEmbedSearchIndexFromManifest({
+        manifestPath,
+        expectedHoloEmbedQueryTowerSha256: studentHash,
+        queryProvider: new StaticHoloEmbedProvider(),
+      })
+    ).resolves.toMatchObject({ size: 1 });
   });
 
   it('parses rank-2 little-endian float32 NPY matrices', () => {
