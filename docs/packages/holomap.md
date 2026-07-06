@@ -63,4 +63,5 @@ corepack pnpm run check:publish-surface
 corepack pnpm run check:package-architecture
 node scripts/holo-ci/frozen-lockfile-check.mjs
 corepack pnpm run package:opportunity-map
+corepack pnpm run check:package-doc-mold
 ```

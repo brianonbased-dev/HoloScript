@@ -17,6 +17,9 @@ does not make every live package a current cold-consume surface.
 - Package docs and ownership:
   `docs/packages/index.md`, `docs/packages/governance.md`, and
   `docs/PACKAGE_OWNERSHIP.md`.
+- Package doc mold checker and starter generator:
+  `corepack pnpm check:package-doc-mold` and
+  `node scripts/holo-ci/package-doc-mold.mjs --emit --package <name>`.
 - Git-history plus Absorb-cache package opportunity map:
   `corepack pnpm package:opportunity-map`.
 - Legacy agent package migrations:
@@ -31,32 +34,32 @@ $uri = 'https://registry.npmjs.org/-/v1/search?text=%40holoscript&size=250&quali
 
 ## Canonical Lanes
 
-| Lane | Packages | Rule |
-| --- | --- | --- |
-| v1 fleet | `@holoscript/core`, `@holoscript/cli`, `@holoscript/mcp-server`, `@holoscript/memory`, `@holoscript/holollama`, `@holoscript/holoscript-agent`, `@holoscript/xr-embodiment` | Must pass release readiness, package consumption, pack, and cold-install checks before publish. |
-| next cognition wave | `@holoscript/uaal`, `@holoscript/agent-protocol`, `@holoscript/framework`, `@holoscript/holo-vm`, `@holoscript/holo-runtime` | Public and strategically important, but not promoted into the v1 fleet lane until cold-consume closure is proven. |
-| supported tooling | `@holoscript/core-types`, `@holoscript/wasm`, `@holoscript/formatter`, `@holoscript/linter`, `@holoscript/lsp`, `tree-sitter-holoscript` | Keep documented and installable, but do not treat as fleet-required by default. |
-| supported runtime | `@holoscript/engine`, `@holoscript/runtime`, `@holoscript/mesh`, `@holoscript/crdt`, `@holoscript/crdt-spatial`, `@holoscript/mvc-schema`, `@holoscript/snn-webgpu`, `@holoscript/holoembed`, `@holoscript/security-sandbox`, `@holoscript/secrets-broker`, `@holoscript/platform`, `@holoscript/hololand-platform` | Keep as composable runtime modules; promote only when a consumer lane needs them directly. |
-| domain plugins | `@holoscript/plugin-*`, `@holoscript/*-plugin`, `@holoscript/qm-bridge`, `@holoscript/domain-plugin-template`, `@holoscript/assimp-plugin` | Long-tail packages. Each needs its own receipt before being promoted into a default install path. |
-| connectors | `@holoscript/connector-*` | Product integrations, not default fleet packages. Publish/update only with credential and platform contract review. |
-| service packages | `@holoscript/*-service`, `@holoscript/*-api`, `@holoscript/graphql-api`, `@holoscript/registry`, `@holoscript/marketplace-api` | Prefer service deployment artifacts over public library promises unless a client package is intentionally carved out. |
+| Lane                | Packages                                                                                                                                                                                                                                                                                                            | Rule                                                                                                                  |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| v1 fleet            | `@holoscript/core`, `@holoscript/cli`, `@holoscript/mcp-server`, `@holoscript/memory`, `@holoscript/holollama`, `@holoscript/holoscript-agent`, `@holoscript/xr-embodiment`                                                                                                                                         | Must pass release readiness, package consumption, pack, and cold-install checks before publish.                       |
+| next cognition wave | `@holoscript/uaal`, `@holoscript/agent-protocol`, `@holoscript/framework`, `@holoscript/holo-vm`, `@holoscript/holo-runtime`                                                                                                                                                                                        | Public and strategically important, but not promoted into the v1 fleet lane until cold-consume closure is proven.     |
+| supported tooling   | `@holoscript/core-types`, `@holoscript/wasm`, `@holoscript/formatter`, `@holoscript/linter`, `@holoscript/lsp`, `tree-sitter-holoscript`                                                                                                                                                                            | Keep documented and installable, but do not treat as fleet-required by default.                                       |
+| supported runtime   | `@holoscript/engine`, `@holoscript/runtime`, `@holoscript/mesh`, `@holoscript/crdt`, `@holoscript/crdt-spatial`, `@holoscript/mvc-schema`, `@holoscript/snn-webgpu`, `@holoscript/holoembed`, `@holoscript/security-sandbox`, `@holoscript/secrets-broker`, `@holoscript/platform`, `@holoscript/hololand-platform` | Keep as composable runtime modules; promote only when a consumer lane needs them directly.                            |
+| domain plugins      | `@holoscript/plugin-*`, `@holoscript/*-plugin`, `@holoscript/qm-bridge`, `@holoscript/domain-plugin-template`, `@holoscript/assimp-plugin`                                                                                                                                                                          | Long-tail packages. Each needs its own receipt before being promoted into a default install path.                     |
+| connectors          | `@holoscript/connector-*`                                                                                                                                                                                                                                                                                           | Product integrations, not default fleet packages. Publish/update only with credential and platform contract review.   |
+| service packages    | `@holoscript/*-service`, `@holoscript/*-api`, `@holoscript/graphql-api`, `@holoscript/registry`, `@holoscript/marketplace-api`                                                                                                                                                                                      | Prefer service deployment artifacts over public library promises unless a client package is intentionally carved out. |
 
 ## Legacy And Redundant Names
 
 Do not unpublish historical packages. Use deprecation notices, docs, and shim
 packages so existing consumers get a clear migration path.
 
-| Legacy package | Canonical replacement | Action |
-| --- | --- | --- |
-| `@holoscript/parser` | `@holoscript/core` | Deprecated on npm; keep docs pointing at core parser exports. |
-| `@holoscript/compiler` | `@holoscript/core` and `@holoscript/cli` | Deprecated on npm; compiler implementations live in core and user commands live in CLI. |
-| `@holoscript/traits` | `@holoscript/core` | Deprecated on npm; traits are not a standalone canonical package. |
-| `@holoscript/agent-sdk` | `@holoscript/framework`, `@holoscript/mesh`, `@holoscript/memory` | Deprecated on npm; see `docs/handbooks/npm-agent-package-migrations.md`. |
-| `@holoscript/intelligence` | `@holoscript/framework`, `@holoscript/holoscript-agent`, `@holoscript/memory` | Deprecated on npm; see `docs/handbooks/npm-agent-package-migrations.md`. |
-| `@holoscript/state-sync` | `@holoscript/crdt`, `@holoscript/crdt-spatial`, `@holoscript/mesh` | Deprecated on npm; see `docs/handbooks/npm-agent-package-migrations.md`. |
-| `holoscript` | `@holoscript/cli` | Keep only as an optional compatibility wrapper if revived; the canonical install is scoped. |
-| `create-holoscript-app` | `create-holoscript` | Compatibility sibling; keep repo docs on `create-holoscript` and release-sync before promotion. |
-| `@holoscript/sdk` | `@holoscript/core` | Compatibility shim only; do not describe as the primary SDK. |
+| Legacy package             | Canonical replacement                                                         | Action                                                                                          |
+| -------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `@holoscript/parser`       | `@holoscript/core`                                                            | Deprecated on npm; keep docs pointing at core parser exports.                                   |
+| `@holoscript/compiler`     | `@holoscript/core` and `@holoscript/cli`                                      | Deprecated on npm; compiler implementations live in core and user commands live in CLI.         |
+| `@holoscript/traits`       | `@holoscript/core`                                                            | Deprecated on npm; traits are not a standalone canonical package.                               |
+| `@holoscript/agent-sdk`    | `@holoscript/framework`, `@holoscript/mesh`, `@holoscript/memory`             | Deprecated on npm; see `docs/handbooks/npm-agent-package-migrations.md`.                        |
+| `@holoscript/intelligence` | `@holoscript/framework`, `@holoscript/holoscript-agent`, `@holoscript/memory` | Deprecated on npm; see `docs/handbooks/npm-agent-package-migrations.md`.                        |
+| `@holoscript/state-sync`   | `@holoscript/crdt`, `@holoscript/crdt-spatial`, `@holoscript/mesh`            | Deprecated on npm; see `docs/handbooks/npm-agent-package-migrations.md`.                        |
+| `holoscript`               | `@holoscript/cli`                                                             | Keep only as an optional compatibility wrapper if revived; the canonical install is scoped.     |
+| `create-holoscript-app`    | `create-holoscript`                                                           | Compatibility sibling; keep repo docs on `create-holoscript` and release-sync before promotion. |
+| `@holoscript/sdk`          | `@holoscript/core`                                                            | Compatibility shim only; do not describe as the primary SDK.                                    |
 
 ## Next Package Strategy
 
@@ -75,6 +78,30 @@ packages so existing consumers get a clear migration path.
    and prefer fostering an existing hot public package when the map shows docs,
    governance, or ownership gaps.
 
+## Package Doc Mold
+
+Newly fostered package pages should use the same minimum shape so the curation
+lane stays mechanical instead of memory-based:
+
+- `Install`
+- `Use`
+- `Package Surface`
+- `Strategy Role`
+- `Validation`
+
+Generate a starter from the package manifest when possible:
+
+```powershell
+node scripts/holo-ci/package-doc-mold.mjs --emit --package @holoscript/ui
+```
+
+Then edit the surface and strategy text with package-specific evidence, add the
+page to `docs/packages/index.md` and `docs/packages/governance.md`, and run:
+
+```powershell
+corepack pnpm check:package-doc-mold
+```
+
 ## Required Checks
 
 Run these before claiming the npm surface is coherent:
@@ -82,6 +109,7 @@ Run these before claiming the npm surface is coherent:
 ```powershell
 corepack pnpm check:publish-surface
 corepack pnpm check:package-architecture
+corepack pnpm check:package-doc-mold
 node scripts/holo-ci/check-npm-v1-release-readiness.mjs --require-built
 corepack pnpm check:npm-deprecations
 corepack pnpm check:holollama-consumption
