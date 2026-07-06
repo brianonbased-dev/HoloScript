@@ -8,13 +8,14 @@
  * - Determinism: 10x repeat of same video+seed → byte-identical manifests
  * - Browser responsiveness: p99 stays under target; max catches hard hangs
  * - Regression CI gate: p50 < 16s, p99 < 45s per 2k-frame video
- * - Dashboard output: JSON report written to __tests__/holomap-perf-report.json
+ * - Dashboard output: JSON report written to .scratch by default; tracked report
+ *   refresh requires HOLOMAP_UPDATE_PERF_REPORT=1
  */
 
 import { describe, expect, it } from 'vitest';
 import { createHash } from 'node:crypto';
-import { writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import {
   createHoloMapRuntime,
   HOLOMAP_DEFAULTS,
@@ -99,6 +100,11 @@ const PATCH = 14 * 14 * 3;
 const MAIN_THREAD_STALL_MS = 500;
 const CI_TARGET_P50_S = 16;
 const CI_TARGET_P99_S = 45;
+const TRACKED_PERF_REPORT_PATH = resolve(__dirname, 'holomap-perf-report.json');
+const SCRATCH_PERF_REPORT_PATH = resolve(
+  __dirname,
+  '../../../../../.scratch/holomap-perf/holomap-perf-report.json'
+);
 
 function ramp(n: number, base: number): Float32Array {
   const a = new Float32Array(n);
@@ -129,6 +135,22 @@ const BENCHMARK_WEIGHT_BUFFER = BENCHMARK_WEIGHT_BYTES.buffer.slice(
 
 async function resolveBenchmarkWeights(weightCid: string): Promise<ArrayBuffer | undefined> {
   return weightCid === BENCHMARK_WEIGHT_CID ? BENCHMARK_WEIGHT_BUFFER.slice(0) : undefined;
+}
+
+function resolvePerfReportPath(): {
+  path: string;
+  mode: 'scratch' | 'tracked-update' | 'explicit';
+} {
+  const explicitPath = process.env.HOLOMAP_PERF_REPORT_PATH?.trim();
+  if (explicitPath) {
+    return { path: resolve(explicitPath), mode: 'explicit' };
+  }
+
+  if (process.env.HOLOMAP_UPDATE_PERF_REPORT === '1') {
+    return { path: TRACKED_PERF_REPORT_PATH, mode: 'tracked-update' };
+  }
+
+  return { path: SCRATCH_PERF_REPORT_PATH, mode: 'scratch' };
 }
 
 function summarizeLatency(
@@ -365,6 +387,11 @@ describe('HoloMap Sprint-3 — Performance Benchmark Suite', () => {
   it('writes performance dashboard JSON report', () => {
     // Find the 2k result for the CI gate summary
     const result2k = benchResults.find((b) => b.frameCount === 2000);
+    expect(benchResults.map((b) => b.frameCount).sort((a, b) => a - b)).toEqual([
+      500, 1000, 2000, 5000,
+    ]);
+    expect(result2k).toBeDefined();
+
     const p50_2k_s = result2k ? (result2k.p50 * 2000) / 1000 : 0;
     const p99_2k_s = result2k ? (result2k.p99 * 2000) / 1000 : 0;
     const stallCount_2k = result2k?.stallCount ?? 0;
@@ -396,8 +423,12 @@ describe('HoloMap Sprint-3 — Performance Benchmark Suite', () => {
       },
     };
 
-    const reportPath = resolve(__dirname, 'holomap-perf-report.json');
+    expect(dashboard.ciGate.passed).toBe(true);
+
+    const reportTarget = resolvePerfReportPath();
+    const reportPath = reportTarget.path;
+    mkdirSync(dirname(reportPath), { recursive: true });
     writeFileSync(reportPath, JSON.stringify(dashboard, null, 2));
-    console.log(`[perf] Dashboard written to ${reportPath}`);
+    console.log(`[perf] Dashboard written to ${reportPath} (${reportTarget.mode})`);
   });
 });
