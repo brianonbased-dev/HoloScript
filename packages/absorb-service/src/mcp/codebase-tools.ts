@@ -14,6 +14,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { execFileSync } from 'child_process';
+import { createHash } from 'crypto';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { isGraphRAGReady, resetGraphRAGStateForTests, setGraphRAGState } from './graph-rag-tools';
 import { ABSORB_CODEBASE_LOAD_ERROR, ABSORB_HOLO_ABSORB_REPO_HINT } from './graph-rag-prerequisite';
@@ -347,9 +349,105 @@ function createAbsorbJob(rootDir: string): string {
 // =============================================================================
 
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
+const DEFAULT_SCAN_MAX_FILES = 10_000;
 const GRAPH_UNAVAILABLE_RECEIPT_SCHEMA = 'holoscript.codebase.graph-unavailable-receipt.v0.1.0';
 const LOCAL_ADAPTER_RECOMMENDATION =
   'Route this request through a local HoloShell codebase adapter in the same filesystem namespace as the requested path, or pass sourceFiles inline to holo_absorb_repo before trusting GraphRAG output.';
+const COVERAGE_EXCLUDE_NAMES = new Set([
+  'node_modules',
+  '.git',
+  'dist',
+  'build',
+  'out',
+  'target',
+  '.next',
+  '.nuxt',
+  '.output',
+  '__pycache__',
+  '.pytest_cache',
+  'vendor',
+  '.venv',
+  'venv',
+  'env',
+  '.env',
+  'coverage',
+  '.nyc_output',
+  '.stryker-tmp',
+  '.idea',
+  '.vscode',
+  '.vs',
+  'package-lock.json',
+  'pnpm-lock.yaml',
+  'yarn.lock',
+]);
+const COVERAGE_NON_ABSORBABLE_EXT = new Set([
+  'png',
+  'jpg',
+  'jpeg',
+  'gif',
+  'webp',
+  'svg',
+  'ico',
+  'bmp',
+  'tif',
+  'tiff',
+  'avif',
+  'heic',
+  'mp4',
+  'mov',
+  'avi',
+  'webm',
+  'mkv',
+  'mp3',
+  'wav',
+  'ogg',
+  'flac',
+  'aac',
+  'm4a',
+  'woff',
+  'woff2',
+  'ttf',
+  'otf',
+  'eot',
+  'zip',
+  'tar',
+  'gz',
+  'tgz',
+  'bz2',
+  'xz',
+  'rar',
+  '7z',
+  'pdf',
+  'glb',
+  'gltf',
+  'fbx',
+  'obj',
+  'stl',
+  'ply',
+  'usdz',
+  'draco',
+  'ktx2',
+  'basis',
+  'bin',
+  'wasm',
+  'exe',
+  'dll',
+  'so',
+  'dylib',
+  'node',
+  'map',
+  'onnx',
+  'safetensors',
+  'gguf',
+  'pt',
+  'pth',
+  'ckpt',
+  'npy',
+  'npz',
+  'parquet',
+  'lock',
+  'ds_store',
+]);
 
 interface GraphCacheEnvelope {
   version: 1 | 2;
@@ -380,7 +478,8 @@ type GraphUnavailableReason =
   | 'rootDir_unavailable'
   | 'cache_stale'
   | 'cache_missing'
-  | 'cache_root_mismatch';
+  | 'cache_root_mismatch'
+  | 'cache_incomplete';
 
 interface GraphUnavailableReceipt {
   schemaVersion: typeof GRAPH_UNAVAILABLE_RECEIPT_SCHEMA;
@@ -396,6 +495,19 @@ interface GraphUnavailableReceipt {
   authoritative: false;
   recommendation: string;
   createdAt: string;
+}
+
+interface GraphCoverageStatus {
+  available: boolean;
+  source: 'git-ls-files' | 'unavailable';
+  graphFileCount: number;
+  trackedCandidateCount?: number;
+  expectedGraphFileCount?: number;
+  defaultMaxFiles: number;
+  complete?: boolean;
+  ratio?: number;
+  cappedByMaxFiles?: boolean;
+  error?: string;
 }
 
 function getCacheDir(): string {
@@ -428,6 +540,92 @@ function rootMatchesCurrentRepo(
 ): boolean {
   if (!rootDir) return false;
   return normalizeRootForComparison(rootDir) === normalizeRootForComparison(currentRepoRoot);
+}
+
+function isCoverageExcludedPath(filePath: string): boolean {
+  const segments = filePath.split(/[\\/]+/);
+  for (const segment of segments) {
+    if (COVERAGE_EXCLUDE_NAMES.has(segment)) return true;
+  }
+
+  const basename = path.basename(filePath).toLowerCase();
+  if (COVERAGE_EXCLUDE_NAMES.has(basename)) return true;
+  if (basename.endsWith('.min.js') || basename.endsWith('.min.css')) return true;
+
+  const dot = basename.lastIndexOf('.');
+  const ext = dot >= 0 ? basename.slice(dot + 1) : '';
+  return COVERAGE_NON_ABSORBABLE_EXT.has(ext);
+}
+
+function countGitTrackedAbsorbableFiles(rootDir: string): number | null {
+  try {
+    const output = execFileSync('git', ['ls-files'], {
+      cwd: rootDir,
+      encoding: 'utf-8',
+      windowsHide: true,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      maxBuffer: 64 * 1024 * 1024,
+    });
+    return output
+      .split(/\r?\n/)
+      .filter((line) => line.length > 0)
+      .filter((line) => !isCoverageExcludedPath(line)).length;
+  } catch {
+    return null;
+  }
+}
+
+function buildGraphCoverageStatus(
+  rootDir: string | null | undefined,
+  graphFileCount: number
+): GraphCoverageStatus {
+  const safeGraphFileCount = Number.isFinite(graphFileCount) ? Math.max(0, graphFileCount) : 0;
+  if (!rootDir) {
+    return {
+      available: false,
+      source: 'unavailable',
+      graphFileCount: safeGraphFileCount,
+      defaultMaxFiles: DEFAULT_SCAN_MAX_FILES,
+      error: 'rootDir missing',
+    };
+  }
+
+  const trackedCandidateCount = countGitTrackedAbsorbableFiles(rootDir);
+  if (trackedCandidateCount === null) {
+    return {
+      available: false,
+      source: 'unavailable',
+      graphFileCount: safeGraphFileCount,
+      defaultMaxFiles: DEFAULT_SCAN_MAX_FILES,
+      error: 'git ls-files unavailable',
+    };
+  }
+
+  const expectedGraphFileCount = Math.min(trackedCandidateCount, DEFAULT_SCAN_MAX_FILES);
+  const complete = safeGraphFileCount >= expectedGraphFileCount;
+  return {
+    available: true,
+    source: 'git-ls-files',
+    graphFileCount: safeGraphFileCount,
+    trackedCandidateCount,
+    expectedGraphFileCount,
+    defaultMaxFiles: DEFAULT_SCAN_MAX_FILES,
+    complete,
+    ratio:
+      expectedGraphFileCount === 0
+        ? 1
+        : Number((safeGraphFileCount / expectedGraphFileCount).toFixed(4)),
+    cappedByMaxFiles: trackedCandidateCount > DEFAULT_SCAN_MAX_FILES,
+  };
+}
+
+function hashInlineSourceFiles(sourceFiles: SourceFileEntry[]): Record<string, string> {
+  return Object.fromEntries(
+    sourceFiles.map((file) => [
+      file.path.replace(/\\/g, '/'),
+      createHash('sha256').update(file.content).digest('hex'),
+    ])
+  );
 }
 
 async function getCurrentGitCommit(rootDir: string | null | undefined): Promise<string | null> {
@@ -622,6 +820,7 @@ function getCacheAge(): {
   rootDir?: string;
   stats?: Record<string, unknown>;
   gitCommitHash?: string;
+  fileHashCount?: number;
   embeddingProvider?: string;
   embeddingPolicy?: GraphRAGEmbeddingPolicyReceipt;
 } {
@@ -636,6 +835,7 @@ function getCacheAge(): {
       rootDir: envelope.rootDir,
       stats: envelope.stats,
       gitCommitHash: envelope.gitCommitHash,
+      fileHashCount: envelope.fileHashes ? Object.keys(envelope.fileHashes).length : undefined,
       embeddingProvider: envelope.embeddingProvider,
       embeddingPolicy: envelope.embeddingPolicy,
     };
@@ -1418,15 +1618,19 @@ async function runFullScan(
   }
 
   // Compute git commit hash and file hashes for v2 cache
-  const detector = new GitChangeDetector(primaryRootDir);
   let gitCommitHash: string | undefined;
   let fileHashes: Record<string, string> | undefined;
 
-  if (detector.isGitRepo()) {
-    gitCommitHash = detector.getHeadCommit() ?? undefined;
-    const filePaths = (scanResult as { files: any[] }).files.map((f: any) => f.path);
-    const hashes = detector.computeFileHashes(filePaths);
-    fileHashes = Object.fromEntries(hashes.map((h: any) => [h.filePath, h.hash]));
+  if (inlineSourceFiles) {
+    fileHashes = hashInlineSourceFiles(inlineSourceFiles);
+  } else {
+    const detector = new GitChangeDetector(primaryRootDir);
+    if (detector.isGitRepo()) {
+      gitCommitHash = detector.getHeadCommit() ?? undefined;
+      const filePaths = (scanResult as { files: any[] }).files.map((f: any) => f.path);
+      const hashes = detector.computeFileHashes(filePaths);
+      fileHashes = Object.fromEntries(hashes.map((h: any) => [h.filePath, h.hash]));
+    }
   }
 
   graph.gitCommitHash = gitCommitHash;
@@ -2550,23 +2754,53 @@ async function handleGraphStatus(): Promise<unknown> {
     !cacheMatchesCwd || cacheGitMatchesHead(activeGitCommitHash, currentGitCommitHash);
   const diskCacheGitMatchesHead =
     !diskCacheMatchesCwd || cacheGitMatchesHead(cache.gitCommitHash, currentGitCommitHash);
+  const diskGraphFileCount =
+    cache.fileHashCount ??
+    Number((cache.stats as { totalFiles?: unknown } | undefined)?.totalFiles ?? 0);
+  const inMemoryGraphFileCount =
+    cachedGraph !== null
+      ? typeof (cachedGraph as { getFilePaths?: () => unknown[] }).getFilePaths === 'function'
+        ? (cachedGraph as { getFilePaths: () => unknown[] }).getFilePaths().length
+        : Number(
+            (cachedGraph as { getStats?: () => { totalFiles?: unknown } }).getStats?.()
+              ?.totalFiles ?? 0
+          )
+      : undefined;
+  const activeGraphFileCount = inMemoryGraphFileCount ?? diskGraphFileCount;
+  const activeCoverage = buildGraphCoverageStatus(
+    cacheMatchesCwd || diskCacheMatchesCwd ? currentCwd : cacheRootDir,
+    activeGraphFileCount
+  );
+  const diskCoverage = buildGraphCoverageStatus(
+    diskCacheMatchesCwd ? currentCwd : cache.rootDir,
+    diskGraphFileCount
+  );
+  const activeCoverageComplete = !activeCoverage.available || activeCoverage.complete !== false;
+  const diskCoverageComplete = !diskCoverage.available || diskCoverage.complete !== false;
   const graphRAGState = getGraphRAGStateStatus();
   const graphRAGMatchesCwd = rootMatchesCurrentRepo(graphRAGState.rootDir, currentCwd);
   const graphRAGFreshByAge =
     graphRAGState.ageMs === null ? graphRAGState.ready : graphRAGState.ageMs < CACHE_MAX_AGE_MS;
+  const localGraphCoverageComplete =
+    cachedGraph === null && !cache.exists ? true : activeCoverageComplete;
   const localGraphLive =
-    graphRAGState.ready && graphRAGMatchesCwd && graphRAGFreshByAge && activeGitMatchesHead;
+    graphRAGState.ready &&
+    graphRAGMatchesCwd &&
+    graphRAGFreshByAge &&
+    activeGitMatchesHead &&
+    localGraphCoverageComplete;
 
   const graphAuthoritative =
     (cacheMatchesCwd &&
       (cachedGraph !== null || cache.exists) &&
       activeFreshByAge &&
-      activeGitMatchesHead) ||
+      activeGitMatchesHead &&
+      activeCoverageComplete) ||
     localGraphLive;
 
   const freshForCurrentRepo = graphAuthoritative;
   const diskCacheFreshForCurrentRepo =
-    diskCacheMatchesCwd && diskCacheFreshByAge && diskCacheGitMatchesHead;
+    diskCacheMatchesCwd && diskCacheFreshByAge && diskCacheGitMatchesHead && diskCoverageComplete;
 
   const requestedPath = cacheRootDir || graphRAGState.rootDir;
   const graphUnavailableReceipt = graphAuthoritative
@@ -2576,8 +2810,13 @@ async function handleGraphStatus(): Promise<unknown> {
           (!cacheMatchesCwd && (cache.exists || cachedGraph !== null)) ||
           (!graphRAGMatchesCwd && graphRAGState.ready)
             ? 'cache_root_mismatch'
-            : cache.exists || cachedGraph !== null || graphRAGState.ready
+            : (cache.exists || cachedGraph !== null || graphRAGState.ready) &&
+                (!activeFreshByAge || !activeGitMatchesHead)
               ? 'cache_stale'
+              : (cache.exists || cachedGraph !== null) && !activeCoverageComplete
+              ? 'cache_incomplete'
+              : cache.exists || cachedGraph !== null || graphRAGState.ready
+                ? 'cache_stale'
               : 'cache_missing',
         requestedPath,
         runtimePath: requestedPath ? path.resolve(requestedPath) : null,
@@ -2592,6 +2831,7 @@ async function handleGraphStatus(): Promise<unknown> {
     graphAuthoritative,
     freshForCurrentRepo,
     currentCwd,
+    coverage: activeCoverage,
     localGraph: {
       ready: graphRAGState.ready,
       rootDir: graphRAGState.rootDir,
@@ -2619,6 +2859,7 @@ async function handleGraphStatus(): Promise<unknown> {
           gitCommitHash: cache.gitCommitHash ?? null,
           currentGitCommitHash,
           gitCommitMatchesHead: diskCacheGitMatchesHead,
+          coverage: diskCoverage,
           stats: cache.stats,
           embeddingProvider: cache.embeddingProvider ?? embeddingPolicy.provider,
           embeddingPolicy,
@@ -2626,9 +2867,11 @@ async function handleGraphStatus(): Promise<unknown> {
             ? `Cache rootDir (${cache.rootDir}) does not match current working directory (${currentCwd}). Call holo_absorb_repo for this workspace.`
             : !diskCacheGitMatchesHead
               ? `Cache was built at git ${shortGitHash(cache.gitCommitHash)} but current HEAD is ${shortGitHash(currentGitCommitHash)}. Call holo_absorb_repo with force:true to refresh.`
-            : diskCacheFreshByAge
-              ? 'Cache is fresh — query tools will auto-load it without re-scanning.'
-              : 'Cache is older than 24h — call holo_absorb_repo to refresh.',
+              : !diskCoverageComplete
+                ? `Cache covers ${diskCoverage.graphFileCount}/${diskCoverage.expectedGraphFileCount ?? 'unknown'} expected files for this checkout. Refresh with holo_absorb_repo before trusting whole-repo queries.`
+                : diskCacheFreshByAge
+                  ? 'Cache is fresh — query tools will auto-load it without re-scanning.'
+                  : 'Cache is older than 24h — call holo_absorb_repo to refresh.',
         }
       : {
           exists: false,

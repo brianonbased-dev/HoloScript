@@ -32,8 +32,15 @@ function writeGraphCache(
   cacheDir: string,
   rootDir: string,
   timestamp: number,
-  gitCommitHash?: string
+  gitCommitHash?: string,
+  fileHashCount?: number
 ): void {
+  const fileHashes =
+    fileHashCount === undefined
+      ? undefined
+      : Object.fromEntries(
+          Array.from({ length: fileHashCount }, (_, i) => [`src/generated-${i}.ts`, String(i)])
+        );
   fs.mkdirSync(cacheDir, { recursive: true });
   fs.writeFileSync(
     path.join(cacheDir, 'graph-cache.json'),
@@ -41,9 +48,10 @@ function writeGraphCache(
       version: 2,
       rootDir,
       timestamp,
-      stats: { totalFiles: 12, totalSymbols: 34 },
+      stats: { totalFiles: fileHashCount ?? 12, totalSymbols: 34 },
       graphJson: '{}',
       gitCommitHash,
+      fileHashes,
     }),
     'utf-8'
   );
@@ -147,7 +155,7 @@ describe('holo_absorb_repo root validation', () => {
     // Use process.cwd() as rootDir so the cache matches the current workspace
     const requestedRoot = process.cwd();
     process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
-    writeGraphCache(cacheDir, requestedRoot, Date.now() - 5 * 60 * 1000);
+    writeGraphCache(cacheDir, requestedRoot, Date.now() - 5 * 60 * 1000, undefined, 10_000);
 
     const status = (await handleCodebaseTool('holo_graph_status', {})) as {
       graphAuthoritative?: boolean;
@@ -183,7 +191,8 @@ describe('holo_absorb_repo root validation', () => {
       cacheDir,
       requestedRoot,
       Date.now() - 5 * 60 * 1000,
-      '1111111111111111111111111111111111111111'
+      '1111111111111111111111111111111111111111',
+      10_000
     );
 
     const status = (await handleCodebaseTool('holo_graph_status', {})) as {
@@ -225,7 +234,7 @@ describe('holo_absorb_repo root validation', () => {
     const requestedRoot = process.cwd();
     const head = getHeadCommit();
     process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
-    writeGraphCache(cacheDir, requestedRoot, Date.now() - 5 * 60 * 1000, head);
+    writeGraphCache(cacheDir, requestedRoot, Date.now() - 5 * 60 * 1000, head, 10_000);
 
     const status = (await handleCodebaseTool('holo_graph_status', {})) as {
       graphAuthoritative?: boolean;
@@ -248,6 +257,47 @@ describe('holo_absorb_repo root validation', () => {
     expect(status.diskCache?.currentGitCommitHash).toBe(head);
     expect(status.diskCache?.gitCommitMatchesHead).toBe(true);
     expect(status.graphUnavailableReceipt).toBeUndefined();
+  });
+
+  it('marks a fresh git-current cache incomplete when coverage is below the scanner target', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-incomplete-cache-'));
+    const requestedRoot = process.cwd();
+    const head = getHeadCommit();
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    writeGraphCache(cacheDir, requestedRoot, Date.now() - 5 * 60 * 1000, head, 1);
+
+    const status = (await handleCodebaseTool('holo_graph_status', {})) as {
+      graphAuthoritative?: boolean;
+      freshForCurrentRepo?: boolean;
+      graphUnavailableReceipt?: GraphUnavailableReceipt;
+      coverage?: { complete?: boolean; graphFileCount?: number; expectedGraphFileCount?: number };
+      diskCache?: {
+        fresh?: boolean;
+        authoritative?: boolean;
+        coverage?: {
+          complete?: boolean;
+          graphFileCount?: number;
+          expectedGraphFileCount?: number;
+        };
+        hint?: string;
+      };
+    };
+
+    expect(status.graphAuthoritative).toBe(false);
+    expect(status.freshForCurrentRepo).toBe(false);
+    expect(status.coverage?.complete).toBe(false);
+    expect(status.coverage?.graphFileCount).toBe(1);
+    expect(status.coverage?.expectedGraphFileCount).toBeGreaterThan(1);
+    expect(status.diskCache?.fresh).toBe(false);
+    expect(status.diskCache?.authoritative).toBe(false);
+    expect(status.diskCache?.coverage?.complete).toBe(false);
+    expect(status.diskCache?.hint).toContain('Cache covers 1/');
+    expect(status.graphUnavailableReceipt).toMatchObject({
+      kind: 'GraphUnavailableReceipt',
+      reason: 'cache_incomplete',
+      authoritative: false,
+    });
   });
 
   it('repairs a git-stale cache through incremental stats without embeddings', async () => {
@@ -500,17 +550,30 @@ describe('holo_absorb_repo sourceFiles upload', () => {
       graphAuthoritative?: boolean;
       freshForCurrentRepo?: boolean;
       graphUnavailableReceipt?: GraphUnavailableReceipt;
-      diskCache?: { rootDir?: string; freshForCurrentRepo?: boolean };
+      coverage?: { complete?: boolean; graphFileCount?: number };
+      diskCache?: {
+        rootDir?: string;
+        freshForCurrentRepo?: boolean;
+        coverage?: { complete?: boolean; graphFileCount?: number };
+      };
       localGraph?: { rootDir?: string | null; freshForCurrentRepo?: boolean };
     };
 
-    expect(status.graphAuthoritative).toBe(true);
-    expect(status.freshForCurrentRepo).toBe(true);
-    expect(status.graphUnavailableReceipt).toBeUndefined();
+    expect(status.graphAuthoritative).toBe(false);
+    expect(status.freshForCurrentRepo).toBe(false);
+    expect(status.coverage?.complete).toBe(false);
+    expect(status.coverage?.graphFileCount).toBe(1);
+    expect(status.graphUnavailableReceipt).toMatchObject({
+      kind: 'GraphUnavailableReceipt',
+      reason: 'cache_incomplete',
+      authoritative: false,
+    });
     expect(status.diskCache?.rootDir).toBe(path.resolve(requestedRoot));
-    expect(status.diskCache?.freshForCurrentRepo).toBe(true);
+    expect(status.diskCache?.freshForCurrentRepo).toBe(false);
+    expect(status.diskCache?.coverage?.complete).toBe(false);
+    expect(status.diskCache?.coverage?.graphFileCount).toBe(1);
     expect(status.localGraph?.rootDir).toBe(path.resolve(requestedRoot));
-    expect(status.localGraph?.freshForCurrentRepo).toBe(true);
+    expect(status.localGraph?.freshForCurrentRepo).toBe(false);
   }, 15_000);
 
   it('returns an extractive cited answer when holo_ask_codebase cannot reach an LLM', async () => {
