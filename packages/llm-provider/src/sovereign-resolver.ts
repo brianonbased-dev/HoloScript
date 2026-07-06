@@ -9,11 +9,15 @@
  * the policy (studio's lib/brittney/provider.ts) should converge here.
  *
  * Auto-detect priority (no explicit provider):
- *   1. fleet  — Vast serverless sovereign serving fleet (P.008), route-probed
- *               per request so cold pools can fall back while they wake
- *   2. cloud  — pinned sovereign serving endpoint (BrittneyCloudAdapter)
- *   3. ollama — sovereign local model (on-device / same-box)
- *   4. anthropic / xai / openai — BYOK frontier fallback, in that order
+ *   1. fleet     — Vast serverless sovereign serving fleet (P.008), route-probed
+ *                  per request so cold pools can fall back while they wake
+ *   2. cloud     — pinned sovereign serving endpoint (BrittneyCloudAdapter)
+ *   3. holollama — sovereign local inference layer (llama.cpp llama-server, D.117),
+ *                  when HOLOLLAMA_URL is set; preferred over legacy Ollama
+ *   4. ollama    — legacy local model (OLLAMA_HOST), kept for back-compat
+ *   5. anthropic / xai / openai — BYOK frontier fallback, in that order
+ *   6. holollama (default :18080) — TERMINAL sovereign default (D.117), instead of
+ *                  a bare "nothing configured" throw
  *
  * Env surface (universal names first, BRITTNEY_* kept as compat aliases):
  *   HOLO_LLM_PROVIDER | BRITTNEY_PROVIDER         explicit override
@@ -37,7 +41,23 @@ import { LocalLLMAdapter } from './adapters/local-llm';
 import { BrittneyCloudAdapter } from './adapters/brittney-cloud';
 import { VastServerlessAdapter } from './adapters/vast-serverless';
 
-export type SovereignProviderName = 'fleet' | 'cloud' | 'ollama' | 'anthropic' | 'xai' | 'openai';
+export type SovereignProviderName =
+  | 'fleet'
+  | 'cloud'
+  | 'holollama'
+  | 'ollama'
+  | 'anthropic'
+  | 'xai'
+  | 'openai';
+
+/**
+ * HoloLlama — the sovereign LOCAL inference layer (D.117: retire Ollama; run
+ * llama-server direct). llama.cpp exposes OpenAI /v1/chat/completions, so we drive
+ * it through LocalLLMAdapter with nativeOllamaApi:false (the adapter only auto-picks
+ * Ollama's /api/chat when the URL contains :11434). Preferred over Ollama and the
+ * TERMINAL sovereign default (no bare "nothing configured" throw).
+ */
+const HOLOLLAMA_DEFAULT_URL = 'http://127.0.0.1:18080';
 
 export interface ResolvedSovereignProvider {
   provider: ILLMProvider;
@@ -105,6 +125,8 @@ export function resolveSovereignProvider(
       break; // fall through to auto-detect
     case 'cloud':
       return resolveCloud(cloudUrl, opts);
+    case 'holollama':
+      return resolveHoloLlama(undefined, opts);
     case 'ollama':
       return resolveOllama(ollamaHost, opts);
     case 'anthropic':
@@ -126,18 +148,22 @@ export function resolveSovereignProvider(
   }
 
   // Auto-detect: sovereign first, BYOK frontier last (F.112 ecosystem-wide).
+  // D.117: HoloLlama (llama.cpp llama-server) is the sovereign LOCAL layer — preferred
+  // over legacy Ollama, and the TERMINAL sovereign default so a bare-config call lands
+  // on HoloLlama at :18080 rather than throwing. Ollama stays reachable via OLLAMA_HOST
+  // (legacy) and BYOK keys still auto-fall (before the terminal default) so cloud-only
+  // deployments keep working.
   if (cloudUrl) return resolveCloud(cloudUrl, opts);
+  const holoLlamaUrl = env('HOLOLLAMA_URL', 'HOLOLLAMA_ENDPOINT');
+  if (holoLlamaUrl) return resolveHoloLlama(holoLlamaUrl, opts);
   if (ollamaHost) return resolveOllama(ollamaHost, opts);
   if (anthropicKey) return resolveAnthropic(anthropicKey, opts);
   if (env('XAI_API_KEY')) return resolveXai(opts);
   if (env('OPENAI_API_KEY')) return resolveOpenai(opts);
 
-  throw new Error(
-    'No LLM provider configured. The ecosystem runs sovereign by default — set ' +
-      'HOLO_LLM_SERVICE_URL (sovereign serving endpoint), OLLAMA_HOST (local model), ' +
-      'or fleet env (VAST_API_KEY + optional FLEET_PROVIDER_ENDPOINT, async resolution). ' +
-      'For a BYOK frontier fallback set ANTHROPIC_API_KEY, XAI_API_KEY, or OPENAI_API_KEY.'
-  );
+  // Sovereign default (D.117): HoloLlama at :18080. If the local server is down the
+  // CALL fails with a llama-server start hint — never a silent cloud/Ollama fallback.
+  return resolveHoloLlama(undefined, opts);
 }
 
 /**
@@ -241,6 +267,37 @@ function resolveOllama(
     // Local models have smaller context windows; 4K is safe for 7B-class.
     maxTokens: maxTokensOverride(opts) || 4096,
     providerName: 'ollama',
+  };
+}
+
+/**
+ * HoloLlama — llama.cpp llama-server, the sovereign LOCAL inference layer (D.117).
+ * OpenAI /v1/chat/completions; forces nativeOllamaApi:false so LocalLLMAdapter never
+ * uses Ollama's /api/chat. No model-discovery upgrade (a llama-server holds exactly
+ * one model), so providerName='holollama' is intentionally skipped by
+ * upgradeOllamaByDiscovery.
+ */
+function resolveHoloLlama(
+  baseUrlOverride: string | undefined,
+  opts: SovereignResolveOptions
+): ResolvedSovereignProvider {
+  const baseURL = (
+    baseUrlOverride ||
+    env('HOLOLLAMA_URL', 'HOLOLLAMA_ENDPOINT') ||
+    HOLOLLAMA_DEFAULT_URL
+  ).replace(/\/+$/, '');
+  const model = modelOverride(opts) || OLLAMA_DEFAULT_MODEL;
+  const provider = new LocalLLMAdapter({
+    baseURL,
+    model,
+    nativeOllamaApi: false,
+    timeoutMs: 300_000,
+  });
+  return {
+    provider,
+    model,
+    maxTokens: maxTokensOverride(opts) || 4096,
+    providerName: 'holollama',
   };
 }
 

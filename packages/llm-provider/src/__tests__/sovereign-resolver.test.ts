@@ -35,6 +35,8 @@ const ENV_KEYS = [
   'VAST_SERVERLESS_COST',
   'VAST_SERVERLESS_MAX_WAIT_S',
   'VAST_SERVERLESS_POLL_INTERVAL_MS',
+  'HOLOLLAMA_URL',
+  'HOLOLLAMA_ENDPOINT',
   'OLLAMA_HOST',
   'OLLAMA_BASE_URL',
   'OLLAMA_URL',
@@ -71,6 +73,21 @@ describe('resolveSovereignProvider (sync, sovereign-first auto-detect)', () => {
     vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test');
     const r = resolveSovereignProvider();
     expect(r.providerName).toBe('ollama');
+    expect(r.provider).toBeInstanceOf(LocalLLMAdapter);
+  });
+
+  it('prefers HoloLlama over legacy Ollama when HOLOLLAMA_URL is set (D.117)', () => {
+    vi.stubEnv('HOLOLLAMA_URL', 'http://box:18080');
+    vi.stubEnv('OLLAMA_HOST', 'http://box:11434');
+    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test');
+    const r = resolveSovereignProvider();
+    expect(r.providerName).toBe('holollama');
+    expect(r.provider).toBeInstanceOf(LocalLLMAdapter);
+  });
+
+  it("honors explicit provider 'holollama'", () => {
+    const r = resolveSovereignProvider({ explicit: 'holollama' });
+    expect(r.providerName).toBe('holollama');
     expect(r.provider).toBeInstanceOf(LocalLLMAdapter);
   });
 
@@ -134,8 +151,10 @@ describe('resolveSovereignProvider (sync, sovereign-first auto-detect)', () => {
     expect(() => resolveSovereignProvider()).toThrow(/async/i);
   });
 
-  it('throws a sovereign-first message when nothing is configured', () => {
-    expect(() => resolveSovereignProvider()).toThrow(/sovereign by default/i);
+  it('defaults to the HoloLlama sovereign local (:18080) when nothing is configured — no throw (D.117)', () => {
+    const r = resolveSovereignProvider();
+    expect(r.providerName).toBe('holollama');
+    expect(r.provider).toBeInstanceOf(LocalLLMAdapter);
   });
 
   it('rejects unknown explicit providers', () => {
@@ -176,7 +195,7 @@ describe('resolveSovereignProviderAsync (Vast serverless fleet)', () => {
     expect(r.providerName).toBe('anthropic');
   });
 
-  it('surfaces the fleet cold error when no fallback is configured', async () => {
+  it('falls back to the HoloLlama sovereign default when the fleet is cold and nothing else is set (D.117)', async () => {
     vi.stubEnv('VAST_API_KEY', 'vast-key');
     vi.stubGlobal(
       'fetch',
@@ -186,7 +205,8 @@ describe('resolveSovereignProviderAsync (Vast serverless fleet)', () => {
         json: async () => ({ status: { ready: 0, total: 1 } }),
       }))
     );
-    await expect(resolveSovereignProviderAsync()).rejects.toThrow(/cold/i);
+    const r = await resolveSovereignProviderAsync();
+    expect(r.providerName).toBe('holollama');
   });
 
   it('skips the fleet entirely when no fleet env is present', async () => {
