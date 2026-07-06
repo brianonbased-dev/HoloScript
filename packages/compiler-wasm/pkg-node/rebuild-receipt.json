@@ -1,0 +1,21 @@
+{
+  "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
+  "generatedAt": "2026-07-06T06:15:00Z",
+  "sourcePath": "packages/compiler-wasm/src",
+  "sourceCommit": "74aa6c0ceefd4d276aa4fc65279f4cef017b92a9",
+  "artifactPath": "packages/compiler-wasm/pkg-node",
+  "commands": [
+    "corepack pnpm --filter @holoscript/wasm run test",
+    "corepack pnpm --filter @holoscript/wasm run build:nodejs"
+  ],
+  "toolchain": {
+    "rustc": "1.91.0",
+    "cargo": "1.91.0",
+    "wasmPack": "0.14.0"
+  },
+  "result": {
+    "rebuilt": true,
+    "artifactBytesChanged": false,
+    "note": "wasm-pack rebuild from the current source commit produced byte-identical pkg-node JS/WASM artifacts; this receipt records the fresh rebuild so the history-based drift gate can distinguish verified freshness from stale artifacts."
+  }
+}
