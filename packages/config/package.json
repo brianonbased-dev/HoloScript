@@ -31,6 +31,9 @@
     "test": "vitest run --passWithNoTests",
     "test:coverage": "vitest run --coverage --passWithNoTests"
   },
+  "dependencies": {
+    "@holoscript/secrets-broker": "workspace:^"
+  },
   "devDependencies": {
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",

@@ -546,6 +546,10 @@ importers:
   packages/compiler-wasm: {}
 
   packages/config:
+    dependencies:
+      '@holoscript/secrets-broker':
+        specifier: workspace:^
+        version: link:../secrets-broker
     devDependencies:
       tsup:
         specifier: ^8.5.1

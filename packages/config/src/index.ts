@@ -20,19 +20,32 @@ export { ENDPOINTS, getEndpoint } from './endpoints';
 
 export {
   getMcpApiKey,
+  getMcpApiKeyAsync,
   getHolomeshKey,
+  getHolomeshKeyAsync,
   getAbsorbKey,
+  getAbsorbKeyAsync,
   getMoltbookKey,
+  getMoltbookKeyAsync,
   getAnthropicKey,
+  getAnthropicKeyAsync,
   getOpenAIKey,
+  getOpenAIKeyAsync,
   getRailwayToken,
+  getRailwayTokenAsync,
   getTeamId,
+  resolveConfigSecret,
+  configureConfigSecretResolver,
+  resetConfigSecretResolver,
   getOAuthToken,
   invalidateOAuthTokenCache,
   mcpAuthHeaders,
   mcpAuthHeadersAsync,
   holomeshAuthHeaders,
+  holomeshAuthHeadersAsync,
   absorbAuthHeaders,
+  absorbAuthHeadersAsync,
+  type ConfigSecretResolver,
 } from './auth';
 
 export { validateConfig, requireConfig, REQUIRED_VARS, type ValidationResult } from './validate';

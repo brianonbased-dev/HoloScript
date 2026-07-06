@@ -108,13 +108,6 @@ function appendOracleTelemetry(event: Record<string, unknown>): void {
 }
 
 async function queryKnowledgeStore(search: string, limit: number = 5): Promise<unknown[]> {
-  // Require at least one auth credential to be present before attempting the request.
-  const hasApiKey = Boolean(process.env.HOLOSCRIPT_API_KEY || process.env.MCP_API_KEY);
-  const hasOAuthCreds = Boolean(
-    process.env.HOLOSCRIPT_MCP_CLIENT_ID && process.env.HOLOSCRIPT_MCP_CLIENT_SECRET
-  );
-  if (!hasApiKey && !hasOAuthCreds) return [];
-
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
@@ -122,6 +115,8 @@ async function queryKnowledgeStore(search: string, limit: number = 5): Promise<u
     // Use OAuth 2.1 bearer token when client credentials are configured;
     // falls back to x-mcp-api-key pair automatically (mcpAuthHeadersAsync).
     const authHeaders = await mcpAuthHeadersAsync();
+    const hasAuth = Boolean(authHeaders.Authorization || authHeaders['x-mcp-api-key']);
+    if (!hasAuth) return [];
 
     const res = await fetch(`${ORCHESTRATOR_URL}/knowledge/query`, {
       method: 'POST',

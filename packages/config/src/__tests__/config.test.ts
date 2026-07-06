@@ -1,13 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ENDPOINTS, getEndpoint } from '../endpoints';
 import {
+  configureConfigSecretResolver,
   getMcpApiKey,
+  getMcpApiKeyAsync,
   getHolomeshKey,
+  getOpenAIKeyAsync,
   mcpAuthHeaders,
   mcpAuthHeadersAsync,
   getOAuthToken,
   invalidateOAuthTokenCache,
   holomeshAuthHeaders,
+  resetConfigSecretResolver,
+  resolveConfigSecret,
 } from '../auth';
 import { validateConfig, requireConfig } from '../validate';
 
@@ -41,6 +46,10 @@ describe('auth (server-side)', () => {
   afterEach(() => {
     delete process.env.HOLOSCRIPT_API_KEY;
     delete process.env.HOLOMESH_API_KEY;
+    delete process.env.MCP_API_KEY;
+    delete process.env.OPENAI_API_KEY;
+    resetConfigSecretResolver();
+    invalidateOAuthTokenCache();
   });
 
   it('getMcpApiKey reads from env', () => {
@@ -49,6 +58,33 @@ describe('auth (server-side)', () => {
 
   it('getHolomeshKey reads from env', () => {
     expect(getHolomeshKey()).toBe('test-holomesh-key');
+  });
+
+  it('async key helpers resolve through the configured HoloKey bridge first', async () => {
+    configureConfigSecretResolver({
+      async resolve(nameOrRef: string) {
+        if (nameOrRef === 'HOLOSCRIPT_API_KEY') return 'vault-mcp-key';
+        if (nameOrRef === 'OPENAI_API_KEY') return 'vault-openai-key';
+        return undefined;
+      },
+    });
+
+    expect(await getMcpApiKeyAsync()).toBe('vault-mcp-key');
+    expect(await getOpenAIKeyAsync()).toBe('vault-openai-key');
+    expect(await resolveConfigSecret('OPENAI_API_KEY')).toBe('vault-openai-key');
+  });
+
+  it('async key helpers fall back to env when HoloKey has no value', async () => {
+    process.env.MCP_API_KEY = 'legacy-mcp-key';
+    configureConfigSecretResolver({
+      async resolve(nameOrRef: string) {
+        return process.env[nameOrRef];
+      },
+    });
+
+    expect(await getMcpApiKeyAsync()).toBe('test-mcp-key');
+    delete process.env.HOLOSCRIPT_API_KEY;
+    expect(await getMcpApiKeyAsync()).toBe('legacy-mcp-key');
   });
 
   it('returns empty string when env not set', () => {
@@ -78,11 +114,20 @@ describe('auth (server-side)', () => {
   });
 
   describe('getOAuthToken', () => {
+    beforeEach(() => {
+      configureConfigSecretResolver({
+        async resolve(nameOrRef: string) {
+          return process.env[nameOrRef];
+        },
+      });
+    });
+
     afterEach(() => {
       // Always clear cache and credentials after each OAuth test
       invalidateOAuthTokenCache();
       delete process.env.HOLOSCRIPT_MCP_CLIENT_ID;
       delete process.env.HOLOSCRIPT_MCP_CLIENT_SECRET;
+      resetConfigSecretResolver();
       vi.restoreAllMocks();
     });
 
@@ -153,10 +198,19 @@ describe('auth (server-side)', () => {
   });
 
   describe('mcpAuthHeadersAsync', () => {
+    beforeEach(() => {
+      configureConfigSecretResolver({
+        async resolve(nameOrRef: string) {
+          return process.env[nameOrRef];
+        },
+      });
+    });
+
     afterEach(() => {
       invalidateOAuthTokenCache();
       delete process.env.HOLOSCRIPT_MCP_CLIENT_ID;
       delete process.env.HOLOSCRIPT_MCP_CLIENT_SECRET;
+      resetConfigSecretResolver();
       vi.restoreAllMocks();
     });
 

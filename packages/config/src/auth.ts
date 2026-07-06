@@ -32,10 +32,90 @@ function assertServer(caller: string): void {
 // KEY ACCESSORS
 // =============================================================================
 
+export interface ConfigSecretResolver {
+  resolve(nameOrRef: string): Promise<string | undefined>;
+}
+
+let _configSecretResolver: ConfigSecretResolver | undefined;
+let _defaultSecretResolverPromise: Promise<ConfigSecretResolver> | null = null;
+
+function envNameFromSecretRef(nameOrRef: string): string {
+  const raw = nameOrRef.trim();
+  if (raw.startsWith('vault:')) return raw.slice('vault:'.length);
+  if (raw.startsWith('infra://')) {
+    const parts = raw.slice('infra://'.length).split('/').filter(Boolean);
+    return decodeURIComponent(parts[parts.length - 1] ?? '');
+  }
+  return raw;
+}
+
+function envOnlyResolver(): ConfigSecretResolver {
+  return {
+    async resolve(nameOrRef: string): Promise<string | undefined> {
+      return process.env[envNameFromSecretRef(nameOrRef)];
+    },
+  };
+}
+
+async function defaultConfigSecretResolver(): Promise<ConfigSecretResolver> {
+  if (!_defaultSecretResolverPromise) {
+    _defaultSecretResolverPromise = import('@holoscript/secrets-broker')
+      .then((mod) => mod.createServiceSecretResolver({ env: process.env }))
+      .catch(() => envOnlyResolver());
+  }
+  return _defaultSecretResolverPromise;
+}
+
+async function configuredSecretResolver(): Promise<ConfigSecretResolver> {
+  return _configSecretResolver ?? defaultConfigSecretResolver();
+}
+
+/**
+ * Override the HoloKey-aware secret resolver used by async auth helpers.
+ *
+ * Long-running services can inject a resolver backed by their local custody lane
+ * (for example a Jetson/metal HoloKey bridge). When unset, config lazily uses
+ * `@holoscript/secrets-broker` and falls back to `process.env` when HoloKey is
+ * not configured.
+ */
+export function configureConfigSecretResolver(resolver: ConfigSecretResolver | undefined): void {
+  assertServer('configureConfigSecretResolver');
+  _configSecretResolver = resolver;
+  _defaultSecretResolverPromise = null;
+}
+
+/** Reset the async auth helper resolver to the default HoloKey/env bridge. */
+export function resetConfigSecretResolver(): void {
+  assertServer('resetConfigSecretResolver');
+  _configSecretResolver = undefined;
+  _defaultSecretResolverPromise = null;
+}
+
+async function resolveFirstSecret(names: readonly string[]): Promise<string> {
+  const resolver = await configuredSecretResolver();
+  for (const name of names) {
+    const value = (await resolver.resolve(name))?.trim();
+    if (value) return value;
+  }
+  return '';
+}
+
+/** Resolve a service secret through HoloKey when configured, else process.env. */
+export async function resolveConfigSecret(nameOrRef: string): Promise<string> {
+  assertServer('resolveConfigSecret');
+  return resolveFirstSecret([nameOrRef]);
+}
+
 /** HoloScript platform API key (used for orchestrator tool calls and knowledge sync) */
 export function getMcpApiKey(): string {
   assertServer('getMcpApiKey');
   return process.env.HOLOSCRIPT_API_KEY || process.env.MCP_API_KEY || '';
+}
+
+/** HoloScript platform API key via HoloKey when configured, else env fallback. */
+export async function getMcpApiKeyAsync(): Promise<string> {
+  assertServer('getMcpApiKeyAsync');
+  return resolveFirstSecret(['HOLOSCRIPT_API_KEY', 'MCP_API_KEY']);
 }
 
 /** HoloMesh agent API key (holomesh_sk_* format) */
@@ -44,10 +124,22 @@ export function getHolomeshKey(): string {
   return process.env.HOLOMESH_API_KEY || '';
 }
 
+/** HoloMesh agent API key via HoloKey when configured, else env fallback. */
+export async function getHolomeshKeyAsync(): Promise<string> {
+  assertServer('getHolomeshKeyAsync');
+  return resolveFirstSecret(['HOLOMESH_API_KEY']);
+}
+
 /** Absorb Service API key */
 export function getAbsorbKey(): string {
   assertServer('getAbsorbKey');
   return process.env.ABSORB_API_KEY || '';
+}
+
+/** Absorb Service API key via HoloKey when configured, else env fallback. */
+export async function getAbsorbKeyAsync(): Promise<string> {
+  assertServer('getAbsorbKeyAsync');
+  return resolveFirstSecret(['ABSORB_API_KEY']);
 }
 
 /** Moltbook agent API key (moltbook_sk_* format) */
@@ -56,10 +148,22 @@ export function getMoltbookKey(): string {
   return process.env.MOLTBOOK_API_KEY || '';
 }
 
+/** Moltbook agent API key via HoloKey when configured, else env fallback. */
+export async function getMoltbookKeyAsync(): Promise<string> {
+  assertServer('getMoltbookKeyAsync');
+  return resolveFirstSecret(['MOLTBOOK_API_KEY']);
+}
+
 /** Anthropic API key for LLM calls */
 export function getAnthropicKey(): string {
   assertServer('getAnthropicKey');
   return process.env.ANTHROPIC_API_KEY || '';
+}
+
+/** Anthropic API key via HoloKey when configured, else env fallback. */
+export async function getAnthropicKeyAsync(): Promise<string> {
+  assertServer('getAnthropicKeyAsync');
+  return resolveFirstSecret(['ANTHROPIC_API_KEY']);
 }
 
 /** OpenAI API key for embeddings and fallback LLM */
@@ -68,10 +172,22 @@ export function getOpenAIKey(): string {
   return process.env.OPENAI_API_KEY || '';
 }
 
+/** OpenAI API key via HoloKey when configured, else env fallback. */
+export async function getOpenAIKeyAsync(): Promise<string> {
+  assertServer('getOpenAIKeyAsync');
+  return resolveFirstSecret(['OPENAI_API_KEY']);
+}
+
 /** Railway project token for deploy operations */
 export function getRailwayToken(): string {
   assertServer('getRailwayToken');
   return process.env.RAILWAY_TOKEN || '';
+}
+
+/** Railway token via HoloKey when configured, else env fallback. */
+export async function getRailwayTokenAsync(): Promise<string> {
+  assertServer('getRailwayTokenAsync');
+  return resolveFirstSecret(['RAILWAY_TOKEN', 'RAILWAY_API_TOKEN']);
 }
 
 /** HoloMesh team ID */
@@ -114,8 +230,8 @@ const REFRESH_BUFFER_MS = 5 * 60 * 1000; // 5 minutes
 export async function getOAuthToken(): Promise<string | undefined> {
   assertServer('getOAuthToken');
 
-  const clientId = process.env.HOLOSCRIPT_MCP_CLIENT_ID;
-  const clientSecret = process.env.HOLOSCRIPT_MCP_CLIENT_SECRET;
+  const clientId = await resolveFirstSecret(['HOLOSCRIPT_MCP_CLIENT_ID']);
+  const clientSecret = await resolveFirstSecret(['HOLOSCRIPT_MCP_CLIENT_SECRET']);
 
   // No client credentials configured — caller falls back to legacy key.
   if (!clientId || !clientSecret) return undefined;
@@ -195,7 +311,8 @@ export function invalidateOAuthTokenCache(): void {
  * @deprecated Use mcpAuthHeadersAsync() in new code.
  */
 export function mcpAuthHeaders(): Record<string, string> {
-  return { 'x-holoscript-api-key': getMcpApiKey(), 'x-mcp-api-key': getMcpApiKey() };
+  const apiKey = getMcpApiKey();
+  return { 'x-holoscript-api-key': apiKey, 'x-mcp-api-key': apiKey };
 }
 
 /**
@@ -215,7 +332,8 @@ export async function mcpAuthHeadersAsync(): Promise<Record<string, string>> {
     return { Authorization: `Bearer ${token}` };
   }
   // Legacy fallback — no client credentials configured.
-  return { 'x-holoscript-api-key': getMcpApiKey(), 'x-mcp-api-key': getMcpApiKey() };
+  const apiKey = await getMcpApiKeyAsync();
+  return { 'x-holoscript-api-key': apiKey, 'x-mcp-api-key': apiKey };
 }
 
 /** Build Authorization header for HoloMesh API */
@@ -223,7 +341,17 @@ export function holomeshAuthHeaders(): Record<string, string> {
   return { Authorization: `Bearer ${getHolomeshKey()}` };
 }
 
+/** Build Authorization header for HoloMesh API via HoloKey-aware resolution. */
+export async function holomeshAuthHeadersAsync(): Promise<Record<string, string>> {
+  return { Authorization: `Bearer ${await getHolomeshKeyAsync()}` };
+}
+
 /** Build Authorization header for Absorb Service */
 export function absorbAuthHeaders(): Record<string, string> {
   return { Authorization: `Bearer ${getAbsorbKey()}` };
+}
+
+/** Build Authorization header for Absorb Service via HoloKey-aware resolution. */
+export async function absorbAuthHeadersAsync(): Promise<Record<string, string>> {
+  return { Authorization: `Bearer ${await getAbsorbKeyAsync()}` };
 }
