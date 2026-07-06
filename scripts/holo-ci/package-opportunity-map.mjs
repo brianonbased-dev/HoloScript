@@ -38,6 +38,7 @@ const MANIFESTS = {
   utilities: join(ROOT, 'scripts', 'holo-ci', 'fleet-utilities-manifest.json'),
   publishAllowlist: join(ROOT, 'scripts', 'holo-ci', 'publish-surface-allowlist.json'),
 };
+const PACKAGE_BOUNDARY_MANIFESTS = ['package.json', 'pyproject.toml', 'Cargo.toml'];
 
 function readJson(path, fallback = null) {
   if (!existsSync(path)) return fallback;
@@ -62,6 +63,12 @@ function safeIncludes(haystack, needle) {
 
 function isLiveDirectory(path) {
   return existsSync(path) && statSync(path).isDirectory();
+}
+
+function packageBoundaryManifest(root, repoDir) {
+  return (
+    PACKAGE_BOUNDARY_MANIFESTS.find((manifest) => existsSync(join(root, repoDir, manifest))) || null
+  );
 }
 
 function isGeneratedWasmPackManifest(root, manifestPath) {
@@ -254,6 +261,7 @@ function collectGitHistory(root, since, packages) {
       files: row.files,
       commits: row.commits.size,
       liveDir: isLiveDirectory(join(root, row.dir)),
+      boundaryManifest: packageBoundaryManifest(root, row.dir),
     })),
   };
 }
@@ -379,6 +387,7 @@ function buildRecommendations(rows, history) {
   for (const row of history.orphanPackageDirs.sort((a, b) => b.commits - a.commits || b.files - a.files)) {
     if (row.commits === 0) continue;
     if (!row.liveDir) continue;
+    if (row.boundaryManifest) continue;
     recommendations.push({
       kind: 'new-package-candidate',
       dir: row.dir,
@@ -475,8 +484,15 @@ function runSelfTest() {
       ['@scope/private', { commits: 5, files: 9, manifestTouches: 0 }],
     ]),
     orphanPackageDirs: [
-      { dir: 'packages/unowned', commits: 2, files: 4, liveDir: true },
-      { dir: 'packages/deleted', commits: 20, files: 400, liveDir: false },
+      { dir: 'packages/unowned', commits: 2, files: 4, liveDir: true, boundaryManifest: null },
+      { dir: 'packages/deleted', commits: 20, files: 400, liveDir: false, boundaryManifest: null },
+      {
+        dir: 'packages/pythonish',
+        commits: 19,
+        files: 200,
+        liveDir: true,
+        boundaryManifest: 'pyproject.toml',
+      },
     ],
   };
   const graph = {
@@ -499,6 +515,7 @@ function runSelfTest() {
   assert.equal(recommendations[0].package, '@scope/hot');
   assert.ok(recommendations.some((item) => item.kind === 'new-package-candidate'));
   assert.ok(!recommendations.some((item) => item.dir === 'packages/deleted'));
+  assert.ok(!recommendations.some((item) => item.dir === 'packages/pythonish'));
   console.log('[package-opportunity-map] self-test PASS');
 }
 
