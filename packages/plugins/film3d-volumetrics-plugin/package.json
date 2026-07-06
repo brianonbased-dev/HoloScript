@@ -1,7 +1,39 @@
 {
   "name": "@holoscript/plugin-film3d-volumetrics",
   "version": "2.0.3",
+  "description": "Film3D volumetrics plugin for HoloScript: volumetric media, Gaussian splats, NeRF, cinematic camera, and semantic G-code slicer traits.",
   "main": "src/index.ts",
+  "types": "src/index.ts",
+  "files": [
+    "src",
+    "traits",
+    "plugin.manifest.json",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "keywords": [
+    "holoscript",
+    "plugin",
+    "film3d",
+    "volumetrics",
+    "gaussian-splat",
+    "nerf",
+    "cinematic-camera",
+    "gcode"
+  ],
+  "author": "HoloScript Contributors",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/plugins/film3d-volumetrics-plugin"
+  },
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  },
   "dependencies": {
     "@holoscript/crdt-spatial": "workspace:^"
   },
