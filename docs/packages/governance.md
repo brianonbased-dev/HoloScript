@@ -65,6 +65,7 @@ This matrix assigns a support level to each documented package so contributors c
 | `@holoscript/absorb-service`         | beta         | Platform Services Team |
 | `@holoscript/auth`                   | stable       | Platform Services Team |
 | `@holoscript/security-sandbox`       | stable       | Platform Services Team |
+| `@holoscript/secrets-broker`         | beta         | Platform Services Team |
 | `@holoscript/partner-sdk`            | beta         | Platform Services Team |
 | `@holoscript/registry`               | beta         | Platform Services Team |
 | `@holoscript/marketplace-api`        | beta         | Platform Services Team |

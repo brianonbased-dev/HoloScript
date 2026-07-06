@@ -4,6 +4,12 @@
 
 Generalizes the per-brain `HOLOMESH_API_KEY_<HANDLE>_X402` + x402 pattern (see [`docs/headless-agents.md`](../../docs/headless-agents.md) and `research/2026-04-27_identity-revamp-per-window.md`) into a typed, framework-agnostic contract usable by any AI surface — mobile, desktop, headless, hardware.
 
+## Install
+
+```bash
+npm install @holoscript/secrets-broker
+```
+
 ## What this package is
 
 A **pure typed contract** for:
@@ -102,6 +108,13 @@ The P5 FOUNDATION task `task_1778474262916_j7z0` decomposes into:
 5. **/protocol commercialization** — publish broker grants as on-chain compositions
 6. **Mobile pilot wiring** — `/mobile-brief` consumes a `mobile1` capability token
 7. **GOLD entry** — graduate the public-service architecture decision
+
+## Validation
+
+```bash
+corepack pnpm --filter @holoscript/secrets-broker run build
+corepack pnpm --filter @holoscript/secrets-broker run test
+```
 
 ## License
 

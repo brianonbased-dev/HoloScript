@@ -94,6 +94,7 @@ Ownership is inferred from package domain and the team structure. Update this fi
 | `@holoscript/platform`         | Enterprise platform      | `vitest run --config vitest.config.ts` | Yes      |
 | `@holoscript/registry`         | Package registry         | `vitest run`                           | Yes      |
 | `@holoscript/security-sandbox` | VM sandbox               | `vitest run`                           | Yes      |
+| `@holoscript/secrets-broker`   | HoloKey secret broker    | `vitest run`                           | Yes      |
 | `@holoscript/crdt`             | CRDT primitives          | `vitest run`                           | Yes      |
 
 ## Marketplace (`@brianonbased-dev` / marketplace-team)

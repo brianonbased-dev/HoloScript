@@ -81,6 +81,7 @@ HoloScript currently ships as a monorepo with **real packages** under `packages/
 | [**@holoscript/absorb-service**](./absorb-service.md)     | Codebase intelligence and GraphRAG engine   |
 | [**@holoscript/auth**](./auth.md)                         | Authentication and authorization            |
 | [**@holoscript/security-sandbox**](./security-sandbox.md) | Safe execution for untrusted logic          |
+| [**@holoscript/secrets-broker**](./secrets-broker.md)     | HoloKey capability-token and secret broker  |
 | [**@holoscript/partner-sdk**](./partner-sdk.md)           | Partner API, webhooks, and analytics        |
 | [**@holoscript/registry**](./registry.md)                 | Registry and workspace service layer        |
 | [**@holoscript/marketplace-api**](./marketplace-api.md)   | Marketplace backend APIs                    |
