@@ -304,6 +304,47 @@ describe('WebGPUCompiler — Production', () => {
   });
 
   // ─── Idempotency ──────────────────────────────────────────────────────────
+  describe('compile() - HoloGraph viewport runtime', () => {
+    it('exposes agent-operable viewport actions for native graph previews', () => {
+      const node = makeObj('graph_node', 'sphere');
+      node.properties.push(
+        { key: 'file', value: 'src/graph.ts' },
+        { key: 'symbolType', value: 'function' },
+        { key: 'position', value: [2, 3, 4] }
+      );
+
+      const result = compiler.compile(makeComp({ objects: [node] }), 'test-token');
+
+      expect(result).toContain('globalThis.holoscriptWebgpuViewport');
+      expect(result).toContain('applyAction: hsApplyViewportAction');
+      expect(result).toContain('getState: hsViewportSnapshot');
+      expect(result).toContain('describeScene: hsDescribeScene');
+      expect(result).toContain('inspectObject: hsInspectObject');
+      expect(result).toContain('holoGraphObjects.push');
+      expect(result).toContain('geometry: "sphere"');
+      expect(result).toContain('"file":"src/graph.ts"');
+      expect(result).toContain('"symbolType":"function"');
+      expect(result).toContain('hueBuckets');
+      expect(result).toContain('sceneSummary');
+      expect(result).toContain('labelPolicy');
+      expect(result).toContain('focusId');
+      expect(result).toContain('set_label_policy');
+      expect(result).toContain('holoscriptWebgpuLabels');
+      expect(result).toContain('data-holograph-label-layer');
+      expect(result).toContain('slice(0, 18)');
+      expect(result).toContain('target');
+      expect(result).toContain('near');
+      expect(result).toContain('rgba(250,204,21,0.98)');
+      expect(result).toContain('pan_left');
+      expect(result).toContain('zoom_in');
+      expect(result).toContain('focus_anchor');
+      expect(result).toContain('filter_call');
+      expect(result).toContain('set_color_mode');
+      expect(result).toContain('set_structure_style');
+      expect(result).toContain('device.queue.writeBuffer(vpUniform, 0, buildViewProjection())');
+    });
+  });
+
   describe('idempotency', () => {
     it('same composition produces same output on two calls', () => {
       const comp = makeComp({ objects: [makeObj('box')] });

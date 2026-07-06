@@ -102,6 +102,8 @@ export class WebGPUCompiler extends CompilerBase {
     // still needs perspective, otherwise every mesh renders flat/orthographic
     // in clip space (the "cylinder renders as a cube" class of bug).
     this.emitCamera(composition.camera);
+    this.emit('const holoGraphObjects = [];');
+    this.emit('');
     if (composition.objects) {
       for (const obj of composition.objects) this.emitObject(obj);
     }
@@ -116,6 +118,7 @@ export class WebGPUCompiler extends CompilerBase {
     // v4.2: Domain Blocks (material uniform buffers)
     this.emitWebGPUDomainBlocks(composition);
 
+    this.emitViewportRuntime();
     this.emitRenderLoop(composition);
     return this.lines.join('\n');
   }
@@ -585,6 +588,9 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit(
       `const ${v}Mat = createBuffer(device, new Float32Array([${cr},${cg},${cb},1.0, ${rough},${metal},${emissiveStrength},0, ${er},${eg},${eb},0]), GPUBufferUsage.UNIFORM);`
     );
+    this.emit(
+      `holoGraphObjects.push({ id: "${this.escapeStringValue(obj.name as string, 'TypeScript')}", name: "${this.escapeStringValue(obj.name as string, 'TypeScript')}", geometry: "${this.escapeStringValue(meshType, 'TypeScript')}", traits: ${this.json((obj.traits || []).map((t) => t.name))}, properties: ${this.json(this.extractObjectProperties(obj))}, basePosition: [${px},${py},${pz}], position: [${px},${py},${pz}], baseScale: [${sx},${sy},${sz}], scale: [${sx},${sy},${sz}], baseColor: [${cr},${cg},${cb}], color: [${cr},${cg},${cb}], material: { roughness: ${rough}, metalness: ${metal}, emissiveStrength: ${emissiveStrength}, emissive: [${er},${eg},${eb}] }, modelBuffer: ${v}Model, matBuffer: ${v}Mat, visible: true });`
+    );
 
     // Pipeline
     this.emit(`const ${v}Pipeline = device.createRenderPipeline({`);
@@ -994,6 +1000,143 @@ export class WebGPUCompiler extends CompilerBase {
 
   // ─── Render Loop ──────────────────────────────────────────────────────────
 
+  private emitViewportRuntime(): void {
+    this.emit('// === HoloGraph Viewport Runtime ===');
+    this.emit('const holoGraphInitialCameraPos = new Float32Array(cameraPos);');
+    this.emit('const holoGraphInitialCameraTarget = new Float32Array(cameraTarget);');
+    this.emit(
+      'const holoGraphViewportState = { actionCount: 0, lastAction: null, filter: "all", colorMode: "semantic", structureStyle: "flow", labelPolicy: "none", focusId: null };'
+    );
+    this.emit('document.body.style.position = document.body.style.position || "relative";');
+    this.emit('const holoGraphLabelLayer = document.createElement("div");');
+    this.emit('holoGraphLabelLayer.setAttribute("data-holograph-label-layer", "true");');
+    this.emit('Object.assign(holoGraphLabelLayer.style, { position: "absolute", inset: "0", pointerEvents: "none", overflow: "hidden", fontFamily: "ui-monospace, SFMono-Regular, Consolas, monospace", zIndex: "5" });');
+    this.emit('canvas.insertAdjacentElement("afterend", holoGraphLabelLayer);');
+    this.emit('function hsVec3(v) { return [Number(v[0] || 0), Number(v[1] || 0), Number(v[2] || 0)]; }');
+    this.emit('function hsSub(a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }');
+    this.emit('function hsAdd(a, b) { return [a[0] + b[0], a[1] + b[1], a[2] + b[2]]; }');
+    this.emit('function hsMul(v, s) { return [v[0] * s, v[1] * s, v[2] * s]; }');
+    this.emit('function hsLen(v) { return Math.hypot(v[0], v[1], v[2]) || 1; }');
+    this.emit('function hsNorm(v) { const l = hsLen(v); return [v[0] / l, v[1] / l, v[2] / l]; }');
+    this.emit(
+      'function hsCross(a, b) { return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; }'
+    );
+    this.emit(
+      'function hsHash(text) { let h = 2166136261; const s = String(text || ""); for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }'
+    );
+    this.emit(
+      'function hsHueRgb(h) { const x = (n) => { const k = (n + h * 6) % 6; return Math.max(0, Math.min(1, Math.min(k, 4 - k, 1))); }; return [x(5), x(3), x(1)]; }'
+    );
+    this.emit(
+      'function hsGraphCenter() { if (!holoGraphObjects.length) return [0, 0, 0]; const sum = holoGraphObjects.reduce((acc, o) => [acc[0] + o.basePosition[0], acc[1] + o.basePosition[1], acc[2] + o.basePosition[2]], [0, 0, 0]); return hsMul(sum, 1 / holoGraphObjects.length); }'
+    );
+    this.emit(
+      'function hsWriteModel(o) { const s = o.visible ? o.scale : [0, 0, 0]; device.queue.writeBuffer(o.modelBuffer, 0, new Float32Array([s[0],0,0,0, 0,s[1],0,0, 0,0,s[2],0, o.position[0],o.position[1],o.position[2],1])); }'
+    );
+    this.emit(
+      'function hsWriteMaterial(o, color) { o.color = [color[0], color[1], color[2]]; const m = o.material; device.queue.writeBuffer(o.matBuffer, 0, new Float32Array([color[0],color[1],color[2],1.0, m.roughness,m.metalness,m.emissiveStrength,0, m.emissive[0],m.emissive[1],m.emissive[2],0])); }'
+    );
+    this.emit('function hsCameraDistance() { return hsLen(hsSub(hsVec3(cameraTarget), hsVec3(cameraPos))); }');
+    this.emit(
+      'function hsSetCamera(pos, target) { cameraPos.set(pos); cameraTarget.set(target); device.queue.writeBuffer(vpUniform, 0, buildViewProjection()); document.body.dataset.holoscriptWebgpuCamera = JSON.stringify({ position: Array.from(cameraPos), target: Array.from(cameraTarget) }); }'
+    );
+    this.emit(
+      'function hsCameraBasis() { const forward = hsNorm(hsSub(hsVec3(cameraTarget), hsVec3(cameraPos))); const worldUp = [0, 1, 0]; const right = hsNorm(hsCross(forward, worldUp)); const up = hsNorm(hsCross(right, forward)); return { forward, right, up }; }'
+    );
+    this.emit(
+      'function hsMatchesFilter(o, filter) { const rawKind = o.properties.symbolType || o.properties.symbol_type || o.properties.kind || o.properties.role || o.properties.type || ""; const symbolType = String(rawKind).toLowerCase(); const traits = (o.traits || []).map((t) => String(t).toLowerCase()); if (filter === "all") return true; if (filter === "call") return symbolType === "function" || symbolType === "method" || symbolType === "call" || traits.includes("function") || traits.includes("method") || traits.includes("call"); if (filter === "import") return symbolType === "module" || symbolType === "namespace" || symbolType === "package" || symbolType === "import" || traits.includes("module") || traits.includes("namespace") || traits.includes("package") || traits.includes("import"); return true; }'
+    );
+    this.emit(
+      'function hsColorForMode(o, mode) { if (mode === "identity_hue") return hsHueRgb((hsHash(o.id) % 10000) / 10000); if (mode === "file_hue") return hsHueRgb((hsHash(o.properties.file || o.properties.path || o.id) % 10000) / 10000); if (mode === "relation_hue") return hsHueRgb((hsHash(o.properties.symbolType || o.properties.symbol_type || o.properties.kind || o.properties.role || (o.traits || []).join(",")) % 10000) / 10000); return o.baseColor; }'
+    );
+    this.emit('function hsRound(n) { return Math.round(Number(n || 0) * 1000) / 1000; }');
+    this.emit('function hsRoundVec(v) { return [hsRound(v?.[0]), hsRound(v?.[1]), hsRound(v?.[2])]; }');
+    this.emit(
+      'function hsHueBucket(o, mode = holoGraphViewportState.colorMode) { if (mode === "identity_hue") return hsHash(o.id) % 10000; if (mode === "file_hue") return hsHash(o.properties.file || o.properties.path || o.id) % 10000; if (mode === "relation_hue") return hsHash(o.properties.symbolType || o.properties.symbol_type || o.properties.kind || o.properties.role || (o.traits || []).join(",")) % 10000; return hsHash(JSON.stringify(o.color || o.baseColor || [])) % 10000; }'
+    );
+    this.emit(
+      'function hsObjectRole(o) { return String(o.properties.symbolType || o.properties.symbol_type || o.properties.kind || o.properties.role || o.properties.type || (o.traits || [])[0] || "object"); }'
+    );
+    this.emit(
+      'function hsCounts(items, keyFn, limit = 12) { const m = new Map(); for (const item of items) { const key = String(keyFn(item) || "unknown"); m.set(key, (m.get(key) || 0) + 1); } return Array.from(m.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, limit).map(([key, count]) => ({ key, count })); }'
+    );
+    this.emit(
+      'function hsCompactObject(o, index) { return { index, id: o.id, name: o.name, geometry: o.geometry || "mesh", shape: o.geometry || "mesh", role: hsObjectRole(o), traits: o.traits || [], file: o.properties.file || null, path: o.properties.path || null, signature: o.properties.signature || null, language: o.properties.language || null, position: hsRoundVec(o.position), scale: hsRoundVec(o.scale), color: hsRoundVec(o.color || o.baseColor), hueBucket: hsHueBucket(o), visible: o.visible }; }'
+    );
+    this.emit(
+      'function hsResolveObject(payload = {}) { const key = payload && (payload.nodeId ?? payload.id ?? payload.target ?? payload.anchorId ?? payload.name); let obj = null; if (typeof payload?.anchorIndex === "number") obj = holoGraphObjects[payload.anchorIndex] || null; if (!obj && typeof key === "number") obj = holoGraphObjects[key] || null; if (!obj && key !== undefined && key !== null) obj = holoGraphObjects.find((o) => o.id === String(key) || o.name === String(key)); if (!obj) obj = holoGraphObjects.find((o) => o.visible) || holoGraphObjects[0] || null; return obj; }'
+    );
+    this.emit(
+      'function hsNearestObjects(obj, limit = 8) { if (!obj) return []; return holoGraphObjects.filter((o) => o.visible && o !== obj).map((o) => ({ object: o, distance: hsLen(hsSub(o.position, obj.position)) })).sort((a, b) => a.distance - b.distance).slice(0, Math.max(0, Math.min(32, Number(limit) || 8))).map((entry) => ({ ...hsCompactObject(entry.object, holoGraphObjects.indexOf(entry.object)), distance: hsRound(entry.distance) })); }'
+    );
+    this.emit(
+      'function hsDescribeScene(payload = {}) { const limit = Math.max(1, Math.min(128, Number(payload.limit || 24))); const visible = holoGraphObjects.filter((o) => o.visible); return { canonicalNames: { graphSurface: "HoloGraph", embeddingTower: "HoloEmbed", visionNavigator: "HoloLlama" }, actionContract: ["pan_left","pan_right","pan_up","pan_down","zoom_in","zoom_out","zoom_to_fit","focus_anchor","focus_node","filter_call","filter_import","filter_all","set_color_mode","set_structure_style","set_label_policy","reset_view"], camera: { position: hsRoundVec(cameraPos), target: hsRoundVec(cameraTarget), distance: hsRound(hsCameraDistance()) }, actionCount: holoGraphViewportState.actionCount, lastAction: holoGraphViewportState.lastAction, filter: holoGraphViewportState.filter, colorMode: holoGraphViewportState.colorMode, structureStyle: holoGraphViewportState.structureStyle, labelPolicy: holoGraphViewportState.labelPolicy, objectCount: holoGraphObjects.length, visibleObjects: visible.length, shapes: hsCounts(visible, (o) => o.geometry || "mesh"), roles: hsCounts(visible, hsObjectRole), hueBuckets: hsCounts(visible, (o) => `hue_${hsHueBucket(o)}`, 16), files: hsCounts(visible, (o) => o.properties.file || o.properties.path || "unknown", 16), objects: visible.slice(0, limit).map((o) => hsCompactObject(o, holoGraphObjects.indexOf(o))) }; }'
+    );
+    this.emit(
+      'function hsInspectObject(payload = {}) { const obj = hsResolveObject(payload); if (!obj) return null; return { ...hsCompactObject(obj, holoGraphObjects.indexOf(obj)), properties: obj.properties, neighbors: hsNearestObjects(obj, payload.limit || 8) }; }'
+    );
+    this.emit('function hsNormalizeLabelPolicy(value) { const policy = String(value || "none").toLowerCase(); return ["none","ids","signatures","details"].includes(policy) ? policy : "none"; }');
+    this.emit(
+      'function hsLabelText(o) { const policy = holoGraphViewportState.labelPolicy; if (policy === "none") return ""; if (policy === "ids") return o.id; if (policy === "signatures") return o.properties.signature || o.id; return `${hsObjectRole(o)}:${o.properties.signature || o.id}`; }'
+    );
+    this.emit(
+      'function hsProjectPoint(p) { const m = buildViewProjection(); const x = Number(p?.[0] || 0), y = Number(p?.[1] || 0), z = Number(p?.[2] || 0); const cx = m[0]*x + m[4]*y + m[8]*z + m[12]; const cy = m[1]*x + m[5]*y + m[9]*z + m[13]; const cw = m[3]*x + m[7]*y + m[11]*z + m[15]; if (!Number.isFinite(cw) || Math.abs(cw) < 0.00001) return null; const nx = cx / cw, ny = cy / cw; if (nx < -1.15 || nx > 1.15 || ny < -1.15 || ny > 1.15) return null; return { x: (nx * 0.5 + 0.5) * canvas.clientWidth, y: (0.5 - ny * 0.5) * canvas.clientHeight }; }'
+    );
+    this.emit(
+      'function hsRenderLabels() { const policy = holoGraphViewportState.labelPolicy; document.body.dataset.holoscriptWebgpuLabels = policy; if (policy === "none") { holoGraphLabelLayer.replaceChildren(); return; } const ranked = holoGraphObjects.filter((o) => o.visible).map((o) => ({ object: o, distance: hsLen(hsSub(o.position, hsVec3(cameraTarget))) })).sort((a, b) => a.distance - b.distance).slice(0, 18); const nodes = []; for (const entry of ranked) { const o = entry.object; const text = hsLabelText(o); const point = hsProjectPoint(o.position); if (!text || !point) continue; const focus = entry.distance <= 0.001 || o.id === holoGraphViewportState.focusId; const el = document.createElement("div"); el.textContent = text.length > 72 ? `${text.slice(0, 69)}...` : text; Object.assign(el.style, { position: "absolute", left: `${point.x}px`, top: `${point.y}px`, transform: "translate(-50%, -120%)", maxWidth: "280px", padding: focus ? "4px 7px" : "3px 6px", border: focus ? "2px solid rgba(250,204,21,0.98)" : "1px solid rgba(255,255,255,0.68)", borderRadius: "3px", background: focus ? "rgba(15,23,42,0.94)" : "rgba(2,6,23,0.86)", color: focus ? "#fef9c3" : "#f8fafc", fontSize: focus ? "13px" : "12px", fontWeight: focus ? "700" : "600", lineHeight: "1.2", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", textShadow: "0 1px 2px #000" }); nodes.push(el); } const focusObj = holoGraphViewportState.focusId ? holoGraphObjects.find((o) => o.id === holoGraphViewportState.focusId && o.visible) : null; if (focusObj) { const panel = document.createElement("div"); Object.assign(panel.style, { position: "absolute", left: "12px", top: "12px", maxWidth: "560px", padding: "8px 10px", border: "2px solid rgba(250,204,21,0.98)", borderRadius: "4px", background: "rgba(15,23,42,0.96)", color: "#fef9c3", fontSize: "13px", fontWeight: "700", lineHeight: "1.35", textShadow: "0 1px 2px #000", boxShadow: "0 10px 30px rgba(0,0,0,0.34)" }); const near = holoGraphObjects.filter((o) => o.visible && o !== focusObj).map((o) => ({ object: o, distance: hsLen(hsSub(o.position, focusObj.position)) })).sort((a, b) => a.distance - b.distance).slice(0, 5); const rows = [{ kind: "target", object: focusObj }, ...near.map((entry) => ({ kind: "near", object: entry.object }))]; for (const row of rows) { const line = document.createElement("div"); const text = `${row.kind} ${hsLabelText(row.object)}`; line.textContent = text.length > 96 ? `${text.slice(0, 93)}...` : text; panel.appendChild(line); } nodes.push(panel); } holoGraphLabelLayer.replaceChildren(...nodes); }'
+    );
+    this.emit('function hsApplyLabelPolicy(policy) { holoGraphViewportState.labelPolicy = hsNormalizeLabelPolicy(policy); hsRenderLabels(); }');
+    this.emit('function hsApplyFilter(filter) { holoGraphViewportState.filter = filter; for (const o of holoGraphObjects) { o.visible = hsMatchesFilter(o, filter); hsWriteModel(o); } }');
+    this.emit('function hsApplyColorMode(mode) { holoGraphViewportState.colorMode = mode; for (const o of holoGraphObjects) hsWriteMaterial(o, hsColorForMode(o, mode)); }');
+    this.emit(
+      'function hsApplyStructureStyle(style) { const center = hsGraphCenter(); const n = Math.max(1, holoGraphObjects.length); const radius = Math.max(20, Math.sqrt(n) * 18); holoGraphViewportState.structureStyle = style; holoGraphObjects.forEach((o, i) => { if (style === "compact") { o.position = hsAdd(center, hsMul(hsSub(o.basePosition, center), 0.45)); } else if (style === "radial") { const a = (i / n) * Math.PI * 2; o.position = [center[0] + Math.cos(a) * radius, center[1] + (o.basePosition[1] - center[1]) * 0.18, center[2] + Math.sin(a) * radius]; } else { o.position = [...o.basePosition]; } hsWriteModel(o); }); }'
+    );
+    this.emit(
+      'function hsFocusObject(payload) { const obj = hsResolveObject(payload); if (!obj) return false; holoGraphViewportState.focusId = obj.id; const target = [...obj.position]; const away = hsNorm(hsSub(hsVec3(cameraPos), hsVec3(cameraTarget))); const distance = Math.max(8, hsCameraDistance() * 0.45); hsSetCamera(hsAdd(target, hsMul(away, distance)), target); return true; }'
+    );
+    this.emit(
+      'function hsViewportSnapshot() { const scene = hsDescribeScene({ limit: 8 }); return { camera: { position: Array.from(cameraPos), target: Array.from(cameraTarget), distance: hsCameraDistance() }, actionCount: holoGraphViewportState.actionCount, lastAction: holoGraphViewportState.lastAction, filter: holoGraphViewportState.filter, colorMode: holoGraphViewportState.colorMode, structureStyle: holoGraphViewportState.structureStyle, labelPolicy: holoGraphViewportState.labelPolicy, focusId: holoGraphViewportState.focusId, objectCount: scene.objectCount, visibleObjects: scene.visibleObjects, sceneSummary: { shapes: scene.shapes, roles: scene.roles, hueBuckets: scene.hueBuckets, files: scene.files }, sampleObjects: scene.objects }; }'
+    );
+    this.emit('function hsApplyViewportAction(action, payload = {}) {');
+    this.indent();
+    this.emit('const type = typeof action === "string" ? action : String(action?.type || action?.action || "");');
+    this.emit('const data = typeof action === "object" && action !== null ? { ...action, ...payload } : payload || {};');
+    this.emit('const before = hsViewportSnapshot();');
+    this.emit('const basis = hsCameraBasis();');
+    this.emit('const distance = hsCameraDistance();');
+    this.emit('const pan = Math.max(1, distance * 0.08);');
+    this.emit('let ok = true;');
+    this.emit('if (type === "pan_left") hsSetCamera(hsAdd(hsVec3(cameraPos), hsMul(basis.right, -pan)), hsAdd(hsVec3(cameraTarget), hsMul(basis.right, -pan)));');
+    this.emit('else if (type === "pan_right") hsSetCamera(hsAdd(hsVec3(cameraPos), hsMul(basis.right, pan)), hsAdd(hsVec3(cameraTarget), hsMul(basis.right, pan)));');
+    this.emit('else if (type === "pan_up") hsSetCamera(hsAdd(hsVec3(cameraPos), hsMul(basis.up, pan)), hsAdd(hsVec3(cameraTarget), hsMul(basis.up, pan)));');
+    this.emit('else if (type === "pan_down") hsSetCamera(hsAdd(hsVec3(cameraPos), hsMul(basis.up, -pan)), hsAdd(hsVec3(cameraTarget), hsMul(basis.up, -pan)));');
+    this.emit('else if (type === "zoom_in") hsSetCamera(hsAdd(hsVec3(cameraPos), hsMul(basis.forward, distance * 0.22)), hsVec3(cameraTarget));');
+    this.emit('else if (type === "zoom_out") hsSetCamera(hsAdd(hsVec3(cameraPos), hsMul(basis.forward, -distance * 0.25)), hsVec3(cameraTarget));');
+    this.emit('else if (type === "zoom_to_fit" || type === "reset_view") { holoGraphViewportState.focusId = null; hsSetCamera(Array.from(holoGraphInitialCameraPos), Array.from(holoGraphInitialCameraTarget)); }');
+    this.emit('else if (type === "focus_anchor" || type === "focus_node") ok = hsFocusObject(data);');
+    this.emit('else if (type === "filter_call") hsApplyFilter("call");');
+    this.emit('else if (type === "filter_import") hsApplyFilter("import");');
+    this.emit('else if (type === "filter_all") hsApplyFilter("all");');
+    this.emit('else if (type === "set_color_mode") hsApplyColorMode(String(data.mode || data.colorMode || "semantic"));');
+    this.emit('else if (type === "set_structure_style") hsApplyStructureStyle(String(data.style || data.structureStyle || "flow"));');
+    this.emit('else if (type === "set_label_policy") hsApplyLabelPolicy(data.policy || data.labelPolicy || "none");');
+    this.emit('else ok = false;');
+    this.emit('if (!ok) return { ok: false, action: type, before, after: hsViewportSnapshot() };');
+    this.emit('holoGraphViewportState.actionCount++;');
+    this.emit('holoGraphViewportState.lastAction = type;');
+    this.emit('document.body.dataset.holoscriptWebgpuLastAction = type;');
+    this.emit('return { ok: true, action: type, before, after: hsViewportSnapshot() };');
+    this.dedent();
+    this.emit('}');
+    this.emit('globalThis.holoscriptWebgpuViewport = { applyAction: hsApplyViewportAction, getState: hsViewportSnapshot, describeScene: hsDescribeScene, inspectObject: hsInspectObject };');
+    this.emit('globalThis.HoloGraphViewport = globalThis.holoscriptWebgpuViewport;');
+    this.emit('document.body.dataset.holoscriptWebgpuViewport = "ready";');
+    this.emit('document.body.dataset.holoscriptWebgpuInspector = "ready";');
+    this.emit('document.body.dataset.holoscriptWebgpuLabels = "none";');
+    this.emit('hsSetCamera(Array.from(cameraPos), Array.from(cameraTarget));');
+    this.emit('');
+  }
+
   private emitRenderLoop(composition: HoloComposition): void {
     this.emit('// === Render Loop ===');
     this.emit('let frameCount = 0;');
@@ -1002,6 +1145,8 @@ export class WebGPUCompiler extends CompilerBase {
     this.indent();
     this.emit('frameCount++;');
     this.emit('const time = (performance.now() - t0) / 1000.0;');
+    this.emit('device.queue.writeBuffer(vpUniform, 0, buildViewProjection());');
+    this.emit('hsRenderLabels();');
     this.emit('const enc = device.createCommandEncoder();');
 
     // Compute pass
@@ -1166,6 +1311,27 @@ export class WebGPUCompiler extends CompilerBase {
 
   private findObjProp(obj: HoloObjectDecl, key: string): HoloValue | undefined {
     return obj.properties?.find((p) => p.key === key)?.value;
+  }
+
+  private extractObjectProperties(obj: HoloObjectDecl): Record<string, unknown> {
+    const properties: Record<string, unknown> = {};
+    for (const prop of obj.properties ?? []) {
+      if (!prop.key) continue;
+      const value = prop.value;
+      if (
+        typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean' ||
+        (Array.isArray(value) &&
+          value.every(
+            (item) =>
+              typeof item === 'string' || typeof item === 'number' || typeof item === 'boolean'
+          ))
+      ) {
+        properties[prop.key] = value;
+      }
+    }
+    return properties;
   }
 
   private parseColor(value: unknown): [number, number, number] {
