@@ -104,3 +104,18 @@ Run `corepack pnpm check:holollama-consumption` after building to prove the
 built package API and CLI are consumable by laptop, Jetson, and Vast lanes. The
 gate exercises `doctor`, `mesh`, `preflight`, `lifecycle`, `profiles`, and Brain
 routing from built artifacts before publish.
+
+## Absorb Relationship
+
+HoloLlama is not a replacement for Absorb, HoloGraph, or HoloEmbed. It is the
+owned-model inference lane beside them:
+
+- Absorb owns codebase-intelligence orchestration and GraphRAG state.
+- HoloGraph owns structural graph behavior inside Absorb.
+- HoloEmbed owns keyless native embeddings.
+- HoloLlama owns llama.cpp serving plans, Brain routing receipts, and local
+  inference fleet handoffs.
+
+Absorb may use HoloLlama-proved local endpoints or receipts for answer
+synthesis, but HoloLlama should not depend on Absorb cache internals. See
+[Absorb Intelligence Spine](../architecture/absorb-intelligence-spine.md).

@@ -22,5 +22,6 @@ Deep-dive documentation into HoloScript's internal systems.
 ## Specialized
 
 1. **[AI Use Cases](./AI_USE_CASES.md)** - Applied AI scenarios.
-2. **[Stores Audit](./stores-audit.md)** - State management audit.
-3. **[The Dumb Glass](./the-dumb-glass-architecture.md)** - Epoch 8 Spatial Rendering Paradigm.
+2. **[Absorb Intelligence Spine](./absorb-intelligence-spine.md)** - Canonical boundary between Absorb, HoloGraph, HoloEmbed, and HoloLlama.
+3. **[Stores Audit](./stores-audit.md)** - State management audit.
+4. **[The Dumb Glass](./the-dumb-glass-architecture.md)** - Epoch 8 Spatial Rendering Paradigm.

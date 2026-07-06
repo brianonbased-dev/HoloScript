@@ -17,18 +17,18 @@ end users should reach Absorb through MCP tools such as `holo_absorb_repo`,
 
 ## Entry Points
 
-| Entry point                                  | Purpose                                                        |
-| -------------------------------------------- | -------------------------------------------------------------- |
-| `@holoscript/absorb-service`                 | Default engine and bridge exports                              |
-| `@holoscript/absorb-service/engine`          | Scanner, graph, embeddings, visualization, and query machinery |
-| `@holoscript/absorb-service/ingest`          | Professional ingest contracts and format registry              |
-| `@holoscript/absorb-service/pipeline`        | Recursive self-improvement orchestrator                        |
-| `@holoscript/absorb-service/daemon`          | HoloDaemon actions, errors, and prompt profiles                |
-| `@holoscript/absorb-service/self-improvement`| GRPO, OPLoRA, DPO, quality scoring, and convergence helpers    |
-| `@holoscript/absorb-service/mcp`             | MCP tool definitions and handlers                              |
-| `@holoscript/absorb-service/credits`         | Credit service, pricing, and metered LLM wrapper               |
-| `@holoscript/absorb-service/schema`          | Drizzle ORM schema                                             |
-| `@holoscript/absorb-service/bridge`          | Absorb completion to pipeline trigger                          |
+| Entry point                                   | Purpose                                                        |
+| --------------------------------------------- | -------------------------------------------------------------- |
+| `@holoscript/absorb-service`                  | Default engine and bridge exports                              |
+| `@holoscript/absorb-service/engine`           | Scanner, graph, embeddings, visualization, and query machinery |
+| `@holoscript/absorb-service/ingest`           | Professional ingest contracts and format registry              |
+| `@holoscript/absorb-service/pipeline`         | Recursive self-improvement orchestrator                        |
+| `@holoscript/absorb-service/daemon`           | HoloDaemon actions, errors, and prompt profiles                |
+| `@holoscript/absorb-service/self-improvement` | GRPO, OPLoRA, DPO, quality scoring, and convergence helpers    |
+| `@holoscript/absorb-service/mcp`              | MCP tool definitions and handlers                              |
+| `@holoscript/absorb-service/credits`          | Credit service, pricing, and metered LLM wrapper               |
+| `@holoscript/absorb-service/schema`           | Drizzle ORM schema                                             |
+| `@holoscript/absorb-service/bridge`           | Absorb completion to pipeline trigger                          |
 
 ## Package Boundary
 
@@ -41,6 +41,25 @@ There are two Absorb surfaces in the repo by design:
 New scanners, graph logic, query logic, provider adapters, MCP handler logic,
 credit rules, and self-improvement behavior belong in the package. The service
 host should stay thin and import the package.
+
+## Canonical Substrates
+
+Absorb is the umbrella surface for HoloScript codebase intelligence. Its native
+substrates are:
+
+- **HoloGraph**: structural graph behavior inside
+  `packages/absorb-service/src/engine`, including `CodebaseGraph`, event and
+  provenance edges, communities, manifest-backed graph artifacts, and impact
+  analysis.
+- **HoloEmbed**: the keyless embedding package at `packages/holoembed`, consumed
+  by Absorb through `HoloEmbedProvider` for shared GraphRAG indexes.
+- **HoloLlama**: the owned-model serving utility at `packages/holollama`.
+  HoloLlama owns llama.cpp serving plans and fleet receipts; Absorb may consume
+  its local inference endpoints or receipts for synthesis, but HoloLlama does
+  not own GraphRAG state.
+
+See [Absorb Intelligence Spine](../architecture/absorb-intelligence-spine.md)
+for the canonical dependency direction and naming rules.
 
 ## Strategy Role
 

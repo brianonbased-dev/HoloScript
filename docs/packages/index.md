@@ -6,15 +6,15 @@ HoloScript currently ships as a monorepo with **real packages** under `packages/
 
 ## Language & Runtime Core
 
-| Package                                    | Purpose                                             |
-| ------------------------------------------ | --------------------------------------------------- |
-| [**@holoscript/core**](./core.md)          | Core parser, AST, validation, compilers, and traits |
-| [**@holoscript/core-types**](./core-types.md) | Lightweight shared TypeScript type definitions  |
-| [**@holoscript/runtime**](./runtime.md)    | Scene execution runtime                             |
-| [**@holoscript/engine**](./engine.md)      | Lower-level spatial engine systems                  |
-| [**@holoscript/std**](./std.md)            | Standard library utilities and shared types         |
-| [**@holoscript/holo-vm**](./holo-vm.md)    | VM-oriented execution runtime                       |
-| [**@holoscript/wasm**](./compiler-wasm.md) | WebAssembly parser and compilation surface          |
+| Package                                       | Purpose                                             |
+| --------------------------------------------- | --------------------------------------------------- |
+| [**@holoscript/core**](./core.md)             | Core parser, AST, validation, compilers, and traits |
+| [**@holoscript/core-types**](./core-types.md) | Lightweight shared TypeScript type definitions      |
+| [**@holoscript/runtime**](./runtime.md)       | Scene execution runtime                             |
+| [**@holoscript/engine**](./engine.md)         | Lower-level spatial engine systems                  |
+| [**@holoscript/std**](./std.md)               | Standard library utilities and shared types         |
+| [**@holoscript/holo-vm**](./holo-vm.md)       | VM-oriented execution runtime                       |
+| [**@holoscript/wasm**](./compiler-wasm.md)    | WebAssembly parser and compilation surface          |
 
 > `@holoscript/parser`, `@holoscript/compiler`, and `@holoscript/traits` were merged into `@holoscript/core` (2026-04-29). `@holoscript/fs` was merged into `@holoscript/std/fs`. See the [deletion ledger](../cross-language-deletion-ledger.md).
 
@@ -48,31 +48,32 @@ HoloScript currently ships as a monorepo with **real packages** under `packages/
 
 ## Web, SDKs, and Platform Delivery
 
-| Package                                             | Purpose                                   |
-| --------------------------------------------------- | ----------------------------------------- |
-| [**@holoscript/core**](./core.md)                   | Primary JavaScript and TypeScript SDK     |
-| [**@holoscript/sdk**](./sdk.md)                     | Compatibility shim for older consumers    |
-| [**@holoscript/cdn**](./holoscript-cdn.md)          | CDN-oriented browser embedding            |
-| [**@holoscript/platform**](./platform.md)           | Enterprise security, identity, and Web3   |
-| [**@holoscript/mcp-server**](./mcp-server.md)       | MCP tools for AI agents and IDEs          |
-| [**@holoscript/memory**](./memory.md)               | Sovereign agent-memory client             |
-| [**@holoscript/holollama**](./holollama.md)         | Native llama.cpp serving utilities        |
-| [**@holoscript/r3f-renderer**](./r3f-renderer.md)   | React Three Fiber renderer helpers        |
-| [**@holoscript/xr-embodiment**](./xr-embodiment.md) | WebXR locomotion and agent avatars        |
-| [**@holoscript/hololand-platform**](./hololand-platform.md) | HoloLand VR-world services        |
+| Package                                                     | Purpose                                 |
+| ----------------------------------------------------------- | --------------------------------------- |
+| [**@holoscript/core**](./core.md)                           | Primary JavaScript and TypeScript SDK   |
+| [**@holoscript/sdk**](./sdk.md)                             | Compatibility shim for older consumers  |
+| [**@holoscript/cdn**](./holoscript-cdn.md)                  | CDN-oriented browser embedding          |
+| [**@holoscript/platform**](./platform.md)                   | Enterprise security, identity, and Web3 |
+| [**@holoscript/mcp-server**](./mcp-server.md)               | MCP tools for AI agents and IDEs        |
+| [**@holoscript/memory**](./memory.md)                       | Sovereign agent-memory client           |
+| [**@holoscript/holollama**](./holollama.md)                 | Native llama.cpp serving utilities      |
+| [**@holoscript/r3f-renderer**](./r3f-renderer.md)           | React Three Fiber renderer helpers      |
+| [**@holoscript/xr-embodiment**](./xr-embodiment.md)         | WebXR locomotion and agent avatars      |
+| [**@holoscript/hololand-platform**](./hololand-platform.md) | HoloLand VR-world services              |
 
 ## AI, Agents, and Virtual Machines
 
-| Package                                               | Purpose                                  |
-| ----------------------------------------------------- | ---------------------------------------- |
-| [**@holoscript/llm-provider**](./llm-provider.md)     | Unified model-provider interface         |
-| [**@holoscript/ai-validator**](./ai-validator.md)     | Validation for AI-generated output       |
-| [**@holoscript/agent-protocol**](./agent-protocol.md) | uAA2++ lifecycle framework               |
-| [**@holoscript/uaal**](./uaal.md)                     | Universal Autonomous Agent Language VM   |
-| [**@holoscript/holo-runtime**](./holo-runtime.md)     | HoloRunner S0 CPU decoder runtime        |
-| [**@holoscript/framework**](./framework.md)           | Agent memory, learning, and orchestration |
-| [**@holoscript/holoscript-agent**](./holoscript-agent.md) | Headless HoloMesh agent runtime       |
-| [**@hololand/react-agent-sdk**](./react-agent-sdk.md) | React hooks and components for agent UIs |
+| Package                                                   | Purpose                                   |
+| --------------------------------------------------------- | ----------------------------------------- |
+| [**@holoscript/llm-provider**](./llm-provider.md)         | Unified model-provider interface          |
+| [**@holoscript/holoembed**](./holoembed.md)               | Keyless native embeddings for GraphRAG    |
+| [**@holoscript/ai-validator**](./ai-validator.md)         | Validation for AI-generated output        |
+| [**@holoscript/agent-protocol**](./agent-protocol.md)     | uAA2++ lifecycle framework                |
+| [**@holoscript/uaal**](./uaal.md)                         | Universal Autonomous Agent Language VM    |
+| [**@holoscript/holo-runtime**](./holo-runtime.md)         | HoloRunner S0 CPU decoder runtime         |
+| [**@holoscript/framework**](./framework.md)               | Agent memory, learning, and orchestration |
+| [**@holoscript/holoscript-agent**](./holoscript-agent.md) | Headless HoloMesh agent runtime           |
+| [**@hololand/react-agent-sdk**](./react-agent-sdk.md)     | React hooks and components for agent UIs  |
 
 > `@holoscript/agent-sdk` was superseded by `@holoscript/framework`. `@holoscript/intelligence` was retired. See the [deletion ledger](../cross-language-deletion-ledger.md).
 
@@ -110,16 +111,16 @@ HoloScript currently ships as a monorepo with **real packages** under `packages/
 
 ## Domain Plugins
 
-| Package                                                   | Purpose                         |
-| --------------------------------------------------------- | ------------------------------- |
-| [**@holoscript/plugin-emergency-response**](./plugin-emergency-response.md) | Emergency-response and incident-command traits |
-| [**@holoscript/plugin-film-vfx**](./plugin-film-vfx.md)   | Film, VFX, and virtual production traits |
-| [**@holoscript/plugin-film3d-volumetrics**](./plugin-film3d-volumetrics.md) | Film3D volumetrics traits |
-| [**@holoscript/plugin-legal-document**](./plugin-legal-document.md) | Legal document and programmable-law traits |
-| [**@holoscript/qm-bridge**](./qm-bridge.md)               | Quantum mechanics solver bridge |
-| [**@holoscript/radio-astronomy-plugin**](./radio-astronomy-plugin.md) | Radio astronomy and FITS visualization traits |
-| [**@holoscript/plugin-threat-intelligence**](./plugin-threat-intelligence.md) | Cybersecurity threat-intelligence traits |
-| [**@holoscript/plugin-urban-planning**](./plugin-urban-planning.md) | Urban planning and civic simulation traits |
+| Package                                                                       | Purpose                                        |
+| ----------------------------------------------------------------------------- | ---------------------------------------------- |
+| [**@holoscript/plugin-emergency-response**](./plugin-emergency-response.md)   | Emergency-response and incident-command traits |
+| [**@holoscript/plugin-film-vfx**](./plugin-film-vfx.md)                       | Film, VFX, and virtual production traits       |
+| [**@holoscript/plugin-film3d-volumetrics**](./plugin-film3d-volumetrics.md)   | Film3D volumetrics traits                      |
+| [**@holoscript/plugin-legal-document**](./plugin-legal-document.md)           | Legal document and programmable-law traits     |
+| [**@holoscript/qm-bridge**](./qm-bridge.md)                                   | Quantum mechanics solver bridge                |
+| [**@holoscript/radio-astronomy-plugin**](./radio-astronomy-plugin.md)         | Radio astronomy and FITS visualization traits  |
+| [**@holoscript/plugin-threat-intelligence**](./plugin-threat-intelligence.md) | Cybersecurity threat-intelligence traits       |
+| [**@holoscript/plugin-urban-planning**](./plugin-urban-planning.md)           | Urban planning and civic simulation traits     |
 
 ## What Is Not Counted Here
 

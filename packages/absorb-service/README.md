@@ -59,9 +59,9 @@ absorb-service/
 2. **Graph** -- `CodebaseGraph` indexes all symbols, builds caller/callee
    indexes, detects communities via `CommunityDetector`, and provides impact
    analysis queries.
-3. **Embed** -- `EmbeddingIndex` vectorizes symbol signatures using a pluggable
-   `EmbeddingProvider` (OpenAI, Ollama, or Xenova). Supports parallel batching
-   via worker threads.
+3. **Embed** -- `EmbeddingIndex` vectorizes symbol signatures using HoloEmbed
+   for shared GraphRAG. Low-level providers remain available for isolated
+   experiments, but shared caches use the native HoloEmbed space.
 4. **Query** -- `GraphRAGEngine` combines vector search with graph traversal.
    Semantic matches are enriched with callers, callees, community membership,
    and impact radius, then re-ranked by a weighted score
@@ -74,6 +74,24 @@ absorb-service/
    budget caps and human-review gates.
 7. **Emit** -- `HoloEmitter` generates navigable `.holo` compositions for
    spatial 3D visualization of the codebase graph.
+
+## Canonical Substrate Map
+
+Absorb is the umbrella surface for HoloScript codebase intelligence. Its native
+substrate lanes are:
+
+- **HoloGraph** -- structural graph behavior in `src/engine`: `CodebaseGraph`,
+  event/provenance edges, community detection, impact analysis, and
+  HoloGraph/HoloEmbed manifests.
+- **HoloEmbed** -- the reusable keyless encoder package at
+  `packages/holoembed`, consumed through `HoloEmbedProvider`.
+- **HoloLlama** -- the owned-model serving lane at `packages/holollama`.
+  HoloLlama plans and proves llama.cpp-compatible local inference endpoints;
+  Absorb may use those endpoints for answer synthesis but does not move graph
+  state into HoloLlama.
+
+The full boundary is documented in
+[`docs/architecture/absorb-intelligence-spine.md`](../../docs/architecture/absorb-intelligence-spine.md).
 
 ## Sub-path Exports
 
@@ -148,7 +166,7 @@ the simulation layer.
 
 ### MCP Server & Tool Dispatch
 
-The MCP server exposes 150+ tools. These questions map the tool infrastructure.
+These questions map the MCP tool infrastructure.
 
 ```
 "How does a tool definition in tools.ts get wired to its handler in the HTTP server?"
@@ -161,7 +179,7 @@ The MCP server exposes 150+ tools. These questions map the tool infrastructure.
 
 ### Plugin Architecture
 
-35+ domain plugins extend HoloScript. These questions reveal the plugin contract.
+Domain plugins extend HoloScript. These questions reveal the plugin contract.
 
 ```
 "What interface must a domain plugin implement to register with the core?"
@@ -234,7 +252,7 @@ differently to get useful results.
 "What happens when studio calls a function defined in @holoscript/core that
  delegates to absorb-service? Trace the full cross-package call chain."
 "Which types are re-exported across package boundaries and where do they diverge?"
-"Find functions that are imported by 5+ packages — the de facto public API."
+"Find functions that are imported by many packages — the de facto public API."
 ```
 
 **Dead code & orphans (what ISN'T connected):**
@@ -292,7 +310,7 @@ differently to get useful results.
 "What's the blast radius of changing CodebaseGraph?" → Naive RAG says
   "it's used in absorb." Graph RAG traces every transitive dependent:
   GraphRAGEngine, EmbeddingIndex, impact analysis tools, the self-improvement
-  pipeline, and the .holo emitter — 40+ files across 4 packages.
+  pipeline, and the .holo emitter across package boundaries.
 
 "Why does compilation fail silently for some targets?" → Naive RAG finds
   error handling code. Graph RAG traces the compiler dispatch chain and
@@ -658,7 +676,7 @@ implicit-any constraints in daemon-actions).
 ### Test
 
 ```bash
-pnpm test           # vitest run (22 test files)
+pnpm test           # vitest run
 pnpm test:watch     # vitest watch mode
 ```
 
