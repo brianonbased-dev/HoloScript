@@ -96,7 +96,7 @@ export class WebGPUCompiler extends CompilerBase {
     this.emitDeviceInit();
     this.emitGeometryHelpers();
     this.emitShaderSources();
-    if (composition.environment) this.emitEnvironment(composition.environment);
+    this.emitEnvironment(composition.environment ?? ({ type: 'Environment', properties: [] } as HoloEnvironment));
     // Camera must be emitted BEFORE objects so mesh pipelines can bind the
     // view-projection uniform (vpUniform). Always emit — a scene with no camera
     // still needs perspective, otherwise every mesh renders flat/orthographic

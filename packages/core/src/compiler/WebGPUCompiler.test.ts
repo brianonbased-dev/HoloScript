@@ -756,6 +756,16 @@ describe('WebGPUCompiler', () => {
   });
 
   describe('environment', () => {
+    it('should emit default clear color when environment is omitted', () => {
+      const composition = createComposition();
+
+      const result = compiler.compile(composition, 'test-token');
+
+      expect(result).toContain('// === Environment ===');
+      expect(result).toContain('const clearColor: GPUColor = { r: 0, g: 0, b: 0, a: 1.0 };');
+      expect(result).toContain('clearValue: clearColor');
+    });
+
     it('should compile environment with background color', () => {
       const composition = createComposition({
         environment: createEnvironment([{ key: 'background', value: '#1a1a2e' }]),
