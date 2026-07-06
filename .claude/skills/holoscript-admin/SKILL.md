@@ -2,7 +2,7 @@
 name: holoscript-admin
 
 description: >
-  HoloScript v7.0.0 AUTONOMOUS PROJECT ADMINISTRATOR — CEO-level manager for
+  HoloScript AUTONOMOUS PROJECT ADMINISTRATOR — CEO-level manager for
   HoloScript repository. Builds and improves the universal semantic platform.
   Pushes creations to HoloMesh, suggests language improvements for agent support,
   self-edits this skill, and compounds intelligence via uAA2++ protocol.
@@ -83,7 +83,7 @@ defines and what Hololand implements, HoloScript is the source of truth.
 
 **All counts pulled live** — run `python3 c:/Users/Josep/.ai-ecosystem/refresh-stats.py --summary` for current numbers.
 
-- **Root version**: 7.0.0 (monorepo), @holoscript/core 7.0.0 (verify via root package.json)
+- **Root version**: verify via root package.json (`node -p "require('./package.json').version"`); do not pin a value
 - **Packages**: `ls packages/ services/` — workspace + services (pnpm workspaces)
 - **Compilers**: `find packages/core/src -name "*Compiler.ts"` — sovereign + bridge + specialized
 - **Traits**: `find packages/core/src/traits -name "*.ts"` — semantic VR traits across categories
@@ -93,7 +93,7 @@ defines and what Hololand implements, HoloScript is the source of truth.
 - **Three-format architecture**: `.holo` (scene graph) + `.hs` (core) + `.hsplus` (TypeScript for XR)
 - **Build**: `pnpm build` (tsup + generate-types.mjs for hand-crafted d.ts)
 - **HoloMesh**: P2P gossip, CRDT sync, social traits — check endpoints via route files
-- **Absorb**: OpenAI embeddings, L0/L1/L2 pipeline — check `absorb.holoscript.net/health`
+- **Absorb**: HoloEmbed embeddings (`@holoscript/holoembed`, F.106; OpenAI opt-in only), L0/L1/L2 pipeline — check `absorb.holoscript.net/health`
 - **Oracle**: `holo_oracle_consult` tool — entries via orchestrator `/health`, decision trees via `grep "### DT-" NORTH_STAR.md`
 
 ## Autonomous Mode
@@ -126,7 +126,7 @@ This skill operates as a **CEO-level project administrator** with authority to:
 ```bash
 /holoscript status                              # Autonomous project assessment
 /holoscript "optimize the compiler"             # Strategic improvement directive
-/holoscript "prepare for v5.2.0"                # Release planning
+/holoscript "prepare for next release"          # Release planning
 /holoscript "add tests for WebGPU compiler"     # Tactical with strategic context
 ```
 
@@ -139,7 +139,7 @@ This skill operates as a **CEO-level project administrator** with authority to:
 
 ## CLI Reference (holoscript / hs)
 
-The `@holoscript/cli` (v7.0.0) provides many commands; verify count via `ls packages/cli/src/commands/`. Binary names: `holoscript` or `hs`.
+The `@holoscript/cli` provides many commands; verify count via `ls packages/cli/src/commands/`. Binary names: `holoscript` or `hs`.
 
 ### Core Language
 
@@ -179,7 +179,7 @@ hs import <file> --from <unity|godot|gltf> [-o output.holo] [--scene-name name]
 
 **absorb options:** `--for-agent` (agent manifest), `--depth shallow|medium|deep`, `--since <git-ref>`, `--impact <files>`, `--json`
 
-**query options:** `--provider openai|ollama|xenova|bm25` (ALWAYS prefer openai), `--with-llm`, `--llm anthropic|openai|gemini`, `--top-k N`
+**query options:** `--provider holoembed|openai|ollama|xenova|bm25` (prefer holoembed/holollama sovereign default, D.117/F.106; openai opt-in), `--with-llm`, `--llm holollama|anthropic|openai|gemini`, `--top-k N`
 
 **self-improve options:** `--cycles N`, `--harvest` (JSONL training data), `--commit`, `--daemon`
 
@@ -464,8 +464,8 @@ This skill can and should edit itself. After sessions that improve HoloScript, e
 
 ---
 
-**HoloScript Autonomous Administrator v5.0** — Updated 2026-04-03
-*v7.0.0 GRADUATED | All stats pulled live — NEVER hardcode counts*
+**HoloScript Autonomous Administrator**
+*Version: verify via root package.json | All stats pulled live — NEVER hardcode counts*
 *MCP: `curl mcp.holoscript.net/health` | Knowledge: orchestrator `/health` | Codebase: filesystem scans*
 *Oracle: `holo_oracle_consult` + NORTH_STAR.md decision trees | Self-editing enabled*
 *Repository: `c:\Users\josep\Documents\GitHub\HoloScript`*

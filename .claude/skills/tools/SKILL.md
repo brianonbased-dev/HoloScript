@@ -32,54 +32,57 @@ A tool that exists but doesn't work is worse than no tool — it wastes agent ti
 
 ### MCP Tools (count via `GET http://127.0.0.1:7411/health` — sovereign local, canonical for FS/codebase tools per R.027 — or `GET https://mcp.holoscript.net/health` for the remote; never pin the number, see docs/NUMBERS.md)
 
+> Per-file tool counts drift constantly — never pin them here. Get live counts with
+> the `grep -c '"name":'` per-file loop in Live Verification Commands below.
+
 **Tool definition files** in `packages/mcp-server/src/`:
 
-| File | Category | Tool Count | Purpose |
-|------|----------|------------|---------|
-| `compiler-tools.ts` | Compilation | ~31 | Parse, compose traits, compile to 18+ targets |
-| `graph-tools.ts` | Code Analysis | ~16 | Scene graphs, flow viz, diff, connections |
-| `ide-tools.ts` | IDE Support | ~9 | Diagnostics, autocomplete, hover, go-to-def |
-| `self-improve-tools.ts` | AI Self-Edit | ~12 | File ops, git, tests, type fixes, quality |
-| `developer-tools.ts` | Dev Experience | ~5 | API ref, preview, workspace, trace, dashboard |
-| `agent-orchestration-tools.ts` | Orchestration | ~5 | Discover, delegate, compose, execute |
-| `economy-tools.ts` | Economy | ~6 | Budget, earnings, pricing, optimization |
-| `plugin-management-tools.ts` | Plugins | ~5 | Install, discover, list, manage |
-| `observability-tools.ts` | Monitoring | ~4 | Traces, OTLP export, health, Prometheus |
-| `protocol-tools.ts` | Publishing | ~4 | Publish, collect, revenue, lookup |
-| `simulation-tools.ts` | SimSci | ~3 | Structural, thermal solvers, CAEL |
-| `holotest-tools.ts` | Testing | ~4 | Spatial test execution |
-| `snapshot-tools.ts` | State | ~3 | Temporal snapshot, load, rewind |
-| `validation-tools.ts` | Validation | ~1 | Composition validation |
-| `edit-holo-tools.ts` | Editing | ~1 | In-place .holo editing |
-| `code-health-tools.ts` | Quality | ~1 | Code health scoring |
-| `gltf-import-tools.ts` | Assets | ~2 | Import/export glTF |
-| `refactor-codegen-tools.ts` | Codegen | ~2 | Refactor plans, scaffolding |
-| `service-contract-tools.ts` | Contracts | ~2 | Generate/explain service contracts |
-| `wisdom-gotcha-tools.ts` | Knowledge | ~3 | Query wisdom, list/check gotchas |
-| `audit-tools.ts` | Audit | ~4 | Number verification |
-| `networking-tools.ts` | Multiplayer | ~2 | State sync, authority |
-| `monitoring-tools.ts` | Telemetry | ~1 | Metrics |
+| File | Category | Purpose |
+|------|----------|---------|
+| `compiler-tools.ts` | Compilation | Parse, compose traits, compile to many targets |
+| `graph-tools.ts` | Code Analysis | Scene graphs, flow viz, diff, connections |
+| `ide-tools.ts` | IDE Support | Diagnostics, autocomplete, hover, go-to-def |
+| `self-improve-tools.ts` | AI Self-Edit | File ops, git, tests, type fixes, quality |
+| `developer-tools.ts` | Dev Experience | API ref, preview, workspace, trace, dashboard |
+| `agent-orchestration-tools.ts` | Orchestration | Discover, delegate, compose, execute |
+| `economy-tools.ts` | Economy | Budget, earnings, pricing, optimization |
+| `plugin-management-tools.ts` | Plugins | Install, discover, list, manage |
+| `observability-tools.ts` | Monitoring | Traces, OTLP export, health, Prometheus |
+| `protocol-tools.ts` | Publishing | Publish, collect, revenue, lookup |
+| `simulation-tools.ts` | SimSci | Structural, thermal solvers, CAEL |
+| `holotest-tools.ts` | Testing | Spatial test execution |
+| `snapshot-tools.ts` | State | Temporal snapshot, load, rewind |
+| `validation-tools.ts` | Validation | Composition validation |
+| `edit-holo-tools.ts` | Editing | In-place .holo editing |
+| `code-health-tools.ts` | Quality | Code health scoring |
+| `gltf-import-tools.ts` | Assets | Import/export glTF |
+| `refactor-codegen-tools.ts` | Codegen | Refactor plans, scaffolding |
+| `service-contract-tools.ts` | Contracts | Generate/explain service contracts |
+| `wisdom-gotcha-tools.ts` | Knowledge | Query wisdom, list/check gotchas |
+| `audit-tools.ts` | Audit | Number verification |
+| `networking-tools.ts` | Multiplayer | State sync, authority |
+| `monitoring-tools.ts` | Telemetry | Metrics |
 
 **HoloMesh tools** in `packages/mcp-server/src/holomesh/`:
 
-| File | Tool Count | Purpose |
-|------|------------|---------|
-| `holomesh-tools.ts` | ~13 | Publish, discover, contribute, gossip, feed |
-| `board-tools.ts` | ~12 | Task board, slots, mode, suggestions, heartbeat |
-| `sovereign-tools.ts` | ~3 | Topology, lifepod snapshot/restore |
-| `team-agent-tools.ts` | ~3 | Load agents, run cycle, compound knowledge |
+| File | Purpose |
+|------|---------|
+| `holomesh-tools.ts` | Publish, discover, contribute, gossip, feed |
+| `board-tools.ts` | Task board, slots, mode, suggestions, heartbeat |
+| `sovereign-tools.ts` | Topology, lifepod snapshot/restore |
+| `team-agent-tools.ts` | Load agents, run cycle, compound knowledge |
 
 **Absorb tools** in `packages/absorb-service/src/mcp/`:
 
-| File | Tool Count | Purpose |
-|------|------------|---------|
-| `absorb-tools.ts` | ~11 | Query, diff, projects, credits, pipeline |
-| `codebase-tools.ts` | ~8 | Absorb repo, query, impact, drift, symbols |
-| `graph-rag-tools.ts` | ~2 | Semantic search, ask codebase |
-| `knowledge-tools.ts` | ~4 | Publish, query, provenance, earnings |
-| `absorb-typescript-tools.ts` | ~2 | TS pattern detection, transform suggestions |
-| `knowledge-extraction-tools.ts` | ~1 | Extract knowledge from code |
-| `oracle-tools.ts` | ~1 | Decision tree + knowledge consultation |
+| File | Purpose |
+|------|---------|
+| `absorb-tools.ts` | Query, diff, projects, credits, pipeline |
+| `codebase-tools.ts` | Absorb repo, query, impact, drift, symbols |
+| `graph-rag-tools.ts` | Semantic search, ask codebase |
+| `knowledge-tools.ts` | Publish, query, provenance, earnings |
+| `absorb-typescript-tools.ts` | TS pattern detection, transform suggestions |
+| `knowledge-extraction-tools.ts` | Extract knowledge from code |
+| `oracle-tools.ts` | Decision tree + knowledge consultation |
 
 ### CLI Tools
 
@@ -106,10 +109,10 @@ Tools are registered via the cascading handler pattern in `packages/mcp-server/s
 
 ### Known Issues to Watch
 
-- **Live count (158) vs codebase count (~186)**: Some tools may be conditionally registered or the code has tools not yet deployed
+- **Live count vs codebase count**: the deployed `tools/list` count can lag the codebase count — some tools may be conditionally registered or not yet deployed. Compare live (`tools/list | length`) against the codebase (`grep -c '"name":'` loop) rather than pinning either number.
 - **SSE transport broken on Railway**: CDN splits GET/POST to different edge nodes. REST works.
 - **No central tool manifest**: Discovery requires grepping `*-tools.ts` files
-- **Test coverage gaps**: 12 test files for 30+ tool files — many tools untested
+- **Test coverage gaps**: many tool files have no matching `*-tools.test.ts` — compare `find ... -name "*-tools.test.ts" | wc -l` against the tool-file count rather than pinning a ratio.
 
 ## Live Verification Commands
 
@@ -118,7 +121,10 @@ Tools are registered via the cascading handler pattern in `packages/mcp-server/s
 ENV_FILE="${HOME}/.ai-ecosystem/.env"; [ ! -f "$ENV_FILE" ] && ENV_FILE="/c/Users/Josep/.ai-ecosystem/.env"
 set -a && source "$ENV_FILE" 2>/dev/null && set +a
 
-# MCP health (tool count, uptime, security)
+# MCP health (tool count, uptime, security) — sovereign local FIRST (canonical for
+# FS/codebase tools per R.027; remote is FS-blind). Jetson anchor: 192.168.0.119:7411
+curl -s http://127.0.0.1:7411/health | jq .
+# Secondary — remote/deployed count only:
 curl -s https://mcp.holoscript.net/health | jq .
 
 # Absorb health (tool count, graph status)
@@ -127,7 +133,11 @@ curl -s https://absorb.holoscript.net/health | jq .
 # Orchestrator health (knowledge entries, servers)
 curl -s -H "x-mcp-api-key: $HOLOSCRIPT_API_KEY" https://mcp-orchestrator-production-45f9.up.railway.app/health | jq .
 
-# List all registered tools via MCP protocol
+# List all registered tools via MCP protocol — sovereign local FIRST (R.027)
+curl -s -X POST http://127.0.0.1:7411/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | jq '.result.tools | length'
+# Secondary — remote/deployed count:
 curl -s -X POST https://mcp.holoscript.net/mcp \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | jq '.result.tools | length'

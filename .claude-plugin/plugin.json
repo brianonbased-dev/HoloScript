@@ -6,7 +6,7 @@
   "homepage": "https://holoscript.net",
   "repository": "https://github.com/holoscript/HoloScript",
   "skills": [
-    "admin",
+    "holoscript-admin",
     "benchmark",
     "bio-discovery",
     "dev",
@@ -17,7 +17,6 @@
     "migrate",
     "neuro",
     "release",
-    "session-scanner",
     "sim",
     "tools"
   ],

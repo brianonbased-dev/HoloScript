@@ -63,7 +63,7 @@ Trait-based NPC intelligence with biological realism.
 | Trait | File | Architecture |
 | ----- | ---- | ------------ |
 | AIDriverTrait | `AIDriverTrait.ts` | BehaviorTree + GOAP. Personality: sociability, aggression, curiosity, loyalty (0-1). Stimuli: hearing 50m, sight 100m, touch 5m. Inference tiers: cpu_reactive <50ms, npu_reasoning <500ms, cloud_strategic. |
-| NPCAITrait | `NPCAITrait.ts` | LLM-driven NPC. Model: hermes-3-70b. Intelligence tiers: basic/advanced/quantum. Action parsing via regex. Emits: npc_ai_think_begin/end, npc_ai_response, npc_behavior_*. |
+| NPCAITrait | `NPCAITrait.ts` | LLM-driven NPC. Model: a trait code-fact — verify the current default in `NPCAITrait.ts` rather than pinning one; the sovereign inference direction is HoloLlama (D.117), not a foreign default. Intelligence tiers: basic/advanced/quantum. Action parsing via regex. Emits: npc_ai_think_begin/end, npc_ai_response, npc_behavior_*. |
 | AINPCBrainTrait | `AINPCBrainTrait.ts` | Personality types: helpful/sarcastic/wise/cheerful/mysterious. Relationship: -1.0 (hostile) to +1.0 (friendly). Decay: 0.99/frame. 20-interaction memory. |
 | NeuralForgeTrait | `NeuralForgeTrait.ts` | Synthesizes "Shards" from chat logs. Types: memory/skill/personality. Big Five weights: openness, conscientiousness, extroversion, agreeableness, neuroticism. Auto-synthesis at 10 interactions. |
 

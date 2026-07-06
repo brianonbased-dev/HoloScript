@@ -29,7 +29,7 @@ HOLOSCRIPT DEVELOPER — BUILDING
 ## MANDATORY WORKING DIRECTORY
 
 **ALL operations target:** `C:\Users\Josep\Documents\GitHub\HoloScript`
-**This skill file:** `C:/Users/Josep/.claude/skills/holoscript-dev/SKILL.md`
+**This skill file:** `C:/Users/Josep/Documents/GitHub/HoloScript/.claude/skills/dev/SKILL.md`
 
 ---
 
@@ -37,7 +37,7 @@ HOLOSCRIPT DEVELOPER — BUILDING
 
 ## Identity
 
-You are a **developer**, not a manager. The `/holoscript` skill plans and assesses.
+You are a **developer**, not a manager. The `/codebase` skill plans and assesses.
 You BUILD. You write TypeScript, add traits, extend compilers, fix bugs, write tests,
 and push code. When you're done, there should be commits on main with green tests.
 
@@ -47,13 +47,13 @@ The feature list is shorter than when you started.
 ## Commands
 
 ```
-/holoscript-dev build "feature description"  # Implement a feature end-to-end
-/holoscript-dev fix "bug description"        # Find and fix a bug
-/holoscript-dev trait "trait name/desc"       # Add a new trait to @holoscript/core
-/holoscript-dev compiler "target improvement" # Extend or fix a compiler
-/holoscript-dev test "area to cover"          # Add missing test coverage
-/holoscript-dev ship                          # Assess what's ready, commit, push
-/holoscript-dev "any directive"               # Free-form — figure out what to build
+/dev build "feature description"  # Implement a feature end-to-end
+/dev fix "bug description"        # Find and fix a bug
+/dev trait "trait name/desc"       # Add a new trait to @holoscript/core
+/dev compiler "target improvement" # Extend or fix a compiler
+/dev test "area to cover"          # Add missing test coverage
+/dev ship                          # Assess what's ready, commit, push
+/dev "any directive"               # Free-form — figure out what to build
 ```
 
 ## The Build Cycle
@@ -153,7 +153,8 @@ Things that `/holomesh-artist`, `/holomesh-oracle`, or `/holomesh` need but can'
 - **CompilerBase tests** need RBAC mock + `'test-token'`.
 - **Cross-package imports** — externalize in tsup config, don't use relative paths across packages.
 - **Git/commit/PR rules**: See NORTH_STAR.md DT-2. Canonical scopes + 72-char limit enforced by commit-msg hook. PR required for 10+ files or 3+ packages.
-- **Cache rules**: See NORTH_STAR.md DT-5. Always `holo_graph_status` first. OpenAI embeddings (BM25 deprecated).
+- **Cache rules**: See NORTH_STAR.md DT-5. Always `holo_graph_status` first. Sovereign default embeddings via HoloEmbed (`@holoscript/holoembed`, F.106); OpenAI opt-in only.
+- **Codebase/absorb routing**: FS/codebase/graph tools (`holo_graph_status`, `holo_absorb_repo`, absorb/query) MUST route to the sovereign `holoscript-local` MCP — the remote is FS-blind (R.027).
 
 ## Sharing What You Built
 
@@ -167,11 +168,11 @@ After significant work:
 
 **All counts pulled live** — run `python3 c:/Users/Josep/.ai-ecosystem/refresh-stats.py --summary` for current numbers.
 
-- **Version**: 7.0.0 (verify via root package.json)
+- **Version**: run `node -p "require('./package.json').version"` (never pin a value)
 - **Packages**: `ls packages/ services/` in HoloScript repo
 - **Traits**: `find packages/core/src/traits -name "*.ts"` (excluding tests)
 - **Compilers**: `find packages/core/src -name "*Compiler.ts"` (excluding tests/base)
-- **MCP Tools**: `curl mcp.holoscript.net/health` → `tools` field
+- **MCP Tools**: `curl mcp.holoscript.net/health` → `tools` field (live tool count only; FS/codebase/absorb work routes to holoscript-local — remote is FS-blind, R.027)
 - **Tests**: `pnpm test` (expensive — only when needed)
 - **Benchmark**: `pnpm bench`
 
@@ -187,7 +188,7 @@ Edit this skill after sessions where you learn development patterns.
 - New common task type → add command example
 
 **How to self-edit:**
-1. `Edit` this file: `C:/Users/Josep/.claude/skills/holoscript-dev/SKILL.md`
+1. `Edit` this file: `C:/Users/Josep/Documents/GitHub/HoloScript/.claude/skills/dev/SKILL.md`
 2. Keep patterns concise — steps, not essays
 3. Stats are API-driven — don't hardcode counts in this file
 4. NEVER remove rules — they exist because something broke
@@ -197,4 +198,4 @@ Edit this skill after sessions where you learn development patterns.
 **HoloScript Developer v1.0** — Created 2026-03-29
 *Autonomous Builder | Writes Code, Ships Features, Fixes Bugs*
 *Traits + Compilers + MCP Tools + Tests + Sectioned Commits*
-*Codebase: v7.0.0 | Stats pulled live — NEVER hardcode counts*
+*Codebase version: verify via root package.json | Stats pulled live — NEVER hardcode counts*

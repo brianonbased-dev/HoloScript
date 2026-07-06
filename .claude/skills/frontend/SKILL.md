@@ -547,6 +547,6 @@ Never write to `~/.ai-ecosystem`.
 
 ---
 
-**HoloFrontend v5.0 — Live context, not stale snapshots.**
+**HoloFrontend — Live context, not stale snapshots.**
 *Query the codebase. Read the docs. Check the knowledge store. Then build.*
 *Nothing in this skill is a source of truth — the repo is.*

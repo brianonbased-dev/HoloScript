@@ -25,7 +25,7 @@ headlessly via `npm run render` without human intervention.
 
 ### Repository Structure
 
-- Monorepo at `packages/*` (pnpm workspaces, pnpm@8.12.0)
+- Monorepo at `packages/*` (pnpm workspaces; verify version in root `package.json` `packageManager` field — currently pnpm@9.15.9)
 - Video package: `packages/video-tutorials/` (new — created by this skill)
 - TypeScript 5.3.3, Vitest, tsup, ESLint
 
@@ -42,10 +42,14 @@ headlessly via `npm run render` without human intervention.
 
 ### Compiler Targets (SSOT-driven)
 
-Do not hardcode target counts in tutorial scripts. Verify target keys from source before recording:
+Do not hardcode target counts in tutorial scripts. Verify target keys from the live
+tool surface before recording — prefer the `list_export_targets` MCP tool, or enumerate
+the compilers from source:
 
 ```bash
-grep -n "export enum ExportTarget" -A 200 packages/core/src/compiler/CircuitBreaker.ts
+# Live tool surface (canonical): the list_export_targets MCP tool
+# Or enumerate compilers from source:
+find packages/core/src -name "*Compiler.ts"
 ```
 
 Representative targets for tutorial coverage:
