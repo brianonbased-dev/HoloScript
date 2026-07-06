@@ -103,6 +103,7 @@ HoloScript currently ships as a monorepo with **real packages** under `packages/
 | ----------------------------------------------------------- | ----------------------------------------------- |
 | [**@holoscript/spatial-index**](./spatial-index.md)         | Spatial indexing and lookup                     |
 | [**@holoscript/animation-presets**](./animation-presets.md) | Reusable animation configuration bundles        |
+| [**@holoscript/holomap**](./holomap.md)                     | HoloMap operator UX and reconstruction probes   |
 | [**@holoscript/snn-webgpu**](./snn-webgpu.md)               | Higher-throughput WebGPU spiking neural compute |
 
 > `@holoscript/snn-poc` was superseded by `@holoscript/snn-webgpu` (2026-04-29). See the [deletion ledger](../cross-language-deletion-ledger.md).
