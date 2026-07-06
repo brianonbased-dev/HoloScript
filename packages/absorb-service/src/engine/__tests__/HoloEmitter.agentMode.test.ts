@@ -5,6 +5,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { HoloEmitter } from '../HoloEmitter';
 import { CodebaseGraph } from '../CodebaseGraph';
 import type { ScannedFile } from '../types';
+import { parseHolo } from '@holoscript/core';
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -115,6 +116,71 @@ describe('HoloEmitter — agent mode', () => {
   it('emits a composition block with the given name', () => {
     const out = emitter.emit(graph, { forAgent: true, name: 'TestRepo' });
     expect(out).toMatch(/^composition "TestRepo" \{/);
+  });
+
+  it('emits parser-clean spatial .holo when call edges are included', () => {
+    const out = emitter.emit(graph, { forAgent: false, name: 'TestRepo' });
+    expect(out).toContain('logic {');
+    expect(out).not.toContain('on_interact(');
+    const parsed = parseHolo(out);
+    expect(parsed.errors).toEqual([]);
+    expect(parsed.success).toBe(true);
+  });
+
+  it('emits graph camera and visible node geometry for native HoloGraph viewing', () => {
+    const out = emitter.emit(graph, { forAgent: false, name: 'TestRepo' });
+    expect(out).toContain('camera "HoloGraphCamera"');
+    expect(out).toContain('look_at: [');
+    expect(out).toContain('far: ');
+    expect(out).toContain('geometry: sphere');
+    expect(out).toContain('scale: ');
+    const parsed = parseHolo(out);
+    expect(parsed.success).toBe(true);
+  });
+
+  it('suffixes duplicate symbol names so render compilers get unique object IDs', () => {
+    const dupGraph = new CodebaseGraph();
+    dupGraph.addFile(
+      makeFile({
+        path: 'src/a.ts',
+        language: 'typescript',
+        symbols: [
+          {
+            name: 'parser',
+            type: 'function',
+            visibility: 'public',
+            language: 'typescript',
+            filePath: 'src/a.ts',
+            line: 1,
+          },
+        ],
+      })
+    );
+    dupGraph.addFile(
+      makeFile({
+        path: 'src/b.ts',
+        language: 'typescript',
+        symbols: [
+          {
+            name: 'parser',
+            type: 'function',
+            visibility: 'public',
+            language: 'typescript',
+            filePath: 'src/b.ts',
+            line: 1,
+          },
+        ],
+      })
+    );
+    dupGraph.buildIndexes();
+
+    const out = emitter.emit(dupGraph, { forAgent: false, name: 'DuplicateNames' });
+    const objectIds = [...out.matchAll(/object "([^"]+)"/g)].map((match) => match[1]);
+    expect(objectIds).toHaveLength(2);
+    expect(new Set(objectIds).size).toBe(2);
+    expect(objectIds.every((id) => id.startsWith('parser__'))).toBe(true);
+    const parsed = parseHolo(out);
+    expect(parsed.success).toBe(true);
   });
 
   it('emits a manifest block', () => {

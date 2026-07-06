@@ -13,6 +13,7 @@ import type { ExternalSymbolDefinition, ImportEdge } from './types';
 import type { LayoutNode, LayoutEdge } from './layouts/ForceDirectedLayout';
 import { forceDirectedLayout } from './layouts/ForceDirectedLayout';
 import { layeredLayout } from './layouts/LayeredLayout';
+import { makeSymbolObjectId, sanitizeHoloId } from './SymbolObjectId';
 
 // =============================================================================
 // TYPES
@@ -181,6 +182,7 @@ export class HoloEmitter {
         Math.round(node.z * 100) / 100,
       ]);
     }
+    const view = this.computeGraphView(Array.from(positions.values()));
 
     // Emit HoloScript
     const lines: string[] = [];
@@ -192,6 +194,17 @@ export class HoloEmitter {
     lines.push(`    skybox: "${skybox}"`);
     lines.push(`    ambient_light: ${ambientLight}`);
     lines.push('    shadows: true');
+    lines.push('  }');
+    lines.push('');
+
+    lines.push('  camera "HoloGraphCamera" {');
+    lines.push(
+      `    position: [${view.cameraPosition[0]}, ${view.cameraPosition[1]}, ${view.cameraPosition[2]}]`
+    );
+    lines.push(`    look_at: [${view.target[0]}, ${view.target[1]}, ${view.target[2]}]`);
+    lines.push('    fov: 55');
+    lines.push('    near: 0.1');
+    lines.push(`    far: ${view.far}`);
     lines.push('  }');
     lines.push('');
 
@@ -226,6 +239,8 @@ export class HoloEmitter {
 
         lines.push(`    object "${this.escapeString(symId)}" ${traits} {`);
         lines.push(`      position: [${pos[0]}, ${pos[1]}, ${pos[2]}]`);
+        lines.push('      geometry: sphere');
+        lines.push(`      scale: ${view.nodeScale}`);
         lines.push(`      color: "${color}"`);
         lines.push(`      language: "${sym.language}"`);
         lines.push(`      file: "${this.escapeString(sym.filePath)}"`);
@@ -266,6 +281,59 @@ export class HoloEmitter {
 
     lines.push('}');
     return lines.join('\n');
+  }
+
+  private computeGraphView(positions: Array<[number, number, number]>): {
+    target: [number, number, number];
+    cameraPosition: [number, number, number];
+    far: number;
+    nodeScale: number;
+  } {
+    if (positions.length === 0) {
+      return { target: [0, 0, 0], cameraPosition: [4, 3, 6], far: 1000, nodeScale: 1 };
+    }
+
+    let minX = Infinity;
+    let minY = Infinity;
+    let minZ = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    let maxZ = -Infinity;
+    for (const [x, y, z] of positions) {
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      minZ = Math.min(minZ, z);
+      maxX = Math.max(maxX, x);
+      maxY = Math.max(maxY, y);
+      maxZ = Math.max(maxZ, z);
+    }
+
+    const target: [number, number, number] = [
+      this.round2((minX + maxX) / 2),
+      this.round2((minY + maxY) / 2),
+      this.round2((minZ + maxZ) / 2),
+    ];
+    const dx = maxX - minX;
+    const dy = maxY - minY;
+    const dz = maxZ - minZ;
+    const radius = Math.max(8, Math.sqrt(dx * dx + dy * dy + dz * dz) / 2);
+    const distance = radius * 1.85;
+    const cameraPosition: [number, number, number] = [
+      target[0],
+      this.round2(target[1] + radius * 0.28),
+      this.round2(target[2] + distance),
+    ];
+
+    return {
+      target,
+      cameraPosition,
+      far: this.round2(Math.max(1000, radius * 4 + 200)),
+      nodeScale: this.round2(Math.max(0.75, Math.min(24, radius / 65))),
+    };
+  }
+
+  private round2(value: number): number {
+    return Math.round(value * 100) / 100;
   }
 
   // ── Agent-optimized output ──────────────────────────────────────────────
@@ -776,8 +844,9 @@ export class HoloEmitter {
               const callerName = caller.calleeOwner
                 ? `${caller.calleeOwner}.${caller.calleeName}`
                 : caller.calleeName;
+              const targetName = sym.owner ? `${sym.owner}.${sym.name}` : sym.name;
               lines.push(
-                `on_interact("${this.escapeString(callerName)}"): { ${this.escapeString(sym.owner ? `${sym.owner}.${sym.name}` : sym.name)}() }`
+                `on "${this.escapeString(callerName)}" { } // calls ${this.escapeString(targetName)}`
               );
               edgeCount++;
             }
@@ -817,12 +886,11 @@ export class HoloEmitter {
   }
 
   private makeObjectId(sym: ExternalSymbolDefinition): string {
-    const owner = sym.owner ? `${sym.owner}.` : '';
-    return `${owner}${sym.name}`;
+    return makeSymbolObjectId(sym);
   }
 
   private sanitizeId(s: string): string {
-    return s.replace(/[\\\/]/g, '/').replace(/[^a-zA-Z0-9_\-\/\.]/g, '_');
+    return sanitizeHoloId(s);
   }
 
   private escapeString(s: string): string {

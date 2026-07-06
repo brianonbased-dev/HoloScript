@@ -14,11 +14,22 @@ import type { ScannedFile, ExternalSymbolDefinition } from '../types';
 const R = 'C:/repo/src';
 function sym(name: string, filePath: string, line: number): ExternalSymbolDefinition {
   return {
-    name, type: 'class', visibility: 'public', language: 'typescript',
-    filePath, line, signature: `class ${name}`, loc: 40, lineCount: 40,
+    name,
+    type: 'class',
+    visibility: 'public',
+    language: 'typescript',
+    filePath,
+    line,
+    signature: `class ${name}`,
+    loc: 40,
+    lineCount: 40,
   } as ExternalSymbolDefinition;
 }
-function file(path: string, symbols: ExternalSymbolDefinition[], imports: ScannedFile['imports']): ScannedFile {
+function file(
+  path: string,
+  symbols: ExternalSymbolDefinition[],
+  imports: ScannedFile['imports']
+): ScannedFile {
   return { path, language: 'typescript', loc: 80, symbols, imports, calls: [] };
 }
 
@@ -27,16 +38,33 @@ function buildGraph(): CodebaseGraph {
   // Two public symbols per file, so a per-community cap below the total symbol
   // count still has to leave room for every file's representative.
   // types.ts — imported by the others, imports nothing.
-  graph.addFile(file(`${R}/types.ts`, [sym('Types', `${R}/types.ts`, 1), sym('TypesB', `${R}/types.ts`, 2)], []));
+  graph.addFile(
+    file(`${R}/types.ts`, [sym('Types', `${R}/types.ts`, 1), sym('TypesB', `${R}/types.ts`, 2)], [])
+  );
   // main.ts — imports './types' (relative, UNRESOLVED — resolver must map it).
-  graph.addFile(file(`${R}/main.ts`, [sym('Main', `${R}/main.ts`, 1), sym('MainB', `${R}/main.ts`, 2)], [
-    { fromFile: `${R}/main.ts`, toModule: './types', namedImports: ['Types'], line: 1 },
-  ]));
+  graph.addFile(
+    file(
+      `${R}/main.ts`,
+      [sym('Main', `${R}/main.ts`, 1), sym('MainB', `${R}/main.ts`, 2)],
+      [{ fromFile: `${R}/main.ts`, toModule: './types', namedImports: ['Types'], line: 1 }]
+    )
+  );
   // util/helper.ts — imports '../types' (parent-relative) + a bare external module.
-  graph.addFile(file(`${R}/util/helper.ts`, [sym('Helper', `${R}/util/helper.ts`, 1), sym('HelperB', `${R}/util/helper.ts`, 2)], [
-    { fromFile: `${R}/util/helper.ts`, toModule: '../types', namedImports: ['Types'], line: 1 },
-    { fromFile: `${R}/util/helper.ts`, toModule: '@holoscript/core', namedImports: ['parse'], line: 2 },
-  ]));
+  graph.addFile(
+    file(
+      `${R}/util/helper.ts`,
+      [sym('Helper', `${R}/util/helper.ts`, 1), sym('HelperB', `${R}/util/helper.ts`, 2)],
+      [
+        { fromFile: `${R}/util/helper.ts`, toModule: '../types', namedImports: ['Types'], line: 1 },
+        {
+          fromFile: `${R}/util/helper.ts`,
+          toModule: '@holoscript/core',
+          namedImports: ['parse'],
+          line: 2,
+        },
+      ]
+    )
+  );
   graph.buildIndexes();
   return graph;
 }
@@ -69,7 +97,10 @@ describe('CodebaseSceneCompiler — edges & communities', () => {
     // Cap = 3 (the file count) but the community holds 6 symbols. A naive
     // slice(0,3) would take types.ts's two symbols + main.ts's first and drop
     // helper.ts entirely; round-robin keeps one per file.
-    const scene = new CodebaseSceneCompiler().compile(graph, { layout: 'force', maxSymbolsPerGroup: 3 });
+    const scene = new CodebaseSceneCompiler().compile(graph, {
+      layout: 'force',
+      maxSymbolsPerGroup: 3,
+    });
     const files = new Set(scene.objects.map((o) => o.properties?.file));
     expect(files.has(`${R}/types.ts`)).toBe(true);
     expect(files.has(`${R}/main.ts`)).toBe(true);
@@ -80,5 +111,18 @@ describe('CodebaseSceneCompiler — edges & communities', () => {
     const graph = buildGraph();
     const scene = new CodebaseSceneCompiler().compile(graph, { layout: 'force' });
     expect(scene.metadata.communities.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('keeps object names unique when files expose the same symbol name', () => {
+    const graph = new CodebaseGraph();
+    graph.addFile(file(`${R}/a.ts`, [sym('parser', `${R}/a.ts`, 1)], []));
+    graph.addFile(file(`${R}/b.ts`, [sym('parser', `${R}/b.ts`, 1)], []));
+    graph.buildIndexes();
+
+    const scene = new CodebaseSceneCompiler().compile(graph, { layout: 'force' });
+    const names = scene.objects.map((object) => object.name);
+    expect(names).toHaveLength(2);
+    expect(new Set(names).size).toBe(2);
+    expect(names.every((name) => name.startsWith('parser__'))).toBe(true);
   });
 });

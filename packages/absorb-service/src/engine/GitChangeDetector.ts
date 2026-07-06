@@ -38,6 +38,8 @@ export interface FileContentHash {
   hash: string;
 }
 
+type GitChangeSets = Pick<GitChangeResult, 'added' | 'modified' | 'deleted'>;
+
 // =============================================================================
 // GIT CHANGE DETECTOR
 // =============================================================================
@@ -96,12 +98,29 @@ export class GitChangeDetector {
       });
       return output
         .trim()
-        .split('\n')
+        .split(/\r?\n/)
         .filter((line) => line.length > 0)
-        .map((line) => line.replace(/\\/g, '/'));
+        .map((line) => this.normalizeGitPath(line));
     } catch {
       return [];
     }
+  }
+
+  /**
+   * Get staged, unstaged, and untracked worktree changes against current HEAD.
+   */
+  private getWorktreeChanges(): GitChangeSets {
+    const untracked: GitChangeSets = {
+      added: this.getUntrackedFiles(),
+      modified: [],
+      deleted: [],
+    };
+
+    return this.mergeChangeSets(
+      this.tryReadNameStatus(['diff', '--name-status']),
+      this.tryReadNameStatus(['diff', '--cached', '--name-status']),
+      untracked
+    );
   }
 
   /**
@@ -135,11 +154,9 @@ export class GitChangeDetector {
       return { ...empty, storedCommitMissing: true };
     }
 
-    // Same commit → zero changes
+    // Same commit can still have staged, unstaged, or untracked worktree changes.
     if (storedCommit === headCommit) {
-      // Still check for untracked files
-      const untracked = this.getUntrackedFiles();
-      return { ...empty, added: untracked };
+      return { ...empty, ...this.getWorktreeChanges() };
     }
 
     // Verify stored commit exists (execFileSync — no shell interpolation)
@@ -156,47 +173,14 @@ export class GitChangeDetector {
 
     // Get diff (execFileSync — no shell interpolation)
     try {
-      const output = execFileSync('git', ['diff', '--name-status', storedCommit, headCommit], {
-        cwd: this.rootDir,
-        encoding: 'utf-8',
-        windowsHide: true,
-        stdio: ['pipe', 'pipe', 'pipe'],
-        maxBuffer: 10 * 1024 * 1024, // 10MB for large repos
-      });
-
-      const added: string[] = [];
-      const modified: string[] = [];
-      const deleted: string[] = [];
-
-      for (const line of output.trim().split('\n')) {
-        if (!line) continue;
-        const parts = line.split('\t');
-        const status = parts[0];
-        const filePath = (parts[1] ?? '').replace(/\\/g, '/');
-
-        if (status === 'A') {
-          added.push(filePath);
-        } else if (status === 'M') {
-          modified.push(filePath);
-        } else if (status === 'D') {
-          deleted.push(filePath);
-        } else if (status.startsWith('R')) {
-          // Rename: old path deleted, new path added
-          deleted.push(filePath);
-          const newPath = (parts[2] ?? '').replace(/\\/g, '/');
-          if (newPath) added.push(newPath);
-        } else if (status === 'C') {
-          // Copy: new path added
-          const newPath = (parts[2] ?? '').replace(/\\/g, '/');
-          if (newPath) added.push(newPath);
-        }
-      }
-
-      // Also include untracked files as added
-      const untracked = this.getUntrackedFiles();
-      for (const f of untracked) {
-        if (!added.includes(f)) added.push(f);
-      }
+      const committedChanges = this.readNameStatus([
+        'diff',
+        '--name-status',
+        storedCommit,
+        headCommit,
+      ]);
+      const worktreeChanges = this.getWorktreeChanges();
+      const { added, modified, deleted } = this.mergeChangeSets(committedChanges, worktreeChanges);
 
       return {
         headCommit,
@@ -260,5 +244,94 @@ export class GitChangeDetector {
     }
 
     return { trulyChanged, unchanged };
+  }
+
+  private tryReadNameStatus(args: string[]): GitChangeSets {
+    try {
+      return this.readNameStatus(args);
+    } catch {
+      return { added: [], modified: [], deleted: [] };
+    }
+  }
+
+  private readNameStatus(args: string[]): GitChangeSets {
+    const output = execFileSync('git', args, {
+      cwd: this.rootDir,
+      encoding: 'utf-8',
+      windowsHide: true,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      maxBuffer: 10 * 1024 * 1024, // 10MB for large repos
+    });
+
+    return this.parseNameStatus(output);
+  }
+
+  private parseNameStatus(output: string): GitChangeSets {
+    const added: string[] = [];
+    const modified: string[] = [];
+    const deleted: string[] = [];
+
+    for (const line of output.trim().split(/\r?\n/)) {
+      if (!line) continue;
+      const parts = line.split('\t');
+      const status = parts[0] ?? '';
+      const filePath = this.normalizeGitPath(parts[1] ?? '');
+      const statusCode = status[0];
+
+      if (!statusCode) continue;
+
+      if (statusCode === 'A') {
+        if (filePath) added.push(filePath);
+      } else if (statusCode === 'M' || statusCode === 'T' || statusCode === 'U') {
+        if (filePath) modified.push(filePath);
+      } else if (statusCode === 'D') {
+        if (filePath) deleted.push(filePath);
+      } else if (statusCode === 'R') {
+        // Rename: old path deleted, new path added.
+        if (filePath) deleted.push(filePath);
+        const newPath = this.normalizeGitPath(parts[2] ?? '');
+        if (newPath) added.push(newPath);
+      } else if (statusCode === 'C') {
+        // Copy: new path added.
+        const newPath = this.normalizeGitPath(parts[2] ?? filePath);
+        if (newPath) added.push(newPath);
+      }
+    }
+
+    return this.mergeChangeSets({ added, modified, deleted });
+  }
+
+  private mergeChangeSets(...sets: GitChangeSets[]): GitChangeSets {
+    const added = new Set<string>();
+    const modified = new Set<string>();
+    const deleted = new Set<string>();
+
+    for (const set of sets) {
+      for (const filePath of set.added) added.add(this.normalizeGitPath(filePath));
+      for (const filePath of set.modified) modified.add(this.normalizeGitPath(filePath));
+      for (const filePath of set.deleted) deleted.add(this.normalizeGitPath(filePath));
+    }
+
+    for (const filePath of deleted) {
+      const absPath = path.join(this.rootDir, filePath.replace(/\//g, path.sep));
+      if (!fs.existsSync(absPath)) {
+        added.delete(filePath);
+        modified.delete(filePath);
+      }
+    }
+
+    for (const filePath of added) {
+      modified.delete(filePath);
+    }
+
+    return {
+      added: Array.from(added).filter(Boolean).sort(),
+      modified: Array.from(modified).filter(Boolean).sort(),
+      deleted: Array.from(deleted).filter(Boolean).sort(),
+    };
+  }
+
+  private normalizeGitPath(filePath: string): string {
+    return filePath.replace(/\\/g, '/');
   }
 }

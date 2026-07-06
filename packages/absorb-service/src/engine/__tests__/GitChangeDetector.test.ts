@@ -13,33 +13,67 @@ import { execFileSync } from 'child_process';
 
 const GIT_TEST_TIMEOUT_MS = 60_000;
 
+interface GitFixture {
+  repoRoot: string;
+  detector: GitChangeDetector;
+  headCommit: string;
+}
+
+function writeFixtureFile(repoRoot: string, filePath: string, content: string): void {
+  const absPath = path.join(repoRoot, filePath);
+  fs.mkdirSync(path.dirname(absPath), { recursive: true });
+  fs.writeFileSync(absPath, content);
+}
+
+function commitFixture(repoRoot: string, message: string): void {
+  execFileSync(
+    'git',
+    [
+      '-c',
+      'user.email=holoscript-tests@example.invalid',
+      '-c',
+      'user.name=HoloScript Tests',
+      'commit',
+      '-m',
+      message,
+    ],
+    { cwd: repoRoot, stdio: 'ignore' }
+  );
+}
+
+function createGitFixture(files: Record<string, string>): GitFixture {
+  const repoRoot = path.join(
+    os.tmpdir(),
+    `holoscript-git-detector-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`
+  );
+  fs.mkdirSync(repoRoot, { recursive: true });
+
+  for (const [filePath, content] of Object.entries(files)) {
+    writeFixtureFile(repoRoot, filePath, content);
+  }
+
+  execFileSync('git', ['init'], { cwd: repoRoot, stdio: 'ignore' });
+  execFileSync('git', ['add', ...Object.keys(files)], { cwd: repoRoot, stdio: 'ignore' });
+  commitFixture(repoRoot, 'initial fixture');
+
+  const detector = new GitChangeDetector(repoRoot);
+  const headCommit = detector.getHeadCommit();
+  if (!headCommit) throw new Error('Fixture HEAD commit was not created');
+
+  return { repoRoot, detector, headCommit };
+}
+
 describe('GitChangeDetector', () => {
   let detector: GitChangeDetector;
   let repoRoot: string;
 
   beforeAll(() => {
-    repoRoot = path.join(os.tmpdir(), `holoscript-git-detector-${Date.now()}`);
-    fs.mkdirSync(repoRoot, { recursive: true });
-    fs.writeFileSync(path.join(repoRoot, 'package.json'), '{"name":"fixture"}\n');
-    fs.writeFileSync(path.join(repoRoot, 'README.md'), '# Fixture\n');
-
-    execFileSync('git', ['init'], { cwd: repoRoot, stdio: 'ignore' });
-    execFileSync('git', ['add', 'package.json', 'README.md'], { cwd: repoRoot, stdio: 'ignore' });
-    execFileSync(
-      'git',
-      [
-        '-c',
-        'user.email=holoscript-tests@example.invalid',
-        '-c',
-        'user.name=HoloScript Tests',
-        'commit',
-        '-m',
-        'initial fixture',
-      ],
-      { cwd: repoRoot, stdio: 'ignore' }
-    );
-
-    detector = new GitChangeDetector(repoRoot);
+    const fixture = createGitFixture({
+      'package.json': '{"name":"fixture"}\n',
+      'README.md': '# Fixture\n',
+    });
+    repoRoot = fixture.repoRoot;
+    detector = fixture.detector;
   }, GIT_TEST_TIMEOUT_MS);
 
   afterAll(() => {
@@ -97,11 +131,109 @@ describe('GitChangeDetector', () => {
         const headCommit = detector.getHeadCommit()!;
         const result = detector.detectChanges(headCommit);
         expect(result.headCommit).toBe(headCommit);
-        // modified + deleted should be 0 (no committed diff)
-        // added may include untracked files in a dirty working tree
-        expect(result.modified.length).toBe(0);
-        expect(result.deleted.length).toBe(0);
+        expect(result.added).toEqual([]);
+        expect(result.modified).toEqual([]);
+        expect(result.deleted).toEqual([]);
         expect(result.storedCommitMissing).toBe(false);
+      },
+      GIT_TEST_TIMEOUT_MS
+    );
+
+    it(
+      'detects unstaged tracked modifications when comparing HEAD to itself',
+      () => {
+        const fixture = createGitFixture({
+          'src/fixture.ts': 'export const value = 1;\n',
+        });
+        try {
+          writeFixtureFile(fixture.repoRoot, 'src/fixture.ts', 'export const value = 2;\n');
+
+          const result = fixture.detector.detectChanges(fixture.headCommit);
+
+          expect(result.added).toEqual([]);
+          expect(result.modified).toEqual(['src/fixture.ts']);
+          expect(result.deleted).toEqual([]);
+          expect(result.storedCommitMissing).toBe(false);
+        } finally {
+          fs.rmSync(fixture.repoRoot, { recursive: true, force: true });
+        }
+      },
+      GIT_TEST_TIMEOUT_MS
+    );
+
+    it(
+      'detects staged tracked modifications when comparing HEAD to itself',
+      () => {
+        const fixture = createGitFixture({
+          'src/fixture.ts': 'export const value = 1;\n',
+        });
+        try {
+          writeFixtureFile(fixture.repoRoot, 'src/fixture.ts', 'export const value = 2;\n');
+          execFileSync('git', ['add', 'src/fixture.ts'], {
+            cwd: fixture.repoRoot,
+            stdio: 'ignore',
+          });
+
+          const result = fixture.detector.detectChanges(fixture.headCommit);
+
+          expect(result.added).toEqual([]);
+          expect(result.modified).toEqual(['src/fixture.ts']);
+          expect(result.deleted).toEqual([]);
+          expect(result.storedCommitMissing).toBe(false);
+        } finally {
+          fs.rmSync(fixture.repoRoot, { recursive: true, force: true });
+        }
+      },
+      GIT_TEST_TIMEOUT_MS
+    );
+
+    it(
+      'detects unstaged tracked deletions when comparing HEAD to itself',
+      () => {
+        const fixture = createGitFixture({
+          'src/fixture.ts': 'export const value = 1;\n',
+        });
+        try {
+          fs.rmSync(path.join(fixture.repoRoot, 'src/fixture.ts'));
+
+          const result = fixture.detector.detectChanges(fixture.headCommit);
+
+          expect(result.added).toEqual([]);
+          expect(result.modified).toEqual([]);
+          expect(result.deleted).toEqual(['src/fixture.ts']);
+          expect(result.storedCommitMissing).toBe(false);
+        } finally {
+          fs.rmSync(fixture.repoRoot, { recursive: true, force: true });
+        }
+      },
+      GIT_TEST_TIMEOUT_MS
+    );
+
+    it(
+      'keeps remove and rescan when a committed deletion is recreated locally',
+      () => {
+        const fixture = createGitFixture({
+          'src/fixture.ts': 'export const value = 1;\n',
+        });
+        try {
+          const storedCommit = fixture.headCommit;
+          fs.rmSync(path.join(fixture.repoRoot, 'src/fixture.ts'));
+          execFileSync('git', ['add', 'src/fixture.ts'], {
+            cwd: fixture.repoRoot,
+            stdio: 'ignore',
+          });
+          commitFixture(fixture.repoRoot, 'delete fixture');
+          writeFixtureFile(fixture.repoRoot, 'src/fixture.ts', 'export const value = 2;\n');
+
+          const result = fixture.detector.detectChanges(storedCommit);
+
+          expect(result.added).toEqual(['src/fixture.ts']);
+          expect(result.deleted).toEqual(['src/fixture.ts']);
+          expect(result.modified).toEqual([]);
+          expect(result.storedCommitMissing).toBe(false);
+        } finally {
+          fs.rmSync(fixture.repoRoot, { recursive: true, force: true });
+        }
       },
       GIT_TEST_TIMEOUT_MS
     );

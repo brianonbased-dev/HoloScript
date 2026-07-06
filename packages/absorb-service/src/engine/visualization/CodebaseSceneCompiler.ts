@@ -18,6 +18,7 @@ import type { ThemeOptions } from './CodebaseTheme';
 import { EdgeRenderer } from './EdgeRenderer';
 import type { EdgeRenderOptions } from './EdgeRenderer';
 import { InteractiveSceneEnricher } from './InteractiveSceneEnricher';
+import { makeSymbolObjectId, sanitizeHoloId } from '../SymbolObjectId';
 
 // =============================================================================
 // TYPES (re-exported from CodebaseSceneTypes to avoid circular deps)
@@ -348,7 +349,11 @@ export class CodebaseSceneCompiler {
         const key = sourceId + '=>' + targetId;
         if (seen.has(key)) continue;
         seen.add(key);
-        layoutEdges.push({ source: sourceId, target: targetId, weight: imp.namedImports?.length ?? 1 });
+        layoutEdges.push({
+          source: sourceId,
+          target: targetId,
+          weight: imp.namedImports?.length ?? 1,
+        });
       }
     }
 
@@ -404,11 +409,10 @@ export class CodebaseSceneCompiler {
   }
 
   private makeObjectId(sym: ExternalSymbolDefinition): string {
-    const owner = sym.owner ? `${sym.owner}.` : '';
-    return `${owner}${sym.name}`;
+    return makeSymbolObjectId(sym);
   }
 
   private sanitizeId(s: string): string {
-    return s.replace(/[\\\/]/g, '/').replace(/[^a-zA-Z0-9_\-\/\.]/g, '_');
+    return sanitizeHoloId(s);
   }
 }
