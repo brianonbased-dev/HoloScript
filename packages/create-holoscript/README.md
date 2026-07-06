@@ -12,9 +12,21 @@ npx create-holoscript my-world --go
 
 That's it. `--go` scaffolds the zero-install `instant` template, starts a dev server, and opens your browser automatically. No `cd`, no `npm install`, no second command.
 
-### Alternate package name
+### Compatibility package name
 
-The same style of scaffold is also published as [`create-holoscript-app`](https://www.npmjs.com/package/create-holoscript-app), so **`npx create-holoscript-app my-world --go`** works for users who expect an `-app` suffix. Prefer **`npx create-holoscript@latest`** when you want the newest published CLI; version lines can differ between the two package names until they are release-synced.
+The same style of scaffold is also published as [`create-holoscript-app`](https://www.npmjs.com/package/create-holoscript-app), so **`npx create-holoscript-app my-world --go`** works for users who expect an `-app` suffix. The workspace-canonical package is **`create-holoscript`**; compare both npm versions before claiming they are release-synced.
+
+### Published package surface
+
+This package publishes three binaries:
+
+| Binary              | Purpose                                      |
+| ------------------- | -------------------------------------------- |
+| `create-holoscript` | Project scaffolder and `--go` local preview  |
+| `agent-setup`       | Agent infrastructure generator               |
+| `holoscript-agents` | Alias for the agent infrastructure generator |
+
+The npm payload is build-first: `bin/` wrappers import `dist/` outputs, and the package publishes `bin/`, `dist/`, templates, README, and changelog.
 
 ## Full Quick Start (any template)
 
@@ -126,6 +138,15 @@ object "MyObject" {
 - **Examples**: [/examples](https://github.com/brianonbased-dev/HoloScript/tree/main/examples) — 80+ `.holo` scenes
 - **Traits**: [/packages/traits](https://github.com/brianonbased-dev/HoloScript/tree/main/packages/traits) — 1,500+ standard traits
 - **Core**: [@holoscript/core](https://www.npmjs.com/package/@holoscript/core) — Parser, AST, compiler
+
+## Validation
+
+```bash
+corepack pnpm --filter create-holoscript run build
+corepack pnpm --filter create-holoscript run test
+npm view create-holoscript version
+npm view create-holoscript-app version
+```
 
 ## License
 

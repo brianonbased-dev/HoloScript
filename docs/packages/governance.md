@@ -35,6 +35,7 @@ This matrix assigns a support level to each documented package so contributors c
 | `@holoscript/formatter`              | stable       | HoloScript Core Team   |
 | `@holoscript/linter`                 | stable       | HoloScript Core Team   |
 | `@holoscript/lsp`                    | stable       | HoloScript Core Team   |
+| `create-holoscript`                  | stable       | HoloScript Core Team   |
 | `@holoscript/benchmark`              | beta         | HoloScript Core Team   |
 | `@holoscript/comparative-benchmarks` | beta         | HoloScript Core Team   |
 | `tree-sitter-holoscript`             | stable       | HoloScript Core Team   |

@@ -55,7 +55,7 @@ packages so existing consumers get a clear migration path.
 | `@holoscript/intelligence` | `@holoscript/framework`, `@holoscript/holoscript-agent`, `@holoscript/memory` | Deprecated on npm; see `docs/handbooks/npm-agent-package-migrations.md`. |
 | `@holoscript/state-sync` | `@holoscript/crdt`, `@holoscript/crdt-spatial`, `@holoscript/mesh` | Deprecated on npm; see `docs/handbooks/npm-agent-package-migrations.md`. |
 | `holoscript` | `@holoscript/cli` | Keep only as an optional compatibility wrapper if revived; the canonical install is scoped. |
-| `create-holoscript` | `create-holoscript-app` | Keep docs on the app scaffolder name. |
+| `create-holoscript-app` | `create-holoscript` | Compatibility sibling; keep repo docs on `create-holoscript` and release-sync before promotion. |
 | `@holoscript/sdk` | `@holoscript/core` | Compatibility shim only; do not describe as the primary SDK. |
 
 ## Next Package Strategy

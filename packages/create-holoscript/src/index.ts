@@ -29,7 +29,7 @@ function printBanner(): void {
   console.log();
   console.log(pc.cyan('  ╔═══════════════════════════════════════════╗'));
   console.log(
-    pc.cyan('  ║') + pc.bold('     🌐 create-holoscript-app              ') + pc.cyan('║')
+    pc.cyan('  ║') + pc.bold('       create-holoscript                  ') + pc.cyan('║')
   );
   console.log(
     pc.cyan('  ║') + pc.dim('   The open AI-spatial reality protocol    ') + pc.cyan('║')

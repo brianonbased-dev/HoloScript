@@ -12,7 +12,9 @@
   "files": [
     "bin",
     "dist",
-    "templates"
+    "templates",
+    "README.md",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsup",

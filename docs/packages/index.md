@@ -26,6 +26,7 @@ HoloScript currently ships as a monorepo with **real packages** under `packages/
 | [**@holoscript/formatter**](./formatter.md)                           | Code formatting                        |
 | [**@holoscript/linter**](./linter.md)                                 | Static analysis                        |
 | [**@holoscript/lsp**](./lsp.md)                                       | Language Server Protocol support       |
+| [**create-holoscript**](./create-holoscript.md)                       | Public project scaffolder              |
 | [**@holoscript/benchmark**](./benchmark.md)                           | Internal performance benchmarking      |
 | [**@holoscript/comparative-benchmarks**](./comparative-benchmarks.md) | Cross-stack performance comparisons    |
 | [**tree-sitter-holoscript**](./tree-sitter-holoscript.md)             | Tree-sitter grammar for editor tooling |

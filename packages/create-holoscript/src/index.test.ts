@@ -25,10 +25,10 @@ import {
 } from './scaffold.js';
 
 /**
- * Tests for create-holoscript-app scaffolding tool.
+ * Tests for create-holoscript scaffolding tool.
  * All filesystem operations are mocked via vi.mock('node:fs').
  */
-describe('create-holoscript-app', () => {
+describe('create-holoscript', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
