@@ -3,6 +3,7 @@ import type { CodebaseGraph } from '../engine/CodebaseGraph';
 import type { SymbolSearchIndex } from '../engine/SearchIndex';
 import type { ExternalSymbolDefinition } from '../engine/types';
 import { GraphRAGEngine } from '../engine/GraphRAGEngine';
+import { configureConfigSecretResolver, resetConfigSecretResolver } from '@holoscript/config';
 import {
   createHoloLlamaSynthesisProvider,
   graphRagTools,
@@ -21,6 +22,7 @@ describe('holo_ask_codebase HoloLlama synthesis lane', () => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
     resetGraphRAGStateForTests();
+    resetConfigSecretResolver();
     if (originalHoloLlamaEndpoint === undefined) {
       delete process.env.HOLOLLAMA_ENDPOINT;
     } else {
@@ -119,6 +121,50 @@ describe('holo_ask_codebase HoloLlama synthesis lane', () => {
       embeddingPolicy: 'holoembed-query-tower-only',
       graphProvider: 'holograph',
     });
+  });
+
+  it('resolves Jetson HoloLlama profile and endpoint through the HoloKey-aware config bridge', async () => {
+    configureConfigSecretResolver({
+      async resolve(nameOrRef: string) {
+        if (nameOrRef === 'HOLOLLAMA_PROFILE') return 'jetson-orin';
+        if (nameOrRef === 'HOLOLLAMA_ENDPOINT') return 'http://jetson.local:18080';
+        return undefined;
+      },
+    });
+
+    const calls: Array<{ input: string | URL; init?: RequestInit }> = [];
+    const fetchImpl = vi.fn(async (input: string | URL, init?: RequestInit) => {
+      calls.push({ input, init });
+      return new Response(
+        JSON.stringify({
+          choices: [{ message: { content: 'Jetson-backed HoloLlama answer' } }],
+        }),
+        {
+          status: 200,
+          statusText: 'OK',
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    });
+
+    const provider = await createHoloLlamaSynthesisProvider({
+      generatedAt: '2026-07-06T00:00:00.000Z',
+      fetchImpl,
+    });
+
+    expect(provider.receipt).toMatchObject({
+      generatedAt: '2026-07-06T00:00:00.000Z',
+      profile: 'jetson-orin',
+      endpoint: 'http://jetson.local:18080',
+      chatCompletionsUrl: 'http://jetson.local:18080/v1/chat/completions',
+      registryHandle: 'jetson-brittney-edge',
+    });
+
+    const response = await provider.complete({
+      messages: [{ role: 'user', content: 'Use the Jetson lane.' }],
+    });
+    expect(response.content).toBe('Jetson-backed HoloLlama answer');
+    expect(String(calls[0]?.input)).toBe('http://jetson.local:18080/v1/chat/completions');
   });
 
   it('attaches a HoloLlama receipt to holo_ask_codebase answers', async () => {

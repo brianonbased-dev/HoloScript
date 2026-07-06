@@ -328,7 +328,9 @@ differently to get useful results.
 - **Use `llmProvider: "holollama"`** when you want owned llama.cpp-compatible
   synthesis through the selected HoloLlama profile. This returns a
   `holoLlamaReceipt`; it does not change GraphRAG embeddings, which remain
-  HoloEmbed.
+  HoloEmbed. `HOLOLLAMA_PROFILE` and `HOLOLLAMA_ENDPOINT` resolve through the
+  HoloKey-aware `@holoscript/config` bridge first, then env fallback, so a
+  Jetson endpoint can live in the secrets broker instead of plaintext env.
 - **The graph matters.** Unlike plain RAG, Graph RAG enriches every match with
   callers, callees, community membership, and impact radius — so answers include
   "what depends on this" not just "where is this."
@@ -629,8 +631,8 @@ tracking.
 | `ABSORB_API_KEY`        | For paid tools   | API key for Studio authentication                                                                                                                                |
 | `OPENAI_API_KEY`        | Optional         | OpenAI key, used ONLY for the generic factory with explicit `provider: 'openai'`. The GraphRAG path (`detectBestEmbeddingProvider`) ignores it entirely (F.106). |
 | `OLLAMA_URL`            | Optional         | Ollama base URL (default: `http://localhost:11434`)                                                                                                              |
-| `HOLOLLAMA_PROFILE`     | Optional         | Default HoloLlama profile for `llmProvider: "holollama"` answer synthesis (`jetson-orin`, `laptop-windows`, or `vast-linux-gpu`).                                |
-| `HOLOLLAMA_ENDPOINT`    | Optional         | OpenAI-compatible HoloLlama endpoint override for answer synthesis. Accepts a base URL, `/v1` URL, or `/v1/chat/completions` URL.                                |
+| `HOLOLLAMA_PROFILE`     | Optional         | Default HoloLlama profile for `llmProvider: "holollama"` answer synthesis (`jetson-orin`, `laptop-windows`, or `vast-linux-gpu`). Resolved through HoloKey-aware config first, then env fallback. |
+| `HOLOLLAMA_ENDPOINT`    | Optional         | OpenAI-compatible HoloLlama endpoint override for answer synthesis. Accepts a base URL, `/v1` URL, or `/v1/chat/completions` URL. Resolved through HoloKey-aware config first, then env fallback. |
 | `EMBEDDING_PROVIDER`    | Optional         | GraphRAG override — only `holoembed` is accepted (`structural` is a legacy alias mapped to `holoembed`); any other value (incl. `openai`) is rejected (F.106).   |
 | `HOLOSCRIPT_STUDIO_URL` | Optional         | Studio URL override (default: `https://holoscript.studio`)                                                                                                       |
 | `HOLOSCRIPT_API_KEY`    | For orchestrator | MCP orchestrator API key                                                                                                                                         |

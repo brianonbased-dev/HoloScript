@@ -1,29 +1,15 @@
 /**
- * @holoscript/secrets-broker — Sovereign primitive for AI-surface capability tokens
+ * @holoscript/secrets-broker - HoloKey custody primitive for AI surfaces
  *
- * Generalizes the per-brain `HOLOMESH_API_KEY_<HANDLE>_X402` + x402 pattern (S.IDENT,
- * docs/headless-agents.md) into a typed, framework-agnostic contract usable by any
- * AI surface (mobile, desktop, headless, hardware). The broker server holds wallets
- * and long-lived bearers; surfaces present a short-lived, scoped capability token
- * per session.
+ * Generalizes the per-brain `HOLOMESH_API_KEY_<HANDLE>_X402` + x402 pattern into a
+ * typed, framework-agnostic custody contract usable by mobile, desktop, headless,
+ * hardware, fleet, and service processes.
  *
- * Companion to:
- *   - `/protocol` (HoloScript Protocol economic layer) for commercialization (D.013)
- *   - HoloMesh signing-middleware for signed-attribution coverage (S.IDENT triangle)
- *   - `packages/studio/src/lib/workspace/secretBroker.ts` (workspace-scoped grants;
- *     this package generalizes that pattern to surface-scoped agent bearers)
- *
- * Scope of this scaffold (P5 FOUNDATION first iteration):
- *   - Typed contract for surfaces / handles / capabilities / capability tokens
- *   - Pure (no I/O) capability-token mint + validate + revoke logic
- *   - Device-flow pairing contract (interface only; transport in follow-up task)
- *   - Audit-receipt shape compatible with existing HoloDoor policy emission
- *
- * Out of scope (filed as follow-up tasks):
- *   - HTTP transport / HoloMesh server routes
- *   - Wallet storage / x402 bearer minting against real Anthropic / GitHub
- *   - /protocol on-chain commercialization wiring
- *   - Per-surface UX (mobile paste flow, desktop OAuth)
+ * This package now includes capability tokens, device-flow challenges, encrypted
+ * HoloKey SecretStore backends, KEK providers, leases, service-secret resolution,
+ * resolve receipts, and `@needs_key` trait helpers. Deployed HTTP/MCP routes,
+ * Studio UX, wallet custody, and protocol commercialization remain in their
+ * owning packages.
  *
  * @module @holoscript/secrets-broker
  */

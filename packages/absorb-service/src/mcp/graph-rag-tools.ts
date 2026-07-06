@@ -162,12 +162,12 @@ export const graphRagTools: Tool[] = [
           type: 'string',
           enum: HOLOLLAMA_PROFILES,
           description:
-            'HoloLlama serving profile used when llmProvider is "holollama" (default: HOLOLLAMA_PROFILE or "jetson-orin").',
+            'HoloLlama serving profile used when llmProvider is "holollama" (default: HoloKey-aware HOLOLLAMA_PROFILE/env or "jetson-orin").',
         },
         holoLlamaEndpoint: {
           type: 'string',
           description:
-            'OpenAI-compatible HoloLlama endpoint override used when llmProvider is "holollama" (default: HOLOLLAMA_ENDPOINT or the selected profile registry endpoint). Accepts a base URL, /v1 URL, or /v1/chat/completions URL.',
+            'OpenAI-compatible HoloLlama endpoint override used when llmProvider is "holollama" (default: HoloKey-aware HOLOLLAMA_ENDPOINT/env or the selected profile registry endpoint). Accepts a base URL, /v1 URL, or /v1/chat/completions URL.',
         },
       },
       required: ['question'],
@@ -259,7 +259,7 @@ async function detectDefaultLLMProvider(): Promise<LLMProviderName> {
 
 function graphRagFailureHint(provider: string | undefined): string {
   if (provider === 'holollama') {
-    return 'Ensure the selected HoloLlama profile is serving an OpenAI-compatible endpoint. Set HOLOLLAMA_ENDPOINT or pass holoLlamaEndpoint; embeddings remain fixed to HoloEmbed.';
+    return 'Ensure the selected HoloLlama profile is serving an OpenAI-compatible endpoint. Provide holoLlamaEndpoint or resolve HOLOLLAMA_ENDPOINT through HoloKey-aware config/env; embeddings remain fixed to HoloEmbed.';
   }
 
   if (provider && provider !== 'ollama') {
@@ -275,13 +275,18 @@ export async function createHoloLlamaSynthesisProvider(
   options: HoloLlamaSynthesisProviderOptions = {}
 ): Promise<HoloLlamaSynthesisProvider> {
   const holoLlama = await import('@holoscript/holollama');
-  const profile = resolveHoloLlamaProfile(options.profile);
+  const explicitProfile = stringArg(options.profile);
+  const profile = resolveHoloLlamaProfile(
+    explicitProfile,
+    explicitProfile ? undefined : await resolveHoloLlamaConfigSecret('HOLOLLAMA_PROFILE')
+  );
   const spec = holoLlama.resolveHoloLlamaServeSpec(profile);
   const bundle = holoLlama.compileHoloLlamaBundle({ profile });
   const summary = holoLlama.summarizeHoloLlamaBundle(bundle);
+  const explicitEndpoint = stringArg(options.endpoint);
   const endpoint =
-    stringArg(options.endpoint) ??
-    stringArg(process.env.HOLOLLAMA_ENDPOINT) ??
+    explicitEndpoint ??
+    (explicitEndpoint ? undefined : await resolveHoloLlamaConfigSecret('HOLOLLAMA_ENDPOINT')) ??
     summary.endpoint ??
     `http://${spec.host}:${spec.port}/v1`;
   const chatCompletionsUrl = normalizeHoloLlamaChatCompletionsUrl(endpoint);
@@ -321,8 +326,12 @@ export async function createHoloLlamaSynthesisProvider(
   };
 }
 
-function resolveHoloLlamaProfile(value: unknown): HoloLlamaProfile {
-  const candidate = stringArg(value) ?? stringArg(process.env.HOLOLLAMA_PROFILE) ?? 'jetson-orin';
+async function resolveHoloLlamaConfigSecret(name: string): Promise<string | undefined> {
+  return stringArg(await resolveConfigSecret(name));
+}
+
+function resolveHoloLlamaProfile(value: unknown, configuredProfile?: string): HoloLlamaProfile {
+  const candidate = stringArg(value) ?? configuredProfile ?? 'jetson-orin';
   if (HOLOLLAMA_PROFILES.includes(candidate as HoloLlamaProfile)) {
     return candidate as HoloLlamaProfile;
   }
