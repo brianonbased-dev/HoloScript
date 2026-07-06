@@ -65,6 +65,7 @@ Ownership is inferred from package domain and the team structure. Update this fi
 | `@holoscript/crdt-spatial`      | Spatial CRDT sync              | `vitest run`                   | Yes      |
 | `@holoscript/spatial-index`     | R-Tree spatial index           | `vitest run`                   | Yes      |
 | `@holoscript/video-tutorials`   | Instructional video generation | `vitest run --passWithNoTests` | Yes      |
+| `@holoscript/xr-embodiment`     | WebXR embodiment runtime       | `vitest run`                   | Yes      |
 
 ## AI & Agents (`@brianonbased-dev` / ai-team)
 

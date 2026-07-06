@@ -15,6 +15,7 @@ This matrix assigns a support level to each documented package so contributors c
 - Core platform packages: HoloScript Core Team
 - Studio/editor packages: Studio Team
 - Agent/AI packages: Agent Systems Team
+- Spatial/HoloLand packages: HoloLand Team
 - Services/data packages: Platform Services Team
 - Research packages: R&D Team
 
@@ -51,6 +52,7 @@ This matrix assigns a support level to each documented package so contributors c
 | `@holoscript/holollama`              | experimental | Agent Systems Team     |
 | `@holoscript/holoscript-agent`       | beta         | Agent Systems Team     |
 | `@holoscript/r3f-renderer`           | beta         | Studio Team            |
+| `@holoscript/xr-embodiment`          | beta         | HoloLand Team          |
 | `@holoscript/llm-provider`           | stable       | Agent Systems Team     |
 | `@holoscript/ai-validator`           | stable       | Agent Systems Team     |
 | `@holoscript/agent-protocol`         | beta         | Agent Systems Team     |

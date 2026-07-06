@@ -54,6 +54,7 @@ HoloScript currently ships as a monorepo with **real packages** under `packages/
 | [**@holoscript/memory**](./memory.md)               | Sovereign agent-memory client             |
 | [**@holoscript/holollama**](./holollama.md)         | Native llama.cpp serving utilities        |
 | [**@holoscript/r3f-renderer**](./r3f-renderer.md)   | React Three Fiber renderer helpers        |
+| [**@holoscript/xr-embodiment**](./xr-embodiment.md) | WebXR locomotion and agent avatars        |
 
 ## AI, Agents, and Virtual Machines
 
