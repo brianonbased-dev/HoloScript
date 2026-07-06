@@ -720,15 +720,51 @@ describe('holo_absorb_repo sourceFiles upload', () => {
     expect(result.stats?.totalSymbols).toBeGreaterThanOrEqual(1);
 
     const status = (await handleCodebaseTool('holo_graph_status', {})) as {
+      graphAuthoritative?: boolean;
       sessionProvenance?: string | null;
       localCodebaseSnapshotReceipt?: { schema?: string } | null;
-      diskCache?: { localCodebaseSnapshotReceipt?: { schema?: string } | null };
+      localCodebaseSnapshot?: {
+        authoritative?: boolean;
+        scope?: string;
+        reason?: string;
+        receiptFileCount?: number;
+        graphFileCount?: number;
+        receipt?: { schema?: string };
+      } | null;
+      diskCache?: {
+        localCodebaseSnapshotReceipt?: { schema?: string } | null;
+        localCodebaseSnapshot?: {
+          authoritative?: boolean;
+          scope?: string;
+          reason?: string;
+          receiptFileCount?: number;
+          graphFileCount?: number;
+          receipt?: { schema?: string };
+        } | null;
+      };
     };
+    expect(status.graphAuthoritative).toBe(false);
     expect(status.sessionProvenance).toBe('local-codebase-snapshot-receipt');
     expect(status.localCodebaseSnapshotReceipt?.schema).toBe('LocalCodebaseSnapshotReceipt.v1');
+    expect(status.localCodebaseSnapshot).toMatchObject({
+      authoritative: true,
+      scope: 'local-codebase-snapshot',
+      reason: 'receipt_sourcefiles_verified',
+      receiptFileCount: 1,
+      graphFileCount: 1,
+      receipt: { schema: 'LocalCodebaseSnapshotReceipt.v1' },
+    });
     expect(status.diskCache?.localCodebaseSnapshotReceipt?.schema).toBe(
       'LocalCodebaseSnapshotReceipt.v1'
     );
+    expect(status.diskCache?.localCodebaseSnapshot).toMatchObject({
+      authoritative: true,
+      scope: 'local-codebase-snapshot',
+      reason: 'receipt_sourcefiles_verified',
+      receiptFileCount: 1,
+      graphFileCount: 1,
+      receipt: { schema: 'LocalCodebaseSnapshotReceipt.v1' },
+    });
   }, 15_000);
 
   it('rejects a local receipt when declared hash does not match replay content', async () => {

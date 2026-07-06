@@ -527,6 +527,23 @@ interface GraphCoverageStatus {
   error?: string;
 }
 
+type LocalCodebaseSnapshotAuthorityReason =
+  | 'receipt_sourcefiles_verified'
+  | 'receipt_cache_stale'
+  | 'receipt_graph_incomplete';
+
+interface LocalCodebaseSnapshotAuthority {
+  authoritative: boolean;
+  scope: 'local-codebase-snapshot';
+  reason: LocalCodebaseSnapshotAuthorityReason;
+  rootDir: string | null;
+  graphFileCount: number;
+  receiptFileCount: number;
+  receiptCoverageComplete: boolean;
+  freshByAge: boolean;
+  receipt: LocalCodebaseSnapshotReceiptSummary;
+}
+
 function getCacheDir(): string {
   return process.env.HOLOSCRIPT_CACHE_DIR || path.join(os.homedir(), '.holoscript');
 }
@@ -638,6 +655,41 @@ function buildGraphCoverageStatus(
 
 function graphCoverageIsComplete(coverage: GraphCoverageStatus): boolean {
   return !coverage.available || coverage.complete !== false;
+}
+
+function buildLocalCodebaseSnapshotAuthority(options: {
+  receipt?: LocalCodebaseSnapshotReceiptSummary | null;
+  rootDir?: string | null;
+  graphFileCount: number;
+  freshByAge: boolean;
+}): LocalCodebaseSnapshotAuthority | null {
+  if (!options.receipt) return null;
+
+  const graphFileCount = Number.isFinite(options.graphFileCount)
+    ? Math.max(0, options.graphFileCount)
+    : 0;
+  const receiptFileCount = Number.isFinite(options.receipt.totalFiles)
+    ? Math.max(0, options.receipt.totalFiles)
+    : 0;
+  const receiptCoverageComplete = graphFileCount >= receiptFileCount;
+  const authoritative = options.freshByAge && receiptCoverageComplete;
+  const reason: LocalCodebaseSnapshotAuthorityReason = !options.freshByAge
+    ? 'receipt_cache_stale'
+    : !receiptCoverageComplete
+      ? 'receipt_graph_incomplete'
+      : 'receipt_sourcefiles_verified';
+
+  return {
+    authoritative,
+    scope: 'local-codebase-snapshot',
+    reason,
+    rootDir: options.rootDir ?? null,
+    graphFileCount,
+    receiptFileCount,
+    receiptCoverageComplete,
+    freshByAge: options.freshByAge,
+    receipt: options.receipt,
+  };
 }
 
 function getEnvelopeGraphFileCount(envelope: GraphCacheEnvelope): number {
@@ -3254,6 +3306,18 @@ async function handleGraphStatus(): Promise<unknown> {
   );
   const activeCoverageComplete = !activeCoverage.available || activeCoverage.complete !== false;
   const diskCoverageComplete = !diskCoverage.available || diskCoverage.complete !== false;
+  const localCodebaseSnapshot = buildLocalCodebaseSnapshotAuthority({
+    receipt: cache.localCodebaseSnapshotReceipt,
+    rootDir: cacheRootDir,
+    graphFileCount: activeGraphFileCount,
+    freshByAge: activeFreshByAge,
+  });
+  const diskLocalCodebaseSnapshot = buildLocalCodebaseSnapshotAuthority({
+    receipt: cache.localCodebaseSnapshotReceipt,
+    rootDir: cache.rootDir,
+    graphFileCount: diskGraphFileCount,
+    freshByAge: diskCacheFreshByAge,
+  });
   const graphRAGState = getGraphRAGStateStatus();
   const graphRAGMatchesCwd = rootMatchesCurrentRepo(graphRAGState.rootDir, currentCwd);
   const graphRAGFreshByAge =
@@ -3322,6 +3386,7 @@ async function handleGraphStatus(): Promise<unknown> {
     ...(graphUnavailableReceipt && { graphUnavailableReceipt }),
     sessionProvenance: cacheProvenance ?? null,
     localCodebaseSnapshotReceipt: cache.localCodebaseSnapshotReceipt ?? null,
+    localCodebaseSnapshot,
     diskCache: cache.exists
       ? {
           exists: true,
@@ -3342,6 +3407,7 @@ async function handleGraphStatus(): Promise<unknown> {
           embeddingProvider: cache.embeddingProvider ?? embeddingPolicy.provider,
           embeddingPolicy,
           localCodebaseSnapshotReceipt: cache.localCodebaseSnapshotReceipt ?? null,
+          localCodebaseSnapshot: diskLocalCodebaseSnapshot,
           hint: !diskCacheMatchesCwd
             ? `Cache rootDir (${cache.rootDir}) does not match current working directory (${currentCwd}). Call holo_absorb_repo for this workspace.`
             : !diskCacheGitMatchesHead
