@@ -60,6 +60,10 @@ function safeIncludes(haystack, needle) {
   return haystack.includes(String(needle || ''));
 }
 
+function isLiveDirectory(path) {
+  return existsSync(path) && statSync(path).isDirectory();
+}
+
 function isGeneratedWasmPackManifest(root, manifestPath) {
   const rel = normalizeRepoPath(relative(root, manifestPath));
   return /^packages\/compiler-wasm\/pkg(?:-node|-bundler)?\/package\.json$/.test(rel);
@@ -249,6 +253,7 @@ function collectGitHistory(root, since, packages) {
       dir: row.dir,
       files: row.files,
       commits: row.commits.size,
+      liveDir: isLiveDirectory(join(root, row.dir)),
     })),
   };
 }
@@ -373,6 +378,7 @@ function buildRecommendations(rows, history) {
 
   for (const row of history.orphanPackageDirs.sort((a, b) => b.commits - a.commits || b.files - a.files)) {
     if (row.commits === 0) continue;
+    if (!row.liveDir) continue;
     recommendations.push({
       kind: 'new-package-candidate',
       dir: row.dir,
@@ -380,8 +386,9 @@ function buildRecommendations(rows, history) {
       evidence: {
         commits: row.commits,
         changedFiles: row.files,
+        liveDir: row.liveDir,
       },
-      note: 'Only scaffold a new package after confirming no existing package owns this cluster.',
+      note: 'Live directory has recent package-like history but no package.json; only scaffold after confirming no existing package owns this cluster.',
     });
   }
 
@@ -467,7 +474,10 @@ function runSelfTest() {
       ['@scope/hot', { commits: 3, files: 5, manifestTouches: 1 }],
       ['@scope/private', { commits: 5, files: 9, manifestTouches: 0 }],
     ]),
-    orphanPackageDirs: [{ dir: 'packages/unowned', commits: 2, files: 4 }],
+    orphanPackageDirs: [
+      { dir: 'packages/unowned', commits: 2, files: 4, liveDir: true },
+      { dir: 'packages/deleted', commits: 20, files: 400, liveDir: false },
+    ],
   };
   const graph = {
     packages: new Map([['@scope/hot', { graphFiles: 2, graphSymbols: 10 }]]),
@@ -488,6 +498,7 @@ function runSelfTest() {
   assert.equal(recommendations[0].kind, 'foster-existing-package');
   assert.equal(recommendations[0].package, '@scope/hot');
   assert.ok(recommendations.some((item) => item.kind === 'new-package-candidate'));
+  assert.ok(!recommendations.some((item) => item.dir === 'packages/deleted'));
   console.log('[package-opportunity-map] self-test PASS');
 }
 
