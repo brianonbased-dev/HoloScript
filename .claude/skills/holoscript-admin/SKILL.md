@@ -1,5 +1,6 @@
 ---
-name: admin
+name: holoscript-admin
+
 description: >
   HoloScript v7.0.0 AUTONOMOUS PROJECT ADMINISTRATOR — CEO-level manager for
   HoloScript repository. Builds and improves the universal semantic platform.
@@ -292,7 +293,7 @@ This skill should actively identify and propose HoloScript language improvements
 The `@holoscript/mcp-server` exposes tools at `mcp.holoscript.net`. Check live count via `curl mcp.holoscript.net/health` → `tools` field.
 
 **Production:** `https://mcp.holoscript.net` (health: `/health`, MCP: `/mcp`, render: `/api/render`, share: `/api/share`)
-**Local:** `npx tsx packages/mcp-server/src/index.ts`
+**Sovereign local (CANONICAL for filesystem/codebase tools — absorb/query/compile/parse/validate/graph, per R.027):** `PORT=7411 node packages/mcp-server/dist/http-server.js` → `http://127.0.0.1:7411/mcp` (Jetson anchor `http://192.168.0.119:7411/mcp`; stdio: `node packages/mcp-server/dist/index.js`). Railway orchestrator = shared state only (board, knowledge, x402).
 
 **Tool inventory changes with every deploy.** Do NOT memorize tool names from this file. Discover live:
 - Full list: `curl mcp.holoscript.net/health` → `tools` field for count, `POST /mcp` → `tools/list` for names
@@ -342,7 +343,7 @@ Returns per-tool status:
 
 ---
 
-## Key Packages (50+)
+## Key Packages (verify via `ls packages/ services/`)
 
 **Compiler/Language:** core, compiler, parser, lsp, formatter, linter, traits, std, test, benchmark
 
@@ -360,7 +361,7 @@ Returns per-tool status:
 
 ---
 
-## 28+ Export Targets
+## Export Targets (verify via `find packages/core/src -name "*Compiler.ts"` or `list_export_targets`)
 
 ```text
 Game Engines:    unity, unreal, godot
@@ -442,7 +443,7 @@ pnpm self-improve       # Daemon self-improvement loop
 
 This skill can and should edit itself. After sessions that improve HoloScript, evaluate whether this SKILL.md needs updates.
 
-**This skill file**: `C:/Users/Josep/.claude/skills/holoscript/SKILL.md`
+**This skill file**: `C:/Users/Josep/Documents/GitHub/HoloScript/.claude/skills/holoscript-admin/SKILL.md`
 
 **When to self-edit:**
 - New language patterns or improvements implemented that agents should know about

@@ -5,6 +5,9 @@ description: >
   semantic search, Graph RAG Q&A, impact analysis, and recursive self-improvement.
   Use when you need to understand, map, or analyze any codebase before refactoring,
   planning, or investigating dependencies.
+argument-hint: "[status|repo|query|ask|diff|provenance|fmu] [args]"
+disable-model-invocation: false
+allowed-tools: Bash, Read, Grep, Glob
 ---
 
 # HoloScript Absorb — Codebase Intelligence Skill
@@ -33,6 +36,18 @@ It supports TypeScript, Python, Rust, Go, and JavaScript via tree-sitter adapter
 - Deployment config → absorb scans source code, not .env or Docker files
 - Simple file reads → use `Read` tool directly if you already know the path
 
+## Covered tools
+
+The capability cartographer uses this section to verify that absorb prefix
+coverage is backed by explicit tool names.
+
+`absorb_query`, `absorb_diff`, `absorb_list_projects`,
+`absorb_create_project`, `absorb_delete_project`, `absorb_run_absorb`,
+`absorb_run_improve`, `absorb_run_pipeline`, `absorb_run_query_ai`,
+`absorb_run_render`, `absorb_check_credits`, `absorb_provenance_answer`,
+`absorb_typescript`, `absorb_suggest_holoscript_transform`,
+`absorb_get_status`, `absorb_fmu`
+
 ## Quick Start
 
 ```bash
@@ -54,7 +69,7 @@ holoscript query "what calls buildIndex"
 | Service | URL | Auth |
 |---------|-----|------|
 | **Sovereign local MCP** (canonical for local-repo absorb/codebase tools — R.027) | `POST http://127.0.0.1:7411/mcp` — start: `node packages/mcp-server/dist/http-server.js`; Jetson anchor `http://192.168.0.119:7411/mcp` | None |
-| MCP Server (remote — FS-blind, public-repo/shared lanes only; do NOT route local-repo absorption here) | `https://mcp.holoscript.net` | None (free tools). SSE transport broken (Railway CDN). Use REST. |
+| MCP Server (remote — FS-blind, public-repo/shared lanes only; do NOT route local-repo absorption here) | `https://mcp.holoscript.net` | None (free tools). SSE may timeout on Railway CDN (observed through 2026-07) — clients auto-fallback to REST. |
 | Absorb Service (remote) | `https://absorb.holoscript.net` | Bearer `ABSORB_API_KEY` |
 | MCP Protocol (remote — FS-blind, cannot see local paths) | `POST https://mcp.holoscript.net/mcp` | None |
 | Studio (paid ops) | `https://studio.holoscript.net` | Bearer `ABSORB_API_KEY` |
@@ -291,7 +306,7 @@ Filter for precision:
 | Symptom | Cause | Fix |
 |---------|-------|-----|
 | Empty results | Graph not loaded | Run `holo_graph_status`, then `holo_absorb_repo` if stale |
-| Shallow/obvious answers | topK too low for 68-package monorepo | Bump to `topK: 40` |
+| Shallow/obvious answers | topK too low for a large monorepo (verify package count via `pnpm ls -r --depth -1`) | Bump to `topK: 40` |
 | LLM hallucinates details | Real answer ranked below top 10 | Bump topK or narrow with `file`/`language` filter |
 | BM25 keyword matches only | OpenAI embeddings not active | Check `OPENAI_API_KEY` is exported (see Embedding Provider section) |
 | Stale results after code changes | Graph cache is old | `holo_absorb_repo({ force: true })` to rebuild |
