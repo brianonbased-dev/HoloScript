@@ -210,7 +210,7 @@ Step 4: holo_semantic_search / holo_ask_codebase           → Embeddings: HoloE
 ```text
 If any MCP tool call fails:
   1. Check server: npx tsx packages/mcp-server/src/index.ts --help
-  2. Start it:     npx tsx packages/mcp-server/src/index.ts
+  2. Start it:     node packages/mcp-server/dist/index.js   (verified 2026-07-06; pnpm build first if dist/ is missing)
   3. Retry:        holo_graph_status({})  ← lightest possible call
   4. CLI fallback map:
      holo_absorb_repo    → npx tsx packages/cli/src/cli.ts absorb <dir> --json
@@ -218,7 +218,7 @@ If any MCP tool call fails:
      validate_holoscript → npx tsx packages/cli/src/cli.ts parse <file>
      suggest_traits      → no CLI equivalent (LLM-based)
      generate_object     → no CLI equivalent (LLM-based)
-  5. Notify user: "MCP server is down. Run: npx tsx packages/mcp-server/src/index.ts"
+  5. Notify user: "MCP server is down. Run: node packages/mcp-server/dist/index.js"
 ```
 
 ---

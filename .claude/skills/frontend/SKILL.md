@@ -137,10 +137,12 @@ Don't guess what files exist or how they're structured — ask:
 ENV_FILE="${HOME}/.ai-ecosystem/.env"; [ ! -f "$ENV_FILE" ] && ENV_FILE="/c/Users/Josep/.ai-ecosystem/.env"
 set -a && source "$ENV_FILE" 2>/dev/null && set +a
 
-curl -X POST MCP tools (holo_query_codebase, holo_ask_codebase) — absorb MCP endpoint is down \
-  -H "Authorization: Bearer $ABSORB_API_KEY" \
+# Sovereign local MCP (R.027) — local-repo queries. Start it with:
+#   PORT=7411 node packages/mcp-server/dist/http-server.js
+# (deployed https://absorb.holoscript.net serves remote/public repos; /health 200, checked 2026-07-06)
+curl -X POST http://127.0.0.1:7411/mcp \
   -H "Content-Type: application/json" \
-  -d '{"method":"tools/call","params":{"name":"absorb_query","arguments":{"query":"Studio component architecture for [WHAT YOU ARE WORKING ON]","limit":5}}}'
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"absorb_query","arguments":{"query":"Studio component architecture for [WHAT YOU ARE WORKING ON]","limit":5}}}'
 ```
 
 This tells you: what files exist, how they're connected, what patterns are
