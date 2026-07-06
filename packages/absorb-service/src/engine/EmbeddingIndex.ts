@@ -55,11 +55,20 @@ export interface EmbeddingIndexOptions {
    */
   concurrentBatches?: number;
   /**
+   * Optional graph-context text gates for benchmark ablations.
+   * Defaults keep every term enabled, preserving production index text.
+   */
+  graphTextTerms?: GraphTextTermOptions;
+  /**
    * @deprecated Kept only for backward-compatible deserialize() calls.
    * The provider's own name (provider.name) is now stored in serialised indexes.
    */
   model?: string;
 }
+
+export type GraphTextTerm = 'community' | 'fileDoc' | 'callers' | 'callees' | 'siblings';
+
+export type GraphTextTermOptions = Partial<Record<GraphTextTerm, boolean>>;
 
 export interface IndexedSymbol {
   /** Symbol definition */
@@ -213,6 +222,14 @@ const SEMANTIC_ALIAS_RULES: SemanticAliasRule[] = [
   },
 ];
 
+const DEFAULT_GRAPH_TEXT_TERMS: Record<GraphTextTerm, boolean> = {
+  community: true,
+  fileDoc: true,
+  callers: true,
+  callees: true,
+  siblings: true,
+};
+
 // =============================================================================
 // EMBEDDING INDEX
 // =============================================================================
@@ -223,6 +240,7 @@ export class EmbeddingIndex {
   private batchSize: number;
   private useWorkers: boolean;
   private concurrentBatches: number;
+  private graphTextTerms: Record<GraphTextTerm, boolean>;
   private workerPool?: InstanceType<typeof import('./workers/WorkerPool').WorkerPool>;
 
   constructor(options: EmbeddingIndexOptions = {}) {
@@ -238,6 +256,10 @@ export class EmbeddingIndex {
     this.useWorkers = options.useWorkers !== false && WorkerPool !== null;
     this.concurrentBatches =
       options.concurrentBatches ?? Math.min(4, Math.max(1, os.cpus().length - 2));
+    this.graphTextTerms = {
+      ...DEFAULT_GRAPH_TEXT_TERMS,
+      ...(options.graphTextTerms ?? {}),
+    };
 
     // Initialize worker pool for parallel embedding (Phase 9 Extension)
     if (this.useWorkers && WorkerPool) {
@@ -791,30 +813,40 @@ export class EmbeddingIndex {
 
     const graphTerms: string[] = [];
 
-    const community = this.getCommunity(sym.filePath, context);
-    if (community && !this.isLowInformationCommunity(community)) {
-      graphTerms.push('community', community);
+    if (this.graphTextTerms.community) {
+      const community = this.getCommunity(sym.filePath, context);
+      if (community && !this.isLowInformationCommunity(community)) {
+        graphTerms.push('community', community);
+      }
     }
 
-    const fileDoc = this.getFileDoc(sym.filePath, context);
-    if (fileDoc) {
-      graphTerms.push('file purpose', fileDoc);
+    if (this.graphTextTerms.fileDoc) {
+      const fileDoc = this.getFileDoc(sym.filePath, context);
+      if (fileDoc) {
+        graphTerms.push('file purpose', fileDoc);
+      }
     }
 
-    const callers = context.graph.getCallersOf(sym.name, sym.owner).map((call) => call.callerId);
-    this.appendLabeledTerms(graphTerms, 'called by', callers);
+    if (this.graphTextTerms.callers) {
+      const callers = context.graph.getCallersOf(sym.name, sym.owner).map((call) => call.callerId);
+      this.appendLabeledTerms(graphTerms, 'called by', callers);
+    }
 
-    const callees = context.graph
-      .getCalleesOf(this.symbolCallerId(sym))
-      .map((call) =>
-        call.calleeOwner ? `${call.calleeOwner}.${call.calleeName}` : call.calleeName
-      );
-    this.appendLabeledTerms(graphTerms, 'calls', callees);
+    if (this.graphTextTerms.callees) {
+      const callees = context.graph
+        .getCalleesOf(this.symbolCallerId(sym))
+        .map((call) =>
+          call.calleeOwner ? `${call.calleeOwner}.${call.calleeName}` : call.calleeName
+        );
+      this.appendLabeledTerms(graphTerms, 'calls', callees);
+    }
 
-    const siblings = this.getSiblings(sym.filePath, context)
-      .filter((sibling) => !this.sameSymbol(sym, sibling))
-      .map((sibling) => (sibling.owner ? `${sibling.owner}.${sibling.name}` : sibling.name));
-    this.appendLabeledTerms(graphTerms, 'file siblings', siblings);
+    if (this.graphTextTerms.siblings) {
+      const siblings = this.getSiblings(sym.filePath, context)
+        .filter((sibling) => !this.sameSymbol(sym, sibling))
+        .map((sibling) => (sibling.owner ? `${sibling.owner}.${sibling.name}` : sibling.name));
+      this.appendLabeledTerms(graphTerms, 'file siblings', siblings);
+    }
 
     if (graphTerms.length > 0) {
       parts.push('graph context:', graphTerms.join(' '));

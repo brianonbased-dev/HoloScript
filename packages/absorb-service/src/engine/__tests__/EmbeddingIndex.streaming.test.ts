@@ -155,6 +155,81 @@ describe('EmbeddingIndex streaming batches', () => {
     expect(targetText).toContain('file siblings rankResults');
   });
 
+  it('gates graph-context terms for benchmark ablations without changing defaults', async () => {
+    const makeProvider = () => {
+      const embeddedTexts: string[] = [];
+      const provider: EmbeddingProvider = {
+        name: 'test-provider',
+        getEmbeddings: vi.fn(async (texts: string[]) => {
+          embeddedTexts.push(...texts);
+          return texts.map((_, index) => [1, index]);
+        }),
+      };
+      return { embeddedTexts, provider };
+    };
+
+    const target = makeNamedSymbol('runSearch', 'src/search.ts', { line: 5 });
+    const sibling = makeNamedSymbol('rankResults', 'src/search.ts', { line: 12 });
+    const graph = {
+      getAllSymbols: () => [target],
+      getCommunityForFile: () => 'search-pipeline',
+      getCallersOf: () => [{ callerId: 'orchestrateQuery' }],
+      getCalleesOf: () => [{ calleeName: 'rankResults' }],
+      getFile: () => ({ docComment: 'Routes query text through search ranking.' }),
+      getSymbolsInFile: () => [target, sibling],
+    } as unknown as CodebaseGraph;
+
+    const defaultRun = makeProvider();
+    await new EmbeddingIndex({
+      provider: defaultRun.provider,
+      batchSize: 10,
+      useWorkers: false,
+    }).buildIndex(graph);
+
+    expect(defaultRun.embeddedTexts[0]).toContain('community search-pipeline');
+    expect(defaultRun.embeddedTexts[0]).toContain(
+      'file purpose Routes query text through search ranking.'
+    );
+    expect(defaultRun.embeddedTexts[0]).toContain('called by orchestrateQuery');
+    expect(defaultRun.embeddedTexts[0]).toContain('calls rankResults');
+    expect(defaultRun.embeddedTexts[0]).toContain('file siblings rankResults');
+
+    const callersOnly = makeProvider();
+    await new EmbeddingIndex({
+      provider: callersOnly.provider,
+      batchSize: 10,
+      useWorkers: false,
+      graphTextTerms: {
+        community: false,
+        fileDoc: false,
+        callees: false,
+        siblings: false,
+      },
+    }).buildIndex(graph);
+
+    expect(callersOnly.embeddedTexts[0]).toContain('graph context: called by orchestrateQuery');
+    expect(callersOnly.embeddedTexts[0]).not.toContain('community search-pipeline');
+    expect(callersOnly.embeddedTexts[0]).not.toContain('file purpose');
+    expect(callersOnly.embeddedTexts[0]).not.toContain('calls rankResults');
+    expect(callersOnly.embeddedTexts[0]).not.toContain('file siblings rankResults');
+
+    const noGraphTerms = makeProvider();
+    await new EmbeddingIndex({
+      provider: noGraphTerms.provider,
+      batchSize: 10,
+      useWorkers: false,
+      graphTextTerms: {
+        community: false,
+        fileDoc: false,
+        callers: false,
+        callees: false,
+        siblings: false,
+      },
+    }).buildIndex(graph);
+
+    expect(noGraphTerms.embeddedTexts[0]).not.toContain('graph context:');
+  });
+
   it('uses the same graph-fused text path for incremental symbol adds', async () => {
     const embeddedTexts: string[] = [];
     const provider: EmbeddingProvider = {
