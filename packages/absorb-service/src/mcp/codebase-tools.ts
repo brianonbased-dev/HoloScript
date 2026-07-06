@@ -430,6 +430,28 @@ function rootMatchesCurrentRepo(
   return normalizeRootForComparison(rootDir) === normalizeRootForComparison(currentRepoRoot);
 }
 
+async function getCurrentGitCommit(rootDir: string | null | undefined): Promise<string | null> {
+  if (!rootDir) return null;
+  try {
+    const { GitChangeDetector } = await loadCodebaseModule();
+    const detector = new GitChangeDetector(rootDir);
+    return detector.getHeadCommit?.() ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function cacheGitMatchesHead(
+  cacheGitCommitHash: string | null | undefined,
+  currentGitCommitHash: string | null | undefined
+): boolean {
+  return !cacheGitCommitHash || !currentGitCommitHash || cacheGitCommitHash === currentGitCommitHash;
+}
+
+function shortGitHash(hash: string | null | undefined): string {
+  return hash ? hash.slice(0, 12) : 'unknown';
+}
+
 function buildGraphUnavailableReceipt(options: {
   reason: GraphUnavailableReason;
   requestedPath?: string | null;
@@ -599,6 +621,7 @@ function getCacheAge(): {
   ageMs?: number;
   rootDir?: string;
   stats?: Record<string, unknown>;
+  gitCommitHash?: string;
   embeddingProvider?: string;
   embeddingPolicy?: GraphRAGEmbeddingPolicyReceipt;
 } {
@@ -612,6 +635,7 @@ function getCacheAge(): {
       ageMs: Date.now() - envelope.timestamp,
       rootDir: envelope.rootDir,
       stats: envelope.stats,
+      gitCommitHash: envelope.gitCommitHash,
       embeddingProvider: envelope.embeddingProvider,
       embeddingPolicy: envelope.embeddingPolicy,
     };
@@ -1107,6 +1131,17 @@ async function ensureCachedGraph(): Promise<{
   const envelope = loadGraphCache();
   if (envelope) {
     try {
+      const currentGitCommitHash = await getCurrentGitCommit(envelope.rootDir);
+      if (!cacheGitMatchesHead(envelope.gitCommitHash, currentGitCommitHash)) {
+        const ageMs = Date.now() - envelope.timestamp;
+        return {
+          loaded: false,
+          source: 'none',
+          ageMs,
+          rootDir: envelope.rootDir,
+          stale: true,
+        };
+      }
       const mod = await loadCodebaseModule();
       const { CodebaseGraph } = mod;
       cachedGraph = CodebaseGraph.deserialize(envelope.graphJson);
@@ -2439,18 +2474,32 @@ async function handleGraphStatus(): Promise<unknown> {
   const currentCwd = path.resolve(process.cwd());
   const cacheMatchesCwd = rootMatchesCurrentRepo(cacheRootDir, currentCwd);
   const diskCacheMatchesCwd = rootMatchesCurrentRepo(cache.rootDir, currentCwd);
+  const currentGitCommitHash =
+    cacheMatchesCwd || diskCacheMatchesCwd ? await getCurrentGitCommit(currentCwd) : null;
+  const activeGitCommitHash =
+    ((cachedGraph as { gitCommitHash?: string } | null)?.gitCommitHash ?? cache.gitCommitHash) ||
+    null;
+  const activeGitMatchesHead =
+    !cacheMatchesCwd || cacheGitMatchesHead(activeGitCommitHash, currentGitCommitHash);
+  const diskCacheGitMatchesHead =
+    !diskCacheMatchesCwd || cacheGitMatchesHead(cache.gitCommitHash, currentGitCommitHash);
   const graphRAGState = getGraphRAGStateStatus();
   const graphRAGMatchesCwd = rootMatchesCurrentRepo(graphRAGState.rootDir, currentCwd);
   const graphRAGFreshByAge =
     graphRAGState.ageMs === null ? graphRAGState.ready : graphRAGState.ageMs < CACHE_MAX_AGE_MS;
-  const localGraphLive = graphRAGState.ready && graphRAGMatchesCwd && graphRAGFreshByAge;
+  const localGraphLive =
+    graphRAGState.ready && graphRAGMatchesCwd && graphRAGFreshByAge && activeGitMatchesHead;
 
   const graphAuthoritative =
-    (cacheMatchesCwd && (cachedGraph !== null || cache.exists) && activeFreshByAge) ||
+    (cacheMatchesCwd &&
+      (cachedGraph !== null || cache.exists) &&
+      activeFreshByAge &&
+      activeGitMatchesHead) ||
     localGraphLive;
 
   const freshForCurrentRepo = graphAuthoritative;
-  const diskCacheFreshForCurrentRepo = diskCacheMatchesCwd && diskCacheFreshByAge;
+  const diskCacheFreshForCurrentRepo =
+    diskCacheMatchesCwd && diskCacheFreshByAge && diskCacheGitMatchesHead;
 
   const requestedPath = cacheRootDir || graphRAGState.rootDir;
   const graphUnavailableReceipt = graphAuthoritative
@@ -2500,11 +2549,16 @@ async function handleGraphStatus(): Promise<unknown> {
           authoritative: diskCacheFreshForCurrentRepo,
           freshForCurrentRepo: diskCacheFreshForCurrentRepo,
           rootDir: cache.rootDir,
+          gitCommitHash: cache.gitCommitHash ?? null,
+          currentGitCommitHash,
+          gitCommitMatchesHead: diskCacheGitMatchesHead,
           stats: cache.stats,
           embeddingProvider: cache.embeddingProvider ?? embeddingPolicy.provider,
           embeddingPolicy,
           hint: !diskCacheMatchesCwd
             ? `Cache rootDir (${cache.rootDir}) does not match current working directory (${currentCwd}). Call holo_absorb_repo for this workspace.`
+            : !diskCacheGitMatchesHead
+              ? `Cache was built at git ${shortGitHash(cache.gitCommitHash)} but current HEAD is ${shortGitHash(currentGitCommitHash)}. Call holo_absorb_repo with force:true to refresh.`
             : diskCacheFreshByAge
               ? 'Cache is fresh — query tools will auto-load it without re-scanning.'
               : 'Cache is older than 24h — call holo_absorb_repo to refresh.',
