@@ -17,6 +17,8 @@ does not make every live package a current cold-consume surface.
 - Package docs and ownership:
   `docs/packages/index.md`, `docs/packages/governance.md`, and
   `docs/PACKAGE_OWNERSHIP.md`.
+- Git-history plus Absorb-cache package opportunity map:
+  `corepack pnpm package:opportunity-map`.
 - Legacy agent package migrations:
   `docs/handbooks/npm-agent-package-migrations.md`.
 
@@ -69,6 +71,9 @@ packages so existing consumers get a clear migration path.
    public and supported with docs/tests, or deprecated with a replacement path.
 5. Treat domain plugins as marketplace inventory, not core install surface, until
    each plugin has a human-readable receipt and a package-level smoke test.
+6. Before scaffolding a new package, run `corepack pnpm package:opportunity-map`
+   and prefer fostering an existing hot public package when the map shows docs,
+   governance, or ownership gaps.
 
 ## Required Checks
 

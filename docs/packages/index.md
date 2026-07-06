@@ -74,6 +74,7 @@ HoloScript currently ships as a monorepo with **real packages** under `packages/
 
 | Package                                                   | Purpose                                     |
 | --------------------------------------------------------- | ------------------------------------------- |
+| [**@holoscript/absorb-service**](./absorb-service.md)     | Codebase intelligence and GraphRAG engine   |
 | [**@holoscript/auth**](./auth.md)                         | Authentication and authorization            |
 | [**@holoscript/security-sandbox**](./security-sandbox.md) | Safe execution for untrusted logic          |
 | [**@holoscript/partner-sdk**](./partner-sdk.md)           | Partner API, webhooks, and analytics        |

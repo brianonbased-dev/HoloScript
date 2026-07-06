@@ -58,6 +58,7 @@ This matrix assigns a support level to each documented package so contributors c
 | `@holoscript/agent-protocol`         | beta         | Agent Systems Team     |
 | `@holoscript/uaal`                   | experimental | Agent Systems Team     |
 | `@hololand/react-agent-sdk`          | beta         | Agent Systems Team     |
+| `@holoscript/absorb-service`         | beta         | Platform Services Team |
 | `@holoscript/auth`                   | stable       | Platform Services Team |
 | `@holoscript/security-sandbox`       | stable       | Platform Services Team |
 | `@holoscript/partner-sdk`            | beta         | Platform Services Team |
