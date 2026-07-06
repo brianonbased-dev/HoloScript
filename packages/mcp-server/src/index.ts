@@ -69,6 +69,10 @@ import { traitTools, handleTraitTool } from './trait-tools';
 import { daemonLifecycleTools, handleDaemonLifecycleTool } from './daemon-lifecycle-tools';
 import { computeTraceTools, handleComputeTraceTool } from './compute-trace-tools';
 import { holoCiTools, handleHoloCiTool } from './holo-ci-tools';
+import {
+  fromScratchToolDefinitions,
+  handleFromScratchTool,
+} from './from-scratch-mcp-tools';
 import { worldRenderTools, handleWorldRenderTool } from './world-render-tools';
 import { alphafoldTools, handleFetchStructure } from './alphafold-tools';
 import { hologramToolDefinitions, handleHologramTool } from './hologram-mcp-tools';
@@ -367,6 +371,12 @@ registerCategory(compilerTools, (name, args, _signingCtx) => handleCompilerTool(
 // undefined and callerToken is undefined → those callers are unconditionally trusted.
 registerCategory(holoCiTools, (name, args, signingCtx) =>
   handleHoloCiTool(name, args, signingCtx?.signer ?? undefined)
+);
+// From-scratch pretraining lane: dispatches the ai-ecosystem CLI. Thread the
+// caller signer as the token identity for the founder-gate breadcrumb, same as
+// holoCiTools; unsigned/stdio callers → undefined (unconditionally trusted).
+registerCategory(fromScratchToolDefinitions, (name, args, signingCtx) =>
+  handleFromScratchTool(name, args, signingCtx?.signer ?? undefined)
 );
 registerCategory(worldRenderTools, (name, args, signingCtx) =>
   handleWorldRenderTool(name, args, signingCtx?.signer ?? undefined)

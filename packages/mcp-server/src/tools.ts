@@ -63,6 +63,7 @@ import { simulationBillingTools } from './simulation-billing-tools';
 import { rigMatchSkeletonToolDefinition } from './tools/rig_match_skeleton';
 import { memoryTools } from './memory-tools';
 import { holotuneToolDefinitions } from './holotune-mcp-tools';
+import { fromScratchToolDefinitions } from './from-scratch-mcp-tools';
 
 /**
  * All MCP tools for HoloScript
@@ -792,6 +793,8 @@ export const tools: Tool[] = [
   ...holoTunnelTools,
   ...simulationBillingTools,
   ...holotuneToolDefinitions,
+  // Library-driven from-scratch pretraining lane (dispatches ai-ecosystem CLI)
+  ...fromScratchToolDefinitions,
   // Skeleton interop (G4 — rig_match_skeleton)
   rigMatchSkeletonToolDefinition,
   // Native memory substrate (Slice B1 — shared agent memory surface)
