@@ -48,7 +48,15 @@
       "packageDir": "packages/mcp-server",
       "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
       "requireBins": ["holoscript-mcp", "holoscript-mcp-http", "holoscript-mcp-cli"],
-      "requireFiles": ["bin/holoscript-mcp-http.cjs", "dist/http-server.js", "dist/index.js", "dist/index.d.ts"],
+      "requireFiles": [
+        "bin/holoscript-mcp-http.cjs",
+        "dist/http-server.js",
+        "dist/index.js",
+        "dist/index.d.ts",
+        "dist/server-sizing.js",
+        "dist/server-sizing.mjs",
+        "dist/server-sizing.d.ts"
+      ],
       "forbidBundledNativeAddons": true
     },
     {

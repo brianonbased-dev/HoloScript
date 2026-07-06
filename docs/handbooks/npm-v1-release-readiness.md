@@ -25,6 +25,7 @@ corepack pnpm run check:npm-v1-release
 corepack pnpm build
 corepack pnpm run check:npm-v1-release:built
 corepack pnpm check:holollama-consumption
+corepack pnpm check:registry-cold-start
 corepack pnpm release:guard
 node scripts/audit-published-install-tree.mjs @holoscript/cli@latest
 ```

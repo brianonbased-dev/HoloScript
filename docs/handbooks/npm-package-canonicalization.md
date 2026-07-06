@@ -79,6 +79,7 @@ corepack pnpm check:publish-surface
 node scripts/holo-ci/check-npm-v1-release-readiness.mjs --require-built
 corepack pnpm check:npm-deprecations
 corepack pnpm check:holollama-consumption
+corepack pnpm check:registry-cold-start
 corepack pnpm check:package-consumption:full
 corepack pnpm check:fleet-utilities
 ```
