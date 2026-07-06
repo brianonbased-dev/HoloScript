@@ -9,11 +9,13 @@ import {
 import { AnthropicAdapter, MockAdapter } from '@holoscript/llm-provider';
 import { configureConfigSecretResolver, resetConfigSecretResolver } from '@holoscript/config';
 
-/** All env vars that influence provider detection/creation (sovereign-first resolver). */
+/** All env vars that influence provider detection/creation (HoloLlama-default, sovereign-first). */
 const PROVIDER_ENV_KEYS = [
-  // sovereign-serving + local (these WIN over frontier BYOK)
+  // provider selection + HoloLlama (the sovereign inference-layer default)
   'HOLO_LLM_PROVIDER',
   'BRITTNEY_PROVIDER',
+  'HOLOLLAMA_URL',
+  'HOLOLLAMA_ENDPOINT',
   'HOLO_LLM_SERVICE_URL',
   'BRITTNEY_SERVICE_URL',
   'OLLAMA_HOST',
@@ -21,7 +23,7 @@ const PROVIDER_ENV_KEYS = [
   'OLLAMA_BASE_URL',
   'VAST_API_KEY',
   'FLEET_PROVIDER_ENDPOINT',
-  // frontier BYOK fallback
+  // frontier BYOK (explicit opt-in only)
   'ANTHROPIC_API_KEY',
   'XAI_API_KEY',
   'OPENAI_API_KEY',
@@ -56,51 +58,47 @@ describe('detectLLMProviderName', () => {
     resetConfigSecretResolver();
   });
 
-  it('returns the sovereign local provider (ollama) when OLLAMA_URL is set', () => {
-    process.env.OLLAMA_URL = 'http://localhost:11434';
-    expect(detectLLMProviderName()).toBe('ollama');
+  it('defaults to HoloLlama (the sovereign inference layer) when nothing is configured', () => {
+    expect(detectLLMProviderName()).toBe('holollama');
   });
 
-  it('prefers the sovereign local provider over frontier BYOK keys', () => {
-    process.env.OLLAMA_URL = 'http://localhost:11434';
+  it('still defaults to HoloLlama even when a frontier key is present (cloud is explicit opt-in)', () => {
     process.env.ANTHROPIC_API_KEY = 'sk-ant-test';
     process.env.OPENAI_API_KEY = 'sk-test';
-    expect(detectLLMProviderName()).toBe('ollama');
+    expect(detectLLMProviderName()).toBe('holollama');
   });
 
-  it('returns anthropic BYOK when only ANTHROPIC_API_KEY is set (no sovereign env)', () => {
+  it('honors an explicit HOLO_LLM_PROVIDER=holollama', () => {
+    process.env.HOLO_LLM_PROVIDER = 'holollama';
+    expect(detectLLMProviderName()).toBe('holollama');
+  });
+
+  it('returns anthropic ONLY when explicitly selected (BYOK opt-in)', () => {
+    process.env.HOLO_LLM_PROVIDER = 'anthropic';
     process.env.ANTHROPIC_API_KEY = 'sk-ant-test';
     expect(detectLLMProviderName()).toBe('anthropic');
   });
 
-  it('returns xai BYOK when only XAI_API_KEY is set', () => {
+  it('returns xai when explicitly selected', () => {
+    process.env.HOLO_LLM_PROVIDER = 'xai';
     process.env.XAI_API_KEY = 'xai-test';
     expect(detectLLMProviderName()).toBe('xai');
   });
 
-  it('returns openai BYOK when only OPENAI_API_KEY is set', () => {
+  it('returns openai when explicitly selected', () => {
+    process.env.HOLO_LLM_PROVIDER = 'openai';
     process.env.OPENAI_API_KEY = 'sk-test';
     expect(detectLLMProviderName()).toBe('openai');
   });
 
-  it('returns none when nothing is configured (sovereign-by-default, no silent cloud)', () => {
-    expect(detectLLMProviderName()).toBe('none');
+  it('returns ollama ONLY when explicitly selected — never the default (D.117 retire Ollama)', () => {
+    process.env.HOLO_LLM_PROVIDER = 'ollama';
+    process.env.OLLAMA_URL = 'http://localhost:11434';
+    expect(detectLLMProviderName()).toBe('ollama');
   });
 
-  it('prefers anthropic over xai and openai in the BYOK fallback order', () => {
-    process.env.ANTHROPIC_API_KEY = 'sk-ant-test';
-    process.env.XAI_API_KEY = 'xai-test';
-    process.env.OPENAI_API_KEY = 'sk-test';
-    expect(detectLLMProviderName()).toBe('anthropic');
-  });
-
-  it('prefers xai over openai in the BYOK fallback order', () => {
-    process.env.XAI_API_KEY = 'xai-test';
-    process.env.OPENAI_API_KEY = 'sk-test';
-    expect(detectLLMProviderName()).toBe('xai');
-  });
-
-  it('detects a HoloKey-resolved BYOK provider (anthropic) in the async path', async () => {
+  it('detects an explicit HoloKey-resolved BYOK provider (anthropic) in the async path', async () => {
+    process.env.HOLO_LLM_PROVIDER = 'anthropic';
     configureConfigSecretResolver({
       async resolve(nameOrRef: string) {
         return nameOrRef === 'ANTHROPIC_API_KEY' ? 'vault-anthropic-key' : undefined;
@@ -125,42 +123,54 @@ describe('createPipelineLLMProvider', () => {
     resetConfigSecretResolver();
   });
 
-  it('creates the sovereign local provider when OLLAMA_URL is set', () => {
-    process.env.OLLAMA_URL = 'http://localhost:11434';
+  it('creates the HoloLlama provider by default (no env, no throw)', () => {
     const provider = createPipelineLLMProvider();
     // Provider has the chat() method (the pipeline LLMProvider interface)
     expect(typeof provider.chat).toBe('function');
   });
 
-  it('creates a provider when ANTHROPIC_API_KEY is set (BYOK fallback)', () => {
+  it('creates HoloLlama even when a frontier key is set (cloud is explicit opt-in)', () => {
     process.env.ANTHROPIC_API_KEY = 'sk-ant-test';
     const provider = createPipelineLLMProvider();
     expect(typeof provider.chat).toBe('function');
   });
 
-  it('creates a provider when XAI_API_KEY is set (BYOK fallback)', () => {
-    process.env.XAI_API_KEY = 'xai-test';
+  it('creates a provider for an explicit anthropic selection (BYOK)', () => {
+    process.env.HOLO_LLM_PROVIDER = 'anthropic';
+    process.env.ANTHROPIC_API_KEY = 'sk-ant-test';
     const provider = createPipelineLLMProvider();
     expect(typeof provider.chat).toBe('function');
   });
 
-  it('creates a provider when OPENAI_API_KEY is set (BYOK fallback)', () => {
+  it('creates a provider for an explicit openai selection (BYOK)', () => {
+    process.env.HOLO_LLM_PROVIDER = 'openai';
     process.env.OPENAI_API_KEY = 'sk-test';
     const provider = createPipelineLLMProvider();
     expect(typeof provider.chat).toBe('function');
   });
 
-  it('throws when no provider env vars are set (sovereign-by-default, no silent cloud)', () => {
-    expect(() => createPipelineLLMProvider()).toThrow('No LLM provider configured');
+  it('throws when an explicit BYOK provider is selected without its key', () => {
+    process.env.HOLO_LLM_PROVIDER = 'anthropic';
+    expect(() => createPipelineLLMProvider()).toThrow('ANTHROPIC_API_KEY');
   });
 
-  it('creates a provider from HoloKey in the async path', async () => {
+  it('creates a provider from HoloKey in the async path (explicit anthropic BYOK)', async () => {
+    process.env.HOLO_LLM_PROVIDER = 'anthropic';
     configureConfigSecretResolver({
       async resolve(nameOrRef: string) {
         return nameOrRef === 'ANTHROPIC_API_KEY' ? 'vault-anthropic-key' : undefined;
       },
     });
 
+    const provider = await createPipelineLLMProviderAsync();
+    expect(typeof provider.chat).toBe('function');
+  });
+
+  it('creates the HoloLlama provider by default in the async path (no explicit provider)', async () => {
+    // No explicit provider → HoloLlama is the default; whether the local server is
+    // up or not, a valid pipeline provider is returned (up → HoloLlama, down →
+    // graceful sovereign fallback). Deterministic assertion: it has chat().
+    process.env.HOLO_LLM_PROVIDER = 'holollama'; // force (skip network probe) for a deterministic unit test
     const provider = await createPipelineLLMProviderAsync();
     expect(typeof provider.chat).toBe('function');
   });

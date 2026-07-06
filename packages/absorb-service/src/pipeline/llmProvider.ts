@@ -17,10 +17,49 @@
 import type { LLMProvider } from './layerExecutors';
 import {
   type ILLMProvider,
+  LocalLLMAdapter,
   resolveSovereignProvider,
   resolveSovereignProviderAsync,
 } from '@holoscript/llm-provider';
 import { resolveConfigSecret } from '@holoscript/config';
+
+/**
+ * HoloLlama — the sovereign inference layer (D.117: retire Ollama; run llama-server
+ * direct). It is an OpenAI-compatible llama.cpp server (POST /v1/chat/completions),
+ * NOT Ollama's /api/chat. We point LocalLLMAdapter at the llama-server port and force
+ * `nativeOllamaApi:false` so it never falls into the Ollama code path — the miss the
+ * generic resolver made (its "local" default is Ollama's :11434).
+ */
+const HOLOLLAMA_DEFAULT_URL = 'http://127.0.0.1:18080';
+
+function holoLlamaBaseURL(): string {
+  return (
+    process.env.HOLOLLAMA_URL ??
+    process.env.HOLOLLAMA_ENDPOINT ??
+    process.env.HOLO_LLM_SERVICE_URL ??
+    HOLOLLAMA_DEFAULT_URL
+  ).replace(/\/+$/, '');
+}
+
+function holoLlamaModel(): string {
+  return process.env.HOLO_LLM_MODEL ?? process.env.BRITTNEY_MODEL ?? 'qwen3:4b-instruct-2507';
+}
+
+/** Build a HoloLlama (llama.cpp llama-server, OpenAI-compat) LocalLLMAdapter. */
+function holoLlamaAdapter(): LocalLLMAdapter {
+  return new LocalLLMAdapter({
+    baseURL: holoLlamaBaseURL(),
+    model: holoLlamaModel(),
+    nativeOllamaApi: false, // HoloLlama speaks OpenAI /v1/chat/completions, not Ollama /api/chat
+    timeoutMs: 300_000,
+  });
+}
+
+/** True when the caller did not pin a non-sovereign provider (so HoloLlama is the default). */
+function wantsSovereignDefault(): boolean {
+  const explicit = (process.env.HOLO_LLM_PROVIDER ?? process.env.BRITTNEY_PROVIDER)?.toLowerCase();
+  return !explicit || explicit === 'auto' || explicit === 'sovereign' || explicit === 'holollama';
+}
 
 // ─── Chat Adapter ──────────────────────────────────────────────────────────
 
@@ -54,20 +93,26 @@ export function adaptToChatProvider(provider: ILLMProvider): LLMProvider {
 // ─── Factory ───────────────────────────────────────────────────────────────
 
 /**
- * Resolve a pipeline-compatible LLMProvider, SOVEREIGN-FIRST.
+ * Resolve a pipeline-compatible LLMProvider, SOVEREIGN-FIRST — HoloLlama by default.
  *
- * Converges on the canonical `resolveSovereignProvider` (F.112 ecosystem-wide,
- * D.118 sovereign-at-every-layer): sovereign serving fleet → sovereign serving
- * endpoint → local model (HoloLlama/Ollama) by default, frontier APIs
- * (anthropic/xai/openai) as BYOK fallback LAST. This replaces the previous
- * FOREIGN-first chain (OpenRouter→Anthropic→xAI→OpenAI→Ollama-last-resort) that
- * defaulted the GEV/absorb synthesis pillar to cloud. Explicit override via
- * HOLO_LLM_PROVIDER; the whole ecosystem now runs sovereign by default and the
- * absorb synthesis "generation" leg is native unless a frontier key is the only
- * thing configured. OpenRouter-only setups: point OPENAI_BASE_URL at OpenRouter.
+ * The GEV/absorb synthesis pillar defaults to HoloLlama (D.117 — the sovereign
+ * inference layer, llama.cpp llama-server; NOT Ollama, NOT cloud). A non-sovereign
+ * provider is EXPLICIT opt-in only (HOLO_LLM_PROVIDER=anthropic|xai|openai|cloud|
+ * fleet|ollama), routed through the canonical `resolveSovereignProvider`. This
+ * replaces the previous FOREIGN-first chain (OpenRouter→Anthropic→…→Ollama-last)
+ * AND the resolver's Ollama-as-local default.
+ *
+ * Sync path returns HoloLlama unconditionally when no explicit override is set — no
+ * silent cloud fallback (if HoloLlama is down the call fails loud with a
+ * start-the-server hint). Use `createPipelineLLMProviderAsync` for a health-probed
+ * graceful fallback.
  */
 export function createPipelineLLMProvider(): LLMProvider {
-  return adaptToChatProvider(resolveSovereignProvider().provider);
+  if (wantsSovereignDefault()) {
+    return adaptToChatProvider(holoLlamaAdapter());
+  }
+  const explicit = (process.env.HOLO_LLM_PROVIDER ?? process.env.BRITTNEY_PROVIDER)!.toLowerCase();
+  return adaptToChatProvider(resolveSovereignProvider({ explicit }).provider);
 }
 
 /** Resolve the BYOK Anthropic key via HoloKey (vault) → env, for the last-resort frontier fallback. */
@@ -79,34 +124,55 @@ async function resolveAnthropicByokKey(): Promise<string | null> {
 /**
  * HoloKey-aware, SOVEREIGN-FIRST async variant of createPipelineLLMProvider().
  *
- * Same sovereign policy as the sync path (serving fleet / sovereign endpoint /
- * local first, frontier BYOK last) but additionally (a) prefers the serving
- * fleet when VAST_API_KEY is set (async route probe with graceful cold fallback)
- * and (b) resolves the Anthropic BYOK key through the HoloKey vault.
+ * Prefers HoloLlama (D.117) but HEALTH-PROBES it first: if the llama-server is
+ * reachable, use it; if it is down, gracefully fall to the canonical resolver
+ * (itself sovereign-first: fleet / sovereign serving endpoint, then BYOK last) so
+ * a box without a local server still works. `HOLO_LLM_PROVIDER=holollama` forces
+ * HoloLlama with no fallback. Also resolves the Anthropic BYOK key via HoloKey.
  */
 export async function createPipelineLLMProviderAsync(): Promise<LLMProvider> {
+  const explicit = (process.env.HOLO_LLM_PROVIDER ?? process.env.BRITTNEY_PROVIDER)?.toLowerCase();
+  if (wantsSovereignDefault()) {
+    const adapter = holoLlamaAdapter();
+    if (explicit === 'holollama') return adaptToChatProvider(adapter); // forced, no fallback
+    if ((await adapter.healthCheck()).ok) return adaptToChatProvider(adapter);
+    const anthropicKey = await resolveAnthropicByokKey();
+    return adaptToChatProvider((await resolveSovereignProviderAsync({ anthropicKey })).provider);
+  }
   const anthropicKey = await resolveAnthropicByokKey();
-  const resolved = await resolveSovereignProviderAsync({ anthropicKey });
-  return adaptToChatProvider(resolved.provider);
+  return adaptToChatProvider((await resolveSovereignProviderAsync({ explicit, anthropicKey })).provider);
 }
 
-/** HoloKey-aware provider-name detection (sovereign-first). */
+/** HoloKey-aware provider-name detection (sovereign-first; probes HoloLlama). */
 export async function detectLLMProviderNameAsync(): Promise<string> {
+  const explicit = (process.env.HOLO_LLM_PROVIDER ?? process.env.BRITTNEY_PROVIDER)?.toLowerCase();
+  if (wantsSovereignDefault()) {
+    if (explicit === 'holollama') return 'holollama';
+    if ((await holoLlamaAdapter().healthCheck()).ok) return 'holollama';
+    const anthropicKey = await resolveAnthropicByokKey();
+    try {
+      return (await resolveSovereignProviderAsync({ anthropicKey })).providerName;
+    } catch {
+      return 'none';
+    }
+  }
   const anthropicKey = await resolveAnthropicByokKey();
   try {
-    return (await resolveSovereignProviderAsync({ anthropicKey })).providerName;
+    return (await resolveSovereignProviderAsync({ explicit, anthropicKey })).providerName;
   } catch {
     return 'none';
   }
 }
 
 /**
- * Returns which provider would be used, for diagnostics.
- * Mirrors the sovereign-first resolution in createPipelineLLMProvider().
+ * Returns which provider would be used, for diagnostics (sync — no health probe).
+ * HoloLlama is the sovereign default; a non-sovereign provider is explicit opt-in.
  */
 export function detectLLMProviderName(): string {
+  if (wantsSovereignDefault()) return 'holollama';
+  const explicit = (process.env.HOLO_LLM_PROVIDER ?? process.env.BRITTNEY_PROVIDER)!.toLowerCase();
   try {
-    return resolveSovereignProvider().providerName;
+    return resolveSovereignProvider({ explicit }).providerName;
   } catch {
     return 'none';
   }
