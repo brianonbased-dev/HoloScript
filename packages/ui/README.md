@@ -52,6 +52,13 @@ function Dashboard() {
 | ---------------- | --------------------------------------------------------------------------- |
 | `cn(...classes)` | Merges Tailwind classes without conflicts. Wraps `clsx` + `tailwind-merge`. |
 
+## Package Role
+
+`@holoscript/ui` is a shared primitive layer for Studio, dashboards, previews,
+and agent interfaces. Keep app workflows in their owning packages and keep
+rendered HoloScript scenes in `.holo`, `.hsplus`, generated output, or renderer
+packages rather than turning this package into an application shell.
+
 ## Theming
 
 All components use a dark color palette built on Tailwind's `slate` scale with `emerald` accents:
@@ -79,4 +86,13 @@ pnpm build        # tsup -> dist/ (CJS + ESM + .d.ts)
 pnpm dev          # watch mode
 pnpm test         # vitest
 pnpm typecheck    # tsc --noEmit
+```
+
+## Release Checks
+
+```bash
+corepack pnpm --filter @holoscript/ui run build
+corepack pnpm --filter @holoscript/ui run test
+corepack pnpm --filter @holoscript/ui run typecheck
+corepack pnpm run check:publish-surface
 ```

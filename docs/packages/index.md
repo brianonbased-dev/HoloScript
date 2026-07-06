@@ -41,6 +41,7 @@ HoloScript currently ships as a monorepo with **real packages** under `packages/
 | [**@holoscript/studio-desktop**](./tauri-app.md)            | Native desktop shell for Studio        |
 | [**holoscript-vscode**](./vscode-extension.md)              | VS Code extension                      |
 | [**@holoscript/visual**](./visual.md)                       | Node-based visual programming layer    |
+| [**@holoscript/ui**](./ui.md)                               | Shared React UI primitives             |
 | [**@holoscript/preview-component**](./preview-component.md) | Embeddable React preview component     |
 | [**@holoscript/video-tutorials**](./video-tutorials.md)     | Programmatic tutorial video generation |
 | [**visualizer-client**](./visualizer-client.md)             | Internal preview and debugging client  |

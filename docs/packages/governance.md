@@ -45,6 +45,7 @@ This matrix assigns a support level to each documented package so contributors c
 | `@holoscript/studio-desktop`         | beta         | Studio Team            |
 | `holoscript-vscode`                  | stable       | Studio Team            |
 | `@holoscript/visual`                 | beta         | Studio Team            |
+| `@holoscript/ui`                     | beta         | Studio Team            |
 | `@holoscript/preview-component`      | stable       | Studio Team            |
 | `@holoscript/video-tutorials`        | beta         | Studio Team            |
 | `visualizer-client`                  | beta         | Studio Team            |
