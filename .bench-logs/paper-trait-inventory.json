@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-15T22:43:27.951Z",
+  "generatedAt": "2026-07-06T04:27:28.131Z",
   "source": "packages/core/src/traits/constants/__tests__/paper-trait-inventory.test.ts",
   "categoryFileCount": 121,
   "categoryFiles": [
@@ -126,14 +126,14 @@
     "xr-platform.ts"
   ],
   "exportedTraitArraysCount": 170,
-  "totalTraitDefinitions": 6519,
-  "vrTraitsCount": 3010,
-  "uniqueVRTraitsCount": 2920,
-  "duplicateCountInVRTraits": 90,
+  "totalTraitDefinitions": 6298,
+  "vrTraitsCount": 2780,
+  "uniqueVRTraitsCount": 2713,
+  "duplicateCountInVRTraits": 67,
   "topExportsByCount": [
     {
       "exportName": "VR_TRAITS",
-      "count": 3010
+      "count": 2780
     },
     {
       "exportName": "ROBOTICS_INDUSTRIAL_TRAITS",
@@ -164,12 +164,12 @@
       "count": 48
     },
     {
-      "exportName": "TWIN_EARTH_TRAITS",
+      "exportName": "DATA_VISUALIZATION_TRAITS",
       "count": 46
     },
     {
-      "exportName": "DATA_VISUALIZATION_TRAITS",
-      "count": 45
+      "exportName": "TWIN_EARTH_TRAITS",
+      "count": 46
     },
     {
       "exportName": "CREATURES_MYTHICAL_TRAITS",
@@ -283,7 +283,7 @@
     },
     {
       "exportName": "COMPLIANCE_GOVERNANCE_TRAITS",
-      "count": 3
+      "count": 4
     },
     {
       "exportName": "CONCURRENCY_TRAITS",
@@ -323,7 +323,7 @@
     },
     {
       "exportName": "DATA_PIPELINE_TRAITS",
-      "count": 5
+      "count": 6
     },
     {
       "exportName": "DATA_STORAGE_TRAITS",
@@ -331,11 +331,11 @@
     },
     {
       "exportName": "DATA_VISUALIZATION_TRAITS",
-      "count": 45
+      "count": 46
     },
     {
       "exportName": "DATABASE_PERSISTENCE_TRAITS",
-      "count": 4
+      "count": 5
     },
     {
       "exportName": "DEBUG_CINEMATIC_TRAITS",
@@ -471,7 +471,7 @@
     },
     {
       "exportName": "HUMANOID_AVATAR_TRAITS",
-      "count": 17
+      "count": 19
     },
     {
       "exportName": "I18N_LOCALIZATION_TRAITS",
@@ -703,11 +703,11 @@
     },
     {
       "exportName": "SCRIPTING_AUTOMATION_TRAITS",
-      "count": 14
+      "count": 15
     },
     {
       "exportName": "SEARCH_TRAITS",
-      "count": 3
+      "count": 4
     },
     {
       "exportName": "SECURITY_CRYPTO_TRAITS",
@@ -731,7 +731,7 @@
     },
     {
       "exportName": "SIMULATION_DOMAIN_TRAITS",
-      "count": 23
+      "count": 24
     },
     {
       "exportName": "SIZE_SCALE_TRAITS",
@@ -867,7 +867,7 @@
     },
     {
       "exportName": "VR_TRAITS",
-      "count": 3010
+      "count": 2780
     },
     {
       "exportName": "WATER_FLUID_TRAITS",
