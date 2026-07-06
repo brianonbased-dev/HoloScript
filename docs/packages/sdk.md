@@ -1,113 +1,50 @@
 # @holoscript/sdk
 
-**JavaScript/TypeScript SDK for Web** and Node.js applications. Create and manage HoloScript scenes programmatically.
+`@holoscript/sdk` is the legacy compatibility package for older JavaScript and
+TypeScript consumers. It is kept installable for existing Smart Asset and
+HoloHub-client code, but new application code should start from
+`@holoscript/core`.
 
-## Installation
+## Install
 
 ```bash
 npm install @holoscript/sdk
 ```
 
-## Quick Start
+## Use
 
-```typescript
-import { HoloScene, createObject } from '@holoscript/sdk';
-
-// Create a scene
-const scene = new HoloScene('MyWorld');
-
-// Add objects
-const cube = createObject('Cube', {
-  geometry: 'box',
-  traits: ['@grabbable', '@physics'],
-  position: [0, 1, 0],
-});
-
-scene.add(cube);
-
-// Render to Three.js
-const renderer = new HoloRenderer(canvas);
-renderer.render(scene);
+```ts
+import { HoloHubClient, HoloSmartAsset } from '@holoscript/sdk';
 ```
 
-## Scene Management
+## Status
 
-```typescript
-import { HoloScene } from '@holoscript/sdk';
+This package is deprecated as a primary SDK surface. Keep it small and stable:
 
-const scene = new HoloScene('Game');
+- Do not add new platform features here.
+- Route new parser, compiler, scene, and type work through `@holoscript/core`.
+- Keep exports compatible for older consumers until a future major removal.
+- Keep migration docs synchronized with
+  [npm Agent Package Migrations](../handbooks/npm-agent-package-migrations.md)
+  and the canonical package handbook.
 
-// Add objects
-scene.add(object);
+## Migration
 
-// Query
-const objects = scene.getObjects();
-const cube = scene.getObject('Cube');
+Use `@holoscript/core` for new parser, compiler, scene, and trait integrations:
 
-// Events
-scene.on('objectAdded', (obj) => console.log('Added:', obj.name));
-
-// Serialize
-const json = scene.toJSON();
-localStorage.setItem('scene', json);
-
-// Load
-const loaded = HoloScene.fromJSON(json);
+```bash
+npm install @holoscript/core
 ```
 
-## Object API
-
-```typescript
-const obj = scene.getObject('Player');
-
-// Properties
-obj.position = [0, 0, 0];
-obj.rotation = [0, Math.PI / 2, 0];
-obj.scale = 1;
-
-// State
-obj.state.health = 100;
-obj.state.subscribe('health', (val) => console.log(val));
-
-// Traits
-obj.hasT rait('@grabbable');
-obj.addTrait('@physics');
-
-// Animation
-obj.animate({
-  property: 'position.y',
-  to: 2,
-  duration: 1000,
-  easing: 'easeInOut'
-});
+```ts
+import { validateComposition } from '@holoscript/core';
 ```
 
-## Rendering
+## Validation
 
-### Three.js
-
-```typescript
-import { HoloThreeRenderer } from '@holoscript/sdk/renderers/three';
-
-const renderer = new HoloThreeRenderer(canvas);
-renderer.render(scene);
-
-// Interactive
-renderer.onGrab = (obj) => {
-  obj.state.grabbed = true;
-};
+```bash
+corepack pnpm --filter @holoscript/sdk run test
+corepack pnpm run check:publish-surface
+corepack pnpm run check:package-architecture
+corepack pnpm run package:opportunity-map
 ```
-
-### WebGPU
-
-```typescript
-import { HoloWebGPURenderer } from '@holoscript/sdk/renderers/webgpu';
-
-const renderer = new HoloWebGPURenderer(canvas);
-renderer.render(scene);
-```
-
-## See Also
-
-- [Runtime](./runtime.md) — Browser scene execution
-- [CLI](./cli.md) — Command-line tools

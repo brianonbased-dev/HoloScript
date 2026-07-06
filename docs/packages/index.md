@@ -9,6 +9,7 @@ HoloScript currently ships as a monorepo with **real packages** under `packages/
 | Package                                    | Purpose                                             |
 | ------------------------------------------ | --------------------------------------------------- |
 | [**@holoscript/core**](./core.md)          | Core parser, AST, validation, compilers, and traits |
+| [**@holoscript/core-types**](./core-types.md) | Lightweight shared TypeScript type definitions  |
 | [**@holoscript/runtime**](./runtime.md)    | Scene execution runtime                             |
 | [**@holoscript/engine**](./engine.md)      | Lower-level spatial engine systems                  |
 | [**@holoscript/std**](./std.md)            | Standard library utilities and shared types         |

@@ -22,6 +22,7 @@ Ownership is inferred from package domain and the team structure. Update this fi
 | ------------------------ | --------------------------------------- | ------------------------------ | -------- |
 | `@holoscript/core`       | Parser, AST, compiler, traits           | `node run-vitest.mjs`          | Yes      |
 | `@holoscript/core-types` | Type definitions mirror                 | `vitest run --passWithNoTests` | Yes      |
+| `@holoscript/sdk`        | Compatibility re-export shim            | `vitest run --passWithNoTests` | Yes      |
 | `@holoscript/engine`     | Rendering, physics, ECS, 20+ subsystems | `vitest run --passWithNoTests` | Yes      |
 | `@holoscript/runtime`    | Browser R3F runtime                     | `vitest run --passWithNoTests` | Yes      |
 | `@holoscript/std`        | Standard library                        | `vitest run --passWithNoTests` | Yes      |

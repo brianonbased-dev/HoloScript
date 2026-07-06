@@ -24,6 +24,7 @@ This matrix assigns a support level to each documented package so contributors c
 | Package                              | Level        | Owning Team            |
 | ------------------------------------ | ------------ | ---------------------- |
 | `@holoscript/core`                   | stable       | HoloScript Core Team   |
+| `@holoscript/core-types`             | stable       | HoloScript Core Team   |
 | `@holoscript/runtime`                | stable       | HoloScript Core Team   |
 | `@holoscript/engine`                 | beta         | HoloScript Core Team   |
 | `@holoscript/std`                    | stable       | HoloScript Core Team   |

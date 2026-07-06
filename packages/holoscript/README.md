@@ -1,55 +1,37 @@
 # @holoscript/sdk
 
-HoloScript Smart Asset SDK and HoloHub client integration.
+Legacy compatibility package for older HoloScript JavaScript and TypeScript
+consumers.
 
-## Installation
+## Install
 
 ```bash
 npm install @holoscript/sdk
 ```
 
-## Overview
+## Use
 
-This package provides the SDK for creating and managing HoloScript Smart Assets and interacting with the HoloHub platform. It is **not** a CLI toolkit — for CLI tools, see [`@holoscript/cli`](../cli/README.md).
-
-## Usage
-
-```typescript
-import { HoloSmartAsset, HoloHubClient } from '@holoscript/sdk';
+```ts
+import { HoloHubClient, HoloSmartAsset } from '@holoscript/sdk';
 ```
 
-### Smart Assets
+## Status
 
-Create and manage smart assets with schema validation powered by Zod:
+This package is deprecated as the primary SDK. It remains published so existing
+Smart Asset and HoloHub-client integrations keep working, but new parser,
+compiler, scene, and trait integrations should use `@holoscript/core`.
 
-```typescript
-import { HoloSmartAsset } from '@holoscript/sdk';
-
-const asset = new HoloSmartAsset({
-  name: 'Interactive Cube',
-  traits: ['@grabbable', '@physics'],
-  geometry: 'cube',
-});
-```
-
-### HoloHub Client
-
-Connect to the HoloHub platform for asset publishing and discovery:
-
-```typescript
-import { HoloHubClient } from '@holoscript/sdk';
-
-const client = new HoloHubClient({
-  apiKey: process.env.HOLOHUB_API_KEY,
-});
-```
+Do not add new platform features here. Treat this package as a small
+compatibility shim until a future major version removes it.
 
 ## Related Packages
 
-- [`@holoscript/core`](../core/README.md) - Parser, compiler, and runtime
-- [`@holoscript/cli`](../cli/README.md) - Command-line tools (`holoscript build`, `holoscript run`, etc.)
-- [`@holoscript/mcp-server`](../mcp-server/README.md) - MCP tools for AI agents
+- `@holoscript/core` - canonical parser, compiler, scene, and trait APIs
+- `@holoscript/cli` - command-line workflows
+- `@holoscript/mcp-server` - MCP tools for AI agents and IDEs
 
-## License
+## Validation
 
-MIT
+```bash
+corepack pnpm --filter @holoscript/sdk run test
+```
