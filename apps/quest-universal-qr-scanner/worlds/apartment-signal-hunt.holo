@@ -1,0 +1,118 @@
+// Apartment Signal Hunt - tiny source-owned game for the apartment vertical.
+//
+// The game runs against apartment-twin.holo by targeting its authored anchors and zones.
+// Rules are data in this source: ordered beacons, a short timer, visible feedback, and a
+// completion receipt contract. The Quest compiler renders the same beacons as a small world.
+
+composition "ApartmentSignalHunt" {
+  environment {
+    backgroundColor: "#0f172a"
+    ambient_light: 0.62
+    parent_twin: "apartment-twin"
+    game_id: "apartment-signal-hunt"
+    objective: "Find the entry, work-surface, and portal signals in order."
+    expected_duration_seconds: 180
+  }
+
+  object "GameFloor" {
+    geometry: "plane"
+    position: [0, 0, 0]
+    scale: [6.4, 5.2, 1]
+    color: "#172033"
+    twin_surface_id: "floor-main"
+  }
+
+  object "Beacon_EntryThreshold" {
+    geometry: "sphere"
+    position: [0, 0.45, 2.35]
+    scale: [0.28, 0.28, 0.28]
+    color: "#f59e0b"
+    glow: true
+    motion: "bob"
+    speed: 0.9
+    amplitude: 0.1
+    beacon_id: "entry-signal"
+    sequence_index: 1
+    target_anchor_id: "entry-threshold"
+    target_zone_id: "portal-path"
+    feedback: "warm-pulse"
+    points: 100
+  }
+
+  object "Beacon_WorkSurface" {
+    geometry: "sphere"
+    position: [-1.75, 1.05, -0.72]
+    scale: [0.24, 0.24, 0.24]
+    color: "#22c55e"
+    glow: true
+    motion: "bob"
+    speed: 1.1
+    amplitude: 0.08
+    beacon_id: "work-signal"
+    sequence_index: 2
+    target_anchor_id: "work-surface"
+    target_zone_id: "living-workspace"
+    feedback: "green-confirm"
+    points: 100
+  }
+
+  object "Beacon_QRPortal" {
+    geometry: "sphere"
+    position: [1.1, 1.45, -1.95]
+    scale: [0.3, 0.3, 0.3]
+    color: "#38bdf8"
+    glow: true
+    motion: "orbit"
+    orbit_center: [1.1, 1.3, -1.95]
+    radius: 0.22
+    speed: 0.75
+    beacon_id: "portal-signal"
+    sequence_index: 3
+    target_anchor_id: "qr-portal-spawn"
+    target_zone_id: "portal-path"
+    feedback: "blue-complete"
+    points: 150
+  }
+
+  object "Rule_Sequence" {
+    geometry: "box"
+    position: [0, -0.25, 0]
+    scale: [0.04, 0.04, 0.04]
+    color: "#111827"
+    rule_id: "ordered-beacon-sequence"
+    player_action: "look_at_or_tap_beacons_in_order"
+    ordered_beacons: ["entry-signal", "work-signal", "portal-signal"]
+    failure_mode: "wrong-order-resets-current-step"
+  }
+
+  object "Rule_Timer" {
+    geometry: "box"
+    position: [0.08, -0.25, 0]
+    scale: [0.04, 0.04, 0.04]
+    color: "#111827"
+    rule_id: "short-session-timer"
+    time_limit_seconds: 180
+    warning_at_seconds: 120
+    failure_mode: "timer-expires-with-retry"
+  }
+
+  object "Rule_CompletionReceipt" {
+    geometry: "box"
+    position: [-0.08, -0.25, 0]
+    scale: [0.04, 0.04, 0.04]
+    color: "#111827"
+    receipt_schema: "TinyGameReceipt/v0.1.0"
+    emits_on: "all_beacons_collected"
+    required_fields: ["game_id", "parent_twin", "ordered_beacons", "score", "duration_seconds", "source_hash"]
+    reward: "Apartment twin calibrated"
+  }
+
+  object "CompletionMarker" {
+    geometry: "box"
+    position: [1.1, 0.08, -1.95]
+    scale: [0.9, 0.12, 0.9]
+    color: "#0ea5e9"
+    completion_zone_id: "portal-path"
+    completion_feedback: "floor-ring-lights-when-complete"
+  }
+}
