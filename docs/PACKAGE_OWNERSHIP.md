@@ -130,6 +130,7 @@ Ownership is inferred from package domain and the team structure. Update this fi
 | `@holoscript/domain-plugin-template`     | Plugin template       | `vitest run`                   | Yes      |
 | `@holoscript/plugin-economic-primitives` | Economic models       | `vitest run --passWithNoTests` | Yes      |
 | `@holoscript/plugin-education-lms`       | Education/LMS         | `vitest run --passWithNoTests` | Yes      |
+| `@holoscript/plugin-emergency-response`  | Emergency response    | `vitest run`                   | Yes      |
 | `@holoscript/plugin-fashion`             | Fashion design        | `vitest run --passWithNoTests` | Yes      |
 | `@holoscript/plugin-film-vfx`            | Film/VFX production   | `vitest run`                   | Yes      |
 | `@holoscript/plugin-film3d-volumetrics`  | Film volumetrics      | `vitest run --passWithNoTests` | Yes      |

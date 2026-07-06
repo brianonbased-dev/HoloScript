@@ -83,6 +83,7 @@ This matrix assigns a support level to each documented package so contributors c
 | `@holoscript/animation-presets`      | stable       | Studio Team            |
 | `@holoscript/holomap`                | beta         | HoloLand Team          |
 | `@holoscript/snn-webgpu`             | experimental | R&D Team               |
+| `@holoscript/plugin-emergency-response` | beta      | Plugin Team            |
 | `@holoscript/plugin-film-vfx`        | beta         | Plugin Team            |
 | `@holoscript/plugin-film3d-volumetrics` | beta      | Plugin Team            |
 | `@holoscript/plugin-legal-document`  | beta         | Plugin Team            |

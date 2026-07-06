@@ -112,6 +112,7 @@ HoloScript currently ships as a monorepo with **real packages** under `packages/
 
 | Package                                                   | Purpose                         |
 | --------------------------------------------------------- | ------------------------------- |
+| [**@holoscript/plugin-emergency-response**](./plugin-emergency-response.md) | Emergency-response and incident-command traits |
 | [**@holoscript/plugin-film-vfx**](./plugin-film-vfx.md)   | Film, VFX, and virtual production traits |
 | [**@holoscript/plugin-film3d-volumetrics**](./plugin-film3d-volumetrics.md) | Film3D volumetrics traits |
 | [**@holoscript/plugin-legal-document**](./plugin-legal-document.md) | Legal document and programmable-law traits |
