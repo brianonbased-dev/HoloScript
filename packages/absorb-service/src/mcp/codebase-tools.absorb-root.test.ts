@@ -250,6 +250,79 @@ describe('holo_absorb_repo root validation', () => {
     expect(status.graphUnavailableReceipt).toBeUndefined();
   });
 
+  it('repairs a git-stale cache through incremental stats without embeddings', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-incremental-stats-cache-'));
+    const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-incremental-stats-repo-'));
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+
+    execFileSync('git', ['init'], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['config', 'user.email', 'codex@example.test'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+    execFileSync('git', ['config', 'user.name', 'Codex Test'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+
+    fs.mkdirSync(path.join(repoDir, 'src'), { recursive: true });
+    fs.writeFileSync(
+      path.join(repoDir, 'src', 'fixture.ts'),
+      'export const fixture = 1;\n',
+      'utf-8'
+    );
+    execFileSync('git', ['add', 'src/fixture.ts'], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['commit', '-m', 'initial'], { cwd: repoDir, windowsHide: true });
+
+    const first = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      force: true,
+      outputFormat: 'stats',
+      embeddingProvider: 'holoembed',
+    })) as { error?: string; embeddingSkipped?: boolean; gitCommitHash?: string };
+
+    expect(first.error).toBeUndefined();
+    expect(first.embeddingSkipped).toBe(true);
+    const firstCommit = getHeadCommit(repoDir);
+    expect(first.gitCommitHash).toBe(firstCommit);
+
+    fs.writeFileSync(
+      path.join(repoDir, 'src', 'fixture.ts'),
+      'export const fixture = 2;\n',
+      'utf-8'
+    );
+    execFileSync('git', ['add', 'src/fixture.ts'], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['commit', '-m', 'update fixture'], { cwd: repoDir, windowsHide: true });
+    const secondCommit = getHeadCommit(repoDir);
+
+    resetCodebaseToolStateForTests(false);
+    const patched = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+      embeddingProvider: 'holoembed',
+    })) as {
+      error?: string;
+      incremental?: boolean;
+      filesChanged?: number;
+      embeddingSkipped?: boolean;
+      embeddingSkipReason?: string;
+      gitCommitHash?: string;
+    };
+
+    expect(patched.error).toBeUndefined();
+    expect(patched.incremental).toBe(true);
+    expect(patched.filesChanged).toBe(1);
+    expect(patched.embeddingSkipped).toBe(true);
+    expect(patched.embeddingSkipReason).toBe('outputFormat:stats');
+    expect(patched.gitCommitHash).toBe(secondCommit);
+
+    const cache = JSON.parse(
+      fs.readFileSync(path.join(cacheDir, 'graph-cache.json'), 'utf-8')
+    ) as { gitCommitHash?: string };
+    expect(cache.gitCommitHash).toBe(secondCommit);
+  }, 20_000);
+
   it('does not emit a graph unavailable receipt when local GraphRAG is live without disk cache', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-empty-graph-cache-'));
@@ -377,11 +450,15 @@ describe('holo_absorb_repo sourceFiles upload', () => {
       error?: string;
       stats?: { totalFiles?: number; totalSymbols?: number };
       fromSourceFiles?: boolean;
+      embeddingSkipped?: boolean;
+      embeddingSkipReason?: string;
       jobId?: string;
     };
 
     expect(result.error).toBeUndefined();
     expect(result.fromSourceFiles).toBe(true);
+    expect(result.embeddingSkipped).toBe(true);
+    expect(result.embeddingSkipReason).toBe('outputFormat:stats');
     expect(result.stats?.totalFiles).toBeGreaterThanOrEqual(2);
     expect(result.stats?.totalSymbols).toBeGreaterThanOrEqual(2);
 
@@ -405,7 +482,7 @@ describe('holo_absorb_repo sourceFiles upload', () => {
           content: 'export function parseHoloScriptPlusFixture(): string { return "hsplus"; }',
         },
       ],
-      outputFormat: 'stats',
+      outputFormat: 'graph',
     })) as {
       error?: string;
       rootDir?: string;
@@ -450,7 +527,7 @@ describe('holo_absorb_repo sourceFiles upload', () => {
             'export class HoloScriptPlusParserFixture { parseHoloScriptPlusGrammar(): string { return "trait object pipeline"; } }',
         },
       ],
-      outputFormat: 'stats',
+      outputFormat: 'graph',
     })) as { error?: string };
     expect(absorb.error).toBeUndefined();
 

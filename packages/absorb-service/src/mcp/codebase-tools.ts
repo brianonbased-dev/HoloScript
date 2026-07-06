@@ -1444,6 +1444,30 @@ async function runFullScan(
     : await detectBestEmbeddingProvider();
   saveGraphCache(graph, primaryRootDir, stats, gitCommitHash, fileHashes, detectedProvider);
 
+  if (outputFormat === 'stats') {
+    if (jobId) trackAbsorbProgress(jobId, 'Complete', 100);
+    const result = {
+      rootDir: primaryRootDir,
+      stats,
+      embeddingPolicy,
+      gitCommitHash,
+      diagnostics,
+      graphRagReady: isGraphRAGReady(),
+      embeddingSkipped: true,
+      embeddingSkipReason: 'outputFormat:stats',
+      durationMs: Date.now() - startTime,
+    };
+    if (jobId) {
+      const job = absorbJobs.get(jobId);
+      if (job) {
+        job.result = result;
+        job.status = 'complete';
+        job.completedAt = Date.now();
+      }
+    }
+    return result;
+  }
+
   if (jobId) trackAbsorbProgress(jobId, 'Creating embeddings', 80);
 
   // Build embedding index with granular progress (Phase 8 Extension)
@@ -1541,17 +1565,9 @@ async function runFullScan(
 
   let result: unknown;
 
-  if (outputFormat === 'stats') {
+  if (outputFormat === 'graph') {
     result = {
       rootDir: primaryRootDir,
-      stats,
-      embeddingPolicy,
-      gitCommitHash,
-      diagnostics,
-      durationMs: Date.now() - startTime,
-    };
-  } else if (outputFormat === 'graph') {
-    result = {
       stats,
       graph: graph.serialize(),
       embeddingPolicy,
@@ -1697,6 +1713,57 @@ async function runIncrementalPatch(
   const allFilePaths = graph.getFilePaths();
   const newHashes = detector.computeFileHashes(allFilePaths);
   graph.fileHashes = Object.fromEntries(newHashes.map((h: any) => [h.filePath, h.hash]));
+
+  if (outputFormat === 'stats') {
+    cachedGraph = graph;
+    cachedRootDir = rootDir;
+    cacheProvenance = 'incremental-patch';
+    cacheTimestamp = Date.now();
+
+    const statsOnlyGraphStats = graph.getStats();
+    const statsOnlyProvider = embeddingProvider
+      ? requireNativeGraphRAGProvider(embeddingProvider, 'embeddingProvider argument')
+      : (envelope.embeddingProvider ?? (await detectBestEmbeddingProvider()));
+
+    saveGraphCache(
+      graph,
+      rootDir,
+      statsOnlyGraphStats,
+      graph.gitCommitHash,
+      graph.fileHashes,
+      statsOnlyProvider
+    );
+
+    if (jobId) trackAbsorbProgress(jobId, 'Complete', 100);
+    const patchDurationMs = Date.now() - startTime;
+    const result = {
+      incremental: true,
+      filesChanged: filesToRescan.length,
+      filesAdded: changes.added.length,
+      filesModified: modifiedFiltered.trulyChanged.length,
+      filesDeleted: changes.deleted.length,
+      patchDurationMs,
+      rootDir,
+      stats: statsOnlyGraphStats,
+      embeddingPolicy,
+      gitCommitHash: changes.headCommit,
+      graphRagReady: isGraphRAGReady(),
+      embeddingSkipped: true,
+      embeddingSkipReason: 'outputFormat:stats',
+      message: `Incremental stats update: patched ${filesToRescan.length} files in ${patchDurationMs}ms (${statsOnlyGraphStats.totalFiles} total)`,
+    };
+
+    if (jobId) {
+      const job = absorbJobs.get(jobId);
+      if (job) {
+        job.result = result;
+        job.status = 'complete';
+        job.completedAt = Date.now();
+      }
+    }
+
+    return result;
+  }
 
   if (jobId) trackAbsorbProgress(jobId, 'Updating embeddings', 80);
 
@@ -2068,7 +2135,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     // set cachedGraph another way), load the embeddings from disk NOW so
     // holo_semantic_search / holo_ask_codebase light up without re-embedding.
     // This is the zero-change mirror of the incremental path's loadEmbeddingsCache.
-    if (!isGraphRAGReady()) {
+    if (outputFormat !== 'stats' && !isGraphRAGReady()) {
       try {
         const { GraphRAGEngine } = mod;
         const providerName = embeddingProvider
