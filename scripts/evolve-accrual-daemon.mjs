@@ -147,7 +147,12 @@ await step(); // immediate first step
 if (ONCE) {
   while (tick < MAX_TICKS && !stopped) await step();
   log({ ev: 'accrual-daemon-done', ticks: tick, errors: errorCount, written: writtenTotal });
-  process.exit(errorCount > 0 ? 1 : 0);
+  // Same delayed-exit idiom as onSig: an immediate process.exit() races the
+  // proposer's keep-alive sockets during native teardown, which Windows
+  // surfaces as STATUS_STACK_BUFFER_OVERRUN (0xC0000409) in Task Scheduler
+  // even after a productive run.
+  process.exitCode = errorCount > 0 ? 1 : 0;
+  setTimeout(() => process.exit(process.exitCode), 250);
 }
 const timer = setInterval(() => {
   if (stopped) clearInterval(timer);

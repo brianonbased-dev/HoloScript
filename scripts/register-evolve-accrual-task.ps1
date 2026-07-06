@@ -42,11 +42,23 @@ function Env-Required([string]$k) {
   $v
 }
 $corpus = Env-Required 'HOLOSCRIPT_AGENT_EVOLVE_CORPUS'
-$ollama = Env-Required 'HOLOSCRIPT_AGENT_EVOLVE_OLLAMA_URL'
+# Endpoint: at least ONE sovereign inference endpoint var must be set. The
+# OpenAI-compatible var (HoloLlama llama-server, e.g. the Jetson node at
+# http://192.168.0.119:18080/v1) takes precedence in the daemon; the Ollama
+# var remains a legacy fallback (D.117 retires Ollama).
+$openaiBase = [Environment]::GetEnvironmentVariable('HOLOSCRIPT_AGENT_EVOLVE_OPENAI_BASE_URL', 'User')
+$ollama = [Environment]::GetEnvironmentVariable('HOLOSCRIPT_AGENT_EVOLVE_OLLAMA_URL', 'User')
+if ([string]::IsNullOrWhiteSpace($openaiBase) -and [string]::IsNullOrWhiteSpace($ollama)) {
+  Write-Error "Set a sovereign inference endpoint first: HOLOSCRIPT_AGENT_EVOLVE_OPENAI_BASE_URL (HoloLlama llama-server, preferred) or HOLOSCRIPT_AGENT_EVOLVE_OLLAMA_URL (legacy), e.g.: [Environment]::SetEnvironmentVariable('HOLOSCRIPT_AGENT_EVOLVE_OPENAI_BASE_URL','http://192.168.0.119:18080/v1','User')"
+  exit 1
+}
 $model  = Env-Or 'HOLOSCRIPT_AGENT_EVOLVE_MODEL' 'qwen3:4b-instruct'
 $maxTk  = Env-Or 'HOLOSCRIPT_AGENT_EVOLVE_MAX_TICKS' '3'
 # Persist config at User scope so the S4U task (running as this user) inherits it.
-foreach ($kv in @{ HOLOSCRIPT_AGENT_EVOLVE_CORPUS=$corpus; HOLOSCRIPT_AGENT_EVOLVE_OLLAMA_URL=$ollama; HOLOSCRIPT_AGENT_EVOLVE_MODEL=$model; HOLOSCRIPT_AGENT_EVOLVE_MAX_TICKS=$maxTk }.GetEnumerator()) {
+$persist = @{ HOLOSCRIPT_AGENT_EVOLVE_CORPUS=$corpus; HOLOSCRIPT_AGENT_EVOLVE_MODEL=$model; HOLOSCRIPT_AGENT_EVOLVE_MAX_TICKS=$maxTk }
+if (-not [string]::IsNullOrWhiteSpace($openaiBase)) { $persist.HOLOSCRIPT_AGENT_EVOLVE_OPENAI_BASE_URL = $openaiBase }
+if (-not [string]::IsNullOrWhiteSpace($ollama)) { $persist.HOLOSCRIPT_AGENT_EVOLVE_OLLAMA_URL = $ollama }
+foreach ($kv in $persist.GetEnumerator()) {
   [Environment]::SetEnvironmentVariable($kv.Key, $kv.Value, 'User')
 }
 
