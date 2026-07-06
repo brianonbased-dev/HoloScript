@@ -5,13 +5,16 @@ the product and service surface that scans source, builds a graph, indexes
 native embeddings, answers questions, emits `.holo` graph scenes, and feeds
 self-improvement loops.
 
-This umbrella has three native substrate lanes:
+This umbrella has one canonical consumer package surface:
+`@holoscript/absorb-service/gev`. HoloGraph and HoloEmbed remain named substrate
+lanes, but callers should not assemble a separate GraphRAG package plus an embed
+package for Absorb workflows.
 
 | Lane      | Canonical home                                          | Role                                                                                                                    | Boundary                                                                                                                                                                    |
 | --------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Absorb    | `packages/absorb-service` and `services/absorb-service` | Public codebase-intelligence package, MCP tools, service API, credits, GraphRAG, self-improvement pipeline              | Owns orchestration, cache policy, MCP handlers, and service behavior.                                                                                                       |
+| Absorb    | `packages/absorb-service` and `services/absorb-service` | Public codebase-intelligence package, MCP tools, service API, credits, GraphRAG, self-improvement pipeline              | Owns orchestration, cache policy, MCP handlers, service behavior, and the canonical GEV package surface.                                                                    |
 | HoloGraph | `packages/absorb-service/src/engine`                    | Structural graph layer: symbols, imports, calls, event edges, provenance, communities, impact analysis, graph manifests | A named subsystem inside Absorb today, not a separate npm package unless external consumers need a small graph-only install.                                                |
-| HoloEmbed | `packages/holoembed`                                    | Keyless native embedding encoder for NL-to-code and symbol search                                                       | Reusable package. It must remain independent of Absorb so edge and research consumers can encode without the service stack.                                                 |
+| HoloEmbed | `@holoscript/absorb-service/gev`                        | Keyless native embedding lane for NL-to-code and symbol search                                                          | Public consumers enter through Absorb GEV. `packages/holoembed` may remain as an implementation/migration workspace package until direct engine/research imports are folded. |
 | HoloLlama | `packages/holollama`                                    | Owned-model serving planner and fleet receipts for llama.cpp-compatible local inference                                 | Fleet utility package. It plans and proves serving nodes; Absorb may consume local inference endpoints or receipts, but HoloLlama must not become the graph or MCP gateway. |
 
 ## Canonical Flow
@@ -34,14 +37,15 @@ the code graph.
 
 ## Naming Rules
 
-- Use **Absorb** for the umbrella product, service, MCP tool family, and
-  recursive codebase-intelligence pipeline.
+- Use **Absorb** for the umbrella product, service, MCP tool family, recursive
+  codebase-intelligence pipeline, and public GEV package boundary.
+- Use **GEV** for Absorb's Graph + Embedding + Vector/RAG consumer entry point:
+  `@holoscript/absorb-service/gev`.
 - Use **HoloGraph** for structural graph behavior inside Absorb: `CodebaseGraph`,
   event/provenance edges, community detection, manifest-backed graph artifacts,
   and impact analysis.
-- Use **HoloEmbed** for the reusable keyless embedding package and the
-  `HoloEmbedProvider` wrapper that satisfies Absorb's `EmbeddingProvider`
-  interface.
+- Use **HoloEmbed** for the keyless embedding lane and the `HoloEmbedProvider`
+  wrapper that satisfies Absorb's `EmbeddingProvider` interface.
 - Use **HoloLlama** for owned llama.cpp serving plans, Brain routing receipts,
   lifecycle receipts, and local inference fleet handoffs.
 - Do not create shadow names like `holograph-service`, `embed-service`, or
@@ -54,9 +58,10 @@ graph construction or traversal without Absorb's scanning, MCP, credits, or
 pipeline modules. Until then, the canonical implementation stays inside
 `@holoscript/absorb-service/engine`.
 
-HoloEmbed stays separate because it is already the small, reusable encoder
-surface. Absorb consumes it through `HoloEmbedProvider`; HoloEmbed must not
-depend on Absorb.
+Do not promote HoloEmbed as the normal standalone consumer package for Absorb
+workflows. Existing direct imports can remain during migration, but new graph,
+embedding, vector, and GraphRAG consumers should import
+`@holoscript/absorb-service/gev`.
 
 HoloLlama stays separate because fleet serving plans, model paths, launcher
 artifacts, and device receipts are operational concerns. Absorb can use
@@ -68,7 +73,7 @@ own GraphRAG state or codebase cache policy.
 Allowed direction:
 
 ```text
-Absorb -> HoloEmbed
+Absorb GEV -> HoloGraph + HoloEmbed lanes
 Absorb -> HoloLlama receipts or local inference endpoints
 MCP server -> Absorb MCP handlers
 Studio/services -> Absorb service API or MCP tools
@@ -77,12 +82,12 @@ Studio/services -> Absorb service API or MCP tools
 Avoid:
 
 ```text
-HoloEmbed -> Absorb
+New Absorb consumers -> @holoscript/holoembed direct install
 HoloLlama -> Absorb cache internals
 HoloGraph shadow implementation outside Absorb without a migration plan
 Service routes duplicating packages/absorb-service business logic
 ```
 
-The operating principle is simple: Absorb is the umbrella, HoloGraph is its
-structural graph core, HoloEmbed is its native embedding substrate, and
-HoloLlama is the owned-model inference lane beside it.
+The operating principle is simple: Absorb is the package mold, GEV is the
+consumer entry point, HoloGraph is its structural graph core, HoloEmbed is its
+native embedding lane, and HoloLlama is the owned-model inference lane beside it.

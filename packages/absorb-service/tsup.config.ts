@@ -40,6 +40,7 @@ export default defineConfig([
       index: 'src/index.ts',
       'engine/index': 'src/engine/index.ts',
       'ingest/index': 'src/ingest/index.ts',
+      'gev/index': 'src/gev/index.ts',
       'daemon/index': 'src/daemon/index.ts',
       'self-improvement/index': 'src/self-improvement/index.ts',
       'mcp/index': 'src/mcp/index.ts',

@@ -25,6 +25,11 @@
       "import": "./dist/ingest/index.js",
       "require": "./dist/ingest/index.cjs"
     },
+    "./gev": {
+      "types": "./dist/gev/index.d.ts",
+      "import": "./dist/gev/index.js",
+      "require": "./dist/gev/index.cjs"
+    },
     "./pipeline": {
       "types": "./dist/pipeline/index.d.ts",
       "import": "./dist/pipeline/index.js",
@@ -83,7 +88,10 @@
     "pipeline",
     "self-improvement",
     "daemon",
-    "graph-rag"
+    "graph-rag",
+    "gev",
+    "holoembed",
+    "holograph"
   ],
   "author": "Brian X Base Team",
   "license": "MIT",

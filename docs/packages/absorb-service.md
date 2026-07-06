@@ -22,6 +22,7 @@ end users should reach Absorb through MCP tools such as `holo_absorb_repo`,
 | `@holoscript/absorb-service`                  | Default engine and bridge exports                              |
 | `@holoscript/absorb-service/engine`           | Scanner, graph, embeddings, visualization, and query machinery |
 | `@holoscript/absorb-service/ingest`           | Professional ingest contracts and format registry              |
+| `@holoscript/absorb-service/gev`              | Canonical Graph + Embedding + Vector/RAG surface               |
 | `@holoscript/absorb-service/pipeline`         | Recursive self-improvement orchestrator                        |
 | `@holoscript/absorb-service/daemon`           | HoloDaemon actions, errors, and prompt profiles                |
 | `@holoscript/absorb-service/self-improvement` | GRPO, OPLoRA, DPO, quality scoring, and convergence helpers    |
@@ -44,15 +45,19 @@ host should stay thin and import the package.
 
 ## Canonical Substrates
 
-Absorb is the umbrella surface for HoloScript codebase intelligence. Its native
-substrates are:
+Absorb is the umbrella package for HoloScript codebase intelligence. Its native
+Graph + Embedding + Vector/RAG spine is consumed through
+`@holoscript/absorb-service/gev`, not by asking callers to install separate
+GraphRAG or embed packages.
 
 - **HoloGraph**: structural graph behavior inside
   `packages/absorb-service/src/engine`, including `CodebaseGraph`, event and
   provenance edges, communities, manifest-backed graph artifacts, and impact
   analysis.
-- **HoloEmbed**: the keyless embedding package at `packages/holoembed`, consumed
-  by Absorb through `HoloEmbedProvider` for shared GraphRAG indexes.
+- **HoloEmbed**: the keyless embedding lane consumed through
+  `HoloEmbedProvider` and the GEV entry point. The workspace package at
+  `packages/holoembed` is an implementation/migration detail for existing
+  engine and research consumers, not the recommended Absorb consumer package.
 - **HoloLlama**: the owned-model serving utility at `packages/holollama`.
   HoloLlama owns llama.cpp serving plans and fleet receipts; Absorb may consume
   its local inference endpoints or receipts for synthesis, but HoloLlama does

@@ -7,6 +7,7 @@
  * Sub-modules (import via sub-paths to avoid name collisions):
  *   - @holoscript/absorb-service/engine         -- Codebase scanner, graph, embeddings, visualization
  *   - @holoscript/absorb-service/ingest         -- Professional ingest contracts and format registry
+ *   - @holoscript/absorb-service/gev            -- Canonical Graph + Embedding + Vector/RAG package surface
  *   - @holoscript/absorb-service/pipeline        -- Recursive self-improvement orchestrator (L0/L1/L2)
  *   - @holoscript/absorb-service/daemon          -- Daemon actions, error taxonomy, prompt profiles, types
  *   - @holoscript/absorb-service/self-improvement -- Training data generation, quality scoring, GRPO

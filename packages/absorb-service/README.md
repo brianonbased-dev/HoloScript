@@ -40,6 +40,7 @@ absorb-service/
       providers/       Embedding providers (OpenAI, Ollama, Xenova/HuggingFace)
       visualization/   Scene compilation, theming, tooltips, interactive enrichment
       workers/         Worker pool for parallel parsing and embedding
+    gev/               Canonical Graph + Embedding + Vector/RAG consumer surface
     ingest/            Professional ingest contracts and canonical format registry
     pipeline/          Recursive self-improvement orchestrator (L0/L1/L2)
     self-improvement/  Training data generation, GRPO, OPLoRA, quality scoring
@@ -59,8 +60,9 @@ absorb-service/
 2. **Graph** -- `CodebaseGraph` indexes all symbols, builds caller/callee
    indexes, detects communities via `CommunityDetector`, and provides impact
    analysis queries.
-3. **Embed** -- `EmbeddingIndex` vectorizes symbol signatures using HoloEmbed
-   for shared GraphRAG. Low-level providers remain available for isolated
+3. **Embed** -- `EmbeddingIndex` vectorizes symbol signatures through the
+   Absorb GEV surface (`@holoscript/absorb-service/gev`) using HoloEmbed for
+   shared GraphRAG. Low-level providers remain available for isolated
    experiments, but shared caches use the native HoloEmbed space.
 4. **Query** -- `GraphRAGEngine` combines vector search with graph traversal.
    Semantic matches are enriched with callers, callees, community membership,
@@ -78,14 +80,18 @@ absorb-service/
 
 ## Canonical Substrate Map
 
-Absorb is the umbrella surface for HoloScript codebase intelligence. Its native
-substrate lanes are:
+Absorb is the umbrella package for HoloScript codebase intelligence. Its native
+Graph + Embedding + Vector/RAG spine is consumed through
+`@holoscript/absorb-service/gev`, not by composing separate GraphRAG and embed
+packages.
 
 - **HoloGraph** -- structural graph behavior in `src/engine`: `CodebaseGraph`,
   event/provenance edges, community detection, impact analysis, and
   HoloGraph/HoloEmbed manifests.
-- **HoloEmbed** -- the reusable keyless encoder package at
-  `packages/holoembed`, consumed through `HoloEmbedProvider`.
+- **HoloEmbed** -- the keyless embedding lane exposed through
+  `HoloEmbedProvider` and the GEV entry point. The workspace
+  `packages/holoembed` implementation remains only for existing engine,
+  benchmark, and research call sites during migration.
 - **HoloLlama** -- the owned-model serving lane at `packages/holollama`.
   HoloLlama plans and proves llama.cpp-compatible local inference endpoints;
   Absorb may use those endpoints for answer synthesis but does not move graph
@@ -103,6 +109,7 @@ Import from the specific sub-path you need:
 | ---------------- | --------------------------------------------- | --------------------------------------------------------------- |
 | Root             | `@holoscript/absorb-service`                  | Engine + bridge (default)                                       |
 | Engine           | `@holoscript/absorb-service/engine`           | Scanner, graph, embeddings, visualization, knowledge extraction |
+| GEV              | `@holoscript/absorb-service/gev`              | Canonical graph, HoloEmbed, vector index, and GraphRAG surface  |
 | Ingest           | `@holoscript/absorb-service/ingest`           | Professional ingest adapter contract + format registry          |
 | Pipeline         | `@holoscript/absorb-service/pipeline`         | Recursive self-improvement orchestrator                         |
 | Daemon           | `@holoscript/absorb-service/daemon`           | HoloDaemon actions, error taxonomy, prompt profiles             |
