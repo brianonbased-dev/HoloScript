@@ -114,6 +114,7 @@ HoloScript currently ships as a monorepo with **real packages** under `packages/
 | [**@holoscript/plugin-film3d-volumetrics**](./plugin-film3d-volumetrics.md) | Film3D volumetrics traits |
 | [**@holoscript/plugin-legal-document**](./plugin-legal-document.md) | Legal document and programmable-law traits |
 | [**@holoscript/qm-bridge**](./qm-bridge.md)               | Quantum mechanics solver bridge |
+| [**@holoscript/radio-astronomy-plugin**](./radio-astronomy-plugin.md) | Radio astronomy and FITS visualization traits |
 | [**@holoscript/plugin-urban-planning**](./plugin-urban-planning.md) | Urban planning and civic simulation traits |
 
 ## What Is Not Counted Here
