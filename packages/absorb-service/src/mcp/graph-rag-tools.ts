@@ -146,12 +146,12 @@ export const graphRagTools: Tool[] = [
           type: 'string',
           enum: ['openrouter', 'anthropic', 'openai', 'gemini', 'ollama', 'holollama'],
           description:
-            'LLM provider for answer generation (default: auto-detect from env, cloud-first). Priority: openrouter -> anthropic -> openai -> gemini -> ollama. Use holollama explicitly for owned llama.cpp-compatible synthesis.',
+            'LLM provider for answer generation. Default is HoloLlama, resolved through the HoloKey-aware HoloLlama profile/endpoint bridge. Cloud providers are explicit opt-in only.',
         },
         llmApiKey: {
           type: 'string',
           description:
-            'API key for the LLM provider (required for openai/anthropic/gemini, not needed for ollama or holollama). Falls back to OPENAI_API_KEY, ANTHROPIC_API_KEY, or GEMINI_API_KEY environment variables if not provided.',
+            'API key for an explicitly selected cloud LLM provider. Not used for default HoloLlama synthesis.',
         },
         llmModel: {
           type: 'string',
@@ -246,15 +246,46 @@ export async function handleGraphRagTool(
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 /**
- * Auto-detect the best LLM provider from environment variables.
- * Cloud-first: OpenRouter → Anthropic → OpenAI → Ollama (last resort).
+ * Resolve GraphRAG answer synthesis.
+ *
+ * Bare holo_ask_codebase calls use sovereign HoloLlama. Cloud providers remain
+ * available only through explicit tool args or provider override config.
  */
 async function detectDefaultLLMProvider(): Promise<LLMProviderName> {
-  if (await resolveConfigSecret('OPENROUTER_API_KEY')) return 'openrouter';
-  if (await resolveConfigSecret('ANTHROPIC_API_KEY')) return 'anthropic';
-  if (await resolveConfigSecret('OPENAI_API_KEY')) return 'openai';
-  if (await resolveConfigSecret('GEMINI_API_KEY')) return 'gemini';
-  return 'ollama';
+  const configured = (
+    (await resolveFirstConfigSecret(
+      'ABSORB_GRAPH_RAG_LLM_PROVIDER',
+      'HOLO_LLM_PROVIDER',
+      'BRITTNEY_PROVIDER'
+    )) ?? 'holollama'
+  ).toLowerCase();
+
+  switch (configured) {
+    case '':
+    case 'auto':
+    case 'sovereign':
+    case 'holollama':
+      return 'holollama';
+    case 'openrouter':
+    case 'anthropic':
+    case 'openai':
+    case 'gemini':
+    case 'ollama':
+      return configured;
+    default:
+      throw new Error(
+        `Unsupported GraphRAG synthesis provider "${configured}". ` +
+          'Use holollama, ollama, openrouter, anthropic, openai, or gemini.'
+      );
+  }
+}
+
+async function resolveFirstConfigSecret(...names: string[]): Promise<string | undefined> {
+  for (const name of names) {
+    const value = stringArg(await resolveConfigSecret(name));
+    if (value) return value;
+  }
+  return undefined;
 }
 
 function graphRagFailureHint(provider: string | undefined): string {
@@ -263,10 +294,10 @@ function graphRagFailureHint(provider: string | undefined): string {
   }
 
   if (provider && provider !== 'ollama') {
-    return `Ensure ${provider.toUpperCase()}_API_KEY is set or passed via llmApiKey parameter`;
+    return `Ensure ${provider.toUpperCase()}_API_KEY is set or passed via llmApiKey parameter, or omit llmProvider to use HoloLlama.`;
   }
 
-  return 'No cloud API keys found. Set OPENROUTER_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY for cloud LLM, or ensure Ollama is running locally.';
+  return 'Default synthesis is HoloLlama. Pass llmProvider explicitly for cloud BYOK synthesis, or ensure the selected local provider is running.';
 }
 
 // ── Handlers ─────────────────────────────────────────────────────────────────
@@ -286,7 +317,9 @@ export async function createHoloLlamaSynthesisProvider(
   const explicitEndpoint = stringArg(options.endpoint);
   const endpoint =
     explicitEndpoint ??
-    (explicitEndpoint ? undefined : await resolveHoloLlamaConfigSecret('HOLOLLAMA_ENDPOINT')) ??
+    (explicitEndpoint
+      ? undefined
+      : await resolveFirstConfigSecret('HOLOLLAMA_ENDPOINT', 'HOLOLLAMA_URL')) ??
     summary.endpoint ??
     `http://${spec.host}:${spec.port}/v1`;
   const chatCompletionsUrl = normalizeHoloLlamaChatCompletionsUrl(endpoint);

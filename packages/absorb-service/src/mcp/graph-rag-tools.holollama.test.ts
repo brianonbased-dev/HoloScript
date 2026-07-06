@@ -44,6 +44,8 @@ describe('holo_ask_codebase HoloLlama synthesis lane', () => {
       | undefined;
 
     expect(inputSchema?.properties?.llmProvider.enum).toContain('holollama');
+    expect(inputSchema?.properties?.llmProvider.description).toContain('Default is HoloLlama');
+    expect(inputSchema?.properties?.llmApiKey.description).toContain('explicitly selected cloud');
     expect(inputSchema?.properties?.holoLlamaProfile.enum).toEqual([
       'jetson-orin',
       'laptop-windows',
@@ -165,6 +167,85 @@ describe('holo_ask_codebase HoloLlama synthesis lane', () => {
     });
     expect(response.content).toBe('Jetson-backed HoloLlama answer');
     expect(String(calls[0]?.input)).toBe('http://jetson.local:18080/v1/chat/completions');
+  });
+
+  it('defaults holo_ask_codebase synthesis to HoloLlama even when cloud keys exist', async () => {
+    configureConfigSecretResolver({
+      async resolve(nameOrRef: string) {
+        if (nameOrRef === 'HOLOLLAMA_PROFILE') return 'jetson-orin';
+        if (nameOrRef === 'HOLOLLAMA_URL') return 'http://127.0.0.1:18080/v1';
+        if (nameOrRef === 'OPENROUTER_API_KEY') return 'sk-openrouter-test';
+        if (nameOrRef === 'ANTHROPIC_API_KEY') return 'sk-anthropic-test';
+        if (nameOrRef === 'OPENAI_API_KEY') return 'sk-openai-test';
+        if (nameOrRef === 'GEMINI_API_KEY') return 'sk-gemini-test';
+        return undefined;
+      },
+    });
+
+    const symbol: ExternalSymbolDefinition = {
+      name: 'AbsorbService',
+      type: 'class',
+      filePath: 'packages/absorb-service/src/index.ts',
+      line: 12,
+      column: 1,
+      language: 'typescript',
+      visibility: 'public',
+      signature: 'class AbsorbService',
+    };
+    const searchResult = {
+      symbol,
+      score: 0.99,
+      file: symbol.filePath,
+      type: symbol.type,
+    };
+    const index: SymbolSearchIndex = {
+      search: async () => [searchResult],
+      searchWithFilters: async () => [searchResult],
+    };
+    const graph = {
+      getCallersOf: () => [],
+      getCalleesOf: () => [],
+      getSymbolImpact: () => new Set<string>(),
+      getCommunityForFile: () => 'absorb-service',
+      getSymbolsInFile: (file: string) => (file === symbol.filePath ? [symbol] : []),
+    } as unknown as CodebaseGraph;
+    const engine = new GraphRAGEngine(graph, index);
+    const calls: Array<{ input: string | URL; init?: RequestInit }> = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string | URL, init?: RequestInit) => {
+        calls.push({ input, init });
+        return new Response(
+          JSON.stringify({
+            choices: [{ message: { content: 'Default HoloLlama answer' } }],
+          }),
+          {
+            status: 200,
+            statusText: 'OK',
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
+      })
+    );
+
+    setGraphRAGState(index, engine);
+    const result = (await handleGraphRagTool('holo_ask_codebase', {
+      question: 'Which provider answers by default?',
+      topK: 1,
+    })) as {
+      answer?: string;
+      llmProvider?: string;
+      holoLlamaReceipt?: { schema: string; endpoint: string; graphProvider: string };
+    };
+
+    expect(result.answer).toBe('Default HoloLlama answer');
+    expect(result.llmProvider).toBe('holollama');
+    expect(result.holoLlamaReceipt).toMatchObject({
+      schema: HOLOLLAMA_SYNTHESIS_RECEIPT_SCHEMA,
+      endpoint: 'http://127.0.0.1:18080/v1',
+      graphProvider: 'holograph',
+    });
+    expect(String(calls[0]?.input)).toBe('http://127.0.0.1:18080/v1/chat/completions');
   });
 
   it('attaches a HoloLlama receipt to holo_ask_codebase answers', async () => {
