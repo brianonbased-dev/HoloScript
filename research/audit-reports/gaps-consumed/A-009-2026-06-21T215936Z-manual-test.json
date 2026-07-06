@@ -1,0 +1,20 @@
+{
+  "routine_id": "manual-test-e2e-verify",
+  "routine_name": "A-009 Example freshness + artist stress-test",
+  "fired_at": "2026-06-21T14:59:00Z",
+  "run_id": "manual-test",
+  "summary": {
+    "tests_run": 4,
+    "tests_failed": 1,
+    "gaps_filed": 1
+  },
+  "gaps": [
+    {
+      "title": "A-009: physics-constraints-demo.hsplus missing from examples — pipeline E2E verify",
+      "description": "Stress-test run manual-test: examples/physics-constraints-demo.hsplus was in the test scenario list but does not exist in the repo. Gap filed by manual E2E pipeline verification (2026-06-21). The A-009 two-phase pipeline was just wired end-to-end; this task confirms the full ingest cycle works.",
+      "priority": "low",
+      "tags": ["auto-filed-by-A-009", "example-driven", "example-missing"],
+      "dedup_key": "a009-manual-test-e2e-verify-physics-constraints-20260621"
+    }
+  ]
+}
