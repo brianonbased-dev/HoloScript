@@ -513,7 +513,7 @@ export async function handleTool(
 
   if (name.startsWith('holo_secrets_')) {
     const { handleSecretsBrokerTool } = await import('./secrets-broker-handler');
-    const result = await handleSecretsBrokerTool(name, args, signingCtx);
+    const result = await handleSecretsBrokerTool(name, args, effectiveSigningCtx);
     if (result !== null) return result;
   }
 

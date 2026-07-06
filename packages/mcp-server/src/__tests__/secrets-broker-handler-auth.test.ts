@@ -39,12 +39,13 @@ function capabilityCtx(scope: Capability): SigningContext {
   };
 }
 
-function classicalCtx(): SigningContext {
+function classicalCtx(scopes: string[] = []): SigningContext {
   return {
     signedRequest: true,
     signingValid: true,
     signer: '0xcafe',
     signingProtocol: 'classical',
+    scopes,
   };
 }
 
@@ -115,6 +116,16 @@ describe('gateSecretsBrokerTool — pure helper', () => {
       allowClassical: true,
     });
     expect(r).toBeNull();
+  });
+
+  it('TRUE: classical ctx with admin scope authorizes broker tool', () => {
+    expect(gateSecretsBrokerTool('holo_secrets_grant', classicalCtx(['admin:*']))).toBeNull();
+  });
+
+  it('TRUE: classical ctx with exact broker capability authorizes that tool', () => {
+    expect(
+      gateSecretsBrokerTool('holo_secrets_resolve', classicalCtx(['secrets:grant.resolve']))
+    ).toBeNull();
   });
 
   it('TRUE: dual ctx (default allowDual=true) → null (authorized)', () => {
@@ -225,6 +236,16 @@ describe('handleSecretsBrokerTool — auth integration', () => {
       validGrantArgs,
       classicalCtx(),
       { allowClassical: true }
+    )) as { status?: string; authError?: boolean };
+    expect(result.authError).toBeUndefined();
+    expect(result.status).toBe('granted');
+  });
+
+  it('TRUE: classical signed request with HTTP admin scope authorizes broker tool', async () => {
+    const result = (await handleSecretsBrokerTool(
+      'holo_secrets_grant',
+      validGrantArgs,
+      classicalCtx(['admin:*'])
     )) as { status?: string; authError?: boolean };
     expect(result.authError).toBeUndefined();
     expect(result.status).toBe('granted');

@@ -93,7 +93,10 @@ import type { TokenStoreBackend } from './auth/token-store';
 import { PostgresTokenStore } from './auth/postgres-token-store';
 import { handleInboundGossip, HoloMeshWorldState, HoloMeshDiscovery } from './holomesh/index';
 import { applyEdgeSafeSseHeaders } from './holomesh/sse-edge-headers';
-import type { SigningContext } from './holomesh/identity/signing-middleware';
+import {
+  extractAndVerifySigning,
+  type SigningContext,
+} from './holomesh/identity/signing-middleware';
 import {
   initStores,
   teamStore,
@@ -639,6 +642,54 @@ function parseJsonBody(req: http.IncomingMessage): Promise<Record<string, unknow
   });
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function isSignedRequestEnvelope(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  if (value.envelope_type === 'dual' || value.envelope_type === 'capability') return true;
+  return (
+    isRecord(value.body) &&
+    typeof value.signature === 'string' &&
+    typeof value.signer_address === 'string' &&
+    typeof value.nonce === 'string' &&
+    typeof value.timestamp === 'string'
+  );
+}
+
+function mergeSigningContextScopes(
+  signingCtx: SigningContext,
+  auth: TokenIntrospection
+): SigningContext {
+  const scopes = new Set<string>([
+    ...(signingCtx.scopes ?? []).map(String),
+    ...(auth.scopes ?? []).map(String),
+  ]);
+  return {
+    ...signingCtx,
+    scopes: [...scopes],
+  };
+}
+
+async function unwrapSignedHttpBody(
+  rawBody: Record<string, unknown>,
+  auth: TokenIntrospection
+): Promise<{ body: Record<string, unknown>; signingCtx?: SigningContext; signingError?: string }> {
+  if (!isSignedRequestEnvelope(rawBody)) return { body: rawBody };
+  const { effectiveBody, ctx } = await extractAndVerifySigning(rawBody, { strictMode: true });
+  if (!ctx.signingValid) {
+    return { body: {}, signingCtx: ctx, signingError: ctx.signingReason || 'signing-invalid' };
+  }
+  if (!isRecord(effectiveBody)) {
+    return { body: {}, signingCtx: ctx, signingError: 'signed-body-not-object' };
+  }
+  return {
+    body: effectiveBody,
+    signingCtx: mergeSigningContextScopes(ctx, auth),
+  };
+}
+
 // ── Secured Tool Execution ───────────────────────────────────────────────────
 
 /**
@@ -647,19 +698,22 @@ function parseJsonBody(req: http.IncomingMessage): Promise<Record<string, unknow
  * This is the central secured execution path. All tool calls from MCP sessions,
  * JSON-RPC fallback, and A2A tasks route through here.
  */
+interface SecuredToolExecutionOptions {
+  sessionId?: string;
+  requestPath?: string;
+  requestMethod?: string;
+  ip?: string;
+  tcpPeerIp?: string;
+  rawXForwardedFor?: string;
+  bearerToken?: string;
+  signingCtx?: SigningContext;
+}
+
 async function securedToolExecution(
   toolName: string,
   args: Record<string, unknown>,
   auth: TokenIntrospection,
-  options?: {
-    sessionId?: string;
-    requestPath?: string;
-    requestMethod?: string;
-    ip?: string;
-    tcpPeerIp?: string;
-    rawXForwardedFor?: string;
-    bearerToken?: string;
-  }
+  options?: SecuredToolExecutionOptions
 ): Promise<{ result: unknown; isError: boolean }> {
   return withMcpToolExecutionSpan(toolName, auth, () =>
     securedToolExecutionInner(toolName, args, auth, options)
@@ -670,15 +724,7 @@ async function securedToolExecutionInner(
   toolName: string,
   args: Record<string, unknown>,
   auth: TokenIntrospection,
-  options?: {
-    sessionId?: string;
-    requestPath?: string;
-    requestMethod?: string;
-    ip?: string;
-    tcpPeerIp?: string;
-    rawXForwardedFor?: string;
-    bearerToken?: string;
-  }
+  options?: SecuredToolExecutionOptions
 ): Promise<{ result: unknown; isError: boolean }> {
   const startTime = Date.now();
   let toolMetricError = false;
@@ -773,7 +819,7 @@ async function securedToolExecutionInner(
       }
     }
 
-    const signingCtx: SigningContext = {
+    const signingCtx: SigningContext = options?.signingCtx ?? {
       signedRequest: false,
       signingValid: true,
       signer: auth.agentId ?? auth.clientId ?? null,
@@ -2905,7 +2951,20 @@ const httpServer = http.createServer(async (req, res) => {
     let auth = await authenticateRequest(req);
 
     try {
-      const body = (await parseJsonBody(req)) as Record<string, unknown>;
+      const rawBody = (await parseJsonBody(req)) as Record<string, unknown>;
+      const unwrapped = await unwrapSignedHttpBody(rawBody, auth);
+      if (unwrapped.signingError) {
+        res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify({
+            jsonrpc: '2.0',
+            id: isRecord(rawBody.body) ? rawBody.body.id : rawBody.id,
+            error: { code: -32001, message: 'signing-rejected', data: { reason: unwrapped.signingError } },
+          })
+        );
+        return;
+      }
+      const body = unwrapped.body;
       const method = typeof body.method === 'string' ? body.method : '';
       const id = body.id;
 
@@ -3029,6 +3088,7 @@ const httpServer = http.createServer(async (req, res) => {
           tcpPeerIp: tcpPeer,
           rawXForwardedFor: readXForwardedFor(req),
           bearerToken: readBearerToken(req),
+          signingCtx: unwrapped.signingCtx,
         });
 
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -3078,7 +3138,15 @@ const httpServer = http.createServer(async (req, res) => {
   // POST /tools/call — REST proxy for orchestrator tool execution
   if (url === '/tools/call' && req.method === 'POST') {
     try {
-      const body = await parseJsonBody(req);
+      const rawBody = await parseJsonBody(req);
+      const requestAuth = await authenticateRequest(req);
+      const unwrapped = await unwrapSignedHttpBody(rawBody, requestAuth);
+      if (unwrapped.signingError) {
+        res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ success: false, error: 'signing-rejected', reason: unwrapped.signingError }));
+        return;
+      }
+      const body = unwrapped.body;
       const { tool, args } = body as { tool: string; args?: Record<string, unknown> };
       if (!tool || typeof tool !== 'string') {
         res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -3095,6 +3163,7 @@ const httpServer = http.createServer(async (req, res) => {
       const { result, isError } = await securedToolExecution(tool, args || {}, auth, {
         requestPath: '/tools/call',
         requestMethod: 'POST',
+        signingCtx: unwrapped.signingCtx,
       });
 
       res.writeHead(isError ? 500 : 200, { 'Content-Type': 'application/json; charset=utf-8' });

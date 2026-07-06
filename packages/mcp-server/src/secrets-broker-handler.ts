@@ -149,6 +149,16 @@ export interface SecretsBrokerAuthError {
   readonly requiredCapability: Capability;
 }
 
+function hasClassicalBrokerScope(signingCtx: SigningContext, capability: Capability): boolean {
+  if (signingCtx.signingProtocol !== 'classical') return false;
+  const scopes = new Set((signingCtx.scopes ?? []).map(String));
+  return (
+    scopes.has('admin:*') ||
+    scopes.has('tools:admin') ||
+    scopes.has(String(capability))
+  );
+}
+
 /**
  * Gate a secrets-broker tool call against the SigningContext.
  *
@@ -164,7 +174,10 @@ export function gateSecretsBrokerTool(
   if (!signingCtx) return null; // Legacy ungated path.
   const cap = SECRETS_BROKER_TOOL_CAPABILITIES[name];
   if (!cap) return null; // Tool name unknown to the gate — let downstream reject.
-  const auth = requireCapability(signingCtx, cap, options);
+  const authOptions = options ?? (
+    hasClassicalBrokerScope(signingCtx, cap) ? { allowClassical: true } : undefined
+  );
+  const auth = requireCapability(signingCtx, cap, authOptions);
   if (auth.authorized) return null;
   return { authError: true, reason: auth.reason, tool: name, requiredCapability: cap };
 }

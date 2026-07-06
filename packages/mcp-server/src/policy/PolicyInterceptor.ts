@@ -31,7 +31,7 @@
  * one tool family first.
  */
 
-import { readFileSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { createHash } from 'crypto';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -100,7 +100,15 @@ export interface PolicyReceipt {
 
 // ── Policy pack loading ──────────────────────────────────────────────────
 
-const DEFAULT_FIXTURE_PATH = join(__dirname, 'policy-pack.holo.hsplus');
+function defaultFixturePath(): string {
+  const candidates = [
+    join(__dirname, 'policy-pack.holo.hsplus'),
+    join(__dirname, '..', 'src', 'policy', 'policy-pack.holo.hsplus'),
+  ];
+  return candidates.find((candidate) => existsSync(candidate)) ?? candidates[0];
+}
+
+const DEFAULT_FIXTURE_PATH = defaultFixturePath();
 
 let cachedPack: PolicyPack | null = null;
 let cachedFixturePath: string | null = null;
