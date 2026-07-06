@@ -155,12 +155,31 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# Fleet package mirror client setup
+# ---------------------------------------------------------------------------
+PACKAGE_MIRROR_ENV="scripts/mesh-deploy/package-mirror-env.sh"
+if [ -f "$PACKAGE_MIRROR_ENV" ]; then
+  # shellcheck source=/dev/null
+  . "$PACKAGE_MIRROR_ENV"
+  configure_holoscript_package_mirror "[bootstrap:package-mirror]"
+else
+  echo "[bootstrap] WARN: $PACKAGE_MIRROR_ENV missing; using default package registries" >&2
+fi
+
+# ---------------------------------------------------------------------------
 # Registry cold-start gate
 # ---------------------------------------------------------------------------
 if [ "${HOLOSCRIPT_SKIP_REGISTRY_COLD_START:-0}" != "1" ]; then
   REGISTRY_COLD_START_PACKAGE="${HOLOSCRIPT_REGISTRY_COLD_START_PACKAGE:-@holoscript/core@latest}"
   echo "[bootstrap] registry cold-start gate: $REGISTRY_COLD_START_PACKAGE"
-  node scripts/holo-ci/check-registry-cold-start.mjs --package "$REGISTRY_COLD_START_PACKAGE" --json
+  REGISTRY_COLD_START_ARGS=(--package "$REGISTRY_COLD_START_PACKAGE" --json)
+  if [ -n "${npm_config_registry:-}" ]; then
+    REGISTRY_COLD_START_ARGS+=(--registry "$npm_config_registry")
+  fi
+  if [ "${HOLOSCRIPT_PACKAGE_PUBLIC_FALLBACK:-1}" = "0" ]; then
+    REGISTRY_COLD_START_ARGS+=(--disable-public-fallback)
+  fi
+  node scripts/holo-ci/check-registry-cold-start.mjs "${REGISTRY_COLD_START_ARGS[@]}"
 else
   echo "[bootstrap] registry cold-start gate skipped by HOLOSCRIPT_SKIP_REGISTRY_COLD_START=1"
 fi

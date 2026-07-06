@@ -1,0 +1,335 @@
+{
+  "schema": "holoscript.registry-cold-start.receipt.v1",
+  "generatedAt": "2026-07-06T00:04:51.077Z",
+  "ok": true,
+  "package": {
+    "spec": "@holoscript/core@latest",
+    "metadata": {
+      "name": "@holoscript/core",
+      "version": "8.0.12",
+      "dist.integrity": "sha512-vCD7a25nc2m04H+En7T4femwpbxGDDaI65G/UBNXPRChYZDlTznloPnKD/ZLbsQu7LnY/uQaOVsQu1rWgnVVfg==",
+      "dist.tarball": "http://127.0.0.1:55785/@holoscript/core/-/core-8.0.12.tgz",
+      "dependencies": {
+        "zod": "^4.3.6",
+        "jose": "^6.2.2",
+        "qrcode": "^1.5.3",
+        "jsonwebtoken": "^9.0.2",
+        "@holoscript/platform": "^6.1.2",
+        "@holoscript/core-types": "^6.1.0",
+        "@mediapipe/tasks-vision": "0.10.17",
+        "@holoscript/llm-provider": "^1.2.5",
+        "@holoscript/assimp-plugin": "^0.1.0",
+        "@holoscript/agent-protocol": "^8.0.7"
+      },
+      "exports": {
+        ".": {
+          "types": "./dist/index.d.ts",
+          "import": "./dist/index.js",
+          "require": "./dist/index.cjs"
+        },
+        "./wot": {
+          "types": "./dist/wot/index.d.ts",
+          "import": "./dist/wot/index.js",
+          "require": "./dist/wot/index.cjs"
+        },
+        "./tools": {
+          "types": "./dist/tools/index.d.ts",
+          "import": "./dist/tools/index.js"
+        },
+        "./world": {
+          "types": "./dist/world/index.d.ts",
+          "import": "./dist/world/index.js",
+          "require": "./dist/world/index.cjs"
+        },
+        "./agents": {
+          "types": "./dist/agents/index.d.ts",
+          "import": "./dist/agents/index.js",
+          "require": "./dist/agents/index.cjs"
+        },
+        "./matter": {
+          "types": "./dist/matter/index.d.ts",
+          "import": "./dist/matter/index.js",
+          "require": "./dist/matter/index.cjs"
+        },
+        "./parser": {
+          "types": "./dist/parser.d.ts",
+          "import": "./dist/parser.js",
+          "require": "./dist/parser.cjs"
+        },
+        "./policy": {
+          "types": "./dist/policy/index.d.ts",
+          "import": "./dist/policy/index.js",
+          "require": "./dist/policy/index.cjs"
+        },
+        "./traits": {
+          "types": "./dist/traits/index.d.ts",
+          "import": "./dist/traits/index.js",
+          "require": "./dist/traits/index.cjs"
+        },
+        "./interop": {
+          "types": "./dist/entries/interop.d.ts",
+          "import": "./dist/entries/interop.js",
+          "require": "./dist/entries/interop.cjs"
+        },
+        "./runtime": {
+          "types": "./dist/runtime.d.ts",
+          "import": "./dist/runtime.js",
+          "require": "./dist/runtime.cjs"
+        },
+        "./storage": {
+          "types": "./dist/storage/index.d.ts",
+          "import": "./dist/storage/index.js",
+          "require": "./dist/storage/index.cjs"
+        },
+        "./testing": {
+          "types": "./dist/testing.d.ts",
+          "import": "./dist/testing.js",
+          "require": "./dist/testing.cjs"
+        },
+        "./codebase": {
+          "types": "./dist/codebase/index.d.ts",
+          "import": "./dist/codebase/index.js",
+          "require": "./dist/codebase/index.cjs"
+        },
+        "./compiler": {
+          "types": "./dist/compiler/index.d.ts",
+          "import": "./dist/compiler/index.js",
+          "require": "./dist/compiler/index.cjs"
+        },
+        "./debugger": {
+          "types": "./dist/debugger.d.ts",
+          "import": "./dist/debugger.js",
+          "require": "./dist/debugger.cjs"
+        },
+        "./hololand": {
+          "types": "./dist/hololand/index.d.ts",
+          "import": "./dist/hololand/index.js",
+          "require": "./dist/hololand/index.cjs"
+        },
+        "./parser/*": {
+          "types": "./dist/parser/*.d.ts",
+          "import": "./dist/parser/*.js",
+          "require": "./dist/parser/*.cjs"
+        },
+        "./constants": {
+          "types": "./dist/constants.d.ts",
+          "import": "./dist/constants.js"
+        },
+        "./evolution": {
+          "types": "./dist/evolution/index.d.ts",
+          "import": "./dist/evolution/index.js",
+          "require": "./dist/evolution/index.cjs"
+        },
+        "./math/vec3": {
+          "import": "./dist/math/vec3.js",
+          "require": "./dist/math/vec3.cjs"
+        },
+        "./scripting": {
+          "types": "./dist/entries/scripting.d.ts",
+          "import": "./dist/entries/scripting.js",
+          "require": "./dist/entries/scripting.cjs"
+        },
+        "./compiler/*": {
+          "types": "./dist/compiler/*.d.ts",
+          "import": "./dist/compiler/*.js",
+          "require": "./dist/compiler/*.cjs"
+        },
+        "./trait-docs": {
+          "types": "./dist/traitDocs/traitDocs.d.ts",
+          "import": "./dist/traitDocs/traitDocs.js",
+          "require": "./dist/traitDocs/traitDocs.cjs"
+        },
+        "./world-model": {
+          "types": "./dist/world-model/index.d.ts",
+          "import": "./dist/world-model/index.js",
+          "require": "./dist/world-model/index.cjs"
+        },
+        "./coordinators": {
+          "types": "./dist/coordinators/index.d.ts",
+          "import": "./dist/coordinators/index.js",
+          "require": "./dist/coordinators/index.cjs"
+        },
+        "./math/vec3.js": {
+          "import": "./dist/math/vec3.js",
+          "require": "./dist/math/vec3.cjs"
+        },
+        "./type-checker": {
+          "types": "./dist/type-checker.d.ts",
+          "import": "./dist/type-checker.js",
+          "require": "./dist/type-checker.cjs"
+        },
+        "./compiler/index": {
+          "types": "./dist/compiler/index.d.ts",
+          "import": "./dist/compiler/index.js",
+          "require": "./dist/compiler/index.cjs"
+        },
+        "./paper-0c-spike": {
+          "types": "./dist/paper-0c-spike/index.d.ts",
+          "import": "./dist/paper-0c-spike/index.js",
+          "require": "./dist/paper-0c-spike/index.cjs"
+        },
+        "./reconstruction": {
+          "types": "./dist/reconstruction/index.d.ts",
+          "import": "./dist/reconstruction/index.js",
+          "require": "./dist/reconstruction/index.cjs"
+        },
+        "./traits/engines": {
+          "types": "./dist/traits/engines/index.d.ts",
+          "import": "./dist/traits/engines/index.js",
+          "require": "./dist/traits/engines/index.cjs"
+        },
+        "./plugin-manifest": {
+          "types": "./dist/plugin-manifest/index.d.ts",
+          "import": "./dist/plugin-manifest/index.js",
+          "require": "./dist/plugin-manifest/index.cjs"
+        },
+        "./keyword-registry": {
+          "types": "./dist/keyword-registry/index.d.ts",
+          "import": "./dist/keyword-registry/index.js",
+          "require": "./dist/keyword-registry/index.cjs"
+        },
+        "./self-improvement": {
+          "types": "./dist/self-improvement/index.d.ts",
+          "import": "./dist/self-improvement/index.js",
+          "require": "./dist/self-improvement/index.cjs"
+        },
+        "./proof-composition": {
+          "types": "./dist/proof-composition/index.d.ts",
+          "import": "./dist/proof-composition/index.js",
+          "require": "./dist/proof-composition/index.cjs"
+        },
+        "./math/tropical-spmv": {
+          "types": "./dist/math/tropical-spmv.d.ts",
+          "import": "./dist/math/tropical-spmv.js",
+          "require": "./dist/math/tropical-spmv.cjs"
+        },
+        "./parameter-envelope": {
+          "types": "./dist/parameter-envelope/index.d.ts",
+          "import": "./dist/parameter-envelope/index.js",
+          "require": "./dist/parameter-envelope/index.cjs"
+        },
+        "./traits/transaction": {
+          "types": "./dist/traits/transaction.d.ts",
+          "import": "./dist/traits/transaction.js",
+          "require": "./dist/traits/transaction.cjs"
+        },
+        "./traits/webcam-gaze": {
+          "types": "./dist/traits/webcam-gaze.d.ts",
+          "import": "./dist/traits/webcam-gaze.js",
+          "require": "./dist/traits/webcam-gaze.cjs"
+        },
+        "./traits/control-loop": {
+          "types": "./dist/traits/control-loop.d.ts",
+          "import": "./dist/traits/control-loop.js",
+          "require": "./dist/traits/control-loop.cjs"
+        },
+        "./cli/holoscript-runner": {
+          "import": "./dist/cli/holoscript-runner.js",
+          "require": "./dist/cli/holoscript-runner.cjs"
+        },
+        "./plugin-solver-contract": {
+          "types": "./dist/plugin-solver-contract/index.d.ts",
+          "import": "./dist/plugin-solver-contract/index.js",
+          "require": "./dist/plugin-solver-contract/index.cjs"
+        },
+        "./traits/botanical-lotus": {
+          "types": "./dist/traits/botanical-lotus.d.ts",
+          "import": "./dist/traits/botanical-lotus.js",
+          "require": "./dist/traits/botanical-lotus.cjs"
+        },
+        "./traits/kinematic-chain": {
+          "types": "./dist/traits/kinematic-chain.d.ts",
+          "import": "./dist/traits/kinematic-chain.js",
+          "require": "./dist/traits/kinematic-chain.cjs"
+        },
+        "./traits/sensor-sampling": {
+          "types": "./dist/traits/sensor-sampling.d.ts",
+          "import": "./dist/traits/sensor-sampling.js",
+          "require": "./dist/traits/sensor-sampling.cjs"
+        },
+        "./traits/trait-registry.json": "./src/traits/trait-registry.json",
+        "./traits/simulation-solver-factory": {
+          "types": "./dist/traits/simulation-solver-factory.d.ts",
+          "import": "./dist/traits/simulation-solver-factory.js",
+          "require": "./dist/traits/simulation-solver-factory.cjs"
+        }
+      }
+    },
+    "installed": {
+      "name": "@holoscript/core",
+      "version": "8.0.12",
+      "integrity": "sha512-vCD7a25nc2m04H+En7T4femwpbxGDDaI65G/UBNXPRChYZDlTznloPnKD/ZLbsQu7LnY/uQaOVsQu1rWgnVVfg==",
+      "resolved": "http://127.0.0.1:55785/@holoscript/core/-/core-8.0.12.tgz",
+      "packageJsonSha256": "87dc74be5b2971651b655f2d09907bf97b97f2763ea30706257982b6402b46a6"
+    }
+  },
+  "registry": {
+    "requestedUrl": "http://127.0.0.1:55785",
+    "url": "http://127.0.0.1:55785",
+    "resolvedByNpmConfig": "http://127.0.0.1:55785/",
+    "publicFallbackAllowed": false,
+    "publicFallbackDisabled": true,
+    "clientPolicy": "explicit-registry",
+    "publicRegistryUrls": [
+      "https://registry.npmjs.org"
+    ]
+  },
+  "environment": {
+    "node": "v24.15.0",
+    "npm": "11.6.2",
+    "python": "Python 3.14.0",
+    "platform": "win32",
+    "arch": "x64"
+  },
+  "isolation": {
+    "tempDir": "C:\\Users\\josep\\AppData\\Local\\Temp\\hs-registry-cold-start-zWAd9T",
+    "tempDirKept": false,
+    "repoAccess": false,
+    "installCommand": "npm install @holoscript/core@latest --registry http://127.0.0.1:55785 --ignore-scripts --no-audit --no-fund --omit=optional --omit=peer --loglevel=error"
+  },
+  "probeKind": "core-holo-webgpu",
+  "source": {
+    "file": "registry-cold-start.holo",
+    "sha256": "29169005897bb7b69a97d41e81f446fe7cd1ae272d4415ea84f0e6bc0f72a06c",
+    "bytes": 151
+  },
+  "probe": {
+    "sourceSha256": "29169005897bb7b69a97d41e81f446fe7cd1ae272d4415ea84f0e6bc0f72a06c",
+    "sourceBytes": 151,
+    "parse": {
+      "ok": true,
+      "objectCount": 1,
+      "diagnostics": []
+    },
+    "validation": {
+      "ok": true,
+      "checks": {
+        "parseSuccess": true,
+        "astPresent": true,
+        "objectCount": 1,
+        "expectedObjectCount": 1,
+        "diagnostics": []
+      }
+    },
+    "compile": {
+      "ok": true,
+      "target": "webgpu",
+      "outputBytes": 16464,
+      "outputSha256": "76243fa655963d7b47542fd06fab10269f47e182dd6b049e657df25f5463cc3a",
+      "markers": [
+        "navigator.gpu",
+        "requestAdapter",
+        "requestAnimationFrame"
+      ]
+    }
+  },
+  "finalDisposition": "repo_less_core_holo_webgpu_passed",
+  "mirrorProof": {
+    "schema": "holoscript.registry-mirror-proof.v1",
+    "generatedAt": "2026-07-06T00:05:50.283Z",
+    "registryUrl": "http://127.0.0.1:55785",
+    "verdaccioVersionSpec": "verdaccio@6",
+    "publicFallbackDisabled": true,
+    "clientPolicy": "npm --registry mirror-url; no client public fallback"
+  }
+}

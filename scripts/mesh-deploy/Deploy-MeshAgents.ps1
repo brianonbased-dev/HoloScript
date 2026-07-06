@@ -293,6 +293,19 @@ $deployJob = {
         "export HOLOSCRIPT_AGENT_SCOPE_TIER='$($plan.Scope)'"
         "export HOLOMESH_TEAM_ID='$env:HOLOMESH_TEAM_ID'"
     )
+    foreach ($name in @(
+        'HOLOSCRIPT_PACKAGE_MIRROR_URL',
+        'HOLOSCRIPT_NPM_REGISTRY_URL',
+        'HOLOSCRIPT_PYPI_INDEX_URL',
+        'HOLOSCRIPT_PYPI_FIND_LINKS_URL',
+        'HOLOSCRIPT_PACKAGE_PUBLIC_FALLBACK'
+    )) {
+        $value = [Environment]::GetEnvironmentVariable($name)
+        if (-not [string]::IsNullOrWhiteSpace($value)) {
+            if ($value -match "'") { throw "Mirror env $name contains a single quote; refusing unsafe shell export." }
+            $envExports += "export $name='$value'"
+        }
+    }
     if ($plan.Provider -eq 'anthropic')   { $envExports += "export ANTHROPIC_API_KEY='$env:ANTHROPIC_API_KEY'" }
     elseif ($plan.Provider -eq 'openai')  { $envExports += "export OPENAI_API_KEY='$env:OPENAI_API_KEY'" }
     elseif ($plan.Provider -eq 'gemini')  { $envExports += "export GEMINI_API_KEY='$env:GEMINI_API_KEY'" }

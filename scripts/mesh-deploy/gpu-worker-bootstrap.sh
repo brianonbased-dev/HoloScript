@@ -97,6 +97,17 @@ ensure_runtime_tools() {
 
 ensure_runtime_tools
 
+# Configure mirror-first package clients when the fleet env provides a Jetson or
+# private cache URL. Job commands inherit these npm/pip variables.
+PACKAGE_MIRROR_ENV="$SCRIPT_DIR/package-mirror-env.sh"
+if [ -f "$PACKAGE_MIRROR_ENV" ]; then
+  # shellcheck source=/dev/null
+  . "$PACKAGE_MIRROR_ENV"
+  configure_holoscript_package_mirror "$LOG package-mirror"
+else
+  echo "$LOG WARN: $PACKAGE_MIRROR_ENV missing; using default package registries"
+fi
+
 # 1a. Self-register the seat (gpu lane) so /gpu/next claims aren't rejected. dbClaimNextJob
 # REJECTS an unregistered seat ("register via POST /gpu/seats") — without this every worker
 # spins idle on HTTP 403 seat_rejected. POST /gpu/seats/self is the agent-key path (lane

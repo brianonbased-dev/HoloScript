@@ -20,6 +20,8 @@ v2.0.0 (commit `64c8ccfe0`). Closes the gap between "31 GPUs running" and
 | File                    | Purpose                                                                                                           |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | `bootstrap-agent.sh`    | Runs ON each instance. Installs node, clones repo, builds agent, starts daemon. Idempotent.                       |
+| `bootstrap-package-mirror.sh` | Runs ON Jetson/owned metal. Starts Verdaccio npm cache plus HTTP PyPI wheelhouse from NVMe.                |
+| `package-mirror-env.sh` | Shared npm/PyPI client env setup sourced by fleet bootstraps.                                                     |
 | `agents-template.json`  | Schema for per-agent identity (handle, brain, provider, model, wallet env key, bearer env key). Founder fills in. |
 | `Deploy-MeshAgents.ps1` | Founder runs LOCALLY. Parallel-SSHes bootstrap.sh to each instance with composed env vars.                        |
 | `README.md`             | This file.                                                                                                        |
@@ -78,6 +80,44 @@ cd C:\Users\josep\Documents\GitHub\HoloScript\scripts\mesh-deploy
 ```
 
 Per-instance log lands in `mesh-deploy-logs/<instance-id>-<handle>.log`.
+
+---
+
+## Package Mirror
+
+Jetson/owned metal can be the fleet package authority while npm/PyPI remain
+public projection surfaces.
+
+On the Jetson NVMe host:
+
+```bash
+export HOLOSCRIPT_PACKAGE_MIRROR_ROOT=/mnt/nvme/holoscript-package-mirror
+bash scripts/mesh-deploy/bootstrap-package-mirror.sh
+cat /mnt/nvme/holoscript-package-mirror/client.env
+```
+
+`client.env` emits:
+
+```bash
+export HOLOSCRIPT_NPM_REGISTRY_URL=http://<jetson-ip>:4873/
+export HOLOSCRIPT_PYPI_FIND_LINKS_URL=http://<jetson-ip>:4874/
+export HOLOSCRIPT_PACKAGE_PUBLIC_FALLBACK=0
+```
+
+Use those env vars before running `Deploy-MeshAgents.ps1`, `bootstrap-agent.sh`,
+or `vast-onstart-bootstrap.sh`. The bootstraps source `package-mirror-env.sh`,
+set npm/pip client variables, and the registry cold-start gate fails if public
+fallback is disabled but the effective npm registry is still npmjs.
+
+Local proof without Jetson online:
+
+```powershell
+pnpm -s check:registry-mirror-proof -- --package @holoscript/core@latest --out research/foundation-exit/2026-07-05-registry-mirror-cold-start.receipt.json
+```
+
+That command starts a temporary Verdaccio mirror, runs the repo-less parse /
+validate / compile receipt through only the mirror URL, records package
+integrity and hashes, then tears the mirror down.
 
 ---
 

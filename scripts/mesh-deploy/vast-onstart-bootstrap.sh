@@ -15,6 +15,7 @@
 #     --image pytorch/pytorch:2.4.0-cuda12.4-cudnn9-devel \
 #     --disk 80 --ssh --raw \
 #     --env '-e HOLOSCRIPT_API_KEY=... -e ORCHESTRATOR_URL=... -e REPO_URL=... -e GPU_SEAT=...' \
+#     --env '-e HOLOSCRIPT_NPM_REGISTRY_URL=http://jetson:4873/ -e HOLOSCRIPT_PACKAGE_PUBLIC_FALLBACK=0' \
 #     --onstart-cmd "bash -c '$(cat scripts/vast-onstart-bootstrap.sh | base64 -w 0 | base64 -d)'
 #      # OR: --onstart-cmd "echo BASE64_ENCODED | base64 -d | bash"
 #
