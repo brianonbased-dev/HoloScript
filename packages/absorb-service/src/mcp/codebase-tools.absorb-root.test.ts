@@ -208,6 +208,10 @@ describe('holo_absorb_repo root validation', () => {
     expect(result.graphUnavailableReceipt?.localAdapter?.command).toContain(
       'scripts/holoshell-local-codebase-absorb-bundle.mjs'
     );
+    expect(result.graphUnavailableReceipt?.localAdapter?.command).toContain('--agent <agent-id>');
+    expect(result.graphUnavailableReceipt?.localAdapter?.command).toContain(
+      '--surface <surface-id>'
+    );
     expect(result.graphUnavailableReceipt?.localAdapter?.mcpArguments).toContain(
       'localCodebaseSnapshotReceipt'
     );

@@ -816,14 +816,14 @@ function buildLocalAdapterRecommendation(
   return {
     schemaVersion: LOCAL_ADAPTER_RECOMMENDATION_SCHEMA,
     kind: 'HoloShellLocalAdapterRecommendation',
-    command: `node ${HOLOSHELL_LOCAL_ADAPTER_SCRIPT} --roots ${shellQuoteArg(rootArg)} --out <receipt.json>`,
+    command: `node ${HOLOSHELL_LOCAL_ADAPTER_SCRIPT} --agent <agent-id> --surface <surface-id> --roots ${shellQuoteArg(rootArg)} --out <receipt.json>`,
     mcpTool: 'holo_absorb_repo',
     mcpArguments: ['localCodebaseSnapshotReceipt', 'sourceFiles', 'rootDir', 'rootDirs'],
     acceptedReceiptSchemas: [
       LOCAL_CODEBASE_SNAPSHOT_RECEIPT_SCHEMA,
       HOLOSHELL_LOCAL_CODEBASE_SNAPSHOT_RECEIPT_KIND,
     ],
-    note: 'Pass the emitted receipt as localCodebaseSnapshotReceipt; if the receipt is hash-only, include matching sourceFiles in the same holo_absorb_repo call.',
+    note: 'Set --agent/--surface for the active HoloShell seat, or export HOLOSHELL_AGENT_ID/HOLOSHELL_AGENT_SURFACE. Pass the emitted receipt as localCodebaseSnapshotReceipt; if the receipt is hash-only, include matching sourceFiles in the same holo_absorb_repo call.',
   };
 }
 
