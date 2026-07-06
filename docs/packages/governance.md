@@ -83,6 +83,7 @@ This matrix assigns a support level to each documented package so contributors c
 | `@holoscript/snn-webgpu`             | experimental | R&D Team               |
 | `@holoscript/plugin-film-vfx`        | beta         | Plugin Team            |
 | `@holoscript/plugin-film3d-volumetrics` | beta      | Plugin Team            |
+| `@holoscript/plugin-legal-document`  | beta         | Plugin Team            |
 | `@holoscript/qm-bridge`              | beta         | Plugin Team            |
 | `@holoscript/plugin-urban-planning`  | beta         | Plugin Team            |
 
