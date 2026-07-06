@@ -7,7 +7,9 @@ export { absorbTypescriptTools, handleAbsorbTypescriptTool } from './absorb-type
 export {
   codebaseTools,
   handleCodebaseTool,
+  validateHoloShellLocalCodebaseSnapshotReceipt,
   validateLocalCodebaseSnapshotReceipt,
+  type LocalCodebaseSnapshotReceiptSummary,
   type LocalCodebaseSnapshotReceipt,
   type ValidationResult,
 } from './codebase-tools';

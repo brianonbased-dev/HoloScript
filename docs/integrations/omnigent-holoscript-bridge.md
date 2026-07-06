@@ -22,7 +22,10 @@ If deleting the generated Omnigent YAML would lose meaning that cannot be regene
 
 ## Absorb Workflow
 
-Use the local sourceFiles adapter because hosted MCP cannot see Windows paths directly.
+Use the local HoloShell snapshot adapter because hosted MCP cannot see Windows paths directly.
+The adapter emits a `LocalCodebaseSnapshotReceipt.v1` with replayable `sourceFiles`; pass it
+to `holo_absorb_repo` as `localCodebaseSnapshotReceipt` so absorb-service verifies the
+declared hashes before scanning.
 
 ```powershell
 node scripts/holoshell-local-codebase-absorb-bundle.mjs --self-test
@@ -38,7 +41,7 @@ node scripts/holoshell-local-codebase-absorb-bundle.mjs `
   --post-mcp
 ```
 
-Run `holo_graph_status` before trusting cache-backed graph answers. If the graph receipt reports a root mismatch, refresh through `sourceFiles` rather than `rootDir`.
+Run `holo_graph_status` before trusting cache-backed graph answers. If the graph receipt reports a root mismatch, use its `localAdapter.command` or refresh through `localCodebaseSnapshotReceipt` rather than `rootDir`.
 
 The adapter must enforce three caps before posting to MCP:
 
@@ -48,27 +51,27 @@ The adapter must enforce three caps before posting to MCP:
 
 ## Export Mapping
 
-| HoloScript source concept | Omnigent YAML projection | Bridge rule |
-| --- | --- | --- |
-| Agent composition in `.hsplus` or `.holo` | `name`, `prompt`, or `instructions` | Prefer `instructions` when the prompt is long or shared across tools. |
-| Runtime target metadata | `executor.harness`, `executor.model`, `executor.auth` | Keep auth as environment/provider references; never inline secrets. |
-| HoloScript MCP connector contract | `tools.<name>.type: mcp` | Preserve tool allowlists and headers as generated projection data. |
-| Typed local tool contract | `tools.<name>.type: function` | Only project tools that have a HoloScript-owned schema. |
-| HoloMesh child-agent role | `tools.<name>.type: agent` | Child-agent harness/model may differ from the parent, but the role intent stays in HoloScript. |
-| Policy trait or governance frame | `policies.<name>` | Generated policy entries must point back to a receipt or source frame. |
-| Local execution policy | `os_env` and `terminals` | Mark Windows native sandboxing as degraded when isolation is only process-tree containment. |
-| Async/cancel/timer affordances | `async`, `cancellable`, `timers` | Treat as runtime affordances, not agent identity. |
+| HoloScript source concept                 | Omnigent YAML projection                              | Bridge rule                                                                                    |
+| ----------------------------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Agent composition in `.hsplus` or `.holo` | `name`, `prompt`, or `instructions`                   | Prefer `instructions` when the prompt is long or shared across tools.                          |
+| Runtime target metadata                   | `executor.harness`, `executor.model`, `executor.auth` | Keep auth as environment/provider references; never inline secrets.                            |
+| HoloScript MCP connector contract         | `tools.<name>.type: mcp`                              | Preserve tool allowlists and headers as generated projection data.                             |
+| Typed local tool contract                 | `tools.<name>.type: function`                         | Only project tools that have a HoloScript-owned schema.                                        |
+| HoloMesh child-agent role                 | `tools.<name>.type: agent`                            | Child-agent harness/model may differ from the parent, but the role intent stays in HoloScript. |
+| Policy trait or governance frame          | `policies.<name>`                                     | Generated policy entries must point back to a receipt or source frame.                         |
+| Local execution policy                    | `os_env` and `terminals`                              | Mark Windows native sandboxing as degraded when isolation is only process-tree containment.    |
+| Async/cancel/timer affordances            | `async`, `cancellable`, `timers`                      | Treat as runtime affordances, not agent identity.                                              |
 
 ## Import Mapping
 
-| Omnigent event/source | HoloScript / HoloMesh receipt |
-| --- | --- |
-| Session start, fork, attach, or host registration | `ExternalHarnessSessionReceipt` with harness, model, host, and workspace identity. |
-| Tool call and tool result | MCP tool receipt with target name, arguments hash, result hash, duration, and policy verdict. |
-| Policy `ALLOW`, `DENY`, or `ASK` | `PolicyDecisionReceipt` with phase, actor, target, reason, and state updates. |
-| Sub-agent session | Child-agent receipt linked to the parent HoloMesh task/session. |
-| Terminal launch | External resource receipt with sandbox backend, cwd, command hash, and degraded-mode flag when relevant. |
-| Cost or routing decision | Cost/routing receipt linked to the model selector event. |
+| Omnigent event/source                             | HoloScript / HoloMesh receipt                                                                            |
+| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Session start, fork, attach, or host registration | `ExternalHarnessSessionReceipt` with harness, model, host, and workspace identity.                       |
+| Tool call and tool result                         | MCP tool receipt with target name, arguments hash, result hash, duration, and policy verdict.            |
+| Policy `ALLOW`, `DENY`, or `ASK`                  | `PolicyDecisionReceipt` with phase, actor, target, reason, and state updates.                            |
+| Sub-agent session                                 | Child-agent receipt linked to the parent HoloMesh task/session.                                          |
+| Terminal launch                                   | External resource receipt with sandbox backend, cwd, command hash, and degraded-mode flag when relevant. |
+| Cost or routing decision                          | Cost/routing receipt linked to the model selector event.                                                 |
 
 The import side should be append-only. Never rewrite HoloMesh history from Omnigent state; supersede with a new receipt.
 

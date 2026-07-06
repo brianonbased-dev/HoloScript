@@ -323,10 +323,14 @@ function getGitChangedPaths(root) {
     })
       .trim()
       .replace(/\\/g, '/');
-    const out = execFileSync('git', ['-C', repoRoot, 'status', '--porcelain', '--untracked-files=all'], {
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'ignore'],
-    });
+    const out = execFileSync(
+      'git',
+      ['-C', repoRoot, 'status', '--porcelain', '--untracked-files=all'],
+      {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      }
+    );
     return out
       .split(/\r?\n/)
       .filter(Boolean)
@@ -420,7 +424,8 @@ function splitSourceFilesIntoChunks(sourceFiles, args) {
     }
 
     const wouldOverflow =
-      current.length >= args.maxFiles || (current.length > 0 && currentBytes + bytes > args.maxBytes);
+      current.length >= args.maxFiles ||
+      (current.length > 0 && currentBytes + bytes > args.maxBytes);
     if (wouldOverflow) {
       chunks.push({ sourceFiles: current, bytes: currentBytes });
       current = [];
@@ -562,7 +567,7 @@ async function postReceiptToMcp(receipt, args, auth) {
       params: {
         name: 'holo_absorb_repo',
         arguments: {
-          sourceFiles: receipt.sourceFiles,
+          localCodebaseSnapshotReceipt: receipt,
           force: false,
           outputFormat: 'stats',
           embeddingProvider: GRAPH_RAG_EMBEDDING_POLICY.provider,
@@ -593,7 +598,9 @@ async function postReceiptToMcp(receipt, args, auth) {
 
 async function postReceiptsToMcp(receipts, args, resultsPath) {
   const auth = await getMcpAccessToken(args);
-  const limit = Number.isFinite(args.postLimit) ? Math.min(args.postLimit, receipts.length) : receipts.length;
+  const limit = Number.isFinite(args.postLimit)
+    ? Math.min(args.postLimit, receipts.length)
+    : receipts.length;
   const results = [];
 
   for (let i = 0; i < limit; i += 1) {
@@ -610,7 +617,11 @@ async function postReceiptsToMcp(receipts, args, resultsPath) {
     if (!result.ok) break;
   }
 
-  writeFileSync(resultsPath, JSON.stringify({ emittedAt: new Date().toISOString(), results }, null, 2), 'utf8');
+  writeFileSync(
+    resultsPath,
+    JSON.stringify({ emittedAt: new Date().toISOString(), results }, null, 2),
+    'utf8'
+  );
   return results;
 }
 
@@ -641,7 +652,8 @@ async function main() {
     const contentOk = receipt.sourceFiles.some((f) => f.content === 'export const x = 42;\n');
     const recursionOk = receipt.sourceFiles.some((f) => f.path === 'nested/child.py');
     const capOk =
-      receipt.sourceFiles.length === 2 && stats.skipped.some((s) => s.reason === 'file-byte-cap-exceeded');
+      receipt.sourceFiles.length === 2 &&
+      stats.skipped.some((s) => s.reason === 'file-byte-cap-exceeded');
     console.log('receipt shape ok:', !!receipt.sourceFiles && !!receipt.stats);
     console.log('embedding policy ok:', receipt.embeddingPolicy?.provider === 'holoembed');
     console.log('tool payload ok:', toolPayloadOk && contentOk);
@@ -757,7 +769,9 @@ async function main() {
     receipt.stats.changedFirst ? '(changed-first)' : '(walk-order)'
   );
   console.log('  replay:', receipt.replayCommand);
-  console.log('\nFeed this receipt + sourceFiles into holo_absorb_repo from HoloShell context.');
+  console.log(
+    '\nFeed this receipt into holo_absorb_repo as localCodebaseSnapshotReceipt from HoloShell context.'
+  );
 
   if (args.postMcp) {
     const postResultsPath = `${outPath}.post-results.json`;

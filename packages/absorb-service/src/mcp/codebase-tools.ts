@@ -351,6 +351,11 @@ function createAbsorbJob(rootDir: string): string {
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
 const DEFAULT_SCAN_MAX_FILES = 10_000;
 const GRAPH_UNAVAILABLE_RECEIPT_SCHEMA = 'holoscript.codebase.graph-unavailable-receipt.v0.1.0';
+const LOCAL_ADAPTER_RECOMMENDATION_SCHEMA =
+  'holoscript.codebase.local-adapter-recommendation.v0.1.0';
+const LOCAL_CODEBASE_SNAPSHOT_RECEIPT_SCHEMA = 'LocalCodebaseSnapshotReceipt.v1';
+const HOLOSHELL_LOCAL_CODEBASE_SNAPSHOT_RECEIPT_KIND = 'HoloShellLocalCodebaseSnapshotReceipt';
+const HOLOSHELL_LOCAL_ADAPTER_SCRIPT = 'scripts/holoshell-local-codebase-absorb-bundle.mjs';
 const LOCAL_ADAPTER_RECOMMENDATION =
   'Route this request through a local HoloShell codebase adapter in the same filesystem namespace as the requested path, or pass sourceFiles inline to holo_absorb_repo before trusting GraphRAG output.';
 const COVERAGE_EXCLUDE_NAMES = new Set([
@@ -460,6 +465,7 @@ interface GraphCacheEnvelope {
   fileHashes?: Record<string, string>;
   embeddingProvider?: string;
   embeddingPolicy?: GraphRAGEmbeddingPolicyReceipt;
+  localCodebaseSnapshotReceipt?: LocalCodebaseSnapshotReceiptSummary;
 }
 
 interface AbsorbDiagnostics {
@@ -481,6 +487,16 @@ type GraphUnavailableReason =
   | 'cache_root_mismatch'
   | 'cache_incomplete';
 
+interface LocalAdapterRecommendation {
+  schemaVersion: typeof LOCAL_ADAPTER_RECOMMENDATION_SCHEMA;
+  kind: 'HoloShellLocalAdapterRecommendation';
+  command: string;
+  mcpTool: 'holo_absorb_repo';
+  mcpArguments: Array<'localCodebaseSnapshotReceipt' | 'sourceFiles' | 'rootDir' | 'rootDirs'>;
+  acceptedReceiptSchemas: string[];
+  note: string;
+}
+
 interface GraphUnavailableReceipt {
   schemaVersion: typeof GRAPH_UNAVAILABLE_RECEIPT_SCHEMA;
   kind: 'GraphUnavailableReceipt';
@@ -494,6 +510,7 @@ interface GraphUnavailableReceipt {
   staleByMs: number | null;
   authoritative: false;
   recommendation: string;
+  localAdapter: LocalAdapterRecommendation;
   createdAt: string;
 }
 
@@ -686,7 +703,30 @@ function buildGraphUnavailableReceipt(options: {
         : null,
     authoritative: false,
     recommendation: LOCAL_ADAPTER_RECOMMENDATION,
+    localAdapter: buildLocalAdapterRecommendation(options.requestedPath),
     createdAt: new Date().toISOString(),
+  };
+}
+
+function shellQuoteArg(value: string): string {
+  return `"${value.replace(/"/g, '\\"')}"`;
+}
+
+function buildLocalAdapterRecommendation(
+  requestedPath?: string | null
+): LocalAdapterRecommendation {
+  const rootArg = requestedPath && requestedPath.trim() ? requestedPath : '<repo-root>';
+  return {
+    schemaVersion: LOCAL_ADAPTER_RECOMMENDATION_SCHEMA,
+    kind: 'HoloShellLocalAdapterRecommendation',
+    command: `node ${HOLOSHELL_LOCAL_ADAPTER_SCRIPT} --roots ${shellQuoteArg(rootArg)} --out <receipt.json>`,
+    mcpTool: 'holo_absorb_repo',
+    mcpArguments: ['localCodebaseSnapshotReceipt', 'sourceFiles', 'rootDir', 'rootDirs'],
+    acceptedReceiptSchemas: [
+      LOCAL_CODEBASE_SNAPSHOT_RECEIPT_SCHEMA,
+      HOLOSHELL_LOCAL_CODEBASE_SNAPSHOT_RECEIPT_KIND,
+    ],
+    note: 'Pass the emitted receipt as localCodebaseSnapshotReceipt; if the receipt is hash-only, include matching sourceFiles in the same holo_absorb_repo call.',
   };
 }
 
@@ -723,7 +763,8 @@ function saveGraphCache(
   stats: Record<string, unknown>,
   gitCommitHash?: string,
   fileHashes?: Record<string, string>,
-  embeddingProvider?: string
+  embeddingProvider?: string,
+  localCodebaseSnapshotReceipt?: LocalCodebaseSnapshotReceiptSummary
 ): void {
   const totalFiles = Number((stats as { totalFiles?: unknown })?.totalFiles ?? 0);
   if (!Number.isFinite(totalFiles) || totalFiles <= 0) {
@@ -740,6 +781,7 @@ function saveGraphCache(
       fileHashes,
       embeddingProvider,
       embeddingPolicy: buildGraphRAGEmbeddingPolicyReceipt(),
+      localCodebaseSnapshotReceipt,
     };
     const cacheFile = getCacheFile();
     atomicWriteFileSync(cacheFile, JSON.stringify(envelope), 'utf-8');
@@ -836,6 +878,7 @@ function getCacheAge(): {
   fileHashCount?: number;
   embeddingProvider?: string;
   embeddingPolicy?: GraphRAGEmbeddingPolicyReceipt;
+  localCodebaseSnapshotReceipt?: LocalCodebaseSnapshotReceiptSummary;
 } {
   try {
     const cacheFile = getCacheFile();
@@ -851,6 +894,7 @@ function getCacheAge(): {
       fileHashCount: envelope.fileHashes ? Object.keys(envelope.fileHashes).length : undefined,
       embeddingProvider: envelope.embeddingProvider,
       embeddingPolicy: envelope.embeddingPolicy,
+      localCodebaseSnapshotReceipt: envelope.localCodebaseSnapshotReceipt,
     };
   } catch {
     return { exists: false };
@@ -947,6 +991,34 @@ interface SourceFileEntry {
   content: string;
 }
 
+export interface LocalCodebaseSnapshotReceiptSummary {
+  schema:
+    | typeof LOCAL_CODEBASE_SNAPSHOT_RECEIPT_SCHEMA
+    | typeof HOLOSHELL_LOCAL_CODEBASE_SNAPSHOT_RECEIPT_KIND;
+  id?: string;
+  emittedAt?: string;
+  roots: string[];
+  totalFiles: number;
+  totalBytes: number;
+  contentHashAlgorithm: 'sha256';
+  replayCommand?: string;
+  privacyClass?: string;
+  redactionStatus?: string;
+  status?: string;
+}
+
+interface LocalCodebaseReceiptResolution {
+  roots?: string[];
+  sourceFiles?: Array<{ path: string; content: string }>;
+  summary?: LocalCodebaseSnapshotReceiptSummary;
+}
+
+function isSafeRelativeSourcePath(filePath: string): boolean {
+  if (filePath.length === 0 || filePath.length > 4096) return false;
+  if (path.isAbsolute(filePath) || /^[A-Za-z]:[\\/]/.test(filePath)) return false;
+  return !filePath.split(/[\\/]+/).includes('..');
+}
+
 function validateSourceFiles(
   entries: unknown[]
 ): { valid: false; error: string } | { valid: true; files: SourceFileEntry[] } {
@@ -978,10 +1050,7 @@ function validateSourceFiles(
     if (typeof p !== 'string' || typeof c !== 'string') {
       return { valid: false, error: `sourceFiles[${i}] must have string "path" and "content".` };
     }
-    if (p.length === 0 || p.length > 4096) {
-      return { valid: false, error: `sourceFiles[${i}] path length invalid.` };
-    }
-    if (p.includes('..') || path.isAbsolute(p)) {
+    if (!isSafeRelativeSourcePath(p)) {
       return {
         valid: false,
         error: `sourceFiles[${i}] path must be relative and cannot contain "..".`,
@@ -1043,6 +1112,321 @@ function buildInlineSourceScan(
       return content;
     },
   };
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : null;
+}
+
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string')
+    : [];
+}
+
+function sha256Utf8(content: string): string {
+  return createHash('sha256').update(content, 'utf8').digest('hex');
+}
+
+function uniqueStrings(values: string[]): string[] {
+  return [...new Set(values.filter((value) => value.trim().length > 0))];
+}
+
+function extractReceiptRoots(receipt: Record<string, unknown>): string[] {
+  const roots: string[] = [];
+  const graphReceipt = asRecord(receipt.graphReceipt);
+  const requestedPath = graphReceipt?.requestedPath;
+  if (typeof requestedPath === 'string') roots.push(requestedPath);
+
+  const rawRoots = receipt.roots;
+  if (Array.isArray(rawRoots)) {
+    for (const rawRoot of rawRoots) {
+      if (typeof rawRoot === 'string') {
+        roots.push(rawRoot);
+        continue;
+      }
+      const root = asRecord(rawRoot);
+      if (!root) continue;
+      const candidate =
+        root.rootDir ?? root.root ?? root.path ?? root.requestedPath ?? root.runtimePath;
+      if (typeof candidate === 'string' && !candidate.includes('[')) {
+        roots.push(candidate);
+      }
+    }
+  }
+
+  return uniqueStrings(roots);
+}
+
+function getNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function expectedHashesFromReceiptSourceFiles(entries: unknown[]): Map<string, string> {
+  const expected = new Map<string, string>();
+  for (const entry of entries) {
+    const record = asRecord(entry);
+    if (!record || typeof record.path !== 'string') continue;
+    const hash = record.hash ?? record.contentHash;
+    if (typeof hash === 'string' && hash.length > 0) {
+      expected.set(record.path.replace(/\\/g, '/'), hash);
+    }
+  }
+  return expected;
+}
+
+function validateReceiptContentHashes(
+  files: SourceFileEntry[],
+  expectedHashes: Map<string, string>,
+  receiptLabel: string,
+  errors: string[]
+): void {
+  for (const file of files) {
+    const normalizedPath = file.path.replace(/\\/g, '/');
+    const expectedHash = expectedHashes.get(normalizedPath);
+    if (!expectedHash) continue;
+    if (expectedHash.length !== 64) {
+      errors.push(`${receiptLabel} hash for ${normalizedPath} must be a sha256 hex digest.`);
+      continue;
+    }
+    const actualHash = sha256Utf8(file.content);
+    if (actualHash !== expectedHash) {
+      errors.push(`${receiptLabel} hash mismatch for ${normalizedPath}.`);
+    }
+  }
+}
+
+function validateReceiptDeclaredSizes(
+  sourceFileRecords: unknown[],
+  files: SourceFileEntry[],
+  receiptLabel: string,
+  errors: string[]
+): void {
+  const sizesByPath = new Map<string, number>();
+  for (const sourceFile of sourceFileRecords) {
+    const record = asRecord(sourceFile);
+    if (!record || typeof record.path !== 'string') continue;
+    const size = getNumber(record.size) ?? getNumber(record.sizeBytes);
+    if (size !== undefined) sizesByPath.set(record.path.replace(/\\/g, '/'), size);
+  }
+  for (const file of files) {
+    const normalizedPath = file.path.replace(/\\/g, '/');
+    const expectedSize = sizesByPath.get(normalizedPath);
+    if (expectedSize === undefined) continue;
+    const actualSize = Buffer.byteLength(file.content, 'utf-8');
+    if (actualSize !== expectedSize) {
+      errors.push(`${receiptLabel} size mismatch for ${normalizedPath}.`);
+    }
+  }
+}
+
+function resolveReceiptSourceFiles(
+  receiptSourceFiles: unknown,
+  providedSourceFilesRaw: unknown,
+  receiptLabel: string,
+  errors: string[]
+): SourceFileEntry[] | undefined {
+  if (!Array.isArray(receiptSourceFiles)) {
+    errors.push(`${receiptLabel}.sourceFiles must be an array.`);
+    return undefined;
+  }
+
+  const replaySourceFilesRaw = Array.isArray(providedSourceFilesRaw)
+    ? providedSourceFilesRaw
+    : receiptSourceFiles;
+  const hasInlineContent = replaySourceFilesRaw.every((entry) => {
+    const record = asRecord(entry);
+    return typeof record?.content === 'string';
+  });
+
+  if (!hasInlineContent) {
+    errors.push(
+      `${receiptLabel} is hash-only; provide matching sourceFiles with content in the same holo_absorb_repo call.`
+    );
+    return undefined;
+  }
+
+  const validation = validateSourceFiles(replaySourceFilesRaw);
+  if (!validation.valid) {
+    errors.push(validation.error);
+    return undefined;
+  }
+
+  const expectedHashes = expectedHashesFromReceiptSourceFiles(receiptSourceFiles);
+  validateReceiptContentHashes(validation.files, expectedHashes, receiptLabel, errors);
+  validateReceiptDeclaredSizes(receiptSourceFiles, validation.files, receiptLabel, errors);
+
+  return validation.files;
+}
+
+function resolveLegacyLocalCodebaseSnapshotReceipt(
+  receipt: Record<string, unknown>,
+  providedSourceFilesRaw: unknown
+): { errors: string[]; resolution?: LocalCodebaseReceiptResolution } {
+  const errors: string[] = [];
+  if (receipt.schema !== LOCAL_CODEBASE_SNAPSHOT_RECEIPT_SCHEMA) {
+    errors.push(`bad schema: ${String(receipt.schema)}`);
+  }
+  if (!receipt.version) errors.push('version required');
+  if (!receipt.emittedAt) errors.push('emittedAt required');
+  if (!asRecord(receipt.freshness)?.generatedAt) errors.push('freshness.generatedAt required');
+  const roots = asStringArray(receipt.roots);
+  if (roots.length === 0) errors.push('roots must be non-empty');
+
+  const sourceFiles = resolveReceiptSourceFiles(
+    receipt.sourceFiles,
+    providedSourceFilesRaw,
+    LOCAL_CODEBASE_SNAPSHOT_RECEIPT_SCHEMA,
+    errors
+  );
+
+  const stats = asRecord(receipt.stats);
+  const totalFiles = getNumber(stats?.totalFiles) ?? sourceFiles?.length ?? 0;
+  const totalBytes =
+    getNumber(stats?.totalBytes) ??
+    sourceFiles?.reduce((sum, file) => sum + Buffer.byteLength(file.content, 'utf-8'), 0) ??
+    0;
+  if (totalFiles > SOURCE_FILES_MAX_FILES) errors.push('file cap exceeded');
+  if (totalBytes > SOURCE_FILES_MAX_TOTAL_BYTES) errors.push('byte cap exceeded');
+
+  const replayCommand = receipt.replayCommand;
+  if (typeof replayCommand !== 'string' || !replayCommand.includes('holo_absorb_repo')) {
+    errors.push('replayCommand must reference holo_absorb_repo');
+  }
+
+  const embeddingPolicy = asRecord(receipt.embeddingPolicy);
+  if (embeddingPolicy && embeddingPolicy.provider !== NATIVE_GRAPH_RAG_PROVIDER) {
+    errors.push('embeddingPolicy.provider must be holoembed');
+  }
+
+  if (errors.length > 0 || !sourceFiles) return { errors };
+
+  return {
+    errors,
+    resolution: {
+      roots,
+      sourceFiles,
+      summary: {
+        schema: LOCAL_CODEBASE_SNAPSHOT_RECEIPT_SCHEMA,
+        emittedAt: String(receipt.emittedAt),
+        roots,
+        totalFiles,
+        totalBytes,
+        contentHashAlgorithm: 'sha256',
+        replayCommand: typeof replayCommand === 'string' ? replayCommand : undefined,
+        privacyClass: typeof receipt.privacyClass === 'string' ? receipt.privacyClass : undefined,
+      },
+    },
+  };
+}
+
+function resolveHoloShellLocalCodebaseSnapshotReceipt(
+  receipt: Record<string, unknown>,
+  providedSourceFilesRaw: unknown
+): { errors: string[]; resolution?: LocalCodebaseReceiptResolution } {
+  const errors: string[] = [];
+  if (!receipt.id) errors.push('HoloShellLocalCodebaseSnapshotReceipt.id is required.');
+  if (!receipt.workflow) {
+    errors.push('HoloShellLocalCodebaseSnapshotReceipt.workflow is required.');
+  }
+  const roots = extractReceiptRoots(receipt);
+  const sourceFiles = resolveReceiptSourceFiles(
+    receipt.sourceFiles,
+    providedSourceFilesRaw,
+    HOLOSHELL_LOCAL_CODEBASE_SNAPSHOT_RECEIPT_KIND,
+    errors
+  );
+
+  const totalFiles = getNumber(receipt.totalFiles) ?? sourceFiles?.length ?? 0;
+  const totalBytes =
+    getNumber(receipt.totalBytes) ??
+    sourceFiles?.reduce((sum, file) => sum + Buffer.byteLength(file.content, 'utf-8'), 0) ??
+    0;
+  const maxFiles = getNumber(receipt.maxFiles) ?? SOURCE_FILES_MAX_FILES;
+  const maxBytes = getNumber(receipt.maxBytes) ?? SOURCE_FILES_MAX_TOTAL_BYTES;
+  if (totalFiles > maxFiles || totalFiles > SOURCE_FILES_MAX_FILES) {
+    errors.push('HoloShellLocalCodebaseSnapshotReceipt.totalFiles must stay within caps.');
+  }
+  if (totalBytes > maxBytes || totalBytes > SOURCE_FILES_MAX_TOTAL_BYTES) {
+    errors.push('HoloShellLocalCodebaseSnapshotReceipt.totalBytes must stay within caps.');
+  }
+  if (receipt.hashAlgorithm !== 'sha256') {
+    errors.push('HoloShellLocalCodebaseSnapshotReceipt.hashAlgorithm must be sha256.');
+  }
+
+  const status = typeof receipt.status === 'string' ? receipt.status : undefined;
+  if (status && !['ready', 'warn', 'blocked'].includes(status)) {
+    errors.push(`HoloShellLocalCodebaseSnapshotReceipt.status is unsupported: ${status}.`);
+  }
+  const redactionStatus =
+    typeof receipt.redactionStatus === 'string' ? receipt.redactionStatus : undefined;
+  if (redactionStatus && !['pass', 'warn', 'fail'].includes(redactionStatus)) {
+    errors.push(
+      `HoloShellLocalCodebaseSnapshotReceipt.redactionStatus is unsupported: ${redactionStatus}.`
+    );
+  }
+
+  if (errors.length > 0 || !sourceFiles) return { errors };
+
+  return {
+    errors,
+    resolution: {
+      roots,
+      sourceFiles,
+      summary: {
+        schema: HOLOSHELL_LOCAL_CODEBASE_SNAPSHOT_RECEIPT_KIND,
+        id: typeof receipt.id === 'string' ? receipt.id : undefined,
+        emittedAt: typeof receipt.endedAt === 'string' ? receipt.endedAt : undefined,
+        roots,
+        totalFiles,
+        totalBytes,
+        contentHashAlgorithm: 'sha256',
+        replayCommand:
+          typeof receipt.replayCommand === 'string' ? receipt.replayCommand : undefined,
+        privacyClass: typeof receipt.privacyClass === 'string' ? receipt.privacyClass : undefined,
+        redactionStatus,
+        status,
+      },
+    },
+  };
+}
+
+function resolveLocalCodebaseSnapshotReceiptForAbsorb(
+  receiptRaw: unknown,
+  providedSourceFilesRaw: unknown
+):
+  | { valid: true; resolution: LocalCodebaseReceiptResolution }
+  | { valid: false; errors: string[] } {
+  if (receiptRaw === undefined) {
+    return { valid: true, resolution: {} };
+  }
+
+  const receipt = asRecord(receiptRaw);
+  if (!receipt) {
+    return { valid: false, errors: ['localCodebaseSnapshotReceipt must be an object.'] };
+  }
+
+  const isLegacy = receipt.schema === LOCAL_CODEBASE_SNAPSHOT_RECEIPT_SCHEMA;
+  const isHoloShell =
+    receipt.kind === HOLOSHELL_LOCAL_CODEBASE_SNAPSHOT_RECEIPT_KIND ||
+    (typeof receipt.workflow === 'string' &&
+      Array.isArray(receipt.files) &&
+      Array.isArray(receipt.sourceFiles));
+
+  const resolved = isLegacy
+    ? resolveLegacyLocalCodebaseSnapshotReceipt(receipt, providedSourceFilesRaw)
+    : isHoloShell
+      ? resolveHoloShellLocalCodebaseSnapshotReceipt(receipt, providedSourceFilesRaw)
+      : {
+          errors: [
+            `unsupported localCodebaseSnapshotReceipt schema: ${String(receipt.schema ?? receipt.kind ?? '<missing>')}`,
+          ],
+        };
+
+  if (resolved.errors.length > 0 || !resolved.resolution) {
+    return { valid: false, errors: resolved.errors };
+  }
+  return { valid: true, resolution: resolved.resolution };
 }
 
 // =============================================================================
@@ -1124,6 +1508,11 @@ export const codebaseTools: Tool[] = [
           },
           description:
             'Inline source files to absorb when filesystem access is unavailable (e.g., remote MCP servers, containers). Provide EITHER rootDir OR sourceFiles — not both. Max 500 files, 5 MB total content. Path traversal attempts are rejected.',
+        },
+        localCodebaseSnapshotReceipt: {
+          type: 'object',
+          description:
+            'HoloShell local codebase snapshot receipt. Accepts LocalCodebaseSnapshotReceipt.v1 emitted by scripts/holoshell-local-codebase-absorb-bundle.mjs, or the HoloShellLocalCodebaseSnapshotReceipt hash-only shape when matching sourceFiles are supplied. Receipt hashes are verified before scanning.',
         },
         embeddingProvider: {
           type: 'string',
@@ -1301,7 +1690,12 @@ export const codebaseTools: Tool[] = [
 let cachedGraph: any = null;
 let cachedRootDir = '';
 let cacheAutoLoaded = false;
-let cacheProvenance: 'fresh-scan' | 'disk-cache' | 'incremental-patch' | null = null;
+let cacheProvenance:
+  | 'fresh-scan'
+  | 'disk-cache'
+  | 'incremental-patch'
+  | 'local-codebase-snapshot-receipt'
+  | null = null;
 let cacheTimestamp = 0;
 // Guards the background GraphRAG embedding warm so concurrent cold loads don't
 // kick off duplicate builds (the build is fired-and-forgotten in ensureCachedGraph).
@@ -1525,7 +1919,8 @@ async function runFullScan(
   embeddingProvider?: string,
   embeddingApiKey?: string,
   embeddingModel?: string,
-  inlineSourceFiles?: SourceFileEntry[]
+  inlineSourceFiles?: SourceFileEntry[],
+  localCodebaseSnapshotReceipt?: LocalCodebaseSnapshotReceiptSummary
 ): Promise<unknown> {
   const {
     CodebaseScanner,
@@ -1676,14 +2071,22 @@ async function runFullScan(
   // Cache for subsequent queries
   cachedGraph = graph;
   cachedRootDir = primaryRootDir;
-  cacheProvenance = 'fresh-scan';
+  cacheProvenance = localCodebaseSnapshotReceipt ? 'local-codebase-snapshot-receipt' : 'fresh-scan';
   cacheTimestamp = Date.now();
 
   // Persist graph to disk
   const detectedProvider = embeddingProvider
     ? requireNativeGraphRAGProvider(embeddingProvider, 'embeddingProvider argument')
     : await detectBestEmbeddingProvider();
-  saveGraphCache(graph, primaryRootDir, stats, gitCommitHash, fileHashes, detectedProvider);
+  saveGraphCache(
+    graph,
+    primaryRootDir,
+    stats,
+    gitCommitHash,
+    fileHashes,
+    detectedProvider,
+    localCodebaseSnapshotReceipt
+  );
 
   if (outputFormat === 'stats') {
     if (jobId) trackAbsorbProgress(jobId, 'Complete', 100);
@@ -1696,6 +2099,7 @@ async function runFullScan(
       graphRagReady: isGraphRAGReady(),
       embeddingSkipped: true,
       embeddingSkipReason: 'outputFormat:stats',
+      ...(localCodebaseSnapshotReceipt && { localCodebaseSnapshotReceipt }),
       durationMs: Date.now() - startTime,
     };
     if (jobId) {
@@ -1814,6 +2218,7 @@ async function runFullScan(
       embeddingPolicy,
       gitCommitHash,
       diagnostics,
+      ...(localCodebaseSnapshotReceipt && { localCodebaseSnapshotReceipt }),
       durationMs: Date.now() - startTime,
     };
   } else {
@@ -1845,6 +2250,7 @@ async function runFullScan(
       embeddingPolicy,
       gitCommitHash,
       diagnostics,
+      ...(localCodebaseSnapshotReceipt && { localCodebaseSnapshotReceipt }),
       durationMs: Date.now() - startTime,
     };
   }
@@ -2159,9 +2565,25 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   const mod = (await loadCodebaseModule()) as CodebaseModule;
   const { CodebaseGraph, GitChangeDetector } = mod;
 
-  const rootDir = args.rootDir as string;
-  const rootDirsRaw = args.rootDirs as string[] | undefined;
-  const sourceFilesRaw = args.sourceFiles as unknown[] | undefined;
+  const receiptRaw = args.localCodebaseSnapshotReceipt ?? args.snapshotReceipt;
+  const receiptResolution = resolveLocalCodebaseSnapshotReceiptForAbsorb(
+    receiptRaw,
+    args.sourceFiles
+  );
+  if (!receiptResolution.valid) {
+    return {
+      error: 'localCodebaseSnapshotReceipt_validation_failed',
+      message: receiptResolution.errors.join('; '),
+      errors: receiptResolution.errors,
+    };
+  }
+
+  const localCodebaseSnapshotReceipt = receiptResolution.resolution.summary;
+  const rootDir =
+    (args.rootDir as string | undefined) ?? receiptResolution.resolution.roots?.[0] ?? '';
+  const rootDirsRaw = (args.rootDirs as string[] | undefined) ?? receiptResolution.resolution.roots;
+  const sourceFilesRaw =
+    (args.sourceFiles as unknown[] | undefined) ?? receiptResolution.resolution.sourceFiles;
 
   let effectiveRootDirs: string[] = [];
   let primaryRootDir = '';
@@ -2231,9 +2653,16 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
       embeddingProvider,
       embeddingApiKey,
       embeddingModel,
-      inlineSourceFiles
+      inlineSourceFiles,
+      localCodebaseSnapshotReceipt
     );
-    return { ...(result as Record<string, unknown>), jobId, fromSourceFiles };
+    return {
+      ...(result as Record<string, unknown>),
+      jobId,
+      fromSourceFiles,
+      fromLocalCodebaseSnapshotReceipt: Boolean(localCodebaseSnapshotReceipt),
+      ...(localCodebaseSnapshotReceipt && { localCodebaseSnapshotReceipt }),
+    };
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -2892,6 +3321,7 @@ async function handleGraphStatus(): Promise<unknown> {
     },
     ...(graphUnavailableReceipt && { graphUnavailableReceipt }),
     sessionProvenance: cacheProvenance ?? null,
+    localCodebaseSnapshotReceipt: cache.localCodebaseSnapshotReceipt ?? null,
     diskCache: cache.exists
       ? {
           exists: true,
@@ -2911,6 +3341,7 @@ async function handleGraphStatus(): Promise<unknown> {
           stats: cache.stats,
           embeddingProvider: cache.embeddingProvider ?? embeddingPolicy.provider,
           embeddingPolicy,
+          localCodebaseSnapshotReceipt: cache.localCodebaseSnapshotReceipt ?? null,
           hint: !diskCacheMatchesCwd
             ? `Cache rootDir (${cache.rootDir}) does not match current working directory (${currentCwd}). Call holo_absorb_repo for this workspace.`
             : !diskCacheGitMatchesHead
@@ -3162,14 +3593,14 @@ export async function syncWithMesh(graph: any, rootDir: string): Promise<void> {
 // =============================================================================
 
 export interface LocalCodebaseSnapshotReceipt {
-  schema: 'LocalCodebaseSnapshotReceipt.v1';
+  schema: typeof LOCAL_CODEBASE_SNAPSHOT_RECEIPT_SCHEMA;
   version: string;
   emittedAt: string;
   agent?: string;
   surface?: string;
   roots: string[];
   rootHashes: Array<{ root: string; hash: string }>;
-  sourceFiles: Array<{ path: string; size: number; hash: string; mtime: string }>;
+  sourceFiles: Array<{ path: string; content?: string; size: number; hash: string; mtime: string }>;
   stats: { totalFiles: number; totalBytes: number; skippedCount: number };
   skipped?: Array<{ path: string; reason: string }>;
   redactionPolicy?: string;
@@ -3194,26 +3625,38 @@ export function validateLocalCodebaseSnapshotReceipt(input: unknown): Validation
   }
   const r = input as Partial<LocalCodebaseSnapshotReceipt>;
 
-  if (r.schema !== 'LocalCodebaseSnapshotReceipt.v1') errors.push(`bad schema: ${r.schema}`);
+  if (r.schema !== LOCAL_CODEBASE_SNAPSHOT_RECEIPT_SCHEMA) {
+    errors.push(`bad schema: ${r.schema}`);
+  }
   if (!r.version) errors.push('version required');
   if (!r.emittedAt) errors.push('emittedAt required');
   if (!Array.isArray(r.roots) || r.roots.length === 0) errors.push('roots must be non-empty');
   if (!Array.isArray(r.sourceFiles)) errors.push('sourceFiles must be array');
 
-  const MAX_FILES = 2000;
-  const MAX_BYTES = 25 * 1024 * 1024;
   let byteSum = 0;
   if (Array.isArray(r.sourceFiles)) {
     for (const f of r.sourceFiles) {
-      if (!f?.path || typeof f.path !== 'string' || f.path.includes('..'))
+      if (!f?.path || typeof f.path !== 'string' || !isSafeRelativeSourcePath(f.path)) {
         errors.push(`bad path: ${f?.path}`);
-      if (typeof f?.hash !== 'string' || f.hash.length !== 64)
+      }
+      if (typeof f?.hash !== 'string' || f.hash.length !== 64) {
         errors.push(`bad hash for ${f?.path}`);
+      }
       if (f?.size) byteSum += Number(f.size);
+      if (typeof f?.content === 'string') {
+        const actualHash = sha256Utf8(f.content);
+        if (typeof f.hash === 'string' && f.hash.length === 64 && actualHash !== f.hash) {
+          errors.push(`content hash mismatch for ${f.path}`);
+        }
+        const actualSize = Buffer.byteLength(f.content, 'utf-8');
+        if (Number.isFinite(f.size) && actualSize !== f.size) {
+          errors.push(`content size mismatch for ${f.path}`);
+        }
+      }
     }
   }
-  if ((r.stats?.totalFiles ?? 0) > MAX_FILES) errors.push('file cap exceeded');
-  if (byteSum > MAX_BYTES) errors.push('byte cap exceeded');
+  if ((r.stats?.totalFiles ?? 0) > SOURCE_FILES_MAX_FILES) errors.push('file cap exceeded');
+  if (byteSum > SOURCE_FILES_MAX_TOTAL_BYTES) errors.push('byte cap exceeded');
 
   if (!r.replayCommand || !r.replayCommand.includes('holo_absorb_repo')) {
     errors.push('replayCommand must reference holo_absorb_repo');
@@ -3221,4 +3664,51 @@ export function validateLocalCodebaseSnapshotReceipt(input: unknown): Validation
   if (!r.freshness?.generatedAt) errors.push('freshness.generatedAt required');
 
   return { valid: errors.length === 0, errors };
+}
+
+export function validateHoloShellLocalCodebaseSnapshotReceipt(input: unknown): string[] {
+  const receipt = asRecord(input);
+  if (!receipt) return ['HoloShellLocalCodebaseSnapshotReceipt must be an object.'];
+
+  const errors: string[] = [];
+  if (!receipt.id) errors.push('HoloShellLocalCodebaseSnapshotReceipt.id is required.');
+  if (!receipt.workflow) errors.push('HoloShellLocalCodebaseSnapshotReceipt.workflow is required.');
+  if (!Array.isArray(receipt.files)) {
+    errors.push('HoloShellLocalCodebaseSnapshotReceipt.files must be an array.');
+  }
+  if (!Array.isArray(receipt.sourceFiles)) {
+    errors.push('HoloShellLocalCodebaseSnapshotReceipt.sourceFiles must be an array.');
+  }
+  const totalFiles = getNumber(receipt.totalFiles);
+  const totalBytes = getNumber(receipt.totalBytes);
+  const maxFiles = getNumber(receipt.maxFiles);
+  const maxBytes = getNumber(receipt.maxBytes);
+  if (totalFiles !== undefined && maxFiles !== undefined && totalFiles > maxFiles) {
+    errors.push('HoloShellLocalCodebaseSnapshotReceipt.totalFiles must not exceed maxFiles.');
+  }
+  if (totalBytes !== undefined && maxBytes !== undefined && totalBytes > maxBytes) {
+    errors.push('HoloShellLocalCodebaseSnapshotReceipt.totalBytes must not exceed maxBytes.');
+  }
+  if (receipt.hashAlgorithm !== 'sha256') {
+    errors.push('HoloShellLocalCodebaseSnapshotReceipt.hashAlgorithm must be sha256.');
+  }
+
+  if (Array.isArray(receipt.sourceFiles)) {
+    for (const sourceFile of receipt.sourceFiles) {
+      const record = asRecord(sourceFile);
+      if (!record || typeof record.path !== 'string' || !isSafeRelativeSourcePath(record.path)) {
+        errors.push(
+          `LocalCodebaseSourceFilePayload.path must be relative and safe: ${String(record?.path)}.`
+        );
+      }
+      const hash = record?.contentHash ?? record?.hash;
+      if (typeof hash !== 'string' || hash.length === 0) {
+        errors.push(
+          `LocalCodebaseSourceFilePayload ${String(record?.path ?? '<unknown>')}.contentHash is required.`
+        );
+      }
+    }
+  }
+
+  return errors;
 }

@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { execFileSync } from 'child_process';
+import { createHash } from 'crypto';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { handleCodebaseTool, resetCodebaseToolStateForTests } from './codebase-tools';
 import { handleGraphRagTool, setGraphRAGState } from './graph-rag-tools';
@@ -17,7 +18,17 @@ type GraphUnavailableReceipt = {
   staleByMs?: number | null;
   authoritative?: boolean;
   recommendation?: string;
+  localAdapter?: {
+    kind?: string;
+    command?: string;
+    mcpTool?: string;
+    mcpArguments?: string[];
+  };
 };
+
+function sha256(content: string): string {
+  return createHash('sha256').update(content, 'utf8').digest('hex');
+}
 
 function getHeadCommit(rootDir = process.cwd()): string {
   return execFileSync('git', ['rev-parse', 'HEAD'], {
@@ -55,6 +66,94 @@ function writeGraphCache(
     }),
     'utf-8'
   );
+}
+
+function makeLocalCodebaseSnapshotReceipt(
+  files: Array<{ path: string; content: string }>,
+  roots = [process.cwd()]
+): Record<string, unknown> {
+  const now = '2026-07-06T12:00:00.000Z';
+  return {
+    schema: 'LocalCodebaseSnapshotReceipt.v1',
+    version: '0.1.0',
+    emittedAt: now,
+    agent: 'codex-test',
+    surface: 'vitest',
+    roots,
+    rootHashes: roots.map((root) => ({ root, hash: sha256(`${root}|${now}`) })),
+    sourceFiles: files.map((file) => ({
+      ...file,
+      size: Buffer.byteLength(file.content, 'utf-8'),
+      hash: sha256(file.content),
+      mtime: now,
+    })),
+    stats: {
+      totalFiles: files.length,
+      totalBytes: files.reduce((sum, file) => sum + Buffer.byteLength(file.content, 'utf-8'), 0),
+      skippedCount: 0,
+    },
+    skipped: [],
+    redactionPolicy: 'test',
+    replayCommand: 'holo_absorb_repo --sourceFiles <this-payload>',
+    privacyClass: 'local-test',
+    freshness: { generatedAt: now },
+  };
+}
+
+function makeHoloShellSnapshotReceipt(
+  file: { path: string; content: string },
+  requestedPath = process.cwd()
+): Record<string, unknown> {
+  const now = '2026-07-06T12:00:00.000Z';
+  const sizeBytes = Buffer.byteLength(file.content, 'utf-8');
+  const contentHash = sha256(file.content);
+  return {
+    id: 'local_codebase_snapshot_test',
+    workflow: 'absorb-service-replay',
+    startedAt: now,
+    endedAt: now,
+    roots: [
+      {
+        id: 'holoscript',
+        redactedRoot: '[holoscript-root]',
+        rootHash: sha256(requestedPath),
+        runtimeNamespace: 'local-windows',
+        exists: true,
+        selectedFileCount: 1,
+        skippedFileCount: 0,
+      },
+    ],
+    files: [
+      {
+        path: file.path,
+        sizeBytes,
+        contentHash,
+        hashAlgorithm: 'sha256',
+        privacyClass: 'source',
+        includedInSourceFiles: true,
+        language: 'typescript',
+        modifiedAt: now,
+      },
+    ],
+    skippedFiles: [],
+    sourceFiles: [{ path: file.path, contentHash, sizeBytes }],
+    totalFiles: 1,
+    totalBytes: sizeBytes,
+    maxFiles: 500,
+    maxBytes: 5 * 1024 * 1024,
+    redactionStatus: 'pass',
+    status: 'ready',
+    excludes: ['.git', 'node_modules', '.env'],
+    replayCommand: 'node scripts/holoshell-local-codebase-absorb-bundle.mjs --roots <repo>',
+    graphReceipt: {
+      authoritative: false,
+      reason: 'rootDir_unavailable',
+      requestedPath,
+      runtimePath: requestedPath,
+    },
+    hash: sha256(`${file.path}:${contentHash}`),
+    hashAlgorithm: 'sha256',
+  };
 }
 
 describe('holo_absorb_repo root validation', () => {
@@ -101,6 +200,16 @@ describe('holo_absorb_repo root validation', () => {
     });
     expect(result.graphUnavailableReceipt?.recommendation).toContain(
       'local HoloShell codebase adapter'
+    );
+    expect(result.graphUnavailableReceipt?.localAdapter).toMatchObject({
+      kind: 'HoloShellLocalAdapterRecommendation',
+      mcpTool: 'holo_absorb_repo',
+    });
+    expect(result.graphUnavailableReceipt?.localAdapter?.command).toContain(
+      'scripts/holoshell-local-codebase-absorb-bundle.mjs'
+    );
+    expect(result.graphUnavailableReceipt?.localAdapter?.mcpArguments).toContain(
+      'localCodebaseSnapshotReceipt'
     );
     expect(result.diagnostics?.requestedRootDir).toBe(missingRoot);
     expect(result.diagnostics?.resolvedDirExists).toBe(false);
@@ -575,6 +684,102 @@ describe('holo_absorb_repo sourceFiles upload', () => {
       jobId: result.jobId,
     })) as { status?: string };
     expect(status.status).toBe('complete');
+  }, 15_000);
+
+  it('absorbs a HoloShell LocalCodebaseSnapshotReceipt without separate sourceFiles', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-local-receipt-'));
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    const receipt = makeLocalCodebaseSnapshotReceipt([
+      {
+        path: 'src/holoshell-receipt-fixture.ts',
+        content: 'export function replayedFromHoloShellReceipt(): string { return "ok"; }',
+      },
+    ]);
+
+    const result = (await handleCodebaseTool('holo_absorb_repo', {
+      localCodebaseSnapshotReceipt: receipt,
+      outputFormat: 'stats',
+      embeddingProvider: 'holoembed',
+    })) as {
+      error?: string;
+      fromSourceFiles?: boolean;
+      fromLocalCodebaseSnapshotReceipt?: boolean;
+      localCodebaseSnapshotReceipt?: { schema?: string; totalFiles?: number };
+      stats?: { totalFiles?: number; totalSymbols?: number };
+    };
+
+    expect(result.error).toBeUndefined();
+    expect(result.fromSourceFiles).toBe(true);
+    expect(result.fromLocalCodebaseSnapshotReceipt).toBe(true);
+    expect(result.localCodebaseSnapshotReceipt).toMatchObject({
+      schema: 'LocalCodebaseSnapshotReceipt.v1',
+      totalFiles: 1,
+    });
+    expect(result.stats?.totalFiles).toBe(1);
+    expect(result.stats?.totalSymbols).toBeGreaterThanOrEqual(1);
+
+    const status = (await handleCodebaseTool('holo_graph_status', {})) as {
+      sessionProvenance?: string | null;
+      localCodebaseSnapshotReceipt?: { schema?: string } | null;
+      diskCache?: { localCodebaseSnapshotReceipt?: { schema?: string } | null };
+    };
+    expect(status.sessionProvenance).toBe('local-codebase-snapshot-receipt');
+    expect(status.localCodebaseSnapshotReceipt?.schema).toBe('LocalCodebaseSnapshotReceipt.v1');
+    expect(status.diskCache?.localCodebaseSnapshotReceipt?.schema).toBe(
+      'LocalCodebaseSnapshotReceipt.v1'
+    );
+  }, 15_000);
+
+  it('rejects a local receipt when declared hash does not match replay content', async () => {
+    resetCodebaseToolStateForTests();
+    const receipt = makeLocalCodebaseSnapshotReceipt([
+      {
+        path: 'src/hash-mismatch-fixture.ts',
+        content: 'export const hashMismatch = true;',
+      },
+    ]);
+    const sourceFiles = receipt.sourceFiles as Array<Record<string, unknown>>;
+    sourceFiles[0].hash = '0'.repeat(64);
+
+    const result = (await handleCodebaseTool('holo_absorb_repo', {
+      localCodebaseSnapshotReceipt: receipt,
+      outputFormat: 'stats',
+    })) as { error?: string; message?: string; errors?: string[] };
+
+    expect(result.error).toBe('localCodebaseSnapshotReceipt_validation_failed');
+    expect(result.message).toContain('hash mismatch');
+  });
+
+  it('accepts a hash-only HoloShell receipt when matching sourceFiles are supplied', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-holoshell-receipt-'));
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    const file = {
+      path: 'src/holoshell-hash-only-fixture.ts',
+      content: 'export class HoloShellHashOnlyFixture { ok(): boolean { return true; } }',
+    };
+    const receipt = makeHoloShellSnapshotReceipt(file);
+
+    const result = (await handleCodebaseTool('holo_absorb_repo', {
+      localCodebaseSnapshotReceipt: receipt,
+      sourceFiles: [file],
+      outputFormat: 'stats',
+    })) as {
+      error?: string;
+      fromLocalCodebaseSnapshotReceipt?: boolean;
+      localCodebaseSnapshotReceipt?: { schema?: string; id?: string };
+      stats?: { totalFiles?: number; totalSymbols?: number };
+    };
+
+    expect(result.error).toBeUndefined();
+    expect(result.fromLocalCodebaseSnapshotReceipt).toBe(true);
+    expect(result.localCodebaseSnapshotReceipt).toMatchObject({
+      schema: 'HoloShellLocalCodebaseSnapshotReceipt',
+      id: 'local_codebase_snapshot_test',
+    });
+    expect(result.stats?.totalFiles).toBe(1);
+    expect(result.stats?.totalSymbols).toBeGreaterThanOrEqual(1);
   }, 15_000);
 
   it('preserves rootDir as graph provenance when sourceFiles are uploaded inline', async () => {
