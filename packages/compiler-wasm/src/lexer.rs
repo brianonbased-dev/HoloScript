@@ -671,7 +671,12 @@ mod tests {
             .tokenize()
             .into_iter()
             .map(|t| t.token_type)
-            .filter(|t| !matches!(t, TokenType::Whitespace | TokenType::Newline | TokenType::Eof))
+            .filter(|t| {
+                !matches!(
+                    t,
+                    TokenType::Whitespace | TokenType::Newline | TokenType::Eof
+                )
+            })
             .collect();
         assert_eq!(
             tokens,
@@ -686,7 +691,12 @@ mod tests {
             .tokenize()
             .into_iter()
             .map(|t| t.token_type)
-            .filter(|t| !matches!(t, TokenType::Whitespace | TokenType::Newline | TokenType::Eof))
+            .filter(|t| {
+                !matches!(
+                    t,
+                    TokenType::Whitespace | TokenType::Newline | TokenType::Eof
+                )
+            })
             .collect();
         assert_eq!(
             tokens,
@@ -707,7 +717,12 @@ mod tests {
             .tokenize()
             .into_iter()
             .map(|t| t.token_type)
-            .filter(|t| !matches!(t, TokenType::Whitespace | TokenType::Newline | TokenType::Eof))
+            .filter(|t| {
+                !matches!(
+                    t,
+                    TokenType::Whitespace | TokenType::Newline | TokenType::Eof
+                )
+            })
             .collect();
         assert_eq!(tokens, vec![TokenType::Struct, TokenType::In]);
     }

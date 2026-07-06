@@ -382,7 +382,10 @@ impl Parser {
         matches!(
             self.peek_at(1).map(|t| &t.token_type),
             Some(TokenType::String) | Some(TokenType::Identifier)
-        ) && matches!(self.peek_at(2).map(|t| &t.token_type), Some(TokenType::LBrace))
+        ) && matches!(
+            self.peek_at(2).map(|t| &t.token_type),
+            Some(TokenType::LBrace)
+        )
     }
 
     /// Parse a keyframe-track: `track "<target>" { key <time> { <value> } [easing <ease>] ; … }`.
@@ -1003,11 +1006,7 @@ impl Parser {
                 // `@`-prefixed directive: `@` lexes as a Trait token whose value
                 // is `@<name>`. The name is the clause kind / flag.
                 if self.check(TokenType::Trait) {
-                    let dir_name = self
-                        .advance()
-                        .value
-                        .trim_start_matches('@')
-                        .to_string();
+                    let dir_name = self.advance().value.trim_start_matches('@').to_string();
                     if self.check(TokenType::LBrace) {
                         // Predicate/effect block — capture raw body.
                         let body = self.consume_braced_body_raw()?;
@@ -2266,7 +2265,10 @@ mod tests {
 
         // config stays a property-only ObjectLiteral so existing consumers (e.g.
         // FrameDeclarationNode::try_from_directive) are unaffected.
-        assert!(matches!(t.config.as_deref(), Some(AstNode::ObjectLiteral(_))));
+        assert!(matches!(
+            t.config.as_deref(),
+            Some(AstNode::ObjectLiteral(_))
+        ));
 
         // handler captured with its param and a non-empty body (no silent drop).
         let h = t
@@ -2321,7 +2323,10 @@ mod tests {
             .expect("trait node present");
         assert_eq!(t.name, "grabbable");
         assert!(t.members.is_empty(), "application must not collect members");
-        assert!(matches!(t.config.as_deref(), Some(AstNode::ObjectLiteral(_))));
+        assert!(matches!(
+            t.config.as_deref(),
+            Some(AstNode::ObjectLiteral(_))
+        ));
     }
 
     #[test]
