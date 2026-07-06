@@ -15,13 +15,37 @@ import {
 
 describe('PointProvenance', () => {
   it('round-trips class <-> code', () => {
-    const classes: PointProvenanceClass[] = ['observed', 'interpolated', 'generative-extended'];
+    const classes: PointProvenanceClass[] = [
+      'observed',
+      'interpolated',
+      'nlos-inferred',
+      'generative-extended',
+    ];
     for (const cls of classes) {
       expect(provenanceCodeToClass(provenanceClassToCode(cls))).toBe(cls);
     }
     expect(POINT_PROVENANCE_CODE.observed).toBe(0);
     expect(POINT_PROVENANCE_CODE.interpolated).toBe(1);
     expect(POINT_PROVENANCE_CODE['generative-extended']).toBe(2);
+    expect(POINT_PROVENANCE_CODE['nlos-inferred']).toBe(3);
+  });
+
+  it('counts nlos-inferred (code 3) as its own class, separate from generative-extended', () => {
+    const codes = Uint8Array.from([0, 3, 3, 2]); // 1 observed, 2 nlos-inferred, 1 generative
+    const h = provenanceHistogram(codes);
+    expect(h.observed).toBe(1);
+    expect(h['nlos-inferred']).toBe(2);
+    expect(h['generative-extended']).toBe(1);
+    expect(h.total).toBe(4);
+    // nlos-inferred is NOT observed (line-of-sight) → does not raise observedFraction.
+    expect(h.observedFraction).toBe(0.25);
+  });
+
+  it('still lumps unknown/corrupt codes into the lowest-trust class', () => {
+    const codes = Uint8Array.from([3, 7, 99]); // 1 nlos-inferred, 2 unknown -> generative
+    const h = provenanceHistogram(codes);
+    expect(h['nlos-inferred']).toBe(1);
+    expect(h['generative-extended']).toBe(2);
   });
 
   it('fails an unknown/corrupt code toward LOWER trust, never to observed', () => {

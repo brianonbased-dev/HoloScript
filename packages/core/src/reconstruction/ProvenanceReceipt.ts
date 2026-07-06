@@ -2,8 +2,8 @@
  * Provenance receipt — a hashed attestation of the observed-vs-invented
  * composition of a delivered 3D asset.
  *
- * This is the PROVENANCE AXIS ONLY (the observed|interpolated|generative-extended
- * histogram over the bytes actually delivered). It is deliberately NOT the full
+ * This is the PROVENANCE AXIS ONLY (the observed|interpolated|nlos-inferred|
+ * generative-extended histogram over the bytes actually delivered). It is deliberately NOT the full
  * parity gate (chamfer / FID / rig / topology) — that is the FidelityEvalContract
  * owned by the ssja track. The intended seam: a FidelityEvalContract COMPOSES
  * this receipt as its provenance dimension rather than re-deriving it.
@@ -21,7 +21,13 @@
 import { createHash } from 'node:crypto';
 import { provenanceHistogram, type ProvenanceHistogram } from './PointProvenance';
 
-export const PROVENANCE_RECEIPT_VERSION = 'provenance-receipt-v1' as const;
+// v2 (2026-07-05): added the `nlos-inferred` class to the counted histogram — the
+// honest label for around-a-corner / transient-reconstructed geometry (physically
+// inferred from measured light transport, distinct from learned generative fill;
+// research/2026-07-05_consumer-lidar-nlos-motion-induced-sampling.md). The bump is
+// intentional: the canonical hash now covers a 4th count, so a v2 receipt hash
+// differs from v1 by design even for assets with zero NLOS-inferred points.
+export const PROVENANCE_RECEIPT_VERSION = 'provenance-receipt-v2' as const;
 
 export interface ProvenanceReceipt {
   version: typeof PROVENANCE_RECEIPT_VERSION;
@@ -63,6 +69,7 @@ export function buildProvenanceReceipt(
     counts: {
       observed: histogram.observed,
       interpolated: histogram.interpolated,
+      'nlos-inferred': histogram['nlos-inferred'],
       'generative-extended': histogram['generative-extended'],
       total: histogram.total,
     },

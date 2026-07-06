@@ -442,3 +442,42 @@ route is exactly the kind of surface growth the freeze guards against; re-admit 
 metadata is a compiler-owned language deliverable and there is a concrete consumer asking for the aggregated
 `/api/build` envelope. Reference: deleted `packages/mcp-server/src/tools/deploy-adapter.ts` +
 `deploy_adapter.hsplus` (git history); phantom-import fix pattern in commit `d881120e1`.
+
+---
+
+## `@motion_aperture` — trajectory-conditioned capture (device motion as synthetic aperture)
+
+> Recorded 2026-07-05 from the consumer-LiDAR NLOS research
+> (`~/.ai-ecosystem/research/2026-07-05_consumer-lidar-nlos-motion-induced-sampling.md`;
+> Motion-Induced Aperture Sampling, Nature 2026, arXiv 2605.17865). Shipped alongside it:
+> the `nlos-inferred` `PointProvenanceClass` (the *format/provenance* half, buildable with no
+> new hardware). This seed is the *capture* half, which is hardware-gated.
+
+**What might be valuable**: A first-class capture primitive that treats the **device's motion
+trajectory as a synthetic aperture** — fusing many frames from a moving sensor into a
+reconstruction that no single frame could produce. This is the shared mechanism behind three
+things we already care about: (1) **NLOS / around-a-corner imaging** (the extreme case — the
+aperture-from-motion is the *only* way the hidden-object signal exists; particle-filter fusion
+of transient/histogram frames over the pose path); (2) **multi-view Gaussian-splat capture**
+(the posed-view path in `compile_to_gaussian_train`, I.021/P.024 — trajectory *is* the view set);
+(3) **handheld burst super-resolution** (uncontrolled shake as a sub-pixel sampling feature). We
+already carry the two inputs it needs natively — `reconstruction/trajectory_memory.hsplus` (the
+6-DoF device pose path) and `reconstruction/mobile_sensor_bundle.hsplus` (the mobile sensor stream).
+A `@motion_aperture` trait would make "condition this reconstruction on the capture trajectory" a
+declared, reusable concept instead of a per-modality bolt-on, and its inferred output points would
+carry the `nlos-inferred` (or `interpolated`) provenance class into a `ProvenanceReceipt` — so a
+motion-fused reconstruction ships honest about what was measured vs reconstructed.
+
+**Why not now**: The *runtime* is **hardware-gated**, not language-gated (F.138 — verify the
+hardware reality). The NLOS case needs raw per-bin **photon transient histograms**, which
+consumer/phone LiDAR (Apple ARKit, Quest passthrough) does **not** expose — only processed depth.
+The Nature demo used an ST VL53L8CH histogram-capable eval module on an ST board, *not* a phone.
+So a sovereign NLOS capture runtime waits on either (a) a histogram-exposing module in our own
+capture rig, or (b) a future phone API that surfaces raw transients — a **watch item**, not native
+authoring work. The *fusion math* (LCT forward model + particle filter) is public and could be
+prototyped now as a `solve_*`-class solver against synthetic transients / the released repo's
+`canons/point.npy`, independent of the capture hardware — that is the earliest buildable slice if
+someone wants to move it forward. The multi-view-splat and super-res cases are *not* transient-gated
+(they use ordinary depth/RGB), so `@motion_aperture` could first land for those and add the NLOS
+transient path once raw-histogram data exists. NMoS: build-internal / absorb (F.133), no external
+bridge.

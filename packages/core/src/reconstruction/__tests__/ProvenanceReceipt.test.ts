@@ -45,4 +45,21 @@ describe('ProvenanceReceipt', () => {
     const r = buildProvenanceReceipt(Uint8Array.from([0]), bytes);
     expect(r.source).toBeNull();
   });
+
+  it('attests nlos-inferred distinctly from generative-extended (v2)', () => {
+    const nlos = buildProvenanceReceipt(Uint8Array.from([0, 3, 3]), bytes, null);
+    const gen = buildProvenanceReceipt(Uint8Array.from([0, 2, 2]), bytes, null);
+    expect(nlos.histogram['nlos-inferred']).toBe(2);
+    expect(gen.histogram['generative-extended']).toBe(2);
+    // Same delivered bytes and same observed count, but inferred-from-transport vs
+    // invented-by-a-model is a different composition → the receipt hash must differ.
+    expect(nlos.receiptHash).not.toBe(gen.receiptHash);
+  });
+
+  it('is stamped provenance-receipt-v2', () => {
+    expect(PROVENANCE_RECEIPT_VERSION).toBe('provenance-receipt-v2');
+    expect(buildProvenanceReceipt(Uint8Array.from([0]), bytes, null).version).toBe(
+      'provenance-receipt-v2'
+    );
+  });
 });

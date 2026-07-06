@@ -448,7 +448,7 @@ describe('GaussianSplattingCompiler', () => {
 
       expect(result.binary).toBeDefined();
       expect(receipt).toBeDefined();
-      expect(receipt!.version).toBe('provenance-receipt-v1');
+      expect(receipt!.version).toBe('provenance-receipt-v2');
       expect(receipt!.histogram.observed).toBe(2);
       expect(receipt!.histogram['generative-extended']).toBe(1);
       expect(receipt!.source).toBe('artifixer-14b');

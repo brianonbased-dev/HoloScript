@@ -25,27 +25,44 @@
 /**
  * Data-origin class for a single reconstructed point or splat.
  *
+ * Ordered by TRUST (highest → lowest):
  * - `observed`            — sensor-attested: LiDAR / ARKit / Quest 3 passthrough
- *                           depth / any measured capture. The trustworthy class.
+ *                           depth / any measured line-of-sight capture. The trustworthy class.
  * - `interpolated`        — derived *between* observations (densification that
  *                           adds no new invention; bounded by real neighbours).
+ * - `nlos-inferred`       — geometry NOT directly observed by the sensor, but
+ *                           *physically reconstructed from measured light transport*
+ *                           (non-line-of-sight / around-a-corner imaging: transient/
+ *                           histogram reconstruction, e.g. motion-induced aperture
+ *                           sampling). More trustworthy than a learned prior (it is
+ *                           anchored to real measured photons) but LESS than observed
+ *                           or interpolated (it reconstructs genuinely-unseen surfaces
+ *                           and is unverifiable by eye). See
+ *                           research/2026-07-05_consumer-lidar-nlos-motion-induced-sampling.md.
  * - `generative-extended` — invented by a generative model in a region no sensor
  *                           observed (ArtiFixer-style fill). The lowest-trust class.
  */
-export type PointProvenanceClass = 'observed' | 'interpolated' | 'generative-extended';
+export type PointProvenanceClass =
+  | 'observed'
+  | 'interpolated'
+  | 'nlos-inferred'
+  | 'generative-extended';
 
 /** Compact uint8 codes for per-point encoding in buffers / glTF attributes. */
 export const POINT_PROVENANCE_CODE: Record<PointProvenanceClass, number> = {
   observed: 0,
   interpolated: 1,
   'generative-extended': 2,
+  // Appended (never renumber existing codes — persisted buffers depend on them).
+  'nlos-inferred': 3,
 };
 
 /** Code → class lookup, indexed by the uint8 code. */
 export const POINT_PROVENANCE_CLASS_BY_CODE: readonly PointProvenanceClass[] = [
-  'observed',
-  'interpolated',
-  'generative-extended',
+  'observed', // 0
+  'interpolated', // 1
+  'generative-extended', // 2
+  'nlos-inferred', // 3
 ];
 
 export function provenanceClassToCode(cls: PointProvenanceClass): number {
@@ -68,9 +85,10 @@ export function provenanceCodeToClass(code: number): PointProvenanceClass {
 export interface ProvenanceHistogram {
   observed: number;
   interpolated: number;
+  'nlos-inferred': number;
   'generative-extended': number;
   total: number;
-  /** observed / total — 1.0 = fully sensor-attested, 0.0 = fully invented. */
+  /** observed / total — 1.0 = fully sensor-attested (line-of-sight), 0.0 = none observed. */
   observedFraction: number;
 }
 
@@ -78,17 +96,22 @@ export interface ProvenanceHistogram {
 export function provenanceHistogram(codes: Uint8Array): ProvenanceHistogram {
   let observed = 0;
   let interpolated = 0;
+  let nlosInferred = 0;
   let generativeExtended = 0;
   for (let i = 0; i < codes.length; i++) {
     const c = codes[i];
     if (c === 0) observed++;
     else if (c === 1) interpolated++;
+    else if (c === 3) nlosInferred++;
+    // code 2 AND any unknown/corrupt code fall to the lowest-trust class, matching
+    // provenanceCodeToClass's fail-toward-lower-trust rule.
     else generativeExtended++;
   }
   const total = codes.length;
   return {
     observed,
     interpolated,
+    'nlos-inferred': nlosInferred,
     'generative-extended': generativeExtended,
     total,
     observedFraction: total > 0 ? observed / total : 0,
