@@ -20,7 +20,7 @@ guards.
 | Utility class             | Primary package                            | Consumer lane                        | Use it for                                                                                         |
 | ------------------------- | ------------------------------------------ | ------------------------------------ | -------------------------------------------------------------------------------------------------- |
 | MCP tool gateway          | `@holoscript/mcp-server`                   | laptop, Jetson, Vast, hosted service | Agent access to HoloScript tools, HoloKey/OAuth auth, board/knowledge, and fleet dispatch control. |
-| HoloLlama serving planner | `@holoscript/holollama`                    | laptop, Jetson, Vast                 | llama.cpp serving plans, launch artifacts, health probes, and sovereign-device registry JSON.      |
+| HoloLlama serving operator | `@holoscript/holollama`                    | laptop, Jetson, Vast                 | llama.cpp serving plans, launch artifacts, live lifecycle proofs, and sovereign-device registry JSON. |
 | Headless agent runtime    | `@holoscript/holoscript-agent`             | laptop, Jetson, Vast                 | Unattended HoloMesh agent process and room/board execution worker.                                 |
 | Shared memory client      | `@holoscript/memory`                       | laptop, Jetson, Vast                 | Identity-keyed memory reads/writes across agent families.                                          |
 | HoloScript CLI            | `@holoscript/cli`                          | laptop, Jetson, Vast                 | Parse, validate, compile, run, package, and deploy source.                                         |
@@ -38,7 +38,8 @@ receipts from the installed package:
 | Serving plan                | `holollama.doctor.v1`                     | Compile launch, health, service, and sovereign-device registry files.    |
 | HoloMesh read-only bridge   | `holollama.holomesh-readonly-bridge.v1`   | Resolve board, room, done-log, slot, and knowledge reads without writes. |
 | llama.cpp vision preflight  | `holollama.llama-cpp-vision-preflight.v1` | Prove projector, image-token flags, and registry vision capability.      |
-| Aggregate lifecycle handoff | `holollama.fleet-lifecycle.v1`            | Bind plan, preflight, mesh reads, and health probe into one receipt.     |
+| Live lifecycle doctor       | `holollama.lifecycle-doctor.v1`           | Prove systemd, health, models, and tiny completion on a running node.    |
+| Aggregate lifecycle handoff | `holollama.fleet-lifecycle.v1`            | Bind plan, preflight, mesh reads, health, and optional live proof.       |
 
 `corepack pnpm check:holollama-consumption` exercises those receipts from the
 built CLI before npm publish. Node-local filesystem proof remains opt-in through
@@ -72,9 +73,9 @@ programmatic `getMcpServerSizing()` export.
 ## Strategy
 
 1. Keep `@holoscript/holollama` narrow: it emits deterministic serving bundles,
-   Brain routing receipts, lifecycle receipts, read-only HoloMesh bridge
-   receipts, and profile checks; it should not become the board, memory, or CI
-   gateway.
+   Brain routing receipts, lifecycle receipts, live node proofs, read-only
+   HoloMesh bridge receipts, and profile checks; it should not become the
+   board, memory, or CI gateway.
 2. Keep `@holoscript/mcp-server` as the authenticated tool gateway and dispatch
    control plane; it should expose profile choices without bundling model
    weights or fleet secrets.

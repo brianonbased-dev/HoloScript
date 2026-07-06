@@ -9,6 +9,7 @@ import {
   listHoloLlamaBrains,
   listHoloLlamaProfiles,
   preflightHoloLlamaVision,
+  probeHoloLlamaLiveLifecycle,
   selectHoloLlamaBrain,
   summarizeHoloLlamaBundle,
   verifyHoloLlamaServerContract,
@@ -81,13 +82,32 @@ export async function runCli(args = process.argv.slice(2)): Promise<void> {
   }
 
   if (command === 'lifecycle') {
+    const live = flags.has('live');
+    const profile = live ? readProfile(flags) : readOptionalProfile(flags);
+    const liveReceipt = live
+      ? await probeHoloLlamaLiveLifecycle({
+          profile,
+          endpoint: readString(flags, 'endpoint') ?? process.env.HOLOLLAMA_ENDPOINT,
+          sshHost: readString(flags, 'host') ?? process.env.JETSON_HOST,
+          sshKey: readString(flags, 'key') ?? process.env.JETSON_KEY,
+          systemdUnit: readString(flags, 'unit'),
+          modelsPath: readString(flags, 'models-path'),
+          timeoutMs: readNumber(flags, 'timeout-ms'),
+          prompt: readString(flags, 'prompt'),
+          maxTokens: readNumber(flags, 'max-tokens'),
+          skipSystemd: flags.has('no-systemd'),
+          requireSystemd: flags.has('require-systemd'),
+        })
+      : undefined;
     const receipt = buildHoloLlamaFleetLifecycleReport({
-      profile: readOptionalProfile(flags),
+      profile,
       teamId: readString(flags, 'team-id'),
       orchestratorUrl: readString(flags, 'orchestrator-url'),
       apiKeyEnv: readString(flags, 'api-key-env'),
       checkFilesystem: flags.has('check-filesystem'),
       requireRuntimeReadiness: flags.has('require-runtime-readiness'),
+      requireLiveLifecycle: flags.has('require-live-lifecycle') || live,
+      liveLifecycleReceipts: liveReceipt ? { [liveReceipt.profile]: liveReceipt } : undefined,
     });
     if (flags.has('json')) {
       process.stdout.write(`${JSON.stringify(receipt, null, 2)}\n`);
@@ -359,7 +379,7 @@ Usage:
   holollama mesh [--profile <id>] [--team-id <team>] [--json]
   holollama preflight [--profile <id>] [--check-filesystem] [--json]
   holollama contract [--profile <id>] [--json]
-  holollama lifecycle [--profile <id>] [--team-id <team>] [--check-filesystem] [--require-runtime-readiness] [--json]
+  holollama lifecycle [--profile <id>] [--live] [--team-id <team>] [--check-filesystem] [--require-runtime-readiness] [--json]
   holollama profiles
   holollama brains
   holollama brain --task <text> [--brain <id>|--skill <id>] [--json]
@@ -375,6 +395,18 @@ Options:
   --team-id <holomesh-team-id>
   --orchestrator-url <url>
   --api-key-env <env-var>
+  --live
+  --endpoint <url>
+  --host <ssh-host>
+  --key <ssh-key>
+  --unit <systemd-unit>
+  --models-path <path>
+  --timeout-ms <number>
+  --prompt <text>
+  --max-tokens <number>
+  --no-systemd
+  --require-systemd
+  --require-live-lifecycle
   --check-filesystem
   --require-runtime-readiness
   --code <file.holo>

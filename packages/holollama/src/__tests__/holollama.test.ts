@@ -11,7 +11,9 @@ import {
   extractSovereignDeviceRegistry,
   listHoloLlamaBrains,
   listHoloLlamaProfiles,
+  parseHoloLlamaSystemdShow,
   preflightHoloLlamaVision,
+  probeHoloLlamaLiveLifecycle,
   readHoloLlamaProfileSource,
   selectHoloLlamaBrain,
   summarizeHoloLlamaBundle,
@@ -281,6 +283,87 @@ describe('@holoscript/holollama', () => {
     expect(
       laptop?.meshReadOnlyBridge.endpoints.some((endpoint) => endpoint.id === 'team-board')
     ).toBe(true);
+  });
+
+  it('attaches live HoloLlama lifecycle proof to fleet lifecycle checks when supplied', async () => {
+    const systemd = parseHoloLlamaSystemdShow(
+      [
+        'LoadState=loaded',
+        'ActiveState=active',
+        'SubState=running',
+        'FragmentPath=/etc/systemd/system/jetson-orin-llamacpp.service',
+        'ExecMainPID=1863',
+      ].join('\n'),
+      'jetson-orin-llamacpp.service'
+    );
+    const fetchImpl = async (url: string) => {
+      const body = url.endsWith('/health')
+        ? { status: 'ok' }
+        : url.endsWith('/v1/models')
+          ? {
+              data: [
+                {
+                  id: 'qwen3-4b-instruct.gguf',
+                  owned_by: 'llamacpp',
+                  meta: { n_vocab: 151936, n_ctx: 4096, n_params: 4022468096 },
+                },
+              ],
+            }
+          : {
+              choices: [{ message: { content: 'ready' } }],
+            };
+      return {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        text: async () => JSON.stringify(body),
+      };
+    };
+    const liveLifecycle = await probeHoloLlamaLiveLifecycle({
+      profile: 'jetson-orin',
+      generatedAt: '2026-07-05T00:00:00.000Z',
+      endpoint: 'http://192.168.0.119:18080',
+      systemdProbe: systemd,
+      fetchImpl,
+    });
+    const lifecycle = buildHoloLlamaFleetLifecycleReport({
+      profile: 'jetson-orin',
+      teamId: 'team_test',
+      generatedAt: '2026-07-05T00:00:00.000Z',
+      requireLiveLifecycle: true,
+      liveLifecycleReceipts: { 'jetson-orin': liveLifecycle },
+    });
+
+    expect(liveLifecycle.schema).toBe('holollama.lifecycle-doctor.v1');
+    expect(liveLifecycle.ok).toBe(true);
+    expect(liveLifecycle.runtimeState).toBe('ready');
+    expect(liveLifecycle.checks.systemd.ok).toBe(true);
+    expect(liveLifecycle.checks.model?.id).toBe('qwen3-4b-instruct.gguf');
+    expect(liveLifecycle.checks.completion.completionOk).toBe(true);
+    expect(liveLifecycle.receiptHash).toMatch(/^sha256:/);
+    expect(lifecycle.ok).toBe(true);
+    expect(lifecycle.profiles[0].stages.map((stage) => stage.id)).toContain('live-lifecycle');
+    expect(lifecycle.profiles[0].liveLifecycle?.target.endpoint).toBe('http://192.168.0.119:18080');
+  });
+
+  it('blocks lifecycle promotion when live proof is required but missing', () => {
+    const lifecycle = buildHoloLlamaFleetLifecycleReport({
+      profile: 'jetson-orin',
+      teamId: 'team_test',
+      generatedAt: '2026-07-05T00:00:00.000Z',
+      requireLiveLifecycle: true,
+    });
+
+    expect(lifecycle.ok).toBe(false);
+    expect(lifecycle.profiles[0].stages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'live-lifecycle',
+          ok: false,
+          summary: 'live HoloLlama lifecycle receipt missing.',
+        }),
+      ])
+    );
   });
 
   it('requires launched-node runtime evidence before vision benchmark routing', () => {

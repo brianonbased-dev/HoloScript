@@ -17,6 +17,7 @@ holollama mesh --profile jetson-orin --team-id team_... --json
 holollama preflight --profile laptop-windows --json
 holollama contract --profile laptop-windows --json
 holollama lifecycle --team-id team_... --json
+holollama lifecycle --profile jetson-orin --live --team-id team_... --json
 holollama profiles
 holollama brains
 holollama brain --task "compose eerie ambience for a cave level" --json
@@ -52,6 +53,14 @@ Operational receipts:
   Runtime-readiness is the launched-node gate for benchmark/routing callers:
   port owner, stale `llama-server` cleanup, `/v1/models` multimodal capability,
   and `/props.modalities.vision`.
+- `lifecycle --live`: probes a live HoloLlama node, attaches
+  `holollama.lifecycle-doctor.v1`, and promotes it into the lifecycle as a
+  `live-lifecycle` stage. The live probe checks optional systemd service state,
+  `/health`, `/v1/models`, and a tiny OpenAI-compatible completion. Use
+  `--endpoint`, `--host`, `--key`, `--unit`, `--models-path`, `--timeout-ms`,
+  `--prompt`, `--max-tokens`, `--no-systemd`, and `--require-systemd` to adapt
+  the same package to Jetson, laptop, and Vast fleet lanes. `HOLOLLAMA_ENDPOINT`,
+  `JETSON_HOST`, and `JETSON_KEY` are honored by the CLI.
 
 ## Brains
 
@@ -85,6 +94,7 @@ import {
   buildLlamaServeComposition,
   compileHoloLlamaBundle,
   doctorHoloLlamaProfiles,
+  probeHoloLlamaLiveLifecycle,
   writeHoloLlamaBundleFiles,
 } from '@holoscript/holollama';
 
@@ -94,6 +104,13 @@ await writeHoloLlamaBundleFiles(bundle, './holollama-bundle');
 
 const report = doctorHoloLlamaProfiles();
 console.log(report.ok);
+
+const live = await probeHoloLlamaLiveLifecycle({
+  profile: 'jetson-orin',
+  endpoint: 'http://192.168.0.119:18080',
+  skipSystemd: true,
+});
+console.log(live.runtimeState);
 ```
 
 ## Serving Strategy
@@ -101,7 +118,8 @@ console.log(report.ok);
 `@holoscript/core` owns parsing and compilation. `@holoscript/mcp-server` exposes
 agent tools. `@holoscript/holollama` is the installable operating surface for
 owned local model serving. Fleet hosts consume this package to author, inspect,
-and materialize serving bundles without installing the full MCP server.
+materialize, and live-prove serving bundles without installing the full MCP
+server.
 
 Run `corepack pnpm check:holollama-consumption` after building to prove the
 built API and CLI are consumable by laptop, Jetson, and Vast fleet lanes. The

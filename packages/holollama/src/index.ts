@@ -1,6 +1,9 @@
+import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { homedir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   LlamaServerCompiler,
@@ -263,22 +266,139 @@ export interface HoloLlamaRuntimeReadinessReceipt {
   blockers: string[];
 }
 
+export interface HoloLlamaSystemdEvidence {
+  unit: string;
+  raw?: string;
+  LoadState?: string;
+  ActiveState?: string;
+  SubState?: string;
+  FragmentPath?: string;
+  ExecMainPID?: string;
+  loaded?: boolean;
+  active?: boolean;
+  running?: boolean;
+  ok: boolean | null;
+  skipped?: boolean;
+  error?: string;
+}
+
+export interface HoloLlamaHttpProbe {
+  url: string;
+  ok: boolean | null;
+  status?: number;
+  statusText?: string;
+  body?: unknown;
+  error?: string;
+  skipped?: boolean;
+}
+
+export interface HoloLlamaLiveModelSummary {
+  id: string | null;
+  name: string | null;
+  ownedBy: string | null;
+  nVocab: number | null;
+  nCtx: number | null;
+  nParams: number | null;
+}
+
+export interface HoloLlamaCompletionProbe extends HoloLlamaHttpProbe {
+  mode?: 'openai-chat' | 'llama-completion-fallback';
+  model?: string;
+  contentPreview?: string;
+  completionOk?: boolean;
+  fallbackFrom?: {
+    url: string;
+    ok: boolean | null;
+    status?: number;
+    error?: string | null;
+  };
+}
+
+export type HoloLlamaFetch = (
+  input: string,
+  init?: {
+    method?: string;
+    headers?: Record<string, string>;
+    body?: string;
+    signal?: AbortSignal;
+  }
+) => Promise<{
+  ok: boolean;
+  status: number;
+  statusText: string;
+  text: () => Promise<string>;
+}>;
+
+export interface HoloLlamaLiveLifecycleOptions {
+  profile?: HoloLlamaProfile;
+  generatedAt?: string;
+  endpoint?: string;
+  sshHost?: string;
+  sshKey?: string;
+  systemdUnit?: string;
+  modelsPath?: string;
+  timeoutMs?: number;
+  prompt?: string;
+  maxTokens?: number;
+  noLive?: boolean;
+  skipSystemd?: boolean;
+  requireSystemd?: boolean;
+  fetchImpl?: HoloLlamaFetch;
+  systemdProbe?: HoloLlamaSystemdEvidence;
+}
+
+export interface HoloLlamaLiveLifecycleReceipt {
+  schema: typeof HOLOLLAMA_LIVE_LIFECYCLE_SCHEMA;
+  generatedAt: string;
+  ok: boolean;
+  runtimeState: 'ready' | 'attention_required' | 'blocked';
+  profile: HoloLlamaProfile;
+  consumer: HoloLlamaProfileDefinition['consumer'];
+  registryHandle: string;
+  target: {
+    endpoint: string;
+    unit?: string;
+    sshHost?: string;
+    modelsPath: string;
+    package: '@holoscript/holollama';
+    providerCompatibilityId: string;
+  };
+  checks: {
+    systemd: HoloLlamaSystemdEvidence;
+    health: HoloLlamaHttpProbe;
+    models: HoloLlamaHttpProbe;
+    model: HoloLlamaLiveModelSummary | null;
+    completion: HoloLlamaCompletionProbe;
+  };
+  failures: string[];
+  warnings: string[];
+  safety: {
+    destructiveActionsTaken: false;
+    paidComputeUsed: false;
+    secretsIncluded: false;
+  };
+  receiptHash: string;
+}
+
 export interface HoloLlamaFleetLifecycleOptions
   extends
     HoloLlamaMeshReadOnlyBridgeOptions,
     Pick<HoloLlamaVisionPreflightOptions, 'checkFilesystem' | 'exists'> {
   requireRuntimeReadiness?: boolean;
   runtimeObservations?: Partial<Record<HoloLlamaProfile, HoloLlamaRuntimeObservation>>;
+  requireLiveLifecycle?: boolean;
+  liveLifecycleReceipts?: Partial<Record<HoloLlamaProfile, HoloLlamaLiveLifecycleReceipt>>;
 }
 
 export interface HoloLlamaFleetLifecycleStage {
   id:
     | 'plan'
     | 'server-contract'
-    | 'vision-preflight'
-    | 'runtime-readiness'
-    | 'mesh-readonly-bridge'
-    | 'serve-health-probe';
+     | 'vision-preflight'
+     | 'runtime-readiness'
+     | 'mesh-readonly-bridge'
+     | 'serve-health-probe'
+     | 'live-lifecycle';
   ok: boolean;
   receiptSchema: string;
   summary: string;
@@ -295,6 +415,7 @@ export interface HoloLlamaFleetLifecycleProfile {
   visionPreflight: HoloLlamaVisionPreflightReceipt;
   runtimeReadiness: HoloLlamaRuntimeReadinessReceipt;
   meshReadOnlyBridge: HoloLlamaMeshReadOnlyBridgeReceipt;
+  liveLifecycle?: HoloLlamaLiveLifecycleReceipt;
 }
 
 export interface HoloLlamaFleetLifecycleReport {
@@ -315,6 +436,9 @@ const DEFAULT_LAPTOP_HOLO_LLAMA_BIN_DIR =
 const DEFAULT_HOLOMESH_ORCHESTRATOR_URL = 'https://mcp-orchestrator-production-45f9.up.railway.app';
 const DEFAULT_HOLOMESH_TEAM_ID = 'TEAM_ID';
 const DEFAULT_HOLOMESH_API_KEY_ENV = 'HOLOSCRIPT_API_KEY';
+const DEFAULT_JETSON_HOLOLLAMA_LIVE_ENDPOINT = 'http://192.168.0.119:18080';
+const DEFAULT_JETSON_HOLOLLAMA_SSH_HOST = 'username@192.168.0.119';
+const DEFAULT_JETSON_HOLOLLAMA_SYSTEMD_UNIT = 'jetson-orin-llamacpp.service';
 const HOLOLLAMA_PROFILE_SOURCE_DIR = join(
   dirname(fileURLToPath(import.meta.url)),
   '..',
@@ -326,6 +450,7 @@ export const HOLOLLAMA_SERVER_CONTRACT_SCHEMA = 'holollama.llama-cpp-server-cont
 export const HOLOLLAMA_VISION_PREFLIGHT_SCHEMA = 'holollama.llama-cpp-vision-preflight.v1';
 export const HOLOLLAMA_RUNTIME_READINESS_SCHEMA =
   'holollama.llama-cpp-runtime-readiness.v1';
+export const HOLOLLAMA_LIVE_LIFECYCLE_SCHEMA = 'holollama.lifecycle-doctor.v1';
 export const HOLOLLAMA_FLEET_LIFECYCLE_SCHEMA = 'holollama.fleet-lifecycle.v1';
 export const HOLOLLAMA_PROFILE_DEFINITIONS: Record<HoloLlamaProfile, HoloLlamaProfileDefinition> = {
   'jetson-orin': {
@@ -923,6 +1048,182 @@ export function assessHoloLlamaRuntimeReadiness(
   };
 }
 
+export function parseHoloLlamaSystemdShow(
+  output: string,
+  unit = DEFAULT_JETSON_HOLOLLAMA_SYSTEMD_UNIT
+): HoloLlamaSystemdEvidence {
+  const fields: Record<string, string> = {};
+  for (const line of output.split(/\r?\n/u)) {
+    const [key, ...rest] = line.split('=');
+    if (key) fields[key] = rest.join('=');
+  }
+  const loaded = fields.LoadState === 'loaded';
+  const active = fields.ActiveState === 'active';
+  const running = fields.SubState === 'running';
+  return {
+    unit,
+    raw: output,
+    LoadState: fields.LoadState,
+    ActiveState: fields.ActiveState,
+    SubState: fields.SubState,
+    FragmentPath: fields.FragmentPath,
+    ExecMainPID: fields.ExecMainPID,
+    loaded,
+    active,
+    running,
+    ok: loaded && active,
+  };
+}
+
+export function firstModelFromHoloLlamaModelsPayload(
+  payload: unknown
+): HoloLlamaLiveModelSummary | null {
+  const body = isRecord(payload) && 'body' in payload ? payload.body : payload;
+  const first = isRecord(body)
+    ? Array.isArray(body.data)
+      ? body.data[0]
+      : Array.isArray(body.models)
+        ? body.models[0]
+        : null
+    : null;
+  if (!isRecord(first)) return null;
+  const meta = isRecord(first.meta) ? first.meta : {};
+  const details = isRecord(first.details) ? first.details : {};
+  return {
+    id: stringField(first, 'id') ?? stringField(first, 'model') ?? stringField(first, 'name') ?? null,
+    name: stringField(first, 'name') ?? stringField(first, 'id') ?? stringField(first, 'model') ?? null,
+    ownedBy: stringField(first, 'owned_by') ?? null,
+    nVocab: numberField(meta, 'n_vocab') ?? numberField(details, 'n_vocab') ?? null,
+    nCtx: numberField(meta, 'n_ctx') ?? null,
+    nParams: numberField(meta, 'n_params') ?? null,
+  };
+}
+
+export async function probeHoloLlamaLiveLifecycle(
+  options: HoloLlamaLiveLifecycleOptions = {}
+): Promise<HoloLlamaLiveLifecycleReceipt> {
+  const profile = options.profile ?? 'jetson-orin';
+  const definition = HOLOLLAMA_PROFILE_DEFINITIONS[profile];
+  const generatedAt = options.generatedAt ?? new Date().toISOString();
+  const endpoint = normalizeLiveEndpoint(
+    options.endpoint ?? defaultHoloLlamaLiveEndpoint(profile)
+  );
+  const timeoutMs = positiveOrDefault(options.timeoutMs, 20000);
+  const maxTokens = positiveOrDefault(options.maxTokens, 12);
+  const prompt = options.prompt ?? 'Reply with a tiny readiness token.';
+  const fetchImpl = options.fetchImpl ?? (globalThis.fetch as HoloLlamaFetch | undefined);
+  const failures: string[] = [];
+  const warnings: string[] = [];
+  const noLive = options.noLive === true;
+
+  if (!fetchImpl && !noLive) {
+    throw new Error('fetch is unavailable for live HoloLlama probes');
+  }
+
+  let systemd: HoloLlamaSystemdEvidence;
+  let health: HoloLlamaHttpProbe;
+  let models: HoloLlamaHttpProbe;
+  let model: HoloLlamaLiveModelSummary | null = null;
+  let completion: HoloLlamaCompletionProbe;
+
+  const systemdUnit = options.systemdUnit ?? defaultHoloLlamaSystemdUnit(profile);
+  const sshHost = options.sshHost ?? defaultHoloLlamaSshHost(profile);
+  const sshKey = options.sshKey ?? resolve(homedir(), '.ssh', 'jetson_ed25519');
+
+  if (noLive) {
+    warnings.push('live probes skipped by caller');
+    systemd = { ok: null, skipped: true, unit: systemdUnit ?? 'none' };
+    health = { ok: null, skipped: true, url: `${endpoint}/health` };
+    models = { ok: null, skipped: true, url: `${endpoint}/v1/models` };
+    completion = { ok: null, skipped: true, url: `${endpoint}/v1/chat/completions` };
+  } else {
+    if (options.systemdProbe) {
+      systemd = options.systemdProbe;
+    } else if (options.skipSystemd || !systemdUnit || !sshHost) {
+      systemd = { ok: null, skipped: true, unit: systemdUnit ?? 'none' };
+      warnings.push('systemd probe skipped; pass sshHost/systemdUnit for service ownership proof.');
+    } else {
+      try {
+        systemd = runHoloLlamaSystemdProbe({ sshHost, sshKey, systemdUnit, timeoutMs });
+      } catch (error) {
+        systemd = {
+          ok: false,
+          unit: systemdUnit,
+          error: systemdProbeError(error),
+        };
+      }
+    }
+    if (options.requireSystemd && !systemd.ok) failures.push('systemd unit is not active');
+
+    health = await fetchHoloLlamaJson(fetchImpl as HoloLlamaFetch, `${endpoint}/health`, {
+      timeoutMs,
+    });
+    if (!health.ok) failures.push('/health is not reachable');
+
+    models = await fetchHoloLlamaJson(fetchImpl as HoloLlamaFetch, `${endpoint}/v1/models`, {
+      timeoutMs,
+    });
+    model = firstModelFromHoloLlamaModelsPayload(models);
+    if (!models.ok) failures.push('/v1/models is not reachable');
+    if (!model) failures.push('/v1/models returned no model');
+    if (model?.ownedBy && model.ownedBy !== 'llamacpp') {
+      failures.push(`model owner is ${model.ownedBy}, expected llamacpp`);
+    }
+
+    completion = await runHoloLlamaCompletionProbe(fetchImpl as HoloLlamaFetch, endpoint, model, {
+      prompt,
+      maxTokens,
+      timeoutMs,
+    });
+    if (!completion.completionOk) failures.push('tiny completion failed or returned empty content');
+    if (completion.mode === 'llama-completion-fallback') {
+      warnings.push('OpenAI chat completion fell back to /completion');
+    }
+  }
+
+  const runtimeState: HoloLlamaLiveLifecycleReceipt['runtimeState'] = failures.length
+    ? 'blocked'
+    : warnings.length
+      ? 'attention_required'
+      : 'ready';
+  const reportWithoutHash: Omit<HoloLlamaLiveLifecycleReceipt, 'receiptHash'> = {
+    schema: HOLOLLAMA_LIVE_LIFECYCLE_SCHEMA,
+    generatedAt,
+    ok: failures.length === 0,
+    runtimeState,
+    profile,
+    consumer: definition.consumer,
+    registryHandle: definition.spec.registerAs,
+    target: {
+      endpoint,
+      unit: systemdUnit,
+      sshHost,
+      modelsPath: options.modelsPath ?? defaultHoloLlamaModelsPath(profile),
+      package: '@holoscript/holollama' as const,
+      providerCompatibilityId: definition.spec.registerAs,
+    },
+    checks: {
+      systemd,
+      health,
+      models,
+      model,
+      completion,
+    },
+    failures,
+    warnings,
+    safety: {
+      destructiveActionsTaken: false as const,
+      paidComputeUsed: false as const,
+      secretsIncluded: false as const,
+    },
+  };
+
+  return {
+    ...reportWithoutHash,
+    receiptHash: sha256Json({ ...reportWithoutHash, receiptHash: null }),
+  };
+}
+
 export function buildHoloLlamaFleetLifecycleReport(
   options: HoloLlamaFleetLifecycleOptions = {}
 ): HoloLlamaFleetLifecycleReport {
@@ -943,6 +1244,7 @@ export function buildHoloLlamaFleetLifecycleReport(
       requireRuntimeReadiness: options.requireRuntimeReadiness,
       observation: options.runtimeObservations?.[profile],
     });
+    const liveLifecycle = options.liveLifecycleReceipts?.[profile];
     const meshReadOnlyBridge = buildHoloMeshReadOnlyBridge({
       profile,
       teamId: options.teamId,
@@ -996,6 +1298,18 @@ export function buildHoloLlamaFleetLifecycleReport(
         summary: doctor.healthUrl || 'health URL missing',
       },
     ];
+    if (liveLifecycle || options.requireLiveLifecycle) {
+      stages.push({
+        id: 'live-lifecycle',
+        ok: Boolean(liveLifecycle?.ok),
+        receiptSchema: HOLOLLAMA_LIVE_LIFECYCLE_SCHEMA,
+        summary: liveLifecycle
+          ? liveLifecycle.ok
+            ? `${liveLifecycle.target.endpoint} served ${liveLifecycle.checks.model?.id ?? 'a model'} with a non-empty completion.`
+            : `${liveLifecycle.failures.length} live lifecycle blocker(s).`
+          : 'live HoloLlama lifecycle receipt missing.',
+      });
+    }
 
     return {
       profile,
@@ -1008,6 +1322,7 @@ export function buildHoloLlamaFleetLifecycleReport(
       visionPreflight,
       runtimeReadiness,
       meshReadOnlyBridge,
+      ...(liveLifecycle ? { liveLifecycle } : {}),
     };
   });
 
@@ -1232,6 +1547,230 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function stringField(record: Record<string, unknown>, key: string): string | undefined {
   const value = record[key];
   return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+function numberField(record: Record<string, unknown>, key: string): number | undefined {
+  const value = record[key];
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function defaultHoloLlamaLiveEndpoint(profile: HoloLlamaProfile): string {
+  if (profile === 'jetson-orin') return DEFAULT_JETSON_HOLOLLAMA_LIVE_ENDPOINT;
+  const spec = HOLOLLAMA_PROFILE_DEFINITIONS[profile].spec;
+  const host = spec.host === '0.0.0.0' ? '127.0.0.1' : spec.host;
+  return `http://${host}:${spec.port}`;
+}
+
+function defaultHoloLlamaSshHost(profile: HoloLlamaProfile): string | undefined {
+  return profile === 'jetson-orin' ? DEFAULT_JETSON_HOLOLLAMA_SSH_HOST : undefined;
+}
+
+function defaultHoloLlamaSystemdUnit(profile: HoloLlamaProfile): string | undefined {
+  if (profile === 'jetson-orin') return DEFAULT_JETSON_HOLOLLAMA_SYSTEMD_UNIT;
+  if (profile === 'vast-linux-gpu') return 'holollama.service';
+  return undefined;
+}
+
+function defaultHoloLlamaModelsPath(profile: HoloLlamaProfile): string {
+  const spec = HOLOLLAMA_PROFILE_DEFINITIONS[profile].spec;
+  if (profile === 'jetson-orin') return '/mnt/nvme/holo/models';
+  return dirname(spec.modelPath);
+}
+
+function normalizeLiveEndpoint(value: string): string {
+  return value.replace(/\/+$/g, '');
+}
+
+function positiveOrDefault(value: number | undefined, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+function runHoloLlamaSystemdProbe(options: {
+  sshHost: string;
+  sshKey: string;
+  systemdUnit: string;
+  timeoutMs: number;
+}): HoloLlamaSystemdEvidence {
+  const output = execFileSync(
+    'ssh',
+    [
+      '-i',
+      options.sshKey,
+      '-o',
+      'ConnectTimeout=15',
+      '-o',
+      'StrictHostKeyChecking=accept-new',
+      options.sshHost,
+      'systemctl',
+      'show',
+      options.systemdUnit,
+      '-p',
+      'LoadState',
+      '-p',
+      'ActiveState',
+      '-p',
+      'SubState',
+      '-p',
+      'FragmentPath',
+      '-p',
+      'ExecMainPID',
+    ],
+    {
+      encoding: 'utf8',
+      timeout: options.timeoutMs,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      maxBuffer: 1024 * 1024,
+    }
+  );
+  return parseHoloLlamaSystemdShow(output, options.systemdUnit);
+}
+
+async function fetchHoloLlamaJson(
+  fetchImpl: HoloLlamaFetch,
+  url: string,
+  options: { timeoutMs: number; method?: string; body?: unknown }
+): Promise<HoloLlamaHttpProbe> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), options.timeoutMs);
+  try {
+    const response = await fetchImpl(url, {
+      method: options.method ?? 'GET',
+      headers: options.body
+        ? { 'content-type': 'application/json', accept: 'application/json' }
+        : { accept: 'application/json' },
+      body: options.body ? JSON.stringify(options.body) : undefined,
+      signal: controller.signal,
+    });
+    const text = await response.text();
+    let json: unknown = null;
+    try {
+      json = text ? JSON.parse(text) : null;
+    } catch {
+      json = null;
+    }
+    return {
+      url,
+      ok: response.ok,
+      status: response.status,
+      statusText: response.statusText,
+      body: compactHoloLlamaBody(json, text),
+    };
+  } catch (error) {
+    return {
+      url,
+      ok: false,
+      status: 0,
+      error: error instanceof Error && error.name === 'AbortError' ? 'timeout' : errorMessage(error),
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function runHoloLlamaCompletionProbe(
+  fetchImpl: HoloLlamaFetch,
+  endpoint: string,
+  model: HoloLlamaLiveModelSummary | null,
+  options: { prompt: string; maxTokens: number; timeoutMs: number }
+): Promise<HoloLlamaCompletionProbe> {
+  const chatBody = {
+    model: model?.id || model?.name || 'qwen3-4b-instruct.gguf',
+    messages: [{ role: 'user', content: options.prompt }],
+    max_tokens: options.maxTokens,
+    temperature: 0,
+    stream: false,
+  };
+  const chat = await fetchHoloLlamaJson(fetchImpl, `${endpoint}/v1/chat/completions`, {
+    timeoutMs: options.timeoutMs,
+    method: 'POST',
+    body: chatBody,
+  });
+  const chatContent = completionContent(chat);
+  if (chat.ok && String(chatContent).trim()) {
+    return {
+      ...chat,
+      mode: 'openai-chat',
+      model: chatBody.model,
+      contentPreview: String(chatContent).slice(0, 300),
+      completionOk: true,
+    };
+  }
+
+  const completion = await fetchHoloLlamaJson(fetchImpl, `${endpoint}/completion`, {
+    timeoutMs: options.timeoutMs,
+    method: 'POST',
+    body: {
+      prompt: options.prompt,
+      n_predict: options.maxTokens,
+      temperature: 0,
+      stream: false,
+    },
+  });
+  const fallbackContent = completionContent(completion);
+  return {
+    ...completion,
+    mode: 'llama-completion-fallback',
+    fallbackFrom: {
+      url: chat.url,
+      ok: chat.ok,
+      status: chat.status,
+      error: chat.error ?? null,
+    },
+    contentPreview: String(fallbackContent || '').slice(0, 300),
+    completionOk: completion.ok === true && Boolean(String(fallbackContent || '').trim()),
+  };
+}
+
+function completionContent(payload: HoloLlamaHttpProbe): string {
+  const body = payload.body;
+  if (!isRecord(body)) return '';
+  const choices = Array.isArray(body.choices) ? body.choices : [];
+  const first = choices[0];
+  if (isRecord(first)) {
+    if (isRecord(first.message) && typeof first.message.content === 'string') {
+      return first.message.content;
+    }
+    if (typeof first.text === 'string') return first.text;
+  }
+  if (typeof body.content === 'string') return body.content;
+  if (typeof body.response === 'string') return body.response;
+  return '';
+}
+
+function compactHoloLlamaBody(json: unknown, text: string): unknown {
+  if (isRecord(json) || Array.isArray(json)) return json;
+  return text ? text.slice(0, 500) : null;
+}
+
+function sha256Json(value: unknown): string {
+  return `sha256:${createHash('sha256').update(JSON.stringify(stableJson(value)), 'utf8').digest('hex')}`;
+}
+
+function stableJson(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stableJson);
+  if (isRecord(value)) {
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map((key) => [key, stableJson(value[key])])
+    );
+  }
+  return value;
+}
+
+function systemdProbeError(error: unknown): string {
+  if (isRecord(error)) {
+    const stderr = error.stderr;
+    if (typeof stderr === 'string') return stderr.slice(0, 1000);
+    if (stderr && typeof stderr === 'object' && 'toString' in stderr) {
+      return String(stderr).slice(0, 1000);
+    }
+  }
+  return errorMessage(error).slice(0, 1000);
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 function quote(value: string): string {

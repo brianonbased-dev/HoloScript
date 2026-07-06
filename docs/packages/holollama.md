@@ -18,6 +18,7 @@ holollama doctor --json
 holollama mesh --profile jetson-orin --team-id team_... --json
 holollama preflight --profile laptop-windows --json
 holollama lifecycle --team-id team_... --json
+holollama lifecycle --profile jetson-orin --live --team-id team_... --json
 holollama profiles
 holollama brains
 holollama brain --task "compose eerie ambience for a cave level" --json
@@ -52,8 +53,15 @@ coherent. Add `--check-filesystem` on the target node when you want local proof
 that the executable, model, and projector files exist.
 
 `holollama lifecycle` emits a `holollama.fleet-lifecycle.v1` receipt that joins
-the serving plan, vision preflight, read-only HoloMesh bridge, and health-probe
-stage for every fleet profile.
+the serving plan, server contract, vision preflight, runtime-readiness,
+read-only HoloMesh bridge, and health-probe stages for every fleet profile.
+`holollama lifecycle --live` scopes to a profile, probes the running HoloLlama
+endpoint, and promotes `holollama.lifecycle-doctor.v1` into the lifecycle as a
+`live-lifecycle` stage. The live probe checks optional systemd service state,
+`/health`, `/v1/models`, and a tiny OpenAI-compatible completion. Use
+`--endpoint`, `--host`, `--key`, `--unit`, `--models-path`, `--timeout-ms`,
+`--prompt`, `--max-tokens`, `--no-systemd`, and `--require-systemd` to adapt the
+same package to Jetson, laptop, and Vast fleet lanes.
 
 ## Brains
 
@@ -80,6 +88,7 @@ import {
   buildLlamaServeComposition,
   compileHoloLlamaBundle,
   doctorHoloLlamaProfiles,
+  probeHoloLlamaLiveLifecycle,
   writeHoloLlamaBundleFiles,
 } from '@holoscript/holollama';
 
@@ -89,6 +98,13 @@ await writeHoloLlamaBundleFiles(bundle, './holollama-bundle');
 
 const report = doctorHoloLlamaProfiles();
 console.log(report.ok);
+
+const live = await probeHoloLlamaLiveLifecycle({
+  profile: 'jetson-orin',
+  endpoint: 'http://192.168.0.119:18080',
+  skipSystemd: true,
+});
+console.log(live.runtimeState);
 ```
 
 ## Canonical Role
@@ -113,8 +129,8 @@ owned-model inference lane beside them:
 - Absorb owns codebase-intelligence orchestration and GraphRAG state.
 - HoloGraph owns structural graph behavior inside Absorb.
 - HoloEmbed owns keyless native embeddings.
-- HoloLlama owns llama.cpp serving plans, Brain routing receipts, and local
-  inference fleet handoffs.
+- HoloLlama owns llama.cpp serving plans, live lifecycle receipts, Brain routing
+  receipts, and local inference fleet handoffs.
 
 Absorb may use HoloLlama-proved local endpoints or receipts for answer
 synthesis, but HoloLlama should not depend on Absorb cache internals. See
