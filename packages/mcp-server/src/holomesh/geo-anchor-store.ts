@@ -301,12 +301,12 @@ export function createGeoAnchorStore(): GeoAnchorStore {
       const { Pool } = require('pg');
       const pool = new Pool(createHoloMeshPostgresPoolOptions(databaseUrl));
       const backend = new PostgresGeoAnchorStoreBackend(pool);
-      console.log('[GeoAnchorStore] PostgreSQL backend active (multi-instance)');
+      console.error('[GeoAnchorStore] PostgreSQL backend active (multi-instance)');
       return new GeoAnchorStore(backend, true);
     } catch (e) {
       console.warn('[GeoAnchorStore] DATABASE_URL set but pg failed to load:', e);
     }
   }
-  console.log('[GeoAnchorStore] In-memory backend (single-instance / dev)');
+  console.error('[GeoAnchorStore] In-memory backend (single-instance / dev)');
   return new GeoAnchorStore(new InMemoryGeoAnchorStoreBackend(), false);
 }

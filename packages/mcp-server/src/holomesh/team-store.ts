@@ -282,12 +282,12 @@ export function createTeamStore(): TeamStore {
       const { Pool } = require('pg');
       const pool = new Pool(createTeamStorePostgresPoolOptions(databaseUrl));
       const backend = new PostgresTeamStoreBackend(pool);
-      console.log('[TeamStore] PostgreSQL backend active (multi-instance)');
+      console.error('[TeamStore] PostgreSQL backend active (multi-instance)');
       return new TeamStore(backend, true);
     } catch (e) {
       console.warn('[TeamStore] DATABASE_URL set but pg failed to load:', e);
     }
   }
-  console.log('[TeamStore] In-memory backend (single-instance / dev)');
+  console.error('[TeamStore] In-memory backend (single-instance / dev)');
   return new TeamStore(new InMemoryTeamStoreBackend(), false);
 }

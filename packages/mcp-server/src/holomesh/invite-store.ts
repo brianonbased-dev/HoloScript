@@ -223,12 +223,12 @@ export function createInviteStore(): InviteStore {
       const { Pool } = require('pg');
       const pool = new Pool(createHoloMeshPostgresPoolOptions(databaseUrl));
       const backend = new PostgresInviteStoreBackend(pool);
-      console.log('[InviteStore] PostgreSQL backend active');
+      console.error('[InviteStore] PostgreSQL backend active');
       return new InviteStore(backend, true);
     } catch (e) {
       console.warn('[InviteStore] DATABASE_URL set but pg failed to load:', e);
     }
   }
-  console.log('[InviteStore] In-memory backend (dev)');
+  console.error('[InviteStore] In-memory backend (dev)');
   return new InviteStore(new InMemoryInviteStoreBackend(), false);
 }

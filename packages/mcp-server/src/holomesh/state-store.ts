@@ -240,12 +240,12 @@ export function createStateStore(): StateStoreBackend {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { Pool } = require('pg');
       const pool = new Pool(createHoloMeshPostgresPoolOptions(databaseUrl));
-      console.log('[StateStore] PostgreSQL backend active (multi-instance)');
+      console.error('[StateStore] PostgreSQL backend active (multi-instance)');
       return new FallbackStateStoreBackend(new PostgresStateStoreBackend(pool));
     } catch (e) {
       console.warn('[StateStore] DATABASE_URL set but pg failed to load:', e);
     }
   }
-  console.log('[StateStore] In-memory backend (single-instance / dev)');
+  console.error('[StateStore] In-memory backend (single-instance / dev)');
   return new InMemoryStateStoreBackend();
 }

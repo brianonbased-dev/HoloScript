@@ -535,7 +535,17 @@ export async function _handleSingleToolLogic(
 import { requireConfig, REQUIRED_VARS } from '@holoscript/config';
 import { loadNativeAgentCompositions } from './holomesh/agent/loader';
 
+function routeStdioDiagnosticsToStderr(): void {
+  const writeDiagnostic = (...data: unknown[]) => {
+    console.error(...data);
+  };
+  console.log = writeDiagnostic;
+  console.info = writeDiagnostic;
+}
+
 async function main() {
+  routeStdioDiagnosticsToStderr();
+
   // Load agent definitions from native .hsplus fixtures
   loadNativeAgentCompositions();
 

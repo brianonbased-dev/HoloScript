@@ -288,12 +288,12 @@ export function createPlayerStore(): PlayerStore {
       const { Pool } = require('pg');
       const pool = new Pool(createHoloMeshPostgresPoolOptions(databaseUrl));
       const backend = new PostgresPlayerStoreBackend(pool);
-      console.log('[PlayerStore] PostgreSQL backend active (multi-instance)');
+      console.error('[PlayerStore] PostgreSQL backend active (multi-instance)');
       return new PlayerStore(backend, true);
     } catch (e) {
       console.warn('[PlayerStore] DATABASE_URL set but pg failed to load:', e);
     }
   }
-  console.log('[PlayerStore] In-memory backend (single-instance / dev)');
+  console.error('[PlayerStore] In-memory backend (single-instance / dev)');
   return new PlayerStore(new InMemoryPlayerStoreBackend(), false);
 }
