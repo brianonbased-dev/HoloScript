@@ -203,6 +203,23 @@ export interface HoloLlamaVisionPreflightReceipt {
   blockers: string[];
 }
 
+export interface HoloLlamaServerContractOptions {
+  generatedAt?: string;
+}
+
+export interface HoloLlamaServerContractReceipt {
+  schema: typeof HOLOLLAMA_SERVER_CONTRACT_SCHEMA;
+  generatedAt: string;
+  ok: boolean;
+  profile: HoloLlamaProfile;
+  consumer: HoloLlamaProfileDefinition['consumer'];
+  registryHandle: string;
+  visionRequested: boolean;
+  checks: HoloLlamaPreflightCheck[];
+  warnings: string[];
+  blockers: string[];
+}
+
 export interface HoloLlamaRuntimePortOwnerEvidence {
   ok: boolean;
   detail: string;
@@ -257,6 +274,7 @@ export interface HoloLlamaFleetLifecycleOptions
 export interface HoloLlamaFleetLifecycleStage {
   id:
     | 'plan'
+    | 'server-contract'
     | 'vision-preflight'
     | 'runtime-readiness'
     | 'mesh-readonly-bridge'
@@ -273,6 +291,7 @@ export interface HoloLlamaFleetLifecycleProfile {
   ok: boolean;
   stages: HoloLlamaFleetLifecycleStage[];
   doctor: HoloLlamaProfileDoctorResult;
+  serverContract: HoloLlamaServerContractReceipt;
   visionPreflight: HoloLlamaVisionPreflightReceipt;
   runtimeReadiness: HoloLlamaRuntimeReadinessReceipt;
   meshReadOnlyBridge: HoloLlamaMeshReadOnlyBridgeReceipt;
@@ -303,6 +322,7 @@ const HOLOLLAMA_PROFILE_SOURCE_DIR = join(
 );
 export const HOLOLLAMA_DOCTOR_SCHEMA = 'holollama.doctor.v1';
 export const HOLOLLAMA_MESH_READONLY_BRIDGE_SCHEMA = 'holollama.holomesh-readonly-bridge.v1';
+export const HOLOLLAMA_SERVER_CONTRACT_SCHEMA = 'holollama.llama-cpp-server-contract.v1';
 export const HOLOLLAMA_VISION_PREFLIGHT_SCHEMA = 'holollama.llama-cpp-vision-preflight.v1';
 export const HOLOLLAMA_RUNTIME_READINESS_SCHEMA =
   'holollama.llama-cpp-runtime-readiness.v1';
@@ -642,6 +662,109 @@ export function buildHoloMeshReadOnlyBridge(
   };
 }
 
+export function verifyHoloLlamaServerContract(
+  profile: HoloLlamaProfile = 'jetson-orin',
+  options: HoloLlamaServerContractOptions = {}
+): HoloLlamaServerContractReceipt {
+  const definition = HOLOLLAMA_PROFILE_DEFINITIONS[profile];
+  const spec = definition.spec;
+  const bundle = compileHoloLlamaBundle({ profile });
+  const registry = extractSovereignDeviceRegistry(bundle);
+  const capabilities = Array.isArray(registry.capabilities) ? registry.capabilities : [];
+  const localLlm = capabilities.find(
+    (capability) => isRecord(capability) && capability.id === 'local-llm'
+  );
+  const baseEndpoint = bundle.registryEntry.endpoint.replace(/\/v1\/?$/i, '');
+  const mmprojArg = argAfter(bundle.launch.args, '--mmproj');
+  const imageMin = argAfter(bundle.launch.args, '--image-min-tokens');
+  const imageMax = argAfter(bundle.launch.args, '--image-max-tokens');
+  const checks: HoloLlamaPreflightCheck[] = [
+    check(
+      'registry-capabilities-array',
+      true,
+      Array.isArray(registry.capabilities),
+      'sovereign-devices registry must expose capabilities[]'
+    ),
+    check(
+      'registry-local-llm-capability',
+      true,
+      Boolean(localLlm),
+      'registry capabilities[] must include id=local-llm'
+    ),
+    check(
+      'registry-base-endpoint',
+      true,
+      isRecord(localLlm) &&
+        localLlm.endpoint === baseEndpoint &&
+        !String(localLlm.endpoint).replace(/\/+$/g, '').endsWith('/v1'),
+      `expected base endpoint ${baseEndpoint}`
+    ),
+    check(
+      'registry-llama-backend',
+      true,
+      isRecord(localLlm) &&
+        localLlm.backend === 'llama.cpp' &&
+        localLlm.serverKind === 'llama-server',
+      'registry local-llm capability must declare backend=llama.cpp and serverKind=llama-server'
+    ),
+    check(
+      'registry-vision-flag',
+      true,
+      isRecord(localLlm) && localLlm.vision === spec.vision,
+      `registry vision must equal profile vision=${String(spec.vision)}`
+    ),
+  ];
+
+  if (spec.vision) {
+    checks.push(
+      check(
+        'vision-mmproj-flag',
+        true,
+        Boolean(spec.mmprojPath) && mmprojArg === spec.mmprojPath,
+        `--mmproj must be ${spec.mmprojPath ?? 'set'}`
+      ),
+      check(
+        'vision-image-token-flags',
+        true,
+        imageMin === String(spec.imageMinTokens) && imageMax === String(spec.imageMaxTokens),
+        `image token flags must be ${String(spec.imageMinTokens)}..${String(spec.imageMaxTokens)}`
+      )
+    );
+  } else {
+    checks.push(
+      check(
+        'text-omits-mmproj-flag',
+        true,
+        mmprojArg === undefined,
+        'text profile must not emit --mmproj'
+      ),
+      check(
+        'text-omits-image-token-flags',
+        true,
+        imageMin === undefined && imageMax === undefined,
+        'text profile must not emit llama.cpp image-token flags'
+      )
+    );
+  }
+
+  const blockers = checks
+    .filter((item) => item.required && !item.ok)
+    .map((item) => `${item.id}: ${item.detail}`);
+
+  return {
+    schema: HOLOLLAMA_SERVER_CONTRACT_SCHEMA,
+    generatedAt: options.generatedAt ?? new Date().toISOString(),
+    ok: blockers.length === 0,
+    profile,
+    consumer: definition.consumer,
+    registryHandle: spec.registerAs,
+    visionRequested: spec.vision,
+    checks,
+    warnings: [],
+    blockers,
+  };
+}
+
 export function preflightHoloLlamaVision(
   profile: HoloLlamaProfile = 'laptop-windows',
   options: HoloLlamaVisionPreflightOptions = {}
@@ -809,6 +932,7 @@ export function buildHoloLlamaFleetLifecycleReport(
     : (Object.keys(HOLOLLAMA_PROFILE_DEFINITIONS) as HoloLlamaProfile[]);
   const profiles = profileIds.map((profile) => {
     const doctor = doctorHoloLlamaProfiles({ profile, generatedAt }).profiles[0];
+    const serverContract = verifyHoloLlamaServerContract(profile, { generatedAt });
     const visionPreflight = preflightHoloLlamaVision(profile, {
       generatedAt,
       checkFilesystem: options.checkFilesystem,
@@ -832,6 +956,14 @@ export function buildHoloLlamaFleetLifecycleReport(
         ok: doctor.ok,
         receiptSchema: HOLOLLAMA_DOCTOR_SCHEMA,
         summary: `${doctor.files.length} serving artifact(s) compile for ${doctor.registryHandle}.`,
+      },
+      {
+        id: 'server-contract',
+        ok: serverContract.ok,
+        receiptSchema: HOLOLLAMA_SERVER_CONTRACT_SCHEMA,
+        summary: serverContract.ok
+          ? 'text/vision launch flags and sovereign-devices registry contract pass.'
+          : `${serverContract.blockers.length} server contract blocker(s).`,
       },
       {
         id: 'vision-preflight',
@@ -872,6 +1004,7 @@ export function buildHoloLlamaFleetLifecycleReport(
       ok: stages.every((stage) => stage.ok),
       stages,
       doctor,
+      serverContract,
       visionPreflight,
       runtimeReadiness,
       meshReadOnlyBridge,
@@ -1034,6 +1167,12 @@ function buildVisionFilesystemChecks(
     });
   }
   return checks;
+}
+
+function argAfter(args: string[], flag: string): string | undefined {
+  const index = args.indexOf(flag);
+  if (index < 0) return undefined;
+  return args[index + 1];
 }
 
 function modelsDeclareVision(value: unknown, expectedModel: string): boolean {

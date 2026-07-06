@@ -15,6 +15,7 @@ npm install -g @holoscript/holollama
 holollama doctor --json
 holollama mesh --profile jetson-orin --team-id team_... --json
 holollama preflight --profile laptop-windows --json
+holollama contract --profile laptop-windows --json
 holollama lifecycle --team-id team_... --json
 holollama profiles
 holollama brains
@@ -41,11 +42,16 @@ Operational receipts:
   knowledge endpoints as `holollama.holomesh-readonly-bridge.v1`.
 - `preflight`: proves llama.cpp vision flags and registry capability as
   `holollama.llama-cpp-vision-preflight.v1`.
-- `lifecycle`: joins plan, preflight, runtime-readiness, mesh bridge, and
-  health probe stages as `holollama.fleet-lifecycle.v1`. Runtime-readiness is
-  the launched-node gate for benchmark/routing callers: port owner, stale
-  `llama-server` cleanup, `/v1/models` multimodal capability, and
-  `/props.modalities.vision`.
+- `contract`: proves fleet-bench server contract as
+  `holollama.llama-cpp-server-contract.v1`: text profiles omit `--mmproj` and
+  image-token flags, vision profiles include the intended projector and image
+  token window, and sovereign-device registry entries expose `capabilities[]`
+  with base endpoints for fleet-router discovery.
+- `lifecycle`: joins plan, server-contract, preflight, runtime-readiness, mesh
+  bridge, and health probe stages as `holollama.fleet-lifecycle.v1`.
+  Runtime-readiness is the launched-node gate for benchmark/routing callers:
+  port owner, stale `llama-server` cleanup, `/v1/models` multimodal capability,
+  and `/props.modalities.vision`.
 
 ## Brains
 

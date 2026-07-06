@@ -15,6 +15,7 @@ import {
   readHoloLlamaProfileSource,
   selectHoloLlamaBrain,
   summarizeHoloLlamaBundle,
+  verifyHoloLlamaServerContract,
 } from '../index.js';
 import { selectHoloLlamaBrain as selectHoloLlamaBrainFromSubpath } from '../brain.js';
 
@@ -222,6 +223,37 @@ describe('@holoscript/holollama', () => {
     );
   });
 
+  it('gates the HoloLlama server contract for text and vision fleet benches', () => {
+    const jetson = verifyHoloLlamaServerContract('jetson-orin', {
+      generatedAt: '2026-07-05T00:00:00.000Z',
+    });
+    const laptop = verifyHoloLlamaServerContract('laptop-windows', {
+      generatedAt: '2026-07-05T00:00:00.000Z',
+    });
+
+    expect(jetson.ok).toBe(true);
+    expect(jetson.visionRequested).toBe(false);
+    expect(jetson.checks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'text-omits-mmproj-flag', ok: true }),
+        expect.objectContaining({ id: 'text-omits-image-token-flags', ok: true }),
+        expect.objectContaining({ id: 'registry-capabilities-array', ok: true }),
+        expect.objectContaining({ id: 'registry-base-endpoint', ok: true }),
+      ])
+    );
+
+    expect(laptop.ok).toBe(true);
+    expect(laptop.visionRequested).toBe(true);
+    expect(laptop.checks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'vision-mmproj-flag', ok: true }),
+        expect.objectContaining({ id: 'vision-image-token-flags', ok: true }),
+        expect.objectContaining({ id: 'registry-capabilities-array', ok: true }),
+        expect.objectContaining({ id: 'registry-base-endpoint', ok: true }),
+      ])
+    );
+  });
+
   it('promotes doctor, vision preflight, and mesh bridge into lifecycle checks', () => {
     const lifecycle = buildHoloLlamaFleetLifecycleReport({
       teamId: 'team_test',
@@ -238,6 +270,7 @@ describe('@holoscript/holollama', () => {
     const laptop = lifecycle.profiles.find((profile) => profile.profile === 'laptop-windows');
     expect(laptop?.stages.map((stage) => stage.id)).toEqual([
       'plan',
+      'server-contract',
       'vision-preflight',
       'runtime-readiness',
       'mesh-readonly-bridge',

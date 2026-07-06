@@ -11,6 +11,7 @@ import {
   preflightHoloLlamaVision,
   selectHoloLlamaBrain,
   summarizeHoloLlamaBundle,
+  verifyHoloLlamaServerContract,
   writeHoloLlamaBundleFiles,
   type HoloLlamaProfile,
   type HoloLlamaServeSpec,
@@ -64,6 +65,17 @@ export async function runCli(args = process.argv.slice(2)): Promise<void> {
       return;
     }
     process.stdout.write(formatVisionPreflight(receipt));
+    if (!receipt.ok) process.exitCode = 1;
+    return;
+  }
+
+  if (command === 'contract') {
+    const receipt = verifyHoloLlamaServerContract(readProfile(flags));
+    if (flags.has('json')) {
+      process.stdout.write(`${JSON.stringify(receipt, null, 2)}\n`);
+      return;
+    }
+    process.stdout.write(formatServerContract(receipt));
     if (!receipt.ok) process.exitCode = 1;
     return;
   }
@@ -309,6 +321,22 @@ function formatVisionPreflight(report: ReturnType<typeof preflightHoloLlamaVisio
   return lines.join('\n');
 }
 
+function formatServerContract(report: ReturnType<typeof verifyHoloLlamaServerContract>): string {
+  const lines = [
+    `HoloLlama server contract: ${report.ok ? 'PASS' : 'FAIL'}`,
+    `  profile: ${report.profile}`,
+    `  handle:  ${report.registryHandle}`,
+    `  vision:  ${report.visionRequested ? 'on' : 'off'}`,
+  ];
+  for (const item of report.checks) {
+    if (item.required || !item.ok) lines.push(`  ${item.ok ? 'ok' : 'block'}: ${item.id}`);
+  }
+  for (const warning of report.warnings) lines.push(`  warning: ${warning}`);
+  for (const blocker of report.blockers) lines.push(`  blocker: ${blocker}`);
+  lines.push('');
+  return lines.join('\n');
+}
+
 function formatLifecycleReport(
   report: ReturnType<typeof buildHoloLlamaFleetLifecycleReport>
 ): string {
@@ -330,6 +358,7 @@ Usage:
   holollama doctor [--profile <id>] [--json]
   holollama mesh [--profile <id>] [--team-id <team>] [--json]
   holollama preflight [--profile <id>] [--check-filesystem] [--json]
+  holollama contract [--profile <id>] [--json]
   holollama lifecycle [--profile <id>] [--team-id <team>] [--check-filesystem] [--require-runtime-readiness] [--json]
   holollama profiles
   holollama brains

@@ -135,6 +135,29 @@ if (!cliVisionPreflight.ok || !cliVisionPreflight.visionRequested) {
   fail(`preflight CLI did not prove laptop vision lane: ${JSON.stringify(cliVisionPreflight)}`);
 }
 
+const cliJetsonContract = parseCliJson(['contract', '--profile', 'jetson-orin', '--json']);
+if (!cliJetsonContract.ok || cliJetsonContract.visionRequested !== false) {
+  fail(`contract CLI did not prove Jetson text lane: ${JSON.stringify(cliJetsonContract)}`);
+}
+if (
+  !cliJetsonContract.checks?.some((check) => check.id === 'text-omits-mmproj-flag' && check.ok) ||
+  !cliJetsonContract.checks?.some(
+    (check) => check.id === 'text-omits-image-token-flags' && check.ok
+  )
+) {
+  fail('contract CLI Jetson text lane did not prove omitted vision flags');
+}
+
+const cliLaptopContract = parseCliJson(['contract', '--profile', 'laptop-windows', '--json']);
+if (!cliLaptopContract.ok || cliLaptopContract.visionRequested !== true) {
+  fail(`contract CLI did not prove laptop vision lane: ${JSON.stringify(cliLaptopContract)}`);
+}
+for (const required of ['vision-mmproj-flag', 'vision-image-token-flags', 'registry-base-endpoint']) {
+  if (!cliLaptopContract.checks?.some((check) => check.id === required && check.ok)) {
+    fail(`contract CLI laptop vision lane did not pass ${required}`);
+  }
+}
+
 const cliLifecycle = parseCliJson(['lifecycle', '--team-id', 'team_test', '--json']);
 if (cliLifecycle.schema !== 'holollama.fleet-lifecycle.v1') {
   fail(`lifecycle CLI emitted unexpected schema: ${cliLifecycle.schema}`);
@@ -146,6 +169,7 @@ for (const expected of EXPECTED_PROFILES) {
   if (!profile) fail(`lifecycle CLI omitted profile ${expected}`);
   for (const stage of [
     'plan',
+    'server-contract',
     'vision-preflight',
     'runtime-readiness',
     'mesh-readonly-bridge',
@@ -155,6 +179,13 @@ for (const expected of EXPECTED_PROFILES) {
       fail(`lifecycle CLI profile ${expected} did not pass stage ${stage}`);
     }
   }
+}
+
+for (const profile of EXPECTED_PROFILES) {
+  const contract = api.verifyHoloLlamaServerContract(profile, {
+    generatedAt: '2026-07-05T00:00:00.000Z',
+  });
+  if (!contract.ok) fail(`server contract API failed for ${profile}: ${JSON.stringify(contract)}`);
 }
 
 const cliProfiles = parseCliJson(['profiles']);
