@@ -319,6 +319,136 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
       expect(r).toContain('text-studio-muted');
       expect(r).not.toContain('text-gray-500');
     });
+
+    it('keeps border SIDE/WIDTH tokens alongside a border color (not deduped as color)', () => {
+      const c = comp([
+        obj('Card', [trait('theme', { className: 'border-l-2 border-studio-accent' })]),
+        obj('Row', [trait('theme', { className: 'border-b border-studio-border' })]),
+      ]);
+      const r = react(c);
+      expect(r).toContain('border-l-2'); // side+width is not a color — survives
+      expect(r).toContain('border-studio-accent');
+      expect(r).toContain('border-b'); // single-side is not a color — survives
+      expect(r).toContain('border-studio-border');
+    });
+  });
+
+  describe('7c. @bind tiers — categorical (string) coloring', () => {
+    it('WORKS: string eq tiers emit === comparisons and coerce to "" (not 0)', () => {
+      const c = comp([
+        obj('Outcome', [
+          trait('text', { variant: 'caption' }),
+          trait('bind', {
+            state: 'entry',
+            path: 'outcome',
+            fallback: '',
+            tiers: [
+              { eq: 'denied', className: 'text-studio-error' },
+              { eq: 'success', className: 'text-studio-success' },
+              { className: 'text-studio-muted' },
+            ],
+          }),
+        ]),
+      ]);
+      const r = react(c);
+      expect(r).toContain('=== "denied" ? "text-studio-error"');
+      expect(r).toContain('=== "success" ? "text-studio-success"');
+      expect(r).toContain(': "text-studio-muted"'); // unconditional default branch
+      expect(r).toContain("?? ''"); // string coercion for the compared value
+      expect(r).not.toContain('entry?.outcome ?? 0'); // NOT numeric-coerced
+    });
+
+    it('WORKS: neq string tier emits a !== comparison', () => {
+      const c = comp([
+        obj('Flag', [
+          trait('text', { variant: 'caption' }),
+          trait('bind', {
+            state: 'row',
+            path: 'status',
+            tiers: [
+              { neq: 'ok', className: 'text-studio-error' },
+              { className: 'text-studio-muted' },
+            ],
+          }),
+        ]),
+      ]);
+      expect(react(c)).toContain('!== "ok" ? "text-studio-error"');
+    });
+
+    it('WORKS: numeric eq tier compares exactly and keeps numeric coercion', () => {
+      const c = comp([
+        obj('Count', [
+          trait('text', { variant: 'caption' }),
+          trait('bind', {
+            state: 'row',
+            path: 'n',
+            tiers: [
+              { eq: 0, className: 'text-studio-muted' },
+              { className: 'text-studio-text' },
+            ],
+          }),
+        ]),
+      ]);
+      const r = react(c);
+      expect(r).toContain('=== 0 ? "text-studio-muted"');
+      expect(r).toContain('?? 0'); // numeric-only tiers keep numeric coercion
+    });
+
+    it('REGRESSION: pure numeric threshold tiers still coerce with ?? 0', () => {
+      const c = comp([
+        obj('Fps', [
+          trait('text', { variant: 'caption' }),
+          trait('bind', {
+            state: 'snap',
+            path: 'fps',
+            tiers: [
+              { gte: 55, className: 'text-studio-success' },
+              { className: 'text-studio-error' },
+            ],
+          }),
+        ]),
+      ]);
+      const r = react(c);
+      expect(r).toContain('>= 55 ? "text-studio-success"');
+      expect(r).toContain('?? 0');
+      expect(r).not.toContain("?? ''");
+    });
+
+    it('CLEAN: the tier-owned color family is stripped from the static prefix', () => {
+      const c = comp([
+        obj('Outcome', [
+          trait('text', { variant: 'caption' }), // default injects text-gray-500
+          trait('bind', {
+            state: 'entry',
+            path: 'outcome',
+            tiers: [
+              { eq: 'denied', className: 'text-studio-error' },
+              { className: 'text-studio-muted' },
+            ],
+          }),
+          trait('theme', { className: 'font-semibold' }),
+        ]),
+      ]);
+      const r = react(c);
+      expect(r).not.toContain('text-gray-500'); // default color no longer leaks statically
+      expect(r).toContain('text-sm'); // structural size default preserved
+      expect(r).toContain('font-semibold'); // authored non-color class preserved
+      expect(r).toContain('text-studio-error'); // dynamic tier color present
+    });
+
+    it('REJECTS: an eq operand that would break out of the string literal', () => {
+      const c = comp([
+        obj('Bad', [
+          trait('text', { variant: 'caption' }),
+          trait('bind', {
+            state: 'row',
+            path: 'x',
+            tiers: [{ eq: 'a" + alert(1) + "', className: 'text-studio-error' }],
+          }),
+        ]),
+      ]);
+      expect(() => react(c)).toThrow(/@bind tier eq/);
+    });
   });
 
   // 8 ─────────────────────────────────────────────────────────────────────────

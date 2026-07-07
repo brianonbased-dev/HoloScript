@@ -347,9 +347,12 @@ describe('Native2DCompiler @bind value-tier className', () => {
     const react = new Native2DCompiler().compile(makeProfilerReadout(), '', undefined, {
       format: 'react',
     });
-    // @text(variant: caption) contributes `text-sm text-gray-500` statically,
-    // which must prefix the dynamic tier cascade inside the same className.
-    expect(react).toMatch(/className=\{`text-sm text-gray-500 \$\{.*text-red-400.*`\}/s);
+    // @text(variant: caption) contributes `text-sm` (size) statically, which
+    // prefixes the dynamic tier cascade inside the same className. The caption's
+    // default `text-gray-500` is NOT emitted: the tier cascade owns the `text`
+    // color family, so the leaked default is stripped (no raw color leak).
+    expect(react).toMatch(/className=\{`text-sm \$\{.*text-red-400.*`\}/s);
+    expect(react).not.toContain('text-gray-500');
   });
 
   it('still emits the bound value content alongside the tiered className (react)', () => {

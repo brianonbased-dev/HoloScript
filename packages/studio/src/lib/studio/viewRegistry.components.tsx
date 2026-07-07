@@ -10,6 +10,7 @@ const pick = (m: AnyModule, name: string): ComponentType<unknown> =>
 
 /** Dynamically-imported React widget for each slotted view (by view id). */
 export const VIEW_COMPONENTS: Record<string, ComponentType<unknown>> = {
+  "adminDashboard": dynamic(() => import("@/components/panels/native/adminDashboard.native").then((m) => ({ default: pick(m as AnyModule, "AdminDashboardComponent") }))),
   "agentEnsemble": dynamic(() => import("@/components/orchestration/DesktopAgentEnsemble").then((m) => ({ default: pick(m as AnyModule, "DesktopAgentEnsemble") }))),
   "agentMonitor": dynamic(() => import("@/components/panels/native/agentMonitor.native").then((m) => ({ default: pick(m as AnyModule, "AgentMonitorComponent") }))),
   "agentWorkflow": dynamic(() => import("@/components/orchestration/AgentOrchestrationGraphEditor").then((m) => ({ default: pick(m as AnyModule, "AgentOrchestrationGraphEditor") }))),

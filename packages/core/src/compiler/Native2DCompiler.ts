@@ -356,8 +356,17 @@ export default ${safeName}Component;
     }
     if (tierExpr) {
       // Merge any static classes with the value-tier cascade into one JSX
-      // template-literal className so it re-evaluates every render.
-      const staticPrefix = classes.length > 0 ? `${this.resolveColorConflicts(classes.join(' '))} ` : '';
+      // template-literal className so it re-evaluates every render. The tier
+      // cascade OWNS the color families it assigns, so strip those families
+      // from the static prefix — otherwise a variant-default color (e.g. the
+      // caption default text-gray-500) both leaks as a raw color AND is dead
+      // weight, since the appended dynamic class always overrides it.
+      const tierFamilies = this.tierColorFamilies(traits);
+      const cleaned = this.stripColorFamilies(
+        this.resolveColorConflicts(classes.join(' ')),
+        tierFamilies
+      );
+      const staticPrefix = cleaned ? `${cleaned} ` : '';
       props += ` className={\`${staticPrefix}\${${tierExpr}}\`}`;
     } else if (classes.length > 0) {
       props += ` className="${this.resolveColorConflicts(classes.join(' '))}"`;
@@ -1109,7 +1118,13 @@ export default ${safeName}Component;
    *     : (snap?.fps ?? 0) >= 30 ? "text-amber-400"
    *     : "text-red-400"
    *
-   * Each tier may specify `gte` (>=), `gt` (>), `lte` (<=), and/or `lt` (<).
+   * Each tier may specify `gte` (>=), `gt` (>), `lte` (<=), and/or `lt` (<) for
+   * numeric thresholds, OR `eq`/`neq` for exact-match categories (e.g. a
+   * security audit outcome: `{ eq: "denied", className: "text-red-400" }`).
+   * `eq`/`neq` accept a string or a number; string operands pass the same
+   * injection guard as `@when eq` and are emitted via JSON.stringify. When any
+   * tier compares strings, the bound value is coerced to `''` (not `0`) so the
+   * cascade stays total before state loads without mis-coercing a string to 0.
    * Conditions on one tier are AND-ed. A tier with no bounds is the
    * unconditional fallback (its className is the trailing `:` branch). If no
    * tier is unconditional, an empty-string fallback is appended so the
@@ -1120,16 +1135,20 @@ export default ${safeName}Component;
     if (!bind || !Array.isArray(bind.tiers) || bind.tiers.length === 0) return null;
 
     // Resolve the bound value reference exactly the same way the content
-    // expression does, then coerce to a number for comparison. `?? 0` keeps
-    // the cascade total even before the bound state has loaded.
+    // expression does. Numeric tiers coerce with `?? 0`; string-equality tiers
+    // coerce with `?? ''` so the cascade stays total before state has loaded.
     const baseExpr = this.buildStatePathExpr(
       String(bind.state),
       String(bind.path || ''),
       '@bind tiers'
     );
-    const valueRef = `(${baseExpr} ?? 0)`;
 
     const tiers = bind.tiers as Array<Record<string, unknown>>;
+    const usesStringCompare = tiers.some(
+      (t) => typeof t.eq === 'string' || typeof t.neq === 'string'
+    );
+    const valueRef = usesStringCompare ? `(${baseExpr} ?? '')` : `(${baseExpr} ?? 0)`;
+
     const branches: Array<{ condition: string | null; className: string }> = [];
 
     for (const tier of tiers) {
@@ -1139,6 +1158,16 @@ export default ${safeName}Component;
       if (typeof tier.gt === 'number') conditions.push(`${valueRef} > ${tier.gt}`);
       if (typeof tier.lte === 'number') conditions.push(`${valueRef} <= ${tier.lte}`);
       if (typeof tier.lt === 'number') conditions.push(`${valueRef} < ${tier.lt}`);
+      if (typeof tier.eq === 'number') conditions.push(`${valueRef} === ${tier.eq}`);
+      else if (typeof tier.eq === 'string')
+        conditions.push(
+          `${valueRef} === ${JSON.stringify(this.assertSafeLiteral(tier.eq, '@bind tier eq'))}`
+        );
+      if (typeof tier.neq === 'number') conditions.push(`${valueRef} !== ${tier.neq}`);
+      else if (typeof tier.neq === 'string')
+        conditions.push(
+          `${valueRef} !== ${JSON.stringify(this.assertSafeLiteral(tier.neq, '@bind tier neq'))}`
+        );
       branches.push({
         condition: conditions.length > 0 ? conditions.join(' && ') : null,
         className,
@@ -1494,30 +1523,78 @@ export default ${safeName}Component;
    * (text/bg/border/ring/…, incl. variant prefixes like hover:/focus:); sizes, spacing, and
    * layout are untouched, and text-<size> / border-<width> / ring-<width> are never colors.
    */
+  /**
+   * The Tailwind COLOR family a token belongs to (incl. variant prefixes like
+   * hover:/focus:), or null for a non-color token. Shared by conflict-resolution
+   * and tier-family stripping. text-<size> / text-<align> / border|ring|divide-<width>
+   * and arbitrary values ([10px], [#fff]) are NOT colors.
+   */
+  private colorFamilyKey(t: string): string | null {
+    const m = t.match(
+      /^((?:[a-z-]+:)*)(text|bg|border|ring|ring-offset|divide|accent|fill|stroke|placeholder|caret|decoration|from|to|via)-(.+)$/
+    );
+    if (!m) return null;
+    const [, variant, prop, rest] = m;
+    if (rest.startsWith('[')) return null;
+    if (prop === 'text') {
+      if (Native2DCompiler.TEXT_SIZE_TOKENS.has(`text-${rest}`)) return null; // font-size, not color
+      if (['left', 'center', 'right', 'justify', 'start', 'end'].includes(rest)) return null; // align
+    }
+    // border/divide side+width (border-l, border-x-2, border-b, divide-y) and any
+    // numeric width (border-2, ring-4) are NOT colors — a color is <prop>-<name>.
+    if (prop === 'border' || prop === 'divide') {
+      if (/^([xytrbles]|\d+|[xytrbles]-\d+)$/.test(rest)) return null;
+    }
+    if (prop === 'ring' && /^(\d+|inset)$/.test(rest)) return null;
+    return `${variant}${prop}`;
+  }
+
   private resolveColorConflicts(classStr: string): string {
     const tokens = classStr.split(/\s+/).filter(Boolean);
-    const familyKey = (t: string): string | null => {
-      const m = t.match(
-        /^((?:[a-z-]+:)*)(text|bg|border|ring|ring-offset|divide|accent|fill|stroke|placeholder|caret|decoration|from|to|via)-(.+)$/
-      );
-      if (!m) return null;
-      const [, variant, prop, rest] = m;
-      // Arbitrary values ([10px], [#fff]) are too ambiguous (size vs color) — never dedupe them.
-      if (rest.startsWith('[')) return null;
-      if (prop === 'text') {
-        if (Native2DCompiler.TEXT_SIZE_TOKENS.has(`text-${rest}`)) return null; // font-size, not color
-        if (['left', 'center', 'right', 'justify', 'start', 'end'].includes(rest)) return null; // align
-      }
-      // border-2 / ring-2 / divide-2 are WIDTHS, not colors.
-      if ((prop === 'border' || prop === 'ring' || prop === 'divide') && /^\d+$/.test(rest)) return null;
-      return `${variant}${prop}`;
-    };
     const lastIndex = new Map<string, number>();
     tokens.forEach((t, i) => {
-      const k = familyKey(t);
+      const k = this.colorFamilyKey(t);
       if (k) lastIndex.set(k, i);
     });
-    return tokens.filter((t, i) => familyKey(t) === null || lastIndex.get(familyKey(t) as string) === i).join(' ');
+    return tokens
+      .filter((t, i) => {
+        const k = this.colorFamilyKey(t);
+        return k === null || lastIndex.get(k) === i;
+      })
+      .join(' ');
+  }
+
+  /**
+   * The set of color families a @bind's tier classNames assign — so the caller
+   * can strip those families from the static prefix (the dynamic tier cascade
+   * owns them, and the static default would otherwise leak a raw color).
+   */
+  private tierColorFamilies(traits: Record<string, any>): Set<string> {
+    const families = new Set<string>();
+    const tiers = traits?.bind?.tiers;
+    if (!Array.isArray(tiers)) return families;
+    for (const tier of tiers) {
+      const cn = typeof tier?.className === 'string' ? tier.className : '';
+      for (const tok of cn.split(/\s+/).filter(Boolean)) {
+        const k = this.colorFamilyKey(tok);
+        if (k) families.add(k);
+      }
+    }
+    return families;
+  }
+
+  /** Drop every token whose color family is in `families` (removes a static
+   *  default color that a dynamic @bind tier cascade will always override). */
+  private stripColorFamilies(classStr: string, families: Set<string>): string {
+    if (families.size === 0) return classStr;
+    return classStr
+      .split(/\s+/)
+      .filter(Boolean)
+      .filter((t) => {
+        const k = this.colorFamilyKey(t);
+        return k === null || !families.has(k);
+      })
+      .join(' ');
   }
 
   private buildClasses(traits: Record<string, any>): string[] {

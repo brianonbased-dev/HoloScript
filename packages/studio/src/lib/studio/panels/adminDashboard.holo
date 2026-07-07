@@ -1,0 +1,152 @@
+@view({ id: "adminDashboard", title: "Security & Compliance", icon: "ShieldCheck", category: "debug", placement: "right-rail", scope: "workspace", gate: "expert", surfaceClass: "lab", defaultOpen: false, exclusiveWith: [], order: 47 })
+composition "adminDashboard" {
+  @native_panel
+
+  object "Root" {
+    @layout { flex: "column", gap: "12px" }
+    @theme { className: "p-3 h-full overflow-y-auto text-xs text-studio-text" }
+    @hook { name: "useSecurityPresence", import: "@/components/coordinator-panels/TraitRuntimeContext", returns: "stats, auditLog" }
+    @computed { name: "recent", expr: "auditLog.slice(-20).reverse()" }
+
+    object "Title" {
+      @text { variant: "h3", content: "Security & compliance" }
+      @theme { className: "text-sm font-semibold text-studio-text" }
+    }
+
+    object "StatGrid" {
+      @theme { className: "grid grid-cols-2 gap-2" }
+
+      object "SessionsCard" {
+        @layout { flex: "column", gap: "2px" }
+        @theme { className: "rounded-md p-2 bg-studio-panel/40 border-l-2 border-studio-accent" }
+        object "SessionsLabel" {
+          @text { variant: "caption", content: "Sessions" }
+          @theme { className: "text-[10px] uppercase tracking-wide text-studio-muted" }
+        }
+        object "SessionsValue" {
+          @text { variant: "h2" }
+          @bind { state: "stats", path: "sessions.authenticated", fallback: "0" }
+          @theme { className: "text-lg font-semibold text-studio-text" }
+        }
+        object "SessionsSub" {
+          @text { variant: "caption" }
+          @bind { state: "stats", path: "sessions.revoked", fallback: "0", suffix: " revoked" }
+          @theme { className: "text-[10px] text-studio-muted" }
+        }
+      }
+
+      object "AgentsCard" {
+        @layout { flex: "column", gap: "2px" }
+        @theme { className: "rounded-md p-2 bg-studio-panel/40 border-l-2 border-studio-accent" }
+        object "AgentsLabel" {
+          @text { variant: "caption", content: "Agents tracked" }
+          @theme { className: "text-[10px] uppercase tracking-wide text-studio-muted" }
+        }
+        object "AgentsValue" {
+          @text { variant: "h2" }
+          @bind { state: "stats", path: "agents.tracked", fallback: "0" }
+          @theme { className: "text-lg font-semibold text-studio-text" }
+        }
+        object "AgentsSub" {
+          @text { variant: "caption", content: "RBAC scope" }
+          @theme { className: "text-[10px] text-studio-muted" }
+        }
+      }
+
+      object "TenantsCard" {
+        @layout { flex: "column", gap: "2px" }
+        @theme { className: "rounded-md p-2 bg-studio-panel/40 border-l-2 border-studio-accent" }
+        object "TenantsLabel" {
+          @text { variant: "caption", content: "Tenants active" }
+          @theme { className: "text-[10px] uppercase tracking-wide text-studio-muted" }
+        }
+        object "TenantsValue" {
+          @text { variant: "h2" }
+          @bind { state: "stats", path: "tenants.active", fallback: "0" }
+          @theme { className: "text-lg font-semibold text-studio-text" }
+        }
+        object "TenantsSub" {
+          @text { variant: "caption" }
+          @bind { state: "stats", path: "tenants.suspended", fallback: "0", suffix: " suspended" }
+          @theme { className: "text-[10px] text-studio-muted" }
+        }
+      }
+
+      object "QuotasCard" {
+        @layout { flex: "column", gap: "2px" }
+        @theme { className: "rounded-md p-2 bg-studio-panel/40 border-l-2 border-studio-border" }
+        object "QuotasLabel" {
+          @text { variant: "caption", content: "Quotas exceeded" }
+          @theme { className: "text-[10px] uppercase tracking-wide text-studio-muted" }
+        }
+        object "QuotasValue" {
+          @text { variant: "h2" }
+          @bind {
+            state: "stats"
+            path: "quotas.exceeded"
+            fallback: "0"
+            tiers: [
+              { gte: 1, className: "text-studio-error" },
+              { className: "text-studio-text" }
+            ]
+          }
+          @theme { className: "text-lg font-semibold" }
+        }
+        object "QuotasSub" {
+          @text { variant: "caption" }
+          @bind { state: "stats", path: "quotas.tracked", fallback: "0", suffix: " tracked" }
+          @theme { className: "text-[10px] text-studio-muted" }
+        }
+      }
+    }
+
+    object "AuditHeader" {
+      @text { variant: "h3", content: "Recent audit" }
+      @theme { className: "text-xs font-semibold text-studio-text-secondary" }
+    }
+
+    object "AuditEmpty" {
+      @when { state: "auditLog", path: "length", eq: 0 }
+      @text { variant: "caption", content: "No audit events observed yet." }
+      @theme { className: "text-[10px] italic text-studio-muted" }
+    }
+
+    object "AuditList" {
+      @when { state: "auditLog", path: "length", gt: 0 }
+      @layout { flex: "column", gap: "2px" }
+      @theme { className: "max-h-60 overflow-y-auto" }
+
+      object "AuditRow" {
+        @each { state: "recent", as: "entry" }
+        @layout { flex: "row", justify: "space-between", gap: "6px", align: "center" }
+        @theme { className: "border-b border-studio-border py-1 text-[11px]" }
+
+        object "AuditEvent" {
+          @text { variant: "caption" }
+          @bind { state: "entry", path: "event", fallback: "—" }
+          @theme { className: "text-studio-text-secondary" }
+        }
+        object "AuditActor" {
+          @text { variant: "caption" }
+          @bind { state: "entry", path: "actor", fallback: "—" }
+          @theme { className: "text-studio-muted" }
+        }
+        object "AuditOutcome" {
+          @text { variant: "caption" }
+          @bind {
+            state: "entry"
+            path: "outcome"
+            fallback: ""
+            tiers: [
+              { eq: "denied", className: "text-studio-error" },
+              { eq: "error", className: "text-studio-error" },
+              { eq: "success", className: "text-studio-success" },
+              { className: "text-studio-muted" }
+            ]
+          }
+          @theme { className: "font-semibold" }
+        }
+      }
+    }
+  }
+}
