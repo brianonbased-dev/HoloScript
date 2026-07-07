@@ -560,6 +560,9 @@ export default ${safeName}Component;
     } else if (traits.chart?.state) {
       // @chart: render the bound array as an SVG bar/line/area chart with a baseline.
       element = this.buildChartElement(traits, props, keyProp);
+    } else if (traits.live_proof?.claim) {
+      // @live_proof: a live falsification verdict — the receipt IS render state.
+      element = this.buildLiveProofElement(traits, keyProp);
     } else if (tag === 'img' || tag === 'input') {
       element = `<${tag}${props}${keyProp} />`;
     } else {
@@ -1464,6 +1467,36 @@ export default ${safeName}Component;
     // so single-quoting is safe and keeps the emitted receipt human-readable.
     const propsStr = ` data-holo-provenance='${JSON.stringify(receipt)}' data-provenance-class="${cls}"`;
     return { propsStr, cls };
+  }
+
+  /**
+   * @live_proof: the falsifiable surface — the receipt is load-bearing RENDER STATE.
+   *
+   * `@live_proof { claim, label? }` declares a boolean claim over state (a theorem the
+   * element asserts). It compiles to a self-styled verdict badge whose colour + text
+   * FLIP live as the claim breaks: `✓ <label> holds` (green) vs `✗ <label> FALSIFIED`
+   * (red). Because the claim re-evaluates on every render, dragging a bound parameter
+   * (via a sibling @model slider) past the point where the theorem fails flips the
+   * badge in-band — FALSIFIED is a render state, not a console log.
+   *
+   * DISCIPLINE (W.767/W.769): the claim must re-derive from INDEPENDENT state fields
+   * (e.g. `capacity >= load * factor`), never re-read the displayed value — a
+   * self-referential claim proves nothing. The compiler cannot enforce independence,
+   * but the emitted `data-proof-claim` makes the predicate auditable. The claim is
+   * injection-safe (same char-class as @computed; no backticks/semicolons).
+   */
+  private buildLiveProofElement(traits: Record<string, any>, keyProp: string): string {
+    const lp = traits.live_proof;
+    const claim = String(lp.claim ?? '');
+    // eslint-disable-next-line no-useless-escape
+    if (!claim.trim() || !/^[a-zA-Z0-9_$.,()\[\]'"/\s*+\-%<>=?:!&|]+$/.test(claim)) {
+      throw new Error(`Native2DCompiler @live_proof: unsafe or empty claim ${JSON.stringify(claim)}`);
+    }
+    const label = lp.label != null ? this.assertSafeLiteral(String(lp.label), '@live_proof label') : 'Claim';
+    const cond = `(${claim})`;
+    return `<div${keyProp} data-proof-claim={${JSON.stringify(claim)}} data-proof-state={${cond} ? "pass" : "falsified"} className={\`rounded-md p-2 text-xs font-semibold \${${cond} ? "bg-studio-success/10 text-studio-success" : "bg-studio-error/10 text-studio-error"}\`}>
+      {${cond} ? "✓ ${label} holds" : "✗ ${label} FALSIFIED"}
+    </div>`;
   }
 
   private buildHTMLBindAttributes(traits: Record<string, any>, staticClassName: string): string {

@@ -1,0 +1,47 @@
+@view({ id: "liveProof", title: "Live Proof", icon: "Activity", category: "debug", placement: "right-rail", scope: "workspace", gate: "expert", surfaceClass: "lab", defaultOpen: false, exclusiveWith: [], order: 49 })
+composition "liveProof" {
+  @native_panel
+
+  state {
+    load: 100
+    capacity: 200
+    factor: 1.5
+  }
+
+  object "Root" {
+    @layout { flex: "column", gap: "10px" }
+    @theme { className: "p-3 h-full overflow-y-auto text-xs text-studio-text" }
+
+    object "Title" {
+      @text { variant: "h3", content: "Live proof — structural margin" }
+      @theme { className: "text-sm font-semibold text-studio-text" }
+    }
+    object "Subtitle" {
+      @text { variant: "caption", content: "Drag the load; the verdict re-derives from capacity/factor and flips FALSIFIED in-band" }
+      @theme { className: "text-[10px] text-studio-muted" }
+    }
+
+    object "LoadRow" {
+      @layout { flex: "row", gap: "8px", align: "center" }
+
+      object "LoadLabel" {
+        @text { variant: "caption", content: "Load (kN)" }
+        @theme { className: "text-[10px] text-studio-muted" }
+      }
+      object "LoadValue" {
+        @text { variant: "caption" }
+        @bind { state: "load", fallback: "0" }
+        @theme { className: "text-[10px] font-semibold text-studio-text" }
+      }
+      object "LoadSlider" {
+        @input { type: "range", min: "0", max: "200", step: "5" }
+        @model { state: "load" }
+        @theme { className: "flex-1 accent-studio-accent border-studio-border bg-studio-panel text-studio-text focus:ring-studio-accent" }
+      }
+    }
+
+    object "Verdict" {
+      @live_proof { claim: "capacity >= load * factor", label: "Structural margin" }
+    }
+  }
+}

@@ -686,6 +686,38 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
     });
   });
 
+  describe('7h. @live_proof — the falsifiable surface (receipt as render state)', () => {
+    it('WORKS: emits a verdict badge that flips PASS/FALSIFIED on the claim', () => {
+      const c = comp([
+        obj('Margin', [
+          trait('live_proof', { claim: 'capacity >= load * factor', label: 'Structural margin' }),
+        ]),
+      ]);
+      const r = react(c);
+      expect(r).toContain('data-proof-claim={"capacity >= load * factor"}');
+      expect(r).toContain('data-proof-state={(capacity >= load * factor) ? "pass" : "falsified"}');
+      expect(r).toContain('text-studio-success'); // holds
+      expect(r).toContain('text-studio-error'); // falsified
+      expect(r).toContain('✓ Structural margin holds');
+      expect(r).toContain('✗ Structural margin FALSIFIED');
+    });
+
+    it('WORKS: defaults the label to "Claim" when unset', () => {
+      const c = comp([obj('P', [trait('live_proof', { claim: 'a > b' })])]);
+      expect(react(c)).toContain('✓ Claim holds');
+    });
+
+    it('REJECTS: an unsafe claim (backtick / statement injection)', () => {
+      const c = comp([obj('Bad', [trait('live_proof', { claim: 'a > b`;drop()' })])]);
+      expect(() => react(c)).toThrow(/@live_proof: unsafe/);
+    });
+
+    it('REJECTS: an empty claim', () => {
+      const c = comp([obj('Bad', [trait('live_proof', { claim: '   ' })])]);
+      expect(() => react(c)).toThrow(/unsafe or empty/);
+    });
+  });
+
   // 8 ─────────────────────────────────────────────────────────────────────────
   describe('8. layout', () => {
     it('WORKS: flex layout → display:flex + direction + gap', () => {

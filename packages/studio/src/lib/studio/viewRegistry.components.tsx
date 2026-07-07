@@ -52,6 +52,7 @@ export const VIEW_COMPONENTS: Record<string, ComponentType<unknown>> = {
   "hotkeyOverlay": dynamic(() => import("@/components/hotkeys/HotkeyMapOverlay").then((m) => ({ default: pick(m as AnyModule, "HotkeyMapOverlay") }))),
   "inspector": dynamic(() => import("@/components/inspector/NodeInspectorPanel").then((m) => ({ default: pick(m as AnyModule, "NodeInspectorPanel") }))),
   "keyframes": dynamic(() => import("@/components/keyframes/KeyframeEditor").then((m) => ({ default: pick(m as AnyModule, "KeyframeEditor") }))),
+  "liveProof": dynamic(() => import("@/components/panels/native/liveProof.native").then((m) => ({ default: pick(m as AnyModule, "LiveProofComponent") }))),
   "lod": dynamic(() => import("@/components/lod/LodPanel").then((m) => ({ default: pick(m as AnyModule, "LodPanel") }))),
   "marketplace": dynamic(() => import("@/components/marketplace/MarketplacePanel").then((m) => ({ default: pick(m as AnyModule, "MarketplacePanel") }))),
   "material": dynamic(() => import("@/components/materials/MaterialPanel").then((m) => ({ default: pick(m as AnyModule, "MaterialPanel") }))),
