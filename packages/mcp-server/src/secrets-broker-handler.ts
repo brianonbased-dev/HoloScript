@@ -151,6 +151,10 @@ export interface SecretsBrokerAuthError {
 
 function hasClassicalBrokerScope(signingCtx: SigningContext, capability: Capability): boolean {
   if (signingCtx.signingProtocol !== 'classical') return false;
+  return hasBrokerScope(signingCtx, capability);
+}
+
+function hasBrokerScope(signingCtx: SigningContext, capability: Capability): boolean {
   const scopes = new Set((signingCtx.scopes ?? []).map(String));
   return (
     scopes.has('admin:*') ||
@@ -173,6 +177,15 @@ export function gateSecretsBrokerTool(
 ): SecretsBrokerAuthError | null {
   if (!signingCtx) return null; // Legacy ungated path.
   const cap = SECRETS_BROKER_TOOL_CAPABILITIES[name];
+  if (
+    cap &&
+    !signingCtx.signedRequest &&
+    signingCtx.signingValid &&
+    signingCtx.signer &&
+    hasBrokerScope(signingCtx, cap)
+  ) {
+    return null;
+  }
   if (!cap) return null; // Tool name unknown to the gate — let downstream reject.
   const authOptions = options ?? (
     hasClassicalBrokerScope(signingCtx, cap) ? { allowClassical: true } : undefined

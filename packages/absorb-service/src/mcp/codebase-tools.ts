@@ -349,6 +349,23 @@ function createAbsorbJob(rootDir: string): string {
   return jobId;
 }
 
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+function startBackgroundAbsorbJob(jobId: string, work: () => Promise<unknown>): void {
+  setTimeout(() => {
+    void work().catch((err: unknown) => {
+      const message = errorMessage(err);
+      failAbsorbJob(jobId, 'Failed', message, {
+        error: 'absorb_failed',
+        message,
+        jobId,
+      });
+    });
+  }, 0);
+}
+
 // =============================================================================
 // GRAPH PERSISTENCE
 // =============================================================================
@@ -1581,6 +1598,15 @@ export const codebaseTools: Tool[] = [
           description:
             'When false (default), skips re-scanning if a disk cache already exists and is younger than 24 hours. Set to true to force a fresh scan regardless of cache age.',
         },
+        async: {
+          type: 'boolean',
+          description:
+            'When true, starts the absorb job in the background and returns immediately with jobId; poll holo_get_absorb_status for progress and the final result.',
+        },
+        background: {
+          type: 'boolean',
+          description: 'Alias for async. Useful for long forced scans that may exceed MCP timeouts.',
+        },
         includeBuildArtifacts: {
           type: 'boolean',
           description:
@@ -2668,7 +2694,6 @@ async function runIncrementalPatch(
 
 async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   const mod = (await loadCodebaseModule()) as CodebaseModule;
-  const { CodebaseGraph, GitChangeDetector } = mod;
 
   const receiptRaw = args.localCodebaseSnapshotReceipt ?? args.snapshotReceipt;
   const receiptResolution = resolveLocalCodebaseSnapshotReceiptForAbsorb(
@@ -2740,6 +2765,94 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
 
   // Create job for progress tracking
   const jobId = createAbsorbJob(primaryRootDir);
+
+  const plan: AbsorbExecutionPlan = {
+    mod,
+    effectiveRootDirs,
+    primaryRootDir,
+    rootDir,
+    languages,
+    maxFiles,
+    includeBuildArtifacts,
+    outputFormat,
+    layout,
+    interactive,
+    force,
+    jobId,
+    embeddingProvider,
+    embeddingApiKey,
+    embeddingModel,
+    inlineSourceFiles,
+    localCodebaseSnapshotReceipt,
+    fromSourceFiles,
+  };
+
+  const runInBackground = args.async === true || args.background === true;
+  if (runInBackground) {
+    startBackgroundAbsorbJob(jobId, () => executeAbsorbPlan(plan));
+    return {
+      accepted: true,
+      async: true,
+      status: 'queued',
+      jobId,
+      pollTool: 'holo_get_absorb_status',
+      rootDir: primaryRootDir,
+      outputFormat,
+      force,
+      embeddingPolicy: buildGraphRAGEmbeddingPolicyReceipt(),
+      fromSourceFiles,
+      fromLocalCodebaseSnapshotReceipt: Boolean(localCodebaseSnapshotReceipt),
+      ...(localCodebaseSnapshotReceipt && { localCodebaseSnapshotReceipt }),
+      message: 'Absorb job started in the background; poll holo_get_absorb_status with jobId.',
+    };
+  }
+
+  return executeAbsorbPlan(plan);
+}
+
+interface AbsorbExecutionPlan {
+  mod: CodebaseModule;
+  effectiveRootDirs: string[];
+  primaryRootDir: string;
+  rootDir: string;
+  languages?: string[];
+  maxFiles?: number;
+  includeBuildArtifacts: boolean;
+  outputFormat: string;
+  layout: string;
+  interactive: boolean;
+  force: boolean;
+  jobId: string;
+  embeddingProvider?: string;
+  embeddingApiKey?: string;
+  embeddingModel?: string;
+  inlineSourceFiles?: SourceFileEntry[];
+  localCodebaseSnapshotReceipt?: LocalCodebaseSnapshotReceiptSummary;
+  fromSourceFiles: boolean;
+}
+
+async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
+  const {
+    mod,
+    effectiveRootDirs,
+    primaryRootDir,
+    rootDir,
+    languages,
+    maxFiles,
+    includeBuildArtifacts,
+    outputFormat,
+    layout,
+    interactive,
+    force,
+    jobId,
+    embeddingProvider,
+    embeddingApiKey,
+    embeddingModel,
+    inlineSourceFiles,
+    localCodebaseSnapshotReceipt,
+    fromSourceFiles,
+  } = plan;
+  const { CodebaseGraph, GitChangeDetector } = mod;
 
   // ═══════════════════════════════════════════════════════════════════════════
   // PATH 1: force=true → FULL SCAN
@@ -3531,7 +3644,7 @@ async function handleGetAbsorbStatus(args: Record<string, unknown>): Promise<unk
     response.error = job.error;
   }
 
-  if (job.result && job.status === 'complete') {
+  if (job.result && (job.status === 'complete' || job.status === 'error')) {
     response.result = job.result;
   }
 

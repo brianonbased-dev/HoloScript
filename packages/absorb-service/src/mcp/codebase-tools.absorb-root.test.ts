@@ -156,6 +156,21 @@ function makeHoloShellSnapshotReceipt(
   };
 }
 
+async function waitForAbsorbTerminalStatus(jobId: string): Promise<Record<string, unknown>> {
+  for (let i = 0; i < 20; i++) {
+    const status = (await handleCodebaseTool('holo_get_absorb_status', { jobId })) as Record<
+      string,
+      unknown
+    >;
+    if (status.status === 'complete' || status.status === 'error') return status;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  return (await handleCodebaseTool('holo_get_absorb_status', { jobId })) as Record<
+    string,
+    unknown
+  >;
+}
+
 describe('holo_absorb_repo root validation', () => {
   afterEach(() => {
     if (originalCacheDir === undefined) {
@@ -169,6 +184,9 @@ describe('holo_absorb_repo root validation', () => {
 
   it('does not replace graph state when a forced scan root is inaccessible', async () => {
     resetCodebaseToolStateForTests();
+    process.env.HOLOSCRIPT_CACHE_DIR = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'holoscript-missing-root-cache-')
+    );
     const missingRoot = path.join(
       os.tmpdir(),
       `holoscript-missing-root-${process.pid}-${Date.now()}`
@@ -220,9 +238,10 @@ describe('holo_absorb_repo root validation', () => {
 
     const status = (await handleCodebaseTool('holo_get_absorb_status', {
       jobId: result.jobId,
-    })) as { status?: string; phase?: string };
+    })) as { status?: string; phase?: string; result?: { error?: string } };
     expect(status.status).toBe('error');
     expect(status.phase).toBe('Root directory unavailable');
+    expect(status.result?.error).toBe('rootDir_unavailable');
 
     const after = (await handleCodebaseTool('holo_graph_status', {})) as {
       rootDir: string | null;
@@ -232,6 +251,52 @@ describe('holo_absorb_repo root validation', () => {
     expect(after.rootDir).toBe(before.rootDir);
     expect(after.sessionProvenance).toBe(before.sessionProvenance);
     expect(after.diskCache?.rootDir).toBe(before.diskCache?.rootDir);
+  }, 15_000);
+
+  it('can start a forced scan in the background and expose failure receipts through status', async () => {
+    resetCodebaseToolStateForTests();
+    process.env.HOLOSCRIPT_CACHE_DIR = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'holoscript-background-root-cache-')
+    );
+    const missingRoot = path.join(
+      os.tmpdir(),
+      `holoscript-missing-background-root-${process.pid}-${Date.now()}`
+    );
+
+    const accepted = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: missingRoot,
+      force: true,
+      outputFormat: 'stats',
+      async: true,
+    })) as {
+      accepted?: boolean;
+      async?: boolean;
+      status?: string;
+      jobId?: string;
+      pollTool?: string;
+      error?: string;
+    };
+
+    expect(accepted).toMatchObject({
+      accepted: true,
+      async: true,
+      status: 'queued',
+      pollTool: 'holo_get_absorb_status',
+    });
+    expect(accepted.jobId).toMatch(/^absorb-/);
+    expect(accepted.error).toBeUndefined();
+
+    const status = await waitForAbsorbTerminalStatus(accepted.jobId!);
+    expect(status.status).toBe('error');
+    expect(status.phase).toBe('Root directory unavailable');
+    expect(status.result).toMatchObject({
+      error: 'rootDir_unavailable',
+      graphUnavailableReceipt: {
+        kind: 'GraphUnavailableReceipt',
+        reason: 'rootDir_unavailable',
+        authoritative: false,
+      },
+    });
   }, 15_000);
 
   it('returns a graph unavailable receipt when the disk cache is stale', async () => {

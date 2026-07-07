@@ -69,6 +69,15 @@ function unsignedCtx(): SigningContext {
   };
 }
 
+function bearerScopeCtx(scopes: string[], signer = 'agent_api_key'): SigningContext {
+  return {
+    signedRequest: false,
+    signingValid: true,
+    signer,
+    scopes,
+  };
+}
+
 const validGrantArgs = {
   namespaceId: 'ns_test',
   agentId: 'agent1',
@@ -142,6 +151,24 @@ describe('gateSecretsBrokerTool — pure helper', () => {
     const r = gateSecretsBrokerTool('holo_secrets_grant', unsignedCtx());
     expect(r).not.toBeNull();
     expect(r!.reason).toBe('unsigned');
+  });
+
+  it('TRUE: bearer/API-key ctx with admin scope authorizes broker tools', () => {
+    expect(gateSecretsBrokerTool('holo_secrets_grant', bearerScopeCtx(['admin:*']))).toBeNull();
+  });
+
+  it('TRUE: bearer/API-key ctx with exact broker scope authorizes only that tool', () => {
+    expect(
+      gateSecretsBrokerTool(
+        'holo_secrets_resolve',
+        bearerScopeCtx(['secrets:grant.resolve'])
+      )
+    ).toBeNull();
+    const wrongTool = gateSecretsBrokerTool(
+      'holo_secrets_revoke',
+      bearerScopeCtx(['secrets:grant.resolve'])
+    );
+    expect(wrongTool?.reason).toBe('unsigned');
   });
 });
 
@@ -246,6 +273,16 @@ describe('handleSecretsBrokerTool — auth integration', () => {
       'holo_secrets_grant',
       validGrantArgs,
       classicalCtx(['admin:*'])
+    )) as { status?: string; authError?: boolean };
+    expect(result.authError).toBeUndefined();
+    expect(result.status).toBe('granted');
+  });
+
+  it('TRUE: HTTP/API-key bearer admin context authorizes broker tool', async () => {
+    const result = (await handleSecretsBrokerTool(
+      'holo_secrets_grant',
+      validGrantArgs,
+      bearerScopeCtx(['tools:admin'])
     )) as { status?: string; authError?: boolean };
     expect(result.authError).toBeUndefined();
     expect(result.status).toBe('granted');
