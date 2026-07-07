@@ -31,7 +31,7 @@ composition "compilerExport" {
       object "Slider" {
         @input { type: "range", min: "100", max: "10000", step: "100" }
         @model { state: "nodes" }
-        @theme { className: "flex-1 accent-studio-accent" }
+        @theme { className: "flex-1 accent-studio-accent border-studio-border bg-studio-panel text-studio-text focus:ring-studio-accent" }
       }
     }
 

@@ -262,6 +262,65 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
     });
   });
 
+  // 7b ────────────────────────────────────────────────────────────────────────
+  // @theme overrides the compiler's variant DEFAULT colors (resolveColorConflicts).
+  // Without this the default's raw color (e.g. caption text-gray-500) leaks because which
+  // conflicting utility wins depends on Tailwind's CSS emission order, not the class string.
+  describe('7b. @theme overrides default colors', () => {
+    it('WORKS: @theme text color wins over the caption default text-gray-500', () => {
+      const c = comp([
+        obj('Cap', [
+          trait('text', { variant: 'caption', content: 'x' }),
+          trait('theme', { className: 'text-studio-muted' }),
+        ]),
+      ]);
+      const r = react(c);
+      expect(r).toContain('text-studio-muted');
+      expect(r).not.toContain('text-gray-500'); // default color no longer leaks
+      expect(r).toContain('text-sm'); // structural default (size) preserved
+    });
+
+    it('WORKS: @theme colors win over the input default border/bg/text/ring', () => {
+      const c = comp([
+        obj('In', [
+          trait('input', { type: 'range' }),
+          trait('theme', {
+            className: 'border-studio-border bg-studio-panel text-studio-text focus:ring-studio-accent',
+          }),
+        ]),
+      ]);
+      const r = react(c);
+      expect(r).not.toContain('border-gray-700');
+      expect(r).not.toContain('bg-gray-900');
+      expect(r).not.toContain('text-white');
+      expect(r).not.toContain('focus:ring-indigo-500');
+      expect(r).toContain('border-studio-border');
+      expect(r).toContain('bg-studio-panel');
+      expect(r).toContain('focus:ring-studio-accent');
+      expect(r).toContain('rounded-lg'); // structural default preserved
+      expect(r).toContain('focus:ring-2'); // ring WIDTH kept (not a color)
+    });
+
+    it('keeps the default color when @theme provides no overriding color', () => {
+      const c = comp([obj('Cap', [trait('text', { variant: 'caption', content: 'x' })])]);
+      const r = react(c);
+      expect(r).toContain('text-gray-500'); // no override → app-neutral default stays
+    });
+
+    it('preserves an arbitrary text SIZE ([10px]) while overriding only the color', () => {
+      const c = comp([
+        obj('Cap', [
+          trait('text', { variant: 'caption', content: 'x' }),
+          trait('theme', { className: 'text-[10px] text-studio-muted' }),
+        ]),
+      ]);
+      const r = react(c);
+      expect(r).toContain('text-[10px]'); // arbitrary size is NOT a color — must survive
+      expect(r).toContain('text-studio-muted');
+      expect(r).not.toContain('text-gray-500');
+    });
+  });
+
   // 8 ─────────────────────────────────────────────────────────────────────────
   describe('8. layout', () => {
     it('WORKS: flex layout → display:flex + direction + gap', () => {

@@ -10,6 +10,7 @@ export function AgentMonitorComponent() {
       .catch(console.error);
   }, []);
 
+
   return (
     <div className="holoscript-2d-root w-full h-full">
       <div style={{"display":"flex","flexDirection":"column","gap":"12px"}} className="p-3 h-full overflow-y-auto text-xs">
@@ -20,7 +21,7 @@ export function AgentMonitorComponent() {
     </h3>
 <div style={{"display":"flex","flexDirection":"column","gap":"4px"}} className="rounded-lg p-2 bg-emerald-500/10">
       
-      <span className="text-sm text-gray-500 text-[10px] text-studio-muted">
+      <span className="text-sm text-[10px] text-studio-muted">
       {`Active`}
       
     </span>
@@ -31,7 +32,7 @@ export function AgentMonitorComponent() {
     </div>
 <div style={{"display":"flex","flexDirection":"column","gap":"4px"}} className="rounded-lg p-2 bg-studio-panel/30">
       
-      <span className="text-sm text-gray-500 text-[10px] text-studio-muted">
+      <span className="text-sm text-[10px] text-studio-muted">
       {`Idle`}
       
     </span>
@@ -42,7 +43,7 @@ export function AgentMonitorComponent() {
     </div>
 <div style={{"display":"flex","flexDirection":"column","gap":"4px"}} className="rounded-lg p-2 bg-amber-500/10">
       
-      <span className="text-sm text-gray-500 text-[10px] text-studio-muted">
+      <span className="text-sm text-[10px] text-studio-muted">
       {`Busy`}
       
     </span>

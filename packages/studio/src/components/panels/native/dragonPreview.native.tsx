@@ -5,6 +5,7 @@ export function DragonPreviewComponent() {
 
 
 
+
   return (
     <div className="holoscript-2d-root w-full h-full">
       <div style={{"display":"flex","flexDirection":"column","gap":"12px"}} className="p-3 h-full overflow-y-auto text-studio-text">
@@ -13,7 +14,7 @@ export function DragonPreviewComponent() {
       {`Dragon Preview`}
       
     </h3>
-<span className="text-sm text-gray-500 text-xs leading-5 text-studio-muted">
+<span className="text-sm text-xs leading-5 text-studio-muted">
       {`Procedural asset preview`}
       
     </span>
@@ -23,7 +24,7 @@ export function DragonPreviewComponent() {
       {`FLAME`}
       
     </h2>
-<span className="text-sm text-gray-500 text-[11px] leading-4 text-studio-muted">
+<span className="text-sm text-[11px] leading-4 text-studio-muted">
       {`No dragon asset loaded`}
       
     </span>

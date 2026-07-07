@@ -17,26 +17,26 @@ export function CompilerExportComponent() {
     </h3>
 <div style={{"display":"flex","flexDirection":"row","alignItems":"center","gap":"8px"}}>
       
-      <span className="text-sm text-gray-500 text-[10px] text-studio-muted">
+      <span className="text-sm text-[10px] text-studio-muted">
       {`AST Nodes`}
       
     </span>
-<span className="text-sm text-gray-500 text-[10px] font-semibold text-studio-text">
+<span className="text-sm text-[10px] font-semibold text-studio-text">
       {nodes ?? "0"}
       
     </span>
-<input className="px-4 py-2 rounded-lg border border-gray-700 bg-gray-900 text-white focus:ring-2 focus:ring-indigo-500 outline-none flex-1 accent-studio-accent" value={nodes} onChange={(e) => setNodes(Number(e.target.value))} type="range" min="100" max="10000" step="100" />
+<input className="px-4 py-2 rounded-lg border focus:ring-2 outline-none flex-1 accent-studio-accent border-studio-border bg-studio-panel text-studio-text focus:ring-studio-accent" value={nodes} onChange={(e) => setNodes(Number(e.target.value))} type="range" min="100" max="10000" step="100" />
     </div>
 <div style={{"display":"flex","flexDirection":"column","gap":"6px"}}>
       
       {(targets ?? []).map((t, i) => (
       <div style={{"display":"flex","flexDirection":"row","justifyContent":"space-between"}} className="rounded-md p-2 bg-studio-panel/40" key={i}>
         
-        <span className="text-sm text-gray-500 font-semibold text-studio-text">
+        <span className="text-sm font-semibold text-studio-text">
         {t?.target ?? "—"}
         
       </span>
-  <span className="text-sm text-gray-500 text-[10px] text-studio-muted">
+  <span className="text-sm text-[10px] text-studio-muted">
         {`${(t?.sizeKb ?? 0).toFixed(2)} KB`}
         
       </span>

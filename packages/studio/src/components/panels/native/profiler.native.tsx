@@ -7,6 +7,7 @@ export function ProfilerComponent() {
 
 
 
+
   return (
     <div className="holoscript-2d-root w-full h-full">
       <div style={{"display":"flex","flexDirection":"column","gap":"12px"}} className="p-3 h-full overflow-y-auto">
@@ -19,7 +20,7 @@ export function ProfilerComponent() {
       {snap?.fps ?? "0"}
       
     </h2>
-<span className="text-sm text-gray-500 text-[9px] text-studio-muted">
+<span className="text-sm text-[9px] text-studio-muted">
       {`FPS`}
       
     </span>
@@ -30,7 +31,7 @@ export function ProfilerComponent() {
       {snap?.frameMs ?? "0"}
       
     </h2>
-<span className="text-sm text-gray-500 text-[9px] text-studio-muted">
+<span className="text-sm text-[9px] text-studio-muted">
       {`Frame (ms)`}
       
     </span>
@@ -41,7 +42,7 @@ export function ProfilerComponent() {
       {snap?.avgFrameMs ?? "0"}
       
     </h2>
-<span className="text-sm text-gray-500 text-[9px] text-studio-muted">
+<span className="text-sm text-[9px] text-studio-muted">
       {`Avg (ms)`}
       
     </span>
@@ -52,7 +53,7 @@ export function ProfilerComponent() {
       {snap?.p95FrameMs ?? "0"}
       
     </h2>
-<span className="text-sm text-gray-500 text-[9px] text-studio-muted">
+<span className="text-sm text-[9px] text-studio-muted">
       {`p95 (ms)`}
       
     </span>

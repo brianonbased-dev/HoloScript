@@ -357,10 +357,10 @@ export default ${safeName}Component;
     if (tierExpr) {
       // Merge any static classes with the value-tier cascade into one JSX
       // template-literal className so it re-evaluates every render.
-      const staticPrefix = classes.length > 0 ? `${classes.join(' ')} ` : '';
+      const staticPrefix = classes.length > 0 ? `${this.resolveColorConflicts(classes.join(' '))} ` : '';
       props += ` className={\`${staticPrefix}\${${tierExpr}}\`}`;
     } else if (classes.length > 0) {
-      props += ` className="${classes.join(' ')}"`;
+      props += ` className="${this.resolveColorConflicts(classes.join(' '))}"`;
     }
     if (traits.theme?.attributes) {
       try {
@@ -1477,6 +1477,47 @@ export default ${safeName}Component;
     }
 
     return styles;
+  }
+
+  private static readonly TEXT_SIZE_TOKENS = new Set([
+    'text-xs', 'text-sm', 'text-base', 'text-lg', 'text-xl', 'text-2xl', 'text-3xl',
+    'text-4xl', 'text-5xl', 'text-6xl', 'text-7xl', 'text-8xl', 'text-9xl',
+  ]);
+
+  /**
+   * Resolve conflicting Tailwind COLOR utilities in a STATIC class string, keeping the LAST
+   * of each color family. A node's @theme className is appended AFTER the variant defaults
+   * (buildClasses), so this lets an authored token color win over a hardcoded default color
+   * (e.g. @theme `text-studio-muted` overrides the caption default `text-gray-500`) — which
+   * class actually wins otherwise depends on Tailwind's CSS emission order, not the class
+   * attribute, so the default's raw color leaks unpredictably. Only color families are deduped
+   * (text/bg/border/ring/…, incl. variant prefixes like hover:/focus:); sizes, spacing, and
+   * layout are untouched, and text-<size> / border-<width> / ring-<width> are never colors.
+   */
+  private resolveColorConflicts(classStr: string): string {
+    const tokens = classStr.split(/\s+/).filter(Boolean);
+    const familyKey = (t: string): string | null => {
+      const m = t.match(
+        /^((?:[a-z-]+:)*)(text|bg|border|ring|ring-offset|divide|accent|fill|stroke|placeholder|caret|decoration|from|to|via)-(.+)$/
+      );
+      if (!m) return null;
+      const [, variant, prop, rest] = m;
+      // Arbitrary values ([10px], [#fff]) are too ambiguous (size vs color) — never dedupe them.
+      if (rest.startsWith('[')) return null;
+      if (prop === 'text') {
+        if (Native2DCompiler.TEXT_SIZE_TOKENS.has(`text-${rest}`)) return null; // font-size, not color
+        if (['left', 'center', 'right', 'justify', 'start', 'end'].includes(rest)) return null; // align
+      }
+      // border-2 / ring-2 / divide-2 are WIDTHS, not colors.
+      if ((prop === 'border' || prop === 'ring' || prop === 'divide') && /^\d+$/.test(rest)) return null;
+      return `${variant}${prop}`;
+    };
+    const lastIndex = new Map<string, number>();
+    tokens.forEach((t, i) => {
+      const k = familyKey(t);
+      if (k) lastIndex.set(k, i);
+    });
+    return tokens.filter((t, i) => familyKey(t) === null || lastIndex.get(familyKey(t) as string) === i).join(' ');
   }
 
   private buildClasses(traits: Record<string, any>): string[] {
