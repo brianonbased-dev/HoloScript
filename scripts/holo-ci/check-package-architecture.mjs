@@ -8,6 +8,8 @@
  * - fleet utilities must point at packages that the consumption matrix owns.
  * - v1 candidates must either be fleet-consumed or carry an explicit
  *   publish-support role such as the domain plugin template.
+ * - non-consumed v1 release candidates are allowed only when stewardship names
+ *   them as release-candidate packages with a repo-less public API canary.
  */
 
 import { existsSync, readFileSync } from 'node:fs';
@@ -25,6 +27,7 @@ const MANIFESTS = {
   release: join(ROOT, 'scripts', 'holo-ci', 'npm-v1-release-manifest.json'),
   consumption: join(ROOT, 'scripts', 'holo-ci', 'package-consumption-manifest.json'),
   utilities: join(ROOT, 'scripts', 'holo-ci', 'fleet-utilities-manifest.json'),
+  stewardship: join(ROOT, 'scripts', 'holo-ci', 'package-stewardship-manifest.json'),
 };
 
 const ALLOWED_NON_CONSUMED_V1_ROLES = new Set([
@@ -45,7 +48,27 @@ function sorted(set) {
   return [...set].sort();
 }
 
-function validateManifests({ release, consumption, utilities }) {
+function stewardByNpmPackage(stewardship) {
+  return new Map(
+    (stewardship?.packages || [])
+      .filter((record) => record?.registry === 'npm' && record?.packageName)
+      .map((record) => [record.packageName, record])
+  );
+}
+
+function hasPublicApiCanary(record) {
+  return (
+    (record?.validationScripts || []).some((script) =>
+      /^check:registry-cold-start:.+-public-api$/u.test(String(script || ''))
+    ) ||
+    (record?.validationCommands || []).some((command) => {
+      const text = String(command || '');
+      return text.includes('check-registry-cold-start.mjs') && /--probe\s+\S+-public-api/u.test(text);
+    })
+  );
+}
+
+function validateManifests({ release, consumption, utilities, stewardship }) {
   const errors = [];
   const warnings = [];
 
@@ -58,6 +81,9 @@ function validateManifests({ release, consumption, utilities }) {
   if (utilities?.schema !== 'holoscript.fleet-utilities/v1') {
     errors.push(`unexpected utilities schema: ${utilities?.schema || '<missing>'}`);
   }
+  if (stewardship?.schema !== 'holoscript.package-stewardship/v1') {
+    errors.push(`unexpected stewardship schema: ${stewardship?.schema || '<missing>'}`);
+  }
 
   const candidates = release?.candidatePackages || [];
   const candidateNames = names(candidates);
@@ -65,6 +91,7 @@ function validateManifests({ release, consumption, utilities }) {
   const consumedPypi = names(consumption?.pypiPackages);
   const utilityNpm = names(utilities?.utilities, 'packageName');
   const utilityPypi = names(utilities?.utilities, 'pypiPackage');
+  const npmStewards = stewardByNpmPackage(stewardship);
 
   for (const name of consumedNpm) {
     if (!candidateNames.has(name)) {
@@ -104,8 +131,15 @@ function validateManifests({ release, consumption, utilities }) {
       warnings.push(`${candidate.name}: v1 candidate is publish-support, not fleet-consumed`);
       continue;
     }
+    const steward = npmStewards.get(candidate.name);
+    if (steward?.status === 'release-candidate' && hasPublicApiCanary(steward)) {
+      warnings.push(
+        `${candidate.name}: v1 release-candidate has public API canary but is not fleet-consumed`
+      );
+      continue;
+    }
     errors.push(
-      `${candidate.name}: npm v1 candidate is not fleet-consumed and role '${candidate.role || '<missing>'}' is not exempt`
+      `${candidate.name}: npm v1 candidate is not fleet-consumed, role '${candidate.role || '<missing>'}' is not exempt, and no release-candidate public API canary is declared`
     );
   }
 
@@ -144,6 +178,16 @@ function runSelfTest() {
         { pypiPackage: 'holoscript' },
       ],
     },
+    stewardship: {
+      schema: 'holoscript.package-stewardship/v1',
+      packages: [
+        {
+          registry: 'npm',
+          packageName: '@holoscript/core',
+          status: 'fleet-operational',
+        },
+      ],
+    },
   });
   if (!valid.ok) {
     throw new Error(`expected valid fixture to pass: ${valid.errors.join('; ')}`);
@@ -163,9 +207,51 @@ function runSelfTest() {
       schema: 'holoscript.fleet-utilities/v1',
       utilities: [{ packageName: '@holoscript/core' }],
     },
+    stewardship: {
+      schema: 'holoscript.package-stewardship/v1',
+      packages: [
+        {
+          registry: 'npm',
+          packageName: '@holoscript/extra',
+          status: 'release-candidate',
+        },
+      ],
+    },
   });
   if (invalid.ok || invalid.errors.length < 3) {
     throw new Error('expected invalid fixture to surface cross-manifest errors');
+  }
+
+  const publicApiReleaseCandidate = validateManifests({
+    release: {
+      schema: 'holoscript.npm-v1-release-readiness/v1',
+      candidatePackages: [{ name: '@holoscript/engine', role: 'spatial-engine-runtime' }],
+    },
+    consumption: {
+      schema: 'holoscript.package-consumption-matrix/v1',
+      npmPackages: [],
+      pypiPackages: [],
+    },
+    utilities: {
+      schema: 'holoscript.fleet-utilities/v1',
+      utilities: [],
+    },
+    stewardship: {
+      schema: 'holoscript.package-stewardship/v1',
+      packages: [
+        {
+          registry: 'npm',
+          packageName: '@holoscript/engine',
+          status: 'release-candidate',
+          validationScripts: ['check:registry-cold-start:engine-public-api'],
+        },
+      ],
+    },
+  });
+  if (!publicApiReleaseCandidate.ok) {
+    throw new Error(
+      `expected public API release candidate to pass: ${publicApiReleaseCandidate.errors.join('; ')}`
+    );
   }
 
   console.log('[package-architecture] self-test PASS');
@@ -189,6 +275,7 @@ function main() {
     release: readJson(MANIFESTS.release),
     consumption: readJson(MANIFESTS.consumption),
     utilities: readJson(MANIFESTS.utilities),
+    stewardship: readJson(MANIFESTS.stewardship),
   });
 
   if (JSON_OUT) {

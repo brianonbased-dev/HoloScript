@@ -383,7 +383,11 @@
       },
       "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
       "utilityIds": [],
-      "validationScripts": ["package:opportunity-map", "version:check:strict"],
+      "validationScripts": [
+        "package:opportunity-map",
+        "version:check:strict",
+        "check:registry-cold-start:engine-public-api"
+      ],
       "validationCommands": [
         "pnpm --filter @holoscript/engine build",
         "pnpm --filter @holoscript/engine test",
@@ -415,7 +419,11 @@
       },
       "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu", "hosted-service"],
       "utilityIds": [],
-      "validationScripts": ["package:opportunity-map", "version:check:strict"],
+      "validationScripts": [
+        "package:opportunity-map",
+        "version:check:strict",
+        "check:registry-cold-start:framework-public-api"
+      ],
       "validationCommands": [
         "pnpm --filter @holoscript/framework build",
         "pnpm --filter @holoscript/framework test",
@@ -475,7 +483,11 @@
       },
       "consumerLanes": ["laptop-windows", "vast-linux-gpu", "hosted-service"],
       "utilityIds": [],
-      "validationScripts": ["package:opportunity-map", "version:check:strict"],
+      "validationScripts": [
+        "package:opportunity-map",
+        "version:check:strict",
+        "check:registry-cold-start:absorb-service-public-api"
+      ],
       "validationCommands": [
         "pnpm --filter @holoscript/absorb-service build",
         "pnpm --filter @holoscript/absorb-service test",
