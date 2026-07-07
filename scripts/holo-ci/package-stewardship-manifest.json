@@ -1,0 +1,240 @@
+{
+  "schema": "holoscript.package-stewardship/v1",
+  "_comment": "Agent-operable stewardship map for the public packages that turn HoloScript into a universal construction substrate for humans and AI agents.",
+  "principles": [
+    "Every stewarded package names the construction capability it gives to humans and AI agents.",
+    "Every fleet or release package has a runnable validation path before an agent claims improvement.",
+    "Stewardship expands existing packages first; new packages need an explicit construction role and consumer lane."
+  ],
+  "packages": [
+    {
+      "id": "core-language-runtime",
+      "registry": "npm",
+      "packageName": "@holoscript/core",
+      "status": "fleet-operational",
+      "constructionRole": "Language substrate: parser, AST, traits, compilers, and runtime APIs.",
+      "stewardshipIntent": "Keep the core package the smallest complete construction kernel that every higher package can depend on cold.",
+      "userClasses": ["human", "ai-agent"],
+      "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "utilityIds": ["core-language-runtime"],
+      "validationScripts": [
+        "build:package-release-closure",
+        "check:npm-v1-release:built",
+        "check:package-consumption:full",
+        "check:registry-cold-start:core"
+      ],
+      "nextActions": [
+        "Keep public exports cold-installable and covered by check:registry-cold-start:core.",
+        "Promote new language primitives only when they are source-level and gate-verifiable."
+      ]
+    },
+    {
+      "id": "agent-tool-gateway",
+      "registry": "npm",
+      "packageName": "@holoscript/mcp-server",
+      "status": "fleet-operational",
+      "constructionRole": "Agent tool gateway: MCP entrypoints, sizing profiles, and fleet dispatch tools.",
+      "stewardshipIntent": "Keep MCP the universal agent access layer across laptop, Jetson, Vast, and hosted coordinators.",
+      "userClasses": ["human", "ai-agent"],
+      "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu", "hosted-service"],
+      "utilityIds": [
+        "agent-tool-gateway",
+        "gpu-ci-dispatch",
+        "world-render-dispatch",
+        "paid-simulation-dispatch"
+      ],
+      "validationScripts": [
+        "build:package-release-closure",
+        "check:npm-v1-release:built",
+        "check:fleet-utilities",
+        "check:registry-cold-start:mcp",
+        "check:package-consumption:full"
+      ],
+      "nextActions": [
+        "Keep sizing profiles aligned with laptop, Jetson, Vast, and fleet hosted lanes.",
+        "Make new MCP tools discoverable, authenticated, and tied to package consumption checks."
+      ]
+    },
+    {
+      "id": "native-llm-serving",
+      "registry": "npm",
+      "packageName": "@holoscript/holollama",
+      "status": "fleet-operational",
+      "constructionRole": "Native local-LLM serving: llama.cpp planning, lifecycle receipts, and HoloMesh read-only bridge.",
+      "stewardshipIntent": "Make HoloLlama the owned-metal inference package for Laptop, Jetson, and Vast rather than an Ollama-dependent side path.",
+      "userClasses": ["human", "ai-agent"],
+      "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "utilityIds": ["native-llm-serving"],
+      "validationScripts": [
+        "build:package-release-closure",
+        "check:holollama-consumption",
+        "check:fleet-utilities",
+        "check:package-consumption:full"
+      ],
+      "nextActions": [
+        "Cut the pending HoloLlama release after the release closure and cold consumption gates pass.",
+        "Expand lifecycle checks from preflight to live service receipts on Jetson and Vast lanes."
+      ]
+    },
+    {
+      "id": "headless-agent-runtime",
+      "registry": "npm",
+      "packageName": "@holoscript/holoscript-agent",
+      "status": "fleet-operational",
+      "constructionRole": "Headless agent runtime for unattended HoloMesh work.",
+      "stewardshipIntent": "Give every compute lane a packageable agent process that can run work without provider custody.",
+      "userClasses": ["human", "ai-agent"],
+      "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "utilityIds": ["headless-agent-runtime"],
+      "validationScripts": [
+        "build:package-release-closure",
+        "check:npm-v1-release:built",
+        "check:fleet-utilities",
+        "check:package-consumption:full"
+      ],
+      "nextActions": [
+        "Keep CLI entrypoints installable from a packed tarball.",
+        "Tie new agent runtime features to room, cost, and identity receipts."
+      ]
+    },
+    {
+      "id": "sovereign-memory-client",
+      "registry": "npm",
+      "packageName": "@holoscript/memory",
+      "status": "fleet-operational",
+      "constructionRole": "Shared identity-keyed memory client for cross-family agents.",
+      "stewardshipIntent": "Prevent memory from becoming a provider-specific lane by keeping the client package consumable everywhere.",
+      "userClasses": ["human", "ai-agent"],
+      "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "utilityIds": ["sovereign-memory-client"],
+      "validationScripts": [
+        "build:package-release-closure",
+        "check:npm-v1-release:built",
+        "check:fleet-utilities",
+        "check:package-consumption:full"
+      ],
+      "nextActions": [
+        "Keep the package small enough for edge and worker lanes.",
+        "Add receipts for read/write behavior before broadening public APIs."
+      ]
+    },
+    {
+      "id": "language-authoring-cli",
+      "registry": "npm",
+      "packageName": "@holoscript/cli",
+      "status": "fleet-operational",
+      "constructionRole": "Human and agent command line for parse, validate, compile, and local authoring.",
+      "stewardshipIntent": "Make source authoring available from every machine before specialized Studio surfaces are required.",
+      "userClasses": ["human", "ai-agent"],
+      "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "utilityIds": ["language-authoring-cli"],
+      "validationScripts": [
+        "build:package-release-closure",
+        "check:npm-v1-release:built",
+        "check:package-consumption:full",
+        "audit:install-tree"
+      ],
+      "nextActions": [
+        "Keep holo, holoscript, and hs bins stable across OS lanes.",
+        "Expose new construction workflows through source-first commands."
+      ]
+    },
+    {
+      "id": "xr-embodiment-runtime",
+      "registry": "npm",
+      "packageName": "@holoscript/xr-embodiment",
+      "status": "fleet-operational",
+      "constructionRole": "Embodiment package for user locomotion and agent-NPC avatars.",
+      "stewardshipIntent": "Keep shared worlds consumable as package code instead of one-off scene demos.",
+      "userClasses": ["human", "ai-agent"],
+      "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "utilityIds": ["xr-embodiment-runtime"],
+      "validationScripts": [
+        "build:package-release-closure",
+        "check:npm-v1-release:built",
+        "check:fleet-utilities",
+        "check:package-consumption:full"
+      ],
+      "nextActions": [
+        "Keep React and three entrypoints optional where possible.",
+        "Add focused consumption examples for HoloLand and HoloShell clients."
+      ]
+    },
+    {
+      "id": "domain-plugin-template",
+      "registry": "npm",
+      "packageName": "@holoscript/domain-plugin-template",
+      "status": "release-candidate",
+      "constructionRole": "Template for turning domain knowledge into reusable HoloScript plugin packages.",
+      "stewardshipIntent": "Make domain expansion repeatable for agents and human package authors without forking core.",
+      "userClasses": ["human", "ai-agent"],
+      "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "utilityIds": [],
+      "validationScripts": [
+        "build:package-release-closure",
+        "check:npm-v1-release:built"
+      ],
+      "nextActions": [
+        "Promote a template smoke test into the package consumption matrix.",
+        "Keep plugin author instructions source-first and free of private founder paths."
+      ]
+    },
+    {
+      "id": "holo-runtime-decoder",
+      "registry": "npm",
+      "packageName": "@holoscript/holo-runtime",
+      "status": "incubating",
+      "constructionRole": "Experimental CPU decoder seed for sovereign HoloRunner checkpoints.",
+      "stewardshipIntent": "Decide whether this becomes a public construction runtime or remains a parked research package.",
+      "userClasses": ["human", "ai-agent"],
+      "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "utilityIds": [],
+      "validationScripts": ["version:check:strict"],
+      "validationCommands": ["pnpm --filter @holoscript/holo-runtime test"],
+      "nextActions": [
+        "Decide whether to add the package to npm release and package-consumption manifests.",
+        "If promoted, add cold install and fleet lane checks before publishing."
+      ]
+    },
+    {
+      "id": "python-runtime-bindings",
+      "registry": "pypi",
+      "pypiPackage": "holoscript",
+      "status": "fleet-operational",
+      "constructionRole": "Python bindings for scripting, robotics, and scientific construction lanes.",
+      "stewardshipIntent": "Make Python a first-class HoloScript consumption lane without splitting the source of truth.",
+      "userClasses": ["human", "ai-agent"],
+      "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "utilityIds": ["python-runtime-bindings"],
+      "validationScripts": [
+        "check:pypi-consumption",
+        "check:pypi-extras-resolution",
+        "check:package-consumption:full"
+      ],
+      "nextActions": [
+        "Keep optional extras aligned to laptop, Jetson, and Vast lanes.",
+        "Add examples that round-trip HoloScript source through Python without creating a parallel language."
+      ]
+    },
+    {
+      "id": "trait-inference-python",
+      "registry": "pypi",
+      "pypiPackage": "holoscript-trait-inference",
+      "status": "fleet-operational",
+      "constructionRole": "Python trait inference utility for model-assisted source construction.",
+      "stewardshipIntent": "Keep ML-assisted trait inference packageable and smokeable without making it required for core use.",
+      "userClasses": ["human", "ai-agent"],
+      "consumerLanes": ["laptop-windows", "vast-linux-gpu"],
+      "utilityIds": ["trait-inference-python"],
+      "validationScripts": [
+        "check:pypi-consumption",
+        "check:pypi-extras-resolution",
+        "check:package-consumption:full"
+      ],
+      "nextActions": [
+        "Keep model extras optional and Vast-oriented.",
+        "Add evaluator receipts before promoting new inference capabilities into core workflows."
+      ]
+    }
+  ]
+}
