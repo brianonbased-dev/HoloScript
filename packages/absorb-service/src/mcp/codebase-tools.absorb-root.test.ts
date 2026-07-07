@@ -6,6 +6,7 @@ import { createHash } from 'crypto';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { handleCodebaseTool, resetCodebaseToolStateForTests } from './codebase-tools';
 import { handleGraphRagTool, setGraphRAGState } from './graph-rag-tools';
+import { EmbeddingIndex } from '../engine/EmbeddingIndex';
 
 const originalCacheDir = process.env.HOLOSCRIPT_CACHE_DIR;
 const originalAutoBackground = process.env.ABSORB_AUTO_BACKGROUND;
@@ -1211,6 +1212,15 @@ describe('holo_absorb_repo sourceFiles upload', () => {
       rootDir?: string;
       stats?: { totalFiles?: number; totalSymbols?: number };
       fromSourceFiles?: boolean;
+      embeddingSkipped?: boolean;
+      graphRagReady?: boolean;
+      semanticIndexReady?: boolean;
+      semanticIndexReadiness?: {
+        kind?: string;
+        embeddingSkipped?: boolean;
+        embeddingSkipReason?: string;
+        semanticIndexReady?: boolean;
+      };
     };
 
     expect(result.error).toBeUndefined();
@@ -1218,6 +1228,15 @@ describe('holo_absorb_repo sourceFiles upload', () => {
     expect(result.rootDir).toBe(path.resolve(requestedRoot));
     expect(result.stats?.totalFiles).toBe(1);
     expect(result.stats?.totalSymbols).toBeGreaterThanOrEqual(1);
+    expect(result.embeddingSkipped).toBe(false);
+    expect(result.graphRagReady).toBe(true);
+    expect(result.semanticIndexReady).toBe(true);
+    expect(result.semanticIndexReadiness).toMatchObject({
+      kind: 'SemanticIndexReadinessReceipt',
+      embeddingSkipped: false,
+      semanticIndexReady: true,
+    });
+    expect(result.semanticIndexReadiness?.embeddingSkipReason).toBeUndefined();
 
     const status = (await handleCodebaseTool('holo_graph_status', {})) as {
       graphAuthoritative?: boolean;
@@ -1247,6 +1266,59 @@ describe('holo_absorb_repo sourceFiles upload', () => {
     expect(status.diskCache?.coverage?.graphFileCount).toBe(1);
     expect(status.localGraph?.rootDir).toBe(path.resolve(requestedRoot));
     expect(status.localGraph?.freshForCurrentRepo).toBe(false);
+  }, 15_000);
+
+  it('clears stale GraphRAG state when graph output cannot build embeddings', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-embed-failure-'));
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    setGraphRAGState({} as any, {} as any, { rootDir: process.cwd(), timestamp: Date.now() });
+    vi.spyOn(EmbeddingIndex.prototype, 'buildIndex').mockRejectedValueOnce(
+      new Error('synthetic HoloEmbed failure')
+    );
+
+    const result = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: process.cwd(),
+      sourceFiles: [
+        {
+          path: 'packages/core/src/parser/InlineEmbedFailureFixture.ts',
+          content: 'export function embedFailureFixture(): string { return "no stale index"; }',
+        },
+      ],
+      outputFormat: 'graph',
+    })) as {
+      error?: string;
+      embeddingSkipped?: boolean;
+      embeddingSkipReason?: string;
+      graphRagReady?: boolean;
+      semanticIndexReady?: boolean;
+      semanticIndexReadiness?: {
+        kind?: string;
+        embeddingSkipReason?: string;
+        priorGraphRagReady?: boolean;
+        semanticIndexReady?: boolean;
+        embeddingFailure?: { message?: string };
+      };
+    };
+
+    expect(result.error).toBeUndefined();
+    expect(result.embeddingSkipped).toBe(true);
+    expect(result.embeddingSkipReason).toBe('embeddingBuildFailed');
+    expect(result.graphRagReady).toBe(false);
+    expect(result.semanticIndexReady).toBe(false);
+    expect(result.semanticIndexReadiness).toMatchObject({
+      kind: 'SemanticIndexReadinessReceipt',
+      embeddingSkipReason: 'embeddingBuildFailed',
+      priorGraphRagReady: true,
+      semanticIndexReady: false,
+      embeddingFailure: { message: 'synthetic HoloEmbed failure' },
+    });
+
+    const semanticSearch = (await handleGraphRagTool('holo_semantic_search', {
+      query: 'embed failure',
+      useCachedAbsorbIndex: true,
+    })) as { error?: string };
+    expect(semanticSearch.error).toContain('No embedding index');
   }, 15_000);
 
   it('returns an extractive cited answer when holo_ask_codebase cannot reach an LLM', async () => {

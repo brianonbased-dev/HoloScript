@@ -663,7 +663,10 @@ interface SemanticIndexReadinessReceipt {
   graphRagReady: boolean;
   embeddingIndexReady: boolean;
   embeddingSkipped: boolean;
-  embeddingSkipReason: 'outputFormat:stats';
+  embeddingSkipReason?: 'outputFormat:stats' | 'embeddingBuildFailed' | 'embeddingLoadFailed';
+  embeddingFailure?: {
+    message: string;
+  };
   priorGraphRagReady: boolean;
   provider: typeof NATIVE_GRAPH_RAG_PROVIDER;
   graphProvider: 'holograph';
@@ -942,6 +945,69 @@ function buildStatsOnlySemanticIndexReceipt(rootDir: string): SemanticIndexReadi
       'outputFormat "stats" updates the HoloGraph cache only; it does not build or validate the HoloEmbed semantic index for this absorb result.',
     nextStep:
       'Run holo_absorb_repo with outputFormat "graph" or "holo" before relying on holo_semantic_search or holo_ask_codebase for this graph.',
+    createdAt: new Date().toISOString(),
+  };
+}
+
+function buildSemanticIndexReadinessReceipt(
+  rootDir: string,
+  options: {
+    priorGraphRagReady: boolean;
+    embeddingBuildError?: unknown;
+    embeddingFailureReason?: 'embeddingBuildFailed' | 'embeddingLoadFailed';
+  }
+): SemanticIndexReadinessReceipt {
+  const graphRagReady = isGraphRAGReady();
+  const failureMessage =
+    options.embeddingBuildError === undefined
+      ? undefined
+      : options.embeddingBuildError instanceof Error
+        ? options.embeddingBuildError.message
+        : String(options.embeddingBuildError);
+
+  if (failureMessage) {
+    return {
+      schemaVersion: SEMANTIC_INDEX_READINESS_RECEIPT_SCHEMA,
+      kind: 'SemanticIndexReadinessReceipt',
+      rootDir,
+      semanticIndexReady: false,
+      graphRagReady: false,
+      embeddingIndexReady: false,
+      embeddingSkipped: true,
+      embeddingSkipReason: options.embeddingFailureReason ?? 'embeddingBuildFailed',
+      embeddingFailure: { message: failureMessage },
+      priorGraphRagReady: options.priorGraphRagReady,
+      provider: NATIVE_GRAPH_RAG_PROVIDER,
+      graphProvider: 'holograph',
+      message:
+        options.embeddingFailureReason === 'embeddingLoadFailed'
+          ? 'HoloGraph cache was reused, but the persisted HoloEmbed semantic index could not be loaded for this absorb result.'
+          : 'HoloGraph cache was updated, but HoloEmbed semantic index creation failed for this absorb result.',
+      nextStep:
+        options.embeddingFailureReason === 'embeddingLoadFailed'
+          ? 'Rerun holo_absorb_repo with outputFormat "graph" or "holo" to rebuild the HoloEmbed semantic index before relying on holo_semantic_search or holo_ask_codebase.'
+          : 'Fix the HoloEmbed failure, then rerun holo_absorb_repo with outputFormat "graph" or "holo" before relying on holo_semantic_search or holo_ask_codebase.',
+      createdAt: new Date().toISOString(),
+    };
+  }
+
+  return {
+    schemaVersion: SEMANTIC_INDEX_READINESS_RECEIPT_SCHEMA,
+    kind: 'SemanticIndexReadinessReceipt',
+    rootDir,
+    semanticIndexReady: graphRagReady,
+    graphRagReady,
+    embeddingIndexReady: graphRagReady,
+    embeddingSkipped: false,
+    priorGraphRagReady: options.priorGraphRagReady,
+    provider: NATIVE_GRAPH_RAG_PROVIDER,
+    graphProvider: 'holograph',
+    message: graphRagReady
+      ? 'HoloGraph cache and HoloEmbed semantic index are ready for this absorb result.'
+      : 'HoloGraph cache was updated, but no HoloEmbed semantic index is ready for this absorb result.',
+    nextStep: graphRagReady
+      ? 'Use holo_semantic_search or holo_ask_codebase with the current GraphRAG index.'
+      : 'Run holo_absorb_repo with outputFormat "graph" or "holo" and verify semanticIndexReady before relying on semantic tools.',
     createdAt: new Date().toISOString(),
   };
 }
@@ -2445,6 +2511,8 @@ async function runFullScan(
   if (jobId) trackAbsorbProgress(jobId, 'Creating embeddings', 80);
 
   // Build embedding index with granular progress (Phase 8 Extension)
+  const priorGraphRagReadyForEmbedding = isGraphRAGReady();
+  let embeddingBuildError: unknown;
   try {
     const { GraphRAGEngine } = mod;
 
@@ -2536,11 +2604,16 @@ async function runFullScan(
     }
   } catch (err) {
     console.warn(`[AbsorbEmbeddings] Full-scan GraphRAG skipped: ${String(err)}`);
-    // Embedding provider may not be available
+    embeddingBuildError = err;
+    resetGraphRAGState();
     recordPhaseMetric('embedding-skipped', {
       totalSymbols: stats.totalSymbols,
     });
   }
+  const semanticIndexReadiness = buildSemanticIndexReadinessReceipt(primaryRootDir, {
+    priorGraphRagReady: priorGraphRagReadyForEmbedding,
+    embeddingBuildError,
+  });
 
   // Sync with mesh (Phase 9)
   await syncWithMesh(graph, primaryRootDir);
@@ -2556,6 +2629,13 @@ async function runFullScan(
       stats,
       graph: graph.serialize(),
       embeddingPolicy,
+      graphRagReady: semanticIndexReadiness.graphRagReady,
+      semanticIndexReady: semanticIndexReadiness.semanticIndexReady,
+      semanticIndexReadiness,
+      embeddingSkipped: semanticIndexReadiness.embeddingSkipped,
+      ...(semanticIndexReadiness.embeddingSkipReason && {
+        embeddingSkipReason: semanticIndexReadiness.embeddingSkipReason,
+      }),
       scanPlan: scanPlanReceipt,
       phaseMetrics,
       gitCommitHash,
@@ -2590,6 +2670,13 @@ async function runFullScan(
       holoSource,
       interactiveScene: scene,
       embeddingPolicy,
+      graphRagReady: semanticIndexReadiness.graphRagReady,
+      semanticIndexReady: semanticIndexReadiness.semanticIndexReady,
+      semanticIndexReadiness,
+      embeddingSkipped: semanticIndexReadiness.embeddingSkipped,
+      ...(semanticIndexReadiness.embeddingSkipReason && {
+        embeddingSkipReason: semanticIndexReadiness.embeddingSkipReason,
+      }),
       scanPlan: scanPlanReceipt,
       phaseMetrics,
       gitCommitHash,
@@ -2767,6 +2854,8 @@ async function runIncrementalPatch(
   if (jobId) trackAbsorbProgress(jobId, 'Updating embeddings', 80);
 
   // Update embedding index
+  const priorGraphRagReadyForEmbedding = isGraphRAGReady();
+  let embeddingBuildError: unknown;
   try {
     const { GraphRAGEngine } = mod;
     let index: any = null;
@@ -2824,7 +2913,8 @@ async function runIncrementalPatch(
     }
   } catch (err) {
     console.warn(`[AbsorbEmbeddings] Incremental GraphRAG skipped: ${String(err)}`);
-    // Embedding provider may not be available
+    embeddingBuildError = err;
+    resetGraphRAGState();
   }
 
   // Cache updated graph
@@ -2883,6 +2973,10 @@ async function runIncrementalPatch(
   if (jobId) trackAbsorbProgress(jobId, 'Complete', 100);
 
   const patchDurationMs = Date.now() - startTime;
+  const semanticIndexReadiness = buildSemanticIndexReadinessReceipt(rootDir, {
+    priorGraphRagReady: priorGraphRagReadyForEmbedding,
+    embeddingBuildError,
+  });
 
   const result = {
     incremental: true,
@@ -2894,6 +2988,13 @@ async function runIncrementalPatch(
     rootDir,
     stats: graphStats,
     embeddingPolicy,
+    graphRagReady: semanticIndexReadiness.graphRagReady,
+    semanticIndexReady: semanticIndexReadiness.semanticIndexReady,
+    semanticIndexReadiness,
+    embeddingSkipped: semanticIndexReadiness.embeddingSkipped,
+    ...(semanticIndexReadiness.embeddingSkipReason && {
+      embeddingSkipReason: semanticIndexReadiness.embeddingSkipReason,
+    }),
     holoSource,
     interactiveScene,
     gitCommitHash: changes.headCommit,
@@ -3384,6 +3485,8 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
     // set cachedGraph another way), load the embeddings from disk NOW so
     // holo_semantic_search / holo_ask_codebase light up without re-embedding.
     // This is the zero-change mirror of the incremental path's loadEmbeddingsCache.
+    const priorGraphRagReadyForHydrate = isGraphRAGReady();
+    let embeddingLoadError: unknown;
     if (outputFormat !== 'stats' && !isGraphRAGReady()) {
       try {
         const { GraphRAGEngine } = mod;
@@ -3410,6 +3513,8 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
         }
       } catch (err) {
         console.warn(`[AbsorbEmbeddings] Zero-change fast-hydrate skipped: ${String(err)}`);
+        embeddingLoadError = err;
+        resetGraphRAGState();
       }
     }
 
@@ -3425,7 +3530,13 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
     }
 
     const semanticIndexReadiness =
-      outputFormat === 'stats' ? buildStatsOnlySemanticIndexReceipt(rootDir) : undefined;
+      outputFormat === 'stats'
+        ? buildStatsOnlySemanticIndexReceipt(rootDir)
+        : buildSemanticIndexReadinessReceipt(rootDir, {
+            priorGraphRagReady: priorGraphRagReadyForHydrate,
+            embeddingBuildError: embeddingLoadError,
+            embeddingFailureReason: embeddingLoadError ? 'embeddingLoadFailed' : undefined,
+          });
 
     return {
       cached: true,
@@ -3435,12 +3546,12 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
       stats: envelope.stats,
       embeddingPolicy: envelope.embeddingPolicy ?? buildGraphRAGEmbeddingPolicyReceipt(),
       gitCommitHash: changes.headCommit,
-      graphRagReady: semanticIndexReadiness?.graphRagReady ?? isGraphRAGReady(),
-      ...(semanticIndexReadiness && {
-        semanticIndexReady: semanticIndexReadiness.semanticIndexReady,
-        semanticIndexReadiness,
-        embeddingSkipped: true,
-        embeddingSkipReason: 'outputFormat:stats',
+      graphRagReady: semanticIndexReadiness.graphRagReady,
+      semanticIndexReady: semanticIndexReadiness.semanticIndexReady,
+      semanticIndexReadiness,
+      embeddingSkipped: semanticIndexReadiness.embeddingSkipped,
+      ...(semanticIndexReadiness.embeddingSkipReason && {
+        embeddingSkipReason: semanticIndexReadiness.embeddingSkipReason,
       }),
       message: `No changes since last scan (${changes.headCommit.slice(0, 7)})`,
       jobId,
