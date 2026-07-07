@@ -342,9 +342,62 @@ export interface HoloLlamaLiveLifecycleOptions {
   maxTokens?: number;
   noLive?: boolean;
   skipSystemd?: boolean;
+  skipFootprint?: boolean;
   requireSystemd?: boolean;
   fetchImpl?: HoloLlamaFetch;
   systemdProbe?: HoloLlamaSystemdEvidence;
+  footprintProbe?: HoloLlamaFootprintEvidence;
+}
+
+export interface HoloLlamaFootprintEvidence {
+  ok: boolean | null;
+  skipped?: boolean;
+  source: 'ssh-procfs-journal' | 'provided' | 'none';
+  unit?: string;
+  pid?: number | null;
+  command?: string | null;
+  expected: {
+    executable: string;
+    gpuLayers: number;
+    contextLength: number;
+  };
+  observed: {
+    executable?: string | null;
+    modelPath?: string | null;
+    loraPaths?: string[];
+    gpuLayers?: number | null;
+    contextLength?: number | null;
+    cacheRamMiB?: number | null;
+    promptCacheLimitMiB?: number | null;
+    noUsableGpuWarning?: boolean;
+    processRssMiB?: number | null;
+    processHighWaterMiB?: number | null;
+    processSwapMiB?: number | null;
+    ramUsedMiB?: number | null;
+    ramTotalMiB?: number | null;
+    swapUsedMiB?: number | null;
+    swapTotalMiB?: number | null;
+    modelFilesMiB?: number | null;
+  };
+  warnings: string[];
+  blockers: string[];
+}
+
+export interface HoloLlamaFootprintAssessmentInput {
+  source?: HoloLlamaFootprintEvidence['source'];
+  unit?: string;
+  pid?: number | null;
+  command?: string | null;
+  promptCacheLimitMiB?: number | null;
+  noUsableGpuWarning?: boolean;
+  processRssMiB?: number | null;
+  processHighWaterMiB?: number | null;
+  processSwapMiB?: number | null;
+  ramUsedMiB?: number | null;
+  ramTotalMiB?: number | null;
+  swapUsedMiB?: number | null;
+  swapTotalMiB?: number | null;
+  modelFilesMiB?: number | null;
 }
 
 export interface HoloLlamaLiveLifecycleReceipt {
@@ -365,6 +418,7 @@ export interface HoloLlamaLiveLifecycleReceipt {
   };
   checks: {
     systemd: HoloLlamaSystemdEvidence;
+    footprint: HoloLlamaFootprintEvidence;
     health: HoloLlamaHttpProbe;
     models: HoloLlamaHttpProbe;
     model: HoloLlamaLiveModelSummary | null;
@@ -1099,6 +1153,109 @@ export function firstModelFromHoloLlamaModelsPayload(
   };
 }
 
+export function assessHoloLlamaFootprint(
+  profile: HoloLlamaProfile,
+  input: HoloLlamaFootprintAssessmentInput = {}
+): HoloLlamaFootprintEvidence {
+  const definition = HOLOLLAMA_PROFILE_DEFINITIONS[profile];
+  const spec = definition.spec;
+  const command = input.command ?? null;
+  const parsed = parseHoloLlamaLaunchCommand(command);
+  const observed: HoloLlamaFootprintEvidence['observed'] = {
+    executable: parsed.executable,
+    modelPath: parsed.modelPath,
+    loraPaths: parsed.loraPaths,
+    gpuLayers: parsed.gpuLayers,
+    contextLength: parsed.contextLength,
+    cacheRamMiB: parsed.cacheRamMiB,
+    promptCacheLimitMiB: input.promptCacheLimitMiB ?? null,
+    noUsableGpuWarning: input.noUsableGpuWarning === true,
+    processRssMiB: input.processRssMiB ?? null,
+    processHighWaterMiB: input.processHighWaterMiB ?? null,
+    processSwapMiB: input.processSwapMiB ?? null,
+    ramUsedMiB: input.ramUsedMiB ?? null,
+    ramTotalMiB: input.ramTotalMiB ?? null,
+    swapUsedMiB: input.swapUsedMiB ?? null,
+    swapTotalMiB: input.swapTotalMiB ?? null,
+    modelFilesMiB: input.modelFilesMiB ?? null,
+  };
+  const warnings: string[] = [];
+  const blockers: string[] = [];
+
+  if (!command) {
+    blockers.push('launch command unavailable from systemd/procfs');
+  }
+  if (observed.executable && normalizeRuntimePath(observed.executable) !== normalizeRuntimePath(spec.executable)) {
+    blockers.push(
+      `executable drift: observed ${observed.executable}, expected ${spec.executable}`
+    );
+  }
+  if (observed.executable?.includes('/ollama/')) {
+    blockers.push('live unit uses Ollama-installed llama-server instead of the HoloLlama native binary');
+  }
+  if (observed.gpuLayers !== null && observed.gpuLayers !== undefined) {
+    if (observed.gpuLayers > spec.gpuLayers) {
+      blockers.push(`gpu layer drift: observed ${observed.gpuLayers}, expected <= ${spec.gpuLayers}`);
+    } else if (observed.gpuLayers < spec.gpuLayers) {
+      warnings.push(`gpu layers lower than profile: observed ${observed.gpuLayers}, expected ${spec.gpuLayers}`);
+    }
+  }
+  if (observed.contextLength !== null && observed.contextLength !== undefined) {
+    if (observed.contextLength > spec.contextLength) {
+      blockers.push(`context drift: observed ${observed.contextLength}, expected <= ${spec.contextLength}`);
+    } else if (observed.contextLength < spec.contextLength) {
+      warnings.push(`context lower than profile: observed ${observed.contextLength}, expected ${spec.contextLength}`);
+    }
+  }
+  if (observed.noUsableGpuWarning && spec.gpuLayers > 0) {
+    blockers.push('llama.cpp reported no usable GPU; requested gpu layers are ignored');
+  }
+  if (
+    observed.promptCacheLimitMiB !== null &&
+    observed.promptCacheLimitMiB !== undefined &&
+    observed.promptCacheLimitMiB > 0
+  ) {
+    if (observed.ramTotalMiB && observed.promptCacheLimitMiB >= observed.ramTotalMiB * 0.75) {
+      blockers.push(
+        `prompt cache limit ${observed.promptCacheLimitMiB} MiB is unsafe for ${observed.ramTotalMiB} MiB unified RAM`
+      );
+    } else {
+      warnings.push(`prompt cache enabled with ${observed.promptCacheLimitMiB} MiB limit`);
+    }
+  }
+  if (
+    observed.processRssMiB !== null &&
+    observed.processRssMiB !== undefined &&
+    observed.ramTotalMiB
+  ) {
+    const pct = observed.processRssMiB / observed.ramTotalMiB;
+    if (pct >= 0.7) {
+      blockers.push(`process RSS uses ${(pct * 100).toFixed(1)}% of unified RAM`);
+    } else if (pct >= 0.5) {
+      warnings.push(`process RSS uses ${(pct * 100).toFixed(1)}% of unified RAM`);
+    }
+  }
+  if (observed.swapUsedMiB && observed.swapUsedMiB > 0) {
+    warnings.push(`swap is already in use (${observed.swapUsedMiB} MiB)`);
+  }
+
+  return {
+    ok: blockers.length === 0,
+    source: input.source ?? 'provided',
+    unit: input.unit,
+    pid: input.pid ?? null,
+    command,
+    expected: {
+      executable: spec.executable,
+      gpuLayers: spec.gpuLayers,
+      contextLength: spec.contextLength,
+    },
+    observed,
+    warnings,
+    blockers,
+  };
+}
+
 export async function probeHoloLlamaLiveLifecycle(
   options: HoloLlamaLiveLifecycleOptions = {}
 ): Promise<HoloLlamaLiveLifecycleReceipt> {
@@ -1121,6 +1278,7 @@ export async function probeHoloLlamaLiveLifecycle(
   }
 
   let systemd: HoloLlamaSystemdEvidence;
+  let footprint: HoloLlamaFootprintEvidence;
   let health: HoloLlamaHttpProbe;
   let models: HoloLlamaHttpProbe;
   let model: HoloLlamaLiveModelSummary | null = null;
@@ -1133,6 +1291,7 @@ export async function probeHoloLlamaLiveLifecycle(
   if (noLive) {
     warnings.push('live probes skipped by caller');
     systemd = { ok: null, skipped: true, unit: systemdUnit ?? 'none' };
+    footprint = skippedHoloLlamaFootprint(profile, systemdUnit, 'live probes skipped by caller');
     health = { ok: null, skipped: true, url: `${endpoint}/health` };
     models = { ok: null, skipped: true, url: `${endpoint}/v1/models` };
     completion = { ok: null, skipped: true, url: `${endpoint}/v1/chat/completions` };
@@ -1154,6 +1313,41 @@ export async function probeHoloLlamaLiveLifecycle(
       }
     }
     if (options.requireSystemd && !systemd.ok) failures.push('systemd unit is not active');
+
+    if (options.footprintProbe) {
+      footprint = {
+        ...options.footprintProbe,
+        source: options.footprintProbe.source === 'none' ? 'provided' : options.footprintProbe.source,
+      };
+    } else if (options.skipFootprint || options.systemdProbe || options.skipSystemd || !systemd.ok || !sshHost) {
+      footprint = skippedHoloLlamaFootprint(
+        profile,
+        systemdUnit,
+        options.skipFootprint
+          ? 'footprint probe skipped by caller'
+          : 'footprint probe skipped without live SSH-owned systemd proof'
+      );
+    } else {
+      try {
+        footprint = runHoloLlamaFootprintProbe({
+          profile,
+          sshHost,
+          sshKey,
+          systemdUnit: systemdUnit ?? defaultHoloLlamaSystemdUnit(profile) ?? 'holollama.service',
+          timeoutMs,
+        });
+      } catch (error) {
+        footprint = {
+          ...skippedHoloLlamaFootprint(profile, systemdUnit, systemdProbeError(error)),
+          ok: false,
+          source: 'ssh-procfs-journal',
+        };
+      }
+    }
+    if (!footprint.skipped) {
+      for (const warning of footprint.warnings) warnings.push(`footprint: ${warning}`);
+      for (const blocker of footprint.blockers) failures.push(`footprint: ${blocker}`);
+    }
 
     health = await fetchHoloLlamaJson(fetchImpl as HoloLlamaFetch, `${endpoint}/health`, {
       timeoutMs,
@@ -1204,6 +1398,7 @@ export async function probeHoloLlamaLiveLifecycle(
     },
     checks: {
       systemd,
+      footprint,
       health,
       models,
       model,
@@ -1540,6 +1735,79 @@ function normalizeModelId(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, '');
 }
 
+function parseHoloLlamaLaunchCommand(command: string | null): {
+  executable?: string | null;
+  modelPath?: string | null;
+  loraPaths: string[];
+  gpuLayers?: number | null;
+  contextLength?: number | null;
+  cacheRamMiB?: number | null;
+} {
+  const tokens = commandLineTokens(command ?? '');
+  return {
+    executable: tokens[0] ?? null,
+    modelPath: tokenValue(tokens, ['-m', '--model']) ?? null,
+    loraPaths: tokenValues(tokens, ['--lora']),
+    gpuLayers: tokenNumber(tokens, ['-ngl', '--gpu-layers', '--n-gpu-layers']),
+    contextLength: tokenNumber(tokens, ['-c', '--ctx-size', '--ctx', '--context-size']),
+    cacheRamMiB: tokenNumber(tokens, ['--cache-ram']),
+  };
+}
+
+function commandLineTokens(command: string): string[] {
+  const tokens: string[] = [];
+  const pattern = /"([^"]*)"|'([^']*)'|(\S+)/g;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(command)) !== null) {
+    tokens.push(match[1] ?? match[2] ?? match[3] ?? '');
+  }
+  return tokens.filter(Boolean);
+}
+
+function tokenValue(tokens: string[], names: string[]): string | undefined {
+  return tokenValues(tokens, names)[0];
+}
+
+function tokenValues(tokens: string[], names: string[]): string[] {
+  const values: string[] = [];
+  for (let i = 0; i < tokens.length; i += 1) {
+    const token = tokens[i];
+    for (const name of names) {
+      if (token === name && tokens[i + 1]) values.push(tokens[i + 1]);
+      if (token.startsWith(`${name}=`)) values.push(token.slice(name.length + 1));
+    }
+  }
+  return values;
+}
+
+function tokenNumber(tokens: string[], names: string[]): number | null {
+  const value = tokenValue(tokens, names);
+  return optionalNumber(value);
+}
+
+function normalizeRuntimePath(value: string): string {
+  return value.replace(/\\/g, '/').replace(/\/+/g, '/').toLowerCase();
+}
+
+function firstField(fields: Map<string, string[]>, key: string): string | undefined {
+  return fields.get(key)?.[0];
+}
+
+function optionalNumber(value: string | undefined | null): number | null {
+  if (value === undefined || value === null || value === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function kibToMib(value: string | undefined | null): number | null {
+  const parsed = optionalNumber(value);
+  return parsed === null ? null : Math.round(parsed / 1024);
+}
+
+function shellSingleQuote(value: string): string {
+  return `'${value.replace(/'/g, "'\\''")}'`;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -1585,6 +1853,30 @@ function positiveOrDefault(value: number | undefined, fallback: number): number 
   return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : fallback;
 }
 
+function skippedHoloLlamaFootprint(
+  profile: HoloLlamaProfile,
+  unit: string | undefined,
+  reason: string
+): HoloLlamaFootprintEvidence {
+  const spec = HOLOLLAMA_PROFILE_DEFINITIONS[profile].spec;
+  return {
+    ok: null,
+    skipped: true,
+    source: 'none',
+    unit,
+    pid: null,
+    command: null,
+    expected: {
+      executable: spec.executable,
+      gpuLayers: spec.gpuLayers,
+      contextLength: spec.contextLength,
+    },
+    observed: {},
+    warnings: [reason],
+    blockers: [],
+  };
+}
+
 function runHoloLlamaSystemdProbe(options: {
   sshHost: string;
   sshKey: string;
@@ -1623,6 +1915,121 @@ function runHoloLlamaSystemdProbe(options: {
     }
   );
   return parseHoloLlamaSystemdShow(output, options.systemdUnit);
+}
+
+function runHoloLlamaFootprintProbe(options: {
+  profile: HoloLlamaProfile;
+  sshHost: string;
+  sshKey: string;
+  systemdUnit: string;
+  timeoutMs: number;
+}): HoloLlamaFootprintEvidence {
+  const output = execFileSync(
+    'ssh',
+    [
+      '-i',
+      options.sshKey,
+      '-o',
+      'BatchMode=yes',
+      '-o',
+      'ConnectTimeout=15',
+      '-o',
+      'StrictHostKeyChecking=accept-new',
+      options.sshHost,
+      'bash',
+      '-lc',
+      buildFootprintProbeScript(options.systemdUnit),
+    ],
+    {
+      encoding: 'utf8',
+      timeout: options.timeoutMs,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      maxBuffer: 1024 * 1024,
+    }
+  );
+  return assessHoloLlamaFootprint(
+    options.profile,
+    parseHoloLlamaFootprintOutput(output, options.systemdUnit)
+  );
+}
+
+function buildFootprintProbeScript(systemdUnit: string): string {
+  return `
+unit=${shellSingleQuote(systemdUnit)}
+printf 'UNIT=%s\\n' "$unit"
+pid="$(systemctl show "$unit" -p MainPID --value 2>/dev/null || true)"
+if [ -z "$pid" ] || [ "$pid" = "0" ]; then
+  pid="$(systemctl show "$unit" -p ExecMainPID --value 2>/dev/null || true)"
+fi
+printf 'PID=%s\\n' "$pid"
+if [ -n "$pid" ] && [ "$pid" != "0" ] && [ -r "/proc/$pid/cmdline" ]; then
+  cmd="$(tr '\\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null || true)"
+  printf 'COMMAND=%s\\n' "$cmd"
+  awk '
+    /^VmRSS:/ { print "VM_RSS_KB="$2 }
+    /^VmHWM:/ { print "VM_HWM_KB="$2 }
+    /^VmSwap:/ { print "VM_SWAP_KB="$2 }
+  ' "/proc/$pid/status" 2>/dev/null || true
+  total=0
+  previous=''
+  for token in $cmd; do
+    if [ "$previous" = "-m" ] || [ "$previous" = "--model" ]; then
+      printf 'MODEL_PATH=%s\\n' "$token"
+      if [ -f "$token" ]; then size="$(du -sm "$token" 2>/dev/null | awk '{print $1}')"; total=$((total + size)); fi
+    fi
+    if [ "$previous" = "--lora" ]; then
+      printf 'LORA_PATH=%s\\n' "$token"
+      if [ -f "$token" ]; then size="$(du -sm "$token" 2>/dev/null | awk '{print $1}')"; total=$((total + size)); fi
+    fi
+    previous="$token"
+  done
+  printf 'MODEL_FILES_MIB=%s\\n' "$total"
+fi
+free -m | awk '
+  /^Mem:/ { print "RAM_TOTAL_MIB="$2; print "RAM_USED_MIB="$3 }
+  /^Swap:/ { print "SWAP_TOTAL_MIB="$2; print "SWAP_USED_MIB="$3 }
+' 2>/dev/null || true
+journal="$(journalctl -u "$unit" -n 500 --no-pager 2>/dev/null || sudo -n journalctl -u "$unit" -n 500 --no-pager 2>/dev/null || true)"
+if printf '%s' "$journal" | grep -qi 'no usable GPU found'; then
+  printf 'NO_USABLE_GPU_WARNING=1\\n'
+else
+  printf 'NO_USABLE_GPU_WARNING=0\\n'
+fi
+cache="$(printf '%s' "$journal" | sed -nE 's/.*prompt cache is enabled, size limit: ([0-9]+) MiB.*/\\1/p' | tail -1)"
+if [ -n "$cache" ]; then printf 'PROMPT_CACHE_LIMIT_MIB=%s\\n' "$cache"; fi
+`;
+}
+
+function parseHoloLlamaFootprintOutput(
+  output: string,
+  fallbackUnit: string
+): HoloLlamaFootprintAssessmentInput {
+  const fields = new Map<string, string[]>();
+  for (const line of output.split(/\r?\n/u)) {
+    const idx = line.indexOf('=');
+    if (idx <= 0) continue;
+    const key = line.slice(0, idx);
+    const value = line.slice(idx + 1);
+    const list = fields.get(key) ?? [];
+    list.push(value);
+    fields.set(key, list);
+  }
+  return {
+    source: 'ssh-procfs-journal',
+    unit: firstField(fields, 'UNIT') ?? fallbackUnit,
+    pid: optionalNumber(firstField(fields, 'PID')),
+    command: firstField(fields, 'COMMAND') ?? null,
+    promptCacheLimitMiB: optionalNumber(firstField(fields, 'PROMPT_CACHE_LIMIT_MIB')),
+    noUsableGpuWarning: firstField(fields, 'NO_USABLE_GPU_WARNING') === '1',
+    processRssMiB: kibToMib(firstField(fields, 'VM_RSS_KB')),
+    processHighWaterMiB: kibToMib(firstField(fields, 'VM_HWM_KB')),
+    processSwapMiB: kibToMib(firstField(fields, 'VM_SWAP_KB')),
+    ramUsedMiB: optionalNumber(firstField(fields, 'RAM_USED_MIB')),
+    ramTotalMiB: optionalNumber(firstField(fields, 'RAM_TOTAL_MIB')),
+    swapUsedMiB: optionalNumber(firstField(fields, 'SWAP_USED_MIB')),
+    swapTotalMiB: optionalNumber(firstField(fields, 'SWAP_TOTAL_MIB')),
+    modelFilesMiB: optionalNumber(firstField(fields, 'MODEL_FILES_MIB')),
+  };
 }
 
 async function fetchHoloLlamaJson(

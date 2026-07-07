@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   assertHoloLlamaBundleConsumable,
+  assessHoloLlamaFootprint,
   assessHoloLlamaRuntimeReadiness,
   buildHoloLlamaFleetLifecycleReport,
   buildHoloMeshReadOnlyBridge,
@@ -338,12 +339,76 @@ describe('@holoscript/holollama', () => {
     expect(liveLifecycle.ok).toBe(true);
     expect(liveLifecycle.runtimeState).toBe('ready');
     expect(liveLifecycle.checks.systemd.ok).toBe(true);
+    expect(liveLifecycle.checks.footprint.skipped).toBe(true);
     expect(liveLifecycle.checks.model?.id).toBe('qwen3-4b-instruct.gguf');
     expect(liveLifecycle.checks.completion.completionOk).toBe(true);
     expect(liveLifecycle.receiptHash).toMatch(/^sha256:/);
     expect(lifecycle.ok).toBe(true);
     expect(lifecycle.profiles[0].stages.map((stage) => stage.id)).toContain('live-lifecycle');
     expect(lifecycle.profiles[0].liveLifecycle?.target.endpoint).toBe('http://192.168.0.119:18080');
+  });
+
+  it('detects Jetson unified-memory footprint drift from live llama-server evidence', () => {
+    const footprint = assessHoloLlamaFootprint('jetson-orin', {
+      source: 'ssh-procfs-journal',
+      unit: 'jetson-orin-llamacpp.service',
+      pid: 55883,
+      command:
+        '/usr/local/lib/ollama/llama-server -m /mnt/nvme/holo/models/qwen3-4b-instruct.gguf --host 192.168.0.119 --port 18080 -c 4096 -ngl 99 --fit on --parallel 1 --metrics --lora /mnt/nvme/holo/models/brittney-edge-v0-4.lora.gguf',
+      noUsableGpuWarning: true,
+      promptCacheLimitMiB: 8192,
+      processRssMiB: 4083,
+      processHighWaterMiB: 5113,
+      processSwapMiB: 0,
+      ramUsedMiB: 4086,
+      ramTotalMiB: 7620,
+      swapUsedMiB: 382,
+      swapTotalMiB: 20194,
+      modelFilesMiB: 2492,
+    });
+
+    expect(footprint.ok).toBe(false);
+    expect(footprint.observed.executable).toBe('/usr/local/lib/ollama/llama-server');
+    expect(footprint.observed.gpuLayers).toBe(99);
+    expect(footprint.observed.noUsableGpuWarning).toBe(true);
+    expect(footprint.blockers).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('executable drift'),
+        expect.stringContaining('Ollama-installed llama-server'),
+        expect.stringContaining('gpu layer drift'),
+        expect.stringContaining('no usable GPU'),
+        expect.stringContaining('prompt cache limit 8192 MiB is unsafe'),
+      ])
+    );
+    expect(footprint.warnings).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('process RSS uses'),
+        expect.stringContaining('swap is already in use'),
+      ])
+    );
+  });
+
+  it('accepts the conservative Jetson HoloLlama footprint profile', () => {
+    const footprint = assessHoloLlamaFootprint('jetson-orin', {
+      source: 'ssh-procfs-journal',
+      unit: 'jetson-orin-llamacpp.service',
+      pid: 42,
+      command:
+        `${patchedJetsonExecutable} -m /opt/holoscript/models/brittney-edge-v0-4.gguf --host 0.0.0.0 --port 18080 -c 4096 -ngl 32 --fit on --parallel 1 --cache-ram 0 --metrics`,
+      noUsableGpuWarning: false,
+      processRssMiB: 3000,
+      processHighWaterMiB: 3400,
+      processSwapMiB: 0,
+      ramUsedMiB: 3500,
+      ramTotalMiB: 7620,
+      swapUsedMiB: 0,
+      swapTotalMiB: 20194,
+      modelFilesMiB: 2600,
+    });
+
+    expect(footprint.ok).toBe(true);
+    expect(footprint.observed.cacheRamMiB).toBe(0);
+    expect(footprint.blockers).toEqual([]);
   });
 
   it('blocks lifecycle promotion when live proof is required but missing', () => {

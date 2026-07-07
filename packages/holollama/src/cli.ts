@@ -96,6 +96,7 @@ export async function runCli(args = process.argv.slice(2)): Promise<void> {
           prompt: readString(flags, 'prompt'),
           maxTokens: readNumber(flags, 'max-tokens'),
           skipSystemd: flags.has('no-systemd'),
+          skipFootprint: flags.has('no-footprint'),
           requireSystemd: flags.has('require-systemd'),
         })
       : undefined;
@@ -405,6 +406,7 @@ Options:
   --prompt <text>
   --max-tokens <number>
   --no-systemd
+  --no-footprint
   --require-systemd
   --require-live-lifecycle
   --check-filesystem

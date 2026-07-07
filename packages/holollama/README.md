@@ -71,11 +71,15 @@ Operational receipts:
 - `lifecycle --live`: probes a live HoloLlama node, attaches
   `holollama.lifecycle-doctor.v1`, and promotes it into the lifecycle as a
   `live-lifecycle` stage. The live probe checks optional systemd service state,
-  `/health`, `/v1/models`, and a tiny OpenAI-compatible completion. Use
+  read-only SSH/procfs footprint, `/health`, `/v1/models`, and a tiny
+  OpenAI-compatible completion. The footprint check catches Jetson-class drift:
+  wrong `llama-server` binary, ignored GPU layers, unsafe prompt-cache ceilings,
+  RSS pressure against unified memory, and swap already in use. Use
   `--endpoint`, `--host`, `--key`, `--unit`, `--models-path`, `--timeout-ms`,
-  `--prompt`, `--max-tokens`, `--no-systemd`, and `--require-systemd` to adapt
-  the same package to Jetson, laptop, and Vast fleet lanes. `HOLOLLAMA_ENDPOINT`,
-  `JETSON_HOST`, and `JETSON_KEY` are honored by the CLI.
+  `--prompt`, `--max-tokens`, `--no-systemd`, `--no-footprint`, and
+  `--require-systemd` to adapt the same package to Jetson, laptop, and Vast
+  fleet lanes. `HOLOLLAMA_ENDPOINT`, `JETSON_HOST`, and `JETSON_KEY` are honored
+  by the CLI.
 
 ## Brains
 
