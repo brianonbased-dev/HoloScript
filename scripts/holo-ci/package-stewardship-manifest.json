@@ -221,6 +221,201 @@
       ]
     },
     {
+      "id": "engine-runtime",
+      "registry": "npm",
+      "packageName": "@holoscript/engine",
+      "status": "release-candidate",
+      "constructionRole": "Spatial engine runtime for rendering, physics, animation, ECS, GPU, and simulation subsystems.",
+      "stewardshipIntent": "Keep high-churn engine capabilities packageable without letting native, browser, or benchmark surfaces leak into cold consumers.",
+      "userClasses": ["human", "ai-agent"],
+      "outsideUserGate": {
+        "readiness": "ready",
+        "harnessMode": "standalone",
+        "audience": ["external-human", "external-ai-agent"],
+        "publicEntry": "docs/packages/engine.md",
+        "requiredPublicFiles": [],
+        "privateHarnessLeakAllowed": false
+      },
+      "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "utilityIds": [],
+      "validationScripts": ["package:opportunity-map", "version:check:strict"],
+      "validationCommands": [
+        "pnpm --filter @holoscript/engine build",
+        "pnpm --filter @holoscript/engine test"
+      ],
+      "nextActions": [
+        "Add engine to the release manifest only after cold pack proves browser and native optional dependencies stay optional.",
+        "Design a registry cold-start probe for engine runtime or physics entrypoints before promoting to fleet-operational."
+      ]
+    },
+    {
+      "id": "agent-framework",
+      "registry": "npm",
+      "packageName": "@holoscript/framework",
+      "status": "release-candidate",
+      "constructionRole": "Agent framework for board, behavior, economy, swarm, learning, and skill orchestration.",
+      "stewardshipIntent": "Keep multi-agent framework APIs publishable and consumable without coupling them to a single provider harness.",
+      "userClasses": ["human", "ai-agent"],
+      "outsideUserGate": {
+        "readiness": "ready",
+        "harnessMode": "standalone",
+        "audience": ["external-human", "external-ai-agent"],
+        "publicEntry": "docs/packages/framework.md",
+        "requiredPublicFiles": [],
+        "privateHarnessLeakAllowed": false
+      },
+      "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu", "hosted-service"],
+      "utilityIds": [],
+      "validationScripts": ["package:opportunity-map", "version:check:strict"],
+      "validationCommands": [
+        "pnpm --filter @holoscript/framework build",
+        "pnpm --filter @holoscript/framework test"
+      ],
+      "nextActions": [
+        "Add an import smoke for board and identity APIs before moving framework into package-consumption.",
+        "Keep cloud-family harness adapters outside the core framework package boundary."
+      ]
+    },
+    {
+      "id": "platform-layer",
+      "registry": "npm",
+      "packageName": "@holoscript/platform",
+      "status": "release-candidate",
+      "constructionRole": "Platform layer for security, web3, identity, registry, and enterprise integration.",
+      "stewardshipIntent": "Make HoloKey, x402, and registry platform capabilities packageable without leaking deployment secrets.",
+      "userClasses": ["human", "ai-agent"],
+      "outsideUserGate": {
+        "readiness": "ready",
+        "harnessMode": "standalone",
+        "audience": ["external-human", "external-ai-agent"],
+        "publicEntry": "packages/platform/README.md",
+        "requiredPublicFiles": [],
+        "privateHarnessLeakAllowed": false
+      },
+      "consumerLanes": ["laptop-windows", "vast-linux-gpu", "hosted-service"],
+      "utilityIds": [],
+      "validationScripts": ["package:opportunity-map", "version:check:strict"],
+      "validationCommands": [
+        "pnpm --filter @holoscript/platform build",
+        "pnpm --filter @holoscript/platform test"
+      ],
+      "nextActions": [
+        "Add a secret-safe HoloKey/x402 import smoke before promoting platform into package-consumption.",
+        "Keep hosted-service configuration documented without embedding private deployment paths or keys."
+      ]
+    },
+    {
+      "id": "codebase-intelligence-service",
+      "registry": "npm",
+      "packageName": "@holoscript/absorb-service",
+      "status": "release-candidate",
+      "constructionRole": "Codebase intelligence and recursive self-improvement service for Absorb, graph, and daemon workflows.",
+      "stewardshipIntent": "Keep Absorb/GraphRAG service capabilities publishable as package code while the private knowledge stores remain sovereign.",
+      "userClasses": ["human", "ai-agent"],
+      "outsideUserGate": {
+        "readiness": "ready",
+        "harnessMode": "standalone",
+        "audience": ["external-human", "external-ai-agent"],
+        "publicEntry": "packages/absorb-service/README.md",
+        "requiredPublicFiles": [],
+        "privateHarnessLeakAllowed": false
+      },
+      "consumerLanes": ["laptop-windows", "vast-linux-gpu", "hosted-service"],
+      "utilityIds": [],
+      "validationScripts": ["package:opportunity-map", "version:check:strict"],
+      "validationCommands": [
+        "pnpm --filter @holoscript/absorb-service build",
+        "pnpm --filter @holoscript/absorb-service test"
+      ],
+      "nextActions": [
+        "Add an Absorb cold-start smoke that can run without private graph credentials.",
+        "Separate public package API checks from private GraphRAG corpus and OAuth state."
+      ]
+    },
+    {
+      "id": "llm-provider-sdk",
+      "registry": "npm",
+      "packageName": "@holoscript/llm-provider",
+      "status": "release-candidate",
+      "constructionRole": "Unified LLM provider SDK for OpenAI, Anthropic, Gemini, OpenRouter, xAI, and local adapters.",
+      "stewardshipIntent": "Keep provider routing portable while secrets and model custody stay outside the package artifact.",
+      "userClasses": ["human", "ai-agent"],
+      "outsideUserGate": {
+        "readiness": "ready",
+        "harnessMode": "standalone",
+        "audience": ["external-human", "external-ai-agent"],
+        "publicEntry": "packages/llm-provider/README.md",
+        "requiredPublicFiles": [],
+        "privateHarnessLeakAllowed": false
+      },
+      "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu", "hosted-service"],
+      "utilityIds": [],
+      "validationScripts": ["package:opportunity-map", "version:check:strict"],
+      "validationCommands": [
+        "pnpm --filter @holoscript/llm-provider build",
+        "pnpm --filter @holoscript/llm-provider test"
+      ],
+      "nextActions": [
+        "Add a no-secret import smoke that verifies provider factories without touching live API keys.",
+        "Keep local-LLM adapter strategy aligned with HoloLlama rather than reintroducing Ollama dependency assumptions."
+      ]
+    },
+    {
+      "id": "react-three-renderer",
+      "registry": "npm",
+      "packageName": "@holoscript/r3f-renderer",
+      "status": "release-candidate",
+      "constructionRole": "React Three Fiber renderer package for HoloScript visual and spatial app clients.",
+      "stewardshipIntent": "Keep renderer components reusable without making React/Three client code a requirement for core language consumers.",
+      "userClasses": ["human", "ai-agent"],
+      "outsideUserGate": {
+        "readiness": "ready",
+        "harnessMode": "standalone",
+        "audience": ["external-human", "external-ai-agent"],
+        "publicEntry": "packages/r3f-renderer/README.md",
+        "requiredPublicFiles": [],
+        "privateHarnessLeakAllowed": false
+      },
+      "consumerLanes": ["laptop-windows", "vast-linux-gpu"],
+      "utilityIds": [],
+      "validationScripts": ["package:opportunity-map", "version:check:strict"],
+      "validationCommands": [
+        "pnpm --filter @holoscript/r3f-renderer build",
+        "pnpm --filter @holoscript/r3f-renderer test"
+      ],
+      "nextActions": [
+        "Add a package-consumption smoke that imports renderer components without a browser runtime.",
+        "Keep visual client examples separate from package entrypoint guarantees."
+      ]
+    },
+    {
+      "id": "studio-app-shell",
+      "registry": "npm",
+      "packageName": "@holoscript/studio",
+      "status": "incubating",
+      "constructionRole": "Private Studio app shell for AI-powered 3D scene building and package-driven authoring workflows.",
+      "stewardshipIntent": "Keep Studio strategically connected to public packages while preventing founder paths, private services, or hosted config from becoming a public artifact.",
+      "userClasses": ["human", "ai-agent"],
+      "outsideUserGate": {
+        "readiness": "incubating",
+        "harnessMode": "not-public",
+        "audience": ["external-human", "external-ai-agent"],
+        "publicEntry": "docs/packages/studio.md",
+        "requiredPublicFiles": [],
+        "privateHarnessLeakAllowed": false
+      },
+      "consumerLanes": ["laptop-windows", "hosted-service"],
+      "utilityIds": [],
+      "validationScripts": ["check:studio-typecheck", "package:opportunity-map"],
+      "validationCommands": [
+        "pnpm --filter @holoscript/studio build"
+      ],
+      "nextActions": [
+        "Keep Studio private until public-package entrypoints cover the reusable authoring APIs.",
+        "Extract reusable Studio capabilities into package surfaces before publishing any app shell."
+      ]
+    },
+    {
       "id": "domain-plugin-template",
       "registry": "npm",
       "packageName": "@holoscript/domain-plugin-template",
