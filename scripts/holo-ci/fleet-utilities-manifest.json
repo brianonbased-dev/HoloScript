@@ -88,6 +88,20 @@
       ]
     },
     {
+      "id": "language-formatting-tool",
+      "label": "HoloScript formatter",
+      "utilityFamily": "authoring",
+      "deploymentRoles": ["local-client", "edge-node", "gpu-worker"],
+      "packageName": "@holoscript/formatter",
+      "commands": ["holoscript-format"],
+      "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "useCases": [
+        "format and check .holo, .hs, and .hsplus source files",
+        "repo-less source hygiene for human and agent authoring",
+        "cold-installable formatter dependency for CLI and editor packages"
+      ]
+    },
+    {
       "id": "core-language-runtime",
       "label": "Core language package",
       "utilityFamily": "language-runtime",

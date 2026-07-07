@@ -281,19 +281,21 @@
         "check:package-consumption:full",
         "audit:install-tree"
       ],
+      "validationCommands": [
+        "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/cli@latest --probe cli-bin-help --json"
+      ],
       "blockers": [
         {
           "id": "published-cli-bin-version-drift",
-          "status": "active",
+          "status": "resolved",
           "scope": "public-package",
-          "summary": "@holoscript/cli@8.0.9 installs from npm and prints help, but the published package is not aligned with the local manifest: the `holo` bin alias is missing and the shipped help reports v6.1.1.",
-          "nextUnblockAction": "Publish a corrected @holoscript/cli package whose tarball includes holo, holoscript, and hs bins and whose dist help reports the package version.",
+          "summary": "@holoscript/cli@8.0.11 installs from npm with holo, holoscript, and hs bins, resolves @holoscript/formatter@6.0.4, and the repo-less cli-bin-help canary verifies the help banner reports v8.0.11.",
           "evidenceCommand": "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/cli@latest --probe cli-bin-help --json"
         }
       ],
       "nextActions": [
         "Keep holo, holoscript, and hs bins stable across OS lanes.",
-        "Republish the CLI only after cli-bin-help passes from a repo-less npm consumer.",
+        "Keep cli-bin-help and formatter cold-start probes green after CLI or formatter publishes.",
         "Expose new construction workflows through source-first commands."
       ]
     },
@@ -301,7 +303,7 @@
       "id": "language-formatting-tool",
       "registry": "npm",
       "packageName": "@holoscript/formatter",
-      "status": "release-candidate",
+      "status": "fleet-operational",
       "constructionRole": "Standalone formatter and formatting library for .holo, .hs, and .hsplus source.",
       "stewardshipIntent": "Keep source hygiene and CLI transitive dependencies cold-installable outside the monorepo.",
       "userClasses": ["human", "ai-agent"],
@@ -314,9 +316,10 @@
         "privateHarnessLeakAllowed": false
       },
       "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
-      "utilityIds": [],
+      "utilityIds": ["language-formatting-tool"],
       "validationScripts": [
         "check:npm-v1-release:built",
+        "check:fleet-utilities",
         "check:package-consumption:full",
         "version:check:strict"
       ],

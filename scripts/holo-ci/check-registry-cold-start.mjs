@@ -520,6 +520,8 @@ console.log(JSON.stringify({
 
 function main() {
   const work = mkdtempSync(join(tmpdir(), 'hs-registry-cold-start-'));
+  const npmCacheDir = join(work, 'npm-cache');
+  mkdirSync(npmCacheDir, { recursive: true });
   writeConsumerPackageJson(work);
   const installOmit = installOmitArgs();
   const receipt = {
@@ -549,12 +551,13 @@ function main() {
     },
     isolation: {
       tempDir: work,
+      npmCacheDir,
       tempDirKept: KEEP_TEMP,
       repoAccess: false,
       installCommand:
         `npm install ${PACKAGE_SPEC}${REGISTRY_URL ? ` --registry ${REGISTRY_URL}` : ''} ` +
         '--ignore-scripts --no-audit --no-fund ' +
-        `${installOmit.join(' ')} --loglevel=error`,
+        `${installOmit.join(' ')} --prefer-online --cache <temp>/npm-cache --loglevel=error`,
     },
     probeKind: PROBE,
     source:
@@ -613,6 +616,9 @@ function main() {
         '--no-audit',
         '--no-fund',
         ...installOmit,
+        '--prefer-online',
+        '--cache',
+        npmCacheDir,
         '--loglevel=error',
       ]),
       { cwd: work, timeout: 180_000, env: npmEnv() }
