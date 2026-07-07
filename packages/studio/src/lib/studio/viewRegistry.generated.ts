@@ -4,7 +4,7 @@
 import type { StudioViewDefinition } from './viewRegistry';
 
 /** Canonical view ids in curated order — the StudioViewId literal-union source. */
-export const GENERATED_VIEW_IDS = ["palette","chat","history","profiler","shaderEditor","timeline","templatePicker","aiMaterial","share","critique","assetPack","versions","repl","registry","remote","export","generator","multiplayer","debugger","snapshots","assetLib","templateGallery","minimap","audio","exportV2","nodeGraph","keyframes","sceneSearch","particles","lod","console","undoHistory","outliner","material","physics","simulation","snapshotDiff","audioVisualizer","multiTransform","environment","inspector","hotkey","plugins","sandboxedPlugins","splatWizard","agentMonitor","texturePaint","mcpConfig","agentWorkflow","behaviorTree","agentEnsemble","eventMonitor","toolCallGraph","marketplace","pluginManager","cloudDeploy","publish","examples","tutorial","hotkeyOverlay","prompts","blame","dag","calibration","dragonPreview","holoDiff","sliderInspector","traitMatrix","assetImport","cinematicCamera","syntheticData","compilationPipeline","confidenceXR","operationsHub","foundationDao","runtimeTier","parametricSliders","printabilityReport","simParams","simRunReport","gameParams","gameGateLedger","avatarParams","avatarRigLedger"] as const;
+export const GENERATED_VIEW_IDS = ["palette","chat","history","profiler","shaderEditor","timeline","templatePicker","aiMaterial","share","critique","assetPack","versions","repl","registry","remote","export","generator","multiplayer","debugger","snapshots","assetLib","templateGallery","minimap","audio","exportV2","nodeGraph","keyframes","sceneSearch","particles","lod","console","undoHistory","outliner","material","physics","simulation","snapshotDiff","audioVisualizer","multiTransform","environment","inspector","hotkey","plugins","sandboxedPlugins","splatWizard","agentMonitor","compilerExport","texturePaint","mcpConfig","agentWorkflow","behaviorTree","agentEnsemble","eventMonitor","toolCallGraph","marketplace","pluginManager","cloudDeploy","publish","examples","tutorial","hotkeyOverlay","prompts","blame","dag","calibration","dragonPreview","holoDiff","sliderInspector","traitMatrix","assetImport","cinematicCamera","syntheticData","compilationPipeline","confidenceXR","operationsHub","foundationDao","runtimeTier","parametricSliders","printabilityReport","simParams","simRunReport","gameParams","gameGateLedger","avatarParams","avatarRigLedger"] as const;
 
 /** View definitions derived from panel .holo compositions (dogfood), in curated order. */
 export const GENERATED_VIEW_REGISTRY: StudioViewDefinition[] = [
@@ -665,6 +665,19 @@ export const GENERATED_VIEW_REGISTRY: StudioViewDefinition[] = [
     "exclusiveWith": []
   },
   {
+    "id": "compilerExport",
+    "title": "Compiler Export",
+    "icon": "Package",
+    "category": "assistant",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.compilerExport.toggle",
+    "workspaceScope": "workspace",
+    "availabilityGate": "always",
+    "surfaceClass": "lab",
+    "defaultOpen": false,
+    "exclusiveWith": []
+  },
+  {
     "id": "texturePaint",
     "title": "Texture Paint",
     "icon": "Paintbrush",
@@ -1233,6 +1246,10 @@ export const GENERATED_VIEW_SLOTS: Record<string, { component: string; import: s
   "compilationPipeline": {
     "component": "CompilationPipelineVisualizer",
     "import": "@/components/pipeline/CompilationPipelineVisualizer"
+  },
+  "compilerExport": {
+    "component": "CompilerExportComponent",
+    "import": "@/components/panels/native/compilerExport.native"
   },
   "confidenceXR": {
     "component": "ConfidenceAwareXRUI",

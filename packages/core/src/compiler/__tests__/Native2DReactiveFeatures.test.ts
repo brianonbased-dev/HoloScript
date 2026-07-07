@@ -223,7 +223,10 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
     it('WORKS: @computed with from/uses imports the called symbol and binds AFTER state', () => {
       const c = comp(
         [
-          obj('Slider', [trait('input', { type: 'range' }), trait('model', { state: 'nodes' })]),
+          obj('Slider', [
+            trait('input', { type: 'range', min: '100', max: '10000', step: '100' }),
+            trait('model', { state: 'nodes' }),
+          ]),
           obj('Targets', [
             trait('computed', {
               name: 'targets',
@@ -243,6 +246,8 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
       expect(r).toContain('const [nodes, setNodes] = useState(2500);');
       // range @model coerces the string event value so state stays numeric
       expect(r).toContain('onChange={(e) => setNodes(Number(e.target.value))}');
+      expect(r).toContain('min="100"'); // @input min/max/step now emit
+      expect(r).toContain('max="10000"');
       expect(r).toContain('const targets = compileAST(nodes);');
       // the derived binding must come after the state hook it reads
       expect(r.indexOf('const [nodes')).toBeLessThan(r.indexOf('const targets ='));

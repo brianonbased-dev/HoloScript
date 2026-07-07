@@ -28,6 +28,7 @@ export const VIEW_COMPONENTS: Record<string, ComponentType<unknown>> = {
   "cinematicCamera": dynamic(() => import("@/components/camera/CinematicCameraPanel").then((m) => ({ default: pick(m as AnyModule, "CinematicCameraPanel") }))),
   "cloudDeploy": dynamic(() => import("@/components/cloud/CloudDeployPanel").then((m) => ({ default: pick(m as AnyModule, "CloudDeployPanel") }))),
   "compilationPipeline": dynamic(() => import("@/components/pipeline/CompilationPipelineVisualizer").then((m) => ({ default: pick(m as AnyModule, "CompilationPipelineVisualizer") }))),
+  "compilerExport": dynamic(() => import("@/components/panels/native/compilerExport.native").then((m) => ({ default: pick(m as AnyModule, "CompilerExportComponent") }))),
   "confidenceXR": dynamic(() => import("@/components/xr/ConfidenceAwareXRUI").then((m) => ({ default: pick(m as AnyModule, "ConfidenceAwareXRUI") }))),
   "console": dynamic(() => import("@/components/console/ScriptConsole").then((m) => ({ default: pick(m as AnyModule, "ScriptConsole") }))),
   "critique": dynamic(() => import("@/components/critique/CritiquePanel").then((m) => ({ default: pick(m as AnyModule, "CritiquePanel") }))),

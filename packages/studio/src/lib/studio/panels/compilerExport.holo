@@ -1,0 +1,59 @@
+@view({ id: "compilerExport", title: "Compiler Export", icon: "Package", category: "assistant", placement: "right-rail", scope: "workspace", gate: "always", surfaceClass: "lab", defaultOpen: false, exclusiveWith: [], order: 46 })
+composition "compilerExport" {
+  @native_panel
+
+  state {
+    nodes: 2500
+  }
+
+  object "Root" {
+    @layout { flex: "column", gap: "12px" }
+    @theme { className: "p-3 h-full overflow-y-auto text-xs text-studio-text" }
+    @computed { name: "targets", expr: "compileAST(nodes)", from: "@/lib/v6PlatformServices", uses: ["compileAST"] }
+
+    object "Title" {
+      @text { variant: "h3", content: "Compiler Export" }
+      @theme { className: "text-sm font-semibold text-studio-text" }
+    }
+
+    object "SliderRow" {
+      @layout { flex: "row", gap: "8px", align: "center" }
+
+      object "SliderLabel" {
+        @text { variant: "caption", content: "AST Nodes" }
+        @theme { className: "text-[10px] text-studio-muted" }
+      }
+      object "SliderValue" {
+        @text { variant: "caption" }
+        @bind { state: "nodes", fallback: "0" }
+        @theme { className: "text-[10px] font-semibold text-studio-text" }
+      }
+      object "Slider" {
+        @input { type: "range", min: "100", max: "10000", step: "100" }
+        @model { state: "nodes" }
+        @theme { className: "flex-1 accent-studio-accent" }
+      }
+    }
+
+    object "TargetList" {
+      @layout { flex: "column", gap: "6px" }
+
+      object "TargetRow" {
+        @each { state: "targets", as: "t" }
+        @layout { flex: "row", justify: "space-between" }
+        @theme { className: "rounded-md p-2 bg-studio-panel/40" }
+
+        object "TargetName" {
+          @text { variant: "caption" }
+          @bind { state: "t", path: "target" }
+          @theme { className: "font-semibold text-studio-text" }
+        }
+        object "TargetSize" {
+          @text { variant: "caption" }
+          @bind { state: "t", path: "sizeKb", precision: 2, suffix: " KB" }
+          @theme { className: "text-[10px] text-studio-muted" }
+        }
+      }
+    }
+  }
+}

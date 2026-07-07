@@ -455,6 +455,9 @@ export default ${safeName}Component;
     if (traits.input?.placeholder) props += ` placeholder="${traits.input.placeholder}"`;
     if (traits.input?.type) props += ` type="${traits.input.type}"`;
     if (traits.input?.required) props += ` required`;
+    if (traits.input?.min != null) props += ` min="${String(traits.input.min)}"`;
+    if (traits.input?.max != null) props += ` max="${String(traits.input.max)}"`;
+    if (traits.input?.step != null) props += ` step="${String(traits.input.step)}"`;
     if (traits.button?.type) props += ` type="${traits.button.type}"`;
 
     const childrenMarkup = ((obj.children || obj.objects || []) as Record<string, unknown>[])
