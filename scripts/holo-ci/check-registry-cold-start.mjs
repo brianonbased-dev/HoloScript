@@ -67,12 +67,40 @@ const PACKAGE_IMPORT_PROBES = {
     '@holoscript/sdk',
     '@holoscript/sdk/schema',
   ],
+  'memory-client-import': [
+    '@holoscript/memory',
+  ],
+  'holoscript-agent-library-import': [
+    '@holoscript/holoscript-agent/brain',
+    '@holoscript/holoscript-agent/identity',
+    '@holoscript/holoscript-agent/cost-guard',
+    '@holoscript/holoscript-agent/supervisor-config',
+  ],
+  'xr-embodiment-import': [
+    '@holoscript/xr-embodiment',
+    '@holoscript/xr-embodiment/three',
+  ],
+};
+const PACKAGE_BIN_HELP_PROBES = {
+  'cli-bin-help': {
+    packageName: '@holoscript/cli',
+    runBin: 'holoscript',
+    expectedBins: ['holo', 'holoscript', 'hs'],
+    expectedOutput: ['HoloScript CLI', 'Usage: holoscript', 'parse <file>'],
+  },
+  'holoscript-agent-bin-help': {
+    packageName: '@holoscript/holoscript-agent',
+    runBin: 'holoscript-agent',
+    expectedBins: ['holoscript-agent'],
+    expectedOutput: ['holoscript-agent', 'USAGE', 'tick', 'supervise'],
+  },
 };
 const PROBES = new Set([
   'core-holo-webgpu',
   'mcp-server-sizing',
   'holollama-harness',
   ...Object.keys(PACKAGE_IMPORT_PROBES),
+  ...Object.keys(PACKAGE_BIN_HELP_PROBES),
 ]);
 
 function inferProbe(packageSpec) {
@@ -417,6 +445,65 @@ console.log(JSON.stringify({
 `;
 }
 
+function buildPackageBinHelpProbeScript(probeKind) {
+  const config = PACKAGE_BIN_HELP_PROBES[probeKind];
+  return `
+import { execFileSync } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+
+const config = ${JSON.stringify(config, null, 2)};
+const manifestPath = join(process.cwd(), 'node_modules', ...config.packageName.split('/'), 'package.json');
+const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+const binMap = typeof manifest.bin === 'string' ? { [manifest.name]: manifest.bin } : manifest.bin || {};
+const missingBins = config.expectedBins.filter((binName) => !(binName in binMap));
+const runBinPath = binMap[config.runBin];
+const resolvedBin = runBinPath
+  ? resolve(process.cwd(), 'node_modules', ...config.packageName.split('/'), runBinPath)
+  : null;
+const binExists = resolvedBin ? existsSync(resolvedBin) : false;
+let stdout = '';
+let error = null;
+
+if (binExists) {
+  try {
+    stdout = execFileSync(process.execPath, [resolvedBin, '--help'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      timeout: 60_000
+    });
+  } catch (err) {
+    error = String(err?.stderr || err?.stdout || err?.message || err).slice(0, 1600);
+  }
+}
+
+const plainStdout = stdout.replace(/\\u001b\\[[0-9;]*m/g, '');
+const outputChecks = Object.fromEntries(
+  config.expectedOutput.map((marker) => [marker, plainStdout.includes(marker)])
+);
+
+console.log(JSON.stringify({
+  kind: ${JSON.stringify(probeKind)},
+  ok:
+    missingBins.length === 0 &&
+    binExists === true &&
+    error === null &&
+    Object.values(outputChecks).every(Boolean),
+  packageName: manifest.name,
+  version: manifest.version,
+  bins: Object.keys(binMap).sort(),
+  runBin: config.runBin,
+  resolvedBin,
+  binExists,
+  missingBins,
+  outputChecks,
+  stdoutBytes: Buffer.byteLength(stdout),
+  sample: plainStdout.slice(0, 800),
+  error
+}, null, 2));
+`;
+}
+
 function main() {
   const work = mkdtempSync(join(tmpdir(), 'hs-registry-cold-start-'));
   writeConsumerPackageJson(work);
@@ -553,6 +640,8 @@ function main() {
       writeFileSync(probeFile, buildHoloLlamaHarnessProbeScript());
     } else if (PACKAGE_IMPORT_PROBES[PROBE]) {
       writeFileSync(probeFile, buildPackageImportProbeScript(PROBE));
+    } else if (PACKAGE_BIN_HELP_PROBES[PROBE]) {
+      writeFileSync(probeFile, buildPackageBinHelpProbeScript(PROBE));
     }
     const probe = JSON.parse(run('node', [probeFile], { cwd: work, timeout: 60_000 }));
     receipt.probe = probe;

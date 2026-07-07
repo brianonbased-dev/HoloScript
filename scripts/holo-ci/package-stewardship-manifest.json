@@ -216,6 +216,10 @@
         "check:fleet-utilities",
         "check:package-consumption:full"
       ],
+      "validationCommands": [
+        "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/holoscript-agent@latest --probe holoscript-agent-library-import --json",
+        "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/holoscript-agent@latest --probe holoscript-agent-bin-help --json"
+      ],
       "nextActions": [
         "Keep CLI entrypoints installable from a packed tarball.",
         "Tie new agent runtime features to room, cost, and identity receipts."
@@ -244,6 +248,9 @@
         "check:npm-v1-release:built",
         "check:fleet-utilities",
         "check:package-consumption:full"
+      ],
+      "validationCommands": [
+        "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/memory@latest --probe memory-client-import --json"
       ],
       "nextActions": [
         "Keep the package small enough for edge and worker lanes.",
@@ -274,8 +281,19 @@
         "check:package-consumption:full",
         "audit:install-tree"
       ],
+      "blockers": [
+        {
+          "id": "published-cli-bin-version-drift",
+          "status": "active",
+          "scope": "public-package",
+          "summary": "@holoscript/cli@8.0.9 installs from npm and prints help, but the published package is not aligned with the local manifest: the `holo` bin alias is missing and the shipped help reports v6.1.1.",
+          "nextUnblockAction": "Publish a corrected @holoscript/cli package whose tarball includes holo, holoscript, and hs bins and whose dist help reports the package version.",
+          "evidenceCommand": "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/cli@latest --probe cli-bin-help --json"
+        }
+      ],
       "nextActions": [
         "Keep holo, holoscript, and hs bins stable across OS lanes.",
+        "Republish the CLI only after cli-bin-help passes from a repo-less npm consumer.",
         "Expose new construction workflows through source-first commands."
       ]
     },
@@ -302,6 +320,9 @@
         "check:npm-v1-release:built",
         "check:fleet-utilities",
         "check:package-consumption:full"
+      ],
+      "validationCommands": [
+        "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/xr-embodiment@latest --probe xr-embodiment-import --json"
       ],
       "nextActions": [
         "Keep React and three entrypoints optional where possible.",
