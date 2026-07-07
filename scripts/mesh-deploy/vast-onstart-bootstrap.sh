@@ -198,5 +198,7 @@ if [ ! -f "$BOOTSTRAP" ]; then
 fi
 
 echo "$LOG running $BOOTSTRAP (ORCH=$ORCH, SEAT=$SEAT, POLL=${POLL_INTERVAL}s)"
-chmod +x "$BOOTSTRAP"
+if [ -d .git ]; then
+  git config core.fileMode false || true
+fi
 exec bash "$BOOTSTRAP"
