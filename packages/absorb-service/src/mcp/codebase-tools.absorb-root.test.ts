@@ -836,6 +836,97 @@ describe('holo_absorb_repo root validation', () => {
     expect(status.diskCache?.scanPolicy?.maxFileSize).toBe(64);
   });
 
+  it('flags graph caches that include untracked local files as over-inclusive', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-overinclusive-cache-'));
+    const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-overinclusive-repo-'));
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    process.env.ABSORB_AUTO_BACKGROUND = '0';
+
+    execFileSync('git', ['init'], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['config', 'user.email', 'codex@example.test'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+    execFileSync('git', ['config', 'user.name', 'Codex Test'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+
+    fs.mkdirSync(path.join(repoDir, 'src'), { recursive: true });
+    fs.writeFileSync(
+      path.join(repoDir, 'src', 'tracked.ts'),
+      'export const tracked = true;\n',
+      'utf-8'
+    );
+    execFileSync('git', ['add', 'src/tracked.ts'], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['commit', '-m', 'fixture'], { cwd: repoDir, windowsHide: true });
+    fs.writeFileSync(
+      path.join(repoDir, 'src', 'local-only.ts'),
+      'export const localOnly = true;\n',
+      'utf-8'
+    );
+
+    const result = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+      force: true,
+    })) as { stats?: { totalFiles?: number } };
+
+    expect(result.stats?.totalFiles).toBe(2);
+
+    const status = (await handleCodebaseTool('holo_graph_status', {})) as {
+      graphAuthoritative?: boolean;
+      authorityCaveats?: string[];
+      coverage?: {
+        complete?: boolean;
+        graphFileCount?: number;
+        expectedGraphFileCount?: number;
+        trackedCandidateCount?: number;
+        overInclusive?: boolean;
+        extraGraphFiles?: number;
+      };
+      diskCache?: {
+        authoritative?: boolean;
+        authorityCaveats?: string[];
+        coverage?: {
+          complete?: boolean;
+          graphFileCount?: number;
+          expectedGraphFileCount?: number;
+          trackedCandidateCount?: number;
+          overInclusive?: boolean;
+          extraGraphFiles?: number;
+        };
+      };
+    };
+
+    expect(status.graphAuthoritative).toBe(true);
+    expect(status.coverage).toMatchObject({
+      complete: true,
+      graphFileCount: 2,
+      expectedGraphFileCount: 1,
+      trackedCandidateCount: 1,
+      overInclusive: true,
+      extraGraphFiles: 1,
+    });
+    expect(status.authorityCaveats).toContain(
+      'graph_contains_1_files_beyond_git_tracked_candidates'
+    );
+    expect(status.diskCache?.authoritative).toBe(true);
+    expect(status.diskCache?.coverage).toMatchObject({
+      complete: true,
+      graphFileCount: 2,
+      expectedGraphFileCount: 1,
+      trackedCandidateCount: 1,
+      overInclusive: true,
+      extraGraphFiles: 1,
+    });
+    expect(status.diskCache?.authorityCaveats).toContain(
+      'graph_contains_1_files_beyond_git_tracked_candidates'
+    );
+  });
+
   it('marks a fresh git-current cache incomplete when coverage is below the scanner target', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-incomplete-cache-'));

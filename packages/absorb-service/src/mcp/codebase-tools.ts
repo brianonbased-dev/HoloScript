@@ -724,6 +724,8 @@ interface GraphCoverageStatus {
   complete?: boolean;
   ratio?: number;
   cappedByMaxFiles?: boolean;
+  overInclusive?: boolean;
+  extraGraphFiles?: number;
   error?: string;
 }
 
@@ -966,6 +968,7 @@ function buildGraphCoverageStatus(
 
   const expectedGraphFileCount = Math.min(trackedCandidateCount, policy.maxFiles);
   const complete = safeGraphFileCount >= expectedGraphFileCount;
+  const extraGraphFiles = Math.max(0, safeGraphFileCount - expectedGraphFileCount);
   return {
     available: true,
     source: 'git-ls-files',
@@ -979,11 +982,18 @@ function buildGraphCoverageStatus(
         ? 1
         : Number((safeGraphFileCount / expectedGraphFileCount).toFixed(4)),
     cappedByMaxFiles: trackedCandidateCount > policy.maxFiles,
+    overInclusive: extraGraphFiles > 0,
+    extraGraphFiles,
   };
 }
 
 function graphCoverageIsComplete(coverage: GraphCoverageStatus): boolean {
   return !coverage.available || coverage.complete !== false;
+}
+
+function buildCoverageAuthorityCaveats(coverage: GraphCoverageStatus): string[] {
+  if (!coverage.available || !coverage.overInclusive) return [];
+  return [`graph_contains_${coverage.extraGraphFiles ?? 0}_files_beyond_git_tracked_candidates`];
 }
 
 function buildLocalCodebaseSnapshotAuthority(options: {
@@ -4418,6 +4428,8 @@ async function handleGraphStatus(): Promise<unknown> {
   );
   const activeCoverageComplete = !activeCoverage.available || activeCoverage.complete !== false;
   const diskCoverageComplete = !diskCoverage.available || diskCoverage.complete !== false;
+  const activeAuthorityCaveats = buildCoverageAuthorityCaveats(activeCoverage);
+  const diskAuthorityCaveats = buildCoverageAuthorityCaveats(diskCoverage);
   const localCodebaseSnapshot = buildLocalCodebaseSnapshotAuthority({
     receipt: cache.localCodebaseSnapshotReceipt,
     rootDir: cacheRootDir,
@@ -4558,6 +4570,7 @@ async function handleGraphStatus(): Promise<unknown> {
     },
     graphAuthoritative,
     freshForCurrentRepo,
+    authorityCaveats: activeAuthorityCaveats,
     currentCwd,
     scanPolicy: normalizeScanPolicy(cache.scanPolicy),
     coverage: activeCoverage,
@@ -4590,6 +4603,7 @@ async function handleGraphStatus(): Promise<unknown> {
           gitCommitHash: cache.gitCommitHash ?? null,
           currentGitCommitHash: diskCurrentGitCommitHash,
           gitCommitMatchesHead: diskCacheGitMatchesHead,
+          authorityCaveats: diskAuthorityCaveats,
           coverage: diskCoverage,
           stats: cache.stats,
           scanPolicy: normalizeScanPolicy(cache.scanPolicy),
