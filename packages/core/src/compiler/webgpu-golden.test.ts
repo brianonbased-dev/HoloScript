@@ -202,4 +202,37 @@ describe('WebGPU golden output (byte-diff baseline for render-module refactor)',
     // #112233 -> [0.0667, 0.1333, 0.2].
     expect(out).toContain('const clearColor: GPUColor = { r: 0.0667, g: 0.1333, b: 0.2, a: 1.0 };');
   });
+
+  it('a fluid-plane object emits an animated water pipeline driven by a shared time uniform', () => {
+    const scene = {
+      type: 'HoloComposition',
+      name: 'WaterScene',
+      objects: [
+        obj('Sea', [prop('mesh', 'full_screen_fluid_plane'), prop('color', '#06131f'), prop('scale', [10, 6, 1])]),
+      ],
+    } as HoloComposition;
+    const out = new WebGPUCompiler().compile(scene, 'golden-token');
+    expect(out).toContain('const WGSL_WATER = /* wgsl */`');
+    expect(out).toContain('fn vs_water');
+    expect(out).toContain('fn fs_water');
+    expect(out).toContain('const waterFrameU = createBuffer');
+    expect(out).toContain('generateWaterPlaneVertices(1.0, 1.0, 48)');
+    expect(out).toContain('SeaWaterPipeline');
+    // per-frame time + camera update drives the animation
+    expect(out).toContain(
+      'device.queue.writeBuffer(waterFrameU, 0, new Float32Array([time, cameraPos[0], cameraPos[1], cameraPos[2]]));'
+    );
+  });
+
+  it('a scene with no water surface emits no water pipeline (clean gating, byte-stable)', () => {
+    const scene = {
+      type: 'HoloComposition',
+      name: 'DryScene',
+      objects: [obj('Box', [prop('mesh', 'cube')])],
+    } as HoloComposition;
+    const out = new WebGPUCompiler().compile(scene, 'golden-token');
+    expect(out).not.toContain('WGSL_WATER');
+    expect(out).not.toContain('waterFrameU');
+    expect(out).not.toContain('generateWaterPlaneVertices');
+  });
 });
