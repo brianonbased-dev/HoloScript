@@ -1,5 +1,11 @@
 # @holoscript/uaal
 
+## 8.0.8
+
+### Patch Changes
+
+- Expand `@holoscript/uaal/semantic` with importable uAAL v2 vertical gates for affordance, temporal order, deontic force, commitment, counterfactual necessity, per-modality access, and world composition.
+
 ## 8.0.7
 
 ### Patch Changes

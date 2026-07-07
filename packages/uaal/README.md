@@ -33,14 +33,20 @@ vm.registerHandler(UAALOpCode.OP_INVOKE_LLM, async (proxy, operands) => {
 `@holoscript/uaal/semantic` exposes the pure structural gates used by the uAAL v2 corpus work. Agents can consume these functions without the private corpus generator or receipt CLI:
 
 ```ts
-import { benchmarkTheoryOfMind, recoverFalseBelief } from '@holoscript/uaal/semantic';
+import {
+  benchmarkAffordance,
+  benchmarkComposition,
+  benchmarkCounterfactual,
+  benchmarkTheoryOfMind,
+  recoverFalseBelief,
+} from '@holoscript/uaal/semantic';
 
 const recovery = recoverFalseBelief(ir);
 const gate = benchmarkTheoryOfMind([{ completion: JSON.stringify(ir), metadata }]);
 // gate.pass === true when belief, perspective, causal, and falsification checks hold
 ```
 
-The harness currently covers theory-of-mind false belief, beneficiary reachability/telos, and agent-relative containment/occlusion.
+The harness covers theory-of-mind false belief, beneficiary reachability/telos, agent-relative containment/occlusion, body-relative affordance, temporal stale-vs-error separation, deontic force, commitment discharge, counterfactual necessity, per-modality sensory access, and a world-composition capstone that verifies the verticals compose in one IR.
 
 ## 7-Phase Protocol
 

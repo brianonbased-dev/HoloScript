@@ -23,17 +23,28 @@ npm install @holoscript/uaal
 - Stack-based virtual machine for agent logic.
 - Foundation for uAA2++ protocol execution.
 - Designed to pair with scene runtimes through bridge packages.
-- Importable semantic gates through `@holoscript/uaal/semantic` for false-belief, telos, and containment recoverability checks.
+- Importable semantic gates through `@holoscript/uaal/semantic` for false-belief, telos, containment, affordance, temporal order, deontic force, commitment, counterfactual, sensory access, and composition recoverability checks.
 
 ## Semantic Harness
 
 Use the semantic subpath when an agent needs to test whether uAAL v2 structure carries meaning instead of only replaying labels:
 
 ```ts
-import { benchmarkContainment, benchmarkTelos, benchmarkTheoryOfMind } from '@holoscript/uaal/semantic';
+import {
+  benchmarkAccess,
+  benchmarkAffordance,
+  benchmarkCommitment,
+  benchmarkComposition,
+  benchmarkContainment,
+  benchmarkCounterfactual,
+  benchmarkDeontic,
+  benchmarkTelos,
+  benchmarkTemporal,
+  benchmarkTheoryOfMind,
+} from '@holoscript/uaal/semantic';
 ```
 
-The public package exports the pure recovery and benchmark functions. Corpus synthesis, harvest notes, receipts, and founder research state stay in the private ecosystem workspace.
+The public package exports the pure recovery and benchmark functions. Corpus synthesis, harvest notes, receipts, and founder research state stay in the private ecosystem workspace. This keeps Jetson, laptop, VAST, and cloud agents on the same consumable semantic API while preserving private corpus custody.
 
 ## See Also
 
