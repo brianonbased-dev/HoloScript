@@ -630,6 +630,109 @@ describe('holo_absorb_repo root validation', () => {
     expect(status.graphUnavailableReceipt).toBeUndefined();
   });
 
+  it('inherits cached scan policy on non-forced refresh when policy args are omitted', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-policy-inherit-cache-'));
+    const repoDir = makeTinyGitRepo('holoscript-policy-inherit-repo-');
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    process.env.ABSORB_AUTO_BACKGROUND = '0';
+
+    const initial = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+      force: true,
+      maxFiles: 1,
+    })) as {
+      stats?: { totalFiles?: number };
+      scanPolicy?: { maxFiles?: number };
+      gitCommitHash?: string;
+    };
+    const oldHead = initial.gitCommitHash;
+    execFileSync('git', ['commit', '--allow-empty', '-m', 'head churn'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+    const currentHead = getHeadCommit(repoDir);
+
+    const refresh = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+      force: false,
+    })) as {
+      cached?: boolean;
+      incremental?: boolean;
+      filesChanged?: number;
+      stats?: { totalFiles?: number };
+      scanPolicy?: { maxFiles?: number };
+      gitCommitHash?: string;
+      repairedIncompleteCache?: boolean;
+      policyChanged?: boolean;
+    };
+
+    expect(oldHead).not.toBe(currentHead);
+    expect(initial.stats?.totalFiles).toBe(1);
+    expect(initial.scanPolicy?.maxFiles).toBe(1);
+    expect(refresh.cached).toBe(true);
+    expect(refresh.incremental).toBe(false);
+    expect(refresh.filesChanged).toBe(0);
+    expect(refresh.stats?.totalFiles).toBe(1);
+    expect(refresh.scanPolicy?.maxFiles).toBe(1);
+    expect(refresh.gitCommitHash).toBe(currentHead);
+    expect(refresh.repairedIncompleteCache).toBeUndefined();
+    expect(refresh.policyChanged).toBeUndefined();
+
+    resetCodebaseToolStateForTests();
+    const status = (await handleCodebaseTool('holo_graph_status', {})) as {
+      graphAuthoritative?: boolean;
+      diskCache?: {
+        gitCommitHash?: string | null;
+        currentGitCommitHash?: string | null;
+        gitCommitMatchesHead?: boolean;
+        scanPolicy?: { maxFiles?: number };
+      };
+    };
+
+    expect(status.graphAuthoritative).toBe(true);
+    expect(status.diskCache?.gitCommitHash).toBe(currentHead);
+    expect(status.diskCache?.currentGitCommitHash).toBe(currentHead);
+    expect(status.diskCache?.gitCommitMatchesHead).toBe(true);
+    expect(status.diskCache?.scanPolicy?.maxFiles).toBe(1);
+  });
+
+  it('uses cached scan policy when a missing stored commit forces a rescan', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-policy-rescan-cache-'));
+    const repoDir = makeTinyGitRepo('holoscript-policy-rescan-repo-');
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    process.env.ABSORB_AUTO_BACKGROUND = '0';
+    writeGraphCache(
+      cacheDir,
+      repoDir,
+      Date.now() - 5 * 60 * 1000,
+      '1111111111111111111111111111111111111111',
+      1,
+      { maxFiles: 1 }
+    );
+
+    const refresh = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+      force: false,
+    })) as {
+      stats?: { totalFiles?: number };
+      scanPolicy?: { maxFiles?: number };
+      gitCommitHash?: string;
+      scanPlan?: { totalCandidateFiles?: number };
+    };
+
+    expect(refresh.stats?.totalFiles).toBe(1);
+    expect(refresh.scanPolicy?.maxFiles).toBe(1);
+    expect(refresh.scanPlan?.totalCandidateFiles).toBe(1);
+    expect(refresh.gitCommitHash).toBe(getHeadCommit(repoDir));
+  });
+
   it('rejects a HEAD-churned disk cache when a cached file hash changed', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-git-hash-stale-cache-'));

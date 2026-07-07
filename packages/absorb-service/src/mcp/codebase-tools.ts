@@ -2772,6 +2772,10 @@ async function runFullScan(
   const startTime = Date.now();
   let phaseStartedAt = startTime;
   const phaseMetrics: AbsorbPhaseMetric[] = [];
+  const effectiveScanPolicy = normalizeScanPolicy(scanPolicy);
+  const effectiveMaxFiles = maxFiles ?? effectiveScanPolicy.maxFiles;
+  const effectiveIncludeBuildArtifacts =
+    includeBuildArtifacts || effectiveScanPolicy.includeBuildArtifacts === true;
   const recordPhaseMetric = (
     phase: string,
     details: Partial<Pick<AbsorbPhaseMetric, 'filesProcessed' | 'totalFiles' | 'totalSymbols'>> = {}
@@ -2800,7 +2804,9 @@ async function runFullScan(
 
   const rootDiagnostics = inlineSourceFiles
     ? []
-    : rootDirs.map((rootDir) => buildAbsorbDiagnostics(rootDir, null, includeBuildArtifacts));
+    : rootDirs.map((rootDir) =>
+        buildAbsorbDiagnostics(rootDir, null, effectiveIncludeBuildArtifacts)
+      );
   const inaccessibleRoots = rootDiagnostics.filter(
     (diagnostic) => !diagnostic.resolvedDirExists || !diagnostic.resolvedDirReadable
   );
@@ -2818,7 +2824,7 @@ async function runFullScan(
         'One or more requested rootDirs are not accessible from this MCP runtime; graph cache was not updated.',
       rootDir: primaryRootDir,
       embeddingPolicy,
-      scanPolicy: normalizeScanPolicy(scanPolicy),
+      scanPolicy: effectiveScanPolicy,
       graphUnavailableReceipt,
       diagnostics: inaccessibleRoots[0],
       rootDiagnostics,
@@ -2839,14 +2845,14 @@ async function runFullScan(
   try {
     if (inlineSourceFiles) {
       const inlineScan = buildInlineSourceScan(primaryRootDir, inlineSourceFiles);
-      const selectedFilePaths = maxFiles
-        ? inlineScan.filePaths.slice(0, maxFiles)
+      const selectedFilePaths = effectiveMaxFiles
+        ? inlineScan.filePaths.slice(0, effectiveMaxFiles)
         : inlineScan.filePaths;
       scanPlanReceipt = summarizeInlineScanPlan(selectedFilePaths.length);
       setAbsorbJobScanPlan(jobId, scanPlanReceipt);
       scanResult = await scanner.scanFiles(primaryRootDir, selectedFilePaths, {
-        includeBuildArtifacts,
-        maxFileSize: scanPolicy?.maxFileSize,
+        includeBuildArtifacts: effectiveIncludeBuildArtifacts,
+        maxFileSize: effectiveScanPolicy.maxFileSize,
         readFile: inlineScan.readFile,
         onProgress: (processed: number, total: number, file: string) => {
           if (jobId) {
@@ -2860,13 +2866,13 @@ async function runFullScan(
         rootDir: primaryRootDir, // for backward compat mapping
         rootDirs,
         languages,
-        maxFiles,
-        maxFileSize: scanPolicy?.maxFileSize,
-        includeBuildArtifacts,
-        exclude: scanPolicy?.exclude,
-        excludePathFragments: scanPolicy?.excludePathFragments,
-        excludeNameFragments: scanPolicy?.excludeNameFragments,
-        includeHidden: scanPolicy?.includeHidden,
+        maxFiles: effectiveMaxFiles,
+        maxFileSize: effectiveScanPolicy.maxFileSize,
+        includeBuildArtifacts: effectiveIncludeBuildArtifacts,
+        exclude: effectiveScanPolicy.exclude,
+        excludePathFragments: effectiveScanPolicy.excludePathFragments,
+        excludeNameFragments: effectiveScanPolicy.excludeNameFragments,
+        includeHidden: effectiveScanPolicy.includeHidden,
       };
       const scanPlan = scanner.planScan(scanOptions, scanBatchSize) as PlannedScannerScanPlan;
       scanPlanReceipt = summarizeModuleScanPlan(scanPlan);
@@ -2929,7 +2935,7 @@ async function runFullScan(
   const stats = graph.getStats();
   const diagnostics =
     stats.totalFiles === 0
-      ? buildAbsorbDiagnostics(primaryRootDir, scanResult, includeBuildArtifacts)
+      ? buildAbsorbDiagnostics(primaryRootDir, scanResult, effectiveIncludeBuildArtifacts)
       : undefined;
 
   if (stats.totalFiles === 0) {
@@ -2940,7 +2946,7 @@ async function runFullScan(
       rootDir: primaryRootDir,
       stats,
       embeddingPolicy,
-      scanPolicy: normalizeScanPolicy(scanPolicy),
+      scanPolicy: effectiveScanPolicy,
       diagnostics,
       scanPlan: scanPlanReceipt,
       phaseMetrics,
@@ -2991,7 +2997,7 @@ async function runFullScan(
     fileHashes,
     detectedProvider,
     localCodebaseSnapshotReceipt,
-    scanPolicy
+    effectiveScanPolicy
   );
   recordPhaseMetric('graph-cache-save', {
     filesProcessed: scanResult?.stats?.totalFiles,
@@ -3008,7 +3014,7 @@ async function runFullScan(
       rootDir: primaryRootDir,
       stats,
       embeddingPolicy,
-      scanPolicy: normalizeScanPolicy(scanPolicy),
+      scanPolicy: effectiveScanPolicy,
       scanPlan: scanPlanReceipt,
       phaseMetrics,
       gitCommitHash,
@@ -3195,7 +3201,7 @@ async function runFullScan(
       holoSource,
       interactiveScene: scene,
       embeddingPolicy,
-      scanPolicy: normalizeScanPolicy(scanPolicy),
+      scanPolicy: effectiveScanPolicy,
       graphRagReady: semanticIndexReadiness.graphRagReady,
       semanticIndexReady: semanticIndexReadiness.semanticIndexReady,
       semanticIndexReadiness,
@@ -3605,6 +3611,18 @@ function buildScanPolicyFromArgs(
   };
 }
 
+function scanPolicyArgsProvided(args: Record<string, unknown>): boolean {
+  return [
+    'exclude',
+    'excludePathFragments',
+    'excludeNameFragments',
+    'includeHidden',
+    'includeBuildArtifacts',
+    'maxFiles',
+    'maxFileSize',
+  ].some((key) => args[key] !== undefined);
+}
+
 async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   const mod = (await loadCodebaseModule()) as CodebaseModule;
 
@@ -3688,6 +3706,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     };
   }
   const scanPolicy = scanPolicyResult.policy;
+  const scanPolicyExplicit = scanPolicyArgsProvided(args);
   const embeddingProvider = args.embeddingProvider as string | undefined;
   const embeddingApiKey = args.embeddingApiKey as string | undefined;
   const embeddingModel = args.embeddingModel as string | undefined;
@@ -3705,6 +3724,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     scanBatchSize,
     includeBuildArtifacts,
     scanPolicy,
+    scanPolicyExplicit,
     outputFormat,
     layout,
     interactive,
@@ -3765,6 +3785,7 @@ interface AbsorbExecutionPlan {
   scanBatchSize?: number;
   includeBuildArtifacts: boolean;
   scanPolicy: GraphScanPolicy;
+  scanPolicyExplicit: boolean;
   outputFormat: string;
   layout: string;
   interactive: boolean;
@@ -3803,6 +3824,16 @@ async function buildAutoBackgroundDecision(
   }
 
   const existingCache = loadGraphCache();
+  const existingCacheMatchesRoot =
+    existingCache?.version === 2 &&
+    rootMatchesCurrentRepo(existingCache.rootDir, plan.primaryRootDir);
+  const effectiveScanPolicy =
+    existingCacheMatchesRoot && !plan.scanPolicyExplicit
+      ? normalizeScanPolicy(existingCache.scanPolicy)
+      : plan.scanPolicy;
+  const effectiveMaxFiles = plan.maxFiles ?? effectiveScanPolicy.maxFiles;
+  const effectiveIncludeBuildArtifacts =
+    plan.includeBuildArtifacts || effectiveScanPolicy.includeBuildArtifacts === true;
   const existingCacheCoverageComplete = existingCache
     ? graphCoverageIsComplete(
         buildGraphCoverageStatus(
@@ -3814,9 +3845,8 @@ async function buildAutoBackgroundDecision(
     : false;
   if (
     !plan.force &&
-    existingCache?.version === 2 &&
-    rootMatchesCurrentRepo(existingCache.rootDir, plan.primaryRootDir) &&
-    scanPoliciesEqual(existingCache.scanPolicy, plan.scanPolicy) &&
+    existingCacheMatchesRoot &&
+    scanPoliciesEqual(existingCache.scanPolicy, effectiveScanPolicy) &&
     existingCacheCoverageComplete
   ) {
     return { autoBackground: false };
@@ -3835,13 +3865,13 @@ async function buildAutoBackgroundDecision(
         rootDir: plan.primaryRootDir,
         rootDirs: plan.effectiveRootDirs,
         languages: plan.languages,
-        maxFiles: plan.maxFiles,
-        maxFileSize: plan.maxFileSize,
-        includeBuildArtifacts: plan.includeBuildArtifacts,
-        exclude: plan.scanPolicy.exclude,
-        excludePathFragments: plan.scanPolicy.excludePathFragments,
-        excludeNameFragments: plan.scanPolicy.excludeNameFragments,
-        includeHidden: plan.scanPolicy.includeHidden,
+        maxFiles: effectiveMaxFiles,
+        maxFileSize: effectiveScanPolicy.maxFileSize ?? plan.maxFileSize,
+        includeBuildArtifacts: effectiveIncludeBuildArtifacts,
+        exclude: effectiveScanPolicy.exclude,
+        excludePathFragments: effectiveScanPolicy.excludePathFragments,
+        excludeNameFragments: effectiveScanPolicy.excludeNameFragments,
+        includeHidden: effectiveScanPolicy.includeHidden,
       },
       plan.scanBatchSize
     ) as PlannedScannerScanPlan;
@@ -3872,6 +3902,7 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
     scanBatchSize,
     includeBuildArtifacts,
     scanPolicy,
+    scanPolicyExplicit,
     outputFormat,
     layout,
     interactive,
@@ -3997,7 +4028,11 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
     getEnvelopeGraphFileCount(envelope),
     envelope.scanPolicy
   );
-  const cachePolicyChanged = !scanPoliciesEqual(envelope.scanPolicy, scanPolicy);
+  const sameRootScanPolicy = scanPolicyExplicit
+    ? scanPolicy
+    : normalizeScanPolicy(envelope.scanPolicy);
+  const cachePolicyChanged =
+    scanPolicyExplicit && !scanPoliciesEqual(envelope.scanPolicy, scanPolicy);
   if (cachePolicyChanged || !graphCoverageIsComplete(envelopeCoverage)) {
     const result = await runFullScan(
       mod,
@@ -4015,7 +4050,7 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
       undefined,
       undefined,
       scanBatchSize,
-      scanPolicy
+      sameRootScanPolicy
     );
     return {
       ...(result as Record<string, unknown>),
@@ -4047,7 +4082,7 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
       undefined,
       undefined,
       scanBatchSize,
-      scanPolicy
+      sameRootScanPolicy
     );
     return { ...(result as Record<string, unknown>), jobId };
   }
@@ -4070,7 +4105,7 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
       undefined,
       undefined,
       scanBatchSize,
-      scanPolicy
+      sameRootScanPolicy
     );
     return { ...(result as Record<string, unknown>), jobId };
   }
@@ -4106,7 +4141,7 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
           undefined,
           undefined,
           scanBatchSize,
-          scanPolicy
+          sameRootScanPolicy
         );
         return { ...(result as Record<string, unknown>), jobId };
       }
@@ -4188,6 +4223,22 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
       }
     }
 
+    if (envelope.gitCommitHash !== changes.headCommit) {
+      (cachedGraph as { gitCommitHash?: string }).gitCommitHash = changes.headCommit;
+      (cachedGraph as { fileHashes?: Record<string, string> }).fileHashes = envelope.fileHashes;
+      cacheTimestamp = Date.now();
+      saveGraphCache(
+        cachedGraph,
+        rootDir,
+        envelope.stats,
+        changes.headCommit,
+        envelope.fileHashes,
+        envelope.embeddingProvider ?? (await detectBestEmbeddingProvider()),
+        envelope.localCodebaseSnapshotReceipt,
+        sameRootScanPolicy
+      );
+    }
+
     // Mark job as complete immediately (fast path)
     if (jobId) {
       const job = absorbJobs.get(jobId);
@@ -4246,7 +4297,7 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
     embeddingApiKey,
     embeddingModel,
     scanBatchSize,
-    scanPolicy
+    sameRootScanPolicy
   );
   return { ...(result as Record<string, unknown>), jobId };
 }
