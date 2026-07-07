@@ -1110,6 +1110,29 @@ function saveEmbeddingsCache(index: any, rootDir: string): void {
   }
 }
 
+function readEmbeddingsCacheModel(): string | null {
+  const embeddingsFile = getEmbeddingsFile();
+  if (!fs.existsSync(embeddingsFile)) return null;
+
+  let fd: number | undefined;
+  try {
+    fd = fs.openSync(embeddingsFile, 'r');
+    const lengthBuffer = Buffer.alloc(4);
+    if (fs.readSync(fd, lengthBuffer, 0, 4, 0) !== 4) return null;
+    const metadataLength = lengthBuffer.readUInt32LE(0);
+    if (metadataLength <= 0 || metadataLength > 1024 * 1024) return null;
+
+    const metadataBuffer = Buffer.alloc(metadataLength);
+    if (fs.readSync(fd, metadataBuffer, 0, metadataLength, 4) !== metadataLength) return null;
+    const metadata = JSON.parse(metadataBuffer.toString('utf-8')) as { model?: unknown };
+    return typeof metadata.model === 'string' ? metadata.model : null;
+  } catch {
+    return null;
+  } finally {
+    if (fd !== undefined) fs.closeSync(fd);
+  }
+}
+
 async function loadEmbeddingsCache(mod: any, providerInstance: any): Promise<any | null> {
   try {
     const embeddingsFile = getEmbeddingsFile();
@@ -3970,6 +3993,7 @@ async function handleGraphStatus(): Promise<unknown> {
   const embeddingPolicy = cache.embeddingPolicy ?? buildGraphRAGEmbeddingPolicyReceipt();
   const { getGraphRAGStateStatus } = await import('./graph-rag-tools');
   const embeddingsCacheExists = fs.existsSync(getEmbeddingsFile());
+  const embeddingsCacheModel = readEmbeddingsCacheModel();
   const cacheAgeMs = cache.ageMs;
   const diskCacheFreshByAge = cacheAgeMs !== undefined && cacheAgeMs < CACHE_MAX_AGE_MS;
   const inMemoryAgeMs =
@@ -4053,6 +4077,12 @@ async function handleGraphStatus(): Promise<unknown> {
   const freshForCurrentRepo = graphAuthoritative;
   const diskCacheFreshForCurrentRepo =
     diskCacheMatchesCwd && diskCacheFreshByAge && diskCacheGitMatchesHead && diskCoverageComplete;
+  const diskEmbeddingProviderMatchesPolicy =
+    embeddingsCacheExists &&
+    (embeddingsCacheModel === null || embeddingsCacheModel === embeddingPolicy.provider);
+  const diskSemanticIndexHydratable =
+    embeddingsCacheExists && diskCacheFreshForCurrentRepo && diskEmbeddingProviderMatchesPolicy;
+  const semanticIndexReady = localGraphLive || diskSemanticIndexHydratable;
 
   const requestedPath = cacheRootDir || graphRAGState.rootDir;
   const graphUnavailableReceipt = graphAuthoritative
@@ -4079,21 +4109,31 @@ async function handleGraphStatus(): Promise<unknown> {
     inMemory: cachedGraph !== null,
     rootDir: cachedRootDir || null,
     embeddingPolicy,
-    graphRAGReady: localGraphLive,
-    semanticIndexReady: localGraphLive,
+    graphRAGReady: semanticIndexReady,
+    semanticIndexReady,
     semanticIndex: {
-      ready: localGraphLive,
-      rootDir: graphRAGState.rootDir,
-      ageMs: graphRAGState.ageMs,
-      ageHuman: graphRAGState.ageMs === null ? null : formatCacheAge(graphRAGState.ageMs),
-      freshForCurrentRepo: localGraphLive,
+      ready: semanticIndexReady,
+      rootDir: graphRAGState.rootDir ?? (diskSemanticIndexHydratable ? cache.rootDir : null),
+      ageMs: graphRAGState.ageMs ?? (diskSemanticIndexHydratable ? cacheAgeMs : null),
+      ageHuman:
+        graphRAGState.ageMs === null
+          ? diskSemanticIndexHydratable
+            ? formatCacheAge(cacheAgeMs)
+            : null
+          : formatCacheAge(graphRAGState.ageMs),
+      freshForCurrentRepo: semanticIndexReady,
       cachedEmbeddingIndexReady: graphRAGState.ready,
       cachedEmbeddingIndexMatchesCwd: graphRAGMatchesCwd,
       diskEmbeddingCacheExists: embeddingsCacheExists,
+      diskEmbeddingCacheModel: embeddingsCacheModel,
+      diskEmbeddingProviderMatchesPolicy,
+      diskHydratable: diskSemanticIndexHydratable,
       provider: embeddingPolicy.provider,
       graphProvider: 'holograph',
       hint: localGraphLive
         ? 'HoloEmbed semantic index is ready for this repo.'
+        : diskSemanticIndexHydratable
+          ? 'HoloEmbed disk index is fresh for this repo; semantic tools will lazy-hydrate it on first use.'
         : graphAuthoritative
           ? 'HoloGraph cache is available, but the HoloEmbed semantic index is not initialized for this repo. Run holo_absorb_repo with outputFormat "graph" or "holo", or wait for cache warmup, before relying on holo_semantic_search or holo_ask_codebase.'
           : 'Run holo_absorb_repo with outputFormat "graph" or "holo" to build a HoloGraph cache and HoloEmbed semantic index for this repo.',
@@ -4144,7 +4184,9 @@ async function handleGraphStatus(): Promise<unknown> {
               : !diskCoverageComplete
                 ? `Cache covers ${diskCoverage.graphFileCount}/${diskCoverage.expectedGraphFileCount ?? 'unknown'} expected files for this checkout. Refresh with holo_absorb_repo before trusting whole-repo queries.`
                 : diskCacheFreshByAge
-                  ? 'HoloGraph cache is fresh; structural query tools can auto-load it without re-scanning. Semantic tools still require a ready HoloEmbed index.'
+                  ? diskSemanticIndexHydratable
+                    ? 'HoloGraph cache and HoloEmbed disk index are fresh; structural and semantic tools can auto-load without re-scanning.'
+                    : 'HoloGraph cache is fresh; structural query tools can auto-load it without re-scanning. Semantic tools still require a ready HoloEmbed index.'
                   : 'Cache is older than 24h — call holo_absorb_repo to refresh.',
         }
       : {

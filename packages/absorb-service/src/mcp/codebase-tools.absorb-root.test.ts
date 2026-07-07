@@ -902,6 +902,41 @@ describe('holo_absorb_repo root validation', () => {
     expect(fs.existsSync(path.join(cacheDir, 'embeddings-cache.bin'))).toBe(true);
 
     resetGraphRAGStateForTests();
+    const originalCwd = process.cwd();
+    try {
+      process.chdir(repoDir);
+      const status = (await handleCodebaseTool('holo_graph_status', {})) as {
+        graphRAGReady?: boolean;
+        semanticIndexReady?: boolean;
+        semanticIndex?: {
+          ready?: boolean;
+          freshForCurrentRepo?: boolean;
+          cachedEmbeddingIndexReady?: boolean;
+          diskEmbeddingCacheExists?: boolean;
+          diskEmbeddingCacheModel?: string | null;
+          diskEmbeddingProviderMatchesPolicy?: boolean;
+          diskHydratable?: boolean;
+        };
+        localGraph?: { ready?: boolean };
+        diskCache?: { freshForCurrentRepo?: boolean };
+      };
+      expect(status.graphRAGReady).toBe(true);
+      expect(status.semanticIndexReady).toBe(true);
+      expect(status.localGraph?.ready).toBe(false);
+      expect(status.diskCache?.freshForCurrentRepo).toBe(true);
+      expect(status.semanticIndex).toMatchObject({
+        ready: true,
+        freshForCurrentRepo: true,
+        cachedEmbeddingIndexReady: false,
+        diskEmbeddingCacheExists: true,
+        diskEmbeddingCacheModel: 'holoembed',
+        diskEmbeddingProviderMatchesPolicy: true,
+        diskHydratable: true,
+      });
+    } finally {
+      process.chdir(originalCwd);
+    }
+
     const semanticSearch = (await handleGraphRagTool('holo_semantic_search', {
       query: 'semantic search target',
       useCachedAbsorbIndex: true,
