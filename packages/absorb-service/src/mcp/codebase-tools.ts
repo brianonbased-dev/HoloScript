@@ -2030,6 +2030,33 @@ export function resetCodebaseToolStateForTests(skipDiskAutoload = true): void {
   resetGraphRAGStateForTests();
 }
 
+async function hydrateGraphRAGFromDiskEmbeddings(
+  mod: CodebaseModule,
+  graph: unknown,
+  rootDir: string,
+  timestamp?: number
+): Promise<boolean> {
+  const { GraphRAGEngine } = mod;
+  const providerName = await detectBestEmbeddingProvider();
+  const providerObj = await mod.createEmbeddingProvider({
+    provider: providerName as EmbeddingProviderName,
+    ollamaUrl: process.env.OLLAMA_URL,
+    ollamaModel: process.env.OLLAMA_MODEL,
+    openaiApiKey: process.env.OPENAI_API_KEY,
+    openaiModel: process.env.OPENAI_MODEL,
+    xenovaModel: process.env.XENOVA_MODEL,
+  });
+
+  const cachedIndex = await loadEmbeddingsCache(mod, providerObj);
+  if (!cachedIndex) return false;
+
+  setGraphRAGState(cachedIndex, new GraphRAGEngine(graph, cachedIndex), {
+    rootDir,
+    timestamp,
+  });
+  return true;
+}
+
 /**
  * Ensure graph is loaded. Returns { loaded: boolean; source: string; ageMs?: number }.
  * Order of preference:
@@ -2047,6 +2074,14 @@ async function ensureCachedGraph(): Promise<{
   graphUnavailableReceipt?: GraphUnavailableReceipt;
 }> {
   if (cachedGraph) {
+    if (!isGraphRAGReady()) {
+      try {
+        const mod = await loadCodebaseModule();
+        await hydrateGraphRAGFromDiskEmbeddings(mod, cachedGraph, cachedRootDir, cacheTimestamp);
+      } catch (err) {
+        console.warn(`[AbsorbCacheWarm] memory GraphRAG hydrate skipped: ${String(err)}`);
+      }
+    }
     return {
       loaded: true,
       source: cacheProvenance === 'disk-cache' ? 'disk-cache' : 'memory',
@@ -2093,7 +2128,7 @@ async function ensureCachedGraph(): Promise<{
         };
       }
       const mod = await loadCodebaseModule();
-      const { CodebaseGraph } = mod;
+      const { CodebaseGraph, GraphRAGEngine } = mod;
       cachedGraph = CodebaseGraph.deserialize(envelope.graphJson);
       cachedRootDir = envelope.rootDir;
       cacheProvenance = 'disk-cache';
@@ -2108,23 +2143,14 @@ async function ensureCachedGraph(): Promise<{
       // worker pool; entries stay intact and query embedding falls back to the
       // provider directly (EmbeddingIndex.getEmbeddings).
       try {
-        const { GraphRAGEngine } = mod;
-        const providerName = await detectBestEmbeddingProvider();
-        const providerObj = await mod.createEmbeddingProvider({
-          provider: providerName as EmbeddingProviderName,
-          ollamaUrl: process.env.OLLAMA_URL,
-          ollamaModel: process.env.OLLAMA_MODEL,
-          openaiApiKey: process.env.OPENAI_API_KEY,
-          openaiModel: process.env.OPENAI_MODEL,
-          xenovaModel: process.env.XENOVA_MODEL,
-        });
-
-        const cachedIndex = await loadEmbeddingsCache(mod, providerObj);
-        if (cachedIndex) {
-          setGraphRAGState(cachedIndex, new GraphRAGEngine(cachedGraph, cachedIndex), {
-            rootDir: cachedRootDir,
-            timestamp: cacheTimestamp,
-          });
+        const hydrated = await hydrateGraphRAGFromDiskEmbeddings(
+          mod,
+          cachedGraph,
+          cachedRootDir,
+          cacheTimestamp
+        );
+        if (hydrated) {
+          // GraphRAG is ready from the persisted HoloEmbed index.
         } else if (!graphRAGWarmInProgress) {
           graphRAGWarmInProgress = true;
           const graphForWarm = cachedGraph;

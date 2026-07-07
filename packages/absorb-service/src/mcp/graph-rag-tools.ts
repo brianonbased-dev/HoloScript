@@ -233,6 +233,10 @@ export async function handleGraphRagTool(
   name: string,
   args: Record<string, unknown>
 ): Promise<unknown | null> {
+  if ((name === 'holo_semantic_search' || name === 'holo_ask_codebase') && !isGraphRAGReady()) {
+    await hydrateCachedGraphRAGStateFromCodebaseTools();
+  }
+
   switch (name) {
     case 'holo_semantic_search':
       return handleSemanticSearch(args);
@@ -244,6 +248,20 @@ export async function handleGraphRagTool(
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
+
+async function hydrateCachedGraphRAGStateFromCodebaseTools(): Promise<void> {
+  if (isGraphRAGReady()) return;
+
+  try {
+    const { handleCodebaseTool } = await import('./codebase-tools');
+    await handleCodebaseTool('holo_query_codebase', {
+      query: 'stats',
+      queryType: 'stats',
+    });
+  } catch (err) {
+    console.warn(`[GraphRAG] cached graph hydrate skipped: ${String(err)}`);
+  }
+}
 
 /**
  * Resolve GraphRAG answer synthesis.

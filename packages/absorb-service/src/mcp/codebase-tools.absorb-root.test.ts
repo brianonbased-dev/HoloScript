@@ -5,7 +5,11 @@ import { execFileSync } from 'child_process';
 import { createHash } from 'crypto';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { handleCodebaseTool, resetCodebaseToolStateForTests } from './codebase-tools';
-import { handleGraphRagTool, setGraphRAGState } from './graph-rag-tools';
+import {
+  handleGraphRagTool,
+  resetGraphRAGStateForTests,
+  setGraphRAGState,
+} from './graph-rag-tools';
 import { EmbeddingIndex } from '../engine/EmbeddingIndex';
 
 const originalCacheDir = process.env.HOLOSCRIPT_CACHE_DIR;
@@ -897,6 +901,7 @@ describe('holo_absorb_repo root validation', () => {
     });
     expect(fs.existsSync(path.join(cacheDir, 'embeddings-cache.bin'))).toBe(true);
 
+    resetGraphRAGStateForTests();
     const semanticSearch = (await handleGraphRagTool('holo_semantic_search', {
       query: 'semantic search target',
       useCachedAbsorbIndex: true,
