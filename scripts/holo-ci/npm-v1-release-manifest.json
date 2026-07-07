@@ -18,6 +18,21 @@
       "v1Intent": "Installable formatter library and holoscript-format binary for .holo, .hs, and .hsplus source hygiene."
     },
     {
+      "name": "@holoscript/engine",
+      "role": "spatial-engine-runtime",
+      "v1Intent": "Reusable spatial engine runtime for rendering, physics, ECS, animation, GPU, and simulation consumers."
+    },
+    {
+      "name": "@holoscript/framework",
+      "role": "agent-framework",
+      "v1Intent": "Provider-neutral agent framework for board, behavior, economy, swarm, learning, and skill orchestration."
+    },
+    {
+      "name": "@holoscript/absorb-service",
+      "role": "codebase-intelligence-service",
+      "v1Intent": "Installable Absorb and GraphRAG service package with public APIs kept separate from private knowledge stores."
+    },
+    {
       "name": "@holoscript/mcp-server",
       "role": "agent-mcp",
       "v1Intent": "MCP server package for universal agent access to HoloScript."

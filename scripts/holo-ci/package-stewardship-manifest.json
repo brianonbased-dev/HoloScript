@@ -388,11 +388,11 @@
         "pnpm --filter @holoscript/engine build",
         "pnpm --filter @holoscript/engine test",
         "node scripts/holo-ci/check-package-consumption-matrix.mjs --pack-npm",
-        "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/engine@latest --probe engine-runtime-import"
+        "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/engine@latest --probe engine-runtime-import --json"
       ],
       "nextActions": [
-        "Keep engine in candidateNpmPackages until the pack gate and engine-runtime-import registry smoke both pass from a clean consumer.",
-        "Add engine to the release manifest only after cold pack proves browser and native optional dependencies stay optional."
+        "Keep engine-runtime-import green from a repo-less npm consumer before each engine publish.",
+        "Decide whether engine should become fleet-operational after browser and native optional dependency behavior is covered by narrower runtime probes."
       ]
     },
     {
@@ -418,10 +418,10 @@
         "pnpm --filter @holoscript/framework build",
         "pnpm --filter @holoscript/framework test",
         "node scripts/holo-ci/check-package-consumption-matrix.mjs --pack-npm",
-        "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/framework@latest --probe framework-agent-import"
+        "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/framework@latest --probe framework-agent-import --json"
       ],
       "nextActions": [
-        "Keep framework in candidateNpmPackages until the pack gate and framework-agent-import registry smoke both pass from a clean consumer.",
+        "Keep framework-agent-import green from a repo-less npm consumer before each framework publish.",
         "Keep cloud-family harness adapters outside the core framework package boundary."
       ]
     },
@@ -475,11 +475,12 @@
       "validationCommands": [
         "pnpm --filter @holoscript/absorb-service build",
         "pnpm --filter @holoscript/absorb-service test",
-        "node scripts/holo-ci/check-package-consumption-matrix.mjs --pack-npm"
+        "node scripts/holo-ci/check-package-consumption-matrix.mjs --pack-npm",
+        "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/absorb-service@latest --probe absorb-service-import --json"
       ],
       "nextActions": [
-        "Keep absorb-service in candidateNpmPackages until the pack gate stays green and the absorb-service-import registry smoke passes without private graph credentials.",
-        "Fix the current published-package cold install timeout, then add the absorb-service-import registry smoke to validationCommands before treating absorb-service as fleet-operational.",
+        "Keep absorb-service-import green from a repo-less npm consumer without private graph credentials before each absorb-service publish.",
+        "Add narrower public API probes before treating absorb-service as fleet-operational.",
         "Separate public package API checks from private GraphRAG corpus and OAuth state."
       ]
     },
