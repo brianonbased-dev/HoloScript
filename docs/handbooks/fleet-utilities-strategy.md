@@ -31,7 +31,12 @@ retention, privacy boundaries, and failure response. Treat missing telemetry as
 an explicit degraded state; paid dispatch and physical-world claims fail closed.
 Use `node scripts/holo-ci/capture-hardware-telemetry.mjs` to emit
 `holoscript.hardware-telemetry-capture/v1` receipt bundles from that manifest;
-use `--interval-ms` and `--iterations` for bounded continuous capture.
+use `--interval-ms` and `--iterations` for bounded continuous capture. The
+runner may execute repo and live-service checks only when explicitly requested.
+HoloShell, MCP, and receipt-family sources stay custody-owned: pass their JSON,
+JSONL, or NDJSON receipts with `--receipt` or `--receipt-dir` so the hardware
+app envelope can cite the evidence without bypassing HoloShell consent,
+HoloKey, spend-policy, or local-machine custody.
 
 ## Utility Classes
 

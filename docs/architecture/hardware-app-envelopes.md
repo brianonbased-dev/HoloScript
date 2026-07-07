@@ -91,8 +91,16 @@ weights, raw camera frames, raw robot payloads, or customer payload bodies.
 The repo-local capture runner emits
 `holoscript.hardware-telemetry-capture/v1` receipts from the manifest. It is
 plan-only by default, executes only safe repo and live-service source classes
-when explicitly requested, and leaves HoloShell/MCP/receipt-family sources
-pending for their custody layer.
+when explicitly requested, and does not execute HoloShell/MCP/receipt-family
+sources directly. Those custody-owned sources become current evidence through
+external receipt ingestion with the source receipt schema
+`holoscript.hardware-telemetry-source-receipt/v1`.
+
+The runner accepts `--receipt <file>` and `--receipt-dir <dir>` for JSON,
+JSONL, or NDJSON receipts. It matches external receipts by telemetry signal id,
+source descriptor, MCP tool, repo script, or command. The capture bundle stores
+only sanitized receipt metadata: schema, receipt id, producer, match method,
+timestamp, source file, source hash, and status.
 
 ```bash
 # Plan all app telemetry without executing external sources.
@@ -112,6 +120,26 @@ node scripts/holo-ci/capture-hardware-telemetry.mjs \
   --iterations 5 \
   --ndjson .scratch/hardware-telemetry/captures.ndjson \
   --summary
+
+# Bridge HoloShell/MCP custody evidence into the app envelope receipt.
+node scripts/holo-ci/capture-hardware-telemetry.mjs \
+  --app holoshell-workstation \
+  --receipt-dir C:/Users/josep/.ai-ecosystem/runtime/shared/receipts \
+  --summary
+```
+
+A minimal source receipt looks like this:
+
+```json
+{
+  "schema": "holoscript.hardware-telemetry-source-receipt/v1",
+  "signalId": "runtime-metrics-snapshot",
+  "source": "mcp-tool:get_telemetry_metrics",
+  "status": "success",
+  "producer": "holoshell",
+  "capturedAt": "2026-07-07T00:00:00.000Z",
+  "receiptId": "example"
+}
 ```
 
 ## Canonical Envelopes

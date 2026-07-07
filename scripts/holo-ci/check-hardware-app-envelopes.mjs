@@ -124,6 +124,11 @@ function validateManifests({ appsManifest, fleetManifest, consumptionManifest, p
       `captureRunner.receiptSchema is invalid: ${captureRunner.receiptSchema || '<missing>'}`
     );
   }
+  if (captureRunner.externalReceiptSchema !== 'holoscript.hardware-telemetry-source-receipt/v1') {
+    errors.push(
+      `captureRunner.externalReceiptSchema is invalid: ${captureRunner.externalReceiptSchema || '<missing>'}`
+    );
+  }
   if (!captureRunner.defaultMode) {
     errors.push('captureRunner.defaultMode is missing');
   }
@@ -132,6 +137,10 @@ function validateManifests({ appsManifest, fleetManifest, consumptionManifest, p
     captureRunner.safeExecutionFlags.length === 0
   ) {
     errors.push('captureRunner.safeExecutionFlags[] is missing');
+  }
+  const receiptIngestionFlags = new Set(captureRunner.receiptIngestionFlags || []);
+  if (!receiptIngestionFlags.has('--receipt') || !receiptIngestionFlags.has('--receipt-dir')) {
+    errors.push('captureRunner.receiptIngestionFlags[] must include --receipt and --receipt-dir');
   }
   if (
     !Array.isArray(captureRunner.nonExecutingSourceKinds) ||
@@ -450,8 +459,10 @@ function runSelfTest() {
       captureRunner: {
         scriptPath: 'scripts/holo-ci/capture-hardware-telemetry.mjs',
         receiptSchema: 'holoscript.hardware-telemetry-capture/v1',
+        externalReceiptSchema: 'holoscript.hardware-telemetry-source-receipt/v1',
         defaultMode: 'plan-only',
         safeExecutionFlags: ['--execute-repo'],
+        receiptIngestionFlags: ['--receipt', '--receipt-dir'],
         nonExecutingSourceKinds: ['mcp-tool'],
       },
       utilityBands: [

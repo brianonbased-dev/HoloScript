@@ -4,8 +4,10 @@
   "captureRunner": {
     "scriptPath": "scripts/holo-ci/capture-hardware-telemetry.mjs",
     "receiptSchema": "holoscript.hardware-telemetry-capture/v1",
+    "externalReceiptSchema": "holoscript.hardware-telemetry-source-receipt/v1",
     "defaultMode": "plan-only",
     "safeExecutionFlags": ["--execute-repo", "--execute-live"],
+    "receiptIngestionFlags": ["--receipt", "--receipt-dir"],
     "nonExecutingSourceKinds": ["mcp-tool", "ecosystem-command", "receipt-family", "runtime-library"]
   },
   "utilityBands": [
