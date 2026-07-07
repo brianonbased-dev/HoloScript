@@ -97,7 +97,8 @@ function writeGraphCache(
   rootDir: string,
   timestamp: number,
   gitCommitHash?: string,
-  fileHashCount?: number
+  fileHashCount?: number,
+  scanPolicy?: Record<string, unknown>
 ): void {
   const fileHashes =
     fileHashCount === undefined
@@ -116,6 +117,7 @@ function writeGraphCache(
       graphJson: '{}',
       gitCommitHash,
       fileHashes,
+      scanPolicy,
     }),
     'utf-8'
   );
@@ -551,6 +553,82 @@ describe('holo_absorb_repo root validation', () => {
     expect(status.diskCache?.currentGitCommitHash).toBe(head);
     expect(status.diskCache?.gitCommitMatchesHead).toBe(true);
     expect(status.graphUnavailableReceipt).toBeUndefined();
+  });
+
+  it('flags authoritative caches whose coverage is capped by maxFiles', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-capped-cache-'));
+    const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-capped-repo-'));
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+
+    execFileSync('git', ['init'], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['config', 'user.email', 'codex@example.test'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+    execFileSync('git', ['config', 'user.name', 'Codex Test'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+    fs.mkdirSync(path.join(repoDir, 'src'), { recursive: true });
+    for (let i = 0; i < 3; i++) {
+      fs.writeFileSync(
+        path.join(repoDir, 'src', `tracked-${i}.ts`),
+        `export const tracked${i} = ${i};\n`,
+        'utf-8'
+      );
+    }
+    execFileSync('git', ['add', 'src'], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['commit', '-m', 'fixture'], { cwd: repoDir, windowsHide: true });
+    const head = getHeadCommit(repoDir);
+    writeGraphCache(cacheDir, repoDir, Date.now() - 5 * 60 * 1000, head, 2, { maxFiles: 2 });
+
+    const status = (await handleCodebaseTool('holo_graph_status', {})) as {
+      graphAuthoritative?: boolean;
+      authorityCaveats?: string[];
+      coverage?: {
+        complete?: boolean;
+        graphFileCount?: number;
+        expectedGraphFileCount?: number;
+        trackedCandidateCount?: number;
+        cappedByMaxFiles?: boolean;
+      };
+      diskCache?: {
+        authoritative?: boolean;
+        authorityCaveats?: string[];
+        coverage?: {
+          complete?: boolean;
+          graphFileCount?: number;
+          expectedGraphFileCount?: number;
+          trackedCandidateCount?: number;
+          cappedByMaxFiles?: boolean;
+        };
+      };
+    };
+
+    expect(status.graphAuthoritative).toBe(true);
+    expect(status.coverage).toMatchObject({
+      complete: true,
+      graphFileCount: 2,
+      expectedGraphFileCount: 2,
+      trackedCandidateCount: 3,
+      cappedByMaxFiles: true,
+    });
+    expect(status.authorityCaveats).toContain(
+      'graph_coverage_capped_at_2_of_3_git_tracked_candidates'
+    );
+    expect(status.diskCache?.authoritative).toBe(true);
+    expect(status.diskCache?.coverage).toMatchObject({
+      complete: true,
+      graphFileCount: 2,
+      expectedGraphFileCount: 2,
+      trackedCandidateCount: 3,
+      cappedByMaxFiles: true,
+    });
+    expect(status.diskCache?.authorityCaveats).toContain(
+      'graph_coverage_capped_at_2_of_3_git_tracked_candidates'
+    );
   });
 
   it('treats scanner-size-skipped files as ineligible for coverage', async () => {

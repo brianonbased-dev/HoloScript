@@ -992,8 +992,19 @@ function graphCoverageIsComplete(coverage: GraphCoverageStatus): boolean {
 }
 
 function buildCoverageAuthorityCaveats(coverage: GraphCoverageStatus): string[] {
-  if (!coverage.available || !coverage.overInclusive) return [];
-  return [`graph_contains_${coverage.extraGraphFiles ?? 0}_files_beyond_git_tracked_candidates`];
+  if (!coverage.available) return [];
+  const caveats: string[] = [];
+  if (coverage.cappedByMaxFiles) {
+    caveats.push(
+      `graph_coverage_capped_at_${coverage.expectedGraphFileCount ?? 0}_of_${coverage.trackedCandidateCount ?? 'unknown'}_git_tracked_candidates`
+    );
+  }
+  if (coverage.overInclusive) {
+    caveats.push(
+      `graph_contains_${coverage.extraGraphFiles ?? 0}_files_beyond_git_tracked_candidates`
+    );
+  }
+  return caveats;
 }
 
 function buildLocalCodebaseSnapshotAuthority(options: {
