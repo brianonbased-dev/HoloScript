@@ -63,6 +63,31 @@ export class Native2DCompiler extends CompilerBase {
   private _hookCalls: Array<{ name: string; import: string; returns: string; args?: string }> = [];
   private _computedBindings: Array<{ name: string; expr: string; from?: string; uses: string[] }> = [];
   private _options: Native2DCompilerOptions = {};
+  /** Honest mode (composition-level `@honest`): every data-bound element MUST carry
+   *  `@provenance_bound` or the compiler refuses to emit it (HONEST-UNSOURCED). This is
+   *  the Receipt-Bound Surface constitution — the surface cannot emit an unsourced pixel. */
+  private _honestMode = false;
+
+  /**
+   * 2D data-value provenance vocabulary, ordered by TRUST (highest → lowest),
+   * aligned to the shipped 3D PointProvenanceClass idiom (observed | interpolated |
+   * nlos-inferred | generative-extended). An UNKNOWN class is REJECTED, never
+   * silently upgraded to `measured` — provenance fails toward lower trust, so a
+   * typo can never make an inferred value read as sensor-attested.
+   */
+  private static readonly PROVENANCE_CLASSES = new Set([
+    'measured', // source-attested: a real sensor reading, DB value, on-chain fact
+    'derived', // computed from measured values by a transparent bounded function
+    'inferred', // model/heuristic estimate (a forecast) — honest that it is a guess
+    'generative', // produced by a generative model (LLM-authored value)
+  ]);
+  /** Visible honesty glyph appended to a non-`measured` text value (measured = trusted, no marker). */
+  private static readonly PROVENANCE_GLYPH: Record<string, string> = {
+    measured: '',
+    derived: '°',
+    inferred: '~',
+    generative: '✦',
+  };
 
   generateReactComponent(
     name: string,
@@ -78,6 +103,9 @@ export class Native2DCompiler extends CompilerBase {
     this._hookCalls = [];
     this._computedBindings = [];
     this._options = options || {};
+    // Honest mode: composition-level `@honest` trait turns on the no-unsourced-pixel gate.
+    this._honestMode = ((composition as { traits?: Array<{ name?: string }> } | undefined)?.traits ?? [])
+      .some((t) => t?.name === 'honest');
 
     const safeName = name.replace(/[^a-zA-Z0-9]/g, '');
 
@@ -338,6 +366,11 @@ export default ${safeName}Component;
     const classes = this.buildClasses(traits);
     let props = ``;
 
+    // Receipt-Bound Surface: enforce honest mode + emit the provenance receipt. Runs
+    // before the element branch so the attributes reach chart/sparkline/generic alike.
+    const prov = this.resolveProvenance(traits, obj);
+    if (prov) props += prov.propsStr;
+
     if (traits.theme?.className) {
       classes.push(traits.theme.className);
     }
@@ -498,6 +531,15 @@ export default ${safeName}Component;
       safeContent = this.buildBindContentExpr(traits.bind);
     } else if (content) {
       safeContent = `{\`${content.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`}`;
+    }
+
+    // Visible honesty glyph on a non-measured @provenance_bound text value: an inferred
+    // metric reads e.g. `1,240~`, a generative one `Summary✦`. The machine-readable
+    // receipt lives on props; this is the human-visible signal. measured = trusted (no mark).
+    if (prov && safeContent && Native2DCompiler.PROVENANCE_GLYPH[prov.cls]) {
+      safeContent += `<sup className="holo-prov-mark" title=${JSON.stringify(
+        `provenance: ${prov.cls}`
+      )}>${Native2DCompiler.PROVENANCE_GLYPH[prov.cls]}</sup>`;
     }
 
     // @each list iteration: render this node once per item of a bound array. The
@@ -1372,6 +1414,56 @@ export default ${safeName}Component;
       ${baseline}
       ${body}
     </svg>`;
+  }
+
+  /**
+   * Receipt-Bound Surface enforcement + emission (@honest / @provenance_bound).
+   *
+   * A "data-bound" element (one that renders a value from state via @bind/@chart/
+   * @sparkline/@model) must, in honest mode, carry `@provenance_bound {source, class}`
+   * — otherwise the compiler THROWS (HONEST-UNSOURCED): the surface cannot emit an
+   * unsourced pixel. When provenance IS present, this returns the inline receipt
+   * attributes (`data-holo-provenance` = a machine-readable {source,class,confidence}
+   * an independent consumer can re-derive against, `data-provenance-class`) plus the
+   * class so the caller can add a visible honesty glyph to text values. An unknown
+   * class is rejected (fail toward lower trust — never silently upgraded to measured).
+   * Returns null when the element is not provenance-bound (no attributes, no glyph).
+   */
+  private resolveProvenance(
+    traits: Record<string, any>,
+    obj: Record<string, unknown>
+  ): { propsStr: string; cls: string } | null {
+    const dataBound = !!(
+      traits.bind?.state ||
+      traits.chart?.state ||
+      traits.sparkline?.state ||
+      traits.model
+    );
+    const pb = traits.provenance_bound;
+    if (this._honestMode && dataBound && !pb) {
+      const nm = String((obj as { name?: unknown }).name ?? 'element');
+      throw new Error(
+        `Native2DCompiler @honest: HONEST-UNSOURCED — "${nm}" renders data without @provenance_bound {source, class}; the surface cannot emit an unsourced pixel`
+      );
+    }
+    if (!pb) return null;
+    const cls = String(pb.class ?? '');
+    if (!Native2DCompiler.PROVENANCE_CLASSES.has(cls)) {
+      throw new Error(
+        `Native2DCompiler @provenance_bound: invalid class ${JSON.stringify(cls)} — expected measured|derived|inferred|generative (unknown classes fail toward lower trust, never default to measured)`
+      );
+    }
+    const source = this.assertSafeLiteral(String(pb.source ?? ''), '@provenance_bound source');
+    const receipt: Record<string, unknown> = { source, class: cls };
+    if (pb.confidence != null) {
+      const c = Number(pb.confidence);
+      if (Number.isFinite(c) && c >= 0 && c <= 1) receipt.confidence = c;
+    }
+    // Single-quoted JSX attribute holding the JSON receipt. The JSON has no single
+    // quotes (assertSafeLiteral rejects them in `source`; class/confidence are controlled),
+    // so single-quoting is safe and keeps the emitted receipt human-readable.
+    const propsStr = ` data-holo-provenance='${JSON.stringify(receipt)}' data-provenance-class="${cls}"`;
+    return { propsStr, cls };
   }
 
   private buildHTMLBindAttributes(traits: Record<string, any>, staticClassName: string): string {

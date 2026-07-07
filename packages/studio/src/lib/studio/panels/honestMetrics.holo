@@ -1,0 +1,86 @@
+@view({ id: "honestMetrics", title: "Honest Metrics", icon: "ShieldCheck", category: "debug", placement: "right-rail", scope: "workspace", gate: "expert", surfaceClass: "lab", defaultOpen: false, exclusiveWith: [], order: 48 })
+composition "honestMetrics" {
+  @native_panel
+  @honest
+
+  state {
+    sessions: 1240
+    growth: 12
+    forecast: 1580
+    aiEstimate: 87
+  }
+
+  object "Root" {
+    @layout { flex: "column", gap: "10px" }
+    @theme { className: "p-3 h-full overflow-y-auto text-xs text-studio-text" }
+
+    object "Title" {
+      @text { variant: "h3", content: "Honest metrics" }
+      @theme { className: "text-sm font-semibold text-studio-text" }
+    }
+    object "Subtitle" {
+      @text { variant: "caption", content: "Every value carries a provenance receipt — measured / derived° / inferred~ / generative✦" }
+      @theme { className: "text-[10px] text-studio-muted" }
+    }
+
+    object "MeasuredRow" {
+      @layout { flex: "row", justify: "space-between", align: "center" }
+      @theme { className: "rounded-md p-2 bg-studio-panel/40" }
+      object "MeasuredLabel" {
+        @text { variant: "caption", content: "Active sessions (measured)" }
+        @theme { className: "text-[11px] text-studio-text-secondary" }
+      }
+      object "MeasuredValue" {
+        @text { variant: "h2" }
+        @bind { state: "sessions", fallback: "0" }
+        @provenance_bound { source: "securityEventBus", class: "measured", confidence: 1 }
+        @theme { className: "text-lg font-semibold text-studio-text" }
+      }
+    }
+
+    object "DerivedRow" {
+      @layout { flex: "row", justify: "space-between", align: "center" }
+      @theme { className: "rounded-md p-2 bg-studio-panel/40" }
+      object "DerivedLabel" {
+        @text { variant: "caption", content: "Growth % (derived)" }
+        @theme { className: "text-[11px] text-studio-text-secondary" }
+      }
+      object "DerivedValue" {
+        @text { variant: "h2" }
+        @bind { state: "growth", fallback: "0", suffix: "%" }
+        @provenance_bound { source: "sessions.delta", class: "derived", confidence: 1 }
+        @theme { className: "text-lg font-semibold text-studio-text" }
+      }
+    }
+
+    object "InferredRow" {
+      @layout { flex: "row", justify: "space-between", align: "center" }
+      @theme { className: "rounded-md p-2 bg-studio-panel/40" }
+      object "InferredLabel" {
+        @text { variant: "caption", content: "30-day forecast (inferred)" }
+        @theme { className: "text-[11px] text-studio-text-secondary" }
+      }
+      object "InferredValue" {
+        @text { variant: "h2" }
+        @bind { state: "forecast", fallback: "0" }
+        @provenance_bound { source: "forecast-model-v2", class: "inferred", confidence: 0.7 }
+        @theme { className: "text-lg font-semibold text-studio-text" }
+      }
+    }
+
+    object "GenerativeRow" {
+      @layout { flex: "row", justify: "space-between", align: "center" }
+      @theme { className: "rounded-md p-2 bg-studio-panel/40" }
+      object "GenerativeLabel" {
+        @text { variant: "caption", content: "AI sentiment score (generative)" }
+        @theme { className: "text-[11px] text-studio-text-secondary" }
+      }
+      object "GenerativeValue" {
+        @text { variant: "h2" }
+        @bind { state: "aiEstimate", fallback: "0" }
+        @provenance_bound { source: "holollama", class: "generative", confidence: 0.4 }
+        @theme { className: "text-lg font-semibold text-studio-text" }
+      }
+    }
+  }
+}

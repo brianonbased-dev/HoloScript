@@ -593,6 +593,99 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
     });
   });
 
+  describe('7g. @honest / @provenance_bound — the Receipt-Bound Surface', () => {
+    const honestComp = (
+      objects: HoloObjectDecl[],
+      state?: HoloComposition['state']
+    ): HoloComposition =>
+      ({ ...comp(objects, state), traits: [{ name: 'honest' }] } as unknown as HoloComposition);
+
+    it('WORKS: a measured provenance-bound value emits a receipt, no visible glyph', () => {
+      const c = honestComp([
+        obj('Sessions', [
+          trait('text', { variant: 'h2' }),
+          trait('bind', { state: 'stats', path: 'sessions', fallback: '0' }),
+          trait('provenance_bound', {
+            source: 'securityEventBus',
+            class: 'measured',
+            confidence: 1,
+          }),
+        ]),
+      ]);
+      const r = react(c);
+      expect(r).toContain('data-provenance-class="measured"');
+      expect(r).toContain('"source":"securityEventBus"');
+      expect(r).toContain('"class":"measured"');
+      expect(r).toContain('"confidence":1');
+      expect(r).not.toContain('holo-prov-mark'); // measured = trusted → no glyph
+    });
+
+    it('WORKS: an inferred value appends a visible ~ glyph plus the receipt', () => {
+      const c = honestComp([
+        obj('Forecast', [
+          trait('text', { variant: 'h2' }),
+          trait('bind', { state: 'model', path: 'next', fallback: '0' }),
+          trait('provenance_bound', { source: 'forecast-v2', class: 'inferred' }),
+        ]),
+      ]);
+      const r = react(c);
+      expect(r).toContain('data-provenance-class="inferred"');
+      expect(r).toContain('holo-prov-mark'); // visible honesty marker
+      expect(r).toContain('~'); // the inferred glyph
+    });
+
+    it('REJECTS (HONEST-UNSOURCED): a data-bound element with no @provenance_bound in honest mode', () => {
+      const c = honestComp([
+        obj('Naked', [trait('text', { variant: 'h2' }), trait('bind', { state: 'x', path: 'y' })]),
+      ]);
+      expect(() => react(c)).toThrow(/HONEST-UNSOURCED/);
+    });
+
+    it('REJECTS: an unknown provenance class (fails toward lower trust, never upgraded)', () => {
+      const c = honestComp([
+        obj('Bad', [
+          trait('text', { variant: 'h2' }),
+          trait('bind', { state: 'x', path: 'y' }),
+          trait('provenance_bound', { source: 's', class: 'trustworthy' }),
+        ]),
+      ]);
+      expect(() => react(c)).toThrow(/invalid class/);
+    });
+
+    it('BACKWARD-COMPAT: a data-bound element with no provenance is fine when NOT honest', () => {
+      const c = comp([
+        obj('Plain', [trait('text', { variant: 'h2' }), trait('bind', { state: 'x', path: 'y' })]),
+      ]);
+      const r = react(c);
+      expect(r).not.toContain('data-holo-provenance'); // no receipt when not honest
+      expect(r).toContain('{x?.y'); // still renders normally
+    });
+
+    it('WORKS: a @chart carries the provenance receipt on its svg', () => {
+      const c = honestComp([
+        obj('Chart', [
+          trait('chart', { kind: 'bar', state: 'series', valueKey: 'v' }),
+          trait('provenance_bound', { source: 'compileAST', class: 'derived' }),
+        ]),
+      ]);
+      const r = react(c);
+      expect(r).toContain('<svg');
+      expect(r).toContain('data-provenance-class="derived"');
+      expect(r).toContain('"source":"compileAST"');
+    });
+
+    it('REJECTS: an unsafe provenance source that breaks out of the attribute', () => {
+      const c = honestComp([
+        obj('Bad', [
+          trait('text', { variant: 'h2' }),
+          trait('bind', { state: 'x', path: 'y' }),
+          trait('provenance_bound', { source: 'a" onload="z', class: 'measured' }),
+        ]),
+      ]);
+      expect(() => react(c)).toThrow(/@provenance_bound source/);
+    });
+  });
+
   // 8 ─────────────────────────────────────────────────────────────────────────
   describe('8. layout', () => {
     it('WORKS: flex layout → display:flex + direction + gap', () => {
