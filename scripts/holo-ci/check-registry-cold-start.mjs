@@ -112,6 +112,7 @@ const PROBES = new Set([
   'holollama-harness',
   'engine-public-api',
   'framework-public-api',
+  'platform-public-api',
   'absorb-service-public-api',
   ...Object.keys(PACKAGE_IMPORT_PROBES),
   ...Object.keys(PACKAGE_BIN_HELP_PROBES),
@@ -648,6 +649,172 @@ console.log(JSON.stringify({
 `;
 }
 
+function buildPlatformPublicApiProbeScript() {
+  return `
+import {
+  AccessControl,
+  CapabilityValidator,
+  ContractValidator,
+  MockWeb3Connector,
+  TokenManager,
+  TraitContractBuilder,
+  TraitContractRegistry,
+  createStrictPolicy,
+  mergePolicy,
+  parseSemVer,
+  satisfiesRange,
+  validateManifest,
+  validatePackageName,
+  createWeb3EventBridge
+} from '@holoscript/platform';
+
+const semver = parseSemVer('6.1.3');
+const manifestValidation = validateManifest({
+  name: '@holoscript/platform-canary',
+  version: '1.2.3',
+  dependencies: {
+    '@holoscript/core': '^8.0.0'
+  }
+});
+
+const access = new AccessControl();
+access.createOrg('holoscript-canary', 'founder', 'HoloScript Canary');
+access.addMember('holoscript-canary', 'agent', 'admin');
+access.setVisibility('@holoscript/platform-canary', 'private', 'holoscript-canary');
+access.grantAccess('@holoscript/platform-canary', 'agent', 'write', 'founder');
+
+const tokenManager = new TokenManager();
+const token = tokenManager.create({
+  name: 'canary-ci',
+  orgScope: 'holoscript-canary',
+  permissions: ['read', 'publish'],
+  readonly: false,
+  expiresIn: 60
+});
+const tokenValidation = tokenManager.validate(token.rawToken);
+
+const capability = new CapabilityValidator();
+const capabilityToken = {
+  issuer: 'did:holoscript:founder',
+  subject: 'did:holoscript:agent',
+  scopes: [
+    {
+      resource: 'registry.package',
+      actions: ['read', 'write']
+    }
+  ],
+  issuedAt: Date.now(),
+  expiresAt: Date.now() + 60_000,
+  nonce: 'platform-public-api-canary'
+};
+const capabilityResult = capability.validate(capabilityToken, 'registry.package', 'write');
+capability.markUsed(capabilityToken.nonce);
+const replayResult = capability.validate(capabilityToken, 'registry.package', 'write');
+
+const strict = createStrictPolicy();
+const mergedPolicy = mergePolicy(strict, {
+  network: { allowedHosts: ['registry.holoscript.net'], maxConnections: 1 }
+});
+
+const events = [];
+const connector = new MockWeb3Connector();
+const bridge = createWeb3EventBridge(connector, (event, data) => events.push({ event, data }));
+const handledWallet = bridge.handle('wallet_request_connect', { provider: 'mock', chainId: 8453 });
+const handledBalance = bridge.handle('token_gate_check_balance', {
+  chain: 'base',
+  contractAddress: '0x' + '1'.repeat(40),
+  tokenType: 'ERC20',
+  address: '0x' + '2'.repeat(40)
+});
+await new Promise((resolve) => setTimeout(resolve, 0));
+
+const registry = new TraitContractRegistry();
+const contract = TraitContractBuilder
+  .for('x402_payment_gate')
+  .requires('identity')
+  .pre('amount is positive', (props) => Number(props.amount) > 0)
+  .build();
+registry.register(contract);
+const contractValidation = new ContractValidator(registry).validatePreconditions(
+  'x402_payment_gate',
+  { amount: 1 },
+  ['identity']
+);
+
+const checks = {
+  hasExpectedConstructors:
+    typeof AccessControl === 'function' &&
+    typeof TokenManager === 'function' &&
+    typeof CapabilityValidator === 'function' &&
+    typeof MockWeb3Connector === 'function' &&
+    typeof TraitContractRegistry === 'function',
+  semverAndManifest:
+    semver?.major === 6 &&
+    satisfiesRange('6.1.3', '^6.0.0') &&
+    validatePackageName('@holoscript/platform-canary').valid === true &&
+    manifestValidation.valid === true,
+  accessControl:
+    access.isMember('holoscript-canary', 'agent') === true &&
+    access.canAccess('@holoscript/platform-canary', 'agent', 'write') === true &&
+    access.visiblePackages(['@holoscript/platform-canary'], 'agent').length === 1,
+  tokenAuth:
+    token.rawToken.startsWith('hls_') &&
+    tokenValidation.valid === true &&
+    tokenManager.hasPermission(tokenValidation.record, 'publish') === true &&
+    tokenManager.listByScope('holoscript-canary').length === 1,
+  capabilityAuth:
+    capabilityResult.valid === true &&
+    replayResult.valid === false &&
+    replayResult.reason.includes('replay'),
+  strictPolicy:
+    strict.code.requireSignedPackages === true &&
+    mergedPolicy.network.allowedHosts.includes('registry.holoscript.net') &&
+    mergedPolicy.network.maxConnections === 1,
+  web3Bridge:
+    handledWallet === true &&
+    handledBalance === true &&
+    bridge.supportedEvents.includes('token_gate_check_balance') &&
+    events.some((entry) => entry.event === 'wallet_connected') &&
+    events.some((entry) => entry.event === 'token_gate_balance_result'),
+  contractRegistry:
+    registry.has('x402_payment_gate') === true &&
+    contractValidation.valid === true
+};
+
+console.log(JSON.stringify({
+  kind: 'platform-public-api',
+  ok: Object.values(checks).every(Boolean),
+  checks,
+  samples: {
+    semver,
+    manifestErrors: manifestValidation.errors,
+    access: {
+      orgs: access.listOrgs().map((org) => org.name),
+      visible: access.visiblePackages(['@holoscript/platform-canary'], 'agent')
+    },
+    token: {
+      id: token.record.id,
+      rawPrefix: token.rawToken.slice(0, 4),
+      permissions: tokenValidation.record?.permissions || []
+    },
+    capability: {
+      valid: capabilityResult.valid,
+      replayReason: replayResult.reason
+    },
+    policy: {
+      requireSignedPackages: mergedPolicy.code.requireSignedPackages,
+      allowedHosts: mergedPolicy.network.allowedHosts
+    },
+    events: events.map((entry) => entry.event),
+    contract: {
+      traitName: contract.traitName,
+      valid: contractValidation.valid
+    }
+  }
+}, null, 2));
+`;
+}
+
 function buildPackageImportProbeScript(probeKind) {
   const importSpecs = PACKAGE_IMPORT_PROBES[probeKind] || [];
   return `
@@ -887,6 +1054,8 @@ function main() {
       writeFileSync(probeFile, buildEnginePublicApiProbeScript());
     } else if (PROBE === 'framework-public-api') {
       writeFileSync(probeFile, buildFrameworkPublicApiProbeScript());
+    } else if (PROBE === 'platform-public-api') {
+      writeFileSync(probeFile, buildPlatformPublicApiProbeScript());
     } else if (PROBE === 'absorb-service-public-api') {
       writeFileSync(probeFile, buildAbsorbServicePublicApiProbeScript());
     } else if (PACKAGE_IMPORT_PROBES[PROBE]) {

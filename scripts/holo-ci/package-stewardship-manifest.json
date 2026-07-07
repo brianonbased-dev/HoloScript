@@ -453,7 +453,7 @@
       "id": "platform-layer",
       "registry": "npm",
       "packageName": "@holoscript/platform",
-      "status": "release-candidate",
+      "status": "fleet-operational",
       "constructionRole": "Platform layer for security, web3, identity, registry, and enterprise integration.",
       "stewardshipIntent": "Make HoloKey, x402, and registry platform capabilities packageable without leaking deployment secrets.",
       "userClasses": ["human", "ai-agent"],
@@ -465,16 +465,32 @@
         "requiredPublicFiles": [],
         "privateHarnessLeakAllowed": false
       },
-      "consumerLanes": ["laptop-windows", "vast-linux-gpu", "hosted-service"],
-      "utilityIds": [],
-      "validationScripts": ["package:opportunity-map", "version:check:strict"],
+      "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu", "hosted-service"],
+      "utilityIds": ["platform-control-plane"],
+      "validationScripts": [
+        "build:package-release-closure",
+        "check:npm-v1-release:built",
+        "check:fleet-utilities",
+        "check:package-consumption:full",
+        "check:registry-cold-start:platform-public-api"
+      ],
       "validationCommands": [
         "pnpm --filter @holoscript/platform build",
-        "pnpm --filter @holoscript/platform test"
+        "pnpm --filter @holoscript/platform test",
+        "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/platform@latest --probe platform-public-api --json"
       ],
       "nextActions": [
-        "Add a secret-safe HoloKey/x402 import smoke before promoting platform into package-consumption.",
-        "Keep hosted-service configuration documented without embedding private deployment paths or keys."
+        "Keep platform-public-api green from a repo-less npm consumer before each platform publish.",
+        "Keep hosted-service configuration documented without embedding private deployment paths or keys.",
+        "Add live HoloKey/x402 service receipts before claiming hosted payment or identity service availability."
+      ],
+      "caveats": [
+        {
+          "id": "package-api-not-live-payment-service",
+          "scope": "laptop-windows,jetson-orin,vast-linux-gpu,hosted-service",
+          "summary": "@holoscript/platform is fleet-consumed as a package API for identity, ACL, registry, Web3, contract, and security primitives; live HoloKey/x402 service health needs separate endpoint receipts.",
+          "overclaimGuard": "Do not claim hosted payment, wallet custody, or live identity-service availability from package-consumption, pack checks, or public API canaries alone."
+        }
       ]
     },
     {

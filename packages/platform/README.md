@@ -27,19 +27,23 @@ import { CapabilityValidator, PackageRegistry } from '@holoscript/platform';
 
 ## Strategy Role
 
-This package is a supported runtime module, not a v1 fleet default. Use it when
-consumers need platform security, identity, registry, or Web3 primitives
-directly. Keep marketplace APIs in `@holoscript/marketplace-api`, mesh/network
-coordination in `@holoscript/mesh`, and agent lifecycle orchestration in
-`@holoscript/framework` or `@holoscript/agent-protocol`.
+This package is the fleet control-plane utility for consumers that need
+platform security, identity, registry, Web3, contract, token, ACL, or
+HoloKey/x402-adjacent primitives directly. Keep marketplace APIs in
+`@holoscript/marketplace-api`, mesh/network coordination in `@holoscript/mesh`,
+and agent lifecycle orchestration in `@holoscript/framework` or
+`@holoscript/agent-protocol`.
 
-Promote it into a fleet lane only when a laptop, Jetson, or Vast consumer proves
-a direct install need rather than receiving platform behavior transitively.
+Package installation proves the local API surface. Hosted HoloKey/x402 payment,
+wallet custody, and identity-service availability still require separate live
+endpoint receipts.
 
 ## Validation
 
 ```bash
 corepack pnpm --filter @holoscript/platform run test
+corepack pnpm run check:registry-cold-start:platform-public-api
+corepack pnpm run check:package-consumption
 corepack pnpm run check:publish-surface
 corepack pnpm run check:package-architecture
 corepack pnpm run package:opportunity-map

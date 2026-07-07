@@ -33,6 +33,11 @@
       "v1Intent": "Installable Absorb and GraphRAG service package with public APIs kept separate from private knowledge stores."
     },
     {
+      "name": "@holoscript/platform",
+      "role": "platform-control-plane",
+      "v1Intent": "Installable HoloKey/x402-adjacent platform primitives for identity, access control, registry, Web3, contracts, and security policy consumers."
+    },
+    {
       "name": "@holoscript/mcp-server",
       "role": "agent-mcp",
       "v1Intent": "MCP server package for universal agent access to HoloScript."

@@ -1024,12 +1024,20 @@ export class ExpressionEvaluator {
 }
 
 export class EventBus {
-  static getInstance(): EventBus;
-  on(event: string, callback: any): void;
-  off(event: string, callback: any): void;
-  emit(event: string, ...args: any[]): void;
+  constructor();
+  on(event: string, callback: (data: unknown) => void, priority?: number): number;
+  once(event: string, callback: (data: unknown) => void, priority?: number): number;
+  off(listenerId: number): void;
+  offAll(event: string): void;
+  emit(event: string, data?: unknown): void;
+  getHistory(): Array<{ event: string; data: unknown; timestamp: number }>;
+  listenerCount(event: string): number;
+  setPaused(paused: boolean): void;
+  clear(): void;
 }
 export const eventBus: EventBus;
+export function getSharedEventBus(): EventBus;
+export function setSharedEventBus(bus: EventBus): void;
 
 // COMPILERS & GENERATORS
 // ============================================================================

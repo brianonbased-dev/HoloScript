@@ -180,6 +180,19 @@
       ]
     },
     {
+      "id": "platform-control-plane",
+      "label": "Platform identity and registry control plane",
+      "utilityFamily": "control-plane",
+      "deploymentRoles": ["library", "local-client", "edge-node", "gpu-worker", "hosted-coordinator"],
+      "packageName": "@holoscript/platform",
+      "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu", "hosted-service"],
+      "useCases": [
+        "HoloKey/x402-adjacent identity, token, ACL, and registry primitives",
+        "secret-safe Web3 and contract control-plane APIs for package consumers",
+        "shared platform security policy and capability gates for agent and fleet utilities"
+      ]
+    },
+    {
       "id": "python-runtime-bindings",
       "label": "Python HoloScript bindings",
       "utilityFamily": "python-runtime",

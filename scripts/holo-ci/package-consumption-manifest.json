@@ -198,9 +198,7 @@
         "dist/schema.js"
       ],
       "forbidBundledNativeAddons": true
-    }
-  ],
-  "candidateNpmPackages": [
+    },
     {
       "name": "@holoscript/platform",
       "packageDir": "packages/platform",
@@ -211,6 +209,7 @@
       "forbidBundledNativeAddons": true
     }
   ],
+  "candidateNpmPackages": [],
   "pypiPackages": [
     {
       "name": "holoscript",
