@@ -114,6 +114,44 @@ else
   echo "$LOG WARN: $PACKAGE_MIRROR_ENV missing; using default package registries"
 fi
 
+configure_data_cache_env() {
+  local mount_path="${FLEET_DATA_MOUNT_PATH:-/data}"
+  if [ ! -d "$mount_path" ]; then
+    return 0
+  fi
+
+  export FLEET_DATA_MOUNT_PATH="$mount_path"
+  export HOLOGRAPH_DATA_MOUNT_PATH="${HOLOGRAPH_DATA_MOUNT_PATH:-$mount_path}"
+  export HF_HOME="${HF_HOME:-$mount_path/cache/huggingface}"
+  export HUGGINGFACE_HUB_CACHE="${HUGGINGFACE_HUB_CACHE:-$mount_path/cache/huggingface/hub}"
+  export TRANSFORMERS_CACHE="${TRANSFORMERS_CACHE:-$mount_path/cache/huggingface/transformers}"
+  export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$mount_path/cache/xdg}"
+  export HOLOGRAPH_LLAMA_BUILD_ROOT="${HOLOGRAPH_LLAMA_BUILD_ROOT:-$mount_path/tools/llama.cpp}"
+  mkdir -p "$HF_HOME" "$HUGGINGFACE_HUB_CACHE" "$TRANSFORMERS_CACHE" "$XDG_CACHE_HOME" \
+    "$mount_path/tools" "$mount_path/locks"
+  echo "$LOG data cache volume active at $mount_path"
+}
+
+start_vast_box_sidecar() {
+  if [ "${VAST_BOX_SIDECAR_STARTED:-0}" = "1" ]; then
+    return 0
+  fi
+  if command -v node >/dev/null 2>&1 && [ -f "scripts/vast-box-node-sidecar.mjs" ]; then
+    VAST_BOX_NODE_PORT="${VAST_BOX_NODE_PORT:-18747}"
+    echo "$LOG starting vast-box-node-sidecar on port $VAST_BOX_NODE_PORT"
+    node scripts/vast-box-node-sidecar.mjs --serve --no-live --port "$VAST_BOX_NODE_PORT" \
+      --out /tmp/vast-box-node-sidecar-boot.json \
+      >/tmp/vast-box-node-sidecar.log 2>&1 &
+    export VAST_BOX_SIDECAR_STARTED=1
+    echo "$LOG sidecar pid=$! log=/tmp/vast-box-node-sidecar.log"
+  else
+    echo "$LOG WARN: vast-box-node-sidecar unavailable (node or script missing)"
+  fi
+}
+
+configure_data_cache_env
+start_vast_box_sidecar
+
 # 1a. Self-register the seat (gpu lane) so /gpu/next claims aren't rejected. dbClaimNextJob
 # REJECTS an unregistered seat ("register via POST /gpu/seats") — without this every worker
 # spins idle on HTTP 403 seat_rejected. POST /gpu/seats/self is the agent-key path (lane
