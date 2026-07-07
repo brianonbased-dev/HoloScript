@@ -830,6 +830,81 @@ describe('holo_absorb_repo root validation', () => {
     expect(cache.gitCommitHash).toBe(secondCommit);
   }, 20_000);
 
+  it('builds missing HoloEmbed index when a zero-change graph request follows stats-only cache', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-zero-change-embed-cache-'));
+    const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-zero-change-embed-repo-'));
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+
+    execFileSync('git', ['init'], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['config', 'user.email', 'codex@example.test'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+    execFileSync('git', ['config', 'user.name', 'Codex Test'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+
+    fs.mkdirSync(path.join(repoDir, 'src'), { recursive: true });
+    fs.writeFileSync(
+      path.join(repoDir, 'src', 'semantic-fixture.ts'),
+      'export function semanticFixtureSearchTarget(): string { return "native graph rag"; }\n',
+      'utf-8'
+    );
+    execFileSync('git', ['add', 'src/semantic-fixture.ts'], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['commit', '-m', 'initial'], { cwd: repoDir, windowsHide: true });
+
+    const statsOnly = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      force: true,
+      outputFormat: 'stats',
+    })) as {
+      error?: string;
+      embeddingSkipped?: boolean;
+      semanticIndexReady?: boolean;
+    };
+    expect(statsOnly.error).toBeUndefined();
+    expect(statsOnly.embeddingSkipped).toBe(true);
+    expect(statsOnly.semanticIndexReady).toBe(false);
+    expect(fs.existsSync(path.join(cacheDir, 'embeddings-cache.bin'))).toBe(false);
+
+    const graphResult = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'graph',
+    })) as {
+      error?: string;
+      cached?: boolean;
+      embeddingSkipped?: boolean;
+      graphRagReady?: boolean;
+      semanticIndexReady?: boolean;
+      semanticIndexReadiness?: {
+        kind?: string;
+        embeddingSkipped?: boolean;
+        semanticIndexReady?: boolean;
+      };
+    };
+
+    expect(graphResult.error).toBeUndefined();
+    expect(graphResult.cached).toBe(true);
+    expect(graphResult.embeddingSkipped).toBe(false);
+    expect(graphResult.graphRagReady).toBe(true);
+    expect(graphResult.semanticIndexReady).toBe(true);
+    expect(graphResult.semanticIndexReadiness).toMatchObject({
+      kind: 'SemanticIndexReadinessReceipt',
+      embeddingSkipped: false,
+      semanticIndexReady: true,
+    });
+    expect(fs.existsSync(path.join(cacheDir, 'embeddings-cache.bin'))).toBe(true);
+
+    const semanticSearch = (await handleGraphRagTool('holo_semantic_search', {
+      query: 'semantic search target',
+      useCachedAbsorbIndex: true,
+    })) as { error?: string; results?: unknown[] };
+    expect(semanticSearch.error).toBeUndefined();
+    expect(semanticSearch.results?.length).toBeGreaterThan(0);
+  }, 20_000);
+
   it('does not emit a graph unavailable receipt when local GraphRAG is live without disk cache', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-empty-graph-cache-'));

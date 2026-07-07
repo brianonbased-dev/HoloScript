@@ -3510,6 +3510,42 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
             rootDir,
             timestamp: envelope.timestamp,
           });
+        } else {
+          if (jobId) trackAbsorbProgress(jobId, 'Building missing embeddings from cached graph', 80);
+          const rebuiltIndex = await createDynamicEmbeddingIndex(
+            mod,
+            embeddingProvider,
+            embeddingApiKey,
+            embeddingModel
+          );
+          try {
+            await withPhaseTimeout(
+              rebuiltIndex.buildIndex(
+                cachedGraph,
+                jobId
+                  ? (batchNum: number, totalBatches: number, symbolsProcessed: number) => {
+                      const embeddingProgress =
+                        80 + Math.floor((batchNum / Math.max(totalBatches, 1)) * 15);
+                      trackAbsorbProgress(
+                        jobId,
+                        `Embedding batch ${batchNum}/${totalBatches} (${symbolsProcessed} symbols)`,
+                        embeddingProgress
+                      );
+                    }
+                  : undefined
+              ),
+              EMBEDDING_BUILD_TIMEOUT_MS,
+              'holo_absorb_repo zero-change embedding rebuild',
+              () => disposeEmbeddingIndex(rebuiltIndex)
+            );
+          } finally {
+            await disposeEmbeddingIndex(rebuiltIndex);
+          }
+          saveEmbeddingsCache(rebuiltIndex, rootDir);
+          setGraphRAGState(rebuiltIndex, new GraphRAGEngine(cachedGraph, rebuiltIndex), {
+            rootDir,
+            timestamp: envelope.timestamp,
+          });
         }
       } catch (err) {
         console.warn(`[AbsorbEmbeddings] Zero-change fast-hydrate skipped: ${String(err)}`);
