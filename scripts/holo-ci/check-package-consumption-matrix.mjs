@@ -132,6 +132,44 @@ function parseProjectOptionalDependencyGroups(text) {
   return groups;
 }
 
+function normalizeExtraName(name) {
+  return String(name || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[-_.]+/g, '-');
+}
+
+function laneExtrasFromPackage(pkg) {
+  const byConsumer = {};
+  const extras = new Set();
+  for (const [consumerId, requestedExtras] of Object.entries(pkg.extrasByConsumer || {})) {
+    const normalized = [...new Set((requestedExtras || []).map(normalizeExtraName))].filter(
+      Boolean
+    );
+    if (normalized.length === 0) continue;
+    byConsumer[consumerId] = normalized;
+    for (const extra of normalized) extras.add(extra);
+  }
+  return { byConsumer, extras: [...extras].sort() };
+}
+
+function providesExtrasFromMetadata(text) {
+  const extras = new Set();
+  for (const line of String(text || '').split(/\r?\n/)) {
+    const match = line.match(/^Provides-Extra:\s*(.+?)\s*$/i);
+    if (match) extras.add(normalizeExtraName(match[1]));
+  }
+  return extras;
+}
+
+function assertProvidedExtras(pkgName, scope, providedExtras, requiredExtras, errors) {
+  for (const extra of requiredExtras || []) {
+    if (!providedExtras.has(normalizeExtraName(extra))) {
+      errors.push(`${pkgName}: ${scope} metadata missing requested extra '${extra}'`);
+    }
+  }
+}
+
 function parseDistInfoFromBuildOutput(stdout) {
   return stdout
     .split(/\r?\n/)
@@ -194,6 +232,7 @@ print(json.dumps(out))
   const inspected = JSON.parse(run(PYTHON_BIN, ['-c', script, ...artifacts], { cwd: ROOT }));
   const wheels = Object.entries(inspected).filter(([, value]) => value.kind === 'wheel');
   const sdists = Object.entries(inspected).filter(([, value]) => value.kind === 'sdist');
+  const laneExtras = laneExtrasFromPackage(pkg);
   if (wheels.length === 0) errors.push(`${pkg.name}: artifact inspection found no wheel`);
   if (sdists.length === 0) errors.push(`${pkg.name}: artifact inspection found no sdist`);
 
@@ -219,6 +258,17 @@ print(json.dumps(out))
         errors.push(`${pkg.name}: wheel missing console script entry point ${scriptName}`);
       }
     }
+    const metadataText = Object.entries(wheel.texts || {})
+      .filter(([name]) => name.endsWith('/METADATA'))
+      .map(([, text]) => text)
+      .join('\n');
+    assertProvidedExtras(
+      pkg.name,
+      'wheel',
+      providesExtrasFromMetadata(metadataText),
+      laneExtras.extras,
+      errors
+    );
   }
 
   for (const [, sdist] of sdists) {
@@ -230,6 +280,17 @@ print(json.dumps(out))
       if (!files.has(importPath))
         errors.push(`${pkg.name}: sdist missing import package ${importPath}`);
     }
+    const pkgInfoText = Object.entries(sdist.texts || {})
+      .filter(([name]) => name.endsWith('/PKG-INFO'))
+      .map(([, text]) => text)
+      .join('\n');
+    assertProvidedExtras(
+      pkg.name,
+      'sdist',
+      providesExtrasFromMetadata(pkgInfoText),
+      laneExtras.extras,
+      errors
+    );
   }
 }
 
@@ -306,12 +367,16 @@ async function auditPyPiPackage(pkg, localVersion, row, errors, warnings) {
       return;
     }
     const cmp = compareDottedVersions(localVersion, publishedVersion);
+    const publishedExtras = new Set((data?.info?.provides_extra || []).map(normalizeExtraName));
+    const laneExtras = laneExtrasFromPackage(pkg);
     row.pypi = {
       status: cmp === 0 ? 'current' : cmp > 0 ? 'publish-update' : 'local-behind',
       localVersion,
       publishedVersion,
+      providesExtra: [...publishedExtras].sort(),
       url: `https://pypi.org/project/${pkg.name}/`,
     };
+    assertProvidedExtras(pkg.name, 'PyPI', publishedExtras, laneExtras.extras, errors);
     if (cmp < 0) {
       errors.push(`${pkg.name}: local version ${localVersion} is behind PyPI ${publishedVersion}`);
     }
@@ -453,6 +518,7 @@ async function checkPyPackage(pkg, consumers, errors, warnings, rows) {
     type: 'pypi',
     name: pkg.name,
     requiredBy: pkg.requiredBy || [],
+    laneExtras: laneExtrasFromPackage(pkg).byConsumer,
     built: [],
     inspected: false,
     artifactSmoke: null,
@@ -576,6 +642,15 @@ function runSelfTest() {
   if (!extras.has('model')) errors.push('optional dependency parser failed');
   if (minimumVersionFromRange('>=3.10') !== '3.10') errors.push('version range parser failed');
   if (compareDottedVersions('20.0.0', '18.0.0') <= 0) errors.push('version comparator failed');
+  if (normalizeExtraName('Robotics_GPU') !== 'robotics-gpu')
+    errors.push('extra name normalization failed');
+  const provided = providesExtrasFromMetadata('Metadata-Version: 2.4\nProvides-Extra: Scientific\n');
+  if (!provided.has('scientific')) errors.push('metadata extra parser failed');
+  const laneExtras = laneExtrasFromPackage({
+    extrasByConsumer: { jetson: ['Robotics', 'scientific', 'robotics'] },
+  });
+  if (laneExtras.extras.join(',') !== 'robotics,scientific')
+    errors.push('lane extras collector failed');
   if (errors.length) {
     console.error(errors.join('\n'));
     process.exit(1);
@@ -620,6 +695,8 @@ async function main() {
                 row.inspected ? ' inspected=true' : ''
               }${row.artifactSmoke ? ' artifactSmoke=true' : ''}${
                 row.pypiSmoke ? ' pypiSmoke=true' : ''
+              }${
+                Object.keys(row.laneExtras || {}).length ? ' laneExtras=true' : ''
               }${row.pypi ? ` pypi=${row.pypi.status}` : ''}`
             : '';
       console.log(
