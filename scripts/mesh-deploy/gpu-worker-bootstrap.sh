@@ -40,6 +40,8 @@ REPO_DIR="${REPO_DIR:-$HOME/.ai-ecosystem}"
 POLL_INTERVAL="${POLL_INTERVAL:-15}"
 IDLE_EXIT_AFTER="${IDLE_EXIT_AFTER:-0}"   # seconds of empty queue before self-exit (0 = never)
 SEAT_REJECT_MAX="${SEAT_REJECT_MAX:-6}"    # consecutive seat_rejected polls before self-exit
+JOB_LOG_TAIL_LINES="${JOB_LOG_TAIL_LINES:-120}"
+JOB_LOG_TAIL_INTERVAL="${JOB_LOG_TAIL_INTERVAL:-60}" # seconds; 0 disables periodic tails
 LOG="[gpu-worker:$SEAT]"
 
 # Resolve script directory for relative paths to sibling scripts (e.g. fleet-cuquantum-setup.sh)
@@ -53,6 +55,34 @@ api() { # method path [json-body]
   else
     curl -sS -X "$method" "$ORCH$path" -H "x-mcp-api-key: $HOLOSCRIPT_API_KEY" -w '\n%{http_code}'
   fi
+}
+
+redact_stream() {
+  sed -E \
+    -e 's#x-access-token:[^@[:space:]]+@#x-access-token:***@#g' \
+    -e 's#(MCP_API_KEY=)[^[:space:]]+#\1***#g' \
+    -e 's#(HOLOSCRIPT_API_KEY=)[^[:space:]]+#\1***#g' \
+    -e 's#(HOLOSCRIPT_MCP_API_KEY=)[^[:space:]]+#\1***#g' \
+    -e 's#(Authorization: Bearer )[A-Za-z0-9._=-]+#\1***#g' \
+    -e 's#("x-mcp-api-key"[[:space:]]*:[[:space:]]*")[^"]+#\1***#g'
+}
+
+redact_text() {
+  printf '%s' "$1" | redact_stream
+}
+
+emit_job_log_tail() {
+  local jid="$1" log_path="$2" lines="${3:-$JOB_LOG_TAIL_LINES}"
+  if [ ! -s "$log_path" ]; then
+    echo "$LOG job $jid logtail skipped (empty)"
+    return 0
+  fi
+
+  echo "$LOG job $jid logtail last ${lines} lines BEGIN"
+  tail -n "$lines" "$log_path" 2>/dev/null | redact_stream | while IFS= read -r line; do
+    echo "$LOG job $jid | $line"
+  done
+  echo "$LOG job $jid logtail END"
 }
 
 repo_source_present() {
@@ -214,24 +244,38 @@ while true; do
   jid="$(printf '%s' "$body" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("id",""))')"
   cmd="$(printf '%s' "$body" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("command",""))')"
   [ -n "$jid" ] || { echo "$LOG claimed job with no id; skipping"; continue; }
-  echo "$LOG claimed $jid: $cmd"
+  echo "$LOG claimed $jid: $(redact_text "$cmd")"
+
+  out_log="/tmp/job-$jid.log"
+  : >"$out_log"
 
   # heartbeat in background while the job runs
-  ( while true; do
+  ( last_tail_at=0
+    while true; do
       api POST "/gpu/job/$jid/heartbeat" '{}' >/dev/null 2>&1 || true
       api POST "/gpu/seats/$SEAT/heartbeat" '{}' >/dev/null 2>&1 || true
+      if [ "$JOB_LOG_TAIL_INTERVAL" -gt 0 ]; then
+        now="$(date +%s)"
+        if [ $((now - last_tail_at)) -ge "$JOB_LOG_TAIL_INTERVAL" ]; then
+          emit_job_log_tail "$jid" "$out_log" "$JOB_LOG_TAIL_LINES"
+          last_tail_at="$now"
+        fi
+      fi
       sleep 20
     done ) &
   hb=$!
 
-  out_log="/tmp/job-$jid.log"
+  echo "$LOG job $jid started log=$out_log"
   if bash -lc "$cmd" >"$out_log" 2>&1; then
     err="null"
+    rc=0
   else
     rc=$?
     err="$(python3 -c 'import json,sys;print(json.dumps(f"exit {sys.argv[1]}: "+open(sys.argv[2]).read()[-800:]))' "$rc" "$out_log")"
   fi
   kill "$hb" 2>/dev/null || true
+  echo "$LOG job $jid exited rc=$rc"
+  emit_job_log_tail "$jid" "$out_log" "$JOB_LOG_TAIL_LINES"
 
   done_body="$(python3 -c 'import json,re,sys
 e=sys.argv[1]
@@ -260,7 +304,12 @@ if match and payload["error"] is None:
     if metrics is not None:
         payload["visual_parity_metrics"]=metrics
 print(json.dumps(payload))' "$err" "$out_log")"
-  api POST "/gpu/job/$jid/done" "$done_body" >/dev/null 2>&1 \
-    && echo "$LOG reported done $jid (error=$([ "$err" = null ] && echo none || echo yes))" \
-    || echo "$LOG WARN: failed to report done for $jid"
+  report_out="$(api POST "/gpu/job/$jid/done" "$done_body" 2>&1)"
+  report_status=$?
+  if [ "$report_status" -eq 0 ]; then
+    echo "$LOG reported done $jid (error=$([ "$err" = null ] && echo none || echo yes))"
+  else
+    report_tail="$(printf '%s' "$report_out" | redact_stream | tail -c 500)"
+    echo "$LOG WARN: failed to report done for $jid status=$report_status: $report_tail"
+  fi
 done
