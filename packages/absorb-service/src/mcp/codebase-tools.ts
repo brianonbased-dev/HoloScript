@@ -4156,15 +4156,18 @@ async function handleGraphStatus(): Promise<unknown> {
         freshByAge: diskCacheFreshByAge,
         coverage: diskCoverage,
       });
+  const noGraphCachePresent = cachedGraph === null && !cache.exists && !cacheRootDir;
   const currentGitCommitHash = cacheMatchesCwd
     ? workspaceGitCommitHash
     : activeCrossRootAuthority.currentGitCommitHash;
   const diskCurrentGitCommitHash = diskCacheMatchesCwd
     ? workspaceGitCommitHash
     : diskCrossRootAuthority.currentGitCommitHash;
-  const activeGitMatchesHead = cacheMatchesCwd
-    ? cacheGitMatchesHead(activeGitCommitHash, workspaceGitCommitHash)
-    : activeCrossRootAuthority.ok;
+  const activeGitMatchesHead = noGraphCachePresent
+    ? true
+    : cacheMatchesCwd
+      ? cacheGitMatchesHead(activeGitCommitHash, workspaceGitCommitHash)
+      : activeCrossRootAuthority.ok;
   const diskCacheGitMatchesHead = diskCacheMatchesCwd
     ? cacheGitMatchesHead(cache.gitCommitHash, workspaceGitCommitHash)
     : diskCrossRootAuthority.ok;

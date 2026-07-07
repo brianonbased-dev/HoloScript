@@ -13,6 +13,7 @@ import {
 import { EmbeddingIndex } from '../engine/EmbeddingIndex';
 
 const originalCacheDir = process.env.HOLOSCRIPT_CACHE_DIR;
+const originalWorkspaceRoot = process.env.HOLOSCRIPT_WORKSPACE_ROOT;
 const originalAutoBackground = process.env.ABSORB_AUTO_BACKGROUND;
 const originalAutoBackgroundScanFileThreshold =
   process.env.ABSORB_AUTO_BACKGROUND_SCAN_FILE_THRESHOLD;
@@ -59,6 +60,36 @@ function getHeadCommit(rootDir = process.cwd()): string {
     windowsHide: true,
     stdio: ['pipe', 'pipe', 'pipe'],
   }).trim();
+}
+
+function makeTinyGitRepo(prefix: string): string {
+  const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  execFileSync('git', ['init'], { cwd: repoDir, windowsHide: true });
+  execFileSync('git', ['config', 'user.email', 'codex@example.test'], {
+    cwd: repoDir,
+    windowsHide: true,
+  });
+  execFileSync('git', ['config', 'user.name', 'Codex Test'], {
+    cwd: repoDir,
+    windowsHide: true,
+  });
+  fs.mkdirSync(path.join(repoDir, 'src'), { recursive: true });
+  fs.writeFileSync(
+    path.join(repoDir, 'src', 'alpha.ts'),
+    'export function alpha(): string { return "alpha"; }\n',
+    'utf-8'
+  );
+  fs.writeFileSync(
+    path.join(repoDir, 'src', 'beta.ts'),
+    'export function beta(): string { return alphaName; }\nconst alphaName = "beta";\n',
+    'utf-8'
+  );
+  execFileSync('git', ['add', 'src/alpha.ts', 'src/beta.ts'], {
+    cwd: repoDir,
+    windowsHide: true,
+  });
+  execFileSync('git', ['commit', '-m', 'fixture'], { cwd: repoDir, windowsHide: true });
+  return repoDir;
 }
 
 function writeGraphCache(
@@ -196,6 +227,11 @@ describe('holo_absorb_repo root validation', () => {
       delete process.env.HOLOSCRIPT_CACHE_DIR;
     } else {
       process.env.HOLOSCRIPT_CACHE_DIR = originalCacheDir;
+    }
+    if (originalWorkspaceRoot === undefined) {
+      delete process.env.HOLOSCRIPT_WORKSPACE_ROOT;
+    } else {
+      process.env.HOLOSCRIPT_WORKSPACE_ROOT = originalWorkspaceRoot;
     }
     vi.restoreAllMocks();
     resetCodebaseToolStateForTests(false);
@@ -1012,7 +1048,7 @@ describe('holo_absorb_repo root validation', () => {
     });
   });
 
-  it('reports freshForCurrentRepo=false when cache rootDir differs from cwd', async () => {
+  it('rejects a root-mismatched cache when the root is not a current git repo', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-mismatch-graph-cache-'));
     // Cache was created for a temp dir (e.g. format-stress scratch), NOT for cwd
@@ -1050,6 +1086,81 @@ describe('holo_absorb_repo root validation', () => {
       reason: 'cache_root_mismatch',
       authoritative: false,
     });
+  });
+
+  it('trusts a root-mismatched cache for its own git repo when HEAD and coverage match', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'holoscript-cross-root-graph-cache-')
+    );
+    const cachedRepo = makeTinyGitRepo('holoscript-cross-root-cached-repo-');
+    const workspaceRepo = makeTinyGitRepo('holoscript-cross-root-workspace-repo-');
+    const head = getHeadCommit(cachedRepo);
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = workspaceRepo;
+    writeGraphCache(cacheDir, cachedRepo, Date.now() - 5 * 60 * 1000, head, 2);
+
+    const status = (await handleCodebaseTool('holo_graph_status', {})) as {
+      graphAuthoritative?: boolean;
+      freshForCurrentRepo?: boolean;
+      currentCwd?: string;
+      graphUnavailableReceipt?: GraphUnavailableReceipt;
+      diskCache?: {
+        fresh?: boolean;
+        stale?: boolean;
+        freshByAge?: boolean;
+        authoritative?: boolean;
+        freshForCurrentRepo?: boolean;
+        rootDir?: string;
+        currentGitCommitHash?: string | null;
+        gitCommitMatchesHead?: boolean;
+        coverage?: { available?: boolean; complete?: boolean; graphFileCount?: number };
+        hint?: string;
+      };
+    };
+
+    expect(status.currentCwd).toBe(path.resolve(workspaceRepo));
+    expect(status.graphAuthoritative).toBe(true);
+    expect(status.freshForCurrentRepo).toBe(true);
+    expect(status.diskCache?.rootDir).toBe(path.resolve(cachedRepo));
+    expect(status.diskCache?.fresh).toBe(true);
+    expect(status.diskCache?.stale).toBe(false);
+    expect(status.diskCache?.freshByAge).toBe(true);
+    expect(status.diskCache?.authoritative).toBe(true);
+    expect(status.diskCache?.freshForCurrentRepo).toBe(true);
+    expect(status.diskCache?.currentGitCommitHash).toBe(head);
+    expect(status.diskCache?.gitCommitMatchesHead).toBe(true);
+    expect(status.diskCache?.coverage).toMatchObject({
+      available: true,
+      complete: true,
+      graphFileCount: 2,
+    });
+    expect(status.diskCache?.hint).toContain('authoritative');
+    expect(status.graphUnavailableReceipt).toBeUndefined();
+  });
+
+  it('auto-loads a root-mismatched cache for queries when it describes a current git repo', async () => {
+    resetCodebaseToolStateForTests(false);
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-cross-root-query-cache-'));
+    const cachedRepo = makeTinyGitRepo('holoscript-cross-root-query-repo-');
+    const workspaceRepo = makeTinyGitRepo('holoscript-cross-root-query-workspace-');
+    const head = getHeadCommit(cachedRepo);
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = workspaceRepo;
+    writeGraphCache(cacheDir, cachedRepo, Date.now() - 5 * 60 * 1000, head, 2);
+
+    const result = (await handleCodebaseTool('holo_query_codebase', {
+      query: 'stats',
+      queryType: 'stats',
+    })) as {
+      error?: string;
+      cacheNote?: string;
+      result?: unknown;
+    };
+
+    expect(result.error).toBeUndefined();
+    expect(result.cacheNote).toContain(path.resolve(cachedRepo));
+    expect(result.result).toBeDefined();
   });
 
   it('does not auto-load a root-mismatched disk cache for impact analysis', async () => {
