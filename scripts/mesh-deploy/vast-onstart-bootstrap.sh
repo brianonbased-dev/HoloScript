@@ -68,14 +68,48 @@ github_token_from_url() {
   esac
 }
 
+is_probable_commit_sha() {
+  [[ "$1" =~ ^[0-9a-fA-F]{7,40}$ ]]
+}
+
+run_redacted() {
+  "$@" 2>&1 | sed -E 's#x-access-token:[^@]+@#x-access-token:***@#g'
+  return "${PIPESTATUS[0]}"
+}
+
+fetch_and_checkout_ref() {
+  local ref="$1" status
+  run_redacted git -C "$REPO_DIR" fetch --depth 1 origin "$ref"
+  status=$?
+  if [ "$status" -ne 0 ]; then
+    return "$status"
+  fi
+  run_redacted git -C "$REPO_DIR" checkout --detach FETCH_HEAD
+}
+
+clone_repo_once() {
+  if is_probable_commit_sha "$FLEET_REPO_REF"; then
+    run_redacted git clone --depth 1 "$REPO_URL" "$REPO_DIR" || return "$?"
+    fetch_and_checkout_ref "$FLEET_REPO_REF"
+    return "$?"
+  fi
+
+  run_redacted git clone --depth 1 --branch "$FLEET_REPO_REF" "$REPO_URL" "$REPO_DIR" && return 0
+
+  # The ref may be a non-branch object. Try a generic shallow clone plus fetch
+  # before falling through to the archive fallback.
+  rm -rf "$REPO_DIR"
+  run_redacted git clone --depth 1 "$REPO_URL" "$REPO_DIR" || return "$?"
+  fetch_and_checkout_ref "$FLEET_REPO_REF"
+}
+
 clone_repo_with_retry() {
   local attempt status
   for attempt in $(seq 1 "$GIT_CLONE_TRIES"); do
     rm -rf "$REPO_DIR"
     echo "$LOG clone attempt $attempt/$GIT_CLONE_TRIES: $(redact_repo_url "$REPO_URL") -> $REPO_DIR"
-    git clone --depth 1 --branch "$FLEET_REPO_REF" "$REPO_URL" "$REPO_DIR" 2>&1 \
-      | sed -E 's#x-access-token:[^@]+@#x-access-token:***@#g'
-    status=${PIPESTATUS[0]}
+    clone_repo_once
+    status=$?
     if [ "$status" -eq 0 ]; then
       return 0
     fi
