@@ -504,8 +504,13 @@ array state), an SVG layout/scale helper in `Native2DCompiler`, and a fidelity d
 *language-gated* verticals now — AdminDashboard native + `@bind` string tiers + tier-leak strip +
 border side/width fix (HoloScript `3a69f6a2c`) — and deferred this deliberately rather than
 `@slot`-remounting chart.js (which clears neither the taste smell nor the D.095/D.096 render-freeze).
-Earliest buildable slice: `@sparkline` (single polyline, no axes) against an existing numeric-array
-state — it proves the SVG-emit path with minimal surface, and the fuller `@chart` grows from there.
-A companion enabler is **`@hook` args** (`useCreatorStats({address})` — a hook taking an options
-object; `@hook` currently emits `hook()` only). NMoS: build-internal (F.133) — chart.js is a library
+**Slice 1 SHIPPED (HoloScript `cbcefd311`, 2026-07-07):** `@sparkline` (single SVG polyline, no
+axes) + `@hook args`. `@sparkline { state, path?, valueKey?, width?, height?, stroke? }` emits an
+inline `<svg><polyline>` with render-time-normalized points (dependency-free, injection-safe); live
+consumer is `compilerExport.holo` (sparkline of output `sizeKb` across compile targets, driven by
+the reactive `@computed targets`). `@hook args` lets arg-taking hooks (`useCreatorStats({address})`)
+be expressed natively. **Remaining:** the fuller `@chart { kind, series, axes }` (axes / legend /
+tooltips / multi-series) — the slice that actually replaces `RevenueChart`/`AnalyticsPanel` and
+unblocks a full CreatorDashboard native port. That is the next design pass (tick/label layout,
+hover-tooltip strategy in hand-emitted SVG). NMoS: build-internal (F.133) — chart.js is a library
 to *replace natively*, not to bridge.
