@@ -62,6 +62,7 @@ const PACKAGE_IMPORT_PROBES = {
 const PROBES = new Set([
   'core-holo-webgpu',
   'mcp-server-sizing',
+  'holollama-harness',
   ...Object.keys(PACKAGE_IMPORT_PROBES),
 ]);
 
@@ -302,6 +303,78 @@ console.log(JSON.stringify({
 `;
 }
 
+function buildHoloLlamaHarnessProbeScript() {
+  return `
+import { execFileSync } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+const target = join(process.cwd(), '.ai-ecosystem');
+const bin = join(
+  process.cwd(),
+  'node_modules',
+  '@holoscript',
+  'holollama',
+  'bin',
+  'holollama.cjs'
+);
+
+const raw = execFileSync(
+  process.execPath,
+  [
+    bin,
+    'harness',
+    '--out',
+    target,
+    '--profile',
+    'jetson-orin',
+    '--team-id',
+    'team_test',
+    '--json'
+  ],
+  {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    timeout: 60_000
+  }
+);
+
+const receipt = JSON.parse(raw);
+const required = [
+  'AGENTS.md',
+  '.env.example',
+  'holollama.harness.json',
+  'receipts/holollama/doctor.json',
+  'receipts/holollama/lifecycle.json',
+  'receipts/holollama/install.json'
+];
+const missing = required.filter((file) => !existsSync(join(target, file)));
+const installReceiptPath = join(target, 'receipts', 'holollama', 'install.json');
+const installReceipt = existsSync(installReceiptPath)
+  ? readFileSync(installReceiptPath, 'utf8')
+  : '';
+const privateLeak =
+  /C:[\\\\/]+Users[\\\\/]+josep|D:[\\\\/]+GOLD|holoscript_sk_|holomesh_sk_/i.test(
+    installReceipt
+  );
+
+console.log(JSON.stringify({
+  kind: 'holollama-harness',
+  ok:
+    receipt.schema === 'holollama.public-harness-install.v1' &&
+    receipt.ok === true &&
+    missing.length === 0 &&
+    privateLeak === false,
+  receiptSchema: receipt.schema,
+  files: receipt.files || [],
+  receiptFiles: receipt.receiptFiles || [],
+  missing,
+  privateLeak,
+  receiptHash: receipt.receiptHash || null
+}, null, 2));
+`;
+}
+
 function buildPackageImportProbeScript(probeKind) {
   const importSpecs = PACKAGE_IMPORT_PROBES[probeKind] || [];
   return `
@@ -467,6 +540,8 @@ function main() {
       writeFileSync(probeFile, buildCoreHoloWebgpuProbeScript(sourceFile, outputFile));
     } else if (PROBE === 'mcp-server-sizing') {
       writeFileSync(probeFile, buildMcpServerSizingProbeScript());
+    } else if (PROBE === 'holollama-harness') {
+      writeFileSync(probeFile, buildHoloLlamaHarnessProbeScript());
     } else if (PACKAGE_IMPORT_PROBES[PROBE]) {
       writeFileSync(probeFile, buildPackageImportProbeScript(PROBE));
     }

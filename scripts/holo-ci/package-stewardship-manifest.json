@@ -99,8 +99,12 @@
         "check:fleet-utilities",
         "check:package-consumption:full"
       ],
+      "validationCommands": [
+        "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/holollama@latest --probe holollama-harness"
+      ],
       "nextActions": [
         "Keep @holoscript/holollama@0.2.x cold-installable as the owned-metal inference package for laptop, Jetson, and Vast lanes.",
+        "Keep the published CLI harness command covered by the holollama-harness registry cold-start probe.",
         "Expand lifecycle checks from preflight to live service receipts on Jetson and Vast lanes."
       ]
     },
