@@ -913,6 +913,55 @@ function cacheGitMatchesHead(
   );
 }
 
+/**
+ * The repo root the MCP treats as "the current workspace" for cache authority.
+ * Defaults to process.cwd(), but a fixed-cwd sovereign MCP (one server, launched
+ * once, serving many repos) can pin a specific repo via HOLOSCRIPT_WORKSPACE_ROOT
+ * in its registration env, so its authoritative cache is that repo regardless of
+ * the directory the client happened to launch it from.
+ */
+function resolveWorkspaceRoot(): string {
+  const pinned = process.env.HOLOSCRIPT_WORKSPACE_ROOT;
+  return path.resolve(pinned && pinned.trim().length > 0 ? pinned : process.cwd());
+}
+
+/**
+ * Cross-root authority: a HoloGraph cache whose rootDir differs from the current
+ * workspace root is still authoritative for ITS OWN repo when it positively
+ * describes that repo's live git HEAD with complete coverage. This lets one
+ * sovereign local MCP answer structural queries about any repo it has absorbed
+ * (HoloScript, ai-ecosystem, uaa2-service) instead of only the repo equal to its
+ * launch dir.
+ *
+ * The check demands POSITIVE evidence — a real, non-null cache commit that equals
+ * the rootDir's live HEAD, plus available AND complete coverage — so it rejects
+ * throwaway scratch absorbs like /tmp/holoscript-absorb-XXXX: those dirs are not
+ * git repos, so getCurrentGitCommit returns null and the cache is refused here.
+ * cacheGitMatchesHead is deliberately NOT reused: its null-tolerance would admit
+ * exactly those scratch caches.
+ */
+async function cacheDescribesRealCurrentRepo(options: {
+  rootDir: string | null | undefined;
+  cacheGitCommitHash: string | null | undefined;
+  freshByAge: boolean;
+  coverage: GraphCoverageStatus;
+}): Promise<{ ok: boolean; currentGitCommitHash: string | null }> {
+  const { rootDir, cacheGitCommitHash, freshByAge, coverage } = options;
+  if (!rootDir || !cacheGitCommitHash || !freshByAge) {
+    return { ok: false, currentGitCommitHash: null };
+  }
+  // Coverage must be positively verified against the repo's own tracked files;
+  // an "unavailable" coverage (non-git dir) is treated as NOT complete here.
+  if (!coverage.available || coverage.complete !== true) {
+    return { ok: false, currentGitCommitHash: null };
+  }
+  const currentGitCommitHash = await getCurrentGitCommit(rootDir);
+  return {
+    ok: currentGitCommitHash !== null && currentGitCommitHash === cacheGitCommitHash,
+    currentGitCommitHash,
+  };
+}
+
 function shortGitHash(hash: string | null | undefined): string {
   return hash ? hash.slice(0, 12) : 'unknown';
 }
@@ -930,7 +979,7 @@ function buildGraphUnavailableReceipt(options: {
     reason: options.reason,
     requestedPath: options.requestedPath ?? null,
     runtimePath: options.runtimePath ?? null,
-    runtimeCwd: process.cwd(),
+    runtimeCwd: resolveWorkspaceRoot(),
     cacheAgeMs: cacheAgeMs ?? null,
     cacheAgeHuman: formatCacheAge(cacheAgeMs),
     staleThresholdMs: CACHE_MAX_AGE_MS,
@@ -2134,7 +2183,7 @@ async function ensureCachedGraph(): Promise<{
   const envelope = loadGraphCache();
   if (envelope) {
     try {
-      const currentCwd = path.resolve(process.cwd());
+      const currentCwd = resolveWorkspaceRoot();
       const ageMs = Date.now() - envelope.timestamp;
       const currentGitCommitHash = await getCurrentGitCommit(envelope.rootDir);
       const cacheMatchesCwd = rootMatchesCurrentRepo(envelope.rootDir, currentCwd);
@@ -2146,7 +2195,21 @@ async function ensureCachedGraph(): Promise<{
       );
       const coverageComplete = graphCoverageIsComplete(coverage);
 
-      if (!cacheMatchesCwd || !gitMatchesHead || !freshByAge || !coverageComplete) {
+      // A cache built for a different directory is still authoritative for its
+      // own repo when it positively describes that repo's live HEAD with complete
+      // coverage (see cacheDescribesRealCurrentRepo). This unblocks a fixed-cwd
+      // sovereign MCP serving multiple repos, without trusting scratch absorbs.
+      const crossRootAuthority = cacheMatchesCwd
+        ? { ok: false, currentGitCommitHash }
+        : await cacheDescribesRealCurrentRepo({
+            rootDir: envelope.rootDir,
+            cacheGitCommitHash: envelope.gitCommitHash,
+            freshByAge,
+            coverage,
+          });
+      const cwdAuthoritative = cacheMatchesCwd && gitMatchesHead && freshByAge && coverageComplete;
+
+      if (!cwdAuthoritative && !crossRootAuthority.ok) {
         const reason: GraphUnavailableReason = !cacheMatchesCwd
           ? 'cache_root_mismatch'
           : !gitMatchesHead || !freshByAge
@@ -4023,18 +4086,14 @@ async function handleGraphStatus(): Promise<unknown> {
   // different directory (e.g. a temp absorb scratch dir) is NOT authoritative
   // for the workspace the agent is actually working in.
   const cacheRootDir = cachedRootDir || cache.rootDir || null;
-  const currentCwd = path.resolve(process.cwd());
+  const currentCwd = resolveWorkspaceRoot();
   const cacheMatchesCwd = rootMatchesCurrentRepo(cacheRootDir, currentCwd);
   const diskCacheMatchesCwd = rootMatchesCurrentRepo(cache.rootDir, currentCwd);
-  const currentGitCommitHash =
+  const workspaceGitCommitHash =
     cacheMatchesCwd || diskCacheMatchesCwd ? await getCurrentGitCommit(currentCwd) : null;
   const activeGitCommitHash =
     ((cachedGraph as { gitCommitHash?: string } | null)?.gitCommitHash ?? cache.gitCommitHash) ||
     null;
-  const activeGitMatchesHead =
-    !cacheMatchesCwd || cacheGitMatchesHead(activeGitCommitHash, currentGitCommitHash);
-  const diskCacheGitMatchesHead =
-    !diskCacheMatchesCwd || cacheGitMatchesHead(cache.gitCommitHash, currentGitCommitHash);
   const diskGraphFileCount =
     cache.fileHashCount ??
     Number((cache.stats as { totalFiles?: unknown } | undefined)?.totalFiles ?? 0);
@@ -4076,6 +4135,39 @@ async function handleGraphStatus(): Promise<unknown> {
     graphRAGState.ageMs === null ? graphRAGState.ready : graphRAGState.ageMs < CACHE_MAX_AGE_MS;
   const localGraphCoverageComplete =
     cachedGraph === null && !cache.exists ? true : activeCoverageComplete;
+
+  // Cross-root authority (see cacheDescribesRealCurrentRepo): a cache is
+  // authoritative for its own repo even when rootDir !== the workspace root,
+  // given a real matching HEAD and complete coverage. Lets a fixed-cwd sovereign
+  // MCP be authoritative for every repo it has absorbed, not just its launch dir.
+  const activeCrossRootAuthority = cacheMatchesCwd
+    ? { ok: false, currentGitCommitHash: null as string | null }
+    : await cacheDescribesRealCurrentRepo({
+        rootDir: cacheRootDir,
+        cacheGitCommitHash: activeGitCommitHash,
+        freshByAge: activeFreshByAge,
+        coverage: activeCoverage,
+      });
+  const diskCrossRootAuthority = diskCacheMatchesCwd
+    ? { ok: false, currentGitCommitHash: null as string | null }
+    : await cacheDescribesRealCurrentRepo({
+        rootDir: cache.rootDir,
+        cacheGitCommitHash: cache.gitCommitHash,
+        freshByAge: diskCacheFreshByAge,
+        coverage: diskCoverage,
+      });
+  const currentGitCommitHash = cacheMatchesCwd
+    ? workspaceGitCommitHash
+    : activeCrossRootAuthority.currentGitCommitHash;
+  const diskCurrentGitCommitHash = diskCacheMatchesCwd
+    ? workspaceGitCommitHash
+    : diskCrossRootAuthority.currentGitCommitHash;
+  const activeGitMatchesHead = cacheMatchesCwd
+    ? cacheGitMatchesHead(activeGitCommitHash, workspaceGitCommitHash)
+    : activeCrossRootAuthority.ok;
+  const diskCacheGitMatchesHead = diskCacheMatchesCwd
+    ? cacheGitMatchesHead(cache.gitCommitHash, workspaceGitCommitHash)
+    : diskCrossRootAuthority.ok;
   const localGraphLive =
     graphRAGState.ready &&
     graphRAGMatchesCwd &&
@@ -4089,11 +4181,16 @@ async function handleGraphStatus(): Promise<unknown> {
       activeFreshByAge &&
       activeGitMatchesHead &&
       activeCoverageComplete) ||
+    activeCrossRootAuthority.ok ||
     localGraphLive;
 
   const freshForCurrentRepo = graphAuthoritative;
   const diskCacheFreshForCurrentRepo =
-    diskCacheMatchesCwd && diskCacheFreshByAge && diskCacheGitMatchesHead && diskCoverageComplete;
+    (diskCacheMatchesCwd &&
+      diskCacheFreshByAge &&
+      diskCacheGitMatchesHead &&
+      diskCoverageComplete) ||
+    diskCrossRootAuthority.ok;
   const diskEmbeddingProviderMatchesPolicy =
     embeddingsCacheExists &&
     (embeddingsCacheModel === null || embeddingsCacheModel === embeddingPolicy.provider);
@@ -4186,7 +4283,7 @@ async function handleGraphStatus(): Promise<unknown> {
           freshForCurrentRepo: diskCacheFreshForCurrentRepo,
           rootDir: cache.rootDir,
           gitCommitHash: cache.gitCommitHash ?? null,
-          currentGitCommitHash,
+          currentGitCommitHash: diskCurrentGitCommitHash,
           gitCommitMatchesHead: diskCacheGitMatchesHead,
           coverage: diskCoverage,
           stats: cache.stats,
@@ -4195,7 +4292,9 @@ async function handleGraphStatus(): Promise<unknown> {
           localCodebaseSnapshotReceipt: cache.localCodebaseSnapshotReceipt ?? null,
           localCodebaseSnapshot: diskLocalCodebaseSnapshot,
           hint: !diskCacheMatchesCwd
-            ? `Cache rootDir (${cache.rootDir}) does not match current working directory (${currentCwd}). Call holo_absorb_repo for this workspace.`
+            ? activeCrossRootAuthority.ok
+              ? `Cache rootDir (${cache.rootDir}) differs from the workspace root (${currentCwd}) but matches that repo's live HEAD with complete coverage — authoritative for ${cache.rootDir}. Queries answer about ${cache.rootDir}.`
+              : `Cache rootDir (${cache.rootDir}) does not match current working directory (${currentCwd}). Call holo_absorb_repo for this workspace.`
             : !diskCacheGitMatchesHead
               ? `Cache was built at git ${shortGitHash(cache.gitCommitHash)} but current HEAD is ${shortGitHash(currentGitCommitHash)}. Call holo_absorb_repo with force:true to refresh.`
               : !diskCoverageComplete
