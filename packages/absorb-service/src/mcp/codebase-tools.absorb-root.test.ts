@@ -123,6 +123,40 @@ function writeGraphCache(
   );
 }
 
+function writeGraphCacheWithFileHashes(
+  cacheDir: string,
+  rootDir: string,
+  timestamp: number,
+  gitCommitHash: string,
+  fileHashes: Record<string, string>,
+  scanPolicy?: Record<string, unknown>
+): void {
+  fs.mkdirSync(cacheDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(cacheDir, 'graph-cache.json'),
+    JSON.stringify({
+      version: 2,
+      rootDir,
+      timestamp,
+      stats: { totalFiles: Object.keys(fileHashes).length, totalSymbols: 34 },
+      graphJson: '{}',
+      gitCommitHash,
+      fileHashes,
+      scanPolicy,
+    }),
+    'utf-8'
+  );
+}
+
+function hashRepoFiles(rootDir: string, files: string[]): Record<string, string> {
+  return Object.fromEntries(
+    files.map((filePath) => [
+      filePath,
+      sha256(fs.readFileSync(path.join(rootDir, filePath), 'utf-8')),
+    ])
+  );
+}
+
 function makeLocalCodebaseSnapshotReceipt(
   files: Array<{ path: string; content: string }>,
   roots = [process.cwd()]
@@ -517,6 +551,138 @@ describe('holo_absorb_repo root validation', () => {
     expect(status.diskCache?.currentGitCommitHash).toBe(getHeadCommit());
     expect(status.diskCache?.gitCommitMatchesHead).toBe(false);
     expect(status.diskCache?.hint).toContain('111111111111');
+    expect(status.graphUnavailableReceipt).toMatchObject({
+      kind: 'GraphUnavailableReceipt',
+      reason: 'cache_stale',
+      authoritative: false,
+    });
+  });
+
+  it('keeps a HEAD-churned disk cache authoritative when cached file hashes still match', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-git-hash-fresh-cache-'));
+    const repoDir = makeTinyGitRepo('holoscript-git-hash-fresh-repo-');
+    const oldHead = getHeadCommit(repoDir);
+    const fileHashes = hashRepoFiles(repoDir, ['src/alpha.ts', 'src/beta.ts']);
+    execFileSync('git', ['commit', '--allow-empty', '-m', 'head churn'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+    const currentHead = getHeadCommit(repoDir);
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    writeGraphCacheWithFileHashes(
+      cacheDir,
+      repoDir,
+      Date.now() - 5 * 60 * 1000,
+      oldHead,
+      fileHashes
+    );
+
+    const status = (await handleCodebaseTool('holo_graph_status', {})) as {
+      graphAuthoritative?: boolean;
+      freshForCurrentRepo?: boolean;
+      authorityCaveats?: string[];
+      fileHashFreshForHeadMismatch?: boolean;
+      fileHashFreshness?: { checked?: boolean; fresh?: boolean; reason?: string };
+      graphUnavailableReceipt?: GraphUnavailableReceipt;
+      diskCache?: {
+        fresh?: boolean;
+        authoritative?: boolean;
+        gitCommitHash?: string | null;
+        currentGitCommitHash?: string | null;
+        gitCommitMatchesHead?: boolean;
+        fileHashFreshForHeadMismatch?: boolean;
+        fileHashFreshness?: {
+          checked?: boolean;
+          fresh?: boolean;
+          reason?: string;
+          storedFileCount?: number;
+          checkedFileCount?: number;
+        };
+        authorityCaveats?: string[];
+      };
+    };
+
+    expect(status.graphAuthoritative).toBe(true);
+    expect(status.freshForCurrentRepo).toBe(true);
+    expect(status.fileHashFreshForHeadMismatch).toBe(true);
+    expect(status.fileHashFreshness).toMatchObject({
+      checked: true,
+      fresh: true,
+      reason: 'all_hashes_match',
+    });
+    expect(status.authorityCaveats).toContain('git_head_mismatch_but_file_hashes_match');
+    expect(status.diskCache?.fresh).toBe(true);
+    expect(status.diskCache?.authoritative).toBe(true);
+    expect(status.diskCache?.gitCommitHash).toBe(oldHead);
+    expect(status.diskCache?.currentGitCommitHash).toBe(currentHead);
+    expect(status.diskCache?.gitCommitMatchesHead).toBe(false);
+    expect(status.diskCache?.fileHashFreshForHeadMismatch).toBe(true);
+    expect(status.diskCache?.fileHashFreshness).toMatchObject({
+      checked: true,
+      fresh: true,
+      reason: 'all_hashes_match',
+      storedFileCount: 2,
+      checkedFileCount: 2,
+    });
+    expect(status.diskCache?.authorityCaveats).toContain('git_head_mismatch_but_file_hashes_match');
+    expect(status.graphUnavailableReceipt).toBeUndefined();
+  });
+
+  it('rejects a HEAD-churned disk cache when a cached file hash changed', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-git-hash-stale-cache-'));
+    const repoDir = makeTinyGitRepo('holoscript-git-hash-stale-repo-');
+    const oldHead = getHeadCommit(repoDir);
+    const fileHashes = hashRepoFiles(repoDir, ['src/alpha.ts', 'src/beta.ts']);
+    fs.appendFileSync(path.join(repoDir, 'src', 'alpha.ts'), '\nexport const changed = true;\n');
+    execFileSync('git', ['add', 'src/alpha.ts'], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['commit', '-m', 'change alpha'], { cwd: repoDir, windowsHide: true });
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    writeGraphCacheWithFileHashes(
+      cacheDir,
+      repoDir,
+      Date.now() - 5 * 60 * 1000,
+      oldHead,
+      fileHashes
+    );
+
+    const status = (await handleCodebaseTool('holo_graph_status', {})) as {
+      graphAuthoritative?: boolean;
+      freshForCurrentRepo?: boolean;
+      graphUnavailableReceipt?: GraphUnavailableReceipt;
+      diskCache?: {
+        fresh?: boolean;
+        stale?: boolean;
+        authoritative?: boolean;
+        gitCommitMatchesHead?: boolean;
+        fileHashFreshForHeadMismatch?: boolean;
+        fileHashFreshness?: {
+          checked?: boolean;
+          fresh?: boolean;
+          reason?: string;
+          modifiedFileCount?: number;
+          modifiedFileSample?: string[];
+        };
+      };
+    };
+
+    expect(status.graphAuthoritative).toBe(false);
+    expect(status.freshForCurrentRepo).toBe(false);
+    expect(status.diskCache?.fresh).toBe(false);
+    expect(status.diskCache?.stale).toBe(true);
+    expect(status.diskCache?.authoritative).toBe(false);
+    expect(status.diskCache?.gitCommitMatchesHead).toBe(false);
+    expect(status.diskCache?.fileHashFreshForHeadMismatch).toBe(false);
+    expect(status.diskCache?.fileHashFreshness).toMatchObject({
+      checked: true,
+      fresh: false,
+      reason: 'hash_mismatch',
+      modifiedFileCount: 1,
+      modifiedFileSample: ['src/alpha.ts'],
+    });
     expect(status.graphUnavailableReceipt).toMatchObject({
       kind: 'GraphUnavailableReceipt',
       reason: 'cache_stale',
@@ -1512,6 +1678,79 @@ describe('holo_absorb_repo root validation', () => {
     expect(status.graphUnavailableReceipt).toBeUndefined();
   });
 
+  it('trusts a root-mismatched cache for its own git repo when file hashes bridge HEAD churn', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'holoscript-cross-root-hash-graph-cache-')
+    );
+    const cachedRepo = makeTinyGitRepo('holoscript-cross-root-hash-cached-repo-');
+    const workspaceRepo = makeTinyGitRepo('holoscript-cross-root-hash-workspace-repo-');
+    const oldHead = getHeadCommit(cachedRepo);
+    const fileHashes = hashRepoFiles(cachedRepo, ['src/alpha.ts', 'src/beta.ts']);
+    execFileSync('git', ['commit', '--allow-empty', '-m', 'head churn'], {
+      cwd: cachedRepo,
+      windowsHide: true,
+    });
+    const currentHead = getHeadCommit(cachedRepo);
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = workspaceRepo;
+    writeGraphCacheWithFileHashes(
+      cacheDir,
+      cachedRepo,
+      Date.now() - 5 * 60 * 1000,
+      oldHead,
+      fileHashes
+    );
+
+    const status = (await handleCodebaseTool('holo_graph_status', {})) as {
+      graphAuthoritative?: boolean;
+      freshForCurrentRepo?: boolean;
+      authorityCaveats?: string[];
+      graphUnavailableReceipt?: GraphUnavailableReceipt;
+      diskCache?: {
+        fresh?: boolean;
+        stale?: boolean;
+        authoritative?: boolean;
+        freshForCurrentRepo?: boolean;
+        rootDir?: string;
+        gitCommitHash?: string | null;
+        currentGitCommitHash?: string | null;
+        gitCommitMatchesHead?: boolean;
+        fileHashFreshForHeadMismatch?: boolean;
+        fileHashFreshness?: {
+          checked?: boolean;
+          fresh?: boolean;
+          reason?: string;
+          storedFileCount?: number;
+          checkedFileCount?: number;
+        };
+        authorityCaveats?: string[];
+      };
+    };
+
+    expect(status.graphAuthoritative).toBe(true);
+    expect(status.freshForCurrentRepo).toBe(true);
+    expect(status.authorityCaveats).toContain('git_head_mismatch_but_file_hashes_match');
+    expect(status.diskCache?.rootDir).toBe(path.resolve(cachedRepo));
+    expect(status.diskCache?.fresh).toBe(true);
+    expect(status.diskCache?.stale).toBe(false);
+    expect(status.diskCache?.authoritative).toBe(true);
+    expect(status.diskCache?.freshForCurrentRepo).toBe(true);
+    expect(status.diskCache?.gitCommitHash).toBe(oldHead);
+    expect(status.diskCache?.currentGitCommitHash).toBe(currentHead);
+    expect(status.diskCache?.gitCommitMatchesHead).toBe(false);
+    expect(status.diskCache?.fileHashFreshForHeadMismatch).toBe(true);
+    expect(status.diskCache?.fileHashFreshness).toMatchObject({
+      checked: true,
+      fresh: true,
+      reason: 'all_hashes_match',
+      storedFileCount: 2,
+      checkedFileCount: 2,
+    });
+    expect(status.diskCache?.authorityCaveats).toContain('git_head_mismatch_but_file_hashes_match');
+    expect(status.graphUnavailableReceipt).toBeUndefined();
+  });
+
   it('auto-loads a root-mismatched cache for queries when it describes a current git repo', async () => {
     resetCodebaseToolStateForTests(false);
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-cross-root-query-cache-'));
@@ -1521,6 +1760,43 @@ describe('holo_absorb_repo root validation', () => {
     process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
     process.env.HOLOSCRIPT_WORKSPACE_ROOT = workspaceRepo;
     writeGraphCache(cacheDir, cachedRepo, Date.now() - 5 * 60 * 1000, head, 2);
+
+    const result = (await handleCodebaseTool('holo_query_codebase', {
+      query: 'stats',
+      queryType: 'stats',
+    })) as {
+      error?: string;
+      cacheNote?: string;
+      result?: unknown;
+    };
+
+    expect(result.error).toBeUndefined();
+    expect(result.cacheNote).toContain(path.resolve(cachedRepo));
+    expect(result.result).toBeDefined();
+  });
+
+  it('auto-loads a root-mismatched cache for queries when file hashes bridge HEAD churn', async () => {
+    resetCodebaseToolStateForTests(false);
+    const cacheDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'holoscript-cross-root-hash-query-cache-')
+    );
+    const cachedRepo = makeTinyGitRepo('holoscript-cross-root-hash-query-repo-');
+    const workspaceRepo = makeTinyGitRepo('holoscript-cross-root-hash-query-workspace-');
+    const oldHead = getHeadCommit(cachedRepo);
+    const fileHashes = hashRepoFiles(cachedRepo, ['src/alpha.ts', 'src/beta.ts']);
+    execFileSync('git', ['commit', '--allow-empty', '-m', 'head churn'], {
+      cwd: cachedRepo,
+      windowsHide: true,
+    });
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = workspaceRepo;
+    writeGraphCacheWithFileHashes(
+      cacheDir,
+      cachedRepo,
+      Date.now() - 5 * 60 * 1000,
+      oldHead,
+      fileHashes
+    );
 
     const result = (await handleCodebaseTool('holo_query_codebase', {
       query: 'stats',
