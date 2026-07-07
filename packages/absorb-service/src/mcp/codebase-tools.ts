@@ -4296,7 +4296,7 @@ async function handleResolveSymbol(args: Record<string, unknown>): Promise<unkno
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-mcp-api-key': apiKey || '' },
-        body: JSON.stringify({ search: symbolName, type: 'symbol', limit }),
+        body: JSON.stringify({ search: symbolName, type: 'pattern', limit }),
       },
       MESH_SYNC_TIMEOUT_MS,
       'federated symbol lookup'
@@ -4347,18 +4347,34 @@ export async function syncWithMesh(graph: any, rootDir: string): Promise<void> {
   const workspaceId = rootDir.split(/[/\\]/).pop() || 'unknown';
 
   const symbols = graph.getAllSymbols().filter((s: any) => s.visibility === 'public');
-  const entries = symbols.slice(0, 1000).map((s: any) => ({
-    id: `symbol-${workspaceId}-${s.name}`,
-    workspace_id: workspaceId,
-    type: 'symbol',
-    content: `Symbol: ${s.name}\nType: ${s.type}\nFile: ${s.filePath}\nLanguage: ${s.language}\nSignature: ${s.signature || ''}\nDoc: ${s.docComment || ''}`,
-    metadata: {
-      symbolName: s.name,
-      symbolType: s.type,
-      filePath: s.filePath,
-      repo: workspaceId,
-    },
-  }));
+  const entries = symbols.slice(0, 1000).map((s: any) => {
+    const sourceKey = `${workspaceId}:${s.filePath ?? ''}:${s.line ?? ''}:${s.type ?? ''}:${s.name}`;
+    const sourceHash = createHash('sha256').update(sourceKey).digest('hex').slice(0, 16);
+    const signature = s.signature || '(no signature recorded)';
+    const docComment = s.docComment || 'No doc comment recorded.';
+
+    return {
+      id: `symbol-${workspaceId}-${sourceHash}`,
+      workspace_id: workspaceId,
+      type: 'pattern',
+      content: [
+        `HoloScript code symbol ${s.name} is exported from ${s.filePath}.`,
+        `Symbol kind: ${s.type}. Language: ${s.language || 'unknown'}. Signature: ${signature}.`,
+        'This entry preserves codebase-intelligence symbol discovery in the mesh knowledge store.',
+        'The orchestrator stores code symbols as pattern knowledge entries; filter metadata.entryClass=symbol for symbol-specific use.',
+        `Documentation: ${docComment}`,
+      ].join('\n'),
+      metadata: {
+        entryClass: 'symbol',
+        symbolName: s.name,
+        symbolType: s.type,
+        filePath: s.filePath,
+        line: s.line,
+        language: s.language,
+        repo: workspaceId,
+      },
+    };
+  });
 
   if (entries.length === 0) return;
 
