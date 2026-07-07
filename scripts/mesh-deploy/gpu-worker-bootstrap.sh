@@ -55,8 +55,14 @@ api() { # method path [json-body]
   fi
 }
 
+repo_source_present() {
+  [ -d "$REPO_DIR/.git" ] \
+    || [ -f "$REPO_DIR/scripts/gpu-worker-bootstrap.sh" ] \
+    || [ -f "$REPO_DIR/scripts/mesh-deploy/gpu-worker-bootstrap.sh" ]
+}
+
 # 1. ensure repo present + compute lane installed ----------------------------------------
-if [ ! -d "$REPO_DIR/.git" ]; then
+if ! repo_source_present; then
   [ -n "${REPO_URL:-}" ] || { echo "$LOG FATAL: REPO_URL required to clone (or pre-place $REPO_DIR)"; exit 2; }
   echo "$LOG cloning $REPO_DIR"; git clone --depth 1 "$REPO_URL" "$REPO_DIR" || exit 2
 fi

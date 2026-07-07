@@ -38,8 +38,11 @@ REPO_DIR="${REPO_DIR:-$HOME/.ai-ecosystem}"
 POLL_INTERVAL="${POLL_INTERVAL:-15}"
 IDLE_EXIT_AFTER="${IDLE_EXIT_AFTER:-0}"
 CUQUANTUM_SETUP="${CUQUANTUM_SETUP:-scripts/fleet-cuquantum-setup.sh}"
+FLEET_REPO_REF="${FLEET_REPO_REF:-main}"
 GIT_CLONE_TRIES="${GIT_CLONE_TRIES:-8}"
 GIT_CLONE_SLEEP_S="${GIT_CLONE_SLEEP_S:-15}"
+ARCHIVE_DOWNLOAD_TRIES="${ARCHIVE_DOWNLOAD_TRIES:-3}"
+ARCHIVE_DOWNLOAD_SLEEP_S="${ARCHIVE_DOWNLOAD_SLEEP_S:-10}"
 
 echo "$LOG $(date) — starting hands-off fleet onboarding (seat=$SEAT)"
 exec > >(tee -a /tmp/vast-onstart.log) 2>&1
@@ -48,12 +51,29 @@ redact_repo_url() {
   printf '%s' "$1" | sed -E 's#x-access-token:[^@]+@#x-access-token:***@#g'
 }
 
+repo_slug_from_url() {
+  local slug
+  slug="$(printf '%s' "$1" | sed -E 's#^https?://([^@]+@)?github\.com/##; s#^git@github\.com:##; s#\.git$##')"
+  case "$slug" in
+    */*) printf '%s' "$slug"; return 0 ;;
+  esac
+  return 1
+}
+
+github_token_from_url() {
+  case "$1" in
+    https://x-access-token:*@github.com/*)
+      printf '%s' "$1" | sed -E 's#^https://x-access-token:([^@]+)@github\.com/.*#\1#'
+      ;;
+  esac
+}
+
 clone_repo_with_retry() {
   local attempt status
   for attempt in $(seq 1 "$GIT_CLONE_TRIES"); do
     rm -rf "$REPO_DIR"
     echo "$LOG clone attempt $attempt/$GIT_CLONE_TRIES: $(redact_repo_url "$REPO_URL") -> $REPO_DIR"
-    git clone --depth 1 "$REPO_URL" "$REPO_DIR" 2>&1 \
+    git clone --depth 1 --branch "$FLEET_REPO_REF" "$REPO_URL" "$REPO_DIR" 2>&1 \
       | sed -E 's#x-access-token:[^@]+@#x-access-token:***@#g'
     status=${PIPESTATUS[0]}
     if [ "$status" -eq 0 ]; then
@@ -67,22 +87,66 @@ clone_repo_with_retry() {
   return 1
 }
 
-# --- 1. Ensure git is present ---
-if ! command -v git >/dev/null 2>&1; then
-  echo "$LOG installing git..."
-  apt-get update -qq 2>/dev/null && apt-get install -y -qq git 2>/dev/null \
-    || yum install -y -q git 2>/dev/null \
-    || { echo "$LOG FATAL: cannot install git"; exit 2; }
+download_repo_archive_fallback() {
+  local slug token tmpdir archive extracted attempt status
+  slug="$(repo_slug_from_url "$REPO_URL")" || {
+    echo "$LOG WARN: cannot derive GitHub repo slug from REPO_URL; archive fallback skipped"
+    return 1
+  }
+  token="$(github_token_from_url "$REPO_URL")"
+
+  for attempt in $(seq 1 "$ARCHIVE_DOWNLOAD_TRIES"); do
+    rm -rf "$REPO_DIR"
+    tmpdir="$(mktemp -d)"
+    archive="$tmpdir/repo.tar.gz"
+    echo "$LOG archive fallback attempt $attempt/$ARCHIVE_DOWNLOAD_TRIES: $slug ref=$FLEET_REPO_REF -> $REPO_DIR"
+    if [ -n "$token" ]; then
+      curl -fsSL --retry 5 --retry-delay 5 --connect-timeout 20 --speed-limit 1024 --speed-time 60 \
+        -H "Authorization: Bearer $token" \
+        -H "X-GitHub-Api-Version: 2022-11-28" \
+        "https://codeload.github.com/$slug/tar.gz/$FLEET_REPO_REF" -o "$archive"
+      status=$?
+    else
+      curl -fsSL --retry 5 --retry-delay 5 --connect-timeout 20 --speed-limit 1024 --speed-time 60 \
+        "https://codeload.github.com/$slug/tar.gz/$FLEET_REPO_REF" -o "$archive"
+      status=$?
+    fi
+    if [ "$status" -eq 0 ] && tar -xzf "$archive" -C "$tmpdir"; then
+      extracted="$(find "$tmpdir" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
+      if [ -n "$extracted" ] && [ -d "$extracted" ]; then
+        mkdir -p "$(dirname "$REPO_DIR")"
+        mv "$extracted" "$REPO_DIR"
+        rm -rf "$tmpdir"
+        return 0
+      fi
+    fi
+    rm -rf "$tmpdir"
+    if [ "$attempt" -lt "$ARCHIVE_DOWNLOAD_TRIES" ]; then
+      echo "$LOG WARN: archive fallback failed with status $status; retrying in ${ARCHIVE_DOWNLOAD_SLEEP_S}s"
+      sleep "$ARCHIVE_DOWNLOAD_SLEEP_S"
+    fi
+  done
+  return 1
+}
+
+# --- 1. Ensure source-fetch tools are present ---
+if ! command -v git >/dev/null 2>&1 || ! command -v curl >/dev/null 2>&1; then
+  echo "$LOG installing source-fetch tools..."
+  apt-get update -qq 2>/dev/null && apt-get install -y -qq git curl ca-certificates 2>/dev/null \
+    || yum install -y -q git curl ca-certificates 2>/dev/null \
+    || { echo "$LOG FATAL: cannot install git/curl"; exit 2; }
 fi
 
 # --- 2. Clone or update repo ---
 if [ -d "$REPO_DIR/.git" ]; then
   echo "$LOG repo exists at $REPO_DIR — pulling latest..."
   cd "$REPO_DIR" || exit 2
-  git fetch --depth 1 origin 2>/dev/null && git reset --hard origin/main 2>/dev/null \
+  git fetch --depth 1 origin "$FLEET_REPO_REF" 2>/dev/null && git reset --hard FETCH_HEAD 2>/dev/null \
     || echo "$LOG WARN: git pull failed, using existing checkout"
 else
-  clone_repo_with_retry || { echo "$LOG FATAL: clone failed after $GIT_CLONE_TRIES attempt(s)"; exit 2; }
+  clone_repo_with_retry \
+    || download_repo_archive_fallback \
+    || { echo "$LOG FATAL: clone/archive fetch failed after retries"; exit 2; }
   cd "$REPO_DIR" || exit 2
 fi
 
