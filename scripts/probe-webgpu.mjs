@@ -20,10 +20,17 @@ const executablePath =
       : undefined;
 
 const headless = process.env.WEBGPU_PROBE_HEADLESS !== '0';
+const extraLaunchArgs = String(process.env.WEBGPU_PROBE_EXTRA_FLAGS || '')
+  .split(/\s+/u)
+  .map((flag) => flag.trim())
+  .filter(Boolean);
 const launchArgs = [
   '--enable-unsafe-webgpu',
   '--ignore-gpu-blocklist',
+  '--disable-gpu-sandbox',
+  '--enable-features=Vulkan,UseSkiaRenderer',
   ...(process.env.WEBGPU_PROBE_ANGLE ? [`--use-angle=${process.env.WEBGPU_PROBE_ANGLE}`] : []),
+  ...extraLaunchArgs,
 ];
 
 const server = http.createServer((_req, res) => {
