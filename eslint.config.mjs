@@ -11,6 +11,7 @@ const requireLocal = createRequire(import.meta.url);
 const holoscriptPlugin = {
   rules: {
     'no-regex-hs-parsing': requireLocal('./tools/eslint-rules/no-regex-hs-parsing.cjs'),
+    'no-raw-tailwind-color': requireLocal('./tools/eslint-rules/no-raw-tailwind-color.cjs'),
   },
 };
 
@@ -90,6 +91,18 @@ export default tseslint.config(
     plugins: { holoscript: holoscriptPlugin },
     rules: {
       'holoscript/no-regex-hs-parsing': 'warn',
+    },
+  },
+  // Studio design-system constraint — research/2026-07-07_taste-audit-agent-ui-ux.md (W.701).
+  // studio-* tokens exist (packages/studio/tailwind.config.js) but dashboards decayed to raw
+  // gray-*/slate-*/zinc-* because the system was a label, not a constraint. This makes it a
+  // checkable minimum. 'warn' initially (matches no-regex-hs-parsing precedent — surface the
+  // existing debt without breaking CI).
+  {
+    files: ['packages/studio/**/*.tsx', 'packages/studio/**/*.ts'],
+    plugins: { holoscript: holoscriptPlugin },
+    rules: {
+      'holoscript/no-raw-tailwind-color': 'warn',
     },
   }
 );
