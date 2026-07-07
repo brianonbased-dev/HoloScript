@@ -60,7 +60,7 @@ export class Native2DCompiler extends CompilerBase {
   private _uiImports: Set<string> = new Set();
   private _stateFields: Map<string, unknown> = new Map();
   private _fetchCalls: Array<{ name: string; endpoint: string; method: string }> = [];
-  private _hookCalls: Array<{ name: string; import: string; returns: string }> = [];
+  private _hookCalls: Array<{ name: string; import: string; returns: string; args?: string }> = [];
   private _computedBindings: Array<{ name: string; expr: string; from?: string; uses: string[] }> = [];
   private _options: Native2DCompilerOptions = {};
 
@@ -161,8 +161,9 @@ export class Native2DCompiler extends CompilerBase {
         .split(',')
         .map((s) => s.trim())
         .filter((s) => /^[A-Za-z_$][\w$]*$/.test(s));
+      const call = `${h.name}(${h.args ?? ''})`;
       hookBindings.push(
-        members.length > 0 ? `  const { ${members.join(', ')} } = ${h.name}();` : `  ${h.name}();`
+        members.length > 0 ? `  const { ${members.join(', ')} } = ${call};` : `  ${call};`
       );
     }
 
@@ -245,8 +246,24 @@ export default ${safeName}Component;
       if (/['"`\\]/.test(importPath)) {
         throw new Error(`Native2DCompiler @hook: invalid import path ${JSON.stringify(importPath)}`);
       }
+      // Optional args: an injection-safe expression passed to the hook call, e.g.
+      // useCreatorStats({ address }). Same char-class as @computed plus object-literal
+      // braces; backticks/semicolons are still rejected so no statements can be injected.
+      let hookArgs = '';
+      if (traits.hook.args != null) {
+        hookArgs = String(traits.hook.args);
+        // eslint-disable-next-line no-useless-escape
+        if (!/^[a-zA-Z0-9_$.,(){}\[\]'"/\s*+\-%<>=?:!&|]+$/.test(hookArgs)) {
+          throw new Error(`Native2DCompiler @hook: unsafe args ${JSON.stringify(hookArgs)}`);
+        }
+      }
       if (!this._hookCalls.some((h) => h.name === hookName)) {
-        this._hookCalls.push({ name: hookName, import: importPath, returns: String(traits.hook.returns || '') });
+        this._hookCalls.push({
+          name: hookName,
+          import: importPath,
+          returns: String(traits.hook.returns || ''),
+          args: hookArgs || undefined,
+        });
       }
     }
 
@@ -495,6 +512,9 @@ export default ${safeName}Component;
     if (tag === 'style') {
       const escapedStyle = (content || '').replace(/`/g, '\\`').replace(/\$/g, '\\$');
       element = `<style${keyProp} dangerouslySetInnerHTML={{ __html: \`${escapedStyle}\` }} />`;
+    } else if (traits.sparkline?.state) {
+      // @sparkline: render the bound numeric array as an inline SVG polyline.
+      element = this.buildSparklineElement(traits, props, keyProp);
     } else if (tag === 'img' || tag === 'input') {
       element = `<${tag}${props}${keyProp} />`;
     } else {
@@ -1195,6 +1215,61 @@ export default ${safeName}Component;
       (acc, b) => `${b.condition} ? ${JSON.stringify(b.className)} : ${acc}`,
       fallback
     );
+  }
+
+  /**
+   * @sparkline: render a bound numeric array as an inline SVG polyline — the
+   * smallest slice of native data-viz (no axes/legend). The points are computed
+   * at render time from the array, normalized into a fixed viewBox
+   * (`width`×`height`, default 100×30) with `preserveAspectRatio="none"` so the
+   * SVG fills its CSS box. `state`(+optional `path`) is the array; `valueKey`
+   * reads a number out of object items (e.g. items `{sizeKb}` → valueKey
+   * "sizeKb"); `stroke` is a themeable line-color class (default
+   * `stroke-studio-accent`). Container styling (`@theme`/`@layout`) rides in on
+   * `props`. Dependency-free, injection-safe: identifiers are validated and the
+   * points expression uses string concatenation (no inner template literals).
+   */
+  private buildSparklineElement(traits: Record<string, any>, props: string, keyProp: string): string {
+    const sp = traits.sparkline;
+    const state = this.assertSafeDotPath(String(sp.state), '@sparkline state');
+    const path = sp.path ? String(sp.path) : '';
+    if (path) this.assertSafeDotPath(path, '@sparkline path');
+    const arrayRef = this.buildStatePathExpr(state, path, '@sparkline');
+
+    const W = Number.isInteger(sp.width) && sp.width > 0 ? sp.width : 100;
+    const H = Number.isInteger(sp.height) && sp.height > 0 ? sp.height : 30;
+
+    let valueExpr = 'd';
+    if (sp.valueKey != null) {
+      const vk = String(sp.valueKey);
+      if (!/^[A-Za-z_$][\w$]*$/.test(vk)) {
+        throw new Error(`Native2DCompiler @sparkline: invalid valueKey ${JSON.stringify(vk)}`);
+      }
+      valueExpr = `d?.${vk}`;
+    }
+
+    const stroke =
+      typeof sp.stroke === 'string'
+        ? this.assertSafeLiteral(sp.stroke, '@sparkline stroke')
+        : 'stroke-studio-accent';
+    const strokeWidth = /^[0-9]+(\.[0-9]+)?$/.test(String(sp.strokeWidth ?? ''))
+      ? String(sp.strokeWidth)
+      : '1.5';
+
+    // Runtime points builder: normalize the array into `${W}×${H}` coordinates.
+    // String concatenation (not template literals) keeps the emitted code free of
+    // backticks so it nests cleanly inside the generated component.
+    const points =
+      `((__a) => { const __v = (__a ?? []).map((d) => Number(${valueExpr}) || 0); ` +
+      `if (!__v.length) return ''; ` +
+      `const __mn = Math.min(...__v), __mx = Math.max(...__v), __r = (__mx - __mn) || 1, ` +
+      `__sx = __v.length > 1 ? ${W} / (__v.length - 1) : 0; ` +
+      `return __v.map((y, i) => (i * __sx).toFixed(2) + ',' + (${H} - ((y - __mn) / __r) * ${H}).toFixed(2)).join(' '); ` +
+      `})(${arrayRef})`;
+
+    return `<svg${props}${keyProp} viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+      <polyline fill="none" className="${stroke}" strokeWidth="${strokeWidth}" points={${points}} />
+    </svg>`;
   }
 
   private buildHTMLBindAttributes(traits: Record<string, any>, staticClassName: string): string {

@@ -27,6 +27,16 @@ export function CompilerExportComponent() {
     </span>
 <input className="px-4 py-2 rounded-lg border focus:ring-2 outline-none flex-1 accent-studio-accent border-studio-border bg-studio-panel text-studio-text focus:ring-studio-accent" value={nodes} onChange={(e) => setNodes(Number(e.target.value))} type="range" min="100" max="10000" step="100" />
     </div>
+<div style={{"display":"flex","flexDirection":"column","gap":"2px"}}>
+      
+      <span className="text-sm text-[10px] text-studio-muted">
+      {`Size trend (KB by target)`}
+      
+    </span>
+<svg className="w-full h-6 text-studio-accent" viewBox="0 0 100 24" preserveAspectRatio="none">
+      <polyline fill="none" className="stroke-studio-accent" strokeWidth="1.5" points={((__a) => { const __v = (__a ?? []).map((d) => Number(d?.sizeKb) || 0); if (!__v.length) return ''; const __mn = Math.min(...__v), __mx = Math.max(...__v), __r = (__mx - __mn) || 1, __sx = __v.length > 1 ? 100 / (__v.length - 1) : 0; return __v.map((y, i) => (i * __sx).toFixed(2) + ',' + (24 - ((y - __mn) / __r) * 24).toFixed(2)).join(' '); })(targets)} />
+    </svg>
+    </div>
 <div style={{"display":"flex","flexDirection":"column","gap":"6px"}}>
       
       {(targets ?? []).map((t, i) => (

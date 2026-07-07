@@ -451,6 +451,82 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
     });
   });
 
+  describe('7d. @sparkline — native SVG polyline data-viz', () => {
+    it('WORKS: emits an SVG polyline with runtime-computed points from the bound array', () => {
+      const c = comp([obj('Spark', [trait('sparkline', { state: 'series' })])]);
+      const r = react(c);
+      expect(r).toContain('<svg');
+      expect(r).toContain('viewBox="0 0 100 30"'); // default dims
+      expect(r).toContain('preserveAspectRatio="none"');
+      expect(r).toContain('<polyline');
+      expect(r).toContain('points={');
+      expect(r).toContain('Number(d) || 0'); // default value expr (items are numbers)
+      expect(r).toContain('(series)'); // bound array passed into the points IIFE
+      expect(r).toContain('stroke-studio-accent'); // default themeable stroke
+    });
+
+    it('WORKS: valueKey reads a number out of object items', () => {
+      const c = comp([obj('Spark', [trait('sparkline', { state: 'targets', valueKey: 'sizeKb' })])]);
+      expect(react(c)).toContain('Number(d?.sizeKb) || 0');
+    });
+
+    it('WORKS: custom height sets the viewBox and a custom stroke class applies', () => {
+      const c = comp([
+        obj('Spark', [trait('sparkline', { state: 's', height: 24, stroke: 'stroke-studio-success' })]),
+      ]);
+      const r = react(c);
+      expect(r).toContain('viewBox="0 0 100 24"');
+      expect(r).toContain('className="stroke-studio-success"');
+    });
+
+    it('ABSENT: a plain object emits no polyline (byte-identical to pre-@sparkline)', () => {
+      const c = comp([obj('Plain', [trait('theme', { className: 'p-2' })])]);
+      expect(react(c)).not.toContain('<polyline');
+    });
+
+    it('REJECTS: an invalid valueKey (dot path is not a bare key)', () => {
+      const c = comp([obj('Bad', [trait('sparkline', { state: 's', valueKey: 'a.b' })])]);
+      expect(() => react(c)).toThrow(/@sparkline: invalid valueKey/);
+    });
+
+    it('REJECTS: a stroke class that would break out of the attribute', () => {
+      const c = comp([obj('Bad', [trait('sparkline', { state: 's', stroke: 'x" onload="y' })])]);
+      expect(() => react(c)).toThrow(/@sparkline stroke/);
+    });
+  });
+
+  describe('7e. @hook args — hooks that take arguments', () => {
+    it('WORKS: args are passed to the hook call', () => {
+      const c = comp([
+        obj('Dash', [
+          trait('hook', {
+            name: 'useCreatorStats',
+            import: '@/hooks/useCreatorStats',
+            returns: 'stats',
+            args: '{ address }',
+          }),
+        ]),
+      ]);
+      expect(react(c)).toContain('const { stats } = useCreatorStats({ address });');
+    });
+
+    it('WORKS: no args keeps the bare call (regression)', () => {
+      const c = comp([
+        obj('P', [trait('hook', { name: 'useProfiler', import: '@/hooks/useProfiler', returns: 'snap' })]),
+      ]);
+      expect(react(c)).toContain('const { snap } = useProfiler();');
+    });
+
+    it('REJECTS: unsafe args (backtick / statement injection)', () => {
+      const c = comp([
+        obj('Bad', [
+          trait('hook', { name: 'useX', import: '@/hooks/useX', returns: 'x', args: '`;drop()' }),
+        ]),
+      ]);
+      expect(() => react(c)).toThrow(/@hook: unsafe args/);
+    });
+  });
+
   // 8 ─────────────────────────────────────────────────────────────────────────
   describe('8. layout', () => {
     it('WORKS: flex layout → display:flex + direction + gap', () => {
