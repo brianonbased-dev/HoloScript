@@ -94,6 +94,19 @@
       ]
     },
     {
+      "id": "cognition-semantic-harness",
+      "label": "uAAL semantic harness",
+      "utilityFamily": "language-runtime",
+      "deploymentRoles": ["library", "local-client", "edge-node", "gpu-worker"],
+      "packageName": "@holoscript/uaal",
+      "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "useCases": [
+        "portable uAA2++ VM and cognitive-cycle primitives",
+        "uAAL v2 semantic recognizers for theory-of-mind and world-model gates",
+        "shared recovery API for corpus, eval, and training receipts"
+      ]
+    },
+    {
       "id": "xr-embodiment-runtime",
       "label": "XR embodiment runtime",
       "utilityFamily": "embodiment",

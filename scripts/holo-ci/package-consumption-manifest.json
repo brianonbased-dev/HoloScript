@@ -87,6 +87,20 @@
       "forbidBundledNativeAddons": true
     },
     {
+      "name": "@holoscript/uaal",
+      "packageDir": "packages/uaal",
+      "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "requireFiles": [
+        "dist/index.js",
+        "dist/index.cjs",
+        "dist/index.d.ts",
+        "dist/semantic.js",
+        "dist/semantic.cjs",
+        "dist/semantic.d.ts"
+      ],
+      "forbidBundledNativeAddons": true
+    },
+    {
       "name": "@holoscript/holoscript-agent",
       "packageDir": "packages/holoscript-agent",
       "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],

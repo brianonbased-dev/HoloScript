@@ -273,6 +273,34 @@
       ]
     },
     {
+      "id": "cognition-semantic-harness",
+      "registry": "npm",
+      "packageName": "@holoscript/uaal",
+      "status": "fleet-operational",
+      "constructionRole": "Cognition substrate: uAA2++ VM plus packageable uAAL v2 semantic recognizers for world-model and theory-of-mind gates.",
+      "stewardshipIntent": "Keep uAAL as the shared package surface for semantic corpus, held-out, producibility, and training receipts instead of letting private scripts copy recognizer logic.",
+      "userClasses": ["human", "ai-agent"],
+      "outsideUserGate": {
+        "readiness": "ready",
+        "harnessMode": "standalone",
+        "audience": ["external-human", "external-ai-agent"],
+        "publicEntry": "packages/uaal/README.md",
+        "requiredPublicFiles": [],
+        "privateHarnessLeakAllowed": false
+      },
+      "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "utilityIds": ["cognition-semantic-harness"],
+      "validationScripts": [
+        "build:package-release-closure",
+        "check:package-consumption:full",
+        "version:check:strict"
+      ],
+      "nextActions": [
+        "Keep new semantic verticals importable from @holoscript/uaal/semantic before folding them into private corpora.",
+        "Make private corpus, held-out, producibility, and S0 training lanes consume the package API with receipt-level package provenance."
+      ]
+    },
+    {
       "id": "python-runtime-bindings",
       "registry": "pypi",
       "pypiPackage": "holoscript",
