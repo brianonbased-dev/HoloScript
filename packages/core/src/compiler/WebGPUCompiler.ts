@@ -121,9 +121,18 @@ export class WebGPUCompiler extends CompilerBase {
     // water surface binds it; the render loop rewrites it each frame so waves and
     // caustics animate and the fresnel/specular track the live camera.
     if (this.hasWater) {
+      // Live water channels — clarity/ripple/amplitude are runtime-settable (seeded
+      // from the calm initial state) so host state — e.g. Brittney receipts driving
+      // environmentWaterClarity / environmentRippleIntensity — can clear or ripple
+      // the surface. hsSetWater(o) applies deltas; the values ride the shared uniform.
+      this.emit('let hsWaterClarity = 1.0, hsWaterRipple = 0.0, hsWaterAmp = 1.0;');
       this.emit(
-        'const waterFrameU = createBuffer(device, new Float32Array([0,0,0,0]), GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);'
+        'const waterFrameU = createBuffer(device, new Float32Array([0,0,0,0, hsWaterClarity,hsWaterRipple,hsWaterAmp,0]), GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);'
       );
+      this.emit(
+        'function hsSetWater(o) { if (o) { if (o.clarity !== undefined) hsWaterClarity = Math.max(0, Math.min(1, o.clarity)); if (o.ripple !== undefined) hsWaterRipple = Math.max(0, Math.min(1, o.ripple)); if (o.amplitude !== undefined) hsWaterAmp = Math.max(0, o.amplitude); } return { clarity: hsWaterClarity, ripple: hsWaterRipple, amplitude: hsWaterAmp }; }'
+      );
+      this.emit('if (typeof window !== "undefined") window.hsSetWater = hsSetWater;');
       this.emit('');
     }
     this.emit('const holoGraphObjects = [];');
@@ -731,7 +740,7 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit('struct Model { m: mat4x4<f32> };');
     this.emit('struct WStatic { p: vec4<f32>, deep: vec4<f32>, shallow: vec4<f32>, lightDir: vec4<f32> };');
     this.emit('struct Cam { viewProj: mat4x4<f32> };');
-    this.emit('struct WFrame { tc: vec4<f32> };'); // tc.x=time, tc.yzw=cameraPos
+    this.emit('struct WFrame { tc: vec4<f32>, dyn: vec4<f32> };'); // tc.x=time, tc.yzw=cameraPos; dyn=(clarity,ripple,amp,0)
     this.emit('@group(0) @binding(0) var<uniform> model: Model;');
     this.emit('@group(0) @binding(1) var<uniform> ws: WStatic;');
     this.emit('@group(0) @binding(2) var<uniform> cam: Cam;');
@@ -742,7 +751,7 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit('  var o: VOut;');
     this.emit('  let sx = length(model.m[0].xyz); let sy = length(model.m[1].xyz); let sz = max(length(model.m[2].xyz), 1e-4);');
     this.emit('  let wp = in.pos.xy * vec2<f32>(sx, sy);');
-    this.emit('  let t = wf.tc.x; let amp = ws.p.x * (0.5 + ws.p.w);');
+    this.emit('  let t = wf.tc.x; let amp = ws.p.x * wf.dyn.z * (0.4 + wf.dyn.y);');
     this.emit('  var h = 0.0; var dhdx = 0.0; var dhdy = 0.0;');
     this.emit('  var dx = 0.0; var dy = 0.0; var k = 0.0; var spd = 0.0; var a = 0.0;');
     this.emit('  for (var i = 0; i < 4; i = i + 1) {');
@@ -787,7 +796,7 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit('  let n1 = vnoise(p * 0.9 + vec2<f32>(t * 0.15, t * 0.08));');
     this.emit('  let n2 = vnoise(p * 1.7 - vec2<f32>(t * 0.11, t * 0.19));');
     this.emit('  let caustic = pow(n1 * n2, 3.0);');
-    this.emit('  col = col + vec3<f32>(0.10, 0.18, 0.20) * caustic * ws.p.z;');
+    this.emit('  col = col + vec3<f32>(0.10, 0.18, 0.20) * caustic * wf.dyn.x;');
     this.emit('  let H = normalize(L + V);');
     this.emit('  let spec = pow(max(dot(N, H), 0.0), 200.0);');
     this.emit('  col = col + vec3<f32>(0.85, 0.92, 1.0) * spec;');
@@ -1533,7 +1542,7 @@ export class WebGPUCompiler extends CompilerBase {
       // Feed the shared water uniform: [time, cameraPos] — animates waves/caustics
       // and keeps fresnel/specular tracking the live camera each frame.
       this.emit(
-        'device.queue.writeBuffer(waterFrameU, 0, new Float32Array([time, cameraPos[0], cameraPos[1], cameraPos[2]]));'
+        'device.queue.writeBuffer(waterFrameU, 0, new Float32Array([time, cameraPos[0], cameraPos[1], cameraPos[2], hsWaterClarity, hsWaterRipple, hsWaterAmp, 0]));'
       );
     }
     this.emit('hsRenderLabels();');

@@ -218,10 +218,13 @@ describe('WebGPU golden output (byte-diff baseline for render-module refactor)',
     expect(out).toContain('const waterFrameU = createBuffer');
     expect(out).toContain('generateWaterPlaneVertices(1.0, 1.0, 48)');
     expect(out).toContain('SeaWaterPipeline');
-    // per-frame time + camera update drives the animation
+    // per-frame update carries time + camera + the live clarity/ripple/amp channels
     expect(out).toContain(
-      'device.queue.writeBuffer(waterFrameU, 0, new Float32Array([time, cameraPos[0], cameraPos[1], cameraPos[2]]));'
+      'device.queue.writeBuffer(waterFrameU, 0, new Float32Array([time, cameraPos[0], cameraPos[1], cameraPos[2], hsWaterClarity, hsWaterRipple, hsWaterAmp, 0]));'
     );
+    // runtime control surface for host state (Brittney receipts → ripple/clarity)
+    expect(out).toContain('function hsSetWater(o)');
+    expect(out).toContain('window.hsSetWater = hsSetWater');
   });
 
   it('a scene with no water surface emits no water pipeline (clean gating, byte-stable)', () => {
