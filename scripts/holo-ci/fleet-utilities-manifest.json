@@ -141,6 +141,45 @@
       ]
     },
     {
+      "id": "spatial-engine-runtime",
+      "label": "Spatial engine runtime",
+      "utilityFamily": "language-runtime",
+      "deploymentRoles": ["library", "local-client", "edge-node", "gpu-worker"],
+      "packageName": "@holoscript/engine",
+      "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "useCases": [
+        "spatial runtime profiles for repo-less consumers",
+        "rendering, physics, ECS, animation, GPU, and simulation library surface",
+        "shared engine substrate for HoloLand, HoloShell, and fleet render workers"
+      ]
+    },
+    {
+      "id": "agent-framework-runtime",
+      "label": "Agent framework runtime",
+      "utilityFamily": "agent-runtime",
+      "deploymentRoles": ["library", "local-client", "edge-node", "gpu-worker"],
+      "packageName": "@holoscript/framework",
+      "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "useCases": [
+        "provider-neutral agent manifests and validation",
+        "CRDT state sync primitives for cross-family harnesses",
+        "board, behavior, economy, swarm, learning, and skill orchestration libraries"
+      ]
+    },
+    {
+      "id": "codebase-intelligence-service",
+      "label": "Codebase intelligence service",
+      "utilityFamily": "control-plane",
+      "deploymentRoles": ["library", "local-client", "gpu-worker", "hosted-coordinator"],
+      "packageName": "@holoscript/absorb-service",
+      "requiredBy": ["laptop-windows", "vast-linux-gpu"],
+      "useCases": [
+        "CodebaseGraph and schema APIs for package consumers",
+        "Absorb and GraphRAG service primitives outside private knowledge stores",
+        "daemon and self-improvement package surface for laptop and GPU fleet analysis"
+      ]
+    },
+    {
       "id": "python-runtime-bindings",
       "label": "Python HoloScript bindings",
       "utilityFamily": "python-runtime",

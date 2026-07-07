@@ -158,9 +158,7 @@
       "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
       "requireFiles": ["dist/index.js", "dist/index.cjs", "dist/index.d.ts"],
       "forbidBundledNativeAddons": true
-    }
-  ],
-  "candidateNpmPackages": [
+    },
     {
       "name": "@holoscript/engine",
       "packageDir": "packages/engine",
@@ -172,15 +170,6 @@
         "dist/runtime/index.js",
         "dist/physics/index.js"
       ],
-      "forbidBundledNativeAddons": true
-    },
-    {
-      "name": "@holoscript/platform",
-      "packageDir": "packages/platform",
-      "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
-      "requireFiles": ["dist/index.js", "dist/index.cjs", "dist/index.d.ts"],
-      "forbidDependencies": ["@holoscript/core"],
-      "forbidInternalPeerDependencies": true,
       "forbidBundledNativeAddons": true
     },
     {
@@ -208,6 +197,17 @@
         "dist/engine/index.js",
         "dist/schema.js"
       ],
+      "forbidBundledNativeAddons": true
+    }
+  ],
+  "candidateNpmPackages": [
+    {
+      "name": "@holoscript/platform",
+      "packageDir": "packages/platform",
+      "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "requireFiles": ["dist/index.js", "dist/index.cjs", "dist/index.d.ts"],
+      "forbidDependencies": ["@holoscript/core"],
+      "forbidInternalPeerDependencies": true,
       "forbidBundledNativeAddons": true
     }
   ],

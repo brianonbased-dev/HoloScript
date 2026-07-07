@@ -369,7 +369,7 @@
       "id": "engine-runtime",
       "registry": "npm",
       "packageName": "@holoscript/engine",
-      "status": "release-candidate",
+      "status": "fleet-operational",
       "constructionRole": "Spatial engine runtime for rendering, physics, animation, ECS, GPU, and simulation subsystems.",
       "stewardshipIntent": "Keep high-churn engine capabilities packageable without letting native, browser, or benchmark surfaces leak into cold consumers.",
       "userClasses": ["human", "ai-agent"],
@@ -382,10 +382,12 @@
         "privateHarnessLeakAllowed": false
       },
       "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
-      "utilityIds": [],
+      "utilityIds": ["spatial-engine-runtime"],
       "validationScripts": [
-        "package:opportunity-map",
-        "version:check:strict",
+        "build:package-release-closure",
+        "check:npm-v1-release:built",
+        "check:fleet-utilities",
+        "check:package-consumption:full",
         "check:registry-cold-start:engine-public-api"
       ],
       "validationCommands": [
@@ -398,14 +400,22 @@
       "nextActions": [
         "Keep engine-runtime-import green from a repo-less npm consumer before each engine publish.",
         "Keep engine-public-api green so the published runtime profile contract stays usable without repo sources.",
-        "Decide whether engine should become fleet-operational after browser and native optional dependency behavior is covered by runtime and lifecycle probes."
+        "Add browser and native lifecycle probes before claiming browser appliance or native renderer readiness."
+      ],
+      "caveats": [
+        {
+          "id": "package-api-not-renderer-lifecycle",
+          "scope": "laptop-windows,jetson-orin,vast-linux-gpu",
+          "summary": "@holoscript/engine is fleet-consumed as a package API and runtime library; browser, native renderer, and benchmark health require separate lifecycle receipts.",
+          "overclaimGuard": "Do not claim WebGPU/native renderer readiness from package-consumption, pack checks, or public API canaries alone."
+        }
       ]
     },
     {
       "id": "agent-framework",
       "registry": "npm",
       "packageName": "@holoscript/framework",
-      "status": "release-candidate",
+      "status": "fleet-operational",
       "constructionRole": "Agent framework for board, behavior, economy, swarm, learning, and skill orchestration.",
       "stewardshipIntent": "Keep multi-agent framework APIs publishable and consumable without coupling them to a single provider harness.",
       "userClasses": ["human", "ai-agent"],
@@ -418,10 +428,12 @@
         "privateHarnessLeakAllowed": false
       },
       "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu", "hosted-service"],
-      "utilityIds": [],
+      "utilityIds": ["agent-framework-runtime"],
       "validationScripts": [
-        "package:opportunity-map",
-        "version:check:strict",
+        "build:package-release-closure",
+        "check:npm-v1-release:built",
+        "check:fleet-utilities",
+        "check:package-consumption:full",
         "check:registry-cold-start:framework-public-api"
       ],
       "validationCommands": [
@@ -434,7 +446,7 @@
       "nextActions": [
         "Keep framework-agent-import green from a repo-less npm consumer before each framework publish.",
         "Keep framework-public-api green so agent manifests and CRDT state work for external AI-family harnesses.",
-        "Keep cloud-family harness adapters outside the core framework package boundary."
+        "Keep cloud-family harness adapters outside the core framework package boundary while standardizing provider-neutral package examples."
       ]
     },
     {
@@ -469,7 +481,7 @@
       "id": "codebase-intelligence-service",
       "registry": "npm",
       "packageName": "@holoscript/absorb-service",
-      "status": "release-candidate",
+      "status": "fleet-operational",
       "constructionRole": "Codebase intelligence and recursive self-improvement service for Absorb, graph, and daemon workflows.",
       "stewardshipIntent": "Keep Absorb/GraphRAG service capabilities publishable as package code while the private knowledge stores remain sovereign.",
       "userClasses": ["human", "ai-agent"],
@@ -482,10 +494,12 @@
         "privateHarnessLeakAllowed": false
       },
       "consumerLanes": ["laptop-windows", "vast-linux-gpu", "hosted-service"],
-      "utilityIds": [],
+      "utilityIds": ["codebase-intelligence-service"],
       "validationScripts": [
-        "package:opportunity-map",
-        "version:check:strict",
+        "build:package-release-closure",
+        "check:npm-v1-release:built",
+        "check:fleet-utilities",
+        "check:package-consumption:full",
         "check:registry-cold-start:absorb-service-public-api"
       ],
       "validationCommands": [
@@ -498,7 +512,16 @@
       "nextActions": [
         "Keep absorb-service-import green from a repo-less npm consumer without private graph credentials before each absorb-service publish.",
         "Keep absorb-service-public-api green so CodebaseGraph and public schema surfaces are proven outside the private repo.",
+        "Add a Jetson service lifecycle receipt before extending absorb-service consumer lanes to jetson-orin.",
         "Separate public package API checks from private GraphRAG corpus and OAuth state."
+      ],
+      "caveats": [
+        {
+          "id": "service-lifecycle-not-proven",
+          "scope": "laptop-windows,vast-linux-gpu",
+          "summary": "@holoscript/absorb-service is fleet-consumed as a package API; live GraphRAG service health and private OAuth-backed corpus access remain separate lifecycle receipts.",
+          "overclaimGuard": "Do not claim live GraphRAG availability from package-consumption, public API canaries, or pack checks alone."
+        }
       ]
     },
     {
