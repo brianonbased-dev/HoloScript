@@ -320,6 +320,13 @@ describe('WebGPUCompiler — Production', () => {
       expect(result).toContain('getState: hsViewportSnapshot');
       expect(result).toContain('describeScene: hsDescribeScene');
       expect(result).toContain('inspectObject: hsInspectObject');
+      expect(result).toContain('projectObject: hsProjectObject');
+      expect(result).toContain('projectPoint: hsProjectPoint');
+      expect(result).toContain('projectionBridge: "renderer-native"');
+      expect(result).toContain('normalizedX');
+      expect(result).toContain('screenX');
+      expect(result).toContain('centerDistance');
+      expect(result).toContain('source: "renderer-native"');
       expect(result).toContain('holoGraphObjects.push');
       expect(result).toContain('geometry: "sphere"');
       expect(result).toContain('"file":"src/graph.ts"');
