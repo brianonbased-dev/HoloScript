@@ -48,6 +48,7 @@ For each claim:
 | npm package publication   | `corepack pnpm run check:npm-v1-release` plus package consumption gates.                                                                                        |
 | PyPI package publication  | `corepack pnpm run check:pypi-consumption` and `corepack pnpm run check:pypi-extras-resolution`.                                                                |
 | Absorb unification        | `@holoscript/absorb-service/gev` export exists, service code stays thin, new consumers avoid shadow GraphRAG/embed packages, and package build/test gates pass. |
+| Hardware app readiness    | `node scripts/holo-ci/check-hardware-app-envelopes.mjs` passes, then live HoloShell/Jetson/Vast/hosted receipts prove the actual machine or service.            |
 | MCP/codebase intelligence | cache freshness checked first; local-vs-hosted authority is named; production tool list or local adapter verified.                                              |
 | Simulation proof          | solver API proof is separated from scientist-facing product readiness; parameter envelope and replay receipt status are named.                                  |
 | Paper status              | `.tex`, sidecars, current audit matrix, and official venue dates are regenerated or rechecked.                                                                  |

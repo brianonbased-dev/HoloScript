@@ -1,0 +1,224 @@
+{
+  "schema": "holoscript.hardware-app-envelopes/v1",
+  "_comment": "Canonical app envelopes for hardware/public-consumption lanes. Each app composes existing fleet utilities instead of asking hardware to consume loose packages directly.",
+  "apps": [
+    {
+      "id": "holoshell-workstation",
+      "label": "HoloShell Workstation",
+      "hardwareClass": "workstation",
+      "requiredConsumers": ["laptop-windows"],
+      "description": "Founder laptop/HoloShell envelope for local custody, reasoning, validation, HoloMesh actions, Studio access, and overflow owned-metal work.",
+      "publicEntrySurfaces": [
+        "Brittney Studio desktop launcher",
+        "HoloShell local API and MCP custody surface",
+        "HoloScript CLI and local package runtime"
+      ],
+      "requiredUtilityIds": [
+        "agent-tool-gateway",
+        "native-llm-serving",
+        "headless-agent-runtime",
+        "sovereign-memory-client",
+        "language-authoring-cli",
+        "core-language-runtime",
+        "cognition-semantic-harness",
+        "xr-embodiment-runtime",
+        "python-runtime-bindings",
+        "trait-inference-python"
+      ],
+      "validationCommands": [
+        {
+          "id": "utility-coherence",
+          "kind": "repo-command",
+          "script": "check:fleet-utilities",
+          "command": "corepack pnpm run check:fleet-utilities"
+        },
+        {
+          "id": "package-consumption",
+          "kind": "repo-command",
+          "script": "check:package-consumption:full",
+          "command": "corepack pnpm run check:package-consumption:full"
+        },
+        {
+          "id": "holoshell-access",
+          "kind": "ecosystem-command",
+          "command": "pnpm --dir C:/Users/josep/.ai-ecosystem run holoshell:access-contract"
+        },
+        {
+          "id": "holoshell-message-route",
+          "kind": "ecosystem-command",
+          "command": "pnpm --dir C:/Users/josep/.ai-ecosystem run holoshell:message-route"
+        }
+      ],
+      "receiptFamilies": [
+        "holoshell access contract",
+        "holoshell message-route report",
+        "holollama serving plan",
+        "package consumption matrix"
+      ],
+      "caveats": [
+        "Desktop launcher and Jetson message ingress are live-environment checks, not repo-only proofs.",
+        "Cloud LLM routes remain sessions; owned HoloLlama routes are the sovereignty path."
+      ]
+    },
+    {
+      "id": "jetson-node-city",
+      "label": "Jetson Node City",
+      "hardwareClass": "edge-node",
+      "requiredConsumers": ["jetson-orin"],
+      "description": "Owned-metal Jetson envelope for always-on HoloShell/Brittney ingress, HoloLlama serving, edge tools, memory, XR embodiment, and source projection.",
+      "publicEntrySurfaces": [
+        "Jetson HoloShell surface",
+        "HoloLlama llama.cpp endpoint",
+        "HoloScript MCP edge node"
+      ],
+      "requiredUtilityIds": [
+        "agent-tool-gateway",
+        "native-llm-serving",
+        "headless-agent-runtime",
+        "sovereign-memory-client",
+        "language-authoring-cli",
+        "core-language-runtime",
+        "cognition-semantic-harness",
+        "xr-embodiment-runtime",
+        "python-runtime-bindings"
+      ],
+      "validationCommands": [
+        {
+          "id": "utility-coherence",
+          "kind": "repo-command",
+          "script": "check:fleet-utilities",
+          "command": "corepack pnpm run check:fleet-utilities"
+        },
+        {
+          "id": "package-consumption",
+          "kind": "repo-command",
+          "script": "check:package-consumption:full",
+          "command": "corepack pnpm run check:package-consumption:full"
+        },
+        {
+          "id": "jetson-runtime",
+          "kind": "ecosystem-command",
+          "command": "pnpm --dir C:/Users/josep/.ai-ecosystem run jetson:runtime-appliance"
+        },
+        {
+          "id": "jetson-node-home",
+          "kind": "ecosystem-command",
+          "command": "pnpm --dir C:/Users/josep/.ai-ecosystem run jetson:node-home"
+        }
+      ],
+      "receiptFamilies": [
+        "holoshell jetson-runtime report",
+        "jetson node-home report",
+        "holollama lifecycle handoff",
+        "owned-metal agent receipt"
+      ],
+      "caveats": [
+        "Repo checks prove package shape; node-home and runtime appliance checks prove the live Jetson.",
+        "Model weights and llama.cpp binaries are operational assets, not bundled package contents."
+      ]
+    },
+    {
+      "id": "vast-gpu-worker",
+      "label": "Vast GPU Worker",
+      "hardwareClass": "gpu-worker",
+      "requiredConsumers": ["vast-linux-gpu"],
+      "description": "Vast.ai GPU worker envelope for HoloCI, render, simulation dispatch, model workloads, HoloLlama planning, and Python trait inference.",
+      "publicEntrySurfaces": [
+        "HoloCI worker",
+        "world render worker",
+        "paid simulation worker",
+        "GPU-backed Python/model utility lane"
+      ],
+      "requiredUtilityIds": [
+        "agent-tool-gateway",
+        "native-llm-serving",
+        "headless-agent-runtime",
+        "sovereign-memory-client",
+        "language-authoring-cli",
+        "core-language-runtime",
+        "cognition-semantic-harness",
+        "xr-embodiment-runtime",
+        "python-runtime-bindings",
+        "trait-inference-python",
+        "gpu-ci-dispatch",
+        "world-render-dispatch",
+        "paid-simulation-dispatch"
+      ],
+      "validationCommands": [
+        {
+          "id": "utility-coherence",
+          "kind": "repo-command",
+          "script": "check:fleet-utilities",
+          "command": "corepack pnpm run check:fleet-utilities"
+        },
+        {
+          "id": "package-consumption",
+          "kind": "repo-command",
+          "script": "check:package-consumption:full",
+          "command": "corepack pnpm run check:package-consumption:full"
+        },
+        {
+          "id": "free-first-preflight",
+          "kind": "ecosystem-command",
+          "command": "pnpm --dir C:/Users/josep/.ai-ecosystem run holoshell:free-first-preflight -- --actor-id <agent> --target <job> --success-criteria <criteria> --timeout-ms <ms> --owned-metal-attempted --verifier <verifier> --output-verified"
+        }
+      ],
+      "receiptFamilies": [
+        "HoloCI dispatch receipt",
+        "world render dispatch receipt",
+        "simulation quote/run/status receipt",
+        "free-first preflight receipt"
+      ],
+      "caveats": [
+        "Paid compute needs free-first proof and spend-cap authority before dispatch.",
+        "HoloLlama can plan Vast serving, but live model proof depends on mounted weights and runtime health."
+      ]
+    },
+    {
+      "id": "hosted-coordinator",
+      "label": "Hosted Coordinator",
+      "hardwareClass": "hosted-coordinator",
+      "requiredConsumers": ["hosted-service"],
+      "description": "Hosted MCP/orchestrator envelope for authenticated tool access, HoloCI dispatch, world rendering dispatch, and paid simulation dispatch.",
+      "publicEntrySurfaces": [
+        "mcp.holoscript.net",
+        "hosted MCP/orchestrator API",
+        "HoloCI and fleet dispatch endpoints"
+      ],
+      "requiredUtilityIds": [
+        "agent-tool-gateway",
+        "gpu-ci-dispatch",
+        "world-render-dispatch",
+        "paid-simulation-dispatch"
+      ],
+      "validationCommands": [
+        {
+          "id": "utility-coherence",
+          "kind": "repo-command",
+          "script": "check:fleet-utilities",
+          "command": "corepack pnpm run check:fleet-utilities"
+        },
+        {
+          "id": "package-stewardship",
+          "kind": "repo-command",
+          "script": "check:package-stewardship",
+          "command": "corepack pnpm run check:package-stewardship"
+        },
+        {
+          "id": "mcp-health",
+          "kind": "live-service",
+          "command": "curl https://mcp.holoscript.net/health"
+        }
+      ],
+      "receiptFamilies": [
+        "MCP health receipt",
+        "HoloCI commit status receipt",
+        "fleet dispatch preview receipt"
+      ],
+      "caveats": [
+        "Hosted MCP status is not local repo authority; local Absorb/cache status still needs repo-local proof.",
+        "Public hosted dispatch must stay preview-first and fail closed around credentials and spend."
+      ]
+    }
+  ]
+}
