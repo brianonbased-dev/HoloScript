@@ -177,4 +177,29 @@ describe('WebGPU golden output (byte-diff baseline for render-module refactor)',
     expect(out).toContain('const cameraPos = new Float32Array([1,2,3]);');
     expect(out).toContain('const cameraTarget = new Float32Array([4,5,6]);');
   });
+
+  it('named skybox resolves to an atmospheric backdrop, not a white void', () => {
+    const scene = {
+      type: 'HoloComposition',
+      name: 'OceanScene',
+      environment: { type: 'Environment', properties: [prop('skybox', 'deep_machine_ocean')] },
+      objects: [obj('X', [prop('mesh', 'sphere')])],
+    } as HoloComposition;
+    const out = new WebGPUCompiler().compile(scene, 'golden-token');
+    // deep_machine_ocean = #052430 -> deep teal, NOT [1,1,1] white.
+    expect(out).toContain('const clearColor: GPUColor = { r: 0.0196, g: 0.1412, b: 0.1882, a: 1.0 };');
+    expect(out).not.toContain('const clearColor: GPUColor = { r: 1, g: 1, b: 1, a: 1.0 };');
+  });
+
+  it('explicit hex background is honored verbatim (palette never overrides a real colour)', () => {
+    const scene = {
+      type: 'HoloComposition',
+      name: 'HexBg',
+      environment: { type: 'Environment', properties: [prop('background', '#112233')] },
+      objects: [obj('X', [prop('mesh', 'cube')])],
+    } as HoloComposition;
+    const out = new WebGPUCompiler().compile(scene, 'golden-token');
+    // #112233 -> [0.0667, 0.1333, 0.2].
+    expect(out).toContain('const clearColor: GPUColor = { r: 0.0667, g: 0.1333, b: 0.2, a: 1.0 };');
+  });
 });

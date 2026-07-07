@@ -27,6 +27,7 @@ import type {
 } from '../parser/HoloCompositionTypes';
 import { CompilerBase } from './CompilerBase';
 import { resolveGeometry } from './render-modules/geometry-registry';
+import { resolveSkyboxColor } from './render-modules/skybox-registry';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 import {
   compileMaterialBlock,
@@ -489,7 +490,13 @@ export class WebGPUCompiler extends CompilerBase {
     for (const prop of env.properties) envData[prop.key] = prop.value;
 
     const bg = envData.background || envData.skybox || '#000000';
-    const bgColor = this.parseColor(bg);
+    // A hex/array background is an explicit colour; a bare word (skybox name like
+    // "deep_machine_ocean") resolves through the named palette instead of falling
+    // through parseColor to white. Both paths keep any authored colour verbatim.
+    const bgColor =
+      (typeof bg === 'string' && bg.startsWith('#')) || Array.isArray(bg)
+        ? this.parseColor(bg)
+        : resolveSkyboxColor(bg as string);
     this.emit(
       `const clearColor: GPUColor = { r: ${bgColor[0]}, g: ${bgColor[1]}, b: ${bgColor[2]}, a: 1.0 };`
     );

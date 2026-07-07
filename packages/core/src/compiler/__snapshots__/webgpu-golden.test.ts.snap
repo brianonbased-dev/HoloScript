@@ -228,7 +228,7 @@ struct Body { pos: vec3<f32>, mass: f32, vel: vec3<f32>, _p: f32 };
   if (b.pos[1] < 0.0) { b.pos[1] = 0.0; b.vel[1] = -b.vel[1] * 0.6; } bodies[i] = b; }\`;
 
 // === Environment ===
-const clearColor: GPUColor = { r: 1, g: 1, b: 1, a: 1.0 };
+const clearColor: GPUColor = { r: 0.0196, g: 0.1412, b: 0.1882, a: 1.0 };
 const ambientIntensity = 0.42;
 
 // === Camera ===
