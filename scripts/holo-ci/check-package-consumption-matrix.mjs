@@ -20,6 +20,14 @@ const INSPECT_PYTHON_ARTIFACTS = args.includes('--inspect-python-artifacts');
 const RESOLVE_PYPI_EXTRAS = args.includes('--resolve-pypi-extras');
 const AUDIT_PYPI = args.includes('--audit-pypi') || RESOLVE_PYPI_EXTRAS;
 const SELF_TEST = args.includes('--self-test');
+const PYPI_LIFECYCLE_FLAGS = {
+  'build-python': () => BUILD_PYTHON,
+  'inspect-python-artifacts': () => INSPECT_PYTHON_ARTIFACTS,
+  'smoke-python-artifacts': () => SMOKE_PYTHON_ARTIFACTS,
+  'smoke-pypi-install': () => SMOKE_PYPI_INSTALL,
+  'audit-pypi': () => AUDIT_PYPI,
+  'resolve-pypi-extras': () => RESOLVE_PYPI_EXTRAS,
+};
 const rootIdx = args.indexOf('--root');
 const manifestIdx = args.indexOf('--manifest');
 const outIdx = args.indexOf('--out-dir');
@@ -536,6 +544,68 @@ function assertConsumersKnown(pkg, consumers, errors) {
   }
 }
 
+function lifecycleFlagActive(flag) {
+  return Boolean(PYPI_LIFECYCLE_FLAGS[flag]?.());
+}
+
+function validatePyPiFleetLifecycle(pkg, row, consumers, errors) {
+  const lifecycle = pkg.fleetLifecycle;
+  row.lifecycleChecks = [];
+  if (!lifecycle || typeof lifecycle !== 'object') {
+    errors.push(`${pkg.name}: missing fleetLifecycle receipt contract`);
+    return;
+  }
+  if (!lifecycle.receiptScope) errors.push(`${pkg.name}: fleetLifecycle missing receiptScope`);
+  if (!lifecycle.staleTelemetryPolicy) {
+    errors.push(`${pkg.name}: fleetLifecycle missing staleTelemetryPolicy`);
+  }
+  if (!Array.isArray(lifecycle.checks) || lifecycle.checks.length === 0) {
+    errors.push(`${pkg.name}: fleetLifecycle.checks[] is empty`);
+    return;
+  }
+
+  const seen = new Set();
+  for (const check of lifecycle.checks) {
+    const id = String(check.id || '');
+    const consumerLanes = check.consumerLanes || pkg.requiredBy || [];
+    const requiredFlags = check.requiredFlags || [];
+    if (!/^[a-z0-9][a-z0-9-]*$/.test(id)) {
+      errors.push(`${pkg.name}: invalid fleetLifecycle check id '${id || '<missing>'}'`);
+    }
+    if (seen.has(id)) errors.push(`${pkg.name}: duplicate fleetLifecycle check '${id}'`);
+    seen.add(id);
+    if (!check.description) errors.push(`${pkg.name}: fleetLifecycle '${id}' missing description`);
+    if (!check.evidence) errors.push(`${pkg.name}: fleetLifecycle '${id}' missing evidence`);
+    if (!Array.isArray(consumerLanes) || consumerLanes.length === 0) {
+      errors.push(`${pkg.name}: fleetLifecycle '${id}' missing consumerLanes[]`);
+    }
+    for (const lane of consumerLanes) {
+      if (!consumers.has(lane)) {
+        errors.push(`${pkg.name}: fleetLifecycle '${id}' unknown consumer '${lane}'`);
+      }
+      if (!pkg.requiredBy?.includes(lane)) {
+        errors.push(`${pkg.name}: fleetLifecycle '${id}' covers non-required lane '${lane}'`);
+      }
+    }
+    if (!Array.isArray(requiredFlags) || requiredFlags.length === 0) {
+      errors.push(`${pkg.name}: fleetLifecycle '${id}' missing requiredFlags[]`);
+    }
+    for (const flag of requiredFlags) {
+      if (!Object.hasOwn(PYPI_LIFECYCLE_FLAGS, flag)) {
+        errors.push(`${pkg.name}: fleetLifecycle '${id}' unknown required flag '${flag}'`);
+      }
+    }
+    row.lifecycleChecks.push({
+      id,
+      consumerLanes,
+      requiredFlags,
+      status: requiredFlags.length && requiredFlags.every(lifecycleFlagActive)
+        ? 'verified'
+        : 'declared',
+    });
+  }
+}
+
 function checkNpmPackage(pkg, consumers, errors, warnings, rows) {
   assertConsumersKnown(pkg, consumers, errors);
   const dir = resolve(ROOT, pkg.packageDir || '');
@@ -629,8 +699,10 @@ async function checkPyPackage(pkg, consumers, errors, warnings, rows) {
     pypiSmoke: null,
     pypi: null,
     extraResolution: {},
+    lifecycleChecks: [],
   };
   rows.push(row);
+  validatePyPiFleetLifecycle(pkg, row, consumers, errors);
 
   const projectName = parsePyprojectValue(text, 'name');
   const version = parsePyprojectValue(text, 'version');
@@ -772,6 +844,60 @@ function runSelfTest() {
   });
   if (laneExtras.extras.join(',') !== 'robotics,scientific')
     errors.push('lane extras collector failed');
+  const lifecycleRow = {};
+  validatePyPiFleetLifecycle(
+    {
+      name: 'holoscript',
+      requiredBy: ['laptop-windows'],
+      fleetLifecycle: {
+        receiptScope: 'fresh venv',
+        staleTelemetryPolicy: 'do not reuse historical install logs',
+        checks: [
+          {
+            id: 'artifact-smoke',
+            description: 'Install a built wheel in a fresh venv.',
+            evidence: 'smoke-python-artifacts',
+            requiredFlags: ['smoke-python-artifacts'],
+            consumerLanes: ['laptop-windows'],
+          },
+        ],
+      },
+    },
+    lifecycleRow,
+    new Map([['laptop-windows', { id: 'laptop-windows' }]]),
+    errors
+  );
+  if (lifecycleRow.lifecycleChecks?.[0]?.status !== 'declared') {
+    errors.push('PyPI lifecycle declared status failed');
+  }
+  validatePyPiFleetLifecycle(
+    {
+      name: 'broken',
+      requiredBy: ['laptop-windows'],
+      fleetLifecycle: {
+        receiptScope: 'fresh venv',
+        staleTelemetryPolicy: 'do not reuse historical install logs',
+        checks: [
+          {
+            id: 'bad-flag',
+            description: 'Bad flag.',
+            evidence: 'bad flag',
+            requiredFlags: ['missing-flag'],
+            consumerLanes: ['laptop-windows'],
+          },
+        ],
+      },
+    },
+    {},
+    new Map([['laptop-windows', { id: 'laptop-windows' }]]),
+    errors
+  );
+  if (!errors.some((error) => error.includes("unknown required flag 'missing-flag'"))) {
+    errors.push('PyPI lifecycle unknown flag should fail');
+  } else {
+    const idx = errors.findIndex((error) => error.includes("unknown required flag 'missing-flag'"));
+    errors.splice(idx, 1);
+  }
   if (errors.length) {
     console.error(errors.join('\n'));
     process.exit(1);
@@ -821,6 +947,10 @@ async function main() {
                 Object.keys(row.laneExtras || {}).length ? ' laneExtras=true' : ''
               }${
                 Object.keys(row.extraResolution || {}).length ? ' extraResolution=true' : ''
+              }${
+                row.lifecycleChecks?.length
+                  ? ` lifecycle=${row.lifecycleChecks.filter((check) => check.status === 'verified').length}/${row.lifecycleChecks.length}`
+                  : ''
               }${row.pypi ? ` pypi=${row.pypi.status}` : ''}`
             : '';
       console.log(

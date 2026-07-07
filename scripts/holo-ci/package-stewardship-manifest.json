@@ -324,7 +324,7 @@
         "check:package-consumption:full"
       ],
       "nextActions": [
-        "Keep optional extras aligned to laptop, Jetson, and Vast lanes.",
+        "Keep fleetLifecycle checks verified for build, artifact inspection, fresh-venv smoke, live PyPI audit, extras resolution, and published-wheel smoke.",
         "Add examples that round-trip HoloScript source through Python without creating a parallel language."
       ]
     },
@@ -352,7 +352,7 @@
         "check:package-consumption:full"
       ],
       "nextActions": [
-        "Keep model extras optional and Vast-oriented.",
+        "Keep the model extra Vast-oriented and lifecycle-scoped through pip dry-run resolution rather than mandatory laptop or Jetson installs.",
         "Add evaluator receipts before promoting new inference capabilities into core workflows."
       ]
     }

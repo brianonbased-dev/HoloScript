@@ -129,6 +129,54 @@
         "laptop-windows": ["scientific"],
         "jetson-orin": ["robotics", "scientific"],
         "vast-linux-gpu": ["scientific"]
+      },
+      "fleetLifecycle": {
+        "receiptScope": "Fresh Python build artifacts, fresh virtualenv install smokes, live PyPI metadata, and pip resolver reports; no hardware utilization is claimed from historical logs.",
+        "staleTelemetryPolicy": "Every PyPI lifecycle receipt must come from the current run or a live registry response; do not close fleet package work from cached install logs.",
+        "checks": [
+          {
+            "id": "wheel-sdist-build",
+            "description": "Build wheel and sdist artifacts from packages/python-bindings.",
+            "evidence": "python -m build output names the wheel and sdist.",
+            "requiredFlags": ["build-python"],
+            "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"]
+          },
+          {
+            "id": "artifact-shape-inspection",
+            "description": "Inspect wheel and sdist metadata, imports, and declared extras.",
+            "evidence": "artifact inspection verifies METADATA/WHEEL, pyproject, README, imports, and Provides-Extra fields.",
+            "requiredFlags": ["inspect-python-artifacts"],
+            "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"]
+          },
+          {
+            "id": "fresh-venv-artifact-smoke",
+            "description": "Install the built wheel into a fresh venv and import holoscript.",
+            "evidence": "fresh virtualenv import smoke passes for the built wheel.",
+            "requiredFlags": ["smoke-python-artifacts"],
+            "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"]
+          },
+          {
+            "id": "live-pypi-version-audit",
+            "description": "Compare local version and extras against live PyPI metadata.",
+            "evidence": "PyPI JSON audit reports current or publish-update status and verifies provides_extra.",
+            "requiredFlags": ["audit-pypi"],
+            "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"]
+          },
+          {
+            "id": "lane-extra-resolution",
+            "description": "Resolve lane extras for Windows laptop, Jetson aarch64, and Vast Linux GPU without installing.",
+            "evidence": "pip dry-run reports resolve scientific and robotics extras for declared fleet lanes.",
+            "requiredFlags": ["resolve-pypi-extras"],
+            "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"]
+          },
+          {
+            "id": "published-wheel-smoke",
+            "description": "Install the published PyPI wheel into a fresh venv and import holoscript.",
+            "evidence": "fresh virtualenv install smoke passes from PyPI using only published wheels.",
+            "requiredFlags": ["smoke-pypi-install"],
+            "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"]
+          }
+        ]
       }
     },
     {
@@ -139,6 +187,54 @@
       "consoleScripts": ["trait-inference"],
       "extrasByConsumer": {
         "vast-linux-gpu": ["model"]
+      },
+      "fleetLifecycle": {
+        "receiptScope": "Fresh Python build artifacts, fresh virtualenv install smokes, live PyPI metadata, and pip resolver reports; GPU/model capability is scoped to Vast via the optional model extra.",
+        "staleTelemetryPolicy": "Every trait-inference lifecycle receipt must come from the current run or a live registry response; stale model or install logs do not prove package consumption.",
+        "checks": [
+          {
+            "id": "wheel-sdist-build",
+            "description": "Build wheel and sdist artifacts from packages/trait-inference.",
+            "evidence": "python -m build output names the wheel and sdist.",
+            "requiredFlags": ["build-python"],
+            "consumerLanes": ["laptop-windows", "vast-linux-gpu"]
+          },
+          {
+            "id": "artifact-shape-inspection",
+            "description": "Inspect wheel and sdist metadata, imports, console script, and declared extras.",
+            "evidence": "artifact inspection verifies METADATA/WHEEL, pyproject, README, trait_inference import, console script, and Provides-Extra fields.",
+            "requiredFlags": ["inspect-python-artifacts"],
+            "consumerLanes": ["laptop-windows", "vast-linux-gpu"]
+          },
+          {
+            "id": "fresh-venv-artifact-smoke",
+            "description": "Install the built wheel into a fresh venv, import trait_inference, and run trait-inference --help.",
+            "evidence": "fresh virtualenv import and console script smoke pass for the built wheel.",
+            "requiredFlags": ["smoke-python-artifacts"],
+            "consumerLanes": ["laptop-windows", "vast-linux-gpu"]
+          },
+          {
+            "id": "live-pypi-version-audit",
+            "description": "Compare local version and extras against live PyPI metadata.",
+            "evidence": "PyPI JSON audit reports current or publish-update status and verifies provides_extra.",
+            "requiredFlags": ["audit-pypi"],
+            "consumerLanes": ["laptop-windows", "vast-linux-gpu"]
+          },
+          {
+            "id": "vast-model-extra-resolution",
+            "description": "Resolve the Vast GPU model extra without installing heavyweight dependencies.",
+            "evidence": "pip dry-run report resolves holoscript-trait-inference[model] for the Vast Linux GPU lane.",
+            "requiredFlags": ["resolve-pypi-extras"],
+            "consumerLanes": ["vast-linux-gpu"]
+          },
+          {
+            "id": "published-wheel-smoke",
+            "description": "Install the published PyPI wheel into a fresh venv, import trait_inference, and run trait-inference --help.",
+            "evidence": "fresh virtualenv install smoke passes from PyPI using only published wheels.",
+            "requiredFlags": ["smoke-pypi-install"],
+            "consumerLanes": ["laptop-windows", "vast-linux-gpu"]
+          }
+        ]
       }
     }
   ]
