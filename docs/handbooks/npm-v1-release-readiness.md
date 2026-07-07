@@ -55,6 +55,12 @@ Packages outside the manifest can still exist, build, or be published later, but
 they are not green-lit by this lane until they are added intentionally and pass
 the same checks.
 
+2026-07-07 lane decision: `@holoscript/holo-runtime` remains parked outside the
+npm v1 manifest. It is version-policy managed and documented, but its default
+tokenizer bridge still resolves `HOLOAI_ECOSYSTEM_ROOT` or `~/.ai-ecosystem`;
+do not promote it until a clean npm consumer can pack, import, and run the
+decoder without the private academy repo.
+
 ## Canonicalization
 
 The npm registry also contains historical split packages, compatibility shims,
@@ -67,4 +73,6 @@ legacy name that should receive an npm deprecation notice.
 `@holoscript/uaal`, `@holoscript/agent-protocol`, `@holoscript/framework`, and
 `@holoscript/holo-vm` are the next cognition wave, but they stay outside the v1
 fleet manifest until the same cold-install and package-consumption checks are
-green for laptop, Jetson, and Vast.
+green for laptop, Jetson, and Vast. `@holoscript/holo-runtime` is narrower: it
+stays parked until the tokenizer bridge is public/parameterized and a real
+model-fleet consumer proves the laptop, Jetson, and Vast package lanes.

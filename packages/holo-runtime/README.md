@@ -36,6 +36,18 @@ const logits = decoder.forward([1, 42, 7]).logits;
 
 Set `HOLOAI_ECOSYSTEM_ROOT` to point at the private academy repo if it is not at `~/.ai-ecosystem`.
 
+## Release Lane Decision
+
+As of 2026-07-07, `@holoscript/holo-runtime` is parked outside the npm v1 release
+manifest, package-consumption matrix, and fleet utility map. The decoder builds
+and tests, but the default tokenizer bridge still resolves
+`HOLOAI_ECOSYSTEM_ROOT` or `~/.ai-ecosystem`, so a clean npm consumer does not
+yet have the tokenizer module by default.
+
+Promote it only after the tokenizer bridge is public or fully parameterized,
+`npm pack` plus cold-import checks pass, and a real laptop, Jetson, or Vast
+model-fleet consumer needs the package as an operational utility.
+
 ## Boundary
 
 `@holoscript/holo-runtime` is not the browser scene runtime and not the bytecode

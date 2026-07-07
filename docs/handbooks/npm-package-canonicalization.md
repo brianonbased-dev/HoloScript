@@ -37,7 +37,8 @@ $uri = 'https://registry.npmjs.org/-/v1/search?text=%40holoscript&size=250&quali
 | Lane                | Packages                                                                                                                                                                                                                                                                                                            | Rule                                                                                                                  |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | v1 fleet            | `@holoscript/core`, `@holoscript/cli`, `@holoscript/mcp-server`, `@holoscript/memory`, `@holoscript/holollama`, `@holoscript/holoscript-agent`, `@holoscript/xr-embodiment`                                                                                                                                         | Must pass release readiness, package consumption, pack, and cold-install checks before publish.                       |
-| next cognition wave | `@holoscript/uaal`, `@holoscript/agent-protocol`, `@holoscript/framework`, `@holoscript/holo-vm`, `@holoscript/holo-runtime`                                                                                                                                                                                        | Public and strategically important, but not promoted into the v1 fleet lane until cold-consume closure is proven.     |
+| next cognition wave | `@holoscript/uaal`, `@holoscript/agent-protocol`, `@holoscript/framework`, `@holoscript/holo-vm`                                                                                                                                                                                                                    | Public and strategically important, but not promoted into the v1 fleet lane until cold-consume closure is proven.     |
+| parked model-runtime seed | `@holoscript/holo-runtime`                                                                                                                                                                                                                                                                                     | Version-policy managed, but parked outside v1, package-consumption, and fleet utility manifests until tokenizer and cold-consume proof exist. |
 | supported tooling   | `@holoscript/core-types`, `@holoscript/wasm`, `@holoscript/formatter`, `@holoscript/linter`, `@holoscript/lsp`, `tree-sitter-holoscript`                                                                                                                                                                            | Keep documented and installable, but do not treat as fleet-required by default.                                       |
 | supported runtime   | `@holoscript/engine`, `@holoscript/runtime`, `@holoscript/mesh`, `@holoscript/crdt`, `@holoscript/crdt-spatial`, `@holoscript/mvc-schema`, `@holoscript/snn-webgpu`, `@holoscript/holoembed`, `@holoscript/security-sandbox`, `@holoscript/secrets-broker`, `@holoscript/platform`, `@holoscript/hololand-platform` | Keep as composable runtime modules; promote only when a consumer lane needs them directly.                            |
 | domain plugins      | `@holoscript/plugin-*`, `@holoscript/*-plugin`, `@holoscript/qm-bridge`, `@holoscript/domain-plugin-template`, `@holoscript/assimp-plugin`                                                                                                                                                                          | Long-tail packages. Each needs its own receipt before being promoted into a default install path.                     |
@@ -67,14 +68,17 @@ packages so existing consumers get a clear migration path.
    laptop, Jetson, and Vast.
 2. Promote the cognition wave next, starting with `@holoscript/uaal` only after
    the VM package has the same pack/install/consumer checks as HoloLlama.
-3. Keep npm deprecation messages synced with
+3. Keep `@holoscript/holo-runtime` parked until its tokenizer bridge no longer
+   depends on the private academy repo by default and the package has a
+   laptop/Jetson/Vast cold-consumption proof.
+4. Keep npm deprecation messages synced with
    `scripts/holo-ci/npm-deprecation-manifest.json` before publishing more domain
    packages.
-4. Convert registry-live-but-local-private packages into one of two states:
+5. Convert registry-live-but-local-private packages into one of two states:
    public and supported with docs/tests, or deprecated with a replacement path.
-5. Treat domain plugins as marketplace inventory, not core install surface, until
+6. Treat domain plugins as marketplace inventory, not core install surface, until
    each plugin has a human-readable receipt and a package-level smoke test.
-6. Before scaffolding a new package, run `corepack pnpm package:opportunity-map`
+7. Before scaffolding a new package, run `corepack pnpm package:opportunity-map`
    and prefer fostering an existing hot public package when the map shows docs,
    governance, or ownership gaps.
 

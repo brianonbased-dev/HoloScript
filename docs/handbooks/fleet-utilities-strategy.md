@@ -51,6 +51,16 @@ HoloKey, spend-policy, or local-machine custody.
 | Python bindings            | `holoscript`, `holoscript-trait-inference` | laptop, Jetson, Vast as declared     | Python runtime utilities, robotics/scientific scripts, and model-backed trait inference.              |
 | GPU dispatch tools         | `@holoscript/mcp-server` MCP tools         | hosted service, Vast                 | Safe-by-default CI, world render, and paid simulation dispatch.                                       |
 
+## Parked Runtime Seeds
+
+`@holoscript/holo-runtime` is not a fleet utility as of 2026-07-07. It remains a
+version-policy-managed HoloRunner decoder seed, but its default tokenizer bridge
+loads from `HOLOAI_ECOSYSTEM_ROOT` or `~/.ai-ecosystem`; that is not enough for a
+clean laptop, Jetson, or Vast package-consumption promise. Add it to
+`fleet-utilities-manifest.json` only after the tokenizer bridge is public or
+fully parameterized and a concrete model-fleet consumer has pack/cold-start
+coverage across the declared hardware lanes.
+
 ## HoloLlama Fleet Lifecycle
 
 HoloLlama is fleet-operational when every target profile can produce these

@@ -33,6 +33,20 @@ const logits = decoder.forward([1, 42, 7]).logits;
 Real checkpoints must provide the full S0 tensor set documented in the package
 README.
 
+## Release Lane Decision
+
+As of 2026-07-07, this package is parked outside
+`scripts/holo-ci/npm-v1-release-manifest.json`,
+`scripts/holo-ci/package-consumption-manifest.json`, and
+`scripts/holo-ci/fleet-utilities-manifest.json`. It is useful as an
+experimental decoder API, but it is not yet a laptop, Jetson, or Vast
+consumption promise because the default tokenizer bridge still loads from
+`HOLOAI_ECOSYSTEM_ROOT` or `~/.ai-ecosystem`.
+
+Promotion requires a public or fully parameterized tokenizer bridge, `npm pack`
+plus cold-import coverage, and a concrete model-fleet consumer that needs the
+decoder on the declared hardware lanes.
+
 ## Boundary
 
 This package is not the browser scene runtime and not the bytecode VM:
@@ -52,8 +66,9 @@ copying private tokenizer logic into the public repo.
 
 This package is experimental model-runtime infrastructure. It is public and
 allowlisted so HoloRunner checkpoint consumers can install the decoder API, but
-it is not part of the v1 fleet consumption lane. Promote it only after the model
-fleet has cold-consume checks and a concrete laptop, Jetson, or Vast consumer.
+it is not part of the v1 fleet consumption lane. Keep it parked until the model
+fleet has cold-consume checks, a tokenizer bridge that works for clean npm
+consumers, and a concrete laptop, Jetson, or Vast consumer.
 
 ## Validation
 

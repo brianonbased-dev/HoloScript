@@ -452,12 +452,12 @@
       "id": "holo-runtime-decoder",
       "registry": "npm",
       "packageName": "@holoscript/holo-runtime",
-      "status": "incubating",
-      "constructionRole": "Experimental CPU decoder seed for sovereign HoloRunner checkpoints.",
-      "stewardshipIntent": "Decide whether this becomes a public construction runtime or remains a parked research package.",
+      "status": "parked",
+      "constructionRole": "Parked experimental CPU decoder seed for sovereign HoloRunner checkpoints.",
+      "stewardshipIntent": "Keep this as a version-policy-managed research package until it has a public tokenizer bridge and cold-consume proof.",
       "userClasses": ["human", "ai-agent"],
       "outsideUserGate": {
-        "readiness": "incubating",
+        "readiness": "parked",
         "harnessMode": "not-public",
         "audience": ["external-human", "external-ai-agent"],
         "publicEntry": "packages/holo-runtime/README.md",
@@ -468,9 +468,28 @@
       "utilityIds": [],
       "validationScripts": ["version:check:strict"],
       "validationCommands": ["pnpm --filter @holoscript/holo-runtime test"],
+      "parkingDecision": {
+        "decidedAt": "2026-07-07",
+        "decision": "parked",
+        "notAddedTo": [
+          "scripts/holo-ci/npm-v1-release-manifest.json",
+          "scripts/holo-ci/package-consumption-manifest.json",
+          "scripts/holo-ci/fleet-utilities-manifest.json"
+        ],
+        "reason": [
+          "The default tokenizer bridge resolves HOLOAI_ECOSYSTEM_ROOT or ~/.ai-ecosystem, so a clean npm consumer does not yet have the tokenizer module by default.",
+          "No package-consumption or cold-start matrix row proves the package on laptop, Jetson, and Vast.",
+          "No fleet utility class consumes this decoder directly; the current @model_fleet node is a research seed, not an operational utility lane."
+        ],
+        "promotionCriteria": [
+          "Ship or parameterize a public tokenizer bridge so clean npm consumers do not need the private academy repo.",
+          "Add npm pack, cold import, and package-consumption checks for laptop-windows, jetson-orin, and vast-linux-gpu.",
+          "Add a fleet utility map row only after a concrete laptop, Jetson, or Vast consumer uses this decoder as an operational utility."
+        ]
+      },
       "nextActions": [
-        "Decide whether to add the package to npm release and package-consumption manifests.",
-        "If promoted, add cold install and fleet lane checks before publishing."
+        "Do not add @holoscript/holo-runtime to the npm v1 release manifest, package-consumption matrix, or fleet utility map until the parkingDecision.promotionCriteria are met.",
+        "Keep build/test and version-policy checks green while the tokenizer bridge and real model-fleet consumer mature."
       ]
     },
     {
