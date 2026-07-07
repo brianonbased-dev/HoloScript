@@ -19,6 +19,12 @@ guards.
 - PyPI consumption gate: `corepack pnpm check:pypi-consumption`.
 - v1 package lane: `scripts/holo-ci/npm-v1-release-manifest.json`.
 
+Fleet utilities are implementation inventory; hardware app envelopes are the
+public consumption surface. The envelope manifest groups utilities into utility
+bands such as tool gateway, local runtime, sovereign AI serving, semantic proof,
+XR embodiment, Python science, and fleet dispatch so a hardware owner sees a
+coherent app instead of a package matrix.
+
 ## Utility Classes
 
 | Utility class              | Primary package                            | Consumer lane                        | Use it for                                                                                            |

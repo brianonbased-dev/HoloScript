@@ -1,6 +1,78 @@
 {
   "schema": "holoscript.hardware-app-envelopes/v1",
   "_comment": "Canonical app envelopes for hardware/public-consumption lanes. Each app composes existing fleet utilities instead of asking hardware to consume loose packages directly.",
+  "utilityBands": [
+    {
+      "id": "public-tool-gateway",
+      "label": "Public Tool Gateway",
+      "hardwarePurpose": "Give the machine one authenticated HoloScript tool doorway instead of many loose APIs.",
+      "publicRole": "MCP/HoloKey tool access, HoloMesh coordination, and fleet dispatch control.",
+      "utilityIds": ["agent-tool-gateway"]
+    },
+    {
+      "id": "headless-agent-runtime",
+      "label": "Headless Agent Runtime",
+      "hardwarePurpose": "Let the machine keep working when no browser or IDE is open.",
+      "publicRole": "Unattended HoloMesh agent process and portable execution worker.",
+      "utilityIds": ["headless-agent-runtime"]
+    },
+    {
+      "id": "local-language-runtime",
+      "label": "Local Language Runtime",
+      "hardwarePurpose": "Make the machine able to parse, validate, run, and compile HoloScript source locally.",
+      "publicRole": "HoloScript CLI plus core parser, AST, compiler, and trait substrate.",
+      "utilityIds": ["language-authoring-cli", "core-language-runtime"]
+    },
+    {
+      "id": "sovereign-ai-serving",
+      "label": "Sovereign AI Serving",
+      "hardwarePurpose": "Turn owned hardware into a model-serving node when weights and runtime assets are present.",
+      "publicRole": "HoloLlama serving plans, launch bundles, lifecycle proofs, and device registry artifacts.",
+      "utilityIds": ["native-llm-serving"]
+    },
+    {
+      "id": "sovereign-memory-identity",
+      "label": "Sovereign Memory And Identity",
+      "hardwarePurpose": "Keep memory and identity portable across local, edge, and fleet contexts.",
+      "publicRole": "Identity-keyed shared memory client for sibling agent families.",
+      "utilityIds": ["sovereign-memory-client"]
+    },
+    {
+      "id": "semantic-proof-harness",
+      "label": "Semantic Proof Harness",
+      "hardwarePurpose": "Give the machine a receipt-producing cognition and semantic validation lane.",
+      "publicRole": "uAAL semantic gates, cognitive-cycle primitives, and recovery receipts.",
+      "utilityIds": ["cognition-semantic-harness"]
+    },
+    {
+      "id": "xr-embodiment-runtime",
+      "label": "XR Embodiment Runtime",
+      "hardwarePurpose": "Let hardware participate in spatial presence rather than only backend jobs.",
+      "publicRole": "Shared locomotion, avatar substrate, and WebXR/agent embodiment support.",
+      "utilityIds": ["xr-embodiment-runtime"]
+    },
+    {
+      "id": "python-science-runtime",
+      "label": "Python Science Runtime",
+      "hardwarePurpose": "Support scientific, robotics, and notebook-adjacent use without turning npm packages into Python glue.",
+      "publicRole": "Python HoloScript bindings for scripts, robotics, and scientific utilities.",
+      "utilityIds": ["python-runtime-bindings"]
+    },
+    {
+      "id": "python-trait-inference",
+      "label": "Python Trait Inference",
+      "hardwarePurpose": "Run model-backed trait classification only on lanes that declare that workload.",
+      "publicRole": "Trait inference CLI and GPU-capable Python model utility.",
+      "utilityIds": ["trait-inference-python"]
+    },
+    {
+      "id": "gpu-fleet-dispatch",
+      "label": "GPU Fleet Dispatch",
+      "hardwarePurpose": "Move expensive or accelerated work through preview-first fleet controls.",
+      "publicRole": "HoloCI, world-render, and paid simulation dispatch receipts.",
+      "utilityIds": ["gpu-ci-dispatch", "world-render-dispatch", "paid-simulation-dispatch"]
+    }
+  ],
   "apps": [
     {
       "id": "holoshell-workstation",
@@ -8,6 +80,26 @@
       "hardwareClass": "workstation",
       "requiredConsumers": ["laptop-windows"],
       "description": "Founder laptop/HoloShell envelope for local custody, reasoning, validation, HoloMesh actions, Studio access, and overflow owned-metal work.",
+      "capabilityBands": [
+        "public-tool-gateway",
+        "headless-agent-runtime",
+        "local-language-runtime",
+        "sovereign-ai-serving",
+        "sovereign-memory-identity",
+        "semantic-proof-harness",
+        "xr-embodiment-runtime",
+        "python-science-runtime",
+        "python-trait-inference"
+      ],
+      "publicConsumption": {
+        "persona": "Local builder and hardware-native verifier",
+        "primaryInstallSurface": "Desktop launcher plus local API/MCP custody surface",
+        "onboardingGoal": "Open one local workstation surface that can author, validate, route, and prove HoloScript work without asking the user to assemble packages by hand.",
+        "mustNotClaim": [
+          "Do not claim live Jetson or hosted service readiness from workstation-only checks.",
+          "Do not imply cloud LLM sessions are sovereign model serving."
+        ]
+      },
       "publicEntrySurfaces": [
         "Brittney Studio desktop launcher",
         "HoloShell local API and MCP custody surface",
@@ -66,6 +158,25 @@
       "hardwareClass": "edge-node",
       "requiredConsumers": ["jetson-orin"],
       "description": "Owned-metal Jetson envelope for always-on HoloShell/Brittney ingress, HoloLlama serving, edge tools, memory, XR embodiment, and source projection.",
+      "capabilityBands": [
+        "public-tool-gateway",
+        "headless-agent-runtime",
+        "local-language-runtime",
+        "sovereign-ai-serving",
+        "sovereign-memory-identity",
+        "semantic-proof-harness",
+        "xr-embodiment-runtime",
+        "python-science-runtime"
+      ],
+      "publicConsumption": {
+        "persona": "Edge-node owner or lab hardware operator",
+        "primaryInstallSurface": "Systemd appliance with HoloShell, HoloLlama, and edge MCP endpoints",
+        "onboardingGoal": "Make the Jetson feel like one owned HoloScript node for ingress, local serving, memory, and source projection.",
+        "mustNotClaim": [
+          "Do not claim live node readiness without Jetson runtime and node-home receipts.",
+          "Do not claim bundled model serving unless weights and llama.cpp binaries are installed and checked."
+        ]
+      },
       "publicEntrySurfaces": [
         "Jetson HoloShell surface",
         "HoloLlama llama.cpp endpoint",
@@ -123,6 +234,27 @@
       "hardwareClass": "gpu-worker",
       "requiredConsumers": ["vast-linux-gpu"],
       "description": "Vast.ai GPU worker envelope for HoloCI, render, simulation dispatch, model workloads, HoloLlama planning, and Python trait inference.",
+      "capabilityBands": [
+        "public-tool-gateway",
+        "headless-agent-runtime",
+        "local-language-runtime",
+        "sovereign-ai-serving",
+        "sovereign-memory-identity",
+        "semantic-proof-harness",
+        "xr-embodiment-runtime",
+        "python-science-runtime",
+        "python-trait-inference",
+        "gpu-fleet-dispatch"
+      ],
+      "publicConsumption": {
+        "persona": "GPU worker operator and accelerated-job dispatcher",
+        "primaryInstallSurface": "Fleet worker bootstrap with HoloCI, render, simulation, Python, and HoloLlama tooling",
+        "onboardingGoal": "Turn a rented or owned GPU machine into a receipt-producing worker with preview-first spend controls.",
+        "mustNotClaim": [
+          "Do not run paid compute without a free-first preflight receipt and spend authority.",
+          "Do not claim live model throughput without mounted weights and runtime health proof."
+        ]
+      },
       "publicEntrySurfaces": [
         "HoloCI worker",
         "world render worker",
@@ -180,6 +312,16 @@
       "hardwareClass": "hosted-coordinator",
       "requiredConsumers": ["hosted-service"],
       "description": "Hosted MCP/orchestrator envelope for authenticated tool access, HoloCI dispatch, world rendering dispatch, and paid simulation dispatch.",
+      "capabilityBands": ["public-tool-gateway", "gpu-fleet-dispatch"],
+      "publicConsumption": {
+        "persona": "Public API consumer or fleet coordinator",
+        "primaryInstallSurface": "Hosted MCP/orchestrator service",
+        "onboardingGoal": "Expose one authenticated public control plane for tools and fleet dispatch without leaking local repo or secret custody assumptions.",
+        "mustNotClaim": [
+          "Do not treat hosted MCP status as local repo authority.",
+          "Do not expose credentialed or paid dispatch without preview-first, fail-closed controls."
+        ]
+      },
       "publicEntrySurfaces": [
         "mcp.holoscript.net",
         "hosted MCP/orchestrator API",

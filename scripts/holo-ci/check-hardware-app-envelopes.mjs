@@ -87,9 +87,35 @@ function validateManifests({ appsManifest, fleetManifest, consumptionManifest, p
     if (consumer.id) consumerIds.add(consumer.id);
   }
   const scripts = packageJson?.scripts || {};
+  const utilityBands = appsManifest?.utilityBands || [];
   const apps = appsManifest?.apps || [];
+  const bandById = new Map();
+  const usedBandIds = new Set();
   const coveredConsumers = new Set();
   const seenApps = new Set();
+
+  if (!Array.isArray(utilityBands) || utilityBands.length === 0) {
+    errors.push('utilityBands[] is empty');
+  }
+  for (const band of utilityBands) {
+    if (!idLooksValid(band.id)) {
+      errors.push(`utility band id is missing or invalid: ${band.id || '<missing>'}`);
+      continue;
+    }
+    if (bandById.has(band.id)) errors.push(`duplicate utility band id: ${band.id}`);
+    bandById.set(band.id, band);
+    if (!band.label) errors.push(`${band.id}: missing utility band label`);
+    if (!band.hardwarePurpose) errors.push(`${band.id}: missing hardwarePurpose`);
+    if (!band.publicRole) errors.push(`${band.id}: missing publicRole`);
+    if (!Array.isArray(band.utilityIds) || band.utilityIds.length === 0) {
+      errors.push(`${band.id}: missing utilityIds[]`);
+    }
+    for (const utilityId of band.utilityIds || []) {
+      if (!utilityIds.has(utilityId)) {
+        errors.push(`${band.id}: unknown utility '${utilityId}'`);
+      }
+    }
+  }
 
   if (!Array.isArray(apps) || apps.length === 0) {
     errors.push('apps[] is empty');
@@ -99,6 +125,7 @@ function validateManifests({ appsManifest, fleetManifest, consumptionManifest, p
     rows.push({
       id: app.id,
       hardwareClass: app.hardwareClass,
+      capabilityBands: app.capabilityBands || [],
       requiredConsumers: app.requiredConsumers || [],
       requiredUtilityIds: app.requiredUtilityIds || [],
     });
@@ -124,6 +151,36 @@ function validateManifests({ appsManifest, fleetManifest, consumptionManifest, p
 
     const requiredUtilityIds = asSet(app.requiredUtilityIds || []);
     if (requiredUtilityIds.size === 0) errors.push(`${app.id}: missing requiredUtilityIds[]`);
+    const declaredCapabilityBands = app.capabilityBands || [];
+    const capabilityBands = Array.isArray(declaredCapabilityBands) ? declaredCapabilityBands : [];
+    const bandUtilityIds = new Set();
+    if (!Array.isArray(declaredCapabilityBands) || capabilityBands.length === 0) {
+      errors.push(`${app.id}: missing capabilityBands[]`);
+    }
+    for (const bandId of capabilityBands) {
+      if (!bandById.has(bandId)) {
+        errors.push(`${app.id}: unknown capability band '${bandId}'`);
+        continue;
+      }
+      usedBandIds.add(bandId);
+      for (const utilityId of bandById.get(bandId).utilityIds || []) {
+        bandUtilityIds.add(utilityId);
+      }
+    }
+    for (const utilityId of requiredUtilityIds) {
+      if (capabilityBands.length > 0 && !bandUtilityIds.has(utilityId)) {
+        errors.push(
+          `${app.id}: required utility '${utilityId}' is not covered by capabilityBands[]`
+        );
+      }
+    }
+    for (const utilityId of bandUtilityIds) {
+      if (!requiredUtilityIds.has(utilityId)) {
+        errors.push(
+          `${app.id}: capabilityBands[] include utility '${utilityId}' that is not declared in requiredUtilityIds[]`
+        );
+      }
+    }
     for (const utilityId of requiredUtilityIds) {
       if (!utilityIds.has(utilityId)) errors.push(`${app.id}: unknown utility '${utilityId}'`);
       const utility = utilities.find((candidate) => candidate.id === utilityId);
@@ -156,6 +213,22 @@ function validateManifests({ appsManifest, fleetManifest, consumptionManifest, p
     if (!Array.isArray(app.caveats) || app.caveats.length === 0) {
       errors.push(`${app.id}: missing caveats[]`);
     }
+    const publicConsumption = app.publicConsumption || {};
+    if (!publicConsumption.persona) {
+      errors.push(`${app.id}: missing publicConsumption.persona`);
+    }
+    if (!publicConsumption.primaryInstallSurface) {
+      errors.push(`${app.id}: missing publicConsumption.primaryInstallSurface`);
+    }
+    if (!publicConsumption.onboardingGoal) {
+      errors.push(`${app.id}: missing publicConsumption.onboardingGoal`);
+    }
+    if (
+      !Array.isArray(publicConsumption.mustNotClaim) ||
+      publicConsumption.mustNotClaim.length === 0
+    ) {
+      errors.push(`${app.id}: missing publicConsumption.mustNotClaim[]`);
+    }
 
     const validationCommands = app.validationCommands || [];
     if (!Array.isArray(validationCommands) || validationCommands.length === 0) {
@@ -178,6 +251,12 @@ function validateManifests({ appsManifest, fleetManifest, consumptionManifest, p
           errors.push(`${app.id}/${command.id}: package.json script not found: ${command.script}`);
         }
       }
+    }
+  }
+
+  for (const band of utilityBands) {
+    if (band?.id && !usedBandIds.has(band.id)) {
+      errors.push(`utility band '${band.id}' is not used by any app envelope`);
     }
   }
 
@@ -214,12 +293,28 @@ function runSelfTest() {
     packageJson,
     appsManifest: {
       schema: 'holoscript.hardware-app-envelopes/v1',
+      utilityBands: [
+        {
+          id: 'cli-band',
+          label: 'CLI Band',
+          hardwarePurpose: 'Prove a local command surface.',
+          publicRole: 'Expose the CLI to a hardware app.',
+          utilityIds: ['cli'],
+        },
+      ],
       apps: [
         {
           id: 'laptop-app',
           label: 'Laptop App',
           hardwareClass: 'workstation',
           requiredConsumers: ['laptop'],
+          capabilityBands: ['cli-band'],
+          publicConsumption: {
+            persona: 'Local operator',
+            primaryInstallSurface: 'CLI',
+            onboardingGoal: 'Install one app that exposes the CLI.',
+            mustNotClaim: ['Do not claim live hardware proof from repo checks.'],
+          },
           publicEntrySurfaces: ['CLI'],
           requiredUtilityIds: ['cli'],
           validationCommands: [
@@ -253,6 +348,15 @@ function runSelfTest() {
     packageJson,
     appsManifest: {
       schema: 'holoscript.hardware-app-envelopes/v1',
+      utilityBands: [
+        {
+          id: 'cli-band',
+          label: 'CLI Band',
+          hardwarePurpose: 'Prove a local command surface.',
+          publicRole: 'Expose the CLI to a hardware app.',
+          utilityIds: ['cli'],
+        },
+      ],
       apps: [
         {
           id: 'bad-app',
@@ -286,7 +390,7 @@ function runSelfTest() {
   });
   if (invalid.ok || invalid.errors.length < 3) {
     throw new Error(
-      'expected invalid app fixture to surface missing utility, missing script, and uncovered consumer'
+      'expected invalid app fixture to surface utility, public-consumption, script, and consumer issues'
     );
   }
 
