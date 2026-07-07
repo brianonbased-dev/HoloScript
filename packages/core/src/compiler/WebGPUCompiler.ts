@@ -21,7 +21,6 @@ import type {
   HoloSpatialGroup,
   HoloLight,
   HoloEnvironment,
-  HoloCamera,
   HoloValue,
   HoloDomainBlock,
   HoloTemplate,
@@ -108,7 +107,7 @@ export class WebGPUCompiler extends CompilerBase {
     // view-projection uniform (vpUniform). Always emit — a scene with no camera
     // still needs perspective, otherwise every mesh renders flat/orthographic
     // in clip space (the "cylinder renders as a cube" class of bug).
-    this.emitCamera(composition.camera);
+    this.emitCamera(composition);
     // Scene lights must be emitted BEFORE objects: every mesh bind group binds the
     // shared `sceneLights` uniform (binding 3) so the fragment shader lights each
     // surface from the scene's declared lights instead of a hardcoded fake sun.
@@ -823,21 +822,96 @@ export class WebGPUCompiler extends CompilerBase {
 
   // ─── Camera ───────────────────────────────────────────────────────────────
 
-  private emitCamera(cam?: HoloCamera): void {
+  // Compute a bounding sphere (center + radius) over every object's world position,
+  // including spatial-group offsets and per-object scale. Used to auto-frame the
+  // camera when the author declared no explicit position. Returns null for an
+  // object-less scene (nothing to frame → keep the neutral default).
+  private sceneBoundsForCamera(
+    composition: HoloComposition
+  ): { center: number[]; radius: number } | null {
+    const pts: Array<{ p: number[]; r: number }> = [];
+    // A full-screen background plane (fluid/water) can carry a huge scale; if it
+    // drove the bounds the camera would pull miles back and everything else would
+    // shrink to a dot. Cap each object's framing radius so no single oversized
+    // surface dominates — object *positions* set the extent, scale only pads it.
+    const R_CAP = 3;
+    const addObj = (obj: HoloObjectDecl, offset: number[]) => {
+      const pos = this.findObjProp(obj, 'position');
+      const scale = this.findObjProp(obj, 'scale') || this.findObjProp(obj, 'size');
+      const [px, py, pz] = Array.isArray(pos) ? (pos as number[]) : [0, 0, 0];
+      const rawR = Array.isArray(scale)
+        ? Math.max(...(scale as number[]).map((n) => Math.abs(n)))
+        : typeof scale === 'number'
+          ? Math.abs(scale)
+          : 1;
+      pts.push({ p: [px + offset[0], py + offset[1], pz + offset[2]], r: Math.min(rawR, R_CAP) });
+    };
+    for (const obj of composition.objects ?? []) addObj(obj, [0, 0, 0]);
+    const walkGroup = (g: HoloSpatialGroup, parent: number[]) => {
+      const gp = g.properties?.find((p) => p.key === 'position')?.value;
+      const [gx, gy, gz] = Array.isArray(gp) ? (gp as number[]) : [0, 0, 0];
+      const off = [parent[0] + gx, parent[1] + gy, parent[2] + gz];
+      for (const obj of g.objects ?? []) addObj(obj, off);
+      for (const sub of g.groups ?? []) walkGroup(sub, off);
+    };
+    for (const g of composition.spatialGroups ?? []) walkGroup(g, [0, 0, 0]);
+    if (pts.length === 0) return null;
+    const min = [Infinity, Infinity, Infinity];
+    const max = [-Infinity, -Infinity, -Infinity];
+    for (const { p, r } of pts) {
+      for (let i = 0; i < 3; i++) {
+        min[i] = Math.min(min[i], p[i] - r);
+        max[i] = Math.max(max[i], p[i] + r);
+      }
+    }
+    const center = [(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2];
+    let radius = 0;
+    for (const { p, r } of pts) {
+      radius = Math.max(radius, Math.hypot(p[0] - center[0], p[1] - center[1], p[2] - center[2]) + r);
+    }
+    return { center, radius: radius || 1 };
+  }
+
+  private emitCamera(composition: HoloComposition): void {
+    const cam = composition.camera;
     this.emit('// === Camera ===');
     // Defaults chosen to frame a small scene at the origin under perspective.
     let fov = 60,
       near = 0.1,
       far = 1000,
       pos = [4, 3, 6],
-      lookAt = [0, 0, 0];
+      lookAt = [0, 0, 0],
+      hasPos = false;
     for (const prop of cam?.properties ?? []) {
       if (prop.key === 'fov' || prop.key === 'field_of_view') fov = prop.value as number;
       else if (prop.key === 'near') near = prop.value as number;
       else if (prop.key === 'far') far = prop.value as number;
-      else if (prop.key === 'position' && Array.isArray(prop.value)) pos = prop.value as number[];
-      else if ((prop.key === 'look_at' || prop.key === 'lookAt') && Array.isArray(prop.value))
+      else if (prop.key === 'position' && Array.isArray(prop.value)) {
+        pos = prop.value as number[];
+        hasPos = true;
+      } else if ((prop.key === 'look_at' || prop.key === 'lookAt') && Array.isArray(prop.value))
         lookAt = prop.value as number[];
+    }
+    // Auto-fit: an author who declared no explicit camera position gets the scene
+    // framed for them — camera pulled back along a 3/4 view far enough for the
+    // bounding sphere to fit the vertical FOV (+20% margin), aimed at the centroid.
+    // A declared position is always honored verbatim (world author owns framing).
+    if (!hasPos) {
+      const b = this.sceneBoundsForCamera(composition);
+      if (b) {
+        const r4 = (n: number) => Number(n.toFixed(4));
+        const fovRad = (fov * Math.PI) / 180;
+        const dist = (b.radius / Math.sin(fovRad / 2)) * 1.1;
+        const dl = Math.hypot(0.35, 0.45, 1);
+        const dir = [0.35 / dl, 0.45 / dl, 1 / dl];
+        pos = [
+          r4(b.center[0] + dir[0] * dist),
+          r4(b.center[1] + dir[1] * dist),
+          r4(b.center[2] + dir[2] * dist),
+        ];
+        lookAt = [r4(b.center[0]), r4(b.center[1]), r4(b.center[2])];
+        far = Math.max(far, r4(dist + b.radius * 2 + 10));
+      }
     }
     this.emit(`const cameraFov = ${fov} * Math.PI / 180;`);
     this.emit(`const cameraNear = ${near}, cameraFar = ${far};`);

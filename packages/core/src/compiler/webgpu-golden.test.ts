@@ -144,4 +144,37 @@ describe('WebGPU golden output (byte-diff baseline for render-module refactor)',
     // Synthesized default: white directional, dir = [-1,-2,-1.5] (reproduces the old fixed sun).
     expect(out).toContain('const sceneLights = createBuffer(device, new Float32Array([1,0,0,0, 1,1,1,0, 1,2,1.5,0, -1,-2,-1.5,0');
   });
+
+  it('camera auto-fits to the scene centroid when the author declared no camera', () => {
+    // Objects centered on (10, 5, 0), not the origin — a naive fixed camera aimed at
+    // [0,0,0] would frame empty space. Auto-fit must aim at the actual centroid.
+    const scene = {
+      type: 'HoloComposition',
+      name: 'OffCenter',
+      objects: [
+        obj('A', [prop('mesh', 'sphere'), prop('position', [9, 5, 0])]),
+        obj('B', [prop('mesh', 'sphere'), prop('position', [11, 5, 0])]),
+      ],
+    } as HoloComposition;
+    const out = new WebGPUCompiler().compile(scene, 'golden-token');
+    // cameraTarget is the centroid [10,5,0], NOT the origin.
+    expect(out).toContain('const cameraTarget = new Float32Array([10,5,0]);');
+    expect(out).not.toContain('const cameraTarget = new Float32Array([0,0,0]);');
+  });
+
+  it('honors an explicitly declared camera position verbatim (author owns framing)', () => {
+    const scene = {
+      type: 'HoloComposition',
+      name: 'Declared',
+      objects: [obj('A', [prop('mesh', 'sphere'), prop('position', [9, 5, 0])])],
+      camera: {
+        type: 'Camera',
+        cameraType: 'perspective',
+        properties: [prop('position', [1, 2, 3]), prop('look_at', [4, 5, 6])],
+      } as HoloCamera,
+    } as HoloComposition;
+    const out = new WebGPUCompiler().compile(scene, 'golden-token');
+    expect(out).toContain('const cameraPos = new Float32Array([1,2,3]);');
+    expect(out).toContain('const cameraTarget = new Float32Array([4,5,6]);');
+  });
 });
