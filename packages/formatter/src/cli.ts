@@ -28,7 +28,18 @@ interface CliOptions {
   version: boolean;
 }
 
-const VERSION = '2.0.0';
+function readPackageVersion(): string {
+  try {
+    const packageJson = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf-8')) as {
+      version?: unknown;
+    };
+    return typeof packageJson.version === 'string' ? packageJson.version : '0.0.0';
+  } catch {
+    return '0.0.0';
+  }
+}
+
+const VERSION = readPackageVersion();
 
 function printHelp(): void {
   console.log(`

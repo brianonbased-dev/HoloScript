@@ -1,11 +1,11 @@
 {
   "name": "@holoscript/formatter",
-  "version": "3.1.0",
+  "version": "6.0.4",
   "description": "Code formatting tool for HoloScript (.hs, .holo) and HoloScript+ (.hsplus) files",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "holoscript-format": "./bin/holoscript-format.cjs"
+    "holoscript-format": "bin/holoscript-format.cjs"
   },
   "scripts": {
     "build": "tsup && tsc --emitDeclarationOnly --declarationDir dist --skipLibCheck",
@@ -29,7 +29,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/brianonbased-dev/HoloScript.git",
+    "url": "git+https://github.com/brianonbased-dev/HoloScript.git",
     "directory": "packages/formatter"
   },
   "engines": {
@@ -38,7 +38,8 @@
   "files": [
     "bin",
     "dist",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md"
   ],
   "devDependencies": {
     "@types/node": "^24.10.1",

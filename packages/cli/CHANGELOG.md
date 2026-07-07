@@ -1,5 +1,13 @@
 # @holoscript/cli
 
+## 8.0.11
+
+### Patch Changes
+
+- Re-publish the CLI after the formatter package repair so registry cold-start
+  installs resolve `@holoscript/formatter` to a version with the CommonJS entry
+  files required by the CLI.
+
 ## 8.0.10
 
 ### Patch Changes

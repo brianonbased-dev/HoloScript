@@ -60,21 +60,13 @@
       "targetMajor": 6,
       "packages": [
         "@holoscript/benchmark",
+        "@holoscript/formatter",
         "@holoscript/linter",
         "@holoscript/lsp",
         "@holoscript/partner-sdk",
         "@holoscript/registry",
         "@holoscript/visual",
         "@holoscript/wasm"
-      ]
-    },
-    {
-      "name": "tooling-v3",
-      "description": "Tooling packages remaining on major 3",
-      "enforce": "major",
-      "targetMajor": 3,
-      "packages": [
-        "@holoscript/formatter"
       ]
     },
     {

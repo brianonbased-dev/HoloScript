@@ -70,6 +70,9 @@ const PACKAGE_IMPORT_PROBES = {
   'memory-client-import': [
     '@holoscript/memory',
   ],
+  'formatter-import': [
+    '@holoscript/formatter',
+  ],
   'holoscript-agent-library-import': [
     '@holoscript/holoscript-agent/brain',
     '@holoscript/holoscript-agent/identity',
@@ -87,6 +90,14 @@ const PACKAGE_BIN_HELP_PROBES = {
     runBin: 'holoscript',
     expectedBins: ['holo', 'holoscript', 'hs'],
     expectedOutput: ['HoloScript CLI', 'Usage: holoscript', 'parse <file>'],
+    expectPackageVersion: true,
+  },
+  'formatter-bin-help': {
+    packageName: '@holoscript/formatter',
+    runBin: 'holoscript-format',
+    expectedBins: ['holoscript-format'],
+    expectedOutput: ['HoloScript Formatter', 'Usage:', 'holoscript-format'],
+    expectPackageVersion: true,
   },
   'holoscript-agent-bin-help': {
     packageName: '@holoscript/holoscript-agent',
@@ -481,6 +492,9 @@ const plainStdout = stdout.replace(/\\u001b\\[[0-9;]*m/g, '');
 const outputChecks = Object.fromEntries(
   config.expectedOutput.map((marker) => [marker, plainStdout.includes(marker)])
 );
+if (config.expectPackageVersion) {
+  outputChecks[\`v\${manifest.version}\`] = plainStdout.includes(\`v\${manifest.version}\`);
+}
 
 console.log(JSON.stringify({
   kind: ${JSON.stringify(probeKind)},

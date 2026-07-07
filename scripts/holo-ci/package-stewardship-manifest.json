@@ -298,6 +298,39 @@
       ]
     },
     {
+      "id": "language-formatting-tool",
+      "registry": "npm",
+      "packageName": "@holoscript/formatter",
+      "status": "release-candidate",
+      "constructionRole": "Standalone formatter and formatting library for .holo, .hs, and .hsplus source.",
+      "stewardshipIntent": "Keep source hygiene and CLI transitive dependencies cold-installable outside the monorepo.",
+      "userClasses": ["human", "ai-agent"],
+      "outsideUserGate": {
+        "readiness": "ready",
+        "harnessMode": "standalone",
+        "audience": ["external-human", "external-ai-agent"],
+        "publicEntry": "packages/formatter/README.md",
+        "requiredPublicFiles": [],
+        "privateHarnessLeakAllowed": false
+      },
+      "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "utilityIds": [],
+      "validationScripts": [
+        "check:npm-v1-release:built",
+        "check:package-consumption:full",
+        "version:check:strict"
+      ],
+      "validationCommands": [
+        "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/formatter@latest --probe formatter-bin-help --json",
+        "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/formatter@latest --probe formatter-import --json"
+      ],
+      "nextActions": [
+        "Keep holoscript-format help and import cold-start probes green after each formatter publish.",
+        "Use formatter cold-start failures as release-blocking evidence for CLI and VS Code package work.",
+        "Promote richer formatting behavior only through tests and package-consumption proof."
+      ]
+    },
+    {
       "id": "xr-embodiment-runtime",
       "registry": "npm",
       "packageName": "@holoscript/xr-embodiment",

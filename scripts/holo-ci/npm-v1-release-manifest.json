@@ -13,6 +13,11 @@
       "v1Intent": "Installable holoscript/hs binary for users and agents."
     },
     {
+      "name": "@holoscript/formatter",
+      "role": "language-formatter",
+      "v1Intent": "Installable formatter library and holoscript-format binary for .holo, .hs, and .hsplus source hygiene."
+    },
+    {
       "name": "@holoscript/mcp-server",
       "role": "agent-mcp",
       "v1Intent": "MCP server package for universal agent access to HoloScript."

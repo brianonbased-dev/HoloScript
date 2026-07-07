@@ -45,6 +45,19 @@
       "forbidBundledNativeAddons": true
     },
     {
+      "name": "@holoscript/formatter",
+      "packageDir": "packages/formatter",
+      "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "requireBins": ["holoscript-format"],
+      "requireFiles": [
+        "bin/holoscript-format.cjs",
+        "dist/index.js",
+        "dist/cli.js",
+        "dist/index.d.ts"
+      ],
+      "forbidBundledNativeAddons": true
+    },
+    {
       "name": "@holoscript/mcp-server",
       "packageDir": "packages/mcp-server",
       "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
