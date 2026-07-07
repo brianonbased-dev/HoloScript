@@ -336,6 +336,8 @@ function buildRows({ packages, lanes, history, graph, root }) {
     };
     const graphRow = graph.packages.get(pkg.name) || { graphFiles: 0, graphSymbols: 0 };
     const steward = lanes.stewardshipByNpm?.get(pkg.name);
+    const activeBlockers = activeStewardshipBlockers(steward);
+    const caveats = steward?.caveats || [];
     const docPath = packageDocPath(root, pkg);
     const publicSurface = !pkg.private;
     const row = {
@@ -349,6 +351,8 @@ function buildRows({ packages, lanes, history, graph, root }) {
       stewarded: Boolean(steward),
       stewardshipStatus: steward?.status || null,
       stewardshipNextActions: steward?.nextActions || [],
+      stewardshipActiveBlockers: activeBlockers,
+      stewardshipCaveats: caveats,
       docsPath: docPath,
       hasDocs: Boolean(docPath),
       hasGovernance: safeIncludes(governanceText, pkg.name),
@@ -370,7 +374,9 @@ function buildRows({ packages, lanes, history, graph, root }) {
       (row.public && !row.hasOwnership ? 8 : 0) +
       (row.fleetConsumed ? 10 : 0) +
       (row.releaseCandidate ? 8 : 0) +
-      (row.stewardshipNextActions.length ? 5 : 0);
+      (row.stewardshipNextActions.length ? 5 : 0) +
+      activeBlockers.length * 15 +
+      caveats.length;
     return row;
   });
 }
@@ -381,6 +387,10 @@ function packageNameForSteward(record) {
 
 function isReadySteward(record) {
   return ['fleet-operational', 'release-candidate'].includes(record.status);
+}
+
+function activeStewardshipBlockers(record) {
+  return (record?.blockers || []).filter((blocker) => blocker.status === 'active');
 }
 
 function buildStewardshipRecommendations(rows, lanes) {
@@ -394,7 +404,11 @@ function buildStewardshipRecommendations(rows, lanes) {
     if (!name) continue;
     const row = byName.get(name);
     const validationScripts = record.validationScripts || [];
+    const validationCommands = record.validationCommands || [];
     const validation = new Set(validationScripts);
+    const validationEvidenceText = [...validationScripts, ...validationCommands].join('\n');
+    const blockers = activeStewardshipBlockers(record);
+    const caveats = record.caveats || [];
     const gaps = [];
 
     if (
@@ -414,6 +428,7 @@ function buildStewardshipRecommendations(rows, lanes) {
     if (
       record.registry === 'npm' &&
       record.status === 'fleet-operational' &&
+      !validationEvidenceText.includes('check-registry-cold-start') &&
       !validationScripts.some((script) => script.startsWith('check:registry-cold-start'))
     ) {
       gaps.push('missing registry cold-start validation');
@@ -428,7 +443,7 @@ function buildStewardshipRecommendations(rows, lanes) {
     if (row?.commits > 50 && !validation.has('check:package-consumption:full')) {
       gaps.push('stale validation risk after heavy package churn');
     }
-    if (!gaps.length && !record.nextActions?.length) continue;
+    if (!gaps.length && !record.nextActions?.length && !blockers.length) continue;
 
     const churnScore = row ? row.commits * 0.5 + row.changedFiles * 0.1 : 0;
     recommendations.push({
@@ -440,17 +455,24 @@ function buildStewardshipRecommendations(rows, lanes) {
         (
           churnScore +
           gaps.length * 25 +
+          blockers.length * 300 +
           (record.nextActions?.length || 0) * 8 +
+          caveats.length * 3 +
           (record.status === 'fleet-operational' ? 10 : 0)
         ).toFixed(1)
       ),
       evidence: {
         status: record.status,
         validationScripts,
+        validationCommands,
         commits: row?.commits || 0,
         changedFiles: row?.changedFiles || 0,
+        activeBlockers: blockers.length,
+        caveats: caveats.length,
       },
       gaps,
+      blockers,
+      caveats,
       nextActions: record.nextActions || [],
     });
   }
@@ -586,6 +608,23 @@ function runSelfTest() {
         status: 'fleet-operational',
         validationScripts: ['check:package-consumption:full'],
         nextActions: ['Keep the public package cold-installable.'],
+        blockers: [
+          {
+            id: 'live-endpoint',
+            status: 'active',
+            scope: 'edge-node',
+            summary: 'Live endpoint is not configured.',
+            nextUnblockAction: 'Configure the live endpoint and rerun the receipt check.',
+          },
+        ],
+        caveats: [
+          {
+            id: 'shape-not-live',
+            scope: 'public-package',
+            summary: 'Package shape does not prove live hardware.',
+            overclaimGuard: 'Require live receipts for hardware claims.',
+          },
+        ],
       },
     ],
     stewardshipByNpm: new Map([
@@ -594,6 +633,23 @@ function runSelfTest() {
         {
           status: 'fleet-operational',
           nextActions: ['Keep the public package cold-installable.'],
+          blockers: [
+            {
+              id: 'live-endpoint',
+              status: 'active',
+              scope: 'edge-node',
+              summary: 'Live endpoint is not configured.',
+              nextUnblockAction: 'Configure the live endpoint and rerun the receipt check.',
+            },
+          ],
+          caveats: [
+            {
+              id: 'shape-not-live',
+              scope: 'public-package',
+              summary: 'Package shape does not prove live hardware.',
+              overclaimGuard: 'Require live receipts for hardware claims.',
+            },
+          ],
         },
       ],
     ]),
@@ -630,11 +686,16 @@ function runSelfTest() {
   assert.equal(hot.stewarded, true);
   assert.equal(hot.hasDocs, false);
   assert.equal(hot.graphFiles, 2);
+  assert.equal(hot.stewardshipActiveBlockers.length, 1);
+  assert.equal(hot.stewardshipCaveats.length, 1);
 
   const recommendations = buildRecommendations(rows, history, lanes);
-  assert.equal(recommendations[0].kind, 'foster-existing-package');
-  assert.equal(recommendations[0].package, '@scope/hot');
-  assert.ok(recommendations.some((item) => item.kind === 'stewardship-work'));
+  const stewardship = recommendations.find((item) => item.kind === 'stewardship-work');
+  assert.ok(stewardship);
+  assert.equal(recommendations[0], stewardship);
+  assert.equal(stewardship.evidence.activeBlockers, 1);
+  assert.equal(stewardship.blockers[0].id, 'live-endpoint');
+  assert.equal(stewardship.caveats[0].id, 'shape-not-live');
   assert.ok(recommendations.some((item) => item.kind === 'new-package-candidate'));
   assert.ok(!recommendations.some((item) => item.dir === 'packages/deleted'));
   assert.ok(!recommendations.some((item) => item.dir === 'packages/pythonish'));
@@ -666,6 +727,8 @@ function printHuman(map) {
       row.fleetConsumed ? 'fleet-consumed' : null,
       row.publishAllowlisted ? 'allowlisted' : null,
       row.stewarded ? `stewarded:${row.stewardshipStatus}` : 'unstewarded',
+      row.stewardshipActiveBlockers?.length ? `active-blockers:${row.stewardshipActiveBlockers.length}` : null,
+      row.stewardshipCaveats?.length ? `caveats:${row.stewardshipCaveats.length}` : null,
       row.hasDocs ? 'docs' : 'missing-docs',
       row.hasGovernance ? 'governed' : 'missing-governance',
       row.hasOwnership ? 'owned' : 'missing-owner',
@@ -684,9 +747,12 @@ function printHuman(map) {
         `  - foster ${item.package}: ${item.gaps.join(', ')} (commits=${item.evidence.commits}, graph=${item.evidence.graphFiles}/${item.evidence.graphSymbols})`
       );
     } else if (item.kind === 'stewardship-work') {
-      const work = [...item.gaps, ...(item.nextActions || [])].slice(0, 3).join('; ');
+      const blockerWork = (item.blockers || []).map(
+        (blocker) => `blocked:${blocker.scope}:${blocker.nextUnblockAction || blocker.summary}`
+      );
+      const work = [...blockerWork, ...item.gaps, ...(item.nextActions || [])].slice(0, 3).join('; ');
       console.log(
-        `  - steward ${item.package}: ${work} (status=${item.evidence.status}, commits=${item.evidence.commits})`
+        `  - steward ${item.package}: ${work} (status=${item.evidence.status}, commits=${item.evidence.commits}, activeBlockers=${item.evidence.activeBlockers})`
       );
     } else {
       console.log(

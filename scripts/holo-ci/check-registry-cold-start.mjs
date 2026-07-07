@@ -58,6 +58,11 @@ const PACKAGE_IMPORT_PROBES = {
     '@holoscript/absorb-service/schema',
     '@holoscript/absorb-service/engine',
   ],
+  'uaal-semantic-gate-import': [
+    '@holoscript/uaal',
+    '@holoscript/uaal/semantic',
+    '@holoscript/uaal/gate',
+  ],
 };
 const PROBES = new Set([
   'core-holo-webgpu',

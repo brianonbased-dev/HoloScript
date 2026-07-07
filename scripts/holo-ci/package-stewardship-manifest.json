@@ -546,6 +546,9 @@
         "check:package-consumption:full",
         "version:check:strict"
       ],
+      "validationCommands": [
+        "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/uaal@latest --probe uaal-semantic-gate-import --json"
+      ],
       "blockers": [
         {
           "id": "s0-training-run",
