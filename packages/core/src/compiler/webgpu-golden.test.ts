@@ -235,4 +235,59 @@ describe('WebGPU golden output (byte-diff baseline for render-module refactor)',
     expect(out).not.toContain('waterFrameU');
     expect(out).not.toContain('generateWaterPlaneVertices');
   });
+
+  it('functional geometry (purpose=collision) is recorded but never rendered', () => {
+    const scene = {
+      type: 'HoloComposition',
+      name: 'PhysScene',
+      objects: [
+        obj('Ball', [prop('mesh', 'sphere')]),
+        obj('HitBox', [prop('mesh', 'cube'), prop('purpose', 'collision'), prop('position', [0, 1, 0])]),
+      ],
+    } as HoloComposition;
+    const out = new WebGPUCompiler().compile(scene, 'golden-token');
+    // The visible ball renders...
+    expect(out).toContain('const BallPipeline = device.createRenderPipeline');
+    // ...the collider is recorded with its purpose + shared primitive, but has NO
+    // render pipeline and NO draw call.
+    expect(out).toContain('purpose="collision", not rendered');
+    expect(out).toContain('purpose: "collision", visible: false');
+    expect(out).toContain('primitive="box"');
+    expect(out).not.toContain('HitBoxPipeline');
+  });
+
+  it('a collider trait makes geometry functional/invisible without an explicit purpose', () => {
+    const scene = {
+      type: 'HoloComposition',
+      name: 'TraitPhys',
+      objects: [
+        { type: 'ObjectDecl', name: 'Trigger', properties: [prop('mesh', 'cube')], traits: [{ name: 'collider' }] },
+      ],
+    } as unknown as HoloComposition;
+    const out = new WebGPUCompiler().compile(scene, 'golden-token');
+    expect(out).toContain('purpose="collision", not rendered');
+    expect(out).not.toContain('TriggerPipeline');
+  });
+
+  it('visible:false hides an ordinary mesh from the render target', () => {
+    const scene = {
+      type: 'HoloComposition',
+      name: 'Hidden',
+      objects: [obj('Ghost', [prop('mesh', 'sphere'), prop('visible', false)])],
+    } as HoloComposition;
+    const out = new WebGPUCompiler().compile(scene, 'golden-token');
+    expect(out).not.toContain('GhostPipeline');
+    expect(out).toContain('purpose="render", not rendered');
+  });
+
+  it('visible:true forces functional geometry to render (debug collider viz)', () => {
+    const scene = {
+      type: 'HoloComposition',
+      name: 'DebugViz',
+      objects: [obj('DebugCol', [prop('mesh', 'cube'), prop('purpose', 'collision'), prop('visible', true)])],
+    } as HoloComposition;
+    const out = new WebGPUCompiler().compile(scene, 'golden-token');
+    expect(out).toContain('const DebugColPipeline = device.createRenderPipeline');
+    expect(out).not.toContain('not rendered');
+  });
 });

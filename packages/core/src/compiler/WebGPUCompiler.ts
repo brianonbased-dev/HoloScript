@@ -28,6 +28,7 @@ import type {
 import { CompilerBase } from './CompilerBase';
 import { resolveGeometry } from './render-modules/geometry-registry';
 import { resolveSkyboxColor } from './render-modules/skybox-registry';
+import { resolveGeometryRole } from './render-modules/geometry-purpose';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 import {
   compileMaterialBlock,
@@ -558,6 +559,33 @@ export class WebGPUCompiler extends CompilerBase {
     const traits = obj.traits || [];
 
     this.emit(`// Object: ${this.escapeStringValue(obj.name as string, 'TypeScript')}`);
+
+    // Geometry role: is this a visible render surface or FUNCTIONAL (invisible)
+    // geometry — a collider / emitter / sim-domain / trigger? The render target
+    // draws only visible roles; functional geometry is still resolved to its shared
+    // primitive and recorded (with its purpose) so physics/vfx/sim compilers consume
+    // the SAME shape vocabulary. This is the horizontal "one shape, many domains" axis.
+    const role = resolveGeometryRole({
+      purpose: this.findObjProp(obj, 'purpose'),
+      visible: this.findObjProp(obj, 'visible'),
+      traitNames: traits.map((t) => t.name),
+    });
+    if (!role.visible) {
+      const prim = resolveGeometry(meshType).kind;
+      const pos = this.findObjProp(obj, 'position');
+      const [px, py, pz] = Array.isArray(pos) ? (pos as number[]) : [0, 0, 0];
+      this.emit(
+        `// Functional geometry — purpose="${role.purpose}", not rendered; primitive="${prim}" is shared with physics/vfx/sim consumers.`
+      );
+      this.emit(
+        `holoGraphObjects.push({ id: "${this.escapeStringValue(obj.name as string, 'TypeScript')}", name: "${this.escapeStringValue(obj.name as string, 'TypeScript')}", geometry: "${this.escapeStringValue(meshType, 'TypeScript')}", primitive: "${prim}", purpose: "${role.purpose}", visible: false, traits: ${this.json(traits.map((t) => t.name))}, basePosition: [${px},${py},${pz}], position: [${px},${py},${pz}] });`
+      );
+      this.emit('');
+      if (obj.children) {
+        for (const child of obj.children) this.emitObject(child);
+      }
+      return;
+    }
 
     const isGaussianSplat = traits.some((t) => t.name === 'gaussian_splat');
     const isPointCloud = traits.some((t) => t.name === 'point_cloud');
@@ -1572,6 +1600,20 @@ export class WebGPUCompiler extends CompilerBase {
   private emitDrawCall(obj: HoloObjectDecl): void {
     const v = this.sanitizeName(obj.name);
     const traits = obj.traits || [];
+
+    // Functional/invisible geometry has no render pipeline (see emitObject) — never
+    // draw it, but keep walking children (a hidden group can still contain visible ones).
+    const role = resolveGeometryRole({
+      purpose: this.findObjProp(obj, 'purpose'),
+      visible: this.findObjProp(obj, 'visible'),
+      traitNames: traits.map((t) => t.name),
+    });
+    if (!role.visible) {
+      if (obj.children) {
+        for (const child of obj.children) this.emitDrawCall(child);
+      }
+      return;
+    }
 
     if (traits.some((t) => t.name === 'gaussian_splat')) {
       this.emit(`rp.setPipeline(${v}SplatPipeline); rp.draw(4, ${v}SplatCount.value);`);
