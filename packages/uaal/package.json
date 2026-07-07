@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/uaal",
-  "version": "8.0.6",
+  "version": "8.0.7",
   "description": "uAAL — Universal Autonomous Agent Language VM. Stack-based bytecode execution engine for the uAA2++ 7-Phase Protocol.",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -15,6 +15,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./semantic": {
+      "types": "./dist/semantic.d.ts",
+      "import": "./dist/semantic.js",
+      "require": "./dist/semantic.cjs"
     }
   },
   "scripts": {
@@ -37,6 +42,9 @@
     "protocol",
     "bytecode",
     "vm",
+    "semantic-ir",
+    "theory-of-mind",
+    "telos",
     "ai-native"
   ],
   "author": "Brian X Base Team",

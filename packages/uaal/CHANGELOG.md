@@ -1,5 +1,11 @@
 # @holoscript/uaal
 
+## 8.0.7
+
+### Patch Changes
+
+- Add the `@holoscript/uaal/semantic` subpath with importable uAAL v2 theory-of-mind, telos, and containment recovery gates.
+
 ## 8.0.6
 
 ### Patch Changes

@@ -28,6 +28,20 @@ vm.registerHandler(UAALOpCode.OP_INVOKE_LLM, async (proxy, operands) => {
 });
 ```
 
+## Semantic Harness
+
+`@holoscript/uaal/semantic` exposes the pure structural gates used by the uAAL v2 corpus work. Agents can consume these functions without the private corpus generator or receipt CLI:
+
+```ts
+import { benchmarkTheoryOfMind, recoverFalseBelief } from '@holoscript/uaal/semantic';
+
+const recovery = recoverFalseBelief(ir);
+const gate = benchmarkTheoryOfMind([{ completion: JSON.stringify(ir), metadata }]);
+// gate.pass === true when belief, perspective, causal, and falsification checks hold
+```
+
+The harness currently covers theory-of-mind false belief, beneficiary reachability/telos, and agent-relative containment/occlusion.
+
 ## 7-Phase Protocol
 
 | Phase       | OpCode | Purpose                                                           |

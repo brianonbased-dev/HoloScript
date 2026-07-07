@@ -34,3 +34,5 @@ export { UAALCompiler } from './compiler';
 
 export { registerMeshHandlers, InMemoryMeshRouter } from './mesh-transport';
 export type { MeshTransport, MeshRequestHandler } from './mesh-transport';
+
+export * from './semantic';
