@@ -53,6 +53,19 @@ const gate = benchmarkTheoryOfMind([{ completion: JSON.stringify(ir), metadata }
 
 The harness covers theory-of-mind false belief, beneficiary reachability/telos, agent-relative containment/occlusion, body-relative affordance, temporal stale-vs-error separation, deontic force, commitment discharge, counterfactual necessity, per-modality sensory access, world composition, mereological persistence, narrative tension, cross-graph analogy, presupposition projection, and thematic motif recurrence. Private corpus generation, held-out generalization, and producibility receipts stay outside the npm package; the public subpath exports the pure recognizers and benchmark gates.
 
+## Semantic Gate
+
+`@holoscript/uaal/gate` is the public falsifiable spec for uAAL v2 semantic IR well-formedness. It checks referential integrity, perception-grounding, multi-perspective interiority, and causal acyclicity while reporting theory-of-mind richness metrics. It does not expose private corpus generator templates:
+
+```ts
+import { semanticGate } from '@holoscript/uaal/gate';
+
+const result = semanticGate(ir);
+// result.pass === true when the IR is structurally grounded
+```
+
+The split is intentional: publish the gate/spec so outside agents can verify IR, keep the generator/data recipe private so held-out generalization cannot be overfit from public templates.
+
 ## 7-Phase Protocol
 
 | Phase       | OpCode | Purpose                                                           |

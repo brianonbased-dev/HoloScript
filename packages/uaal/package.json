@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/uaal",
-  "version": "8.0.9",
+  "version": "8.0.10",
   "description": "uAAL — Universal Autonomous Agent Language VM. Stack-based bytecode execution engine for the uAA2++ 7-Phase Protocol.",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -20,7 +20,15 @@
       "types": "./dist/semantic.d.ts",
       "import": "./dist/semantic.js",
       "require": "./dist/semantic.cjs"
+    },
+    "./gate": {
+      "types": "./dist/gate.d.ts",
+      "import": "./dist/gate.js",
+      "require": "./dist/gate.cjs"
     }
+  },
+  "engines": {
+    "node": ">=20"
   },
   "scripts": {
     "build": "tsup",

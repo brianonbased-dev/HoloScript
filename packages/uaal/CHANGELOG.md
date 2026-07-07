@@ -1,5 +1,12 @@
 # @holoscript/uaal
 
+## 8.0.10
+
+### Patch Changes
+
+- Add the public `@holoscript/uaal/gate` subpath with the uAAL v2 semantic well-formedness gate: referential integrity, perception-grounding, multi-perspective interiority, and causal acyclicity.
+- Add package-level `engines.node >=20` so external installs fail early on unsupported runtimes.
+
 ## 8.0.9
 
 ### Patch Changes

@@ -94,6 +94,9 @@
         "dist/index.js",
         "dist/index.cjs",
         "dist/index.d.ts",
+        "dist/gate.js",
+        "dist/gate.cjs",
+        "dist/gate.d.ts",
         "dist/semantic.js",
         "dist/semantic.cjs",
         "dist/semantic.d.ts"

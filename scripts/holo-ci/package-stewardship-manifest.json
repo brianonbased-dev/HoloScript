@@ -296,7 +296,7 @@
         "version:check:strict"
       ],
       "nextActions": [
-        "Keep new semantic verticals importable from @holoscript/uaal/semantic before folding them into private corpora.",
+        "Keep semantic verticals importable from @holoscript/uaal/semantic and the structural spec importable from @holoscript/uaal/gate before folding private corpora.",
         "Make private corpus, held-out, producibility, and S0 training lanes consume the package API with receipt-level package provenance."
       ]
     },
