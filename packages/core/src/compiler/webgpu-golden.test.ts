@@ -218,13 +218,33 @@ describe('WebGPU golden output (byte-diff baseline for render-module refactor)',
     expect(out).toContain('const waterFrameU = createBuffer');
     expect(out).toContain('generateWaterPlaneVertices(1.0, 1.0, 48)');
     expect(out).toContain('SeaWaterPipeline');
-    // per-frame update carries time + camera + the live clarity/ripple/amp channels
+    // per-frame update carries time + camera + the bound clarity/ripple channels
     expect(out).toContain(
-      'device.queue.writeBuffer(waterFrameU, 0, new Float32Array([time, cameraPos[0], cameraPos[1], cameraPos[2], hsWaterClarity, hsWaterRipple, hsWaterAmp, 0]));'
+      'device.queue.writeBuffer(waterFrameU, 0, new Float32Array([time, cameraPos[0], cameraPos[1], cameraPos[2], hsChannels["environmentWaterClarity"], hsChannels["environmentRippleIntensity"], hsWaterAmp, 0]));'
     );
     // runtime control surface for host state (Brittney receipts → ripple/clarity)
+    expect(out).toContain('function hsSetChannel(name, value)');
     expect(out).toContain('function hsSetWater(o)');
-    expect(out).toContain('window.hsSetWater = hsSetWater');
+    expect(out).toContain('window.hsSetChannel = hsSetChannel');
+  });
+
+  it('water clarity/ripple bind to the channel names declared on the .holo object', () => {
+    const scene = {
+      type: 'HoloComposition',
+      name: 'BoundWater',
+      objects: [
+        obj('Pool', [
+          prop('mesh', 'full_screen_fluid_plane'),
+          prop('water_clarity_binding', 'envClarity'),
+          prop('ripple_intensity_binding', 'envRipple'),
+        ]),
+      ],
+    } as HoloComposition;
+    const out = new WebGPUCompiler().compile(scene, 'golden-token');
+    // The channel store + per-frame read use the DECLARED binding names, not the defaults.
+    expect(out).toContain('const hsChannels = { ["envClarity"]: 1.0, ["envRipple"]: 0.0 };');
+    expect(out).toContain('hsChannels["envClarity"], hsChannels["envRipple"], hsWaterAmp, 0]));');
+    expect(out).not.toContain('environmentWaterClarity');
   });
 
   it('a scene with no water surface emits no water pipeline (clean gating, byte-stable)', () => {
