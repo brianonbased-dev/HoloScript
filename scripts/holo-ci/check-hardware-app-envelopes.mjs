@@ -35,6 +35,14 @@ const VALID_COMMAND_KINDS = new Set([
   'live-service',
   'manual-or-live',
 ]);
+const VALID_TELEMETRY_SOURCE_KINDS = new Set([
+  'repo-command',
+  'ecosystem-command',
+  'live-service',
+  'mcp-tool',
+  'runtime-library',
+  'receipt-family',
+]);
 
 function readJson(path) {
   return JSON.parse(readFileSync(path, 'utf8'));
@@ -50,6 +58,10 @@ function sorted(values) {
 
 function idLooksValid(id) {
   return /^[a-z0-9][a-z0-9-]*$/.test(String(id || ''));
+}
+
+function toolNameLooksValid(name) {
+  return /^[a-z0-9][a-z0-9_:-]*$/.test(String(name || ''));
 }
 
 function requiredUtilitiesForConsumers(utilities, consumerIds) {
@@ -88,9 +100,13 @@ function validateManifests({ appsManifest, fleetManifest, consumptionManifest, p
   }
   const scripts = packageJson?.scripts || {};
   const utilityBands = appsManifest?.utilityBands || [];
+  const telemetrySignals = appsManifest?.telemetrySignals || [];
   const apps = appsManifest?.apps || [];
   const bandById = new Map();
   const usedBandIds = new Set();
+  const telemetrySignalById = new Map();
+  const usedTelemetrySignalIds = new Set();
+  const appTelemetrySignalIds = new Map();
   const coveredConsumers = new Set();
   const seenApps = new Set();
 
@@ -117,6 +133,62 @@ function validateManifests({ appsManifest, fleetManifest, consumptionManifest, p
     }
   }
 
+  if (!Array.isArray(telemetrySignals) || telemetrySignals.length === 0) {
+    errors.push('telemetrySignals[] is empty');
+  }
+  for (const signal of telemetrySignals) {
+    if (!idLooksValid(signal.id)) {
+      errors.push(`telemetry signal id is missing or invalid: ${signal.id || '<missing>'}`);
+      continue;
+    }
+    if (telemetrySignalById.has(signal.id)) {
+      errors.push(`duplicate telemetry signal id: ${signal.id}`);
+    }
+    telemetrySignalById.set(signal.id, signal);
+    if (!signal.label) errors.push(`${signal.id}: missing telemetry signal label`);
+    if (!signal.captureCadence) errors.push(`${signal.id}: missing captureCadence`);
+    if (!signal.retention) errors.push(`${signal.id}: missing retention`);
+    if (!signal.privacyBoundary) errors.push(`${signal.id}: missing privacyBoundary`);
+    if (!signal.failureMode) errors.push(`${signal.id}: missing failureMode`);
+    if (!Array.isArray(signal.requiredFields) || signal.requiredFields.length === 0) {
+      errors.push(`${signal.id}: missing requiredFields[]`);
+    }
+    if (!Array.isArray(signal.requiredByApps) || signal.requiredByApps.length === 0) {
+      errors.push(`${signal.id}: missing requiredByApps[]`);
+    }
+
+    const source =
+      signal.source && typeof signal.source === 'object' && !Array.isArray(signal.source)
+        ? signal.source
+        : {};
+    if (!VALID_TELEMETRY_SOURCE_KINDS.has(source.kind)) {
+      errors.push(`${signal.id}: unknown telemetry source kind '${source.kind || '<missing>'}'`);
+    }
+    if (source.kind === 'repo-command') {
+      if (!source.script) {
+        errors.push(`${signal.id}: repo-command telemetry source must declare script`);
+      } else if (!scripts[source.script]) {
+        errors.push(`${signal.id}: package.json script not found: ${source.script}`);
+      }
+      if (!source.command)
+        errors.push(`${signal.id}: repo-command telemetry source missing command`);
+    } else if (source.kind === 'mcp-tool') {
+      if (!toolNameLooksValid(source.tool)) {
+        errors.push(`${signal.id}: mcp-tool telemetry source must declare a valid tool`);
+      }
+    } else if (
+      source.kind === 'ecosystem-command' ||
+      source.kind === 'live-service' ||
+      source.kind === 'receipt-family'
+    ) {
+      if (!source.command) {
+        errors.push(`${signal.id}: ${source.kind} telemetry source missing command`);
+      }
+    } else if (source.kind === 'runtime-library') {
+      if (!source.path) errors.push(`${signal.id}: runtime-library telemetry source missing path`);
+    }
+  }
+
   if (!Array.isArray(apps) || apps.length === 0) {
     errors.push('apps[] is empty');
   }
@@ -126,6 +198,7 @@ function validateManifests({ appsManifest, fleetManifest, consumptionManifest, p
       id: app.id,
       hardwareClass: app.hardwareClass,
       capabilityBands: app.capabilityBands || [],
+      telemetrySignalIds: app.continuousCapability?.telemetrySignalIds || [],
       requiredConsumers: app.requiredConsumers || [],
       requiredUtilityIds: app.requiredUtilityIds || [],
     });
@@ -229,6 +302,45 @@ function validateManifests({ appsManifest, fleetManifest, consumptionManifest, p
     ) {
       errors.push(`${app.id}: missing publicConsumption.mustNotClaim[]`);
     }
+    const continuousCapability = app.continuousCapability || {};
+    if (!continuousCapability.captureMode) {
+      errors.push(`${app.id}: missing continuousCapability.captureMode`);
+    }
+    if (!continuousCapability.staleAfter) {
+      errors.push(`${app.id}: missing continuousCapability.staleAfter`);
+    }
+    if (!continuousCapability.retentionPolicy) {
+      errors.push(`${app.id}: missing continuousCapability.retentionPolicy`);
+    }
+    if (!continuousCapability.privacyBoundary) {
+      errors.push(`${app.id}: missing continuousCapability.privacyBoundary`);
+    }
+    if (!continuousCapability.failureResponse) {
+      errors.push(`${app.id}: missing continuousCapability.failureResponse`);
+    }
+    if (
+      !Array.isArray(continuousCapability.readinessRequires) ||
+      continuousCapability.readinessRequires.length === 0
+    ) {
+      errors.push(`${app.id}: missing continuousCapability.readinessRequires[]`);
+    }
+    const declaredTelemetrySignalIds = continuousCapability.telemetrySignalIds || [];
+    const telemetrySignalIds = Array.isArray(declaredTelemetrySignalIds)
+      ? declaredTelemetrySignalIds
+      : [];
+    const appSignalIds = new Set();
+    if (!Array.isArray(declaredTelemetrySignalIds) || telemetrySignalIds.length === 0) {
+      errors.push(`${app.id}: missing continuousCapability.telemetrySignalIds[]`);
+    }
+    for (const signalId of telemetrySignalIds) {
+      appSignalIds.add(signalId);
+      if (!telemetrySignalById.has(signalId)) {
+        errors.push(`${app.id}: unknown telemetry signal '${signalId}'`);
+      } else {
+        usedTelemetrySignalIds.add(signalId);
+      }
+    }
+    appTelemetrySignalIds.set(app.id, appSignalIds);
 
     const validationCommands = app.validationCommands || [];
     if (!Array.isArray(validationCommands) || validationCommands.length === 0) {
@@ -257,6 +369,22 @@ function validateManifests({ appsManifest, fleetManifest, consumptionManifest, p
   for (const band of utilityBands) {
     if (band?.id && !usedBandIds.has(band.id)) {
       errors.push(`utility band '${band.id}' is not used by any app envelope`);
+    }
+  }
+
+  for (const signal of telemetrySignals) {
+    if (signal?.id && !usedTelemetrySignalIds.has(signal.id)) {
+      errors.push(`telemetry signal '${signal.id}' is not used by any app envelope`);
+    }
+    for (const appId of signal.requiredByApps || []) {
+      if (!seenApps.has(appId)) {
+        errors.push(`${signal.id}: requiredByApps references unknown app '${appId}'`);
+        continue;
+      }
+      const appSignals = appTelemetrySignalIds.get(appId) || new Set();
+      if (!appSignals.has(signal.id)) {
+        errors.push(`${appId}: missing required telemetry signal '${signal.id}'`);
+      }
     }
   }
 
@@ -302,6 +430,19 @@ function runSelfTest() {
           utilityIds: ['cli'],
         },
       ],
+      telemetrySignals: [
+        {
+          id: 'metrics-signal',
+          label: 'Metrics Signal',
+          source: { kind: 'mcp-tool', tool: 'get_telemetry_metrics' },
+          captureCadence: 'on readiness check',
+          retention: 'latest aggregate receipt',
+          privacyBoundary: 'aggregate metrics only',
+          requiredFields: ['status', 'metrics'],
+          failureMode: 'block observability claims',
+          requiredByApps: ['laptop-app'],
+        },
+      ],
       apps: [
         {
           id: 'laptop-app',
@@ -314,6 +455,15 @@ function runSelfTest() {
             primaryInstallSurface: 'CLI',
             onboardingGoal: 'Install one app that exposes the CLI.',
             mustNotClaim: ['Do not claim live hardware proof from repo checks.'],
+          },
+          continuousCapability: {
+            captureMode: 'test-continuous',
+            telemetrySignalIds: ['metrics-signal'],
+            staleAfter: '24h',
+            readinessRequires: ['metrics signal'],
+            retentionPolicy: 'retain latest receipt',
+            privacyBoundary: 'aggregate only',
+            failureResponse: 'block public readiness',
           },
           publicEntrySurfaces: ['CLI'],
           requiredUtilityIds: ['cli'],
@@ -355,6 +505,19 @@ function runSelfTest() {
           hardwarePurpose: 'Prove a local command surface.',
           publicRole: 'Expose the CLI to a hardware app.',
           utilityIds: ['cli'],
+        },
+      ],
+      telemetrySignals: [
+        {
+          id: 'metrics-signal',
+          label: 'Metrics Signal',
+          source: { kind: 'mcp-tool', tool: 'get_telemetry_metrics' },
+          captureCadence: 'on readiness check',
+          retention: 'latest aggregate receipt',
+          privacyBoundary: 'aggregate metrics only',
+          requiredFields: ['status', 'metrics'],
+          failureMode: 'block observability claims',
+          requiredByApps: ['bad-app'],
         },
       ],
       apps: [
@@ -434,7 +597,7 @@ function main() {
   } else {
     for (const row of output.rows) {
       console.log(
-        `[hardware-app-envelopes] ${row.id} (${row.hardwareClass}) -> consumers=${row.requiredConsumers.join(',')} utilities=${row.requiredUtilityIds.join(',')}`
+        `[hardware-app-envelopes] ${row.id} (${row.hardwareClass}) -> consumers=${row.requiredConsumers.join(',')} utilities=${row.requiredUtilityIds.join(',')} telemetry=${row.telemetrySignalIds.join(',')}`
       );
     }
     for (const warning of output.warnings)

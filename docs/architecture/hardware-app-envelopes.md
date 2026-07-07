@@ -19,7 +19,10 @@ package and fleet utility surfaces.
 The verifier fails when an app claims a hardware consumer lane but omits a
 utility currently required by that lane. It also fails when an app does not map
 its utilities through declared utility bands or omits the public-consumption
-contract.
+contract. Continuous telemetry is part of the same contract: an app cannot claim
+continuous capability posture unless it declares its telemetry signals, stale
+windows, retention policy, privacy boundary, readiness requirements, and failure
+response.
 
 ## Utility Bands
 
@@ -52,6 +55,37 @@ Every envelope must now declare:
 - `publicConsumption.mustNotClaim`: claims that remain blocked without live
   receipts, credentials, weights, or spend authority.
 
+## Continuous Capability And Telemetry
+
+Hardware apps are public products only when they can keep reporting what they
+can do, what is stale, and what evidence changed. The manifest models that with
+two layers:
+
+- `telemetrySignals`: reusable evidence sources such as runtime metrics,
+  HoloLlama lifecycle receipts, hardware handshakes, fleet preflights, and
+  hosted health checks.
+- `continuousCapability`: per-app capture posture, stale-after window,
+  readiness requirements, retention policy, privacy boundary, and failure
+  response.
+
+| Signal                        | Canonical source                         | What it proves                                                       |
+| ----------------------------- | ---------------------------------------- | -------------------------------------------------------------------- |
+| Capability Inventory Snapshot | `check:fleet-utilities`                  | The app still composes declared package/fleet utility lanes.         |
+| Runtime Metrics Snapshot      | `get_telemetry_metrics`                  | Aggregate counters, gauges, and latency histograms are available.    |
+| Hardware Sync Handshake       | `sync_hardware_loop`                     | ROS2 hardware sync is either live or honestly marked unverified.     |
+| Model Serving Lifecycle       | HoloLlama lifecycle receipts             | Owned inference is live, or the app is planning-only.                |
+| Agent Activity Heartbeat      | `holomesh_heartbeat`                     | Unattended agent presence is fresh enough to claim.                  |
+| Resource Budget Snapshot      | Codex hardware audit                     | Host resources and accelerator claims are current.                   |
+| Fleet Dispatch Preflight      | HoloShell free-first preflight           | Paid or credentialed dispatch is previewed and fail-closed.          |
+| HoloLand Runtime Receipt      | `hololand_capture_runtime_receipt`       | Runtime/XR readiness has a receipt.                                  |
+| Twin Earth Substrate Receipt  | `twin_earth_capture_receipt`             | Physical-world or substrate-bound actions have actor/envelope proof. |
+| Hosted Service Health         | `curl https://mcp.holoscript.net/health` | Public hosted readiness is live, not inferred from the repo.         |
+
+Telemetry boundaries are product boundaries. Capture aggregate metrics,
+hardware state, health status, hashes, ids, and receipt metadata. Do not capture
+secrets, OAuth state, HoloKey material, prompts, private file contents, model
+weights, raw camera frames, raw robot payloads, or customer payload bodies.
+
 ## Canonical Envelopes
 
 | Envelope              | Hardware lane                   | What it encompasses                                                                                                                                         |
@@ -80,7 +114,9 @@ Every envelope must now declare:
 5. Live hardware checks remain separate from repo-only checks. The repo proves
    the package/app mold; HoloShell, Jetson, Vast, and hosted checks prove the
    actual machine or service.
-6. Public docs should name the envelope first, then its utility bands, then its
+6. Continuous capability claims must include stale-after rules and a failure
+   response. Missing telemetry should degrade or fail closed, not silently pass.
+7. Public docs should name the envelope first, then its utility bands, then its
    installed packages.
 
 ## Why This Matters

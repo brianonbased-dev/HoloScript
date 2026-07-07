@@ -73,6 +73,159 @@
       "utilityIds": ["gpu-ci-dispatch", "world-render-dispatch", "paid-simulation-dispatch"]
     }
   ],
+  "telemetrySignals": [
+    {
+      "id": "capability-inventory-snapshot",
+      "label": "Capability Inventory Snapshot",
+      "source": {
+        "kind": "repo-command",
+        "script": "check:fleet-utilities",
+        "command": "corepack pnpm run check:fleet-utilities"
+      },
+      "captureCadence": "on manifest change, before public readiness claims, and after package lane changes",
+      "retention": "durable commit evidence plus the latest package/fleet gate receipt",
+      "privacyBoundary": "package names, utility ids, app ids, and validation status only",
+      "requiredFields": ["schema", "utility ids", "consumer lanes", "validation status"],
+      "failureMode": "mark capability inventory stale; do not claim a hardware app is public-ready",
+      "requiredByApps": [
+        "holoshell-workstation",
+        "jetson-node-city",
+        "vast-gpu-worker",
+        "hosted-coordinator"
+      ]
+    },
+    {
+      "id": "runtime-metrics-snapshot",
+      "label": "Runtime Metrics Snapshot",
+      "source": {
+        "kind": "mcp-tool",
+        "tool": "get_telemetry_metrics"
+      },
+      "captureCadence": "continuous service scrape where deployed, and on every readiness check",
+      "retention": "aggregate snapshots only; durable receipt when readiness changes",
+      "privacyBoundary": "counters, gauges, and latency histograms only; no prompts, secrets, file contents, or model weights",
+      "requiredFields": ["status", "metrics.counters", "metrics.gauges", "metrics.histograms"],
+      "failureMode": "mark telemetry_unknown and block continuous-observability claims",
+      "requiredByApps": [
+        "holoshell-workstation",
+        "jetson-node-city",
+        "vast-gpu-worker",
+        "hosted-coordinator"
+      ]
+    },
+    {
+      "id": "hardware-sync-handshake",
+      "label": "Hardware Sync Handshake",
+      "source": {
+        "kind": "mcp-tool",
+        "tool": "sync_hardware_loop"
+      },
+      "captureCadence": "on boot, before physical-world actuation, and after ROS2 bridge changes",
+      "retention": "latest connected or honest-stub handshake receipt per node",
+      "privacyBoundary": "node name, topic prefix, connection status, latency, and topic/type lists only",
+      "requiredFields": ["status", "node", "contractVerified", "latencyMs"],
+      "failureMode": "return honest stub or ros2_bridge_unreachable; never gate safety decisions on contractVerified=false",
+      "requiredByApps": ["jetson-node-city"]
+    },
+    {
+      "id": "model-serving-lifecycle",
+      "label": "Model Serving Lifecycle",
+      "source": {
+        "kind": "ecosystem-command",
+        "command": "HoloLlama doctor, lifecycle, and mesh-readonly bridge receipts"
+      },
+      "captureCadence": "on boot, after model/runtime changes, and before claiming owned inference",
+      "retention": "latest HoloLlama plan, lifecycle, and node proof per hardware profile",
+      "privacyBoundary": "model identity, runtime health, endpoint status, and registry metadata only; no weights or prompts",
+      "requiredFields": ["profile", "health", "endpoint", "registry artifact", "receipt schema"],
+      "failureMode": "claim planning-only HoloLlama capability until live lifecycle proof exists",
+      "requiredByApps": ["holoshell-workstation", "jetson-node-city", "vast-gpu-worker"]
+    },
+    {
+      "id": "agent-activity-heartbeat",
+      "label": "Agent Activity Heartbeat",
+      "source": {
+        "kind": "mcp-tool",
+        "tool": "holomesh_heartbeat"
+      },
+      "captureCadence": "on agent start and periodically while the app is active",
+      "retention": "latest heartbeat and last durable room/board/receipt reference",
+      "privacyBoundary": "agent id, app id, status, task references, and receipt ids only",
+      "requiredFields": ["agent id", "status", "timestamp", "last receipt"],
+      "failureMode": "mark agent presence unknown; do not claim unattended operation",
+      "requiredByApps": ["holoshell-workstation", "jetson-node-city", "vast-gpu-worker"]
+    },
+    {
+      "id": "resource-budget-snapshot",
+      "label": "Resource Budget Snapshot",
+      "source": {
+        "kind": "ecosystem-command",
+        "command": "pnpm --dir C:/Users/josep/.ai-ecosystem check:codex-hardware"
+      },
+      "captureCadence": "before heavy local work, after driver/runtime changes, and before public hardware claims",
+      "retention": "latest local hardware audit receipt per physical host",
+      "privacyBoundary": "hardware class, CPU/GPU/memory/disk/WebGPU capability, and pass/fail status only",
+      "requiredFields": ["hardware class", "runtime versions", "resource budgets", "status"],
+      "failureMode": "mark resource budget unknown and avoid performance/accelerator claims",
+      "requiredByApps": ["holoshell-workstation", "jetson-node-city", "vast-gpu-worker"]
+    },
+    {
+      "id": "fleet-dispatch-preflight",
+      "label": "Fleet Dispatch Preflight",
+      "source": {
+        "kind": "ecosystem-command",
+        "command": "pnpm --dir C:/Users/josep/.ai-ecosystem run holoshell:free-first-preflight"
+      },
+      "captureCadence": "before paid or credentialed dispatch and after spend-policy changes",
+      "retention": "durable preview, spend-cap, verifier, and output-verified receipt per dispatch",
+      "privacyBoundary": "job target, criteria, verifier, spend-cap status, and receipt ids only",
+      "requiredFields": ["target", "success criteria", "owned-metal attempted", "verifier", "output verified"],
+      "failureMode": "fail closed; no paid dispatch without a valid preflight receipt",
+      "requiredByApps": ["vast-gpu-worker", "hosted-coordinator"]
+    },
+    {
+      "id": "hololand-runtime-receipt",
+      "label": "HoloLand Runtime Receipt",
+      "source": {
+        "kind": "mcp-tool",
+        "tool": "hololand_capture_runtime_receipt"
+      },
+      "captureCadence": "after world/runtime validation, XR session checks, or app readiness changes",
+      "retention": "durable validation receipt linked to world, shard, or app surface",
+      "privacyBoundary": "runtime ids, validation outcome, hashes, and receipt metadata only",
+      "requiredFields": ["receipt id", "runtime target", "outcome", "timestamp"],
+      "failureMode": "do not claim HoloLand/XR runtime readiness without a passing receipt",
+      "requiredByApps": ["holoshell-workstation", "jetson-node-city", "vast-gpu-worker"]
+    },
+    {
+      "id": "twin-earth-substrate-receipt",
+      "label": "Twin Earth Substrate Receipt",
+      "source": {
+        "kind": "mcp-tool",
+        "tool": "twin_earth_capture_receipt"
+      },
+      "captureCadence": "after physical-world, robot, AI, or substrate-bound actions",
+      "retention": "durable action receipt with actor, envelope, scope, status, and hash",
+      "privacyBoundary": "actor id, action, scope, status, envelope id, hashes, and timestamps only",
+      "requiredFields": ["actorId", "action", "status", "envelopeId", "hash"],
+      "failureMode": "no physical-world or substrate-bound success claim without an action receipt",
+      "requiredByApps": ["jetson-node-city", "vast-gpu-worker"]
+    },
+    {
+      "id": "hosted-service-health",
+      "label": "Hosted Service Health",
+      "source": {
+        "kind": "live-service",
+        "command": "curl https://mcp.holoscript.net/health"
+      },
+      "captureCadence": "continuous uptime scrape and before public hosted readiness claims",
+      "retention": "latest health receipt plus deployment/status evidence",
+      "privacyBoundary": "service status, version, health fields, and public tool inventory metadata only",
+      "requiredFields": ["status", "health", "tools", "timestamp"],
+      "failureMode": "mark hosted coordinator degraded; local repo proof does not replace live service health",
+      "requiredByApps": ["hosted-coordinator"]
+    }
+  ],
   "apps": [
     {
       "id": "holoshell-workstation",
@@ -99,6 +252,27 @@
           "Do not claim live Jetson or hosted service readiness from workstation-only checks.",
           "Do not imply cloud LLM sessions are sovereign model serving."
         ]
+      },
+      "continuousCapability": {
+        "captureMode": "local-continuous-with-live-receipts",
+        "telemetrySignalIds": [
+          "capability-inventory-snapshot",
+          "runtime-metrics-snapshot",
+          "model-serving-lifecycle",
+          "agent-activity-heartbeat",
+          "resource-budget-snapshot",
+          "hololand-runtime-receipt"
+        ],
+        "staleAfter": "24h for repo/package proof; 5m for live runtime telemetry; immediate after launcher, model, or credential changes",
+        "readinessRequires": [
+          "fresh package/fleet gates",
+          "runtime metrics snapshot",
+          "HoloShell access or message-route receipt",
+          "resource budget snapshot"
+        ],
+        "retentionPolicy": "keep durable readiness receipts; keep live metrics aggregate-only and rotate raw local snapshots",
+        "privacyBoundary": "never capture secrets, prompts, private file contents, OAuth state, model weights, or raw user media",
+        "failureResponse": "degrade to local manual-verifier mode and block public continuous-operation claims"
       },
       "publicEntrySurfaces": [
         "Brittney Studio desktop launcher",
@@ -176,6 +350,29 @@
           "Do not claim live node readiness without Jetson runtime and node-home receipts.",
           "Do not claim bundled model serving unless weights and llama.cpp binaries are installed and checked."
         ]
+      },
+      "continuousCapability": {
+        "captureMode": "edge-node-continuous-with-hardware-handshake",
+        "telemetrySignalIds": [
+          "capability-inventory-snapshot",
+          "runtime-metrics-snapshot",
+          "hardware-sync-handshake",
+          "model-serving-lifecycle",
+          "agent-activity-heartbeat",
+          "resource-budget-snapshot",
+          "hololand-runtime-receipt",
+          "twin-earth-substrate-receipt"
+        ],
+        "staleAfter": "5m for node health; 24h for package proof; immediate after bridge, model, or systemd changes",
+        "readinessRequires": [
+          "Jetson runtime appliance receipt",
+          "node-home receipt",
+          "model lifecycle receipt when serving is claimed",
+          "contractVerified hardware handshake before physical sync claims"
+        ],
+        "retentionPolicy": "keep durable node, model, and substrate receipts; keep runtime telemetry aggregate-only",
+        "privacyBoundary": "never capture secrets, private files, model weights, prompts, raw camera frames, or raw robot payloads",
+        "failureResponse": "mark the node degraded and refuse physical-world readiness claims until a fresh live receipt exists"
       },
       "publicEntrySurfaces": [
         "Jetson HoloShell surface",
@@ -255,6 +452,29 @@
           "Do not claim live model throughput without mounted weights and runtime health proof."
         ]
       },
+      "continuousCapability": {
+        "captureMode": "gpu-worker-continuous-with-preview-first-dispatch",
+        "telemetrySignalIds": [
+          "capability-inventory-snapshot",
+          "runtime-metrics-snapshot",
+          "model-serving-lifecycle",
+          "agent-activity-heartbeat",
+          "resource-budget-snapshot",
+          "fleet-dispatch-preflight",
+          "hololand-runtime-receipt",
+          "twin-earth-substrate-receipt"
+        ],
+        "staleAfter": "per job for dispatch proof; 5m for worker health; immediate after GPU image, driver, model, or spend-policy changes",
+        "readinessRequires": [
+          "resource budget snapshot",
+          "free-first preflight for paid work",
+          "dispatch receipt for every job",
+          "runtime metrics snapshot"
+        ],
+        "retentionPolicy": "keep job receipts and spend-preflight evidence; keep metrics aggregate-only by worker/app id",
+        "privacyBoundary": "never capture secrets, paid credentials, model weights, prompts, raw simulation input, or private outputs",
+        "failureResponse": "fail closed for paid dispatch and downgrade GPU claims to unknown until proof is refreshed"
+      },
       "publicEntrySurfaces": [
         "HoloCI worker",
         "world render worker",
@@ -321,6 +541,25 @@
           "Do not treat hosted MCP status as local repo authority.",
           "Do not expose credentialed or paid dispatch without preview-first, fail-closed controls."
         ]
+      },
+      "continuousCapability": {
+        "captureMode": "hosted-service-continuous-with-fail-closed-dispatch",
+        "telemetrySignalIds": [
+          "capability-inventory-snapshot",
+          "runtime-metrics-snapshot",
+          "fleet-dispatch-preflight",
+          "hosted-service-health"
+        ],
+        "staleAfter": "5m for public health; per dispatch for paid or credentialed actions; immediate after deploy",
+        "readinessRequires": [
+          "hosted health receipt",
+          "package stewardship gate",
+          "preview-first dispatch receipt before fleet actions",
+          "runtime metrics snapshot"
+        ],
+        "retentionPolicy": "keep public health and dispatch receipts; keep telemetry aggregate-only and scrub credential-bearing payloads",
+        "privacyBoundary": "never capture API keys, OAuth state, HoloKey secrets, prompts, private file contents, or customer payload bodies",
+        "failureResponse": "degrade hosted status and fail closed around credentialed or paid dispatch"
       },
       "publicEntrySurfaces": [
         "mcp.holoscript.net",

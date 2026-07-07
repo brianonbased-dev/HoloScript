@@ -25,6 +25,11 @@ bands such as tool gateway, local runtime, sovereign AI serving, semantic proof,
 XR embodiment, Python science, and fleet dispatch so a hardware owner sees a
 coherent app instead of a package matrix.
 
+Continuous capability is tracked in the same envelope manifest. Each hardware
+app declares telemetry signals, stale-after windows, readiness requirements,
+retention, privacy boundaries, and failure response. Treat missing telemetry as
+an explicit degraded state; paid dispatch and physical-world claims fail closed.
+
 ## Utility Classes
 
 | Utility class              | Primary package                            | Consumer lane                        | Use it for                                                                                            |
