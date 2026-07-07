@@ -9,12 +9,12 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 const buttonVariants = {
   variant: {
-    default: 'bg-emerald-500 text-white hover:bg-emerald-600',
-    destructive: 'bg-red-500 text-white hover:bg-red-600',
-    outline: 'border border-slate-700 bg-transparent hover:bg-slate-800 text-slate-100',
-    secondary: 'bg-slate-800 text-slate-100 hover:bg-slate-700',
-    ghost: 'hover:bg-slate-800 hover:text-slate-100',
-    link: 'text-emerald-500 underline-offset-4 hover:underline',
+    default: 'bg-studio-accent text-studio-text hover:bg-studio-accent-hover',
+    destructive: 'bg-studio-error text-studio-text hover:bg-studio-error',
+    outline: 'border border-studio-border bg-transparent hover:bg-studio-surface text-studio-text',
+    secondary: 'bg-studio-panel text-studio-text hover:bg-studio-surface',
+    ghost: 'hover:bg-studio-surface hover:text-studio-text',
+    link: 'text-studio-accent underline-offset-4 hover:underline',
   },
   size: {
     default: 'h-10 px-4 py-2',
@@ -29,7 +29,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <button
         className={cn(
-          'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-slate-950 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+          'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-studio-bg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-studio-accent focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
           buttonVariants.variant[variant],
           buttonVariants.size[size],
           className
