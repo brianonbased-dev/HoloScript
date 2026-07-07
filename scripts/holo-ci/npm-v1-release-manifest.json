@@ -30,6 +30,11 @@
       "v1Intent": "Installable HoloLlama utility package for planning llama.cpp serving nodes and emitting fleet registry artifacts."
     },
     {
+      "name": "@holoscript/uaal",
+      "role": "semantic-agent-vm",
+      "v1Intent": "Fleet-consumed uAAL semantic harness and portable uAA2++ VM primitives for agent cognition gates."
+    },
+    {
       "name": "@holoscript/domain-plugin-template",
       "role": "domain-plugin-template",
       "v1Intent": "Publishable template package required to keep @holoscript/core optional dependency closure installable."

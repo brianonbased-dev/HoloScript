@@ -4,6 +4,12 @@
 
 **Owner:** Engineering prepares artifacts; marketing owns copy, screenshots, and launch sequencing.
 
+**Status caveat:** This checklist is readiness evidence, not proof that a
+registry is current. Before any npm or PyPI push, run the current registry gates
+in [`docs/handbooks/npm-pypi-push-plan.md`](../handbooks/npm-pypi-push-plan.md)
+and apply the DONE-claim rule in
+[`docs/handbooks/done-claim-revalidation.md`](../handbooks/done-claim-revalidation.md).
+
 ---
 
 ## 1. VS Code extension (`packages/vscode-extension`)
@@ -34,16 +40,17 @@ pnpm exec vsce package
 
 ## 2. npm (`@holoscript/*` and `create-holoscript*`)
 
-| Item                             | Verify                                                           |
+| Item                             | Verify                                                           | Notes                              |
 | -------------------------------- | ---------------------------------------------------------------- | ---------------------------------- |
-| `name`, `version`, `description` | Every publishable `package.json`                                 |
-| `repository.directory`           | Monorepo subpath for deep links                                  |
-| `files` / `.npmignore            | package `files`                                                  | Tarball excludes fat dev artifacts |
-| `keywords`                       | HoloScript, XR, MCP, etc.                                        |
-| `publishConfig.access`           | `public` for scoped packages                                     |
-| Provenance / CI                  | Prefer trusted publishing from CI where enabled                  |
-| Install smoke                    | `npm pack` dry run; `pnpm add` in blank project for key packages |
-| Docs cross-links                 | `docs/NUMBERS.md` verification commands for npm surface          |
+| `name`, `version`, `description` | Every publishable `package.json`                                 |                                    |
+| `repository.directory`           | Monorepo subpath for deep links                                  |                                    |
+| `files` / `.npmignore`           | package `files`                                                  | Tarball excludes fat dev artifacts |
+| `keywords`                       | HoloScript, XR, MCP, etc.                                        |                                    |
+| `publishConfig.access`           | `public` for scoped packages                                     |                                    |
+| Provenance / CI                  | Prefer trusted publishing from CI where enabled                  |                                    |
+| Install smoke                    | `npm pack` dry run; `pnpm add` in blank project for key packages |                                    |
+| Registry state                   | `corepack pnpm run check:npm-v1-release`                         | Already-published means no-op      |
+| Docs cross-links                 | `docs/NUMBERS.md` verification commands for npm surface          |                                    |
 
 ---
 

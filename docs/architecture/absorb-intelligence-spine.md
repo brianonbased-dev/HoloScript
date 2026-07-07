@@ -10,12 +10,12 @@ This umbrella has one canonical consumer package surface:
 lanes, but callers should not assemble a separate GraphRAG package plus an embed
 package for Absorb workflows.
 
-| Lane      | Canonical home                                          | Role                                                                                                                    | Boundary                                                                                                                                                                    |
-| --------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Absorb    | `packages/absorb-service` and `services/absorb-service` | Public codebase-intelligence package, MCP tools, service API, credits, GraphRAG, self-improvement pipeline              | Owns orchestration, cache policy, MCP handlers, service behavior, and the canonical GEV package surface.                                                                    |
-| HoloGraph | `packages/absorb-service/src/engine`                    | Structural graph layer: symbols, imports, calls, event edges, provenance, communities, impact analysis, graph manifests | A named subsystem inside Absorb today, not a separate npm package unless external consumers need a small graph-only install.                                                |
+| Lane      | Canonical home                                          | Role                                                                                                                    | Boundary                                                                                                                                                                     |
+| --------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Absorb    | `packages/absorb-service` and `services/absorb-service` | Public codebase-intelligence package, MCP tools, service API, credits, GraphRAG, self-improvement pipeline              | Owns orchestration, cache policy, MCP handlers, service behavior, and the canonical GEV package surface.                                                                     |
+| HoloGraph | `packages/absorb-service/src/engine`                    | Structural graph layer: symbols, imports, calls, event edges, provenance, communities, impact analysis, graph manifests | A named subsystem inside Absorb today, not a separate npm package unless external consumers need a small graph-only install.                                                 |
 | HoloEmbed | `@holoscript/absorb-service/gev`                        | Keyless native embedding lane for NL-to-code and symbol search                                                          | Public consumers enter through Absorb GEV. `packages/holoembed` may remain as an implementation/migration workspace package until direct engine/research imports are folded. |
-| HoloLlama | `packages/holollama`                                    | Owned-model serving planner and fleet receipts for llama.cpp-compatible local inference                                 | Fleet utility package. It plans and proves serving nodes; Absorb may consume local inference endpoints or receipts, but HoloLlama must not become the graph or MCP gateway. |
+| HoloLlama | `packages/holollama`                                    | Owned-model serving planner and fleet receipts for llama.cpp-compatible local inference                                 | Fleet utility package. It plans and proves serving nodes; Absorb may consume local inference endpoints or receipts, but HoloLlama must not become the graph or MCP gateway.  |
 
 ## Canonical Flow
 
@@ -34,6 +34,29 @@ providers remain low-level experiments and must not silently replace HoloEmbed
 in shared caches. HoloLlama is the local inference lane for answer synthesis,
 planning, and fleet receipts; it is not an embedding provider and does not own
 the code graph.
+
+## Revalidation Rule
+
+Before marking Absorb unification done, verify the live package and service
+shape instead of relying on this architecture note:
+
+```bash
+corepack pnpm --filter @holoscript/absorb-service run build
+corepack pnpm --filter @holoscript/absorb-service run test
+corepack pnpm run check:package-architecture
+corepack pnpm run package:opportunity-map
+```
+
+Then inspect new imports and service routes:
+
+- new consumers should use `@holoscript/absorb-service/gev` for Graph +
+  Embedding + Vector/RAG workflows;
+- direct `@holoscript/holoembed` imports are allowed only for existing
+  implementation, benchmark, or research migration paths;
+- `services/absorb-service` should stay a thin deploy host that imports package
+  behavior rather than duplicating scanner, graph, embedding, or MCP logic;
+- hosted MCP status is not proof of local repo authority unless the local
+  adapter/cache path has also been checked.
 
 ## Naming Rules
 

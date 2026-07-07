@@ -66,6 +66,20 @@ Tracking source map: before trusting board exports, root JSON files, IDE session
 
 Explicit-frame architecture: before authoring a `.hsplus` brain that needs to declare its epistemic scope, allowed tools, or temporal horizon, read `C:/Users/josep/.ai-ecosystem/docs/handbooks/explicit-frame-architecture.md`. The `@frame_declaration` trait (`packages/core/src/traits/FrameDeclarationTrait.ts`) is the language primitive; the handbook documents all four pillars and the frame-crossing cost model.
 
+## DONE Claim Revalidation
+
+Treat "done", "complete", "ready", "current", and "production-ready" as claims
+that expire unless their evidence path is rerun. Before promoting prior work,
+updating strategy, citing a status dashboard, or telling another agent a surface
+is finished, use
+[`docs/handbooks/done-claim-revalidation.md`](docs/handbooks/done-claim-revalidation.md).
+
+Minimum rule: old archive/session docs are historical evidence, not current
+truth. Verify against current git, canonical code, package/service gates,
+registries, live MCP/service state, and current official external sources when
+the claim depends on outside platforms or deadlines. If proof is missing,
+document the exact caveat instead of repeating the completion label.
+
 ## File Formats
 
 | Extension    | Purpose                                      | When to use                                                    |

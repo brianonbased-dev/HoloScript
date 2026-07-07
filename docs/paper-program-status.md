@@ -8,6 +8,13 @@
 
 > **Zero hardcoded stats policy (W.030)**: Counts in this file are derived from `find` and `grep` at generation time. Re-generate from disk when counts drift. Verification commands are noted inline.
 
+> **Revalidation caveat (2026-07-07)**: This is a historical derived dashboard,
+> not current paper truth. Do not reuse any `COMPLETE`, `GATED`, deadline, or
+> venue-readiness cell until the `.tex` files, sidecars, audit matrix, and
+> official CFP/deadline sources have been rechecked. Follow
+> [`docs/handbooks/done-claim-revalidation.md`](handbooks/done-claim-revalidation.md)
+> before promoting a paper or marking a research lane done.
+
 ---
 
 ## Quick Reference
