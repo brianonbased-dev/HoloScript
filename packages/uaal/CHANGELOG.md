@@ -1,5 +1,11 @@
 # @holoscript/uaal
 
+## 8.0.9
+
+### Patch Changes
+
+- Complete the public uAAL semantic harness with the late-five verticals: mereological persistence, narrative tension, cross-graph analogy, presupposition projection, and thematic motif recurrence.
+
 ## 8.0.8
 
 ### Patch Changes

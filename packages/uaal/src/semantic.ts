@@ -566,6 +566,281 @@ export interface UAALCompositionBenchmarkResult {
   };
 }
 
+export interface UAALMereologyPart {
+  id: string;
+  role?: string;
+  essential?: boolean;
+  [key: string]: unknown;
+}
+
+export interface UAALMereologyChange {
+  op?: 'add' | 'remove' | string;
+  part?: string;
+  role?: string;
+  essential?: boolean;
+  [key: string]: unknown;
+}
+
+export interface UAALMereologyIR {
+  parts?: UAALMereologyPart[];
+  part_of?: UAALContainmentRelation[];
+  changes?: UAALMereologyChange[];
+  query?: { whole?: string; [key: string]: unknown };
+  [key: string]: unknown;
+}
+
+export interface UAALMereologyMetadata extends Record<string, unknown> {
+  id?: string;
+  persists?: boolean;
+  dissolving_role?: string | null;
+}
+
+export interface PersistenceRecovery {
+  persists: boolean;
+  dissolving_role: string | null;
+}
+
+export interface UAALMereologyBenchmarkResult {
+  n: number;
+  tests: {
+    mp1_discrimination: UAALRateTest;
+    mp2_dissolving_role_fidelity: UAALRateTest;
+    mp3_structural_sanity: UAALRateTest;
+    mp4_falsification_flip: UAALRateTest;
+    emergent_beats_essentialism: UAALEmergentBaselineTest & { essentialismRate: number };
+  };
+  pass: boolean;
+  misses: {
+    mp1: string[];
+    mp2: string[];
+    mp4: string[];
+  };
+}
+
+export interface UAALTensionNode {
+  id: string;
+  label?: string;
+  [key: string]: unknown;
+}
+
+export interface UAALTensionEdge {
+  from?: string;
+  to?: string;
+  via?: string;
+  [key: string]: unknown;
+}
+
+export interface UAALTensionTerminal {
+  id: string;
+  outcome?: 'goal' | 'antigoal' | string;
+  [key: string]: unknown;
+}
+
+export interface UAALTensionIR {
+  nodes?: UAALTensionNode[];
+  terminals?: UAALTensionTerminal[];
+  unfired?: UAALTensionEdge[];
+  frontier?: string;
+  query?: { frontier?: string; [key: string]: unknown };
+  [key: string]: unknown;
+}
+
+export interface TensionRecovery {
+  tension: boolean;
+  contradiction: { goal: string; antigoal: string } | null;
+  reachedCount: number;
+}
+
+export interface UAALTensionMetadata extends Record<string, unknown> {
+  id?: string;
+  class?: string;
+  tension?: boolean;
+  contradiction?: { goal?: string; antigoal?: string } | null;
+}
+
+export interface UAALTensionBenchmarkResult {
+  n: number;
+  tests: {
+    nt1_discrimination: UAALRateTest;
+    nt2_contradiction_fidelity: UAALRateTest;
+    nt3_structural: UAALRateTest;
+    nt4_falsification_flip: UAALRateTest;
+    emergent_beats_branchcount: UAALEmergentBaselineTest & { baselineRate: number };
+  };
+  pass: boolean;
+  misses: {
+    nt1: string[];
+    nt2: string[];
+    nt4: string[];
+  };
+}
+
+export interface UAALAnalogyEntity {
+  id: string;
+  role?: string;
+  attrs?: string[];
+  [key: string]: unknown;
+}
+
+export interface UAALAnalogyRelation {
+  pred?: string;
+  from?: string;
+  to?: string;
+  [key: string]: unknown;
+}
+
+export interface UAALAnalogyGraph {
+  label?: string;
+  entities?: UAALAnalogyEntity[];
+  relations?: UAALAnalogyRelation[];
+  [key: string]: unknown;
+}
+
+export interface UAALAnalogyMapping {
+  from: string;
+  to: string;
+  [key: string]: unknown;
+}
+
+export interface UAALAnalogyIR {
+  source?: UAALAnalogyGraph;
+  target?: UAALAnalogyGraph;
+  mapping?: UAALAnalogyMapping[];
+  query?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+export interface AnalogyValidityRecovery {
+  valid: boolean;
+  preserved: number;
+  total: number;
+  broken: string[];
+  injective: boolean;
+  endpointsCovered: boolean;
+}
+
+export interface UAALAnalogyMetadata extends Record<string, unknown> {
+  id?: string;
+  class?: string;
+  valid?: boolean;
+  preserved_relations?: number;
+  required_relations?: number;
+}
+
+export interface UAALAnalogyBenchmarkResult {
+  n: number;
+  tests: {
+    an1_discrimination: UAALRateTest;
+    an2_relation_fidelity: UAALRateTest;
+    an3_bijection_sanity: UAALRateTest;
+    an4_falsification_flip: UAALRateTest;
+    emergent_beats_surface: UAALEmergentBaselineTest & { surfaceRate: number };
+  };
+  pass: boolean;
+  misses: {
+    an1: string[];
+    an2: string[];
+    an3: string[];
+    an4: string[];
+  };
+}
+
+export interface UAALPresuppositionForm {
+  form?: string;
+  atoms?: string[];
+  [key: string]: unknown;
+}
+
+export interface UAALPresuppositionIR {
+  forms?: UAALPresuppositionForm[];
+  query?: { atoms?: string[]; [key: string]: unknown };
+  [key: string]: unknown;
+}
+
+export type UAALAtomStatus = 'presupposed' | 'at_issue';
+
+export interface AtomStatusRecovery {
+  status: UAALAtomStatus;
+}
+
+export interface UAALPresuppositionMetadata extends Record<string, unknown> {
+  id?: string;
+  atom_status?: Record<string, UAALAtomStatus>;
+}
+
+export interface UAALPresuppositionBenchmarkResult {
+  n: number;
+  tests: {
+    pt1_discrimination: UAALRateTest;
+    pt2_projection_fidelity: UAALRateTest;
+    pt3_structural_sanity: UAALRateTest;
+    pt4_falsification_flip: UAALRateTest;
+    emergent_beats_surface: UAALEmergentBaselineTest & { surfaceRate: number };
+  };
+  pass: boolean;
+  misses: {
+    pt1: string[];
+    pt2: string[];
+    pt4: string[];
+  };
+}
+
+export interface UAALMotifNode {
+  id: string;
+  role?: string;
+  label?: string;
+  [key: string]: unknown;
+}
+
+export interface UAALMotifEdge {
+  from?: string;
+  to?: string;
+  type?: string;
+  [key: string]: unknown;
+}
+
+export interface UAALMotifComponent {
+  id: string;
+  nodes?: UAALMotifNode[];
+  edges?: UAALMotifEdge[];
+  [key: string]: unknown;
+}
+
+export interface UAALMotifIR {
+  components?: UAALMotifComponent[];
+  [key: string]: unknown;
+}
+
+export interface MotifRecovery {
+  has_motif: boolean;
+  recurrence_count: number;
+  form: string | null;
+  members: string[];
+}
+
+export interface UAALMotifMetadata extends Record<string, unknown> {
+  id?: string;
+  has_motif?: boolean;
+  recurrence_count?: number;
+}
+
+export interface UAALMotifBenchmarkResult {
+  n: number;
+  tests: {
+    tm1_discrimination: UAALRateTest;
+    tm2_count_fidelity: UAALRateTest;
+    tm3_structural: UAALRateTest;
+    tm4_falsification_flip: UAALRateTest;
+    emergent_beats_lexical: UAALEmergentBaselineTest & { lexicalRate: number };
+  };
+  pass: boolean;
+  misses: {
+    tm1: string[];
+    tm2: string[];
+    tm4: string[];
+  };
+}
+
 export const UAAL_THEORY_OF_MIND_THRESHOLDS = {
   t1: 0.98,
   t2: 0.8,
@@ -644,6 +919,46 @@ export const UAAL_COMPOSITION_THRESHOLDS = {
   emergentEdge: 0.05,
 } as const;
 
+export const UAAL_MEREOLOGY_THRESHOLDS = {
+  mp1: 0.95,
+  mp2: 0.9,
+  mp3: 0.95,
+  mp4: 0.95,
+  emergentEdge: 0.05,
+} as const;
+
+export const UAAL_TENSION_THRESHOLDS = {
+  nt1: 0.95,
+  nt2: 0.9,
+  nt3: 0.95,
+  nt4: 0.95,
+  emergentEdge: 0.05,
+} as const;
+
+export const UAAL_ANALOGY_THRESHOLDS = {
+  an1: 0.95,
+  an2: 0.9,
+  an3: 0.95,
+  an4: 0.95,
+  emergentEdge: 0.05,
+} as const;
+
+export const UAAL_PRESUPPOSITION_THRESHOLDS = {
+  pt1: 0.95,
+  pt2: 0.9,
+  pt3: 0.95,
+  pt4: 0.95,
+  emergentEdge: 0.05,
+} as const;
+
+export const UAAL_MOTIF_THRESHOLDS = {
+  tm1: 0.95,
+  tm2: 0.9,
+  tm3: 0.95,
+  tm4: 0.95,
+  emergentEdge: 0.05,
+} as const;
+
 export const UAAL_SEMANTIC_THRESHOLDS = {
   theoryOfMind: UAAL_THEORY_OF_MIND_THRESHOLDS,
   telos: UAAL_TELOS_THRESHOLDS,
@@ -655,6 +970,11 @@ export const UAAL_SEMANTIC_THRESHOLDS = {
   counterfactual: UAAL_COUNTERFACTUAL_THRESHOLDS,
   access: UAAL_ACCESS_THRESHOLDS,
   composition: UAAL_COMPOSITION_THRESHOLDS,
+  mereology: UAAL_MEREOLOGY_THRESHOLDS,
+  tension: UAAL_TENSION_THRESHOLDS,
+  analogy: UAAL_ANALOGY_THRESHOLDS,
+  presupposition: UAAL_PRESUPPOSITION_THRESHOLDS,
+  motif: UAAL_MOTIF_THRESHOLDS,
 } as const;
 
 function safeParseCompletion<T>(completion: string | T): T | null {
@@ -2261,6 +2581,756 @@ export function benchmarkComposition(
       edge,
       floor: UAAL_COMPOSITION_THRESHOLDS.emergentEdge,
       pass: edge >= UAAL_COMPOSITION_THRESHOLDS.emergentEdge,
+    },
+  };
+
+  return {
+    n,
+    tests,
+    pass: Object.values(tests).every((test) => test.pass),
+    misses,
+  };
+}
+
+export function essentialRoles(ir: UAALMereologyIR): Set<string> {
+  const roles = new Set<string>();
+  for (const part of ir.parts || []) {
+    if (part.essential && truthyString(part.role)) roles.add(part.role);
+  }
+  return roles;
+}
+
+export function partsTraceToWhole(ir: UAALMereologyIR): boolean {
+  const whole = ir.query?.whole;
+  const containmentView: UAALContainmentIR = { containment: ir.part_of || [] };
+  return (ir.parts || []).every((part) => enclosingChain(containmentView, part.id).includes(whole || ''));
+}
+
+export function recoverPersistence(ir: UAALMereologyIR): PersistenceRecovery {
+  const removed = (ir.changes || []).filter((change) => change.op === 'remove');
+  const added = (ir.changes || []).filter((change) => change.op === 'add');
+  const addedRoles = new Set(added.map((change) => change.role).filter(truthyString));
+
+  for (const removal of removed) {
+    if (!removal.essential) continue;
+    if (truthyString(removal.role) && addedRoles.has(removal.role)) continue;
+    return { persists: false, dissolving_role: truthyString(removal.role) ? removal.role : null };
+  }
+  return { persists: true, dissolving_role: null };
+}
+
+export function essentialismPersistence(ir: UAALMereologyIR): Pick<PersistenceRecovery, 'persists'> {
+  return { persists: !(ir.changes || []).some((change) => change.op === 'remove') };
+}
+
+function invertMereology(ir: UAALMereologyIR, metadata: UAALMereologyMetadata): UAALMereologyIR {
+  const corrupt = cloneJson(ir);
+  if (metadata.persists) {
+    const removedEssential = (corrupt.changes || []).find((change) => change.op === 'remove' && change.essential);
+    if (removedEssential) {
+      corrupt.changes = (corrupt.changes || []).filter(
+        (change) => !(change.op === 'add' && change.role === removedEssential.role),
+      );
+    } else {
+      const removal = (corrupt.changes || []).find((change) => change.op === 'remove');
+      if (removal) {
+        removal.essential = true;
+        corrupt.changes = (corrupt.changes || []).filter((change) => !(change.op === 'add' && change.role === removal.role));
+      }
+    }
+  } else {
+    const removedEssential = (corrupt.changes || []).find((change) => change.op === 'remove' && change.essential);
+    if (removedEssential) {
+      corrupt.changes = [
+        ...(corrupt.changes || []),
+        { op: 'add', part: '__repl_injected', role: removedEssential.role, essential: true },
+      ];
+    }
+  }
+  return corrupt;
+}
+
+export function benchmarkMereology(
+  rows: Array<UAALSemanticBenchmarkRow<UAALMereologyIR, UAALMereologyMetadata>>,
+): UAALMereologyBenchmarkResult {
+  let n = 0;
+  let mp1 = 0;
+  let mp2 = 0;
+  let mp2denom = 0;
+  let mp3 = 0;
+  let mp4 = 0;
+  let essentialismCorrect = 0;
+  const misses = { mp1: [] as string[], mp2: [] as string[], mp4: [] as string[] };
+
+  for (const row of rows) {
+    const ir = safeParseCompletion<UAALMereologyIR>(row.completion);
+    if (!ir) continue;
+    n++;
+
+    const groundTruth = row.metadata || {};
+    const recovered = recoverPersistence(ir);
+    if (recovered.persists === Boolean(groundTruth.persists)) {
+      mp1++;
+    } else if (misses.mp1.length < 8) {
+      misses.mp1.push(`${groundTruth.id}: got ${recovered.persists} want ${groundTruth.persists}`);
+    }
+    if (essentialismPersistence(ir).persists === Boolean(groundTruth.persists)) essentialismCorrect++;
+
+    if (groundTruth.persists === false) {
+      mp2denom++;
+      if (recovered.dissolving_role === groundTruth.dissolving_role) {
+        mp2++;
+      } else if (misses.mp2.length < 8) {
+        misses.mp2.push(`${groundTruth.id}: role ${recovered.dissolving_role} want ${groundTruth.dissolving_role}`);
+      }
+    }
+
+    if (partsTraceToWhole(ir) && essentialRoles(ir).size > 0) mp3++;
+
+    const corrupt = invertMereology(ir, groundTruth);
+    const corruptRecovered = recoverPersistence(corrupt);
+    if (corruptRecovered.persists !== recovered.persists) {
+      mp4++;
+    } else if (misses.mp4.length < 8) {
+      misses.mp4.push(`${groundTruth.id}: stayed ${recovered.persists} after inversion`);
+    }
+  }
+
+  const mp1Rate = rate(mp1, n);
+  const essentialismRate = rate(essentialismCorrect, n);
+  const edge = mp1Rate - essentialismRate;
+  const tests = {
+    mp1_discrimination: makeRateTest(mp1, n, UAAL_MEREOLOGY_THRESHOLDS.mp1),
+    mp2_dissolving_role_fidelity: makeRateTest(mp2, mp2denom, UAAL_MEREOLOGY_THRESHOLDS.mp2),
+    mp3_structural_sanity: makeRateTest(mp3, n, UAAL_MEREOLOGY_THRESHOLDS.mp3),
+    mp4_falsification_flip: makeRateTest(mp4, n, UAAL_MEREOLOGY_THRESHOLDS.mp4),
+    emergent_beats_essentialism: {
+      emergentRate: mp1Rate,
+      essentialismRate,
+      edge,
+      floor: UAAL_MEREOLOGY_THRESHOLDS.emergentEdge,
+      pass: edge >= UAAL_MEREOLOGY_THRESHOLDS.emergentEdge,
+    },
+  };
+
+  return {
+    n,
+    tests,
+    pass: Object.values(tests).every((test) => test.pass),
+    misses,
+  };
+}
+
+export function reachableTerminals(ir: UAALTensionIR): Array<{ id: string; outcome: string | undefined }> {
+  const adjacency = new Map<string, Set<string>>();
+  for (const edge of ir.unfired || []) {
+    if (!truthyString(edge.from) || !truthyString(edge.to)) continue;
+    if (!adjacency.has(edge.from)) adjacency.set(edge.from, new Set());
+    adjacency.get(edge.from)?.add(edge.to);
+  }
+
+  const terminalIds = new Set((ir.terminals || []).map((terminal) => terminal.id));
+  const start = ir.query?.frontier || ir.frontier;
+  const seen = new Set<string>();
+  const stack = truthyString(start) ? [start] : [];
+  while (stack.length) {
+    const current = stack.pop();
+    if (!current || seen.has(current)) continue;
+    seen.add(current);
+    for (const next of adjacency.get(current) || []) {
+      if (!seen.has(next)) stack.push(next);
+    }
+  }
+
+  const outcomeOf = new Map((ir.terminals || []).map((terminal) => [terminal.id, terminal.outcome]));
+  return [...seen]
+    .filter((id) => terminalIds.has(id) && id !== start)
+    .map((id) => ({ id, outcome: outcomeOf.get(id) }));
+}
+
+export function recoverTension(ir: UAALTensionIR): TensionRecovery {
+  const reached = reachableTerminals(ir);
+  const goal = reached.find((terminal) => terminal.outcome === 'goal') || null;
+  const antigoal = reached.find((terminal) => terminal.outcome === 'antigoal') || null;
+  const tension = Boolean(goal && antigoal);
+  return {
+    tension,
+    contradiction: tension && goal && antigoal ? { goal: goal.id, antigoal: antigoal.id } : null,
+    reachedCount: reached.length,
+  };
+}
+
+export function branchCountTension(ir: UAALTensionIR): Pick<TensionRecovery, 'tension'> {
+  const start = ir.query?.frontier || ir.frontier;
+  return { tension: (ir.unfired || []).filter((edge) => edge.from === start).length >= 2 };
+}
+
+function tensionFidelity(recovered: TensionRecovery, metadata: UAALTensionMetadata): boolean {
+  if (metadata.tension) {
+    return (
+      recovered.contradiction != null &&
+      recovered.contradiction.goal === metadata.contradiction?.goal &&
+      recovered.contradiction.antigoal === metadata.contradiction?.antigoal
+    );
+  }
+  return recovered.contradiction === null;
+}
+
+function tensionStructural(ir: UAALTensionIR): boolean {
+  const nodeIds = new Set((ir.nodes || []).map((node) => node.id));
+  const start = ir.query?.frontier || ir.frontier;
+  if (!truthyString(start) || !nodeIds.has(start)) return false;
+  const terminalIds = new Set((ir.terminals || []).map((terminal) => terminal.id));
+  return (
+    reachableTerminals(ir).every((terminal) => terminalIds.has(terminal.id) && terminal.outcome != null) &&
+    (ir.unfired || []).every((edge) => edge.from != null && edge.to != null)
+  );
+}
+
+function tensionFlip(ir: UAALTensionIR, metadata: UAALTensionMetadata, recovered: TensionRecovery): boolean {
+  const corrupt = cloneJson(ir);
+  const start = corrupt.query?.frontier || corrupt.frontier;
+  if (metadata.tension) {
+    const antigoalId =
+      recovered.contradiction?.antigoal ||
+      (corrupt.terminals || []).find((terminal) => terminal.outcome === 'antigoal')?.id;
+    corrupt.unfired = (corrupt.unfired || []).filter((edge) => edge.to !== antigoalId);
+  } else {
+    const reached = reachableTerminals(corrupt);
+    const hasGoal = reached.some((terminal) => terminal.outcome === 'goal');
+    const injectOutcome = hasGoal ? 'antigoal' : 'goal';
+    corrupt.terminals = [...(corrupt.terminals || []), { id: '__terminal_injected', outcome: injectOutcome }];
+    corrupt.nodes = [...(corrupt.nodes || []), { id: '__terminal_injected', label: 'injected reversal' }];
+    corrupt.unfired = [...(corrupt.unfired || []), { from: start, to: '__terminal_injected', via: 'injected reversal' }];
+  }
+  return recoverTension(corrupt).tension !== recovered.tension;
+}
+
+export function benchmarkTension(
+  rows: Array<UAALSemanticBenchmarkRow<UAALTensionIR, UAALTensionMetadata>>,
+): UAALTensionBenchmarkResult {
+  let n = 0;
+  let nt1 = 0;
+  let nt2 = 0;
+  let nt2denom = 0;
+  let nt3 = 0;
+  let nt4 = 0;
+  let baselineCorrect = 0;
+  const misses = { nt1: [] as string[], nt2: [] as string[], nt4: [] as string[] };
+
+  for (const row of rows) {
+    const ir = safeParseCompletion<UAALTensionIR>(row.completion);
+    if (!ir) continue;
+    n++;
+
+    const groundTruth = row.metadata || {};
+    const recovered = recoverTension(ir);
+    if (recovered.tension === Boolean(groundTruth.tension)) {
+      nt1++;
+    } else if (misses.nt1.length < 8) {
+      misses.nt1.push(`${groundTruth.id}: recovered=${recovered.tension} truth=${groundTruth.tension}`);
+    }
+    if (branchCountTension(ir).tension === Boolean(groundTruth.tension)) baselineCorrect++;
+
+    nt2denom++;
+    if (tensionFidelity(recovered, groundTruth)) {
+      nt2++;
+    } else if (misses.nt2.length < 8) {
+      misses.nt2.push(`${groundTruth.id}: contradiction ${JSON.stringify(recovered.contradiction)} vs ${JSON.stringify(groundTruth.contradiction)}`);
+    }
+    if (tensionStructural(ir)) nt3++;
+    if (tensionFlip(ir, groundTruth, recovered)) {
+      nt4++;
+    } else if (misses.nt4.length < 8) {
+      misses.nt4.push(`${groundTruth.id}: tension did not flip under corruption`);
+    }
+  }
+
+  const nt1Rate = rate(nt1, n);
+  const baselineRate = rate(baselineCorrect, n);
+  const edge = nt1Rate - baselineRate;
+  const tests = {
+    nt1_discrimination: makeRateTest(nt1, n, UAAL_TENSION_THRESHOLDS.nt1),
+    nt2_contradiction_fidelity: makeRateTest(nt2, nt2denom, UAAL_TENSION_THRESHOLDS.nt2),
+    nt3_structural: makeRateTest(nt3, n, UAAL_TENSION_THRESHOLDS.nt3),
+    nt4_falsification_flip: makeRateTest(nt4, n, UAAL_TENSION_THRESHOLDS.nt4),
+    emergent_beats_branchcount: {
+      emergentRate: nt1Rate,
+      baselineRate,
+      edge,
+      floor: UAAL_TENSION_THRESHOLDS.emergentEdge,
+      pass: edge >= UAAL_TENSION_THRESHOLDS.emergentEdge,
+    },
+  };
+
+  return {
+    n,
+    tests,
+    pass: Object.values(tests).every((test) => test.pass),
+    misses,
+  };
+}
+
+function analogyBijection(ir: UAALAnalogyIR): Map<string, string> {
+  return new Map((ir.mapping || []).map((mapping) => [mapping.from, mapping.to]));
+}
+
+function analogyRelationKey(pred: unknown, from: unknown, to: unknown): string {
+  return `${String(pred)}::${String(from)}::${String(to)}`;
+}
+
+function analogyRelationSet(graph: UAALAnalogyGraph | undefined): Set<string> {
+  return new Set((graph?.relations || []).map((relation) => analogyRelationKey(relation.pred, relation.from, relation.to)));
+}
+
+function analogyAttrMap(graph: UAALAnalogyGraph | undefined): Map<string, Set<string>> {
+  return new Map((graph?.entities || []).map((entity) => [entity.id, new Set(entity.attrs || [])]));
+}
+
+export function recoverValidity(ir: UAALAnalogyIR): AnalogyValidityRecovery {
+  const map = analogyBijection(ir);
+  const sourceRelations = ir.source?.relations || [];
+  const targetRelations = analogyRelationSet(ir.target);
+  let preserved = 0;
+  const broken: string[] = [];
+
+  for (const relation of sourceRelations) {
+    const fromTarget = truthyString(relation.from) ? map.get(relation.from) : undefined;
+    const toTarget = truthyString(relation.to) ? map.get(relation.to) : undefined;
+    if (fromTarget != null && toTarget != null && targetRelations.has(analogyRelationKey(relation.pred, fromTarget, toTarget))) {
+      preserved++;
+    } else {
+      broken.push(String(relation.pred || ''));
+    }
+  }
+
+  const images = [...map.values()];
+  const injective = new Set(images).size === images.length;
+  const endpointsCovered = sourceRelations.every(
+    (relation) => truthyString(relation.from) && truthyString(relation.to) && map.has(relation.from) && map.has(relation.to),
+  );
+  const total = sourceRelations.length;
+  return {
+    valid: injective && endpointsCovered && total > 0 && preserved === total,
+    preserved,
+    total,
+    broken,
+    injective,
+    endpointsCovered,
+  };
+}
+
+export function surfaceSimilarityValidity(ir: UAALAnalogyIR): { valid: boolean; shared: number; pairs: number } {
+  const map = analogyBijection(ir);
+  const sourceAttrs = analogyAttrMap(ir.source);
+  const targetAttrs = analogyAttrMap(ir.target);
+  let shared = 0;
+  let pairs = 0;
+
+  for (const [from, to] of map) {
+    pairs++;
+    const source = sourceAttrs.get(from) || new Set<string>();
+    const target = targetAttrs.get(to) || new Set<string>();
+    if ([...source].some((attr) => target.has(attr))) shared++;
+  }
+  return { valid: pairs > 0 && shared / pairs >= 0.5, shared, pairs };
+}
+
+function breakOneAnalogyRelation(ir: UAALAnalogyIR): UAALAnalogyIR {
+  const corrupt = cloneJson(ir);
+  const map = analogyBijection(corrupt);
+  const relation = corrupt.source?.relations?.[0];
+  if (!relation) return corrupt;
+  const fromTarget = truthyString(relation.from) ? map.get(relation.from) : undefined;
+  const toTarget = truthyString(relation.to) ? map.get(relation.to) : undefined;
+  corrupt.target = {
+    ...(corrupt.target || {}),
+    relations: (corrupt.target?.relations || []).filter(
+      (candidate) => !(candidate.pred === relation.pred && candidate.from === fromTarget && candidate.to === toTarget),
+    ),
+  };
+  return corrupt;
+}
+
+function repairAnalogyRelation(ir: UAALAnalogyIR): UAALAnalogyIR {
+  const corrupt = cloneJson(ir);
+  const map = analogyBijection(corrupt);
+  const targetRelations = analogyRelationSet(corrupt.target);
+  const repaired = [...(corrupt.target?.relations || [])];
+  for (const relation of corrupt.source?.relations || []) {
+    const fromTarget = truthyString(relation.from) ? map.get(relation.from) : undefined;
+    const toTarget = truthyString(relation.to) ? map.get(relation.to) : undefined;
+    const key = analogyRelationKey(relation.pred, fromTarget, toTarget);
+    if (fromTarget != null && toTarget != null && !targetRelations.has(key)) {
+      repaired.push({ pred: relation.pred, from: fromTarget, to: toTarget });
+      targetRelations.add(key);
+    }
+  }
+  corrupt.target = { ...(corrupt.target || {}), relations: repaired };
+  return corrupt;
+}
+
+function permutations(items: string[]): string[][] {
+  if (items.length <= 1) return [items];
+  const output: string[][] = [];
+  for (let index = 0; index < items.length; index++) {
+    const rest = [...items.slice(0, index), ...items.slice(index + 1)];
+    for (const permutation of permutations(rest)) output.push([items[index], ...permutation]);
+  }
+  return output;
+}
+
+function repairAnalogyMapping(ir: UAALAnalogyIR): UAALAnalogyIR {
+  const corrupt = cloneJson(ir);
+  const sourceEntities = corrupt.source?.entities || [];
+  const targetEntities = corrupt.target?.entities || [];
+  const targetRelations = analogyRelationSet(corrupt.target);
+  for (const permutation of permutations(targetEntities.map((entity) => entity.id))) {
+    const map = new Map(sourceEntities.map((entity, index) => [entity.id, permutation[index]]));
+    const ok = (corrupt.source?.relations || []).every((relation) =>
+      targetRelations.has(analogyRelationKey(relation.pred, map.get(relation.from || ''), map.get(relation.to || ''))),
+    );
+    if (ok) {
+      corrupt.mapping = sourceEntities.map((entity, index) => ({ from: entity.id, to: permutation[index] }));
+      break;
+    }
+  }
+  return corrupt;
+}
+
+export function benchmarkAnalogy(
+  rows: Array<UAALSemanticBenchmarkRow<UAALAnalogyIR, UAALAnalogyMetadata>>,
+): UAALAnalogyBenchmarkResult {
+  let n = 0;
+  let an1 = 0;
+  let an2 = 0;
+  let an3 = 0;
+  let an4 = 0;
+  let surfaceCorrect = 0;
+  const misses = { an1: [] as string[], an2: [] as string[], an3: [] as string[], an4: [] as string[] };
+
+  for (const row of rows) {
+    const ir = safeParseCompletion<UAALAnalogyIR>(row.completion);
+    if (!ir) continue;
+    n++;
+
+    const groundTruth = row.metadata || {};
+    const recovered = recoverValidity(ir);
+    if (recovered.valid === Boolean(groundTruth.valid)) {
+      an1++;
+    } else if (misses.an1.length < 8) {
+      misses.an1.push(`${groundTruth.id}: recovered valid=${recovered.valid} truth=${groundTruth.valid}`);
+    }
+    if (surfaceSimilarityValidity(ir).valid === Boolean(groundTruth.valid)) surfaceCorrect++;
+
+    if (recovered.preserved === groundTruth.preserved_relations && recovered.total === groundTruth.required_relations) {
+      an2++;
+    } else if (misses.an2.length < 8) {
+      misses.an2.push(`${groundTruth.id}: recovered ${recovered.preserved}/${recovered.total} declared ${groundTruth.preserved_relations}/${groundTruth.required_relations}`);
+    }
+
+    if (recovered.injective && recovered.endpointsCovered) {
+      an3++;
+    } else if (misses.an3.length < 8) {
+      misses.an3.push(`${groundTruth.id}: injective=${recovered.injective} endpointsCovered=${recovered.endpointsCovered}`);
+    }
+
+    const corrupt = groundTruth.valid
+      ? breakOneAnalogyRelation(ir)
+      : groundTruth.class === 'partial_break'
+        ? repairAnalogyRelation(ir)
+        : repairAnalogyMapping(ir);
+    if (recoverValidity(corrupt).valid !== recovered.valid) {
+      an4++;
+    } else if (misses.an4.length < 8) {
+      misses.an4.push(`${groundTruth.id}: no flip (class ${groundTruth.class})`);
+    }
+  }
+
+  const an1Rate = rate(an1, n);
+  const surfaceRate = rate(surfaceCorrect, n);
+  const edge = an1Rate - surfaceRate;
+  const tests = {
+    an1_discrimination: makeRateTest(an1, n, UAAL_ANALOGY_THRESHOLDS.an1),
+    an2_relation_fidelity: makeRateTest(an2, n, UAAL_ANALOGY_THRESHOLDS.an2),
+    an3_bijection_sanity: makeRateTest(an3, n, UAAL_ANALOGY_THRESHOLDS.an3),
+    an4_falsification_flip: makeRateTest(an4, n, UAAL_ANALOGY_THRESHOLDS.an4),
+    emergent_beats_surface: {
+      emergentRate: an1Rate,
+      surfaceRate,
+      edge,
+      floor: UAAL_ANALOGY_THRESHOLDS.emergentEdge,
+      pass: edge >= UAAL_ANALOGY_THRESHOLDS.emergentEdge,
+    },
+  };
+
+  return {
+    n,
+    tests,
+    pass: Object.values(tests).every((test) => test.pass),
+    misses,
+  };
+}
+
+function presuppositionFormNamed(ir: UAALPresuppositionIR, name: string): UAALPresuppositionForm | null {
+  return (ir.forms || []).find((form) => form.form === name) || null;
+}
+
+function atomsOf(form: UAALPresuppositionForm | null): Set<string> {
+  return new Set(form?.atoms || []);
+}
+
+function atomInForm(ir: UAALPresuppositionIR, formName: string, atom: string): boolean {
+  return atomsOf(presuppositionFormNamed(ir, formName)).has(atom);
+}
+
+export function recoverAtomStatus(ir: UAALPresuppositionIR, atom: string): AtomStatusRecovery {
+  const forms = ir.forms || [];
+  const embedded = forms.filter((form) => form.form !== 'asserted');
+  const inAsserted = atomInForm(ir, 'asserted', atom);
+  const survivesAll = inAsserted && embedded.length > 0 && embedded.every((form) => atomsOf(form).has(atom));
+  if (survivesAll) return { status: 'presupposed' };
+  return { status: 'at_issue' };
+}
+
+export function surfacePresenceStatus(ir: UAALPresuppositionIR, atom: string): AtomStatusRecovery {
+  return { status: atomInForm(ir, 'asserted', atom) ? 'presupposed' : 'at_issue' };
+}
+
+export function benchmarkPresupposition(
+  rows: Array<UAALSemanticBenchmarkRow<UAALPresuppositionIR, UAALPresuppositionMetadata>>,
+): UAALPresuppositionBenchmarkResult {
+  let atomN = 0;
+  let pt1 = 0;
+  let pt2 = 0;
+  let pt2denom = 0;
+  let pt3 = 0;
+  let pt3denom = 0;
+  let pt4 = 0;
+  let pt4denom = 0;
+  let surfaceCorrect = 0;
+  const misses = { pt1: [] as string[], pt2: [] as string[], pt4: [] as string[] };
+
+  for (const row of rows) {
+    const ir = safeParseCompletion<UAALPresuppositionIR>(row.completion);
+    if (!ir) continue;
+    const groundTruth = row.metadata || {};
+    const truth = groundTruth.atom_status || {};
+    const queried = ir.query?.atoms || Object.keys(truth);
+
+    for (const atom of queried) {
+      atomN++;
+      const recovered = recoverAtomStatus(ir, atom);
+      const want = truth[atom];
+      if (recovered.status === want) {
+        pt1++;
+      } else if (misses.pt1.length < 8) {
+        misses.pt1.push(`${groundTruth.id}/${atom}: got ${recovered.status} want ${want}`);
+      }
+      if (surfacePresenceStatus(ir, atom).status === want) surfaceCorrect++;
+
+      if (recovered.status === 'presupposed') {
+        pt2denom++;
+        if (atomInForm(ir, 'modal', atom) && atomInForm(ir, 'question', atom)) {
+          pt2++;
+        } else if (misses.pt2.length < 8) {
+          misses.pt2.push(`${groundTruth.id}/${atom}: presupposed but missing from modal/question`);
+        }
+      }
+
+      pt3denom++;
+      if (presuppositionFormNamed(ir, 'asserted') && atomInForm(ir, 'asserted', atom)) pt3++;
+
+      if (want === 'presupposed') {
+        pt4denom++;
+        const corrupt = cloneJson(ir);
+        const negated = (corrupt.forms || []).find((form) => form.form === 'negated');
+        if (negated) negated.atoms = (negated.atoms || []).filter((candidate) => candidate !== atom);
+        if (recoverAtomStatus(corrupt, atom).status === 'at_issue' && recovered.status === 'presupposed') {
+          pt4++;
+        } else if (misses.pt4.length < 8) {
+          misses.pt4.push(`${groundTruth.id}/${atom}: presupposed did not flip after negated-form strip`);
+        }
+      } else if (want === 'at_issue') {
+        pt4denom++;
+        const corrupt = cloneJson(ir);
+        for (const form of corrupt.forms || []) {
+          if (!(form.atoms || []).includes(atom)) form.atoms = [...(form.atoms || []), atom];
+        }
+        if (recoverAtomStatus(corrupt, atom).status === 'presupposed' && recovered.status === 'at_issue') {
+          pt4++;
+        } else if (misses.pt4.length < 8) {
+          misses.pt4.push(`${groundTruth.id}/${atom}: at_issue did not flip after projection`);
+        }
+      }
+    }
+  }
+
+  const pt1Rate = rate(pt1, atomN);
+  const surfaceRate = rate(surfaceCorrect, atomN);
+  const edge = pt1Rate - surfaceRate;
+  const tests = {
+    pt1_discrimination: makeRateTest(pt1, atomN, UAAL_PRESUPPOSITION_THRESHOLDS.pt1),
+    pt2_projection_fidelity: makeRateTest(pt2, pt2denom, UAAL_PRESUPPOSITION_THRESHOLDS.pt2),
+    pt3_structural_sanity: makeRateTest(pt3, pt3denom, UAAL_PRESUPPOSITION_THRESHOLDS.pt3),
+    pt4_falsification_flip: makeRateTest(pt4, pt4denom, UAAL_PRESUPPOSITION_THRESHOLDS.pt4),
+    emergent_beats_surface: {
+      emergentRate: pt1Rate,
+      surfaceRate,
+      edge,
+      floor: UAAL_PRESUPPOSITION_THRESHOLDS.emergentEdge,
+      pass: edge >= UAAL_PRESUPPOSITION_THRESHOLDS.emergentEdge,
+    },
+  };
+
+  return {
+    n: atomN,
+    tests,
+    pass: Object.values(tests).every((test) => test.pass),
+    misses,
+  };
+}
+
+export function canonicalForm(component: UAALMotifComponent): string {
+  const roleOf = new Map((component.nodes || []).map((node) => [node.id, node.role]));
+  return (component.edges || [])
+    .map((edge) => `${roleOf.get(edge.from || '') ?? '?'}--${edge.type}-->${roleOf.get(edge.to || '') ?? '?'}`)
+    .sort()
+    .join('|');
+}
+
+export function recoverMotif(ir: UAALMotifIR): MotifRecovery {
+  const groups = new Map<string, string[]>();
+  for (const component of ir.components || []) {
+    const key = canonicalForm(component);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)?.push(component.id);
+  }
+
+  let best: MotifRecovery = { has_motif: false, recurrence_count: 0, form: null, members: [] };
+  for (const [form, members] of groups) {
+    if (members.length >= 2 && members.length > best.recurrence_count) {
+      best = { has_motif: true, recurrence_count: members.length, form, members };
+    }
+  }
+  return best;
+}
+
+export function lexicalRecurrence(ir: UAALMotifIR): Pick<MotifRecovery, 'has_motif' | 'recurrence_count'> {
+  const labelToComponents = new Map<string, Set<string>>();
+  for (const component of ir.components || []) {
+    const labels = new Set((component.nodes || []).map((node) => (node.label || '').trim().toLowerCase()).filter(Boolean));
+    for (const label of labels) {
+      if (!labelToComponents.has(label)) labelToComponents.set(label, new Set());
+      labelToComponents.get(label)?.add(component.id);
+    }
+  }
+  let count = 0;
+  for (const componentIds of labelToComponents.values()) {
+    if (componentIds.size >= 2) count = Math.max(count, componentIds.size);
+  }
+  return { has_motif: count >= 2, recurrence_count: count };
+}
+
+function motifStructural(ir: UAALMotifIR): boolean {
+  const components = ir.components || [];
+  if (components.length < 2) return false;
+  const seenIds = new Set<string>();
+  for (const component of components) {
+    const nodeIds = new Set((component.nodes || []).map((node) => node.id));
+    if (nodeIds.size === 0 || (component.edges || []).length === 0) return false;
+    for (const node of component.nodes || []) if (!truthyString(node.role)) return false;
+    for (const edge of component.edges || []) {
+      if (!truthyString(edge.from) || !truthyString(edge.to) || !truthyString(edge.type)) return false;
+      if (!nodeIds.has(edge.from) || !nodeIds.has(edge.to)) return false;
+    }
+    for (const id of nodeIds) {
+      if (seenIds.has(id)) return false;
+      seenIds.add(id);
+    }
+  }
+  return true;
+}
+
+function motifFlip(ir: UAALMotifIR, metadata: UAALMotifMetadata, recovered: MotifRecovery): boolean {
+  const corrupt = cloneJson(ir);
+  if (metadata.has_motif) {
+    const recurring = new Set(recovered.members);
+    let broken = 0;
+    const toBreak = recovered.members.length - 1;
+    for (const component of corrupt.components || []) {
+      if (recurring.has(component.id) && broken < toBreak && component.edges?.[0]) {
+        component.edges[0] = { ...component.edges[0], type: `${component.edges[0].type}__broken_${broken}` };
+        broken++;
+      }
+    }
+  } else {
+    const components = corrupt.components || [];
+    if (components.length >= 2) {
+      const source = components[0];
+      components[1] = {
+        id: components[1].id,
+        nodes: (source.nodes || []).map((node) => ({ id: `${node.id}__iso`, role: node.role, label: `iso-${node.label || ''}` })),
+        edges: (source.edges || []).map((edge) => ({ from: `${edge.from}__iso`, to: `${edge.to}__iso`, type: edge.type })),
+      };
+    }
+  }
+  return recoverMotif(corrupt).has_motif !== recovered.has_motif;
+}
+
+export function benchmarkMotif(
+  rows: Array<UAALSemanticBenchmarkRow<UAALMotifIR, UAALMotifMetadata>>,
+): UAALMotifBenchmarkResult {
+  let n = 0;
+  let tm1 = 0;
+  let tm2 = 0;
+  let tm3 = 0;
+  let tm4 = 0;
+  let lexicalCorrect = 0;
+  const misses = { tm1: [] as string[], tm2: [] as string[], tm4: [] as string[] };
+
+  for (const row of rows) {
+    const ir = safeParseCompletion<UAALMotifIR>(row.completion);
+    if (!ir) continue;
+    n++;
+
+    const groundTruth = row.metadata || {};
+    const recovered = recoverMotif(ir);
+    if (recovered.has_motif === Boolean(groundTruth.has_motif)) {
+      tm1++;
+    } else if (misses.tm1.length < 8) {
+      misses.tm1.push(`${groundTruth.id}: recovered=${recovered.has_motif} truth=${groundTruth.has_motif}`);
+    }
+    if (lexicalRecurrence(ir).has_motif === Boolean(groundTruth.has_motif)) lexicalCorrect++;
+
+    if (recovered.recurrence_count === (groundTruth.recurrence_count ?? 0)) {
+      tm2++;
+    } else if (misses.tm2.length < 8) {
+      misses.tm2.push(`${groundTruth.id}: recovered count=${recovered.recurrence_count} declared=${groundTruth.recurrence_count}`);
+    }
+
+    if (motifStructural(ir)) tm3++;
+    if (motifFlip(ir, groundTruth, recovered)) {
+      tm4++;
+    } else if (misses.tm4.length < 8) {
+      misses.tm4.push(`${groundTruth.id}: has_motif stayed ${recovered.has_motif} after corruption`);
+    }
+  }
+
+  const tm1Rate = rate(tm1, n);
+  const lexicalRate = rate(lexicalCorrect, n);
+  const edge = tm1Rate - lexicalRate;
+  const tests = {
+    tm1_discrimination: makeRateTest(tm1, n, UAAL_MOTIF_THRESHOLDS.tm1),
+    tm2_count_fidelity: makeRateTest(tm2, n, UAAL_MOTIF_THRESHOLDS.tm2),
+    tm3_structural: makeRateTest(tm3, n, UAAL_MOTIF_THRESHOLDS.tm3),
+    tm4_falsification_flip: makeRateTest(tm4, n, UAAL_MOTIF_THRESHOLDS.tm4),
+    emergent_beats_lexical: {
+      emergentRate: tm1Rate,
+      lexicalRate,
+      edge,
+      floor: UAAL_MOTIF_THRESHOLDS.emergentEdge,
+      pass: edge >= UAAL_MOTIF_THRESHOLDS.emergentEdge,
     },
   };
 

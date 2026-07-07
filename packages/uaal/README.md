@@ -35,8 +35,13 @@ vm.registerHandler(UAALOpCode.OP_INVOKE_LLM, async (proxy, operands) => {
 ```ts
 import {
   benchmarkAffordance,
+  benchmarkAnalogy,
   benchmarkComposition,
   benchmarkCounterfactual,
+  benchmarkMereology,
+  benchmarkMotif,
+  benchmarkPresupposition,
+  benchmarkTension,
   benchmarkTheoryOfMind,
   recoverFalseBelief,
 } from '@holoscript/uaal/semantic';
@@ -46,7 +51,7 @@ const gate = benchmarkTheoryOfMind([{ completion: JSON.stringify(ir), metadata }
 // gate.pass === true when belief, perspective, causal, and falsification checks hold
 ```
 
-The harness covers theory-of-mind false belief, beneficiary reachability/telos, agent-relative containment/occlusion, body-relative affordance, temporal stale-vs-error separation, deontic force, commitment discharge, counterfactual necessity, per-modality sensory access, and a world-composition capstone that verifies the verticals compose in one IR.
+The harness covers theory-of-mind false belief, beneficiary reachability/telos, agent-relative containment/occlusion, body-relative affordance, temporal stale-vs-error separation, deontic force, commitment discharge, counterfactual necessity, per-modality sensory access, world composition, mereological persistence, narrative tension, cross-graph analogy, presupposition projection, and thematic motif recurrence. Private corpus generation, held-out generalization, and producibility receipts stay outside the npm package; the public subpath exports the pure recognizers and benchmark gates.
 
 ## 7-Phase Protocol
 

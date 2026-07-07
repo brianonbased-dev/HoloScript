@@ -7,6 +7,15 @@ import {
   benchmarkContainment,
   benchmarkCounterfactual,
   benchmarkDeontic,
+  benchmarkAnalogy,
+  benchmarkMereology,
+  benchmarkMotif,
+  benchmarkPresupposition,
+  benchmarkTension,
+  branchCountTension,
+  canonicalForm,
+  essentialismPersistence,
+  lexicalRecurrence,
   benchmarkTelos,
   benchmarkTemporal,
   benchmarkTheoryOfMind,
@@ -14,6 +23,7 @@ import {
   enclosingChain,
   flagOnlyTelosGap,
   naiveParentNecessity,
+  recoverAtomStatus,
   recoverFalseBelief,
   recoverAffords,
   recoverBeliefStatus,
@@ -21,14 +31,21 @@ import {
   recoverDischargeable,
   recoverNecessity,
   recoverNormStatus,
+  recoverMotif,
+  recoverPersistence,
   recoverOcclusion,
   recoverAccess,
   recoverTelosGap,
+  recoverTension,
+  recoverValidity,
+  surfaceSimilarityValidity,
 } from '../semantic';
 import type {
   UAALAccessMetadata,
   UAALAffordanceIR,
   UAALAffordanceMetadata,
+  UAALAnalogyIR,
+  UAALAnalogyMetadata,
   UAALCommitmentIR,
   UAALCommitmentMetadata,
   UAALCompositionIR,
@@ -38,11 +55,20 @@ import type {
   UAALCounterfactualMetadata,
   UAALDeonticIR,
   UAALDeonticMetadata,
+  UAALMereologyIR,
+  UAALMereologyMetadata,
+  UAALMotifComponent,
+  UAALMotifIR,
+  UAALMotifMetadata,
+  UAALPresuppositionIR,
+  UAALPresuppositionMetadata,
   UAALSemanticBenchmarkRow,
   UAALTelosIR,
   UAALTemporalIR,
   UAALTemporalMetadata,
   UAALTheoryOfMindIR,
+  UAALTensionIR,
+  UAALTensionMetadata,
 } from '../semantic';
 
 const theoryOfMindIR: UAALTheoryOfMindIR = {
@@ -702,5 +728,308 @@ describe('semantic composition harness', () => {
     expect(result.pass).toBe(true);
     expect(result.tests.it1_discrimination.rate).toBe(1);
     expect(result.tests.emergent_beats_best_single.edge).toBeGreaterThan(0);
+  });
+});
+
+const baseMereologyParts = [
+  { id: 'hull_a', role: 'hull', essential: true },
+  { id: 'mast_a', role: 'mast', essential: true },
+  { id: 'flag_a', role: 'flag', essential: false },
+];
+
+const baseMereologyPartOf = [
+  { inner: 'hull_a', outer: 'ship' },
+  { inner: 'mast_a', outer: 'ship' },
+  { inner: 'flag_a', outer: 'ship' },
+];
+
+const mereologyRows = [
+  row<UAALMereologyIR, UAALMereologyMetadata>(
+    {
+      parts: baseMereologyParts,
+      part_of: baseMereologyPartOf,
+      changes: [
+        { op: 'remove', part: 'hull_a', role: 'hull', essential: true },
+        { op: 'add', part: 'hull_b', role: 'hull', essential: true },
+      ],
+      query: { whole: 'ship' },
+    },
+    { id: 'theseus_swap', persists: true, dissolving_role: null },
+  ),
+  row<UAALMereologyIR, UAALMereologyMetadata>(
+    {
+      parts: baseMereologyParts,
+      part_of: baseMereologyPartOf,
+      changes: [{ op: 'remove', part: 'flag_a', role: 'flag', essential: false }],
+      query: { whole: 'ship' },
+    },
+    { id: 'nonessential_removed', persists: true, dissolving_role: null },
+  ),
+  row<UAALMereologyIR, UAALMereologyMetadata>(
+    {
+      parts: baseMereologyParts,
+      part_of: baseMereologyPartOf,
+      changes: [{ op: 'remove', part: 'mast_a', role: 'mast', essential: true }],
+      query: { whole: 'ship' },
+    },
+    { id: 'essential_unreplaced', persists: false, dissolving_role: 'mast' },
+  ),
+];
+
+describe('semantic mereology harness', () => {
+  it('recovers persistence through same-role replacement', () => {
+    const theseus = JSON.parse(mereologyRows[0].completion as string) as UAALMereologyIR;
+
+    expect(recoverPersistence(theseus)).toEqual({ persists: true, dissolving_role: null });
+    expect(essentialismPersistence(theseus)).toEqual({ persists: false });
+  });
+
+  it('passes the mereology benchmark and beats essentialism', () => {
+    const result = benchmarkMereology(mereologyRows);
+    expect(result.pass).toBe(true);
+    expect(result.tests.mp1_discrimination.rate).toBe(1);
+    expect(result.tests.emergent_beats_essentialism.edge).toBeGreaterThan(0);
+  });
+});
+
+const tensionRows = [
+  row<UAALTensionIR, UAALTensionMetadata>(
+    {
+      nodes: [{ id: 'frontier' }, { id: 'win' }, { id: 'loss' }],
+      terminals: [
+        { id: 'win', outcome: 'goal' },
+        { id: 'loss', outcome: 'antigoal' },
+      ],
+      unfired: [
+        { from: 'frontier', to: 'win' },
+        { from: 'frontier', to: 'loss' },
+      ],
+      query: { frontier: 'frontier' },
+    },
+    { id: 'open_tension', class: 'open_tension', tension: true, contradiction: { goal: 'win', antigoal: 'loss' } },
+  ),
+  row<UAALTensionIR, UAALTensionMetadata>(
+    {
+      nodes: [{ id: 'frontier' }, { id: 'win' }],
+      terminals: [{ id: 'win', outcome: 'goal' }],
+      unfired: [{ from: 'frontier', to: 'win' }],
+      query: { frontier: 'frontier' },
+    },
+    { id: 'resolved_goal', class: 'resolved', tension: false, contradiction: null },
+  ),
+  row<UAALTensionIR, UAALTensionMetadata>(
+    {
+      nodes: [{ id: 'frontier' }, { id: 'win_a' }, { id: 'win_b' }],
+      terminals: [
+        { id: 'win_a', outcome: 'goal' },
+        { id: 'win_b', outcome: 'goal' },
+      ],
+      unfired: [
+        { from: 'frontier', to: 'win_a' },
+        { from: 'frontier', to: 'win_b' },
+      ],
+      query: { frontier: 'frontier' },
+    },
+    { id: 'foregone_many_branches', class: 'foregone', tension: false, contradiction: null },
+  ),
+];
+
+describe('semantic tension harness', () => {
+  it('reads contradictory reachable terminals instead of branch count', () => {
+    const foregone = JSON.parse(tensionRows[2].completion as string) as UAALTensionIR;
+
+    expect(recoverTension(foregone).tension).toBe(false);
+    expect(branchCountTension(foregone).tension).toBe(true);
+  });
+
+  it('passes the tension benchmark and beats branch count', () => {
+    const result = benchmarkTension(tensionRows);
+    expect(result.pass).toBe(true);
+    expect(result.tests.nt1_discrimination.rate).toBe(1);
+    expect(result.tests.emergent_beats_branchcount.edge).toBeGreaterThan(0);
+  });
+});
+
+function analogyIR(mapping: Array<{ from: string; to: string }>, targetRelations: Array<{ pred: string; from: string; to: string }>, attrs = true): UAALAnalogyIR {
+  return {
+    source: {
+      entities: [
+        { id: 'src_center', attrs: attrs ? ['shared_center'] : [] },
+        { id: 'src_orbiter', attrs: attrs ? ['shared_orbiter'] : [] },
+      ],
+      relations: [
+        { pred: 'attracts', from: 'src_center', to: 'src_orbiter' },
+        { pred: 'orbits', from: 'src_orbiter', to: 'src_center' },
+      ],
+    },
+    target: {
+      entities: [
+        { id: 'tgt_center', attrs: attrs ? ['shared_center'] : [] },
+        { id: 'tgt_orbiter', attrs: attrs ? ['shared_orbiter'] : [] },
+      ],
+      relations: targetRelations,
+    },
+    mapping,
+  };
+}
+
+const analogyValidRelations = [
+  { pred: 'attracts', from: 'tgt_center', to: 'tgt_orbiter' },
+  { pred: 'orbits', from: 'tgt_orbiter', to: 'tgt_center' },
+];
+
+const analogyRows = [
+  row<UAALAnalogyIR, UAALAnalogyMetadata>(
+    analogyIR(
+      [
+        { from: 'src_center', to: 'tgt_center' },
+        { from: 'src_orbiter', to: 'tgt_orbiter' },
+      ],
+      analogyValidRelations,
+    ),
+    { id: 'relational_valid', class: 'relational_valid', valid: true, preserved_relations: 2, required_relations: 2 },
+  ),
+  row<UAALAnalogyIR, UAALAnalogyMetadata>(
+    {
+      ...analogyIR(
+        [
+          { from: 'src_center', to: 'tgt_orbiter' },
+          { from: 'src_orbiter', to: 'tgt_center' },
+        ],
+        analogyValidRelations,
+        true,
+      ),
+      target: {
+        entities: [
+          { id: 'tgt_center', attrs: ['shared_orbiter'] },
+          { id: 'tgt_orbiter', attrs: ['shared_center'] },
+        ],
+        relations: analogyValidRelations,
+      },
+    },
+    { id: 'attribute_only', class: 'attribute_only', valid: false, preserved_relations: 0, required_relations: 2 },
+  ),
+  row<UAALAnalogyIR, UAALAnalogyMetadata>(
+    analogyIR(
+      [
+        { from: 'src_center', to: 'tgt_center' },
+        { from: 'src_orbiter', to: 'tgt_orbiter' },
+      ],
+      [{ pred: 'attracts', from: 'tgt_center', to: 'tgt_orbiter' }],
+    ),
+    { id: 'partial_break', class: 'partial_break', valid: false, preserved_relations: 1, required_relations: 2 },
+  ),
+  row<UAALAnalogyIR, UAALAnalogyMetadata>(
+    analogyIR(
+      [
+        { from: 'src_center', to: 'tgt_center' },
+        { from: 'src_orbiter', to: 'tgt_orbiter' },
+      ],
+      analogyValidRelations,
+      false,
+    ),
+    { id: 'systematic_valid', class: 'systematic_valid', valid: true, preserved_relations: 2, required_relations: 2 },
+  ),
+];
+
+describe('semantic analogy harness', () => {
+  it('validates relation preservation instead of surface similarity', () => {
+    const attributeOnly = JSON.parse(analogyRows[1].completion as string) as UAALAnalogyIR;
+
+    expect(recoverValidity(attributeOnly).valid).toBe(false);
+    expect(surfaceSimilarityValidity(attributeOnly).valid).toBe(true);
+  });
+
+  it('passes the analogy benchmark and beats surface similarity', () => {
+    const result = benchmarkAnalogy(analogyRows);
+    expect(result.pass).toBe(true);
+    expect(result.tests.an1_discrimination.rate).toBe(1);
+    expect(result.tests.emergent_beats_surface.edge).toBeGreaterThan(0);
+  });
+});
+
+const presuppositionRows = [
+  row<UAALPresuppositionIR, UAALPresuppositionMetadata>(
+    {
+      forms: [
+        { form: 'asserted', atoms: ['has_king', 'is_bald'] },
+        { form: 'negated', atoms: ['has_king'] },
+        { form: 'modal', atoms: ['has_king'] },
+        { form: 'question', atoms: ['has_king'] },
+      ],
+      query: { atoms: ['has_king', 'is_bald'] },
+    },
+    { id: 'king_projection', atom_status: { has_king: 'presupposed', is_bald: 'at_issue' } },
+  ),
+];
+
+describe('semantic presupposition harness', () => {
+  it('splits presupposed content from at-issue content by projection', () => {
+    const projection = JSON.parse(presuppositionRows[0].completion as string) as UAALPresuppositionIR;
+
+    expect(recoverAtomStatus(projection, 'has_king')).toEqual({ status: 'presupposed' });
+    expect(recoverAtomStatus(projection, 'is_bald')).toEqual({ status: 'at_issue' });
+  });
+
+  it('passes the presupposition benchmark and beats surface presence', () => {
+    const result = benchmarkPresupposition(presuppositionRows);
+    expect(result.pass).toBe(true);
+    expect(result.tests.pt1_discrimination.rate).toBe(1);
+    expect(result.tests.emergent_beats_surface.edge).toBeGreaterThan(0);
+  });
+});
+
+function motifComponent(id: string, noun: string, edgeType = 'guards'): UAALMotifComponent {
+  return {
+    id,
+    nodes: [
+      { id: `${id}_actor`, role: 'actor', label: noun },
+      { id: `${id}_object`, role: 'object', label: `${noun}-object` },
+    ],
+    edges: [{ from: `${id}_actor`, to: `${id}_object`, type: edgeType }],
+  };
+}
+
+const motifRows = [
+  row<UAALMotifIR, UAALMotifMetadata>(
+    {
+      components: [motifComponent('a', 'key'), motifComponent('b', 'key')],
+    },
+    { id: 'motif_present', has_motif: true, recurrence_count: 2 },
+  ),
+  row<UAALMotifIR, UAALMotifMetadata>(
+    {
+      components: [motifComponent('a', 'crown', 'guards'), motifComponent('b', 'crown', 'feeds')],
+    },
+    { id: 'lexical_only', has_motif: false, recurrence_count: 0 },
+  ),
+  row<UAALMotifIR, UAALMotifMetadata>(
+    {
+      components: [motifComponent('a', 'river'), motifComponent('b', 'mirror')],
+    },
+    { id: 'relabelled_isomorphs', has_motif: true, recurrence_count: 2 },
+  ),
+  row<UAALMotifIR, UAALMotifMetadata>(
+    {
+      components: [motifComponent('a', 'stone', 'guards'), motifComponent('b', 'moon', 'feeds')],
+    },
+    { id: 'no_motif', has_motif: false, recurrence_count: 0 },
+  ),
+];
+
+describe('semantic motif harness', () => {
+  it('recovers typed skeleton recurrence instead of repeated words', () => {
+    const lexicalOnly = JSON.parse(motifRows[1].completion as string) as UAALMotifIR;
+
+    expect(recoverMotif(lexicalOnly).has_motif).toBe(false);
+    expect(lexicalRecurrence(lexicalOnly).has_motif).toBe(true);
+    expect(canonicalForm(motifComponent('x', 'word'))).toBe('actor--guards-->object');
+  });
+
+  it('passes the motif benchmark and beats lexical recurrence', () => {
+    const result = benchmarkMotif(motifRows);
+    expect(result.pass).toBe(true);
+    expect(result.tests.tm1_discrimination.rate).toBe(1);
+    expect(result.tests.emergent_beats_lexical.edge).toBeGreaterThan(0);
   });
 });
