@@ -488,6 +488,7 @@ function startBackgroundAbsorbJob(jobId: string, work: () => Promise<unknown>): 
 
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
 const DEFAULT_SCAN_MAX_FILES = 10_000;
+const DEFAULT_SCAN_MAX_FILE_SIZE = 1024 * 1024;
 const GRAPH_UNAVAILABLE_RECEIPT_SCHEMA = 'holoscript.codebase.graph-unavailable-receipt.v0.1.0';
 const SEMANTIC_INDEX_READINESS_RECEIPT_SCHEMA =
   'holoscript.codebase.semantic-index-readiness-receipt.v0.1.0';
@@ -760,7 +761,14 @@ function countGitTrackedAbsorbableFiles(rootDir: string): number | null {
     return output
       .split(/\r?\n/)
       .filter((line) => line.length > 0)
-      .filter((line) => !isCoverageExcludedPath(line)).length;
+      .filter((line) => !isCoverageExcludedPath(line))
+      .filter((line) => {
+        try {
+          return fs.statSync(path.join(rootDir, line)).size <= DEFAULT_SCAN_MAX_FILE_SIZE;
+        } catch {
+          return false;
+        }
+      }).length;
   } catch {
     return null;
   }

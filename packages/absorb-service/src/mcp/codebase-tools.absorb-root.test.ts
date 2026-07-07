@@ -512,6 +512,83 @@ describe('holo_absorb_repo root validation', () => {
     expect(status.graphUnavailableReceipt).toBeUndefined();
   });
 
+  it('treats scanner-size-skipped files as ineligible for coverage', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-size-skip-cache-'));
+    const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-size-skip-repo-'));
+    const originalCwd = process.cwd();
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+
+    execFileSync('git', ['init'], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['config', 'user.email', 'codex@example.test'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+    execFileSync('git', ['config', 'user.name', 'Codex Test'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+
+    fs.mkdirSync(path.join(repoDir, 'src'), { recursive: true });
+    for (let i = 0; i < 3; i++) {
+      fs.writeFileSync(
+        path.join(repoDir, 'src', `eligible-${i}.ts`),
+        `export const eligible${i} = ${i};\n`,
+        'utf-8'
+      );
+    }
+    fs.writeFileSync(
+      path.join(repoDir, 'src', 'too-large.ts'),
+      `export const tooLarge = "${'x'.repeat(1024 * 1024 + 1)}";\n`,
+      'utf-8'
+    );
+    execFileSync('git', ['add', 'src'], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['commit', '-m', 'initial'], { cwd: repoDir, windowsHide: true });
+    const head = getHeadCommit(repoDir);
+    writeGraphCache(cacheDir, repoDir, Date.now() - 5 * 60 * 1000, head, 3);
+
+    try {
+      process.chdir(repoDir);
+      const status = (await handleCodebaseTool('holo_graph_status', {})) as {
+        graphAuthoritative?: boolean;
+        coverage?: {
+          complete?: boolean;
+          graphFileCount?: number;
+          expectedGraphFileCount?: number;
+          trackedCandidateCount?: number;
+        };
+        diskCache?: {
+          authoritative?: boolean;
+          coverage?: {
+            complete?: boolean;
+            graphFileCount?: number;
+            expectedGraphFileCount?: number;
+            trackedCandidateCount?: number;
+          };
+        };
+        graphUnavailableReceipt?: GraphUnavailableReceipt;
+      };
+
+      expect(status.graphAuthoritative).toBe(true);
+      expect(status.coverage).toMatchObject({
+        complete: true,
+        graphFileCount: 3,
+        expectedGraphFileCount: 3,
+        trackedCandidateCount: 3,
+      });
+      expect(status.diskCache?.authoritative).toBe(true);
+      expect(status.diskCache?.coverage).toMatchObject({
+        complete: true,
+        graphFileCount: 3,
+        expectedGraphFileCount: 3,
+        trackedCandidateCount: 3,
+      });
+      expect(status.graphUnavailableReceipt).toBeUndefined();
+    } finally {
+      process.chdir(originalCwd);
+    }
+  });
+
   it('marks a fresh git-current cache incomplete when coverage is below the scanner target', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-incomplete-cache-'));

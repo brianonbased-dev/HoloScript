@@ -44,6 +44,21 @@ describe('CodebaseScanner module batching', () => {
     );
   });
 
+  it('excludes files larger than the scan max size from discovery plans', () => {
+    const root = makeTempRepo();
+    writeFixture(root, 'src/a.ts', 'export const a = 1;\n');
+    writeFixture(root, 'src/b.ts', 'export const b = 2;\n');
+    writeFixture(root, 'src/too-large.ts', `${'x'.repeat(128)}\n`);
+
+    const scanner = new CodebaseScanner(undefined, false);
+    const plan = scanner.planScan({ rootDir: root, maxFiles: 10, maxFileSize: 64 }, 10);
+
+    expect(plan.totalFiles).toBe(2);
+    expect(plan.batches.flatMap((batch) => batch.files).map((file) => path.basename(file))).toEqual(
+      ['a.ts', 'b.ts']
+    );
+  });
+
   it('scans planned batches and merges them into one ScanResult', async () => {
     const root = makeTempRepo();
     writeFixture(root, 'packages/core/src/a.txt', 'import "./b";\n');

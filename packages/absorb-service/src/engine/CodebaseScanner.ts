@@ -255,7 +255,8 @@ export class CodebaseScanner {
         rDir,
         exclude,
         maxFiles - filePathsSet.size,
-        options.languages
+        options.languages,
+        maxFileSize
       );
       for (const p of paths) filePathsSet.add(p);
     }
@@ -500,6 +501,7 @@ export class CodebaseScanner {
     const rootDirs = rootDirsRaw.map((r) => path.resolve(r));
     const rootDir = rootDirs[0];
     const maxFiles = options.maxFiles ?? DEFAULT_MAX_FILES;
+    const maxFileSize = options.maxFileSize ?? DEFAULT_MAX_FILE_SIZE;
     const exclude = this.buildExcludeSet(options.exclude, options.includeBuildArtifacts ?? false);
     const batchSize = this.normalizeScanBatchSize(scanBatchSize);
 
@@ -510,7 +512,8 @@ export class CodebaseScanner {
         rDir,
         exclude,
         maxFiles - filePathsSet.size,
-        options.languages
+        options.languages,
+        maxFileSize
       );
       for (const p of paths) filePathsSet.add(p);
     }
@@ -999,7 +1002,8 @@ export class CodebaseScanner {
     rootDir: string,
     exclude: Set<string>,
     maxFiles: number,
-    languages?: SupportedLanguage[]
+    languages?: SupportedLanguage[],
+    maxFileSize = DEFAULT_MAX_FILE_SIZE
   ): string[] {
     const langFilter = languages ? new Set(languages) : null;
 
@@ -1028,6 +1032,11 @@ export class CodebaseScanner {
           const dot = name.lastIndexOf('.');
           const ext = dot >= 0 ? name.slice(dot + 1).toLowerCase() : '';
           if (NON_ABSORBABLE_EXT.has(ext)) continue;
+          try {
+            if (fs.statSync(fullPath).size > maxFileSize) continue;
+          } catch {
+            continue;
+          }
           const lang = detectLanguage(fullPath) || 'plaintext';
           if (langFilter && !langFilter.has(lang)) continue;
           all.push(fullPath);
