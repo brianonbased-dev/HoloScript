@@ -1,6 +1,6 @@
 import {
   AdaptiveFrameRateManager,
-  MarketplaceRegistry,
+  LocalRegistry,
   randomUUID,
   sha256,
   type PackageManifest,
@@ -17,7 +17,8 @@ const manager = new AdaptiveFrameRateManager({ maxHistory: 4 });
 manager.recordFrame(16, 0);
 
 const thermalState: ThermalState = manager.getThermalState();
-const registry: MarketplaceRegistry = new MarketplaceRegistry();
+const registry: LocalRegistry = new LocalRegistry();
+registry.publish({ name: '@holoscript/example', version: '1.0.0' });
 const requestId: string = randomUUID();
 const digest: Promise<string> = sha256('public type consumer fixture');
 const walletConnect: Web3Connector['connectWallet'] = connector.connectWallet;

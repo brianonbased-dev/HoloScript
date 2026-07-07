@@ -1,5 +1,11 @@
 # @holoscript/absorb-service
 
+## 6.1.2
+
+### Patch Changes
+
+- Keep `@holoscript/core` as a runtime dependency only, removing the duplicate optional peer that made npm cold-start resolution heavier.
+
 ## 6.1.0
 
 ### Changed

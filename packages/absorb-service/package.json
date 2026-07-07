@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/absorb-service",
-  "version": "6.1.1",
+  "version": "6.1.2",
   "description": "Codebase intelligence, recursive self-improvement pipeline, and daemon system for HoloScript",
   "type": "module",
   "main": "./dist/index.js",
@@ -129,13 +129,9 @@
     "web-tree-sitter": "^0.24.0"
   },
   "peerDependencies": {
-    "@holoscript/core": "workspace:^",
     "@modelcontextprotocol/sdk": "^1.27.1"
   },
   "peerDependenciesMeta": {
-    "@holoscript/core": {
-      "optional": true
-    },
     "@modelcontextprotocol/sdk": {
       "optional": true
     }

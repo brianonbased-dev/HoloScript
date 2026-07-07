@@ -33,6 +33,7 @@
       "packageDir": "packages/core",
       "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
       "requireFiles": ["dist/index.js", "dist/index.cjs", "dist/index.d.ts"],
+      "forbidInternalPeerDependencies": true,
       "forbidBundledNativeAddons": true
     },
     {
@@ -134,6 +135,15 @@
       "forbidBundledNativeAddons": true
     },
     {
+      "name": "@holoscript/platform",
+      "packageDir": "packages/platform",
+      "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "requireFiles": ["dist/index.js", "dist/index.cjs", "dist/index.d.ts"],
+      "forbidDependencies": ["@holoscript/core"],
+      "forbidInternalPeerDependencies": true,
+      "forbidBundledNativeAddons": true
+    },
+    {
       "name": "@holoscript/framework",
       "packageDir": "packages/framework",
       "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
@@ -150,6 +160,7 @@
       "name": "@holoscript/absorb-service",
       "packageDir": "packages/absorb-service",
       "requiredBy": ["laptop-windows", "vast-linux-gpu"],
+      "forbidDependencies": ["peerDependencies:@holoscript/core"],
       "requireFiles": [
         "dist/index.js",
         "dist/index.cjs",

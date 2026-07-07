@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/platform",
-  "version": "6.1.2",
+  "version": "6.1.3",
   "description": "Enterprise platform layer for HoloScript (security, web3, identity, registry)",
   "type": "module",
   "main": "./dist/index.js",
@@ -10,6 +10,9 @@
     "./src/traits/visual/index.ts",
     "./dist/traits/index.js"
   ],
+  "engines": {
+    "node": ">=20"
+  },
   "files": [
     "dist",
     "!dist/**/*.map"
@@ -68,7 +71,6 @@
   },
   "dependencies": {
     "@holoscript/agent-protocol": "workspace:^",
-    "@holoscript/core": "workspace:^",
     "@holoscript/core-types": "workspace:^",
     "jose": "^6.2.2",
     "jsonwebtoken": "^9.0.2",
@@ -132,17 +134,12 @@
     "@holoscript/plugin-wisdom-gotcha": "workspace:^"
   },
   "peerDependencies": {
-    "@holoscript/engine": "workspace:^",
     "@pixiv/three-vrm": "^2.0.0",
     "ioredis": "^5.3.0",
     "puppeteer": "^23.0.0",
-    "react": "^19.2.0",
-    "@holoscript/mesh": "workspace:^"
+    "react": "^19.2.0"
   },
   "peerDependenciesMeta": {
-    "@holoscript/engine": {
-      "optional": true
-    },
     "@pixiv/three-vrm": {
       "optional": true
     },
@@ -154,12 +151,10 @@
     },
     "react": {
       "optional": true
-    },
-    "@holoscript/mesh": {
-      "optional": true
     }
   },
   "devDependencies": {
+    "@holoscript/core": "workspace:*",
     "@types/pixelmatch": "^5.2.6",
     "@types/pngjs": "^6.0.5",
     "@types/three": "^0.170.0",

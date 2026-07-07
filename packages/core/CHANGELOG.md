@@ -1,5 +1,13 @@
 # @holoscript/core
 
+## 8.0.13
+
+### Patch Changes
+
+- Remove upward optional HoloScript package peers from the core manifest so downstream packages can install without solving the whole fleet graph.
+- Updated dependencies
+  - @holoscript/platform@6.1.3
+
 ## 8.0.6
 
 ### Patch Changes
