@@ -73,6 +73,33 @@ interface CodebaseModule {
   BrainCoordNodeMapper: DynamicCtor;
 }
 
+interface AbsorbScanBatchSummary {
+  index: number;
+  label: string;
+  files: number;
+}
+
+interface AbsorbScanPlanReceipt {
+  kind: 'AbsorbScanPlan';
+  mode: 'module-batched' | 'inline-source-files';
+  totalCandidateFiles: number;
+  batchCount: number;
+  batchSize?: number;
+  batches: AbsorbScanBatchSummary[];
+}
+
+interface PlannedScannerBatch {
+  index: number;
+  label: string;
+  files: string[];
+}
+
+interface PlannedScannerScanPlan {
+  totalFiles: number;
+  batchSize: number;
+  batches: PlannedScannerBatch[];
+}
+
 // Disk-cache GraphRAG warm now runs in the BACKGROUND (see ensureCachedGraph), so a
 // generous cap is safe — it no longer blocks the first tool call. 30s was far too low
 // for a ~13k-symbol repo (~130 OpenAI batches), so the warm always timed out and
@@ -98,6 +125,34 @@ function unrefTimer(timer: ReturnType<typeof setTimeout>): void {
   if (typeof timer === 'object' && timer !== null && 'unref' in timer) {
     (timer as { unref: () => void }).unref();
   }
+}
+
+function summarizeModuleScanPlan(plan: PlannedScannerScanPlan): AbsorbScanPlanReceipt {
+  return {
+    kind: 'AbsorbScanPlan',
+    mode: 'module-batched',
+    totalCandidateFiles: plan.totalFiles,
+    batchCount: plan.batches.length,
+    batchSize: plan.batchSize,
+    batches: plan.batches.map((batch) => ({
+      index: batch.index,
+      label: batch.label,
+      files: batch.files.length,
+    })),
+  };
+}
+
+function summarizeInlineScanPlan(totalCandidateFiles: number): AbsorbScanPlanReceipt {
+  return {
+    kind: 'AbsorbScanPlan',
+    mode: 'inline-source-files',
+    totalCandidateFiles,
+    batchCount: totalCandidateFiles > 0 ? 1 : 0,
+    batches:
+      totalCandidateFiles > 0
+        ? [{ index: 1, label: 'inline-source-files', files: totalCandidateFiles }]
+        : [],
+  };
 }
 
 class AbsorbPhaseTimeoutError extends Error {
@@ -1588,6 +1643,11 @@ export const codebaseTools: Tool[] = [
           type: 'number',
           description: 'Maximum number of files to process. Defaults to 10000.',
         },
+        scanBatchSize: {
+          type: 'number',
+          description:
+            'Maximum files per module scan batch for large repositories. Defaults to bounded module-aware batching.',
+        },
         interactive: {
           type: 'boolean',
           description:
@@ -1605,7 +1665,8 @@ export const codebaseTools: Tool[] = [
         },
         background: {
           type: 'boolean',
-          description: 'Alias for async. Useful for long forced scans that may exceed MCP timeouts.',
+          description:
+            'Alias for async. Useful for long forced scans that may exceed MCP timeouts.',
         },
         includeBuildArtifacts: {
           type: 'boolean',
@@ -2043,7 +2104,8 @@ async function runFullScan(
   embeddingApiKey?: string,
   embeddingModel?: string,
   inlineSourceFiles?: SourceFileEntry[],
-  localCodebaseSnapshotReceipt?: LocalCodebaseSnapshotReceiptSummary
+  localCodebaseSnapshotReceipt?: LocalCodebaseSnapshotReceiptSummary,
+  scanBatchSize?: number
 ): Promise<unknown> {
   const {
     CodebaseScanner,
@@ -2102,6 +2164,7 @@ async function runFullScan(
 
   const scanner = new CodebaseScanner();
   let scanResult: any;
+  let scanPlanReceipt: AbsorbScanPlanReceipt | undefined;
 
   if (jobId) trackAbsorbProgress(jobId, 'Scanning codebase', 10);
 
@@ -2111,6 +2174,7 @@ async function runFullScan(
       const selectedFilePaths = maxFiles
         ? inlineScan.filePaths.slice(0, maxFiles)
         : inlineScan.filePaths;
+      scanPlanReceipt = summarizeInlineScanPlan(selectedFilePaths.length);
       scanResult = await scanner.scanFiles(primaryRootDir, selectedFilePaths, {
         includeBuildArtifacts,
         readFile: inlineScan.readFile,
@@ -2122,12 +2186,37 @@ async function runFullScan(
         },
       });
     } else {
-      scanResult = await scanner.scan({
+      const scanOptions = {
         rootDir: primaryRootDir, // for backward compat mapping
         rootDirs,
         languages,
         maxFiles,
         includeBuildArtifacts,
+      };
+      const scanPlan = scanner.planScan(scanOptions, scanBatchSize) as PlannedScannerScanPlan;
+      scanPlanReceipt = summarizeModuleScanPlan(scanPlan);
+      scanResult = await scanner.scanInBatches({
+        ...scanOptions,
+        scanBatchSize,
+        scanPlan,
+        onBatchStart: (batch: PlannedScannerBatch, totalBatches: number) => {
+          if (jobId) {
+            trackAbsorbProgress(
+              jobId,
+              `Scanning batch ${batch.index}/${totalBatches}: ${batch.label}`,
+              10
+            );
+          }
+        },
+        onBatchComplete: (batch: PlannedScannerBatch, _result: unknown, totalBatches: number) => {
+          if (jobId) {
+            trackAbsorbProgress(
+              jobId,
+              `Completed batch ${batch.index}/${totalBatches}: ${batch.label}`,
+              10 + (batch.index / Math.max(totalBatches, 1)) * 50
+            );
+          }
+        },
         onProgress: (processed: number, total: number, file: string) => {
           if (jobId) {
             const scanPercent = 10 + (processed / Math.max(total, 1)) * 50; // 10-60%
@@ -2166,6 +2255,7 @@ async function runFullScan(
       stats,
       embeddingPolicy,
       diagnostics,
+      scanPlan: scanPlanReceipt,
       durationMs: Date.now() - startTime,
     };
     failAbsorbJob(jobId, 'No files scanned', result.message, result);
@@ -2219,6 +2309,7 @@ async function runFullScan(
       rootDir: primaryRootDir,
       stats,
       embeddingPolicy,
+      scanPlan: scanPlanReceipt,
       gitCommitHash,
       diagnostics,
       graphRagReady: semanticIndexReadiness.graphRagReady,
@@ -2343,6 +2434,7 @@ async function runFullScan(
       stats,
       graph: graph.serialize(),
       embeddingPolicy,
+      scanPlan: scanPlanReceipt,
       gitCommitHash,
       diagnostics,
       ...(localCodebaseSnapshotReceipt && { localCodebaseSnapshotReceipt }),
@@ -2375,6 +2467,7 @@ async function runFullScan(
       holoSource,
       interactiveScene: scene,
       embeddingPolicy,
+      scanPlan: scanPlanReceipt,
       gitCommitHash,
       diagnostics,
       ...(localCodebaseSnapshotReceipt && { localCodebaseSnapshotReceipt }),
@@ -2410,7 +2503,8 @@ async function runIncrementalPatch(
   jobId?: string,
   embeddingProvider?: string,
   embeddingApiKey?: string,
-  embeddingModel?: string
+  embeddingModel?: string,
+  scanBatchSize?: number
 ): Promise<unknown> {
   const { CodebaseScanner, CodebaseGraph, GitChangeDetector } = mod;
   const startTime = Date.now();
@@ -2436,7 +2530,10 @@ async function runIncrementalPatch(
       jobId,
       embeddingProvider,
       embeddingApiKey,
-      embeddingModel
+      embeddingModel,
+      undefined,
+      undefined,
+      scanBatchSize
     );
   }
 
@@ -2755,6 +2852,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   const layout = (args.layout as string) ?? 'force';
   const languages = args.languages as string[] | undefined;
   const maxFiles = args.maxFiles as number | undefined;
+  const scanBatchSize = args.scanBatchSize as number | undefined;
   const interactive = (args.interactive as boolean) ?? false;
   // sourceFiles always forces a fresh scan (no disk cache match for temp dirs)
   const force = fromSourceFiles ? true : ((args.force as boolean) ?? false);
@@ -2773,6 +2871,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     rootDir,
     languages,
     maxFiles,
+    scanBatchSize,
     includeBuildArtifacts,
     outputFormat,
     layout,
@@ -2817,6 +2916,7 @@ interface AbsorbExecutionPlan {
   rootDir: string;
   languages?: string[];
   maxFiles?: number;
+  scanBatchSize?: number;
   includeBuildArtifacts: boolean;
   outputFormat: string;
   layout: string;
@@ -2839,6 +2939,7 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
     rootDir,
     languages,
     maxFiles,
+    scanBatchSize,
     includeBuildArtifacts,
     outputFormat,
     layout,
@@ -2872,7 +2973,8 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
       embeddingApiKey,
       embeddingModel,
       inlineSourceFiles,
-      localCodebaseSnapshotReceipt
+      localCodebaseSnapshotReceipt,
+      scanBatchSize
     );
     return {
       ...(result as Record<string, unknown>),
@@ -2900,7 +3002,10 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
       jobId,
       embeddingProvider,
       embeddingApiKey,
-      embeddingModel
+      embeddingModel,
+      undefined,
+      undefined,
+      scanBatchSize
     );
     return { ...(result as Record<string, unknown>), jobId };
   }
@@ -2918,7 +3023,10 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
       jobId,
       embeddingProvider,
       embeddingApiKey,
-      embeddingModel
+      embeddingModel,
+      undefined,
+      undefined,
+      scanBatchSize
     );
     return { ...(result as Record<string, unknown>), jobId };
   }
@@ -2941,7 +3049,10 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
       jobId,
       embeddingProvider,
       embeddingApiKey,
-      embeddingModel
+      embeddingModel,
+      undefined,
+      undefined,
+      scanBatchSize
     );
     return { ...(result as Record<string, unknown>), jobId };
   }
@@ -2963,7 +3074,10 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
       jobId,
       embeddingProvider,
       embeddingApiKey,
-      embeddingModel
+      embeddingModel,
+      undefined,
+      undefined,
+      scanBatchSize
     );
     return { ...(result as Record<string, unknown>), jobId };
   }
@@ -2982,7 +3096,10 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
       jobId,
       embeddingProvider,
       embeddingApiKey,
-      embeddingModel
+      embeddingModel,
+      undefined,
+      undefined,
+      scanBatchSize
     );
     return { ...(result as Record<string, unknown>), jobId };
   }
@@ -3011,7 +3128,13 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
           outputFormat,
           layout,
           interactive,
-          jobId
+          jobId,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          scanBatchSize
         );
         return { ...(result as Record<string, unknown>), jobId };
       }
@@ -3101,7 +3224,8 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
     jobId,
     embeddingProvider,
     embeddingApiKey,
-    embeddingModel
+    embeddingModel,
+    scanBatchSize
   );
   return { ...(result as Record<string, unknown>), jobId };
 }

@@ -74,20 +74,104 @@ const DEFAULT_EXCLUDE = [
 
 const DEFAULT_MAX_FILE_SIZE = 1024 * 1024; // 1MB
 const DEFAULT_MAX_FILES = 10_000;
+const DEFAULT_SCAN_MODULE_BATCH_SIZE = 500;
 const BUILD_ARTIFACT_DIRS = new Set(['dist', 'build', 'out']);
 // Binary/asset extensions skipped during file discovery — they can't be absorbed and in
 // asset-heavy example dirs would flood the candidate pool and truncate discovery before
 // source packages are reached (fair-coverage fix, 2026-07-03).
 const NON_ABSORBABLE_EXT = new Set([
-  'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'ico', 'bmp', 'tif', 'tiff', 'avif', 'heic',
-  'mp4', 'mov', 'avi', 'webm', 'mkv', 'mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a',
-  'woff', 'woff2', 'ttf', 'otf', 'eot',
-  'zip', 'tar', 'gz', 'tgz', 'bz2', 'xz', 'rar', '7z',
-  'pdf', 'glb', 'gltf', 'fbx', 'obj', 'stl', 'ply', 'usdz', 'draco', 'ktx2', 'basis',
-  'bin', 'wasm', 'exe', 'dll', 'so', 'dylib', 'node', 'map',
-  'onnx', 'safetensors', 'gguf', 'pt', 'pth', 'ckpt', 'npy', 'npz', 'parquet',
-  'lock', 'woff', 'ds_store',
+  'png',
+  'jpg',
+  'jpeg',
+  'gif',
+  'webp',
+  'svg',
+  'ico',
+  'bmp',
+  'tif',
+  'tiff',
+  'avif',
+  'heic',
+  'mp4',
+  'mov',
+  'avi',
+  'webm',
+  'mkv',
+  'mp3',
+  'wav',
+  'ogg',
+  'flac',
+  'aac',
+  'm4a',
+  'woff',
+  'woff2',
+  'ttf',
+  'otf',
+  'eot',
+  'zip',
+  'tar',
+  'gz',
+  'tgz',
+  'bz2',
+  'xz',
+  'rar',
+  '7z',
+  'pdf',
+  'glb',
+  'gltf',
+  'fbx',
+  'obj',
+  'stl',
+  'ply',
+  'usdz',
+  'draco',
+  'ktx2',
+  'basis',
+  'bin',
+  'wasm',
+  'exe',
+  'dll',
+  'so',
+  'dylib',
+  'node',
+  'map',
+  'onnx',
+  'safetensors',
+  'gguf',
+  'pt',
+  'pth',
+  'ckpt',
+  'npy',
+  'npz',
+  'parquet',
+  'lock',
+  'woff',
+  'ds_store',
 ]);
+
+export interface PlannedScanBatch {
+  /** 1-based batch index for operator-facing progress. */
+  index: number;
+  label: string;
+  files: string[];
+}
+
+export interface ScanPlan {
+  rootDir: string;
+  rootDirs: string[];
+  totalFiles: number;
+  batchSize: number;
+  batches: PlannedScanBatch[];
+}
+
+export interface ScanInBatchesOptions extends ScanOptions {
+  /** Maximum files per module batch. Defaults to a bounded monorepo-safe chunk. */
+  scanBatchSize?: number;
+  /** Precomputed plan from planScan(), avoiding a second discovery walk. */
+  scanPlan?: ScanPlan;
+  onBatchStart?: (batch: PlannedScanBatch, totalBatches: number) => void;
+  onBatchComplete?: (batch: PlannedScanBatch, result: ScanResult, totalBatches: number) => void;
+}
 
 export class CodebaseScanner {
   private adapterManager: AdapterManager;
@@ -442,6 +526,129 @@ export class CodebaseScanner {
   }
 
   /**
+   * Build a deterministic module-aware scan plan without parsing files.
+   *
+   * Monorepos like HoloScript should not be treated as one anonymous file list:
+   * batches keep package/service boundaries visible while preserving the same
+   * fair file selection used by `scan()`.
+   */
+  planScan(options: ScanOptions, scanBatchSize?: number): ScanPlan {
+    const rootDirsRaw = options.rootDirs ?? (options.rootDir ? [options.rootDir] : []);
+    if (rootDirsRaw.length === 0) throw new Error('No rootDir or rootDirs provided to scan');
+
+    const rootDirs = rootDirsRaw.map((r) => path.resolve(r));
+    const rootDir = rootDirs[0];
+    const maxFiles = options.maxFiles ?? DEFAULT_MAX_FILES;
+    const exclude = this.buildExcludeSet(options.exclude, options.includeBuildArtifacts ?? false);
+    const batchSize = this.normalizeScanBatchSize(scanBatchSize);
+
+    const filePathsSet = new Set<string>();
+    for (const rDir of rootDirs) {
+      if (filePathsSet.size >= maxFiles) break;
+      const paths = this.collectFiles(
+        rDir,
+        exclude,
+        maxFiles - filePathsSet.size,
+        options.languages
+      );
+      for (const p of paths) filePathsSet.add(p);
+    }
+
+    const filePaths = Array.from(filePathsSet);
+    const groups = new Map<string, string[]>();
+    for (const filePath of filePaths) {
+      const label = this.scanModuleLabel(rootDir, filePath);
+      let group = groups.get(label);
+      if (!group) {
+        group = [];
+        groups.set(label, group);
+      }
+      group.push(filePath);
+    }
+
+    const batches: PlannedScanBatch[] = [];
+    for (const [label, files] of groups) {
+      for (let i = 0; i < files.length; i += batchSize) {
+        const chunk = files.slice(i, i + batchSize);
+        const chunkCount = Math.ceil(files.length / batchSize);
+        const chunkIndex = Math.floor(i / batchSize) + 1;
+        batches.push({
+          index: batches.length + 1,
+          label: chunkCount > 1 ? `${label} (${chunkIndex}/${chunkCount})` : label,
+          files: chunk,
+        });
+      }
+    }
+
+    return { rootDir, rootDirs, totalFiles: filePaths.length, batchSize, batches };
+  }
+
+  /**
+   * Scan a repo through module-sized batches, then merge into the canonical
+   * ScanResult shape expected by CodebaseGraph and GraphRAG.
+   */
+  async scanInBatches(options: ScanInBatchesOptions): Promise<ScanResult> {
+    const startTime = Date.now();
+    const plan = options.scanPlan ?? this.planScan(options, options.scanBatchSize);
+    const files: ScannedFile[] = [];
+    const errors: ScanError[] = [];
+    const filesByLanguage: Record<string, number> = {};
+    const symbolsByType: Record<string, number> = {};
+    let totalSymbols = 0;
+    let totalImports = 0;
+    let totalCalls = 0;
+    let totalLoc = 0;
+    let completedCandidateFiles = 0;
+
+    for (const batch of plan.batches) {
+      options.onBatchStart?.(batch, plan.batches.length);
+      const batchResult = await this.scanFiles(plan.rootDir, batch.files, {
+        includeBuildArtifacts: options.includeBuildArtifacts,
+        maxFileSize: options.maxFileSize,
+        readFile: options.readFile,
+        onProgress: (processed, _total, file) => {
+          options.onProgress?.(
+            Math.min(completedCandidateFiles + processed, plan.totalFiles),
+            plan.totalFiles,
+            file
+          );
+        },
+      });
+
+      files.push(...batchResult.files);
+      errors.push(...batchResult.stats.errors);
+      totalSymbols += batchResult.stats.totalSymbols;
+      totalImports += batchResult.stats.totalImports;
+      totalCalls += batchResult.stats.totalCalls;
+      totalLoc += batchResult.stats.totalLoc;
+
+      for (const [language, count] of Object.entries(batchResult.stats.filesByLanguage)) {
+        filesByLanguage[language] = (filesByLanguage[language] ?? 0) + count;
+      }
+      for (const [type, count] of Object.entries(batchResult.stats.symbolsByType)) {
+        symbolsByType[type] = (symbolsByType[type] ?? 0) + count;
+      }
+
+      completedCandidateFiles += batch.files.length;
+      options.onBatchComplete?.(batch, batchResult, plan.batches.length);
+    }
+
+    const stats: ScanStats = {
+      totalFiles: files.length,
+      filesByLanguage,
+      totalSymbols,
+      symbolsByType,
+      totalImports,
+      totalCalls,
+      totalLoc,
+      durationMs: Date.now() - startTime,
+      errors,
+    };
+
+    return { rootDir: plan.rootDir, rootDirs: plan.rootDirs, files, stats };
+  }
+
+  /**
    * Scan a specific set of files (for incremental updates).
    * Does NOT walk the directory -- only processes the provided file paths.
    */
@@ -774,27 +981,37 @@ export class CodebaseScanner {
       if (segs.length > 1 && CONTAINERS.has(segs[0].toLowerCase())) return `${segs[0]}/${segs[1]}`;
       return segs[0] || '.';
     };
-    const SOURCE = /(^|[\/\\])(packages|apps?|libs?|src|engine|core|services?|modules|plugins)([\/\\]|$)/i;
-    const CHAFF = /(^|[\/\\])(examples?|experiments?|demos?|samples?|fixtures?|__fixtures__|docs?|archive|benchmarks?|stress-tests?)([\/\\]|$)/i;
+    const SOURCE =
+      /(^|[\/\\])(packages|apps?|libs?|src|engine|core|services?|modules|plugins)([\/\\]|$)/i;
+    const CHAFF =
+      /(^|[\/\\])(examples?|experiments?|demos?|samples?|fixtures?|__fixtures__|docs?|archive|benchmarks?|stress-tests?)([\/\\]|$)/i;
     const tierOf = (key: string): number => (CHAFF.test(key) ? 2 : SOURCE.test(key) ? 0 : 1);
 
     const groups = new Map<string, string[]>();
     for (const fp of all) {
       const k = keyOf(fp);
       let arr = groups.get(k);
-      if (!arr) { arr = []; groups.set(k, arr); }
+      if (!arr) {
+        arr = [];
+        groups.set(k, arr);
+      }
       arr.push(fp);
     }
     const selected: string[] = [];
     for (const tier of [0, 1, 2]) {
-      const tierGroups = [...groups.entries()].filter(([k]) => tierOf(k) === tier).map(([, arr]) => arr);
+      const tierGroups = [...groups.entries()]
+        .filter(([k]) => tierOf(k) === tier)
+        .map(([, arr]) => arr);
       let progressed = true;
       while (selected.length < maxFiles && progressed) {
         progressed = false;
         for (const arr of tierGroups) {
           if (selected.length >= maxFiles) break;
           const next = arr.shift();
-          if (next !== undefined) { selected.push(next); progressed = true; }
+          if (next !== undefined) {
+            selected.push(next);
+            progressed = true;
+          }
         }
       }
       if (selected.length >= maxFiles) break;
@@ -816,6 +1033,37 @@ export class CodebaseScanner {
       }
     }
     return set;
+  }
+
+  private normalizeScanBatchSize(value?: number): number {
+    if (!Number.isFinite(value ?? DEFAULT_SCAN_MODULE_BATCH_SIZE)) {
+      return DEFAULT_SCAN_MODULE_BATCH_SIZE;
+    }
+    return Math.max(1, Math.floor(value ?? DEFAULT_SCAN_MODULE_BATCH_SIZE));
+  }
+
+  private scanModuleLabel(rootDir: string, filePath: string): string {
+    const relative = path.relative(rootDir, filePath);
+    const segments = relative.split(path.sep).filter(Boolean);
+    const first = segments[0];
+    const second = segments[1];
+    const containers = new Set([
+      'packages',
+      'apps',
+      'services',
+      'libs',
+      'lib',
+      'modules',
+      'plugins',
+    ]);
+
+    if (!first) return '.';
+    if (first === '..') {
+      const parentName = path.basename(path.dirname(filePath));
+      return parentName ? `external/${parentName}` : 'external';
+    }
+    if (second && containers.has(first.toLowerCase())) return `${first}/${second}`;
+    return first;
   }
 
   private extractLooseImports(content: string, filePath: string): ImportEdge[] {

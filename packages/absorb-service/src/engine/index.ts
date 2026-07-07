@@ -55,6 +55,7 @@ export type { HoloParseTree } from './adapters/HoloAdapter';
 
 // Scanner + Graph
 export { CodebaseScanner } from './CodebaseScanner';
+export type { PlannedScanBatch, ScanInBatchesOptions, ScanPlan } from './CodebaseScanner';
 export { CodebaseGraph } from './CodebaseGraph';
 export type { CodebaseGraphStats, SymbolQuery, CallChain, CallChainOptions } from './CodebaseGraph';
 export { ClaimNetworkGraph } from './ClaimNetworkGraph';
