@@ -5,7 +5,7 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -67,7 +67,11 @@ function runPnpm(args, cwd = ROOT) {
 
 function runNpm(args, cwd = ROOT) {
   if (process.platform !== 'win32') return runProcess('npm', args, cwd);
-  return runProcess(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', ['npm', ...args].join(' ')], cwd);
+  return runProcess(
+    process.env.ComSpec || 'cmd.exe',
+    ['/d', '/s', '/c', ['npm', ...args].join(' ')],
+    cwd
+  );
 }
 
 function parseCliJson(args) {
@@ -215,7 +219,11 @@ const cliLaptopContract = parseCliJson(['contract', '--profile', 'laptop-windows
 if (!cliLaptopContract.ok || cliLaptopContract.visionRequested !== true) {
   fail(`contract CLI did not prove laptop vision lane: ${JSON.stringify(cliLaptopContract)}`);
 }
-for (const required of ['vision-mmproj-flag', 'vision-image-token-flags', 'registry-base-endpoint']) {
+for (const required of [
+  'vision-mmproj-flag',
+  'vision-image-token-flags',
+  'registry-base-endpoint',
+]) {
   if (!cliLaptopContract.checks?.some((check) => check.id === required && check.ok)) {
     fail(`contract CLI laptop vision lane did not pass ${required}`);
   }
@@ -338,7 +346,47 @@ const coldLifecycle = JSON.parse(
 if (coldLifecycle.schema !== 'holollama.fleet-lifecycle.v1' || !coldLifecycle.ok) {
   fail(`cold install lifecycle check failed: ${JSON.stringify(coldLifecycle)}`);
 }
+const coldHarnessDir = join(COLD_CONSUMER_DIR, '.ai-ecosystem');
+const coldHarness = JSON.parse(
+  runProcess(
+    NODE,
+    [
+      coldBin,
+      'harness',
+      '--out',
+      coldHarnessDir,
+      '--profile',
+      'jetson-orin',
+      '--team-id',
+      'team_test',
+      '--json',
+    ],
+    COLD_CONSUMER_DIR
+  )
+);
+if (coldHarness.schema !== 'holollama.public-harness-install.v1' || !coldHarness.ok) {
+  fail(`cold install harness helper failed: ${JSON.stringify(coldHarness)}`);
+}
+for (const required of [
+  'AGENTS.md',
+  '.env.example',
+  'holollama.harness.json',
+  'receipts/holollama/doctor.json',
+  'receipts/holollama/lifecycle.json',
+  'receipts/holollama/install.json',
+]) {
+  if (!existsSync(join(coldHarnessDir, required))) fail(`cold harness missing ${required}`);
+}
+const installedHarnessReceipt = readFileSync(
+  join(coldHarnessDir, 'receipts', 'holollama', 'install.json'),
+  'utf8'
+);
+if (
+  /C:[\\/]+Users[\\/]+josep|D:[\\/]+GOLD|holoscript_sk_|holomesh_sk_/i.test(installedHarnessReceipt)
+) {
+  fail('cold harness install receipt leaked a private anchor or filled secret marker');
+}
 
 console.log(
-  '[holollama-consumption] PASS: built API, CLI, and cold install are consumable by laptop, Jetson, and Vast lanes.'
+  '[holollama-consumption] PASS: built API, CLI, public harness helper, and cold install are consumable by laptop, Jetson, and Vast lanes.'
 );

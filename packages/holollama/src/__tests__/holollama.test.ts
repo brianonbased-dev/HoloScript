@@ -1,3 +1,6 @@
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   assertHoloLlamaBundleConsumable,
@@ -10,6 +13,7 @@ import {
   compileHoloLlamaFiles,
   doctorHoloLlamaProfiles,
   extractSovereignDeviceRegistry,
+  installHoloLlamaPublicHarness,
   listHoloLlamaBrains,
   listHoloLlamaProfiles,
   parseHoloLlamaSystemdShow,
@@ -18,6 +22,7 @@ import {
   readHoloLlamaProfileSource,
   selectHoloLlamaBrain,
   summarizeHoloLlamaBundle,
+  verifyHoloLlamaHarnessSafety,
   verifyHoloLlamaServerContract,
 } from '../index.js';
 import { selectHoloLlamaBrain as selectHoloLlamaBrainFromSubpath } from '../brain.js';
@@ -110,7 +115,9 @@ describe('@holoscript/holollama', () => {
     expect(bundle.target).toBe('llama-server');
     expect(bundle.launch.command).toContain('--grammar-file grammars/holoscript-subset.gbnf');
     expect(bundle.launch.command).toContain('-m /opt/holoscript/models/qwen3-4b-instruct.gguf');
-    expect(bundle.launch.command).toContain('--lora /opt/holoscript/models/brittney-edge-v0-4.lora.gguf');
+    expect(bundle.launch.command).toContain(
+      '--lora /opt/holoscript/models/brittney-edge-v0-4.lora.gguf'
+    );
     expect(bundle.registryEntry.handle).toBe('jetson-brittney-edge');
     expect(summary.files).toContain('launch-llama-server.ps1');
     expect(summary.files).toContain('sovereign-devices/jetson-brittney-edge.json');
@@ -156,7 +163,9 @@ describe('@holoscript/holollama', () => {
 
     expect(jetson.launch.executable).toBe(patchedJetsonExecutable);
     expect(jetson.launch.command.startsWith(`${patchedJetsonExecutable} -m`)).toBe(true);
-    expect(jetson.launch.command).toContain('--lora /opt/holoscript/models/brittney-edge-v0-4.lora.gguf');
+    expect(jetson.launch.command).toContain(
+      '--lora /opt/holoscript/models/brittney-edge-v0-4.lora.gguf'
+    );
     expect(laptop.launch.executable).toBe(patchedLaptopExecutable);
     expect(laptop.launch.command.startsWith(`${patchedLaptopExecutable} -m`)).toBe(true);
     expect(laptop.launch.command).not.toContain('.docker\\bin\\inference');
@@ -401,8 +410,7 @@ describe('@holoscript/holollama', () => {
       source: 'ssh-procfs-journal',
       unit: 'jetson-orin-llamacpp.service',
       pid: 42,
-      command:
-        `${patchedJetsonExecutable} -m /opt/holoscript/models/qwen3-4b-instruct.gguf --host 0.0.0.0 --port 18080 -c 4096 -ngl 32 --fit on --parallel 1 --cache-ram 0 --metrics --lora /opt/holoscript/models/brittney-edge-v0-4.lora.gguf`,
+      command: `${patchedJetsonExecutable} -m /opt/holoscript/models/qwen3-4b-instruct.gguf --host 0.0.0.0 --port 18080 -c 4096 -ngl 32 --fit on --parallel 1 --cache-ram 0 --metrics --lora /opt/holoscript/models/brittney-edge-v0-4.lora.gguf`,
       noUsableGpuWarning: false,
       processRssMiB: 3000,
       processHighWaterMiB: 3400,
@@ -540,5 +548,86 @@ describe('@holoscript/holollama', () => {
         expect.stringContaining('props-modalities-vision'),
       ])
     );
+  });
+
+  it('installs the public .ai-ecosystem harness and writes safety plus lifecycle receipts', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'holollama-harness-install-'));
+    try {
+      const targetDir = join(root, '.ai-ecosystem');
+      const receipt = await installHoloLlamaPublicHarness({
+        targetDir,
+        profile: 'jetson-orin',
+        teamId: 'team_test',
+        generatedAt: '2026-07-05T00:00:00.000Z',
+      });
+
+      expect(receipt.schema).toBe('holollama.public-harness-install.v1');
+      expect(receipt.ok).toBe(true);
+      expect(receipt.files).toEqual(['.env.example', 'AGENTS.md', 'holollama.harness.json']);
+      expect(receipt.safety.ok).toBe(true);
+      expect(receipt.doctor.schema).toBe('holollama.doctor.v1');
+      expect(receipt.lifecycle.schema).toBe('holollama.fleet-lifecycle.v1');
+      expect(existsSync(join(targetDir, 'AGENTS.md'))).toBe(true);
+      expect(existsSync(join(targetDir, 'receipts', 'holollama', 'doctor.json'))).toBe(true);
+      expect(existsSync(join(targetDir, 'receipts', 'holollama', 'lifecycle.json'))).toBe(true);
+      const installReceipt = JSON.parse(
+        readFileSync(join(targetDir, 'receipts', 'holollama', 'install.json'), 'utf8')
+      );
+      expect(installReceipt.receiptHash).toMatch(/^sha256:/);
+      expect(JSON.stringify(installReceipt)).not.toContain('C:\\Users\\josep');
+      expect(JSON.stringify(installReceipt)).not.toContain('D:/GOLD');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('protects existing harness files unless force is explicit', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'holollama-harness-conflict-'));
+    try {
+      const targetDir = join(root, '.ai-ecosystem');
+      mkdirSync(targetDir, { recursive: true });
+      writeFileSync(join(targetDir, 'AGENTS.md'), 'custom local harness\n');
+
+      const receipt = await installHoloLlamaPublicHarness({
+        targetDir,
+        profile: 'jetson-orin',
+        teamId: 'team_test',
+        generatedAt: '2026-07-05T00:00:00.000Z',
+      });
+
+      expect(receipt.ok).toBe(false);
+      expect(receipt.blockers).toEqual(
+        expect.arrayContaining([expect.stringContaining('conflicting file')])
+      );
+      expect(readFileSync(join(targetDir, 'AGENTS.md'), 'utf8')).toBe('custom local harness\n');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('flags founder-private anchors and filled secrets in public harness files', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'holollama-harness-safety-'));
+    try {
+      writeFileSync(join(root, 'AGENTS.md'), 'Do not copy C:\\Users\\josep\\.ai-ecosystem\n');
+      writeFileSync(
+        join(root, '.env.example'),
+        'HOLOSCRIPT_API_KEY=holoscript_sk_liveabcdef123456789\n'
+      );
+
+      const safety = await verifyHoloLlamaHarnessSafety(root, {
+        generatedAt: '2026-07-05T00:00:00.000Z',
+      });
+
+      expect(safety.ok).toBe(false);
+      expect(safety.issues).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ kind: 'private-anchor', id: 'founder-windows-user-path' }),
+          expect.objectContaining({ kind: 'filled-secret', id: 'secret-looking-token' }),
+          expect.objectContaining({ kind: 'filled-secret', id: 'filled-env-holoscript_api_key' }),
+        ])
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

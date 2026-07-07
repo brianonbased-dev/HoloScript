@@ -18,6 +18,7 @@ holollama preflight --profile laptop-windows --json
 holollama contract --profile laptop-windows --json
 holollama lifecycle --team-id team_... --json
 holollama lifecycle --profile jetson-orin --live --team-id team_... --json
+holollama harness --out ./.ai-ecosystem --team-id local-team --json
 holollama profiles
 holollama brains
 holollama brain --task "compose eerie ambience for a cave level" --json
@@ -53,6 +54,17 @@ operating harness. The template points agents at package commands such as
 `holollama doctor`, `holollama profiles`, `holollama lifecycle`, and
 `holollama lifecycle --live`; it does not assume founder paths, GOLD, private
 MCP keys, or local research state.
+
+Use the installer instead of copying by hand:
+
+```bash
+holollama harness --out ./.ai-ecosystem --team-id local-team --json
+```
+
+The command refuses to overwrite changed harness files unless `--force` is
+provided, scans the installed files for founder-private anchors and filled env
+secrets, then writes `doctor`, `lifecycle`, and install receipts under
+`.ai-ecosystem/receipts/holollama/`.
 
 Override the authored plan with flags such as `--model`, `--model-path`,
 `--host`, `--port`, `--ctx`, `--ngl`, `--parallel`, `--register-as`, `--node`,

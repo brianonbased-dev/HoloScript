@@ -1,9 +1,9 @@
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   LlamaServerCompiler,
@@ -450,11 +450,11 @@ export interface HoloLlamaFleetLifecycleStage {
   id:
     | 'plan'
     | 'server-contract'
-     | 'vision-preflight'
-     | 'runtime-readiness'
-     | 'mesh-readonly-bridge'
-     | 'serve-health-probe'
-     | 'live-lifecycle';
+    | 'vision-preflight'
+    | 'runtime-readiness'
+    | 'mesh-readonly-bridge'
+    | 'serve-health-probe'
+    | 'live-lifecycle';
   ok: boolean;
   receiptSchema: string;
   summary: string;
@@ -481,6 +481,49 @@ export interface HoloLlamaFleetLifecycleReport {
   profiles: HoloLlamaFleetLifecycleProfile[];
 }
 
+export interface HoloLlamaHarnessSafetyIssue {
+  file: string;
+  kind: 'private-anchor' | 'filled-secret';
+  id: string;
+  detail: string;
+}
+
+export interface HoloLlamaHarnessSafetyReport {
+  schema: typeof HOLOLLAMA_HARNESS_SAFETY_SCHEMA;
+  generatedAt: string;
+  ok: boolean;
+  root: string;
+  filesScanned: string[];
+  issues: HoloLlamaHarnessSafetyIssue[];
+}
+
+export interface HoloLlamaHarnessSafetyOptions {
+  generatedAt?: string;
+  rootLabel?: string;
+}
+
+export interface HoloLlamaHarnessInstallOptions extends HoloLlamaMeshReadOnlyBridgeOptions {
+  targetDir?: string;
+  force?: boolean;
+  writeReceipts?: boolean;
+}
+
+export interface HoloLlamaHarnessInstallReceipt {
+  schema: typeof HOLOLLAMA_HARNESS_INSTALL_SCHEMA;
+  generatedAt: string;
+  ok: boolean;
+  targetDir: string;
+  template: string;
+  files: string[];
+  receiptFiles: string[];
+  safety: HoloLlamaHarnessSafetyReport;
+  doctor: HoloLlamaDoctorReport;
+  lifecycle: HoloLlamaFleetLifecycleReport;
+  warnings: string[];
+  blockers: string[];
+  receiptHash: string;
+}
+
 const DEFAULT_IMAGE_MIN_TOKENS = 1024;
 const DEFAULT_IMAGE_MAX_TOKENS = 1536;
 const DEFAULT_JETSON_HOLO_LLAMA_EXECUTABLE =
@@ -500,14 +543,21 @@ const HOLOLLAMA_PROFILE_SOURCE_DIR = join(
   '..',
   'profiles'
 );
+const HOLOLLAMA_PUBLIC_HARNESS_TEMPLATE_DIR = join(
+  dirname(fileURLToPath(import.meta.url)),
+  '..',
+  'templates',
+  'ai-ecosystem-basic'
+);
 export const HOLOLLAMA_DOCTOR_SCHEMA = 'holollama.doctor.v1';
 export const HOLOLLAMA_MESH_READONLY_BRIDGE_SCHEMA = 'holollama.holomesh-readonly-bridge.v1';
 export const HOLOLLAMA_SERVER_CONTRACT_SCHEMA = 'holollama.llama-cpp-server-contract.v1';
 export const HOLOLLAMA_VISION_PREFLIGHT_SCHEMA = 'holollama.llama-cpp-vision-preflight.v1';
-export const HOLOLLAMA_RUNTIME_READINESS_SCHEMA =
-  'holollama.llama-cpp-runtime-readiness.v1';
+export const HOLOLLAMA_RUNTIME_READINESS_SCHEMA = 'holollama.llama-cpp-runtime-readiness.v1';
 export const HOLOLLAMA_LIVE_LIFECYCLE_SCHEMA = 'holollama.lifecycle-doctor.v1';
 export const HOLOLLAMA_FLEET_LIFECYCLE_SCHEMA = 'holollama.fleet-lifecycle.v1';
+export const HOLOLLAMA_HARNESS_SAFETY_SCHEMA = 'holollama.public-harness-safety.v1';
+export const HOLOLLAMA_HARNESS_INSTALL_SCHEMA = 'holollama.public-harness-install.v1';
 export const HOLOLLAMA_PROFILE_DEFINITIONS: Record<HoloLlamaProfile, HoloLlamaProfileDefinition> = {
   'jetson-orin': {
     id: 'jetson-orin',
@@ -1082,7 +1132,9 @@ export function assessHoloLlamaRuntimeReadiness(
   }
 
   if (!runtimeRequired) {
-    warnings.push('pass requireRuntimeReadiness with launched-node evidence before benchmarks or routing.');
+    warnings.push(
+      'pass requireRuntimeReadiness with launched-node evidence before benchmarks or routing.'
+    );
   }
 
   const blockers = checks
@@ -1147,8 +1199,10 @@ export function firstModelFromHoloLlamaModelsPayload(
   const meta = isRecord(first.meta) ? first.meta : {};
   const details = isRecord(first.details) ? first.details : {};
   return {
-    id: stringField(first, 'id') ?? stringField(first, 'model') ?? stringField(first, 'name') ?? null,
-    name: stringField(first, 'name') ?? stringField(first, 'id') ?? stringField(first, 'model') ?? null,
+    id:
+      stringField(first, 'id') ?? stringField(first, 'model') ?? stringField(first, 'name') ?? null,
+    name:
+      stringField(first, 'name') ?? stringField(first, 'id') ?? stringField(first, 'model') ?? null,
     ownedBy: stringField(first, 'owned_by') ?? null,
     nVocab: numberField(meta, 'n_vocab') ?? numberField(details, 'n_vocab') ?? null,
     nCtx: numberField(meta, 'n_ctx') ?? null,
@@ -1189,13 +1243,16 @@ export function assessHoloLlamaFootprint(
   if (!command) {
     blockers.push('launch command unavailable from systemd/procfs');
   }
-  if (observed.executable && normalizeRuntimePath(observed.executable) !== normalizeRuntimePath(spec.executable)) {
-    blockers.push(
-      `executable drift: observed ${observed.executable}, expected ${spec.executable}`
-    );
+  if (
+    observed.executable &&
+    normalizeRuntimePath(observed.executable) !== normalizeRuntimePath(spec.executable)
+  ) {
+    blockers.push(`executable drift: observed ${observed.executable}, expected ${spec.executable}`);
   }
   if (observed.executable?.includes('/ollama/')) {
-    blockers.push('live unit uses Ollama-installed llama-server instead of the HoloLlama native binary');
+    blockers.push(
+      'live unit uses Ollama-installed llama-server instead of the HoloLlama native binary'
+    );
   }
   if (
     observed.modelPath &&
@@ -1224,16 +1281,24 @@ export function assessHoloLlamaFootprint(
   }
   if (observed.gpuLayers !== null && observed.gpuLayers !== undefined) {
     if (observed.gpuLayers > spec.gpuLayers) {
-      blockers.push(`gpu layer drift: observed ${observed.gpuLayers}, expected <= ${spec.gpuLayers}`);
+      blockers.push(
+        `gpu layer drift: observed ${observed.gpuLayers}, expected <= ${spec.gpuLayers}`
+      );
     } else if (observed.gpuLayers < spec.gpuLayers) {
-      warnings.push(`gpu layers lower than profile: observed ${observed.gpuLayers}, expected ${spec.gpuLayers}`);
+      warnings.push(
+        `gpu layers lower than profile: observed ${observed.gpuLayers}, expected ${spec.gpuLayers}`
+      );
     }
   }
   if (observed.contextLength !== null && observed.contextLength !== undefined) {
     if (observed.contextLength > spec.contextLength) {
-      blockers.push(`context drift: observed ${observed.contextLength}, expected <= ${spec.contextLength}`);
+      blockers.push(
+        `context drift: observed ${observed.contextLength}, expected <= ${spec.contextLength}`
+      );
     } else if (observed.contextLength < spec.contextLength) {
-      warnings.push(`context lower than profile: observed ${observed.contextLength}, expected ${spec.contextLength}`);
+      warnings.push(
+        `context lower than profile: observed ${observed.contextLength}, expected ${spec.contextLength}`
+      );
     }
   }
   if (observed.noUsableGpuWarning && spec.gpuLayers > 0) {
@@ -1293,9 +1358,7 @@ export async function probeHoloLlamaLiveLifecycle(
   const profile = options.profile ?? 'jetson-orin';
   const definition = HOLOLLAMA_PROFILE_DEFINITIONS[profile];
   const generatedAt = options.generatedAt ?? new Date().toISOString();
-  const endpoint = normalizeLiveEndpoint(
-    options.endpoint ?? defaultHoloLlamaLiveEndpoint(profile)
-  );
+  const endpoint = normalizeLiveEndpoint(options.endpoint ?? defaultHoloLlamaLiveEndpoint(profile));
   const timeoutMs = positiveOrDefault(options.timeoutMs, 20000);
   const maxTokens = positiveOrDefault(options.maxTokens, 12);
   const prompt = options.prompt ?? 'Reply with a tiny readiness token.';
@@ -1348,9 +1411,16 @@ export async function probeHoloLlamaLiveLifecycle(
     if (options.footprintProbe) {
       footprint = {
         ...options.footprintProbe,
-        source: options.footprintProbe.source === 'none' ? 'provided' : options.footprintProbe.source,
+        source:
+          options.footprintProbe.source === 'none' ? 'provided' : options.footprintProbe.source,
       };
-    } else if (options.skipFootprint || options.systemdProbe || options.skipSystemd || !systemd.ok || !sshHost) {
+    } else if (
+      options.skipFootprint ||
+      options.systemdProbe ||
+      options.skipSystemd ||
+      !systemd.ok ||
+      !sshHost
+    ) {
       footprint = skippedHoloLlamaFootprint(
         profile,
         systemdUnit,
@@ -1558,6 +1628,127 @@ export function buildHoloLlamaFleetLifecycleReport(
     ok: profiles.every((profile) => profile.ok),
     profiles,
   };
+}
+
+export async function verifyHoloLlamaHarnessSafety(
+  rootDir: string,
+  options: HoloLlamaHarnessSafetyOptions = {}
+): Promise<HoloLlamaHarnessSafetyReport> {
+  const root = resolve(rootDir);
+  const filesScanned = await collectHoloLlamaHarnessFiles(root);
+  const issues: HoloLlamaHarnessSafetyIssue[] = [];
+
+  for (const file of filesScanned) {
+    const absolute = join(root, file);
+    const content = await readFile(absolute, 'utf8');
+    issues.push(...scanHoloLlamaHarnessPrivateAnchors(file, content));
+    issues.push(...scanHoloLlamaHarnessSecrets(file, content));
+  }
+
+  return {
+    schema: HOLOLLAMA_HARNESS_SAFETY_SCHEMA,
+    generatedAt: options.generatedAt ?? new Date().toISOString(),
+    ok: issues.length === 0,
+    root: options.rootLabel ?? portableHarnessRootLabel(root),
+    filesScanned,
+    issues,
+  };
+}
+
+export async function installHoloLlamaPublicHarness(
+  options: HoloLlamaHarnessInstallOptions = {}
+): Promise<HoloLlamaHarnessInstallReceipt> {
+  const generatedAt = options.generatedAt ?? new Date().toISOString();
+  const profile = options.profile ?? 'jetson-orin';
+  const targetDir = resolve(options.targetDir ?? join(process.cwd(), '.ai-ecosystem'));
+  const templateDir = HOLOLLAMA_PUBLIC_HARNESS_TEMPLATE_DIR;
+  const templateSafety = await verifyHoloLlamaHarnessSafety(templateDir, {
+    generatedAt,
+    rootLabel: 'package:templates/ai-ecosystem-basic',
+  });
+  const templateFiles = await collectHoloLlamaHarnessFiles(templateDir);
+  const blockers: string[] = [];
+  const warnings: string[] = [];
+  const receiptFiles: string[] = [];
+
+  if (!templateSafety.ok) {
+    blockers.push(`template safety failed with ${templateSafety.issues.length} issue(s)`);
+  }
+
+  const conflicts = await findHoloLlamaHarnessConflicts(templateDir, targetDir, templateFiles);
+  if (conflicts.length && !options.force) {
+    blockers.push(
+      `target has ${conflicts.length} conflicting file(s); rerun with --force to overwrite: ${conflicts.join(', ')}`
+    );
+  } else if (conflicts.length) {
+    warnings.push(
+      `overwrote ${conflicts.length} existing harness file(s): ${conflicts.join(', ')}`
+    );
+  }
+
+  let installedSafety = templateSafety;
+  let writtenFiles: string[] = [];
+  let doctor = doctorHoloLlamaProfiles({ profile, generatedAt });
+  let lifecycle = buildHoloLlamaFleetLifecycleReport({
+    profile,
+    teamId: options.teamId,
+    orchestratorUrl: options.orchestratorUrl,
+    apiKeyEnv: options.apiKeyEnv,
+    generatedAt,
+  });
+
+  if (blockers.length === 0) {
+    writtenFiles = await copyHoloLlamaHarnessTemplate(templateDir, targetDir, templateFiles);
+    installedSafety = await verifyHoloLlamaHarnessSafety(targetDir, {
+      generatedAt,
+      rootLabel: '.ai-ecosystem',
+    });
+    if (!installedSafety.ok) {
+      blockers.push(
+        `installed harness safety failed with ${installedSafety.issues.length} issue(s)`
+      );
+    }
+  }
+
+  if (!doctor.ok)
+    blockers.push(`doctor receipt failed with ${doctor.profiles.length} profile result(s)`);
+  if (!lifecycle.ok) blockers.push('lifecycle receipt failed');
+  if (blockers.length === 0 && options.writeReceipts !== false) {
+    receiptFiles.push(
+      'receipts/holollama/doctor.json',
+      'receipts/holollama/lifecycle.json',
+      'receipts/holollama/install.json'
+    );
+  }
+
+  const withoutHash: Omit<HoloLlamaHarnessInstallReceipt, 'receiptHash'> = {
+    schema: HOLOLLAMA_HARNESS_INSTALL_SCHEMA,
+    generatedAt,
+    ok: blockers.length === 0,
+    targetDir: '.ai-ecosystem',
+    template: 'package:templates/ai-ecosystem-basic',
+    files: writtenFiles,
+    receiptFiles,
+    safety: installedSafety,
+    doctor,
+    lifecycle,
+    warnings,
+    blockers,
+  };
+  const receipt: HoloLlamaHarnessInstallReceipt = {
+    ...withoutHash,
+    receiptHash: sha256Json({ ...withoutHash, receiptHash: null }),
+  };
+
+  if (receipt.ok && options.writeReceipts !== false) {
+    const receiptDir = join(targetDir, 'receipts', 'holollama');
+    await mkdir(receiptDir, { recursive: true });
+    await writeJsonReceipt(join(receiptDir, 'doctor.json'), doctor);
+    await writeJsonReceipt(join(receiptDir, 'lifecycle.json'), lifecycle);
+    await writeJsonReceipt(join(receiptDir, 'install.json'), receipt);
+  }
+
+  return receipt;
 }
 
 export async function writeHoloLlamaBundleFiles(
@@ -2124,7 +2315,8 @@ async function fetchHoloLlamaJson(
       url,
       ok: false,
       status: 0,
-      error: error instanceof Error && error.name === 'AbortError' ? 'timeout' : errorMessage(error),
+      error:
+        error instanceof Error && error.name === 'AbortError' ? 'timeout' : errorMessage(error),
     };
   } finally {
     clearTimeout(timer);
@@ -2206,8 +2398,167 @@ function compactHoloLlamaBody(json: unknown, text: string): unknown {
   return text ? text.slice(0, 500) : null;
 }
 
+async function collectHoloLlamaHarnessFiles(rootDir: string, prefix = ''): Promise<string[]> {
+  const absolute = join(rootDir, prefix);
+  const entries = await readdir(absolute, { withFileTypes: true });
+  const files: string[] = [];
+  for (const entry of entries) {
+    const relativePath = prefix ? `${prefix}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) {
+      if (['.git', 'node_modules'].includes(entry.name)) continue;
+      files.push(...(await collectHoloLlamaHarnessFiles(rootDir, relativePath)));
+    } else if (entry.isFile()) {
+      files.push(relativePath);
+    }
+  }
+  return files.sort();
+}
+
+async function findHoloLlamaHarnessConflicts(
+  templateDir: string,
+  targetDir: string,
+  files: string[]
+): Promise<string[]> {
+  const conflicts: string[] = [];
+  for (const file of files) {
+    const target = join(targetDir, file);
+    if (!existsSync(target)) continue;
+    const sourceContent = await readFile(join(templateDir, file), 'utf8');
+    const targetContent = await readFile(target, 'utf8');
+    if (sourceContent !== targetContent) conflicts.push(file);
+  }
+  return conflicts;
+}
+
+async function copyHoloLlamaHarnessTemplate(
+  templateDir: string,
+  targetDir: string,
+  files: string[]
+): Promise<string[]> {
+  const written: string[] = [];
+  for (const file of files) {
+    const source = join(templateDir, file);
+    const target = join(targetDir, file);
+    await mkdir(dirname(target), { recursive: true });
+    await writeFile(target, await readFile(source, 'utf8'));
+    written.push(file);
+  }
+  return written;
+}
+
+async function writeJsonReceipt(path: string, value: unknown): Promise<void> {
+  await writeFile(path, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+function scanHoloLlamaHarnessPrivateAnchors(
+  file: string,
+  content: string
+): HoloLlamaHarnessSafetyIssue[] {
+  const checks: Array<{ id: string; pattern: RegExp; detail: string }> = [
+    {
+      id: 'founder-windows-user-path',
+      pattern: /C:[\\/]+Users[\\/]+josep/i,
+      detail: 'founder Windows home path is private to the source machine',
+    },
+    {
+      id: 'founder-gold-drive',
+      pattern: /D:[\\/]+GOLD\b/i,
+      detail: 'GOLD drive paths belong to the private founder harness',
+    },
+    {
+      id: 'founder-jetson-volume',
+      pattern: /\/mnt\/nvme2?\/holo(?:-volumes)?\b/i,
+      detail: 'owned-metal volume paths should not ship in the public harness',
+    },
+    {
+      id: 'founder-jetson-host',
+      pattern: /\b(?:username@)?192\.168\.0\.119\b/i,
+      detail: 'private LAN Jetson address should be replaced by user-local configuration',
+    },
+    {
+      id: 'founder-holokey-seat',
+      pattern: /\b(?:openai|claude|grok|gemini)-[a-z0-9-]*c40b1de5[a-z0-9-]*\b/i,
+      detail: 'machine-specific HoloKey seat identifiers must not ship in public harness files',
+    },
+  ];
+  return checks
+    .filter((check) => check.pattern.test(content))
+    .map((check) => ({
+      file,
+      kind: 'private-anchor' as const,
+      id: check.id,
+      detail: check.detail,
+    }));
+}
+
+function scanHoloLlamaHarnessSecrets(file: string, content: string): HoloLlamaHarnessSafetyIssue[] {
+  const issues: HoloLlamaHarnessSafetyIssue[] = [];
+  const secretLiteral =
+    /\b(?:sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|holomesh_sk_[A-Za-z0-9_]{8,}|holoscript_sk_[A-Za-z0-9_]{8,})\b/u;
+  if (secretLiteral.test(content)) {
+    issues.push({
+      file,
+      kind: 'filled-secret',
+      id: 'secret-looking-token',
+      detail: 'file contains a token-shaped secret literal',
+    });
+  }
+
+  const envLine =
+    /^\s*([A-Z0-9_]*(?:API_KEY|TOKEN|SECRET|PRIVATE_KEY|WALLET|PASSWORD)[A-Z0-9_]*)\s*=\s*(.*?)\s*$/u;
+  for (const line of content.split(/\r?\n/u)) {
+    const match = envLine.exec(line);
+    if (!match) continue;
+    const name = match[1];
+    const value = stripEnvComment(match[2]).trim();
+    if (value && !isPlaceholderSecretValue(value)) {
+      issues.push({
+        file,
+        kind: 'filled-secret',
+        id: `filled-env-${name.toLowerCase()}`,
+        detail: `${name} has a non-empty value`,
+      });
+    }
+  }
+  return issues;
+}
+
+function stripEnvComment(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.startsWith('#')) return '';
+  if (trimmed.startsWith('"') || trimmed.startsWith("'"))
+    return trimmed.replace(/^['"]|['"]$/g, '');
+  const commentIndex = trimmed.indexOf('#');
+  return commentIndex >= 0 ? trimmed.slice(0, commentIndex).trim() : trimmed;
+}
+
+function isPlaceholderSecretValue(value: string): boolean {
+  const normalized = value
+    .replace(/^['"]|['"]$/g, '')
+    .trim()
+    .toLowerCase();
+  return (
+    normalized === '' ||
+    normalized === 'changeme' ||
+    normalized === 'replace-me' ||
+    normalized === 'your-key-here' ||
+    normalized === '<api-key>' ||
+    normalized === '<token>' ||
+    normalized.startsWith('your_') ||
+    normalized.startsWith('example_')
+  );
+}
+
+function portableHarnessRootLabel(root: string): string {
+  const rel = relative(process.cwd(), root).replace(/\\/g, '/');
+  if (rel && !rel.startsWith('..')) return rel || '.';
+  return basename(root) || '.ai-ecosystem';
+}
+
 function sha256Json(value: unknown): string {
-  return `sha256:${createHash('sha256').update(JSON.stringify(stableJson(value)), 'utf8').digest('hex')}`;
+  return `sha256:${createHash('sha256')
+    .update(JSON.stringify(stableJson(value)), 'utf8')
+    .digest('hex')}`;
 }
 
 function stableJson(value: unknown): unknown {

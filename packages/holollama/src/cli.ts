@@ -6,6 +6,7 @@ import {
   buildLlamaServeComposition,
   compileHoloLlamaBundle,
   doctorHoloLlamaProfiles,
+  installHoloLlamaPublicHarness,
   listHoloLlamaBrains,
   listHoloLlamaProfiles,
   preflightHoloLlamaVision,
@@ -115,6 +116,26 @@ export async function runCli(args = process.argv.slice(2)): Promise<void> {
       return;
     }
     process.stdout.write(formatLifecycleReport(receipt));
+    if (!receipt.ok) process.exitCode = 1;
+    return;
+  }
+
+  if (command === 'harness' || command === 'install-harness') {
+    const receipt = await installHoloLlamaPublicHarness({
+      targetDir:
+        readString(flags, 'out') ?? readString(flags, 'target') ?? readString(flags, 'dir'),
+      profile: readOptionalProfile(flags),
+      teamId: readString(flags, 'team-id'),
+      orchestratorUrl: readString(flags, 'orchestrator-url'),
+      apiKeyEnv: readString(flags, 'api-key-env'),
+      force: flags.has('force'),
+      writeReceipts: !flags.has('no-receipt-files'),
+    });
+    if (flags.has('json')) {
+      process.stdout.write(`${JSON.stringify(receipt, null, 2)}\n`);
+    } else {
+      process.stdout.write(formatHarnessInstallReport(receipt));
+    }
     if (!receipt.ok) process.exitCode = 1;
     return;
   }
@@ -374,6 +395,26 @@ function formatLifecycleReport(
   return lines.join('\n');
 }
 
+function formatHarnessInstallReport(
+  report: Awaited<ReturnType<typeof installHoloLlamaPublicHarness>>
+): string {
+  const lines = [
+    `HoloLlama public harness install: ${report.ok ? 'PASS' : 'FAIL'}`,
+    `  target:   ${report.targetDir}`,
+    `  template: ${report.template}`,
+    `  files:    ${report.files.length}`,
+    `  receipts: ${report.receiptFiles.length}`,
+    `  safety:   ${report.safety.ok ? 'ok' : 'blocked'} (${report.safety.filesScanned.length} file(s) scanned)`,
+    `  doctor:   ${report.doctor.ok ? 'ok' : 'blocked'}`,
+    `  lifecycle:${report.lifecycle.ok ? ' ok' : ' blocked'}`,
+  ];
+  for (const warning of report.warnings) lines.push(`  warning: ${warning}`);
+  for (const issue of report.safety.issues) lines.push(`  blocker: ${issue.file}: ${issue.detail}`);
+  for (const blocker of report.blockers) lines.push(`  blocker: ${blocker}`);
+  lines.push('');
+  return lines.join('\n');
+}
+
 function printHelp(): void {
   process.stdout.write(`HoloLlama native serving utilities
 
@@ -383,6 +424,7 @@ Usage:
   holollama preflight [--profile <id>] [--check-filesystem] [--json]
   holollama contract [--profile <id>] [--json]
   holollama lifecycle [--profile <id>] [--live] [--team-id <team>] [--check-filesystem] [--require-runtime-readiness] [--json]
+  holollama harness [--out ./.ai-ecosystem] [--profile <id>] [--team-id <team>] [--force] [--json]
   holollama profiles
   holollama brains
   holollama brain --task <text> [--brain <id>|--skill <id>] [--json]
@@ -413,6 +455,10 @@ Options:
   --require-live-lifecycle
   --check-filesystem
   --require-runtime-readiness
+  --target <dir>
+  --dir <dir>
+  --force
+  --no-receipt-files
   --code <file.holo>
   --out <dir>
   --json
