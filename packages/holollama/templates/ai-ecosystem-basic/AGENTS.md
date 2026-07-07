@@ -34,7 +34,8 @@ holollama lifecycle --profile jetson-orin --live --endpoint http://127.0.0.1:180
 - Treat this folder as a harness, not as product source.
 - Prefer package commands over ad hoc scripts.
 - Record receipts from `doctor`, `contract`, `preflight`, and `lifecycle`.
+- Treat HoloLlama as native llama.cpp operations, not an Ollama wrapper; live
+  lifecycle receipts should reject Ollama-owned server binaries.
 - Do not assume the founder private `.ai-ecosystem` layout exists.
 - Do not write secrets, OAuth cache, wallet material, or machine-private paths
   into tracked files.
-

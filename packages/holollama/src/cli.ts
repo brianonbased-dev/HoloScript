@@ -126,6 +126,8 @@ export async function runCli(args = process.argv.slice(2)): Promise<void> {
       consumer,
       description,
       model: spec.model,
+      modelPath: spec.modelPath,
+      loras: spec.loras ?? [],
       platform: spec.platform,
       registerAs: spec.registerAs,
     }));

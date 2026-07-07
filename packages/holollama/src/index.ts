@@ -358,6 +358,8 @@ export interface HoloLlamaFootprintEvidence {
   command?: string | null;
   expected: {
     executable: string;
+    modelPath: string;
+    loraPaths: string[];
     gpuLayers: number;
     contextLength: number;
   };
@@ -514,8 +516,8 @@ export const HOLOLLAMA_PROFILE_DEFINITIONS: Record<HoloLlamaProfile, HoloLlamaPr
     description: 'Linux ARM64 text-serving HoloLlama lane for the owned Jetson.',
     spec: {
       name: 'jetson-brittney-edge',
-      model: 'brittney-edge:v0-4',
-      modelPath: '/opt/holoscript/models/brittney-edge-v0-4.gguf',
+      model: 'qwen3-4b-instruct+brittney-edge:v0-4',
+      modelPath: '/opt/holoscript/models/qwen3-4b-instruct.gguf',
       vision: false,
       host: '0.0.0.0',
       port: 18080,
@@ -525,6 +527,7 @@ export const HOLOLLAMA_PROFILE_DEFINITIONS: Record<HoloLlamaProfile, HoloLlamaPr
       parallel: 1,
       metrics: true,
       grammar: 'holoscript',
+      loras: ['/opt/holoscript/models/brittney-edge-v0-4.lora.gguf'],
       executable: DEFAULT_JETSON_HOLO_LLAMA_EXECUTABLE,
       workingDirectory: '/opt/holoscript/holollama',
       platform: 'linux',
@@ -1161,6 +1164,7 @@ export function assessHoloLlamaFootprint(
   const spec = definition.spec;
   const command = input.command ?? null;
   const parsed = parseHoloLlamaLaunchCommand(command);
+  const expectedLoraPaths = expectedHoloLlamaLoraPaths(spec);
   const observed: HoloLlamaFootprintEvidence['observed'] = {
     executable: parsed.executable,
     modelPath: parsed.modelPath,
@@ -1192,6 +1196,31 @@ export function assessHoloLlamaFootprint(
   }
   if (observed.executable?.includes('/ollama/')) {
     blockers.push('live unit uses Ollama-installed llama-server instead of the HoloLlama native binary');
+  }
+  if (
+    observed.modelPath &&
+    normalizeRuntimePath(observed.modelPath) !== normalizeRuntimePath(spec.modelPath)
+  ) {
+    blockers.push(`model path drift: observed ${observed.modelPath}, expected ${spec.modelPath}`);
+  }
+  const observedLoraPaths = observed.loraPaths ?? [];
+  for (const expectedLora of expectedLoraPaths) {
+    if (
+      !observedLoraPaths.some(
+        (candidate) => normalizeRuntimePath(candidate) === normalizeRuntimePath(expectedLora)
+      )
+    ) {
+      blockers.push(`missing LoRA adapter: expected ${expectedLora}`);
+    }
+  }
+  for (const observedLora of observedLoraPaths) {
+    if (
+      !expectedLoraPaths.some(
+        (candidate) => normalizeRuntimePath(candidate) === normalizeRuntimePath(observedLora)
+      )
+    ) {
+      blockers.push(`unexpected LoRA adapter: observed ${observedLora}`);
+    }
   }
   if (observed.gpuLayers !== null && observed.gpuLayers !== undefined) {
     if (observed.gpuLayers > spec.gpuLayers) {
@@ -1247,6 +1276,8 @@ export function assessHoloLlamaFootprint(
     command,
     expected: {
       executable: spec.executable,
+      modelPath: spec.modelPath,
+      loraPaths: expectedLoraPaths,
       gpuLayers: spec.gpuLayers,
       contextLength: spec.contextLength,
     },
@@ -1747,11 +1778,25 @@ function parseHoloLlamaLaunchCommand(command: string | null): {
   return {
     executable: tokens[0] ?? null,
     modelPath: tokenValue(tokens, ['-m', '--model']) ?? null,
-    loraPaths: tokenValues(tokens, ['--lora']),
+    loraPaths: [
+      ...tokenValues(tokens, ['--lora']),
+      ...tokenValues(tokens, ['--lora-scaled']).map(loraPathFromScaledToken),
+    ],
     gpuLayers: tokenNumber(tokens, ['-ngl', '--gpu-layers', '--n-gpu-layers']),
     contextLength: tokenNumber(tokens, ['-c', '--ctx-size', '--ctx', '--context-size']),
     cacheRamMiB: tokenNumber(tokens, ['--cache-ram']),
   };
+}
+
+function expectedHoloLlamaLoraPaths(spec: HoloLlamaServeSpec): string[] {
+  return (spec.loras ?? []).map((lora) => (typeof lora === 'string' ? lora : lora.path));
+}
+
+function loraPathFromScaledToken(value: string): string {
+  const idx = value.lastIndexOf(':');
+  if (idx <= 0) return value;
+  const scale = Number(value.slice(idx + 1));
+  return Number.isFinite(scale) ? value.slice(0, idx) : value;
 }
 
 function commandLineTokens(command: string): string[] {
@@ -1868,6 +1913,8 @@ function skippedHoloLlamaFootprint(
     command: null,
     expected: {
       executable: spec.executable,
+      modelPath: spec.modelPath,
+      loraPaths: expectedHoloLlamaLoraPaths(spec),
       gpuLayers: spec.gpuLayers,
       contextLength: spec.contextLength,
     },
@@ -1961,7 +2008,9 @@ pid="$(systemctl show "$unit" -p MainPID --value 2>/dev/null || true)"
 if [ -z "$pid" ] || [ "$pid" = "0" ]; then
   pid="$(systemctl show "$unit" -p ExecMainPID --value 2>/dev/null || true)"
 fi
+active_since="$(systemctl show "$unit" -p ActiveEnterTimestamp --value 2>/dev/null || true)"
 printf 'PID=%s\\n' "$pid"
+printf 'ACTIVE_ENTER_TIMESTAMP=%s\\n' "$active_since"
 if [ -n "$pid" ] && [ "$pid" != "0" ] && [ -r "/proc/$pid/cmdline" ]; then
   cmd="$(tr '\\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null || true)"
   printf 'COMMAND=%s\\n' "$cmd"
@@ -1989,7 +2038,15 @@ free -m | awk '
   /^Mem:/ { print "RAM_TOTAL_MIB="$2; print "RAM_USED_MIB="$3 }
   /^Swap:/ { print "SWAP_TOTAL_MIB="$2; print "SWAP_USED_MIB="$3 }
 ' 2>/dev/null || true
-journal="$(journalctl -u "$unit" -n 500 --no-pager 2>/dev/null || sudo -n journalctl -u "$unit" -n 500 --no-pager 2>/dev/null || true)"
+if [ -n "$active_since" ] && [ "$active_since" != "n/a" ]; then
+  journal="$(journalctl -u "$unit" --since "$active_since" -n 500 --no-pager 2>/dev/null || sudo -n journalctl -u "$unit" --since "$active_since" -n 500 --no-pager 2>/dev/null || true)"
+else
+  journal="$(journalctl -u "$unit" -n 500 --no-pager 2>/dev/null || sudo -n journalctl -u "$unit" -n 500 --no-pager 2>/dev/null || true)"
+fi
+if [ -n "$pid" ] && [ "$pid" != "0" ]; then
+  pid_journal="$(printf '%s' "$journal" | grep -F "[$pid]:" || true)"
+  if [ -n "$pid_journal" ]; then journal="$pid_journal"; fi
+fi
 if printf '%s' "$journal" | grep -qi 'no usable GPU found'; then
   printf 'NO_USABLE_GPU_WARNING=1\\n'
 else

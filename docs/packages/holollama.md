@@ -29,9 +29,16 @@ holollama plan --code ./serve.holo --out ./holollama-bundle
 
 Profiles currently describe the owned fleet lanes:
 
-- `jetson-orin`: Linux ARM64 owned-metal serving defaults.
+- `jetson-orin`: Linux ARM64 owned-metal serving defaults, using a native
+  `/opt/holoscript/llama.cpp/build-holo/bin/llama-server`, Qwen3 base model,
+  and Brittney LoRA adapter.
 - `laptop-windows`: Windows laptop local model and vision/tooling defaults.
 - `vast-linux-gpu`: Linux x64 GPU fleet defaults.
+
+HoloLlama is not an Ollama wrapper. The Jetson lane expects a native llama.cpp
+build owned by HoloLlama; live lifecycle receipts reject Ollama-owned
+`llama-server` binaries, model/LoRA drift, ignored GPU layers, unsafe
+prompt-cache ceilings, and unified-memory pressure.
 
 Common overrides include `--model`, `--model-path`, `--host`, `--port`, `--ctx`,
 `--ngl`, `--parallel`, `--register-as`, `--node`, `--platform`,
@@ -58,10 +65,12 @@ read-only HoloMesh bridge, and health-probe stages for every fleet profile.
 `holollama lifecycle --live` scopes to a profile, probes the running HoloLlama
 endpoint, and promotes `holollama.lifecycle-doctor.v1` into the lifecycle as a
 `live-lifecycle` stage. The live probe checks optional systemd service state,
-`/health`, `/v1/models`, and a tiny OpenAI-compatible completion. Use
+read-only SSH/procfs footprint, `/health`, `/v1/models`, and a tiny
+OpenAI-compatible completion. Use
 `--endpoint`, `--host`, `--key`, `--unit`, `--models-path`, `--timeout-ms`,
-`--prompt`, `--max-tokens`, `--no-systemd`, and `--require-systemd` to adapt the
-same package to Jetson, laptop, and Vast fleet lanes.
+`--prompt`, `--max-tokens`, `--no-systemd`, `--no-footprint`, and
+`--require-systemd` to adapt the same package to Jetson, laptop, and Vast fleet
+lanes.
 
 ## Brains
 

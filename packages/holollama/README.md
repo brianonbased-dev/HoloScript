@@ -28,9 +28,16 @@ holollama plan --code ./serve.holo --out ./holollama-bundle
 
 Profiles are operating defaults for the fleet lanes, not hardware claims:
 
-- `jetson-orin`: owned-metal Linux ARM64 text serving lane.
+- `jetson-orin`: owned-metal Linux ARM64 text serving lane, using a native
+  `/opt/holoscript/llama.cpp/build-holo/bin/llama-server`, Qwen3 base model,
+  and Brittney LoRA adapter.
 - `laptop-windows`: founder laptop Windows vision/tooling lane.
 - `vast-linux-gpu`: Linux GPU fleet lane.
+
+HoloLlama is not an Ollama wrapper. The Jetson profile expects a native
+llama.cpp build owned by the HoloLlama lane; `lifecycle --live` rejects
+Ollama-owned `llama-server` binaries, model/LoRA drift, ignored GPU layers,
+unsafe prompt-cache ceilings, and unified-memory pressure.
 
 ## Public `.ai-ecosystem` Harness
 
@@ -73,8 +80,9 @@ Operational receipts:
   `live-lifecycle` stage. The live probe checks optional systemd service state,
   read-only SSH/procfs footprint, `/health`, `/v1/models`, and a tiny
   OpenAI-compatible completion. The footprint check catches Jetson-class drift:
-  wrong `llama-server` binary, ignored GPU layers, unsafe prompt-cache ceilings,
-  RSS pressure against unified memory, and swap already in use. Use
+  wrong `llama-server` binary, model/LoRA path drift, ignored GPU layers, unsafe
+  prompt-cache ceilings, RSS pressure against unified memory, and swap already
+  in use. Use
   `--endpoint`, `--host`, `--key`, `--unit`, `--models-path`, `--timeout-ms`,
   `--prompt`, `--max-tokens`, `--no-systemd`, `--no-footprint`, and
   `--require-systemd` to adapt the same package to Jetson, laptop, and Vast

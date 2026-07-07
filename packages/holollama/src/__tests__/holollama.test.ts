@@ -95,6 +95,8 @@ describe('@holoscript/holollama', () => {
     expect(code).toContain('@llama_serve');
     expect(code).toContain('vision: false');
     expect(code).toContain('grammar: "holoscript"');
+    expect(code).toContain('model_path: "/opt/holoscript/models/qwen3-4b-instruct.gguf"');
+    expect(code).toContain('lora: ["/opt/holoscript/models/brittney-edge-v0-4.lora.gguf"]');
     expect(code).toContain(patchedJetsonExecutable);
     expect(code).not.toContain('/llama.cpp/build/bin/llama-server');
   });
@@ -107,6 +109,8 @@ describe('@holoscript/holollama', () => {
     expect(check.ok).toBe(true);
     expect(bundle.target).toBe('llama-server');
     expect(bundle.launch.command).toContain('--grammar-file grammars/holoscript-subset.gbnf');
+    expect(bundle.launch.command).toContain('-m /opt/holoscript/models/qwen3-4b-instruct.gguf');
+    expect(bundle.launch.command).toContain('--lora /opt/holoscript/models/brittney-edge-v0-4.lora.gguf');
     expect(bundle.registryEntry.handle).toBe('jetson-brittney-edge');
     expect(summary.files).toContain('launch-llama-server.ps1');
     expect(summary.files).toContain('sovereign-devices/jetson-brittney-edge.json');
@@ -152,6 +156,7 @@ describe('@holoscript/holollama', () => {
 
     expect(jetson.launch.executable).toBe(patchedJetsonExecutable);
     expect(jetson.launch.command.startsWith(`${patchedJetsonExecutable} -m`)).toBe(true);
+    expect(jetson.launch.command).toContain('--lora /opt/holoscript/models/brittney-edge-v0-4.lora.gguf');
     expect(laptop.launch.executable).toBe(patchedLaptopExecutable);
     expect(laptop.launch.command.startsWith(`${patchedLaptopExecutable} -m`)).toBe(true);
     expect(laptop.launch.command).not.toContain('.docker\\bin\\inference');
@@ -375,6 +380,9 @@ describe('@holoscript/holollama', () => {
       expect.arrayContaining([
         expect.stringContaining('executable drift'),
         expect.stringContaining('Ollama-installed llama-server'),
+        expect.stringContaining('model path drift'),
+        expect.stringContaining('unexpected LoRA adapter'),
+        expect.stringContaining('missing LoRA adapter'),
         expect.stringContaining('gpu layer drift'),
         expect.stringContaining('no usable GPU'),
         expect.stringContaining('prompt cache limit 8192 MiB is unsafe'),
@@ -394,7 +402,7 @@ describe('@holoscript/holollama', () => {
       unit: 'jetson-orin-llamacpp.service',
       pid: 42,
       command:
-        `${patchedJetsonExecutable} -m /opt/holoscript/models/brittney-edge-v0-4.gguf --host 0.0.0.0 --port 18080 -c 4096 -ngl 32 --fit on --parallel 1 --cache-ram 0 --metrics`,
+        `${patchedJetsonExecutable} -m /opt/holoscript/models/qwen3-4b-instruct.gguf --host 0.0.0.0 --port 18080 -c 4096 -ngl 32 --fit on --parallel 1 --cache-ram 0 --metrics --lora /opt/holoscript/models/brittney-edge-v0-4.lora.gguf`,
       noUsableGpuWarning: false,
       processRssMiB: 3000,
       processHighWaterMiB: 3400,
