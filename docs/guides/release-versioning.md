@@ -32,6 +32,9 @@ These follow their own semver:
 The publish-pypi workflow validates that the tag major matches the npm root major.
 If they diverge, the workflow fails with a clear error message.
 
+For the operational npm and PyPI preflight/publish checklist, use
+[`docs/handbooks/npm-pypi-push-plan.md`](../handbooks/npm-pypi-push-plan.md).
+
 ## Current state
 
 Verify from repository manifests at release time:
