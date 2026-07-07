@@ -1,12 +1,31 @@
-import { describe, it, expect } from 'vitest';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+
+import { afterEach, describe, it, expect } from 'vitest';
 import { generateKekBase64, kekEnvVar, KEK_CURRENT_ENV } from '../env-kek-provider';
+import { HOLOKEY_STORE_PATH_ENV } from '../file-secret-backend';
 import { createHoloKeyVault } from '../vault-bootstrap';
 
+const tempRoots: string[] = [];
+
 /** A working dev env-KEK env block (the bootstrap secret, for tests). */
-function devKekEnv(extra: Record<string, string | undefined> = {}): Record<string, string | undefined> {
+function devKekEnv(
+  extra: Record<string, string | undefined> = {}
+): Record<string, string | undefined> {
   const kekId = 'k1';
   return { [KEK_CURRENT_ENV]: kekId, [kekEnvVar(kekId)]: generateKekBase64(), ...extra };
 }
+
+async function tempStorePath(): Promise<string> {
+  const root = await mkdtemp(join(tmpdir(), 'holokey-vault-bootstrap-'));
+  tempRoots.push(root);
+  return join(root, 'secret-store.json');
+}
+
+afterEach(async () => {
+  await Promise.all(tempRoots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
+});
 
 describe('createHoloKeyVault — Phase 0: turn the vault on', () => {
   it('returns null when no KEK is configured (flag-gate OFF — wiring it into a boot cannot break the boot)', () => {
@@ -50,6 +69,23 @@ describe('createHoloKeyVault — Phase 0: turn the vault on', () => {
     await expect(
       vault.resolver.resolve({ authenticatedOwnerId: '', ref: 'vault:anything' })
     ).rejects.toThrow();
+  });
+
+  it('uses the URL-free file backend when HOLOKEY_STORE_PATH is configured', async () => {
+    const filePath = await tempStorePath();
+    const env = devKekEnv({ NODE_ENV: 'test', [HOLOKEY_STORE_PATH_ENV]: filePath });
+
+    const first = createHoloKeyVault({ env })!;
+    expect(first.backend).toBe('file');
+    await first.store.put({ ownerId: 'infra', name: 'HOLOSCRIPT_API_KEY', value: 'stored' });
+
+    const second = createHoloKeyVault({ env })!;
+    expect(second.backend).toBe('file');
+    const resolved = await second.resolver.resolve({
+      authenticatedOwnerId: 'infra',
+      ref: 'vault:HOLOSCRIPT_API_KEY',
+    });
+    expect(resolved.value).toBe('stored');
   });
 
   it('prod gate: a dev KEK under NODE_ENV=production stays OFF (returns null, never throws)', () => {

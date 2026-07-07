@@ -29,6 +29,11 @@ import {
   type KekProvider,
 } from './secret-store';
 import { createPostgresSecretBackend, type SecretQueryRunner } from './postgres-secret-backend';
+import {
+  createFileSecretBackend,
+  HOLOKEY_STORE_PATH_ENV,
+  SECRETS_VAULT_STORE_PATH_ENV,
+} from './file-secret-backend';
 import { createEnvKekProvider, KEK_CURRENT_ENV } from './env-kek-provider';
 import { createScopedSecretKeyring } from './scoped-secret-keyring';
 import { createKmsKekProvider } from './kms-kek-provider';
@@ -51,7 +56,7 @@ export interface HoloKeyVault {
   /** Which KEK backed the store — `production` (KMS/scoped-keyring) or `dev` (env KEK). */
   readonly kekGrade: 'production' | 'dev';
   /** Which persistence backend — `postgres` (durable) or `in-memory` (non-persistent / tests). */
-  readonly backend: 'postgres' | 'in-memory';
+  readonly backend: 'postgres' | 'file' | 'in-memory';
 }
 
 export interface CreateHoloKeyVaultOpts {
@@ -81,6 +86,20 @@ function pickKek(env: Env): { kek: KekProvider; grade: 'production' | 'dev' } | 
   return null;
 }
 
+function pickBackend(
+  env: Env,
+  query: SecretQueryRunner['query'] | undefined
+): { backend: SecretStoreBackend; kind: HoloKeyVault['backend'] } {
+  if (query) {
+    return { backend: createPostgresSecretBackend({ query }), kind: 'postgres' };
+  }
+  const filePath = env[HOLOKEY_STORE_PATH_ENV]?.trim() || env[SECRETS_VAULT_STORE_PATH_ENV]?.trim();
+  if (filePath) {
+    return { backend: createFileSecretBackend({ filePath }), kind: 'file' };
+  }
+  return { backend: createInMemorySecretBackend(), kind: 'in-memory' };
+}
+
 /**
  * Assemble the HoloKey vault from config, or return `null` (vault OFF) when no KEK is
  * configured or the prod gate rejects a dev KEK. Never throws on config — a boot wiring
@@ -91,9 +110,7 @@ export function createHoloKeyVault(opts: CreateHoloKeyVaultOpts = {}): HoloKeyVa
   const picked = pickKek(env);
   if (!picked) return null; // no KEK → vault OFF; caller keeps its prior behavior.
 
-  const backend: SecretStoreBackend = opts.query
-    ? createPostgresSecretBackend({ query: opts.query })
-    : createInMemorySecretBackend();
+  const { backend, kind } = pickBackend(env, opts.query);
 
   const requireProductionGradeKek = env.NODE_ENV === 'production';
   let store: SecretStore;
@@ -114,6 +131,6 @@ export function createHoloKeyVault(opts: CreateHoloKeyVaultOpts = {}): HoloKeyVa
     store,
     resolver,
     kekGrade: picked.grade,
-    backend: opts.query ? 'postgres' : 'in-memory',
+    backend: kind,
   };
 }

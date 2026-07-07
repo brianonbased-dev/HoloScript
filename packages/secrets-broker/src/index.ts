@@ -614,6 +614,13 @@ export {
   type SecretQueryRunner,
   type PostgresSecretBackendDeps,
 } from './postgres-secret-backend';
+export {
+  createFileSecretBackend,
+  FILE_SECRET_STORE_SCHEMA,
+  HOLOKEY_STORE_PATH_ENV,
+  SECRETS_VAULT_STORE_PATH_ENV,
+  type FileSecretBackendDeps,
+} from './file-secret-backend';
 export { provisionBrokeredSession, localFileProvisionAdapter } from './provision';
 export {
   createSecretStore,
