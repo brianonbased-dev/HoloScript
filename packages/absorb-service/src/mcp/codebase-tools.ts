@@ -17,6 +17,7 @@ import * as os from 'os';
 import { execFileSync } from 'child_process';
 import { createHash } from 'crypto';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { mcpAuthHeadersAsync } from '@holoscript/config';
 import {
   isGraphRAGReady,
   resetGraphRAGState,
@@ -129,6 +130,22 @@ const INCREMENTAL_EMBEDDING_TIMEOUT_MS = readPositiveEnvMs(
   60_000
 );
 const MESH_SYNC_TIMEOUT_MS = readPositiveEnvMs('ABSORB_MESH_SYNC_TIMEOUT_MS', 10_000);
+
+async function resolveMeshAuthHeaders(): Promise<Record<string, string>> {
+  const headers = await mcpAuthHeadersAsync();
+  return Object.fromEntries(
+    Object.entries(headers).filter((entry): entry is [string, string] => {
+      const value = entry[1];
+      return typeof value === 'string' && value.trim().length > 0;
+    })
+  );
+}
+
+function hasMeshAuthHeaders(headers: Record<string, string>): boolean {
+  return Boolean(
+    headers.Authorization || headers['x-mcp-api-key'] || headers['x-holoscript-api-key']
+  );
+}
 const DEFAULT_AUTO_BACKGROUND_SCAN_FILE_THRESHOLD = 1_000;
 
 function readPositiveEnvMs(name: string, fallback: number): number {
@@ -4329,15 +4346,18 @@ async function handleResolveSymbol(args: Record<string, unknown>): Promise<unkno
   // 2. FEDERATED: augment with cross-repo matches from the orchestrator (best-effort).
   const orchestratorUrl =
     process.env.MCP_ORCHESTRATOR_URL || 'https://mcp-orchestrator-production-45f9.up.railway.app';
-  const apiKey = process.env.HOLOSCRIPT_API_KEY;
   const federatedResults: Array<Record<string, unknown>> = [];
   let federatedError: string | undefined;
   try {
+    const authHeaders = await resolveMeshAuthHeaders();
+    if (!hasMeshAuthHeaders(authHeaders)) {
+      throw new Error('HoloKey MCP auth unavailable');
+    }
     const response = await fetchWithTimeout(
       `${orchestratorUrl}/knowledge/query`,
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-mcp-api-key': apiKey || '' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify({ search: symbolName, type: 'pattern', limit }),
       },
       MESH_SYNC_TIMEOUT_MS,
@@ -4385,7 +4405,6 @@ async function handleResolveSymbol(args: Record<string, unknown>): Promise<unkno
 export async function syncWithMesh(graph: any, rootDir: string): Promise<void> {
   const orchestratorUrl =
     process.env.MCP_ORCHESTRATOR_URL || 'https://mcp-orchestrator-production-45f9.up.railway.app';
-  const apiKey = process.env.HOLOSCRIPT_API_KEY;
   const workspaceId = rootDir.split(/[/\\]/).pop() || 'unknown';
 
   const symbols = graph.getAllSymbols().filter((s: any) => s.visibility === 'public');
@@ -4421,13 +4440,18 @@ export async function syncWithMesh(graph: any, rootDir: string): Promise<void> {
   if (entries.length === 0) return;
 
   try {
+    const authHeaders = await resolveMeshAuthHeaders();
+    if (!hasMeshAuthHeaders(authHeaders)) {
+      console.warn('[MeshSync] HoloKey MCP auth unavailable; skipping orchestrator sync');
+      return;
+    }
     const response = await fetchWithTimeout(
       `${orchestratorUrl}/knowledge/sync`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-mcp-api-key': apiKey || '',
+          ...authHeaders,
         },
         body: JSON.stringify({
           workspace_id: workspaceId,
