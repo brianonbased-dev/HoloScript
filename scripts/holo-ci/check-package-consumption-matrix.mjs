@@ -40,12 +40,34 @@ const OUT_DIR =
   outIdx >= 0 ? resolve(args[outIdx + 1]) : join(ROOT, '.scratch', 'package-consumption-matrix');
 const NPM_BIN = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const PYTHON_BIN = process.env.PYTHON || 'python';
-const PYPI_EXTRAS_RESOLUTION_TIMEOUT_MS = Number(
-  process.env.HOLOSCRIPT_PYPI_EXTRAS_TIMEOUT_MS || 180_000
+const PYPI_EXTRAS_RESOLUTION_TIMEOUT_MS = envMs('HOLOSCRIPT_PYPI_EXTRAS_TIMEOUT_MS', 180_000);
+const NPM_PACK_TIMEOUT_MS = envMs('HOLOSCRIPT_NPM_PACK_TIMEOUT_MS', 300_000);
+const PYTHON_BUILD_TIMEOUT_MS = envMs('HOLOSCRIPT_PYTHON_BUILD_TIMEOUT_MS', 240_000);
+const PYTHON_ARTIFACT_INSPECT_TIMEOUT_MS = envMs(
+  'HOLOSCRIPT_PYTHON_ARTIFACT_INSPECT_TIMEOUT_MS',
+  120_000
 );
+const PYTHON_SMOKE_VENV_TIMEOUT_MS = envMs('HOLOSCRIPT_PYTHON_SMOKE_VENV_TIMEOUT_MS', 120_000);
+const PYTHON_SMOKE_PIP_TIMEOUT_MS = envMs('HOLOSCRIPT_PYTHON_SMOKE_PIP_TIMEOUT_MS', 300_000);
+const PYTHON_SMOKE_IMPORT_TIMEOUT_MS = envMs('HOLOSCRIPT_PYTHON_SMOKE_IMPORT_TIMEOUT_MS', 120_000);
+const PYTHON_SMOKE_CONSOLE_TIMEOUT_MS = envMs(
+  'HOLOSCRIPT_PYTHON_SMOKE_CONSOLE_TIMEOUT_MS',
+  120_000
+);
+const PYTHON_TWINE_TIMEOUT_MS = envMs('HOLOSCRIPT_PYTHON_TWINE_TIMEOUT_MS', 120_000);
 
 function readJson(file) {
   return JSON.parse(readFileSync(file, 'utf8'));
+}
+
+function envMs(name, fallback) {
+  const raw = process.env[name];
+  if (raw === undefined || raw === '') return fallback;
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new Error(`${name} must be a positive millisecond value`);
+  }
+  return value;
 }
 
 function run(cmd, cmdArgs, opts = {}) {
@@ -70,6 +92,55 @@ function truncateForError(value, max = 800) {
 
 function formatRunError(error) {
   return truncateForError(error.stderr || error.stdout || error.message || error);
+}
+
+function progress(message) {
+  if (JSON_OUT) return;
+  console.error(`[package-consumption] ${message}`);
+}
+
+function recordStep(row, step) {
+  if (!row) return;
+  if (!Array.isArray(row.steps)) row.steps = [];
+  row.steps.push(step);
+}
+
+function runStep(row, id, cmd, cmdArgs, opts = {}) {
+  const startedAt = Date.now();
+  const timeoutMs = Number.isFinite(opts.timeout) ? opts.timeout : null;
+  progress(`start ${row?.name || 'root'}:${id}${timeoutMs ? ` timeoutMs=${timeoutMs}` : ''}`);
+  try {
+    const stdout = run(cmd, cmdArgs, opts);
+    const durationMs = Date.now() - startedAt;
+    recordStep(row, {
+      id,
+      status: 'passed',
+      durationMs,
+      timeoutMs,
+    });
+    progress(`pass ${row?.name || 'root'}:${id} durationMs=${durationMs}`);
+    return stdout;
+  } catch (error) {
+    const durationMs = Date.now() - startedAt;
+    const step = {
+      id,
+      status: 'failed',
+      durationMs,
+      timeoutMs,
+      error: formatRunError(error),
+    };
+    recordStep(row, step);
+    if (error && typeof error === 'object') error.holoscriptStep = step;
+    progress(`fail ${row?.name || 'root'}:${id} durationMs=${durationMs}`);
+    throw error;
+  }
+}
+
+function stepFailureSuffix(error) {
+  const step = error?.holoscriptStep;
+  if (!step) return '';
+  const timeout = step.timeoutMs ? ` (timeout ${step.timeoutMs}ms)` : '';
+  return ` during ${step.id} after ${step.durationMs}ms${timeout}`;
 }
 
 function venvPython(venvDir) {
@@ -237,7 +308,7 @@ function compareDottedVersions(a, b) {
   return 0;
 }
 
-function inspectPythonArtifacts(pkg, artifacts, errors) {
+function inspectPythonArtifacts(pkg, artifacts, errors, row) {
   const script = String.raw`
 import json
 import sys
@@ -266,7 +337,12 @@ for path in sys.argv[1:]:
             out[path] = {"kind": "sdist", "files": files, "texts": texts}
 print(json.dumps(out))
 `;
-  const inspected = JSON.parse(run(PYTHON_BIN, ['-c', script, ...artifacts], { cwd: ROOT }));
+  const inspected = JSON.parse(
+    runStep(row, 'python-artifact-inspection', PYTHON_BIN, ['-c', script, ...artifacts], {
+      cwd: ROOT,
+      timeout: PYTHON_ARTIFACT_INSPECT_TIMEOUT_MS,
+    })
+  );
   const wheels = Object.entries(inspected).filter(([, value]) => value.kind === 'wheel');
   const sdists = Object.entries(inspected).filter(([, value]) => value.kind === 'sdist');
   const laneExtras = laneExtrasFromPackage(pkg);
@@ -333,8 +409,11 @@ print(json.dumps(out))
 
 function smokePythonInstall(pkg, row, scope, installArgs, errors) {
   const venvDir = join(OUT_DIR, '_venvs', `${safeName(pkg.name)}-${scope}`);
-  row[scope === 'artifact' ? 'artifactSmoke' : 'pypiSmoke'] = {
+  const smokeStartedAt = Date.now();
+  const smokeField = scope === 'artifact' ? 'artifactSmoke' : 'pypiSmoke';
+  row[smokeField] = {
     scope,
+    status: 'running',
     imports: pkg.imports || [],
     consoleScripts: pkg.consoleScripts || [],
   };
@@ -342,17 +421,24 @@ function smokePythonInstall(pkg, row, scope, installArgs, errors) {
   try {
     rmSync(venvDir, { recursive: true, force: true });
     mkdirSync(dirname(venvDir), { recursive: true });
-    run(PYTHON_BIN, ['-m', 'venv', venvDir], { cwd: ROOT, timeout: 60_000 });
+    runStep(row, `${scope}-venv`, PYTHON_BIN, ['-m', 'venv', venvDir], {
+      cwd: ROOT,
+      timeout: PYTHON_SMOKE_VENV_TIMEOUT_MS,
+    });
     const python = venvPython(venvDir);
     if (!existsSync(python)) {
       errors.push(`${pkg.name}: ${scope} smoke venv did not create ${python}`);
+      row[smokeField].status = 'failed';
+      row[smokeField].durationMs = Date.now() - smokeStartedAt;
       return;
     }
 
-    run(
+    runStep(
+      row,
+      `${scope}-pip-install`,
       python,
       ['-m', 'pip', 'install', '--disable-pip-version-check', '--no-deps', ...installArgs],
-      { cwd: ROOT, timeout: 120_000 }
+      { cwd: ROOT, timeout: PYTHON_SMOKE_PIP_TIMEOUT_MS }
     );
 
     const importScript = `
@@ -363,18 +449,31 @@ for module in modules:
     importlib.import_module(module)
 print(json.dumps({"imports": modules}))
 `;
-    run(python, ['-c', importScript], { cwd: ROOT, timeout: 30_000 });
+    runStep(row, `${scope}-import`, python, ['-c', importScript], {
+      cwd: ROOT,
+      timeout: PYTHON_SMOKE_IMPORT_TIMEOUT_MS,
+    });
 
     for (const scriptName of pkg.consoleScripts || []) {
       const script = venvScript(venvDir, scriptName);
       if (!existsSync(script)) {
         errors.push(`${pkg.name}: ${scope} smoke missing console script ${scriptName}`);
+        row[smokeField].status = 'failed';
         continue;
       }
-      run(script, ['--help'], { cwd: ROOT, timeout: 30_000 });
+      runStep(row, `${scope}-console-${safeName(scriptName)}`, script, ['--help'], {
+        cwd: ROOT,
+        timeout: PYTHON_SMOKE_CONSOLE_TIMEOUT_MS,
+      });
     }
+    if (row[smokeField].status !== 'failed') row[smokeField].status = 'passed';
+    row[smokeField].durationMs = Date.now() - smokeStartedAt;
   } catch (error) {
-    errors.push(`${pkg.name}: ${scope} smoke failed: ${formatRunError(error)}`);
+    row[smokeField].status = 'failed';
+    row[smokeField].durationMs = Date.now() - smokeStartedAt;
+    errors.push(
+      `${pkg.name}: ${scope} smoke failed${stepFailureSuffix(error)}: ${formatRunError(error)}`
+    );
   }
 }
 
@@ -416,7 +515,9 @@ function resolvePyPiExtras(pkg, row, consumer, extras, version, errors, warnings
   mkdirSync(dirname(reportPath), { recursive: true });
 
   try {
-    run(
+    runStep(
+      row,
+      `pypi-extra-resolution-${safeName(consumer.id)}`,
       PYTHON_BIN,
       [
         '-m',
@@ -525,6 +626,30 @@ function checkRuntimeMinimum(
   }
 }
 
+function dependencyFieldEntries(json) {
+  return [
+    ['dependencies', json.dependencies || {}],
+    ['optionalDependencies', json.optionalDependencies || {}],
+    ['peerDependencies', json.peerDependencies || {}],
+  ];
+}
+
+function forbiddenDependencyMatch(forbidden, field, name) {
+  const [requestedField, requestedName] = String(forbidden).includes(':')
+    ? String(forbidden).split(/:(.*)/s).filter(Boolean)
+    : [null, String(forbidden)];
+  return name === requestedName && (!requestedField || requestedField === field);
+}
+
+function internalPeerDependencyNames(json) {
+  return Object.keys(json.peerDependencies || {}).filter((name) => name.startsWith('@holoscript/'));
+}
+
+function orphanPeerMetaNames(json) {
+  const peers = new Set(Object.keys(json.peerDependencies || {}));
+  return Object.keys(json.peerDependenciesMeta || {}).filter((name) => !peers.has(name));
+}
+
 function checkConsumerShape(manifest, errors) {
   const consumers = new Map();
   for (const consumer of manifest.consumers || []) {
@@ -599,9 +724,8 @@ function validatePyPiFleetLifecycle(pkg, row, consumers, errors) {
       id,
       consumerLanes,
       requiredFlags,
-      status: requiredFlags.length && requiredFlags.every(lifecycleFlagActive)
-        ? 'verified'
-        : 'declared',
+      status:
+        requiredFlags.length && requiredFlags.every(lifecycleFlagActive) ? 'verified' : 'declared',
     });
   }
 }
@@ -615,7 +739,15 @@ function checkNpmPackage(pkg, consumers, errors, warnings, rows, type = 'npm') {
     return;
   }
   const json = readJson(manifestPath);
-  const row = { type, name: pkg.name, requiredBy: pkg.requiredBy || [], packEntries: null };
+  const rowStartedAt = Date.now();
+  const row = {
+    type,
+    name: pkg.name,
+    requiredBy: pkg.requiredBy || [],
+    packEntries: null,
+    durationMs: null,
+    steps: [],
+  };
   rows.push(row);
 
   if (json.name !== pkg.name) errors.push(`${pkg.name}: package.json name is ${json.name}`);
@@ -634,6 +766,29 @@ function checkNpmPackage(pkg, consumers, errors, warnings, rows, type = 'npm') {
   }
   if (!json.engines?.node) {
     warnings.push(`${pkg.name}: no package-level engines.node; relying on root/fleet Node policy`);
+  }
+  const orphanMeta = orphanPeerMetaNames(json);
+  if (orphanMeta.length) {
+    errors.push(
+      `${pkg.name}: peerDependenciesMeta has no matching peerDependencies entry for ${orphanMeta.join(', ')}`
+    );
+  }
+  if (pkg.forbidInternalPeerDependencies) {
+    const internalPeers = internalPeerDependencyNames(json);
+    if (internalPeers.length) {
+      errors.push(
+        `${pkg.name}: declares internal peerDependencies despite cold fleet consumption: ${internalPeers.join(', ')}`
+      );
+    }
+  }
+  for (const forbidden of pkg.forbidDependencies || []) {
+    for (const [field, deps] of dependencyFieldEntries(json)) {
+      for (const depName of Object.keys(deps)) {
+        if (forbiddenDependencyMatch(forbidden, field, depName)) {
+          errors.push(`${pkg.name}: ${field} must not include ${depName}`);
+        }
+      }
+    }
   }
   for (const id of pkg.requiredBy || []) {
     const consumer = consumers.get(id);
@@ -656,8 +811,14 @@ function checkNpmPackage(pkg, consumers, errors, warnings, rows, type = 'npm') {
       errors.push(`${pkg.name}: required artifact missing before pack: ${file}`);
   }
 
-  if (!PACK_NPM) return;
-  const packOut = run('npm', ['pack', '--dry-run', '--json'], { cwd: dir });
+  if (!PACK_NPM) {
+    row.durationMs = Date.now() - rowStartedAt;
+    return;
+  }
+  const packOut = runStep(row, 'npm-pack-dry-run', 'npm', ['pack', '--dry-run', '--json'], {
+    cwd: dir,
+    timeout: NPM_PACK_TIMEOUT_MS,
+  });
   const parsed = JSON.parse(packOut);
   const files = new Set((parsed[0]?.files || []).map((entry) => normalizePackPath(entry.path)));
   row.packEntries = files.size;
@@ -677,6 +838,7 @@ function checkNpmPackage(pkg, consumers, errors, warnings, rows, type = 'npm') {
       );
     }
   }
+  row.durationMs = Date.now() - rowStartedAt;
 }
 
 async function checkPyPackage(pkg, consumers, errors, warnings, rows) {
@@ -692,6 +854,7 @@ async function checkPyPackage(pkg, consumers, errors, warnings, rows) {
     type: 'pypi',
     name: pkg.name,
     requiredBy: pkg.requiredBy || [],
+    durationMs: null,
     laneExtras: laneExtrasFromPackage(pkg).byConsumer,
     built: [],
     inspected: false,
@@ -700,7 +863,9 @@ async function checkPyPackage(pkg, consumers, errors, warnings, rows) {
     pypi: null,
     extraResolution: {},
     lifecycleChecks: [],
+    steps: [],
   };
+  const rowStartedAt = Date.now();
   rows.push(row);
   validatePyPiFleetLifecycle(pkg, row, consumers, errors);
 
@@ -770,11 +935,23 @@ async function checkPyPackage(pkg, consumers, errors, warnings, rows) {
     }
   }
 
-  if (!BUILD_PYTHON) return;
+  if (!BUILD_PYTHON) {
+    row.durationMs = Date.now() - rowStartedAt;
+    return;
+  }
   const outDir = join(OUT_DIR, pkg.name.replace(/[^\w.-]+/g, '_'));
   rmSync(outDir, { recursive: true, force: true });
   mkdirSync(outDir, { recursive: true });
-  const stdout = run(PYTHON_BIN, ['-m', 'build', '--outdir', outDir, dir], { cwd: ROOT });
+  const stdout = runStep(
+    row,
+    'python-build',
+    PYTHON_BIN,
+    ['-m', 'build', '--outdir', outDir, dir],
+    {
+      cwd: ROOT,
+      timeout: PYTHON_BUILD_TIMEOUT_MS,
+    }
+  );
   row.built = parseDistInfoFromBuildOutput(stdout);
   const artifacts = readdirSync(outDir).filter(
     (file) => file.endsWith('.whl') || file.endsWith('.tar.gz')
@@ -785,7 +962,7 @@ async function checkPyPackage(pkg, consumers, errors, warnings, rows) {
     errors.push(`${pkg.name}: build produced no sdist`);
   const artifactPaths = artifacts.map((file) => join(outDir, file));
   if (INSPECT_PYTHON_ARTIFACTS) {
-    inspectPythonArtifacts(pkg, artifactPaths, errors);
+    inspectPythonArtifacts(pkg, artifactPaths, errors, row);
     row.inspected = true;
   }
   if (SMOKE_PYTHON_ARTIFACTS) {
@@ -797,15 +974,16 @@ async function checkPyPackage(pkg, consumers, errors, warnings, rows) {
     }
   }
   try {
-    run(PYTHON_BIN, ['-m', 'twine', 'check', ...artifactPaths], {
+    runStep(row, 'python-twine-check', PYTHON_BIN, ['-m', 'twine', 'check', ...artifactPaths], {
       cwd: ROOT,
+      timeout: PYTHON_TWINE_TIMEOUT_MS,
     });
   } catch (error) {
     errors.push(
       `${pkg.name}: twine check failed: ${String(error.stderr || error.message).slice(0, 800)}`
     );
   }
-
+  row.durationMs = Date.now() - rowStartedAt;
 }
 
 function runSelfTest() {
@@ -834,10 +1012,43 @@ function runSelfTest() {
   if (pythonAbiForVersion('3.10') !== 'cp310') errors.push('Python ABI parser failed');
   if (pipPlatformForConsumer({ os: 'linux', cpu: 'arm64' }) !== 'manylinux2014_aarch64')
     errors.push('pip platform mapper failed');
-  if (pypiExtraSpec('holoscript', '1.2.3', ['Scientific', 'robotics']) !==
-    'holoscript[robotics,scientific]==1.2.3')
+  if (
+    pypiExtraSpec('holoscript', '1.2.3', ['Scientific', 'robotics']) !==
+    'holoscript[robotics,scientific]==1.2.3'
+  )
     errors.push('PyPI extra spec formatter failed');
-  const provided = providesExtrasFromMetadata('Metadata-Version: 2.4\nProvides-Extra: Scientific\n');
+  if (
+    !internalPeerDependencyNames({
+      peerDependencies: { '@holoscript/core': '*', react: '*' },
+    }).includes('@holoscript/core')
+  )
+    errors.push('internal peer detector failed');
+  if (
+    !orphanPeerMetaNames({
+      peerDependencies: { react: '*' },
+      peerDependenciesMeta: { react: {}, missing: {} },
+    }).includes('missing')
+  )
+    errors.push('orphan peer metadata detector failed');
+  if (
+    !forbiddenDependencyMatch(
+      'peerDependencies:@holoscript/core',
+      'peerDependencies',
+      '@holoscript/core'
+    )
+  )
+    errors.push('field-scoped forbidden dependency matcher failed');
+  if (
+    forbiddenDependencyMatch(
+      'peerDependencies:@holoscript/core',
+      'dependencies',
+      '@holoscript/core'
+    )
+  )
+    errors.push('field-scoped forbidden dependency matcher overmatched');
+  const provided = providesExtrasFromMetadata(
+    'Metadata-Version: 2.4\nProvides-Extra: Scientific\n'
+  );
   if (!provided.has('scientific')) errors.push('metadata extra parser failed');
   const laneExtras = laneExtrasFromPackage({
     extrasByConsumer: { jetson: ['Robotics', 'scientific', 'robotics'] },
@@ -912,12 +1123,18 @@ async function main() {
   const rows = [];
   const manifest = readJson(MANIFEST);
   const consumers = checkConsumerShape(manifest, errors);
-  for (const pkg of manifest.npmPackages || [])
+  for (const pkg of manifest.npmPackages || []) {
+    progress(`checking npm ${pkg.name}${PACK_NPM ? ' with npm pack dry-run' : ''}`);
     checkNpmPackage(pkg, consumers, errors, warnings, rows);
-  for (const pkg of manifest.candidateNpmPackages || [])
+  }
+  for (const pkg of manifest.candidateNpmPackages || []) {
+    progress(`checking npm-candidate ${pkg.name}${PACK_NPM ? ' with npm pack dry-run' : ''}`);
     checkNpmPackage(pkg, consumers, errors, warnings, rows, 'npm-candidate');
-  for (const pkg of manifest.pypiPackages || [])
+  }
+  for (const pkg of manifest.pypiPackages || []) {
+    progress(`checking pypi ${pkg.name}${BUILD_PYTHON ? ' with fresh artifacts' : ''}`);
     await checkPyPackage(pkg, consumers, errors, warnings, rows);
+  }
 
   const output = {
     ok: errors.length === 0,
@@ -939,15 +1156,15 @@ async function main() {
     for (const row of rows) {
       const detail =
         (row.type === 'npm' || row.type === 'npm-candidate') && row.packEntries !== null
-          ? ` packEntries=${row.packEntries}`
+          ? ` packEntries=${row.packEntries}${row.durationMs !== null ? ` durationMs=${row.durationMs}` : ''}`
           : row.type === 'pypi'
             ? `${row.built.length ? ` built=${row.built.join(',')}` : ''}${
                 row.inspected ? ' inspected=true' : ''
-              }${row.artifactSmoke ? ' artifactSmoke=true' : ''}${
-                row.pypiSmoke ? ' pypiSmoke=true' : ''
               }${
-                Object.keys(row.laneExtras || {}).length ? ' laneExtras=true' : ''
-              }${
+                row.artifactSmoke ? ` artifactSmoke=${row.artifactSmoke.status || 'unknown'}` : ''
+              }${row.pypiSmoke ? ` pypiSmoke=${row.pypiSmoke.status || 'unknown'}` : ''}${
+                row.durationMs !== null ? ` durationMs=${row.durationMs}` : ''
+              }${Object.keys(row.laneExtras || {}).length ? ' laneExtras=true' : ''}${
                 Object.keys(row.extraResolution || {}).length ? ' extraResolution=true' : ''
               }${
                 row.lifecycleChecks?.length
