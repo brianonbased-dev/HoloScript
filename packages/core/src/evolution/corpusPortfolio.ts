@@ -39,6 +39,13 @@ export interface EvolveSeed {
   source: string;
   /** Constructs that MUST survive a mutation (whitespace-tolerant). */
   preserved: RegExp[];
+  /** Optional SEMANTIC validity check on the parsed candidate — beyond parse + preserved-regex.
+   *  Returns `{ok:false, reason}` for a candidate that parses AND keeps the constructs but is
+   *  structurally broken (e.g. a state machine with a transition to an undefined state). This is
+   *  what turns the accrual into a real gate-CONTRAST source: the proposer's plausible-but-wrong
+   *  edits FAIL here (a verifier-labeled `passed:false` DPO-rejected row) instead of silently
+   *  polluting the "gated" corpus. */
+  semanticCheck?: (candidate: string, ast: unknown) => { ok: boolean; reason?: string };
 }
 
 // ── canonical portfolio (3 diverse forms across the language surface) ──────────
@@ -75,6 +82,7 @@ export const CORPUS_PORTFOLIO: readonly EvolveSeed[] = [
       '}',
     ].join('\n'),
     preserved: [/PatrolBot/, /\bidle\b/, /\bchasing\b/],
+    semanticCheck: stateMachineSemanticCheck,
   },
   {
     name: 'mini-scene',
@@ -149,6 +157,7 @@ export const CORPUS_PORTFOLIO: readonly EvolveSeed[] = [
       '}',
     ].join('\n'),
     preserved: [/SmartDoor/, /\bclosed\b/, /\bopening\b/, /\bopen\b/],
+    semanticCheck: stateMachineSemanticCheck,
   },
   {
     name: 'trafficlight-statemachine',
@@ -168,6 +177,7 @@ export const CORPUS_PORTFOLIO: readonly EvolveSeed[] = [
       '}',
     ].join('\n'),
     preserved: [/TrafficLight/, /\bred\b/, /\bgreen\b/, /\byellow\b/],
+    semanticCheck: stateMachineSemanticCheck,
   },
   {
     name: 'room-scene',
@@ -219,13 +229,85 @@ export function parsesClean(src: string, format: SeedFormat): boolean {
   }
 }
 
-/** Gate = parse-clean AND every preserved construct present; fitness = length
- *  (lower = denser). The quality oracle for a seed's candidates. */
+/** The structural shape of a `@state_machine` directive, extracted from a parsed AST. */
+export interface StateMachineShape {
+  states: string[];
+  initial: string;
+  transitions: { from: string; event: string; target: string }[];
+}
+
+/** Depth-first search for the `state_machine` directive's config in an arbitrary parsed AST. */
+function findStateMachineConfig(node: unknown): Record<string, unknown> | null {
+  if (!node || typeof node !== 'object') return null;
+  const obj = node as Record<string, unknown>;
+  if (obj.name === 'state_machine' && obj.config && typeof obj.config === 'object') {
+    const cfg = obj.config as Record<string, unknown>;
+    if (cfg.states && typeof cfg.states === 'object') return cfg;
+  }
+  for (const v of Object.values(obj)) {
+    if (Array.isArray(v)) {
+      for (const e of v) { const f = findStateMachineConfig(e); if (f) return f; }
+    } else if (v && typeof v === 'object') {
+      const f = findStateMachineConfig(v); if (f) return f;
+    }
+  }
+  return null;
+}
+
+/** Extract states + transitions from a parsed HSPlus state machine (null when there is none). */
+export function extractStateMachine(ast: unknown): StateMachineShape | null {
+  const cfg = findStateMachineConfig(ast);
+  if (!cfg) return null;
+  const statesObj = cfg.states as Record<string, Record<string, unknown>>;
+  const states = Object.keys(statesObj);
+  const transitions: { from: string; event: string; target: string }[] = [];
+  for (const from of states) {
+    const events = statesObj[from];
+    if (!events || typeof events !== 'object') continue;
+    for (const event of Object.keys(events)) {
+      const t = events[event] as { target?: unknown } | null;
+      if (t && typeof t.target === 'string') transitions.push({ from, event, target: t.target });
+    }
+  }
+  return { states, initial: typeof cfg.initial === 'string' ? cfg.initial : '', transitions };
+}
+
+/** A state machine is WELL-FORMED iff `initial` is a defined state and every transition targets a
+ *  defined state. Catches the dominant proposer error — a plausible transition to an UNDEFINED
+ *  state — which parses fine and keeps the preserved constructs, so the parse+regex gate misses it. */
+export function stateMachineWellFormed(ast: unknown): boolean {
+  const sm = extractStateMachine(ast);
+  if (!sm) return false;
+  const defined = new Set(sm.states);
+  return defined.has(sm.initial) && sm.transitions.every((t) => defined.has(t.target));
+}
+
+/** semanticCheck for the state-machine seeds: reject a candidate whose machine is not well-formed,
+ *  with a reason (used by the harvest as the `passed:false` DPO-rejected label). */
+export function stateMachineSemanticCheck(_candidate: string, ast: unknown): { ok: boolean; reason?: string } {
+  const sm = extractStateMachine(ast);
+  if (!sm) return { ok: false, reason: 'no_state_machine' };
+  const defined = new Set(sm.states);
+  if (!defined.has(sm.initial)) return { ok: false, reason: `initial_undefined:${sm.initial}` };
+  const dangling = sm.transitions.filter((t) => !defined.has(t.target));
+  if (dangling.length) {
+    return { ok: false, reason: `dangling_transition:${dangling.map((d) => `${d.from}-${d.event}->${d.target}`).join(',')}` };
+  }
+  return { ok: true };
+}
+
+/** Gate = parse-clean AND every preserved construct present AND (if the seed defines one) the
+ *  SEMANTIC check passes; fitness = length (lower = denser). The quality oracle for a seed's
+ *  candidates — now rejects structurally-broken-but-parseable edits, which both cleans the corpus
+ *  and produces the gate-contrast `passed:false` training signal the backend was designed to emit. */
 export function makeSeedGate(seed: EvolveSeed): Gate {
-  return async (candidate) => ({
-    passed: parsesClean(candidate, seed.format) && seed.preserved.every((re) => re.test(candidate)),
-    score: candidate.length,
-  });
+  return async (candidate) => {
+    const r = seed.format === 'holo' ? parseHolo(candidate) : parseHsPlus(candidate);
+    const clean = Boolean(r.success && r.ast) && (r.errors?.length ?? 0) === 0;
+    const preservedOk = clean && seed.preserved.every((re) => re.test(candidate));
+    const passed = preservedOk && (!seed.semanticCheck || seed.semanticCheck(candidate, r.ast).ok);
+    return { passed, score: candidate.length };
+  };
 }
 
 export interface AccrueStepResult {

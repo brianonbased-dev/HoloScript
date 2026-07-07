@@ -10,8 +10,11 @@ import {
   parsesClean,
   makeSeedGate,
   accrueOneStep,
+  extractStateMachine,
+  stateMachineWellFormed,
   type EvolveSeed,
 } from '../corpusPortfolio';
+import { parse as parseHsPlus } from '../../parser';
 
 describe('corpusPortfolio canonical seeds', () => {
   it.each(CORPUS_PORTFOLIO.map((s) => [s.name, s] as const))(
@@ -51,5 +54,40 @@ describe('accrueOneStep (one gated evolution step → graded rows)', () => {
     // Tick round-robins to a different seed.
     const r1 = await accrueOneStep({ propose: async (p) => p, agentId: 'a', tick: 1 });
     expect(r1.target).toBe(CORPUS_PORTFOLIO[1].name);
+  });
+});
+
+describe('state-machine well-formedness gate (the gate-contrast source)', () => {
+  const patrol = CORPUS_PORTFOLIO.find((s) => s.name === 'patrol-statemachine') as EvolveSeed;
+
+  // The canonical state-machine seeds MUST be well-formed, else their own gate SEED_INVALIDs them.
+  it.each(CORPUS_PORTFOLIO.filter((s) => s.semanticCheck).map((s) => [s.name, s] as const))(
+    'seed %s is well-formed (passes its own semantic gate)',
+    async (_name, seed: EvolveSeed) => {
+      expect((await makeSeedGate(seed)(seed.source)).passed).toBe(true);
+      expect(stateMachineWellFormed(parseHsPlus(seed.source).ast)).toBe(true);
+    },
+  );
+
+  it('extractStateMachine reads states + transitions', () => {
+    const sm = extractStateMachine(parseHsPlus(patrol.source).ast);
+    expect(sm?.states).toEqual(expect.arrayContaining(['idle', 'chasing']));
+    expect(sm?.initial).toBe('idle');
+    expect(sm?.transitions).toEqual(expect.arrayContaining([{ from: 'chasing', event: 'lost', target: 'idle' }]));
+  });
+
+  it('REJECTS a candidate whose transition targets an UNDEFINED state (the dominant proposer error)', async () => {
+    // parses fine + keeps PatrolBot/idle/chasing, but `chasing --lost--> "lost"` targets no state.
+    const dangling =
+      'composition "PatrolBot" {\n  state { entityId: "bot" mood: "alert" }\n  @state_machine {\n    initial: "idle"\n    states: {\n      idle: { seen: -> "chasing" }\n      chasing: { lost: -> "lost" }\n    }\n  }\n}';
+    expect(parsesClean(dangling, 'hsplus')).toBe(true); // the OLD gate would have PASSED it
+    expect(stateMachineWellFormed(parseHsPlus(dangling).ast)).toBe(false);
+    expect((await makeSeedGate(patrol)(dangling)).passed).toBe(false); // the new gate REJECTS it
+  });
+
+  it('ACCEPTS a candidate that adds a well-formed new state (the chosen side of the pair)', async () => {
+    const grown =
+      'composition "PatrolBot" {\n  state { entityId: "bot" mood: "alert" }\n  @state_machine {\n    initial: "idle"\n    states: {\n      idle: { seen: -> "chasing" }\n      chasing: { lost: -> "searching" }\n      searching: { found: -> "chasing" }\n    }\n  }\n}';
+    expect((await makeSeedGate(patrol)(grown)).passed).toBe(true);
   });
 });
