@@ -363,7 +363,7 @@ function buildRows({ packages, lanes, history, graph, root }) {
       graphFiles: graphRow.graphFiles,
       graphSymbols: graphRow.graphSymbols,
     };
-    row.score =
+    const rawScore =
       row.commits * 5 +
       row.changedFiles +
       row.manifestTouches * 3 +
@@ -377,6 +377,7 @@ function buildRows({ packages, lanes, history, graph, root }) {
       (row.stewardshipNextActions.length ? 5 : 0) +
       activeBlockers.length * 15 +
       caveats.length;
+    row.score = scorePackageOpportunity(rawScore, row);
     return row;
   });
 }
@@ -391,6 +392,17 @@ function isReadySteward(record) {
 
 function activeStewardshipBlockers(record) {
   return (record?.blockers || []).filter((blocker) => blocker.status === 'active');
+}
+
+function scorePackageOpportunity(rawScore, row) {
+  if (row.stewardshipStatus !== 'parked') return rawScore;
+  const parkedCap =
+    75 +
+    row.commits * 0.2 +
+    row.changedFiles * 0.05 +
+    row.stewardshipActiveBlockers.length * 30 +
+    row.stewardshipCaveats.length * 5;
+  return Math.min(rawScore, parkedCap);
 }
 
 function buildStewardshipRecommendations(rows, lanes) {
@@ -595,6 +607,14 @@ function runSelfTest() {
       manifestPath: 'packages/private/package.json',
       description: '',
     },
+    {
+      name: '@scope/parked',
+      dir: 'packages/parked',
+      dirBase: 'parked',
+      private: false,
+      manifestPath: 'packages/parked/package.json',
+      description: '',
+    },
   ];
   const lanes = {
     releaseCandidates: new Set(['@scope/hot']),
@@ -626,6 +646,21 @@ function runSelfTest() {
           },
         ],
       },
+      {
+        registry: 'npm',
+        packageName: '@scope/parked',
+        status: 'parked',
+        validationScripts: ['check:package-consumption:full'],
+        nextActions: ['Keep compatibility imports green.'],
+        caveats: [
+          {
+            id: 'compat-only',
+            scope: 'public-package',
+            summary: 'Compatibility only.',
+            overclaimGuard: 'Do not promote.',
+          },
+        ],
+      },
     ],
     stewardshipByNpm: new Map([
       [
@@ -652,12 +687,28 @@ function runSelfTest() {
           ],
         },
       ],
+      [
+        '@scope/parked',
+        {
+          status: 'parked',
+          nextActions: ['Keep compatibility imports green.'],
+          caveats: [
+            {
+              id: 'compat-only',
+              scope: 'public-package',
+              summary: 'Compatibility only.',
+              overclaimGuard: 'Do not promote.',
+            },
+          ],
+        },
+      ],
     ]),
   };
   const history = {
     packageStats: new Map([
       ['@scope/hot', { commits: 3, files: 5, manifestTouches: 1 }],
       ['@scope/private', { commits: 5, files: 9, manifestTouches: 0 }],
+      ['@scope/parked', { commits: 1, files: 2, manifestTouches: 0 }],
     ]),
     orphanPackageDirs: [
       { dir: 'packages/unowned', commits: 2, files: 4, liveDir: true, boundaryManifest: null },
@@ -672,7 +723,10 @@ function runSelfTest() {
     ],
   };
   const graph = {
-    packages: new Map([['@scope/hot', { graphFiles: 2, graphSymbols: 10 }]]),
+    packages: new Map([
+      ['@scope/hot', { graphFiles: 2, graphSymbols: 10 }],
+      ['@scope/parked', { graphFiles: 1000, graphSymbols: 10000 }],
+    ]),
   };
   const rows = buildRows({
     packages,
@@ -688,6 +742,9 @@ function runSelfTest() {
   assert.equal(hot.graphFiles, 2);
   assert.equal(hot.stewardshipActiveBlockers.length, 1);
   assert.equal(hot.stewardshipCaveats.length, 1);
+  const parked = rows.find((row) => row.name === '@scope/parked');
+  assert.equal(parked.stewardshipStatus, 'parked');
+  assert(parked.score < hot.score);
 
   const recommendations = buildRecommendations(rows, history, lanes);
   const stewardship = recommendations.find((item) => item.kind === 'stewardship-work');

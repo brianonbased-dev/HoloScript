@@ -63,6 +63,10 @@ const PACKAGE_IMPORT_PROBES = {
     '@holoscript/uaal/semantic',
     '@holoscript/uaal/gate',
   ],
+  'sdk-compat-import': [
+    '@holoscript/sdk',
+    '@holoscript/sdk/schema',
+  ],
 };
 const PROBES = new Set([
   'core-holo-webgpu',

@@ -38,6 +38,63 @@
       ]
     },
     {
+      "id": "sdk-compatibility-shim",
+      "registry": "npm",
+      "packageName": "@holoscript/sdk",
+      "status": "parked",
+      "constructionRole": "Legacy compatibility shim for older Smart Asset and HoloHub-client JavaScript consumers.",
+      "stewardshipIntent": "Keep the published shim importable for existing users while preventing it from becoming a renewed primary SDK surface.",
+      "userClasses": ["human", "ai-agent"],
+      "outsideUserGate": {
+        "readiness": "parked",
+        "harnessMode": "standalone",
+        "audience": ["external-human", "external-ai-agent"],
+        "publicEntry": "packages/holoscript/README.md",
+        "requiredPublicFiles": [],
+        "privateHarnessLeakAllowed": false
+      },
+      "consumerLanes": ["laptop-windows", "hosted-service"],
+      "utilityIds": [],
+      "validationScripts": [
+        "package:opportunity-map",
+        "version:check:strict"
+      ],
+      "validationCommands": [
+        "corepack pnpm --filter @holoscript/sdk run test",
+        "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/sdk@latest --probe sdk-compat-import --json"
+      ],
+      "parkingDecision": {
+        "decidedAt": "2026-07-07",
+        "decision": "parked",
+        "notAddedTo": [
+          "scripts/holo-ci/npm-v1-release-manifest.json",
+          "scripts/holo-ci/package-consumption-manifest.json",
+          "scripts/holo-ci/fleet-utilities-manifest.json"
+        ],
+        "reason": [
+          "The package manifest deprecates @holoscript/sdk as a primary SDK and identifies @holoscript/core as the canonical replacement.",
+          "Current source exports only Smart Asset schema and HoloHub-client compatibility APIs, not the full construction surface.",
+          "The package remains published and importable for older consumers, but new parser, compiler, scene, and trait work belongs in @holoscript/core."
+        ],
+        "promotionCriteria": [
+          "Do not promote this package; any renewed SDK strategy must be a fresh deliberate product decision with package-consumption and cold-start proof.",
+          "Keep compatibility imports green until a future major removal or deprecation campaign retires the shim."
+        ]
+      },
+      "caveats": [
+        {
+          "id": "not-primary-sdk",
+          "scope": "public-package",
+          "summary": "@holoscript/sdk is a legacy compatibility shim, not the canonical SDK for new HoloScript construction.",
+          "overclaimGuard": "Point new users and agents to @holoscript/core, @holoscript/cli, @holoscript/mcp-server, and package-specific surfaces instead of expanding this shim."
+        }
+      ],
+      "nextActions": [
+        "Keep @holoscript/sdk@latest importable through the sdk-compat-import registry cold-start probe.",
+        "Do not add new platform features here; route new construction APIs to @holoscript/core or a deliberately stewarded package."
+      ]
+    },
+    {
       "id": "agent-tool-gateway",
       "registry": "npm",
       "packageName": "@holoscript/mcp-server",
