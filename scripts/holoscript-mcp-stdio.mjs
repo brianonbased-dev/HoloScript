@@ -78,6 +78,42 @@ export function buildCommandForGroup(group) {
   };
 }
 
+export function validateAbsorbBackgroundContract(codebaseTools) {
+  const absorbTool = codebaseTools.find((tool) => tool?.name === 'holo_absorb_repo');
+  if (!absorbTool) {
+    throw new Error('holo_absorb_repo missing from @holoscript/absorb-service/mcp');
+  }
+
+  const properties = absorbTool.inputSchema?.properties;
+  if (!properties || typeof properties !== 'object') {
+    throw new Error('holo_absorb_repo inputSchema.properties missing');
+  }
+
+  const propertyNames = Object.keys(properties);
+  for (const requiredProperty of ['async', 'background']) {
+    if (!Object.hasOwn(properties, requiredProperty)) {
+      throw new Error(`holo_absorb_repo inputSchema missing ${requiredProperty}`);
+    }
+  }
+
+  const statusTool = codebaseTools.find((tool) => tool?.name === 'holo_get_absorb_status');
+  if (!statusTool) {
+    throw new Error('holo_get_absorb_status missing from @holoscript/absorb-service/mcp');
+  }
+
+  return {
+    ok: true,
+    absorbTool: absorbTool.name,
+    statusTool: statusTool.name,
+    properties: propertyNames,
+  };
+}
+
+async function probeAbsorbBackgroundContract() {
+  const { codebaseTools } = await import('@holoscript/absorb-service/mcp');
+  return validateAbsorbBackgroundContract(codebaseTools);
+}
+
 function runBuild(group) {
   const { command, args } = buildCommandForGroup(group);
   stderr(`[holoscript-mcp-stdio] Building ${group.label} before local MCP startup...`);
@@ -176,11 +212,13 @@ async function main() {
   try {
     const result = ensureBuild({ noBuild });
     if (selfTest) {
+      const absorbBackgroundContract = await probeAbsorbBackgroundContract();
       const payload = {
         ok: true,
         root: ROOT,
         serverPath: result.serverPath,
         missingGroupsBeforeBuild: result.missingGroupsBeforeBuild,
+        absorbBackgroundContract,
       };
       process.stdout.write(json ? `${JSON.stringify(payload, null, 2)}\n` : 'OK\n');
       return;
