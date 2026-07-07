@@ -3140,6 +3140,17 @@ const httpServer = http.createServer(async (req, res) => {
     try {
       const rawBody = await parseJsonBody(req);
       const requestAuth = await authenticateRequest(req);
+      if (!requestAuth.active) {
+        res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify({
+            success: false,
+            error: 'Unauthorized',
+            message: 'Valid token required',
+          })
+        );
+        return;
+      }
       const unwrapped = await unwrapSignedHttpBody(rawBody, requestAuth);
       if (unwrapped.signingError) {
         res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -3154,13 +3165,7 @@ const httpServer = http.createServer(async (req, res) => {
         return;
       }
 
-      const auth: TokenIntrospection = {
-        active: true,
-        scopes: ['admin:*'],
-        agentId: 'orchestrator-proxy',
-      };
-
-      const { result, isError } = await securedToolExecution(tool, args || {}, auth, {
+      const { result, isError } = await securedToolExecution(tool, args || {}, requestAuth, {
         requestPath: '/tools/call',
         requestMethod: 'POST',
         signingCtx: unwrapped.signingCtx,
