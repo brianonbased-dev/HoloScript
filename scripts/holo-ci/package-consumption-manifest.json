@@ -119,6 +119,47 @@
       "forbidBundledNativeAddons": true
     }
   ],
+  "candidateNpmPackages": [
+    {
+      "name": "@holoscript/engine",
+      "packageDir": "packages/engine",
+      "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "requireFiles": [
+        "dist/index.js",
+        "dist/index.cjs",
+        "dist/index.d.ts",
+        "dist/runtime/index.js",
+        "dist/physics/index.js"
+      ],
+      "forbidBundledNativeAddons": true
+    },
+    {
+      "name": "@holoscript/framework",
+      "packageDir": "packages/framework",
+      "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "requireFiles": [
+        "dist/index.js",
+        "dist/index.cjs",
+        "dist/index.d.ts",
+        "dist/board/index.js",
+        "dist/agents/index.js"
+      ],
+      "forbidBundledNativeAddons": true
+    },
+    {
+      "name": "@holoscript/absorb-service",
+      "packageDir": "packages/absorb-service",
+      "requiredBy": ["laptop-windows", "vast-linux-gpu"],
+      "requireFiles": [
+        "dist/index.js",
+        "dist/index.cjs",
+        "dist/index.d.ts",
+        "dist/engine/index.js",
+        "dist/schema.js"
+      ],
+      "forbidBundledNativeAddons": true
+    }
+  ],
   "pypiPackages": [
     {
       "name": "holoscript",

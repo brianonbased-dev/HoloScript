@@ -606,7 +606,7 @@ function validatePyPiFleetLifecycle(pkg, row, consumers, errors) {
   }
 }
 
-function checkNpmPackage(pkg, consumers, errors, warnings, rows) {
+function checkNpmPackage(pkg, consumers, errors, warnings, rows, type = 'npm') {
   assertConsumersKnown(pkg, consumers, errors);
   const dir = resolve(ROOT, pkg.packageDir || '');
   const manifestPath = join(dir, 'package.json');
@@ -615,7 +615,7 @@ function checkNpmPackage(pkg, consumers, errors, warnings, rows) {
     return;
   }
   const json = readJson(manifestPath);
-  const row = { type: 'npm', name: pkg.name, requiredBy: pkg.requiredBy || [], packEntries: null };
+  const row = { type, name: pkg.name, requiredBy: pkg.requiredBy || [], packEntries: null };
   rows.push(row);
 
   if (json.name !== pkg.name) errors.push(`${pkg.name}: package.json name is ${json.name}`);
@@ -914,6 +914,8 @@ async function main() {
   const consumers = checkConsumerShape(manifest, errors);
   for (const pkg of manifest.npmPackages || [])
     checkNpmPackage(pkg, consumers, errors, warnings, rows);
+  for (const pkg of manifest.candidateNpmPackages || [])
+    checkNpmPackage(pkg, consumers, errors, warnings, rows, 'npm-candidate');
   for (const pkg of manifest.pypiPackages || [])
     await checkPyPackage(pkg, consumers, errors, warnings, rows);
 
@@ -936,7 +938,7 @@ async function main() {
   } else {
     for (const row of rows) {
       const detail =
-        row.type === 'npm' && row.packEntries !== null
+        (row.type === 'npm' || row.type === 'npm-candidate') && row.packEntries !== null
           ? ` packEntries=${row.packEntries}`
           : row.type === 'pypi'
             ? `${row.built.length ? ` built=${row.built.join(',')}` : ''}${

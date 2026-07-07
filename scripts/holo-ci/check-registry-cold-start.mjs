@@ -42,7 +42,28 @@ const PUBLIC_FALLBACK_DISABLED =
 const NPM_BIN = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const PYTHON_BIN = process.env.PYTHON || 'python';
 const PUBLIC_NPM_REGISTRIES = new Set(['https://registry.npmjs.org']);
-const PROBES = new Set(['core-holo-webgpu', 'mcp-server-sizing']);
+const PACKAGE_IMPORT_PROBES = {
+  'engine-runtime-import': [
+    '@holoscript/engine',
+    '@holoscript/engine/runtime',
+    '@holoscript/engine/physics',
+  ],
+  'framework-agent-import': [
+    '@holoscript/framework',
+    '@holoscript/framework/board',
+    '@holoscript/framework/agents',
+  ],
+  'absorb-service-import': [
+    '@holoscript/absorb-service',
+    '@holoscript/absorb-service/schema',
+    '@holoscript/absorb-service/engine',
+  ],
+};
+const PROBES = new Set([
+  'core-holo-webgpu',
+  'mcp-server-sizing',
+  ...Object.keys(PACKAGE_IMPORT_PROBES),
+]);
 
 function inferProbe(packageSpec) {
   return String(packageSpec).startsWith('@holoscript/mcp-server')
@@ -281,6 +302,39 @@ console.log(JSON.stringify({
 `;
 }
 
+function buildPackageImportProbeScript(probeKind) {
+  const importSpecs = PACKAGE_IMPORT_PROBES[probeKind] || [];
+  return `
+const importSpecs = ${JSON.stringify(importSpecs, null, 2)};
+const imports = [];
+
+for (const spec of importSpecs) {
+  try {
+    const namespace = await import(spec);
+    const exportedKeys = Object.keys(namespace).sort();
+    imports.push({
+      spec,
+      ok: true,
+      exportCount: exportedKeys.length,
+      sampleExports: exportedKeys.slice(0, 20)
+    });
+  } catch (error) {
+    imports.push({
+      spec,
+      ok: false,
+      error: String(error?.stack || error?.message || error).slice(0, 1600)
+    });
+  }
+}
+
+console.log(JSON.stringify({
+  kind: ${JSON.stringify(probeKind)},
+  ok: imports.length === importSpecs.length && imports.every((entry) => entry.ok),
+  imports
+}, null, 2));
+`;
+}
+
 function main() {
   const work = mkdtempSync(join(tmpdir(), 'hs-registry-cold-start-'));
   writeConsumerPackageJson(work);
@@ -413,6 +467,8 @@ function main() {
       writeFileSync(probeFile, buildCoreHoloWebgpuProbeScript(sourceFile, outputFile));
     } else if (PROBE === 'mcp-server-sizing') {
       writeFileSync(probeFile, buildMcpServerSizingProbeScript());
+    } else if (PACKAGE_IMPORT_PROBES[PROBE]) {
+      writeFileSync(probeFile, buildPackageImportProbeScript(PROBE));
     }
     const probe = JSON.parse(run('node', [probeFile], { cwd: work, timeout: 60_000 }));
     receipt.probe = probe;

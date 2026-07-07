@@ -241,11 +241,13 @@
       "validationScripts": ["package:opportunity-map", "version:check:strict"],
       "validationCommands": [
         "pnpm --filter @holoscript/engine build",
-        "pnpm --filter @holoscript/engine test"
+        "pnpm --filter @holoscript/engine test",
+        "node scripts/holo-ci/check-package-consumption-matrix.mjs --pack-npm",
+        "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/engine@latest --probe engine-runtime-import"
       ],
       "nextActions": [
-        "Add engine to the release manifest only after cold pack proves browser and native optional dependencies stay optional.",
-        "Design a registry cold-start probe for engine runtime or physics entrypoints before promoting to fleet-operational."
+        "Keep engine in candidateNpmPackages until the pack gate and engine-runtime-import registry smoke both pass from a clean consumer.",
+        "Add engine to the release manifest only after cold pack proves browser and native optional dependencies stay optional."
       ]
     },
     {
@@ -269,10 +271,12 @@
       "validationScripts": ["package:opportunity-map", "version:check:strict"],
       "validationCommands": [
         "pnpm --filter @holoscript/framework build",
-        "pnpm --filter @holoscript/framework test"
+        "pnpm --filter @holoscript/framework test",
+        "node scripts/holo-ci/check-package-consumption-matrix.mjs --pack-npm",
+        "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/framework@latest --probe framework-agent-import"
       ],
       "nextActions": [
-        "Add an import smoke for board and identity APIs before moving framework into package-consumption.",
+        "Keep framework in candidateNpmPackages until the pack gate and framework-agent-import registry smoke both pass from a clean consumer.",
         "Keep cloud-family harness adapters outside the core framework package boundary."
       ]
     },
@@ -325,10 +329,12 @@
       "validationScripts": ["package:opportunity-map", "version:check:strict"],
       "validationCommands": [
         "pnpm --filter @holoscript/absorb-service build",
-        "pnpm --filter @holoscript/absorb-service test"
+        "pnpm --filter @holoscript/absorb-service test",
+        "node scripts/holo-ci/check-package-consumption-matrix.mjs --pack-npm"
       ],
       "nextActions": [
-        "Add an Absorb cold-start smoke that can run without private graph credentials.",
+        "Keep absorb-service in candidateNpmPackages until the pack gate stays green and the absorb-service-import registry smoke passes without private graph credentials.",
+        "Fix the current published-package cold install timeout, then add the absorb-service-import registry smoke to validationCommands before treating absorb-service as fleet-operational.",
         "Separate public package API checks from private GraphRAG corpus and OAuth state."
       ]
     },
