@@ -129,10 +129,21 @@ const INCREMENTAL_EMBEDDING_TIMEOUT_MS = readPositiveEnvMs(
   60_000
 );
 const MESH_SYNC_TIMEOUT_MS = readPositiveEnvMs('ABSORB_MESH_SYNC_TIMEOUT_MS', 10_000);
+const DEFAULT_AUTO_BACKGROUND_SCAN_FILE_THRESHOLD = 1_000;
 
 function readPositiveEnvMs(name: string, fallback: number): number {
   const raw = Number(process.env[name]);
   return Number.isFinite(raw) && raw > 0 ? raw : fallback;
+}
+
+function readPositiveEnvInt(name: string, fallback: number): number {
+  const raw = Number(process.env[name]);
+  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : fallback;
+}
+
+function envFlagDisabled(name: string): boolean {
+  const raw = process.env[name]?.trim().toLowerCase();
+  return raw === '0' || raw === 'false' || raw === 'off' || raw === 'no';
 }
 
 function unrefTimer(timer: ReturnType<typeof setTimeout>): void {
@@ -450,14 +461,24 @@ function errorMessage(err: unknown): string {
 
 function startBackgroundAbsorbJob(jobId: string, work: () => Promise<unknown>): void {
   setTimeout(() => {
-    void work().catch((err: unknown) => {
-      const message = errorMessage(err);
-      failAbsorbJob(jobId, 'Failed', message, {
-        error: 'absorb_failed',
-        message,
-        jobId,
+    void work()
+      .then((result: unknown) => {
+        const job = absorbJobs.get(jobId);
+        if (!job || job.status === 'error') return;
+        job.result = result;
+        job.status = 'complete';
+        job.progress = 100;
+        job.phase = job.phase === 'Initializing' ? 'Complete' : job.phase;
+        job.completedAt = Date.now();
+      })
+      .catch((err: unknown) => {
+        const message = errorMessage(err);
+        failAbsorbJob(jobId, 'Failed', message, {
+          error: 'absorb_failed',
+          message,
+          jobId,
+        });
       });
-    });
   }, 0);
 }
 
@@ -2981,12 +3002,22 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     fromSourceFiles,
   };
 
-  const runInBackground = args.async === true || args.background === true;
+  const requestedBackground = args.async === true || args.background === true;
+  const autoBackground = requestedBackground
+    ? ({ autoBackground: false } satisfies AbsorbAutoBackgroundDecision)
+    : await buildAutoBackgroundDecision(plan);
+  const runInBackground = requestedBackground || autoBackground.autoBackground;
   if (runInBackground) {
     startBackgroundAbsorbJob(jobId, () => executeAbsorbPlan(plan));
     return {
       accepted: true,
       async: true,
+      ...(autoBackground.autoBackground && {
+        autoBackground: true,
+        autoBackgroundReason: autoBackground.reason,
+        foregroundThresholdFiles: autoBackground.thresholdFiles,
+        scanPlan: autoBackground.scanPlan,
+      }),
       status: 'queued',
       jobId,
       pollTool: 'holo_get_absorb_status',
@@ -2997,7 +3028,9 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
       fromSourceFiles,
       fromLocalCodebaseSnapshotReceipt: Boolean(localCodebaseSnapshotReceipt),
       ...(localCodebaseSnapshotReceipt && { localCodebaseSnapshotReceipt }),
-      message: 'Absorb job started in the background; poll holo_get_absorb_status with jobId.',
+      message: autoBackground.autoBackground
+        ? 'Large cold absorb scan was started in the background to avoid the MCP foreground timeout; poll holo_get_absorb_status with jobId.'
+        : 'Absorb job started in the background; poll holo_get_absorb_status with jobId.',
     };
   }
 
@@ -3024,6 +3057,78 @@ interface AbsorbExecutionPlan {
   inlineSourceFiles?: SourceFileEntry[];
   localCodebaseSnapshotReceipt?: LocalCodebaseSnapshotReceiptSummary;
   fromSourceFiles: boolean;
+}
+
+interface AbsorbAutoBackgroundDecision {
+  autoBackground: boolean;
+  reason?: 'scan_plan_exceeds_foreground_threshold';
+  thresholdFiles?: number;
+  scanPlan?: AbsorbScanPlanReceipt;
+}
+
+async function buildAutoBackgroundDecision(
+  plan: AbsorbExecutionPlan
+): Promise<AbsorbAutoBackgroundDecision> {
+  if (plan.fromSourceFiles || envFlagDisabled('ABSORB_AUTO_BACKGROUND')) {
+    return { autoBackground: false };
+  }
+
+  for (const rootDir of plan.effectiveRootDirs) {
+    try {
+      if (!fs.statSync(path.resolve(rootDir)).isDirectory()) return { autoBackground: false };
+    } catch {
+      // Preserve the synchronous root-unavailable error path so callers get the
+      // full GraphUnavailableReceipt immediately.
+      return { autoBackground: false };
+    }
+  }
+
+  const existingCache = loadGraphCache();
+  const existingCacheCoverageComplete = existingCache
+    ? graphCoverageIsComplete(
+        buildGraphCoverageStatus(plan.primaryRootDir, getEnvelopeGraphFileCount(existingCache))
+      )
+    : false;
+  if (
+    !plan.force &&
+    existingCache?.version === 2 &&
+    rootMatchesCurrentRepo(existingCache.rootDir, plan.primaryRootDir) &&
+    existingCacheCoverageComplete
+  ) {
+    return { autoBackground: false };
+  }
+
+  const thresholdFiles = readPositiveEnvInt(
+    'ABSORB_AUTO_BACKGROUND_SCAN_FILE_THRESHOLD',
+    DEFAULT_AUTO_BACKGROUND_SCAN_FILE_THRESHOLD
+  );
+  const { CodebaseScanner } = plan.mod;
+  const scanner = new CodebaseScanner(undefined, false);
+
+  try {
+    const scanPlan = scanner.planScan(
+      {
+        rootDir: plan.primaryRootDir,
+        rootDirs: plan.effectiveRootDirs,
+        languages: plan.languages,
+        maxFiles: plan.maxFiles,
+        includeBuildArtifacts: plan.includeBuildArtifacts,
+      },
+      plan.scanBatchSize
+    ) as PlannedScannerScanPlan;
+    if (scanPlan.totalFiles >= thresholdFiles) {
+      return {
+        autoBackground: true,
+        reason: 'scan_plan_exceeds_foreground_threshold',
+        thresholdFiles,
+        scanPlan: summarizeModuleScanPlan(scanPlan),
+      };
+    }
+  } finally {
+    await scanner.dispose?.();
+  }
+
+  return { autoBackground: false };
 }
 
 async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
@@ -3150,6 +3255,36 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
       scanBatchSize
     );
     return { ...(result as Record<string, unknown>), jobId };
+  }
+
+  const envelopeCoverage = buildGraphCoverageStatus(
+    primaryRootDir,
+    getEnvelopeGraphFileCount(envelope)
+  );
+  if (!graphCoverageIsComplete(envelopeCoverage)) {
+    const result = await runFullScan(
+      mod,
+      effectiveRootDirs,
+      languages,
+      maxFiles,
+      includeBuildArtifacts,
+      outputFormat,
+      layout,
+      interactive,
+      jobId,
+      embeddingProvider,
+      embeddingApiKey,
+      embeddingModel,
+      undefined,
+      undefined,
+      scanBatchSize
+    );
+    return {
+      ...(result as Record<string, unknown>),
+      jobId,
+      repairedIncompleteCache: true,
+      priorCoverage: envelopeCoverage,
+    };
   }
 
   // ═══════════════════════════════════════════════════════════════════════════

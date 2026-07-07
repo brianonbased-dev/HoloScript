@@ -8,6 +8,23 @@ import { handleCodebaseTool, resetCodebaseToolStateForTests } from './codebase-t
 import { handleGraphRagTool, setGraphRAGState } from './graph-rag-tools';
 
 const originalCacheDir = process.env.HOLOSCRIPT_CACHE_DIR;
+const originalAutoBackground = process.env.ABSORB_AUTO_BACKGROUND;
+const originalAutoBackgroundScanFileThreshold =
+  process.env.ABSORB_AUTO_BACKGROUND_SCAN_FILE_THRESHOLD;
+
+afterEach(() => {
+  if (originalAutoBackground === undefined) {
+    delete process.env.ABSORB_AUTO_BACKGROUND;
+  } else {
+    process.env.ABSORB_AUTO_BACKGROUND = originalAutoBackground;
+  }
+  if (originalAutoBackgroundScanFileThreshold === undefined) {
+    delete process.env.ABSORB_AUTO_BACKGROUND_SCAN_FILE_THRESHOLD;
+  } else {
+    process.env.ABSORB_AUTO_BACKGROUND_SCAN_FILE_THRESHOLD =
+      originalAutoBackgroundScanFileThreshold;
+  }
+});
 
 type GraphUnavailableReceipt = {
   kind?: string;
@@ -157,13 +174,13 @@ function makeHoloShellSnapshotReceipt(
 }
 
 async function waitForAbsorbTerminalStatus(jobId: string): Promise<Record<string, unknown>> {
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < 100; i++) {
     const status = (await handleCodebaseTool('holo_get_absorb_status', { jobId })) as Record<
       string,
       unknown
     >;
     if (status.status === 'complete' || status.status === 'error') return status;
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await new Promise((resolve) => setTimeout(resolve, 50));
   }
   return (await handleCodebaseTool('holo_get_absorb_status', { jobId })) as Record<string, unknown>;
 }
@@ -293,6 +310,67 @@ describe('holo_absorb_repo root validation', () => {
         reason: 'rootDir_unavailable',
         authoritative: false,
       },
+    });
+  }, 15_000);
+
+  it('auto-backgrounds cold large filesystem scans before the foreground call can time out', async () => {
+    resetCodebaseToolStateForTests();
+    process.env.HOLOSCRIPT_CACHE_DIR = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'holoscript-auto-background-cache-')
+    );
+    process.env.ABSORB_AUTO_BACKGROUND_SCAN_FILE_THRESHOLD = '3';
+
+    const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-auto-background-root-'));
+    const srcDir = path.join(rootDir, 'src');
+    fs.mkdirSync(srcDir, { recursive: true });
+    for (let i = 0; i < 3; i++) {
+      fs.writeFileSync(
+        path.join(srcDir, `file-${i}.ts`),
+        `export function autoBackgroundFixture${i}(): number { return ${i}; }\n`,
+        'utf-8'
+      );
+    }
+
+    const accepted = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir,
+      outputFormat: 'stats',
+    })) as {
+      accepted?: boolean;
+      async?: boolean;
+      autoBackground?: boolean;
+      autoBackgroundReason?: string;
+      foregroundThresholdFiles?: number;
+      jobId?: string;
+      pollTool?: string;
+      scanPlan?: {
+        mode?: string;
+        totalCandidateFiles?: number;
+      };
+    };
+
+    expect(accepted).toMatchObject({
+      accepted: true,
+      async: true,
+      autoBackground: true,
+      autoBackgroundReason: 'scan_plan_exceeds_foreground_threshold',
+      foregroundThresholdFiles: 3,
+      pollTool: 'holo_get_absorb_status',
+      scanPlan: {
+        mode: 'module-batched',
+        totalCandidateFiles: 3,
+      },
+    });
+    expect(accepted.jobId).toMatch(/^absorb-/);
+
+    const status = await waitForAbsorbTerminalStatus(accepted.jobId!);
+    expect(status.status).toBe('complete');
+    expect(status.result).toMatchObject({
+      rootDir,
+      stats: {
+        totalFiles: 3,
+      },
+      embeddingSkipped: true,
+      embeddingSkipReason: 'outputFormat:stats',
     });
   }, 15_000);
 
@@ -506,6 +584,67 @@ describe('holo_absorb_repo root validation', () => {
     };
     expect(status.inMemory).toBe(false);
   });
+
+  it('auto-backgrounds and repairs a root-matching incomplete cache', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-incomplete-repair-cache-'));
+    const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-incomplete-repair-repo-'));
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.ABSORB_AUTO_BACKGROUND_SCAN_FILE_THRESHOLD = '3';
+
+    execFileSync('git', ['init'], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['config', 'user.email', 'codex@example.test'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+    execFileSync('git', ['config', 'user.name', 'Codex Test'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+
+    fs.mkdirSync(path.join(repoDir, 'src'), { recursive: true });
+    for (let i = 0; i < 3; i++) {
+      fs.writeFileSync(
+        path.join(repoDir, 'src', `fixture-${i}.ts`),
+        `export const incompleteRepairFixture${i} = ${i};\n`,
+        'utf-8'
+      );
+    }
+    execFileSync('git', ['add', 'src'], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['commit', '-m', 'initial'], { cwd: repoDir, windowsHide: true });
+    const head = getHeadCommit(repoDir);
+    writeGraphCache(cacheDir, repoDir, Date.now() - 5 * 60 * 1000, head, 1);
+
+    const accepted = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+    })) as {
+      accepted?: boolean;
+      autoBackground?: boolean;
+      jobId?: string;
+      scanPlan?: { totalCandidateFiles?: number };
+    };
+
+    expect(accepted.accepted).toBe(true);
+    expect(accepted.autoBackground).toBe(true);
+    expect(accepted.scanPlan?.totalCandidateFiles).toBe(3);
+    expect(accepted.jobId).toMatch(/^absorb-/);
+
+    const status = await waitForAbsorbTerminalStatus(accepted.jobId!);
+    expect(status.status).toBe('complete');
+    expect(status.result).toMatchObject({
+      rootDir: repoDir,
+      stats: {
+        totalFiles: 3,
+      },
+      repairedIncompleteCache: true,
+      priorCoverage: {
+        complete: false,
+        graphFileCount: 1,
+        expectedGraphFileCount: 3,
+      },
+    });
+  }, 15_000);
 
   it('repairs a git-stale cache through incremental stats without embeddings', async () => {
     resetCodebaseToolStateForTests();
