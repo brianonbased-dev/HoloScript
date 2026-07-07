@@ -509,8 +509,18 @@ axes) + `@hook args`. `@sparkline { state, path?, valueKey?, width?, height?, st
 inline `<svg><polyline>` with render-time-normalized points (dependency-free, injection-safe); live
 consumer is `compilerExport.holo` (sparkline of output `sizeKb` across compile targets, driven by
 the reactive `@computed targets`). `@hook args` lets arg-taking hooks (`useCreatorStats({address})`)
-be expressed natively. **Remaining:** the fuller `@chart { kind, series, axes }` (axes / legend /
-tooltips / multi-series) — the slice that actually replaces `RevenueChart`/`AnalyticsPanel` and
-unblocks a full CreatorDashboard native port. That is the next design pass (tick/label layout,
-hover-tooltip strategy in hand-emitted SVG). NMoS: build-internal (F.133) — chart.js is a library
-to *replace natively*, not to bridge.
+be expressed natively. **Slice 2 SHIPPED (HoloScript `abf0746a2`, 2026-07-07):** `@chart { kind: bar|line|area, state,
+path?, valueKey?, labelKey?, width?, height?, stroke?, fill? }` — an `<svg>` with a baseline axis
+and the plotted series computed at render time: `bar` = one `<rect>` per item with crisp centered
+category labels; `line` = normalized `<polyline>`; `area` = filled `<polygon>` + line. Fixed-aspect
+viewBox (no `preserveAspectRatio="none"`, unlike `@sparkline`, so text labels stay undistorted).
+Live consumer: `compilerExport.holo` (bar chart of `sizeKb` by target, labeled, paired with the
+precise `TargetList` — the chart+table pattern). Emitted geometry rendered + visually confirmed.
+
+**Remaining:** (a) interactive **hover-tooltips** (need client hover state — `@chart` is
+render-only today) and (b) **y-axis numeric ticks** (nice-round-number label layout). Neither blocks
+the common dashboard case. The **full CreatorDashboard native port** is now *primitive-unblocked*
+(`@chart` + `@hook args` + `@bind` string tiers + `@each`/`@when`/`@image` cover its charts, stat
+cards, content-type coloring, and gallery) — but it is a large authoring task and a page-vs-panel
+product decision (CreatorDashboard is a full `/creator` page, not a right-rail panel), so it is its
+own scoped effort. NMoS: build-internal (F.133) — chart.js is a library to *replace natively*.
