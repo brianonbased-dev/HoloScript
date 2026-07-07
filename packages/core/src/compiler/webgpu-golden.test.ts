@@ -86,4 +86,27 @@ describe('WebGPU golden output (byte-diff baseline for render-module refactor)',
     const b = new WebGPUCompiler().compile(GOLDEN_SCENE, 'golden-token');
     expect(a).toEqual(b);
   });
+
+  it('named glow material (hologram) self-illuminates in its own color', () => {
+    const scene = {
+      type: 'HoloComposition',
+      name: 'GlowScene',
+      objects: [obj('Glow', [prop('mesh', 'sphere'), prop('color', '#36e5ff'), prop('material', 'hologram')])],
+    } as HoloComposition;
+    const out = new WebGPUCompiler().compile(scene, 'golden-token');
+    // color #36e5ff -> [0.2118, 0.898, 1]; glow sets emissiveStrength 0.65 and emissive = color.
+    // Mat layout: color(4) | rm=[rough,metal,emissiveStrength,0](4) | emissive(4)
+    expect(out).toContain('0.5,0,0.65,0, 0.2118,0.898,1,0');
+  });
+
+  it('plain material stays non-emissive (glow does not leak onto ordinary objects)', () => {
+    const scene = {
+      type: 'HoloComposition',
+      name: 'FlatScene',
+      objects: [obj('Flat', [prop('mesh', 'cube'), prop('color', '#36e5ff')])],
+    } as HoloComposition;
+    const out = new WebGPUCompiler().compile(scene, 'golden-token');
+    // No glow material: emissiveStrength stays 1, emissive stays [0,0,0].
+    expect(out).toContain('0.5,0,1,0, 0,0,0,0');
+  });
 });

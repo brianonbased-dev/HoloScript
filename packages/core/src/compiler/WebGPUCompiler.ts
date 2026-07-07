@@ -589,8 +589,18 @@ export class WebGPUCompiler extends CompilerBase {
     const [cr, cg, cb] = this.extractMaterialColor(material, color);
     const rough = this.extractMaterialProp(material, 'roughness', 0.5);
     const metal = this.extractMaterialProp(material, 'metalness', 0.0);
-    const [er, eg, eb] = this.extractEmissive(material, obj);
-    const emissiveStrength = this.extractMaterialProp(material, 'emissive_intensity', 1.0);
+    let [er, eg, eb] = this.extractEmissive(material, obj);
+    let emissiveStrength = this.extractMaterialProp(material, 'emissive_intensity', 1.0);
+    // Named holographic/glass/emissive materials self-illuminate in their own color
+    // when no explicit emissive is authored, so declarative "hologram"/"liquid_glass"
+    // surfaces read as lit glow instead of flat-shaded dark.
+    const glow = this.materialGlow(material);
+    if (glow > 0 && er === 0 && eg === 0 && eb === 0) {
+      er = cr;
+      eg = cg;
+      eb = cb;
+      emissiveStrength = glow;
+    }
     // Mat layout: color(4) | rm=[roughness,metalness,emissiveStrength,0](4) | emissive(4)
     this.emit(
       `const ${v}Mat = createBuffer(device, new Float32Array([${cr},${cg},${cb},1.0, ${rough},${metal},${emissiveStrength},0, ${er},${eg},${eb},0]), GPUBufferUsage.UNIFORM);`
@@ -1409,5 +1419,29 @@ export class WebGPUCompiler extends CompilerBase {
     // Resolution lives in the shared geometry registry (render-modules) so the shape
     // vocabulary grows as data, and physics/vfx/sim can resolve the same primitives.
     return resolveGeometry(meshType).webgpuVertexFn;
+  }
+
+  private materialName(material: HoloValue | undefined): string | undefined {
+    if (typeof material === 'string') return material;
+    if (material && typeof material === 'object') {
+      const m = material as Record<string, unknown>;
+      if (typeof m.type === 'string') return m.type;
+      if (typeof m.name === 'string') return m.name;
+    }
+    return undefined;
+  }
+
+  // Self-illumination strength for a named material when no explicit emissive is
+  // authored. Holographic/neon/emissive surfaces glow in their own color; glass/gel
+  // gets a soft sheen; everything else stays purely lit (0).
+  private materialGlow(material: HoloValue | undefined): number {
+    const name = this.materialName(material);
+    if (!name) return 0;
+    const n = name.toLowerCase();
+    if (/hologram|holo|liquid_glass|liquid_hologram|neon|glow|emissive|aura|plasma|energy/.test(n)) {
+      return 0.65;
+    }
+    if (/glass|crystal|gel|water/.test(n)) return 0.28;
+    return 0;
   }
 }
