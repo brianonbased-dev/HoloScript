@@ -207,16 +207,53 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
   });
 
   // 7 ─────────────────────────────────────────────────────────────────────────
+  // WORKS as of 2026-07-07: @computed closed now that a consumer needs it
+  // (UniversalCompilerDashboard: `const targets = compileAST(nodes)`). Per this file's
+  // doctrine — close the gap + flip the falsifier when a real consumer arrives.
   describe('7. @computed (derived values)', () => {
-    const c = comp([obj('Box', [trait('computed', { name: 'doubled', expr: 'count * 2' })])], {
-      type: 'State',
-      properties: [{ type: 'StateProperty', key: 'count', value: 2 }],
-    } as HoloComposition['state']);
-
-    it('ABSENT: @computed emits no derived binding (pins the gap)', () => {
+    it('WORKS: @computed emits a derived const from state', () => {
+      const c = comp([obj('Box', [trait('computed', { name: 'doubled', expr: 'count * 2' })])], {
+        type: 'State',
+        properties: [{ type: 'StateProperty', key: 'count', value: 2 }],
+      } as HoloComposition['state']);
       const r = react(c);
-      expect(r).not.toContain('doubled'); // no const doubled = ...
-      expect(r).not.toContain('count * 2');
+      expect(r).toContain('const doubled = count * 2;');
+    });
+
+    it('WORKS: @computed with from/uses imports the called symbol and binds AFTER state', () => {
+      const c = comp(
+        [
+          obj('Slider', [trait('input', { type: 'range' }), trait('model', { state: 'nodes' })]),
+          obj('Targets', [
+            trait('computed', {
+              name: 'targets',
+              expr: 'compileAST(nodes)',
+              from: '@/lib/v6PlatformServices',
+              uses: ['compileAST'],
+            }),
+          ]),
+        ],
+        {
+          type: 'State',
+          properties: [{ type: 'StateProperty', key: 'nodes', value: 2500 }],
+        } as HoloComposition['state']
+      );
+      const r = react(c);
+      expect(r).toContain("import { compileAST } from '@/lib/v6PlatformServices';");
+      expect(r).toContain('const [nodes, setNodes] = useState(2500);');
+      // range @model coerces the string event value so state stays numeric
+      expect(r).toContain('onChange={(e) => setNodes(Number(e.target.value))}');
+      expect(r).toContain('const targets = compileAST(nodes);');
+      // the derived binding must come after the state hook it reads
+      expect(r.indexOf('const [nodes')).toBeLessThan(r.indexOf('const targets ='));
+    });
+
+    it('rejects an unsafe expr (semicolon injection)', () => {
+      const c = comp([obj('Box', [trait('computed', { name: 'x', expr: 'a; dropTable()' })])], {
+        type: 'State',
+        properties: [{ type: 'StateProperty', key: 'a', value: 1 }],
+      } as HoloComposition['state']);
+      expect(() => react(c)).toThrow(/unsafe expr/);
     });
   });
 
