@@ -1983,6 +1983,7 @@ async function main(): Promise<void> {
         'android-xr',
         'ar',
         'webgpu',
+        'webgpu-html',
         'r3f',
         'playcanvas',
         'usd',
@@ -2926,8 +2927,11 @@ async function main(): Promise<void> {
           process.exit(0);
         }
 
-        // Special handling for WebGPU target
-        if (target === 'webgpu') {
+        // Special handling for WebGPU target — module .ts, or a self-contained,
+        // browser-runnable .html page (webgpu-html). The scene/geometry is 100%
+        // compiler-owned (WebGPUCompiler walks objects AND spatial_groups); html
+        // mode only adds a transpile + a generic page shell (no per-scene authoring).
+        if (target === 'webgpu' || target === 'webgpu-html') {
           if (!isHolo) {
             console.error(`\x1b[31mError: WebGPU compilation requires .holo files.\x1b[0m`);
             process.exit(1);
@@ -2943,7 +2947,10 @@ async function main(): Promise<void> {
             process.exit(1);
           }
 
-          console.log(`\x1b[2m[DEBUG] Compiling to WebGPU TypeScript...\x1b[0m`);
+          const htmlMode = target === 'webgpu-html';
+          console.log(
+            `\x1b[2m[DEBUG] Compiling to WebGPU ${htmlMode ? 'standalone HTML page' : 'TypeScript'}...\x1b[0m`
+          );
           const compiler = new WebGPUCompiler({
             enableShadows: true,
             enablePBR: true,
@@ -2951,8 +2958,69 @@ async function main(): Promise<void> {
           });
           const output = compiler.compile(parseResult.ast);
 
+          const groupObjectCount = Array.isArray(parseResult.ast.spatialGroups)
+            ? parseResult.ast.spatialGroups.reduce(
+                (n: number, g: { objects?: unknown[] }) => n + (g.objects?.length || 0),
+                0
+              )
+            : 0;
           console.log(`\x1b[32m✓ WebGPU compilation successful!\x1b[0m`);
-          console.log(`\x1b[2m  Objects: ${parseResult.ast.objects?.length || 0}\x1b[0m`);
+          console.log(
+            `\x1b[2m  Objects: ${(parseResult.ast.objects?.length || 0) + groupObjectCount}\x1b[0m`
+          );
+
+          if (htmlMode) {
+            // Transpile the generated WebGPU TypeScript -> browser ESNext JS
+            // (top-level await preserved), then wrap it in the language's
+            // self-contained page shell with a WebGPU-unavailable fallback.
+            const ts = await import('typescript');
+            const browserJs = ts
+              .transpileModule(output, {
+                compilerOptions: {
+                  module: ts.ModuleKind.ESNext,
+                  target: ts.ScriptTarget.ES2022,
+                  removeComments: false,
+                },
+              })
+              .outputText.replace(/<\/script>/gi, '<\\/script>');
+            const pageTitle = String((parseResult.ast.name as string) || 'HoloScript');
+            const html = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>${pageTitle}</title>
+<style>
+  :root { color-scheme: dark; }
+  html, body { margin: 0; height: 100%; background: #04070d; overflow: hidden; }
+  canvas { display: block; width: 100vw; height: 100vh; touch-action: none; }
+  #hs-webgpu-fallback { position: fixed; inset: 0; display: none; place-items: center; text-align: center;
+    font: 15px/1.55 ui-rounded, -apple-system, "Segoe UI", system-ui, sans-serif; color: #9fb2b8; padding: 24px; }
+  #hs-webgpu-fallback[data-show="1"] { display: grid; }
+  #hs-webgpu-fallback b { display: block; color: #e6f2f4; font-size: 17px; margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<canvas></canvas>
+<div id="hs-webgpu-fallback"><div><b>This surface needs WebGPU</b>Open in Chrome, Edge, Firefox 147+, or Safari 26+.</div></div>
+<script>
+  if (!('gpu' in navigator)) { var f = document.getElementById('hs-webgpu-fallback'); if (f) f.dataset.show = '1'; }
+</script>
+<script type="module">
+${browserJs}
+</script>
+</body>
+</html>`;
+            if (options.output) {
+              const outputPath = path.resolve(options.output);
+              const htmlPath = outputPath.endsWith('.html') ? outputPath : outputPath + '.html';
+              writeCompileOutputFile(htmlPath, html);
+              console.log(`\x1b[32m✓ WebGPU standalone page written to ${htmlPath}\x1b[0m`);
+            } else {
+              console.log(html);
+            }
+            process.exit(0);
+          }
 
           if (options.output) {
             const outputPath = path.resolve(options.output);
