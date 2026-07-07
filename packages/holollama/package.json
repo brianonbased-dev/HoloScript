@@ -30,7 +30,7 @@
   "scripts": {
     "build": "tsup",
     "doctor": "node bin/holollama.cjs doctor",
-    "test": "vitest run"
+    "test": "vitest run src/__tests__/holollama.test.ts"
   },
   "dependencies": {
     "@holoscript/core": "workspace:^"
