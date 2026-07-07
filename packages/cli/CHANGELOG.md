@@ -1,5 +1,13 @@
 # @holoscript/cli
 
+## 8.0.10
+
+### Patch Changes
+
+- Rebuild and republish the CLI package so the npm tarball exposes all required
+  fleet bins (`holo`, `holoscript`, `hs`) and the help banner reports the
+  current package version under the registry cold-start canary.
+
 ## 8.0.6
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/cli",
-  "version": "8.0.9",
+  "version": "8.0.10",
   "description": "Command-line interface for HoloScript — compile, validate, dev-serve, and analyze .holo files",
   "main": "./dist/index.js",
   "sideEffects": false,
@@ -9,9 +9,9 @@
     "dist"
   ],
   "bin": {
-    "holo": "./bin/holoscript.cjs",
-    "holoscript": "./bin/holoscript.cjs",
-    "hs": "./bin/holoscript.cjs"
+    "holo": "bin/holoscript.cjs",
+    "holoscript": "bin/holoscript.cjs",
+    "hs": "bin/holoscript.cjs"
   },
   "scripts": {
     "build": "tsup",
@@ -41,7 +41,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/brianonbased-dev/HoloScript.git",
+    "url": "git+https://github.com/brianonbased-dev/HoloScript.git",
     "directory": "packages/cli"
   },
   "engines": {
