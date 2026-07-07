@@ -2015,6 +2015,10 @@ export const codebaseTools: Tool[] = [
           type: 'number',
           description: 'Maximum number of files to process. Defaults to 10000.',
         },
+        maxFileSize: {
+          type: 'number',
+          description: 'Maximum content file size in bytes. Defaults to 1048576.',
+        },
         exclude: {
           type: 'array',
           items: { type: 'string' },
@@ -2634,6 +2638,7 @@ async function runFullScan(
       setAbsorbJobScanPlan(jobId, scanPlanReceipt);
       scanResult = await scanner.scanFiles(primaryRootDir, selectedFilePaths, {
         includeBuildArtifacts,
+        maxFileSize: scanPolicy?.maxFileSize,
         readFile: inlineScan.readFile,
         onProgress: (processed: number, total: number, file: string) => {
           if (jobId) {
@@ -2648,6 +2653,7 @@ async function runFullScan(
         rootDirs,
         languages,
         maxFiles,
+        maxFileSize: scanPolicy?.maxFileSize,
         includeBuildArtifacts,
         exclude: scanPolicy?.exclude,
         excludePathFragments: scanPolicy?.excludePathFragments,
@@ -3089,6 +3095,7 @@ async function runIncrementalPatch(
       filesToRescan.map((f) => path.join(rootDir, f)),
       {
         includeBuildArtifacts,
+        maxFileSize: effectiveScanPolicy.maxFileSize,
         onProgress: (processed: number, total: number, file: string) => {
           if (jobId) {
             const scanPercent = 30 + (processed / total) * 30; // 30-60%
@@ -3353,7 +3360,8 @@ function readScanPolicyStringArray(
 function buildScanPolicyFromArgs(
   args: Record<string, unknown>,
   includeBuildArtifacts: boolean,
-  maxFiles: number | undefined
+  maxFiles: number | undefined,
+  maxFileSize: number | undefined
 ): { valid: true; policy: GraphScanPolicy } | { valid: false; errors: string[] } {
   const errors: string[] = [];
   const exclude = readScanPolicyStringArray(args, 'exclude');
@@ -3365,6 +3373,12 @@ function buildScanPolicyFromArgs(
   }
   if (args.includeHidden !== undefined && typeof args.includeHidden !== 'boolean') {
     errors.push('includeHidden must be a boolean.');
+  }
+  if (
+    args.maxFileSize !== undefined &&
+    (!Number.isFinite(args.maxFileSize) || Number(args.maxFileSize) <= 0)
+  ) {
+    errors.push('maxFileSize must be a positive number.');
   }
 
   if (errors.length > 0) return { valid: false, errors };
@@ -3378,6 +3392,7 @@ function buildScanPolicyFromArgs(
       includeHidden: args.includeHidden === true,
       includeBuildArtifacts,
       maxFiles,
+      maxFileSize,
     }),
   };
 }
@@ -3445,12 +3460,18 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   const layout = (args.layout as string) ?? 'force';
   const languages = args.languages as string[] | undefined;
   const maxFiles = args.maxFiles as number | undefined;
+  const maxFileSize = args.maxFileSize as number | undefined;
   const scanBatchSize = args.scanBatchSize as number | undefined;
   const interactive = (args.interactive as boolean) ?? false;
   // sourceFiles always forces a fresh scan (no disk cache match for temp dirs)
   const force = fromSourceFiles ? true : ((args.force as boolean) ?? false);
   const includeBuildArtifacts = (args.includeBuildArtifacts as boolean) ?? false;
-  const scanPolicyResult = buildScanPolicyFromArgs(args, includeBuildArtifacts, maxFiles);
+  const scanPolicyResult = buildScanPolicyFromArgs(
+    args,
+    includeBuildArtifacts,
+    maxFiles,
+    maxFileSize
+  );
   if (!scanPolicyResult.valid) {
     return {
       error: 'scan_policy_validation_failed',
@@ -3532,6 +3553,7 @@ interface AbsorbExecutionPlan {
   rootDir: string;
   languages?: string[];
   maxFiles?: number;
+  maxFileSize?: number;
   scanBatchSize?: number;
   includeBuildArtifacts: boolean;
   scanPolicy: GraphScanPolicy;
@@ -3606,6 +3628,7 @@ async function buildAutoBackgroundDecision(
         rootDirs: plan.effectiveRootDirs,
         languages: plan.languages,
         maxFiles: plan.maxFiles,
+        maxFileSize: plan.maxFileSize,
         includeBuildArtifacts: plan.includeBuildArtifacts,
         exclude: plan.scanPolicy.exclude,
         excludePathFragments: plan.scanPolicy.excludePathFragments,
@@ -3637,6 +3660,7 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
     rootDir,
     languages,
     maxFiles,
+    maxFileSize,
     scanBatchSize,
     includeBuildArtifacts,
     scanPolicy,
