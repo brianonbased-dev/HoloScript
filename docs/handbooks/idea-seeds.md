@@ -481,3 +481,31 @@ someone wants to move it forward. The multi-view-splat and super-res cases are *
 (they use ordinary depth/RGB), so `@motion_aperture` could first land for those and add the NLOS
 transient path once raw-histogram data exists. NMoS: build-internal / absorb (F.133), no external
 bridge.
+
+---
+
+## Native `@chart` / `@sparkline` Data-Viz Compile Target (`Native2DCompiler`)
+
+**What might be valuable**: A native charting primitive would let data-viz dashboards be authored as
+`.holo` and generated to `.tsx` like every other panel — closing the last inline-hex studio surfaces
+(CreatorDashboard's `RevenueChart` / `AnalyticsPanel`) that today are hand-written chart.js (~200KB,
+canvas, raw hex, prop-driven). Shapes: `@sparkline { state, path }` → a dependency-free inline SVG
+polyline; `@bar { each, value }` → an SVG/flex bar row; a fuller `@chart { kind: line|bar|area,
+series, axes }` → an SVG chart with studio-token theming. This is the concrete "missing format = the
+work" (D.108) finding from the 2026-07-07 taste audit: CreatorDashboard can't go native because the
+*content itself* (a chart) has no native form. A native chart trait also makes charts
+**provenance-legible** (the series is a declared `@bind` over state, not opaque canvas draws) and
+**portable** (SVG compiles to more targets than a canvas React component).
+
+**Why not now**: It is a bounded but real new compile target, not a panel port — needs a design pass
+on the trait surface (which chart kinds; how axes/legends/tooltips are declared; how series bind to
+array state), an SVG layout/scale helper in `Native2DCompiler`, and a fidelity decision vs. chart.js
+(interactive tooltips/zoom are non-trivial in hand-emitted SVG). The taste audit shipped the
+*language-gated* verticals now — AdminDashboard native + `@bind` string tiers + tier-leak strip +
+border side/width fix (HoloScript `3a69f6a2c`) — and deferred this deliberately rather than
+`@slot`-remounting chart.js (which clears neither the taste smell nor the D.095/D.096 render-freeze).
+Earliest buildable slice: `@sparkline` (single polyline, no axes) against an existing numeric-array
+state — it proves the SVG-emit path with minimal surface, and the fuller `@chart` grows from there.
+A companion enabler is **`@hook` args** (`useCreatorStats({address})` — a hook taking an options
+object; `@hook` currently emits `hook()` only). NMoS: build-internal (F.133) — chart.js is a library
+to *replace natively*, not to bridge.
