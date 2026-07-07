@@ -35,16 +35,16 @@ composition "compilerExport" {
       }
     }
 
-    object "SparkRow" {
+    object "ChartRow" {
       @layout { flex: "column", gap: "2px" }
 
-      object "SparkLabel" {
-        @text { variant: "caption", content: "Size trend (KB by target)" }
+      object "ChartLabel" {
+        @text { variant: "caption", content: "Output size (KB by target)" }
         @theme { className: "text-[10px] text-studio-muted" }
       }
-      object "SparkChart" {
-        @sparkline { state: "targets", valueKey: "sizeKb", height: 24 }
-        @theme { className: "w-full h-6 text-studio-accent" }
+      object "SizeChart" {
+        @chart { kind: "bar", state: "targets", valueKey: "sizeKb", labelKey: "target", height: 96 }
+        @theme { className: "w-full" }
       }
     }
 

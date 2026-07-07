@@ -527,6 +527,72 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
     });
   });
 
+  describe('7f. @chart — native SVG bar/line/area chart', () => {
+    it('WORKS: bar chart emits a baseline, one rect per item, and crisp labels', () => {
+      const c = comp([
+        obj('Chart', [
+          trait('chart', { kind: 'bar', state: 'targets', valueKey: 'sizeKb', labelKey: 'target' }),
+        ]),
+      ]);
+      const r = react(c);
+      expect(r).toContain('<svg');
+      expect(r).toContain('viewBox="0 0 280 140"'); // default dims
+      expect(r).toContain('<line'); // baseline axis
+      expect(r).toContain('stroke-studio-border'); // axis color (token)
+      expect(r).toContain('<rect'); // bars
+      expect(r).toContain('Number(d?.sizeKb)'); // valueKey
+      expect(r).toContain('className="fill-studio-accent"'); // bar fill (default token)
+      expect(r).toContain('<text'); // category labels
+      expect(r).toContain("String(d?.target ?? '')"); // labelKey text
+      expect(r).toContain('(targets)'); // bound array
+      // A chart carries text labels, so it must NOT stretch (crisp text) — unlike @sparkline.
+      expect(r).not.toContain('preserveAspectRatio="none"');
+    });
+
+    it('WORKS: line chart emits a polyline over the plot region, no rects', () => {
+      const c = comp([obj('Chart', [trait('chart', { kind: 'line', state: 'series' })])]);
+      const r = react(c);
+      expect(r).toContain('<polyline');
+      expect(r).toContain('stroke-studio-accent');
+      expect(r).not.toContain('<rect');
+    });
+
+    it('WORKS: area chart emits a filled polygon plus the line', () => {
+      const c = comp([obj('Chart', [trait('chart', { kind: 'area', state: 'series' })])]);
+      const r = react(c);
+      expect(r).toContain('<polygon');
+      expect(r).toContain('fillOpacity="0.25"');
+      expect(r).toContain('<polyline'); // line drawn on top of the area
+    });
+
+    it('WORKS: custom dims set the viewBox', () => {
+      const c = comp([obj('Chart', [trait('chart', { kind: 'bar', state: 's', width: 320, height: 100 })])]);
+      expect(react(c)).toContain('viewBox="0 0 320 100"');
+    });
+
+    it('ABSENT: a plain object emits no chart svg', () => {
+      const c = comp([obj('Plain', [trait('theme', { className: 'p-2' })])]);
+      const r = react(c);
+      expect(r).not.toContain('<rect');
+      expect(r).not.toContain('fill-studio-accent');
+    });
+
+    it('REJECTS: an invalid valueKey', () => {
+      const c = comp([obj('Bad', [trait('chart', { state: 's', valueKey: 'a.b' })])]);
+      expect(() => react(c)).toThrow(/@chart: invalid valueKey/);
+    });
+
+    it('REJECTS: an invalid labelKey', () => {
+      const c = comp([obj('Bad', [trait('chart', { state: 's', labelKey: 'a-b' })])]);
+      expect(() => react(c)).toThrow(/@chart: invalid labelKey/);
+    });
+
+    it('REJECTS: a fill class that would break out of the attribute', () => {
+      const c = comp([obj('Bad', [trait('chart', { state: 's', fill: 'x" onload="y' })])]);
+      expect(() => react(c)).toThrow(/@chart fill/);
+    });
+  });
+
   // 8 ─────────────────────────────────────────────────────────────────────────
   describe('8. layout', () => {
     it('WORKS: flex layout → display:flex + direction + gap', () => {

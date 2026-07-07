@@ -515,6 +515,9 @@ export default ${safeName}Component;
     } else if (traits.sparkline?.state) {
       // @sparkline: render the bound numeric array as an inline SVG polyline.
       element = this.buildSparklineElement(traits, props, keyProp);
+    } else if (traits.chart?.state) {
+      // @chart: render the bound array as an SVG bar/line/area chart with a baseline.
+      element = this.buildChartElement(traits, props, keyProp);
     } else if (tag === 'img' || tag === 'input') {
       element = `<${tag}${props}${keyProp} />`;
     } else {
@@ -1269,6 +1272,105 @@ export default ${safeName}Component;
 
     return `<svg${props}${keyProp} viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
       <polyline fill="none" className="${stroke}" strokeWidth="${strokeWidth}" points={${points}} />
+    </svg>`;
+  }
+
+  /**
+   * @chart: the fuller native data-viz primitive — a bar / line / area chart with
+   * a baseline axis and (bar) crisp category labels. Unlike @sparkline (fill-the-box,
+   * no axes), @chart uses a fixed-aspect viewBox with margins so `<text>` labels stay
+   * undistorted. Geometry is computed at render time from the bound array; a bar chart
+   * emits one `<rect>` per item, line/area emit a `<polyline>`/`<polygon>` over the
+   * plot region. Injection-safe: `state`/`path`/`valueKey`/`labelKey` are validated
+   * identifiers/dot-paths, `stroke`/`fill` pass the literal guard, and the point math
+   * uses string concatenation (no inner template literals).
+   *
+   * `@chart { kind: "bar"|"line"|"area", state, path?, valueKey?, labelKey?,
+   *           width?, height?, stroke?, fill? }`
+   */
+  private buildChartElement(traits: Record<string, any>, props: string, keyProp: string): string {
+    const ch = traits.chart;
+    const kind = ch.kind === 'line' || ch.kind === 'area' ? ch.kind : 'bar';
+    const state = this.assertSafeDotPath(String(ch.state), '@chart state');
+    const path = ch.path ? String(ch.path) : '';
+    if (path) this.assertSafeDotPath(path, '@chart path');
+    const arrayRef = this.buildStatePathExpr(state, path, '@chart');
+
+    let valueExpr = 'd';
+    if (ch.valueKey != null) {
+      const vk = String(ch.valueKey);
+      if (!/^[A-Za-z_$][\w$]*$/.test(vk)) {
+        throw new Error(`Native2DCompiler @chart: invalid valueKey ${JSON.stringify(vk)}`);
+      }
+      valueExpr = `d?.${vk}`;
+    }
+    let labelKey = '';
+    if (ch.labelKey != null) {
+      labelKey = String(ch.labelKey);
+      if (!/^[A-Za-z_$][\w$]*$/.test(labelKey)) {
+        throw new Error(`Native2DCompiler @chart: invalid labelKey ${JSON.stringify(labelKey)}`);
+      }
+    }
+
+    const W = Number.isInteger(ch.width) && ch.width > 0 ? ch.width : 280;
+    const H = Number.isInteger(ch.height) && ch.height > 0 ? ch.height : 140;
+    const stroke =
+      typeof ch.stroke === 'string'
+        ? this.assertSafeLiteral(ch.stroke, '@chart stroke')
+        : 'stroke-studio-accent';
+    const fill =
+      typeof ch.fill === 'string'
+        ? this.assertSafeLiteral(ch.fill, '@chart fill')
+        : 'fill-studio-accent';
+
+    // Fixed-aspect layout with margins: bottom band for labels keeps text crisp.
+    const PX = 6;
+    const PT = 8;
+    const PB = labelKey && kind === 'bar' ? 16 : 6;
+    const plotW = W - 2 * PX;
+    const plotH = H - PT - PB;
+    const baselineY = H - PB;
+
+    const baseline = `<line x1="${PX}" y1="${baselineY}" x2="${W - PX}" y2="${baselineY}" className="stroke-studio-border" strokeWidth="0.5" />`;
+
+    let body: string;
+    if (kind === 'bar') {
+      const label = labelKey
+        ? `<text x={__x + __bw / 2} y={${H - 4}} textAnchor="middle" className="fill-studio-muted" fontSize="6">{String(d?.${labelKey} ?? '')}</text>`
+        : '';
+      body =
+        `{((__a) => { const __d = (__a ?? []); ` +
+        `const __v = __d.map((d) => Number(${valueExpr}) || 0); ` +
+        `const __max = Math.max(1, ...__v); const __n = __d.length || 1; ` +
+        `const __slot = ${plotW} / __n; const __bw = Math.max(1, Math.min(__slot * 0.62, __slot - 1)); ` +
+        `return __d.map((d, i) => { const __h = (Number(${valueExpr}) || 0) / __max * ${plotH}; ` +
+        `const __x = ${PX} + i * __slot + (__slot - __bw) / 2; const __y = ${baselineY} - __h; ` +
+        `return (<g key={i}><rect x={__x} y={__y} width={__bw} height={__h} className="${fill}" rx="0.5" />${label}</g>); }); ` +
+        `})(${arrayRef})}`;
+    } else {
+      // line / area: normalized polyline over the plot region; area closes to a polygon.
+      const pts =
+        `((__a) => { const __v = (__a ?? []).map((d) => Number(${valueExpr}) || 0); ` +
+        `if (!__v.length) return ''; ` +
+        `const __mn = Math.min(...__v), __mx = Math.max(...__v), __r = (__mx - __mn) || 1, ` +
+        `__sx = __v.length > 1 ? ${plotW} / (__v.length - 1) : 0; ` +
+        `return __v.map((y, i) => (${PX} + i * __sx).toFixed(2) + ',' + (${baselineY} - ((y - __mn) / __r) * ${plotH}).toFixed(2)).join(' '); })(${arrayRef})`;
+      const line = `<polyline fill="none" className="${stroke}" strokeWidth="1.5" points={${pts}} />`;
+      if (kind === 'area') {
+        const areaPts = `((__p) => __p ? __p + ' ' + ${W - PX} + ',' + ${baselineY} + ' ' + ${PX} + ',' + ${baselineY} : '')(${pts})`;
+        body = `<polygon className="${fill}" fillOpacity="0.25" points={${areaPts}} />
+      ${line}`;
+      } else {
+        body = line;
+      }
+    }
+
+    // NOTE: no preserveAspectRatio="none" here (unlike @sparkline) — a chart carries
+    // `<text>` labels, so it must scale uniformly (default xMidYMid meet) to keep text
+    // crisp; the fixed-aspect viewBox + `w-full` sizes it by width with height derived.
+    return `<svg${props}${keyProp} viewBox="0 0 ${W} ${H}">
+      ${baseline}
+      ${body}
     </svg>`;
   }
 
