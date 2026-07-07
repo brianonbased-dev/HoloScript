@@ -110,6 +110,9 @@ const PROBES = new Set([
   'core-holo-webgpu',
   'mcp-server-sizing',
   'holollama-harness',
+  'engine-public-api',
+  'framework-public-api',
+  'absorb-service-public-api',
   ...Object.keys(PACKAGE_IMPORT_PROBES),
   ...Object.keys(PACKAGE_BIN_HELP_PROBES),
 ]);
@@ -423,6 +426,228 @@ console.log(JSON.stringify({
 `;
 }
 
+function buildEnginePublicApiProbeScript() {
+  return `
+import {
+  HEADLESS_PROFILE,
+  MINIMAL_PROFILE,
+  HeadlessRuntime,
+  createCustomProfile,
+  getAvailableProfiles,
+  getProfile
+} from '@holoscript/engine/runtime';
+
+const availableProfiles = getAvailableProfiles().sort();
+const headless = getProfile('headless');
+const minimal = getProfile('minimal');
+const custom = createCustomProfile('headless', {
+  name: 'probe-headless',
+  memoryBudget: 32,
+  network: { enabled: false }
+});
+
+const checks = {
+  headlessProfileName: HEADLESS_PROFILE?.name === 'headless',
+  headlessRenderingDisabled:
+    HEADLESS_PROFILE?.rendering?.enabled === false &&
+    HEADLESS_PROFILE?.rendering?.renderer === 'none',
+  headlessNoAudioInput:
+    HEADLESS_PROFILE?.audio?.enabled === false && HEADLESS_PROFILE?.input?.enabled === false,
+  headlessMemoryBudget: HEADLESS_PROFILE?.memoryBudget === 50,
+  minimalProfileName: MINIMAL_PROFILE?.name === 'minimal',
+  availableProfilesIncludeExpected: ['headless', 'minimal', 'standard', 'vr'].every((name) =>
+    availableProfiles.includes(name)
+  ),
+  getProfileReturnsProfiles:
+    headless?.name === HEADLESS_PROFILE.name && minimal?.name === MINIMAL_PROFILE.name,
+  customProfileMergesNestedConfig:
+    custom.name === 'probe-headless' &&
+    custom.memoryBudget === 32 &&
+    custom.rendering?.renderer === 'none' &&
+    custom.network?.enabled === false,
+  hasHeadlessRuntimeCtor: typeof HeadlessRuntime === 'function'
+};
+
+console.log(JSON.stringify({
+  kind: 'engine-public-api',
+  ok: Object.values(checks).every(Boolean),
+  checks,
+  samples: {
+    availableProfiles,
+    headless: {
+      name: headless.name,
+      renderingEnabled: headless.rendering.enabled,
+      renderer: headless.rendering.renderer,
+      memoryBudget: headless.memoryBudget
+    },
+    minimal: {
+      name: minimal.name,
+      renderer: minimal.rendering.renderer,
+      memoryBudget: minimal.memoryBudget
+    },
+    custom: {
+      name: custom.name,
+      networkEnabled: custom.network.enabled,
+      renderer: custom.rendering.renderer,
+      memoryBudget: custom.memoryBudget
+    }
+  }
+}, null, 2));
+`;
+}
+
+function buildFrameworkPublicApiProbeScript() {
+  return `
+import {
+  AgentManifestBuilder,
+  GCounter,
+  createAgentManifest,
+  validateManifest
+} from '@holoscript/framework/agents';
+
+const left = new GCounter();
+left.increment('laptop', 2);
+left.increment('jetson', 1);
+
+const right = GCounter.fromJSON({ laptop: 1, jetson: 5, vast: 3 });
+left.merge(right);
+const roundTrip = GCounter.fromJSON(left.toJSON());
+
+const capability = {
+  type: 'validate',
+  domain: 'general',
+  id: 'package-canary',
+  name: 'Package Canary',
+  latency: 'fast',
+  available: true
+};
+const endpoint = {
+  protocol: 'local',
+  address: 'in-process',
+  primary: true,
+  formats: ['json']
+};
+const manifest = createAgentManifest()
+  .identity('agent-package-canary', 'Package Canary', '1.0.0')
+  .description('Cold-start package public API probe')
+  .addCapability(capability)
+  .addEndpoint(endpoint)
+  .trust('local', 'unverified')
+  .tags('package', 'canary')
+  .build();
+const validation = validateManifest(manifest);
+
+const checks = {
+  hasCounterCtor: typeof GCounter === 'function',
+  counterMergeConverges: left.value() === 10,
+  counterNodeMaxPreserved: left.nodeValue('jetson') === 5,
+  counterRoundTrip: roundTrip.value() === 10 && roundTrip.nodeValue('vast') === 3,
+  hasManifestBuilderCtor: typeof AgentManifestBuilder === 'function',
+  builderFactoryReturnsBuilder: createAgentManifest() instanceof AgentManifestBuilder,
+  manifestBuildsOnlineAgent:
+    manifest.id === 'agent-package-canary' &&
+    manifest.status === 'online' &&
+    manifest.capabilities.length === 1 &&
+    manifest.endpoints.length === 1,
+  manifestValidates: validation.valid === true
+};
+
+console.log(JSON.stringify({
+  kind: 'framework-public-api',
+  ok: Object.values(checks).every(Boolean),
+  checks,
+  samples: {
+    counter: left.toJSON(),
+    manifest: {
+      id: manifest.id,
+      status: manifest.status,
+      tags: manifest.tags,
+      capabilityTypes: manifest.capabilities.map((entry) => entry.type),
+      endpointProtocols: manifest.endpoints.map((entry) => entry.protocol)
+    },
+    validation
+  }
+}, null, 2));
+`;
+}
+
+function buildAbsorbServicePublicApiProbeScript() {
+  return `
+import { CodebaseGraph } from '@holoscript/absorb-service/engine';
+import { absorbProjects, knowledgeEntries } from '@holoscript/absorb-service/schema';
+
+const graph = new CodebaseGraph();
+const filePath = '/probe/fleet-canary.ts';
+graph.addFile({
+  path: filePath,
+  language: 'typescript',
+  symbols: [
+    {
+      name: 'fleetCanary',
+      type: 'function',
+      language: 'typescript',
+      visibility: 'public',
+      filePath,
+      line: 1,
+      column: 1,
+      endLine: 3,
+      endColumn: 2
+    }
+  ],
+  imports: [],
+  calls: [],
+  loc: 3,
+  sizeBytes: 88
+});
+graph.buildIndexes();
+
+const stats = graph.getStats();
+const symbols = graph.findSymbolsByName('fleetCanary');
+const queried = graph.querySymbols({ name: 'fleetCanary', visibility: 'public' });
+const files = graph.getFilePaths();
+
+const knowledgeColumnKeys = ['id', 'workspaceId', 'type', 'content', 'createdAt'];
+const projectColumnKeys = ['id', 'userId', 'name', 'status', 'createdAt'];
+const checks = {
+  hasGraphCtor: typeof CodebaseGraph === 'function',
+  graphIndexesSyntheticFile:
+    stats.totalFiles === 1 &&
+    stats.totalSymbols === 1 &&
+    stats.totalLoc === 3 &&
+    files.includes(filePath),
+  graphSymbolLookup:
+    symbols.length === 1 &&
+    symbols[0].name === 'fleetCanary' &&
+    queried.length === 1 &&
+    queried[0].visibility === 'public',
+  hasKnowledgeEntriesSchema:
+    Boolean(knowledgeEntries) && knowledgeColumnKeys.every((key) => key in knowledgeEntries),
+  hasAbsorbProjectsSchema:
+    Boolean(absorbProjects) && projectColumnKeys.every((key) => key in absorbProjects)
+};
+
+console.log(JSON.stringify({
+  kind: 'absorb-service-public-api',
+  ok: Object.values(checks).every(Boolean),
+  checks,
+  samples: {
+    stats,
+    files,
+    symbols: symbols.map((symbol) => ({
+      name: symbol.name,
+      type: symbol.type,
+      language: symbol.language,
+      visibility: symbol.visibility
+    })),
+    schemaColumns: {
+      knowledgeEntries: knowledgeColumnKeys.filter((key) => key in knowledgeEntries),
+      absorbProjects: projectColumnKeys.filter((key) => key in absorbProjects)
+    }
+  }
+}, null, 2));
+`;
+}
+
 function buildPackageImportProbeScript(probeKind) {
   const importSpecs = PACKAGE_IMPORT_PROBES[probeKind] || [];
   return `
@@ -658,6 +883,12 @@ function main() {
       writeFileSync(probeFile, buildMcpServerSizingProbeScript());
     } else if (PROBE === 'holollama-harness') {
       writeFileSync(probeFile, buildHoloLlamaHarnessProbeScript());
+    } else if (PROBE === 'engine-public-api') {
+      writeFileSync(probeFile, buildEnginePublicApiProbeScript());
+    } else if (PROBE === 'framework-public-api') {
+      writeFileSync(probeFile, buildFrameworkPublicApiProbeScript());
+    } else if (PROBE === 'absorb-service-public-api') {
+      writeFileSync(probeFile, buildAbsorbServicePublicApiProbeScript());
     } else if (PACKAGE_IMPORT_PROBES[PROBE]) {
       writeFileSync(probeFile, buildPackageImportProbeScript(PROBE));
     } else if (PACKAGE_BIN_HELP_PROBES[PROBE]) {
