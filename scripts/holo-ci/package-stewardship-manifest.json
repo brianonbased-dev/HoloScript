@@ -4,7 +4,8 @@
   "principles": [
     "Every stewarded package names the construction capability it gives to humans and AI agents.",
     "Every fleet or release package has a runnable validation path before an agent claims improvement.",
-    "Stewardship expands existing packages first; new packages need an explicit construction role and consumer lane."
+    "Stewardship expands existing packages first; new packages need an explicit construction role and consumer lane.",
+    "Next actions, blockers, and caveats must be separate so agents know what to build, what to unblock, and what not to overclaim."
   ],
   "packages": [
     {
@@ -102,6 +103,30 @@
       "validationCommands": [
         "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/holollama@latest --probe holollama-harness",
         "node scripts/holo-ci/check-holollama-live-fleet.mjs --profiles jetson-orin,vast-linux-gpu --require-profile jetson-orin --out .scratch/holollama-live-fleet --json"
+      ],
+      "blockers": [
+        {
+          "id": "vast-live-endpoint",
+          "status": "active",
+          "scope": "vast-linux-gpu",
+          "summary": "No configured Vast HoloLlama endpoint is available in the local validation environment, so Vast live-service receipt promotion cannot honestly close.",
+          "nextUnblockAction": "Set HOLOLLAMA_VAST_ENDPOINT or VAST_HOLOLLAMA_ENDPOINT to a real OpenAI-compatible HoloLlama Vast endpoint, then require vast-linux-gpu in check-holollama-live-fleet.",
+          "evidenceCommand": "node scripts/holo-ci/check-holollama-live-fleet.mjs --profiles vast-linux-gpu --require-profile vast-linux-gpu --out .scratch/holollama-live-fleet --json"
+        }
+      ],
+      "caveats": [
+        {
+          "id": "jetson-appliance-proof",
+          "scope": "jetson-orin",
+          "summary": "The Jetson live-service gate proves endpoint health, model discovery, and a tiny completion; always-on service and footprint checks may still be skipped for a laptop-side probe.",
+          "overclaimGuard": "Do not claim full Jetson appliance health until the live lifecycle is run with systemd and footprint requirements enabled on the target node."
+        },
+        {
+          "id": "operator-owned-assets",
+          "scope": "public-package",
+          "summary": "@holoscript/holollama does not ship llama.cpp binaries, model weights, LoRA adapters, or private fleet credentials.",
+          "overclaimGuard": "Describe npm installation as the operating surface for plans, harnesses, and receipts, not as a complete model deployment by itself."
+        }
       ],
       "nextActions": [
         "Keep @holoscript/holollama@0.2.x cold-installable as the owned-metal inference package for laptop, Jetson, and Vast lanes.",
@@ -521,6 +546,23 @@
         "check:package-consumption:full",
         "version:check:strict"
       ],
+      "blockers": [
+        {
+          "id": "s0-training-run",
+          "status": "active",
+          "scope": "jetson-orin",
+          "summary": "The uAAL package and gates prove producible semantic IR, but they do not prove that the S0 student has learned the target distribution.",
+          "nextUnblockAction": "Run the private S0 training lane consuming @holoscript/uaal package APIs and attach receipt-level package provenance."
+        }
+      ],
+      "caveats": [
+        {
+          "id": "public-gate-private-generator",
+          "scope": "private-corpus",
+          "summary": "The public package should expose recognizers and structural gates while private corpus generators remain outside the published artifact.",
+          "overclaimGuard": "Do not publish generator templates that would collapse held-out integrity or imply the public package includes the sovereign corpus."
+        }
+      ],
       "nextActions": [
         "Keep semantic verticals importable from @holoscript/uaal/semantic and the structural spec importable from @holoscript/uaal/gate before folding private corpora.",
         "Make private corpus, held-out, producibility, and S0 training lanes consume the package API with receipt-level package provenance."
@@ -547,7 +589,16 @@
       "validationScripts": [
         "check:pypi-consumption",
         "check:pypi-extras-resolution",
+        "check:pypi-live-consumption",
         "check:package-consumption:full"
+      ],
+      "caveats": [
+        {
+          "id": "pypi-smoke-not-hardware-proof",
+          "scope": "pypi",
+          "summary": "The PyPI live smoke proves published wheel installation and imports from a fresh virtualenv, not robotics, Jetson utilization, or GPU workload performance.",
+          "overclaimGuard": "Keep hardware claims tied to separate target-node receipts instead of PyPI install logs."
+        }
       ],
       "nextActions": [
         "Keep fleetLifecycle checks verified for build, artifact inspection, fresh-venv smoke, live PyPI audit, extras resolution, and published-wheel smoke.",
@@ -575,7 +626,16 @@
       "validationScripts": [
         "check:pypi-consumption",
         "check:pypi-extras-resolution",
+        "check:pypi-live-consumption",
         "check:package-consumption:full"
+      ],
+      "caveats": [
+        {
+          "id": "model-extra-resolution",
+          "scope": "vast-linux-gpu",
+          "summary": "The Vast model extra is resolver-checked and published-wheel smoke-tested, but the model workload itself is still optional and not run during package stewardship.",
+          "overclaimGuard": "Do not claim GPU model accuracy or throughput from resolver and import smokes; require evaluator receipts for that."
+        }
       ],
       "nextActions": [
         "Keep the model extra Vast-oriented and lifecycle-scoped through pip dry-run resolution rather than mandatory laptop or Jetson installs.",

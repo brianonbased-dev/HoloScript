@@ -34,6 +34,7 @@ const KNOWN_STATUSES = new Set([
   'incubating',
   'parked',
 ]);
+const KNOWN_BLOCKER_STATUSES = new Set(['active', 'parked', 'resolved']);
 const REQUIRED_USER_CLASSES = new Set(['human', 'ai-agent']);
 const READY_STATUSES = new Set(['fleet-operational', 'release-candidate']);
 const KNOWN_OUTSIDE_READINESS = new Set(['ready', 'incubating', 'parked']);
@@ -140,6 +141,55 @@ function workspacePackageNames(root) {
   return out;
 }
 
+function isNonEmptyString(value) {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function validateStewardshipNotes(record, errors) {
+  const id = String(record.id || '<missing>');
+  if (record.blockers !== undefined && !Array.isArray(record.blockers)) {
+    errors.push(`${id}: blockers must be an array when present`);
+  }
+  for (const [index, blocker] of (record.blockers || []).entries()) {
+    const prefix = `${id}: blockers[${index}]`;
+    if (!blocker || typeof blocker !== 'object') {
+      errors.push(`${prefix} must be an object`);
+      continue;
+    }
+    if (!/^[a-z0-9][a-z0-9-]*$/.test(String(blocker.id || ''))) {
+      errors.push(`${prefix}.id is missing or invalid`);
+    }
+    if (!KNOWN_BLOCKER_STATUSES.has(blocker.status)) {
+      errors.push(`${prefix}.status must be one of ${Array.from(KNOWN_BLOCKER_STATUSES).join(', ')}`);
+    }
+    if (!isNonEmptyString(blocker.scope)) errors.push(`${prefix}.scope is required`);
+    if (!isNonEmptyString(blocker.summary)) errors.push(`${prefix}.summary is required`);
+    if (blocker.status !== 'resolved' && !isNonEmptyString(blocker.nextUnblockAction)) {
+      errors.push(`${prefix}.nextUnblockAction is required while blocker is not resolved`);
+    }
+    if (blocker.evidenceCommand !== undefined && !isNonEmptyString(blocker.evidenceCommand)) {
+      errors.push(`${prefix}.evidenceCommand must be non-empty when present`);
+    }
+  }
+
+  if (record.caveats !== undefined && !Array.isArray(record.caveats)) {
+    errors.push(`${id}: caveats must be an array when present`);
+  }
+  for (const [index, caveat] of (record.caveats || []).entries()) {
+    const prefix = `${id}: caveats[${index}]`;
+    if (!caveat || typeof caveat !== 'object') {
+      errors.push(`${prefix} must be an object`);
+      continue;
+    }
+    if (!/^[a-z0-9][a-z0-9-]*$/.test(String(caveat.id || ''))) {
+      errors.push(`${prefix}.id is missing or invalid`);
+    }
+    if (!isNonEmptyString(caveat.scope)) errors.push(`${prefix}.scope is required`);
+    if (!isNonEmptyString(caveat.summary)) errors.push(`${prefix}.summary is required`);
+    if (!isNonEmptyString(caveat.overclaimGuard)) errors.push(`${prefix}.overclaimGuard is required`);
+  }
+}
+
 function contextFromFiles(root) {
   const fleet = readJson(FLEET_MANIFEST);
   const consumption = readJson(CONSUMPTION_MANIFEST);
@@ -226,6 +276,8 @@ function validateStewardshipManifest(manifest, context) {
       validationScripts: record.validationScripts || [],
       outsideReadiness: record.outsideUserGate?.readiness || null,
       harnessMode: record.outsideUserGate?.harnessMode || null,
+      activeBlockers: (record.blockers || []).filter((blocker) => blocker.status === 'active').length,
+      caveats: (record.caveats || []).length,
     });
 
     if (!/^[a-z0-9][a-z0-9-]*$/.test(id)) errors.push(`invalid package steward id: ${id || '<missing>'}`);
@@ -348,6 +400,7 @@ function validateStewardshipManifest(manifest, context) {
     if (!Array.isArray(record.nextActions) || record.nextActions.length === 0) {
       errors.push(`${id}: missing nextActions[]`);
     }
+    validateStewardshipNotes(record, errors);
 
     if (record.status === 'fleet-operational' && (!record.utilityIds || record.utilityIds.length === 0)) {
       warnings.push(`${id}: fleet-operational package has no utilityIds[]`);
@@ -403,6 +456,24 @@ function runSelfTest() {
         utilityIds: ['example-utility'],
         validationScripts: ['check:example'],
         nextActions: ['Keep it useful.'],
+        blockers: [
+          {
+            id: 'operator-credential',
+            status: 'active',
+            scope: 'laptop-windows',
+            summary: 'A live operator credential is required for this example lane.',
+            nextUnblockAction: 'Set the example credential and rerun check:example.',
+            evidenceCommand: 'pnpm run check:example',
+          },
+        ],
+        caveats: [
+          {
+            id: 'no-live-hardware',
+            scope: 'public-package',
+            summary: 'The example validates package shape, not live hardware.',
+            overclaimGuard: 'Do not claim hardware readiness from the package-shape check.',
+          },
+        ],
       },
       {
         id: 'python',
@@ -440,6 +511,8 @@ function runSelfTest() {
     requiredPublicFiles: [],
     privateHarnessLeakAllowed: true,
   };
+  bad.packages[0].blockers = [{ id: 'bad-blocker', status: 'active', scope: '', summary: '' }];
+  bad.packages[0].caveats = [{ id: 'bad-caveat', summary: 'Missing scope and guard.' }];
   bad.packages.pop();
   const result = validateStewardshipManifest(bad, context);
   assert.equal(result.ok, false);
@@ -449,6 +522,8 @@ function runSelfTest() {
   assert(result.errors.some((error) => error.includes('privateHarnessLeakAllowed')));
   assert(result.errors.some((error) => error.includes('requiredPublicFiles')));
   assert(result.errors.some((error) => error.includes("missing public file 'missing.md'")));
+  assert(result.errors.some((error) => error.includes('blockers[0].nextUnblockAction')));
+  assert(result.errors.some((error) => error.includes('caveats[0].overclaimGuard')));
 
   console.log('[package-stewardship] self-test PASS');
 }
@@ -477,6 +552,7 @@ if (JSON_OUT) {
     console.log(
       `[package-stewardship] ${row.registry}:${row.name} ${row.status} lanes=${row.consumerLanes.join(',')} checks=${row.validationScripts.join(',')}`
         + ` outside=${row.outsideReadiness}/${row.harnessMode}`
+        + ` activeBlockers=${row.activeBlockers} caveats=${row.caveats}`
     );
   }
   for (const warning of output.warnings) console.warn(`[package-stewardship] WARN: ${warning}`);
