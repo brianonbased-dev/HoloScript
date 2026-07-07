@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { getFileWorkerExecArgv, WorkerPool } from './WorkerPool';
+import { getDefaultWorkerPoolSize, getFileWorkerExecArgv, WorkerPool } from './WorkerPool';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -20,6 +20,13 @@ describe('WorkerPool telemetry (internal)', () => {
         './register.cjs',
       ])
     ).toEqual(['--trace-warnings', '--require', './register.cjs']);
+  });
+
+  it('caps the default worker pool size for local HTTP absorb scans', () => {
+    expect(getDefaultWorkerPoolSize(32, {})).toBe(4);
+    expect(getDefaultWorkerPoolSize(32, { ABSORB_WORKER_POOL_MAX_SIZE: '3' })).toBe(3);
+    expect(getDefaultWorkerPoolSize(32, { ABSORB_WORKER_POOL_SIZE: '6' })).toBe(6);
+    expect(getDefaultWorkerPoolSize(2, {})).toBe(2);
   });
 
   it('tracks job throughput and emits telemetry logs for concurrent jobs', async () => {

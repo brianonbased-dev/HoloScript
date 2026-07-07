@@ -2117,7 +2117,7 @@ async function runFullScan(
         onProgress: (processed: number, total: number, file: string) => {
           if (jobId) {
             const scanPercent = 10 + (processed / Math.max(total, 1)) * 50; // 10-60%
-            trackAbsorbProgress(jobId, `Parsing ${file}`, scanPercent, processed, total);
+            trackAbsorbProgress(jobId, `Parsed ${file}`, scanPercent, processed, total);
           }
         },
       });
@@ -2131,7 +2131,7 @@ async function runFullScan(
         onProgress: (processed: number, total: number, file: string) => {
           if (jobId) {
             const scanPercent = 10 + (processed / Math.max(total, 1)) * 50; // 10-60%
-            trackAbsorbProgress(jobId, `Parsing ${file}`, scanPercent, processed, total);
+            trackAbsorbProgress(jobId, `Parsed ${file}`, scanPercent, processed, total);
           }
         },
       });
@@ -2466,7 +2466,7 @@ async function runIncrementalPatch(
         onProgress: (processed: number, total: number, file: string) => {
           if (jobId) {
             const scanPercent = 30 + (processed / total) * 30; // 30-60%
-            trackAbsorbProgress(jobId, `Parsing ${file}`, scanPercent, processed, total);
+            trackAbsorbProgress(jobId, `Parsed ${file}`, scanPercent, processed, total);
           }
         },
       }

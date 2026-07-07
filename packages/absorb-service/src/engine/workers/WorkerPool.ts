@@ -22,6 +22,28 @@ import { Worker } from 'worker_threads';
 import * as os from 'os';
 
 const EXEC_ARGV_FLAGS_WITH_VALUES = new Set(['--eval', '-e', '--print', '-p', '--input-type']);
+const DEFAULT_WORKER_POOL_MAX_SIZE = 4;
+type WorkerPoolEnv = Partial<
+  Record<'ABSORB_WORKER_POOL_SIZE' | 'ABSORB_WORKER_POOL_MAX_SIZE', string | undefined>
+>;
+
+function parsePositiveInteger(value: string | undefined): number | null {
+  if (value === undefined || value.trim() === '') return null;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+export function getDefaultWorkerPoolSize(
+  cpuCount = os.cpus().length,
+  env: WorkerPoolEnv = process.env
+): number {
+  const explicitSize = parsePositiveInteger(env.ABSORB_WORKER_POOL_SIZE);
+  if (explicitSize !== null) return explicitSize;
+
+  const maxSize = parsePositiveInteger(env.ABSORB_WORKER_POOL_MAX_SIZE) ?? DEFAULT_WORKER_POOL_MAX_SIZE;
+  const cpuAwareSize = Math.max(2, cpuCount - 2);
+  return Math.max(1, Math.min(maxSize, cpuAwareSize));
+}
 
 function stripInlineNodeExecArgv(execArgv: string[]): string[] {
   const sanitized: string[] = [];
@@ -124,7 +146,7 @@ export class WorkerPool {
 
   constructor(workerFile: string, poolSize?: number) {
     this.workerFile = workerFile;
-    const size = poolSize ?? Math.max(2, os.cpus().length - 2); // Leave 2 cores free
+    const size = poolSize ?? getDefaultWorkerPoolSize();
 
     for (let i = 0; i < size; i++) {
       const worker = new Worker(this.workerFile, { execArgv: getFileWorkerExecArgv() });

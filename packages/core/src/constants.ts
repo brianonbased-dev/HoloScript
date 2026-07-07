@@ -179,6 +179,7 @@ export const LIFECYCLE_HOOKS = [
   'on_update',
   'on_data_update',
   'on_tick',
+  'on_spawn',
   'on_activate',
   'on_deactivate',
   'on_detected',

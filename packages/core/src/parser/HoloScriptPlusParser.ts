@@ -2486,7 +2486,7 @@ export class HoloScriptPlusParser {
       let body = '';
       if (this.check('ARROW')) {
         this.advance();
-        body = this.parseInlineExpression();
+        body = this.check('LBRACE') ? this.parseCodeBlock() : this.parseInlineExpression();
       } else if (this.check('LBRACE')) {
         body = this.parseCodeBlock();
       }
@@ -2945,6 +2945,13 @@ export class HoloScriptPlusParser {
       if (this.check('LBRACE')) {
         config.body = this.parseCodeBlock();
       }
+    }
+
+    // Handle generic handler directives such as @on_call => { ... }.
+    // They may not be in LIFECYCLE_HOOKS, but they still must consume the body.
+    if (this.check('ARROW')) {
+      this.advance();
+      config.body = this.check('LBRACE') ? this.parseCodeBlock() : this.parseInlineExpression();
     }
 
     // Return as a generic trait so it appears in AST
