@@ -32,11 +32,18 @@
       "commands": ["holollama"],
       "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
       "holollamaProfiles": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
-      "lifecycleChecks": ["doctor", "mesh-readonly-bridge", "llama-cpp-vision-preflight"],
+      "lifecycleChecks": [
+        "doctor",
+        "mesh-readonly-bridge",
+        "llama-cpp-vision-preflight",
+        "serve-health-probe",
+        "live-lifecycle"
+      ],
       "useCases": [
         "llama.cpp serving plan generation",
         "owned-metal model node registry artifacts",
-        "local inference startup bundles"
+        "local inference startup bundles",
+        "Jetson and Vast live-service lifecycle receipts"
       ]
     },
     {

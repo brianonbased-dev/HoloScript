@@ -100,12 +100,14 @@
         "check:package-consumption:full"
       ],
       "validationCommands": [
-        "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/holollama@latest --probe holollama-harness"
+        "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/holollama@latest --probe holollama-harness",
+        "node scripts/holo-ci/check-holollama-live-fleet.mjs --profiles jetson-orin,vast-linux-gpu --require-profile jetson-orin --out .scratch/holollama-live-fleet --json"
       ],
       "nextActions": [
         "Keep @holoscript/holollama@0.2.x cold-installable as the owned-metal inference package for laptop, Jetson, and Vast lanes.",
         "Keep the published CLI harness command covered by the holollama-harness registry cold-start probe.",
-        "Expand lifecycle checks from preflight to live service receipts on Jetson and Vast lanes."
+        "Keep Jetson live-service receipts collected through check-holollama-live-fleet with the live-lifecycle stage passing.",
+        "Set HOLOLLAMA_VAST_ENDPOINT or VAST_HOLOLLAMA_ENDPOINT before requiring Vast live-service receipt promotion."
       ]
     },
     {

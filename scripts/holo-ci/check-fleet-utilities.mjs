@@ -28,6 +28,7 @@ const KNOWN_LIFECYCLE_CHECKS = new Set([
   'mesh-readonly-bridge',
   'llama-cpp-vision-preflight',
   'serve-health-probe',
+  'live-lifecycle',
 ]);
 const KNOWN_UTILITY_FAMILIES = new Set([
   'control-plane',
@@ -52,6 +53,8 @@ const REQUIRED_HOLOLLAMA_LIFECYCLE_CHECKS = [
   'doctor',
   'mesh-readonly-bridge',
   'llama-cpp-vision-preflight',
+  'serve-health-probe',
+  'live-lifecycle',
 ];
 
 const errors = [];

@@ -85,7 +85,34 @@
         "templates/ai-ecosystem-basic/.env.example",
         "templates/ai-ecosystem-basic/holollama.harness.json"
       ],
-      "forbidBundledNativeAddons": true
+      "forbidBundledNativeAddons": true,
+      "fleetLifecycle": {
+        "receiptScope": "Fresh HoloLlama registry harness proof plus live-service lifecycle receipts for owned Jetson and configured Vast endpoints; static plan/preflight receipts alone do not prove a serving node.",
+        "staleTelemetryPolicy": "Every live-service receipt must come from the current run or a freshly installed @holoscript/holollama package; do not close fleet-serving work from historical model logs.",
+        "checks": [
+          {
+            "id": "published-harness-cold-start",
+            "description": "Install @holoscript/holollama@latest into a repo-less consumer and run the public .ai-ecosystem harness installer.",
+            "evidence": "check-registry-cold-start --probe holollama-harness passes and verifies harness files, receipt files, and no founder path or key leakage.",
+            "command": "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/holollama@latest --probe holollama-harness --json",
+            "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"]
+          },
+          {
+            "id": "jetson-live-lifecycle",
+            "description": "Probe the owned Jetson HoloLlama endpoint and promote the live HoloLlama lifecycle receipt into the fleet lifecycle report.",
+            "evidence": "check-holollama-live-fleet writes jetson-orin/live-lifecycle.json and jetson-orin/fleet-lifecycle.json with live-lifecycle ok.",
+            "command": "node scripts/holo-ci/check-holollama-live-fleet.mjs --profiles jetson-orin --require-profile jetson-orin --out .scratch/holollama-live-fleet --json",
+            "consumerLanes": ["jetson-orin"]
+          },
+          {
+            "id": "vast-live-lifecycle",
+            "description": "Probe the configured Vast HoloLlama endpoint and promote the live HoloLlama lifecycle receipt into the fleet lifecycle report.",
+            "evidence": "Set HOLOLLAMA_VAST_ENDPOINT or VAST_HOLOLLAMA_ENDPOINT, then require vast-linux-gpu in check-holollama-live-fleet and verify live-lifecycle ok.",
+            "command": "node scripts/holo-ci/check-holollama-live-fleet.mjs --profiles vast-linux-gpu --require-profile vast-linux-gpu --out .scratch/holollama-live-fleet --json",
+            "consumerLanes": ["vast-linux-gpu"]
+          }
+        ]
+      }
     },
     {
       "name": "@holoscript/uaal",
