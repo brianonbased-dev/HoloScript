@@ -30,15 +30,7 @@ import { AdapterManager } from './AdapterManager';
 import { getAdapterForFile, detectLanguage } from './adapters';
 import { extractFileDocComment } from './adapters/BaseAdapter';
 import { isNativeAdapter, type HoloAdapter } from './adapters/HoloAdapter';
-
-// Dynamic import for worker pool (graceful degradation if not available)
-let WorkerPool: typeof import('./workers/WorkerPool').WorkerPool | null;
-try {
-  WorkerPool = require('./workers/WorkerPool').WorkerPool;
-} catch {
-  // Worker threads not available (browser, WASM, or old Node.js)
-  WorkerPool = null;
-}
+import { WorkerPool } from './workers/WorkerPool';
 
 const DEFAULT_EXCLUDE = [
   'node_modules',
@@ -76,6 +68,34 @@ const DEFAULT_MAX_FILE_SIZE = 1024 * 1024; // 1MB
 const DEFAULT_MAX_FILES = 10_000;
 const DEFAULT_SCAN_MODULE_BATCH_SIZE = 500;
 const BUILD_ARTIFACT_DIRS = new Set(['dist', 'build', 'out']);
+
+function resolveParseWorkerFile(): string | null {
+  const currentExt = path.extname(__filename_esm).toLowerCase();
+  const extensions =
+    currentExt === '.cjs'
+      ? ['.cjs', '.js', '.ts']
+      : currentExt === '.ts'
+        ? ['.ts', '.js', '.cjs']
+        : ['.js', '.cjs', '.ts'];
+  const directories =
+    currentExt === '.ts'
+      ? [
+          path.join(__dirname_esm, 'workers'),
+          path.join(__dirname_esm, '..', '..', 'dist', 'workers'),
+          path.join(__dirname_esm, '..', 'workers'),
+        ]
+      : [path.join(__dirname_esm, 'workers'), path.join(__dirname_esm, '..', 'workers')];
+
+  for (const ext of extensions) {
+    for (const dir of directories) {
+      const candidate = path.join(dir, `parse-worker${ext}`);
+      if (fs.existsSync(candidate)) return candidate;
+    }
+  }
+
+  return null;
+}
+
 // Binary/asset extensions skipped during file discovery — they can't be absorbed and in
 // asset-heavy example dirs would flood the candidate pool and truncate discovery before
 // source packages are reached (fair-coverage fix, 2026-07-03).
@@ -175,17 +195,21 @@ export interface ScanInBatchesOptions extends ScanOptions {
 
 export class CodebaseScanner {
   private adapterManager: AdapterManager;
-  private workerPool?: InstanceType<NonNullable<typeof WorkerPool>>; // WorkerPool instance (if available)
+  private workerPool?: WorkerPool; // WorkerPool instance (if available)
   private useWorkers: boolean;
 
   constructor(adapterManager?: AdapterManager, useWorkers = true) {
     this.adapterManager = adapterManager ?? new AdapterManager();
-    this.useWorkers = useWorkers && WorkerPool !== null;
+    this.useWorkers = useWorkers;
 
     // Initialize worker pool (graceful degradation if unavailable)
-    if (this.useWorkers && WorkerPool) {
+    if (this.useWorkers) {
       try {
-        const workerFile = path.join(__dirname_esm, 'workers', 'parse-worker.js');
+        const workerFile = resolveParseWorkerFile();
+        if (!workerFile) {
+          this.useWorkers = false;
+          return;
+        }
         this.workerPool = new WorkerPool(workerFile);
       } catch (err) {
         console.warn(
@@ -256,78 +280,15 @@ export class CodebaseScanner {
     let totalLoc = 0;
 
     if (this.useWorkers && this.workerPool) {
-      // PARALLEL PATH: Use worker threads for 4-8x parsing speedup
-      const BATCH_SIZE = 16; // Larger batches since workers handle concurrency
-
+      const BATCH_SIZE = 16;
       for (let i = 0; i < filePaths.length; i += BATCH_SIZE) {
         const batch = filePaths.slice(i, i + BATCH_SIZE);
-
-        // Step 1: Read files in parallel (I/O bound)
-        const readPromises = batch.map(async (filePath) => {
-          const language = detectLanguage(filePath);
-          if (!language) return null;
-
-          const adapter = getAdapterForFile(filePath);
-          if (!adapter) return null;
-
-          try {
-            const content = await readFile(filePath);
-            const sizeBytes = Buffer.byteLength(content, 'utf-8');
-            if (sizeBytes > maxFileSize) return null;
-
-            return { filePath, content, language, sizeBytes };
-          } catch (e: unknown) {
-            errors.push({
-              file: filePath,
-              error: e instanceof Error ? e.message : String(e),
-              phase: 'read',
-            });
-            return null;
-          }
-        });
-
-        const fileData = (await Promise.all(readPromises)).filter(Boolean) as Array<{
-          filePath: string;
-          content: string;
-          language: SupportedLanguage;
-          sizeBytes: number;
-        }>;
-
-        // Native adapters (e.g. HoloAdapter) parse in-process via their own
-        // parser — NOT through the tree-sitter worker pool. Split the batch.
-        const nativeData: typeof fileData = [];
-        const treeSitterData: typeof fileData = [];
-        for (const data of fileData) {
-          const a = getAdapterForFile(data.filePath);
-          if (isNativeAdapter(a)) nativeData.push(data);
-          else treeSitterData.push(data);
-        }
-
-        // Step 2a: Parse native adapters (HoloScript) in-process.
-        const nativePromises = nativeData.map((data) =>
-          this.parseNativeAdapter(
-            data.filePath,
-            rootDir,
-            data.content,
-            data.language,
-            data.sizeBytes
-          )
+        const parseResults = await this.parseBatchWithWorkers(
+          batch,
+          rootDir,
+          maxFileSize,
+          readFile
         );
-
-        // Step 2b: Parse tree-sitter adapters in parallel via worker pool (CPU bound)
-        const parsePromises = treeSitterData.map((data) =>
-          this.workerPool!.execute<WorkerParseJobResult>({
-            filePath: data.filePath,
-            content: data.content,
-            language: data.language,
-            sizeBytes: data.sizeBytes,
-          }).then(toScanWorkerPayload)
-        );
-
-        const [nativeResults, parseResults]: [ScanWorkerPayload[], ScanWorkerPayload[]] =
-          await Promise.all([Promise.all(nativePromises), Promise.all(parsePromises)]);
-        // Merge native + tree-sitter results into a single accumulation pass below.
-        parseResults.push(...nativeResults);
 
         // Step 3: Accumulate results
         for (const result of parseResults) {
@@ -680,33 +641,53 @@ export class CodebaseScanner {
     let totalImports = 0;
     let totalCalls = 0;
     let totalLoc = 0;
+    const accumulateResult = (result: ScanWorkerPayload): void => {
+      if (result.error) {
+        errors.push(result.error);
+      } else if (result.file) {
+        files.push(result.file);
+        filesByLanguage[result.file.language] = (filesByLanguage[result.file.language] ?? 0) + 1;
+        totalSymbols += result.file.symbols.length;
+        totalImports += result.file.imports.length;
+        totalCalls += result.file.calls.length;
+        totalLoc += result.file.loc;
 
-    // Parallel batching for I/O efficiency
-    const BATCH_SIZE = 8;
-    for (let i = 0; i < filePaths.length; i += BATCH_SIZE) {
-      const batch = filePaths.slice(i, i + BATCH_SIZE);
-      const results = await Promise.all(
-        batch.map((fp) =>
-          this.parseOneFile(fp, resolvedRootDir, maxFileSize, readFile, includeBuildArtifacts)
-        )
-      );
+        for (const sym of result.file.symbols) {
+          symbolsByType[sym.type] = (symbolsByType[sym.type] ?? 0) + 1;
+        }
 
-      for (const result of results) {
-        if (result.error) {
-          errors.push(result.error);
-        } else if (result.file) {
-          files.push(result.file);
-          filesByLanguage[result.file.language] = (filesByLanguage[result.file.language] ?? 0) + 1;
-          totalSymbols += result.file.symbols.length;
-          totalImports += result.file.imports.length;
-          totalCalls += result.file.calls.length;
-          totalLoc += result.file.loc;
+        onProgress?.(files.length, filePaths.length, result.file.path);
+      }
+    };
 
-          for (const sym of result.file.symbols) {
-            symbolsByType[sym.type] = (symbolsByType[sym.type] ?? 0) + 1;
-          }
+    if (this.useWorkers && this.workerPool) {
+      const BATCH_SIZE = 16;
+      for (let i = 0; i < filePaths.length; i += BATCH_SIZE) {
+        const batch = filePaths.slice(i, i + BATCH_SIZE);
+        const parseResults = await this.parseBatchWithWorkers(
+          batch,
+          resolvedRootDir,
+          maxFileSize,
+          readFile
+        );
 
-          onProgress?.(files.length, filePaths.length, result.file.path);
+        for (const result of parseResults) {
+          accumulateResult(result);
+        }
+      }
+    } else {
+      // Parallel batching for I/O efficiency
+      const BATCH_SIZE = 8;
+      for (let i = 0; i < filePaths.length; i += BATCH_SIZE) {
+        const batch = filePaths.slice(i, i + BATCH_SIZE);
+        const results = await Promise.all(
+          batch.map((fp) =>
+            this.parseOneFile(fp, resolvedRootDir, maxFileSize, readFile, includeBuildArtifacts)
+          )
+        );
+
+        for (const result of results) {
+          accumulateResult(result);
         }
       }
     }
@@ -727,6 +708,91 @@ export class CodebaseScanner {
   }
 
   // ── Private helpers ──────────────────────────────────────────────────────
+
+  private async parseBatchWithWorkers(
+    filePaths: string[],
+    rootDir: string,
+    maxFileSize: number,
+    readFile: (p: string) => Promise<string>
+  ): Promise<ScanWorkerPayload[]> {
+    const workerPool = this.workerPool;
+    if (!workerPool) return [];
+
+    const resolvedRootDir = path.resolve(rootDir);
+    const readResults = await Promise.all(
+      filePaths.map(async (filePath) => {
+        const language = detectLanguage(filePath) || 'plaintext';
+        const adapter = getAdapterForFile(filePath);
+
+        try {
+          const content = await readFile(filePath);
+          const sizeBytes = Buffer.byteLength(content, 'utf-8');
+          if (sizeBytes > maxFileSize) return null;
+
+          return { filePath, content, language, sizeBytes, adapter };
+        } catch (e: unknown) {
+          return {
+            error: {
+              file: filePath,
+              error: e instanceof Error ? e.message : String(e),
+              phase: 'read' as const,
+            },
+          };
+        }
+      })
+    );
+
+    const parsePromises: Array<Promise<ScanWorkerPayload>> = [];
+    const results: ScanWorkerPayload[] = [];
+
+    for (const item of readResults) {
+      if (!item) continue;
+      if ('error' in item) {
+        results.push({ error: item.error });
+        continue;
+      }
+
+      const relPath = path.relative(resolvedRootDir, item.filePath).replace(/\\/g, '/');
+      if (!item.adapter) {
+        const fallbackImports = this.extractLooseImports(item.content, relPath);
+        results.push({
+          file: {
+            path: relPath,
+            language: item.language,
+            symbols: [],
+            imports: fallbackImports,
+            calls: [],
+            loc: item.content.split('\n').length,
+            sizeBytes: item.sizeBytes,
+            docComment: undefined,
+          },
+        });
+        continue;
+      }
+
+      parsePromises.push(
+        workerPool
+          .execute<WorkerParseJobResult>({
+            filePath: relPath,
+            content: item.content,
+            language: item.language,
+            sizeBytes: item.sizeBytes,
+          })
+          .then(toScanWorkerPayload)
+          .catch(
+            (e: unknown): ScanWorkerPayload => ({
+              error: {
+                file: relPath,
+                error: e instanceof Error ? e.message : String(e),
+                phase: 'parse',
+              },
+            })
+          )
+      );
+    }
+
+    return [...(await Promise.all(parsePromises)), ...results];
+  }
 
   /**
    * Parse a single file and return either the scanned file or an error.

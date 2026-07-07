@@ -40,7 +40,8 @@ export function getDefaultWorkerPoolSize(
   const explicitSize = parsePositiveInteger(env.ABSORB_WORKER_POOL_SIZE);
   if (explicitSize !== null) return explicitSize;
 
-  const maxSize = parsePositiveInteger(env.ABSORB_WORKER_POOL_MAX_SIZE) ?? DEFAULT_WORKER_POOL_MAX_SIZE;
+  const maxSize =
+    parsePositiveInteger(env.ABSORB_WORKER_POOL_MAX_SIZE) ?? DEFAULT_WORKER_POOL_MAX_SIZE;
   const cpuAwareSize = Math.max(2, cpuCount - 2);
   return Math.max(1, Math.min(maxSize, cpuAwareSize));
 }
@@ -69,6 +70,12 @@ function stripInlineNodeExecArgv(execArgv: string[]): string[] {
 
 export function getFileWorkerExecArgv(execArgv = process.execArgv): string[] {
   return stripInlineNodeExecArgv(execArgv);
+}
+
+function needsTsxLoader(workerFile: string, execArgv: string[]): boolean {
+  return (
+    workerFile.endsWith('.ts') && !execArgv.some((arg) => arg === 'tsx' || arg.includes('tsx'))
+  );
 }
 
 function isReadySignal(msg: unknown): msg is { type: 'ready' } {
@@ -112,6 +119,7 @@ export class WorkerPool {
   private availableWorkers: Worker[] = [];
   private jobQueue: QueuedJob[] = [];
   private pendingJobs = new Map<string, QueuedJob>();
+  private workerJobs = new Map<Worker, string>();
   private workerFile: string;
   private telemetry: WorkerPoolTelemetry = {
     stats: {
@@ -144,12 +152,48 @@ export class WorkerPool {
     this.telemetry.stats.pendingJobs = this.pendingJobs.size;
   }
 
+  private removeWorker(worker: Worker): void {
+    this.workers = this.workers.filter((w) => w !== worker);
+    this.availableWorkers = this.availableWorkers.filter((w) => w !== worker);
+    this.workerJobs.delete(worker);
+    this.refreshCounts();
+  }
+
+  private rejectWorkerJob(worker: Worker, err: Error): void {
+    const jobId = this.workerJobs.get(worker);
+    if (!jobId) return;
+
+    const job = this.pendingJobs.get(jobId);
+    if (job) {
+      this.pendingJobs.delete(jobId);
+      this.telemetry.stats.failedJobs += 1;
+      job.reject(err);
+    }
+    this.workerJobs.delete(worker);
+    this.refreshCounts();
+  }
+
+  private rejectQueuedIfNoWorkers(err: Error): void {
+    if (this.workers.length > 0) return;
+
+    while (this.jobQueue.length > 0) {
+      const job = this.jobQueue.shift()!;
+      this.telemetry.stats.failedJobs += 1;
+      job.reject(err);
+    }
+    this.refreshCounts();
+  }
+
   constructor(workerFile: string, poolSize?: number) {
     this.workerFile = workerFile;
     const size = poolSize ?? getDefaultWorkerPoolSize();
 
     for (let i = 0; i < size; i++) {
-      const worker = new Worker(this.workerFile, { execArgv: getFileWorkerExecArgv() });
+      const execArgv = getFileWorkerExecArgv();
+      if (needsTsxLoader(this.workerFile, execArgv)) {
+        execArgv.push('--import', 'tsx');
+      }
+      const worker = new Worker(this.workerFile, { execArgv });
 
       worker.on('message', (raw: unknown) => {
         if (isReadySignal(raw)) {
@@ -168,6 +212,7 @@ export class WorkerPool {
         const job = this.pendingJobs.get(jobId);
         if (job) {
           this.pendingJobs.delete(jobId);
+          this.workerJobs.delete(worker);
           this.availableWorkers.push(worker);
           this.telemetry.stats.completedJobs += 1;
           const durationMs = Math.max(0, Date.now() - job.startAt);
@@ -184,21 +229,21 @@ export class WorkerPool {
 
       worker.on('error', (err) => {
         console.error('[WorkerPool] Worker error:', err);
-        this.telemetry.stats.failedJobs += this.pendingJobs.size;
         this.telemetry.lastError = err.message;
         this.logTelemetry(`worker-error:${err.message}`);
-        // Find and reject all pending jobs for this worker
-        for (const [jobId, job] of this.pendingJobs) {
-          job.reject(err);
-          this.pendingJobs.delete(jobId);
-        }
-        this.refreshCounts();
+        this.rejectWorkerJob(worker, err);
+        this.removeWorker(worker);
+        this.rejectQueuedIfNoWorkers(err);
       });
 
       worker.on('exit', (code) => {
         if (code !== 0 && !this.shuttingDown) {
+          const err = new Error(`Worker exited with code ${code}`);
           console.error(`[WorkerPool] Worker exited with code ${code}`);
           this.logTelemetry(`worker-exit:${code}`);
+          this.rejectWorkerJob(worker, err);
+          this.removeWorker(worker);
+          this.rejectQueuedIfNoWorkers(err);
         }
       });
 
@@ -249,6 +294,7 @@ export class WorkerPool {
       const worker = this.availableWorkers.shift()!;
 
       this.pendingJobs.set(job.jobId, job);
+      this.workerJobs.set(worker, job.jobId);
       this.refreshCounts();
       this.logTelemetry(`job-dispatched:${job.jobId}`);
       worker.postMessage(job.data);
@@ -265,6 +311,7 @@ export class WorkerPool {
     this.availableWorkers = [];
     this.jobQueue = [];
     this.pendingJobs.clear();
+    this.workerJobs.clear();
     this.refreshCounts();
     this.logTelemetry('pool-terminated');
   }

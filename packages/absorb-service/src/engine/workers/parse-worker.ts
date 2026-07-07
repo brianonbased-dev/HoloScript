@@ -14,8 +14,9 @@
 import { parentPort } from 'worker_threads';
 import { AdapterManager } from '../AdapterManager';
 import { getAdapterForFile } from '../adapters';
+import { isNativeAdapter } from '../adapters/HoloAdapter';
 import { extractFileDocComment } from '../adapters/BaseAdapter';
-import type { SupportedLanguage, ScannedFile } from '../types';
+import type { SupportedLanguage, ScannedFile, ImportEdge } from '../types';
 
 interface ParseJob {
   jobId: string;
@@ -38,6 +39,29 @@ interface ParseResult {
 // Initialize AdapterManager for this worker thread
 const adapterManager = new AdapterManager();
 
+function extractLooseImports(content: string, filePath: string): ImportEdge[] {
+  const imports: ImportEdge[] = [];
+  const lines = content.split('\n');
+  const esmImport = /\bimport\s+(?:[^'";]+\s+from\s+)?['"]([^'"]+)['"]/;
+  const dynamicImport = /\bimport\(\s*['"]([^'"]+)['"]\s*\)/;
+  const commonJs = /\brequire\(\s*['"]([^'"]+)['"]\s*\)/;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const matches = [line.match(esmImport), line.match(dynamicImport), line.match(commonJs)];
+    for (const match of matches) {
+      if (!match?.[1]) continue;
+      imports.push({
+        fromFile: filePath,
+        toModule: match[1],
+        line: i + 1,
+      });
+    }
+  }
+
+  return imports;
+}
+
 parentPort?.on('message', async (job: ParseJob) => {
   const { jobId, filePath, content, language, sizeBytes } = job;
 
@@ -51,6 +75,42 @@ parentPort?.on('message', async (job: ParseJob) => {
           file: filePath,
           phase: 'adapter',
           message: 'No adapter found for file type',
+        },
+      } as ParseResult);
+      return;
+    }
+
+    if (isNativeAdapter(adapter)) {
+      const loc = content.split('\n').length;
+      const tree = await adapter.parse(content, filePath);
+      if (!tree) {
+        parentPort?.postMessage({
+          jobId,
+          file: {
+            path: filePath,
+            language,
+            symbols: [],
+            imports: extractLooseImports(content, filePath),
+            calls: [],
+            loc,
+            sizeBytes,
+            docComment: undefined,
+          },
+        } as ParseResult);
+        return;
+      }
+
+      parentPort?.postMessage({
+        jobId,
+        file: {
+          path: filePath,
+          language,
+          symbols: adapter.extractSymbols(tree, filePath),
+          imports: adapter.extractImports(tree, filePath),
+          calls: adapter.extractCalls(tree, filePath),
+          loc,
+          sizeBytes,
+          docComment: undefined,
         },
       } as ParseResult);
       return;

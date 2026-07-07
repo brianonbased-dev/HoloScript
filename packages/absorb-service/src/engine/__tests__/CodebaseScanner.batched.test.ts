@@ -79,4 +79,28 @@ describe('CodebaseScanner module batching', () => {
     expect(completed).toHaveLength(plan.batches.length);
     expect(progress[progress.length - 1]).toMatchObject({ processed: 3, total: 3 });
   });
+
+  it('parses native HoloScript files through worker-backed scanFiles', async () => {
+    const root = makeTempRepo();
+    const relativePath = 'src/workered.hsplus';
+    const absolutePath = path.join(root, relativePath);
+    writeFixture(
+      root,
+      relativePath,
+      'trait WorkerBackedScan {\n  capability_tags: ["absorb", "worker"]\n}\n'
+    );
+
+    const scanner = new CodebaseScanner(undefined, true);
+    try {
+      const result = await scanner.scanFiles(root, [absolutePath]);
+
+      expect(result.stats.errors).toHaveLength(0);
+      expect(result.stats.totalFiles).toBe(1);
+      expect(result.files[0]?.path).toBe(relativePath);
+      expect(result.files[0]?.symbols.some((symbol) => symbol.type === 'trait')).toBe(true);
+      expect(result.files[0]?.symbols[0]?.docComment).toContain('absorb, worker');
+    } finally {
+      await scanner.dispose();
+    }
+  });
 });

@@ -374,15 +374,15 @@ function trackAbsorbProgress(
   jobId: string,
   phase: string,
   progress: number,
-  filesProcessed: number = 0,
-  totalFiles: number = 0
+  filesProcessed?: number,
+  totalFiles?: number
 ): void {
   const job = absorbJobs.get(jobId);
   if (job) {
     job.phase = phase;
     job.progress = Math.min(100, Math.max(0, progress));
-    job.filesProcessed = filesProcessed;
-    job.totalFiles = totalFiles;
+    if (filesProcessed !== undefined) job.filesProcessed = filesProcessed;
+    if (totalFiles !== undefined) job.totalFiles = totalFiles;
 
     // Auto-update status based on progress
     if (progress >= 100) {
