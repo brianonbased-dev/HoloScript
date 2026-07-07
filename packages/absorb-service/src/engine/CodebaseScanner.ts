@@ -184,6 +184,13 @@ export interface ScanPlan {
   batches: PlannedScanBatch[];
 }
 
+interface ExcludePolicy {
+  names: Set<string>;
+  pathFragments: string[];
+  nameFragments: string[];
+  includeHidden: boolean;
+}
+
 export interface ScanInBatchesOptions extends ScanOptions {
   /** Maximum files per module batch. Defaults to a bounded monorepo-safe chunk. */
   scanBatchSize?: number;
@@ -243,7 +250,7 @@ export class CodebaseScanner {
     const rootDir = rootDirs[0]; // Primary root for relative path normalization
     const maxFiles = options.maxFiles ?? DEFAULT_MAX_FILES;
     const maxFileSize = options.maxFileSize ?? DEFAULT_MAX_FILE_SIZE;
-    const exclude = this.buildExcludeSet(options.exclude, options.includeBuildArtifacts ?? false);
+    const exclude = this.buildExcludePolicy(options);
     const readFile = options.readFile ?? ((p: string) => fs.promises.readFile(p, 'utf-8'));
     const onProgress = options.onProgress;
 
@@ -502,7 +509,7 @@ export class CodebaseScanner {
     const rootDir = rootDirs[0];
     const maxFiles = options.maxFiles ?? DEFAULT_MAX_FILES;
     const maxFileSize = options.maxFileSize ?? DEFAULT_MAX_FILE_SIZE;
-    const exclude = this.buildExcludeSet(options.exclude, options.includeBuildArtifacts ?? false);
+    const exclude = this.buildExcludePolicy(options);
     const batchSize = this.normalizeScanBatchSize(scanBatchSize);
 
     const filePathsSet = new Set<string>();
@@ -1000,7 +1007,7 @@ export class CodebaseScanner {
 
   private collectFiles(
     rootDir: string,
-    exclude: Set<string>,
+    exclude: ExcludePolicy,
     maxFiles: number,
     languages?: SupportedLanguage[],
     maxFileSize = DEFAULT_MAX_FILE_SIZE
@@ -1023,9 +1030,8 @@ export class CodebaseScanner {
       for (const entry of entries) {
         if (all.length >= HARD) break;
         const name = entry.name;
-        if (exclude.has(name)) continue;
-        if (name.startsWith('.') && name !== '.') continue;
         const fullPath = path.join(dir, name);
+        if (this.pathExcludedByPolicy(fullPath, rootDir, name, exclude)) continue;
         if (entry.isDirectory()) {
           walk(fullPath);
         } else if (entry.isFile()) {
@@ -1094,20 +1100,80 @@ export class CodebaseScanner {
     return selected;
   }
 
-  private buildExcludeSet(userExclude?: string[], includeBuildArtifacts = false): Set<string> {
-    const set = new Set<string>();
+  private buildExcludePolicy(
+    options: Pick<
+      ScanOptions,
+      | 'exclude'
+      | 'excludePathFragments'
+      | 'excludeNameFragments'
+      | 'includeBuildArtifacts'
+      | 'includeHidden'
+    >
+  ): ExcludePolicy {
+    const names = new Set<string>();
+    const pathFragments: string[] = [];
+    const nameFragments: string[] = [];
+    const includeBuildArtifacts = options.includeBuildArtifacts ?? false;
+    const addNameOrPath = (pattern: string): void => {
+      const trimmed = pattern.trim();
+      if (!trimmed) return;
+      if (trimmed.includes('/') || trimmed.includes('\\')) {
+        pathFragments.push(this.normalizePathFragment(trimmed));
+        return;
+      }
+      const name = trimmed.replace(/^\*\./, '').replace(/\*/g, '');
+      if (includeBuildArtifacts && BUILD_ARTIFACT_DIRS.has(name)) return;
+      names.add(name);
+    };
+
     for (const pattern of DEFAULT_EXCLUDE) {
       // Simple name matching (not full glob -- covers 90% of cases)
-      const name = pattern.replace(/^\*\./, '').replace(/\*/g, '');
-      if (includeBuildArtifacts && BUILD_ARTIFACT_DIRS.has(name)) continue;
-      set.add(name);
+      addNameOrPath(pattern);
     }
-    if (userExclude) {
-      for (const pattern of userExclude) {
-        set.add(pattern);
-      }
+    for (const pattern of options.exclude ?? []) {
+      addNameOrPath(pattern);
     }
-    return set;
+    for (const fragment of options.excludePathFragments ?? []) {
+      const normalized = this.normalizePathFragment(fragment);
+      if (normalized) pathFragments.push(normalized);
+    }
+    for (const fragment of options.excludeNameFragments ?? []) {
+      const normalized = fragment.trim().toLowerCase();
+      if (normalized) nameFragments.push(normalized);
+    }
+
+    return {
+      names,
+      pathFragments: Array.from(new Set(pathFragments)),
+      nameFragments: Array.from(new Set(nameFragments)),
+      includeHidden: options.includeHidden ?? false,
+    };
+  }
+
+  private normalizePathFragment(value: string): string {
+    const normalized = value.trim().replace(/\\/g, '/').replace(/\/+/g, '/').toLowerCase();
+    if (!normalized) return '';
+    if (normalized.startsWith('/') || /^[a-z]:\//i.test(normalized)) return normalized;
+    return `/${normalized}`;
+  }
+
+  private pathExcludedByPolicy(
+    fullPath: string,
+    rootDir: string,
+    name: string,
+    policy: ExcludePolicy
+  ): boolean {
+    if (policy.names.has(name)) return true;
+    const lowerName = name.toLowerCase();
+    if (policy.nameFragments.some((fragment) => lowerName.includes(fragment))) return true;
+    if (!policy.includeHidden && name.startsWith('.') && name !== '.') return true;
+
+    const relative = path.relative(rootDir, fullPath).replace(/\\/g, '/');
+    const relativeProbe = `/${relative}`.toLowerCase();
+    const absoluteProbe = fullPath.replace(/\\/g, '/').toLowerCase();
+    return policy.pathFragments.some(
+      (fragment) => relativeProbe.includes(fragment) || absoluteProbe.includes(fragment)
+    );
   }
 
   private normalizeScanBatchSize(value?: number): number {

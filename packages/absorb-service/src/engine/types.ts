@@ -292,6 +292,10 @@ export interface ScanOptions {
   include?: string[];
   /** Exclude glob patterns (default: node_modules, .git, dist, build, etc.) */
   exclude?: string[];
+  /** Slash-normalized path fragments to exclude from content scans */
+  excludePathFragments?: string[];
+  /** Case-insensitive filename fragments to exclude from content scans */
+  excludeNameFragments?: string[];
   /** Maximum number of files to process */
   maxFiles?: number;
   /** Maximum file size in bytes (default: 1MB) */
@@ -300,6 +304,8 @@ export interface ScanOptions {
   parallel?: boolean;
   /** Filter to specific languages */
   languages?: SupportedLanguage[];
+  /** Include dot-prefixed files/directories that are not otherwise excluded */
+  includeHidden?: boolean;
   /** Include build output directories like dist/build/out (default: false) */
   includeBuildArtifacts?: boolean;
   /** Injectable file reader (for testing / browser) */

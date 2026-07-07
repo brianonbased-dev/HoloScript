@@ -630,6 +630,131 @@ describe('holo_absorb_repo root validation', () => {
     }
   });
 
+  it('keeps policy-excluded tracked files out of coverage for side-cache scans', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-policy-cache-'));
+    const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-policy-repo-'));
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    process.env.ABSORB_AUTO_BACKGROUND = '0';
+
+    execFileSync('git', ['init'], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['config', 'user.email', 'codex@example.test'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+    execFileSync('git', ['config', 'user.name', 'Codex Test'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+
+    fs.mkdirSync(path.join(repoDir, 'src'), { recursive: true });
+    fs.mkdirSync(path.join(repoDir, '.claude', 'skills', 'holoshell'), { recursive: true });
+    fs.mkdirSync(path.join(repoDir, 'runtime', 'shared', 'receipts'), { recursive: true });
+    fs.mkdirSync(path.join(repoDir, '.scratch'), { recursive: true });
+    fs.writeFileSync(
+      path.join(repoDir, 'src', 'visible.ts'),
+      'export const visible = true;\n',
+      'utf-8'
+    );
+    fs.writeFileSync(
+      path.join(repoDir, '.claude', 'skills', 'holoshell', 'SKILL.md'),
+      '# HoloShell\n\nLocal custody workflow.\n',
+      'utf-8'
+    );
+    fs.writeFileSync(
+      path.join(repoDir, 'runtime', 'shared', 'receipts', 'private.ts'),
+      'export const privateReceipt = true;\n',
+      'utf-8'
+    );
+    fs.writeFileSync(
+      path.join(repoDir, '.scratch', 'scratch.ts'),
+      'export const scratch = true;\n',
+      'utf-8'
+    );
+    fs.writeFileSync(
+      path.join(repoDir, 'src', 'access_token.ts'),
+      'export const token = "redacted";\n',
+      'utf-8'
+    );
+    execFileSync(
+      'git',
+      [
+        'add',
+        'src/visible.ts',
+        '.claude/skills/holoshell/SKILL.md',
+        'runtime/shared/receipts/private.ts',
+        '.scratch/scratch.ts',
+        'src/access_token.ts',
+      ],
+      { cwd: repoDir, windowsHide: true }
+    );
+    execFileSync('git', ['commit', '-m', 'fixture'], { cwd: repoDir, windowsHide: true });
+
+    const scanPolicy = {
+      includeHidden: true,
+      excludePathFragments: ['/.scratch/', '/runtime/shared/receipts/'],
+      excludeNameFragments: ['access_token'],
+    };
+
+    const result = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+      force: true,
+      ...scanPolicy,
+    })) as {
+      stats?: { totalFiles?: number };
+      scanPolicy?: {
+        includeHidden?: boolean;
+        excludePathFragments?: string[];
+        excludeNameFragments?: string[];
+      };
+    };
+
+    expect(result.stats?.totalFiles).toBe(2);
+    expect(result.scanPolicy).toMatchObject(scanPolicy);
+
+    const status = (await handleCodebaseTool('holo_graph_status', {})) as {
+      graphAuthoritative?: boolean;
+      coverage?: {
+        complete?: boolean;
+        graphFileCount?: number;
+        expectedGraphFileCount?: number;
+        trackedCandidateCount?: number;
+      };
+      diskCache?: {
+        authoritative?: boolean;
+        coverage?: {
+          complete?: boolean;
+          graphFileCount?: number;
+          expectedGraphFileCount?: number;
+          trackedCandidateCount?: number;
+        };
+        scanPolicy?: {
+          includeHidden?: boolean;
+          excludePathFragments?: string[];
+          excludeNameFragments?: string[];
+        };
+      };
+    };
+
+    expect(status.graphAuthoritative).toBe(true);
+    expect(status.coverage).toMatchObject({
+      complete: true,
+      graphFileCount: 2,
+      expectedGraphFileCount: 2,
+      trackedCandidateCount: 2,
+    });
+    expect(status.diskCache?.authoritative).toBe(true);
+    expect(status.diskCache?.coverage).toMatchObject({
+      complete: true,
+      graphFileCount: 2,
+      expectedGraphFileCount: 2,
+      trackedCandidateCount: 2,
+    });
+    expect(status.diskCache?.scanPolicy).toMatchObject(scanPolicy);
+  });
+
   it('marks a fresh git-current cache incomplete when coverage is below the scanner target', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-incomplete-cache-'));
@@ -1090,9 +1215,7 @@ describe('holo_absorb_repo root validation', () => {
 
   it('trusts a root-mismatched cache for its own git repo when HEAD and coverage match', async () => {
     resetCodebaseToolStateForTests();
-    const cacheDir = fs.mkdtempSync(
-      path.join(os.tmpdir(), 'holoscript-cross-root-graph-cache-')
-    );
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-cross-root-graph-cache-'));
     const cachedRepo = makeTinyGitRepo('holoscript-cross-root-cached-repo-');
     const workspaceRepo = makeTinyGitRepo('holoscript-cross-root-workspace-repo-');
     const head = getHeadCommit(cachedRepo);

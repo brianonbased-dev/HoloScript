@@ -624,6 +624,28 @@ interface GraphCacheEnvelope {
   embeddingProvider?: string;
   embeddingPolicy?: GraphRAGEmbeddingPolicyReceipt;
   localCodebaseSnapshotReceipt?: LocalCodebaseSnapshotReceiptSummary;
+  scanPolicy?: GraphScanPolicy;
+}
+
+interface GraphScanPolicy {
+  exclude?: string[];
+  excludePathFragments?: string[];
+  excludeNameFragments?: string[];
+  includeHidden?: boolean;
+  includeBuildArtifacts?: boolean;
+  maxFiles?: number;
+  maxFileSize?: number;
+}
+
+interface NormalizedCoveragePolicy {
+  names: Set<string>;
+  pathFragments: string[];
+  nameFragments: string[];
+  includeHidden: boolean;
+  includeBuildArtifacts: boolean;
+  maxFiles: number;
+  maxFileSize: number;
+  receipt: GraphScanPolicy;
 }
 
 interface AbsorbDiagnostics {
@@ -754,14 +776,130 @@ function rootMatchesCurrentRepo(
   return normalizeRootForComparison(rootDir) === normalizeRootForComparison(currentRepoRoot);
 }
 
-function isCoverageExcludedPath(filePath: string): boolean {
-  const segments = filePath.split(/[\\/]+/);
-  for (const segment of segments) {
-    if (COVERAGE_EXCLUDE_NAMES.has(segment)) return true;
+function normalizeStringList(values: unknown): string[] | undefined {
+  if (values === undefined) return undefined;
+  if (!Array.isArray(values)) return undefined;
+  const normalized = Array.from(
+    new Set(
+      values
+        .filter((value): value is string => typeof value === 'string')
+        .map((value) => value.trim())
+        .filter((value) => value.length > 0)
+    )
+  ).sort();
+  return normalized.length > 0 ? normalized : undefined;
+}
+
+function normalizeScanPolicy(policy?: GraphScanPolicy | null): GraphScanPolicy {
+  const normalized: GraphScanPolicy = {};
+  const exclude = normalizeStringList(policy?.exclude);
+  const excludePathFragments = normalizeStringList(policy?.excludePathFragments);
+  const excludeNameFragments = normalizeStringList(policy?.excludeNameFragments);
+
+  if (exclude) normalized.exclude = exclude;
+  if (excludePathFragments) normalized.excludePathFragments = excludePathFragments;
+  if (excludeNameFragments) normalized.excludeNameFragments = excludeNameFragments;
+  if (policy?.includeHidden === true) normalized.includeHidden = true;
+  if (policy?.includeBuildArtifacts === true) normalized.includeBuildArtifacts = true;
+  if (Number.isFinite(policy?.maxFiles) && Number(policy?.maxFiles) > 0) {
+    normalized.maxFiles = Math.floor(Number(policy?.maxFiles));
+  }
+  if (Number.isFinite(policy?.maxFileSize) && Number(policy?.maxFileSize) > 0) {
+    normalized.maxFileSize = Math.floor(Number(policy?.maxFileSize));
   }
 
-  const basename = path.basename(filePath).toLowerCase();
-  if (COVERAGE_EXCLUDE_NAMES.has(basename)) return true;
+  return normalized;
+}
+
+function scanPolicyKey(policy?: GraphScanPolicy | null): string {
+  return JSON.stringify(normalizeScanPolicy(policy));
+}
+
+function scanPoliciesEqual(
+  first?: GraphScanPolicy | null,
+  second?: GraphScanPolicy | null
+): boolean {
+  return scanPolicyKey(first) === scanPolicyKey(second);
+}
+
+function normalizePathFragment(value: string): string {
+  const normalized = value.trim().replace(/\\/g, '/').replace(/\/+/g, '/').toLowerCase();
+  if (!normalized) return '';
+  if (normalized.startsWith('/') || /^[a-z]:\//i.test(normalized)) return normalized;
+  return `/${normalized}`;
+}
+
+function addCoverageNameOrPath(
+  pattern: string,
+  names: Set<string>,
+  pathFragments: string[],
+  includeBuildArtifacts: boolean
+): void {
+  const trimmed = pattern.trim();
+  if (!trimmed) return;
+  if (trimmed.includes('/') || trimmed.includes('\\')) {
+    const fragment = normalizePathFragment(trimmed);
+    if (fragment) pathFragments.push(fragment);
+    return;
+  }
+
+  const name = trimmed.replace(/^\*\./, '').replace(/\*/g, '').toLowerCase();
+  if (!name) return;
+  if (includeBuildArtifacts && (name === 'dist' || name === 'build' || name === 'out')) return;
+  names.add(name);
+}
+
+function buildCoveragePolicy(policy?: GraphScanPolicy | null): NormalizedCoveragePolicy {
+  const receipt = normalizeScanPolicy(policy);
+  const names = new Set<string>();
+  const pathFragments: string[] = [];
+  const nameFragments: string[] = [];
+  const includeBuildArtifacts = receipt.includeBuildArtifacts === true;
+
+  for (const name of COVERAGE_EXCLUDE_NAMES) {
+    if (includeBuildArtifacts && (name === 'dist' || name === 'build' || name === 'out')) {
+      continue;
+    }
+    names.add(name.toLowerCase());
+  }
+  for (const pattern of receipt.exclude ?? []) {
+    addCoverageNameOrPath(pattern, names, pathFragments, includeBuildArtifacts);
+  }
+  for (const fragment of receipt.excludePathFragments ?? []) {
+    const normalized = normalizePathFragment(fragment);
+    if (normalized) pathFragments.push(normalized);
+  }
+  for (const fragment of receipt.excludeNameFragments ?? []) {
+    const normalized = fragment.trim().toLowerCase();
+    if (normalized) nameFragments.push(normalized);
+  }
+
+  return {
+    names,
+    pathFragments: Array.from(new Set(pathFragments)),
+    nameFragments: Array.from(new Set(nameFragments)),
+    includeHidden: receipt.includeHidden === true,
+    includeBuildArtifacts,
+    maxFiles: receipt.maxFiles ?? DEFAULT_SCAN_MAX_FILES,
+    maxFileSize: receipt.maxFileSize ?? DEFAULT_SCAN_MAX_FILE_SIZE,
+    receipt,
+  };
+}
+
+function isCoverageExcludedPath(filePath: string, policy: NormalizedCoveragePolicy): boolean {
+  const normalizedPath = filePath.replace(/\\/g, '/');
+  const segments = normalizedPath.split('/').filter(Boolean);
+  for (const segment of segments) {
+    const lowerSegment = segment.toLowerCase();
+    if (!policy.includeHidden && lowerSegment.startsWith('.') && lowerSegment !== '.') return true;
+    if (policy.names.has(lowerSegment)) return true;
+  }
+
+  const basename = path.basename(normalizedPath).toLowerCase();
+  if (policy.names.has(basename)) return true;
+  if (policy.nameFragments.some((fragment) => basename.includes(fragment))) return true;
+  const pathProbe = `/${normalizedPath}`.toLowerCase();
+  if (policy.pathFragments.some((fragment) => pathProbe.includes(fragment))) return true;
   if (basename.endsWith('.min.js') || basename.endsWith('.min.css')) return true;
 
   const dot = basename.lastIndexOf('.');
@@ -769,7 +907,11 @@ function isCoverageExcludedPath(filePath: string): boolean {
   return COVERAGE_NON_ABSORBABLE_EXT.has(ext);
 }
 
-function countGitTrackedAbsorbableFiles(rootDir: string): number | null {
+function countGitTrackedAbsorbableFiles(
+  rootDir: string,
+  scanPolicy?: GraphScanPolicy | null
+): number | null {
+  const policy = buildCoveragePolicy(scanPolicy);
   try {
     const output = execFileSync('git', ['ls-files'], {
       cwd: rootDir,
@@ -781,10 +923,10 @@ function countGitTrackedAbsorbableFiles(rootDir: string): number | null {
     return output
       .split(/\r?\n/)
       .filter((line) => line.length > 0)
-      .filter((line) => !isCoverageExcludedPath(line))
+      .filter((line) => !isCoverageExcludedPath(line, policy))
       .filter((line) => {
         try {
-          return fs.statSync(path.join(rootDir, line)).size <= DEFAULT_SCAN_MAX_FILE_SIZE;
+          return fs.statSync(path.join(rootDir, line)).size <= policy.maxFileSize;
         } catch {
           return false;
         }
@@ -796,31 +938,33 @@ function countGitTrackedAbsorbableFiles(rootDir: string): number | null {
 
 function buildGraphCoverageStatus(
   rootDir: string | null | undefined,
-  graphFileCount: number
+  graphFileCount: number,
+  scanPolicy?: GraphScanPolicy | null
 ): GraphCoverageStatus {
   const safeGraphFileCount = Number.isFinite(graphFileCount) ? Math.max(0, graphFileCount) : 0;
+  const policy = buildCoveragePolicy(scanPolicy);
   if (!rootDir) {
     return {
       available: false,
       source: 'unavailable',
       graphFileCount: safeGraphFileCount,
-      defaultMaxFiles: DEFAULT_SCAN_MAX_FILES,
+      defaultMaxFiles: policy.maxFiles,
       error: 'rootDir missing',
     };
   }
 
-  const trackedCandidateCount = countGitTrackedAbsorbableFiles(rootDir);
+  const trackedCandidateCount = countGitTrackedAbsorbableFiles(rootDir, policy.receipt);
   if (trackedCandidateCount === null) {
     return {
       available: false,
       source: 'unavailable',
       graphFileCount: safeGraphFileCount,
-      defaultMaxFiles: DEFAULT_SCAN_MAX_FILES,
+      defaultMaxFiles: policy.maxFiles,
       error: 'git ls-files unavailable',
     };
   }
 
-  const expectedGraphFileCount = Math.min(trackedCandidateCount, DEFAULT_SCAN_MAX_FILES);
+  const expectedGraphFileCount = Math.min(trackedCandidateCount, policy.maxFiles);
   const complete = safeGraphFileCount >= expectedGraphFileCount;
   return {
     available: true,
@@ -828,13 +972,13 @@ function buildGraphCoverageStatus(
     graphFileCount: safeGraphFileCount,
     trackedCandidateCount,
     expectedGraphFileCount,
-    defaultMaxFiles: DEFAULT_SCAN_MAX_FILES,
+    defaultMaxFiles: policy.maxFiles,
     complete,
     ratio:
       expectedGraphFileCount === 0
         ? 1
         : Number((safeGraphFileCount / expectedGraphFileCount).toFixed(4)),
-    cappedByMaxFiles: trackedCandidateCount > DEFAULT_SCAN_MAX_FILES,
+    cappedByMaxFiles: trackedCandidateCount > policy.maxFiles,
   };
 }
 
@@ -1134,7 +1278,8 @@ function saveGraphCache(
   gitCommitHash?: string,
   fileHashes?: Record<string, string>,
   embeddingProvider?: string,
-  localCodebaseSnapshotReceipt?: LocalCodebaseSnapshotReceiptSummary
+  localCodebaseSnapshotReceipt?: LocalCodebaseSnapshotReceiptSummary,
+  scanPolicy?: GraphScanPolicy
 ): void {
   const totalFiles = Number((stats as { totalFiles?: unknown })?.totalFiles ?? 0);
   if (!Number.isFinite(totalFiles) || totalFiles <= 0) {
@@ -1152,6 +1297,7 @@ function saveGraphCache(
       embeddingProvider,
       embeddingPolicy: buildGraphRAGEmbeddingPolicyReceipt(),
       localCodebaseSnapshotReceipt,
+      scanPolicy: normalizeScanPolicy(scanPolicy),
     };
     const cacheFile = getCacheFile();
     atomicWriteFileSync(cacheFile, JSON.stringify(envelope), 'utf-8');
@@ -1272,6 +1418,7 @@ function getCacheAge(): {
   embeddingProvider?: string;
   embeddingPolicy?: GraphRAGEmbeddingPolicyReceipt;
   localCodebaseSnapshotReceipt?: LocalCodebaseSnapshotReceiptSummary;
+  scanPolicy?: GraphScanPolicy;
 } {
   try {
     const cacheFile = getCacheFile();
@@ -1288,6 +1435,7 @@ function getCacheAge(): {
       embeddingProvider: envelope.embeddingProvider,
       embeddingPolicy: envelope.embeddingPolicy,
       localCodebaseSnapshotReceipt: envelope.localCodebaseSnapshotReceipt,
+      scanPolicy: normalizeScanPolicy(envelope.scanPolicy),
     };
   } catch {
     return { exists: false };
@@ -1867,6 +2015,29 @@ export const codebaseTools: Tool[] = [
           type: 'number',
           description: 'Maximum number of files to process. Defaults to 10000.',
         },
+        exclude: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'Exact file/directory names or simple glob-like patterns to exclude from content scanning.',
+        },
+        excludePathFragments: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'Slash-normalized path fragments to exclude from content scanning, e.g. "/runtime/shared/receipts/".',
+        },
+        excludeNameFragments: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'Case-insensitive filename fragments to exclude from content scanning, e.g. "token" or "wallet".',
+        },
+        includeHidden: {
+          type: 'boolean',
+          description:
+            'When true, dot-prefixed files/directories may be scanned unless excluded by name/path policy. Defaults to false.',
+        },
         scanBatchSize: {
           type: 'number',
           description:
@@ -2191,7 +2362,8 @@ async function ensureCachedGraph(): Promise<{
       const freshByAge = ageMs < CACHE_MAX_AGE_MS;
       const coverage = buildGraphCoverageStatus(
         cacheMatchesCwd ? currentCwd : envelope.rootDir,
-        getEnvelopeGraphFileCount(envelope)
+        getEnvelopeGraphFileCount(envelope),
+        envelope.scanPolicy
       );
       const coverageComplete = graphCoverageIsComplete(coverage);
 
@@ -2369,7 +2541,8 @@ async function runFullScan(
   embeddingModel?: string,
   inlineSourceFiles?: SourceFileEntry[],
   localCodebaseSnapshotReceipt?: LocalCodebaseSnapshotReceiptSummary,
-  scanBatchSize?: number
+  scanBatchSize?: number,
+  scanPolicy?: GraphScanPolicy
 ): Promise<unknown> {
   const {
     CodebaseScanner,
@@ -2433,6 +2606,7 @@ async function runFullScan(
         'One or more requested rootDirs are not accessible from this MCP runtime; graph cache was not updated.',
       rootDir: primaryRootDir,
       embeddingPolicy,
+      scanPolicy: normalizeScanPolicy(scanPolicy),
       graphUnavailableReceipt,
       diagnostics: inaccessibleRoots[0],
       rootDiagnostics,
@@ -2475,6 +2649,10 @@ async function runFullScan(
         languages,
         maxFiles,
         includeBuildArtifacts,
+        exclude: scanPolicy?.exclude,
+        excludePathFragments: scanPolicy?.excludePathFragments,
+        excludeNameFragments: scanPolicy?.excludeNameFragments,
+        includeHidden: scanPolicy?.includeHidden,
       };
       const scanPlan = scanner.planScan(scanOptions, scanBatchSize) as PlannedScannerScanPlan;
       scanPlanReceipt = summarizeModuleScanPlan(scanPlan);
@@ -2548,6 +2726,7 @@ async function runFullScan(
       rootDir: primaryRootDir,
       stats,
       embeddingPolicy,
+      scanPolicy: normalizeScanPolicy(scanPolicy),
       diagnostics,
       scanPlan: scanPlanReceipt,
       phaseMetrics,
@@ -2597,7 +2776,8 @@ async function runFullScan(
     gitCommitHash,
     fileHashes,
     detectedProvider,
-    localCodebaseSnapshotReceipt
+    localCodebaseSnapshotReceipt,
+    scanPolicy
   );
   recordPhaseMetric('graph-cache-save', {
     filesProcessed: scanResult?.stats?.totalFiles,
@@ -2614,6 +2794,7 @@ async function runFullScan(
       rootDir: primaryRootDir,
       stats,
       embeddingPolicy,
+      scanPolicy: normalizeScanPolicy(scanPolicy),
       scanPlan: scanPlanReceipt,
       phaseMetrics,
       gitCommitHash,
@@ -2758,6 +2939,7 @@ async function runFullScan(
       stats,
       graph: graph.serialize(),
       embeddingPolicy,
+      scanPolicy: normalizeScanPolicy(scanPolicy),
       graphRagReady: semanticIndexReadiness.graphRagReady,
       semanticIndexReady: semanticIndexReadiness.semanticIndexReady,
       semanticIndexReadiness,
@@ -2799,6 +2981,7 @@ async function runFullScan(
       holoSource,
       interactiveScene: scene,
       embeddingPolicy,
+      scanPolicy: normalizeScanPolicy(scanPolicy),
       graphRagReady: semanticIndexReadiness.graphRagReady,
       semanticIndexReady: semanticIndexReadiness.semanticIndexReady,
       semanticIndexReadiness,
@@ -2844,11 +3027,13 @@ async function runIncrementalPatch(
   embeddingProvider?: string,
   embeddingApiKey?: string,
   embeddingModel?: string,
-  scanBatchSize?: number
+  scanBatchSize?: number,
+  scanPolicy?: GraphScanPolicy
 ): Promise<unknown> {
   const { CodebaseScanner, CodebaseGraph, GitChangeDetector } = mod;
   const startTime = Date.now();
   const embeddingPolicy = buildGraphRAGEmbeddingPolicyReceipt();
+  const effectiveScanPolicy = normalizeScanPolicy(scanPolicy ?? envelope.scanPolicy);
 
   if (jobId) trackAbsorbProgress(jobId, 'Loading cached graph', 10);
 
@@ -2873,7 +3058,8 @@ async function runIncrementalPatch(
       embeddingModel,
       undefined,
       undefined,
-      scanBatchSize
+      scanBatchSize,
+      effectiveScanPolicy
     );
   }
 
@@ -2886,8 +3072,11 @@ async function runIncrementalPatch(
     envelope.fileHashes ?? {}
   );
 
+  const coveragePolicy = buildCoveragePolicy(effectiveScanPolicy);
   const filesToRemove = [...changes.deleted, ...modifiedFiltered.trulyChanged];
-  const filesToRescan = [...changes.added, ...modifiedFiltered.trulyChanged];
+  const filesToRescan = [...changes.added, ...modifiedFiltered.trulyChanged].filter(
+    (filePath) => !isCoverageExcludedPath(filePath, coveragePolicy)
+  );
 
   if (jobId) trackAbsorbProgress(jobId, `Rescanning ${filesToRescan.length} changed files`, 30);
 
@@ -2942,7 +3131,9 @@ async function runIncrementalPatch(
       statsOnlyGraphStats,
       graph.gitCommitHash,
       graph.fileHashes,
-      statsOnlyProvider
+      statsOnlyProvider,
+      undefined,
+      effectiveScanPolicy
     );
 
     if (jobId) trackAbsorbProgress(jobId, 'Complete', 100);
@@ -2959,6 +3150,7 @@ async function runIncrementalPatch(
       rootDir,
       stats: statsOnlyGraphStats,
       embeddingPolicy,
+      scanPolicy: effectiveScanPolicy,
       gitCommitHash: changes.headCommit,
       graphRagReady: semanticIndexReadiness.graphRagReady,
       semanticIndexReady: semanticIndexReadiness.semanticIndexReady,
@@ -3091,7 +3283,9 @@ async function runIncrementalPatch(
     graphStats,
     graph.gitCommitHash,
     graph.fileHashes,
-    detectedProvider
+    detectedProvider,
+    undefined,
+    effectiveScanPolicy
   );
 
   // Sync with mesh if truly changed (Phase 9)
@@ -3117,6 +3311,7 @@ async function runIncrementalPatch(
     rootDir,
     stats: graphStats,
     embeddingPolicy,
+    scanPolicy: effectiveScanPolicy,
     graphRagReady: semanticIndexReadiness.graphRagReady,
     semanticIndexReady: semanticIndexReadiness.semanticIndexReady,
     semanticIndexReadiness,
@@ -3141,6 +3336,50 @@ async function runIncrementalPatch(
   }
 
   return result;
+}
+
+function readScanPolicyStringArray(
+  args: Record<string, unknown>,
+  key: 'exclude' | 'excludePathFragments' | 'excludeNameFragments'
+): { value?: string[]; error?: string } {
+  const raw = args[key];
+  if (raw === undefined) return {};
+  if (!Array.isArray(raw) || raw.some((entry) => typeof entry !== 'string')) {
+    return { error: `${key} must be an array of strings.` };
+  }
+  return { value: normalizeStringList(raw) };
+}
+
+function buildScanPolicyFromArgs(
+  args: Record<string, unknown>,
+  includeBuildArtifacts: boolean,
+  maxFiles: number | undefined
+): { valid: true; policy: GraphScanPolicy } | { valid: false; errors: string[] } {
+  const errors: string[] = [];
+  const exclude = readScanPolicyStringArray(args, 'exclude');
+  const excludePathFragments = readScanPolicyStringArray(args, 'excludePathFragments');
+  const excludeNameFragments = readScanPolicyStringArray(args, 'excludeNameFragments');
+
+  for (const result of [exclude, excludePathFragments, excludeNameFragments]) {
+    if (result.error) errors.push(result.error);
+  }
+  if (args.includeHidden !== undefined && typeof args.includeHidden !== 'boolean') {
+    errors.push('includeHidden must be a boolean.');
+  }
+
+  if (errors.length > 0) return { valid: false, errors };
+
+  return {
+    valid: true,
+    policy: normalizeScanPolicy({
+      exclude: exclude.value,
+      excludePathFragments: excludePathFragments.value,
+      excludeNameFragments: excludeNameFragments.value,
+      includeHidden: args.includeHidden === true,
+      includeBuildArtifacts,
+      maxFiles,
+    }),
+  };
 }
 
 async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
@@ -3211,6 +3450,15 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   // sourceFiles always forces a fresh scan (no disk cache match for temp dirs)
   const force = fromSourceFiles ? true : ((args.force as boolean) ?? false);
   const includeBuildArtifacts = (args.includeBuildArtifacts as boolean) ?? false;
+  const scanPolicyResult = buildScanPolicyFromArgs(args, includeBuildArtifacts, maxFiles);
+  if (!scanPolicyResult.valid) {
+    return {
+      error: 'scan_policy_validation_failed',
+      message: scanPolicyResult.errors.join('; '),
+      errors: scanPolicyResult.errors,
+    };
+  }
+  const scanPolicy = scanPolicyResult.policy;
   const embeddingProvider = args.embeddingProvider as string | undefined;
   const embeddingApiKey = args.embeddingApiKey as string | undefined;
   const embeddingModel = args.embeddingModel as string | undefined;
@@ -3227,6 +3475,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     maxFiles,
     scanBatchSize,
     includeBuildArtifacts,
+    scanPolicy,
     outputFormat,
     layout,
     interactive,
@@ -3263,6 +3512,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
       outputFormat,
       force,
       embeddingPolicy: buildGraphRAGEmbeddingPolicyReceipt(),
+      scanPolicy,
       fromSourceFiles,
       fromLocalCodebaseSnapshotReceipt: Boolean(localCodebaseSnapshotReceipt),
       ...(localCodebaseSnapshotReceipt && { localCodebaseSnapshotReceipt }),
@@ -3284,6 +3534,7 @@ interface AbsorbExecutionPlan {
   maxFiles?: number;
   scanBatchSize?: number;
   includeBuildArtifacts: boolean;
+  scanPolicy: GraphScanPolicy;
   outputFormat: string;
   layout: string;
   interactive: boolean;
@@ -3324,13 +3575,18 @@ async function buildAutoBackgroundDecision(
   const existingCache = loadGraphCache();
   const existingCacheCoverageComplete = existingCache
     ? graphCoverageIsComplete(
-        buildGraphCoverageStatus(plan.primaryRootDir, getEnvelopeGraphFileCount(existingCache))
+        buildGraphCoverageStatus(
+          plan.primaryRootDir,
+          getEnvelopeGraphFileCount(existingCache),
+          existingCache.scanPolicy
+        )
       )
     : false;
   if (
     !plan.force &&
     existingCache?.version === 2 &&
     rootMatchesCurrentRepo(existingCache.rootDir, plan.primaryRootDir) &&
+    scanPoliciesEqual(existingCache.scanPolicy, plan.scanPolicy) &&
     existingCacheCoverageComplete
   ) {
     return { autoBackground: false };
@@ -3351,6 +3607,10 @@ async function buildAutoBackgroundDecision(
         languages: plan.languages,
         maxFiles: plan.maxFiles,
         includeBuildArtifacts: plan.includeBuildArtifacts,
+        exclude: plan.scanPolicy.exclude,
+        excludePathFragments: plan.scanPolicy.excludePathFragments,
+        excludeNameFragments: plan.scanPolicy.excludeNameFragments,
+        includeHidden: plan.scanPolicy.includeHidden,
       },
       plan.scanBatchSize
     ) as PlannedScannerScanPlan;
@@ -3379,6 +3639,7 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
     maxFiles,
     scanBatchSize,
     includeBuildArtifacts,
+    scanPolicy,
     outputFormat,
     layout,
     interactive,
@@ -3412,7 +3673,8 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
       embeddingModel,
       inlineSourceFiles,
       localCodebaseSnapshotReceipt,
-      scanBatchSize
+      scanBatchSize,
+      scanPolicy
     );
     return {
       ...(result as Record<string, unknown>),
@@ -3443,7 +3705,8 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
       embeddingModel,
       undefined,
       undefined,
-      scanBatchSize
+      scanBatchSize,
+      scanPolicy
     );
     return { ...(result as Record<string, unknown>), jobId };
   }
@@ -3464,7 +3727,8 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
       embeddingModel,
       undefined,
       undefined,
-      scanBatchSize
+      scanBatchSize,
+      scanPolicy
     );
     return { ...(result as Record<string, unknown>), jobId };
   }
@@ -3490,16 +3754,19 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
       embeddingModel,
       undefined,
       undefined,
-      scanBatchSize
+      scanBatchSize,
+      scanPolicy
     );
     return { ...(result as Record<string, unknown>), jobId };
   }
 
   const envelopeCoverage = buildGraphCoverageStatus(
     primaryRootDir,
-    getEnvelopeGraphFileCount(envelope)
+    getEnvelopeGraphFileCount(envelope),
+    envelope.scanPolicy
   );
-  if (!graphCoverageIsComplete(envelopeCoverage)) {
+  const cachePolicyChanged = !scanPoliciesEqual(envelope.scanPolicy, scanPolicy);
+  if (cachePolicyChanged || !graphCoverageIsComplete(envelopeCoverage)) {
     const result = await runFullScan(
       mod,
       effectiveRootDirs,
@@ -3515,13 +3782,15 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
       embeddingModel,
       undefined,
       undefined,
-      scanBatchSize
+      scanBatchSize,
+      scanPolicy
     );
     return {
       ...(result as Record<string, unknown>),
       jobId,
       repairedIncompleteCache: true,
       priorCoverage: envelopeCoverage,
+      policyChanged: cachePolicyChanged,
     };
   }
 
@@ -3545,7 +3814,8 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
       embeddingModel,
       undefined,
       undefined,
-      scanBatchSize
+      scanBatchSize,
+      scanPolicy
     );
     return { ...(result as Record<string, unknown>), jobId };
   }
@@ -3567,7 +3837,8 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
       embeddingModel,
       undefined,
       undefined,
-      scanBatchSize
+      scanBatchSize,
+      scanPolicy
     );
     return { ...(result as Record<string, unknown>), jobId };
   }
@@ -3602,7 +3873,8 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
           undefined,
           undefined,
           undefined,
-          scanBatchSize
+          scanBatchSize,
+          scanPolicy
         );
         return { ...(result as Record<string, unknown>), jobId };
       }
@@ -3640,7 +3912,8 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
             timestamp: envelope.timestamp,
           });
         } else {
-          if (jobId) trackAbsorbProgress(jobId, 'Building missing embeddings from cached graph', 80);
+          if (jobId)
+            trackAbsorbProgress(jobId, 'Building missing embeddings from cached graph', 80);
           const rebuiltIndex = await createDynamicEmbeddingIndex(
             mod,
             embeddingProvider,
@@ -3710,6 +3983,7 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
       rootDir,
       stats: envelope.stats,
       embeddingPolicy: envelope.embeddingPolicy ?? buildGraphRAGEmbeddingPolicyReceipt(),
+      scanPolicy: normalizeScanPolicy(envelope.scanPolicy),
       gitCommitHash: changes.headCommit,
       graphRagReady: semanticIndexReadiness.graphRagReady,
       semanticIndexReady: semanticIndexReadiness.semanticIndexReady,
@@ -3739,7 +4013,8 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
     embeddingProvider,
     embeddingApiKey,
     embeddingModel,
-    scanBatchSize
+    scanBatchSize,
+    scanPolicy
   );
   return { ...(result as Record<string, unknown>), jobId };
 }
@@ -4109,11 +4384,13 @@ async function handleGraphStatus(): Promise<unknown> {
   const activeGraphFileCount = inMemoryGraphFileCount ?? diskGraphFileCount;
   const activeCoverage = buildGraphCoverageStatus(
     cacheMatchesCwd || diskCacheMatchesCwd ? currentCwd : cacheRootDir,
-    activeGraphFileCount
+    activeGraphFileCount,
+    cache.scanPolicy
   );
   const diskCoverage = buildGraphCoverageStatus(
     diskCacheMatchesCwd ? currentCwd : cache.rootDir,
-    diskGraphFileCount
+    diskGraphFileCount,
+    cache.scanPolicy
   );
   const activeCoverageComplete = !activeCoverage.available || activeCoverage.complete !== false;
   const diskCoverageComplete = !diskCoverage.available || diskCoverage.complete !== false;
@@ -4251,13 +4528,14 @@ async function handleGraphStatus(): Promise<unknown> {
         ? 'HoloEmbed semantic index is ready for this repo.'
         : diskSemanticIndexHydratable
           ? 'HoloEmbed disk index is fresh for this repo; semantic tools will lazy-hydrate it on first use.'
-        : graphAuthoritative
-          ? 'HoloGraph cache is available, but the HoloEmbed semantic index is not initialized for this repo. Run holo_absorb_repo with outputFormat "graph" or "holo", or wait for cache warmup, before relying on holo_semantic_search or holo_ask_codebase.'
-          : 'Run holo_absorb_repo with outputFormat "graph" or "holo" to build a HoloGraph cache and HoloEmbed semantic index for this repo.',
+          : graphAuthoritative
+            ? 'HoloGraph cache is available, but the HoloEmbed semantic index is not initialized for this repo. Run holo_absorb_repo with outputFormat "graph" or "holo", or wait for cache warmup, before relying on holo_semantic_search or holo_ask_codebase.'
+            : 'Run holo_absorb_repo with outputFormat "graph" or "holo" to build a HoloGraph cache and HoloEmbed semantic index for this repo.',
     },
     graphAuthoritative,
     freshForCurrentRepo,
     currentCwd,
+    scanPolicy: normalizeScanPolicy(cache.scanPolicy),
     coverage: activeCoverage,
     localGraph: {
       ready: graphRAGState.ready,
@@ -4290,12 +4568,13 @@ async function handleGraphStatus(): Promise<unknown> {
           gitCommitMatchesHead: diskCacheGitMatchesHead,
           coverage: diskCoverage,
           stats: cache.stats,
+          scanPolicy: normalizeScanPolicy(cache.scanPolicy),
           embeddingProvider: cache.embeddingProvider ?? embeddingPolicy.provider,
           embeddingPolicy,
           localCodebaseSnapshotReceipt: cache.localCodebaseSnapshotReceipt ?? null,
           localCodebaseSnapshot: diskLocalCodebaseSnapshot,
           hint: !diskCacheMatchesCwd
-            ? activeCrossRootAuthority.ok
+            ? diskCrossRootAuthority.ok
               ? `Cache rootDir (${cache.rootDir}) differs from the workspace root (${currentCwd}) but matches that repo's live HEAD with complete coverage — authoritative for ${cache.rootDir}. Queries answer about ${cache.rootDir}.`
               : `Cache rootDir (${cache.rootDir}) does not match current working directory (${currentCwd}). Call holo_absorb_repo for this workspace.`
             : !diskCacheGitMatchesHead
