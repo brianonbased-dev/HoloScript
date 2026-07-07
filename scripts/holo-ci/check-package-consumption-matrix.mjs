@@ -17,7 +17,8 @@ const SMOKE_PYTHON_ARTIFACTS = args.includes('--smoke-python-artifacts');
 const SMOKE_PYPI_INSTALL = args.includes('--smoke-pypi-install');
 const BUILD_PYTHON = args.includes('--build-python') || SMOKE_PYTHON_ARTIFACTS;
 const INSPECT_PYTHON_ARTIFACTS = args.includes('--inspect-python-artifacts');
-const AUDIT_PYPI = args.includes('--audit-pypi');
+const RESOLVE_PYPI_EXTRAS = args.includes('--resolve-pypi-extras');
+const AUDIT_PYPI = args.includes('--audit-pypi') || RESOLVE_PYPI_EXTRAS;
 const SELF_TEST = args.includes('--self-test');
 const rootIdx = args.indexOf('--root');
 const manifestIdx = args.indexOf('--manifest');
@@ -31,6 +32,9 @@ const OUT_DIR =
   outIdx >= 0 ? resolve(args[outIdx + 1]) : join(ROOT, '.scratch', 'package-consumption-matrix');
 const NPM_BIN = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const PYTHON_BIN = process.env.PYTHON || 'python';
+const PYPI_EXTRAS_RESOLUTION_TIMEOUT_MS = Number(
+  process.env.HOLOSCRIPT_PYPI_EXTRAS_TIMEOUT_MS || 180_000
+);
 
 function readJson(file) {
   return JSON.parse(readFileSync(file, 'utf8'));
@@ -181,6 +185,31 @@ function parseDistInfoFromBuildOutput(stdout) {
 function minimumVersionFromRange(range) {
   const match = String(range || '').match(/>=\s*(\d+(?:\.\d+){0,2})/);
   return match ? match[1] : null;
+}
+
+function pythonVersionForConsumer(consumer) {
+  const minimum = minimumVersionFromRange(consumer?.python);
+  const match = String(minimum || '').match(/^(\d+)\.(\d+)/);
+  return match ? `${match[1]}.${match[2]}` : null;
+}
+
+function pythonAbiForVersion(version) {
+  const match = String(version || '').match(/^(\d+)\.(\d+)/);
+  return match ? `cp${match[1]}${match[2]}` : null;
+}
+
+function pipPlatformForConsumer(consumer) {
+  if (consumer?.os === 'win32' && consumer?.cpu === 'x64') return 'win_amd64';
+  if (consumer?.os === 'linux' && consumer?.cpu === 'x64') return 'manylinux2014_x86_64';
+  if (consumer?.os === 'linux' && consumer?.cpu === 'arm64') return 'manylinux2014_aarch64';
+  return null;
+}
+
+function pypiExtraSpec(pkgName, version, extras) {
+  const normalized = [...new Set((extras || []).map(normalizeExtraName))].filter(Boolean).sort();
+  return normalized.length
+    ? `${pkgName}[${normalized.join(',')}]==${version}`
+    : `${pkgName}==${version}`;
 }
 
 function compareDottedVersions(a, b) {
@@ -338,6 +367,81 @@ print(json.dumps({"imports": modules}))
     }
   } catch (error) {
     errors.push(`${pkg.name}: ${scope} smoke failed: ${formatRunError(error)}`);
+  }
+}
+
+function resolvePyPiExtras(pkg, row, consumer, extras, version, errors, warnings) {
+  const pythonVersion = pythonVersionForConsumer(consumer);
+  const pythonAbi = pythonAbiForVersion(pythonVersion);
+  const platform = pipPlatformForConsumer(consumer);
+  const spec = pypiExtraSpec(pkg.name, version, extras);
+  row.extraResolution[consumer.id] = {
+    spec,
+    python: pythonVersion,
+    abi: pythonAbi,
+    platform,
+    status: 'pending',
+  };
+
+  if (!pythonVersion || !pythonAbi || !platform) {
+    warnings.push(
+      `${pkg.name}: ${consumer.id} extra resolution skipped; unsupported Python/platform lane`
+    );
+    row.extraResolution[consumer.id].status = 'skipped';
+    return;
+  }
+
+  if (row.pypi?.status && row.pypi.status !== 'current') {
+    errors.push(
+      `${pkg.name}: ${consumer.id} extra resolution requires current PyPI package, got ${row.pypi.status}`
+    );
+    row.extraResolution[consumer.id].status = 'blocked';
+    return;
+  }
+
+  const reportPath = join(
+    OUT_DIR,
+    'pypi-extra-resolution',
+    safeName(pkg.name),
+    `${safeName(consumer.id)}.json`
+  );
+  mkdirSync(dirname(reportPath), { recursive: true });
+
+  try {
+    run(
+      PYTHON_BIN,
+      [
+        '-m',
+        'pip',
+        'install',
+        '--dry-run',
+        '--ignore-installed',
+        '--disable-pip-version-check',
+        '--only-binary=:all:',
+        '--python-version',
+        pythonVersion,
+        '--implementation',
+        'cp',
+        '--abi',
+        pythonAbi,
+        '--platform',
+        platform,
+        '--report',
+        reportPath,
+        spec,
+      ],
+      { cwd: ROOT, timeout: PYPI_EXTRAS_RESOLUTION_TIMEOUT_MS }
+    );
+    const report = existsSync(reportPath) ? readJson(reportPath) : null;
+    row.extraResolution[consumer.id] = {
+      ...row.extraResolution[consumer.id],
+      status: 'resolved',
+      report: reportPath,
+      plannedInstalls: Array.isArray(report?.install) ? report.install.length : null,
+    };
+  } catch (error) {
+    row.extraResolution[consumer.id].status = 'failed';
+    errors.push(`${pkg.name}: ${consumer.id} extra resolution failed: ${formatRunError(error)}`);
   }
 }
 
@@ -524,6 +628,7 @@ async function checkPyPackage(pkg, consumers, errors, warnings, rows) {
     artifactSmoke: null,
     pypiSmoke: null,
     pypi: null,
+    extraResolution: {},
   };
   rows.push(row);
 
@@ -585,6 +690,14 @@ async function checkPyPackage(pkg, consumers, errors, warnings, rows) {
     );
   }
 
+  if (RESOLVE_PYPI_EXTRAS && version) {
+    for (const [consumerId, requestedExtras] of Object.entries(row.laneExtras || {})) {
+      const consumer = consumers.get(consumerId);
+      if (!consumer) continue;
+      resolvePyPiExtras(pkg, row, consumer, requestedExtras, version, errors, warnings);
+    }
+  }
+
   if (!BUILD_PYTHON) return;
   const outDir = join(OUT_DIR, pkg.name.replace(/[^\w.-]+/g, '_'));
   rmSync(outDir, { recursive: true, force: true });
@@ -644,6 +757,14 @@ function runSelfTest() {
   if (compareDottedVersions('20.0.0', '18.0.0') <= 0) errors.push('version comparator failed');
   if (normalizeExtraName('Robotics_GPU') !== 'robotics-gpu')
     errors.push('extra name normalization failed');
+  if (pythonVersionForConsumer({ python: '>=3.10' }) !== '3.10')
+    errors.push('consumer Python version parser failed');
+  if (pythonAbiForVersion('3.10') !== 'cp310') errors.push('Python ABI parser failed');
+  if (pipPlatformForConsumer({ os: 'linux', cpu: 'arm64' }) !== 'manylinux2014_aarch64')
+    errors.push('pip platform mapper failed');
+  if (pypiExtraSpec('holoscript', '1.2.3', ['Scientific', 'robotics']) !==
+    'holoscript[robotics,scientific]==1.2.3')
+    errors.push('PyPI extra spec formatter failed');
   const provided = providesExtrasFromMetadata('Metadata-Version: 2.4\nProvides-Extra: Scientific\n');
   if (!provided.has('scientific')) errors.push('metadata extra parser failed');
   const laneExtras = laneExtrasFromPackage({
@@ -677,6 +798,7 @@ async function main() {
     inspectPythonArtifacts: INSPECT_PYTHON_ARTIFACTS,
     smokePythonArtifacts: SMOKE_PYTHON_ARTIFACTS,
     smokePyPiInstall: SMOKE_PYPI_INSTALL,
+    resolvePyPiExtras: RESOLVE_PYPI_EXTRAS,
     auditPyPi: AUDIT_PYPI,
     consumers: [...consumers.keys()],
     rows,
@@ -697,6 +819,8 @@ async function main() {
                 row.pypiSmoke ? ' pypiSmoke=true' : ''
               }${
                 Object.keys(row.laneExtras || {}).length ? ' laneExtras=true' : ''
+              }${
+                Object.keys(row.extraResolution || {}).length ? ' extraResolution=true' : ''
               }${row.pypi ? ` pypi=${row.pypi.status}` : ''}`
             : '';
       console.log(
