@@ -109,4 +109,39 @@ describe('WebGPU golden output (byte-diff baseline for render-module refactor)',
     // No glow material: emissiveStrength stays 1, emissive stays [0,0,0].
     expect(out).toContain('0.5,0,1,0, 0,0,0,0');
   });
+
+  it('scene lights aggregate into one shared uniform each mesh binds (real lights, not a fixed sun)', () => {
+    const scene = {
+      type: 'HoloComposition',
+      name: 'LitScene',
+      objects: [obj('Lit', [prop('mesh', 'sphere'), prop('color', '#ffffff')])],
+      lights: [
+        {
+          type: 'Light',
+          name: 'Key',
+          lightType: 'directional',
+          properties: [prop('color', '#ff0000'), prop('position', [0, 10, 0]), prop('intensity', 2)],
+        } as HoloLight,
+      ],
+    } as HoloComposition;
+    const out = new WebGPUCompiler().compile(scene, 'golden-token');
+    // count=1 | red@2x | pos [0,10,0] | dir derived toward origin = [0,-10,0].
+    expect(out).toContain('const sceneLights = createBuffer(device, new Float32Array([1,0,0,0, 2,0,0,0, 0,10,0,0, 0,-10,0,0');
+    // Every mesh binds the shared lights uniform at binding 3.
+    expect(out).toContain('{ binding: 3, resource: { buffer: sceneLights } }');
+    // Fragment shader loops over the declared lights instead of a hardcoded vec3.
+    expect(out).toContain('let n = i32(lights.count.x);');
+    expect(out).not.toContain('let L = normalize(vec3<f32>(1.0, 2.0, 1.5))');
+  });
+
+  it('light-less scene stays lit via a synthesized key light', () => {
+    const scene = {
+      type: 'HoloComposition',
+      name: 'NoLights',
+      objects: [obj('X', [prop('mesh', 'cube')])],
+    } as HoloComposition;
+    const out = new WebGPUCompiler().compile(scene, 'golden-token');
+    // Synthesized default: white directional, dir = [-1,-2,-1.5] (reproduces the old fixed sun).
+    expect(out).toContain('const sceneLights = createBuffer(device, new Float32Array([1,0,0,0, 1,1,1,0, 1,2,1.5,0, -1,-2,-1.5,0');
+  });
 });

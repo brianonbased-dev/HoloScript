@@ -109,6 +109,10 @@ export class WebGPUCompiler extends CompilerBase {
     // still needs perspective, otherwise every mesh renders flat/orthographic
     // in clip space (the "cylinder renders as a cube" class of bug).
     this.emitCamera(composition.camera);
+    // Scene lights must be emitted BEFORE objects: every mesh bind group binds the
+    // shared `sceneLights` uniform (binding 3) so the fragment shader lights each
+    // surface from the scene's declared lights instead of a hardcoded fake sun.
+    this.emitSceneLights(composition);
     this.emit('const holoGraphObjects = [];');
     this.emit('');
     if (composition.objects) {
@@ -116,9 +120,6 @@ export class WebGPUCompiler extends CompilerBase {
     }
     if (composition.spatialGroups) {
       for (const group of composition.spatialGroups) this.emitGroup(group);
-    }
-    if (composition.lights) {
-      for (const light of composition.lights) this.emitLight(light);
     }
     if (this.options.enableCompute) this.emitComputeShaders(composition);
 
@@ -629,12 +630,13 @@ export class WebGPUCompiler extends CompilerBase {
     this.dedent();
     this.emit('});');
 
-    // Bind group — binding 2 is the shared camera view-projection uniform.
+    // Bind group — binding 2 is the shared camera view-projection uniform, binding
+    // 3 is the shared scene-lights uniform (every mesh lit by the same declared lights).
     this.emit(
       `const ${v}Bind = device.createBindGroup({ layout: ${v}Pipeline.getBindGroupLayout(0), entries: [`
     );
     this.emit(
-      `  { binding: 0, resource: { buffer: ${v}Model } }, { binding: 1, resource: { buffer: ${v}Mat } }, { binding: 2, resource: { buffer: vpUniform } }] });`
+      `  { binding: 0, resource: { buffer: ${v}Model } }, { binding: 1, resource: { buffer: ${v}Mat } }, { binding: 2, resource: { buffer: vpUniform } }, { binding: 3, resource: { buffer: sceneLights } }] });`
     );
   }
 
@@ -759,26 +761,62 @@ export class WebGPUCompiler extends CompilerBase {
 
   // ─── Light ────────────────────────────────────────────────────────────────
 
-  private emitLight(light: HoloLight): void {
-    const v = this.sanitizeName(light.name);
-    let color = [1.0, 1.0, 1.0],
-      intensity = 1.0,
-      pos = [0, 10, 0],
-      dir = [0, -1, 0];
-    for (const prop of light.properties) {
-      if (prop.key === 'color') color = this.parseColor(prop.value);
-      else if (prop.key === 'intensity') intensity = prop.value as number;
-      else if (prop.key === 'position' && Array.isArray(prop.value)) pos = prop.value as number[];
-      else if (prop.key === 'direction' && Array.isArray(prop.value)) dir = prop.value as number[];
+  // Aggregate the scene's declared lights into ONE shared uniform buffer that every
+  // mesh binds (binding 3). Shape math — color*intensity, type tag, world position,
+  // travel direction — is resolved here; the fragment shader consumes up to
+  // MAX_LIGHTS. A light-less scene gets a synthesized key light so it stays lit.
+  private emitSceneLights(composition: HoloComposition): void {
+    const MAX_LIGHTS = 4;
+    const typeIndex: Record<string, number> = {
+      directional: 0,
+      point: 1,
+      spot: 2,
+      hemisphere: 3,
+      ambient: 4,
+      area: 5,
+    };
+    const lights = (composition.lights ?? []).slice(0, MAX_LIGHTS).map((light: HoloLight) => {
+      let color = [1.0, 1.0, 1.0],
+        intensity = 1.0,
+        pos = [0, 10, 0],
+        dir = [0, -1, 0],
+        hasDir = false;
+      for (const prop of light.properties) {
+        if (prop.key === 'color') color = this.parseColor(prop.value);
+        else if (prop.key === 'intensity') intensity = prop.value as number;
+        else if (prop.key === 'position' && Array.isArray(prop.value)) pos = prop.value as number[];
+        else if (prop.key === 'direction' && Array.isArray(prop.value)) {
+          dir = prop.value as number[];
+          hasDir = true;
+        }
+      }
+      const ti = typeIndex[light.lightType] ?? 0;
+      // A directional light with a position but no explicit direction shines toward
+      // the origin — a light "at [10,20,10]" lights the scene, not empty space.
+      if (ti === 0 && !hasDir && Array.isArray(pos)) dir = [-pos[0], -pos[1], -pos[2]];
+      return { color, intensity, pos, dir, ti };
+    });
+    // No declared lights → synthesize a neutral key light matching the historical
+    // fixed sun (surfaces were lit from normalize(1,2,1.5)) so light-less scenes
+    // stay lit instead of collapsing to ambient-only.
+    if (lights.length === 0) {
+      lights.push({ color: [1, 1, 1], intensity: 1, pos: [1, 2, 1.5], dir: [-1, -2, -1.5], ti: 0 });
     }
-    const ti =
-      { directional: 0, point: 1, spot: 2, hemisphere: 3, ambient: 4, area: 5 }[light.lightType] ??
-      0;
+    // Layout: count(vec4) | MAX_LIGHTS x { colorType(vec4), posW(vec4), dirW(vec4) }.
+    const segs: string[] = [`${lights.length},0,0,0`];
+    for (let i = 0; i < MAX_LIGHTS; i++) {
+      const l = lights[i];
+      if (l) {
+        segs.push(`${l.color[0] * l.intensity},${l.color[1] * l.intensity},${l.color[2] * l.intensity},${l.ti}`);
+        segs.push(`${l.pos[0]},${l.pos[1]},${l.pos[2]},0`);
+        segs.push(`${l.dir[0]},${l.dir[1]},${l.dir[2]},0`);
+      } else {
+        segs.push('0,0,0,0', '0,0,0,0', '0,0,0,0');
+      }
+    }
+    this.emit('// === Scene Lights (shared uniform, bound by every mesh at binding 3) ===');
     this.emit(
-      `// Light: ${this.escapeStringValue(light.name as string, 'TypeScript')} (${light.lightType})`
-    );
-    this.emit(
-      `const ${v}Light = createBuffer(device, new Float32Array([${color[0] * intensity},${color[1] * intensity},${color[2] * intensity},${ti}, ${pos[0]},${pos[1]},${pos[2]},0, ${dir[0]},${dir[1]},${dir[2]},0]), GPUBufferUsage.UNIFORM);`
+      `const sceneLights = createBuffer(device, new Float32Array([${segs.join(', ')}]), GPUBufferUsage.UNIFORM);`
     );
     this.emit('');
   }
@@ -913,12 +951,25 @@ export class WebGPUCompiler extends CompilerBase {
     // Fragment shader (PBR)
     this.emit('const WGSL_FRAGMENT = /* wgsl */`');
     this.emit('struct Mat { color: vec4<f32>, rm: vec4<f32>, emissive: vec4<f32> };');
+    this.emit('struct Light { ct: vec4<f32>, posW: vec4<f32>, dirW: vec4<f32> };');
+    this.emit('struct Lights { count: vec4<f32>, items: array<Light, 4> };');
     this.emit('@group(0) @binding(1) var<uniform> mat: Mat;');
+    this.emit('@group(0) @binding(3) var<uniform> lights: Lights;');
     this.emit('struct FIn { @location(0) wNorm: vec3<f32>, @location(1) wPos: vec3<f32> };');
     this.emit('@fragment fn fs_main(i: FIn) -> @location(0) vec4<f32> {');
-    this.emit('  let N = normalize(i.wNorm); let L = normalize(vec3<f32>(1.0, 2.0, 1.5));');
-    this.emit('  let d = max(dot(N, L), 0.0) * (1.0 - mat.rm[0] * 0.5);');
-    this.emit('  let lit = mat.color.rgb * (0.15 + d);');
+    this.emit('  let N = normalize(i.wNorm);');
+    this.emit('  var acc = vec3<f32>(0.0, 0.0, 0.0);');
+    this.emit('  let n = i32(lights.count.x);');
+    this.emit('  for (var k = 0; k < n; k = k + 1) {');
+    this.emit('    let lt = lights.items[k];');
+    // ct.w encodes light type: 0 = directional (parallel rays from -dir), else
+    // positional (point/spot) where the ray runs from the surface to posW.
+    this.emit('    var L = normalize(-lt.dirW.xyz);');
+    this.emit('    if (lt.ct.w > 0.5) { L = normalize(lt.posW.xyz - i.wPos); }');
+    this.emit('    let d = max(dot(N, L), 0.0) * (1.0 - mat.rm[0] * 0.5);');
+    this.emit('    acc = acc + lt.ct.rgb * d;');
+    this.emit('  }');
+    this.emit('  let lit = mat.color.rgb * (0.15 + acc);');
     this.emit('  let emit = mat.emissive.rgb * mat.rm[2];');
     this.emit('  return vec4<f32>(lit + emit, mat.color.a); }`;');
     this.emit('');

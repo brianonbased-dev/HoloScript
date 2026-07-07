@@ -536,8 +536,10 @@ describe('WebGPUCompiler', () => {
 
       const result = compiler.compile(composition, 'test-token');
 
-      expect(result).toContain('// Light: sun (directional)');
-      expect(result).toContain('sunLight');
+      // Lights are aggregated into one shared `sceneLights` uniform (not per-light
+      // buffers). Directional: white@2x, type 0, pos [10,20,5], dir derived toward origin.
+      expect(result).toContain('const sceneLights = createBuffer');
+      expect(result).toContain('1,0,0,0, 2,2,2,0, 10,20,5,0, -10,-20,-5,0');
     });
 
     it('should compile point light', () => {
@@ -552,7 +554,9 @@ describe('WebGPUCompiler', () => {
 
       const result = compiler.compile(composition, 'test-token');
 
-      expect(result).toContain('// Light: lamp (point)');
+      // Point light: white@1.5, type 1, pos [0,5,0].
+      expect(result).toContain('const sceneLights = createBuffer');
+      expect(result).toContain('1,0,0,0, 1.5,1.5,1.5,1, 0,5,0,0');
     });
 
     it('should compile spot light', () => {
@@ -562,7 +566,9 @@ describe('WebGPUCompiler', () => {
 
       const result = compiler.compile(composition, 'test-token');
 
-      expect(result).toContain('// Light: spotlight (spot)');
+      // Spot light: white@3, type 2.
+      expect(result).toContain('const sceneLights = createBuffer');
+      expect(result).toContain('3,3,3,2');
     });
 
     it('should handle light color', () => {
@@ -1389,7 +1395,8 @@ describe('WebGPUCompiler', () => {
 
       const result = compiler.compile(composition, 'test-token');
 
-      expect(result).toContain('// Light: minimalLight');
+      // Missing properties fall back to defaults; still aggregated into sceneLights.
+      expect(result).toContain('const sceneLights = createBuffer');
     });
 
     it('should handle camera with no properties', () => {
@@ -1425,9 +1432,8 @@ describe('WebGPUCompiler', () => {
 
       const result = compiler.compile(composition, 'test-token');
 
-      for (let i = 0; i < lightTypes.length; i++) {
-        expect(result).toContain(`// Light: light${i}`);
-      }
+      // All six types compile; the shared buffer caps at MAX_LIGHTS (4), so count=4.
+      expect(result).toContain('const sceneLights = createBuffer(device, new Float32Array([4,0,0,0,');
     });
 
     it('should handle fog with missing properties', () => {
@@ -1460,7 +1466,7 @@ describe('WebGPUCompiler', () => {
       expect(result).toContain('clearColor');
       expect(result).toContain('// Object: cube');
       expect(result).toContain('// GPU Particles');
-      expect(result).toContain('// Light: sun');
+      expect(result).toContain('const sceneLights = createBuffer');
       expect(result).toContain('cameraFov');
       expect(result).toContain('// Spatial Group: group1');
     });

@@ -145,12 +145,23 @@ struct VOut { @builtin(position) clip: vec4<f32>, @location(0) wNorm: vec3<f32>,
 
 const WGSL_FRAGMENT = /* wgsl */\`
 struct Mat { color: vec4<f32>, rm: vec4<f32>, emissive: vec4<f32> };
+struct Light { ct: vec4<f32>, posW: vec4<f32>, dirW: vec4<f32> };
+struct Lights { count: vec4<f32>, items: array<Light, 4> };
 @group(0) @binding(1) var<uniform> mat: Mat;
+@group(0) @binding(3) var<uniform> lights: Lights;
 struct FIn { @location(0) wNorm: vec3<f32>, @location(1) wPos: vec3<f32> };
 @fragment fn fs_main(i: FIn) -> @location(0) vec4<f32> {
-  let N = normalize(i.wNorm); let L = normalize(vec3<f32>(1.0, 2.0, 1.5));
-  let d = max(dot(N, L), 0.0) * (1.0 - mat.rm[0] * 0.5);
-  let lit = mat.color.rgb * (0.15 + d);
+  let N = normalize(i.wNorm);
+  var acc = vec3<f32>(0.0, 0.0, 0.0);
+  let n = i32(lights.count.x);
+  for (var k = 0; k < n; k = k + 1) {
+    let lt = lights.items[k];
+    var L = normalize(-lt.dirW.xyz);
+    if (lt.ct.w > 0.5) { L = normalize(lt.posW.xyz - i.wPos); }
+    let d = max(dot(N, L), 0.0) * (1.0 - mat.rm[0] * 0.5);
+    acc = acc + lt.ct.rgb * d;
+  }
+  let lit = mat.color.rgb * (0.15 + acc);
   let emit = mat.emissive.rgb * mat.rm[2];
   return vec4<f32>(lit + emit, mat.color.a); }\`;
 
@@ -255,6 +266,9 @@ function buildViewProjection(): Float32Array {
 }
 const vpUniform = createBuffer(device, buildViewProjection(), GPUBufferUsage.UNIFORM);
 
+// === Scene Lights (shared uniform, bound by every mesh at binding 3) ===
+const sceneLights = createBuffer(device, new Float32Array([1,0,0,0, 1.2,1.2,1.2,0, 10,20,10,0, -10,-20,-10,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0]), GPUBufferUsage.UNIFORM);
+
 const holoGraphObjects = [];
 
 // Object: BoxObj
@@ -273,7 +287,7 @@ const BoxObjPipeline = device.createRenderPipeline({
   depthStencil: { format: "depth24plus", depthWriteEnabled: true, depthCompare: "less" }, multisample: { count: MSAA_COUNT },
 });
 const BoxObjBind = device.createBindGroup({ layout: BoxObjPipeline.getBindGroupLayout(0), entries: [
-  { binding: 0, resource: { buffer: BoxObjModel } }, { binding: 1, resource: { buffer: BoxObjMat } }, { binding: 2, resource: { buffer: vpUniform } }] });
+  { binding: 0, resource: { buffer: BoxObjModel } }, { binding: 1, resource: { buffer: BoxObjMat } }, { binding: 2, resource: { buffer: vpUniform } }, { binding: 3, resource: { buffer: sceneLights } }] });
 
 // Object: SphereObj
 const SphereObjVertices = generateSphereVertices(0.5, 16, 16);
@@ -291,7 +305,7 @@ const SphereObjPipeline = device.createRenderPipeline({
   depthStencil: { format: "depth24plus", depthWriteEnabled: true, depthCompare: "less" }, multisample: { count: MSAA_COUNT },
 });
 const SphereObjBind = device.createBindGroup({ layout: SphereObjPipeline.getBindGroupLayout(0), entries: [
-  { binding: 0, resource: { buffer: SphereObjModel } }, { binding: 1, resource: { buffer: SphereObjMat } }, { binding: 2, resource: { buffer: vpUniform } }] });
+  { binding: 0, resource: { buffer: SphereObjModel } }, { binding: 1, resource: { buffer: SphereObjMat } }, { binding: 2, resource: { buffer: vpUniform } }, { binding: 3, resource: { buffer: sceneLights } }] });
 
 // Object: TorusObj
 const TorusObjVertices = generateTorusVertices(0.5, 0.15, 16, 32);
@@ -309,7 +323,7 @@ const TorusObjPipeline = device.createRenderPipeline({
   depthStencil: { format: "depth24plus", depthWriteEnabled: true, depthCompare: "less" }, multisample: { count: MSAA_COUNT },
 });
 const TorusObjBind = device.createBindGroup({ layout: TorusObjPipeline.getBindGroupLayout(0), entries: [
-  { binding: 0, resource: { buffer: TorusObjModel } }, { binding: 1, resource: { buffer: TorusObjMat } }, { binding: 2, resource: { buffer: vpUniform } }] });
+  { binding: 0, resource: { buffer: TorusObjModel } }, { binding: 1, resource: { buffer: TorusObjMat } }, { binding: 2, resource: { buffer: vpUniform } }, { binding: 3, resource: { buffer: sceneLights } }] });
 
 // Object: CylinderObj
 const CylinderObjVertices = generateCylinderVertices(0.5, 1.0, 16);
@@ -327,7 +341,7 @@ const CylinderObjPipeline = device.createRenderPipeline({
   depthStencil: { format: "depth24plus", depthWriteEnabled: true, depthCompare: "less" }, multisample: { count: MSAA_COUNT },
 });
 const CylinderObjBind = device.createBindGroup({ layout: CylinderObjPipeline.getBindGroupLayout(0), entries: [
-  { binding: 0, resource: { buffer: CylinderObjModel } }, { binding: 1, resource: { buffer: CylinderObjMat } }, { binding: 2, resource: { buffer: vpUniform } }] });
+  { binding: 0, resource: { buffer: CylinderObjModel } }, { binding: 1, resource: { buffer: CylinderObjMat } }, { binding: 2, resource: { buffer: vpUniform } }, { binding: 3, resource: { buffer: sceneLights } }] });
 
 // Object: ConeObj
 const ConeObjVertices = generateConeVertices(0.5, 1.0, 16);
@@ -345,7 +359,7 @@ const ConeObjPipeline = device.createRenderPipeline({
   depthStencil: { format: "depth24plus", depthWriteEnabled: true, depthCompare: "less" }, multisample: { count: MSAA_COUNT },
 });
 const ConeObjBind = device.createBindGroup({ layout: ConeObjPipeline.getBindGroupLayout(0), entries: [
-  { binding: 0, resource: { buffer: ConeObjModel } }, { binding: 1, resource: { buffer: ConeObjMat } }, { binding: 2, resource: { buffer: vpUniform } }] });
+  { binding: 0, resource: { buffer: ConeObjModel } }, { binding: 1, resource: { buffer: ConeObjMat } }, { binding: 2, resource: { buffer: vpUniform } }, { binding: 3, resource: { buffer: sceneLights } }] });
 
 // Object: PlaneObj
 const PlaneObjVertices = generatePlaneVertices(1.0, 1.0);
@@ -363,7 +377,7 @@ const PlaneObjPipeline = device.createRenderPipeline({
   depthStencil: { format: "depth24plus", depthWriteEnabled: true, depthCompare: "less" }, multisample: { count: MSAA_COUNT },
 });
 const PlaneObjBind = device.createBindGroup({ layout: PlaneObjPipeline.getBindGroupLayout(0), entries: [
-  { binding: 0, resource: { buffer: PlaneObjModel } }, { binding: 1, resource: { buffer: PlaneObjMat } }, { binding: 2, resource: { buffer: vpUniform } }] });
+  { binding: 0, resource: { buffer: PlaneObjModel } }, { binding: 1, resource: { buffer: PlaneObjMat } }, { binding: 2, resource: { buffer: vpUniform } }, { binding: 3, resource: { buffer: sceneLights } }] });
 
 // Object: OrbObj
 const OrbObjVertices = generateSphereVertices(0.5, 16, 16);
@@ -381,7 +395,7 @@ const OrbObjPipeline = device.createRenderPipeline({
   depthStencil: { format: "depth24plus", depthWriteEnabled: true, depthCompare: "less" }, multisample: { count: MSAA_COUNT },
 });
 const OrbObjBind = device.createBindGroup({ layout: OrbObjPipeline.getBindGroupLayout(0), entries: [
-  { binding: 0, resource: { buffer: OrbObjModel } }, { binding: 1, resource: { buffer: OrbObjMat } }, { binding: 2, resource: { buffer: vpUniform } }] });
+  { binding: 0, resource: { buffer: OrbObjModel } }, { binding: 1, resource: { buffer: OrbObjMat } }, { binding: 2, resource: { buffer: vpUniform } }, { binding: 3, resource: { buffer: sceneLights } }] });
 
 // Object: UnmappedMeshObj
 const UnmappedMeshObjVertices = generateCubeVertices(1.0);
@@ -399,7 +413,7 @@ const UnmappedMeshObjPipeline = device.createRenderPipeline({
   depthStencil: { format: "depth24plus", depthWriteEnabled: true, depthCompare: "less" }, multisample: { count: MSAA_COUNT },
 });
 const UnmappedMeshObjBind = device.createBindGroup({ layout: UnmappedMeshObjPipeline.getBindGroupLayout(0), entries: [
-  { binding: 0, resource: { buffer: UnmappedMeshObjModel } }, { binding: 1, resource: { buffer: UnmappedMeshObjMat } }, { binding: 2, resource: { buffer: vpUniform } }] });
+  { binding: 0, resource: { buffer: UnmappedMeshObjModel } }, { binding: 1, resource: { buffer: UnmappedMeshObjMat } }, { binding: 2, resource: { buffer: vpUniform } }, { binding: 3, resource: { buffer: sceneLights } }] });
 
 // Spatial Group: GroupA
 const GroupAGroupXform = createBuffer(device, new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]), GPUBufferUsage.UNIFORM);
@@ -419,7 +433,7 @@ const GroupedSpherePipeline = device.createRenderPipeline({
   depthStencil: { format: "depth24plus", depthWriteEnabled: true, depthCompare: "less" }, multisample: { count: MSAA_COUNT },
 });
 const GroupedSphereBind = device.createBindGroup({ layout: GroupedSpherePipeline.getBindGroupLayout(0), entries: [
-  { binding: 0, resource: { buffer: GroupedSphereModel } }, { binding: 1, resource: { buffer: GroupedSphereMat } }, { binding: 2, resource: { buffer: vpUniform } }] });
+  { binding: 0, resource: { buffer: GroupedSphereModel } }, { binding: 1, resource: { buffer: GroupedSphereMat } }, { binding: 2, resource: { buffer: vpUniform } }, { binding: 3, resource: { buffer: sceneLights } }] });
 
 // Object: GroupedCube
 const GroupedCubeVertices = generateCubeVertices(1.0);
@@ -437,11 +451,8 @@ const GroupedCubePipeline = device.createRenderPipeline({
   depthStencil: { format: "depth24plus", depthWriteEnabled: true, depthCompare: "less" }, multisample: { count: MSAA_COUNT },
 });
 const GroupedCubeBind = device.createBindGroup({ layout: GroupedCubePipeline.getBindGroupLayout(0), entries: [
-  { binding: 0, resource: { buffer: GroupedCubeModel } }, { binding: 1, resource: { buffer: GroupedCubeMat } }, { binding: 2, resource: { buffer: vpUniform } }] });
+  { binding: 0, resource: { buffer: GroupedCubeModel } }, { binding: 1, resource: { buffer: GroupedCubeMat } }, { binding: 2, resource: { buffer: vpUniform } }, { binding: 3, resource: { buffer: sceneLights } }] });
 
-
-// Light: Key (directional)
-const KeyLight = createBuffer(device, new Float32Array([1.2,1.2,1.2,0, 10,20,10,0, 0,-1,0,0]), GPUBufferUsage.UNIFORM);
 
 // === HoloGraph Viewport Runtime ===
 const holoGraphInitialCameraPos = new Float32Array(cameraPos);
