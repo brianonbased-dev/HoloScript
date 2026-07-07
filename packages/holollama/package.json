@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/holollama",
-  "version": "0.1.5",
+  "version": "0.2.0",
   "description": "Native HoloScript utilities for planning and operating llama.cpp HoloLlama serving nodes.",
   "type": "module",
   "main": "./dist/index.js",
@@ -25,6 +25,7 @@
     "bin",
     "dist",
     "profiles",
+    "CHANGELOG.md",
     "README.md",
     "templates"
   ],

@@ -100,7 +100,7 @@
         "check:package-consumption:full"
       ],
       "nextActions": [
-        "Cut the pending HoloLlama release after the release closure and cold consumption gates pass.",
+        "Keep @holoscript/holollama@0.2.x cold-installable as the owned-metal inference package for laptop, Jetson, and Vast lanes.",
         "Expand lifecycle checks from preflight to live service receipts on Jetson and Vast lanes."
       ]
     },
