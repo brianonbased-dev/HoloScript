@@ -38,9 +38,34 @@ REPO_DIR="${REPO_DIR:-$HOME/.ai-ecosystem}"
 POLL_INTERVAL="${POLL_INTERVAL:-15}"
 IDLE_EXIT_AFTER="${IDLE_EXIT_AFTER:-0}"
 CUQUANTUM_SETUP="${CUQUANTUM_SETUP:-scripts/fleet-cuquantum-setup.sh}"
+GIT_CLONE_TRIES="${GIT_CLONE_TRIES:-8}"
+GIT_CLONE_SLEEP_S="${GIT_CLONE_SLEEP_S:-15}"
 
 echo "$LOG $(date) — starting hands-off fleet onboarding (seat=$SEAT)"
 exec > >(tee -a /tmp/vast-onstart.log) 2>&1
+
+redact_repo_url() {
+  printf '%s' "$1" | sed -E 's#x-access-token:[^@]+@#x-access-token:***@#g'
+}
+
+clone_repo_with_retry() {
+  local attempt status
+  for attempt in $(seq 1 "$GIT_CLONE_TRIES"); do
+    rm -rf "$REPO_DIR"
+    echo "$LOG clone attempt $attempt/$GIT_CLONE_TRIES: $(redact_repo_url "$REPO_URL") -> $REPO_DIR"
+    git clone --depth 1 "$REPO_URL" "$REPO_DIR" 2>&1 \
+      | sed -E 's#x-access-token:[^@]+@#x-access-token:***@#g'
+    status=${PIPESTATUS[0]}
+    if [ "$status" -eq 0 ]; then
+      return 0
+    fi
+    if [ "$attempt" -lt "$GIT_CLONE_TRIES" ]; then
+      echo "$LOG WARN: clone failed with status $status; retrying in ${GIT_CLONE_SLEEP_S}s"
+      sleep "$GIT_CLONE_SLEEP_S"
+    fi
+  done
+  return 1
+}
 
 # --- 1. Ensure git is present ---
 if ! command -v git >/dev/null 2>&1; then
@@ -57,8 +82,7 @@ if [ -d "$REPO_DIR/.git" ]; then
   git fetch --depth 1 origin 2>/dev/null && git reset --hard origin/main 2>/dev/null \
     || echo "$LOG WARN: git pull failed, using existing checkout"
 else
-  echo "$LOG cloning $REPO_URL -> $REPO_DIR ..."
-  git clone --depth 1 "$REPO_URL" "$REPO_DIR" || { echo "$LOG FATAL: clone failed"; exit 2; }
+  clone_repo_with_retry || { echo "$LOG FATAL: clone failed after $GIT_CLONE_TRIES attempt(s)"; exit 2; }
   cd "$REPO_DIR" || exit 2
 fi
 
