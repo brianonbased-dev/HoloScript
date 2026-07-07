@@ -1,6 +1,13 @@
 {
   "schema": "holoscript.hardware-app-envelopes/v1",
   "_comment": "Canonical app envelopes for hardware/public-consumption lanes. Each app composes existing fleet utilities instead of asking hardware to consume loose packages directly.",
+  "captureRunner": {
+    "scriptPath": "scripts/holo-ci/capture-hardware-telemetry.mjs",
+    "receiptSchema": "holoscript.hardware-telemetry-capture/v1",
+    "defaultMode": "plan-only",
+    "safeExecutionFlags": ["--execute-repo", "--execute-live"],
+    "nonExecutingSourceKinds": ["mcp-tool", "ecosystem-command", "receipt-family", "runtime-library"]
+  },
   "utilityBands": [
     {
       "id": "public-tool-gateway",

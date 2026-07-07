@@ -12,6 +12,8 @@ package and fleet utility surfaces.
 
 - App envelopes: `scripts/holo-ci/hardware-app-envelopes-manifest.json`
 - Envelope verifier: `node scripts/holo-ci/check-hardware-app-envelopes.mjs`
+- Telemetry capture runner:
+  `node scripts/holo-ci/capture-hardware-telemetry.mjs`
 - Fleet utilities: `scripts/holo-ci/fleet-utilities-manifest.json`
 - Package consumption: `scripts/holo-ci/package-consumption-manifest.json`
 - Package stewardship: `scripts/holo-ci/package-stewardship-manifest.json`
@@ -86,6 +88,32 @@ hardware state, health status, hashes, ids, and receipt metadata. Do not capture
 secrets, OAuth state, HoloKey material, prompts, private file contents, model
 weights, raw camera frames, raw robot payloads, or customer payload bodies.
 
+The repo-local capture runner emits
+`holoscript.hardware-telemetry-capture/v1` receipts from the manifest. It is
+plan-only by default, executes only safe repo and live-service source classes
+when explicitly requested, and leaves HoloShell/MCP/receipt-family sources
+pending for their custody layer.
+
+```bash
+# Plan all app telemetry without executing external sources.
+node scripts/holo-ci/capture-hardware-telemetry.mjs --summary
+
+# Capture repo gates and hosted health where those sources are explicitly safe.
+node scripts/holo-ci/capture-hardware-telemetry.mjs \
+  --app hosted-coordinator \
+  --execute-repo \
+  --execute-live \
+  --summary \
+  --out .scratch/hardware-telemetry/hosted-latest.json
+
+# Bounded continuous mode for schedulers or local daemons.
+node scripts/holo-ci/capture-hardware-telemetry.mjs \
+  --interval-ms 60000 \
+  --iterations 5 \
+  --ndjson .scratch/hardware-telemetry/captures.ndjson \
+  --summary
+```
+
 ## Canonical Envelopes
 
 | Envelope              | Hardware lane                   | What it encompasses                                                                                                                                         |
@@ -141,6 +169,8 @@ What proves it is ready?
 ```bash
 node scripts/holo-ci/check-hardware-app-envelopes.mjs
 node scripts/holo-ci/check-hardware-app-envelopes.mjs --self-test
+node scripts/holo-ci/capture-hardware-telemetry.mjs --self-test
+node scripts/holo-ci/capture-hardware-telemetry.mjs --summary
 corepack pnpm run check:fleet-utilities
 corepack pnpm run check:package-architecture
 corepack pnpm run check:package-stewardship

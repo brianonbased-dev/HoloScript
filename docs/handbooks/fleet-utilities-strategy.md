@@ -29,6 +29,9 @@ Continuous capability is tracked in the same envelope manifest. Each hardware
 app declares telemetry signals, stale-after windows, readiness requirements,
 retention, privacy boundaries, and failure response. Treat missing telemetry as
 an explicit degraded state; paid dispatch and physical-world claims fail closed.
+Use `node scripts/holo-ci/capture-hardware-telemetry.mjs` to emit
+`holoscript.hardware-telemetry-capture/v1` receipt bundles from that manifest;
+use `--interval-ms` and `--iterations` for bounded continuous capture.
 
 ## Utility Classes
 

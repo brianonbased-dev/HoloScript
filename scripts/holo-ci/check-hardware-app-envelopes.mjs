@@ -99,6 +99,7 @@ function validateManifests({ appsManifest, fleetManifest, consumptionManifest, p
     if (consumer.id) consumerIds.add(consumer.id);
   }
   const scripts = packageJson?.scripts || {};
+  const captureRunner = appsManifest?.captureRunner || {};
   const utilityBands = appsManifest?.utilityBands || [];
   const telemetrySignals = appsManifest?.telemetrySignals || [];
   const apps = appsManifest?.apps || [];
@@ -112,6 +113,31 @@ function validateManifests({ appsManifest, fleetManifest, consumptionManifest, p
 
   if (!Array.isArray(utilityBands) || utilityBands.length === 0) {
     errors.push('utilityBands[] is empty');
+  }
+  if (!captureRunner.scriptPath) {
+    errors.push('captureRunner.scriptPath is missing');
+  } else if (!existsSync(join(ROOT, captureRunner.scriptPath))) {
+    errors.push(`captureRunner script not found: ${captureRunner.scriptPath}`);
+  }
+  if (captureRunner.receiptSchema !== 'holoscript.hardware-telemetry-capture/v1') {
+    errors.push(
+      `captureRunner.receiptSchema is invalid: ${captureRunner.receiptSchema || '<missing>'}`
+    );
+  }
+  if (!captureRunner.defaultMode) {
+    errors.push('captureRunner.defaultMode is missing');
+  }
+  if (
+    !Array.isArray(captureRunner.safeExecutionFlags) ||
+    captureRunner.safeExecutionFlags.length === 0
+  ) {
+    errors.push('captureRunner.safeExecutionFlags[] is missing');
+  }
+  if (
+    !Array.isArray(captureRunner.nonExecutingSourceKinds) ||
+    captureRunner.nonExecutingSourceKinds.length === 0
+  ) {
+    errors.push('captureRunner.nonExecutingSourceKinds[] is missing');
   }
   for (const band of utilityBands) {
     if (!idLooksValid(band.id)) {
@@ -421,6 +447,13 @@ function runSelfTest() {
     packageJson,
     appsManifest: {
       schema: 'holoscript.hardware-app-envelopes/v1',
+      captureRunner: {
+        scriptPath: 'scripts/holo-ci/capture-hardware-telemetry.mjs',
+        receiptSchema: 'holoscript.hardware-telemetry-capture/v1',
+        defaultMode: 'plan-only',
+        safeExecutionFlags: ['--execute-repo'],
+        nonExecutingSourceKinds: ['mcp-tool'],
+      },
       utilityBands: [
         {
           id: 'cli-band',
