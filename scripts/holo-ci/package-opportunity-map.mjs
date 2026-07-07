@@ -36,6 +36,7 @@ const MANIFESTS = {
   release: join(ROOT, 'scripts', 'holo-ci', 'npm-v1-release-manifest.json'),
   consumption: join(ROOT, 'scripts', 'holo-ci', 'package-consumption-manifest.json'),
   utilities: join(ROOT, 'scripts', 'holo-ci', 'fleet-utilities-manifest.json'),
+  stewardship: join(ROOT, 'scripts', 'holo-ci', 'package-stewardship-manifest.json'),
   publishAllowlist: join(ROOT, 'scripts', 'holo-ci', 'publish-surface-allowlist.json'),
 };
 const PACKAGE_BOUNDARY_MANIFESTS = ['package.json', 'pyproject.toml', 'Cargo.toml'];
@@ -140,7 +141,9 @@ function laneSets(root) {
   const release = readJson(MANIFESTS.release, {});
   const consumption = readJson(MANIFESTS.consumption, {});
   const utilities = readJson(MANIFESTS.utilities, {});
+  const stewardship = readJson(MANIFESTS.stewardship, {});
   const publishAllowlist = readJson(MANIFESTS.publishAllowlist, {});
+  const stewardshipRecords = stewardship.packages || [];
 
   return {
     releaseCandidates: new Set(
@@ -165,6 +168,17 @@ function laneSets(root) {
     ),
     publishAllowlist: new Set(publishAllowlist.packages || []),
     pypiNames: new Set((consumption.pypiPackages || []).map((item) => item.name)),
+    stewardshipRecords,
+    stewardshipByNpm: new Map(
+      stewardshipRecords
+        .filter((record) => record.registry === 'npm' && record.packageName)
+        .map((record) => [record.packageName, record])
+    ),
+    stewardshipByPypi: new Map(
+      stewardshipRecords
+        .filter((record) => record.registry === 'pypi' && record.pypiPackage)
+        .map((record) => [record.pypiPackage, record])
+    ),
     root,
   };
 }
@@ -321,6 +335,7 @@ function buildRows({ packages, lanes, history, graph, root }) {
       manifestTouches: 0,
     };
     const graphRow = graph.packages.get(pkg.name) || { graphFiles: 0, graphSymbols: 0 };
+    const steward = lanes.stewardshipByNpm?.get(pkg.name);
     const docPath = packageDocPath(root, pkg);
     const publicSurface = !pkg.private;
     const row = {
@@ -331,6 +346,9 @@ function buildRows({ packages, lanes, history, graph, root }) {
       releaseCandidate: lanes.releaseCandidates.has(pkg.name),
       fleetConsumed: lanes.consumedNpm.has(pkg.name),
       fleetUtility: lanes.utilityNpm.has(pkg.name),
+      stewarded: Boolean(steward),
+      stewardshipStatus: steward?.status || null,
+      stewardshipNextActions: steward?.nextActions || [],
       docsPath: docPath,
       hasDocs: Boolean(docPath),
       hasGovernance: safeIncludes(governanceText, pkg.name),
@@ -351,17 +369,101 @@ function buildRows({ packages, lanes, history, graph, root }) {
       (row.public && !row.hasGovernance ? 12 : 0) +
       (row.public && !row.hasOwnership ? 8 : 0) +
       (row.fleetConsumed ? 10 : 0) +
-      (row.releaseCandidate ? 8 : 0);
+      (row.releaseCandidate ? 8 : 0) +
+      (row.stewardshipNextActions.length ? 5 : 0);
     return row;
   });
 }
 
-function buildRecommendations(rows, history) {
+function packageNameForSteward(record) {
+  return record.registry === 'npm' ? record.packageName : record.pypiPackage;
+}
+
+function isReadySteward(record) {
+  return ['fleet-operational', 'release-candidate'].includes(record.status);
+}
+
+function buildStewardshipRecommendations(rows, lanes) {
+  const byName = new Map(rows.map((row) => [row.name, row]));
+  const releaseCandidates = lanes.releaseCandidates || new Set();
+  const consumedNpm = lanes.consumedNpm || new Set();
+  const recommendations = [];
+
+  for (const record of lanes.stewardshipRecords || []) {
+    const name = packageNameForSteward(record);
+    if (!name) continue;
+    const row = byName.get(name);
+    const validationScripts = record.validationScripts || [];
+    const validation = new Set(validationScripts);
+    const gaps = [];
+
+    if (
+      record.registry === 'npm' &&
+      isReadySteward(record) &&
+      !releaseCandidates.has(name)
+    ) {
+      gaps.push('missing release manifest lane');
+    }
+    if (
+      record.registry === 'npm' &&
+      record.status === 'fleet-operational' &&
+      !consumedNpm.has(name)
+    ) {
+      gaps.push('missing package-consumption lane');
+    }
+    if (
+      record.registry === 'npm' &&
+      record.status === 'fleet-operational' &&
+      !validationScripts.some((script) => script.startsWith('check:registry-cold-start'))
+    ) {
+      gaps.push('missing registry cold-start validation');
+    }
+    if (
+      record.registry === 'pypi' &&
+      record.status === 'fleet-operational' &&
+      !validation.has('check:pypi-live-consumption')
+    ) {
+      gaps.push('missing published-wheel smoke validation script');
+    }
+    if (row?.commits > 50 && !validation.has('check:package-consumption:full')) {
+      gaps.push('stale validation risk after heavy package churn');
+    }
+    if (!gaps.length && !record.nextActions?.length) continue;
+
+    const churnScore = row ? row.commits * 0.5 + row.changedFiles * 0.1 : 0;
+    recommendations.push({
+      kind: 'stewardship-work',
+      package: name,
+      registry: record.registry,
+      dir: row?.dir || null,
+      score: Number(
+        (
+          churnScore +
+          gaps.length * 25 +
+          (record.nextActions?.length || 0) * 8 +
+          (record.status === 'fleet-operational' ? 10 : 0)
+        ).toFixed(1)
+      ),
+      evidence: {
+        status: record.status,
+        validationScripts,
+        commits: row?.commits || 0,
+        changedFiles: row?.changedFiles || 0,
+      },
+      gaps,
+      nextActions: record.nextActions || [],
+    });
+  }
+
+  return recommendations;
+}
+
+function buildRecommendations(rows, history, lanes = {}) {
   const hotPublic = rows
     .filter((row) => row.public && (row.commits > 0 || row.graphFiles > 0))
     .sort((a, b) => b.score - a.score);
 
-  const recommendations = [];
+  const recommendations = buildStewardshipRecommendations(rows, lanes);
 
   for (const row of hotPublic) {
     const gaps = [];
@@ -410,7 +512,7 @@ function buildMap(root = ROOT, since = SINCE) {
   const history = collectGitHistory(root, since, packages);
   const graph = readGraphCache(GRAPH_CACHE, packages);
   const rows = buildRows({ packages, lanes, history, graph, root });
-  const recommendations = buildRecommendations(rows, history);
+  const recommendations = buildRecommendations(rows, history, lanes);
 
   return {
     ok: true,
@@ -477,6 +579,24 @@ function runSelfTest() {
     consumedNpm: new Set(['@scope/hot']),
     utilityNpm: new Set(['@scope/hot']),
     publishAllowlist: new Set(['@scope/hot']),
+    stewardshipRecords: [
+      {
+        registry: 'npm',
+        packageName: '@scope/hot',
+        status: 'fleet-operational',
+        validationScripts: ['check:package-consumption:full'],
+        nextActions: ['Keep the public package cold-installable.'],
+      },
+    ],
+    stewardshipByNpm: new Map([
+      [
+        '@scope/hot',
+        {
+          status: 'fleet-operational',
+          nextActions: ['Keep the public package cold-installable.'],
+        },
+      ],
+    ]),
   };
   const history = {
     packageStats: new Map([
@@ -507,12 +627,14 @@ function runSelfTest() {
   });
   const hot = rows.find((row) => row.name === '@scope/hot');
   assert.equal(hot.public, true);
+  assert.equal(hot.stewarded, true);
   assert.equal(hot.hasDocs, false);
   assert.equal(hot.graphFiles, 2);
 
-  const recommendations = buildRecommendations(rows, history);
+  const recommendations = buildRecommendations(rows, history, lanes);
   assert.equal(recommendations[0].kind, 'foster-existing-package');
   assert.equal(recommendations[0].package, '@scope/hot');
+  assert.ok(recommendations.some((item) => item.kind === 'stewardship-work'));
   assert.ok(recommendations.some((item) => item.kind === 'new-package-candidate'));
   assert.ok(!recommendations.some((item) => item.dir === 'packages/deleted'));
   assert.ok(!recommendations.some((item) => item.dir === 'packages/pythonish'));
@@ -543,6 +665,7 @@ function printHuman(map) {
       row.releaseCandidate ? 'v1' : null,
       row.fleetConsumed ? 'fleet-consumed' : null,
       row.publishAllowlisted ? 'allowlisted' : null,
+      row.stewarded ? `stewarded:${row.stewardshipStatus}` : 'unstewarded',
       row.hasDocs ? 'docs' : 'missing-docs',
       row.hasGovernance ? 'governed' : 'missing-governance',
       row.hasOwnership ? 'owned' : 'missing-owner',
@@ -559,6 +682,11 @@ function printHuman(map) {
     if (item.kind === 'foster-existing-package') {
       console.log(
         `  - foster ${item.package}: ${item.gaps.join(', ')} (commits=${item.evidence.commits}, graph=${item.evidence.graphFiles}/${item.evidence.graphSymbols})`
+      );
+    } else if (item.kind === 'stewardship-work') {
+      const work = [...item.gaps, ...(item.nextActions || [])].slice(0, 3).join('; ');
+      console.log(
+        `  - steward ${item.package}: ${work} (status=${item.evidence.status}, commits=${item.evidence.commits})`
       );
     } else {
       console.log(
