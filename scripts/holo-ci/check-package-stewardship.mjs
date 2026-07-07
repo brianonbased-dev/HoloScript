@@ -35,6 +35,22 @@ const KNOWN_STATUSES = new Set([
   'parked',
 ]);
 const REQUIRED_USER_CLASSES = new Set(['human', 'ai-agent']);
+const READY_STATUSES = new Set(['fleet-operational', 'release-candidate']);
+const KNOWN_OUTSIDE_READINESS = new Set(['ready', 'incubating', 'parked']);
+const KNOWN_HARNESS_MODES = new Set([
+  'standalone',
+  'public-ai-ecosystem-template',
+  'not-public',
+]);
+const REQUIRED_OUTSIDE_AUDIENCE = new Set(['external-human', 'external-ai-agent']);
+const PRIVATE_PUBLIC_FILE_PATTERNS = [
+  ['founder Windows home path', /C:[/\\]Users[/\\]josep/i],
+  ['founder GOLD drive path', /D:[/\\]GOLD/i],
+  [
+    'literal secret assignment',
+    /^\s*(?:HOLOSCRIPT_API_KEY|HOLOSCRIPT_MCP_API_KEY|NPM_TOKEN|PYPI_API_TOKEN)[ \t]*=[ \t]*(?!$|#|<|your-|example|changeme|replace|optional|__)[^\r\n#]+/im,
+  ],
+];
 
 function readJson(file) {
   return JSON.parse(readFileSync(file, 'utf8').replace(/^\uFEFF/u, ''));
@@ -55,6 +71,48 @@ function recordKey(record) {
 function addToMapSet(map, key, value) {
   if (!map.has(key)) map.set(key, new Set());
   map.get(key).add(value);
+}
+
+function isSafePublicPath(relativePath) {
+  const text = String(relativePath || '').replace(/\\/g, '/');
+  if (!text || text.includes('\0')) return false;
+  if (text.startsWith('/') || text.startsWith('../') || text.includes('/../')) return false;
+  if (/^[A-Za-z]:/.test(text)) return false;
+  return true;
+}
+
+function readPublicFileText(context, relativePath) {
+  if (!isSafePublicPath(relativePath)) return { unsafe: true, text: null };
+  if (context.publicFiles) {
+    return {
+      unsafe: false,
+      text: context.publicFiles.has(relativePath) ? context.publicFiles.get(relativePath) : null,
+    };
+  }
+  const root = context.root || ROOT;
+  const full = resolve(root, relativePath);
+  const rootPrefix = `${resolve(root)}${process.platform === 'win32' ? '\\' : '/'}`;
+  if (full !== resolve(root) && !full.startsWith(rootPrefix)) return { unsafe: true, text: null };
+  if (!existsSync(full)) return { unsafe: false, text: null };
+  return { unsafe: false, text: readFileSync(full, 'utf8') };
+}
+
+function validatePublicFile(context, id, field, relativePath, allowPrivateLeaks, errors) {
+  const result = readPublicFileText(context, relativePath);
+  if (result.unsafe) {
+    errors.push(`${id}: outsideUserGate.${field} is not a safe repo-relative public path`);
+    return;
+  }
+  if (result.text === null) {
+    errors.push(`${id}: outsideUserGate.${field} missing public file '${relativePath}'`);
+    return;
+  }
+  if (allowPrivateLeaks) return;
+  for (const [label, pattern] of PRIVATE_PUBLIC_FILE_PATTERNS) {
+    if (pattern.test(result.text)) {
+      errors.push(`${id}: outsideUserGate.${field} leaks ${label}: ${relativePath}`);
+    }
+  }
 }
 
 function discoverPackageJsons(dir, out = []) {
@@ -122,6 +180,7 @@ function contextFromFiles(root) {
   }
 
   return {
+    root,
     expectedKeys,
     expectedConsumerLanesByKey,
     knownConsumers,
@@ -165,6 +224,8 @@ function validateStewardshipManifest(manifest, context) {
       consumerLanes: record.consumerLanes || [],
       utilityIds: record.utilityIds || [],
       validationScripts: record.validationScripts || [],
+      outsideReadiness: record.outsideUserGate?.readiness || null,
+      harnessMode: record.outsideUserGate?.harnessMode || null,
     });
 
     if (!/^[a-z0-9][a-z0-9-]*$/.test(id)) errors.push(`invalid package steward id: ${id || '<missing>'}`);
@@ -184,6 +245,60 @@ function validateStewardshipManifest(manifest, context) {
     for (const required of REQUIRED_USER_CLASSES) {
       if (!record.userClasses?.includes(required)) {
         errors.push(`${id}: userClasses[] must include '${required}'`);
+      }
+    }
+
+    const outsideGate = record.outsideUserGate;
+    if (!outsideGate || typeof outsideGate !== 'object') {
+      errors.push(`${id}: missing outsideUserGate`);
+    } else {
+      if (!KNOWN_OUTSIDE_READINESS.has(outsideGate.readiness)) {
+        errors.push(`${id}: outsideUserGate has unknown readiness '${outsideGate.readiness || ''}'`);
+      }
+      if (!KNOWN_HARNESS_MODES.has(outsideGate.harnessMode)) {
+        errors.push(`${id}: outsideUserGate has unknown harnessMode '${outsideGate.harnessMode || ''}'`);
+      }
+      for (const required of REQUIRED_OUTSIDE_AUDIENCE) {
+        if (!outsideGate.audience?.includes(required)) {
+          errors.push(`${id}: outsideUserGate.audience[] must include '${required}'`);
+        }
+      }
+      if (outsideGate.privateHarnessLeakAllowed !== false) {
+        errors.push(`${id}: outsideUserGate.privateHarnessLeakAllowed must be false`);
+      }
+      if (READY_STATUSES.has(record.status) && outsideGate.readiness !== 'ready') {
+        errors.push(`${id}: ${record.status} package must have outsideUserGate.readiness='ready'`);
+      }
+      if (outsideGate.harnessMode === 'not-public' && outsideGate.readiness === 'ready') {
+        errors.push(`${id}: outsideUserGate cannot be ready while harnessMode is not-public`);
+      }
+      if (
+        outsideGate.harnessMode === 'public-ai-ecosystem-template' &&
+        (!Array.isArray(outsideGate.requiredPublicFiles) || outsideGate.requiredPublicFiles.length === 0)
+      ) {
+        errors.push(`${id}: public-ai-ecosystem-template requires requiredPublicFiles[]`);
+      }
+      if (!outsideGate.publicEntry) {
+        errors.push(`${id}: outsideUserGate missing publicEntry`);
+      } else {
+        validatePublicFile(
+          context,
+          id,
+          'publicEntry',
+          outsideGate.publicEntry,
+          outsideGate.privateHarnessLeakAllowed,
+          errors
+        );
+      }
+      for (const publicFile of outsideGate.requiredPublicFiles || []) {
+        validatePublicFile(
+          context,
+          id,
+          'requiredPublicFiles',
+          publicFile,
+          outsideGate.privateHarnessLeakAllowed,
+          errors
+        );
       }
     }
 
@@ -262,6 +377,7 @@ function runSelfTest() {
     workspacePackages: new Set(['@holoscript/example']),
     pypiPackages: new Set(['holoscript']),
     packageScripts: new Set(['check:example']),
+    publicFiles: new Map([['README.md', 'public package docs']]),
   };
   const good = {
     schema: 'holoscript.package-stewardship/v1',
@@ -275,6 +391,14 @@ function runSelfTest() {
         constructionRole: 'Example role',
         stewardshipIntent: 'Example intent',
         userClasses: ['human', 'ai-agent'],
+        outsideUserGate: {
+          readiness: 'ready',
+          harnessMode: 'standalone',
+          audience: ['external-human', 'external-ai-agent'],
+          publicEntry: 'README.md',
+          requiredPublicFiles: [],
+          privateHarnessLeakAllowed: false,
+        },
         consumerLanes: ['laptop-windows'],
         utilityIds: ['example-utility'],
         validationScripts: ['check:example'],
@@ -288,6 +412,14 @@ function runSelfTest() {
         constructionRole: 'Python role',
         stewardshipIntent: 'Python intent',
         userClasses: ['human', 'ai-agent'],
+        outsideUserGate: {
+          readiness: 'ready',
+          harnessMode: 'standalone',
+          audience: ['external-human', 'external-ai-agent'],
+          publicEntry: 'README.md',
+          requiredPublicFiles: [],
+          privateHarnessLeakAllowed: false,
+        },
         consumerLanes: ['laptop-windows'],
         utilityIds: ['python-runtime'],
         validationScripts: ['check:example'],
@@ -300,12 +432,23 @@ function runSelfTest() {
   const bad = structuredClone(good);
   bad.packages[0].userClasses = ['human'];
   bad.packages[0].validationScripts = ['missing:script'];
+  bad.packages[0].outsideUserGate = {
+    readiness: 'ready',
+    harnessMode: 'public-ai-ecosystem-template',
+    audience: ['external-human'],
+    publicEntry: 'missing.md',
+    requiredPublicFiles: [],
+    privateHarnessLeakAllowed: true,
+  };
   bad.packages.pop();
   const result = validateStewardshipManifest(bad, context);
   assert.equal(result.ok, false);
   assert(result.errors.some((error) => error.includes("ai-agent")));
   assert(result.errors.some((error) => error.includes('missing steward record for pypi:holoscript')));
   assert(result.errors.some((error) => error.includes("unknown package script 'missing:script'")));
+  assert(result.errors.some((error) => error.includes('privateHarnessLeakAllowed')));
+  assert(result.errors.some((error) => error.includes('requiredPublicFiles')));
+  assert(result.errors.some((error) => error.includes("missing public file 'missing.md'")));
 
   console.log('[package-stewardship] self-test PASS');
 }
@@ -333,6 +476,7 @@ if (JSON_OUT) {
   for (const row of output.rows) {
     console.log(
       `[package-stewardship] ${row.registry}:${row.name} ${row.status} lanes=${row.consumerLanes.join(',')} checks=${row.validationScripts.join(',')}`
+        + ` outside=${row.outsideReadiness}/${row.harnessMode}`
     );
   }
   for (const warning of output.warnings) console.warn(`[package-stewardship] WARN: ${warning}`);

@@ -28,6 +28,9 @@ const REQUIRED_FILES = [
   'dist/brain.cjs',
   'dist/brain.d.ts',
   'dist/cli.js',
+  'templates/ai-ecosystem-basic/AGENTS.md',
+  'templates/ai-ecosystem-basic/.env.example',
+  'templates/ai-ecosystem-basic/holollama.harness.json',
 ];
 
 const EXPECTED_PROFILES = ['jetson-orin', 'laptop-windows', 'vast-linux-gpu'];

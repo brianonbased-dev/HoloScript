@@ -32,6 +32,21 @@ Profiles are operating defaults for the fleet lanes, not hardware claims:
 - `laptop-windows`: founder laptop Windows vision/tooling lane.
 - `vast-linux-gpu`: Linux GPU fleet lane.
 
+## Public `.ai-ecosystem` Harness
+
+`.ai-ecosystem` is the harness pattern for cloud frontier families and local
+agents: a small operating folder that gives agents durable rules, receipt
+commands, package entrypoints, and secret boundaries. The founder private
+`.ai-ecosystem` repo is not shipped to users.
+
+HoloLlama includes a clean-room starter at
+`templates/ai-ecosystem-basic`. Copy that folder into a new project's
+`.ai-ecosystem` when an outside human or AI agent needs a minimal HoloLlama
+operating harness. The template points agents at package commands such as
+`holollama doctor`, `holollama profiles`, `holollama lifecycle`, and
+`holollama lifecycle --live`; it does not assume founder paths, GOLD, private
+MCP keys, or local research state.
+
 Override the authored plan with flags such as `--model`, `--model-path`,
 `--host`, `--port`, `--ctx`, `--ngl`, `--parallel`, `--register-as`, `--node`,
 `--platform`, `--executable`, `--service-user`, `--grammar`, and `--vision`.

@@ -25,7 +25,8 @@
     "bin",
     "dist",
     "profiles",
-    "README.md"
+    "README.md",
+    "templates"
   ],
   "scripts": {
     "build": "tsup",

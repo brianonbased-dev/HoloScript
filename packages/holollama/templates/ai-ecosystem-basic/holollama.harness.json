@@ -1,0 +1,19 @@
+{
+  "schema": "holoscript.holollama.public-ai-ecosystem-harness/v1",
+  "package": "@holoscript/holollama",
+  "privateFounderHarness": false,
+  "defaultProfile": "jetson-orin",
+  "profiles": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+  "receiptCommands": [
+    "holollama doctor --json",
+    "holollama contract --profile jetson-orin --json",
+    "holollama preflight --profile laptop-windows --json",
+    "holollama lifecycle --profile jetson-orin --team-id local-team --json"
+  ],
+  "secretPolicy": {
+    "commitEnvFiles": false,
+    "envExampleOnly": true,
+    "forbiddenPrivateAnchors": ["founder-private", "GOLD", "wallet-seed", "OAuth cache"]
+  }
+}
+

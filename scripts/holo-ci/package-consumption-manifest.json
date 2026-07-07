@@ -79,7 +79,10 @@
         "dist/brain.js",
         "dist/brain.cjs",
         "dist/brain.d.ts",
-        "dist/cli.js"
+        "dist/cli.js",
+        "templates/ai-ecosystem-basic/AGENTS.md",
+        "templates/ai-ecosystem-basic/.env.example",
+        "templates/ai-ecosystem-basic/holollama.harness.json"
       ],
       "forbidBundledNativeAddons": true
     },

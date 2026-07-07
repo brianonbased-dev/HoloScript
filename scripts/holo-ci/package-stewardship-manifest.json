@@ -15,6 +15,14 @@
       "constructionRole": "Language substrate: parser, AST, traits, compilers, and runtime APIs.",
       "stewardshipIntent": "Keep the core package the smallest complete construction kernel that every higher package can depend on cold.",
       "userClasses": ["human", "ai-agent"],
+      "outsideUserGate": {
+        "readiness": "ready",
+        "harnessMode": "standalone",
+        "audience": ["external-human", "external-ai-agent"],
+        "publicEntry": "packages/core/README.md",
+        "requiredPublicFiles": [],
+        "privateHarnessLeakAllowed": false
+      },
       "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
       "utilityIds": ["core-language-runtime"],
       "validationScripts": [
@@ -36,6 +44,14 @@
       "constructionRole": "Agent tool gateway: MCP entrypoints, sizing profiles, and fleet dispatch tools.",
       "stewardshipIntent": "Keep MCP the universal agent access layer across laptop, Jetson, Vast, and hosted coordinators.",
       "userClasses": ["human", "ai-agent"],
+      "outsideUserGate": {
+        "readiness": "ready",
+        "harnessMode": "standalone",
+        "audience": ["external-human", "external-ai-agent"],
+        "publicEntry": "packages/mcp-server/README.md",
+        "requiredPublicFiles": [],
+        "privateHarnessLeakAllowed": false
+      },
       "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu", "hosted-service"],
       "utilityIds": [
         "agent-tool-gateway",
@@ -63,6 +79,18 @@
       "constructionRole": "Native local-LLM serving: llama.cpp planning, lifecycle receipts, and HoloMesh read-only bridge.",
       "stewardshipIntent": "Make HoloLlama the owned-metal inference package for Laptop, Jetson, and Vast rather than an Ollama-dependent side path.",
       "userClasses": ["human", "ai-agent"],
+      "outsideUserGate": {
+        "readiness": "ready",
+        "harnessMode": "public-ai-ecosystem-template",
+        "audience": ["external-human", "external-ai-agent"],
+        "publicEntry": "packages/holollama/README.md",
+        "requiredPublicFiles": [
+          "packages/holollama/templates/ai-ecosystem-basic/AGENTS.md",
+          "packages/holollama/templates/ai-ecosystem-basic/.env.example",
+          "packages/holollama/templates/ai-ecosystem-basic/holollama.harness.json"
+        ],
+        "privateHarnessLeakAllowed": false
+      },
       "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
       "utilityIds": ["native-llm-serving"],
       "validationScripts": [
@@ -84,6 +112,14 @@
       "constructionRole": "Headless agent runtime for unattended HoloMesh work.",
       "stewardshipIntent": "Give every compute lane a packageable agent process that can run work without provider custody.",
       "userClasses": ["human", "ai-agent"],
+      "outsideUserGate": {
+        "readiness": "ready",
+        "harnessMode": "standalone",
+        "audience": ["external-human", "external-ai-agent"],
+        "publicEntry": "packages/holoscript-agent/README.md",
+        "requiredPublicFiles": [],
+        "privateHarnessLeakAllowed": false
+      },
       "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
       "utilityIds": ["headless-agent-runtime"],
       "validationScripts": [
@@ -105,6 +141,14 @@
       "constructionRole": "Shared identity-keyed memory client for cross-family agents.",
       "stewardshipIntent": "Prevent memory from becoming a provider-specific lane by keeping the client package consumable everywhere.",
       "userClasses": ["human", "ai-agent"],
+      "outsideUserGate": {
+        "readiness": "ready",
+        "harnessMode": "standalone",
+        "audience": ["external-human", "external-ai-agent"],
+        "publicEntry": "packages/memory/README.md",
+        "requiredPublicFiles": [],
+        "privateHarnessLeakAllowed": false
+      },
       "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
       "utilityIds": ["sovereign-memory-client"],
       "validationScripts": [
@@ -126,6 +170,14 @@
       "constructionRole": "Human and agent command line for parse, validate, compile, and local authoring.",
       "stewardshipIntent": "Make source authoring available from every machine before specialized Studio surfaces are required.",
       "userClasses": ["human", "ai-agent"],
+      "outsideUserGate": {
+        "readiness": "ready",
+        "harnessMode": "standalone",
+        "audience": ["external-human", "external-ai-agent"],
+        "publicEntry": "packages/cli/README.md",
+        "requiredPublicFiles": [],
+        "privateHarnessLeakAllowed": false
+      },
       "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
       "utilityIds": ["language-authoring-cli"],
       "validationScripts": [
@@ -147,6 +199,14 @@
       "constructionRole": "Embodiment package for user locomotion and agent-NPC avatars.",
       "stewardshipIntent": "Keep shared worlds consumable as package code instead of one-off scene demos.",
       "userClasses": ["human", "ai-agent"],
+      "outsideUserGate": {
+        "readiness": "ready",
+        "harnessMode": "standalone",
+        "audience": ["external-human", "external-ai-agent"],
+        "publicEntry": "packages/xr-embodiment/README.md",
+        "requiredPublicFiles": [],
+        "privateHarnessLeakAllowed": false
+      },
       "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
       "utilityIds": ["xr-embodiment-runtime"],
       "validationScripts": [
@@ -168,6 +228,14 @@
       "constructionRole": "Template for turning domain knowledge into reusable HoloScript plugin packages.",
       "stewardshipIntent": "Make domain expansion repeatable for agents and human package authors without forking core.",
       "userClasses": ["human", "ai-agent"],
+      "outsideUserGate": {
+        "readiness": "ready",
+        "harnessMode": "standalone",
+        "audience": ["external-human", "external-ai-agent"],
+        "publicEntry": "packages/plugins/domain-plugin-template/README.md",
+        "requiredPublicFiles": [],
+        "privateHarnessLeakAllowed": false
+      },
       "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
       "utilityIds": [],
       "validationScripts": [
@@ -187,6 +255,14 @@
       "constructionRole": "Experimental CPU decoder seed for sovereign HoloRunner checkpoints.",
       "stewardshipIntent": "Decide whether this becomes a public construction runtime or remains a parked research package.",
       "userClasses": ["human", "ai-agent"],
+      "outsideUserGate": {
+        "readiness": "incubating",
+        "harnessMode": "not-public",
+        "audience": ["external-human", "external-ai-agent"],
+        "publicEntry": "packages/holo-runtime/README.md",
+        "requiredPublicFiles": [],
+        "privateHarnessLeakAllowed": false
+      },
       "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
       "utilityIds": [],
       "validationScripts": ["version:check:strict"],
@@ -204,6 +280,14 @@
       "constructionRole": "Python bindings for scripting, robotics, and scientific construction lanes.",
       "stewardshipIntent": "Make Python a first-class HoloScript consumption lane without splitting the source of truth.",
       "userClasses": ["human", "ai-agent"],
+      "outsideUserGate": {
+        "readiness": "ready",
+        "harnessMode": "standalone",
+        "audience": ["external-human", "external-ai-agent"],
+        "publicEntry": "packages/python-bindings/README.md",
+        "requiredPublicFiles": [],
+        "privateHarnessLeakAllowed": false
+      },
       "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
       "utilityIds": ["python-runtime-bindings"],
       "validationScripts": [
@@ -224,6 +308,14 @@
       "constructionRole": "Python trait inference utility for model-assisted source construction.",
       "stewardshipIntent": "Keep ML-assisted trait inference packageable and smokeable without making it required for core use.",
       "userClasses": ["human", "ai-agent"],
+      "outsideUserGate": {
+        "readiness": "ready",
+        "harnessMode": "standalone",
+        "audience": ["external-human", "external-ai-agent"],
+        "publicEntry": "packages/trait-inference/README.md",
+        "requiredPublicFiles": [],
+        "privateHarnessLeakAllowed": false
+      },
       "consumerLanes": ["laptop-windows", "vast-linux-gpu"],
       "utilityIds": ["trait-inference-python"],
       "validationScripts": [
