@@ -100,6 +100,20 @@ interface PlannedScannerScanPlan {
   batches: PlannedScannerBatch[];
 }
 
+interface AbsorbMemorySnapshot {
+  rssMb: number;
+  heapUsedMb: number;
+}
+
+interface AbsorbPhaseMetric extends AbsorbMemorySnapshot {
+  phase: string;
+  durationMs: number;
+  elapsedMs: number;
+  filesProcessed?: number;
+  totalFiles?: number;
+  totalSymbols?: number;
+}
+
 // Disk-cache GraphRAG warm now runs in the BACKGROUND (see ensureCachedGraph), so a
 // generous cap is safe — it no longer blocks the first tool call. 30s was far too low
 // for a ~13k-symbol repo (~130 OpenAI batches), so the warm always timed out and
@@ -125,6 +139,14 @@ function unrefTimer(timer: ReturnType<typeof setTimeout>): void {
   if (typeof timer === 'object' && timer !== null && 'unref' in timer) {
     (timer as { unref: () => void }).unref();
   }
+}
+
+function readAbsorbMemorySnapshot(): AbsorbMemorySnapshot {
+  const memory = process.memoryUsage();
+  return {
+    rssMb: Math.round(memory.rss / 1024 / 1024),
+    heapUsedMb: Math.round(memory.heapUsed / 1024 / 1024),
+  };
 }
 
 function summarizeModuleScanPlan(plan: PlannedScannerScanPlan): AbsorbScanPlanReceipt {
@@ -324,9 +346,26 @@ interface AbsorbJob {
   completedAt?: number;
   error?: string;
   result?: unknown;
+  scanPlan?: AbsorbScanPlanReceipt;
+  phaseMetrics: AbsorbPhaseMetric[];
 }
 
 const absorbJobs = new Map<string, AbsorbJob>();
+
+function setAbsorbJobScanPlan(
+  jobId: string | undefined,
+  scanPlan: AbsorbScanPlanReceipt | undefined
+): void {
+  if (!jobId || !scanPlan) return;
+  const job = absorbJobs.get(jobId);
+  if (job) job.scanPlan = scanPlan;
+}
+
+function appendAbsorbPhaseMetric(jobId: string | undefined, metric: AbsorbPhaseMetric): void {
+  if (!jobId) return;
+  const job = absorbJobs.get(jobId);
+  if (job) job.phaseMetrics.push(metric);
+}
 
 /**
  * Track absorb job progress. Updates the job state in the jobs map.
@@ -390,6 +429,7 @@ function createAbsorbJob(rootDir: string): string {
     filesProcessed: 0,
     totalFiles: 0,
     startedAt: Date.now(),
+    phaseMetrics: [],
   });
 
   // Auto-cleanup after 1 hour. Do not keep one-shot MCP verifier processes alive.
@@ -2121,6 +2161,24 @@ async function runFullScan(
   const primaryRootDir = rootDirs[0];
 
   const startTime = Date.now();
+  let phaseStartedAt = startTime;
+  const phaseMetrics: AbsorbPhaseMetric[] = [];
+  const recordPhaseMetric = (
+    phase: string,
+    details: Partial<Pick<AbsorbPhaseMetric, 'filesProcessed' | 'totalFiles' | 'totalSymbols'>> = {}
+  ): void => {
+    const now = Date.now();
+    const metric: AbsorbPhaseMetric = {
+      phase,
+      durationMs: now - phaseStartedAt,
+      elapsedMs: now - startTime,
+      ...readAbsorbMemorySnapshot(),
+      ...details,
+    };
+    phaseMetrics.push(metric);
+    appendAbsorbPhaseMetric(jobId, metric);
+    phaseStartedAt = now;
+  };
   const embeddingPolicy = buildGraphRAGEmbeddingPolicyReceipt();
 
   // FAST-HYDRATE: capture the prior on-disk envelope's git hash BEFORE
@@ -2175,6 +2233,7 @@ async function runFullScan(
         ? inlineScan.filePaths.slice(0, maxFiles)
         : inlineScan.filePaths;
       scanPlanReceipt = summarizeInlineScanPlan(selectedFilePaths.length);
+      setAbsorbJobScanPlan(jobId, scanPlanReceipt);
       scanResult = await scanner.scanFiles(primaryRootDir, selectedFilePaths, {
         includeBuildArtifacts,
         readFile: inlineScan.readFile,
@@ -2195,6 +2254,7 @@ async function runFullScan(
       };
       const scanPlan = scanner.planScan(scanOptions, scanBatchSize) as PlannedScannerScanPlan;
       scanPlanReceipt = summarizeModuleScanPlan(scanPlan);
+      setAbsorbJobScanPlan(jobId, scanPlanReceipt);
       scanResult = await scanner.scanInBatches({
         ...scanOptions,
         scanBatchSize,
@@ -2228,17 +2288,27 @@ async function runFullScan(
   } finally {
     await scanner.dispose?.();
   }
+  recordPhaseMetric('scan', {
+    filesProcessed: scanResult?.stats?.totalFiles,
+    totalFiles: scanPlanReceipt?.totalCandidateFiles,
+    totalSymbols: scanResult?.stats?.totalSymbols,
+  });
 
   if (jobId) trackAbsorbProgress(jobId, 'Building graph', 65);
 
   const graph = new CodebaseGraph();
   graph.buildFromScanResult(scanResult);
+  recordPhaseMetric('graph-build', {
+    filesProcessed: scanResult?.stats?.totalFiles,
+    totalFiles: scanPlanReceipt?.totalCandidateFiles,
+  });
 
   // HoloGraph Phase 2: map every symbol to its MNI152 brain coordinate.
   // Populates graph.nodePositions for spatial visualisation + hot/cold routing.
   if (jobId) trackAbsorbProgress(jobId, 'Mapping brain coordinates', 68);
   const brainMapper = new BrainCoordNodeMapper();
   brainMapper.populate(graph);
+  recordPhaseMetric('brain-coordinate-map');
 
   const stats = graph.getStats();
   const diagnostics =
@@ -2256,6 +2326,7 @@ async function runFullScan(
       embeddingPolicy,
       diagnostics,
       scanPlan: scanPlanReceipt,
+      phaseMetrics,
       durationMs: Date.now() - startTime,
     };
     failAbsorbJob(jobId, 'No files scanned', result.message, result);
@@ -2280,6 +2351,10 @@ async function runFullScan(
 
   graph.gitCommitHash = gitCommitHash;
   graph.fileHashes = fileHashes;
+  recordPhaseMetric('git-hash', {
+    filesProcessed: scanResult?.stats?.totalFiles,
+    totalFiles: scanPlanReceipt?.totalCandidateFiles,
+  });
 
   // Cache for subsequent queries
   cachedGraph = graph;
@@ -2300,16 +2375,23 @@ async function runFullScan(
     detectedProvider,
     localCodebaseSnapshotReceipt
   );
+  recordPhaseMetric('graph-cache-save', {
+    filesProcessed: scanResult?.stats?.totalFiles,
+    totalFiles: scanPlanReceipt?.totalCandidateFiles,
+    totalSymbols: stats.totalSymbols,
+  });
 
   if (outputFormat === 'stats') {
     if (jobId) trackAbsorbProgress(jobId, 'Complete', 100);
     const semanticIndexReadiness = buildStatsOnlySemanticIndexReceipt(primaryRootDir);
     resetGraphRAGState();
+    recordPhaseMetric('stats-response');
     const result = {
       rootDir: primaryRootDir,
       stats,
       embeddingPolicy,
       scanPlan: scanPlanReceipt,
+      phaseMetrics,
       gitCommitHash,
       diagnostics,
       graphRagReady: semanticIndexReadiness.graphRagReady,
@@ -2415,14 +2497,25 @@ async function runFullScan(
         rootDir: primaryRootDir,
         timestamp: cacheTimestamp,
       });
+      recordPhaseMetric('embedding-build', {
+        totalSymbols: stats.totalSymbols,
+      });
+    } else {
+      recordPhaseMetric('embedding-cache-hydrate', {
+        totalSymbols: stats.totalSymbols,
+      });
     }
   } catch (err) {
     console.warn(`[AbsorbEmbeddings] Full-scan GraphRAG skipped: ${String(err)}`);
     // Embedding provider may not be available
+    recordPhaseMetric('embedding-skipped', {
+      totalSymbols: stats.totalSymbols,
+    });
   }
 
   // Sync with mesh (Phase 9)
   await syncWithMesh(graph, primaryRootDir);
+  recordPhaseMetric('mesh-sync');
 
   if (jobId) trackAbsorbProgress(jobId, 'Complete', 100);
 
@@ -2435,6 +2528,7 @@ async function runFullScan(
       graph: graph.serialize(),
       embeddingPolicy,
       scanPlan: scanPlanReceipt,
+      phaseMetrics,
       gitCommitHash,
       diagnostics,
       ...(localCodebaseSnapshotReceipt && { localCodebaseSnapshotReceipt }),
@@ -2468,6 +2562,7 @@ async function runFullScan(
       interactiveScene: scene,
       embeddingPolicy,
       scanPlan: scanPlanReceipt,
+      phaseMetrics,
       gitCommitHash,
       diagnostics,
       ...(localCodebaseSnapshotReceipt && { localCodebaseSnapshotReceipt }),
@@ -3762,7 +3857,13 @@ async function handleGetAbsorbStatus(args: Record<string, unknown>): Promise<unk
     filesProcessed: job.filesProcessed,
     totalFiles: job.totalFiles,
     durationMs: Date.now() - job.startedAt,
+    memory: readAbsorbMemorySnapshot(),
+    phaseMetrics: job.phaseMetrics,
   };
+
+  if (job.scanPlan) {
+    response.scanPlan = job.scanPlan;
+  }
 
   if (job.error) {
     response.error = job.error;

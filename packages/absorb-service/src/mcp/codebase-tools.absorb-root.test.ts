@@ -165,10 +165,7 @@ async function waitForAbsorbTerminalStatus(jobId: string): Promise<Record<string
     if (status.status === 'complete' || status.status === 'error') return status;
     await new Promise((resolve) => setTimeout(resolve, 10));
   }
-  return (await handleCodebaseTool('holo_get_absorb_status', { jobId })) as Record<
-    string,
-    unknown
-  >;
+  return (await handleCodebaseTool('holo_get_absorb_status', { jobId })) as Record<string, unknown>;
 }
 
 describe('holo_absorb_repo root validation', () => {
@@ -789,6 +786,13 @@ describe('holo_absorb_repo sourceFiles upload', () => {
         priorGraphRagReady?: boolean;
         nextStep?: string;
       };
+      scanPlan?: {
+        kind?: string;
+        mode?: string;
+        totalCandidateFiles?: number;
+        batchCount?: number;
+      };
+      phaseMetrics?: Array<{ phase?: string; rssMb?: number; heapUsedMb?: number }>;
       jobId?: string;
     };
 
@@ -806,6 +810,17 @@ describe('holo_absorb_repo sourceFiles upload', () => {
     expect(result.semanticIndexReadiness?.nextStep).toContain('outputFormat "graph" or "holo"');
     expect(result.stats?.totalFiles).toBeGreaterThanOrEqual(2);
     expect(result.stats?.totalSymbols).toBeGreaterThanOrEqual(2);
+    expect(result.scanPlan).toMatchObject({
+      kind: 'AbsorbScanPlan',
+      mode: 'inline-source-files',
+      totalCandidateFiles: 3,
+      batchCount: 1,
+    });
+    expect(result.phaseMetrics?.map((metric) => metric.phase)).toEqual(
+      expect.arrayContaining(['scan', 'graph-build', 'graph-cache-save', 'stats-response'])
+    );
+    expect(result.phaseMetrics?.[0]?.rssMb).toBeGreaterThan(0);
+    expect(result.phaseMetrics?.[0]?.heapUsedMb).toBeGreaterThan(0);
 
     const semanticSearch = (await handleGraphRagTool('holo_semantic_search', {
       query: 'hello',
@@ -815,8 +830,17 @@ describe('holo_absorb_repo sourceFiles upload', () => {
 
     const status = (await handleCodebaseTool('holo_get_absorb_status', {
       jobId: result.jobId,
-    })) as { status?: string };
+    })) as {
+      status?: string;
+      scanPlan?: { mode?: string };
+      memory?: { rssMb?: number; heapUsedMb?: number };
+      phaseMetrics?: Array<{ phase?: string }>;
+    };
     expect(status.status).toBe('complete');
+    expect(status.scanPlan?.mode).toBe('inline-source-files');
+    expect(status.memory?.rssMb).toBeGreaterThan(0);
+    expect(status.memory?.heapUsedMb).toBeGreaterThan(0);
+    expect(status.phaseMetrics?.map((metric) => metric.phase)).toContain('stats-response');
   }, 15_000);
 
   it('absorbs a HoloShell LocalCodebaseSnapshotReceipt without separate sourceFiles', async () => {
