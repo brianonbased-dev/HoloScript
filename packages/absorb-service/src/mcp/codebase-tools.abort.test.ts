@@ -15,11 +15,15 @@ import {
 
 const originalCacheDir = process.env.HOLOSCRIPT_CACHE_DIR;
 const originalMcpKey = process.env.HOLOSCRIPT_API_KEY;
+const originalLegacyMcpKey = process.env.MCP_API_KEY;
+const originalHoloscriptMcpKey = process.env.HOLOSCRIPT_MCP_API_KEY;
 const originalMcpClientId = process.env.HOLOSCRIPT_MCP_CLIENT_ID;
 const originalMcpClientSecret = process.env.HOLOSCRIPT_MCP_CLIENT_SECRET;
 
 describe('codebase MCP abort behavior', () => {
   beforeEach(() => {
+    delete process.env.MCP_API_KEY;
+    delete process.env.HOLOSCRIPT_MCP_API_KEY;
     configureConfigSecretResolver({
       async resolve(nameOrRef: string) {
         return process.env[nameOrRef];
@@ -42,6 +46,16 @@ describe('codebase MCP abort behavior', () => {
       delete process.env.HOLOSCRIPT_API_KEY;
     } else {
       process.env.HOLOSCRIPT_API_KEY = originalMcpKey;
+    }
+    if (originalLegacyMcpKey === undefined) {
+      delete process.env.MCP_API_KEY;
+    } else {
+      process.env.MCP_API_KEY = originalLegacyMcpKey;
+    }
+    if (originalHoloscriptMcpKey === undefined) {
+      delete process.env.HOLOSCRIPT_MCP_API_KEY;
+    } else {
+      process.env.HOLOSCRIPT_MCP_API_KEY = originalHoloscriptMcpKey;
     }
     if (originalMcpClientId === undefined) {
       delete process.env.HOLOSCRIPT_MCP_CLIENT_ID;

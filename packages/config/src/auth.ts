@@ -109,13 +109,18 @@ export async function resolveConfigSecret(nameOrRef: string): Promise<string> {
 /** HoloScript platform API key (used for orchestrator tool calls and knowledge sync) */
 export function getMcpApiKey(): string {
   assertServer('getMcpApiKey');
-  return process.env.HOLOSCRIPT_API_KEY || process.env.MCP_API_KEY || '';
+  return (
+    process.env.MCP_API_KEY ||
+    process.env.HOLOSCRIPT_MCP_API_KEY ||
+    process.env.HOLOSCRIPT_API_KEY ||
+    ''
+  );
 }
 
 /** HoloScript platform API key via HoloKey when configured, else env fallback. */
 export async function getMcpApiKeyAsync(): Promise<string> {
   assertServer('getMcpApiKeyAsync');
-  return resolveFirstSecret(['HOLOSCRIPT_API_KEY', 'MCP_API_KEY']);
+  return resolveFirstSecret(['MCP_API_KEY', 'HOLOSCRIPT_MCP_API_KEY', 'HOLOSCRIPT_API_KEY']);
 }
 
 /** HoloMesh agent API key (holomesh_sk_* format) */
