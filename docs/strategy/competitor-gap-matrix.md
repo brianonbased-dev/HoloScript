@@ -35,6 +35,9 @@
 | CG-057 | Creator economy / on-chain assets | OpenSea / NFT Marketplaces | 🟢 P3 | watch | 👁️ Watch | NFT marketplace — WATCH + BUILD-INTERNAL (HoloScript Protocol is the sovereign answer) |
 | CG-058 | Phone-sleeve VR (sovereign revival) | Google Cardboard / phone-sleeve VR category | 🟡 P2 | differentiator | 👁️ Watch | PhoneSleeveVR sovereign revival — compiler exists, no product or marketing yet |
 | CG-073 | W.501 live MCP compile/generate surface coverage | Vercel v0 / Lovable / Bolt / Subframe / specialist SDK ecosystems | 🟡 P2 | differentiator | 👁️ Watch | W.501 live MCP compile/generate and substrate-tool coverage row prevents unconsumed tool surfaces |
+| CG-074 | AI prompt-to-app / prompt-to-3D creation platforms | Omma (by Spline) | 🟠 P1 | catch-up | 🚧 In Progress | Studio creation-UX + inline multi-format asset generation parity with Omma's describe→interactive-3D-in-seconds |
+| CG-075 | AI prompt-to-app / prompt-to-3D creation platforms | Omma (by Spline) | 🟠 P1 | differentiator | 👁️ Watch | Productize parallel-agent fan-out in Studio — and target multiple compile targets, not just pages |
+| CG-076 | AI prompt-to-app / prompt-to-3D creation platforms | Omma (by Spline) | 🟠 P1 | differentiator | 🚧 In Progress | Multi-target + open + provenance moat vs Omma's browser-only closed SaaS (WebGPU is now table stakes) |
 
 ## Detailed Gap Descriptions
 
@@ -870,3 +873,93 @@ Rerun W.501 monthly. Promote dedicated rows when a family needs product motion (
 - https://lovable.dev/guides/best-ai-app-builders
 - packages/mcp-server/src/handlers.ts
 - packages/mcp-server/src/compiler-tools.ts
+
+### CG-074 — Studio creation-UX + inline multi-format asset generation parity
+
+- **Vertical:** AI prompt-to-app / prompt-to-3D creation platforms
+- **Competitor:** Omma (by Spline)
+- **Severity:** P1
+- **Direction:** catch-up
+- **Status:** in-progress
+- **Board Task:** (unfiled — created 2026-07-08)
+
+**Competitor Advantage:**
+Omma turns a single natural-language prompt into a running, animated interactive 3D/web experience in seconds, with a code explorer for hand-edits. It generates images, video, 3D models, PBR materials, music, and sound effects **inline in the same creation flow**, ingests real data (CSV/JSON/DOC/GLB/OBJ/PNG/SVG/MP4/GLTF), and deploys to a public URL / custom domain, mobile-responsive by default. It is built by Spline (established 3D-design brand) and markets native WebGPU. This is the polished describe→delight loop HoloScript Studio does not yet match.
+
+**HoloScript State:**
+Studio `/vibe` is beta; time-to-first-delight is slower and there is **no inline multi-format asset-generation surface** (no image/video/3D/PBR/music/SFX generation woven into the creation flow). `generate_*` MCP tools exist (generate_scene/object/world/3d_object/semantic_ui) but are not surfaced as a single Omma-style creation moment, and audio/video generation compile targets are missing entirely (see `docs/native-engine-registry.md` gap list: no audio/DSP compiler, no video/media compiler).
+
+**Needed Response:**
+1. Collapse `/vibe` time-to-wow: one prompt → running animated result + code explorer for hand-edits. 2. Wire inline asset generation into the creation flow (route existing `generate_*` + media tools; build the missing audio and video compilers). 3. Surface creation-moment data binding (`.hs` pipelines + Absorb) inside Studio, not as a separate builder. 4. One-click deploy (public URL / custom domain) on the already-wired sovereign WebGPU preview path (`/scene/:id?renderer=webgpu`).
+
+**Evidence:**
+- Omma docs: prompt → runnable HTML/CSS/JS + React/JSX with live preview; deploy to public URL/collab/custom domain.
+- Omma product: inline generation of images, video, 3D models, PBR, music, SFX; data ingest across 9+ formats.
+- Missing native compilers: `docs/native-engine-registry.md` (audio/DSP, video/media gaps).
+- Studio surface: `packages/studio/` (`/vibe`, `/create`).
+
+**Sources:**
+- https://omma.build/
+- https://omma.build/docs/getting-started/introduction
+- docs/strategy/battlecards/omma.md
+- docs/native-engine-registry.md
+- packages/studio/
+
+### CG-075 — Productize parallel-agent fan-out in Studio (across compile targets, not just pages)
+
+- **Vertical:** AI prompt-to-app / prompt-to-3D creation platforms
+- **Competitor:** Omma (by Spline)
+- **Severity:** P1
+- **Direction:** differentiator
+- **Status:** watch
+- **Board Task:** (unfiled — created 2026-07-08)
+
+**Competitor Advantage:**
+Omma sells parallel-agent fan-out as a visible feature: a single prompt can fan out **up to 100 agents in parallel, each building its own page**, with code/images/3D/data produced simultaneously. This is a concrete, marketed creation-UX advantage that reads as "watch it build everything at once."
+
+**HoloScript State:**
+HoloScript has deeper multi-agent infrastructure than Omma exposes — HoloMesh, subagents, negotiation, board/economy — but has **not productized creation-time fan-out inside Studio**. The parallelism is agent-ops plumbing, not a user-visible "fan out N builders" creation feature.
+
+**Needed Response:**
+Surface fan-out in Studio as a first-class creation feature — but make it a *differentiator*, not a copy: HoloScript fan-out can target **different compile targets simultaneously** (one prompt → a Unity build, a WebGPU preview, a robot URDF, and a service, in parallel), runs on **open, model-agnostic** infra (any frontier model via MCP), and each agent's output carries provenance. Frame: "Omma fans out agents to build pages; HoloScript fans out agents to build *platforms*."
+
+**Evidence:**
+- Omma: "a single prompt can fan out up to 100 agents in parallel — each building its own page" (omma.build docs).
+- HoloScript agent infra: `packages/mesh/` (HoloMesh), subagent/negotiation surfaces, `packages/studio/`.
+- Multi-target basis: `packages/core/src/compiler/sovereign-targets.ts` (40+ `ExportTarget`s).
+
+**Sources:**
+- https://omma.build/docs/getting-started/introduction
+- docs/strategy/battlecards/omma.md
+- packages/mesh/
+- packages/core/src/compiler/sovereign-targets.ts
+
+### CG-076 — Multi-target + open + provenance moat vs Omma's browser-only closed SaaS
+
+- **Vertical:** AI prompt-to-app / prompt-to-3D creation platforms
+- **Competitor:** Omma (by Spline)
+- **Severity:** P1
+- **Direction:** differentiator
+- **Status:** in-progress
+- **Board Task:** (unfiled — created 2026-07-08)
+
+**Competitor Advantage:**
+Omma is fast, polished, and design-branded, and it now markets **native WebGPU + parallel agents** — the same two headlines HoloScript has leaned on. WebGPU as a differentiator is therefore neutralized; leading against Omma with the sovereign renderer alone no longer lands.
+
+**HoloScript State:**
+HoloScript's real, defensible moat is the layer Omma structurally lacks: (1) **multi-target compilation** — one `.holo` source → 40+ targets (Unity/Unreal/Godot/visionOS/OpenXR/robotics/native + web), where Omma outputs a single browser web app; (2) **open + sovereign** — MIT, self-hostable, your-data-yours vs Omma's closed Spline-hosted SaaS; (3) **model-agnostic** — any frontier model plugs in via MCP vs proprietary orchestration; (4) **provenance/verification** — SimulationContract, CAEL hash-chain, unit checks, replay vs none; (5) **domain reach** — robotics/simulation/neuromorphic/scientific/digital-twin vs web/design/3D only; (6) **protocol not product** — external agents build *on* HoloScript via MCP.
+
+**Needed Response:**
+1. Re-message Studio/marketing against Omma: lead with multi-target + open + provenance + domain reach; treat WebGPU as table stakes. 2. Ship a head-to-head "same prompt, where it can go next" demo: identical brief → Omma stops at a browser app; HoloScript compiles it to browser + Quest + Unity + robot + service. 3. Update `docs/marketing/positioning.md` and the sovereign-vs-bridge promotion surface so the moat, not the renderer, is the headline. 4. Keep the WebGPU claim honest — it is parity, not advantage.
+
+**Evidence:**
+- Omma output scope: browser web app (HTML/CSS/JS/React); no disclosed export to Unity/Three.js/native (open user question at launch).
+- Omma "native WebGPU + parallel agents" maker quote — Product Hunt.
+- HoloScript moat: `sovereign-targets.ts` (multi-target), `LICENSE` (MIT), `@holoscript/llm-provider` (model-agnostic), CAEL/SimulationContract (provenance).
+
+**Sources:**
+- https://omma.build/
+- https://www.producthunt.com/products/omma
+- docs/strategy/battlecards/omma.md
+- packages/core/src/compiler/sovereign-targets.ts
+- docs/marketing/positioning.md
