@@ -107,6 +107,18 @@ keyword `ILIKE` recall and does not require it).
 All queries are parameterized (injection-safe). Cloud / non-LAN seats that cannot
 reach the Postgres directly should use a separate orchestrator/API fallback.
 
+## Consumption Contract
+
+External users, founder reviewers, and agent operators bring their own Postgres,
+workspace id, credentials, vault/env provider, schema migration, and fallback API
+if direct DB access is not available. This package does not ship founder-local
+paths, private database state, GOLD intake, Jetson defaults, or local hardware as
+mandatory state.
+
+Agent-operable evidence: run `pnpm --filter @holoscript/memory test`, run a
+package public-consumption validation check, and attach the validation receipt or
+report before promoting a memory integration.
+
 ## Support
 
 `v0-preview` — the API surface above is stable for the documented single-table
