@@ -379,6 +379,7 @@ export { PathTracerCompiler, type PathTracerOptions } from './compiler/PathTrace
 export { CpuPathTracer, type CpuRenderOptions, type CpuImage } from './compiler/CpuPathTracer';
 export { MediaPipelineCompiler, type MediaOptions, type MediaClip } from './compiler/MediaPipelineCompiler';
 export { ComputePhysicsCompiler, type PhysicsSimOptions } from './compiler/ComputePhysicsCompiler';
+export { SVGCompiler, type SVGCompilerOptions, type SVGCompilationResult } from './compiler/SVGCompiler';
 // BabylonCompiler, ThreeJSCompiler — retired 2026-06-17 (apex-poison; see idea-seeds.md)
 export {
   AndroidXRCompiler,

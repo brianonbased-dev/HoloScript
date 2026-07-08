@@ -97,6 +97,15 @@ function objProp(node: HoloObjectDecl, key: string): HoloValue | undefined {
 }
 
 /**
+ * An "edge" object connects two named nodes (a decision-network connector), rendered as
+ * an arrowed line rather than a shape. Authored as geometry/type edge|link|arrow|connector.
+ */
+function isEdgeObject(node: HoloObjectDecl): boolean {
+  const g = (toString(objProp(node, 'geometry'), '') || toString(objProp(node, 'type'), '')).toLowerCase();
+  return g === 'edge' || g === 'link' || g === 'arrow' || g === 'connector';
+}
+
+/**
  * Find a trait by name on a HoloObjectDecl (strips leading @ if present).
  */
 function findTrait(node: HoloObjectDecl, name: string): HoloObjectTrait | undefined {
@@ -274,15 +283,18 @@ export class SVGCompiler extends CompilerBase {
       `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">`
     );
 
-    // ── <defs> — radialGradients for lights ──────────────────────────────
+    // ── <defs> — arrowhead marker (for decision-network edges) + light gradients ──
     const lights = composition.lights ?? [];
+    lines.push(`${indent}<defs>`);
+    lines.push(
+      `${indent}  <marker id="holo-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#8aa0b4" /></marker>`
+    );
     if (this.opts.renderLights && lights.length > 0) {
-      lines.push(`${indent}<defs>`);
       for (const light of lights) {
         lines.push(this.compileLightDef(light, indent + indent, originX, originY));
       }
-      lines.push(`${indent}</defs>`);
     }
+    lines.push(`${indent}</defs>`);
 
     // ── Background ───────────────────────────────────────────────────────
     if (this.opts.background) {
@@ -304,8 +316,24 @@ export class SVGCompiler extends CompilerBase {
       lines.push(...groupLines);
     }
 
+    // ── Decision-network edges (drawn UNDER the nodes so arrows tuck behind) ──
+    const objects = composition.objects ?? [];
+    const nodeCenters = new Map<string, { x: number; y: number }>();
+    for (const obj of objects) {
+      if (isEdgeObject(obj)) continue;
+      const p = resolvePosition(obj);
+      nodeCenters.set(obj.name, {
+        x: projectX(p.x, this.opts.scale, originX),
+        y: projectY(p.z, this.opts.scale, originY),
+      });
+    }
+    for (const obj of objects) {
+      if (isEdgeObject(obj)) lines.push(this.compileEdge(obj, nodeCenters, indent));
+    }
+
     // ── Top-level objects (each recurses into its own children) ──────────
-    for (const obj of composition.objects ?? []) {
+    for (const obj of objects) {
+      if (isEdgeObject(obj)) continue;
       lines.push(...this.compileObject(obj, indent, originX, originY));
     }
 
@@ -455,6 +483,21 @@ export class SVGCompiler extends CompilerBase {
         default: out.push(this.compileUnknown(node, svgX, svgY, fill, indent, dataAttr, accX, accZ)); break;
       }
     }
+    // Receipt-bound node text: a decision node renders its `label` and, beneath it, its
+    // `receipt` (the evidence — commit hash, verdict, test) so the proof rides on the node.
+    const nodeLabel = toString(objProp(node, 'label'), '');
+    if (nodeLabel && shapeHint !== 'text') {
+      const receipt = toString(objProp(node, 'receipt'), '');
+      const ly = receipt ? svgY - 5 : svgY;
+      out.push(
+        `${indent}<text x="${svgX.toFixed(1)}" y="${ly.toFixed(1)}" fill="#f2f6f8" font-size="12" font-weight="600" font-family="sans-serif" text-anchor="middle" dominant-baseline="middle" ${dataAttr}>${escapeText(nodeLabel)}</text>`
+      );
+      if (receipt) {
+        out.push(
+          `${indent}<text x="${svgX.toFixed(1)}" y="${(svgY + 11).toFixed(1)}" fill="#c8e6d0" font-size="8.5" font-family="monospace" text-anchor="middle" dominant-baseline="middle">${escapeText(receipt)}</text>`
+        );
+      }
+    }
     for (const child of children) {
       out.push(...this.compileObject(child, indent, originX, originY, worldX, worldZ, accX * Math.abs(own.x), accZ * Math.abs(own.z)));
     }
@@ -565,6 +608,25 @@ export class SVGCompiler extends CompilerBase {
     const content = toString(objProp(node, 'text') ?? objProp(node, 'value') ?? objProp(node, 'label'), node.name);
     const fontSize = toNumber(objProp(node, 'fontSize') ?? objProp(node, 'font_size') ?? objProp(node, 'size'), 14);
     return `${indent}<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" fill="${escapeAttr(fill)}" font-size="${fontSize}" text-anchor="middle" dominant-baseline="middle" ${dataAttr}>${escapeText(content)}</text>`;
+  }
+
+  /** Edge → arrowed line between two named nodes' centres (a decision-network connector). */
+  private compileEdge(
+    node: HoloObjectDecl,
+    centers: Map<string, { x: number; y: number }>,
+    indent: string
+  ): string {
+    // `from` is a reserved parser keyword and gets dropped — accept source/start too.
+    const from = toString(objProp(node, 'source') ?? objProp(node, 'from') ?? objProp(node, 'start'), '');
+    const to = toString(objProp(node, 'target') ?? objProp(node, 'to') ?? objProp(node, 'end'), '');
+    const a = centers.get(from);
+    const b = centers.get(to);
+    if (!a || !b) {
+      return `${indent}<!-- edge ${escapeText(from)} -> ${escapeText(to)}: endpoint not found -->`;
+    }
+    this.elementCount++;
+    const stroke = resolveColor(node, '#8aa0b4');
+    return `${indent}<line x1="${a.x.toFixed(1)}" y1="${a.y.toFixed(1)}" x2="${b.x.toFixed(1)}" y2="${b.y.toFixed(1)}" stroke="${escapeAttr(stroke)}" stroke-width="1.6" marker-end="url(#holo-arrow)" data-holo-edge="${escapeAttr(from + '->' + to)}" />`;
   }
 
   private compileUnknown(

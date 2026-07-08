@@ -91,3 +91,39 @@ describe('SVGCompiler — nested geometry projection', () => {
     expect(cx).toBeCloseTo(464, 0);
   });
 });
+
+describe('SVGCompiler — decision-network cognition surface', () => {
+  it('renders a receipt-bound node: label + receipt text ride on the shape', () => {
+    const svg = new SVGCompiler({ background: false }).compile(
+      composition([obj('N', { geometry: 'box', position: [0, 0, 0], scale: [4, 1, 1.4], label: 'Material realism', receipt: 'commit 5ecb0d48b' })]) as never,
+      ''
+    ).svg;
+    expect(svg).toContain('>Material realism<'); // label
+    expect(svg).toContain('>commit 5ecb0d48b<'); // receipt rides on the node
+  });
+
+  it('renders an edge between two named nodes as an arrowed line (source/target)', () => {
+    const svg = new SVGCompiler({ background: false }).compile(
+      composition([
+        obj('A', { geometry: 'box', position: [0, 0, -2], scale: [4, 1, 1] }),
+        obj('B', { geometry: 'box', position: [0, 0, 2], scale: [4, 1, 1] }),
+        obj('e', { geometry: 'edge', source: 'A', target: 'B' }),
+      ]) as never,
+      ''
+    ).svg;
+    expect(svg).toContain('marker-end="url(#holo-arrow)"');
+    expect(svg).toContain('data-holo-edge="A-&gt;B"');
+    expect(svg).not.toContain('endpoint not found'); // both endpoints resolved
+  });
+
+  it('an edge to a missing node fails visibly (a comment), never a silent skip', () => {
+    const svg = new SVGCompiler({ background: false }).compile(
+      composition([
+        obj('A', { geometry: 'box', position: [0, 0, 0], scale: [4, 1, 1] }),
+        obj('e', { geometry: 'edge', source: 'A', target: 'Ghost' }),
+      ]) as never,
+      ''
+    ).svg;
+    expect(svg).toContain('endpoint not found');
+  });
+});
