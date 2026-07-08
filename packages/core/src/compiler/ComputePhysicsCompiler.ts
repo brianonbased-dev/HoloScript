@@ -170,7 +170,10 @@ fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
   var b = bin[i];
   var pos = b.pos.xyz; var vel = b.vel.xyz; let r = b.pos.w;
   let rest = b.params.x; let fric = b.params.y;
+  // Semi-implicit Euler: integrate velocity, MOVE, THEN resolve contacts — so a body
+  // never ends a step sunk into another (the "fall through the floor then bounce" bug).
   vel.y += u.gravity * u.dt;
+  pos = pos + vel * u.dt;
   // sphere <-> sphere (gather: read others' PREVIOUS state, write only self)
   for (var j = 0u; j < u.nbodies; j = j + 1u) {
     if (j == i) { continue; }
@@ -186,24 +189,41 @@ fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
       if (vn < 0.0) { vel = vel - n * vn * (1.0 + rest); } // reflect approaching component
     }
   }
-  // sphere <-> static AABB (closest-point test)
+  // sphere <-> static AABB — real contact: eject the sphere so it rests ON the surface.
   for (var s = 0u; s < u.nstatics; s = s + 1u) {
     let a = statics[s];
-    let cp = clamp(pos, a.mn.xyz, a.mx.xyz);
-    let d = pos - cp;
-    let dist = length(d);
-    if (dist < r) {
-      var n = vec3<f32>(0.0, 1.0, 0.0);
-      if (dist > 1e-4) { n = d / dist; }
-      pos = pos + n * (r - dist);
+    let inside = all(pos >= a.mn.xyz) && all(pos <= a.mx.xyz);
+    if (inside) {
+      // Center penetrated the box (deep hit / tunnelling): push out along the axis of
+      // LEAST penetration — the closest-point test degenerates to zero here.
+      let dl = pos - a.mn.xyz;   // gaps to the min faces
+      let dh = a.mx.xyz - pos;   // gaps to the max faces
+      var m = dl.x; var n = vec3<f32>(-1.0, 0.0, 0.0);
+      if (dh.x < m) { m = dh.x; n = vec3<f32>(1.0, 0.0, 0.0); }
+      if (dl.y < m) { m = dl.y; n = vec3<f32>(0.0, -1.0, 0.0); }
+      if (dh.y < m) { m = dh.y; n = vec3<f32>(0.0, 1.0, 0.0); }
+      if (dl.z < m) { m = dl.z; n = vec3<f32>(0.0, 0.0, -1.0); }
+      if (dh.z < m) { m = dh.z; n = vec3<f32>(0.0, 0.0, 1.0); }
+      pos = pos + n * (m + r);
       let vn = dot(vel, n);
       if (vn < 0.0) { vel = vel - n * vn * (1.0 + rest); }
-      // tangential friction
       let vt = vel - n * dot(vel, n);
       vel = vel - vt * clamp(fric, 0.0, 1.0);
+    } else {
+      // Center outside the box: closest-point-on-AABB contact.
+      let cp = clamp(pos, a.mn.xyz, a.mx.xyz);
+      let d = pos - cp;
+      let dist = length(d);
+      if (dist < r && dist > 1e-5) {
+        let n = d / dist;
+        pos = pos + n * (r - dist);
+        let vn = dot(vel, n);
+        if (vn < 0.0) { vel = vel - n * vn * (1.0 + rest); }
+        let vt = vel - n * dot(vel, n);
+        vel = vel - vt * clamp(fric, 0.0, 1.0);
+      }
     }
   }
-  pos = pos + vel * u.dt;
   bout[i] = Body(vec4<f32>(pos, r), vec4<f32>(vel, b.vel.w), b.params, b.color);
 }
 "#;
