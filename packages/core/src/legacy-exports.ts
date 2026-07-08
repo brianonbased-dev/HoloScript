@@ -373,6 +373,7 @@ export {
   type PhysicsWorld,
   type PhysicsCollider,
 } from './compiler/PhysicsColliderCompiler';
+export { SpatialAudioCompiler, type AudioSceneModel } from './compiler/SpatialAudioCompiler';
 // BabylonCompiler, ThreeJSCompiler — retired 2026-06-17 (apex-poison; see idea-seeds.md)
 export {
   AndroidXRCompiler,

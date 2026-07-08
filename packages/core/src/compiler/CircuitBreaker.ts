@@ -57,6 +57,7 @@ export type ExportTarget =
   | 'ios' // iOS ARKit
   | 'visionos' // Apple Vision Pro
   | 'webgpu' // WebGPU API
+  | 'audio' // Sovereign spatial-audio: our own Web Audio graph (HRTF/PannerNode/Convolver), no third-party audio engine
   | 'character-webgpu' // Native-WebGPU skinned CHARACTER (.holo body/skeleton/materials → CharacterDrawSpec, sovereign)
   | 'wasm' // WebAssembly
   | 'sdk' // Typed client SDK generated from service-contract AST

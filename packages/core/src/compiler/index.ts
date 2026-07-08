@@ -89,6 +89,8 @@ export { WebGPUCompiler } from './WebGPUCompiler';
 export type { WebGPUCompilerOptions } from './WebGPUCompiler';
 export { PhysicsColliderCompiler } from './PhysicsColliderCompiler';
 export type { PhysicsWorld, PhysicsCollider } from './PhysicsColliderCompiler';
+export { SpatialAudioCompiler } from './SpatialAudioCompiler';
+export type { AudioSceneModel } from './SpatialAudioCompiler';
 
 // Platform-conditional compilation (public facade for Adaptive Platform Layers)
 export {

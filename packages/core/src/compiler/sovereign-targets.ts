@@ -29,6 +29,7 @@ import type { ExportTarget } from './CircuitBreaker';
  */
 export const SOVEREIGN_TARGETS = [
   'webgpu', // WebGPUCompiler → WGSL compute+render shaders on our own WebGPU device (WebGPURenderer)
+  'audio', // SpatialAudioCompiler → our own Web Audio graph (HRTF PannerNode + Convolver reverb + filters); no third-party audio engine
   'character-webgpu', // CharacterWebGPUCompiler → authored .holo character → CharacterDrawSpec run by our renderCharacter (sovereign skinned-character path)
   'nir', // NIRCompiler → our Neuromorphic IR; NIRToWGSLCompiler runs it on our WebGPU path
   'canvas2d-game', // Canvas2DGameCompiler → self-contained canvas game runtime (loop/physics/WebAudio)
@@ -256,6 +257,16 @@ export const SOVEREIGN_ENGINES = [
     tests: true,
     promoted: false,
     note: 'Signed-distance-field → raymarch WGSL/GLSL. Native GPU renderer codegen.',
+  },
+  {
+    id: 'spatial-audio',
+    name: 'SpatialAudioCompiler',
+    file: 'packages/core/src/compiler/SpatialAudioCompiler.ts',
+    kind: 'compiler',
+    maturity: 'real',
+    tests: true,
+    promoted: false,
+    note: 'The audio peer of WebGPU: emits our OWN Web Audio graph (HRTF PannerNode + Convolver reverb from synthesized rt60 impulses + directivity/occlusion/portal filters) from @audio_source/@audio_listener/@reverb_zone/@audio_material/@audio_occlusion/@audio_portal traits. Sovereign — no FMOD/Wwise/Resonance. Fills the #1 spatial-computing gap (no audio compiler existed).',
   },
 ] as const;
 

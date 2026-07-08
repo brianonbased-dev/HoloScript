@@ -1996,6 +1996,7 @@ async function main(): Promise<void> {
         'scm-dag',
         'uaal',
         'physics',
+        'audio',
       ];
 
       if (!validTargets.includes(target)) {
@@ -2954,6 +2955,40 @@ async function main(): Promise<void> {
             const jsonPath = outPath.endsWith('.json') ? outPath : outPath + '.json';
             writeCompileOutputFile(jsonPath, output);
             console.log(`\x1b[32m✓ Collider set written to ${jsonPath}\x1b[0m`);
+          } else {
+            console.log(output);
+          }
+          process.exit(0);
+        }
+
+        // Spatial-audio target — the audio peer of WebGPU. Emits a self-contained,
+        // sovereign Web Audio graph builder module (HRTF listener + positional sources
+        // + convolver reverb + occlusion/portal filters) from the .holo's audio traits.
+        if (target === 'audio') {
+          if (!isHolo) {
+            console.error(`\x1b[31mError: audio compilation requires .holo files.\x1b[0m`);
+            process.exit(1);
+          }
+          const { HoloCompositionParser, SpatialAudioCompiler } = await import('@holoscript/core');
+          const compositionParser = new HoloCompositionParser();
+          const parseResult = compositionParser.parse(content);
+          if (!parseResult.success || !parseResult.ast) {
+            console.error(`\x1b[31mError parsing for audio:\x1b[0m`);
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
+            process.exit(1);
+          }
+          const compiler = new SpatialAudioCompiler();
+          const model = compiler.compileToModel(parseResult.ast);
+          const output = compiler.compile(parseResult.ast);
+          console.log(`\x1b[32m✓ audio compilation successful!\x1b[0m`);
+          console.log(
+            `\x1b[2m  Sources: ${model.sources.length}  Reverb zones: ${model.zones.length}  Acoustic surfaces: ${model.surfaces.length}  Portals: ${model.portals.length}\x1b[0m`
+          );
+          if (options.output) {
+            const outPath = path.resolve(options.output);
+            const jsPath = outPath.endsWith('.js') || outPath.endsWith('.mjs') ? outPath : outPath + '.mjs';
+            writeCompileOutputFile(jsPath, output);
+            console.log(`\x1b[32m✓ Web Audio graph module written to ${jsPath}\x1b[0m`);
           } else {
             console.log(output);
           }
