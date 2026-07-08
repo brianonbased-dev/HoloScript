@@ -44,6 +44,10 @@ export interface PhysicsSimOptions {
   steps?: number;
   dt?: number;
   gravity?: number;
+  /** Capture a frame every N sim steps into the output APNG animation (default 2). */
+  captureEvery?: number;
+  /** APNG playback frame rate (default 30). */
+  fps?: number;
 }
 
 const DYNAMIC_TRAITS = new Set(['rigid_body', 'rigidbody', 'dynamic', 'physics_body']);
@@ -55,13 +59,17 @@ export class ComputePhysicsCompiler {
   private steps: number;
   private dt: number;
   private gravity: number;
+  private captureEvery: number;
+  private fps: number;
 
   constructor(opts: PhysicsSimOptions = {}) {
     this.width = opts.width ?? 800;
     this.height = opts.height ?? 600;
-    this.steps = opts.steps ?? 180;
+    this.steps = opts.steps ?? 240;
     this.dt = opts.dt ?? 1 / 60;
     this.gravity = opts.gravity ?? -9.81;
+    this.captureEvery = Math.max(1, opts.captureEvery ?? 2);
+    this.fps = opts.fps ?? 30;
   }
 
   compileProject(composition: HoloComposition): Record<string, string> {
@@ -119,6 +127,8 @@ use bytemuck::{Pod, Zeroable};
 const WIDTH: u32 = ${this.width};
 const HEIGHT: u32 = ${this.height};
 const STEPS: u32 = ${this.steps};
+const CAPTURE_EVERY: u32 = ${this.captureEvery};
+const FPS: u16 = ${this.fps};
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
@@ -254,34 +264,7 @@ async fn run() {
     let bind_ab = bind(&buf_a, &buf_b);
     let bind_ba = bind(&buf_b, &buf_a);
 
-    let mut enc = device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
-    for step in 0..STEPS {
-        let mut cp = enc.begin_compute_pass(&wgpu::ComputePassDescriptor { label: None, timestamp_writes: None });
-        cp.set_pipeline(&sim_pipe);
-        cp.set_bind_group(0, if step % 2 == 0 { &bind_ab } else { &bind_ba }, &[]);
-        cp.dispatch_workgroups(((BODIES.len() as u32) + 63) / 64, 1, 1);
-    }
-    queue.submit(Some(enc.finish()));
-    // Final state lives in buf_a if STEPS even, else buf_b.
-    let final_buf = if STEPS % 2 == 0 { &buf_a } else { &buf_b };
-
-    // Read back final body state (numeric proof the sim ran).
-    let read = device.create_buffer(&wgpu::BufferDescriptor { label: Some("read"), size: body_size, usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ, mapped_at_creation: false });
-    let mut e2 = device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
-    e2.copy_buffer_to_buffer(final_buf, 0, &read, 0, body_size);
-    queue.submit(Some(e2.finish()));
-    let slice = read.slice(..);
-    let (tx, rx) = std::sync::mpsc::channel();
-    slice.map_async(wgpu::MapMode::Read, move |r| tx.send(r).unwrap());
-    device.poll(wgpu::Maintain::Wait);
-    rx.recv().unwrap().unwrap();
-    let finals: Vec<Body> = bytemuck::cast_slice(&slice.get_mapped_range()).to_vec();
-    read.unmap();
-    for (i, b) in finals.iter().enumerate() {
-        println!("BODY {} final pos [{:.3}, {:.3}, {:.3}] vel_y {:.3}", i, b.pos[0], b.pos[1], b.pos[2], b.vel[1]);
-    }
-
-    // ── Render the settled state ─────────────────────────────────────────────
+    // ── Render setup (reused every captured frame) ────────────────────────────
     let color_tex = device.create_texture(&wgpu::TextureDescriptor { label: Some("c"), size: wgpu::Extent3d { width: WIDTH, height: HEIGHT, depth_or_array_layers: 1 }, mip_level_count: 1, sample_count: 1, dimension: wgpu::TextureDimension::D2, format: wgpu::TextureFormat::Rgba8UnormSrgb, usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC, view_formats: &[] });
     let color_view = color_tex.create_view(&wgpu::TextureViewDescriptor::default());
     let depth_tex = device.create_texture(&wgpu::TextureDescriptor { label: Some("d"), size: wgpu::Extent3d { width: WIDTH, height: HEIGHT, depth_or_array_layers: 1 }, mip_level_count: 1, sample_count: 1, dimension: wgpu::TextureDimension::D2, format: wgpu::TextureFormat::Depth32Float, usage: wgpu::TextureUsages::RENDER_ATTACHMENT, view_formats: &[] });
@@ -295,71 +278,112 @@ async fn run() {
         primitive: wgpu::PrimitiveState { topology: wgpu::PrimitiveTopology::TriangleList, cull_mode: Some(wgpu::Face::Back), ..Default::default() },
         depth_stencil: Some(wgpu::DepthStencilState { format: wgpu::TextureFormat::Depth32Float, depth_write_enabled: true, depth_compare: wgpu::CompareFunction::Less, stencil: Default::default(), bias: Default::default() }),
         multisample: wgpu::MultisampleState::default(), multiview: None, cache: None });
-
-    // Build draw list: each dynamic sphere at its FINAL position + each static box.
     let sphere_v = gen_sphere(1.0, 16, 16);
     let box_v = gen_cube(1.0);
     let sphere_vbo = device.create_buffer(&wgpu::BufferDescriptor { label: None, size: (sphere_v.len() * 4) as u64, usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST, mapped_at_creation: false });
     queue.write_buffer(&sphere_vbo, 0, bytemuck::cast_slice(&sphere_v));
     let box_vbo = device.create_buffer(&wgpu::BufferDescriptor { label: None, size: (box_v.len() * 4) as u64, usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST, mapped_at_creation: false });
     queue.write_buffer(&box_vbo, 0, bytemuck::cast_slice(&box_v));
+    let sphere_count = (sphere_v.len() / 6) as u32;
+    let box_count = (box_v.len() / 6) as u32;
 
-    struct Draw { vbo_sphere: bool, count: u32, ubo: wgpu::Buffer, bind: wgpu::BindGroup }
-    let mut draws: Vec<Draw> = Vec::new();
-    let mk = |model: [f32;16], color: [f32;4]| -> (wgpu::Buffer, wgpu::BindGroup) {
-        let u = Uniforms { vp: mat(&VP), model: mat(&model), color };
-        let ubo = device.create_buffer(&wgpu::BufferDescriptor { label: None, size: std::mem::size_of::<Uniforms>() as u64, usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST, mapped_at_creation: false });
-        queue.write_buffer(&ubo, 0, bytemuck::bytes_of(&u));
-        let bind = device.create_bind_group(&wgpu::BindGroupDescriptor { label: None, layout: &r_bgl, entries: &[wgpu::BindGroupEntry { binding: 0, resource: ubo.as_entire_binding() }] });
-        (ubo, bind)
-    };
-    for b in finals.iter() {
-        let r = b.pos[3];
-        let (ubo, bind) = mk(model_of([b.pos[0], b.pos[1], b.pos[2]], [r*2.0, r*2.0, r*2.0]), b.color);
-        draws.push(Draw { vbo_sphere: true, count: (sphere_v.len()/6) as u32, ubo, bind });
-    }
+    // Persistent per-body uniforms (rewritten each frame with the current transform)
+    // + fixed static uniforms.
+    let mk_ubo = || device.create_buffer(&wgpu::BufferDescriptor { label: None, size: std::mem::size_of::<Uniforms>() as u64, usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST, mapped_at_creation: false });
+    let mk_bind = |ubo: &wgpu::Buffer| device.create_bind_group(&wgpu::BindGroupDescriptor { label: None, layout: &r_bgl, entries: &[wgpu::BindGroupEntry { binding: 0, resource: ubo.as_entire_binding() }] });
+    let mut body_ubos: Vec<wgpu::Buffer> = Vec::new();
+    let mut body_binds: Vec<wgpu::BindGroup> = Vec::new();
+    for _ in 0..BODIES.len() { let u = mk_ubo(); let b = mk_bind(&u); body_ubos.push(u); body_binds.push(b); }
+    let mut static_ubos: Vec<wgpu::Buffer> = Vec::new();
+    let mut static_binds: Vec<wgpu::BindGroup> = Vec::new();
     for s in STATICS.iter() {
         let c = [(s.mn[0]+s.mx[0])*0.5, (s.mn[1]+s.mx[1])*0.5, (s.mn[2]+s.mx[2])*0.5];
         let sz = [(s.mx[0]-s.mn[0]).max(0.001), (s.mx[1]-s.mn[1]).max(0.001), (s.mx[2]-s.mn[2]).max(0.001)];
-        let (ubo, bind) = mk(model_of(c, sz), s.color);
-        draws.push(Draw { vbo_sphere: false, count: (box_v.len()/6) as u32, ubo, bind });
+        let u = mk_ubo();
+        queue.write_buffer(&u, 0, bytemuck::bytes_of(&Uniforms { vp: mat(&VP), model: mat(&model_of(c, sz)), color: s.color }));
+        let b = mk_bind(&u); static_ubos.push(u); static_binds.push(b);
     }
+    let _ = (&static_ubos,);
 
     let unpadded = WIDTH * 4;
     let align = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT;
     let bpr = ((unpadded + align - 1) / align) * align;
-    let out = device.create_buffer(&wgpu::BufferDescriptor { label: None, size: (bpr * HEIGHT) as u64, usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ, mapped_at_creation: false });
-    let mut e3 = device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
-    {
-        let mut rp = e3.begin_render_pass(&wgpu::RenderPassDescriptor { label: None,
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment { view: &color_view, resolve_target: None, ops: wgpu::Operations { load: wgpu::LoadOp::Clear(wgpu::Color { r: CLEAR[0], g: CLEAR[1], b: CLEAR[2], a: 1.0 }), store: wgpu::StoreOp::Store } })],
-            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment { view: &depth_view, depth_ops: Some(wgpu::Operations { load: wgpu::LoadOp::Clear(1.0), store: wgpu::StoreOp::Store }), stencil_ops: None }),
-            timestamp_writes: None, occlusion_query_set: None });
-        rp.set_pipeline(&r_pipe);
-        for d in draws.iter() {
-            rp.set_bind_group(0, &d.bind, &[]);
-            rp.set_vertex_buffer(0, if d.vbo_sphere { sphere_vbo.slice(..) } else { box_vbo.slice(..) });
-            rp.draw(0..d.count, 0..1);
+    let pos_read = device.create_buffer(&wgpu::BufferDescriptor { label: None, size: body_size, usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ, mapped_at_creation: false });
+
+    // ── Simulate + capture EVERY frame (the motion, not just the settle) ──────
+    let mut frames: Vec<Vec<u8>> = Vec::new();
+    let mut last: Vec<Body> = BODIES.to_vec();
+    for step in 0..STEPS {
+        let mut enc = device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
+        {
+            let mut cp = enc.begin_compute_pass(&wgpu::ComputePassDescriptor { label: None, timestamp_writes: None });
+            cp.set_pipeline(&sim_pipe);
+            cp.set_bind_group(0, if step % 2 == 0 { &bind_ab } else { &bind_ba }, &[]);
+            cp.dispatch_workgroups(((BODIES.len() as u32) + 63) / 64, 1, 1);
+        }
+        let cur = if step % 2 == 0 { &buf_b } else { &buf_a };
+        enc.copy_buffer_to_buffer(cur, 0, &pos_read, 0, body_size);
+        queue.submit(Some(enc.finish()));
+
+        if step % CAPTURE_EVERY == 0 || step == STEPS - 1 {
+            {
+                let slice = pos_read.slice(..);
+                let (tx, rx) = std::sync::mpsc::channel();
+                slice.map_async(wgpu::MapMode::Read, move |r| tx.send(r).unwrap());
+                device.poll(wgpu::Maintain::Wait);
+                rx.recv().unwrap().unwrap();
+                last = bytemuck::cast_slice::<u8, Body>(&slice.get_mapped_range()).to_vec();
+            }
+            pos_read.unmap();
+            for (i, b) in last.iter().enumerate() {
+                let r = b.pos[3];
+                queue.write_buffer(&body_ubos[i], 0, bytemuck::bytes_of(&Uniforms { vp: mat(&VP), model: mat(&model_of([b.pos[0], b.pos[1], b.pos[2]], [r*2.0, r*2.0, r*2.0])), color: b.color }));
+            }
+            let pix = device.create_buffer(&wgpu::BufferDescriptor { label: None, size: (bpr * HEIGHT) as u64, usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ, mapped_at_creation: false });
+            let mut e = device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
+            {
+                let mut rp = e.begin_render_pass(&wgpu::RenderPassDescriptor { label: None,
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment { view: &color_view, resolve_target: None, ops: wgpu::Operations { load: wgpu::LoadOp::Clear(wgpu::Color { r: CLEAR[0], g: CLEAR[1], b: CLEAR[2], a: 1.0 }), store: wgpu::StoreOp::Store } })],
+                    depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment { view: &depth_view, depth_ops: Some(wgpu::Operations { load: wgpu::LoadOp::Clear(1.0), store: wgpu::StoreOp::Store }), stencil_ops: None }),
+                    timestamp_writes: None, occlusion_query_set: None });
+                rp.set_pipeline(&r_pipe);
+                for i in 0..BODIES.len() { rp.set_bind_group(0, &body_binds[i], &[]); rp.set_vertex_buffer(0, sphere_vbo.slice(..)); rp.draw(0..sphere_count, 0..1); }
+                for b in static_binds.iter() { rp.set_bind_group(0, b, &[]); rp.set_vertex_buffer(0, box_vbo.slice(..)); rp.draw(0..box_count, 0..1); }
+            }
+            e.copy_texture_to_buffer(
+                wgpu::ImageCopyTexture { texture: &color_tex, mip_level: 0, origin: wgpu::Origin3d::ZERO, aspect: wgpu::TextureAspect::All },
+                wgpu::ImageCopyBuffer { buffer: &pix, layout: wgpu::ImageDataLayout { offset: 0, bytes_per_row: Some(bpr), rows_per_image: Some(HEIGHT) } },
+                wgpu::Extent3d { width: WIDTH, height: HEIGHT, depth_or_array_layers: 1 });
+            queue.submit(Some(e.finish()));
+            {
+                let slice = pix.slice(..);
+                let (tx, rx) = std::sync::mpsc::channel();
+                slice.map_async(wgpu::MapMode::Read, move |r| tx.send(r).unwrap());
+                device.poll(wgpu::Maintain::Wait);
+                rx.recv().unwrap().unwrap();
+                let data = slice.get_mapped_range();
+                let mut frame = Vec::with_capacity((unpadded * HEIGHT) as usize);
+                for row in 0..HEIGHT { let st = (row * bpr) as usize; frame.extend_from_slice(&data[st..st + unpadded as usize]); }
+                frames.push(frame);
+            }
         }
     }
-    e3.copy_texture_to_buffer(
-        wgpu::ImageCopyTexture { texture: &color_tex, mip_level: 0, origin: wgpu::Origin3d::ZERO, aspect: wgpu::TextureAspect::All },
-        wgpu::ImageCopyBuffer { buffer: &out, layout: wgpu::ImageDataLayout { offset: 0, bytes_per_row: Some(bpr), rows_per_image: Some(HEIGHT) } },
-        wgpu::Extent3d { width: WIDTH, height: HEIGHT, depth_or_array_layers: 1 });
-    queue.submit(Some(e3.finish()));
-    let s2 = out.slice(..);
-    let (t2, r2) = std::sync::mpsc::channel();
-    s2.map_async(wgpu::MapMode::Read, move |r| t2.send(r).unwrap());
-    device.poll(wgpu::Maintain::Wait);
-    r2.recv().unwrap().unwrap();
-    let data = s2.get_mapped_range();
-    let mut pixels = Vec::with_capacity((unpadded * HEIGHT) as usize);
-    for row in 0..HEIGHT { let start = (row * bpr) as usize; pixels.extend_from_slice(&data[start..start + unpadded as usize]); }
+
+    for (i, b) in last.iter().enumerate() {
+        println!("BODY {} final pos [{:.3}, {:.3}, {:.3}] vel_y {:.3}", i, b.pos[0], b.pos[1], b.pos[2], b.vel[1]);
+    }
+
+    // ── Encode the MOTION as an animated PNG (APNG) — frame-by-frame proof ─────
     let file = std::fs::File::create("out.png").unwrap();
     let mut encoder = png::Encoder::new(std::io::BufWriter::new(file), WIDTH, HEIGHT);
-    encoder.set_color(png::ColorType::Rgba); encoder.set_depth(png::BitDepth::Eight);
-    encoder.write_header().unwrap().write_image_data(&pixels).unwrap();
-    println!("WROTE out.png ({} bodies, {} statics, {} steps)", BODIES.len(), STATICS.len(), STEPS);
+    encoder.set_color(png::ColorType::Rgba);
+    encoder.set_depth(png::BitDepth::Eight);
+    encoder.set_animated(frames.len() as u32, 0).unwrap();
+    encoder.set_frame_delay(1, FPS).unwrap();
+    let mut writer = encoder.write_header().unwrap();
+    for f in &frames { writer.write_image_data(f).unwrap(); }
+    writer.finish().unwrap();
+    println!("WROTE out.png (APNG, {} frames, {} bodies, {} statics, {} steps)", frames.len(), BODIES.len(), STATICS.len(), STEPS);
 }
 `;
   }
@@ -505,7 +529,7 @@ async fn run() {
     return s || 'holo-physics';
   }
   private header(composition: HoloComposition): string {
-    return `// @generated by HoloScript ComputePhysicsCompiler — sovereign GPU rigid-body sim (wgpu compute).\n// Source: ${String(composition.name ?? 'composition')}. Steps gravity + collisions on the GPU, renders settled state.\n// Run: cargo run --release`;
+    return `// @generated by HoloScript ComputePhysicsCompiler — sovereign GPU rigid-body sim (wgpu compute).\n// Source: ${String(composition.name ?? 'composition')}. Steps gravity + collisions on the GPU, captures every frame → animated APNG (out.png).\n// Run: cargo run --release`;
   }
   private geometryRust(): string {
     return `fn gen_cube(s: f32) -> Vec<f32> {

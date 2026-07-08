@@ -3002,7 +3002,7 @@ async function main(): Promise<void> {
               writeFileSync(path.join(dir, rel), contents as string);
             }
             console.log(`\x1b[32m✓ Rust wgpu physics-sim project written to ${dir}\x1b[0m`);
-            console.log(`\x1b[2m  Simulate & render: cd ${dir} && cargo run --release  (writes out.png)\x1b[0m`);
+            console.log(`\x1b[2m  Simulate & render: cd ${dir} && cargo run --release  (writes out.png — an animated APNG of the whole fall)\x1b[0m`);
           } else {
             console.log(project['src/main.rs']);
           }
