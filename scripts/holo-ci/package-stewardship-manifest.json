@@ -472,17 +472,29 @@
         "check:npm-v1-release:built",
         "check:fleet-utilities",
         "check:package-consumption:full",
-        "check:registry-cold-start:platform-public-api"
+        "check:registry-cold-start:platform-public-api",
+        "check:platform-live-service-receipts"
       ],
       "validationCommands": [
         "pnpm --filter @holoscript/platform build",
         "pnpm --filter @holoscript/platform test",
-        "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/platform@latest --probe platform-public-api --json"
+        "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/platform@latest --probe platform-public-api --json",
+        "node scripts/holo-ci/check-platform-live-service-receipts.mjs --json"
+      ],
+      "blockers": [
+        {
+          "id": "live-holokey-x402-receipt",
+          "status": "active",
+          "scope": "hosted-service",
+          "summary": "The platform package API is fleet-operational, but hosted HoloKey/x402 payment, wallet custody, and identity-service availability still need a live endpoint receipt.",
+          "nextUnblockAction": "Set PLATFORM_LIVE_WALLET_ADDRESS or HOLOSCRIPT_AGENT_WALLET plus PLATFORM_HOLOKEY_X402_BEARER, HOLOSCRIPT_AGENT_X402_BEARER, HOLOMESH_API_KEY, or HOLOSCRIPT_API_KEY, then run the strict live receipt gate.",
+          "evidenceCommand": "node scripts/holo-ci/check-platform-live-service-receipts.mjs --require-live --json"
+        }
       ],
       "nextActions": [
         "Keep platform-public-api green from a repo-less npm consumer before each platform publish.",
         "Keep hosted-service configuration documented without embedding private deployment paths or keys.",
-        "Add live HoloKey/x402 service receipts before claiming hosted payment or identity service availability."
+        "Close the live-holokey-x402-receipt blocker only after check-platform-live-service-receipts passes with --require-live."
       ],
       "caveats": [
         {
