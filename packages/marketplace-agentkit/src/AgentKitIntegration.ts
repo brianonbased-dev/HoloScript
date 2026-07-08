@@ -1,19 +1,17 @@
 /**
- * @fileoverview Coinbase AgentKit Integration
+ * @fileoverview Coinbase custody integration
  * @module @holoscript/marketplace-agentkit
  *
- * Integrates Coinbase's AgentKit SDK to enable AI agents to autonomously manage
- * wallets, execute transactions, and interact with HoloScript's economy layer.
+ * Integrates Coinbase custody primitives to enable AI agents to autonomously
+ * manage wallets, execute transactions, and interact with HoloScript's economy layer.
  */
 
 import { AgentWalletService } from './AgentWalletService.js';
 
 export interface AgentKitOptions {
-  // Solana intentionally excluded (2026-04-24 security review): @coinbase/agentkit's
-  // Solana path pulls in @solana/buffer-layout-utils -> bigint-buffer ≤1.1.5 which
-  // carries an unpatched CWE-120 buffer overflow in toBigIntLE(). We don't use Solana,
-  // so narrow the type to make the vulnerable path unreachable by construction.
-  // See research/2026-04-20_security-dependency-audit.md (2026-04-24 refresh).
+  // Solana intentionally excluded (2026-04-24 security review): the Coinbase
+  // wallet lane stays EVM-only so the vulnerable Solana bigint-buffer path is
+  // unreachable by construction. See research/2026-04-20_security-dependency-audit.md.
   network: 'base' | 'ethereum';
   rpc_url?: string;
   api_key?: string;
@@ -32,11 +30,9 @@ export interface AgentKitOptions {
 export interface AgentWallet {
   agent_id: string;
   address: string;
-  // Solana intentionally excluded (2026-04-24 security review): @coinbase/agentkit's
-  // Solana path pulls in @solana/buffer-layout-utils -> bigint-buffer ≤1.1.5 which
-  // carries an unpatched CWE-120 buffer overflow in toBigIntLE(). We don't use Solana,
-  // so narrow the type to make the vulnerable path unreachable by construction.
-  // See research/2026-04-20_security-dependency-audit.md (2026-04-24 refresh).
+  // Solana intentionally excluded (2026-04-24 security review): the Coinbase
+  // wallet lane stays EVM-only so the vulnerable Solana bigint-buffer path is
+  // unreachable by construction. See research/2026-04-20_security-dependency-audit.md.
   network: 'base' | 'ethereum';
   balance: {
     USDC: number;

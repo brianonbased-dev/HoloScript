@@ -1,10 +1,9 @@
 /**
  * @holoscript/marketplace-agentkit
  *
- * Optional Coinbase AgentKit integration for HoloScript marketplace agents.
- * Isolates all @coinbase/agentkit dependencies so they don't propagate
- * transitively to packages that don't need them (avoiding CVE-2025-3194 and
- * elliptic advisory exposure in unrelated packages).
+ * Optional Coinbase custody integration for HoloScript marketplace agents.
+ * Isolates wallet/payment dependencies so they don't propagate transitively
+ * to packages that don't need them.
  *
  * Import this package only in packages/services that explicitly need Coinbase
  * wallet/payment functionality.
@@ -18,5 +17,5 @@ export {
   type AgentTransaction,
 } from './AgentKitIntegration.js';
 
-// Re-export agentkit items consumed by studio/withdraw/route.ts dynamic imports
-export { CdpEvmWalletProvider, erc20ActionProvider } from '@coinbase/agentkit';
+// Re-export local CDP adapter items consumed by studio/withdraw/route.ts.
+export { CdpEvmWalletProvider, erc20ActionProvider } from './CdpEvmWalletProvider.js';
