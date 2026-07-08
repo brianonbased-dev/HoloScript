@@ -375,6 +375,7 @@ export {
 } from './compiler/PhysicsColliderCompiler';
 export { SpatialAudioCompiler, type AudioSceneModel } from './compiler/SpatialAudioCompiler';
 export { DesktopGPUCompiler } from './compiler/DesktopGPUCompiler';
+export { PathTracerCompiler, type PathTracerOptions } from './compiler/PathTracerCompiler';
 // BabylonCompiler, ThreeJSCompiler — retired 2026-06-17 (apex-poison; see idea-seeds.md)
 export {
   AndroidXRCompiler,

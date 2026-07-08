@@ -92,6 +92,8 @@ export type { PhysicsWorld, PhysicsCollider } from './PhysicsColliderCompiler';
 export { SpatialAudioCompiler } from './SpatialAudioCompiler';
 export type { AudioSceneModel } from './SpatialAudioCompiler';
 export { DesktopGPUCompiler } from './DesktopGPUCompiler';
+export { PathTracerCompiler } from './PathTracerCompiler';
+export type { PathTracerOptions } from './PathTracerCompiler';
 
 // Platform-conditional compilation (public facade for Adaptive Platform Layers)
 export {

@@ -31,6 +31,7 @@ export const SOVEREIGN_TARGETS = [
   'webgpu', // WebGPUCompiler → WGSL compute+render shaders on our own WebGPU device (WebGPURenderer)
   'audio', // SpatialAudioCompiler → our own Web Audio graph (HRTF PannerNode + Convolver reverb + filters); no third-party audio engine
   'desktop-gpu', // DesktopGPUCompiler → standalone Rust wgpu project (Vulkan/Metal/DX12), renders the scene offscreen on the machine's own GPU; no browser, no third-party engine. Verified on Jetson Orin/Vulkan.
+  'pathtrace', // PathTracerCompiler → standalone Rust wgpu COMPUTE path tracer (cosine-weighted GI, emissive area lights, multi-sample) → tonemapped PNG; our own tracer, no Cycles/OptiX. Verified on Jetson Orin/Vulkan.
   'character-webgpu', // CharacterWebGPUCompiler → authored .holo character → CharacterDrawSpec run by our renderCharacter (sovereign skinned-character path)
   'nir', // NIRCompiler → our Neuromorphic IR; NIRToWGSLCompiler runs it on our WebGPU path
   'canvas2d-game', // Canvas2DGameCompiler → self-contained canvas game runtime (loop/physics/WebAudio)
@@ -278,6 +279,16 @@ export const SOVEREIGN_ENGINES = [
     tests: true,
     promoted: false,
     note: 'Sovereign native-desktop GPU: emits a self-contained Rust wgpu project (Vulkan/Metal/DX12) that renders the scene offscreen to a PNG on the machine\'s OWN GPU — standalone, no browser, no third-party engine. WebGPU is browser/runtime-bound; this is the "runs standalone at native perf" gap. Matrices computed in the compiler; geometry generators + wgpu host emitted. VERIFIED on real hardware: Jetson Orin (Tegra) via Vulkan rendered a 6-object scene offscreen to PNG (adapter=NVIDIA Tegra Orin, backend=Vulkan). Consumes the same geometry-registry + geometry-purpose vocabulary as render/physics/audio.',
+  },
+  {
+    id: 'path-tracer',
+    name: 'PathTracerCompiler',
+    file: 'packages/core/src/compiler/PathTracerCompiler.ts',
+    kind: 'compiler',
+    maturity: 'real',
+    tests: true,
+    promoted: false,
+    note: 'Sovereign OFFLINE path-traced render — the film-grade-still gap the rasterizers (WebGPU/desktop-gpu) do not fill. Emits a self-contained Rust wgpu COMPUTE program: our OWN GPU path tracer (no Cycles/OptiX) that traces cosine-weighted diffuse bounces against analytic sphere/box primitives, accumulates many samples, and tonemaps to PNG. Global illumination — soft shadows, colour bleeding, emissive area lights. VERIFIED on Jetson Orin (Tegra/Vulkan): a Cornell-box scene rendered with visible GI colour-bleed + soft shadows. Fifth consumer of the shared geometry-registry + geometry-purpose vocabulary.',
   },
 ] as const;
 
