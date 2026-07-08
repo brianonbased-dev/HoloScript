@@ -92,13 +92,7 @@ describe('ComputePhysicsCompiler — material drives physics + surface (D.125)',
     expect(rs).toContain('params: [0.7, 0.35, 0.0, 0.0]'); // plastic restitution 0.7, friction 0.35
   });
 
-  it('renders spheres at their COLLISION radius (render size == physics size — the 2x bug guard)', () => {
-    const rs = new ComputePhysicsCompiler({ steps: 0 }).compile(
-      comp([obj('Ball', [prop('mesh', 'sphere')], [{ name: 'rigid_body' }])])
-    );
-    // Base sphere is unit-DIAMETER (radius 0.5) and scaled by r*2 -> render radius == r.
-    // gen_sphere(1.0) here would draw every ball at 2x its collision radius (the ghost-sink bug).
-    expect(rs).toContain('gen_sphere(0.5, 16, 16)');
-    expect(rs).toContain('[r*2.0, r*2.0, r*2.0]');
-  });
+  // render-size == physics-size (the 2x "ghost sink" bug guard) now lives in the
+  // fail-closed numeric gate: geometry-consistency.test.ts. It parses the emitted Rust and
+  // asserts base*factor === 1 for sphere AND box, instead of brittle string matching.
 });
