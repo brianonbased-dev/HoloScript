@@ -94,6 +94,8 @@ export type { AudioSceneModel } from './SpatialAudioCompiler';
 export { DesktopGPUCompiler } from './DesktopGPUCompiler';
 export { PathTracerCompiler } from './PathTracerCompiler';
 export type { PathTracerOptions } from './PathTracerCompiler';
+export { CpuPathTracer } from './CpuPathTracer';
+export type { CpuRenderOptions, CpuImage } from './CpuPathTracer';
 
 // Platform-conditional compilation (public facade for Adaptive Platform Layers)
 export {

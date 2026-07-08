@@ -12,24 +12,8 @@
 // geometry-purpose visibility hides functional geometry. Fifth consumer of one-shape-
 // many-domains. Buffer readback (not texture copy) sidesteps the 256-row-alignment rule.
 
-import type {
-  HoloComposition,
-  HoloObjectDecl,
-  HoloSpatialGroup,
-  HoloValue,
-  HoloTemplate,
-} from '../parser/HoloCompositionTypes';
-import { resolveGeometry } from './render-modules/geometry-registry';
-import { resolveGeometryRole } from './render-modules/geometry-purpose';
-import { resolveSkyboxColor } from './render-modules/skybox-registry';
-
-interface Prim {
-  kind: 0 | 1; // 0 = sphere, 1 = box (AABB)
-  a: [number, number, number, number]; // sphere: center.xyz, radius.w | box: min.xyz
-  b: [number, number, number, number]; // box: max.xyz
-  albedo: [number, number, number];
-  emissive: [number, number, number];
-}
+import type { HoloComposition } from '../parser/HoloCompositionTypes';
+import { extractRaytraceScene, type RayCamera } from './render-modules/raytrace-scene';
 
 export interface PathTracerOptions {
   width?: number;
@@ -39,7 +23,6 @@ export interface PathTracerOptions {
 }
 
 export class PathTracerCompiler {
-  private templatesByName: Map<string, HoloTemplate> = new Map();
   private width: number;
   private height: number;
   private samples: number;
@@ -77,12 +60,10 @@ export class PathTracerCompiler {
   }
 
   compile(composition: HoloComposition): string {
-    this.templatesByName = new Map(
-      (composition.templates ?? []).map((t) => [t.name, t] as [string, HoloTemplate])
-    );
-    const prims = this.collectPrims(composition);
-    const cam = this.camera(prims);
-    const sky = this.skyColor(composition);
+    const { prims, camera: cam, sky } = extractRaytraceScene(composition, {
+      width: this.width,
+      height: this.height,
+    });
 
     const fmt = (n: number) => {
       const r = Number(n.toFixed(6));
@@ -308,74 +289,7 @@ async fn run() {
 `;
   }
 
-  // ── scene extraction ─────────────────────────────────────────────────────────
-  private collectPrims(composition: HoloComposition): Prim[] {
-    const prims: Prim[] = [];
-    const add = (obj: HoloObjectDecl, off: number[]) => {
-      const role = resolveGeometryRole({
-        purpose: this.findProp(obj, 'purpose'),
-        visible: this.findProp(obj, 'visible'),
-        traitNames: (obj.traits ?? []).map((t) => t.name),
-      });
-      if (role.visible) {
-        const mesh = String(this.findProp(obj, 'geometry') ?? this.findProp(obj, 'mesh') ?? this.findProp(obj, 'type') ?? 'cube');
-        const kind = resolveGeometry(mesh).kind;
-        const pos = this.vec3(this.findProp(obj, 'position'), [0, 0, 0]);
-        const p = [pos[0] + off[0], pos[1] + off[1], pos[2] + off[2]];
-        const s = this.scaleOf(obj);
-        const albedo = this.colorOf(obj);
-        const emissive = this.emissiveOf(obj);
-        if (kind === 'sphere' || kind === 'torus') {
-          const r = 0.5 * Math.max(s[0], s[1], s[2]);
-          prims.push({ kind: 0, a: [p[0], p[1], p[2], r], b: [0, 0, 0, 0], albedo, emissive });
-        } else {
-          // box / plane / cylinder / cone → AABB (half-extent 0.5*scale; plane thin in Y).
-          const hy = kind === 'plane' ? 0.02 : Math.abs(s[1]) * 0.5;
-          const hx = Math.abs(s[0]) * 0.5;
-          const hz = Math.abs(s[2]) * 0.5;
-          prims.push({ kind: 1, a: [p[0] - hx, p[1] - hy, p[2] - hz, 0], b: [p[0] + hx, p[1] + hy, p[2] + hz, 0], albedo, emissive });
-        }
-      }
-      if (obj.children) for (const c of obj.children) add(c, off);
-    };
-    for (const o of composition.objects ?? []) add(o, [0, 0, 0]);
-    const scenes = (composition as unknown as { scenes?: Array<{ objects?: HoloObjectDecl[] }> }).scenes;
-    for (const s of scenes ?? []) for (const o of s.objects ?? []) add(o, [0, 0, 0]);
-    const walk = (g: HoloSpatialGroup, parent: number[]) => {
-      const gp = g.properties?.find((pp) => pp.key === 'position')?.value;
-      const [gx, gy, gz] = Array.isArray(gp) ? (gp as number[]) : [0, 0, 0];
-      const o2 = [parent[0] + gx, parent[1] + gy, parent[2] + gz];
-      for (const o of g.objects ?? []) add(o, o2);
-      for (const sub of g.groups ?? []) walk(sub, o2);
-    };
-    for (const g of composition.spatialGroups ?? []) walk(g, [0, 0, 0]);
-    return prims;
-  }
-
-  private camera(prims: Prim[]): { eye: number[]; fwd: number[]; right: number[]; up: number[]; tanf: number; aspect: number; nprims: number } {
-    const centers = prims.map((p) => (p.kind === 0 ? [p.a[0], p.a[1], p.a[2]] : [(p.a[0] + p.b[0]) / 2, (p.a[1] + p.b[1]) / 2, (p.a[2] + p.b[2]) / 2]));
-    let eye = [4, 3, 8];
-    let target = [0, 0, 0];
-    const fov = 55;
-    if (centers.length > 0) {
-      const min = [Infinity, Infinity, Infinity];
-      const max = [-Infinity, -Infinity, -Infinity];
-      for (const c of centers) for (let i = 0; i < 3; i++) { min[i] = Math.min(min[i], c[i]); max[i] = Math.max(max[i], c[i]); }
-      const center = [(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2];
-      let radius = 1;
-      for (const c of centers) radius = Math.max(radius, Math.hypot(c[0] - center[0], c[1] - center[1], c[2] - center[2]) + 1.5);
-      const dist = (radius / Math.sin((fov * Math.PI) / 180 / 2)) * 1.15;
-      const dl = Math.hypot(0.2, 0.35, 1);
-      eye = [center[0] + (0.2 / dl) * dist, center[1] + (0.35 / dl) * dist, center[2] + (1 / dl) * dist];
-      target = center;
-    }
-    const f = this.norm([target[0] - eye[0], target[1] - eye[1], target[2] - eye[2]]);
-    const right = this.norm(this.cross(f, [0, 1, 0]));
-    const up = this.cross(right, f);
-    return { eye, fwd: f, right, up, tanf: Math.tan((fov * Math.PI) / 180 / 2), aspect: this.width / this.height, nprims: prims.length };
-  }
-
-  private camInitRust(c: { eye: number[]; fwd: number[]; right: number[]; up: number[]; tanf: number; aspect: number; nprims: number }): string {
+  private camInitRust(c: RayCamera): string {
     const f = (n: number) => {
       const r = Number(n.toFixed(6));
       return Number.isInteger(r) ? `${r}.0f32` : `${r}f32`;
@@ -384,15 +298,6 @@ async fn run() {
     return `Cam { eye: ${v(c.eye, 0)}, fwd: ${v(c.fwd, 0)}, right: ${v(c.right, 0)}, up: ${v(c.up, 0)}, params: [${f(c.tanf)}, ${f(c.aspect)}, 1.0f32, ${f(c.nprims)}], dims: [${f(this.width)}, ${f(this.height)}, 1.0f32, ${f(c.nprims)}] }`;
   }
 
-  private skyColor(composition: HoloComposition): [number, number, number] {
-    const env = composition.environment;
-    const props: Record<string, unknown> = {};
-    for (const p of env?.properties ?? []) props[p.key] = p.value;
-    const bg = props.background || props.skybox || '#0a0e14';
-    const c = typeof bg === 'string' && bg.startsWith('#') ? this.hexColor(bg) : resolveSkyboxColor(String(bg));
-    // Sky as a dim ambient fill so a scene with no emitter is not pure black.
-    return [c[0] * 0.6 + 0.02, c[1] * 0.6 + 0.03, c[2] * 0.6 + 0.05];
-  }
   private skyLiteralRust(s: [number, number, number]): string {
     const f = (n: number) => {
       const r = Number(n.toFixed(5));
@@ -401,54 +306,6 @@ async fn run() {
     return `"vec3<f32>(${f(s[0])}, ${f(s[1])}, ${f(s[2])})"`;
   }
 
-  // ── helpers ─────────────────────────────────────────────────────────────────
-  private findProp(obj: HoloObjectDecl, key: string): HoloValue | undefined {
-    const own = obj.properties?.find((p) => p.key === key)?.value;
-    if (own !== undefined) return own as HoloValue;
-    if (obj.template) {
-      const tpl = this.templatesByName.get(obj.template);
-      const fromT = tpl?.properties?.find((p) => p.key === key)?.value;
-      if (fromT !== undefined) return fromT as HoloValue;
-    }
-    return undefined;
-  }
-  private vec3(v: unknown, fb: [number, number, number]): [number, number, number] {
-    return Array.isArray(v) && v.length >= 3 ? [Number(v[0]), Number(v[1]), Number(v[2])] : fb;
-  }
-  private scaleOf(obj: HoloObjectDecl): [number, number, number] {
-    const s = this.findProp(obj, 'scale') ?? this.findProp(obj, 'size');
-    if (Array.isArray(s) && s.length >= 3) return [Number(s[0]), Number(s[1]), Number(s[2])];
-    if (typeof s === 'number') return [s, s, s];
-    return [1, 1, 1];
-  }
-  private colorOf(obj: HoloObjectDecl): [number, number, number] {
-    const c = this.findProp(obj, 'color');
-    return typeof c === 'string' && c.startsWith('#') ? this.hexColor(c) : [0.75, 0.75, 0.75];
-  }
-  private emissiveOf(obj: HoloObjectDecl): [number, number, number] {
-    const e = this.findProp(obj, 'emissive');
-    if (typeof e === 'string' && e.startsWith('#')) {
-      const c = this.hexColor(e);
-      const strength = Number(this.findProp(obj, 'emissiveIntensity') ?? 6);
-      return [c[0] * strength, c[1] * strength, c[2] * strength];
-    }
-    return [0, 0, 0];
-  }
-  private hexColor(hex: string): [number, number, number] {
-    const h = hex.slice(1);
-    return [
-      Number((parseInt(h.substring(0, 2), 16) / 255).toFixed(4)),
-      Number((parseInt(h.substring(2, 4), 16) / 255).toFixed(4)),
-      Number((parseInt(h.substring(4, 6), 16) / 255).toFixed(4)),
-    ];
-  }
-  private norm(a: number[]): number[] {
-    const l = Math.hypot(a[0], a[1], a[2]) || 1;
-    return [a[0] / l, a[1] / l, a[2] / l];
-  }
-  private cross(a: number[], b: number[]): number[] {
-    return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
-  }
   private sanitizeCrate(name: string): string {
     const s = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
     return s || 'holo-pathtrace';

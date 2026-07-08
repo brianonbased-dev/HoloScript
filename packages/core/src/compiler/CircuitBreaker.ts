@@ -60,6 +60,7 @@ export type ExportTarget =
   | 'audio' // Sovereign spatial-audio: our own Web Audio graph (HRTF/PannerNode/Convolver), no third-party audio engine
   | 'desktop-gpu' // Sovereign native-desktop GPU: standalone Rust wgpu project (Vulkan/Metal/DX12), offscreen render, no browser
   | 'pathtrace' // Sovereign offline path-traced render: standalone Rust wgpu COMPUTE path tracer (cosine GI, emissive area lights), no third-party renderer
+  | 'pathtrace-cpu' // Sovereign CPU path tracer (no-GPU fallback): pure-TS compute backend, renders GI offline anywhere Node/JS runs (server/CI/old device)
   | 'character-webgpu' // Native-WebGPU skinned CHARACTER (.holo body/skeleton/materials → CharacterDrawSpec, sovereign)
   | 'wasm' // WebAssembly
   | 'sdk' // Typed client SDK generated from service-contract AST

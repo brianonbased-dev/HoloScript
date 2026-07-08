@@ -1999,6 +1999,7 @@ async function main(): Promise<void> {
         'audio',
         'desktop-gpu',
         'pathtrace',
+        'pathtrace-cpu',
       ];
 
       if (!validTargets.includes(target)) {
@@ -2959,6 +2960,48 @@ async function main(): Promise<void> {
             console.log(`\x1b[32m✓ Collider set written to ${jsonPath}\x1b[0m`);
           } else {
             console.log(output);
+          }
+          process.exit(0);
+        }
+
+        // CPU path tracer — the sovereign NO-GPU fallback. Renders the scene's global
+        // illumination on the CPU (pure TS) and writes a PNG directly, no GPU/browser.
+        // Runs anywhere Node runs (server/CI/old device). Supports --samples/--bounces.
+        if (target === 'pathtrace-cpu') {
+          if (!isHolo) {
+            console.error(`\x1b[31mError: pathtrace-cpu compilation requires .holo files.\x1b[0m`);
+            process.exit(1);
+          }
+          const { HoloCompositionParser, CpuPathTracer } = await import('@holoscript/core');
+          const compositionParser = new HoloCompositionParser();
+          const parseResult = compositionParser.parse(content);
+          if (!parseResult.success || !parseResult.ast) {
+            console.error(`\x1b[31mError parsing for pathtrace-cpu:\x1b[0m`);
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
+            process.exit(1);
+          }
+          const numOpt = (name: string): number | undefined => {
+            const i = process.argv.indexOf(`--${name}`);
+            return i >= 0 && process.argv[i + 1] ? Number(process.argv[i + 1]) : undefined;
+          };
+          const t0 = Date.now();
+          const image = new CpuPathTracer().render(parseResult.ast, {
+            samples: numOpt('samples'),
+            bounces: numOpt('bounces'),
+            width: numOpt('width'),
+            height: numOpt('height'),
+          });
+          const png = CpuPathTracer.toPNG(image);
+          console.log(`\x1b[32m✓ pathtrace-cpu render complete!\x1b[0m`);
+          console.log(`\x1b[2m  ${image.width}x${image.height} on CPU in ${((Date.now() - t0) / 1000).toFixed(1)}s (no GPU)\x1b[0m`);
+          if (options.output) {
+            const { writeFileSync } = await import('node:fs');
+            const outPath = path.resolve(options.output);
+            const pngPath = outPath.endsWith('.png') ? outPath : outPath + '.png';
+            writeFileSync(pngPath, png);
+            console.log(`\x1b[32m✓ PNG written to ${pngPath}\x1b[0m`);
+          } else {
+            console.log(`\x1b[2m  (use --output <file.png> to save the render)\x1b[0m`);
           }
           process.exit(0);
         }
