@@ -22,12 +22,16 @@ overrides:
   '@hono/node-server': '>=1.19.13'
   '@metamask/sdk-communication-layer>uuid': 11.1.1
   '@metamask/sdk>uuid': 11.1.1
+  '@metamask/utils>uuid': 11.1.1
   '@opentelemetry/core': '>=2.8.0'
   axios: '>=1.16.0'
   follow-redirects: '>=1.16.0'
   dompurify: '>=3.4.11'
   glob: ^13.0.6
   gcp-metadata>gaxios: 7.1.6
+  googleapis-common>gaxios: 7.1.6
+  googleapis-common>uuid: 11.1.1
+  gtoken>gaxios: 7.1.6
   jayson>uuid: 11.1.1
   minimatch: '>=9.0.7'
   qs: '>=6.15.0'
@@ -38,6 +42,7 @@ overrides:
   monaco-editor: 0.55.1
   monaco-editor>dompurify: 3.4.11
   next>postcss: 8.5.15
+  next-auth>uuid: 11.1.1
   yaml: '>=2.8.3'
   terser-webpack-plugin: '>=5.4.0'
   lodash-es: '>=4.18.1'
@@ -601,7 +606,7 @@ importers:
         version: 4.0.6
       googleapis:
         specifier: ^144.0.0
-        version: 144.0.0(encoding@0.1.13)
+        version: 144.0.0
       jsonwebtoken:
         specifier: ^9.0.2
         version: 9.0.3
@@ -11999,10 +12004,6 @@ packages:
   functions-have-names@1.2.3:
     resolution: {integrity: sha512-xckBUXyTIqT97tq2x2AMb+g163b5JFysYk0x4qxNFwbfQkmNZoiRHb6sPzI9/QV33WeuvVYBUIiD4NzNIyqaRQ==}
 
-  gaxios@6.7.1:
-    resolution: {integrity: sha512-LDODD4TMYx7XXdpwxAVRAIAuB0bzv0s+ywFonY46k126qzQHT9ygyoa9tncmOiQmmDrik65UYsEkv3lbfqQ3yQ==}
-    engines: {node: '>=14'}
-
   gaxios@7.1.6:
     resolution: {integrity: sha512-aIQ0QL8Or8vsUhHyXGA6AohOFRrAAiHhrvsAG6myzcSlfhxSXtnwXA/pRuQTilFgjhLe30swK5rg1d7E1f8Izw==}
     engines: {node: '>=18'}
@@ -16582,16 +16583,6 @@ packages:
     resolution: {integrity: sha512-Qo+uWgilfSmAhXCMav1uYFynlQO7fMFiMVZsQqZRMIXp0O7rR7qjkj+cPvBHLgBqi960QCoo/PH2/6ZtVqKvrg==}
     hasBin: true
 
-  uuid@8.3.2:
-    resolution: {integrity: sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==}
-    deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
-    hasBin: true
-
-  uuid@9.0.1:
-    resolution: {integrity: sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA==}
-    deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
-    hasBin: true
-
   v8-compile-cache-lib@3.0.1:
     resolution: {integrity: sha512-wa7YjyUGfNZngI/vtK0UHAN+lgDCxBPCylVXGp0zu59Fz5aiGtNXaq3DhIov063MorB+VfufLh3JlF2KdTK3xg==}
 
@@ -19773,7 +19764,7 @@ snapshots:
       lodash: 4.18.1
       pony-cause: 2.1.11
       semver: 7.8.4
-      uuid: 9.0.1
+      uuid: 11.1.1
     transitivePeerDependencies:
       - supports-color
 
@@ -19797,7 +19788,7 @@ snapshots:
       debug: 4.4.3
       pony-cause: 2.1.11
       semver: 7.8.4
-      uuid: 9.0.1
+      uuid: 11.1.1
     transitivePeerDependencies:
       - supports-color
 
@@ -19811,7 +19802,7 @@ snapshots:
       debug: 4.4.3
       pony-cause: 2.1.11
       semver: 7.8.4
-      uuid: 9.0.1
+      uuid: 11.1.1
     transitivePeerDependencies:
       - supports-color
 
@@ -27154,17 +27145,6 @@ snapshots:
 
   functions-have-names@1.2.3: {}
 
-  gaxios@6.7.1(encoding@0.1.13):
-    dependencies:
-      extend: 3.0.2
-      https-proxy-agent: 7.0.6
-      is-stream: 2.0.1
-      node-fetch: 2.7.0(encoding@0.1.13)
-      uuid: 9.0.1
-    transitivePeerDependencies:
-      - encoding
-      - supports-color
-
   gaxios@7.1.6:
     dependencies:
       extend: 3.0.2
@@ -27302,38 +27282,35 @@ snapshots:
     dependencies:
       minimist: 1.2.8
 
-  google-auth-library@9.15.1(encoding@0.1.13):
+  google-auth-library@9.15.1:
     dependencies:
       base64-js: 1.5.1
       ecdsa-sig-formatter: 1.0.11
       gaxios: 7.1.6
       gcp-metadata: 6.1.1
-      gtoken: 7.1.0(encoding@0.1.13)
+      gtoken: 7.1.0
       jws: 4.0.1
     transitivePeerDependencies:
-      - encoding
       - supports-color
 
   google-logging-utils@0.0.2: {}
 
-  googleapis-common@7.2.0(encoding@0.1.13):
+  googleapis-common@7.2.0:
     dependencies:
       extend: 3.0.2
-      gaxios: 6.7.1(encoding@0.1.13)
-      google-auth-library: 9.15.1(encoding@0.1.13)
+      gaxios: 7.1.6
+      google-auth-library: 9.15.1
       qs: 6.15.2
       url-template: 2.0.8
-      uuid: 9.0.1
+      uuid: 11.1.1
     transitivePeerDependencies:
-      - encoding
       - supports-color
 
-  googleapis@144.0.0(encoding@0.1.13):
+  googleapis@144.0.0:
     dependencies:
-      google-auth-library: 9.15.1(encoding@0.1.13)
-      googleapis-common: 7.2.0(encoding@0.1.13)
+      google-auth-library: 9.15.1
+      googleapis-common: 7.2.0
     transitivePeerDependencies:
-      - encoding
       - supports-color
 
   gopd@1.2.0: {}
@@ -27395,12 +27372,11 @@ snapshots:
 
   graphql@16.14.2: {}
 
-  gtoken@7.1.0(encoding@0.1.13):
+  gtoken@7.1.0:
     dependencies:
-      gaxios: 6.7.1(encoding@0.1.13)
+      gaxios: 7.1.6
       jws: 4.0.1
     transitivePeerDependencies:
-      - encoding
       - supports-color
 
   guid-typescript@1.0.9: {}
@@ -29406,7 +29382,7 @@ snapshots:
       preact-render-to-string: 5.2.6(preact@10.29.2)
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
-      uuid: 8.3.2
+      uuid: 11.1.1
 
   next@16.2.9(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
     dependencies:
@@ -32652,10 +32628,6 @@ snapshots:
   uuid@13.0.2: {}
 
   uuid@14.0.0: {}
-
-  uuid@8.3.2: {}
-
-  uuid@9.0.1: {}
 
   v8-compile-cache-lib@3.0.1: {}
 
