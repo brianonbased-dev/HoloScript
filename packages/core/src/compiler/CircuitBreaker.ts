@@ -62,6 +62,7 @@ export type ExportTarget =
   | 'pathtrace' // Sovereign offline path-traced render: standalone Rust wgpu COMPUTE path tracer (cosine GI, emissive area lights), no third-party renderer
   | 'pathtrace-cpu' // Sovereign CPU path tracer (no-GPU fallback): pure-TS compute backend, renders GI offline anywhere Node/JS runs (server/CI/old device)
   | 'media' // Sovereign media pipeline: renders an animated turntable of the scene → APNG (our own encoder, no ffmpeg/codec/muxer dep)
+  | 'physics-sim' // Sovereign GPU rigid-body simulation: WGSL compute steps gravity + sphere/AABB collisions, renders settled state; our own solver
   | 'character-webgpu' // Native-WebGPU skinned CHARACTER (.holo body/skeleton/materials → CharacterDrawSpec, sovereign)
   | 'wasm' // WebAssembly
   | 'sdk' // Typed client SDK generated from service-contract AST

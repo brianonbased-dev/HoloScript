@@ -34,6 +34,7 @@ export const SOVEREIGN_TARGETS = [
   'pathtrace', // PathTracerCompiler → standalone Rust wgpu COMPUTE path tracer (cosine-weighted GI, emissive area lights, multi-sample) → tonemapped PNG; our own tracer, no Cycles/OptiX. Verified on Jetson Orin/Vulkan.
   'pathtrace-cpu', // CpuPathTracer → the no-GPU fallback: pure-TS CPU path tracer (same algorithm + shared scene extraction) → PNG. Runs offline GI anywhere Node/JS runs (server/CI/old device). The "runs anywhere / no-WebGPU compute fallback" gap.
   'media', // MediaPipelineCompiler → renders an animated turntable of the scene (CPU) and encodes it to an APNG with our OWN encoder (node:zlib only, no ffmpeg/codec/muxer). The video/media-pipeline gap; a moving picture from a .holo.
+  'physics-sim', // ComputePhysicsCompiler → WGSL COMPUTE rigid-body solver (gravity + sphere/sphere + sphere/AABB collisions, restitution, double-buffered) that steps on the GPU + renders the settled state. Our own solver, no third-party physics engine. Consumes the collider vocabulary; the DYNAMICS layer on top of PhysicsColliderCompiler. Verified on Jetson Orin/Vulkan.
   'character-webgpu', // CharacterWebGPUCompiler → authored .holo character → CharacterDrawSpec run by our renderCharacter (sovereign skinned-character path)
   'nir', // NIRCompiler → our Neuromorphic IR; NIRToWGSLCompiler runs it on our WebGPU path
   'canvas2d-game', // Canvas2DGameCompiler → self-contained canvas game runtime (loop/physics/WebAudio)
@@ -311,6 +312,16 @@ export const SOVEREIGN_ENGINES = [
     tests: true,
     promoted: false,
     note: 'The sovereign VIDEO / media-pipeline: renders an animated turntable of the scene (orbiting camera, fast CPU flat projector over the shared raytrace-scene extraction) and encodes the frame sequence to an APNG with our OWN encoder (acTL/fcTL/fdAT via node:zlib) — no ffmpeg / codec / muxer dependency. A moving picture from a .holo, runs anywhere Node runs. Fills the media-pipeline gap the audit named; browser-native WebCodecs H.264/WebM is the follow-on encode path.',
+  },
+  {
+    id: 'compute-physics',
+    name: 'ComputePhysicsCompiler',
+    file: 'packages/core/src/compiler/ComputePhysicsCompiler.ts',
+    kind: 'compiler',
+    maturity: 'real',
+    tests: true,
+    promoted: false,
+    note: 'The sovereign GPU rigid-body SIMULATION — the dynamics layer PhysicsColliderCompiler was missing. Emits a Rust wgpu program with a WGSL COMPUTE solver: gravity + sphere/sphere + sphere/static-AABB collisions with restitution + friction, double-buffered (gather, race-free), stepped N times on the GPU; then renders the settled state to PNG. Our own solver, no third-party physics engine. One .holo drives BOTH render and sim (Grok + Claude converged design). Dynamic bodies = @rigid_body spheres; statics = scene boxes. VERIFIED on Jetson Orin (Tegra/Vulkan): spheres dropped above a floor fall, collide and settle. Hooks the physics-discovery / provenance goals.',
   },
 ] as const;
 

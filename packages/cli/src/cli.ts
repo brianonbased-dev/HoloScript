@@ -2001,6 +2001,7 @@ async function main(): Promise<void> {
         'pathtrace',
         'pathtrace-cpu',
         'media',
+        'physics-sim',
       ];
 
       if (!validTargets.includes(target)) {
@@ -2961,6 +2962,49 @@ async function main(): Promise<void> {
             console.log(`\x1b[32m✓ Collider set written to ${jsonPath}\x1b[0m`);
           } else {
             console.log(output);
+          }
+          process.exit(0);
+        }
+
+        // Compute-physics simulation — a sovereign standalone Rust wgpu program whose
+        // WGSL COMPUTE solver steps rigid bodies (gravity + collisions) on the GPU, then
+        // renders the settled state. Writes a Cargo project; --steps/--dt/--gravity flags.
+        if (target === 'physics-sim') {
+          if (!isHolo) {
+            console.error(`\x1b[31mError: physics-sim compilation requires .holo files.\x1b[0m`);
+            process.exit(1);
+          }
+          const { HoloCompositionParser, ComputePhysicsCompiler } = await import('@holoscript/core');
+          const compositionParser = new HoloCompositionParser();
+          const parseResult = compositionParser.parse(content);
+          if (!parseResult.success || !parseResult.ast) {
+            console.error(`\x1b[31mError parsing for physics-sim:\x1b[0m`);
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
+            process.exit(1);
+          }
+          const numOpt = (name: string): number | undefined => {
+            const i = process.argv.indexOf(`--${name}`);
+            return i >= 0 && process.argv[i + 1] ? Number(process.argv[i + 1]) : undefined;
+          };
+          const project = new ComputePhysicsCompiler({
+            steps: numOpt('steps'),
+            dt: numOpt('dt'),
+            gravity: numOpt('gravity'),
+            width: numOpt('width'),
+            height: numOpt('height'),
+          }).compileProject(parseResult.ast);
+          console.log(`\x1b[32m✓ physics-sim compilation successful!\x1b[0m`);
+          if (options.output) {
+            const { writeFileSync, mkdirSync } = await import('node:fs');
+            const dir = path.resolve(options.output);
+            mkdirSync(path.join(dir, 'src'), { recursive: true });
+            for (const [rel, contents] of Object.entries(project)) {
+              writeFileSync(path.join(dir, rel), contents as string);
+            }
+            console.log(`\x1b[32m✓ Rust wgpu physics-sim project written to ${dir}\x1b[0m`);
+            console.log(`\x1b[2m  Simulate & render: cd ${dir} && cargo run --release  (writes out.png)\x1b[0m`);
+          } else {
+            console.log(project['src/main.rs']);
           }
           process.exit(0);
         }

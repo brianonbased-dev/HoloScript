@@ -98,6 +98,8 @@ export { CpuPathTracer } from './CpuPathTracer';
 export type { CpuRenderOptions, CpuImage } from './CpuPathTracer';
 export { MediaPipelineCompiler } from './MediaPipelineCompiler';
 export type { MediaOptions, MediaClip } from './MediaPipelineCompiler';
+export { ComputePhysicsCompiler } from './ComputePhysicsCompiler';
+export type { PhysicsSimOptions } from './ComputePhysicsCompiler';
 
 // Platform-conditional compilation (public facade for Adaptive Platform Layers)
 export {
