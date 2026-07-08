@@ -78,17 +78,21 @@ export class SovereignMemoryStore {
        ON CONFLICT (id) DO UPDATE
          SET content = EXCLUDED.content, tags = EXCLUDED.tags, section = EXCLUDED.section,
              confidence = EXCLUDED.confidence, updated_at = now()
+         WHERE memory_entries.workspace_id = EXCLUDED.workspace_id
        RETURNING id`,
       [id, this.workspaceId, input.authorAgent, section, type, input.content, tags, domain, confidence, input.provenanceHash ?? null],
     );
+    if (!res.rows[0]?.id) {
+      throw new Error(`memory entry ${id} belongs to a different workspace`);
+    }
     return res.rows[0].id as string;
   }
 
   /** Recall memory across ALL families (identity-keyed); optional section/author filters. */
   async recall(query: string, options: RecallOptions = {}): Promise<MemoryEntry[]> {
     const limit = Math.min(Math.max(options.limit ?? 10, 1), 200);
-    const params: unknown[] = [`%${query}%`];
-    let where = 'content ILIKE $1';
+    const params: unknown[] = [this.workspaceId, `%${query}%`];
+    let where = 'workspace_id = $1 AND content ILIKE $2';
     if (options.section) {
       params.push(options.section);
       where += ` AND section = $${params.length}`;
@@ -119,7 +123,7 @@ export class SovereignMemoryStore {
 
   /** Delete an entry by id (requires the scoped role's DELETE grant). */
   async forget(id: string): Promise<void> {
-    await this.pool.query('DELETE FROM memory_entries WHERE id = $1', [id]);
+    await this.pool.query('DELETE FROM memory_entries WHERE workspace_id = $1 AND id = $2', [this.workspaceId, id]);
   }
 
   async close(): Promise<void> {

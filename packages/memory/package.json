@@ -16,7 +16,7 @@
   "files": ["dist", "README.md", "LICENSE"],
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts --clean",
-    "test": "vitest run src/agent-memory-profile.test.ts --passWithNoTests"
+    "test": "vitest run src/agent-memory-profile.test.ts src/sovereign-memory-store.test.ts --passWithNoTests"
   },
   "dependencies": {
     "pg": "^8.13.0"

@@ -32,8 +32,8 @@ const memory = new SovereignMemoryStore({
 // Any family writes identity-keyed memory (author + uAA2 section + tags)
 await memory.store({ authorAgent: 'gemini1', section: 'D', tags: ['fleet'], content: '…' });
 
-// Any family recalls across ALL families
-const all = await memory.recall('fleet');                // cross-family
+// Any family recalls across ALL families in the current workspace
+const all = await memory.recall('fleet');                // cross-family, workspace-scoped
 const dirs = await memory.recall('fleet', { section: 'D' }); // section-filtered
 ```
 
@@ -98,9 +98,9 @@ keyword `ILIKE` recall and does not require it).
 - `new SovereignMemoryStore(config)` — `config` is a node-postgres `PoolConfig`
   plus optional `workspaceId` (default `'default'`).
 - `store(input)` → `Promise<string>` — upsert an identity-keyed entry; returns its id.
-- `recall(query, options?)` → `Promise<MemoryEntry[]>` — cross-family recall,
-  optional `{ section, authorAgent, limit }`.
-- `forget(id)` / `close()`.
+- `recall(query, options?)` → `Promise<MemoryEntry[]>` — cross-family recall
+  within the configured workspace, optional `{ section, authorAgent, limit }`.
+- `forget(id)` / `close()` — deletion is scoped to the configured workspace.
 - `buildAgentMemoryProfile(input)` and `memoryEntryFromAgentProfile(profile)` for
   portable agent runtime profile memory.
 
