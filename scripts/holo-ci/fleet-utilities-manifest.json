@@ -24,6 +24,20 @@
       ]
     },
     {
+      "id": "jetson-main-workspace",
+      "label": "Jetson primary workspace readiness",
+      "utilityFamily": "control-plane",
+      "deploymentRoles": ["edge-node"],
+      "packageName": "@holoscript/mcp-server",
+      "requiredBy": ["jetson-orin"],
+      "lifecycleChecks": ["jetson-main-workspace-readiness"],
+      "useCases": [
+        "target-node receipt before promoting Jetson to the primary HoloScript workspace host",
+        "NVMe lane separation: workspace and service data on NVMe2, model ops on NVMe1",
+        "agent-safe cutover guard for main worktree ownership without disrupting peer changes"
+      ]
+    },
+    {
       "id": "native-llm-serving",
       "label": "HoloLlama serving planner",
       "utilityFamily": "native-serving",

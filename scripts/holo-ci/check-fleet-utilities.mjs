@@ -29,6 +29,7 @@ const KNOWN_LIFECYCLE_CHECKS = new Set([
   'llama-cpp-vision-preflight',
   'serve-health-probe',
   'live-lifecycle',
+  'jetson-main-workspace-readiness',
 ]);
 const KNOWN_UTILITY_FAMILIES = new Set([
   'control-plane',

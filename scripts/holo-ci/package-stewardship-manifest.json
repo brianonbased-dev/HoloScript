@@ -113,6 +113,7 @@
       "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu", "hosted-service"],
       "utilityIds": [
         "agent-tool-gateway",
+        "jetson-main-workspace",
         "gpu-ci-dispatch",
         "world-render-dispatch",
         "paid-simulation-dispatch"
@@ -120,12 +121,22 @@
       "validationScripts": [
         "build:package-release-closure",
         "check:npm-v1-release:built",
+        "check:jetson-main-workspace-readiness",
         "check:fleet-utilities",
         "check:registry-cold-start:mcp",
         "check:package-consumption:full"
       ],
+      "caveats": [
+        {
+          "id": "jetson-primary-workspace-requires-target-receipt",
+          "scope": "jetson-orin",
+          "summary": "The laptop-side Jetson workspace gate is only a planning receipt; primary-workspace cutover requires the same gate to pass on Jetson with --require-jetson after NVMe mounts are final.",
+          "overclaimGuard": "Do not claim Jetson is the main HoloScript workspace host from package or laptop checks alone; require a target-node readiness receipt."
+        }
+      ],
       "nextActions": [
         "Keep sizing profiles aligned with laptop, Jetson, Vast, and fleet hosted lanes.",
+        "Run check:jetson-main-workspace-readiness with --require-jetson on the Jetson before promoting it to primary workspace host.",
         "Make new MCP tools discoverable, authenticated, and tied to package consumption checks."
       ]
     },
