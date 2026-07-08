@@ -113,7 +113,7 @@ the positive differentiator, don't name a rival.
 **The four differentiators to lead with:**
 
 1. **Portable source, not a destination.** Rivals output one app that runs on
-   their runtime. HoloScript source compiles to 30+ targets; the intent outlives
+   their runtime. HoloScript source compiles to 50+ targets; the intent outlives
    any single platform or vendor.
 2. **Open + sovereign.** MIT, self-hostable, your data yours — vs a closed hosted
    SaaS you can't leave.

@@ -60,7 +60,7 @@
 
 | Differentiator                       | Why it matters                                                                                  | Proof                                                                 |
 | ------------------------------------ | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| **Multi-target compilation**         | One `.holo` source → 40+ targets. Omma outputs a browser app; we output Unity/Unreal/robotics/XR/native + web | `packages/core/src/compiler/` · `sovereign-targets.ts`               |
+| **Multi-target compilation**         | One `.holo` source → 50+ targets. Omma outputs a browser app; we output Unity/Unreal/robotics/XR/native + web | `packages/core/src/compiler/` · `sovereign-targets.ts`               |
 | **Portable source is a destination** | Omma *is* the runtime; our source outlives any target and any vendor                            | `.holo`/`.hsplus`/`.hs` → `ExportTarget` union                       |
 | **Open + sovereign, no lock-in**     | MIT, self-hostable, your data yours; Omma is closed Spline-hosted SaaS                          | `LICENSE` (MIT) · public MCP endpoint                                |
 | **Model-agnostic**                   | Any frontier model plugs in via MCP; Omma is proprietary orchestration                          | `@holoscript/llm-provider` (OpenAI · Anthropic · Gemini)             |

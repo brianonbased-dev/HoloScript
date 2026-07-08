@@ -1,6 +1,6 @@
 <svg viewBox="0 0 1200 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ht hd">
 <title id="ht">HoloScript — an open, model-agnostic OS for agents and spatial computing</title>
-<desc id="hd">One .holo source you own feeds the HoloScript engine and compiles to 40+ targets — VR/AR, game engines, robotics, web, science, advanced formats — so any frontier model can build on one open substrate instead of a locked vendor stack.</desc>
+<desc id="hd">One .holo source you own feeds the HoloScript engine and compiles to 50+ targets — VR/AR, game engines, robotics, web, science, advanced formats — so any frontier model can build on one open substrate instead of a locked vendor stack.</desc>
 <rect width="1200" height="600" fill="#0C1222"/>
 <rect x="0" y="0" width="1200" height="6" fill="#38BDF8"/>
 <text x="56" y="88" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="54" font-weight="700" fill="#F5F8FF">HoloScript</text>
@@ -15,7 +15,7 @@
 <rect x="366" y="258" width="160" height="124" rx="14" fill="#103047" stroke="#38BDF8" stroke-width="2.5"/>
 <text x="446" y="308" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#EAF6FF">HoloScript</text>
 <text x="446" y="332" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#EAF6FF">engine</text>
-<text x="446" y="360" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#8FD3F4">40+ compilers</text>
+<text x="446" y="360" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#8FD3F4">50+ compilers</text>
 <g stroke="#2A3A5C" stroke-width="1.5" fill="none">
 <path d="M526 320 C 590 300, 600 272, 640 272"/>
 <path d="M526 320 C 590 312, 600 322, 640 322"/>
