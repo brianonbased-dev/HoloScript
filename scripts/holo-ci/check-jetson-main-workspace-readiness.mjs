@@ -17,7 +17,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..', '..');
 const DEFAULT_WORKSPACE_ROOT = '/mnt/nvme2/holo-workspaces/HoloScript';
 const DEFAULT_SERVICE_DATA_ROOT = '/mnt/nvme2/holo-volumes';
-const DEFAULT_MODEL_OPS_ROOT = '/mnt/nvme1/holo-model-ops';
+const DEFAULT_MODEL_OPS_ROOT = '/mnt/nvme/holo';
 const SCHEMA = 'holoscript.jetson-main-workspace-readiness.v1';
 
 const args = process.argv.slice(2);
@@ -190,7 +190,7 @@ function evaluatePathContract(options) {
   const roots = [
     ['workspace-root-posix-nvme2', workspaceRoot, '/mnt/nvme2', 'Workspace root should be under NVMe2.'],
     ['service-data-root-posix-nvme2', serviceDataRoot, '/mnt/nvme2', 'Service data root should be under NVMe2.'],
-    ['model-ops-root-posix-nvme1', modelOpsRoot, '/mnt/nvme1', 'Model ops root should remain under NVMe1.'],
+    ['model-ops-root-posix-nvme', modelOpsRoot, '/mnt/nvme', 'Model ops root should remain under the primary NVMe ops lane.'],
   ];
 
   for (const [id, value, prefix, summary] of roots) {
@@ -352,7 +352,7 @@ async function buildReadiness(options = {}) {
       modelOpsRoot,
       contract: {
         nvme2: ['workspaceRoot', 'serviceDataRoot'],
-        nvme1: ['modelOpsRoot'],
+        nvme: ['modelOpsRoot'],
       },
     },
     checks,
@@ -365,8 +365,8 @@ async function buildReadiness(options = {}) {
             'Only cut over the primary workspace when peer work is idle or the target worktree is clean enough for explicit-path staging.',
           ]
         : [
-            'Run this gate on the Jetson with --require-jetson after NVMe1/NVMe2 mounts are final.',
-            'Keep model ops on NVMe1 and the primary workspace/service data lane on NVMe2.',
+            'Run this gate on the Jetson with --require-jetson after /mnt/nvme and /mnt/nvme2 mounts are final.',
+            'Keep model ops on /mnt/nvme and the primary workspace/service data lane on /mnt/nvme2.',
           ],
   };
 }

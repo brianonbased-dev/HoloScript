@@ -8,7 +8,8 @@ source of truth by itself.
 ## Storage Contract
 
 - NVMe2 owns the primary HoloScript workspace and service data lane.
-- NVMe1 owns model ops and HoloLlama/model-runtime assets.
+- The primary NVMe mount (`/mnt/nvme`) owns model ops and
+  HoloLlama/model-runtime assets.
 - Laptop remains the frontier authoring and staging lane until the Jetson target
   receipt passes.
 - Do not move or delete main repositories during readiness work. Cutover is a
@@ -20,7 +21,7 @@ Default target paths:
 ```bash
 JETSON_WORKSPACE_ROOT=/mnt/nvme2/holo-workspaces/HoloScript
 JETSON_SERVICE_DATA_ROOT=/mnt/nvme2/holo-volumes
-JETSON_MODEL_OPS_ROOT=/mnt/nvme1/holo-model-ops
+JETSON_MODEL_OPS_ROOT=/mnt/nvme/holo
 ```
 
 ## Readiness Gate

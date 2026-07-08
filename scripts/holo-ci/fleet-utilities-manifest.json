@@ -33,7 +33,7 @@
       "lifecycleChecks": ["jetson-main-workspace-readiness"],
       "useCases": [
         "target-node receipt before promoting Jetson to the primary HoloScript workspace host",
-        "NVMe lane separation: workspace and service data on NVMe2, model ops on NVMe1",
+        "NVMe lane separation: workspace and service data on /mnt/nvme2, model ops on /mnt/nvme",
         "agent-safe cutover guard for main worktree ownership without disrupting peer changes"
       ]
     },
