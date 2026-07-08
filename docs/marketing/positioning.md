@@ -95,3 +95,35 @@ HoloScript is model-agnostic by architecture: any MCP-capable model connects
 through one surface, and the provider layer already unifies OpenAI, Anthropic, and
 Gemini. It's MIT-licensed and designed for any lab to adopt and integrate.
 ```
+
+## Positioning vs AI app / 3D builders
+
+The "describe it and AI builds it" category is crowded and getting good — some
+rivals now market native WebGPU and parallel agents too. **Do not lead against
+them on WebGPU or on "AI builds it fast"; that's table stakes now.** Lead on the
+layer they structurally lack. Keep this competitor-neutral in public copy — state
+the positive differentiator, don't name a rival.
+
+**The line:**
+
+> Most AI builders hand you a hosted app you rent. HoloScript hands you portable
+> source you own — that compiles to the browser *and* to Unity, robots, headsets,
+> and services, on any model, and self-hosted if you want.
+
+**The four differentiators to lead with:**
+
+1. **Portable source, not a destination.** Rivals output one app that runs on
+   their runtime. HoloScript source compiles to 30+ targets; the intent outlives
+   any single platform or vendor.
+2. **Open + sovereign.** MIT, self-hostable, your data yours — vs a closed hosted
+   SaaS you can't leave.
+3. **Model-agnostic.** Any frontier model plugs in via MCP — vs one proprietary
+   orchestration.
+4. **Verifiable.** Builds can carry provenance (SimulationContract / CAEL) — vs a
+   black box. Decisive for simulation, robotics, scientific, and enterprise use.
+
+**Honesty guardrail:** WebGPU and fast AI generation are parity features now, not
+advantages — claim them as table stakes, not moat. The moat is multi-target +
+open + verifiable + domain reach (robotics, simulation, digital twins) that
+web/design-only builders can't touch. (Full competitive analysis:
+`docs/strategy/battlecards/omma.md`, matrix rows CG-074..CG-076.)

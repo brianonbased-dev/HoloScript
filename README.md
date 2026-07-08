@@ -16,6 +16,8 @@ Think of it as three practical pieces:
 - a runner that can execute those files before you choose a final platform
 - tools that turn the same source into apps, scenes, services, agent tools, and deployment artifacts
 
+> **Why this is different from AI app builders.** Most "describe it and AI builds it" tools hand you a hosted app you *rent* — great until you need it somewhere they don't run. HoloScript hands you portable source *you own* that compiles to the browser **and** to Unity, Unreal, robots, headsets, and services. It's open (MIT), self-hostable, and model-agnostic, and every build can carry provenance so you can verify what it does. You keep the intent, you pick the target, and no vendor can lock it in.
+
 Use this to connect an AI coding agent to HoloScript tools:
 
 ```json
