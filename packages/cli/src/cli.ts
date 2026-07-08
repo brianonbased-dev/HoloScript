@@ -1995,6 +1995,7 @@ async function main(): Promise<void> {
         'web-2d',
         'scm-dag',
         'uaal',
+        'physics',
       ];
 
       if (!validTargets.includes(target)) {
@@ -2924,6 +2925,38 @@ async function main(): Promise<void> {
             }
           }
 
+          process.exit(0);
+        }
+
+        // Physics collider target — a SECOND consumer of the shared geometry
+        // vocabulary. It reads the same geometry-registry primitives + geometry-purpose
+        // roles the render target uses and emits a holoscript.physics.v1 collider set
+        // (one shape, many domains). Collision/trigger geometry + rigidbody objects only.
+        if (target === 'physics') {
+          if (!isHolo) {
+            console.error(`\x1b[31mError: physics compilation requires .holo files.\x1b[0m`);
+            process.exit(1);
+          }
+          const { HoloCompositionParser, PhysicsColliderCompiler } = await import('@holoscript/core');
+          const compositionParser = new HoloCompositionParser();
+          const parseResult = compositionParser.parse(content);
+          if (!parseResult.success || !parseResult.ast) {
+            console.error(`\x1b[31mError parsing for physics:\x1b[0m`);
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
+            process.exit(1);
+          }
+          const world = new PhysicsColliderCompiler().compileToObject(parseResult.ast);
+          const output = JSON.stringify(world, null, 2);
+          console.log(`\x1b[32m✓ physics compilation successful!\x1b[0m`);
+          console.log(`\x1b[2m  Colliders: ${world.colliderCount}\x1b[0m`);
+          if (options.output) {
+            const outPath = path.resolve(options.output);
+            const jsonPath = outPath.endsWith('.json') ? outPath : outPath + '.json';
+            writeCompileOutputFile(jsonPath, output);
+            console.log(`\x1b[32m✓ Collider set written to ${jsonPath}\x1b[0m`);
+          } else {
+            console.log(output);
+          }
           process.exit(0);
         }
 

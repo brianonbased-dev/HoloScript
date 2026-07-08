@@ -368,6 +368,11 @@ export { VisionOSCompiler, type VisionOSCompilerOptions } from './compiler/Visio
 
 // HoloScript New Platform Compilers (NEW - Phase 14)
 export { WebGPUCompiler, type WebGPUCompilerOptions } from './compiler/WebGPUCompiler';
+export {
+  PhysicsColliderCompiler,
+  type PhysicsWorld,
+  type PhysicsCollider,
+} from './compiler/PhysicsColliderCompiler';
 // BabylonCompiler, ThreeJSCompiler — retired 2026-06-17 (apex-poison; see idea-seeds.md)
 export {
   AndroidXRCompiler,

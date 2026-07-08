@@ -87,6 +87,8 @@ export { IOSCompiler } from './IOSCompiler';
 export { WASMCompiler } from './WASMCompiler';
 export { WebGPUCompiler } from './WebGPUCompiler';
 export type { WebGPUCompilerOptions } from './WebGPUCompiler';
+export { PhysicsColliderCompiler } from './PhysicsColliderCompiler';
+export type { PhysicsWorld, PhysicsCollider } from './PhysicsColliderCompiler';
 
 // Platform-conditional compilation (public facade for Adaptive Platform Layers)
 export {
