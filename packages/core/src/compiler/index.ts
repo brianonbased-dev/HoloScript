@@ -96,6 +96,8 @@ export { PathTracerCompiler } from './PathTracerCompiler';
 export type { PathTracerOptions } from './PathTracerCompiler';
 export { CpuPathTracer } from './CpuPathTracer';
 export type { CpuRenderOptions, CpuImage } from './CpuPathTracer';
+export { MediaPipelineCompiler } from './MediaPipelineCompiler';
+export type { MediaOptions, MediaClip } from './MediaPipelineCompiler';
 
 // Platform-conditional compilation (public facade for Adaptive Platform Layers)
 export {

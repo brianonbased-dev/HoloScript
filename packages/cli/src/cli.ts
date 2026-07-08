@@ -2000,6 +2000,7 @@ async function main(): Promise<void> {
         'desktop-gpu',
         'pathtrace',
         'pathtrace-cpu',
+        'media',
       ];
 
       if (!validTargets.includes(target)) {
@@ -2960,6 +2961,50 @@ async function main(): Promise<void> {
             console.log(`\x1b[32m✓ Collider set written to ${jsonPath}\x1b[0m`);
           } else {
             console.log(output);
+          }
+          process.exit(0);
+        }
+
+        // Media pipeline — a sovereign moving picture from a .holo. Renders an animated
+        // turntable (orbiting camera) on the CPU and encodes it to an APNG with our own
+        // encoder (no ffmpeg/codec). Supports --frames / --fps / --width / --height.
+        if (target === 'media') {
+          if (!isHolo) {
+            console.error(`\x1b[31mError: media compilation requires .holo files.\x1b[0m`);
+            process.exit(1);
+          }
+          const { HoloCompositionParser, MediaPipelineCompiler } = await import('@holoscript/core');
+          const compositionParser = new HoloCompositionParser();
+          const parseResult = compositionParser.parse(content);
+          if (!parseResult.success || !parseResult.ast) {
+            console.error(`\x1b[31mError parsing for media:\x1b[0m`);
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
+            process.exit(1);
+          }
+          const numOpt = (name: string): number | undefined => {
+            const i = process.argv.indexOf(`--${name}`);
+            return i >= 0 && process.argv[i + 1] ? Number(process.argv[i + 1]) : undefined;
+          };
+          const t0 = Date.now();
+          const clip = new MediaPipelineCompiler().render(parseResult.ast, {
+            frames: numOpt('frames'),
+            fps: numOpt('fps'),
+            width: numOpt('width'),
+            height: numOpt('height'),
+          });
+          const apng = MediaPipelineCompiler.toAPNG(clip);
+          console.log(`\x1b[32m✓ media render complete!\x1b[0m`);
+          console.log(
+            `\x1b[2m  ${clip.width}x${clip.height}, ${clip.frames.length} frames @ ${clip.fps}fps (APNG) in ${((Date.now() - t0) / 1000).toFixed(1)}s\x1b[0m`
+          );
+          if (options.output) {
+            const { writeFileSync } = await import('node:fs');
+            const outPath = path.resolve(options.output);
+            const pngPath = outPath.endsWith('.png') ? outPath : outPath + '.png';
+            writeFileSync(pngPath, apng);
+            console.log(`\x1b[32m✓ Animated PNG written to ${pngPath}\x1b[0m`);
+          } else {
+            console.log(`\x1b[2m  (use --output <file.png> to save the animation)\x1b[0m`);
           }
           process.exit(0);
         }

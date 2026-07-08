@@ -33,6 +33,7 @@ export const SOVEREIGN_TARGETS = [
   'desktop-gpu', // DesktopGPUCompiler → standalone Rust wgpu project (Vulkan/Metal/DX12), renders the scene offscreen on the machine's own GPU; no browser, no third-party engine. Verified on Jetson Orin/Vulkan.
   'pathtrace', // PathTracerCompiler → standalone Rust wgpu COMPUTE path tracer (cosine-weighted GI, emissive area lights, multi-sample) → tonemapped PNG; our own tracer, no Cycles/OptiX. Verified on Jetson Orin/Vulkan.
   'pathtrace-cpu', // CpuPathTracer → the no-GPU fallback: pure-TS CPU path tracer (same algorithm + shared scene extraction) → PNG. Runs offline GI anywhere Node/JS runs (server/CI/old device). The "runs anywhere / no-WebGPU compute fallback" gap.
+  'media', // MediaPipelineCompiler → renders an animated turntable of the scene (CPU) and encodes it to an APNG with our OWN encoder (node:zlib only, no ffmpeg/codec/muxer). The video/media-pipeline gap; a moving picture from a .holo.
   'character-webgpu', // CharacterWebGPUCompiler → authored .holo character → CharacterDrawSpec run by our renderCharacter (sovereign skinned-character path)
   'nir', // NIRCompiler → our Neuromorphic IR; NIRToWGSLCompiler runs it on our WebGPU path
   'canvas2d-game', // Canvas2DGameCompiler → self-contained canvas game runtime (loop/physics/WebAudio)
@@ -300,6 +301,16 @@ export const SOVEREIGN_ENGINES = [
     tests: true,
     promoted: false,
     note: 'The sovereign no-GPU FALLBACK: a pure-TypeScript CPU path tracer that RUNS (not emits) the same GI algorithm as PathTracerCompiler, sharing extractRaytraceScene so the two render the same scene. Renders offline global-illumination stills anywhere Node/JS runs — server, CI, old device, no WebGPU/GPU needed. Ships its own PNG encoder (node:zlib), zero deps. Fills the "runs anywhere / no-WebGPU compute fallback" gap the audit named (compiler-wasm is a parser, not a compute backend).',
+  },
+  {
+    id: 'media-pipeline',
+    name: 'MediaPipelineCompiler',
+    file: 'packages/core/src/compiler/MediaPipelineCompiler.ts',
+    kind: 'runtime',
+    maturity: 'real',
+    tests: true,
+    promoted: false,
+    note: 'The sovereign VIDEO / media-pipeline: renders an animated turntable of the scene (orbiting camera, fast CPU flat projector over the shared raytrace-scene extraction) and encodes the frame sequence to an APNG with our OWN encoder (acTL/fcTL/fdAT via node:zlib) — no ffmpeg / codec / muxer dependency. A moving picture from a .holo, runs anywhere Node runs. Fills the media-pipeline gap the audit named; browser-native WebCodecs H.264/WebM is the follow-on encode path.',
   },
 ] as const;
 
