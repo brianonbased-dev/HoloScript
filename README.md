@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="hero.svg" alt="HoloScript — build your own games and apps, no code, your data stays yours" width="100%">
+  <img src="hero.svg" alt="HoloScript — an open, model-agnostic OS for agents and spatial computing" width="100%">
 </p>
 
 # HoloScript
