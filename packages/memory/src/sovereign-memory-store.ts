@@ -1,15 +1,16 @@
 /**
- * SovereignMemoryStore — direct-to-SoT client for the shared sovereign memory
- * substrate (see ai-ecosystem research/2026-07-04_shared-sovereign-memory-substrate.md, P0).
+ * SovereignMemoryStore — direct-to-SoT client for a shared sovereign memory
+ * substrate.
  *
- * Any family (Claude / Cursor / Gemini / Copilot / edge agents) installs
+ * Any agent family (Claude / Cursor / Gemini / Copilot / edge agents) installs
  * `@holoscript/memory` and reads/writes the SAME identity-keyed `memory_entries`
- * table on the sovereign Jetson SoT — the de-silo as a consumable package, with no
- * bespoke endpoint service to run.
+ * table on YOUR sovereign Postgres source-of-truth — the de-silo as a consumable
+ * package, with no bespoke endpoint service to run. You bring the Postgres; point
+ * this client at it. See the README for the required `memory_entries` schema.
  *
- * Connects directly via node-postgres with a scoped, vault-managed credential
- * (LAN-direct, $0). Cloud / non-LAN seats use the orchestrator fallback (separate).
- * All queries are parameterized (injection-safe).
+ * Connects directly via node-postgres with a scoped credential you inject from
+ * your own vault/env — this package never embeds a host, port, or secret. All
+ * queries are parameterized (injection-safe).
  */
 import { Pool, type PoolConfig } from 'pg';
 
@@ -47,7 +48,7 @@ export interface RecallOptions {
 }
 
 export interface SovereignMemoryConfig extends PoolConfig {
-  /** Default workspace scope for entries (default 'ai-ecosystem'). */
+  /** Workspace scope tag written to `workspace_id` for entries (default 'default'). */
   workspaceId?: string;
 }
 
@@ -59,7 +60,7 @@ export class SovereignMemoryStore {
   constructor(config: SovereignMemoryConfig) {
     const { workspaceId, ...poolConfig } = config;
     this.pool = new Pool(poolConfig);
-    this.workspaceId = workspaceId ?? 'ai-ecosystem';
+    this.workspaceId = workspaceId ?? 'default';
   }
 
   /** Write an identity-keyed memory entry to the shared sovereign SoT (upsert by id). */
