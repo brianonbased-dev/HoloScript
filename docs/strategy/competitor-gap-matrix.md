@@ -1,6 +1,6 @@
 # Competitor Gap Matrix
 
-> Generated: 2026-07-03T10:40:00Z | Next review: 2026-07-17
+> Generated: 2026-07-08T03:12:00Z | Next review: 2026-07-13
 
 | ID | Vertical | Competitor | Severity | Direction | Status | Title |
 |---|---|---|---|---|---|---|
@@ -48,7 +48,7 @@
 - **Board Task:** task_1778222134389_0uxt
 
 **Competitor Advantage:**
-Unity has 20+ years of editor maturity, 70K Asset Store assets, Unity Learn certifications, integrated Profiler + Frame Debugger, Plastic SCM collaboration, and a full LiveOps SaaS stack (Analytics, Remote Config, Cloud Build, Multiplay). Unity 6.3 LTS is now the supported LTS line through December 2027 and Unity 6000.4 update releases continue to ship weekly/biweekly patch evidence. This ecosystem lock-in is the primary reason teams choose Unity even when the runtime is not optimal for their use case.
+Unity has 20+ years of editor maturity, 70K Asset Store assets, Unity Learn certifications, integrated Profiler + Frame Debugger, Plastic SCM collaboration, and a full LiveOps SaaS stack (Analytics, Remote Config, Cloud Build, Multiplay). Unity 6.3 LTS is now the supported LTS line through December 2027 and Unity 6000.5 supported-update releases continued landing through July 1, 2026 (6000.5.2f1). This ecosystem lock-in is the primary reason teams choose Unity even when the runtime is not optimal for their use case.
 
 **HoloScript State:**
 Editor: Studio is beta; lacks Scene/Game/Inspector/Hierarchy/Project window parity. Asset Store: No marketplace at scale. Learning: Docs + video-tutorials exist, but no structured certification or university partnerships. Profiler: Synthetic benchmarks only; no real-time in-editor profiler. Collaboration: CRDT multi-user editing exists but no Plastic/Git LFS large-asset workflow or cloud project sharing. LiveOps: No Analytics, Remote Config, Cloud Build, Multiplay, or User Reporting equivalents.
@@ -63,7 +63,7 @@ Editor: Studio is beta; lacks Scene/Game/Inspector/Hierarchy/Project window pari
 - CRDT collab: packages/crdt/
 - Marketplace API: packages/marketplace-api/
 - Unity official Unity 6 page: Unity 6.3 LTS supported until December 2027; Unity 6.0 LTS supported through October 2026.
-- Unity official 6000.4.11f1 release page: released June 10, 2026.
+- Unity official download archive: 6000.5.2f1 released July 1, 2026.
 
 **Sources:**
 - docs/strategy/battlecards/unity.md
@@ -73,7 +73,7 @@ Editor: Studio is beta; lacks Scene/Game/Inspector/Hierarchy/Project window pari
 - packages/marketplace-api/
 - packages/video-tutorials/
 - https://unity.com/releases/unity-6
-- https://unity.com/releases/editor/whats-new/6000.4.11f1
+- https://unity.com/releases/editor/archive
 
 ### CG-037 — Unreal visual fidelity and toolchain depth vs HoloScript simulation fidelity
 
