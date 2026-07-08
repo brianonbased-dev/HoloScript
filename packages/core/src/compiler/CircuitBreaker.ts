@@ -58,6 +58,7 @@ export type ExportTarget =
   | 'visionos' // Apple Vision Pro
   | 'webgpu' // WebGPU API
   | 'audio' // Sovereign spatial-audio: our own Web Audio graph (HRTF/PannerNode/Convolver), no third-party audio engine
+  | 'desktop-gpu' // Sovereign native-desktop GPU: standalone Rust wgpu project (Vulkan/Metal/DX12), offscreen render, no browser
   | 'character-webgpu' // Native-WebGPU skinned CHARACTER (.holo body/skeleton/materials → CharacterDrawSpec, sovereign)
   | 'wasm' // WebAssembly
   | 'sdk' // Typed client SDK generated from service-contract AST

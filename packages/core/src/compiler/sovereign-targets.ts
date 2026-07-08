@@ -30,6 +30,7 @@ import type { ExportTarget } from './CircuitBreaker';
 export const SOVEREIGN_TARGETS = [
   'webgpu', // WebGPUCompiler → WGSL compute+render shaders on our own WebGPU device (WebGPURenderer)
   'audio', // SpatialAudioCompiler → our own Web Audio graph (HRTF PannerNode + Convolver reverb + filters); no third-party audio engine
+  'desktop-gpu', // DesktopGPUCompiler → standalone Rust wgpu project (Vulkan/Metal/DX12), renders the scene offscreen on the machine's own GPU; no browser, no third-party engine. Verified on Jetson Orin/Vulkan.
   'character-webgpu', // CharacterWebGPUCompiler → authored .holo character → CharacterDrawSpec run by our renderCharacter (sovereign skinned-character path)
   'nir', // NIRCompiler → our Neuromorphic IR; NIRToWGSLCompiler runs it on our WebGPU path
   'canvas2d-game', // Canvas2DGameCompiler → self-contained canvas game runtime (loop/physics/WebAudio)
@@ -267,6 +268,16 @@ export const SOVEREIGN_ENGINES = [
     tests: true,
     promoted: false,
     note: 'The audio peer of WebGPU: emits our OWN Web Audio graph (HRTF PannerNode + Convolver reverb from synthesized rt60 impulses + directivity/occlusion/portal filters) from @audio_source/@audio_listener/@reverb_zone/@audio_material/@audio_occlusion/@audio_portal traits. Sovereign — no FMOD/Wwise/Resonance. Fills the #1 spatial-computing gap (no audio compiler existed).',
+  },
+  {
+    id: 'desktop-gpu',
+    name: 'DesktopGPUCompiler',
+    file: 'packages/core/src/compiler/DesktopGPUCompiler.ts',
+    kind: 'compiler',
+    maturity: 'real',
+    tests: true,
+    promoted: false,
+    note: 'Sovereign native-desktop GPU: emits a self-contained Rust wgpu project (Vulkan/Metal/DX12) that renders the scene offscreen to a PNG on the machine\'s OWN GPU — standalone, no browser, no third-party engine. WebGPU is browser/runtime-bound; this is the "runs standalone at native perf" gap. Matrices computed in the compiler; geometry generators + wgpu host emitted. VERIFIED on real hardware: Jetson Orin (Tegra) via Vulkan rendered a 6-object scene offscreen to PNG (adapter=NVIDIA Tegra Orin, backend=Vulkan). Consumes the same geometry-registry + geometry-purpose vocabulary as render/physics/audio.',
   },
 ] as const;
 
