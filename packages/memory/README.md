@@ -37,6 +37,35 @@ const all = await memory.recall('fleet');                // cross-family
 const dirs = await memory.recall('fleet', { section: 'D' }); // section-filtered
 ```
 
+## Agent profiles
+
+Edge and fleet agents can store their runtime profile as ordinary memory data.
+This keeps HoloScript agents, Claude/Codex seats, and owned-metal workers on the
+same memory substrate without baking any operator's node into the package.
+
+```ts
+import {
+  buildAgentMemoryProfile,
+  memoryEntryFromAgentProfile,
+} from '@holoscript/memory';
+
+const profile = buildAgentMemoryProfile({
+  agentId: process.env.HOLOSCRIPT_AGENT_HANDLE ?? 'edge-agent',
+  family: 'holoscript',
+  workspaceId: process.env.MEMORY_WORKSPACE,
+  nodeProfile: process.env.HOLOSCRIPT_AGENT_NODE_PROFILE, // e.g. 'jetson-reference'
+  mcpUrl: process.env.HOLOSCRIPT_AGENT_MCP_URL,
+  tags: ['owned-metal'],
+});
+
+await memory.store(memoryEntryFromAgentProfile(profile));
+```
+
+Jetson is only a reference profile. Callers supply their own MCP URL, storage
+roots, model host, Postgres, wallet/bearer secret provider, and workspace id.
+The package stores the profile; it does not assume a LAN IP, NVMe path,
+Postgres container, or vault layout.
+
 ## Required schema
 
 The client expects a `memory_entries` table. Create it once in your database:
@@ -72,6 +101,8 @@ keyword `ILIKE` recall and does not require it).
 - `recall(query, options?)` → `Promise<MemoryEntry[]>` — cross-family recall,
   optional `{ section, authorAgent, limit }`.
 - `forget(id)` / `close()`.
+- `buildAgentMemoryProfile(input)` and `memoryEntryFromAgentProfile(profile)` for
+  portable agent runtime profile memory.
 
 All queries are parameterized (injection-safe). Cloud / non-LAN seats that cannot
 reach the Postgres directly should use a separate orchestrator/API fallback.

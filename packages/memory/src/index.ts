@@ -12,3 +12,13 @@ export {
   type RecallOptions,
   type SovereignMemoryConfig,
 } from './sovereign-memory-store.js';
+
+export {
+  AGENT_MEMORY_PROFILE_SCHEMA,
+  HOLOSCRIPT_AGENT_RUNTIME_PACKAGE,
+  buildAgentMemoryProfile,
+  memoryEntryFromAgentProfile,
+  type AgentMemoryFamily,
+  type AgentMemoryProfile,
+  type AgentMemoryProfileInput,
+} from './agent-memory-profile.js';
