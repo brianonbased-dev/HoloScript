@@ -1356,6 +1356,16 @@ export default ${safeName}Component;
         throw new Error(`Native2DCompiler @chart: invalid labelKey ${JSON.stringify(labelKey)}`);
       }
     }
+    // classKey (bar only): per-item provenance — each bar's fill reflects its data-value
+    // provenance class (measured/derived = solid, inferred = hatch, generative = dots), so
+    // honesty is visible at the BAR level. Extends the Receipt-Bound Surface to per-datum.
+    let classKey = '';
+    if (ch.classKey != null) {
+      classKey = String(ch.classKey);
+      if (!/^[A-Za-z_$][\w$]*$/.test(classKey)) {
+        throw new Error(`Native2DCompiler @chart: invalid classKey ${JSON.stringify(classKey)}`);
+      }
+    }
 
     const W = Number.isInteger(ch.width) && ch.width > 0 ? ch.width : 280;
     const H = Number.isInteger(ch.height) && ch.height > 0 ? ch.height : 140;
@@ -1378,10 +1388,22 @@ export default ${safeName}Component;
 
     const baseline = `<line x1="${PX}" y1="${baselineY}" x2="${W - PX}" y2="${baselineY}" className="stroke-studio-border" strokeWidth="0.5" />`;
 
+    // Per-item provenance patterns (classKey): SVG defs referenced by non-measured bars
+    // so an inferred bar is hatched and a generative bar is dotted — visible honesty.
+    const provDefs = classKey
+      ? `<defs><pattern id="holo-hatch" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="4" className="stroke-studio-accent" strokeWidth="1.2" /></pattern><pattern id="holo-dots" width="3" height="3" patternUnits="userSpaceOnUse"><circle cx="1.5" cy="1.5" r="0.6" className="fill-studio-accent" /></pattern></defs>`
+      : '';
+
     let body: string;
     if (kind === 'bar') {
       const label = labelKey
         ? `<text x={__x + __bw / 2} y={${H - 4}} textAnchor="middle" className="fill-studio-muted" fontSize="6">{String(d?.${labelKey} ?? '')}</text>`
+        : '';
+      // Per-bar provenance fill: an inferred bar shows the hatch pattern, a generative bar
+      // the dots; measured/derived keep the solid fill className. The explicit `fill`
+      // attribute overrides the class only when a pattern applies (undefined = solid).
+      const provFill = classKey
+        ? ` fill={d?.${classKey} === "inferred" ? "url(#holo-hatch)" : d?.${classKey} === "generative" ? "url(#holo-dots)" : undefined} data-provenance-class={String(d?.${classKey} ?? "")}`
         : '';
       body =
         `{((__a) => { const __d = (__a ?? []); ` +
@@ -1390,7 +1412,7 @@ export default ${safeName}Component;
         `const __slot = ${plotW} / __n; const __bw = Math.max(1, Math.min(__slot * 0.62, __slot - 1)); ` +
         `return __d.map((d, i) => { const __h = (Number(${valueExpr}) || 0) / __max * ${plotH}; ` +
         `const __x = ${PX} + i * __slot + (__slot - __bw) / 2; const __y = ${baselineY} - __h; ` +
-        `return (<g key={i}><rect x={__x} y={__y} width={__bw} height={__h} className="${fill}" rx="0.5" />${label}</g>); }); ` +
+        `return (<g key={i}><rect x={__x} y={__y} width={__bw} height={__h} className="${fill}"${provFill} rx="0.5" />${label}</g>); }); ` +
         `})(${arrayRef})}`;
     } else {
       // line / area: normalized polyline over the plot region; area closes to a polygon.
@@ -1414,6 +1436,7 @@ export default ${safeName}Component;
     // `<text>` labels, so it must scale uniformly (default xMidYMid meet) to keep text
     // crisp; the fixed-aspect viewBox + `w-full` sizes it by width with height derived.
     return `<svg${props}${keyProp} viewBox="0 0 ${W} ${H}">
+      ${provDefs}
       ${baseline}
       ${body}
     </svg>`;
@@ -1436,9 +1459,12 @@ export default ${safeName}Component;
     traits: Record<string, any>,
     obj: Record<string, unknown>
   ): { propsStr: string; cls: string } | null {
+    // A @chart with `classKey` carries per-item provenance (each bar is self-sourced),
+    // so it satisfies honest mode on its own and is NOT required to also declare a
+    // single chart-level @provenance_bound. Every other data binding must be sourced.
     const dataBound = !!(
       traits.bind?.state ||
-      traits.chart?.state ||
+      (traits.chart?.state && !traits.chart?.classKey) ||
       traits.sparkline?.state ||
       traits.model
     );

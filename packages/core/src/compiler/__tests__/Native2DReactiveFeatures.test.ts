@@ -549,6 +549,32 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
       expect(r).not.toContain('preserveAspectRatio="none"');
     });
 
+    it('WORKS: classKey gives each bar per-item provenance (solid/hatch/dots + class attr)', () => {
+      const c = comp([
+        obj('Chart', [
+          trait('chart', { kind: 'bar', state: 'rows', valueKey: 'v', classKey: 'prov' }),
+        ]),
+      ]);
+      const r = react(c);
+      expect(r).toContain('<pattern id="holo-hatch"'); // inferred pattern def
+      expect(r).toContain('<pattern id="holo-dots"'); // generative pattern def
+      expect(r).toContain('d?.prov === "inferred" ? "url(#holo-hatch)"'); // per-bar fill
+      expect(r).toContain('d?.prov === "generative" ? "url(#holo-dots)"');
+      expect(r).toContain('data-provenance-class={String(d?.prov ?? "")}'); // per-bar receipt
+    });
+
+    it('ABSENT: no classKey → solid bars, no pattern defs (backward compat)', () => {
+      const c = comp([obj('Chart', [trait('chart', { kind: 'bar', state: 'rows', valueKey: 'v' })])]);
+      const r = react(c);
+      expect(r).not.toContain('<pattern');
+      expect(r).not.toContain('data-provenance-class');
+    });
+
+    it('REJECTS: an invalid classKey', () => {
+      const c = comp([obj('Bad', [trait('chart', { state: 's', classKey: 'a.b' })])]);
+      expect(() => react(c)).toThrow(/@chart: invalid classKey/);
+    });
+
     it('WORKS: line chart emits a polyline over the plot region, no rects', () => {
       const c = comp([obj('Chart', [trait('chart', { kind: 'line', state: 'series' })])]);
       const r = react(c);

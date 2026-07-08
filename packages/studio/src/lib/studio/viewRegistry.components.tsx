@@ -47,6 +47,7 @@ export const VIEW_COMPONENTS: Record<string, ComponentType<unknown>> = {
   "generator": dynamic(() => import("@/components/ai/SceneGeneratorPanel").then((m) => ({ default: pick(m as AnyModule, "SceneGeneratorPanel") }))),
   "history": dynamic(() => import("@/components/HistoryPanel").then((m) => ({ default: pick(m as AnyModule, "HistoryPanel") }))),
   "holoDiff": dynamic(() => import("@/components/diff/HoloDiffPanel").then((m) => ({ default: pick(m as AnyModule, "HoloDiffPanel") }))),
+  "honestChart": dynamic(() => import("@/components/panels/native/honestChart.native").then((m) => ({ default: pick(m as AnyModule, "HonestChartComponent") }))),
   "honestMetrics": dynamic(() => import("@/components/panels/native/honestMetrics.native").then((m) => ({ default: pick(m as AnyModule, "HonestMetricsComponent") }))),
   "hotkey": dynamic(() => import("@/components/hotkeys/HotkeyMapOverlay").then((m) => ({ default: pick(m as AnyModule, "HotkeyMapOverlay") }))),
   "hotkeyOverlay": dynamic(() => import("@/components/hotkeys/HotkeyMapOverlay").then((m) => ({ default: pick(m as AnyModule, "HotkeyMapOverlay") }))),

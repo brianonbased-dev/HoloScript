@@ -1,0 +1,33 @@
+@view({ id: "honestChart", title: "Honest Chart", icon: "BarChart3", category: "debug", placement: "right-rail", scope: "workspace", gate: "expert", surfaceClass: "lab", defaultOpen: false, exclusiveWith: [], order: 50 })
+composition "honestChart" {
+  @native_panel
+  @honest
+
+  state {
+    readings: [
+      { label: "T1", value: 42, prov: "measured" },
+      { label: "T2", value: 38, prov: "measured" },
+      { label: "T3", value: 45, prov: "measured" },
+      { label: "fcast", value: 58, prov: "inferred" },
+      { label: "AI", value: 63, prov: "generative" }
+    ]
+  }
+
+  object "Root" {
+    @layout { flex: "column", gap: "8px" }
+    @theme { className: "p-3 h-full overflow-y-auto text-xs text-studio-text" }
+
+    object "Title" {
+      @text { variant: "h3", content: "Honest chart" }
+      @theme { className: "text-sm font-semibold text-studio-text" }
+    }
+    object "Subtitle" {
+      @text { variant: "caption", content: "Solid = measured · hatched = inferred · dotted = generative" }
+      @theme { className: "text-[10px] text-studio-muted" }
+    }
+    object "Chart" {
+      @chart { kind: "bar", state: "readings", valueKey: "value", labelKey: "label", classKey: "prov", height: 120 }
+      @theme { className: "w-full" }
+    }
+  }
+}
