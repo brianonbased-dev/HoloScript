@@ -22,6 +22,12 @@ import type {
 import { resolveGeometry } from './render-modules/geometry-registry';
 import { resolveGeometryRole } from './render-modules/geometry-purpose';
 import { resolveSkyboxColor } from './render-modules/skybox-registry';
+import {
+  resolveMaterial,
+  massFor,
+  primitiveVolume,
+  type Material,
+} from './render-modules/material-registry';
 
 interface Body {
   pos: [number, number, number];
@@ -31,11 +37,22 @@ interface Body {
   restitution: number;
   friction: number;
   color: [number, number, number];
+  /** Surface reality — PBR roughness/metalness/subsurface from the body's material. */
+  roughness: number;
+  metalness: number;
+  subsurface: number;
+  material: string;
+  /** True when no material was authored and the real default was substituted (honesty). */
+  materialDefaulted: boolean;
 }
 interface StaticBox {
   min: [number, number, number];
   max: [number, number, number];
   color: [number, number, number];
+  roughness: number;
+  metalness: number;
+  subsurface: number;
+  material: string;
 }
 
 export interface PhysicsSimOptions {
@@ -120,6 +137,17 @@ export class ComputePhysicsCompiler {
       .map((s) => `    Aabb { mn: ${arr([...s.min, 0])}, mx: ${arr([...s.max, 0])}, color: ${arr([...s.color, 1])} },`)
       .join('\n');
 
+    // Per-object surface reality (roughness, metalness, subsurface) + the floor top plane
+    // used for contact-shadow grounding. Kept out of the compute Body so the sim is untouched.
+    const bodyMatRust = bodies.map((b) => `    ${arr([b.roughness, b.metalness, b.subsurface, 0])},`).join('\n');
+    const staticMatRust = statics.map((s) => `    ${arr([s.roughness, s.metalness, s.subsurface, 0])},`).join('\n');
+    const floorStatic = statics.reduce<StaticBox | undefined>((best, s) => {
+      const area = (s.max[0] - s.min[0]) * (s.max[2] - s.min[2]);
+      const bestArea = best ? (best.max[0] - best.min[0]) * (best.max[2] - best.min[2]) : -1;
+      return area > bestArea ? s : best;
+    }, undefined);
+    const floorTop = floorStatic ? floorStatic.max[1] : 0;
+
     return `${this.header(composition)}
 use pollster::block_on;
 use bytemuck::{Pod, Zeroable};
@@ -141,7 +169,7 @@ struct Aabb { mn: [f32; 4], mx: [f32; 4], color: [f32; 4] }
 struct SimU { dt: f32, gravity: f32, nbodies: u32, nstatics: u32 }
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
-struct Uniforms { vp: [[f32; 4]; 4], model: [[f32; 4]; 4], color: [f32; 4] }
+struct Uniforms { vp: [[f32; 4]; 4], model: [[f32; 4]; 4], color: [f32; 4], mat: [f32; 4], floor: [f32; 4], shadows: [[f32; 4]; 8] }
 
 const BODIES: &[Body] = &[
 ${bodyRust}
@@ -149,6 +177,14 @@ ${bodyRust}
 const STATICS: &[Aabb] = &[
 ${staticRust}
 ];
+// Surface reality per object (roughness, metalness, subsurface, _) — parallel to BODIES/STATICS.
+const BODY_MAT: &[[f32; 4]] = &[
+${bodyMatRust}
+];
+const STATIC_MAT: &[[f32; 4]] = &[
+${staticMatRust}
+];
+const FLOOR_TOP: f32 = ${fmt(floorTop)};
 const VP: [f32; 16] = ${arr(vp)};
 const CLEAR: [f64; 4] = ${arr(clear as unknown as number[]).replace(/f32/g, 'f64')};
 
@@ -229,17 +265,48 @@ fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
 "#;
 
 const RENDER_SHADER: &str = r#"
-struct U { vp: mat4x4<f32>, model: mat4x4<f32>, color: vec4<f32> };
+struct U { vp: mat4x4<f32>, model: mat4x4<f32>, color: vec4<f32>, mat: vec4<f32>, floor: vec4<f32>, shadows: array<vec4<f32>, 8> };
 @group(0) @binding(0) var<uniform> u: U;
-struct VOut { @builtin(position) clip: vec4<f32>, @location(0) n: vec3<f32> };
+struct VOut { @builtin(position) clip: vec4<f32>, @location(0) n: vec3<f32>, @location(1) wp: vec3<f32> };
 @vertex fn vs(@location(0) p: vec3<f32>, @location(1) nor: vec3<f32>) -> VOut {
   var o: VOut; let w = u.model * vec4<f32>(p, 1.0);
-  o.clip = u.vp * w; o.n = normalize((u.model * vec4<f32>(nor, 0.0)).xyz); return o;
+  o.clip = u.vp * w; o.n = normalize((u.model * vec4<f32>(nor, 0.0)).xyz); o.wp = w.xyz; return o;
 }
 @fragment fn fs(i: VOut) -> @location(0) vec4<f32> {
+  let N = normalize(i.n);
   let L = normalize(vec3<f32>(0.5, 1.0, 0.6));
-  let d = max(dot(normalize(i.n), L), 0.0);
-  return vec4<f32>(u.color.rgb * (0.2 + 0.8 * d), 1.0);
+  let Vv = normalize(vec3<f32>(0.3, 0.5, 1.0));       // stable view direction (toward camera)
+  let H = normalize(L + Vv);
+  let rough = clamp(u.mat.x, 0.04, 1.0);
+  let metal = clamp(u.mat.y, 0.0, 1.0);
+  let ndl = max(dot(N, L), 0.0);
+  let ndh = max(dot(N, H), 0.0);
+  // Surface reality: rough dielectric reads matte; polished metal gets a tight bright,
+  // albedo-tinted highlight. This is how the pixels say "rubber" vs "steel".
+  let shininess = mix(8.0, 220.0, 1.0 - rough);
+  let specStrength = mix(0.15, 1.0, 1.0 - rough);
+  let spec = pow(ndh, shininess) * specStrength;
+  let specTint = mix(vec3<f32>(1.0, 1.0, 1.0), u.color.rgb, metal);
+  let sky = vec3<f32>(0.30, 0.42, 0.52);              // ambient sky bounce
+  var lit = u.color.rgb * (sky * 0.5 + ndl * (0.60 + 0.40 * (1.0 - metal))) + specTint * spec;
+  // ── contact shadow: paint grounding onto the up-facing floor top ──
+  // A resting sphere drops a tight dark patch directly beneath it; a floating one a
+  // broader/fainter one; a sunk one merges into the floor. THIS is the grounding cue.
+  if (u.floor.y > 0.5 && N.y > 0.82) {
+    let count = i32(u.floor.y);
+    var occ = 0.0;
+    for (var k = 0; k < count; k = k + 1) {
+      let s = u.shadows[k];                            // (x, z, gapUnderSphere, radius)
+      let hd = distance(i.wp.xz, s.xy);
+      let gap = max(s.z, 0.0);
+      let softR = s.w * (1.0 + gap * 0.7);             // spreads as the sphere rises
+      let core = 1.0 - smoothstep(0.0, softR, hd);
+      let strength = clamp(1.0 - gap * 0.55, 0.12, 1.0); // and fades with height
+      occ = max(occ, core * strength);
+    }
+    lit = lit * (1.0 - 0.62 * occ);
+  }
+  return vec4<f32>(lit, 1.0);
 }
 "#;
 
@@ -298,7 +365,7 @@ async fn run() {
         primitive: wgpu::PrimitiveState { topology: wgpu::PrimitiveTopology::TriangleList, cull_mode: Some(wgpu::Face::Back), ..Default::default() },
         depth_stencil: Some(wgpu::DepthStencilState { format: wgpu::TextureFormat::Depth32Float, depth_write_enabled: true, depth_compare: wgpu::CompareFunction::Less, stencil: Default::default(), bias: Default::default() }),
         multisample: wgpu::MultisampleState::default(), multiview: None, cache: None });
-    let sphere_v = gen_sphere(1.0, 16, 16);
+    let sphere_v = gen_sphere(0.5, 16, 16); // unit-DIAMETER base (radius 0.5); scaled by r*2 -> radius r == collision radius
     let box_v = gen_cube(1.0);
     let sphere_vbo = device.create_buffer(&wgpu::BufferDescriptor { label: None, size: (sphere_v.len() * 4) as u64, usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST, mapped_at_creation: false });
     queue.write_buffer(&sphere_vbo, 0, bytemuck::cast_slice(&sphere_v));
@@ -316,22 +383,79 @@ async fn run() {
     for _ in 0..BODIES.len() { let u = mk_ubo(); let b = mk_bind(&u); body_ubos.push(u); body_binds.push(b); }
     let mut static_ubos: Vec<wgpu::Buffer> = Vec::new();
     let mut static_binds: Vec<wgpu::BindGroup> = Vec::new();
+    let mut static_xf: Vec<([f32; 3], [f32; 3])> = Vec::new();
     for s in STATICS.iter() {
         let c = [(s.mn[0]+s.mx[0])*0.5, (s.mn[1]+s.mx[1])*0.5, (s.mn[2]+s.mx[2])*0.5];
         let sz = [(s.mx[0]-s.mn[0]).max(0.001), (s.mx[1]-s.mn[1]).max(0.001), (s.mx[2]-s.mn[2]).max(0.001)];
-        let u = mk_ubo();
-        queue.write_buffer(&u, 0, bytemuck::bytes_of(&Uniforms { vp: mat(&VP), model: mat(&model_of(c, sz)), color: s.color }));
-        let b = mk_bind(&u); static_ubos.push(u); static_binds.push(b);
+        let u = mk_ubo(); let b = mk_bind(&u);
+        static_ubos.push(u); static_binds.push(b); static_xf.push((c, sz));
     }
-    let _ = (&static_ubos,);
 
     let unpadded = WIDTH * 4;
     let align = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT;
     let bpr = ((unpadded + align - 1) / align) * align;
     let pos_read = device.create_buffer(&wgpu::BufferDescriptor { label: None, size: body_size, usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ, mapped_at_creation: false });
 
-    // ── Simulate + capture EVERY frame (the motion, not just the settle) ──────
     let mut frames: Vec<Vec<u8>> = Vec::new();
+
+    // Render a body state to one RGBA frame — painting material surface + contact shadows,
+    // so the window shows the reality of matter (D.125), not flat untethered blobs.
+    let mut capture = |bodies: &[Body]| {
+        // Contact-shadow set from current sphere positions: (x, z, gap-under-sphere, radius).
+        let mut shadows = [[0.0f32; 4]; 8];
+        let nshadow = bodies.len().min(8);
+        for k in 0..nshadow {
+            let b = bodies[k]; let r = b.pos[3];
+            shadows[k] = [b.pos[0], b.pos[2], (b.pos[1] - r) - FLOOR_TOP, r];
+        }
+        // Spheres: material surface, no shadow term (floor flag off).
+        for (i, b) in bodies.iter().enumerate() {
+            let r = b.pos[3];
+            let m = if i < BODY_MAT.len() { BODY_MAT[i] } else { [0.5, 0.0, 0.0, 0.0] };
+            queue.write_buffer(&body_ubos[i], 0, bytemuck::bytes_of(&Uniforms {
+                vp: mat(&VP), model: mat(&model_of([b.pos[0], b.pos[1], b.pos[2]], [r*2.0, r*2.0, r*2.0])),
+                color: b.color, mat: m, floor: [0.0, 0.0, 0.0, 0.0], shadows: [[0.0f32; 4]; 8],
+            }));
+        }
+        // Statics: the up-facing floor top receives the shadow set; walls fail the gate.
+        for (i, (c, sz)) in static_xf.iter().enumerate() {
+            let m = if i < STATIC_MAT.len() { STATIC_MAT[i] } else { [0.85, 0.0, 0.0, 0.0] };
+            queue.write_buffer(&static_ubos[i], 0, bytemuck::bytes_of(&Uniforms {
+                vp: mat(&VP), model: mat(&model_of(*c, *sz)),
+                color: STATICS[i].color, mat: m, floor: [FLOOR_TOP, nshadow as f32, 0.0, 0.0], shadows,
+            }));
+        }
+        let pix = device.create_buffer(&wgpu::BufferDescriptor { label: None, size: (bpr * HEIGHT) as u64, usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ, mapped_at_creation: false });
+        let mut e = device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
+        {
+            let mut rp = e.begin_render_pass(&wgpu::RenderPassDescriptor { label: None,
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment { view: &color_view, resolve_target: None, ops: wgpu::Operations { load: wgpu::LoadOp::Clear(wgpu::Color { r: CLEAR[0], g: CLEAR[1], b: CLEAR[2], a: 1.0 }), store: wgpu::StoreOp::Store } })],
+                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment { view: &depth_view, depth_ops: Some(wgpu::Operations { load: wgpu::LoadOp::Clear(1.0), store: wgpu::StoreOp::Store }), stencil_ops: None }),
+                timestamp_writes: None, occlusion_query_set: None });
+            rp.set_pipeline(&r_pipe);
+            for i in 0..bodies.len() { rp.set_bind_group(0, &body_binds[i], &[]); rp.set_vertex_buffer(0, sphere_vbo.slice(..)); rp.draw(0..sphere_count, 0..1); }
+            for b in static_binds.iter() { rp.set_bind_group(0, b, &[]); rp.set_vertex_buffer(0, box_vbo.slice(..)); rp.draw(0..box_count, 0..1); }
+        }
+        e.copy_texture_to_buffer(
+            wgpu::ImageCopyTexture { texture: &color_tex, mip_level: 0, origin: wgpu::Origin3d::ZERO, aspect: wgpu::TextureAspect::All },
+            wgpu::ImageCopyBuffer { buffer: &pix, layout: wgpu::ImageDataLayout { offset: 0, bytes_per_row: Some(bpr), rows_per_image: Some(HEIGHT) } },
+            wgpu::Extent3d { width: WIDTH, height: HEIGHT, depth_or_array_layers: 1 });
+        queue.submit(Some(e.finish()));
+        let slice = pix.slice(..);
+        let (tx, rx) = std::sync::mpsc::channel();
+        slice.map_async(wgpu::MapMode::Read, move |r| tx.send(r).unwrap());
+        device.poll(wgpu::Maintain::Wait);
+        rx.recv().unwrap().unwrap();
+        let data = slice.get_mapped_range();
+        let mut frame = Vec::with_capacity((unpadded * HEIGHT) as usize);
+        for row in 0..HEIGHT { let st = (row * bpr) as usize; frame.extend_from_slice(&data[st..st + unpadded as usize]); }
+        frames.push(frame);
+    };
+
+    // Frame 0 = initial authored state (survives STEPS==0; also shows the drop start).
+    capture(&BODIES.to_vec());
+
+    // ── Simulate + capture the motion ─────────────────────────────────────────
     let mut last: Vec<Body> = BODIES.to_vec();
     for step in 0..STEPS {
         let mut enc = device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
@@ -355,37 +479,7 @@ async fn run() {
                 last = bytemuck::cast_slice::<u8, Body>(&slice.get_mapped_range()).to_vec();
             }
             pos_read.unmap();
-            for (i, b) in last.iter().enumerate() {
-                let r = b.pos[3];
-                queue.write_buffer(&body_ubos[i], 0, bytemuck::bytes_of(&Uniforms { vp: mat(&VP), model: mat(&model_of([b.pos[0], b.pos[1], b.pos[2]], [r*2.0, r*2.0, r*2.0])), color: b.color }));
-            }
-            let pix = device.create_buffer(&wgpu::BufferDescriptor { label: None, size: (bpr * HEIGHT) as u64, usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ, mapped_at_creation: false });
-            let mut e = device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
-            {
-                let mut rp = e.begin_render_pass(&wgpu::RenderPassDescriptor { label: None,
-                    color_attachments: &[Some(wgpu::RenderPassColorAttachment { view: &color_view, resolve_target: None, ops: wgpu::Operations { load: wgpu::LoadOp::Clear(wgpu::Color { r: CLEAR[0], g: CLEAR[1], b: CLEAR[2], a: 1.0 }), store: wgpu::StoreOp::Store } })],
-                    depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment { view: &depth_view, depth_ops: Some(wgpu::Operations { load: wgpu::LoadOp::Clear(1.0), store: wgpu::StoreOp::Store }), stencil_ops: None }),
-                    timestamp_writes: None, occlusion_query_set: None });
-                rp.set_pipeline(&r_pipe);
-                for i in 0..BODIES.len() { rp.set_bind_group(0, &body_binds[i], &[]); rp.set_vertex_buffer(0, sphere_vbo.slice(..)); rp.draw(0..sphere_count, 0..1); }
-                for b in static_binds.iter() { rp.set_bind_group(0, b, &[]); rp.set_vertex_buffer(0, box_vbo.slice(..)); rp.draw(0..box_count, 0..1); }
-            }
-            e.copy_texture_to_buffer(
-                wgpu::ImageCopyTexture { texture: &color_tex, mip_level: 0, origin: wgpu::Origin3d::ZERO, aspect: wgpu::TextureAspect::All },
-                wgpu::ImageCopyBuffer { buffer: &pix, layout: wgpu::ImageDataLayout { offset: 0, bytes_per_row: Some(bpr), rows_per_image: Some(HEIGHT) } },
-                wgpu::Extent3d { width: WIDTH, height: HEIGHT, depth_or_array_layers: 1 });
-            queue.submit(Some(e.finish()));
-            {
-                let slice = pix.slice(..);
-                let (tx, rx) = std::sync::mpsc::channel();
-                slice.map_async(wgpu::MapMode::Read, move |r| tx.send(r).unwrap());
-                device.poll(wgpu::Maintain::Wait);
-                rx.recv().unwrap().unwrap();
-                let data = slice.get_mapped_range();
-                let mut frame = Vec::with_capacity((unpadded * HEIGHT) as usize);
-                for row in 0..HEIGHT { let st = (row * bpr) as usize; frame.extend_from_slice(&data[st..st + unpadded as usize]); }
-                frames.push(frame);
-            }
+            capture(&last);
         }
     }
 
@@ -423,28 +517,47 @@ async fn run() {
         const color = this.colorOf(obj);
         const traitNames = (obj.traits ?? []).map((t) => t.name.toLowerCase());
         const rb = (obj.traits ?? []).find((t) => DYNAMIC_TRAITS.has(t.name.toLowerCase()));
+        const cfg = (rb?.config ?? {}) as Record<string, unknown>;
         const isDynamic = traitNames.some((t) => DYNAMIC_TRAITS.has(t)) || this.findProp(obj, 'dynamic') === true;
+        // Default Material Realism (D.125): the object's matter drives its physics + surface.
+        const matName = (cfg.material ?? this.findProp(obj, 'material') ?? this.materialTrait(obj)) as unknown;
         if (isDynamic && (kind === 'sphere' || kind === 'torus')) {
-          const cfg = (rb?.config ?? {}) as Record<string, unknown>;
           const radius = 0.5 * Math.max(s[0], s[1], s[2]);
           const vel = this.vec3(this.findProp(obj, 'velocity'), [0, 0, 0]);
+          const { material, defaulted } = resolveMaterial(matName);
+          const volume = primitiveVolume(kind, radius, [radius, radius, radius]);
           bodies.push({
             pos: p,
             radius,
             vel,
-            mass: Number(cfg.mass ?? 1),
-            restitution: Number(cfg.restitution ?? 0.6),
-            friction: Number(cfg.friction ?? 0.2),
+            // mass is density x volume; bounce/friction are the material's — NOT bare floats.
+            // Explicit props still win (the "unless explicitly designed" clause of D.125).
+            mass: Number(cfg.mass ?? this.findProp(obj, 'mass') ?? massFor(material, volume)),
+            restitution: Number(cfg.restitution ?? this.findProp(obj, 'restitution') ?? material.restitution),
+            friction: Number(cfg.friction ?? this.findProp(obj, 'friction') ?? material.friction),
             color,
+            roughness: material.roughness,
+            metalness: material.metalness,
+            subsurface: material.subsurface,
+            material: material.name,
+            materialDefaulted: defaulted,
           });
-        } else {
+        } else if (kind !== 'sphere' && kind !== 'torus') {
           // static AABB (box/plane/etc.); a static sphere is skipped (v1 statics are boxes).
-          if (kind !== 'sphere' && kind !== 'torus') {
-            const hy = kind === 'plane' ? 0.05 : Math.abs(s[1]) * 0.5;
-            const hx = Math.abs(s[0]) * 0.5;
-            const hz = Math.abs(s[2]) * 0.5;
-            statics.push({ min: [p[0] - hx, p[1] - hy, p[2] - hz], max: [p[0] + hx, p[1] + hy, p[2] + hz], color });
-          }
+          // Ground/walls default to stone — a real material, not a matterless surface.
+          const { material } = resolveMaterial(matName ?? 'stone');
+          const hy = kind === 'plane' ? 0.05 : Math.abs(s[1]) * 0.5;
+          const hx = Math.abs(s[0]) * 0.5;
+          const hz = Math.abs(s[2]) * 0.5;
+          statics.push({
+            min: [p[0] - hx, p[1] - hy, p[2] - hz],
+            max: [p[0] + hx, p[1] + hy, p[2] + hz],
+            color,
+            roughness: material.roughness,
+            metalness: material.metalness,
+            subsurface: material.subsurface,
+            material: material.name,
+          });
         }
       }
       if (obj.children) for (const c of obj.children) add(c, off);
@@ -526,6 +639,14 @@ async fn run() {
       if (fromT !== undefined) return fromT as HoloValue;
     }
     return undefined;
+  }
+  /** Read a `@material(...)` trait's material name (name/type/value or first key). */
+  private materialTrait(obj: HoloObjectDecl): string | undefined {
+    const t = (obj.traits ?? []).find((tt) => tt.name.toLowerCase() === 'material');
+    if (!t) return undefined;
+    const c = (t.config ?? {}) as Record<string, unknown>;
+    const v = c.name ?? c.type ?? c.value ?? Object.keys(c)[0];
+    return v === undefined ? undefined : String(v);
   }
   private vec3(v: unknown, fb: [number, number, number]): [number, number, number] {
     return Array.isArray(v) && v.length >= 3 ? [Number(v[0]), Number(v[1]), Number(v[2])] : fb;
