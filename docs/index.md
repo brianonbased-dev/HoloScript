@@ -1,7 +1,7 @@
 ---
 layout: page
-title: HoloScript - The Open Platform for Spatial Worlds
-description: Create with AI. Own what you build. Ship everywhere. HoloScript lets anyone create interactive 3D worlds, sell them on an open marketplace, and deploy autonomous agents. Open source and free forever.
+title: HoloScript - The Open OS for Agents & Spatial Computing
+description: An open, model-agnostic OS any frontier model can adopt and integrate. Agents author typed .holo/.hsplus/.hs source through one MCP surface and compile it to 30+ targets — browsers, engines, robots, and services. Model-agnostic by architecture, MIT-licensed, and free forever.
 ---
 
 <LandingPage />

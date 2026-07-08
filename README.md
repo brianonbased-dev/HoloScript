@@ -4,6 +4,8 @@
 
 # HoloScript
 
+**An open, model-agnostic OS for agents and spatial computing.** Frontier models are becoming the primary way software gets built — but every model still rebuilds the same substrate underneath: the formats agents author in, the tools they call, the runtime that executes intent, and the targets that ship it. HoloScript is that substrate, built once and open (MIT). Any MCP-capable model — Claude, GPT, Gemini, Llama — connects through one surface, authors the same typed `.holo`/`.hsplus`/`.hs` source, and reaches 30+ compile targets. The model stays the intelligence; HoloScript is the OS it operates. It's model-agnostic by architecture (see [`@holoscript/llm-provider`](./packages/llm-provider/), which already unifies OpenAI · Anthropic · Gemini) and designed for any frontier lab to adopt and integrate.
+
 Build your own games and apps — no coding, no data handed to Big Tech, no lock-in. Describe what you want; HoloScript turns it into a real, running creation you own, and runs it anywhere you need.
 
 Anyone can create — and developers, teams, and AI agents build on the same engine. You (or an agent) describe what you want in `.holo`, `.hsplus`, or `.hs` files — screens, scenes, services, data, devices, agent workflows. HoloScript runs those files directly while you iterate, then translates the same source when you need code for a browser, engine, robot, service, or deployment. Because it compiles to your choice of platform, your creation moves with you — no single vendor can lock it in.
