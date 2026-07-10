@@ -42,6 +42,83 @@ export function deriveWebGPUPerception(artifact: string): PerceiverDerivation {
 
   const sourceName = /^\/\/ Source: composition "([^"]+)"/m.exec(artifact)?.[1] ?? null;
 
+  // Preferred source (g9tk): the HoloScene Manifest — strict JSON world facts
+  // emitted INSIDE the artifact at emission time. A present-but-malformed
+  // manifest fails LOUD (silently falling back to regex could re-derive
+  // different facts from the same artifact — a split-brain derivation).
+  const manifestRaw = /const holoSceneManifest = (\{[\s\S]*?\});/.exec(artifact)?.[1];
+  if (manifestRaw) {
+    let manifest: unknown;
+    try {
+      manifest = JSON.parse(manifestRaw);
+    } catch (e) {
+      throw new Error(
+        `deriveWebGPUPerception: holoSceneManifest is not valid JSON — refusing a malformed manifest (${(e as Error).message})`
+      );
+    }
+    const objects = (manifest as { objects?: unknown }).objects;
+    if (!Array.isArray(objects)) {
+      throw new Error('deriveWebGPUPerception: holoSceneManifest has no objects[] — malformed manifest');
+    }
+    const entities: PerceivedEntity[] = [];
+    const physicalEntities: PerceivedPhysicalEntity[] = [];
+    for (const o of objects as Array<Record<string, unknown>>) {
+      const id = typeof o.id === 'string' ? o.id : '';
+      const traits = Array.isArray(o.traits) ? o.traits : [];
+      if (!id) continue;
+      const affordances = Array.isArray(o.affordances)
+        ? (o.affordances as unknown[]).filter((a): a is string => typeof a === 'string')
+        : [];
+      const position =
+        Array.isArray(o.position) && (o.position as unknown[]).every((n) => Number.isFinite(n))
+          ? (o.position as number[])
+          : undefined;
+      const geometry = typeof o.geometry === 'string' ? o.geometry : undefined;
+
+      if (traits.includes('agent')) {
+        const entity: PerceivedEntity = {
+          id,
+          kind: 'agent',
+          offerCount: affordances.length,
+          offers: affordances.map((action) => ({ action })),
+        };
+        if (geometry) entity.geometry = geometry;
+        if (position) entity.position = position;
+        entities.push(entity);
+      }
+      if (o.visible === true) {
+        const physical: PerceivedPhysicalEntity = { id: canonicalPhysicalId(id), label: id };
+        if (geometry) physical.geometry = geometry;
+        if (position) physical.position = position;
+        if (physicalEntities.some((e) => e.id === physical.id)) {
+          throw new Error(
+            `deriveWebGPUPerception: two scene objects fold to canonical id "${physical.id}" — refusing an ambiguous world`
+          );
+        }
+        physicalEntities.push(physical);
+      }
+    }
+    return {
+      perceiver: WEBGPU_PERCEIVER,
+      artifactHash: createHash('sha256').update(artifact).digest('hex'),
+      expresses: [
+        'source-name',
+        'agent-entities',
+        'affordance-count',
+        'affordance-names', // the manifest names actions — full parity (rycr)
+        'physical-entities',
+        'geometry',
+        'position',
+      ],
+      sourceName,
+      entities,
+      physicalEntities,
+      coverageGaps: [],
+    };
+  }
+
+  // Fallback (pre-manifest artifacts): regex over the imperative scene-registry
+  // push literals — trait names only, so affordances are countable, not nameable.
   const entities: PerceivedEntity[] = [];
   const physicalEntities: PerceivedPhysicalEntity[] = [];
   const pushes = artifact.match(/holoGraphObjects\.push\(\{[\s\S]*?\}\);/g) ?? [];

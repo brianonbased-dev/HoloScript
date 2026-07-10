@@ -74,16 +74,60 @@ function compileBoth() {
 }
 
 describe('@cross_perceiver_contract — 2-perceiver consensus (webgpu + agent-inference)', () => {
-  it('DERIVES (eye): agent entity, affordance COUNT, spatial extras, source name — from the artifact only', () => {
+  it('DERIVES (eye): agent entity with NAMED offers via the HoloScene Manifest — from the artifact only', () => {
     const { webgpuArtifact } = compileBoth();
+    expect(webgpuArtifact).toContain('const holoSceneManifest = '); // the manifest IS delivered bytes
     const d = deriveWebGPUPerception(webgpuArtifact);
     expect(d.perceiver).toBe('webgpu');
     expect(d.sourceName).toBe('consensusProbe');
     expect(d.entities).toHaveLength(1); // DoorHandle is not agent-kind — out of the comparison domain
     expect(d.entities[0]).toMatchObject({ id: 'HandleBot', kind: 'agent', offerCount: 2 });
-    expect(d.entities[0].offers).toBeUndefined(); // the eye cannot NAME affordances
-    expect(d.coverageGaps).toContain('affordance-action-names');
+    // rycr: the manifest names actions — full affordance parity with the agent perceiver.
+    expect(d.entities[0].offers?.map((o) => o.action)).toEqual(['grab_handle', 'release_handle']);
+    expect(d.expresses).toContain('affordance-names');
+    expect(d.coverageGaps).toEqual([]);
     expect(d.artifactHash).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it('DERIVES (eye, pre-manifest fallback): an old artifact without a manifest still counts affordances', () => {
+    const { webgpuArtifact } = compileBoth();
+    // Simulate an older artifact: strip the manifest block entirely.
+    const legacy = webgpuArtifact.replace(/\/\/ === HoloScene Manifest[\s\S]*?\n\n/, '');
+    expect(legacy).not.toContain('holoSceneManifest');
+    const d = deriveWebGPUPerception(legacy);
+    expect(d.entities[0]).toMatchObject({ id: 'HandleBot', kind: 'agent', offerCount: 2 });
+    expect(d.entities[0].offers).toBeUndefined(); // names inexpressible pre-manifest
+    expect(d.coverageGaps).toContain('affordance-action-names');
+  });
+
+  it('MALFORMED manifest fails LOUD — never silently falls back to the regex path', () => {
+    const { webgpuArtifact } = compileBoth();
+    const broken = webgpuArtifact.replace(
+      /const holoSceneManifest = \{/,
+      'const holoSceneManifest = {not json'
+    );
+    expect(() => deriveWebGPUPerception(broken)).toThrow(/not valid JSON/);
+  });
+
+  it('RED-FLIP (rycr acceptance): a RENAMED tool — same count — falsifies on the action set', () => {
+    const { webgpuArtifact, agentFiles } = compileBoth();
+    // Codegen renames an affordance: count stays 2, so 3b's count diff passes —
+    // only name parity catches it.
+    const config = JSON.parse(agentFiles['config.json']);
+    config.agents[0].tool_details = config.agents[0].tool_details.map(
+      (t: { name: string }) => (t.name === 'release_handle' ? { ...t, name: 'open_sesame' } : t)
+    );
+    const broken = { ...agentFiles, 'config.json': JSON.stringify(config, null, 2) };
+
+    const receipt = derivePerceiverConsensus([
+      deriveWebGPUPerception(webgpuArtifact),
+      deriveAgentInferencePerception(broken),
+    ]);
+    expect(receipt.verdict).toBe('FALSIFIED');
+    expect(receipt.disagreements).toHaveLength(1);
+    expect(receipt.disagreements[0].fact).toBe('entity:HandleBot:offerActions');
+    expect(receipt.disagreements[0].claims['webgpu']).toBe('grab_handle,release_handle');
+    expect(receipt.disagreements[0].claims['agent-inference']).toBe('grab_handle,open_sesame');
   });
 
   it('DERIVES (agent): same entity with NAMED offers — from the artifact files only', () => {
@@ -139,8 +183,8 @@ describe('@cross_perceiver_contract — 2-perceiver consensus (webgpu + agent-in
   it('RED-FLIP (symmetric): an entity broken out of the EYE artifact falsifies presence', () => {
     const { webgpuArtifact, agentFiles } = compileBoth();
     // Simulate the renderer dropping the agent: strip the "agent" trait marker
-    // from the scene-registry literal, so the eye no longer sees an agent there.
-    const broken = webgpuArtifact.replace('traits: ["agent","tool","tool"]', 'traits: ["tool","tool"]');
+    // from the HoloScene Manifest (the facts source the derivation reads).
+    const broken = webgpuArtifact.replace('"traits":["agent","tool","tool"]', '"traits":["tool","tool"]');
     expect(broken).not.toBe(webgpuArtifact); // the corruption actually landed
 
     const receipt = derivePerceiverConsensus([
@@ -186,12 +230,12 @@ describe('@cross_perceiver_contract — 2-perceiver consensus (webgpu + agent-in
       deriveWebGPUPerception(webgpuArtifact),
       deriveAgentInferencePerception(agentFiles),
     ]);
-    // The eye cannot name affordances and the agent cannot see geometry — both
-    // are declared coverage gaps, and the verdict stays CONSENSUS regardless.
+    // The agent perceiver cannot see geometry/positions — a declared coverage
+    // gap, and the verdict stays CONSENSUS regardless (one-sided ≠ disagreement).
     expect(receipt.verdict).toBe('CONSENSUS');
     const gaps = Object.fromEntries(receipt.perceivers.map((p) => [p.perceiver, p.coverageGaps]));
-    expect(gaps['webgpu']).toContain('affordance-action-names');
     expect(gaps['agent-inference']).toContain('geometry');
+    expect(gaps['agent-inference']).toContain('spatial-position');
   });
 
   it('RECEIPT BINDS TO DELIVERED BYTES: any artifact change moves artifactHash and receiptHash', () => {
@@ -477,6 +521,93 @@ describe('@cross_perceiver_contract 3c — affordance grounding (reachability v0
     const dissenters = ghost.flatMap((d) => Object.keys(d.claims)).sort();
     expect(dissenters).toEqual(['agent-inference', 'agent-inference', 'urdf', 'webgpu']);
     expect(ghost[0].detail).toMatch(/no physical target/);
+  });
+
+  /** Actuated actor: a prismatic slider with `travel` of reach along +x,
+   *  offering a grab on a target placed `dist` away along +x. */
+  function actuatedComposition(travel: number, targetX: number) {
+    return {
+      name: 'actuatedProbe',
+      npcs: [],
+      objects: [
+        {
+          name: 'SliderBot',
+          traits: [
+            { name: 'agent', config: { role: 'manipulator' } },
+            {
+              name: 'joint',
+              config: { jointType: 'slider', axis: [1, 0, 0], limits: { min: 0, max: travel } },
+            },
+            {
+              name: 'tool',
+              config: { name: 'grab_far', description: 'Grab the target', target: 'FarTarget' },
+            },
+          ],
+          properties: [
+            { key: 'geometry', value: 'sphere' },
+            { key: 'position', value: [0, 0, 0] },
+          ],
+        },
+        {
+          name: 'FarTarget',
+          traits: [],
+          properties: [
+            { key: 'geometry', value: 'sphere' },
+            { key: 'position', value: [targetX, 0, 0] },
+          ],
+        },
+      ],
+    } as unknown as HoloComposition;
+  }
+
+  function compileActuated(travel: number, targetX: number) {
+    const comp = actuatedComposition(travel, targetX);
+    return {
+      webgpuArtifact: new WebGPUCompiler({}).compile(comp, 'test-token'),
+      agentFiles: new AgentInferenceCompiler({ language: 'typescript' }).compile(
+        comp,
+        'test-token'
+      ),
+      urdfArtifact: new URDFCompiler({}).compile(comp, 'test-token'),
+    };
+  }
+
+  it('DERIVES (3d): a prismatic joint yields an actuated OUTER reach envelope from its travel limits', () => {
+    const { urdfArtifact } = compileActuated(5, 4);
+    const d = deriveUrdfPerception(urdfArtifact);
+    const bot = d.physicalEntities!.find((e) => e.id === 'sliderbot')!;
+    expect(bot.mobility).toBe('actuated');
+    // radius = |V−J| (0 here) + sphere extent 0.5 + max(|0|,|5|) travel
+    expect(bot.reachRadius).toBeCloseTo(5.5, 6);
+  });
+
+  it('GROUNDED (3d): an actuated actor whose travel covers the distance stays CONSENSUS', () => {
+    // dist 4 <= reach 5.5 + target extent 0.5 — the slider can get there.
+    const { webgpuArtifact, agentFiles, urdfArtifact } = compileActuated(5, 4);
+    const receipt = derivePerceiverConsensus([
+      deriveWebGPUPerception(webgpuArtifact),
+      deriveAgentInferencePerception(agentFiles),
+      deriveUrdfPerception(urdfArtifact),
+    ]);
+    expect(receipt.verdict).toBe('CONSENSUS');
+    expect(receipt.disagreements).toEqual([]);
+  });
+
+  it('RED-FLIP (3d, the kinematic falsification proper): travel exists but cannot cover the distance', () => {
+    // Same slider, target at 40: even the most generous outer envelope
+    // (0.5 + 5 travel + 0.5 target) cannot touch it — 3c would have ABSTAINED
+    // on an actuated actor; 3d falsifies it.
+    const { webgpuArtifact, agentFiles, urdfArtifact } = compileActuated(5, 40);
+    const receipt = derivePerceiverConsensus([
+      deriveWebGPUPerception(webgpuArtifact),
+      deriveAgentInferencePerception(agentFiles),
+      deriveUrdfPerception(urdfArtifact),
+    ]);
+    expect(receipt.verdict).toBe('FALSIFIED');
+    expect(receipt.disagreements).toHaveLength(1);
+    expect(receipt.disagreements[0].fact).toBe('grounding:SliderBot:grab_far');
+    expect(receipt.disagreements[0].claims['urdf']).toMatch(/unreachable \(dist 40\./);
+    expect(receipt.disagreements[0].detail).toMatch(/actuated-mobility outer reach envelope/);
   });
 
   it('COVERAGE: offers without a declared target never enter the grounding contract', () => {

@@ -72,6 +72,8 @@ export class WebGPUCompiler extends CompilerBase {
   // True when any object is a water/fluid surface — gates the animated water
   // pipeline, its WGSL, the tessellated-plane helper, and the shared time uniform.
   private hasWater: boolean = false;
+  /** World facts collected at emission time, serialized as the HoloScene Manifest. */
+  private manifestObjects: Array<Record<string, unknown>> = [];
   // The named channels the water surface's clarity/ripple are bound to (from the
   // .holo's water_clarity_binding / ripple_intensity_binding props). Host state
   // (e.g. Brittney receipts) drives these BY NAME via hsSetChannel.
@@ -96,6 +98,7 @@ export class WebGPUCompiler extends CompilerBase {
     this.lines = [];
     this.indentLevel = 0;
     this.objectIndex = 0;
+    this.manifestObjects = [];
     this.templatesByName = new Map(
       (composition.templates ?? []).map((t) => [t.name, t] as [string, HoloTemplate])
     );
@@ -161,6 +164,7 @@ export class WebGPUCompiler extends CompilerBase {
     if (composition.spatialGroups) {
       for (const group of composition.spatialGroups) this.emitGroup(group);
     }
+    this.emitSceneManifest(composition);
     if (this.options.enableCompute) this.emitComputeShaders(composition);
 
     // v4.2: Domain Blocks (material uniform buffers)
@@ -607,6 +611,16 @@ export class WebGPUCompiler extends CompilerBase {
       this.emit(
         `holoGraphObjects.push({ id: "${this.escapeStringValue(obj.name as string, 'TypeScript')}", name: "${this.escapeStringValue(obj.name as string, 'TypeScript')}", geometry: "${this.escapeStringValue(meshType, 'TypeScript')}", primitive: "${prim}", purpose: "${role.purpose}", visible: false, traits: ${this.json(traits.map((t) => t.name))}, basePosition: [${px},${py},${pz}], position: [${px},${py},${pz}] });`
       );
+      this.manifestObjects.push({
+        id: String(obj.name ?? ''),
+        geometry: meshType,
+        primitive: prim,
+        purpose: role.purpose,
+        visible: false,
+        traits: traits.map((t) => t.name),
+        affordances: this.extractAffordanceNames(obj),
+        position: [px, py, pz],
+      });
       this.emit('');
       if (obj.children) {
         for (const child of obj.children) this.emitObject(child);
@@ -842,6 +856,53 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit('');
   }
 
+  /** Tool-affordance names declared on an object's @tool traits (both trait
+   *  config formats), for the scene manifest — the artifact-level answer to
+   *  "which named actions does this entity offer" that the numeric registry
+   *  cannot express. */
+  private extractAffordanceNames(obj: HoloObjectDecl): string[] {
+    const names: string[] = [];
+    for (const trait of obj.traits ?? []) {
+      const t = trait as unknown as Record<string, unknown>;
+      if (t.name !== 'tool') continue;
+      const config =
+        'config' in t && typeof t.config === 'object' && t.config !== null
+          ? (t.config as Record<string, unknown>)
+          : t;
+      // 'unnamed_tool' mirrors AgentInferenceCompiler.parseToolTrait's default so
+      // both perceivers represent an unnamed @tool identically (a name-set
+      // mismatch on defaults would be a false falsification). A tool literally
+      // named "tool" is indistinguishable from the flat-format trait name and
+      // also folds to the default — documented ambiguity, avoid that name.
+      if (typeof config['name'] === 'string' && config['name'] !== 'tool') {
+        names.push(config['name'] as string);
+      } else {
+        names.push('unnamed_tool');
+      }
+    }
+    return names;
+  }
+
+  /**
+   * HoloScene Manifest — a machine-readable world-facts block INSIDE the
+   * delivered artifact (g9tk). Collected at EMISSION time (each emitObject/
+   * emitMeshObject records what it actually emitted), so the manifest describes
+   * the artifact, not the input. Strict JSON payload: independent consumers
+   * (perceiver derivations, tooling) JSON.parse it instead of regexing the
+   * imperative holoGraphObjects push literals.
+   */
+  private emitSceneManifest(composition: HoloComposition): void {
+    const manifest = {
+      version: 'holo-scene-manifest-v1',
+      source: String(composition.name ?? ''),
+      objects: this.manifestObjects,
+    };
+    this.emit('// === HoloScene Manifest (machine-readable world facts; part of the delivered artifact) ===');
+    this.emit(`const holoSceneManifest = ${this.json(manifest)};`);
+    this.emit('if (typeof globalThis !== "undefined") { globalThis.holoSceneManifest = holoSceneManifest; }');
+    this.emit('');
+  }
+
   private emitMeshObject(v: string, obj: HoloObjectDecl, meshType: string): void {
     this.emit(`const ${v}Vertices = ${this.geometryVertexDataFn(meshType)};`);
     this.emit(`const ${v}VBO = createBuffer(device, ${v}Vertices, GPUBufferUsage.VERTEX);`);
@@ -886,6 +947,16 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit(
       `holoGraphObjects.push({ id: "${this.escapeStringValue(obj.name as string, 'TypeScript')}", name: "${this.escapeStringValue(obj.name as string, 'TypeScript')}", geometry: "${this.escapeStringValue(meshType, 'TypeScript')}", traits: ${this.json((obj.traits || []).map((t) => t.name))}, properties: ${this.json(this.extractObjectProperties(obj))}, basePosition: [${px},${py},${pz}], position: [${px},${py},${pz}], baseScale: [${sx},${sy},${sz}], scale: [${sx},${sy},${sz}], baseColor: [${cr},${cg},${cb}], color: [${cr},${cg},${cb}], material: { roughness: ${rough}, metalness: ${metal}, emissiveStrength: ${emissiveStrength}, emissive: [${er},${eg},${eb}] }, modelBuffer: ${v}Model, matBuffer: ${v}Mat, visible: true });`
     );
+    this.manifestObjects.push({
+      id: String(obj.name ?? ''),
+      geometry: meshType,
+      visible: true,
+      traits: (obj.traits || []).map((t) => t.name),
+      affordances: this.extractAffordanceNames(obj),
+      position: [px, py, pz],
+      scale: [sx, sy, sz],
+      color: [cr, cg, cb],
+    });
 
     // Pipeline
     this.emit(`const ${v}Pipeline = device.createRenderPipeline({`);
@@ -1071,13 +1142,13 @@ export class WebGPUCompiler extends CompilerBase {
       // A directional light with a position but no explicit direction shines toward
       // the origin — a light "at [10,20,10]" lights the scene, not empty space.
       if (ti === 0 && !hasDir && Array.isArray(pos)) dir = [-pos[0], -pos[1], -pos[2]];
-      return { color, intensity, pos, dir, ti };
+      return { name: String(light.name ?? ''), kind: String(light.lightType ?? ''), color, intensity, pos, dir, ti };
     });
     // No declared lights → synthesize a neutral key light matching the historical
     // fixed sun (surfaces were lit from normalize(1,2,1.5)) so light-less scenes
     // stay lit instead of collapsing to ambient-only.
     if (lights.length === 0) {
-      lights.push({ color: [1, 1, 1], intensity: 1, pos: [1, 2, 1.5], dir: [-1, -2, -1.5], ti: 0 });
+      lights.push({ name: '(synthesized key light)', kind: 'directional', color: [1, 1, 1], intensity: 1, pos: [1, 2, 1.5], dir: [-1, -2, -1.5], ti: 0 });
     }
     // Layout: count(vec4) | MAX_LIGHTS x { colorType(vec4), posW(vec4), dirW(vec4) }.
     const segs: string[] = [`${lights.length},0,0,0`];
@@ -1092,6 +1163,14 @@ export class WebGPUCompiler extends CompilerBase {
       }
     }
     this.emit('// === Scene Lights (shared uniform, bound by every mesh at binding 3) ===');
+    // Light identity lines: the aggregated numeric buffer erased the lights'
+    // NAMES from the artifact (a re-derivability regression — an independent
+    // consumer could no longer tell which declared light produced which slot).
+    // Each declared light keeps its identity as a comment tied to its slot.
+    for (let i = 0; i < lights.length; i++) {
+      const safeName = lights[i].name.replace(/[\r\n*]+/g, ' ');
+      this.emit(`// Light[${i}]: "${safeName}" (${lights[i].kind}, intensity ${lights[i].intensity})`);
+    }
     this.emit(
       `const sceneLights = createBuffer(device, new Float32Array([${segs.join(', ')}]), GPUBufferUsage.UNIFORM);`
     );

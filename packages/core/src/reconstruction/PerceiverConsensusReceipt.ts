@@ -122,10 +122,19 @@ export interface PerceivedPhysicalEntity {
   extent?: number;
   /**
    * Kinematic mobility when expressible: 'fixed' = the entity's reach envelope
-   * is its own extent; 'actuated' = the envelope depends on joint travel
-   * (grounding v0 abstains — the envelope is unknown until workspace math lands).
+   * is its own extent; 'actuated' = the envelope derives from joint travel
+   * (see reachCenter/reachRadius).
    */
   mobility?: 'fixed' | 'actuated';
+  /**
+   * OUTER-bound reach envelope (3d): a sphere at reachCenter of reachRadius
+   * that the entity can never leave. Over-approximation is the safe direction
+   * for a falsification oracle — grounding falsifies ONLY when even this most
+   * generous envelope cannot touch the target. Absent = envelope unknown
+   * (unlimited/exotic joints), grounding abstains.
+   */
+  reachCenter?: number[];
+  reachRadius?: number;
   [key: string]: unknown;
 }
 
@@ -438,15 +447,21 @@ export function derivePerceiverConsensus(
             });
             continue;
           }
-          if (actor.mobility === 'actuated') continue; // envelope unknown v0 — abstain
-          if (!actor.position || !target.position || actor.extent == null || target.extent == null) {
+          // Reach envelope: explicit outer bound when the perceiver derived one
+          // (fixed OR actuated with known travel); a fixed actor without one
+          // falls back to its own extent. No envelope derivable = abstain.
+          const center = actor.reachCenter ?? actor.position;
+          const radius =
+            actor.reachRadius ??
+            (actor.mobility !== 'actuated' && actor.extent != null ? actor.extent : undefined);
+          if (!center || radius == null || !target.position || target.extent == null) {
             continue; // this perceiver lacks the data to run the check — abstain
           }
           comparedFacts++;
           const dist = Math.hypot(
-            ...actor.position.map((v, i) => v - (target.position as number[])[i])
+            ...center.map((v, i) => v - (target.position as number[])[i])
           );
-          const reach = actor.extent + target.extent + POSITION_EPSILON;
+          const reach = radius + target.extent + POSITION_EPSILON;
           if (dist > reach) {
             disagreements.push({
               fact,
@@ -454,7 +469,7 @@ export function derivePerceiverConsensus(
                 [src.perceiver]: claim,
                 [p.perceiver]: `unreachable (dist ${dist.toFixed(3)} > reach ${reach.toFixed(3)})`,
               },
-              detail: `${src.perceiver} offers "${offer.action}" on "${offer.target}" but ${p.perceiver} derives no reachable affordance (distance ${dist.toFixed(3)} exceeds the fixed-mobility reach envelope ${reach.toFixed(3)}) — the surface is lying to someone`,
+              detail: `${src.perceiver} offers "${offer.action}" on "${offer.target}" but ${p.perceiver} derives no reachable affordance (distance ${dist.toFixed(3)} exceeds the ${actor.mobility ?? 'fixed'}-mobility outer reach envelope ${reach.toFixed(3)}) — the surface is lying to someone`,
             });
           }
         }

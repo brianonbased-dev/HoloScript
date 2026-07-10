@@ -40,13 +40,30 @@ export function deriveUrdfPerception(artifact: string): PerceiverDerivation {
 
   const sourceName = /<!-- Source: composition "([^"]+)" -->/.exec(artifact)?.[1] ?? null;
 
-  // Kinematics: joint elements name each link's mobility — a link whose parent
-  // joint is non-fixed has an unknown reach envelope (grounding abstains on it).
-  const jointTypeByChild = new Map<string, string>();
+  // Kinematics: each link's parent joint gives its mobility AND its reach
+  // envelope. Parsed per joint: type, child link, joint origin, travel limits.
+  interface ParsedJoint {
+    type: string;
+    origin?: number[];
+    lower?: number;
+    upper?: number;
+  }
+  const jointByChild = new Map<string, ParsedJoint>();
   for (const joint of artifact.match(/<joint\s+[^>]*>[\s\S]*?<\/joint>/g) ?? []) {
     const type = /<joint\s+[^>]*type="([^"]+)"/.exec(joint)?.[1];
     const child = /<child\s+link="([^"]+)"/.exec(joint)?.[1];
-    if (type && child) jointTypeByChild.set(child, type);
+    if (!type || !child) continue;
+    const parsed: ParsedJoint = { type };
+    const xyz = /<origin\s+xyz="([^"]+)"/.exec(joint)?.[1];
+    if (xyz) {
+      const parts = xyz.trim().split(/\s+/).map(Number);
+      if (parts.length === 3 && parts.every(Number.isFinite)) parsed.origin = parts;
+    }
+    const lower = /<limit\s+[^>]*lower="([\d.eE+-]+)"/.exec(joint)?.[1];
+    const upper = /<limit\s+[^>]*upper="([\d.eE+-]+)"/.exec(joint)?.[1];
+    if (lower != null && Number.isFinite(Number(lower))) parsed.lower = Number(lower);
+    if (upper != null && Number.isFinite(Number(upper))) parsed.upper = Number(upper);
+    jointByChild.set(child, parsed);
   }
 
   const physicalEntities: PerceivedPhysicalEntity[] = [];
@@ -78,13 +95,41 @@ export function deriveUrdfPerception(artifact: string): PerceiverDerivation {
       entity.extent = Math.hypot(Number(cyl[1]), Number(cyl[2]) / 2);
     }
 
-    const jointType = jointTypeByChild.get(label);
-    entity.mobility = jointType == null || jointType === 'fixed' ? 'fixed' : 'actuated';
-
     const xyz = /<origin\s+xyz="([^"]+)"/.exec(visual)?.[1];
     if (xyz) {
       const parts = xyz.trim().split(/\s+/).map(Number);
       if (parts.length === 3 && parts.every(Number.isFinite)) entity.position = parts;
+    }
+
+    // Reach envelope (3d): an OUTER bound on where this link can be — the safe
+    // direction for a falsification oracle (over-approximating reach can only
+    // produce false CONSENSUS on grounding, never a false FALSIFIED).
+    //   fixed                → the link stays put: radius = extent.
+    //   revolute/continuous  → rotation about an axis through the joint origin
+    //                          preserves distance from it: radius = |V−J| + extent.
+    //   prismatic            → translation within [lower,upper] along an axis:
+    //                          radius = |V−J| + extent + max(|lower|,|upper|)
+    //                          (sphere over the swept segment; limits required —
+    //                          unlimited travel = unknown envelope, abstain).
+    //   floating/planar/other → envelope unknown, abstain (no reachRadius).
+    const joint = jointByChild.get(label);
+    const jointType = joint?.type ?? 'fixed';
+    entity.mobility = jointType === 'fixed' ? 'fixed' : 'actuated';
+    const center = joint?.origin ?? entity.position;
+    if (center && entity.extent != null) {
+      entity.reachCenter = center;
+      const offset = entity.position
+        ? Math.hypot(...entity.position.map((v, i) => v - center[i]))
+        : 0;
+      if (jointType === 'fixed') {
+        entity.reachRadius = entity.extent;
+      } else if (jointType === 'revolute' || jointType === 'continuous') {
+        entity.reachRadius = offset + entity.extent;
+      } else if (jointType === 'prismatic' && joint?.lower != null && joint?.upper != null) {
+        entity.reachRadius =
+          offset + entity.extent + Math.max(Math.abs(joint.lower), Math.abs(joint.upper));
+      }
+      // other types: reachRadius stays undefined — grounding abstains
     }
 
     if (physicalEntities.some((e) => e.id === entity.id)) {
