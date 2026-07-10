@@ -93,6 +93,16 @@ module.exports = {
     /^@holoscript\/framework\//,
     '@holoscript/absorb-service',
     /^@holoscript\/absorb-service\//,
+    // Lazified cold-consume peer (f81352295: Networked/Consensus traits use
+    // `await import('@holoscript/mesh')`). Core does NOT declare mesh in
+    // package.json, so Docker's strict pnpm layout cannot resolve it at build
+    // time (local shamefully-hoist masks this) — esbuild "Could not resolve
+    // @holoscript/mesh" failed every Railway core-stack deploy from f81352295
+    // until 2026-07-10. Must mirror packages/core/tsup.config.ts, which
+    // externalizes mesh for the same reason (same drift class as
+    // policy/world/hololand entries above).
+    '@holoscript/mesh',
+    /^@holoscript\/mesh\//,
     // ONNX runtimes — native bindings (onnxruntime-node) + WebGPU platform
     // packages; dynamically imported and optional. Must mirror
     // packages/core/tsup.config.ts (which externalizes these) or the Docker
