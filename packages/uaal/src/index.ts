@@ -27,8 +27,19 @@
 export { UAALOpCode, getUAALOpcodeName, isCognitiveOp, isControlFlowOp } from './opcodes';
 export type { UAALOperand, UAALInstruction, UAALBytecode } from './opcodes';
 
-export { UAALVirtualMachine } from './vm';
-export type { VMState, VMResult, VMProxy, OpcodeHandler, UAALVMOptions } from './vm';
+export { UAALVirtualMachine, replayUAALLog, computeUAALBytecodeSha256 } from './vm';
+export type {
+  VMState,
+  VMResult,
+  VMProxy,
+  OpcodeHandler,
+  UAALVMOptions,
+  UAALExecutionLog,
+  UAALLogStep,
+  UAALRecordedEffect,
+  UAALBoundedStack,
+  UAALReplayResult,
+} from './vm';
 
 export { UAALCompiler } from './compiler';
 
@@ -37,3 +48,10 @@ export type { MeshTransport, MeshRequestHandler } from './mesh-transport';
 
 export * from './gate';
 export * from './semantic';
+
+// CAEL-pairing surface (2026-07-10, task_1783669630177_iwmp): provenance envelope +
+// instance identity, non-destructive merge, and structural retrieval — the fields and
+// operations that turn a uAAL document into an addressable, trust-weighted graph node.
+export * from './provenance';
+export * from './merge';
+export * from './query';

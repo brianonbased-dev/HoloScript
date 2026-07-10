@@ -10,6 +10,11 @@
 //   PC:         program counter
 //   Context:    key-value metadata (agent session + cognitive state)
 //   Handlers:   pluggable opcode implementations (injected at host level)
+//   Derivation: opt-in replayable execution log (recordLog -> exportLog();
+//               replayUAALLog() re-executes hermetically — injected effects
+//               replayed, proxies/clock never re-called — and returns the
+//               V-bit {valid, reason, divergenceStep}). An execution is
+//               PROVABLE, not asserted (uaal.execution-log.v0; 2026-07-10).
 //
 // VMState  { stack, pc, context, is_halted }
 // VMResult { task_status: RUNNING|HALTED|SUSPENDED|ERROR|IDLE, stack_top, state }
