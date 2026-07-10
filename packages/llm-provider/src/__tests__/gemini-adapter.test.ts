@@ -38,6 +38,21 @@ describe('GEMINI_MODELS', () => {
     expect(modelList).not.toContain('gemini-2.0-flash-lite');
   });
 
+  it('does NOT include retired Veo/Imagen media-generation IDs (media routes via Interactions API, not this chat registry; A-020 ihoc)', () => {
+    const modelList = GEMINI_MODELS as readonly string[];
+    // Veo shut down 2026-06-30 (already live); Imagen 4 shutdown announced 2026-08-17.
+    for (const retired of [
+      'veo-2.0-generate-001',
+      'veo-3.0-generate-001',
+      'veo-3.0-fast-generate-001',
+      'imagen-4.0-generate-001',
+      'imagen-4.0-ultra-generate-001',
+      'imagen-4.0-fast-generate-001',
+    ]) {
+      expect(modelList).not.toContain(retired);
+    }
+  });
+
   it('contains the expected current models', () => {
     expect(GEMINI_MODELS).toContain('gemini-3.5-flash');
     expect(GEMINI_MODELS).toContain('gemini-3.1-flash-tts-preview');

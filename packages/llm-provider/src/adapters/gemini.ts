@@ -52,6 +52,16 @@ import {
 // gemini-omni-flash-preview is included for routing metadata only: Google's
 // 2026-06-30 public preview docs route video generation/editing through the
 // Interactions API, not this adapter's generateContent chat path.
+// Veo/Imagen media-generation model IDs are NEVER in this chat registry (media
+// routes through the Interactions API axis). These are RETIRED — must not be
+// reintroduced on any media route (A-020 2026-07-10, ihoc):
+//   • veo-2.0-generate-001 / veo-3.0-generate-001 / veo-3.0-fast-generate-001 —
+//     shut down 2026-06-30 (already live; any Veo route is broken). Successor:
+//     gemini-omni-flash-preview (video-generation axis).
+//   • imagen-4.0-generate-001 / imagen-4.0-ultra-generate-001 /
+//     imagen-4.0-fast-generate-001 — shutdown 2026-08-17. Successor:
+//     gemini-3.1-flash-lite-image (GA 2026-06-30).
+//   SSOT dates: ai-ecosystem/docs/llm-capabilities/google-gemini.md.
 export const GEMINI_MODELS = [
   'gemini-3.5-flash',
   'gemini-3.1-flash-tts-preview',
