@@ -364,7 +364,14 @@ export class WasmParserBridge {
     if (!isNodeLikeRuntime()) return null;
 
     try {
-      const moduleUrl = new URL('../../../compiler-wasm/pkg-node/holoscript_wasm.js', import.meta.url);
+      // Path assembled from segments, NOT a string literal: webpack 5 statically
+      // resolves literal `new URL('...', import.meta.url)` even behind try/catch
+      // and @vite-ignore, so any consumer bundling core's dist (e.g. Studio's
+      // next build) hard-fails "Module not found" when the Rust WASM artifact
+      // isn't built in its context (Node-only docker images skip the Rust
+      // workspace). A computed specifier keeps this a runtime-only optional load.
+      const wasmRelPath = ['..', '..', '..', 'compiler-wasm', 'pkg-node', 'holoscript_wasm.js'].join('/');
+      const moduleUrl = new URL(wasmRelPath, import.meta.url);
       const imported = (await import(/* @vite-ignore */ moduleUrl.href)) as Record<string, unknown>;
       const candidate = hasWasmExports(imported.default) ? imported.default : imported;
       if (!hasWasmExports(candidate)) return null;
