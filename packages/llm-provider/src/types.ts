@@ -1040,6 +1040,18 @@ export interface Capabilities {
   hostedShell?: boolean;
   /** Server-side code execution sandbox. */
   codeExecutionSandbox?: boolean;
+  /**
+   * GUI-automation surface: the model can drive a computer via screenshots +
+   * click/type/scroll actions (Anthropic computer-use tool, OpenAI Responses
+   * `computer_use`, Gemini Computer Use). UNIVERSAL routing axis — a brain
+   * declares `requires: ["computerUse"]` (the router's satisfies() matches the
+   * verbatim camelCase Capabilities key — NOT snake_case `computer_use`) and it
+   * swaps to any computerUse-capable provider, giving HoloDoor ONE policy
+   * chokepoint instead of three vendor-specific ones. The per-vendor action
+   * DIALECTS (coordinate vs environment vs intent-based — they differ) live
+   * segregated on `ProviderExtensions.<name>.computerUse`; do not flatten here.
+   */
+  computerUse?: boolean;
   /** First-party file search / vector store — never source-of-truth (W.GOLD don't). */
   fileSearchBuiltIn?: boolean;
   /** Server-side prompt caching (Anthropic cache_control, Gemini cached_content). */
@@ -1147,6 +1159,21 @@ export interface AnthropicProviderExtensions {
    * `{ type: 'tool', name: 'fn' }` forces a specific tool.
    */
   toolChoice?: { type: 'auto' | 'any' | 'none' } | { type: 'tool'; name: string };
+  /**
+   * Anthropic computer-use tool (Opus 4.7/4.8). Segregated action dialect:
+   * COORDINATE-based mouse/keyboard over a virtual display, selected by a
+   * dated tool type (`computer_YYYYMMDD`). Kept distinct from the OpenAI/Gemini
+   * dialects on purpose — the universal `Capabilities.computerUse` axis is for
+   * swap, this is for exploit.
+   */
+  computerUse?: {
+    /** Dated tool type, e.g. 'computer_20250124'. */
+    toolVersion: string;
+    displayWidthPx: number;
+    displayHeightPx: number;
+    /** X11 display number for multi-display setups. */
+    displayNumber?: number;
+  };
 }
 
 /**
@@ -1222,6 +1249,17 @@ export interface OpenAIProviderExtensions {
   imageAnimation?: boolean;
   /** Conversational Sora/GPT Image refinement hint for future media adapters. */
   conversationalMediaEditing?: boolean;
+  /**
+   * OpenAI Responses `computer_use` tool. Segregated action dialect:
+   * ENVIRONMENT-scoped screenshot + action loop (computer_call /
+   * computer_call_output). Distinct from the Anthropic coordinate dialect and
+   * the Gemini intent dialect.
+   */
+  computerUse?: {
+    environment: 'browser' | 'mac' | 'windows' | 'ubuntu';
+    displayWidth: number;
+    displayHeight: number;
+  };
 }
 
 /**
@@ -1255,6 +1293,19 @@ export interface GeminiProviderExtensions {
   imageAnimation?: boolean;
   /** Gemini Omni conversational media refinement route hint. */
   conversationalMediaEditing?: boolean;
+  /**
+   * Gemini Computer Use tool (3.5 Flash, public preview 2026-06-24). Segregated
+   * action dialect: INTENT-based predefined UI actions across environments —
+   * NOT coordinate-driven like Anthropic/OpenAI. Supports restricting or
+   * excluding specific predefined actions.
+   */
+  computerUse?: {
+    environment: 'browser' | 'mobile' | 'desktop';
+    /** Restrict to a subset of the predefined intent actions. */
+    enabledActions?: string[];
+    /** Exclude specific predefined actions (Gemini supports exclusion). */
+    excludedActions?: string[];
+  };
 }
 
 export interface OllamaProviderExtensions {

@@ -449,6 +449,7 @@ export const OPENAI_CAPABILITIES: Capabilities = {
   liveWebSearch: true, // Responses web_search tool (first-party)
   hostedShell: true, // Responses shell — DEFAULT-DENY in policy layer (W.GOLD don't)
   codeExecutionSandbox: true, // Responses code interpreter
+  computerUse: true, // Responses computer_use tool — environment dialect in provider.openai.computerUse; GUI automation gated at the HoloDoor chokepoint
   fileSearchBuiltIn: true, // Vector stores — NOT source-of-truth (W.GOLD don't)
   promptCaching: true, // automatic prompt caching + retention controls
   hostedAgenticLoop: true, // Agents SDK — interop only, never replaces HoloMesh (W.GOLD don't)

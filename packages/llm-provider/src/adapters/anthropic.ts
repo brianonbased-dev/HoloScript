@@ -485,6 +485,7 @@ export const ANTHROPIC_CAPABILITIES: Capabilities = {
 
   liveWebSearch: true, // server-side web_search tool (proxy, not real-time)
   codeExecutionSandbox: true, // server-side code_execution
+  computerUse: true, // computer-use tool (Opus 4.7/4.8) — coordinate dialect in provider.anthropic.computerUse
   promptCaching: true, // cache_control breakpoints, 5min/1hr TTL
   perLoopBudget: true, // Task Budgets — beta task-budgets-2026-03-13 (Opus 4.8/4.7)
   serverSideCompaction: true, // beta compact-2026-01-12 (4.6+)

@@ -252,6 +252,7 @@ export const GEMINI_CAPABILITIES: Capabilities = {
 
   visibleReasoning: true, // thinking
   liveWebSearch: true, // Search Grounding (first-party)
+  computerUse: true, // Computer Use tool (3.5 Flash, public preview 2026-06-24) — intent dialect in provider.gemini.computerUse; GUI automation gated at the HoloDoor chokepoint
   promptCaching: true, // cached_content
   structuredOutputs: true, // JSON mode + response schema
   embeddings: true, // first-class endpoint
