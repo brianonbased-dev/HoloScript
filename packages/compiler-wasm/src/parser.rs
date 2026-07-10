@@ -179,6 +179,155 @@ impl Parser {
         }))
     }
 
+    /// True when the cursor is at the start of a `module <Name> { … }` block —
+    /// the `.hsplus` native-surface form nested inside a `composition`. `module`
+    /// lexes as an Identifier (not a keyword), so it is matched by value with a
+    /// look-ahead: a name (identifier or string) followed by an opening brace.
+    /// The brace look-ahead disambiguates this block from a property literally
+    /// named `module` (`module: <value>`, which has a Colon after the name).
+    fn is_module_start(&self) -> bool {
+        if !(self.check(TokenType::Identifier) && self.peek().value == "module") {
+            return false;
+        }
+        matches!(
+            self.peek_at(1).map(|t| &t.token_type),
+            Some(TokenType::Identifier) | Some(TokenType::String)
+        ) && matches!(
+            self.peek_at(2).map(|t| &t.token_type),
+            Some(TokenType::LBrace)
+        )
+    }
+
+    /// True when the cursor is at `<word> { … }` — a keyword-by-value named
+    /// block (`state { … }`, `exports { … }`) inside a `module` body. `<word>`
+    /// lexes as an Identifier; the brace look-ahead keeps it distinct from a
+    /// `<word>: <value>` property.
+    fn is_named_block_start(&self, word: &str) -> bool {
+        self.check(TokenType::Identifier)
+            && self.peek().value == word
+            && matches!(
+                self.peek_at(1).map(|t| &t.token_type),
+                Some(TokenType::LBrace)
+            )
+    }
+
+    /// Parse a `module <Name> { … }` block (the `.hsplus` native surface). The
+    /// body mixes a `state { … }` property block, `action <name>(…) { … }`
+    /// declarations, an `exports { … }` name list, trait annotations, and plain
+    /// `key: value` module properties. Represented as a `GroupNode` (a named
+    /// container of children) so no new AST variant / emitter arm is required —
+    /// the shadow-parity surface only needs the form to parse, and the module's
+    /// children carry its state/actions/exports structurally.
+    fn parse_module(&mut self) -> Result<AstNode, ParseError> {
+        let start_loc = self.current_location();
+        self.advance(); // consume 'module' (matched by value)
+
+        let name = self.expect_string_or_identifier()?;
+        self.expect(TokenType::LBrace)?;
+
+        let mut traits = Vec::new();
+        let mut properties = Vec::new();
+        let mut children = Vec::new();
+
+        while !self.check(TokenType::RBrace) && !self.is_at_end() {
+            if self.check(TokenType::Trait) {
+                traits.push(self.parse_trait()?);
+            } else if self.check(TokenType::Action) {
+                children.push(self.parse_action_decl()?);
+            } else if self.is_named_block_start("state") {
+                children.push(self.parse_named_property_block()?);
+            } else if self.is_named_block_start("exports") {
+                children.push(self.parse_exports_block()?);
+            } else if self.is_module_start() {
+                // Additive: tolerate a nested `module` (submodule) block.
+                children.push(self.parse_module()?);
+            } else if self.is_child_object() {
+                children.push(self.parse_top_level()?);
+            } else if self.check(TokenType::Identifier) {
+                let ident = self.peek().value.clone();
+                if ident.starts_with("on") && self.peek_next_is(TokenType::Colon) {
+                    children.push(self.parse_event_handler()?);
+                } else if self.is_object_type(&ident) {
+                    children.push(self.parse_generic_object(&ident)?);
+                } else {
+                    properties.push(self.parse_property()?);
+                }
+            } else {
+                return Err(
+                    self.error("Expected state, action, exports, trait, or property in module body")
+                );
+            }
+        }
+
+        self.expect(TokenType::RBrace)?;
+
+        Ok(AstNode::Group(GroupNode {
+            name,
+            traits,
+            properties,
+            children,
+            loc: Some(self.location_from(start_loc)),
+        }))
+    }
+
+    /// Parse a `<word> { key: value … }` property block (the `state { … }` block
+    /// inside a `module`). The block name is captured by value; the body is the
+    /// standard property-only grammar (so array / string / number / bool values
+    /// and multi-line `capability_tags: [ … ]` all parse). Returned as a
+    /// `GroupNode` named for the block, carrying the entries as `properties`.
+    fn parse_named_property_block(&mut self) -> Result<AstNode, ParseError> {
+        let start_loc = self.current_location();
+        let block_name = self.advance().value.clone(); // 'state' (matched by value)
+        self.expect(TokenType::LBrace)?;
+
+        let properties = self.parse_properties_only()?;
+
+        self.expect(TokenType::RBrace)?;
+
+        Ok(AstNode::Group(GroupNode {
+            name: block_name,
+            traits: Vec::new(),
+            properties,
+            children: Vec::new(),
+            loc: Some(self.location_from(start_loc)),
+        }))
+    }
+
+    /// Parse an `exports { a, b, c }` block — the module's exported-name list.
+    /// Entries are bare identifiers (or strings), separated by commas / newlines
+    /// / semicolons (all optional, matching the lenient enum/struct member
+    /// grammar). Captured as a `GroupNode` named `exports` whose children are the
+    /// exported names as `Identifier` nodes.
+    fn parse_exports_block(&mut self) -> Result<AstNode, ParseError> {
+        let start_loc = self.current_location();
+        self.advance(); // consume 'exports' (matched by value)
+        self.expect(TokenType::LBrace)?;
+
+        let mut children = Vec::new();
+        while !self.check(TokenType::RBrace) && !self.is_at_end() {
+            if self.check(TokenType::Comma) || self.check(TokenType::Semicolon) {
+                self.advance();
+                continue;
+            }
+            let export_start = self.current_location();
+            let export_name = self.expect_string_or_identifier()?;
+            children.push(AstNode::Identifier(IdentifierNode {
+                name: export_name,
+                loc: Some(self.location_from(export_start)),
+            }));
+        }
+
+        self.expect(TokenType::RBrace)?;
+
+        Ok(AstNode::Group(GroupNode {
+            name: "exports".to_string(),
+            traits: Vec::new(),
+            properties: Vec::new(),
+            children,
+            loc: Some(self.location_from(start_loc)),
+        }))
+    }
+
     fn parse_world(&mut self) -> Result<AstNode, ParseError> {
         let start_loc = self.current_location();
         self.advance(); // consume 'world'
@@ -1057,10 +1206,20 @@ impl Parser {
                     continue;
                 }
 
-                // Otherwise: skip/advance (plain properties are not retained on
-                // the WASM action node — the TS node keeps them, but the Rust
-                // parity surface mirrors only clauses + flags).
-                self.advance();
+                // Otherwise: skip a token. A nested brace block — an
+                // object-literal call argument (`emit("x", { … })`) or a
+                // `return { … }` body — MUST be consumed as a BALANCED unit so
+                // its inner `}` does not prematurely terminate this action's
+                // `}`-delimited loop (advancing token-by-token would exit at the
+                // first inner `}` and leave the rest of the body unparsed).
+                // Plain properties are not retained on the WASM action node — the
+                // TS node keeps them, but the Rust parity surface mirrors only
+                // clauses + flags.
+                if self.check(TokenType::LBrace) {
+                    self.consume_braced_body_raw()?;
+                } else {
+                    self.advance();
+                }
             }
             self.expect(TokenType::RBrace)?;
         }
@@ -1187,6 +1346,13 @@ impl Parser {
                 children.push(self.parse_game_event_block()?);
             } else if self.is_child_object() {
                 children.push(self.parse_top_level()?);
+            } else if self.is_module_start() {
+                // `.hsplus` native-surface form: a named `module <Name> { … }`
+                // block nested inside a `composition`. `module` lexes as an
+                // Identifier (not a keyword), so it is matched by value with a
+                // brace look-ahead — additive, never shadowing a `module:`
+                // property (which has a Colon, not a name + `{`).
+                children.push(self.parse_module()?);
             } else if self.check(TokenType::Identifier) {
                 let name = self.peek().value.clone();
                 // Check if it's an event handler (onXxx:)
@@ -2428,6 +2594,122 @@ mod tests {
         let mut parser = Parser::new(source);
         let result = parser.parse();
         assert!(result.is_ok());
+    }
+
+    // ── Nested composition/module/state `.hsplus` native surface (task ktvd) ──
+
+    #[test]
+    fn test_parse_nested_composition_module_state() {
+        // Mirrors the 8 holoembed / absorb-service / framework `.hsplus`
+        // surfaces: `composition "X" { module Y { state { … } action …(…) { … }
+        // exports { … } } }`. The action bodies carry nested brace blocks
+        // (`emit("x", { … })`, `return { … }`) that must be consumed as balanced
+        // units, and an `exports` list of bare identifiers (incl. `state`).
+        let source = r#"
+            composition "HoloEmbedEncoderSurface" {
+              module HoloEmbedEncoderModule {
+                state {
+                  enable_snn: true
+                  embedding_dim: 768
+                  structural_weight: 0.12
+                  capability_tags: [
+                    "holoembed_encoder",
+                    "embedding",
+                    "768_dim"
+                  ]
+                }
+
+                action initialize() {
+                  emit("holoembed_encoder_ready", {
+                    enable_snn: this.state.enable_snn,
+                    provider: "holoembed"
+                  });
+
+                  return {
+                    provider: "holoembed",
+                    embedding_dim: this.state.embedding_dim
+                  };
+                }
+
+                action receipt() {
+                  return {
+                    type: "HoloEmbedEncoderReceipt",
+                    timestamp: current_time()
+                  };
+                }
+
+                exports { initialize, receipt, state }
+              }
+            }
+        "#;
+        let mut parser = Parser::new(source);
+        let result = parser.parse();
+        assert!(result.is_ok(), "Parse error: {:?}", result.err());
+        let program = result.unwrap();
+        assert_eq!(program.body.len(), 1);
+
+        let AstNode::Composition(comp) = &program.body[0] else {
+            panic!("Expected Composition node, got {:?}", &program.body[0]);
+        };
+        assert_eq!(comp.name, "HoloEmbedEncoderSurface");
+        assert_eq!(comp.children.len(), 1, "one module child");
+
+        // The module is a named container (GroupNode) with state + actions +
+        // exports as children.
+        let AstNode::Group(module) = &comp.children[0] else {
+            panic!("Expected module (GroupNode), got {:?}", &comp.children[0]);
+        };
+        assert_eq!(module.name, "HoloEmbedEncoderModule");
+
+        // state block captured as a named GroupNode carrying its entries.
+        let state = module
+            .children
+            .iter()
+            .find_map(|c| match c {
+                AstNode::Group(g) if g.name == "state" => Some(g),
+                _ => None,
+            })
+            .expect("state block present");
+        assert!(
+            state.properties.iter().any(|p| p.key == "capability_tags"),
+            "state entries (incl. array value) must parse"
+        );
+
+        // two action declarations, both with nested-brace bodies.
+        let action_count = module
+            .children
+            .iter()
+            .filter(|c| matches!(c, AstNode::ActionDecl(_)))
+            .count();
+        assert_eq!(action_count, 2, "both actions parsed");
+
+        // exports list captured as a GroupNode named `exports`.
+        let exports = module
+            .children
+            .iter()
+            .find_map(|c| match c {
+                AstNode::Group(g) if g.name == "exports" => Some(g),
+                _ => None,
+            })
+            .expect("exports block present");
+        assert_eq!(exports.children.len(), 3, "initialize, receipt, state");
+    }
+
+    #[test]
+    fn test_module_property_is_not_a_module_block() {
+        // `module:` (colon) is a plain property, NOT a module block — the brace
+        // look-ahead in `is_module_start` must keep them distinct.
+        let source = r#"composition "X" { module: "shared" }"#;
+        let mut parser = Parser::new(source);
+        let result = parser.parse();
+        assert!(result.is_ok(), "Parse error: {:?}", result.err());
+        let program = result.unwrap();
+        let AstNode::Composition(comp) = &program.body[0] else {
+            panic!("Expected Composition node");
+        };
+        assert!(comp.children.is_empty(), "no module child expected");
+        assert_eq!(comp.properties.len(), 1, "module parsed as a property");
+        assert_eq!(comp.properties[0].key, "module");
     }
 
     #[test]
