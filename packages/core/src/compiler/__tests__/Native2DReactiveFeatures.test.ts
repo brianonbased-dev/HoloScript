@@ -479,6 +479,13 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
       expect(r).toContain('className="stroke-studio-success"');
     });
 
+    it('WORKS: declares its min-max framing via data-baseline="min" (axis-less glyph receipt)', () => {
+      const c = comp([obj('Spark', [trait('sparkline', { state: 'series' })])]);
+      const r = react(c);
+      expect(r).toContain('data-baseline="min"'); // framing declared, mirroring @chart
+      expect(r).toContain('Math.min(...__v)'); // min-max normalization kept (shape glyph)
+    });
+
     it('ABSENT: a plain object emits no polyline (byte-identical to pre-@sparkline)', () => {
       const c = comp([obj('Plain', [trait('theme', { className: 'p-2' })])]);
       expect(react(c)).not.toContain('<polyline');
@@ -573,6 +580,17 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
     it('REJECTS: an invalid classKey', () => {
       const c = comp([obj('Bad', [trait('chart', { state: 's', classKey: 'a.b' })])]);
       expect(() => react(c)).toThrow(/@chart: invalid classKey/);
+    });
+
+    it('WORKS: bar heights clamp negative values to zero AND declare it via data-clamped', () => {
+      const c = comp([obj('Chart', [trait('chart', { kind: 'bar', state: 'rows', valueKey: 'v' })])]);
+      const r = react(c);
+      // Render-time clamp: a negative rect height is invalid SVG, so heights floor at 0.
+      expect(r).toContain('Math.max(0, Number(d?.v) || 0)');
+      // The truncation is declared, runtime-computed from the bound data on the svg root.
+      expect(r).toContain(
+        'data-clamped={String(((__a) => (__a ?? []).some((d) => (Number(d?.v) || 0) < 0))(rows))}'
+      );
     });
 
     it('WORKS: line chart emits a polyline over the plot region, no rects', () => {
@@ -719,6 +737,42 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
       const r = react(c);
       expect(r).toContain('Math.min(...__v)'); // min-max normalization preserved
       expect(r).toContain('data-baseline="min"'); // but the framing is declared, not hidden
+    });
+
+    it('HONEST FRAMING: @sparkline KEEPS min-max in honest mode but declares it (axis-less glyph)', () => {
+      const c = honestComp([
+        obj('Spark', [
+          trait('sparkline', { state: 'series' }),
+          trait('provenance_bound', { source: 'sensorBus', class: 'measured' }),
+        ]),
+      ]);
+      const r = react(c);
+      // Zero-anchoring an axis-less shape glyph would destroy its shape-reading
+      // purpose, so min-max survives @honest — the declaration IS the honest contract.
+      expect(r).toContain('Math.min(...__v)');
+      expect(r).toContain('data-baseline="min"');
+    });
+
+    it('HONEST FRAMING: negative line values clamp to the zero baseline and declare data-clamped', () => {
+      const c = honestComp([
+        obj('Trend', [
+          trait('chart', { kind: 'line', state: 'series', valueKey: 'v' }),
+          trait('provenance_bound', { source: 'sensorBus', class: 'measured' }),
+        ]),
+      ]);
+      const r = react(c);
+      expect(r).toContain('Math.max(0, y)'); // clamp at the zero baseline (no below-axis geometry)
+      expect(r).toContain(
+        'data-clamped={String(((__a) => (__a ?? []).some((d) => (Number(d?.v) || 0) < 0))(series))}'
+      ); // the truncation is a declared, runtime-computed receipt
+    });
+
+    it('BACKWARD-COMPAT: a non-honest line chart is unchanged — no clamp, no data-clamped', () => {
+      const c = comp([obj('Trend', [trait('chart', { kind: 'line', state: 'series' })])]);
+      const r = react(c);
+      expect(r).toContain('Math.min(...__v)'); // min-max handles negatives natively
+      expect(r).not.toContain('Math.max(0, y)'); // no clamp injected
+      expect(r).not.toContain('data-clamped'); // no truncation attribute
     });
 
     it('REJECTS: an unsafe provenance source that breaks out of the attribute', () => {

@@ -1315,7 +1315,15 @@ export default ${safeName}Component;
       `return __v.map((y, i) => (i * __sx).toFixed(2) + ',' + (${H} - ((y - __mn) / __r) * ${H}).toFixed(2)).join(' '); ` +
       `})(${arrayRef})`;
 
-    return `<svg${props}${keyProp} viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    // HONEST FRAMING (deliberate): a sparkline KEEPS min-max normalization in ALL
+    // modes, including @honest. It is an axis-less shape glyph — no ticks, no labels,
+    // no magnitude axis — whose entire purpose is shape-reading; anchoring it at zero
+    // would flatten the shape and destroy that purpose rather than make it more
+    // honest. Min-max is therefore the legitimate framing here, and the honest
+    // contract is the DECLARATION: `data-baseline="min"` is emitted unconditionally,
+    // mirroring the @chart data-baseline receipt, so an independent consumer can
+    // audit the framing instead of trusting the pixels.
+    return `<svg${props}${keyProp} data-baseline="min" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
       <polyline fill="none" className="${stroke}" strokeWidth="${strokeWidth}" points={${points}} />
     </svg>`;
   }
@@ -1405,12 +1413,18 @@ export default ${safeName}Component;
       const provFill = classKey
         ? ` fill={d?.${classKey} === "inferred" ? "url(#holo-hatch)" : d?.${classKey} === "generative" ? "url(#holo-dots)" : undefined} data-provenance-class={String(d?.${classKey} ?? "")}`
         : '';
+      // NEGATIVE VALUES: a negative bar height is invalid SVG (and a zero-anchored
+      // bar cannot draw below its baseline), so each value is clamped to 0 at render
+      // time — and the truncation is DECLARED via the runtime-computed `data-clamped`
+      // attribute on the svg root (see clampedAttr below). Split-axis rendering
+      // (bars descending below a mid-chart zero line) is deliberately out of scope
+      // here — future work if a consumer needs signed bar charts.
       body =
         `{((__a) => { const __d = (__a ?? []); ` +
         `const __v = __d.map((d) => Number(${valueExpr}) || 0); ` +
         `const __max = Math.max(1, ...__v); const __n = __d.length || 1; ` +
         `const __slot = ${plotW} / __n; const __bw = Math.max(1, Math.min(__slot * 0.62, __slot - 1)); ` +
-        `return __d.map((d, i) => { const __h = (Number(${valueExpr}) || 0) / __max * ${plotH}; ` +
+        `return __d.map((d, i) => { const __h = Math.max(0, Number(${valueExpr}) || 0) / __max * ${plotH}; ` +
         `const __x = ${PX} + i * __slot + (__slot - __bw) / 2; const __y = ${baselineY} - __h; ` +
         `return (<g key={i}><rect x={__x} y={__y} width={__bw} height={__h} className="${fill}"${provFill} rx="0.5" />${label}</g>); }); ` +
         `})(${arrayRef})}`;
@@ -1423,12 +1437,20 @@ export default ${safeName}Component;
       const norm = this._honestMode
         ? `const __mn = 0, __r = Math.max(1, ...__v), `
         : `const __mn = Math.min(...__v), __mx = Math.max(...__v), __r = (__mx - __mn) || 1, `;
+      // NEGATIVE VALUES (honest mode): with the baseline anchored at zero a negative
+      // y would plot BELOW the axis line (misleading geometry), so each value is
+      // clamped to the baseline at render time and the truncation is declared via
+      // the `data-clamped` attribute on the svg root (see clampedAttr below).
+      // Non-honest min-max framing handles negative values natively (min re-anchors
+      // the range), so it is left untouched. Split-axis rendering for signed series
+      // is deliberately out of scope — future work.
+      const yExpr = this._honestMode ? 'Math.max(0, y)' : 'y';
       const pts =
         `((__a) => { const __v = (__a ?? []).map((d) => Number(${valueExpr}) || 0); ` +
         `if (!__v.length) return ''; ` +
         norm +
         `__sx = __v.length > 1 ? ${plotW} / (__v.length - 1) : 0; ` +
-        `return __v.map((y, i) => (${PX} + i * __sx).toFixed(2) + ',' + (${baselineY} - ((y - __mn) / __r) * ${plotH}).toFixed(2)).join(' '); })(${arrayRef})`;
+        `return __v.map((y, i) => (${PX} + i * __sx).toFixed(2) + ',' + (${baselineY} - ((${yExpr} - __mn) / __r) * ${plotH}).toFixed(2)).join(' '); })(${arrayRef})`;
       const line = `<polyline fill="none" className="${stroke}" strokeWidth="1.5" points={${pts}} />`;
       if (kind === 'area') {
         const areaPts = `((__p) => __p ? __p + ' ' + ${W - PX} + ',' + ${baselineY} + ' ' + ${PX} + ',' + ${baselineY} : '')(${pts})`;
@@ -1446,7 +1468,16 @@ export default ${safeName}Component;
     // always zero-anchored; line/area are zero-anchored in @honest mode, min-anchored
     // otherwise — an independent consumer can audit the framing, not just the values.
     const baselineAttr = ` data-baseline="${kind === 'bar' || this._honestMode ? 'zero' : 'min'}"`;
-    return `<svg${props}${keyProp}${baselineAttr} viewBox="0 0 ${W} ${H}">
+    // `data-clamped` declares the render-time truncation: runtime-computed true when
+    // any bound value is negative (and was therefore clamped to the zero baseline).
+    // Emitted exactly where zero-baseline clamp math applies — bars in every mode,
+    // line/area only in @honest mode. Non-honest line/area min-max needs no clamp
+    // and stays attribute-free (byte-identical to pre-clamp output).
+    const clampedAttr =
+      kind === 'bar' || this._honestMode
+        ? ` data-clamped={String(((__a) => (__a ?? []).some((d) => (Number(${valueExpr}) || 0) < 0))(${arrayRef}))}`
+        : '';
+    return `<svg${props}${keyProp}${baselineAttr}${clampedAttr} viewBox="0 0 ${W} ${H}">
       ${provDefs}
       ${baseline}
       ${body}

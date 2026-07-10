@@ -33,10 +33,10 @@ export function CompilerExportComponent() {
       {`Output size (KB by target)`}
       
     </span>
-<svg className="w-full" data-baseline="zero" viewBox="0 0 280 96">
+<svg className="w-full" data-baseline="zero" data-clamped={String(((__a) => (__a ?? []).some((d) => (Number(d?.sizeKb) || 0) < 0))(targets))} viewBox="0 0 280 96">
       
       <line x1="6" y1="80" x2="274" y2="80" className="stroke-studio-border" strokeWidth="0.5" />
-      {((__a) => { const __d = (__a ?? []); const __v = __d.map((d) => Number(d?.sizeKb) || 0); const __max = Math.max(1, ...__v); const __n = __d.length || 1; const __slot = 268 / __n; const __bw = Math.max(1, Math.min(__slot * 0.62, __slot - 1)); return __d.map((d, i) => { const __h = (Number(d?.sizeKb) || 0) / __max * 72; const __x = 6 + i * __slot + (__slot - __bw) / 2; const __y = 80 - __h; return (<g key={i}><rect x={__x} y={__y} width={__bw} height={__h} className="fill-studio-accent" rx="0.5" /><text x={__x + __bw / 2} y={92} textAnchor="middle" className="fill-studio-muted" fontSize="6">{String(d?.target ?? '')}</text></g>); }); })(targets)}
+      {((__a) => { const __d = (__a ?? []); const __v = __d.map((d) => Number(d?.sizeKb) || 0); const __max = Math.max(1, ...__v); const __n = __d.length || 1; const __slot = 268 / __n; const __bw = Math.max(1, Math.min(__slot * 0.62, __slot - 1)); return __d.map((d, i) => { const __h = Math.max(0, Number(d?.sizeKb) || 0) / __max * 72; const __x = 6 + i * __slot + (__slot - __bw) / 2; const __y = 80 - __h; return (<g key={i}><rect x={__x} y={__y} width={__bw} height={__h} className="fill-studio-accent" rx="0.5" /><text x={__x + __bw / 2} y={92} textAnchor="middle" className="fill-studio-muted" fontSize="6">{String(d?.target ?? '')}</text></g>); }); })(targets)}
     </svg>
     </div>
 <div style={{"display":"flex","flexDirection":"column","gap":"6px"}}>
