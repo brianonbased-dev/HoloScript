@@ -112,6 +112,37 @@ export {
 } from './adapters/openai';
 export type { OpenAIModel } from './adapters/openai';
 
+// Realtime voice — SEPARATE transport axis from chat (realtime.ts). AudioUsage
+// is consumed by @holoscript/holoscript-agent CostGuard the same way TokenUsage
+// is; the session types drive openRealtimeSession() on capable adapters.
+export { supportsRealtime } from './realtime';
+export type {
+  RealtimeTransport,
+  RealtimeSessionConfig,
+  RealtimeSession,
+  RealtimeServerEvent,
+  EphemeralSecret,
+  AudioUsage,
+} from './realtime';
+
+// OpenAI Realtime adapter (first per-vendor implementation). Realtime model ids
+// live here (OPENAI_REALTIME_MODELS), NOT in OPENAI_MODELS (the chat registry).
+export {
+  OpenAIRealtimeAdapter,
+  OPENAI_REALTIME_MODELS,
+  DEFAULT_OPENAI_REALTIME_MODEL,
+  DEFAULT_OPENAI_REALTIME_MINI_MODEL,
+  openOpenAIRealtimeSession,
+  mintOpenAIEphemeralSecret,
+} from './adapters/openai-realtime';
+export type {
+  OpenAIRealtimeModel,
+  OpenAIRealtimeDeps,
+  RealtimeWebSocketLike,
+  RealtimeWebSocketFactory,
+  RealtimeFetchLike,
+} from './adapters/openai-realtime';
+
 export {
   AnthropicAdapter,
   ANTHROPIC_MODELS,

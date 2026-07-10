@@ -21,6 +21,7 @@ import type {
   TokenUsage,
   Capabilities,
 } from './types';
+import type { RealtimeSessionConfig, RealtimeSession } from './realtime';
 import { DEFAULT_CAPABILITIES } from './types';
 import {
   LLMProviderError,
@@ -156,6 +157,17 @@ export abstract class BaseLLMAdapter implements ILLMProvider {
 
   async uploadFile(_request: LLMFileUploadRequest): Promise<LLMFileMetadata> {
     throw new LLMProviderError(`${this.name} does not support uploadFile()`, this.name);
+  }
+
+  /**
+   * Default `openRealtimeSession` — providers that don't support the realtime
+   * voice transport axis inherit this explicit unsupported-provider throw
+   * (mirror of `uploadFile`). Only adapters whose manifest declares
+   * `capabilities.realtimeVoice === true` (e.g. OpenAIRealtimeAdapter) override
+   * it. Realtime is a SEPARATE transport from complete()/streamCompletion().
+   */
+  async openRealtimeSession(_config: RealtimeSessionConfig): Promise<RealtimeSession> {
+    throw new LLMProviderError(`${this.name} does not support openRealtimeSession()`, this.name);
   }
 
   /**

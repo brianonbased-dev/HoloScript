@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { dirname } from 'node:path';
-import type { TokenUsage } from '@holoscript/llm-provider';
+import type { TokenUsage, AudioUsage } from '@holoscript/llm-provider';
 import type { CostState, ModelPricer } from './types.js';
 
 export interface PricingPeriodUsdPerMTok {
@@ -125,6 +125,76 @@ export function defaultOpenRouterPricer(model: string, usage: TokenUsage): numbe
   }
   return (usage.promptTokens * price.input + usage.completionTokens * price.output) / 1_000_000;
 }
+
+// =============================================================================
+// Realtime voice (audio) pricing — SEPARATE dimension from text TokenUsage.
+// =============================================================================
+//
+// A realtime voice session breaks the text `{input, output}` shape two ways:
+// (a) pricing has THREE audio rates (audio-in / cached-audio-in / audio-out),
+// and (b) one vendor (xAI) bills per-HOUR, not per-token. `AudioUsage`
+// (imported from @holoscript/llm-provider — the type lives with the session
+// that emits it) carries the three audio dims + optional text dims; the pricer
+// + table live here with CostGuard. See plan §3.
+
+/**
+ * Per-M-token audio pricing. Realtime sessions still bill text (transcripts,
+ * tool args), hence the optional text dims.
+ */
+export interface AudioPricing {
+  audioInput: number; // USD / M audio input tokens
+  cachedAudioInput: number; // USD / M cached audio input tokens
+  audioOutput: number; // USD / M audio output tokens
+  textInput?: number; // realtime sessions still bill text
+  textOutput?: number;
+}
+
+// Verified 2026-07-10 (docs/llm-capabilities/openai.md model table, task r7y5).
+// Never paste training-era pricing — F.014 / W.GOLD.341. Realtime pricing is
+// scoped WITH the transport build (plan §3.5), not before it.
+export const OPENAI_REALTIME_PRICING_USD_PER_MTOK: Record<string, AudioPricing> = {
+  'gpt-realtime-2.1': { audioInput: 32, cachedAudioInput: 0.4, audioOutput: 64, textInput: 4, textOutput: 24 },
+  'gpt-realtime-2.1-mini': { audioInput: 10, cachedAudioInput: 0.3, audioOutput: 20, textInput: 0.6, textOutput: 2.4 },
+  // Older rows (not default; cached-audio rate to re-verify before use):
+  'gpt-realtime-2': { audioInput: 32, cachedAudioInput: 0.4, audioOutput: 64, textInput: 4, textOutput: 24 },
+  'gpt-realtime-1.5': { audioInput: 32, cachedAudioInput: 0.4, audioOutput: 64, textInput: 4, textOutput: 16 },
+  'gpt-realtime-mini': { audioInput: 10, cachedAudioInput: 0.3, audioOutput: 20, textInput: 0.6, textOutput: 2.4 },
+};
+
+/**
+ * OpenAI realtime per-token pricer. Prices a session's (or a delta's)
+ * `AudioUsage` at the verified per-M rates. Throws on unknown model with a
+ * pointer (matches defaultAnthropicPricer/defaultXAIPricer behavior) so callers
+ * cannot silently undercount.
+ */
+export function defaultOpenAIRealtimePricer(model: string, usage: AudioUsage): number {
+  const p = OPENAI_REALTIME_PRICING_USD_PER_MTOK[model];
+  if (!p) {
+    throw new Error(
+      `No realtime pricing configured for model "${model}" — add to ` +
+        `OPENAI_REALTIME_PRICING_USD_PER_MTOK (verify via docs/llm-capabilities/openai.md)`
+    );
+  }
+  return (
+    (usage.audioInputTokens * p.audioInput +
+      usage.cachedAudioInputTokens * p.cachedAudioInput +
+      usage.audioOutputTokens * p.audioOutput +
+      (usage.textInputTokens ?? 0) * (p.textInput ?? 0) +
+      (usage.textOutputTokens ?? 0) * (p.textOutput ?? 0)) /
+    1_000_000
+  );
+}
+
+/**
+ * Discriminated union so budget enforcement knows which accrual model applies:
+ * OpenAI/Gemini are per-TOKEN (finalize each `usage` event); xAI voice is
+ * per-DURATION ($3/hr — only finalizes at close). Only the OpenAI per-token
+ * pricer is implemented in this slice (A+B); the per-duration variant is
+ * structural headroom so slice D's xAI pricer fits without changing this type.
+ */
+export type RealtimePricer =
+  | { kind: 'per-token'; price: (model: string, usage: AudioUsage) => number }
+  | { kind: 'per-duration'; price: (model: string, durationSeconds: number) => number };
 
 /**
  * Provider-aware default pricer dispatch. Picks the right pricer by

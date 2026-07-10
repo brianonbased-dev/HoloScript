@@ -8,6 +8,11 @@
  * @version 1.0.0
  */
 
+// Realtime voice is a SEPARATE transport axis (see realtime.ts). These are
+// type-only imports; the circular reference (realtime.ts imports ToolSpec /
+// ProviderExtensions from here) is erased at compile time.
+import type { RealtimeSessionConfig, RealtimeSession } from './realtime';
+
 // =============================================================================
 // Core Message Types
 // =============================================================================
@@ -891,6 +896,18 @@ export interface ILLMProvider {
    * unsupported-provider error.
    */
   uploadFile(request: LLMFileUploadRequest): Promise<LLMFileMetadata>;
+
+  /**
+   * Open a bidirectional realtime voice session. OPTIONAL — only providers
+   * whose manifest declares `capabilities.realtimeVoice === true` implement it;
+   * the router refuses to route a realtime brain to a provider that doesn't.
+   * Adapters without support inherit BaseLLMAdapter's explicit
+   * unsupported-provider throw (mirrors `uploadFile`). This is a SEPARATE
+   * transport from `complete()` / `streamCompletion()` — it never touches the
+   * chat path. Kept optional (like `native?`) so existing adapters compile
+   * unchanged. Narrow with `supportsRealtime()` before calling.
+   */
+  openRealtimeSession?(config: RealtimeSessionConfig): Promise<RealtimeSession>;
 }
 
 // =============================================================================
@@ -1259,6 +1276,31 @@ export interface OpenAIProviderExtensions {
     environment: 'browser' | 'mac' | 'windows' | 'ubuntu';
     displayWidth: number;
     displayHeight: number;
+  };
+  /**
+   * OpenAI Realtime voice transport dialect. Segregated per-vendor shape (do
+   * NOT flatten — same rule as computerUse): OpenAI is the richest, carrying a
+   * 3-way transport union + SIP telephony + ephemeral secrets. xAI (WebSocket
+   * only + REST STT/TTS billed per-hour) and Gemini (live-vs-tts mode
+   * discriminant) get their own distinct shapes on their own extension
+   * interfaces in slice D. The universal `Capabilities.realtimeVoice` flag is
+   * the swap axis; this is the exploit axis.
+   */
+  realtimeVoice?: {
+    transport: 'webrtc' | 'sip' | 'websocket';
+    /** Defaults: gpt-realtime-2.1 (full) / gpt-realtime-2.1-mini (cost). */
+    model: 'gpt-realtime-2.1' | 'gpt-realtime-2.1-mini' | string;
+    /** Named voice, e.g. 'marin', 'cedar'. */
+    voice?: string;
+    /** Browser/Quest surfaces mint a short-lived client secret server-side. */
+    ephemeralSecret?: { mint: boolean; ttlSeconds?: number };
+    /** SIP telephony surface. */
+    sip?: { projectId: string; inbound?: boolean; outbound?: boolean };
+    turnDetection?: { type: 'server_vad' | 'semantic_vad'; threshold?: number };
+    audioFormat?: {
+      input: 'pcm16' | 'g711_ulaw' | 'g711_alaw';
+      output: 'pcm16' | 'g711_ulaw' | 'g711_alaw';
+    };
   };
 }
 
