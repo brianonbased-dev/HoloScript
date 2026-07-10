@@ -104,6 +104,7 @@ export interface LlamaServerBundle {
       vision: boolean;
       grammarConstrained: boolean;
       loraHotSwap: boolean;
+      traceCapture: boolean;
     };
   };
   files: LlamaServerBundleFile[];
@@ -152,6 +153,18 @@ interface ResolvedLlamaConfig {
   mmprojPath?: string;
   host: string;
   port: number;
+  /**
+   * Attribution + live-trace capture (default OFF). When on, the compiler emits a
+   * transparent proxy that takes the PUBLIC host:port and llama-server rebinds to
+   * loopback:traceUpstreamPort — per-request NDJSON receipts + REC-SHAPE trace
+   * capsules, zero caller changes.
+   */
+  traceCapture: boolean;
+  traceUpstreamPort: number;
+  attributionHeader: string;
+  traceReceiptsDir: string;
+  traceCapsulesDir: string;
+  traceCapsuleDailyMb: number;
   contextLength: number;
   gpuLayers: number;
   fit: 'on' | 'off';
@@ -222,11 +235,17 @@ export class LlamaServerCompiler extends CompilerBase {
     // `grammar: "holoscript"` resolves to a generated GBNF written into the bundle;
     // this mutates cfg.grammarPath so buildArgv emits --grammar-file for it.
     const grammarFile = this.resolveGrammarPreset(cfg);
-    const args = this.buildArgv(cfg);
+    // trace_capture rebinds llama-server itself to loopback:traceUpstreamPort; the
+    // emitted attribution proxy owns the declared PUBLIC host:port, so every
+    // registry/health/caller surface keeps the public address unchanged.
+    const serverCfg: ResolvedLlamaConfig = cfg.traceCapture
+      ? { ...cfg, host: '127.0.0.1', port: cfg.traceUpstreamPort }
+      : cfg;
+    const args = this.buildArgv(serverCfg);
     const command = this.cmdLine(cfg.executable, args);
-    const powershell = this.genPowerShellLaunch(cfg, args);
+    const powershell = this.genPowerShellLaunch(serverCfg, args);
     const healthProbe = this.genHealthProbe(cfg);
-    const systemdUnit = this.genSystemdUnit(cfg, args);
+    const systemdUnit = this.genSystemdUnit(serverCfg, args);
     const windowsS4UTask = this.genWindowsS4UTask(cfg);
     const registryEntry = this.buildRegistryEntry(cfg, command);
     const files = this.buildFiles(
@@ -238,9 +257,25 @@ export class LlamaServerCompiler extends CompilerBase {
       registryEntry
     );
     if (grammarFile) files.unshift(grammarFile);
+    if (cfg.traceCapture) {
+      files.push(
+        { path: 'holo-inference-proxy.mjs', content: this.genInferenceProxyScript(cfg), executable: true },
+        { path: `holo-inference-proxy-${this.slug(cfg.registerAs)}.service`, content: this.genInferenceProxyUnit(cfg) }
+      );
+    }
     const warnings = foundTrait
       ? []
       : ['No @llama_serve trait found; used compiler options/defaults.'];
+    if (cfg.traceCapture && cfg.platform === 'windows') {
+      warnings.push(
+        'trace_capture emits a systemd proxy unit (linux); on windows run holo-inference-proxy.mjs manually or via a scheduled task.'
+      );
+    }
+    if (cfg.traceCapture && cfg.traceUpstreamPort === cfg.port) {
+      throw new Error(
+        `trace_capture requires trace_upstream_port (${cfg.traceUpstreamPort}) to differ from the public port (${cfg.port}).`
+      );
+    }
     if (cfg.grammarPath && cfg.grammar) {
       warnings.push(
         'Both a grammar file and an inline grammar were supplied; using --grammar-file and ignoring the inline grammar.'
@@ -327,6 +362,7 @@ export class LlamaServerCompiler extends CompilerBase {
       `${this.slug(name)}-${model.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`;
     const node = this.opts.node ?? this.stringValue(raw, 'node') ?? DEFAULTS.node;
     const platform = this.opts.platform ?? this.platformValue(raw, 'platform') ?? DEFAULTS.platform;
+    const port = this.opts.port ?? this.numberValue(raw, DEFAULTS.port, 'port');
 
     return {
       name,
@@ -337,7 +373,7 @@ export class LlamaServerCompiler extends CompilerBase {
         DEFAULTS.modelPath,
       mmprojPath: this.resolveMmproj(raw),
       host: this.opts.host ?? this.stringValue(raw, 'host') ?? DEFAULTS.host,
-      port: this.opts.port ?? this.numberValue(raw, DEFAULTS.port, 'port'),
+      port,
       contextLength:
         this.opts.contextLength ??
         this.numberValue(
@@ -360,6 +396,27 @@ export class LlamaServerCompiler extends CompilerBase {
         this.numberValue(raw, DEFAULTS.imageMaxTokens, 'imageMaxTokens', 'image_max_tokens'),
       parallel: this.opts.parallel ?? this.numberValue(raw, DEFAULTS.parallel, 'parallel'),
       metrics: this.opts.metrics ?? this.booleanValue(raw, DEFAULTS.metrics, 'metrics'),
+      traceCapture: this.booleanValue(raw, false, 'traceCapture', 'trace_capture'),
+      traceUpstreamPort: this.numberValue(
+        raw,
+        port - 1,
+        'traceUpstreamPort',
+        'trace_upstream_port'
+      ),
+      attributionHeader:
+        this.stringValue(raw, 'attributionHeader', 'attribution_header') ?? 'X-Holo-Agent',
+      traceReceiptsDir:
+        this.stringValue(raw, 'traceReceiptsDir', 'trace_receipts_dir') ??
+        '/mnt/nvme2/holo-volumes/receipts/inference',
+      traceCapsulesDir:
+        this.stringValue(raw, 'traceCapsulesDir', 'trace_capsules_dir') ??
+        '/mnt/nvme2/holo-volumes/model-scratch/datasets/live-traces',
+      traceCapsuleDailyMb: this.numberValue(
+        raw,
+        256,
+        'traceCapsuleDailyMb',
+        'trace_capsule_daily_mb'
+      ),
       ...this.resolveGrammar(raw),
       loras: this.resolveLoras(raw),
       loraInitWithoutApply:
@@ -654,6 +711,7 @@ export class LlamaServerCompiler extends CompilerBase {
         vision: Boolean(cfg.mmprojPath),
         grammarConstrained: Boolean(cfg.grammarPath || cfg.grammar),
         loraHotSwap: cfg.loras.length > 0,
+        traceCapture: cfg.traceCapture,
       },
     };
   }
@@ -716,6 +774,208 @@ SyslogIdentifier=${serviceName}
 
 [Install]
 WantedBy=multi-user.target
+`;
+  }
+
+  /**
+   * Systemd unit for the attribution proxy. Ordered After the llama unit so the
+   * upstream exists before the proxy binds the public port; Restart=always because
+   * a dead proxy means a dead model endpoint for every caller.
+   */
+  private genInferenceProxyUnit(cfg: ResolvedLlamaConfig): string {
+    const serviceName = this.slug(cfg.registerAs);
+    const workingDirectory = cfg.workingDirectory ?? '/opt/holoscript/llama-server';
+    return `[Unit]
+Description=Holo inference attribution proxy - ${cfg.name}
+After=network-online.target ${serviceName}.service
+Wants=network-online.target ${serviceName}.service
+
+[Service]
+Type=simple
+User=${cfg.serviceUser}
+WorkingDirectory=${workingDirectory}
+Environment=HOLO_PROXY_BIND_HOST=${cfg.host}
+Environment=HOLO_PROXY_BIND_PORT=${cfg.port}
+Environment=HOLO_PROXY_UPSTREAM=http://127.0.0.1:${cfg.traceUpstreamPort}
+Environment=HOLO_PROXY_ATTRIBUTION_HEADER=${cfg.attributionHeader}
+Environment=HOLO_PROXY_RECEIPTS_DIR=${cfg.traceReceiptsDir}
+Environment=HOLO_PROXY_CAPSULES_DIR=${cfg.traceCapsulesDir}
+Environment=HOLO_PROXY_CAPSULE_DAILY_MB=${cfg.traceCapsuleDailyMb}
+Environment=HOLO_PROXY_MODEL=${cfg.model}
+ExecStart=/usr/bin/env node ${workingDirectory}/holo-inference-proxy.mjs
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=holo-inference-proxy-${serviceName}
+
+[Install]
+WantedBy=multi-user.target
+`;
+  }
+
+  /**
+   * Self-contained attribution proxy runtime (node >= 18, zero deps), emitted as a
+   * bundle artifact the same way the GBNF grammar is. Serving FAILS OPEN (a receipt
+   * or capsule write error never breaks the model call — llm-spend-ledger pattern);
+   * accounting FAILS CLOSED (unknown token counts are null, never guessed — the
+   * lenient-recogniser lesson). GET traffic (health/metrics scrapes) passes through
+   * unrecorded; every POST gets exactly one inference-receipt/v0 NDJSON row.
+   */
+  private genInferenceProxyScript(cfg: ResolvedLlamaConfig): string {
+    return `#!/usr/bin/env node
+// @generated by LlamaServerCompiler (trait @llama_serve, trace_capture: true) - do not hand-edit.
+// Transparent attribution proxy for ${cfg.name}: binds the PUBLIC model port, forwards to the
+// loopback llama-server, and writes per-request receipts + REC-SHAPE trace capsules.
+// Receipts: inference-receipt/v0 NDJSON, one row per POST. Capsules: {system,user,target,...}
+// rows directly curate-able by holotune (non-empty user+target contract).
+import http from 'node:http';
+import { createHash } from 'node:crypto';
+import { appendFileSync, mkdirSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+
+const BIND_HOST = process.env.HOLO_PROXY_BIND_HOST || '${cfg.host}';
+const BIND_PORT = Number(process.env.HOLO_PROXY_BIND_PORT || ${cfg.port});
+const UPSTREAM = new URL(process.env.HOLO_PROXY_UPSTREAM || 'http://127.0.0.1:${cfg.traceUpstreamPort}');
+const ATTR_HEADER = (process.env.HOLO_PROXY_ATTRIBUTION_HEADER || '${cfg.attributionHeader}').toLowerCase();
+const RECEIPTS_DIR = process.env.HOLO_PROXY_RECEIPTS_DIR || '${cfg.traceReceiptsDir}';
+const CAPSULES_DIR = process.env.HOLO_PROXY_CAPSULES_DIR || '${cfg.traceCapsulesDir}';
+const CAPSULE_DAILY_MB = Number(process.env.HOLO_PROXY_CAPSULE_DAILY_MB || ${cfg.traceCapsuleDailyMb});
+const MODEL = process.env.HOLO_PROXY_MODEL || '${cfg.model}';
+const BODY_CAPTURE_LIMIT = 2 * 1024 * 1024; // 2MB per side; beyond it: serve fine, capsule skipped
+
+let seq = 0;
+const day = () => new Date().toISOString().slice(0, 10);
+const sha256 = (s) => { try { return createHash('sha256').update(s).digest('hex'); } catch { return null; } };
+
+// Observability writes must NEVER break the model call (fail-open serving).
+function appendLine(dir, prefix, row) {
+  try {
+    mkdirSync(dir, { recursive: true });
+    appendFileSync(join(dir, prefix + '-' + day() + '.ndjson'), JSON.stringify(row) + '\\n');
+    return true;
+  } catch (e) {
+    console.error('[holo-inference-proxy] write failed (serving unaffected):', e.message);
+    return false;
+  }
+}
+
+function capsuleWithinCap() {
+  try {
+    const size = statSync(join(CAPSULES_DIR, 'live-traces-' + day() + '.ndjson')).size;
+    return size < CAPSULE_DAILY_MB * 1024 * 1024;
+  } catch { return true; } // no file yet
+}
+
+// OpenAI-compat /v1/chat/completions and llama-native /completion both flow through here.
+function extractExchange(reqBody, resBody) {
+  const out = { system: null, user: null, target: null, promptTokens: null, completionTokens: null,
+    tokensPerSec: null, stopReason: null, truncated: null };
+  try {
+    const req = JSON.parse(reqBody);
+    if (Array.isArray(req.messages)) {
+      const sys = req.messages.find((m) => m && m.role === 'system');
+      const usr = [...req.messages].reverse().find((m) => m && m.role === 'user');
+      out.system = typeof sys?.content === 'string' ? sys.content : null;
+      out.user = typeof usr?.content === 'string' ? usr.content : null;
+    } else if (typeof req.prompt === 'string') {
+      out.user = req.prompt;
+    }
+  } catch { /* malformed request body: accounting stays null */ }
+  try {
+    const res = JSON.parse(resBody);
+    const choice = Array.isArray(res.choices) ? res.choices[0] : null;
+    out.target = typeof choice?.message?.content === 'string' ? choice.message.content
+      : typeof choice?.text === 'string' ? choice.text
+      : typeof res.content === 'string' ? res.content : null;
+    out.stopReason = choice?.finish_reason ?? res.stop_type ?? null;
+    out.truncated = res.truncated ?? (out.stopReason === 'length' ? true : out.stopReason ? false : null);
+    const usage = res.usage || {};
+    out.promptTokens = Number.isFinite(usage.prompt_tokens) ? usage.prompt_tokens
+      : Number.isFinite(res.tokens_evaluated) ? res.tokens_evaluated : null;
+    out.completionTokens = Number.isFinite(usage.completion_tokens) ? usage.completion_tokens
+      : Number.isFinite(res.tokens_predicted) ? res.tokens_predicted : null;
+    const t = res.timings || {};
+    out.tokensPerSec = Number.isFinite(t.predicted_per_second) ? t.predicted_per_second : null;
+  } catch { /* streamed or non-JSON response: accounting stays null (fail-closed) */ }
+  return out;
+}
+
+const server = http.createServer((req, res) => {
+  const startedAt = Date.now();
+  const requestId = Date.now().toString(36) + '-' + (seq += 1);
+  const isPost = req.method === 'POST';
+  const reqChunks = [];
+  let reqLen = 0;
+
+  const upstreamReq = http.request(
+    { hostname: UPSTREAM.hostname, port: UPSTREAM.port, path: req.url, method: req.method,
+      headers: { ...req.headers, host: UPSTREAM.host } },
+    (upstreamRes) => {
+      const resChunks = [];
+      let resLen = 0;
+      res.writeHead(upstreamRes.statusCode || 502, {
+        ...upstreamRes.headers,
+        'x-holo-proxy': 'holo-inference-proxy/v0',
+      });
+      upstreamRes.on('data', (chunk) => {
+        if (isPost && resLen < BODY_CAPTURE_LIMIT) { resChunks.push(chunk); resLen += chunk.length; }
+        res.write(chunk);
+      });
+      upstreamRes.on('end', () => {
+        res.end();
+        if (!isPost) return; // GET scrapes (health/metrics/props) pass unrecorded
+        const reqBody = reqLen <= BODY_CAPTURE_LIMIT ? Buffer.concat(reqChunks).toString('utf8') : '';
+        const resBody = resLen <= BODY_CAPTURE_LIMIT ? Buffer.concat(resChunks).toString('utf8') : '';
+        const stream = String(upstreamRes.headers['content-type'] || '').includes('text/event-stream');
+        const ex = stream ? extractExchange(reqBody, '') : extractExchange(reqBody, resBody);
+        const caller = String(req.headers[ATTR_HEADER] || '').trim() || 'unattributed';
+        const wantCapsule = Boolean(ex.user && ex.target) && capsuleWithinCap();
+        const capsuleWritten = wantCapsule
+          ? appendLine(CAPSULES_DIR, 'live-traces', {
+              ts: new Date(startedAt).toISOString(), requestId, caller, agentId: caller,
+              system: ex.system, user: ex.user, target: ex.target,
+              source: 'inference-proxy', family: 'holollama', modality: 'chat', model: MODEL })
+          : false;
+        appendLine(RECEIPTS_DIR, 'inference', {
+          v: 'inference-receipt/v0', ts: new Date(startedAt).toISOString(), requestId, caller,
+          remoteAddr: req.socket.remoteAddress || null, method: req.method, endpoint: req.url,
+          status: upstreamRes.statusCode || null, model: MODEL, stream,
+          totalMs: Date.now() - startedAt,
+          promptTokens: ex.promptTokens, completionTokens: ex.completionTokens,
+          tokensPerSec: ex.tokensPerSec, stopReason: ex.stopReason, truncated: ex.truncated,
+          aborted: false, capsule: capsuleWritten,
+          promptSha256: ex.user ? sha256(ex.user) : null,
+          completionSha256: ex.target ? sha256(ex.target) : null });
+      });
+    }
+  );
+
+  upstreamReq.on('error', (e) => {
+    if (!res.headersSent) res.writeHead(502, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ error: 'upstream unreachable', detail: e.message }));
+    if (isPost) appendLine(RECEIPTS_DIR, 'inference', {
+      v: 'inference-receipt/v0', ts: new Date(startedAt).toISOString(), requestId,
+      caller: String(req.headers[ATTR_HEADER] || '').trim() || 'unattributed',
+      remoteAddr: req.socket.remoteAddress || null, method: req.method, endpoint: req.url,
+      status: 502, model: MODEL, stream: false, totalMs: Date.now() - startedAt,
+      promptTokens: null, completionTokens: null, tokensPerSec: null, stopReason: null,
+      truncated: null, aborted: true, capsule: false, promptSha256: null, completionSha256: null });
+  });
+
+  req.on('data', (chunk) => {
+    if (isPost && reqLen < BODY_CAPTURE_LIMIT) { reqChunks.push(chunk); }
+    reqLen += chunk.length;
+    upstreamReq.write(chunk);
+  });
+  req.on('end', () => upstreamReq.end());
+  req.on('error', () => upstreamReq.destroy());
+});
+
+server.listen(BIND_PORT, BIND_HOST, () => {
+  console.log('[holo-inference-proxy] listening on ' + BIND_HOST + ':' + BIND_PORT +
+    ' -> ' + UPSTREAM.href + ' (receipts: ' + RECEIPTS_DIR + ')');
+});
 `;
   }
 
