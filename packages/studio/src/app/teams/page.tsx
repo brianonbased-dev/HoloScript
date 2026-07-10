@@ -9,7 +9,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Users, Globe, Lock, Plus, RefreshCw, ChevronLeft, Search } from 'lucide-react';
+import { Users, Globe, Lock, RefreshCw, ChevronLeft, Search } from 'lucide-react';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -206,22 +206,8 @@ export default function TeamsDiscoveryPage() {
             />
             Refresh
           </button>
-          <Link
-            href="/teams/create"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              padding: '0.4rem 0.75rem',
-              borderRadius: 6,
-              background: 'var(--studio-accent)',
-              color: '#fff',
-              textDecoration: 'none',
-              fontSize: '0.8rem',
-            }}
-          >
-            <Plus size={13} /> New Team
-          </Link>
+          {/* "New Team" CTA removed — /teams/create page does not exist yet.
+              Re-add when a team-creation flow (page or modal + API) is built. */}
         </div>
       </div>
 

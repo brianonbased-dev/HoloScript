@@ -103,7 +103,7 @@ export default function AvatarAuthoringPage() {
             data-testid="avatar-save"
             onClick={() => {
               logger.debug('[AvatarAuthoring] Save triggered');
-              alert('Avatar saved to library (POC stub)');
+              alert('Avatar authoring is in preview — saving to your library is coming soon.');
             }}
             className="flex items-center gap-1.5 rounded-lg bg-purple-500 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-purple-600"
           >
