@@ -234,6 +234,8 @@
     "check:apex-poison-retired:test": "node scripts/__tests__/check-apex-poison-retired.test.mjs",
     "check:render-surface-native": "node scripts/holo-ci/check-render-surface-native.mjs",
     "check:render-surface-native:test": "node scripts/__tests__/check-render-surface-native.test.mjs",
+    "check:verified-view": "node scripts/holo-ci/check-verified-view.mjs",
+    "check:verified-view:update": "node scripts/holo-ci/check-verified-view.mjs --update-baseline",
     "check:export-targets-sync": "node scripts/holo-ci/check-export-targets-sync.mjs",
     "check:trait-test-tautologies": "node scripts/holo-ci/check-trait-test-tautologies.mjs",
     "check:trait-parity": "node scripts/holo-ci/check-trait-parity.mjs",
