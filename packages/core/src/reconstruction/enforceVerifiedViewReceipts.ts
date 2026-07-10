@@ -281,6 +281,10 @@ export function diagnoseVerifiedView(source: string): VerifiedViewDiagnosis {
           const as = (t.config as { as?: unknown } | undefined)?.as;
           roots.add(typeof as === 'string' && as ? as : 'item');
         }
+        if (t.name === 'computed') {
+          const nm = (t.config as { name?: unknown } | undefined)?.name;
+          if (typeof nm === 'string' && nm) roots.add(nm);
+        }
       }
       scanRoots(o.children);
     }

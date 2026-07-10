@@ -156,6 +156,13 @@ export class Native2DCompiler extends CompilerBase {
             const as = (t.config as { as?: unknown } | undefined)?.as;
             this._projectionRoots.add(typeof as === 'string' && as ? as : 'item');
           }
+          // @computed defines a derived value (from state via an expression); its NAME is a
+          // legitimate projection root — an element rendering the computed value can prove it.
+          // (OUTER over-approx: v0 does not yet verify the expression's inputs are grounded.)
+          if (t?.name === 'computed') {
+            const nm = (t.config as { name?: unknown } | undefined)?.name;
+            if (typeof nm === 'string' && nm) this._projectionRoots.add(nm);
+          }
         }
         if (Array.isArray(o.children)) scanProjectionRoots(o.children as Array<Record<string, unknown>>);
       }

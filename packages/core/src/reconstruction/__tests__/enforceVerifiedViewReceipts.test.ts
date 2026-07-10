@@ -94,6 +94,28 @@ describe('enforceVerifiedViewReceipts — injection', () => {
     expect(out).toMatch(/@verified_view/);
   });
 
+  it('accepts a @computed value name as a valid projection root (derived value can be proven)', () => {
+    // A list computed from state, iterated by @each — both the computed name AND the loop var
+    // must be admissible roots, or the surface would false-FALSIFY.
+    const computed = `composition "C" {
+  @verified_view
+  state { auditLog: { entries: [] } }
+  object "Root" {
+    @computed { name: "recent", expr: "auditLog.entries.slice(-5)" }
+    object "List" {
+      @each { state: "recent", as: "entry" }
+      @projects { node: "recent" }
+      object "Row" { @bind { state: "entry", path: "event" } @projects { node: "entry.event" } }
+    }
+  }
+}`;
+    const d = diagnoseVerifiedView(computed);
+    expect(d.complete).toBe(true);
+    expect(d.violations).toEqual([]);
+    // and it compiles clean through the real gate
+    expect(react(computed)).toContain('data-holo-projects="recent"');
+  });
+
   it('diagnose accepts an @each loop var as a valid projection root', () => {
     const list = `composition "L" {
   @verified_view
