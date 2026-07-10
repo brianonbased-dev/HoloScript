@@ -29,8 +29,11 @@
  */
 import { parseHolo } from '../parser/HoloCompositionParser';
 
-/** Binding traits whose bound path Native2DCompiler.resolveProjection re-derives, in order. */
-const BINDING_TRAITS: readonly string[] = ['bind', 'chart', 'sparkline', 'model'];
+/**
+ * Binding traits whose bound path Native2DCompiler.resolveProjection re-derives, in order.
+ * `@each` renders a LIST from state — its derived node is the bound array (state[.path]).
+ */
+const BINDING_TRAITS: readonly string[] = ['bind', 'chart', 'sparkline', 'model', 'each'];
 
 interface MinimalTrait {
   name?: string;
@@ -264,19 +267,25 @@ export function diagnoseVerifiedView(source: string): VerifiedViewDiagnosis {
   const comp = parsed.ast as unknown as MinimalComposition;
   if (isDegenerateParse(comp)) return UNPARSEABLE;
 
+  // Valid projection roots — state keys, @fetch into-slots, and @each loop vars
+  // (composition-wide OUTER over-approximation), mirroring Native2DCompiler's pre-scan.
   const roots = new Set<string>((comp.state?.properties ?? []).map((p) => p.key));
-  const scanFetch = (objs: MinimalObject[] | undefined): void => {
+  const scanRoots = (objs: MinimalObject[] | undefined): void => {
     for (const o of objs ?? []) {
       for (const t of o.traits ?? []) {
         if (t.name === 'fetch') {
           const into = (t.config as { into?: unknown } | undefined)?.into;
           roots.add(typeof into === 'string' && into ? into : 'data');
         }
+        if (t.name === 'each') {
+          const as = (t.config as { as?: unknown } | undefined)?.as;
+          roots.add(typeof as === 'string' && as ? as : 'item');
+        }
       }
-      scanFetch(o.children);
+      scanRoots(o.children);
     }
   };
-  scanFetch(comp.objects);
+  scanRoots(comp.objects);
 
   const verifiedViewOn = (comp.traits ?? []).some((t) => t?.name === 'verified_view');
   const violations: VerifiedViewViolation[] = [];

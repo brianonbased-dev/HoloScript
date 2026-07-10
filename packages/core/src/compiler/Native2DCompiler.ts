@@ -125,23 +125,31 @@ export class Native2DCompiler extends CompilerBase {
     }
 
     // Projection roots (slice 4): the names a @projects claim may legitimately
-    // resolve against — composition state keys plus every @fetch into-slot,
-    // PRE-SCANNED so a projection is never order-dependent on where its fetch
-    // container sits in the tree. A claim rooted anywhere else is a
-    // hallucinated node (VIEW-UNGROUNDED).
+    // resolve against — composition state keys, every @fetch into-slot, and every
+    // @each loop variable — PRE-SCANNED so a projection is never order-dependent on
+    // where its fetch/loop container sits in the tree. A claim rooted anywhere else
+    // is a hallucinated node (VIEW-UNGROUNDED). The @each loop var is admitted
+    // composition-wide (an OUTER over-approximation: a loop var is really only in
+    // scope inside its own subtree, but admitting it everywhere never false-FALSIFIES
+    // a legitimate loop-var binding, whose provenance flows transitively from the
+    // array proven at the @each element — subtree-precise scoping is a v1 refinement).
     this._projectionRoots = new Set(this._stateFields.keys());
-    const scanFetchRoots = (objs: Array<Record<string, unknown>>): void => {
+    const scanProjectionRoots = (objs: Array<Record<string, unknown>>): void => {
       for (const o of objs) {
         for (const t of (o.traits as Array<{ name?: string; config?: Record<string, unknown> }> | undefined) ?? []) {
           if (t?.name === 'fetch') {
             const into = (t.config as { into?: unknown } | undefined)?.into;
             this._projectionRoots.add(typeof into === 'string' && into ? into : 'data');
           }
+          if (t?.name === 'each') {
+            const as = (t.config as { as?: unknown } | undefined)?.as;
+            this._projectionRoots.add(typeof as === 'string' && as ? as : 'item');
+          }
         }
-        if (Array.isArray(o.children)) scanFetchRoots(o.children as Array<Record<string, unknown>>);
+        if (Array.isArray(o.children)) scanProjectionRoots(o.children as Array<Record<string, unknown>>);
       }
     };
-    scanFetchRoots(objects as unknown as Array<Record<string, unknown>>);
+    scanProjectionRoots(objects as unknown as Array<Record<string, unknown>>);
 
     // Generate JSX from objects
     const jsx = objects
@@ -1566,7 +1574,10 @@ export default ${safeName}Component;
           ? { state: traits.sparkline.state, path: traits.sparkline.path }
           : traits.model?.state
             ? { state: traits.model.state, path: traits.model.path }
-            : null;
+            : // @each renders a LIST from state — the element's provenance is the bound array.
+              traits.each?.state
+              ? { state: traits.each.state, path: traits.each.path }
+              : null;
     const actualPath = src ? `${String(src.state)}${src.path ? '.' + String(src.path) : ''}` : null;
 
     const pj = traits.projects;

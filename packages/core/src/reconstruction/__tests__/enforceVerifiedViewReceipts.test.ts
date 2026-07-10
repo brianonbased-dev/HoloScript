@@ -80,6 +80,37 @@ describe('enforceVerifiedViewReceipts — injection', () => {
     expect(enforceVerifiedViewReceipts(chart)).toContain('@projects { node: "series.points" }');
   });
 
+  it('covers @each: injects @projects naming the bound ARRAY for a list element', () => {
+    const list = `composition "L" {
+  state { rows: { items: [1, 2, 3] } }
+  object "Root" {
+    object "List" {
+      @each { state: "rows", path: "items", as: "row" }
+    }
+  }
+}`;
+    const out = enforceVerifiedViewReceipts(list);
+    expect(out).toContain('@projects { node: "rows.items" }');
+    expect(out).toMatch(/@verified_view/);
+  });
+
+  it('diagnose accepts an @each loop var as a valid projection root', () => {
+    const list = `composition "L" {
+  @verified_view
+  state { rows: { items: [] } }
+  object "Root" {
+    object "List" {
+      @each { state: "rows", path: "items", as: "row" }
+      @projects { node: "rows.items" }
+      object "Row" { @bind { state: "row", path: "name" } @projects { node: "row.name" } }
+    }
+  }
+}`;
+    const d = diagnoseVerifiedView(list);
+    expect(d.complete).toBe(true); // 'row' is admitted as a root, not hallucinated
+    expect(d.violations).toEqual([]);
+  });
+
   it('is idempotent: a second pass changes nothing', () => {
     const once = enforceVerifiedViewReceipts(UNRECEIPTED);
     const twice = enforceVerifiedViewReceipts(once);

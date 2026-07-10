@@ -865,6 +865,54 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
       );
       expect(react(c)).not.toContain('data-holo-projects');
     });
+
+    // @each closes a real blind spot: a LIST of data must prove its source too.
+    const listState = {
+      type: 'State',
+      properties: [
+        { type: 'StateProperty', key: 'rows', value: [{ name: 'a' }] },
+        { type: 'StateProperty', key: 'cols', value: [] },
+      ],
+    } as HoloComposition['state'];
+    const verifiedList = (objects: HoloObjectDecl[]): HoloComposition =>
+      ({ ...comp(objects, listState), traits: [{ name: 'verified_view' }] } as unknown as HoloComposition);
+
+    it('WORKS (@each): a list declares @projects naming the ARRAY, and a loop-var field is a valid root', () => {
+      const c = verifiedList([
+        obj(
+          'List',
+          [trait('each', { state: 'rows', as: 'row' }), trait('projects', { node: 'rows' })],
+          [
+            obj('Row', [
+              trait('text', { variant: 'body' }),
+              trait('bind', { state: 'row', path: 'name' }),
+              trait('projects', { node: 'row.name' }),
+            ]),
+          ]
+        ),
+      ]);
+      const r = react(c);
+      expect(r).toContain('data-holo-projects="rows"'); // the list's array provenance
+      expect(r).toContain('data-holo-projects="row.name"'); // loop var 'row' is a legit root
+    });
+
+    it('REJECTS (@each): a list bound via @each with no @projects under @verified_view', () => {
+      const c = verifiedList([
+        obj('List', [trait('each', { state: 'rows', as: 'row' })], [obj('Row', [trait('text', { variant: 'body' })])]),
+      ]);
+      expect(() => react(c)).toThrow(/VIEW-UNGROUNDED/);
+    });
+
+    it('REJECTS (@each falsification): @projects names a different array than the @each binding', () => {
+      const c = verifiedList([
+        obj(
+          'List',
+          [trait('each', { state: 'rows', as: 'row' }), trait('projects', { node: 'cols' })],
+          [obj('Row', [trait('text', { variant: 'body' })])]
+        ),
+      ]);
+      expect(() => react(c)).toThrow(/claims to project "cols" but is actually bound to "rows"/);
+    });
   });
 
   describe('7h. @live_proof — the falsifiable surface (receipt as render state)', () => {
