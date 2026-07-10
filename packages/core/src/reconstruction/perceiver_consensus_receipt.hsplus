@@ -1,0 +1,33 @@
+// @perceiver_consensus_receipt — Cross-perceiver agreement as the falsification oracle
+// (@cross_perceiver_contract, slice 3 of the Receipt-Bound Surface).
+//
+// Native .hsplus surface for core/reconstruction/PerceiverConsensusReceipt.ts.
+//
+// PerceiverConsensusReceipt { version, verdict, sourceName, perceivers[], comparedFacts,
+//                             disagreements[], receiptHash }
+// ONE .holo fans to N structurally-different perceiver compilers; each emitted artifact
+// is independently re-derived and diffed. Disagreement = FALSIFIED with the concrete
+// dissenting perceiver. Refuses single-perceiver and duplicate-perceiver input
+// (self-agreement is circular theater — G.UI-SHIFT.selfpass).
+
+@trait perceiver_consensus_receipt {
+  capability_tags: ["perceiver_consensus", "cross_perceiver_contract", "falsification_oracle", "receipt_bound_surface", "core"]
+
+  @on_spawn => {
+    emit("perceiver_consensus_ready", {})
+  }
+
+  @on_derive(derivations) => {
+    receipt = derive_perceiver_consensus(derivations)
+    if receipt.verdict == "FALSIFIED" {
+      emit("perceiver_disagreement", { disagreements: receipt.disagreements })
+    }
+    return receipt
+  }
+
+  @receipt perceiver_consensus_config {
+    type: "PerceiverConsensusReceipt"
+    fields: ["version", "verdict", "sourceName", "perceivers", "comparedFacts", "disagreements", "receiptHash"]
+    timestamp: now()
+  }
+}

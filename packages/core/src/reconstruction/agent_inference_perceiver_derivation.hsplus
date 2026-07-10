@@ -1,0 +1,25 @@
+// @agent_inference_perceiver_derivation — the "agent context" perceiver of
+// @cross_perceiver_contract.
+//
+// Native .hsplus surface for core/reconstruction/agentInferencePerceiverDerivation.ts.
+//
+// Re-derives world facts from the EMITTED agent-inference artifact map ONLY (never the
+// source AST — G.UI-SHIFT.selfpass): agent entities + NAMED affordance offers from
+// config.json, source name from the agent script banner. No spatial vocabulary —
+// declared as coverage, never as disagreement. Malformed artifacts fail LOUD (a lenient
+// reader that defaults to an empty world scores garbage as agreement).
+
+@trait agent_inference_perceiver_derivation {
+  capability_tags: ["perceiver_derivation", "agent_inference_perceiver", "cross_perceiver_contract", "artifact_rederivation", "core"]
+
+  @on_derive(artifact_files) => {
+    derivation = derive_agent_inference_perception(artifact_files)
+    return derivation
+  }
+
+  @receipt agent_inference_perceiver_config {
+    type: "PerceiverDerivation"
+    fields: ["perceiver", "artifactHash", "sourceName", "entities", "coverageGaps"]
+    timestamp: now()
+  }
+}

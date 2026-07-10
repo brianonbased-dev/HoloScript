@@ -1,0 +1,23 @@
+// @webgpu_perceiver_derivation — the "human eye" perceiver of @cross_perceiver_contract.
+//
+// Native .hsplus surface for core/reconstruction/webgpuPerceiverDerivation.ts.
+//
+// Re-derives world facts from the EMITTED WebGPU artifact ONLY (never the source AST —
+// G.UI-SHIFT.selfpass): agent entities + affordance COUNTS from the holoGraphObjects
+// scene-registry literals, source name from the artifact banner. The eye can count
+// affordances but not name them — declared as coverage, never silently defaulted.
+
+@trait webgpu_perceiver_derivation {
+  capability_tags: ["perceiver_derivation", "webgpu_perceiver", "cross_perceiver_contract", "artifact_rederivation", "core"]
+
+  @on_derive(artifact) => {
+    derivation = derive_webgpu_perception(artifact)
+    return derivation
+  }
+
+  @receipt webgpu_perceiver_config {
+    type: "PerceiverDerivation"
+    fields: ["perceiver", "artifactHash", "sourceName", "entities", "coverageGaps"]
+    timestamp: now()
+  }
+}
