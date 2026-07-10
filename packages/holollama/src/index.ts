@@ -528,10 +528,15 @@ const DEFAULT_IMAGE_MIN_TOKENS = 1024;
 const DEFAULT_IMAGE_MAX_TOKENS = 1536;
 const DEFAULT_JETSON_HOLO_LLAMA_EXECUTABLE =
   '/opt/holoscript/llama.cpp/build-holo/bin/llama-server';
-const DEFAULT_LAPTOP_HOLO_LLAMA_EXECUTABLE =
-  'C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build-holo\\bin\\Release\\llama-server.exe';
+// Portable defaults (W.726 cross-platform-paths R1): env override first, else derive from
+// the user home dir so no hardcoded drive literal ships in this published package. On the
+// founder's Windows laptop homedir() resolves to C:\Users\josep, preserving prior behavior.
 const DEFAULT_LAPTOP_HOLO_LLAMA_BIN_DIR =
-  'C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build-holo\\bin\\Release';
+  process.env.HOLO_LLAMA_LAPTOP_BIN_DIR ||
+  join(homedir(), 'Documents', 'GitHub', 'llama.cpp', 'build-holo', 'bin', 'Release');
+const DEFAULT_LAPTOP_HOLO_LLAMA_EXECUTABLE =
+  process.env.HOLO_LLAMA_LAPTOP_EXECUTABLE ||
+  join(DEFAULT_LAPTOP_HOLO_LLAMA_BIN_DIR, 'llama-server.exe');
 const DEFAULT_HOLOMESH_ORCHESTRATOR_URL = 'https://mcp-orchestrator-production-45f9.up.railway.app';
 const DEFAULT_HOLOMESH_TEAM_ID = 'TEAM_ID';
 const DEFAULT_HOLOMESH_API_KEY_ENV = 'HOLOSCRIPT_API_KEY';
