@@ -27,6 +27,11 @@
 // TYPES
 // =============================================================================
 
+import type {
+  CalibrationRewardContext,
+  ProvenanceRewardContext,
+} from './ProvenanceCalibrationRewards';
+
 /** Options passed to reward functions via kwargs */
 export interface RewardFunctionOptions {
   /** Working directory for tool execution */
@@ -39,6 +44,10 @@ export interface RewardFunctionOptions {
   fileExtension?: string;
   /** Whether to clean up temporary files after evaluation */
   cleanup?: boolean;
+  /** Context for the optional provenance-validity (V) reward term */
+  provenance?: ProvenanceRewardContext;
+  /** Context for the optional faithful-calibration (Z_m) reward term */
+  calibration?: CalibrationRewardContext;
 }
 
 /**
@@ -122,7 +131,11 @@ export interface RewardToolRunner {
 // DEFAULT OPTIONS
 // =============================================================================
 
-const DEFAULT_OPTIONS: Required<RewardFunctionOptions> = {
+/** Tool-execution options always resolve; term contexts stay caller-supplied. */
+type ResolvedRewardOptions = Required<Omit<RewardFunctionOptions, 'provenance' | 'calibration'>> &
+  Pick<RewardFunctionOptions, 'provenance' | 'calibration'>;
+
+const DEFAULT_OPTIONS: Required<Omit<RewardFunctionOptions, 'provenance' | 'calibration'>> = {
   workDir: '.',
   timeout: 30_000,
   maxLintIssues: 20,
@@ -130,7 +143,7 @@ const DEFAULT_OPTIONS: Required<RewardFunctionOptions> = {
   cleanup: true,
 };
 
-function resolveOptions(kwargs?: RewardFunctionOptions): Required<RewardFunctionOptions> {
+function resolveOptions(kwargs?: RewardFunctionOptions): ResolvedRewardOptions {
   return { ...DEFAULT_OPTIONS, ...kwargs };
 }
 

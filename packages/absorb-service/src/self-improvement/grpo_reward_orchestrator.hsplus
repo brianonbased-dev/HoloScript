@@ -5,6 +5,7 @@
 // Orchestrates 5 reward functions into a weighted composite reward signal:
 //   R(x) = w_test * test(x) + w_type * type(x) + w_lint * lint(x)
 //          + w_cov * cov(x) + w_cb * cb(x)
+//          [+ w_v * V(x)] [+ w_zm * Z_m(x)]   (optional, flag-gated, default off)
 //
 // Reward functions (GRPORewardFunctions.ts + GRPO_REWARD_WEIGHTS):
 //   test_pass_reward     — test suite passes (w_test)
@@ -13,6 +14,14 @@
 //   coverage_reward      — code coverage threshold met (w_cov)
 //   circuit_breaker_reward — no circuit breakers triggered (w_cb)
 //   (weights must sum to 1.0)
+//
+// Optional reward-spine terms (ProvenanceCalibrationRewards.ts, 2026-07-09):
+//   provenance_validity_reward   — V(d) ∈ {0,1}: derivation replays exactly to
+//                                  the claimed answer within the contract bound
+//   faithful_calibration_reward  — Z_m = 1 − (F_pred − F_gold)² (RLMF 2606.32032)
+//   Enabling a term requires its weight; full set must still sum to 1.0.
+//   Both FAIL CLOSED: malformed derivation / F_pred / missing context → 0.
+//   Reward cache is bypassed while either term is enabled (context-dependent).
 //
 // Execution features (GRPORewardOrchestrator.ts):
 //   parallel = true (default; runs all 5 functions concurrently)
@@ -29,6 +38,12 @@
   weight_lint: Float = 0.2
   weight_coverage: Float = 0.1
   weight_circuit_breaker: Float = 0.1
+
+  // Optional reward-spine terms (default OFF; enabling requires re-weighting to sum 1.0)
+  enable_provenance_validity: Bool = false
+  weight_provenance_validity: Float = 0.0
+  enable_faithful_calibration: Bool = false
+  weight_faithful_calibration: Float = 0.0
 
   // Run reward functions in parallel
   parallel: Bool = true
@@ -52,8 +67,12 @@
         type_check: weight_type_check,
         lint: weight_lint,
         coverage: weight_coverage,
-        circuit_breaker: weight_circuit_breaker
+        circuit_breaker: weight_circuit_breaker,
+        provenance_validity: weight_provenance_validity,
+        faithful_calibration: weight_faithful_calibration
       },
+      enable_provenance_validity: enable_provenance_validity,
+      enable_faithful_calibration: enable_faithful_calibration,
       parallel: parallel,
       per_completion_timeout_ms: per_completion_timeout_ms,
       batch_timeout_ms: batch_timeout_ms,
@@ -88,9 +107,15 @@
       type_check: weight_type_check,
       lint: weight_lint,
       coverage: weight_coverage,
-      circuit_breaker: weight_circuit_breaker
+      circuit_breaker: weight_circuit_breaker,
+      provenance_validity: weight_provenance_validity,
+      faithful_calibration: weight_faithful_calibration
     }
-    composite_formula: "R(x) = w_test*test + w_type*type + w_lint*lint + w_cov*cov + w_cb*cb"
+    enabled_extensions: {
+      provenance_validity: enable_provenance_validity,
+      faithful_calibration: enable_faithful_calibration
+    }
+    composite_formula: "R(x) = w_test*test + w_type*type + w_lint*lint + w_cov*cov + w_cb*cb [+ w_v*V] [+ w_zm*Z_m]"
     timestamp: now()
   }
 }

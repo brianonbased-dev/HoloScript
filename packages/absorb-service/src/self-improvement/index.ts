@@ -113,6 +113,23 @@ export {
 } from './GRPORewardOrchestrator';
 
 export {
+  provenanceValidityReward,
+  faithfulCalibrationReward,
+  provenanceValidity,
+  replayDerivation,
+  parseProvenanceCompletion,
+  parsePredictedCalibration,
+  metacognitiveGap,
+  parseRational,
+  quantize2dp,
+  ReplayError,
+  type Rational,
+  type DerivationStep,
+  type ProvenanceRewardContext,
+  type CalibrationRewardContext,
+} from './ProvenanceCalibrationRewards';
+
+export {
   RECOMMENDED_GRPO_CONFIG,
   buildGRPOConfig,
   exportGRPOConfigAsPython,

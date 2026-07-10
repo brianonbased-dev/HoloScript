@@ -13,6 +13,11 @@
  * The composite reward is the weighted sum:
  *   R(x) = w_test * test(x) + w_type * type(x) + w_lint * lint(x)
  *        + w_cov  * cov(x)  + w_cb   * cb(x)
+ *        [+ w_V * V(x)] [+ w_Zm * Z_m(x)]     (optional, flag-gated, default off)
+ *
+ * The optional terms are the reward-spine unification (2026-07-09):
+ * provenance-validity V and faithful-calibration Z_m from
+ * ProvenanceCalibrationRewards.ts.
  *
  * This matches TRL GRPOTrainer's expectation that `reward_funcs` returns
  * a list of callables, each producing a list of floats.
@@ -26,6 +31,10 @@ import type {
   RewardToolRunner,
 } from './GRPORewardFunctions';
 import { createGRPORewardFunctions, GRPO_REWARD_WEIGHTS } from './GRPORewardFunctions';
+import {
+  faithfulCalibrationReward,
+  provenanceValidityReward,
+} from './ProvenanceCalibrationRewards';
 
 // =============================================================================
 // TYPES
@@ -40,7 +49,23 @@ export interface GRPOOrchestratorConfig {
     lintReward?: number;
     coverageReward?: number;
     circuitBreakerReward?: number;
+    /** Weight for the provenance-validity (V) term. Requires enableProvenanceValidity. */
+    provenanceValidityReward?: number;
+    /** Weight for the faithful-calibration (Z_m) term. Requires enableFaithfulCalibration. */
+    faithfulCalibrationReward?: number;
   };
+  /**
+   * Enable the provenance-validity (V) reward term. Default: false.
+   * When enabled, weights.provenanceValidityReward must be provided and the
+   * full weight set (base 5 + enabled extras) must sum to 1.0.
+   */
+  enableProvenanceValidity?: boolean;
+  /**
+   * Enable the faithful-calibration (Z_m) reward term. Default: false.
+   * When enabled, weights.faithfulCalibrationReward must be provided and the
+   * full weight set (base 5 + enabled extras) must sum to 1.0.
+   */
+  enableFaithfulCalibration?: boolean;
   /** Global timeout for the entire batch evaluation (ms). Default: 120_000 */
   batchTimeout?: number;
   /** Per-completion timeout passed to reward functions (ms). Default: 30_000 */
@@ -128,6 +153,14 @@ const DEFAULT_CONFIG: Required<GRPOOrchestratorConfig> = {
   parallel: true,
   maxCacheSize: 1000,
   cacheEnabled: true,
+  enableProvenanceValidity: false,
+  enableFaithfulCalibration: false,
+};
+
+/** All reward-term weights, extended terms resolved to 0 when disabled. */
+type ResolvedWeights = { [K in keyof typeof GRPO_REWARD_WEIGHTS]: number } & {
+  provenanceValidityReward: number;
+  faithfulCalibrationReward: number;
 };
 
 // =============================================================================
@@ -136,7 +169,7 @@ const DEFAULT_CONFIG: Required<GRPOOrchestratorConfig> = {
 
 export class GRPORewardOrchestrator {
   private readonly config: Required<GRPOOrchestratorConfig>;
-  private readonly resolvedWeights: Required<typeof GRPO_REWARD_WEIGHTS>;
+  private readonly resolvedWeights: ResolvedWeights;
   private readonly rewardFns: ReturnType<typeof createGRPORewardFunctions>;
   private readonly stats: Map<string, RewardStatistics> = new Map();
   private compositeStats: RewardStatistics;
@@ -155,19 +188,40 @@ export class GRPORewardOrchestrator {
       weights: { ...DEFAULT_CONFIG.weights, ...config?.weights },
     };
 
+    // Resolve extended-term weights against their enable flags: enabling a
+    // term without a weight (or weighting a disabled term) is a config error,
+    // not something to silently default.
+    const w = this.config.weights;
+    if (this.config.enableProvenanceValidity && w.provenanceValidityReward === undefined) {
+      throw new Error(
+        'enableProvenanceValidity requires weights.provenanceValidityReward (full set must sum to 1.0)'
+      );
+    }
+    if (this.config.enableFaithfulCalibration && w.faithfulCalibrationReward === undefined) {
+      throw new Error(
+        'enableFaithfulCalibration requires weights.faithfulCalibrationReward (full set must sum to 1.0)'
+      );
+    }
+    if (!this.config.enableProvenanceValidity && (w.provenanceValidityReward ?? 0) !== 0) {
+      throw new Error('weights.provenanceValidityReward requires enableProvenanceValidity: true');
+    }
+    if (!this.config.enableFaithfulCalibration && (w.faithfulCalibrationReward ?? 0) !== 0) {
+      throw new Error('weights.faithfulCalibrationReward requires enableFaithfulCalibration: true');
+    }
+
     // Validate weights sum to 1.0
     this.resolvedWeights = {
-      // @ts-ignore - Automatic remediation for TS2322
-      testPassReward: this.config.weights.testPassReward ?? GRPO_REWARD_WEIGHTS.testPassReward,
-      // @ts-ignore - Automatic remediation for TS2322
-      typeCheckReward: this.config.weights.typeCheckReward ?? GRPO_REWARD_WEIGHTS.typeCheckReward,
-      // @ts-ignore - Automatic remediation for TS2322
-      lintReward: this.config.weights.lintReward ?? GRPO_REWARD_WEIGHTS.lintReward,
-      // @ts-ignore - Automatic remediation for TS2322
-      coverageReward: this.config.weights.coverageReward ?? GRPO_REWARD_WEIGHTS.coverageReward,
-      // @ts-ignore - Automatic remediation for TS2322
-      circuitBreakerReward:
-        this.config.weights.circuitBreakerReward ?? GRPO_REWARD_WEIGHTS.circuitBreakerReward,
+      testPassReward: w.testPassReward ?? GRPO_REWARD_WEIGHTS.testPassReward,
+      typeCheckReward: w.typeCheckReward ?? GRPO_REWARD_WEIGHTS.typeCheckReward,
+      lintReward: w.lintReward ?? GRPO_REWARD_WEIGHTS.lintReward,
+      coverageReward: w.coverageReward ?? GRPO_REWARD_WEIGHTS.coverageReward,
+      circuitBreakerReward: w.circuitBreakerReward ?? GRPO_REWARD_WEIGHTS.circuitBreakerReward,
+      provenanceValidityReward: this.config.enableProvenanceValidity
+        ? (w.provenanceValidityReward as number)
+        : 0,
+      faithfulCalibrationReward: this.config.enableFaithfulCalibration
+        ? (w.faithfulCalibrationReward as number)
+        : 0,
     };
 
     const weightSum = Object.values(this.resolvedWeights).reduce((a, b) => a + b, 0);
@@ -185,10 +239,25 @@ export class GRPORewardOrchestrator {
       'coverageReward',
       'circuitBreakerReward',
     ];
+    if (this.config.enableProvenanceValidity) fnNames.push('provenanceValidityReward');
+    if (this.config.enableFaithfulCalibration) fnNames.push('faithfulCalibrationReward');
     for (const name of fnNames) {
       this.stats.set(name, createEmptyStats());
     }
     this.compositeStats = createEmptyStats();
+  }
+
+  /**
+   * Extended terms make the reward depend on batch context (atoms/bound,
+   * per-index F_gold), so a completion-string-keyed cache would return stale
+   * rewards across contexts — bypass it whenever either term is enabled.
+   */
+  private cacheUsable(): boolean {
+    return (
+      this.config.cacheEnabled &&
+      !this.config.enableProvenanceValidity &&
+      !this.config.enableFaithfulCalibration
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -215,9 +284,10 @@ export class GRPORewardOrchestrator {
     };
 
     // Check cache for all completions
+    const useCache = this.cacheUsable();
     let cacheHits = 0;
     const cachedResults: (number | null)[] = completions.map((c) => {
-      if (this.config.cacheEnabled && this.cache.has(c)) {
+      if (useCache && this.cache.has(c)) {
         cacheHits++;
         this.totalCacheHits++;
         return this.cache.get(c)!;
@@ -268,6 +338,20 @@ export class GRPORewardOrchestrator {
         weight: this.resolvedWeights.circuitBreakerReward,
       },
     ];
+    if (this.config.enableProvenanceValidity) {
+      rewardEntries.push({
+        name: 'provenanceValidityReward',
+        fn: provenanceValidityReward,
+        weight: this.resolvedWeights.provenanceValidityReward,
+      });
+    }
+    if (this.config.enableFaithfulCalibration) {
+      rewardEntries.push({
+        name: 'faithfulCalibrationReward',
+        fn: faithfulCalibrationReward,
+        weight: this.resolvedWeights.faithfulCalibrationReward,
+      });
+    }
 
     // Execute reward functions on uncached completions
     const functionResults: RewardFunctionResult[] = [];
@@ -361,7 +445,7 @@ export class GRPORewardOrchestrator {
       uncachedComposites.push(composite);
 
       // Store in cache
-      if (this.config.cacheEnabled) {
+      if (useCache) {
         this.addToCache(uncachedCompletions[i], composite);
       }
     }
@@ -396,13 +480,16 @@ export class GRPORewardOrchestrator {
    * Returns the 5 functions as an array matching TRL's expected format.
    */
   getRewardFuncsArray(): GRPORewardFunction[] {
-    return [
+    const fns: GRPORewardFunction[] = [
       this.rewardFns.testPassReward,
       this.rewardFns.typeCheckReward,
       this.rewardFns.lintReward,
       this.rewardFns.coverageReward,
       this.rewardFns.circuitBreakerReward,
     ];
+    if (this.config.enableProvenanceValidity) fns.push(provenanceValidityReward);
+    if (this.config.enableFaithfulCalibration) fns.push(faithfulCalibrationReward);
+    return fns;
   }
 
   /**
@@ -450,10 +537,20 @@ export class GRPORewardOrchestrator {
   }
 
   /**
-   * Get the resolved weights being used.
+   * Get the resolved weights being used. Extended-term weights appear only
+   * when their term is enabled (disabled terms are not part of the composite).
    */
-  getWeights(): typeof GRPO_REWARD_WEIGHTS {
-    return { ...this.resolvedWeights };
+  getWeights(): { [K in keyof typeof GRPO_REWARD_WEIGHTS]: number } & {
+    provenanceValidityReward?: number;
+    faithfulCalibrationReward?: number;
+  } {
+    const { provenanceValidityReward: pv, faithfulCalibrationReward: fc, ...base } =
+      this.resolvedWeights;
+    return {
+      ...base,
+      ...(this.config.enableProvenanceValidity ? { provenanceValidityReward: pv } : {}),
+      ...(this.config.enableFaithfulCalibration ? { faithfulCalibrationReward: fc } : {}),
+    };
   }
 
   // ---------------------------------------------------------------------------
