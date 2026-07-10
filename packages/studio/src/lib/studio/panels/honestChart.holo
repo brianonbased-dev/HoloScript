@@ -29,5 +29,14 @@ composition "honestChart" {
       @chart { kind: "bar", state: "readings", valueKey: "value", labelKey: "label", classKey: "prov", height: 120 }
       @theme { className: "w-full" }
     }
+    object "TrendCaption" {
+      @text { variant: "caption", content: "Zero-baseline trend — honest framing (min-max would exaggerate the 38→63 swing)" }
+      @theme { className: "text-[10px] text-studio-muted mt-1" }
+    }
+    object "Trend" {
+      @chart { kind: "line", state: "readings", valueKey: "value", height: 80 }
+      @provenance_bound { source: "sensorBus", class: "measured" }
+      @theme { className: "w-full" }
+    }
   }
 }

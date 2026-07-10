@@ -700,6 +700,27 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
       expect(r).toContain('"source":"compileAST"');
     });
 
+    it('HONEST FRAMING: line chart uses a zero baseline, not min-max (no truncated axis)', () => {
+      const c = honestComp([
+        obj('Trend', [
+          trait('chart', { kind: 'line', state: 'series', valueKey: 'v' }),
+          trait('provenance_bound', { source: 'sensorBus', class: 'measured' }),
+        ]),
+      ]);
+      const r = react(c);
+      expect(r).toContain('__mn = 0'); // baseline anchored at zero
+      expect(r).toContain('Math.max(1, ...__v)'); // range = max (mirrors the bar branch)
+      expect(r).not.toContain('Math.min(...__v)'); // never re-anchors at min
+      expect(r).toContain('data-baseline="zero"'); // the framing itself is auditable
+    });
+
+    it('BACKWARD-COMPAT: a non-honest line chart keeps min-max framing and declares it', () => {
+      const c = comp([obj('Trend', [trait('chart', { kind: 'line', state: 'series' })])]);
+      const r = react(c);
+      expect(r).toContain('Math.min(...__v)'); // min-max normalization preserved
+      expect(r).toContain('data-baseline="min"'); // but the framing is declared, not hidden
+    });
+
     it('REJECTS: an unsafe provenance source that breaks out of the attribute', () => {
       const c = honestComp([
         obj('Bad', [

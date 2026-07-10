@@ -1415,11 +1415,18 @@ export default ${safeName}Component;
         `return (<g key={i}><rect x={__x} y={__y} width={__bw} height={__h} className="${fill}"${provFill} rx="0.5" />${label}</g>); }); ` +
         `})(${arrayRef})}`;
     } else {
-      // line / area: normalized polyline over the plot region; area closes to a polygon.
+      // line / area: polyline over the plot region; area closes to a polygon.
+      // Honest framing: min-max normalization exaggerates variation (the classic
+      // truncated-axis dark pattern), so in @honest mode the baseline is anchored at
+      // ZERO and the range at max — mirroring the bar branch. Framing is per-chart
+      // auditable via the `data-baseline` attribute on the svg root.
+      const norm = this._honestMode
+        ? `const __mn = 0, __r = Math.max(1, ...__v), `
+        : `const __mn = Math.min(...__v), __mx = Math.max(...__v), __r = (__mx - __mn) || 1, `;
       const pts =
         `((__a) => { const __v = (__a ?? []).map((d) => Number(${valueExpr}) || 0); ` +
         `if (!__v.length) return ''; ` +
-        `const __mn = Math.min(...__v), __mx = Math.max(...__v), __r = (__mx - __mn) || 1, ` +
+        norm +
         `__sx = __v.length > 1 ? ${plotW} / (__v.length - 1) : 0; ` +
         `return __v.map((y, i) => (${PX} + i * __sx).toFixed(2) + ',' + (${baselineY} - ((y - __mn) / __r) * ${plotH}).toFixed(2)).join(' '); })(${arrayRef})`;
       const line = `<polyline fill="none" className="${stroke}" strokeWidth="1.5" points={${pts}} />`;
@@ -1435,7 +1442,11 @@ export default ${safeName}Component;
     // NOTE: no preserveAspectRatio="none" here (unlike @sparkline) — a chart carries
     // `<text>` labels, so it must scale uniformly (default xMidYMid meet) to keep text
     // crisp; the fixed-aspect viewBox + `w-full` sizes it by width with height derived.
-    return `<svg${props}${keyProp} viewBox="0 0 ${W} ${H}">
+    // `data-baseline` makes the y-axis framing itself part of the receipt: bars are
+    // always zero-anchored; line/area are zero-anchored in @honest mode, min-anchored
+    // otherwise — an independent consumer can audit the framing, not just the values.
+    const baselineAttr = ` data-baseline="${kind === 'bar' || this._honestMode ? 'zero' : 'min'}"`;
+    return `<svg${props}${keyProp}${baselineAttr} viewBox="0 0 ${W} ${H}">
       ${provDefs}
       ${baseline}
       ${body}
