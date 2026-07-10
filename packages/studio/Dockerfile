@@ -125,6 +125,12 @@ RUN cd packages/config && pnpm exec tsup
 # import and stays for docker layer-cache continuity — it is idempotent.
 # holoembed dts: tsup's rollup-plugin-dts fails; use tsc directly (pattern B).
 RUN cd packages/holoembed && pnpm exec tsup --no-dts && pnpm exec tsc --emitDeclarationOnly
+# holollama MUST also build before absorb-service: absorb's graph-rag-tools.ts
+# imports '@holoscript/holollama' (sovereign inference, D.117) whose types field
+# points at ./dist/index.d.ts — never built anywhere in this Dockerfile before
+# 2026-07-10 (source arrives via the wholesale `COPY packages/` above). Only dep
+# is core (built in the core stack step). Same TS2307 class as holoembed above.
+RUN cd packages/holollama && pnpm exec tsup
 RUN cd packages/absorb-service && pnpm exec tsup --no-dts && pnpm exec tsc --emitDeclarationOnly --outDir dist --skipLibCheck
 RUN cd packages/platform && pnpm exec tsup --no-dts && pnpm exec tsc --emitDeclarationOnly --outDir dist --skipLibCheck
 # mesh declares @holoscript/engine as an OPTIONAL peer dep, and engine is built --no-dts here
