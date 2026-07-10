@@ -22,13 +22,13 @@ const ALL_CATEGORIES: TraitCategory[] = [
 
 const ALL_PLATFORMS: Platform[] = [
   'web',
+  'nodejs',
   'unity',
   'unreal',
   'godot',
   'native',
-  'mobile',
-  'vr',
-  'ar',
+  'wasm',
+  'all',
 ];
 
 describe('CATEGORY_COLORS', () => {

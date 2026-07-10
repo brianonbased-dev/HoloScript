@@ -10,8 +10,9 @@ import helmet from 'helmet';
 import compression from 'compression';
 import { createMarketplaceRoutes } from './routes.js';
 import { MarketplaceService } from './MarketplaceService.js';
-import { TraitRegistry } from './TraitRegistry.js';
+import { TraitRegistry, InMemoryTraitDatabase, type ITraitDatabase } from './TraitRegistry.js';
 import { PostgresTraitDatabase } from './PostgresTraitDatabase.js';
+import { seedCuratedTraits } from './seed/seedDatabase.js';
 import { x402PaymentService } from './x402PaymentService.js';
 import { createHololandRoutes } from './hololandRoutes.js';
 import { createASTAssetRouter } from './economy/ast-licensing-middleware.js';
@@ -202,14 +203,32 @@ export async function startServer(
   const cfg = { ...DEFAULT_CONFIG, ...config };
 
   // Use PostgreSQL when DATABASE_URL is set (Railway production), else in-memory (dev)
-  let registry: TraitRegistry;
+  let db: ITraitDatabase;
   if (process.env.DATABASE_URL) {
     const pgDb = new PostgresTraitDatabase(process.env.DATABASE_URL);
     await pgDb.initSchema();
-    registry = new TraitRegistry(pgDb);
+    db = pgDb;
   } else {
-    registry = new TraitRegistry();
+    db = new InMemoryTraitDatabase();
   }
+
+  // Seed the curated first-party trait catalog when the store is empty.
+  // Idempotent (skips when traits already exist), so it is safe on every boot —
+  // Railway starts with an empty Postgres. Set SEED_TRAITS=false to opt out.
+  if (process.env.SEED_TRAITS !== 'false') {
+    try {
+      const result = await seedCuratedTraits(db);
+      console.log(
+        result.skipped
+          ? `[seed] store already populated (${result.total} traits) — skipped`
+          : `[seed] inserted ${result.inserted} curated traits`
+      );
+    } catch (err) {
+      console.error('[seed] failed (continuing with empty store):', err);
+    }
+  }
+
+  const registry = new TraitRegistry(db);
 
   // Skills persist in Postgres in production (Railway), in-memory in dev.
   let skillDatabase: ISkillDatabase | undefined;

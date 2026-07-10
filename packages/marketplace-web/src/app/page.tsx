@@ -8,7 +8,11 @@ import { TraitGrid } from '@/components/TraitGrid';
 import { PopularTraits } from '@/components/PopularTraits';
 import { useMarketplaceSearch, useSearchStore } from '@/lib/store';
 import { marketplaceApi } from '@/lib/api';
+import { CATEGORY_LABELS } from '@/types';
 import { Sparkles, TrendingUp, Clock, Layers } from 'lucide-react';
+
+// Derived from the canonical category taxonomy — never hardcode the count.
+const CATEGORY_COUNT = Object.keys(CATEGORY_LABELS).length;
 
 export default function MarketplacePage() {
   const {
@@ -60,8 +64,8 @@ export default function MarketplacePage() {
               Discover HoloScript Traits
             </h1>
             <p className="text-lg text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto">
-              Browse thousands of reusable traits for rendering, physics, networking, AI, and more.
-              Build immersive 3D and XR experiences faster.
+              Browse curated, production-ready traits for rendering, physics, networking, AI, and
+              more. Build immersive 3D and XR experiences faster.
             </p>
           </div>
 
@@ -76,19 +80,15 @@ export default function MarketplacePage() {
             />
           </div>
 
-          {/* Quick Stats */}
+          {/* Quick Stats — honest, derived from the live catalog. No fabricated metrics. */}
           <div className="flex justify-center gap-8 mt-8 text-sm text-zinc-600 dark:text-zinc-400">
             <div className="flex items-center gap-2">
               <Layers className="h-4 w-4" />
-              <span>{results?.total.toLocaleString() || '1,000+'} traits</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" />
-              <span>500k+ downloads</span>
+              <span>{results ? `${results.total.toLocaleString()} traits` : 'Loading…'}</span>
             </div>
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4" />
-              <span>8 categories</span>
+              <span>{CATEGORY_COUNT} categories</span>
             </div>
           </div>
         </div>
@@ -200,6 +200,28 @@ export default function MarketplacePage() {
               </div>
             </section>
           )}
+
+          {/* Build your own & earn — bridges to HoloScript Studio, the Earn surface */}
+          <section className="py-16">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="rounded-2xl bg-gradient-to-br from-holoscript-500 to-holoscript-700 px-8 py-12 text-center text-white">
+                <Sparkles className="h-8 w-8 mx-auto mb-4 opacity-90" />
+                <h2 className="text-2xl md:text-3xl font-bold mb-3">Build your own — and earn</h2>
+                <p className="text-holoscript-50 max-w-2xl mx-auto mb-6">
+                  Don&apos;t just install traits — author your own in HoloScript Studio and monetize
+                  what you make. Creators build, publish, and earn on every use.
+                </p>
+                <a
+                  href="https://holoscript.studio"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block px-6 py-3 bg-white text-holoscript-700 rounded-lg font-semibold hover:bg-holoscript-50 transition-colors"
+                >
+                  Start building in Studio →
+                </a>
+              </div>
+            </div>
+          </section>
         </>
       )}
     </div>

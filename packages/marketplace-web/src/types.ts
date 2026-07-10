@@ -18,7 +18,11 @@ export type TraitCategory =
   | 'blockchain'
   | 'utility';
 
-export type Platform = 'web' | 'unity' | 'unreal' | 'godot' | 'native' | 'mobile' | 'vr' | 'ar';
+// Mirrors the marketplace-api Platform enum exactly. Previously listed
+// mobile/vr/ar (which the API never emits) and omitted nodejs/wasm/all (which it
+// does) — causing blank platform chips for nodejs traits and filter options that
+// matched nothing.
+export type Platform = 'web' | 'nodejs' | 'unity' | 'unreal' | 'godot' | 'native' | 'wasm' | 'all';
 
 export interface Author {
   id: string;
@@ -423,13 +427,13 @@ export const CATEGORY_LABELS: Record<TraitCategory, string> = {
 
 export const PLATFORM_LABELS: Record<Platform, string> = {
   web: 'Web',
+  nodejs: 'Node.js',
   unity: 'Unity',
   unreal: 'Unreal',
   godot: 'Godot',
   native: 'Native',
-  mobile: 'Mobile',
-  vr: 'VR',
-  ar: 'AR',
+  wasm: 'WASM',
+  all: 'All Platforms',
 };
 
 export const SORT_OPTIONS = [

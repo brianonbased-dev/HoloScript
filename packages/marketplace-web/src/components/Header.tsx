@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Search, Package, Menu, X, LayoutDashboard } from 'lucide-react';
+import { Package, Menu, X, LayoutDashboard } from 'lucide-react';
 import { useState } from 'react';
 import { LoginButton } from './auth/LoginButton';
 
@@ -21,7 +21,8 @@ export function Header() {
             </span>
           </Link>
 
-          {/* Desktop Navigation */}
+          {/* Desktop Navigation — only routes that exist. Categories live on the
+              Explore (home) page; Publishers/Search/Publish pages are not built yet. */}
           <nav className="hidden md:flex items-center gap-6">
             <Link
               href="/"
@@ -30,39 +31,25 @@ export function Header() {
               Explore
             </Link>
             <Link
-              href="/categories"
-              className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
-            >
-              Categories
-            </Link>
-            <Link
-              href="/publishers"
-              className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
-            >
-              Publishers
-            </Link>
-            <Link
-              href="/docs"
+              href="https://www.holoscript.net"
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
             >
               Docs
             </Link>
           </nav>
 
-          {/* Search & Actions */}
+          {/* Actions */}
           <div className="hidden md:flex items-center gap-4">
+            {/* Build your own & earn → HoloScript Studio (the live Earn surface). */}
             <Link
-              href="/search"
-              className="p-2 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
-              aria-label="Search"
-            >
-              <Search className="h-5 w-5" />
-            </Link>
-            <Link
-              href="/publish"
+              href="https://holoscript.studio"
+              target="_blank"
+              rel="noopener noreferrer"
               className="px-4 py-2 bg-holoscript-500 hover:bg-holoscript-600 text-white rounded-lg font-medium transition-colors"
             >
-              Publish
+              Build &amp; Earn
             </Link>
             <Link
               href="/dashboard"
@@ -98,21 +85,9 @@ export function Header() {
                 Explore
               </Link>
               <Link
-                href="/categories"
-                className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Categories
-              </Link>
-              <Link
-                href="/publishers"
-                className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Publishers
-              </Link>
-              <Link
-                href="/docs"
+                href="https://www.holoscript.net"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
                 onClick={() => setMobileMenuOpen(false)}
               >
@@ -120,19 +95,21 @@ export function Header() {
               </Link>
               <hr className="border-zinc-200 dark:border-zinc-800" />
               <Link
-                href="/search"
-                className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400"
+                href="/dashboard"
+                className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                <Search className="h-5 w-5" />
-                Search
+                <LayoutDashboard className="h-5 w-5" />
+                Dashboard
               </Link>
               <Link
-                href="/publish"
+                href="https://holoscript.studio"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="flex items-center justify-center px-4 py-2 bg-holoscript-500 text-white rounded-lg font-medium"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                Publish a Trait
+                Build &amp; Earn
               </Link>
             </nav>
           </div>

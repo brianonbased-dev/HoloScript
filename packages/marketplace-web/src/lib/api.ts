@@ -83,6 +83,30 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
   return data.data ?? data;
 }
 
+/**
+ * Adapt the marketplace-api search payload to the web SearchResult shape.
+ * The server returns `{ results, total, page, limit, hasMore, facets? }`; the web
+ * UI expects `{ traits, total, page, limit, totalPages, facets }`. Without this
+ * mapping `results.traits` is undefined and the grid renders empty.
+ */
+function adaptSearchResult(raw: unknown, fallbackLimit = 20): SearchResult {
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const traits = (r.results ?? r.traits ?? []) as SearchResult['traits'];
+  const total = typeof r.total === 'number' ? r.total : traits.length;
+  const limit = typeof r.limit === 'number' && r.limit > 0 ? r.limit : fallbackLimit;
+  const page = typeof r.page === 'number' && r.page > 0 ? r.page : 1;
+  const totalPages =
+    typeof r.totalPages === 'number' ? r.totalPages : Math.max(1, Math.ceil(total / limit));
+  return {
+    traits,
+    total,
+    page,
+    limit,
+    totalPages,
+    facets: (r.facets ?? { categories: [], platforms: [] }) as SearchResult['facets'],
+  };
+}
+
 //=============================================================================
 // Trait API
 //=============================================================================
@@ -107,7 +131,7 @@ export const traitsApi = {
     const queryString = params.toString();
     const endpoint = `/traits${queryString ? `?${queryString}` : ''}`;
 
-    return request<SearchResult>(endpoint, { signal });
+    return adaptSearchResult(await request<unknown>(endpoint, { signal }), query.limit);
   },
 
   /**
@@ -144,7 +168,7 @@ export const traitsApi = {
     params.set('sortBy', 'downloads');
     params.set('sortOrder', 'desc');
 
-    const result = await request<SearchResult>(`/traits?${params.toString()}`);
+    const result = adaptSearchResult(await request<unknown>(`/traits?${params.toString()}`), limit);
     return result.traits;
   },
 
@@ -157,7 +181,7 @@ export const traitsApi = {
     params.set('sortBy', 'updated');
     params.set('sortOrder', 'desc');
 
-    const result = await request<SearchResult>(`/traits?${params.toString()}`);
+    const result = adaptSearchResult(await request<unknown>(`/traits?${params.toString()}`), limit);
     return result.traits;
   },
 
@@ -298,7 +322,9 @@ export const usersApi = {
    * Get traits published by a user
    */
   async getTraits(userId: string): Promise<TraitSummary[]> {
-    const result = await request<SearchResult>(`/traits?author=${encodeURIComponent(userId)}`);
+    const result = adaptSearchResult(
+      await request<unknown>(`/traits?author=${encodeURIComponent(userId)}`)
+    );
     return result.traits;
   },
 };
