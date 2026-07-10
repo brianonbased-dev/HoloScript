@@ -117,6 +117,14 @@ RUN cd packages/std && pnpm exec tsup --no-dts && pnpm exec tsc --emitDeclaratio
 # for studio's next build only); zero workspace deps, safe to build here.
 RUN cd packages/secrets-broker && pnpm exec tsup --no-dts && pnpm exec tsc --emitDeclarationOnly --outDir dist --skipLibCheck
 RUN cd packages/config && pnpm exec tsup
+# holoembed MUST build before absorb-service: absorb's HoloEmbedProvider.ts +
+# graph-rag-tools.ts import '@holoscript/holoembed' (sovereign-default embeddings,
+# W.GOLD.005), so absorb's tsc declaration emit fails TS2307 without holoembed's
+# dist. Deps (config just above, snn-webgpu near the top) are already built.
+# The identical step further down (holoembed+holo-vm comment block) predates this
+# import and stays for docker layer-cache continuity — it is idempotent.
+# holoembed dts: tsup's rollup-plugin-dts fails; use tsc directly (pattern B).
+RUN cd packages/holoembed && pnpm exec tsup --no-dts && pnpm exec tsc --emitDeclarationOnly
 RUN cd packages/absorb-service && pnpm exec tsup --no-dts && pnpm exec tsc --emitDeclarationOnly --outDir dist --skipLibCheck
 RUN cd packages/platform && pnpm exec tsup --no-dts && pnpm exec tsc --emitDeclarationOnly --outDir dist --skipLibCheck
 # mesh declares @holoscript/engine as an OPTIONAL peer dep, and engine is built --no-dts here
