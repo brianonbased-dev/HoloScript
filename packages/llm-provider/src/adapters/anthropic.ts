@@ -38,6 +38,18 @@ export const ANTHROPIC_FILES_BETA = 'files-api-2025-04-14';
 export const ANTHROPIC_COMPACT_BETA = 'compact-2026-01-12';
 /** Beta token for per-loop task budgets (`task-budgets-2026-03-13`). */
 export const ANTHROPIC_TASK_BUDGETS_BETA = 'task-budgets-2026-03-13';
+/**
+ * Dedicated Memory Stores beta (`agent-memory-2026-07-22`, added 2026-07-02). Replaces
+ * `managed-agents-2026-04-01` on memory-store endpoints — sending BOTH returns 400
+ * (platform.claude.com/docs/en/release-notes/api). On 2026-07-22 the old header adopts the
+ * new list behavior (server-defined ordering, depth 0/1, whole-segment path_prefix). HoloScript
+ * makes NO Anthropic memory-store calls (the sovereign @holoscript/memory substrate is the
+ * store, never Anthropic Memory Stores — GOLD "don't"), so this token exists for the
+ * caller-supplied betaHeaders passthrough and the mutual-exclusion guard below.
+ */
+export const ANTHROPIC_AGENT_MEMORY_BETA = 'agent-memory-2026-07-22';
+/** Deprecated Managed Agents beta; superseded by ANTHROPIC_AGENT_MEMORY_BETA for memory stores. */
+export const ANTHROPIC_MANAGED_AGENTS_BETA = 'managed-agents-2026-04-01';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -127,6 +139,15 @@ export function collectAnthropicBetaHeaders(request: LLMCompletionRequest): stri
       seen.add(tok);
       out.push(tok);
     }
+  }
+  // Mutual-exclusion guard (agent-memory-2026-07-22): Anthropic returns 400 when BOTH the
+  // dedicated memory beta and the deprecated managed-agents beta reach a memory-store endpoint.
+  // agent-memory supersedes managed-agents for memory, so if a caller opts into both via
+  // betaHeaders, drop the deprecated predecessor and keep the successor — forward-compatible,
+  // since the old header adopts the new behavior on 2026-07-22 anyway.
+  if (out.includes(ANTHROPIC_AGENT_MEMORY_BETA)) {
+    const deprecatedIdx = out.indexOf(ANTHROPIC_MANAGED_AGENTS_BETA);
+    if (deprecatedIdx !== -1) out.splice(deprecatedIdx, 1);
   }
   return out;
 }
@@ -490,7 +511,7 @@ export const ANTHROPIC_CAPABILITIES: Capabilities = {
   perLoopBudget: true, // Task Budgets — beta task-budgets-2026-03-13 (Opus 4.8/4.7)
   serverSideCompaction: true, // beta compact-2026-01-12 (4.6+)
   hostedAgenticLoop: true, // Managed Agents — beta managed-agents-2026-04-01 (1P only)
-  persistentMemoryStore: true, // Memory Stores (under managed-agents)
+  persistentMemoryStore: true, // Memory Stores — dedicated beta agent-memory-2026-07-22 (was under managed-agents until the 2026-07-22 flip). Declared only; sovereign @holoscript/memory is the store (GOLD don't)
   structuredOutputs: true, // strict JSON schema
   batchApi: true, // 50% off, 24h SLA
 
