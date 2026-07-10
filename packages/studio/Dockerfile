@@ -109,6 +109,13 @@ RUN cd packages/framework && pnpm exec tsup --no-dts && pnpm exec tsc -p tsconfi
 # non-zero). Use tsc --emitDeclarationOnly directly (pattern B).
 # tsconfig.json has declaration:true + outDir:dist so this produces dist/index.d.ts.
 RUN cd packages/std && pnpm exec tsup --no-dts && pnpm exec tsc --emitDeclarationOnly
+# secrets-broker MUST build before config: 7aee35c20 wired config auth through
+# HoloKey (config/src/auth.ts dynamically imports '@holoscript/secrets-broker'),
+# so config's dts emit needs secrets-broker's declarations on disk or it fails
+# TS2307 — broke every studio deploy from 7aee35c20 until 2026-07-10. The
+# original secrets-broker step further down predates that import (it was placed
+# for studio's next build only); zero workspace deps, safe to build here.
+RUN cd packages/secrets-broker && pnpm exec tsup --no-dts && pnpm exec tsc --emitDeclarationOnly --outDir dist --skipLibCheck
 RUN cd packages/config && pnpm exec tsup
 RUN cd packages/absorb-service && pnpm exec tsup --no-dts && pnpm exec tsc --emitDeclarationOnly --outDir dist --skipLibCheck
 RUN cd packages/platform && pnpm exec tsup --no-dts && pnpm exec tsc --emitDeclarationOnly --outDir dist --skipLibCheck

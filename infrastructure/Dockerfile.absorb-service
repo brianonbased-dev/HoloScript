@@ -19,7 +19,14 @@ FROM base AS builder
 WORKDIR /app
 
 # Copy workspace config + all package.json manifests
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml tsconfig.base.json tsconfig.json ./
+# .npmrc carries `shamefully-hoist=true` — REQUIRED so undeclared-but-hoisted
+# type deps resolve during core's public-subpath declaration emit (e.g.
+# onnxruntime-node, declared only by hologram-worker, imported by core's
+# onnx-adapter). Missing .npmrc = isolated pnpm layout = TS2307 in
+# build-core-stack generate-types (broke every absorb-service deploy once the
+# earlier mesh esbuild blocker was cleared, 2026-07-10). Mirrors
+# packages/studio/Dockerfile + infrastructure/Dockerfile.mcp-server.
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml tsconfig.base.json tsconfig.json .npmrc ./
 COPY --from=manifests /manifests/ ./
 COPY scripts/docker/build-engine-no-dts.sh scripts/docker/build-engine-no-dts.sh
 COPY scripts/docker/build-core-stack-no-dts.sh scripts/docker/build-core-stack-no-dts.sh
@@ -80,7 +87,7 @@ RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nodejs
 
 # Copy workspace config + all manifests for lockfile resolution
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml .npmrc ./
 COPY --from=manifests /manifests/ ./
 
 # Install production dependencies

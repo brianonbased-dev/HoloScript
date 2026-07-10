@@ -25,7 +25,11 @@ FROM base AS builder
 WORKDIR /app
 
 # Workspace config + all package.json manifests
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml tsconfig.base.json tsconfig.json ./
+# .npmrc carries `shamefully-hoist=true` — REQUIRED so undeclared-but-hoisted
+# type deps resolve during core's public-subpath declaration emit (e.g.
+# onnxruntime-node via hologram-worker). Same fix as Dockerfile.absorb-service
+# 2026-07-10; mirrors packages/studio/Dockerfile + Dockerfile.mcp-server.
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml tsconfig.base.json tsconfig.json .npmrc ./
 COPY --from=manifests /manifests/ ./
 COPY scripts/docker/build-engine-no-dts.sh scripts/docker/build-engine-no-dts.sh
 COPY scripts/docker/build-core-stack-no-dts.sh scripts/docker/build-core-stack-no-dts.sh
@@ -67,7 +71,7 @@ WORKDIR /app
 
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nodejs
 
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml .npmrc ./
 COPY --from=manifests /manifests/ ./
 # --shamefully-hoist: the tsup bundle require()s transitive deps (e.g.
 # path-to-regexp via express) at the top level; pnpm's strict nested layout
