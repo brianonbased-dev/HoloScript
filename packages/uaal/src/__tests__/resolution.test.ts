@@ -110,6 +110,42 @@ describe('resolveNormStatus — unprioritized conflict', () => {
     expect(r.status).toBe('resolved');
     expect(r.answer?.status).toBe('violated');
   });
+
+  it('flags a resource-contention dilemma: two obligations for one scarce resource, no precedence', () => {
+    // One ambulance owed to two emergencies — both obligations (force O), distinct acts, one shared resource.
+    // The O/F same-act detector cannot see this; the resource-contention detector must.
+    const ir: UAALDeonticIR = {
+      norms: [
+        { id: 'owe_scene_a', force: 'O', required_act: 'respond_to_scene_a', resource: 'ambulance_7', active: true },
+        { id: 'owe_scene_b', force: 'O', required_act: 'respond_to_scene_b', resource: 'ambulance_7', active: true },
+      ],
+    };
+    const r = resolveNormStatus(ir, 'owe_scene_a');
+    expect(r.status).toBe('unresolvable');
+    expect(r.reason).toBe('unprioritized_conflict');
+    expect(r.obstruction).toContain('ambulance_7');
+  });
+
+  it('resolves resource contention when a precedence field ranks the obligations', () => {
+    const ir = {
+      precedence: ['owe_scene_a'],
+      norms: [
+        { id: 'owe_scene_a', force: 'O', required_act: 'respond_to_scene_a', resource: 'ambulance_7', active: true },
+        { id: 'owe_scene_b', force: 'O', required_act: 'respond_to_scene_b', resource: 'ambulance_7', active: true },
+      ],
+    } as UAALDeonticIR;
+    expect(resolveNormStatus(ir, 'owe_scene_a').status).toBe('resolved');
+  });
+
+  it('does NOT flag two obligations on DIFFERENT resources (no contention, no false gap)', () => {
+    const ir: UAALDeonticIR = {
+      norms: [
+        { id: 'owe_scene_a', force: 'O', required_act: 'respond_to_scene_a', resource: 'ambulance_7', active: true },
+        { id: 'owe_scene_b', force: 'O', required_act: 'respond_to_scene_b', resource: 'ambulance_9', active: true },
+      ],
+    };
+    expect(resolveNormStatus(ir, 'owe_scene_a').status).toBe('resolved');
+  });
 });
 
 describe('resolveDischargeable — cyclic dependency and missing precondition', () => {
@@ -147,6 +183,37 @@ describe('resolveDischargeable — cyclic dependency and missing precondition', 
 
   it('resolves an ordinary composition IR with stated time and no dependencies', () => {
     const ir: UAALCompositionIR = {
+      query: { agent: 'robot', action: 'deliver', object: 'box' },
+      time: { now: 1, deadline: 10 },
+    };
+    expect(resolveDischargeable(ir).status).toBe('resolved');
+  });
+
+  it('flags MISSING precondition when an affordance requires a magnitude absent from the IR', () => {
+    // The offer requires reach=2, but the agent body never states a `reach` — the capability check can only
+    // DEFAULT to false, it cannot be evaluated. That is a gap, not a determinate block.
+    const ir: UAALCompositionIR = {
+      entities: [
+        { id: 'robot', kind: 'agent', body: {} },
+        { id: 'box', kind: 'object', offers: [{ action: 'deliver', requires: { reach: 2 } }] },
+      ],
+      query: { agent: 'robot', action: 'deliver', object: 'box' },
+      time: { now: 1, deadline: 10 },
+    };
+    const r = resolveDischargeable(ir);
+    expect(r.status).toBe('unresolvable');
+    expect(r.reason).toBe('missing_precondition');
+    expect(r.obstruction).toContain('reach');
+  });
+
+  it('resolves when the required affordance magnitude IS supplied (determinate, even if insufficient)', () => {
+    // reach is stated (1.5) but below the required 2 — a genuine capability block, fully determinate, so the
+    // query resolves (dischargeable=false) rather than flipping to a false gap.
+    const ir: UAALCompositionIR = {
+      entities: [
+        { id: 'robot', kind: 'agent', body: { reach: 1.5 } },
+        { id: 'box', kind: 'object', offers: [{ action: 'deliver', requires: { reach: 2 } }] },
+      ],
       query: { agent: 'robot', action: 'deliver', object: 'box' },
       time: { now: 1, deadline: 10 },
     };

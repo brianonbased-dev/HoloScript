@@ -1,5 +1,13 @@
 # @holoscript/uaal
 
+## 8.3.0
+
+### Minor Changes
+
+- Harden the gap-aware resolution in `@holoscript/uaal/semantic` with two additional genuine-gap classes, both derived from the IR structure (no false gaps on determinate input):
+  - **Resource contention in `resolveNormStatus`.** Previously only an OPPOSING-force dilemma (one `O`, one `F` on the same `required_act`) was caught. Now a new optional `resource?: string` field on `UAALDeonticNorm` lets two ACTIVE obligations (both force `O`) that lay claim to the same non-empty `resource` — e.g. one ambulance owed to two emergencies — be recognised as jointly unsatisfiable → `unresolvable` / `unprioritized_conflict`, naming both norms and the shared resource. Precedence (via the existing `hasPrecedence` helper) still resolves it, and obligations on different resources do not flag. The original O/F same-act detection is unchanged.
+  - **Broader `missing_precondition` in `resolveDischargeable`.** Previously `missing_precondition` fired only for a stated-but-empty `time` constraint. Now, when a composition carries a full affordance query and the object's matching offer `requires` a known capability magnitude that the agent's `body` never supplies, the capability check can only be *defaulted* (not evaluated) — that inexpressible gap is reported as `unresolvable` / `missing_precondition` instead of masquerading as an ordinary affordance block. Conservative: a present-but-insufficient magnitude stays a determinate block and still resolves.
+
 ## 8.2.0
 
 ### Minor Changes

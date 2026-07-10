@@ -320,6 +320,10 @@ export interface UAALDeonticNorm {
   addressee?: string;
   required_act?: string;
   active?: boolean;
+  // A scarce resource this norm lays claim to. When two ACTIVE obligations (force 'O') name the same non-empty
+  // `resource` with no precedence, they are jointly unsatisfiable (resource contention) — a genuine dilemma
+  // distinct from the O-vs-F same-act case.
+  resource?: string;
   [key: string]: unknown;
 }
 
@@ -2551,10 +2555,14 @@ function hasPrecedence(ir: UAALDeonticIR, a: UAALDeonticNorm, b: UAALDeonticNorm
 /**
  * Norm status, honest about an UNPRIORITIZED CONFLICT (a genuine deontic dilemma). recoverNormStatus evaluates
  * a single norm and never compares norms, so two jointly-unsatisfiable norms silently collapse to whichever is
- * queried. resolveNormStatus detects the crisp, expressible dilemma: two ACTIVE norms with opposing force
- * (one O = must, one F = must-not) bearing on the SAME required_act, with no precedence declared →
- * unresolvable (unprioritized_conflict). (Resource-contention dilemmas — two O-norms competing for one scarce
- * resource — need an exclusivity marker the IR does not yet carry; out of scope, tracked in the pilot doc.)
+ * queried. resolveNormStatus detects two crisp, expressible dilemma classes, either → unresolvable
+ * (unprioritized_conflict):
+ *   1. OPPOSING FORCE — two ACTIVE norms with opposing force (one O = must, one F = must-not) bearing on the
+ *      SAME required_act, with no precedence declared.
+ *   2. RESOURCE CONTENTION — two ACTIVE obligations (both force 'O') laying claim to the same non-empty
+ *      `resource` (e.g. one ambulance owed to two emergencies), with no precedence declared. They can share a
+ *      required_act or not — the scarce resource cannot satisfy both at once.
+ * Precedence (via hasPrecedence) resolves either class.
  */
 export function resolveNormStatus(ir: UAALDeonticIR, normId: string | undefined): UAALResolution<NormStatusRecovery> {
   const active = (ir.norms || []).filter((norm) => norm.active !== false);
@@ -2570,6 +2578,16 @@ export function resolveNormStatus(ir: UAALDeonticIR, normId: string | undefined)
           status: 'unresolvable',
           reason: 'unprioritized_conflict',
           obstruction: `norms "${a.id}" (${a.force}) and "${b.id}" (${b.force}) both bear on act "${String(a.required_act)}" with no precedence`,
+        };
+      }
+      const sharedResource = truthyString(a.resource) && a.resource === b.resource;
+      const bothObligations = a.force === 'O' && b.force === 'O';
+      if (sharedResource && bothObligations && !hasPrecedence(ir, a, b)) {
+        return {
+          query: 'norm_status',
+          status: 'unresolvable',
+          reason: 'unprioritized_conflict',
+          obstruction: `obligations "${a.id}" and "${b.id}" both require the scarce resource "${String(a.resource)}" with no precedence`,
         };
       }
     }
@@ -2613,12 +2631,44 @@ function dischargeCycle(deps: UAALDischargeDependency[]): string[] | null {
 }
 
 /**
+ * An affordance bears on discharge but a required magnitude the capability check READS is absent from the IR,
+ * so recoverAffords can only DEFAULT the capability to false rather than evaluate it — an inexpressible gap
+ * masquerading as an ordinary affordance block. Returns the offending requirement descriptor, else null.
+ *
+ * Conservative on purpose: fires ONLY when the composition carries a full affordance query (agent, action,
+ * object), the object exposes a matching offer with a non-empty `requires`, that requirement maps to a KNOWN
+ * capability spec (UAAL_AFFORDANCE_REQUIREMENTS), and the agent's backing body attribute is genuinely unsupplied
+ * (== null). A present-but-insufficient magnitude is a determinate block, NOT a gap, so it returns null.
+ */
+function affordanceMagnitudeMissing(
+  ir: UAALCompositionIR,
+): { action: string; requirement: string; attr: string } | null {
+  const query = ir.query || {};
+  if (!truthyString(query.agent) || !truthyString(query.action) || !truthyString(query.object)) return null;
+  const objectEntity = (ir.entities || []).find((entity) => entity.id === query.object);
+  const offer = (objectEntity?.offers || []).find((candidate) => candidate.action === query.action);
+  if (!offer || !offer.requires) return null;
+  const agentEntity = (ir.entities || []).find((entity) => entity.id === query.agent);
+  const body = agentEntity?.body;
+  for (const key of Object.keys(offer.requires)) {
+    const spec = UAAL_AFFORDANCE_REQUIREMENTS[key];
+    if (!spec) continue;
+    if (body?.[spec.attr] == null) {
+      return { action: query.action, requirement: key, attr: spec.attr };
+    }
+  }
+  return null;
+}
+
+/**
  * Dischargeability, honest about a CYCLIC dependency (the three-body analog) and MISSING preconditions.
  * recoverDischargeable runs a fixed 5-dim checklist with no dependency model, so a discharge cycle
  * (A after B, B after C, C after A) silently collapses to dischargeable=false — reported as an ordinary block
  * rather than "no consistent order exists." resolveDischargeable inspects the optional `dependencies` edges for
- * a cycle → unresolvable (cyclic_dependency); and flags a stated-but-empty time constraint → unresolvable
- * (missing_precondition). Otherwise it defers to recoverDischargeable.
+ * a cycle → unresolvable (cyclic_dependency); flags a stated-but-empty time constraint → unresolvable
+ * (missing_precondition); and flags an affordance whose required magnitude is unsupplied (so the capability
+ * check can only be defaulted, not evaluated) → unresolvable (missing_precondition). Otherwise it defers to
+ * recoverDischargeable.
  */
 export function resolveDischargeable(ir: UAALCompositionIR): UAALResolution<DischargeableRecovery> {
   const deps = Array.isArray(ir.dependencies) ? ir.dependencies : [];
@@ -2637,6 +2687,15 @@ export function resolveDischargeable(ir: UAALCompositionIR): UAALResolution<Disc
       status: 'unresolvable',
       reason: 'missing_precondition',
       obstruction: 'a deadline constrains discharge but neither the current time nor the deadline is stated',
+    };
+  }
+  const missingMagnitude = affordanceMagnitudeMissing(ir);
+  if (missingMagnitude) {
+    return {
+      query: 'dischargeable',
+      status: 'unresolvable',
+      reason: 'missing_precondition',
+      obstruction: `affordance "${missingMagnitude.action}" requires "${missingMagnitude.requirement}" but the agent's "${missingMagnitude.attr}" magnitude is unstated (capability can only be defaulted)`,
     };
   }
   return { query: 'dischargeable', status: 'resolved', answer: recoverDischargeable(ir) };
