@@ -285,6 +285,14 @@ export function diagnoseVerifiedView(source: string): VerifiedViewDiagnosis {
           const nm = (t.config as { name?: unknown } | undefined)?.name;
           if (typeof nm === 'string' && nm) roots.add(nm);
         }
+        if (t.name === 'hook') {
+          const returns = (t.config as { returns?: unknown } | undefined)?.returns;
+          if (typeof returns === 'string') {
+            for (const r of returns.split(',').map((s) => s.trim())) {
+              if (r) roots.add(r);
+            }
+          }
+        }
       }
       scanRoots(o.children);
     }

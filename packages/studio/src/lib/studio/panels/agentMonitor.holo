@@ -1,5 +1,6 @@
 @view({ id: "agentMonitor", title: "Agent Monitor", icon: "Bot", category: "assistant", placement: "right-rail", scope: "workspace", gate: "always", surfaceClass: "lab", defaultOpen: false, exclusiveWith: [], order: 45 })
 composition "agentMonitor" {
+  @verified_view
   @native_panel
 
   object "Root" {
@@ -24,6 +25,7 @@ composition "agentMonitor" {
         @text { variant: "h2" }
         @bind { state: "agents", path: "active", fallback: "0" }
         @theme { className: "text-lg font-bold text-emerald-400" }
+        @projects { node: "agents.active" }
       }
     }
 
@@ -39,6 +41,7 @@ composition "agentMonitor" {
         @text { variant: "h2" }
         @bind { state: "agents", path: "idle", fallback: "0" }
         @theme { className: "text-lg font-bold text-slate-400" }
+        @projects { node: "agents.idle" }
       }
     }
 
@@ -54,6 +57,7 @@ composition "agentMonitor" {
         @text { variant: "h2" }
         @bind { state: "agents", path: "busy", fallback: "0" }
         @theme { className: "text-lg font-bold text-amber-400" }
+        @projects { node: "agents.busy" }
       }
     }
   }

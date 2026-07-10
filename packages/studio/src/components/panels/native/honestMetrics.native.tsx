@@ -10,7 +10,7 @@ export function HonestMetricsComponent() {
 
 
   return (
-    <div className="holoscript-2d-root w-full h-full">
+    <div className="holoscript-2d-root w-full h-full" data-holo-view-contract="b8c534d5b38b362d9efdaab48b65f059f8f897925ea4df2cab9fa47b8eb4e34e">
       <div style={{"display":"flex","flexDirection":"column","gap":"10px"}} className="p-3 h-full overflow-y-auto text-xs text-studio-text">
       
       <h3 className="text-xl font-semibold text-sm font-semibold text-studio-text">
@@ -27,7 +27,7 @@ export function HonestMetricsComponent() {
       {`Active sessions (measured)`}
       
     </span>
-<h2 data-holo-provenance='{"source":"securityEventBus","class":"measured","confidence":1}' data-provenance-class="measured" className="text-3xl font-bold text-lg font-semibold text-studio-text">
+<h2 data-holo-provenance='{"source":"securityEventBus","class":"measured","confidence":1}' data-provenance-class="measured" data-holo-projects="sessions" className="text-3xl font-bold text-lg font-semibold text-studio-text">
       {sessions ?? "0"}
       
     </h2>
@@ -38,7 +38,7 @@ export function HonestMetricsComponent() {
       {`Growth % (derived)`}
       
     </span>
-<h2 data-holo-provenance='{"source":"sessions.delta","class":"derived","confidence":1}' data-provenance-class="derived" className="text-3xl font-bold text-lg font-semibold text-studio-text">
+<h2 data-holo-provenance='{"source":"sessions.delta","class":"derived","confidence":1}' data-provenance-class="derived" data-holo-projects="growth" className="text-3xl font-bold text-lg font-semibold text-studio-text">
       {`${(growth ?? 0)}%`}<sup className="holo-prov-mark" title="provenance: derived">°</sup>
       
     </h2>
@@ -49,7 +49,7 @@ export function HonestMetricsComponent() {
       {`30-day forecast (inferred)`}
       
     </span>
-<h2 data-holo-provenance='{"source":"forecast-model-v2","class":"inferred","confidence":0.7}' data-provenance-class="inferred" className="text-3xl font-bold text-lg font-semibold text-studio-text">
+<h2 data-holo-provenance='{"source":"forecast-model-v2","class":"inferred","confidence":0.7}' data-provenance-class="inferred" data-holo-projects="forecast" className="text-3xl font-bold text-lg font-semibold text-studio-text">
       {forecast ?? "0"}<sup className="holo-prov-mark" title="provenance: inferred">~</sup>
       
     </h2>
@@ -60,7 +60,7 @@ export function HonestMetricsComponent() {
       {`AI sentiment score (generative)`}
       
     </span>
-<h2 data-holo-provenance='{"source":"holollama","class":"generative","confidence":0.4}' data-provenance-class="generative" className="text-3xl font-bold text-lg font-semibold text-studio-text">
+<h2 data-holo-provenance='{"source":"holollama","class":"generative","confidence":0.4}' data-provenance-class="generative" data-holo-projects="aiEstimate" className="text-3xl font-bold text-lg font-semibold text-studio-text">
       {aiEstimate ?? "0"}<sup className="holo-prov-mark" title="provenance: generative">✦</sup>
       
     </h2>
@@ -71,3 +71,5 @@ export function HonestMetricsComponent() {
 }
 
 export default HonestMetricsComponent;
+
+export const holoViewContract = {"version":"holo-view-contract-v1","projections":[{"element":"DerivedValue","node":"growth"},{"element":"GenerativeValue","node":"aiEstimate"},{"element":"InferredValue","node":"forecast"},{"element":"MeasuredValue","node":"sessions"}],"stateRoots":["aiEstimate","forecast","growth","sessions"],"contractHash":"b8c534d5b38b362d9efdaab48b65f059f8f897925ea4df2cab9fa47b8eb4e34e"} as const;

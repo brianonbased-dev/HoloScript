@@ -9,7 +9,7 @@ export function AdminDashboardComponent() {
   const recent = auditLog.slice(-20).reverse();
 
   return (
-    <div className="holoscript-2d-root w-full h-full">
+    <div className="holoscript-2d-root w-full h-full" data-holo-view-contract="89c2f8845793789f2b575a0ee954abc28a24d6574b3fd829e4051d1659eb8a11">
       <div style={{"display":"flex","flexDirection":"column","gap":"12px"}} className="p-3 h-full overflow-y-auto text-xs text-studio-text">
       
       <h3 className="text-xl font-semibold text-sm font-semibold text-studio-text">
@@ -24,11 +24,11 @@ export function AdminDashboardComponent() {
       {`Sessions`}
       
     </span>
-<h2 className="text-3xl font-bold text-lg font-semibold text-studio-text">
+<h2 data-holo-projects="stats.sessions.authenticated" className="text-3xl font-bold text-lg font-semibold text-studio-text">
       {stats?.sessions?.authenticated ?? "0"}
       
     </h2>
-<span className="text-sm text-[10px] text-studio-muted">
+<span data-holo-projects="stats.sessions.revoked" className="text-sm text-[10px] text-studio-muted">
       {`${(stats?.sessions?.revoked ?? 0)} revoked`}
       
     </span>
@@ -39,7 +39,7 @@ export function AdminDashboardComponent() {
       {`Agents tracked`}
       
     </span>
-<h2 className="text-3xl font-bold text-lg font-semibold text-studio-text">
+<h2 data-holo-projects="stats.agents.tracked" className="text-3xl font-bold text-lg font-semibold text-studio-text">
       {stats?.agents?.tracked ?? "0"}
       
     </h2>
@@ -54,11 +54,11 @@ export function AdminDashboardComponent() {
       {`Tenants active`}
       
     </span>
-<h2 className="text-3xl font-bold text-lg font-semibold text-studio-text">
+<h2 data-holo-projects="stats.tenants.active" className="text-3xl font-bold text-lg font-semibold text-studio-text">
       {stats?.tenants?.active ?? "0"}
       
     </h2>
-<span className="text-sm text-[10px] text-studio-muted">
+<span data-holo-projects="stats.tenants.suspended" className="text-sm text-[10px] text-studio-muted">
       {`${(stats?.tenants?.suspended ?? 0)} suspended`}
       
     </span>
@@ -69,11 +69,11 @@ export function AdminDashboardComponent() {
       {`Quotas exceeded`}
       
     </span>
-<h2 className={`text-3xl font-bold text-lg font-semibold ${(stats?.quotas?.exceeded ?? 0) >= 1 ? "text-studio-error" : "text-studio-text"}`}>
+<h2 data-holo-projects="stats.quotas.exceeded" className={`text-3xl font-bold text-lg font-semibold ${(stats?.quotas?.exceeded ?? 0) >= 1 ? "text-studio-error" : "text-studio-text"}`}>
       {stats?.quotas?.exceeded ?? "0"}
       
     </h2>
-<span className="text-sm text-[10px] text-studio-muted">
+<span data-holo-projects="stats.quotas.tracked" className="text-sm text-[10px] text-studio-muted">
       {`${(stats?.quotas?.tracked ?? 0)} tracked`}
       
     </span>
@@ -93,17 +93,17 @@ export function AdminDashboardComponent() {
       <div style={{"display":"flex","flexDirection":"column","gap":"2px"}} className="max-h-60 overflow-y-auto">
         
         {(recent ?? []).map((entry, i) => (
-        <div style={{"display":"flex","flexDirection":"row","justifyContent":"space-between","alignItems":"center","gap":"6px"}} className="border-b border-studio-border py-1 text-[11px]" key={i}>
+        <div data-holo-projects="recent" style={{"display":"flex","flexDirection":"row","justifyContent":"space-between","alignItems":"center","gap":"6px"}} className="border-b border-studio-border py-1 text-[11px]" key={i}>
           
-          <span className="text-sm text-studio-text-secondary">
+          <span data-holo-projects="entry.event" className="text-sm text-studio-text-secondary">
           {entry?.event ?? "—"}
           
         </span>
-    <span className="text-sm text-studio-muted">
+    <span data-holo-projects="entry.actor" className="text-sm text-studio-muted">
           {entry?.actor ?? "—"}
           
         </span>
-    <span className={`text-sm font-semibold ${(entry?.outcome ?? '') === "denied" ? "text-studio-error" : (entry?.outcome ?? '') === "error" ? "text-studio-error" : (entry?.outcome ?? '') === "success" ? "text-studio-success" : "text-studio-muted"}`}>
+    <span data-holo-projects="entry.outcome" className={`text-sm font-semibold ${(entry?.outcome ?? '') === "denied" ? "text-studio-error" : (entry?.outcome ?? '') === "error" ? "text-studio-error" : (entry?.outcome ?? '') === "success" ? "text-studio-success" : "text-studio-muted"}`}>
           {entry?.outcome ?? ""}
           
         </span>
@@ -117,3 +117,5 @@ export function AdminDashboardComponent() {
 }
 
 export default AdminDashboardComponent;
+
+export const holoViewContract = {"version":"holo-view-contract-v1","projections":[{"element":"AgentsValue","node":"stats.agents.tracked"},{"element":"AuditActor","node":"entry.actor"},{"element":"AuditEvent","node":"entry.event"},{"element":"AuditOutcome","node":"entry.outcome"},{"element":"AuditRow","node":"recent"},{"element":"QuotasSub","node":"stats.quotas.tracked"},{"element":"QuotasValue","node":"stats.quotas.exceeded"},{"element":"SessionsSub","node":"stats.sessions.revoked"},{"element":"SessionsValue","node":"stats.sessions.authenticated"},{"element":"TenantsSub","node":"stats.tenants.suspended"},{"element":"TenantsValue","node":"stats.tenants.active"}],"stateRoots":["auditLog","entry","recent","stats"],"contractHash":"89c2f8845793789f2b575a0ee954abc28a24d6574b3fd829e4051d1659eb8a11"} as const;

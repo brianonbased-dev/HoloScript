@@ -116,6 +116,19 @@ describe('enforceVerifiedViewReceipts — injection', () => {
     expect(react(computed)).toContain('data-holo-projects="recent"');
   });
 
+  it('accepts @hook return names as valid projection roots (bound hook values can be proven)', () => {
+    const hooked = `composition "H" {
+  @verified_view
+  object "Root" {
+    @hook { name: "useStats", import: "@/x", returns: "stats, auditLog" }
+    object "Sessions" { @bind { state: "stats", path: "sessions" } @projects { node: "stats.sessions" } }
+  }
+}`;
+    const d = diagnoseVerifiedView(hooked);
+    expect(d.complete).toBe(true);
+    expect(react(hooked)).toContain('data-holo-projects="stats.sessions"');
+  });
+
   it('diagnose accepts an @each loop var as a valid projection root', () => {
     const list = `composition "L" {
   @verified_view

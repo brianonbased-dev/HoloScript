@@ -1,5 +1,6 @@
 @view({ id: "profiler", title: "Profiler", icon: "Activity", category: "debug", placement: "right-rail", scope: "project", gate: "expert", surfaceClass: "lab", defaultOpen: false, exclusiveWith: ["export","generator"], order: 3 })
 composition "profiler" {
+  @verified_view
   @native_panel
 
   object "Root" {
@@ -25,6 +26,7 @@ composition "profiler" {
             ]
           }
           @theme { className: "text-[15px] font-bold tabular-nums" }
+          @projects { node: "snap.fps" }
         }
         object "FpsLabel" {
           @text { variant: "caption", content: "FPS" }
@@ -38,6 +40,7 @@ composition "profiler" {
           @text { variant: "h2" }
           @bind { state: "snap", path: "frameMs", fallback: "0" }
           @theme { className: "text-[15px] font-bold tabular-nums text-studio-text" }
+          @projects { node: "snap.frameMs" }
         }
         object "FrameLabel" {
           @text { variant: "caption", content: "Frame (ms)" }
@@ -51,6 +54,7 @@ composition "profiler" {
           @text { variant: "h2" }
           @bind { state: "snap", path: "avgFrameMs", fallback: "0" }
           @theme { className: "text-[15px] font-bold tabular-nums text-studio-text" }
+          @projects { node: "snap.avgFrameMs" }
         }
         object "AvgLabel" {
           @text { variant: "caption", content: "Avg (ms)" }
@@ -73,6 +77,7 @@ composition "profiler" {
             ]
           }
           @theme { className: "text-[15px] font-bold tabular-nums" }
+          @projects { node: "snap.p95FrameMs" }
         }
         object "P95Label" {
           @text { variant: "caption", content: "p95 (ms)" }

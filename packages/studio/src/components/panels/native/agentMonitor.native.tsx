@@ -12,7 +12,7 @@ export function AgentMonitorComponent() {
 
 
   return (
-    <div className="holoscript-2d-root w-full h-full">
+    <div className="holoscript-2d-root w-full h-full" data-holo-view-contract="c136453c4c41a6f2a3eb15986e29bf351210ef66819be1f10440756f2603b4b7">
       <div style={{"display":"flex","flexDirection":"column","gap":"12px"}} className="p-3 h-full overflow-y-auto text-xs">
       
       <h3 className="text-xl font-semibold text-sm font-semibold text-studio-text">
@@ -25,7 +25,7 @@ export function AgentMonitorComponent() {
       {`Active`}
       
     </span>
-<h2 className="text-3xl font-bold text-lg font-bold text-emerald-400">
+<h2 data-holo-projects="agents.active" className="text-3xl font-bold text-lg font-bold text-emerald-400">
       {agents?.active ?? "0"}
       
     </h2>
@@ -36,7 +36,7 @@ export function AgentMonitorComponent() {
       {`Idle`}
       
     </span>
-<h2 className="text-3xl font-bold text-lg font-bold text-slate-400">
+<h2 data-holo-projects="agents.idle" className="text-3xl font-bold text-lg font-bold text-slate-400">
       {agents?.idle ?? "0"}
       
     </h2>
@@ -47,7 +47,7 @@ export function AgentMonitorComponent() {
       {`Busy`}
       
     </span>
-<h2 className="text-3xl font-bold text-lg font-bold text-amber-400">
+<h2 data-holo-projects="agents.busy" className="text-3xl font-bold text-lg font-bold text-amber-400">
       {agents?.busy ?? "0"}
       
     </h2>
@@ -58,3 +58,5 @@ export function AgentMonitorComponent() {
 }
 
 export default AgentMonitorComponent;
+
+export const holoViewContract = {"version":"holo-view-contract-v1","projections":[{"element":"ActiveValue","node":"agents.active"},{"element":"BusyValue","node":"agents.busy"},{"element":"IdleValue","node":"agents.idle"}],"stateRoots":["agents"],"contractHash":"c136453c4c41a6f2a3eb15986e29bf351210ef66819be1f10440756f2603b4b7"} as const;

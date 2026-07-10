@@ -1,14 +1,6 @@
 {
-  "unadoptedCount": 7,
-  "unadopted": [
-    "packages/studio/src/lib/studio/panels/adminDashboard.holo",
-    "packages/studio/src/lib/studio/panels/agentMonitor.holo",
-    "packages/studio/src/lib/studio/panels/compilerExport.holo",
-    "packages/studio/src/lib/studio/panels/honestChart.holo",
-    "packages/studio/src/lib/studio/panels/honestMetrics.holo",
-    "packages/studio/src/lib/studio/panels/liveProof.holo",
-    "packages/studio/src/lib/studio/panels/profiler.holo"
-  ],
+  "unadoptedCount": 0,
+  "unadopted": [],
   "note": "Ratchet baseline for the @verified_view provenance regime. UNADOPTED = a .holo surface that binds data but has not opted into @verified_view (a migration candidate). The gate FAILS if this count RISES (a new unverified data-binding surface was added). Migrate surfaces (add @verified_view + @projects receipts), then reseed with --update-baseline. Hard violations (mismatched-node / hallucinated-root / projects-without-binding / VIEW-UNGROUNDED / unparseable surface) can NEVER be baselined — they always fail.",
-  "updatedAtIso": "2026-07-10T21:38:48.761Z"
+  "updatedAtIso": "2026-07-10T23:05:18.190Z"
 }

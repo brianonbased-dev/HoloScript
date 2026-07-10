@@ -7,7 +7,7 @@ export function HonestChartComponent() {
 
 
   return (
-    <div className="holoscript-2d-root w-full h-full">
+    <div className="holoscript-2d-root w-full h-full" data-holo-view-contract="7466675b34b8f958b787c6a8c63b436800fa6c6530e369ec9a3eeefbffaa567f">
       <div style={{"display":"flex","flexDirection":"column","gap":"8px"}} className="p-3 h-full overflow-y-auto text-xs text-studio-text">
       
       <h3 className="text-xl font-semibold text-sm font-semibold text-studio-text">
@@ -18,7 +18,7 @@ export function HonestChartComponent() {
       {`Solid = measured · hatched = inferred · dotted = generative`}
       
     </span>
-<svg className="w-full" data-baseline="zero" data-clamped={String(((__a) => (__a ?? []).some((d) => (Number(d?.value) || 0) < 0))(readings))} viewBox="0 0 280 120">
+<svg data-holo-projects="readings" className="w-full" data-baseline="zero" data-clamped={String(((__a) => (__a ?? []).some((d) => (Number(d?.value) || 0) < 0))(readings))} viewBox="0 0 280 120">
       <defs><pattern id="holo-hatch" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="4" className="stroke-studio-accent" strokeWidth="1.2" /></pattern><pattern id="holo-dots" width="3" height="3" patternUnits="userSpaceOnUse"><circle cx="1.5" cy="1.5" r="0.6" className="fill-studio-accent" /></pattern></defs>
       <line x1="6" y1="104" x2="274" y2="104" className="stroke-studio-border" strokeWidth="0.5" />
       {((__a) => { const __d = (__a ?? []); const __v = __d.map((d) => Number(d?.value) || 0); const __max = Math.max(1, ...__v); const __n = __d.length || 1; const __slot = 268 / __n; const __bw = Math.max(1, Math.min(__slot * 0.62, __slot - 1)); return __d.map((d, i) => { const __h = Math.max(0, Number(d?.value) || 0) / __max * 96; const __x = 6 + i * __slot + (__slot - __bw) / 2; const __y = 104 - __h; return (<g key={i}><rect x={__x} y={__y} width={__bw} height={__h} className="fill-studio-accent" fill={d?.prov === "inferred" ? "url(#holo-hatch)" : d?.prov === "generative" ? "url(#holo-dots)" : undefined} data-provenance-class={String(d?.prov ?? "")} rx="0.5" /><text x={__x + __bw / 2} y={116} textAnchor="middle" className="fill-studio-muted" fontSize="6">{String(d?.label ?? '')}</text></g>); }); })(readings)}
@@ -27,7 +27,7 @@ export function HonestChartComponent() {
       {`Zero-baseline trend — honest framing (min-max would exaggerate the 38→63 swing)`}
       
     </span>
-<svg data-holo-provenance='{"source":"sensorBus","class":"measured"}' data-provenance-class="measured" className="w-full" data-baseline="zero" data-clamped={String(((__a) => (__a ?? []).some((d) => (Number(d?.value) || 0) < 0))(readings))} viewBox="0 0 280 80">
+<svg data-holo-provenance='{"source":"sensorBus","class":"measured"}' data-provenance-class="measured" data-holo-projects="readings" className="w-full" data-baseline="zero" data-clamped={String(((__a) => (__a ?? []).some((d) => (Number(d?.value) || 0) < 0))(readings))} viewBox="0 0 280 80">
       
       <line x1="6" y1="74" x2="274" y2="74" className="stroke-studio-border" strokeWidth="0.5" />
       <polyline fill="none" className="stroke-studio-accent" strokeWidth="1.5" points={((__a) => { const __v = (__a ?? []).map((d) => Number(d?.value) || 0); if (!__v.length) return ''; const __mn = 0, __r = Math.max(1, ...__v), __sx = __v.length > 1 ? 268 / (__v.length - 1) : 0; return __v.map((y, i) => (6 + i * __sx).toFixed(2) + ',' + (74 - ((Math.max(0, y) - __mn) / __r) * 66).toFixed(2)).join(' '); })(readings)} />
@@ -38,3 +38,5 @@ export function HonestChartComponent() {
 }
 
 export default HonestChartComponent;
+
+export const holoViewContract = {"version":"holo-view-contract-v1","projections":[{"element":"Chart","node":"readings"},{"element":"Trend","node":"readings"}],"stateRoots":["readings"],"contractHash":"7466675b34b8f958b787c6a8c63b436800fa6c6530e369ec9a3eeefbffaa567f"} as const;

@@ -1,5 +1,6 @@
 @view({ id: "liveProof", title: "Live Proof", icon: "Activity", category: "debug", placement: "right-rail", scope: "workspace", gate: "expert", surfaceClass: "lab", defaultOpen: false, exclusiveWith: [], order: 49 })
 composition "liveProof" {
+  @verified_view
   @native_panel
 
   state {
@@ -32,11 +33,13 @@ composition "liveProof" {
         @text { variant: "caption" }
         @bind { state: "load", fallback: "0" }
         @theme { className: "text-[10px] font-semibold text-studio-text" }
+        @projects { node: "load" }
       }
       object "LoadSlider" {
         @input { type: "range", min: "0", max: "200", step: "5" }
         @model { state: "load" }
         @theme { className: "flex-1 accent-studio-accent border-studio-border bg-studio-panel text-studio-text focus:ring-studio-accent" }
+        @projects { node: "load" }
       }
     }
 

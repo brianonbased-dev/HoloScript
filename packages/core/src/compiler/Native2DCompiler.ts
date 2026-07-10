@@ -163,6 +163,16 @@ export class Native2DCompiler extends CompilerBase {
             const nm = (t.config as { name?: unknown } | undefined)?.name;
             if (typeof nm === 'string' && nm) this._projectionRoots.add(nm);
           }
+          // @hook destructures named values from an external hook (`returns: "a, b"`); each is
+          // a bindable value, hence a legitimate projection root for an element rendering it.
+          if (t?.name === 'hook') {
+            const returns = (t.config as { returns?: unknown } | undefined)?.returns;
+            if (typeof returns === 'string') {
+              for (const r of returns.split(',').map((s) => s.trim())) {
+                if (r) this._projectionRoots.add(r);
+              }
+            }
+          }
         }
         if (Array.isArray(o.children)) scanProjectionRoots(o.children as Array<Record<string, unknown>>);
       }

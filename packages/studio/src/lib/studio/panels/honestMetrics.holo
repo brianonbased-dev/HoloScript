@@ -1,5 +1,6 @@
 @view({ id: "honestMetrics", title: "Honest Metrics", icon: "ShieldCheck", category: "debug", placement: "right-rail", scope: "workspace", gate: "expert", surfaceClass: "lab", defaultOpen: false, exclusiveWith: [], order: 48 })
 composition "honestMetrics" {
+  @verified_view
   @native_panel
   @honest
 
@@ -35,6 +36,7 @@ composition "honestMetrics" {
         @bind { state: "sessions", fallback: "0" }
         @provenance_bound { source: "securityEventBus", class: "measured", confidence: 1 }
         @theme { className: "text-lg font-semibold text-studio-text" }
+        @projects { node: "sessions" }
       }
     }
 
@@ -50,6 +52,7 @@ composition "honestMetrics" {
         @bind { state: "growth", fallback: "0", suffix: "%" }
         @provenance_bound { source: "sessions.delta", class: "derived", confidence: 1 }
         @theme { className: "text-lg font-semibold text-studio-text" }
+        @projects { node: "growth" }
       }
     }
 
@@ -65,6 +68,7 @@ composition "honestMetrics" {
         @bind { state: "forecast", fallback: "0" }
         @provenance_bound { source: "forecast-model-v2", class: "inferred", confidence: 0.7 }
         @theme { className: "text-lg font-semibold text-studio-text" }
+        @projects { node: "forecast" }
       }
     }
 
@@ -80,6 +84,7 @@ composition "honestMetrics" {
         @bind { state: "aiEstimate", fallback: "0" }
         @provenance_bound { source: "holollama", class: "generative", confidence: 0.4 }
         @theme { className: "text-lg font-semibold text-studio-text" }
+        @projects { node: "aiEstimate" }
       }
     }
   }

@@ -1,5 +1,6 @@
 @view({ id: "honestChart", title: "Honest Chart", icon: "BarChart3", category: "debug", placement: "right-rail", scope: "workspace", gate: "expert", surfaceClass: "lab", defaultOpen: false, exclusiveWith: [], order: 50 })
 composition "honestChart" {
+  @verified_view
   @native_panel
   @honest
 
@@ -28,6 +29,7 @@ composition "honestChart" {
     object "Chart" {
       @chart { kind: "bar", state: "readings", valueKey: "value", labelKey: "label", classKey: "prov", height: 120 }
       @theme { className: "w-full" }
+      @projects { node: "readings" }
     }
     object "TrendCaption" {
       @text { variant: "caption", content: "Zero-baseline trend — honest framing (min-max would exaggerate the 38→63 swing)" }
@@ -37,6 +39,7 @@ composition "honestChart" {
       @chart { kind: "line", state: "readings", valueKey: "value", height: 80 }
       @provenance_bound { source: "sensorBus", class: "measured" }
       @theme { className: "w-full" }
+      @projects { node: "readings" }
     }
   }
 }

@@ -1,5 +1,6 @@
 @view({ id: "compilerExport", title: "Compiler Export", icon: "Package", category: "assistant", placement: "right-rail", scope: "workspace", gate: "always", surfaceClass: "lab", defaultOpen: false, exclusiveWith: [], order: 46 })
 composition "compilerExport" {
+  @verified_view
   @native_panel
 
   state {
@@ -27,11 +28,13 @@ composition "compilerExport" {
         @text { variant: "caption" }
         @bind { state: "nodes", fallback: "0" }
         @theme { className: "text-[10px] font-semibold text-studio-text" }
+        @projects { node: "nodes" }
       }
       object "Slider" {
         @input { type: "range", min: "100", max: "10000", step: "100" }
         @model { state: "nodes" }
         @theme { className: "flex-1 accent-studio-accent border-studio-border bg-studio-panel text-studio-text focus:ring-studio-accent" }
+        @projects { node: "nodes" }
       }
     }
 
@@ -45,6 +48,7 @@ composition "compilerExport" {
       object "SizeChart" {
         @chart { kind: "bar", state: "targets", valueKey: "sizeKb", labelKey: "target", height: 96 }
         @theme { className: "w-full" }
+        @projects { node: "targets" }
       }
     }
 
@@ -60,12 +64,15 @@ composition "compilerExport" {
           @text { variant: "caption" }
           @bind { state: "t", path: "target" }
           @theme { className: "font-semibold text-studio-text" }
+          @projects { node: "t.target" }
         }
         object "TargetSize" {
           @text { variant: "caption" }
           @bind { state: "t", path: "sizeKb", precision: 2, suffix: " KB" }
           @theme { className: "text-[10px] text-studio-muted" }
+          @projects { node: "t.sizeKb" }
         }
+        @projects { node: "targets" }
       }
     }
   }

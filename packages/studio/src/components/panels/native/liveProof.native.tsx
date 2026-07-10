@@ -9,7 +9,7 @@ export function LiveProofComponent() {
 
 
   return (
-    <div className="holoscript-2d-root w-full h-full">
+    <div className="holoscript-2d-root w-full h-full" data-holo-view-contract="663b32cd1c802dc84f30332040eafa83d7a3a28a7754fd4a169c5a1e9c7f4c20">
       <div style={{"display":"flex","flexDirection":"column","gap":"10px"}} className="p-3 h-full overflow-y-auto text-xs text-studio-text">
       
       <h3 className="text-xl font-semibold text-sm font-semibold text-studio-text">
@@ -26,11 +26,11 @@ export function LiveProofComponent() {
       {`Load (kN)`}
       
     </span>
-<span className="text-sm text-[10px] font-semibold text-studio-text">
+<span data-holo-projects="load" className="text-sm text-[10px] font-semibold text-studio-text">
       {load ?? "0"}
       
     </span>
-<input className="px-4 py-2 rounded-lg border focus:ring-2 outline-none flex-1 accent-studio-accent border-studio-border bg-studio-panel text-studio-text focus:ring-studio-accent" value={load} onChange={(e) => setLoad(Number(e.target.value))} type="range" min="0" max="200" step="5" />
+<input data-holo-projects="load" className="px-4 py-2 rounded-lg border focus:ring-2 outline-none flex-1 accent-studio-accent border-studio-border bg-studio-panel text-studio-text focus:ring-studio-accent" value={load} onChange={(e) => setLoad(Number(e.target.value))} type="range" min="0" max="200" step="5" />
     </div>
 <div data-proof-claim={"capacity >= load * factor"} data-proof-state={(capacity >= load * factor) ? "pass" : "falsified"} className={`rounded-md p-2 text-xs font-semibold ${(capacity >= load * factor) ? "bg-studio-success/10 text-studio-success" : "bg-studio-error/10 text-studio-error"}`}>
       {(capacity >= load * factor) ? "✓ Structural margin holds" : "✗ Structural margin FALSIFIED"}
@@ -41,3 +41,5 @@ export function LiveProofComponent() {
 }
 
 export default LiveProofComponent;
+
+export const holoViewContract = {"version":"holo-view-contract-v1","projections":[{"element":"LoadSlider","node":"load"},{"element":"LoadValue","node":"load"}],"stateRoots":["capacity","factor","load"],"contractHash":"663b32cd1c802dc84f30332040eafa83d7a3a28a7754fd4a169c5a1e9c7f4c20"} as const;

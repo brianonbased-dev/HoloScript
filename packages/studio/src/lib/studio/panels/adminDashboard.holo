@@ -1,5 +1,6 @@
 @view({ id: "adminDashboard", title: "Security & Compliance", icon: "ShieldCheck", category: "debug", placement: "right-rail", scope: "workspace", gate: "expert", surfaceClass: "lab", defaultOpen: false, exclusiveWith: [], order: 47 })
 composition "adminDashboard" {
+  @verified_view
   @native_panel
 
   object "Root" {
@@ -27,11 +28,13 @@ composition "adminDashboard" {
           @text { variant: "h2" }
           @bind { state: "stats", path: "sessions.authenticated", fallback: "0" }
           @theme { className: "text-lg font-semibold text-studio-text" }
+          @projects { node: "stats.sessions.authenticated" }
         }
         object "SessionsSub" {
           @text { variant: "caption" }
           @bind { state: "stats", path: "sessions.revoked", fallback: "0", suffix: " revoked" }
           @theme { className: "text-[10px] text-studio-muted" }
+          @projects { node: "stats.sessions.revoked" }
         }
       }
 
@@ -46,6 +49,7 @@ composition "adminDashboard" {
           @text { variant: "h2" }
           @bind { state: "stats", path: "agents.tracked", fallback: "0" }
           @theme { className: "text-lg font-semibold text-studio-text" }
+          @projects { node: "stats.agents.tracked" }
         }
         object "AgentsSub" {
           @text { variant: "caption", content: "RBAC scope" }
@@ -64,11 +68,13 @@ composition "adminDashboard" {
           @text { variant: "h2" }
           @bind { state: "stats", path: "tenants.active", fallback: "0" }
           @theme { className: "text-lg font-semibold text-studio-text" }
+          @projects { node: "stats.tenants.active" }
         }
         object "TenantsSub" {
           @text { variant: "caption" }
           @bind { state: "stats", path: "tenants.suspended", fallback: "0", suffix: " suspended" }
           @theme { className: "text-[10px] text-studio-muted" }
+          @projects { node: "stats.tenants.suspended" }
         }
       }
 
@@ -91,11 +97,13 @@ composition "adminDashboard" {
             ]
           }
           @theme { className: "text-lg font-semibold" }
+          @projects { node: "stats.quotas.exceeded" }
         }
         object "QuotasSub" {
           @text { variant: "caption" }
           @bind { state: "stats", path: "quotas.tracked", fallback: "0", suffix: " tracked" }
           @theme { className: "text-[10px] text-studio-muted" }
+          @projects { node: "stats.quotas.tracked" }
         }
       }
     }
@@ -125,11 +133,13 @@ composition "adminDashboard" {
           @text { variant: "caption" }
           @bind { state: "entry", path: "event", fallback: "—" }
           @theme { className: "text-studio-text-secondary" }
+          @projects { node: "entry.event" }
         }
         object "AuditActor" {
           @text { variant: "caption" }
           @bind { state: "entry", path: "actor", fallback: "—" }
           @theme { className: "text-studio-muted" }
+          @projects { node: "entry.actor" }
         }
         object "AuditOutcome" {
           @text { variant: "caption" }
@@ -145,7 +155,9 @@ composition "adminDashboard" {
             ]
           }
           @theme { className: "font-semibold" }
+          @projects { node: "entry.outcome" }
         }
+        @projects { node: "recent" }
       }
     }
   }
