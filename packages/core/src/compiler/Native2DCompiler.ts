@@ -1731,6 +1731,15 @@ export default ${safeName}Component;${contractExport}
    * self-referential claim proves nothing. The compiler cannot enforce independence,
    * but the emitted `data-proof-claim` makes the predicate auditable. The claim is
    * injection-safe (same char-class as @computed; no backticks/semicolons).
+   *
+   * HONESTY LABEL (@verified_view v1 groundwork): the emitted `data-proof-state` re-runs the
+   * SAME `cond` the badge renders from, so today it proves DISPLAY-FAITHFULNESS (the badge
+   * matches its own formula), NOT independently-verified TRUTH of the claim. We refuse to let
+   * that masquerade — `data-proof-independence="self-referential"` marks it so no consumer (or
+   * the moat's own claims) mistakes it for a real proof. A v1 runtime verifier that re-derives
+   * the claim's inputs through a path the render did not author (an external state store or a
+   * solver/StateAuthority oracle) flips this to `"verified"`. Until that oracle exists, honest
+   * labeling is the only non-theatre option (see research/2026-07-10_verified-view-v1-design.md).
    */
   private buildLiveProofElement(traits: Record<string, any>, keyProp: string): string {
     const lp = traits.live_proof;
@@ -1741,7 +1750,7 @@ export default ${safeName}Component;${contractExport}
     }
     const label = lp.label != null ? this.assertSafeLiteral(String(lp.label), '@live_proof label') : 'Claim';
     const cond = `(${claim})`;
-    return `<div${keyProp} data-proof-claim={${JSON.stringify(claim)}} data-proof-state={${cond} ? "pass" : "falsified"} className={\`rounded-md p-2 text-xs font-semibold \${${cond} ? "bg-studio-success/10 text-studio-success" : "bg-studio-error/10 text-studio-error"}\`}>
+    return `<div${keyProp} data-proof-claim={${JSON.stringify(claim)}} data-proof-independence="self-referential" data-proof-state={${cond} ? "pass" : "falsified"} className={\`rounded-md p-2 text-xs font-semibold \${${cond} ? "bg-studio-success/10 text-studio-success" : "bg-studio-error/10 text-studio-error"}\`}>
       {${cond} ? "✓ ${label} holds" : "✗ ${label} FALSIFIED"}
     </div>`;
   }

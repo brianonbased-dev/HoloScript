@@ -1000,6 +1000,14 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
       expect(r).toContain('✗ Structural margin FALSIFIED');
     });
 
+    it('HONEST: labels the verdict self-referential (display-faithfulness, NOT verified truth)', () => {
+      // The verdict re-runs the same expression the badge renders from, so it proves the badge
+      // matches its own formula — not that the claim is independently true. The artifact must
+      // SAY so (v1 groundwork) rather than let a self-passing verdict masquerade as a proof.
+      const c = comp([obj('Margin', [trait('live_proof', { claim: 'capacity >= load * factor' })])]);
+      expect(react(c)).toContain('data-proof-independence="self-referential"');
+    });
+
     it('WORKS: defaults the label to "Claim" when unset', () => {
       const c = comp([obj('P', [trait('live_proof', { claim: 'a > b' })])]);
       expect(react(c)).toContain('✓ Claim holds');

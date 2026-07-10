@@ -32,7 +32,7 @@ export function LiveProofComponent() {
     </span>
 <input data-holo-projects="load" className="px-4 py-2 rounded-lg border focus:ring-2 outline-none flex-1 accent-studio-accent border-studio-border bg-studio-panel text-studio-text focus:ring-studio-accent" value={load} onChange={(e) => setLoad(Number(e.target.value))} type="range" min="0" max="200" step="5" />
     </div>
-<div data-proof-claim={"capacity >= load * factor"} data-proof-state={(capacity >= load * factor) ? "pass" : "falsified"} className={`rounded-md p-2 text-xs font-semibold ${(capacity >= load * factor) ? "bg-studio-success/10 text-studio-success" : "bg-studio-error/10 text-studio-error"}`}>
+<div data-proof-claim={"capacity >= load * factor"} data-proof-independence="self-referential" data-proof-state={(capacity >= load * factor) ? "pass" : "falsified"} className={`rounded-md p-2 text-xs font-semibold ${(capacity >= load * factor) ? "bg-studio-success/10 text-studio-success" : "bg-studio-error/10 text-studio-error"}`}>
       {(capacity >= load * factor) ? "✓ Structural margin holds" : "✗ Structural margin FALSIFIED"}
     </div>
     </div>
