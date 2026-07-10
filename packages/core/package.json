@@ -249,7 +249,8 @@
     }
   },
   "bin": {
-    "holoscript": "./bin/holoscript.cjs"
+    "holoscript": "./bin/holoscript.cjs",
+    "holo-decision": "./bin/holo-decision.mjs"
   },
   "scripts": {
     "prepublishOnly": "pnpm run build",
