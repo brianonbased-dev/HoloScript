@@ -33,3 +33,11 @@ export {
   type HoloMapMicroConfig,
   type HoloMapMicroWeights,
 } from './holoMapMicroEncoder';
+
+// @cross_perceiver_contract — perceiver-consensus receipt + per-artifact
+// derivations (consumed by the verify_cross_perceiver MCP tool and the
+// scripts/holo-ci/check-cross-perceiver.mjs gate).
+export * from './PerceiverConsensusReceipt';
+export * from './webgpuPerceiverDerivation';
+export * from './agentInferencePerceiverDerivation';
+export * from './urdfPerceiverDerivation';

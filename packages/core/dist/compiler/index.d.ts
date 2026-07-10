@@ -275,6 +275,10 @@ export class LlamaServerCompiler extends CompilerBase {
   compileToFiles(composition: any, agentToken?: string): Record<string, string>;
 }
 export class AgentInferenceExportTarget extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
+export class AgentInferenceCompiler extends CompilerBase {
+  constructor(options?: any);
+  compile(composition: any, agentToken: string, outputPath?: string): Record<string, string>;
+}
 export type ContextSurface = 'claude' | 'codex' | 'cursor' | 'copilot' | 'gemini' | 'any';
 export type ContextEmitFormat =
   | 'claude_md'

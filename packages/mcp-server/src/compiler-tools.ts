@@ -50,7 +50,18 @@ import {
   registerBuiltinDialects,
   absorbFMU,
   streamWorldTiles,
+  WebGPUCompiler,
+  URDFCompiler,
+  AgentInferenceCompiler,
 } from '@holoscript/core/compiler';
+import {
+  derivePerceiverConsensus,
+  deriveWebGPUPerception,
+  deriveAgentInferencePerception,
+  deriveUrdfPerception,
+  type PerceiverConsensusReceipt,
+  type PerceiverDerivation,
+} from '@holoscript/core/reconstruction';
 
 // Initialize ExportManager singleton with memory monitoring disabled.
 // Railway containers have constrained RAM ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the default monitoring loop
@@ -459,6 +470,133 @@ export async function handleCompileToTarget(
     trackJob(jobId, 'failed', 100, result);
     throw new Error(errorMessage);
   }
+}
+
+// =============================================================================
+// CROSS-PERCEIVER CONSENSUS (@cross_perceiver_contract)
+// =============================================================================
+
+/** The perceiver compilers the cross-perceiver falsification oracle can fan to. */
+const CROSS_PERCEIVER_IDS = ['webgpu', 'agent-inference', 'urdf'] as const;
+export type CrossPerceiverId = (typeof CROSS_PERCEIVER_IDS)[number];
+
+export interface CrossPerceiverVerifyResult {
+  success: true;
+  /**
+   * Mirror of receipt.verdict at the top level for quick consumption.
+   * LOAD-BEARING: FALSIFIED is a hard failure — consumers must never demote
+   * it to a warning (same discipline as the `degraded` compile flag).
+   */
+  verdict: 'CONSENSUS' | 'FALSIFIED';
+  /** The full perceiver-consensus receipt (artifact hashes, disagreements, receiptHash). */
+  receipt: PerceiverConsensusReceipt;
+  /** Perceivers actually compiled + derived, in canonical order. */
+  perceivers: CrossPerceiverId[];
+  /** SHA-256 over the exact UTF-8 HoloScript source accepted by this verification. */
+  sourceSha256: string;
+  metadata: {
+    compilationTimeMs: number;
+  };
+}
+
+/**
+ * verify_cross_perceiver — compile ONE .holo composition through structurally
+ * different perceiver compilers, independently re-derive world facts from each
+ * EMITTED ARTIFACT (never the shared AST), and diff them into a
+ * PerceiverConsensusReceipt. Disagreement = FALSIFIED.
+ *
+ * RBAC: threads options.agentToken (the same field handleCompileToTarget
+ * threads to compilers) into each perceiver compiler's own
+ * compile(composition, agentToken) validation — no new auth path.
+ */
+export async function handleVerifyCrossPerceiver(
+  args: Record<string, unknown>
+): Promise<CrossPerceiverVerifyResult> {
+  const { code, perceivers, options = {} } = args as {
+    code?: string;
+    perceivers?: unknown;
+    options?: Record<string, unknown>;
+  };
+
+  if (!code) {
+    throw new Error(
+      'code is required: pass the HoloScript source (.holo) to cross-verify as the "code" field.'
+    );
+  }
+
+  const requested: unknown[] =
+    perceivers === undefined ? [...CROSS_PERCEIVER_IDS] : (perceivers as unknown[]);
+  if (!Array.isArray(requested) || requested.some((p) => typeof p !== 'string')) {
+    throw new Error(
+      `perceivers must be an array of perceiver ids — valid perceivers: ${CROSS_PERCEIVER_IDS.join(', ')}`
+    );
+  }
+  const unknownIds = requested.filter(
+    (p) => !(CROSS_PERCEIVER_IDS as readonly string[]).includes(p as string)
+  );
+  if (unknownIds.length > 0) {
+    throw new Error(
+      `Unknown perceiver(s) ${JSON.stringify(unknownIds)} — valid perceivers: ${CROSS_PERCEIVER_IDS.join(', ')}`
+    );
+  }
+  // Canonical order + dedupe (the differ refuses duplicate perceiver ids).
+  const resolved = CROSS_PERCEIVER_IDS.filter((p) => requested.includes(p));
+  if (resolved.length < 2) {
+    throw new Error(
+      'verify_cross_perceiver requires at least 2 distinct perceivers — a single-perceiver ' +
+        'receipt is circular and proves nothing. Valid perceivers: ' +
+        `${CROSS_PERCEIVER_IDS.join(', ')}.`
+    );
+  }
+
+  const startTime = Date.now();
+  const sourceSha256 = sha256Text(code);
+
+  const parseResult = parseHolo(code);
+  if (!parseResult.success || !parseResult.ast) {
+    const errors =
+      parseResult.errors?.map((e: any) => e.message).join(', ') || 'Unknown parse error';
+    throw new Error(`Failed to parse composition: ${errors}`);
+  }
+  const composition = parseResult.ast;
+
+  // Same token threading as handleCompileToTarget (EXPORT_OPTION_KEYS.agentToken):
+  // each compiler's compile() validates the token itself; empty = compiler's own
+  // backwards-compatible skip, exactly as the generic compile path behaves.
+  const agentToken =
+    typeof (options as Record<string, unknown>).agentToken === 'string'
+      ? ((options as Record<string, unknown>).agentToken as string)
+      : '';
+
+  const derivations: PerceiverDerivation[] = resolved.map((perceiver) => {
+    switch (perceiver) {
+      case 'webgpu':
+        return deriveWebGPUPerception(new WebGPUCompiler({}).compile(composition, agentToken));
+      case 'agent-inference':
+        return deriveAgentInferencePerception(
+          new AgentInferenceCompiler({ language: 'typescript' }).compile(composition, agentToken)
+        );
+      case 'urdf':
+        return deriveUrdfPerception(new URDFCompiler({}).compile(composition, agentToken));
+      default: {
+        // Exhaustiveness guard — unreachable (ids validated above).
+        throw new Error(`Unhandled perceiver: ${String(perceiver)}`);
+      }
+    }
+  });
+
+  const receipt = derivePerceiverConsensus(derivations);
+
+  return {
+    success: true,
+    verdict: receipt.verdict,
+    receipt,
+    perceivers: resolved,
+    sourceSha256,
+    metadata: {
+      compilationTimeMs: Date.now() - startTime,
+    },
+  };
 }
 
 export async function handleStreamWorldTiles(args: Record<string, unknown>): Promise<{
@@ -991,6 +1129,10 @@ export async function handleCompilerTool(
     // Quantum circuit compilation ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â HoloScript ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ OpenQASM 3.0
     case 'compile_to_qasm':
       return handleCompileToQasm(args);
+
+    // Cross-perceiver consensus verification (@cross_perceiver_contract)
+    case 'verify_cross_perceiver':
+      return handleVerifyCrossPerceiver(args);
 
     // Status and metadata tools
     case 'get_compilation_status':
@@ -1807,6 +1949,47 @@ export const compilerTools: Tool[] = [
             defaultModel: { type: 'string', description: 'Default model name' },
             defaultTemperature: { type: 'number', description: 'Default sampling temperature' },
             defaultMaxTokens: { type: 'number', description: 'Default max token budget' },
+          },
+        },
+      },
+      required: ['code'],
+    },
+  },
+  {
+    name: 'verify_cross_perceiver',
+    description:
+      'Falsification oracle for one .holo composition across structurally-different perceiver ' +
+      'compilers: webgpu (the human eye), agent-inference (the agent context), urdf (the robot ' +
+      'stack). Compiles the SAME source through each requested perceiver, independently ' +
+      're-derives world facts from each EMITTED ARTIFACT (never the shared input AST), and ' +
+      'diffs them into a PerceiverConsensusReceipt. Any perceiver that re-derives a different ' +
+      'fact flips the verdict to FALSIFIED with the concrete disagreement. ' +
+      'DESIGN CONSTRAINT — verdict FALSIFIED is LOAD-BEARING: consumers MUST treat FALSIFIED ' +
+      'as a hard failure (fail the pipeline / exit non-zero); it must NEVER be demoted to a ' +
+      'warning. Requires at least 2 perceivers (a single-perceiver receipt is circular).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: {
+          type: 'string',
+          description: 'HoloScript composition source (.holo) to cross-verify',
+        },
+        perceivers: {
+          type: 'array',
+          items: { type: 'string', enum: ['webgpu', 'agent-inference', 'urdf'] },
+          description:
+            'Perceivers to fan the composition through (default: all three; minimum 2 distinct)',
+        },
+        options: {
+          type: 'object',
+          description:
+            'Options: agentToken (string) — RBAC token threaded to each perceiver compiler, ' +
+            'validated by the compilers themselves (same field the generic compile tools accept)',
+          properties: {
+            agentToken: {
+              type: 'string',
+              description: 'Agent RBAC token validated by each perceiver compiler',
+            },
           },
         },
       },

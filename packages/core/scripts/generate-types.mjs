@@ -5776,6 +5776,10 @@ export class LlamaServerCompiler extends CompilerBase {
   compileToFiles(composition: any, agentToken?: string): Record<string, string>;
 }
 export class AgentInferenceExportTarget extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
+export class AgentInferenceCompiler extends CompilerBase {
+  constructor(options?: any);
+  compile(composition: any, agentToken: string, outputPath?: string): Record<string, string>;
+}
 export type ContextSurface = 'claude' | 'codex' | 'cursor' | 'copilot' | 'gemini' | 'any';
 export type ContextEmitFormat =
   | 'claude_md'
@@ -7082,6 +7086,81 @@ export declare function computeHoloMapReplayFingerprint(parts: {
 }): string;
 export declare function fnv1a32Hex(input: string): string;
 export declare function assertHoloMapManifestContract(m: ReconstructionManifest): void;
+
+/** @cross_perceiver_contract — perceiver-consensus receipt + per-artifact derivations */
+export declare const PERCEIVER_CONSENSUS_VERSION: 'perceiver-consensus-v3';
+export declare const POSITION_EPSILON: number;
+export type PerceiverFactClass =
+  | 'source-name'
+  | 'agent-entities'
+  | 'affordance-count'
+  | 'affordance-names'
+  | 'physical-entities'
+  | 'geometry'
+  | 'position';
+export declare function canonicalPhysicalId(name: string): string;
+export interface PerceivedAffordanceOffer {
+  action: string;
+  target?: string;
+  [key: string]: unknown;
+}
+export interface PerceivedEntity {
+  id: string;
+  kind: 'agent';
+  offerCount: number;
+  offers?: PerceivedAffordanceOffer[];
+  [key: string]: unknown;
+}
+export interface PerceivedPhysicalEntity {
+  id: string;
+  label?: string;
+  geometry?: string;
+  position?: number[];
+  extent?: number;
+  mobility?: 'fixed' | 'actuated';
+  [key: string]: unknown;
+}
+export interface PerceiverDerivation {
+  perceiver: string;
+  artifactHash: string;
+  expresses: PerceiverFactClass[];
+  sourceName: string | null;
+  entities: PerceivedEntity[];
+  physicalEntities?: PerceivedPhysicalEntity[];
+  coverageGaps: string[];
+}
+export interface PerceiverDisagreement {
+  fact: string;
+  claims: Record<string, string | number | null>;
+  detail: string;
+}
+export interface PerceiverConsensusReceipt {
+  version: typeof PERCEIVER_CONSENSUS_VERSION;
+  verdict: 'CONSENSUS' | 'FALSIFIED';
+  sourceName: string | null;
+  perceivers: Array<{
+    perceiver: string;
+    artifactHash: string;
+    expresses: PerceiverFactClass[];
+    entityCount: number;
+    physicalEntityCount: number;
+    coverageGaps: string[];
+  }>;
+  comparedFacts: number;
+  disagreements: PerceiverDisagreement[];
+  receiptHash: string;
+}
+export declare function derivePerceiverConsensus(
+  derivations: PerceiverDerivation[]
+): PerceiverConsensusReceipt;
+export declare const WEBGPU_PERCEIVER: 'webgpu';
+export declare function deriveWebGPUPerception(artifact: string): PerceiverDerivation;
+export declare const AGENT_INFERENCE_PERCEIVER: 'agent-inference';
+export declare function deriveAgentInferencePerception(
+  files: Record<string, string>
+): PerceiverDerivation;
+export declare const URDF_PERCEIVER: 'urdf';
+export declare function deriveUrdfPerception(artifact: string): PerceiverDerivation;
 `;
 
 const worldDTS = `/** @holoscript/core/world — Native world generation adapters/service */
