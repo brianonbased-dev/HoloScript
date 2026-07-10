@@ -913,6 +913,75 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
       ]);
       expect(() => react(c)).toThrow(/claims to project "cols" but is actually bound to "rows"/);
     });
+
+    // @verified_view v1: the portable, hash-bound view contract travels WITH the artifact.
+    it('v1: a verified surface co-emits a hash-bound holoViewContract of its projections', () => {
+      const c = verifiedComp([
+        obj('Sessions', [
+          trait('text', { variant: 'h2' }),
+          trait('bind', { state: 'stats', path: 'sessions' }),
+          trait('projects', { node: 'stats.sessions' }),
+        ]),
+      ]);
+      const r = react(c);
+      const m = r.match(/holoViewContract = (\{[\s\S]*\}) as const;/);
+      expect(m).toBeTruthy();
+      const contract = JSON.parse(m![1]);
+      expect(contract.version).toBe('holo-view-contract-v1');
+      expect(contract.contractHash).toMatch(/^[0-9a-f]{64}$/);
+      expect(contract.projections).toEqual([{ element: 'Sessions', node: 'stats.sessions' }]);
+      expect(contract.stateRoots).toContain('stats');
+      // the root carries the hash so a runtime consumer can locate + verify the contract
+      expect(r).toContain(`data-holo-view-contract="${contract.contractHash}"`);
+    });
+
+    it('v1 DRIFT GUARD: the contract serializes EXACTLY the projections the markup emits', () => {
+      // Not perceiver-independence (both derive from resolveProjection) — a guard that the
+      // co-emitted contract and the emitted data-holo-projects attrs cannot silently diverge.
+      const c = verifiedComp([
+        obj('Sessions', [
+          trait('text', { variant: 'h2' }),
+          trait('bind', { state: 'stats', path: 'sessions' }),
+          trait('projects', { node: 'stats.sessions' }),
+        ]),
+        obj('Errors', [
+          trait('text', { variant: 'h2' }),
+          trait('bind', { state: 'stats', path: 'errors' }),
+          trait('projects', { node: 'stats.errors' }),
+        ]),
+      ]);
+      const r = react(c);
+      const contract = JSON.parse(r.match(/holoViewContract = (\{[\s\S]*\}) as const;/)![1]);
+      const contractNodes = contract.projections.map((p: { node: string }) => p.node).sort();
+      const emittedNodes = [...r.matchAll(/data-holo-projects="([^"]+)"/g)].map((x) => x[1]).sort();
+      expect(contractNodes).toEqual(emittedNodes);
+      expect(contractNodes).toEqual(['stats.errors', 'stats.sessions']);
+    });
+
+    it('v1: the contract hash is canonical — same surface compiles to the same hash', () => {
+      const build = () =>
+        react(
+          verifiedComp([
+            obj('A', [
+              trait('text', { variant: 'h2' }),
+              trait('bind', { state: 'stats', path: 'sessions' }),
+              trait('projects', { node: 'stats.sessions' }),
+            ]),
+          ])
+        );
+      const hashOf = (out: string) => out.match(/data-holo-view-contract="([0-9a-f]{64})"/)![1];
+      expect(hashOf(build())).toBe(hashOf(build()));
+    });
+
+    it('v1 BACKWARD-COMPAT: a surface WITHOUT @verified_view emits no view contract', () => {
+      const c = comp(
+        [obj('Plain', [trait('text', { variant: 'h2' }), trait('bind', { state: 'stats', path: 'sessions' })])],
+        vstate
+      );
+      const r = react(c);
+      expect(r).not.toContain('holoViewContract');
+      expect(r).not.toContain('data-holo-view-contract');
+    });
   });
 
   describe('7h. @live_proof — the falsifiable surface (receipt as render state)', () => {

@@ -7,7 +7,7 @@ export function VerifiedViewComponent() {
 
 
   return (
-    <div className="holoscript-2d-root w-full h-full">
+    <div className="holoscript-2d-root w-full h-full" data-holo-view-contract="11a19954506224bde34d1d89e1243e387a399788ba0bad9a60217fa2556b60a7">
       <div style={{"display":"flex","flexDirection":"column","gap":"8px"}} className="p-3 h-full overflow-y-auto text-xs text-studio-text">
       
       <h3 className="text-xl font-semibold text-sm font-semibold text-studio-text">
@@ -40,3 +40,5 @@ export function VerifiedViewComponent() {
 }
 
 export default VerifiedViewComponent;
+
+export const holoViewContract = {"version":"holo-view-contract-v1","projections":[{"element":"Errors","node":"stats.errors"},{"element":"Sessions","node":"stats.sessions"}],"stateRoots":["stats"],"contractHash":"11a19954506224bde34d1d89e1243e387a399788ba0bad9a60217fa2556b60a7"} as const;
