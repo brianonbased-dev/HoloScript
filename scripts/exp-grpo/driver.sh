@@ -20,7 +20,9 @@
 #   BASE_MODEL           — HuggingFace model ID (default: Qwen/Qwen2.5-7B-Instruct)
 #   GRPO_MAX_STEPS       — Training steps (default: 500; set 2000 for full run)
 #   RUN_SFT              — "1" to enable SFT warmup (default: 0)
-#   BASELINE_QUALITY     — Known base model quality for verdict (default: 0.30)
+#   BASELINE_QUALITY     — FALLBACK-ONLY guessed baseline (default: 0.30). The
+#                          verdict now measures the base arm via a paired eval;
+#                          this is used only if that base pass is unavailable.
 #   WANDB_API_KEY        — Optional W&B run logging
 #   HF_TOKEN             — Optional HuggingFace Hub push
 #   HF_ORG               — HuggingFace org for hub push (default: "")

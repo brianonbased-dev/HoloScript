@@ -121,6 +121,35 @@ def compute_quality_score(scores: dict, n: int) -> float:
     return round(total, 4)
 
 
+def per_prompt_composite(scores: dict, n: int) -> List[float]:
+    """Weighted composite score for EACH prompt (index-aligned).
+
+    Needed for a paired base-vs-adapter comparison: the i-th element is the
+    composite quality of the i-th prompt's completion, so base[i] and adapter[i]
+    describe the same prompt under the same decode settings.
+    """
+    out: List[float] = []
+    for i in range(n):
+        total = 0.0
+        for dim, weight in REWARD_WEIGHTS.items():
+            dim_rewards = scores.get(dim, [])
+            val = dim_rewards[i] if i < len(dim_rewards) else 0.0
+            total += val * weight
+        out.append(round(total, 4))
+    return out
+
+
+def evaluate_arm(model, tokenizer, eval_prompts, device, label: str):
+    """Generate + score one arm (base or adapter). Returns (per_prompt, mean, mode)."""
+    logger.info("[%s arm] generating %d completions ...", label, len(eval_prompts))
+    completions = generate_completions(model, tokenizer, eval_prompts, device)
+    scores, mode = score_completions(completions)
+    per_prompt = per_prompt_composite(scores, len(completions))
+    quality = compute_quality_score(scores, len(completions))
+    logger.info("[%s arm] quality=%.4f (mode=%s)", label, quality, mode)
+    return per_prompt, quality, mode
+
+
 def main():
     if not ADAPTER_DIR or not Path(ADAPTER_DIR).exists():
         logger.error("ADAPTER_DIR=%s not found", ADAPTER_DIR)
@@ -161,26 +190,33 @@ def main():
         logger.error("No eval prompts found")
         sys.exit(1)
 
-    logger.info("Generating completions for %d prompts ...", len(eval_prompts))
+    # ---- Paired evaluation: same prompts, same decode, only the adapter toggled ----
+    # Tried-and-true experimental design — the control (base) and treatment
+    # (adapter) share everything except the treatment, so the per-prompt delta
+    # isolates the adapter's effect. No hardcoded baseline guess.
     t0 = time.time()
-    completions = generate_completions(model, tokenizer, eval_prompts, device)
+    adapter_per_prompt, quality_score, score_mode = evaluate_arm(
+        model, tokenizer, eval_prompts, device, "adapter"
+    )
+
+    base_per_prompt: List[float] = []
+    base_quality = None
+    baseline_source = "unmeasured"
+    try:
+        # PeftModel.disable_adapter() gives the exact base behavior with identical
+        # weights/tokenizer — the cleanest paired control available without a
+        # separate model load.
+        with model.disable_adapter():
+            base_per_prompt, base_quality, _ = evaluate_arm(
+                model, tokenizer, eval_prompts, device, "base"
+            )
+        baseline_source = "measured"
+    except Exception as e:  # noqa: BLE001
+        logger.warning("Base arm (disable_adapter) failed: %s — verdict will fall "
+                       "back to guessed BASELINE_QUALITY", e)
+
     gen_elapsed = time.time() - t0
-    logger.info("Generated %d completions in %.1f s", len(completions), gen_elapsed)
-
-    logger.info("Scoring completions ...")
-    t1 = time.time()
-    scores, score_mode = score_completions(completions)
-    score_elapsed = time.time() - t1
-    logger.info("Scored in %.1f s (mode=%s)", score_elapsed, score_mode)
-
-    quality_score = compute_quality_score(scores, len(completions))
-    per_dim = {
-        dim: round(sum(v) / len(v), 4) if v else 0.0
-        for dim, v in scores.items()
-    }
-
-    logger.info("Quality score: %.4f", quality_score)
-    logger.info("Per-dim scores: %s", per_dim)
+    logger.info("Paired eval done in %.1f s (baselineSource=%s)", gen_elapsed, baseline_source)
 
     receipt = {
         "jobType": "grpo-eval",
@@ -189,10 +225,19 @@ def main():
         "baseModel": BASE_MODEL,
         "evalPrompts": len(eval_prompts),
         "qualityScore": quality_score,
-        "perDimScores": per_dim,
+        # Paired arms for significance testing in grpo_analyze.py:
+        "baselineSource": baseline_source,
+        "baselineQualityMeasured": round(base_quality, 4) if base_quality is not None else None,
+        "perPromptAdapter": adapter_per_prompt,
+        "perPromptBase": base_per_prompt,
+        "pairedDeltaMean": (
+            round(sum(a - b for b, a in zip(base_per_prompt, adapter_per_prompt))
+                  / len(adapter_per_prompt), 4)
+            if base_per_prompt and adapter_per_prompt else None
+        ),
         "rewardMode": score_mode,
         "genTimeSec": round(gen_elapsed, 1),
-        "scoreTimeSec": round(score_elapsed, 1),
+        "seed": SEED,
     }
 
     Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)

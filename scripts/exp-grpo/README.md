@@ -63,19 +63,36 @@ vastai create instance $OFFER_ID \
 | `BASE_MODEL`          | `Qwen/Qwen2.5-7B-Instruct` | Base model for training                      |
 | `GRPO_MAX_STEPS`      | `500`                      | Training steps (use 2000+ for real run)      |
 | `RUN_SFT`             | `0`                        | Set to `1` to enable SFT warmup on DPO pairs |
-| `BASELINE_QUALITY`    | `0.30`                     | Baseline quality for PROVE/KILL verdict      |
+| `BASELINE_QUALITY`    | `0.30`                     | Guessed baseline — **fallback only** (see below) |
 | `WANDB_API_KEY`       | —                          | Optional W&B logging                         |
 | `HF_TOKEN` + `HF_ORG` | —                          | Optional HuggingFace Hub push                |
-| `GRPO_SEED`           | `42`                       | Reproducibility seed                         |
+| `GRPO_SEED`           | `42`                       | Reproducibility + bootstrap resample seed    |
+| `BOOTSTRAP_RESAMPLES` | `10000`                    | Bootstrap CI resample count                  |
 | `EXTRACT_MAX_PROMPTS` | `1500`                     | Max prompts to extract                       |
 
 ## Verdict logic
 
-| Verdict        | Condition                                                      |
-| -------------- | -------------------------------------------------------------- |
-| `PROVE`        | `quality_score >= baseline + 0.05` AND `quality_score >= 0.35` |
-| `KILL`         | `quality_score < 0.20`                                         |
-| `INCONCLUSIVE` | Everything else (delta too small, or score within noise band)  |
+`grpo_eval.py` runs a **paired** evaluation: the base model (control) and the
+adapter (treatment) are scored on the **same** held-out prompts with the **same**
+decode settings — the base arm via `PeftModel.disable_adapter()` — so the
+per-prompt delta isolates the adapter's effect. No hardcoded baseline guess.
+
+`grpo_analyze.py` then decides from a **bootstrap 95% CI** on the per-prompt
+delta (`grpo_stats.py`, pure stdlib, seeded):
+
+| Verdict        | Condition (measured / preferred path)                                    |
+| -------------- | ------------------------------------------------------------------------ |
+| `PROVE`        | CI **lower** bound of (adapter − base) `> MIN_DELTA` AND quality `>= ABS_THRESHOLD` |
+| `KILL`         | CI **upper** bound `< 0` (significantly worse) OR quality `< KILL_THRESHOLD` |
+| `INCONCLUSIVE` | CI straddles the margin — the honest "within noise" band                 |
+
+The verdict carries `baselineSource: "measured"` and a `deltaCI95` + `wilcoxonP`.
+`BASELINE_QUALITY` is used **only** when no measured base arm is present (e.g. the
+base pass failed); that verdict is tagged `baselineSource: "guessed"` so a guessed
+result can never masquerade as a measured one.
+
+Stats are unit-tested on CPU with **no GPU / no torch**:
+`python3 scripts/exp-grpo/test_grpo_stats.py`.
 
 ## GPU requirements
 
