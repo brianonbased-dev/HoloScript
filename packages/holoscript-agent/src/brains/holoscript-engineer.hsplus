@@ -16,9 +16,14 @@
 identity {
   domain: "holoscript-language"
   capability_tags: ["native_authoring", "trait_porting", "compiler_work", "rust_wasm", "language_design"]
-  requires: ["code_generation", "file_editing"]
-  prefers: ["long_context", "deep_reasoning"]
-  avoids: ["image_generation"]
+  // requires/prefers/avoids MUST be verbatim camelCase Capabilities keys (see
+  // brains-capability-keys.test.ts). code_generation + file_editing both require
+  // agentic tool-calling → `tools` (there is no dedicated code-gen/file-edit key);
+  // long_context → `contextWindow`; deep_reasoning → `visibleReasoning`;
+  // image_generation → `imageGeneration`.
+  requires: ["tools"]
+  prefers: ["contextWindow", "visibleReasoning"]
+  avoids: ["imageGeneration"]
 }
 
 behavior on_task {

@@ -20,9 +20,15 @@
 identity {
   domain: "research-paper"
   capability_tags: ["academic_writing", "citation_grounding", "novelty_audit", "latex", "arxiv"]
-  requires: ["long_context", "web_search"]
-  prefers: ["deep_reasoning"]
-  avoids: ["image_generation", "code_execution"]
+  // requires/prefers/avoids MUST be verbatim camelCase keys of the `Capabilities`
+  // interface (@holoscript/llm-provider) — the router's satisfies() matches keys
+  // literally, so snake_case makes every entry a no-op (and any `requires` no-op
+  // makes the brain unroutable → NoEligibleProviderError). See brains-capability-keys.test.ts.
+  // Intent: needs a large context window + live web search; prefers visible reasoning;
+  // avoids image-generation + code-execution providers.
+  requires: ["contextWindow", "liveWebSearch"]
+  prefers: ["visibleReasoning"]
+  avoids: ["imageGeneration", "codeExecutionSandbox"]
 }
 
 behavior on_task {

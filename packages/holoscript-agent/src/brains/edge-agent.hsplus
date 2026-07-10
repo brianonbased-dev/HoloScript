@@ -21,9 +21,15 @@
 identity {
   domain: "edge-hardware"
   capability_tags: ["edge_compute", "wallet_keyed", "hardware_audit", "sovereign_vault", "jetson"]
-  requires: ["local_inference"]
+  // requires/prefers/avoids MUST be verbatim camelCase Capabilities keys (see
+  // brains-capability-keys.test.ts). local_inference maps to the `local` key
+  // (runs locally/offline); image_generation maps to `imageGeneration`.
+  // "large_model"/"gpu_fleet" have no Capabilities key — requiring the `local`
+  // capability already keeps this brain on local providers, which is the routing
+  // those two avoids entries were meant to express.
+  requires: ["local"]
   prefers: []
-  avoids: ["large_model", "gpu_fleet", "image_generation"]
+  avoids: ["imageGeneration"]
 }
 
 behavior on_task {

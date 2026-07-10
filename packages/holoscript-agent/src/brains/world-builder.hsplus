@@ -21,9 +21,15 @@
 identity {
   domain: "world-authoring"
   capability_tags: ["sdf_composition", "holo_world", "particle_systems", "pbr_materials", "splat_rendering", "digital_twin"]
-  requires: ["code_generation", "long_context"]
-  prefers: ["deep_reasoning", "vision"]
-  avoids: ["paid_3dgen"]
+  // requires/prefers/avoids MUST be verbatim camelCase Capabilities keys (see
+  // brains-capability-keys.test.ts). code_generation → `tools` (agentic authoring;
+  // no dedicated code-gen key); long_context → `contextWindow`; deep_reasoning →
+  // `visibleReasoning`; `vision` is already a valid key. "paid_3dgen" has no
+  // Capabilities key — that constraint is enforced by the brain prompt below
+  // (never call Meshy/Tripo), not by provider routing — so it is not an avoids key.
+  requires: ["tools", "contextWindow"]
+  prefers: ["visibleReasoning", "vision"]
+  avoids: []
 }
 
 behavior on_task {
