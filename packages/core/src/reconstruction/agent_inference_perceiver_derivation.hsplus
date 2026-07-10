@@ -19,7 +19,7 @@
 
   @receipt agent_inference_perceiver_config {
     type: "PerceiverDerivation"
-    fields: ["perceiver", "artifactHash", "sourceName", "entities", "coverageGaps"]
+    fields: ["perceiver", "artifactHash", "expresses", "sourceName", "entities", "physicalEntities", "coverageGaps"]
     timestamp: now()
   }
 }

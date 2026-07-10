@@ -60,6 +60,30 @@ export type PerceiverFactClass =
   | 'geometry'
   | 'position';
 
+/** Every fact class — the complement of a perceiver's `expresses` is its DERIVED
+ *  coverage gap set (computed by the differ, so gaps can never go stale when an
+ *  extractor gains a capability; extractor-supplied gap notes are unioned in). */
+export const PERCEIVER_FACT_CLASSES: readonly PerceiverFactClass[] = [
+  'source-name',
+  'agent-entities',
+  'affordance-count',
+  'affordance-names',
+  'physical-entities',
+  'geometry',
+  'position',
+];
+
+/**
+ * AFFORDANCE VOCABULARY CONTRACT (v1): `@tool` is THE affordance-bearing trait.
+ * Every perceiver that expresses affordance facts derives them from @tool
+ * declarations in its own artifact (agent-inference: config tool_details;
+ * webgpu: the HoloScene Manifest affordances). Scene-interaction traits
+ * (interactable, grabbable, trigger volumes) are NOT agent affordances and
+ * never enter offerCount/offerActions. An unnamed @tool folds to
+ * 'unnamed_tool' on every perceiver (the AgentInferenceCompiler default), so
+ * defaults can never manufacture a false name-set disagreement.
+ */
+
 /**
  * Canonical physical-entity id — the documented matching contract for
  * physical facts. Mirrors URDFCompiler.sanitizeName so a link name and its
@@ -487,7 +511,16 @@ export function derivePerceiverConsensus(
       expresses: [...d.expresses].sort() as PerceiverFactClass[],
       entityCount: d.entities.length,
       physicalEntityCount: d.physicalEntities?.length ?? 0,
-      coverageGaps: [...d.coverageGaps].sort(),
+      // DERIVED coverage (whu2): the complement of declared voting rights,
+      // unioned with the extractor's free-text gap notes — a hardcoded list
+      // can go stale the day an artifact learns a fact class; the complement
+      // cannot.
+      coverageGaps: [
+        ...new Set([
+          ...PERCEIVER_FACT_CLASSES.filter((c) => !d.expresses.includes(c)),
+          ...d.coverageGaps,
+        ]),
+      ].sort(),
     }))
     .sort((a, b) => a.perceiver.localeCompare(b.perceiver));
 

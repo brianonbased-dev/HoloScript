@@ -610,6 +610,57 @@ describe('@cross_perceiver_contract 3c — affordance grounding (reachability v0
     expect(receipt.disagreements[0].detail).toMatch(/actuated-mobility outer reach envelope/);
   });
 
+  it('ID CONTRACT (hostile names, whu2): unicode/space/symbol names fold identically through BOTH real compilers', () => {
+    const comp = {
+      name: 'hostileProbe',
+      npcs: [],
+      objects: [
+        {
+          name: 'Händlé Bot #2', // unicode + space + symbol — URDF must sanitize this
+          traits: [],
+          properties: [
+            { key: 'geometry', value: 'sphere' },
+            { key: 'position', value: [1, 2, 3] },
+          ],
+        },
+      ],
+    } as unknown as HoloComposition;
+    const webgpu = deriveWebGPUPerception(new WebGPUCompiler({}).compile(comp, 'test-token'));
+    const urdf = deriveUrdfPerception(new URDFCompiler({}).compile(comp, 'test-token'));
+    // Both perceivers converge on the same canonical physical id...
+    expect(webgpu.physicalEntities?.[0]?.id).toBe('h_ndl__bot__2');
+    expect(urdf.physicalEntities?.[0]?.id).toBe('h_ndl__bot__2');
+    // ...and keep their literal spellings as labels for the human reader.
+    expect(webgpu.physicalEntities?.[0]?.label).toBe('Händlé Bot #2');
+    // Presence therefore AGREES — no false absence from name sanitization.
+    const receipt = derivePerceiverConsensus([
+      webgpu,
+      deriveAgentInferencePerception(
+        new AgentInferenceCompiler({ language: 'typescript' }).compile(comp, 'test-token')
+      ),
+      urdf,
+    ]);
+    expect(receipt.disagreements.filter((d) => d.fact.startsWith('physical:'))).toEqual([]);
+  });
+
+  it('DERIVED COVERAGE (whu2): receipt gaps are the complement of expresses — cannot go stale', () => {
+    const { webgpuArtifact, agentFiles, urdfArtifact } = compileBoth();
+    const receipt = derivePerceiverConsensus([
+      deriveWebGPUPerception(webgpuArtifact),
+      deriveAgentInferencePerception(agentFiles),
+      deriveUrdfPerception(urdfArtifact),
+    ]);
+    const gaps = Object.fromEntries(receipt.perceivers.map((p) => [p.perceiver, p.coverageGaps]));
+    // urdf never declared these in its extractor notes — the differ DERIVES them:
+    expect(gaps['urdf']).toContain('affordance-names');
+    expect(gaps['urdf']).toContain('agent-entities');
+    // agent-inference: derived fact-class gaps + its own free-text notes coexist:
+    expect(gaps['agent-inference']).toContain('position'); // derived (fact class)
+    expect(gaps['agent-inference']).toContain('spatial-position'); // extractor note
+    // webgpu with a manifest expresses everything — no fact-class gaps:
+    expect(gaps['webgpu']).toEqual([]);
+  });
+
   it('COVERAGE: offers without a declared target never enter the grounding contract', () => {
     // The original composition declares no targets — grounding contributes no
     // facts and cannot falsify (backward compatible with slice 3/3b receipts).
