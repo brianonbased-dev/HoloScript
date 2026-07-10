@@ -74,6 +74,11 @@ export class WebGPUCompiler extends CompilerBase {
   private hasWater: boolean = false;
   /** World facts collected at emission time, serialized as the HoloScene Manifest. */
   private manifestObjects: Array<Record<string, unknown>> = [];
+  /** Accumulated spatial-group translation for the objects currently being
+   *  emitted — manifest positions are WORLD-space (render applies the same
+   *  offsets via GroupXform; local coords would be a false fact for grouped
+   *  scenes). */
+  private manifestGroupOffset: [number, number, number] = [0, 0, 0];
   // The named channels the water surface's clarity/ripple are bound to (from the
   // .holo's water_clarity_binding / ripple_intensity_binding props). Host state
   // (e.g. Brittney receipts) drives these BY NAME via hsSetChannel.
@@ -99,6 +104,7 @@ export class WebGPUCompiler extends CompilerBase {
     this.indentLevel = 0;
     this.objectIndex = 0;
     this.manifestObjects = [];
+    this.manifestGroupOffset = [0, 0, 0];
     this.templatesByName = new Map(
       (composition.templates ?? []).map((t) => [t.name, t] as [string, HoloTemplate])
     );
@@ -619,7 +625,11 @@ export class WebGPUCompiler extends CompilerBase {
         visible: false,
         traits: traits.map((t) => t.name),
         affordances: this.extractAffordanceNames(obj),
-        position: [px, py, pz],
+        position: [
+          px + this.manifestGroupOffset[0],
+          py + this.manifestGroupOffset[1],
+          pz + this.manifestGroupOffset[2],
+        ],
       });
       this.emit('');
       if (obj.children) {
@@ -953,7 +963,11 @@ export class WebGPUCompiler extends CompilerBase {
       visible: true,
       traits: (obj.traits || []).map((t) => t.name),
       affordances: this.extractAffordanceNames(obj),
-      position: [px, py, pz],
+      position: [
+        px + this.manifestGroupOffset[0],
+        py + this.manifestGroupOffset[1],
+        pz + this.manifestGroupOffset[2],
+      ],
       scale: [sx, sy, sz],
       color: [cr, cg, cb],
     });
@@ -1100,10 +1114,15 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit(
       `const ${v}GroupXform = createBuffer(device, new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, ${px},${py},${pz},1]), GPUBufferUsage.UNIFORM);`
     );
+    // Manifest positions are world-space: accumulate this group's translation
+    // for the children, restore on exit (nested groups chain).
+    const saved = this.manifestGroupOffset;
+    this.manifestGroupOffset = [saved[0] + px, saved[1] + py, saved[2] + pz];
     for (const obj of group.objects) this.emitObject(obj);
     if (group.groups) {
       for (const sub of group.groups) this.emitGroup(sub);
     }
+    this.manifestGroupOffset = saved;
     this.emit('');
   }
 

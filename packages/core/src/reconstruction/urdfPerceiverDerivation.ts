@@ -44,7 +44,9 @@ export function deriveUrdfPerception(artifact: string): PerceiverDerivation {
   // envelope. Parsed per joint: type, child link, joint origin, travel limits.
   interface ParsedJoint {
     type: string;
+    parent?: string;
     origin?: number[];
+    rotated?: boolean;
     lower?: number;
     upper?: number;
   }
@@ -54,16 +56,50 @@ export function deriveUrdfPerception(artifact: string): PerceiverDerivation {
     const child = /<child\s+link="([^"]+)"/.exec(joint)?.[1];
     if (!type || !child) continue;
     const parsed: ParsedJoint = { type };
+    parsed.parent = /<parent\s+link="([^"]+)"/.exec(joint)?.[1];
     const xyz = /<origin\s+xyz="([^"]+)"/.exec(joint)?.[1];
     if (xyz) {
       const parts = xyz.trim().split(/\s+/).map(Number);
       if (parts.length === 3 && parts.every(Number.isFinite)) parsed.origin = parts;
+    }
+    const rpy = /<origin\s+[^>]*rpy="([^"]+)"/.exec(joint)?.[1];
+    if (rpy) {
+      const parts = rpy.trim().split(/\s+/).map(Number);
+      parsed.rotated = parts.some((v) => Number.isFinite(v) && Math.abs(v) > 1e-9);
     }
     const lower = /<limit\s+[^>]*lower="([\d.eE+-]+)"/.exec(joint)?.[1];
     const upper = /<limit\s+[^>]*upper="([\d.eE+-]+)"/.exec(joint)?.[1];
     if (lower != null && Number.isFinite(Number(lower))) parsed.lower = Number(lower);
     if (upper != null && Number.isFinite(Number(upper))) parsed.upper = Number(upper);
     jointByChild.set(child, parsed);
+  }
+
+  /**
+   * WORLD position of a link = the sum of joint origins walking child → parent
+   * → … → base_link (3e: spatial groups chain placements — reading a nested
+   * link's local origin as world was a shared-blind-spot false consensus).
+   * Convention note: THIS compiler echoes each link's local joint origin into
+   * its visual origin, so the visual origin is NOT additive placement — the
+   * chain sum alone is the world position (the echo-vs-ROS-semantics question
+   * is filed as its own canary task, not decided here). Returns null when any
+   * chain joint carries a non-zero rpy (rotation composition out of scope —
+   * abstain rather than emit a wrong world fact) or on a malformed chain.
+   */
+  function worldChainOrigin(link: string): number[] | null {
+    const sum = [0, 0, 0];
+    let cur: string | undefined = link;
+    for (let hops = 0; cur && hops < 64; hops++) {
+      const j: ParsedJoint | undefined = jointByChild.get(cur);
+      if (!j) return sum; // reached a root (base_link)
+      if (j.rotated) return null;
+      if (j.origin) {
+        sum[0] += j.origin[0];
+        sum[1] += j.origin[1];
+        sum[2] += j.origin[2];
+      }
+      cur = j.parent;
+    }
+    return cur ? null : sum; // cycle/overflow = malformed, abstain
   }
 
   const physicalEntities: PerceivedPhysicalEntity[] = [];
@@ -95,39 +131,36 @@ export function deriveUrdfPerception(artifact: string): PerceiverDerivation {
       entity.extent = Math.hypot(Number(cyl[1]), Number(cyl[2]) / 2);
     }
 
-    const xyz = /<origin\s+xyz="([^"]+)"/.exec(visual)?.[1];
-    if (xyz) {
-      const parts = xyz.trim().split(/\s+/).map(Number);
-      if (parts.length === 3 && parts.every(Number.isFinite)) entity.position = parts;
-    }
+    // WORLD position via the kinematic chain (3e). Abstain (leave position
+    // unset) on rotated or malformed chains rather than emit a wrong fact.
+    const world = worldChainOrigin(label);
+    if (world) entity.position = world;
 
     // Reach envelope (3d): an OUTER bound on where this link can be — the safe
     // direction for a falsification oracle (over-approximating reach can only
     // produce false CONSENSUS on grounding, never a false FALSIFIED).
     //   fixed                → the link stays put: radius = extent.
     //   revolute/continuous  → rotation about an axis through the joint origin
-    //                          preserves distance from it: radius = |V−J| + extent.
+    //                          preserves distance from it: radius = extent
+    //                          (the visual center coincides with the joint
+    //                          origin under this compiler's echo convention).
     //   prismatic            → translation within [lower,upper] along an axis:
-    //                          radius = |V−J| + extent + max(|lower|,|upper|)
+    //                          radius = extent + max(|lower|,|upper|)
     //                          (sphere over the swept segment; limits required —
     //                          unlimited travel = unknown envelope, abstain).
     //   floating/planar/other → envelope unknown, abstain (no reachRadius).
     const joint = jointByChild.get(label);
     const jointType = joint?.type ?? 'fixed';
     entity.mobility = jointType === 'fixed' ? 'fixed' : 'actuated';
-    const center = joint?.origin ?? entity.position;
-    if (center && entity.extent != null) {
-      entity.reachCenter = center;
-      const offset = entity.position
-        ? Math.hypot(...entity.position.map((v, i) => v - center[i]))
-        : 0;
+    if (world && entity.extent != null) {
+      entity.reachCenter = world;
       if (jointType === 'fixed') {
         entity.reachRadius = entity.extent;
       } else if (jointType === 'revolute' || jointType === 'continuous') {
-        entity.reachRadius = offset + entity.extent;
+        entity.reachRadius = entity.extent;
       } else if (jointType === 'prismatic' && joint?.lower != null && joint?.upper != null) {
         entity.reachRadius =
-          offset + entity.extent + Math.max(Math.abs(joint.lower), Math.abs(joint.upper));
+          entity.extent + Math.max(Math.abs(joint.lower), Math.abs(joint.upper));
       }
       // other types: reachRadius stays undefined — grounding abstains
     }

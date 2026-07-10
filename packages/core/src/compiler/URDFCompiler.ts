@@ -1035,18 +1035,33 @@ export class URDFCompiler extends CompilerBase {
       },
     });
 
-    // Joint to parent
+    // Joint to parent — carries the group's PLACEMENT. Dropping it loses the
+    // group offset from the robot description entirely (the eye renders the
+    // group translated while the robot builds it at the origin — a
+    // cross-perceiver false consensus caught by the 3e probe).
+    const groupPos = group.properties?.find((p) => p.key === 'position')?.value;
+    const [gx, gy, gz] = Array.isArray(groupPos) ? (groupPos as number[]) : [0, 0, 0];
     this.joints.push({
       name: `${parentLink}_to_${groupLinkName}_joint`,
       type: 'fixed',
       parent: parentLink,
       child: groupLinkName,
+      origin: {
+        xyz: [gx, gy, gz],
+        rpy: [0, 0, 0],
+      },
     });
 
     // Process objects in group
     if (group.objects) {
       for (const obj of group.objects) {
         this.processObject(obj, groupLinkName, actuatedJoints);
+      }
+    }
+    // Nested groups chain their placement through this group's link.
+    if (group.groups) {
+      for (const sub of group.groups) {
+        this.processSpatialGroup(sub, groupLinkName, actuatedJoints);
       }
     }
   }

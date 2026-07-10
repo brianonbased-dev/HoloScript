@@ -661,6 +661,64 @@ describe('@cross_perceiver_contract 3c — affordance grounding (reachability v0
     expect(gaps['webgpu']).toEqual([]);
   });
 
+  /** Spatial group at [10,0,0] holding a child at local [0,0.5,0] — world truth [10,0.5,0]. */
+  function groupedComposition() {
+    return {
+      name: 'groupProbe',
+      npcs: [],
+      objects: [],
+      spatialGroups: [
+        {
+          name: 'LegGroup',
+          properties: [{ key: 'position', value: [10, 0, 0] }],
+          objects: [
+            {
+              name: 'Foot',
+              traits: [],
+              properties: [
+                { key: 'geometry', value: 'box' },
+                { key: 'position', value: [0, 0.5, 0] },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as HoloComposition;
+  }
+
+  it('GROUP WORLD TRUTH (3e): both perceivers derive the WORLD position of a grouped child', () => {
+    // Before 3e this was a FALSE CONSENSUS at local [0,0.5,0]: the eye renders
+    // with the GroupXform offset while the robot dropped the group placement
+    // entirely — the runtimes disagreed and the receipt could not see it.
+    const comp = groupedComposition();
+    const w = deriveWebGPUPerception(new WebGPUCompiler({}).compile(comp, 'test-token'));
+    const u = deriveUrdfPerception(new URDFCompiler({}).compile(comp, 'test-token'));
+    expect(w.physicalEntities?.find((e) => e.id === 'foot')?.position).toEqual([10, 0.5, 0]);
+    expect(u.physicalEntities?.find((e) => e.id === 'foot')?.position).toEqual([10, 0.5, 0]);
+    const receipt = derivePerceiverConsensus([w, u]);
+    expect(receipt.verdict).toBe('CONSENSUS');
+  });
+
+  it('RED-FLIP (3e): a dropped group placement in the robot description falsifies position', () => {
+    const comp = groupedComposition();
+    const webgpuArtifact = new WebGPUCompiler({}).compile(comp, 'test-token');
+    const urdfArtifact = new URDFCompiler({}).compile(comp, 'test-token');
+    // Simulate the pre-3e compiler bug: the group joint loses its origin.
+    const broken = urdfArtifact.replace('xyz="10 0 0"', 'xyz="0 0 0"');
+    expect(broken).not.toBe(urdfArtifact);
+
+    const receipt = derivePerceiverConsensus([
+      deriveWebGPUPerception(webgpuArtifact),
+      deriveUrdfPerception(broken),
+    ]);
+    expect(receipt.verdict).toBe('FALSIFIED');
+    expect(receipt.disagreements[0].fact).toBe('physical:foot:position');
+    expect(receipt.disagreements[0].claims).toEqual({
+      webgpu: '[10,0.5,0]',
+      urdf: '[0,0.5,0]',
+    });
+  });
+
   it('COVERAGE: offers without a declared target never enter the grounding contract', () => {
     // The original composition declares no targets — grounding contributes no
     // facts and cannot falsify (backward compatible with slice 3/3b receipts).
