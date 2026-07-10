@@ -130,18 +130,29 @@ export function TraitCard({ trait }: TraitCardProps) {
       {/* Stats & Actions */}
       <div className="px-4 py-3 bg-zinc-50 dark:bg-zinc-900/50 flex items-center justify-between">
         <div className="flex items-center gap-4 text-sm text-zinc-500 dark:text-zinc-400">
-          {/* Downloads */}
-          <div className="flex items-center gap-1.5">
-            <Download className="h-4 w-4" />
-            <span>{formatDownloads(trait.downloads)}</span>
-          </div>
+          {/* Downloads — only when there is real usage data */}
+          {trait.downloads > 0 && (
+            <div className="flex items-center gap-1.5">
+              <Download className="h-4 w-4" />
+              <span>{formatDownloads(trait.downloads)}</span>
+            </div>
+          )}
 
-          {/* Rating */}
-          <div className="flex items-center gap-1.5">
-            <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
-            <span>{trait.rating.toFixed(1)}</span>
-            <span className="text-zinc-400">({trait.ratingCount})</span>
-          </div>
+          {/* Rating — only when there are real ratings */}
+          {trait.ratingCount > 0 && (
+            <div className="flex items-center gap-1.5">
+              <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
+              <span>{trait.rating.toFixed(1)}</span>
+              <span className="text-zinc-400">({trait.ratingCount})</span>
+            </div>
+          )}
+
+          {/* Freshly listed with no usage yet — honest "New" rather than a fake zero */}
+          {trait.downloads === 0 && trait.ratingCount === 0 && (
+            <span className="text-xs px-2 py-0.5 rounded-full bg-holoscript-100 dark:bg-holoscript-900 text-holoscript-600 dark:text-holoscript-400 font-medium">
+              New
+            </span>
+          )}
 
           {/* Updated */}
           <span className="hidden sm:inline text-zinc-400">

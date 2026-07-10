@@ -60,14 +60,18 @@ export function PopularTraits({ traits }: PopularTraitsProps) {
               <span className={`category-${trait.category} px-1.5 py-0.5 rounded-full`}>
                 {CATEGORY_LABELS[trait.category]}
               </span>
-              <div className="flex items-center gap-1">
-                <Download className="h-3 w-3" />
-                {formatDownloads(trait.downloads)}
-              </div>
-              <div className="flex items-center gap-1">
-                <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
-                {trait.rating.toFixed(1)}
-              </div>
+              {trait.downloads > 0 && (
+                <div className="flex items-center gap-1">
+                  <Download className="h-3 w-3" />
+                  {formatDownloads(trait.downloads)}
+                </div>
+              )}
+              {trait.ratingCount > 0 && (
+                <div className="flex items-center gap-1">
+                  <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
+                  {trait.rating.toFixed(1)}
+                </div>
+              )}
             </div>
           </div>
 
