@@ -188,7 +188,7 @@ export function HoloScriptLandingComponent() {
               <a href="/guides/quick-start" className="hover:text-cyan-400 transition-colors">Quick Start</a>
               <a href="/examples" className="hover:text-cyan-400 transition-colors">Examples</a>
               <a href="/traits" className="hover:text-cyan-400 transition-colors">Traits</a>
-              <a href="https://studio.holoscript.net" className="text-purple-400 hover:text-purple-300 bg-purple-500/10 px-3 py-1.5 rounded-md transition-colors">Studio</a>
+              <a href="https://holoscript.studio" className="text-purple-400 hover:text-purple-300 bg-purple-500/10 px-3 py-1.5 rounded-md transition-colors">Studio</a>
               <a href="https://github.com/brianonbased-dev/HoloScript" className="hover:text-cyan-400 transition-colors">GitHub</a>
             </div>
           </div>
@@ -223,7 +223,7 @@ export function HoloScriptLandingComponent() {
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <a
-                href="https://studio.holoscript.net"
+                href="https://holoscript.studio"
                 className="w-full sm:w-auto px-8 py-3.5 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold text-lg hover:scale-105 transition-transform shadow-[0_0_30px_rgba(0,255,255,0.3)] text-center"
               >
                 Open Studio
@@ -285,13 +285,13 @@ export function HoloScriptLandingComponent() {
               </div>
               <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-center gap-3 pt-2">
                 <a
-                  href="https://studio.holoscript.net/store"
+                  href="https://holoscript.studio/store"
                   className="inline-flex justify-center px-6 py-3 rounded-lg bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-semibold text-center hover:opacity-95 transition-opacity shadow-[0_0_24px_rgba(147,51,234,0.25)]"
                 >
                   Browse the plugin store
                 </a>
                 <a
-                  href="https://studio.holoscript.net"
+                  href="https://holoscript.studio"
                   className="inline-flex justify-center px-6 py-3 rounded-lg bg-white/5 border border-white/15 text-white font-semibold text-center hover:bg-white/10 transition-colors"
                 >
                   Studio &amp; API keys
@@ -632,7 +632,7 @@ export function HoloScriptLandingComponent() {
               <a href="/guides/" className="hover:text-cyan-800 transition-colors">Docs</a>
               <a href="/guides/quick-start" className="hover:text-cyan-800 transition-colors">Quick Start</a>
               <a href="/examples/" className="hover:text-cyan-800 transition-colors">Examples</a>
-              <a href="https://studio.holoscript.net" className="hover:text-cyan-800 transition-colors">Studio</a>
+              <a href="https://holoscript.studio" className="hover:text-cyan-800 transition-colors">Studio</a>
               <a href="https://x.com/holoscript" className="hover:text-cyan-800 transition-colors">X / Twitter</a>
             </div>
 
