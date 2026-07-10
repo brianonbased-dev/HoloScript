@@ -79,18 +79,32 @@ export function defaultLocalLlmPricer(_model: string, _usage: TokenUsage): numbe
   return 0;
 }
 
-// xAI / Grok pricing — populated by /research task task_1778109552044_qed8.
-// Empty until verified pricing lands. defaultXAIPricer throws on missing
-// model with a helpful pointer (matches defaultAnthropicPricer behavior).
+// xAI / Grok pricing — credential-verified 2026-07-10 via GET
+// https://api.x.ai/v1/language-models (task task_1783674145823_tthf; see
+// docs/llm-capabilities/xai-grok.md and XAI_MODEL_CAPABILITIES in
+// @holoscript/llm-provider for the full per-model surface).
+// Base-tier prices only: above each model's 200K long-context threshold the
+// API doubles input AND output prices, and cached input is cheaper — this
+// flat dict under-estimates long-context requests (conservative fields live
+// in XAI_MODEL_CAPABILITIES). defaultXAIPricer throws on missing model with
+// a helpful pointer (matches defaultAnthropicPricer behavior).
 // Never paste training-era pricing here — F.014 / W.GOLD.341.
-export const XAI_PRICING_USD_PER_MTOK: Record<string, { input: number; output: number }> = {};
+export const XAI_PRICING_USD_PER_MTOK: Record<string, { input: number; output: number }> = {
+  'grok-4.3': { input: 1.25, output: 2.5 }, // HoloScript xAI default
+  'grok-4.5': { input: 2.0, output: 6.0 }, // launched 2026-07-08; NOT default (eval-gated)
+  'grok-build-0.1': { input: 1.0, output: 2.0 }, // alias grok-code-fast-1
+  'grok-4.20-0309-reasoning': { input: 1.25, output: 2.5 },
+  'grok-4.20-0309-non-reasoning': { input: 1.25, output: 2.5 },
+  'grok-4.20-multi-agent-0309': { input: 1.25, output: 2.5 },
+};
 
 export function defaultXAIPricer(model: string, usage: TokenUsage): number {
   const price = XAI_PRICING_USD_PER_MTOK[model];
   if (!price) {
     throw new Error(
-      `No xAI pricing configured for model "${model}" — populate XAI_PRICING_USD_PER_MTOK ` +
-        `(see /research task_1778109552044_qed8 in docs/LLM_CAPABILITIES.md) or pass a custom pricer`
+      `No xAI pricing configured for model "${model}" — add to XAI_PRICING_USD_PER_MTOK ` +
+        `(credential-verify via /v1/language-models; see docs/llm-capabilities/xai-grok.md) ` +
+        `or pass a custom pricer`
     );
   }
   return (usage.promptTokens * price.input + usage.completionTokens * price.output) / 1_000_000;
@@ -125,8 +139,9 @@ export function defaultOpenRouterPricer(model: string, usage: TokenUsage): numbe
  *
  * Known gap (separate task): non-Anthropic non-local providers (openai,
  * gemini) still fall through to defaultAnthropicPricer here. xai +
- * openrouter were added 2026-05-06 with explicit dispatch + empty
- * pricing dicts (Lane A — see docs/LLM_CAPABILITIES.md).
+ * openrouter were added 2026-05-06 with explicit dispatch (Lane A — see
+ * docs/LLM_CAPABILITIES.md); xAI pricing was credential-verified and
+ * populated 2026-07-10, openrouter's dict remains empty until verified.
  */
 export function defaultPricerForProvider(
   provider: 'anthropic' | 'local-llm' | 'openai' | 'xai' | 'openrouter' | string

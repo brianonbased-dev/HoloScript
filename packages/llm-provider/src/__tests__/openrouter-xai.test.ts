@@ -117,6 +117,7 @@ describe('XAIAdapter', () => {
   it('has expected available models', () => {
     const adapter = new XAIAdapter({ apiKey: 'test-key' });
     expect(adapter.models).toContain('grok-4.3');
+    expect(adapter.models).toContain('grok-4.5');
     expect(adapter.models).toContain('grok-build-0.1');
     expect(adapter.models).toContain('grok-4.20-0309-reasoning');
     expect(adapter.models).toContain('grok-4.20-0309-non-reasoning');
@@ -126,6 +127,7 @@ describe('XAIAdapter', () => {
   it('XAI_MODELS constant is populated', () => {
     expect(XAI_MODELS.length).toBeGreaterThan(0);
     expect(XAI_MODELS).toContain('grok-4.3');
+    expect(XAI_MODELS).toContain('grok-4.5');
     expect(XAI_MODELS).toContain('grok-build-0.1');
     expect(XAI_MODELS).toContain('grok-4.20-0309-reasoning');
   });
@@ -166,7 +168,23 @@ describe('XAIAdapter', () => {
         output: 2.5,
       },
       status: 'active',
-      lastVerified: '2026-06-21',
+      lastVerified: '2026-07-10',
+    });
+    // Launched 2026-07-08; pricing credential-verified 2026-07-10 via
+    // /v1/language-models ($2/$6 per MTok, $0.50/M cached input, 2x above
+    // the 200K long-context threshold).
+    expect(XAI_MODEL_CAPABILITIES['grok-4.5']).toMatchObject({
+      contextWindow: 500_000,
+      maxOutput: 0,
+      longContextThreshold: 200_000,
+      costPerMillion: {
+        input: 2.0,
+        inputLongContext: 4.0,
+        cachedInput: 0.5,
+        output: 6.0,
+      },
+      status: 'active',
+      lastVerified: '2026-07-10',
     });
     expect(XAI_MODEL_CAPABILITIES['grok-build-0.1']).toMatchObject({
       contextWindow: 256_000,
@@ -179,7 +197,7 @@ describe('XAIAdapter', () => {
         output: 2.0,
       },
       status: 'active',
-      lastVerified: '2026-06-21',
+      lastVerified: '2026-07-10',
     });
     expect(XAI_MODEL_CAPABILITIES['grok-4.20-0309-reasoning']).toMatchObject({
       contextWindow: 1_000_000,
@@ -192,7 +210,7 @@ describe('XAIAdapter', () => {
         output: 2.5,
       },
       status: 'active',
-      lastVerified: '2026-06-21',
+      lastVerified: '2026-07-10',
     });
     for (const model of XAI_MODELS) {
       expect(XAI_MODEL_CAPABILITIES[model].contextWindow).toBeGreaterThan(0);

@@ -9,6 +9,7 @@ import {
   defaultOpenRouterPricer,
   defaultPricerForProvider,
   defaultXAIPricer,
+  XAI_PRICING_USD_PER_MTOK,
   ANTHROPIC_PRICING_USD_PER_MTOK,
   ANTHROPIC_PRICING_SCHEDULE_USD_PER_MTOK,
   resolveAnthropicPricing,
@@ -149,6 +150,37 @@ describe('defaultPricerForProvider', () => {
   it('falls back to Anthropic pricer for unrecognized providers (safe default — fail loud on unknown model)', () => {
     expect(defaultPricerForProvider('openai')).toBe(defaultAnthropicPricer);
     expect(defaultPricerForProvider('some-future-provider')).toBe(defaultAnthropicPricer);
+  });
+});
+
+// xAI pricing credential-verified 2026-07-10 via GET /v1/language-models
+// (task task_1783674145823_tthf). Base-tier prices; long-context (>200K)
+// doubles input+output and is intentionally not modeled in this flat dict.
+describe('defaultXAIPricer', () => {
+  it('prices grok-4.3 (HoloScript default) at $1.25/$2.50 per MTok', () => {
+    expect(XAI_PRICING_USD_PER_MTOK['grok-4.3']).toEqual({ input: 1.25, output: 2.5 });
+    expect(
+      defaultXAIPricer('grok-4.3', {
+        promptTokens: 1_000_000,
+        completionTokens: 1_000_000,
+        totalTokens: 2_000_000,
+      })
+    ).toBeCloseTo(3.75, 5);
+  });
+
+  it('prices grok-4.5 (launched 2026-07-08, non-default) at $2/$6 per MTok', () => {
+    expect(XAI_PRICING_USD_PER_MTOK['grok-4.5']).toEqual({ input: 2.0, output: 6.0 });
+    expect(
+      defaultXAIPricer('grok-4.5', {
+        promptTokens: 1_000_000,
+        completionTokens: 1_000_000,
+        totalTokens: 2_000_000,
+      })
+    ).toBeCloseTo(8, 5);
+  });
+
+  it('prices grok-build-0.1 (coding model) at $1/$2 per MTok', () => {
+    expect(XAI_PRICING_USD_PER_MTOK['grok-build-0.1']).toEqual({ input: 1.0, output: 2.0 });
   });
 });
 

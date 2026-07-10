@@ -532,9 +532,11 @@ describe('Local and meta-provider capabilities', () => {
   it('declares xAI Live Search and OpenAI-compatible tool support', () => {
     const adapter = new XAIAdapter({ apiKey: 'test-key' });
     expect(adapter.capabilities).toBe(XAI_CAPABILITIES);
-    // Model list reconciled 2026-06-21 with credentialed xAI discovery.
+    // Model list reconciled 2026-07-10 with credentialed xAI discovery
+    // (grok-4.5 added post-launch 2026-07-08; grok-4.3 stays default).
     expect(adapter.models).toEqual([
       'grok-4.3',
+      'grok-4.5',
       'grok-build-0.1',
       'grok-4.20-0309-reasoning',
       'grok-4.20-0309-non-reasoning',
@@ -552,7 +554,8 @@ describe('Local and meta-provider capabilities', () => {
     expect(adapter.models).not.toContain('grok-4-0709');
     expect(adapter.models).not.toContain('grok-4-fast-reasoning');
     expect(adapter.models).not.toContain('grok-4-fast-non-reasoning');
-    // XAI_CAPABILITIES reflects grok-4.3 (default as of A-020 2026-06-21)
+    // XAI_CAPABILITIES reflects grok-4.3 (still the default as of
+    // A-020 2026-07-10 — grok-4.5 flip is gated on an independent eval)
     expect(adapter.capabilities).toMatchObject({
       contextWindow: 1_000_000,
       maxOutput: 0,

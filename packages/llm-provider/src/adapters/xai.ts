@@ -5,16 +5,20 @@
  * xAI provides an OpenAI-compatible chat completions API at
  * https://api.x.ai/v1.
  *
- * Models: grok-4.3, grok-build-0.1, grok-4.20-0309-reasoning,
+ * Models: grok-4.3, grok-4.5, grok-build-0.1, grok-4.20-0309-reasoning,
  *         grok-4.20-0309-non-reasoning, grok-4.20-multi-agent-0309.
  * Default model for HoloScript generation: grok-4.3.
+ * (grok-4.5 launched 2026-07-08 and is the vendor-recommended default
+ * including code; HoloScript keeps grok-4.3 as default until an
+ * independent eval gates the flip — 1M→500K context drop and 2.4×
+ * output price vs claimed capability gain.)
  *
- * Model metadata last verified 2026-06-21 via credentialed
- * /v1/models and /v1/language-models discovery.
+ * Model metadata last verified 2026-07-10 via credentialed
+ * /v1/language-models discovery.
  * Sources: docs.x.ai/developers/models,
  * docs.x.ai/developers/rest-api-reference/inference/models
  *
- * @version 1.1.0
+ * @version 1.2.0
  */
 
 import { BaseLLMAdapter } from '../base-adapter';
@@ -33,9 +37,10 @@ import {
 } from '../types';
 
 // Available xAI language models for HoloScript generation.
-// Last updated 2026-06-21 from credentialed /v1/language-models discovery.
+// Last updated 2026-07-10 from credentialed /v1/language-models discovery.
 export const XAI_MODELS = [
   'grok-4.3',
+  'grok-4.5',
   'grok-build-0.1',
   'grok-4.20-0309-reasoning',
   'grok-4.20-0309-non-reasoning',
@@ -65,11 +70,11 @@ export interface XAIModelCapability {
 }
 
 export const XAI_MODEL_CAPABILITIES = {
-  // Current default chat model. Source: docs.x.ai/developers/models
-  // plus credentialed /v1/language-models (verified 2026-06-21).
+  // Current HoloScript default chat model. Source: docs.x.ai/developers/models
+  // plus credentialed /v1/language-models (verified 2026-07-10).
   'grok-4.3': {
     contextWindow: 1_000_000,
-    maxOutput: 0, // not published by xAI as of 2026-06-21
+    maxOutput: 0, // not published by xAI as of 2026-07-10
     longContextThreshold: 200_000,
     costPerMillion: {
       input: 1.25,
@@ -78,12 +83,33 @@ export const XAI_MODEL_CAPABILITIES = {
       output: 2.5,
     },
     status: 'active',
-    lastVerified: '2026-06-21',
+    lastVerified: '2026-07-10',
+  },
+  // Launched 2026-07-08; vendor-recommended default including code.
+  // HoloScript default stays grok-4.3 until an independent eval gates the
+  // flip. Pricing credential-verified 2026-07-10 via /v1/language-models:
+  // $2/M in, $6/M out, $0.50/M cached in; above the 200K long-context
+  // threshold the API also doubles cached-input ($1/M) and output ($12/M)
+  // prices — fields this schema does not carry yet (input-side only).
+  // Context window from docs.x.ai/developers/models (500K); the
+  // language-models API does not return a window field.
+  'grok-4.5': {
+    contextWindow: 500_000,
+    maxOutput: 0, // not published by xAI as of 2026-07-10
+    longContextThreshold: 200_000,
+    costPerMillion: {
+      input: 2.0,
+      inputLongContext: 4.0,
+      cachedInput: 0.5,
+      output: 6.0,
+    },
+    status: 'active',
+    lastVerified: '2026-07-10',
   },
   // Coding model; aliases include grok-code-fast-1.
   'grok-build-0.1': {
     contextWindow: 256_000,
-    maxOutput: 0, // not published by xAI as of 2026-06-21
+    maxOutput: 0, // not published by xAI as of 2026-07-10
     longContextThreshold: 200_000,
     costPerMillion: {
       input: 1.0,
@@ -92,7 +118,7 @@ export const XAI_MODEL_CAPABILITIES = {
       output: 2.0,
     },
     status: 'active',
-    lastVerified: '2026-06-21',
+    lastVerified: '2026-07-10',
   },
   // API-visible Grok 4.20 family. Public docs conflict on 1M vs 2M context;
   // use the conservative 1M until model-specific API output exposes a window.
@@ -107,7 +133,7 @@ export const XAI_MODEL_CAPABILITIES = {
       output: 2.5,
     },
     status: 'active',
-    lastVerified: '2026-06-21',
+    lastVerified: '2026-07-10',
   },
   'grok-4.20-0309-non-reasoning': {
     contextWindow: 1_000_000,
@@ -120,7 +146,7 @@ export const XAI_MODEL_CAPABILITIES = {
       output: 2.5,
     },
     status: 'active',
-    lastVerified: '2026-06-21',
+    lastVerified: '2026-07-10',
   },
   'grok-4.20-multi-agent-0309': {
     contextWindow: 1_000_000,
@@ -133,7 +159,7 @@ export const XAI_MODEL_CAPABILITIES = {
       output: 2.5,
     },
     status: 'active',
-    lastVerified: '2026-06-21',
+    lastVerified: '2026-07-10',
   },
 } as const satisfies Record<XAIModel, XAIModelCapability>;
 
@@ -158,8 +184,13 @@ export const XAI_MODEL_CAPABILITIES = {
  * differentiator vs Anthropic/OpenAI/Gemini for social and news signal.
  *
  * Model metadata verified against official xAI docs and credentialed
- * /v1/models + /v1/language-models discovery on 2026-06-21 (A-020):
- * - grok-4.3: current default chat model, 1M context, $1.25/$2.50 per MTok.
+ * /v1/language-models discovery on 2026-07-10 (A-020):
+ * - grok-4.3: current HoloScript default chat model, 1M context,
+ *   $1.25/$2.50 per MTok.
+ * - grok-4.5: launched 2026-07-08, vendor-recommended default incl. code,
+ *   500K context, $2/$6 per MTok, $0.50/M cached input, reasoning_effort
+ *   (low/medium/high, default high), built-in web/X-search/code-execution
+ *   tools. NOT the HoloScript default until an independent eval gates it.
  * - grok-build-0.1: coding model, 256K context, $1.00/$2.00 per MTok.
  * - grok-4.20-* family: API-visible language models, routed only when
  *   explicitly selected until public context-window docs stop conflicting.
