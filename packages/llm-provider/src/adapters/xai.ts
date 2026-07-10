@@ -9,9 +9,12 @@
  *         grok-4.20-0309-non-reasoning, grok-4.20-multi-agent-0309.
  * Default model for HoloScript generation: grok-4.3.
  * (grok-4.5 launched 2026-07-08 and is the vendor-recommended default
- * including code; HoloScript keeps grok-4.3 as default until an
- * independent eval gates the flip — 1M→500K context drop and 2.4×
- * output price vs claimed capability gain.)
+ * including code; HoloScript KEEPS grok-4.3 as default — the independent
+ * eval ran 2026-07-10 (task 9c9h) and found PARITY (12/12 both models on a
+ * bounded objective suite), so the 1M→500K context drop and 2.4× output
+ * price are not justified by any measured capability gain. grok-4.5 stays
+ * available for explicit opt-in. Receipt:
+ * ai-ecosystem/research/2026-07-10_grok-4.5-vs-4.3-eval-9c9h.md.)
  *
  * Model metadata last verified 2026-07-10 via credentialed
  * /v1/language-models discovery.
