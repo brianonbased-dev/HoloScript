@@ -14,6 +14,7 @@ import { describe, it, expect } from 'vitest';
 import {
   enforceVerifiedViewReceipts,
   isProvenanceComplete,
+  diagnoseVerifiedView,
   derivedProjectionNode,
 } from '../enforceVerifiedViewReceipts';
 import { parseHolo } from '../../parser/HoloCompositionParser';
@@ -230,5 +231,61 @@ describe('isProvenanceComplete', () => {
     const staticUi = `composition "Static" { object "Root" { object "T" { @text { content: "hi" } } } }`;
     expect(isProvenanceComplete(staticUi)).toBe(true);
     expect(isProvenanceComplete('not holoscript {{{')).toBe(false);
+  });
+});
+
+describe('diagnoseVerifiedView — collect ALL violations (the compiler throws on the first)', () => {
+  it('reports every ungrounded element in one pass, not just the first', () => {
+    // Three distinct violations: mismatched (claim ≠ binding), missing (no receipt),
+    // hallucinated (receipt matches its binding, but the binding's root isn't real state)
+    // — plus the surface-level no-verified-view.
+    const messy = `composition "Messy" {
+  state { metrics: { sessions: 42, errors: 3 } }
+  object "Root" {
+    object "A" { @bind { state: "metrics", path: "sessions" } @projects { node: "metrics.errors" } }
+    object "B" { @bind { state: "metrics", path: "errors" } }
+    object "C" { @bind { state: "revenue", path: "q4" } @projects { node: "revenue.q4" } }
+  }
+}`;
+    const d = diagnoseVerifiedView(messy);
+    expect(d.parsed).toBe(true);
+    expect(d.hasBindings).toBe(true);
+    expect(d.complete).toBe(false);
+    const byReason = Object.fromEntries(d.violations.map((v) => [v.reason, v]));
+    expect(byReason['mismatched-node'].element).toBe('A');
+    expect(byReason['missing-projects'].element).toBe('B');
+    expect(byReason['hallucinated-root'].element).toBe('C');
+    expect(byReason['no-verified-view']).toBeTruthy(); // binds data, no @verified_view
+    expect(d.violations.length).toBe(4);
+  });
+
+  it('flags @projects on an element with no binding (a lie by construction)', () => {
+    const lie = `composition "L" {
+  @verified_view
+  state { metrics: { sessions: 42 } }
+  object "Root" {
+    object "Ghost" { @text { content: "hi" } @projects { node: "metrics.sessions" } }
+  }
+}`;
+    const d = diagnoseVerifiedView(lie);
+    expect(d.violations.some((v) => v.reason === 'projects-without-binding')).toBe(true);
+  });
+
+  it('a fully honest verified surface has zero violations', () => {
+    const clean = enforceVerifiedViewReceipts(UNRECEIPTED);
+    const d = diagnoseVerifiedView(clean);
+    expect(d.complete).toBe(true);
+    expect(d.violations).toEqual([]);
+    expect(d.verifiedViewOn).toBe(true);
+  });
+
+  it('unparseable input reports parsed:false, complete:false (never a false clean)', () => {
+    const d = diagnoseVerifiedView('garbage {{{');
+    expect(d.parsed).toBe(false);
+    expect(d.complete).toBe(false);
+  });
+
+  it('isProvenanceComplete delegates to diagnoseVerifiedView', () => {
+    expect(isProvenanceComplete(UNRECEIPTED)).toBe(diagnoseVerifiedView(UNRECEIPTED).complete);
   });
 });

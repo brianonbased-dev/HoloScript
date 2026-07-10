@@ -59,8 +59,10 @@ import {
   deriveWebGPUPerception,
   deriveAgentInferencePerception,
   deriveUrdfPerception,
+  diagnoseVerifiedView,
   type PerceiverConsensusReceipt,
   type PerceiverDerivation,
+  type VerifiedViewViolation,
 } from '@holoscript/core/reconstruction';
 
 // Initialize ExportManager singleton with memory monitoring disabled.
@@ -599,6 +601,63 @@ export async function handleVerifyCrossPerceiver(
   };
 }
 
+export interface VerifiedViewCheckResult {
+  success: true;
+  /**
+   * LOAD-BEARING: `complete: false` is a hard failure — an agent-authored surface that
+   * cannot prove what it renders must NOT ship. Consumers must never demote it to a warning
+   * (same discipline as verify_cross_perceiver's FALSIFIED verdict).
+   */
+  complete: boolean;
+  /** Whether the surface binds any data (a binding-free surface is trivially complete). */
+  hasBindings: boolean;
+  /** Whether the surface opts into the gate via composition-level `@verified_view`. */
+  verifiedViewOn: boolean;
+  /** Every provenance violation found — collected, not throw-on-first (unlike compiling). */
+  violations: VerifiedViewViolation[];
+  /** SHA-256 over the exact UTF-8 HoloScript source accepted by this verification. */
+  sourceSha256: string;
+}
+
+/**
+ * verify_verified_view — the `@verified_view` admission check for a 2D agent-authored surface,
+ * exposed as an agent-callable oracle. Compiling the surface would throw on the FIRST
+ * VIEW-UNGROUNDED violation; this re-derives the same contract Native2DCompiler.resolveProjection
+ * enforces and returns EVERY violation at once (a `@projects` that names a different path than
+ * its binding, a hallucinated state root, a `@projects` on an unbound element, a data-bound
+ * element with no receipt, or a surface that binds data without opting into `@verified_view`).
+ * Unverifiable input (unparseable / degenerate implicit parse) is a hard error, never a false
+ * "clean" (W.776).
+ */
+export async function handleVerifyVerifiedView(
+  args: Record<string, unknown>
+): Promise<VerifiedViewCheckResult> {
+  const { code } = args as { code?: string };
+  if (!code) {
+    throw new Error(
+      'code is required: pass the HoloScript 2D surface source (.holo) to verify as the "code" field.'
+    );
+  }
+
+  const diagnosis = diagnoseVerifiedView(code);
+  if (!diagnosis.parsed) {
+    throw new Error(
+      'verify_verified_view: the source is not a verifiable HoloScript surface (unparseable or ' +
+        'a degenerate implicit parse). A verification tool must fail loud rather than report ' +
+        'unrecognized input as honest.'
+    );
+  }
+
+  return {
+    success: true,
+    complete: diagnosis.complete,
+    hasBindings: diagnosis.hasBindings,
+    verifiedViewOn: diagnosis.verifiedViewOn,
+    violations: diagnosis.violations,
+    sourceSha256: sha256Text(code),
+  };
+}
+
 export async function handleStreamWorldTiles(args: Record<string, unknown>): Promise<{
   success: true;
   target: '3dtiles';
@@ -1133,6 +1192,10 @@ export async function handleCompilerTool(
     // Cross-perceiver consensus verification (@cross_perceiver_contract)
     case 'verify_cross_perceiver':
       return handleVerifyCrossPerceiver(args);
+
+    // Verified-view provenance check (@verified_view) for agent-authored 2D surfaces
+    case 'verify_verified_view':
+      return handleVerifyVerifiedView(args);
 
     // Status and metadata tools
     case 'get_compilation_status':
@@ -1991,6 +2054,30 @@ export const compilerTools: Tool[] = [
               description: 'Agent RBAC token validated by each perceiver compiler',
             },
           },
+        },
+      },
+      required: ['code'],
+    },
+  },
+  {
+    name: 'verify_verified_view',
+    description:
+      'Provenance oracle for an agent-authored 2D surface (.holo): does every data-bound ' +
+      'element prove what it renders? Re-derives the @verified_view contract that ' +
+      'Native2DCompiler enforces and returns EVERY violation at once (compiling would throw ' +
+      'on the first). Violations: mismatched-node (@projects names a different path than the ' +
+      "binding — \"says sessions, wired revenue\"), missing-projects (bound element with no " +
+      'receipt), hallucinated-root (projects a state node that does not exist), ' +
+      'projects-without-binding (a receipt on an unbound element), no-verified-view (binds ' +
+      'data without opting into the gate). DESIGN CONSTRAINT — `complete: false` is ' +
+      'LOAD-BEARING: a surface that cannot prove its data source must be treated as a hard ' +
+      'failure, never demoted to a warning. Unverifiable input is an error, never a false clean.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: {
+          type: 'string',
+          description: 'HoloScript 2D surface source (.holo) to check for provenance-completeness',
         },
       },
       required: ['code'],

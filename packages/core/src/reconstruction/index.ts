@@ -47,5 +47,11 @@ export * from './urdfPerceiverDerivation';
 export {
   enforceVerifiedViewReceipts,
   isProvenanceComplete,
+  diagnoseVerifiedView,
   derivedProjectionNode,
+} from './enforceVerifiedViewReceipts';
+export type {
+  VerifiedViewViolationReason,
+  VerifiedViewViolation,
+  VerifiedViewDiagnosis,
 } from './enforceVerifiedViewReceipts';

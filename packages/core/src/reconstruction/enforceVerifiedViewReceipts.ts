@@ -42,9 +42,23 @@ interface MinimalObject {
   children?: MinimalObject[];
 }
 interface MinimalComposition {
+  name?: string;
   traits?: MinimalTrait[];
   state?: { properties?: Array<{ key: string; value?: unknown }> };
   objects?: MinimalObject[];
+}
+
+/**
+ * The parser is lenient: rootless garbage (`"garbage {{{"`, `"hello world"`) still "succeeds"
+ * as an implicit, empty composition (name 'implicit', zero objects/state). A verification tool
+ * that reported such input as clean would be the lenient-recogniser lie (W.776). Treat it as
+ * unverifiable — while a legitimately-empty NAMED composition stays trivially complete.
+ */
+function isDegenerateParse(comp: MinimalComposition): boolean {
+  const noRealName = !comp.name || comp.name === 'implicit';
+  const noObjects = (comp.objects?.length ?? 0) === 0;
+  const noState = (comp.state?.properties?.length ?? 0) === 0;
+  return noRealName && noObjects && noState;
 }
 
 /**
@@ -191,23 +205,64 @@ export function enforceVerifiedViewReceipts(source: string): string {
   return out;
 }
 
+/** Why a surface would fail the `@verified_view` gate — mirrors resolveProjection's checks. */
+export type VerifiedViewViolationReason =
+  | 'missing-projects' // a data-bound element under the gate declares no @projects receipt
+  | 'mismatched-node' // @projects.node names a different path than the actual binding
+  | 'hallucinated-root' // @projects.node's root is not a declared state key / @fetch slot
+  | 'projects-without-binding' // @projects on an element with no data binding (a lie by construction)
+  | 'no-verified-view'; // the surface binds data but never opts into the gate
+
+export interface VerifiedViewViolation {
+  /** Object name (or '(composition)' for the surface-level gate violation). */
+  element: string;
+  /** The claimed or derived node in question (null when not applicable). */
+  node: string | null;
+  reason: VerifiedViewViolationReason;
+  /** Human-readable explanation for the authoring agent. */
+  detail: string;
+}
+
+export interface VerifiedViewDiagnosis {
+  /** False when the source could not be parsed (a diagnosis cannot be trusted). */
+  parsed: boolean;
+  /** Whether the surface binds any data (a binding-free surface is trivially complete). */
+  hasBindings: boolean;
+  /** Whether composition-level `@verified_view` is present. */
+  verifiedViewOn: boolean;
+  /** True iff the surface would pass the gate: no violations. */
+  complete: boolean;
+  /** Every violation found — collected, NOT throw-on-first (that is the value over compiling). */
+  violations: VerifiedViewViolation[];
+}
+
+const UNPARSEABLE: VerifiedViewDiagnosis = {
+  parsed: false,
+  hasBindings: false,
+  verifiedViewOn: false,
+  complete: false,
+  violations: [],
+};
+
 /**
- * True iff the composition would pass the `@verified_view` gate: every data-bound element
- * carries a `@projects` whose node equals its derived binding path and whose root is a
- * declared state key or `@fetch` into-slot, and `@verified_view` is present whenever any
- * binding exists. A binding-free surface is trivially complete (nothing to prove). Parse
- * failure is NOT complete. Callers use this to keep-or-fall-back after enforcement rather
- * than trusting the text transform blindly.
+ * Diagnose an agent-authored 2D surface against the `@verified_view` gate, collecting EVERY
+ * provenance violation (the compiler throws on the first — this reports all of them, which is
+ * the value for an agent fixing a surface). Violations mirror Native2DCompiler.resolveProjection:
+ * a `@projects` that names a different path than its binding, a hallucinated state root, a
+ * `@projects` on an unbound element, a data-bound element with no receipt, or a surface that
+ * binds data without opting into `@verified_view`. A binding-free surface is complete (nothing
+ * to prove). Parse failure yields `{ parsed: false, complete: false }` — never a false "clean".
  */
-export function isProvenanceComplete(source: string): boolean {
+export function diagnoseVerifiedView(source: string): VerifiedViewDiagnosis {
   let parsed: ReturnType<typeof parseHolo> | undefined;
   try {
     parsed = parseHolo(source);
   } catch {
-    return false;
+    return UNPARSEABLE;
   }
-  if (!parsed || !parsed.success || !parsed.ast) return false;
+  if (!parsed || !parsed.success || !parsed.ast) return UNPARSEABLE;
   const comp = parsed.ast as unknown as MinimalComposition;
+  if (isDegenerateParse(comp)) return UNPARSEABLE;
 
   const roots = new Set<string>((comp.state?.properties ?? []).map((p) => p.key));
   const scanFetch = (objs: MinimalObject[] | undefined): void => {
@@ -223,32 +278,74 @@ export function isProvenanceComplete(source: string): boolean {
   };
   scanFetch(comp.objects);
 
-  const hasVerifiedView = (comp.traits ?? []).some((t) => t?.name === 'verified_view');
-  let anyBinding = false;
-  let complete = true;
+  const verifiedViewOn = (comp.traits ?? []).some((t) => t?.name === 'verified_view');
+  const violations: VerifiedViewViolation[] = [];
+  let hasBindings = false;
 
-  const check = (objs: MinimalObject[] | undefined): void => {
+  const walk = (objs: MinimalObject[] | undefined): void => {
     for (const o of objs ?? []) {
       const traits = o.traits ?? [];
+      const el = typeof o.name === 'string' && o.name ? o.name : 'element';
       const bindTrait = firstBindingTrait(traits);
-      if (bindTrait) {
-        const node = derivedProjectionNode(bindTrait.config);
-        if (node) {
-          anyBinding = true;
-          const projects = traits.find((t) => t.name === 'projects');
-          const claimed = projects?.config?.node;
-          if (typeof claimed !== 'string' || claimed !== node) {
-            complete = false;
-          } else if (!roots.has(node.split('.')[0])) {
-            complete = false;
-          }
+      const node = bindTrait ? derivedProjectionNode(bindTrait.config) : null;
+      const projectsTrait = traits.find((t) => t.name === 'projects');
+      const claimedRaw = projectsTrait?.config?.node;
+      const claimed = typeof claimedRaw === 'string' ? claimedRaw : null;
+
+      if (node) {
+        hasBindings = true;
+        if (!projectsTrait) {
+          violations.push({
+            element: el,
+            node,
+            reason: 'missing-projects',
+            detail: `renders "${node}" but declares no @projects receipt`,
+          });
+        } else if (claimed !== node) {
+          violations.push({
+            element: el,
+            node: claimed,
+            reason: 'mismatched-node',
+            detail: `claims to project "${claimed ?? ''}" but is bound to "${node}"`,
+          });
+        } else if (!roots.has(node.split('.')[0])) {
+          violations.push({
+            element: el,
+            node,
+            reason: 'hallucinated-root',
+            detail: `projects "${node}" but no state node "${node.split('.')[0]}" exists`,
+          });
         }
+      } else if (projectsTrait) {
+        violations.push({
+          element: el,
+          node: claimed,
+          reason: 'projects-without-binding',
+          detail: `claims to project "${claimed ?? ''}" but has no data binding`,
+        });
       }
-      check(o.children);
+      walk(o.children);
     }
   };
-  check(comp.objects);
+  walk(comp.objects);
 
-  if (anyBinding && !hasVerifiedView) complete = false;
-  return complete;
+  if (hasBindings && !verifiedViewOn) {
+    violations.push({
+      element: '(composition)',
+      node: null,
+      reason: 'no-verified-view',
+      detail: 'surface binds data but does not declare composition-level @verified_view',
+    });
+  }
+
+  return { parsed: true, hasBindings, verifiedViewOn, complete: violations.length === 0, violations };
+}
+
+/**
+ * True iff the composition would pass the `@verified_view` gate (no violations). A binding-free
+ * surface is trivially complete; parse failure is NOT complete. Callers use this to
+ * keep-or-fall-back after enforcement rather than trusting the text transform blindly.
+ */
+export function isProvenanceComplete(source: string): boolean {
+  return diagnoseVerifiedView(source).complete;
 }

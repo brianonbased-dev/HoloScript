@@ -7167,6 +7167,26 @@ export declare function isProvenanceComplete(source: string): boolean;
 export declare function derivedProjectionNode(
   config: Record<string, unknown> | undefined
 ): string | null;
+export type VerifiedViewViolationReason =
+  | 'missing-projects'
+  | 'mismatched-node'
+  | 'hallucinated-root'
+  | 'projects-without-binding'
+  | 'no-verified-view';
+export interface VerifiedViewViolation {
+  element: string;
+  node: string | null;
+  reason: VerifiedViewViolationReason;
+  detail: string;
+}
+export interface VerifiedViewDiagnosis {
+  parsed: boolean;
+  hasBindings: boolean;
+  verifiedViewOn: boolean;
+  complete: boolean;
+  violations: VerifiedViewViolation[];
+}
+export declare function diagnoseVerifiedView(source: string): VerifiedViewDiagnosis;
 `;
 
 const worldDTS = `/** @holoscript/core/world — Native world generation adapters/service */
