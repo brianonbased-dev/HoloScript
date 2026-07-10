@@ -40,6 +40,15 @@ export function deriveUrdfPerception(artifact: string): PerceiverDerivation {
 
   const sourceName = /<!-- Source: composition "([^"]+)" -->/.exec(artifact)?.[1] ?? null;
 
+  // Kinematics: joint elements name each link's mobility — a link whose parent
+  // joint is non-fixed has an unknown reach envelope (grounding abstains on it).
+  const jointTypeByChild = new Map<string, string>();
+  for (const joint of artifact.match(/<joint\s+[^>]*>[\s\S]*?<\/joint>/g) ?? []) {
+    const type = /<joint\s+[^>]*type="([^"]+)"/.exec(joint)?.[1];
+    const child = /<child\s+link="([^"]+)"/.exec(joint)?.[1];
+    if (type && child) jointTypeByChild.set(child, type);
+  }
+
   const physicalEntities: PerceivedPhysicalEntity[] = [];
   const links = artifact.match(/<link\s+name="[^"]+">[\s\S]*?<\/link>/g) ?? [];
   for (const link of links) {
@@ -52,6 +61,25 @@ export function deriveUrdfPerception(artifact: string): PerceiverDerivation {
 
     const geom = /<geometry>\s*<(\w+)[\s/>]/.exec(visual)?.[1];
     if (geom) entity.geometry = geom;
+
+    // Bounding radius from the visual primitive's own dimensions — the robot
+    // vocabulary carries true extents, so it owns the reach-envelope data.
+    const sphereR = /<sphere\s+radius="([\d.eE+-]+)"/.exec(visual)?.[1];
+    const boxSize = /<box\s+size="([^"]+)"/.exec(visual)?.[1];
+    const cyl = /<cylinder\s+radius="([\d.eE+-]+)"\s+length="([\d.eE+-]+)"/.exec(visual);
+    if (sphereR != null && Number.isFinite(Number(sphereR))) {
+      entity.extent = Number(sphereR);
+    } else if (boxSize) {
+      const dims = boxSize.trim().split(/\s+/).map(Number);
+      if (dims.length === 3 && dims.every(Number.isFinite)) {
+        entity.extent = Math.hypot(...dims) / 2; // half-diagonal bounding radius
+      }
+    } else if (cyl && Number.isFinite(Number(cyl[1])) && Number.isFinite(Number(cyl[2]))) {
+      entity.extent = Math.hypot(Number(cyl[1]), Number(cyl[2]) / 2);
+    }
+
+    const jointType = jointTypeByChild.get(label);
+    entity.mobility = jointType == null || jointType === 'fixed' ? 'fixed' : 'actuated';
 
     const xyz = /<origin\s+xyz="([^"]+)"/.exec(visual)?.[1];
     if (xyz) {

@@ -115,9 +115,13 @@ describe('@cross_perceiver_contract — 2-perceiver consensus (webgpu + agent-in
 
   it('RED-FLIP (acceptance): a hand-broken affordance in the AGENT artifact falsifies with the named fact', () => {
     const { webgpuArtifact, agentFiles } = compileBoth();
-    // Simulate codegen dropping an affordance: remove one tool from config.json.
+    // Simulate codegen dropping an affordance: remove one tool from config.json
+    // (both the name array and the structured tool_details the derivation reads).
     const config = JSON.parse(agentFiles['config.json']);
     config.agents[0].tools = config.agents[0].tools.filter((t: string) => t !== 'release_handle');
+    config.agents[0].tool_details = config.agents[0].tool_details.filter(
+      (t: { name: string }) => t.name !== 'release_handle'
+    );
     const broken = { ...agentFiles, 'config.json': JSON.stringify(config, null, 2) };
 
     const receipt = derivePerceiverConsensus([
@@ -320,6 +324,7 @@ describe('@cross_perceiver_contract 3b — the URDF robot perceiver', () => {
     const { webgpuArtifact, agentFiles, urdfArtifact } = compileBoth();
     const config = JSON.parse(agentFiles['config.json']);
     config.agents[0].tools = config.agents[0].tools.slice(0, 1);
+    config.agents[0].tool_details = config.agents[0].tool_details.slice(0, 1);
     const broken = { ...agentFiles, 'config.json': JSON.stringify(config, null, 2) };
 
     const receipt = derivePerceiverConsensus([
@@ -339,5 +344,151 @@ describe('@cross_perceiver_contract 3b — the URDF robot perceiver', () => {
     const { webgpuArtifact, urdfArtifact } = compileBoth();
     expect(() => deriveUrdfPerception(webgpuArtifact)).toThrow(/not a URDF robot description/);
     expect(() => deriveWebGPUPerception(urdfArtifact)).toThrow(/not a WebGPU compile artifact/);
+  });
+});
+
+describe('@cross_perceiver_contract 3c — affordance grounding (reachability v0)', () => {
+  /** Like composition(), but grab_handle DECLARES its world target; optionally
+   *  a far-away beacon with a tool targeting it, or a ghost target. */
+  function groundedComposition(opts: { farTool?: boolean; ghostTool?: boolean } = {}) {
+    const tools: Array<{ name: string; config: Record<string, unknown> }> = [
+      {
+        name: 'tool',
+        config: { name: 'grab_handle', description: 'Grab the door handle', target: 'DoorHandle' },
+      },
+    ];
+    if (opts.farTool) {
+      tools.push({
+        name: 'tool',
+        config: { name: 'press_beacon', description: 'Press the beacon', target: 'FarBeacon' },
+      });
+    }
+    if (opts.ghostTool) {
+      tools.push({
+        name: 'tool',
+        config: { name: 'haunt', description: 'Touch the ghost', target: 'Ghost' },
+      });
+    }
+    return {
+      name: 'groundedProbe',
+      npcs: [],
+      objects: [
+        {
+          name: 'HandleBot',
+          traits: [{ name: 'agent', config: { role: 'manipulator' } }, ...tools],
+          properties: [
+            { key: 'geometry', value: 'sphere' },
+            { key: 'position', value: [1, 2, 3] },
+          ],
+        },
+        {
+          name: 'DoorHandle',
+          traits: [{ name: 'interactable', config: {} }],
+          properties: [
+            { key: 'geometry', value: 'box' },
+            { key: 'position', value: [1, 2.5, 3] },
+          ],
+        },
+        {
+          name: 'FarBeacon',
+          traits: [],
+          properties: [
+            { key: 'geometry', value: 'box' },
+            { key: 'position', value: [50, 0, 0] },
+          ],
+        },
+      ],
+    } as unknown as HoloComposition;
+  }
+
+  function compileGrounded(opts: Parameters<typeof groundedComposition>[0] = {}) {
+    const comp = groundedComposition(opts);
+    return {
+      webgpuArtifact: new WebGPUCompiler({}).compile(comp, 'test-token'),
+      agentFiles: new AgentInferenceCompiler({ language: 'typescript' }).compile(
+        comp,
+        'test-token'
+      ),
+      urdfArtifact: new URDFCompiler({}).compile(comp, 'test-token'),
+    };
+  }
+
+  it('ARTIFACT (itxz): config.json is the complete structured facts file — source, tool_details with target, state', () => {
+    const { agentFiles } = compileGrounded();
+    const config = JSON.parse(agentFiles['config.json']);
+    expect(config.source).toBe('groundedProbe'); // structured, no banner regex needed
+    expect(config.agents[0].tool_details).toEqual([
+      { name: 'grab_handle', description: 'Grab the door handle', target: 'DoorHandle' },
+    ]);
+    expect(config.agents[0].tools).toEqual(['grab_handle']); // name array preserved (compat)
+    expect(Array.isArray(config.agents[0].state)).toBe(true);
+  });
+
+  it('DERIVES (robot): extents and fixed mobility from the URDF visual primitives + joints', () => {
+    const { urdfArtifact } = compileGrounded();
+    const d = deriveUrdfPerception(urdfArtifact);
+    const bot = d.physicalEntities!.find((e) => e.id === 'handlebot')!;
+    const handle = d.physicalEntities!.find((e) => e.id === 'doorhandle')!;
+    expect(bot.extent).toBeCloseTo(0.5, 6); // sphere radius
+    expect(handle.extent).toBeCloseTo(Math.hypot(1, 1, 1) / 2, 6); // box half-diagonal
+    expect(bot.mobility).toBe('fixed');
+  });
+
+  it('GROUNDED CONSENSUS: a declared target within the fixed reach envelope stays CONSENSUS', () => {
+    const { webgpuArtifact, agentFiles, urdfArtifact } = compileGrounded();
+    const receipt = derivePerceiverConsensus([
+      deriveWebGPUPerception(webgpuArtifact),
+      deriveAgentInferencePerception(agentFiles),
+      deriveUrdfPerception(urdfArtifact),
+    ]);
+    // dist(HandleBot, DoorHandle) = 0.5 <= 0.5 + 0.866 — physically groundable.
+    expect(receipt.verdict).toBe('CONSENSUS');
+    expect(receipt.disagreements).toEqual([]);
+  });
+
+  it('RED-FLIP (the kinematic falsification): every spatial fact AGREES, yet the far affordance is impossible', () => {
+    const { webgpuArtifact, agentFiles, urdfArtifact } = compileGrounded({ farTool: true });
+    const receipt = derivePerceiverConsensus([
+      deriveWebGPUPerception(webgpuArtifact),
+      deriveAgentInferencePerception(agentFiles),
+      deriveUrdfPerception(urdfArtifact),
+    ]);
+    // No artifact was corrupted — positions, geometry, presence all agree.
+    // The ONLY lie is physical: FarBeacon is ~49 units away from a fixed actor.
+    expect(receipt.verdict).toBe('FALSIFIED');
+    expect(receipt.disagreements).toHaveLength(1);
+    expect(receipt.disagreements[0].fact).toBe('grounding:HandleBot:press_beacon');
+    expect(receipt.disagreements[0].claims['agent-inference']).toBe('press_beacon@FarBeacon');
+    expect(receipt.disagreements[0].claims['urdf']).toMatch(/unreachable \(dist 49\./);
+    expect(receipt.disagreements[0].detail).toMatch(/no reachable affordance/);
+  });
+
+  it('RED-FLIP (ungrounded target): an affordance on a nonexistent entity is falsified', () => {
+    const { webgpuArtifact, agentFiles, urdfArtifact } = compileGrounded({ ghostTool: true });
+    const receipt = derivePerceiverConsensus([
+      deriveWebGPUPerception(webgpuArtifact),
+      deriveAgentInferencePerception(agentFiles),
+      deriveUrdfPerception(urdfArtifact),
+    ]);
+    expect(receipt.verdict).toBe('FALSIFIED');
+    const ghost = receipt.disagreements.filter((d) => d.fact === 'grounding:HandleBot:haunt');
+    // BOTH physical perceivers independently report the missing target.
+    expect(ghost).toHaveLength(2);
+    const dissenters = ghost.flatMap((d) => Object.keys(d.claims)).sort();
+    expect(dissenters).toEqual(['agent-inference', 'agent-inference', 'urdf', 'webgpu']);
+    expect(ghost[0].detail).toMatch(/no physical target/);
+  });
+
+  it('COVERAGE: offers without a declared target never enter the grounding contract', () => {
+    // The original composition declares no targets — grounding contributes no
+    // facts and cannot falsify (backward compatible with slice 3/3b receipts).
+    const { webgpuArtifact, agentFiles, urdfArtifact } = compileBoth();
+    const receipt = derivePerceiverConsensus([
+      deriveWebGPUPerception(webgpuArtifact),
+      deriveAgentInferencePerception(agentFiles),
+      deriveUrdfPerception(urdfArtifact),
+    ]);
+    expect(receipt.verdict).toBe('CONSENSUS');
+    expect(receipt.disagreements.filter((d) => d.fact.startsWith('grounding:'))).toEqual([]);
   });
 });

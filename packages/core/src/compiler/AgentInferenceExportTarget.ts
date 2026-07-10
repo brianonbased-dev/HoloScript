@@ -86,6 +86,13 @@ export interface ToolDefinition {
   parameters: ToolParameter[];
   returnType: string;
   source: 'trait' | 'behavior' | 'npc' | 'domain-block';
+  /**
+   * Optional world-model binding: the entity this tool acts on (e.g. a @tool
+   * { target: "DoorHandle" } grab affordance). Carried into config.json so an
+   * independent consumer can ground the affordance against spatial perceivers
+   * (@cross_perceiver_contract affordance-grounding).
+   */
+  target?: string;
 }
 
 export interface ToolParameter {
@@ -253,7 +260,7 @@ export class AgentInferenceCompiler extends CompilerBase {
     }
 
     // Model configuration
-    output['config.json'] = this.emitConfigJson();
+    output['config.json'] = this.emitConfigJson(composition.name);
 
     // Package / dependency file
     if (this.options.language === 'typescript') {
@@ -531,12 +538,14 @@ export class AgentInferenceCompiler extends CompilerBase {
       }
     }
 
+    const target = this.extractStringValue(trait.config['target']);
     return {
       name,
       description,
       parameters,
       returnType: this.extractStringValue(trait.config['returns']) ?? 'string',
       source: 'trait',
+      ...(target ? { target } : {}),
     };
   }
 
@@ -1081,7 +1090,7 @@ export class AgentInferenceCompiler extends CompilerBase {
 
   // ─── Config & Package Files ─────────────────────────────────────────
 
-  private emitConfigJson(): string {
+  private emitConfigJson(compositionName: string): string {
     const configs = this.agents.map((a) => ({
       name: a.name,
       role: a.role,
@@ -1095,9 +1104,26 @@ export class AgentInferenceCompiler extends CompilerBase {
       },
       system_prompt: a.modelConfig.systemPrompt,
       tools: a.tools.map((t) => t.name),
+      // Structured facts an independent consumer can re-derive without parsing
+      // generated code: full tool descriptors (incl. the optional world-model
+      // `target` binding) and the agent's state fields. `tools` stays a name
+      // array for backward compatibility.
+      tool_details: a.tools.map((t) => ({
+        name: t.name,
+        description: t.description,
+        ...(t.target ? { target: t.target } : {}),
+      })),
+      state: a.stateProperties.map((s) => ({
+        key: s.key,
+        type: s.type,
+        default: s.defaultValue,
+      })),
     }));
 
-    return JSON.stringify({ agents: configs }, null, 2);
+    // `source` names the composition this artifact was compiled from — the
+    // structured home of the fact previously only recoverable from the
+    // agent-script banner comment.
+    return JSON.stringify({ source: compositionName, agents: configs }, null, 2);
   }
 
   private emitPackageJson(compositionName: string): string {

@@ -45,7 +45,7 @@
  */
 import { createHash } from 'node:crypto';
 
-export const PERCEIVER_CONSENSUS_VERSION = 'perceiver-consensus-v2' as const;
+export const PERCEIVER_CONSENSUS_VERSION = 'perceiver-consensus-v3' as const;
 
 /** Positions closer than this per component are the same world fact (compiler rounding). */
 export const POSITION_EPSILON = 1e-6;
@@ -79,6 +79,13 @@ export function canonicalPhysicalId(name: string): string {
  */
 export interface PerceivedAffordanceOffer {
   action: string;
+  /**
+   * Declared world-model binding: the entity this affordance acts on. An offer
+   * WITH a target claims physical groundedness and enters the
+   * affordance-grounding contract; an offer without one is ungroundable
+   * (coverage, never falsified).
+   */
+  target?: string;
   [key: string]: unknown;
 }
 
@@ -111,6 +118,14 @@ export interface PerceivedPhysicalEntity {
   geometry?: string;
   /** World position [x,y,z] when expressible. */
   position?: number[];
+  /** Bounding radius (sphere radius, box half-diagonal, …) when expressible. */
+  extent?: number;
+  /**
+   * Kinematic mobility when expressible: 'fixed' = the entity's reach envelope
+   * is its own extent; 'actuated' = the envelope depends on joint travel
+   * (grounding v0 abstains — the envelope is unknown until workspace math lands).
+   */
+  mobility?: 'fixed' | 'actuated';
   [key: string]: unknown;
 }
 
@@ -385,6 +400,63 @@ export function derivePerceiverConsensus(
               .map((d, i) => `${d.perceiver} derives ${JSON.stringify(positions[i])}`)
               .join('; ')}`,
           });
+        }
+      }
+    }
+  }
+
+  // 8. Affordance grounding — the cross-artifact CONTRACT (3c): an offer that
+  // DECLARES a world target claims physical groundedness, so every physical
+  // perceiver with enough data must be able to ground it. Not circular: the
+  // affordance claim and the spatial claim come from different artifacts; the
+  // differ owns the contract semantics ("the eye sees a graspable handle; the
+  // robot stack derives no reachable affordance → the surface is lying to
+  // someone"). Reach v0 is the FIXED-mobility envelope (extents touching);
+  // an 'actuated' actor abstains (its workspace is unknown until joint math
+  // lands), and a physical perceiver lacking position/extent data abstains.
+  for (const src of expressers('affordance-names')) {
+    for (const entity of src.entities) {
+      for (const offer of entity.offers ?? []) {
+        if (!offer.target) continue; // no declared binding = ungroundable, coverage
+        const actorKey = canonicalPhysicalId(entity.id);
+        const targetKey = canonicalPhysicalId(offer.target);
+        for (const p of expressers('physical-entities')) {
+          const map = new Map((p.physicalEntities ?? []).map((e) => [e.id, e]));
+          const actor = map.get(actorKey);
+          const target = map.get(targetKey);
+          const fact = `grounding:${entity.id}:${offer.action}`;
+          const claim = `${offer.action}@${offer.target}`;
+          if (!actor || !target) {
+            comparedFacts++;
+            disagreements.push({
+              fact,
+              claims: {
+                [src.perceiver]: claim,
+                [p.perceiver]: !actor ? `no physical actor "${actorKey}"` : `no physical target "${targetKey}"`,
+              },
+              detail: `${src.perceiver} offers "${offer.action}" on "${offer.target}" but ${p.perceiver} derives no physical ${!actor ? 'actor' : 'target'} — the affordance is ungrounded`,
+            });
+            continue;
+          }
+          if (actor.mobility === 'actuated') continue; // envelope unknown v0 — abstain
+          if (!actor.position || !target.position || actor.extent == null || target.extent == null) {
+            continue; // this perceiver lacks the data to run the check — abstain
+          }
+          comparedFacts++;
+          const dist = Math.hypot(
+            ...actor.position.map((v, i) => v - (target.position as number[])[i])
+          );
+          const reach = actor.extent + target.extent + POSITION_EPSILON;
+          if (dist > reach) {
+            disagreements.push({
+              fact,
+              claims: {
+                [src.perceiver]: claim,
+                [p.perceiver]: `unreachable (dist ${dist.toFixed(3)} > reach ${reach.toFixed(3)})`,
+              },
+              detail: `${src.perceiver} offers "${offer.action}" on "${offer.target}" but ${p.perceiver} derives no reachable affordance (distance ${dist.toFixed(3)} exceeds the fixed-mobility reach envelope ${reach.toFixed(3)}) — the surface is lying to someone`,
+            });
+          }
         }
       }
     }

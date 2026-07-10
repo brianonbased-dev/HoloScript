@@ -52,22 +52,42 @@ export function deriveAgentInferencePerception(
     );
   }
 
+  // Structured `source` field first (complete-config artifacts); the
+  // agent-script banner comment is the fallback for older artifacts.
   const banner = files['agent.ts'] ?? files['agent.py'] ?? '';
-  const sourceName = /^\s*\*\s*(.+?) — Agent Inference Script$/m.exec(banner)?.[1] ?? null;
+  const structuredSource = (config as { source?: unknown }).source;
+  const sourceName =
+    typeof structuredSource === 'string' && structuredSource.length > 0
+      ? structuredSource
+      : (/^\s*\*\s*(.+?) — Agent Inference Script$/m.exec(banner)?.[1] ?? null);
 
   const entities: PerceivedEntity[] = agents.map((a) => {
-    const agent = a as { name?: unknown; tools?: unknown };
+    const agent = a as { name?: unknown; tools?: unknown; tool_details?: unknown };
     if (typeof agent.name !== 'string' || agent.name.length === 0) {
       throw new Error(
         'deriveAgentInferencePerception: agent without a name in config.json — malformed artifact'
       );
     }
-    const tools = Array.isArray(agent.tools) ? agent.tools.filter((t) => typeof t === 'string') : [];
+    // Prefer tool_details (name + optional world-model target — the grounding
+    // binding); fall back to the bare name array on older artifacts.
+    const details = Array.isArray(agent.tool_details)
+      ? (agent.tool_details as Array<Record<string, unknown>>).filter(
+          (t) => typeof t?.name === 'string'
+        )
+      : null;
+    const offers = details
+      ? details.map((t) => ({
+          action: t.name as string,
+          ...(typeof t.target === 'string' && t.target.length > 0 ? { target: t.target } : {}),
+        }))
+      : (Array.isArray(agent.tools) ? agent.tools.filter((t) => typeof t === 'string') : []).map(
+          (action) => ({ action })
+        );
     return {
       id: agent.name,
       kind: 'agent',
-      offerCount: tools.length,
-      offers: tools.map((action) => ({ action })),
+      offerCount: offers.length,
+      offers,
     };
   });
 
