@@ -20,7 +20,9 @@ export function useXRLocomotion(config?: XRLocomotionConfig) {
       controller.dispose();
       ref.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // deps: [gl] only — config is captured at mount by design. (Plain comment, not an
+    // eslint-disable: react-hooks plugin isn't loaded in this package's flat config, so
+    // referencing its rule name errors with "Definition for rule ... was not found".)
   }, [gl]);
 
   useFrame(() => {

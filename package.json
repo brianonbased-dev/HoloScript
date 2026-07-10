@@ -34,7 +34,7 @@
     "preflight:full": "node scripts/preflight.mjs --full",
     "preflight:fix": "node scripts/preflight.mjs --fix",
     "validate:dockerfile": "node scripts/validate-dockerfile-build.mjs",
-    "lint": "eslint packages/*/src/**/*.ts --max-warnings 2420",
+    "lint": "eslint packages/*/src/**/*.ts --max-warnings 2420 --no-warn-ignored",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "bench": "pnpm --filter @holoscript/benchmark bench",

@@ -260,6 +260,7 @@ declare module 'monaco-editor' {
     KeyS: number;
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-namespace -- ambient shim mirrors monaco's namespace-shaped API
   export namespace languages {
     export interface ILanguageExtensionPoint {
       id: string;
@@ -272,6 +273,7 @@ declare module 'monaco-editor' {
     export function setLanguageConfiguration(languageId: string, configuration: unknown): void;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-namespace -- ambient shim mirrors monaco's namespace-shaped API
   export namespace editor {
     export interface IDisposable {
       dispose(): void;
