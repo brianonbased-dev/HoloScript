@@ -520,6 +520,16 @@ export interface UAALAccessBenchmarkResult {
 
 export type UAALCompositionDimension = 'norm' | 'counterparty' | 'affordance' | 'occlusion' | 'deadline';
 
+/**
+ * A discharge-ordering edge: the obligation `after` may only be discharged once `before` has been. A set of
+ * these can form a cycle (A after B, B after C, C after A) — the three-body case that has no consistent
+ * discharge order. Optional; absent for the ordinary independent-checklist composition IR.
+ */
+export interface UAALDischargeDependency {
+  before: string;
+  after: string;
+}
+
 export interface UAALCompositionIR {
   entities?: UAALSemanticEntity[];
   containment?: UAALContainmentRelation[];
@@ -527,6 +537,7 @@ export interface UAALCompositionIR {
   norm?: { force?: string; [key: string]: unknown };
   commitment?: { promisee?: string; [key: string]: unknown };
   time?: { now?: number; deadline?: number; [key: string]: unknown };
+  dependencies?: UAALDischargeDependency[];
   query?: UAALAffordanceQuery & { intended_recipient?: string };
   [key: string]: unknown;
 }
@@ -2455,6 +2466,180 @@ const UAAL_COMPOSITION_DIMS: UAALCompositionDimension[] = ['norm', 'counterparty
 export function recoverDischargeable(ir: UAALCompositionIR): DischargeableRecovery {
   const reasons = UAAL_COMPOSITION_DIMS.filter((dimension) => !UAAL_COMPOSITION_CHECKS[dimension](ir));
   return { dischargeable: reasons.length === 0, reasons };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Resolution (gap-aware recovery) — the "three-body disposition" at the meaning layer.
+//
+// recoverOcclusion / recoverNormStatus / recoverDischargeable each COMMIT to a boolean/enum. On
+// underdetermined input they silently coerce (missing `opaque` → "visible"; conflicting norms → the first
+// norm's status; a discharge cycle → dischargeable=false), so a genuine gap is INEXPRESSIBLE — the layer
+// cannot say "no answer follows from this IR." The resolve* functions DERIVE, from the IR structure alone,
+// whether the query is answerable at all: UAALResolution = {status:'resolved', answer} | {status:'unresolvable',
+// reason}. This is the verifier (V) for a model-emitted gap-object — given the IR, is the claimed gap real?
+// See research/2026-07-10_three-body-disposition-gap-pilot.md. Determinate IRs still resolve; only genuine
+// gaps flip to unresolvable (no false gaps — asserted by resolution.test.ts).
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type UAALGapReason =
+  | 'underdetermined'
+  | 'unprioritized_conflict'
+  | 'cyclic_dependency'
+  | 'missing_precondition';
+
+export interface UAALResolution<A = unknown> {
+  query: string;
+  status: 'resolved' | 'unresolvable';
+  answer?: A;
+  reason?: UAALGapReason;
+  obstruction?: string;
+}
+
+// Raw opacity: true | false | undefined (absent). Unlike opacityMap (which coerces absent → false via
+// Boolean()), this preserves the crucial distinction between "explicitly transparent" and "unstated".
+function rawOpacity(ir: UAALContainmentIR, id: string): boolean | undefined {
+  const entity = (ir.entities || []).find((item) => item.id === id);
+  return entity ? (entity.opaque as boolean | undefined) : undefined;
+}
+
+/**
+ * Occlusion, honest about UNDERDETERMINED opacity. recoverOcclusion coerces a missing `opaque` field to false
+ * ("visible") — indistinguishable from explicit opaque:false. resolveOcclusion walks the same object→agent
+ * enclosing chain but reads three states per container: opaque:true (definite occluder → resolved occluded),
+ * opaque:false (definitely transparent → keep looking), opaque absent (UNKNOWN). A container whose opacity is
+ * unstated and could occlude makes the query unresolvable (underdetermined); an all-transparent chain resolves
+ * occluded:false.
+ */
+export function resolveOcclusion(
+  ir: UAALContainmentIR,
+  agent: string | undefined,
+  object: string | undefined,
+): UAALResolution<OcclusionRecovery> {
+  const objectChain = enclosingChain(ir, object);
+  const agentEnclosures = new Set(enclosingChain(ir, agent));
+  let unknownContainer: string | null = null;
+  for (const container of objectChain) {
+    if (agentEnclosures.has(container)) break;
+    const opaque = rawOpacity(ir, container);
+    if (opaque === true) {
+      return { query: 'occluded', status: 'resolved', answer: { occluded: true, occluder: container } };
+    }
+    if (opaque === undefined && unknownContainer === null) {
+      unknownContainer = container;
+    }
+  }
+  if (unknownContainer !== null) {
+    return {
+      query: 'occluded',
+      status: 'unresolvable',
+      reason: 'underdetermined',
+      obstruction: `the opacity of container "${unknownContainer}" between the agent and the object is unstated`,
+    };
+  }
+  return { query: 'occluded', status: 'resolved', answer: { occluded: false, occluder: null } };
+}
+
+// A precedence/priority ranking that would break a norm conflict, declared on the IR or on either norm.
+function hasPrecedence(ir: UAALDeonticIR, a: UAALDeonticNorm, b: UAALDeonticNorm): boolean {
+  if ((ir as { precedence?: unknown }).precedence !== undefined) return true;
+  if ((ir as { priority?: unknown }).priority !== undefined) return true;
+  const rank = (norm: UAALDeonticNorm): boolean =>
+    (norm as { priority?: unknown }).priority !== undefined || (norm as { overrides?: unknown }).overrides !== undefined;
+  return rank(a) || rank(b);
+}
+
+/**
+ * Norm status, honest about an UNPRIORITIZED CONFLICT (a genuine deontic dilemma). recoverNormStatus evaluates
+ * a single norm and never compares norms, so two jointly-unsatisfiable norms silently collapse to whichever is
+ * queried. resolveNormStatus detects the crisp, expressible dilemma: two ACTIVE norms with opposing force
+ * (one O = must, one F = must-not) bearing on the SAME required_act, with no precedence declared →
+ * unresolvable (unprioritized_conflict). (Resource-contention dilemmas — two O-norms competing for one scarce
+ * resource — need an exclusivity marker the IR does not yet carry; out of scope, tracked in the pilot doc.)
+ */
+export function resolveNormStatus(ir: UAALDeonticIR, normId: string | undefined): UAALResolution<NormStatusRecovery> {
+  const active = (ir.norms || []).filter((norm) => norm.active !== false);
+  for (let i = 0; i < active.length; i += 1) {
+    for (let j = i + 1; j < active.length; j += 1) {
+      const a = active[i];
+      const b = active[j];
+      const sameAct = truthyString(a.required_act) && a.required_act === b.required_act;
+      const opposing = (a.force === 'O' && b.force === 'F') || (a.force === 'F' && b.force === 'O');
+      if (sameAct && opposing && !hasPrecedence(ir, a, b)) {
+        return {
+          query: 'norm_status',
+          status: 'unresolvable',
+          reason: 'unprioritized_conflict',
+          obstruction: `norms "${a.id}" (${a.force}) and "${b.id}" (${b.force}) both bear on act "${String(a.required_act)}" with no precedence`,
+        };
+      }
+    }
+  }
+  return { query: 'norm_status', status: 'resolved', answer: recoverNormStatus(ir, normId) };
+}
+
+// Detect a cycle in the discharge-dependency graph (edge before → after). Returns the cycle path, else null.
+function dischargeCycle(deps: UAALDischargeDependency[]): string[] | null {
+  const adjacency = new Map<string, string[]>();
+  const nodes = new Set<string>();
+  for (const dep of deps) {
+    if (!truthyString(dep.before) || !truthyString(dep.after)) continue;
+    nodes.add(dep.before);
+    nodes.add(dep.after);
+    const list = adjacency.get(dep.before) || [];
+    list.push(dep.after);
+    adjacency.set(dep.before, list);
+  }
+  const state = new Map<string, 'visiting' | 'done'>();
+  const stack: string[] = [];
+  let found: string[] | null = null;
+  const visit = (node: string): boolean => {
+    state.set(node, 'visiting');
+    stack.push(node);
+    for (const next of adjacency.get(node) || []) {
+      if (state.get(next) === 'visiting') {
+        found = stack.slice(stack.indexOf(next)).concat(next);
+        return true;
+      }
+      if (state.get(next) === undefined && visit(next)) return true;
+    }
+    stack.pop();
+    state.set(node, 'done');
+    return false;
+  };
+  for (const node of nodes) {
+    if (state.get(node) === undefined && visit(node)) return found;
+  }
+  return null;
+}
+
+/**
+ * Dischargeability, honest about a CYCLIC dependency (the three-body analog) and MISSING preconditions.
+ * recoverDischargeable runs a fixed 5-dim checklist with no dependency model, so a discharge cycle
+ * (A after B, B after C, C after A) silently collapses to dischargeable=false — reported as an ordinary block
+ * rather than "no consistent order exists." resolveDischargeable inspects the optional `dependencies` edges for
+ * a cycle → unresolvable (cyclic_dependency); and flags a stated-but-empty time constraint → unresolvable
+ * (missing_precondition). Otherwise it defers to recoverDischargeable.
+ */
+export function resolveDischargeable(ir: UAALCompositionIR): UAALResolution<DischargeableRecovery> {
+  const deps = Array.isArray(ir.dependencies) ? ir.dependencies : [];
+  const cycle = dischargeCycle(deps);
+  if (cycle) {
+    return {
+      query: 'dischargeable',
+      status: 'unresolvable',
+      reason: 'cyclic_dependency',
+      obstruction: `discharge order forms a cycle (${cycle.join(' → ')}); no obligation can act first`,
+    };
+  }
+  if (ir.time !== undefined && ir.time.now === undefined && ir.time.deadline === undefined) {
+    return {
+      query: 'dischargeable',
+      status: 'unresolvable',
+      reason: 'missing_precondition',
+      obstruction: 'a deadline constrains discharge but neither the current time nor the deadline is stated',
+    };
+  }
+  return { query: 'dischargeable', status: 'resolved', answer: recoverDischargeable(ir) };
 }
 
 export function singleBaseline(

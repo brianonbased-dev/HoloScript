@@ -1,5 +1,11 @@
 # @holoscript/uaal
 
+## 8.2.0
+
+### Minor Changes
+
+- Add gap-aware resolution to `@holoscript/uaal/semantic`: `resolveOcclusion`, `resolveNormStatus`, and `resolveDischargeable` return a `UAALResolution` that DERIVES from the IR whether a query is answerable at all — `{status:'resolved', answer}` or `{status:'unresolvable', reason}`. Unlike the committed `recover*` recognisers (which silently coerce a missing `opaque` field to "visible", conflicting norms to the first norm, and a discharge cycle to `dischargeable=false`), these distinguish *unstated* from *false*, a genuine dilemma from a single norm, and a dependency cycle from an ordinary block. Reasons: `underdetermined`, `unprioritized_conflict`, `cyclic_dependency`, `missing_precondition`. Adds the optional `UAALDischargeDependency` edge list to `UAALCompositionIR` so a discharge cycle is expressible. This is the verifier for a model-emitted gap-object (the "three-body disposition"). Determinate IRs still resolve — no false gaps.
+
 ## 8.0.10
 
 ### Patch Changes
