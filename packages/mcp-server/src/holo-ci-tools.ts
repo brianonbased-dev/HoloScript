@@ -723,7 +723,7 @@ export async function pollWorkloadAndReport(opts: {
   timeoutMs?: number;
 }): Promise<void> {
   const { repo, sha, workloadId, jobIdToGate, timeoutMs = 10 * 60 * 1000 } = opts;
-  const apiKey = readOrchestratorKey();
+  const apiKey = readEnvOrchestratorKey();
   if (!apiKey) return;
 
   const deadline = Date.now() + timeoutMs;

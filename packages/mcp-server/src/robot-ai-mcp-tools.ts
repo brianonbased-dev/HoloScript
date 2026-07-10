@@ -206,9 +206,7 @@ function persistRobotAiRegistries(): void {
 }
 
 function includesPhysicalWorldAction(actions: string[]): boolean {
-  return actions.some((action) =>
-    PHYSICAL_WORLD_ACTIONS.includes(action as SafetyEnvelope['allowedActions'][number])
-  );
+  return actions.some((action) => (PHYSICAL_WORLD_ACTIONS as readonly string[]).includes(action));
 }
 
 function genId(prefix: string): string {

@@ -128,7 +128,9 @@ async function handleFairnessSweep(args: Record<string, unknown>): Promise<unkno
     typeof args.protectedAttribute === 'string' ? args.protectedAttribute : 'group';
   const jurisdiction =
     typeof args.jurisdiction === 'string' || isPlainRecord(args.jurisdiction)
-      ? args.jurisdiction
+      ? (args.jurisdiction as
+          | import('@holoscript/engine').Simulation.FairnessJurisdiction
+          | import('@holoscript/engine').Simulation.JurisdictionConfig)
       : undefined;
 
   const sweep = await Sim.runFairnessSweep(model, cohort, {
@@ -245,11 +247,13 @@ async function handleCompileToBiasAuditReport(args: Record<string, unknown>): Pr
   const robustnessReceipt =
     isPlainRecord(args.robustnessReceipt) &&
     args.robustnessReceipt.kind === 'fairness.robustness.v1'
-      ? (args.robustnessReceipt as import('@holoscript/engine').Simulation.FairnessRobustnessReceipt)
+      ? (args.robustnessReceipt as unknown as import('@holoscript/engine').Simulation.FairnessRobustnessReceipt)
       : undefined;
   const jurisdiction =
     typeof args.jurisdiction === 'string' || isPlainRecord(args.jurisdiction)
-      ? args.jurisdiction
+      ? (args.jurisdiction as
+          | import('@holoscript/engine').Simulation.FairnessJurisdiction
+          | import('@holoscript/engine').Simulation.JurisdictionConfig)
       : undefined;
 
   return Sim.compileBiasAuditReport({

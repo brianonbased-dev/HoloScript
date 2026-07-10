@@ -3542,7 +3542,7 @@ export class CircuitBreakerRegistry { [key: string]: any; }
 export class CircuitState { [key: string]: any; }
 export class ExportManager { [key: string]: any; }
 export declare function getExportManager(options?: Partial<ExportOptions>): any;
-export type ExportTarget = 'urdf' | 'sdf' | 'unity' | 'unreal' | 'godot' | 'vrchat' | 'openxr' | 'android' | 'android-xr' | 'ios' | 'visionos' | 'webgpu' | 'wasm' | 'usd' | 'usdz' | 'dtdl' | 'multi-layer' | 'incremental' | 'state' | 'trait-composition' | 'tsl' | 'a2a-agent-card' | 'nir' | 'openxr-spatial-entities' | 'context' | '3dgs';
+export type ExportTarget = 'urdf' | 'sdf' | 'unity' | 'unreal' | 'godot' | 'vrchat' | 'openxr' | 'android' | 'android-xr' | 'ios' | 'visionos' | 'webgpu' | 'wasm' | 'usd' | 'usdz' | 'dtdl' | 'multi-layer' | 'incremental' | 'state' | 'trait-composition' | 'tsl' | 'a2a-agent-card' | 'nir' | 'openxr-spatial-entities' | 'context' | '3dgs' | 'mcp-server';
 export class ExportOptions { [key: string]: any; }
 export declare function selectModality(platform: any, options?: any): any;
 export declare function selectModalityForAll(options?: any): Map<any, any>;
@@ -4475,6 +4475,7 @@ export class HoloScriptRuntime {
   execute(ast: any, context?: any): Promise<any>;
   executeProgram(nodes: ASTNode[], depth?: number): Promise<ExecutionResult[]>;
   getContext(): RuntimeContext;
+  registerTrait(name: string, handler: unknown): void;
   startVisualizationServer(port?: number): void;
   reset(): void;
 }
@@ -5562,7 +5563,8 @@ export type ExportTarget =
   | 'openxr-spatial-entities'
   | 'context'
   | '3dgs'
-  | 'llama-server';
+  | 'llama-server'
+  | 'mcp-server';
 
 export interface HolomapPointCloudPayload {
   positionsB64: string;
@@ -5684,6 +5686,21 @@ export class WebGPUCompiler extends CompilerBase { constructor(options?: any); c
 export class SDFCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
 export class DTDLCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
 export class URDFCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
+export class HoloMCPCompiler extends CompilerBase { constructor(options?: any); compileModule(composition: any, agentToken: string, outputPath?: string): string; }
+export const DialectRegistry: {
+  register(descriptor: any): void;
+  unregister(name: string): boolean;
+  has(name: string): boolean;
+  get(name: string): any;
+  create(name: string, options?: Record<string, unknown>): CompilerBase;
+  list(): any[];
+  listByDomain(domain: string): any[];
+  names(): string[];
+  readonly size: number;
+};
+export declare function registerBuiltinDialects(): void;
+export declare function absorbFMU(input: any): any;
+export declare function streamWorldTiles(composition: any, options?: any): any;
 export class USDPhysicsCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
 export class StateCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
 export class TraitCompositionCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
@@ -6805,6 +6822,63 @@ export declare function buildKnownTraitSet(
 ): Set<string>;
 export const NATIVE2D_TRAITS: readonly string[];
 export const CODE_GRAPH_TRAITS: readonly string[];
+
+// AutoRig (traits/AutoRigTrait.ts) — re-exported via the main barrel.
+export type AutoRigRigType = 'humanoid' | 'custom';
+export type AutoRigPose = 't-pose' | 'a-pose';
+export interface NativeAutoRigPlan {
+  rig: AutoRigRigType;
+  pose: AutoRigPose;
+  source: 'native-holoscript';
+  topology: 'animation-compatible' | 'provider-native';
+  skeleton: any;
+  boneCount: number;
+  humanoidMap?: any;
+  animationCompatibility: { standard: string; retargetTargets: string[]; bindPose: AutoRigPose };
+  weighting: { solver: 'heat-diffusion-seed' | 'custom-envelope-seed'; maxInfluences: number; status: 'seeded' };
+}
+export interface AutoRigConfig {
+  rig?: AutoRigRigType;
+  pose?: AutoRigPose;
+  sourceMesh?: string;
+  topology?: 'animation-compatible' | 'provider-native';
+  objectName?: string;
+  provider?: string;
+}
+export declare function createNativeAutoRigPlan(config?: AutoRigConfig): NativeAutoRigPlan;
+
+// Audit logging (audit/AuditLogger.ts) — re-exported via the main barrel.
+export interface AuditEvent {
+  id: string;
+  timestamp: Date;
+  tenantId: string;
+  actorId: string;
+  actorType: 'user' | 'agent' | 'system';
+  action: string;
+  resource: string;
+  resourceId?: string;
+  outcome: 'success' | 'failure' | 'denied';
+  metadata: Record<string, unknown>;
+  clientIp?: string;
+  userAgent?: string;
+}
+export type AuditEventInput = Omit<AuditEvent, 'id' | 'timestamp'>;
+export interface AuditQueryFilter {
+  tenantId?: string; actorId?: string; actorType?: 'user' | 'agent' | 'system';
+  action?: string; resource?: string; resourceId?: string;
+  outcome?: 'success' | 'failure' | 'denied';
+  since?: Date; until?: Date; limit?: number; offset?: number;
+}
+export class AuditLogger {
+  constructor(storage?: any);
+  log(input: AuditEventInput): AuditEvent;
+  query(filter: AuditQueryFilter): AuditEvent[];
+  export(filter: AuditQueryFilter, format: 'json' | 'csv'): string;
+  setRetentionPolicy(tenantId: string, days: number): void;
+  getRetentionPolicy(tenantId: string): number | undefined;
+  purgeExpired(): number;
+  getEventCount(filter?: AuditQueryFilter): number;
+}
 `;
 
 const finalMainDTS =
