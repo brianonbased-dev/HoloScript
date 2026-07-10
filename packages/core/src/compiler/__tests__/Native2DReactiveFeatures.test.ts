@@ -787,6 +787,86 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
     });
   });
 
+  describe('7i. @verified_view / @projects — admission gate for agent-authored surfaces (slice 4 v0)', () => {
+    const vstate = {
+      type: 'State',
+      properties: [{ type: 'StateProperty', key: 'stats', value: { sessions: 4 } }],
+    } as HoloComposition['state'];
+    const verifiedComp = (objects: HoloObjectDecl[]): HoloComposition =>
+      ({ ...comp(objects, vstate), traits: [{ name: 'verified_view' }] } as unknown as HoloComposition);
+
+    it('WORKS: a matching projection compiles and emits the data-holo-projects receipt', () => {
+      const c = verifiedComp([
+        obj('Sessions', [
+          trait('text', { variant: 'h2' }),
+          trait('bind', { state: 'stats', path: 'sessions' }),
+          trait('projects', { node: 'stats.sessions' }),
+        ]),
+      ]);
+      const r = react(c);
+      expect(r).toContain('data-holo-projects="stats.sessions"');
+      expect(r).toContain('{stats?.sessions'); // still actually bound
+    });
+
+    it('REJECTS (VIEW-UNGROUNDED): a data-bound element with no @projects under @verified_view', () => {
+      const c = verifiedComp([
+        obj('Naked', [trait('text', { variant: 'h2' }), trait('bind', { state: 'stats', path: 'sessions' })]),
+      ]);
+      expect(() => react(c)).toThrow(/VIEW-UNGROUNDED/);
+    });
+
+    it('REJECTS (the falsification): the claim names a DIFFERENT node than the actual binding', () => {
+      // "The agent says sessions, but wired revenue" — the core lie this gate exists for.
+      const c = verifiedComp([
+        obj('Liar', [
+          trait('text', { variant: 'h2' }),
+          trait('bind', { state: 'stats', path: 'revenue' }),
+          trait('projects', { node: 'stats.sessions' }),
+        ]),
+      ]);
+      expect(() => react(c)).toThrow(/claims to project "stats\.sessions" but is actually bound to "stats\.revenue"/);
+    });
+
+    it('REJECTS: a projection rooted in a hallucinated state node', () => {
+      const c = verifiedComp([
+        obj('Ghost', [
+          trait('text', { variant: 'h2' }),
+          trait('bind', { state: 'phantom', path: 'x' }),
+          trait('projects', { node: 'phantom.x' }),
+        ]),
+      ]);
+      expect(() => react(c)).toThrow(/hallucinated node/);
+    });
+
+    it('REJECTS: @projects on an element with no data binding (a lie by construction) — even OUTSIDE the mode', () => {
+      const c = comp(
+        [obj('Static', [trait('text', { variant: 'h2', content: 'hi' }), trait('projects', { node: 'stats.sessions' })])],
+        vstate
+      );
+      expect(() => react(c)).toThrow(/no data binding at all/);
+    });
+
+    it('WORKS: a @fetch into-slot is a legitimate projection root (pre-scanned, order-independent)', () => {
+      const c = verifiedComp([
+        obj('List', [
+          trait('bind', { state: 'items', path: 'length' }),
+          trait('projects', { node: 'items.length' }),
+        ]),
+        obj('Loader', [trait('fetch', { into: 'items', endpoint: '/api/items' })]),
+      ]);
+      // the fetch container comes AFTER the bound element in document order
+      expect(react(c)).toContain('data-holo-projects="items.length"');
+    });
+
+    it('BACKWARD-COMPAT: without @verified_view, unprojected data bindings still compile', () => {
+      const c = comp(
+        [obj('Plain', [trait('text', { variant: 'h2' }), trait('bind', { state: 'stats', path: 'sessions' })])],
+        vstate
+      );
+      expect(react(c)).not.toContain('data-holo-projects');
+    });
+  });
+
   describe('7h. @live_proof — the falsifiable surface (receipt as render state)', () => {
     it('WORKS: emits a verdict badge that flips PASS/FALSIFIED on the claim', () => {
       const c = comp([

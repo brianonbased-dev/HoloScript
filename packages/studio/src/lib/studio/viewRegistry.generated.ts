@@ -4,7 +4,7 @@
 import type { StudioViewDefinition } from './viewRegistry';
 
 /** Canonical view ids in curated order — the StudioViewId literal-union source. */
-export const GENERATED_VIEW_IDS = ["palette","chat","history","profiler","shaderEditor","timeline","templatePicker","aiMaterial","share","critique","assetPack","versions","repl","registry","remote","export","generator","multiplayer","debugger","snapshots","assetLib","templateGallery","minimap","audio","exportV2","nodeGraph","keyframes","sceneSearch","particles","lod","console","undoHistory","outliner","material","physics","simulation","snapshotDiff","audioVisualizer","multiTransform","environment","inspector","hotkey","plugins","sandboxedPlugins","splatWizard","agentMonitor","compilerExport","texturePaint","adminDashboard","mcpConfig","agentWorkflow","honestMetrics","behaviorTree","liveProof","agentEnsemble","honestChart","eventMonitor","toolCallGraph","marketplace","pluginManager","cloudDeploy","publish","examples","tutorial","hotkeyOverlay","prompts","blame","dag","calibration","dragonPreview","holoDiff","sliderInspector","traitMatrix","assetImport","cinematicCamera","syntheticData","compilationPipeline","confidenceXR","operationsHub","foundationDao","runtimeTier","parametricSliders","printabilityReport","simParams","simRunReport","gameParams","gameGateLedger","avatarParams","avatarRigLedger"] as const;
+export const GENERATED_VIEW_IDS = ["palette","chat","history","profiler","shaderEditor","timeline","templatePicker","aiMaterial","share","critique","assetPack","versions","repl","registry","remote","export","generator","multiplayer","debugger","snapshots","assetLib","templateGallery","minimap","audio","exportV2","nodeGraph","keyframes","sceneSearch","particles","lod","console","undoHistory","outliner","material","physics","simulation","snapshotDiff","audioVisualizer","multiTransform","environment","inspector","hotkey","plugins","sandboxedPlugins","splatWizard","agentMonitor","compilerExport","texturePaint","adminDashboard","mcpConfig","agentWorkflow","honestMetrics","behaviorTree","liveProof","agentEnsemble","honestChart","eventMonitor","verifiedView","toolCallGraph","marketplace","pluginManager","cloudDeploy","publish","examples","tutorial","hotkeyOverlay","prompts","blame","dag","calibration","dragonPreview","holoDiff","sliderInspector","traitMatrix","assetImport","cinematicCamera","syntheticData","compilationPipeline","confidenceXR","operationsHub","foundationDao","runtimeTier","parametricSliders","printabilityReport","simParams","simRunReport","gameParams","gameGateLedger","avatarParams","avatarRigLedger"] as const;
 
 /** View definitions derived from panel .holo compositions (dogfood), in curated order. */
 export const GENERATED_VIEW_REGISTRY: StudioViewDefinition[] = [
@@ -808,6 +808,19 @@ export const GENERATED_VIEW_REGISTRY: StudioViewDefinition[] = [
     "exclusiveWith": []
   },
   {
+    "id": "verifiedView",
+    "title": "Verified View",
+    "icon": "ShieldCheck",
+    "category": "debug",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.verifiedView.toggle",
+    "workspaceScope": "workspace",
+    "availabilityGate": "expert",
+    "surfaceClass": "lab",
+    "defaultOpen": false,
+    "exclusiveWith": []
+  },
+  {
     "id": "toolCallGraph",
     "title": "Tool Call Graph",
     "icon": "Zap",
@@ -1578,6 +1591,10 @@ export const GENERATED_VIEW_SLOTS: Record<string, { component: string; import: s
   "undoHistory": {
     "component": "UndoHistorySidebar",
     "import": "@/components/history/UndoHistorySidebar"
+  },
+  "verifiedView": {
+    "component": "VerifiedViewComponent",
+    "import": "@/components/panels/native/verifiedView.native"
   },
   "versions": {
     "component": "VersionHistoryPanel",

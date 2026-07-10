@@ -67,6 +67,9 @@ export class Native2DCompiler extends CompilerBase {
    *  `@provenance_bound` or the compiler refuses to emit it (HONEST-UNSOURCED). This is
    *  the Receipt-Bound Surface constitution — the surface cannot emit an unsourced pixel. */
   private _honestMode = false;
+  private _verifiedViewMode = false;
+  /** Valid projection roots: composition state keys + @fetch into-slots (pre-scanned). */
+  private _projectionRoots = new Set<string>();
 
   /**
    * 2D data-value provenance vocabulary, ordered by TRUST (highest → lowest),
@@ -106,6 +109,11 @@ export class Native2DCompiler extends CompilerBase {
     // Honest mode: composition-level `@honest` trait turns on the no-unsourced-pixel gate.
     this._honestMode = ((composition as { traits?: Array<{ name?: string }> } | undefined)?.traits ?? [])
       .some((t) => t?.name === 'honest');
+    // Verified-view mode (slice 4): composition-level `@verified_view` requires
+    // every data-bound element to DECLARE its projection (@projects), verified
+    // against the actual binding — the admission gate for agent-authored surfaces.
+    this._verifiedViewMode = ((composition as { traits?: Array<{ name?: string }> } | undefined)?.traits ?? [])
+      .some((t) => t?.name === 'verified_view');
 
     const safeName = name.replace(/[^a-zA-Z0-9]/g, '');
 
@@ -115,6 +123,25 @@ export class Native2DCompiler extends CompilerBase {
         this._stateFields.set(prop.key, prop.value ?? null);
       }
     }
+
+    // Projection roots (slice 4): the names a @projects claim may legitimately
+    // resolve against — composition state keys plus every @fetch into-slot,
+    // PRE-SCANNED so a projection is never order-dependent on where its fetch
+    // container sits in the tree. A claim rooted anywhere else is a
+    // hallucinated node (VIEW-UNGROUNDED).
+    this._projectionRoots = new Set(this._stateFields.keys());
+    const scanFetchRoots = (objs: Array<Record<string, unknown>>): void => {
+      for (const o of objs) {
+        for (const t of (o.traits as Array<{ name?: string; config?: Record<string, unknown> }> | undefined) ?? []) {
+          if (t?.name === 'fetch') {
+            const into = (t.config as { into?: unknown } | undefined)?.into;
+            this._projectionRoots.add(typeof into === 'string' && into ? into : 'data');
+          }
+        }
+        if (Array.isArray(o.children)) scanFetchRoots(o.children as Array<Record<string, unknown>>);
+      }
+    };
+    scanFetchRoots(objects as unknown as Array<Record<string, unknown>>);
 
     // Generate JSX from objects
     const jsx = objects
@@ -370,6 +397,11 @@ export default ${safeName}Component;
     // before the element branch so the attributes reach chart/sparkline/generic alike.
     const prov = this.resolveProvenance(traits, obj);
     if (prov) props += prov.propsStr;
+
+    // Verified view (slice 4): enforce the projection contract + emit the
+    // projection receipt. Same placement rationale as resolveProvenance.
+    const proj = this.resolveProjection(traits, obj);
+    if (proj) props += proj;
 
     if (traits.theme?.className) {
       classes.push(traits.theme.className);
@@ -1497,6 +1529,76 @@ export default ${safeName}Component;
    * class is rejected (fail toward lower trust — never silently upgraded to measured).
    * Returns null when the element is not provenance-bound (no attributes, no glyph).
    */
+  /**
+   * @verified_view / @projects — the admission gate for agent-authored
+   * surfaces (slice 4 of the Receipt-Bound Surface, honest v0).
+   *
+   * `@projects { node: "stats.sessions" }` is the AUTHOR'S CLAIM of which
+   * world-model node an element renders. This compiler owns the actual data
+   * path (@bind/@chart/@sparkline/@model → state[.path]), so the claim is
+   * verified as compiler-owned DATA-FLOW — the two sides are independently
+   * authored, which is exactly what the shallow "source is non-empty" version
+   * (rejected as theater in the slice-4 warning) lacks. Checks, all fatal
+   * (VIEW-UNGROUNDED):
+   *   1. a declared projection must MATCH the element's actual bound path —
+   *      "the agent says sessions but wired revenue" fails to compile;
+   *   2. a projection must root in a REAL node (composition state or a @fetch
+   *      into-slot) — a hallucinated node fails to compile;
+   *   3. a projection on an element with NO data binding is a lie by
+   *      construction — fails to compile;
+   *   4. under composition-level `@verified_view`, every data-bound element
+   *      MUST declare a projection (mirrors HONEST-UNSOURCED).
+   * Checks 1–3 are always-on (a lying receipt is worse than none); check 4 is
+   * the mode. Verified elements emit `data-holo-projects` so independent
+   * consumers can re-check the claim against the artifact. HONEST SCOPE:
+   * runtime re-derivation against a live graph.holo world model (the full
+   * research-spec `projects:` semantics + SimulationContract co-emission) is
+   * v1+ — this v0 proves what the compiler can prove, statically.
+   */
+  private resolveProjection(traits: Record<string, any>, obj: Record<string, unknown>): string | null {
+    const nm = () => String((obj as { name?: unknown }).name ?? 'element');
+    // The element's ACTUAL bound data path, from whichever binding trait it carries.
+    const src = traits.bind?.state
+      ? { state: traits.bind.state, path: traits.bind.path }
+      : traits.chart?.state
+        ? { state: traits.chart.state, path: traits.chart.path }
+        : traits.sparkline?.state
+          ? { state: traits.sparkline.state, path: traits.sparkline.path }
+          : traits.model?.state
+            ? { state: traits.model.state, path: traits.model.path }
+            : null;
+    const actualPath = src ? `${String(src.state)}${src.path ? '.' + String(src.path) : ''}` : null;
+
+    const pj = traits.projects;
+    if (!pj) {
+      if (this._verifiedViewMode && actualPath) {
+        throw new Error(
+          `Native2DCompiler @verified_view: VIEW-UNGROUNDED — "${nm()}" renders data without @projects {node}; an agent-authored surface ships only if every element declares what it renders`
+        );
+      }
+      return null;
+    }
+
+    const node = this.assertSafeDotPath(String(pj.node ?? ''), '@projects node');
+    if (!actualPath) {
+      throw new Error(
+        `Native2DCompiler @projects: VIEW-UNGROUNDED — "${nm()}" claims to project "${node}" but has no data binding at all; the claim is a lie by construction`
+      );
+    }
+    if (node !== actualPath) {
+      throw new Error(
+        `Native2DCompiler @projects: VIEW-UNGROUNDED — "${nm()}" claims to project "${node}" but is actually bound to "${actualPath}"; the surface would lie about its source`
+      );
+    }
+    const root = node.split('.')[0];
+    if (!this._projectionRoots.has(root)) {
+      throw new Error(
+        `Native2DCompiler @projects: VIEW-UNGROUNDED — "${nm()}" projects "${node}" but no state node "${root}" exists (hallucinated node; declared state keys and @fetch slots: ${[...this._projectionRoots].join(', ') || 'none'})`
+      );
+    }
+    return ` data-holo-projects="${node}"`;
+  }
+
   private resolveProvenance(
     traits: Record<string, any>,
     obj: Record<string, unknown>

@@ -98,5 +98,6 @@ export const VIEW_COMPONENTS: Record<string, ComponentType<unknown>> = {
   "traitMatrix": dynamic(() => import("@/components/registry/TraitSupportMatrixDashboard").then((m) => ({ default: pick(m as AnyModule, "TraitSupportMatrixDashboard") }))),
   "tutorial": dynamic(() => import("@/components/wizard/FirstLaunchTutorial").then((m) => ({ default: pick(m as AnyModule, "FirstLaunchTutorial") }))),
   "undoHistory": dynamic(() => import("@/components/history/UndoHistorySidebar").then((m) => ({ default: pick(m as AnyModule, "UndoHistorySidebar") }))),
+  "verifiedView": dynamic(() => import("@/components/panels/native/verifiedView.native").then((m) => ({ default: pick(m as AnyModule, "VerifiedViewComponent") }))),
   "versions": dynamic(() => import("@/components/versionControl/VersionHistoryPanel").then((m) => ({ default: pick(m as AnyModule, "VersionHistoryPanel") }))),
 };

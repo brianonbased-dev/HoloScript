@@ -1,0 +1,43 @@
+@view({ id: "verifiedView", title: "Verified View", icon: "ShieldCheck", category: "debug", placement: "right-rail", scope: "workspace", gate: "expert", surfaceClass: "lab", defaultOpen: false, exclusiveWith: [], order: 51 })
+composition "verifiedView" {
+  @native_panel
+  @verified_view
+
+  state {
+    stats: { sessions: 42, errors: 3 }
+  }
+
+  object "Root" {
+    @layout { flex: "column", gap: "8px" }
+    @theme { className: "p-3 h-full overflow-y-auto text-xs text-studio-text" }
+
+    object "Title" {
+      @text { variant: "h3", content: "Verified view" }
+      @theme { className: "text-sm font-semibold text-studio-text" }
+    }
+    object "Subtitle" {
+      @text { variant: "caption", content: "Every bound element DECLARES what it renders; the compiler proves the claim against the actual binding (VIEW-UNGROUNDED otherwise)" }
+      @theme { className: "text-[10px] text-studio-muted" }
+    }
+    object "SessionsLabel" {
+      @text { variant: "caption", content: "Sessions (projects stats.sessions)" }
+      @theme { className: "text-[10px] text-studio-muted mt-1" }
+    }
+    object "Sessions" {
+      @text { variant: "h2" }
+      @bind { state: "stats", path: "sessions", fallback: "0" }
+      @projects { node: "stats.sessions" }
+      @theme { className: "text-lg font-bold text-studio-accent" }
+    }
+    object "ErrorsLabel" {
+      @text { variant: "caption", content: "Errors (projects stats.errors)" }
+      @theme { className: "text-[10px] text-studio-muted mt-1" }
+    }
+    object "Errors" {
+      @text { variant: "h2" }
+      @bind { state: "stats", path: "errors", fallback: "0" }
+      @projects { node: "stats.errors" }
+      @theme { className: "text-lg font-bold text-studio-text" }
+    }
+  }
+}
