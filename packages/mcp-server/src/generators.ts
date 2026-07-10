@@ -6,6 +6,7 @@
 
 import { createProviderManager, type LLMProviderName } from '@holoscript/llm-provider';
 import { parseHolo } from '@holoscript/core';
+import { enforceVerifiedViewReceipts, isProvenanceComplete } from '@holoscript/core/reconstruction';
 import type { HoloParseResult, HoloParseError } from '@holoscript/core';
 
 // Inline utility — avoids an @holoscript/std peer dependency
@@ -2238,33 +2239,77 @@ export async function generateSemanticUIForMCP(
   description: string,
   _options: any = {}
 ): Promise<any> {
-  const aiPrompt = `Create a V6 Semantic2D composition for: ${description}. Use @2d_canvas, @semantic_layout, @semantic_entity, and other Semantic2D traits. Return only code.`;
+  // The generated surface is agent-authored: it must route through the Native2DCompiler
+  // @verified_view gate — every data-bound element declares what it renders (@projects)
+  // and the compiler proves that claim against the actual binding. So the prompt asks for
+  // the provenance-complete shape, and whatever comes back is completed + verified below.
+  const aiPrompt = `Create a V6 Semantic2D composition for: ${description}. Use @2d_canvas, @semantic_layout, @semantic_entity, and other Semantic2D traits. When the surface shows DATA: declare composition state, bind each data element with @bind { state, path }, and give every bound element a provenance receipt @projects { node: "<state>.<path>" } naming EXACTLY what it renders; add composition-level @verified_view. Return only code.`;
   const aiResult = await tryGenerateWithAI(aiPrompt, 'holo');
   const code = aiResult ? normalizeSceneAIOutput(aiResult.code) : '';
 
   if (aiResult && isUsableSceneCode(code)) {
-    return {
-      code,
-      format: 'holo',
-      source: 'ai',
-      provider: aiResult.provider,
-      traits: aiResult.detectedTraits,
-    };
+    // Complete any receipts the model omitted, then keep the surface ONLY if it is
+    // provably honest under the gate. An AI surface that can't be made provenance-complete
+    // falls back to the heuristic floor rather than shipping an unverifiable claim.
+    const enforced = enforceVerifiedViewReceipts(code);
+    if (isProvenanceComplete(enforced)) {
+      return {
+        code: enforced,
+        format: 'holo',
+        source: 'ai',
+        provider: aiResult.provider,
+        traits: aiResult.detectedTraits,
+        verifiedView: true,
+      };
+    }
+    // else: fall through to the provenance-complete heuristic below (honest floor)
   }
 
   return {
-    code: `composition "SemanticApp" {
-  object "Root" {
-    @2d_canvas { projection: "flat-semantic" }
-    @semantic_layout { flow: "column" }
-    
-    object "Element" {
-      @semantic_entity { type: "container" }
-      @dynamic_visual { color: "blue" }
-    }
-  }
-}`,
+    code: buildVerifiedSemanticUiHeuristic(description),
     format: 'holo',
     source: 'heuristic',
+    verifiedView: true,
   };
+}
+
+/**
+ * Heuristic floor for generate_semantic_ui: a provenance-complete @verified_view surface
+ * with data-bound stat readouts, each carrying its derived @projects receipt. Compiles
+ * clean through the Native2DCompiler gate (pinned by the core round-trip test). The final
+ * enforceVerifiedViewReceipts pass guarantees completeness even if this template is edited.
+ */
+function buildVerifiedSemanticUiHeuristic(description: string): string {
+  const title = description.replace(/["\\\r\n]/g, ' ').trim().slice(0, 80) || 'Semantic surface';
+  const raw = `composition "SemanticApp" {
+  @2d_canvas { projection: "flat-semantic" }
+  @verified_view
+  state {
+    metrics: { sessions: 0, errors: 0 }
+  }
+  object "Root" {
+    @semantic_layout { flow: "column" }
+    @layout { flex: "column", gap: "8px" }
+    object "Title" {
+      @text { variant: "h3", content: "${title}" }
+    }
+    object "SessionsLabel" {
+      @text { variant: "caption", content: "Sessions" }
+    }
+    object "Sessions" {
+      @text { variant: "h2" }
+      @bind { state: "metrics", path: "sessions", fallback: "0" }
+      @projects { node: "metrics.sessions" }
+    }
+    object "ErrorsLabel" {
+      @text { variant: "caption", content: "Errors" }
+    }
+    object "Errors" {
+      @text { variant: "h2" }
+      @bind { state: "metrics", path: "errors", fallback: "0" }
+      @projects { node: "metrics.errors" }
+    }
+  }
+}`;
+  return enforceVerifiedViewReceipts(raw);
 }

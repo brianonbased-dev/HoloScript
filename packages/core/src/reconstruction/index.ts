@@ -41,3 +41,11 @@ export * from './PerceiverConsensusReceipt';
 export * from './webgpuPerceiverDerivation';
 export * from './agentInferencePerceiverDerivation';
 export * from './urdfPerceiverDerivation';
+
+// @verified_view — make agent-authored 2D surfaces provenance-complete so they
+// route through the Native2DCompiler @verified_view gate by default (Slice 4 consumer).
+export {
+  enforceVerifiedViewReceipts,
+  isProvenanceComplete,
+  derivedProjectionNode,
+} from './enforceVerifiedViewReceipts';

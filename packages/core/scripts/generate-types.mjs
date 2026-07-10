@@ -7161,6 +7161,12 @@ export declare function deriveAgentInferencePerception(
 ): PerceiverDerivation;
 export declare const URDF_PERCEIVER: 'urdf';
 export declare function deriveUrdfPerception(artifact: string): PerceiverDerivation;
+/** @verified_view — make agent-authored 2D surfaces provenance-complete for the gate. */
+export declare function enforceVerifiedViewReceipts(source: string): string;
+export declare function isProvenanceComplete(source: string): boolean;
+export declare function derivedProjectionNode(
+  config: Record<string, unknown> | undefined
+): string | null;
 `;
 
 const worldDTS = `/** @holoscript/core/world — Native world generation adapters/service */
