@@ -37,6 +37,19 @@ export interface Attestation {
   seatId: string;
   /** Who signed this attestation: ecosystem-root / platform-root / a parent wallet. */
   authorizedBy: string;
+  /**
+   * Role granted by this attestation, copied verbatim from the signed
+   * envelope's `role` field (e.g. 'agent', 'attestation-authority').
+   *
+   * Load-bearing for delegated attestation authority (founder directive
+   * 2026-07-10): `attestation-routes.ts::resolveAttestationAuthority` accepts
+   * a non-founder `authorized_by` ONLY when this registry holds an ACTIVE
+   * attestation for that address with role === 'attestation-authority' that
+   * was itself authorized by the founder anchor. Optional because pre-existing
+   * records (and non-envelope attest() callers) never carried a role — those
+   * records simply can never act as a delegated authority.
+   */
+  role?: string;
   /** ISO 8601 issuance timestamp. */
   issuedAt: string;
   /** ISO 8601 expiry; null = never expires. */

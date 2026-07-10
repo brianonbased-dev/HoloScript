@@ -28,6 +28,14 @@
  * `auth-utils.requireAuth`. The Trezor signature is the cryptographic root;
  * Bearer-token auth is just the channel.
  *
+ * Delegated attestation authority (founder directive 2026-07-10): in addition
+ * to the founder anchor, `authorized_by` may be a hot wallet the founder has
+ * attested with role 'attestation-authority' (one Trezor via-tx click). That
+ * wallet signs seat attestations programmatically via the off-chain /approve
+ * path, but may only attest role 'agent' — never mint another authority
+ * (depth-1 rule). /revoke stays founder-only and revoking the authority's own
+ * attestation disables it. See `resolveAttestationAuthority`.
+ *
  * Spec: research/2026-04-21_seat-wallets-adr.md §"Attestation flow (founder
  * side)", §"Attestation format" (lines 138-152), §"Key-derivation correction
  * (2026-04-22)".
@@ -41,7 +49,7 @@ import { json, parseJsonBody } from '../utils';
 import { requireAuth } from '../auth-utils';
 import { broadcastToRoom } from '../team-room';
 import { getAttestationRegistry } from '../identity/signing-middleware';
-import type { Attestation } from '../identity/attestation-registry';
+import type { Attestation, AttestationRegistry } from '../identity/attestation-registry';
 
 /** Founder Trezor anchor on Base mainnet (S.ANC: m/44'/60'/0'/0/0). */
 const DEFAULT_FOUNDER_ANCHOR = '0x0C574397150Ad8d9f7FEF83fe86a2CBdf4A660E3';
@@ -57,8 +65,9 @@ function attestationDomain(env: NodeJS.ProcessEnv = process.env) {
   return { name: 'HoloMesh', version: '1', chainId };
 }
 
-/** Typed data spec for an attestation envelope. */
-const ATTESTATION_TYPES = {
+/** Typed data spec for an attestation envelope. Exported so tests / clients
+ *  can build byte-identical envelopes without re-declaring the schema. */
+export const ATTESTATION_TYPES = {
   Attestation: [
     { name: 'seat_id', type: 'string' },
     { name: 'seat_pubkey', type: 'address' },
@@ -316,12 +325,24 @@ export async function processAttestationViaTx(
       reason: 'malformed-authorized-by',
     };
   }
-  if (message.authorized_by.toLowerCase() !== founderAnchor) {
+  const registry = options.registry ?? getAttestationRegistry();
+  const authority = resolveAttestationAuthority(message.authorized_by, registry, founderAnchor);
+  if (!authority.ok) {
     return {
       seat_id: seatId,
       seat_pubkey: seatPubkey,
       status: 'rejected',
-      reason: 'authorized-by-not-founder-anchor',
+      reason: authority.reason,
+    };
+  }
+  // DEPTH-1 RULE: only the founder mints authorities; a delegated authority
+  // may only attest 'agent' envelopes (see resolveAttestationAuthority).
+  if (authority.kind === 'delegated' && message.role !== 'agent') {
+    return {
+      seat_id: seatId,
+      seat_pubkey: seatPubkey,
+      status: 'rejected',
+      reason: 'delegated-authority-cannot-mint-authority',
     };
   }
 
@@ -395,7 +416,12 @@ export async function processAttestationViaTx(
       reason: `tx-receipt-status-${receipt.status}`,
     };
   }
-  if (tx.from.toLowerCase() !== founderAnchor) {
+  // The anchoring self-tx must come from the wallet standing behind the
+  // envelope. For the founder kind this is exactly the pre-delegation
+  // founder-anchor comparison (the resolver only returns 'founder' when
+  // authorized_by === founderAnchor); for a delegated authority it binds the
+  // chain proof to the authority's own hot wallet.
+  if (tx.from.toLowerCase() !== message.authorized_by.toLowerCase()) {
     return {
       seat_id: seatId,
       seat_pubkey: seatPubkey,
@@ -413,10 +439,12 @@ export async function processAttestationViaTx(
   }
 
   // All chain proofs valid — register the attestation.
-  const registry = options.registry ?? getAttestationRegistry();
   const att: Attestation = {
     publicKey: message.seat_pubkey,
     seatId: message.seat_id,
+    // Persisted so resolveAttestationAuthority can recognize a delegated
+    // 'attestation-authority' seat later (load-bearing for delegation).
+    role: message.role,
     authorizedBy: message.authorized_by,
     issuedAt: message.issued_at,
     expiresAt: message.expires_at && message.expires_at.length > 0 ? message.expires_at : null,
@@ -439,16 +467,93 @@ function isHexSignature(s: unknown): s is string {
   return typeof s === 'string' && /^0x[0-9a-fA-F]+$/.test(s) && s.length >= 132;
 }
 
+/** Result of resolving who is allowed to stand behind an envelope's `authorized_by`. */
+export type AttestationAuthorityResolution =
+  | { ok: true; kind: 'founder' | 'delegated' }
+  | { ok: false; reason: string };
+
+/**
+ * DELEGATED ATTESTATION AUTHORITY (founder directive 2026-07-10).
+ *
+ * WHY: attesting the full fleet (59 seats) founder-side means 59 Trezor
+ * confirms — unacceptable. And W.GOLD.514 made per-seat Trezor
+ * eth_signTypedData_v4 unreliable (Rabby signs with whichever account is
+ * active, so recovery against `authorized_by` fails), which is why the
+ * founder path went via-tx in the first place. The delegation model: the
+ * founder attests ONE hot wallet with role 'attestation-authority' (a single
+ * Trezor via-tx click through the existing /approve-via-tx flow); that hot
+ * wallet then signs seat attestations programmatically through the existing
+ * off-chain /approve path — hot-wallet viem signatures don't have the
+ * W.GOLD.514 canonicalization problem.
+ *
+ * Resolution rules:
+ *   - `authorizedBy` IS the founder anchor (case-insensitive) → kind 'founder'.
+ *     Byte-identical to the pre-delegation behavior.
+ *   - Otherwise `authorizedBy` must map to an ACTIVE registry attestation
+ *     (not retired, not expired) whose role === 'attestation-authority' and
+ *     which was itself authorized by the founder anchor → kind 'delegated'.
+ *     Revoking that attestation (founder-only /revoke) is the revocation
+ *     lever: the resolver rejects the authority from that moment on.
+ *   - Anything else → { ok: false }. An unknown wallet keeps the legacy
+ *     'authorized-by-not-founder-anchor' reason so existing clients see the
+ *     same rejection they always did.
+ *
+ * DEPTH-1 RULE (enforced at the call sites, where the envelope's role is in
+ * hand): a 'delegated' authority may only attest role === 'agent' envelopes.
+ * Only the founder mints authorities — a delegated authority can NEVER attest
+ * another 'attestation-authority' (reason
+ * 'delegated-authority-cannot-mint-authority'), so the delegation chain can
+ * never grow deeper than one hop.
+ */
+export function resolveAttestationAuthority(
+  authorizedBy: string,
+  registry: AttestationRegistry,
+  founderAnchor: string
+): AttestationAuthorityResolution {
+  const normalized = authorizedBy.toLowerCase();
+  if (normalized === founderAnchor.toLowerCase()) {
+    return { ok: true, kind: 'founder' };
+  }
+  const att = registry.lookup(normalized);
+  if (!att) {
+    // Legacy reason string — un-delegated wallets are rejected exactly as
+    // they were before delegation existed.
+    return { ok: false, reason: 'authorized-by-not-founder-anchor' };
+  }
+  if (att.role !== 'attestation-authority') {
+    return { ok: false, reason: 'authorized-by-not-attestation-authority' };
+  }
+  if (att.authorizedBy.toLowerCase() !== founderAnchor.toLowerCase()) {
+    // Defense-in-depth with the depth-1 rule: even if a non-founder-minted
+    // record carrying the authority role ever landed in the registry, it
+    // cannot act as an authority.
+    return { ok: false, reason: 'delegated-authority-not-founder-minted' };
+  }
+  if (!registry.isAttested(normalized)) {
+    // Retired (founder /revoke — the revocation lever) or expired via expires_at.
+    return { ok: false, reason: 'delegated-authority-revoked-or-expired' };
+  }
+  return { ok: true, kind: 'delegated' };
+}
+
 async function verifyAttestationSignature(
   env: AttestationEnvelope,
   founderAnchor: string,
-  domain: ReturnType<typeof attestationDomain>
+  domain: ReturnType<typeof attestationDomain>,
+  registry: AttestationRegistry
 ): Promise<{ valid: boolean; reason?: string }> {
   if (!isHexAddress(env.seat_pubkey)) return { valid: false, reason: 'malformed-seat-pubkey' };
   if (!isHexAddress(env.authorized_by)) return { valid: false, reason: 'malformed-authorized-by' };
   if (!isHexSignature(env.signature)) return { valid: false, reason: 'malformed-signature' };
-  if (env.authorized_by.toLowerCase() !== founderAnchor) {
-    return { valid: false, reason: 'authorized-by-not-founder-anchor' };
+  const authority = resolveAttestationAuthority(env.authorized_by, registry, founderAnchor);
+  if (!authority.ok) {
+    return { valid: false, reason: authority.reason };
+  }
+  // DEPTH-1 RULE: a delegated authority may only attest 'agent' envelopes —
+  // never mint another authority. Checked before signature recovery, mirroring
+  // the placement of the original founder-anchor equality check.
+  if (authority.kind === 'delegated' && env.role !== 'agent') {
+    return { valid: false, reason: 'delegated-authority-cannot-mint-authority' };
   }
   const message = {
     seat_id: env.seat_id,
@@ -513,7 +618,8 @@ export async function processAttestation(
 ): Promise<ApproveResult> {
   const founderAnchor = options.founderAnchor ?? getFounderAnchor();
   const domain = options.domain ?? attestationDomain();
-  const sigResult = await verifyAttestationSignature(env, founderAnchor, domain);
+  const registry = options.registry ?? getAttestationRegistry();
+  const sigResult = await verifyAttestationSignature(env, founderAnchor, domain, registry);
   if (!sigResult.valid) {
     return {
       seat_id: env.seat_id,
@@ -522,10 +628,12 @@ export async function processAttestation(
       reason: sigResult.reason,
     };
   }
-  const registry = options.registry ?? getAttestationRegistry();
   const att: Attestation = {
     publicKey: env.seat_pubkey,
     seatId: env.seat_id,
+    // Persisted so resolveAttestationAuthority can recognize a delegated
+    // 'attestation-authority' seat later (load-bearing for delegation).
+    role: env.role,
     authorizedBy: env.authorized_by,
     issuedAt: env.issued_at,
     expiresAt: env.expires_at && env.expires_at.length > 0 ? env.expires_at : null,
