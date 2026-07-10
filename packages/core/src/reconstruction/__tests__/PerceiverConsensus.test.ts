@@ -14,9 +14,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { WebGPUCompiler } from '../../compiler/WebGPUCompiler';
 import { AgentInferenceCompiler } from '../../compiler/AgentInferenceExportTarget';
+import { URDFCompiler } from '../../compiler/URDFCompiler';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 import { deriveWebGPUPerception } from '../webgpuPerceiverDerivation';
 import { deriveAgentInferencePerception } from '../agentInferencePerceiverDerivation';
+import { deriveUrdfPerception } from '../urdfPerceiverDerivation';
 import {
   derivePerceiverConsensus,
   PERCEIVER_CONSENSUS_VERSION,
@@ -67,7 +69,8 @@ function compileBoth() {
     comp,
     'test-token'
   );
-  return { webgpuArtifact, agentFiles };
+  const urdfArtifact = new URDFCompiler({}).compile(comp, 'test-token');
+  return { webgpuArtifact, agentFiles, urdfArtifact };
 }
 
 describe('@cross_perceiver_contract — 2-perceiver consensus (webgpu + agent-inference)', () => {
@@ -211,5 +214,130 @@ describe('@cross_perceiver_contract — 2-perceiver consensus (webgpu + agent-in
     expect(() =>
       deriveAgentInferencePerception({ ...agentFiles, 'config.json': '{"agents": "nope"}' })
     ).toThrow(/no agents\[\]/);
+  });
+});
+
+describe('@cross_perceiver_contract 3b — the URDF robot perceiver', () => {
+  it('DERIVES (robot): visual links as canonical physical entities; kinematic plumbing excluded; agent facts abstained', () => {
+    const { urdfArtifact } = compileBoth();
+    const d = deriveUrdfPerception(urdfArtifact);
+    expect(d.perceiver).toBe('urdf');
+    expect(d.sourceName).toBe('consensusProbe');
+    // base_link has no <visual> — structurally excluded, not by name convention.
+    expect(d.physicalEntities?.map((e) => e.id).sort()).toEqual(['doorhandle', 'handlebot']);
+    expect(d.physicalEntities?.find((e) => e.id === 'handlebot')).toMatchObject({
+      geometry: 'sphere',
+      position: [1, 2, 3],
+    });
+    expect(d.physicalEntities?.find((e) => e.id === 'doorhandle')).toMatchObject({
+      geometry: 'box',
+      position: [1, 2.5, 3],
+    });
+    // The robot stack has no agent vocabulary — it abstains rather than claiming absence.
+    expect(d.entities).toEqual([]);
+    expect(d.expresses).not.toContain('agent-entities');
+    expect(d.coverageGaps).toContain('agent-entities');
+  });
+
+  it('ID CONTRACT: the eye folds HandleBot to the same canonical physical id the robot emits', () => {
+    const { webgpuArtifact } = compileBoth();
+    const d = deriveWebGPUPerception(webgpuArtifact);
+    expect(d.physicalEntities?.map((e) => e.id).sort()).toEqual(['doorhandle', 'handlebot']);
+    expect(d.physicalEntities?.find((e) => e.id === 'handlebot')?.label).toBe('HandleBot');
+  });
+
+  it('3-WAY CONSENSUS: eye + agent + robot agree on every mutually-expressible fact', () => {
+    const { webgpuArtifact, agentFiles, urdfArtifact } = compileBoth();
+    const receipt = derivePerceiverConsensus([
+      deriveWebGPUPerception(webgpuArtifact),
+      deriveAgentInferencePerception(agentFiles),
+      deriveUrdfPerception(urdfArtifact),
+    ]);
+    expect(receipt.verdict).toBe('CONSENSUS');
+    expect(receipt.disagreements).toEqual([]);
+    expect(receipt.perceivers.map((p) => p.perceiver)).toEqual([
+      'agent-inference',
+      'urdf',
+      'webgpu',
+    ]);
+    // Physical facts now actually compared: presence x2 + geometry x2 + position x2
+    // on top of sourceName + agent presence + offerCount.
+    expect(receipt.comparedFacts).toBeGreaterThanOrEqual(9);
+  });
+
+  it('RED-FLIP (robot geometry): a hand-broken link geometry falsifies with the named fact', () => {
+    const { webgpuArtifact, agentFiles, urdfArtifact } = compileBoth();
+    const broken = urdfArtifact.replace('<sphere radius="0.5"/>', '<box size="1 1 1"/>');
+    expect(broken).not.toBe(urdfArtifact);
+
+    const receipt = derivePerceiverConsensus([
+      deriveWebGPUPerception(webgpuArtifact),
+      deriveAgentInferencePerception(agentFiles),
+      deriveUrdfPerception(broken),
+    ]);
+    expect(receipt.verdict).toBe('FALSIFIED');
+    expect(receipt.disagreements).toHaveLength(1);
+    expect(receipt.disagreements[0].fact).toBe('physical:handlebot:geometry');
+    expect(receipt.disagreements[0].claims).toEqual({ webgpu: 'sphere', urdf: 'box' });
+  });
+
+  it('RED-FLIP (robot presence): a deleted link falsifies presence — and the agent abstains', () => {
+    const { webgpuArtifact, agentFiles, urdfArtifact } = compileBoth();
+    const broken = urdfArtifact.replace(/<link\s+name="doorhandle">[\s\S]*?<\/link>/, '');
+    expect(broken).not.toBe(urdfArtifact);
+
+    const receipt = derivePerceiverConsensus([
+      deriveWebGPUPerception(webgpuArtifact),
+      deriveAgentInferencePerception(agentFiles),
+      deriveUrdfPerception(broken),
+    ]);
+    expect(receipt.verdict).toBe('FALSIFIED');
+    expect(receipt.disagreements[0].fact).toBe('physical:doorhandle');
+    // ONLY physical-fact perceivers appear in the claims — the agent perceiver
+    // cannot express physical entities, so it is never recorded as 'absent'.
+    expect(receipt.disagreements[0].claims).toEqual({ webgpu: 'present', urdf: 'absent' });
+  });
+
+  it('RED-FLIP (robot position): a shifted visual origin falsifies beyond epsilon', () => {
+    const { webgpuArtifact, agentFiles, urdfArtifact } = compileBoth();
+    const broken = urdfArtifact.replaceAll('xyz="1 2 3"', 'xyz="1 2 9"');
+    expect(broken).not.toBe(urdfArtifact);
+
+    const receipt = derivePerceiverConsensus([
+      deriveWebGPUPerception(webgpuArtifact),
+      deriveAgentInferencePerception(agentFiles),
+      deriveUrdfPerception(broken),
+    ]);
+    expect(receipt.verdict).toBe('FALSIFIED');
+    expect(receipt.disagreements[0].fact).toBe('physical:handlebot:position');
+    expect(receipt.disagreements[0].claims).toEqual({
+      webgpu: '[1,2,3]',
+      urdf: '[1,2,9]',
+    });
+  });
+
+  it('ABSTENTION (agent facts): a broken affordance count never implicates the robot', () => {
+    const { webgpuArtifact, agentFiles, urdfArtifact } = compileBoth();
+    const config = JSON.parse(agentFiles['config.json']);
+    config.agents[0].tools = config.agents[0].tools.slice(0, 1);
+    const broken = { ...agentFiles, 'config.json': JSON.stringify(config, null, 2) };
+
+    const receipt = derivePerceiverConsensus([
+      deriveWebGPUPerception(webgpuArtifact),
+      deriveAgentInferencePerception(broken),
+      deriveUrdfPerception(urdfArtifact),
+    ]);
+    expect(receipt.verdict).toBe('FALSIFIED');
+    expect(receipt.disagreements[0].fact).toBe('entity:HandleBot:offerCount');
+    expect(Object.keys(receipt.disagreements[0].claims).sort()).toEqual([
+      'agent-inference',
+      'webgpu',
+    ]);
+  });
+
+  it('INDEPENDENCE: the robot extractor rejects foreign artifact kinds, and vice versa', () => {
+    const { webgpuArtifact, urdfArtifact } = compileBoth();
+    expect(() => deriveUrdfPerception(webgpuArtifact)).toThrow(/not a URDF robot description/);
+    expect(() => deriveWebGPUPerception(urdfArtifact)).toThrow(/not a WebGPU compile artifact/);
   });
 });

@@ -1,0 +1,26 @@
+// @urdf_perceiver_derivation — the "robot stack" perceiver of @cross_perceiver_contract (3b).
+//
+// Native .hsplus surface for core/reconstruction/urdfPerceiverDerivation.ts.
+//
+// Re-derives world facts from the EMITTED URDF XML ONLY (never the source AST —
+// G.UI-SHIFT.selfpass): physical entities from <link> elements carrying <visual>
+// (kinematic plumbing like base_link is excluded STRUCTURALLY, not by name), geometry
+// from the visual primitive, position from the visual origin, source name from the
+// artifact banner. Ids follow the canonical physical-id contract (URDF sanitizes link
+// names). NO agent/affordance vocabulary — this perceiver ABSTAINS from agent facts
+// (declared expresses, never a silent 'absent'). Malformed artifacts fail LOUD.
+
+@trait urdf_perceiver_derivation {
+  capability_tags: ["perceiver_derivation", "urdf_perceiver", "robot_perceiver", "cross_perceiver_contract", "artifact_rederivation", "core"]
+
+  @on_derive(artifact) => {
+    derivation = derive_urdf_perception(artifact)
+    return derivation
+  }
+
+  @receipt urdf_perceiver_config {
+    type: "PerceiverDerivation"
+    fields: ["perceiver", "artifactHash", "expresses", "sourceName", "entities", "physicalEntities", "coverageGaps"]
+    timestamp: now()
+  }
+}

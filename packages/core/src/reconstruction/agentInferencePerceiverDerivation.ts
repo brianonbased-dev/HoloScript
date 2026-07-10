@@ -81,6 +81,7 @@ export function deriveAgentInferencePerception(
   return {
     perceiver: AGENT_INFERENCE_PERCEIVER,
     artifactHash: hash.digest('hex'),
+    expresses: ['source-name', 'agent-entities', 'affordance-count', 'affordance-names'],
     sourceName,
     entities,
     coverageGaps: ['spatial-position', 'geometry', 'non-agent-entities'],
