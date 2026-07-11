@@ -405,12 +405,14 @@ export class LlamaServerCompiler extends CompilerBase {
       ),
       attributionHeader:
         this.stringValue(raw, 'attributionHeader', 'attribution_header') ?? 'X-Holo-Agent',
+      // Generic service-state defaults so no owned-metal volume path ships in the published
+      // compiler; callers point these at their own storage via traceReceiptsDir/traceCapsulesDir.
       traceReceiptsDir:
         this.stringValue(raw, 'traceReceiptsDir', 'trace_receipts_dir') ??
-        '/mnt/nvme2/holo-volumes/receipts/inference',
+        '/var/lib/holoscript/receipts/inference',
       traceCapsulesDir:
         this.stringValue(raw, 'traceCapsulesDir', 'trace_capsules_dir') ??
-        '/mnt/nvme2/holo-volumes/model-scratch/datasets/live-traces',
+        '/var/lib/holoscript/model-scratch/live-traces',
       traceCapsuleDailyMb: this.numberValue(
         raw,
         256,

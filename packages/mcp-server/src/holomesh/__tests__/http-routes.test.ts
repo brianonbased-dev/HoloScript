@@ -183,17 +183,17 @@ function buildDoneLogArchiveManifest(
     },
     files: {
       sqlite: {
-        path: '/mnt/nvme2/holo-volumes/service-data/mcp-server/room-task-archive/room-done-log.sqlite',
+        path: '/var/lib/holoscript/mcp-server/room-task-archive/room-done-log.sqlite',
         bytes: 4096,
         sha256: 'a'.repeat(64),
       },
       allNdjson: {
-        path: '/mnt/nvme2/holo-volumes/service-data/mcp-server/room-task-archive/room-done-log.ndjson',
+        path: '/var/lib/holoscript/mcp-server/room-task-archive/room-done-log.ndjson',
         bytes: 2048,
         sha256: doneLogArchiveNdjsonSha256(archiveOrderedEntries),
       },
       staleNdjson: {
-        path: '/mnt/nvme2/holo-volumes/service-data/mcp-server/room-task-archive/room-done-log-stale.ndjson',
+        path: '/var/lib/holoscript/mcp-server/room-task-archive/room-done-log-stale.ndjson',
         bytes: 1024,
         sha256: doneLogArchiveNdjsonSha256(staleEntries),
       },
@@ -209,7 +209,7 @@ function jetsonDoneLogArchiveReceipt() {
   return {
     ok: true,
     host: 'holojetson.local',
-    directory: '/mnt/nvme2/holo-volumes/service-data/mcp-server/room-task-archive',
+    directory: '/var/lib/holoscript/mcp-server/room-task-archive',
     files: [
       'room-done-log.sqlite',
       'room-done-log.ndjson',

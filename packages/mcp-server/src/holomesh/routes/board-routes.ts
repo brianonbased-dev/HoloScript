@@ -82,8 +82,11 @@ import { deriveApprovalReversibility } from './founder-approval-policy';
 
 const MAX_FEED_QUERY = 100;
 const ROOM_DONE_LOG_ARCHIVE_SCHEMA = 'room-done-log-archive/v0.1.0';
+// Env-driven so no owned-metal volume path ships as a default literal in the published package;
+// operators point HOLO_DONE_LOG_ARCHIVE_DIR at their own storage.
 const JETSON_DONE_LOG_ARCHIVE_DIR =
-  '/mnt/nvme2/holo-volumes/service-data/mcp-server/room-task-archive';
+  process.env.HOLO_DONE_LOG_ARCHIVE_DIR ??
+  '/var/lib/holoscript/mcp-server/room-task-archive';
 const SHA256_HEX = /^[a-f0-9]{64}$/i;
 
 type BoardProvenanceParseResult =

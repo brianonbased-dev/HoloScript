@@ -3630,7 +3630,7 @@ ${browserJs}
       if (!options.host) {
         cliError('E001', 'No target host specified.', {
           usage: 'holoscript deploy <package-dir> --host <ip-or-hostname>',
-          hint: 'Add `--host <ip>` — e.g. `--host 192.168.1.100` or `--host pi.local`.',
+          hint: 'Add `--host <ip>` — e.g. `--host edge.local` or `--host pi.local`.',
         });
         process.exit(1);
       }

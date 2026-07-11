@@ -1223,7 +1223,7 @@ echo "[setup] done. Status: systemctl status holoscript_agent | Logs: journalctl
       `#    systemctl status holoscript_agent`,
       `#    curl http://localhost:9090/  # monitor health`,
       ``,
-      `# 4. For Jetson (holojetson.local):`,
+      `# 4. For Jetson (jetson.local):`,
       `#    HOLOSCRIPT_AGENT_PROVIDER=local-llm \\`,
       `#    HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL=${ollamaUrl} \\`,
       `#    node packages/holoscript-agent/dist/index.js tick`,

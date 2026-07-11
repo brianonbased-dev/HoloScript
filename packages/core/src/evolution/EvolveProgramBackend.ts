@@ -332,7 +332,7 @@ export async function runEvolution(
 
 /**
  * Default sovereign proposer wired to a local Ollama endpoint (local metal — e.g.
- * the Jetson at `http://holojetson.local:11434`). Asks for the FULL revised
+ * the Jetson at `http://jetson.local:11434`). Asks for the FULL revised
  * program (no diff applier exists in the repo) and strips markdown fences. The
  * caller chooses the model; never pass a blacklisted qwen2.5 (W.738).
  */

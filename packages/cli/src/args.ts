@@ -969,10 +969,10 @@ Usage: holoscript <command> [options] [input]
   \x1b[2m# Edge Deployment\x1b[0m
   holoscript package scene.holo --platform linux-arm64   # Package for Raspberry Pi
   holoscript package . -o dist/edge                      # Package current directory
-  holoscript deploy dist/edge --host 192.168.1.100       # Deploy via SSH
+  holoscript deploy dist/edge --host edge.local          # Deploy via SSH
   holoscript deploy dist/edge --host pi.local -u pi      # Deploy with username
-  holoscript monitor 192.168.1.100                       # Live monitoring
-  holoscript monitor 192.168.1.100 --dashboard           # Real-time dashboard
+  holoscript monitor edge.local                          # Live monitoring
+  holoscript monitor edge.local --dashboard              # Real-time dashboard
 
   \x1b[2m# Headless Chrome Rendering (Puppeteer)\x1b[0m
   holoscript screenshot scene.holo                       # Capture PNG screenshot
