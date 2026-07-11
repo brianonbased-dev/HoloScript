@@ -150,6 +150,8 @@ describe('from-scratch MCP tools', () => {
     expect(getToolRiskLevel('holo_from_scratch_launch')).toBe('critical');
     expect(authorizeToolCall('holo_from_scratch_launch', ['tools:read']).authorized).toBe(false);
     expect(authorizeToolCall('holo_from_scratch_launch', ['tools:admin']).authorized).toBe(true);
+    expect(getToolScopes('batch_tool_call')).toEqual(['tools:read']);
+    expect(getToolRiskLevel('batch_tool_call')).toBe('medium');
   });
 
   it('requires a model id for launch (before any spend or dispatch)', async () => {

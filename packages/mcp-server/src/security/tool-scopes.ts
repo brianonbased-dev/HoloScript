@@ -64,6 +64,10 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   workflow_memory_read: ['tools:read'],
   workflow_memory_subscribe: ['tools:read'],
 
+  // === Batch meta-tools (each inner call is re-authorized independently) ===
+  batch_tool_call: ['tools:read'],
+  holoscript_batch_execute: ['tools:read'],
+
   // === Sovereign from-scratch training ===
   holo_from_scratch_status: ['tools:read'],
   holo_from_scratch_launch: ['tools:admin'],
@@ -277,6 +281,10 @@ const TOOL_RISK_MAP: Record<string, ToolRiskLevel> = {
   hs_hover: 'low',
   hs_docs: 'low',
   holo_from_scratch_status: 'low',
+
+  // Meta-dispatch is side-effect free itself; inner tools retain their own risk.
+  batch_tool_call: 'medium',
+  holoscript_batch_execute: 'medium',
 
   // Medium risk: generates content but no side effects
   suggest_traits: 'medium',

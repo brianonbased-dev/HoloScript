@@ -362,7 +362,10 @@ async function runCli(
   try {
     const { stdout, stderr } = await execFileAsync(process.execPath, [cli, ...argv], {
       cwd: root,
-      timeout: 60_000,
+      // Paid launch performs two fail-closed cap/wallet checks before create,
+      // then arms the host watchdog and records the rental before returning.
+      // Keep the MCP parent alive long enough to receive that atomic closeout.
+      timeout: 180_000,
       maxBuffer: 4 * 1024 * 1024,
       // Never inherit a shell — argv is passed verbatim to node, no interpolation.
       windowsHide: true,

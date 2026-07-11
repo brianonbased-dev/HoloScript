@@ -86,6 +86,7 @@ import { handleBatchToolCall } from './tooling-discovery-tools';
 import { listSkillResources, readSkillResource } from './skill-resources';
 import { isHologramMcpResponse, wrapHologramMcpEnvelope } from '@holoscript/core';
 import type { SigningContext } from './holomesh/identity/signing-middleware';
+import { authorizeToolCall } from './security/tool-scopes';
 
 declare const __SERVICE_VERSION__: string;
 
@@ -262,6 +263,7 @@ export async function executeSingleTool(
       }>;
       const results: unknown[] = [];
       for (const req of requests) {
+        assertBatchInnerToolAuthorized(String(req.name || ''), signingCtx);
         const res = await executeSingleTool(
           String(req.name || ''),
           req.arguments || {},
@@ -280,6 +282,7 @@ export async function executeSingleTool(
 
     if (name === 'batch_tool_call') {
       const batchResult = await handleBatchToolCall(args || {}, async (toolName, toolArgs) => {
+        assertBatchInnerToolAuthorized(toolName, signingCtx);
         const res = await executeSingleTool(toolName, toolArgs || {}, signingCtx);
 
         if ((res as { isError?: boolean }).isError) {
@@ -309,6 +312,23 @@ export async function executeSingleTool(
       content: [{ type: 'text', text: JSON.stringify({ error: message }, null, 2) }],
       isError: true,
     };
+  }
+}
+
+/**
+ * Batch meta-tools are authorized at the outer transport boundary, but their
+ * children are distinct tool invocations with potentially stronger scopes.
+ * Re-check every child against the original request scopes before dispatch.
+ * An absent context is the trusted local stdio path, which has no OAuth token.
+ */
+function assertBatchInnerToolAuthorized(toolName: string, signingCtx?: SigningContext): void {
+  if (!signingCtx) return;
+
+  const authorization = authorizeToolCall(toolName, signingCtx.scopes ?? []);
+  if (!authorization.authorized) {
+    throw new Error(
+      `Batch inner tool authorization denied for "${toolName}": ${authorization.reason ?? 'insufficient scope'}`
+    );
   }
 }
 
@@ -440,6 +460,7 @@ async function executeBatchInnerTool(
   toolArgs: Record<string, unknown>,
   signingCtx?: SigningContext
 ): Promise<unknown> {
+  assertBatchInnerToolAuthorized(toolName, signingCtx);
   const res = await _handleSingleToolLogic(toolName, toolArgs || {}, signingCtx);
 
   if ((res as { isError?: boolean }).isError) {
