@@ -16,8 +16,12 @@ RUN find packages services benchmarks -name "package.json" -not -path "*/node_mo
 FROM base AS builder
 WORKDIR /app
 
-# Copy workspace config + all package.json manifests
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+# Copy workspace config + all package.json manifests.
+# .npmrc carries `shamefully-hoist=true` — REQUIRED so undeclared-but-hoisted type
+# deps resolve during core's public-subpath declaration emit (generate-types.mjs,
+# line ~36). Missing .npmrc = strict pnpm layout = TS2307. Mirrors
+# infrastructure/Dockerfile.absorb-service + packages/studio/Dockerfile.
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml .npmrc ./
 COPY --from=manifests /manifests/ ./
 
 # Install dependencies
@@ -50,7 +54,7 @@ RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nodejs
 
 # Copy workspace config + all manifests for lockfile resolution
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml .npmrc ./
 COPY --from=manifests /manifests/ ./
 
 # Install production dependencies
