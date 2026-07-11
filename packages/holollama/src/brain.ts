@@ -142,7 +142,7 @@ export const HOLOLLAMA_BRAIN_CONSUMER_PROFILE_DEFINITIONS: Record<
     deviceClass: 'jetson',
     description: 'Always-on owned-metal Brain consumer on the Jetson HoloShell appliance.',
     holoLlamaProfile: 'jetson-orin',
-    deviceAliases: ['jetson', 'orin', 'holojetson', 'jetson-orin', 'jetson-orin-super', 'edge'],
+    deviceAliases: ['jetson', 'orin', 'jetson-orin', 'jetson-orin-super', 'edge'],
   },
   'laptop-owned-metal': {
     id: 'laptop-owned-metal',

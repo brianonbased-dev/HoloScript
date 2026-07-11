@@ -15,7 +15,7 @@
 export interface PeerEntry {
   /** Display handle for the peer (used as the honest "who answered" label). */
   handle?: string;
-  /** LLM endpoint base URL (e.g. http://192.168.0.23:11434) — required to route. */
+  /** LLM endpoint base URL (e.g. http://laptop.local:11434) — required to route. */
   baseUrl: string;
   /** Model id to request on that node. Falls back to the caller's default. */
   model?: string;

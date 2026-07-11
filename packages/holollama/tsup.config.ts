@@ -10,7 +10,9 @@ export default defineConfig({
     },
   },
   clean: true,
-  sourcemap: true,
+  // Sourcemaps embed the full original source (which trips the public-consumption leak scanner and
+  // widens the published surface). Omit them like @holoscript/memory; debug from src, not the tarball.
+  sourcemap: false,
   shims: true,
   splitting: false,
   target: 'node20',

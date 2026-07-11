@@ -8,7 +8,7 @@
  * one line: `await host.bindMind(await buildPortableMind(cfg))` — so the SAME agent that ran on a
  * compute node inhabits the headset body carrying its identity + memory (the node->headset hop).
  *
- * ANCHOR COHERENCE (informed by the holojetson canary, W.820): the identity wallet is DERIVED from
+ * ANCHOR COHERENCE (informed by the shared-key canary, W.820): the identity wallet is DERIVED from
  * the signing private key (`new Wallet(privateKey).address`), never taken from a separately-declared
  * address. This makes "identity wallet == signing key" true by construction, so a node whose
  * declared address drifts from its key cannot produce an incoherent portable mind through this path.

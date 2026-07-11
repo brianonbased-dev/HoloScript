@@ -146,7 +146,7 @@ console.log(report.ok);
 
 const live = await probeHoloLlamaLiveLifecycle({
   profile: 'jetson-orin',
-  endpoint: 'http://192.168.0.119:18080',
+  endpoint: 'http://jetson.local:18080', // or set HOLO_LLAMA_JETSON_ENDPOINT
   skipSystemd: true,
 });
 console.log(live.runtimeState);
@@ -163,3 +163,19 @@ server.
 Run `corepack pnpm check:holollama-consumption` after building to prove the
 built API and CLI are consumable by laptop, Jetson, and Vast fleet lanes. The
 gate exercises the operational receipts from built artifacts before publish.
+
+## Package boundary & release posture
+
+This is a **v0-preview** operator tool for planning, inspecting, and live-proving
+llama.cpp serving nodes. It **does not ship** any private workspace, wallet, or
+owned-metal path: every host, endpoint, and storage coordinate is env-driven
+(`HOLO_LLAMA_JETSON_ENDPOINT`, `HOLO_LLAMA_JETSON_SSH_HOST`,
+`HOLO_LLAMA_JETSON_MODELS_DIR`, …). The shipped `jetson-orin` profile is a
+clearly-labeled **reference**, **not the package default** — point it at your own
+node before use.
+
+**Known limitations:** the built-in profiles cover the laptop / Jetson / Vast
+lanes only; other hosts need a new profile. The live-lifecycle probe assumes a
+reachable `llama-server` and systemd unit that *you* supply, and it reports state
+rather than performing any rollback of a running server — the tool inspects, you
+operate. Interfaces may change before the v1 release.

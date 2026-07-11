@@ -4,7 +4,7 @@
 //   - DECLARED wallet (HOLOSCRIPT_AGENT_WALLET — what the mesh registered)
 //   - SIGNING key (HOLOSCRIPT_AGENT_WALLET_PRIVATE_KEY — real signing authority)
 //
-// When they diverge (mis-pasted key, shared .env — the holojetson incident),
+// When they diverge (mis-pasted key, shared .env — the shared-key incident, W.820),
 // the agent silently signed as the WRONG wallet. This trait catches it at boot.
 //
 // Coherence decisions (wallet-coherence.ts):

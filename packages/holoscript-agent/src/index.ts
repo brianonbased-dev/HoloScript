@@ -121,7 +121,7 @@ async function cmdRun(opts: { once: boolean }): Promise<void> {
   let seat = loadSeatWallet(identity.handle);
   // Wallet coherence self-heal (W.820): the seat key MUST derive the declared identity wallet.
   // A mismatch means the key is not this agent's identity key (a mis-pasted / shared-.env stray —
-  // the holojetson incident). We never sign as the wrong wallet: emit a loud canary and either
+  // the shared-key incident, W.820). We never sign as the wrong wallet: emit a loud canary and either
   // drop the stray key to operate bearer-only as the true identity, or halt. Coherent agents are
   // unaffected.
   const coherence = decideWalletCoherence({
@@ -627,7 +627,7 @@ function loadSeatWallet(handle: string): SeatWallet | undefined {
     try {
       const wallet = new Wallet(rawKey);
       // Deprecation nudge: a plaintext wallet key in .env is the leak-prone path (W.721/F.106) and
-      // the exact shape behind the holojetson stray-key incident (W.820 — a single shared .env key
+      // the exact shape behind the stray-key incident (W.820 — a single shared .env key
       // belonging to neither agent). Prefer an encrypted seat file (wallet.enc + master-key, the
       // SEATS_ROOT path below). One line at boot; the wallet still loads.
       console.warn(
@@ -776,7 +776,7 @@ OPTIONAL ENV
   HOLOSCRIPT_AGENT_LOCAL_LLM_TIMEOUT_MS  local-llm request timeout in ms (default 300000 — edge devices like Jetson need >120s)
   HOLOSCRIPT_AGENT_LOCAL_KNOWLEDGE_PATH  local JSONL path for sovereign private knowledge store (bypasses mcp-orchestrator /knowledge/sync)
   HOLOSCRIPT_AGENT_PEER_REGISTRY     peer registry for ask_peer/council capability→node resolution: inline JSON or a file path,
-                                     e.g. '[{"handle":"laptop","baseUrl":"http://192.168.0.23:11434","model":"qwen3:4b-instruct","capabilities":["hardware"]}]'
+                                     e.g. '[{"handle":"laptop","baseUrl":"http://laptop.local:11434","model":"qwen3:4b-instruct","capabilities":["hardware"]}]'
   HOLOSCRIPT_AGENT_PEER_BASE_URL     single fallback peer endpoint for ask_peer/council when the registry has no match (else self-consult)
   HOLOSCRIPT_AGENT_PEER_MODEL        model id to request on the peer node (default: the agent's own model)
 `);

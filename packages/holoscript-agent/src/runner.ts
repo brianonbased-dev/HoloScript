@@ -1,7 +1,7 @@
 import type { ILLMProvider, LLMMessage, TokenUsage, ToolUseBlock } from '@holoscript/llm-provider';
 import { embedAcrossFleet, cosineSimilarity, createLocalLLMProvider } from '@holoscript/llm-provider';
 import { readFileSync, appendFileSync, mkdirSync } from 'node:fs';
-import { freemem } from 'node:os';
+import { freemem, tmpdir } from 'node:os';
 import { join as pathJoin } from 'node:path';
 import { resolvePeer, parsePeerRegistry, type PeerEntry } from './peer-registry.js';
 import type { CostGuard } from './cost-guard.js';
@@ -622,10 +622,12 @@ export class AgentRunner {
         // Auto-commit (W.780/W.781): qwen3:4b cannot chain vision_analyze → write_file even
         // with two targeted re-prompts. Write the Fara-7B caption directly from the runner
         // rather than leaving the task with a CAEL record but no file artifact.
+        const sharedDir =
+          process.env.HOLOSCRIPT_AGENT_SHARED_DIR ?? pathJoin(tmpdir(), 'holoscript-agent', 'shared');
         const outPath =
           target.description.match(/path[:\s]+([^\s\n,]+\.json)/i)?.[1] ??
           target.description.match(/(\/[/\w./-]+\.json)/i)?.[1] ??
-          `/mnt/nvme/holo/agent/shared/vision-${target.id}.json`;
+          pathJoin(sharedDir, `vision-${target.id}.json`);
         const syntheticWrite: ToolUseBlock = {
           type: 'tool_use',
           id: 'auto-vision-write',

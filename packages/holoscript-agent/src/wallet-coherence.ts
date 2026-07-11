@@ -6,7 +6,7 @@
  *   - the SIGNING key (`HOLOSCRIPT_AGENT_WALLET_PRIVATE_KEY`), whose derived address is the real
  *     cryptographic identity used for broker proof + EIP-191 signing.
  * When they diverge (a mis-pasted key, or a shared `.env` whose single key belongs to neither of
- * two agents — the holojetson incident), the agent silently signed as the WRONG wallet.
+ * two agents — the shared-key incident, W.820), the agent silently signed as the WRONG wallet.
  *
  * The fix is to make every agent catch this itself, with no human:
  *   - coherent  → use the key normally.
@@ -18,7 +18,7 @@
  *     would mean operating as the stray wallet. Refuse.
  *   - `HOLOSCRIPT_AGENT_WALLET_COHERENCE_HALT=1` → HALT on any mismatch (strict/CI environments).
  *
- * IMPORTANT (the holojetson lesson): the KEY is NOT automatically the truth. The declared wallet is
+ * IMPORTANT (the shared-key lesson, W.820): the KEY is NOT automatically the truth. The declared wallet is
  * what the mesh registered (with its memories); a stray key must be rejected, not adopted. This is
  * why we degrade to the bearer (declared identity) rather than "trust the key".
  *

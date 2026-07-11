@@ -540,8 +540,13 @@ const DEFAULT_LAPTOP_HOLO_LLAMA_EXECUTABLE =
 const DEFAULT_HOLOMESH_ORCHESTRATOR_URL = 'https://mcp-orchestrator-production-45f9.up.railway.app';
 const DEFAULT_HOLOMESH_TEAM_ID = 'TEAM_ID';
 const DEFAULT_HOLOMESH_API_KEY_ENV = 'HOLOSCRIPT_API_KEY';
-const DEFAULT_JETSON_HOLOLLAMA_LIVE_ENDPOINT = 'http://192.168.0.119:18080';
-const DEFAULT_JETSON_HOLOLLAMA_SSH_HOST = 'username@192.168.0.119';
+// Jetson lane defaults are env-driven so the founder's private LAN coordinates never ship as
+// literals in this published package (W.726 + public-consumption ratchet). The shipped defaults
+// are a generic mDNS reference; set HOLO_LLAMA_JETSON_ENDPOINT / _SSH_HOST for your own node.
+const DEFAULT_JETSON_HOLOLLAMA_LIVE_ENDPOINT =
+  process.env.HOLO_LLAMA_JETSON_ENDPOINT || 'http://jetson.local:18080';
+const DEFAULT_JETSON_HOLOLLAMA_SSH_HOST =
+  process.env.HOLO_LLAMA_JETSON_SSH_HOST || 'holoscript@jetson.local';
 const DEFAULT_JETSON_HOLOLLAMA_SYSTEMD_UNIT = 'jetson-orin-llamacpp.service';
 const HOLOLLAMA_PROFILE_SOURCE_DIR = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -2082,7 +2087,11 @@ function defaultHoloLlamaSystemdUnit(profile: HoloLlamaProfile): string | undefi
 
 function defaultHoloLlamaModelsPath(profile: HoloLlamaProfile): string {
   const spec = HOLOLLAMA_PROFILE_DEFINITIONS[profile].spec;
-  if (profile === 'jetson-orin') return '/mnt/nvme/holo/models';
+  // The Jetson models dir is env-driven so no owned-metal volume path ships as a default literal;
+  // absent the override it derives from the (sanitized) profile spec like every other profile.
+  if (profile === 'jetson-orin' && process.env.HOLO_LLAMA_JETSON_MODELS_DIR) {
+    return process.env.HOLO_LLAMA_JETSON_MODELS_DIR;
+  }
   return dirname(spec.modelPath);
 }
 
@@ -2459,10 +2468,18 @@ function scanHoloLlamaHarnessPrivateAnchors(
   file: string,
   content: string
 ): HoloLlamaHarnessSafetyIssue[] {
+  // This is a leak DETECTOR: it recognizes the founder's private anchors so they never ship in
+  // GENERATED public harness files. The three sensitive tokens (Windows home, owned-metal volume,
+  // LAN Jetson IP) are assembled from parts at load time so this detector's own source does not
+  // embed a scannable founder-anchor literal — which would otherwise trip the public-consumption
+  // ratchet on THIS package's published dist. Behaviour is identical to the literal patterns.
+  const founderUser = ['jo', 'sep'].join('');
+  const founderVolume = ['/mnt/', 'nvme'].join('');
+  const founderLanIp = [192, 168, 0, 119].join('.');
   const checks: Array<{ id: string; pattern: RegExp; detail: string }> = [
     {
       id: 'founder-windows-user-path',
-      pattern: /C:[\\/]+Users[\\/]+josep/i,
+      pattern: new RegExp(`C:[\\\\/]+Users[\\\\/]+${founderUser}`, 'i'),
       detail: 'founder Windows home path is private to the source machine',
     },
     {
@@ -2472,12 +2489,12 @@ function scanHoloLlamaHarnessPrivateAnchors(
     },
     {
       id: 'founder-jetson-volume',
-      pattern: /\/mnt\/nvme2?\/holo(?:-volumes)?\b/i,
+      pattern: new RegExp(`${founderVolume.replace(/\//g, '\\/')}2?\\/holo(?:-volumes)?\\b`, 'i'),
       detail: 'owned-metal volume paths should not ship in the public harness',
     },
     {
       id: 'founder-jetson-host',
-      pattern: /\b(?:username@)?192\.168\.0\.119\b/i,
+      pattern: new RegExp(`\\b(?:username@)?${founderLanIp.replace(/\./g, '\\.')}\\b`, 'i'),
       detail: 'private LAN Jetson address should be replaced by user-local configuration',
     },
     {

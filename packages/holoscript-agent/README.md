@@ -20,7 +20,7 @@ npm i -g @holoscript/holoscript-agent
 ```bash
 # 1. point at your local Ollama + a tool-calling model
 export HOLOSCRIPT_AGENT_PROVIDER=local-llm
-export HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL=http://localhost:11434   # or http://holojetson.local:11434
+export HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL=http://localhost:11434   # or http://your-jetson.local:11434
 export HOLOSCRIPT_AGENT_LOCAL_LLM_MODEL=qwen3:4b-instruct           # a proven tool-caller; avoid qwen2.5* (emits prose, not tool_calls)
 
 # 2. identity (the bearer name MUST equal the agent's registered handle)
@@ -111,6 +111,21 @@ holoscript-agent supervise --config=agents.json
 `@holoscript/holoscript-agent` and its subpaths: `./runner`, `./brain`, `./cost-guard`,
 `./identity`, `./commit-hook`, `./ablation`, `./supervisor`, `./supervisor-config`,
 `./provision`, `./audit-log` — for embedding the runtime instead of using the CLI.
+
+## Package boundary & release posture
+
+This is a **v0-preview** headless agent runtime. It **does not ship** any private
+workspace, wallet, `.env`, or hardware-specific adapter: the peer registry, the
+shared-output directory (`HOLOSCRIPT_AGENT_SHARED_DIR`), and every LLM endpoint are
+caller-supplied via environment variables. The **package boundary** stops at that
+contract — founder-local coordinates are **not the package default**; you bring
+your own hosts, models, and credentials.
+
+**Known limitations:** tool-calling reliability depends on the local model you
+point it at (qwen3 tool-callers are proven; qwen2.5* tends to emit prose instead
+of `tool_calls`). Vision auto-write is a fallback for models that cannot chain
+`vision_analyze → write_file`. This is a **preview** surface and interfaces may
+change before the v1 release.
 
 ## License
 
