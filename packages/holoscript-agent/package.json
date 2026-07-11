@@ -72,7 +72,9 @@
   },
   "files": [
     "bin",
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsup",

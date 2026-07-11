@@ -27,6 +27,7 @@
     "profiles",
     "CHANGELOG.md",
     "README.md",
+    "LICENSE",
     "templates"
   ],
   "scripts": {
