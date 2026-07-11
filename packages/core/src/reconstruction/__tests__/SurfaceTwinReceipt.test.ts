@@ -8,6 +8,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   checkSurfaceTwinCorrespondence,
+  verifySurfaceTwinLive,
   type SurfaceTwinProjection,
 } from '../SurfaceTwinReceipt';
 
@@ -121,5 +122,71 @@ describe('checkSurfaceTwinCorrespondence', () => {
     const r2 = checkSurfaceTwinCorrespondence(input('ba'));
     expect(r1.verdict).toBe('FALSIFIED');
     expect(r1.receiptHash).toBe(r2.receiptHash);
+  });
+});
+
+describe('verifySurfaceTwinLive — injected authoritative fetch (production-shaped)', () => {
+  const contract = {
+    projections: [proj('Temp', 'reactor.temp', true, 'reactor-7')],
+  };
+
+  it('CONSENSUS when the fetched authoritative value matches the displayed value', async () => {
+    const r = await verifySurfaceTwinLive({
+      contract,
+      displayedValues: { 'reactor.temp': 800 },
+      fetchAuthoritativeState: async (e) => (e === 'reactor-7' ? { temp: 800 } : null),
+    });
+    expect(r.verdict).toBe('CONSENSUS');
+    expect(r.checked).toBe(1);
+  });
+
+  it('CANARY: FALSIFIED when the live twin value diverges', async () => {
+    const r = await verifySurfaceTwinLive({
+      contract,
+      displayedValues: { 'reactor.temp': 800 },
+      fetchAuthoritativeState: async () => ({ temp: 951 }),
+    });
+    expect(r.verdict).toBe('FALSIFIED');
+    expect(r.divergences[0]).toMatchObject({ entity: 'reactor-7', displayed: 800, authoritative: 951 });
+  });
+
+  it('a fetch FAILURE abstains as authority-unavailable — NOT a false FALSIFIED', async () => {
+    const thrown = await verifySurfaceTwinLive({
+      contract,
+      displayedValues: { 'reactor.temp': 800 },
+      fetchAuthoritativeState: async () => {
+        throw new Error('StateAuthority unreachable');
+      },
+    });
+    expect(thrown.verdict).toBe('CONSENSUS'); // could not reach the twin ≠ the dashboard lied
+    expect(thrown.checked).toBe(0);
+    expect(thrown.abstentions).toEqual([
+      { node: 'reactor.temp', entity: 'reactor-7', reason: 'authority-unavailable' },
+    ]);
+
+    const nullResult = await verifySurfaceTwinLive({
+      contract,
+      displayedValues: { 'reactor.temp': 800 },
+      fetchAuthoritativeState: async () => null, // unreachable → null
+    });
+    expect(nullResult.abstentions[0].reason).toBe('authority-unavailable');
+  });
+
+  it('fetches each distinct entity once (dedupes)', async () => {
+    const calls: string[] = [];
+    await verifySurfaceTwinLive({
+      contract: {
+        projections: [
+          proj('A', 'e.a', true, 'ent'),
+          proj('B', 'e.b', true, 'ent'), // same entity
+        ],
+      },
+      displayedValues: { 'e.a': 1, 'e.b': 2 },
+      fetchAuthoritativeState: async (e) => {
+        calls.push(e);
+        return { a: 1, b: 2 };
+      },
+    });
+    expect(calls).toEqual(['ent']); // one fetch, not two
   });
 });

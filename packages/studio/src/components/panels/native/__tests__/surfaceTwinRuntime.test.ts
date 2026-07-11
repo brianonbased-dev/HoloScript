@@ -21,6 +21,7 @@ import { describe, it, expect } from 'vitest';
 import {
   extractDisplayedProjections,
   checkSurfaceTwinCorrespondence,
+  verifySurfaceTwinLive,
   type SurfaceTwinProjection,
 } from '@holoscript/core/reconstruction';
 import VerifiedViewComponent from '../verifiedView.native';
@@ -69,5 +70,39 @@ describe('surface twin runtime — verifiedView rendered → extracted → twin-
       displayed: '42',
       authoritative: 999,
     });
+  });
+
+  it('LIVE (injected fetch): CONSENSUS via verifySurfaceTwinLive against a mock authority', async () => {
+    const r = await verifySurfaceTwinLive({
+      contract,
+      displayedValues: displayed,
+      // stands in for fetch_authoritative_state(entity) — the production seam
+      fetchAuthoritativeState: async (e) =>
+        e === 'reactor-7' ? { sessions: 42, errors: 3 } : null,
+    });
+    expect(r.verdict).toBe('CONSENSUS');
+    expect(r.checked).toBe(2);
+  });
+
+  it('LIVE CANARY: diverging authority → FALSIFIED through the full render→extract→fetch path', async () => {
+    const r = await verifySurfaceTwinLive({
+      contract,
+      displayedValues: displayed,
+      fetchAuthoritativeState: async () => ({ sessions: 999, errors: 3 }),
+    });
+    expect(r.verdict).toBe('FALSIFIED');
+    expect(r.divergences[0]).toMatchObject({ node: 'stats.sessions', displayed: '42', authoritative: 999 });
+  });
+
+  it('LIVE: an unreachable authority abstains (authority-unavailable), never a false FALSIFIED', async () => {
+    const r = await verifySurfaceTwinLive({
+      contract,
+      displayedValues: displayed,
+      fetchAuthoritativeState: async () => {
+        throw new Error('StateAuthority down');
+      },
+    });
+    expect(r.verdict).toBe('CONSENSUS');
+    expect(r.abstentions.every((a) => a.reason === 'authority-unavailable')).toBe(true);
   });
 });

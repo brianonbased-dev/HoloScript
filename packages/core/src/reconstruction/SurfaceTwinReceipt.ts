@@ -49,7 +49,8 @@ export interface SurfaceTwinDivergence {
 export type SurfaceTwinAbstentionReason =
   | 'no-entity-binding' // projection declares no twin entity → not twin-checked (coverage, not a fault)
   | 'non-identity-transform' // formatted/charted/listed → pending the transform algebra (Slice 3)
-  | 'authority-missing' // the authoritative state has no value for this entity/field
+  | 'authority-unavailable' // the authority could not be REACHED for this entity (fetch failed) — not a lie
+  | 'authority-missing' // the authority WAS reached but has no value for this entity/field
   | 'display-missing'; // no displayed value was provided for this node
 
 export interface SurfaceTwinAbstention {
@@ -78,6 +79,12 @@ export interface SurfaceTwinInput {
    * nested object keyed by the node's post-root field path (`"reactor.temp"` → field `temp`).
    */
   authoritativeState: Record<string, Record<string, unknown> | SurfaceTwinScalar>;
+  /**
+   * Entities whose authority could NOT be reached (a failed live fetch). Their projections
+   * abstain as `authority-unavailable` — the app couldn't reach the twin, which is NOT the same
+   * as the dashboard lying. Set by {@link verifySurfaceTwinLive}; omit for a static snapshot.
+   */
+  unavailableEntities?: readonly string[];
 }
 
 /**
@@ -119,6 +126,7 @@ function displayEquals(a: SurfaceTwinScalar, b: SurfaceTwinScalar): boolean {
  */
 export function checkSurfaceTwinCorrespondence(input: SurfaceTwinInput): SurfaceTwinReceipt {
   const { contract, displayedValues, authoritativeState } = input;
+  const unavailable = new Set(input.unavailableEntities ?? []);
   const divergences: SurfaceTwinDivergence[] = [];
   const abstentions: SurfaceTwinAbstention[] = [];
   let checked = 0;
@@ -130,6 +138,10 @@ export function checkSurfaceTwinCorrespondence(input: SurfaceTwinInput): Surface
     }
     if (!p.identity) {
       abstentions.push({ node: p.node, entity: p.entity, reason: 'non-identity-transform' });
+      continue;
+    }
+    if (unavailable.has(p.entity)) {
+      abstentions.push({ node: p.node, entity: p.entity, reason: 'authority-unavailable' });
       continue;
     }
     if (!(p.node in displayedValues)) {
@@ -167,4 +179,59 @@ export function checkSurfaceTwinCorrespondence(input: SurfaceTwinInput): Surface
   const receiptHash = createHash('sha256').update(canonical).digest('hex');
 
   return { version: SURFACE_TWIN_VERSION, verdict, checked, divergences, abstentions, receiptHash };
+}
+
+/**
+ * Fetch the authoritative state for one twin entity. In production this is a thin adapter over
+ * the `fetch_authoritative_state` MCP tool; in tests it is a mock. Returns the entity's state
+ * (scalar or field object), or null/undefined (or throws) when the authority is unreachable.
+ */
+export type AuthoritativeStateFetcher = (
+  entity: string
+) => Promise<Record<string, unknown> | SurfaceTwinScalar | null | undefined>;
+
+/**
+ * verifySurfaceTwinLive — the production-shaped runtime twin check: fetch the authoritative value
+ * for each entity the surface claims to mirror (via the INJECTED fetcher), then compare against
+ * the displayed values. The fetcher is dependency-injected so the same function runs in
+ * production (real `fetch_authoritative_state`) and in CI (a mock) — the seam is the entry point,
+ * not just a test double.
+ *
+ * A fetch FAILURE (throw / null / undefined) makes that entity's projections abstain as
+ * `authority-unavailable` — the app couldn't reach the twin, which is NOT the dashboard lying.
+ * Only a REACHED authority that DIVERGES from the displayed value flips the verdict to FALSIFIED.
+ */
+export async function verifySurfaceTwinLive(input: {
+  contract: { projections: SurfaceTwinProjection[] };
+  displayedValues: Record<string, SurfaceTwinScalar>;
+  fetchAuthoritativeState: AuthoritativeStateFetcher;
+}): Promise<SurfaceTwinReceipt> {
+  const { contract, displayedValues, fetchAuthoritativeState } = input;
+  const entities = [
+    ...new Set(
+      (contract.projections ?? [])
+        .map((p) => p.entity)
+        .filter((e): e is string => typeof e === 'string' && e.length > 0)
+    ),
+  ];
+
+  const authoritativeState: Record<string, Record<string, unknown> | SurfaceTwinScalar> = {};
+  const unavailableEntities: string[] = [];
+
+  const results = await Promise.allSettled(entities.map((e) => fetchAuthoritativeState(e)));
+  results.forEach((r, i) => {
+    const entity = entities[i];
+    if (r.status === 'fulfilled' && r.value !== null && r.value !== undefined) {
+      authoritativeState[entity] = r.value as Record<string, unknown> | SurfaceTwinScalar;
+    } else {
+      unavailableEntities.push(entity); // threw, or returned null/undefined → unreachable
+    }
+  });
+
+  return checkSurfaceTwinCorrespondence({
+    contract,
+    displayedValues,
+    authoritativeState,
+    unavailableEntities,
+  });
 }

@@ -52,7 +52,12 @@ export {
 } from './enforceVerifiedViewReceipts';
 
 // @verified_view v1 (Framing B) — twin correspondence: displayed value vs authoritative twin.
-export { checkSurfaceTwinCorrespondence, SURFACE_TWIN_VERSION } from './SurfaceTwinReceipt';
+export {
+  checkSurfaceTwinCorrespondence,
+  verifySurfaceTwinLive,
+  SURFACE_TWIN_VERSION,
+} from './SurfaceTwinReceipt';
+export type { AuthoritativeStateFetcher } from './SurfaceTwinReceipt';
 export { extractDisplayedProjections } from './extractDisplayedProjections';
 export type {
   SurfaceTwinScalar,

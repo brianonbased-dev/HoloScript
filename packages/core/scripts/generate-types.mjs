@@ -7279,6 +7279,7 @@ export interface SurfaceTwinDivergence {
 export type SurfaceTwinAbstentionReason =
   | 'no-entity-binding'
   | 'non-identity-transform'
+  | 'authority-unavailable'
   | 'authority-missing'
   | 'display-missing';
 export interface SurfaceTwinAbstention {
@@ -7298,8 +7299,17 @@ export interface SurfaceTwinInput {
   contract: { projections: SurfaceTwinProjection[] };
   displayedValues: Record<string, SurfaceTwinScalar>;
   authoritativeState: Record<string, Record<string, unknown> | SurfaceTwinScalar>;
+  unavailableEntities?: readonly string[];
 }
 export declare function checkSurfaceTwinCorrespondence(input: SurfaceTwinInput): SurfaceTwinReceipt;
+export type AuthoritativeStateFetcher = (
+  entity: string
+) => Promise<Record<string, unknown> | SurfaceTwinScalar | null | undefined>;
+export declare function verifySurfaceTwinLive(input: {
+  contract: { projections: SurfaceTwinProjection[] };
+  displayedValues: Record<string, SurfaceTwinScalar>;
+  fetchAuthoritativeState: AuthoritativeStateFetcher;
+}): Promise<SurfaceTwinReceipt>;
 export declare function extractDisplayedProjections(html: string): Record<string, string>;
 `;
 
