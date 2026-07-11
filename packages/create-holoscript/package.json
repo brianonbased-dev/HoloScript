@@ -13,6 +13,7 @@
     "bin",
     "dist",
     "templates",
+    "LICENSE",
     "README.md",
     "CHANGELOG.md"
   ],

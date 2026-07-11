@@ -479,7 +479,7 @@ export function buildThinkingAndOutputForAnthropic(
  * ```
  */
 /**
- * Capability manifest sourced from `ai-ecosystem/docs/LLM_CAPABILITIES.md`
+ * Capability manifest sourced from `docs/LLM_CAPABILITIES.md`
  * § Anthropic. Multi-model provider — `contextWindow` / `maxOutput` declare
  * the MAX across the lineup (Opus 4.8/4.7/4.6 + Sonnet 4.6 = 1M context, 128K
  * out; Haiku 4.5 is 200K/64K). `costPerMillion` intentionally omitted —

@@ -39,6 +39,18 @@ const all = listPresets();
 - [`@holoscript/core` traits](../core/) — Base `@animated` trait
 - [Mixamo](https://www.mixamo.com/) — Source animation clips
 
+## Package boundary & release posture
+
+`@holoscript/animation-presets` targets **external, public, and agent framework** consumers who want ready-made `@animated` trait parameter sets instead of hand-tuning keyframes per character.
+
+```bash
+npm install @holoscript/animation-presets
+```
+
+The package boundary is metadata-only: it **does not ship** Mixamo clip assets, a character rig, or an animation runtime — you bring your own rig and Mixamo-sourced (or compatible) clip files, and point your renderer's `@animated` trait at a preset's `clips` output; this package only resolves preset names to timing/loop/blend/clip-mapping metadata.
+
+**Known limitations (v0-preview):** the 15 canonical presets assume a standard Mixamo humanoid rig naming convention — non-Mixamo skeletons need caller-owned remapping. Run `pnpm test` to validate preset resolution output against your own registry overrides before shipping a character built on a custom preset.
+
 ## License
 
 MIT

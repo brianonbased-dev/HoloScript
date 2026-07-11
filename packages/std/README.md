@@ -192,6 +192,14 @@ equals({ a: 1 }, { a: 1 }); // true
 pipe(5, double, addOne, toString); // '11'
 ```
 
+## Package boundary & release posture
+
+`@holoscript/std` is a **v0-preview** standard library for external, public, and agent-framework consumers building HoloScript-adjacent tooling — it is a pure utility library, not a service. Every function is caller-owned: you pass in your own vectors, collections, strings, and timers, and the library holds no ambient state, network calls, or credentials of its own.
+
+`@holoscript/std/fs` is the one boundary-sensitive entry point: filesystem helpers pass through to the host filesystem by default and do not ship any sandboxing unless the caller opts in. Path-boundary enforcement is disabled by default (a no-op, matching pre-existing call sites) and only activates when the operator sets the `HOLOSCRIPT_FS_SANDBOX_ROOT` environment variable — this package does not ship a default sandbox root, and it is not the package default to restrict paths.
+
+**Known limitations:** `@holoscript/std/fs` assumes a Node.js-like filesystem (`fs`/`path`) and is not usable in a browser bundle; import the browser-safe entry points (`math`, `collections`, `string`, `time`) instead if you need this library client-side. Interfaces may change before a v1 release.
+
 ## License
 
 MIT

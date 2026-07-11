@@ -28,6 +28,12 @@
     "url": "https://github.com/brianonbased-dev/HoloScript.git",
     "directory": "packages/lsp"
   },
+  "files": [
+    "bin",
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "dependencies": {
     "@holoscript/core": "workspace:^",
     "@holoscript/framework": "workspace:^",

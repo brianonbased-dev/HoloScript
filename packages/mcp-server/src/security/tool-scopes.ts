@@ -64,6 +64,10 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   workflow_memory_read: ['tools:read'],
   workflow_memory_subscribe: ['tools:read'],
 
+  // === Sovereign from-scratch training ===
+  holo_from_scratch_status: ['tools:read'],
+  holo_from_scratch_launch: ['tools:admin'],
+
   // === HoloLand MCP tools (world CRUD + MMO + Twin Earth) ===
   generate_world_from_prompt: ['tools:write'],
   generate_world: ['tools:write'],
@@ -272,6 +276,7 @@ const TOOL_RISK_MAP: Record<string, ToolRiskLevel> = {
   analyze_code: 'low',
   hs_hover: 'low',
   hs_docs: 'low',
+  holo_from_scratch_status: 'low',
 
   // Medium risk: generates content but no side effects
   suggest_traits: 'medium',
@@ -306,6 +311,7 @@ const TOOL_RISK_MAP: Record<string, ToolRiskLevel> = {
   generate_hololand_training: 'critical',
   holo_add_wisdom: 'critical',
   holo_add_gotcha: 'critical',
+  holo_from_scratch_launch: 'critical',
 
   // HoloMesh: spatial networking
   holomesh_status: 'low',

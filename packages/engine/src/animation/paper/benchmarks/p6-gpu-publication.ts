@@ -1,7 +1,7 @@
 /**
  * paper-6 Mecanim cross-version divergence publication runner.
  *
- * Paper:  ai-ecosystem/research/paper-6-animation-sca.tex
+ * Paper:  research/paper-6-animation-sca.tex
  *         §"Baseline Divergence Rates".
  * Harness: ../Paper6MecanimDivergenceProbe.ts
  *
@@ -38,7 +38,7 @@ import {
 
 export interface Paper6MecanimPublication {
   readonly benchmark: 'paper-6-mecanim-divergence';
-  readonly paper_ref: 'ai-ecosystem/research/paper-6-animation-sca.tex';
+  readonly paper_ref: 'research/paper-6-animation-sca.tex';
   readonly spec_version: '2026-04-27_paper-6-mecanim-divergence-runner';
   readonly ran_at: string;
   readonly duration_ms: number;
@@ -64,7 +64,7 @@ export function runPaper6MecanimBenchmark(): Paper6MecanimPublication {
 
   return {
     benchmark: 'paper-6-mecanim-divergence',
-    paper_ref: 'ai-ecosystem/research/paper-6-animation-sca.tex',
+    paper_ref: 'research/paper-6-animation-sca.tex',
     spec_version: '2026-04-27_paper-6-mecanim-divergence-runner',
     ran_at: new Date().toISOString(),
     duration_ms,

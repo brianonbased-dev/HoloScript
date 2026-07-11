@@ -1,253 +1,71 @@
-# @holoscript/core
+# @holoscript/mesh
 
-> The **semantic engine** at the heart of HoloScript. Traits describe any domain entity — spatial, AI, services, IoT — and the compiler fleet translates them to platform-specific code. [Read the V6 Vision →](../../VISION.md)
-
-Core parser, AST, compiler infrastructure, and trait system.
+HoloScript's mesh and network layer — real-time multiplayer networking, agent-to-agent messaging, CRDT-backed collaboration, consensus, and sovereign state survivability for HoloScript compositions and the agents that inhabit them.
 
 ## Installation
 
 ```bash
-npm install @holoscript/core
+npm install @holoscript/mesh
 ```
+
+## Modules
+
+| Module          | Path                    | Purpose                                                                 |
+| ---------------- | ----------------------- | ------------------------------------------------------------------------ |
+| Network          | `src/network/`           | `NetworkManager`, matchmaking, room/session management, WebRTC/WebSocket transports, delta compression, spatial sharding, anti-cheat |
+| Messaging        | `src/messaging/`          | `ChannelManager`, `AgentMessaging` — typed agent channels with schema-validated messages and broadcast/ack semantics |
+| Collaboration    | `src/collaboration/`      | `CRDTDocument`, `CollaborationSession` — shared-document editing with conflict-free sync |
+| Consensus        | `src/consensus/`          | `ConsensusManager`, `RaftConsensus` — leader election and replicated state for multi-agent coordination |
+| Social           | `src/social/`             | Social-graph primitives layered on the mesh |
+| Sovereign        | `src/sovereign/`          | `LifePod` — signed identity/state survivability across restarts and handoffs |
+| Multiplayer      | `src/multiplayer/`        | Multiplayer session helpers built on the network layer |
+| Sync             | `src/sync/`               | Position quantization, quaternion compression, priority scheduling, jitter buffering for high-frequency state updates |
+| CRDT / GPU / testing / utils | `src/crdt/`, `src/gpu/`, `src/testing/`, `src/utils/` | Supporting primitives shared across the above |
 
 ## Usage
 
 ```typescript
-// Parse HoloScript+ files (.hsplus)
-import { HoloScriptPlusParser } from '@holoscript/core';
+// Real-time networking
+import { NetworkManager } from '@holoscript/mesh';
 
-const parser = new HoloScriptPlusParser();
-const result = parser.parse(source);
+// Agent-to-agent messaging channels
+import { ChannelManager, AgentMessaging } from '@holoscript/mesh';
 
-// Parse .holo composition files
-import { HoloCompositionParser } from '@holoscript/core';
+// CRDT-backed collaborative documents
+import { CRDTDocument, CollaborationSession } from '@holoscript/mesh';
 
-const holoParser = new HoloCompositionParser();
-const result = holoParser.parseHolo(source);
+// Consensus for multi-agent coordination
+import { ConsensusManager, RaftConsensus } from '@holoscript/mesh';
 
-// Compile to a specific target
-import { UnityCompiler } from '@holoscript/core';
+// Sovereign identity/state survivability
+import { LifePod } from '@holoscript/mesh';
 
-const compiler = new UnityCompiler();
-const output = compiler.compile(ast);
+// High-frequency state sync
+import { quantizePosition, dequantizePosition, PriorityScheduler } from '@holoscript/mesh';
 ```
 
-## Features
+Each subsystem is independently importable — pull in only the modules a given deployment needs (e.g. `messaging` without `network`, or `consensus` without `sovereign`).
 
-- **Multi-format Parser** - Supports `.hs`, `.hsplus`, and `.holo` files
-- **Complete AST** - Full abstract syntax tree representation
-- **Validation** - Comprehensive error checking with recovery
-- **30+ Compile Targets** - Web (R3F, Babylon), Unity, Unreal, Godot, iOS, Android, Vision Pro, WebGPU, WASM, VRChat, OpenXR, URDF, DTDL, SDF
-- **3,300+ Traits** - Modularized across 114 category files covering VR interactions, physics, networking, AI, scripting, automation, animation, nature, magic, sci-fi, emotions, and more
-- **AI Integration** - Adapters for OpenAI, Anthropic, Gemini, Ollama, and more
-- **Reactive State** - `reactive()`, `computed()`, `effect()`, `bind()`
+## Optional integrations
 
-## Parsers
+Heavy or environment-specific dependencies (`three`, the `tree-sitter-*` grammars, `discord.js`, `openai`, `ipfs-http-client`, `draco3d`, `ws`, plugin packages, etc.) are declared as `optionalDependencies` — npm/pnpm will attempt them but a failed optional install does not break the base package. `@holoscript/engine`, `@pixiv/three-vrm`, `ioredis`, `puppeteer`, and `react` are `peerDependencies` marked `optional: true`: install the ones your deployment actually uses.
 
-| Parser                  | File Types | Use Case                                |
-| ----------------------- | ---------- | --------------------------------------- |
-| `HoloScriptPlusParser`  | `.hsplus`  | Extended syntax with TypeScript modules |
-| `HoloCompositionParser` | `.holo`    | Scene-centric composition files         |
-| `HoloScript2DParser`    | `.hs`      | Basic logic and protocols               |
-| `HoloScriptParser`      | `.hs`      | Standard semantic parser                |
+## Package boundary & release posture
 
-## Compilers (30+ implementations; verify live targets via health + ExportTarget enum)
+`@holoscript/mesh` targets external agent frameworks, operators, and founders building multiplayer or multi-agent HoloScript deployments — it is not a hosted service. The package does not ship a transport backend, a Redis instance, a signaling server, or any founder-local network configuration; you bring your own connection endpoints, `ioredis` client, and WebRTC signaling, and the mesh layer wires against what you supply.
 
-| Compiler                 | Target                    | Output             |
-| ------------------------ | ------------------------- | ------------------ |
-| `UnityCompiler`          | Unity Engine              | C# + Prefab        |
-| `UnrealCompiler`         | Unreal Engine 5           | C++ + Blueprint    |
-| `GodotCompiler`          | Godot 4                   | GDScript + .tscn   |
-| `R3FCompiler`            | React Three Fiber         | TSX + hooks        |
-| `BabylonCompiler`        | Babylon.js                | TypeScript         |
-| `PlayCanvasCompiler`     | PlayCanvas                | JavaScript         |
-| `OpenXRCompiler`         | OpenXR Standard           | C++                |
-| `VRChatCompiler`         | VRChat                    | UdonSharp C#       |
-| `VisionOSCompiler`       | Apple Vision Pro          | Swift              |
-| `AndroidXRCompiler`      | Android XR                | Kotlin             |
-| `IOSCompiler`            | iOS / ARKit               | Swift              |
-| `AndroidCompiler`        | Android / ARCore          | Kotlin             |
-| `ARCompiler`             | Generic AR                | TypeScript         |
-| `WASMCompiler`           | WebAssembly               | .wasm + .js        |
-| `WebGPUCompiler`         | WebGPU Compute            | WGSL + TypeScript  |
-| `URDFCompiler`           | Robotics (URDF)           | .urdf XML          |
-| `SDFCompiler`            | Gazebo SDF simulation XML | .sdf XML           |
-| `DTDLCompiler`           | Digital Twins             | JSON-LD            |
-| `StateCompiler`          | Reactive State            | JSON               |
-| `A2AAgentCardCompiler`   | A2A Agent Cards           | JSON               |
-| `NIRCompiler`            | Neuromorphic IR           | JSON               |
-| `VRRCompiler`            | Variable Rate Rendering   | TypeScript         |
-| `Native2DCompiler`       | 2D HTML/CSS               | TSX + HTML         |
-| `NodeServiceCompiler`    | Node.js Services          | TypeScript         |
-| `AIGlassesCompiler`      | AI Glasses                | Kotlin Compose     |
-| `GLTFPipeline`           | glTF                      | .glb / .gltf       |
-| `NFTMarketplaceCompiler` | NFT Marketplace           | Solidity           |
-| `USDPhysicsCompiler`     | USD Physics               | .usda              |
-| `TSLCompiler`            | Trait Shader Language     | WGSL + TS pipeline |
-| `SCMCompiler`            | Structural Causal Model   | JSON DAG           |
-| `QuiltCompiler`          | Looking Glass Hologram    | Multi-view PNG     |
-| `MVHEVCCompiler`         | MV-HEVC Hologram          | Swift + .mov       |
-| `FlatSemanticCompiler`   | Semantic 2D Layout        | TSX                |
+It does not assume a specific renderer, engine, or hosting environment — `@holoscript/engine`, `three`, and the VRM/renderer-facing pieces are all optional, and the package is not the package default for identity: `LifePod` signs and verifies state you hand it, but key management and storage are caller-owned.
 
-## Trait System
+Operability: `ConsensusManager` and `LifePod` both emit structured events (via `EventEmitter`) for state-change auditing, and the mesh's CRDT/consensus paths are built to be receipt-checkable by a host validation harness rather than opaque.
 
-VR traits are modularized into 115 category files under `src/traits/constants/`:
-
-| Category        | File                     | Traits                                  |
-| --------------- | ------------------------ | --------------------------------------- |
-| Core VR         | `core-vr-interaction.ts` | grabbable, throwable, pointable, ...    |
-| Humanoid        | `humanoid-avatar.ts`     | skeleton, body, face, ...               |
-| Game Mechanics  | `game-mechanics.ts`      | collectible, destructible, healable, .. |
-| Magic & Fantasy | `magic-fantasy.ts`       | enchantable, cursed, blessed, ...       |
-| Animals         | `animals.ts`             | cat, dog, horse, dragon, ...            |
-| ...             | _58 more categories_     | See `src/traits/constants/index.ts`     |
-
-Import individual categories or the combined set:
-
-```typescript
-import { VR_TRAITS } from '@holoscript/core'; // All 3,300+ traits
-import { AUDIO_TRAITS } from '@holoscript/core'; // Just audio traits
-import { MAGIC_FANTASY_TRAITS } from '@holoscript/core'; // Just magic/fantasy
-```
-
-## Language Features
-
-HoloScript v4.1 adds five production-ready language features. See [LANGUAGE_FEATURES.md](../../docs/LANGUAGE_FEATURES.md) for the full reference.
-
-### Module System (`@import` / `@export`)
-
-```holoscript
-@import { PhysicsSystem, Gravity } from './physics.hs'
-@import * as UI from './ui-components.hs'
-
-@export PhysicsSystem
-```
-
-### Trait Composition
-
-```holoscript
-// Compose multiple traits into one named trait
-@HoverVehicle = @physics + @navmesh + @propulsion
-@Warrior = @combat + @inventory + @stats
-```
-
-```typescript
-import { TraitCompositionCompiler, TraitComposer } from '@holoscript/core';
-
-// Low-level API
-const compiler = new TraitCompositionCompiler();
-const [hovercraft] = compiler.compile(
-  [{ name: 'Hovercraft', components: ['physics', 'navmesh'], overrides: { gravity: 0.1 } }],
-  (name) => registry.get(name),
-  traitGraph
-);
-
-// High-level composer (with lifecycle dispatch)
-const composer = new TraitComposer(graph);
-const result = composer.compose('Warrior', handlers, ['combat', 'inventory', 'stats']);
-// result.handler.onAttach dispatches to all in order; onDetach is reversed
-```
-
-### Reactive State
-
-```holoscript
-@state {
-  hp: 100,
-  shield: 50,
-}
-```
-
-```typescript
-import { reactive, computed, effect } from '@holoscript/core';
-
-const state = reactive({ hp: 100 });
-const isAlive = computed(() => state.hp > 0);
-effect(() => console.log('HP changed:', state.hp));
-```
-
-### LLM Agent Trait
-
-```holoscript
-@llm_agent {
-  model: "gpt-4",
-  system_prompt: "You are a game NPC",
-  tools: [{ name: "move", ... }],
-  bounded_autonomy: true,
-  max_actions_per_turn: 3,
-}
-```
-
-### Gaussian Splat Trait
-
-```holoscript
-@gaussian_splat {
-  source: "./assets/scene.ply",
-  quality: "ultra",
-  sh_degree: 3,
-  sort_mode: "distance",
-  streaming: true,
-}
-```
-
-## Codebase Intelligence (GraphRAG)
-
-Built-in pipeline for semantic code analysis:
-
-```
-CodebaseScanner → CodebaseGraph → EmbeddingIndex → GraphRAGEngine
-```
-
-| Class                   | File                              | Purpose                                                              |
-| ----------------------- | --------------------------------- | -------------------------------------------------------------------- |
-| `CodebaseScanner`       | `src/codebase/CodebaseScanner.ts` | Scan repositories, extract symbols/imports/calls                     |
-| `CodebaseGraph`         | `src/codebase/CodebaseGraph.ts`   | Graph of nodes (symbols) + edges (dependencies), community detection |
-| `EmbeddingIndex`        | `src/codebase/EmbeddingIndex.ts`  | Vector index (OpenAI/BM25/Ollama), binary cache for 42x speedup      |
-| `GraphRAGEngine`        | `src/codebase/GraphRAGEngine.ts`  | Graph traversal + semantic search + LLM synthesis                    |
-| `CodebaseSceneCompiler` | `src/codebase/visualization/`     | 3D visualization of codebase graphs                                  |
-
-```typescript
-import { CodebaseScanner, CodebaseGraph, EmbeddingIndex, GraphRAGEngine } from '@holoscript/core';
-
-const scanner = new CodebaseScanner();
-const graph = await scanner.scan('./src');
-const index = new EmbeddingIndex();
-await index.buildIndex(graph);
-const engine = new GraphRAGEngine(graph, index);
-const answer = await engine.queryWithLLM('How does the parser work?');
-```
-
-## Runtime & ECS
-
-| Class             | File                                      | Purpose                                       |
-| ----------------- | ----------------------------------------- | --------------------------------------------- |
-| `SceneRunner`     | `src/runtime/SceneRunner.ts`              | Walks AST, spawns entities, runs compositions |
-| `HeadlessRuntime` | `src/runtime/profiles/HeadlessRuntime.ts` | No-GUI execution for tests/CI/servers         |
-| `RuntimeBridge`   | `src/runtime/RuntimeBridge.ts`            | Connects SceneRunner to renderers             |
-| `RuntimeRenderer` | `src/runtime/RuntimeRenderer.ts`          | PBR materials, particle systems, post-FX      |
-
-## MCP Integration
-
-Two MCP layers:
-
-- **External** (`packages/mcp-server`): Exposes `holo_absorb_repo`, `holo_query_codebase`, `holo_semantic_search` for AI agents
-- **Internal** (`src/mcp/` + `src/agents/spatial-comms/`): `MCPOrchestrator`, `Layer3MCPClient`, `SPATIAL_MCP_TOOLS` for agent-to-agent spatial comm
-
-## Smart Assets
-
-| Class              | File                             | Purpose                                                               |
-| ------------------ | -------------------------------- | --------------------------------------------------------------------- |
-| `SmartAssetLoader` | `src/assets/SmartAssetLoader.ts` | Load/configure/bundle assets with `load()`, `doLoad()`, `getConfig()` |
-| `LoaderConfig`     | `src/assets/SmartAssetLoader.ts` | Configuration interface for asset loading                             |
-
-## Extension System
-
-| Class                | File                                   | Purpose                             |
-| -------------------- | -------------------------------------- | ----------------------------------- |
-| `ExtensionRegistry`  | `src/extensions/ExtensionRegistry.ts`  | Register and load plugin extensions |
-| `ExtensionInterface` | `src/extensions/ExtensionInterface.ts` | Extension lifecycle context         |
-
-> **Note**: "Extension" has multiple meanings in the codebase — plugin extensions (`ExtensionRegistry`), glTF extensions (`GLTFTrait`), LSP file extensions (`ImportResolver.EXTENSIONS`), and OpenXR required extensions. See [Extension System Architecture](../../docs/architecture/EXTENSION_SYSTEM.md).
+Known limitations: this is a v0-preview release for several subsystems (notably `gpu/` and parts of `social/`), and the optional plugin/provider integrations listed above are unverified outside the documented import paths — treat unlisted combinations as unsupported until exercised. Pin the version in consuming projects; rollback is a plain `npm install @holoscript/mesh@<previous-version>`.
 
 ## License
 
 MIT
+
+## Related
+
+- [@holoscript/core](../core) — HoloScript core compiler and trait system
+- [@holoscript/agent-protocol](../agent-protocol) — Agent communication protocol
+- [@holoscript/core-types](../core-types) — Shared type definitions

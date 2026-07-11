@@ -99,8 +99,8 @@ export const holoDoorEventsByTeam: Map<string, Record<string, unknown>[]> = new 
 
 /**
  * CAEL Audit Store — per-agent CAEL trace ring buffer (Phase 0 in-memory).
- * Spec: ai-ecosystem/research/2026-04-25_fleet-adversarial-harness-paper-21.md +
- *       ai-ecosystem/research/2026-04-25_fleet-empirical-composability-w-gold-189.md.
+ * Spec: research/2026-04-25_fleet-adversarial-harness-paper-21.md +
+ *       research/2026-04-25_fleet-empirical-composability-w-gold-189.md.
  * Closes gap-build task_1777090894117_d2jx (CAEL audit GET endpoint).
  *
  * Each entry is one CAEL record produced by an attacker-loop / target-brain /
@@ -225,7 +225,7 @@ export function loadCaelAuditFromDisk(): void {
 /**
  * Agent Defense State Store — per-agent fleet-adversarial defense configuration.
  * Closes gap-build task_1777090894117_8bav (defense-state PATCH endpoint).
- * Spec: ai-ecosystem/research/2026-04-25_fleet-adversarial-harness-paper-21.md §3.
+ * Spec: research/2026-04-25_fleet-adversarial-harness-paper-21.md §3.
  *
  * Allows the adversarial harness to toggle each target's defense state
  * between {none, decay-on-anomaly, cross-vouching-detector, replay-audit,

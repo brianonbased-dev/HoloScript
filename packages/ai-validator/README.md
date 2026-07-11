@@ -370,6 +370,12 @@ if (!result.valid) {
 }
 ```
 
+## Package boundary & release posture
+
+`@holoscript/ai-validator` targets **external, public, and agent framework** callers — MCP tool authors, code-generation pipelines, and any **operator** wiring an LLM into a HoloScript workflow — who need a validation gate between raw LLM output and execution. The package boundary is validation-only: it **does not ship** an LLM client, a sandbox, or an execution engine (see the Security Sandbox integration example above) — you bring your own `@holoscript/core` parser version and generated code, and point it at your own provider; nothing here assumes founder-local config.
+
+**Known limitations (v0-preview):** hallucination-pattern detection is heuristic, not exhaustive — a low score is a signal, not a guarantee of correctness. `provider`-specific rules currently cover OpenAI, Anthropic, and Gemini only. Run `validator.validate()` against your own corpus (or `npm run test`) to check gate behavior before relying on it as the sole safety check; expect the scoring thresholds to move before a v1 release.
+
 ## License
 
 MIT © Brian X Base Team

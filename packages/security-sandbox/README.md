@@ -321,6 +321,14 @@ async function handleGenerateScene(args: any) {
 }
 ```
 
+## Package boundary & release posture
+
+`@holoscript/security-sandbox` is a **v0-preview** library for any external, public, or agent-framework consumer that needs to run untrusted or AI-generated code with a bounded blast radius — it is not tied to HoloScript's own founder deployment. Every sandbox is caller-owned: the operator supplies `SandboxOptions` (timeout, memoryLimit, allowedModules, custom `sandbox` globals) at construction time, and this package does not ship any default network, filesystem, or credential access beyond what the caller wires in explicitly.
+
+The package boundary stops at the VM: it does not ship a founder-local audit sink, wallet, or private-workspace integration — `getAuditLogs()` / `getSecurityStats()` return in-process data only, and persisting or exporting those logs is entirely the caller's responsibility.
+
+**Known limitations:** the sandbox isolates the Node VM context (filesystem, network, and process access) but is not a substitute for OS-level containerization against a fully hostile actor — treat it as defense-in-depth. Timeout enforcement is best-effort for synchronous CPU-bound loops. Interfaces may change before a v1 release; pin a version and re-run your own validation (`pnpm test`) before upgrading in production.
+
 ## License
 
 MIT © Brian X Base Team

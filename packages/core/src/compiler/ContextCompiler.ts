@@ -504,7 +504,7 @@ export interface ContextCompilerOptions {
  * per founder skill section Known founder defaults + multiple F.* feedback rules.
  * Compiler BLOCKS at emit time.
  *
- * MIRRORED (manual sync): `~/.ai-ecosystem/scripts/skill-surface-lint.mjs` carries
+ * MIRRORED (manual sync): `scripts/skill-surface-lint.mjs` carries
  * a copy of these regexes for its markdown-surface check. A direct import is
  * infeasible — that linter lives in a separate repo with no @holoscript/core
  * dependency, and a cross-repo import in a pre-commit hook would be brittle.

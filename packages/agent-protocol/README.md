@@ -171,3 +171,15 @@ npm run test    # Run tests
 npm run build   # Build to dist/
 npm run dev     # Watch mode
 ```
+
+## Package boundary & release posture
+
+`@holoscript/agent-protocol` targets **external, public, and agent framework** consumers who need the uAA2++ 7/8-phase protocol contracts (interfaces, enums, PWG knowledge format) plus a set of ready-made multi-agent protocol implementations (`ReactAgent`, `PlanExecuteAgent`, `DebateOrchestrator`, `SwarmOrchestrator`, `A2AHSNAPBridge`, `IdempotentTransportAdapter`) without pulling in the full `@holoscript/framework` runtime.
+
+```bash
+npm install @holoscript/agent-protocol
+```
+
+The package boundary is protocol-level: it **does not ship** a scheduler, persistence layer, or LLM client — callers bring caller-owned transport, storage, and model clients and point it at their own infrastructure; nothing here assumes founder-local config or a specific deployment.
+
+**Known limitations (v0-preview):** interfaces may still change before a v1 release. A few Quick Start examples above reference `BaseAgent`, `BaseService`, `GoalSynthesizer`, and `MicroPhaseDecomposer`, which are not currently exported from this package's public entry point — treat those as illustrative pending a docs correction, and rely on the exported protocol implementations (`ReactAgent`, `PlanExecuteAgent`, `DebateOrchestrator`, `SwarmOrchestrator`) instead. Run `pnpm test` to validate what you actually import before depending on it in production.

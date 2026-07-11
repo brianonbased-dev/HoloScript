@@ -187,7 +187,7 @@ export interface ToolSpec {
  * `anthropic-beta: advisor-tool-2026-03-01` header. Other adapters MUST
  * ignore the entry (it is not a callable function in their tool surface).
  *
- * See `ai-ecosystem/docs/LLM_CAPABILITIES.md` § Anthropic → Built-in
+ * See `docs/LLM_CAPABILITIES.md` § Anthropic → Built-in
  * server-side tools.
  */
 export interface AnthropicAdvisorToolSpec {
@@ -1005,7 +1005,7 @@ export class LLMCreditExhaustedError extends LLMProviderError {
  * keys; the router matches against each provider's manifest at session start.
  *
  * Mirrors the cross-provider matrix in
- * `ai-ecosystem/docs/LLM_CAPABILITIES.md`. Add new fields here when the doc
+ * `docs/LLM_CAPABILITIES.md`. Add new fields here when the doc
  * grows a new row, and update each adapter's overridden manifest.
  *
  * Universal+segregated principle (founder ruling 2026-05-06): this is the
@@ -1142,7 +1142,7 @@ export const DEFAULT_CAPABILITIES: Capabilities = {
  * without leakage. The UNIVERSAL axis is the top-level fields on
  * `LLMCompletionRequest` (messages, maxTokens, tools, stream, ...).
  *
- * See `ai-ecosystem/docs/LLM_CAPABILITIES.md` § Universal axis vs Segregated axis.
+ * See `docs/LLM_CAPABILITIES.md` § Universal axis vs Segregated axis.
  */
 export interface ProviderExtensions {
   anthropic?: AnthropicProviderExtensions;

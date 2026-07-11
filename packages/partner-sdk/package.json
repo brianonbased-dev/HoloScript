@@ -24,6 +24,12 @@
       "import": "./dist/analytics/index.js"
     }
   },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md",
+    "CHANGELOG.md"
+  ],
   "scripts": {
     "build": "tsup && tsc --emitDeclarationOnly --declarationDir dist --skipLibCheck",
     "test": "vitest run",
@@ -40,6 +46,11 @@
   ],
   "author": "HoloScript Team",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/partner-sdk"
+  },
   "dependencies": {
     "@holoscript/core": "workspace:^",
     "@holoscript/llm-provider": "workspace:^"

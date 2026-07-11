@@ -61,7 +61,7 @@ import {
 //   • imagen-4.0-generate-001 / imagen-4.0-ultra-generate-001 /
 //     imagen-4.0-fast-generate-001 — shutdown 2026-08-17. Successor:
 //     gemini-3.1-flash-lite-image (GA 2026-06-30).
-//   SSOT dates: ai-ecosystem/docs/llm-capabilities/google-gemini.md.
+//   SSOT dates: docs/llm-capabilities/google-gemini.md.
 export const GEMINI_MODELS = [
   'gemini-3.5-flash',
   'gemini-3.1-flash-tts-preview',
@@ -229,7 +229,7 @@ interface GeminiFunctionDeclaration {
  * ```
  */
 /**
- * Capability manifest sourced from `ai-ecosystem/docs/LLM_CAPABILITIES.md`
+ * Capability manifest sourced from `docs/LLM_CAPABILITIES.md`
  * Google (Gemini). Native multimodal is Gemini's strongest differentiator:
  * text + image + video + audio in one model. Search Grounding (first-party
  * Google Search citations) and cached_content (long-context reuse) are the

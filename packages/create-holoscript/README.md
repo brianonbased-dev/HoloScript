@@ -150,6 +150,12 @@ npm view create-holoscript version deprecated
 npm view create-holoscript-app version deprecated
 ```
 
+## Package boundary & release posture
+
+`create-holoscript` targets the same external/public consumer as `npm create vite` or `create-react-app` — any developer, agent framework, or founder-operator running `npx create-holoscript-app` locally. The generator only writes into the target directory you name on the command line; it does not phone home, does not assume a founder-local environment, and does not ship credentials, secrets, or any private workspace config. Everything downstream — `npm install`, dev-server port, deployment target — is bring-your-own / caller-owned: you point the generated project at your own hosting, environment variables, and build pipeline.
+
+This package's release boundary stops at the scaffold: it hands you a working local project and gets out of the way. Known limitations: the template set is fixed at publish time (`hello-world`, `instant`, `physics-playground`, `interactive-gallery`, `2d-revolution`), and there is no update/eject command. Treat the `create-holoscript` (deprecated) vs `create-holoscript-app` naming as v0-preview churn — verify the active registry name/version with `npm view` (see Validation above) before scripting around it, and roll back to a pinned version if a template regresses.
+
 ## License
 
 MIT

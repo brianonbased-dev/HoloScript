@@ -166,7 +166,11 @@ async function queryKnowledgeStore(search: string, limit = 10): Promise<Knowledg
         'Content-Type': 'application/json',
         'x-mcp-api-key': apiKey,
       },
-      body: JSON.stringify({ search, limit, workspace_id: 'ai-ecosystem' }),
+      body: JSON.stringify({
+        search,
+        limit,
+        workspace_id: process.env.HOLOMESH_WORKSPACE || 'default',
+      }),
       signal: ctrl.signal,
     });
     clearTimeout(t);

@@ -1,7 +1,7 @@
 /**
  * paper-7 IK latency publication runner — camera-ready bench artifact.
  *
- * Paper:  ai-ecosystem/research/paper-7-ik-siggraph.tex (Table `tab:overhead`)
+ * Paper:  research/paper-7-ik-siggraph.tex (Table `tab:overhead`)
  * Harness: ../IKLatencyProbe.ts (benchmarkIKLatencyMatrix + formatIKLatencyMarkdown)
  *
  * What this does:
@@ -35,7 +35,7 @@ import {
 
 export interface Paper7IKLatencyPublication {
   benchmark: 'paper-7-ik-latency';
-  paper_ref: 'ai-ecosystem/research/paper-7-ik-siggraph.tex';
+  paper_ref: 'research/paper-7-ik-siggraph.tex';
   spec_version: '2026-04-23_paper-7-publication-runner';
   ran_at: string;
   duration_ms: number;
@@ -74,7 +74,7 @@ export function runPaper7IKLatencyBenchmark(opts: RunOptions = {}): Paper7IKLate
 
   return {
     benchmark: 'paper-7-ik-latency',
-    paper_ref: 'ai-ecosystem/research/paper-7-ik-siggraph.tex',
+    paper_ref: 'research/paper-7-ik-siggraph.tex',
     spec_version: '2026-04-23_paper-7-publication-runner',
     ran_at: new Date().toISOString(),
     duration_ms,

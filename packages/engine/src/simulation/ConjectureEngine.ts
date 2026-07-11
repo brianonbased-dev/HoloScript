@@ -58,7 +58,7 @@ export const DEFAULT_CONJECTURE_PRIOR_ART_CORPUS: ReadonlyArray<ConjecturePriorA
   {
     id: 'prior.generated-geometry.regular-polygon-sheet-family',
     title: 'Generated regular polygon sheet invariant',
-    source: '.ai-ecosystem/research/2026-05-23_erdos-equations-EVOLVED.md',
+    source: 'research/2026-05-23_erdos-equations-EVOLVED.md',
     statement:
       'Every machine-generated regular polygon sheet (sides 3..8) is non-degenerate, edge-manifold, and has Euler characteristic 1.',
   },

@@ -243,7 +243,7 @@ export interface RoutingOptions {
 // inference path. The durable cross-process signal is the `[fleet-metric]` log
 // line below (same format as services/llm-service + studio). This is the path
 // agentic build-work over GitHub projects drives — likely the highest-volume
-// source. Ref: ai-ecosystem/research/2026-05-31_self-hosted-fleet-inference-plan.md.
+// source. Ref: research/2026-05-31_self-hosted-fleet-inference-plan.md.
 let __mcpActive = 0;
 
 export async function queryOllama(

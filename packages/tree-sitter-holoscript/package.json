@@ -38,7 +38,9 @@
     "bindings/web/*",
     "queries/*",
     "src/**",
-    "tree-sitter-holoscript.wasm"
+    "tree-sitter-holoscript.wasm",
+    "README.md",
+    "LICENSE"
   ],
   "author": "Brian X Base Team",
   "license": "MIT",

@@ -39,7 +39,8 @@
     "bin",
     "dist",
     "README.md",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "LICENSE"
   ],
   "devDependencies": {
     "@types/node": "^24.10.1",

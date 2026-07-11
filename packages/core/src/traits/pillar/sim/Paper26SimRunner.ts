@@ -776,7 +776,7 @@ async function pushToKnowledge(tick: number): Promise<void> {
       type: 'sim_snapshot',
       domain: 'paper26',
       content: JSON.stringify(pm),
-      workspace_id: 'ai-ecosystem',
+      workspace_id: process.env.HOLOMESH_WORKSPACE || 'default',
       access: 'shared',
     });
     await fetch(`${KNOWLEDGE_URL}/knowledge/sync`, {

@@ -2,7 +2,7 @@
  * Paper 6 constraint-solver ablation publication runner.
  *
  * Produces the D.011 ablation artifact cited by
- * ai-ecosystem/research/paper-6-animation-sca.tex. The harness uses the
+ * research/paper-6-animation-sca.tex. The harness uses the
  * shipped MixamoRetargeter and applies the paper's publication constraint
  * normalization as a deterministic post-pass, then compares it against
  * solverless retargeting and a no-pipeline baseline.
@@ -30,7 +30,7 @@ export interface Paper6AblationRow {
 export interface Paper6AblationArtifact {
   readonly schema_version: 'paper-6-ablation-v1';
   readonly benchmark: 'paper-6-ablation-publication';
-  readonly paper_ref: 'ai-ecosystem/research/paper-6-animation-sca.tex';
+  readonly paper_ref: 'research/paper-6-animation-sca.tex';
   readonly harness: 'packages/engine/src/animation/paper/benchmarks/p6-ablation-publication.ts';
   readonly source_clip_id: string;
   readonly frames: number;
@@ -230,7 +230,7 @@ export function runPaper6AblationBenchmark(): Paper6AblationArtifact {
   return {
     schema_version: 'paper-6-ablation-v1',
     benchmark: 'paper-6-ablation-publication',
-    paper_ref: 'ai-ecosystem/research/paper-6-animation-sca.tex',
+    paper_ref: 'research/paper-6-animation-sca.tex',
     harness: 'packages/engine/src/animation/paper/benchmarks/p6-ablation-publication.ts',
     source_clip_id: source.id,
     frames: SAMPLE_TIMES.length,

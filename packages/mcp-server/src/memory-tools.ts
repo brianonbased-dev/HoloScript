@@ -88,13 +88,13 @@ async function getSovereignStore(): Promise<SovereignMemoryStore | null> {
   try {
     _sovereign = new SovereignMemoryStore({
       host,
-      port: Number(process.env.HOLO_MEMORY_SOT_PORT) || 5434,
+      port: Number(process.env.HOLO_MEMORY_SOT_PORT) || 5432,
       database: process.env.HOLO_MEMORY_SOT_DB || 'knowledge',
       user: process.env.HOLO_MEMORY_SOT_USER || 'memory_svc',
       password,
       max: 4,
       connectionTimeoutMillis: 3000,
-      workspaceId: process.env.HOLO_MEMORY_WORKSPACE || 'ai-ecosystem',
+      workspaceId: process.env.HOLO_MEMORY_WORKSPACE || 'default',
     });
   } catch {
     _sovereign = null;

@@ -9,6 +9,12 @@
   "bin": {
     "create-holoscript-plugin": "./bin/create-holoscript-plugin.cjs"
   },
+  "files": [
+    "dist",
+    "bin",
+    "LICENSE",
+    "README.md"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

@@ -316,6 +316,28 @@ See `packages/studio/src/lib/plugins/examples/` for reference implementations:
 - `brittney-advanced.ts` - Custom Brittney nodes
 - `cloudSyncPlugin.ts` - Settings and external API integration
 
+## Package boundary & release posture
+
+This SDK targets external plugin authors: an operator wiring Studio into their
+own pipeline, a founder shipping a private extension, or an agent framework
+driving Studio programmatically — not just the core team.
+
+Plugin metadata, settings, and any external API keys are caller-owned — you
+own your plugin's identity, license, and `settingsSchema` values. The SDK
+ships no default credentials; wire your own environment variables or a
+caller-provided secrets store into `onLoad`.
+
+This package does not ship the HoloScript Studio host application, the
+plugin marketplace backend, or founder-local example plugins
+(`packages/studio/src/lib/plugins/examples/` lives outside this package
+boundary) — it only ships the plugin contract, sandbox bridge, and CLI
+scaffolding.
+
+Release posture: v0-preview. The `nodeTypes`, `panels`, and `sandbox`
+surfaces are still settling and may change between minor versions before
+1.0. Known limitations: no automated marketplace publish/rollback pipeline
+yet — uninstalling via the Studio Plugin Manager is today's rollback path.
+
 ## License
 
 MIT © HoloScript Team

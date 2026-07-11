@@ -2668,7 +2668,7 @@ export async function holoMeshDaemonScript(opts: CLIOptions): Promise<void> {
     orchestratorUrl:
       process.env.MCP_ORCHESTRATOR_URL || 'https://mcp-orchestrator-production-45f9.up.railway.app',
     apiKey: process.env.HOLOSCRIPT_API_KEY!,
-    workspace: process.env.HOLOMESH_WORKSPACE || 'ai-ecosystem',
+    workspace: process.env.HOLOMESH_WORKSPACE || 'default',
     agentName: process.env.HOLOMESH_AGENT_NAME || 'holomesh-agent',
     discoveryIntervalMs: 5 * 60 * 1000,
     inboxIntervalMs: 60 * 1000,

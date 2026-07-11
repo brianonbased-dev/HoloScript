@@ -152,6 +152,16 @@ The formatter integrates with the HoloScript VSCode extension:
 2. Format selection: Select code and press `Shift+Alt+F`
 3. Format document: Press `Shift+Alt+F` with no selection
 
+## Package boundary & release posture
+
+`@holoscript/formatter` targets external and public consumers — operators embedding it in CI, founders wiring it into an agent framework's pre-commit pipeline, or any agent-family tool that needs deterministic `.hs`/`.holo`/`.hsplus` formatting. It ships as a pure text-transform library plus a CLI; it does not ship a default HoloScript project, a network client, or founder-local paths.
+
+Bring your own config: point it at your own files or globs (`holoscript-format src/`), and override defaults via your caller-owned `.holoscriptrc`/`.holoscriptrc.json`/`holoscript.config.json`, or the config object you supply to the programmatic API. The package does not assume a project layout beyond the paths you pass it.
+
+Package boundary: this package formats source text only — it does not validate semantics, does not talk to any service, and does not ship founder-local or private-workspace defaults. Anything beyond text formatting (linting, compilation, publishing) is a caller-owned adapter.
+
+Release posture: v0-preview. Known limitations — formatting rules cover indentation, brace style, whitespace, trailing commas, and import sorting, but do not yet guarantee a safe round-trip on files that are not already syntactically valid HoloScript; `--check` mode is the safest way to validate CI gates before enabling `--write`. There is no in-package rollback — treat `--write` on unreviewed trees as reversible only via your own version control.
+
 ## License
 
-Elastic License 2.0 - See [LICENSE](../../LICENSE) for details.
+MIT License - See [LICENSE](./LICENSE) for details.

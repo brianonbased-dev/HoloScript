@@ -137,7 +137,7 @@ export async function handleOracleConsult(
         body: JSON.stringify({
           search: `${question} ${context}`.trim(),
           limit: 5,
-          workspace_id: 'ai-ecosystem',
+          workspace_id: process.env.HOLOMESH_WORKSPACE || 'default',
         }),
         signal: ctrl.signal,
       });

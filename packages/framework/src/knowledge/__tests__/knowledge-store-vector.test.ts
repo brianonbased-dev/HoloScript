@@ -53,13 +53,19 @@ function mockFetchThrow() {
 
 describe('KnowledgeStore — Vector Embedding Pipeline', () => {
   let originalFetch: typeof globalThis.fetch;
+  let originalWorkspace: string | undefined;
 
   beforeEach(() => {
     originalFetch = globalThis.fetch;
+    // Pin the workspace default deterministically (unset ambient override).
+    originalWorkspace = process.env.HOLOMESH_WORKSPACE;
+    delete process.env.HOLOMESH_WORKSPACE;
   });
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
+    if (originalWorkspace === undefined) delete process.env.HOLOMESH_WORKSPACE;
+    else process.env.HOLOMESH_WORKSPACE = originalWorkspace;
     vi.restoreAllMocks();
   });
 
@@ -85,7 +91,7 @@ describe('KnowledgeStore — Vector Embedding Pipeline', () => {
       expect(opts.headers['x-mcp-api-key']).toBe('test-api-key');
 
       const body = JSON.parse(opts.body);
-      expect(body.workspace_id).toBe('ai-ecosystem');
+      expect(body.workspace_id).toBe('default');
       expect(body.entries).toHaveLength(1);
       expect(body.entries[0].content).toBe('Always use strict TypeScript');
       expect(body.entries[0].metadata.domain).toBe('compilation');

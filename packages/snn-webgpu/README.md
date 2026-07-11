@@ -4,6 +4,12 @@
 
 Leaky Integrate-and-Fire (LIF) neuron simulation targeting 10K+ neurons per frame at 60Hz with WebGPU compute shaders.
 
+## Installation
+
+```bash
+npm install @holoscript/snn-webgpu
+```
+
 ## Quick Start
 
 ```ts
@@ -243,3 +249,11 @@ npm run test    # Run tests
 npm run build   # Build to dist/
 npm run dev     # Watch mode
 ```
+
+## Package boundary & release posture
+
+`@holoscript/snn-webgpu` is a **v0-preview** WebGPU compute library for external, public, and agent-framework consumers who need GPU-accelerated spiking-neural-network simulation inside their own application — it is not bound to any HoloScript-hosted service. The package does not ship a GPU device, adapter, or browser: you bring your own WebGPU context (browser `navigator.gpu`, or a Node WebGPU polyfill such as the `webgpu` peer dependency) and are responsible for requesting the adapter/device and handing it to `GPUContext`.
+
+The tropical-algebra and botanical-extraction helpers accept caller-supplied buffers and provenance metadata directly; this package does not ship or assume any wallet, signing key, or private ingestion pipeline — hashing and wallet-signature attachment are the operator's own trusted step, performed before data reaches this library.
+
+**Known limitations:** the performance figures above were measured on specific hardware (RTX 3080) and are illustrative, not a guarantee — actual throughput on your own GPU will vary. Interfaces (WGSL kernel layout, tropical solver thresholds) may change before v1; validate throughput on your own hardware (`npm run test`, `benchmark:automate:local`) before depending on exact numbers.

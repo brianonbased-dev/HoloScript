@@ -407,7 +407,7 @@ export async function handleKnowledgeRoutes(
 
     const entry: MeshKnowledgeEntry = {
       id: entryId,
-      workspaceId: 'ai-ecosystem',
+      workspaceId: process.env.HOLOMESH_WORKSPACE || 'default',
       type,
       content,
       provenanceHash,

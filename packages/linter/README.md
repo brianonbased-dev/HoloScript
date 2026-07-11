@@ -214,6 +214,16 @@ src/scene.holo:12:1: warning - Composition name should use PascalCase (compositi
 
 The linter integrates with the HoloScript VSCode extension for real-time diagnostics.
 
+## Package boundary & release posture
+
+`@holoscript/linter` is a v0-preview static-analysis CLI and library for external tool authors, editor integrations, and agent frameworks that need to validate `.holo` / `.hsplus` source. It does not ship a fixed, take-it-or-leave-it ruleset as the only supported configuration — you bring your own `.holoscriptlintrc` (or a programmatic `LinterConfig`) and the linter validates against your caller-owned rules, severities, and `ignorePatterns`. Custom rules registered via `registerRule()` are a first-class, caller-owned extension point, not a package boundary violation.
+
+The package does not assume a specific monorepo layout and does not ship founder-local paths, private workspace defaults, or any project-specific configuration — every rule set, ignore pattern, and output format is supplied by the operator invoking the CLI or the library.
+
+Operability is agent-drivable out of the box: `--format json` produces machine-parseable diagnostics for CI/agent pipelines, `--max-warnings` doubles as a pass/fail gate, and library callers get the same `result.diagnostics` for their own validation and reporting.
+
+Known limitations: `--fix` auto-fix is scaffolded but not implemented for every rule, and the built-in rule catalog is still growing. Treat this release as v0-preview — pin the version in consuming projects; rollback is a plain `npm install @holoscript/linter@<previous-version>`.
+
 ## License
 
 MIT

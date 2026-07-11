@@ -332,6 +332,16 @@ const decisionsSet = new GSet('decisions-1', signer);
 
 See `examples/crdt-integration.ts` for complete example.
 
+## Package boundary & release posture
+
+`@holoscript/mvc-schema` is a v0-preview types/schema/compression/validation library for external consumers, operators, and agent frameworks that need to synchronize agent state (decisions, tasks, preferences, spatial anchors, evidence) across VR, AR, and traditional platforms. It ships schemas and codecs only — it does not ship a transport, a storage backend, or a founder-local deployment. The CRDT signer, the wire transport, and the storage layer are all caller-owned: you bring your own `DIDSigner`, connection, and persistence, and only hand this package plain objects to validate and compress.
+
+The package does not assume any particular network stack, database, or private workspace path. It is not the source of truth for identity — DIDs and signing keys are supplied by the caller (see `@holoscript/crdt`'s `DIDSigner`), and this package's schemas are not a package default for how you must model agent state; the size targets and field-compaction table above document a contract, not a requirement to use every object.
+
+Operability: every MVC object round-trips through `validateMVC` / `validateBatch` for schema validation and through `compressMVCFull` / `decompressMVCFull` with an explicit `validation.valid` receipt on every compression result, so a caller (or CI check) can assert correctness without inspecting internals.
+
+Known limitations: this is a v0-preview release — the five MVC object shapes and their compact field names are expected to be additive but are not yet a frozen wire format; pin the version in consuming projects and treat schema changes across minor versions as a compatibility check, not an assumed no-op. Rollback is a plain `npm install @holoscript/mvc-schema@<previous-version>`.
+
 ## License
 
 MIT

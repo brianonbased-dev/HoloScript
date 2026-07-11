@@ -40,6 +40,14 @@ sync.merge(remoteState);
 - [`@holoscript/crdt`](../crdt/) — Base CRDT primitives
 - [Multiplayer example](../../examples/specialized/multiplayer/)
 
+## Package boundary & release posture
+
+`@holoscript/crdt-spatial` targets the external developer/operator/agent-framework audience building multiplayer spatial sync for React Three Fiber scenes — it is not wired to a specific backend. `@react-three/fiber` and `react` are optional peer dependencies: you bring your own renderer integration and merge/broadcast transport, and you configure `checkpointInterval` and the sync channel yourself rather than relying on a founder-owned default.
+
+This package does not ship founder-local infrastructure or a private workspace default: no bundled signaling/relay server, no hardcoded sync endpoint. The `./bridge` export is the explicit seam where you wire in your own transport — the package boundary stops at the CRDT/Loro merge logic.
+
+Status: **v0-preview**. The core position/scale LWW and hybrid-rotation strategy are covered by tests; known limitations include no built-in transport (you must pair it with your own WebRTC/WebSocket layer, e.g. `@holoscript/crdt`'s `WebRTCSync`) and the 30s checkpoint interval is a tunable default, not a guarantee. Run `pnpm test` to validate behavior in your fork; pin a version and roll back via `npm install @holoscript/crdt-spatial@<version>` if a release regresses.
+
 ## License
 
 MIT

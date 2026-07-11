@@ -1,7 +1,7 @@
 /**
  * paper-13 NeuralAssetManifest — tier + schema for neural rendering under contract.
  *
- * Spec: ai-ecosystem/research/2026-04-23_paper-13-neural-rendering-contract-spec.md
+ * Spec: research/2026-04-23_paper-13-neural-rendering-contract-spec.md
  *
  * Three tiers:
  *   T0 canonical geometry       bit-identical (TBC Property 1 unchanged)

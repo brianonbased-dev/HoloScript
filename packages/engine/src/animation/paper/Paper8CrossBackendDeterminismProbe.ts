@@ -1,7 +1,7 @@
 /**
  * Paper-8 cross-backend determinism probe.
  *
- * Paper:  ai-ecosystem/research/paper-8-unified-siggraph.tex
+ * Paper:  research/paper-8-unified-siggraph.tex
  *         §"Cross-Backend Determinism Matrix" (tab:ik-matrix-unified)
  *         §"Full Loop Demo v2" (tab:perf)
  *

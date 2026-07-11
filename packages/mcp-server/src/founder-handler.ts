@@ -350,7 +350,11 @@ async function queryKnowledgeStore(
     const res = await fetch(`${url}/knowledge/query`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json; charset=utf-8', 'x-mcp-api-key': apiKey },
-      body: JSON.stringify({ search, limit: 5, workspace_id: 'ai-ecosystem' }),
+      body: JSON.stringify({
+        search,
+        limit: 5,
+        workspace_id: process.env.HOLOMESH_WORKSPACE || 'default',
+      }),
       signal: ctrl.signal,
     });
     clearTimeout(t);

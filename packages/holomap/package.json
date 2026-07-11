@@ -9,7 +9,9 @@
   "sideEffects": false,
   "files": [
     "dist",
-    "profiles"
+    "profiles",
+    "README.md",
+    "LICENSE"
   ],
   "exports": {
     ".": {

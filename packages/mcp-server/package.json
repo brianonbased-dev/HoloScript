@@ -25,7 +25,9 @@
   },
   "files": [
     "bin",
-    "dist"
+    "dist",
+    "LICENSE",
+    "README.md"
   ],
   "scripts": {
     "build": "node scripts/sync-examples-catalog.mjs && tsup && node scripts/sync-public-types.mjs",

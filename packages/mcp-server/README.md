@@ -313,6 +313,48 @@ For advanced features, use the Hololand MCP server (premium):
 
 See [@hololand/mcp-server](https://github.com/brianonbased-dev/Hololand) for details.
 
+## Package boundary & release posture
+
+**Consumer audience.** `@holoscript/mcp-server` is the HoloScript MCP tool server —
+a standalone MCP endpoint that exposes HoloScript's parse / validate / generate /
+compile and codebase-intelligence tools to external agents and agent frameworks.
+It is written for **external consumers and operators** running their own MCP host:
+you point an MCP client (Claude, Cursor, any MCP-capable agent) at this server, or
+you embed the tool handlers in your own service. It is not tied to any single
+deployment.
+
+**Caller-owned configuration (bring your own).** This package ships **no**
+credentials and **no** operator-specific defaults. You supply everything through
+environment variables (or a secrets broker / HoloKey vault):
+
+- **Workspace** — `HOLOMESH_WORKSPACE` / `HOLO_MEMORY_WORKSPACE` select the
+  knowledge/mesh workspace. When unset, the server falls back to the neutral
+  `default` workspace, never a maintainer's private workspace.
+- **Orchestrator & endpoints** — `MCP_ORCHESTRATOR_URL` /
+  `MCP_ORCHESTRATOR_PUBLIC_URL` point the mesh/knowledge routes at your
+  orchestrator.
+- **Memory store** — `HOLO_MEMORY_SOT_HOST`, `HOLO_MEMORY_SOT_PORT`
+  (defaults to the standard Postgres port `5432`), `HOLO_MEMORY_SOT_DB`,
+  `HOLO_MEMORY_SOT_USER`, and the `MEMORY_SVC_PASSWORD` secret configure the
+  optional sovereign memory backend.
+- **API keys** — `HOLOSCRIPT_API_KEY` / `HOLOMESH_API_KEY` and any provider keys
+  for optional inference are read from your environment.
+
+**Package boundary.** This package **does not ship founder-local or
+maintainer-local state** — no private database, no private workspace, no host
+paths, no wallet material, and no baked-in secrets. Any reference to a specific
+workspace, host, or endpoint is an *example* or an env-driven fallback, **not the
+package default**. If a value is required for your deployment, it is your
+responsibility to provide it via env/secrets.
+
+**Release posture.** This is a **v0-preview** release. Expect the tool surface,
+schemas, and configuration keys to change between minor versions. Known
+limitations: the full tool catalog assumes companion HoloScript packages and (for
+some tools) a reachable orchestrator or memory backend; tools whose backends are
+not configured degrade to a no-op or an explicit error rather than failing the
+whole server. Validate the specific tools you depend on against your own
+environment before relying on them in production.
+
 ## License
 
-MIT
+MIT — see [LICENSE](./LICENSE).

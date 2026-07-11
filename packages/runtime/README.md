@@ -218,6 +218,16 @@ if (!result.verified) {
 }
 ```
 
+## Package boundary & release posture
+
+**Audience.** `@holoscript/runtime` is the browser runtime for external app developers, operators, and founder-run teams shipping spatial/VR/AR HoloScript applications — it targets public, consumer-facing builds, not an internal-only harness.
+
+**Caller-owned configuration.** The runtime takes its container, physics gravity, and storage backend from what the caller passes into `createRuntime`/`initRuntime`; the x402 facilitator verifier above is entirely caller-configured through your own environment variables (`X402_VERIFIER_ENABLED`, `X402_FACILITATOR_URL`, `X402_FACILITATOR_API_KEY`). Nothing here is the package default facilitator — you point it at the facilitator and storage backend you operate.
+
+**Package boundary.** This package does not ship founder-local paths, private workspace fixtures, or embedded credentials; the trait system and physics engine (`cannon-es`) run entirely client-side against data the caller supplies.
+
+**Release posture.** Known limitations: the peer-dependency ranges listed for React/Three/`@react-three/fiber` are more permissive than what's actively validated in CI, and the AI/behavior trait subset is still v0-preview quality — validate them for your use case before depending on their behavior in production. If an upgrade regresses your app, rollback to the previous published version.
+
 ## License
 
 MIT

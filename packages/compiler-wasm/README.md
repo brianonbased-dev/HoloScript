@@ -197,6 +197,32 @@ Full methodology and raw data: `research/2026-04-19_todo-r2-wasm-bench-results.m
 - Safari 11+
 - Edge 16+
 
+## Package boundary & release posture
+
+`@holoscript/wasm` targets external, browser-embedded consumers — operator
+and founder teams, plus agent frameworks shipping HoloScript parsing into
+mobile WebViews, edge workers, or sandboxed runtimes where a full Node/V8
+toolchain is not available.
+
+Caller-owned config: this package is a pure parser/validator with no network
+calls, no credentials, and no external state — you own the `.hs` source you
+pass to `parse()`/`validate()` and whatever you do with the returned AST.
+There is nothing to point it at beyond the WASM binary itself; no
+environment variables are read.
+
+This package does not ship the full `.hsplus`/`HoloScriptPlusParser`
+grammar, `HoloCompositionParser` spatial/world constructs, or any
+founder-local build tooling — only the `.hs` object-graph subset documented
+above, compiled to WASM, ships within this package boundary.
+`WasmParserBridge`'s automatic fallback to `HoloScriptPlusParser` lives in
+the core package, outside this package.
+
+Release posture: v0-preview. As documented above, the WASM build is
+currently **slower** than the JS parser at canonical fixture sizes
+(0.64-0.74x) — a known limitation of the JS↔linear-memory marshalling
+boundary, not a bug. Use it only where native V8 is unavailable. No rollback
+mechanism is needed beyond pinning an earlier `@holoscript/wasm` version.
+
 ## License
 
 MIT License - see [LICENSE](../../LICENSE) for details.

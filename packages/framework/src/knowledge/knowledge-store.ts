@@ -167,7 +167,11 @@ export class KnowledgeStore {
           'Content-Type': 'application/json',
           ...(this.config.remoteApiKey ? { 'x-mcp-api-key': this.config.remoteApiKey } : {}),
         },
-        body: JSON.stringify({ search: query, limit, workspace_id: 'ai-ecosystem' }),
+        body: JSON.stringify({
+          search: query,
+          limit,
+          workspace_id: process.env.HOLOMESH_WORKSPACE || 'default',
+        }),
         signal: AbortSignal.timeout(10_000),
       });
       if (!res.ok) return [];
@@ -183,7 +187,7 @@ export class KnowledgeStore {
     if (!this.config.remoteUrl || !this.config.remoteApiKey) return 0;
     const entries = this.all().map((e) => ({
       id: e.id,
-      workspace_id: 'ai-ecosystem',
+      workspace_id: process.env.HOLOMESH_WORKSPACE || 'default',
       type: e.type,
       content: e.content,
       provenanceHash: e.provenanceHash || '',
@@ -207,7 +211,10 @@ export class KnowledgeStore {
           'Content-Type': 'application/json',
           'x-mcp-api-key': this.config.remoteApiKey,
         },
-        body: JSON.stringify({ workspace_id: 'ai-ecosystem', entries }),
+        body: JSON.stringify({
+          workspace_id: process.env.HOLOMESH_WORKSPACE || 'default',
+          entries,
+        }),
         signal: AbortSignal.timeout(15_000),
       });
       if (!res.ok) return 0;
@@ -244,11 +251,11 @@ export class KnowledgeStore {
 
     try {
       const payload = {
-        workspace_id: 'ai-ecosystem',
+        workspace_id: process.env.HOLOMESH_WORKSPACE || 'default',
         entries: [
           {
             id: entry.id,
-            workspace_id: 'ai-ecosystem',
+            workspace_id: process.env.HOLOMESH_WORKSPACE || 'default',
             type: entry.type,
             content: entry.content,
             provenanceHash: entry.provenanceHash || '',
@@ -313,7 +320,7 @@ export class KnowledgeStore {
         const body: Record<string, unknown> = {
           search: query,
           limit,
-          workspace_id: 'ai-ecosystem',
+          workspace_id: process.env.HOLOMESH_WORKSPACE || 'default',
         };
         if (options?.type) body.type = options.type;
 

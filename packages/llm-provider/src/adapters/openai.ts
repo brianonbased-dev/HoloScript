@@ -414,7 +414,7 @@ function parseChatToolCalls(choice: unknown): {
  * ```
  */
 /**
- * Capability manifest sourced from `ai-ecosystem/docs/LLM_CAPABILITIES.md`
+ * Capability manifest sourced from `docs/LLM_CAPABILITIES.md`
  * § OpenAI. Per OpenAI/Codex self-audit 2026-05-06: Responses API is the
  * primary surface (default since commit 1eebdf0ed); Chat Completions kept
  * as compatibility surface. Lineup spans GPT-5.5 / GPT-5.5-instant (1M ctx,

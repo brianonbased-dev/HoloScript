@@ -268,7 +268,7 @@ export interface MeshConfig {
 export const DEFAULT_MESH_CONFIG: Omit<MeshConfig, 'apiKey'> = {
   orchestratorUrl:
     process.env.MCP_ORCHESTRATOR_URL || 'https://mcp-orchestrator-production-45f9.up.railway.app',
-  workspace: 'ai-ecosystem',
+  workspace: process.env.HOLOMESH_WORKSPACE || 'default',
   agentName: 'holomesh-agent',
   discoveryIntervalMs: 5 * 60 * 1000, // 5 min
   inboxIntervalMs: 60 * 1000, // 1 min
@@ -413,7 +413,7 @@ export interface HoloMeshDaemonState {
 export const INITIAL_MESH_STATE: HoloMeshDaemonState = {
   agentId: null,
   agentName: 'holomesh-agent',
-  workspace: 'ai-ecosystem',
+  workspace: process.env.HOLOMESH_WORKSPACE || 'default',
   status: 'idle',
   peers: [],
   following: [],

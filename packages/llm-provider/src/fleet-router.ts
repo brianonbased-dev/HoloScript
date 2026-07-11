@@ -13,7 +13,7 @@
  * hardcoded address (founder ruling 2026-06-16): a `localhost` literal is
  * consumer-relative and only correct on the node it runs on. The git-tracked
  * registry is the source of truth for node identity (pillar 8). It lives at
- * `~/.ai-ecosystem/config/sovereign-devices/<handle>.json` and each fleet node
+ * `config/sovereign-devices/<handle>.json` and each fleet node
  * carries a `local-llm` capability whose `endpoint` is the LAN-absolute Ollama
  * URL. A node with no resolvable `local-llm` endpoint is simply not a fleet
  * member right now — the fleet degrades to whatever IS reachable (Jetson-only
@@ -112,7 +112,7 @@ export interface FleetRouteOptions {
   model?: string;
   /** Per-fetch timeout in ms (default 6000 — node discovery should be snappy). */
   timeoutMs?: number;
-  /** Override the registry directory (default env SOVEREIGN_DEVICES_DIR or ~/.ai-ecosystem/...). */
+  /** Override the registry directory (default env SOVEREIGN_DEVICES_DIR or a local config directory). */
   registryDir?: string;
   /** Inject a fetch (tests). Defaults to global fetch. */
   fetchImpl?: FetchLike;

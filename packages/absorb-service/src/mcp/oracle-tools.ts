@@ -124,7 +124,11 @@ async function queryKnowledgeStore(search: string, limit: number = 5): Promise<u
         'Content-Type': 'application/json',
         ...authHeaders,
       },
-      body: JSON.stringify({ search, limit, workspace_id: 'ai-ecosystem' }),
+      body: JSON.stringify({
+        search,
+        limit,
+        workspace_id: process.env.HOLOMESH_WORKSPACE || 'default',
+      }),
       signal: controller.signal,
     });
     clearTimeout(timeout);

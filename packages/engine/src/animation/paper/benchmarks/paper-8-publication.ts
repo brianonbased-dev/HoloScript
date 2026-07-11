@@ -1,7 +1,7 @@
 /**
  * Paper-8 cross-backend determinism + Full Loop Demo v2 publication runner.
  *
- * Paper:  ai-ecosystem/research/paper-8-unified-siggraph.tex
+ * Paper:  research/paper-8-unified-siggraph.tex
  *         §"Cross-Backend Determinism Matrix" → Table tab:ik-matrix-unified
  *         §"Full Loop Demo v2" → Table tab:perf
  *
@@ -44,7 +44,7 @@ import {
 
 export interface Paper8DeterminismPublication {
   readonly benchmark: 'paper-8-cross-backend-determinism';
-  readonly paper_ref: 'ai-ecosystem/research/paper-8-unified-siggraph.tex';
+  readonly paper_ref: 'research/paper-8-unified-siggraph.tex';
   readonly spec_version: '2026-04-28_paper-8-determinism-runner';
   readonly ran_at: string;
   readonly duration_ms: number;
@@ -59,7 +59,7 @@ export interface Paper8DeterminismPublication {
 
 export interface Paper8FullLoopPublication {
   readonly benchmark: 'paper-8-full-loop-demo-v2';
-  readonly paper_ref: 'ai-ecosystem/research/paper-8-unified-siggraph.tex';
+  readonly paper_ref: 'research/paper-8-unified-siggraph.tex';
   readonly spec_version: '2026-04-28_paper-8-full-loop-demo-runner';
   readonly ran_at: string;
   readonly duration_ms: number;
@@ -87,7 +87,7 @@ export function runPaper8DeterminismBenchmark(
 
   return {
     benchmark: 'paper-8-cross-backend-determinism',
-    paper_ref: 'ai-ecosystem/research/paper-8-unified-siggraph.tex',
+    paper_ref: 'research/paper-8-unified-siggraph.tex',
     spec_version: '2026-04-28_paper-8-determinism-runner',
     ran_at: new Date().toISOString(),
     duration_ms,
@@ -118,7 +118,7 @@ export function runPaper8FullLoopDemoBenchmark(
 
   return {
     benchmark: 'paper-8-full-loop-demo-v2',
-    paper_ref: 'ai-ecosystem/research/paper-8-unified-siggraph.tex',
+    paper_ref: 'research/paper-8-unified-siggraph.tex',
     spec_version: '2026-04-28_paper-8-full-loop-demo-runner',
     ran_at: new Date().toISOString(),
     duration_ms,

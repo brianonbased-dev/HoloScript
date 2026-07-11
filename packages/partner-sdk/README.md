@@ -14,9 +14,9 @@ npm install @holoscript/partner-sdk
 import { createPartnerSDK } from '@holoscript/partner-sdk';
 
 const sdk = createPartnerSDK({
-  partnerId: 'your-partner-id',
-  apiKey: 'your-api-key',
-  webhookSecret: 'your-webhook-secret',
+  partnerId: process.env.PARTNER_ID,
+  apiKey: process.env.PARTNER_API_KEY,
+  webhookSecret: process.env.PARTNER_WEBHOOK_SECRET,
 });
 
 // Use the API client
@@ -158,6 +158,14 @@ const css = branding.generateCSSVariables();
 // Use brand colors
 console.log(BRAND_COLORS.primary.hex); // #6366F1
 ```
+
+## Package boundary & release posture
+
+**Audience.** This SDK targets external partners, operators, and founder-run agent frameworks that integrate with the HoloScript registry, webhook, and analytics APIs from their own services — it is not an internal-only utility.
+
+**Configuration is caller-owned.** Every client is constructed from credentials the caller supplies — `partnerId`, `apiKey`, `webhookSecret` — normally read from your own environment variables and pointed at the registry host you choose. The SDK does not ship any credentials, founder-local paths, or private workspace defaults; nothing here is the package default endpoint you must trust blindly.
+
+**Release posture: v0-preview.** The registry client and webhook/analytics APIs are exercised by the test suite; the Unity/Unreal/Godot export adapters and branding kit carry known limitations around target-engine version drift and should be treated as unsupported for production export pipelines until promoted past this release boundary. Pin your version and be ready to rollback if an upgrade regresses your integration. Run `npm run test` locally to validate a new SDK version against your integration before upgrading in production.
 
 ## License
 

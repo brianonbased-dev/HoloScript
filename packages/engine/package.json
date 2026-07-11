@@ -16,7 +16,9 @@
     "dist/**/*.d.ts",
     "dist/**/*.d.cts",
     "dist/**/*.map",
-    "dist/**/*.json"
+    "dist/**/*.json",
+    "LICENSE",
+    "README.md"
   ],
   "exports": {
     ".": {

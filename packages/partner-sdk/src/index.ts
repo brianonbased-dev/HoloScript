@@ -12,8 +12,8 @@
  * // Create API client
  * const client = createRegistryClient({
  *   credentials: {
- *     partnerId: 'your-partner-id',
- *     apiKey: 'your-api-key',
+ *     partnerId: process.env.PARTNER_ID,
+ *     apiKey: process.env.PARTNER_API_KEY,
  *   },
  * });
  *
@@ -22,8 +22,8 @@
  *
  * // Set up webhooks
  * const webhooks = createWebhookHandler({
- *   signingSecret: 'your-webhook-secret',
- *   partnerId: 'your-partner-id',
+ *   signingSecret: process.env.PARTNER_WEBHOOK_SECRET,
+ *   partnerId: process.env.PARTNER_ID,
  * });
  *
  * webhooks.onPackagePublished((event) => {
@@ -32,8 +32,8 @@
  *
  * // Access analytics
  * const analytics = createPartnerAnalytics({
- *   partnerId: 'your-partner-id',
- *   apiKey: 'your-api-key',
+ *   partnerId: process.env.PARTNER_ID,
+ *   apiKey: process.env.PARTNER_API_KEY,
  * });
  *
  * const stats = await analytics.getDownloadStats('@your-org/package', 'month');

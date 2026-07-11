@@ -578,6 +578,14 @@ pnpm test:coverage
 - [ ] Rate limiting and DOS protection
 - [ ] Merkle tree verification for state sync
 
+## Package boundary & release posture
+
+`@holoscript/crdt` targets the external developer, operator, and agent-framework audience building distributed/multiplayer state sync on top of HoloScript — it is not tied to any single HoloScript deployment. You bring your own DID signer, WebRTC signaling channel, and permission checker (`PermissionChecker` for `RBACConflictResolver`); the package does not assume a specific identity provider or transport — you own how peers discover and authenticate each other, and you point `WebRTCSync` at your own signaling server.
+
+This package does not ship founder-local infrastructure: no bundled signaling server, no founder-owned DID registry, no private workspace defaults. Application-layer concerns called out above (rate limiting, key custody, STUN/TURN operation) stay outside the package boundary by design — see the Security Model and Security Best Practices sections for what you must supply.
+
+Status: **v0-preview**. The CRDT primitives (LWW-Register, OR-Set, G-Counter) and DID-signing/verification path are exercised by the test suite; known limitations are tracked under "Future Enhancements" above (no persistent storage adapter yet, no built-in rate limiting, causal-ordering validation is opt-in strict mode). Pin a version for reproducible sync behavior; rollback is a plain `npm install @holoscript/crdt@<version>`.
+
 ## Contributing
 
 See main HoloScript repository for contribution guidelines.

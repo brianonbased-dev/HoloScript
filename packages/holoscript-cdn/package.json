@@ -5,6 +5,11 @@
   "main": "dist/holoscript.cdn.js",
   "module": "dist/holoscript.cdn.mjs",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

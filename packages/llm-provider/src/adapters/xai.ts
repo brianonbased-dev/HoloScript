@@ -14,7 +14,7 @@
  * bounded objective suite), so the 1M→500K context drop and 2.4× output
  * price are not justified by any measured capability gain. grok-4.5 stays
  * available for explicit opt-in. Receipt:
- * ai-ecosystem/research/2026-07-10_grok-4.5-vs-4.3-eval-9c9h.md.)
+ * research/2026-07-10_grok-4.5-vs-4.3-eval-9c9h.md.)
  *
  * Model metadata last verified 2026-07-10 via credentialed
  * /v1/language-models discovery.
@@ -182,7 +182,7 @@ export const XAI_MODEL_CAPABILITIES = {
  * ```
  */
 /**
- * Capability manifest sourced from `ai-ecosystem/docs/LLM_CAPABILITIES.md`
+ * Capability manifest sourced from `docs/LLM_CAPABILITIES.md`
  * xAI (Grok). Live Search (real-time web + X-platform) is Grok's unique
  * differentiator vs Anthropic/OpenAI/Gemini for social and news signal.
  *

@@ -16,7 +16,7 @@ export interface AbsorbScanConfig {
   orchestratorUrl?: string;
   /** MCP API key for orchestrator auth */
   mcpApiKey?: string;
-  /** Workspace ID for knowledge queries (default: ai-ecosystem) */
+  /** Workspace ID for knowledge queries (default: env HOLOMESH_WORKSPACE or 'default') */
   workspaceId?: string;
   /** Max improvement tasks to generate */
   maxTasks?: number;
@@ -50,7 +50,7 @@ export interface ExtractedKnowledge {
 }
 
 const DEFAULT_ORCHESTRATOR_URL = 'https://mcp-orchestrator-production-45f9.up.railway.app';
-const DEFAULT_WORKSPACE_ID = 'ai-ecosystem';
+const DEFAULT_WORKSPACE_ID = process.env.HOLOMESH_WORKSPACE || 'default';
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx']);
 const EXCLUDED_DIRECTORIES = new Set(['node_modules', '.pnpm', 'vendor', 'dist', 'build']);
 

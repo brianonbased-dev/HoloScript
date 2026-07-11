@@ -8,7 +8,9 @@
   "types": "./dist/index.d.ts",
   "sideEffects": false,
   "files": [
-    "dist"
+    "dist",
+    "LICENSE",
+    "README.md"
   ],
   "exports": {
     ".": {

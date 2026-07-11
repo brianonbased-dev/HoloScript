@@ -871,3 +871,27 @@ to Railway CDN splitting sessions across edge nodes.
 
 Auth: `ABSORB_API_KEY` as Bearer token. Admin/founder tier has all tools free,
 no rate limits, no credit costs.
+
+## Package boundary & release posture
+
+This is a **v0-preview** consumer package: the HoloScript **code-absorption /
+GraphRAG service** — codebase intelligence, a recursive self-improvement
+pipeline, and the supporting daemon/MCP tooling. It is for **external users,
+founder reviewers, and agent operators** who want to absorb a repository and
+query it, not an internal script.
+
+Config is **caller-owned / bring-your-own**: you supply the orchestrator /
+knowledge-store URL, API keys (`ABSORB_API_KEY`, `HOLOSCRIPT_API_KEY`), model
+endpoints, and workspace scope through your own env / vault. The package does
+**not** default consumers into any private workspace — remote knowledge/oracle
+calls are scoped by `HOLOMESH_WORKSPACE`, and when it is unset the neutral
+`'default'` workspace is used, **not** the maintainer's workspace. The
+`absorb.holoscript.net` endpoint above is a **reference deployment**, not the
+package default; point the client at your own service before use. No host, key,
+path, or private state ships baked in.
+
+**Known limitations:** absorption of large repositories is resource-intensive and
+several capabilities (embeddings, tree-sitter grammars) are optional peer/optional
+dependencies you install for your languages; remote-dependent tools degrade to
+empty/no-op results when no orchestrator or knowledge store is reachable.
+Interfaces may change before the v1 release. MIT licensed.

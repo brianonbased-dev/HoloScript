@@ -13,7 +13,9 @@
   "files": [
     "bin",
     "dist",
-    "!dist/**/*.map"
+    "!dist/**/*.map",
+    "README.md",
+    "LICENSE"
   ],
   "exports": {
     ".": {

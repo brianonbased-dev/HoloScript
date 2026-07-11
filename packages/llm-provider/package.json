@@ -49,7 +49,9 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "LICENSE",
+    "README.md"
   ],
   "scripts": {
     "build": "tsup && tsc --declaration --emitDeclarationOnly --declarationDir dist --skipLibCheck",

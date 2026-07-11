@@ -193,6 +193,14 @@ npm run build:wasm
 - [VS Code Extension](https://marketplace.visualstudio.com/items?itemName=holoscript.holoscript) - Full IDE support
 - [@holoscript/lsp](../lsp) - Language Server Protocol implementation
 
+## Package boundary & release posture
+
+tree-sitter-holoscript targets the external/public consumer of any tree-sitter-aware editor or agent framework — Neovim, Helix, Zed, Emacs, or a Node/browser tool that embeds `web-tree-sitter`. It ships a grammar, native prebuilds, and a WASM build; it does not assume a founder-local toolchain or a private repo checkout to consume the published artifacts.
+
+Configuration is fully caller-owned: you point your editor or tool at the published `tree-sitter-holoscript` package (or its `.wasm` binding) yourself, and any language-server wiring, injection regex, or file-type mapping is supplied by your own editor config, not a founder-local default. The package boundary stops at the grammar and bindings — it does not ship any private workspace, private process, or local adapter beyond the standard `node-gyp-build` prebuild-or-source-build fallback.
+
+Release posture: this is a v0-preview grammar release. Known limitations: the native addon build falls back to compiling `src/parser.c` via `node-gyp` when no prebuild matches your platform/ABI — validate this locally with `npm run build` and `npm test` before depending on prebuilds in CI. Breaking grammar changes are not currently guarded by a compatibility gate, so pin a version rather than tracking latest, and roll back to a known-good version if a grammar update breaks your queries.
+
 ## License
 
 MIT

@@ -6,7 +6,9 @@
   "sideEffects": false,
   "files": [
     "bin",
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "bin": {
     "holo": "bin/holoscript.cjs",

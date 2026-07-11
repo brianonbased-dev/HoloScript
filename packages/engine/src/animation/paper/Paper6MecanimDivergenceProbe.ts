@@ -50,7 +50,7 @@
  * can update the policy struct and re-run. The harness IS the
  * measurement — not a one-off script.
  *
- * @see ai-ecosystem/research/paper-6-animation-sca.tex
+ * @see research/paper-6-animation-sca.tex
  * @see memory/paper-6-mecanim-divergence-harness.md (legacy 6×6 ordering proxy)
  */
 

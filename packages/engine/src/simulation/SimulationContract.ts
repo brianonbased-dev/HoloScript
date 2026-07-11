@@ -1779,7 +1779,7 @@ export function assertSimulationParameterEnvelopeInheritance(
  *     fingerprint they want. Full mitigation requires an attested
  *     source (the WebGPU adapter info API, called by trusted code,
  *     ideally signed). Deferred to a follow-up commit — see audit
- *     memo ai-ecosystem/research/2026-04-20_adapter-fingerprint-security-audit.md
+ *     memo research/2026-04-20_adapter-fingerprint-security-audit.md
  *     §Future hardening.
  *
  * Returns a 64-hex-char string (SHA-256 digest). Async because it

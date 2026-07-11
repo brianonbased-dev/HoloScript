@@ -297,6 +297,14 @@ for (const { anchor, distance } of nearby) {
 }
 ```
 
+## Package boundary & release posture
+
+`@holoscript/spatial-index` is a **v0-preview** library for external, public, and agent-framework consumers building geospatial or spatial-query features — it is a standalone R-Tree and storage layer, not a hosted service. The `RTree` class is pure in-memory and caller-owned: you own the anchor data, the query cadence, and the `RTreeOptions` tuning (maxEntries, bulk-loading). `GeospatialAnchorStorage` is opt-in — point it at your own `dbName`/`storeName`, and the package does not ship any default IndexedDB database, backend API, or server-side persistence.
+
+The package boundary stops at the browser's IndexedDB API: it does not ship a sync backend, wallet, or private-workspace integration — `export()`/`import()` hand you a JSON string, and shipping it anywhere is the caller's own responsibility.
+
+**Known limitations:** the benchmark table above was measured on a single machine (M1 MacBook Pro) and is illustrative, not a guarantee — validate query latency on your own dataset size and hardware before capacity planning. `GeospatialAnchorStorage` requires a browser or browser-like IndexedDB shim; it is not usable as-is in a plain Node process. Interfaces may change before a v1 release.
+
 ## Contributing
 
 See [HoloScript Contributing Guide](../../CONTRIBUTING.md)

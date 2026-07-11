@@ -101,6 +101,14 @@ The extension provides AI agent commands accessible via the command palette:
 - [HoloScript Documentation](https://github.com/brianonbased-dev/holoscript)
 - [Report Issues](https://github.com/brianonbased-dev/holoscript/issues)
 
+## Package boundary & release posture
+
+HoloScript Enhanced targets the external/public VS Code consumer — any developer, agent framework integrator (GitHub Copilot Chat and other MCP-aware clients), or founder-operator who installs the extension from the Marketplace. It ships syntax/IntelliSense/preview/debug tooling and one thin network contract: the `McpServerDefinitionProvider` that points at the production `mcp.holoscript.net` mesh endpoint (toggleable, never a private/local address).
+
+Configuration is caller-owned: all behavior is controlled through standard VS Code settings (`holoscript.mcp.holoscriptMcpEnabled`, `holoscript.formatOnSave`, …) that you set per-workspace or per-user — the extension does not bundle credentials, tokens, or a founder-local config default. The extension's package boundary stops at editor tooling and the public MCP handshake; it does not ship a private workspace, a private repo checkout, or any founder-local adapter, and debug launch configs resolve against your own `${workspaceFolder}`, never a hardcoded path.
+
+Release posture: v0-preview for the newer agent-command surface (`holoscript.agent.*`) and the Smart Asset Editor — expect rough edges and no rollback tooling beyond reinstalling a prior Marketplace version. Known limitations: MCP server discovery requires a VS Code build with `vscode.lm.registerMcpServerDefinitionProvider`; older builds silently skip that feature.
+
 ## License
 
 MIT

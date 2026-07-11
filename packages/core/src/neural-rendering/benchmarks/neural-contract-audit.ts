@@ -1,7 +1,7 @@
 /**
  * paper-13 benchmark runner — end-to-end contract audit on a synthetic T1 asset.
  *
- * Spec: ai-ecosystem/research/2026-04-23_paper-13-neural-rendering-contract-spec.md
+ * Spec: research/2026-04-23_paper-13-neural-rendering-contract-spec.md
  *
  * What this does:
  *   1. Builds a synthetic T1 NeuralAssetManifest with 4 canonical viewpoints

@@ -533,7 +533,7 @@ export async function handleCoreRoutes(
       .digest('hex');
     const entry: MeshKnowledgeEntry = {
       id: entryId,
-      workspaceId: process.env.HOLOMESH_WORKSPACE || 'ai-ecosystem',
+      workspaceId: process.env.HOLOMESH_WORKSPACE || 'default',
       type,
       content,
       provenanceHash,
@@ -1017,8 +1017,8 @@ export async function handleCoreRoutes(
 
   // ── GET /api/holomesh/agent/:handle/audit ─────────────────────────────────
   // Closes gap-build task_1777090894117_d2jx (CAEL audit GET endpoint).
-  // Spec: ai-ecosystem/research/2026-04-25_fleet-adversarial-harness-paper-21.md +
-  //       ai-ecosystem/research/2026-04-25_fleet-empirical-composability-w-gold-189.md.
+  // Spec: research/2026-04-25_fleet-adversarial-harness-paper-21.md +
+  //       research/2026-04-25_fleet-empirical-composability-w-gold-189.md.
   // Phase 0: in-memory store, any authenticated caller can read; Phase 1
   // hardening (team-scoping, persistence) tracked at task_1777093147560_pawd.
   {
@@ -1147,7 +1147,7 @@ export async function handleCoreRoutes(
 
   // ── PATCH/GET /api/holomesh/agent/:handle/defense ─────────────────────────
   // Closes gap-build task_1777090894117_8bav (defense-state PATCH endpoint).
-  // Spec: ai-ecosystem/research/2026-04-25_fleet-adversarial-harness-paper-21.md §3.
+  // Spec: research/2026-04-25_fleet-adversarial-harness-paper-21.md §3.
   // Unblocks adversarial harness Phase 1+2 (the per-cell defense-state matrix).
   // Phase 0: any authenticated caller; Phase 1 will require security-auditor
   // brain-class (tracked at task_1777093147560_pawd).
@@ -1705,7 +1705,7 @@ export async function handleCoreRoutes(
   // Closes the trigger-mechanism gap from task_..._pawd. Coordinator
   // (run-harness.mjs) POSTs cell parameters; worker brain GETs (drains)
   // pending dispatches and invokes its attacker loop.
-  // Spec: ai-ecosystem/research/2026-04-25_fleet-adversarial-harness-paper-21.md §2.
+  // Spec: research/2026-04-25_fleet-adversarial-harness-paper-21.md §2.
   {
     const dispatchMatch = pathname.match(/^\/api\/holomesh\/agent\/([^/]+)\/dispatch$/);
 
@@ -2260,7 +2260,7 @@ export async function handleCoreRoutes(
     const publicEntry: MeshKnowledgeEntry = {
       ...found,
       id: publicId,
-      workspaceId: process.env.HOLOMESH_WORKSPACE || 'ai-ecosystem',
+      workspaceId: process.env.HOLOMESH_WORKSPACE || 'default',
       price,
       tags: [
         ...(Array.isArray(found.tags) ? found.tags.filter((t: string) => t !== 'private') : []),

@@ -400,7 +400,7 @@ export async function handleTeamRoutes(
     // 4. Seed first knowledge entry
     const firstEntry: MeshKnowledgeEntry = {
       id: `W.quickstart.${Date.now()}`,
-      workspaceId: process.env.HOLOMESH_WORKSPACE || 'ai-ecosystem',
+      workspaceId: process.env.HOLOMESH_WORKSPACE || 'default',
       type: 'wisdom',
       content: description
         ? `Hello from ${name} (${ide}). Focus: ${description}`

@@ -22,7 +22,7 @@
  * Limitations: gzip-with-dictionary is a small fixed-window LZ77 + Huffman
  * substitute for Solomonoff's universal prior. It captures lexical and
  * short-phrase overlap, not deep semantic structure. See the scoping doc at
- * ai-ecosystem/research/2026-05-12_kolmogorov-task-score-mcp.md for the formal
+ * research/2026-05-12_kolmogorov-task-score-mcp.md for the formal
  * MDL definition, alternatives considered, and calibration boundaries.
  */
 

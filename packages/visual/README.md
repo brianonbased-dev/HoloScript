@@ -180,6 +180,31 @@ pnpm test
 pnpm build
 ```
 
+## Package boundary & release posture
+
+`@holoscript/visual` targets external tool builders — operator and founder
+teams, plus agent frameworks driving Studio programmatically — who want a
+node-based editor for `.hs`/`.hsplus`/`.holo` composition authoring, not
+end-user runtime code.
+
+Caller-owned config: the `VisualEditor` component and `graphToCode` output
+are pure, caller-owned data — you own the graph you pass in, the `onChange`
+handler, and where the generated HoloScript code is written or executed
+next. The package does not persist or transmit anything itself; storage,
+save/load, and multiplayer sync are left to your own host application.
+
+This package does not ship the HoloScript Studio host shell, the plugin
+marketplace, or any founder-local scene/world content — it ships the editor
+UI, node registry, and codegen only, within this package boundary.
+`VisualProjectionManifest`/`createVisualRemixSeed()` describe how a *plugin*
+can layer a base projection on top of this editor; the projection itself is
+caller-authored, not the package default.
+
+Release posture: preview. The node registry currently covers ~20 node types
+(Event/Action/Logic/Data); known limitations include no undo/redo
+persistence across reloads and no built-in collaborative editing — both are
+left to the host application.
+
 ## License
 
 Apache-2.0

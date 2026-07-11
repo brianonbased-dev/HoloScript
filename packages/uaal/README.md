@@ -85,3 +85,26 @@ npm run test    # Run tests
 npm run build   # Build to dist/
 npm run dev     # Watch mode
 ```
+
+## Package boundary & release posture
+
+```bash
+npm install @holoscript/uaal
+```
+
+This package targets external agent frameworks and operator/founder teams
+embedding the uAA2++ 7-Phase Protocol VM in their own runtime — not just the
+core team. `registerHandler()` is caller-owned: point it at your own model
+calls, retrieval service, or storage backend; the VM core ships no default
+provider and reads no environment variables on your behalf.
+
+This package does not ship the private corpus generator, held-out
+generalization harness, or producibility-receipt CLI — those stay in the
+founder-local research workspace outside this package boundary. Only the
+pure `UAALVirtualMachine`/`UAALCompiler` core, the `/semantic` benchmark
+recognizers, and the `/gate` structural validator are published.
+
+Release posture: v0-preview. The bytecode opcode set and semantic-gate
+scoring are still evolving; known limitations include no persisted VM state
+across process restarts and no built-in rollback for `registerHandler` side
+effects — callers are responsible for their own handler idempotency.

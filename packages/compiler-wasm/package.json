@@ -5,7 +5,9 @@
   "main": "pkg/holoscript_wasm.js",
   "types": "pkg/holoscript_wasm.d.ts",
   "files": [
-    "pkg"
+    "pkg",
+    "LICENSE",
+    "README.md"
   ],
   "scripts": {
     "build": "node scripts/build-wasm.mjs",

@@ -248,6 +248,20 @@ Two MCP layers:
 
 > **Note**: "Extension" has multiple meanings in the codebase — plugin extensions (`ExtensionRegistry`), glTF extensions (`GLTFTrait`), LSP file extensions (`ImportResolver.EXTENSIONS`), and OpenXR required extensions. See [Extension System Architecture](../../docs/architecture/EXTENSION_SYSTEM.md).
 
+## Package boundary & release posture
+
+`@holoscript/core` is the foundational **public** library for external developers and agent
+frameworks building on HoloScript: the parser, AST, trait system, identity, physics, and the
+`compile_to_*` compiler surface. It is a library — it ships no server, no founder-local workspace,
+and no baked credentials. Where a compiler emits an operational default (e.g. a serving endpoint or
+a trace directory), that value is **caller-owned**: you bring your own via the compiler's config
+options and environment variables, and any host/path in a generated artifact is a generic reference,
+**not the package default**.
+
+**Known limitations:** the compiler target set is broad but evolving; some targets are v0-preview and
+their emitted contracts may change before the v1 release. Validate a target's output with the
+package's own checks (e.g. `pnpm test` / the consumption gate) before depending on it in production.
+
 ## License
 
 MIT

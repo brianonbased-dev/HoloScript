@@ -37,7 +37,8 @@
   "files": [
     "bin",
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "dependencies": {
     "@holoscript/core": "workspace:^"
