@@ -25,20 +25,39 @@ import type {
   UAALDeonticIR,
   UAALCompositionIR,
   UAALAffordanceIR,
+  UAALTemporalIR,
+  UAALCommitmentIR,
 } from './semantic';
-import { resolveOcclusion, resolveNormStatus, resolveDischargeable, resolveAffords } from './semantic';
+import {
+  resolveOcclusion,
+  resolveNormStatus,
+  resolveDischargeable,
+  resolveAffords,
+  resolveTemporal,
+  resolveCommitment,
+} from './semantic';
 import type { UAALBeneficiaryIR } from './beneficiary';
 import { resolveBeneficiary } from './beneficiary';
 
 /** The families that currently have a gap-aware resolver (can serve as a verifier of record). */
-export type UAALResolvedFamily = 'occlusion' | 'norm_status' | 'dischargeable' | 'affordance' | 'beneficiary';
+export type UAALResolvedFamily =
+  | 'occlusion'
+  | 'norm_status'
+  | 'dischargeable'
+  | 'affordance'
+  | 'temporal'
+  | 'commitment'
+  | 'beneficiary';
 
-/** Target ids some resolvers need alongside the IR (agent/object/action/norm). */
+/** Target ids some resolvers need alongside the IR (agent/object/action/norm/belief/commitment). */
 export interface VerifierQuery {
   agent?: string;
   action?: string;
   object?: string;
   normId?: string;
+  belief?: string;
+  fact?: string;
+  commitment?: string;
 }
 
 /** The canonical label for one IR under its family resolver — the only ground truth a builder may use. */
@@ -60,6 +79,8 @@ const RESOLVERS: Record<UAALResolvedFamily, (ir: unknown, query: VerifierQuery) 
   norm_status: (ir, q) => resolveNormStatus(ir as UAALDeonticIR, q.normId),
   dischargeable: (ir) => resolveDischargeable(ir as UAALCompositionIR),
   affordance: (ir, q) => resolveAffords(ir as UAALAffordanceIR, q.agent, q.action, q.object),
+  temporal: (ir, q) => resolveTemporal(ir as UAALTemporalIR, q.belief, q.fact),
+  commitment: (ir, q) => resolveCommitment(ir as UAALCommitmentIR, q.commitment),
   beneficiary: (ir) => resolveBeneficiary(ir as UAALBeneficiaryIR),
 };
 

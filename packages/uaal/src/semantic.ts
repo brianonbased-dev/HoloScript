@@ -2951,6 +2951,81 @@ export function resolveAffords(
   return { query: 'affords', status: 'resolved', answer: recoverAffords(ir, agent, action, object) };
 }
 
+/**
+ * Belief-staleness, honest about UNKNOWN time (roadmap Wave 1.1). recoverBeliefStatus defaults an
+ * absent t_now to Infinity and an absent t_formed to -Infinity, silently committing to fresh/stale/
+ * error even when time is unstated. resolveTemporal abstains: current time unstated ⇒ cannot locate
+ * "now"; and the load-bearing case — a belief that disagrees with the current fact is STALE (was
+ * right at formation, the fact then changed) or ERROR (never right), and without the formation time
+ * those two are indistinguishable.
+ */
+export function resolveTemporal(
+  ir: UAALTemporalIR,
+  beliefId: string | undefined,
+  factId: string | undefined,
+): UAALResolution<BeliefStatusRecovery> {
+  const belief = (ir.beliefs || []).find((candidate) => candidate.id === beliefId);
+  if (!belief) {
+    return { query: 'belief_status', status: 'resolved', answer: { status: 'unknown', change_event: null } };
+  }
+  if (typeof ir.t_now !== 'number') {
+    return {
+      query: 'belief_status',
+      status: 'unresolvable',
+      reason: 'missing_precondition',
+      gap: structuredGap('temporal', 'temporal.unstated_now', 'missing_precondition', 't_now'),
+      obstruction: 'current time t_now is unstated — cannot locate the belief against "now"',
+    };
+  }
+  const now = factValueAt(ir, factId, ir.t_now);
+  if (belief.prop === now) {
+    return { query: 'belief_status', status: 'resolved', answer: { status: 'fresh', change_event: null } };
+  }
+  // The belief disagrees with the current fact → stale or error, decidable only with the formation time.
+  if (typeof belief.t_formed !== 'number') {
+    return {
+      query: 'belief_status',
+      status: 'unresolvable',
+      reason: 'underdetermined',
+      gap: structuredGap('temporal', 'temporal.unstated_formation_time', 'underdetermined', beliefId || 'belief'),
+      obstruction: 'belief formation time is unstated — stale (was right, fact changed) vs error (never right) is undecidable',
+    };
+  }
+  return { query: 'belief_status', status: 'resolved', answer: recoverBeliefStatus(ir, beliefId, factId) };
+}
+
+/**
+ * Commitment status, honest about UNKNOWN time (roadmap Wave 1.1). recoverCommitmentStatus defaults
+ * an absent `now` to Infinity, so any commitment with a past deadline looks "broken" even when the
+ * current time is unknown. resolveCommitment abstains on that open-vs-broken ambiguity: an
+ * undischarged commitment with a stated deadline but an UNSTATED current time cannot be called broken
+ * (deadline missed) or open (not yet due) — you cannot say a deadline was missed without a clock.
+ */
+export function resolveCommitment(
+  ir: UAALCommitmentIR,
+  commitmentId: string | undefined,
+): UAALResolution<CommitmentStatusRecovery> {
+  const commitment = commitmentById(ir, commitmentId);
+  if (!commitment) {
+    return { query: 'commitment_status', status: 'resolved', answer: { status: 'open', fulfilling: null } };
+  }
+  const recovered = recoverCommitmentStatus(ir, commitmentId);
+  if (recovered.status === 'discharged') {
+    return { query: 'commitment_status', status: 'resolved', answer: recovered };
+  }
+  // Undischarged: open-vs-broken needs BOTH a deadline and the current time.
+  if (typeof commitment.due_time === 'number' && typeof ir.now !== 'number') {
+    return {
+      query: 'commitment_status',
+      status: 'unresolvable',
+      reason: 'missing_precondition',
+      gap: structuredGap('commitment', 'commitment.unstated_now', 'missing_precondition', 'now'),
+      obstruction: 'current time is unstated — an undischarged commitment past a stated deadline cannot be called broken vs open',
+    };
+  }
+  return { query: 'commitment_status', status: 'resolved', answer: recovered };
+}
+
 export function essentialRoles(ir: UAALMereologyIR): Set<string> {
   const roles = new Set<string>();
   for (const part of ir.parts || []) {
