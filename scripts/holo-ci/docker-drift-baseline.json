@@ -1,0 +1,26 @@
+{
+  "note": "Ratchet baseline for per-service Docker BUILD-drift (check-docker-drift.mjs). Each list is a set of currently-blessed wiring gaps; the gate FAILS if ANY set GROWS (a new one-sided import / omitted COPY that would break a per-service docker build before Railway). orderGaps = tsc-built pkg imports a workspace dep not built-with-dts earlier. externalsGaps = core value-imports a dep neither declared in core/package.json nor externalized. copyGaps = a package built without its source copied into the stage. npmrcGaps = a pnpm-install stage without .npmrc (shamefully-hoist). Wire the Docker recipe to match, then reseed with --update-baseline.",
+  "updatedAtIso": "2026-07-11T02:43:09.337Z",
+  "orderGaps": [
+    "infrastructure/Dockerfile.absorb-service :: @holoscript/absorb-service-host needs @holoscript/absorb-service built-with-dts first",
+    "infrastructure/Dockerfile.absorb-service :: @holoscript/absorb-service-host needs @holoscript/config built-with-dts first",
+    "packages/studio/Dockerfile :: @holoscript/agent-protocol needs @holoscript/framework built-with-dts first",
+    "packages/studio/Dockerfile :: @holoscript/crdt-spatial needs @holoscript/framework built-with-dts first"
+  ],
+  "orderGapsCount": 4,
+  "externalsGaps": [
+    "scripts/docker/tsup.core.docker.cjs :: core value-imports @holoscript/holo-vm but it is neither declared in core/package.json nor externalized",
+    "scripts/docker/tsup.core.docker.cjs :: core value-imports @holoscript/mcp-server but it is neither declared in core/package.json nor externalized",
+    "scripts/docker/tsup.core.docker.cjs :: core value-imports @holoscript/qm-bridge but it is neither declared in core/package.json nor externalized",
+    "scripts/docker/tsup.core.docker.cjs :: core value-imports @holoscript/snn-webgpu but it is neither declared in core/package.json nor externalized"
+  ],
+  "externalsGapsCount": 4,
+  "copyGaps": [],
+  "copyGapsCount": 0,
+  "npmrcGaps": [
+    "infrastructure/Dockerfile.export-api :: stage \"builder\" (line 24) runs pnpm install without .npmrc (shamefully-hoist) available first",
+    "infrastructure/Dockerfile.export-api :: stage \"stage3\" (line 57) runs pnpm install without .npmrc (shamefully-hoist) available first",
+    "packages/hologram-worker/Dockerfile :: stage \"build\" (line 18) runs pnpm install without .npmrc (shamefully-hoist) available first"
+  ],
+  "npmrcGapsCount": 3
+}

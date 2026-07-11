@@ -155,6 +155,8 @@
     "check:codex-mcp": "node scripts/holo-ci/check-codex-mcp.mjs",
     "check:cross-platform-paths": "node scripts/holo-ci/check-cross-platform-paths.mjs",
     "check:docker-core-entries": "node scripts/holo-ci/check-docker-core-entries.mjs",
+    "check:docker-drift": "node scripts/holo-ci/check-docker-drift.mjs",
+    "check:docker-drift:update": "node scripts/holo-ci/check-docker-drift.mjs --update-baseline",
     "holo:translate-cloud": "node scripts/holo-ci/translate-cloud-sessions.mjs",
     "check:native-coverage": "node scripts/holo-ci/check-native-coverage.mjs",
     "check:native-coverage:update": "node scripts/holo-ci/check-native-coverage.mjs --update",
