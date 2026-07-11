@@ -197,6 +197,7 @@ interface Token {
 // =============================================================================
 
 import { VR_TRAITS, LIFECYCLE_HOOKS, STRUCTURAL_DIRECTIVES } from '../constants';
+import { RUNTIME_DIRECTIVE_TRAITS } from '../traits/knownTraitSet';
 import { ChunkDetector } from './ChunkDetector';
 import { ParseCache, globalParseCache } from './ParseCache';
 import { ChunkBasedIncrementalParser, type IncrementalParseResult } from './IncrementalParser';
@@ -2919,11 +2920,17 @@ export class HoloScriptPlusParser {
       return { ...config, type: name, name: nodeName } as HSPlusDirective;
     }
 
-    // Unknown directive - emit warning and parse as generic trait
-    if (this.options.strict) {
-      this.traitError(name);
-    } else {
-      this.warn(`Unknown directive @${name}`);
+    // Unknown directive - emit warning and parse as generic trait.
+    // Runtime/governance directive traits (@freeze_when, @llama_serve, @evolve_program, @model_fleet,
+    // @provider_policy) are KNOWN top-level directives — they parse as generic traits (unchanged
+    // downstream) but must NOT trip the unknown-directive diagnostic (or strict error).
+    const isKnownRuntimeDirective = (RUNTIME_DIRECTIVE_TRAITS as readonly string[]).includes(name);
+    if (!isKnownRuntimeDirective) {
+      if (this.options.strict) {
+        this.traitError(name);
+      } else {
+        this.warn(`Unknown directive @${name}`);
+      }
     }
 
     // Parse config if present to avoid syntax errors
