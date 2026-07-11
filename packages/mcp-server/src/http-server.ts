@@ -97,6 +97,7 @@ import {
   extractAndVerifySigning,
   type SigningContext,
 } from './holomesh/identity/signing-middleware';
+import { initDurableAttestationRegistry } from './holomesh/identity/attestation-persistence';
 import {
   initStores,
   teamStore,
@@ -4260,6 +4261,16 @@ new WebRTCSignalingServer(httpServer, '/webrtc-signaling');
 // Load team, social, and agent state
 (async () => {
   await initStores();
+
+  // Rehydrate founder seat attestations from durable storage so a single
+  // (Trezor) attestation survives restart instead of being wiped every deploy.
+  // Additive + fail-safe: on load failure the registry starts empty (prior
+  // behavior). Must run before listen() so /me/attestation reads the durable set.
+  try {
+    initDurableAttestationRegistry();
+  } catch (e) {
+    console.warn('[HoloMesh] durable attestation init failed (continuing empty):', e);
+  }
 
   // Drain ci-public lane on Railway's spare CPU (zero marginal cost co-location).
   startCiPublicWorker().catch(() => {

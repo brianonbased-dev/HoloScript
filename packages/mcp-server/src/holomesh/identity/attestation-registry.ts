@@ -132,9 +132,29 @@ export class AttestationRegistry {
   private byPqcKey = new Map<string, Attestation>();
   private retired = new Set<string>();
   private onRetire?: OnRetireCallback;
+  /** Fired after any state mutation (attest/retire) so a durable-persistence
+   *  layer can snapshot to disk/DB. Kept separate from `onRetire` (which is
+   *  the SSE-broadcast hook) so persistence and broadcast compose independently. */
+  private onChange?: () => void;
+  /** Suppresses `onChange` during `restore()` — loading from the store must not
+   *  immediately write back the same bytes. */
+  private suppressChange = false;
 
-  constructor(opts: { onRetire?: OnRetireCallback } = {}) {
+  constructor(opts: { onRetire?: OnRetireCallback; onChange?: () => void } = {}) {
     this.onRetire = opts.onRetire;
+    this.onChange = opts.onChange;
+  }
+
+  /** Fire the change hook, swallowing errors so a persistence failure never
+   *  breaks an in-memory mutation (the registry is authoritative in-process;
+   *  the next successful save catches up). No-op while restoring or unwired. */
+  private fireChange(): void {
+    if (!this.onChange || this.suppressChange) return;
+    try {
+      this.onChange();
+    } catch {
+      // Persistence failure must not roll back the attest/retire.
+    }
   }
 
   /** Add or replace an attestation. Idempotent on identical input.
@@ -166,6 +186,7 @@ export class AttestationRegistry {
     // Re-attesting an explicitly-retired key is allowed (key rotation flows);
     // callers must understand the implications. Clear the retired flag.
     this.retired.delete(key);
+    this.fireChange();
   }
 
   /**
@@ -198,6 +219,7 @@ export class AttestationRegistry {
         // authoritative even if the SSE feed is down. Consumer handles resync.
       }
     }
+    this.fireChange();
     return updated;
   }
 
@@ -266,6 +288,49 @@ export class AttestationRegistry {
   /** Number of currently-retired attestations. */
   retiredCount(): number {
     return this.retired.size;
+  }
+
+  /**
+   * Serialize registry state for durable persistence (survives orchestrator
+   * restarts so founder attestations don't have to be re-signed after every
+   * deploy). `pqcPublicKey` stays as `Uint8Array` here — the persistence layer
+   * (attestation-persistence.ts) is responsible for encoding it. `byPqcKey` is
+   * a rebuildable secondary index derived from `byKey`, so it is NOT serialized;
+   * `restore()` reconstructs it.
+   */
+  snapshot(): { attestations: Attestation[]; retired: string[] } {
+    return {
+      attestations: [...this.byKey.values()].map((att) => ({ ...att })),
+      retired: [...this.retired],
+    };
+  }
+
+  /**
+   * Rehydrate the registry from a `snapshot()`. REPLACES all in-memory state,
+   * rebuilding the PQC index from any attestation carrying a `pqcPublicKey`.
+   * Malformed rows (missing publicKey/seatId) are skipped rather than throwing,
+   * so a partially-corrupt store degrades to fewer attestations instead of a
+   * boot crash. Does NOT fire `onChange` (loading from the store must not
+   * immediately write the same bytes back).
+   */
+  restore(snap: { attestations?: Attestation[]; retired?: string[] } | null): void {
+    if (!snap) return;
+    this.suppressChange = true;
+    try {
+      this.clear();
+      for (const att of snap.attestations ?? []) {
+        if (!att || !att.publicKey || !att.seatId) continue;
+        // attest() rebuilds byKey + byPqcKey and clears the retired flag; the
+        // retired set is re-applied AFTER the loop so retired seats stay retired.
+        this.attest(att);
+      }
+      for (const key of snap.retired ?? []) {
+        const normalized = normalizeKey(key);
+        if (normalized && this.byKey.has(normalized)) this.retired.add(normalized);
+      }
+    } finally {
+      this.suppressChange = false;
+    }
   }
 
   /**
