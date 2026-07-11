@@ -48,6 +48,7 @@ export type { MeshTransport, MeshRequestHandler } from './mesh-transport';
 
 export * from './gate';
 export * from './semantic';
+export * from './beneficiary';
 
 // CAEL-pairing surface (2026-07-10, task_1783669630177_iwmp): provenance envelope +
 // instance identity, non-destructive merge, and structural retrieval — the fields and
