@@ -8,6 +8,7 @@
 > **V6 vision document:** [docs/strategy/vision/VISION_V6.md](./vision/VISION_V6.md) (realized).
 > **Historical milestones:** v3.x to v5.0 archived at [docs/archive/ROADMAP_v3_to_v5_ARCHIVED.md](../archive/ROADMAP_v3_to_v5_ARCHIVED.md).
 > **Metrics policy:** live counts belong in [docs/NUMBERS.md](../NUMBERS.md), not in this roadmap.
+> **Ecosystem reconciliation:** this is the **substrate** roadmap. It coincides with the **runway** roadmap in the ai-ecosystem repo — the single top-level entry that keeps the two layers aligned is `ai-ecosystem/ROADMAP.md` ("one journey, two layers"). Directional changes (a retired framing, a new phase, a shifted north star) update there and here together.
 
 ---
 
