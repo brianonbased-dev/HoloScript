@@ -7300,6 +7300,7 @@ export interface SurfaceTwinInput {
   authoritativeState: Record<string, Record<string, unknown> | SurfaceTwinScalar>;
 }
 export declare function checkSurfaceTwinCorrespondence(input: SurfaceTwinInput): SurfaceTwinReceipt;
+export declare function extractDisplayedProjections(html: string): Record<string, string>;
 `;
 
 const worldDTS = `/** @holoscript/core/world — Native world generation adapters/service */
