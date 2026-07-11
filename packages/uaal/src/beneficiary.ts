@@ -21,6 +21,7 @@
  */
 
 import type { UAALDeonticNorm, UAALResolution } from './semantic';
+import { structuredGap } from './semantic';
 
 // =============================================================================
 // TYPES — the holarchy levels + an action's IR
@@ -171,6 +172,7 @@ export function resolveBeneficiary(ir: UAALBeneficiaryIR): UAALResolution<Benefi
       query: 'beneficiary',
       status: 'unresolvable',
       reason: 'missing_precondition',
+      gap: structuredGap('beneficiary', 'beneficiary.unstated_impact', 'missing_precondition', 'humans'),
       obstruction: 'human impact of the action is unstated — cannot certify the human floor without it',
     };
   }
@@ -182,6 +184,7 @@ export function resolveBeneficiary(ir: UAALBeneficiaryIR): UAALResolution<Benefi
       query: 'beneficiary',
       status: 'unresolvable',
       reason: 'unprioritized_conflict',
+      gap: structuredGap('beneficiary', 'beneficiary.benefit_harm_conflict', 'unprioritized_conflict', 'humans'),
       obstruction: 'action both benefits and harms humans with no precedence — floor status indeterminate',
     };
   }

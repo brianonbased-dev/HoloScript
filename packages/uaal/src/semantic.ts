@@ -2491,12 +2491,42 @@ export type UAALGapReason =
   | 'cyclic_dependency'
   | 'missing_precondition';
 
+/**
+ * A structured, family-scoped gap reason (roadmap Wave 0.2). The coarse `reason` (one of the four
+ * base buckets) stays for backward compatibility; `gap` additionally carries the FAMILY-SCOPED code
+ * plus a pointer to the offending atom, so a gap corpus can teach WHY the abstention fired
+ * ('affordance.unstated_precondition') and not merely THAT it did ('missing_precondition'). Collapsing
+ * every family's honesty failure into one opaque base bucket is itself a form of confabulation.
+ */
+export interface UAALStructuredGap {
+  /** Family-scoped code, e.g. 'affordance.unstated_precondition' | 'beneficiary.unstated_impact'. */
+  code: string;
+  /** The semantic family that produced the abstention. */
+  family: string;
+  /** Which of the four generic base buckets this maps to (keeps `reason` and `gap` consistent). */
+  base: UAALGapReason;
+  /** Optional pointer to the missing/conflicting atom (an id or a short description). */
+  evidence?: string;
+}
+
 export interface UAALResolution<A = unknown> {
   query: string;
   status: 'resolved' | 'unresolvable';
   answer?: A;
   reason?: UAALGapReason;
+  /** Structured, family-scoped reason. Present when status==='unresolvable' on an upgraded resolver. */
+  gap?: UAALStructuredGap;
   obstruction?: string;
+}
+
+/** Construct a structured gap and its coarse base bucket together, so they can never disagree. */
+export function structuredGap(
+  family: string,
+  code: string,
+  base: UAALGapReason,
+  evidence?: string,
+): UAALStructuredGap {
+  return { code, family, base, ...(evidence !== undefined ? { evidence } : {}) };
 }
 
 // Raw opacity: true | false | undefined (absent). Unlike opacityMap (which coerces absent → false via
@@ -2834,6 +2864,91 @@ export function benchmarkComposition(
     pass: Object.values(tests).every((test) => test.pass),
     misses,
   };
+}
+
+/**
+ * Affordance, honest about UNKNOWN physical preconditions (roadmap Wave 1.1 / 4.1 — the embodiment-
+ * critical resolver). recoverAffords coerces an unstated precondition OR an unstated agent capability
+ * to "does not afford", indistinguishable from an explicit block. resolveAffords reads three states
+ * per offer, mirroring resolveOcclusion's opaque true/false/absent: a capability/precondition that is
+ * explicitly unsatisfied → blocked; explicitly satisfied → keep checking; UNSTATED → unknown. A
+ * confident "yes it affords" over an unstated precondition is the embodied-hallucination failure the
+ * human-floor discipline forbids.
+ */
+export function resolveAffords(
+  ir: UAALAffordanceIR,
+  agent: string | undefined,
+  action: string | undefined,
+  object: string | undefined,
+): UAALResolution<AffordanceRecovery> {
+  if (!truthyString(agent) || !truthyString(action) || !truthyString(object)) {
+    return { query: 'affords', status: 'resolved', answer: { affords: false, reason: 'invalid_query' } };
+  }
+  const agentEntity = (ir.entities || []).find((entity) => entity.id === agent);
+  const objectEntity = (ir.entities || []).find((entity) => entity.id === object);
+  const offers = (objectEntity?.offers || []).filter((candidate) => candidate.action === action);
+  if (offers.length === 0) {
+    // The object simply does not offer this action — a determinate 'no', not a gap.
+    return { query: 'affords', status: 'resolved', answer: { affords: false, reason: 'no_offer' } };
+  }
+
+  const stated = new Set((ir.propositions || []).map((proposition) => proposition.id));
+  const holds = new Map((ir.propositions || []).map((proposition) => [proposition.id, Boolean(proposition.holds)]));
+  type Verdict =
+    | { kind: 'affords' }
+    | { kind: 'blocked'; reason: string }
+    | { kind: 'unknown'; code: string; base: UAALGapReason; evidence: string };
+
+  const verdicts: Verdict[] = offers.map((offer): Verdict => {
+    // Capability: a REQUIRED attribute the agent's body does not STATE is unknown, not a block.
+    for (const key of Object.keys(offer.requires || {})) {
+      if (!UAAL_AFFORDANCE_REQUIREMENTS[key]) continue;
+      const spec = UAAL_AFFORDANCE_REQUIREMENTS[key];
+      if (agentEntity?.body?.[spec.attr] == null) {
+        return { kind: 'unknown', code: 'affordance.unstated_capability', base: 'missing_precondition', evidence: key };
+      }
+    }
+    const capability = requirementCheck(agentEntity?.body, offer.requires);
+    if (!capability.affords) return { kind: 'blocked', reason: capability.reason || 'capability' };
+    // Preconditions: an UNSTATED precondition proposition is unknown, not a block.
+    for (const precondition of offer.preconditions || []) {
+      if (!stated.has(precondition)) {
+        return { kind: 'unknown', code: 'affordance.unstated_precondition', base: 'missing_precondition', evidence: precondition };
+      }
+      if (!holds.get(precondition)) return { kind: 'blocked', reason: 'precondition' };
+    }
+    return { kind: 'affords' };
+  });
+
+  const anyAfford = verdicts.some((verdict) => verdict.kind === 'affords');
+  const anyBlocked = verdicts.some((verdict) => verdict.kind === 'blocked');
+  const unknowns = verdicts.filter((verdict): verdict is Extract<Verdict, { kind: 'unknown' }> => verdict.kind === 'unknown');
+
+  // One offer affords, another blocks, no precedence → genuinely indeterminate.
+  if (anyAfford && anyBlocked) {
+    return {
+      query: 'affords',
+      status: 'unresolvable',
+      reason: 'unprioritized_conflict',
+      gap: structuredGap('affordance', 'affordance.conflicting_offers', 'unprioritized_conflict', String(action)),
+      obstruction: `two offers for "${action}" on "${object}" disagree with no precedence`,
+    };
+  }
+  // A determinate afford stands even if a different offer is unknown.
+  if (anyAfford) return { query: 'affords', status: 'resolved', answer: { affords: true, reason: null } };
+  // No offer determinately affords; if any path is merely UNKNOWN, the query is underdetermined.
+  if (unknowns.length > 0) {
+    const unknown = unknowns[0];
+    return {
+      query: 'affords',
+      status: 'unresolvable',
+      reason: unknown.base,
+      gap: structuredGap('affordance', unknown.code, unknown.base, unknown.evidence),
+      obstruction: `affordance of "${action}" is underdetermined: ${unknown.code.split('.').pop()} "${unknown.evidence}" is unstated`,
+    };
+  }
+  // Every offer is determinately blocked → an honest 'no'.
+  return { query: 'affords', status: 'resolved', answer: recoverAffords(ir, agent, action, object) };
 }
 
 export function essentialRoles(ir: UAALMereologyIR): Set<string> {

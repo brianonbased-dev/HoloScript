@@ -80,6 +80,9 @@ describe('resolveBeneficiary — three-body honesty about the human floor', () =
     const res = resolveBeneficiary(ir);
     expect(res.status).toBe('unresolvable');
     expect(res.reason).toBe('missing_precondition');
+    expect(res.gap?.code).toBe('beneficiary.unstated_impact');
+    expect(res.gap?.family).toBe('beneficiary');
+    expect(res.gap?.base).toBe('missing_precondition');
   });
 
   it('resolves when the action explicitly declares humans unaffected (floor held at 0)', () => {
