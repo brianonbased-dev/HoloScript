@@ -8,6 +8,7 @@
  */
 
 import { VR_TRAITS } from '../constants';
+import { buildKnownTraitSet } from '../traits/knownTraitSet';
 
 // =============================================================================
 // TYPES
@@ -114,7 +115,10 @@ const VALID_GEOMETRIES = [
 // Keep materialization lazy: tsup's parser subpath can load this module before
 // the generated trait-registry chunk has run its initializer.
 function validTraits(): string[] {
-  return [...VR_TRAITS];
+  // The SSOT known-trait union (VR + Native2D + code-graph + runtime/governance directive traits
+  // like @freeze_when / @llama_serve), not VR_TRAITS alone — so top-level directive traits are not
+  // flagged HSP001 "Unknown directive". Still lazy: buildKnownTraitSet spreads VR_TRAITS at call-time.
+  return [...buildKnownTraitSet()];
 }
 
 const COMMON_PROPERTIES = [
