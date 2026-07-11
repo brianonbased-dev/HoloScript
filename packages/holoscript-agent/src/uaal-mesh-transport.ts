@@ -21,7 +21,7 @@
  * Correlation rides in the message CONTENT (a JSON {@link MeshEnvelope}), not headers/subject,
  * so it survives the `TeamMessage` shape unchanged.
  */
-import type { MeshTransport, MeshRequestHandler } from '@holoscript/uaal';
+import type { MeshTransport, MeshRequestHandler, UAALOperand } from '@holoscript/uaal';
 
 /** The minimal HoloMesh messaging surface the transport needs — `HolomeshClient` satisfies it. */
 export interface MeshMessaging {
@@ -36,7 +36,7 @@ export interface MeshEnvelope {
   cid: string;
   from: string;
   to: string; // node handle, or '*' for sync
-  payload: unknown;
+  payload: UAALOperand;
 }
 
 /** messageType tag so the feed is coarse-filterable and human-scannable. */
@@ -93,7 +93,7 @@ export class HolomeshMeshTransport implements MeshTransport {
     this.sleep = opts.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
   }
 
-  async request(toNode: string, payload: unknown): Promise<unknown> {
+  async request(toNode: string, payload: UAALOperand): Promise<UAALOperand> {
     const cid = this.genId();
     await this.send('mesh-call', cid, toNode, payload);
     const deadline = this.now() + this.requestTimeoutMs;
@@ -112,15 +112,15 @@ export class HolomeshMeshTransport implements MeshTransport {
     );
   }
 
-  async offload(toNode: string, payload: unknown): Promise<void> {
+  async offload(toNode: string, payload: UAALOperand): Promise<void> {
     await this.send('mesh-offload', this.genId(), toNode, payload);
   }
 
-  async sync(payload: unknown): Promise<void> {
+  async sync(payload: UAALOperand): Promise<void> {
     await this.send('mesh-sync', this.genId(), '*', payload);
   }
 
-  private async send(kind: MeshEnvelope['kind'], cid: string, to: string, payload: unknown): Promise<void> {
+  private async send(kind: MeshEnvelope['kind'], cid: string, to: string, payload: UAALOperand): Promise<void> {
     const env: MeshEnvelope = { v: 1, kind, cid, from: this.selfNode, to, payload };
     await this.mesh.sendTeamMessage(JSON.stringify(env), MESH_TAG);
   }
@@ -169,9 +169,9 @@ export class MeshNode {
 
       if (e.kind === 'mesh-call') {
         this.served.add(e.cid);
-        let reply: unknown;
+        let reply: UAALOperand;
         try {
-          reply = await this.onRequest(e.from, e.payload as never);
+          reply = await this.onRequest(e.from, e.payload);
         } catch (err) {
           reply = { ok: false, error: err instanceof Error ? err.message : String(err) };
         }
