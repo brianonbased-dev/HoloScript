@@ -77,7 +77,24 @@
       "name": "@holoscript/memory",
       "packageDir": "packages/memory",
       "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
-      "requireFiles": ["dist/index.js", "dist/index.cjs", "dist/index.d.ts"],
+      "requireBins": ["holoscript-memory"],
+      "requireFiles": [
+        "dist/index.js",
+        "dist/index.cjs",
+        "dist/index.d.ts",
+        "dist/cli.js"
+      ],
+      "forbidBundledNativeAddons": true
+    },
+    {
+      "name": "@holoscript/agent-runtime",
+      "packageDir": "packages/agent-runtime",
+      "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "requireFiles": [
+        "src/index.mjs",
+        "src/second-brain-runtime.mjs",
+        "README.md"
+      ],
       "forbidBundledNativeAddons": true
     },
     {

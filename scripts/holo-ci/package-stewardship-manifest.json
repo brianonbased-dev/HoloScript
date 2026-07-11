@@ -250,11 +250,12 @@
         "check:package-consumption:full"
       ],
       "validationCommands": [
-        "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/memory@latest --probe memory-client-import --json"
+        "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/memory@latest --probe memory-client-import --json",
+        "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/memory@latest --probe memory-bin-help --json"
       ],
       "nextActions": [
         "Keep the package small enough for edge and worker lanes.",
-        "Add receipts for read/write behavior before broadening public APIs."
+        "Keep live read/write/cleanup receipts green against caller-owned Postgres before broadening public APIs."
       ]
     },
     {
@@ -274,7 +275,7 @@
         "privateHarnessLeakAllowed": false
       },
       "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
-      "utilityIds": [],
+      "utilityIds": ["provider-neutral-second-brain-runtime"],
       "validationCommands": [
         "pnpm --filter @holoscript/agent-runtime run check",
         "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/agent-runtime@latest --probe agent-runtime-import --json"

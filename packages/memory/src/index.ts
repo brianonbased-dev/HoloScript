@@ -4,6 +4,11 @@
  * memory on the sovereign SoT (the de-silo as a package, not a bespoke service).
  */
 export {
+  SOVEREIGN_MEMORY_REQUIRED_COLUMNS,
+  SOVEREIGN_MEMORY_SCHEMA,
+  SOVEREIGN_MEMORY_SCHEMA_SQL,
+  SOVEREIGN_MEMORY_SCHEMA_VERSION,
+  SOVEREIGN_MEMORY_TABLE,
   SovereignMemoryStore,
   type MemoryEntryInput,
   type MemoryEntry,
@@ -11,7 +16,20 @@ export {
   type MemoryType,
   type RecallOptions,
   type SovereignMemoryConfig,
+  type SovereignMemoryHealth,
+  type SovereignMemorySchemaReceipt,
 } from './sovereign-memory-store.js';
+
+export {
+  SOVEREIGN_MEMORY_CONNECTION_ENV_KEYS,
+  SOVEREIGN_MEMORY_ROUND_TRIP_RECEIPT_SCHEMA,
+  resolveSovereignMemoryConfigFromEnv,
+  runSovereignMemoryRoundTrip,
+  type ResolvedSovereignMemoryEnvironment,
+  type SovereignMemoryEnvironmentStatus,
+  type SovereignMemoryRoundTripReceipt,
+  type SovereignMemoryRoundTripStore,
+} from './consumer-runtime.js';
 
 export {
   AGENT_MEMORY_PROFILE_SCHEMA,

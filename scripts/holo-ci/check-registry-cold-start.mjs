@@ -89,6 +89,17 @@ const PACKAGE_BIN_HELP_PROBES = {
     expectedBins: ['holoscript-agent'],
     expectedOutput: ['holoscript-agent', 'USAGE', 'tick', 'supervise'],
   },
+  'memory-bin-help': {
+    packageName: '@holoscript/memory',
+    runBin: 'holoscript-memory',
+    expectedBins: ['holoscript-memory'],
+    expectedOutput: [
+      'HoloScript Sovereign Memory',
+      'Usage: holoscript-memory',
+      'doctor',
+      'roundtrip',
+    ],
+  },
 };
 const PROBES = new Set([
   'core-holo-webgpu',

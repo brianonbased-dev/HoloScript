@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/memory",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Consumable client for the shared sovereign HoloScript agent-memory substrate — identity-keyed, cross-family, direct-to-SoT.",
   "type": "module",
   "main": "dist/index.js",
@@ -13,10 +13,18 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": ["dist", "README.md", "LICENSE"],
+  "bin": {
+    "holoscript-memory": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --dts --clean",
-    "test": "vitest run src/agent-memory-profile.test.ts src/sovereign-memory-store.test.ts --passWithNoTests"
+    "build": "tsup src/index.ts src/cli.ts --format esm,cjs --dts --clean",
+    "test": "vitest run src/agent-memory-profile.test.ts src/sovereign-memory-store.test.ts src/consumer-runtime.test.ts",
+    "prepublishOnly": "pnpm run test && pnpm run build"
   },
   "dependencies": {
     "pg": "^8.13.0"

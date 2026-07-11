@@ -61,6 +61,19 @@
       ]
     },
     {
+      "id": "provider-neutral-second-brain-runtime",
+      "label": "Provider-neutral second-brain runtime",
+      "utilityFamily": "agent-runtime",
+      "deploymentRoles": ["library", "local-client", "edge-node", "gpu-worker"],
+      "packageName": "@holoscript/agent-runtime",
+      "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "useCases": [
+        "bounded provider-neutral plan, act, verify, remember, and improve loops",
+        "caller-owned authority, telemetry, recovery, and receipt adapters",
+        "shared second-brain contract across frontier, edge, and cloud agents"
+      ]
+    },
+    {
       "id": "sovereign-memory-client",
       "label": "Shared memory client",
       "utilityFamily": "memory",

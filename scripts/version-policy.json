@@ -124,6 +124,7 @@
       "targetMajor": 0,
       "packages": [
         "@hololand/react-agent-sdk",
+        "@holoscript/agent-runtime",
         "@holoscript/aibrittney",
         "@holoscript/graphql-api",
         "@holoscript/hologram-worker",
