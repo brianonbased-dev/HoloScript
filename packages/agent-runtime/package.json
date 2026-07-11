@@ -1,0 +1,63 @@
+{
+  "name": "@holoscript/agent-runtime",
+  "version": "0.3.0",
+  "description": "Provider-neutral second-brain runtime and contract helpers for human and agent operators.",
+  "releaseLane": "v0-preview",
+  "keywords": [
+    "holoscript",
+    "agent-runtime",
+    "ai-first",
+    "second-brain",
+    "autonomy",
+    "claude",
+    "codex",
+    "memory",
+    "gold"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/agent-runtime"
+  },
+  "homepage": "https://github.com/brianonbased-dev/HoloScript/tree/main/packages/agent-runtime",
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "peerDependencies": {
+    "@holoscript/memory": "workspace:^"
+  },
+  "peerDependenciesMeta": {
+    "@holoscript/memory": {
+      "optional": true
+    }
+  },
+  "scripts": {
+    "build": "node --check src/index.mjs && node --check src/memory-package.mjs && node --check src/agent-profiles.mjs && node --check src/sovereign-seed.mjs && node --check src/second-brain-runtime.mjs",
+    "test": "node --test test/agent-runtime.test.mjs test/second-brain-runtime.test.mjs",
+    "check": "node --check src/index.mjs && node --check src/memory-package.mjs && node --check src/agent-profiles.mjs && node --check src/sovereign-seed.mjs && node --check src/second-brain-runtime.mjs && node --test test/agent-runtime.test.mjs test/second-brain-runtime.test.mjs"
+  },
+  "holorepo": {
+    "consumptionCanon": "docs/handbooks/v0-v1-release-standard.md#consumption-targets",
+    "publicConsumption": {
+      "coreRule": "Exports must be useful to a cold external agent with caller-supplied adapters; founder-local paths and secrets are adapter inputs, not package requirements.",
+      "localAdapterBoundary": "scripts/codex-session-start.mjs and repo hook configs are integration adapters outside the package contract.",
+      "memoryPackage": "@holoscript/memory is optional peer infrastructure; prefer public MEMORY_PG* env names and keep Holo-specific aliases backward-compatible."
+    },
+    "sourceTruth": "Caller-provided Claude/Codex hook configs, memory path policy, GOLD intake, and store status probes.",
+    "supportBoundary": "v0-preview: shared hook IDs, hook config parsing, .env allow-list reads, optional @holoscript/memory bridge helpers, executable bounded second-brain turns/loops, sovereign seed prompts, and redacted runtime receipts are stable for public consumers with caller-supplied adapters.",
+    "authBoundary": "No secret values are emitted. Only allow-listed key presence and redacted readiness are returned."
+  }
+}

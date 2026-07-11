@@ -38,6 +38,7 @@ const PHASES = [
       '@holoscript/cli',
       '@holoscript/mcp-server',
       '@holoscript/memory',
+      '@holoscript/agent-runtime',
       '@holoscript/holollama',
       '@holoscript/platform',
       '@holoscript/domain-plugin-template',
@@ -61,10 +62,7 @@ function commandForPhase(phase) {
 }
 
 function runPnpm(args) {
-  const command =
-    process.platform === 'win32'
-      ? process.env.ComSpec || 'cmd.exe'
-      : 'corepack';
+  const command = process.platform === 'win32' ? process.env.ComSpec || 'cmd.exe' : 'corepack';
   const commandArgs =
     process.platform === 'win32'
       ? ['/d', '/s', '/c', ['corepack', 'pnpm', ...args].join(' ')]
@@ -104,6 +102,7 @@ function assertPlan() {
     '@holoscript/cli',
     '@holoscript/mcp-server',
     '@holoscript/memory',
+    '@holoscript/agent-runtime',
     '@holoscript/holollama',
     '@holoscript/platform',
     '@holoscript/domain-plugin-template',

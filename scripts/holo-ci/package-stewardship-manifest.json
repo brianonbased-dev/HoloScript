@@ -258,6 +258,33 @@
       ]
     },
     {
+      "id": "provider-neutral-second-brain-runtime",
+      "registry": "npm",
+      "packageName": "@holoscript/agent-runtime",
+      "status": "release-candidate",
+      "constructionRole": "Shared bounded turn and autonomous-loop contract for provider-neutral agent runtimes.",
+      "stewardshipIntent": "Keep Claude, Codex, HoloScript, owned-metal, and cloud agents on one caller-owned memory, authority, evidence, recovery, and next-work contract.",
+      "userClasses": ["human", "ai-agent"],
+      "outsideUserGate": {
+        "readiness": "ready",
+        "harnessMode": "standalone",
+        "audience": ["external-human", "external-ai-agent"],
+        "publicEntry": "packages/agent-runtime/README.md",
+        "requiredPublicFiles": [],
+        "privateHarnessLeakAllowed": false
+      },
+      "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "utilityIds": [],
+      "validationCommands": [
+        "pnpm --filter @holoscript/agent-runtime run check",
+        "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/agent-runtime@latest --probe agent-runtime-import --json"
+      ],
+      "nextActions": [
+        "Keep provider, model, hardware, storage, custody, and secret details caller-supplied.",
+        "Require decision-network and cold-consumer receipts before broadening autonomous behavior."
+      ]
+    },
+    {
       "id": "language-authoring-cli",
       "registry": "npm",
       "packageName": "@holoscript/cli",

@@ -49,6 +49,11 @@
       "v1Intent": "Installable client for the shared sovereign HoloScript agent-memory substrate required by MCP."
     },
     {
+      "name": "@holoscript/agent-runtime",
+      "role": "provider-neutral-second-brain-runtime",
+      "v1Intent": "Installable bounded agent turn/loop contract with caller-owned memory, authority, telemetry, receipts, and next-work adapters."
+    },
+    {
       "name": "@holoscript/holollama",
       "role": "native-local-llm-serving",
       "allowFirstPublish": true,

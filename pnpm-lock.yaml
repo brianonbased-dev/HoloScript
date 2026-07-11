@@ -360,6 +360,12 @@ importers:
         specifier: '>=4.4.3'
         version: 4.4.3
 
+  packages/agent-runtime:
+    dependencies:
+      '@holoscript/memory':
+        specifier: ^0.1.0
+        version: 0.1.0
+
   packages/ai-validator:
     dependencies:
       '@holoscript/core':
@@ -5500,6 +5506,10 @@ packages:
   '@graphql-yoga/typed-event-target@3.0.2':
     resolution: {integrity: sha512-ZpJxMqB+Qfe3rp6uszCQoag4nSw42icURnBRfFYSOmTgEeOe4rD0vYlbA8spvCu2TlCesNTlEN9BLWtQqLxabA==}
     engines: {node: '>=18.0.0'}
+
+  '@holoscript/memory@0.1.0':
+    resolution: {integrity: sha512-vQM/zebsTXmTWMxjokLPYyGH6SJB2++ZbTNfA3YbG/1v0DZrk4MK++Efxr0TO/XVXeyY8ufRyjsfufuS6B78BQ==}
+    engines: {node: '>=20.0.0'}
 
   '@hono/node-server@2.0.4':
     resolution: {integrity: sha512-Ut3y0dMMPWy6bZ2kVfx25EOVbZlm15dhF4mOsezMlhpNHy+4MkU1qN9Y6lnruYi4wPmFzimGX2X7LF/FwHli4A==}
@@ -17469,6 +17479,12 @@ snapshots:
     dependencies:
       '@repeaterjs/repeater': 3.1.0
       tslib: 2.8.1
+
+  '@holoscript/memory@0.1.0':
+    dependencies:
+      pg: 8.21.0
+    transitivePeerDependencies:
+      - pg-native
 
   '@hono/node-server@2.0.4(hono@4.12.25)':
     dependencies:

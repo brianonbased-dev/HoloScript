@@ -8,14 +8,7 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
@@ -63,26 +56,17 @@ const PACKAGE_IMPORT_PROBES = {
     '@holoscript/uaal/semantic',
     '@holoscript/uaal/gate',
   ],
-  'sdk-compat-import': [
-    '@holoscript/sdk',
-    '@holoscript/sdk/schema',
-  ],
-  'memory-client-import': [
-    '@holoscript/memory',
-  ],
-  'formatter-import': [
-    '@holoscript/formatter',
-  ],
+  'sdk-compat-import': ['@holoscript/sdk', '@holoscript/sdk/schema'],
+  'memory-client-import': ['@holoscript/memory'],
+  'agent-runtime-import': ['@holoscript/agent-runtime'],
+  'formatter-import': ['@holoscript/formatter'],
   'holoscript-agent-library-import': [
     '@holoscript/holoscript-agent/brain',
     '@holoscript/holoscript-agent/identity',
     '@holoscript/holoscript-agent/cost-guard',
     '@holoscript/holoscript-agent/supervisor-config',
   ],
-  'xr-embodiment-import': [
-    '@holoscript/xr-embodiment',
-    '@holoscript/xr-embodiment/three',
-  ],
+  'xr-embodiment-import': ['@holoscript/xr-embodiment', '@holoscript/xr-embodiment/three'],
 };
 const PACKAGE_BIN_HELP_PROBES = {
   'cli-bin-help': {
@@ -159,7 +143,10 @@ function run(cmd, cmdArgs, opts = {}) {
 }
 
 function normalizeRegistryUrl(value) {
-  return String(value || '').trim().replace(/\/+$/u, '').toLowerCase();
+  return String(value || '')
+    .trim()
+    .replace(/\/+$/u, '')
+    .toLowerCase();
 }
 
 function isPublicNpmRegistry(value) {
@@ -982,17 +969,20 @@ function main() {
   }
 
   try {
-    const metadataRaw = runNpm([
-      'view',
-      PACKAGE_SPEC,
-      'name',
-      'version',
-      'dist.integrity',
-      'dist.tarball',
-      'dependencies',
-      'exports',
-      '--json',
-    ], { cwd: work });
+    const metadataRaw = runNpm(
+      [
+        'view',
+        PACKAGE_SPEC,
+        'name',
+        'version',
+        'dist.integrity',
+        'dist.tarball',
+        'dependencies',
+        'exports',
+        '--json',
+      ],
+      { cwd: work }
+    );
     receipt.package.metadata = JSON.parse(metadataRaw);
   } catch (error) {
     fail(receipt, 'npm-view-failed', error);
@@ -1022,7 +1012,9 @@ function main() {
   try {
     const packageName =
       receipt.package.metadata?.name ||
-      String(PACKAGE_SPEC).replace(/@latest$/u, '').replace(/@\d+\.\d+\.\d+.*$/u, '');
+      String(PACKAGE_SPEC)
+        .replace(/@latest$/u, '')
+        .replace(/@\d+\.\d+\.\d+.*$/u, '');
     const lock = readJsonIfExists(join(work, 'package-lock.json'));
     const installed = packageLockEntry(lock, packageName);
     const manifestPath = join(work, 'node_modules', ...packageName.split('/'), 'package.json');
