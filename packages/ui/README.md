@@ -96,3 +96,9 @@ corepack pnpm --filter @holoscript/ui run test
 corepack pnpm --filter @holoscript/ui run typecheck
 corepack pnpm run check:publish-surface
 ```
+
+## Package boundary & release posture
+
+`@holoscript/ui` is a **v0-preview** shared component primitive for external consumers, Studio, dashboards, and agent-framework interfaces that need a dark-themed, Tailwind-based UI kit. It **does not ship** a Tailwind configuration, a build pipeline, or any founder-local Studio wiring — Tailwind setup, the `studio-*` token palette, and the consuming app's build config are all caller-owned: bring your own Tailwind config, define the `studio-*` tokens your app needs, and point your bundler at this package's `dist` output.
+
+**Known limitations:** components assume Tailwind CSS is already configured in the consuming app, and several rely on `studio-*` custom color tokens the app must define; this is a UI primitive layer, not an application shell. Interfaces may change before the v1 release.

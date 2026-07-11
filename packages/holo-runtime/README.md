@@ -64,3 +64,20 @@ the public package.
 corepack pnpm --filter @holoscript/holo-runtime run build
 corepack pnpm --filter @holoscript/holo-runtime run test
 ```
+
+## Package boundary & release posture
+
+This is a **v0-preview** package for external and agent framework consumers who
+want a pure-CPU decoder for HoloRunner S0 checkpoints. It **does not ship** any
+model weights, training data, or founder-local tooling — you bring your own
+checkpoint JSON, and if you need the tokenizer bridge, you supply your own
+`HOLOAI_ECOSYSTEM_ROOT` path; nothing here assumes that repo is present by
+default. The package boundary stops at the decoder and loader — training,
+quantization, and the browser/bytecode runtimes stay in their own packages
+(`@holoscript/runtime`, `@holoscript/holo-vm`).
+
+**Known limitations:** the default tokenizer bridge still resolves
+`HOLOAI_ECOSYSTEM_ROOT` or `~/.ai-ecosystem`, so a cold npm consumer does not
+have the tokenizer module until they supply their own academy checkout; this
+package is parked outside the v1 release manifest until that bridge is public
+or fully parameterized. Interfaces may change before promotion.

@@ -6,7 +6,8 @@
   "files": [
     "dist",
     "README.md",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "LICENSE"
   ],
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

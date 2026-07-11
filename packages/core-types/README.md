@@ -61,6 +61,12 @@ pnpm build      # compile with tsup
 pnpm typecheck  # tsc --noEmit
 ```
 
+## Package boundary & release posture
+
+This is a **v0-preview** type-only package for external, public, and agent framework consumers who need HoloScript types without pulling in the full `@holoscript/core` runtime. The package boundary here is types-only: it **does not ship** any parser, compiler, or execution engine — you bring your own `@holoscript/core` or `@holoscript/runtime` for behavior, and nothing here assumes founder-local config or a specific environment.
+
+**Known limitations:** the barrel export re-exports every module, so tree-shaking depends on your bundler; the `physics` subpath mixes a handful of runtime factory helpers into an otherwise types-only package. Run `pnpm typecheck` to validate the published type surface before depending on a new module. Interfaces may change before the v1 release.
+
 ## License
 
 MIT

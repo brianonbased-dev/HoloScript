@@ -128,6 +128,12 @@ corepack pnpm --filter @holoscript/secrets-broker run build
 corepack pnpm --filter @holoscript/secrets-broker run test
 ```
 
+## Package boundary & release posture
+
+`@holoscript/secrets-broker` is a **v0-preview** sovereign custody primitive for external operators, agent frameworks, and founder-owned services that need capability-token minting, HoloKey vault storage, and service-secret resolution. It **does not ship** any wallet identity, x402 signing, long-lived seat custody, or hosted HTTP/MCP routes — those stay in their owning packages (`packages/mcp-server`, the HoloMesh identity layer, and the `/protocol` economic layer). The package boundary is the custody contract only: every KEK source, storage backend (in-memory or Postgres), and lease adapter is caller-owned — bring your own KEK material, storage backend, and environment variables and point the resolver at your own vault or `process.env`.
+
+**Known limitations:** the built-in env KEK provider is dev/bootstrap only and is rejected outright in `NODE_ENV=production`; production deployments must supply a scoped-keyring/KMS-backed KEK. Interfaces may change before the v1 release.
+
 ## License
 
 MIT, see repo root.

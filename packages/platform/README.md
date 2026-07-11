@@ -48,3 +48,9 @@ corepack pnpm run check:publish-surface
 corepack pnpm run check:package-architecture
 corepack pnpm run package:opportunity-map
 ```
+
+## Package boundary & release posture
+
+`@holoscript/platform` is a **v0-preview** enterprise platform substrate for external and agent-framework consumers who need security, identity, registry, Web3/ANS, contract, token, and access-control primitives directly, without depending on the rest of the HoloScript monorepo. It **does not ship** any founder-local deployment, fleet topology, or hosted registry — every registry endpoint, KEK material, tenancy/quota policy, and Web3/contract/ANS namespace is caller-owned: bring your own config, credentials, and environment variables and point it at your own registry, contract, and identity endpoints.
+
+**Known limitations:** package installation proves the local API surface only; hosted HoloKey/x402 payment, wallet custody, and identity-service availability still require separate live endpoint receipts. Several capabilities (renderer, Web3/gltf tooling, tree-sitter grammars) are `optionalDependencies` the consumer installs as needed. Interfaces may change before the v1 release.

@@ -67,3 +67,19 @@ Use this package for HoloLand world services and device receipts. Use
 `@holoscript/xr-embodiment` for reusable WebXR embodiment, `@holoscript/mesh`
 for lower-level collaboration/network primitives, and `@holoscript/runtime` for
 general HoloScript scene execution.
+
+## Package boundary & release posture
+
+This is a **v0-preview** package of HoloLand platform services for external,
+public, and operator/founder consumers who are building or validating a
+HoloLand deployment. It **does not ship** any private workspace, headset
+fixture, or founder-local device inventory — you bring your own `--task` id
+and point it at your own optional `--headset-report` / `--replay` paths, and
+every receipt is written under your own `.holoscript/device-lab/` directory,
+not a package default.
+
+**Known limitations:** device-lab coverage depends on what hardware and
+WebGPU/Quest probes are actually reachable from the calling machine — a `WARN`
+receipt means the check ran but is incomplete, not that the platform is
+broken. Interfaces may change before the v1 release; treat receipts as
+evidence to attach to a task, not a guarantee of hardware support.

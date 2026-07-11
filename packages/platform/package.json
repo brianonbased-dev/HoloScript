@@ -15,7 +15,9 @@
   },
   "files": [
     "dist",
-    "!dist/**/*.map"
+    "!dist/**/*.map",
+    "LICENSE",
+    "README.md"
   ],
   "exports": {
     ".": {
