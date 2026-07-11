@@ -1,0 +1,461 @@
+#!/usr/bin/env node
+/**
+ * scripts/check-package-public-consumption.mjs
+ *
+ * The public-consumption RATCHET (F.147 "easiest failure = packages exist but no
+ * ratchet keeps them honest"; D.124 publishing = compounding refinement).
+ *
+ * The bar: what a competitor actually delivers to users. A public `@holoscript/*`
+ * package must (a) NOT leak private process into the published tarball, and (b) be
+ * installable by a cold consumer with a real README, license, and clean boundary.
+ * This gate is re-runnable, so the leaks we hand-fix once cannot silently creep back.
+ *
+ * For each package it:
+ *   1. resolves the ACTUAL published fileset via `npm pack --dry-run --json`
+ *   2. scans every included file's CONTENT for private-process leaks
+ *   3. checks package.json completeness (license, access, files, entrypoint, metadata)
+ *   4. checks the README carries an install path, usage example, and consumption contract
+ *   5. checks the tarball boundary (no ../, no .scratch/, LICENSE present)
+ *
+ * BLOCKER findings fail the gate (exit 1); WARN findings surface but do not block.
+ *
+ * Usage:
+ *   node scripts/check-package-public-consumption.mjs --package <dir> [--package <dir> ...] [--json]
+ *   node scripts/check-package-public-consumption.mjs            # default: configured package set
+ *
+ * A package dir may be absolute when supplied by --package or env.
+ */
+import childProcess from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// HoloScript port of ai-ecosystem/scripts/check-package-public-consumption.mjs. Keep the leak
+// patterns + secret/README-contract logic in LOCKSTEP with that file (the shared tuned ratchet);
+// only the package DISCOVERY below is HoloScript-specific. The gate is at scripts/holo-ci/, so the
+// repo root is two levels up.
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const ROOT = path.resolve(HERE, '..', '..');
+
+function uniqueExisting(paths) {
+  return [...new Set(paths.filter(Boolean).map((p) => path.resolve(p)))]
+    .filter((p) => fs.existsSync(p));
+}
+
+// Every publishable (private !== true) package under packages/* is in scope — a package only
+// leaves the public surface by setting `private: true`, so new packages are covered automatically.
+function firstPartyNpmPackages() {
+  const pkgsDir = path.join(ROOT, 'packages');
+  if (!fs.existsSync(pkgsDir)) return [];
+  return uniqueExisting(
+    fs.readdirSync(pkgsDir).map((name) => {
+      const pj = path.join(pkgsDir, name, 'package.json');
+      if (!fs.existsSync(pj)) return null;
+      try {
+        return JSON.parse(fs.readFileSync(pj, 'utf8')).private === true
+          ? null
+          : path.join(pkgsDir, name);
+      } catch {
+        return null;
+      }
+    })
+  );
+}
+
+function defaultPackages() {
+  return firstPartyNpmPackages();
+}
+
+function firstPartyPythonPackages() {
+  return []; // HoloScript ships no first-party PyPI packages.
+}
+
+// Private-process leaks: the F.147 "dangerous failure" class. A published public
+// tarball that carries any of these has leaked founder/machine/private-repo context.
+const LEAK_PATTERNS = [
+  { id: 'private-lan-ip', re: /\b(?:192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})\b/u, note: 'private LAN IP' },
+  { id: 'founder-host', re: /\bholojetson\b|holo-app-pg|holokey-pg/u, note: 'founder container/host name' },
+  { id: 'founder-path', re: /\/mnt\/nvme|C:\\Users\\[Jj]osep|C:\/Users\/[Jj]osep|\/home\/username\b/u, note: 'founder machine path' },
+  { id: 'private-ops', re: /\bsudo\s+docker\b|holoscript_app/u, note: 'private operator command / superuser role' },
+  { id: 'private-workspace-default', re: /['"`]ai-ecosystem['"`]/u, note: "founder workspace ('ai-ecosystem') baked as a value" },
+  { id: 'private-repo-doc-ref', re: /ai-ecosystem\/(?:research|docs|memory|config)\//u, note: 'private-repo path in shipped docs' },
+  { id: 'founder-port-mapping', re: /\b543[34]\b/u, note: 'non-standard founder docker port (5433/5434)' },
+  { id: 'secret-literal', re: /-----BEGIN [A-Z ]*PRIVATE KEY-----|(?:api[_-]?key|password|secret|token)\s*[:=]\s*['"][^'"\s]{8,}['"]/iu, note: 'possible embedded secret' },
+];
+
+const README_CONSUMPTION_RULES = [
+  {
+    kind: 'readme-no-consumer-audience',
+    note: 'README must name the external/public consumer, operator, founder, or agent-framework audience',
+    re: /\b(?:external|public|consumer|operator|founder|agent framework|agent frameworks|agent-family|cold consumer)\b/iu,
+  },
+  {
+    kind: 'readme-no-caller-owned-config',
+    note: 'README must state that callers/operators bring their own config, credentials, storage, or adapters',
+    re: /\b(?:bring your own|caller[- ]owned|caller[- ]provided|operator[- ]owned|you own|point it at|provided by the caller|from your own|configured by the operator|supplied files|supplied config|environment variables|env)\b/iu,
+  },
+  {
+    kind: 'readme-no-local-boundary',
+    note: 'README must separate package contract from founder-local/private/hardware-specific adapters',
+    re: /\b(?:does not ship|doesn't ship|not ship|not assume|no .*assumed|no .*default|founder[- ]local|private workspace|private process|private repo|local adapter|package boundary|release boundary|not the package default|not package default)\b/iu,
+  },
+  {
+    kind: 'readme-no-operability-process',
+    note: 'README must give an agent/founder-operable process signal such as --json, doctor, validation, receipt, gate, or report',
+    re: /\b(?:--json|doctor|validation|validate|receipt|receipts|gate|check:|report|dry-run|dry run)\b/iu,
+  },
+  {
+    kind: 'readme-no-release-risk',
+    note: 'README must state release/risk posture: v0/v1 label, support boundary, known limitations, rollback, preview, or unsupported behavior',
+    re: /\b(?:v0-preview|v0-internal|v1-public|v1-private|v1-protocol|release boundary|support boundary|known limitation|known limitations|limitation|limitations|rollback|preview|unsupported|not-yet-trusted|not yet trusted)\b/iu,
+  },
+];
+
+const SECRET_IDENTIFIER_RE = /\b(?:api[_-]?key|apikey|password|secret|token|authorization)\b/iu;
+const SECRET_LITERAL_RE = /['"]([^'"\s]{8,})['"]/gu;
+const SECRET_PLACEHOLDER_RE = /^(?:<redacted>|redacted|\$?\d*redacted|process\.env\.[A-Z0-9_]+|[A-Z0-9_]*?(?:KEY|TOKEN|SECRET|PASSWORD)[A-Z0-9_]*|YOUR[_-][A-Z0-9_-]+|example(?:[_-]?(?:key|token|secret|password))?|test(?:[_-]?(?:key|token|secret|password))?|env-or-secret-provider|secret-provider|credential-provider|vault|changeme|placeholder)$/iu;
+
+// Schema ids ("holoscript.secret-store.file.v1") and event names ("secret:added") are lowercase,
+// separator-joined readable tokens — not credentials. Case-SENSITIVE on purpose: a mixed-case or
+// high-entropy secret (JWT, base64/hex key) has uppercase or non-word chars and never matches, so a
+// real leaked secret is still caught. This clears the ratchet's known false-positive on constants
+// whose *name* contains "secret"/"token" but whose *value* is a namespace/event identifier.
+function isStructuredIdentifier(value) {
+  return (
+    /^[a-z][a-z0-9_]*(?:\.[a-z0-9_-]+){2,}$/.test(value) || // dotted namespace: a.b.c(.d…)
+    /^[a-z][a-z0-9_]*(?::[a-z0-9_]+)+$/.test(value) || // colon event: word:snake_word(:word…)
+    /^\.[\w.-]+$/.test(value) // leading-dot filename/dotfile (".holoscript-token"); real secrets never start with "."
+  );
+}
+
+function hasHardcodedSecretLiteral(line) {
+  if (!SECRET_IDENTIFIER_RE.test(line)) return false;
+  if (/\bredact(?:ed|ion)?\b|redacted/iu.test(line)) return false;
+  // The operator must be a property ':' or a SINGLE assignment '=', never a comparison (==, ===,
+  // !==, <=, >=) — `this.password === "function"` is a typeof check, not a secret assignment.
+  const OP = '(?::|(?<![=!<>])=(?!=))';
+  const secretAssignmentLike = new RegExp(
+    `(?:api[_-]?key|apikey|password|secret|token|authorization)\\s*${OP}\\s*[^,\\n]*['"]` +
+      `|(?:api[_-]?key|apikey|password|secret|token|authorization)\\w*\\s*${OP}\\s*[^,\\n]*['"]` +
+      `|\\|\\|\\s*['"]`,
+    'iu'
+  );
+  if (!secretAssignmentLike.test(line)) return false;
+  for (const match of line.matchAll(SECRET_LITERAL_RE)) {
+    const literal = match[1];
+    if (!SECRET_PLACEHOLDER_RE.test(literal) && !isStructuredIdentifier(literal)) return true;
+  }
+  return false;
+}
+
+function run(cmd, args, cwd) {
+  const onWin = process.platform === 'win32' && cmd === 'npm';
+  const exe = onWin ? 'cmd.exe' : cmd;
+  const finalArgs = onWin ? ['/d', '/s', '/c', ['npm', ...args].join(' ')] : args;
+  const r = childProcess.spawnSync(exe, finalArgs, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], shell: false });
+  if (r.status !== 0) throw new Error(`${cmd} ${args.join(' ')} failed (${r.status}): ${(r.stderr || '').slice(0, 400)}`);
+  return r.stdout || '';
+}
+
+function packedFiles(pkgDir) {
+  const out = run('npm', ['pack', '--dry-run', '--json'], pkgDir);
+  const parsed = JSON.parse(out.trim());
+  const entry = Array.isArray(parsed) ? parsed[0] : parsed;
+  return entry;
+}
+
+function scanFileForLeaks(abs, relPath) {
+  const findings = [];
+  let text;
+  try {
+    const buf = fs.readFileSync(abs);
+    // Skip obvious binaries; scan text-ish files only.
+    if (buf.includes(0)) return findings;
+    text = buf.toString('utf8');
+  } catch {
+    return findings;
+  }
+  const lines = text.split(/\r?\n/u);
+  for (const pat of LEAK_PATTERNS) {
+    // The two SHAPE heuristics (secret-literal, bare 5433/5434) false-positive on generated or
+    // compiled-language artifacts: sourcemaps (one giant line that embeds source verbatim), a
+    // tree-sitter parser.c (a "5433" there is a parse-table index, not the founder's port), and
+    // wasm/rust. Skip those files for these two patterns only — the precise patterns (private LAN
+    // IP / founder host / founder path / workspace / repo-ref) still scan every shipped file, and
+    // the original TS/JS source is scanned directly so a real secret/port is still caught there.
+    if (
+      (pat.id === 'secret-literal' || pat.id === 'founder-port-mapping') &&
+      /\.(?:map|c|cc|cpp|h|hpp|rs|wasm)$/iu.test(relPath)
+    ) {
+      continue;
+    }
+    for (let i = 0; i < lines.length; i += 1) {
+      if (pat.id === 'secret-literal') {
+        if (/\bredacted\b|<redacted>/u.test(lines[i])) continue;
+        if (hasHardcodedSecretLiteral(lines[i])) {
+          findings.push({ level: 'BLOCKER', kind: `leak:${pat.id}`, file: relPath, line: i + 1, note: pat.note });
+          break;
+        }
+        continue;
+      }
+      if (pat.re.test(lines[i])) {
+        // founder-path (/mnt/nvme, …) is a BLOCKER in operational source but only a WARN in docs
+        // and *.example.* files, where such a path is an illustrative deploy target (audit FP #2).
+        // A real internal IP or hostname (private-lan-ip / founder-host) stays a BLOCKER everywhere.
+        const isDocOrExample = /\.(?:md|markdown)$/iu.test(relPath) || /\.example\./iu.test(relPath);
+        const level = pat.id === 'founder-path' && isDocOrExample ? 'WARN' : 'BLOCKER';
+        findings.push({ level, kind: `leak:${pat.id}`, file: relPath, line: i + 1, note: pat.note });
+        break; // one hit per pattern per file is enough to block
+      }
+    }
+  }
+  return findings;
+}
+
+function scanPackageTreeForLeaks(pkgDir, includeFiles) {
+  const findings = [];
+  for (const rel of includeFiles) {
+    findings.push(...scanFileForLeaks(path.join(pkgDir, rel), rel));
+  }
+  return findings;
+}
+
+function checkReadmeConsumptionContract(readme, readmeFile, isPublic) {
+  const level = isPublic ? 'BLOCKER' : 'WARN';
+  const findings = [];
+  for (const rule of README_CONSUMPTION_RULES) {
+    if (!rule.re.test(readme)) {
+      findings.push({ level, kind: rule.kind, file: readmeFile, note: rule.note });
+    }
+  }
+  return findings;
+}
+
+function checkPackage(pkgDir) {
+  const findings = [];
+  const abs = path.resolve(pkgDir);
+  const pkgJsonPath = path.join(abs, 'package.json');
+  if (!fs.existsSync(pkgJsonPath)) {
+    return { package: pkgDir, ok: false, findings: [{ level: 'BLOCKER', kind: 'no-package-json', file: 'package.json', note: 'missing' }] };
+  }
+  const pkg = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'));
+  const isPublic = pkg.publishConfig?.access === 'public';
+
+  // package.json completeness (competitor-grade metadata).
+  const add = (level, kind, note) => findings.push({ level, kind, file: 'package.json', note });
+  if (!pkg.license) add('BLOCKER', 'missing-license', 'no license field');
+  if (isPublic && pkg.license && pkg.license !== 'MIT') add('WARN', 'non-mit-license', `license=${pkg.license}`);
+  if (!pkg.version) add('BLOCKER', 'missing-version', 'no version');
+  if (!pkg.description) add('WARN', 'missing-description', 'no description');
+  if (!pkg.repository) add('WARN', 'missing-repository', 'no repository field');
+  if (!pkg.main && !pkg.exports && !pkg.bin) add('BLOCKER', 'no-entrypoint', 'no main/exports/bin');
+  if (!Array.isArray(pkg.files) || pkg.files.length === 0) add('WARN', 'no-files-allowlist', 'no files[] allowlist (publishes by .npmignore)');
+
+  // Actual published fileset + content scan (the real leak gate).
+  let pack;
+  try {
+    pack = packedFiles(abs);
+  } catch (err) {
+    findings.push({ level: 'BLOCKER', kind: 'pack-failed', file: '.', note: err.message });
+    return { package: pkgDir, name: pkg.name, ok: false, findings };
+  }
+  const files = (pack.files || []).map((f) => f.path);
+  const hasReadme = files.some((f) => /^README(\.md)?$/iu.test(f));
+  const hasLicense = files.some((f) => /^LICENSE/iu.test(f));
+  if (!hasReadme) add('BLOCKER', 'no-readme-in-tarball', 'README not in published files');
+  if (isPublic && !hasLicense) add('WARN', 'no-license-file', 'no LICENSE file in published tarball');
+  for (const f of files) {
+    if (f.startsWith('../') || f.startsWith('.scratch/')) {
+      findings.push({ level: 'BLOCKER', kind: 'tarball-boundary-escape', file: f, note: 'file escapes package boundary' });
+    }
+  }
+  // Content leak scan across every published file.
+  for (const rel of files) {
+    findings.push(...scanFileForLeaks(path.join(abs, rel), rel));
+  }
+
+  // README quality: install path + a usage example.
+  if (hasReadme) {
+    const readmeRel = files.find((f) => /^README(\.md)?$/iu.test(f));
+    const readme = fs.readFileSync(path.join(abs, readmeRel), 'utf8');
+    if (!/\b(?:npm install|npm i|pnpm add|pnpm install|yarn add)\b/u.test(readme)) {
+      findings.push({ level: 'WARN', kind: 'readme-no-install', file: readmeRel, note: 'no install command' });
+    }
+    if (!/```/u.test(readme)) {
+      findings.push({ level: 'WARN', kind: 'readme-no-example', file: readmeRel, note: 'no fenced usage example' });
+    }
+    findings.push(...checkReadmeConsumptionContract(readme, readmeRel, isPublic));
+  }
+
+  const blockers = findings.filter((f) => f.level === 'BLOCKER');
+  return {
+    package: pkgDir,
+    kind: 'npm',
+    name: pkg.name,
+    releaseLane: pkg.releaseLane || pkg.holorepo?.supportBoundary?.split(':')[0] || null,
+    public: isPublic,
+    tarballEntries: pack.entryCount,
+    ok: blockers.length === 0,
+    findings,
+  };
+}
+
+function parseProjectToml(text) {
+  const project = {};
+  const lines = text.split(/\r?\n/u);
+  let inProject = false;
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    if (/^\[project\]\s*$/u.test(trimmed)) {
+      inProject = true;
+      continue;
+    }
+    if (/^\[/u.test(trimmed)) {
+      inProject = false;
+      continue;
+    }
+    if (!inProject) continue;
+    const match = trimmed.match(/^([A-Za-z0-9_.-]+)\s*=\s*(.+)$/u);
+    if (!match) continue;
+    const [, key, rawValue] = match;
+    const quoted = rawValue.match(/^"([^"]*)"|^'([^']*)'/u);
+    if (quoted) project[key] = quoted[1] ?? quoted[2];
+    else if (/^\[/u.test(rawValue)) project[key] = rawValue;
+    else project[key] = rawValue.trim();
+  }
+  return project;
+}
+
+function pythonPackageFiles(pkgDir) {
+  const files = ['pyproject.toml'];
+  for (const name of ['README.md', 'README.rst', 'LICENSE', 'LICENSE.md']) {
+    if (fs.existsSync(path.join(pkgDir, name))) files.push(name);
+  }
+  for (const entry of fs.readdirSync(pkgDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    if (entry.name.startsWith('.') || entry.name === 'tests' || entry.name === '__pycache__') continue;
+    const candidate = path.join(pkgDir, entry.name);
+    if (fs.existsSync(path.join(candidate, '__init__.py'))) {
+      for (const file of walkTextFiles(candidate)) files.push(path.relative(pkgDir, file).replace(/\\/gu, '/'));
+    }
+  }
+  return [...new Set(files)];
+}
+
+function walkTextFiles(dir) {
+  const out = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const abs = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (entry.name === '__pycache__' || entry.name.endsWith('.egg-info')) continue;
+      out.push(...walkTextFiles(abs));
+    } else if (/\.(py|txt|md|toml|json)$/iu.test(entry.name)) {
+      out.push(abs);
+    }
+  }
+  return out;
+}
+
+function checkPythonPackage(pkgDir) {
+  const findings = [];
+  const abs = path.resolve(pkgDir);
+  const pyprojectPath = path.join(abs, 'pyproject.toml');
+  if (!fs.existsSync(pyprojectPath)) {
+    return { package: pkgDir, kind: 'pypi', ok: false, findings: [{ level: 'BLOCKER', kind: 'no-pyproject', file: 'pyproject.toml', note: 'missing' }] };
+  }
+  const project = parseProjectToml(fs.readFileSync(pyprojectPath, 'utf8'));
+  const add = (level, kind, note, file = 'pyproject.toml') => findings.push({ level, kind, file, note });
+  if (!project.name) add('BLOCKER', 'missing-name', 'project.name missing');
+  if (!project.version) add('BLOCKER', 'missing-version', 'project.version missing');
+  if (!project.description) add('WARN', 'missing-description', 'project.description missing');
+  if (!project.readme) add('BLOCKER', 'missing-readme-field', 'project.readme missing');
+  if (!project['requires-python']) add('WARN', 'missing-python-version', 'project.requires-python missing');
+  if (!project.license) add('BLOCKER', 'missing-license', 'project.license missing');
+
+  const readmeFile = project.readme || 'README.md';
+  const readmePath = path.join(abs, readmeFile);
+  if (!fs.existsSync(readmePath)) {
+    add('BLOCKER', 'readme-file-missing', `${readmeFile} missing`, readmeFile);
+  } else {
+    const readme = fs.readFileSync(readmePath, 'utf8');
+    if (!/\b(?:pip install|python -m pip install|uv pip install)\b/u.test(readme)) {
+      add('WARN', 'readme-no-install', 'no pip install command', readmeFile);
+    }
+    if (!/```|::\n/u.test(readme)) {
+      add('WARN', 'readme-no-example', 'no fenced or literal usage example', readmeFile);
+    }
+    findings.push(...checkReadmeConsumptionContract(readme, readmeFile, true));
+  }
+  if (!fs.existsSync(path.join(abs, 'LICENSE')) && !fs.existsSync(path.join(abs, 'LICENSE.md'))) {
+    add('WARN', 'no-license-file', 'no LICENSE file in package directory', 'LICENSE');
+  }
+
+  findings.push(...scanPackageTreeForLeaks(abs, pythonPackageFiles(abs)));
+  const blockers = findings.filter((f) => f.level === 'BLOCKER');
+  return {
+    package: pkgDir,
+    kind: 'pypi',
+    name: project.name || null,
+    releaseLane: null,
+    public: true,
+    tarballEntries: null,
+    ok: blockers.length === 0,
+    findings,
+  };
+}
+
+function parseArgs(argv) {
+  const packages = [];
+  const pyPackages = [];
+  for (let i = 0; i < argv.length; i += 1) {
+    if (argv[i] === '--package' && argv[i + 1]) { packages.push(argv[i + 1]); i += 1; }
+    else if (argv[i] === '--py-package' && argv[i + 1]) { pyPackages.push(argv[i + 1]); i += 1; }
+    else if (argv[i] === '--portfolio') {
+      packages.push(...firstPartyNpmPackages());
+      pyPackages.push(...firstPartyPythonPackages());
+    }
+  }
+  return {
+    packages: packages.length ? uniqueExisting(packages) : defaultPackages(),
+    pyPackages: uniqueExisting(pyPackages),
+    json: argv.includes('--json'),
+  };
+}
+
+function render(report) {
+  const lines = ['# Package Public-Consumption Ratchet', ''];
+  for (const p of report.packages) {
+    const blockers = p.findings.filter((f) => f.level === 'BLOCKER');
+    const warns = p.findings.filter((f) => f.level === 'WARN');
+    lines.push(`## ${p.name || p.package}  ${p.ok ? 'PASS' : 'BLOCKED'}  ${p.kind || 'npm'}  ${p.public ? '(public)' : '(private)'}  ${p.tarballEntries ?? '?'} files`);
+    for (const f of blockers) lines.push(`  BLOCKER ${f.kind} - ${f.file}${f.line ? `:${f.line}` : ''} - ${f.note}`);
+    for (const f of warns) lines.push(`  WARN ${f.kind} - ${f.file}${f.line ? `:${f.line}` : ''} - ${f.note}`);
+    if (!blockers.length && !warns.length) lines.push('  (clean)');
+    lines.push('');
+  }
+  lines.push(`Result: ${report.ok ? 'ALL PASS' : `${report.blocked} package(s) BLOCKED`}`);
+  return lines.join('\n') + '\n';
+}
+
+function main() {
+  const { packages, pyPackages, json } = parseArgs(process.argv.slice(2));
+  if (process.argv.includes('--help') || process.argv.includes('-h')) {
+    process.stdout.write('Usage: node scripts/check-package-public-consumption.mjs [--package <dir> ...] [--py-package <dir> ...] [--portfolio] [--json]\n');
+    return;
+  }
+  const results = [
+    ...packages.map(checkPackage),
+    ...pyPackages.map(checkPythonPackage),
+  ];
+  const report = {
+    schema: 'holoscript.package-public-consumption.v1',
+    ok: results.every((r) => r.ok),
+    blocked: results.filter((r) => !r.ok).length,
+    packages: results,
+  };
+  process.stdout.write(json ? `${JSON.stringify(report, null, 2)}\n` : render(report));
+  if (!report.ok) process.exit(1);
+}
+
+main();
