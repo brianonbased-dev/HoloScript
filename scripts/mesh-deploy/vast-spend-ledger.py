@@ -50,6 +50,7 @@ import argparse
 import json
 import math
 import os
+import re
 import sys
 import tempfile
 from datetime import datetime, timezone, timedelta
@@ -59,9 +60,70 @@ from pathlib import Path
 DEFAULT_LEDGER = Path.home() / ".ai-ecosystem" / "vast-spend-ledger.ndjson"
 DEFAULT_CAP_USD = 100.0  # raised from $50 to $100/day per founder directive 2026-04-26
 
+SIGNED_RENTAL_BINDING_FIELDS = (
+    "spend_authority_hash",
+    "provider_principal",
+    "contract_guard_path",
+    "binding_hash",
+    "run_id",
+    "label",
+)
+SIGNED_RENTAL_HASH_FIELDS = {
+    "spend_authority_hash",
+    "provider_principal",
+    "binding_hash",
+}
+SHA256_RECEIPT_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
+
 
 class LedgerIntegrityError(ValueError):
     """A paid-spend row cannot be safely admitted into cap accounting."""
+
+
+def signed_rental_binding(record: dict, *, context: str) -> tuple[str, ...] | None:
+    """Return an exact signed lifecycle tuple, or ``None`` for a legacy row.
+
+    Presence of even one binding key is signed intent. Treating a partial tuple
+    as legacy would let an append-only downgrade replace an authenticated rent
+    or close with the old instance-id-only semantics.
+    """
+    if not any(field in record for field in SIGNED_RENTAL_BINDING_FIELDS):
+        return None
+
+    values: list[str] = []
+    for field in SIGNED_RENTAL_BINDING_FIELDS:
+        value = record.get(field)
+        if not isinstance(value, str) or not value.strip():
+            raise LedgerIntegrityError(
+                f"{context} has an incomplete signed rental binding: {field}"
+            )
+        if field in SIGNED_RENTAL_HASH_FIELDS and not SHA256_RECEIPT_RE.fullmatch(value):
+            raise LedgerIntegrityError(
+                f"{context} has an invalid signed rental binding hash: {field}"
+            )
+        values.append(value)
+    return tuple(values)
+
+
+def positive_finite_number(value: object, *, field: str) -> float:
+    if isinstance(value, bool):
+        raise LedgerIntegrityError(f"{field} must be a positive finite number")
+    try:
+        number = float(value)
+    except (TypeError, ValueError) as exc:
+        raise LedgerIntegrityError(
+            f"{field} must be a positive finite number"
+        ) from exc
+    if not math.isfinite(number) or number <= 0:
+        raise LedgerIntegrityError(f"{field} must be a positive finite number")
+    return number
+
+
+def normalized_instance_id(value: int | str) -> int | str:
+    """Normalize admitted legacy numeric-string ids for lifecycle pairing."""
+    if isinstance(value, str) and value.isdigit():
+        return int(value)
+    return value
 
 
 def _now() -> datetime:
@@ -174,6 +236,91 @@ def compute_llm_spend(
     return total
 
 
+def validate_current_rental_rows(
+    records: list[dict],
+    *,
+    window_start: datetime,
+    now: datetime,
+) -> None:
+    """Reject malformed contract rows that can affect purchased-compute spend.
+
+    Historical ledgers contain a small number of pre-contract rental attempts
+    without an instance id. Those rows predate the trailing cap window and keep
+    their legacy ignored behavior. A row with an invalid timestamp cannot prove
+    that it is historical, so it fails closed. Every identified rental is
+    validated even when it predates the window because an unclosed historical
+    contract still contributes current burn. Close rows are equally strict:
+    malformed or future closes must never suppress an otherwise active rental.
+    """
+    for index, record in enumerate(records, start=1):
+        event = record.get("event")
+        if event not in {"rented", "closed"}:
+            continue
+
+        raw_timestamp = record.get("ts_iso")
+        if not isinstance(raw_timestamp, str) or not raw_timestamp.strip():
+            raise LedgerIntegrityError(
+                f"{event} record {index} requires a valid ts_iso"
+            )
+        try:
+            rent_ts = parse_iso(raw_timestamp)
+        except (AttributeError, TypeError, ValueError) as exc:
+            raise LedgerIntegrityError(
+                f"{event} record {index} requires a valid ts_iso"
+            ) from exc
+        if rent_ts.tzinfo is None or rent_ts.utcoffset() is None:
+            raise LedgerIntegrityError(
+                f"{event} record {index} requires a timezone-aware ts_iso"
+            )
+        if rent_ts > now:
+            raise LedgerIntegrityError(
+                f"{event} record {index} has a future ts_iso"
+            )
+        instance_id = record.get("instance_id")
+        binding = signed_rental_binding(record, context=f"{event} record {index}")
+        if (
+            event == "rented"
+            and rent_ts < window_start
+            and instance_id is None
+            and binding is None
+        ):
+            continue
+
+        legacy_numeric_id = (
+            rent_ts < window_start
+            and isinstance(instance_id, str)
+            and instance_id.isdigit()
+            and int(instance_id) > 0
+        )
+        if not legacy_numeric_id and (
+            isinstance(instance_id, bool)
+            or not isinstance(instance_id, int)
+            or instance_id <= 0
+        ):
+            raise LedgerIntegrityError(
+                f"{event} record {index} requires a positive integer instance_id"
+            )
+
+        if event == "closed":
+            continue
+
+        raw_dph = record.get("dph")
+        if isinstance(raw_dph, bool):
+            raise LedgerIntegrityError(
+                f"rented record {index} requires a positive finite dph"
+            )
+        try:
+            dph = float(raw_dph)
+        except (TypeError, ValueError) as exc:
+            raise LedgerIntegrityError(
+                f"rented record {index} requires a positive finite dph"
+            ) from exc
+        if not math.isfinite(dph) or dph <= 0:
+            raise LedgerIntegrityError(
+                f"rented record {index} requires a positive finite dph"
+            )
+
+
 def compute_day_spend(
     records: list[dict],
     *,
@@ -199,63 +346,124 @@ def compute_day_spend(
     framing). This function aggregates across ALL instances; the cap-
     enforcer is global, not per-instance.
     """
+    window_hours = positive_finite_number(window_hours, field="window_hours")
     now = now or _now()
     window_start = now - timedelta(hours=window_hours)
     llm_spend = compute_llm_spend(records, window_start=window_start, now=now)
+    validate_current_rental_rows(
+        records,
+        window_start=window_start,
+        now=now,
+    )
 
-    # Pair rents with closes by instance_id (latest of each event wins)
-    rents: dict[int, dict] = {}
-    closes: dict[int, dict] = {}
-    for r in records:
-        ev = r.get("event")
-        iid = r.get("instance_id")
-        if iid is None:
+    # File order is the append-only lifecycle order. A last-row-wins map lets
+    # a duplicate unsigned rent overwrite a signed rent, so retain each closed
+    # lifecycle and at most one currently open lifecycle per provider id.
+    open_rentals: dict[int | str, dict] = {}
+    last_closed: dict[int | str, dict] = {}
+    completed: list[tuple[dict, dict]] = []
+    for index, record in enumerate(records, start=1):
+        event = record.get("event")
+        if event not in {"rented", "closed"}:
             continue
-        if ev == "rented":
-            rents[iid] = r
-        elif ev == "closed":
-            closes[iid] = r
+        raw_instance_id = record.get("instance_id")
+        if raw_instance_id is None:
+            continue
+        instance_id = normalized_instance_id(raw_instance_id)
+        binding = signed_rental_binding(
+            record,
+            context=f"{event} record {index}",
+        )
+
+        if event == "rented":
+            if instance_id in open_rentals:
+                raise LedgerIntegrityError(
+                    f"rented record {index} duplicates an open lifecycle for instance {instance_id}"
+                )
+            open_rentals[instance_id] = {
+                "rent": record,
+                "binding": binding,
+            }
+            continue
+
+        lifecycle = open_rentals.pop(instance_id, None)
+        if lifecycle is None:
+            prior = last_closed.get(instance_id)
+            if prior is None:
+                # Legacy ledgers contain inert close attempts before a matching
+                # rent. They must not retroactively close a later lifecycle.
+                continue
+            if prior["binding"] != binding:
+                raise LedgerIntegrityError(
+                    f"closed record {index} changes the binding mode or proof for instance {instance_id}"
+                )
+            # A same-proof duplicate close is an inert retry; the first close
+            # remains authoritative and cannot be overwritten by append order.
+            continue
+
+        if lifecycle["binding"] != binding:
+            raise LedgerIntegrityError(
+                f"closed record {index} has no exact signed lifecycle proof for instance {instance_id}"
+            )
+        rent_ts = parse_iso(lifecycle["rent"]["ts_iso"])
+        close_ts = parse_iso(record["ts_iso"])
+        if close_ts < rent_ts:
+            raise LedgerIntegrityError(
+                f"closed record for instance {instance_id} predates its rental"
+            )
+        completed.append((lifecycle["rent"], record))
+        last_closed[instance_id] = {
+            "binding": binding,
+            "close": record,
+        }
 
     already_spent = llm_spend
     daily_burn_rate = 0.0
     active: list[dict] = []
 
-    for iid, rent in rents.items():
-        try:
-            rent_ts = parse_iso(rent["ts_iso"])
-        except (KeyError, ValueError):
-            continue
-        dph = float(rent.get("dph") or 0)
-        if dph <= 0:
-            continue
+    for rent, close in completed:
+        rent_ts = parse_iso(rent["ts_iso"])
+        close_ts = parse_iso(close["ts_iso"])
+        dph = float(rent["dph"])
+        start = max(rent_ts, window_start)
+        end = min(close_ts, now)
+        if end > start:
+            already_spent += ((end - start).total_seconds() / 3600) * dph
 
-        close = closes.get(iid)
-        if close:
-            # Closed: count overlap with window
-            try:
-                close_ts = parse_iso(close["ts_iso"])
-            except (KeyError, ValueError):
-                continue
-            start = max(rent_ts, window_start)
-            end = min(close_ts, now)
-            if end > start:
-                already_spent += ((end - start).total_seconds() / 3600) * dph
-        else:
-            # Still running: count window-clipped hours so far
-            start = max(rent_ts, window_start)
-            if now > start:
-                already_spent += ((now - start).total_seconds() / 3600) * dph
-            # Steady-state contribution: dph × 24h
-            daily_burn_rate += dph * 24
-            active.append({
-                "instance_id": iid,
-                "handle": rent.get("handle"),
-                "dph": dph,
-                "started_at": rent.get("ts_iso"),
-                "running_hours_so_far": round((now - rent_ts).total_seconds() / 3600, 2),
-            })
+    for iid, lifecycle in open_rentals.items():
+        rent = lifecycle["rent"]
+        rent_ts = parse_iso(rent["ts_iso"])
+        dph = float(rent["dph"])
+        start = max(rent_ts, window_start)
+        if now > start:
+            already_spent += ((now - start).total_seconds() / 3600) * dph
+        daily_burn_rate += dph * 24
+        active.append({
+            "instance_id": iid,
+            "handle": rent.get("handle"),
+            "dph": dph,
+            "started_at": rent.get("ts_iso"),
+            "running_hours_so_far": round((now - rent_ts).total_seconds() / 3600, 2),
+        })
 
     return already_spent, daily_burn_rate, active
+
+
+def find_open_rental(records: list[dict], instance_id: int) -> dict | None:
+    """Find the validated open lifecycle for the legacy close command."""
+    target = normalized_instance_id(instance_id)
+    current: dict | None = None
+    for record in records:
+        if record.get("event") not in {"rented", "closed"}:
+            continue
+        raw_id = record.get("instance_id")
+        if raw_id is None or normalized_instance_id(raw_id) != target:
+            continue
+        if record.get("event") == "rented":
+            current = record
+        elif current is not None:
+            current = None
+    return current
 
 
 def cmd_rent(args: argparse.Namespace) -> int:
@@ -272,6 +480,24 @@ def cmd_rent(args: argparse.Namespace) -> int:
 
 
 def cmd_close(args: argparse.Namespace) -> int:
+    try:
+        records = read_records(args.ledger)
+        compute_day_spend(records)
+        open_rental = find_open_rental(records, args.instance_id)
+        if open_rental is not None and signed_rental_binding(
+            open_rental,
+            context=f"open rental {args.instance_id}",
+        ) is not None:
+            raise LedgerIntegrityError(
+                "the close command is legacy-only; signed rentals close through the bound host watchdog"
+            )
+    except LedgerIntegrityError as exc:
+        print(json.dumps({
+            "ok": False,
+            "ledger_integrity_ok": False,
+            "error": str(exc),
+        }))
+        return 2
     record = {
         "event": "closed",
         "instance_id": args.instance_id,
@@ -285,14 +511,21 @@ def cmd_close(args: argparse.Namespace) -> int:
 
 def cmd_check_cap(args: argparse.Namespace) -> int:
     try:
+        cap_usd = positive_finite_number(args.cap, field="cap_usd")
+        window_hours = positive_finite_number(
+            args.window_hours,
+            field="window_hours",
+        )
         records = read_records(args.ledger)
         spent, burn_rate, active = compute_day_spend(
-            records, window_hours=args.window_hours
+            records, window_hours=window_hours
         )
     except LedgerIntegrityError as exc:
+        raw_cap = float(args.cap)
+        raw_window = float(args.window_hours)
         print(json.dumps({
-            "cap_usd": args.cap,
-            "window_hours": args.window_hours,
+            "cap_usd": raw_cap if math.isfinite(raw_cap) else None,
+            "window_hours": raw_window if math.isfinite(raw_window) else None,
             "ledger_integrity_ok": False,
             "error": str(exc),
             "under_cap_actual": False,
@@ -300,23 +533,23 @@ def cmd_check_cap(args: argparse.Namespace) -> int:
         }, indent=2))
         return 2
     out = {
-        "cap_usd": args.cap,
-        "window_hours": args.window_hours,
+        "cap_usd": cap_usd,
+        "window_hours": window_hours,
         "ledger_integrity_ok": True,
         "already_spent_usd": round(spent, 2),
         "daily_burn_rate_usd": round(burn_rate, 2),
-        "headroom_spent_usd": round(args.cap - spent, 2),
-        "headroom_burn_rate_usd": round(args.cap - burn_rate, 2),
+        "headroom_spent_usd": round(cap_usd - spent, 2),
+        "headroom_burn_rate_usd": round(cap_usd - burn_rate, 2),
         "active_rentals": active,
-        "under_cap_actual": spent < args.cap,
-        "under_cap_projected": burn_rate < args.cap,
+        "under_cap_actual": spent < cap_usd,
+        "under_cap_projected": burn_rate < cap_usd,
     }
     print(json.dumps(out, indent=2))
     # Refuse rentals if EITHER (a) trailing-24h actual already at cap, or
     # (b) steady-state burn rate would breach within next 24h.
-    if spent >= args.cap:
+    if spent >= cap_usd:
         return 1
-    if burn_rate >= args.cap and not args.allow_projected_breach:
+    if burn_rate >= cap_usd and not args.allow_projected_breach:
         return 1
     return 0
 
@@ -438,7 +671,36 @@ def cmd_self_test(args: argparse.Namespace) -> int:
         else:
             assert False, "invalid current llm_paid row must fail closed"
 
-    print("self-tests PASS (18 assertions)")
+        try:
+            compute_day_spend(
+                [{"ts_iso": _iso(one_hour_ago), "event": "rented",
+                  "instance_id": 1003}],
+                now=now,
+                window_hours=24.0,
+            )
+        except LedgerIntegrityError:
+            pass
+        else:
+            assert False, "invalid current rented row must fail closed"
+
+        # Valid historical rentals still contribute only their overlap with the
+        # trailing window; a legitimate close row never needs its own dph.
+        historical_closed = [
+            {"ts_iso": _iso(now - timedelta(hours=26)), "event": "rented",
+             "instance_id": 1004, "handle": "historical", "dph": 2.0},
+            {"ts_iso": _iso(now - timedelta(hours=1)), "event": "closed",
+             "instance_id": 1004},
+        ]
+        historical_spent, historical_burn, historical_active = compute_day_spend(
+            historical_closed,
+            now=now,
+            window_hours=24.0,
+        )
+        assert abs(historical_spent - 46.0) < 0.01, historical_spent
+        assert historical_burn == 0.0, historical_burn
+        assert historical_active == [], historical_active
+
+    print("self-tests PASS (22 assertions)")
     return 0
 
 
@@ -455,7 +717,10 @@ def main() -> int:
     s_rent.add_argument("--dph", type=float, required=True, help="$/hr from offer")
     s_rent.add_argument("--gpu-name", default="?")
 
-    s_close = sub.add_parser("close", help="record a tear-down")
+    s_close = sub.add_parser(
+        "close",
+        help="record a legacy tear-down; signed rentals close through the host watchdog",
+    )
     s_close.add_argument("--instance-id", type=int, required=True)
     s_close.add_argument("--reason", default="")
 

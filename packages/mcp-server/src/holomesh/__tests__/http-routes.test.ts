@@ -123,6 +123,7 @@ import {
   type CaelAuditRecord,
 } from '../state';
 import { MOBILE_PRESENCE_TTL_MS } from '../types';
+import { getAttestationRegistry, resetAttestationRegistry } from '../identity/signing-middleware';
 
 // ── Test Helpers ──
 
@@ -297,11 +298,13 @@ describe('HoloMesh HTTP Routes', () => {
       lastRotatedAt: null,
       isFounder: true,
     });
+    resetAttestationRegistry();
   });
 
   afterEach(() => {
     process.env = { ...originalEnv };
     keyRegistry.clear();
+    resetAttestationRegistry();
   });
 
   // ── Register ──
@@ -1106,6 +1109,99 @@ describe('HoloMesh HTTP Routes', () => {
   });
 
   // ── Space ──
+
+  describe('GET /api/holomesh/me/attestation', () => {
+    it('returns 401 without caller authentication', async () => {
+      const req = mockReq('GET', '/api/holomesh/me/attestation');
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/me/attestation');
+
+      expect(res._status).toBe(401);
+      expect(res._body.error).toContain('Authentication required');
+    });
+
+    it('returns the authenticated caller active when its wallet is attested', async () => {
+      const wallet = '0x0000000000000000000000000000000000000001';
+      getAttestationRegistry().attest({
+        publicKey: wallet,
+        seatId: 'test-active-seat',
+        authorizedBy: 'ecosystem-root',
+        issuedAt: new Date().toISOString(),
+        expiresAt: null,
+      });
+      const req = mockReq('GET', '/api/holomesh/me/attestation', undefined, {
+        authorization: 'Bearer test-api-key',
+      });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/me/attestation');
+
+      expect(res._status).toBe(200);
+      expect(res._body).toMatchObject({
+        success: true,
+        agentId: 'agent_founder',
+        wallet,
+        active: true,
+        attested: true,
+        retired: false,
+        reason: null,
+      });
+    });
+
+    it('returns inactive for the authenticated caller after retirement', async () => {
+      const wallet = '0x0000000000000000000000000000000000000001';
+      const registry = getAttestationRegistry();
+      registry.attest({
+        publicKey: wallet,
+        seatId: 'test-retired-seat',
+        authorizedBy: 'ecosystem-root',
+        issuedAt: new Date().toISOString(),
+        expiresAt: null,
+      });
+      registry.retire(wallet, 'test-revocation');
+      const req = mockReq('GET', '/api/holomesh/me/attestation', undefined, {
+        authorization: 'Bearer test-api-key',
+      });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/me/attestation');
+
+      expect(res._status).toBe(200);
+      expect(res._body).toMatchObject({
+        success: true,
+        agentId: 'agent_founder',
+        wallet,
+        active: false,
+        attested: false,
+        retired: true,
+        reason: 'signer-retired',
+      });
+    });
+
+    it('does not accept a supplied wallet in place of the bearer wallet', async () => {
+      const callerWallet = '0x0000000000000000000000000000000000000001';
+      const otherWallet = '0x0000000000000000000000000000000000000002';
+      getAttestationRegistry().attest({
+        publicKey: otherWallet,
+        seatId: 'other-active-seat',
+        authorizedBy: 'ecosystem-root',
+        issuedAt: new Date().toISOString(),
+        expiresAt: null,
+      });
+      const req = mockReq('GET', `/api/holomesh/me/attestation?wallet=${otherWallet}`, undefined, {
+        authorization: 'Bearer test-api-key',
+      });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/me/attestation');
+
+      expect(res._status).toBe(200);
+      expect(res._body).toMatchObject({
+        wallet: callerWallet,
+        active: false,
+        attested: false,
+        retired: false,
+        reason: 'signer-not-attested',
+      });
+    });
+  });
 
   describe('GET /api/holomesh/space', () => {
     it('returns wallet_address when authenticated', async () => {

@@ -47,6 +47,7 @@ import type {
   KnowledgeEntryType,
 } from '../types';
 import { requireAuth, resolveRequestingAgent } from '../auth-utils';
+import { getAttestationRegistry } from '../identity/signing-middleware';
 import { getClient } from '../orchestrator-client';
 import { findKnowledgeEntryById } from '../entry-lookup';
 import { json, parseJsonBody, pruneStalePresence, isPresenceStale } from '../utils';
@@ -1011,6 +1012,42 @@ export async function handleCoreRoutes(
       teamId: teams[0]?.teamId ?? null,
       teams,
       permissions: [...permSet],
+    });
+    return true;
+  }
+
+  // Current-caller-only seat status for local paid-execution gates. The
+  // wallet comes from authenticated caller state, never from a supplied
+  // address, and uses the same retirement/expiry semantics as signed MCP
+  // request verification.
+  if (pathname === '/api/holomesh/me/attestation' && method === 'GET') {
+    const caller = resolveRequestingAgent(req);
+    if (!caller.authenticated) {
+      json(res, 401, { error: 'Authentication required. Provide valid HoloMesh API key.' });
+      return true;
+    }
+    if (!caller.wallet) {
+      json(res, 200, {
+        success: true,
+        agentId: caller.id,
+        wallet: null,
+        active: false,
+        attested: false,
+        retired: false,
+        reason: 'caller-wallet-missing',
+      });
+      return true;
+    }
+
+    const status = await getAttestationRegistry().toRegistryCheck()(caller.wallet);
+    json(res, 200, {
+      success: true,
+      agentId: caller.id,
+      wallet: caller.wallet,
+      active: status.attested && !status.retired,
+      attested: status.attested,
+      retired: status.retired,
+      reason: status.reason ?? null,
     });
     return true;
   }
