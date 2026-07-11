@@ -17,9 +17,10 @@ checks via `--check-cap 50` before any new rental, and gets non-zero
 exit if the running day's projected spend would exceed the cap.
 
 Ledger format: append-only NDJSON at ~/.ai-ecosystem/vast-spend-ledger.ndjson
-Each record: {ts_iso, event, instance_id, handle, dph, ...}
+Each record: {ts_iso, event, ...}; rental rows also carry instance_id/handle/dph.
 
 Events:
+    llm_paid    - discrete paid-LLM cost; record non-negative est_usd
     rented      — new instance dispatched; record dph_total + start time
     closed      — instance torn down; record actual_duration_h + final cost
     snapshot    — periodic state-of-the-fleet roll-up (daily cron output)
@@ -47,6 +48,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import sys
 import tempfile
@@ -56,6 +58,10 @@ from pathlib import Path
 
 DEFAULT_LEDGER = Path.home() / ".ai-ecosystem" / "vast-spend-ledger.ndjson"
 DEFAULT_CAP_USD = 100.0  # raised from $50 to $100/day per founder directive 2026-04-26
+
+
+class LedgerIntegrityError(ValueError):
+    """A paid-spend row cannot be safely admitted into cap accounting."""
 
 
 def _now() -> datetime:
@@ -78,15 +84,23 @@ def read_records(ledger: Path) -> list[dict]:
     if not ledger.exists():
         return []
     out: list[dict] = []
-    for line in ledger.read_text(encoding="utf-8").splitlines():
+    for line_number, line in enumerate(
+        ledger.read_text(encoding="utf-8").splitlines(), start=1
+    ):
         line = line.strip()
         if not line:
             continue
         try:
-            out.append(json.loads(line))
-        except json.JSONDecodeError:
-            # Skip malformed lines but don't fail the whole ledger
-            pass
+            record = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise LedgerIntegrityError(
+                f"ledger line {line_number} is not valid JSON"
+            ) from exc
+        if not isinstance(record, dict):
+            raise LedgerIntegrityError(
+                f"ledger line {line_number} must contain a JSON object"
+            )
+        out.append(record)
     return out
 
 
@@ -94,6 +108,70 @@ def parse_iso(s: str) -> datetime:
     """Parse ISO timestamps tolerantly. Accepts both `Z` and `+00:00` suffixes."""
     s = s.replace("Z", "+00:00")
     return datetime.fromisoformat(s)
+
+
+def compute_llm_spend(
+    records: list[dict],
+    *,
+    window_start: datetime,
+    now: datetime,
+) -> float:
+    """Sum valid ``llm_paid.est_usd`` rows in the trailing window.
+
+    Paid-LLM calls are discrete purchased-compute spend, so they contribute
+    to actual spend but not the steady-state Vast rental burn rate. A current
+    paid row with an invalid timestamp or amount is an integrity failure:
+    silently treating it as zero would make the shared cap fail open.
+    """
+    total = 0.0
+    for index, record in enumerate(records, start=1):
+        if record.get("event") != "llm_paid":
+            continue
+
+        raw_timestamp = record.get("ts_iso")
+        if not isinstance(raw_timestamp, str) or not raw_timestamp.strip():
+            raise LedgerIntegrityError(
+                f"llm_paid record {index} requires a valid ts_iso"
+            )
+        try:
+            paid_ts = parse_iso(raw_timestamp)
+        except (KeyError, TypeError, ValueError) as exc:
+            raise LedgerIntegrityError(
+                f"llm_paid record {index} requires a valid ts_iso"
+            ) from exc
+        if paid_ts.tzinfo is None or paid_ts.utcoffset() is None:
+            raise LedgerIntegrityError(
+                f"llm_paid record {index} requires a timezone-aware ts_iso"
+            )
+        if paid_ts > now:
+            raise LedgerIntegrityError(
+                f"llm_paid record {index} has a future ts_iso"
+            )
+        if paid_ts < window_start:
+            continue
+
+        raw_amount = record.get("est_usd")
+        if isinstance(raw_amount, bool):
+            raise LedgerIntegrityError(
+                f"llm_paid record {index} requires a non-negative finite est_usd"
+            )
+        try:
+            amount = float(raw_amount)
+        except (TypeError, ValueError) as exc:
+            raise LedgerIntegrityError(
+                f"llm_paid record {index} requires a non-negative finite est_usd"
+            ) from exc
+        if not math.isfinite(amount) or amount < 0:
+            raise LedgerIntegrityError(
+                f"llm_paid record {index} requires a non-negative finite est_usd"
+            )
+        total += amount
+        if not math.isfinite(total):
+            raise LedgerIntegrityError(
+                "llm_paid spend total must remain finite"
+            )
+
+    return total
 
 
 def compute_day_spend(
@@ -107,7 +185,8 @@ def compute_day_spend(
     Returns (already_spent_usd, daily_burn_rate_usd, active_rentals).
 
     - already_spent_usd: actual $ burned in the trailing `window_hours`
-      (default 24h). For closed rentals: hours running within the window
+      (default 24h), including discrete `llm_paid.est_usd` rows. For
+      closed rentals: hours running within the window
       × dph. For still-running: (now - rent_ts) hours × dph (clipped to
       window start).
     - daily_burn_rate_usd: steady-state burn — sum(dph × 24h) for all
@@ -122,6 +201,7 @@ def compute_day_spend(
     """
     now = now or _now()
     window_start = now - timedelta(hours=window_hours)
+    llm_spend = compute_llm_spend(records, window_start=window_start, now=now)
 
     # Pair rents with closes by instance_id (latest of each event wins)
     rents: dict[int, dict] = {}
@@ -136,7 +216,7 @@ def compute_day_spend(
         elif ev == "closed":
             closes[iid] = r
 
-    already_spent = 0.0
+    already_spent = llm_spend
     daily_burn_rate = 0.0
     active: list[dict] = []
 
@@ -204,11 +284,25 @@ def cmd_close(args: argparse.Namespace) -> int:
 
 
 def cmd_check_cap(args: argparse.Namespace) -> int:
-    records = read_records(args.ledger)
-    spent, burn_rate, active = compute_day_spend(records, window_hours=args.window_hours)
+    try:
+        records = read_records(args.ledger)
+        spent, burn_rate, active = compute_day_spend(
+            records, window_hours=args.window_hours
+        )
+    except LedgerIntegrityError as exc:
+        print(json.dumps({
+            "cap_usd": args.cap,
+            "window_hours": args.window_hours,
+            "ledger_integrity_ok": False,
+            "error": str(exc),
+            "under_cap_actual": False,
+            "under_cap_projected": False,
+        }, indent=2))
+        return 2
     out = {
         "cap_usd": args.cap,
         "window_hours": args.window_hours,
+        "ledger_integrity_ok": True,
         "already_spent_usd": round(spent, 2),
         "daily_burn_rate_usd": round(burn_rate, 2),
         "headroom_spent_usd": round(args.cap - spent, 2),
@@ -228,11 +322,23 @@ def cmd_check_cap(args: argparse.Namespace) -> int:
 
 
 def cmd_report(args: argparse.Namespace) -> int:
-    records = read_records(args.ledger)
-    spent, burn_rate, active = compute_day_spend(records, window_hours=args.days * 24.0)
+    try:
+        records = read_records(args.ledger)
+        spent, burn_rate, active = compute_day_spend(
+            records, window_hours=args.days * 24.0
+        )
+    except LedgerIntegrityError as exc:
+        print(json.dumps({
+            "ledger": str(args.ledger),
+            "window_days": args.days,
+            "ledger_integrity_ok": False,
+            "error": str(exc),
+        }, indent=2))
+        return 2
     out = {
         "ledger": str(args.ledger),
         "window_days": args.days,
+        "ledger_integrity_ok": True,
         "records_total": len(records),
         "spent_usd": round(spent, 2),
         "daily_burn_rate_usd": round(burn_rate, 2),
@@ -301,7 +407,38 @@ def cmd_self_test(args: argparse.Namespace) -> int:
         assert abs(spent2 - 20.0) < 0.01, spent2
         assert burn_rate2 == 0.0, burn_rate2  # nothing active → zero burn
 
-    print("self-tests PASS (10 assertions)")
+        # Paid LLM usage shares the purchased-compute cap with Vast rentals.
+        # Historical rows outside the trailing window remain valid but do not
+        # reduce today's headroom.
+        llm_records = [
+            {"ts_iso": _iso(one_hour_ago), "event": "llm_paid", "est_usd": 99.0},
+            {"ts_iso": _iso(now - timedelta(hours=25)),
+             "event": "llm_paid", "est_usd": 500.0},
+        ]
+        llm_spent, llm_burn_rate, llm_active = compute_day_spend(
+            llm_records, now=now, window_hours=24.0
+        )
+        assert abs(llm_spent - 99.0) < 0.01, llm_spent
+        assert llm_burn_rate == 0.0, llm_burn_rate
+        assert llm_active == [], llm_active
+        llm_headroom = DEFAULT_CAP_USD - llm_spent
+        assert abs(llm_headroom - 1.0) < 0.01, llm_headroom
+        projected_rent_cost = 2.0
+        assert projected_rent_cost > llm_headroom
+
+        try:
+            compute_day_spend(
+                [{"ts_iso": _iso(one_hour_ago), "event": "llm_paid",
+                  "est_usd": "not-a-number"}],
+                now=now,
+                window_hours=24.0,
+            )
+        except LedgerIntegrityError:
+            pass
+        else:
+            assert False, "invalid current llm_paid row must fail closed"
+
+    print("self-tests PASS (18 assertions)")
     return 0
 
 
