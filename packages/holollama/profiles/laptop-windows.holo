@@ -14,8 +14,8 @@ composition "laptop-fara-vision" {
     image_max_tokens: 1536
     parallel: 1
     metrics: true
-    executable: "C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build-holo\\bin\\Release\\llama-server.exe"
-    llama_bin_dir: "C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build-holo\\bin\\Release"
+    executable: "C:\\holoscript\\llama.cpp\\build-holo\\bin\\Release\\llama-server.exe"
+    llama_bin_dir: "C:\\holoscript\\llama.cpp\\build-holo\\bin\\Release"
     platform: "windows"
     service_user: "holoscript"
     node: "laptop-rtx3060"

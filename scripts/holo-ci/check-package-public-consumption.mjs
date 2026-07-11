@@ -27,6 +27,7 @@
  */
 import childProcess from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -75,7 +76,10 @@ function firstPartyPythonPackages() {
 const LEAK_PATTERNS = [
   { id: 'private-lan-ip', re: /\b(?:192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})\b/u, note: 'private LAN IP' },
   { id: 'founder-host', re: /\bholojetson\b|holo-app-pg|holokey-pg/u, note: 'founder container/host name' },
-  { id: 'founder-path', re: /\/mnt\/nvme|C:\\Users\\[Jj]osep|C:\/Users\/[Jj]osep|\/home\/username\b/u, note: 'founder machine path' },
+  // The Windows separator run is [\\/]+ (not a single \\) so an ESCAPED path in a JSON/.holo
+  // string literal — where "C:\\Users\\josep" is stored as C:\\\\Users\\\\josep on disk — is
+  // still caught. A single-backslash pattern silently missed profiles/laptop-windows.holo.
+  { id: 'founder-path', re: /\/mnt\/nvme|C:[\\/]+Users[\\/]+[Jj]osep|\/home\/(?:username|[Jj]osep)\b/u, note: 'founder machine path' },
   { id: 'private-ops', re: /\bsudo\s+docker\b|holoscript_app/u, note: 'private operator command / superuser role' },
   { id: 'private-workspace-default', re: /['"`]ai-ecosystem['"`]/u, note: "founder workspace ('ai-ecosystem') baked as a value" },
   { id: 'private-repo-doc-ref', re: /ai-ecosystem\/(?:research|docs|memory|config)\//u, note: 'private-repo path in shipped docs' },
@@ -405,6 +409,57 @@ function checkPythonPackage(pkgDir) {
   };
 }
 
+// Deliberately-seeded leak fixtures that MUST be flagged, plus clean values that MUST NOT.
+// This is the gate's own regression suite: it proves the scanner still blocks the exact leaks
+// we hand-fixed — most importantly the ESCAPED founder path in a .holo/JSON string literal
+// ("C:\\Users\\josep" on disk), which a single-backslash pattern silently missed and let
+// profiles/laptop-windows.holo ship (task_1783793190251). Run: `--self-test`.
+function selfTestFixtures() {
+  const BS = '\\'; // one literal backslash
+  const esc = BS + BS; // two backslashes — how a Windows path is stored INSIDE a .holo/JSON string
+  return [
+    // --- MUST be flagged (seeded leaks) ---
+    { file: 'profile-escaped.holo', content: `    executable: "C:${esc}Users${esc}josep${esc}llama.cpp${esc}llama-server.exe"`, expect: 'leak:founder-path' },
+    { file: 'profile-single.holo', content: `path=C:${BS}Users${BS}Josep${BS}x`, expect: 'leak:founder-path' },
+    { file: 'linux-mount.txt', content: 'model_path: /mnt/nvme/holo/models/x.gguf', expect: 'leak:founder-path' },
+    { file: 'lan.json', content: '{ "endpoint": "http://192.168.0.119:18080" }', expect: 'leak:private-lan-ip' },
+    { file: 'host.txt', content: 'container: holo-app-pg', expect: 'leak:founder-host' },
+    // --- MUST stay clean (generic deploy roots / placeholders) ---
+    { file: 'generic-win.holo', content: `    executable: "C:${esc}holoscript${esc}llama.cpp${esc}llama-server.exe"`, expect: null },
+    { file: 'generic-linux.holo', content: '    executable: "/opt/holoscript/llama.cpp/bin/llama-server"', expect: null },
+    { file: 'generic-home.holo', content: '    bin: "jetson.local:18080"', expect: null },
+  ];
+}
+
+function runSelfTest() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'holo-pubconsume-selftest-'));
+  let failures = 0;
+  try {
+    for (const fx of selfTestFixtures()) {
+      const abs = path.join(dir, fx.file);
+      fs.writeFileSync(abs, fx.content, 'utf8');
+      const findings = scanFileForLeaks(abs, fx.file);
+      const kinds = findings.map((f) => f.kind);
+      const hit = fx.expect ? kinds.includes(fx.expect) : findings.length === 0;
+      if (!hit) {
+        failures += 1;
+        process.stdout.write(
+          `  FAIL ${fx.file}: expected ${fx.expect ? `BLOCKER ${fx.expect}` : 'no findings'}, got [${kinds.join(', ') || 'none'}]\n`,
+        );
+      } else {
+        process.stdout.write(`  ok   ${fx.file}: ${fx.expect ? `caught ${fx.expect}` : 'clean'}\n`);
+      }
+    }
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+  if (failures) {
+    process.stdout.write(`\nSELF-TEST FAILED: ${failures} case(s)\n`);
+    process.exit(1);
+  }
+  process.stdout.write('\nSELF-TEST PASSED: every seeded leak is blocked and every generic value stays clean.\n');
+}
+
 function parseArgs(argv) {
   const packages = [];
   const pyPackages = [];
@@ -420,6 +475,7 @@ function parseArgs(argv) {
     packages: packages.length ? uniqueExisting(packages) : defaultPackages(),
     pyPackages: uniqueExisting(pyPackages),
     json: argv.includes('--json'),
+    selfTest: argv.includes('--self-test'),
   };
 }
 
@@ -439,9 +495,14 @@ function render(report) {
 }
 
 function main() {
-  const { packages, pyPackages, json } = parseArgs(process.argv.slice(2));
+  const { packages, pyPackages, json, selfTest } = parseArgs(process.argv.slice(2));
   if (process.argv.includes('--help') || process.argv.includes('-h')) {
-    process.stdout.write('Usage: node scripts/check-package-public-consumption.mjs [--package <dir> ...] [--py-package <dir> ...] [--portfolio] [--json]\n');
+    process.stdout.write('Usage: node scripts/check-package-public-consumption.mjs [--package <dir> ...] [--py-package <dir> ...] [--portfolio] [--self-test] [--json]\n');
+    return;
+  }
+  if (selfTest) {
+    process.stdout.write('# Public-Consumption Ratchet self-test (seeded leaks)\n');
+    runSelfTest();
     return;
   }
   const results = [

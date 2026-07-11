@@ -28,8 +28,11 @@ import {
 import { selectHoloLlamaBrain as selectHoloLlamaBrainFromSubpath } from '../brain.js';
 
 const patchedJetsonExecutable = '/opt/holoscript/llama.cpp/build-holo/bin/llama-server';
+// Generic Windows deploy root (mirrors the /opt/holoscript and /srv/holoscript roots the
+// jetson/vast profiles ship). The shipped laptop-windows.holo must NOT carry a founder-home
+// path; laptop users point HOLO_LLAMA_LAPTOP_EXECUTABLE at their own build.
 const patchedLaptopExecutable =
-  'C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build-holo\\bin\\Release\\llama-server.exe';
+  'C:\\holoscript\\llama.cpp\\build-holo\\bin\\Release\\llama-server.exe';
 
 describe('@holoscript/holollama', () => {
   it('exposes all fleet serving profiles', () => {
