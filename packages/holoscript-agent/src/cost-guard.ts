@@ -185,12 +185,51 @@ export function defaultOpenAIRealtimePricer(model: string, usage: AudioUsage): n
   );
 }
 
+// xAI Voice Agent (realtime) pricing — PER-HOUR, not per-token. Verified
+// 2026-07-10 (docs/llm-capabilities/xai-grok.md § Voice pricing): the realtime
+// voice agent is billed at $3.00/hour of session wall-clock. This is the
+// per-DURATION accrual model the RealtimePricer union reserves — a session's
+// cost is a function of how long it stayed open, finalized at session.close, NOT
+// summed over per-token `usage` events like OpenAI/Gemini. (The separate REST STT
+// $0.10-0.20/hr and TTS $15/1M-char surfaces are NOT realtime-session cost and
+// are priced elsewhere if/when those adapters land.) The xAI realtime WebSocket
+// wire frames + the session opener are a slice-E live-endpoint known-unknown;
+// this per-duration pricer is a pure function of duration and needs neither.
+// Never paste training-era pricing — F.014 / W.GOLD.341.
+export const XAI_REALTIME_PRICING_USD_PER_HOUR: Record<string, number> = {
+  'grok-voice-think-fast-1.0': 3.0, // realtime voice agent, GA 2026-06-08
+};
+
+/**
+ * xAI realtime PER-DURATION pricer — the per-duration variant of the
+ * `RealtimePricer` union. Prices a voice session from its wall-clock duration at
+ * the verified per-hour rate (cost = rate/hour × durationSeconds/3600). Throws on
+ * an unknown model with a pointer (matches defaultOpenAIRealtimePricer /
+ * defaultXAIPricer / defaultAnthropicPricer) so callers cannot silently
+ * undercount. Pure function: fixed durationSeconds in, exact USD out — no network,
+ * no hardware. Distinct signature from the per-token pricers: it takes
+ * `durationSeconds`, never `AudioUsage`, because xAI does not expose per-token
+ * audio accrual for the voice agent.
+ */
+export function defaultXaiRealtimePricer(model: string, durationSeconds: number): number {
+  const perHour = XAI_REALTIME_PRICING_USD_PER_HOUR[model];
+  if (perHour === undefined) {
+    throw new Error(
+      `No xAI realtime voice pricing configured for model "${model}" — add to ` +
+        `XAI_REALTIME_PRICING_USD_PER_HOUR (verify via docs/llm-capabilities/xai-grok.md)`
+    );
+  }
+  return (perHour / 3600) * durationSeconds;
+}
+
 /**
  * Discriminated union so budget enforcement knows which accrual model applies:
  * OpenAI/Gemini are per-TOKEN (finalize each `usage` event); xAI voice is
- * per-DURATION ($3/hr — only finalizes at close). Only the OpenAI per-token
- * pricer is implemented in this slice (A+B); the per-duration variant is
- * structural headroom so slice D's xAI pricer fits without changing this type.
+ * per-DURATION ($3/hr — only finalizes at close). BOTH variants are now
+ * implemented: `defaultOpenAIRealtimePricer` (per-token, slice A+B) and
+ * `defaultXaiRealtimePricer` (per-duration, slice D). The union let slice D's xAI
+ * pricer land as headroom without changing this type. A Gemini Live pricer, when
+ * it lands, is another `per-token` entry (Gemini bills per-token audio).
  */
 export type RealtimePricer =
   | { kind: 'per-token'; price: (model: string, usage: AudioUsage) => number }

@@ -1320,6 +1320,40 @@ export interface GrokProviderExtensions {
   imageAnimation?: boolean;
   /** Grok Imagine Agent Mode refinement hint for future media adapters. */
   conversationalMediaEditing?: boolean;
+  /**
+   * xAI Voice Agent realtime transport dialect. Segregated per-vendor shape (do
+   * NOT flatten — same rule as computerUse / OpenAI realtimeVoice). xAI's realtime
+   * surface is genuinely DISTINCT from OpenAI's: a WebSocket-ONLY agent endpoint
+   * (no WebRTC, no SIP, no ephemeral-secret mint) at `/v1/realtime`, with SEPARATE
+   * REST STT/TTS endpoints, and a PER-HOUR billing model ($3/hr agent) rather than
+   * OpenAI's per-token audio pricing. Pricing lives with CostGuard
+   * (`XAI_REALTIME_PRICING_USD_PER_HOUR` + `defaultXaiRealtimePricer`, the
+   * per-DURATION variant of the `RealtimePricer` union).
+   *
+   * Verified 2026-07-10 (docs/llm-capabilities/xai-grok.md § Voice Agent API):
+   * `/v1/realtime` WebSocket + `grok-voice-think-fast-1.0` + `/v1/tts` ($15/1M
+   * chars) + `/v1/stt` ($0.10/hr REST, $0.20/hr streaming). VERIFICATION GAP: the
+   * exact per-message WIRE FRAMES for `/v1/realtime` are not published in that
+   * doc — this is a typed INTENT surface (endpoints + model + transport + billing
+   * model), NOT a byte-level wire spec. The frame schema + the session-opener
+   * (`GrokRealtimeAdapter`) are a slice-E live-endpoint known-unknown; do not
+   * invent frame fields here.
+   */
+  realtimeVoice?: {
+    /**
+     * xAI has NO WebRTC/SIP surface — WebSocket only. Literal-typed to `'websocket'`
+     * so the OpenAI transports (`'webrtc'` / `'sip'`) cannot leak onto this shape.
+     */
+    transport: 'websocket';
+    /** Voice agent model, e.g. 'grok-voice-think-fast-1.0'. */
+    model: 'grok-voice-think-fast-1.0' | string;
+    /** Realtime WebSocket endpoint. Default '/v1/realtime'. */
+    endpoint?: string;
+    /** SPLIT REST speech-to-text endpoint (billed per-hour, not per-token). */
+    stt?: { endpoint: string; streaming?: boolean };
+    /** SPLIT REST text-to-speech endpoint ($15 / 1M chars). */
+    tts?: { endpoint: string };
+  };
 }
 
 export interface GeminiProviderExtensions {
@@ -1347,6 +1381,36 @@ export interface GeminiProviderExtensions {
     enabledActions?: string[];
     /** Exclude specific predefined actions (Gemini supports exclusion). */
     excludedActions?: string[];
+  };
+  /**
+   * Gemini realtime voice transport dialect. Segregated per-vendor shape (do NOT
+   * flatten). Genuinely DISTINCT from OpenAI (no WebRTC/SIP transport union; no SIP;
+   * no per-token audio pricing table here) and from xAI (no per-hour REST STT/TTS
+   * split; has no top-level `transport` field at all): the discriminant is a `mode`
+   * between the bidirectional **Live API** (`live`) and **streaming TTS-only**
+   * (`tts`) — two different Google surfaces — plus `responseModalities` (Live
+   * session config) and short-lived **ephemeral tokens** for client-side Live
+   * connections.
+   *
+   * Verified 2026-07-10 (docs/llm-capabilities/google-gemini.md): Live API models +
+   * streaming TTS `gemini-3.1-flash-tts-preview` (streamGenerateContent /
+   * Interactions `stream:true`); `GEMINI_CAPABILITIES.streamingSpeechGeneration` is
+   * already true. VERIFICATION GAP: the Live API native-audio model id and the
+   * ephemeral-token mint wire are a moving preview surface — encoded as a typed
+   * INTENT surface with a `string` model fallback; the precise wire fields + the
+   * session-opener (`GeminiRealtimeAdapter`) are a slice-E known-unknown.
+   */
+  realtimeVoice?: {
+    /** Live API (bidirectional duplex) vs streaming TTS-only. THE discriminant — no `transport` union. */
+    mode: 'live' | 'tts';
+    /** e.g. 'gemini-3-flash-preview' (Live) or 'gemini-3.1-flash-tts-preview' (TTS). */
+    model: 'gemini-3-flash-preview' | 'gemini-3.1-flash-tts-preview' | string;
+    /** Live API session output modalities. */
+    responseModalities?: Array<'AUDIO' | 'TEXT'>;
+    /** Client-side Live connections mint a short-lived ephemeral token server-side. */
+    ephemeralToken?: { mint: boolean; ttlSeconds?: number };
+    /** Prebuilt voice selection (Live/TTS voice config). */
+    voiceConfig?: { prebuiltVoice?: string };
   };
 }
 

@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   OPENAI_REALTIME_PRICING_USD_PER_MTOK,
   defaultOpenAIRealtimePricer,
+  XAI_REALTIME_PRICING_USD_PER_HOUR,
+  defaultXaiRealtimePricer,
   type AudioPricing,
   type RealtimePricer,
 } from '../cost-guard.js';
@@ -115,5 +117,64 @@ describe('AudioPricing shape', () => {
     expect(entry.audioInput).toBe(32);
     expect(entry.cachedAudioInput).toBe(0.4);
     expect(entry.audioOutput).toBe(64);
+  });
+});
+
+// --- Slice D (board mjz9): xAI per-DURATION realtime pricer -----------------
+// xAI's Voice Agent bills PER HOUR of session wall-clock ($3/hr), not per audio
+// token — a fundamentally different accrual model from OpenAI/Gemini. These are
+// pure functions: fixed durationSeconds in, exact USD out — no network, no audio.
+// Verified 2026-07-10 (docs/llm-capabilities/xai-grok.md § Voice pricing).
+
+describe('XAI_REALTIME_PRICING_USD_PER_HOUR', () => {
+  it('pins grok-voice-think-fast-1.0 to the verified $3.00/hour rate', () => {
+    expect(XAI_REALTIME_PRICING_USD_PER_HOUR['grok-voice-think-fast-1.0']).toBe(3.0);
+  });
+});
+
+describe('defaultXaiRealtimePricer', () => {
+  it('prices a full hour to exactly the per-hour rate', () => {
+    expect(defaultXaiRealtimePricer('grok-voice-think-fast-1.0', 3600)).toBeCloseTo(3.0, 6);
+  });
+
+  it('prices a partial session pro-rata by duration', () => {
+    // 90s of a $3/hr session = 3 * 90/3600 = $0.075
+    expect(defaultXaiRealtimePricer('grok-voice-think-fast-1.0', 90)).toBeCloseTo(0.075, 6);
+  });
+
+  it('prices a zero-duration session at $0 (open-then-immediately-close)', () => {
+    expect(defaultXaiRealtimePricer('grok-voice-think-fast-1.0', 0)).toBe(0);
+  });
+
+  it('throws on an unknown model so callers cannot silently undercount', () => {
+    expect(() => defaultXaiRealtimePricer('grok-voice-imaginary', 3600)).toThrowError(
+      /No xAI realtime voice pricing configured/
+    );
+  });
+});
+
+describe('RealtimePricer union — per-duration variant is now implemented (slice D)', () => {
+  it('admits the real xAI pricer as a per-duration variant and prices by duration', () => {
+    const pricer: RealtimePricer = { kind: 'per-duration', price: defaultXaiRealtimePricer };
+    expect(pricer.kind).toBe('per-duration');
+    if (pricer.kind === 'per-duration') {
+      expect(pricer.price('grok-voice-think-fast-1.0', 1800)).toBeCloseTo(1.5, 6); // half hour
+    }
+  });
+
+  it('per-token and per-duration variants coexist under one union type', () => {
+    const perToken: RealtimePricer = { kind: 'per-token', price: defaultOpenAIRealtimePricer };
+    const perDuration: RealtimePricer = { kind: 'per-duration', price: defaultXaiRealtimePricer };
+    // The discriminant selects the accrual model at the call site.
+    const priceIt = (p: RealtimePricer): number =>
+      p.kind === 'per-token'
+        ? p.price('gpt-realtime-2.1', {
+            audioInputTokens: 1_000_000,
+            cachedAudioInputTokens: 0,
+            audioOutputTokens: 0,
+          })
+        : p.price('grok-voice-think-fast-1.0', 3600);
+    expect(priceIt(perToken)).toBeCloseTo(32, 6);
+    expect(priceIt(perDuration)).toBeCloseTo(3.0, 6);
   });
 });
