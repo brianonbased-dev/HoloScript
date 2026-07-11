@@ -41,18 +41,29 @@ export default defineConfig({
   ],
   format: ['esm', 'cjs'],
   dts: false, // Temporarily disabled: tsup DTS worker OOM on engine graph
+  // Wipe dist each build. Without this, content-hashed chunks from old source accumulate
+  // (83 orphaned chunks were shipping month-old data — e.g. a stale prior-art corpus whose
+  // `source` field still pointed at a private-repo research path, tripping the public-consumption
+  // gate: private-repo-doc-ref). Fresh source no longer emits those; clean removes the orphans.
+  clean: true,
   esbuildPlugins: [
     {
       name: 'wgsl-raw-loader',
       setup(build) {
         // Strip ?raw suffix from .wgsl imports (Vite convention)
-        build.onResolve({ filter: /\.wgsl\?raw$/ }, (args) => ({
-          path: resolve(args.resolveDir, args.path.replace('?raw', '')),
-          namespace: 'wgsl-raw',
-        }));
+        build.onResolve({ filter: /\.wgsl\?raw$/ }, (args) => {
+          const abs = resolve(args.resolveDir, args.path.replace('?raw', ''));
+          // Label the virtual module with a REPO-RELATIVE path. esbuild inlines a
+          // "// wgsl-raw:<path>" module-origin comment into the bundle; an ABSOLUTE path here
+          // leaked the maintainer's machine path (C:\Users\josep\...\radix-sort.wgsl) into every
+          // published chunk (public-consumption gate: founder-path). Keep the absolute path in
+          // pluginData for the loader; the relative label is drive- and cwd-independent.
+          const label = abs.replace(/\\/g, '/').replace(/^.*?\/(src\/.*)$/, '$1');
+          return { path: label, namespace: 'wgsl-raw', pluginData: { abs } };
+        });
         // Load .wgsl files as text strings
         build.onLoad({ filter: /\.wgsl$/, namespace: 'wgsl-raw' }, (args) => {
-          const text = readFileSync(args.path, 'utf8');
+          const text = readFileSync(args.pluginData.abs, 'utf8');
           return { contents: `export default ${JSON.stringify(text)};`, loader: 'js' };
         });
       },
