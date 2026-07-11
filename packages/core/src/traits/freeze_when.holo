@@ -1,0 +1,17 @@
+@trait {
+  name: "@freeze_when",
+  category: "governance",
+  description: "Declares a self-controlling Freeze RULE: gate <scope> WHEN <signal> trips, and AUTO-LIFT the moment it clears. A freeze here is DERIVED from a live signal, never a stored 'FROZEN' flag — so it cannot go stale (the 'FROZEN in 8 stale places' disease). Native/fix/infra work is ALWAYS exempt, so a freeze can never block native-format development. Projected to a config/freeze-registry.json rule; the controller (freeze-controller.mjs) derives live state and auto-lifts. Authored from FreezeWhenTrait.ts.",
+  props: {
+    id: string = "",
+    scope: string = "",
+    signal: string = "",
+    unfreeze: string = "",
+    severity: string = "advisory",
+    reason: string = ""
+  },
+  events: {
+    on_declared: "freeze_declared"
+  },
+  behaviors: ["@provenance"]
+}

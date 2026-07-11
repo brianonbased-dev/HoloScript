@@ -1,0 +1,69 @@
+// @freeze_when — a self-controlling Freeze RULE, authored as DATA.
+//
+// Declares that the change-class `scope` is gated WHEN `signal` trips, and lifts the moment the
+// signal clears (`unfreeze`). The freeze is DERIVED from the live signal — never a stored "FROZEN"
+// flag — so it cannot go stale. `exempt` labels are ALWAYS allowed (native/fix/infra work is never
+// blocked). A controller derives the live state from these rules on a cadence; the rule is projected
+// to a config/freeze-registry.json entry. Mirrors the @evolve_program authoring convention.
+
+@trait freeze_when {
+  // Stable rule id — the registry key.
+  id: String
+
+  // The change-class this freeze gates (e.g. "new-feature-work").
+  scope: String
+
+  // Live TRIGGER expression: "required-gate:red" (a gate command fails) or "surface-absent:<path>"
+  // (a consume surface is missing). The signal — not a human — decides freeze/lift.
+  signal: String
+
+  // Human-readable lift condition; the derived state auto-lifts when the signal clears.
+  unfreeze: String
+
+  // ALWAYS allowed even under this freeze — the native-first guarantee.
+  exempt: [String] = ["fix", "native-format", "infra-repair"]
+
+  // "advisory" (surfaces the freeze) | "blocking" (gates the scope).
+  severity: String = "advisory"
+
+  // Why the freeze exists (shown only while active).
+  reason: String = ""
+
+  // Optional self-heal repair routed while the freeze is active.
+  repair: String = ""
+
+  capability_tags: ["governance", "derived_state", "self_controlling_freeze", "auto_lift", "language_work"]
+
+  @on_attach => {
+    declare_freeze({
+      id: id,
+      scope: scope,
+      signal: signal,
+      unfreeze: unfreeze,
+      exempt: exempt,
+      severity: severity
+    })
+    emit("freeze_declared", {
+      id: id,
+      scope: scope,
+      derived: true,
+      native_exempt: true
+    })
+  }
+
+  @on_detach => {
+    clear_freeze()
+  }
+
+  // Provenance receipt — the rule shape the projector emits into freeze-registry.json.
+  @receipt freeze_rule {
+    type: "FreezeRegistryEntry"
+    id: id
+    scope: scope
+    signal: signal
+    unfreeze: unfreeze
+    severity: severity
+    derived: true
+    timestamp: now()
+  }
+}

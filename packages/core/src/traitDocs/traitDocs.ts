@@ -62,6 +62,32 @@ export interface EventDoc {
  */
 export const TRAIT_DOCS: Record<string, TraitDoc> = {
   // ============================================================================
+  // Governance Traits
+  // ============================================================================
+  freeze_when: {
+    name: 'FreezeWhenTrait',
+    annotation: '@freeze_when',
+    description:
+      'Declares a self-controlling Freeze RULE: gate `scope` WHEN `signal` trips, and auto-lift the moment it clears. The freeze is DERIVED from a live signal, never a stored "FROZEN" flag, so it cannot go stale. Native/fix/infra work is always exempt. Projected to a freeze-registry.json rule that a controller evaluates on a cadence.',
+    category: 'utility',
+    properties: [
+      { name: 'id', type: 'string', description: 'Stable rule id — the registry key.', required: true },
+      { name: 'scope', type: 'string', description: 'The change-class this freeze gates (e.g. "new-feature-work").', required: true },
+      { name: 'signal', type: 'string', description: 'Live trigger: "required-gate:red" (a gate command fails) or "surface-absent:<path>" (a consume surface is missing).', required: true },
+      { name: 'unfreeze', type: 'string', description: 'Human-readable lift condition; the derived state auto-lifts when the signal clears.', required: true },
+      { name: 'exempt', type: 'string[]', description: 'Labels always allowed even under this freeze — the native-first guarantee.', default: '["fix", "native-format", "infra-repair"]' },
+      { name: 'severity', type: '"advisory" | "blocking"', description: 'advisory surfaces the freeze; blocking gates the scope.', default: '"advisory"' },
+      { name: 'reason', type: 'string', description: 'Why the freeze exists (shown only while active).', default: '""' },
+      { name: 'repair', type: 'string', description: 'Optional self-heal repair routed while the freeze is active.', default: '""' },
+    ],
+    methods: [],
+    events: [
+      { name: 'freeze_declared', description: 'Emitted onAttach with the derived rule.', payload: '{ rule, derived: true, nativeExempt: true }' },
+    ],
+    example: '@freeze_when(id: "features-on-red-gate", scope: "new-feature-work", signal: "required-gate:red", unfreeze: "gate passes")',
+    since: '6.0',
+  },
+  // ============================================================================
   // Physics Traits
   // ============================================================================
   rigidbody: {

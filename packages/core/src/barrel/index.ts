@@ -101,6 +101,8 @@ export { provenanceDensifyHandler } from '../traits/ProvenanceDensifyTrait';
 export type { ProvenanceDensifyConfig } from '../traits/ProvenanceDensifyTrait';
 export { evolveProgramHandler } from '../traits/EvolveProgramTrait';
 export type { EvolveProgramConfig } from '../traits/EvolveProgramTrait';
+export { freezeWhenHandler } from '../traits/FreezeWhenTrait';
+export type { FreezeWhenConfig } from '../traits/FreezeWhenTrait';
 
 // Reconstruction provenance primitives — the observed-vs-invented moat. Exposed
 // on the public barrel so other packages (e.g. the ssja FidelityEvalContract)
