@@ -55,8 +55,7 @@ export const traitTools: Tool[] = [
   {
     name: 'execute_economic_contract',
     description:
-      'STUB: Execute a sovereign economic contract (x402). No real x402 facilitator is connected — returns failure unless ALLOW_MOCK_X402=1 is set. ' +
-      'No wallet signature, no provisioning, no real transaction occurs.',
+      'PREPARATION ONLY: validate or simulate a sovereign economic contract (x402). Disabled by default; dry-run, deterministic mock, and live-request modes perform no network call, wallet signature, provisioning, or transaction.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -324,26 +323,8 @@ export async function handleTraitTool(name: string, args: Record<string, any>) {
   }
 
   if (name === 'execute_economic_contract') {
-    // OVERCLAIMED ratchet fix: no x402 facilitator, no wallet signature, no provisioning.
-    // Previous handler returned random tx ids and claimed payment_authorized.
-    const mockAllowed = process.env.ALLOW_MOCK_X402 === '1';
-    if (mockAllowed) {
-      return {
-        status: 'mock_payment',
-        transactionId: `mock-tx-${Date.now()}`,
-        amount: args.amount,
-        balanceRemaining: -1,
-        provisioning: 'none',
-        message: `MOCK: Economic contract ${args.contractId} mock-settled. No real x402 transaction. Set ALLOW_MOCK_X402=1 to enable this mock path.`,
-      };
-    }
-    return {
-      success: false,
-      status: 'no_x402_facilitator',
-      amount: args.amount,
-      message:
-        'No x402 facilitator is connected. execute_economic_contract is a stub — no wallet signature, no provisioning, no real transaction. Set ALLOW_MOCK_X402=1 for development mock.',
-    };
+    const { createX402SettlementAdapterFromEnv } = await import('./x402-settlement-adapter');
+    return createX402SettlementAdapterFromEnv().execute(args);
   }
 
   return null;

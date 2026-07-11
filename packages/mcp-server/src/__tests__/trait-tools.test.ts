@@ -30,6 +30,44 @@ describe('trait tools', () => {
   afterEach(() => {
     delete process.env.ROS2_BRIDGE_URL;
     delete process.env.ROS2_BRIDGE_TIMEOUT_MS;
+    delete process.env.X402_FACILITATOR_MODE;
+    delete process.env.ALLOW_MOCK_X402;
+  });
+
+  it('wires execute_economic_contract to the disabled-by-default adapter', async () => {
+    const result = (await handleTraitTool('execute_economic_contract', {
+      contractId: 'contract-1',
+      payer: 'agent-1',
+      amount: 1,
+    })) as Record<string, unknown>;
+
+    expect(result).toMatchObject({
+      success: false,
+      status: 'no_x402_facilitator',
+      amount: 1,
+    });
+  });
+
+  it('preserves deterministic legacy mock fields through execute_economic_contract', async () => {
+    process.env.ALLOW_MOCK_X402 = '1';
+    const args = { contractId: 'contract-1', payer: 'agent-1', amount: 1 };
+    const first = (await handleTraitTool('execute_economic_contract', args)) as Record<
+      string,
+      unknown
+    >;
+    const second = (await handleTraitTool('execute_economic_contract', args)) as Record<
+      string,
+      unknown
+    >;
+
+    expect(first).toEqual(second);
+    expect(first).toMatchObject({
+      status: 'mock_payment',
+      amount: 1,
+      balanceRemaining: -1,
+      provisioning: 'none',
+    });
+    expect(first.transactionId).toMatch(/^mock-tx-[a-f0-9]{24}$/);
   });
 
   it('keeps sync_hardware_loop honest when no ROS2 bridge URL is configured', async () => {
@@ -85,9 +123,7 @@ describe('trait tools', () => {
       expect(result.contractVerified).toBe(true);
       expect(result.latencyMs).toBeGreaterThanOrEqual(0);
       expect(result.activeTopics).toContain('/holo/joint_cmd');
-      expect(result.traitEvents).toContainEqual(
-        expect.objectContaining({ type: 'ros2:connect' })
-      );
+      expect(result.traitEvents).toContainEqual(expect.objectContaining({ type: 'ros2:connect' }));
     } finally {
       await closeServer(server);
     }
