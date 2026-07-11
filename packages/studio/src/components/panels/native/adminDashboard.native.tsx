@@ -9,7 +9,7 @@ export function AdminDashboardComponent() {
   const recent = auditLog.slice(-20).reverse();
 
   return (
-    <div className="holoscript-2d-root w-full h-full" data-holo-view-contract="89c2f8845793789f2b575a0ee954abc28a24d6574b3fd829e4051d1659eb8a11">
+    <div className="holoscript-2d-root w-full h-full" data-holo-view-contract="4f0e9c40712c98d5acd7130f4ac62dd1b4a3c34e6c2d6b7672fbc73a7c578e16">
       <div style={{"display":"flex","flexDirection":"column","gap":"12px"}} className="p-3 h-full overflow-y-auto text-xs text-studio-text">
       
       <h3 className="text-xl font-semibold text-sm font-semibold text-studio-text">
@@ -118,4 +118,4 @@ export function AdminDashboardComponent() {
 
 export default AdminDashboardComponent;
 
-export const holoViewContract = {"version":"holo-view-contract-v1","projections":[{"element":"AgentsValue","node":"stats.agents.tracked"},{"element":"AuditActor","node":"entry.actor"},{"element":"AuditEvent","node":"entry.event"},{"element":"AuditOutcome","node":"entry.outcome"},{"element":"AuditRow","node":"recent"},{"element":"QuotasSub","node":"stats.quotas.tracked"},{"element":"QuotasValue","node":"stats.quotas.exceeded"},{"element":"SessionsSub","node":"stats.sessions.revoked"},{"element":"SessionsValue","node":"stats.sessions.authenticated"},{"element":"TenantsSub","node":"stats.tenants.suspended"},{"element":"TenantsValue","node":"stats.tenants.active"}],"stateRoots":["auditLog","entry","recent","stats"],"contractHash":"89c2f8845793789f2b575a0ee954abc28a24d6574b3fd829e4051d1659eb8a11"} as const;
+export const holoViewContract = {"version":"holo-view-contract-v1","projections":[{"element":"AgentsValue","node":"stats.agents.tracked","identity":true},{"element":"AuditActor","node":"entry.actor","identity":true},{"element":"AuditEvent","node":"entry.event","identity":true},{"element":"AuditOutcome","node":"entry.outcome","identity":false},{"element":"AuditRow","node":"recent","identity":false},{"element":"QuotasSub","node":"stats.quotas.tracked","identity":false},{"element":"QuotasValue","node":"stats.quotas.exceeded","identity":false},{"element":"SessionsSub","node":"stats.sessions.revoked","identity":false},{"element":"SessionsValue","node":"stats.sessions.authenticated","identity":true},{"element":"TenantsSub","node":"stats.tenants.suspended","identity":false},{"element":"TenantsValue","node":"stats.tenants.active","identity":true}],"stateRoots":["auditLog","entry","recent","stats"],"contractHash":"4f0e9c40712c98d5acd7130f4ac62dd1b4a3c34e6c2d6b7672fbc73a7c578e16"} as const;

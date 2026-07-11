@@ -929,10 +929,46 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
       const contract = JSON.parse(m![1]);
       expect(contract.version).toBe('holo-view-contract-v1');
       expect(contract.contractHash).toMatch(/^[0-9a-f]{64}$/);
-      expect(contract.projections).toEqual([{ element: 'Sessions', node: 'stats.sessions' }]);
+      // v1: projections carry an `identity` flag (transform-free scalar bind) for twin checking.
+      expect(contract.projections).toEqual([
+        { element: 'Sessions', node: 'stats.sessions', identity: true },
+      ]);
       expect(contract.stateRoots).toContain('stats');
       // the root carries the hash so a runtime consumer can locate + verify the contract
       expect(r).toContain(`data-holo-view-contract="${contract.contractHash}"`);
+    });
+
+    it('v1: @projects can bind a twin entity + flags identity/non-identity for twin checking', () => {
+      const c = verifiedComp([
+        // identity scalar bind → twin-checkable, records the entity
+        obj('Temp', [
+          trait('text', { variant: 'h2' }),
+          trait('bind', { state: 'stats', path: 'sessions' }),
+          trait('projects', { node: 'stats.sessions', entity: 'reactor-7' }),
+        ]),
+        // formatted bind (suffix) → identity:false, abstains from value-equality
+        obj('Growth', [
+          trait('text', { variant: 'h2' }),
+          trait('bind', { state: 'stats', path: 'sessions', suffix: '%' }),
+          trait('projects', { node: 'stats.sessions', entity: 'reactor-7' }),
+        ]),
+      ]);
+      const contract = JSON.parse(react(c).match(/holoViewContract = (\{[\s\S]*\}) as const;/)![1]);
+      const byEl = Object.fromEntries(contract.projections.map((p: any) => [p.element, p]));
+      expect(byEl.Temp).toEqual({ element: 'Temp', node: 'stats.sessions', entity: 'reactor-7', identity: true });
+      expect(byEl.Growth.entity).toBe('reactor-7');
+      expect(byEl.Growth.identity).toBe(false); // formatted → non-identity
+    });
+
+    it('v1: rejects a malformed twin entity id', () => {
+      const c = verifiedComp([
+        obj('Bad', [
+          trait('text', { variant: 'h2' }),
+          trait('bind', { state: 'stats', path: 'sessions' }),
+          trait('projects', { node: 'stats.sessions', entity: 'has spaces!' }),
+        ]),
+      ]);
+      expect(() => react(c)).toThrow(/invalid entity id/);
     });
 
     it('v1 DRIFT GUARD: the contract serializes EXACTLY the projections the markup emits', () => {

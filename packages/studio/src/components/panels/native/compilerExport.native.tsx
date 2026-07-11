@@ -8,7 +8,7 @@ export function CompilerExportComponent() {
   const targets = compileAST(nodes);
 
   return (
-    <div className="holoscript-2d-root w-full h-full" data-holo-view-contract="bfa85c998b9a155194e6033ae1c8ccd08b4791eeca962ba0d38bd190b5bc3a46">
+    <div className="holoscript-2d-root w-full h-full" data-holo-view-contract="0b140a688f2e5a31a36b9761893338fd67707fc91f5ec41cbe57ce872a981768">
       <div style={{"display":"flex","flexDirection":"column","gap":"12px"}} className="p-3 h-full overflow-y-auto text-xs text-studio-text">
       
       <h3 className="text-xl font-semibold text-sm font-semibold text-studio-text">
@@ -62,4 +62,4 @@ export function CompilerExportComponent() {
 
 export default CompilerExportComponent;
 
-export const holoViewContract = {"version":"holo-view-contract-v1","projections":[{"element":"SizeChart","node":"targets"},{"element":"Slider","node":"nodes"},{"element":"SliderValue","node":"nodes"},{"element":"TargetName","node":"t.target"},{"element":"TargetRow","node":"targets"},{"element":"TargetSize","node":"t.sizeKb"}],"stateRoots":["nodes","t","targets"],"contractHash":"bfa85c998b9a155194e6033ae1c8ccd08b4791eeca962ba0d38bd190b5bc3a46"} as const;
+export const holoViewContract = {"version":"holo-view-contract-v1","projections":[{"element":"SizeChart","node":"targets","identity":false},{"element":"Slider","node":"nodes","identity":false},{"element":"SliderValue","node":"nodes","identity":true},{"element":"TargetName","node":"t.target","identity":true},{"element":"TargetRow","node":"targets","identity":false},{"element":"TargetSize","node":"t.sizeKb","identity":false}],"stateRoots":["nodes","t","targets"],"contractHash":"0b140a688f2e5a31a36b9761893338fd67707fc91f5ec41cbe57ce872a981768"} as const;

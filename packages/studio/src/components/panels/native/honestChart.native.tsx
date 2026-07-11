@@ -7,7 +7,7 @@ export function HonestChartComponent() {
 
 
   return (
-    <div className="holoscript-2d-root w-full h-full" data-holo-view-contract="7466675b34b8f958b787c6a8c63b436800fa6c6530e369ec9a3eeefbffaa567f">
+    <div className="holoscript-2d-root w-full h-full" data-holo-view-contract="3118f0ae258ac47faf006974833fc9513573dfa2ef19d733269d4e6599b0e3a6">
       <div style={{"display":"flex","flexDirection":"column","gap":"8px"}} className="p-3 h-full overflow-y-auto text-xs text-studio-text">
       
       <h3 className="text-xl font-semibold text-sm font-semibold text-studio-text">
@@ -39,4 +39,4 @@ export function HonestChartComponent() {
 
 export default HonestChartComponent;
 
-export const holoViewContract = {"version":"holo-view-contract-v1","projections":[{"element":"Chart","node":"readings"},{"element":"Trend","node":"readings"}],"stateRoots":["readings"],"contractHash":"7466675b34b8f958b787c6a8c63b436800fa6c6530e369ec9a3eeefbffaa567f"} as const;
+export const holoViewContract = {"version":"holo-view-contract-v1","projections":[{"element":"Chart","node":"readings","identity":false},{"element":"Trend","node":"readings","identity":false}],"stateRoots":["readings"],"contractHash":"3118f0ae258ac47faf006974833fc9513573dfa2ef19d733269d4e6599b0e3a6"} as const;

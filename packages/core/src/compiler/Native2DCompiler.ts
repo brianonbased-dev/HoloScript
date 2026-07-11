@@ -79,7 +79,15 @@ export class Native2DCompiler extends CompilerBase {
    * every element renders, so an independent consumer can re-derive it from the ARTIFACT
    * (not the source). Populated by resolveProjection; emitted as `export const holoViewContract`.
    */
-  private _collectedProjections: Array<{ element: string; node: string }> = [];
+  private _collectedProjections: Array<{
+    element: string;
+    node: string;
+    /** Optional twin entity this projection mirrors (v1 Framing B — StateAuthority entity id). */
+    entity?: string;
+    /** True iff a transform-free scalar @bind (raw displayed == raw source); non-identity
+     *  projections abstain from twin value-equality until the transform algebra (Slice 3). */
+    identity: boolean;
+  }> = [];
 
   /**
    * 2D data-value provenance vocabulary, ordered by TRUST (highest → lowest),
@@ -1645,7 +1653,34 @@ export default ${safeName}Component;${contractExport}
       );
     }
     // Record the verified projection for the co-emitted view contract (v1).
-    this._collectedProjections.push({ element: nm(), node });
+    // identity = a transform-free scalar @bind (raw displayed value == raw source). Non-identity
+    // projections (formatted @bind, or @chart/@sparkline/@each/@model) abstain from twin
+    // value-equality until the declared transform algebra (Slice 3) exists — see the v1 memo.
+    const b = traits.bind;
+    const identity =
+      !!b?.state &&
+      b.precision === undefined &&
+      b.prefix === undefined &&
+      b.suffix === undefined &&
+      !b.tiers &&
+      !traits.chart &&
+      !traits.sparkline &&
+      !traits.each &&
+      !traits.model;
+    // Optional twin entity binding (v1 Framing B): the StateAuthority entity this projection
+    // mirrors. Recorded in the contract so an independent checker can compare the displayed
+    // value against the authoritative twin value (fetch_authoritative_state).
+    let entity: string | undefined;
+    if (pj.entity !== undefined) {
+      const e = String(pj.entity);
+      if (!/^[A-Za-z0-9_.:-]+$/.test(e)) {
+        throw new Error(
+          `Native2DCompiler @projects: invalid entity id ${JSON.stringify(e)} on "${nm()}" (allowed: alphanumerics and . : _ -)`
+        );
+      }
+      entity = e;
+    }
+    this._collectedProjections.push({ element: nm(), node, ...(entity ? { entity } : {}), identity });
     return ` data-holo-projects="${node}"`;
   }
 

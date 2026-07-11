@@ -9,7 +9,7 @@ export function LiveProofComponent() {
 
 
   return (
-    <div className="holoscript-2d-root w-full h-full" data-holo-view-contract="663b32cd1c802dc84f30332040eafa83d7a3a28a7754fd4a169c5a1e9c7f4c20">
+    <div className="holoscript-2d-root w-full h-full" data-holo-view-contract="f47d23b757a1299199d4e36bd431a5f12913355d5a82f29f8fe750a897972588">
       <div style={{"display":"flex","flexDirection":"column","gap":"10px"}} className="p-3 h-full overflow-y-auto text-xs text-studio-text">
       
       <h3 className="text-xl font-semibold text-sm font-semibold text-studio-text">
@@ -42,4 +42,4 @@ export function LiveProofComponent() {
 
 export default LiveProofComponent;
 
-export const holoViewContract = {"version":"holo-view-contract-v1","projections":[{"element":"LoadSlider","node":"load"},{"element":"LoadValue","node":"load"}],"stateRoots":["capacity","factor","load"],"contractHash":"663b32cd1c802dc84f30332040eafa83d7a3a28a7754fd4a169c5a1e9c7f4c20"} as const;
+export const holoViewContract = {"version":"holo-view-contract-v1","projections":[{"element":"LoadSlider","node":"load","identity":false},{"element":"LoadValue","node":"load","identity":true}],"stateRoots":["capacity","factor","load"],"contractHash":"f47d23b757a1299199d4e36bd431a5f12913355d5a82f29f8fe750a897972588"} as const;

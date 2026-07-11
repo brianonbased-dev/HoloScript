@@ -9,7 +9,7 @@ export function ProfilerComponent() {
 
 
   return (
-    <div className="holoscript-2d-root w-full h-full" data-holo-view-contract="147bf535c180730a405f8f889ba8ee58b35824d98a167ffc94f758dcc45b3b5d">
+    <div className="holoscript-2d-root w-full h-full" data-holo-view-contract="e851cc9f0e5833b7e21a44e78d71070f93d696cd0d9b642866b11671634b351b">
       <div style={{"display":"flex","flexDirection":"column","gap":"12px"}} className="p-3 h-full overflow-y-auto">
       
       <div className="grid grid-cols-2 gap-2">
@@ -66,4 +66,4 @@ export function ProfilerComponent() {
 
 export default ProfilerComponent;
 
-export const holoViewContract = {"version":"holo-view-contract-v1","projections":[{"element":"AvgValue","node":"snap.avgFrameMs"},{"element":"FpsValue","node":"snap.fps"},{"element":"FrameValue","node":"snap.frameMs"},{"element":"P95Value","node":"snap.p95FrameMs"}],"stateRoots":["snap"],"contractHash":"147bf535c180730a405f8f889ba8ee58b35824d98a167ffc94f758dcc45b3b5d"} as const;
+export const holoViewContract = {"version":"holo-view-contract-v1","projections":[{"element":"AvgValue","node":"snap.avgFrameMs","identity":true},{"element":"FpsValue","node":"snap.fps","identity":false},{"element":"FrameValue","node":"snap.frameMs","identity":true},{"element":"P95Value","node":"snap.p95FrameMs","identity":false}],"stateRoots":["snap"],"contractHash":"e851cc9f0e5833b7e21a44e78d71070f93d696cd0d9b642866b11671634b351b"} as const;

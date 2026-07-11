@@ -50,6 +50,18 @@ export {
   diagnoseVerifiedView,
   derivedProjectionNode,
 } from './enforceVerifiedViewReceipts';
+
+// @verified_view v1 (Framing B) — twin correspondence: displayed value vs authoritative twin.
+export { checkSurfaceTwinCorrespondence, SURFACE_TWIN_VERSION } from './SurfaceTwinReceipt';
+export type {
+  SurfaceTwinScalar,
+  SurfaceTwinProjection,
+  SurfaceTwinDivergence,
+  SurfaceTwinAbstentionReason,
+  SurfaceTwinAbstention,
+  SurfaceTwinReceipt,
+  SurfaceTwinInput,
+} from './SurfaceTwinReceipt';
 export type {
   VerifiedViewViolationReason,
   VerifiedViewViolation,

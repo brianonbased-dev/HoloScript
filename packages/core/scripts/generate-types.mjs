@@ -7261,6 +7261,45 @@ export interface VerifiedViewDiagnosis {
   violations: VerifiedViewViolation[];
 }
 export declare function diagnoseVerifiedView(source: string): VerifiedViewDiagnosis;
+export declare const SURFACE_TWIN_VERSION: 'surface-twin-v1';
+export type SurfaceTwinScalar = string | number | boolean | null;
+export interface SurfaceTwinProjection {
+  element: string;
+  node: string;
+  entity?: string;
+  identity: boolean;
+}
+export interface SurfaceTwinDivergence {
+  node: string;
+  entity: string;
+  displayed: SurfaceTwinScalar;
+  authoritative: SurfaceTwinScalar;
+  detail: string;
+}
+export type SurfaceTwinAbstentionReason =
+  | 'no-entity-binding'
+  | 'non-identity-transform'
+  | 'authority-missing'
+  | 'display-missing';
+export interface SurfaceTwinAbstention {
+  node: string;
+  entity?: string;
+  reason: SurfaceTwinAbstentionReason;
+}
+export interface SurfaceTwinReceipt {
+  version: typeof SURFACE_TWIN_VERSION;
+  verdict: 'CONSENSUS' | 'FALSIFIED';
+  checked: number;
+  divergences: SurfaceTwinDivergence[];
+  abstentions: SurfaceTwinAbstention[];
+  receiptHash: string;
+}
+export interface SurfaceTwinInput {
+  contract: { projections: SurfaceTwinProjection[] };
+  displayedValues: Record<string, SurfaceTwinScalar>;
+  authoritativeState: Record<string, Record<string, unknown> | SurfaceTwinScalar>;
+}
+export declare function checkSurfaceTwinCorrespondence(input: SurfaceTwinInput): SurfaceTwinReceipt;
 `;
 
 const worldDTS = `/** @holoscript/core/world — Native world generation adapters/service */

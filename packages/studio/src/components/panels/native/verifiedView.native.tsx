@@ -7,7 +7,7 @@ export function VerifiedViewComponent() {
 
 
   return (
-    <div className="holoscript-2d-root w-full h-full" data-holo-view-contract="11a19954506224bde34d1d89e1243e387a399788ba0bad9a60217fa2556b60a7">
+    <div className="holoscript-2d-root w-full h-full" data-holo-view-contract="c70d095aba44b5b5f69c6cb746b273648b4a6aae7ca8859951afbab2bf4151c9">
       <div style={{"display":"flex","flexDirection":"column","gap":"8px"}} className="p-3 h-full overflow-y-auto text-xs text-studio-text">
       
       <h3 className="text-xl font-semibold text-sm font-semibold text-studio-text">
@@ -41,4 +41,4 @@ export function VerifiedViewComponent() {
 
 export default VerifiedViewComponent;
 
-export const holoViewContract = {"version":"holo-view-contract-v1","projections":[{"element":"Errors","node":"stats.errors"},{"element":"Sessions","node":"stats.sessions"}],"stateRoots":["stats"],"contractHash":"11a19954506224bde34d1d89e1243e387a399788ba0bad9a60217fa2556b60a7"} as const;
+export const holoViewContract = {"version":"holo-view-contract-v1","projections":[{"element":"Errors","node":"stats.errors","identity":true},{"element":"Sessions","node":"stats.sessions","identity":true}],"stateRoots":["stats"],"contractHash":"c70d095aba44b5b5f69c6cb746b273648b4a6aae7ca8859951afbab2bf4151c9"} as const;
