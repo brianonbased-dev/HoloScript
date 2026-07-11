@@ -259,6 +259,51 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   conformance_list_rules: ['tools:read'],
   conformance_check_artifact: ['tools:read'],
   conformance_admit_artifact: ['tools:write'],
+
+  // === HIGH-RISK tools that were REGISTERED but UNMAPPED (task_1783794507029) ===
+  // These fell through to the fail-open default (['tools:read']) — i.e. money movement,
+  // token minting, physical robot actuation, safety-envelope CRUD, autonomous control,
+  // sovereign-state restore, fleet compute spend, plugin install, and memory graduation
+  // were all invokable with only tools:read. Pin each to its true least-privilege scope.
+  // Economy / real spend:
+  settle_creator_payout: ['tools:admin'],
+  execute_economic_contract: ['tools:admin'],
+  sim_run_paid: ['tools:admin'],
+  get_creator_earnings: ['tools:read'],
+  // Agent identity / token minting:
+  issue_agent_token: ['tools:admin'],
+  verify_agent_token: ['tools:read'],
+  delegate_task: ['tools:admin'],
+  // Twin Earth — physical robot actuation, identity, permissions, and SAFETY envelopes:
+  twin_earth_robot_actuate: ['tools:admin'],
+  twin_earth_register_identity: ['tools:admin'],
+  twin_earth_revoke_identity: ['tools:admin'],
+  twin_earth_grant_permission: ['tools:admin'],
+  twin_earth_revoke_permission: ['tools:admin'],
+  twin_earth_create_safety_envelope: ['tools:admin'],
+  twin_earth_update_safety_envelope: ['tools:admin'],
+  twin_earth_delete_safety_envelope: ['tools:admin'],
+  // Autonomous control / federation / sovereign state:
+  holomesh_autonomous_control: ['tools:admin'],
+  holomesh_federate_twin_earth: ['tools:admin'],
+  holomesh_sovereign_lifepod_restore: ['tools:admin'],
+  holomesh_sovereign_lifepod_snapshot: ['tools:admin'],
+  // Fleet compute spend / training / hardware:
+  render_world_on_fleet: ['tools:admin'],
+  train_rom: ['tools:admin'],
+  sync_hardware_loop: ['tools:admin'],
+  // Plugin install (arbitrary code) / memory canon:
+  install_plugin: ['tools:admin'],
+  install_domain_plugin: ['tools:admin'],
+  manage_plugin: ['tools:admin'],
+  holo_memory_graduate: ['tools:admin'],
+  holo_memory_store: ['tools:write'],
+  compile_to_daimon_seed: ['tools:write'],
+  // HoloLand identity provisioning / revocation:
+  hololand_provision_player: ['tools:admin'],
+  hololand_provision_agent: ['tools:admin'],
+  hololand_provision_creator: ['tools:admin'],
+  hololand_revoke_agent: ['tools:admin'],
 };
 
 // ── Scope Classification ─────────────────────────────────────────────────────
@@ -365,6 +410,40 @@ const TOOL_RISK_MAP: Record<string, ToolRiskLevel> = {
   conformance_list_rules: 'low',
   conformance_check_artifact: 'medium',
   conformance_admit_artifact: 'high',
+
+  // High-risk previously-unmapped tools (task_1783794507029) — see TOOL_SCOPE_MAP above.
+  settle_creator_payout: 'critical',
+  execute_economic_contract: 'critical',
+  sim_run_paid: 'critical',
+  get_creator_earnings: 'low',
+  issue_agent_token: 'critical',
+  verify_agent_token: 'low',
+  delegate_task: 'high',
+  twin_earth_robot_actuate: 'critical',
+  twin_earth_register_identity: 'critical',
+  twin_earth_revoke_identity: 'critical',
+  twin_earth_grant_permission: 'critical',
+  twin_earth_revoke_permission: 'critical',
+  twin_earth_create_safety_envelope: 'critical',
+  twin_earth_update_safety_envelope: 'critical',
+  twin_earth_delete_safety_envelope: 'critical',
+  holomesh_autonomous_control: 'critical',
+  holomesh_federate_twin_earth: 'critical',
+  holomesh_sovereign_lifepod_restore: 'critical',
+  holomesh_sovereign_lifepod_snapshot: 'high',
+  render_world_on_fleet: 'critical',
+  train_rom: 'critical',
+  sync_hardware_loop: 'high',
+  install_plugin: 'critical',
+  install_domain_plugin: 'critical',
+  manage_plugin: 'high',
+  holo_memory_graduate: 'high',
+  holo_memory_store: 'medium',
+  compile_to_daimon_seed: 'medium',
+  hololand_provision_player: 'high',
+  hololand_provision_agent: 'high',
+  hololand_provision_creator: 'high',
+  hololand_revoke_agent: 'high',
 };
 
 // ── Gate 2: Tool Authorization ───────────────────────────────────────────────

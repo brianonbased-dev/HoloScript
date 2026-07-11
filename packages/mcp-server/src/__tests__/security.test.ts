@@ -558,6 +558,48 @@ describe('Gate 2: Tool Scope Authorization', () => {
     const scopes = getToolScopes('compile_holoscript');
     expect(scopes).toContain('tools:write');
   });
+
+  // task_1783794507029 — these dangerous tools were REGISTERED but UNMAPPED, so they fell
+  // through the fail-open default and were invokable with only tools:read. They must now
+  // require tools:admin (denied with read) while admin:* still works.
+  const HIGH_RISK_UNMAPPED = [
+    'settle_creator_payout',
+    'execute_economic_contract',
+    'sim_run_paid',
+    'issue_agent_token',
+    'twin_earth_robot_actuate',
+    'twin_earth_grant_permission',
+    'twin_earth_create_safety_envelope',
+    'twin_earth_delete_safety_envelope',
+    'holomesh_autonomous_control',
+    'holomesh_sovereign_lifepod_restore',
+    'render_world_on_fleet',
+    'train_rom',
+    'install_plugin',
+    'holo_memory_graduate',
+    'hololand_provision_agent',
+  ];
+
+  it('should DENY previously-unmapped money/actuation/admin tools with only tools:read (fail-open closed)', () => {
+    for (const tool of HIGH_RISK_UNMAPPED) {
+      const result = authorizeToolCall(tool, ['tools:read']);
+      expect(result.authorized, `${tool} must be denied with only tools:read`).toBe(false);
+      expect(getToolScopes(tool), `${tool} must require tools:admin`).toContain('tools:admin');
+    }
+  });
+
+  it('should still authorize the high-risk tools with admin:* or tools:admin', () => {
+    for (const tool of HIGH_RISK_UNMAPPED) {
+      expect(authorizeToolCall(tool, ['admin:*']).authorized, `${tool} via admin:*`).toBe(true);
+      expect(authorizeToolCall(tool, ['tools:admin']).authorized, `${tool} via tools:admin`).toBe(true);
+    }
+  });
+
+  it('should classify the high-risk unmapped tools as critical/high risk (not the medium default)', () => {
+    for (const tool of HIGH_RISK_UNMAPPED) {
+      expect(['high', 'critical'], `${tool} risk`).toContain(getToolRiskLevel(tool));
+    }
+  });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
