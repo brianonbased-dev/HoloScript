@@ -31,6 +31,10 @@ import type {
   CalibrationRewardContext,
   ProvenanceRewardContext,
 } from './ProvenanceCalibrationRewards';
+import type {
+  AgentBenefitRewardContext,
+  HumanBenefitRewardContext,
+} from './BeneficiaryRewards';
 
 /** Options passed to reward functions via kwargs */
 export interface RewardFunctionOptions {
@@ -48,6 +52,10 @@ export interface RewardFunctionOptions {
   provenance?: ProvenanceRewardContext;
   /** Context for the optional faithful-calibration (Z_m) reward term */
   calibration?: CalibrationRewardContext;
+  /** Context for the optional agent-benefit (R_agents) reward term */
+  agentBenefit?: AgentBenefitRewardContext;
+  /** Context for the optional human-benefit (R_humans) reward term */
+  humanBenefit?: HumanBenefitRewardContext;
 }
 
 /**
@@ -132,10 +140,11 @@ export interface RewardToolRunner {
 // =============================================================================
 
 /** Tool-execution options always resolve; term contexts stay caller-supplied. */
-type ResolvedRewardOptions = Required<Omit<RewardFunctionOptions, 'provenance' | 'calibration'>> &
-  Pick<RewardFunctionOptions, 'provenance' | 'calibration'>;
+type TermContextKeys = 'provenance' | 'calibration' | 'agentBenefit' | 'humanBenefit';
+type ResolvedRewardOptions = Required<Omit<RewardFunctionOptions, TermContextKeys>> &
+  Pick<RewardFunctionOptions, TermContextKeys>;
 
-const DEFAULT_OPTIONS: Required<Omit<RewardFunctionOptions, 'provenance' | 'calibration'>> = {
+const DEFAULT_OPTIONS: Required<Omit<RewardFunctionOptions, TermContextKeys>> = {
   workDir: '.',
   timeout: 30_000,
   maxLintIssues: 20,

@@ -130,6 +130,24 @@ export {
 } from './ProvenanceCalibrationRewards';
 
 export {
+  agentBenefitReward,
+  humanBenefitReward,
+  isFabricatedClaim,
+  composeBeneficiaryReward,
+  assertDialSumsToOne,
+  BALANCED_DIAL,
+  HUMAN_FIRST_DIAL,
+  COMMONS_DIAL,
+  DEFAULT_BENEFICIARY_CONFIG,
+  type AgentBenefitRewardContext,
+  type HumanBenefitRewardContext,
+  type BeneficiaryScores,
+  type BeneficiaryDial,
+  type BeneficiaryComposeConfig,
+  type BeneficiaryReceipt,
+} from './BeneficiaryRewards';
+
+export {
   RECOMMENDED_GRPO_CONFIG,
   buildGRPOConfig,
   exportGRPOConfigAsPython,

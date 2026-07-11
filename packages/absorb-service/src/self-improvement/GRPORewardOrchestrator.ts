@@ -35,6 +35,13 @@ import {
   faithfulCalibrationReward,
   provenanceValidityReward,
 } from './ProvenanceCalibrationRewards';
+import {
+  agentBenefitReward,
+  assertDialSumsToOne,
+  composeBeneficiaryReward,
+  humanBenefitReward,
+} from './BeneficiaryRewards';
+import type { BeneficiaryComposeConfig, BeneficiaryReceipt } from './BeneficiaryRewards';
 
 // =============================================================================
 // TYPES
@@ -66,6 +73,17 @@ export interface GRPOOrchestratorConfig {
    * full weight set (base 5 + enabled extras) must sum to 1.0.
    */
   enableFaithfulCalibration?: boolean;
+  /**
+   * Enable the multi-beneficiary HOLARCHY composition. When set (non-null) the
+   * composite reward is NO LONGER the flat weighted sum: R_self (the existing
+   * weighted self-terms) is composed with R_agents and R_humans via a nested
+   * {self ⊂ agents ⊂ humans} holarchy with a HARD, non-tradeable human floor
+   * (composeBeneficiaryReward). The agent-benefit and human-benefit terms run
+   * automatically — their gold comes from kwargs.agentBenefit / kwargs.humanBenefit —
+   * and a BeneficiaryReceipt is attached per completion. Cache is bypassed
+   * (rewards depend on batch context). Default: null (flat sum, unchanged).
+   */
+  beneficiaryHolarchy?: BeneficiaryComposeConfig | null;
   /** Global timeout for the entire batch evaluation (ms). Default: 120_000 */
   batchTimeout?: number;
   /** Per-completion timeout passed to reward functions (ms). Default: 30_000 */
@@ -122,6 +140,11 @@ export interface OrchestratorResult {
   batchSize: number;
   /** Number of cache hits in this batch */
   cacheHits: number;
+  /**
+   * Per-completion beneficiary receipts (who an action served + which floor
+   * bit). Present only when beneficiaryHolarchy is enabled.
+   */
+  beneficiaryReceipts?: BeneficiaryReceipt[];
 }
 
 /** Summary of all tracked statistics */
@@ -155,6 +178,7 @@ const DEFAULT_CONFIG: Required<GRPOOrchestratorConfig> = {
   cacheEnabled: true,
   enableProvenanceValidity: false,
   enableFaithfulCalibration: false,
+  beneficiaryHolarchy: null,
 };
 
 /** All reward-term weights, extended terms resolved to 0 when disabled. */
@@ -229,6 +253,12 @@ export class GRPORewardOrchestrator {
       throw new Error(`Orchestrator weights must sum to 1.0 but got ${weightSum}`);
     }
 
+    // In holarchy mode the self-term weights above define R_self; cross-beneficiary
+    // weighting comes from the dial, which must itself sum to 1.0.
+    if (this.config.beneficiaryHolarchy) {
+      assertDialSumsToOne(this.config.beneficiaryHolarchy.dial);
+    }
+
     this.rewardFns = createGRPORewardFunctions(runner);
 
     // Initialize statistics for each function
@@ -241,6 +271,7 @@ export class GRPORewardOrchestrator {
     ];
     if (this.config.enableProvenanceValidity) fnNames.push('provenanceValidityReward');
     if (this.config.enableFaithfulCalibration) fnNames.push('faithfulCalibrationReward');
+    if (this.config.beneficiaryHolarchy) fnNames.push('agentBenefitReward', 'humanBenefitReward');
     for (const name of fnNames) {
       this.stats.set(name, createEmptyStats());
     }
@@ -256,7 +287,8 @@ export class GRPORewardOrchestrator {
     return (
       this.config.cacheEnabled &&
       !this.config.enableProvenanceValidity &&
-      !this.config.enableFaithfulCalibration
+      !this.config.enableFaithfulCalibration &&
+      !this.config.beneficiaryHolarchy
     );
   }
 
@@ -352,6 +384,13 @@ export class GRPORewardOrchestrator {
         weight: this.resolvedWeights.faithfulCalibrationReward,
       });
     }
+    // Holarchy mode runs the two beneficiary terms at weight 0 — they produce the
+    // raw R_agents / R_humans used by composeBeneficiaryReward below, but never
+    // enter the flat weighted sum (which therefore stays exactly R_self).
+    if (this.config.beneficiaryHolarchy) {
+      rewardEntries.push({ name: 'agentBenefitReward', fn: agentBenefitReward, weight: 0 });
+      rewardEntries.push({ name: 'humanBenefitReward', fn: humanBenefitReward, weight: 0 });
+    }
 
     // Execute reward functions on uncached completions
     const functionResults: RewardFunctionResult[] = [];
@@ -433,8 +472,18 @@ export class GRPORewardOrchestrator {
     }
 
     // Compute composite rewards for uncached completions
+    const holarchy = this.config.beneficiaryHolarchy;
+    const agentFr = holarchy
+      ? functionResults.find((f) => f.name === 'agentBenefitReward')
+      : undefined;
+    const humanFr = holarchy
+      ? functionResults.find((f) => f.name === 'humanBenefitReward')
+      : undefined;
     const uncachedComposites: number[] = [];
+    const uncachedReceipts: BeneficiaryReceipt[] = [];
     for (let i = 0; i < uncachedCompletions.length; i++) {
+      // Flat weighted sum. In holarchy mode the two beneficiary terms carry
+      // weight 0, so this sum is exactly R_self (the self-regarding composite).
       let composite = 0;
       for (const fr of functionResults) {
         if (fr.rewards.length > i) {
@@ -442,9 +491,18 @@ export class GRPORewardOrchestrator {
         }
       }
       composite = clamp(composite, 0, 1);
+
+      if (holarchy) {
+        const rAgents = agentFr && agentFr.rewards.length > i ? agentFr.rewards[i] : 0;
+        const rHumans = humanFr && humanFr.rewards.length > i ? humanFr.rewards[i] : 0;
+        const receipt = composeBeneficiaryReward({ rSelf: composite, rAgents, rHumans }, holarchy);
+        uncachedReceipts.push(receipt);
+        composite = receipt.reward;
+      }
+
       uncachedComposites.push(composite);
 
-      // Store in cache
+      // Store in cache (never reached in holarchy mode — cache is bypassed there)
       if (useCache) {
         this.addToCache(uncachedCompletions[i], composite);
       }
@@ -452,12 +510,17 @@ export class GRPORewardOrchestrator {
 
     // Merge cached and uncached results into final composite rewards
     const compositeRewards: number[] = new Array(completions.length);
+    const beneficiaryReceipts: BeneficiaryReceipt[] | undefined = holarchy
+      ? new Array(completions.length)
+      : undefined;
     let uncachedIdx = 0;
     for (let i = 0; i < completions.length; i++) {
       if (cachedResults[i] !== null) {
         compositeRewards[i] = cachedResults[i]!;
       } else {
-        compositeRewards[i] = uncachedComposites[uncachedIdx++];
+        compositeRewards[i] = uncachedComposites[uncachedIdx];
+        if (beneficiaryReceipts) beneficiaryReceipts[i] = uncachedReceipts[uncachedIdx];
+        uncachedIdx++;
       }
     }
 
@@ -470,6 +533,7 @@ export class GRPORewardOrchestrator {
       totalDurationMs: Date.now() - batchStart,
       batchSize: completions.length,
       cacheHits,
+      ...(beneficiaryReceipts ? { beneficiaryReceipts } : {}),
     };
   }
 
@@ -489,6 +553,7 @@ export class GRPORewardOrchestrator {
     ];
     if (this.config.enableProvenanceValidity) fns.push(provenanceValidityReward);
     if (this.config.enableFaithfulCalibration) fns.push(faithfulCalibrationReward);
+    if (this.config.beneficiaryHolarchy) fns.push(agentBenefitReward, humanBenefitReward);
     return fns;
   }
 
