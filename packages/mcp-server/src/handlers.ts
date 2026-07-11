@@ -12,6 +12,7 @@ import {
   parseHoloStrict,
   parsePipeline,
   VR_TRAITS,
+  buildKnownTraitSet,
   createNativeAutoRigPlan,
   type AutoRigPose,
   type AutoRigRigType,
@@ -1057,14 +1058,17 @@ async function handleValidate(args: Record<string, unknown>) {
 
     // Check for unknown traits — add as warnings, not errors
     if (includeWarnings) {
-      const KNOWN_TRAIT_SET: Set<string> = new Set(VR_TRAITS as readonly string[]);
+      // Use the SSOT known-trait union (VR + Native2D + code-graph + runtime/governance directive
+      // traits like @freeze_when / @llama_serve), not VR_TRAITS alone — otherwise legitimate
+      // top-level directive traits falsely trip the unknown-trait warning.
+      const KNOWN_TRAIT_SET: Set<string> = buildKnownTraitSet();
       const traitMatches = [...code.matchAll(/@(\w+)/g)];
       for (const match of traitMatches) {
         const traitName = match[1];
         if (!KNOWN_TRAIT_SET.has(traitName)) {
           warnings.push({
             code: 'unknown-trait',
-            message: `Unknown trait @${traitName} — not found in VR_TRAITS (${KNOWN_TRAIT_SET.size} known traits)`,
+            message: `Unknown trait @${traitName} — not a known trait (${KNOWN_TRAIT_SET.size} known traits)`,
             line: code.substring(0, match.index).split('\n').length,
             suggestion: `Check available traits with list_traits tool`,
           });

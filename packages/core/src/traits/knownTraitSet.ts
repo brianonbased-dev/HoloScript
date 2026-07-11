@@ -75,13 +75,21 @@ export const NATIVE2D_TRAITS = [
 export const CODE_GRAPH_TRAITS = ['route', 'file', 'reused_in', 'uses_stores', 'calls_apis'] as const;
 
 /**
- * Runtime/serving directive traits — top-level `@name { ... }` authoring blocks that
- * configure a sovereign runtime rather than a scene object. `@llama_serve` is read by
- * `compiler/LlamaServerCompiler.ts`; `@model_fleet` / `@provider_policy` by the fleet
- * router (`@holoscript/llm-provider` fleet-router.ts). Listed here so authoring them in a
- * `.holo`/`.hsplus` never trips the unknown-trait warning.
+ * Runtime/serving + governance directive traits — top-level `@name { ... }` authoring blocks that
+ * configure a sovereign runtime or governance policy rather than a scene object. `@llama_serve` is
+ * read by `compiler/LlamaServerCompiler.ts`; `@model_fleet` / `@provider_policy` by the fleet router
+ * (`@holoscript/llm-provider` fleet-router.ts); `@freeze_when` declares a self-controlling Freeze rule
+ * (`traits/FreezeWhenTrait.ts`); `@evolve_program` a gated self-improvement policy
+ * (`traits/EvolveProgramTrait.ts`). Listed here so authoring them in a `.holo`/`.hsplus` never trips
+ * the unknown-trait warning.
  */
-export const RUNTIME_DIRECTIVE_TRAITS = ['llama_serve', 'model_fleet', 'provider_policy'] as const;
+export const RUNTIME_DIRECTIVE_TRAITS = [
+  'llama_serve',
+  'model_fleet',
+  'provider_policy',
+  'freeze_when',
+  'evolve_program',
+] as const;
 
 /**
  * Build the injectable union of all known trait names.
