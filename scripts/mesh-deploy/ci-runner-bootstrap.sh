@@ -23,6 +23,23 @@ AE_DIR="$WORKSPACE/ai-ecosystem"
 ORCHESTRATOR_URL="${ORCHESTRATOR_URL:-https://mcp-orchestrator-production-45f9.up.railway.app}"
 CI_SEAT="${CI_SEAT:-ci-$(hostname)}"
 
+# canonical-tool-adoption: exempt — security credential-hygiene fix to an EXISTING operator script;
+# adds no new fleet-resource operation, only keeps the orchestrator admin key off curl argv
+# (ps-visible on the shared vast.ai host). INLINED from scripts/mesh-deploy/fleet-source-credential.sh
+# (standalone --onstart script); keep in sync. authoring-oracle 2026-07-11: extend-existing-first.
+# Board task_1783804023183. (The clones below use public token-free URLs, so no clone fix is needed.)
+fsc_curl_with_header() {
+  local header="$1"; shift
+  local cfg rc
+  cfg="$(mktemp 2>/dev/null)" || return 1
+  chmod 600 "$cfg" 2>/dev/null || true
+  printf 'header = "%s"\n' "$header" > "$cfg"
+  curl -K "$cfg" "$@"
+  rc=$?
+  rm -f "$cfg"
+  return "$rc"
+}
+
 echo "[ci-bootstrap] installing toolchain…"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq && apt-get install -y -qq git curl ca-certificates >/dev/null
@@ -51,9 +68,8 @@ EOF
 # via agent key returns 403 (admin-only), so we use the admin key if available.
 SEAT_ADMIN_KEY="${HOLOSCRIPT_ADMIN_KEY:-$HOLOSCRIPT_API_KEY}"
 echo "[ci-bootstrap] Registering CI seat: $CI_SEAT (lane=ci, has_gpu=false)"
-curl -sf -X POST "$ORCHESTRATOR_URL/gpu/seats" \
+fsc_curl_with_header "x-mcp-api-key: $SEAT_ADMIN_KEY" -sf -X POST "$ORCHESTRATOR_URL/gpu/seats" \
   -H "Content-Type: application/json" \
-  -H "x-mcp-api-key: $SEAT_ADMIN_KEY" \
   -d "{\"id\":\"$CI_SEAT\",\"authorized_lanes\":[\"ci\"],\"has_gpu\":false,\"status\":\"active\",\"metadata\":\"ci-runner-bootstrap\"}" \
   && echo "[ci-bootstrap] Seat registered successfully" \
   || echo "[ci-bootstrap] WARNING: Seat registration failed (may need admin key or pre-registration)"

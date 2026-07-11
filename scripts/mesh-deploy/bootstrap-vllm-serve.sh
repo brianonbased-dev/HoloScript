@@ -31,13 +31,35 @@ HEARTBEAT_S="${HEARTBEAT_INTERVAL_S:-45}"
 MAX_MODEL_LEN="${VLLM_MAX_MODEL_LEN:-4096}"
 LOG="[bootstrap-vllm]"
 
+# canonical-tool-adoption: exempt — security credential-hygiene fix to an EXISTING operator
+# script; adds no new fleet-resource operation (clone/register/heartbeat are unchanged), only
+# moves secret headers off argv. Reuses the canonical scripts/mesh-deploy/fleet-source-credential.sh
+# (authoring-oracle 2026-07-11 verdict: extend-existing-first). Board task_1783804023183.
+#
+# Secret headers ride in a mode-600 curl -K config file, never on argv (ps-visible on the shared
+# vast.ai host). INLINED from fleet-source-credential.sh (this is a standalone --onstart script and
+# cannot source the repo copy); keep in sync.
+fsc_curl_with_header() {
+  local header="$1"; shift
+  local cfg rc
+  cfg="$(mktemp 2>/dev/null)" || return 1
+  chmod 600 "$cfg" 2>/dev/null || true
+  printf 'header = "%s"\n' "$header" > "$cfg"
+  curl -K "$cfg" "$@"
+  rc=$?
+  rm -f "$cfg"
+  return "$rc"
+}
+
 trap 'kill $VLLM_PID 2>/dev/null; exit 0' SIGTERM SIGINT
 
 echo "$LOG Starting vLLM: $MODEL on :$PORT"
+# vLLM reads its server key from VLLM_API_KEY — pass via env, not --api-key, so the key is not
+# on the vllm process argv (ps/proc-visible on the shared host).
+export VLLM_API_KEY="$INFERENCE_KEY"
 python3 -m vllm.entrypoints.openai.api_server \
   --model "$MODEL" \
   --port "$PORT" \
-  --api-key "$INFERENCE_KEY" \
   --host 0.0.0.0 \
   --max-model-len "$MAX_MODEL_LEN" \
   --dtype auto \
@@ -48,7 +70,7 @@ VLLM_PID=$!
 echo "$LOG Waiting for /v1/models (PID=$VLLM_PID)..."
 for i in $(seq 1 60); do
   sleep 10
-  if curl -sf -H "Authorization: Bearer $INFERENCE_KEY" \
+  if fsc_curl_with_header "Authorization: Bearer $INFERENCE_KEY" -sf \
        "http://localhost:$PORT/v1/models" >/dev/null 2>&1; then
     echo "$LOG vLLM healthy after $((i * 10))s"
     break
@@ -70,8 +92,7 @@ if [ -n "$ORCH" ] && [ -n "$API_KEY" ] && [ -n "$ENDPOINT_ID" ]; then
              | head -1 | tr -d '\n' | tr ' ' '_' || echo unknown)
 
   echo "$LOG Registering endpoint $ENDPOINT_ID at $SERVE_URL (gpu=$GPU_NAME)"
-  curl -fsS -X POST "${ORCH}/serve/register" \
-    -H "x-mcp-api-key: ${API_KEY}" \
+  fsc_curl_with_header "x-mcp-api-key: ${API_KEY}" -fsS -X POST "${ORCH}/serve/register" \
     -H "Content-Type: application/json" \
     -d "{\"id\":\"${ENDPOINT_ID}\",\"model\":\"${MODEL}\",\"url\":\"${SERVE_URL}\",\"gpu\":\"${GPU_NAME}\"}" \
     && echo "$LOG Registered successfully" \
@@ -79,16 +100,14 @@ if [ -n "$ORCH" ] && [ -n "$API_KEY" ] && [ -n "$ENDPOINT_ID" ]; then
 
   # Heartbeat loop until vLLM exits
   while kill -0 $VLLM_PID 2>/dev/null; do
-    curl -sf -X POST "${ORCH}/serve/heartbeat" \
-      -H "x-mcp-api-key: ${API_KEY}" \
+    fsc_curl_with_header "x-mcp-api-key: ${API_KEY}" -sf -X POST "${ORCH}/serve/heartbeat" \
       -H "Content-Type: application/json" \
       -d "{\"id\":\"${ENDPOINT_ID}\"}" >/dev/null 2>&1 || true
     sleep "$HEARTBEAT_S"
   done
 
   echo "$LOG vLLM exited — deregistering $ENDPOINT_ID"
-  curl -sf -X POST "${ORCH}/serve/deregister" \
-    -H "x-mcp-api-key: ${API_KEY}" \
+  fsc_curl_with_header "x-mcp-api-key: ${API_KEY}" -sf -X POST "${ORCH}/serve/deregister" \
     -H "Content-Type: application/json" \
     -d "{\"id\":\"${ENDPOINT_ID}\"}" >/dev/null 2>&1 || true
 else

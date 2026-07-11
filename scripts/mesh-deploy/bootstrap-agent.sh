@@ -37,6 +37,41 @@ REPO_BRANCH="${HOLOSCRIPT_REPO_BRANCH:-main}"
 WORKSPACE="${HOLOSCRIPT_WORKSPACE:-/root/holoscript-mesh}"
 LOG_DIR="${HOLOSCRIPT_AGENT_LOG_DIR:-/root/agent-logs}"
 
+# canonical-tool-adoption: exempt — security credential-hygiene fix to an EXISTING operator
+# script; adds no new fleet-resource operation (the clone/fetch is unchanged), only keeps the
+# GitHub PAT off the git url/argv/.git/config. Reuses the canonical fleet-source-credential.sh
+# (authoring-oracle 2026-07-11 verdict: extend-existing-first). Board task_1783804023183.
+#
+# INLINED from scripts/mesh-deploy/fleet-source-credential.sh (this script clones the repo, so it
+# runs BEFORE the repo exists and cannot source it); keep in sync. The PAT (if HOLOSCRIPT_REPO_URL
+# carries one) rides in a github.com http.extraHeader via GIT_CONFIG_* env — never on argv or in
+# .git/config — and the clone always uses the token-stripped url.
+fsc_split_repo_url() {
+  local url="$1"
+  FSC_TOKEN=""
+  FSC_CLEAN_URL="$url"
+  case "$url" in
+    https://x-access-token:*@github.com/*)
+      FSC_TOKEN="$(printf '%s' "$url" | sed -E 's#^https://x-access-token:([^@]+)@github\.com/.*#\1#')"
+      FSC_CLEAN_URL="$(printf '%s' "$url" | sed -E 's#^https://x-access-token:[^@]+@github\.com/#https://github.com/#')"
+      ;;
+    https://*:*@github.com/*)
+      FSC_TOKEN="$(printf '%s' "$url" | sed -E 's#^https://[^:@/]+:([^@]+)@github\.com/.*#\1#')"
+      FSC_CLEAN_URL="$(printf '%s' "$url" | sed -E 's#^https://[^@]+@github\.com/#https://github.com/#')"
+      ;;
+    https://*@github.com/*)
+      FSC_CLEAN_URL="$(printf '%s' "$url" | sed -E 's#^https://[^@]+@github\.com/#https://github.com/#')"
+      ;;
+  esac
+}
+fsc_export_git_auth() {
+  [ -n "${FSC_TOKEN:-}" ] || return 0
+  local idx="${GIT_CONFIG_COUNT:-0}"
+  export "GIT_CONFIG_KEY_${idx}=http.https://github.com/.extraHeader"
+  export "GIT_CONFIG_VALUE_${idx}=Authorization: Bearer ${FSC_TOKEN}"
+  export "GIT_CONFIG_COUNT=$((idx + 1))"
+}
+
 mkdir -p "$LOG_DIR"
 exec > >(tee -a "$LOG_DIR/bootstrap.log") 2>&1
 
@@ -142,15 +177,19 @@ fi
 # ---------------------------------------------------------------------------
 # Clone repo (idempotent)
 # ---------------------------------------------------------------------------
+# Strip any PAT out of REPO_URL and export it as ephemeral git auth (never on argv/.git/config).
+fsc_split_repo_url "$REPO_URL"
+fsc_export_git_auth
 if [ -d "$WORKSPACE/.git" ]; then
   echo "[bootstrap] repo exists, fetching…"
   cd "$WORKSPACE"
+  git remote set-url origin "$FSC_CLEAN_URL"  # scrub any token a prior tokenized clone persisted
   git fetch origin "$REPO_BRANCH"
   git checkout "$REPO_BRANCH"
   git reset --hard "origin/$REPO_BRANCH"
 else
-  echo "[bootstrap] cloning $REPO_URL @ $REPO_BRANCH…"
-  git clone --depth 1 --branch "$REPO_BRANCH" "$REPO_URL" "$WORKSPACE"
+  echo "[bootstrap] cloning $FSC_CLEAN_URL @ $REPO_BRANCH…"
+  git clone --depth 1 --branch "$REPO_BRANCH" "$FSC_CLEAN_URL" "$WORKSPACE"
   cd "$WORKSPACE"
 fi
 
