@@ -60,13 +60,6 @@ repo_slug_from_url() {
   return 1
 }
 
-github_token_from_url() {
-  case "$1" in
-    https://x-access-token:*@github.com/*)
-      printf '%s' "$1" | sed -E 's#^https://x-access-token:([^@]+)@github\.com/.*#\1#'
-      ;;
-  esac
-}
 
 is_probable_commit_sha() {
   [[ "$1" =~ ^[0-9a-fA-F]{7,40}$ ]]
@@ -75,6 +68,50 @@ is_probable_commit_sha() {
 run_redacted() {
   "$@" 2>&1 | sed -E 's#x-access-token:[^@]+@#x-access-token:***@#g'
   return "${PIPESTATUS[0]}"
+}
+
+# --- Secure source-acquisition credentials (board task_1783793122450_jnnp) ---
+# INLINED copy of scripts/mesh-deploy/fleet-source-credential.sh — this --onstart-cmd script must
+# be self-contained (it runs BEFORE the repo is cloned, so it cannot source the helper). KEEP IN
+# SYNC with the canonical file. Keeps the GitHub PAT off git remote URLs, .git/config, and argv
+# on the shared vast.ai host: git auth rides in GIT_CONFIG_* env, curl auth in a mode-600 -K file.
+fsc_split_repo_url() {
+  local url="$1"
+  FSC_TOKEN=""
+  FSC_CLEAN_URL="$url"
+  case "$url" in
+    https://x-access-token:*@github.com/*)
+      FSC_TOKEN="$(printf '%s' "$url" | sed -E 's#^https://x-access-token:([^@]+)@github\.com/.*#\1#')"
+      FSC_CLEAN_URL="$(printf '%s' "$url" | sed -E 's#^https://x-access-token:[^@]+@github\.com/#https://github.com/#')"
+      ;;
+    https://*:*@github.com/*)
+      FSC_TOKEN="$(printf '%s' "$url" | sed -E 's#^https://[^:@/]+:([^@]+)@github\.com/.*#\1#')"
+      FSC_CLEAN_URL="$(printf '%s' "$url" | sed -E 's#^https://[^@]+@github\.com/#https://github.com/#')"
+      ;;
+    https://*@github.com/*)
+      # username-only (e.g. x-access-token@github.com) — no secret to strip, but normalise.
+      FSC_CLEAN_URL="$(printf '%s' "$url" | sed -E 's#^https://[^@]+@github\.com/#https://github.com/#')"
+      ;;
+  esac
+}
+fsc_export_git_auth() {
+  [ -n "${FSC_TOKEN:-}" ] || return 0
+  local idx="${GIT_CONFIG_COUNT:-0}"
+  export "GIT_CONFIG_KEY_${idx}=http.https://github.com/.extraHeader"
+  export "GIT_CONFIG_VALUE_${idx}=Authorization: Bearer ${FSC_TOKEN}"
+  export "GIT_CONFIG_COUNT=$((idx + 1))"
+}
+fsc_curl_with_header() {
+  local header="$1"; shift
+  local cfg rc
+  cfg="$(mktemp 2>/dev/null)" || return 1
+  chmod 600 "$cfg" 2>/dev/null || true
+  # curl -K config: `header = "<full header line>"`. Value is not shell-word-split.
+  printf 'header = "%s"\n' "$header" > "$cfg"
+  curl -K "$cfg" "$@"
+  rc=$?
+  rm -f "$cfg"
+  return "$rc"
 }
 
 fetch_and_checkout_ref() {
@@ -88,18 +125,21 @@ fetch_and_checkout_ref() {
 }
 
 clone_repo_once() {
+  # Clone the TOKEN-STRIPPED url ($FSC_CLEAN_URL); the PAT (if any) is supplied to every git op
+  # via the GIT_CONFIG_* http.extraHeader env exported by fsc_export_git_auth — never in the url
+  # (which git would persist to .git/config) or on argv (ps-visible on the shared host).
   if is_probable_commit_sha "$FLEET_REPO_REF"; then
-    run_redacted git clone --depth 1 "$REPO_URL" "$REPO_DIR" || return "$?"
+    run_redacted git clone --depth 1 "$FSC_CLEAN_URL" "$REPO_DIR" || return "$?"
     fetch_and_checkout_ref "$FLEET_REPO_REF"
     return "$?"
   fi
 
-  run_redacted git clone --depth 1 --branch "$FLEET_REPO_REF" "$REPO_URL" "$REPO_DIR" && return 0
+  run_redacted git clone --depth 1 --branch "$FLEET_REPO_REF" "$FSC_CLEAN_URL" "$REPO_DIR" && return 0
 
   # The ref may be a non-branch object. Try a generic shallow clone plus fetch
   # before falling through to the archive fallback.
   rm -rf "$REPO_DIR"
-  run_redacted git clone --depth 1 "$REPO_URL" "$REPO_DIR" || return "$?"
+  run_redacted git clone --depth 1 "$FSC_CLEAN_URL" "$REPO_DIR" || return "$?"
   fetch_and_checkout_ref "$FLEET_REPO_REF"
 }
 
@@ -122,21 +162,23 @@ clone_repo_with_retry() {
 }
 
 download_repo_archive_fallback() {
-  local slug token tmpdir archive extracted attempt status
-  slug="$(repo_slug_from_url "$REPO_URL")" || {
+  local slug tmpdir archive extracted attempt status
+  # Use the token-stripped url for slug derivation and the pre-extracted $FSC_TOKEN for auth
+  # (both set by fsc_split_repo_url in main). The slug is not secret; the token must not hit argv.
+  slug="$(repo_slug_from_url "$FSC_CLEAN_URL")" || {
     echo "$LOG WARN: cannot derive GitHub repo slug from REPO_URL; archive fallback skipped"
     return 1
   }
-  token="$(github_token_from_url "$REPO_URL")"
 
   for attempt in $(seq 1 "$ARCHIVE_DOWNLOAD_TRIES"); do
     rm -rf "$REPO_DIR"
     tmpdir="$(mktemp -d)"
     archive="$tmpdir/repo.tar.gz"
     echo "$LOG archive fallback attempt $attempt/$ARCHIVE_DOWNLOAD_TRIES: $slug ref=$FLEET_REPO_REF -> $REPO_DIR"
-    if [ -n "$token" ]; then
-      curl -fsSL --retry 5 --retry-delay 5 --connect-timeout 20 --speed-limit 1024 --speed-time 60 \
-        -H "Authorization: Bearer $token" \
+    if [ -n "${FSC_TOKEN:-}" ]; then
+      # Authorization header rides in a mode-600 curl -K config (fsc_curl_with_header), never on argv.
+      fsc_curl_with_header "Authorization: Bearer $FSC_TOKEN" \
+        -fsSL --retry 5 --retry-delay 5 --connect-timeout 20 --speed-limit 1024 --speed-time 60 \
         -H "X-GitHub-Api-Version: 2022-11-28" \
         "https://codeload.github.com/$slug/tar.gz/$FLEET_REPO_REF" -o "$archive"
       status=$?
@@ -172,6 +214,10 @@ if ! command -v git >/dev/null 2>&1 || ! command -v curl >/dev/null 2>&1; then
 fi
 
 # --- 2. Clone or update repo ---
+# Split the PAT out of REPO_URL once and export it as ephemeral git auth (GIT_CONFIG_* extraHeader),
+# so every clone/fetch below authenticates without the token on argv or in .git/config.
+fsc_split_repo_url "$REPO_URL"
+fsc_export_git_auth
 if [ -d "$REPO_DIR/.git" ]; then
   echo "$LOG repo exists at $REPO_DIR — pulling latest..."
   cd "$REPO_DIR" || exit 2

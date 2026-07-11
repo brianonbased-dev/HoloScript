@@ -47,13 +47,20 @@ LOG="[gpu-worker:$SEAT]"
 # Resolve script directory for relative paths to sibling scripts (e.g. fleet-cuquantum-setup.sh)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Secure source-acquisition credentials: keep the GitHub PAT / API key off git remote URLs,
+# .git/config, and process argv on the shared vast.ai host (board task_1783793122450_jnnp).
+# shellcheck source=fleet-source-credential.sh
+. "$SCRIPT_DIR/fleet-source-credential.sh"
+
 api() { # method path [json-body]
   local method="$1" path="$2" body="${3:-}"
+  # The api key rides in a mode-600 curl -K config (fsc_curl_with_header), never on argv (ps-visible).
   if [ -n "$body" ]; then
-    curl -fsS -X "$method" "$ORCH$path" -H "x-mcp-api-key: $HOLOSCRIPT_API_KEY" \
-         -H "Content-Type: application/json" -d "$body"
+    fsc_curl_with_header "x-mcp-api-key: $HOLOSCRIPT_API_KEY" \
+         -fsS -X "$method" "$ORCH$path" -H "Content-Type: application/json" -d "$body"
   else
-    curl -sS -X "$method" "$ORCH$path" -H "x-mcp-api-key: $HOLOSCRIPT_API_KEY" -w '\n%{http_code}'
+    fsc_curl_with_header "x-mcp-api-key: $HOLOSCRIPT_API_KEY" \
+         -sS -X "$method" "$ORCH$path" -w '\n%{http_code}'
   fi
 }
 
@@ -94,7 +101,10 @@ repo_source_present() {
 # 1. ensure repo present + compute lane installed ----------------------------------------
 if ! repo_source_present; then
   [ -n "${REPO_URL:-}" ] || { echo "$LOG FATAL: REPO_URL required to clone (or pre-place $REPO_DIR)"; exit 2; }
-  echo "$LOG cloning $REPO_DIR"; git clone --depth 1 "$REPO_URL" "$REPO_DIR" || exit 2
+  echo "$LOG cloning $REPO_DIR"
+  # Clone the token-stripped url; auth (if any) rides in GIT_CONFIG_* env, never in the url/argv/.git/config.
+  fsc_split_repo_url "$REPO_URL"; fsc_export_git_auth
+  git clone --depth 1 "$FSC_CLEAN_URL" "$REPO_DIR" || exit 2
 fi
 cd "$REPO_DIR" || exit 2
 
