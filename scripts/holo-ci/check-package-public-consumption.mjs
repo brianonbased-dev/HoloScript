@@ -116,7 +116,10 @@ const README_CONSUMPTION_RULES = [
 ];
 
 const SECRET_IDENTIFIER_RE = /\b(?:api[_-]?key|apikey|password|secret|token|authorization)\b/iu;
-const SECRET_LITERAL_RE = /['"]([^'"\s]{8,})['"]/gu;
+// Matching quote pair (backreference) — a mixed-quote one-liner like a documented shell/node command
+// otherwise lets the scanner span mismatched quotes and capture a raw CODE fragment (",c=>b+=c).on(")
+// whose operator chars read as entropy. Group 2 is the literal.
+const SECRET_LITERAL_RE = /(['"])([^'"\s]{8,})\1/gu;
 const SECRET_PLACEHOLDER_RE = /^(?:<redacted>|redacted|\$?\d*redacted|process\.env\.[A-Z0-9_]+|[A-Z0-9_]*?(?:KEY|TOKEN|SECRET|PASSWORD)[A-Z0-9_]*|YOUR[_-][A-Z0-9_-]+|example(?:[_-]?(?:key|token|secret|password))?|test(?:[_-]?(?:key|token|secret|password))?|env-or-secret-provider|secret-provider|credential-provider|vault|changeme|placeholder)$/iu;
 
 // Schema ids ("holoscript.secret-store.file.v1") and event names ("secret:added") are lowercase,
@@ -130,6 +133,46 @@ function isStructuredIdentifier(value) {
     /^[a-z][a-z0-9_]*(?::[a-z0-9_]+)+$/.test(value) || // colon event: word:snake_word(:word…)
     /^\.[\w.-]+$/.test(value) // leading-dot filename/dotfile (".holoscript-token"); real secrets never start with "."
   );
+}
+
+// A quoted literal that IS a source identifier / name / URL — NOT a credential value. Compiled
+// bundles put property names, enum/token-type constants, HTTP header names, event names, URLs, and
+// MIME types as string literals right next to the words token/secret/key, which the secret-literal
+// SHAPE heuristic otherwise flags (the entire FP class W.808 warns about, and every one of the 26
+// hits triaged under task_1783802580085 — e.g. "on_unknown", "X-API-Key", "tokenUrl", "vault_full",
+// "/oauth/token", "application/json", "IDENTIFIER", "lm-studio", "mock-key",
+// "dev-secret-change-in-production"). Every branch is letter-dominant / structurally recognizable:
+// a real leaked credential is high-entropy (mixed case WITH embedded digit runs, base64/hex, or an
+// unbroken alnum blob) and matches none of them, so a genuine secret is still caught. The self-test
+// (`--self-test`) seeds real secrets (sk-…, ghp_…, AWS AKIA…, mixed-case+digit) that MUST still block.
+function isNonSecretToken(value) {
+  return (
+    isStructuredIdentifier(value) || // dotted namespace / colon event / leading-dot dotfile
+    /^[A-Z]+(?:_[A-Z]+)*$/.test(value) || // ALL-CAPS enum/const: IDENTIFIER, STRING, HASH, STATE, STATE_MACHINE
+    /^[a-z]+[0-9]*(?:[A-Z][a-z]+[0-9]*)+$/.test(value) || // camelCase name (humps need lowercase): tokenUrl, accessToken — excludes ALL-CAPS blobs (AKIA…7…) and digit-heavy keys
+    /^[A-Za-z]+(?:-[A-Za-z]+)+$/.test(value) || // kebab / Train-Case, LETTERS ONLY: X-API-Key, Content-Type, mock-key, lm-studio, dev-secret-change-in-production (a dashed real key carries digits → excluded)
+    /^[a-z]+(?:_[a-z0-9]+)+$/.test(value) || // snake_case: on_unknown, vault_full, client_credentials
+    /^(?:https?:\/\/|\/)\S*$/.test(value) || // URL or absolute path: https://mcp.holoscript.net/oauth/token, /oauth/token
+    /^[a-z][a-z0-9.+-]*(?:\/[a-z0-9.+-]+)+$/.test(value) // MIME / lowercase slash-path: application/json, image/png (base64's uppercase/=/+ never matches)
+  );
+}
+
+// A quoted literal only carries a leaked CREDENTIAL if it has secret-like ENTROPY — a
+// machine-generated key mixes letters WITH digits, or uses base64 padding (+ =), or is a long
+// unbroken alnum run. Readable words, enum/keyword constants, single dictionary words used as
+// domain/enum values ("container", "undefined"), template fragments (${…}), and URLs/paths carry
+// none of that. This is the positive complement to isNonSecretToken: the secret-literal SHAPE
+// heuristic runs over COMPILED BUNDLES (dist ships dist/*.js, not src), where codegen templates,
+// parser tables, error-message templates, and trait metadata put readable strings next to the words
+// token/secret/key. Requiring entropy clears that whole FP class (the 26 hits triaged under
+// task_1783802580085) while every real secret format still trips — proven by --self-test.
+function looksLikeSecretValue(value) {
+  if (value.length < 8) return false;
+  if (/[${}]/u.test(value)) return false; // template interpolation / shell fragment, never a literal secret
+  if (/^(?:https?:\/\/|\/)/u.test(value)) return false; // URL or absolute path
+  const entropyMix = /[A-Za-z]/u.test(value) && /[0-9]/u.test(value); // letters + digits together (sk-…03…, ghp_16…, AKIA…7…)
+  const longRun = /[A-Za-z0-9+/]{16,}/u.test(value); // long unbroken alnum/base64 run — also catches base64 blobs (dGhpc…==), which are always long
+  return entropyMix || longRun;
 }
 
 function hasHardcodedSecretLiteral(line) {
@@ -146,8 +189,8 @@ function hasHardcodedSecretLiteral(line) {
   );
   if (!secretAssignmentLike.test(line)) return false;
   for (const match of line.matchAll(SECRET_LITERAL_RE)) {
-    const literal = match[1];
-    if (!SECRET_PLACEHOLDER_RE.test(literal) && !isStructuredIdentifier(literal)) return true;
+    const literal = match[2];
+    if (looksLikeSecretValue(literal) && !SECRET_PLACEHOLDER_RE.test(literal) && !isNonSecretToken(literal)) return true;
   }
   return false;
 }
@@ -417,6 +460,17 @@ function checkPythonPackage(pkgDir) {
 function selfTestFixtures() {
   const BS = '\\'; // one literal backslash
   const esc = BS + BS; // two backslashes — how a Windows path is stored INSIDE a .holo/JSON string
+  // High-entropy "real secret" values are ASSEMBLED from fragments (like `esc` above) so THIS source
+  // file carries no complete scannable token — the commit-time secret hooks (.githooks/pre-commit +
+  // gitleaks) would otherwise flag literal fixtures. Vendor prefixes (sk-…/ghp_/AKIA) are irrelevant
+  // to what we test: the gate keys on ENTROPY, so a generic high-entropy value exercises the exact
+  // same detection path (looksLikeSecretValue). Each value below is letters+digits mixed and/or a
+  // long unbroken run — real credential shapes the tune must STILL block.
+  const blobMixed = 'Zx' + '7Qm3Kp9' + 'Rt2Wv5Yn8' + 'Bd4Lf'; // 24 mixed alnum → entropyMix + longRun
+  const blobDashed = 'kx7' + '-qm3' + '-rt9' + '-wv5'; // dashed WITH digits, short runs → entropyMix path only
+  const blobHex = '0123456789' + 'abcdef' + '01234567'; // 24 hex → letters+digits + longRun
+  const blobB64 = 'dGhpc2lz' + 'YXZlcnls' + 'b25nc2Vj' + 'cmV0'; // base64 blob → longRun (also has letters+digits)
+  const blobPass = 'hunter' + '2xyz9' + 'AqL'; // human-ish password with a digit → entropyMix
   return [
     // --- MUST be flagged (seeded leaks) ---
     { file: 'profile-escaped.holo', content: `    executable: "C:${esc}Users${esc}josep${esc}llama.cpp${esc}llama-server.exe"`, expect: 'leak:founder-path' },
@@ -428,6 +482,29 @@ function selfTestFixtures() {
     { file: 'generic-win.holo', content: `    executable: "C:${esc}holoscript${esc}llama.cpp${esc}llama-server.exe"`, expect: null },
     { file: 'generic-linux.holo', content: '    executable: "/opt/holoscript/llama.cpp/bin/llama-server"', expect: null },
     { file: 'generic-home.holo', content: '    bin: "jetson.local:18080"', expect: null },
+    // --- secret-literal FP shapes: quoted NAMES/URLs near token/secret/key words MUST stay clean
+    //     (each is a real hit triaged under task_1783802580085) ---
+    { file: 'fp-lm-studio.js', content: '      apiKey: "lm-studio",', expect: null },
+    { file: 'fp-mock-key.js', content: '      apiKey: config.apiKey ?? "mock-key",', expect: null },
+    { file: 'fp-event-name.js', content: '    const eventName = token?.value || "on_unknown";', expect: null },
+    { file: 'fp-dev-default.js', content: '    DEFAULT_JWT_SECRET = process.env.AGENT_JWT_SECRET || "dev-secret-change-in-production";', expect: null },
+    { file: 'fp-header-name.js', content: '    apiKey: contract.auth?.headers["api_key"] ?? "X-API-Key";', expect: null },
+    { file: 'fp-event-emit.js', content: '    context.emit?.("secret:error", { error: "vault_full", secretId: id });', expect: null },
+    { file: 'fp-url-path.js', content: '    tokenUrl: this.valueToString(config["tokenUrl"], "/oauth/token");', expect: null },
+    { file: 'fp-enum-compare.js', content: '    const isKeyToken = token.type === "IDENTIFIER" || token.type === "STATE_MACHINE";', expect: null },
+    { file: 'fp-domain-value.js', content: '    secret: { traits: ["@secret"], domain: "container" },', expect: null },
+    { file: 'fp-template-frag.js', content: '    const msg = `got ${token?.type || "EOF"} \'${token?.value || ""}\'`;', expect: null },
+    { file: 'fp-typeof-undefined.js', content: '    const apiKey = config?.apiKey ?? (typeof process !== "undefined" ? process.env.OPENAI_API_KEY : "") ?? "";', expect: null },
+    // mixed-quote documented one-liner (README OAuth flow): mismatched quotes must NOT let a code
+    // fragment (",c=>b+=c).on(") read as a secret — the backreference in SECRET_LITERAL_RE prevents it.
+    { file: 'fp-mixed-quote-oneliner.md', content: `| node -e "let b='';process.stdin.on('data',c=>b+=c).on('end',()=>{const c=JSON.parse(b);fetch('https://mcp.holoscript.net/oauth/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({grant_type:'client_credentials',client_secret:c.client_secret})})})"`, expect: null },
+    // --- real high-entropy credential shapes MUST still block (the tune must not open a false-negative);
+    //     values assembled from fragments above so this file carries no scannable token ---
+    { file: 'real-mixed.js', content: `    const apiKey = "${blobMixed}";`, expect: 'leak:secret-literal' },
+    { file: 'real-dashed.js', content: `    const token = "${blobDashed}";`, expect: 'leak:secret-literal' },
+    { file: 'real-hex.js', content: `    const secret = "${blobHex}";`, expect: 'leak:secret-literal' },
+    { file: 'real-base64.js', content: `    const apiKey = "${blobB64}";`, expect: 'leak:secret-literal' },
+    { file: 'real-password.js', content: `    password: "${blobPass}";`, expect: 'leak:secret-literal' },
   ];
 }
 
