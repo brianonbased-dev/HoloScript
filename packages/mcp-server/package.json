@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/mcp-server",
-  "version": "8.0.11",
+  "version": "8.0.12",
   "description": "Model Context Protocol server for HoloScript - enables AI agents to parse, validate, and generate HoloScript code",
   "license": "MIT",
   "main": "./dist/index.js",
@@ -30,7 +30,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "node scripts/sync-examples-catalog.mjs && tsup && node scripts/sync-public-types.mjs",
+    "build": "node scripts/sync-examples-catalog.mjs && tsup && node scripts/sync-public-types.mjs && node scripts/sync-policy-pack.mjs",
     "sync:examples-catalog": "node scripts/sync-examples-catalog.mjs",
     "check:public-types": "node scripts/sync-public-types.mjs --check",
     "dev": "tsx watch src/index.ts",
@@ -44,8 +44,10 @@
     "smoke:bitnet": "tsx scripts/bitnet-smoke.ts",
     "smoke:auth": "node scripts/smoke-mcp-auth.mjs",
     "test": "vitest run --passWithNoTests",
+    "test:release": "vitest run src/policy/__tests__/PolicyInterceptor.test.ts src/policy/__tests__/PolicyPackPackaging.test.ts src/__tests__/policy-interceptor-integration.test.ts src/__tests__/secrets-broker-handler-auth.test.ts src/holomesh/identity/__tests__/signing-middleware.test.ts",
     "test:coverage": "node -e \"require('fs').mkdirSync('coverage/.tmp',{recursive:true})\" && vitest run --coverage --passWithNoTests",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepublishOnly": "pnpm run test:release && pnpm run build"
   },
   "dependencies": {
     "@holoscript/absorb-service": "workspace:^",
