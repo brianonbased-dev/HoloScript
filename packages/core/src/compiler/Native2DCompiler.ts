@@ -84,9 +84,12 @@ export class Native2DCompiler extends CompilerBase {
     node: string;
     /** Optional twin entity this projection mirrors (v1 Framing B — StateAuthority entity id). */
     entity?: string;
-    /** True iff a transform-free scalar @bind (raw displayed == raw source); non-identity
-     *  projections abstain from twin value-equality until the transform algebra (Slice 3). */
+    /** True iff a transform-free scalar @bind (raw displayed == raw source). */
     identity: boolean;
+    /** Slice 3: the declared value transform for a formatted @bind (precision/prefix/suffix), so a
+     *  formatted projection is twin-checkable (checker re-applies it to the twin) instead of
+     *  abstaining. Absent for identity binds and for @chart/@sparkline/@each/@model. */
+    transform?: { precision?: number; prefix?: string; suffix?: string };
   }> = [];
 
   /**
@@ -1653,9 +1656,7 @@ export default ${safeName}Component;${contractExport}
       );
     }
     // Record the verified projection for the co-emitted view contract (v1).
-    // identity = a transform-free scalar @bind (raw displayed value == raw source). Non-identity
-    // projections (formatted @bind, or @chart/@sparkline/@each/@model) abstain from twin
-    // value-equality until the declared transform algebra (Slice 3) exists — see the v1 memo.
+    // identity = a transform-free scalar @bind (raw displayed value == raw source).
     const b = traits.bind;
     const identity =
       !!b?.state &&
@@ -1667,6 +1668,25 @@ export default ${safeName}Component;${contractExport}
       !traits.sparkline &&
       !traits.each &&
       !traits.model;
+    // Slice 3 — the declared value transform for a FORMATTED plain @bind (precision/prefix/suffix),
+    // mirrored from the same trait fields the render path formats with (buildBindContentExpr). An
+    // independent checker re-applies it to the authoritative twin value instead of abstaining. Tiers
+    // change COLOUR not the number, so they don't gate this; @chart/@sparkline/@each/@model carry no
+    // scalar value transform and stay un-checked (abstain). Mutually exclusive with `identity`.
+    let transform: { precision?: number; prefix?: string; suffix?: string } | undefined;
+    if (
+      b?.state &&
+      !traits.chart &&
+      !traits.sparkline &&
+      !traits.each &&
+      !traits.model &&
+      (b.precision !== undefined || b.prefix !== undefined || b.suffix !== undefined)
+    ) {
+      transform = {};
+      if (typeof b.precision === 'number') transform.precision = b.precision;
+      if (b.prefix !== undefined) transform.prefix = String(b.prefix);
+      if (b.suffix !== undefined) transform.suffix = String(b.suffix);
+    }
     // Optional twin entity binding (v1 Framing B): the StateAuthority entity this projection
     // mirrors. Recorded in the contract so an independent checker can compare the displayed
     // value against the authoritative twin value (fetch_authoritative_state).
@@ -1680,7 +1700,13 @@ export default ${safeName}Component;${contractExport}
       }
       entity = e;
     }
-    this._collectedProjections.push({ element: nm(), node, ...(entity ? { entity } : {}), identity });
+    this._collectedProjections.push({
+      element: nm(),
+      node,
+      ...(entity ? { entity } : {}),
+      identity,
+      ...(transform ? { transform } : {}),
+    });
     return ` data-holo-projects="${node}"`;
   }
 

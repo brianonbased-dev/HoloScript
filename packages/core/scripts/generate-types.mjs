@@ -7263,17 +7263,24 @@ export interface VerifiedViewDiagnosis {
 export declare function diagnoseVerifiedView(source: string): VerifiedViewDiagnosis;
 export declare const SURFACE_TWIN_VERSION: 'surface-twin-v1';
 export type SurfaceTwinScalar = string | number | boolean | null;
+export interface SurfaceTwinTransform {
+  precision?: number;
+  prefix?: string;
+  suffix?: string;
+}
 export interface SurfaceTwinProjection {
   element: string;
   node: string;
   entity?: string;
   identity: boolean;
+  transform?: SurfaceTwinTransform;
 }
 export interface SurfaceTwinDivergence {
   node: string;
   entity: string;
   displayed: SurfaceTwinScalar;
   authoritative: SurfaceTwinScalar;
+  expected?: SurfaceTwinScalar;
   detail: string;
 }
 export type SurfaceTwinAbstentionReason =
@@ -7302,6 +7309,7 @@ export interface SurfaceTwinInput {
   unavailableEntities?: readonly string[];
 }
 export declare function checkSurfaceTwinCorrespondence(input: SurfaceTwinInput): SurfaceTwinReceipt;
+export declare function applyProjectionTransform(raw: SurfaceTwinScalar, transform: SurfaceTwinTransform): string;
 export type AuthoritativeStateFetcher = (
   entity: string
 ) => Promise<Record<string, unknown> | SurfaceTwinScalar | null | undefined>;

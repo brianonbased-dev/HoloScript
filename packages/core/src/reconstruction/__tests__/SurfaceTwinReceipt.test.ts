@@ -9,7 +9,9 @@ import { describe, it, expect } from 'vitest';
 import {
   checkSurfaceTwinCorrespondence,
   verifySurfaceTwinLive,
+  applyProjectionTransform,
   type SurfaceTwinProjection,
+  type SurfaceTwinTransform,
 } from '../SurfaceTwinReceipt';
 
 const proj = (
@@ -188,5 +190,116 @@ describe('verifySurfaceTwinLive — injected authoritative fetch (production-sha
       },
     });
     expect(calls).toEqual(['ent']); // one fetch, not two
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// Slice 3 — the transform algebra. A FORMATTED @bind ($1.20, 42%, 8.0) is no longer a blind
+// abstention: the checker RE-APPLIES the compiler-declared transform to the authoritative twin
+// value and compares to the DOM text. The load-bearing test is the TRANSFORM-DRIFT CANARY —
+// prove the checker re-runs the transform rather than trusting the display.
+// ---------------------------------------------------------------------------------------------
+
+const fmt = (
+  element: string,
+  node: string,
+  entity: string,
+  transform: SurfaceTwinTransform
+): SurfaceTwinProjection => ({ element, node, entity, identity: false, transform });
+
+describe('applyProjectionTransform — mirrors the compiler render path exactly', () => {
+  it('precision → toFixed', () => {
+    expect(applyProjectionTransform(1.2, { precision: 2 })).toBe('1.20');
+    expect(applyProjectionTransform(42, { precision: 0 })).toBe('42');
+  });
+  it('prefix + suffix wrap the raw value', () => {
+    expect(applyProjectionTransform(1.2, { prefix: '$', suffix: 'k' })).toBe('$1.2k');
+  });
+  it('precision + prefix + suffix compose in render order', () => {
+    expect(applyProjectionTransform(42, { precision: 1, prefix: '$', suffix: 'ms' })).toBe('$42.0ms');
+  });
+  it('null/undefined coerces to 0 (mirrors `(value ?? 0)`)', () => {
+    expect(applyProjectionTransform(null, { precision: 2 })).toBe('0.00');
+    expect(applyProjectionTransform(null, { prefix: '$', suffix: '%' })).toBe('$0%');
+  });
+});
+
+describe('checkSurfaceTwinCorrespondence — formatted (non-identity) twin checking', () => {
+  it('CONSENSUS: a formatted display matches the transform applied to the twin', () => {
+    const r = checkSurfaceTwinCorrespondence({
+      contract: { projections: [fmt('Temp', 'reactor.temp', 'reactor-7', { precision: 2 })] },
+      displayedValues: { 'reactor.temp': '800.00' }, // rendered (800).toFixed(2)
+      authoritativeState: { 'reactor-7': { temp: 800 } },
+    });
+    expect(r.verdict).toBe('CONSENSUS');
+    expect(r.checked).toBe(1); // no longer abstained — the transform made it checkable
+    expect(r.abstentions).toEqual([]);
+  });
+
+  it('CONSENSUS: prefix + suffix formatted display matches a pre-scaled twin', () => {
+    const r = checkSurfaceTwinCorrespondence({
+      contract: { projections: [fmt('Rev', 'sec.revenue', 'sec', { prefix: '$', suffix: 'M' })] },
+      displayedValues: { 'sec.revenue': '$1.2M' },
+      authoritativeState: { sec: { revenue: 1.2 } }, // twin already in millions
+    });
+    expect(r.verdict).toBe('CONSENSUS');
+    expect(r.checked).toBe(1);
+  });
+
+  it('FALSIFIED: the twin diverges from the formatted display (records raw + expected)', () => {
+    const r = checkSurfaceTwinCorrespondence({
+      contract: { projections: [fmt('Temp', 'reactor.temp', 'reactor-7', { precision: 2 })] },
+      displayedValues: { 'reactor.temp': '800.00' }, // surface shows 800.00...
+      authoritativeState: { 'reactor-7': { temp: 951 } }, // ...twin holds 951
+    });
+    expect(r.verdict).toBe('FALSIFIED');
+    expect(r.divergences[0]).toMatchObject({
+      node: 'reactor.temp',
+      entity: 'reactor-7',
+      displayed: '800.00',
+      authoritative: 951, // the RAW twin value
+      expected: '951.00', // what the declared transform says it SHOULD display
+    });
+    expect(r.divergences[0].detail).toMatch(/formats to "951\.00"/);
+  });
+
+  it('TRANSFORM-DRIFT CANARY: surface rendered a DIFFERENT precision than the contract declares → FALSIFIED', () => {
+    // The twin and the raw value AGREE (both 8). The only fault is that the surface rendered at
+    // precision 1 ("8.0") while the contract's declared transform is precision 2. A verifier that
+    // trusted the display would pass; because it RE-APPLIES the transform (→ "8.00") it catches the
+    // drift. This is the test that proves the checker is not self-passing.
+    const r = checkSurfaceTwinCorrespondence({
+      contract: { projections: [fmt('X', 'm.x', 'ent', { precision: 2 })] },
+      displayedValues: { 'm.x': '8.0' }, // rendered at precision 1 (the drift)
+      authoritativeState: { ent: { x: 8 } }, // twin agrees on the raw value
+    });
+    expect(r.verdict).toBe('FALSIFIED');
+    expect(r.divergences[0]).toMatchObject({ displayed: '8.0', authoritative: 8, expected: '8.00' });
+  });
+
+  it('still ABSTAINS when there is NO modelable transform (e.g. @chart/@each): identity:false, no transform', () => {
+    const r = checkSurfaceTwinCorrespondence({
+      contract: { projections: [{ element: 'Chart', node: 'sec.series', entity: 'sec', identity: false }] },
+      displayedValues: { 'sec.series': '[1,2,3]' },
+      authoritativeState: { sec: { series: [9, 9, 9] } }, // would false-FALSIFY if compared
+    });
+    expect(r.verdict).toBe('CONSENSUS'); // abstained, not falsified
+    expect(r.checked).toBe(0);
+    expect(r.abstentions).toEqual([
+      { node: 'sec.series', entity: 'sec', reason: 'non-identity-transform' },
+    ]);
+  });
+
+  it('a formatted projection abstains cleanly when its authority is unavailable (no false FALSIFIED)', () => {
+    const r = checkSurfaceTwinCorrespondence({
+      contract: { projections: [fmt('Temp', 'reactor.temp', 'reactor-7', { precision: 2 })] },
+      displayedValues: { 'reactor.temp': '800.00' },
+      authoritativeState: {},
+      unavailableEntities: ['reactor-7'],
+    });
+    expect(r.verdict).toBe('CONSENSUS');
+    expect(r.abstentions).toEqual([
+      { node: 'reactor.temp', entity: 'reactor-7', reason: 'authority-unavailable' },
+    ]);
   });
 });

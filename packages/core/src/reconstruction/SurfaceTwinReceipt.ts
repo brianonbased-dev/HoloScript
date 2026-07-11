@@ -15,11 +15,14 @@
  * testable CORE; the live-DOM + live-fetch harness (and its jsdom/Playwright CI lane) is the
  * next slice — see research/2026-07-10_verified-view-v1-design.md.
  *
- * TRANSFORM DISCIPLINE (premortem "refuse, don't guess"): only IDENTITY projections (a
- * transform-free scalar @bind, where raw displayed == raw source) are compared for value
- * equality. Non-identity projections (formatted @bind / @chart / @sparkline / @each / @model)
- * ABSTAIN with a declared reason — never pass, never falsify — until the declared transform
- * algebra (Slice 3). Abstention is NOT agreement (mirrors cross-perceiver fact-class scoping).
+ * TRANSFORM DISCIPLINE (premortem "refuse, don't guess"): IDENTITY projections (transform-free
+ * scalar @bind) compare raw-for-raw. Slice 3 adds FORMATTED @bind (precision/prefix/suffix): the
+ * checker RE-APPLIES the compiler-declared transform to the authoritative value and compares to the
+ * DOM text (`$1.20` vs a twin of 1.2), so a formatted projection is checkable, not blind. The
+ * transform is compiler-derived, never re-parsed from the render, so it is not a new self-passing
+ * seam — the RAW value still comes from the INDEPENDENT authority side. Bindings with NO scalar
+ * value transform (@chart / @sparkline / @each / @model) still ABSTAIN — never pass, never falsify
+ * (abstention is NOT agreement; mirrors cross-perceiver fact-class scoping).
  *
  * Pairs: PerceiverConsensusReceipt (the sibling cross-perceiver differ), the co-emitted
  * holoViewContract (Native2DCompiler.buildViewContract), fetch_authoritative_state.
@@ -30,12 +33,34 @@ export const SURFACE_TWIN_VERSION = 'surface-twin-v1';
 
 export type SurfaceTwinScalar = string | number | boolean | null;
 
-/** A projection as recorded in the holoViewContract (v1: gains optional `entity` + `identity`). */
+/**
+ * The declared value transform a formatted @bind applies to its raw source, mirrored from the
+ * compiler's structured transform table (precision → toFixed, prefix/suffix wrap). Slice 3: an
+ * independent checker RE-APPLIES this to the authoritative twin value and compares to the DOM
+ * text — so a formatted projection ($1.20 vs a twin of 1.2) is twin-checkable instead of
+ * abstaining. Compiler-derived, never re-parsed from JSX, so it cannot become a new self-passing
+ * seam; the RAW value still comes from the INDEPENDENT authority side.
+ */
+export interface SurfaceTwinTransform {
+  /** integer digit count for toFixed; mirrors `(value ?? 0).toFixed(precision)`. */
+  precision?: number;
+  /** literal text prepended (currency, etc.). */
+  prefix?: string;
+  /** literal text appended (unit, %, etc.). */
+  suffix?: string;
+}
+
+/** A projection as recorded in the holoViewContract (v1: gains optional `entity` + `identity`;
+ *  Slice 3 gains optional `transform` for formatted binds). */
 export interface SurfaceTwinProjection {
   element: string;
   node: string;
   entity?: string;
   identity: boolean;
+  /** Slice 3: the declared value transform for a formatted (non-identity) @bind. When present,
+   *  the checker re-applies it to the authoritative value rather than abstaining. Absent for
+   *  identity projections and for un-modelable bindings (@chart/@sparkline/@each/@model). */
+  transform?: SurfaceTwinTransform;
 }
 
 export interface SurfaceTwinDivergence {
@@ -43,6 +68,9 @@ export interface SurfaceTwinDivergence {
   entity: string;
   displayed: SurfaceTwinScalar;
   authoritative: SurfaceTwinScalar;
+  /** For a formatted projection: the authoritative value AFTER the declared transform — what the
+   *  surface SHOULD have shown. Absent for identity projections (raw compares directly). */
+  expected?: SurfaceTwinScalar;
   detail: string;
 }
 
@@ -120,6 +148,26 @@ function displayEquals(a: SurfaceTwinScalar, b: SurfaceTwinScalar): boolean {
 }
 
 /**
+ * Re-apply a formatted @bind's declared transform to a raw value, EXACTLY mirroring the compiler's
+ * React render path (Native2DCompiler.buildBindContentExpr):
+ *   `${prefix}${(value ?? 0).toFixed(precision)}${suffix}`   (with precision), or
+ *   `${prefix}${(value ?? 0)}${suffix}`                       (no precision).
+ * Pure and independent of the render — the verifier applies it to the AUTHORITATIVE value, so a
+ * formatted display can be checked against the twin. A mismatch between what this computes and what
+ * the surface rendered is a real divergence (incl. a transform-drift: the surface rendered a
+ * different precision than the contract declares → the recomputed value won't match the DOM text).
+ */
+export function applyProjectionTransform(
+  raw: SurfaceTwinScalar,
+  transform: SurfaceTwinTransform
+): string {
+  const base = raw ?? 0;
+  const value =
+    transform.precision !== undefined ? Number(base).toFixed(transform.precision) : String(base);
+  return `${transform.prefix ?? ''}${value}${transform.suffix ?? ''}`;
+}
+
+/**
  * Check a surface's entity-bound projections against the authoritative twin state. FALSIFIED on
  * any divergence between a displayed value and its twin's truth; non-identity/entity-less/
  * missing cases abstain with a declared reason. sha256-bound.
@@ -136,7 +184,11 @@ export function checkSurfaceTwinCorrespondence(input: SurfaceTwinInput): Surface
       abstentions.push({ node: p.node, reason: 'no-entity-binding' });
       continue;
     }
-    if (!p.identity) {
+    // Checkable = a transform-free identity bind, OR a formatted bind whose declared transform we
+    // can re-apply (Slice 3). @chart/@sparkline/@each/@model carry no scalar value transform → they
+    // still abstain (refuse, don't guess).
+    const transform = p.transform;
+    if (!p.identity && !transform) {
       abstentions.push({ node: p.node, entity: p.entity, reason: 'non-identity-transform' });
       continue;
     }
@@ -155,13 +207,20 @@ export function checkSurfaceTwinCorrespondence(input: SurfaceTwinInput): Surface
     }
     checked++;
     const displayed = displayedValues[p.node];
-    if (!displayEquals(displayed, auth.value)) {
+    // Identity → compare raw-for-raw; formatted → re-apply the declared transform to the twin value.
+    const expected: SurfaceTwinScalar = transform
+      ? applyProjectionTransform(auth.value, transform)
+      : auth.value;
+    if (!displayEquals(displayed, expected)) {
       divergences.push({
         node: p.node,
         entity: p.entity,
         displayed,
         authoritative: auth.value,
-        detail: `surface shows ${JSON.stringify(displayed)} but twin "${p.entity}" holds ${JSON.stringify(auth.value)}`,
+        ...(transform ? { expected } : {}),
+        detail: transform
+          ? `surface shows ${JSON.stringify(displayed)} but twin "${p.entity}" holds ${JSON.stringify(auth.value)} which formats to ${JSON.stringify(expected)}`
+          : `surface shows ${JSON.stringify(displayed)} but twin "${p.entity}" holds ${JSON.stringify(auth.value)}`,
       });
     }
   }

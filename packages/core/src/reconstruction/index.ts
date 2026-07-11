@@ -55,12 +55,14 @@ export {
 export {
   checkSurfaceTwinCorrespondence,
   verifySurfaceTwinLive,
+  applyProjectionTransform,
   SURFACE_TWIN_VERSION,
 } from './SurfaceTwinReceipt';
 export type { AuthoritativeStateFetcher } from './SurfaceTwinReceipt';
 export { extractDisplayedProjections } from './extractDisplayedProjections';
 export type {
   SurfaceTwinScalar,
+  SurfaceTwinTransform,
   SurfaceTwinProjection,
   SurfaceTwinDivergence,
   SurfaceTwinAbstentionReason,

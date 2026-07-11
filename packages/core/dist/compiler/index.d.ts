@@ -61,7 +61,8 @@ export type ExportTarget =
   | 'openxr-spatial-entities'
   | 'context'
   | '3dgs'
-  | 'llama-server';
+  | 'llama-server'
+  | 'mcp-server';
 
 export interface HolomapPointCloudPayload {
   positionsB64: string;
@@ -183,6 +184,21 @@ export class WebGPUCompiler extends CompilerBase { constructor(options?: any); c
 export class SDFCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
 export class DTDLCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
 export class URDFCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
+export class HoloMCPCompiler extends CompilerBase { constructor(options?: any); compileModule(composition: any, agentToken: string, outputPath?: string): string; }
+export const DialectRegistry: {
+  register(descriptor: any): void;
+  unregister(name: string): boolean;
+  has(name: string): boolean;
+  get(name: string): any;
+  create(name: string, options?: Record<string, unknown>): CompilerBase;
+  list(): any[];
+  listByDomain(domain: string): any[];
+  names(): string[];
+  readonly size: number;
+};
+export declare function registerBuiltinDialects(): void;
+export declare function absorbFMU(input: any): any;
+export declare function streamWorldTiles(composition: any, options?: any): any;
 export class USDPhysicsCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
 export class StateCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
 export class TraitCompositionCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }

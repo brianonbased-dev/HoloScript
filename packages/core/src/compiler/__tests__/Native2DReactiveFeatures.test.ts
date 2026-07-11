@@ -957,7 +957,32 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
       const byEl = Object.fromEntries(contract.projections.map((p: any) => [p.element, p]));
       expect(byEl.Temp).toEqual({ element: 'Temp', node: 'stats.sessions', entity: 'reactor-7', identity: true });
       expect(byEl.Growth.entity).toBe('reactor-7');
-      expect(byEl.Growth.identity).toBe(false); // formatted → non-identity
+      expect(byEl.Growth.identity).toBe(false); // formatted → non-identity (twin-checked via its transform, Slice 3)
+    });
+
+    it('v1 Slice 3: a formatted @bind records its declared transform (precision/prefix/suffix) for twin checking', () => {
+      const c = verifiedComp([
+        // formatted (precision + suffix) → non-identity but records the transform, so a twin checker
+        // re-applies it to the authoritative value instead of abstaining.
+        obj('Latency', [
+          trait('text', { variant: 'h2' }),
+          trait('bind', { state: 'stats', path: 'sessions', precision: 1, suffix: 'ms' }),
+          trait('projects', { node: 'stats.sessions', entity: 'reactor-7' }),
+        ]),
+        // identity (no format keys) → NO transform field: the contract stays byte-identical to
+        // pre-Slice-3 for identity projections (the field is purely additive).
+        obj('Raw', [
+          trait('text', { variant: 'h2' }),
+          trait('bind', { state: 'stats', path: 'errors' }),
+          trait('projects', { node: 'stats.errors', entity: 'reactor-7' }),
+        ]),
+      ]);
+      const contract = JSON.parse(react(c).match(/holoViewContract = (\{[\s\S]*\}) as const;/)![1]);
+      const byEl = Object.fromEntries(contract.projections.map((p: any) => [p.element, p]));
+      expect(byEl.Latency.identity).toBe(false);
+      expect(byEl.Latency.transform).toEqual({ precision: 1, suffix: 'ms' });
+      expect(byEl.Raw.identity).toBe(true);
+      expect(byEl.Raw).not.toHaveProperty('transform');
     });
 
     it('v1: rejects a malformed twin entity id', () => {

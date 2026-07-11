@@ -6,6 +6,7 @@ export class HoloScriptRuntime {
   execute(ast: any, context?: any): Promise<any>;
   executeProgram(nodes: ASTNode[], depth?: number): Promise<ExecutionResult[]>;
   getContext(): RuntimeContext;
+  registerTrait(name: string, handler: unknown): void;
   startVisualizationServer(port?: number): void;
   reset(): void;
 }
