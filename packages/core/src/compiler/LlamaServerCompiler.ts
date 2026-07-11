@@ -212,7 +212,7 @@ const DEFAULTS = {
 // stock arch), NOT the aspirational `build/bin` path that never existed. Linux is the Jetson's HOLO
 // build (-DGGML_CUDA=ON) produced by HOLO #6; verify the clone path there before relying on it.
 const DEFAULT_HOLO_PATCHED_EXECUTABLES = {
-  windows: 'C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build-holo\\bin\\Release\\llama-server.exe',
+  windows: 'C:\\holoscript\\llama.cpp\\build-holo\\bin\\Release\\llama-server.exe',
   linux: '/opt/holoscript/llama.cpp/build-holo/bin/llama-server',
 } as const;
 
