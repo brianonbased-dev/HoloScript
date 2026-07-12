@@ -1,0 +1,59 @@
+// Native HoloShell scene source. The adjacent TSX file is an R3F adapter only.
+
+composition "NightCampfireScene" {
+  object "CameraIntent" {
+    type: "camera_target"
+    position: [0, -0.4, -2.2]
+    fov: 75
+  }
+
+  object "Campfire" {
+    type: "fire_source"
+    position: [0, -1.2, -2.3]
+    intensity: 1.0
+    color_temp: 0.62
+    embers: true
+    event: "fire_proximity"
+  }
+
+  object "FireGlowLight" {
+    type: "point_light"
+    position: [0, -0.9, -2.2]
+    intensity: 2.1
+    color: "#ff6a28"
+    distance: 8
+  }
+
+  object "NightSky" {
+    type: "environment_wall"
+    geometry: "plane"
+    position: [0, 1.4, -4.5]
+    scale: [16, 8, 1]
+    color: "#080b18"
+  }
+
+  object "Embers" {
+    type: "glow_field"
+    position: [0, -0.25, -2.4]
+    color: "#ff9a3d"
+    pulse_rate: 0.18
+    intensity: 0.5
+    count: 24
+  }
+
+  object "SceneDoor" {
+    type: "scene_door"
+    position: [-2.3, -0.7, -2.5]
+    material_type: "campfire_ring"
+    destination_scene: "ZenGardenCloseScene"
+    event: "door_opened"
+  }
+
+  object "SceneLifecycle" {
+    type: "scene_lifecycle"
+    scene_id: "NightCampfireScene"
+    on_mount: "scene.loaded"
+    on_unmount: "scene.disposed"
+    transition: "crossfade"
+  }
+}

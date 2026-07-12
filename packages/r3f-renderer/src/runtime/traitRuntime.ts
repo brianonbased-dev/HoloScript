@@ -15,7 +15,7 @@
  *
  * @cites I.007, D.012, F.099, F.037, plan §0.7 / task_1780467909796_0qfk
  */
-import type { TraitHandler, TraitContext, HSPlusNode } from '@holoscript/core';
+import type { TraitHandler, TraitContext, HSPlusNode, Vector3 } from '@holoscript/core';
 
 /** A trait handler paired with the config instance to run it with. */
 export interface RuntimeTraitBinding<C = unknown> {
@@ -83,7 +83,7 @@ export function detachTraits(
  */
 export function createTraitContext(overrides: Partial<TraitContext> = {}): TraitContext {
   const state: Record<string, unknown> = {};
-  const zero = () => ({ x: 0, y: 0, z: 0 });
+  const zero = () => [0, 0, 0] as unknown as Vector3;
   const base: TraitContext = {
     vr: {
       hands: { left: null, right: null },

@@ -39,29 +39,32 @@ const ZenGardenScene: React.FC<ZenGardenSceneProps> = ({ onNavigateRequest, onIn
     let ctx: AudioContext | null = null;
     const stops: Array<() => void> = [];
     try {
-      ctx = new ((window as any).AudioContext || (window as any).webkitAudioContext)();
-      const master = ctx.createGain();
+      const audioCtx: AudioContext = new (
+        (window as any).AudioContext || (window as any).webkitAudioContext
+      )();
+      ctx = audioCtx;
+      const master = audioCtx.createGain();
       master.gain.value = 0.035; // extremely quiet, contemplative
-      const lp = ctx.createBiquadFilter();
+      const lp = audioCtx.createBiquadFilter();
       lp.type = 'lowpass';
       lp.frequency.value = 1800;
       master.connect(lp);
-      lp.connect(ctx.destination);
+      lp.connect(audioCtx.destination);
 
       // Gravel underfoot — subtle continuous low noise with occasional soft steps
-      const gravel = ctx.createBufferSource();
-      const gravelBuffer = ctx.createBuffer(1, ctx.sampleRate * 4, ctx.sampleRate);
+      const gravel = audioCtx.createBufferSource();
+      const gravelBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 4, audioCtx.sampleRate);
       const gravelData = gravelBuffer.getChannelData(0);
       for (let i = 0; i < gravelData.length; i++) {
         gravelData[i] = (Math.random() - 0.5) * 0.6;
       }
       gravel.buffer = gravelBuffer;
-      const gravelGain = ctx.createGain();
+      const gravelGain = audioCtx.createGain();
       gravelGain.gain.value = 0.022;
-      const gravelLP = ctx.createBiquadFilter();
+      const gravelLP = audioCtx.createBiquadFilter();
       gravelLP.type = 'lowpass';
       gravelLP.frequency.value = 650;
-      const gravelEnv = ctx.createGain();
+      const gravelEnv = audioCtx.createGain();
       gravel.connect(gravelLP);
       gravelLP.connect(gravelGain);
       gravelGain.connect(gravelEnv);
@@ -70,17 +73,17 @@ const ZenGardenScene: React.FC<ZenGardenSceneProps> = ({ onNavigateRequest, onIn
       stops.push(() => gravel.stop());
 
       // Very soft wind chimes — sparse random high chimes with short decay
-      const chimeOsc = ctx.createOscillator();
+      const chimeOsc = audioCtx.createOscillator();
       chimeOsc.type = 'sine';
       chimeOsc.frequency.value = 1240;
-      const chimeGain = ctx.createGain();
+      const chimeGain = audioCtx.createGain();
       chimeGain.gain.value = 0.0;
-      const chimeLP = ctx.createBiquadFilter();
+      const chimeLP = audioCtx.createBiquadFilter();
       chimeLP.type = 'lowpass';
       chimeLP.frequency.value = 2100;
-      const chimeDelay = ctx.createDelay(0.4);
+      const chimeDelay = audioCtx.createDelay(0.4);
       chimeDelay.delayTime.value = 0.28;
-      const chimeFeedback = ctx.createGain();
+      const chimeFeedback = audioCtx.createGain();
       chimeFeedback.gain.value = 0.22;
       chimeOsc.connect(chimeLP);
       chimeLP.connect(chimeGain);
@@ -92,12 +95,12 @@ const ZenGardenScene: React.FC<ZenGardenSceneProps> = ({ onNavigateRequest, onIn
       stops.push(() => chimeOsc.stop());
 
       // Distant temple bell — very infrequent low strike with long decay
-      const bellOsc = ctx.createOscillator();
+      const bellOsc = audioCtx.createOscillator();
       bellOsc.type = 'sine';
       bellOsc.frequency.value = 178;
-      const bellGain = ctx.createGain();
+      const bellGain = audioCtx.createGain();
       bellGain.gain.value = 0.0;
-      const bellLP = ctx.createBiquadFilter();
+      const bellLP = audioCtx.createBiquadFilter();
       bellLP.type = 'lowpass';
       bellLP.frequency.value = 420;
       bellOsc.connect(bellLP);

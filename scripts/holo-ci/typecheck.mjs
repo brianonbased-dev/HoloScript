@@ -45,7 +45,7 @@ const ENFORCED = [
   'holoscript-cdn', 'framework', 'linter', 'llm-provider', 'lsp', 'marketplace-agentkit',
   'marketplace-api', 'marketplace-web', 'mcp-server', 'mcp-server-adversarial', 'memory', 'mesh',
   'mvc-schema', 'partner-sdk', 'platform', 'preview-component', 'react-agent-sdk',
-  'registry', 'runtime', 'secrets-broker', 'security-sandbox', 'snn-webgpu', 'spatial-index',
+  'r3f-renderer', 'registry', 'runtime', 'secrets-broker', 'security-sandbox', 'snn-webgpu', 'spatial-index',
   'std', 'studio', 'studio-bridge', 'studio-plugin-sdk', 'studio-ui-graph',
   'tauri-app', 'uaal', 'ui', 'video-tutorials', 'visual', 'visualizer-client',
   'vscode-extension',
@@ -55,9 +55,7 @@ const ENFORCED = [
 // Packages with KNOWN pre-existing tsc errors as of the 2026-07-12 sweep (value = error count then).
 // Tracked, NOT blocking. Most are test-file or tsconfig-include issues (see the sweep triage / the
 // follow-up board task). Fix a package to zero, then MOVE it from STAGED into ENFORCED.
-const STAGED = {
-  'r3f-renderer': 73,
-};
+const STAGED = {};
 
 function packagesWithTsconfig() {
   const dir = path.join(ROOT, 'packages');

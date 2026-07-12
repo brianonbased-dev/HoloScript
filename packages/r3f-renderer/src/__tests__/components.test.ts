@@ -69,11 +69,36 @@ describe('LODMeshNode logic', () => {
 
   it('core LODConfig maps minDistance to renderer distances', () => {
     const core = {
+      id: 'ent-1',
       entityId: 'ent-1',
       levels: [
-        { minDistance: 40, label: 'low' },
-        { minDistance: 0, label: 'high' },
-        { minDistance: 20, label: 'mid' },
+        {
+          level: 2,
+          distance: 40,
+          minDistance: 40,
+          label: 'low',
+          polygonRatio: 0.25,
+          textureScale: 0.5,
+          disabledFeatures: [],
+        },
+        {
+          level: 0,
+          distance: 0,
+          minDistance: 0,
+          label: 'high',
+          polygonRatio: 1,
+          textureScale: 1,
+          disabledFeatures: [],
+        },
+        {
+          level: 1,
+          distance: 20,
+          minDistance: 20,
+          label: 'mid',
+          polygonRatio: 0.5,
+          textureScale: 0.75,
+          disabledFeatures: [],
+        },
       ],
     };
     expect(isCoreLODConfig(core)).toBe(true);

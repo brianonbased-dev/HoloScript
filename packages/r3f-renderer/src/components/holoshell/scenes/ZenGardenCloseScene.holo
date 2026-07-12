@@ -1,0 +1,51 @@
+// Native HoloShell scene source. The adjacent TSX file is an R3F adapter only.
+
+composition "ZenGardenCloseScene" {
+  object "CameraIntent" {
+    type: "camera_target"
+    position: [0, -0.65, -1.75]
+    fov: 75
+  }
+
+  object "CloseRakedSand" {
+    type: "sand_canvas"
+    position: [0, -1.62, -1.1]
+    rotation: [-1.5708, 0, 0]
+    scale: [0.9, 0.9, 0.9]
+    sand_color: "#d8c49a"
+    rake_pattern: "zen-raked"
+    event: "sand_rake"
+  }
+
+  object "RockFocus" {
+    type: "stone_lantern"
+    position: [0.45, -0.95, -1.65]
+    material: "zen_rock"
+    emissive: "#cbb68d"
+  }
+
+  object "CloseMist" {
+    type: "glow_field"
+    position: [-0.3, 0.45, -2.3]
+    color: "#e8eaf0"
+    pulse_rate: 0.06
+    intensity: 0.18
+    count: 16
+  }
+
+  object "SceneDoor" {
+    type: "scene_door"
+    position: [1.55, -0.72, -1.85]
+    material_type: "zen_rock"
+    destination_scene: "UnderwaterScene"
+    event: "door_opened"
+  }
+
+  object "SceneLifecycle" {
+    type: "scene_lifecycle"
+    scene_id: "ZenGardenCloseScene"
+    on_mount: "scene.loaded"
+    on_unmount: "scene.disposed"
+    transition: "crossfade"
+  }
+}

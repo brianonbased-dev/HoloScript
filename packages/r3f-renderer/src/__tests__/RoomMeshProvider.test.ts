@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { roomMeshHandler } from '../../../core/src/traits/RoomMeshTrait';
+import { roomMeshHandler } from '@holoscript/core/traits';
 import {
   RoomMeshProvider,
   createRoomMeshProvider,
@@ -70,7 +70,7 @@ function sendEvent(
   node: Record<string, unknown>,
   config: unknown,
   ctx: ReturnType<typeof createMockContext>,
-  event: unknown
+  event: Parameters<NonNullable<typeof roomMeshHandler.onEvent>>[3]
 ) {
   handler.onEvent?.(node as any, config as any, ctx as any, event);
 }

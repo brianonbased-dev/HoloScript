@@ -8,7 +8,7 @@
  * absent-splice-point safety, and uniform registration.
  */
 import { describe, it, expect } from 'vitest';
-import { LOTUS_PETAL_CHUNK_ENTRIES } from '../../../core/src/traits/BotanicalLotusTrait';
+import { LOTUS_PETAL_CHUNK_ENTRIES } from '@holoscript/core/traits/botanical-lotus';
 import {
   makeChunkInjector,
   type InjectableShader,

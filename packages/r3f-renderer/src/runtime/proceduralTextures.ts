@@ -79,8 +79,10 @@ export function resolveProceduralData(spec: ProceduralTextureSpec): ProceduralPi
 
 /** Convert RGBA8 pixel data to a three.js DataTexture (GL-free construction). */
 export function proceduralDataToTexture(data: ProceduralPixelData): THREE.DataTexture {
+  const pixels = new Uint8Array(new ArrayBuffer(data.data.byteLength));
+  pixels.set(data.data);
   const tex = new THREE.DataTexture(
-    data.data,
+    pixels,
     data.width,
     data.height,
     THREE.RGBAFormat,

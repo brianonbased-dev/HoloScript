@@ -1,0 +1,71 @@
+// Native HoloShell scene source. The adjacent TSX file is an R3F adapter only.
+
+composition "WarmLibraryScene" {
+  object "CameraIntent" {
+    type: "camera_target"
+    position: [0.2, -0.35, -2.1]
+    fov: 75
+  }
+
+  object "BookcaseWall" {
+    type: "environment_wall"
+    geometry: "plane"
+    position: [0, 0.8, -4.25]
+    scale: [14, 8, 1]
+    color: "#1f1812"
+    material: "rough_wood"
+  }
+
+  object "Fireplace" {
+    type: "fire_source"
+    position: [0, -1.18, -2.38]
+    intensity: 0.98
+    color_temp: 0.58
+    embers: true
+    event: "fire_proximity"
+  }
+
+  object "FireGlowLight" {
+    type: "point_light"
+    position: [0, -1.0, -2.25]
+    intensity: 1.85
+    color: "#ff6622"
+    distance: 7.5
+  }
+
+  object "DustMotes" {
+    type: "glow_field"
+    position: [0.3, 1.65, -2.8]
+    color: "#ffcc77"
+    pulse_rate: 0.11
+    intensity: 0.38
+    count: 26
+  }
+
+  object "DriftingPaper" {
+    type: "leaf_field"
+    position: [-1.9, 0.75, -2.15]
+    count: 6
+    drift_speed: 0.065
+    color: "#c9b38a"
+    wind: true
+    event: "leaf_touch"
+  }
+
+  object "SceneDoor" {
+    type: "scene_door"
+    position: [2.8, -0.35, -2.65]
+    rotation: [0.01, -0.04, 0.005]
+    material_type: "bookshelf"
+    destination_scene: "ZenGardenScene"
+    event: "door_opened"
+  }
+
+  object "SceneLifecycle" {
+    type: "scene_lifecycle"
+    scene_id: "WarmLibraryScene"
+    on_mount: "scene.loaded"
+    on_unmount: "scene.disposed"
+    transition: "crossfade"
+  }
+}

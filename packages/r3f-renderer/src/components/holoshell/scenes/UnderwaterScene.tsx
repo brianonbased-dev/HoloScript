@@ -42,25 +42,28 @@ const UnderwaterScene: React.FC<UnderwaterSceneProps> = ({ onNavigateRequest, on
     let ctx: AudioContext | null = null;
     const stops: Array<() => void> = [];
     try {
-      ctx = new ((window as any).AudioContext || (window as any).webkitAudioContext)();
-      const master = ctx.createGain();
+      const audioCtx: AudioContext = new (
+        (window as any).AudioContext || (window as any).webkitAudioContext
+      )();
+      ctx = audioCtx;
+      const master = audioCtx.createGain();
       master.gain.value = 0.055; // very faint ambient
-      const lp = ctx.createBiquadFilter();
+      const lp = audioCtx.createBiquadFilter();
       lp.type = 'lowpass';
       lp.frequency.value = 520;
       master.connect(lp);
-      lp.connect(ctx.destination);
+      lp.connect(audioCtx.destination);
 
       // soft_current_flow — ultra-low sine with slow LFO drift
-      const flow = ctx.createOscillator();
+      const flow = audioCtx.createOscillator();
       flow.type = 'sine';
       flow.frequency.value = 29;
-      const flowG = ctx.createGain();
+      const flowG = audioCtx.createGain();
       flowG.gain.value = 0.65;
-      const lfo = ctx.createOscillator();
+      const lfo = audioCtx.createOscillator();
       lfo.type = 'sine';
       lfo.frequency.value = 0.06;
-      const lfoG = ctx.createGain();
+      const lfoG = audioCtx.createGain();
       lfoG.gain.value = 3.2;
       lfo.connect(lfoG);
       lfoG.connect(flow.frequency);
@@ -76,19 +79,19 @@ const UnderwaterScene: React.FC<UnderwaterSceneProps> = ({ onNavigateRequest, on
       });
 
       // underwater_ambience — soft filtered noise wash (bubbles/current)
-      const nBuf = ctx.createBuffer(1, ctx.sampleRate * 2.8, ctx.sampleRate);
+      const nBuf = audioCtx.createBuffer(1, audioCtx.sampleRate * 2.8, audioCtx.sampleRate);
       const nd = nBuf.getChannelData(0);
       for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
-      const noise = ctx.createBufferSource();
+      const noise = audioCtx.createBufferSource();
       noise.buffer = nBuf;
       noise.loop = true;
-      const nG = ctx.createGain();
+      const nG = audioCtx.createGain();
       nG.gain.value = 0.32;
-      const bp = ctx.createBiquadFilter();
+      const bp = audioCtx.createBiquadFilter();
       bp.type = 'bandpass';
       bp.frequency.value = 155;
       bp.Q.value = 0.55;
-      const nlp = ctx.createBiquadFilter();
+      const nlp = audioCtx.createBiquadFilter();
       nlp.type = 'lowpass';
       nlp.frequency.value = 680;
       noise.connect(bp);

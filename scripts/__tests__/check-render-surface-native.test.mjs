@@ -66,6 +66,12 @@ function run(dir, extra = []) {
   });
   return { code: r.status, out: (r.stdout || '') + (r.stderr || '') };
 }
+function runWithRoots(dir, roots, extra = []) {
+  const r = spawnSync(process.execPath, [SCRIPT, '--root', dir, '--roots', roots, ...extra], {
+    encoding: 'utf8',
+  });
+  return { code: r.status, out: (r.stdout || '') + (r.stderr || '') };
+}
 function addFile(dir, rel, body) {
   const abs = join(dir, ROOTS, rel);
   mkdirSync(dirname(abs), { recursive: true });
@@ -218,6 +224,52 @@ console.log('check-render-surface-native.test.mjs');
     /SURFACE-GREW\s+packages\/r3f-renderer\/src\/Mine\.tsx/,
     'names the staged offender'
   );
+  cleanup(dir);
+}
+
+// 9. HoloShell scene adapters are stricter than the generic allowlist: even grandfathered
+//    hand-authored scene TSX must have sibling native source ownership.
+{
+  const dir = setup({
+    'components/holoshell/scenes/HandScene.tsx': 'export const HandScene = () => <group />;\n',
+  });
+  run(dir, ['--update']);
+  const missing = run(dir);
+  assertEq(
+    missing.code,
+    1,
+    'allowlisted HoloShell scene TSX without native sibling source -> exit 1'
+  );
+  assertMatch(
+    missing.out,
+    /NATIVE-SOURCE-MISSING\s+packages\/r3f-renderer\/src\/components\/holoshell\/scenes\/HandScene\.tsx/,
+    'names HoloShell scene lacking native source'
+  );
+  addFile(
+    dir,
+    'components/holoshell/scenes/HandScene.holo',
+    'composition "Hand Scene" { object "SceneLifecycle" { scene_id: "HandScene" } }\n'
+  );
+  const fixed = run(dir);
+  assertEq(fixed.code, 0, 'HoloShell scene TSX with sibling native source -> exit 0');
+  cleanup(dir);
+}
+
+// 10. A focused --roots run reconciles only entries under the active roots; studio allowlist
+//     entries must not appear as false SURFACE-SHRANK errors during an r3f-only ratchet.
+{
+  const dir = setup({ 'Legacy.tsx': 'export const L = () => <mesh />;\n' });
+  mkdirSync(join(dir, 'packages', 'studio', 'src'), { recursive: true });
+  writeFileSync(join(dir, 'packages', 'studio', 'src', 'LegacyStudio.tsx'), 'export const S = () => null;\n');
+  addFile(dir, 'components/holoshell/scenes/OwnedScene.tsx', 'export const O = () => <group />;\n');
+  addFile(
+    dir,
+    'components/holoshell/scenes/OwnedScene.holo',
+    'composition "Owned Scene" { object "SceneLifecycle" { scene_id: "OwnedScene" } }\n'
+  );
+  runWithRoots(dir, 'packages/r3f-renderer/src,packages/studio/src', ['--update']);
+  const r = runWithRoots(dir, 'packages/r3f-renderer/src');
+  assertEq(r.code, 0, 'focused r3f --roots ignores out-of-scope studio allowlist entries');
   cleanup(dir);
 }
 

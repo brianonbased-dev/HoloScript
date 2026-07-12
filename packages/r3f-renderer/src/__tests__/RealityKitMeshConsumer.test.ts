@@ -6,7 +6,7 @@
  */
 
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { realityKitMeshHandler } from '../../../core/src/traits/RealityKitMeshTrait';
+import { realityKitMeshHandler } from '@holoscript/core/traits';
 import {
   RealityKitMeshConsumer,
   createRealityKitMeshConsumer,
@@ -25,7 +25,7 @@ class TestBus implements RealityKitMeshEventBus {
     return () => this.listeners.get(event)?.delete(wrapped);
   }
 
-  emit<T = unknown>(event: string, payload: T): void {
+  emit<T = unknown>(event: string, payload?: T): void {
     this.emitted.push({ event, payload });
     for (const callback of this.listeners.get(event) ?? []) callback(payload);
   }
@@ -84,7 +84,7 @@ function sendEvent(
   node: Record<string, unknown>,
   config: unknown,
   ctx: ReturnType<typeof createMockContext>,
-  event: unknown
+  event: Parameters<NonNullable<typeof realityKitMeshHandler.onEvent>>[3]
 ) {
   handler.onEvent?.(node as any, config as any, ctx as any, event);
 }

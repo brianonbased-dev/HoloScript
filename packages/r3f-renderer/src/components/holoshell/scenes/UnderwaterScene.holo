@@ -1,0 +1,75 @@
+// Native HoloShell scene source. The adjacent TSX file is an R3F adapter only.
+
+composition "UnderwaterScene" {
+  object "CameraIntent" {
+    type: "camera_target"
+    position: [0.1, -0.6, -1.8]
+    fov: 75
+  }
+
+  object "GlassPanel" {
+    type: "glass_panel"
+    geometry: "plane"
+    position: [0, 0, 2.35]
+    scale: [13, 9, 1]
+    color: "#aaccff"
+    transmission: 0.92
+    opacity: 0.15
+  }
+
+  object "SandFloor" {
+    type: "sand_canvas"
+    position: [0, -1.82, -1.5]
+    rotation: [-1.5708, 0, 0]
+    sand_color: "#c8b57a"
+    underwater: true
+    rake_pattern: "ripple"
+    event: "sand_ripple"
+  }
+
+  object "WaterSurface" {
+    type: "water_surface"
+    position: [0, 1.55, -1.55]
+    rotation: [-1.508, 0.04, 0]
+    color: "#1a6fa8"
+    light_rays: true
+    ray_count: 6
+    ray_opacity: 0.38
+    caustics: true
+  }
+
+  object "BubbleField" {
+    type: "bubble_field"
+    position: [0, -1.48, -2.05]
+    count: 20
+    float_speed: 0.25
+    respawn: true
+    event: "bubble_pop"
+  }
+
+  object "KelpGlow" {
+    type: "glow_field"
+    position: [1.0, 0.05, -2.55]
+    color: "#20ff8a"
+    pulse_rate: 0.3
+    intensity: 0.58
+    count: 14
+  }
+
+  object "SceneDoor" {
+    type: "scene_door"
+    position: [-1.2, -0.82, -2.05]
+    rotation: [0.03, 0.12, -0.01]
+    material_type: "underwater_rock"
+    destination_scene: "WarmLibraryScene"
+    event: "door_opened"
+  }
+
+  object "SceneLifecycle" {
+    type: "scene_lifecycle"
+    scene_id: "UnderwaterScene"
+    on_mount: "scene.loaded"
+    on_unmount: "scene.disposed"
+    transition: "crossfade"
+  }
+}

@@ -13,7 +13,7 @@
  * @cites I.007, plan §0.7 / task_1780467909796_0qfk
  */
 import { useEffect } from 'react';
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { useFrame } from '@react-three/fiber';
 import type { TraitContext, HSPlusNode } from '@holoscript/core';
 import {
@@ -42,7 +42,7 @@ export function RuntimeTraitHost({
   context,
   maxDelta = DEFAULT_MAX_DELTA,
   children,
-}: RuntimeTraitHostProps): JSX.Element {
+}: RuntimeTraitHostProps): ReactElement {
   useEffect(() => {
     attachTraits(node, traits, context);
     return () => detachTraits(node, traits, context);

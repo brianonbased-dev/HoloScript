@@ -8,8 +8,8 @@
  * the stall-guard delta clamp, and config fallback, plus a real registered handler.
  */
 import { describe, it, expect } from 'vitest';
-import type { TraitHandler, HSPlusNode } from '../../../core/src/traits/TraitTypes';
-import { eventTraitHandler } from '../../../core/src/events/EventTrait';
+import type { TraitHandler, HSPlusNode } from '@holoscript/core';
+import { perceptualColorHandler } from '@holoscript/core/traits';
 import {
   attachTraits,
   tickTraits,
@@ -116,8 +116,8 @@ describe('traitRuntime — per-frame trait execution core', () => {
   it('integrates a REAL registered trait handler through the full lifecycle without throwing', () => {
     const ctx = createTraitContext();
     const binding: RuntimeTraitBinding = {
-      handler: eventTraitHandler as unknown as TraitHandler,
-      config: (eventTraitHandler.defaultConfig ?? {}) as unknown,
+      handler: perceptualColorHandler as unknown as TraitHandler,
+      config: (perceptualColorHandler.defaultConfig ?? {}) as unknown,
     };
     expect(() => {
       attachTraits(node, [binding], ctx);

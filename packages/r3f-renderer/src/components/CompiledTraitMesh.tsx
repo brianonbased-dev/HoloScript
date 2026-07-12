@@ -15,7 +15,7 @@
  * @cites I.007, plan §0.7, task_1780604509863_w7i9 (assembly)
  */
 import { useEffect, useMemo } from 'react';
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { useFrame } from '@react-three/fiber';
 import type { TraitContext, HSPlusNode } from '@holoscript/core';
 import {
@@ -55,7 +55,7 @@ export function CompiledTraitMesh({
   scale,
   maxDelta = DEFAULT_MAX_DELTA,
   children,
-}: CompiledTraitMeshProps): JSX.Element {
+}: CompiledTraitMeshProps): ReactElement {
   const { material: mat, chunkHandle } = useMemo(() => buildCompiledMaterial(material), [material]);
 
   useEffect(() => {

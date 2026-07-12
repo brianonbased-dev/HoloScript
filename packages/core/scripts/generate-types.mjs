@@ -4706,6 +4706,71 @@ export interface PerceptualColorState {
 }
 export const perceptualColorHandler: TraitHandler<PerceptualColorConfig>;
 
+export type MeshClassification =
+  | 'none'
+  | 'wall'
+  | 'floor'
+  | 'ceiling'
+  | 'table'
+  | 'seat'
+  | 'window'
+  | 'door'
+  | 'stairs'
+  | 'bed'
+  | 'counter'
+  | 'unknown';
+export interface RealityKitMeshConfig {
+  mesh_classification: boolean;
+  physics_enabled: boolean;
+  occlusion_enabled: boolean;
+  collision_margin: number;
+  update_frequency: number;
+  max_anchor_distance: number;
+  render_wireframe: boolean;
+}
+export const realityKitMeshHandler: TraitHandler<RealityKitMeshConfig>;
+
+export type RoomMeshResolution = 'low' | 'medium' | 'high';
+export type SemanticSurface = 'floor' | 'wall' | 'ceiling' | 'furniture' | 'unknown';
+export interface RoomMeshConfig {
+  resolution: RoomMeshResolution;
+  update_rate: number;
+  semantic_labeling: boolean;
+  room_boundary_detection: boolean;
+  physics_collider: boolean;
+  merge_adjacent_blocks: boolean;
+  visible: boolean;
+  wireframe: boolean;
+}
+export const roomMeshHandler: TraitHandler<RoomMeshConfig>;
+
+export type ReconstructionMode =
+  | 'realtime'
+  | 'high_fidelity'
+  | 'room_scan'
+  | 'object_scan'
+  | 'semantic_mesh';
+export type MeshDetail = 'low' | 'medium' | 'high';
+export type SemanticLabel =
+  | 'floor'
+  | 'ceiling'
+  | 'wall'
+  | 'table'
+  | 'chair'
+  | 'window'
+  | 'door'
+  | 'unknown';
+export interface SceneReconstructionConfig {
+  reconstruction_mode: ReconstructionMode;
+  mesh_detail: MeshDetail;
+  semantic_labeling: boolean;
+  physics_collision: boolean;
+  occlusion_enabled: boolean;
+  update_interval_ms: number;
+  max_mesh_faces: number;
+}
+export const sceneReconstructionHandler: TraitHandler<SceneReconstructionConfig>;
+
 export interface AccessibilityContext {
   screenReader?: boolean;
   highContrast?: boolean;
@@ -5211,6 +5276,67 @@ export declare const LOTUS_PETAL_SHADER_CHUNKS: {
   readonly fragmentColorInjection: string;
   readonly fragmentEmissiveInjection: string;
 };
+
+export interface LotusShaderChunkEntry {
+  stage: 'vertex' | 'fragment';
+  include: string;
+  code: string;
+}
+export declare const LOTUS_PETAL_CHUNK_ENTRIES: readonly LotusShaderChunkEntry[];
+export interface LotusCompiledPhysicalProps {
+  color?: string;
+  roughness?: number;
+  metalness?: number;
+  opacity?: number;
+  transparent?: boolean;
+  emissive?: string;
+  emissiveIntensity?: number;
+  ior?: number;
+  clearcoat?: number;
+  clearcoatRoughness?: number;
+  transmission?: number;
+  thickness?: number;
+  sheen?: number;
+  sheenColor?: string;
+  sheenRoughness?: number;
+  specularIntensity?: number;
+  iridescence?: number;
+}
+export interface LotusCompiledShaderChunkSet {
+  chunks: LotusShaderChunkEntry[];
+  uniforms?: Record<string, { value: unknown }>;
+}
+export interface LotusCompiledProceduralSpec {
+  generator: string;
+  params?: Record<string, unknown>;
+}
+export interface LotusCompiledMaterialSpec {
+  physical?: LotusCompiledPhysicalProps;
+  shaderChunks?: LotusCompiledShaderChunkSet;
+  proceduralMaps?: {
+    normalMap?: LotusCompiledProceduralSpec;
+    roughnessMap?: LotusCompiledProceduralSpec;
+    map?: LotusCompiledProceduralSpec;
+  };
+}
+export interface LotusPetalDynamicUniforms {
+  devTime: number;
+  curlScale: number;
+  growth: number;
+  bloom: number;
+  time: number;
+}
+export interface BuildLotusPetalMaterialSpecOptions {
+  detailMapSize?: number;
+  veinSeed?: number;
+  roughnessSeed?: number;
+  dynamic?: Partial<LotusPetalDynamicUniforms>;
+}
+export declare const LOTUS_PETAL_UNIFORM_BINDINGS: Readonly<Record<string, string>>;
+export declare function buildLotusPetalMaterialSpec(
+  profile: BotanicalLotusRenderProfile,
+  options?: BuildLotusPetalMaterialSpecOptions
+): LotusCompiledMaterialSpec;
 
 // --- Procedural texture data (three-free; renderer wraps in DataTexture) ------
 

@@ -22,7 +22,7 @@ import {
   LOTUS_PETAL_UNIFORM_BINDINGS,
   generateBotanicalNormalMap,
   generateBotanicalRoughnessMap,
-} from '../../../core/src/traits/BotanicalLotusTrait';
+} from '@holoscript/core/traits/botanical-lotus';
 import {
   registerProceduralTexture,
   clearProceduralTextures,
