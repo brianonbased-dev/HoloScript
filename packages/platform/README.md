@@ -38,12 +38,23 @@ Package installation proves the local API surface. Hosted HoloKey/x402 payment,
 wallet custody, and identity-service availability still require separate live
 endpoint receipts.
 
+The live-service receipt gate is secret-safe by default. It probes hosted
+service health and HoloMesh registration-challenge availability without API
+keys, wallet private keys, signing, payment execution, identity creation, or
+wallet environment mutation, and it records only sanitized hashes for canary
+inputs:
+
+```bash
+corepack pnpm run check:platform-live-service-receipt
+```
+
 ## Validation
 
 ```bash
 corepack pnpm --filter @holoscript/platform run test
 corepack pnpm run check:registry-cold-start:platform-public-api
 corepack pnpm run check:package-consumption
+corepack pnpm run check:platform-live-service-receipt
 corepack pnpm run check:publish-surface
 corepack pnpm run check:package-architecture
 corepack pnpm run package:opportunity-map
