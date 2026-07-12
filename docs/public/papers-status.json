@@ -1,15 +1,15 @@
 {
   "schema": "paper-audit-matrix.v2",
-  "generatedAt": "2026-06-10T06:44:14.000Z",
+  "generatedAt": "2026-07-12T23:55:42.414Z",
   "canonicalRouterPath": "research/paper-audit-matrix.md",
-  "matrixSourcePath": "research/paper-audit-matrix/front-matrix.md",
-  "scriptCommit": "8de85b291477cbbd0729f26f3be14e4eeca9f5d7",
+  "matrixSourcePath": "research/paper-audit-matrix/front-matrix-core-papers.md",
+  "scriptCommit": "e4b00fbc9ceb628c18a898297576ce2aff46f4d3",
   "totals": {
     "papers": 17,
     "cellsByToken": {
-      "✅": 215,
-      "⚠️": 35,
-      "❌": 8,
+      "✅": 222,
+      "⚠️": 29,
+      "❌": 7,
       "➖": 14
     }
   },
@@ -38,8 +38,8 @@
       "target": "~~AAMAS '26~~ → AAMAS '27 (NOT SUBMITTED)",
       "basename": "paper-0c-cael-aamas.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-0c-cael-aamas.tex",
-      "loc": 1686,
-      "sha256Prefix": "7ab3c7be",
+      "loc": 1707,
+      "sha256Prefix": "39d9d98e",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -103,16 +103,26 @@
           "evidence": "scaling memo cited or quantified scale-out claim with heading"
         },
         "staleness": {
-          "token": "⚠️",
-          "evidence": "0 open \\todo{}, 4d since last commit"
+          "token": "✅",
+          "evidence": "0 open \\todo{}, 8d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "6f82d3baa168ec6be661b5b4534b530b19e9b717",
-        "isoDate": "2026-06-05T13:21:27-07:00",
-        "subject": "docs(papers): novelty-defensibility rescopes — P1 physics-solver/recorder-replayer framing, P0c solver-computed-state, P26 tightening + bib citation fixes (Tool Receipts, NabaOS, Faramesh, ToolGate, Zhou)"
+        "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
+        "isoDate": "2026-07-04T04:08:21-07:00",
+        "subject": "docs(papers): canon realignment item 4 -- name sovereignty across 19 abstracts"
       },
       "recentCommits": [
+        {
+          "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
+          "isoDate": "2026-07-04T04:08:21-07:00",
+          "subject": "docs(papers): canon realignment item 4 -- name sovereignty across 19 abstracts"
+        },
+        {
+          "hash": "2ab3928dfdd38da97e53e19763c22594713651f2",
+          "isoDate": "2026-06-16T14:42:36-07:00",
+          "subject": "research(papers): add Jetson edge-deploy to CAEL; H1 language ext to HS Core; cognitive trait sequencing to HSPlus"
+        },
         {
           "hash": "6f82d3baa168ec6be661b5b4534b530b19e9b717",
           "isoDate": "2026-06-05T13:21:27-07:00",
@@ -127,16 +137,6 @@
           "hash": "28dfe73caa17e3b4a20cfcd0645ecd8a40f83f96",
           "isoDate": "2026-05-25T00:44:24-07:00",
           "subject": "feat(papers): reconcile HoloScript-only content into ai-ecosystem canonical (founder ruling 2026-05-25)"
-        },
-        {
-          "hash": "e69d900c61c929243068911ea215b5c9bb118d80",
-          "isoDate": "2026-05-24T19:06:15-07:00",
-          "subject": "docs(ecosystem): narrow novelty prior-art claims"
-        },
-        {
-          "hash": "9f2855adc9205738d6efae27d4a1e079694d94ca",
-          "isoDate": "2026-05-20T18:20:57-07:00",
-          "subject": "docs(papers): cite EmbeddingTrait real adapters (OnnxRuntime + NeuralForge) in Paper 8 JEPA, Paper 0c CAEL, Paper 5 GraphRAG"
         }
       ]
     },
@@ -146,8 +146,8 @@
       "target": "USENIX Sec '26",
       "basename": "paper-1-mcp-trust-usenix.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-1-mcp-trust-usenix.tex",
-      "loc": 1852,
-      "sha256Prefix": "0febe0a8",
+      "loc": 1868,
+      "sha256Prefix": "a6325f4e",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -188,7 +188,7 @@
         },
         "citations": {
           "token": "✅",
-          "evidence": "22 distinct cite keys, \\bibliography{holoscript} present"
+          "evidence": "24 distinct cite keys, \\bibliography{holoscript} present"
         },
         "empClaims": {
           "token": "✅",
@@ -211,16 +211,26 @@
           "evidence": "scaling memo cited or quantified scale-out claim with heading"
         },
         "staleness": {
-          "token": "⚠️",
-          "evidence": "0 open \\todo{}, 1d since last commit"
+          "token": "✅",
+          "evidence": "0 open \\todo{}, 8d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "b9d1bc12aa6db6546030209175710c5fc0ae2ae3",
-        "isoDate": "2026-06-08T16:30:44-07:00",
-        "subject": "fix(paper-1): correct NabaOS mischaracterisation — pull from call-surface to result-level re-execution (novelty-defensibility P1 fix)"
+        "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
+        "isoDate": "2026-07-04T04:08:21-07:00",
+        "subject": "docs(papers): canon realignment item 4 -- name sovereignty across 19 abstracts"
       },
       "recentCommits": [
+        {
+          "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
+          "isoDate": "2026-07-04T04:08:21-07:00",
+          "subject": "docs(papers): canon realignment item 4 -- name sovereignty across 19 abstracts"
+        },
+        {
+          "hash": "46f5f0b4e69c6d87f360533a2e983b71e1d32eec",
+          "isoDate": "2026-06-20T23:22:42-07:00",
+          "subject": "docs(ecosystem): add Paper 1 verifier related work"
+        },
         {
           "hash": "b9d1bc12aa6db6546030209175710c5fc0ae2ae3",
           "isoDate": "2026-06-08T16:30:44-07:00",
@@ -235,16 +245,6 @@
           "hash": "b1c8d35e9a1e60e9a976ffe4e2a3a19793f30872",
           "isoDate": "2026-06-02T13:14:45-07:00",
           "subject": "research(paper-1): scope 'first' claims to sim-result-replay island, cite concurrent MCP-trust prior art, strip internal tokens, fix negative-overhead framing"
-        },
-        {
-          "hash": "91ecdc33829f29b3a5e8b73876e4766e9a52b434",
-          "isoDate": "2026-06-02T12:16:33-07:00",
-          "subject": "fix(papers): correct confabulated bib entries + broken Hou et al. arXiv ID"
-        },
-        {
-          "hash": "a00680e49c260f8d2bb6c523e34c5a1d4711f25e",
-          "isoDate": "2026-05-28T16:44:37-07:00",
-          "subject": "fix(papers): program-wide codebase-reflection drift sweep — close stale claims across 8 papers"
         }
       ]
     },
@@ -254,8 +254,8 @@
       "target": "NeurIPS",
       "basename": "paper-2-snn-neurips.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-2-snn-neurips.tex",
-      "loc": 1349,
-      "sha256Prefix": "19d6f918",
+      "loc": 1371,
+      "sha256Prefix": "bf633d25",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -296,7 +296,7 @@
         },
         "citations": {
           "token": "✅",
-          "evidence": "26 distinct cite keys, \\bibliography{holoscript} present"
+          "evidence": "27 distinct cite keys, \\bibliography{holoscript} present"
         },
         "empClaims": {
           "token": "✅",
@@ -320,15 +320,25 @@
         },
         "staleness": {
           "token": "✅",
-          "evidence": "0 open \\todo{}, 7d since last commit"
+          "evidence": "0 open \\todo{}, 8d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "64fb139cd60b4d374e82d07d334d99d7c94faf7e",
-        "isoDate": "2026-06-02T13:32:34-07:00",
-        "subject": "research(p2): re-center SNN paper on per-spike provenance, demote concurrent claims, mark mW projected"
+        "hash": "ef367f56ec83e498eff0d1c2e3b43930e8ef8ade",
+        "isoDate": "2026-07-04T03:55:11-07:00",
+        "subject": "docs(papers): realign the 3 built-on-weak-canon papers to strong canon"
       },
       "recentCommits": [
+        {
+          "hash": "ef367f56ec83e498eff0d1c2e3b43930e8ef8ade",
+          "isoDate": "2026-07-04T03:55:11-07:00",
+          "subject": "docs(papers): realign the 3 built-on-weak-canon papers to strong canon"
+        },
+        {
+          "hash": "ddd3019d94cad3f53239dfb3a9c494e3d2a115de",
+          "isoDate": "2026-06-13T13:56:53-07:00",
+          "subject": "docs(papers): novelty rescopes P2/P6/P8/P10 — journalist-verified prior art, critic-audited"
+        },
         {
           "hash": "64fb139cd60b4d374e82d07d334d99d7c94faf7e",
           "isoDate": "2026-06-02T13:32:34-07:00",
@@ -343,16 +353,6 @@
           "hash": "6c950c8a51e1f0d931ee58b607a0e4095b3a7185",
           "isoDate": "2026-05-26T04:21:27-07:00",
           "subject": "docs(core): green paper 2 engineering readiness"
-        },
-        {
-          "hash": "eaa4803684683b7bb4931abe936f837babfc62e0",
-          "isoDate": "2026-05-24T19:10:40-07:00",
-          "subject": "docs(ecosystem): add Paper 2 WebGL SNN prior art"
-        },
-        {
-          "hash": "e69d900c61c929243068911ea215b5c9bb118d80",
-          "isoDate": "2026-05-24T19:06:15-07:00",
-          "subject": "docs(ecosystem): narrow novelty prior-art claims"
         }
       ]
     },
@@ -362,8 +362,8 @@
       "target": "ECOOP '27",
       "basename": "paper-3-crdt-ecoop.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-3-crdt-ecoop.tex",
-      "loc": 2278,
-      "sha256Prefix": "f1c73205",
+      "loc": 2283,
+      "sha256Prefix": "ca407c1b",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -427,16 +427,21 @@
           "evidence": "scaling memo cited or quantified scale-out claim with heading"
         },
         "staleness": {
-          "token": "⚠️",
-          "evidence": "0 open \\todo{}, 4d since last commit"
+          "token": "✅",
+          "evidence": "0 open \\todo{}, 8d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "3d7226e9616ca58ce323e1d162ed0208a01e5f40",
-        "isoDate": "2026-06-05T13:47:11-07:00",
-        "subject": "docs(papers): P5 rescope (cite knowing, demote bare-binding claim, promote cascade-inheritance+degradation-envelope) + P3 cite park2019 contrast baseline — novelty-defensibility kill-risk resolutions"
+        "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
+        "isoDate": "2026-07-04T04:08:21-07:00",
+        "subject": "docs(papers): canon realignment item 4 -- name sovereignty across 19 abstracts"
       },
       "recentCommits": [
+        {
+          "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
+          "isoDate": "2026-07-04T04:08:21-07:00",
+          "subject": "docs(papers): canon realignment item 4 -- name sovereignty across 19 abstracts"
+        },
         {
           "hash": "3d7226e9616ca58ce323e1d162ed0208a01e5f40",
           "isoDate": "2026-06-05T13:47:11-07:00",
@@ -456,11 +461,6 @@
           "hash": "65808bd5e656936623c339a2a5c0935753f50d44",
           "isoDate": "2026-05-25T01:13:08-07:00",
           "subject": "feat(paper-3): port Production CRDT Consumer paragraph from HoloScript (parity reconciliation)"
-        },
-        {
-          "hash": "2db0095b9f3e829f447a4d7a2e781a3b06c52d8e",
-          "isoDate": "2026-05-21T05:40:38-07:00",
-          "subject": "fix(paper-3): downgrade emergent-spacetime contract — flatness check, not GR validation"
         }
       ]
     },
@@ -470,8 +470,8 @@
       "target": "USENIX Sec '27",
       "basename": "paper-4-sandbox-usenix.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-4-sandbox-usenix.tex",
-      "loc": 2875,
-      "sha256Prefix": "1a5a77ad",
+      "loc": 2890,
+      "sha256Prefix": "508738ea",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -535,16 +535,26 @@
           "evidence": "scaling memo cited or quantified scale-out claim with heading"
         },
         "staleness": {
-          "token": "⚠️",
-          "evidence": "0 open \\todo{}, 1d since last commit"
+          "token": "✅",
+          "evidence": "0 open \\todo{}, 8d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "f72b0dcb7385d868a6cf11cb25f49a974a6ebc46",
-        "isoDate": "2026-06-08T13:45:32-07:00",
-        "subject": "fix(papers): P4 decoder cost + P11 twin test — flip both matrix cells to green (paper-gap tasks rwkt/ef9k)"
+        "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
+        "isoDate": "2026-07-04T04:08:21-07:00",
+        "subject": "docs(papers): canon realignment item 4 -- name sovereignty across 19 abstracts"
       },
       "recentCommits": [
+        {
+          "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
+          "isoDate": "2026-07-04T04:08:21-07:00",
+          "subject": "docs(papers): canon realignment item 4 -- name sovereignty across 19 abstracts"
+        },
+        {
+          "hash": "3f13443e2d13335afd6cca5f52c30976439b544d",
+          "isoDate": "2026-06-13T00:16:25-07:00",
+          "subject": "docs(papers): commence-all defensibility pass — P4/P11/P12 citation+scope fixes, P5/P3 kill-risks resolved by source-read, matrix refresh"
+        },
         {
           "hash": "f72b0dcb7385d868a6cf11cb25f49a974a6ebc46",
           "isoDate": "2026-06-08T13:45:32-07:00",
@@ -559,16 +569,6 @@
           "hash": "07cc9bfbe82155ef2df2a08ed9fe533d50412c8c",
           "isoDate": "2026-06-02T13:08:09-07:00",
           "subject": "research(paper-4): adversarial-security qualifier + cite PhysVEC + drop GPU-accel novelty + fix texttt corruption"
-        },
-        {
-          "hash": "d9e333fc4f306b0486670e138ffe3677004f83ee",
-          "isoDate": "2026-05-29T21:46:06-07:00",
-          "subject": "research(paper-4): re-point sandbox-overhead citation to genuine harness artifact"
-        },
-        {
-          "hash": "1d6dd95862118baea2f8a1961990201ca69e61a9",
-          "isoDate": "2026-05-28T18:26:39-07:00",
-          "subject": "fix(paper-4): replace H3 projection with real A100 SXM4 capture from vast.ai"
         }
       ]
     },
@@ -578,8 +578,8 @@
       "target": "ICSE '27",
       "basename": "paper-5-graphrag-icse.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-5-graphrag-icse.tex",
-      "loc": 2019,
-      "sha256Prefix": "ee8ca8da",
+      "loc": 2045,
+      "sha256Prefix": "ca2013fd",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -643,16 +643,26 @@
           "evidence": "scaling discussed without memo or quantified target"
         },
         "staleness": {
-          "token": "⚠️",
-          "evidence": "0 open \\todo{}, 4d since last commit"
+          "token": "✅",
+          "evidence": "0 open \\todo{}, 8d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "3d7226e9616ca58ce323e1d162ed0208a01e5f40",
-        "isoDate": "2026-06-05T13:47:11-07:00",
-        "subject": "docs(papers): P5 rescope (cite knowing, demote bare-binding claim, promote cascade-inheritance+degradation-envelope) + P3 cite park2019 contrast baseline — novelty-defensibility kill-risk resolutions"
+        "hash": "ef367f56ec83e498eff0d1c2e3b43930e8ef8ade",
+        "isoDate": "2026-07-04T03:55:11-07:00",
+        "subject": "docs(papers): realign the 3 built-on-weak-canon papers to strong canon"
       },
       "recentCommits": [
+        {
+          "hash": "ef367f56ec83e498eff0d1c2e3b43930e8ef8ade",
+          "isoDate": "2026-07-04T03:55:11-07:00",
+          "subject": "docs(papers): realign the 3 built-on-weak-canon papers to strong canon"
+        },
+        {
+          "hash": "92db7a3b8b4d54131108e24c6b5f9862cc8d508d",
+          "isoDate": "2026-07-04T03:44:49-07:00",
+          "subject": "docs(papers): canon realignment audit + re-ground the receipt SSOT macro"
+        },
         {
           "hash": "3d7226e9616ca58ce323e1d162ed0208a01e5f40",
           "isoDate": "2026-06-05T13:47:11-07:00",
@@ -667,16 +677,6 @@
           "hash": "730ac1f7f7d542c53e906a7c416c94cc328c48ba",
           "isoDate": "2026-05-28T17:55:26-07:00",
           "subject": "fix(papers): build-and-ship round — capstone TET10 disambiguation + paper-5 accuracy bench harness cite"
-        },
-        {
-          "hash": "9f2855adc9205738d6efae27d4a1e079694d94ca",
-          "isoDate": "2026-05-20T18:20:57-07:00",
-          "subject": "docs(papers): cite EmbeddingTrait real adapters (OnnxRuntime + NeuralForge) in Paper 8 JEPA, Paper 0c CAEL, Paper 5 GraphRAG"
-        },
-        {
-          "hash": "0363e83a3908305031f8c854e9b9155e670581d9",
-          "isoDate": "2026-05-11T23:47:43-07:00",
-          "subject": "paper(5): Twin-test fill — engine/verifier as two-impl agreement"
         }
       ]
     },
@@ -686,8 +686,8 @@
       "target": "SCA '27",
       "basename": "paper-6-animation-sca.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-6-animation-sca.tex",
-      "loc": 1630,
-      "sha256Prefix": "978438cc",
+      "loc": 1653,
+      "sha256Prefix": "71ff788f",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -728,7 +728,7 @@
         },
         "citations": {
           "token": "✅",
-          "evidence": "14 distinct cite keys, \\bibliography{holoscript} present"
+          "evidence": "17 distinct cite keys, \\bibliography{holoscript} present"
         },
         "empClaims": {
           "token": "✅",
@@ -752,15 +752,25 @@
         },
         "staleness": {
           "token": "✅",
-          "evidence": "0 open \\todo{}, 7d since last commit"
+          "evidence": "0 open \\todo{}, 8d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "2962ed80c448cf44e2a2e26dbf86ecd638fe6976",
-        "isoDate": "2026-06-02T19:14:10-07:00",
-        "subject": "paper(6): rescope novelty off deterministic-lockstep prior art"
+        "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
+        "isoDate": "2026-07-04T04:08:21-07:00",
+        "subject": "docs(papers): canon realignment item 4 -- name sovereignty across 19 abstracts"
       },
       "recentCommits": [
+        {
+          "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
+          "isoDate": "2026-07-04T04:08:21-07:00",
+          "subject": "docs(papers): canon realignment item 4 -- name sovereignty across 19 abstracts"
+        },
+        {
+          "hash": "ddd3019d94cad3f53239dfb3a9c494e3d2a115de",
+          "isoDate": "2026-06-13T13:56:53-07:00",
+          "subject": "docs(papers): novelty rescopes P2/P6/P8/P10 — journalist-verified prior art, critic-audited"
+        },
         {
           "hash": "2962ed80c448cf44e2a2e26dbf86ecd638fe6976",
           "isoDate": "2026-06-02T19:14:10-07:00",
@@ -775,16 +785,6 @@
           "hash": "4b639899d0a372a0a6310c5cdffe91e3b9cfacac",
           "isoDate": "2026-05-11T23:02:58-07:00",
           "subject": "paper(6): Twin-test fill — WebGPU/CPU fallback as two-impl agreement"
-        },
-        {
-          "hash": "b47628f60d970f7709a6f9492f36ea13f0b298b2",
-          "isoDate": "2026-05-10T20:18:57-07:00",
-          "subject": "docs(ecosystem): finish paper 6 ablation path"
-        },
-        {
-          "hash": "ef8e42a809e1cb33cd7d37a7ed7eae6e6064972d",
-          "isoDate": "2026-05-10T11:46:34-07:00",
-          "subject": "docs(ecosystem): refresh paper matrix and A-007"
         }
       ]
     },
@@ -794,8 +794,8 @@
       "target": "SIGGRAPH/I3D '27",
       "basename": "paper-7-ik-siggraph.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-7-ik-siggraph.tex",
-      "loc": 392,
-      "sha256Prefix": "8c9b9781",
+      "loc": 398,
+      "sha256Prefix": "011372dd",
       "retired": true,
       "pillars": {
         "novelty": {
@@ -827,8 +827,8 @@
           "evidence": "paper-7-ik-siggraph.tex.ots present"
         },
         "anchorBase": {
-          "token": "✅",
-          "evidence": ".tex.base.json signed and matches current .tex hash"
+          "token": "⚠️",
+          "evidence": ".tex.base.json signed for a historical .tex hash; re-anchor current source at submission bundle time"
         },
         "venueFit": {
           "token": "✅",
@@ -860,15 +860,20 @@
         },
         "staleness": {
           "token": "✅",
-          "evidence": "0 open \\todo{}, 36d since last commit"
+          "evidence": "0 open \\todo{}, 8d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "41e49e581818cce95f6f2079298a2db0fe75407e",
-        "isoDate": "2026-05-04T22:32:54-07:00",
-        "subject": "fix(papers): migrate paper-7 to shared holoscript.bib (closes 7jgv)"
+        "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
+        "isoDate": "2026-07-04T04:08:21-07:00",
+        "subject": "docs(papers): canon realignment item 4 -- name sovereignty across 19 abstracts"
       },
       "recentCommits": [
+        {
+          "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
+          "isoDate": "2026-07-04T04:08:21-07:00",
+          "subject": "docs(papers): canon realignment item 4 -- name sovereignty across 19 abstracts"
+        },
         {
           "hash": "41e49e581818cce95f6f2079298a2db0fe75407e",
           "isoDate": "2026-05-04T22:32:54-07:00",
@@ -888,11 +893,6 @@
           "hash": "3d11a0f92724d14b63d085e215d49abad1b61884",
           "isoDate": "2026-04-25T00:23:03-07:00",
           "subject": "fix(papers): compile-state sweep — papers 0c/7/9 EXIT=0; paper-4 partial"
-        },
-        {
-          "hash": "cac60e40a1f17fae34215beab8a9ca6f5f5d5a4d",
-          "isoDate": "2026-04-23T11:17:36-07:00",
-          "subject": "paper-7: lock Table 2 to 2026-04-23 canonical-host artifact; promote E2→E1"
         }
       ]
     },
@@ -902,8 +902,8 @@
       "target": "SIGGRAPH '27",
       "basename": "paper-8-unified-siggraph.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-8-unified-siggraph.tex",
-      "loc": 1161,
-      "sha256Prefix": "3d18edd6",
+      "loc": 1184,
+      "sha256Prefix": "ba6e4029",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -944,7 +944,7 @@
         },
         "citations": {
           "token": "✅",
-          "evidence": "27 distinct cite keys, \\bibliography{holoscript} present"
+          "evidence": "28 distinct cite keys, \\bibliography{holoscript} present"
         },
         "empClaims": {
           "token": "✅",
@@ -968,15 +968,25 @@
         },
         "staleness": {
           "token": "✅",
-          "evidence": "0 open \\todo{}, 7d since last commit"
+          "evidence": "0 open \\todo{}, 8d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "4def468fa5266c4e16fe090ea524bd8642163b22",
-        "isoDate": "2026-06-02T18:18:38-07:00",
-        "subject": "paper(8): fix semiring mislabel, scope ->pose, re-headline to per-node hash verify, reconcile demo numbers"
+        "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
+        "isoDate": "2026-07-04T04:08:21-07:00",
+        "subject": "docs(papers): canon realignment item 4 -- name sovereignty across 19 abstracts"
       },
       "recentCommits": [
+        {
+          "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
+          "isoDate": "2026-07-04T04:08:21-07:00",
+          "subject": "docs(papers): canon realignment item 4 -- name sovereignty across 19 abstracts"
+        },
+        {
+          "hash": "ddd3019d94cad3f53239dfb3a9c494e3d2a115de",
+          "isoDate": "2026-06-13T13:56:53-07:00",
+          "subject": "docs(papers): novelty rescopes P2/P6/P8/P10 — journalist-verified prior art, critic-audited"
+        },
         {
           "hash": "4def468fa5266c4e16fe090ea524bd8642163b22",
           "isoDate": "2026-06-02T18:18:38-07:00",
@@ -991,16 +1001,6 @@
           "hash": "23edff31d75c52bc80e0564aa3ff01ae3faa27bc",
           "isoDate": "2026-05-20T21:22:51-07:00",
           "subject": "docs(paper-8): F.017 hygiene — added \\measuredFrom right after the long physics-to-physics paragraph in the CouplingManagerV2 subsection"
-        },
-        {
-          "hash": "7d9fd05520834b9fe3c47b8a1bdf38af3e0b793a",
-          "isoDate": "2026-05-20T21:20:14-07:00",
-          "subject": "docs(paper-8): F.017 hygiene — added \\measuredFrom right after the long Claim sentence in the JEPA subsection"
-        },
-        {
-          "hash": "44fa08d8f6429f1238bca54e2f8057b45fdde669",
-          "isoDate": "2026-05-20T21:01:17-07:00",
-          "subject": "docs(ecosystem): add paper 8 jepa npc framing"
         }
       ]
     },
@@ -1010,8 +1010,8 @@
       "target": "SIG Asia '27",
       "basename": "paper-9-verifiable-motion-siggraphasia.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-9-verifiable-motion-siggraphasia.tex",
-      "loc": 1267,
-      "sha256Prefix": "530deb8b",
+      "loc": 1287,
+      "sha256Prefix": "89d787a5",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -1075,16 +1075,26 @@
           "evidence": "scaling discussed without memo or quantified target"
         },
         "staleness": {
-          "token": "⚠️",
-          "evidence": "0 open \\todo{}, 5d since last commit"
+          "token": "✅",
+          "evidence": "0 open \\todo{}, 8d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "d222fc76928555be00ba3d5619dd205607ca66bf",
-        "isoDate": "2026-06-04T20:12:54-07:00",
-        "subject": "paper(9): retighten ML overclaim — honest \"untrained reference backend\" disclosure"
+        "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
+        "isoDate": "2026-07-04T04:08:21-07:00",
+        "subject": "docs(papers): canon realignment item 4 -- name sovereignty across 19 abstracts"
       },
       "recentCommits": [
+        {
+          "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
+          "isoDate": "2026-07-04T04:08:21-07:00",
+          "subject": "docs(papers): canon realignment item 4 -- name sovereignty across 19 abstracts"
+        },
+        {
+          "hash": "51e926369bb7bdb42fa5b7cfe341ef925362e0e6",
+          "isoDate": "2026-06-20T23:58:27-07:00",
+          "subject": "docs(ecosystem): update paper 9 motion benchmark"
+        },
         {
           "hash": "d222fc76928555be00ba3d5619dd205607ca66bf",
           "isoDate": "2026-06-04T20:12:54-07:00",
@@ -1099,16 +1109,6 @@
           "hash": "ebd98d2d28cee43f70357f2976115f53cefaf7b5",
           "isoDate": "2026-05-26T04:39:35-07:00",
           "subject": "docs(core): cite paper twin-test harnesses"
-        },
-        {
-          "hash": "28dfe73caa17e3b4a20cfcd0645ecd8a40f83f96",
-          "isoDate": "2026-05-25T00:44:24-07:00",
-          "subject": "feat(papers): reconcile HoloScript-only content into ai-ecosystem canonical (founder ruling 2026-05-25)"
-        },
-        {
-          "hash": "6b70a0b70d6f96a84f1c78bf215c8386a2a070b1",
-          "isoDate": "2026-05-13T22:55:51-07:00",
-          "subject": "docs(ecosystem): add paper 9 reproducibility pipeline"
         }
       ]
     },
@@ -1118,8 +1118,8 @@
       "target": "PLDI '27 (Nov '26)",
       "basename": "paper-10-hs-core-pldi.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-10-hs-core-pldi.tex",
-      "loc": 1048,
-      "sha256Prefix": "f33e68e2",
+      "loc": 1128,
+      "sha256Prefix": "2ce17365",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -1160,7 +1160,7 @@
         },
         "citations": {
           "token": "✅",
-          "evidence": "18 distinct cite keys, \\bibliography{holoscript} present"
+          "evidence": "19 distinct cite keys, \\bibliography{holoscript} present"
         },
         "empClaims": {
           "token": "✅",
@@ -1184,39 +1184,39 @@
         },
         "staleness": {
           "token": "✅",
-          "evidence": "0 open \\todo{}, 7d since last commit"
+          "evidence": "0 open \\todo{}, 8d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "2e1f654d1a1a2ff76d2ebedcf550c1922c0e9104",
-        "isoDate": "2026-06-02T12:28:22-07:00",
-        "subject": "fix(paper-10): correct unsound semiring theorem + rescope overclaimed novelty"
+        "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
+        "isoDate": "2026-07-04T04:08:21-07:00",
+        "subject": "docs(papers): canon realignment item 4 -- name sovereignty across 19 abstracts"
       },
       "recentCommits": [
         {
-          "hash": "2e1f654d1a1a2ff76d2ebedcf550c1922c0e9104",
-          "isoDate": "2026-06-02T12:28:22-07:00",
-          "subject": "fix(paper-10): correct unsound semiring theorem + rescope overclaimed novelty"
+          "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
+          "isoDate": "2026-07-04T04:08:21-07:00",
+          "subject": "docs(papers): canon realignment item 4 -- name sovereignty across 19 abstracts"
         },
         {
-          "hash": "a00680e49c260f8d2bb6c523e34c5a1d4711f25e",
-          "isoDate": "2026-05-28T16:44:37-07:00",
-          "subject": "fix(papers): program-wide codebase-reflection drift sweep — close stale claims across 8 papers"
+          "hash": "38e44533a0ad40afa8b0a80750657ab50d84d54d",
+          "isoDate": "2026-06-22T21:21:46-07:00",
+          "subject": "docs(paper-10): calibrate .hs->Kotlin maturity — declared-subset disclosure, scope conclusion to contracted lowering path, qualify uncited 'only runtime' superlative (D.103/D.105)"
         },
         {
-          "hash": "28dfe73caa17e3b4a20cfcd0645ecd8a40f83f96",
-          "isoDate": "2026-05-25T00:44:24-07:00",
-          "subject": "feat(papers): reconcile HoloScript-only content into ai-ecosystem canonical (founder ruling 2026-05-25)"
+          "hash": "2774269058fa648cc28ddfa7b85ed99d893157a4",
+          "isoDate": "2026-06-22T01:44:17-07:00",
+          "subject": "docs(papers): ground P10/P11/P12 on the canonical uAAL/HOLO language spec"
         },
         {
-          "hash": "b98958387c215a222d7f4dd385b2ab760422378b",
-          "isoDate": "2026-05-20T21:45:59-07:00",
-          "subject": "research(paper-10): depth-distribution + cross-target theorem matrix amendments"
+          "hash": "2ab3928dfdd38da97e53e19763c22594713651f2",
+          "isoDate": "2026-06-16T14:42:36-07:00",
+          "subject": "research(papers): add Jetson edge-deploy to CAEL; H1 language ext to HS Core; cognitive trait sequencing to HSPlus"
         },
         {
-          "hash": "488ce6325503e028a481303bb634c434bdac063e",
-          "isoDate": "2026-05-20T18:03:30-07:00",
-          "subject": "paper-10: add Pillar-Slice trait-native runtime primitive section (PLDI '27) — references PillarRegistry + SliceEmitter + SemanticCollaborationContract (shipped 2026-05-20) [room marathon continue, top claimable task_1779324209179_adsn]"
+          "hash": "ddd3019d94cad3f53239dfb3a9c494e3d2a115de",
+          "isoDate": "2026-06-13T13:56:53-07:00",
+          "subject": "docs(papers): novelty rescopes P2/P6/P8/P10 — journalist-verified prior art, critic-audited"
         }
       ]
     },
@@ -1226,8 +1226,8 @@
       "target": "ECOOP '27 (Feb '27)",
       "basename": "paper-11-hsplus-ecoop.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-11-hsplus-ecoop.tex",
-      "loc": 1171,
-      "sha256Prefix": "adf54120",
+      "loc": 1227,
+      "sha256Prefix": "5f00e14a",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -1291,40 +1291,40 @@
           "evidence": "scaling memo cited or quantified scale-out claim with heading"
         },
         "staleness": {
-          "token": "⚠️",
-          "evidence": "0 open \\todo{}, 0d since last commit"
+          "token": "✅",
+          "evidence": "0 open \\todo{}, 19d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "8de85b291477cbbd0729f26f3be14e4eeca9f5d7",
-        "isoDate": "2026-06-09T23:42:30-07:00",
-        "subject": "fix(paper-11): rewrite Cross-Platform Parity to match the real harness — clear OVERCLAIMED verdict"
+        "hash": "d7bfbdab7a659dbb1e8a278cee4df944d629b3a4",
+        "isoDate": "2026-06-22T21:17:14-07:00",
+        "subject": "docs(paper-11): calibrate coverage claims — scope 1.32% to annotation coverage, add gated 22.63% native-authoring metric, honest uAAL-lowering maturity (D.104/D.105)"
       },
       "recentCommits": [
+        {
+          "hash": "d7bfbdab7a659dbb1e8a278cee4df944d629b3a4",
+          "isoDate": "2026-06-22T21:17:14-07:00",
+          "subject": "docs(paper-11): calibrate coverage claims — scope 1.32% to annotation coverage, add gated 22.63% native-authoring metric, honest uAAL-lowering maturity (D.104/D.105)"
+        },
+        {
+          "hash": "2774269058fa648cc28ddfa7b85ed99d893157a4",
+          "isoDate": "2026-06-22T01:44:17-07:00",
+          "subject": "docs(papers): ground P10/P11/P12 on the canonical uAAL/HOLO language spec"
+        },
+        {
+          "hash": "2ab3928dfdd38da97e53e19763c22594713651f2",
+          "isoDate": "2026-06-16T14:42:36-07:00",
+          "subject": "research(papers): add Jetson edge-deploy to CAEL; H1 language ext to HS Core; cognitive trait sequencing to HSPlus"
+        },
+        {
+          "hash": "3f13443e2d13335afd6cca5f52c30976439b544d",
+          "isoDate": "2026-06-13T00:16:25-07:00",
+          "subject": "docs(papers): commence-all defensibility pass — P4/P11/P12 citation+scope fixes, P5/P3 kill-risks resolved by source-read, matrix refresh"
+        },
         {
           "hash": "8de85b291477cbbd0729f26f3be14e4eeca9f5d7",
           "isoDate": "2026-06-09T23:42:30-07:00",
           "subject": "fix(paper-11): rewrite Cross-Platform Parity to match the real harness — clear OVERCLAIMED verdict"
-        },
-        {
-          "hash": "f72b0dcb7385d868a6cf11cb25f49a974a6ebc46",
-          "isoDate": "2026-06-08T13:45:32-07:00",
-          "subject": "fix(papers): P4 decoder cost + P11 twin test — flip both matrix cells to green (paper-gap tasks rwkt/ef9k)"
-        },
-        {
-          "hash": "5f9415571a6fcc9836bb22982becd4080def79fe",
-          "isoDate": "2026-06-02T18:26:13-07:00",
-          "subject": "docs(paper-11): re-headline around runtime provenance-semiring + prove distributivity side-condition (task_1780428738566_48z9)"
-        },
-        {
-          "hash": "a00680e49c260f8d2bb6c523e34c5a1d4711f25e",
-          "isoDate": "2026-05-28T16:44:37-07:00",
-          "subject": "fix(papers): program-wide codebase-reflection drift sweep — close stale claims across 8 papers"
-        },
-        {
-          "hash": "5be0d363437333b3affddb8f6635976a0b0e6dd7",
-          "isoDate": "2026-05-28T01:51:21-07:00",
-          "subject": "ratchet(papers): correct Paper 6 matrix numbers, honest-demote Paper 11 RTX heading, file next-pillar board tasks"
         }
       ]
     },
@@ -1334,8 +1334,8 @@
       "target": "I3D '27 (Nov '26)",
       "basename": "paper-12-holo-i3d.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-12-holo-i3d.tex",
-      "loc": 868,
-      "sha256Prefix": "4a886a46",
+      "loc": 917,
+      "sha256Prefix": "f81f04d0",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -1376,7 +1376,7 @@
         },
         "citations": {
           "token": "✅",
-          "evidence": "17 distinct cite keys, \\bibliography{holoscript} present"
+          "evidence": "18 distinct cite keys, \\bibliography{holoscript} present"
         },
         "empClaims": {
           "token": "✅",
@@ -1400,39 +1400,39 @@
         },
         "staleness": {
           "token": "✅",
-          "evidence": "0 open \\todo{}, 7d since last commit"
+          "evidence": "0 open \\todo{}, 8d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "70b296bb67ea288ce00b158297f4f06b9e392acb",
-        "isoDate": "2026-06-02T19:36:35-07:00",
-        "subject": "fix(paper-12): repoint dangling green2007provenance cites to green-semiring2007"
+        "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
+        "isoDate": "2026-07-04T04:08:21-07:00",
+        "subject": "docs(papers): canon realignment item 4 -- name sovereignty across 19 abstracts"
       },
       "recentCommits": [
         {
-          "hash": "70b296bb67ea288ce00b158297f4f06b9e392acb",
-          "isoDate": "2026-06-02T19:36:35-07:00",
-          "subject": "fix(paper-12): repoint dangling green2007provenance cites to green-semiring2007"
+          "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
+          "isoDate": "2026-07-04T04:08:21-07:00",
+          "subject": "docs(papers): canon realignment item 4 -- name sovereignty across 19 abstracts"
         },
         {
-          "hash": "2eaad5efad448ca6b89e317a48cf07341e152ff8",
-          "isoDate": "2026-06-02T19:17:39-07:00",
-          "subject": "docs(paper-12): strip W.315/Route-2b/W.067/W.617 internal tokens from abstract+prose"
+          "hash": "691f6f36634a62a02f85c5bcff19ef7aca79682f",
+          "isoDate": "2026-06-22T21:19:54-07:00",
+          "subject": "docs(paper-12): scrub internal task-IDs/agent-attribution from body; add legal-document plugin path; recast Hololand as external consumer not in-tree plugin (R.021)"
         },
         {
-          "hash": "b98958387c215a222d7f4dd385b2ab760422378b",
-          "isoDate": "2026-05-20T21:45:59-07:00",
-          "subject": "research(paper-10): depth-distribution + cross-target theorem matrix amendments"
+          "hash": "d4c5e6aa66ea0ed88dac26127be8fb1017f23f2e",
+          "isoDate": "2026-06-22T18:43:35-07:00",
+          "subject": "docs(paper): P12 ground .holo IR on shipped character compositions + character-webgpu compile target (D.105 reground)"
         },
         {
-          "hash": "f9b7f8b7d01acffb0dd3f0c9007c8b157daa7155",
-          "isoDate": "2026-05-19T01:07:18-07:00",
-          "subject": "research(paper-12): decoder-cost complexity memo + provenance theorem citation for I3D '27 (task_1779176007458_1cr6, Grok Build marathon)"
+          "hash": "2774269058fa648cc28ddfa7b85ed99d893157a4",
+          "isoDate": "2026-06-22T01:44:17-07:00",
+          "subject": "docs(papers): ground P10/P11/P12 on the canonical uAAL/HOLO language spec"
         },
         {
-          "hash": "6b965aef348b1d77b5c025397537cae847b09c13",
-          "isoDate": "2026-05-13T23:47:15-07:00",
-          "subject": "docs(ecosystem): add paper 12 readiness model"
+          "hash": "3f13443e2d13335afd6cca5f52c30976439b544d",
+          "isoDate": "2026-06-13T00:16:25-07:00",
+          "subject": "docs(papers): commence-all defensibility pass — P4/P11/P12 citation+scope fixes, P5/P3 kill-risks resolved by source-read, matrix refresh"
         }
       ]
     },
@@ -1442,8 +1442,8 @@
       "target": "SIGGRAPH '28",
       "basename": "paper-13-dumbglass-siggraph.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-13-dumbglass-siggraph.tex",
-      "loc": 1092,
-      "sha256Prefix": "37670366",
+      "loc": 1099,
+      "sha256Prefix": "96b19c40",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -1508,15 +1508,20 @@
         },
         "staleness": {
           "token": "✅",
-          "evidence": "0 open \\todo{}, 7d since last commit"
+          "evidence": "0 open \\todo{}, 8d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "dfa2aeb14b642efc444362f540dea72eb3afe9b4",
-        "isoDate": "2026-06-02T13:21:15-07:00",
-        "subject": "research(paper-13): cite VerITAS/ZK-IMG, fix C3 contradiction, mark H3 projected, demote Theorems 1-4 to Properties"
+        "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
+        "isoDate": "2026-07-04T04:08:21-07:00",
+        "subject": "docs(papers): canon realignment item 4 -- name sovereignty across 19 abstracts"
       },
       "recentCommits": [
+        {
+          "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
+          "isoDate": "2026-07-04T04:08:21-07:00",
+          "subject": "docs(papers): canon realignment item 4 -- name sovereignty across 19 abstracts"
+        },
         {
           "hash": "dfa2aeb14b642efc444362f540dea72eb3afe9b4",
           "isoDate": "2026-06-02T13:21:15-07:00",
@@ -1536,22 +1541,17 @@
           "hash": "738b8964cac3ed1abbef904f53d1bc0946f485be",
           "isoDate": "2026-05-20T21:28:21-07:00",
           "subject": "docs(paper-13): add KHR_gaussian_splatting + SPZ related-work citation pass (DELTA-B closes grok scout task_1779180755794_6c0q)"
-        },
-        {
-          "hash": "f51a2e3512cd0ea4f6ff33d1bf453df69917c75f",
-          "isoDate": "2026-05-13T23:50:34-07:00",
-          "subject": "docs(ecosystem): add paper 13 scaling envelope"
         }
       ]
     },
     {
       "rowId": "TVCG",
       "title": "Trust by Construction (SimulationContract)",
-      "target": "**IEEE TVCG — 🟢 UNDER REVIEW** (submitted 2026-05-17)",
+      "target": "**IEEE TVCG — 🔴 DESK-REJECTED → resubmission staged** (TVCG-2026-04-0403 returned by AE before external review; new-submission package ready, pending founder signoff + portal upload — see `../revisions/tvcg-revision-1/README.md`)",
       "basename": "trust-by-construction-paper.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/trust-by-construction-paper.tex",
-      "loc": 1865,
-      "sha256Prefix": "82eb7a2b",
+      "loc": 1903,
+      "sha256Prefix": "4bc13feb",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -1568,7 +1568,7 @@
         },
         "ablation": {
           "token": "✅",
-          "evidence": "Table tab:ablation-tvcg backed by .bench-logs/tvcg-ablation-2026-06-21T00-00-00-000Z.json"
+          "evidence": "artifact-gate and per-guarantee contract-shell ablation present"
         },
         "userStudy": {
           "token": "❌",
@@ -1592,7 +1592,7 @@
         },
         "citations": {
           "token": "✅",
-          "evidence": "36 distinct cite keys, \\bibliography{holoscript} present"
+          "evidence": "38 distinct cite keys, \\bibliography{holoscript} present"
         },
         "empClaims": {
           "token": "✅",
@@ -1616,15 +1616,30 @@
         },
         "staleness": {
           "token": "✅",
-          "evidence": "0 open \\todo{}, 7d since last commit"
+          "evidence": "0 open \\todo{}, 8d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "4d5d5ce540eaf0f1892e17cf6ec911a80b970c5e",
-        "isoDate": "2026-06-02T18:40:43-07:00",
-        "subject": "docs(papers): reconcile tropical-semiring mislabel + shared agent-provenance-receipt related-work (task_1780428738566_diph)"
+        "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
+        "isoDate": "2026-07-04T04:08:21-07:00",
+        "subject": "docs(papers): canon realignment item 4 -- name sovereignty across 19 abstracts"
       },
       "recentCommits": [
+        {
+          "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
+          "isoDate": "2026-07-04T04:08:21-07:00",
+          "subject": "docs(papers): canon realignment item 4 -- name sovereignty across 19 abstracts"
+        },
+        {
+          "hash": "9ac28bb3b745208569ac8425106744df7a8f71bd",
+          "isoDate": "2026-06-21T00:08:13-07:00",
+          "subject": "docs(ecosystem): update tvcg ablation results"
+        },
+        {
+          "hash": "6fb90b62ba178909cacd9eb162b0aea01557fd85",
+          "isoDate": "2026-06-20T23:56:36-07:00",
+          "subject": "docs(ecosystem): add TVCG gated completion subsection"
+        },
         {
           "hash": "4d5d5ce540eaf0f1892e17cf6ec911a80b970c5e",
           "isoDate": "2026-06-02T18:40:43-07:00",
@@ -1634,21 +1649,6 @@
           "hash": "e69d900c61c929243068911ea215b5c9bb118d80",
           "isoDate": "2026-05-24T19:06:15-07:00",
           "subject": "docs(ecosystem): narrow novelty prior-art claims"
-        },
-        {
-          "hash": "cde117702122798d2cf2f419e01ce92d1e1cdd6e",
-          "isoDate": "2026-05-07T14:23:55-07:00",
-          "subject": "paper(tbc): TVCG round-2 /critic ratification — 2 BLOCKERs + 4 MAJORs + 5 MINORs"
-        },
-        {
-          "hash": "9e88aa65485add016e6b229ce095565eded59902",
-          "isoDate": "2026-05-07T10:33:13-07:00",
-          "subject": "paper(tbc): TVCG desk-reject Batch C-fixes — /critic ratification pass"
-        },
-        {
-          "hash": "06722f54d2d8fe7d8126d506e156022707cf1bb7",
-          "isoDate": "2026-05-07T02:24:11-07:00",
-          "subject": "paper(tbc): TVCG desk-reject Batch C — justification depth pass"
         }
       ]
     },
@@ -1658,8 +1658,8 @@
       "target": "SIGGRAPH '27",
       "basename": "paper-capstone-program2-siggraph.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-capstone-program2-siggraph.tex",
-      "loc": 1158,
-      "sha256Prefix": "6a826b46",
+      "loc": 1166,
+      "sha256Prefix": "f5ce1970",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -1724,15 +1724,20 @@
         },
         "staleness": {
           "token": "✅",
-          "evidence": "0 open \\todo{}, 15d since last commit"
+          "evidence": "0 open \\todo{}, 8d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "28dfe73caa17e3b4a20cfcd0645ecd8a40f83f96",
-        "isoDate": "2026-05-25T00:44:24-07:00",
-        "subject": "feat(papers): reconcile HoloScript-only content into ai-ecosystem canonical (founder ruling 2026-05-25)"
+        "hash": "ef367f56ec83e498eff0d1c2e3b43930e8ef8ade",
+        "isoDate": "2026-07-04T03:55:11-07:00",
+        "subject": "docs(papers): realign the 3 built-on-weak-canon papers to strong canon"
       },
       "recentCommits": [
+        {
+          "hash": "ef367f56ec83e498eff0d1c2e3b43930e8ef8ade",
+          "isoDate": "2026-07-04T03:55:11-07:00",
+          "subject": "docs(papers): realign the 3 built-on-weak-canon papers to strong canon"
+        },
         {
           "hash": "28dfe73caa17e3b4a20cfcd0645ecd8a40f83f96",
           "isoDate": "2026-05-25T00:44:24-07:00",
@@ -1752,11 +1757,6 @@
           "hash": "c38f92045d8051287890f32edf309b4c490d49e7",
           "isoDate": "2026-04-26T18:07:45-07:00",
           "subject": "docs(paper-capstone-program2): \\measuredFrom{} sweep — 0 of 5 tables annotated"
-        },
-        {
-          "hash": "daeaf9d9a6fba09df49c560284991cab30f31d48",
-          "isoDate": "2026-04-24T23:33:08-07:00",
-          "subject": "docs(papers): H3-rig (E1) gate CLOSED program-wide via GPU mesh"
         }
       ]
     },
@@ -1766,8 +1766,8 @@
       "target": "UIST '27",
       "basename": "paper-capstone-uist.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-capstone-uist.tex",
-      "loc": 2292,
-      "sha256Prefix": "8cdd79b6",
+      "loc": 2308,
+      "sha256Prefix": "1e341b0d",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -1832,15 +1832,30 @@
         },
         "staleness": {
           "token": "✅",
-          "evidence": "0 open \\todo{}, 12d since last commit"
+          "evidence": "0 open \\todo{}, 8d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "730ac1f7f7d542c53e906a7c416c94cc328c48ba",
-        "isoDate": "2026-05-28T17:55:26-07:00",
-        "subject": "fix(papers): build-and-ship round — capstone TET10 disambiguation + paper-5 accuracy bench harness cite"
+        "hash": "88a1907a01452a7b4266de2d03a04b66cbb2f517",
+        "isoDate": "2026-07-04T05:24:53-07:00",
+        "subject": "fix(ecosystem): tighten embedding benchmark scoring"
       },
       "recentCommits": [
+        {
+          "hash": "88a1907a01452a7b4266de2d03a04b66cbb2f517",
+          "isoDate": "2026-07-04T05:24:53-07:00",
+          "subject": "fix(ecosystem): tighten embedding benchmark scoring"
+        },
+        {
+          "hash": "d61ed893ee593d3ba179f54677cf6a1ce1f33f26",
+          "isoDate": "2026-07-04T04:35:34-07:00",
+          "subject": "docs(papers): new HoloEmbed outbuild data — reproduce benchmark, re-ground paper-26 §7"
+        },
+        {
+          "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
+          "isoDate": "2026-07-04T04:08:21-07:00",
+          "subject": "docs(papers): canon realignment item 4 -- name sovereignty across 19 abstracts"
+        },
         {
           "hash": "730ac1f7f7d542c53e906a7c416c94cc328c48ba",
           "isoDate": "2026-05-28T17:55:26-07:00",
@@ -1850,21 +1865,6 @@
           "hash": "c7ca3a79d9dc8e647490d18ce307d057da7d9770",
           "isoDate": "2026-05-28T16:59:54-07:00",
           "subject": "fix(papers): paper-21 ATI-3 testbed DONE status, paper-capstone drift refresh"
-        },
-        {
-          "hash": "28dfe73caa17e3b4a20cfcd0645ecd8a40f83f96",
-          "isoDate": "2026-05-25T00:44:24-07:00",
-          "subject": "feat(papers): reconcile HoloScript-only content into ai-ecosystem canonical (founder ruling 2026-05-25)"
-        },
-        {
-          "hash": "e69d900c61c929243068911ea215b5c9bb118d80",
-          "isoDate": "2026-05-24T19:06:15-07:00",
-          "subject": "docs(ecosystem): narrow novelty prior-art claims"
-        },
-        {
-          "hash": "8abe5fe7f4796d128ff91f81d202727edbb484bd",
-          "isoDate": "2026-05-14T16:54:41-07:00",
-          "subject": "research: commit accumulated research notes — paper audit matrix, capstone UIST, 2026-05-14 idea arcs (agent-factory, cesium bridge, missing competitors, studio rethink, world-labs)"
         }
       ]
     }
