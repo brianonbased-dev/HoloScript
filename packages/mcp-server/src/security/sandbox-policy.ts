@@ -483,5 +483,9 @@ class ReceiptStore {
 
 export const globalReceiptStore = new ReceiptStore();
 
-// Periodic cleanup every 5 minutes
-setInterval(() => globalReceiptStore.purgeExpired(), 5 * 60 * 1000);
+// Keep cleanup active for a running server without pinning library consumers.
+const receiptCleanupTimer = setInterval(
+  () => globalReceiptStore.purgeExpired(),
+  5 * 60 * 1000
+);
+receiptCleanupTimer.unref();

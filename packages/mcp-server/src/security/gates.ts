@@ -295,8 +295,9 @@ function detectInjectionPatterns(obj: unknown, toolName = '', path = ''): string
   return findings;
 }
 
-// Rate limit cleanup
-setInterval(() => {
+// Rate-limit housekeeping must not make a library import own process lifetime.
+// Active stdio/HTTP servers already keep the process alive while this runs.
+const rateLimitCleanupTimer = setInterval(() => {
   const cutoff = Date.now() - 120_000;
   for (const [key, timestamps] of rateLimitWindows) {
     const filtered = timestamps.filter((t) => t > cutoff);
@@ -307,6 +308,7 @@ setInterval(() => {
     }
   }
 }, 60_000);
+rateLimitCleanupTimer.unref();
 
 // ── Gate 3: StdlibPolicy Enforcement ─────────────────────────────────────────
 

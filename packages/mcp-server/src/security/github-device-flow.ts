@@ -89,7 +89,8 @@ function cleanupExpiredSessions() {
   }
 }
 
-setInterval(cleanupExpiredSessions, CLEANUP_INTERVAL_MS);
+const sessionCleanupTimer = setInterval(cleanupExpiredSessions, CLEANUP_INTERVAL_MS);
+sessionCleanupTimer.unref();
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 

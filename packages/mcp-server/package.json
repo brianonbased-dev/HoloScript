@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/mcp-server",
-  "version": "8.0.12",
+  "version": "8.0.13",
   "description": "Model Context Protocol server for HoloScript - enables AI agents to parse, validate, and generate HoloScript code",
   "license": "MIT",
   "main": "./dist/index.js",
@@ -16,6 +16,11 @@
       "types": "./dist/server-sizing.d.ts",
       "import": "./dist/server-sizing.mjs",
       "require": "./dist/server-sizing.js"
+    },
+    "./service": {
+      "types": "./dist/service.d.ts",
+      "import": "./dist/service.mjs",
+      "require": "./dist/service.js"
     }
   },
   "bin": {
@@ -44,10 +49,11 @@
     "smoke:bitnet": "tsx scripts/bitnet-smoke.ts",
     "smoke:auth": "node scripts/smoke-mcp-auth.mjs",
     "test": "vitest run --passWithNoTests",
-    "test:release": "vitest run src/policy/__tests__/PolicyInterceptor.test.ts src/policy/__tests__/PolicyPackPackaging.test.ts src/__tests__/policy-interceptor-integration.test.ts src/__tests__/secrets-broker-handler-auth.test.ts src/holomesh/identity/__tests__/signing-middleware.test.ts",
+    "test:release": "vitest run src/policy/__tests__/PolicyInterceptor.test.ts src/policy/__tests__/PolicyPackPackaging.test.ts src/__tests__/policy-interceptor-integration.test.ts src/__tests__/secrets-broker-handler-auth.test.ts src/holomesh/identity/__tests__/signing-middleware.test.ts src/security/__tests__/gates.injection.test.ts src/__tests__/fork-sandbox-gate.test.ts src/__tests__/fork-sandbox-canary.test.ts src/__tests__/service.test.ts src/__tests__/public-consumer-benchmark.test.ts",
+    "test:public-consumer": "node scripts/public-consumer-benchmark.mjs --pack-current --baseline benchmarks/public-consumer-baseline.json --receipt ../../.scratch/mcp-server-public-consumer-release.json",
     "test:coverage": "node -e \"require('fs').mkdirSync('coverage/.tmp',{recursive:true})\" && vitest run --coverage --passWithNoTests",
     "test:watch": "vitest",
-    "prepublishOnly": "pnpm run test:release && pnpm run build"
+    "prepublishOnly": "pnpm run test:release && pnpm run build && pnpm run test:public-consumer"
   },
   "dependencies": {
     "@holoscript/absorb-service": "workspace:^",

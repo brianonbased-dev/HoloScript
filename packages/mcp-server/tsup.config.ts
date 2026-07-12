@@ -8,6 +8,7 @@ export default defineConfig({
     index: 'src/index.ts',
     cli: 'src/cli.ts',
     'http-server': 'src/http-server.ts',
+    service: 'src/service.ts',
     'server-sizing': 'src/server-sizing.ts',
   },
   format: ['cjs', 'esm'],

@@ -84,6 +84,26 @@ Run the Streamable HTTP server locally:
 npx -p @holoscript/mcp-server holoscript-mcp-http --size small --port 3000
 ```
 
+### Programmatic service lifecycle
+
+Importing either the package root or `@holoscript/mcp-server/service` does not
+start a transport or keep the caller process alive. Service startup is explicit:
+
+```ts
+import { startMcpHttpService } from '@holoscript/mcp-server/service';
+
+const service = startMcpHttpService({
+  args: ['--size', 'tiny', '--port', '7411'],
+  stdio: 'inherit',
+});
+
+// The caller owns lifecycle and shutdown.
+service.kill();
+```
+
+The CLI executables remain available for shell and container deployment:
+`holoscript-mcp`, `holoscript-mcp-http`, and `holoscript-mcp-cli`.
+
 Server sizing controls body limits, Postgres pool size, public/OAuth rate
 buckets, and the advertised tool/cache/memory envelope. The default profile is
 `standard`, preserving the hosted server's existing defaults.
