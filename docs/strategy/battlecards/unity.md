@@ -34,7 +34,7 @@
 4. **Profiler depth** — CPU, GPU, memory, audio, physics, network, UI profiling integrated. HoloScript has `benchmark` and comparative benchmarks but no real-time in-editor profiler.
 5. **Team collaboration** — Plastic SCM integration, Collaborate (deprecated but replaced), cloud project sharing. HoloScript has CRDT collab (`packages/crdt`) but no equivalent to Plastic/Git LFS large-asset workflows.
 6. **LiveOps stack** — Analytics, Remote Config, Cloud Build, Multiplay, User Reporting. Post-launch operations as SaaS. HoloScript has no comparable post-launch operations suite.
-7. **Compile target ubiquity** — 25+ platforms (console, mobile, desktop, web, XR). HoloScript has 30+ compile targets but many are beta/stubs.
+7. **Compile target ubiquity** — 25+ platforms (console, mobile, desktop, web, XR). HoloScript has a live registered target inventory (verify via `docs/NUMBERS.md`), but many targets are beta/stubs.
 8. **Community trust (fragile)** — Runtime Fee backlash showed the community _cares_ deeply; the reversal showed Unity is vulnerable to community pressure.
 
 ## Weaknesses
@@ -53,7 +53,7 @@
 | Differentiator                                                | Why it matters                                                                            | Proof                                                           |
 | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
 | **Browser-native editor + runtime**                           | No install, no GPU floor, works on Chromebooks/tablets                                    | `packages/studio/` + WebGPU runtime                             |
-| **`.holo` semantic source — portable, versioned, attestable** | Unity C# is locked to Unity; `.holo` compiles to 30+ targets                              | `packages/core/src/compilers/`                                  |
+| **`.holo` semantic source — portable, versioned, attestable** | Unity C# is locked to Unity; `.holo` compiles to registered targets verified via `docs/NUMBERS.md` | `packages/core/src/compilers/`                                  |
 | **Deterministic replay + SimulationContract**                 | Byte-identical reproduction for V&V; Unity has no equivalent                              | TVCG paper + `packages/core/src/compiler/SimulationContract.ts` |
 | **Agent-native MCP at platform layer**                        | Unity ML-Agents is bolt-on; HoloScript MCP is first-class                                 | `mcp.holoscript.net`                                            |
 | **No runtime fee / no per-install tax**                       | Unity's pricing trauma is an open wound; we can exploit it                                | —                                                               |

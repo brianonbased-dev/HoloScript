@@ -19,7 +19,7 @@ Use wording like:
 
 - "registered targets" instead of "25+ targets"
 - "live tool inventory" instead of "122 tools"
-- "trait inventory (see SSOT)" instead of "2,000+ traits"
+- "trait inventory (see SSOT)" instead of, for example, "2,000+ traits"
 
 ## Utility-First Reminder
 

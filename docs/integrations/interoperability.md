@@ -37,7 +37,7 @@ HoloScript's architecture mirrors the best patterns from the broader language in
 | ----------------- | --------------------- | -------------------------------------------- |
 | `BabylonCompiler` | Babylon.js/TypeScript | Scene, MeshBuilder, PBRMaterial, XR setup    |
 | `WebGPUCompiler`  | WebGPU/WGSL           | Device init, WGSL shaders, compute pipelines |
-| `BrowserRuntime`  | Three.js              | Live execution with 50+ trait handlers       |
+| `BrowserRuntime`  | Three.js              | Live execution with runtime trait handlers   |
 
 **Location:** `packages/core/src/compiler/`, `packages/runtime/src/browser/`
 

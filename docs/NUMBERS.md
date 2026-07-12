@@ -35,9 +35,9 @@
 ## Policy
 
 1. **Active docs** (`docs/`, `README.md`, `FULL_README.md`) must never hardcode ecosystem counts. Reference this file or the verification command.
-2. **Archive docs** (`docs/archive/`, `docs/_archive/`) stay frozen with a date stamp at the top. They are historical records.
-3. **Marketing docs** (`docs/marketing/`) may snapshot numbers with a verification date: `"158 MCP tools (verified 2026-04-13)"`. Must re-verify before posting.
-4. **Strategy docs** (`docs/strategy/`) may use counts if dated. The ROADMAP.md is authoritative for version-specific milestones.
+2. **Archive and historical docs** (`docs/archive/`, `docs/_archive/`, dated reports, reviews, examples-health snapshots, planning/vision docs, and `CHANGELOG.md`) stay frozen or date-qualified as point-in-time records.
+3. **Marketing docs** (`docs/marketing/`) may snapshot numbers with a verification date: `"158 MCP tools (verified 2026-04-13)"`. Must re-verify before posting. Files explicitly marked archived/stale are not reusable campaign copy.
+4. **Strategy docs** (`docs/strategy/`) may use counts if dated. Live battlecards should prefer `docs/NUMBERS.md` or a verification command for HoloScript's current counts. The ROADMAP.md is authoritative for version-specific milestones.
 5. **Demo files** (`docs/demos/`) should reference live endpoints where possible.
 
 ## Why

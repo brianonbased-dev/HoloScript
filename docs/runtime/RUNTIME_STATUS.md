@@ -15,7 +15,7 @@ Both Path 1 (compilation) and Path 2 (runtime execution) are fully operational w
 
 - ✅ **Parser** - HSPlus → HoloComposition (10,000+ lines)
 - ✅ **Trait System** - Extensible behavior system (complete)
-- ✅ **Compiler Registry** - 15 export targets (50,000+ lines)
+- ✅ **Compiler Registry** - registered export targets (verify current inventory via `docs/NUMBERS.md`)
 - ✅ **Runtime Registry** - Dynamic runtime discovery (261 lines)
 - ✅ **Runtime Renderer** - Abstract rendering interface (281 lines)
 - ✅ **Three.js Renderer** - Concrete implementation (679 lines)

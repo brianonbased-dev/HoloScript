@@ -7,7 +7,7 @@
 
 ## Overview
 
-HoloScript now supports **triple-output compilation** — after compiling to any of the 28+ export targets, the compiler can optionally generate three additional documentation outputs:
+HoloScript now supports **triple-output compilation** — after compiling to any registered export target (verify the current inventory via `docs/NUMBERS.md`), the compiler can optionally generate three additional documentation outputs:
 
 1. **llms.txt** — AI-readable scene description (max 800 tokens)
 2. **.well-known/mcp** — MCP server discovery card (SEP-1649/SEP-1960 compliant)

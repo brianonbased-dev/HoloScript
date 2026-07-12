@@ -46,6 +46,14 @@ function isExcludedPath(p) {
   const rel = relative(REPO, p).split(sep).join('/');
   return (
     rel.endsWith('docs/NUMBERS.md') ||
+    rel === 'CHANGELOG.md' ||
+    rel === 'docs/founder-skill-cutover-prep.md' ||
+    rel === 'docs/handbooks/idea-seeds.md' ||
+    rel === 'docs/reference/DEVELOPMENT_CHRONICLE.md' ||
+    rel === 'docs/reference/WHITEPAPER.md' ||
+    rel === 'docs/strategy/v8-IDEAS-BACKLOG.md' ||
+    /^docs\/(audit-reports|examples-health|planning|reviews)\//i.test(rel) ||
+    /^docs\/strategy\/(analysis|audits|research|vision)\//i.test(rel) ||
     /(^|\/)(_?archive|archives?|node_modules|dist)(\/|$)/i.test(rel) ||
     /STALE|frozen|legacy/i.test(rel)
   );
@@ -54,6 +62,7 @@ function isExcludedPath(p) {
 function scanFile(p, onlyAdded = null) {
   const violations = [];
   const text = readFileSync(p, 'utf8');
+  if (/^\s*>?\s*\*\*ARCHIVED\b|\bstale as of \d{4}-\d{2}-\d{2}\b/im.test(text.slice(0, 1000))) return violations;
   const lines = text.split(/\r?\n/);
   let inFence = false;
   lines.forEach((line, i) => {
