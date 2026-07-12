@@ -149,7 +149,12 @@ function redactValue(value, options) {
 }
 
 function strictResponses(content, expectedIds) {
-  const parsed = JSON.parse(content);
+  const normalized = String(content)
+    .trim()
+    .replace(/^```(?:json)?\s*/iu, '')
+    .replace(/\s*```$/u, '')
+    .trim();
+  const parsed = JSON.parse(normalized);
   if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.responses)) {
     throw new Error('provider response must contain a responses array');
   }

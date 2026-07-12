@@ -91,6 +91,23 @@ test('runFrozenProviderEvaluation separates generation, local acceptance, and ab
   assert.match(receipt.receiptSha256, /^sha256:[a-f0-9]{64}$/u);
 });
 
+test('runFrozenProviderEvaluation accepts JSON wrapped in a Markdown fence', async () => {
+  const receipt = await runFrozenProviderEvaluation({
+    evaluationId: 'fenced-json-v1',
+    promptId: 'native-route-v1',
+    suite,
+    provider: {
+      name: 'fixture-provider',
+      complete: async () => ({ content: `\`\`\`json\n${responseContent()}\n\`\`\`` }),
+    },
+    model: 'fixture-model',
+    verifier: ({ responses }) => ({ ok: responses.length === suite.length }),
+  });
+
+  assert.equal(receipt.captures[0].generation.parseError, null);
+  assert.equal(receipt.captures[0].verification.ok, true);
+});
+
 test('runFrozenProviderEvaluation rejects tool use and keeps absent usage unknown', async () => {
   const provider = {
     name: 'fixture-provider',
