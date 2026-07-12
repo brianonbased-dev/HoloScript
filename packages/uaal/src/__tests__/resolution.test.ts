@@ -3,9 +3,11 @@ import {
   resolveOcclusion,
   resolveNormStatus,
   resolveDischargeable,
+  resolveCounterfactual,
   type UAALContainmentIR,
   type UAALDeonticIR,
   type UAALCompositionIR,
+  type UAALCounterfactualIR,
 } from '../semantic';
 
 // The gap-aware layer (the "three-body disposition" verifier): resolve* must DERIVE unresolvability from the
@@ -221,6 +223,76 @@ describe('resolveDischargeable — cyclic dependency and missing precondition', 
   });
 });
 
+describe('resolveCounterfactual — non-identifiable causal cycle', () => {
+  it('resolves necessity for a determinate single producer (acyclic)', () => {
+    const ir: UAALCounterfactualIR = {
+      effects: [{ id: 'E', sufficientSets: [['A']] }],
+      occurs: ['A'],
+      query: { effect: 'E' },
+    };
+    const r = resolveCounterfactual(ir);
+    expect(r.status).toBe('resolved');
+    expect(r.answer).toEqual({ E: { A: true } });
+  });
+
+  it('resolves overdetermination (neither cause necessary) without a false gap', () => {
+    const ir: UAALCounterfactualIR = {
+      effects: [{ id: 'E', sufficientSets: [['A'], ['B']] }],
+      occurs: ['A', 'B'],
+      query: { effect: 'E' },
+    };
+    const r = resolveCounterfactual(ir);
+    expect(r.status).toBe('resolved');
+    expect(r.answer).toEqual({ E: { A: false, B: false } });
+  });
+
+  it('resolves an acyclic production CHAIN (both links necessary)', () => {
+    const ir: UAALCounterfactualIR = {
+      effects: [
+        { id: 'E', sufficientSets: [['M']] },
+        { id: 'M', sufficientSets: [['A']] },
+      ],
+      occurs: ['A'],
+      query: { effect: 'E' },
+    };
+    expect(resolveCounterfactual(ir).status).toBe('resolved');
+  });
+
+  it('flags an UNGROUNDED production cycle (necessity has no consistent grounding order)', () => {
+    // E is produced by A, A is produced by E, and neither independently occurs. holds() breaks this with
+    // an arbitrary guard and recoverNecessity would emit a definite verdict for an ungrounded fixpoint
+    // (and collectCounterfactualProducers would recurse without a guard). The honest answer is abstain.
+    const ir: UAALCounterfactualIR = {
+      effects: [
+        { id: 'E', sufficientSets: [['A']] },
+        { id: 'A', sufficientSets: [['E']] },
+      ],
+      occurs: [],
+      query: { effect: 'E' },
+    };
+    const r = resolveCounterfactual(ir);
+    expect(r.status).toBe('unresolvable');
+    expect(r.reason).toBe('cyclic_dependency');
+    expect(r.gap?.code).toBe('counterfactual.non_identifiable_cycle');
+    expect(r.obstruction).toContain('E');
+  });
+
+  it('does NOT flag an acyclic effect-to-effect DAG (a diamond) as a cycle (no false gap)', () => {
+    // E ← (P or Q), P ← A, Q ← A. Effects reference other effects, but the graph is an acyclic DAG with a
+    // shared sub-cause — no directed cycle, so it must resolve, not flip to a spurious gap.
+    const ir: UAALCounterfactualIR = {
+      effects: [
+        { id: 'E', sufficientSets: [['P'], ['Q']] },
+        { id: 'P', sufficientSets: [['A']] },
+        { id: 'Q', sufficientSets: [['A']] },
+      ],
+      occurs: ['A'],
+      query: { effect: 'E' },
+    };
+    expect(resolveCounterfactual(ir).status).toBe('resolved');
+  });
+});
+
 describe('no false gaps', () => {
   it('every determinate query resolves (never a spurious unresolvable)', () => {
     const occ = resolveOcclusion(
@@ -238,6 +310,16 @@ describe('no false gaps', () => {
     );
     const norm = resolveNormStatus({ norms: [{ id: 'n', force: 'O', required_act: 'act', active: true }] }, 'n');
     const disc = resolveDischargeable({ time: { now: 0, deadline: 5 } });
-    expect([occ.status, norm.status, disc.status]).toEqual(['resolved', 'resolved', 'resolved']);
+    const cf = resolveCounterfactual({
+      effects: [{ id: 'E', sufficientSets: [['A']] }],
+      occurs: ['A'],
+      query: { effect: 'E' },
+    });
+    expect([occ.status, norm.status, disc.status, cf.status]).toEqual([
+      'resolved',
+      'resolved',
+      'resolved',
+      'resolved',
+    ]);
   });
 });
