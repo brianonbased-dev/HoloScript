@@ -15,6 +15,13 @@ import {
   resolveConfigSecret,
 } from '../auth';
 import { validateConfig, requireConfig } from '../validate';
+import * as publicConfig from '../index';
+
+describe('public package root', () => {
+  it('exports the async secret resolver consumed by public service packages', () => {
+    expect(publicConfig.resolveConfigSecret).toBe(resolveConfigSecret);
+  });
+});
 
 describe('endpoints', () => {
   it('returns production defaults when no env vars set', () => {
