@@ -40,6 +40,8 @@ export type {
 export type { R3FNode, SceneIRNode, AssetMaturity } from './scene-ir-types';
 export { SceneIRCompiler } from './SceneIRCompiler';
 export type { SceneIRCompilerOptions, QualityTier } from './SceneIRCompiler';
+export { emitSceneIRTsx } from './SceneIRTsxEmitter';
+export type { SceneIRTsxEmitterOptions } from './SceneIRTsxEmitter';
 export type { HolomapPointCloudPayload } from './HolomapExportPayload';
 export {
   SCIENTIFIC_COLOR_MAPS,

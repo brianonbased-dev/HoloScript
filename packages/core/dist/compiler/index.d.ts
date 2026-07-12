@@ -83,6 +83,14 @@ export class SceneIRCompiler extends CompilerBase {
   compileComposition(composition: any): R3FNode;
 }
 
+export interface SceneIRTsxEmitterOptions {
+  componentName?: string;
+  sourcePath?: string;
+  includeCanvas?: boolean;
+}
+
+export function emitSceneIRTsx(root: R3FNode, options?: SceneIRTsxEmitterOptions): string;
+
 export type PerceptualColorPassSource = 'palette' | 'gradient' | 'color_map';
 export interface PerceptualGradientStop { t: number; color: string; }
 export interface PerceptualColorPassOptions {

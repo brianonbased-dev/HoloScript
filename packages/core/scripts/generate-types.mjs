@@ -1080,6 +1080,14 @@ export class SceneIRCompiler {
   [key: string]: any;
 }
 
+export interface SceneIRTsxEmitterOptions {
+  componentName?: string;
+  sourcePath?: string;
+  includeCanvas?: boolean;
+}
+
+export function emitSceneIRTsx(root: R3FNode, options?: SceneIRTsxEmitterOptions): string;
+
 export interface CompilationResult {
   success: boolean;
   sceneIR?: unknown;
@@ -5710,6 +5718,14 @@ export class SceneIRCompiler extends CompilerBase {
   compile(ast: any, token: CompilerToken): R3FNode[];
   compileComposition(composition: any): R3FNode;
 }
+
+export interface SceneIRTsxEmitterOptions {
+  componentName?: string;
+  sourcePath?: string;
+  includeCanvas?: boolean;
+}
+
+export function emitSceneIRTsx(root: R3FNode, options?: SceneIRTsxEmitterOptions): string;
 
 export type PerceptualColorPassSource = 'palette' | 'gradient' | 'color_map';
 export interface PerceptualGradientStop { t: number; color: string; }

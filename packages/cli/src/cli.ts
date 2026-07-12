@@ -3320,7 +3320,7 @@ ${browserJs}
           }
 
           const { HoloCompositionParser } = await import('@holoscript/core');
-          const { SceneIRCompiler } = await import('@holoscript/core/compiler');
+          const { SceneIRCompiler, emitSceneIRTsx } = await import('@holoscript/core/compiler');
           const compositionParser = new HoloCompositionParser();
           const parseResult = compositionParser.parse(content);
 
@@ -3334,18 +3334,33 @@ ${browserJs}
           const compiler = new SceneIRCompiler();
           const output = compiler.compileComposition(parseResult.ast);
           const serialized = JSON.stringify(output, null, 2);
+          const sourcePath = path.relative(process.cwd(), filePath);
 
           console.log(`\x1b[32m✓ R3F compilation successful!\x1b[0m`);
           console.log(`\x1b[2m  Objects: ${parseResult.ast.objects?.length || 0}\x1b[0m`);
 
           if (options.output) {
             const outputPath = path.resolve(options.output);
-            const jsonPath = outputPath.endsWith('.json') ? outputPath : outputPath + '.json';
-            writeCompileOutputFile(jsonPath, serialized);
-            console.log(`\x1b[32m✓ R3F scene graph written to ${jsonPath}\x1b[0m`);
+            if (outputPath.endsWith('.json')) {
+              writeCompileOutputFile(outputPath, serialized);
+              console.log(`\x1b[32mR3F scene graph written to ${outputPath}\x1b[0m`);
+            } else {
+              const tsxPath = outputPath.endsWith('.tsx') ? outputPath : outputPath + '.tsx';
+              const tsx = emitSceneIRTsx(output, {
+                sourcePath,
+                componentName: parseResult.ast.name ?? 'HoloScene',
+              });
+              writeCompileOutputFile(tsxPath, tsx);
+              console.log(`\x1b[32mR3F TSX written to ${tsxPath}\x1b[0m`);
+            }
           } else {
-            console.log('\n--- R3F Scene Graph ---\n');
-            console.log(serialized);
+            console.log('\n--- R3F TSX Output ---\n');
+            console.log(
+              emitSceneIRTsx(output, {
+                sourcePath,
+                componentName: parseResult.ast.name ?? 'HoloScene',
+              })
+            );
           }
 
           process.exit(0);
