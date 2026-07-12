@@ -86,7 +86,7 @@ import { handleBatchToolCall } from './tooling-discovery-tools';
 import { listSkillResources, readSkillResource } from './skill-resources';
 import { isHologramMcpResponse, wrapHologramMcpEnvelope } from '@holoscript/core';
 import type { SigningContext } from './holomesh/identity/signing-middleware';
-import { authorizeToolCall } from './security/tool-scopes';
+import { authorizeToolCall, registerKnownTools } from './security/tool-scopes';
 
 declare const __SERVICE_VERSION__: string;
 
@@ -107,7 +107,7 @@ const server = new Server(
 // tools.ts is the single source of truth for all tool definitions.
 // Compiler, networking, snapshot, monitoring, holotest, refactor-codegen are now in tools.ts.
 // Only add synthetic meta-tools here (discover + batch).
-const ALL_AVAILABLE_TOOLS: Tool[] = [
+export const ALL_AVAILABLE_TOOLS: Tool[] = [
   ...tools,
   ...grpoTools,
   ...alphafoldTools,
@@ -160,6 +160,12 @@ const ALL_AVAILABLE_TOOLS: Tool[] = [
     },
   },
 ];
+
+// Fail-closed-on-unregistered (task_1783805494038): register the live tool registry with the Gate-2
+// authorizer so a name NOT served here is denied even when presented with admin:*. This runs for
+// BOTH servers — http-server.ts imports _handleSingleToolLogic from this module, so this module's
+// top-level code executes in the HTTP process too. Plugin tools register additively via PluginManager.
+registerKnownTools(ALL_AVAILABLE_TOOLS.map((t) => t.name));
 
 // List available tools
 server.setRequestHandler(ListToolsRequestSchema, async () => {

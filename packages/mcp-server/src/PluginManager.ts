@@ -8,6 +8,7 @@
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { gatePluginRegistration } from './security/fork-sandbox-gate';
+import { registerKnownTools } from './security/tool-scopes';
 
 export type ToolHandler = (name: string, args: Record<string, unknown>) => Promise<unknown>;
 
@@ -53,6 +54,9 @@ export class PluginManager {
     for (const tool of pluginTools) {
       this.handlers.set(tool.name, handler);
     }
+    // Register plugin tool names with the Gate-2 authorizer so fail-closed-on-unregistered admits
+    // them (an installed plugin's tools are legitimately part of the live registry).
+    registerKnownTools(pluginTools.map((t) => t.name));
   }
 
   /**

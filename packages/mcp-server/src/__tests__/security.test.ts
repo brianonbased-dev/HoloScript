@@ -24,7 +24,14 @@ import {
   getToolRiskLevel,
   getToolScopes,
   getToolsForScope,
+  hasExplicitScope,
+  resolveRequiredScopes,
+  classifyToolScope,
+  registerKnownTools,
+  isRegisteredTool,
+  __resetKnownToolsForTest,
 } from '../security/tool-scopes';
+import { ALL_AVAILABLE_TOOLS } from '../index';
 import {
   gate1ValidateRequest,
   gate3EnforcePolicy,
@@ -599,6 +606,109 @@ describe('Gate 2: Tool Scope Authorization', () => {
     for (const tool of HIGH_RISK_UNMAPPED) {
       expect(['high', 'critical'], `${tool} risk`).toContain(getToolRiskLevel(tool));
     }
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 3b. Gate 2: v2g4 — full least-privilege coverage + fail-closed-on-unregistered
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('Gate 2: v2g4 scope-map completeness + fail-closed', () => {
+  const registryNames = [...new Set(ALL_AVAILABLE_TOOLS.map((t) => t.name))];
+
+  it('COMPLETENESS: every registered tool has an EXPLICIT scope (no fail-open default survives)', () => {
+    const unmapped = registryNames.filter((n) => !hasExplicitScope(n));
+    expect(unmapped, `registered-but-unmapped tools (would fail-open): ${unmapped.join(', ')}`).toEqual(
+      []
+    );
+    // and the registry is non-trivial — guards against an empty import masking the check.
+    expect(registryNames.length).toBeGreaterThan(400);
+  });
+
+  it('resolveRequiredScopes never fail-opens to read for a write/admin tool', () => {
+    expect(resolveRequiredScopes('holo_run_grpo_pass')).toContain('tools:write');
+    expect(resolveRequiredScopes('negotiation_settle')).toContain('tools:admin');
+    expect(resolveRequiredScopes('holo_ci_dispatch')).toContain('tools:admin');
+  });
+
+  // Regression-pin the dangerous tools the 73-agent workflow surfaced BEYOND zvor's 28.
+  const V2G4_NEW_ADMIN = [
+    'holo_ci_dispatch',
+    'holo_protocol_publish',
+    'holo_protocol_collect',
+    'hololand_revoke_creator',
+    'hololand_revoke_player',
+    'holotune_launch',
+    'holotune_promote',
+    'twin_earth_update_identity',
+    'negotiation_settle',
+  ];
+  it('newly-surfaced dangerous tools require tools:admin (denied with read, ok with admin)', () => {
+    for (const t of V2G4_NEW_ADMIN) {
+      expect(getToolScopes(t), `${t} must require admin`).toContain('tools:admin');
+      expect(authorizeToolCall(t, ['tools:read']).authorized, `${t} denied w/ read`).toBe(false);
+      expect(authorizeToolCall(t, ['tools:admin']).authorized, `${t} ok w/ admin`).toBe(true);
+    }
+  });
+
+  it('classifyToolScope fails CLOSED (admin) for an unrecognized tool, dangerous-first', () => {
+    expect(classifyToolScope('totally_unknown_zzz_tool')).toEqual(['tools:admin']);
+    // a hypothetical future money tool is admin even though it also looks create-able (dangerous-first).
+    expect(classifyToolScope('create_wallet_payout')).toEqual(['tools:admin']);
+    // a plain reader still classifies read.
+    expect(classifyToolScope('get_something_new')).toEqual(['tools:read']);
+  });
+
+  it('core non-admin flows (heartbeat/board/inbox/get/list) authorize with only tools:read', () => {
+    const coreReads = [
+      'holomesh_heartbeat',
+      'holomesh_presence',
+      'holomesh_inbox',
+      'holomesh_notifications',
+      'holomesh_board_list',
+      'get_world',
+      'list_worlds',
+    ];
+    for (const t of coreReads) {
+      expect(hasExplicitScope(t), `${t} must be explicitly mapped`).toBe(true);
+      expect(authorizeToolCall(t, ['tools:read']).authorized, `${t} must work with read scope`).toBe(
+        true
+      );
+    }
+  });
+
+  describe('fail-closed-on-unregistered', () => {
+    afterEach(() => {
+      __resetKnownToolsForTest();
+    });
+
+    it('when the registry is UNKNOWN (empty), does NOT deny by registry (back-compat for direct calls)', () => {
+      __resetKnownToolsForTest();
+      expect(isRegisteredTool('parse_hs')).toBe(false);
+      // registry unknown -> registry check skipped -> resolves by scope (parse_hs = read)
+      expect(authorizeToolCall('parse_hs', ['tools:read']).authorized).toBe(true);
+    });
+
+    it('once the registry is KNOWN, an UNREGISTERED name is denied — even with admin:*', () => {
+      __resetKnownToolsForTest();
+      registerKnownTools(registryNames);
+      expect(isRegisteredTool('parse_hs')).toBe(true);
+      const spoof = authorizeToolCall('totally_not_a_registered_tool_xyz', ['admin:*']);
+      expect(spoof.authorized, 'spoofed name must be denied even with admin:*').toBe(false);
+      expect(spoof.reason).toMatch(/not a registered tool/i);
+      // registered tools still authorize normally under the same (known) registry
+      expect(authorizeToolCall('parse_hs', ['tools:read']).authorized).toBe(true);
+      expect(authorizeToolCall('settle_creator_payout', ['admin:*']).authorized).toBe(true);
+    });
+
+    it('registerKnownTools is additive (plugin tools join the known set)', () => {
+      __resetKnownToolsForTest();
+      registerKnownTools(['a_core_tool']);
+      registerKnownTools(['a_plugin_tool']);
+      expect(isRegisteredTool('a_core_tool')).toBe(true);
+      expect(isRegisteredTool('a_plugin_tool')).toBe(true);
+      expect(isRegisteredTool('never_registered')).toBe(false);
+    });
   });
 });
 

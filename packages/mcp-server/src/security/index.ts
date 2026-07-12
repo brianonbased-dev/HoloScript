@@ -36,6 +36,12 @@ export {
   getToolRiskLevel,
   getToolScopes,
   getToolsForScope,
+  resolveRequiredScopes,
+  classifyToolScope,
+  hasExplicitScope,
+  registerKnownTools,
+  isRegisteredTool,
+  isToolRegistryKnown,
   type AuthorizationResult,
   type ToolRiskLevel,
 } from './tool-scopes';
