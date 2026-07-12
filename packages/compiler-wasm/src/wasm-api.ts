@@ -1,3 +1,5 @@
+import { createRequire } from 'node:module';
+
 /**
  * TypeScript API types and wrapper for the HoloScript WASM compiler.
  *
@@ -537,17 +539,29 @@ export class HoloScriptCompileError extends Error {
   }
 }
 
-let _bridge: typeof import('@holoscript/core/compiler') | null = null;
+interface TraitRegistryBridge {
+  traitExists(name: string): boolean;
+  queryTrait(name: string, opts?: { target?: string }): TraitInfoResult;
+  listTraitsForTarget(target: string): string[];
+  generateTraitForTarget(
+    name: string,
+    target: string,
+    config?: Record<string, unknown>
+  ): string[];
+}
+
+const requireBridge = createRequire(import.meta.url);
+let _bridge: Partial<TraitRegistryBridge> | null = null;
 let _bridgeLoadAttempted = false;
 
-function getBridge() {
+function getBridge(): Partial<TraitRegistryBridge> | null {
   if (_bridge) return _bridge;
   if (_bridgeLoadAttempted) return null;
   _bridgeLoadAttempted = true;
   try {
     // Dynamic require for Node/bundler environments;
     // in pure WASM contexts this will fail and we fall back gracefully.
-    _bridge = require('@holoscript/core/compiler');
+    _bridge = requireBridge('@holoscript/core/compiler') as Partial<TraitRegistryBridge>;
     return _bridge;
   } catch {
     return null;

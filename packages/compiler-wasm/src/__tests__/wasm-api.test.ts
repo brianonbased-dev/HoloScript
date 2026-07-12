@@ -14,7 +14,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { delimiter, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { UAALVirtualMachine, UAALOpCode, type UAALBytecode } from '../../../uaal/src/index';
+import { UAALVirtualMachine, UAALOpCode, type UAALBytecode } from '@holoscript/uaal';
 import {
   HoloScriptWasm,
   HoloScriptCompileError,
