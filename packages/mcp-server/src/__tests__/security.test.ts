@@ -28,6 +28,7 @@ import {
   resolveRequiredScopes,
   classifyToolScope,
   registerKnownTools,
+  isToolRegistryKnown,
   isRegisteredTool,
   __resetKnownToolsForTest,
 } from '../security/tool-scopes';
@@ -708,6 +709,18 @@ describe('Gate 2: v2g4 scope-map completeness + fail-closed', () => {
       expect(isRegisteredTool('a_core_tool')).toBe(true);
       expect(isRegisteredTool('a_plugin_tool')).toBe(true);
       expect(isRegisteredTool('never_registered')).toBe(false);
+    });
+
+    it('registerKnownTools ignores blank names and normalizes registry inputs', () => {
+      __resetKnownToolsForTest();
+      registerKnownTools(['', '   ']);
+      expect(isToolRegistryKnown()).toBe(false);
+
+      registerKnownTools([' parse_hs ']);
+      expect(isRegisteredTool('parse_hs')).toBe(true);
+      expect(isRegisteredTool(' parse_hs ')).toBe(false);
+      expect(authorizeToolCall('parse_hs', ['tools:read']).authorized).toBe(true);
+      expect(authorizeToolCall(' parse_hs ', ['admin:*']).authorized).toBe(false);
     });
   });
 });

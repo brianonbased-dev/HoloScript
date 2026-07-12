@@ -766,7 +766,10 @@ const KNOWN_TOOLS = new Set<string>();
 
 /** Register live tool names (idempotent, additive). Call at startup and whenever plugins load. */
 export function registerKnownTools(names: Iterable<string>): void {
-  for (const n of names) if (n) KNOWN_TOOLS.add(n);
+  for (const n of names) {
+    const normalized = n.trim();
+    if (normalized) KNOWN_TOOLS.add(normalized);
+  }
 }
 
 /** True once at least one tool has been registered (the live registry is known). */
