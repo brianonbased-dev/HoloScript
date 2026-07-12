@@ -93,6 +93,9 @@ services/holoscript-net/archive/
 services/llm-service/*.err
 services/render-service/*.txt
 
+# Local LLM service credential, session, and rate-limit runtime state
+/services/.holoscript-llm/
+
 # Compiled JS/TS declaration outputs from TypeScript source scripts
 # (the .ts sources are tracked; the compiled outputs are not)
 examples/**/*.js
