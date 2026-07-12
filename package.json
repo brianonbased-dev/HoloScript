@@ -147,6 +147,8 @@
     "check:platform-live-service-receipt": "node scripts/holo-ci/check-platform-live-service-receipt.mjs --out .scratch/platform-live-service-receipt.json --json",
     "check:platform-live-service-receipts": "pnpm run check:platform-live-service-receipt",
     "check:platform-live-service-receipt:test": "node scripts/__tests__/platform-live-service-receipt.test.mjs",
+    "check:holograph-embodied-navigation": "node scripts/holo-ci/run-holograph-embodied-navigation-benchmark.mjs --out .scratch/holograph-embodied-navigation-benchmark.json --json --require-holollama-live",
+    "check:holograph-embodied-navigation:test": "node scripts/__tests__/holograph-embodied-navigation-benchmark.test.mjs",
     "check:registry-cold-start:absorb-service-public-api": "node scripts/holo-ci/check-package-public-api-canaries.mjs --package @holoscript/absorb-service",
     "check:registry-mirror-proof": "node scripts/holo-ci/prove-registry-mirror-cold-start.mjs",
     "check:pypi-consumption": "node scripts/holo-ci/check-package-consumption-matrix.mjs --build-python --inspect-python-artifacts --smoke-python-artifacts --audit-pypi",
