@@ -37,7 +37,7 @@ const CONCURRENCY = 6;
 // 2026-07-12 sweep). A tsc error in ANY of these fails the gate.
 const ENFORCED = [
   'absorb-service', 'adapter-postgres', 'agent-protocol', 'aibrittney', 'animation-presets',
-  'auth', 'benchmark', 'compiler-wasm', 'connector-appstore', 'connector-core', 'connector-github',
+  'auth', 'benchmark', 'cli', 'compiler-wasm', 'connector-appstore', 'connector-core', 'connector-github',
   'connector-moltbook', 'connector-railway', 'connector-upstash', 'connector-vscode', 'core',
   'core-types', 'crdt', 'crdt-spatial', 'create-holoscript', 'engine', 'formatter',
   'graphql-api', 'holo-runtime', 'holo-vm', 'holoembed', 'hologram-worker',
@@ -56,7 +56,6 @@ const ENFORCED = [
 // Tracked, NOT blocking. Most are test-file or tsconfig-include issues (see the sweep triage / the
 // follow-up board task). Fix a package to zero, then MOVE it from STAGED into ENFORCED.
 const STAGED = {
-  cli: 42,
   'r3f-renderer': 73,
 };
 

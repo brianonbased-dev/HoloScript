@@ -144,7 +144,7 @@ describe('Track-0 mesh → .glb export', () => {
     fs.writeFileSync(tmp, Buffer.from(makeSkinnedTriangleGlb()));
     try {
       const result = parseHolo(importGltf(tmp));
-      const shape = result.ast?.shapes?.find((s) => s.shapeType === 'mesh');
+      const shape = result.ast?.shapes?.find((s: { shapeType?: string }) => s.shapeType === 'mesh');
       expect(shape).toBeDefined();
 
       const { g, bin } = parse(compileMeshShapeToGlb(shape!));
@@ -208,7 +208,7 @@ describe('Track-0 mesh → .glb export', () => {
     fs.writeFileSync(tmp, Buffer.from(makeSkinnedTriangleGlb()));
     try {
       const result = parseHolo(importGltf(tmp));
-      const shape = result.ast?.shapes?.find((s) => s.shapeType === 'mesh');
+      const shape = result.ast?.shapes?.find((s: { shapeType?: string }) => s.shapeType === 'mesh');
       expect(shape).toBeDefined();
 
       const { g, bin } = parse(compileMeshShapeToGlb(shape!));
