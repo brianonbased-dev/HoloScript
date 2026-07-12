@@ -108,6 +108,10 @@ import {
   MultiTargetFanoutPanel,
 } from '@/components/create/MultiTargetFanoutPanel';
 import {
+  PORTABILITY_SOURCE,
+  PortabilityHeadToHeadPanel,
+} from '@/components/create/PortabilityHeadToHeadPanel';
+import {
   TIME_TO_WOW_SOURCE,
   TimeToWowPathPanel,
 } from '@/components/create/TimeToWowPathPanel';
@@ -1389,6 +1393,37 @@ export default function CreatePage() {
     setSimulationOpen,
   ]);
 
+  const handlePortabilityDemoOpen = useCallback(() => {
+    setCode(PORTABILITY_SOURCE);
+    setMetadata({ name: 'Omma Portability Head-to-Head', id: 'omma-portability-head-to-head' });
+    setExecutionState('running');
+    setCodeEditorCollapsed(false);
+    setDescribeItDismissed(true);
+    clearLandingPrompt();
+
+    setExportOpen(true);
+    setExportV2Open(true);
+    setShareOpen(true);
+    setRegistryOpen(true);
+    setReplOpen(true);
+    addToast(
+      'Portability demo opened: same prompt, owned source, cross-domain artifacts, and receipts',
+      'success',
+      2600
+    );
+  }, [
+    addToast,
+    clearLandingPrompt,
+    setCode,
+    setExecutionState,
+    setExportOpen,
+    setExportV2Open,
+    setMetadata,
+    setRegistryOpen,
+    setReplOpen,
+    setShareOpen,
+  ]);
+
   const showDescribeItFirstRun =
     !describeItDismissed && (landingPrompt.trim().length > 0 || code.trim().length === 0);
 
@@ -1804,6 +1839,7 @@ export default function CreatePage() {
               <AIPromptOverlay />
               <TimeToWowPathPanel onStart={handleTimeToWowStart} />
               <MultiTargetFanoutPanel onDispatch={handleMultiTargetDispatch} />
+              <PortabilityHeadToHeadPanel onOpenDemo={handlePortabilityDemoOpen} />
               {showDescribeItFirstRun && (
                 <DescribeItFirstRunPanel
                   initialPrompt={landingPrompt}

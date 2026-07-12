@@ -1,0 +1,54 @@
+composition OmmaPortabilityHeadToHead {
+  metadata {
+    matrixSource: "docs/strategy/competitor-gap-matrix.json#CG-758"
+    battlecard: "docs/strategy/battlecards/omma.md"
+    competitor: "Omma"
+    receipt: "omma-portability-head-to-head.v1"
+    comparisonLine: "Omma builds a beautiful browser app you can publish; HoloScript builds portable, verifiable source you own and can run across domains"
+  }
+
+  prompt "Build the Neon Orchard Launchpad once, then show where the same source goes next: browser, Unity, robot/sim, XR, service/MCP, assets, and provenance receipts."
+
+  proof "same-prompt-where-it-goes-next" {
+    source: "packages/studio/src/lib/studio/time-to-wow/time_to_wow_path.holo"
+    fanout: "packages/studio/src/lib/studio/multi-target/multi_target_fanout.holo"
+    browserPreview: "studio://create?demo=time-to-wow"
+    receiptPack: "receipt-pack://multi-target-fanout.v1"
+  }
+
+  artifact "browser-preview" {
+    label: "Browser/WebGPU preview"
+    href: "artifacts/web/neon-orchard/"
+    targetClass: "browser"
+  }
+
+  artifact "unity-package" {
+    label: "Unity gameplay package"
+    href: "artifacts/unity/NeonOrchard.unitypackage"
+    targetClass: "unity"
+  }
+
+  artifact "robot-sim" {
+    label: "Robot/sim URDF + SDF"
+    href: "artifacts/robot/neon-orchard.urdf"
+    targetClass: "robot-sim"
+  }
+
+  artifact "xr-headset" {
+    label: "XR/headset OpenXR bundle"
+    href: "artifacts/xr/neon-orchard-openxr.zip"
+    targetClass: "xr"
+  }
+
+  artifact "service-mcp" {
+    label: "Service/MCP artifact"
+    href: "artifacts/service/neon-orchard-mcp/"
+    targetClass: "service"
+  }
+
+  artifact "provenance-pack" {
+    label: "CAEL/provenance receipt pack"
+    href: "receipt-pack://multi-target-fanout.v1"
+    targetClass: "receipt"
+  }
+}

@@ -90,6 +90,26 @@ test.describe('Studio editor page', () => {
     await expect(page.getByText('robot-sim').first()).toBeVisible({ timeout: 10_000 });
   });
 
+  test('portability head-to-head shows same-prompt artifact trail', async ({ page }) => {
+    const portabilityPanel = page.getByTestId('portability-head-to-head');
+    await expect(portabilityPanel).toBeVisible({ timeout: 10_000 });
+    await expect(portabilityPanel).toContainText(
+      'Omma builds a beautiful browser app you can publish; HoloScript builds portable, verifiable source you own and can run across domains'
+    );
+    await expect(portabilityPanel).toContainText('Unity package');
+    await expect(portabilityPanel).toContainText('Robot/sim');
+    await expect(portabilityPanel).toContainText('CAEL receipt pack');
+
+    await page.getByTestId('portability-open-demo').click();
+
+    await expect(page.getByText('Omma Portability Head-to-Head').first()).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(page.getByText('omma-portability-head-to-head.v1').first()).toBeVisible({
+      timeout: 10_000,
+    });
+  });
+
   test('can expand/collapse the scene graph panel', async ({ page }) => {
     // Scene graph root should be visible
     const tree = page.locator('[role="tree"]').first();
