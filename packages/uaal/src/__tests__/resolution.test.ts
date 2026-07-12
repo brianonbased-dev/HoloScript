@@ -5,11 +5,13 @@ import {
   resolveDischargeable,
   resolveCounterfactual,
   resolveMereology,
+  resolveTension,
   type UAALContainmentIR,
   type UAALDeonticIR,
   type UAALCompositionIR,
   type UAALCounterfactualIR,
   type UAALMereologyIR,
+  type UAALTensionIR,
 } from '../semantic';
 
 // The gap-aware layer (the "three-body disposition" verifier): resolve* must DERIVE unresolvability from the
@@ -368,6 +370,51 @@ describe('resolveMereology — unstated essentiality', () => {
   });
 });
 
+describe('resolveTension — unstated terminal outcome', () => {
+  const tie = (terminals: Array<{ id: string; outcome?: string }>): UAALTensionIR => ({
+    terminals,
+    unfired: terminals.map((t) => ({ from: 'F', to: t.id })),
+    frontier: 'F',
+    query: { frontier: 'F' },
+  });
+
+  it('resolves tension:true when both a goal and an antigoal terminal are reached', () => {
+    const r = resolveTension(tie([{ id: 'T1', outcome: 'goal' }, { id: 'T2', outcome: 'antigoal' }]));
+    expect(r.status).toBe('resolved');
+    expect(r.answer).toMatchObject({ tension: true, contradiction: { goal: 'T1', antigoal: 'T2' } });
+  });
+
+  it('resolves tension:false when the reached outcomes are stated and lack a pole', () => {
+    const r = resolveTension(tie([{ id: 'T1', outcome: 'goal' }, { id: 'T2', outcome: 'neutral' }]));
+    expect(r.status).toBe('resolved');
+    expect(r.answer).toMatchObject({ tension: false });
+  });
+
+  it('flags UNRESOLVABLE when a stated goal is reached alongside an UNSTATED-outcome terminal', () => {
+    const r = resolveTension(tie([{ id: 'T1', outcome: 'goal' }, { id: 'T2' }]));
+    expect(r.status).toBe('unresolvable');
+    expect(r.reason).toBe('missing_precondition');
+    expect(r.gap?.code).toBe('tension.unstated_outcome');
+    expect(r.obstruction).toContain('T2');
+  });
+
+  it('flags UNRESOLVABLE when neither pole is stated but two unstated terminals could supply both', () => {
+    const r = resolveTension(tie([{ id: 'T1' }, { id: 'T2' }]));
+    expect(r.status).toBe('unresolvable');
+    expect(r.reason).toBe('missing_precondition');
+  });
+
+  it('does NOT flag a single unstated terminal with neither pole (cannot supply both — no false gap)', () => {
+    expect(resolveTension(tie([{ id: 'T1' }])).status).toBe('resolved');
+  });
+
+  it('does NOT flag when both poles are already reached even with an extra unstated terminal', () => {
+    const r = resolveTension(tie([{ id: 'T1', outcome: 'goal' }, { id: 'T2', outcome: 'antigoal' }, { id: 'T3' }]));
+    expect(r.status).toBe('resolved');
+    expect(r.answer).toMatchObject({ tension: true });
+  });
+});
+
 describe('no false gaps', () => {
   it('every determinate query resolves (never a spurious unresolvable)', () => {
     const occ = resolveOcclusion(
@@ -394,7 +441,14 @@ describe('no false gaps', () => {
       changes: [{ op: 'remove', part: 'flag_a', role: 'flag', essential: false }],
       query: { whole: 'ship' },
     });
-    expect([occ.status, norm.status, disc.status, cf.status, mer.status]).toEqual([
+    const ten = resolveTension({
+      terminals: [{ id: 'T1', outcome: 'goal' }, { id: 'T2', outcome: 'antigoal' }],
+      unfired: [{ from: 'F', to: 'T1' }, { from: 'F', to: 'T2' }],
+      frontier: 'F',
+      query: { frontier: 'F' },
+    });
+    expect([occ.status, norm.status, disc.status, cf.status, mer.status, ten.status]).toEqual([
+      'resolved',
       'resolved',
       'resolved',
       'resolved',

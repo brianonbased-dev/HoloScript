@@ -29,6 +29,7 @@ import type {
   UAALCommitmentIR,
   UAALCounterfactualIR,
   UAALMereologyIR,
+  UAALTensionIR,
 } from './semantic';
 import {
   resolveOcclusion,
@@ -39,6 +40,7 @@ import {
   resolveCommitment,
   resolveCounterfactual,
   resolveMereology,
+  resolveTension,
 } from './semantic';
 import type { UAALBeneficiaryIR } from './beneficiary';
 import { resolveBeneficiary } from './beneficiary';
@@ -53,6 +55,7 @@ export type UAALResolvedFamily =
   | 'commitment'
   | 'counterfactual'
   | 'mereology'
+  | 'tension'
   | 'beneficiary';
 
 /** Target ids some resolvers need alongside the IR (agent/object/action/norm/belief/commitment). */
@@ -89,6 +92,7 @@ const RESOLVERS: Record<UAALResolvedFamily, (ir: unknown, query: VerifierQuery) 
   commitment: (ir, q) => resolveCommitment(ir as UAALCommitmentIR, q.commitment),
   counterfactual: (ir) => resolveCounterfactual(ir as UAALCounterfactualIR),
   mereology: (ir) => resolveMereology(ir as UAALMereologyIR),
+  tension: (ir) => resolveTension(ir as UAALTensionIR),
   beneficiary: (ir) => resolveBeneficiary(ir as UAALBeneficiaryIR),
 };
 

@@ -3310,6 +3310,39 @@ export function branchCountTension(ir: UAALTensionIR): Pick<TensionRecovery, 'te
   return { tension: (ir.unfired || []).filter((edge) => edge.from === start).length >= 2 };
 }
 
+/**
+ * Tension, honest about an UNSTATED terminal outcome. recoverTension flags a goal↔antigoal contradiction
+ * only when it reaches BOTH a terminal with outcome 'goal' and one with outcome 'antigoal'; a reached
+ * terminal whose `outcome` is unstated is silently treated as neither, so a contradiction that hinges on
+ * that terminal collapses to tension:false. resolveTension abstains when the stated terminals do not
+ * already give both poles yet enough reachable terminals have an UNSTATED outcome to possibly supply the
+ * missing pole(s) (missing_precondition): one unstated terminal reachable alongside a stated goal could be
+ * the antigoal — the contradiction is undetermined. When both poles are already reached (determinate
+ * tension) or too few unstated terminals remain to complete a pair, it resolves normally. Determinate
+ * rows state every reachable terminal's outcome (the tt3 structural invariant), so a determinate IR is
+ * never flipped to a false gap.
+ */
+export function resolveTension(ir: UAALTensionIR): UAALResolution<TensionRecovery> {
+  const reached = reachableTerminals(ir);
+  const hasGoal = reached.some((terminal) => terminal.outcome === 'goal');
+  const hasAntigoal = reached.some((terminal) => terminal.outcome === 'antigoal');
+  if (!(hasGoal && hasAntigoal)) {
+    const unstated = reached.filter((terminal) => terminal.outcome == null);
+    const need = (hasGoal ? 0 : 1) + (hasAntigoal ? 0 : 1);
+    if (unstated.length >= need) {
+      const ids = unstated.map((terminal) => terminal.id).join(', ');
+      return {
+        query: 'tension',
+        status: 'unresolvable',
+        reason: 'missing_precondition',
+        gap: structuredGap('tension', 'tension.unstated_outcome', 'missing_precondition', ids),
+        obstruction: `reachable terminal(s) ${ids} have an unstated outcome — they could resolve to goal or antigoal, so whether a goal↔antigoal contradiction exists is undetermined`,
+      };
+    }
+  }
+  return { query: 'tension', status: 'resolved', answer: recoverTension(ir) };
+}
+
 function tensionFidelity(recovered: TensionRecovery, metadata: UAALTensionMetadata): boolean {
   if (metadata.tension) {
     return (
