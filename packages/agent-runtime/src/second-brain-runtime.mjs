@@ -9,6 +9,15 @@ const SECRET_KEY_RE =
   /(?:api.?key|authorization|bearer|credential|password|private.?key|secret|token)/iu;
 const SECRET_VALUE_RE =
   /(?:\bBearer\s+[A-Za-z0-9._~+/=-]{12,}|\b(?:sk|ghp|github_pat|xox[baprs])[-_][A-Za-z0-9._-]{12,})/iu;
+const NON_SECRET_TOKEN_COUNTER_KEY_RE =
+  /^(?:prompt|completion|input|output|total|max|cached)[_-]?tokens?$/iu;
+
+function isSecretKey(key, value) {
+  const numericCounter =
+    NON_SECRET_TOKEN_COUNTER_KEY_RE.test(key) &&
+    (value === null || (typeof value === 'number' && Number.isFinite(value)));
+  return SECRET_KEY_RE.test(key) && !numericCounter;
+}
 
 function cleanText(value, fallback = null) {
   const text = String(value ?? '').trim();
@@ -45,7 +54,7 @@ function sanitizeValue(value, { maxDepth, maxArray, maxString }, depth, seen) {
   }
   const output = {};
   for (const [key, child] of Object.entries(value)) {
-    if (SECRET_KEY_RE.test(key)) {
+    if (isSecretKey(key, child)) {
       output[key] = '<redacted>';
       continue;
     }
@@ -106,6 +115,7 @@ function normalizePlan(input, idFactory) {
   return {
     summary: cleanText(input.summary, 'Plan supplied by caller adapter'),
     rationale: cleanText(input.rationale),
+    metadata: input.metadata ?? {},
     actions: input.actions.map((action, index) => {
       if (!action || typeof action !== 'object')
         throw new Error(`plan action ${index} must be an object`);
@@ -133,7 +143,7 @@ function publicAction(action) {
     inputKeys:
       action.input && typeof action.input === 'object' && !Array.isArray(action.input)
         ? Object.keys(action.input)
-            .filter((key) => !SECRET_KEY_RE.test(key))
+            .filter((key) => !isSecretKey(key, action.input[key]))
             .sort()
         : [],
   };
@@ -372,6 +382,7 @@ export function createSecondBrainRuntime({
             knowledge: recalledKnowledge,
             profile,
             limits,
+            signal,
           }),
           idFactory
         );
@@ -381,6 +392,7 @@ export function createSecondBrainRuntime({
           await addNode('plan', 'blocked', {
             summary: plan.summary,
             rationale: plan.rationale,
+            metadata: plan.metadata,
             actionCount: plan.actions.length,
             actionLimit,
           });
@@ -388,6 +400,7 @@ export function createSecondBrainRuntime({
           await addNode('plan', 'completed', {
             summary: plan.summary,
             rationale: plan.rationale,
+            metadata: plan.metadata,
             actions: plan.actions.map(publicAction),
           });
         }
@@ -471,7 +484,12 @@ export function createSecondBrainRuntime({
     } catch (error) {
       status = 'failed';
       stopReason = `${stage}-failed`;
-      await addNode('failure', 'failed', { stage, error: errorMessage(error) });
+      await addNode('failure', 'failed', {
+        stage,
+        error: errorMessage(error),
+        errorName: cleanText(error?.name),
+        errorCode: cleanText(error?.code),
+      });
       recovery = await recoverFrom(stopReason, error);
     }
 
@@ -582,6 +600,7 @@ export function createSecondBrainRuntime({
         ? redactRuntimeValue({
             summary: plan.summary,
             rationale: plan.rationale,
+            metadata: plan.metadata,
             actions: plan.actions.map(publicAction),
           })
         : null,

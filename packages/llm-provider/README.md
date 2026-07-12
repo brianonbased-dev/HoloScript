@@ -4,10 +4,14 @@ Unified, multi-provider LLM adapter layer for HoloScript. One interface across
 Anthropic, OpenAI, Gemini, xAI (Grok), OpenRouter, and local HoloLlama
 (llama.cpp) endpoints, plus capability routing and a cost guard.
 
+It serves external developers, founder/operators, and agent frameworks that
+need a public provider contract while retaining caller custody of credentials,
+model choice, endpoints, tool authorization, and execution.
+
 ## Usage
 
 ```bash
-pnpm install
+npm install @holoscript/llm-provider openai
 ```
 
 ```ts
@@ -16,6 +20,52 @@ import { OpenAIAdapter } from '@holoscript/llm-provider/adapters/openai';
 ```
 
 Install the provider SDK you need as a peer dependency (`openai` or `@anthropic-ai/sdk`).
+
+Provider-native function calls use the same request shape across adapters. A
+caller that needs a tool call rather than optional prose can require it without
+reaching into the OpenAI SDK:
+
+```ts
+import { createOpenAIProvider } from '@holoscript/llm-provider';
+
+const provider = createOpenAIProvider({
+  apiKey: process.env.OPENAI_API_KEY,
+  timeoutMs: 60_000,
+  maxRetries: 0,
+  parallelToolCalls: false,
+  store: false,
+});
+
+const response = await provider.complete(
+  {
+    messages: [{ role: 'user', content: 'Submit one bounded plan.' }],
+    tools: [callerOwnedToolSchema],
+    provider: {
+      openai: { toolChoice: 'required', parallelToolCalls: false },
+    },
+  },
+  callerSelectedModel,
+);
+```
+
+`toolChoice: 'required'` is sent to both the Responses and Chat Completions
+paths. Authorization and tool execution remain caller responsibilities.
+
+## Consumer validation gate
+
+Cold consumers and release agents can inspect the exact public fileset and run
+the package contract without private repository state:
+
+```bash
+npm pack @holoscript/llm-provider --dry-run --json
+pnpm test
+pnpm build
+pnpm check
+```
+
+Completion responses are machine-readable provider receipts: provider/model,
+finish reason, token usage, native tool calls, and hashed or caller-managed
+request provenance can be recorded without serializing credentials.
 
 ## Development
 

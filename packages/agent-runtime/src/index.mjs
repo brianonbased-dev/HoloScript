@@ -11,6 +11,7 @@ export * from './memory-package.mjs';
 export * from './agent-profiles.mjs';
 export * from './sovereign-seed.mjs';
 export * from './second-brain-runtime.mjs';
+export * from './provider-planner.mjs';
 
 export const AGENT_RUNTIME_CONTRACT_SCHEMA = 'holoscript.agent-runtime.contract.v1';
 export const AI_FIRST_RUNTIME_STATUS_SCHEMA = 'holoscript.agent-runtime.ai-first-status.v1';

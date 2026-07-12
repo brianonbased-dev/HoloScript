@@ -23,6 +23,13 @@ directly to an operator-owned Postgres memory store:
 npm install @holoscript/agent-runtime @holoscript/memory
 ```
 
+Install the unified provider package and the provider SDKs you use when model
+planning should flow through native tool calls:
+
+```bash
+npm install @holoscript/agent-runtime @holoscript/llm-provider openai @anthropic-ai/sdk
+```
+
 ## Executable Second-Brain Runtime
 
 `createSecondBrainRuntime` is the provider-neutral execution contract. Claude,
@@ -82,6 +89,81 @@ optional for a single turn and reported as capabilities. A lights-out loop
 should provide all of them. The runtime never silently exceeds its configured
 action or turn limits and stops on denied authority, failed verification,
 failed continuity writes, aborted signals, or exhausted bounds.
+
+## Provider-Native Planning
+
+`createProviderPlannerAdapter` turns any provider with the shared
+`complete(request, model)` contract into a bounded runtime planner. It requires
+one native `submit_agent_plan` tool call, an explicit caller-owned action
+allow-list, and grounded memory/knowledge citations when requested. It does not
+read API keys, authorize actions, execute tools, or copy raw prompts, responses,
+request IDs, or headers into receipts.
+
+```js
+import {
+  createProviderPlannerAdapter,
+  createSecondBrainRuntime,
+} from '@holoscript/agent-runtime';
+import { createOpenAIProvider } from '@holoscript/llm-provider';
+
+const provider = createOpenAIProvider({
+  apiKey: process.env.OPENAI_API_KEY,
+  defaultModel: 'caller-selected-model',
+  timeoutMs: 60_000,
+  maxRetries: 0,
+  reasoningEffort: 'none',
+  parallelToolCalls: false,
+  store: false,
+});
+
+const planner = createProviderPlannerAdapter({
+  provider,
+  model: 'caller-selected-model',
+  allowedActionTypes: ['inspect_public_package'],
+  allowedRiskLevels: ['read-only'],
+  maxActions: 1,
+  maxTokens: 800,
+  timeoutMs: 60_000,
+  contextPolicy: {
+    includeMemoryContent: true, // opt in only for memory safe to send to this provider
+    includeMemoryMetadata: false, // IDs are opaque citation handles by default
+    includeKnowledgeContent: false,
+    includeProfileMetadata: false,
+  },
+  requireMemoryCitation: true,
+});
+
+const runtime = createSecondBrainRuntime({
+  profile: { agentId: 'outside-consumer', family: 'openai', surface: 'agent' },
+  adapters: {
+    memory: callerOwnedMemory,
+    planner,
+    authority: callerOwnedAuthority,
+    executor: callerOwnedTools,
+    verifier: callerOwnedVerifier,
+    receipts: callerOwnedReceiptSink,
+  },
+});
+```
+
+Planner metadata in the turn receipt includes a frozen prompt-template hash,
+exact serializable request/context hashes, requested and provider-reported
+identity, native-tool-call status,
+token use, elapsed-time and output bounds, supplied/cited memory IDs, and an
+action-structure hash. Provider request IDs are hashed. This is external
+instrumentation for separating retrieval, generation, and durable memory; it is
+not chain-of-thought disclosure.
+
+Memory and knowledge IDs are represented to the provider as per-request opaque
+citation handles. Author, section, type, domain, and tags are also omitted unless
+the caller explicitly opts into their metadata policies. Required citations fail
+closed when retrieval returns no entries.
+
+The adapter's timer and abort signal bound when the planner rejects. Configure the underlying
+provider adapter with the same or shorter timeout so an abandoned network call
+is also cancelled at the transport layer. `@holoscript/llm-provider` is an
+optional peer: another provider implementation can be supplied when it honors
+the same completion shape.
 
 This package owns the common hook contract for:
 

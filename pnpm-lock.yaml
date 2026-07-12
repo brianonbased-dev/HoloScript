@@ -362,6 +362,9 @@ importers:
 
   packages/agent-runtime:
     dependencies:
+      '@holoscript/llm-provider':
+        specifier: workspace:*
+        version: link:../llm-provider
       '@holoscript/memory':
         specifier: workspace:^
         version: link:../memory

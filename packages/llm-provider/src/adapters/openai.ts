@@ -322,6 +322,17 @@ export function parseOpenAIResponsesResult(
   };
 }
 
+export function resolveOpenAIToolControls(
+  request: LLMCompletionRequest,
+  defaultParallelToolCalls = true
+): { toolChoice: 'auto' | 'required' | 'none'; parallelToolCalls: boolean } {
+  return {
+    toolChoice: request.provider?.openai?.toolChoice ?? 'auto',
+    parallelToolCalls:
+      request.provider?.openai?.parallelToolCalls ?? defaultParallelToolCalls,
+  };
+}
+
 function parseOpenAIUsage(value: unknown): TokenUsage {
   const usage = asRecord(value) ?? {};
   const promptTokens = numberField(usage.input_tokens) ?? numberField(usage.prompt_tokens) ?? 0;
@@ -561,9 +572,10 @@ export class OpenAIAdapter extends BaseLLMAdapter {
 
     const tools = filterGenericTools(request.tools);
     if (tools.length > 0) {
+      const controls = resolveOpenAIToolControls(request, this.parallelToolCalls);
       payload.tools = toolSpecsToOpenAIResponseTools(tools);
-      payload.tool_choice = 'auto';
-      payload.parallel_tool_calls = this.parallelToolCalls;
+      payload.tool_choice = controls.toolChoice;
+      payload.parallel_tool_calls = controls.parallelToolCalls;
     }
 
     return compactUndefined(payload);
@@ -577,6 +589,7 @@ export class OpenAIAdapter extends BaseLLMAdapter {
     return await this.withRetry(async () => {
       try {
         const tools = filterGenericTools(request.tools);
+        const controls = resolveOpenAIToolControls(request, this.parallelToolCalls);
         const response = await client.chat.completions.create({
           model,
           messages: request.messages.map((m) => ({
@@ -591,7 +604,8 @@ export class OpenAIAdapter extends BaseLLMAdapter {
           ...(tools.length > 0
             ? {
                 tools: toolSpecsToChatCompletionTools(tools) as never,
-                tool_choice: 'auto' as const,
+                tool_choice: controls.toolChoice,
+                parallel_tool_calls: controls.parallelToolCalls,
               }
             : {}),
         });

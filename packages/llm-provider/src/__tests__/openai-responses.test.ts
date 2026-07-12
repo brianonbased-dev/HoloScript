@@ -8,6 +8,7 @@ import {
   messagesToOpenAIResponsesInput,
   parseOpenAIResponsesResult,
   parseOpenAIModerationResult,
+  resolveOpenAIToolControls,
   toolSpecsToOpenAIResponseTools,
 } from '../adapters/openai';
 import type { LLMMessage, ToolSpec } from '../types';
@@ -37,6 +38,29 @@ describe('toolSpecsToOpenAIResponseTools', () => {
         strict: false,
       },
     ]);
+  });
+});
+
+describe('resolveOpenAIToolControls', () => {
+  it('forces one provider-native call when the caller requires tools', () => {
+    const request = {
+      messages: [{ role: 'user' as const, content: 'Plan one action.' }],
+      provider: {
+        openai: { toolChoice: 'required' as const, parallelToolCalls: false },
+      },
+    };
+
+    expect(resolveOpenAIToolControls(request, true)).toEqual({
+      toolChoice: 'required',
+      parallelToolCalls: false,
+    });
+  });
+
+  it('retains the adapter defaults when the request does not override them', () => {
+    expect(resolveOpenAIToolControls({ messages: [] }, false)).toEqual({
+      toolChoice: 'auto',
+      parallelToolCalls: false,
+    });
   });
 });
 

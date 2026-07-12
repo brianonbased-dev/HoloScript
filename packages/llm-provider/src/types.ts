@@ -1249,6 +1249,13 @@ export interface InlineModerationResult {
 export interface OpenAIProviderExtensions {
   reasoningEffort?: OpenAIReasoningEffort;
   parallelToolCalls?: boolean;
+  /**
+   * OpenAI tool-choice mode. `required` forces at least one of the supplied
+   * tools, while `none` disables tool calls and `auto` leaves the choice to
+   * the model. With one supplied function plus `parallelToolCalls: false`,
+   * `required` is the deterministic provider-native planner contract.
+   */
+  toolChoice?: 'auto' | 'required' | 'none';
   /** Responses API background mode — long-running task returns a token; poll for completion. */
   background?: boolean;
   /**

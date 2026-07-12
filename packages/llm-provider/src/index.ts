@@ -108,6 +108,7 @@ export {
   messagesToOpenAIResponsesInput,
   parseOpenAIResponsesResult,
   parseOpenAIModerationResult,
+  resolveOpenAIToolControls,
   toolSpecsToOpenAIResponseTools,
 } from './adapters/openai';
 export type { OpenAIModel } from './adapters/openai';
