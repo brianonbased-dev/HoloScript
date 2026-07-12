@@ -108,6 +108,31 @@ curl -X POST http://localhost:8000/api/builds \
 
 ## Development
 
+### Invalidate persisted local auth state
+
+When the local service is stopped, an operator can invalidate the three durable
+auth, session, and rate-limit state classes without displaying their contents:
+
+```bash
+pnpm security:scrub-runtime -- --dry-run
+pnpm security:scrub-runtime
+```
+
+The command targets only the canonical `services/.holoscript-llm` runtime root,
+holds the same process lease as the service, refuses to run when a state-store
+lock or configured-port listener is present, and emits a count-only JSON
+receipt. Use `--port <number>` when the service uses a non-default port. It
+never prints usernames, credential hashes, session tokens, rate-limit keys,
+file names, or file hashes. Run it under the same operating-system identity as
+the service so existing access metadata can be preserved. Replacement is
+fail-secure: sessions are invalidated first, so an interrupted later step does
+not leave an old session valid against a cleared user store.
+
+This command invalidates persisted state; it does not rotate bootstrap, dev, or
+static API-key values supplied by the environment. Rotate or unset those values
+before restarting the service. A reset receipt is not evidence that external
+credentials were rotated.
+
 ```bash
 npm run dev        # Start dev server (port 8000)
 npm run build      # Build for production

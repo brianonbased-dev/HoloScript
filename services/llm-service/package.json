@@ -12,6 +12,7 @@
     "start": "node dist/server.js",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf dist .holoscript-llm",
+    "security:scrub-runtime": "tsx src/operators/scrub-runtime-state.ts",
     "test": "vitest run --passWithNoTests",
     "test:coverage": "vitest run --coverage --passWithNoTests"
   },

@@ -19,11 +19,18 @@
 
 import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
+import type { Server } from 'http';
 import { LOCAL_DEFAULT_MODEL } from '@holoscript/llm-provider';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { StorageService } from './services/StorageService.js';
 import { AuthService, type AuthPrincipal } from './services/AuthService.js';
+import {
+  acquireRuntimeStateLease,
+  installRuntimeLeaseSignalHandlers,
+  type RuntimeStateLease,
+} from './services/RuntimeStateLease.js';
+import { parseServicePort } from './services/RuntimeConfig.js';
 import {
   InferenceRouter,
   BRITTNEY_LANES,
@@ -42,7 +49,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app: Express = express();
-const PORT = process.env.PORT || 8000;
+const PORT = parseServicePort(process.env.PORT);
 
 // ============================================================================
 // SERVICES
@@ -58,6 +65,9 @@ const usage = new UsageTracker();
 // Phase-0 capacity telemetry (concurrency + tokens/hour) for the self-hosted-fleet
 // decision. Distinct from `usage` (billing). See FleetMetrics.ts.
 const fleetMetrics = new FleetMetrics();
+let runtimeStateLease: RuntimeStateLease | undefined;
+let httpServer: Server | undefined;
+let removeLeaseSignalHandlers: (() => void) | undefined;
 
 // BuildService still uses OllamaService for backward compat
 const ollama = new OllamaService(
@@ -532,6 +542,13 @@ async function start() {
       throw new Error('Production auth is fail-closed: REQUIRE_AUTH=false is not allowed.');
     }
 
+    runtimeStateLease = acquireRuntimeStateLease(storage.basePath, 'service');
+    removeLeaseSignalHandlers = installRuntimeLeaseSignalHandlers({
+      lease: runtimeStateLease,
+      closeService: closeHttpServer,
+    });
+    process.once('exit', () => runtimeStateLease?.release());
+
     await storage.init();
     logger.info('[Storage] Initialized at', storage.basePath);
     await auth.init();
@@ -543,7 +560,7 @@ async function start() {
       logger.info(`[Provider] ${p.provider} (${p.tier}): ${p.available ? '✅ available' : '❌ unavailable'}`);
     }
 
-    app.listen(PORT, () => {
+    httpServer = app.listen(PORT, () => {
       logger.info('');
       logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       logger.info('Brittney Cloud Service Started');
@@ -561,9 +578,32 @@ async function start() {
       logger.info('');
     });
   } catch (error) {
+    removeLeaseSignalHandlers?.();
+    removeLeaseSignalHandlers = undefined;
+    runtimeStateLease?.release();
+    runtimeStateLease = undefined;
     logger.error('Startup failed:', error);
     process.exit(1);
   }
+}
+
+async function closeHttpServer(): Promise<void> {
+  const server = httpServer;
+  if (!server) return;
+
+  await new Promise<void>((resolveClose) => {
+    const forceTimer = setTimeout(() => {
+      server.closeAllConnections?.();
+      resolveClose();
+    }, 5_000);
+    forceTimer.unref?.();
+    server.close(() => {
+      clearTimeout(forceTimer);
+      resolveClose();
+    });
+    server.closeIdleConnections?.();
+  });
+  httpServer = undefined;
 }
 
 start();
