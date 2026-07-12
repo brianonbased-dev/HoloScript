@@ -170,6 +170,34 @@ is forwarded as the third `provider.complete` argument; bundled
 Completions, OpenRouter, and Anthropic streaming transports. Another provider
 implementation can be supplied when it honors the same completion shape.
 
+## Frozen provider evaluation
+
+Use `runFrozenProviderEvaluation` when a capability claim needs provider-neutral
+tasks, repeated independent contexts, a disjoint local verifier, and explicit
+caller-owned absorption. The receipt keeps provider generation, local
+acceptance, durable memory, and provider-only UI behavior as separate states.
+
+```js
+import { runFrozenProviderEvaluation } from '@holoscript/agent-runtime';
+
+const receipt = await runFrozenProviderEvaluation({
+  evaluationId: 'native-routing-v1',
+  promptId: 'native-routing-prompt-v1',
+  suite: [
+    { eval_id: 'route_1', instruction: 'Choose the durable implementation route.' },
+  ],
+  provider,
+  model: 'caller-selected-model',
+  verifier: ({ responses }) => localVerifier(responses),
+  absorb: (evidence) => callerOwnedMemory.storeAndRecall(evidence),
+});
+```
+
+The runner requires at least two fresh contexts, sends no tools, freezes and
+hashes the prompt/suite, records absent usage as unknown, rejects secret-shaped
+output, and labels UI, IDE, browser, and latency claims unverified. A locally
+accepted bundle is not `ok` until the caller's absorption adapter also succeeds.
+
 This package owns the common hook contract for:
 
 - memory and store processing: surface pin, memory ceiling check, knowledge sync,
