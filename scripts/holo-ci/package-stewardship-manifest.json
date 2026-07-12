@@ -500,17 +500,19 @@
         "check:npm-v1-release:built",
         "check:fleet-utilities",
         "check:package-consumption:full",
-        "check:registry-cold-start:platform-public-api"
+        "check:registry-cold-start:platform-public-api",
+        "check:platform-live-service-receipt"
       ],
       "validationCommands": [
         "pnpm --filter @holoscript/platform build",
         "pnpm --filter @holoscript/platform test",
-        "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/platform@latest --probe platform-public-api --json"
+        "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/platform@latest --probe platform-public-api --json",
+        "node scripts/holo-ci/check-platform-live-service-receipt.mjs --out .scratch/platform-live-service-receipt.json --json"
       ],
       "nextActions": [
         "Keep platform-public-api green from a repo-less npm consumer before each platform publish.",
         "Keep hosted-service configuration documented without embedding private deployment paths or keys.",
-        "Add live HoloKey/x402 service receipts before claiming hosted payment or identity service availability."
+        "Keep the live HoloKey/x402 service receipt gate green before claiming hosted payment or identity service availability."
       ],
       "caveats": [
         {
