@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 
 export const SECOND_BRAIN_RUNTIME_SCHEMA = 'holoscript.agent-runtime.second-brain.v1';
 export const SECOND_BRAIN_TURN_RECEIPT_SCHEMA = 'holoscript.agent-runtime.turn-receipt.v1';
@@ -8,7 +8,7 @@ export const DECISION_NETWORK_SCHEMA = 'holoscript.agent-runtime.decision-networ
 const SECRET_KEY_RE =
   /(?:api.?key|authorization|bearer|credential|password|private.?key|secret|token)/iu;
 const SECRET_VALUE_RE =
-  /(?:\bBearer\s+[A-Za-z0-9._~+/=-]{12,}|\b(?:sk|ghp|github_pat|xox[baprs])[-_][A-Za-z0-9._-]{12,})/iu;
+  /(?:\bBearer\s+[A-Za-z0-9._~+/=-]{12,}|\b(?:sk|ghp|github_pat|xox[baprs])[-_][A-Za-z0-9._-]{12,}|\bAIza[0-9A-Za-z_-]{30,}|\b(?:AKIA|ASIA)[A-Z0-9]{16}|\b[a-z][a-z0-9+.-]*:\/\/[^\s/@:]+:[^\s/@]+@[^\s]+)/iu;
 const NON_SECRET_TOKEN_COUNTER_KEY_RE =
   /^(?:prompt|completion|input|output|total|max|cached)[_-]?tokens?$/iu;
 
@@ -32,6 +32,25 @@ function boundedInt(value, fallback, min, max) {
 
 function errorMessage(error) {
   return cleanText(error?.message ?? error, 'unknown error');
+}
+
+function sha256Text(value) {
+  return `sha256:${createHash('sha256').update(String(value)).digest('hex')}`;
+}
+
+function finiteNumberOrNull(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function stringList(value) {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => cleanText(item)).filter(Boolean).slice(0, 200);
+}
+
+function record(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 }
 
 function sanitizeValue(value, { maxDepth, maxArray, maxString }, depth, seen) {
@@ -133,13 +152,77 @@ function normalizePlan(input, idFactory) {
   };
 }
 
+function publicPlannerMetadata(value) {
+  const source = record(value);
+  const prompt = record(source.prompt);
+  const provider = record(source.provider);
+  const usage = record(source.usage);
+  const timing = record(source.timing);
+  const bounds = record(source.bounds);
+  const grounding = record(source.grounding);
+  const generation = record(source.generation);
+  return {
+    schema: cleanText(source.schema),
+    prompt: {
+      id: cleanText(prompt.id),
+      templateSha256: cleanText(prompt.templateSha256),
+      contextSha256: cleanText(prompt.contextSha256),
+      requestSha256: cleanText(prompt.requestSha256),
+      frozen: prompt.frozen === true,
+    },
+    provider: {
+      requestedName: cleanText(provider.requestedName),
+      reportedName: cleanText(provider.reportedName),
+      name: cleanText(provider.name),
+      requestedModel: cleanText(provider.requestedModel),
+      reportedModel: cleanText(provider.reportedModel),
+      model: cleanText(provider.model),
+      finishReason: cleanText(provider.finishReason),
+      nativeToolCall: provider.nativeToolCall === true,
+      requestIdSha256: cleanText(provider.requestIdSha256),
+    },
+    usage: {
+      reported: usage.reported === true,
+      promptTokens: finiteNumberOrNull(usage.promptTokens),
+      completionTokens: finiteNumberOrNull(usage.completionTokens),
+      totalTokens: finiteNumberOrNull(usage.totalTokens),
+    },
+    timing: {
+      elapsedMs: finiteNumberOrNull(timing.elapsedMs),
+      timeoutMs: finiteNumberOrNull(timing.timeoutMs),
+    },
+    bounds: {
+      maxActions: finiteNumberOrNull(bounds.maxActions),
+      maxTokens: finiteNumberOrNull(bounds.maxTokens),
+    },
+    grounding: {
+      suppliedMemoryIds: stringList(grounding.suppliedMemoryIds),
+      citedMemoryIds: stringList(grounding.citedMemoryIds),
+      suppliedKnowledgeIds: stringList(grounding.suppliedKnowledgeIds),
+      citedKnowledgeIds: stringList(grounding.citedKnowledgeIds),
+    },
+    generation: {
+      toolUseCount: finiteNumberOrNull(generation.toolUseCount),
+      actionStructuralSha256: cleanText(generation.actionStructuralSha256),
+      actionContractSha256: cleanText(generation.actionContractSha256),
+      responseTextPresent: generation.responseTextPresent === true,
+    },
+  };
+}
+
 function publicAction(action) {
+  const metadata = record(action.metadata);
   return {
     id: action.id,
     type: action.type,
     summary: action.summary,
     risk: action.risk,
-    metadata: redactRuntimeValue(action.metadata),
+    metadata: Object.fromEntries(
+      Object.keys(metadata)
+        .filter((key) => !isSecretKey(key, metadata[key]))
+        .slice(0, 50)
+        .map((key) => [key, '<omitted>'])
+    ),
     inputKeys:
       action.input && typeof action.input === 'object' && !Array.isArray(action.input)
         ? Object.keys(action.input)
@@ -282,6 +365,7 @@ export function createSecondBrainRuntime({
     let recovery = null;
     let nextWork = null;
     let storedMemoryId = null;
+    let storedMemoryContentSha256 = null;
     let knowledgePublished = false;
 
     async function addNode(kind, nodeStatus, data = {}) {
@@ -392,7 +476,7 @@ export function createSecondBrainRuntime({
           await addNode('plan', 'blocked', {
             summary: plan.summary,
             rationale: plan.rationale,
-            metadata: plan.metadata,
+            metadata: publicPlannerMetadata(plan.metadata),
             actionCount: plan.actions.length,
             actionLimit,
           });
@@ -400,7 +484,7 @@ export function createSecondBrainRuntime({
           await addNode('plan', 'completed', {
             summary: plan.summary,
             rationale: plan.rationale,
-            metadata: plan.metadata,
+            metadata: publicPlannerMetadata(plan.metadata),
             actions: plan.actions.map(publicAction),
           });
         }
@@ -503,6 +587,7 @@ export function createSecondBrainRuntime({
       family: profile.family,
       intent: intent.summary,
       plan: plan?.summary ?? null,
+      plannerEvidence: plan ? publicPlannerMetadata(plan.metadata) : null,
       status,
       stopReason,
       actions: actionRecords,
@@ -511,6 +596,8 @@ export function createSecondBrainRuntime({
 
     stage = 'remember';
     try {
+      const memoryContent = JSON.stringify(redactRuntimeValue(turnSummary));
+      const memoryContentSha256 = sha256Text(memoryContent);
       storedMemoryId = await adapters.memory.store({
         authorAgent: profile.agentId,
         section: status === 'completed' ? 'D' : 'G',
@@ -518,10 +605,14 @@ export function createSecondBrainRuntime({
         domain: 'agent-runtime',
         tags: ['agent-runtime', 'second-brain', profile.family, status],
         confidence: status === 'completed' ? 0.85 : 0.7,
-        provenanceHash: `${SECOND_BRAIN_TURN_RECEIPT_SCHEMA}:${turnId}`,
-        content: JSON.stringify(redactRuntimeValue(turnSummary)),
+        provenanceHash: memoryContentSha256,
+        content: memoryContent,
       });
-      await addNode('remember', 'completed', { storedMemoryId: cleanText(storedMemoryId) });
+      storedMemoryContentSha256 = memoryContentSha256;
+      await addNode('remember', 'completed', {
+        storedMemoryId: cleanText(storedMemoryId),
+        contentSha256: storedMemoryContentSha256,
+      });
     } catch (error) {
       status = 'failed';
       stopReason = 'memory-store-failed';
@@ -600,7 +691,7 @@ export function createSecondBrainRuntime({
         ? redactRuntimeValue({
             summary: plan.summary,
             rationale: plan.rationale,
-            metadata: plan.metadata,
+            metadata: publicPlannerMetadata(plan.metadata),
             actions: plan.actions.map(publicAction),
           })
         : null,
@@ -611,6 +702,7 @@ export function createSecondBrainRuntime({
         recalled: recalledMemory.map(publicMemoryEntry),
         stored: Boolean(storedMemoryId),
         storedMemoryId: cleanText(storedMemoryId),
+        storedContentSha256: storedMemoryContentSha256,
       },
       knowledge: {
         recalledCount: recalledKnowledge.length,

@@ -11,6 +11,7 @@ import type {
   ILLMProvider,
   LLMCompletionRequest,
   LLMCompletionResponse,
+  LLMRequestOptions,
   LLMStreamChunk,
   LLMFileMetadata,
   LLMFileUploadRequest,
@@ -153,7 +154,11 @@ export abstract class BaseLLMAdapter implements ILLMProvider {
 
   protected abstract getDefaultModel(): string;
 
-  abstract complete(request: LLMCompletionRequest, model?: string): Promise<LLMCompletionResponse>;
+  abstract complete(
+    request: LLMCompletionRequest,
+    model?: string,
+    options?: LLMRequestOptions
+  ): Promise<LLMCompletionResponse>;
 
   async uploadFile(_request: LLMFileUploadRequest): Promise<LLMFileMetadata> {
     throw new LLMProviderError(`${this.name} does not support uploadFile()`, this.name);

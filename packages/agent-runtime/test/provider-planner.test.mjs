@@ -243,8 +243,14 @@ test('enforces the caller time bound', async () => {
 
 test('propagates runtime aborts as structured planner errors', async () => {
   const controller = new AbortController();
+  let transportSignal = null;
   const planner = createProviderPlannerAdapter({
-    provider: { complete: async () => new Promise(() => {}) },
+    provider: {
+      complete: async (_request, _model, options) => {
+        transportSignal = options?.signal;
+        return new Promise(() => {});
+      },
+    },
     model: 'provider-test',
     allowedActionTypes: ['verify_public_runtime'],
     timeoutMs: 5_000,
@@ -255,10 +261,16 @@ test('propagates runtime aborts as structured planner errors', async () => {
     pending,
     (error) => error instanceof ProviderPlannerError && error.code === 'aborted'
   );
+  assert.equal(transportSignal, controller.signal);
 });
 
 test('marks absent provider telemetry as unknown instead of synthesizing zero usage', async () => {
-  const response = toolResponse({ usage: undefined, provider: undefined, model: undefined });
+  const response = toolResponse({
+    usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0, reported: false },
+    provider: undefined,
+    model: 'requested-model',
+    reportedModel: null,
+  });
   const planner = createProviderPlannerAdapter({
     provider: { complete: async () => response },
     model: 'requested-model',
@@ -301,16 +313,32 @@ test('preserves provider planner error codes in the runtime decision network', a
 
 test('preserves safe planner telemetry in the runtime receipt while redacting secrets', async () => {
   const receipts = [];
+  const stored = [];
   const runtime = createSecondBrainRuntime({
     profile: { agentId: 'codex-consumer', family: 'openai', surface: 'codex' },
     adapters: {
-      memory: { recall: async () => [], store: async () => 'D.RUNTIME.2' },
+      memory: {
+        recall: async () => [],
+        store: async (entry) => {
+          stored.push(entry);
+          return 'D.RUNTIME.2';
+        },
+      },
       planner: {
         plan: async () => ({
           summary: 'One action',
           metadata: {
+            schema: PROVIDER_PLANNER_SCHEMA,
+            prompt: {
+              id: PROVIDER_PLANNER_PROMPT_ID,
+              templateSha256: 'sha256:template',
+              contextSha256: 'sha256:context',
+              requestSha256: 'sha256:request',
+              frozen: true,
+            },
             usage: { promptTokens: 10, completionTokens: 5, totalTokens: 15 },
             bounds: { maxTokens: 100 },
+            grounding: { suppliedMemoryIds: ['D.RUNTIME.1'], citedMemoryIds: ['D.RUNTIME.1'] },
             apiKey: 'sk-raw-secret-value',
           },
           actions: [{ type: 'verify_public_runtime', input: {} }],
@@ -327,10 +355,15 @@ test('preserves safe planner telemetry in the runtime receipt while redacting se
 
   assert.equal(receipt.plan.metadata.usage.promptTokens, 10);
   assert.equal(receipt.plan.metadata.bounds.maxTokens, 100);
-  assert.equal(receipt.plan.metadata.apiKey, '<redacted>');
+  assert.equal(receipt.plan.metadata.apiKey, undefined);
   assert.equal(receipt.decisionNetwork.nodes.find((node) => node.kind === 'plan').data.metadata.usage.totalTokens, 15);
   assert.equal(JSON.stringify(receipt).includes('sk-raw-secret-value'), false);
   assert.equal(receipts.length, 1);
+  assert.match(receipt.memory.storedContentSha256, /^sha256:[a-f0-9]{64}$/u);
+  assert.equal(stored[0].provenanceHash, receipt.memory.storedContentSha256);
+  const memorySummary = JSON.parse(stored[0].content);
+  assert.equal(memorySummary.plannerEvidence.prompt.requestSha256, 'sha256:request');
+  assert.deepEqual(memorySummary.plannerEvidence.grounding.citedMemoryIds, ['D.RUNTIME.1']);
   assert.deepEqual(redactRuntimeValue({ token: 'raw', totalTokens: 9 }), {
     token: '<redacted>',
     totalTokens: 9,
@@ -338,4 +371,11 @@ test('preserves safe planner telemetry in the runtime receipt while redacting se
   assert.deepEqual(redactRuntimeValue({ totalTokens: 'sk-raw-secret-value' }), {
     totalTokens: '<redacted>',
   });
+  assert.deepEqual(
+    redactRuntimeValue({
+      endpoint: 'postgresql://memory-user:memory-pass@db.example/memory',
+      opaque: 'AIza01234567890123456789012345678901234',
+    }),
+    { endpoint: '<redacted>', opaque: '<redacted>' }
+  );
 });

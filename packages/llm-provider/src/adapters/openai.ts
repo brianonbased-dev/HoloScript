@@ -15,6 +15,7 @@ import type {
   InlineModerationResult,
   LLMCompletionRequest,
   LLMCompletionResponse,
+  LLMRequestOptions,
   LLMMessage,
   OpenAIProviderConfig,
   TokenUsage,
@@ -312,6 +313,7 @@ export function parseOpenAIResponsesResult(
     content: textParts.join(''),
     usage: parseOpenAIUsage(record.usage),
     model: stringField(record.model) ?? fallbackModel,
+    reportedModel: stringField(record.model) ?? null,
     provider: 'openai',
     finishReason: mapOpenAIResponseFinishReason(record, toolUses.length > 0, sawRefusal),
     toolUses: toolUses.length > 0 ? toolUses : undefined,
@@ -335,15 +337,18 @@ export function resolveOpenAIToolControls(
 
 function parseOpenAIUsage(value: unknown): TokenUsage {
   const usage = asRecord(value) ?? {};
-  const promptTokens = numberField(usage.input_tokens) ?? numberField(usage.prompt_tokens) ?? 0;
-  const completionTokens =
-    numberField(usage.output_tokens) ?? numberField(usage.completion_tokens) ?? 0;
+  const reportedPrompt = numberField(usage.input_tokens) ?? numberField(usage.prompt_tokens);
+  const reportedCompletion =
+    numberField(usage.output_tokens) ?? numberField(usage.completion_tokens);
+  const reportedTotal = numberField(usage.total_tokens) ?? numberField(usage.totalTokens);
+  const promptTokens = reportedPrompt ?? 0;
+  const completionTokens = reportedCompletion ?? 0;
   const totalTokens =
-    numberField(usage.total_tokens) ??
-    numberField(usage.totalTokens) ??
-    promptTokens + completionTokens;
+    reportedTotal ?? promptTokens + completionTokens;
 
-  return { promptTokens, completionTokens, totalTokens };
+  return reportedPrompt === undefined && reportedCompletion === undefined && reportedTotal === undefined
+    ? { promptTokens, completionTokens, totalTokens, reported: false }
+    : { promptTokens, completionTokens, totalTokens };
 }
 
 function mapOpenAIResponseFinishReason(
@@ -507,7 +512,8 @@ export class OpenAIAdapter extends BaseLLMAdapter {
 
   async complete(
     request: LLMCompletionRequest,
-    model: string = this.defaultHoloScriptModel
+    model: string = this.defaultHoloScriptModel,
+    options: LLMRequestOptions = {}
   ): Promise<LLMCompletionResponse> {
     // Dynamically import openai to keep it optional.
     let OpenAI: typeof import('openai').default;
@@ -527,21 +533,24 @@ export class OpenAIAdapter extends BaseLLMAdapter {
     });
 
     if (this.apiSurface === 'chat-completions') {
-      return await this.completeWithChatCompletions(client, request, model);
+      return await this.completeWithChatCompletions(client, request, model, options);
     }
 
-    return await this.completeWithResponses(client, request, model);
+    return await this.completeWithResponses(client, request, model, options);
   }
 
   private async completeWithResponses(
     client: InstanceType<typeof import('openai').default>,
     request: LLMCompletionRequest,
-    model: string
+    model: string,
+    options: LLMRequestOptions
   ): Promise<LLMCompletionResponse> {
     return await this.withRetry(async () => {
       try {
         const payload = this.buildResponsesPayload(request, model);
-        const response = await client.responses.create(payload as never);
+        const response = options.signal
+          ? await client.responses.create(payload as never, { signal: options.signal })
+          : await client.responses.create(payload as never);
         return parseOpenAIResponsesResult(response, model);
       } catch (err: unknown) {
         throw this.mapOpenAIError(err);
@@ -586,13 +595,14 @@ export class OpenAIAdapter extends BaseLLMAdapter {
   private async completeWithChatCompletions(
     client: InstanceType<typeof import('openai').default>,
     request: LLMCompletionRequest,
-    model: string
+    model: string,
+    options: LLMRequestOptions
   ): Promise<LLMCompletionResponse> {
     return await this.withRetry(async () => {
       try {
         const tools = filterGenericTools(request.tools);
         const controls = resolveOpenAIToolControls(request, this.parallelToolCalls);
-        const response = await client.chat.completions.create({
+        const payload = {
           model,
           messages: request.messages.map((m) => ({
             role: m.role,
@@ -602,7 +612,7 @@ export class OpenAIAdapter extends BaseLLMAdapter {
           temperature: request.temperature,
           top_p: request.topP,
           stop: request.stop,
-          stream: false,
+          stream: false as const,
           ...(tools.length > 0
             ? {
                 tools: toolSpecsToOpenAIChatCompletionTools(tools) as never,
@@ -610,7 +620,10 @@ export class OpenAIAdapter extends BaseLLMAdapter {
                 parallel_tool_calls: controls.parallelToolCalls,
               }
             : {}),
-        });
+        };
+        const response = options.signal
+          ? await client.chat.completions.create(payload, { signal: options.signal })
+          : await client.chat.completions.create(payload);
 
         const choice = response.choices[0];
         const content = choice?.message?.content ?? '';
@@ -619,12 +632,15 @@ export class OpenAIAdapter extends BaseLLMAdapter {
 
         return {
           content,
-          usage: {
-            promptTokens: usage?.prompt_tokens ?? 0,
-            completionTokens: usage?.completion_tokens ?? 0,
-            totalTokens: usage?.total_tokens ?? 0,
-          },
-          model: response.model,
+          usage: usage
+            ? {
+                promptTokens: usage.prompt_tokens ?? 0,
+                completionTokens: usage.completion_tokens ?? 0,
+                totalTokens: usage.total_tokens ?? 0,
+              }
+            : { promptTokens: 0, completionTokens: 0, totalTokens: 0, reported: false },
+          model: response.model ?? model,
+          reportedModel: response.model ?? null,
           provider: 'openai',
           finishReason:
             toolUses.length > 0 ? 'tool_use' : this.mapChatFinishReason(choice?.finish_reason),

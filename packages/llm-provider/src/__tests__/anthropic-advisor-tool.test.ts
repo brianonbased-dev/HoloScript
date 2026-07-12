@@ -209,6 +209,14 @@ describe('AnthropicAdapter — advisor tool beta header injection', () => {
     expect(streamCalls[0].options).toBeUndefined();
   });
 
+  it('complete(): forwards the caller AbortSignal to the streaming transport', async () => {
+    const adapter = new AnthropicAdapter({ apiKey: 'k' });
+    const signal = new AbortController().signal;
+    await adapter.complete({ messages: [userMsg] }, 'claude-opus-4-7', { signal });
+    expect(streamCalls).toHaveLength(1);
+    expect(streamCalls[0].options).toEqual({ signal });
+  });
+
   it('complete(): joins multiple beta tokens with comma when both advisor + explicit are present', async () => {
     const adapter = new AnthropicAdapter({ apiKey: 'k' });
     await adapter.complete(

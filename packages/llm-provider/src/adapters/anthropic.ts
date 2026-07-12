@@ -12,6 +12,7 @@ import type {
   Capabilities,
   LLMCompletionRequest,
   LLMCompletionResponse,
+  LLMRequestOptions,
   LLMFileMetadata,
   LLMFileUploadRequest,
   LLMStreamChunk,
@@ -590,7 +591,8 @@ export class AnthropicAdapter extends BaseLLMAdapter {
 
   async complete(
     request: LLMCompletionRequest,
-    model: string = this.defaultHoloScriptModel
+    model: string = this.defaultHoloScriptModel,
+    options: LLMRequestOptions = {}
   ): Promise<LLMCompletionResponse> {
     // Dynamically import Anthropic SDK to keep it optional
     let Anthropic: typeof import('@anthropic-ai/sdk').default;
@@ -677,9 +679,13 @@ export class AnthropicAdapter extends BaseLLMAdapter {
         // this preserves the literal-object call shape that the W.production
         // 30s-wall comment above depends on.
         const betas = collectAnthropicBetaHeaders(request);
-        const streamOptions = betas
-          ? { headers: { 'anthropic-beta': betas.join(',') } }
-          : undefined;
+        const streamOptions =
+          betas || options.signal
+            ? {
+                ...(betas ? { headers: { 'anthropic-beta': betas.join(',') } } : {}),
+                ...(options.signal ? { signal: options.signal } : {}),
+              }
+            : undefined;
 
         const streamBody = {
           model,
@@ -775,6 +781,7 @@ export class AnthropicAdapter extends BaseLLMAdapter {
             totalTokens: usage.input_tokens + usage.output_tokens,
           },
           model: response.model,
+          reportedModel: response.model,
           provider: 'anthropic',
           finishReason:
             response.stop_reason === 'tool_use'

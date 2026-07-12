@@ -120,6 +120,7 @@ describe('OpenRouterAdapter', () => {
       usage: { prompt_tokens: 20, completion_tokens: 10, total_tokens: 30 },
     });
     const adapter = new OpenRouterAdapter({ apiKey: 'test-key', maxRetries: 0 });
+    const signal = new AbortController().signal;
 
     const response = await adapter.complete(
       {
@@ -140,7 +141,8 @@ describe('OpenRouterAdapter', () => {
           openai: { toolChoice: 'required', parallelToolCalls: false },
         },
       },
-      'anthropic/claude-haiku-4.5'
+      'anthropic/claude-haiku-4.5',
+      { signal }
     );
 
     expect(createChatCompletion).toHaveBeenCalledWith(
@@ -154,7 +156,8 @@ describe('OpenRouterAdapter', () => {
             function: expect.objectContaining({ name: 'submit_agent_plan' }),
           }),
         ],
-      })
+      }),
+      { signal }
     );
     expect(response.finishReason).toBe('tool_use');
     expect(response.provider).toBe('openrouter');

@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/agent-runtime",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Provider-neutral second-brain runtime and contract helpers for human and agent operators.",
   "releaseLane": "v0-preview",
   "keywords": [

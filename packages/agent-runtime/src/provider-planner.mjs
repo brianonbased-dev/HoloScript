@@ -57,7 +57,7 @@ function stringArray(value) {
 
 function safeUsage(value) {
   const source = asRecord(value);
-  if (!source) {
+  if (!source || source.reported === false) {
     return {
       reported: false,
       promptTokens: null,
@@ -481,7 +481,12 @@ export function createProviderPlannerAdapter({
       const requestId = text(responseRecord.requestId);
       const requestedProviderName = text(provider.name);
       const reportedProviderName = text(responseRecord.provider);
-      const reportedModel = text(responseRecord.model);
+      const reportedModel = Object.prototype.hasOwnProperty.call(
+        responseRecord,
+        'reportedModel'
+      )
+        ? text(responseRecord.reportedModel)
+        : text(responseRecord.model);
 
       return {
         summary: text(submitted.summary, 'Provider-submitted bounded plan'),

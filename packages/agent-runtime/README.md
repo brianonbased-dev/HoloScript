@@ -154,16 +154,21 @@ action-structure hash. Provider request IDs are hashed. This is external
 instrumentation for separating retrieval, generation, and durable memory; it is
 not chain-of-thought disclosure.
 
+Only the documented planner telemetry fields are admitted to receipts; arbitrary
+planner and action metadata values are omitted. Each stored turn includes the
+redacted prompt/request/grounding evidence and a SHA-256 hash of the exact memory
+content written by the caller adapter.
+
 Memory and knowledge IDs are represented to the provider as per-request opaque
 citation handles. Author, section, type, domain, and tags are also omitted unless
 the caller explicitly opts into their metadata policies. Required citations fail
 closed when retrieval returns no entries.
 
-The adapter's timer and abort signal bound when the planner rejects. Configure the underlying
-provider adapter with the same or shorter timeout so an abandoned network call
-is also cancelled at the transport layer. `@holoscript/llm-provider` is an
-optional peer: another provider implementation can be supplied when it honors
-the same completion shape.
+The adapter's timer and abort signal bound when the planner rejects. The signal
+is forwarded as the third `provider.complete` argument; bundled
+`@holoscript/llm-provider` adapters propagate it to OpenAI Responses, Chat
+Completions, OpenRouter, and Anthropic streaming transports. Another provider
+implementation can be supplied when it honors the same completion shape.
 
 This package owns the common hook contract for:
 

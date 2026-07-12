@@ -53,6 +53,12 @@ Completions, and the OpenRouter OpenAI-compatible route. Each path returns the
 same `toolUses` shape. Authorization and tool execution remain caller
 responsibilities.
 
+Pass `{ signal }` as the optional third `complete` argument to cancel the
+underlying provider transport. Responses also distinguish compatibility values
+from provider evidence: `usage.reported === false` and `reportedModel === null`
+mean the provider omitted those fields; zeroes and the requested model remain in
+the legacy fields only for caller compatibility.
+
 ## Consumer validation gate
 
 Cold consumers and release agents can inspect the exact public fileset and run

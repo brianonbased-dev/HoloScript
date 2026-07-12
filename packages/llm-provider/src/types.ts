@@ -448,6 +448,9 @@ export interface LLMCompletionResponse {
   /** Which model produced this response */
   model: string;
 
+  /** Exact provider-reported model identity, or null when the provider omitted it. */
+  reportedModel?: string | null;
+
   /** The provider that handled this request */
   provider: LLMProviderName;
 
@@ -544,6 +547,14 @@ export interface TokenUsage {
 
   /** Total tokens used */
   totalTokens: number;
+
+  /** False when compatibility zeroes are present because the provider omitted usage. */
+  reported?: boolean;
+}
+
+/** Per-call transport controls that must reach the underlying provider request. */
+export interface LLMRequestOptions {
+  signal?: AbortSignal;
 }
 
 export interface LLMFileUploadRequest {
@@ -855,7 +866,11 @@ export interface ILLMProvider {
    * (429, 5xx, network) retry with exponential backoff and Retry-After
    * honor before throwing.
    */
-  complete(request: LLMCompletionRequest, model?: string): Promise<LLMCompletionResponse>;
+  complete(
+    request: LLMCompletionRequest,
+    model?: string,
+    options?: LLMRequestOptions
+  ): Promise<LLMCompletionResponse>;
 
   /**
    * Generate HoloScript code from a natural language description. Validates

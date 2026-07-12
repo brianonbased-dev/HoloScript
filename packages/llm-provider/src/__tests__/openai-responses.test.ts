@@ -183,6 +183,22 @@ describe('parseOpenAIResponsesResult', () => {
     expect(result.usage.totalTokens).toBe(3);
   });
 
+  it('marks omitted usage and model identity as unknown', () => {
+    const result = parseOpenAIResponsesResult(
+      { status: 'completed', output_text: 'ok' },
+      'caller-requested-model'
+    );
+
+    expect(result.model).toBe('caller-requested-model');
+    expect(result.reportedModel).toBeNull();
+    expect(result.usage).toEqual({
+      promptTokens: 0,
+      completionTokens: 0,
+      totalTokens: 0,
+      reported: false,
+    });
+  });
+
   it('surfaces inline moderation result when present in response (A-020 2026-06-08)', () => {
     // Simulate OpenAI Responses API response with inline moderation result
     // (req.provider.openai.moderation = { input: "all" } was set on request).

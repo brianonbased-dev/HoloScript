@@ -19,6 +19,7 @@ import type {
   Capabilities,
   LLMCompletionRequest,
   LLMCompletionResponse,
+  LLMRequestOptions,
   OpenRouterProviderConfig,
 } from '../types';
 import {
@@ -151,7 +152,8 @@ export class OpenRouterAdapter extends BaseLLMAdapter {
 
   async complete(
     request: LLMCompletionRequest,
-    model: string = this.defaultHoloScriptModel
+    model: string = this.defaultHoloScriptModel,
+    options: LLMRequestOptions = {}
   ): Promise<LLMCompletionResponse> {
     // Dynamically import openai to keep it optional — OpenRouter is
     // OpenAI-compatible, so we reuse the same SDK.
@@ -179,9 +181,10 @@ export class OpenRouterAdapter extends BaseLLMAdapter {
 
     return await this.withRetry(async () => {
       try {
-        const response = await client.chat.completions.create(
-          buildOpenRouterChatCompletionPayload(request, model) as never
-        );
+        const payload = buildOpenRouterChatCompletionPayload(request, model) as never;
+        const response = options.signal
+          ? await client.chat.completions.create(payload, { signal: options.signal })
+          : await client.chat.completions.create(payload);
 
         const choice = response.choices[0];
         const content = choice?.message?.content ?? '';
@@ -190,12 +193,15 @@ export class OpenRouterAdapter extends BaseLLMAdapter {
 
         return {
           content,
-          usage: {
-            promptTokens: usage?.prompt_tokens ?? 0,
-            completionTokens: usage?.completion_tokens ?? 0,
-            totalTokens: usage?.total_tokens ?? 0,
-          },
-          model: response.model,
+          usage: usage
+            ? {
+                promptTokens: usage.prompt_tokens ?? 0,
+                completionTokens: usage.completion_tokens ?? 0,
+                totalTokens: usage.total_tokens ?? 0,
+              }
+            : { promptTokens: 0, completionTokens: 0, totalTokens: 0, reported: false },
+          model: response.model ?? model,
+          reportedModel: response.model ?? null,
           provider: 'openrouter',
           finishReason:
             toolUses.length > 0 ? 'tool_use' : this.mapFinishReason(choice?.finish_reason),
