@@ -12,6 +12,6 @@
     "noEmit": true,
     "lib": ["ES2020", "DOM", "DOM.Iterable"]
   },
-  "include": ["src/**/*"],
+  "include": ["vitest.config.ts"],
   "exclude": ["node_modules", "src-tauri"]
 }

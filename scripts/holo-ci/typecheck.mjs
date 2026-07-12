@@ -47,7 +47,8 @@ const ENFORCED = [
   'mvc-schema', 'partner-sdk', 'platform', 'preview-component', 'react-agent-sdk',
   'registry', 'secrets-broker', 'security-sandbox', 'snn-webgpu', 'spatial-index',
   'std', 'studio', 'studio-bridge', 'studio-plugin-sdk', 'studio-ui-graph',
-  'uaal', 'ui', 'video-tutorials', 'visual', 'visualizer-client',
+  'tauri-app', 'uaal', 'ui', 'video-tutorials', 'visual', 'visualizer-client',
+  'vscode-extension',
   'xr-embodiment',
 ];
 
@@ -62,8 +63,6 @@ const STAGED = {
   'marketplace-web': 1,
   'r3f-renderer': 73,
   runtime: 7,
-  'tauri-app': 1,
-  'vscode-extension': 1,
 };
 
 function packagesWithTsconfig() {
