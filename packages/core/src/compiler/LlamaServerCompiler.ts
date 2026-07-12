@@ -31,6 +31,11 @@ export interface LlamaServerCompilerOptions {
   imageMinTokens?: number;
   imageMaxTokens?: number;
   parallel?: number;
+  /**
+   * llama.cpp prompt-cache RAM ceiling in MiB. Set to `0` on unified-memory
+   * devices to disable the cache instead of competing with model/GPU memory.
+   */
+  cacheRamMiB?: number;
   metrics?: boolean;
   grammarPath?: string;
   grammar?: string;
@@ -132,6 +137,7 @@ export interface LlamaServerBundle {
     >
   > & {
     mmprojPath?: string;
+    cacheRamMiB?: number;
     grammarPath?: string;
     grammar?: string;
     grammarPreset?: string;
@@ -171,6 +177,7 @@ interface ResolvedLlamaConfig {
   imageMinTokens: number;
   imageMaxTokens: number;
   parallel: number;
+  cacheRamMiB?: number;
   metrics: boolean;
   grammarPath?: string;
   grammar?: string;
@@ -259,8 +266,15 @@ export class LlamaServerCompiler extends CompilerBase {
     if (grammarFile) files.unshift(grammarFile);
     if (cfg.traceCapture) {
       files.push(
-        { path: 'holo-inference-proxy.mjs', content: this.genInferenceProxyScript(cfg), executable: true },
-        { path: `holo-inference-proxy-${this.slug(cfg.registerAs)}.service`, content: this.genInferenceProxyUnit(cfg) }
+        {
+          path: 'holo-inference-proxy.mjs',
+          content: this.genInferenceProxyScript(cfg),
+          executable: true,
+        },
+        {
+          path: `holo-inference-proxy-${this.slug(cfg.registerAs)}.service`,
+          content: this.genInferenceProxyUnit(cfg),
+        }
       );
     }
     const warnings = foundTrait
@@ -274,6 +288,16 @@ export class LlamaServerCompiler extends CompilerBase {
     if (cfg.traceCapture && cfg.traceUpstreamPort === cfg.port) {
       throw new Error(
         `trace_capture requires trace_upstream_port (${cfg.traceUpstreamPort}) to differ from the public port (${cfg.port}).`
+      );
+    }
+    if (
+      cfg.cacheRamMiB !== undefined &&
+      (!Number.isFinite(cfg.cacheRamMiB) ||
+        !Number.isInteger(cfg.cacheRamMiB) ||
+        cfg.cacheRamMiB < 0)
+    ) {
+      throw new Error(
+        `cache_ram must be a non-negative integer MiB value; received ${cfg.cacheRamMiB}.`
       );
     }
     if (cfg.grammarPath && cfg.grammar) {
@@ -395,6 +419,9 @@ export class LlamaServerCompiler extends CompilerBase {
         this.opts.imageMaxTokens ??
         this.numberValue(raw, DEFAULTS.imageMaxTokens, 'imageMaxTokens', 'image_max_tokens'),
       parallel: this.opts.parallel ?? this.numberValue(raw, DEFAULTS.parallel, 'parallel'),
+      cacheRamMiB:
+        this.opts.cacheRamMiB ??
+        this.optionalNumberValue(raw, 'cacheRamMiB', 'cache_ram', 'cache-ram'),
       metrics: this.opts.metrics ?? this.booleanValue(raw, DEFAULTS.metrics, 'metrics'),
       traceCapture: this.booleanValue(raw, false, 'traceCapture', 'trace_capture'),
       traceUpstreamPort: this.numberValue(
@@ -508,6 +535,8 @@ export class LlamaServerCompiler extends CompilerBase {
       );
     }
     argv.push('--parallel', String(cfg.parallel));
+
+    if (cfg.cacheRamMiB !== undefined) argv.push('--cache-ram', String(cfg.cacheRamMiB));
 
     if (cfg.metrics) argv.push('--metrics');
     // `--grammar-file` and inline `--grammar` write the SAME llama.cpp field — never emit

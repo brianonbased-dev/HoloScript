@@ -29,6 +29,14 @@ For live nodes:
 holollama lifecycle --profile jetson-orin --live --endpoint http://127.0.0.1:18080 --json
 ```
 
+When the running node comes from a project-owned composition, bind the live
+footprint check to that authored contract instead of changing the package's
+public reference profile:
+
+```bash
+holollama lifecycle --profile jetson-orin --live --code ./serve.holo --endpoint http://127.0.0.1:18080 --json
+```
+
 ## Agent Rules
 
 - Treat this folder as a harness, not as product source.

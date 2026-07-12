@@ -11,6 +11,11 @@ import {
   type LlamaServerCompilerOptions,
 } from '@holoscript/core/compiler';
 import { parseHolo, type HoloParseError } from '@holoscript/core/parser';
+import type {
+  HoloComposition,
+  HoloObjectDecl,
+  HoloObjectTrait,
+} from '@holoscript/core/parser/HoloCompositionTypes';
 
 export {
   HOLOLLAMA_BRAIN_LEXICON,
@@ -50,6 +55,7 @@ export interface HoloLlamaServeSpec {
   imageMinTokens?: number;
   imageMaxTokens?: number;
   parallel: number;
+  cacheRamMiB?: number;
   metrics: boolean;
   grammar?: string;
   grammarPath?: string;
@@ -344,6 +350,13 @@ export interface HoloLlamaLiveLifecycleOptions {
   skipSystemd?: boolean;
   skipFootprint?: boolean;
   requireSystemd?: boolean;
+  requireFootprint?: boolean;
+  /**
+   * Expected runtime contract merged over the selected public profile.
+   * Operators can therefore prove authored private paths without baking them
+   * into the package's reference profiles.
+   */
+  expectedSpec?: Partial<HoloLlamaServeSpec>;
   fetchImpl?: HoloLlamaFetch;
   systemdProbe?: HoloLlamaSystemdEvidence;
   footprintProbe?: HoloLlamaFootprintEvidence;
@@ -362,6 +375,7 @@ export interface HoloLlamaFootprintEvidence {
     loraPaths: string[];
     gpuLayers: number;
     contextLength: number;
+    cacheRamMiB: number | null;
   };
   observed: {
     executable?: string | null;
@@ -727,6 +741,7 @@ function renderLlamaServeComposition(spec: HoloLlamaServeSpec): string {
     `    metrics: ${spec.metrics ? 'true' : 'false'}`,
   ];
 
+  if (spec.cacheRamMiB !== undefined) lines.push(`    cache_ram: ${spec.cacheRamMiB}`);
   if (spec.imageMinTokens !== undefined) lines.push(`    image_min_tokens: ${spec.imageMinTokens}`);
   if (spec.imageMaxTokens !== undefined) lines.push(`    image_max_tokens: ${spec.imageMaxTokens}`);
   if (spec.grammar) lines.push(`    grammar: ${quote(spec.grammar)}`);
@@ -761,6 +776,64 @@ export function compileHoloLlamaBundle(
   }
   const compiler = new LlamaServerCompiler(normalized.compilerOptions);
   return JSON.parse(compiler.compile(result.ast, '')) as LlamaServerBundle;
+}
+
+/**
+ * Compile authored HoloLlama source and resolve its serving contract over a
+ * public reference profile. The compiler remains the source of truth for
+ * aliases such as `model_path`, `ngl`, `cache_ram`, and authored LoRA shapes.
+ */
+export function resolveHoloLlamaExpectedSpecFromCode(
+  code: string,
+  profile: HoloLlamaProfile = 'jetson-orin'
+): HoloLlamaServeSpec {
+  const parsed = parseHolo(code);
+  if (!parsed.success || !parsed.ast) {
+    throw new HoloLlamaCompileError(
+      `HoloLlama @llama_serve parse failed with ${parsed.errors.length} error(s).`,
+      parsed.errors
+    );
+  }
+  const traitCount = countLlamaServeTraits(parsed.ast);
+  if (traitCount !== 1) {
+    throw new HoloLlamaCompileError(
+      traitCount === 0
+        ? 'HoloLlama authored lifecycle code must contain exactly one @llama_serve trait; found none.'
+        : `HoloLlama authored lifecycle code must contain exactly one @llama_serve trait; found ${traitCount}.`
+    );
+  }
+
+  const compiler = new LlamaServerCompiler();
+  const { config } = JSON.parse(compiler.compile(parsed.ast, '')) as LlamaServerBundle;
+  return resolveHoloLlamaServeSpec(profile, {
+    name: config.name,
+    model: config.model,
+    modelPath: config.modelPath,
+    mmprojPath: config.mmprojPath,
+    vision: Boolean(config.mmprojPath),
+    host: config.host,
+    port: config.port,
+    contextLength: config.contextLength,
+    gpuLayers: config.gpuLayers,
+    fit: config.fit,
+    imageMinTokens: config.imageMinTokens,
+    imageMaxTokens: config.imageMaxTokens,
+    parallel: config.parallel,
+    cacheRamMiB: config.cacheRamMiB,
+    metrics: config.metrics,
+    grammar: config.grammar,
+    grammarPath: config.grammarPath,
+    loras: config.loras,
+    loraInitWithoutApply: config.loraInitWithoutApply,
+    executable: config.executable,
+    cudaPath: config.cudaPath,
+    llamaBinDir: config.llamaBinDir,
+    workingDirectory: config.workingDirectory,
+    platform: config.platform,
+    serviceUser: config.serviceUser,
+    node: config.node,
+    registerAs: config.registerAs,
+  });
 }
 
 export function compileHoloLlamaFiles(
@@ -1179,6 +1252,8 @@ export function parseHoloLlamaSystemdShow(
   const loaded = fields.LoadState === 'loaded';
   const active = fields.ActiveState === 'active';
   const running = fields.SubState === 'running';
+  const mainPid = Number(fields.ExecMainPID);
+  const hasMainPid = Number.isInteger(mainPid) && mainPid > 0;
   return {
     unit,
     raw: output,
@@ -1190,7 +1265,7 @@ export function parseHoloLlamaSystemdShow(
     loaded,
     active,
     running,
-    ok: loaded && active,
+    ok: loaded && active && running && hasMainPid,
   };
 }
 
@@ -1222,10 +1297,11 @@ export function firstModelFromHoloLlamaModelsPayload(
 
 export function assessHoloLlamaFootprint(
   profile: HoloLlamaProfile,
-  input: HoloLlamaFootprintAssessmentInput = {}
+  input: HoloLlamaFootprintAssessmentInput = {},
+  expectedOverrides: Partial<HoloLlamaServeSpec> = {}
 ): HoloLlamaFootprintEvidence {
-  const definition = HOLOLLAMA_PROFILE_DEFINITIONS[profile];
-  const spec = definition.spec;
+  const spec = resolveHoloLlamaServeSpec(profile, expectedOverrides);
+  const strictExpected = Object.keys(defined(expectedOverrides)).length > 0;
   const command = input.command ?? null;
   const parsed = parseHoloLlamaLaunchCommand(command);
   const expectedLoraPaths = expectedHoloLlamaLoraPaths(spec);
@@ -1253,9 +1329,13 @@ export function assessHoloLlamaFootprint(
   if (!command) {
     blockers.push('launch command unavailable from systemd/procfs');
   }
+  if (strictExpected && !observed.executable) {
+    blockers.push(`executable is missing, expected ${spec.executable}`);
+  }
   if (
     observed.executable &&
-    normalizeRuntimePath(observed.executable) !== normalizeRuntimePath(spec.executable)
+    normalizeRuntimePath(observed.executable, spec.platform) !==
+      normalizeRuntimePath(spec.executable, spec.platform)
   ) {
     blockers.push(`executable drift: observed ${observed.executable}, expected ${spec.executable}`);
   }
@@ -1266,15 +1346,21 @@ export function assessHoloLlamaFootprint(
   }
   if (
     observed.modelPath &&
-    normalizeRuntimePath(observed.modelPath) !== normalizeRuntimePath(spec.modelPath)
+    normalizeRuntimePath(observed.modelPath, spec.platform) !==
+      normalizeRuntimePath(spec.modelPath, spec.platform)
   ) {
     blockers.push(`model path drift: observed ${observed.modelPath}, expected ${spec.modelPath}`);
+  }
+  if (strictExpected && !observed.modelPath) {
+    blockers.push(`model path is missing, expected ${spec.modelPath}`);
   }
   const observedLoraPaths = observed.loraPaths ?? [];
   for (const expectedLora of expectedLoraPaths) {
     if (
       !observedLoraPaths.some(
-        (candidate) => normalizeRuntimePath(candidate) === normalizeRuntimePath(expectedLora)
+        (candidate) =>
+          normalizeRuntimePath(candidate, spec.platform) ===
+          normalizeRuntimePath(expectedLora, spec.platform)
       )
     ) {
       blockers.push(`missing LoRA adapter: expected ${expectedLora}`);
@@ -1283,13 +1369,23 @@ export function assessHoloLlamaFootprint(
   for (const observedLora of observedLoraPaths) {
     if (
       !expectedLoraPaths.some(
-        (candidate) => normalizeRuntimePath(candidate) === normalizeRuntimePath(observedLora)
+        (candidate) =>
+          normalizeRuntimePath(candidate, spec.platform) ===
+          normalizeRuntimePath(observedLora, spec.platform)
       )
     ) {
       blockers.push(`unexpected LoRA adapter: observed ${observedLora}`);
     }
   }
-  if (observed.gpuLayers !== null && observed.gpuLayers !== undefined) {
+  if (observed.gpuLayers === null || observed.gpuLayers === undefined) {
+    if (strictExpected) blockers.push(`gpu layers are missing, expected ${spec.gpuLayers}`);
+  } else if (strictExpected) {
+    if (observed.gpuLayers !== spec.gpuLayers) {
+      blockers.push(
+        `gpu layer drift: observed ${observed.gpuLayers}, expected exactly ${spec.gpuLayers}`
+      );
+    }
+  } else {
     if (observed.gpuLayers > spec.gpuLayers) {
       blockers.push(
         `gpu layer drift: observed ${observed.gpuLayers}, expected <= ${spec.gpuLayers}`
@@ -1300,7 +1396,15 @@ export function assessHoloLlamaFootprint(
       );
     }
   }
-  if (observed.contextLength !== null && observed.contextLength !== undefined) {
+  if (observed.contextLength === null || observed.contextLength === undefined) {
+    if (strictExpected) blockers.push(`context length is missing, expected ${spec.contextLength}`);
+  } else if (strictExpected) {
+    if (observed.contextLength !== spec.contextLength) {
+      blockers.push(
+        `context drift: observed ${observed.contextLength}, expected exactly ${spec.contextLength}`
+      );
+    }
+  } else {
     if (observed.contextLength > spec.contextLength) {
       blockers.push(
         `context drift: observed ${observed.contextLength}, expected <= ${spec.contextLength}`
@@ -1308,6 +1412,15 @@ export function assessHoloLlamaFootprint(
     } else if (observed.contextLength < spec.contextLength) {
       warnings.push(
         `context lower than profile: observed ${observed.contextLength}, expected ${spec.contextLength}`
+      );
+    }
+  }
+  if (spec.cacheRamMiB !== undefined) {
+    if (observed.cacheRamMiB === null || observed.cacheRamMiB === undefined) {
+      blockers.push(`cache RAM drift: --cache-ram is missing, expected ${spec.cacheRamMiB} MiB`);
+    } else if (observed.cacheRamMiB !== spec.cacheRamMiB) {
+      blockers.push(
+        `cache RAM drift: observed ${observed.cacheRamMiB} MiB, expected ${spec.cacheRamMiB} MiB`
       );
     }
   }
@@ -1355,6 +1468,7 @@ export function assessHoloLlamaFootprint(
       loraPaths: expectedLoraPaths,
       gpuLayers: spec.gpuLayers,
       contextLength: spec.contextLength,
+      cacheRamMiB: spec.cacheRamMiB ?? null,
     },
     observed,
     warnings,
@@ -1367,6 +1481,7 @@ export async function probeHoloLlamaLiveLifecycle(
 ): Promise<HoloLlamaLiveLifecycleReceipt> {
   const profile = options.profile ?? 'jetson-orin';
   const definition = HOLOLLAMA_PROFILE_DEFINITIONS[profile];
+  const expectedSpec = resolveHoloLlamaServeSpec(profile, options.expectedSpec);
   const generatedAt = options.generatedAt ?? new Date().toISOString();
   const endpoint = normalizeLiveEndpoint(options.endpoint ?? defaultHoloLlamaLiveEndpoint(profile));
   const timeoutMs = positiveOrDefault(options.timeoutMs, 20000);
@@ -1395,7 +1510,11 @@ export async function probeHoloLlamaLiveLifecycle(
   if (noLive) {
     warnings.push('live probes skipped by caller');
     systemd = { ok: null, skipped: true, unit: systemdUnit ?? 'none' };
-    footprint = skippedHoloLlamaFootprint(profile, systemdUnit, 'live probes skipped by caller');
+    footprint = skippedHoloLlamaFootprint(
+      expectedSpec,
+      systemdUnit,
+      'live probes skipped by caller'
+    );
     health = { ok: null, skipped: true, url: `${endpoint}/health` };
     models = { ok: null, skipped: true, url: `${endpoint}/v1/models` };
     completion = { ok: null, skipped: true, url: `${endpoint}/v1/chat/completions` };
@@ -1416,8 +1535,6 @@ export async function probeHoloLlamaLiveLifecycle(
         };
       }
     }
-    if (options.requireSystemd && !systemd.ok) failures.push('systemd unit is not active');
-
     if (options.footprintProbe) {
       footprint = {
         ...options.footprintProbe,
@@ -1432,7 +1549,7 @@ export async function probeHoloLlamaLiveLifecycle(
       !sshHost
     ) {
       footprint = skippedHoloLlamaFootprint(
-        profile,
+        expectedSpec,
         systemdUnit,
         options.skipFootprint
           ? 'footprint probe skipped by caller'
@@ -1446,12 +1563,16 @@ export async function probeHoloLlamaLiveLifecycle(
           sshKey,
           systemdUnit: systemdUnit ?? defaultHoloLlamaSystemdUnit(profile) ?? 'holollama.service',
           timeoutMs,
+          expectedSpec,
         });
       } catch (error) {
+        const detail = systemdProbeError(error);
         footprint = {
-          ...skippedHoloLlamaFootprint(profile, systemdUnit, systemdProbeError(error)),
+          ...skippedHoloLlamaFootprint(expectedSpec, systemdUnit, detail),
           ok: false,
+          skipped: false,
           source: 'ssh-procfs-journal',
+          blockers: [`footprint probe failed: ${detail}`],
         };
       }
     }
@@ -1486,6 +1607,13 @@ export async function probeHoloLlamaLiveLifecycle(
     }
   }
 
+  if (options.requireSystemd && systemd.ok !== true) {
+    failures.push('systemd unit is not active and running with a positive main PID');
+  }
+  if (options.requireFootprint && footprint.ok !== true) {
+    failures.push('live footprint proof is required but did not pass');
+  }
+
   const runtimeState: HoloLlamaLiveLifecycleReceipt['runtimeState'] = failures.length
     ? 'blocked'
     : warnings.length
@@ -1498,14 +1626,18 @@ export async function probeHoloLlamaLiveLifecycle(
     runtimeState,
     profile,
     consumer: definition.consumer,
-    registryHandle: definition.spec.registerAs,
+    registryHandle: expectedSpec.registerAs,
     target: {
       endpoint,
       unit: systemdUnit,
       sshHost,
-      modelsPath: options.modelsPath ?? defaultHoloLlamaModelsPath(profile),
+      modelsPath:
+        options.modelsPath ??
+        (options.expectedSpec
+          ? dirname(expectedSpec.modelPath)
+          : defaultHoloLlamaModelsPath(profile)),
       package: '@holoscript/holollama' as const,
-      providerCompatibilityId: definition.spec.registerAs,
+      providerCompatibilityId: expectedSpec.registerAs,
     },
     checks: {
       systemd,
@@ -1844,6 +1976,26 @@ function normalizeCompileInput(
   };
 }
 
+function countLlamaServeTraits(composition: HoloComposition): number {
+  const traits: HoloObjectTrait[] = [...(composition.traits ?? [])];
+  const collectObjectTraits = (object: HoloObjectDecl): void => {
+    traits.push(...(object.traits ?? []));
+    for (const child of object.children ?? []) collectObjectTraits(child);
+  };
+
+  for (const object of composition.objects ?? []) collectObjectTraits(object);
+  for (const template of composition.templates ?? []) {
+    for (const property of template.properties ?? []) {
+      const propertyTraits = (property as { traits?: HoloObjectTrait[] }).traits;
+      if (propertyTraits) traits.push(...propertyTraits);
+    }
+  }
+
+  return traits.filter(
+    (trait) => trait.name.replace(/^@/, '').replace(/[-_]/g, '').toLowerCase() === 'llamaserve'
+  ).length;
+}
+
 function defined<T extends Record<string, unknown>>(value: T): Partial<T> {
   return Object.fromEntries(
     Object.entries(value).filter(([, item]) => item !== undefined)
@@ -2031,8 +2183,9 @@ function tokenNumber(tokens: string[], names: string[]): number | null {
   return optionalNumber(value);
 }
 
-function normalizeRuntimePath(value: string): string {
-  return value.replace(/\\/g, '/').replace(/\/+/g, '/').toLowerCase();
+function normalizeRuntimePath(value: string, platform: HoloLlamaServeSpec['platform']): string {
+  const normalized = value.replace(/\\/g, '/').replace(/\/+/g, '/');
+  return platform === 'windows' ? normalized.toLowerCase() : normalized;
 }
 
 function firstField(fields: Map<string, string[]>, key: string): string | undefined {
@@ -2104,11 +2257,10 @@ function positiveOrDefault(value: number | undefined, fallback: number): number 
 }
 
 function skippedHoloLlamaFootprint(
-  profile: HoloLlamaProfile,
+  spec: HoloLlamaServeSpec,
   unit: string | undefined,
   reason: string
 ): HoloLlamaFootprintEvidence {
-  const spec = HOLOLLAMA_PROFILE_DEFINITIONS[profile].spec;
   return {
     ok: null,
     skipped: true,
@@ -2122,6 +2274,7 @@ function skippedHoloLlamaFootprint(
       loraPaths: expectedHoloLlamaLoraPaths(spec),
       gpuLayers: spec.gpuLayers,
       contextLength: spec.contextLength,
+      cacheRamMiB: spec.cacheRamMiB ?? null,
     },
     observed: {},
     warnings: [reason],
@@ -2175,6 +2328,7 @@ function runHoloLlamaFootprintProbe(options: {
   sshKey: string;
   systemdUnit: string;
   timeoutMs: number;
+  expectedSpec: HoloLlamaServeSpec;
 }): HoloLlamaFootprintEvidence {
   const output = execFileSync(
     'ssh',
@@ -2201,7 +2355,8 @@ function runHoloLlamaFootprintProbe(options: {
   );
   return assessHoloLlamaFootprint(
     options.profile,
-    parseHoloLlamaFootprintOutput(output, options.systemdUnit)
+    parseHoloLlamaFootprintOutput(output, options.systemdUnit),
+    options.expectedSpec
   );
 }
 

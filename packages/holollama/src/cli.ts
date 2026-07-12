@@ -11,6 +11,7 @@ import {
   listHoloLlamaProfiles,
   preflightHoloLlamaVision,
   probeHoloLlamaLiveLifecycle,
+  resolveHoloLlamaExpectedSpecFromCode,
   selectHoloLlamaBrain,
   summarizeHoloLlamaBundle,
   verifyHoloLlamaServerContract,
@@ -85,9 +86,24 @@ export async function runCli(args = process.argv.slice(2)): Promise<void> {
   if (command === 'lifecycle') {
     const live = flags.has('live');
     const profile = live ? readProfile(flags) : readOptionalProfile(flags);
+    const codePath = readString(flags, 'code');
+    if (codePath && !live) {
+      throw new Error('holollama lifecycle --code requires --live');
+    }
+    const expectedSpec = codePath
+      ? resolveHoloLlamaExpectedSpecFromCode(
+          await readFile(codePath, 'utf8'),
+          profile ?? 'jetson-orin'
+        )
+      : undefined;
+    const skipSystemd = flags.has('no-systemd');
+    const skipFootprint = flags.has('no-footprint');
+    const requireFootprint = Boolean(codePath);
+    const requireSystemd = flags.has('require-systemd') || Boolean(codePath);
     const liveReceipt = live
       ? await probeHoloLlamaLiveLifecycle({
           profile,
+          expectedSpec,
           endpoint: readString(flags, 'endpoint') ?? process.env.HOLOLLAMA_ENDPOINT,
           sshHost: readString(flags, 'host') ?? process.env.JETSON_HOST,
           sshKey: readString(flags, 'key') ?? process.env.JETSON_KEY,
@@ -96,9 +112,10 @@ export async function runCli(args = process.argv.slice(2)): Promise<void> {
           timeoutMs: readNumber(flags, 'timeout-ms'),
           prompt: readString(flags, 'prompt'),
           maxTokens: readNumber(flags, 'max-tokens'),
-          skipSystemd: flags.has('no-systemd'),
-          skipFootprint: flags.has('no-footprint'),
-          requireSystemd: flags.has('require-systemd'),
+          skipSystemd,
+          skipFootprint,
+          requireSystemd,
+          requireFootprint,
         })
       : undefined;
     const receipt = buildHoloLlamaFleetLifecycleReport({
@@ -113,6 +130,7 @@ export async function runCli(args = process.argv.slice(2)): Promise<void> {
     });
     if (flags.has('json')) {
       process.stdout.write(`${JSON.stringify(receipt, null, 2)}\n`);
+      if (!receipt.ok) process.exitCode = 1;
       return;
     }
     process.stdout.write(formatLifecycleReport(receipt));
@@ -278,6 +296,7 @@ function readOverrides(flags: FlagMap): Partial<HoloLlamaServeSpec> {
     contextLength: readNumber(flags, 'ctx') ?? readNumber(flags, 'context-length'),
     gpuLayers: readNumber(flags, 'ngl') ?? readNumber(flags, 'gpu-layers'),
     parallel: readNumber(flags, 'parallel'),
+    cacheRamMiB: readNumber(flags, 'cache-ram'),
     registerAs: readString(flags, 'register-as'),
     node: readString(flags, 'node'),
     platform: readPlatform(flags),
@@ -423,7 +442,7 @@ Usage:
   holollama mesh [--profile <id>] [--team-id <team>] [--json]
   holollama preflight [--profile <id>] [--check-filesystem] [--json]
   holollama contract [--profile <id>] [--json]
-  holollama lifecycle [--profile <id>] [--live] [--team-id <team>] [--check-filesystem] [--require-runtime-readiness] [--json]
+  holollama lifecycle [--profile <id>] [--live] [--code <composition.holo>] [--team-id <team>] [--check-filesystem] [--require-runtime-readiness] [--json]
   holollama harness [--out ./.ai-ecosystem] [--profile <id>] [--team-id <team>] [--force] [--json]
   holollama profiles
   holollama brains
@@ -459,7 +478,7 @@ Options:
   --dir <dir>
   --force
   --no-receipt-files
-  --code <file.holo>
+  --code <file.holo> (lifecycle: requires systemd + footprint proof)
   --out <dir>
   --json
   --model <name>
@@ -470,6 +489,7 @@ Options:
   --ctx <tokens>
   --ngl <layers>
   --parallel <number>
+  --cache-ram <MiB>
   --register-as <handle>
   --node <node-id>
   --platform <windows|linux>

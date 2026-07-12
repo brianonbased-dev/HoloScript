@@ -8,7 +8,7 @@
  * required lanes with missing or unhealthy live proof.
  */
 
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -31,7 +31,12 @@ function valuesFor(name) {
     if (args[i] !== `--${name}`) continue;
     const value = args[i + 1];
     if (value && !value.startsWith('--')) {
-      out.push(...value.split(',').map((item) => item.trim()).filter(Boolean));
+      out.push(
+        ...value
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean)
+      );
       i += 1;
     }
   }
@@ -119,8 +124,13 @@ Options:
   --team-id <id>                          HoloMesh team id for lifecycle receipts.
   --timeout-ms <n>                        Live probe timeout. Default: 10000.
   --max-tokens <n>                        Tiny completion max tokens. Default: 4.
-  --systemd                               Attempt systemd proof instead of HTTP-only service proof.
-  --footprint                             Attempt SSH/procfs footprint proof.
+  --systemd                               Require systemd proof instead of HTTP-only service proof.
+  --footprint                             Require SSH/procfs footprint proof (implies --systemd).
+  --host <ssh-host>                       SSH host for systemd/footprint proof.
+  --key <path>                            SSH private key for systemd/footprint proof.
+  --unit <name>                           Expected systemd unit.
+  --models-path <path>                    Expected model storage lane metadata.
+  --code <composition.holo>               Derive and require the live footprint contract (implies --footprint).
   --use-default-jetson-endpoint           Probe ${DEFAULT_JETSON_ENDPOINT} even when Jetson is optional.
   --json                                  Emit JSON only.
 
@@ -154,7 +164,13 @@ const teamId = valueFor('team-id') || process.env.HOLOMESH_TEAM_ID || 'team_test
 const timeoutMs = numberFor('timeout-ms', 10000);
 const maxTokens = numberFor('max-tokens', 4);
 const prompt = valueFor('prompt') || 'Reply with OK.';
+const codePath = valueFor('code');
 const jsonOut = hasFlag('json');
+if (codePath && profiles.length !== 1) {
+  throw new Error('--code requires exactly one selected HoloLlama profile');
+}
+const requireFootprint = hasFlag('footprint') || Boolean(codePath);
+const requireSystemd = hasFlag('systemd') || requireFootprint;
 mkdirSync(outDir, { recursive: true });
 
 const api = await import(pathToFileURL(DIST_INDEX).href);
@@ -179,6 +195,9 @@ for (const profile of profiles) {
   }
 
   try {
+    const expectedSpec = codePath
+      ? api.resolveHoloLlamaExpectedSpecFromCode(readFileSync(resolve(codePath), 'utf8'), profile)
+      : undefined;
     const live = await api.probeHoloLlamaLiveLifecycle({
       profile,
       endpoint,
@@ -186,8 +205,15 @@ for (const profile of profiles) {
       timeoutMs,
       maxTokens,
       prompt,
-      skipSystemd: !hasFlag('systemd'),
-      skipFootprint: !hasFlag('footprint'),
+      expectedSpec,
+      sshHost: valueFor('host') || process.env.HOLO_LLAMA_JETSON_SSH_HOST,
+      sshKey: valueFor('key') || process.env.JETSON_KEY,
+      systemdUnit: valueFor('unit'),
+      modelsPath: valueFor('models-path'),
+      skipSystemd: !requireSystemd,
+      skipFootprint: !requireFootprint,
+      requireSystemd,
+      requireFootprint,
     });
     const lifecycle = api.buildHoloLlamaFleetLifecycleReport({
       profile,

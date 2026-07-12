@@ -11,7 +11,8 @@ import type {
 const token = createTestCompilerToken();
 const patchedWindowsExecutable =
   'C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build-holo\\bin\\Release\\llama-server.exe';
-const patchedWindowsBinDir = 'C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build-holo\\bin\\Release';
+const patchedWindowsBinDir =
+  'C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build-holo\\bin\\Release';
 
 function llamaTrait(config: Record<string, HoloValue>): HoloObjectTrait {
   return {
@@ -89,6 +90,34 @@ describe('LlamaServerCompiler', () => {
       "$env:PATH = 'C:\\Users\\josep\\AppData\\Local\\Programs\\Ollama\\lib\\ollama\\cuda_v12;C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build-holo\\bin\\Release;' + $env:PATH"
     );
     expect(bundle.launch.powershell).toContain(expectedFaraCommand);
+  });
+
+  it('emits an explicit prompt-cache RAM ceiling, including zero to disable it', () => {
+    const compiler = new LlamaServerCompiler();
+    const bundle = JSON.parse(
+      compiler.compile(composition({ ...faraConfig, cache_ram: 0 }), token)
+    ) as LlamaServerBundle;
+
+    expect(bundle.config.cacheRamMiB).toBe(0);
+    expect(bundle.launch.args).toContain('--cache-ram');
+    expect(bundle.launch.command).toContain('--parallel 1 --cache-ram 0 --metrics');
+    expect(bundle.service.systemdUnit).toContain('--cache-ram 0');
+  });
+
+  it('rejects invalid prompt-cache RAM ceilings from authored source and compiler options', () => {
+    const compiler = new LlamaServerCompiler();
+    expect(() => compiler.compile(composition({ ...faraConfig, cache_ram: -1 }), token)).toThrow(
+      /cache_ram must be a non-negative integer MiB value/
+    );
+    expect(() => compiler.compile(composition({ ...faraConfig, cache_ram: 0.5 }), token)).toThrow(
+      /cache_ram must be a non-negative integer MiB value/
+    );
+    expect(() =>
+      new LlamaServerCompiler({ cacheRamMiB: Number.POSITIVE_INFINITY }).compile(
+        composition(faraConfig),
+        token
+      )
+    ).toThrow(/cache_ram must be a non-negative integer MiB value/);
   });
 
   it('rejects stock or prebuilt llama-server binaries', () => {
@@ -268,9 +297,7 @@ describe('LlamaServerCompiler', () => {
       compiler.compile(composition(faraConfig), token)
     ) as LlamaServerBundle;
     expect(
-      bundle.launch.command.startsWith(
-        '"C:/llama cpp/build-holo/bin/Release/llama-server.exe" -m'
-      )
+      bundle.launch.command.startsWith('"C:/llama cpp/build-holo/bin/Release/llama-server.exe" -m')
     ).toBe(true);
     expect(bundle.launch.powershell).toContain(
       `& 'C:/llama cpp/build-holo/bin/Release/llama-server.exe' -m`

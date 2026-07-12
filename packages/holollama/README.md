@@ -18,6 +18,7 @@ holollama preflight --profile laptop-windows --json
 holollama contract --profile laptop-windows --json
 holollama lifecycle --team-id team_... --json
 holollama lifecycle --profile jetson-orin --live --team-id team_... --json
+holollama lifecycle --profile jetson-orin --live --code ./serve.holo --json
 holollama harness --out ./.ai-ecosystem --team-id local-team --json
 holollama profiles
 holollama brains
@@ -99,7 +100,14 @@ Operational receipts:
   `--prompt`, `--max-tokens`, `--no-systemd`, `--no-footprint`, and
   `--require-systemd` to adapt the same package to Jetson, laptop, and Vast
   fleet lanes. `HOLOLLAMA_ENDPOINT`, `JETSON_HOST`, and `JETSON_KEY` are honored
-  by the CLI.
+  by the CLI. Pass `--code <composition.holo>` to compile an authored
+  `@llama_serve` composition and use its resolved executable, model, LoRA,
+  context, GPU-layer, and cache-RAM fields as the live footprint contract. The
+  authored contract is merged over the selected public profile, so private
+  machine paths stay outside the published reference profiles while drift still
+  fails closed. In lifecycle mode, `--code` requires positive systemd and
+  SSH/procfs footprint evidence; `--no-systemd` or `--no-footprint` therefore
+  produces a blocked receipt instead of weakening the authored contract.
 
 ## Brains
 
@@ -176,6 +184,6 @@ node before use.
 
 **Known limitations:** the built-in profiles cover the laptop / Jetson / Vast
 lanes only; other hosts need a new profile. The live-lifecycle probe assumes a
-reachable `llama-server` and systemd unit that *you* supply, and it reports state
+reachable `llama-server` and systemd unit that _you_ supply, and it reports state
 rather than performing any rollback of a running server — the tool inspects, you
 operate. Interfaces may change before the v1 release.

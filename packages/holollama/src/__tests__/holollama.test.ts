@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   assertHoloLlamaBundleConsumable,
   assessHoloLlamaFootprint,
@@ -20,12 +20,14 @@ import {
   preflightHoloLlamaVision,
   probeHoloLlamaLiveLifecycle,
   readHoloLlamaProfileSource,
+  resolveHoloLlamaExpectedSpecFromCode,
   selectHoloLlamaBrain,
   summarizeHoloLlamaBundle,
   verifyHoloLlamaHarnessSafety,
   verifyHoloLlamaServerContract,
 } from '../index.js';
 import { selectHoloLlamaBrain as selectHoloLlamaBrainFromSubpath } from '../brain.js';
+import { runCli } from '../cli.js';
 
 const patchedJetsonExecutable = '/opt/holoscript/llama.cpp/build-holo/bin/llama-server';
 // Generic Windows deploy root (mirrors the /opt/holoscript and /srv/holoscript roots the
@@ -365,6 +367,72 @@ describe('@holoscript/holollama', () => {
     expect(lifecycle.profiles[0].liveLifecycle?.target.endpoint).toBe('http://192.168.0.119:18080');
   });
 
+  it('requires a running systemd service with a positive main PID', () => {
+    const activeExited = parseHoloLlamaSystemdShow(
+      'LoadState=loaded\nActiveState=active\nSubState=exited\nExecMainPID=0',
+      'edge.service'
+    );
+    const runningWithoutPid = parseHoloLlamaSystemdShow(
+      'LoadState=loaded\nActiveState=active\nSubState=running\nExecMainPID=0',
+      'edge.service'
+    );
+    const running = parseHoloLlamaSystemdShow(
+      'LoadState=loaded\nActiveState=active\nSubState=running\nExecMainPID=42',
+      'edge.service'
+    );
+
+    expect(activeExited.ok).toBe(false);
+    expect(runningWithoutPid.ok).toBe(false);
+    expect(running.ok).toBe(true);
+  });
+
+  it('fails closed when a required footprint is skipped and passes with positive evidence', async () => {
+    const systemd = parseHoloLlamaSystemdShow(
+      'LoadState=loaded\nActiveState=active\nSubState=running\nExecMainPID=42',
+      'jetson-orin-llamacpp.service'
+    );
+    const fetchImpl = async (url: string) => ({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      text: async () =>
+        JSON.stringify(
+          url.endsWith('/v1/models')
+            ? { data: [{ id: 'qwen3-4b-instruct.gguf', owned_by: 'llamacpp' }] }
+            : url.endsWith('/health')
+              ? { status: 'ok' }
+              : { choices: [{ message: { content: 'ready' } }] }
+        ),
+    });
+
+    const skipped = await probeHoloLlamaLiveLifecycle({
+      profile: 'jetson-orin',
+      endpoint: 'http://127.0.0.1:18080',
+      systemdProbe: systemd,
+      requireSystemd: true,
+      requireFootprint: true,
+      fetchImpl,
+    });
+    expect(skipped.ok).toBe(false);
+    expect(skipped.checks.footprint.skipped).toBe(true);
+    expect(skipped.failures).toContain('live footprint proof is required but did not pass');
+
+    const footprint = assessHoloLlamaFootprint('jetson-orin', {
+      command: `${patchedJetsonExecutable} -m /opt/holoscript/models/qwen3-4b-instruct.gguf -c 4096 -ngl 32 --lora /opt/holoscript/models/brittney-edge-v0-4.lora.gguf`,
+    });
+    const proven = await probeHoloLlamaLiveLifecycle({
+      profile: 'jetson-orin',
+      endpoint: 'http://127.0.0.1:18080',
+      systemdProbe: systemd,
+      footprintProbe: footprint,
+      requireSystemd: true,
+      requireFootprint: true,
+      fetchImpl,
+    });
+    expect(footprint.ok).toBe(true);
+    expect(proven.ok).toBe(true);
+  });
+
   it('detects Jetson unified-memory footprint drift from live llama-server evidence', () => {
     const footprint = assessHoloLlamaFootprint('jetson-orin', {
       source: 'ssh-procfs-journal',
@@ -428,6 +496,284 @@ describe('@holoscript/holollama', () => {
     expect(footprint.ok).toBe(true);
     expect(footprint.observed.cacheRamMiB).toBe(0);
     expect(footprint.blockers).toEqual([]);
+  });
+
+  it('uses an authored composition as an explicit live footprint contract', () => {
+    const authoredCode = `
+composition "owned-edge" {
+  @llama_serve {
+    name: "owned-edge"
+    model: "owned-edge-model"
+    model_path: "/srv/sovereign/models/owned-edge.gguf"
+    lora: "/srv/sovereign/models/owned-edge.lora.gguf"
+    vision: false
+    host: "10.0.0.20"
+    port: 18080
+    ctx: 4096
+    ngl: 48
+    cache_ram: 0
+    fit: "on"
+    parallel: 1
+    metrics: true
+    executable: "${patchedJetsonExecutable}"
+    working_directory: "/srv/sovereign/holollama"
+    platform: "linux"
+    service_user: "holoscript"
+    node: "owned-edge"
+    register_as: "owned-edge-llamacpp"
+  }
+}
+`;
+    const command =
+      `${patchedJetsonExecutable} -m /srv/sovereign/models/owned-edge.gguf ` +
+      '--host 10.0.0.20 --port 18080 -c 4096 -ngl 48 --fit on --parallel 1 ' +
+      '--cache-ram 0 --metrics --lora /srv/sovereign/models/owned-edge.lora.gguf';
+    const observation = {
+      source: 'ssh-procfs-journal' as const,
+      unit: 'owned-edge-llamacpp.service',
+      pid: 42,
+      command,
+      noUsableGpuWarning: false,
+      processRssMiB: 2048,
+      ramTotalMiB: 8192,
+      swapUsedMiB: 0,
+    };
+
+    const withoutOverride = assessHoloLlamaFootprint('jetson-orin', observation);
+    expect(withoutOverride.ok).toBe(false);
+    expect(withoutOverride.blockers).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('model path drift'),
+        expect.stringContaining('gpu layer drift'),
+      ])
+    );
+
+    const expectedSpec = resolveHoloLlamaExpectedSpecFromCode(authoredCode, 'jetson-orin');
+    const withOverride = assessHoloLlamaFootprint('jetson-orin', observation, expectedSpec);
+    expect(withOverride.ok).toBe(true);
+    expect(withOverride.blockers).toEqual([]);
+    expect(withOverride.expected).toMatchObject({
+      executable: patchedJetsonExecutable,
+      modelPath: '/srv/sovereign/models/owned-edge.gguf',
+      loraPaths: ['/srv/sovereign/models/owned-edge.lora.gguf'],
+      gpuLayers: 48,
+      contextLength: 4096,
+      cacheRamMiB: 0,
+    });
+    expect(withOverride.observed.cacheRamMiB).toBe(0);
+  });
+
+  it('rejects lifecycle code without exactly one authored @llama_serve contract', () => {
+    expect(() =>
+      resolveHoloLlamaExpectedSpecFromCode('composition "empty" {}', 'jetson-orin')
+    ).toThrow(/exactly one @llama_serve trait; found none/);
+
+    expect(() =>
+      resolveHoloLlamaExpectedSpecFromCode(
+        `
+composition "ambiguous" {
+  @llama_serve { model: "one" }
+  @llama_serve { model: "two" }
+}
+`,
+        'jetson-orin'
+      )
+    ).toThrow(/exactly one @llama_serve trait; found 2/);
+  });
+
+  it('fails closed on missing, reduced, or case-drifted authored Linux footprint fields', () => {
+    const expectedSpec = resolveHoloLlamaExpectedSpecFromCode(
+      `
+composition "owned-edge" {
+  @llama_serve {
+    model: "owned-edge"
+    model_path: "/srv/sovereign/models/owned-edge.gguf"
+    mmproj_path: "none"
+    ctx: 4096
+    ngl: 48
+    executable: "${patchedJetsonExecutable}"
+    platform: "linux"
+    register_as: "owned-edge"
+  }
+}
+`,
+      'jetson-orin'
+    );
+
+    const missing = assessHoloLlamaFootprint(
+      'jetson-orin',
+      {
+        command: `${patchedJetsonExecutable} -m /srv/sovereign/models/owned-edge.gguf`,
+      },
+      expectedSpec
+    );
+    expect(missing.ok).toBe(false);
+    expect(missing.blockers).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('gpu layers are missing'),
+        expect.stringContaining('context length is missing'),
+      ])
+    );
+
+    const reduced = assessHoloLlamaFootprint(
+      'jetson-orin',
+      {
+        command:
+          `${patchedJetsonExecutable} -m /srv/sovereign/models/owned-edge.gguf ` + '-c 2048 -ngl 1',
+      },
+      expectedSpec
+    );
+    expect(reduced.ok).toBe(false);
+    expect(reduced.blockers).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('gpu layer drift'),
+        expect.stringContaining('context drift'),
+      ])
+    );
+
+    const caseDrift = assessHoloLlamaFootprint(
+      'jetson-orin',
+      {
+        command:
+          '/OPT/HOLOSCRIPT/LLAMA.CPP/BUILD-HOLO/BIN/LLAMA-SERVER ' +
+          '-m /SRV/SOVEREIGN/MODELS/OWNED-EDGE.GGUF -c 4096 -ngl 48',
+      },
+      expectedSpec
+    );
+    expect(caseDrift.ok).toBe(false);
+    expect(caseDrift.blockers).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('executable drift'),
+        expect.stringContaining('model path drift'),
+      ])
+    );
+
+    const windowsCaseOnly = assessHoloLlamaFootprint(
+      'laptop-windows',
+      {
+        command:
+          'c:\\holoscript\\llama.cpp\\build-holo\\bin\\release\\llama-server.exe ' +
+          '-m c:\\models\\edge.gguf -c 4096 -ngl 12',
+      },
+      {
+        executable: patchedLaptopExecutable,
+        modelPath: 'C:\\MODELS\\EDGE.GGUF',
+        contextLength: 4096,
+        gpuLayers: 12,
+        platform: 'windows',
+        loras: [],
+      }
+    );
+    expect(windowsCaseOnly.ok).toBe(true);
+  });
+
+  it('wires lifecycle --code into the live receipt and fails closed when proof is disabled', async () => {
+    const tmp = mkdtempSync(join(tmpdir(), 'holollama-lifecycle-code-'));
+    const codePath = join(tmp, 'owned-edge.holo');
+    writeFileSync(
+      codePath,
+      `
+composition "owned-edge" {
+  @llama_serve {
+    model: "owned-edge-model"
+    model_path: "/srv/sovereign/models/owned-edge.gguf"
+    lora: "/srv/sovereign/models/owned-edge.lora.gguf"
+    vision: false
+    host: "10.0.0.20"
+    port: 18080
+    ctx: 4096
+    ngl: 48
+    cache_ram: 0
+    fit: "on"
+    parallel: 1
+    metrics: true
+    executable: "${patchedJetsonExecutable}"
+    working_directory: "/srv/sovereign/holollama"
+    platform: "linux"
+    service_user: "holoscript"
+    node: "owned-edge"
+    register_as: "owned-edge-llamacpp"
+  }
+}
+`
+    );
+
+    const originalFetch = globalThis.fetch;
+    const originalExitCode = process.exitCode;
+    const output: string[] = [];
+    const stdout = vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
+      output.push(String(chunk));
+      return true;
+    });
+    globalThis.fetch = (async (url: string | URL | Request) => {
+      const href = String(url);
+      const body = href.endsWith('/health')
+        ? { status: 'ok' }
+        : href.endsWith('/v1/models')
+          ? {
+              data: [
+                {
+                  id: 'owned-edge.gguf',
+                  owned_by: 'llamacpp',
+                  meta: { n_vocab: 100, n_ctx: 4096, n_params: 1 },
+                },
+              ],
+            }
+          : { choices: [{ message: { content: 'ready' } }] };
+      return {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        text: async () => JSON.stringify(body),
+      } as Response;
+    }) as typeof fetch;
+
+    try {
+      await runCli([
+        'lifecycle',
+        '--profile',
+        'jetson-orin',
+        '--live',
+        '--code',
+        codePath,
+        '--endpoint',
+        'http://127.0.0.1:18080',
+        '--no-systemd',
+        '--no-footprint',
+        '--json',
+      ]);
+    } finally {
+      globalThis.fetch = originalFetch;
+      process.exitCode = originalExitCode;
+      stdout.mockRestore();
+      rmSync(tmp, { recursive: true, force: true });
+    }
+
+    const lifecycle = JSON.parse(output.join(''));
+    expect(lifecycle.ok).toBe(false);
+    expect(lifecycle.profiles[0].liveLifecycle).toMatchObject({
+      ok: false,
+      failures: [
+        'systemd unit is not active and running with a positive main PID',
+        'live footprint proof is required but did not pass',
+      ],
+      registryHandle: 'owned-edge-llamacpp',
+      target: {
+        modelsPath: '/srv/sovereign/models',
+        providerCompatibilityId: 'owned-edge-llamacpp',
+      },
+      checks: {
+        footprint: {
+          expected: {
+            modelPath: '/srv/sovereign/models/owned-edge.gguf',
+            loraPaths: ['/srv/sovereign/models/owned-edge.lora.gguf'],
+            gpuLayers: 48,
+            contextLength: 4096,
+            cacheRamMiB: 0,
+          },
+        },
+      },
+    });
   });
 
   it('blocks lifecycle promotion when live proof is required but missing', () => {

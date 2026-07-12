@@ -19,6 +19,7 @@ holollama mesh --profile jetson-orin --team-id team_... --json
 holollama preflight --profile laptop-windows --json
 holollama lifecycle --team-id team_... --json
 holollama lifecycle --profile jetson-orin --live --team-id team_... --json
+holollama lifecycle --profile jetson-orin --live --code ./serve.holo --json
 holollama profiles
 holollama brains
 holollama brain --task "compose eerie ambience for a cave level" --json
@@ -70,7 +71,13 @@ OpenAI-compatible completion. Use
 `--endpoint`, `--host`, `--key`, `--unit`, `--models-path`, `--timeout-ms`,
 `--prompt`, `--max-tokens`, `--no-systemd`, `--no-footprint`, and
 `--require-systemd` to adapt the same package to Jetson, laptop, and Vast fleet
-lanes.
+lanes. `--code <composition.holo>` compiles a project-owned `@llama_serve`
+composition and merges its resolved executable, model, LoRA, context,
+GPU-layer, and cache-RAM contract over the selected public profile before the
+footprint comparison. This keeps private machine paths out of the published
+profiles without weakening drift detection. In lifecycle mode, `--code`
+requires positive systemd and SSH/procfs footprint evidence; attempts to skip
+either proof produce a blocked receipt.
 
 ## Brains
 
