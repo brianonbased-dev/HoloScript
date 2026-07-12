@@ -7,7 +7,7 @@
  * @version 1.0.0
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 import { OpenRouterAdapter, OPENROUTER_MODELS } from '../adapters/openrouter';
 import { XAIAdapter, XAI_MODELS, XAI_MODEL_CAPABILITIES } from '../adapters/xai';
@@ -19,6 +19,14 @@ import {
   createOpenRouterProvider,
   createXAIProvider,
 } from '../index';
+
+const createChatCompletion = vi.hoisted(() => vi.fn());
+
+vi.mock('openai', () => ({
+  default: class MockOpenAI {
+    chat = { completions: { create: createChatCompletion } };
+  },
+}));
 
 // =============================================================================
 // OpenRouter Adapter Tests
@@ -32,6 +40,7 @@ describe('OpenRouterAdapter', () => {
 
   it('has expected available models', () => {
     const adapter = new OpenRouterAdapter({ apiKey: 'test-key' });
+    expect(adapter.models).toContain('anthropic/claude-haiku-4.5');
     expect(adapter.models).toContain('anthropic/claude-sonnet-4');
     expect(adapter.models).toContain('openai/gpt-4o');
     expect(adapter.models).toContain('x-ai/grok-3');
@@ -84,6 +93,80 @@ describe('OpenRouterAdapter', () => {
     const adapter = new OpenRouterAdapter({ apiKey: 'test-key', maxRetries: 1 });
     // Should not throw on construction; retry behavior tested in base-adapter-retry.test.ts
     expect(adapter).toBeDefined();
+  });
+
+  it('forwards required native tools and parses the tool call response', async () => {
+    createChatCompletion.mockResolvedValueOnce({
+      id: 'generation-test-1',
+      model: 'anthropic/claude-haiku-4.5',
+      choices: [
+        {
+          finish_reason: 'tool_calls',
+          message: {
+            content: null,
+            tool_calls: [
+              {
+                id: 'call-plan-1',
+                type: 'function',
+                function: {
+                  name: 'submit_agent_plan',
+                  arguments: '{"summary":"One bounded plan"}',
+                },
+              },
+            ],
+          },
+        },
+      ],
+      usage: { prompt_tokens: 20, completion_tokens: 10, total_tokens: 30 },
+    });
+    const adapter = new OpenRouterAdapter({ apiKey: 'test-key', maxRetries: 0 });
+
+    const response = await adapter.complete(
+      {
+        messages: [{ role: 'user', content: 'Plan one action.' }],
+        maxTokens: 100,
+        tools: [
+          {
+            name: 'submit_agent_plan',
+            description: 'Submit one bounded plan',
+            input_schema: {
+              type: 'object',
+              properties: { summary: { type: 'string' } },
+              required: ['summary'],
+            },
+          },
+        ],
+        provider: {
+          openai: { toolChoice: 'required', parallelToolCalls: false },
+        },
+      },
+      'anthropic/claude-haiku-4.5'
+    );
+
+    expect(createChatCompletion).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: 'anthropic/claude-haiku-4.5',
+        tool_choice: 'required',
+        parallel_tool_calls: false,
+        tools: [
+          expect.objectContaining({
+            type: 'function',
+            function: expect.objectContaining({ name: 'submit_agent_plan' }),
+          }),
+        ],
+      })
+    );
+    expect(response.finishReason).toBe('tool_use');
+    expect(response.provider).toBe('openrouter');
+    expect(response.requestId).toBe('generation-test-1');
+    expect(response.toolUses).toEqual([
+      {
+        type: 'tool_use',
+        id: 'call-plan-1',
+        name: 'submit_agent_plan',
+        input: { summary: 'One bounded plan' },
+      },
+    ]);
   });
 
   it('maps OpenAI-compatible error status codes correctly', () => {

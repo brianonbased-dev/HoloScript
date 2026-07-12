@@ -368,7 +368,9 @@ function mapOpenAIResponseFinishReason(
   return 'stop';
 }
 
-function toolSpecsToChatCompletionTools(tools: ToolSpec[] = []): OpenAIResponseTool[] {
+export function toolSpecsToOpenAIChatCompletionTools(
+  tools: ToolSpec[] = []
+): OpenAIResponseTool[] {
   return tools.map((tool) => ({
     type: 'function',
     function: {
@@ -379,7 +381,7 @@ function toolSpecsToChatCompletionTools(tools: ToolSpec[] = []): OpenAIResponseT
   }));
 }
 
-function parseChatToolCalls(choice: unknown): {
+export function parseOpenAIChatCompletionToolCalls(choice: unknown): {
   toolUses: ToolUseBlock[];
   assistantBlocks: AssistantContentBlock[];
 } {
@@ -603,7 +605,7 @@ export class OpenAIAdapter extends BaseLLMAdapter {
           stream: false,
           ...(tools.length > 0
             ? {
-                tools: toolSpecsToChatCompletionTools(tools) as never,
+                tools: toolSpecsToOpenAIChatCompletionTools(tools) as never,
                 tool_choice: controls.toolChoice,
                 parallel_tool_calls: controls.parallelToolCalls,
               }
@@ -613,7 +615,7 @@ export class OpenAIAdapter extends BaseLLMAdapter {
         const choice = response.choices[0];
         const content = choice?.message?.content ?? '';
         const usage = response.usage;
-        const { toolUses, assistantBlocks } = parseChatToolCalls(choice);
+        const { toolUses, assistantBlocks } = parseOpenAIChatCompletionToolCalls(choice);
 
         return {
           content,

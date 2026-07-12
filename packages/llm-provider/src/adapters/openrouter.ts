@@ -22,16 +22,23 @@ import type {
   OpenRouterProviderConfig,
 } from '../types';
 import {
+  filterGenericTools,
   LLMAuthenticationError,
   LLMRateLimitError,
   LLMContextLengthError,
   LLMProviderError,
   messageContentAsString,
 } from '../types';
+import {
+  parseOpenAIChatCompletionToolCalls,
+  resolveOpenAIToolControls,
+  toolSpecsToOpenAIChatCompletionTools,
+} from './openai';
 
 // Popular OpenRouter models for HoloScript generation.
 // Full model list: https://openrouter.ai/models
 export const OPENROUTER_MODELS = [
+  'anthropic/claude-haiku-4.5',
   'anthropic/claude-sonnet-4',
   'anthropic/claude-opus-4',
   'openai/gpt-4o',
@@ -93,6 +100,34 @@ export const OPENROUTER_CAPABILITIES: Capabilities = {
   // require a separate per-model capability resolver.
 };
 
+/** Build the OpenAI-compatible request sent to OpenRouter. */
+export function buildOpenRouterChatCompletionPayload(
+  request: LLMCompletionRequest,
+  model: string
+): Record<string, unknown> {
+  const tools = filterGenericTools(request.tools);
+  const controls = resolveOpenAIToolControls(request, false);
+  return {
+    model,
+    messages: request.messages.map((message) => ({
+      role: message.role,
+      content: messageContentAsString(message.content),
+    })),
+    max_tokens: request.maxTokens,
+    temperature: request.temperature,
+    top_p: request.topP,
+    stop: request.stop,
+    stream: false,
+    ...(tools.length > 0
+      ? {
+          tools: toolSpecsToOpenAIChatCompletionTools(tools),
+          tool_choice: controls.toolChoice,
+          parallel_tool_calls: controls.parallelToolCalls,
+        }
+      : {}),
+  };
+}
+
 export class OpenRouterAdapter extends BaseLLMAdapter {
   readonly name = 'openrouter' as const;
   readonly models = OPENROUTER_MODELS;
@@ -144,22 +179,14 @@ export class OpenRouterAdapter extends BaseLLMAdapter {
 
     return await this.withRetry(async () => {
       try {
-        const response = await client.chat.completions.create({
-          model,
-          messages: request.messages.map((m) => ({
-            role: m.role,
-            content: messageContentAsString(m.content),
-          })),
-          max_tokens: request.maxTokens,
-          temperature: request.temperature,
-          top_p: request.topP,
-          stop: request.stop,
-          stream: false,
-        });
+        const response = await client.chat.completions.create(
+          buildOpenRouterChatCompletionPayload(request, model) as never
+        );
 
         const choice = response.choices[0];
         const content = choice?.message?.content ?? '';
         const usage = response.usage;
+        const { toolUses, assistantBlocks } = parseOpenAIChatCompletionToolCalls(choice);
 
         return {
           content,
@@ -170,7 +197,11 @@ export class OpenRouterAdapter extends BaseLLMAdapter {
           },
           model: response.model,
           provider: 'openrouter',
-          finishReason: this.mapFinishReason(choice?.finish_reason),
+          finishReason:
+            toolUses.length > 0 ? 'tool_use' : this.mapFinishReason(choice?.finish_reason),
+          toolUses: toolUses.length > 0 ? toolUses : undefined,
+          assistantBlocks: assistantBlocks.length > 0 ? assistantBlocks : undefined,
+          requestId: response.id,
           raw: response,
         };
       } catch (err: unknown) {

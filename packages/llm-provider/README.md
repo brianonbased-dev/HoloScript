@@ -48,8 +48,10 @@ const response = await provider.complete(
 );
 ```
 
-`toolChoice: 'required'` is sent to both the Responses and Chat Completions
-paths. Authorization and tool execution remain caller responsibilities.
+`toolChoice: 'required'` is sent through OpenAI Responses, OpenAI Chat
+Completions, and the OpenRouter OpenAI-compatible route. Each path returns the
+same `toolUses` shape. Authorization and tool execution remain caller
+responsibilities.
 
 ## Consumer validation gate
 
