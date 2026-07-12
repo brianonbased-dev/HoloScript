@@ -15,8 +15,11 @@ function makePolicy(overrides: Partial<BrowserAbsorptionPolicy> = {}): BrowserAb
     allowedDomains: [],
     blockedDomains: [],
     allowedActions: [],
-    maxActionsPerSession: 100,
-    requireConfirmation: false,
+    maxDurationMs: 60_000,
+    headless: true,
+    userVisible: false,
+    captureNetworkLog: false,
+    auditSessionState: false,
     ...overrides,
   };
 }

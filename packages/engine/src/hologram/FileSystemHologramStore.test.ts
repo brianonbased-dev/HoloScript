@@ -16,7 +16,12 @@ import { join } from 'node:path';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { computeBundleHash, type HologramBundle, type HologramMeta } from './HologramBundle';
+import {
+  computeBundleHash,
+  type HologramBundle,
+  type HologramManifest,
+  type HologramMeta,
+} from './HologramBundle';
 import { FileSystemHologramStore } from './FileSystemHologramStore';
 import {
   ASSET_CONTENT_TYPES,
@@ -61,7 +66,12 @@ async function makeBundle(
   const normalBin = new Uint8Array(normal.buffer, normal.byteOffset, normal.byteLength);
   const meta = makeMeta();
   const hash = await computeBundleHash(meta, depthBin, normalBin);
-  return { hash, meta, depthBin, normalBin, ...overrides };
+  const manifest: HologramManifest = {
+    sourceHash: hash,
+    receiptType: 'bundle-hash',
+    createdAt: '2026-04-20T00:00:00.000Z',
+  };
+  return { hash, meta, manifest, depthBin, normalBin, ...overrides };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

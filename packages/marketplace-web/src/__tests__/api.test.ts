@@ -130,7 +130,7 @@ describe('pluginsApi', () => {
       expect(result.success).toBe(true);
       expect(result.receipt?.x402.status).toBe('verified');
 
-      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
       expect(url).toBe('/api/plugins/%40test%2Fpaid-widget/install-receipt');
       expect(init.method).toBe('POST');
       expect(init.headers).toMatchObject({ 'x-payment-id': 'pay_001' });

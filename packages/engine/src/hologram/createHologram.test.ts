@@ -21,6 +21,7 @@ import {
   validateBundle,
   verifyBundleHash,
   type HologramBundle,
+  type HologramManifest,
   type HologramMeta,
 } from './HologramBundle';
 import {
@@ -69,6 +70,14 @@ function makeNormal(seed = 0): Float32Array {
 
 function asBytes(arr: Float32Array): Uint8Array {
   return new Uint8Array(arr.buffer, arr.byteOffset, arr.byteLength);
+}
+
+function makeManifest(sourceHash: string): HologramManifest {
+  return {
+    sourceHash,
+    receiptType: 'bundle-hash',
+    createdAt: '2026-04-20T00:00:00.000Z',
+  };
 }
 
 // ── Providers (mocks) ───────────────────────────────────────────────────────
@@ -202,6 +211,7 @@ describe('validateBundle', () => {
   const goodBundle = (): HologramBundle => ({
     hash: 'x'.repeat(64),
     meta: makeMeta(),
+    manifest: makeManifest('x'.repeat(64)),
     depthBin: asBytes(makeDepth()),
     normalBin: asBytes(makeNormal()),
   });
@@ -247,7 +257,9 @@ describe('verifyBundleHash', () => {
     const depthBin = asBytes(makeDepth());
     const normalBin = asBytes(makeNormal());
     const hash = await computeBundleHash(meta, depthBin, normalBin);
-    await expect(verifyBundleHash({ hash, meta, depthBin, normalBin })).resolves.toBeUndefined();
+    await expect(
+      verifyBundleHash({ hash, meta, manifest: makeManifest(hash), depthBin, normalBin })
+    ).resolves.toBeUndefined();
   });
 
   it('throws on hash mismatch', async () => {
@@ -255,7 +267,13 @@ describe('verifyBundleHash', () => {
     const depthBin = asBytes(makeDepth());
     const normalBin = asBytes(makeNormal());
     await expect(
-      verifyBundleHash({ hash: 'deadbeef'.repeat(8), meta, depthBin, normalBin })
+      verifyBundleHash({
+        hash: 'deadbeef'.repeat(8),
+        meta,
+        manifest: makeManifest('deadbeef'.repeat(8)),
+        depthBin,
+        normalBin,
+      })
     ).rejects.toThrowError(/hash_mismatch|does not match/);
   });
 });
