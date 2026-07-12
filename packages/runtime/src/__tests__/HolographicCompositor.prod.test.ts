@@ -17,6 +17,17 @@ function makeTraitContext(bus: EventBus) {
   return { emit: spy };
 }
 
+function updateHolographicSprite(
+  node: unknown,
+  config: { depthMode: 'continuous' | 'on-demand' },
+  ctx: ReturnType<typeof makeTraitContext>,
+  delta: number
+) {
+  const onUpdate = holographicSpriteTraitHandler.onUpdate;
+  if (!onUpdate) throw new Error('holographicSpriteTraitHandler.onUpdate is not registered');
+  onUpdate(node as any, config, ctx as any, delta);
+}
+
 function mountContinuous(bus: EventBus, nodeId = 'hologram_1') {
   const node: any = {
     __typename: 'HSPlusNode',
@@ -36,7 +47,7 @@ function mountContinuous(bus: EventBus, nodeId = 'hologram_1') {
   return {
     node,
     ctx,
-    tick: (delta = 0.016) => holographicSpriteTraitHandler.onUpdate(node, cfg, ctx as any, delta),
+    tick: (delta = 0.016) => updateHolographicSprite(node, cfg, ctx, delta),
   };
 }
 
@@ -95,7 +106,7 @@ describe('HolographicCompositor — Pattern E wiring', () => {
     const bus = new EventBus();
     const comp = createHolographicCompositor({ bus });
     const { node, ctx } = mountContinuous(bus, 'hologram_1');
-    holographicSpriteTraitHandler.onUpdate(node, { depthMode: 'on-demand' }, ctx as any, 0.016);
+    updateHolographicSprite(node, { depthMode: 'on-demand' }, ctx, 0.016);
     expect(ctx.emit).not.toHaveBeenCalledWith('holographic:frame-update', expect.anything());
     expect(comp.count()).toBe(0);
   });
@@ -105,7 +116,7 @@ describe('HolographicCompositor — Pattern E wiring', () => {
     const comp = createHolographicCompositor({ bus });
     const { node, ctx } = mountContinuous(bus, 'hologram_1');
     node.__holographicSpriteState.compositeReady = false;
-    holographicSpriteTraitHandler.onUpdate(node, { depthMode: 'continuous' }, ctx as any, 0.016);
+    updateHolographicSprite(node, { depthMode: 'continuous' }, ctx, 0.016);
     expect(ctx.emit).not.toHaveBeenCalled();
     expect(comp.count()).toBe(0);
   });

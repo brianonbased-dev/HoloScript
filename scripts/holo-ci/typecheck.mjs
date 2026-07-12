@@ -45,7 +45,7 @@ const ENFORCED = [
   'holoscript-cdn', 'framework', 'linter', 'llm-provider', 'lsp', 'marketplace-agentkit',
   'marketplace-api', 'marketplace-web', 'mcp-server', 'mcp-server-adversarial', 'memory', 'mesh',
   'mvc-schema', 'partner-sdk', 'platform', 'preview-component', 'react-agent-sdk',
-  'registry', 'secrets-broker', 'security-sandbox', 'snn-webgpu', 'spatial-index',
+  'registry', 'runtime', 'secrets-broker', 'security-sandbox', 'snn-webgpu', 'spatial-index',
   'std', 'studio', 'studio-bridge', 'studio-plugin-sdk', 'studio-ui-graph',
   'tauri-app', 'uaal', 'ui', 'video-tutorials', 'visual', 'visualizer-client',
   'vscode-extension',
@@ -58,7 +58,6 @@ const ENFORCED = [
 const STAGED = {
   cli: 42,
   'r3f-renderer': 73,
-  runtime: 7,
 };
 
 function packagesWithTsconfig() {

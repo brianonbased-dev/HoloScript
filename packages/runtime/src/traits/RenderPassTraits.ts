@@ -83,6 +83,10 @@ function removeScenePostFX(object: THREE.Object3D, effect: string): void {
   root.userData['holoPostFX'] = existing.filter((e) => e.effect !== effect);
 }
 
+interface PointCloudTraitHandler extends TraitHandler {
+  _loadAsync(src: string, context: TraitContext, fallback: THREE.BufferGeometry): Promise<void>;
+}
+
 // ---------------------------------------------------------------------------
 // Simple noise helpers (no GPU dependency)
 // ---------------------------------------------------------------------------
@@ -444,7 +448,7 @@ export const NerfTrait: TraitHandler = {
 // POINT CLOUD — THREE.Points from asset or inline data
 // =============================================================================
 
-export const PointCloudTrait: TraitHandler = {
+export const PointCloudTrait: PointCloudTraitHandler = {
   name: 'point_cloud',
 
   onApply(context: TraitContext) {
@@ -480,7 +484,7 @@ export const PointCloudTrait: TraitHandler = {
 
       if (src) {
         // Async load from URL (PLY/XYZ); replace geometry when done
-        PointCloudTrait._loadAsync(src, context, geometry).catch((e) =>
+        PointCloudTrait._loadAsync(src, context, geometry).catch((e: unknown) =>
           devWarn('point_cloud', `Failed to load "${src}": ${String(e)}`)
         );
       }
@@ -720,9 +724,10 @@ export const SceneReconstructionTrait: TraitHandler = {
   },
 
   onUpdate(context: TraitContext, delta: number) {
-    context.data['elapsed'] = ((context.data['elapsed'] as number) ?? 0) + delta;
+    const elapsed = ((context.data['elapsed'] as number | undefined) ?? 0) + delta;
+    context.data['elapsed'] = elapsed;
     const updateRate = context.data['updateRate'] as number;
-    if (context.data['elapsed'] >= 1 / updateRate) {
+    if (elapsed >= 1 / updateRate) {
       context.data['elapsed'] = 0;
       // Count reconstruction mesh children for external integrations
       let meshCount = 0;
