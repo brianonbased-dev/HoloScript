@@ -1,0 +1,28 @@
+// Time-to-wow first-pixel Studio path.
+composition "TimeToWowPath" {
+  route: "/create"
+  source: "packages/studio/src/components/create/TimeToWowPathPanel.tsx"
+  matrix_source: "docs/strategy/competitor-gap-matrix.json#CG-756"
+  battlecard: "docs/strategy/battlecards/omma.md"
+  prompt: "Build a playable neon orchard gallery with a glTF drone, PBR crystal grove, CSV telemetry, JSON quest data, spatial audio, and publish/export controls."
+  receipt: "time-to-wow.v1"
+  first_screen: ["running viewport", "durable HoloScript source", "code explorer", "asset panel", "publish/export controls"]
+  ingest: ["csv", "json", "glb", "gltf"]
+  generation: ["3d", "pbr", "image", "audio"]
+  panels: ["asset-library", "asset-pack", "ai-material", "audio", "export", "generator"]
+
+  scene "NeonOrchardLaunchpad" {
+    object "PromptInput" {
+      position: [-1.8, 1.4, -2]
+      @state_sync { channel: "time-to-wow-prompt" }
+    }
+    object "RunningPreview" {
+      position: [0, 1.4, -2]
+      @state_sync { channel: "time-to-wow-preview" }
+    }
+    object "SourceReceipt" {
+      position: [1.8, 1.4, -2]
+      @state_sync { channel: "time-to-wow-source-receipt" }
+    }
+  }
+}

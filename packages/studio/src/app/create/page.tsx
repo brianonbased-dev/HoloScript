@@ -103,6 +103,10 @@ import {
 } from '@/lib/studio/viewRegistry';
 import { useCreateModeStore, type CreateMode } from '@/components/create/createModeStore';
 import { DescribeItFirstRunPanel } from '@/components/create/DescribeItFirstRunPanel';
+import {
+  TIME_TO_WOW_SOURCE,
+  TimeToWowPathPanel,
+} from '@/components/create/TimeToWowPathPanel';
 import type { PrintabilityReport } from '@/components/manufacturing/PrintabilityReportPanel';
 import type { MeshResult } from '@/components/manufacturing/ParametricSlidersPanel';
 import { useSimState } from '@/components/simsci/useSimState';
@@ -1274,6 +1278,80 @@ export default function CreatePage() {
     [addToast, clearLandingPrompt, setCode, setMetadata]
   );
 
+  const handleTimeToWowStart = useCallback(() => {
+    const now = Date.now();
+    setCode(TIME_TO_WOW_SOURCE);
+    setMetadata({ name: 'Neon Orchard Launchpad', id: 'time-to-wow-neon-orchard' });
+    setExecutionState('running');
+    setCodeEditorCollapsed(false);
+    setDescribeItDismissed(true);
+    clearLandingPrompt();
+
+    const starterAssets = [
+      {
+        id: 'time-to-wow-drone-glb',
+        name: 'Survey Drone GLB',
+        category: 'model' as const,
+        src: '/models/drone.glb',
+        size: 0,
+        addedAt: now,
+        tags: ['time-to-wow', 'glb', 'gltf', 'model'],
+      },
+      {
+        id: 'time-to-wow-quest-json',
+        name: 'Quest Beats JSON',
+        category: 'script' as const,
+        src: 'data:application/json,%7B%22beats%22%3A%5B%22walk_to_crystal%22%2C%22inspect_drone%22%2C%22publish_world%22%5D%7D',
+        size: 96,
+        addedAt: now,
+        tags: ['time-to-wow', 'json', 'quest'],
+      },
+      {
+        id: 'time-to-wow-telemetry-csv',
+        name: 'Orchard Telemetry CSV',
+        category: 'script' as const,
+        src: 'data:text/csv,time,value%0A0,0.2%0A1,0.7%0A2,0.4',
+        size: 42,
+        addedAt: now,
+        tags: ['time-to-wow', 'csv', 'data'],
+      },
+      {
+        id: 'time-to-wow-ambient-score',
+        name: 'Ambient Space Score',
+        category: 'audio' as const,
+        src: 'https://holoscript.net/assets/ambient_space.mp3',
+        size: 0,
+        addedAt: now,
+        tags: ['time-to-wow', 'audio', 'spatial'],
+      },
+    ];
+    const existing = new Set(useAssetStore.getState().assets.map((asset) => asset.id));
+    for (const asset of starterAssets) {
+      if (!existing.has(asset.id)) addAsset(asset);
+    }
+
+    setAssetLibOpen(true);
+    setAssetPackOpen(true);
+    setAiMaterialOpen(true);
+    setAudioOpen(true);
+    setExportOpen(true);
+    setGeneratorOpen(true);
+    addToast('Time-to-wow project is running with source, assets, and export panels', 'success', 2400);
+  }, [
+    addAsset,
+    addToast,
+    clearLandingPrompt,
+    setAiMaterialOpen,
+    setAssetLibOpen,
+    setAssetPackOpen,
+    setAudioOpen,
+    setCode,
+    setExecutionState,
+    setExportOpen,
+    setGeneratorOpen,
+    setMetadata,
+  ]);
+
   const showDescribeItFirstRun =
     !describeItDismissed && (landingPrompt.trim().length > 0 || code.trim().length === 0);
 
@@ -1687,6 +1765,7 @@ export default function CreatePage() {
               )}
               <ViewportToolbar profilerOpen={profilerOpen} onToggleProfiler={toggleProfilerOpen} />
               <AIPromptOverlay />
+              <TimeToWowPathPanel onStart={handleTimeToWowStart} />
               {showDescribeItFirstRun && (
                 <DescribeItFirstRunPanel
                   initialPrompt={landingPrompt}

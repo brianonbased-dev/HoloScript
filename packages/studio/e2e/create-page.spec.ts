@@ -51,6 +51,25 @@ test.describe('Studio editor page', () => {
     await expect(page.getByPlaceholder(/brittney/i).first()).toBeVisible();
   });
 
+  test('time-to-wow path seeds a running project with durable source and assets', async ({
+    page,
+  }) => {
+    const pathPanel = page.getByTestId('time-to-wow-path');
+    await expect(pathPanel).toBeVisible({ timeout: 10_000 });
+    await expect(pathPanel).toContainText('Prompt → Running Project');
+
+    await page.getByTestId('time-to-wow-start').click();
+
+    await expect(page.getByText('Neon Orchard Launchpad').first()).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(page.getByText('time-to-wow.v1').first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText('Survey Drone GLB').first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/web · glTF · GLB · zip/i).first()).toBeVisible({
+      timeout: 10_000,
+    });
+  });
+
   test('can expand/collapse the scene graph panel', async ({ page }) => {
     // Scene graph root should be visible
     const tree = page.locator('[role="tree"]').first();
