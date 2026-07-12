@@ -1,0 +1,71 @@
+composition MultiTargetFanoutRun {
+  metadata {
+    matrixSource: "docs/strategy/competitor-gap-matrix.json#CG-757"
+    battlecard: "docs/strategy/battlecards/omma.md"
+    refines: "CG-092"
+    competitor: "Omma"
+    receipt: "multi-target-fanout.v1"
+  }
+
+  prompt "Compile the Neon Orchard Launchpad to browser/WebGPU, Unity, robot simulation, XR headset, service/MCP, and an asset pack with one merged receipt."
+
+  source "neon-orchard-launchpad" {
+    authority: "user-owned .holo"
+    imports: ["assets/drone.glb", "assets/orchard-telemetry.csv", "assets/quest-beats.json"]
+  }
+
+  parallel_compile "omma-counterfan" {
+    isolation: "per-target-job"
+    streamStatus: true
+    compareTargetDiffs: true
+    mergeReceiptsInto: "receipt-pack://multi-target-fanout.v1"
+
+    target "browser-webgpu-r3f" {
+      class: "web"
+      tools: ["compile_to_webgpu", "compile_to_r3f"]
+      artifact: "artifacts/web/neon-orchard/"
+      status: "ready"
+      receipt: "receipt://browser-webgpu-r3f"
+    }
+
+    target "unity-gameplay" {
+      class: "game-engine"
+      tools: ["compile_to_unity"]
+      artifact: "artifacts/unity/NeonOrchard.unitypackage"
+      status: "ready"
+      receipt: "receipt://unity-gameplay"
+    }
+
+    target "robot-sim" {
+      class: "robotics-sim"
+      tools: ["compile_to_urdf", "compile_to_sdf"]
+      artifact: "artifacts/robot/neon-orchard.urdf"
+      status: "ready"
+      receipt: "receipt://robot-sim"
+    }
+
+    target "xr-headset" {
+      class: "xr"
+      tools: ["compile_to_openxr", "compile_to_visionos"]
+      artifact: "artifacts/xr/neon-orchard-openxr.zip"
+      status: "ready"
+      receipt: "receipt://xr-headset"
+    }
+
+    target "service-mcp" {
+      class: "service"
+      tools: ["compile_to_node_service", "compile_to_mcp_config"]
+      artifact: "artifacts/service/neon-orchard-mcp/"
+      status: "ready"
+      receipt: "receipt://service-mcp"
+    }
+
+    target "asset-pack" {
+      class: "assets"
+      tools: ["compile_to_gltf", "compile_to_usdz"]
+      artifact: "artifacts/assets/neon-orchard-pack.zip"
+      status: "ready"
+      receipt: "receipt://asset-pack"
+    }
+  }
+}

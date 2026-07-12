@@ -70,6 +70,26 @@ test.describe('Studio editor page', () => {
     });
   });
 
+  test('multi-target fan-out seeds portable compile receipts', async ({ page }) => {
+    const fanoutPanel = page.getByTestId('multi-target-fanout');
+    await expect(fanoutPanel).toBeVisible({ timeout: 10_000 });
+    await expect(fanoutPanel).toContainText('Prompt → Multi-target fan-out');
+
+    await page.getByTestId('multi-target-dispatch').click();
+
+    await expect(page.getByText('Multi-target Fan-out Receipt').first()).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(page.getByText('multi-target-fanout.v1').first()).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(page.getByText('browser-webgpu-r3f').first()).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(page.getByText('unity-gameplay').first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText('robot-sim').first()).toBeVisible({ timeout: 10_000 });
+  });
+
   test('can expand/collapse the scene graph panel', async ({ page }) => {
     // Scene graph root should be visible
     const tree = page.locator('[role="tree"]').first();

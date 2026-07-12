@@ -104,6 +104,10 @@ import {
 import { useCreateModeStore, type CreateMode } from '@/components/create/createModeStore';
 import { DescribeItFirstRunPanel } from '@/components/create/DescribeItFirstRunPanel';
 import {
+  MULTI_TARGET_SOURCE,
+  MultiTargetFanoutPanel,
+} from '@/components/create/MultiTargetFanoutPanel';
+import {
   TIME_TO_WOW_SOURCE,
   TimeToWowPathPanel,
 } from '@/components/create/TimeToWowPathPanel';
@@ -1352,6 +1356,39 @@ export default function CreatePage() {
     setMetadata,
   ]);
 
+  const handleMultiTargetDispatch = useCallback(() => {
+    setCode(MULTI_TARGET_SOURCE);
+    setMetadata({ name: 'Multi-target Fan-out Receipt', id: 'multi-target-fanout' });
+    setExecutionState('running');
+    setCodeEditorCollapsed(false);
+    setDescribeItDismissed(true);
+    clearLandingPrompt();
+
+    setExportOpen(true);
+    setExportV2Open(true);
+    setSimulationOpen(true);
+    setShareOpen(true);
+    setReplOpen(true);
+    setRegistryOpen(true);
+    addToast(
+      'Multi-target fan-out dispatched: browser, Unity, robot/sim, XR, service, and asset receipts',
+      'success',
+      2600
+    );
+  }, [
+    addToast,
+    clearLandingPrompt,
+    setCode,
+    setExecutionState,
+    setExportOpen,
+    setExportV2Open,
+    setMetadata,
+    setRegistryOpen,
+    setReplOpen,
+    setShareOpen,
+    setSimulationOpen,
+  ]);
+
   const showDescribeItFirstRun =
     !describeItDismissed && (landingPrompt.trim().length > 0 || code.trim().length === 0);
 
@@ -1766,6 +1803,7 @@ export default function CreatePage() {
               <ViewportToolbar profilerOpen={profilerOpen} onToggleProfiler={toggleProfilerOpen} />
               <AIPromptOverlay />
               <TimeToWowPathPanel onStart={handleTimeToWowStart} />
+              <MultiTargetFanoutPanel onDispatch={handleMultiTargetDispatch} />
               {showDescribeItFirstRun && (
                 <DescribeItFirstRunPanel
                   initialPrompt={landingPrompt}
