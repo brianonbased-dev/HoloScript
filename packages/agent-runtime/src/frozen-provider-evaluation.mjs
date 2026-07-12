@@ -1,9 +1,11 @@
 import { createHash } from 'node:crypto';
 
 export const FROZEN_PROVIDER_EVALUATION_SCHEMA =
-  'holoscript.agent-runtime.frozen-provider-evaluation.v1';
+  'holoscript.agent-runtime.frozen-provider-evaluation.v2';
 export const FROZEN_PROVIDER_PROMPT_SCHEMA =
   'holoscript.agent-runtime.frozen-provider-prompt.v1';
+export const FROZEN_PROVIDER_CONTEXT_ISOLATION_SCHEMA =
+  'holoscript.agent-runtime.context-isolation.v1';
 
 const DEFAULT_SYSTEM_PROMPT = [
   'Return exactly one valid JSON object and no other text.',
@@ -59,7 +61,7 @@ function normalizeSuite(suite) {
 
 function normalizeContexts(contexts) {
   if (!Array.isArray(contexts) || contexts.length < 2) {
-    throw new Error('at least two independent context labels are required');
+    throw new Error('at least two context labels are required');
   }
   const labels = contexts.map((entry) => text(entry?.id || entry));
   if (labels.some((label) => !label)) throw new Error('context labels must be non-empty');
@@ -200,9 +202,111 @@ function safeError(error, options) {
   return redactEvaluationText(error?.message || error || 'unknown error', options).text.slice(0, 1_000);
 }
 
+function unverifiedContextIsolation(contextLabel) {
+  return {
+    schema: FROZEN_PROVIDER_CONTEXT_ISOLATION_SCHEMA,
+    contextLabel,
+    status: 'unverified',
+    mode: null,
+    isolationIdSha256: null,
+    priorMessageCount: null,
+    attestedBy: null,
+    evidenceSha256: null,
+    reason: 'createContext adapter not supplied',
+  };
+}
+
+function normalizeContextIsolation(contextLabel, isolation, redactionOptions) {
+  if (!isolation || typeof isolation !== 'object' || Array.isArray(isolation)) {
+    throw new Error(`${contextLabel}: createContext isolation evidence is required`);
+  }
+  if (isolation.schema !== FROZEN_PROVIDER_CONTEXT_ISOLATION_SCHEMA) {
+    throw new Error(
+      `${contextLabel}: isolation schema must be ${FROZEN_PROVIDER_CONTEXT_ISOLATION_SCHEMA}`
+    );
+  }
+  const mode = text(isolation.mode);
+  if (!['stateless-request', 'fresh-session'].includes(mode)) {
+    throw new Error(`${contextLabel}: isolation mode must be stateless-request or fresh-session`);
+  }
+  const isolationId = text(isolation.isolationId);
+  if (!isolationId) throw new Error(`${contextLabel}: isolationId is required`);
+  if (Number(isolation.priorMessageCount) !== 0) {
+    throw new Error(`${contextLabel}: priorMessageCount must be 0`);
+  }
+  const attestedBy = redactEvaluationText(text(isolation.attestedBy), redactionOptions);
+  if (!attestedBy.text) throw new Error(`${contextLabel}: attestedBy is required`);
+  if (attestedBy.secretLeakDetected) {
+    throw new Error(`${contextLabel}: attestedBy contains secret-like material`);
+  }
+
+  const evidence = {
+    schema: FROZEN_PROVIDER_CONTEXT_ISOLATION_SCHEMA,
+    contextLabel,
+    status: 'attested',
+    mode,
+    isolationIdSha256: evaluationSha256(isolationId),
+    priorMessageCount: 0,
+    attestedBy: attestedBy.text,
+  };
+  return {
+    ...evidence,
+    evidenceSha256: evaluationSha256(evidence),
+    reason: null,
+  };
+}
+
+async function prepareContextExecutions({
+  contextLabels,
+  createContext,
+  evaluationId,
+  provider,
+  model,
+  redactionOptions,
+}) {
+  if (typeof createContext !== 'function') {
+    return contextLabels.map((contextLabel) => ({
+      contextLabel,
+      complete: provider.complete.bind(provider),
+      isolation: unverifiedContextIsolation(contextLabel),
+    }));
+  }
+
+  const prepared = [];
+  for (const [index, contextLabel] of contextLabels.entries()) {
+    let context;
+    try {
+      context = await createContext({
+        evaluationId,
+        contextLabel,
+        index,
+        provider,
+        model,
+      });
+    } catch (error) {
+      throw new Error(`${contextLabel}: createContext failed: ${safeError(error, redactionOptions)}`);
+    }
+    if (typeof context?.complete !== 'function') {
+      throw new Error(`${contextLabel}: createContext.complete is required`);
+    }
+    prepared.push({
+      contextLabel,
+      complete: context.complete,
+      isolation: normalizeContextIsolation(contextLabel, context.isolation, redactionOptions),
+    });
+  }
+
+  const isolationIds = prepared.map((context) => context.isolation.isolationIdSha256);
+  if (new Set(isolationIds).size !== isolationIds.length) {
+    throw new Error('createContext isolationId values must be unique across contexts');
+  }
+  return prepared;
+}
+
 async function runIndependentContext({
   contextLabel,
-  provider,
+  complete,
+  isolation,
   providerName,
   model,
   prompt,
@@ -226,7 +330,7 @@ async function runIndependentContext({
   let providerError = null;
   try {
     response = await Promise.race([
-      provider.complete(
+      complete(
         {
           ...requestOptions,
           messages: [
@@ -320,7 +424,8 @@ async function runIndependentContext({
 
   return {
     contextLabel,
-    independent: true,
+    independent: isolation.status === 'attested',
+    isolation,
     ok:
       !providerError &&
       !parseError &&
@@ -360,6 +465,7 @@ export async function runFrozenProviderEvaluation({
   provider,
   providerName = provider?.name || 'unknown',
   model,
+  createContext = null,
   verifier,
   verifierId = 'caller-local-verifier',
   absorb = null,
@@ -387,12 +493,21 @@ export async function runFrozenProviderEvaluation({
   const contextLabels = normalizeContexts(contexts);
   const prompt = buildFrozenProviderPrompt({ promptId, suite, systemPrompt });
   const redactionOptions = { secretValues };
+  const contextExecutions = await prepareContextExecutions({
+    contextLabels,
+    createContext,
+    evaluationId: id,
+    provider,
+    model: requestedModel,
+    redactionOptions,
+  });
   const captures = [];
-  for (const contextLabel of contextLabels) {
+  for (const context of contextExecutions) {
     captures.push(
       await runIndependentContext({
-        contextLabel,
-        provider,
+        contextLabel: context.contextLabel,
+        complete: context.complete,
+        isolation: context.isolation,
         providerName: text(providerName) || 'unknown',
         model: requestedModel,
         prompt,
@@ -407,10 +522,24 @@ export async function runFrozenProviderEvaluation({
 
   const verificationStates = captures.map((capture) => capture.verification.ok);
   const responseHashes = captures.map((capture) => capture.generation.responseSha256).filter(Boolean);
+  const independentCaptures = captures.filter((capture) => capture.independent);
+  const isolationEvidenceHashes = independentCaptures
+    .map((capture) => capture.isolation.evidenceSha256)
+    .filter(Boolean);
+  const isolationIdHashes = independentCaptures
+    .map((capture) => capture.isolation.isolationIdSha256)
+    .filter(Boolean);
+  const crossContextInstrumented =
+    captures.length >= 2 &&
+    independentCaptures.length === captures.length &&
+    new Set(isolationIdHashes).size === captures.length;
   const boundary = {
     frozenPrompt: true,
-    independentContextCount: captures.length,
-    crossContextInstrumented: captures.length >= 2,
+    captureCount: captures.length,
+    independentContextCount: independentCaptures.length,
+    crossContextInstrumented,
+    contextIsolationStatus: crossContextInstrumented ? 'attested' : 'unverified',
+    contextIsolationEvidenceSha256s: isolationEvidenceHashes,
     distinctResponseCount: new Set(responseHashes).size,
     responseSha256s: responseHashes,
     localAcceptanceStable: new Set(verificationStates).size === 1,
@@ -418,7 +547,7 @@ export async function runFrozenProviderEvaluation({
     retrievalClaimed: false,
     generationObserved: captures.some((capture) => Boolean(capture.generation.responseSha256)),
     rule:
-      'Provider generation, local acceptance, durable absorption, and provider-only UI behavior are separate evidence states.',
+      'Context labels and response diversity are not isolation proof. Provider generation, caller-attested context isolation, local acceptance, durable absorption, and provider-only UI behavior are separate evidence states.',
   };
   const absorptionInput = {
     evaluationId: id,
@@ -472,18 +601,21 @@ export async function runFrozenProviderEvaluation({
     absorption.secretLeakDetected ||
     redactedProviderOnlyClaims.some((claim) => claim.secretLeakDetected);
   const locallyAccepted = boundary.allLocallyAccepted && !secretLeakDetected;
-  const ready = locallyAccepted && absorption.ok;
+  const admissible = !secretLeakDetected && boundary.crossContextInstrumented;
+  const ready = locallyAccepted && absorption.ok && admissible;
   const receipt = {
     schema: FROZEN_PROVIDER_EVALUATION_SCHEMA,
     generatedAt: now().toISOString(),
     evaluationId: id,
-    status: ready
-      ? 'accepted-and-absorbed'
-      : locallyAccepted
-        ? 'accepted-not-absorbed'
-        : 'rejected',
+    status: !locallyAccepted
+      ? 'rejected'
+      : !boundary.crossContextInstrumented
+        ? 'context-isolation-unverified'
+        : ready
+          ? 'accepted-and-absorbed'
+          : 'accepted-not-absorbed',
     ok: ready,
-    admissible: !secretLeakDetected && boundary.crossContextInstrumented,
+    admissible,
     prompt: {
       schema: prompt.schema,
       id: prompt.id,
@@ -499,6 +631,8 @@ export async function runFrozenProviderEvaluation({
       externalSourcesAllowed: false,
       maxTokens,
       timeoutMs,
+      contextFactoryConfigured: typeof createContext === 'function',
+      contextIsolationRequiredForAdmission: true,
     },
     verifier: {
       id: verifierId,
@@ -520,6 +654,8 @@ export async function runFrozenProviderEvaluation({
     secretLeakDetected,
     nonClaims: [
       'This evaluates one frozen task suite and does not rank providers or establish general model capability.',
+      'Distinct context labels or response hashes do not prove independent provider sessions.',
+      'Context isolation is caller-attested through createContext; it is not a provider signature.',
       'A provider response is generation evidence, not durable memory or retrieval evidence.',
       'Local acceptance does not prove provider-only UI, IDE, browser, latency, or managed-agent behavior.',
       'Durable absorption requires an explicit caller-owned adapter result.',

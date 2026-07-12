@@ -178,7 +178,10 @@ caller-owned absorption. The receipt keeps provider generation, local
 acceptance, durable memory, and provider-only UI behavior as separate states.
 
 ```js
-import { runFrozenProviderEvaluation } from '@holoscript/agent-runtime';
+import {
+  FROZEN_PROVIDER_CONTEXT_ISOLATION_SCHEMA,
+  runFrozenProviderEvaluation,
+} from '@holoscript/agent-runtime';
 
 const receipt = await runFrozenProviderEvaluation({
   evaluationId: 'native-routing-v1',
@@ -188,15 +191,30 @@ const receipt = await runFrozenProviderEvaluation({
   ],
   provider,
   model: 'caller-selected-model',
+  createContext: ({ contextLabel, index, provider }) => ({
+    complete: provider.complete.bind(provider),
+    isolation: {
+      schema: FROZEN_PROVIDER_CONTEXT_ISOLATION_SCHEMA,
+      mode: 'fresh-session',
+      isolationId: callerSessionLedger.freshOpaqueId({ contextLabel, index }),
+      priorMessageCount: 0,
+      attestedBy: 'caller-session-ledger',
+    },
+  }),
   verifier: ({ responses }) => localVerifier(responses),
   absorb: (evidence) => callerOwnedMemory.storeAndRecall(evidence),
 });
 ```
 
-The runner requires at least two fresh contexts, sends no tools, freezes and
+The runner requires at least two context labels, sends no tools, freezes and
 hashes the prompt/suite, records absent usage as unknown, rejects secret-shaped
-output, and labels UI, IDE, browser, and latency claims unverified. A locally
-accepted bundle is not `ok` until the caller's absorption adapter also succeeds.
+output, and labels UI, IDE, browser, and latency claims unverified. Labels alone
+do not prove fresh provider contexts. Admission requires a caller-supplied
+`createContext` adapter that returns a context-bound `complete` function plus a
+fresh-session or stateless-request isolation receipt; raw session IDs are hashed
+before entering the evaluation receipt. A locally accepted bundle is not `ok`
+until context isolation is attested and the caller's absorption adapter also
+succeeds.
 
 This package owns the common hook contract for:
 

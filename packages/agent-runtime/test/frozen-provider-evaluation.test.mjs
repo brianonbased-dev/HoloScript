@@ -2,10 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  FROZEN_PROVIDER_CONTEXT_ISOLATION_SCHEMA,
   FROZEN_PROVIDER_EVALUATION_SCHEMA,
   buildFrozenProviderPrompt,
   runFrozenProviderEvaluation,
-} from '../src/frozen-provider-evaluation.mjs';
+  stableEvaluationJson,
+} from '../src/index.mjs';
 
 const suite = [
   { eval_id: 'route_native', instruction: 'Choose the durable native route.' },
@@ -19,6 +21,19 @@ function responseContent(suffix = '') {
       { eval_id: 'reject_theatre', answer: `Reject it and verify the generated target${suffix}.` },
     ],
   });
+}
+
+function attestedContextFactory({ provider, contextLabel, index }) {
+  return {
+    complete: provider.complete.bind(provider),
+    isolation: {
+      schema: FROZEN_PROVIDER_CONTEXT_ISOLATION_SCHEMA,
+      mode: 'stateless-request',
+      isolationId: `fixture-isolation-${index}-${contextLabel}`,
+      priorMessageCount: 0,
+      attestedBy: 'fixture-harness',
+    },
+  };
 }
 
 test('buildFrozenProviderPrompt produces a stable provider-independent prompt', () => {
@@ -63,6 +78,7 @@ test('runFrozenProviderEvaluation separates generation, local acceptance, and ab
     suite,
     provider,
     model: 'fixture-model',
+    createContext: attestedContextFactory,
     verifierId: 'fixture-local-verifier',
     verifier: ({ responses }) => ({
       ok: responses.every((row) => /receipt|verify/u.test(row.answer)),
@@ -101,6 +117,7 @@ test('runFrozenProviderEvaluation accepts JSON wrapped in a Markdown fence', asy
       complete: async () => ({ content: `\`\`\`json\n${responseContent()}\n\`\`\`` }),
     },
     model: 'fixture-model',
+    createContext: attestedContextFactory,
     verifier: ({ responses }) => ({ ok: responses.length === suite.length }),
   });
 
@@ -126,6 +143,7 @@ test('runFrozenProviderEvaluation rejects tool use and keeps absent usage unknow
     suite,
     provider,
     model: 'fixture-model',
+    createContext: attestedContextFactory,
     verifier: () => ({ ok: true }),
   });
 
@@ -158,6 +176,7 @@ test('runFrozenProviderEvaluation redacts secret-shaped provider output and reje
     suite,
     provider,
     model: 'fixture-model',
+    createContext: attestedContextFactory,
     verifier: () => ({ ok: true }),
   });
 
@@ -175,6 +194,7 @@ test('runFrozenProviderEvaluation enforces timeout when a provider ignores abort
     suite,
     provider: { name: 'hung-provider', complete: () => new Promise(() => {}) },
     model: 'fixture-model',
+    createContext: attestedContextFactory,
     verifier: () => ({ ok: true }),
     timeoutMs: 20,
   });
@@ -191,6 +211,7 @@ test('runFrozenProviderEvaluation does not classify failed absorption as a secre
     suite,
     provider: { name: 'fixture', complete: async () => ({ content: responseContent() }) },
     model: 'fixture-model',
+    createContext: attestedContextFactory,
     verifier: () => ({ ok: true }),
     absorb: () => ({ ok: false, reason: 'caller storage unavailable' }),
   });
@@ -198,6 +219,125 @@ test('runFrozenProviderEvaluation does not classify failed absorption as a secre
   assert.equal(receipt.status, 'accepted-not-absorbed');
   assert.equal(receipt.secretLeakDetected, false);
   assert.equal(receipt.absorption.status, 'rejected');
+});
+
+test('runFrozenProviderEvaluation does not treat distinct labels as isolation proof', async () => {
+  const serializedRequests = [];
+  const provider = {
+    name: 'fixture-provider',
+    async complete(request) {
+      serializedRequests.push(stableEvaluationJson(request));
+      return {
+        content: responseContent(),
+        toolUses: [],
+      };
+    },
+  };
+
+  const receipt = await runFrozenProviderEvaluation({
+    evaluationId: 'labels-alone-v1',
+    promptId: 'native-route-v1',
+    suite,
+    provider,
+    model: 'fixture-model',
+    contexts: ['fresh-a', 'fresh-b'],
+    verifier: () => ({ ok: true }),
+    absorb: () => ({ ok: true, stored: true }),
+  });
+
+  assert.equal(serializedRequests.length, 2);
+  assert.equal(serializedRequests[0], serializedRequests[1]);
+  assert.deepEqual(receipt.captures.map((capture) => capture.independent), [false, false]);
+  assert.deepEqual(
+    receipt.captures.map((capture) => capture.isolation.status),
+    ['unverified', 'unverified']
+  );
+  assert.equal(receipt.boundary.independentContextCount, 0);
+  assert.equal(receipt.boundary.crossContextInstrumented, false);
+  assert.equal(receipt.boundary.contextIsolationStatus, 'unverified');
+  assert.equal(receipt.boundary.allLocallyAccepted, true);
+  assert.equal(receipt.absorption.ok, true);
+  assert.equal(receipt.admissible, false);
+  assert.equal(receipt.ok, false);
+  assert.equal(receipt.status, 'context-isolation-unverified');
+});
+
+test('runFrozenProviderEvaluation admits attested contexts without response diversity', async () => {
+  let baseProviderCalls = 0;
+  let contextCalls = 0;
+  const provider = {
+    name: 'fixture-provider',
+    async complete() {
+      baseProviderCalls += 1;
+      throw new Error('base provider should not receive attested context calls');
+    },
+  };
+
+  const receipt = await runFrozenProviderEvaluation({
+    evaluationId: 'attested-contexts-v1',
+    promptId: 'native-route-v1',
+    suite,
+    provider,
+    model: 'fixture-model',
+    createContext: ({ contextLabel, index }) => ({
+      complete: async () => {
+        contextCalls += 1;
+        return { content: responseContent(), toolUses: [] };
+      },
+      isolation: {
+        schema: FROZEN_PROVIDER_CONTEXT_ISOLATION_SCHEMA,
+        mode: 'fresh-session',
+        isolationId: `raw-secret-session-id-${index}-${contextLabel}`,
+        priorMessageCount: 0,
+        attestedBy: 'fixture-harness',
+      },
+    }),
+    verifier: () => ({ ok: true }),
+    absorb: () => ({ ok: true, stored: true }),
+  });
+
+  assert.equal(baseProviderCalls, 0);
+  assert.equal(contextCalls, 2);
+  assert.equal(receipt.boundary.independentContextCount, 2);
+  assert.equal(receipt.boundary.crossContextInstrumented, true);
+  assert.equal(receipt.boundary.contextIsolationStatus, 'attested');
+  assert.equal(receipt.boundary.distinctResponseCount, 1);
+  assert.equal(receipt.admissible, true);
+  assert.equal(receipt.ok, true);
+  assert.equal(receipt.status, 'accepted-and-absorbed');
+  assert.equal(JSON.stringify(receipt).includes('raw-secret-session-id'), false);
+});
+
+test('runFrozenProviderEvaluation rejects duplicate isolation IDs before completion', async () => {
+  let calls = 0;
+  await assert.rejects(
+    runFrozenProviderEvaluation({
+      evaluationId: 'duplicate-isolation-v1',
+      promptId: 'native-route-v1',
+      suite,
+      provider: {
+        name: 'fixture-provider',
+        complete: async () => {
+          calls += 1;
+          return { content: responseContent() };
+        },
+      },
+      model: 'fixture-model',
+      createContext: ({ provider }) => ({
+        complete: provider.complete.bind(provider),
+        isolation: {
+          schema: FROZEN_PROVIDER_CONTEXT_ISOLATION_SCHEMA,
+          mode: 'stateless-request',
+          isolationId: 'duplicate-fixture-isolation',
+          priorMessageCount: 0,
+          attestedBy: 'fixture-harness',
+        },
+      }),
+      verifier: () => ({ ok: true }),
+    }),
+    /isolationId values must be unique/u
+  );
+  assert.equal(calls, 0);
 });
 
 test('runFrozenProviderEvaluation requires repeated independent contexts', async () => {
@@ -211,6 +351,6 @@ test('runFrozenProviderEvaluation requires repeated independent contexts', async
       verifier: () => ({ ok: true }),
       contexts: ['only-one'],
     }),
-    /at least two independent context labels/u
+    /at least two context labels/u
   );
 });
