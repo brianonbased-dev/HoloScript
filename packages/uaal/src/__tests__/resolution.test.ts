@@ -4,10 +4,12 @@ import {
   resolveNormStatus,
   resolveDischargeable,
   resolveCounterfactual,
+  resolveMereology,
   type UAALContainmentIR,
   type UAALDeonticIR,
   type UAALCompositionIR,
   type UAALCounterfactualIR,
+  type UAALMereologyIR,
 } from '../semantic';
 
 // The gap-aware layer (the "three-body disposition" verifier): resolve* must DERIVE unresolvability from the
@@ -293,6 +295,79 @@ describe('resolveCounterfactual — non-identifiable causal cycle', () => {
   });
 });
 
+describe('resolveMereology — unstated essentiality', () => {
+  it('resolves persists:false for a stated-essential, unreplaced removal', () => {
+    const ir: UAALMereologyIR = {
+      changes: [{ op: 'remove', part: 'mast_a', role: 'mast', essential: true }],
+      query: { whole: 'ship' },
+    };
+    const r = resolveMereology(ir);
+    expect(r.status).toBe('resolved');
+    expect(r.answer).toEqual({ persists: false, dissolving_role: 'mast' });
+  });
+
+  it('resolves persists:true for a stated-NON-essential removal', () => {
+    const ir: UAALMereologyIR = {
+      changes: [{ op: 'remove', part: 'flag_a', role: 'flag', essential: false }],
+      query: { whole: 'ship' },
+    };
+    const r = resolveMereology(ir);
+    expect(r.status).toBe('resolved');
+    expect(r.answer).toEqual({ persists: true, dissolving_role: null });
+  });
+
+  it('resolves persists:true when an essential part is removed AND replaced (Ship of Theseus)', () => {
+    const ir: UAALMereologyIR = {
+      changes: [
+        { op: 'remove', part: 'hull_a', role: 'hull', essential: true },
+        { op: 'add', part: 'hull_b', role: 'hull', essential: true },
+      ],
+      query: { whole: 'ship' },
+    };
+    expect(resolveMereology(ir).status).toBe('resolved');
+  });
+
+  it('flags UNRESOLVABLE when an unreplaced removal has UNSTATED essentiality', () => {
+    // essential is absent — recoverPersistence coerces it to false (persists), but the whole actually
+    // survives iff the part is inessential and dissolves iff it is essential. The IR does not say which.
+    const ir: UAALMereologyIR = {
+      changes: [{ op: 'remove', part: 'keel_a', role: 'keel' }],
+      query: { whole: 'ship' },
+    };
+    const r = resolveMereology(ir);
+    expect(r.status).toBe('unresolvable');
+    expect(r.reason).toBe('missing_precondition');
+    expect(r.gap?.code).toBe('mereology.unstated_essentiality');
+    expect(r.obstruction).toContain('keel_a');
+  });
+
+  it('does NOT flag an unstated-essentiality removal that IS replaced (no false gap)', () => {
+    const ir: UAALMereologyIR = {
+      changes: [
+        { op: 'remove', part: 'keel_a', role: 'keel' },
+        { op: 'add', part: 'keel_b', role: 'keel' },
+      ],
+      query: { whole: 'ship' },
+    };
+    expect(resolveMereology(ir).status).toBe('resolved');
+  });
+
+  it('does NOT flag when another removal already definitively dissolves the whole (determinate)', () => {
+    // rope essentiality is unstated, but mast is stated-essential and unreplaced — the whole dissolves
+    // regardless of the rope, so the query is determinate (persists:false), not a gap.
+    const ir: UAALMereologyIR = {
+      changes: [
+        { op: 'remove', part: 'mast_a', role: 'mast', essential: true },
+        { op: 'remove', part: 'rope_a', role: 'rope' },
+      ],
+      query: { whole: 'ship' },
+    };
+    const r = resolveMereology(ir);
+    expect(r.status).toBe('resolved');
+    expect(r.answer).toEqual({ persists: false, dissolving_role: 'mast' });
+  });
+});
+
 describe('no false gaps', () => {
   it('every determinate query resolves (never a spurious unresolvable)', () => {
     const occ = resolveOcclusion(
@@ -315,7 +390,12 @@ describe('no false gaps', () => {
       occurs: ['A'],
       query: { effect: 'E' },
     });
-    expect([occ.status, norm.status, disc.status, cf.status]).toEqual([
+    const mer = resolveMereology({
+      changes: [{ op: 'remove', part: 'flag_a', role: 'flag', essential: false }],
+      query: { whole: 'ship' },
+    });
+    expect([occ.status, norm.status, disc.status, cf.status, mer.status]).toEqual([
+      'resolved',
       'resolved',
       'resolved',
       'resolved',

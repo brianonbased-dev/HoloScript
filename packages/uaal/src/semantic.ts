@@ -3119,6 +3119,51 @@ export function recoverPersistence(ir: UAALMereologyIR): PersistenceRecovery {
   return { persists: true, dissolving_role: null };
 }
 
+/**
+ * Persistence, honest about UNSTATED essentiality. recoverPersistence coerces a removed part's absent
+ * `essential` flag to false (non-essential → the whole persists) — indistinguishable from an explicit
+ * essential:false. resolveMereology reads three states per removed part: essential:true (a definite
+ * dissolver → if unreplaced the whole does not persist), essential:false (definitely survivable → keep
+ * looking), essential absent (UNKNOWN). When no stated-essential unreplaced removal already dissolves
+ * the whole, an unreplaced removal whose essentiality is unstated makes persistence unresolvable
+ * (missing_precondition): the whole survives if that part is inessential and dissolves if it is
+ * essential, and the IR does not say which. A part removed and replaced in the same role, or a scene
+ * whose removals all state essentiality, resolves normally — a determinate IR is never flipped to a
+ * false gap.
+ */
+export function resolveMereology(ir: UAALMereologyIR): UAALResolution<PersistenceRecovery> {
+  const changes = ir.changes || [];
+  const removed = changes.filter((change) => change.op === 'remove');
+  const addedRoles = new Set(
+    changes.filter((change) => change.op === 'add').map((change) => change.role).filter(truthyString),
+  );
+  const unreplaced = (change: UAALMereologyChange): boolean =>
+    !(truthyString(change.role) && addedRoles.has(change.role));
+
+  // A stated-essential, unreplaced removal already dissolves the whole — determinate, resolve.
+  const definiteDissolve = removed.some((change) => change.essential === true && unreplaced(change));
+  if (!definiteDissolve) {
+    const unknown = removed.find((change) => typeof change.essential !== 'boolean' && unreplaced(change));
+    if (unknown) {
+      const ref = truthyString(unknown.part) ? unknown.part : unknown.role;
+      const label = truthyString(ref) ? (ref as string) : 'a removed part';
+      return {
+        query: 'persistence',
+        status: 'unresolvable',
+        reason: 'missing_precondition',
+        gap: structuredGap(
+          'mereology',
+          'mereology.unstated_essentiality',
+          'missing_precondition',
+          truthyString(ref) ? (ref as string) : undefined,
+        ),
+        obstruction: `${label} is removed without replacement and its essentiality is unstated — the whole persists if it is inessential and dissolves if it is essential`,
+      };
+    }
+  }
+  return { query: 'persistence', status: 'resolved', answer: recoverPersistence(ir) };
+}
+
 export function essentialismPersistence(ir: UAALMereologyIR): Pick<PersistenceRecovery, 'persists'> {
   return { persists: !(ir.changes || []).some((change) => change.op === 'remove') };
 }
