@@ -79,6 +79,7 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "lint": "eslint src --ext .ts",
     "test:coverage": "vitest run --coverage"

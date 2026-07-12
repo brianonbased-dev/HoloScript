@@ -102,10 +102,17 @@ if command -v npm &> /dev/null && [ -f "package.json" ]; then
     fi
 fi
 
-# Gate 2: Type checking — DISABLED for pre-commit
-# Reason: tsc --noEmit on any package takes 20-60s and frequently OOMs
-# at 4GB. CI handles full type-check.
-echo -e "  ├─ TypeScript type checking... ${YELLOW}⚠ skipped (CI handles this)${NC}"
+# Gate 2: Type checking — CHANGED ENFORCED packages only (task_1783800522896_6bqw).
+# The prior "skipped (CI handles this)" was a HOLE: no REQUIRED gate ran tsc over non-studio src, so a
+# full-package type error shipped green (a TS2416 in @holoscript/holoscript-agent sat undetected 11
+# days; CI's only tsc gate — studio-typecheck.mjs — is studio-only). To keep it fast and dodge the
+# whole-repo OOM concern, this type-checks ONLY the ENFORCED packages that have STAGED changes: 0
+# packages (instant) when no enforced src is touched; ~20-60s for the 1-2 packages a commit edits.
+echo -e "  ├─ TypeScript type check (changed ENFORCED packages)..."
+if ! node scripts/holo-ci/typecheck.mjs --changed; then
+    echo -e "  ${RED}❌ COMMIT BLOCKED — type error(s) in a staged ENFORCED package (see above).${NC}"
+    exit 1
+fi
 
 # Gate 3: Tests — DISABLED for local development
 # Reason: Vitest startup takes ~5s, full run 6s. CI runs full validation anyway.
