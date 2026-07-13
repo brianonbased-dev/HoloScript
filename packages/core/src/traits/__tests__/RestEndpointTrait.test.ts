@@ -39,7 +39,7 @@ describe('RestEndpointTrait', () => {
     );
   });
 
-  it('rest:request emits rest:response', () => {
+  it('rest:request emits an honest rest:error (no handler run — no fabricated 200)', () => {
     const node = makeNode();
     restEndpointHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     restEndpointHandler.onEvent!(
@@ -53,8 +53,9 @@ describe('RestEndpointTrait', () => {
       } as never
     );
     expect(node.emit).toHaveBeenCalledWith(
-      'rest:response',
-      expect.objectContaining({ status: 200 })
+      'rest:error',
+      expect.objectContaining({ ok: false, error: 'not_implemented', capability: 'rest_endpoint' })
     );
+    expect(node.emit).not.toHaveBeenCalledWith('rest:response', expect.anything());
   });
 });

@@ -16,6 +16,7 @@
  */
 
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
+import { emitUnwired } from './unwired';
 
 export interface StripeConfig {
   currency: string;
@@ -41,11 +42,11 @@ export const stripeHandler: TraitHandler<StripeConfig> = {
     if (t === 'stripe:charge') {
       state.charges++;
       state.totalAmount += (event.amount as number) ?? 0;
-      context.emit?.('stripe:charged', {
-        chargeId: `ch_${Date.now()}`,
-        amount: event.amount,
-        currency: config.currency,
-        customerId: event.customerId,
+      // Backend not wired — emit an honest error, NEVER a fabricated stripe:charged (WIRING SPEC).
+      emitUnwired(context, 'stripe:error', {
+        capability: 'stripe',
+        wiring: 'Stripe SDK + vault secret_key + per-charge idempotency key',
+        requested: { amount: event.amount, currency: config.currency, customerId: event.customerId },
       });
     } else if (t === 'stripe:get_stats') {
       context.emit?.('stripe:stats', {

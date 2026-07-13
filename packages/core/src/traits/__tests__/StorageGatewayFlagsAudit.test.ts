@@ -26,7 +26,7 @@ import {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 describe('S3UploadTrait', () => {
-  it('should upload and track count', () => {
+  it('emits an honest s3:error (backend not wired — no fabricated upload)', () => {
     const node = createMockNode('s');
     const ctx = createMockContext();
     attachTrait(s3UploadHandler, node, { bucket: 'assets', max_size_mb: 100 }, ctx);
@@ -35,9 +35,9 @@ describe('S3UploadTrait', () => {
       key: 'img.png',
       size: 1024,
     });
-    const r = getLastEvent(ctx, 's3:uploaded') as any;
-    expect(r.bucket).toBe('assets');
-    expect(r.uploads).toBe(1);
+    const r = getLastEvent(ctx, 's3:error') as any;
+    expect(r.ok).toBe(false);
+    expect(r.requested.bucket).toBe('assets');
   });
 });
 
@@ -102,7 +102,7 @@ describe('GraphqlTrait', () => {
 });
 
 describe('RestEndpointTrait', () => {
-  it('should register route and handle request', () => {
+  it('should register route (legit local) and emit an honest error on request (no handler run)', () => {
     const node = createMockNode('r');
     const ctx = createMockContext();
     attachTrait(restEndpointHandler, node, { base_path: '/api' }, ctx);
@@ -117,7 +117,7 @@ describe('RestEndpointTrait', () => {
       method: 'GET',
       path: '/users',
     });
-    expect((getLastEvent(ctx, 'rest:response') as any).status).toBe(200);
+    expect((getLastEvent(ctx, 'rest:error') as any).error).toBe('not_implemented');
   });
 });
 

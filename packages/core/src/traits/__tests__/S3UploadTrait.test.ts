@@ -20,7 +20,7 @@ describe('S3UploadTrait', () => {
     expect(s3UploadHandler.name).toBe('s3_upload');
   });
 
-  it('s3:upload increments uploads and emits s3:uploaded', () => {
+  it('s3:upload tracks the attempt and emits an honest s3:error (no fabricated upload)', () => {
     const node = makeNode();
     s3UploadHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     s3UploadHandler.onEvent!(
@@ -35,8 +35,9 @@ describe('S3UploadTrait', () => {
     );
     expect((node.__s3State as { uploads: number }).uploads).toBe(1);
     expect(node.emit).toHaveBeenCalledWith(
-      's3:uploaded',
-      expect.objectContaining({ key: 'file.png', bucket: 'default' })
+      's3:error',
+      expect.objectContaining({ ok: false, error: 'not_implemented', capability: 's3' })
     );
+    expect(node.emit).not.toHaveBeenCalledWith('s3:uploaded', expect.anything());
   });
 });

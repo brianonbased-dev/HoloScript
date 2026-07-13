@@ -128,7 +128,7 @@ describe('DiscordTrait', () => {
 });
 
 describe('MqttPubTrait', () => {
-  it('should publish mqtt message', () => {
+  it('emits an honest mqtt:error (broker not wired — no fabricated publish)', () => {
     const node = createMockNode('m');
     const ctx = createMockContext();
     attachTrait(mqttPubHandler, node, {}, ctx);
@@ -137,7 +137,8 @@ describe('MqttPubTrait', () => {
       topic: 'sensors/temp',
       payload: 22,
     });
-    expect(getEventCount(ctx, 'mqtt:published')).toBe(1);
+    expect(getEventCount(ctx, 'mqtt:error')).toBe(1);
+    expect(getEventCount(ctx, 'mqtt:published')).toBe(0);
   });
 });
 

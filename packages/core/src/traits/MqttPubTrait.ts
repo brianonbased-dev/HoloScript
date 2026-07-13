@@ -21,6 +21,7 @@
  */
 
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
+import { emitUnwired } from './unwired';
 
 export interface MqttPubConfig {
   broker_url: string;
@@ -44,10 +45,11 @@ export const mqttPubHandler: TraitHandler<MqttPubConfig> = {
     if (!state) return;
     if ((typeof event === 'string' ? event : event.type) === 'mqtt:publish') {
       state.published++;
-      context.emit?.('mqtt:published', {
-        topic: event.topic,
-        messageId: `mqtt_${Date.now()}`,
-        qos: (event.qos as number) ?? config.default_qos,
+      // Broker not wired — emit an honest error, NEVER a fabricated mqtt:published (WIRING SPEC).
+      emitUnwired(context, 'mqtt:error', {
+        capability: 'mqtt',
+        wiring: 'mqtt npm client + persistent broker connection + QoS 1/2 PUBACK',
+        requested: { topic: event.topic, qos: (event.qos as number) ?? config.default_qos },
       });
     }
   },

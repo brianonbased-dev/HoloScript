@@ -14,6 +14,7 @@
  * RISK: Credential rotation + endpoint configurability must be design-reviewed.
  */
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
+import { emitUnwired } from './unwired';
 export interface S3UploadConfig {
   bucket: string;
   max_size_mb: number;
@@ -39,10 +40,11 @@ export const s3UploadHandler: TraitHandler<S3UploadConfig> = {
     if ((typeof event === 'string' ? event : event.type) === 's3:upload') {
       state.uploads++;
       state.totalBytes += (event.size as number) ?? 0;
-      context.emit?.('s3:uploaded', {
-        key: event.key,
-        bucket: (event.bucket as string) ?? config.bucket,
-        uploads: state.uploads,
+      // Backend not wired — emit an honest error, NEVER a fabricated s3:uploaded (WIRING SPEC).
+      emitUnwired(context, 's3:error', {
+        capability: 's3',
+        wiring: '@aws-sdk/client-s3 (or MinIO/R2) + credentials + multipart for large files',
+        requested: { key: event.key, bucket: (event.bucket as string) ?? config.bucket },
       });
     }
   },

@@ -30,7 +30,7 @@ describe('MqttPubTrait', () => {
     expect((node.__mqttPubState as { published: number }).published).toBe(0);
   });
 
-  it('mqtt:publish increments counter and emits mqtt:published', () => {
+  it('mqtt:publish tracks the attempt and emits an honest mqtt:error (no fabricated publish)', () => {
     const node = makeNode();
     mqttPubHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     mqttPubHandler.onEvent!(
@@ -45,8 +45,9 @@ describe('MqttPubTrait', () => {
     );
     expect((node.__mqttPubState as { published: number }).published).toBe(1);
     expect(node.emit).toHaveBeenCalledWith(
-      'mqtt:published',
-      expect.objectContaining({ topic: 'sensors/temp' })
+      'mqtt:error',
+      expect.objectContaining({ ok: false, error: 'not_implemented', capability: 'mqtt' })
     );
+    expect(node.emit).not.toHaveBeenCalledWith('mqtt:published', expect.anything());
   });
 });

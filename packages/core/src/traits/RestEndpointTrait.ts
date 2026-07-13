@@ -3,6 +3,7 @@
  * REST API endpoint definition.
  */
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
+import { emitUnwired } from './unwired';
 export interface RestEndpointConfig {
   base_path: string;
 }
@@ -39,11 +40,11 @@ export const restEndpointHandler: TraitHandler<RestEndpointConfig> = {
         break;
       case 'rest:request':
         state.requests++;
-        context.emit?.('rest:response', {
-          method: event.method,
-          path: event.path,
-          status: 200,
-          requestCount: state.requests,
+        // No HTTP handler is actually run — emit an honest error, NEVER a fabricated 200 (WIRING SPEC).
+        emitUnwired(context, 'rest:error', {
+          capability: 'rest_endpoint',
+          wiring: 'express/fastify route dispatch to the registered handler',
+          requested: { method: event.method, path: event.path },
         });
         break;
     }

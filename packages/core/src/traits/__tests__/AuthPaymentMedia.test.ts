@@ -152,7 +152,7 @@ describe('MfaTrait', () => {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 describe('StripeTrait', () => {
-  it('should charge', () => {
+  it('emits an honest stripe:error (backend not wired — no fabricated charge)', () => {
     const node = createMockNode('st');
     const ctx = createMockContext();
     attachTrait(stripeHandler, node, {}, ctx);
@@ -161,9 +161,10 @@ describe('StripeTrait', () => {
       amount: 2999,
       customerId: 'c1',
     });
-    const r = getLastEvent(ctx, 'stripe:charged') as any;
-    expect(r.amount).toBe(2999);
-    expect(r.currency).toBe('usd');
+    const r = getLastEvent(ctx, 'stripe:error') as any;
+    expect(r.ok).toBe(false);
+    expect(r.error).toBe('not_implemented');
+    expect(r.requested.amount).toBe(2999);
   });
 });
 

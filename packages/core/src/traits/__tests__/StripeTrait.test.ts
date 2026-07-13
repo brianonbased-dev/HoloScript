@@ -20,7 +20,7 @@ describe('StripeTrait', () => {
     expect(stripeHandler.name).toBe('stripe');
   });
 
-  it('stripe:charge emits stripe:charged', () => {
+  it('stripe:charge emits an honest stripe:error (backend not wired — no fabricated charge)', () => {
     const node = makeNode();
     stripeHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     stripeHandler.onEvent!(
@@ -34,8 +34,9 @@ describe('StripeTrait', () => {
       } as never
     );
     expect(node.emit).toHaveBeenCalledWith(
-      'stripe:charged',
-      expect.objectContaining({ amount: 500, currency: 'usd' })
+      'stripe:error',
+      expect.objectContaining({ ok: false, error: 'not_implemented', capability: 'stripe' })
     );
+    expect(node.emit).not.toHaveBeenCalledWith('stripe:charged', expect.anything());
   });
 });
