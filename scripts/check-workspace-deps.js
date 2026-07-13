@@ -46,6 +46,11 @@ for (const dir of WORKSPACE_DIRS) {
         if (!name.startsWith(SCOPE)) continue;
         if (version.startsWith('workspace:')) continue;
 
+        // Published packages must expose installable peer ranges to npm/yarn;
+        // workspace: is valid inside the monorepo but invalid in a foreign
+        // consumer. Internal dependencies remain strict workspace links.
+        if (field === 'peerDependencies' && json.publishConfig?.access === 'public') continue;
+
         violations++;
         const rel = path.relative(ROOT, pkgJson).replace(/\\/g, '/');
         console.log(`  ${rel}: ${field}.${name} = "${version}" (should be "workspace:^")`);
