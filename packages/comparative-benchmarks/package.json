@@ -1,7 +1,6 @@
 {
   "name": "@holoscript/comparative-benchmarks",
-  "version": "1.2.3",
-  "private": true,
+  "version": "1.2.4",
   "description": "Performance benchmarks comparing HoloScript against Unity and glTF runtimes",
   "license": "MIT",
   "main": "./dist/index.js",
