@@ -37,6 +37,9 @@ const ENV_KEYS = [
   'VAST_SERVERLESS_POLL_INTERVAL_MS',
   'HOLOLLAMA_URL',
   'HOLOLLAMA_ENDPOINT',
+  'HOLOSERVE_URL',
+  'HOLOSERVE_ENDPOINT',
+  'HOLOSERVE_MODEL',
   'OLLAMA_HOST',
   'OLLAMA_BASE_URL',
   'OLLAMA_URL',
@@ -88,6 +91,22 @@ describe('resolveSovereignProvider (sync, sovereign-first auto-detect)', () => {
   it("honors explicit provider 'holollama'", () => {
     const r = resolveSovereignProvider({ explicit: 'holollama' });
     expect(r.providerName).toBe('holollama');
+    expect(r.provider).toBeInstanceOf(LocalLLMAdapter);
+  });
+
+  it('prefers HoloServe over HoloLlama when HOLOSERVE_URL is set (D.118: no llama.cpp for HOLO-arch)', () => {
+    vi.stubEnv('HOLOSERVE_URL', 'http://box:8099');
+    vi.stubEnv('HOLOLLAMA_URL', 'http://box:18080');
+    vi.stubEnv('OLLAMA_HOST', 'http://box:11434');
+    const r = resolveSovereignProvider();
+    expect(r.providerName).toBe('holoserve');
+    expect(r.provider).toBeInstanceOf(LocalLLMAdapter);
+    expect(r.model).toBe('holorunner-s0');
+  });
+
+  it("honors explicit provider 'holoserve' with the registry-node default port", () => {
+    const r = resolveSovereignProvider({ explicit: 'holoserve' });
+    expect(r.providerName).toBe('holoserve');
     expect(r.provider).toBeInstanceOf(LocalLLMAdapter);
   });
 
@@ -304,5 +323,39 @@ describe('resolveSovereignProviderAsync (Vast serverless fleet)', () => {
     const r = await resolveSovereignProviderAsync();
     expect(r.providerName).toBe('anthropic');
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('resolveSovereignProviderAsync — HoloServe sovereignty gate (D.118/W.832)', () => {
+  const healthResponse = (body: unknown) => ({ json: async () => body }) as Response;
+
+  it('resolves holoserve when /health asserts the sovereign invariant', async () => {
+    vi.stubEnv('HOLOSERVE_URL', 'http://box:8099');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => healthResponse({ sovereign: true, llama_cpp: false, gguf: false }))
+    );
+    const r = await resolveSovereignProviderAsync();
+    expect(r.providerName).toBe('holoserve');
+  });
+
+  it('REFUSES a reachable impostor whose /health lacks the invariant — never silent fallback', async () => {
+    vi.stubEnv('HOLOSERVE_URL', 'http://box:8099');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => healthResponse({ sovereign: false, llama_cpp: true }))
+    );
+    await expect(resolveSovereignProviderAsync()).rejects.toThrow(/REFUSING non-sovereign/);
+  });
+
+  it('an unreachable configured HoloServe throws with the start hint (URL = commitment)', async () => {
+    vi.stubEnv('HOLOSERVE_URL', 'http://box:8099');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new Error('ECONNREFUSED');
+      })
+    );
+    await expect(resolveSovereignProviderAsync()).rejects.toThrow(/unreachable.*holoserve\.py/s);
   });
 });

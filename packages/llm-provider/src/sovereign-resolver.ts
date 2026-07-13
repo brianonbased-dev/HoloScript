@@ -44,6 +44,7 @@ import { VastServerlessAdapter } from './adapters/vast-serverless';
 export type SovereignProviderName =
   | 'fleet'
   | 'cloud'
+  | 'holoserve'
   | 'holollama'
   | 'ollama'
   | 'anthropic'
@@ -58,6 +59,18 @@ export type SovereignProviderName =
  * TERMINAL sovereign default (no bare "nothing configured" throw).
  */
 const HOLOLLAMA_DEFAULT_URL = 'http://127.0.0.1:18080';
+
+/**
+ * HoloServe — the FULLY sovereign HOLO-family serving lane (D.118: no llama.cpp, no GGUF;
+ * PyTorch-direct over the native byte-BPE tokenizer). Serves OpenAI /v1/completions +
+ * /health asserting `{sovereign:true, llama_cpp:false, gguf:false}` — the async resolver
+ * VERIFIES that invariant before handing the provider out (a non-sovereign impostor on the
+ * port is refused, never silently used). Preferred over HoloLlama for HOLO-arch checkpoints;
+ * HoloLlama remains the GGUF/foreign-carrier lane (brittney-edge etc.).
+ * Default port matches the laptop-holoserve registry node (config/sovereign-devices).
+ */
+const HOLOSERVE_DEFAULT_URL = 'http://127.0.0.1:8099';
+const HOLOSERVE_DEFAULT_MODEL = 'holorunner-s0';
 
 export interface ResolvedSovereignProvider {
   provider: ILLMProvider;
@@ -125,6 +138,8 @@ export function resolveSovereignProvider(
       break; // fall through to auto-detect
     case 'cloud':
       return resolveCloud(cloudUrl, opts);
+    case 'holoserve':
+      return resolveHoloServe(undefined, opts);
     case 'holollama':
       return resolveHoloLlama(undefined, opts);
     case 'ollama':
@@ -143,7 +158,7 @@ export function resolveSovereignProvider(
     default:
       throw new Error(
         `Unknown LLM provider "${explicit}". ` +
-          `Valid: fleet | cloud | ollama | anthropic | xai | openai | sovereign/auto.`
+          `Valid: fleet | cloud | holoserve | holollama | ollama | anthropic | xai | openai | sovereign/auto.`
       );
   }
 
@@ -154,6 +169,9 @@ export function resolveSovereignProvider(
   // (legacy) and BYOK keys still auto-fall (before the terminal default) so cloud-only
   // deployments keep working.
   if (cloudUrl) return resolveCloud(cloudUrl, opts);
+  // D.118: a configured HoloServe (fully sovereign HOLO runtime) beats HoloLlama (llama.cpp).
+  const holoServeUrl = env('HOLOSERVE_URL', 'HOLOSERVE_ENDPOINT');
+  if (holoServeUrl) return resolveHoloServe(holoServeUrl, opts);
   const holoLlamaUrl = env('HOLOLLAMA_URL', 'HOLOLLAMA_ENDPOINT');
   if (holoLlamaUrl) return resolveHoloLlama(holoLlamaUrl, opts);
   if (ollamaHost) return resolveOllama(ollamaHost, opts);
@@ -200,7 +218,16 @@ export async function resolveSovereignProviderAsync(
       }
     }
   }
-  return upgradeOllamaByDiscovery(resolveSovereignProvider(opts), opts);
+  const resolved = resolveSovereignProvider(opts);
+  if (resolved.providerName === 'holoserve') {
+    // Async path can afford the network round-trip: enforce the sovereignty invariant
+    // before anyone sends a token to this provider.
+    await verifyHoloServeSovereignty(
+      (env('HOLOSERVE_URL', 'HOLOSERVE_ENDPOINT') || HOLOSERVE_DEFAULT_URL).replace(/\/+$/, '')
+    );
+    return resolved;
+  }
+  return upgradeOllamaByDiscovery(resolved, opts);
 }
 
 /**
@@ -286,6 +313,64 @@ function resolveOllama(
  * one model), so providerName='holollama' is intentionally skipped by
  * upgradeOllamaByDiscovery.
  */
+/**
+ * HoloServe (D.118) — PyTorch-direct sovereign serving for HOLO-arch checkpoints. OpenAI
+ * /v1 like llama-server, so the same LocalLLMAdapter drives it (nativeOllamaApi:false).
+ * Single resident model → no discovery upgrade. The SYNC resolver trusts the configured
+ * URL (call fails loud if the server is down — the sovereign-terminal philosophy); the
+ * ASYNC path additionally verifies the /health sovereignty invariant via
+ * verifyHoloServeSovereignty before handing the provider out.
+ */
+function resolveHoloServe(
+  baseUrlOverride: string | undefined,
+  opts: SovereignResolveOptions
+): ResolvedSovereignProvider {
+  const baseURL = (
+    baseUrlOverride ||
+    env('HOLOSERVE_URL', 'HOLOSERVE_ENDPOINT') ||
+    HOLOSERVE_DEFAULT_URL
+  ).replace(/\/+$/, '');
+  const model = modelOverride(opts) || env('HOLOSERVE_MODEL') || HOLOSERVE_DEFAULT_MODEL;
+  const provider = new LocalLLMAdapter({
+    baseURL,
+    model,
+    nativeOllamaApi: false,
+    timeoutMs: 300_000,
+  });
+  return {
+    provider,
+    model,
+    maxTokens: maxTokensOverride(opts) || 4096,
+    providerName: 'holoserve',
+  };
+}
+
+/**
+ * Machine-check the HoloServe sovereignty invariant (W.832): /health must assert
+ * `{sovereign:true, llama_cpp:false, gguf:false}`. A reachable server that fails the
+ * invariant is an impostor on the port — REFUSE it (throw), never fall through silently.
+ * An UNREACHABLE server also throws (with the start hint): a configured HoloServe URL is
+ * a commitment, matching the HoloLlama terminal-default philosophy of no silent fallback.
+ */
+async function verifyHoloServeSovereignty(baseURL: string): Promise<void> {
+  let health: { sovereign?: unknown; llama_cpp?: unknown; gguf?: unknown };
+  try {
+    const response = await fetch(`${baseURL}/health`, { signal: AbortSignal.timeout(10_000) });
+    health = (await response.json()) as typeof health;
+  } catch (err) {
+    throw new Error(
+      `HoloServe at ${baseURL} is unreachable (${(err as Error).message}). ` +
+        `Start it: python scripts/holoserve.py --ckpt <ckpt.pt> --port ${new URL(baseURL).port || '8099'}`
+    );
+  }
+  if (!(health.sovereign === true && health.llama_cpp === false && health.gguf === false)) {
+    throw new Error(
+      `REFUSING non-sovereign server at ${baseURL}: /health=${JSON.stringify(health)} ` +
+        `(HoloServe must assert sovereign:true, llama_cpp:false, gguf:false — D.118)`
+    );
+  }
+}
+
 function resolveHoloLlama(
   baseUrlOverride: string | undefined,
   opts: SovereignResolveOptions
