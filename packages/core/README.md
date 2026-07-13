@@ -37,8 +37,8 @@ const output = compiler.compile(composition.ast);
 - **Multi-format Parser** - Supports `.hs`, `.hsplus`, and `.holo` files
 - **Complete AST** - Full abstract syntax tree representation
 - **Validation** - Comprehensive error checking with recovery
-- **30+ Compile Targets** - Web (R3F, Babylon), Unity, Unreal, Godot, iOS, Android, Vision Pro, WebGPU, WASM, VRChat, OpenXR, URDF, DTDL, SDF
-- **3,300+ Traits** - Modularized across 114 category files covering VR interactions, physics, networking, AI, scripting, automation, animation, nature, magic, sci-fi, emotions, and more
+- **Compile Targets** - R3F generated TSX, Unity, Unreal, Godot, iOS, Android, Vision Pro, WebGPU, WASM, VRChat, OpenXR, URDF, DTDL, SDF, and more; verify live targets via the ExportTarget enum and MCP health.
+- **Traits** - Modularized across category files covering VR interactions, physics, networking, AI, scripting, automation, animation, nature, magic, sci-fi, emotions, and more; pull live counts from the repository.
 - **AI Integration** - Adapters for OpenAI, Anthropic, Gemini, Ollama, and more
 - **Reactive State** - `reactive()`, `computed()`, `effect()`, `bind()`
 
@@ -51,23 +51,20 @@ const output = compiler.compile(composition.ast);
 | `HoloScript2DParser`    | `.hs`      | Basic logic and protocols               |
 | `HoloScriptParser`      | `.hs`      | Standard semantic parser                |
 
-## Compilers (30+ implementations; verify live targets via health + ExportTarget enum)
+## Compilers (verify live targets via health + ExportTarget enum)
 
 | Compiler                 | Target                    | Output             |
 | ------------------------ | ------------------------- | ------------------ |
 | `UnityCompiler`          | Unity Engine              | C# + Prefab        |
 | `UnrealCompiler`         | Unreal Engine 5           | C++ + Blueprint    |
 | `GodotCompiler`          | Godot 4                   | GDScript + .tscn   |
-| `R3FCompiler`            | React Three Fiber         | TSX + hooks        |
-| `BabylonCompiler`        | Babylon.js                | TypeScript         |
-| `PlayCanvasCompiler`     | PlayCanvas                | JavaScript         |
+| `SceneIRCompiler` + `emitSceneIRTsx` | React Three Fiber | SceneIR + generated TSX shell |
 | `OpenXRCompiler`         | OpenXR Standard           | C++                |
 | `VRChatCompiler`         | VRChat                    | UdonSharp C#       |
 | `VisionOSCompiler`       | Apple Vision Pro          | Swift              |
 | `AndroidXRCompiler`      | Android XR                | Kotlin             |
 | `IOSCompiler`            | iOS / ARKit               | Swift              |
 | `AndroidCompiler`        | Android / ARCore          | Kotlin             |
-| `ARCompiler`             | Generic AR                | TypeScript         |
 | `WASMCompiler`           | WebAssembly               | .wasm + .js        |
 | `WebGPUCompiler`         | WebGPU Compute            | WGSL + TypeScript  |
 | `URDFCompiler`           | Robotics (URDF)           | .urdf XML          |
@@ -76,9 +73,6 @@ const output = compiler.compile(composition.ast);
 | `StateCompiler`          | Reactive State            | JSON               |
 | `A2AAgentCardCompiler`   | A2A Agent Cards           | JSON               |
 | `NIRCompiler`            | Neuromorphic IR           | JSON               |
-| `VRRCompiler`            | Variable Rate Rendering   | TypeScript         |
-| `Native2DCompiler`       | 2D HTML/CSS               | TSX + HTML         |
-| `NodeServiceCompiler`    | Node.js Services          | TypeScript         |
 | `AIGlassesCompiler`      | AI Glasses                | Kotlin Compose     |
 | `GLTFPipeline`           | glTF                      | .glb / .gltf       |
 | `NFTMarketplaceCompiler` | NFT Marketplace           | Solidity           |
@@ -87,11 +81,10 @@ const output = compiler.compile(composition.ast);
 | `SCMCompiler`            | Structural Causal Model   | JSON DAG           |
 | `QuiltCompiler`          | Looking Glass Hologram    | Multi-view PNG     |
 | `MVHEVCCompiler`         | MV-HEVC Hologram          | Swift + .mov       |
-| `FlatSemanticCompiler`   | Semantic 2D Layout        | TSX                |
 
 ## Trait System
 
-VR traits are modularized into 115 category files under `src/traits/constants/`:
+VR traits are modularized under `src/traits/constants/`:
 
 | Category        | File                     | Traits                                  |
 | --------------- | ------------------------ | --------------------------------------- |
@@ -105,7 +98,7 @@ VR traits are modularized into 115 category files under `src/traits/constants/`:
 Import individual categories or the combined set:
 
 ```typescript
-import { VR_TRAITS } from '@holoscript/core'; // All 3,300+ traits
+import { VR_TRAITS } from '@holoscript/core';
 import { AUDIO_TRAITS } from '@holoscript/core'; // Just audio traits
 import { MAGIC_FANTASY_TRAITS } from '@holoscript/core'; // Just magic/fantasy
 ```

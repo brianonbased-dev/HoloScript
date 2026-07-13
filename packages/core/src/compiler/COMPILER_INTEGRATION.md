@@ -92,7 +92,7 @@ compiler.compile(
 
 ## Supported Compilers
 
-All 26 HoloScript compilers now require agent tokens:
+HoloScript compilers that extend `CompilerBase` require agent tokens:
 
 ### Game Engines
 
@@ -102,10 +102,8 @@ All 26 HoloScript compilers now require agent tokens:
 
 ### Web Renderers
 
-- **BabylonCompiler** - Babylon.js TypeScript
 - **WebGPUCompiler** - WebGPU + WGSL shaders
-- **R3FCompiler** - React Three Fiber JSX
-- **PlayCanvasCompiler** - PlayCanvas JS
+- **SceneIRCompiler + emitSceneIRTsx** - SceneIR plus generated React Three Fiber TSX shell
 
 ### Mobile/AR
 
@@ -114,12 +112,10 @@ All 26 HoloScript compilers now require agent tokens:
 - **VisionOSCompiler** - visionOS RealityKit
 - **AndroidXRCompiler** - ARCore
 - **OpenXRCompiler** - OpenXR cross-platform
-- **ARCompiler** - WebXR AR
 
 ### VR/Social
 
 - **VRChatCompiler** - VRChat UDON
-- **VRRCompiler** - VR Rhythm game format
 
 ### Data Formats
 
@@ -199,8 +195,8 @@ compiler.compile(
 **Old Code**:
 
 ```typescript
-const compiler = new BabylonCompiler();
-const jsCode = compiler.compile(composition);
+const compiler = new UnityCompiler();
+const csharpCode = compiler.compile(composition);
 ```
 
 **New Code**:
@@ -208,9 +204,9 @@ const jsCode = compiler.compile(composition);
 ```typescript
 import { createTestCompilerToken } from '@holoscript/core/compiler/CompilerBase';
 
-const compiler = new BabylonCompiler();
+const compiler = new UnityCompiler();
 const token = createTestCompilerToken(); // Development only
-const jsCode = compiler.compile(composition, token);
+const csharpCode = compiler.compile(composition, token);
 ```
 
 ### Step 2: Replace Test Tokens with Production Tokens
@@ -518,9 +514,8 @@ holoscript compile --token "$(cat .agent-token)" scene.holo
 - UnityCompiler
 - UnrealCompiler
 - GodotCompiler
-- BabylonCompiler
 - WebGPUCompiler
-- (+ 21 more)
+- Additional `CompilerBase` subclasses
 
 **New Features**:
 

@@ -10,13 +10,20 @@ const result = parser.parse(source); // { success, ast, errors }
 
 ## Compilers
 
-### R3FCompiler
+### SceneIRCompiler + R3F TSX Emitter
 
 ```typescript
-import { R3FCompiler } from '@holoscript/core';
-const compiler = new R3FCompiler({ typescript: true });
-const jsx = compiler.compile(composition);
+import { SceneIRCompiler, emitSceneIRTsx } from '@holoscript/core/compiler';
+
+const compiler = new SceneIRCompiler();
+const sceneIR = compiler.compileComposition(composition, agentToken, 'scene.holo');
+const tsx = emitSceneIRTsx(sceneIR, { sourcePath: 'scene.holo' });
 ```
+
+For agents and tools, prefer `hs compile scene.holo --target r3f -o scene.tsx`
+or MCP `compile_to_r3f`. The R3F output is generated from SceneIR and delegates
+runtime interpretation to `@holoscript/r3f-renderer`; do not hand-write product
+scene `.tsx`.
 
 ### VisionOSCompiler
 
@@ -43,7 +50,8 @@ const result = compiler.compile(ast, compileFunc, { preserveState: true });
 
 ## Traits
 
-2,000+ traits organized across 118 category files in `src/traits/constants/`.
+Traits are organized under `src/traits/constants/`. Pull live counts from the
+repository instead of copying hardcoded totals into docs.
 
 **Core:** `@physics`, `@grabbable`, `@hoverable`, `@clickable`, `@spatial_audio`
 **UI:** `@ui_floating`, `@ui_anchored`, `@ui_hand_menu`, `@ui_billboard`
