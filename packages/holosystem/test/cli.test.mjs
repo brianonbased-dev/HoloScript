@@ -22,7 +22,7 @@ test('package bin is wired to the executable CLI and help is available', () => {
   const manifest = JSON.parse(readFileSync(join(PACKAGE_ROOT, 'package.json'), 'utf8'));
   const result = run(['--help'], { cwd: PACKAGE_ROOT });
 
-  assert.equal(manifest.bin.holosystem, './bin/holosystem.mjs');
+  assert.equal(manifest.bin.holosystem, 'bin/holosystem.mjs');
   assert.equal(result.status, 0);
   assert.match(result.stdout, /holosystem create/u);
   assert.match(result.stdout, /holosystem inspect/u);

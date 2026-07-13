@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/holosystem",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Portable public-package bootstrap and inspection contract for HoloSystem consumers.",
   "releaseLane": "v0-preview",
   "keywords": [
@@ -29,7 +29,7 @@
     ".": "./src/index.mjs"
   },
   "bin": {
-    "holosystem": "./bin/holosystem.mjs"
+    "holosystem": "bin/holosystem.mjs"
   },
   "files": [
     "bin",
