@@ -336,6 +336,12 @@ export class HolobCompiler {
         this.applyStableOrGenericTrait(fn, entityId, name);
         break;
 
+      case 'state_machine':
+      case 'statemachine':
+      case 'fsm':
+        this.applyStableOrGenericTrait(fn, entityId, name);
+        break;
+
       default:
         // Generic trait attachment — VM resolves via trait registry
         this.applyStableOrGenericTrait(fn, entityId, name);
@@ -382,6 +388,10 @@ export class HolobCompiler {
       case 'glowing':
       case 'glow':
         return ids.Glowing;
+      case 'state_machine':
+      case 'statemachine':
+      case 'fsm':
+        return ids.StateMachine;
       default:
         return undefined;
     }

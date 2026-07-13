@@ -127,6 +127,8 @@ export interface RenderStats {
   syncedEntities: number[];
   /** IDs of entities carrying the @glowing (HoloTraitId.Glowing) trait. */
   glowingEntities: number[];
+  /** IDs of entities carrying the @state_machine (HoloTraitId.StateMachine) trait. */
+  stateMachineEntities: number[];
   /** Set of all trait IDs present in the drawn frame (union across all entities). */
   activeTraitIds: Set<number>;
 }
@@ -152,6 +154,9 @@ export interface RenderStats {
  *                         so host/native runtime layers can attach replication transport.
  *     @glowing (0x09)   — entity fill is brightened by +80 RGB and catalogued in
  *                         RenderStats.glowingEntities as the CPU-tier emissive signal.
+ *     @state_machine
+ *              (0x0a)   — no visual effect; entity is catalogued in
+ *                         RenderStats.stateMachineEntities for native runtime binding.
  */
 export class NativeHoloRenderer {
   constructor(private readonly backend: RenderBackend) {}
@@ -171,6 +176,7 @@ export class NativeHoloRenderer {
     const grabbableEntities: number[] = [];
     const syncedEntities: number[] = [];
     const glowingEntities: number[] = [];
+    const stateMachineEntities: number[] = [];
     const activeTraitIds = new Set<number>();
 
     const entities = world.getAllEntities().sort((a, b) => a.id - b.id);
@@ -187,6 +193,7 @@ export class NativeHoloRenderer {
       const isGrabbable = e.traits.has(HoloTraitId.Grabbable);
       const isSynced = e.traits.has(HoloTraitId.Synced);
       const isGlowing = e.traits.has(HoloTraitId.Glowing);
+      const isStateMachine = e.traits.has(HoloTraitId.StateMachine);
 
       // Catalogue trait IDs for caller inspection.
       for (const tid of e.traits) {
@@ -196,6 +203,7 @@ export class NativeHoloRenderer {
       if (isGrabbable) grabbableEntities.push(e.id);
       if (isSynced) syncedEntities.push(e.id);
       if (isGlowing) glowingEntities.push(e.id);
+      if (isStateMachine) stateMachineEntities.push(e.id);
 
       // ── Trait-driven visual effects from native VM trait state ───────────────
       let color = unpackColor(m.color, m.opacity);
@@ -236,6 +244,7 @@ export class NativeHoloRenderer {
       grabbableEntities,
       syncedEntities,
       glowingEntities,
+      stateMachineEntities,
       activeTraitIds,
     };
   }

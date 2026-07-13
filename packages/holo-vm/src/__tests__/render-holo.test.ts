@@ -138,6 +138,26 @@ describe('renderHolo: .holo text → native pixels (one call)', () => {
     expect(framebuffer.pixel(32, 32)).toEqual({ r: 80, g: 80, b: 208, a: 255 });
   });
 
+  it('preserves source-authored @state_machine as native runtime metadata', async () => {
+    const source = `composition "StateMachineNative" {
+      object "Actor" @state_machine {
+        shape: "cube"
+        position: [0, 0, 0]
+        color: "#ff0000"
+      }
+    }`;
+
+    const { framebuffer, stats } = await renderHolo(source, {
+      width: 64,
+      height: 64,
+      camera: { pixelsPerUnit: 8 },
+      clear: CLEAR,
+    });
+
+    expect(stats.stateMachineEntities).toEqual([1]);
+    expect(framebuffer.pixel(32, 32)).toEqual(RED);
+  });
+
   it('propagates a parse failure from the strict front (malformed composition)', async () => {
     // An unterminated composition block is a real syntax error: the strict parser
     // front rejects it, and renderHolo surfaces that rejection rather than rendering.

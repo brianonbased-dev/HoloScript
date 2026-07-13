@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-13T06:22:50.771Z",
+  "generatedAt": "2026-07-13T06:30:26.293Z",
   "source": "scripts/measure-holob-trait-coverage.mjs",
   "corpus": {
     "extension": ".hsplus",
@@ -9,21 +9,21 @@
   },
   "traitUniverse": {
     "totalRegisteredTraits": 2338,
-    "stableHoloTraitIdTraits": 9,
-    "rendererSemanticTraits": 3,
-    "stableHoloTraitIdPercent": 0.38,
-    "rendererSemanticPercent": 0.13
+    "stableHoloTraitIdTraits": 10,
+    "rendererSemanticTraits": 4,
+    "stableHoloTraitIdPercent": 0.43,
+    "rendererSemanticPercent": 0.17
   },
   "corpusCoverage": {
     "metadataAttachmentPercent": 100,
     "metadataAttachmentNote": "HolobCompiler default path attaches any trait as generic metadata; this is not executable runtime semantics.",
-    "registeredTraitsWithStableHoloTraitId": 8,
-    "registeredTraitsWithHolobSpecialCase": 8,
-    "registeredTraitsWithRendererSemantics": 3,
-    "registeredTraitsGenericOnly": 230,
-    "stableHoloTraitIdPercent": 3.32,
-    "holobSpecialCasePercent": 3.32,
-    "rendererSemanticPercent": 1.24
+    "registeredTraitsWithStableHoloTraitId": 9,
+    "registeredTraitsWithHolobSpecialCase": 9,
+    "registeredTraitsWithRendererSemantics": 4,
+    "registeredTraitsGenericOnly": 229,
+    "stableHoloTraitIdPercent": 3.73,
+    "holobSpecialCasePercent": 3.73,
+    "rendererSemanticPercent": 1.66
   },
   "nativeRuntimeSets": {
     "stableHoloTraitIdTraits": [
@@ -39,6 +39,7 @@
       "rigid",
       "rigid_body",
       "rigidbody",
+      "state_machine",
       "synced",
       "trigger"
     ],
@@ -46,6 +47,7 @@
       "audio",
       "collidable",
       "collider",
+      "fsm",
       "glow",
       "glowing",
       "gpu_physics",
@@ -58,6 +60,8 @@
       "rigid_body",
       "rigidbody",
       "spatial_audio",
+      "state_machine",
+      "statemachine",
       "synced",
       "visible"
     ],
@@ -65,24 +69,11 @@
       "glowing",
       "grabbable",
       "rigid",
+      "state_machine",
       "synced"
     ]
   },
   "topGenericOnlyCorpusGaps": [
-    {
-      "name": "state_machine",
-      "count": 52,
-      "files": [
-        "compositions/skills/fara-hands.hsplus",
-        "examples/agents/brittney-playground.hsplus",
-        "examples/agents/workspace-agent-genesis.hsplus",
-        "examples/autonomous-ecosystems/agent-portal-federation.hsplus",
-        "examples/autonomous-ecosystems/cultural-evolution.hsplus",
-        "examples/autonomous-ecosystems/economy-marketplace.hsplus",
-        "examples/autonomous-ecosystems/feedback-driven-npc.hsplus",
-        "examples/cryptography/04-agentic-secret-sovereignty.hsplus"
-      ]
-    },
     {
       "name": "animated",
       "count": 27,
@@ -363,6 +354,14 @@
       "files": [
         "compositions/environments/city-rooftop.hsplus",
         "compositions/environments/underwater-cave.hsplus"
+      ]
+    },
+    {
+      "name": "kinematic",
+      "count": 6,
+      "files": [
+        "examples/pinball.hsplus",
+        "examples/pinball.refreshed.hsplus"
       ]
     }
   ],

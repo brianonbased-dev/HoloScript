@@ -304,6 +304,8 @@ export enum HoloTraitId {
   Synced = 0x08,
   /** @glowing — entity emits a native glow/high-emissive visual signal. */
   Glowing = 0x09,
+  /** @state_machine — entity owns declarative state-machine runtime metadata. */
+  StateMachine = 0x0a,
 }
 
 // =============================================================================

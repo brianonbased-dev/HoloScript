@@ -9,24 +9,23 @@
 | .hsplus corpus files scanned | 2480 |
 | Unique @ annotation vocab in corpus | 4081 |
 | Unique registered trait refs in corpus | 241 |
-| Registered corpus traits with stable HoloTraitId | 8 (3.32%) |
-| Registered corpus traits with HolobCompiler special case | 8 (3.32%) |
-| Registered corpus traits with NativeHoloRenderer semantics | 3 (1.24%) |
-| Registered corpus traits generic-only metadata | 230 |
+| Registered corpus traits with stable HoloTraitId | 9 (3.73%) |
+| Registered corpus traits with HolobCompiler special case | 9 (3.73%) |
+| Registered corpus traits with NativeHoloRenderer semantics | 4 (1.66%) |
+| Registered corpus traits generic-only metadata | 229 |
 
 > Generic metadata attachment is intentionally counted separately: it proves the trait name survives into bytecode, not that the HoloVM/runtime executes the trait.
 
 ## Native Runtime Sets
 
-- Stable HoloTraitId traits: `clickable`, `collidable`, `collider`, `glowing`, `gpu_physics`, `grabbable`, `gravity`, `hoverable`, `physics`, `rigid`, `rigid_body`, `rigidbody`, `synced`, `trigger`
-- HolobCompiler special cases: `audio`, `collidable`, `collider`, `glow`, `glowing`, `gpu_physics`, `grabbable`, `interactable`, `net_sync`, `networked`, `physics`, `rigid`, `rigid_body`, `rigidbody`, `spatial_audio`, `synced`, `visible`
-- NativeHoloRenderer semantic traits: `glowing`, `grabbable`, `rigid`, `synced`
+- Stable HoloTraitId traits: `clickable`, `collidable`, `collider`, `glowing`, `gpu_physics`, `grabbable`, `gravity`, `hoverable`, `physics`, `rigid`, `rigid_body`, `rigidbody`, `state_machine`, `synced`, `trigger`
+- HolobCompiler special cases: `audio`, `collidable`, `collider`, `fsm`, `glow`, `glowing`, `gpu_physics`, `grabbable`, `interactable`, `net_sync`, `networked`, `physics`, `rigid`, `rigid_body`, `rigidbody`, `spatial_audio`, `state_machine`, `statemachine`, `synced`, `visible`
+- NativeHoloRenderer semantic traits: `glowing`, `grabbable`, `rigid`, `state_machine`, `synced`
 
 ## Top Generic-Only Registered Corpus Gaps
 
 | Trait | Occurrences | Example files |
 |---|---:|---|
-| `state_machine` | 52 | `compositions/skills/fara-hands.hsplus`<br>`examples/agents/brittney-playground.hsplus`<br>`examples/agents/workspace-agent-genesis.hsplus`<br>`examples/autonomous-ecosystems/agent-portal-federation.hsplus`<br>`examples/autonomous-ecosystems/cultural-evolution.hsplus`<br>`examples/autonomous-ecosystems/economy-marketplace.hsplus`<br>`examples/autonomous-ecosystems/feedback-driven-npc.hsplus`<br>`examples/cryptography/04-agentic-secret-sovereignty.hsplus` |
 | `animated` | 27 | `compositions/holonews-claim-kiosk.hsplus`<br>`examples/autonomous-ecosystems/cultural-evolution.hsplus`<br>`examples/autonomous-ecosystems/feedback-driven-npc.hsplus`<br>`examples/cryptography/secure-agent-handshake.hsplus`<br>`examples/game-state-machine.hsplus`<br>`examples/humanoid-avatars.hsplus`<br>`examples/language-reference/01-templates-decorators.hsplus`<br>`examples/multiplayer-game.refreshed.hsplus` |
 | `llm_agent` | 27 | `compositions/holoheal.hsplus`<br>`examples/agents/brittney-playground.hsplus`<br>`examples/agents/workspace-agent-genesis.hsplus`<br>`examples/cryptography/04-agentic-secret-sovereignty.hsplus`<br>`examples/hsplus/agents/moderator-agent.hsplus`<br>`examples/hsplus/agents/planner-agent.hsplus`<br>`examples/hsplus/agents/researcher-agent.hsplus`<br>`examples/hsplus/agents/watcher-agent.hsplus` |
 | `throwable` | 27 | `assets/sword.hsplus`<br>`examples/language-reference/01-templates-decorators.hsplus`<br>`examples/language-reference/comparison-01-simple-scene.hsplus`<br>`examples/multiplayer-game.hsplus`<br>`examples/multiplayer-game.refreshed.hsplus`<br>`examples/three-world/scene.hsplus`<br>`examples/traits/physics-object-lifecycle.hsplus`<br>`examples/vr-interactions.hsplus` |
@@ -51,6 +50,7 @@
 | `tenant` | 7 | `examples/enterprise/enterprise-lifecycle.hsplus`<br>`examples/novel-use-cases/08-healthspan-twin.hsplus`<br>`examples/novel-use-cases/10-urban-planning-governance.hsplus`<br>`examples/novel-use-cases/11-sensory-therapy-worlds.hsplus`<br>`examples/showcase/narrative-enterprise-analytics-security-showcase.hsplus` |
 | `bloom_reactive` | 6 | `examples/pinball.refreshed.hsplus`<br>`examples/vr-interactions.refreshed.hsplus` |
 | `emissive` | 6 | `compositions/environments/city-rooftop.hsplus`<br>`compositions/environments/underwater-cave.hsplus` |
+| `kinematic` | 6 | `examples/pinball.hsplus`<br>`examples/pinball.refreshed.hsplus` |
 
 ## Top Unregistered @ Annotation Vocab
 
