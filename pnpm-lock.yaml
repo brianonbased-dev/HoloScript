@@ -443,7 +443,7 @@ importers:
         specifier: workspace:*
         version: link:../core
       '@holoscript/engine':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../engine
       '@holoscript/formatter':
         specifier: workspace:^
