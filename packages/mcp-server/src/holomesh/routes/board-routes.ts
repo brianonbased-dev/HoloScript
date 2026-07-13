@@ -46,6 +46,9 @@ import {
   normalizeTaskDescription,
   generateTaskId,
   addTasksToBoard,
+  isFabricatedEvidence,
+  countActiveClaims,
+  releaseExpiredClaims,
   type TeamTask,
   type DoneLogEntry,
   type TeamSuggestion,
@@ -1715,6 +1718,36 @@ export async function handleBoardRoutes(
           claimPresence = getFreshPresence(teamId, effectiveAgentId);
         }
 
+        // Lazy claim-TTL reaper (trust-audit 2026-07-13): every claim attempt sweeps
+        // the board and auto-releases claims older than the TTL with no
+        // commit-anchored progress. No cron — a starved board sees constant claim
+        // traffic, so expiry latency is minutes, not days.
+        const claimTtlHours = Number(process.env.HOLOMESH_CLAIM_TTL_HOURS ?? 24);
+        const ttlReleased = releaseExpiredClaims(team.taskBoard, {
+          ttlMs: claimTtlHours * 3600 * 1000,
+        });
+        if (ttlReleased.length > 0) {
+          console.log(
+            `[board] claim-ttl reaper released ${ttlReleased.length} stale claim(s) on ${teamId}: ${ttlReleased
+              .map((t) => `${t.id}(${t.releasedReason?.slice(0, 60)})`)
+              .join(', ')}`
+          );
+        }
+
+        // Per-agent concurrent-claim cap (trust-audit 2026-07-13: one agent held
+        // 87.5% of the claimed board). Config: HOLOMESH_CLAIM_CAP, default 5.
+        const claimCap = Number(process.env.HOLOMESH_CLAIM_CAP ?? 5);
+        const activeClaims = countActiveClaims(team.taskBoard, effectiveAgentId);
+        if (Number.isFinite(claimCap) && claimCap > 0 && activeClaims >= claimCap) {
+          json(res, 403, {
+            error: `Claim cap exceeded: agent already holds ${activeClaims} claimed task(s) (cap ${claimCap}). Complete or release existing claims first.`,
+            code: 'claim_cap_exceeded',
+            active_claims: activeClaims,
+            claim_cap: claimCap,
+          });
+          return true;
+        }
+
         // required_tags enforcement: if the task declares required_tags, the claiming
         // agent must have ALL of them in their presence capabilityTags.
         const claimTarget = team.taskBoard.find((t) => t.id === taskId);
@@ -1798,7 +1831,46 @@ export async function handleBoardRoutes(
           });
           return true;
         }
+        // Fabricated-evidence gate (trust-audit 2026-07-13): 67 completions closed
+        // with an auto-generated template / tool-dump / failure admission as
+        // "evidence". A non-empty string is not verification — reject the known
+        // fabrication classes server-side so no buggy client can reintroduce them.
+        const fabCheck = isFabricatedEvidence(verificationEvidence);
+        if (fabCheck.fabricated) {
+          json(res, 400, {
+            error:
+              'verification_evidence matches a known fabricated/unverified closeout pattern. ' +
+              'Name the concrete test, build, audit, receipt, or peer-review proof (commands run, commit hash, receipt path). ' +
+              'A failed or unverified run must stay claimed/blocked — never closed as done.',
+            code: 'verification_evidence_rejected',
+            matched_pattern: fabCheck.pattern,
+          });
+          return true;
+        }
         const doneTarget = team.taskBoard.find((t) => t.id === taskId);
+        // Commit-anchoring for code tasks (trust-audit 2026-07-13): a completion on a
+        // code-tagged task must carry a commit hash, a sha-like token, a receipt/file
+        // path, or the explicit trace-only marker ('0000000' + named command).
+        const CODE_TASK_TAGS = new Set(['holoscript-native', 'typescript', 'code', 'uaal']);
+        const isCodeTask = (doneTarget?.tags ?? []).some((t) => CODE_TASK_TAGS.has(t.toLowerCase()));
+        if (isCodeTask) {
+          const commitParam = typeof body.commit === 'string' ? body.commit.trim() : '';
+          const hasCommit = /^[0-9a-f]{7,40}$/i.test(commitParam);
+          const evidenceHasSha = /\b[0-9a-f]{7,40}\b/i.test(verificationEvidence);
+          const evidenceHasReceiptPath = /\b[\w./\\-]+\.(json|md|jsonl|log|txt)\b|\breceipts?\//i.test(
+            verificationEvidence
+          );
+          const traceOnlyContract = /\b0{7}\b/.test(commitParam) || /\b0{7}\b/.test(verificationEvidence);
+          if (!hasCommit && !evidenceHasSha && !evidenceHasReceiptPath && !traceOnlyContract) {
+            json(res, 400, {
+              error:
+                'Code-tagged tasks require commit-anchored completion: supply a commit hash, or evidence naming a sha / receipt / artifact path, or the explicit trace-only marker (0000000 + the command run).',
+              code: 'verification_evidence_unanchored',
+              task_tags: doneTarget?.tags ?? [],
+            });
+            return true;
+          }
+        }
         const leaseCheck = validateCloudClaimLeaseForDone(teamId, caller, doneTarget);
         if (!leaseCheck.ok) {
           json(res, leaseCheck.status, {

@@ -489,6 +489,12 @@ export interface TeamTask {
   claimLeaseExpiresAt?: string;
   /** Provider/local session id captured from the claim heartbeat. */
   claimSessionId?: string;
+  /** ISO timestamp stamped when the task was claimed — drives the claim-TTL auto-release (trust-audit 2026-07-13). */
+  claimedAt?: string;
+  /** ISO timestamp of the last automatic claim release (claim-TTL expiry). */
+  releasedAt?: string;
+  /** Why the claim was auto-released (e.g. claim_ttl_expired with no commit-anchored progress). */
+  releasedReason?: string;
   completedBy?: string;
   /** Surface-attribution tag for the done action — see `claimedByTag`. */
   completedByTag?: string;

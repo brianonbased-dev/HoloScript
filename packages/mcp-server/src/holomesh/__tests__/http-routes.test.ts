@@ -3576,6 +3576,167 @@ describe('HoloMesh HTTP Routes', () => {
       expect(doneRes._body.code).toBe('verification_evidence_required');
     });
 
+    it('PATCH /board/:taskId rejects done with fabricated closeout evidence (trust-audit 2026-07-13)', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `fab-evidence-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const addReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/board`,
+        { tasks: [{ title: 'fab-evidence', description: 'test', priority: 1 }] },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const addRes = mockRes();
+      await handleHoloMeshRoute(addReq, addRes, `/api/holomesh/team/${tid}/board`);
+      const taskId = addRes._body.tasks[0].id;
+
+      const claimReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        { action: 'claim' },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const claimRes = mockRes();
+      await handleHoloMeshRoute(claimReq, claimRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+      expect(claimRes._status).toBe(200);
+
+      const doneReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        {
+          action: 'done',
+          summary: 'closed',
+          verification_evidence: 'Task completed via tool calls. Artifact written (tool_iters:3).',
+        },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const doneRes = mockRes();
+      await handleHoloMeshRoute(doneReq, doneRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+
+      expect(doneRes._status).toBe(400);
+      expect(doneRes._body.code).toBe('verification_evidence_rejected');
+    });
+
+    it('PATCH /board/:taskId requires commit anchoring on code-tagged tasks (trust-audit 2026-07-13)', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `anchor-evidence-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const addReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/board`,
+        { tasks: [{ title: 'code task', description: 'test', priority: 1, tags: ['typescript'] }] },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const addRes = mockRes();
+      await handleHoloMeshRoute(addReq, addRes, `/api/holomesh/team/${tid}/board`);
+      const taskId = addRes._body.tasks[0].id;
+
+      const claimReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        { action: 'claim' },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const claimRes = mockRes();
+      await handleHoloMeshRoute(claimReq, claimRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+      expect(claimRes._status).toBe(200);
+
+      // Unanchored prose on a code-tagged task → rejected.
+      const badDoneReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        { action: 'done', summary: 'closed', verification_evidence: 'it works now, trust me — verified manually' },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const badDoneRes = mockRes();
+      await handleHoloMeshRoute(badDoneReq, badDoneRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+      expect(badDoneRes._status).toBe(400);
+      expect(badDoneRes._body.code).toBe('verification_evidence_unanchored');
+
+      // Same task with a commit hash → accepted.
+      const goodDoneReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        {
+          action: 'done',
+          summary: 'closed',
+          commit: 'abc1234',
+          verification_evidence: 'vitest run 12/12 green; tsc exit 0',
+        },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const goodDoneRes = mockRes();
+      await handleHoloMeshRoute(goodDoneReq, goodDoneRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+      expect(goodDoneRes._status).toBe(200);
+    });
+
+    it('PATCH /board/:taskId enforces the per-agent claim cap (trust-audit 2026-07-13)', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `claim-cap-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const cap = Number(process.env.HOLOMESH_CLAIM_CAP ?? 5);
+      const addReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/board`,
+        {
+          tasks: Array.from({ length: cap + 1 }, (_, i) => ({
+            title: `cap task ${i}`,
+            description: 'test',
+            priority: 1,
+          })),
+        },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const addRes = mockRes();
+      await handleHoloMeshRoute(addReq, addRes, `/api/holomesh/team/${tid}/board`);
+      const ids: string[] = addRes._body.tasks.map((t: any) => t.id);
+      expect(ids.length).toBe(cap + 1);
+
+      for (let i = 0; i < cap; i++) {
+        const claimReq = mockReq(
+          'PATCH',
+          `/api/holomesh/team/${tid}/board/${ids[i]}`,
+          { action: 'claim' },
+          { authorization: `Bearer ${ownerApiKey}` }
+        );
+        const claimRes = mockRes();
+        await handleHoloMeshRoute(claimReq, claimRes, `/api/holomesh/team/${tid}/board/${ids[i]}`);
+        expect(claimRes._status).toBe(200);
+      }
+
+      const overReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${ids[cap]}`,
+        { action: 'claim' },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const overRes = mockRes();
+      await handleHoloMeshRoute(overReq, overRes, `/api/holomesh/team/${tid}/board/${ids[cap]}`);
+      expect(overRes._status).toBe(403);
+      expect(overRes._body.code).toBe('claim_cap_exceeded');
+    });
+
     it('POST /board/done/compact rejects archive manifests that do not match the hot log', async () => {
       const createReq = mockReq(
         'POST',

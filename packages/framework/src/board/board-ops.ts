@@ -201,6 +201,9 @@ export function claimTask(
   task.status = 'claimed';
   task.claimedBy = claimerId;
   task.claimedByName = claimerName;
+  // Claim-TTL clock (trust-audit 2026-07-13): every claim is stamped so
+  // releaseExpiredClaims can auto-release stale holds without a cron.
+  task.claimedAt = new Date().toISOString();
   if (claimerTag) task.claimedByTag = claimerTag;
   const claimIdentity = cloneIdentityEnvelope(opts.claimIdentity);
   if (claimIdentity) task.claimIdentity = claimIdentity;
@@ -208,6 +211,83 @@ export function claimTask(
   if (opts.claimLeaseExpiresAt) task.claimLeaseExpiresAt = opts.claimLeaseExpiresAt;
   if (opts.claimSessionId) task.claimSessionId = opts.claimSessionId;
   return { success: true, task };
+}
+
+/**
+ * Fabricated / unverified closeout-evidence patterns (trust-audit 2026-07-13,
+ * ai-ecosystem research/2026-07-13_jetson-trust-audit.md). The edge runner's
+ * W.786 fallback closed 50+ board tasks with the canned template below and zero
+ * commits; sibling variants were found in the trace scrub. Keep this list in
+ * sync with ai-ecosystem `scripts/holotune-emit-board.mjs` FABRICATED_EVIDENCE_RES
+ * (the corpus-side gate) — the server gate here is the authoritative one.
+ */
+export const FABRICATED_EVIDENCE_PATTERNS: ReadonlyArray<RegExp> = [
+  /^Task completed via tool calls\. Artifact written \(tool_iters:\d+\)\.?$/i,
+  /^UNVERIFIED-ARTIFACT-ONLY:/i, // honest runner fallback — truthful but NOT completion-grade evidence
+  /^Vision analysis complete\..*\(tool_iters:\d+\)\.?$/i, // vision-path auto-closeout variant
+  /^\s*\[?\s*tool_use\b/i, // raw tool-call dump pasted as evidence
+  /\btask cannot (?:be completed|proceed)\b|\baccess denied\b|\bcannot (?:write to|create or write to)\b|\b(?:outside|not within) the allowed write roots\b/i, // self-declared failure admissions
+  /^Wrote verification evidence\.?$/i, // evidence that only asserts evidence exists
+];
+
+/** True (with the matching pattern) iff the evidence string is a known fabricated/unverified closeout marker. */
+export function isFabricatedEvidence(evidence: string): { fabricated: boolean; pattern?: string } {
+  const trimmed = String(evidence ?? '').trim();
+  for (const re of FABRICATED_EVIDENCE_PATTERNS) {
+    if (re.test(trimmed)) return { fabricated: true, pattern: re.source };
+  }
+  return { fabricated: false };
+}
+
+/** Count how many board tasks an agent currently holds in `claimed` status. */
+export function countActiveClaims(board: TeamTask[], agentId: string): number {
+  return board.filter((t) => t.status === 'claimed' && t.claimedBy === agentId).length;
+}
+
+/**
+ * Lazy claim-TTL reaper (trust-audit 2026-07-13 — jetson-orin-super held 28/32
+ * claimed tasks up to ~7 days with zero commit-anchored progress). Auto-releases
+ * every claimed task whose claim is older than `ttlMs` AND shows no
+ * commit-anchored progress (no commitHash). Legacy claims that predate the
+ * `claimedAt` field are stamped `now` on first sweep, so their TTL clock starts
+ * at deploy time rather than releasing them all at once.
+ *
+ * Pure: mutates the passed board in place and returns the released tasks so the
+ * HTTP layer can persist + notify. Call it lazily from claim/list/complete
+ * paths — no cron required.
+ */
+export function releaseExpiredClaims(
+  board: TeamTask[],
+  opts: { ttlMs: number; now?: number } = { ttlMs: 24 * 60 * 60 * 1000 }
+): TeamTask[] {
+  const now = opts.now ?? Date.now();
+  const released: TeamTask[] = [];
+  for (const task of board) {
+    if (task.status !== 'claimed') continue;
+    if (!task.claimedAt) {
+      // Legacy claim — start its TTL clock now instead of releasing blind.
+      task.claimedAt = new Date(now).toISOString();
+      continue;
+    }
+    const age = now - Date.parse(task.claimedAt);
+    if (!Number.isFinite(age) || age < opts.ttlMs) continue;
+    // Commit-anchored progress clears the reaper: landed code is real progress.
+    if (task.commitHash) continue;
+    const holder = task.claimedByName || task.claimedBy || 'unknown';
+    task.status = 'open';
+    task.claimedBy = undefined;
+    task.claimedByName = undefined;
+    task.claimedByTag = undefined;
+    task.claimIdentity = undefined;
+    task.claimLeaseId = undefined;
+    task.claimLeaseExpiresAt = undefined;
+    task.claimSessionId = undefined;
+    task.claimedAt = undefined;
+    task.releasedAt = new Date(now).toISOString();
+    task.releasedReason = `claim_ttl_expired: held by ${holder} for ${Math.round(age / 3600000)}h with no commit-anchored progress`;
+    released.push(task);
+  }
+  return released;
 }
 
 /**
@@ -510,13 +590,19 @@ export function blockTask(board: TeamTask[], taskId: string): TaskActionResult {
   return { success: true, task };
 }
 
-/** Reopen a task (unclaim). */
+/** Reopen a task (unclaim). Clears ALL claim-time fields so a stale identity/lease never shadows the next claim (trust-audit 2026-07-13). */
 export function reopenTask(board: TeamTask[], taskId: string): TaskActionResult {
   const task = board.find((t) => t.id === taskId);
   if (!task) return { success: false, error: 'Task not found' };
   task.status = 'open';
   task.claimedBy = undefined;
   task.claimedByName = undefined;
+  task.claimedByTag = undefined;
+  task.claimIdentity = undefined;
+  task.claimLeaseId = undefined;
+  task.claimLeaseExpiresAt = undefined;
+  task.claimSessionId = undefined;
+  task.claimedAt = undefined;
   return { success: true, task };
 }
 

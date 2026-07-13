@@ -3,7 +3,108 @@ import {
   addTasksToBoard,
   stripInjectionPatterns,
   normalizeTaskDescription,
+  claimTask,
+  reopenTask,
+  isFabricatedEvidence,
+  countActiveClaims,
+  releaseExpiredClaims,
 } from '../board/board-ops';
+import type { TeamTask } from '../board/board-types';
+
+// ── Trust-audit 2026-07-13 gates ─────────────────────────────────────────────
+
+const DOD = '\n\n## Done when:\n- evidence named';
+
+function claimedTask(overrides: Partial<TeamTask> = {}): TeamTask {
+  return {
+    id: overrides.id ?? `t_${Math.random().toString(36).slice(2, 8)}`,
+    title: 'task',
+    description: `d${DOD}`,
+    status: 'claimed',
+    claimedBy: 'agent_a',
+    claimedByName: 'agent-a',
+    claimedAt: new Date(Date.now() - 25 * 3600 * 1000).toISOString(), // 25h old
+    priority: 5,
+    ...overrides,
+  } as TeamTask;
+}
+
+describe('isFabricatedEvidence (trust-audit 2026-07-13)', () => {
+  it('rejects the runner auto-closeout template and its variants', () => {
+    expect(isFabricatedEvidence('Task completed via tool calls. Artifact written (tool_iters:3).').fabricated).toBe(true);
+    expect(isFabricatedEvidence('UNVERIFIED-ARTIFACT-ONLY: wrote /mnt/x.json (tool_iters:3; no commit; no test/receipt evidence).').fabricated).toBe(true);
+    expect(isFabricatedEvidence('Vision analysis complete. Fara-7B caption written to output file (tool_iters:3).').fabricated).toBe(true);
+    expect(isFabricatedEvidence('[tool_use read_file {"path":"/tmp/x"}]').fabricated).toBe(true);
+    expect(isFabricatedEvidence('Access denied to agent output directories. Task cannot proceed.').fabricated).toBe(true);
+    expect(isFabricatedEvidence('I cannot write to /mnt/nvme/... — outside the allowed write roots').fabricated).toBe(true);
+    expect(isFabricatedEvidence('Wrote verification evidence').fabricated).toBe(true);
+  });
+
+  it('passes substantive evidence (control)', () => {
+    expect(isFabricatedEvidence('pnpm exec vitest run — 247/247 green; commit e4bff84ee; tsc exit 0').fabricated).toBe(false);
+    expect(isFabricatedEvidence('node scripts/x.mjs; git diff --check; nvidia-smi timestamp=...').fabricated).toBe(false);
+  });
+});
+
+describe('claim TTL + cap primitives (trust-audit 2026-07-13)', () => {
+  it('claimTask stamps claimedAt', () => {
+    const board: TeamTask[] = [
+      { id: 't1', title: 'x', description: `d${DOD}`, status: 'open', priority: 5 } as TeamTask,
+    ];
+    const r = claimTask(board, 't1', 'agent_a', 'agent-a');
+    expect(r.success).toBe(true);
+    expect(typeof r.task?.claimedAt).toBe('string');
+    expect(Date.parse(r.task!.claimedAt!)).toBeGreaterThan(0);
+  });
+
+  it('countActiveClaims counts only claimed tasks of the agent', () => {
+    const board = [
+      claimedTask({ claimedBy: 'agent_a' }),
+      claimedTask({ claimedBy: 'agent_a' }),
+      claimedTask({ claimedBy: 'agent_b' }),
+      claimedTask({ claimedBy: 'agent_a', status: 'done' }),
+    ];
+    expect(countActiveClaims(board, 'agent_a')).toBe(2);
+  });
+
+  it('releaseExpiredClaims releases stale commitless claims and records why', () => {
+    const stale = claimedTask({ id: 'stale' });
+    const fresh = claimedTask({ id: 'fresh', claimedAt: new Date().toISOString() });
+    const anchored = claimedTask({ id: 'anchored', commitHash: 'abc1234' });
+    const board = [stale, fresh, anchored];
+    const released = releaseExpiredClaims(board, { ttlMs: 24 * 3600 * 1000 });
+    expect(released.map((t) => t.id)).toEqual(['stale']);
+    expect(stale.status).toBe('open');
+    expect(stale.claimedBy).toBeUndefined();
+    expect(stale.releasedReason).toContain('claim_ttl_expired');
+    expect(fresh.status).toBe('claimed');
+    expect(anchored.status).toBe('claimed'); // commit-anchored progress clears the reaper
+  });
+
+  it('legacy claims without claimedAt get a clock start, not an instant release', () => {
+    const legacy = claimedTask({ id: 'legacy', claimedAt: undefined });
+    const released = releaseExpiredClaims([legacy], { ttlMs: 1 });
+    expect(released).toHaveLength(0);
+    expect(typeof legacy.claimedAt).toBe('string');
+    expect(legacy.status).toBe('claimed');
+  });
+
+  it('reopenTask clears ALL claim-time fields', () => {
+    const t = claimedTask({
+      id: 'r1',
+      claimedByTag: 'tag',
+      claimLeaseId: 'lease',
+      claimLeaseExpiresAt: 'x',
+      claimSessionId: 's',
+    });
+    const r = reopenTask([t], 'r1');
+    expect(r.success).toBe(true);
+    expect(t.status).toBe('open');
+    for (const f of ['claimedBy', 'claimedByName', 'claimedByTag', 'claimLeaseId', 'claimLeaseExpiresAt', 'claimSessionId', 'claimedAt'] as const) {
+      expect(t[f]).toBeUndefined();
+    }
+  });
+});
 
 describe('stripInjectionPatterns', () => {
   it('strips XML-form system-reminder blocks', () => {
