@@ -813,6 +813,9 @@ importers:
       '@gltf-transform/core':
         specifier: ^3.7.0
         version: 3.10.1
+      onnxruntime-node:
+        specifier: 1.21.0
+        version: 1.21.0
       '@gltf-transform/extensions':
         specifier: ^3.7.0
         version: 3.10.1

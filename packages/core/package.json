@@ -315,6 +315,7 @@
     "zod": "^4.3.6"
   },
   "optionalDependencies": {
+    "onnxruntime-node": "1.21.0",
     "@holoscript/alphafold-plugin": "workspace:^",
     "@holoscript/domain-plugin-template": "workspace:^",
     "@holoscript/medical-plugin": "workspace:^",
