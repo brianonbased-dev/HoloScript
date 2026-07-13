@@ -13,6 +13,7 @@ import {
   scoreAgentForTask,
   matchAgentToTask,
   isClaimable,
+  requiresExplicitApproval,
   rankTasks,
   selectNextTask,
   estimateTaskSpendUsd,
@@ -155,6 +156,19 @@ describe('isClaimable', () => {
     expect(isClaimable(task({ status: 'blocked' }))).toBe(false);
     expect(isClaimable(task({ status: 'claimed' }))).toBe(false);
     expect(isClaimable(task({ claimedBy: 'a1' }))).toBe(false);
+  });
+
+  it('rejects founder/true-spend approval gates before scheduler dispatch', () => {
+    const qpu = task({
+      id: 'qpu',
+      title: '[true-spend-gate][quantum] Run one bounded real-QPU smoke receipt',
+      tags: ['quantum-qpu-approval-needed', 'approval-needed'],
+      description:
+        'The live policy remains enabled=false, autonomous=false, capUsd=0, and approvalRef is unset. Do not spend or silently enable it.',
+    });
+
+    expect(requiresExplicitApproval(qpu)).toBe(true);
+    expect(isClaimable(qpu)).toBe(false);
   });
 });
 
@@ -328,5 +342,26 @@ describe('planFleetDispatch', () => {
     });
     expect(plan.decisions).toHaveLength(0); // an all-claimed board is "empty" for dispatch
     expect(plan.spend.spentUsd).toBe(0);
+  });
+
+  it('skips approval-needed true-spend tasks but still dispatches safe work', () => {
+    const tasks = [
+      task({
+        id: 'qpu',
+        priority: 'P0',
+        title: '[true-spend-gate][quantum] Run one bounded real-QPU smoke receipt',
+        tags: ['quantum-qpu-approval-needed', 'approval-needed'],
+        description:
+          'The live policy remains enabled=false, autonomous=false, capUsd=0, and approvalRef is unset. Do not spend or silently enable it.',
+      }),
+      task({ id: 'safe', priority: 'P2', title: 'Run local service health sweep' }),
+    ];
+
+    const plan = planFleetDispatch(tasks, [agent({ id: 'free' })], new SpendGovernor(), {
+      maxDispatches: 1,
+    });
+
+    expect(plan.decisions).toHaveLength(1);
+    expect(plan.decisions[0].task.id).toBe('safe');
   });
 });

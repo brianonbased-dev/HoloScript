@@ -187,6 +187,26 @@ export function missingRequiredTags(task: BoardTask, agent: FleetAgent): string[
 }
 
 /**
+ * True-spend / founder-approval gates are hard dispatch stops. The daily fleet
+ * spend cap authorizes routine autonomous work; it does not override rows that
+ * explicitly require Joseph/provider approval or say capUsd=0/approvalRef unset.
+ */
+export function requiresExplicitApproval(task: BoardTask): boolean {
+  const tags = (task.tags ?? []).map((tag) => tag.toLowerCase());
+  if (tags.some((tag) => tag === 'approval-needed' || tag.endsWith('-approval-needed'))) {
+    return true;
+  }
+
+  const haystack = `${task.title} ${task.description ?? ''}`;
+  return (
+    /\btrue-spend-gate\b/i.test(haystack) ||
+    /\bapprovalRef\s+(?:is\s+)?unset\b/i.test(haystack) ||
+    /\bcapUsd\s*=\s*0\b/i.test(haystack) ||
+    /\bdo not spend\b/i.test(haystack)
+  );
+}
+
+/**
  * Score how well an agent fits a task. Higher is better; -Infinity means the
  * agent is ineligible (offline or already busy).
  *
@@ -231,6 +251,7 @@ export function isClaimable(task: BoardTask): boolean {
   const status = (task.status ?? 'open').toLowerCase();
   if (status === 'done' || status === 'blocked' || status === 'claimed') return false;
   if (task.claimedBy) return false;
+  if (requiresExplicitApproval(task)) return false;
   return true;
 }
 
