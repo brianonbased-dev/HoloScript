@@ -1,7 +1,6 @@
 {
   "name": "@holoscript/benchmark",
-  "version": "6.1.1",
-  "private": true,
+  "version": "6.1.2",
   "description": "Performance benchmarking suite for HoloScript parser, type checker, formatter, and LSP",
   "type": "module",
   "main": "./dist/index.js",
@@ -9,6 +8,13 @@
   "bin": {
     "holoscript-benchmark": "./bin/holoscript-benchmark.cjs"
   },
+  "files": [
+    "bin",
+    "dist",
+    "fixtures",
+    "README.md",
+    "CHANGELOG.md"
+  ],
   "scripts": {
     "bench": "node --experimental-vm-modules dist/index.js",
     "bench:parser": "node --experimental-vm-modules dist/suites/parser.bench.js",
@@ -25,6 +31,7 @@
   },
   "dependencies": {
     "@holoscript/core": "workspace:^",
+    "@holoscript/engine": "workspace:^",
     "@holoscript/mesh": "workspace:^",
     "@holoscript/formatter": "workspace:^",
     "@holoscript/lsp": "workspace:^",

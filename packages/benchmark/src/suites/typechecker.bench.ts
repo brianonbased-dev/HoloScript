@@ -13,8 +13,8 @@ import { HoloScriptPlusParser, HoloScriptTypeChecker } from '@holoscript/core';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Load fixtures - go up to package root
-const fixturesDir = resolve(__dirname, '../../fixtures');
+// Resolves to src/fixtures in source tests and package fixtures after bundling.
+const fixturesDir = resolve(__dirname, '../fixtures');
 const smallSource = readFileSync(resolve(fixturesDir, 'small.hsplus'), 'utf-8');
 const mediumSource = readFileSync(resolve(fixturesDir, 'medium.hsplus'), 'utf-8');
 
