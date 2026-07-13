@@ -10,6 +10,7 @@ import {
   resolveTension,
   resolveAtomStatus,
   resolveAccess,
+  resolveValidity,
   type UAALContainmentIR,
   type UAALDeonticIR,
   type UAALCompositionIR,
@@ -17,6 +18,7 @@ import {
   type UAALMereologyIR,
   type UAALTensionIR,
   type UAALPresuppositionIR,
+  type UAALAnalogyIR,
 } from '../semantic';
 
 // The gap-aware layer (the "three-body disposition" verifier): resolve* must DERIVE unresolvability from the
@@ -585,6 +587,76 @@ describe('resolveAccess — per-modality unstated blocking (A6 blocks_unknown IR
     const r = resolveAccess(scene({ opaque: true, blocks: [] }), 'agent', 'bell');
     expect(r.status).toBe('resolved');
     expect(r.answer?.access.visual).toBe(false);
+  });
+});
+
+describe('resolveValidity — evidence-free target (analogy)', () => {
+  // Solar system → atom: two source relations under a total injective mapping.
+  const analogy = (targetRelations: Array<{ pred: string; from: string; to: string }> | undefined): UAALAnalogyIR => ({
+    source: {
+      entities: [{ id: 'sun' }, { id: 'planet' }],
+      relations: [
+        { pred: 'attracts', from: 'sun', to: 'planet' },
+        { pred: 'orbits', from: 'planet', to: 'sun' },
+      ],
+    },
+    target: {
+      entities: [{ id: 'nucleus' }, { id: 'electron' }],
+      ...(targetRelations === undefined ? {} : { relations: targetRelations }),
+    },
+    mapping: [
+      { from: 'sun', to: 'nucleus' },
+      { from: 'planet', to: 'electron' },
+    ],
+  });
+  const PRESERVING = [
+    { pred: 'attracts', from: 'nucleus', to: 'electron' },
+    { pred: 'orbits', from: 'electron', to: 'nucleus' },
+  ];
+
+  it('resolves valid when the target states preserving relations', () => {
+    const r = resolveValidity(analogy(PRESERVING));
+    expect(r.status).toBe('resolved');
+    expect(r.answer?.valid).toBe(true);
+  });
+
+  it('resolves INVALID when the target states relations that do not preserve (closed-world — no false gap)', () => {
+    // Target states one preserving and omits the other from a STATED set: per-relation absence is
+    // definite non-preservation (the an4 break-one flip is built on it) — determinate invalid.
+    const r = resolveValidity(analogy([PRESERVING[0]]));
+    expect(r.status).toBe('resolved');
+    expect(r.answer?.valid).toBe(false);
+  });
+
+  it('abstains when the target states NO relations (empty array and absent field)', () => {
+    for (const ir of [analogy([]), analogy(undefined)]) {
+      const r = resolveValidity(ir);
+      expect(r.status).toBe('unresolvable');
+      expect(r.reason).toBe('underdetermined');
+      expect(r.gap?.code).toBe('analogy.no_target_relations');
+      expect(r.obstruction).toContain('relation preservation');
+    }
+  });
+
+  it('resolves INVALID for an unmapped endpoint even with no target relations (refuted-hypothesis guard — no false gap)', () => {
+    // The handoff hypothesized incomplete mapping as the gap; it is determinately invalid
+    // (an3-structural + recoverable via the an4 repair corruptor), so it must NOT abstain.
+    const ir = analogy([]);
+    ir.mapping = [{ from: 'sun', to: 'nucleus' }]; // planet unmapped → endpointsCovered=false
+    const r = resolveValidity(ir);
+    expect(r.status).toBe('resolved');
+    expect(r.answer?.valid).toBe(false);
+  });
+
+  it('resolves INVALID for a non-injective mapping even with no target relations (no false gap)', () => {
+    const ir = analogy([]);
+    ir.mapping = [
+      { from: 'sun', to: 'nucleus' },
+      { from: 'planet', to: 'nucleus' }, // collapses two sources onto one target
+    ];
+    const r = resolveValidity(ir);
+    expect(r.status).toBe('resolved');
+    expect(r.answer?.valid).toBe(false);
   });
 });
 

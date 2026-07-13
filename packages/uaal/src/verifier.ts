@@ -31,6 +31,7 @@ import type {
   UAALMereologyIR,
   UAALTensionIR,
   UAALPresuppositionIR,
+  UAALAnalogyIR,
 } from './semantic';
 import {
   resolveOcclusion,
@@ -44,6 +45,7 @@ import {
   resolveTension,
   resolveAtomStatus,
   resolveAccess,
+  resolveValidity,
 } from './semantic';
 import type { UAALBeneficiaryIR } from './beneficiary';
 import { resolveBeneficiary } from './beneficiary';
@@ -61,6 +63,7 @@ export type UAALResolvedFamily =
   | 'tension'
   | 'presupposition'
   | 'access'
+  | 'analogy'
   | 'beneficiary';
 
 /** Target ids some resolvers need alongside the IR (agent/object/action/norm/belief/commitment/atom). */
@@ -101,6 +104,7 @@ const RESOLVERS: Record<UAALResolvedFamily, (ir: unknown, query: VerifierQuery) 
   tension: (ir) => resolveTension(ir as UAALTensionIR),
   presupposition: (ir, q) => resolveAtomStatus(ir as UAALPresuppositionIR, q.atom),
   access: (ir, q) => resolveAccess(ir as UAALContainmentIR, q.agent, q.object),
+  analogy: (ir) => resolveValidity(ir as UAALAnalogyIR),
   beneficiary: (ir) => resolveBeneficiary(ir as UAALBeneficiaryIR),
 };
 

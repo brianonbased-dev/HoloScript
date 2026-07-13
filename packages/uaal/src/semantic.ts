@@ -3581,6 +3581,37 @@ export function recoverValidity(ir: UAALAnalogyIR): AnalogyValidityRecovery {
   };
 }
 
+/**
+ * Analogy validity, honest about an EVIDENCE-FREE TARGET. recoverValidity grades validity by
+ * relation preservation against the target's stated relation set; a target that states NO relations
+ * yields preserved=0 and a coerced `valid:false` — indistinguishable from a genuinely broken
+ * analogy, even though preservation (the family's only validity diagnostic) had no evidence to run
+ * against. resolveValidity abstains exactly there (crisp trigger: the source states ≥1 relation
+ * under a well-posed mapping — injective, all endpoints covered — AND the target states zero
+ * relations). Everything else stays determinate: per-relation absence from a STATED target set is
+ * closed-world non-preservation (the an4 break-one-relation flip is built on that semantics), and a
+ * broken/unmapped mapping is determinately invalid (an3 structural + the an4 repair corruptor
+ * recomputes mappings by permutation — a missing mapping is recoverable, not unknown). No-false-gap:
+ * at an4 ≥ 0.95 a determinate row cannot carry an empty target relation set — valid rows need their
+ * images present in it, and invalid rows flip via repairs that preserve against the stated set,
+ * which no permutation can do against an empty one. Structural mirror of resolveAtomStatus
+ * (zero embedded forms) with an4(0.95) playing pt4's role.
+ */
+export function resolveValidity(ir: UAALAnalogyIR): UAALResolution<AnalogyValidityRecovery> {
+  const recovered = recoverValidity(ir);
+  const targetRelations = analogyRelationSet(ir.target);
+  if (recovered.total > 0 && recovered.injective && recovered.endpointsCovered && targetRelations.size === 0) {
+    return {
+      query: 'analogy_validity',
+      status: 'unresolvable',
+      reason: 'underdetermined',
+      gap: structuredGap('analogy', 'analogy.no_target_relations', 'underdetermined', `${recovered.total} source relation(s)`),
+      obstruction: `the source states ${recovered.total} relation(s) under a total, injective mapping but the target states no relations — relation preservation is the only analogy-validity diagnostic, so valid vs invalid is undetermined`,
+    };
+  }
+  return { query: 'analogy_validity', status: 'resolved', answer: recovered };
+}
+
 export function surfaceSimilarityValidity(ir: UAALAnalogyIR): { valid: boolean; shared: number; pairs: number } {
   const map = analogyBijection(ir);
   const sourceAttrs = analogyAttrMap(ir.source);
