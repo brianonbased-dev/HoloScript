@@ -1,0 +1,205 @@
+/**
+ * Founder Visual Control Plane
+ *
+ * HoloScript-native proof surface for a nondeveloper founder operating the
+ * HoloSystem / HoloShell / HoloAI stack from one visible room.
+ */
+
+composition "Founder Visual Control Plane" {
+  environment {
+    backgroundColor: "#0d1117"
+    ambient_light: 0.48
+    shadows: true
+  }
+
+  template "ControlPanel" {
+    @billboard
+    @anchor
+    geometry: "plane"
+    scale: [1.18, 0.46, 0.08]
+    material: {
+      color: "#101826"
+      emissive: "#1f2a44"
+      emissiveIntensity: 0.26
+      transparent: true
+      opacity: 0.95
+    }
+  }
+
+  template "LaneBeacon" {
+    @grabbable
+    @collidable
+    geometry: "sphere"
+    scale: [0.14, 0.14, 0.14]
+    material: { color: "#7dd3fc" }
+  }
+
+  template "FounderControl" {
+    @grabbable
+    @anchor
+    geometry: "cube"
+    scale: [0.42, 0.18, 0.1]
+    material: {
+      color: "#233554"
+      emissive: "#35598a"
+      emissiveIntensity: 0.18
+    }
+  }
+
+  object "MissionHeader" using "ControlPanel" {
+    position: [0, 2.72, -2.8]
+    scale: [2.6, 0.5, 0.08]
+    label: "Founder visual control plane: work lanes, agents, receipts, decisions, blockers"
+    properties: {
+      theatreLabel: "prototype proof surface; live controls require signed HoloMesh adapters"
+      consumerSurface: "portable HoloScript .holo source plus compiler readback"
+      boundaryGuard: "retrieved board state is not truth unless refreshed by signed room helpers"
+    }
+  }
+
+  object "WorkLanes" using "ControlPanel" {
+    position: [-3.25, 1.82, -1.65]
+    label: "Work lanes"
+    properties: {
+      shows: "room board queue, claimed lanes, priority, stale work"
+      sourceTruth: "signed HoloMesh board read"
+      staleState: "highlight when lastRefresh exceeds freshnessBudget"
+      nextAction: "claim next valid task or file blocker receipt"
+    }
+  }
+
+  object "AgentState" using "ControlPanel" {
+    position: [-1.08, 1.82, -1.65]
+    label: "Agent state"
+    properties: {
+      shows: "family, surface, signer, custody node, active task"
+      telemetry: "heartbeat, claim identity, local hardware probe"
+      staleState: "agent heartbeat absent or unsigned"
+      nextAction: "rejoin room or release claim"
+    }
+  }
+
+  object "Telemetry" using "ControlPanel" {
+    position: [1.08, 1.82, -1.65]
+    label: "Telemetry"
+    properties: {
+      shows: "GPU, WebGPU, WASM, Node, pnpm, build/test receipts"
+      sourceTruth: "local command receipts and device receipts"
+      staleState: "missing timestamp, missing workload, or no nvidia-smi proof"
+      nextAction: "run targeted validation and attach receipt"
+    }
+  }
+
+  object "DecisionNetwork" using "ControlPanel" {
+    position: [3.25, 1.82, -1.65]
+    label: "Decision network"
+    properties: {
+      shows: "approve, redirect, rollback, recovery edges"
+      sourceTruth: "policy graph and room task evidence"
+      staleState: "decision without receipt or owner"
+      nextAction: "route to signed policy action"
+    }
+  }
+
+  object "Receipts" using "ControlPanel" {
+    position: [-2.18, 1.04, -0.35]
+    label: "Receipts"
+    properties: {
+      shows: "commit hash, validation command, artifact path, board mutation"
+      blockerRule: "red token until concrete evidence names command or receipt"
+      nextAction: "promote durable receipt or mark exact blocker"
+    }
+  }
+
+  object "Blockers" using "ControlPanel" {
+    position: [0, 1.04, -0.35]
+    label: "Blockers"
+    properties: {
+      shows: "blocked tasks, missing secrets, failing adapters, peer debris"
+      staleState: "blocked item with no owner or stale timestamp"
+      nextAction: "repair canonical surface or file gap"
+    }
+  }
+
+  object "NextActions" using "ControlPanel" {
+    position: [2.18, 1.04, -0.35]
+    label: "Next actions"
+    properties: {
+      shows: "safe next task, validation to run, recovery path"
+      sourceTruth: "fresh queue and local git status"
+      nextAction: "execute, verify, close, refresh"
+    }
+  }
+
+  object "ApproveControl" using "FounderControl" {
+    position: [-1.35, 0.34, 1.1]
+    label: "Approve"
+    properties: {
+      action: "approve signed plan or release gate"
+      requires: "task id, evidence path, rollback path"
+    }
+  }
+
+  object "RedirectControl" using "FounderControl" {
+    position: [-0.45, 0.34, 1.1]
+    label: "Redirect"
+    properties: {
+      action: "change lane, owner, or acceptance target"
+      requires: "new target and reason"
+    }
+  }
+
+  object "RollbackControl" using "FounderControl" {
+    position: [0.45, 0.34, 1.1]
+    label: "Rollback"
+    properties: {
+      action: "revert only the named proof artifact or commit"
+      requires: "commit hash or artifact list"
+    }
+  }
+
+  object "RecoveryControl" using "FounderControl" {
+    position: [1.35, 0.34, 1.1]
+    label: "Recovery"
+    properties: {
+      action: "run recovery plan for broken tool, stale room, or failed build"
+      requires: "blocker id and recovery receipt"
+    }
+  }
+
+  object "LaneCodex" using "LaneBeacon" {
+    position: [-3.25, 0.32, -0.95]
+    label: "codex-hardware lane"
+    properties: { owns: "local reality checks, GPU proof, filesystem validation" }
+  }
+
+  object "LaneHoloShell" using "LaneBeacon" {
+    position: [-1.08, 0.32, -0.95]
+    material: { color: "#a7f3d0" }
+    label: "holoshell lane"
+    properties: { owns: "operator room, permission gates, recovery controls" }
+  }
+
+  object "LaneHoloLand" using "LaneBeacon" {
+    position: [1.08, 0.32, -0.95]
+    material: { color: "#fde68a" }
+    label: "hololand lane"
+    properties: { owns: "world/consumer embodiment and visual proof" }
+  }
+
+  object "LaneHoloAI" using "LaneBeacon" {
+    position: [3.25, 0.32, -0.95]
+    material: { color: "#f0abfc" }
+    label: "holoai lane"
+    properties: { owns: "agent state, decision graph, task routing" }
+  }
+
+  object "ReceiptRail" {
+    @anchor
+    geometry: "cube"
+    position: [0, 0.08, -0.15]
+    scale: [6.8, 0.06, 0.08]
+    color: "#64748b"
+    label: "receipt rail: plan -> source -> compile/readback -> validation -> board close"
+  }
+}

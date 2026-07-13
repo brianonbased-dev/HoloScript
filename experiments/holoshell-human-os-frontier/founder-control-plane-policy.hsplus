@@ -1,0 +1,91 @@
+// Founder visual control plane policy graph.
+// Keeps nondeveloper controls explicit while marking prototype-only theatre.
+
+composition "FounderControlPlanePolicy" {
+  state ControlPlaneState {
+    selectedTaskId: null
+    selectedLane: "codex-hardware"
+    lastBoardRefresh: null
+    freshnessBudgetMinutes: 15
+    prototypeTheatre: true
+    openBlockers: []
+    receiptPointers: []
+  }
+
+  template "SignedFounderAction" {
+    signed: true
+    requiresTaskId: true
+    requiresEvidence: true
+    reversible: true
+    adapterStatus: "prototype"
+  }
+
+  policy "Approve" using "SignedFounderAction" {
+    control: "approve"
+    effect: "release a gate or accept a verified plan"
+    requires: ["task_id", "evidence_path", "rollback_path"]
+  }
+
+  policy "Redirect" using "SignedFounderAction" {
+    control: "redirect"
+    effect: "move work to a new lane, owner, or acceptance target"
+    requires: ["task_id", "new_target", "reason"]
+  }
+
+  policy "Rollback" using "SignedFounderAction" {
+    control: "rollback"
+    effect: "revert only the named artifact or commit"
+    requires: ["task_id", "artifact_list_or_commit", "validation_after_rollback"]
+  }
+
+  policy "Recovery" using "SignedFounderAction" {
+    control: "recovery"
+    effect: "run a named recovery plan for a blocker"
+    requires: ["blocker_id", "owner_lane", "recovery_receipt"]
+  }
+
+  role "CodexHardware" {
+    laneId: "codex-hardware"
+    visualState: ["gpu_proof", "git_status", "build_test_receipts"]
+    controls: ["approve", "rollback", "recovery"]
+  }
+
+  role "HoloShellOperator" {
+    laneId: "holoshell"
+    visualState: ["permission_gates", "operator_room", "stale_claims"]
+    controls: ["approve", "redirect", "recovery"]
+  }
+
+  role "HoloLandWorld" {
+    laneId: "hololand"
+    visualState: ["consumer_surface", "world_preview", "portable_artifacts"]
+    controls: ["approve", "redirect"]
+  }
+
+  role "HoloAIDecisionGraph" {
+    laneId: "holoai"
+    visualState: ["agent_state", "decision_edges", "next_actions"]
+    controls: ["redirect", "recovery"]
+  }
+
+  action recordReceipt(receipt) {
+    ControlPlaneState.receiptPointers.push({
+      taskId: ControlPlaneState.selectedTaskId,
+      lane: ControlPlaneState.selectedLane,
+      evidencePath: receipt.evidencePath,
+      command: receipt.command,
+      commit: receipt.commit
+    })
+    emit("founder_control_plane:receipt", receipt)
+  }
+
+  action recordBlocker(blocker) {
+    ControlPlaneState.openBlockers.push({
+      taskId: ControlPlaneState.selectedTaskId,
+      blockerId: blocker.blockerId,
+      ownerLane: blocker.ownerLane,
+      evidencePath: blocker.evidencePath
+    })
+    emit("founder_control_plane:blocker", blocker)
+  }
+}
