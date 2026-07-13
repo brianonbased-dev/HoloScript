@@ -265,6 +265,7 @@ export {
   resolveNodeEndpoint,
   discoverNode,
   discoverLlamaCppNode,
+  discoverPytorchHoloNode,
   pickFleetModel,
   resolveLocalFleet,
   embedAcrossFleet,

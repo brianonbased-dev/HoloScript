@@ -11,6 +11,7 @@ import {
   parseFleetSpec,
   pickFleetModel,
   discoverLlamaCppNode,
+  discoverPytorchHoloNode,
   embedAcrossFleet,
   cosineSimilarity,
   type FleetSpec,
@@ -424,6 +425,182 @@ describe('llama.cpp backend node kind', () => {
       fetchImpl,
     });
     expect(d!.installed).toEqual([]); // blocked → not a routable model
+  });
+});
+
+// ── pytorch-holo backend node kind (HoloServe, D.118) ──────────────────────────
+// A fleet where one node runs the native PyTorch-direct sovereign server
+// (ai-ecosystem scripts/holoserve.py): same /health + /props + /slots surface as a
+// llama-server, but /health must ASSERT sovereignty before the node is admitted.
+
+/**
+ * Injected fetch answering a HoloServe node (/health with the sovereign claim,
+ * /props with the model name, /slots with the single generation slot) plus Ollama
+ * nodes. `holo` maps baseURL → served model, busy state, and health-claim knobs.
+ */
+function fakeFetchHolo(
+  holo: Record<
+    string,
+    { model: string; busy?: boolean; healthy?: boolean; sovereign?: boolean; llamaCpp?: boolean }
+  >,
+  ollama: Record<string, { tags: string[]; ps?: Array<{ name: string; vram: number }> }> = {}
+): FetchLike {
+  return async (url: string) => {
+    if (/\/(health|props|slots)$/.test(url)) {
+      const base = url.replace(/\/(health|props|slots)$/, '');
+      const n = holo[base];
+      if (!n) throw new Error('ECONNREFUSED');
+      if (url.endsWith('/health')) {
+        if (n.healthy === false) return { ok: false, json: async () => ({}) };
+        // The HoloServe /health shape: machine-checkable sovereignty claim.
+        return {
+          ok: true,
+          json: async () => ({
+            status: 'ok',
+            backend: 'pytorch-holo',
+            sovereign: n.sovereign ?? true,
+            llama_cpp: n.llamaCpp ?? false,
+            gguf: false,
+            model: { name: n.model, params_millions: 49.932 },
+          }),
+        };
+      }
+      if (url.endsWith('/props')) {
+        return {
+          ok: true,
+          json: async () => ({
+            default_generation_settings: { model: n.model, n_ctx: 512 },
+            model: n.model,
+            model_path: `.scratch/holorunner/s0/fleet-ckpt/ckpt.pt`,
+            total_slots: 1,
+            backend: 'pytorch-holo',
+            sovereign: true,
+          }),
+        };
+      }
+      // /slots — HoloServe serializes generation under one lock → exactly one slot.
+      const busy = n.busy === true;
+      return {
+        ok: true,
+        json: async () => [{ id: 0, state: busy ? 1 : 0, is_processing: busy, model: n.model }],
+      };
+    }
+    const base = url.replace(/\/api\/(tags|ps)$/, '');
+    const node = ollama[base];
+    if (!node) throw new Error('ECONNREFUSED');
+    if (url.endsWith('/api/tags')) {
+      return { ok: true, json: async () => ({ models: node.tags.map((name) => ({ name })) }) };
+    }
+    return {
+      ok: true,
+      json: async () => ({ models: (node.ps ?? []).map((p) => ({ name: p.name, size_vram: p.vram })) }),
+    };
+  };
+}
+
+const HOLO_BRAIN = `
+@model_fleet {
+  jetson {
+    node: "jetson-orin"
+    models: ["qwen3:4b-instruct"]
+  }
+  laptopHolo {
+    node: "laptop-holoserve"
+    backend: "pytorch-holo"
+    models: ["holorunner-s0"]
+  }
+  strategy: "least-loaded"
+  warm_preferred: true
+}
+`;
+const HOLO_SPEC: FleetSpec = parseFleetSpec(HOLO_BRAIN)!;
+const HOLO_ENDPOINTS: Record<string, string> = {
+  'jetson-orin': 'http://holojetson.local:11434',
+  'laptop-holoserve': 'http://192.168.0.23:8099',
+};
+const resolveHolo = async (h: string): Promise<string | null> => HOLO_ENDPOINTS[h] ?? null;
+
+describe('pytorch-holo backend node kind (HoloServe)', () => {
+  test('parseFleetSpec reads backend: "pytorch-holo"', () => {
+    const holo = HOLO_SPEC.nodes.find((n) => n.handle === 'laptop-holoserve')!;
+    expect(holo.backend).toBe('pytorch-holo');
+  });
+
+  test('routes to a HoloServe node: model from /props, warm, backend carried on the route', async () => {
+    const fetchImpl = fakeFetchHolo(
+      { 'http://192.168.0.23:8099': { model: 'holorunner-s0' } },
+      { 'http://holojetson.local:11434': { tags: ['qwen3:4b-instruct'], ps: [] } }
+    );
+    const route = await pickFleetModel(HOLO_SPEC, { model: 'holorunner-s0', resolveEndpoint: resolveHolo, fetchImpl });
+    expect(route!.handle).toBe('laptop-holoserve');
+    expect(route!.model).toBe('holorunner-s0'); // from /props, NOT "ckpt.pt" from model_path
+    expect(route!.warm).toBe(true); // resident once /health is ok
+    expect(route!.backend).toBe('pytorch-holo'); // consumer now knows the API shape
+  });
+
+  test('backend is carried for the other kinds too (ollama route reports "ollama")', async () => {
+    const fetchImpl = fakeFetchHolo(
+      {},
+      { 'http://holojetson.local:11434': { tags: ['qwen3:4b-instruct'], ps: [] } }
+    );
+    const route = await pickFleetModel(HOLO_SPEC, { model: 'qwen3:4b-instruct', resolveEndpoint: resolveHolo, fetchImpl });
+    expect(route!.handle).toBe('jetson-orin');
+    expect(route!.backend).toBe('ollama');
+  });
+
+  test('SOVEREIGNTY GATE: a reachable node whose /health does not assert sovereign:true is dropped', async () => {
+    const fetchImpl = fakeFetchHolo(
+      { 'http://192.168.0.23:8099': { model: 'holorunner-s0', sovereign: false } },
+      { 'http://holojetson.local:11434': { tags: ['qwen3:4b-instruct'], ps: [] } }
+    );
+    const route = await pickFleetModel(HOLO_SPEC, { model: 'holorunner-s0', resolveEndpoint: resolveHolo, fetchImpl });
+    // The declared-sovereign node failed its claim → dropped; fleet degrades to the Ollama node.
+    expect(route!.handle).toBe('jetson-orin');
+  });
+
+  test('SOVEREIGNTY GATE: a llama_cpp:true masquerade behind a pytorch-holo declaration is dropped', async () => {
+    const fetchImpl = fakeFetchHolo({
+      'http://192.168.0.23:8099': { model: 'holorunner-s0', llamaCpp: true },
+    });
+    const d = await discoverPytorchHoloNode('laptop-holoserve', 'http://192.168.0.23:8099', () => false, {
+      fetchImpl,
+    });
+    expect(d).toBeNull();
+  });
+
+  test('discoverPytorchHoloNode: installed/warm from /props, busy slot as load, backend tagged', async () => {
+    const fetchImpl = fakeFetchHolo({ 'http://192.168.0.23:8099': { model: 'holorunner-s0', busy: true } });
+    const d = await discoverPytorchHoloNode('laptop-holoserve', 'http://192.168.0.23:8099', () => false, {
+      fetchImpl,
+    });
+    expect(d).not.toBeNull();
+    expect(d!.installed).toEqual(['holorunner-s0']);
+    expect(d!.warm.has('holorunner-s0')).toBe(true);
+    expect(d!.loadScore).toBe(1_000_000_000); // one busy slot, byte-ish scaled
+    expect(d!.backend).toBe('pytorch-holo');
+  });
+
+  test('discoverPytorchHoloNode returns null when /health is unreachable', async () => {
+    const fetchImpl = fakeFetchHolo({ 'http://192.168.0.23:8099': { model: 'holorunner-s0', healthy: false } });
+    const d = await discoverPytorchHoloNode('laptop-holoserve', 'http://192.168.0.23:8099', () => false, {
+      fetchImpl,
+    });
+    expect(d).toBeNull();
+  });
+
+  test('embedAcrossFleet SKIPS a single-model node that won the route (no /api/embed POST into a 404)', async () => {
+    const embedCalls: string[] = [];
+    const inner = fakeFetchHolo({ 'http://192.168.0.23:8099': { model: 'nomic-embed-text' } });
+    const fetchImpl: FetchLike = async (url, init) => {
+      if (url.endsWith('/api/embed')) {
+        embedCalls.push(url);
+        return { ok: true, json: async () => ({ embeddings: [[9, 9, 9]] }) };
+      }
+      return inner(url, init);
+    };
+    const vec = await embedAcrossFleet('x', { spec: HOLO_SPEC, resolveEndpoint: resolveHolo, fetchImpl });
+    expect(vec).toBeNull(); // guarded: pytorch-holo cannot answer Ollama /api/embed
+    expect(embedCalls).toEqual([]); // and it was never asked to
   });
 });
 

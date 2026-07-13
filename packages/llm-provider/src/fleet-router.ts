@@ -31,7 +31,7 @@ import { join } from 'node:path';
 import { isBlacklistedModel } from './model-policy';
 
 /** Serving backend a fleet node runs. Default (unset) = Ollama. */
-export type FleetBackend = 'ollama' | 'llama.cpp';
+export type FleetBackend = 'ollama' | 'llama.cpp' | 'pytorch-holo';
 
 /** One declared fleet node. Addresses are NOT here — only the registry handle. */
 export interface FleetNode {
@@ -46,9 +46,12 @@ export interface FleetNode {
   /**
    * Serving backend. Unset/`ollama` → discovered via Ollama `/api/tags` + `/api/ps`.
    * `llama.cpp` → discovered via a HoloLlama llama-server's `/health` + `/props` +
-   * `/slots`. The same least-loaded / warm-preferred ranking applies to both, so a
-   * llama.cpp node authored with `backend: "llama.cpp"` load-balances beside the
-   * Ollama nodes on the two owned GPUs.
+   * `/slots`. `pytorch-holo` → discovered via the SAME three routes on a HoloServe
+   * native sovereign server (scripts/holoserve.py in ai-ecosystem, D.118 — no
+   * llama.cpp/GGUF), with `/health` additionally required to ASSERT sovereignty
+   * (`sovereign:true`, not `llama_cpp:true`) before the node is admitted. The same
+   * least-loaded / warm-preferred ranking applies to all three, so every backend
+   * kind load-balances beside the others on the owned GPUs.
    */
   backend?: FleetBackend;
 }
@@ -84,6 +87,12 @@ export interface NodeDiscovery {
   warm: Set<string>;
   /** Sum of resident model `size_vram` bytes — lower = freer GPU. */
   loadScore: number;
+  /**
+   * Which serving backend answered discovery. Carried through to the route so a
+   * consumer knows which API shape the chosen node speaks (Ollama `/api/chat` vs
+   * OpenAI-compat `/v1/*`) instead of guessing from a `:11434` port heuristic.
+   */
+  backend: FleetBackend;
 }
 
 /** A routing candidate (node, model) the router weighed. */
@@ -93,6 +102,8 @@ export interface FleetCandidate {
   model: string;
   warm: boolean;
   loadScore: number;
+  /** Serving backend of the node (see {@link NodeDiscovery.backend}). */
+  backend: FleetBackend;
 }
 
 /** The chosen route across the fleet. */
@@ -187,7 +198,9 @@ export function parseFleetSpec(brainSrc: string): FleetSpec | null {
     if (handle) {
       const backendRaw = scalarString(sub.inner, 'backend');
       const backend: FleetBackend | undefined =
-        backendRaw === 'llama.cpp' || backendRaw === 'ollama' ? backendRaw : undefined;
+        backendRaw === 'llama.cpp' || backendRaw === 'ollama' || backendRaw === 'pytorch-holo'
+          ? backendRaw
+          : undefined;
       nodes.push({
         handle,
         models: listField(sub.inner, 'models') ?? [],
@@ -326,7 +339,7 @@ export async function discoverNode(
     if (typeof p.size_vram === 'number') loadScore += p.size_vram;
   }
 
-  return { handle, baseURL: base, installed, warm, loadScore };
+  return { handle, baseURL: base, installed, warm, loadScore, backend: 'ollama' };
 }
 
 /** Basename of a model path without directory or extension (for a friendly model id). */
@@ -354,12 +367,51 @@ export async function discoverLlamaCppNode(
   isBlocked: (name: string) => boolean,
   opts: { timeoutMs?: number; fetchImpl?: FetchLike } = {}
 ): Promise<NodeDiscovery | null> {
+  return discoverSingleModelServer(handle, baseURL, isBlocked, 'llama.cpp', () => true, opts);
+}
+
+/**
+ * Probe one HoloServe node (the native PyTorch-direct sovereign server, D.118 —
+ * scripts/holoserve.py in ai-ecosystem). Same `/health` + `/props` + `/slots`
+ * surface and the same single-resident-model semantics as a llama-server, so it
+ * shares {@link discoverLlamaCppNode}'s discovery body — with one addition: the
+ * `/health` body must MACHINE-CHECKABLY assert sovereignty (`sovereign: true` and
+ * not `llama_cpp: true`). A node declared `backend: "pytorch-holo"` whose health
+ * doesn't carry that claim (e.g. someone pointed the handle at a llama-server) is
+ * dropped rather than routed as sovereign.
+ */
+export async function discoverPytorchHoloNode(
+  handle: string,
+  baseURL: string,
+  isBlocked: (name: string) => boolean,
+  opts: { timeoutMs?: number; fetchImpl?: FetchLike } = {}
+): Promise<NodeDiscovery | null> {
+  const sovereignGate = (health: unknown): boolean => {
+    const h = health as { sovereign?: unknown; llama_cpp?: unknown } | null;
+    // Demand the FULL machine-checkable claim, strictly typed: `llama_cpp !== true`
+    // would admit a stringly `'true'` from a boolean-mangling proxy. HoloServe always
+    // sends both booleans — a payload missing either is not making the claim.
+    return h !== null && typeof h === 'object' && h.sovereign === true && h.llama_cpp === false;
+  };
+  return discoverSingleModelServer(handle, baseURL, isBlocked, 'pytorch-holo', sovereignGate, opts);
+}
+
+/** Shared single-model-server discovery: gate on `/health`, model from `/props`, load from `/slots`. */
+async function discoverSingleModelServer(
+  handle: string,
+  baseURL: string,
+  isBlocked: (name: string) => boolean,
+  backend: FleetBackend,
+  healthGate: (health: unknown) => boolean,
+  opts: { timeoutMs?: number; fetchImpl?: FetchLike } = {}
+): Promise<NodeDiscovery | null> {
   const fetchImpl = opts.fetchImpl ?? (globalThis.fetch as unknown as FetchLike);
   const timeoutMs = opts.timeoutMs ?? 6000;
   const base = baseURL.replace(/\/$/, '');
 
   const health = await fetchJson<unknown>(fetchImpl, `${base}/health`, timeoutMs);
   if (health === null) return null; // unreachable / not ok → not a routable node this turn
+  if (!healthGate(health)) return null; // reachable but fails the backend's health claim → dropped
 
   const props = await fetchJson<PropsResponse>(fetchImpl, `${base}/props`, timeoutMs);
   const rawModel =
@@ -387,7 +439,7 @@ export async function discoverLlamaCppNode(
   // cross-backend comparison remains nominal (Ollama load conflates resident with active).
   const loadScore = busySlots * 1_000_000_000;
 
-  return { handle, baseURL: base, installed, warm, loadScore };
+  return { handle, baseURL: base, installed, warm, loadScore, backend };
 }
 
 // ── Routing ─────────────────────────────────────────────────────────────────────
@@ -430,7 +482,12 @@ export async function pickFleetModel(
       spec.nodes.map(async (n) => {
         const endpoint = await resolveEndpoint(n.handle);
         if (!endpoint) return null;
-        const discover = n.backend === 'llama.cpp' ? discoverLlamaCppNode : discoverNode;
+        const discover =
+          n.backend === 'llama.cpp'
+            ? discoverLlamaCppNode
+            : n.backend === 'pytorch-holo'
+              ? discoverPytorchHoloNode
+              : discoverNode;
         return discover(n.handle, endpoint, isBlocked, {
           timeoutMs: opts.timeoutMs,
           fetchImpl: opts.fetchImpl,
@@ -465,7 +522,14 @@ export async function pickFleetModel(
     const model = targetModel;
     candidates = discovered
       .filter((d) => d.installed.some((inst) => sameModel(inst, model)))
-      .map((d) => ({ handle: d.handle, baseURL: d.baseURL, model, warm: warmSomewhere(d.warm, model), loadScore: d.loadScore }));
+      .map((d) => ({
+        handle: d.handle,
+        baseURL: d.baseURL,
+        model,
+        warm: warmSomewhere(d.warm, model),
+        loadScore: d.loadScore,
+        backend: d.backend,
+      }));
   } else {
     // No shared/declared model installed anywhere → each node offers its own
     // first installed model. Routing then just picks the freest GPU.
@@ -475,6 +539,7 @@ export async function pickFleetModel(
       model: d.installed[0],
       warm: d.warm.has(d.installed[0]),
       loadScore: d.loadScore,
+      backend: d.backend,
     }));
   }
 
@@ -515,13 +580,13 @@ export async function pickFleetModel(
  */
 export async function resolveLocalFleet(
   opts: FleetRouteOptions & { brainPath?: string; spec?: FleetSpec } = {}
-): Promise<{ baseURL: string; model: string; route: FleetRoute } | null> {
+): Promise<{ baseURL: string; model: string; backend: FleetBackend; route: FleetRoute } | null> {
   const brainPath = opts.brainPath || process.env.HOLO_LLM_FLEET_BRAIN;
   const spec = opts.spec ?? (brainPath ? await loadFleetSpec(brainPath) : null);
   if (!spec || spec.nodes.length === 0) return null;
   const route = await pickFleetModel(spec, opts);
   if (!route) return null;
-  return { baseURL: route.baseURL, model: route.model, route };
+  return { baseURL: route.baseURL, model: route.model, backend: route.backend, route };
 }
 
 // ── Embeddings (the fleet routes embed requests too, not just chat) ─────────────
@@ -544,6 +609,11 @@ export async function embedAcrossFleet(
   // @model_fleet brain — it just has to be installed somewhere reachable).
   const picked = await resolveLocalFleet({ ...opts, model: embedModel });
   if (!picked || picked.model !== embedModel) return null; // embed model not reachable on the fleet
+  // `/api/embed` is an Ollama-native surface. A single-model server (llama.cpp /
+  // pytorch-holo) can legitimately win routing for the embed model name, but it
+  // cannot answer this call — skip instead of POSTing into a 404. (Sovereign
+  // embeddings are HoloEmbed's lane, not this chat fleet — see model-fleet.hsplus.)
+  if (picked.backend !== 'ollama') return null;
   const fetchImpl = opts.fetchImpl ?? (globalThis.fetch as unknown as FetchLike);
   try {
     const r = await fetchImpl(`${picked.baseURL.replace(/\/$/, '')}/api/embed`, {

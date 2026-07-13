@@ -128,6 +128,17 @@ traits [
     role: "RELIABLY-ON on-demand co-node — up ~as much as the Jetson, but the founder's machine FIRST. Default = FREE for the founder (freedom-when-available); the fleet draws on it READILY when it needs extra GPU (on-demand-when-needed), ~4x the Jetson's tok/s on GPU (cuda_v12, W.810). It is NOT a rare last-resort spill — it is a ready second card. The YIELD is automatic, not a manual toggle: founder use (PCVR / heavy GPU) spikes its VRAM load, the load-based router reads that as saturated and stops routing to it; when it frees up it returns to the pool. Reactivated 2026-06-20; endpoint by handle; shares the 6GB with WebGPU + cuQuantum."
   }
 
+  laptop_holoserve {
+    node: "laptop-holoserve"
+    backend: "pytorch-holo"
+    gpu: "RTX 3060 Laptop (sm_86, 6GB) — same card as laptop-rtx3060, different server"
+    vramGb: 6
+    alwaysOn: false
+    availability: "developer-local"
+    models: ["holorunner-s0"]
+    role: "HoloServe — the native PyTorch-direct sovereign server (ai-ecosystem scripts/holoserve.py, D.118: no llama.cpp, no GGUF). Serves the from-scratch HoloRunner S0 checkpoint resident on the laptop GPU with grammar-constrained uAAL IR decoding (W.780/W.833). Discovered via /health + /props + /slots like a llama-server, PLUS the router requires /health to assert sovereign:true before admitting it — a machine-checkable sovereignty claim, not a label. Developer-local (started on demand, binds 127.0.0.1 by default): unreachable → discovery drops it and the fleet degrades, so declaring it is safe when it is offline. CAVEAT: base model, not instruction-tuned (D.121) — structural validity by construction, correctness is the training axis."
+  }
+
   holo_runtime_m1 {
     node: "holo-runtime-m1"
     kind: "holo-runtime-m1-cpu-decoder"
@@ -147,7 +158,7 @@ traits [
   primary: "jetson-orin"
   primary_max_load_gb: "6"
   blacklist: ["qwen2.5"]
-  discover: "per node: GET <registry-endpoint>/api/tags (installed) + /api/ps (warm + VRAM load)"
+  discover: "per node, by backend: ollama → GET /api/tags (installed) + /api/ps (warm + VRAM load); llama.cpp → GET /health + /props (the one resident model) + /slots (busy load); pytorch-holo → same three routes AND /health must assert sovereign:true (HoloServe)"
   route: "jetson-orin is PRIMARY and carries the BASELINE load, which keeps the laptop FREE for the founder by default (freedom-when-available). The fleet draws on laptop-rtx3060 ON-DEMAND when it needs the extra GPU — the Jetson's VRAM load crosses primary_max_load_gb (6) — and the laptop, being reliably-on, is there to take it (not a rare last-resort). The laptop's live VRAM load (/api/ps discovery) is the YIELD signal: founder use (PCVR / heavy GPU) spikes it and the router stops routing there automatically; when it frees up it returns to the on-demand pool. Both GPUs then answer as one, warm-preferred. (Proactive concurrency fan-out across both cards — beyond saturation-spill — is the council multi-endpoint task, fleet_wiring_todo part 2.)"
   escalate: "BOTH local GPUs (jetson + laptop) saturated AND the task exceeds them → escalateTo fleet (Vast, scale-to-zero, paid)."
 }
