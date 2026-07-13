@@ -335,6 +335,7 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
       stop: request.stop,
       stream: false,
       ...this._thinkParam(model),
+      ...(request.grammar ? { grammar: request.grammar } : {}),
       ...(filteredTools.length > 0 ? { tools: this.mapToolsToOllama(filteredTools) } : {}),
     });
 
@@ -524,9 +525,61 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
    * mid-stream failures yield a `message_stop` with `finishReason: 'error'`
    * and the partial state observed so far.
    */
-  async *streamCompletion(
+  streamCompletion(
     request: LLMCompletionRequest,
     model: string = this.defaultHoloScriptModel
+  ): AsyncIterable<LLMStreamChunk> {
+    // Same protocol split as complete(): Ollama-native NDJSON /api/chat vs
+    // OpenAI-compat SSE /v1/chat/completions (llama.cpp llama-server, HoloServe,
+    // LM Studio, vLLM). Before this branch existed, streaming was hardwired to
+    // Ollama NDJSON and silently spoke the wrong protocol to every non-Ollama
+    // local server regardless of nativeOllamaApi.
+    return this.useNativeOllamaApi
+      ? this.streamNativeOllama(request, model)
+      : this.streamOpenAICompat(request, model);
+  }
+
+  /** Pre-flight for both streaming paths: POST, status-check, throw before the first chunk. */
+  private async preflightStream(url: string, body: string): Promise<Response> {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => '');
+        const isRetryable =
+          response.status === 429 || (response.status >= 500 && response.status < 600);
+        throw new LLMProviderError(
+          `Local LLM server returned ${response.status}: ${text}`,
+          'local-llm',
+          response.status,
+          isRetryable
+        );
+      }
+      return response;
+    } catch (err) {
+      if (err instanceof LLMProviderError) throw err;
+      const msg = err instanceof Error ? err.message : String(err);
+      const isTimeout = msg.includes('aborted') || msg.includes('timeout');
+      const hint = isTimeout
+        ? `Request timed out. Is the local LLM server running at ${this.localBaseURL}?`
+        : `Cannot reach local LLM server at ${this.localBaseURL}. Start with: llama-server -m model.gguf  OR  ollama serve`;
+      throw new LLMProviderError(hint, 'local-llm', undefined, false);
+    }
+  }
+
+  private async *streamNativeOllama(
+    request: LLMCompletionRequest,
+    model: string
   ): AsyncIterable<LLMStreamChunk> {
     const url = `${this.localBaseURL}/api/chat`;
 
@@ -558,40 +611,7 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
     });
 
     // --- Pre-flight: fetch + status check (throw before first chunk) ---
-    let response: Response;
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
-
-      response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body,
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const text = await response.text().catch(() => '');
-        const isRetryable =
-          response.status === 429 || (response.status >= 500 && response.status < 600);
-        throw new LLMProviderError(
-          `Local LLM server returned ${response.status}: ${text}`,
-          'local-llm',
-          response.status,
-          isRetryable
-        );
-      }
-    } catch (err) {
-      if (err instanceof LLMProviderError) throw err;
-      const msg = err instanceof Error ? err.message : String(err);
-      const isTimeout = msg.includes('aborted') || msg.includes('timeout');
-      const hint = isTimeout
-        ? `Request timed out. Is the local LLM server running at ${this.localBaseURL}?`
-        : `Cannot reach local LLM server at ${this.localBaseURL}. Start with: llama-server -m model.gguf  OR  ollama serve`;
-      throw new LLMProviderError(hint, 'local-llm', undefined, false);
-    }
+    const response = await this.preflightStream(url, body);
 
     // --- Stream: parse NDJSON line-by-line ---
     if (!response.body) {
@@ -721,6 +741,177 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
       usage,
       model: finalModel,
     };
+
+    if (streamErrored) {
+      throw new LLMProviderError('Stream error during local LLM completion', 'local-llm');
+    }
+  }
+
+  /**
+   * Stream a completion via the OpenAI-compatible SSE surface
+   * (`POST /v1/chat/completions`, `stream: true`) — llama.cpp llama-server,
+   * HoloServe (pytorch-holo), LM Studio, vLLM.
+   *
+   * SSE framing: `data: {json}` lines, terminated by `data: [DONE]`. Each JSON
+   * chunk carries `choices[0].delta.content` text deltas and/or `delta.tool_calls`
+   * argument FRAGMENTS (accumulated per tool-call index, emitted as
+   * tool_use_start + tool_use_end once the stream finishes — OpenAI semantics:
+   * arguments are only complete at finish). Usage rides the final data chunk
+   * when the server sends it (llama-server and HoloServe both do).
+   *
+   * Same error contract as the Ollama path: pre-flight failures throw before the
+   * first chunk; mid-stream failures yield message_stop with finishReason 'error'
+   * then throw. `request.grammar` passes through for valid-by-construction output.
+   */
+  private async *streamOpenAICompat(
+    request: LLMCompletionRequest,
+    model: string
+  ): AsyncIterable<LLMStreamChunk> {
+    const url = `${this.localBaseURL}/v1/chat/completions`;
+    const filteredTools = filterGenericTools(request.tools);
+
+    const body = JSON.stringify({
+      model,
+      messages: this._withNoThinkMessages(
+        model,
+        request.messages.map((m) => ({ role: m.role, content: messageContentAsString(m.content) }))
+      ),
+      max_tokens: request.maxTokens ?? 2048,
+      temperature: request.temperature ?? 0.4,
+      top_p: request.topP ?? 1,
+      stop: request.stop,
+      stream: true,
+      ...this._thinkParam(model),
+      ...(request.grammar ? { grammar: request.grammar } : {}),
+      ...(filteredTools.length > 0 ? { tools: this.mapToolsToOllama(filteredTools) } : {}),
+    });
+
+    const response = await this.preflightStream(url, body);
+
+    if (!response.body) {
+      yield { type: 'message_stop', finishReason: 'stop', usage: this.zeroUsage(), model };
+      return;
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let finishReason: LLMCompletionResponse['finishReason'] = 'stop';
+    let usage: TokenUsage = this.zeroUsage();
+    let finalModel = model;
+    let streamErrored = false;
+    let sawDone = false;
+    let sawFinish = false;
+    // Tool-call fragments accumulate per OpenAI stream index until finish.
+    const toolAcc = new Map<number, { id: string; name: string; args: string }>();
+
+    try {
+      outer: while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop()!;
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed.startsWith(':')) continue; // blank / SSE keepalive comment
+          if (!trimmed.startsWith('data:')) continue;
+          const payload = trimmed.slice('data:'.length).trim();
+          if (payload === '[DONE]') {
+            sawDone = true;
+            break outer;
+          }
+
+          let chunk: Record<string, unknown>;
+          try {
+            chunk = JSON.parse(payload);
+          } catch {
+            continue; // malformed frame — skip rather than kill the stream
+          }
+          if (chunk.error) {
+            streamErrored = true;
+            break outer;
+          }
+
+          finalModel = (chunk.model as string) || finalModel;
+          const rawUsage = chunk.usage as
+            | { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number }
+            | undefined;
+          if (rawUsage) {
+            const promptTokens = rawUsage.prompt_tokens ?? 0;
+            const completionTokens = rawUsage.completion_tokens ?? 0;
+            usage = {
+              promptTokens,
+              completionTokens,
+              totalTokens: rawUsage.total_tokens ?? promptTokens + completionTokens,
+            };
+          }
+
+          const choice = (chunk.choices as Array<Record<string, unknown>> | undefined)?.[0];
+          const delta = (choice?.delta ?? {}) as Record<string, unknown>;
+
+          if (typeof delta.content === 'string' && delta.content.length > 0) {
+            yield { type: 'text_delta', text: delta.content };
+          }
+
+          const toolCalls = delta.tool_calls as Array<Record<string, unknown>> | undefined;
+          if (toolCalls) {
+            for (const tc of toolCalls) {
+              const idx = typeof tc.index === 'number' ? tc.index : 0;
+              const func = tc.function as Record<string, unknown> | undefined;
+              const acc = toolAcc.get(idx) ?? { id: `call_${idx}`, name: '', args: '' };
+              if (typeof tc.id === 'string' && tc.id) acc.id = tc.id;
+              if (typeof func?.name === 'string' && func.name) acc.name = func.name;
+              if (typeof func?.arguments === 'string') acc.args += func.arguments;
+              toolAcc.set(idx, acc);
+            }
+          }
+
+          const rawFinish = choice?.finish_reason as string | null | undefined;
+          if (rawFinish) {
+            sawFinish = true;
+            finishReason =
+              rawFinish === 'length' ? 'length' : rawFinish === 'tool_calls' ? 'tool_use' : 'stop';
+          }
+        }
+      }
+    } catch (err) {
+      streamErrored = true;
+      if (err instanceof LLMProviderError) throw err;
+      // Fall through to yield message_stop with 'error', then throw.
+    }
+
+    // The body is EOF-terminated on some servers (HoloServe sends Connection:
+    // close) — so a bare EOF with NEITHER a finish_reason frame NOR [DONE] is a
+    // truncated stream (server-side crash, proxy cutoff), not a clean finish.
+    if (!sawDone && !sawFinish && !streamErrored) streamErrored = true;
+
+    // Emit accumulated tool calls (complete only at finish) before message_stop.
+    // Skip on an errored/truncated stream — fragments may be mid-arguments — and
+    // skip any call whose args never became valid JSON: a silently-empty {} input
+    // would violate the "fully parsed input" invariant downstream.
+    let hadToolCalls = false;
+    if (!streamErrored) {
+      for (const [, acc] of [...toolAcc.entries()].sort((a, b) => a[0] - b[0])) {
+        if (!acc.name) continue;
+        let input: Record<string, unknown>;
+        try {
+          input = JSON.parse(acc.args || '{}') as Record<string, unknown>;
+        } catch {
+          continue; // truncated/garbled arguments — not a callable tool use
+        }
+        hadToolCalls = true;
+        yield { type: 'tool_use_start', id: acc.id, name: acc.name };
+        yield { type: 'tool_use_end', id: acc.id, input };
+      }
+    }
+    // Same semantics as mapDoneReason/buildResponse: tool calls present → tool_use.
+    if (hadToolCalls) finishReason = 'tool_use';
+    if (streamErrored) finishReason = 'error';
+
+    yield { type: 'message_stop', finishReason, usage, model: finalModel };
 
     if (streamErrored) {
       throw new LLMProviderError('Stream error during local LLM completion', 'local-llm');

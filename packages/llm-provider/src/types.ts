@@ -114,6 +114,16 @@ export interface LLMCompletionRequest {
   stream?: boolean;
 
   /**
+   * Structured-output grammar, passed through verbatim on the OpenAI-compat
+   * LOCAL path only (llama.cpp / HoloServe request field `grammar`): a GBNF
+   * string for llama-server, or a registered grammar NAME for HoloServe's
+   * sovereign constrained decoder (W.780 — e.g. "containment" | "deontic" |
+   * "composition", advertised by its /health). Output is valid-by-construction;
+   * cloud adapters ignore this field.
+   */
+  grammar?: string;
+
+  /**
    * Tools the model can call. When set, the response may contain `toolUses`
    * blocks that the caller must execute and re-feed via a follow-up request
    * containing assistantBlocks (the prior response) + tool_result messages.

@@ -341,6 +341,7 @@ import type {
   BrittneyCloudProviderConfig,
 } from './types';
 import type { OpenAICompatibleAdapterConfig } from './adapters/openai-compatible';
+import type { FleetBackend } from './fleet-router';
 
 /**
  * Create an OpenAI adapter from environment variables.
@@ -433,6 +434,34 @@ export function createBitNetProvider(config?: Partial<BitNetProviderConfig>): Bi
  */
 export function createLocalLLMProvider(config?: Partial<LocalLLMProviderConfig>): LocalLLMAdapter {
   return new LocalLLMAdapter(config);
+}
+
+/**
+ * Create a LocalLLMAdapter from a fleet route, using the route's `backend`
+ * (carried since the pytorch-holo fleet parity work) to select the wire
+ * protocol IN-BAND: `ollama` → native /api/chat NDJSON, anything else
+ * (llama.cpp llama-server, pytorch-holo HoloServe) → OpenAI-compat /v1/*.
+ * Replaces the `:11434`-port-heuristic guess for routed consumers.
+ *
+ * @example
+ * ```typescript
+ * const picked = await resolveLocalFleet({ brainPath: process.env.HOLO_LLM_FLEET_BRAIN });
+ * if (picked) {
+ *   const adapter = createLocalLLMProviderForRoute(picked);
+ *   const res = await adapter.complete({ messages }, picked.model);
+ * }
+ * ```
+ */
+export function createLocalLLMProviderForRoute(
+  route: { baseURL: string; model: string; backend: FleetBackend },
+  config?: Partial<LocalLLMProviderConfig>
+): LocalLLMAdapter {
+  return new LocalLLMAdapter({
+    baseURL: route.baseURL,
+    model: route.model,
+    nativeOllamaApi: route.backend === 'ollama',
+    ...config,
+  });
 }
 
 /**

@@ -217,7 +217,15 @@ async function upgradeOllamaByDiscovery(
   const baseURL = env('OLLAMA_HOST', 'OLLAMA_BASE_URL', 'OLLAMA_URL') || OLLAMA_DEFAULT_BASE_URL;
   const picked = await pickLocalModel(baseURL, { fallback: OLLAMA_DEFAULT_MODEL });
   if (picked.model === resolved.model) return resolved;
-  const provider = new LocalLLMAdapter({ baseURL, model: picked.model, timeoutMs: 300_000 });
+  // This site KNOWS the backend is Ollama — pin the native protocol explicitly.
+  // The :11434 port heuristic misses custom-port Ollama (tunnel/proxy), and the
+  // OpenAI /v1 shim it would fall to drops tool_calls for thinking models.
+  const provider = new LocalLLMAdapter({
+    baseURL,
+    model: picked.model,
+    nativeOllamaApi: true,
+    timeoutMs: 300_000,
+  });
   return { ...resolved, provider, model: picked.model };
 }
 
@@ -260,7 +268,8 @@ function resolveOllama(
 ): ResolvedSovereignProvider {
   const baseURL = host || OLLAMA_DEFAULT_BASE_URL;
   const model = modelOverride(opts) || OLLAMA_DEFAULT_MODEL;
-  const provider = new LocalLLMAdapter({ baseURL, model, timeoutMs: 300_000 });
+  // Known-Ollama site — pin the native protocol; do not rely on the port heuristic.
+  const provider = new LocalLLMAdapter({ baseURL, model, nativeOllamaApi: true, timeoutMs: 300_000 });
   return {
     provider,
     model,

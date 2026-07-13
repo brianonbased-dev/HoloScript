@@ -186,6 +186,9 @@ function resolveOllama(host: string | undefined): ResolvedBrittneyProvider {
   const provider = new LocalLLMAdapter({
     baseURL,
     model: process.env.BRITTNEY_MODEL || OLLAMA_DEFAULT_MODEL,
+    // Known-Ollama site — pin the native protocol; the :11434 port heuristic
+    // misses custom-port Ollama and streaming would fall to the /v1 shim.
+    nativeOllamaApi: true,
     timeoutMs: 300_000, // 5 min — matches Anthropic adapter
   });
   return {
@@ -374,6 +377,12 @@ async function upgradeOllamaByDiscovery(
     `[brittney] ollama discovery picked model=${picked.model} source=${picked.source} verified=${picked.toolCallVerified}`
   );
   if (picked.model === resolved.model) return resolved;
-  const provider = new LocalLLMAdapter({ baseURL, model: picked.model, timeoutMs: 300_000 });
+  // Known-Ollama site — pin the native protocol (see resolveOllama above).
+  const provider = new LocalLLMAdapter({
+    baseURL,
+    model: picked.model,
+    nativeOllamaApi: true,
+    timeoutMs: 300_000,
+  });
   return { ...resolved, provider, model: picked.model };
 }
