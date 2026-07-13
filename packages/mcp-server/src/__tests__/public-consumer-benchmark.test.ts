@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import {
   compareWithBaseline,
   countDependencyNodes,
+  parseArgs,
   warningMetrics,
 } from '../../scripts/public-consumer-benchmark.mjs';
 
@@ -39,6 +40,14 @@ describe('public consumer benchmark helpers', () => {
         },
       })
     ).toBe(3);
+    expect(
+      countDependencyNodes([{ dependencies: { a: { dependencies: { b: {} } } } }])
+    ).toBe(2);
+  });
+
+  it('parses the public package manager selector', () => {
+    expect(parseArgs(['--manager', 'pnpm']).manager).toBe('pnpm');
+    expect(parseArgs([]).manager).toBe('npm');
   });
 
   it('separates peer warnings from general warnings', () => {

@@ -42,6 +42,7 @@ export function parseArgs(argv = process.argv.slice(2)) {
 
   return {
     spec: value('--spec'),
+    manager: value('--manager') || 'npm',
     packCurrent: argv.includes('--pack-current'),
     baselinePath: value('--baseline'),
     receiptPath: value('--receipt'),
@@ -50,9 +51,15 @@ export function parseArgs(argv = process.argv.slice(2)) {
   };
 }
 
+export const SUPPORTED_MANAGERS = Object.freeze(['npm', 'pnpm', 'yarn']);
+
 export function countDependencyNodes(tree) {
   let count = 0;
   const visit = (node) => {
+    if (Array.isArray(node)) {
+      for (const item of node) visit(item);
+      return;
+    }
     for (const dependency of Object.values(node?.dependencies || {})) {
       count += 1;
       visit(dependency);
@@ -225,6 +232,27 @@ function pnpmInvocation(args) {
     args,
     shell: process.platform === 'win32',
   };
+}
+
+function yarnInvocation(args) {
+  return {
+    command: process.platform === 'win32' ? 'corepack.cmd' : 'corepack',
+    args: ['yarn', ...args],
+    shell: process.platform === 'win32',
+  };
+}
+
+function managerInvocation(manager, action, spec = null) {
+  if (manager === 'npm') {
+    return npmInvocation([...action, ...(spec ? [spec] : [])]);
+  }
+  if (manager === 'pnpm') {
+    return pnpmInvocation([...action, ...(spec ? [spec] : [])]);
+  }
+  if (manager === 'yarn') {
+    return yarnInvocation([...action, ...(spec ? [spec] : [])]);
+  }
+  throw new Error(`Unsupported package manager: ${manager}`);
 }
 
 async function packCurrent(tempRoot) {
@@ -456,22 +484,21 @@ export async function runBenchmark(options) {
   );
 
   try {
+    if (!SUPPORTED_MANAGERS.includes(options.manager || 'npm')) {
+      throw new Error(`Unsupported package manager: ${options.manager}`);
+    }
     const spec = options.packCurrent ? await packCurrent(tempRoot) : options.spec;
     if (!spec) throw new Error('Pass --spec <package-or-tarball> or --pack-current.');
-    const installArgs = [
-      'install',
-      '--ignore-scripts',
-      '--no-audit',
-      '--no-fund',
-      '--package-lock=false',
-      '--loglevel=warn',
-      spec,
-    ];
-    const npm = npmInvocation(installArgs);
-    const installResult = await runProcess(npm.command, npm.args, {
+    const installAction = options.manager === 'npm'
+      ? ['install', '--ignore-scripts', '--no-audit', '--no-fund', '--package-lock=false', '--loglevel=warn']
+      : options.manager === 'pnpm'
+        ? ['add', '--ignore-scripts', '--no-lockfile', '--reporter=append-only']
+        : ['add', '--ignore-scripts', '--non-interactive'];
+    const manager = managerInvocation(options.manager, installAction, spec);
+    const installResult = await runProcess(manager.command, manager.args, {
       cwd: consumerRoot,
       env: process.env,
-      shell: npm.shell,
+      shell: manager.shell,
       timeoutMs: DEFAULT_BOUNDS.installMsMax,
     });
     if (installResult.status !== 'exit' || installResult.code !== 0) {
@@ -486,16 +513,25 @@ export async function runBenchmark(options) {
     const packageJson = await readJson(join(packageRoot, 'package.json'));
     const packageSize = await measureTree(packageRoot);
     const installWarnings = warningMetrics(`${installResult.stdout}\n${installResult.stderr}`);
-    const npmLs = npmInvocation(['ls', '--all', '--json']);
-    const dependencyResult = await runProcess(npmLs.command, npmLs.args, {
+    const listAction = options.manager === 'npm'
+      ? ['ls', '--all', '--json']
+      : options.manager === 'pnpm'
+        ? ['list', '--depth', 'Infinity', '--json']
+        : ['list', '--json'];
+    const managerList = managerInvocation(options.manager, listAction);
+    const dependencyResult = await runProcess(managerList.command, managerList.args, {
       cwd: consumerRoot,
       env: process.env,
-      shell: npmLs.shell,
+      shell: managerList.shell,
       timeoutMs: 120_000,
     });
     let dependencyTree = {};
     try {
-      dependencyTree = JSON.parse(dependencyResult.stdout || '{}');
+      const jsonLines = String(dependencyResult.stdout || '').trim().split(/\r?\n/u).filter(Boolean);
+      const parsed = JSON.parse(options.manager === 'yarn' ? jsonLines.at(-1) : dependencyResult.stdout || '{}');
+      dependencyTree = options.manager === 'yarn'
+        ? { dependencies: Object.fromEntries((parsed?.data?.trees || []).map((tree) => [tree.name, { dependencies: Object.fromEntries((tree.children || []).map((child) => [child.name, {}])) }])) }
+        : parsed;
     } catch {
       dependencyTree = {};
     }
@@ -543,6 +579,7 @@ export async function runBenchmark(options) {
         spec: publicSpec(spec),
       },
       environment: {
+        packageManager: options.manager,
         node: process.version,
         platform: process.platform,
         arch: process.arch,
@@ -558,7 +595,7 @@ export async function runBenchmark(options) {
       ok: options.captureBaseline ? false : Boolean(comparison?.ok),
       proofBoundary: {
         proves:
-          'fresh npm install, ESM/CJS root and service import settlement, package/dependency/peer-warning bounds, and packaged HTTP executable health',
+          `fresh ${options.manager} install, ESM/CJS root and service import settlement, package/dependency/peer-warning bounds, and packaged HTTP executable health`,
         doesNotProve:
           'remote cloud or Jetson execution, provider-native planning, or production load capacity',
       },

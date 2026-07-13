@@ -1,0 +1,141 @@
+{
+  "schema": "holoscript.mcp-server.public-consumer-benchmark.v1",
+  "mode": "release-comparison",
+  "generatedAt": "2026-07-13T00:36:16.278Z",
+  "package": {
+    "name": "@holoscript/mcp-server",
+    "version": "8.0.13",
+    "spec": "file:holoscript-mcp-server-8.0.13.tgz"
+  },
+  "environment": {
+    "packageManager": "npm",
+    "node": "v24.15.0",
+    "platform": "win32",
+    "arch": "x64",
+    "foreignTempProject": true
+  },
+  "bounds": {
+    "installMsMax": 180000,
+    "rootImportMsMax": 10000,
+    "rootSettleMsMax": 12000,
+    "serviceImportMsMax": 2000,
+    "serviceSettleMsMax": 3000,
+    "serviceStartMsMax": 30000,
+    "packageBytesGrowthPercentMax": 5,
+    "dependencyNodeGrowthMax": 5,
+    "peerWarningGrowthMax": 0
+  },
+  "metrics": {
+    "install": {
+      "elapsedMs": 134305,
+      "warningCount": 90,
+      "peerWarningCount": 22,
+      "dependencyNodes": 2284,
+      "freshProject": true,
+      "registryCachePolicy": "caller-environment"
+    },
+    "package": {
+      "bytes": 94779752,
+      "files": 1322
+    },
+    "imports": {
+      "rootEsm": {
+        "target": "@holoscript/mcp-server",
+        "moduleKind": "esm",
+        "imported": true,
+        "importMs": 3863,
+        "settleMs": 3979,
+        "exportCount": 217,
+        "settled": true,
+        "timedOut": false,
+        "persistentResources": [],
+        "diagnosticLineCount": 5,
+        "exitCode": 0
+      },
+      "rootCjs": {
+        "target": "@holoscript/mcp-server",
+        "moduleKind": "cjs",
+        "imported": true,
+        "importMs": 2653,
+        "settleMs": 2773,
+        "exportCount": 217,
+        "settled": true,
+        "timedOut": false,
+        "persistentResources": [],
+        "diagnosticLineCount": 5,
+        "exitCode": 0
+      },
+      "serviceEsm": {
+        "target": "@holoscript/mcp-server/service",
+        "moduleKind": "esm",
+        "imported": true,
+        "importMs": 12,
+        "settleMs": 106,
+        "exportCount": 4,
+        "settled": true,
+        "timedOut": false,
+        "persistentResources": [],
+        "diagnosticLineCount": 0,
+        "exitCode": 0
+      },
+      "serviceCjs": {
+        "target": "@holoscript/mcp-server/service",
+        "moduleKind": "cjs",
+        "imported": true,
+        "importMs": 21,
+        "settleMs": 124,
+        "exportCount": 4,
+        "settled": true,
+        "timedOut": false,
+        "persistentResources": [],
+        "diagnosticLineCount": 0,
+        "exitCode": 0
+      }
+    },
+    "serviceStart": {
+      "healthy": true,
+      "elapsedMs": 6883,
+      "exitBeforeHealth": false,
+      "healthStatus": "healthy",
+      "toolCount": 426,
+      "stdoutLineCount": 50,
+      "stderrLineCount": 6,
+      "error": null
+    }
+  },
+  "comparison": {
+    "baselineVersion": "8.0.12",
+    "deltas": {
+      "installMs": 61365,
+      "packageBytes": 351104,
+      "packageBytesPercent": 0.372,
+      "dependencyNodes": 0,
+      "peerWarnings": 0,
+      "rootEsmSettleMs": -8065,
+      "rootCjsSettleMs": -9253,
+      "serviceStartMs": 1810
+    },
+    "checks": {
+      "installBounded": true,
+      "packageGrowthBounded": true,
+      "dependencyGrowthBounded": true,
+      "peerWarningsNotRegressed": true,
+      "rootEsmImportBounded": true,
+      "rootCjsImportBounded": true,
+      "serviceEsmImportBounded": true,
+      "serviceCjsImportBounded": true,
+      "importsOwnNoPersistentResources": true,
+      "executableServiceHealthy": true
+    },
+    "ok": true
+  },
+  "capture": {
+    "succeeded": true,
+    "gateEvaluated": true
+  },
+  "ok": true,
+  "proofBoundary": {
+    "proves": "fresh npm install, ESM/CJS root and service import settlement, package/dependency/peer-warning bounds, and packaged HTTP executable health",
+    "doesNotProve": "remote cloud or Jetson execution, provider-native planning, or production load capacity"
+  }
+}
