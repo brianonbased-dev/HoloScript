@@ -36,6 +36,7 @@ let ComponentType: unknown;
 let GeometryType: unknown;
 let BodyType: unknown;
 let LightType: unknown;
+let HoloTraitId: unknown;
 
 try {
   const holoVm = require('@holoscript/holo-vm');
@@ -44,6 +45,7 @@ try {
   GeometryType = holoVm.GeometryType;
   BodyType = holoVm.BodyType;
   LightType = holoVm.LightType;
+  HoloTraitId = holoVm.HoloTraitId;
 } catch {
   // holo-vm not available — compiler will throw on use
 }
@@ -288,21 +290,27 @@ export class HolobCompiler {
     switch (name) {
       case 'physics':
       case 'gpu_physics':
+      case 'rigid':
+      case 'rigid_body':
       case 'rigidbody': {
         const mass = this.resolveNumber(obj, 'mass', 1.0);
         fn.addRigidbody(entityId, mass, 0); // BodyType.Dynamic = 0
+        this.applyStableOrGenericTrait(fn, entityId, name);
         break;
       }
 
       case 'collidable':
       case 'collider':
-        // Collider is implicit with rigidbody in HoloVM
+        this.applyStableOrGenericTrait(fn, entityId, name);
         break;
 
       case 'grabbable':
+        this.applyStableOrGenericTrait(fn, entityId, name);
+        break;
+
       case 'interactable':
         // Emit trait attachment — VM resolves at runtime
-        fn.applyTrait(entityId, this.internString(fn, name));
+        this.applyStableOrGenericTrait(fn, entityId, name);
         break;
 
       case 'networked':
@@ -318,17 +326,52 @@ export class HolobCompiler {
 
       case 'audio':
       case 'spatial_audio':
-        fn.applyTrait(entityId, this.internString(fn, name));
+        this.applyStableOrGenericTrait(fn, entityId, name);
         break;
 
       default:
         // Generic trait attachment — VM resolves via trait registry
-        fn.applyTrait(entityId, this.internString(fn, name));
+        this.applyStableOrGenericTrait(fn, entityId, name);
         break;
     }
   }
 
   // ─── Light Compilation ──────────────────────────────────────────────
+
+  private applyStableOrGenericTrait(fn: any, entityId: number, traitName: string): void {
+    const stableId = this.resolveStableTraitId(traitName);
+    fn.applyTrait(entityId, stableId ?? this.internString(fn, traitName));
+  }
+
+  private resolveStableTraitId(traitName: string): number | undefined {
+    const ids = HoloTraitId as Record<string, number> | undefined;
+    if (!ids) return undefined;
+
+    const normalized = traitName.toLowerCase().replace(/^@/, '').replace(/-/g, '_');
+    switch (normalized) {
+      case 'physics':
+      case 'gpu_physics':
+      case 'rigid':
+      case 'rigid_body':
+      case 'rigidbody':
+        return ids.Rigid;
+      case 'grabbable':
+        return ids.Grabbable;
+      case 'collidable':
+      case 'collider':
+        return ids.Collidable;
+      case 'gravity':
+        return ids.Gravity;
+      case 'trigger':
+        return ids.Trigger;
+      case 'hoverable':
+        return ids.Hoverable;
+      case 'clickable':
+        return ids.Clickable;
+      default:
+        return undefined;
+    }
+  }
 
   private compileLight(fn: any, light: HoloLight, entityId: number): void {
     // The light entity was already created in defineEntities; emit opcodes against

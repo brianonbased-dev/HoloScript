@@ -78,6 +78,26 @@ describe('renderHolo: .holo text → native pixels (one call)', () => {
     expect(framebuffer.pixel(48, 32)).toEqual({ r: 0, g: 0, b: 255, a: 255 });
   });
 
+  it('preserves source-authored @grabbable as a stable native trait id', async () => {
+    const source = `composition "GrabbableNative" {
+      object "Handle" @grabbable {
+        shape: "cube"
+        position: [0, 0, 0]
+        color: "#0000ff"
+      }
+    }`;
+
+    const { framebuffer, stats } = await renderHolo(source, {
+      width: 64,
+      height: 64,
+      camera: { pixelsPerUnit: 8 },
+      clear: CLEAR,
+    });
+
+    expect(stats.grabbableEntities).toEqual([1]);
+    expect(framebuffer.pixel(32, 32)).toEqual({ r: 40, g: 40, b: 255, a: 255 });
+  });
+
   it('propagates a parse failure from the strict front (malformed composition)', async () => {
     // An unterminated composition block is a real syntax error: the strict parser
     // front rejects it, and renderHolo surfaces that rejection rather than rendering.
