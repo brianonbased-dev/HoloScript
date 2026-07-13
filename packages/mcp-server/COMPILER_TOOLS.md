@@ -115,7 +115,8 @@ The server runs on **port 8100** by default.
 
 - `code` (string, required): HoloScript composition source code (.holo format)
 - `target` (string, required): Export target platform
-  - Supported targets: `urdf`, `sdf`, `unity`, `unreal`, `godot`, `vrchat`, `openxr`, `android`, `android-xr`, `ios`, `visionos`, `ar`, `babylon`, `webgpu`, `r3f`, `wasm`, `playcanvas`, `usd`, `usdz`, `dtdl`, `vrr`, `multi-layer`
+  - Supported targets: `urdf`, `sdf`, `unity`, `unreal`, `godot`, `vrchat`, `openxr`, `android`, `android-xr`, `ios`, `visionos`, `webgpu`, `r3f`, `wasm`, `usd`, `usdz`, `dtdl`
+  - Retired 2026-06-17 (apex-poison): `ar`, `babylon`, `playcanvas`, `vrr`, `multi-layer`
 - `options` (object, optional): Compiler-specific configuration
 - `stream` (boolean, optional): Enable streaming progress updates
 - `jobId` (string, optional): Custom job ID (auto-generated if not provided)
@@ -260,11 +261,10 @@ List all available HoloScript export targets with categories.
   "categories": {
     "Game Engines": ["unity", "unreal", "godot"],
     "VR Platforms": ["vrchat", "openxr"],
-    "Mobile AR": ["android", "android-xr", "ios", "visionos", "ar"],
-    "Web Platforms": ["babylon", "webgpu", "r3f", "wasm", "playcanvas"],
+    "Mobile AR": ["android", "android-xr", "ios", "visionos"],
+    "Web Platforms": ["webgpu", "r3f", "wasm"],
     "Robotics/IoT": ["urdf", "sdf", "dtdl"],
-    "3D Formats": ["usd", "usdz"],
-    "Advanced": ["vrr", "multi-layer"]
+    "3D Formats": ["usd", "usdz"]
   }
 }
 ```

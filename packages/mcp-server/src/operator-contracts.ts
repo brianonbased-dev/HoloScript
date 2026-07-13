@@ -287,7 +287,7 @@ compile_to_stl_export
 compile_to_svg
 compile_to_tsl
 compile_to_world_shard
-# compile_to_r3f — retired apex-poison 2026-06-17
+compile_to_r3f
 compile_to_godot
 compile_to_visionos
 compile_to_openxr
@@ -303,7 +303,7 @@ compile_to_usd
 compile_to_usdz
 compile_to_sdf
 # compile_to_vrr — retired apex-poison 2026-06-17
-compile_to_multi_layer
+# compile_to_multi_layer — retired 2026-06-17 (MultiLayerCompiler)
 compile_to_ros2_deploy
 compile_to_embodied_dataset
 compile_to_dtdl
@@ -462,6 +462,10 @@ explain_fairness_receipt
 fairness_sweep
 holo_ci_dispatch
 render_world_on_fleet
+verify_cross_perceiver
+verify_verified_view
+holo_from_scratch_status
+holo_from_scratch_launch
 `
   .split(/\r?\n/)
   .map((line) => line.replace(/#.*/, '').trim())

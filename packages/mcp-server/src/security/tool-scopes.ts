@@ -358,7 +358,6 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   compile_to_mcp_server: ['tools:write'],
   compile_to_mjcf: ['tools:write'],
   compile_to_mjx: ['tools:write'],
-  compile_to_multi_layer: ['tools:write'],
   compile_to_nft_marketplace: ['tools:write'],
   compile_to_nir: ['tools:write'],
   compile_to_node_service: ['tools:write'],

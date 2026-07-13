@@ -1185,8 +1185,7 @@ export async function handleCompilerTool(
     case 'compile_to_dtdl':
       return handleCompileToTarget({ ...args, target: 'dtdl' });
     // compile_to_vrr — retired (apex-poison, 2026-06-17)
-    case 'compile_to_multi_layer':
-      return handleCompileToTarget({ ...args, target: 'multi-layer' });
+    // compile_to_multi_layer — retired (MultiLayerCompiler retired 2026-06-17; the tool advertised a target that always threw)
     case 'compile_to_nir':
       return handleCompileToTarget({ ...args, target: 'nir' });
     // compile_to_native_2d — retired (apex-poison, 2026-06-17)
@@ -1932,18 +1931,7 @@ export const compilerTools: Tool[] = [
     },
   },
   // compile_to_vrr — retired (apex-poison, 2026-06-17)
-  {
-    name: 'compile_to_multi_layer',
-    description: 'Compile HoloScript to a multi-layer VR / VRR / AR bundle',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        code: { type: 'string', description: 'HoloScript composition code' },
-        options: { type: 'object' },
-      },
-      required: ['code'],
-    },
-  },
+  // compile_to_multi_layer — retired (MultiLayerCompiler retired 2026-06-17; advertised a target that always threw)
   {
     name: 'compile_to_ros2_deploy',
     description:
@@ -3089,7 +3077,7 @@ export const compilerTools: Tool[] = [
             'usdz',
             'fmu',
             'dtdl',
-            'multi-layer',
+            // 'multi-layer' — retired (MultiLayerCompiler retired 2026-06-17)
             '3dgs',
             '3dtiles',
             'daimon-seed',

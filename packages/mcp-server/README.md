@@ -162,11 +162,10 @@ The active profile and resolved numeric limits are returned by `GET /health` and
 
 - **Game Engines**: Unity, Unreal, Godot
 - **VR Platforms**: VRChat, OpenXR
-- **Mobile AR**: Android, Android XR, iOS, visionOS, Generic AR
-- **Web Platforms**: Babylon.js, WebGPU, React Three Fiber, WASM, PlayCanvas
+- **Mobile AR**: Android, Android XR, iOS, visionOS
+- **Web Platforms**: WebGPU, React Three Fiber, WASM
 - **Robotics/IoT**: URDF, SDF, DTDL (Azure Digital Twins)
 - **3D Formats**: USD, USDZ
-- **Advanced**: VRR, Multi-Layer
 
 See [COMPILER_TOOLS.md](./COMPILER_TOOLS.md) for detailed documentation.
 
