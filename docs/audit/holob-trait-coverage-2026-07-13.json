@@ -1,0 +1,714 @@
+{
+  "generatedAt": "2026-07-13T05:56:46.009Z",
+  "source": "scripts/measure-holob-trait-coverage.mjs",
+  "corpus": {
+    "extension": ".hsplus",
+    "files": 2480,
+    "annotationVocabUnique": 4081,
+    "registeredTraitRefsUnique": 241
+  },
+  "traitUniverse": {
+    "totalRegisteredTraits": 2338,
+    "stableHoloTraitIdTraits": 7,
+    "rendererSemanticTraits": 1,
+    "stableHoloTraitIdPercent": 0.3,
+    "rendererSemanticPercent": 0.04
+  },
+  "corpusCoverage": {
+    "metadataAttachmentPercent": 100,
+    "metadataAttachmentNote": "HolobCompiler default path attaches any trait as generic metadata; this is not executable runtime semantics.",
+    "registeredTraitsWithStableHoloTraitId": 6,
+    "registeredTraitsWithHolobSpecialCase": 6,
+    "registeredTraitsWithRendererSemantics": 1,
+    "registeredTraitsGenericOnly": 232,
+    "stableHoloTraitIdPercent": 2.49,
+    "holobSpecialCasePercent": 2.49,
+    "rendererSemanticPercent": 0.41
+  },
+  "nativeRuntimeSets": {
+    "stableHoloTraitIdTraits": [
+      "clickable",
+      "collidable",
+      "collider",
+      "gpu_physics",
+      "grabbable",
+      "gravity",
+      "hoverable",
+      "physics",
+      "rigid",
+      "rigid_body",
+      "rigidbody",
+      "trigger"
+    ],
+    "holobSpecialCases": [
+      "audio",
+      "collidable",
+      "collider",
+      "gpu_physics",
+      "grabbable",
+      "interactable",
+      "net_sync",
+      "networked",
+      "physics",
+      "rigid",
+      "rigid_body",
+      "rigidbody",
+      "spatial_audio",
+      "visible"
+    ],
+    "rendererSemanticTraits": [
+      "grabbable",
+      "rigid"
+    ]
+  },
+  "topGenericOnlyCorpusGaps": [
+    {
+      "name": "synced",
+      "count": 504,
+      "files": [
+        "examples/traits/networking-synced-persistent-owned.hsplus",
+        "packages/benchmark/src/fixtures/large.hsplus"
+      ]
+    },
+    {
+      "name": "glowing",
+      "count": 74,
+      "files": [
+        "assets/sword.hsplus",
+        "compositions/holonews-claim-kiosk.hsplus",
+        "examples/autonomous-ecosystems/agent-portal-federation.hsplus",
+        "examples/autonomous-ecosystems/cultural-evolution.hsplus",
+        "examples/autonomous-ecosystems/economy-marketplace.hsplus",
+        "examples/autonomous-ecosystems/feedback-driven-npc.hsplus",
+        "examples/cryptography/secure-agent-handshake.hsplus",
+        "examples/enterprise/enterprise-lifecycle.hsplus"
+      ]
+    },
+    {
+      "name": "state_machine",
+      "count": 52,
+      "files": [
+        "compositions/skills/fara-hands.hsplus",
+        "examples/agents/brittney-playground.hsplus",
+        "examples/agents/workspace-agent-genesis.hsplus",
+        "examples/autonomous-ecosystems/agent-portal-federation.hsplus",
+        "examples/autonomous-ecosystems/cultural-evolution.hsplus",
+        "examples/autonomous-ecosystems/economy-marketplace.hsplus",
+        "examples/autonomous-ecosystems/feedback-driven-npc.hsplus",
+        "examples/cryptography/04-agentic-secret-sovereignty.hsplus"
+      ]
+    },
+    {
+      "name": "animated",
+      "count": 27,
+      "files": [
+        "compositions/holonews-claim-kiosk.hsplus",
+        "examples/autonomous-ecosystems/cultural-evolution.hsplus",
+        "examples/autonomous-ecosystems/feedback-driven-npc.hsplus",
+        "examples/cryptography/secure-agent-handshake.hsplus",
+        "examples/game-state-machine.hsplus",
+        "examples/humanoid-avatars.hsplus",
+        "examples/language-reference/01-templates-decorators.hsplus",
+        "examples/multiplayer-game.refreshed.hsplus"
+      ]
+    },
+    {
+      "name": "llm_agent",
+      "count": 27,
+      "files": [
+        "compositions/holoheal.hsplus",
+        "examples/agents/brittney-playground.hsplus",
+        "examples/agents/workspace-agent-genesis.hsplus",
+        "examples/cryptography/04-agentic-secret-sovereignty.hsplus",
+        "examples/hsplus/agents/moderator-agent.hsplus",
+        "examples/hsplus/agents/planner-agent.hsplus",
+        "examples/hsplus/agents/researcher-agent.hsplus",
+        "examples/hsplus/agents/watcher-agent.hsplus"
+      ]
+    },
+    {
+      "name": "throwable",
+      "count": 27,
+      "files": [
+        "assets/sword.hsplus",
+        "examples/language-reference/01-templates-decorators.hsplus",
+        "examples/language-reference/comparison-01-simple-scene.hsplus",
+        "examples/multiplayer-game.hsplus",
+        "examples/multiplayer-game.refreshed.hsplus",
+        "examples/three-world/scene.hsplus",
+        "examples/traits/physics-object-lifecycle.hsplus",
+        "examples/vr-interactions.hsplus"
+      ]
+    },
+    {
+      "name": "timeout_guard",
+      "count": 21,
+      "files": [
+        "compositions/holoclaw.hsplus",
+        "compositions/holodaemon.hsplus",
+        "compositions/holoheal.hsplus",
+        "compositions/holomesh-agent.hsplus",
+        "compositions/moltbook-agent.hsplus",
+        "compositions/self-improve-daemon.hsplus",
+        "compositions/skills/bundle-analyzer.hsplus",
+        "compositions/skills/code-health.hsplus"
+      ]
+    },
+    {
+      "name": "rate_limiter",
+      "count": 20,
+      "files": [
+        "compositions/holoclaw.hsplus",
+        "compositions/holodaemon.hsplus",
+        "compositions/holoheal.hsplus",
+        "compositions/holomesh-agent.hsplus",
+        "compositions/moltbook-agent.hsplus",
+        "compositions/self-improve-daemon.hsplus",
+        "compositions/skills/bundle-analyzer.hsplus",
+        "compositions/skills/code-health.hsplus"
+      ]
+    },
+    {
+      "name": "behavior_tree",
+      "count": 15,
+      "files": [
+        "compositions/frame-declaration-example.hsplus",
+        "compositions/holoclaw.hsplus",
+        "compositions/holodaemon.hsplus",
+        "compositions/holoheal.hsplus",
+        "compositions/holomesh-agent.hsplus",
+        "compositions/moltbook-agent.hsplus",
+        "compositions/recursive-pipeline.hsplus",
+        "compositions/self-improve-daemon.hsplus"
+      ]
+    },
+    {
+      "name": "perception",
+      "count": 14,
+      "files": [
+        "examples/novel-use-cases/01-quantum-materials-arena.hsplus",
+        "examples/novel-use-cases/02-scifi-future-vision.hsplus",
+        "examples/novel-use-cases/03-water-scarcity-swarm.hsplus",
+        "examples/novel-use-cases/04-ethical-ai-sandbox.hsplus",
+        "examples/novel-use-cases/05-robot-training-metaverse.hsplus",
+        "examples/novel-use-cases/06-neurodiverse-therapy.hsplus",
+        "examples/novel-use-cases/07-wildfire-response-swarm.hsplus",
+        "examples/novel-use-cases/08-healthspan-twin.hsplus"
+      ]
+    },
+    {
+      "name": "circuit_breaker",
+      "count": 12,
+      "files": [
+        "compositions/holoclaw.hsplus",
+        "compositions/holodaemon.hsplus",
+        "compositions/holoheal.hsplus",
+        "compositions/holomesh-agent.hsplus",
+        "compositions/moltbook-agent.hsplus",
+        "compositions/recursive-pipeline.hsplus",
+        "compositions/self-improve-daemon.hsplus",
+        "compositions/skills/test-runner.hsplus"
+      ]
+    },
+    {
+      "name": "shape_pool",
+      "count": 12,
+      "files": [
+        "compositions/characters/warrior-sculpt.hsplus"
+      ]
+    },
+    {
+      "name": "camera",
+      "count": 11,
+      "files": [
+        "packages/core/src/runtime/system_variables.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/agent-mesh-city.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/council-chamber.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/humanoid-atlas.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/knowledge-river.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/memory-palace.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/mycelium-network.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/orbital-loom.hsplus"
+      ]
+    },
+    {
+      "name": "billboard",
+      "count": 10,
+      "files": [
+        ".bench-logs/format-stress/2026-05-15_230122/novel/two-agent-handoff-catch.hsplus",
+        "compositions/skills/gif-to-sprite.hsplus",
+        "compositions/skills/photo-to-hologram.hsplus",
+        "examples/language-reference/01-templates-decorators.hsplus",
+        "examples/three-format-showcase/smart-gallery.hsplus",
+        "experiments/format-realism-gauntlet/humanoid-rock-throw.hsplus",
+        "experiments/format-realism-gauntlet/two-agent-handoff-catch.hsplus"
+      ]
+    },
+    {
+      "name": "pointable",
+      "count": 10,
+      "files": [
+        "examples/integration/layered-architecture-demo/components/button.hsplus",
+        "examples/language-reference/01-templates-decorators.hsplus",
+        "examples/researcher-viralist.hsplus",
+        "examples/three-world/scene.hsplus",
+        "examples/vr-interactions.hsplus",
+        "examples/vr-interactions.refreshed.hsplus",
+        "packages/core/src/__tests__/fixtures/traits-basic.hsplus"
+      ]
+    },
+    {
+      "name": "post_process",
+      "count": 10,
+      "files": [
+        "examples/rendering/rendering-lighting-showcase.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/agent-mesh-city.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/council-chamber.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/humanoid-atlas.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/knowledge-river.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/memory-palace.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/orbital-loom.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/proof-of-play.hsplus"
+      ]
+    },
+    {
+      "name": "scalar_field_overlay",
+      "count": 10,
+      "files": [
+        "compositions/digital-twins/acoustic-room.hsplus",
+        "compositions/digital-twins/bridge-load-test.hsplus",
+        "compositions/digital-twins/hvac-building.hsplus",
+        "compositions/digital-twins/radio-telescope-array.hsplus",
+        "compositions/digital-twins/seismic-survey.hsplus",
+        "compositions/digital-twins/water-network.hsplus",
+        "compositions/digital-twins/wind-tunnel-cfd.hsplus"
+      ]
+    },
+    {
+      "name": "global_illumination",
+      "count": 9,
+      "files": [
+        "compositions/digital-twins/bridge-load-test.hsplus",
+        "compositions/digital-twins/hvac-building.hsplus",
+        "compositions/digital-twins/water-network.hsplus",
+        "compositions/environments/city-rooftop.hsplus",
+        "compositions/environments/forest-clearing.hsplus",
+        "compositions/environments/mountain-vista.hsplus",
+        "compositions/environments/open-ocean.hsplus",
+        "compositions/environments/underwater-cave.hsplus"
+      ]
+    },
+    {
+      "name": "shadow_caster",
+      "count": 9,
+      "files": [
+        "examples/rendering/rendering-lighting-showcase.hsplus"
+      ]
+    },
+    {
+      "name": "telemetry",
+      "count": 9,
+      "files": [
+        "examples/showcase/narrative-enterprise-analytics-security-showcase.hsplus",
+        "examples/traits/iot-digital-twin-mqtt-telemetry.hsplus"
+      ]
+    },
+    {
+      "name": "breakable",
+      "count": 8,
+      "files": [
+        "examples/traits/physics-object-lifecycle.hsplus"
+      ]
+    },
+    {
+      "name": "interactive",
+      "count": 7,
+      "files": [
+        "compositions/holonews-claim-kiosk.hsplus",
+        "examples/autonomous-ecosystems/economy-marketplace.hsplus",
+        "examples/autonomous-ecosystems/feedback-driven-npc.hsplus",
+        "examples/language-reference/03-event-handlers.hsplus",
+        "examples/language-reference/comparison-02-interactive-game.hsplus"
+      ]
+    },
+    {
+      "name": "stackable",
+      "count": 7,
+      "files": [
+        "examples/game-state-machine.hsplus",
+        "examples/showcase/npc-affordance-social-game-showcase.hsplus",
+        "examples/traits/physics-object-lifecycle.hsplus"
+      ]
+    },
+    {
+      "name": "structured_logger",
+      "count": 7,
+      "files": [
+        "compositions/holoclaw.hsplus",
+        "compositions/holodaemon.hsplus",
+        "compositions/holomesh-agent.hsplus",
+        "compositions/moltbook-agent.hsplus",
+        "compositions/self-improve-daemon.hsplus",
+        "compositions/self-improvement.hsplus",
+        "packages/core/src/debug/structured_logger.hsplus"
+      ]
+    },
+    {
+      "name": "tenant",
+      "count": 7,
+      "files": [
+        "examples/enterprise/enterprise-lifecycle.hsplus",
+        "examples/novel-use-cases/08-healthspan-twin.hsplus",
+        "examples/novel-use-cases/10-urban-planning-governance.hsplus",
+        "examples/novel-use-cases/11-sensory-therapy-worlds.hsplus",
+        "examples/showcase/narrative-enterprise-analytics-security-showcase.hsplus"
+      ]
+    }
+  ],
+  "topUnregisteredAnnotationVocab": [
+    {
+      "name": "trait",
+      "count": 2295,
+      "files": [
+        "compositions/recursive-pipeline.hsplus",
+        "packages/absorb-service/src/agent_event_bus.hsplus",
+        "packages/absorb-service/src/analysis/complexity_metrics.hsplus",
+        "packages/absorb-service/src/analysis/deprecation_registry.hsplus",
+        "packages/absorb-service/src/analysis/no_dead_code_rule.hsplus",
+        "packages/absorb-service/src/analysis/reachability_analyzer.hsplus",
+        "packages/absorb-service/src/analysis/reference_graph.hsplus",
+        "packages/absorb-service/src/analysis/simple_reachability_analyzer.hsplus"
+      ]
+    },
+    {
+      "name": "on_spawn",
+      "count": 2270,
+      "files": [
+        "packages/absorb-service/src/agent_event_bus.hsplus",
+        "packages/absorb-service/src/analysis/complexity_metrics.hsplus",
+        "packages/absorb-service/src/analysis/deprecation_registry.hsplus",
+        "packages/absorb-service/src/analysis/no_dead_code_rule.hsplus",
+        "packages/absorb-service/src/analysis/reachability_analyzer.hsplus",
+        "packages/absorb-service/src/analysis/reference_graph.hsplus",
+        "packages/absorb-service/src/analysis/simple_reachability_analyzer.hsplus",
+        "packages/absorb-service/src/analysis/simple_reference_graph.hsplus"
+      ]
+    },
+    {
+      "name": "receipt",
+      "count": 2264,
+      "files": [
+        "packages/absorb-service/src/agent_event_bus.hsplus",
+        "packages/absorb-service/src/analysis/complexity_metrics.hsplus",
+        "packages/absorb-service/src/analysis/deprecation_registry.hsplus",
+        "packages/absorb-service/src/analysis/no_dead_code_rule.hsplus",
+        "packages/absorb-service/src/analysis/reachability_analyzer.hsplus",
+        "packages/absorb-service/src/analysis/reference_graph.hsplus",
+        "packages/absorb-service/src/analysis/simple_reachability_analyzer.hsplus",
+        "packages/absorb-service/src/analysis/simple_reference_graph.hsplus"
+      ]
+    },
+    {
+      "name": "test",
+      "count": 208,
+      "files": [
+        "compositions/daemon-error-taxonomy.hsplus",
+        "compositions/holoclaw.hsplus",
+        "compositions/holodaemon.hsplus",
+        "compositions/holoheal.hsplus",
+        "compositions/holomesh-agent.hsplus",
+        "compositions/moltbook-agent.hsplus",
+        "compositions/recursive-pipeline.hsplus",
+        "compositions/self-improve-daemon.hsplus"
+      ]
+    },
+    {
+      "name": "on_event",
+      "count": 127,
+      "files": [
+        "examples/autonomous-ecosystems/agent-portal-federation.hsplus",
+        "examples/autonomous-ecosystems/cultural-evolution.hsplus",
+        "examples/autonomous-ecosystems/economy-marketplace.hsplus",
+        "examples/autonomous-ecosystems/feedback-driven-npc.hsplus",
+        "examples/cryptography/secure-agent-handshake.hsplus",
+        "examples/enterprise/enterprise-lifecycle.hsplus",
+        "examples/game-state-machine.hsplus",
+        "examples/novel-use-cases/01-quantum-materials-arena.hsplus"
+      ]
+    },
+    {
+      "name": "material",
+      "count": 87,
+      "files": [
+        "compositions/digital-twins/bridge-load-test.hsplus",
+        "compositions/digital-twins/hvac-building.hsplus",
+        "compositions/digital-twins/water-network.hsplus",
+        "compositions/environments/city-rooftop.hsplus",
+        "compositions/holonews-claim-kiosk.hsplus",
+        "packages/holoscript-agent/src/brains/world-builder.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/agent-mesh-city.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/council-chamber.hsplus"
+      ]
+    },
+    {
+      "name": "on_compile",
+      "count": 87,
+      "files": [
+        "packages/absorb-service/src/engine/visualization/codebase_scene_compiler.hsplus",
+        "packages/compiler-wasm/src/wasm_api.hsplus",
+        "packages/connector-core/src/deployment_pipeline.hsplus",
+        "packages/core/src/compiler/a2a_agent_card_compiler.hsplus",
+        "packages/core/src/compiler/agent_inference_export_target.hsplus",
+        "packages/core/src/compiler/ai_glasses_compiler.hsplus",
+        "packages/core/src/compiler/android_compiler.hsplus",
+        "packages/core/src/compiler/android_xr_compiler.hsplus"
+      ]
+    },
+    {
+      "name": "format",
+      "count": 66,
+      "files": [
+        "compositions/accessibility-researcher-brain.hsplus",
+        "compositions/daemon-error-taxonomy.hsplus",
+        "compositions/digital-twins/acoustic-room.hsplus",
+        "compositions/digital-twins/bridge-load-test.hsplus",
+        "compositions/digital-twins/hvac-building.hsplus",
+        "compositions/digital-twins/molecular-dynamics-lj.hsplus",
+        "compositions/digital-twins/radio-telescope-array.hsplus",
+        "compositions/digital-twins/seismic-survey.hsplus"
+      ]
+    },
+    {
+      "name": "version",
+      "count": 61,
+      "files": [
+        "compositions/accessibility-researcher-brain.hsplus",
+        "compositions/digital-twins/acoustic-room.hsplus",
+        "compositions/digital-twins/bridge-load-test.hsplus",
+        "compositions/digital-twins/hvac-building.hsplus",
+        "compositions/digital-twins/molecular-dynamics-lj.hsplus",
+        "compositions/digital-twins/radio-telescope-array.hsplus",
+        "compositions/digital-twins/seismic-survey.hsplus",
+        "compositions/digital-twins/water-network.hsplus"
+      ]
+    },
+    {
+      "name": "on_get",
+      "count": 57,
+      "files": [
+        "packages/absorb-service/src/engine/adapters/language_traits.hsplus",
+        "packages/core/src/assets/asset_registry.hsplus",
+        "packages/core/src/assets/resource_cache.hsplus",
+        "packages/core/src/compiler/build_cache.hsplus",
+        "packages/core/src/compiler/quest_mr_templates_generated.hsplus",
+        "packages/core/src/compiler/scene_presets.hsplus",
+        "packages/core/src/compiler/semantic_cache.hsplus",
+        "packages/core/src/compiler/sovereign_targets.hsplus"
+      ]
+    },
+    {
+      "name": "on_run",
+      "count": 57,
+      "files": [
+        "packages/absorb-service/src/daemon/daemon_grpo_runner.hsplus",
+        "packages/absorb-service/src/pipeline/pipeline_orchestrator.hsplus",
+        "packages/absorb-service/src/self-improvement/self_improve_command.hsplus",
+        "packages/agent-protocol/src/plan_execute_protocol.hsplus",
+        "packages/agent-protocol/src/react_protocol.hsplus",
+        "packages/core/src/assets/import_pipeline.hsplus",
+        "packages/core/src/circuit-breaker/circuit_breaker_benchmarks.hsplus",
+        "packages/core/src/cli/holoscript_runner.hsplus"
+      ]
+    },
+    {
+      "name": "on_update",
+      "count": 54,
+      "files": [
+        "examples/autonomous-ecosystems/agent-portal-federation.hsplus",
+        "examples/autonomous-ecosystems/cultural-evolution.hsplus",
+        "examples/autonomous-ecosystems/feedback-driven-npc.hsplus",
+        "examples/cryptography/secure-agent-handshake.hsplus",
+        "examples/enterprise/enterprise-lifecycle.hsplus",
+        "examples/game-state-machine.hsplus",
+        "examples/novel-use-cases/01-quantum-materials-arena.hsplus",
+        "examples/novel-use-cases/06-neurodiverse-therapy.hsplus"
+      ]
+    },
+    {
+      "name": "on_tick",
+      "count": 49,
+      "files": [
+        "packages/core/src/animation/animation_engine.hsplus",
+        "packages/core/src/editor/editor_ui.hsplus",
+        "packages/core/src/math/spline_follower.hsplus",
+        "packages/core/src/replay/ghost_runner.hsplus",
+        "packages/core/src/traits/ai_npc_brain_trait.hsplus",
+        "packages/core/src/traits/autonomous_agenda_trait.hsplus",
+        "packages/core/src/traits/behavior_tree_trait.hsplus",
+        "packages/core/src/traits/buoyancy_trait.hsplus"
+      ]
+    },
+    {
+      "name": "see",
+      "count": 49,
+      "files": [
+        "compositions/characters/warrior-avatar.hsplus",
+        "compositions/characters/warrior-sculpt.hsplus",
+        "compositions/daemon-error-taxonomy.hsplus",
+        "compositions/digital-twins/bridge-load-test.hsplus",
+        "compositions/digital-twins/hvac-building.hsplus",
+        "compositions/digital-twins/water-network.hsplus",
+        "compositions/environments/city-rooftop.hsplus",
+        "compositions/environments/forest-clearing.hsplus"
+      ]
+    },
+    {
+      "name": "on_generate",
+      "count": 48,
+      "files": [
+        "packages/absorb-service/src/engine/visualization/graph_tooltip_generator.hsplus",
+        "packages/core/src/compiler/android_ar_generators.hsplus",
+        "packages/core/src/compiler/android_feature_generators.hsplus",
+        "packages/core/src/compiler/android_peripheral_generators.hsplus",
+        "packages/core/src/compiler/android_scene_view_feature_generators.hsplus",
+        "packages/core/src/compiler/android_xr_generators.hsplus",
+        "packages/core/src/compiler/android_xr_glasses_generators.hsplus",
+        "packages/core/src/compiler/compiler_documentation_generator.hsplus"
+      ]
+    },
+    {
+      "name": "on_register",
+      "count": 44,
+      "files": [
+        "packages/absorb-service/src/analysis/deprecation_registry.hsplus",
+        "packages/absorb-service/src/engine/adapters/language_traits.hsplus",
+        "packages/agent-protocol/src/hsnap_router.hsplus",
+        "packages/connector-core/src/mcp_registrar.hsplus",
+        "packages/core/src/assets/asset_manifest.hsplus",
+        "packages/core/src/assets/asset_registry.hsplus",
+        "packages/core/src/audio/sound_pool.hsplus",
+        "packages/core/src/compiler/dialect_registry.hsplus"
+      ]
+    },
+    {
+      "name": "method",
+      "count": 39,
+      "files": [
+        "packages/formatter/src/index.hsplus",
+        "packages/linter/src/index.hsplus",
+        "packages/lsp/src/server.hsplus"
+      ]
+    },
+    {
+      "name": "on_check",
+      "count": 39,
+      "files": [
+        "packages/absorb-service/src/analysis/no_dead_code_rule.hsplus",
+        "packages/absorb-service/src/credits/require_credits.hsplus",
+        "packages/core/src/analysis/deprecation_registry.hsplus",
+        "packages/core/src/analysis/no_dead_code_rule.hsplus",
+        "packages/core/src/compiler/cultural_compatibility_checker.hsplus",
+        "packages/core/src/compiler/provenance_bounds_checker.hsplus",
+        "packages/core/src/deploy/license_checker.hsplus",
+        "packages/core/src/deprecation/deprecation_registry.hsplus"
+      ]
+    },
+    {
+      "name": "on_validate",
+      "count": 39,
+      "files": [
+        "packages/absorb-service/src/engine/provenance_integrity_guard.hsplus",
+        "packages/core/src/assets/asset_validator.hsplus",
+        "packages/core/src/compiler/cross_reality_validator.hsplus",
+        "packages/core/src/compiler/gaussian_budget_validator.hsplus",
+        "packages/core/src/export/compression/compression_quality_validator.hsplus",
+        "packages/core/src/hololand/cross_validation_registry.hsplus",
+        "packages/core/src/hololand/world_definition_schema.hsplus",
+        "packages/core/src/holoscript_spread_validator.hsplus"
+      ]
+    },
+    {
+      "name": "animation",
+      "count": 36,
+      "files": [
+        "packages/mcp-server/src/holomesh/gallery/agent-mesh-city.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/council-chamber.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/glass-cathedral.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/humanoid-atlas.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/knowledge-river.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/mycelium-network.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/orbital-loom.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/proof-of-play.hsplus"
+      ]
+    },
+    {
+      "name": "instanced_mesh",
+      "count": 35,
+      "files": [
+        "packages/mcp-server/src/holomesh/gallery/agent-mesh-city.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/council-chamber.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/glass-cathedral.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/humanoid-atlas.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/memory-palace.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/mycelium-network.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/orbital-loom.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/proof-of-play.hsplus"
+      ]
+    },
+    {
+      "name": "on_load",
+      "count": 32,
+      "files": [
+        "compositions/holonews-claim-kiosk.hsplus",
+        "packages/core/src/assets/humanoid_loader.hsplus",
+        "packages/core/src/assets/resource_loader.hsplus",
+        "packages/core/src/assets/smart_asset_loader.hsplus",
+        "packages/core/src/editor/asset_manager.hsplus",
+        "packages/core/src/editor/editor_persistence.hsplus",
+        "packages/core/src/interop/companion_loader.hsplus",
+        "packages/core/src/persistence/save_manager.hsplus"
+      ]
+    },
+    {
+      "name": "on_create",
+      "count": 29,
+      "files": [
+        "packages/absorb-service/src/engine/providers/embedding_provider_factory.hsplus",
+        "packages/core/src/errors/holo_diagnostic.hsplus",
+        "packages/core/src/events/event_channel.hsplus",
+        "packages/core/src/logging/logger_factory.hsplus",
+        "packages/core/src/parser/holo_composition_factory.hsplus",
+        "packages/core/src/parser/rich_errors.hsplus",
+        "packages/core/src/persistence/checkpoint_system.hsplus",
+        "packages/core/src/receipts/domain_simulation_receipt.hsplus"
+      ]
+    },
+    {
+      "name": "sdf_scene",
+      "count": 29,
+      "files": [
+        "packages/mcp-server/src/holomesh/gallery/agent-mesh-city.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/council-chamber.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/humanoid-atlas.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/knowledge-river.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/mycelium-network.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/orbital-loom.hsplus",
+        "packages/mcp-server/src/holomesh/gallery/proof-of-play.hsplus"
+      ]
+    },
+    {
+      "name": "state",
+      "count": 29,
+      "files": [
+        "compositions/skills/fara-hands.hsplus",
+        "examples/hsplus/agents/moderator-agent.hsplus",
+        "examples/hsplus/agents/planner-agent.hsplus",
+        "examples/hsplus/agents/researcher-agent.hsplus",
+        "examples/hsplus/agents/watcher-agent.hsplus",
+        "examples/hsplus/governance/norm-enforcer.hsplus",
+        "examples/hsplus/multi-agent/planner-executor-reviewer.hsplus",
+        "examples/hsplus/multi-agent/swarm-consensus.hsplus"
+      ]
+    }
+  ]
+}
