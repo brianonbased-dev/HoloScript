@@ -665,7 +665,10 @@ export {
 export {
   sealResolveReceipt,
   verifyResolveReceiptChain,
+  createResolveReceiptSink,
   type SecretResolveReceipt,
+  type ResolveReceiptSink,
+  type ResolveReceiptSinkDeps,
 } from './resolve-receipt';
 export {
   sealDecodeReceipt,
@@ -678,8 +681,11 @@ export {
 export {
   sealHash,
   verifyReceiptChain,
+  createReceiptChainSink,
   type ChainAccessors,
   type ChainBreakReason,
+  type ReceiptChainSink,
+  type ReceiptChainSinkDeps,
 } from './receipt-chain';
 export {
   compileSecretsManifest,

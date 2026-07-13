@@ -19,6 +19,11 @@
 //
 // Functions: sealResolveReceipt(audit, prevHash) → SecretResolveReceipt
 //            verifyResolveReceiptChain(receipts) → { valid, brokenAt? }
+//            createResolveReceiptSink({ persist? }) → { audit, chain, head, size, verify }
+//              — the emit→seal→persist wire: its `audit` callback plugs straight into
+//                createSecretResolver({ audit }) / createHoloKeyVault({ audit }) so every
+//                resolve attempt is sealed live onto the chain (the vault exposes it as
+//                `.receipts`). In-memory by default; `persist` is the durable-trail seam.
 
 @trait resolve_receipt {
   capability_tags: ["resolve_receipt", "audit_chain", "hash_chain", "hologate_log", "secrets_broker"]

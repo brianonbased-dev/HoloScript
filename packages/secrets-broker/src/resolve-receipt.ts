@@ -15,7 +15,13 @@
  */
 
 import type { SecretResolveAudit } from './secret-resolver';
-import { sealHash, verifyReceiptChain, type ChainAccessors } from './receipt-chain';
+import {
+  sealHash,
+  verifyReceiptChain,
+  createReceiptChainSink,
+  type ChainAccessors,
+  type ReceiptChainSink,
+} from './receipt-chain';
 
 /** A sealed, hash-chained resolve receipt. Extends the audit with chain hashes. */
 export interface SecretResolveReceipt extends SecretResolveAudit {
@@ -58,4 +64,53 @@ export function verifyResolveReceiptChain(receipts: readonly SecretResolveReceip
 } {
   const { ok, brokenAt } = verifyReceiptChain(receipts, ACCESSORS);
   return { ok, brokenAt };
+}
+
+/**
+ * A resolve-receipt SINK — the emit → seal → persist wire that turns the resolver's audit
+ * stream into a live tamper-evident chain. Hand {@link ResolveReceiptSink.audit} to
+ * `createSecretResolver({ store, audit })` (or `createHoloKeyVault({ audit })`) and every
+ * resolve attempt — allowed or denied — is sealed onto the chain via {@link sealResolveReceipt}
+ * (this is that function's first live caller). Read the sealed log with `.chain()` and prove
+ * it untampered with `.verify()`.
+ */
+export interface ResolveReceiptSink
+  extends ReceiptChainSink<SecretResolveAudit, SecretResolveReceipt> {
+  /**
+   * Resolver-compatible audit callback: seals each attempt onto the chain. Never throws — the
+   * seal is pure and durable persistence is caught — so it is safe as the resolver's
+   * fire-and-forget `audit` sink and cannot break value resolution.
+   */
+  readonly audit: (event: SecretResolveAudit) => void;
+}
+
+export interface ResolveReceiptSinkDeps {
+  /**
+   * Durable, append-only persistence for each sealed resolve receipt. Receipts carry ZERO
+   * secret material (owner, ref, outcome, reason, time, hashes only). DEFAULT: none — the
+   * chain is in-memory only (resets per process; wire this for a durable audit trail).
+   */
+  persist?: (receipt: SecretResolveReceipt) => void | Promise<void>;
+  /** Called when a `persist` throws/rejects. Default: `console.error` (never silently swallowed). */
+  onPersistError?: (err: unknown, receipt: SecretResolveReceipt) => void;
+}
+
+/**
+ * Build a {@link ResolveReceiptSink} over the resolve-receipt seal + accessors. Additive and
+ * side-effect-free by default: no durable write happens unless {@link ResolveReceiptSinkDeps.persist}
+ * is supplied.
+ */
+export function createResolveReceiptSink(deps: ResolveReceiptSinkDeps = {}): ResolveReceiptSink {
+  const sink = createReceiptChainSink<SecretResolveAudit, SecretResolveReceipt>({
+    seal: sealResolveReceipt,
+    accessors: ACCESSORS,
+    persist: deps.persist,
+    onPersistError: deps.onPersistError,
+  });
+  return {
+    ...sink,
+    audit: (event: SecretResolveAudit) => {
+      sink.append(event);
+    },
+  };
 }

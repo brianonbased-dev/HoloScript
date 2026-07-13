@@ -42,6 +42,11 @@ import {
   type SecretResolver,
   type SecretResolveAudit,
 } from './secret-resolver';
+import {
+  createResolveReceiptSink,
+  type ResolveReceiptSink,
+  type SecretResolveReceipt,
+} from './resolve-receipt';
 
 type Env = Record<string, string | undefined>;
 
@@ -53,6 +58,14 @@ export interface HoloKeyVault {
   readonly store: SecretStore;
   /** Fail-closed, owner-bound, audited value resolution for trusted server-side consumers. */
   readonly resolver: SecretResolver;
+  /**
+   * Tamper-evident, SHA-256 hash-chained log of every resolve attempt (allowed + denied),
+   * sealed live as the resolver runs. Read `.chain()` for the sealed receipts and `.verify()`
+   * to prove the log untampered. In-memory by default (resets per process); pass
+   * {@link CreateHoloKeyVaultOpts.persistReceipts} for a durable audit trail. Carries ZERO
+   * secret material — only owner, ref, outcome, reason, time, and hashes.
+   */
+  readonly receipts: ResolveReceiptSink;
   /** Which KEK backed the store — `production` (KMS/scoped-keyring) or `dev` (env KEK). */
   readonly kekGrade: 'production' | 'dev';
   /** Which persistence backend — `postgres` (durable) or `in-memory` (non-persistent / tests). */
@@ -66,6 +79,12 @@ export interface CreateHoloKeyVaultOpts {
   query?: SecretQueryRunner['query'];
   /** Audit sink for every resolve attempt (allowed + denied). Never carries the value. */
   audit?: (e: SecretResolveAudit) => void;
+  /**
+   * Durable, append-only persistence for each sealed resolve receipt (the vault's `receipts`
+   * chain). Receipts carry ZERO secret material. DEFAULT: none — the chain is in-memory only
+   * (resets per process). Wire this (a DB/file append) for a durable, tamper-evident audit trail.
+   */
+  persistReceipts?: (receipt: SecretResolveReceipt) => void | Promise<void>;
 }
 
 /**
@@ -126,10 +145,23 @@ export function createHoloKeyVault(opts: CreateHoloKeyVaultOpts = {}): HoloKeyVa
     return null;
   }
 
-  const resolver = createSecretResolver({ store, audit: opts.audit });
+  // Seal every resolve attempt onto a tamper-evident chain. The sink's audit runs FIRST so a
+  // record is always sealed even if a caller-supplied audit throws; the sink's own audit never
+  // throws (pure seal + caught persist), so it cannot break value resolution.
+  const receipts = createResolveReceiptSink({ persist: opts.persistReceipts });
+  const callerAudit = opts.audit;
+  const audit = callerAudit
+    ? (e: SecretResolveAudit): void => {
+        receipts.audit(e);
+        callerAudit(e);
+      }
+    : receipts.audit;
+
+  const resolver = createSecretResolver({ store, audit });
   return {
     store,
     resolver,
+    receipts,
     kekGrade: picked.grade,
     backend: kind,
   };
