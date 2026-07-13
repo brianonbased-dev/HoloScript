@@ -524,3 +524,34 @@ the common dashboard case. The **full CreatorDashboard native port** is now *pri
 cards, content-type coloring, and gallery) — but it is a large authoring task and a page-vs-panel
 product decision (CreatorDashboard is a full `/creator` page, not a right-rail panel), so it is its
 own scoped effort. NMoS: build-internal (F.133) — chart.js is a library to *replace natively*.
+
+---
+
+## Epistemic "unknown role" state for motif (would make `resolveMotif` closeable)
+
+> Recorded 2026-07-12 (claude1, uAAL loop A4). Motif was FLAGGED not-cleanly-closeable for the
+> honest-abstention program: `recoverMotif`'s only coerced field (`canonicalForm`'s
+> `roleOf.get(edge.from) ?? '?'` — an unstated endpoint role → `'?'`) is *structurally required*,
+> not semantically optional. `motifStructural` (`semantic.ts`) rejects any node with a non-truthy
+> `role`, and the `tm3` structural gate (0.95) forces determinate rows to pass it, so on the valid-IR
+> distribution `canonicalForm` is total and `has_motif`/`recurrence_count` are never underdetermined.
+> The `'?'` fires only on *malformed* input — abstaining there gaps garbage, not honest uncertainty.
+
+**What might be valuable**: If the motif IR gained a genuine **three-valued role** — a node could
+declare its role as *stated-X*, *stated-Y*, or **explicitly-unknown** (an authored/observed-but-unclassified
+node, analogous to access's proposed per-modality `blocks_unknown`, D.108) — then structural recurrence
+would become legitimately underdetermined: two components could be *possibly-the-same-motif* pending the
+unknown role's resolution. That would give `resolveMotif` a clean, load-bearing trigger (abstain when an
+unknown-role node's resolution could flip `has_motif`) and close the loop honestly, extending the
+EXPRESSIBLE→CHECKABLE→TEACHABLE spine to the motif family. Useful anywhere motif detection runs over
+graphs whose node roles are *perceived* rather than authored (e.g. a scene-graph motif over
+vision-extracted components with uncertain role labels).
+
+**Why not now**: Unstated roles are currently *authored-malformed*, not a natural epistemic state —
+unlike occlusion `opaque` (legitimately optional in a well-formed IR), a motif with an untyped node is
+simply an incomplete spec, and no current corpus/consumer produces "known-present-but-unclassified-role"
+nodes. Adding the unknown-role state is a real IR extension (schema change + `motifStructural`/`tm3`
+must admit `role: 'unknown'` as valid-but-abstainable, plus a corpus that exercises it) with no live
+consumer asking for it. Revisit if a perception-fed motif use case appears (vision-extracted scene
+motifs, W.785 cross-perceiver work) where uncertain role labels are a genuine input — then the IR
+extension unblocks a real `resolveMotif`. Until then motif stays recognizer-only (no resolver).
