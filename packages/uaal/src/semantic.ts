@@ -1002,7 +1002,7 @@ export const UAAL_SEMANTIC_THRESHOLDS = {
   motif: UAAL_MOTIF_THRESHOLDS,
 } as const;
 
-function safeParseCompletion<T>(completion: string | T): T | null {
+export function safeParseCompletion<T>(completion: string | T): T | null {
   if (typeof completion !== 'string') {
     return completion ?? null;
   }
@@ -1014,11 +1014,11 @@ function safeParseCompletion<T>(completion: string | T): T | null {
   }
 }
 
-function cloneJson<T>(value: T): T {
+export function cloneJson<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
-function rate(hits: number, total: number): number {
+export function rate(hits: number, total: number): number {
   return total ? hits / total : 0;
 }
 
@@ -1032,7 +1032,7 @@ function declaredTheoryOfMindType(meta: UAALTheoryOfMindMetadata): string {
   return norm(meta.variant_id || String(meta.conflict_type || '').replace(/^false_belief_from_/, ''));
 }
 
-function makeRateTest(hits: number, total: number, floor: number): UAALRateTest {
+export function makeRateTest(hits: number, total: number, floor: number): UAALRateTest {
   const hitRate = rate(hits, total);
   return {
     hits,

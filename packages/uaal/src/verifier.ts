@@ -49,6 +49,8 @@ import {
 } from './semantic';
 import type { UAALBeneficiaryIR } from './beneficiary';
 import { resolveBeneficiary } from './beneficiary';
+import type { UAALVibeIR } from './vibe';
+import { resolveVibe } from './vibe';
 
 /** The families that currently have a gap-aware resolver (can serve as a verifier of record). */
 export type UAALResolvedFamily =
@@ -64,7 +66,8 @@ export type UAALResolvedFamily =
   | 'presupposition'
   | 'access'
   | 'analogy'
-  | 'beneficiary';
+  | 'beneficiary'
+  | 'vibe';
 
 /** Target ids some resolvers need alongside the IR (agent/object/action/norm/belief/commitment/atom). */
 export interface VerifierQuery {
@@ -106,6 +109,10 @@ const RESOLVERS: Record<UAALResolvedFamily, (ir: unknown, query: VerifierQuery) 
   access: (ir, q) => resolveAccess(ir as UAALContainmentIR, q.agent, q.object),
   analogy: (ir) => resolveValidity(ir as UAALAnalogyIR),
   beneficiary: (ir) => resolveBeneficiary(ir as UAALBeneficiaryIR),
+  // Registered 2026-07-13 under the Wave-5.6 probe's fold gate: the resolver spends zero trunk
+  // capacity; the vibe CORPUS FOLD stays gated on family-saturation-probe.v0 reaching a measured
+  // verdict (task_1783916935077_6ps9).
+  vibe: (ir) => resolveVibe(ir as UAALVibeIR),
 };
 
 /** All families that can serve as a verifier of record. */
