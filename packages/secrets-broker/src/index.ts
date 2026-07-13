@@ -676,6 +676,12 @@ export {
   type QecDecodeReceipt,
 } from './decode-receipt';
 export {
+  sealHash,
+  verifyReceiptChain,
+  type ChainAccessors,
+  type ChainBreakReason,
+} from './receipt-chain';
+export {
   compileSecretsManifest,
   SecretsManifestError,
   type SecretDecl,

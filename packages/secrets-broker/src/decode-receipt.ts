@@ -21,7 +21,7 @@
  * @module secrets-broker/decode-receipt
  */
 
-import { createHash } from 'node:crypto';
+import { sealHash, verifyReceiptChain, type ChainAccessors } from './receipt-chain';
 
 /** The qec-decode-receipt/v0 payload a decoder produces for one decode round. */
 export interface QecDecodePayload {
@@ -69,8 +69,14 @@ function canonicalPayload(payload: QecDecodePayload, prevHash: string | null): s
 
 /** `receipt_hash = sha256:<hex>` over the canonical payload — the Paper-37 chain link. */
 function receiptHash(payload: QecDecodePayload, prevHash: string | null): string {
-  return `sha256:${createHash('sha256').update(canonicalPayload(payload, prevHash)).digest('hex')}`;
+  return sealHash(canonicalPayload(payload, prevHash));
 }
+
+const ACCESSORS: ChainAccessors<QecDecodeReceipt> = {
+  canonical: canonicalPayload,
+  prevHashOf: (r) => r.prev_hash,
+  receiptHashOf: (r) => r.receipt_hash,
+};
 
 /**
  * Seal one decode payload into a chained receipt: stamps `prev_hash` (the prior receipt's
@@ -106,14 +112,5 @@ export function verifyDecodeReceiptChain(receipts: readonly QecDecodeReceipt[]):
   brokenAt: number | null;
   reason?: string;
 } {
-  let prev: string | null = null;
-  for (let i = 0; i < receipts.length; i++) {
-    const r = receipts[i];
-    if ((r.prev_hash ?? null) !== prev) return { ok: false, brokenAt: i, reason: 'prev_hash linkage broken' };
-    if (receiptHash(r, r.prev_hash) !== r.receipt_hash) {
-      return { ok: false, brokenAt: i, reason: 'payload hash mismatch (field tampered)' };
-    }
-    prev = r.receipt_hash;
-  }
-  return { ok: true, brokenAt: null };
+  return verifyReceiptChain(receipts, ACCESSORS);
 }

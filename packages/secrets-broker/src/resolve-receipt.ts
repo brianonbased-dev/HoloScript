@@ -14,8 +14,8 @@
  * @module secrets-broker/resolve-receipt
  */
 
-import { createHash } from 'node:crypto';
 import type { SecretResolveAudit } from './secret-resolver';
+import { sealHash, verifyReceiptChain, type ChainAccessors } from './receipt-chain';
 
 /** A sealed, hash-chained resolve receipt. Extends the audit with chain hashes. */
 export interface SecretResolveReceipt extends SecretResolveAudit {
@@ -25,20 +25,15 @@ export interface SecretResolveReceipt extends SecretResolveAudit {
   readonly receiptHash: string;
 }
 
-/** Canonical content hash (fixed field order; excludes receiptHash). */
-function contentHash(r: SecretResolveAudit & { prevHash: string | null }): string {
-  const canonical = JSON.stringify([
-    r.event,
-    r.ownerId,
-    r.ref,
-    r.purpose,
-    r.outcome,
-    r.reason,
-    r.at,
-    r.prevHash,
-  ]);
-  return `sha256:${createHash('sha256').update(canonical).digest('hex')}`;
-}
+/** Canonical serialization for a resolve audit (fixed field order; excludes receiptHash). */
+const canonical = (r: SecretResolveAudit, prevHash: string | null): string =>
+  JSON.stringify([r.event, r.ownerId, r.ref, r.purpose, r.outcome, r.reason, r.at, prevHash]);
+
+const ACCESSORS: ChainAccessors<SecretResolveReceipt> = {
+  canonical,
+  prevHashOf: (r) => r.prevHash,
+  receiptHashOf: (r) => r.receiptHash,
+};
 
 /**
  * Seal a resolve audit into a chained receipt: stamps `prevHash` (the prior receipt's
@@ -48,7 +43,7 @@ export function sealResolveReceipt(
   audit: SecretResolveAudit,
   prevHash: string | null
 ): SecretResolveReceipt {
-  return { ...audit, prevHash, receiptHash: contentHash({ ...audit, prevHash }) };
+  return { ...audit, prevHash, receiptHash: sealHash(canonical(audit, prevHash)) };
 }
 
 /**
@@ -61,22 +56,6 @@ export function verifyResolveReceiptChain(receipts: readonly SecretResolveReceip
   ok: boolean;
   brokenAt: number | null;
 } {
-  let prev: string | null = null;
-  for (let i = 0; i < receipts.length; i++) {
-    const r = receipts[i];
-    if (r.prevHash !== prev) return { ok: false, brokenAt: i };
-    const expected = contentHash({
-      event: r.event,
-      ownerId: r.ownerId,
-      ref: r.ref,
-      purpose: r.purpose,
-      outcome: r.outcome,
-      reason: r.reason,
-      at: r.at,
-      prevHash: r.prevHash,
-    });
-    if (expected !== r.receiptHash) return { ok: false, brokenAt: i };
-    prev = r.receiptHash;
-  }
-  return { ok: true, brokenAt: null };
+  const { ok, brokenAt } = verifyReceiptChain(receipts, ACCESSORS);
+  return { ok, brokenAt };
 }
