@@ -230,6 +230,10 @@ async function cmdRun(opts: { once: boolean }): Promise<void> {
   if (opts.once) {
     const result = await runner.tick();
     console.log(JSON.stringify({ ts: new Date().toISOString(), ev: 'tick-result', ...result }));
+    // a-058 loud-failure contract: an automation-lane execution error surfaces as a
+    // nonzero exit in single-tick mode (CI / cron / smoke), not just a log line.
+    // 'errored' is only produced by the automation lane, so existing flows are unaffected.
+    if (result.action === 'errored') process.exitCode = 1;
     return;
   }
 
@@ -779,6 +783,14 @@ OPTIONAL ENV
                                      e.g. '[{"handle":"laptop","baseUrl":"http://laptop.local:11434","model":"qwen3:4b-instruct","capabilities":["hardware"]}]'
   HOLOSCRIPT_AGENT_PEER_BASE_URL     single fallback peer endpoint for ask_peer/council when the registry has no match (else self-consult)
   HOLOSCRIPT_AGENT_PEER_MODEL        model id to request on the peer node (default: the agent's own model)
+  HOLOSCRIPT_AGENT_AUTOMATION_LANE   "1"/"true" → on an idle tick (no capability-matched task) consider
+                                     ONE holoshell-team-automations prompt task. DEFAULT OFF. While
+                                     _APPLY is unset this is DRY-RUN: claims nothing, logs a selection
+                                     receipt (automation-lane-receipt) of what it WOULD claim and why.
+  HOLOSCRIPT_AGENT_AUTOMATION_LANE_APPLY  "1"/"true" (with the lane enabled) → actually claim + execute the
+                                     selected automation task through the normal claim/execute/closeout
+                                     path (server evidence gates unchanged). Failures block the task
+                                     with a reason and log automation-lane-failure exitCode:1.
 `);
 }
 

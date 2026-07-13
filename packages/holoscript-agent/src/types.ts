@@ -106,6 +106,15 @@ export interface BoardTask {
   status: 'open' | 'claimed' | 'done';
   source?: string;
   claimedBy?: string;
+  /** Server-stamped creation time (ISO). Used by the automation lane for FIFO drain ordering. */
+  createdAt?: string;
+  /**
+   * Server-enforced claim gate (board-routes claim path 403s capability_mismatch
+   * when the claimant's presence tags don't carry these). The automation lane
+   * reads it client-side only to explain refusals in its selection receipt —
+   * the server remains the enforcing side.
+   */
+  required_tags?: string[];
 }
 
 export interface TickResult {
@@ -122,7 +131,8 @@ export interface TickResult {
     | 'messages-processed'
     | 'idle-worked'
     | 'idle-skipped'
-    | 'low-memory-skip';
+    | 'low-memory-skip'
+    | 'automation-dry-run';
   taskId?: string;
   spentUsd: number;
   remainingUsd: number;

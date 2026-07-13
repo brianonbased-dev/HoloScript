@@ -13,6 +13,11 @@ import { createTaskExecutionAttributeClaims } from './care-claims.js';
 import { resolveActiveTools, runTool, summarizeToolProductivity, isProductiveToolUse } from './tools.js';
 import { augmentWithOnTaskCognition } from './cognitive-verbs.js';
 import { DelegatedAuthorityHandler } from './delegated-authority.js';
+import {
+  resolveAutomationLaneConfig,
+  selectAutomationTask,
+  type TaskLane,
+} from './automation-lane.js';
 import type {
   AgentIdentity,
   BoardTask,
@@ -241,7 +246,65 @@ export class AgentRunner {
     const now = Date.now();
     const claimable = tasks.filter((t) => !this.isCoolingDown(t.id, now));
     const skippedForCooldown = tasks.length - claimable.length;
-    const target = pickClaimableTask(claimable, brain.capabilityTags);
+    let target = pickClaimableTask(claimable, brain.capabilityTags);
+    let lane: TaskLane = 'capability';
+
+    // ── Automation lane (board-compass Phase 3, task_1783917146937_bt29) ──────
+    // The holoshell-team-automations feeder enqueues PROMPT tasks that only two
+    // autonomous claimers can drain; observed live they pile up unclaimed and
+    // jam the feeder's dedup (due:38 enqueued:0 — memo §2 S1). When this runner
+    // has NO normal capability-matched work (idle tick — automation work never
+    // pre-empts capability claims), the lane may select AT MOST ONE automation
+    // prompt task. Triple-guarded per the a-058 template: explicit opt-in env
+    // flag (default OFF → deploying this build changes nothing), dry-run by
+    // default once enabled (selection receipt only, claims NOTHING), and a
+    // conservative safety screen (spend/lease/custody/fleet/secret stay with
+    // human-session seats). Execution reuses the identical claim/execute/
+    // closeout machinery below — the post-W.824 server evidence gates are the
+    // trust floor on this lane exactly as on the capability lane.
+    if (!target) {
+      const laneConfig = resolveAutomationLaneConfig(process.env);
+      if (laneConfig.enabled) {
+        const decision = selectAutomationTask(claimable, brain.capabilityTags);
+        if (decision.scanned > 0) {
+          // Selection receipt: exactly which task WOULD be (or is being) claimed
+          // and why, plus every refusal with named screen reasons — the artifact
+          // the integrator reads on the Jetson before flipping APPLY.
+          log({
+            ev: 'automation-lane-receipt',
+            mode: laneConfig.apply ? 'apply' : 'dry-run',
+            scanned: decision.scanned,
+            eligible: decision.eligible,
+            wouldClaim: decision.selected
+              ? {
+                  id: decision.selected.id,
+                  title: decision.selected.title,
+                  priority: decision.selected.priority,
+                }
+              : null,
+            selectionReason: decision.selectionReason ?? null,
+            refused: decision.refused,
+          });
+        }
+        if (decision.selected) {
+          if (!laneConfig.apply) {
+            // Dry-run claims NOTHING — the receipt above is the whole output.
+            return {
+              action: 'automation-dry-run',
+              taskId: decision.selected.id,
+              spentUsd: costGuard.getState().spentUsd,
+              remainingUsd: costGuard.getRemainingUsd(),
+              message:
+                `dry-run: would claim automation task ${decision.selected.id} — ` +
+                `${decision.selectionReason}. Set HOLOSCRIPT_AGENT_AUTOMATION_LANE_APPLY=1 to execute.`,
+            };
+          }
+          target = decision.selected;
+          lane = 'automation';
+        }
+      }
+    }
+
     if (!target) {
       log({ ev: 'no-claimable-task', open: tasks.length, skippedForCooldown });
       // Corpus accrual (I.023 executor): when an accrual capability is injected, grow the
@@ -266,7 +329,7 @@ export class AgentRunner {
       };
     }
 
-    log({ ev: 'claim', taskId: target.id, title: target.title });
+    log({ ev: 'claim', taskId: target.id, title: target.title, lane });
     try {
       await mesh.claim(target.id);
     } catch (err) {
@@ -294,6 +357,56 @@ export class AgentRunner {
       throw err;
     }
 
+    const execCtx = { target, lane, identity, brain, mesh, costGuard, provider, log };
+    if (lane === 'automation') {
+      // a-058 loud-failure guarantee: an automation-lane execution error never
+      // dies silently in runForever's generic tick-error catch. Park the task
+      // with a visible reason (block requires one server-side) and emit a
+      // greppable nonzero-exit receipt line in the runner journal.
+      try {
+        return await this.runClaimedTask(execCtx);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        const reason = `automation-lane execution error: ${message}`.slice(0, 400);
+        await this.blockAutomationTask(mesh, target.id, reason, log);
+        log({
+          ev: 'automation-lane-failure',
+          taskId: target.id,
+          exitCode: 1,
+          kind: 'execution-error',
+          message,
+        });
+        return {
+          action: 'errored',
+          taskId: target.id,
+          spentUsd: costGuard.getState().spentUsd,
+          remainingUsd: costGuard.getRemainingUsd(),
+          message: reason,
+        };
+      }
+    }
+    return this.runClaimedTask(execCtx);
+  }
+
+  /**
+   * Post-claim execution: tool loop → W.107.b artifact gate → self-declared-failure
+   * gate → reflect → cost/CAEL → markDone → continuity write. Extracted verbatim
+   * from tick() (board-compass Phase 3) so the automation lane can wrap this ONE
+   * seam with block-with-reason + loud-failure semantics while both lanes share
+   * the identical execution/closeout machinery — and therefore the identical
+   * post-W.824 server evidence gates.
+   */
+  private async runClaimedTask(ctx: {
+    target: BoardTask;
+    lane: TaskLane;
+    identity: AgentIdentity;
+    brain: RuntimeBrainConfig;
+    mesh: HolomeshClient;
+    costGuard: CostGuard;
+    provider: ILLMProvider;
+    log: (event: Record<string, unknown>) => void;
+  }): Promise<TickResult> {
+    const { target, lane, identity, brain, mesh, costGuard, provider, log } = ctx;
     const start = Date.now();
     // Tool-use loop. The model gets MESH_TOOLS (read_file, list_dir,
     // write_file, bash) and can iterate read→reason→read→write until it
@@ -735,6 +848,18 @@ export class AgentRunner {
         grader: { passed: false, kind: 'no-artifact', toolsCalled: [...toolsCalled], productiveCallCount },
         source: 'agent-runner-negative',
       });
+      // Automation lane: a prompt task with no verifiable artifact is parked
+      // VISIBLY (block + mandatory reason) instead of lingering as silent
+      // claimed debris — unclaimed/claimed automation debris is exactly the
+      // feeder-dedup jam this lane exists to drain. Evidence is NEVER
+      // fabricated to force a closeout; the board shows why it stopped.
+      if (lane === 'automation') {
+        const reason =
+          `automation-lane: no verifiable artifact produced (toolsCalled=[${[...toolsCalled].join(',')}], ` +
+          `productiveCallCount=${productiveCallCount}); refusing to fabricate evidence`;
+        await this.blockAutomationTask(mesh, target.id, reason, log);
+        log({ ev: 'automation-lane-failure', taskId: target.id, exitCode: 1, kind: 'no-artifact' });
+      }
       // Best-effort: leave the task in claimed state so the supervisor can either
       // re-tick or release it via heartbeat-rejoin. We deliberately do NOT post
       // a "fake-done" message on the board, do NOT post a CAEL record, and do NOT
@@ -783,6 +908,16 @@ export class AgentRunner {
         grader: { passed: false, kind: 'failure-artifact', toolsCalled: [...toolsCalled], productiveCallCount },
         source: 'agent-runner-negative',
       });
+      // Automation lane: park the self-declared failure visibly with the reason
+      // on the board (see the no-artifact branch above for the rationale).
+      if (lane === 'automation') {
+        const reason =
+          `automation-lane: run self-declared failure with no commit (writes=${trackedWrites}, ` +
+          `failureWrites=${failureDeclaredWrites}, finalTextDeclaresFailure=${finalTextDeclaresFailure}); ` +
+          'parking instead of closing as done';
+        await this.blockAutomationTask(mesh, target.id, reason, log);
+        log({ ev: 'automation-lane-failure', taskId: target.id, exitCode: 1, kind: 'failure-artifact' });
+      }
       return {
         action: 'failure-artifact',
         taskId: target.id,
@@ -998,6 +1133,34 @@ export class AgentRunner {
       spentUsd: cost.spentUsd,
       remainingUsd: cost.remainingUsd,
     };
+  }
+
+  /**
+   * Park an automation-lane task with a visible reason. The server's block
+   * action REQUIRES blockedReason (400 without it), which is the point: an
+   * automation prompt the runner cannot honestly complete must exit the tick
+   * with an auditable why, not silent claimed debris and not fabricated
+   * closeout evidence. Best-effort: if the block itself fails (network, task
+   * already transitioned), the failure is logged loudly and the tick result
+   * still reaches the caller.
+   */
+  private async blockAutomationTask(
+    mesh: HolomeshClient,
+    taskId: string,
+    reason: string,
+    log: (event: Record<string, unknown>) => void
+  ): Promise<void> {
+    try {
+      await mesh.blockTask(taskId, reason);
+      log({ ev: 'automation-lane-blocked', taskId, reason });
+    } catch (err) {
+      log({
+        ev: 'automation-lane-block-failed',
+        taskId,
+        reason,
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
   }
 
   /**

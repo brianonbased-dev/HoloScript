@@ -138,6 +138,21 @@ export class HolomeshClient {
     }));
   }
 
+  /**
+   * Block a claimed task with a mandatory reason. The server (board-routes
+   * `case 'block'` → framework blockTask) requires `blockedReason` and 400s
+   * without it — the automation lane uses this so a prompt task the runner
+   * cannot produce real verification evidence for is parked VISIBLY (reason on
+   * the board) instead of closed with fabricated evidence or left as silent
+   * claimed debris (trust-audit 2026-07-13 / W.824).
+   */
+  async blockTask(taskId: string, reason: string): Promise<void> {
+    await this.req('PATCH', `/team/${this.teamId}/board/${taskId}`, await this.signBody({
+      action: 'block',
+      blockedReason: reason,
+    }));
+  }
+
   async markDone(taskId: string, summary: string, commitHash?: string): Promise<void> {
     await this.req('PATCH', `/team/${this.teamId}/board/${taskId}`, await this.signBody({
       action: 'done',
