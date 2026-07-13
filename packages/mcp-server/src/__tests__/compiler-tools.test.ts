@@ -326,7 +326,7 @@ describe('compiler tools', () => {
   it('compiles llama.cpp server bundles through compile_to_llama_server', async () => {
     const code = 'composition "FaraVision" {}';
     const executable =
-      'C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build\\bin\\llama-server.exe';
+      'C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build-holo\\bin\\Release\\llama-server.exe';
     const result = (await handleCompilerTool('compile_to_llama_server', {
       code,
       options: {
@@ -363,6 +363,18 @@ describe('compiler tools', () => {
     );
     expect(bundle.registryEntry?.backend).toBe('llama.cpp');
     expect(bundle.registryEntry?.endpoint).toBe('http://127.0.0.1:18080/v1');
+  });
+
+  it('surfaces llama-server compiler errors when no reference exporter exists', async () => {
+    await expect(
+      handleCompilerTool('compile_to_llama_server', {
+        code: 'composition "FaraVision" {}',
+        options: {
+          executable:
+            'C:\\Users\\josep\\Documents\\GitHub\\llama.cpp\\build\\bin\\llama-server.exe',
+        },
+      })
+    ).rejects.toThrow(/legacy llama\.cpp build\/bin/);
   });
 
   it('returns a 3D Tiles stream manifest through stream_world_tiles', async () => {

@@ -774,7 +774,7 @@ export class ExportManager {
     };
 
     // Define fallback operation (if enabled)
-    const fallbackOperation = options.useFallback
+    const fallbackOperation = options.useFallback && this.referenceRegistry.hasExporter(target)
       ? async () => {
           const result = this.referenceRegistry.export(target, composition);
           if (!result) {
