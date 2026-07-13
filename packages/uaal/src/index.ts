@@ -50,6 +50,7 @@ export * from './gate';
 export * from './semantic';
 export * from './beneficiary';
 export * from './vibe';
+export * from './affective-harm';
 export * from './verifier';
 
 // CAEL-pairing surface (2026-07-10, task_1783669630177_iwmp): provenance envelope +
