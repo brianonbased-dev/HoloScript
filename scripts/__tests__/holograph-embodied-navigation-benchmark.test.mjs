@@ -68,9 +68,33 @@ async function main() {
       equal(receipt.rates.actionRate, 1, 'action rate 1.00');
       equal(receipt.rates.doneRate, 1, 'done rate 1.00');
       equal(receipt.rates.nonblankFrameRate, 1, 'nonblank frame rate 1.00');
+      equal(receipt.rates.nodeEdgeSegmentationRate, 1, 'node/edge segmentation rate 1.00');
+      ok(receipt.rates.segmentedVisualDeltaRate > 0, 'segmented oracle detects label contamination');
+      ok(
+        receipt.rates.panCandidateSegmentedDeltaRate > 0,
+        'pan candidates produce segmented graph-mass deltas'
+      );
       ok(
         receipt.projection.totalTargetProjectionImprovementPx > 0,
         'target projection improves toward center'
+      );
+      ok(
+        receipt.segmentedVisualOracle.averageLabelExclusionRate > 0,
+        'visual oracle excludes label pixels from graph mass'
+      );
+      ok(
+        receipt.segmentedVisualOracle.finalAllVsSegmentedCentroidDeltaPx > 0,
+        'all-pixel centroid differs from segmented graph-mass centroid'
+      );
+      ok(
+        receipt.segmentedVisualOracle.alignment.segmentedGraphMassDistanceToViewportCenterPx <
+          receipt.projection.initial.distanceToCenterPx,
+        'segmented graph mass aligns with camera-space target after pan'
+      );
+      equal(
+        receipt.segmentedVisualOracle.alignment.holollamaMetadataAligned,
+        true,
+        'HoloLlama metadata aligns with segmented visual receipt'
       );
       equal(receipt.readback.mode, 'screenshot-only', 'screenshot-only readback');
       equal(receipt.readback.inspectorHidden, true, 'inspector hidden');

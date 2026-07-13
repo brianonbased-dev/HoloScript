@@ -82,6 +82,9 @@ function color(hex) {
   return { r: (v >> 16) & 255, g: (v >> 8) & 255, b: v & 255, a: 255 };
 }
 
+const EDGE_COLOR = color('#70707c');
+const LABEL_COLOR = color('#f4f4f5');
+
 function hueShift(c, degrees) {
   // Small deterministic hue-ish transform. Full HSV conversion is unnecessary
   // for the benchmark; the receipt only needs proof the visual state changed.
@@ -268,10 +271,31 @@ function drawRect(frame, cx, cy, halfW, halfH, c) {
   }
 }
 
+function drawLine(frame, ax, ay, bx, by, c) {
+  const steps = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay)));
+  for (let step = 0; step <= steps; step += 1) {
+    const t = step / steps;
+    const x = ax + (bx - ax) * t;
+    const y = ay + (by - ay) * t;
+    drawRect(frame, x, y, 1, 1, c);
+  }
+}
+
 function renderFrame(scene, state) {
   const frame = makeFramebuffer(scene.canvas.width, scene.canvas.height);
   const rendered = [];
-  for (const object of visibleObjects(scene, state)) {
+  const objects = visibleObjects(scene, state);
+  const projected = new Map();
+  for (const object of objects) {
+    projected.set(object.id, projectObject(object, state.camera, scene.canvas));
+  }
+  for (let index = 1; index < objects.length; index += 1) {
+    const previous = projected.get(objects[index - 1].id);
+    const current = projected.get(objects[index].id);
+    if (!previous?.inFrame || !current?.inFrame) continue;
+    drawLine(frame, previous.x, previous.y, current.x, current.y, EDGE_COLOR);
+  }
+  for (const object of objects) {
     const p = projectObject(object, state.camera, scene.canvas);
     if (!p.inFrame) continue;
     const base = state.colorMode === 'hue_by_role' ? hueShift(object.color, state.hueShiftDegrees) : object.color;
@@ -286,28 +310,88 @@ function renderFrame(scene, state) {
     );
     rendered.push(object.id);
   }
+  for (const object of objects) {
+    const p = projected.get(object.id);
+    if (!p?.inFrame) continue;
+    const shouldDrawLabel =
+      state.labelPolicy === 'all' ||
+      (state.labelPolicy === 'target-first' && (object.id === scene.targetId || object.id === state.focusId));
+    if (!shouldDrawLabel) continue;
+    drawRect(frame, p.x + 18, p.y - 11, Math.max(8, object.name.length * 1.5), 3, LABEL_COLOR);
+  }
   return { frame, rendered };
+}
+
+function sameColor(frame, i, c) {
+  return frame.data[i] === c.r && frame.data[i + 1] === c.g && frame.data[i + 2] === c.b && frame.data[i + 3] === c.a;
+}
+
+function emptyCentroid() {
+  return { x: null, y: null };
+}
+
+function centroidFrom(accumulator) {
+  if (accumulator.count <= 0) return emptyCentroid();
+  return {
+    x: round(accumulator.x / accumulator.count, 3),
+    y: round(accumulator.y / accumulator.count, 3),
+  };
+}
+
+function distanceBetweenCentroids(a, b) {
+  if (a.x === null || a.y === null || b.x === null || b.y === null) return null;
+  return round(Math.hypot(a.x - b.x, a.y - b.y), 3);
 }
 
 function frameStats(renderedFrame) {
   const { frame, rendered } = renderedFrame;
   let nonblank = 0;
+  let labelPixels = 0;
+  let edgePixels = 0;
+  let nodePixels = 0;
+  const all = { x: 0, y: 0, count: 0 };
+  const graphMass = { x: 0, y: 0, count: 0 };
   let hash = createHash('sha256');
   hash.update(frame.data);
   for (let i = 0; i < frame.data.length; i += 4) {
-    if (
-      frame.data[i] !== frame.clear.r ||
-      frame.data[i + 1] !== frame.clear.g ||
-      frame.data[i + 2] !== frame.clear.b ||
-      frame.data[i + 3] !== frame.clear.a
-    ) {
-      nonblank += 1;
+    if (sameColor(frame, i, frame.clear)) continue;
+    const pixelIndex = i / 4;
+    const x = pixelIndex % frame.width;
+    const y = Math.floor(pixelIndex / frame.width);
+    nonblank += 1;
+    all.x += x;
+    all.y += y;
+    all.count += 1;
+    const isLabel = sameColor(frame, i, LABEL_COLOR);
+    const isEdge = sameColor(frame, i, EDGE_COLOR);
+    if (isLabel) {
+      labelPixels += 1;
+    } else {
+      if (isEdge) edgePixels += 1;
+      else nodePixels += 1;
+      graphMass.x += x;
+      graphMass.y += y;
+      graphMass.count += 1;
     }
   }
+  const allCentroid = centroidFrom(all);
+  const segmentedCentroid = centroidFrom(graphMass);
   return {
     sha256: `sha256:${hash.digest('hex')}`,
     nonblankPixels: nonblank,
     nonblankRatio: round(nonblank / (frame.width * frame.height), 6),
+    visualOracle: {
+      mode: 'segmented-node-edge-v1',
+      allNonblankCentroid: allCentroid,
+      segmentedGraphMassCentroid: segmentedCentroid,
+      labelPixels,
+      edgePixels,
+      nodePixels,
+      nodeEdgePixels: graphMass.count,
+      labelExclusionRate: nonblank > 0 ? round(labelPixels / nonblank, 6) : 0,
+      nodeEdgeSegmentationRate: nonblank > 0 ? round(graphMass.count / nonblank, 6) : 0,
+      allVsSegmentedCentroidDeltaPx: distanceBetweenCentroids(allCentroid, segmentedCentroid),
+    },
     renderedObjectIds: rendered,
     nonblank: nonblank > 0,
   };
@@ -439,6 +523,20 @@ export async function runBenchmark(options = {}) {
   }
 
   const finalProjection = projectObject(target, state.camera, scene.canvas);
+  const segmentedOracleFrames = frameReceipts.map((frame) => frame.visualOracle);
+  const segmentedFrames = segmentedOracleFrames.filter((oracle) => oracle.nodeEdgePixels > 0);
+  const segmentedDeltaFrames = segmentedOracleFrames.filter(
+    (oracle) => (oracle.allVsSegmentedCentroidDeltaPx ?? 0) > 0
+  );
+  const segmentedPanDeltaPairs = [];
+  for (let index = 1; index < segmentedOracleFrames.length; index += 1) {
+    segmentedPanDeltaPairs.push(
+      distanceBetweenCentroids(
+        segmentedOracleFrames[index - 1].segmentedGraphMassCentroid,
+        segmentedOracleFrames[index].segmentedGraphMassCentroid
+      ) ?? 0
+    );
+  }
   const rates = {
     rendererNativeProjectionRate: round(
       steps.filter((step) => step.projectionBridge === 'renderer-native').length / steps.length,
@@ -448,6 +546,12 @@ export async function runBenchmark(options = {}) {
     actionRate: round(steps.length / actions.length, 2),
     doneRate: round(steps.filter((step) => step.done).length / steps.length, 2),
     nonblankFrameRate: round(frameReceipts.filter((frame) => frame.nonblank).length / frameReceipts.length, 2),
+    nodeEdgeSegmentationRate: round(segmentedFrames.length / frameReceipts.length, 2),
+    segmentedVisualDeltaRate: round(segmentedDeltaFrames.length / frameReceipts.length, 2),
+    panCandidateSegmentedDeltaRate: round(
+      segmentedPanDeltaPairs.filter((delta) => delta > 0).length / Math.max(1, segmentedPanDeltaPairs.length),
+      2
+    ),
   };
   const holollama = await probeHoloLlamaMetadata(
     options.holollamaEndpoint ?? DEFAULT_HOLOLLAMA_ENDPOINT,
@@ -488,6 +592,33 @@ export async function runBenchmark(options = {}) {
         3
       ),
     },
+    segmentedVisualOracle: {
+      mode: 'node-edge-pixels-excluding-label-blocks',
+      frameCount: frameReceipts.length,
+      finalGraphMassCentroid: segmentedOracleFrames.at(-1)?.segmentedGraphMassCentroid ?? emptyCentroid(),
+      finalAllNonblankCentroid: segmentedOracleFrames.at(-1)?.allNonblankCentroid ?? emptyCentroid(),
+      finalAllVsSegmentedCentroidDeltaPx:
+        segmentedOracleFrames.at(-1)?.allVsSegmentedCentroidDeltaPx ?? null,
+      averageLabelExclusionRate: round(
+        segmentedOracleFrames.reduce((sum, oracle) => sum + oracle.labelExclusionRate, 0) /
+          Math.max(1, segmentedOracleFrames.length),
+        6
+      ),
+      averageNodeEdgeSegmentationRate: round(
+        segmentedOracleFrames.reduce((sum, oracle) => sum + oracle.nodeEdgeSegmentationRate, 0) /
+          Math.max(1, segmentedOracleFrames.length),
+        6
+      ),
+      panCandidateSegmentedDeltaPx: segmentedPanDeltaPairs.map((delta) => round(delta, 3)),
+      alignment: {
+        cameraSpaceTargetProjection: finalProjection,
+        segmentedGraphMassDistanceToViewportCenterPx: distanceBetweenCentroids(
+          segmentedOracleFrames.at(-1)?.segmentedGraphMassCentroid ?? emptyCentroid(),
+          { x: scene.canvas.width / 2, y: scene.canvas.height / 2 }
+        ),
+        holollamaMetadataAligned: Boolean(holollama.reachable && holollama.model?.id),
+      },
+    },
     readback: {
       mode: state.readbackMode,
       inspectorHidden: true,
@@ -499,6 +630,8 @@ export async function runBenchmark(options = {}) {
       ...(holollama.reachable ? [] : [`holollama_unreachable:${holollama.failure}`]),
       ...(rates.rendererNativeProjectionRate === 1 ? [] : ['renderer_native_projection_rate_below_1']),
       ...(rates.nonblankFrameRate === 1 ? [] : ['blank_frame_detected']),
+      ...(rates.nodeEdgeSegmentationRate === 1 ? [] : ['node_edge_segmentation_rate_below_1']),
+      ...(rates.segmentedVisualDeltaRate > 0 ? [] : ['segmented_visual_oracle_did_not_exclude_labels']),
       ...(finalProjection.distanceToCenterPx < initialProjection.distanceToCenterPx
         ? []
         : ['target_projection_did_not_improve']),
