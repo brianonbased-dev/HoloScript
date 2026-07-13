@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/agent-runtime",
-  "version": "0.5.4",
+  "version": "0.6.0",
   "description": "Provider-neutral second-brain runtime and contract helpers for human and agent operators.",
   "releaseLane": "v0-preview",
   "keywords": [
@@ -38,7 +38,8 @@
   },
   "peerDependencies": {
     "@holoscript/llm-provider": ">=1.4.0",
-    "@holoscript/memory": ">=0.3.0"
+    "@holoscript/memory": ">=0.3.0",
+    "pg": ">=8.16.0"
   },
   "peerDependenciesMeta": {
     "@holoscript/llm-provider": {
@@ -46,12 +47,15 @@
     },
     "@holoscript/memory": {
       "optional": true
+    },
+    "pg": {
+      "optional": true
     }
   },
   "scripts": {
-    "build": "node --check src/index.mjs && node --check src/memory-package.mjs && node --check src/agent-profiles.mjs && node --check src/sovereign-seed.mjs && node --check src/second-brain-runtime.mjs && node --check src/provider-planner.mjs && node --check src/frozen-provider-evaluation.mjs",
-    "test": "node --test test/agent-runtime.test.mjs test/second-brain-runtime.test.mjs test/provider-planner.test.mjs test/frozen-provider-evaluation.test.mjs",
-    "check": "node --check src/index.mjs && node --check src/memory-package.mjs && node --check src/agent-profiles.mjs && node --check src/sovereign-seed.mjs && node --check src/second-brain-runtime.mjs && node --check src/provider-planner.mjs && node --check src/frozen-provider-evaluation.mjs && node --test test/agent-runtime.test.mjs test/second-brain-runtime.test.mjs test/provider-planner.test.mjs test/frozen-provider-evaluation.test.mjs",
+    "build": "node --check src/index.mjs && node --check src/memory-package.mjs && node --check src/agent-profiles.mjs && node --check src/sovereign-seed.mjs && node --check src/second-brain-runtime.mjs && node --check src/provider-planner.mjs && node --check src/frozen-provider-evaluation.mjs && node --check src/capability-work.mjs",
+    "test": "node --test test/agent-runtime.test.mjs test/second-brain-runtime.test.mjs test/provider-planner.test.mjs test/frozen-provider-evaluation.test.mjs test/capability-work.test.mjs",
+    "check": "node --check src/index.mjs && node --check src/memory-package.mjs && node --check src/agent-profiles.mjs && node --check src/sovereign-seed.mjs && node --check src/second-brain-runtime.mjs && node --check src/provider-planner.mjs && node --check src/frozen-provider-evaluation.mjs && node --check src/capability-work.mjs && node --test test/agent-runtime.test.mjs test/second-brain-runtime.test.mjs test/provider-planner.test.mjs test/frozen-provider-evaluation.test.mjs test/capability-work.test.mjs",
     "prepublishOnly": "pnpm run check"
   },
   "holorepo": {

@@ -338,6 +338,44 @@ can set `HOLOSCRIPT_AGENT_NODE_PROFILE=jetson-reference` or point
 assumes a Jetson host, LAN IP, NVMe path, Postgres container, model server, or
 private vault.
 
+## Capability Work And Failover
+
+The runtime includes a provider-neutral capability-work contract for durable,
+idempotent jobs. A caller can back it with Postgres, run the same bounded worker
+on a laptop or cloud host, and leave hardware-specific jobs queued when their
+required capabilities are unavailable.
+
+```js
+import {
+  createPostgresCapabilityWorkStore,
+  runCapabilityWorkerTick,
+} from '@holoscript/agent-runtime';
+
+const store = await createPostgresCapabilityWorkStore({
+  connectionString: process.env.MEMORY_DATABASE_URL,
+  workspaceId: 'my-runtime',
+});
+await store.ensureSchema();
+await store.enqueue({
+  kind: 'continuity-probe',
+  idempotencyKey: 'continuity:2026-07-13',
+  requiredCapabilities: ['cpu'],
+});
+
+const receipt = await runCapabilityWorkerTick({
+  store,
+  worker: { id: 'cloud-standby', capabilities: ['cloud', 'cpu'] },
+  handlers: {
+    'continuity-probe': async () => ({ ok: true }),
+  },
+});
+```
+
+Claims use expiring ownership tokens, Postgres `FOR UPDATE SKIP LOCKED`, bounded
+attempts, and idempotency keys. Receipts hash lease tokens instead of exposing
+them. Capability requirements are hard gates: an `edge-io` job is not silently
+claimed by a generic cloud worker.
+
 ## `@holoscript/memory`
 
 `@holoscript/memory` is an optional peer dependency because some seats only reach
