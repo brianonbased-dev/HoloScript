@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/crdt-spatial",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Loro CRDT-based spatial transform synchronization with Strategy C hybrid rotation handling (base quaternion LWW + delta Euler counters + 30s checkpoint)",
   "type": "module",
   "main": "./dist/index.js",
@@ -52,7 +52,8 @@
   },
   "dependencies": {
     "@holoscript/framework": "workspace:^",
-    "loro-crdt": "^1.0.0"
+    "loro-crdt": "^1.0.0",
+    "react": "^19.2.0"
   },
   "peerDependencies": {
     "@react-three/fiber": "^9.5.0",

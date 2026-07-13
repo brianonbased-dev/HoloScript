@@ -1,11 +1,15 @@
 {
   "name": "@holoscript/connector-vscode",
-  "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "VSCode extension connector — bidirectional sync, live preview, MCP bridge",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
+  "files": [
+    "dist",
+    "README.md",
+    "ROADMAP.md"
+  ],
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts",
     "test": "vitest run",
