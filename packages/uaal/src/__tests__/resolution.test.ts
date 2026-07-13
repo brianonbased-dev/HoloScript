@@ -8,12 +8,14 @@ import {
   naiveParentNecessity,
   resolveMereology,
   resolveTension,
+  resolveAtomStatus,
   type UAALContainmentIR,
   type UAALDeonticIR,
   type UAALCompositionIR,
   type UAALCounterfactualIR,
   type UAALMereologyIR,
   type UAALTensionIR,
+  type UAALPresuppositionIR,
 } from '../semantic';
 
 // The gap-aware layer (the "three-body disposition" verifier): resolve* must DERIVE unresolvability from the
@@ -436,6 +438,57 @@ describe('resolveTension — unstated terminal outcome', () => {
   });
 });
 
+describe('resolveAtomStatus — missing embedded forms', () => {
+  const projected: UAALPresuppositionIR = {
+    forms: [
+      { form: 'asserted', atoms: ['has_king', 'is_bald'] },
+      { form: 'negated', atoms: ['has_king'] },
+      { form: 'modal', atoms: ['has_king'] },
+      { form: 'question', atoms: ['has_king'] },
+    ],
+    query: { atoms: ['has_king', 'is_bald'] },
+  };
+
+  it('resolves presupposed for an atom that survives every embedded form', () => {
+    const r = resolveAtomStatus(projected, 'has_king');
+    expect(r.status).toBe('resolved');
+    expect(r.answer).toEqual({ status: 'presupposed' });
+  });
+
+  it('resolves at_issue for an atom dropped by a stated embedded form (closed-world per form — no false gap)', () => {
+    // is_bald is asserted but absent from the stated negated/modal/question forms: the forms EXIST
+    // and omit it, which is definite non-survival (the pt4 falsification flip is built on exactly
+    // this semantics) — determinate at_issue, never a gap.
+    const r = resolveAtomStatus(projected, 'is_bald');
+    expect(r.status).toBe('resolved');
+    expect(r.answer).toEqual({ status: 'at_issue' });
+  });
+
+  it('abstains when an asserted atom has NO embedded forms to project through', () => {
+    const assertedOnly: UAALPresuppositionIR = {
+      forms: [{ form: 'asserted', atoms: ['has_king'] }],
+      query: { atoms: ['has_king'] },
+    };
+    const r = resolveAtomStatus(assertedOnly, 'has_king');
+    expect(r.status).toBe('unresolvable');
+    expect(r.reason).toBe('underdetermined');
+    expect(r.gap?.code).toBe('presupposition.no_embedded_forms');
+    expect(r.obstruction).toContain('has_king');
+  });
+
+  it('resolves at_issue for an UNASSERTED atom even with zero embedded forms (no false gap)', () => {
+    // Unasserted content is never presupposed content — determinate regardless of embedding data,
+    // so the zero-embedded trigger must not fire.
+    const assertedOnly: UAALPresuppositionIR = {
+      forms: [{ form: 'asserted', atoms: ['other_atom'] }],
+      query: { atoms: ['has_king'] },
+    };
+    const r = resolveAtomStatus(assertedOnly, 'has_king');
+    expect(r.status).toBe('resolved');
+    expect(r.answer).toEqual({ status: 'at_issue' });
+  });
+});
+
 describe('no false gaps', () => {
   it('every determinate query resolves (never a spurious unresolvable)', () => {
     const occ = resolveOcclusion(
@@ -468,7 +521,18 @@ describe('no false gaps', () => {
       frontier: 'F',
       query: { frontier: 'F' },
     });
-    expect([occ.status, norm.status, disc.status, cf.status, mer.status, ten.status]).toEqual([
+    const pre = resolveAtomStatus(
+      {
+        forms: [
+          { form: 'asserted', atoms: ['p'] },
+          { form: 'negated', atoms: ['p'] },
+        ],
+        query: { atoms: ['p'] },
+      },
+      'p',
+    );
+    expect([occ.status, norm.status, disc.status, cf.status, mer.status, ten.status, pre.status]).toEqual([
+      'resolved',
       'resolved',
       'resolved',
       'resolved',

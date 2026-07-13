@@ -3677,6 +3677,39 @@ export function recoverAtomStatus(ir: UAALPresuppositionIR, atom: string): AtomS
   return { status: 'at_issue' };
 }
 
+/**
+ * Atom projection status, honest about MISSING EMBEDDED FORMS. recoverAtomStatus marks an atom
+ * `presupposed` iff it is asserted AND survives in every embedded (non-asserted) form; with ZERO
+ * embedded forms it silently coerces the atom to `at_issue` — indistinguishable from genuinely
+ * at-issue content — even though projection-under-embedding is the ONLY presupposition diagnostic
+ * the family has, so an asserted atom with no embedded forms is genuinely undetermined.
+ * resolveAtomStatus abstains exactly there (crisp trigger: atom stated in the asserted form AND no
+ * embedded forms exist). Everything else stays determinate: per-form absence is closed-world (a
+ * stated embedded form that omits the atom means non-survival — the pt4 falsification flip is built
+ * on that semantics), and an atom absent from the asserted form resolves at_issue (unasserted
+ * content is never presupposed content). No-false-gap: the pt4 invariant (threshold 0.95) forces
+ * BOTH determinate classes to state ≥1 embedded form — a presupposed row cannot flip after the
+ * negated-form strip without one, and an at_issue row cannot flip to projection without one — so
+ * abstaining on the zero-embedded case provably never gaps a determinate corpus row.
+ */
+export function resolveAtomStatus(
+  ir: UAALPresuppositionIR,
+  atom: string | undefined,
+): UAALResolution<AtomStatusRecovery> {
+  const atomId = String(atom ?? '');
+  const embedded = (ir.forms || []).filter((form) => form.form !== 'asserted');
+  if (atomInForm(ir, 'asserted', atomId) && embedded.length === 0) {
+    return {
+      query: 'atom_status',
+      status: 'unresolvable',
+      reason: 'underdetermined',
+      gap: structuredGap('presupposition', 'presupposition.no_embedded_forms', 'underdetermined', atomId),
+      obstruction: `atom "${atomId}" is asserted but the IR states no embedded (negated/modal/question) forms — projection under embedding is the only presupposition diagnostic, so presupposed vs at_issue is undetermined`,
+    };
+  }
+  return { query: 'atom_status', status: 'resolved', answer: recoverAtomStatus(ir, atomId) };
+}
+
 export function surfacePresenceStatus(ir: UAALPresuppositionIR, atom: string): AtomStatusRecovery {
   return { status: atomInForm(ir, 'asserted', atom) ? 'presupposed' : 'at_issue' };
 }

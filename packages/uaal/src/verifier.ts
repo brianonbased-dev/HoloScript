@@ -30,6 +30,7 @@ import type {
   UAALCounterfactualIR,
   UAALMereologyIR,
   UAALTensionIR,
+  UAALPresuppositionIR,
 } from './semantic';
 import {
   resolveOcclusion,
@@ -41,6 +42,7 @@ import {
   resolveCounterfactual,
   resolveMereology,
   resolveTension,
+  resolveAtomStatus,
 } from './semantic';
 import type { UAALBeneficiaryIR } from './beneficiary';
 import { resolveBeneficiary } from './beneficiary';
@@ -56,9 +58,10 @@ export type UAALResolvedFamily =
   | 'counterfactual'
   | 'mereology'
   | 'tension'
+  | 'presupposition'
   | 'beneficiary';
 
-/** Target ids some resolvers need alongside the IR (agent/object/action/norm/belief/commitment). */
+/** Target ids some resolvers need alongside the IR (agent/object/action/norm/belief/commitment/atom). */
 export interface VerifierQuery {
   agent?: string;
   action?: string;
@@ -67,6 +70,7 @@ export interface VerifierQuery {
   belief?: string;
   fact?: string;
   commitment?: string;
+  atom?: string;
 }
 
 /** The canonical label for one IR under its family resolver — the only ground truth a builder may use. */
@@ -93,6 +97,7 @@ const RESOLVERS: Record<UAALResolvedFamily, (ir: unknown, query: VerifierQuery) 
   counterfactual: (ir) => resolveCounterfactual(ir as UAALCounterfactualIR),
   mereology: (ir) => resolveMereology(ir as UAALMereologyIR),
   tension: (ir) => resolveTension(ir as UAALTensionIR),
+  presupposition: (ir, q) => resolveAtomStatus(ir as UAALPresuppositionIR, q.atom),
   beneficiary: (ir) => resolveBeneficiary(ir as UAALBeneficiaryIR),
 };
 
