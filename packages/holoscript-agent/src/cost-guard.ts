@@ -112,6 +112,29 @@ export function defaultXAIPricer(model: string, usage: TokenUsage): number {
 
 // OpenRouter pricing is per-model and varies by upstream — populated lazily.
 // Empty until verified pricing lands.
+// OpenAI GPT-5.6 text pricing — official OpenAI pricing/model docs verified
+// 2026-07-13. Flat table uses standard short-context rows; long-context,
+// batch, priority, cache-write, and cached-input dimensions are separate
+// surfaces and must not be silently collapsed into this two-field token pricer.
+export const OPENAI_PRICING_USD_PER_MTOK: Record<string, { input: number; output: number }> = {
+  'gpt-5.6-sol': { input: 5, output: 30 },
+  'gpt-5.6': { input: 5, output: 30 },
+  'gpt-5.6-terra': { input: 2.5, output: 15 },
+  'gpt-5.6-luna': { input: 1, output: 6 },
+  'gpt-5.5': { input: 5, output: 30 },
+};
+
+export function defaultOpenAIPricer(model: string, usage: TokenUsage): number {
+  const price = OPENAI_PRICING_USD_PER_MTOK[model];
+  if (!price) {
+    throw new Error(
+      `No OpenAI pricing configured for model "${model}" — add to OPENAI_PRICING_USD_PER_MTOK ` +
+        `(verify via official OpenAI models/pricing docs) or pass a custom pricer`
+    );
+  }
+  return (usage.promptTokens * price.input + usage.completionTokens * price.output) / 1_000_000;
+}
+
 export const OPENROUTER_PRICING_USD_PER_MTOK: Record<string, { input: number; output: number }> =
   {};
 
@@ -246,8 +269,9 @@ export type RealtimePricer =
  * defaultAnthropicPricer was wired in for ALL providers regardless of
  * which LLM the agent uses.
  *
- * Known gap (separate task): non-Anthropic non-local providers (openai,
- * gemini) still fall through to defaultAnthropicPricer here. xai +
+ * Known gap (separate task): non-Anthropic non-local providers other than
+ * OpenAI/xAI/OpenRouter (for example gemini) still fall through to
+ * defaultAnthropicPricer here. xai +
  * openrouter were added 2026-05-06 with explicit dispatch (Lane A — see
  * docs/LLM_CAPABILITIES.md); xAI pricing was credential-verified and
  * populated 2026-07-10, openrouter's dict remains empty until verified.
@@ -256,6 +280,7 @@ export function defaultPricerForProvider(
   provider: 'anthropic' | 'local-llm' | 'openai' | 'xai' | 'openrouter' | string
 ): ModelPricer {
   if (provider === 'local-llm' || provider === 'mock') return defaultLocalLlmPricer;
+  if (provider === 'openai') return defaultOpenAIPricer;
   if (provider === 'xai') return defaultXAIPricer;
   if (provider === 'openrouter') return defaultOpenRouterPricer;
   return defaultAnthropicPricer;

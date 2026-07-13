@@ -1039,6 +1039,8 @@ export interface Capabilities {
   // ─── Universal axis support ─────────────────────────────────────
   streaming: boolean;
   tools: boolean;
+  /** Programmatic function/tool calling surface (provider can return structured tool calls). */
+  programmaticToolCalling?: boolean;
 
   // ─── Multimodal ─────────────────────────────────────────────────
   vision: boolean;
@@ -1088,6 +1090,10 @@ export interface Capabilities {
   fileSearchBuiltIn?: boolean;
   /** Server-side prompt caching (Anthropic cache_control, Gemini cached_content). */
   promptCaching?: boolean;
+  /** Caller can place explicit cache breakpoints or disable implicit cache selection. */
+  explicitPromptCacheControls?: boolean;
+  /** Provider can persist reasoning state across stored Responses/conversation turns. */
+  persistedReasoning?: boolean;
   /** Per-loop token budget the model is aware of (Anthropic Task Budgets). */
   perLoopBudget?: boolean;
   /** Server-side conversation compaction (Anthropic compact-2026-01-12). */
@@ -1282,6 +1288,22 @@ export interface OpenAIProviderExtensions {
    * Source: developers.openai.com/api/docs/changelog (verified 2026-06-08 A-020).
    */
   moderation?: InlineModerationRequest;
+  /**
+   * GPT-5.6 explicit prompt-cache controls. Segregated OpenAI dialect:
+   * callers can opt into explicit-only cache selection and mark content
+   * blocks with `prompt_cache_breakpoint` when constructing provider-native
+   * payloads.
+   */
+  promptCache?: {
+    mode?: 'auto' | 'explicit';
+    maxBreakpoints?: number;
+  };
+  /**
+   * Persist reasoning/conversation state with OpenAI Responses `store`.
+   * Kept provider-scoped because other providers expose different persistence
+   * and retention contracts.
+   */
+  persistedReasoning?: boolean;
   /** Sora/GPT Image route hint; current text completion path ignores media route hints. */
   videoEditing?: boolean;
   /** Sora route hint for still-image animation into video. */

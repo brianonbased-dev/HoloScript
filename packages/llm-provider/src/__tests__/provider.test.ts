@@ -12,7 +12,13 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { extractTraits } from '../base-adapter';
 import { MockAdapter, MOCK_CAPABILITIES } from '../adapters/mock';
-import { OpenAIAdapter, OPENAI_MODELS, OPENAI_CAPABILITIES } from '../adapters/openai';
+import {
+  OpenAIAdapter,
+  OPENAI_MODELS,
+  OPENAI_CAPABILITIES,
+  OPENAI_MODEL_ALIASES,
+  resolveOpenAIModelAlias,
+} from '../adapters/openai';
 import {
   AnthropicAdapter,
   ANTHROPIC_MODELS,
@@ -212,6 +218,10 @@ describe('OpenAIAdapter (metadata)', () => {
 
   it('has expected available models', () => {
     const adapter = new OpenAIAdapter({ apiKey: 'test-key' });
+    expect(adapter.models).toContain('gpt-5.6-sol');
+    expect(adapter.models).toContain('gpt-5.6');
+    expect(adapter.models).toContain('gpt-5.6-terra');
+    expect(adapter.models).toContain('gpt-5.6-luna');
     expect(adapter.models).toContain('gpt-5.5');
     expect(adapter.models).toContain('gpt-5.4-mini');
     expect(adapter.models).toContain('gpt-5.3-codex');
@@ -222,13 +232,18 @@ describe('OpenAIAdapter (metadata)', () => {
 
   it('OPENAI_MODELS constant is populated', () => {
     expect(OPENAI_MODELS.length).toBeGreaterThan(0);
+    expect(OPENAI_MODELS).toContain('gpt-5.6-sol');
     expect(OPENAI_MODELS).toContain('gpt-5.5');
     expect(OPENAI_MODELS).toContain('gpt-4o');
   });
 
-  it('uses gpt-5.5 as default HoloScript model', () => {
+  it('locks GPT-5.6 alias routing to Sol and uses Sol as default', () => {
+    expect(OPENAI_MODEL_ALIASES['gpt-5.6']).toBe('gpt-5.6-sol');
+    expect(resolveOpenAIModelAlias('gpt-5.6')).toBe('gpt-5.6-sol');
+    expect(resolveOpenAIModelAlias('gpt-5.6-terra')).toBe('gpt-5.6-terra');
+
     const adapter = new OpenAIAdapter({ apiKey: 'test-key' });
-    expect(adapter.defaultHoloScriptModel).toBe('gpt-5.5');
+    expect(adapter.defaultHoloScriptModel).toBe('gpt-5.6-sol');
   });
 
   it('respects custom defaultModel in config', () => {
@@ -240,10 +255,11 @@ describe('OpenAIAdapter (metadata)', () => {
     const adapter = new OpenAIAdapter({ apiKey: 'test-key' });
     expect(adapter.capabilities).toBe(OPENAI_CAPABILITIES);
     expect(adapter.capabilities).toMatchObject({
-      contextWindow: 0,
-      maxOutput: 0,
+      contextWindow: 1_050_000,
+      maxOutput: 128_000,
       streaming: true,
       tools: true,
+      programmaticToolCalling: true,
       vision: true,
       audioInput: true,
       audioOutput: true,
@@ -256,6 +272,8 @@ describe('OpenAIAdapter (metadata)', () => {
       codeExecutionSandbox: true,
       fileSearchBuiltIn: true,
       promptCaching: true,
+      explicitPromptCacheControls: true,
+      persistedReasoning: true,
       hostedAgenticLoop: true,
       persistentMemoryStore: true,
       structuredOutputs: true,

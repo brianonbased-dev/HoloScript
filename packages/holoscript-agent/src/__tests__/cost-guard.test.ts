@@ -6,9 +6,11 @@ import {
   CostGuard,
   defaultAnthropicPricer,
   defaultLocalLlmPricer,
+  defaultOpenAIPricer,
   defaultOpenRouterPricer,
   defaultPricerForProvider,
   defaultXAIPricer,
+  OPENAI_PRICING_USD_PER_MTOK,
   XAI_PRICING_USD_PER_MTOK,
   ANTHROPIC_PRICING_USD_PER_MTOK,
   ANTHROPIC_PRICING_SCHEDULE_USD_PER_MTOK,
@@ -148,8 +150,34 @@ describe('defaultPricerForProvider', () => {
   });
 
   it('falls back to Anthropic pricer for unrecognized providers (safe default — fail loud on unknown model)', () => {
-    expect(defaultPricerForProvider('openai')).toBe(defaultAnthropicPricer);
+    expect(defaultPricerForProvider('openai')).toBe(defaultOpenAIPricer);
     expect(defaultPricerForProvider('some-future-provider')).toBe(defaultAnthropicPricer);
+  });
+});
+
+describe('defaultOpenAIPricer', () => {
+  it('prices GPT-5.6 Sol/Terra/Luna standard short-context rows', () => {
+    expect(OPENAI_PRICING_USD_PER_MTOK['gpt-5.6-sol']).toEqual({ input: 5, output: 30 });
+    expect(OPENAI_PRICING_USD_PER_MTOK['gpt-5.6']).toEqual({ input: 5, output: 30 });
+    expect(OPENAI_PRICING_USD_PER_MTOK['gpt-5.6-terra']).toEqual({ input: 2.5, output: 15 });
+    expect(OPENAI_PRICING_USD_PER_MTOK['gpt-5.6-luna']).toEqual({ input: 1, output: 6 });
+    expect(
+      defaultOpenAIPricer('gpt-5.6-luna', {
+        promptTokens: 1_000_000,
+        completionTokens: 1_000_000,
+        totalTokens: 2_000_000,
+      })
+    ).toBeCloseTo(7, 5);
+  });
+
+  it('fails loud for unknown OpenAI text pricing rows', () => {
+    expect(() =>
+      defaultOpenAIPricer('gpt-5.6-imaginary', {
+        promptTokens: 1,
+        completionTokens: 1,
+        totalTokens: 2,
+      })
+    ).toThrowError(/No OpenAI pricing configured/);
   });
 });
 

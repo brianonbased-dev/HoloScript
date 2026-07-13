@@ -35,6 +35,10 @@ import {
 // Keep current aliases first and legacy aliases last so callers can still opt
 // into old pinned behavior without making those models the default.
 export const OPENAI_MODELS = [
+  'gpt-5.6-sol',
+  'gpt-5.6', // alias -> gpt-5.6-sol (OpenAI model guidance/changelog, verified 2026-07-13)
+  'gpt-5.6-terra',
+  'gpt-5.6-luna',
   'gpt-5.5',
   'gpt-5.5-instant', // 1M ctx, ChatGPT default; alias: chat-latest — A-020 2026-06-08
   'chat-latest', // API alias for gpt-5.5-instant (openai changelog 2026-06-08)
@@ -58,6 +62,15 @@ export const OPENAI_MODELS = [
 ] as const;
 
 export type OpenAIModel = (typeof OPENAI_MODELS)[number];
+
+export const OPENAI_MODEL_ALIASES = {
+  'gpt-5.6': 'gpt-5.6-sol',
+  'chat-latest': 'gpt-5.5-instant',
+} as const satisfies Partial<Record<OpenAIModel, OpenAIModel>>;
+
+export function resolveOpenAIModelAlias(model: string): string {
+  return (OPENAI_MODEL_ALIASES as Record<string, string>)[model] ?? model;
+}
 
 type OpenAIResponseInputItem = Record<string, unknown>;
 type OpenAIResponseTool = Record<string, unknown>;
@@ -449,11 +462,13 @@ export function parseOpenAIChatCompletionToolCalls(choice: unknown): {
  * without instantiating the adapter — single source of truth per W.GOLD.006.
  */
 export const OPENAI_CAPABILITIES: Capabilities = {
-  contextWindow: 0, // [VERIFY task_1778109552044_wstq]
-  maxOutput: 0, // [VERIFY task_1778109552044_wstq]
+  contextWindow: 1_050_000,
+  maxOutput: 128_000,
+  costPerMillion: { input: 5, output: 30 }, // gpt-5.6-sol standard short-context row
 
   streaming: true,
   tools: true, // Responses function calling
+  programmaticToolCalling: true,
 
   vision: true, // GPT-5.x, GPT-4o family
   audioInput: true, // Realtime API
@@ -470,6 +485,8 @@ export const OPENAI_CAPABILITIES: Capabilities = {
   computerUse: true, // Responses computer_use tool — environment dialect in provider.openai.computerUse; GUI automation gated at the HoloDoor chokepoint
   fileSearchBuiltIn: true, // Vector stores — NOT source-of-truth (W.GOLD don't)
   promptCaching: true, // automatic prompt caching + retention controls
+  explicitPromptCacheControls: true, // prompt_cache_breakpoint on gpt-5.6+
+  persistedReasoning: true, // Responses reasoning state can be persisted with store=true
   hostedAgenticLoop: true, // Agents SDK — interop only, never replaces HoloMesh (W.GOLD don't)
   persistentMemoryStore: true, // Vector stores
   structuredOutputs: true, // strict JSON schema
@@ -507,7 +524,7 @@ export class OpenAIAdapter extends BaseLLMAdapter {
   }
 
   protected getDefaultModel(): string {
-    return 'gpt-5.5';
+    return 'gpt-5.6-sol';
   }
 
   async complete(
@@ -515,6 +532,7 @@ export class OpenAIAdapter extends BaseLLMAdapter {
     model: string = this.defaultHoloScriptModel,
     options: LLMRequestOptions = {}
   ): Promise<LLMCompletionResponse> {
+    const resolvedModel = resolveOpenAIModelAlias(model);
     // Dynamically import openai to keep it optional.
     let OpenAI: typeof import('openai').default;
     try {
@@ -533,10 +551,10 @@ export class OpenAIAdapter extends BaseLLMAdapter {
     });
 
     if (this.apiSurface === 'chat-completions') {
-      return await this.completeWithChatCompletions(client, request, model, options);
+      return await this.completeWithChatCompletions(client, request, resolvedModel, options);
     }
 
-    return await this.completeWithResponses(client, request, model, options);
+    return await this.completeWithResponses(client, request, resolvedModel, options);
   }
 
   private async completeWithResponses(
