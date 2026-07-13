@@ -56,6 +56,7 @@ export type ExportTarget =
   | 'android-xr' // Android XR (dedicated)
   | 'ios' // iOS ARKit
   | 'visionos' // Apple Vision Pro
+  | 'r3f' // React Three Fiber bridge via generated SceneIR TSX shell
   | 'webgpu' // WebGPU API
   | 'audio' // Sovereign spatial-audio: our own Web Audio graph (HRTF/PannerNode/Convolver), no third-party audio engine
   | 'desktop-gpu' // Sovereign native-desktop GPU: standalone Rust wgpu project (Vulkan/Metal/DX12), offscreen render, no browser

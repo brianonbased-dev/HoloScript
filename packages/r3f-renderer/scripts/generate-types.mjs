@@ -35,6 +35,27 @@ export interface MeshNodeProps {
 }
 export declare function MeshNode(props: MeshNodeProps): any;
 
+export type SceneIRRenderableKind = 'mesh' | 'light' | 'group';
+export interface HoloSceneIRRendererProps {
+  node: R3FNode;
+  onSelect?: (id: string | null) => void;
+  onRemove?: (id: string) => void;
+  onRef?: (id: string, ref: unknown) => void;
+  selectedId?: string | null;
+  isBreakMode?: boolean;
+  draftMode?: boolean;
+  draftColor?: string;
+}
+export declare function sceneIRRenderableKind(type: string): SceneIRRenderableKind;
+export declare function renderSceneIRNode(
+  node: R3FNode,
+  options: Omit<HoloSceneIRRendererProps, 'node'>,
+  keyIndex?: number
+): React.ReactElement;
+export declare function HoloSceneIRRenderer(
+  props: HoloSceneIRRendererProps
+): React.ReactElement;
+
 export interface ShaderMeshNodeProps {
   node: R3FNode;
   onSelect?: (id: string | null) => void;

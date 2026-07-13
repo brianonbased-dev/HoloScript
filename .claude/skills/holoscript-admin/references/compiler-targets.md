@@ -30,7 +30,7 @@
 |----------|------|--------|--------|
 | **Babylon.js** | `BabylonCompiler.ts` | Babylon scene | ✅ Stable |
 | **WebGPU** | `WebGPUCompiler.ts` | WebGPU renderer | ✅ Stable |
-| **React Three Fiber** | `R3FCompiler.ts` | R3F components | ✅ Stable |
+| **React Three Fiber** | `SceneIRCompiler.ts` + `SceneIRTsxEmitter.ts` | generated SceneIR-backed TSX | Stable |
 | **WebAssembly** | `WASMCompiler.ts` | WASM module | ✅ Stable |
 | **PlayCanvas** | `PlayCanvasCompiler.ts` | PlayCanvas scene | ✅ Stable |
 

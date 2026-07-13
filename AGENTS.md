@@ -196,7 +196,9 @@ Adding a new trait:
 2. Define constant in `packages/core/src/traits/constants/`
 3. Add visual preset in `packages/core/src/traits/visual/presets/`
 4. Register in the category index
-5. Add R3F handler if it has rendering (`R3FCompiler.ts`)
+5. Add SceneIR/runtime handling if it has rendering. Do not handwrite product `.tsx`;
+   use `hs compile <scene.holo> --target r3f -o <scene.tsx>` or MCP
+   `compile_to_r3f` so TSX is generated from `.holo`.
 6. Add tests
 
 ## MCP Server

@@ -76,7 +76,7 @@ core/
 │   │   ├── WASMCompiler.ts        # WebAssembly export
 │   │   ├── DTDLCompiler.ts        # Azure Digital Twins export
 │   │   ├── PlayCanvasCompiler.ts  # PlayCanvas export
-│   │   ├── R3FCompiler.ts         # React Three Fiber export
+│   │   ├── SceneIRTsxEmitter.ts   # Generated R3F TSX shell
 │   │   ├── USDPhysicsCompiler.ts  # USD scene export
 │   │   ├── ARCompiler.ts          # Generic AR export
 │   │   ├── VRRCompiler.ts         # VR recording format

@@ -203,16 +203,21 @@ Compile HoloScript to WebGPU rendering code with WGSL shaders.
 
 #### `compile_to_r3f`
 
-Compile HoloScript to React Three Fiber (R3F) JSX components.
+Compile HoloScript to a generated React Three Fiber (R3F) TSX shell through
+SceneIR. The output embeds compiled SceneIR data and delegates rendering to
+`@holoscript/r3f-renderer`'s `HoloSceneIRRenderer`; agents should not hand-write
+product `.tsx`.
 
 **Arguments**:
 
 - `code` (string, required): HoloScript composition code
 - `options` (object, optional):
-  - `typescript` (boolean): Generate TypeScript (default: true)
-  - `environmentPreset` (string): Environment preset ("sunset", "dawn", "night", etc.)
+  - `format` (`"tsx" | "scene-ir" | "json"`): Output format (default: `"tsx"`)
+  - `componentName` (string): Generated React component name
+  - `includeCanvas` (boolean): Wrap the renderer in `<Canvas>` (default: true)
+  - `sourcePath` (string): Optional source path comment for receipts
 
-**Returns**: `CompilationResult` with R3F JSX/TSX output
+**Returns**: `CompilationResult` with generated R3F TSX or raw SceneIR JSON
 
 ---
 

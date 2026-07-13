@@ -8,12 +8,12 @@ Provides reusable R3F (React Three Fiber) components that render HoloScript comp
 
 ## Key Components
 
-| Component         | Purpose                                                  |
-| ----------------- | -------------------------------------------------------- |
-| `SceneRenderer`   | Renders full compositions as R3F scenes                  |
-| `ObjectRenderer`  | Individual object rendering with trait mapping           |
-| `TraitVisualizer` | Visual representation of traits (bounding boxes, gizmos) |
-| `MaterialMapper`  | Maps HoloScript materials to Three.js materials          |
+| Component             | Purpose                                                    |
+| --------------------- | ---------------------------------------------------------- |
+| `HoloSceneIRRenderer` | Renders compiled SceneIR from `.holo` / `compile_to_r3f`   |
+| `MeshNode`            | Individual mesh rendering with trait/material mapping      |
+| `RuntimeTraitHost`    | Ticks compiled runtime traits inside an R3F render loop    |
+| `CompiledTraitMesh`   | Mesh fully driven by compiled HoloScript material/behavior |
 
 ### Hologram & quilt (2D → 3D)
 
@@ -33,16 +33,22 @@ npm install @holoscript/r3f-renderer
 ```
 
 ```tsx
-import { SceneRenderer } from '@holoscript/r3f-renderer';
+import { Canvas } from '@react-three/fiber';
+import { HoloSceneIRRenderer } from '@holoscript/r3f-renderer';
 
-function Preview({ composition }) {
+function Preview({ sceneIR }) {
   return (
     <Canvas>
-      <SceneRenderer composition={composition} />
+      <HoloSceneIRRenderer node={sceneIR} />
     </Canvas>
   );
 }
 ```
+
+For product scenes, author `.holo` and generate TSX with
+`hs compile scene.holo --target r3f -o scene.tsx` or MCP `compile_to_r3f`.
+Do not hand-write perceivable scene `.tsx`; the generated file embeds SceneIR and
+delegates to this package.
 
 ## Features
 

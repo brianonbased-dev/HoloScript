@@ -157,7 +157,7 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   compile_to_webgpu: ['tools:write'],
   compile_to_character_webgpu: ['tools:write'],
   compile_to_omnigent_agent_yaml: ['tools:write'],
-  // compile_to_r3f — retired (apex-poison, 2026-06-17)
+  compile_to_r3f: ['tools:write'],
   compile_to_godot: ['tools:write'],
   compile_to_openxr: ['tools:write'],
   get_compilation_status: ['tools:read'],

@@ -53,6 +53,8 @@ import {
   WebGPUCompiler,
   URDFCompiler,
   AgentInferenceCompiler,
+  SceneIRCompiler,
+  emitSceneIRTsx,
 } from '@holoscript/core/compiler';
 import {
   derivePerceiverConsensus,
@@ -81,7 +83,7 @@ const _INTERNAL_DIALECT_NAMES = new Set([
 
 // ExportManager targets not yet migrated to DialectRegistry -- surfaced via legacy path.
 const _LEGACY_EXPORT_TARGETS = [
-  'usd', 'usdz', 'fmu', '3dgs', '3dtiles', 'canvas2d-game', 'code-editor',
+  'usd', 'usdz', 'fmu', '3dgs', '3dtiles', 'canvas2d-game', 'code-editor', 'r3f',
   'character-webgpu', // authored .holo character -> CharacterDrawSpec (sovereign); compiles via the generic compile tool
 ] as const;
 
@@ -460,6 +462,116 @@ export async function handleCompileToTarget(
       success: false,
       jobId,
       target,
+      error: errorMessage,
+      metadata: {
+        compilationTimeMs: Date.now() - startTime,
+        circuitBreakerState: 'open' as any,
+        usedFallback: false,
+        sourceSha256,
+        hashAlgorithm: 'sha256',
+      },
+    };
+    trackJob(jobId, 'failed', 100, result);
+    throw new Error(errorMessage);
+  }
+}
+
+export async function handleCompileToR3F(args: Record<string, unknown>): Promise<CompilationResult> {
+  const {
+    code,
+    options = {},
+    jobId: providedJobId,
+  } = args as {
+    code?: string;
+    options?: Record<string, unknown>;
+    jobId?: string;
+  };
+
+  if (!code) {
+    throw new Error(
+      'code is required: pass the HoloScript source (.holo) to compile as the "code" field.'
+    );
+  }
+
+  const jobId = providedJobId || generateJobId();
+  trackJob(jobId, 'in_progress', 10);
+
+  const startTime = Date.now();
+  const sourceSha256 = sha256Text(code);
+  const format = String(options.format ?? options.outputFormat ?? 'tsx').toLowerCase();
+
+  try {
+    trackJob(jobId, 'in_progress', 30);
+    const parseResult = parseHolo(code);
+    if (!parseResult.success || !parseResult.ast) {
+      const errors =
+        parseResult.errors?.map((e: any) => e.message).join(', ') || 'Unknown parse error';
+      throw new Error(`Failed to parse composition: ${errors}`);
+    }
+
+    trackJob(jobId, 'in_progress', 60);
+    const compiler = new SceneIRCompiler(
+      isRecord(options.compilerOptions)
+        ? options.compilerOptions
+        : options
+    );
+    const agentToken = typeof options.agentToken === 'string' ? options.agentToken : undefined;
+    const outputPath =
+      typeof options.outputPath === 'string'
+        ? options.outputPath
+        : typeof options.sourcePath === 'string'
+          ? options.sourcePath
+          : undefined;
+    const compileComposition = compiler.compileComposition.bind(compiler) as (
+      composition: HoloComposition,
+      agentToken?: string,
+      outputPath?: string
+    ) => ReturnType<SceneIRCompiler['compileComposition']>;
+    const scene = compileComposition(parseResult.ast as HoloComposition, agentToken, outputPath);
+
+    const output =
+      format === 'scene-ir' || format === 'sceneir' || format === 'json'
+        ? JSON.stringify(scene, null, 2)
+        : emitSceneIRTsx(scene, {
+            componentName:
+              typeof options.componentName === 'string' ? options.componentName : undefined,
+            sourcePath:
+              typeof options.sourcePath === 'string' ? options.sourcePath : 'mcp:inline',
+            includeCanvas:
+              typeof options.includeCanvas === 'boolean' ? options.includeCanvas : true,
+          });
+
+    const outputSha256 = sha256Text(output);
+    const compilationTimeMs = Date.now() - startTime;
+    const result: CompilationResult = {
+      success: true,
+      jobId,
+      target: 'r3f' as ExportTarget,
+      output,
+      sourceSha256,
+      outputSha256,
+      warnings: parseResult.warnings?.map((warning: any) => warning.message),
+      degraded: false,
+      metadata: {
+        compilationTimeMs,
+        circuitBreakerState: 'closed' as any,
+        usedFallback: false,
+        degraded: false,
+        outputSizeBytes: output.length,
+        sourceSha256,
+        outputSha256,
+        hashAlgorithm: 'sha256',
+      },
+    };
+
+    trackJob(jobId, 'completed', 100, result);
+    return result;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const result: CompilationResult = {
+      success: false,
+      jobId,
+      target: 'r3f' as ExportTarget,
       error: errorMessage,
       metadata: {
         compilationTimeMs: Date.now() - startTime,
@@ -915,8 +1027,9 @@ export async function handleListExportTargets(_args: Record<string, unknown>): P
     'Game Engines': ['unity', 'unreal', 'pcg-graph', 'godot', 'canvas2d-game'] as unknown as ExportTarget[],
     'VR Platforms': ['vrchat', 'openxr'] as unknown as ExportTarget[],
     'Mobile AR': ['android', 'android-xr', 'ios', 'visionos'] as unknown as ExportTarget[],
-    // ar, babylon, r3f, playcanvas, vrr retired as apex-poison 2026-06-17
-    'Web Platforms': ['webgpu', 'character-webgpu', 'wasm'] as unknown as ExportTarget[],
+    // ar, babylon, playcanvas, vrr retired as apex-poison 2026-06-17.
+    // r3f is restored as SceneIR -> generated TSX shell, not the retired handwritten JSX compiler.
+    'Web Platforms': ['webgpu', 'character-webgpu', 'r3f', 'wasm'] as unknown as ExportTarget[],
     'Robotics/IoT': ['urdf', 'sdf', 'mjcf', 'mjx', 'embodied-dataset', 'dtdl'] as unknown as ExportTarget[],
     '3D Formats': ['usd', 'usdz', 'fmu', '3dgs', '3dtiles'] as unknown as ExportTarget[],
     'Studio Tools': ['code-editor'] as unknown as ExportTarget[],
@@ -1037,7 +1150,8 @@ export async function handleCompilerTool(
     }
     case 'compile_to_webgpu':
       return handleCompileToTarget({ ...args, target: 'webgpu' });
-    // compile_to_r3f — retired (apex-poison, 2026-06-17)
+    case 'compile_to_r3f':
+      return handleCompileToR3F(args);
     case 'compile_to_godot':
       return handleCompileToTarget({ ...args, target: 'godot' });
     case 'compile_to_visionos':
@@ -1408,7 +1522,7 @@ export const compilerTools: Tool[] = [
             // 'babylon' — retired apex-poison 2026-06-17
             'webgpu',
             'character-webgpu',
-            // 'r3f' — retired apex-poison 2026-06-17
+            'r3f',
             'wasm',
             // 'playcanvas' — retired apex-poison 2026-06-17
             'usd',
@@ -1562,7 +1676,37 @@ export const compilerTools: Tool[] = [
       required: ['code'],
     },
   },
-  // compile_to_r3f — retired (apex-poison, 2026-06-17)
+  {
+    name: 'compile_to_r3f',
+    description:
+      'Compile HoloScript to native generated React Three Fiber TSX through SceneIR. ' +
+      'This emits a @generated .tsx shell that embeds the compiled SceneIR data and delegates ' +
+      'runtime interpretation to @holoscript/r3f-renderer/HoloSceneIRRenderer. It is not the ' +
+      'retired hand-authored JSX compiler path. Pass options.format="scene-ir" or "json" for raw SceneIR.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code' },
+        options: {
+          type: 'object',
+          properties: {
+            format: {
+              type: 'string',
+              enum: ['tsx', 'scene-ir', 'json'],
+              description: 'Output format (default: tsx)',
+            },
+            componentName: { type: 'string', description: 'Generated React component name' },
+            includeCanvas: {
+              type: 'boolean',
+              description: 'Wrap the SceneIR renderer in <Canvas> (default: true)',
+            },
+            sourcePath: { type: 'string', description: 'Optional source path comment for receipts' },
+          },
+        },
+      },
+      required: ['code'],
+    },
+  },
 
   // === Additional compile_to_* targets ===
   {
@@ -2937,8 +3081,9 @@ export const compilerTools: Tool[] = [
             'android-xr',
             'ios',
             'visionos',
-            // 'ar', 'babylon', 'r3f', 'playcanvas', 'vrr' — retired apex-poison 2026-06-17
+            // 'ar', 'babylon', 'playcanvas', 'vrr' — retired apex-poison 2026-06-17
             'webgpu',
+            'r3f',
             'wasm',
             'usd',
             'usdz',

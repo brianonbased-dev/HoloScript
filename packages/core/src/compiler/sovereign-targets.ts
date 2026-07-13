@@ -68,6 +68,7 @@ export const BRIDGE_TARGETS = [
   'quest', // Meta Quest (Horizon OS / Meta Spatial SDK) — emits a native Kotlin app to Meta's runtime
   'ios',
   'visionos',
+  'r3f', // SceneIR -> generated TSX shell consumed by React Three Fiber; HoloScript owns SceneIR, R3F is the host runtime bridge
   'usd',
   'usdz',
   'fmu',

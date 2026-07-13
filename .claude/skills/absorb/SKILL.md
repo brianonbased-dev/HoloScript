@@ -359,7 +359,7 @@ Filter for precision:
 2. holo_absorb_repo({ directory: ".", force: false })
    → Builds/refreshes knowledge graph (~21ms from cache, ~3-10s fresh)
 
-3. holo_impact_analysis({ files: ["src/compiler/R3FCompiler.ts"] })
+3. holo_impact_analysis({ files: ["src/compiler/SceneIRCompiler.ts", "src/compiler/SceneIRTsxEmitter.ts"] })
    → Shows all transitively affected files
 
 4. holo_query_codebase({ query: "callers", symbol: "CompilerBase" })

@@ -153,7 +153,7 @@ The active profile and resolved numeric limits are returned by `GET /health` and
 | `compile_to_urdf`            | Compile to URDF for ROS 2 / Gazebo                |
 | `compile_to_sdf`             | Compile to SDF for Gazebo simulation              |
 | `compile_to_webgpu`          | Compile to WebGPU with WGSL shaders               |
-| `compile_to_r3f`             | Compile to React Three Fiber JSX                  |
+| `compile_to_r3f`             | Compile to generated SceneIR-backed R3F TSX       |
 | `get_compilation_status`     | Track compilation job progress                    |
 | `list_export_targets`        | List all 30+ export targets with categories       |
 | `get_circuit_breaker_status` | Check circuit breaker health per target           |

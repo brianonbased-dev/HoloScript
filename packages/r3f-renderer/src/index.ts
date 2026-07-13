@@ -2,6 +2,15 @@
 export { MeshNode } from './components/MeshNode';
 export type { MeshNodeProps } from './components/MeshNode';
 export {
+  HoloSceneIRRenderer,
+  renderSceneIRNode,
+  sceneIRRenderableKind,
+} from './components/HoloSceneIRRenderer';
+export type {
+  HoloSceneIRRendererProps,
+  SceneIRRenderableKind,
+} from './components/HoloSceneIRRenderer';
+export {
   TrajectoryVisualizer,
   buildGradientColors,
   buildPositionBuffer,

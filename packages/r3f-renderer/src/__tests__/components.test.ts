@@ -13,6 +13,15 @@ import {
   isRendererLODConfigProp,
 } from '../utils/coreLodBridge';
 import { resolveDraftNodes } from '../utils/draftMeshResolve';
+import { sceneIRRenderableKind } from '../components/HoloSceneIRRenderer';
+
+describe('HoloSceneIRRenderer', () => {
+  it('routes only mesh nodes to MeshNode and treats unknown SceneIR as groups', () => {
+    expect(sceneIRRenderableKind('mesh')).toBe('mesh');
+    expect(sceneIRRenderableKind('ambientLight')).toBe('light');
+    expect(sceneIRRenderableKind('timeline')).toBe('group');
+  });
+});
 
 // ─── LODMeshNode Logic Tests ───────────────────────────────────────────────────
 

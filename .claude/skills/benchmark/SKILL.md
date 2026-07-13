@@ -42,8 +42,8 @@ set -a && source "$ENV_FILE" 2>/dev/null && set +a
 # Health check first
 curl -s https://mcp.holoscript.net/health | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'Tools: {d.get(\"tools\",\"?\")} | Uptime: {d.get(\"uptime\",\"?\")}')"
 
-# Benchmark core tools
-for tool in parse_hs compile_to_threejs compile_to_r3f; do
+# Benchmark core tools. compile_to_r3f emits generated SceneIR-backed TSX.
+for tool in parse_holo compile_to_webgpu compile_to_r3f; do
   START=$(date +%s%N)
   curl -s -X POST https://mcp.holoscript.net/api/compile \
     -H "x-mcp-api-key: $HOLOSCRIPT_API_KEY" \
