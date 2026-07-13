@@ -248,7 +248,11 @@ export function selectNextConsumptionWork({
         name: row.name,
         version: row.expectedVersion || row.observedVersion || null,
         classification: row.classification,
-        action: row.classification === 'stale' ? 'refresh-cold-consumption' : 'prove-cold-consumption',
+        action: row.classification === 'failed'
+          ? 'repair-consumer-contract'
+          : row.classification === 'stale'
+            ? 'refresh-cold-consumption'
+            : 'prove-cold-consumption',
         priority,
         sourceRepository: source?.sourceRepository || null,
         reasons: [

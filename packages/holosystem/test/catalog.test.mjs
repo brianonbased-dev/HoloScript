@@ -179,6 +179,33 @@ test('bounded next-work selection excludes active batches and names stop conditi
   assert.equal(decision.policy.maxCandidates, 5);
 });
 
+test('bounded next-work sends failed artifacts to contract repair first', () => {
+  const failedPortfolio = {
+    ...portfolio,
+    packages: [...portfolio.packages, {
+      ecosystem: 'npm',
+      name: '@example/failed',
+      expectedVersion: '1.0.0',
+      classification: 'failed',
+      issues: ['import-failed', 'readback-failed'],
+    }],
+  };
+  const lineage = buildSourceLineageReceipt({
+    portfolio: failedPortfolio,
+    metadata: [],
+    now: new Date('2026-07-13T00:00:00.000Z'),
+  });
+
+  const decision = selectNextConsumptionWork({
+    portfolio: failedPortfolio,
+    lineage,
+    now: new Date('2026-07-13T00:00:00.000Z'),
+  });
+
+  assert.equal(decision.selected.name, '@example/failed');
+  assert.equal(decision.selected.action, 'repair-consumer-contract');
+});
+
 test('registry lineage queries the expected artifact and preserves integrity and revision', async () => {
   const urls = [];
   const receipt = await discoverSourceLineage({
