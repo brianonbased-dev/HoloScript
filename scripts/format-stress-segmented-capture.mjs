@@ -1514,6 +1514,15 @@ function buildTaskSeed(segment, receipt) {
   };
 }
 
+export function segmentNeedsDynamicEvidenceTask(receipt) {
+  if (!receipt || typeof receipt !== 'object') return true;
+  const taskWorthyStillModes = new Set(['placeholder', 'static-scene-copy']);
+  return (
+    taskWorthyStillModes.has(receipt.stillMode) ||
+    receipt.oracle?.status === 'blocked-dynamic-replay'
+  );
+}
+
 async function runLiveSegmentScreenshots({
   options,
   manifest,
@@ -1939,10 +1948,11 @@ export async function runSegmentedCapture(rawOptions = {}) {
     });
     receipt.timing.runnerMs = Date.now() - startedAt;
 
-    const seed = buildTaskSeed(segment, receipt);
-    writeJson(taskSeedPath, seed);
+    const seed = segmentNeedsDynamicEvidenceTask(receipt) ? buildTaskSeed(segment, receipt) : null;
+    if (!seed) receipt.taskSeed = null;
+    if (seed) writeJson(taskSeedPath, seed);
     receipts.push(receipt);
-    seeds.push(seed);
+    if (seed) seeds.push(seed);
   }
 
   const stillEvidence = buildStillEvidence(receipts, outputDir);

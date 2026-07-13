@@ -14,6 +14,7 @@ import {
   renderLiveSegmentSceneSource,
   renderSegmentReplayStill,
   runSegmentedCapture,
+  segmentNeedsDynamicEvidenceTask,
   summarizeVisualEvidence,
 } from '../format-stress-segmented-capture.mjs';
 
@@ -238,6 +239,29 @@ try {
     staticCopyAudit.falseGreenRisk,
     'duplicate-still-hashes',
     'duplicate static copy is flagged'
+  );
+
+  console.log('Test 3b: satisfied scene-loaded receipt does not file duplicate task');
+  assertEq(
+    segmentNeedsDynamicEvidenceTask({
+      id: '00_scene_loaded',
+      stillMode: 'captured-scene-loaded',
+      oracle: { status: 'world-model-event-replay' },
+      eventLog: 'events/00_scene_loaded.json',
+      posePhysicsJson: 'pose-physics/00_scene_loaded.json',
+      timing: { runnerMs: 1 },
+    }),
+    false,
+    'scene-loaded live receipt is not task-worthy'
+  );
+  assertEq(
+    segmentNeedsDynamicEvidenceTask({
+      id: '01_avatar_approaches',
+      stillMode: 'static-scene-copy',
+      oracle: { status: 'blocked-dynamic-replay' },
+    }),
+    true,
+    'blocked static segment still files a task'
   );
 
   console.log('Test 4: replay still renderer emits distinct segment payloads');
