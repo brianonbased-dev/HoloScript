@@ -1,0 +1,53 @@
+// @qec_decoder — the [[9,1,3]] surface-code min-sum BP decoder as a GPU compute class.
+//
+// Native .hsplus surface for snn-webgpu/qec/qec-decoder.ts.
+//
+// Graduated from research/qec-decoder-probe/gpu-bp-decoder.mjs: the bpMinSum from @qec_codes
+// compiled into a WGSL compute shader, ONE GPU thread per syndrome. Pure BP on the GPU (fast
+// path); the OSD-0 guard for non-converging syndromes stays on the host (BP-on-accelerator /
+// OSD-on-host split), reusing @qec_codes.bpOsdDecode so the full pipeline is coset-correct.
+//
+// The WGSL Tanner edges (E_CHECK/E_VAR) are drift-guarded: initialize() throws unless they
+// reconstruct ZSTAB exactly — the GPU shader can never silently diverge from the CPU code.
+//
+// QECDecoder(ctx: GPUContext)
+//   initialize() → void            (builds the compute pipeline; guards the Tanner graph)
+//   decodeBatch(packedSyndromes, p?) → Uint32Array   (raw GPU BP; bit i = qubit i, bit 31 = converged)
+//   decodeWithFallback(syndromes, p?) → QecDecodeResult[]   (GPU BP + host OSD-0)
+//   validateExhaustive(p?) → QecValidationReport    (all 16 X-syndromes vs exact ML)
+//   benchmarkThroughput(batchSize, reps, p?) → QecThroughputReport
+//
+// The honest GPU metric is THROUGHPUT (decodes/sec), not single-shot latency.
+
+@trait qec_decoder {
+  capability_tags: ["qec_decoder", "gpu_belief_propagation", "surface_code_d3", "webgpu_compute", "snn_webgpu"]
+
+  workgroup_size: Int = 64
+  max_iter: Int = 30
+  converged_bit: Int = 31
+
+  @on_spawn(ctx) => {
+    decoder = init_qec_decoder(ctx)
+    emit("qec_decoder_ready", {})
+  }
+
+  @on_initialize => {
+    assert_tanner_matches_zstab()   // refuse to build a decoder that diverges from the CPU code
+    decoder.initialize()
+    emit("qec_decoder_initialized", {})
+  }
+
+  @on_decode_batch(packed_syndromes, prior) => {
+    corrections = decoder.decode_batch(packed_syndromes, prior)
+    return corrections
+  }
+
+  @receipt qec_decoder_config {
+    type: "QecDecoderReceipt"
+    code: "[[9,1,3]] rotated surface"
+    kernel: "WGSL normalized min-sum BP, one thread per decode"
+    fallback: "host OSD-0 for non-converging syndromes"
+    tanner_drift_guarded: true
+    timestamp: now()
+  }
+}

@@ -1,0 +1,39 @@
+// @qec_codes — the [[9,1,3]] rotated surface code + its CPU reference decoders.
+//
+// Native .hsplus surface for snn-webgpu/qec/qec-codes.ts.
+//
+// Code: [[9,1,3]] rotated surface (9 data qubits, 4 Z-stabs, 4 X-stabs, distance 3).
+//   ZSTAB detect X errors, XSTAB detect Z errors, logicals ZL (col) / XL (row).
+// Validity is GATED, not asserted: CSS commutation + one-logical-qubit + distance-3.
+//
+// Decoders:
+//   LOOKUP_X / LOOKUP_Z  → exact maximum-likelihood (min-weight coset) tables
+//   bpMinSum(H, s, lambda) → normalized min-sum belief propagation (alpha=0.8125, gamma=0.2)
+//   osd0(H, s, reliability, hard) → validity guard for syndromes BP cannot satisfy
+//   bpOsdDecode(H, s, p) → BP with OSD-0 fallback (the CPU reference for the GPU port)
+//   syndromeCosetAudit() → BP+OSD vs exact ML over the whole 16+16 syndrome domain
+//
+// Pure + deterministic: no GPU, unit-testable in CI without a device.
+
+@trait qec_codes {
+  capability_tags: ["qec_codes", "surface_code_d3", "belief_propagation", "osd0", "snn_webgpu"]
+
+  code: String = "[[9,1,3]] rotated surface"
+  distance: Int = 3
+  bp_alpha: Float = 0.8125
+  bp_gamma: Float = 0.2
+
+  @on_decode(H, syndrome, prior) => {
+    result = bp_osd_decode(H, syndrome, prior)
+    emit("qec_decoded", { method: result.method, iters: result.iters })
+    return result.correction
+  }
+
+  @receipt qec_codes_config {
+    type: "QecCodesReceipt"
+    code: "[[9,1,3]] rotated surface"
+    decoder: "min-sum BP (alpha=0.8125, gamma=0.2) + OSD-0"
+    exact_reference: "min-weight coset lookup"
+    timestamp: now()
+  }
+}

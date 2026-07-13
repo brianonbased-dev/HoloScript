@@ -156,3 +156,14 @@ export type {
   CanonicalBotanicalMaterial,
   CanonicalBotanicalMaterialExtraction,
 } from './material-extraction/index.js';
+
+// QEC decoding — [[9,1,3]] rotated surface code + GPU belief-propagation decoder.
+// The math surface (code layout, exact-ML lookup, BP/OSD) is namespaced under `qec` to
+// avoid collisions with generic names (weight, N, xorVec); the GPU class is also flat.
+export * as qec from './qec/index.js';
+export { QECDecoder, unpackCorrection, packSyndrome, tannerEdgesMatchZstab } from './qec/qec-decoder.js';
+export type {
+  QecDecodeResult,
+  QecValidationReport,
+  QecThroughputReport,
+} from './qec/qec-decoder.js';

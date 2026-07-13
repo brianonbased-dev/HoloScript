@@ -1,0 +1,19 @@
+// @qec — GPU quantum-error-correction decoding barrel.
+//
+// Native .hsplus surface for snn-webgpu/qec/index.ts.
+//
+// Re-exports @qec_codes (the [[9,1,3]] rotated surface code, its exact maximum-likelihood
+// reference decoder, and the min-sum BP + OSD-0 CPU decoder) and @qec_decoder (the same BP
+// compiled into a WebGPU compute shader for batched throughput on real hardware).
+//
+// Graduated from research/qec-decoder-probe.
+
+@trait qec {
+  capability_tags: ["qec", "quantum_error_correction", "surface_code", "gpu_decoder", "snn_webgpu"]
+
+  @receipt qec_config {
+    type: "QecModuleReceipt"
+    exports: ["qec_codes", "qec_decoder"]
+    timestamp: now()
+  }
+}

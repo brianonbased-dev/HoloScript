@@ -1,0 +1,31 @@
+{
+  "schema": "qec-gpu-decode-benchmark/v1",
+  "source": "@holoscript/snn-webgpu QECDecoder (graduated from research/qec-decoder-probe)",
+  "code": "[[9,1,3]] rotated surface, X-graph min-sum BP (pure, GPU) + host OSD-0 fallback",
+  "real_gpu": true,
+  "canonical": true,
+  "adapter": {
+    "vendor": "nvidia",
+    "architecture": "ampere",
+    "device": "nvidia-geforce-rtx-3060-laptop-gpu",
+    "description": "D3D12 driver version 32.0.16.1062"
+  },
+  "correctness": {
+    "syndromes_tested": 16,
+    "gpu_bp_converged": 10,
+    "gpu_converged_all_valid_coset": true,
+    "full_pipeline_all16_valid_coset": true,
+    "converged_flag_matches_cpu_bp": 16,
+    "note": "GPU runs pure BP; the syndromes BP cannot converge (matching CPU exactly) fall to host OSD-0 — the standard BP-on-accelerator / OSD-on-host split. Correctness = (a) every GPU-converged syndrome is exact-ML-coset-correct, (b) the full pipeline solves all 16."
+  },
+  "throughput": {
+    "batch_size": 1048576,
+    "reps": 30,
+    "total_decodes": 31457280,
+    "wall_seconds": 0.9134,
+    "decodes_per_second": 34440393,
+    "ns_per_decode_amortized": 29.036,
+    "gpu_fast_path_fraction": 0.6254,
+    "note": "Amortized GPU compute over a batched dispatch (submit -> onSubmittedWorkDone), one thread per decode. Honest GPU metric = THROUGHPUT, not single-shot latency (one d3 decode is readback-bound). gpu_fast_path_fraction is the share fully handled on-GPU (rest need host OSD-0)."
+  }
+}
