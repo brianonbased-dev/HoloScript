@@ -140,9 +140,15 @@ Sync is `exportSnapshot()`/`importUpdate()`; unregister keeps a tombstone (CRDT 
 
 ### Before authoring a new trait
 Run `/stub-audit`. Many trait *names* already exist with a correct seam but a placeholder body
-(Pattern B stub: `onUpdate` under ~30 effective LOC, already referenced by compilers as if live —
-e.g. `NeuralAnimationTrait.ts:181`). The native move is to **wire+build the existing name**, not
-author a parallel duplicate that leaves the original advertised-but-dead.
+(Pattern B stub: `onUpdate` under ~30 effective LOC, already referenced by compilers as if live).
+The native move is to **wire+build the existing name**, not author a parallel duplicate that
+leaves the original advertised-but-dead. (`NeuralAnimationTrait` was the canonical example and
+has since been wire+built into a real motion-matching handler — the process working. Run
+`/stub-audit` to find current instances rather than trusting a hardcoded file:line, which goes
+stale.) A related failure mode is the **echo-stub** (an `onEvent` that emits a *fabricated
+success* for an unwired external backend — a lie worse than a no-op); the honest fix is
+`emitUnwired(...)` (`packages/core/src/traits/unwired.ts`), which abstains with a `*:error`
+instead of asserting a result it did not produce.
 
 ## What was deliberately NOT included
 The critic dropped these as **generic good practice** (a pretrained engineer gets them *right*),
