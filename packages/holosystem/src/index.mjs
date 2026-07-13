@@ -1,6 +1,21 @@
 export const HOLOSYSTEM_CONFIG_SCHEMA = 'holoscript.holosystem.consumer.v1';
 export const HOLOSYSTEM_INSPECTION_SCHEMA = 'holoscript.holosystem.inspection.v1';
 
+export {
+  HOLOSYSTEM_CATALOG_SCHEMA,
+  HOLOSYSTEM_CONSUMER_INPUT_SCHEMA,
+  HOLOSYSTEM_LINEAGE_SCHEMA,
+  HOLOSYSTEM_NEXT_WORK_SCHEMA,
+  buildConsumptionSurfaceCatalog,
+  buildSourceLineageReceipt,
+  discoverConsumptionSurfaceCatalog,
+  discoverSourceLineage,
+  hashConsumerInput,
+  inspectPublicDependencySpecs,
+  normalizeRepositoryUrl,
+  selectNextConsumptionWork,
+} from './catalog.mjs';
+
 const REQUIRED_CONTRACTS = [
   { registry: 'npm', role: 'agent-runtime' },
   { registry: 'npm', role: 'memory' },

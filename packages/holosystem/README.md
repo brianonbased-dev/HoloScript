@@ -1,15 +1,59 @@
 # @holoscript/holosystem
 
-Create and inspect a portable HoloSystem consumer configuration from public npm
-and PyPI package contracts. The package is for external founders, agent
-operators, and cold consumers who need a small bootstrap contract without a
-private workspace or machine-specific defaults.
+Create and inspect a portable HoloSystem consumer configuration, discover a
+multi-rail public consumption catalog, map registry artifacts to canonical
+source repositories, and select bounded next work. The package is for external
+founders, agent operators, and cold consumers who need the same evidence
+contract without a private workspace or machine-specific defaults.
 
 ```bash
 npm install @holoscript/holosystem
 npx holosystem create --id acme-founder --workspace acme --json
 npx holosystem inspect holosystem.config.json --json
 ```
+
+## Consumption Catalog
+
+The catalog keeps npm, PyPI, GitHub repositories, public services, containers,
+and agent surfaces as separate rails. It never creates a misleading grand total.
+Each rail reports publication, consumer readiness, dogfood evidence when known,
+and gaps independently.
+
+```bash
+npx holosystem lineage \
+  --portfolio portfolio-consumer.json \
+  --output source-lineage.json \
+  --json
+
+npx holosystem catalog \
+  --seeds public-surface-seeds.json \
+  --portfolio portfolio-consumer.json \
+  --manifest package-manifest.json \
+  --lineage source-lineage.json \
+  --output consumption-catalog.json \
+  --json
+```
+
+`lineage` reads registry metadata and records canonical repository URLs and
+portable package directories. Unknown lineage remains a named gap; local source
+paths are never emitted. `catalog` performs public GitHub, service, container,
+MCP-health, and public-skill discovery, then joins those results with the
+caller's package admission, lineage, proof-batch, and promotion receipts.
+
+```js
+import {
+  buildConsumptionSurfaceCatalog,
+  buildSourceLineageReceipt,
+  discoverConsumptionSurfaceCatalog,
+  discoverSourceLineage,
+  selectNextConsumptionWork,
+} from '@holoscript/holosystem';
+```
+
+The bounded selector excludes artifacts already present in active proof batches,
+returns one highest-priority candidate, and carries authority, validation, lease,
+and spend stop conditions. It selects work; it does not claim a board task,
+publish a package, spend funds, or bypass caller authority.
 
 ## What It Creates
 
@@ -99,7 +143,8 @@ package check, an npm pack dry run, and the repository public-consumption gate.
 
 Release lane: `v0-preview`. Supported behavior is deterministic config creation
 and static, secret-safe portability inspection for the documented v1 schema.
-Known limitations: this package does not verify registry availability, install
-dependencies, test live credentials, bootstrap databases, or authorize agent
-work. Roll back by pinning the previous package version and retaining the
-consumer-owned config and receipts.
+Known limitations: this package does not install package dependencies, test live
+credentials, bootstrap databases, claim team work, or authorize publishing.
+Public catalog and lineage discovery depend on caller network access and the
+availability of the queried registries and endpoints. Roll back by pinning the
+previous package version and retaining the consumer-owned config and receipts.

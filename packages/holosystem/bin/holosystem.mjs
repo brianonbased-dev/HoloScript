@@ -2,21 +2,29 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import { createHoloSystemConfig, inspectHoloSystemConfig } from '../src/index.mjs';
+import {
+  createHoloSystemConfig,
+  discoverConsumptionSurfaceCatalog,
+  discoverSourceLineage,
+  inspectHoloSystemConfig,
+} from '../src/index.mjs';
 
 const CLI_RECEIPT_SCHEMA = 'holoscript.holosystem.cli-receipt.v1';
-const HELP = `holosystem - create or inspect a portable HoloSystem consumer config
+const HELP = `holosystem - portable HoloSystem consumer configuration and evidence
 
 Usage:
   holosystem create [--id <id>] [--workspace <id>] [--output <file>] [--force] [--json]
   holosystem create --stdout
   holosystem inspect [file|-] [--json]
+  holosystem catalog --seeds <file> --portfolio <file> --manifest <file> [--lineage <file>] [--active-batches <file>] [--promotions <file>] [--output <file>] [--json]
+  holosystem lineage --portfolio <file> [--concurrency <1-12>] [--output <file>] [--json]
   holosystem --help
   holosystem --version
 
 Defaults:
   create writes holosystem.config.json and never overwrites it without --force.
   inspect reads holosystem.config.json. Use - to read JSON from stdin.
+  catalog and lineage read caller-owned evidence and never read credentials.
 `;
 
 function die(message, { json = false, code = 1 } = {}) {
@@ -124,6 +132,23 @@ function readStdin() {
   return readFileSync(0, 'utf8');
 }
 
+function readJsonFile(path, label) {
+  if (!path) throw new Error(`--${label} is required.`);
+  const absolute = resolve(process.cwd(), path);
+  return JSON.parse(readFileSync(absolute, 'utf8').replace(/^\uFEFF/u, ''));
+}
+
+function readOptionalJsonFile(path, fallback) {
+  if (!path) return fallback;
+  return JSON.parse(readFileSync(resolve(process.cwd(), path), 'utf8').replace(/^\uFEFF/u, ''));
+}
+
+function writeJsonOutput(path, value, { force = false } = {}) {
+  const absolute = resolve(process.cwd(), path);
+  if (existsSync(absolute) && !force) throw new Error(`${path} already exists; use --force to replace it.`);
+  writeFileSync(absolute, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
+}
+
 function runInspect(args) {
   let parsed;
   try {
@@ -157,6 +182,97 @@ function runInspect(args) {
   if (!report.ready) process.exitCode = 2;
 }
 
+async function runCatalog(args) {
+  let parsed;
+  try {
+    parsed = parseArguments(args, {
+      seeds: 'value',
+      portfolio: 'value',
+      manifest: 'value',
+      lineage: 'value',
+      'active-batches': 'value',
+      promotions: 'value',
+      output: 'value',
+      force: 'boolean',
+      json: 'boolean',
+    });
+  } catch (error) {
+    die(error.message, { json: args.includes('--json') });
+  }
+  const { options, positionals } = parsed;
+  if (positionals.length > 0) die('catalog does not accept positional arguments.', { json: options.json });
+  let catalog;
+  try {
+    const seeds = readJsonFile(options.seeds, 'seeds');
+    const portfolio = readJsonFile(options.portfolio, 'portfolio');
+    const manifest = readJsonFile(options.manifest, 'manifest');
+    const lineage = readOptionalJsonFile(options.lineage, null);
+    const activeProofBatches = readOptionalJsonFile(options['active-batches'], []);
+    const promotionHistory = readOptionalJsonFile(options.promotions, []);
+    catalog = await discoverConsumptionSurfaceCatalog({
+      seeds,
+      portfolio,
+      manifest,
+      lineage,
+      activeProofBatches: Array.isArray(activeProofBatches) ? activeProofBatches : activeProofBatches.batches,
+      promotionHistory: Array.isArray(promotionHistory) ? promotionHistory : promotionHistory.promotions,
+      evidence: {
+        operatingSet: options.manifest,
+        packageAdmission: options.portfolio,
+        sourceLineage: options.lineage || 'not-supplied',
+      },
+    });
+    if (options.output) writeJsonOutput(options.output, catalog, { force: options.force });
+  } catch (error) {
+    die(`Cannot build catalog: ${error.message}`, { json: options.json, code: 2 });
+  }
+  if (options.json) outputJson(catalog);
+  else {
+    process.stdout.write(`Catalog: ${catalog.status}\n`);
+    for (const [id, rail] of Object.entries(catalog.rails)) {
+      process.stdout.write(`${id}: published=${rail.published} ready=${rail.consumerReady} gaps=${rail.gaps}\n`);
+    }
+    if (options.output) process.stdout.write(`Wrote ${options.output}\n`);
+  }
+  if (catalog.status !== 'current') process.exitCode = 2;
+}
+
+async function runLineage(args) {
+  let parsed;
+  try {
+    parsed = parseArguments(args, {
+      portfolio: 'value',
+      concurrency: 'value',
+      output: 'value',
+      force: 'boolean',
+      json: 'boolean',
+    });
+  } catch (error) {
+    die(error.message, { json: args.includes('--json') });
+  }
+  const { options, positionals } = parsed;
+  if (positionals.length > 0) die('lineage does not accept positional arguments.', { json: options.json });
+  let lineage;
+  try {
+    const portfolio = readJsonFile(options.portfolio, 'portfolio');
+    lineage = await discoverSourceLineage({
+      portfolio,
+      concurrency: options.concurrency ? Number(options.concurrency) : 6,
+    });
+    if (options.output) writeJsonOutput(options.output, lineage, { force: options.force });
+  } catch (error) {
+    die(`Cannot build lineage: ${error.message}`, { json: options.json, code: 2 });
+  }
+  if (options.json) outputJson(lineage);
+  else {
+    process.stdout.write(
+      `Lineage: ${lineage.status} mapped=${lineage.summary.mapped}/${lineage.summary.total} gaps=${lineage.summary.gaps}\n`
+    );
+    if (options.output) process.stdout.write(`Wrote ${options.output}\n`);
+  }
+  if (lineage.status !== 'complete') process.exitCode = 2;
+}
+
 const argv = process.argv.slice(2);
 const command = argv[0];
 if (!command || command === '--help' || command === '-h' || command === 'help') {
@@ -168,6 +284,10 @@ if (!command || command === '--help' || command === '-h' || command === 'help') 
   runCreate(argv.slice(1));
 } else if (command === 'inspect') {
   runInspect(argv.slice(1));
+} else if (command === 'catalog') {
+  await runCatalog(argv.slice(1));
+} else if (command === 'lineage') {
+  await runLineage(argv.slice(1));
 } else {
   die(`Unknown command ${command}. Run holosystem --help.`);
 }

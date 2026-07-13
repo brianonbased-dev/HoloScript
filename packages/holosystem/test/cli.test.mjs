@@ -26,6 +26,8 @@ test('package bin is wired to the executable CLI and help is available', () => {
   assert.equal(result.status, 0);
   assert.match(result.stdout, /holosystem create/u);
   assert.match(result.stdout, /holosystem inspect/u);
+  assert.match(result.stdout, /holosystem catalog/u);
+  assert.match(result.stdout, /holosystem lineage/u);
 });
 
 test('create writes a portable config and inspect emits an agent receipt', () => {
