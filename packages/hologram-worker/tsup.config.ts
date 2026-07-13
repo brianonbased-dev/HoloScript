@@ -8,7 +8,7 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   splitting: false,
-  dts: false,
+  dts: true,
   external: [
     '@holoscript/engine',
     'onnxruntime-node',

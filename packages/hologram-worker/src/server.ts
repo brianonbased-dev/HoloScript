@@ -1,4 +1,5 @@
 import { createServer } from 'node:http';
+import { pathToFileURL } from 'node:url';
 
 import {
   createHologram,
@@ -298,12 +299,24 @@ const server = createServer(async (req, res) => {
   }
 });
 
-const port = Number(process.env.PORT || 8790);
-server.listen(port, () => {
-  console.log(`[hologram-worker] listening on :${port}`);
-});
+function isDirectRun(): boolean {
+  return process.argv[1] != null && import.meta.url === pathToFileURL(process.argv[1]).href;
+}
 
-process.on('SIGTERM', async () => {
-  await closeWorkerBrowser();
-  process.exit(0);
-});
+export function startHologramWorkerServer(port = Number(process.env.PORT || 8790)) {
+  server.listen(port, () => {
+    console.log(`[hologram-worker] listening on :${port}`);
+  });
+  return server;
+}
+
+if (isDirectRun()) {
+  startHologramWorkerServer();
+
+  process.on('SIGTERM', async () => {
+    await closeWorkerBrowser();
+    process.exit(0);
+  });
+}
+
+export { server };
