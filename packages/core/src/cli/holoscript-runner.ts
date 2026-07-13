@@ -2435,7 +2435,7 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
  * Convert parsed directives to traits Map on each node.
  * The parser stores @trait directives in the directives[] array,
  * but HeadlessRuntime expects node.traits as a Map<string, unknown>.
- * This mirrors R3FCompiler's conversion (R3FCompiler.ts:2208-2219).
+ * This mirrors the SceneIR/render compile path's directive-to-trait conversion.
  */
 function materializeTraits(ast: unknown): void {
   const walk = (node: unknown): void => {

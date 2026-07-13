@@ -1048,7 +1048,7 @@ export const DOMAIN_TAXONOMY: DomainEntry[] = [
     solvers: [],
     toolkit: 'general',
     keywords: ['web', 'nextjs', 'react', 'website', 'webapp', 'frontend', 'api'],
-    description: 'NextJSCompiler, R3FCompiler, NextJSAPICompiler, NodeServiceCompiler.',
+    description: 'NextJS compiler surfaces, generated R3F SceneIR shells, and API service compilers.',
   },
   {
     id: 'mobile-ios',
@@ -1058,7 +1058,7 @@ export const DOMAIN_TAXONOMY: DomainEntry[] = [
     solvers: [],
     toolkit: 'general',
     keywords: ['ios', 'iphone', 'ipad', 'swift', 'apple', 'app store'],
-    description: 'IOSCompiler + Native2DCompiler for iOS apps.',
+    description: 'IOSCompiler and native app emit paths for iOS apps.',
   },
   {
     id: 'mobile-android',
@@ -1138,7 +1138,7 @@ export const DOMAIN_TAXONOMY: DomainEntry[] = [
     solvers: [],
     toolkit: 'general',
     keywords: ['babylon', 'babylonjs', 'webgl'],
-    description: 'BabylonCompiler for Babylon.js export.',
+    description: 'Legacy Babylon.js export surface.',
   },
   {
     id: 'playcanvas',
@@ -1148,7 +1148,7 @@ export const DOMAIN_TAXONOMY: DomainEntry[] = [
     solvers: [],
     toolkit: 'general',
     keywords: ['playcanvas', 'webgame'],
-    description: 'PlayCanvasCompiler for PlayCanvas export.',
+    description: 'Legacy PlayCanvas export surface.',
   },
   {
     id: 'urdf-robotics',

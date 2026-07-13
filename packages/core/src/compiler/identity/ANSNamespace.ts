@@ -113,22 +113,22 @@ export const DOMAIN_RISK_TIERS: Readonly<Record<ANSDomainValue, ANSRiskTierValue
 // ---------------------------------------------------------------------------
 
 /**
- * Type-safe union of all 31 HoloScript compiler names.
+ * Type-safe union of HoloScript compiler names.
  *
  * Each name corresponds to a specific compiler class in the codebase:
  *
  * gamedev: UnityCompiler, UnrealCompiler, GodotCompiler
  * social-vr: VRChatCompiler
- * xr: OpenXRCompiler, VisionOSCompiler, ARCompiler, AndroidXRCompiler, AIGlassesCompiler
+ * xr: OpenXRCompiler, VisionOSCompiler, AndroidXRCompiler, AIGlassesCompiler
  * mobile: AndroidCompiler, IOSCompiler
- * web3d: BabylonCompiler, WebGPUCompiler, R3FCompiler, PlayCanvasCompiler
+ * web3d: WebGPUCompiler, SceneIRCompiler/compile_to_r3f
  * runtime: WASMCompiler
  * shader: TSLCompiler
  * robotics: URDFCompiler, SDFCompiler
  * interchange: USDPhysicsCompiler, GLTFPipeline
  * iot: DTDLCompiler
  * web3: NFTMarketplaceCompiler
- * ai: SCMCompiler, VRRCompiler, A2AAgentCardCompiler
+ * ai: SCMCompiler, A2AAgentCardCompiler
  * neuromorphic: NIRCompiler
  * meta: MultiLayerCompiler, IncrementalCompiler, StateCompiler, TraitCompositionCompiler
  * mixin: DomainBlockCompilerMixin
@@ -207,7 +207,7 @@ export type CompilerName =
 export const ANS_PREFIX = '/compile' as const;
 
 /**
- * Complete ANS capability paths for all 31 HoloScript compilers.
+ * Complete ANS capability paths for HoloScript compilers.
  *
  * Pattern: /compile/DOMAIN/TARGET
  *

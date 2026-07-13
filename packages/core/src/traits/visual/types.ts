@@ -2,7 +2,7 @@
  * Visual configuration types for trait-to-PBR mapping.
  *
  * Each VR trait can optionally declare visual properties (material, emissive,
- * opacity, scale, etc.) that the R3FCompiler uses to produce rendered output.
+ * opacity, scale, etc.) that SceneIRCompiler uses to produce rendered output.
  */
 
 /** Priority layers for compositor merge order (lower = applied first). */

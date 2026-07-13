@@ -788,7 +788,7 @@ export interface HoloTemplateProperty extends HoloNode {
  * Scene object declaration in a `.holo` composition.
  *
  * **Asset maturity (draft → mesh → final)** — optional `ObjectProperty` keys
- * consumed by `R3FCompiler.compileObjectDecl`:
+ * consumed by `SceneIRCompiler.compileObjectDecl` and the generated R3F TSX path:
  * - `maturity`: `"draft"` | `"mesh"` | `"final"` — sets `R3FNode.assetMaturity`
  * - `promoteUrl` / `promote_url`: string — GLB/URL for draft→mesh promotion (passed to `R3FNode.props`)
  * - `collisionShape` / `collision_shape`: string — collision proxy hint (passed to `R3FNode.props`)

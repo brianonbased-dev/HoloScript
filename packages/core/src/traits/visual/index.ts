@@ -3,7 +3,7 @@
  *
  * Importing this module registers all preset visual configs into
  * the TraitVisualRegistry singleton, making them available to the
- * R3FCompiler and future compilers.
+ * SceneIRCompiler and future compilers.
  */
 
 export { TraitVisualRegistry } from './TraitVisualRegistry';

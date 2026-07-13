@@ -3,7 +3,7 @@ import type { TraitVisualConfig } from './types';
 /**
  * Singleton registry mapping VR trait names to visual configurations.
  *
- * Used by R3FCompiler (and future compilers) to look up PBR material
+ * Used by SceneIRCompiler (and future compilers) to look up PBR material
  * properties, emissive settings, scale overrides, and other visual
  * parameters for any registered trait.
  *
