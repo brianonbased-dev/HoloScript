@@ -9,24 +9,23 @@
 | .hsplus corpus files scanned | 2480 |
 | Unique @ annotation vocab in corpus | 4081 |
 | Unique registered trait refs in corpus | 241 |
-| Registered corpus traits with stable HoloTraitId | 6 (2.49%) |
-| Registered corpus traits with HolobCompiler special case | 6 (2.49%) |
-| Registered corpus traits with NativeHoloRenderer semantics | 1 (0.41%) |
-| Registered corpus traits generic-only metadata | 232 |
+| Registered corpus traits with stable HoloTraitId | 7 (2.9%) |
+| Registered corpus traits with HolobCompiler special case | 7 (2.9%) |
+| Registered corpus traits with NativeHoloRenderer semantics | 2 (0.83%) |
+| Registered corpus traits generic-only metadata | 231 |
 
 > Generic metadata attachment is intentionally counted separately: it proves the trait name survives into bytecode, not that the HoloVM/runtime executes the trait.
 
 ## Native Runtime Sets
 
-- Stable HoloTraitId traits: `clickable`, `collidable`, `collider`, `gpu_physics`, `grabbable`, `gravity`, `hoverable`, `physics`, `rigid`, `rigid_body`, `rigidbody`, `trigger`
-- HolobCompiler special cases: `audio`, `collidable`, `collider`, `gpu_physics`, `grabbable`, `interactable`, `net_sync`, `networked`, `physics`, `rigid`, `rigid_body`, `rigidbody`, `spatial_audio`, `visible`
-- NativeHoloRenderer semantic traits: `grabbable`, `rigid`
+- Stable HoloTraitId traits: `clickable`, `collidable`, `collider`, `gpu_physics`, `grabbable`, `gravity`, `hoverable`, `physics`, `rigid`, `rigid_body`, `rigidbody`, `synced`, `trigger`
+- HolobCompiler special cases: `audio`, `collidable`, `collider`, `gpu_physics`, `grabbable`, `interactable`, `net_sync`, `networked`, `physics`, `rigid`, `rigid_body`, `rigidbody`, `spatial_audio`, `synced`, `visible`
+- NativeHoloRenderer semantic traits: `grabbable`, `rigid`, `synced`
 
 ## Top Generic-Only Registered Corpus Gaps
 
 | Trait | Occurrences | Example files |
 |---|---:|---|
-| `synced` | 504 | `examples/traits/networking-synced-persistent-owned.hsplus`<br>`packages/benchmark/src/fixtures/large.hsplus` |
 | `glowing` | 74 | `assets/sword.hsplus`<br>`compositions/holonews-claim-kiosk.hsplus`<br>`examples/autonomous-ecosystems/agent-portal-federation.hsplus`<br>`examples/autonomous-ecosystems/cultural-evolution.hsplus`<br>`examples/autonomous-ecosystems/economy-marketplace.hsplus`<br>`examples/autonomous-ecosystems/feedback-driven-npc.hsplus`<br>`examples/cryptography/secure-agent-handshake.hsplus`<br>`examples/enterprise/enterprise-lifecycle.hsplus` |
 | `state_machine` | 52 | `compositions/skills/fara-hands.hsplus`<br>`examples/agents/brittney-playground.hsplus`<br>`examples/agents/workspace-agent-genesis.hsplus`<br>`examples/autonomous-ecosystems/agent-portal-federation.hsplus`<br>`examples/autonomous-ecosystems/cultural-evolution.hsplus`<br>`examples/autonomous-ecosystems/economy-marketplace.hsplus`<br>`examples/autonomous-ecosystems/feedback-driven-npc.hsplus`<br>`examples/cryptography/04-agentic-secret-sovereignty.hsplus` |
 | `animated` | 27 | `compositions/holonews-claim-kiosk.hsplus`<br>`examples/autonomous-ecosystems/cultural-evolution.hsplus`<br>`examples/autonomous-ecosystems/feedback-driven-npc.hsplus`<br>`examples/cryptography/secure-agent-handshake.hsplus`<br>`examples/game-state-machine.hsplus`<br>`examples/humanoid-avatars.hsplus`<br>`examples/language-reference/01-templates-decorators.hsplus`<br>`examples/multiplayer-game.refreshed.hsplus` |
@@ -51,6 +50,7 @@
 | `stackable` | 7 | `examples/game-state-machine.hsplus`<br>`examples/showcase/npc-affordance-social-game-showcase.hsplus`<br>`examples/traits/physics-object-lifecycle.hsplus` |
 | `structured_logger` | 7 | `compositions/holoclaw.hsplus`<br>`compositions/holodaemon.hsplus`<br>`compositions/holomesh-agent.hsplus`<br>`compositions/moltbook-agent.hsplus`<br>`compositions/self-improve-daemon.hsplus`<br>`compositions/self-improvement.hsplus`<br>`packages/core/src/debug/structured_logger.hsplus` |
 | `tenant` | 7 | `examples/enterprise/enterprise-lifecycle.hsplus`<br>`examples/novel-use-cases/08-healthspan-twin.hsplus`<br>`examples/novel-use-cases/10-urban-planning-governance.hsplus`<br>`examples/novel-use-cases/11-sensory-therapy-worlds.hsplus`<br>`examples/showcase/narrative-enterprise-analytics-security-showcase.hsplus` |
+| `bloom_reactive` | 6 | `examples/pinball.refreshed.hsplus`<br>`examples/vr-interactions.refreshed.hsplus` |
 
 ## Top Unregistered @ Annotation Vocab
 

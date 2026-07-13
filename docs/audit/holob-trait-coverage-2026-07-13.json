@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-13T05:56:46.009Z",
+  "generatedAt": "2026-07-13T06:10:19.915Z",
   "source": "scripts/measure-holob-trait-coverage.mjs",
   "corpus": {
     "extension": ".hsplus",
@@ -9,21 +9,21 @@
   },
   "traitUniverse": {
     "totalRegisteredTraits": 2338,
-    "stableHoloTraitIdTraits": 7,
-    "rendererSemanticTraits": 1,
-    "stableHoloTraitIdPercent": 0.3,
-    "rendererSemanticPercent": 0.04
+    "stableHoloTraitIdTraits": 8,
+    "rendererSemanticTraits": 2,
+    "stableHoloTraitIdPercent": 0.34,
+    "rendererSemanticPercent": 0.09
   },
   "corpusCoverage": {
     "metadataAttachmentPercent": 100,
     "metadataAttachmentNote": "HolobCompiler default path attaches any trait as generic metadata; this is not executable runtime semantics.",
-    "registeredTraitsWithStableHoloTraitId": 6,
-    "registeredTraitsWithHolobSpecialCase": 6,
-    "registeredTraitsWithRendererSemantics": 1,
-    "registeredTraitsGenericOnly": 232,
-    "stableHoloTraitIdPercent": 2.49,
-    "holobSpecialCasePercent": 2.49,
-    "rendererSemanticPercent": 0.41
+    "registeredTraitsWithStableHoloTraitId": 7,
+    "registeredTraitsWithHolobSpecialCase": 7,
+    "registeredTraitsWithRendererSemantics": 2,
+    "registeredTraitsGenericOnly": 231,
+    "stableHoloTraitIdPercent": 2.9,
+    "holobSpecialCasePercent": 2.9,
+    "rendererSemanticPercent": 0.83
   },
   "nativeRuntimeSets": {
     "stableHoloTraitIdTraits": [
@@ -38,6 +38,7 @@
       "rigid",
       "rigid_body",
       "rigidbody",
+      "synced",
       "trigger"
     ],
     "holobSpecialCases": [
@@ -54,22 +55,16 @@
       "rigid_body",
       "rigidbody",
       "spatial_audio",
+      "synced",
       "visible"
     ],
     "rendererSemanticTraits": [
       "grabbable",
-      "rigid"
+      "rigid",
+      "synced"
     ]
   },
   "topGenericOnlyCorpusGaps": [
-    {
-      "name": "synced",
-      "count": 504,
-      "files": [
-        "examples/traits/networking-synced-persistent-owned.hsplus",
-        "packages/benchmark/src/fixtures/large.hsplus"
-      ]
-    },
     {
       "name": "glowing",
       "count": 74,
@@ -362,6 +357,14 @@
         "examples/novel-use-cases/10-urban-planning-governance.hsplus",
         "examples/novel-use-cases/11-sensory-therapy-worlds.hsplus",
         "examples/showcase/narrative-enterprise-analytics-security-showcase.hsplus"
+      ]
+    },
+    {
+      "name": "bloom_reactive",
+      "count": 6,
+      "files": [
+        "examples/pinball.refreshed.hsplus",
+        "examples/vr-interactions.refreshed.hsplus"
       ]
     }
   ],

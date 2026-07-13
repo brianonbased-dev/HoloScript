@@ -98,6 +98,26 @@ describe('renderHolo: .holo text → native pixels (one call)', () => {
     expect(framebuffer.pixel(32, 32)).toEqual({ r: 40, g: 40, b: 255, a: 255 });
   });
 
+  it('preserves source-authored @synced as native sync metadata without requiring transport', async () => {
+    const source = `composition "SyncedNative" {
+      object "Replica" @synced {
+        shape: "cube"
+        position: [0, 0, 0]
+        color: "#ff0000"
+      }
+    }`;
+
+    const { framebuffer, stats } = await renderHolo(source, {
+      width: 64,
+      height: 64,
+      camera: { pixelsPerUnit: 8 },
+      clear: CLEAR,
+    });
+
+    expect(stats.syncedEntities).toEqual([1]);
+    expect(framebuffer.pixel(32, 32)).toEqual(RED);
+  });
+
   it('propagates a parse failure from the strict front (malformed composition)', async () => {
     // An unterminated composition block is a real syntax error: the strict parser
     // front rejects it, and renderHolo surfaces that rejection rather than rendering.

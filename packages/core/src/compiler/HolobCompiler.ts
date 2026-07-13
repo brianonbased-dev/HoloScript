@@ -315,8 +315,10 @@ export class HolobCompiler {
 
       case 'networked':
       case 'net_sync':
+      case 'synced':
+        this.applyStableOrGenericTrait(fn, entityId, name);
         if (this.options.networking) {
-          fn.netSync(entityId, 0); // SyncTier.Interpolated
+          fn.netSync(entityId, 0); // SyncTier.Physics; host callback owns transport.
         }
         break;
 
@@ -368,6 +370,10 @@ export class HolobCompiler {
         return ids.Hoverable;
       case 'clickable':
         return ids.Clickable;
+      case 'synced':
+      case 'networked':
+      case 'net_sync':
+        return ids.Synced;
       default:
         return undefined;
     }

@@ -300,6 +300,8 @@ export enum HoloTraitId {
   Hoverable = 0x06,
   /** @clickable — entity fires a click event on selection. */
   Clickable = 0x07,
+  /** @synced — entity is eligible for host/network state synchronization. */
+  Synced = 0x08,
 }
 
 // =============================================================================

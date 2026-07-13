@@ -164,6 +164,26 @@ describe('HoloVM APPLY_TRAIT → NativeHoloRenderer (D.083 native-first trait di
     expect(fb.pixel(32, 32)).toEqual({ r: 255, g: 40, b: 40, a: 255 });
   });
 
+  it('NativeHoloRenderer reads @synced trait from HoloVM world as transport metadata', () => {
+    const bytecode = buildEntityBytecode('replica', 0xff0000, [HoloTraitId.Synced]);
+
+    const vm = new HoloVM();
+    vm.load(bytecode);
+
+    const fb = new NativeFramebuffer(64, 64);
+    const stats = new NativeHoloRenderer(new SoftwareRasterBackend(fb)).render(
+      vm.world,
+      fb,
+      CAM,
+      CLEAR
+    );
+
+    expect(stats.entitiesDrawn).toBe(1);
+    expect(stats.syncedEntities).toEqual([1]);
+    expect(stats.activeTraitIds.has(HoloTraitId.Synced)).toBe(true);
+    expect(fb.pixel(32, 32)).toEqual({ r: 255, g: 0, b: 0, a: 255 });
+  });
+
   it('entity WITHOUT traits: stats show empty lists, no color change', () => {
     const bytecode = buildEntityBytecode('plain', 0xff0000, []);
 
@@ -181,6 +201,7 @@ describe('HoloVM APPLY_TRAIT → NativeHoloRenderer (D.083 native-first trait di
     expect(stats.entitiesDrawn).toBe(1);
     expect(stats.rigidEntities).toHaveLength(0);
     expect(stats.grabbableEntities).toHaveLength(0);
+    expect(stats.syncedEntities).toHaveLength(0);
     expect(stats.activeTraitIds.size).toBe(0);
     // Unmodified red fill.
     expect(fb.pixel(32, 32)).toEqual({ r: 255, g: 0, b: 0, a: 255 });

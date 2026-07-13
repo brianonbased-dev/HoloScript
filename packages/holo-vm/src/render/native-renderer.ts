@@ -123,6 +123,8 @@ export interface RenderStats {
   rigidEntities: number[];
   /** IDs of entities carrying the @grabbable (HoloTraitId.Grabbable) trait. */
   grabbableEntities: number[];
+  /** IDs of entities carrying the @synced (HoloTraitId.Synced) trait. */
+  syncedEntities: number[];
   /** Set of all trait IDs present in the drawn frame (union across all entities). */
   activeTraitIds: Set<number>;
 }
@@ -144,6 +146,8 @@ export interface RenderStats {
  *                         user can see which objects are interactable. This is the only
  *                         non-trivial visual signal in the slice; more sophisticated
  *                         outline/highlight passes follow in the WebGPU backend.
+ *     @synced (0x08)    — no visual effect; entity is catalogued in RenderStats.syncedEntities
+ *                         so host/native runtime layers can attach replication transport.
  */
 export class NativeHoloRenderer {
   constructor(private readonly backend: RenderBackend) {}
@@ -161,6 +165,7 @@ export class NativeHoloRenderer {
     let drawn = 0;
     const rigidEntities: number[] = [];
     const grabbableEntities: number[] = [];
+    const syncedEntities: number[] = [];
     const activeTraitIds = new Set<number>();
 
     const entities = world.getAllEntities().sort((a, b) => a.id - b.id);
@@ -175,6 +180,7 @@ export class NativeHoloRenderer {
       // ── Read VM trait state from the entity (set by APPLY_TRAIT opcode) ──────
       const isRigid = e.traits.has(HoloTraitId.Rigid);
       const isGrabbable = e.traits.has(HoloTraitId.Grabbable);
+      const isSynced = e.traits.has(HoloTraitId.Synced);
 
       // Catalogue trait IDs for caller inspection.
       for (const tid of e.traits) {
@@ -182,6 +188,7 @@ export class NativeHoloRenderer {
       }
       if (isRigid) rigidEntities.push(e.id);
       if (isGrabbable) grabbableEntities.push(e.id);
+      if (isSynced) syncedEntities.push(e.id);
 
       // ── Trait-driven visual effect: @grabbable brightens the entity fill ─────
       let color = unpackColor(m.color, m.opacity);
@@ -207,7 +214,14 @@ export class NativeHoloRenderer {
     }
 
     this.backend.end();
-    return { entitiesConsidered: considered, entitiesDrawn: drawn, rigidEntities, grabbableEntities, activeTraitIds };
+    return {
+      entitiesConsidered: considered,
+      entitiesDrawn: drawn,
+      rigidEntities,
+      grabbableEntities,
+      syncedEntities,
+      activeTraitIds,
+    };
   }
 }
 
