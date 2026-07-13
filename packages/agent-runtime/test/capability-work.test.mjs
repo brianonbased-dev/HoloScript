@@ -187,3 +187,23 @@ test('Postgres claim SQL reaps terminal leases, scores preferences, and uses SKI
   assert.match(claimSql, /FOR UPDATE SKIP LOCKED/u);
   assert.deepEqual(JSON.parse(queries[0].params[2]), ['cloud', 'cpu']);
 });
+
+test('worker tick aborts a hung handler at the wall-clock boundary', async () => {
+  const store = createInMemoryCapabilityWorkStore();
+  await store.enqueue({ kind: 'hung', idempotencyKey: 'hung', maxAttempts: 1 });
+  const startedAt = Date.now();
+  const receipt = await runCapabilityWorkerTick({
+    store,
+    worker: { id: 'cloud', capabilities: ['cpu'] },
+    leaseMs: 100,
+    wallTimeoutMs: 20,
+    handlers: { hung: async () => new Promise(() => {}) },
+  });
+  assert.equal(receipt.status, 'failed');
+  assert.equal(receipt.bounds.timedOut, true);
+  assert.equal(receipt.work.nextStatus, 'failed');
+  assert.match(receipt.error, /wall timeout 20ms/u);
+  assert.ok(Date.now() - startedAt < 500);
+  assert.match(receipt.evidence.inputSha256, /^sha256:[a-f0-9]{64}$/u);
+  assert.match(receipt.evidence.policySha256, /^sha256:[a-f0-9]{64}$/u);
+});

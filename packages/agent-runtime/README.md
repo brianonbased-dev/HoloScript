@@ -374,7 +374,10 @@ const receipt = await runCapabilityWorkerTick({
 Claims use expiring ownership tokens, Postgres `FOR UPDATE SKIP LOCKED`, bounded
 attempts, and idempotency keys. Receipts hash lease tokens instead of exposing
 them. Capability requirements are hard gates: an `edge-io` job is not silently
-claimed by a generic cloud worker.
+claimed by a generic cloud worker. Worker ticks renew leases during long jobs,
+pass an `AbortSignal` to handlers, enforce a caller-configurable wall timeout,
+and can persist the resulting input-hashed, policy-hashed receipt through a
+caller-owned receipt adapter.
 
 ## `@holoscript/memory`
 

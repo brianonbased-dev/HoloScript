@@ -39,6 +39,20 @@ function clone(value) {
   return value == null ? value : JSON.parse(JSON.stringify(value));
 }
 
+function stableValue(value) {
+  if (Array.isArray(value)) return value.map(stableValue);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(
+    Object.entries(value)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, child]) => [key, stableValue(child)]),
+  );
+}
+
+function sha256Stable(value) {
+  return `sha256:${createHash('sha256').update(JSON.stringify(stableValue(value))).digest('hex')}`;
+}
+
 export function normalizeCapabilities(values = []) {
   return [...new Set((Array.isArray(values) ? values : [values])
     .map((value) => String(value || '').trim().toLowerCase())
@@ -458,6 +472,7 @@ export async function runCapabilityWorkerTick(options = {}) {
   const workerId = String(worker?.id || '').trim();
   if (!workerId) throw new Error('capability worker id is required');
   const startedAt = Date.now();
+  const wallTimeoutMs = positiveInteger(options.wallTimeoutMs, Math.min(positiveInteger(leaseMs, 60_000), 60_000));
   const workItem = await store.claim({
     id: workerId,
     capabilities: normalizeCapabilities(worker.capabilities),
@@ -469,11 +484,25 @@ export async function runCapabilityWorkerTick(options = {}) {
       status: 'idle',
       worker: { id: workerId, capabilities: normalizeCapabilities(worker.capabilities) },
       work: null,
+      bounds: { leaseMs: positiveInteger(leaseMs, 60_000), wallTimeoutMs, timedOut: false },
       durationMs: Date.now() - startedAt,
       error: null,
     }, options.receipts);
   }
   const tokenSha256 = `sha256:${createHash('sha256').update(workItem.leaseToken).digest('hex')}`;
+  const inputSha256 = sha256Stable({
+    id: workItem.id,
+    kind: workItem.kind,
+    payload: workItem.payload,
+    requiredCapabilities: workItem.requiredCapabilities,
+  });
+  const policySha256 = sha256Stable({
+    workerId,
+    workerCapabilities: normalizeCapabilities(worker.capabilities),
+    registeredKinds: Object.keys(handlers).sort(),
+    leaseMs: positiveInteger(leaseMs, 60_000),
+    wallTimeoutMs,
+  });
   const handler = handlers[workItem.kind];
   const autoRenew = options.autoRenew !== false && typeof store.renew === 'function';
   const heartbeatMs = positiveInteger(
@@ -483,6 +512,7 @@ export async function runCapabilityWorkerTick(options = {}) {
   let heartbeatTimer = null;
   let renewChain = Promise.resolve();
   let renewError = null;
+  let timedOut = false;
   if (autoRenew) {
     heartbeatTimer = setInterval(() => {
       renewChain = renewChain.then(async () => {
@@ -502,11 +532,27 @@ export async function runCapabilityWorkerTick(options = {}) {
   }
   try {
     if (typeof handler !== 'function') throw new Error(`no handler registered for work kind ${workItem.kind}`);
-    const result = await handler({
+    const controller = new AbortController();
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      controller.abort(new Error(`work handler exceeded wall timeout ${wallTimeoutMs}ms`));
+    }, wallTimeoutMs);
+    timeout.unref?.();
+    const handlerPromise = Promise.resolve(handler({
       payload: clone(workItem.payload),
       workItem: clone({ ...workItem, leaseToken: null }),
       worker: { id: workerId, capabilities: normalizeCapabilities(worker.capabilities) },
+      signal: controller.signal,
+    }));
+    const timeoutPromise = new Promise((_, reject) => {
+      controller.signal.addEventListener('abort', () => reject(controller.signal.reason), { once: true });
     });
+    let result;
+    try {
+      result = await Promise.race([handlerPromise, timeoutPromise]);
+    } finally {
+      clearTimeout(timeout);
+    }
     await renewChain;
     if (renewError) throw new Error(`work lease renewal failed: ${safeError(renewError)}`);
     const completed = await store.complete({
@@ -521,7 +567,9 @@ export async function runCapabilityWorkerTick(options = {}) {
       status: 'executed',
       worker: { id: workerId, capabilities: normalizeCapabilities(worker.capabilities) },
       work: { id: workItem.id, kind: workItem.kind, attempts: completed.attempts },
-      lease: { tokenSha256, rawTokenIncluded: false },
+      lease: { tokenSha256, fencingAttempt: completed.attempts, rawTokenIncluded: false },
+      evidence: { inputSha256, policySha256 },
+      bounds: { leaseMs: positiveInteger(leaseMs, 60_000), wallTimeoutMs, timedOut: false },
       durationMs: Date.now() - startedAt,
       result: clone(result ?? null),
       error: null,
@@ -539,7 +587,9 @@ export async function runCapabilityWorkerTick(options = {}) {
       status: 'failed',
       worker: { id: workerId, capabilities: normalizeCapabilities(worker.capabilities) },
       work: { id: workItem.id, kind: workItem.kind, attempts: failed.attempts, nextStatus: failed.status },
-      lease: { tokenSha256, rawTokenIncluded: false },
+      lease: { tokenSha256, fencingAttempt: failed.attempts, rawTokenIncluded: false },
+      evidence: { inputSha256, policySha256 },
+      bounds: { leaseMs: positiveInteger(leaseMs, 60_000), wallTimeoutMs, timedOut },
       durationMs: Date.now() - startedAt,
       result: null,
       error: safeError(error),
