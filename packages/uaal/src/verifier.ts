@@ -43,6 +43,7 @@ import {
   resolveMereology,
   resolveTension,
   resolveAtomStatus,
+  resolveAccess,
 } from './semantic';
 import type { UAALBeneficiaryIR } from './beneficiary';
 import { resolveBeneficiary } from './beneficiary';
@@ -59,6 +60,7 @@ export type UAALResolvedFamily =
   | 'mereology'
   | 'tension'
   | 'presupposition'
+  | 'access'
   | 'beneficiary';
 
 /** Target ids some resolvers need alongside the IR (agent/object/action/norm/belief/commitment/atom). */
@@ -98,6 +100,7 @@ const RESOLVERS: Record<UAALResolvedFamily, (ir: unknown, query: VerifierQuery) 
   mereology: (ir) => resolveMereology(ir as UAALMereologyIR),
   tension: (ir) => resolveTension(ir as UAALTensionIR),
   presupposition: (ir, q) => resolveAtomStatus(ir as UAALPresuppositionIR, q.atom),
+  access: (ir, q) => resolveAccess(ir as UAALContainmentIR, q.agent, q.object),
   beneficiary: (ir) => resolveBeneficiary(ir as UAALBeneficiaryIR),
 };
 

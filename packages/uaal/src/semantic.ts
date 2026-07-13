@@ -86,6 +86,16 @@ export interface UAALSemanticEntity {
   body?: Record<string, number>;
   offers?: UAALAffordanceOffer[];
   blocks?: string[];
+  /**
+   * Modalities whose blocking by this entity is explicitly UNSTATED (A6 IR extension,
+   * D.108). `blocks` stays closed-world (absence = definitely does not block); an author
+   * who genuinely does not know whether a barrier passes a modality declares it here, and
+   * `resolveAccess` abstains when such a container sits between agent and object. Visual
+   * unknowns are conventionally expressed via `opaque` being absent (the field is already
+   * three-valued); `blocks_unknown` is for audible+ modalities, which have no other
+   * three-valued form. A modality must not appear in both `blocks` and `blocks_unknown`.
+   */
+  blocks_unknown?: string[];
   [key: string]: unknown;
 }
 
@@ -2334,6 +2344,73 @@ export function recoverAccess(
   }
 
   return { access: { visual: !blocked.visual, audible: !blocked.audible }, blocker };
+}
+
+/**
+ * Per-modality access, honest about UNSTATED blocking. recoverAccess reads `blocks` closed-world —
+ * an entity with no `blocks` entry for a modality definitely passes it — which is correct for
+ * stated-but-omitting arrays (W.825 per-element semantics) but silently coerces two genuinely
+ * unknown states to "clear": (1) a container declaring `blocks_unknown: ['audible']` (the A6 IR
+ * extension — the author states the barrier's audible behavior is unknown), and (2) for VISUAL, a
+ * container whose `opaque` is absent — the same three-state read `resolveOcclusion` is built on,
+ * reused here so the two resolvers can never contradict on one IR (`opaque:true` is likewise a
+ * definite visual blocker even without `blocks:['visual']`). Per modality, walking object→agent:
+ * a definite blocker settles the modality blocked (later unknowns are irrelevant); otherwise a
+ * container with unstated behavior for that modality makes the query unresolvable; an all-clear
+ * chain resolves open. No-false-gap holds BY CONSTRUCTION for `blocks_unknown` (a brand-new opt-in
+ * field no legacy row carries) and by fixture check for the visual/`opaque` reuse (every access
+ * fixture either states a definite `blocks` for the examined container or co-contains the agent —
+ * verified 2026-07-13, see the A6 scoping memo §5).
+ */
+export function resolveAccess(
+  ir: UAALContainmentIR,
+  agent: string | undefined,
+  object: string | undefined,
+): UAALResolution<UAALAccessRecovery> {
+  const entityById = new Map((ir.entities || []).map((entity) => [entity.id, entity]));
+  const chain = enclosingChain(ir, object);
+  const agentEnclosures = new Set(enclosingChain(ir, agent));
+  // Computed from the walk itself (resolveOcclusion precedent) — NOT delegated to recoverAccess,
+  // whose blocks-only read would contradict an opaque:true visual verdict.
+  const blocked: Record<UAALAccessModality, boolean> = { visual: false, audible: false };
+  const blocker: UAALAccessBlocker = { visual: null, audible: null };
+
+  for (const modality of UAAL_ACCESS_MODALITIES) {
+    let unknownContainer: string | null = null;
+    for (const container of chain) {
+      if (agentEnclosures.has(container)) break;
+      const entity = entityById.get(container);
+      const blocks = (entity?.blocks || []).filter(isAccessModality);
+      const blocksUnknown = ((entity?.blocks_unknown as string[] | undefined) || []).filter(isAccessModality);
+      const definiteBlock =
+        blocks.includes(modality) || (modality === 'visual' && entity?.opaque === true);
+      if (definiteBlock) {
+        blocked[modality] = true;
+        blocker[modality] = container;
+        break; // definitely blocked — unknowns further out cannot change this modality
+      }
+      // Missing entity record ⇒ opaque undefined ⇒ visual unknown — mirrors resolveOcclusion's
+      // rawOpacity(), so the two resolvers stay verdict-consistent on every IR.
+      const unknown =
+        blocksUnknown.includes(modality) ||
+        (modality === 'visual' && entity?.opaque === undefined && !blocks.includes('visual'));
+      if (unknown && unknownContainer === null) unknownContainer = container;
+    }
+    if (!blocked[modality] && unknownContainer !== null) {
+      return {
+        query: 'access',
+        status: 'unresolvable',
+        reason: 'underdetermined',
+        gap: structuredGap('access', 'access.underdetermined_modality', 'underdetermined', `${modality}@${unknownContainer}`),
+        obstruction: `whether container "${unknownContainer}" blocks ${modality} between the agent and the object is unstated — ${modality} access could be open or blocked`,
+      };
+    }
+  }
+  return {
+    query: 'access',
+    status: 'resolved',
+    answer: { access: { visual: !blocked.visual, audible: !blocked.audible }, blocker },
+  };
 }
 
 export function containmentAccessBaseline(

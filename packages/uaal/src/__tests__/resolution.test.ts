@@ -9,6 +9,7 @@ import {
   resolveMereology,
   resolveTension,
   resolveAtomStatus,
+  resolveAccess,
   type UAALContainmentIR,
   type UAALDeonticIR,
   type UAALCompositionIR,
@@ -489,6 +490,104 @@ describe('resolveAtomStatus — missing embedded forms', () => {
   });
 });
 
+describe('resolveAccess — per-modality unstated blocking (A6 blocks_unknown IR extension)', () => {
+  // agent and object share `room`; `barrier` sits between object and agent.
+  const scene = (barrier: Record<string, unknown>): UAALContainmentIR => ({
+    entities: [
+      { id: 'agent', kind: 'agent' },
+      { id: 'bell', kind: 'object' },
+      { id: 'barrier', kind: 'container', ...barrier },
+      { id: 'room', kind: 'region' },
+    ],
+    containment: [
+      { inner: 'bell', outer: 'barrier' },
+      { inner: 'barrier', outer: 'room' },
+      { inner: 'agent', outer: 'room' },
+    ],
+    query: { agent: 'agent', object: 'bell' },
+  });
+
+  it('resolves definite per-modality blocking (stated blocks; opaque:false clears visual)', () => {
+    const r = resolveAccess(scene({ blocks: ['audible'], opaque: false }), 'agent', 'bell');
+    expect(r.status).toBe('resolved');
+    expect(r.answer?.access).toEqual({ visual: true, audible: false });
+  });
+
+  it('resolves all-clear when the barrier states full transparency', () => {
+    const r = resolveAccess(scene({ blocks: [], opaque: false }), 'agent', 'bell');
+    expect(r.status).toBe('resolved');
+    expect(r.answer?.access).toEqual({ visual: true, audible: true });
+  });
+
+  it('abstains when the barrier declares blocks_unknown for audible', () => {
+    const r = resolveAccess(scene({ blocks: [], opaque: false, blocks_unknown: ['audible'] }), 'agent', 'bell');
+    expect(r.status).toBe('unresolvable');
+    expect(r.reason).toBe('underdetermined');
+    expect(r.gap?.code).toBe('access.underdetermined_modality');
+    expect(r.gap?.evidence).toBe('audible@barrier');
+    expect(r.obstruction).toContain('audible');
+  });
+
+  it('abstains on visual when opacity is unstated (mirrors resolveOcclusion — never contradicts it)', () => {
+    const ir = scene({ blocks: [] }); // opaque absent, audible definitely clear
+    const acc = resolveAccess(ir, 'agent', 'bell');
+    const occ = resolveOcclusion(ir, 'agent', 'bell');
+    expect(acc.status).toBe('unresolvable');
+    expect(acc.gap?.evidence).toBe('visual@barrier');
+    expect(occ.status).toBe('unresolvable'); // same IR, same verdict class on the visual axis
+  });
+
+  it('no false gap: a definite blocker settles the modality even with a farther unknown container', () => {
+    // barrier definitely blocks audible; the outer wrap's audible behavior is unstated — irrelevant,
+    // audible is already settled blocked before the unknown is reached.
+    const ir: UAALContainmentIR = {
+      entities: [
+        { id: 'agent', kind: 'agent' },
+        { id: 'bell', kind: 'object' },
+        { id: 'barrier', kind: 'container', blocks: ['audible', 'visual'] },
+        { id: 'wrap', kind: 'container', opaque: false, blocks_unknown: ['audible'] },
+        { id: 'room', kind: 'region' },
+      ],
+      containment: [
+        { inner: 'bell', outer: 'barrier' },
+        { inner: 'barrier', outer: 'wrap' },
+        { inner: 'wrap', outer: 'room' },
+        { inner: 'agent', outer: 'room' },
+      ],
+      query: { agent: 'agent', object: 'bell' },
+    };
+    const r = resolveAccess(ir, 'agent', 'bell');
+    expect(r.status).toBe('resolved');
+    expect(r.answer?.access).toEqual({ visual: false, audible: false });
+  });
+
+  it('no false gap: an unknown container OUTSIDE the agent→object segment is never examined', () => {
+    // The unknown-audible box wraps BOTH agent and object — the walk breaks at the shared
+    // enclosure before reaching it, so the query stays determinate.
+    const ir: UAALContainmentIR = {
+      entities: [
+        { id: 'agent', kind: 'agent' },
+        { id: 'bell', kind: 'object' },
+        { id: 'shared', kind: 'container', blocks_unknown: ['audible'] },
+      ],
+      containment: [
+        { inner: 'bell', outer: 'shared' },
+        { inner: 'agent', outer: 'shared' },
+      ],
+      query: { agent: 'agent', object: 'bell' },
+    };
+    const r = resolveAccess(ir, 'agent', 'bell');
+    expect(r.status).toBe('resolved');
+    expect(r.answer?.access).toEqual({ visual: true, audible: true });
+  });
+
+  it('no false gap: opaque:true is a definite VISUAL blocker even without blocks (occlusion parity)', () => {
+    const r = resolveAccess(scene({ opaque: true, blocks: [] }), 'agent', 'bell');
+    expect(r.status).toBe('resolved');
+    expect(r.answer?.access.visual).toBe(false);
+  });
+});
+
 describe('no false gaps', () => {
   it('every determinate query resolves (never a spurious unresolvable)', () => {
     const occ = resolveOcclusion(
@@ -531,7 +630,21 @@ describe('no false gaps', () => {
       },
       'p',
     );
-    expect([occ.status, norm.status, disc.status, cf.status, mer.status, ten.status, pre.status]).toEqual([
+    const acc = resolveAccess(
+      {
+        entities: [
+          { id: 'a', kind: 'agent' },
+          { id: 'o', kind: 'object' },
+          { id: 'c', kind: 'container', opaque: false, blocks: [] },
+        ],
+        containment: [{ inner: 'o', outer: 'c' }, { inner: 'a', outer: 'c' }],
+        query: { agent: 'a', object: 'o' },
+      },
+      'a',
+      'o',
+    );
+    expect([occ.status, norm.status, disc.status, cf.status, mer.status, ten.status, pre.status, acc.status]).toEqual([
+      'resolved',
       'resolved',
       'resolved',
       'resolved',
