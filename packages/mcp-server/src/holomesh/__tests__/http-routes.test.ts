@@ -3946,6 +3946,121 @@ describe('HoloMesh HTTP Routes', () => {
       expect(claimRes._body.error).toContain('Definition-of-Done required');
     });
 
+    it('GET /board/health reports board hygiene metrics', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `board-health-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+      const team = teamStore.get(tid)!;
+      team.taskBoard = [
+        {
+          id: 'task_p1',
+          title: 'priority babel',
+          description: 'priority raw\n\n## Done when:\n- Health sees raw priority.',
+          status: 'open',
+          priority: 1,
+          prioritySortKey: 1,
+          priority_raw: 'P1',
+          createdAt: new Date().toISOString(),
+        } as any,
+        {
+          id: 'task_blocked',
+          title: 'blocked old enough',
+          description: 'blocked\n\n## Done when:\n- Health bins blocked age.',
+          status: 'blocked',
+          priority: 4,
+          prioritySortKey: 4,
+          blockedAt: new Date(Date.now() - 8 * 86400000).toISOString(),
+          createdAt: new Date().toISOString(),
+        } as any,
+      ];
+      teamPresenceStore.set(
+        tid,
+        new Map([
+          [
+            ownerAgentId,
+            {
+              agentId: ownerAgentId,
+              agentName: 'owner',
+              status: 'online',
+              lastHeartbeat: new Date().toISOString(),
+              capabilityTags: [],
+            } as any,
+          ],
+        ])
+      );
+
+      const req = mockReq('GET', `/api/holomesh/team/${tid}/board/health`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/board/health`);
+
+      expect(res._status).toBe(200);
+      expect(res._body.metrics.priorityBabelCount).toBe(1);
+      expect(res._body.metrics.blockedAgeHistogram.gte_7d).toBe(1);
+      expect(res._body.metrics.claimablePerActiveAgent[0].agentId).toBe(ownerAgentId);
+      expect(res._body.probes.readYourWrites).toContain('pattern-gamma');
+    });
+
+    it('PATCH /board/:taskId rejects block without reason and stamps blockedAt with reason', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `block-reason-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const addReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/board`,
+        {
+          tasks: [
+            {
+              title: 'block me',
+              description: 'Block lifecycle target.\n\n## Done when:\n- Block route requires a reason.',
+              priority: 'high',
+            },
+          ],
+        },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const addRes = mockRes();
+      await handleHoloMeshRoute(addReq, addRes, `/api/holomesh/team/${tid}/board`);
+      const taskId = addRes._body.tasks[0].id;
+
+      const noReasonReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        { action: 'block' },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const noReasonRes = mockRes();
+      await handleHoloMeshRoute(noReasonReq, noReasonRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+      expect(noReasonRes._status).toBe(400);
+      expect(noReasonRes._body.error).toContain('blockedReason is required');
+
+      const blockReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        { action: 'block', blockedReason: 'waiting on external deployment credential' },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const blockRes = mockRes();
+      await handleHoloMeshRoute(blockReq, blockRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+      expect(blockRes._status).toBe(200);
+      expect(blockRes._body.task.blockedReason).toBe('waiting on external deployment credential');
+      expect(Date.parse(blockRes._body.task.blockedAt)).toBeGreaterThan(0);
+    });
+
     it('PATCH /board/:taskId requires a fresh member heartbeat before claim', async () => {
       const createReq = mockReq(
         'POST',

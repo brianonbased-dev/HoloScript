@@ -388,6 +388,8 @@ describe('handleBoardTool with in-memory store', () => {
     const result = (await handleBoardTool('holomesh_board_claim', {
       team_id: 'team-abc',
       task_id: taskId,
+      agent_id: 'founder',
+      agent_name: 'Founder',
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(true);
@@ -408,6 +410,8 @@ describe('handleBoardTool with in-memory store', () => {
     await handleBoardTool('holomesh_board_claim', {
       team_id: 'team-abc',
       task_id: taskId,
+      agent_id: 'founder',
+      agent_name: 'Founder',
     });
 
     // Complete
@@ -421,6 +425,84 @@ describe('handleBoardTool with in-memory store', () => {
 
     expect(result.success).toBe(true);
     expect(persistTeamDurable).toHaveBeenCalledWith('team-abc');
+  });
+
+  it('holomesh_board_claim rejects non-owner MCP claims without a fresh heartbeat', async () => {
+    seedTeam('team-abc');
+    await handleBoardTool('holomesh_board_add', {
+      team_id: 'team-abc',
+      tasks: [{ title: 'Heartbeat gated MCP claim' }],
+    });
+
+    const taskId = teamStore.get('team-abc')!.taskBoard![0].id;
+    const result = (await handleBoardTool('holomesh_board_claim', {
+      team_id: 'team-abc',
+      task_id: taskId,
+      agent_id: 'agent-without-presence',
+    })) as Record<string, unknown>;
+
+    expect(result).toMatchObject({
+      code: 'heartbeat_required',
+    });
+  });
+
+  it('holomesh_board_claim enforces the same cap gate on the MCP path', async () => {
+    seedTeam('team-abc', {
+      taskBoard: [
+        {
+          id: 'held',
+          title: 'held',
+          description: 'held\n\n## Done when:\n- held',
+          status: 'claimed',
+          priority: 4,
+          prioritySortKey: 4,
+          createdAt: new Date().toISOString(),
+          claimedBy: 'agent-cap',
+        },
+        {
+          id: 'next',
+          title: 'next',
+          description: 'next\n\n## Done when:\n- next',
+          status: 'open',
+          priority: 4,
+          prioritySortKey: 4,
+          createdAt: new Date().toISOString(),
+        },
+      ],
+    });
+    teamPresenceStore.set(
+      'team-abc',
+      new Map([
+        [
+          'agent-cap',
+          {
+            agentId: 'agent-cap',
+            agentName: 'Agent Cap',
+            status: 'online',
+            lastHeartbeat: new Date().toISOString(),
+            capabilityTags: [],
+          } as never,
+        ],
+      ])
+    );
+    const previousCap = process.env.HOLOMESH_CLAIM_CAP;
+    process.env.HOLOMESH_CLAIM_CAP = '1';
+    try {
+      const result = (await handleBoardTool('holomesh_board_claim', {
+        team_id: 'team-abc',
+        task_id: 'next',
+        agent_id: 'agent-cap',
+        agent_name: 'Agent Cap',
+      })) as Record<string, unknown>;
+      expect(result).toMatchObject({
+        code: 'claim_cap_exceeded',
+        active_claims: 1,
+        claim_cap: 1,
+      });
+    } finally {
+      if (previousCap === undefined) delete process.env.HOLOMESH_CLAIM_CAP;
+      else process.env.HOLOMESH_CLAIM_CAP = previousCap;
+    }
   });
 
   it('holomesh_mode_set changes team mode', async () => {

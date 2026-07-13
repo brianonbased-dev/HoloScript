@@ -57,6 +57,7 @@ export interface DoneResult {
 export interface TaskActionResult {
   success: boolean;
   error?: string;
+  code?: string;
   task?: TeamTask;
   doneEntry?: DoneLogEntry;
 }
@@ -239,9 +240,132 @@ export function isFabricatedEvidence(evidence: string): { fabricated: boolean; p
   return { fabricated: false };
 }
 
+export interface NormalizedTaskPriority {
+  priority: number;
+  prioritySortKey: number;
+  priority_raw?: string | number;
+}
+
+const PRIORITY_ALIASES = new Map<string, number>([
+  ['critical', 1],
+  ['crit', 1],
+  ['p0', 1],
+  ['urgent', 1],
+  ['high', 2],
+  ['medium', 4],
+  ['med', 4],
+  ['normal', 4],
+  ['default', 4],
+  ['low', 6],
+]);
+
+export function normalizeTaskPriority(value: unknown, fallback = 5): NormalizedTaskPriority {
+  const fallbackPriority = Math.min(10, Math.max(1, Math.trunc(fallback)));
+  const raw =
+    typeof value === 'string' || typeof value === 'number' ? (value as string | number) : undefined;
+  let parsed: number | undefined;
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    parsed = value;
+  } else if (typeof value === 'string') {
+    const trimmed = value.trim().toLowerCase();
+    const pMatch = /^p([0-9]+)$/u.exec(trimmed);
+    if (pMatch) parsed = Number.parseInt(pMatch[1], 10);
+    else if (PRIORITY_ALIASES.has(trimmed)) parsed = PRIORITY_ALIASES.get(trimmed);
+    else if (/^[0-9]+$/u.test(trimmed)) parsed = Number.parseInt(trimmed, 10);
+  }
+  const priority = Math.min(10, Math.max(1, Math.trunc(parsed ?? fallbackPriority)));
+  return {
+    priority,
+    prioritySortKey: priority,
+    ...(raw !== undefined && raw !== priority ? { priority_raw: raw } : {}),
+  };
+}
+
 /** Count how many board tasks an agent currently holds in `claimed` status. */
 export function countActiveClaims(board: TeamTask[], agentId: string): number {
   return board.filter((t) => t.status === 'claimed' && t.claimedBy === agentId).length;
+}
+
+export interface BoardClaimGateOptions {
+  taskId: string;
+  agentId: string;
+  isOwner?: boolean;
+  hasFreshHeartbeat?: boolean;
+  capabilityTags?: string[];
+  claimCap?: number;
+  claimTtlMs?: number;
+  now?: number;
+}
+
+export interface BoardClaimGateResult {
+  ok: boolean;
+  status: number;
+  code?: string;
+  error?: string;
+  task?: TeamTask;
+  active_claims?: number;
+  claim_cap?: number;
+  required_tags?: string[];
+  missing_tags?: string[];
+  agent_capability_tags?: string[];
+  ttlReleased: TeamTask[];
+}
+
+export function evaluateBoardClaimGate(
+  board: TeamTask[],
+  opts: BoardClaimGateOptions
+): BoardClaimGateResult {
+  const ttlReleased =
+    opts.claimTtlMs && opts.claimTtlMs > 0
+      ? releaseExpiredClaims(board, { ttlMs: opts.claimTtlMs, now: opts.now })
+      : [];
+  const task = board.find((t) => t.id === opts.taskId);
+  if (!task) {
+    return { ok: false, status: 404, code: 'task_not_found', error: 'Task not found', ttlReleased };
+  }
+  if (!opts.isOwner && !opts.hasFreshHeartbeat) {
+    return {
+      ok: false,
+      status: 403,
+      code: 'heartbeat_required',
+      error: 'Fresh heartbeat required before claiming a board task',
+      task,
+      ttlReleased,
+    };
+  }
+  const claimCap = opts.claimCap ?? 5;
+  const activeClaims = countActiveClaims(board, opts.agentId);
+  if (Number.isFinite(claimCap) && claimCap > 0 && activeClaims >= claimCap) {
+    return {
+      ok: false,
+      status: 403,
+      code: 'claim_cap_exceeded',
+      error: `Claim cap exceeded: agent already holds ${activeClaims} claimed task(s) (cap ${claimCap}). Complete or release existing claims first.`,
+      task,
+      active_claims: activeClaims,
+      claim_cap: claimCap,
+      ttlReleased,
+    };
+  }
+  const requiredTags = task.required_tags ?? [];
+  if (requiredTags.length) {
+    const agentCaps = (opts.capabilityTags ?? []).map((c) => c.toLowerCase());
+    const missing = requiredTags.filter((r) => !agentCaps.includes(r.toLowerCase()));
+    if (missing.length) {
+      return {
+        ok: false,
+        status: 403,
+        code: 'capability_mismatch',
+        error: 'Capability mismatch: agent lacks required tags for this task',
+        task,
+        required_tags: requiredTags,
+        missing_tags: missing,
+        agent_capability_tags: opts.capabilityTags ?? [],
+        ttlReleased,
+      };
+    }
+  }
+  return { ok: true, status: 200, task, ttlReleased };
 }
 
 /**
@@ -288,6 +412,53 @@ export function releaseExpiredClaims(
     released.push(task);
   }
   return released;
+}
+
+export interface BlockedTaskLifecycleSweep {
+  escalated: TeamTask[];
+  reopened: TeamTask[];
+}
+
+export function sweepBlockedTaskLifecycle(
+  board: TeamTask[],
+  opts: {
+    escalateMs?: number;
+    reopenMs?: number;
+    now?: number;
+  } = {}
+): BlockedTaskLifecycleSweep {
+  const now = opts.now ?? Date.now();
+  const escalateMs = opts.escalateMs ?? 7 * 24 * 60 * 60 * 1000;
+  const reopenMs = opts.reopenMs ?? 14 * 24 * 60 * 60 * 1000;
+  const escalated: TeamTask[] = [];
+  const reopened: TeamTask[] = [];
+  for (const task of board) {
+    if (task.status !== 'blocked') continue;
+    const blockedAt = Date.parse(task.blockedAt || task.createdAt);
+    if (!Number.isFinite(blockedAt)) continue;
+    const age = now - blockedAt;
+    if (age >= reopenMs) {
+      task.status = 'open';
+      task.blockedReopenedAt = new Date(now).toISOString();
+      task.blockedLifecycleReason = `blocked_lifecycle_reopened: blocked for ${Math.round(age / 86400000)}d`;
+      task.claimedBy = undefined;
+      task.claimedByName = undefined;
+      task.claimedByTag = undefined;
+      task.claimIdentity = undefined;
+      task.claimLeaseId = undefined;
+      task.claimLeaseExpiresAt = undefined;
+      task.claimSessionId = undefined;
+      task.claimedAt = undefined;
+      reopened.push(task);
+      continue;
+    }
+    if (age >= escalateMs && !task.blockedEscalatedAt) {
+      task.blockedEscalatedAt = new Date(now).toISOString();
+      task.blockedLifecycleReason = `blocked_lifecycle_escalated: blocked for ${Math.round(age / 86400000)}d`;
+      escalated.push(task);
+    }
+  }
+  return { escalated, reopened };
 }
 
 /**
@@ -583,10 +754,16 @@ export function appendFollowUpCommit(
 }
 
 /** Block a task. */
-export function blockTask(board: TeamTask[], taskId: string): TaskActionResult {
+export function blockTask(board: TeamTask[], taskId: string, reason?: string): TaskActionResult {
   const task = board.find((t) => t.id === taskId);
   if (!task) return { success: false, error: 'Task not found' };
+  const blockedReason = String(reason ?? '').trim();
+  if (!blockedReason) {
+    return { success: false, code: 'blocked_reason_required', error: 'blockedReason is required' };
+  }
   task.status = 'blocked';
+  task.blockedReason = blockedReason.slice(0, 1000);
+  task.blockedAt = new Date().toISOString();
   return { success: true, task };
 }
 
@@ -595,6 +772,11 @@ export function reopenTask(board: TeamTask[], taskId: string): TaskActionResult 
   const task = board.find((t) => t.id === taskId);
   if (!task) return { success: false, error: 'Task not found' };
   task.status = 'open';
+  task.blockedReason = undefined;
+  task.blockedAt = undefined;
+  task.blockedEscalatedAt = undefined;
+  task.blockedReopenedAt = undefined;
+  task.blockedLifecycleReason = undefined;
   task.claimedBy = undefined;
   task.claimedByName = undefined;
   task.claimedByTag = undefined;
@@ -842,7 +1024,7 @@ export function addTasksToBoard(
       description: normalizedDescription,
       status: 'open',
       source: String(t.source || 'manual'),
-      priority: t.priority || 5,
+      ...normalizeTaskPriority(t.priority),
       role: t.role,
       createdAt: new Date().toISOString(),
     };
@@ -972,8 +1154,9 @@ export function voteSuggestion(
       ),
       status: 'open',
       source: `suggestion:${suggestion.id}`,
-      priority:
-        suggestion.category === 'architecture' ? 2 : suggestion.category === 'testing' ? 3 : 4,
+      ...normalizeTaskPriority(
+        suggestion.category === 'architecture' ? 2 : suggestion.category === 'testing' ? 3 : 4
+      ),
       createdAt: new Date().toISOString(),
     };
     board.push(promotedTask);
@@ -1014,7 +1197,7 @@ export function promoteSuggestion(
     ),
     status: 'open',
     source: `suggestion:${suggestion.id}`,
-    priority: opts.priority || 3,
+    ...normalizeTaskPriority(opts.priority || 3),
     role: opts.role,
     createdAt: new Date().toISOString(),
   };

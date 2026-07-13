@@ -510,10 +510,24 @@ export interface TeamTask {
   source?: string;
   /** Agent ID that created this task. Enables `board:update-own` permission gate. */
   createdBy?: string;
+  /** Original caller-supplied priority before board write-time canonicalization. */
+  priority_raw?: string | number;
+  /** Canonical numeric priority used for sorting/filtering across REST/MCP clients. */
+  prioritySortKey?: number;
   priority: number;
   role?: SlotRole;
   createdAt: string;
   completedAt?: string;
+  /** Required reason captured when a task is intentionally blocked. */
+  blockedReason?: string;
+  /** ISO timestamp stamped when a task enters blocked status. */
+  blockedAt?: string;
+  /** Lazy lifecycle marker once a blocked task crosses the escalation threshold. */
+  blockedEscalatedAt?: string;
+  /** Lazy lifecycle marker when a long-blocked task is reopened by the sweep. */
+  blockedReopenedAt?: string;
+  /** Reason emitted by the lazy blocked-task lifecycle sweep. */
+  blockedLifecycleReason?: string;
 
   // ── Chaining & Metadata ──
 

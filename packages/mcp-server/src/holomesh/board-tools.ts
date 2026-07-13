@@ -19,6 +19,7 @@ import {
   appendFollowUpCommit,
   createSuggestion,
   voteSuggestion,
+  evaluateBoardClaimGate,
   type TeamTask,
   type DoneLogEntry,
   type SuggestionCategory,
@@ -691,26 +692,29 @@ async function handleBoardClaim(args: Record<string, unknown>): Promise<Record<s
   try {
     const team = getTeam(teamId);
 
-    // required_tags enforcement: if the task declares required_tags, check the
-    // claiming agent's presence capabilityTags. MCP tool path skips the heartbeat
-    // gate but still enforces capability matching.
-    const claimTarget = team.taskBoard?.find((t) => t.id === taskId);
-    if (claimTarget?.required_tags && claimTarget.required_tags.length > 0) {
-      pruneStalePresence(teamId);
-      const agentPresence = teamPresenceStore.get(teamId)?.get(effectiveAgentId);
-      const agentCaps = (agentPresence?.capabilityTags ?? []).map((c) => c.toLowerCase());
-      const missing = claimTarget.required_tags.filter(
-        (r) => !agentCaps.includes(r.toLowerCase())
-      );
-      if (missing.length > 0) {
-        return {
-          error: 'Capability mismatch: agent lacks required tags for this task',
-          code: 'capability_mismatch',
-          required_tags: claimTarget.required_tags,
-          missing_tags: missing,
-          agent_capability_tags: agentPresence?.capabilityTags ?? [],
-        };
-      }
+    pruneStalePresence(teamId);
+    const agentPresence = teamPresenceStore.get(teamId)?.get(effectiveAgentId);
+    const claimTtlHours = Number(process.env.HOLOMESH_CLAIM_TTL_HOURS ?? 24);
+    const claimCap = Number(process.env.HOLOMESH_CLAIM_CAP ?? 5);
+    const gate = evaluateBoardClaimGate(team.taskBoard!, {
+      taskId,
+      agentId: effectiveAgentId,
+      isOwner: effectiveAgentId === team.ownerId,
+      hasFreshHeartbeat: Boolean(agentPresence),
+      capabilityTags: agentPresence?.capabilityTags ?? [],
+      claimCap,
+      claimTtlMs: claimTtlHours * 3600 * 1000,
+    });
+    if (!gate.ok) {
+      return {
+        error: gate.error || 'Claim failed',
+        code: gate.code,
+        active_claims: gate.active_claims,
+        claim_cap: gate.claim_cap,
+        required_tags: gate.required_tags,
+        missing_tags: gate.missing_tags,
+        agent_capability_tags: gate.agent_capability_tags,
+      };
     }
 
     const result = claimTask(team.taskBoard!, taskId, effectiveAgentId, effectiveAgentName);

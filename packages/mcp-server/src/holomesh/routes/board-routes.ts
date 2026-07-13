@@ -48,7 +48,9 @@ import {
   addTasksToBoard,
   isFabricatedEvidence,
   countActiveClaims,
-  releaseExpiredClaims,
+  evaluateBoardClaimGate,
+  normalizeTaskPriority,
+  sweepBlockedTaskLifecycle,
   type TeamTask,
   type DoneLogEntry,
   type TeamSuggestion,
@@ -209,6 +211,17 @@ function getFreshPresence(teamId: string, agentId: string): TeamPresenceEntry | 
     ? expiresAtMs
     : lastHeartbeatMs + (entry.ttlMs || CLAIM_HEARTBEAT_GRACE_MS);
   return Date.now() <= effectiveExpiry ? entry : null;
+}
+
+async function runBlockedLifecycleSweep(teamId: string, board: TeamTask[]) {
+  const sweep = sweepBlockedTaskLifecycle(board);
+  if (sweep.escalated.length || sweep.reopened.length) {
+    await persistTeamDurable(teamId);
+    console.log(
+      `[board] blocked lifecycle sweep on ${teamId}: escalated=${sweep.escalated.length} reopened=${sweep.reopened.length}`
+    );
+  }
+  return sweep;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -842,6 +855,7 @@ export async function handleBoardRoutes(
     if (!access) return true;
     const { teamId } = access;
     const team = teamStore.get(teamId)!;
+    const blockedLifecycleSweep = await runBlockedLifecycleSweep(teamId, team.taskBoard || []);
 
     json(res, 200, {
       success: true,
@@ -852,12 +866,83 @@ export async function handleBoardRoutes(
       mode: team.mode || 'general',
       objective: team.roomConfig?.objective || '',
       communicationStyle: team.roomConfig?.communicationStyle || 'task_first',
+      blocked_lifecycle_sweep: {
+        escalated: blockedLifecycleSweep.escalated.map((task) => task.id),
+        reopened: blockedLifecycleSweep.reopened.map((task) => task.id),
+      },
       ...getBoardModeFields(team),
     });
     return true;
   }
 
   // GET /api/holomesh/team/:id/fleet — latest locally-published fleet snapshot
+  // GET /api/holomesh/team/:id/board/health — board hygiene metrics for queue drainers
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/board\/health$/) && method === 'GET') {
+    const access = await requireTeamAccessFresh(req, res, url, 'board:read');
+    if (!access) return true;
+    const { teamId } = access;
+    const team = teamStore.get(teamId)!;
+    const board = team.taskBoard || [];
+    const blockedLifecycleSweep = await runBlockedLifecycleSweep(teamId, board);
+    const presence = teamPresenceStore.get(teamId);
+    const activeAgents = [...(presence?.values() ?? [])].filter((entry) => {
+      if (entry.status === 'offline') return false;
+      const last = Date.parse(entry.lastHeartbeat);
+      const expires = entry.expiresAt ? Date.parse(entry.expiresAt) : Number.NaN;
+      const expiry = Number.isFinite(expires)
+        ? expires
+        : Number.isFinite(last)
+          ? last + (entry.ttlMs || CLAIM_HEARTBEAT_GRACE_MS)
+          : 0;
+      return Date.now() <= expiry;
+    });
+    const priorityBabelTasks = board.filter(
+      (task) => task.priority_raw !== undefined || task.prioritySortKey !== task.priority
+    );
+    const blockedAgeHistogram = { lt_7d: 0, gte_7d: 0, gte_14d: 0 };
+    const now = Date.now();
+    for (const task of board) {
+      if (task.status !== 'blocked') continue;
+      const started = Date.parse(task.blockedAt || task.createdAt);
+      const ageMs = Number.isFinite(started) ? now - started : 0;
+      if (ageMs >= 14 * 86400000) blockedAgeHistogram.gte_14d++;
+      else if (ageMs >= 7 * 86400000) blockedAgeHistogram.gte_7d++;
+      else blockedAgeHistogram.lt_7d++;
+    }
+    const claimCap = Number(process.env.HOLOMESH_CLAIM_CAP ?? 5);
+    json(res, 200, {
+      success: true,
+      teamId,
+      metrics: {
+        open: board.filter((task) => task.status === 'open').length,
+        claimed: board.filter((task) => task.status === 'claimed').length,
+        blocked: board.filter((task) => task.status === 'blocked').length,
+        done: team.doneLog?.length || 0,
+        activeAgents: activeAgents.length,
+        claimablePerActiveAgent: activeAgents.map((entry) => {
+          const activeClaims = countActiveClaims(board, entry.agentId);
+          return {
+            agentId: entry.agentId,
+            agentName: entry.agentName,
+            activeClaims,
+            claimCap,
+            claimable: Math.max(0, claimCap - activeClaims),
+          };
+        }),
+        blockedAgeHistogram,
+        priorityBabelCount: priorityBabelTasks.length,
+      },
+      probes: {
+        readYourWrites: 'pattern-gamma:fresh-reload-before-health-read',
+      },
+      blocked_lifecycle_sweep: {
+        escalated: blockedLifecycleSweep.escalated.map((task) => task.id),
+        reopened: blockedLifecycleSweep.reopened.map((task) => task.id),
+      },
+    });
+    return true;
+  }
+
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/fleet$/) && method === 'GET') {
     const access = await requireTeamAccessFresh(req, res, url, 'board:read');
     if (!access) return true;
@@ -1723,50 +1808,39 @@ export async function handleBoardRoutes(
         // commit-anchored progress. No cron — a starved board sees constant claim
         // traffic, so expiry latency is minutes, not days.
         const claimTtlHours = Number(process.env.HOLOMESH_CLAIM_TTL_HOURS ?? 24);
-        const ttlReleased = releaseExpiredClaims(team.taskBoard, {
-          ttlMs: claimTtlHours * 3600 * 1000,
+        const claimCap = Number(process.env.HOLOMESH_CLAIM_CAP ?? 5);
+        const gate = evaluateBoardClaimGate(team.taskBoard, {
+          taskId,
+          agentId: effectiveAgentId,
+          isOwner: effectiveAgentId === team.ownerId,
+          hasFreshHeartbeat: Boolean(claimPresence),
+          capabilityTags: claimPresence?.capabilityTags ?? [],
+          claimCap,
+          claimTtlMs: claimTtlHours * 3600 * 1000,
         });
-        if (ttlReleased.length > 0) {
+        if (gate.ttlReleased.length > 0) {
           console.log(
-            `[board] claim-ttl reaper released ${ttlReleased.length} stale claim(s) on ${teamId}: ${ttlReleased
+            `[board] claim-ttl reaper released ${gate.ttlReleased.length} stale claim(s) on ${teamId}: ${gate.ttlReleased
               .map((t) => `${t.id}(${t.releasedReason?.slice(0, 60)})`)
               .join(', ')}`
           );
         }
-
-        // Per-agent concurrent-claim cap (trust-audit 2026-07-13: one agent held
-        // 87.5% of the claimed board). Config: HOLOMESH_CLAIM_CAP, default 5.
-        const claimCap = Number(process.env.HOLOMESH_CLAIM_CAP ?? 5);
-        const activeClaims = countActiveClaims(team.taskBoard, effectiveAgentId);
-        if (Number.isFinite(claimCap) && claimCap > 0 && activeClaims >= claimCap) {
-          json(res, 403, {
-            error: `Claim cap exceeded: agent already holds ${activeClaims} claimed task(s) (cap ${claimCap}). Complete or release existing claims first.`,
-            code: 'claim_cap_exceeded',
-            active_claims: activeClaims,
-            claim_cap: claimCap,
+        if (!gate.ok) {
+          json(res, gate.status, {
+            error: gate.error,
+            code: gate.code,
+            active_claims: gate.active_claims,
+            claim_cap: gate.claim_cap,
+            required_tags: gate.required_tags,
+            missing_tags: gate.missing_tags,
+            agent_capability_tags: gate.agent_capability_tags,
+            required_endpoint:
+              gate.code === 'heartbeat_required'
+                ? `/api/holomesh/team/${teamId}/presence`
+                : undefined,
+            grace_ms: gate.code === 'heartbeat_required' ? CLAIM_HEARTBEAT_GRACE_MS : undefined,
           });
           return true;
-        }
-
-        // required_tags enforcement: if the task declares required_tags, the claiming
-        // agent must have ALL of them in their presence capabilityTags.
-        const claimTarget = team.taskBoard.find((t) => t.id === taskId);
-        if (claimTarget?.required_tags && claimTarget.required_tags.length > 0) {
-          const agentPresence = claimPresence ?? getFreshPresence(teamId, effectiveAgentId);
-          const agentCaps = (agentPresence?.capabilityTags ?? []).map((c) => c.toLowerCase());
-          const missing = claimTarget.required_tags.filter(
-            (r) => !agentCaps.includes(r.toLowerCase())
-          );
-          if (missing.length > 0) {
-            json(res, 403, {
-              error: 'Capability mismatch: agent lacks required tags for this task',
-              code: 'capability_mismatch',
-              required_tags: claimTarget.required_tags,
-              missing_tags: missing,
-              agent_capability_tags: agentPresence?.capabilityTags ?? [],
-            });
-            return true;
-          }
         }
 
         // Fleet auto-join (task_1779315733346_9e0g): usage (claim) ⇒ team membership.
@@ -1941,7 +2015,11 @@ export async function handleBoardRoutes(
         break;
       }
       case 'block':
-        result = blockTask(team.taskBoard, taskId);
+        result = blockTask(
+          team.taskBoard,
+          taskId,
+          typeof body.blockedReason === 'string' ? body.blockedReason : body.reason
+        );
         eventType = 'board:blocked';
         break;
       case 'reopen':
@@ -2019,7 +2097,7 @@ export async function handleBoardRoutes(
           updates.description = normalizeTaskDescription(body.description, 2000);
         }
         if (body.priority !== undefined) {
-          updates.priority = body.priority;
+          Object.assign(updates, normalizeTaskPriority(body.priority, task.priority));
         }
         if (Array.isArray(body.tags)) {
           updates.tags = (body.tags as unknown[]).slice(0, 50).map((t) => String(t).slice(0, 100));
