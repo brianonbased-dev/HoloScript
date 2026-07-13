@@ -1,14 +1,35 @@
 {
   "name": "@holoscript/marketplace-agentkit",
-  "version": "1.0.0",
-  "private": true,
-  "description": "Optional Coinbase AgentKit integration for HoloScript marketplace agents",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
+  "version": "1.0.1",
+  "description": "Fail-closed Coinbase CDP wallet integration for HoloScript marketplace agents",
+  "releaseLane": "v0-preview",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup",
     "test": "vitest run --passWithNoTests",
+    "check": "pnpm run test && pnpm run build",
+    "prepublishOnly": "pnpm run check",
     "test:coverage": "vitest run --coverage --passWithNoTests"
   },
   "dependencies": {
@@ -29,5 +50,21 @@
     "wallet"
   ],
   "author": "HoloScript Team",
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/marketplace-agentkit"
+  },
+  "homepage": "https://github.com/brianonbased-dev/HoloScript/tree/main/packages/marketplace-agentkit",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  },
+  "holorepo": {
+    "publicConsumption": {
+      "coreRule": "Live wallet and payment behavior fails closed; simulation requires explicit caller opt-in.",
+      "localAdapterBoundary": "Credentials and custody policy are caller-owned inputs and are never package defaults."
+    },
+    "authBoundary": "Reads Coinbase CDP credentials from explicit options or standard CDP environment variables; never emits secret values."
+  }
 }

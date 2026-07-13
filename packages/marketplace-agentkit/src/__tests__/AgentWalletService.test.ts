@@ -1,11 +1,22 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { AgentWalletService } from '../AgentWalletService.js';
 
 describe('AgentWalletService', () => {
   let service: AgentWalletService;
 
   beforeEach(() => {
-    service = new AgentWalletService('base-sepolia');
+    vi.stubEnv('CDP_API_KEY_NAME', '');
+    vi.stubEnv('CDP_API_KEY_ID', '');
+    vi.stubEnv('CDP_API_KEY_SECRET', '');
+    vi.stubEnv('CDP_WALLET_SECRET', '');
+    service = new AgentWalletService('base-sepolia', { mode: 'simulation' });
+  });
+
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('fails closed when live credentials are absent', async () => {
+    const live = new AgentWalletService('base-sepolia');
+    await expect(live.initialize()).rejects.toThrow('Live Coinbase CDP wallet initialization requires');
   });
 
   it('should be defined', () => {
@@ -34,6 +45,7 @@ describe('AgentWalletService', () => {
     expect(receipt.txHash).toBeDefined();
     expect(receipt.signature).toBeDefined();
     expect(receipt.agentWallet).toBe(service.walletAddress);
+    expect(receipt.simulated).toBe(true);
   });
 
   it('should throw when processing payment before initialization', async () => {

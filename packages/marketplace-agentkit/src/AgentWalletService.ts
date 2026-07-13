@@ -7,13 +7,19 @@ type WalletProvider = {
   getNetwork(): { networkId: string };
 };
 
+export type AgentWalletMode = 'live' | 'simulation';
+
+export interface AgentWalletServiceOptions {
+  mode?: AgentWalletMode;
+}
+
 function createMockWalletProvider(networkId: string): WalletProvider {
   return {
     getAddress: () =>
       '0x' +
       Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join(''),
     signMessage: async (_msg: string) => '0xabcsignature123',
-    getName: () => 'MockCdpWalletProvider',
+    getName: () => 'SimulatedCdpWalletProvider',
     getNetwork: () => ({ networkId }),
   };
 }
@@ -33,7 +39,14 @@ export class AgentWalletService {
   private walletProvider: WalletProvider | null = null;
   public walletAddress: string | null = null;
 
-  constructor(private networkId: string = 'base-sepolia') {}
+  private readonly mode: AgentWalletMode;
+
+  constructor(
+    private networkId: string = 'base-sepolia',
+    options: AgentWalletServiceOptions = {},
+  ) {
+    this.mode = options.mode ?? 'live';
+  }
 
   /**
    * Initializes the autonomous wallet.
@@ -45,7 +58,9 @@ export class AgentWalletService {
       const apiKeySecret = process.env.CDP_API_KEY_SECRET;
       const walletSecret = process.env.CDP_WALLET_SECRET;
 
-      if (apiKeyId && apiKeySecret && walletSecret) {
+      if (this.mode === 'simulation') {
+        this.walletProvider = createMockWalletProvider(this.networkId);
+      } else if (apiKeyId && apiKeySecret && walletSecret) {
         this.walletProvider = await CdpEvmWalletProvider.configureWithWallet({
           apiKeyId,
           apiKeySecret,
@@ -53,8 +68,9 @@ export class AgentWalletService {
           networkId: this.networkId,
         });
       } else {
-        // Keep local tests and offline development free of external custody.
-        this.walletProvider = createMockWalletProvider(this.networkId);
+        throw new Error(
+          'Live Coinbase CDP wallet initialization requires CDP_API_KEY_ID (or CDP_API_KEY_NAME), CDP_API_KEY_SECRET, and CDP_WALLET_SECRET. Pass { mode: "simulation" } only for explicit non-production use.',
+        );
       }
 
       this.walletAddress = this.walletProvider.getAddress();
@@ -76,6 +92,11 @@ export class AgentWalletService {
     if (!this.walletProvider) {
       throw new Error('Wallet not initialized');
     }
+    if (this.mode !== 'simulation') {
+      throw new Error(
+        'Live x402 settlement is not implemented by AgentWalletService. Use an audited CdpEvmWalletProvider transfer flow or explicit simulation mode.',
+      );
+    }
 
     // 1. Sign the authorization intent (EIP-712 equivalent)
     const authMessage = `Authorized payment of ${challengeObj.cost} wei for ${challengeObj.memo}`;
@@ -86,6 +107,8 @@ export class AgentWalletService {
       txHash: '0xsimulatedtransactionhash0000abc123', // Real version executes a transfer here
       signature: signature,
       agentWallet: this.walletAddress,
+      simulated: true,
+      status: 'simulation-only',
     };
 
     return receipt;

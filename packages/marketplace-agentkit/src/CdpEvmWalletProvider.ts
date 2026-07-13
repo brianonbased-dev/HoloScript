@@ -50,6 +50,12 @@ export class CdpEvmWalletProvider {
     const apiKeySecret = options.apiKeySecret ?? process.env.CDP_API_KEY_SECRET;
     const walletSecret = options.walletSecret ?? process.env.CDP_WALLET_SECRET;
 
+    if (!apiKeyId || !apiKeySecret || !walletSecret) {
+      throw new Error(
+        'Coinbase CDP configuration requires apiKeyId, apiKeySecret, and walletSecret.',
+      );
+    }
+
     const cdp = new CdpClient({
       apiKeyId,
       apiKeySecret,

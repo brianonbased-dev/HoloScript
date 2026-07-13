@@ -17,6 +17,7 @@ export interface AgentKitOptions {
   api_key?: string;
   tee_enabled: boolean;
   gasless: boolean;
+  mode?: 'live' | 'simulation';
   spending_limit?: {
     daily_max: number;
     tx_max: number;
@@ -55,6 +56,7 @@ export interface AgentTransaction {
   timestamp: number;
   block_number: number;
   status: 'pending' | 'confirmed' | 'failed';
+  simulated?: boolean;
 }
 
 export class AgentKitIntegration {
@@ -64,12 +66,21 @@ export class AgentKitIntegration {
     this.options = options;
   }
 
+  private assertSimulation(operation: string): void {
+    if (this.options.mode !== 'simulation') {
+      throw new Error(
+        `${operation} has no audited live settlement implementation. Set mode to "simulation" only for explicit non-production use.`,
+      );
+    }
+  }
+
   async initializeAgentWallet(config: {
     agent_id: string;
     initial_balance: number;
   }): Promise<AgentWallet> {
     const walletService = new AgentWalletService(
-      this.options.network === 'ethereum' ? 'base-sepolia' : 'base-sepolia'
+      this.options.network === 'ethereum' ? 'base-sepolia' : 'base-sepolia',
+      { mode: this.options.mode },
     );
     const liveAddress = await walletService.initialize();
 
@@ -91,6 +102,7 @@ export class AgentKitIntegration {
     to: string,
     amount: number
   ): Promise<AgentTransaction> {
+    this.assertSimulation('trade');
     return {
       tx_hash: `0xTxTrade_${Date.now()}`,
       agent_id,
@@ -103,6 +115,7 @@ export class AgentKitIntegration {
       timestamp: Date.now(),
       block_number: 1234567,
       status: 'confirmed',
+      simulated: true,
     };
   }
 
@@ -110,6 +123,7 @@ export class AgentKitIntegration {
     _agent_id: string,
     _metadata: { name: string; description: string; uri: string; royalty_percentage: number }
   ): Promise<{ token_id: string; contract_address: string }> {
+    this.assertSimulation('mint_nft');
     return {
       token_id: '1',
       contract_address: `0xNFTContract_${Date.now()}`,
@@ -120,9 +134,10 @@ export class AgentKitIntegration {
     _agent_id: string,
     _params: { endpoint: string; price: number; asset: string }
   ): Promise<{ transaction_hash: string; content: any }> {
+    this.assertSimulation('pay_x402');
     return {
       transaction_hash: `0xTxPay_${Date.now()}`,
-      content: { success: true, message: 'Content unlocked' },
+      content: { success: true, simulated: true, message: 'Simulation completed' },
     };
   }
 
@@ -130,6 +145,7 @@ export class AgentKitIntegration {
     agent_id: string,
     params: { protocol: 'aave' | 'compound'; asset: string; amount: number }
   ): Promise<AgentTransaction> {
+    this.assertSimulation('earn_yield');
     return {
       tx_hash: `0xTxYield_${Date.now()}`,
       agent_id,
@@ -142,6 +158,7 @@ export class AgentKitIntegration {
       timestamp: Date.now(),
       block_number: 1234567,
       status: 'confirmed',
+      simulated: true,
     };
   }
 }
