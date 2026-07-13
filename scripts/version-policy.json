@@ -130,6 +130,7 @@
         "@holoscript/hologram-worker",
         "@holoscript/holo-runtime",
         "@holoscript/holollama",
+        "@holoscript/holosystem",
         "@holoscript/memory",
         "@holoscript/mcp-server-adversarial",
         "@holoscript/net-v2",
