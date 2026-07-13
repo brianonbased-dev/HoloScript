@@ -646,6 +646,9 @@ export interface TeamFleetSnapshotSummary {
   captured_at?: string;
   running_count?: number;
   declared_count?: number;
+  /** Unmanaged capacity that should affect health; preferred over raw orphan_count. */
+  orphaned_capacity_count?: number;
+  /** Legacy/raw orphan inventory, including intentionally managed transient capacity. */
   orphan_count?: number;
   no_instance_count?: number;
   total_cost_so_far_usd?: number;
@@ -655,13 +658,113 @@ export interface TeamFleetSnapshotSummary {
   [key: string]: unknown;
 }
 
+export interface TeamFleetResourceFlowVisibilityV1 {
+  complete: boolean;
+  gap_count: number;
+  gaps: string[];
+  duplicate_endpoint_bindings: unknown[];
+  invalid_manifest_count: number;
+  invalid_manifests: unknown[];
+  evidence_sources: string[];
+  [key: string]: unknown;
+}
+
+export interface TeamFleetResourceFlowUtilizedV1 {
+  instance_count: number;
+  active_compute_count: number;
+  retained_storage_count: number;
+  manifest_bound_instance_count: number;
+  unbound_instance_count: number;
+  capacity_binding_count: number;
+  effective_dph_usd: number;
+  projected_24h_usd: number;
+  resources: unknown[];
+  capacity_bindings: unknown[];
+  [key: string]: unknown;
+}
+
+export interface TeamFleetResourceFlowProducedV1 {
+  output_aware_lane_count: number;
+  active_manifest_count: number;
+  output_contract_count: number;
+  bound_manifest_count: number;
+  unbound_manifest_count: number;
+  evidence_backed_output_count: number;
+  verified_product_count: number;
+  verified_artifact_count: number;
+  verified_receipt_count: number;
+  verified_current_binding_count: number;
+  declared_only_output_count: number;
+  unverified_evidence_output_count: number;
+  claimed_or_unverified_output_count: number;
+  productive_count: number;
+  work_in_progress_count: number;
+  inference_output_tokens: number;
+  active_manifests: unknown[];
+  output_contracts: unknown[];
+  declared_output_locations: unknown[];
+  claimed_or_declared_outputs: unknown[];
+  artifacts: unknown[];
+  receipts: unknown[];
+  product_verification_policy: string;
+  [key: string]: unknown;
+}
+
+export interface TeamFleetResourceFlowStoredV1 {
+  instance_volume_count: number;
+  total_capacity_gb: number;
+  total_used_gb: number;
+  projected_storage_24h_usd: number;
+  volumes: unknown[];
+  locally_present_output_location_count: number;
+  verified_artifact_location_count: number;
+  verified_receipt_location_count: number;
+  evidence_backed_output_location_count: number;
+  artifact_locations: unknown[];
+  receipt_locations: unknown[];
+  [key: string]: unknown;
+}
+
+export interface TeamFleetResourceFlowConsumedV1 {
+  consumer_count: number;
+  manifest_attributed_count: number;
+  current_physical_consumer_count: number;
+  declared_or_historical_manifest_consumer_count: number;
+  bound_manifest_consumer_count: number;
+  unbound_manifest_consumer_count: number;
+  runtime_requests: number;
+  compute_bearing_requests: number;
+  runtime_metrics_age_ms: number | null;
+  runtime_providers: unknown[];
+  runtime_endpoints: unknown[];
+  consumers: unknown[];
+  current_physical_consumers: unknown[];
+  declared_or_historical_manifest_consumers: unknown[];
+  [key: string]: unknown;
+}
+
+/** Versioned Vast utilized/produced/stored/consumed projection published by the local collector. */
+export interface TeamFleetResourceFlowV1 {
+  schema_version: 'holomesh.vast-resource-flow/v1';
+  provider: 'vast.ai';
+  captured_at: string;
+  utilized: TeamFleetResourceFlowUtilizedV1;
+  produced: TeamFleetResourceFlowProducedV1;
+  stored: TeamFleetResourceFlowStoredV1;
+  consumed: TeamFleetResourceFlowConsumedV1;
+  visibility: TeamFleetResourceFlowVisibilityV1;
+  [key: string]: unknown;
+}
+
 export interface TeamFleetSnapshotPayload {
+  schema_version?: string;
   captured_at?: string;
   error?: string;
   warning?: string;
   summary?: TeamFleetSnapshotSummary;
   matched?: unknown[];
   orphans?: unknown[];
+  resource_flow?: TeamFleetResourceFlowV1;
   global_budget_usd_per_day?: number;
   [key: string]: unknown;
 }

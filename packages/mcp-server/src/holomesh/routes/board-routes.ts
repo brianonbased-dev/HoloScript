@@ -90,8 +90,7 @@ const ROOM_DONE_LOG_ARCHIVE_SCHEMA = 'room-done-log-archive/v0.1.0';
 // Env-driven so no owned-metal volume path ships as a default literal in the published package;
 // operators point HOLO_DONE_LOG_ARCHIVE_DIR at their own storage.
 const JETSON_DONE_LOG_ARCHIVE_DIR =
-  process.env.HOLO_DONE_LOG_ARCHIVE_DIR ??
-  '/var/lib/holoscript/mcp-server/room-task-archive';
+  process.env.HOLO_DONE_LOG_ARCHIVE_DIR ?? '/var/lib/holoscript/mcp-server/room-task-archive';
 const SHA256_HEX = /^[a-f0-9]{64}$/i;
 
 type BoardProvenanceParseResult =
@@ -193,6 +192,11 @@ const CLOUD_SESSION_LEASE_MS = Number(
 );
 const MAX_IDENTITY_ENVELOPE_BYTES = 16 * 1024;
 const DEFAULT_FLEET_SNAPSHOT_STALE_AFTER_MS = 2 * 60 * 60 * 1000;
+const MAX_FLEET_CAPTURE_FUTURE_SKEW_MS = 60 * 1000;
+const MAX_FLEET_FLOW_CAPTURE_DELTA_MS = 5 * 1000;
+const MAX_FLEET_VISIBILITY_GAPS = 128;
+const MAX_FLEET_VISIBILITY_GAP_LENGTH = 160;
+const MAX_FLEET_VERIFICATION_POLICY_LENGTH = 240;
 
 function normalizeVerificationEvidence(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined;
@@ -254,7 +258,9 @@ function normalizeIdentityEnvelope(value: unknown): HoloMeshIdentityEnvelope | u
   }
 }
 
-function identityEnvelopeFromBody(body: Record<string, unknown>): HoloMeshIdentityEnvelope | undefined {
+function identityEnvelopeFromBody(
+  body: Record<string, unknown>
+): HoloMeshIdentityEnvelope | undefined {
   return normalizeIdentityEnvelope(body.identity_envelope ?? body.identityEnvelope);
 }
 
@@ -279,9 +285,9 @@ function isCloudIdentityEnvelope(envelope: HoloMeshIdentityEnvelope | undefined)
   const surface = identityString(envelope?.session?.surface)?.toLowerCase();
   return Boolean(
     origin === 'cloud' ||
-      origin === 'provider-cloud' ||
-      origin?.includes('cloud') ||
-      surface?.includes('cloud')
+    origin === 'provider-cloud' ||
+    origin?.includes('cloud') ||
+    surface?.includes('cloud')
   );
 }
 
@@ -296,7 +302,11 @@ function sha256Hex(value: string): string {
 function stableJson(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(stableJson);
   if (!isRecord(value)) return value;
-  return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stableJson(value[key])]));
+  return Object.fromEntries(
+    Object.keys(value)
+      .sort()
+      .map((key) => [key, stableJson(value[key])])
+  );
 }
 
 function stableJsonString(value: unknown): string {
@@ -366,7 +376,8 @@ function manifestCounts(manifest: Record<string, unknown>): DoneLogArchiveCounts
 
 function validateJetsonArchiveReceipt(body: Record<string, unknown>): JetsonArchiveReceipt {
   const archiveReceipt = isRecord(body.archiveReceipt) ? body.archiveReceipt : {};
-  const candidate = body.jetson ?? body.jetsonReceipt ?? body.archiveJetson ?? archiveReceipt.jetson;
+  const candidate =
+    body.jetson ?? body.jetsonReceipt ?? body.archiveJetson ?? archiveReceipt.jetson;
   if (!isRecord(candidate) || candidate.ok !== true) {
     return {
       ok: false,
@@ -521,7 +532,8 @@ function validateDoneLogArchiveManifest(
       ok: false,
       status: 400,
       code: 'archive_manifest_hashes_invalid',
-      error: 'archive manifest files must include sqlite, allNdjson, and staleNdjson SHA-256 hashes',
+      error:
+        'archive manifest files must include sqlite, allNdjson, and staleNdjson SHA-256 hashes',
     };
   }
 
@@ -675,7 +687,8 @@ function validateCloudClaimLeaseForDone(
       ok: false,
       status: 409,
       code: 'cloud_claim_missing_lease',
-      error: 'Cloud-claimed task is missing a server cloud-session lease; reclaim it before marking done.',
+      error:
+        'Cloud-claimed task is missing a server cloud-session lease; reclaim it before marking done.',
     };
   }
   const lease = getActiveCloudSessionLease(teamId, task.claimLeaseId);
@@ -709,7 +722,545 @@ function validateCloudClaimLeaseForDone(
 }
 
 function numericCount(value: unknown): number {
-  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : 0;
+}
+
+function isNonnegativeInteger(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0;
+}
+
+function isNonnegativeFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0;
+}
+
+function parseFleetTimestamp(value: unknown): number | null {
+  if (typeof value !== 'string' || !value.trim() || value !== value.trim()) return null;
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) return null;
+  return new Date(parsed).toISOString() === value ? parsed : null;
+}
+
+function hasRequiredNonnegativeIntegers(
+  record: Record<string, unknown>,
+  fields: readonly string[]
+): boolean {
+  return fields.every((field) => isNonnegativeInteger(record[field]));
+}
+
+function hasRequiredNonnegativeNumbers(
+  record: Record<string, unknown>,
+  fields: readonly string[]
+): boolean {
+  return fields.every((field) => isNonnegativeFiniteNumber(record[field]));
+}
+
+function hasRequiredArrays(record: Record<string, unknown>, fields: readonly string[]): boolean {
+  return fields.every((field) => Array.isArray(record[field]));
+}
+
+function countMatchesArray(
+  record: Record<string, unknown>,
+  countField: string,
+  arrayField: string
+): boolean {
+  const entries = record[arrayField];
+  return isNonnegativeInteger(record[countField]) && Array.isArray(entries)
+    ? record[countField] === entries.length
+    : false;
+}
+
+function optionalCountsAgree(
+  left: Record<string, unknown>,
+  leftField: string,
+  right: Record<string, unknown>,
+  rightField = leftField
+): boolean {
+  return (
+    left[leftField] === undefined ||
+    right[rightField] === undefined ||
+    left[leftField] === right[rightField]
+  );
+}
+
+function evidenceBackedContractCount(value: unknown): number {
+  return Array.isArray(value)
+    ? value.filter((entry) => isRecord(entry) && entry.evidence_backed === true).length
+    : 0;
+}
+
+function validateProducedProjection(
+  projection: Record<string, unknown>,
+  artifactArrayField: string,
+  receiptArrayField: string
+): boolean {
+  if (
+    !hasRequiredNonnegativeIntegers(projection, [
+      'active_manifest_count',
+      'output_contract_count',
+      'verified_product_count',
+      'verified_artifact_count',
+      'verified_receipt_count',
+    ]) ||
+    !hasRequiredArrays(projection, [
+      'active_manifests',
+      'output_contracts',
+      artifactArrayField,
+      receiptArrayField,
+    ])
+  ) {
+    return false;
+  }
+
+  return (
+    countMatchesArray(projection, 'active_manifest_count', 'active_manifests') &&
+    countMatchesArray(projection, 'output_contract_count', 'output_contracts') &&
+    countMatchesArray(projection, 'verified_artifact_count', artifactArrayField) &&
+    countMatchesArray(projection, 'verified_receipt_count', receiptArrayField) &&
+    Number(projection.verified_product_count) <= Number(projection.output_contract_count) &&
+    projection.verified_product_count === evidenceBackedContractCount(projection.output_contracts)
+  );
+}
+
+function validateStoredLocationProjection(projection: Record<string, unknown>): boolean {
+  if (
+    !hasRequiredNonnegativeIntegers(projection, [
+      'verified_artifact_location_count',
+      'verified_receipt_location_count',
+      'evidence_backed_output_location_count',
+    ]) ||
+    !hasRequiredArrays(projection, ['artifact_locations', 'receipt_locations'])
+  ) {
+    return false;
+  }
+
+  return (
+    countMatchesArray(projection, 'verified_artifact_location_count', 'artifact_locations') &&
+    countMatchesArray(projection, 'verified_receipt_location_count', 'receipt_locations') &&
+    projection.evidence_backed_output_location_count ===
+      Number(projection.verified_artifact_location_count) +
+        Number(projection.verified_receipt_location_count)
+  );
+}
+
+function hasValidCanonicalCounts(record: Record<string, unknown>): boolean {
+  return Object.entries(record).every(([field, value]) => {
+    if (field.endsWith('_count') || field.endsWith('_requests') || field.endsWith('_tokens')) {
+      return isNonnegativeInteger(value);
+    }
+    return true;
+  });
+}
+
+function hasValidCanonicalNumericTree(value: unknown): boolean {
+  if (Array.isArray(value)) return value.every(hasValidCanonicalNumericTree);
+  if (!isRecord(value)) return true;
+  return Object.entries(value).every(([field, entry]) => {
+    if (field.endsWith('_count') || field.endsWith('_requests') || field.endsWith('_tokens')) {
+      return isNonnegativeInteger(entry);
+    }
+    if (field.endsWith('_usd')) {
+      return entry === null || isNonnegativeFiniteNumber(entry);
+    }
+    return hasValidCanonicalNumericTree(entry);
+  });
+}
+
+function hasValidSummaryNumbers(summary: Record<string, unknown>): boolean {
+  if (!hasValidCanonicalCounts(summary)) return false;
+  return [
+    'total_cost_so_far_usd',
+    'total_dph_usd',
+    'projected_24h_cost_usd',
+    'global_budget_usd_per_day',
+  ].every((field) => summary[field] === undefined || isNonnegativeFiniteNumber(summary[field]));
+}
+
+function isBoundedNonemptyString(value: unknown, maxLength: number): value is string {
+  return (
+    typeof value === 'string' &&
+    value === value.trim() &&
+    value.length > 0 &&
+    value.length <= maxLength
+  );
+}
+
+function validateVastResourceFlow(
+  value: unknown,
+  snapshotCapturedMs: number,
+  nowMs: number
+): boolean {
+  if (!isRecord(value)) return false;
+  if (value.schema_version !== 'holomesh.vast-resource-flow/v1') return false;
+  if (value.provider !== 'vast.ai') return false;
+
+  const flowCapturedMs = parseFleetTimestamp(value.captured_at);
+  if (flowCapturedMs === null || flowCapturedMs > nowMs + MAX_FLEET_CAPTURE_FUTURE_SKEW_MS) {
+    return false;
+  }
+  if (Math.abs(flowCapturedMs - snapshotCapturedMs) > MAX_FLEET_FLOW_CAPTURE_DELTA_MS) {
+    return false;
+  }
+
+  const utilized = value.utilized;
+  const produced = value.produced;
+  const stored = value.stored;
+  const consumed = value.consumed;
+  const visibility = value.visibility;
+  if (
+    !isRecord(utilized) ||
+    !isRecord(produced) ||
+    !isRecord(stored) ||
+    !isRecord(consumed) ||
+    !isRecord(visibility)
+  ) {
+    return false;
+  }
+  if (![utilized, produced, stored, consumed, visibility].every(hasValidCanonicalNumericTree)) {
+    return false;
+  }
+
+  if (
+    !hasRequiredNonnegativeIntegers(utilized, [
+      'instance_count',
+      'active_compute_count',
+      'retained_storage_count',
+      'manifest_bound_instance_count',
+      'unbound_instance_count',
+      'capacity_binding_count',
+    ]) ||
+    !hasRequiredNonnegativeNumbers(utilized, ['effective_dph_usd', 'projected_24h_usd']) ||
+    !hasRequiredArrays(utilized, ['resources', 'capacity_bindings']) ||
+    !hasValidCanonicalCounts(utilized)
+  ) {
+    return false;
+  }
+  if (
+    !countMatchesArray(utilized, 'instance_count', 'resources') ||
+    !countMatchesArray(utilized, 'capacity_binding_count', 'capacity_bindings') ||
+    Number(utilized.active_compute_count) + Number(utilized.retained_storage_count) >
+      Number(utilized.instance_count) ||
+    Number(utilized.manifest_bound_instance_count) + Number(utilized.unbound_instance_count) !==
+      Number(utilized.instance_count)
+  ) {
+    return false;
+  }
+
+  if (
+    !hasRequiredNonnegativeIntegers(produced, [
+      'output_aware_lane_count',
+      'active_manifest_count',
+      'output_contract_count',
+      'bound_manifest_count',
+      'unbound_manifest_count',
+      'evidence_backed_output_count',
+      'verified_product_count',
+      'verified_artifact_count',
+      'verified_receipt_count',
+      'verified_current_binding_count',
+      'declared_only_output_count',
+      'unverified_evidence_output_count',
+      'claimed_or_unverified_output_count',
+      'productive_count',
+      'work_in_progress_count',
+      'inference_output_tokens',
+    ]) ||
+    !hasRequiredArrays(produced, [
+      'active_manifests',
+      'output_contracts',
+      'declared_output_locations',
+      'claimed_or_declared_outputs',
+      'artifacts',
+      'receipts',
+    ]) ||
+    !isBoundedNonemptyString(
+      produced.product_verification_policy,
+      MAX_FLEET_VERIFICATION_POLICY_LENGTH
+    ) ||
+    !hasValidCanonicalCounts(produced)
+  ) {
+    return false;
+  }
+  if (
+    !countMatchesArray(produced, 'active_manifest_count', 'active_manifests') ||
+    !countMatchesArray(produced, 'output_contract_count', 'output_contracts') ||
+    !countMatchesArray(produced, 'verified_artifact_count', 'artifacts') ||
+    !countMatchesArray(produced, 'verified_receipt_count', 'receipts') ||
+    produced.output_aware_lane_count !== produced.output_contract_count ||
+    Number(produced.bound_manifest_count) + Number(produced.unbound_manifest_count) !==
+      Number(produced.active_manifest_count) ||
+    produced.verified_product_count !== produced.evidence_backed_output_count ||
+    Number(produced.verified_product_count) > Number(produced.output_contract_count) ||
+    produced.verified_product_count !== evidenceBackedContractCount(produced.output_contracts) ||
+    Number(produced.declared_only_output_count) +
+      Number(produced.unverified_evidence_output_count) +
+      Number(produced.evidence_backed_output_count) !==
+      Number(produced.output_contract_count) ||
+    Number(produced.claimed_or_unverified_output_count) !==
+      Number(produced.declared_only_output_count) +
+        Number(produced.unverified_evidence_output_count) ||
+    Number(produced.verified_current_binding_count) > Number(produced.output_contract_count) ||
+    Number(produced.productive_count) + Number(produced.work_in_progress_count) >
+      Number(produced.output_contract_count)
+  ) {
+    return false;
+  }
+
+  const providerAttributed = produced.provider_attributed;
+  if (providerAttributed !== undefined) {
+    if (
+      !isRecord(providerAttributed) ||
+      providerAttributed.provider !== 'vast.ai' ||
+      !validateProducedProjection(providerAttributed, 'verified_artifacts', 'verified_receipts') ||
+      ![
+        'active_manifest_count',
+        'output_contract_count',
+        'verified_product_count',
+        'verified_artifact_count',
+        'verified_receipt_count',
+      ].every((field) => optionalCountsAgree(produced, field, providerAttributed)) ||
+      !optionalCountsAgree(
+        produced,
+        'provider_attributed_contract_count',
+        providerAttributed,
+        'output_contract_count'
+      )
+    ) {
+      return false;
+    }
+  }
+
+  const fleetCatalog = produced.fleet_catalog;
+  if (fleetCatalog !== undefined) {
+    if (
+      !isRecord(fleetCatalog) ||
+      !validateProducedProjection(fleetCatalog, 'verified_artifacts', 'verified_receipts') ||
+      ![
+        ['catalog_active_manifest_count', 'active_manifest_count'],
+        ['catalog_output_contract_count', 'output_contract_count'],
+        ['catalog_verified_product_count', 'verified_product_count'],
+        ['catalog_verified_artifact_count', 'verified_artifact_count'],
+        ['catalog_verified_receipt_count', 'verified_receipt_count'],
+        ['provider_unattributed_contract_count', 'provider_unattributed_contract_count'],
+      ].every(([compatibilityField, catalogField]) =>
+        optionalCountsAgree(produced, compatibilityField, fleetCatalog, catalogField)
+      )
+    ) {
+      return false;
+    }
+  }
+
+  const providerContractCount = Number(
+    providerAttributed && isNonnegativeInteger(providerAttributed.output_contract_count)
+      ? providerAttributed.output_contract_count
+      : produced.output_contract_count
+  );
+  const catalogContractCount =
+    fleetCatalog && isNonnegativeInteger(fleetCatalog.output_contract_count)
+      ? fleetCatalog.output_contract_count
+      : isNonnegativeInteger(produced.catalog_output_contract_count)
+        ? produced.catalog_output_contract_count
+        : undefined;
+  if (
+    (produced.provider_attributed_contract_count !== undefined &&
+      produced.provider_attributed_contract_count !== providerContractCount) ||
+    (catalogContractCount !== undefined &&
+      produced.provider_unattributed_contract_count !== undefined &&
+      Number(produced.provider_unattributed_contract_count) + providerContractCount !==
+        catalogContractCount) ||
+    (fleetCatalog !== undefined &&
+      Number(fleetCatalog.output_contract_count) < providerContractCount) ||
+    (produced.catalog_declared_only_output_count !== undefined &&
+      produced.catalog_unverified_evidence_output_count !== undefined &&
+      produced.catalog_verified_product_count !== undefined &&
+      catalogContractCount !== undefined &&
+      Number(produced.catalog_declared_only_output_count) +
+        Number(produced.catalog_unverified_evidence_output_count) +
+        Number(produced.catalog_verified_product_count) !==
+        catalogContractCount)
+  ) {
+    return false;
+  }
+
+  if (
+    !hasRequiredNonnegativeIntegers(stored, [
+      'instance_volume_count',
+      'locally_present_output_location_count',
+      'verified_artifact_location_count',
+      'verified_receipt_location_count',
+      'evidence_backed_output_location_count',
+    ]) ||
+    !hasRequiredNonnegativeNumbers(stored, [
+      'total_capacity_gb',
+      'total_used_gb',
+      'projected_storage_24h_usd',
+    ]) ||
+    !hasRequiredArrays(stored, ['volumes', 'artifact_locations', 'receipt_locations']) ||
+    !hasValidCanonicalCounts(stored)
+  ) {
+    return false;
+  }
+  if (
+    !countMatchesArray(stored, 'instance_volume_count', 'volumes') ||
+    !countMatchesArray(stored, 'verified_artifact_location_count', 'artifact_locations') ||
+    !countMatchesArray(stored, 'verified_receipt_location_count', 'receipt_locations') ||
+    stored.locally_present_output_location_count !== stored.verified_artifact_location_count ||
+    Number(stored.evidence_backed_output_location_count) !==
+      Number(stored.verified_artifact_location_count) +
+        Number(stored.verified_receipt_location_count)
+  ) {
+    return false;
+  }
+
+  const storedCatalog = stored.fleet_catalog;
+  if (storedCatalog !== undefined) {
+    if (
+      !isRecord(storedCatalog) ||
+      !validateStoredLocationProjection(storedCatalog) ||
+      ![
+        ['catalog_verified_artifact_location_count', 'verified_artifact_location_count'],
+        ['catalog_verified_receipt_location_count', 'verified_receipt_location_count'],
+        ['catalog_evidence_backed_output_location_count', 'evidence_backed_output_location_count'],
+      ].every(([compatibilityField, catalogField]) =>
+        optionalCountsAgree(stored, compatibilityField, storedCatalog, catalogField)
+      )
+    ) {
+      return false;
+    }
+  }
+
+  const hasTopLevelStoredCatalog = [
+    'catalog_verified_artifact_location_count',
+    'catalog_verified_receipt_location_count',
+    'catalog_evidence_backed_output_location_count',
+    'catalog_artifact_locations',
+    'catalog_receipt_locations',
+  ].some((field) => stored[field] !== undefined);
+  if (hasTopLevelStoredCatalog) {
+    const compatibilityProjection = {
+      verified_artifact_location_count: stored.catalog_verified_artifact_location_count,
+      verified_receipt_location_count: stored.catalog_verified_receipt_location_count,
+      evidence_backed_output_location_count: stored.catalog_evidence_backed_output_location_count,
+      artifact_locations: stored.catalog_artifact_locations,
+      receipt_locations: stored.catalog_receipt_locations,
+    };
+    if (!validateStoredLocationProjection(compatibilityProjection)) return false;
+  }
+
+  if (
+    !hasRequiredNonnegativeIntegers(consumed, [
+      'consumer_count',
+      'manifest_attributed_count',
+      'current_physical_consumer_count',
+      'declared_or_historical_manifest_consumer_count',
+      'bound_manifest_consumer_count',
+      'unbound_manifest_consumer_count',
+      'runtime_requests',
+      'compute_bearing_requests',
+    ]) ||
+    !hasRequiredArrays(consumed, [
+      'runtime_providers',
+      'runtime_endpoints',
+      'consumers',
+      'current_physical_consumers',
+      'declared_or_historical_manifest_consumers',
+    ]) ||
+    !hasValidCanonicalCounts(consumed) ||
+    !Object.prototype.hasOwnProperty.call(consumed, 'runtime_metrics_age_ms') ||
+    (consumed.runtime_metrics_age_ms !== null &&
+      !isNonnegativeInteger(consumed.runtime_metrics_age_ms))
+  ) {
+    return false;
+  }
+  if (
+    !countMatchesArray(consumed, 'consumer_count', 'consumers') ||
+    !countMatchesArray(consumed, 'current_physical_consumer_count', 'current_physical_consumers') ||
+    !countMatchesArray(
+      consumed,
+      'declared_or_historical_manifest_consumer_count',
+      'declared_or_historical_manifest_consumers'
+    ) ||
+    Number(consumed.bound_manifest_consumer_count) +
+      Number(consumed.unbound_manifest_consumer_count) !==
+      Number(consumed.declared_or_historical_manifest_consumer_count) ||
+    Number(consumed.manifest_attributed_count) > Number(consumed.consumer_count) ||
+    Number(consumed.current_physical_consumer_count) > Number(consumed.consumer_count) ||
+    Number(consumed.compute_bearing_requests) > Number(consumed.runtime_requests)
+  ) {
+    return false;
+  }
+
+  const catalogConsumerFields = [
+    'catalog_declared_or_historical_manifest_consumer_count',
+    'catalog_bound_manifest_consumer_count',
+    'catalog_unbound_manifest_consumer_count',
+    'catalog_declared_or_historical_manifest_consumers',
+  ];
+  if (catalogConsumerFields.some((field) => consumed[field] !== undefined)) {
+    if (
+      !hasRequiredNonnegativeIntegers(consumed, catalogConsumerFields.slice(0, 3)) ||
+      !Array.isArray(consumed.catalog_declared_or_historical_manifest_consumers) ||
+      !countMatchesArray(
+        consumed,
+        'catalog_declared_or_historical_manifest_consumer_count',
+        'catalog_declared_or_historical_manifest_consumers'
+      ) ||
+      Number(consumed.catalog_bound_manifest_consumer_count) +
+        Number(consumed.catalog_unbound_manifest_consumer_count) !==
+        Number(consumed.catalog_declared_or_historical_manifest_consumer_count)
+    ) {
+      return false;
+    }
+  }
+
+  if (
+    typeof visibility.complete !== 'boolean' ||
+    !isNonnegativeInteger(visibility.gap_count) ||
+    !Array.isArray(visibility.gaps) ||
+    visibility.gaps.length > MAX_FLEET_VISIBILITY_GAPS ||
+    !Array.isArray(visibility.duplicate_endpoint_bindings) ||
+    !isNonnegativeInteger(visibility.invalid_manifest_count) ||
+    !Array.isArray(visibility.invalid_manifests) ||
+    !Array.isArray(visibility.evidence_sources)
+  ) {
+    return false;
+  }
+
+  const gaps = visibility.gaps;
+  if (
+    gaps.some((gap) => !isBoundedNonemptyString(gap, MAX_FLEET_VISIBILITY_GAP_LENGTH)) ||
+    new Set(gaps).size !== gaps.length ||
+    visibility.gap_count !== gaps.length ||
+    visibility.complete !== (gaps.length === 0) ||
+    visibility.invalid_manifest_count !== visibility.invalid_manifests.length ||
+    visibility.evidence_sources.some(
+      (source) => !isBoundedNonemptyString(source, MAX_FLEET_VISIBILITY_GAP_LENGTH)
+    )
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+function validateV2FleetSummary(summary: unknown): summary is Record<string, unknown> {
+  if (!isRecord(summary) || !hasValidSummaryNumbers(summary)) return false;
+  if (
+    !hasRequiredNonnegativeIntegers(summary, [
+      'running_count',
+      'declared_count',
+      'orphan_count',
+      'orphaned_capacity_count',
+      'no_instance_count',
+    ]) ||
+    !hasRequiredNonnegativeNumbers(summary, [
+      'total_cost_so_far_usd',
+      'total_dph_usd',
+      'projected_24h_cost_usd',
+    ])
+  ) {
+    return false;
+  }
+  return summary.captured_at === undefined || parseFleetTimestamp(summary.captured_at) !== null;
 }
 
 function getFleetSnapshotStaleAfterMs(): number {
@@ -730,6 +1281,26 @@ function normalizeFleetSnapshotPayload(
 ): TeamFleetSnapshotPayload | null {
   const candidate = isRecord(body.snapshot) ? body.snapshot : body;
   if (!isRecord(candidate)) return null;
+
+  const isV2 = candidate.schema_version === 'holomesh.fleet-snapshot/v2';
+  const nowMs = Date.now();
+  const capturedMs = parseFleetTimestamp(candidate.captured_at);
+  if (candidate.captured_at !== undefined && capturedMs === null) return null;
+  if (capturedMs !== null && capturedMs > nowMs + MAX_FLEET_CAPTURE_FUTURE_SKEW_MS) {
+    return null;
+  }
+
+  if (isV2) {
+    if (capturedMs === null || !validateV2FleetSummary(candidate.summary)) return null;
+    if (!validateVastResourceFlow(candidate.resource_flow, capturedMs, nowMs)) return null;
+  } else if (candidate.resource_flow !== undefined) {
+    if (
+      capturedMs === null ||
+      !validateVastResourceFlow(candidate.resource_flow, capturedMs, nowMs)
+    ) {
+      return null;
+    }
+  }
   return { ...candidate } as TeamFleetSnapshotPayload;
 }
 
@@ -740,13 +1311,19 @@ function evaluateFleetSnapshotHealth(
 ): TeamFleetSnapshotHealth {
   const staleAfterMs = getFleetSnapshotStaleAfterMs();
   const reasons: string[] = [];
+  const capturedMs = parseFleetTimestamp(snapshot.captured_at);
   const publishedMs = Date.parse(publishedAt);
-  const ageMs = Number.isFinite(publishedMs) ? Math.max(0, nowMs - publishedMs) : null;
+  const ageMs = capturedMs === null ? null : Math.max(0, nowMs - capturedMs);
 
-  if (ageMs === null) {
+  if (!Number.isFinite(publishedMs)) {
     reasons.push('invalid_publishedAt');
-  } else if (ageMs > staleAfterMs) {
-    reasons.push(`snapshot_age_ms>${staleAfterMs}`);
+  }
+  if (capturedMs === null) {
+    reasons.push('invalid_captured_at');
+  } else if (capturedMs > nowMs + MAX_FLEET_CAPTURE_FUTURE_SKEW_MS) {
+    reasons.push('captured_at_future_skew');
+  } else if (ageMs !== null && ageMs > staleAfterMs) {
+    reasons.push(`snapshot_capture_age_ms>${staleAfterMs}`);
   }
 
   if (typeof snapshot.error === 'string' && snapshot.error.trim()) {
@@ -757,13 +1334,63 @@ function evaluateFleetSnapshotHealth(
   }
 
   const summary = isRecord(snapshot.summary) ? snapshot.summary : {};
-  const orphanCount = numericCount(summary.orphan_count);
+  for (const [field, value] of Object.entries(summary)) {
+    if (field.endsWith('_count') && !isNonnegativeInteger(value)) {
+      reasons.push(`invalid_summary_count:${field}`);
+    }
+  }
+  for (const field of [
+    'total_cost_so_far_usd',
+    'total_dph_usd',
+    'projected_24h_cost_usd',
+    'global_budget_usd_per_day',
+  ]) {
+    if (summary[field] !== undefined && !isNonnegativeFiniteNumber(summary[field])) {
+      reasons.push(`invalid_summary_cost:${field}`);
+    }
+  }
+  const hasCanonicalOrphanField = Object.prototype.hasOwnProperty.call(
+    summary,
+    'orphaned_capacity_count'
+  );
+  const hasOrphanedCapacityCount = isNonnegativeInteger(summary.orphaned_capacity_count);
+  if (hasCanonicalOrphanField && !hasOrphanedCapacityCount) {
+    reasons.push('invalid_orphaned_capacity_count');
+  }
+  const orphanCount = numericCount(
+    hasOrphanedCapacityCount ? summary.orphaned_capacity_count : summary.orphan_count
+  );
   const noInstanceCount = numericCount(summary.no_instance_count);
-  if (orphanCount > 0) reasons.push(`orphan_count=${orphanCount}`);
+  if (orphanCount > 0) {
+    reasons.push(
+      `${hasOrphanedCapacityCount ? 'orphaned_capacity_count' : 'orphan_count'}=${orphanCount}`
+    );
+  }
   if (noInstanceCount > 0) reasons.push(`no_instance_count=${noInstanceCount}`);
 
+  const resourceFlow = isRecord(snapshot.resource_flow) ? snapshot.resource_flow : null;
+  const visibility =
+    resourceFlow && isRecord(resourceFlow.visibility) ? resourceFlow.visibility : null;
+  if (visibility && visibility.complete !== true) {
+    const gapCount = numericCount(visibility.gap_count);
+    reasons.push(`resource_flow_visibility_gap_count=${gapCount || 1}`);
+  }
+
+  if (
+    snapshot.schema_version === 'holomesh.fleet-snapshot/v2' &&
+    (!isRecord(snapshot.summary) || !resourceFlow)
+  ) {
+    reasons.push('invalid_v2_snapshot');
+  }
+
   let status: TeamFleetSnapshotHealth['status'] = 'ok';
-  if (reasons.includes('invalid_publishedAt') || reasons.includes('snapshot_error')) {
+  if (
+    reasons.includes('invalid_publishedAt') ||
+    reasons.includes('invalid_captured_at') ||
+    reasons.includes('captured_at_future_skew') ||
+    reasons.includes('invalid_v2_snapshot') ||
+    reasons.includes('snapshot_error')
+  ) {
     status = 'down';
   } else if (ageMs !== null && ageMs > staleAfterMs) {
     status = 'stale';
@@ -1185,10 +1812,7 @@ export async function handleBoardRoutes(
   }
 
   // POST /api/holomesh/team/:id/board/done/compact - retire archived stale rows
-  if (
-    pathname.match(/^\/api\/holomesh\/team\/[^/]+\/board\/done\/compact$/) &&
-    method === 'POST'
-  ) {
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/board\/done\/compact$/) && method === 'POST') {
     const access = await requireTeamAccessFresh(req, res, url, 'config:write');
     if (!access) return true;
     const { caller, teamId } = access;
@@ -1794,9 +2418,7 @@ export async function handleBoardRoutes(
         // Fleet orchestrators (dispatch route, scheduler-tick) supply body.agentId to claim
         // on behalf of the planned execution agent. Direct claims use caller.id (bearer identity).
         const effectiveAgentId =
-          typeof body.agentId === 'string' && body.agentId.trim()
-            ? body.agentId.trim()
-            : caller.id;
+          typeof body.agentId === 'string' && body.agentId.trim() ? body.agentId.trim() : caller.id;
         const effectiveAgentName =
           typeof body.agentName === 'string' && body.agentName.trim()
             ? body.agentName.trim()
@@ -1936,15 +2558,17 @@ export async function handleBoardRoutes(
         // code-tagged task must carry a commit hash, a sha-like token, a receipt/file
         // path, or the explicit trace-only marker ('0000000' + named command).
         const CODE_TASK_TAGS = new Set(['holoscript-native', 'typescript', 'code', 'uaal']);
-        const isCodeTask = (doneTarget?.tags ?? []).some((t) => CODE_TASK_TAGS.has(t.toLowerCase()));
+        const isCodeTask = (doneTarget?.tags ?? []).some((t) =>
+          CODE_TASK_TAGS.has(t.toLowerCase())
+        );
         if (isCodeTask) {
           const commitParam = typeof body.commit === 'string' ? body.commit.trim() : '';
           const hasCommit = /^[0-9a-f]{7,40}$/i.test(commitParam);
           const evidenceHasSha = /\b[0-9a-f]{7,40}\b/i.test(verificationEvidence);
-          const evidenceHasReceiptPath = /\b[\w./\\-]+\.(json|md|jsonl|log|txt)\b|\breceipts?\//i.test(
-            verificationEvidence
-          );
-          const traceOnlyContract = /\b0{7}\b/.test(commitParam) || /\b0{7}\b/.test(verificationEvidence);
+          const evidenceHasReceiptPath =
+            /\b[\w./\\-]+\.(json|md|jsonl|log|txt)\b|\breceipts?\//i.test(verificationEvidence);
+          const traceOnlyContract =
+            /\b0{7}\b/.test(commitParam) || /\b0{7}\b/.test(verificationEvidence);
           if (!hasCommit && !evidenceHasSha && !evidenceHasReceiptPath && !traceOnlyContract) {
             json(res, 400, {
               error:
@@ -1976,7 +2600,8 @@ export async function handleBoardRoutes(
           verificationEvidence,
           completedByTag,
           completedIdentity: completionIdentity,
-          completionLeaseId: completionPresence?.cloudSessionLeaseId || directCompletionLease?.leaseId,
+          completionLeaseId:
+            completionPresence?.cloudSessionLeaseId || directCompletionLease?.leaseId,
           provenance: mutationProvenance,
         });
         result = wrap.result;
@@ -2176,7 +2801,9 @@ export async function handleBoardRoutes(
     }
     if (action === 'done' && result.task?.completedIdentity) {
       payload.completedAs = {
-        ...(isRecord(payload.completedAs) ? payload.completedAs : { id: caller.id, name: caller.name }),
+        ...(isRecord(payload.completedAs)
+          ? payload.completedAs
+          : { id: caller.id, name: caller.name }),
         identityEnvelope: result.task.completedIdentity,
         cloudSessionLeaseId: result.task.completionLeaseId,
       };

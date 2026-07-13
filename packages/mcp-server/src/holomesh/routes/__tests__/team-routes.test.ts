@@ -174,6 +174,186 @@ async function callBoard(
   return res;
 }
 
+function freshCapturedAt(offsetMs = 0): string {
+  return new Date(Date.now() + offsetMs).toISOString();
+}
+
+function validV2FleetSnapshot(capturedAt = freshCapturedAt()) {
+  return {
+    schema_version: 'holomesh.fleet-snapshot/v2',
+    captured_at: capturedAt,
+    summary: {
+      captured_at: capturedAt,
+      running_count: 0,
+      declared_count: 1,
+      orphan_count: 0,
+      orphaned_capacity_count: 0,
+      no_instance_count: 0,
+      total_cost_so_far_usd: 0,
+      total_dph_usd: 0.01,
+      projected_24h_cost_usd: 0.24,
+    },
+    matched: [],
+    orphans: [],
+    resource_flow: {
+      schema_version: 'holomesh.vast-resource-flow/v1',
+      provider: 'vast.ai',
+      captured_at: capturedAt,
+      utilized: {
+        instance_count: 1,
+        active_compute_count: 0,
+        retained_storage_count: 1,
+        manifest_bound_instance_count: 1,
+        unbound_instance_count: 0,
+        capacity_binding_count: 1,
+        effective_dph_usd: 0.01,
+        projected_24h_usd: 0.24,
+        resources: [
+          {
+            instance_id: 44496858,
+            market_cheapest_dph_usd: null,
+            listed_compute_dph_usd: null,
+            listed_total_dph_usd: 0.01,
+          },
+        ],
+        capacity_bindings: [{ instance_id: 44496858, lane_id: 'lane-1' }],
+      },
+      produced: {
+        output_aware_lane_count: 1,
+        active_manifest_count: 1,
+        output_contract_count: 1,
+        bound_manifest_count: 1,
+        unbound_manifest_count: 0,
+        evidence_backed_output_count: 0,
+        verified_product_count: 0,
+        verified_artifact_count: 0,
+        verified_receipt_count: 0,
+        verified_current_binding_count: 0,
+        declared_only_output_count: 1,
+        unverified_evidence_output_count: 0,
+        claimed_or_unverified_output_count: 1,
+        productive_count: 0,
+        work_in_progress_count: 0,
+        inference_output_tokens: 0,
+        provider_attributed_contract_count: 1,
+        provider_unattributed_contract_count: 0,
+        catalog_active_manifest_count: 1,
+        catalog_output_contract_count: 1,
+        catalog_verified_product_count: 0,
+        catalog_verified_artifact_count: 0,
+        catalog_verified_receipt_count: 0,
+        catalog_declared_only_output_count: 1,
+        catalog_unverified_evidence_output_count: 0,
+        active_manifests: [
+          {
+            lane_id: 'lane-1',
+            binding_state: 'bound_current_capacity',
+            bound_instance_count: 1,
+          },
+        ],
+        output_contracts: [{ lane_id: 'lane-1', evidence_backed: false }],
+        declared_output_locations: ['manifest://lane-1'],
+        claimed_or_declared_outputs: [{ lane_id: 'lane-1' }],
+        artifacts: [],
+        receipts: [],
+        provider_attributed: {
+          provider: 'vast.ai',
+          active_manifest_count: 1,
+          output_contract_count: 1,
+          verified_product_count: 0,
+          verified_artifact_count: 0,
+          verified_receipt_count: 0,
+          active_manifests: [{ lane_id: 'lane-1' }],
+          output_contracts: [{ lane_id: 'lane-1', evidence_backed: false }],
+          claimed_or_declared_outputs: [{ lane_id: 'lane-1' }],
+          verified_artifacts: [],
+          verified_receipts: [],
+        },
+        fleet_catalog: {
+          active_manifest_count: 1,
+          output_contract_count: 1,
+          verified_product_count: 0,
+          verified_artifact_count: 0,
+          verified_receipt_count: 0,
+          provider_unattributed_contract_count: 0,
+          active_manifests: [{ lane_id: 'lane-1' }],
+          output_contracts: [{ lane_id: 'lane-1', evidence_backed: false }],
+          declared_output_locations: ['manifest://lane-1'],
+          claimed_or_declared_outputs: [{ lane_id: 'lane-1' }],
+          verified_artifacts: [],
+          verified_receipts: [],
+        },
+        product_verification_policy:
+          'artifact_and_receipt_sha256_match;vast_endpoint_receipt_binding_match',
+      },
+      stored: {
+        instance_volume_count: 1,
+        total_capacity_gb: 40,
+        total_used_gb: 1,
+        projected_storage_24h_usd: 0.24,
+        volumes: [
+          {
+            instance_id: 44496858,
+            storage_dph_usd: null,
+            projected_storage_24h_usd: null,
+          },
+        ],
+        locally_present_output_location_count: 0,
+        verified_artifact_location_count: 0,
+        verified_receipt_location_count: 0,
+        evidence_backed_output_location_count: 0,
+        artifact_locations: [],
+        receipt_locations: [],
+        catalog_verified_artifact_location_count: 0,
+        catalog_verified_receipt_location_count: 0,
+        catalog_evidence_backed_output_location_count: 0,
+        catalog_artifact_locations: [],
+        catalog_receipt_locations: [],
+        fleet_catalog: {
+          verified_artifact_location_count: 0,
+          verified_receipt_location_count: 0,
+          evidence_backed_output_location_count: 0,
+          artifact_locations: [],
+          receipt_locations: [],
+        },
+      },
+      consumed: {
+        consumer_count: 1,
+        manifest_attributed_count: 1,
+        current_physical_consumer_count: 1,
+        declared_or_historical_manifest_consumer_count: 1,
+        bound_manifest_consumer_count: 1,
+        unbound_manifest_consumer_count: 0,
+        runtime_requests: 0,
+        compute_bearing_requests: 0,
+        runtime_metrics_age_ms: null,
+        runtime_providers: [],
+        runtime_endpoints: [],
+        consumers: [{ lane_id: 'lane-1', attribution_state: 'manifest' }],
+        current_physical_consumers: [{ lane_id: 'lane-1' }],
+        declared_or_historical_manifest_consumers: [
+          { lane_id: 'lane-1', binding_state: 'bound_current_capacity' },
+        ],
+        catalog_declared_or_historical_manifest_consumer_count: 1,
+        catalog_bound_manifest_consumer_count: 1,
+        catalog_unbound_manifest_consumer_count: 0,
+        catalog_declared_or_historical_manifest_consumers: [
+          { lane_id: 'lane-1', binding_state: 'bound_current_capacity' },
+        ],
+      },
+      visibility: {
+        complete: true,
+        gap_count: 0,
+        gaps: [],
+        duplicate_endpoint_bindings: [],
+        invalid_manifest_count: 0,
+        invalid_manifests: [],
+        evidence_sources: ['vastai show instances --raw'],
+      },
+    },
+  };
+}
+
 function seedCapabilityToken(
   overrides: {
     handle?: string;
@@ -731,7 +911,7 @@ describe('Board Routes — Fleet Snapshot', () => {
 
   it('stores and serves the latest local fleet-status-live snapshot', async () => {
     const snapshot = {
-      captured_at: '2026-05-24T00:10:00.000Z',
+      captured_at: freshCapturedAt(),
       summary: {
         running_count: 1,
         declared_count: 2,
@@ -783,7 +963,7 @@ describe('Board Routes — Fleet Snapshot', () => {
 
   it('flags published snapshots with orphaned or missing declared workers as degraded', async () => {
     const degradedSnapshot = {
-      captured_at: '2026-05-24T00:11:00.000Z',
+      captured_at: freshCapturedAt(),
       summary: {
         running_count: 1,
         declared_count: 3,
@@ -817,6 +997,699 @@ describe('Board Routes — Fleet Snapshot', () => {
     expect(res._body.health.status).toBe('degraded');
     expect(res._body.health.reasons).toContain('orphan_count=1');
     expect(res._body.health.reasons).toContain('no_instance_count=1');
+  });
+
+  it('does not degrade managed orphan rows when canonical orphaned capacity is zero', async () => {
+    const managedSnapshot = {
+      captured_at: freshCapturedAt(),
+      summary: {
+        running_count: 0,
+        declared_count: 0,
+        orphan_count: 3,
+        orphaned_capacity_count: 0,
+        endpoint_managed_count: 1,
+        autoscaler_managed_count: 1,
+        fleet_job_managed_count: 1,
+        no_instance_count: 0,
+      },
+      matched: [],
+      orphans: [
+        { instance_id: 201, capacity_class: 'endpoint_managed' },
+        { instance_id: 202, capacity_class: 'autoscaler_managed' },
+        { instance_id: 203, capacity_class: 'fleet_job_managed' },
+      ],
+    };
+
+    const res = await callBoard(
+      'POST',
+      '/api/holomesh/team/team_test_mobile/fleet',
+      { source: 'fleet-status-live.mjs', snapshot: managedSnapshot },
+      PARENT_KEY
+    );
+
+    expect(res._status).toBe(200);
+    expect(res._body.health.status).toBe('ok');
+    expect(res._body.health.reasons).not.toContain('orphan_count=3');
+  });
+
+  it('reports canonical orphaned capacity instead of the larger raw orphan inventory', async () => {
+    const res = await callBoard(
+      'POST',
+      '/api/holomesh/team/team_test_mobile/fleet',
+      {
+        source: 'fleet-status-live.mjs',
+        snapshot: {
+          captured_at: freshCapturedAt(),
+          summary: {
+            orphan_count: 4,
+            orphaned_capacity_count: 1,
+            no_instance_count: 0,
+          },
+          matched: [],
+          orphans: [],
+        },
+      },
+      PARENT_KEY
+    );
+
+    expect(res._status).toBe(200);
+    expect(res._body.health.status).toBe('degraded');
+    expect(res._body.health.reasons).toContain('orphaned_capacity_count=1');
+    expect(res._body.health.reasons).not.toContain('orphan_count=4');
+  });
+
+  it('flags a negative canonical orphan count and falls back to legacy health', async () => {
+    const res = await callBoard(
+      'POST',
+      '/api/holomesh/team/team_test_mobile/fleet',
+      {
+        source: 'fleet-status-live.mjs',
+        snapshot: {
+          captured_at: freshCapturedAt(),
+          summary: {
+            orphan_count: 2,
+            orphaned_capacity_count: -1,
+            no_instance_count: 0,
+          },
+          matched: [],
+          orphans: [],
+        },
+      },
+      PARENT_KEY
+    );
+
+    expect(res._status).toBe(200);
+    expect(res._body.health.status).toBe('degraded');
+    expect(res._body.health.reasons).toContain('invalid_orphaned_capacity_count');
+    expect(res._body.health.reasons).toContain('orphan_count=2');
+  });
+
+  it('accepts a complete canonical Vast v2 resource flow', async () => {
+    const snapshot = validV2FleetSnapshot();
+    const res = await callBoard(
+      'POST',
+      '/api/holomesh/team/team_test_mobile/fleet',
+      { source: 'fleet-status-live.mjs', snapshot },
+      PARENT_KEY
+    );
+
+    expect(res._status).toBe(200);
+    expect(res._body.health.status).toBe('ok');
+    expect(res._body.snapshot.resource_flow.provider).toBe('vast.ai');
+    expect(res._body.snapshot.resource_flow.produced.verified_receipt_count).toBe(0);
+    expect(res._body.snapshot.resource_flow.produced.verified_current_binding_count).toBe(0);
+    expect(res._body.snapshot.resource_flow.produced.product_verification_policy).toContain(
+      'artifact_and_receipt_sha256_match'
+    );
+    expect(res._body.snapshot.resource_flow.stored.verified_receipt_location_count).toBe(0);
+    expect(res._body.health.ageMs).toBeGreaterThanOrEqual(0);
+    expect(res._body.health.ageMs).toBeLessThan(5_000);
+  });
+
+  it('keeps provider-attributed and fleet-catalog projections additive', async () => {
+    const snapshot = validV2FleetSnapshot();
+    const produced = snapshot.resource_flow.produced as unknown as Record<string, unknown>;
+    const stored = snapshot.resource_flow.stored as unknown as Record<string, unknown>;
+    const consumed = snapshot.resource_flow.consumed as unknown as Record<string, unknown>;
+    for (const field of [
+      'provider_attributed_contract_count',
+      'provider_unattributed_contract_count',
+      'catalog_active_manifest_count',
+      'catalog_output_contract_count',
+      'catalog_verified_product_count',
+      'catalog_verified_artifact_count',
+      'catalog_verified_receipt_count',
+      'catalog_declared_only_output_count',
+      'catalog_unverified_evidence_output_count',
+      'provider_attributed',
+      'fleet_catalog',
+    ]) {
+      delete produced[field];
+    }
+    for (const field of [
+      'catalog_verified_artifact_location_count',
+      'catalog_verified_receipt_location_count',
+      'catalog_evidence_backed_output_location_count',
+      'catalog_artifact_locations',
+      'catalog_receipt_locations',
+      'fleet_catalog',
+    ]) {
+      delete stored[field];
+    }
+    for (const field of [
+      'catalog_declared_or_historical_manifest_consumer_count',
+      'catalog_bound_manifest_consumer_count',
+      'catalog_unbound_manifest_consumer_count',
+      'catalog_declared_or_historical_manifest_consumers',
+    ]) {
+      delete consumed[field];
+    }
+
+    const res = await callBoard(
+      'POST',
+      '/api/holomesh/team/team_test_mobile/fleet',
+      { source: 'fleet-status-live.mjs', snapshot },
+      PARENT_KEY
+    );
+
+    expect(res._status).toBe(200);
+  });
+
+  it('accepts unknown optional nested resource and volume costs', async () => {
+    const snapshot = validV2FleetSnapshot();
+    snapshot.resource_flow.utilized.resources = [
+      {
+        instance_id: 44496858,
+        market_cheapest_dph_usd: null,
+        listed_compute_dph_usd: null,
+        listed_total_dph_usd: null,
+      },
+    ];
+    snapshot.resource_flow.stored.volumes = [
+      {
+        instance_id: 44496858,
+        storage_dph_usd: null,
+        projected_storage_24h_usd: null,
+      },
+    ];
+
+    const res = await callBoard(
+      'POST',
+      '/api/holomesh/team/team_test_mobile/fleet',
+      { source: 'fleet-status-live.mjs', snapshot },
+      PARENT_KEY
+    );
+
+    expect(res._status).toBe(200);
+    expect(
+      res._body.snapshot.resource_flow.utilized.resources[0].market_cheapest_dph_usd
+    ).toBeNull();
+    expect(res._body.snapshot.resource_flow.stored.volumes[0].storage_dph_usd).toBeNull();
+  });
+
+  it('rejects a v2 flow that omits the canonical verified-receipt evidence fields', async () => {
+    const snapshot = validV2FleetSnapshot();
+    (
+      snapshot.resource_flow.produced as unknown as { verified_receipt_count?: unknown }
+    ).verified_receipt_count = undefined;
+
+    const res = await callBoard(
+      'POST',
+      '/api/holomesh/team/team_test_mobile/fleet',
+      { source: 'fleet-status-live.mjs', snapshot },
+      PARENT_KEY
+    );
+
+    expect(res._status).toBe(400);
+  });
+
+  it('preserves an explicit v1 snapshot without a resource flow', async () => {
+    const res = await callBoard(
+      'POST',
+      '/api/holomesh/team/team_test_mobile/fleet',
+      {
+        source: 'fleet-status-live.mjs',
+        snapshot: {
+          schema_version: 'holomesh.fleet-snapshot/v1',
+          captured_at: freshCapturedAt(),
+          summary: { orphan_count: 0, no_instance_count: 0 },
+        },
+      },
+      PARENT_KEY
+    );
+
+    expect(res._status).toBe(200);
+    expect(res._body.health.status).toBe('ok');
+    expect(res._body.snapshot.resource_flow).toBeUndefined();
+  });
+
+  it.each([
+    [
+      'summary',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        (snapshot as unknown as { summary?: unknown }).summary = undefined;
+      },
+    ],
+    [
+      'resource_flow',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        (snapshot as unknown as { resource_flow?: unknown }).resource_flow = undefined;
+      },
+    ],
+  ])('rejects v2 snapshots missing required %s', async (_field, mutate) => {
+    const snapshot = validV2FleetSnapshot();
+    mutate(snapshot);
+    const res = await callBoard(
+      'POST',
+      '/api/holomesh/team/team_test_mobile/fleet',
+      { source: 'fleet-status-live.mjs', snapshot },
+      PARENT_KEY
+    );
+
+    expect(res._status).toBe(400);
+  });
+
+  it.each([
+    [
+      'wrong provider',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.provider = 'not-vast';
+      },
+    ],
+    [
+      'missing utilized object',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        (snapshot.resource_flow as unknown as { utilized: unknown }).utilized = null;
+      },
+    ],
+    [
+      'missing produced object',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        (snapshot.resource_flow as unknown as { produced: unknown }).produced = null;
+      },
+    ],
+    [
+      'missing stored object',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        (snapshot.resource_flow as unknown as { stored: unknown }).stored = null;
+      },
+    ],
+    [
+      'missing consumed object',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        (snapshot.resource_flow as unknown as { consumed: unknown }).consumed = null;
+      },
+    ],
+    [
+      'missing visibility object',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        (snapshot.resource_flow as unknown as { visibility: unknown }).visibility = null;
+      },
+    ],
+  ])('fails closed for an invalid Vast flow: %s', async (_case, mutate) => {
+    const snapshot = validV2FleetSnapshot();
+    mutate(snapshot);
+    const res = await callBoard(
+      'POST',
+      '/api/holomesh/team/team_test_mobile/fleet',
+      { source: 'fleet-status-live.mjs', snapshot },
+      PARENT_KEY
+    );
+
+    expect(res._status).toBe(400);
+  });
+
+  it.each([
+    [
+      'negative utilized count',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.utilized.instance_count = -1;
+      },
+    ],
+    [
+      'fractional produced count',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.produced.verified_product_count = 0.5;
+      },
+    ],
+    [
+      'negative stored capacity',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.stored.total_capacity_gb = -1;
+      },
+    ],
+    [
+      'negative consumed request count',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.consumed.runtime_requests = -1;
+      },
+    ],
+    [
+      'negative effective cost',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.utilized.effective_dph_usd = -0.01;
+      },
+    ],
+    [
+      'unknown required aggregate cost',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        (
+          snapshot.resource_flow.utilized as unknown as { effective_dph_usd: unknown }
+        ).effective_dph_usd = null;
+      },
+    ],
+    [
+      'negative storage cost',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.stored.projected_storage_24h_usd = -0.01;
+      },
+    ],
+    [
+      'negative nested resource cost',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.utilized.resources[0].listed_total_dph_usd = -0.01;
+      },
+    ],
+    [
+      'negative nested volume cost',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.stored.volumes[0].storage_dph_usd = -0.01;
+      },
+    ],
+    [
+      'negative nested manifest count',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.produced.active_manifests[0].bound_instance_count = -1;
+      },
+    ],
+    [
+      'negative summary count',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.summary.orphaned_capacity_count = -1;
+      },
+    ],
+    [
+      'missing canonical summary cost',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        (snapshot.summary as unknown as { total_dph_usd?: unknown }).total_dph_usd = undefined;
+      },
+    ],
+  ])('rejects invalid canonical v2 telemetry: %s', async (_case, mutate) => {
+    const snapshot = validV2FleetSnapshot();
+    mutate(snapshot);
+    const res = await callBoard(
+      'POST',
+      '/api/holomesh/team/team_test_mobile/fleet',
+      { source: 'fleet-status-live.mjs', snapshot },
+      PARENT_KEY
+    );
+
+    expect(res._status).toBe(400);
+  });
+
+  it.each([
+    [
+      'instance count does not match resources',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.utilized.instance_count = 2;
+      },
+    ],
+    [
+      'capacity-binding count does not match bindings',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.utilized.capacity_binding_count = 0;
+      },
+    ],
+    [
+      'active and retained capacity overlap beyond the instance inventory',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.utilized.active_compute_count = 1;
+      },
+    ],
+    [
+      'bound and unbound instances do not partition the inventory',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.utilized.manifest_bound_instance_count = 0;
+      },
+    ],
+    [
+      'active-manifest count does not match manifests',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.produced.active_manifest_count = 0;
+      },
+    ],
+    [
+      'output-contract count does not match contracts',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.produced.output_contract_count = 2;
+      },
+    ],
+    [
+      'bound and unbound manifests do not partition active manifests',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.produced.bound_manifest_count = 0;
+      },
+    ],
+    [
+      'verified-product count lacks an evidence-backed contract',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.produced.verified_product_count = 1;
+        snapshot.resource_flow.produced.evidence_backed_output_count = 1;
+        snapshot.resource_flow.produced.declared_only_output_count = 0;
+        snapshot.resource_flow.produced.claimed_or_unverified_output_count = 0;
+      },
+    ],
+    [
+      'artifact count does not match artifacts',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.produced.verified_artifact_count = 1;
+      },
+    ],
+    [
+      'receipt count does not match receipts',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.produced.verified_receipt_count = 1;
+      },
+    ],
+    [
+      'volume count does not match volumes',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.stored.instance_volume_count = 0;
+      },
+    ],
+    [
+      'artifact-location count does not match locations',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.stored.verified_artifact_location_count = 1;
+        snapshot.resource_flow.stored.locally_present_output_location_count = 1;
+      },
+    ],
+    [
+      'evidence locations do not partition into artifacts and receipts',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.stored.evidence_backed_output_location_count = 1;
+      },
+    ],
+    [
+      'consumer count does not match consumers',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.consumed.consumer_count = 0;
+        snapshot.resource_flow.consumed.current_physical_consumer_count = 0;
+        snapshot.resource_flow.consumed.manifest_attributed_count = 0;
+      },
+    ],
+    [
+      'current-physical count does not match consumers',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.consumed.current_physical_consumer_count = 0;
+      },
+    ],
+    [
+      'manifest-consumer count does not match consumers',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.consumed.declared_or_historical_manifest_consumer_count = 0;
+        snapshot.resource_flow.consumed.bound_manifest_consumer_count = 0;
+      },
+    ],
+    [
+      'bound and unbound consumers do not partition manifest consumers',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.consumed.bound_manifest_consumer_count = 0;
+      },
+    ],
+  ])('rejects incoherent canonical Vast telemetry: %s', async (_case, mutate) => {
+    const snapshot = validV2FleetSnapshot();
+    mutate(snapshot);
+    const res = await callBoard(
+      'POST',
+      '/api/holomesh/team/team_test_mobile/fleet',
+      { source: 'fleet-status-live.mjs', snapshot },
+      PARENT_KEY
+    );
+
+    expect(res._status).toBe(400);
+  });
+
+  it.each([
+    [
+      'provider-attributed contract count disagrees with its array',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.produced.provider_attributed.output_contract_count = 0;
+      },
+    ],
+    [
+      'provider compatibility count disagrees with provider attribution',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.produced.provider_attributed_contract_count = 0;
+      },
+    ],
+    [
+      'fleet-catalog manifest count disagrees with its array',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.produced.fleet_catalog.active_manifest_count = 0;
+      },
+    ],
+    [
+      'catalog compatibility count disagrees with the fleet catalog',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.produced.catalog_output_contract_count = 2;
+      },
+    ],
+    [
+      'provider and unattributed contracts do not partition the catalog',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.produced.provider_unattributed_contract_count = 1;
+        snapshot.resource_flow.produced.fleet_catalog.provider_unattributed_contract_count = 1;
+      },
+    ],
+    [
+      'catalog verified product lacks an evidence-backed contract',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.produced.catalog_verified_product_count = 1;
+        snapshot.resource_flow.produced.catalog_declared_only_output_count = 0;
+        snapshot.resource_flow.produced.fleet_catalog.verified_product_count = 1;
+      },
+    ],
+    [
+      'stored catalog location count disagrees with its array',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.stored.fleet_catalog.verified_artifact_location_count = 1;
+      },
+    ],
+    [
+      'stored compatibility count disagrees with the catalog',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.stored.catalog_verified_receipt_location_count = 1;
+      },
+    ],
+    [
+      'catalog manifest-consumer count disagrees with its array',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.consumed.catalog_declared_or_historical_manifest_consumer_count = 0;
+        snapshot.resource_flow.consumed.catalog_bound_manifest_consumer_count = 0;
+      },
+    ],
+    [
+      'catalog bound and unbound consumers do not partition manifest consumers',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.consumed.catalog_bound_manifest_consumer_count = 0;
+      },
+    ],
+  ])('rejects incoherent additive resource-flow telemetry: %s', async (_case, mutate) => {
+    const snapshot = validV2FleetSnapshot();
+    mutate(snapshot);
+    const res = await callBoard(
+      'POST',
+      '/api/holomesh/team/team_test_mobile/fleet',
+      { source: 'fleet-status-live.mjs', snapshot },
+      PARENT_KEY
+    );
+
+    expect(res._status).toBe(400);
+  });
+
+  it.each([
+    ['gap count mismatch', false, 2, ['missing_receipt']],
+    ['complete with a gap', true, 1, ['missing_receipt']],
+    ['incomplete without gaps', false, 0, []],
+    ['duplicate gaps', false, 2, ['missing_receipt', 'missing_receipt']],
+    ['empty gap', false, 1, ['']],
+    ['whitespace gap', false, 1, [' missing_receipt']],
+    ['oversized gap', false, 1, ['x'.repeat(161)]],
+  ])(
+    'rejects inconsistent resource-flow visibility: %s',
+    async (_case, complete, gapCount, gaps) => {
+      const snapshot = validV2FleetSnapshot();
+      snapshot.resource_flow.visibility.complete = complete;
+      snapshot.resource_flow.visibility.gap_count = gapCount;
+      snapshot.resource_flow.visibility.gaps = gaps;
+      const res = await callBoard(
+        'POST',
+        '/api/holomesh/team/team_test_mobile/fleet',
+        { source: 'fleet-status-live.mjs', snapshot },
+        PARENT_KEY
+      );
+
+      expect(res._status).toBe(400);
+    }
+  );
+
+  it('rejects invalid, future-skewed, and mismatched capture timestamps', async () => {
+    const invalid = validV2FleetSnapshot();
+    invalid.captured_at = 'not-a-time';
+
+    const impossible = validV2FleetSnapshot();
+    impossible.captured_at = '2026-02-30T00:00:00.000Z';
+
+    const future = validV2FleetSnapshot(freshCapturedAt(5 * 60 * 1000));
+
+    const mismatched = validV2FleetSnapshot();
+    mismatched.resource_flow.captured_at = freshCapturedAt(10_000);
+
+    for (const snapshot of [invalid, impossible, future, mismatched]) {
+      const res = await callBoard(
+        'POST',
+        '/api/holomesh/team/team_test_mobile/fleet',
+        { source: 'fleet-status-live.mjs', snapshot },
+        PARENT_KEY
+      );
+      expect(res._status).toBe(400);
+    }
+  });
+
+  it('marks a freshly published stale capture as stale using capture age', async () => {
+    const priorThreshold = process.env.HOLOMESH_FLEET_STALE_THRESHOLD_MS;
+    process.env.HOLOMESH_FLEET_STALE_THRESHOLD_MS = '1000';
+    try {
+      const snapshot = validV2FleetSnapshot(freshCapturedAt(-5_000));
+      const post = await callBoard(
+        'POST',
+        '/api/holomesh/team/team_test_mobile/fleet',
+        { source: 'fleet-status-live.mjs', snapshot },
+        PARENT_KEY
+      );
+
+      expect(post._status).toBe(200);
+      expect(post._body.health.status).toBe('stale');
+      expect(post._body.health.ageMs).toBeGreaterThanOrEqual(5_000);
+      expect(post._body.health.reasons).toContain('snapshot_capture_age_ms>1000');
+      expect(Date.parse(post._body.publishedAt)).toBeGreaterThan(Date.parse(snapshot.captured_at));
+
+      const get = await callBoard(
+        'GET',
+        '/api/holomesh/team/team_test_mobile/fleet',
+        undefined,
+        PARENT_KEY
+      );
+      expect(get._body.health.status).toBe('stale');
+      expect(get._body.health.ageMs).toBeGreaterThanOrEqual(post._body.health.ageMs);
+    } finally {
+      if (priorThreshold === undefined) delete process.env.HOLOMESH_FLEET_STALE_THRESHOLD_MS;
+      else process.env.HOLOMESH_FLEET_STALE_THRESHOLD_MS = priorThreshold;
+    }
+  });
+
+  it('degrades operational health when resource-flow visibility is incomplete', async () => {
+    const snapshot = validV2FleetSnapshot();
+    snapshot.resource_flow.visibility = {
+      ...snapshot.resource_flow.visibility,
+      complete: false,
+      gap_count: 3,
+      gaps: ['missing_receipt', 'unbound_manifest', 'stale_metrics'],
+    };
+    const res = await callBoard(
+      'POST',
+      '/api/holomesh/team/team_test_mobile/fleet',
+      {
+        source: 'fleet-status-live.mjs',
+        snapshot,
+      },
+      PARENT_KEY
+    );
+
+    expect(res._status).toBe(200);
+    expect(res._body.health.status).toBe('degraded');
+    expect(res._body.health.reasons).toContain('resource_flow_visibility_gap_count=3');
   });
 });
 
