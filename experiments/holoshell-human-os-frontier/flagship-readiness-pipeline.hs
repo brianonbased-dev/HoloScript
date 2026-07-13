@@ -7,53 +7,44 @@ pipeline "HoloShellFlagshipReadinessPipeline" {
   timeout: 120s
   retry: { max: 0 }
 
-  source GitStatus {
+  source CurrentHostReadinessPack {
     type: "filesystem"
-    path: ".bench-logs/holoshell-human-os-frontier/2026-05-14/git-status.txt"
-    format: "text"
-  }
-
-  source BuildLog {
-    type: "filesystem"
-    path: ".bench-logs/holoshell-human-os-frontier/2026-05-14/pnpm-build.log"
-    format: "text"
-  }
-
-  source DeviceLabReceipt {
-    type: "filesystem"
-    path: ".bench-logs/holoshell-human-os-frontier/2026-05-14/device-lab-receipt.json"
+    path: "${input.current_host_readiness_pack}"
+    fallback: ".bench-logs/holoshell-human-os-frontier/latest/ready-world-evidence-pack.json"
     format: "json"
   }
 
-  source HoloLandSourceValidations {
-    type: "filesystem"
-    path: ".bench-logs/holoshell-human-os-frontier/2026-05-14/source-validations.json"
-    format: "receipt-set"
-  }
-
   transform ReadinessSummary {
-    gitStatus -> changedFiles
-    BuildLog.exitCode -> buildExitCode
-    DeviceLabReceipt.receipt.overallStatus -> deviceStatus
-    DeviceLabReceipt.receipt.checks -> hardwareChecks
-    HoloLandSourceValidations.status -> sourceValidationStatus
+    CurrentHostReadinessPack.generatedAt -> generatedAt
+    CurrentHostReadinessPack.packHash -> packHash
+    CurrentHostReadinessPack.host -> host
+    CurrentHostReadinessPack.repos -> repos
+    CurrentHostReadinessPack.sourceContract.status -> sourceValidationStatus
+    CurrentHostReadinessPack.sourceContract.contractChecks -> sourceContractChecks
+    CurrentHostReadinessPack.readiness.status -> readinessStatus
+    CurrentHostReadinessPack.readiness.blockers -> blockers
+    CurrentHostReadinessPack.readiness.warnings -> warnings
   }
 
   validate ReadinessContract {
-    changedFiles : required
-    buildExitCode : required
-    deviceStatus : required, string
-    hardwareChecks : required
+    generatedAt : required
+    packHash : required, string
+    host : required
+    repos : required
     sourceValidationStatus : required, string
+    sourceContractChecks : required
+    readinessStatus : required, string
+    blockers : required
+    warnings : required
   }
 
   filter NeedsTaskFiling {
-    where: buildExitCode != 0 || deviceStatus != "pass" || sourceValidationStatus != "pass"
+    where: readinessStatus == "blocked" || sourceValidationStatus != "pass"
   }
 
   sink ReadinessEvidencePack {
     type: "filesystem"
-    path: ".bench-logs/holoshell-human-os-frontier/2026-05-14/readiness-evidence-pack.json"
+    path: ".bench-logs/holoshell-human-os-frontier/latest/ready-world-evidence-pack.json"
     method: "write"
     format: "json"
     on_error: { action: "log", continue: true }

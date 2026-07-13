@@ -27,7 +27,8 @@ composition "HoloShellFlagshipReadinessPolicy" {
       "webgpu_probe",
       "wasm_simd_probe",
       "source_validation",
-      "holomesh_context_read"
+      "holomesh_context_read",
+      "host_readiness_pack_read"
     ]
   }
 
@@ -39,6 +40,7 @@ composition "HoloShellFlagshipReadinessPolicy" {
       "pnpm_build",
       "holoscript_validate",
       "device_lab_probe",
+      "holoshell_ready_world",
       "bench_artifact_write",
       "task_filing"
     ]
@@ -97,6 +99,33 @@ composition "HoloShellFlagshipReadinessPolicy" {
       receipt: receipt,
       count: ReadinessState.receiptsCaptured
     })
+  }
+
+  action recordCurrentHostReadinessPack(pack) {
+    if (pack.schemaVersion != "holoscript.holoshell.ready-world.evidence-pack.v0.1.0") {
+      blockOn(
+        "current host readiness pack schema mismatch",
+        ".bench-logs/holoshell-human-os-frontier/latest/ready-world-evidence-pack.json",
+        "HoloScript HoloShell"
+      )
+      return "blocked"
+    }
+    recordReceipt({
+      type: "host_readiness",
+      primitive: "holoshell_ready_world",
+      packId: pack.packId,
+      packHash: pack.packHash,
+      generatedAt: pack.generatedAt,
+      readinessStatus: pack.readiness.status
+    })
+    if (pack.readiness.status == "blocked") {
+      blockOn(
+        "current host readiness pack reported blockers",
+        ".bench-logs/holoshell-human-os-frontier/latest/ready-world-evidence-pack.json",
+        "HoloScript HoloShell"
+      )
+    }
+    return pack.readiness.status
   }
 
   action blockOn(reason, evidencePath, ownerSurface) {

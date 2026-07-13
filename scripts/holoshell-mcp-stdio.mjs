@@ -37,6 +37,7 @@ import {
   callHoloshellDownloadRecoveryTool,
   holoshellDownloadRecoveryToolDefinitions,
 } from './holoshell-download-recovery-runtime.mjs';
+import { writeReadyWorldEvidencePack } from './holoshell-ready-world.mjs';
 
 const server = new Server({ name: 'holoshell', version: '0.1.0' }, { capabilities: { tools: {} } });
 
@@ -178,6 +179,38 @@ const TOOLS = [
         preflightId: { type: 'string', description: 'The preflightId from the preflight receipt' },
       },
       required: ['consentToken', 'preflightId'],
+    },
+  },
+  {
+    name: 'holoshell_ready_world',
+    description:
+      'Emit a current-host, redacted HoloLand world-build readiness evidence pack. ' +
+      'Reads host/runtime/repo/source-contract facts and writes the HoloShell latest ready-world pack.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        holoscriptRoot: {
+          type: 'string',
+          description: 'HoloScript repo root. Defaults to this repo.',
+        },
+        hololandRoot: {
+          type: 'string',
+          description: 'HoloLand repo root. Defaults to ../Hololand.',
+        },
+        out: {
+          type: 'string',
+          description: 'Optional output path for the timestamped pack.',
+        },
+        latestOut: {
+          type: 'string',
+          description: 'Optional stable latest output path.',
+        },
+        reason: {
+          type: 'string',
+          description: 'Human workflow reason for the pack.',
+          default: 'prepare-computer-for-hololand-world',
+        },
+      },
     },
   },
   ...holoshellDownloadRecoveryToolDefinitions,
@@ -410,6 +443,37 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             {
               type: 'text',
               text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'holoshell_ready_world': {
+        const result = writeReadyWorldEvidencePack({
+          holoscriptRoot: args.holoscriptRoot ? String(args.holoscriptRoot) : undefined,
+          hololandRoot: args.hololandRoot ? String(args.hololandRoot) : undefined,
+          out: args.out ? String(args.out) : undefined,
+          latestOut: args.latestOut ? String(args.latestOut) : undefined,
+          reason: args.reason ? String(args.reason) : undefined,
+        });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  ok: true,
+                  out: result.out,
+                  latestOut: result.latestOut,
+                  packId: result.pack.packId,
+                  status: result.pack.readiness.status,
+                  blockerCount: result.pack.readiness.blockers.length,
+                  warningCount: result.pack.readiness.warnings.length,
+                  packHash: result.pack.packHash,
+                },
+                null,
+                2
+              ),
             },
           ],
         };

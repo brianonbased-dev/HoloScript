@@ -57,6 +57,8 @@
     "holoshell:format-gauntlet-test": "node scripts/__tests__/holoshell-format-gauntlet.test.mjs",
     "holoshell:local-reality-node": "node scripts/holoshell-local-reality-node.mjs",
     "holoshell:local-reality-node-test": "node scripts/__tests__/holoshell-local-reality-node.test.mjs",
+    "holoshell:ready-world": "node scripts/holoshell-ready-world.mjs",
+    "holoshell:ready-world-test": "node scripts/__tests__/holoshell-ready-world.test.mjs",
     "holoshell:camera-scan": "node scripts/holoshell-camera-scan-adapter.mjs capture",
     "holoshell:camera-scan-test": "node scripts/__tests__/holoshell-camera-scan-adapter.test.mjs",
     "holoshell:image-preprocess-test": "node scripts/__tests__/holoshell-image-preprocess.test.mjs",

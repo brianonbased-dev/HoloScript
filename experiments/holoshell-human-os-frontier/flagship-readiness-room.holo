@@ -48,8 +48,8 @@ composition "HoloShell Flagship Readiness Room" {
     position: [-3.1, 1.45, -1.2]
     label: "Hardware reality: GPU, WebGPU, WASM, Node, pnpm"
     properties: {
-      consumes: "device-lab receipt"
-      failureState: "hardware evidence missing or warned"
+      consumes: "holoshell_ready_world host section"
+      failureState: "current-host hardware evidence missing or warned"
     }
   }
 
@@ -57,7 +57,7 @@ composition "HoloShell Flagship Readiness Room" {
     position: [-1.02, 1.45, -1.2]
     label: "Local project: HoloScript and HoloLand source"
     properties: {
-      consumes: "git status, source validation, build log"
+      consumes: "holoshell_ready_world repo and source-contract sections"
       failureState: "dirty worktree, failed validation, failed build"
     }
   }
@@ -85,7 +85,8 @@ composition "HoloShell Flagship Readiness Room" {
     label: "pnpm build passed"
     properties: {
       receiptKind: "command_receipt"
-      logPath: ".bench-logs/holoshell-human-os-frontier/2026-05-14/pnpm-build.log"
+      evidencePack: ".bench-logs/holoshell-human-os-frontier/latest/ready-world-evidence-pack.json"
+      primitive: "holoshell_ready_world"
     }
   }
 
@@ -94,8 +95,9 @@ composition "HoloShell Flagship Readiness Room" {
     material: { color: "#e0af68" }
     label: "device lab warned: no headset or replay evidence"
     properties: {
-      receiptKind: "device_lab_receipt"
+      receiptKind: "host_readiness_receipt"
       status: "warn"
+      evidencePack: ".bench-logs/holoshell-human-os-frontier/latest/ready-world-evidence-pack.json"
     }
   }
 
@@ -122,7 +124,7 @@ composition "HoloShell Flagship Readiness Room" {
     position: [0, 1.08, 1.55]
     label: "Rollback drawer: no HoloLand writes; HoloScript artifacts only"
     properties: {
-      rollback: "delete dated bench artifacts and prototype source if rejected"
+      rollback: "delete current ready-world bench artifacts if rejected"
       privateInventory: "not committed"
     }
   }

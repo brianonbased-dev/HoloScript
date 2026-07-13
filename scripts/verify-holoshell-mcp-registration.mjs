@@ -28,6 +28,7 @@ const EXPECTED_TOOLS = [
   'holoshell_consent_classify',
   'holoshell_consent_issue',
   'holoshell_execute_receipt',
+  'holoshell_ready_world',
   'holoshell_download_recovery_list',
   'holoshell_download_recovery_resume',
   'holoshell_download_recovery_quarantine',
