@@ -309,6 +309,8 @@ export {
   hasDefinitionOfDone,
   normalizeTaskDescription,
   normalizeTaskPriority,
+  backfillBoardTaskPriorities,
+  maintainBoard,
   claimTask,
   completeTask,
   blockTask,

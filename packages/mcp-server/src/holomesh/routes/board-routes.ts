@@ -50,7 +50,7 @@ import {
   countActiveClaims,
   evaluateBoardClaimGate,
   normalizeTaskPriority,
-  sweepBlockedTaskLifecycle,
+  maintainBoard,
   type TeamTask,
   type DoneLogEntry,
   type TeamSuggestion,
@@ -213,15 +213,20 @@ function getFreshPresence(teamId: string, agentId: string): TeamPresenceEntry | 
   return Date.now() <= effectiveExpiry ? entry : null;
 }
 
-async function runBlockedLifecycleSweep(teamId: string, board: TeamTask[]) {
-  const sweep = sweepBlockedTaskLifecycle(board);
-  if (sweep.escalated.length || sweep.reopened.length) {
+function getClaimTtlMs(): number {
+  const hours = Number(process.env.HOLOMESH_CLAIM_TTL_HOURS ?? 24);
+  return Number.isFinite(hours) && hours > 0 ? hours * 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
+}
+
+async function runBoardMaintenance(teamId: string, board: TeamTask[]) {
+  const maintenance = maintainBoard(board, { claimTtlMs: getClaimTtlMs() });
+  if (maintenance.changed) {
     await persistTeamDurable(teamId);
     console.log(
-      `[board] blocked lifecycle sweep on ${teamId}: escalated=${sweep.escalated.length} reopened=${sweep.reopened.length}`
+      `[board] maintenance on ${teamId}: priorityBackfilled=${maintenance.priorityBackfilled.length} ttlReleased=${maintenance.ttlReleased.length} ttlClockStarted=${maintenance.ttlClockStarted.length} blockedEscalated=${maintenance.blockedLifecycle.escalated.length} blockedReopened=${maintenance.blockedLifecycle.reopened.length}`
     );
   }
-  return sweep;
+  return maintenance;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -855,7 +860,7 @@ export async function handleBoardRoutes(
     if (!access) return true;
     const { teamId } = access;
     const team = teamStore.get(teamId)!;
-    const blockedLifecycleSweep = await runBlockedLifecycleSweep(teamId, team.taskBoard || []);
+    const boardMaintenance = await runBoardMaintenance(teamId, team.taskBoard || []);
 
     json(res, 200, {
       success: true,
@@ -867,8 +872,13 @@ export async function handleBoardRoutes(
       objective: team.roomConfig?.objective || '',
       communicationStyle: team.roomConfig?.communicationStyle || 'task_first',
       blocked_lifecycle_sweep: {
-        escalated: blockedLifecycleSweep.escalated.map((task) => task.id),
-        reopened: blockedLifecycleSweep.reopened.map((task) => task.id),
+        escalated: boardMaintenance.blockedLifecycle.escalated.map((task) => task.id),
+        reopened: boardMaintenance.blockedLifecycle.reopened.map((task) => task.id),
+      },
+      board_maintenance: {
+        priorityBackfilled: boardMaintenance.priorityBackfilled.map((task) => task.id),
+        ttlReleased: boardMaintenance.ttlReleased.map((task) => task.id),
+        ttlClockStarted: boardMaintenance.ttlClockStarted.map((task) => task.id),
       },
       ...getBoardModeFields(team),
     });
@@ -883,7 +893,7 @@ export async function handleBoardRoutes(
     const { teamId } = access;
     const team = teamStore.get(teamId)!;
     const board = team.taskBoard || [];
-    const blockedLifecycleSweep = await runBlockedLifecycleSweep(teamId, board);
+    const boardMaintenance = await runBoardMaintenance(teamId, board);
     const presence = teamPresenceStore.get(teamId);
     const activeAgents = [...(presence?.values() ?? [])].filter((entry) => {
       if (entry.status === 'offline') return false;
@@ -936,8 +946,13 @@ export async function handleBoardRoutes(
         readYourWrites: 'pattern-gamma:fresh-reload-before-health-read',
       },
       blocked_lifecycle_sweep: {
-        escalated: blockedLifecycleSweep.escalated.map((task) => task.id),
-        reopened: blockedLifecycleSweep.reopened.map((task) => task.id),
+        escalated: boardMaintenance.blockedLifecycle.escalated.map((task) => task.id),
+        reopened: boardMaintenance.blockedLifecycle.reopened.map((task) => task.id),
+      },
+      board_maintenance: {
+        priorityBackfilled: boardMaintenance.priorityBackfilled.map((task) => task.id),
+        ttlReleased: boardMaintenance.ttlReleased.map((task) => task.id),
+        ttlClockStarted: boardMaintenance.ttlClockStarted.map((task) => task.id),
       },
     });
     return true;
@@ -1787,21 +1802,7 @@ export async function handleBoardRoutes(
             ? body.agentName.trim()
             : caller.name;
 
-        let claimPresence: TeamPresenceEntry | null = null;
-        if (effectiveAgentId !== team.ownerId) {
-          claimPresence = getFreshPresence(teamId, effectiveAgentId);
-          if (!claimPresence) {
-            json(res, 403, {
-              error: 'Fresh heartbeat required before claiming a board task',
-              code: 'heartbeat_required',
-              required_endpoint: `/api/holomesh/team/${teamId}/presence`,
-              grace_ms: CLAIM_HEARTBEAT_GRACE_MS,
-            });
-            return true;
-          }
-        } else {
-          claimPresence = getFreshPresence(teamId, effectiveAgentId);
-        }
+        const claimPresence = getFreshPresence(teamId, effectiveAgentId);
 
         // Lazy claim-TTL reaper (trust-audit 2026-07-13): every claim attempt sweeps
         // the board and auto-releases claims older than the TTL with no
@@ -1825,7 +1826,13 @@ export async function handleBoardRoutes(
               .join(', ')}`
           );
         }
+        if (gate.ttlReleased.length > 0 || gate.ttlClockStarted.length > 0) {
+          await persistTeamDurable(teamId);
+        }
         if (!gate.ok) {
+          // The gate can release unrelated expired claims before rejecting the
+          // requested claim (for example, because this agent is still at cap).
+          // Persist those releases across the early return.
           json(res, gate.status, {
             error: gate.error,
             code: gate.code,
@@ -1895,6 +1902,9 @@ export async function handleBoardRoutes(
         eventType = 'board:claimed';
         break;
       case 'done': {
+        // Completion traffic also drives the same lazy maintenance as list
+        // traffic, so stale claims cannot survive on a quiet board.
+        await runBoardMaintenance(teamId, team.taskBoard);
         const verificationEvidence = normalizeVerificationEvidence(
           body.verification_evidence ?? body.verificationEvidence
         );

@@ -3563,6 +3563,20 @@ describe('HoloMesh HTTP Routes', () => {
       await handleHoloMeshRoute(claimReq, claimRes, `/api/holomesh/team/${tid}/board/${taskId}`);
       expect(claimRes._status).toBe(200);
 
+      const team = teamStore.get(tid)!;
+      team.taskBoard.push({
+        id: 'expired-on-rejected-complete',
+        title: 'Expired on rejected complete',
+        description: 'Release despite rejection.\n\n## Done when:\n- Claim returns to open.',
+        status: 'claimed',
+        priority: 4,
+        prioritySortKey: 4,
+        createdAt: new Date().toISOString(),
+        claimedBy: 'stale-agent',
+        claimedAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+      } as any);
+      mockWriteFileSync.mockClear();
+
       const doneReq = mockReq(
         'PATCH',
         `/api/holomesh/team/${tid}/board/${taskId}`,
@@ -3574,6 +3588,10 @@ describe('HoloMesh HTTP Routes', () => {
 
       expect(doneRes._status).toBe(400);
       expect(doneRes._body.code).toBe('verification_evidence_required');
+      expect(
+        team.taskBoard.find((task) => task.id === 'expired-on-rejected-complete')
+      ).toMatchObject({ status: 'open', claimedBy: undefined });
+      expect(mockWriteFileSync).toHaveBeenCalled();
     });
 
     it('PATCH /board/:taskId rejects done with fabricated closeout evidence (trust-audit 2026-07-13)', async () => {
@@ -3969,6 +3987,17 @@ describe('HoloMesh HTTP Routes', () => {
           createdAt: new Date().toISOString(),
         } as any,
         {
+          id: 'task_expired_claim',
+          title: 'expired claim',
+          description: 'expired\n\n## Done when:\n- Board list releases stale claim.',
+          status: 'claimed',
+          priority: 4,
+          prioritySortKey: 4,
+          claimedBy: 'stale-agent',
+          claimedAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+          createdAt: new Date().toISOString(),
+        } as any,
+        {
           id: 'task_blocked',
           title: 'blocked old enough',
           description: 'blocked\n\n## Done when:\n- Health bins blocked age.',
@@ -3995,6 +4024,22 @@ describe('HoloMesh HTTP Routes', () => {
         ])
       );
 
+      const listReq = mockReq('GET', `/api/holomesh/team/${tid}/board`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
+      const listRes = mockRes();
+      await handleHoloMeshRoute(listReq, listRes, `/api/holomesh/team/${tid}/board`);
+      expect(listRes._status).toBe(200);
+      expect(listRes._body.board_maintenance).toEqual({
+        priorityBackfilled: ['task_p1'],
+        ttlReleased: ['task_expired_claim'],
+        ttlClockStarted: [],
+      });
+      expect(team.taskBoard.find((task) => task.id === 'task_expired_claim')).toMatchObject({
+        status: 'open',
+        claimedBy: undefined,
+      });
+
       const req = mockReq('GET', `/api/holomesh/team/${tid}/board/health`, undefined, {
         authorization: `Bearer ${ownerApiKey}`,
       });
@@ -4002,7 +4047,10 @@ describe('HoloMesh HTTP Routes', () => {
       await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/board/health`);
 
       expect(res._status).toBe(200);
-      expect(res._body.metrics.priorityBabelCount).toBe(1);
+      expect(res._body.metrics.priorityBabelCount).toBe(0);
+      expect(res._body.board_maintenance.priorityBackfilled).toEqual([]);
+      expect(team.taskBoard[0]).toMatchObject({ priority: 1, prioritySortKey: 1 });
+      expect(team.taskBoard[0].priority_raw).toBeUndefined();
       expect(res._body.metrics.blockedAgeHistogram.gte_7d).toBe(1);
       expect(res._body.metrics.claimablePerActiveAgent[0].agentId).toBe(ownerAgentId);
       expect(res._body.probes.readYourWrites).toContain('pattern-gamma');
@@ -4101,6 +4149,20 @@ describe('HoloMesh HTTP Routes', () => {
       await handleHoloMeshRoute(addReq, addRes, `/api/holomesh/team/${tid}/board`);
       const taskId = addRes._body.tasks[0].id;
 
+      const team = teamStore.get(tid)!;
+      team.taskBoard.push({
+        id: 'expired-on-rejected-rest-claim',
+        title: 'Expired on rejected REST claim',
+        description: 'Release despite rejection.\n\n## Done when:\n- Claim returns to open.',
+        status: 'claimed',
+        priority: 4,
+        prioritySortKey: 4,
+        createdAt: new Date().toISOString(),
+        claimedBy: 'stale-agent',
+        claimedAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+      } as any);
+      mockWriteFileSync.mockClear();
+
       const missingBeatReq = mockReq(
         'PATCH',
         `/api/holomesh/team/${tid}/board/${taskId}`,
@@ -4115,6 +4177,10 @@ describe('HoloMesh HTTP Routes', () => {
       );
       expect(missingBeatRes._status).toBe(403);
       expect(missingBeatRes._body.code).toBe('heartbeat_required');
+      expect(
+        team.taskBoard.find((task) => task.id === 'expired-on-rejected-rest-claim')
+      ).toMatchObject({ status: 'open', claimedBy: undefined });
+      expect(mockWriteFileSync).toHaveBeenCalled();
 
       const beatReq = mockReq(
         'POST',

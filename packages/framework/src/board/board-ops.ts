@@ -281,6 +281,35 @@ export function normalizeTaskPriority(value: unknown, fallback = 5): NormalizedT
   };
 }
 
+/**
+ * Finish the one-cycle priority migration for tasks written with legacy labels.
+ *
+ * Write paths preserve `priority_raw` long enough for operators to observe that
+ * a value was coerced. The next maintenance read canonicalizes the persisted
+ * row and removes that migration marker, so `/board/health` can distinguish a
+ * live vocabulary backlog from a value that has already crossed the choke
+ * point.
+ */
+export function backfillBoardTaskPriorities(board: TeamTask[]): TeamTask[] {
+  const backfilled: TeamTask[] = [];
+  for (const task of board) {
+    const fallback =
+      typeof task.priority === 'number' && Number.isFinite(task.priority) ? task.priority : 5;
+    const normalized = normalizeTaskPriority(task.priority_raw ?? task.priority, fallback);
+    const needsBackfill =
+      task.priority !== normalized.priority ||
+      task.prioritySortKey !== normalized.prioritySortKey ||
+      task.priority_raw !== undefined;
+    if (!needsBackfill) continue;
+
+    task.priority = normalized.priority;
+    task.prioritySortKey = normalized.prioritySortKey;
+    delete task.priority_raw;
+    backfilled.push(task);
+  }
+  return backfilled;
+}
+
 /** Count how many board tasks an agent currently holds in `claimed` status. */
 export function countActiveClaims(board: TeamTask[], agentId: string): number {
   return board.filter((t) => t.status === 'claimed' && t.claimedBy === agentId).length;
@@ -309,19 +338,33 @@ export interface BoardClaimGateResult {
   missing_tags?: string[];
   agent_capability_tags?: string[];
   ttlReleased: TeamTask[];
+  ttlClockStarted: TeamTask[];
+}
+
+function claimedTasksMissingTtlClock(board: TeamTask[]): TeamTask[] {
+  return board.filter((task) => task.status === 'claimed' && !task.claimedAt);
 }
 
 export function evaluateBoardClaimGate(
   board: TeamTask[],
   opts: BoardClaimGateOptions
 ): BoardClaimGateResult {
+  const ttlClockStarted =
+    opts.claimTtlMs && opts.claimTtlMs > 0 ? claimedTasksMissingTtlClock(board) : [];
   const ttlReleased =
     opts.claimTtlMs && opts.claimTtlMs > 0
       ? releaseExpiredClaims(board, { ttlMs: opts.claimTtlMs, now: opts.now })
       : [];
   const task = board.find((t) => t.id === opts.taskId);
   if (!task) {
-    return { ok: false, status: 404, code: 'task_not_found', error: 'Task not found', ttlReleased };
+    return {
+      ok: false,
+      status: 404,
+      code: 'task_not_found',
+      error: 'Task not found',
+      ttlReleased,
+      ttlClockStarted,
+    };
   }
   if (!opts.isOwner && !opts.hasFreshHeartbeat) {
     return {
@@ -331,6 +374,7 @@ export function evaluateBoardClaimGate(
       error: 'Fresh heartbeat required before claiming a board task',
       task,
       ttlReleased,
+      ttlClockStarted,
     };
   }
   const claimCap = opts.claimCap ?? 5;
@@ -345,6 +389,7 @@ export function evaluateBoardClaimGate(
       active_claims: activeClaims,
       claim_cap: claimCap,
       ttlReleased,
+      ttlClockStarted,
     };
   }
   const requiredTags = task.required_tags ?? [];
@@ -362,10 +407,11 @@ export function evaluateBoardClaimGate(
         missing_tags: missing,
         agent_capability_tags: opts.capabilityTags ?? [],
         ttlReleased,
+        ttlClockStarted,
       };
     }
   }
-  return { ok: true, status: 200, task, ttlReleased };
+  return { ok: true, status: 200, task, ttlReleased, ttlClockStarted };
 }
 
 /**
@@ -417,6 +463,57 @@ export function releaseExpiredClaims(
 export interface BlockedTaskLifecycleSweep {
   escalated: TeamTask[];
   reopened: TeamTask[];
+}
+
+export interface BoardMaintenanceResult {
+  priorityBackfilled: TeamTask[];
+  ttlReleased: TeamTask[];
+  ttlClockStarted: TeamTask[];
+  blockedLifecycle: BlockedTaskLifecycleSweep;
+  changed: boolean;
+}
+
+/**
+ * Canonical lazy board maintenance for every read/complete surface.
+ *
+ * Keeping this pure lets REST and MCP share identical priority migration,
+ * claim-TTL, and blocked-lifecycle semantics while their adapters own durable
+ * persistence and receipts.
+ */
+export function maintainBoard(
+  board: TeamTask[],
+  opts: {
+    claimTtlMs?: number;
+    blockedEscalateMs?: number;
+    blockedReopenMs?: number;
+    now?: number;
+  } = {}
+): BoardMaintenanceResult {
+  const claimTtlMs = opts.claimTtlMs ?? 24 * 60 * 60 * 1000;
+  const priorityBackfilled = backfillBoardTaskPriorities(board);
+  const ttlEnabled = Number.isFinite(claimTtlMs) && claimTtlMs > 0;
+  const ttlClockStarted = ttlEnabled ? claimedTasksMissingTtlClock(board) : [];
+  const ttlReleased = ttlEnabled
+    ? releaseExpiredClaims(board, { ttlMs: claimTtlMs, now: opts.now })
+    : [];
+  const blockedLifecycle = sweepBlockedTaskLifecycle(board, {
+    escalateMs: opts.blockedEscalateMs,
+    reopenMs: opts.blockedReopenMs,
+    now: opts.now,
+  });
+  return {
+    priorityBackfilled,
+    ttlReleased,
+    ttlClockStarted,
+    blockedLifecycle,
+    changed: Boolean(
+      priorityBackfilled.length ||
+      ttlReleased.length ||
+      ttlClockStarted.length ||
+      blockedLifecycle.escalated.length ||
+      blockedLifecycle.reopened.length
+    ),
+  };
 }
 
 export function sweepBlockedTaskLifecycle(

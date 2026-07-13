@@ -20,11 +20,12 @@ import {
   createSuggestion,
   voteSuggestion,
   evaluateBoardClaimGate,
+  maintainBoard,
   type TeamTask,
   type DoneLogEntry,
   type SuggestionCategory,
 } from '@holoscript/framework';
-import { teamStore, teamPresenceStore, persistTeamDurable } from './state';
+import { teamStore, teamPresenceStore, persistTeamDurable, reloadTeam } from './state';
 import { broadcastToTeam } from './team-room';
 import { recordTeamModeChange } from './mode-provenance';
 import { normalizePresenceSurface, getPresenceTtlMs, pruneStalePresence } from './utils';
@@ -40,6 +41,17 @@ function getTeam(teamId: string) {
   if (!team.taskBoard) team.taskBoard = [];
   if (!team.doneLog) team.doneLog = [];
   return team;
+}
+
+function getClaimTtlMs(): number {
+  const hours = Number(process.env.HOLOMESH_CLAIM_TTL_HOURS ?? 24);
+  return Number.isFinite(hours) && hours > 0 ? hours * 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
+}
+
+async function runBoardMaintenance(teamId: string, board: TeamTask[]) {
+  const maintenance = maintainBoard(board, { claimTtlMs: getClaimTtlMs() });
+  if (maintenance.changed) await persistTeamDurable(teamId);
+  return maintenance;
 }
 
 // ── MCP Tool Definitions ──
@@ -543,8 +555,10 @@ async function handleBoardList(args: Record<string, unknown>): Promise<Record<st
   const teamId = args.team_id as string;
   if (!teamId) return { error: '"team_id" is required.' };
   try {
+    await reloadTeam(teamId);
     const team = getTeam(teamId);
     const board = team.taskBoard || [];
+    const maintenance = await runBoardMaintenance(teamId, board);
     const filterTags = Array.isArray(args.tags) ? (args.tags as string[]).map((t) => t.toLowerCase()) : null;
     const tagMatch = (t: TeamTask) => {
       if (!filterTags || filterTags.length === 0) return true;
@@ -561,6 +575,13 @@ async function handleBoardList(args: Record<string, unknown>): Promise<Record<st
       done_count: team.doneLog?.length || 0,
       mode: team.mode || 'general',
       objective: team.roomConfig?.objective || '',
+      board_maintenance: {
+        priorityBackfilled: maintenance.priorityBackfilled.map((task) => task.id),
+        ttlReleased: maintenance.ttlReleased.map((task) => task.id),
+        ttlClockStarted: maintenance.ttlClockStarted.map((task) => task.id),
+        blockedEscalated: maintenance.blockedLifecycle.escalated.map((task) => task.id),
+        blockedReopened: maintenance.blockedLifecycle.reopened.map((task) => task.id),
+      },
       ...(filterTags ? { filtered_by_tags: filterTags } : {}),
     };
   } catch (err) {
@@ -690,6 +711,7 @@ async function handleBoardClaim(args: Record<string, unknown>): Promise<Record<s
   if (!taskId) return { error: '"task_id" is required.' };
 
   try {
+    await reloadTeam(teamId);
     const team = getTeam(teamId);
 
     pruneStalePresence(teamId);
@@ -705,6 +727,9 @@ async function handleBoardClaim(args: Record<string, unknown>): Promise<Record<s
       claimCap,
       claimTtlMs: claimTtlHours * 3600 * 1000,
     });
+    if (gate.ttlReleased.length > 0 || gate.ttlClockStarted.length > 0) {
+      await persistTeamDurable(teamId);
+    }
     if (!gate.ok) {
       return {
         error: gate.error || 'Claim failed',
@@ -756,7 +781,9 @@ async function handleBoardComplete(
   if (!verificationEvidence) return { error: '"verification_evidence" is required.' };
 
   try {
+    await reloadTeam(teamId);
     const team = getTeam(teamId);
+    await runBoardMaintenance(teamId, team.taskBoard!);
     const wrap = completeTask(team.taskBoard!, taskId, effectiveAgentId, {
       commit,
       summary,

@@ -3,6 +3,7 @@ import {
   addTasksToBoard,
   blockTask,
   evaluateBoardClaimGate,
+  maintainBoard,
   normalizeTaskPriority,
   sweepBlockedTaskLifecycle,
 } from '../board-ops';
@@ -79,6 +80,47 @@ describe('board operations phase-0 hygiene', () => {
       code: 'capability_mismatch',
       missing_tags: ['edge'],
     });
+  });
+
+  it('runs priority backfill, claim TTL, and blocked lifecycle as one maintenance pass', () => {
+    const now = Date.parse('2026-07-13T00:00:00.000Z');
+    const board = [
+      task({
+        id: 'legacy_priority',
+        priority: 'P1' as never,
+        prioritySortKey: undefined,
+        priority_raw: 'P1',
+      }),
+      task({
+        id: 'expired_claim',
+        status: 'claimed',
+        claimedBy: 'stale-agent',
+        claimedAt: '2026-07-11T00:00:00.000Z',
+      }),
+      task({
+        id: 'legacy_claim',
+        status: 'claimed',
+        claimedBy: 'legacy-agent',
+        claimedAt: undefined,
+      }),
+      task({
+        id: 'blocked_old',
+        status: 'blocked',
+        blockedAt: '2026-07-05T00:00:00.000Z',
+      }),
+    ];
+
+    const result = maintainBoard(board, { claimTtlMs: 24 * 60 * 60 * 1000, now });
+
+    expect(result.priorityBackfilled.map((t) => t.id)).toEqual(['legacy_priority']);
+    expect(board[0]).toMatchObject({ priority: 1, prioritySortKey: 1 });
+    expect(board[0].priority_raw).toBeUndefined();
+    expect(result.ttlReleased.map((t) => t.id)).toEqual(['expired_claim']);
+    expect(board[1]).toMatchObject({ status: 'open', claimedBy: undefined });
+    expect(result.ttlClockStarted.map((t) => t.id)).toEqual(['legacy_claim']);
+    expect(board[2].claimedAt).toBe('2026-07-13T00:00:00.000Z');
+    expect(result.changed).toBe(true);
+    expect(result.blockedLifecycle.escalated.map((t) => t.id)).toEqual(['blocked_old']);
   });
 
   it('requires a reason and stamps blocked lifecycle fields', () => {

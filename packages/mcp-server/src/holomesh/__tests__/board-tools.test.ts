@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { boardTools, handleBoardTool } from '../board-tools';
-import { teamStore, teamPresenceStore, persistTeamDurable } from '../state';
+import { teamStore, teamPresenceStore, persistTeamDurable, reloadTeam } from '../state';
 
 // Mock durable persistence to avoid file I/O in tests and assert await boundaries.
 vi.mock('../state', async (importOriginal) => {
@@ -8,6 +8,7 @@ vi.mock('../state', async (importOriginal) => {
   return {
     ...actual,
     persistTeamDurable: vi.fn().mockResolvedValue(undefined),
+    reloadTeam: vi.fn().mockResolvedValue(undefined),
   };
 });
 
@@ -239,6 +240,8 @@ describe('handleBoardTool with in-memory store', () => {
     teamPresenceStore.clear();
     vi.mocked(persistTeamDurable).mockClear();
     vi.mocked(persistTeamDurable).mockResolvedValue(undefined);
+    vi.mocked(reloadTeam).mockClear();
+    vi.mocked(reloadTeam).mockResolvedValue(undefined);
   });
 
   it('holomesh_board_list returns team not found for missing team', async () => {
@@ -249,12 +252,58 @@ describe('handleBoardTool with in-memory store', () => {
   });
 
   it('holomesh_board_list returns board state', async () => {
-    seedTeam('team-abc');
+    seedTeam('team-abc', {
+      taskBoard: [
+        {
+          id: 'legacy-priority',
+          title: 'Legacy priority',
+          description: 'Canonicalize me.\n\n## Done when:\n- Priority is numeric.',
+          status: 'open',
+          priority: 'P1',
+          priority_raw: 'P1',
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: 'expired-claim',
+          title: 'Expired claim',
+          description: 'Release me.\n\n## Done when:\n- Claim returns to open.',
+          status: 'claimed',
+          priority: 4,
+          prioritySortKey: 4,
+          claimedBy: 'stale-agent',
+          claimedAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+          createdAt: new Date().toISOString(),
+        },
+      ],
+    });
     const result = (await handleBoardTool('holomesh_board_list', {
       team_id: 'team-abc',
     })) as Record<string, unknown>;
     expect(result.success).toBe(true);
     expect(result.board).toBeDefined();
+    expect(reloadTeam).toHaveBeenCalledWith('team-abc');
+    expect(result.board_maintenance).toEqual({
+      priorityBackfilled: ['legacy-priority'],
+      ttlReleased: ['expired-claim'],
+      ttlClockStarted: [],
+      blockedEscalated: [],
+      blockedReopened: [],
+    });
+    const storedBoard = teamStore.get('team-abc')!.taskBoard!;
+    expect(storedBoard).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'legacy-priority',
+          priority: 1,
+          prioritySortKey: 1,
+        }),
+        expect.objectContaining({ id: 'expired-claim', status: 'open', claimedBy: undefined }),
+      ])
+    );
+    expect(storedBoard.find((task) => task.id === 'legacy-priority')).not.toHaveProperty(
+      'priority_raw'
+    );
+    expect(persistTeamDurable).toHaveBeenCalledWith('team-abc');
   });
 
   it('holomesh_board_add adds tasks and persists', async () => {
@@ -413,6 +462,17 @@ describe('handleBoardTool with in-memory store', () => {
       agent_id: 'founder',
       agent_name: 'Founder',
     });
+    board.push({
+      id: 'expired-during-complete',
+      title: 'Expired during complete',
+      description: 'Completion traffic releases this claim.\n\n## Done when:\n- Claim is open.',
+      status: 'claimed',
+      priority: 4,
+      prioritySortKey: 4,
+      createdAt: new Date().toISOString(),
+      claimedBy: 'stale-agent',
+      claimedAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+    });
 
     // Complete
     const result = (await handleBoardTool('holomesh_board_complete', {
@@ -425,6 +485,11 @@ describe('handleBoardTool with in-memory store', () => {
 
     expect(result.success).toBe(true);
     expect(persistTeamDurable).toHaveBeenCalledWith('team-abc');
+    expect(teamStore.get('team-abc')!.taskBoard).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'expired-during-complete', status: 'open' }),
+      ])
+    );
   });
 
   it('holomesh_board_claim rejects non-owner MCP claims without a fresh heartbeat', async () => {
@@ -434,7 +499,20 @@ describe('handleBoardTool with in-memory store', () => {
       tasks: [{ title: 'Heartbeat gated MCP claim' }],
     });
 
-    const taskId = teamStore.get('team-abc')!.taskBoard![0].id;
+    const board = teamStore.get('team-abc')!.taskBoard!;
+    const taskId = board[0].id;
+    board.push({
+      id: 'expired-on-rejected-mcp-claim',
+      title: 'Expired on rejected MCP claim',
+      description: 'Release despite rejection.\n\n## Done when:\n- Claim returns to open.',
+      status: 'claimed',
+      priority: 4,
+      prioritySortKey: 4,
+      createdAt: new Date().toISOString(),
+      claimedBy: 'stale-agent',
+      claimedAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+    });
+    vi.mocked(persistTeamDurable).mockClear();
     const result = (await handleBoardTool('holomesh_board_claim', {
       team_id: 'team-abc',
       task_id: taskId,
@@ -444,6 +522,11 @@ describe('handleBoardTool with in-memory store', () => {
     expect(result).toMatchObject({
       code: 'heartbeat_required',
     });
+    expect(board.find((task) => task.id === 'expired-on-rejected-mcp-claim')).toMatchObject({
+      status: 'open',
+      claimedBy: undefined,
+    });
+    expect(persistTeamDurable).toHaveBeenCalledWith('team-abc');
   });
 
   it('holomesh_board_claim enforces the same cap gate on the MCP path', async () => {
