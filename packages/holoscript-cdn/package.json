@@ -1,9 +1,9 @@
 {
   "name": "@holoscript/cdn",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Browser CDN distribution for HoloScript — embed spatial scenes with <holo-scene>",
-  "main": "dist/holoscript.cdn.js",
-  "module": "dist/holoscript.cdn.mjs",
+  "main": "dist/index.cdn.js",
+  "module": "dist/index.cdn.mjs",
   "types": "dist/index.d.ts",
   "files": [
     "dist",
@@ -13,8 +13,8 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/holoscript.cdn.mjs",
-      "require": "./dist/holoscript.cdn.js"
+      "import": "./dist/index.cdn.mjs",
+      "require": "./dist/index.cdn.js"
     }
   },
   "scripts": {
