@@ -117,6 +117,7 @@ export interface TickResult {
     | 'executed'
     | 'errored'
     | 'no-artifact'
+    | 'failure-artifact'
     | 'reflect-escalate'
     | 'messages-processed'
     | 'idle-worked'

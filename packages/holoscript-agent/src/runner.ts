@@ -10,7 +10,7 @@ import { pickClaimableTask } from './holomesh-client.js';
 import type { AuditLog } from './audit-log.js';
 import { buildCaelRecord } from './cael-builder.js';
 import { createTaskExecutionAttributeClaims } from './care-claims.js';
-import { resolveActiveTools, runTool, summarizeToolProductivity } from './tools.js';
+import { resolveActiveTools, runTool, summarizeToolProductivity, isProductiveToolUse } from './tools.js';
 import { augmentWithOnTaskCognition } from './cognitive-verbs.js';
 import { DelegatedAuthorityHandler } from './delegated-authority.js';
 import type {
@@ -424,6 +424,34 @@ export class AgentRunner {
     // so the board task records a verifiable commit reference.
     let lastCommitHash: string | undefined;
     let lastVisionCaption: string | undefined;
+    // Written-artifact inventory (trust-audit 2026-07-13). The W.786 empty-evidence
+    // fallback used to FABRICATE completion-grade evidence ("Task completed via tool
+    // calls...") whenever any write_file fired — including when the written artifact
+    // was an error dump self-declaring the task FAILED. Audit finding: 50 of 75
+    // jetson-seat board completions carried that template with zero commits; one
+    // closed a run whose own artifact said "Status: FAILED". We now track every
+    // write's path + whether its content self-declares failure, so the closeout can
+    // (a) report WHAT was written instead of asserting success, and (b) refuse to
+    // markDone a run whose only product is a failure dump.
+    const SELF_DECLARED_FAILURE_RE =
+      /\btask cannot (?:be completed|proceed)\b|\bstatus\W{0,3}failed\b|\baccess denied\b|\bcannot write to\b/i;
+    const writtenPaths: string[] = [];
+    let failureDeclaredWrites = 0;
+    let trackedWrites = 0;
+    let nonWriteProductiveCount = 0;
+    const trackArtifactWrites = (uses: readonly ToolUseBlock[]): void => {
+      for (const u of uses) {
+        if (u.name === 'write_file' || u.name === 'str_replace') {
+          const input = (u.input ?? {}) as Record<string, unknown>;
+          const p = String(input.path ?? input.file_path ?? '');
+          if (p) writtenPaths.push(p);
+          trackedWrites++;
+          if (SELF_DECLARED_FAILURE_RE.test(String(input.content ?? ''))) failureDeclaredWrites++;
+        } else if (isProductiveToolUse(u)) {
+          nonWriteProductiveCount++;
+        }
+      }
+    };
     // F.126 #1 — the model's tools come from the BRAIN'S DECLARATION (the on_task
     // `llm_call { tools: [...] }` array), not a hardcoded list. resolveActiveTools
     // resolves the declared names against MESH_TOOLS, falls back safely when a brain
@@ -476,6 +504,7 @@ export class AgentRunner {
         const productivity = summarizeToolProductivity(resp.toolUses);
         for (const n of productivity.names) toolsCalled.add(n);
         productiveCallCount += productivity.productiveCount;
+        trackArtifactWrites(resp.toolUses);
         // Append the assistant turn (text + tool_use blocks) so the model
         // sees its own request when we send tool_result back.
         messages.push({
@@ -558,6 +587,7 @@ export class AgentRunner {
         const reProd = summarizeToolProductivity(reResp.toolUses);
         for (const n of reProd.names) toolsCalled.add(n);
         productiveCallCount += reProd.productiveCount;
+        trackArtifactWrites(reResp.toolUses);
         messages.push({ role: 'assistant', content: (reResp.assistantBlocks ?? []) as never });
         const reResults = await Promise.all(
           reResp.toolUses.map((u) =>
@@ -568,10 +598,13 @@ export class AgentRunner {
       }
       finalText = reResp.content;
       // Reprompt fired and model called a write tool — content is '' (finishReason=tool_use).
-      // Without this fallback, markDone sends verification_evidence:"" which the server
-      // rejects with verification_evidence_required (W.786 fix).
+      // Without a fallback, markDone sends verification_evidence:"" which the server rejects
+      // with verification_evidence_required (W.786). The fallback must be HONEST, not a
+      // fabricated success claim (trust-audit 2026-07-13): it names exactly what was written
+      // and flags that nothing here is commit- or receipt-verified. Auditors and corpus
+      // builders can grep the UNVERIFIED-ARTIFACT-ONLY marker.
       if (!finalText && (toolsCalled.has('write_file') || toolsCalled.has('str_replace'))) {
-        finalText = `Task completed via tool calls. Artifact written (tool_iters:${iters}).`;
+        finalText = `UNVERIFIED-ARTIFACT-ONLY: wrote ${writtenPaths.join(', ') || '(unknown path)'} (tool_iters:${iters}; no commit; no test/receipt evidence).`;
       }
       lastResponse = reResp;
     }
@@ -611,6 +644,7 @@ export class AgentRunner {
         const vwProd = summarizeToolProductivity(vwResp.toolUses);
         for (const n of vwProd.names) toolsCalled.add(n);
         productiveCallCount += vwProd.productiveCount;
+        trackArtifactWrites(vwResp.toolUses);
         messages.push({ role: 'assistant', content: (vwResp.assistantBlocks ?? []) as never });
         const vwResults = await Promise.all(
           vwResp.toolUses.map((u) =>
@@ -712,6 +746,49 @@ export class AgentRunner {
         spentUsd: costGuard.getState().spentUsd,
         remainingUsd: costGuard.getRemainingUsd(),
         message: `no productive tool call observed (toolsCalled=[${[...toolsCalled].join(',')}], productiveCallCount=${productiveCallCount}, iters=${iters})`,
+      };
+    }
+
+    // ── Self-declared-failure gate (trust-audit 2026-07-13) ─────────────────
+    // W.107.b passes because SOMETHING productive happened — but if the run's only
+    // product is artifact(s) whose content declares the task failed (an ENOENT dump
+    // saying "Status: FAILED", "task cannot proceed", "access denied"), or the model's
+    // own final text is such an admission, then marking the board task done converts a
+    // self-reported failure into completion-grade evidence. That is the exact
+    // fabrication class the mw02 incident (W.110) named — reintroduced via the W.786
+    // fallback and confirmed live by the 2026-07-13 audit (FounderCommandCenter
+    // completion whose artifact said "Status: FAILED"). Refuse: leave the task
+    // claimed for the supervisor to re-tick or release, and keep the negative trace.
+    // A commit hash always clears the gate — landed code is stronger evidence than
+    // prose, and legitimate failure-REPORT tasks commit or receipt their reports.
+    const allWritesDeclareFailure =
+      trackedWrites > 0 && failureDeclaredWrites === trackedWrites && nonWriteProductiveCount === 0;
+    const finalTextDeclaresFailure = SELF_DECLARED_FAILURE_RE.test(finalText);
+    if (!lastCommitHash && (allWritesDeclareFailure || finalTextDeclaresFailure)) {
+      log({
+        ev: 'failure-artifact',
+        taskId: target.id,
+        tool_iters: iters,
+        writtenPaths,
+        failureDeclaredWrites,
+        trackedWrites,
+        finalTextDeclaresFailure,
+        message:
+          'run self-declared failure (in its artifact(s) or final text) with no commit — refusing to mark done. ' +
+          'A failed run must stay claimed/blocked, not close as completed.',
+      });
+      this.recordTrace({
+        user: buildTaskPrompt(target),
+        target: finalText || `[failure artifact(s): ${writtenPaths.join(', ')}]`,
+        grader: { passed: false, kind: 'failure-artifact', toolsCalled: [...toolsCalled], productiveCallCount },
+        source: 'agent-runner-negative',
+      });
+      return {
+        action: 'failure-artifact',
+        taskId: target.id,
+        spentUsd: costGuard.getState().spentUsd,
+        remainingUsd: costGuard.getRemainingUsd(),
+        message: `self-declared failure with no commit (writes=${trackedWrites}, failureWrites=${failureDeclaredWrites}, finalTextDeclaresFailure=${finalTextDeclaresFailure})`,
       };
     }
 

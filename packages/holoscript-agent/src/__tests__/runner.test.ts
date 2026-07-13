@@ -426,6 +426,110 @@ describe('AgentRunner.tick', () => {
     expect(mesh.postAuditRecords).not.toHaveBeenCalled();
   });
 
+  // ── Self-declared-failure gate (trust-audit 2026-07-13) ───────────────────
+  // A productive write_file whose CONTENT is a failure dump ("Status: FAILED",
+  // "task cannot proceed") used to close the board task as done with fabricated
+  // template evidence — the FounderCommandCenter phantom. The gate must refuse.
+  const failureGateProvider = (opts: { writeContent: string; finalText: string }): ILLMProvider => {
+    let callCount = 0;
+    return {
+      name: 'mock',
+      models: ['mock-1'],
+      defaultHoloScriptModel: 'mock-1',
+      async complete(_req): Promise<LLMCompletionResponse> {
+        callCount++;
+        const usage = { promptTokens: 100, completionTokens: 50, totalTokens: 150 };
+        if (callCount === 1) {
+          const tu = {
+            id: 'tu-fail',
+            name: 'write_file',
+            input: { path: '/root/agent-output/receipt.json', content: opts.writeContent },
+          };
+          return {
+            content: '',
+            usage,
+            model: 'mock-1',
+            provider: 'mock',
+            finishReason: 'tool_use',
+            toolUses: [tu],
+            assistantBlocks: [{ type: 'tool_use' as const, ...tu }],
+          } as unknown as LLMCompletionResponse;
+        }
+        return { content: opts.finalText, usage, model: 'mock-1', provider: 'mock', finishReason: 'stop' };
+      },
+      async generateHoloScript() {
+        throw new Error('not used');
+      },
+      async healthCheck() {
+        return { ok: true, latencyMs: 1 };
+      },
+    };
+  };
+
+  it('returns failure-artifact when the only productive write is a self-declared failure dump', async () => {
+    const tasks: BoardTask[] = [
+      { id: 't-fail-dump', title: 'validate composition', description: '', priority: 'high', tags: ['security'], status: 'open' },
+    ];
+    const mesh = mockMesh({ tasks });
+    const runner = new AgentRunner({
+      identity: IDENTITY,
+      brain: BRAIN,
+      provider: failureGateProvider({
+        writeContent:
+          '{"conclusion":"The task cannot be completed as the foundational data is absent","status":"Status: FAILED (missing foundational files)"}',
+        finalText: 'done',
+      }),
+      costGuard: freshGuard(),
+      mesh: mesh as never,
+    });
+
+    const result = await runner.tick();
+    expect(result.action).toBe('failure-artifact');
+    expect(mesh.markDone).not.toHaveBeenCalled();
+  });
+
+  it('returns failure-artifact when the final text is a failure admission with no commit', async () => {
+    const tasks: BoardTask[] = [
+      { id: 't-fail-text', title: 'write report', description: '', priority: 'high', tags: ['security'], status: 'open' },
+    ];
+    const mesh = mockMesh({ tasks });
+    const runner = new AgentRunner({
+      identity: IDENTITY,
+      brain: BRAIN,
+      provider: failureGateProvider({
+        writeContent: '{"notes":"partial exploration written"}',
+        finalText: 'Access denied to the shared output directory. Task cannot proceed.',
+      }),
+      costGuard: freshGuard(),
+      mesh: mesh as never,
+    });
+
+    const result = await runner.tick();
+    expect(result.action).toBe('failure-artifact');
+    expect(mesh.markDone).not.toHaveBeenCalled();
+  });
+
+  it('does NOT fire the failure gate on an ordinary successful write (no false positive)', async () => {
+    const tasks: BoardTask[] = [
+      { id: 't-ok-write', title: 'write summary', description: '', priority: 'high', tags: ['security'], status: 'open' },
+    ];
+    const mesh = mockMesh({ tasks });
+    const runner = new AgentRunner({
+      identity: IDENTITY,
+      brain: BRAIN,
+      provider: failureGateProvider({
+        writeContent: '{"summary":"5 gates green, 2 skipped; artifacts listed below"}',
+        finalText: 'Summary written with gate results.',
+      }),
+      costGuard: freshGuard(),
+      mesh: mesh as never,
+    });
+
+    const result = await runner.tick();
+    expect(result.action).toBe('executed');
+    expect(mesh.markDone).toHaveBeenCalled();
+  });
+
   it('returns no-artifact when the LLM only calls read-only tools (read_file / list_dir)', async () => {
     const tasks: BoardTask[] = [
       {
