@@ -15,6 +15,7 @@
 
 import type { TraitHandler } from './TraitTypes';
 import type { IotGateway } from '../services/GatewayAdapter';
+import { emitUnwired } from './unwired';
 
 // =============================================================================
 // TYPES
@@ -413,7 +414,7 @@ function transformSensorValue(value: number, mapping: SensorMapping): number | s
 // QUILT RECOMPILATION
 // =============================================================================
 
-async function recompileQuilt(
+export async function recompileQuilt(
   node: unknown,
   state: HoloTwinState,
   config: HoloTwinConfig,
@@ -430,20 +431,16 @@ async function recompileQuilt(
     sensorData: state.sensorData,
   });
 
-  // RATCHET (OVERCLAIMED): Quilt compilation is simulated — no real QuiltCompiler integration exists.
-  // hash is a timestamp-based placeholder, not a content-addressable hash of quilt output.
-  // url points to a non-existent studio.holoscript.net path.
-  // In production, wait for QuiltCompiler callback and use real hash/url.
-  const mockHash = `holotwin_stub_${config.physical_id}_${Date.now()}`;
-  const mockUrl = `https://studio.holoscript.net/hologram/${mockHash}`;
-
-  context.emit?.('holo_twin_quilt_compiled', {
-    node,
-    hash: mockHash,
-    url: mockUrl,
-    device: config.display_device,
-    executionBackend: 'stub_mock', // RATCHET: not a real QuiltCompiler result
-    stub: true, // RATCHET: caller must check before using hash/url
+  // The holo_twin_compile_quilt request above is the honest dispatch to the real
+  // QuiltCompiler (MCP server / engine). No such compiler is wired yet, so we do NOT
+  // fabricate a holo_twin_quilt_compiled result with a placeholder hash + a non-existent
+  // studio.holoscript.net URL — that is a lie a consumer would act on. Abstain honestly
+  // until the compiler callback is wired (then emit holo_twin_quilt_compiled with the real
+  // content hash + url on success).
+  emitUnwired(context, 'holo_twin_quilt_error', {
+    capability: 'holo_twin_quilt',
+    wiring: 'QuiltCompiler callback integration in the MCP server / engine',
+    requested: { device: config.display_device, physical_id: config.physical_id },
   });
 }
 

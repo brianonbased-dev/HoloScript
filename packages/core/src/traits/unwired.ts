@@ -22,7 +22,12 @@
  * @module core/traits/unwired
  */
 
-import type { TraitContext } from './TraitTypes';
+/**
+ * Minimal context the helper needs — any trait/handler context exposing an optional emit.
+ * Broad on purpose so both the standard TraitContext and traits with a local inline
+ * `{ emit? }` context (e.g. HoloTwinTrait) can abstain through the same primitive.
+ */
+export type EmitContext = { emit?: (event: string, payload?: unknown) => void };
 
 export interface UnwiredDetail {
   /** Capability name, e.g. 'stripe', 's3', 'video_transcode'. */
@@ -48,7 +53,7 @@ export interface UnwiredPayload {
  * trait's documented error event (e.g. 'stripe:error', 's3:error', 'video:error'). No-ops
  * safely if the context has no emit (same optional-emit contract as the trait handlers).
  */
-export function emitUnwired(context: TraitContext, errorEvent: string, detail: UnwiredDetail): void {
+export function emitUnwired(context: EmitContext, errorEvent: string, detail: UnwiredDetail): void {
   const payload: UnwiredPayload = {
     ok: false,
     error: 'not_implemented',
