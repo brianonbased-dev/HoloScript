@@ -2085,6 +2085,11 @@ function collectCounterfactualProducers(effects: Map<string, string[][]>, suffic
   const collect = (sets: string[][]): void => {
     for (const set of sets) {
       for (const member of set) {
+        // Visited guard: skip already-collected members so cyclic production
+        // specs (a→b→a) terminate instead of overflowing the stack. The set
+        // membership doubles as the visited marker — a member's sub-producers
+        // are expanded exactly once.
+        if (producers.has(member)) continue;
         producers.add(member);
         const sub = effects.get(member);
         if (sub) collect(sub);
@@ -3029,8 +3034,9 @@ export function resolveCommitment(
 // Detect a production cycle reachable from `start`. Edge E → M iff M appears in one of E's sufficient
 // sets AND M is itself an effect (has its own production rule). Cycles are detected over the full
 // effect→effect reference graph (independent of `occurs`), because a cyclic production spec makes
-// `holds()` guard-break arbitrarily AND makes the unguarded `collectCounterfactualProducers` recurse
-// forever — the recognizer cannot be run on it regardless of what occurs. Returns the cycle path
+// `holds()` guard-break arbitrarily — the recovered verdict is an arbitrary fixpoint the IR does not
+// determine, regardless of what occurs. (collectCounterfactualProducers is visited-guarded and
+// terminates on cycles; the abstention is semantic, not a crash guard.) Returns the cycle path
 // (e.g. ['E','A','E']), else null. Mirrors dischargeCycle's DFS.
 function productionCycle(effects: Map<string, string[][]>, start: string): string[] | null {
   const neighbors = (id: string): string[] => {
@@ -3067,10 +3073,10 @@ function productionCycle(effects: Map<string, string[][]>, start: string): strin
  * Necessity, honest about a NON-IDENTIFIABLE causal cycle. recoverNecessity evaluates counterfactual
  * necessity over a closed-world production model whose `holds()` breaks cycles with an arbitrary guard
  * (returns false on revisit), so an effect that participates in a production cycle (A produces B, B
- * produces A) silently yields a definite necessity verdict for a fixpoint the IR does not determine —
- * and the unguarded `collectCounterfactualProducers` would recurse forever on such input. So a cyclic
- * production spec cannot be evaluated at all. resolveCounterfactual detects a production cycle reachable
- * from the queried effect and abstains (cyclic_dependency): necessity has no consistent grounding order.
+ * produces A) silently yields a definite necessity verdict for a fixpoint the IR does not determine.
+ * (`collectCounterfactualProducers` is visited-guarded, so the recognizer terminates on cyclic input —
+ * but the verdict it would return is still ungrounded.) resolveCounterfactual detects a production cycle
+ * reachable from the queried effect and abstains (cyclic_dependency): necessity has no consistent grounding order.
  * An acyclic model resolves normally — the determinate single-producer / chain / overdetermination /
  * preemption cases are acyclic DAGs, so a determinate IR is never flipped to a false gap.
  */

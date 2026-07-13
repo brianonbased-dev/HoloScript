@@ -4,6 +4,8 @@ import {
   resolveNormStatus,
   resolveDischargeable,
   resolveCounterfactual,
+  recoverNecessity,
+  naiveParentNecessity,
   resolveMereology,
   resolveTension,
   type UAALContainmentIR,
@@ -264,8 +266,8 @@ describe('resolveCounterfactual — non-identifiable causal cycle', () => {
 
   it('flags an UNGROUNDED production cycle (necessity has no consistent grounding order)', () => {
     // E is produced by A, A is produced by E, and neither independently occurs. holds() breaks this with
-    // an arbitrary guard and recoverNecessity would emit a definite verdict for an ungrounded fixpoint
-    // (and collectCounterfactualProducers would recurse without a guard). The honest answer is abstain.
+    // an arbitrary guard and recoverNecessity would emit a definite verdict for an ungrounded fixpoint.
+    // The honest answer is abstain.
     const ir: UAALCounterfactualIR = {
       effects: [
         { id: 'E', sufficientSets: [['A']] },
@@ -279,6 +281,25 @@ describe('resolveCounterfactual — non-identifiable causal cycle', () => {
     expect(r.reason).toBe('cyclic_dependency');
     expect(r.gap?.code).toBe('counterfactual.non_identifiable_cycle');
     expect(r.obstruction).toContain('E');
+  });
+
+  it('recoverNecessity / naiveParentNecessity TERMINATE on cyclic input (visited-guard regression)', () => {
+    // Direct-recognizer calls, bypassing resolveCounterfactual's abstention. Before the visited guard,
+    // collectCounterfactualProducers recursed E→A→E→… and stack-overflowed — any DIRECT caller crashed on
+    // cyclic specs. This pins termination only; the verdict on cyclic input stays ungrounded, which is
+    // exactly why resolveCounterfactual (the honest layer) abstains instead of answering.
+    const ir: UAALCounterfactualIR = {
+      effects: [
+        { id: 'E', sufficientSets: [['A']] },
+        { id: 'A', sufficientSets: [['E']] },
+      ],
+      occurs: [],
+      query: { effect: 'E' },
+    };
+    const necessity = recoverNecessity(ir);
+    expect(new Set(Object.keys(necessity.E))).toEqual(new Set(['A', 'E']));
+    const naive = naiveParentNecessity(ir);
+    expect(new Set(Object.keys(naive.E))).toEqual(new Set(['A', 'E']));
   });
 
   it('does NOT flag an acyclic effect-to-effect DAG (a diamond) as a cycle (no false gap)', () => {
