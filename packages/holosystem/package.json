@@ -1,0 +1,59 @@
+{
+  "name": "@holoscript/holosystem",
+  "version": "0.1.0",
+  "description": "Portable public-package bootstrap and inspection contract for HoloSystem consumers.",
+  "releaseLane": "v0-preview",
+  "keywords": [
+    "holoscript",
+    "holosystem",
+    "agent-runtime",
+    "sovereign",
+    "bootstrap",
+    "portable-config"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/holosystem"
+  },
+  "homepage": "https://github.com/brianonbased-dev/HoloScript/tree/main/packages/holosystem",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "bin": {
+    "holosystem": "./bin/holosystem.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "node --check src/index.mjs && node --check bin/holosystem.mjs",
+    "test": "node --test test/holosystem.test.mjs test/cli.test.mjs",
+    "smoke": "node bin/holosystem.mjs --help",
+    "check": "pnpm run build && pnpm run test && pnpm run smoke",
+    "prepublishOnly": "pnpm run check"
+  },
+  "holorepo": {
+    "releaseLane": "v0-preview",
+    "pypiCompanion": "holoscript-holorepo",
+    "publicConsumption": {
+      "coreRule": "Cold consumers create and inspect a HoloSystem configuration from public registry contracts and caller-owned bindings.",
+      "localBoundary": "Machine paths, credentials, private repositories, and operator state are caller inputs, never package defaults.",
+      "supportBoundary": "Configuration creation and static portability inspection are supported; installation, credential acquisition, service mutation, and publishing are outside this package."
+    }
+  }
+}
