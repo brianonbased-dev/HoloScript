@@ -118,6 +118,26 @@ describe('renderHolo: .holo text → native pixels (one call)', () => {
     expect(framebuffer.pixel(32, 32)).toEqual(RED);
   });
 
+  it('preserves source-authored @glowing as a native emissive visual signal', async () => {
+    const source = `composition "GlowingNative" {
+      object "Lamp" @glowing {
+        shape: "cube"
+        position: [0, 0, 0]
+        color: "#000080"
+      }
+    }`;
+
+    const { framebuffer, stats } = await renderHolo(source, {
+      width: 64,
+      height: 64,
+      camera: { pixelsPerUnit: 8 },
+      clear: CLEAR,
+    });
+
+    expect(stats.glowingEntities).toEqual([1]);
+    expect(framebuffer.pixel(32, 32)).toEqual({ r: 80, g: 80, b: 208, a: 255 });
+  });
+
   it('propagates a parse failure from the strict front (malformed composition)', async () => {
     // An unterminated composition block is a real syntax error: the strict parser
     // front rejects it, and renderHolo surfaces that rejection rather than rendering.

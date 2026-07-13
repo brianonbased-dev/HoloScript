@@ -331,6 +331,11 @@ export class HolobCompiler {
         this.applyStableOrGenericTrait(fn, entityId, name);
         break;
 
+      case 'glowing':
+      case 'glow':
+        this.applyStableOrGenericTrait(fn, entityId, name);
+        break;
+
       default:
         // Generic trait attachment — VM resolves via trait registry
         this.applyStableOrGenericTrait(fn, entityId, name);
@@ -374,6 +379,9 @@ export class HolobCompiler {
       case 'networked':
       case 'net_sync':
         return ids.Synced;
+      case 'glowing':
+      case 'glow':
+        return ids.Glowing;
       default:
         return undefined;
     }

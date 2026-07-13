@@ -125,6 +125,8 @@ export interface RenderStats {
   grabbableEntities: number[];
   /** IDs of entities carrying the @synced (HoloTraitId.Synced) trait. */
   syncedEntities: number[];
+  /** IDs of entities carrying the @glowing (HoloTraitId.Glowing) trait. */
+  glowingEntities: number[];
   /** Set of all trait IDs present in the drawn frame (union across all entities). */
   activeTraitIds: Set<number>;
 }
@@ -148,6 +150,8 @@ export interface RenderStats {
  *                         outline/highlight passes follow in the WebGPU backend.
  *     @synced (0x08)    — no visual effect; entity is catalogued in RenderStats.syncedEntities
  *                         so host/native runtime layers can attach replication transport.
+ *     @glowing (0x09)   — entity fill is brightened by +80 RGB and catalogued in
+ *                         RenderStats.glowingEntities as the CPU-tier emissive signal.
  */
 export class NativeHoloRenderer {
   constructor(private readonly backend: RenderBackend) {}
@@ -166,6 +170,7 @@ export class NativeHoloRenderer {
     const rigidEntities: number[] = [];
     const grabbableEntities: number[] = [];
     const syncedEntities: number[] = [];
+    const glowingEntities: number[] = [];
     const activeTraitIds = new Set<number>();
 
     const entities = world.getAllEntities().sort((a, b) => a.id - b.id);
@@ -181,6 +186,7 @@ export class NativeHoloRenderer {
       const isRigid = e.traits.has(HoloTraitId.Rigid);
       const isGrabbable = e.traits.has(HoloTraitId.Grabbable);
       const isSynced = e.traits.has(HoloTraitId.Synced);
+      const isGlowing = e.traits.has(HoloTraitId.Glowing);
 
       // Catalogue trait IDs for caller inspection.
       for (const tid of e.traits) {
@@ -189,9 +195,18 @@ export class NativeHoloRenderer {
       if (isRigid) rigidEntities.push(e.id);
       if (isGrabbable) grabbableEntities.push(e.id);
       if (isSynced) syncedEntities.push(e.id);
+      if (isGlowing) glowingEntities.push(e.id);
 
-      // ── Trait-driven visual effect: @grabbable brightens the entity fill ─────
+      // ── Trait-driven visual effects from native VM trait state ───────────────
       let color = unpackColor(m.color, m.opacity);
+      if (isGlowing) {
+        color = {
+          r: Math.min(255, color.r + 80),
+          g: Math.min(255, color.g + 80),
+          b: Math.min(255, color.b + 80),
+          a: color.a,
+        };
+      }
       if (isGrabbable) {
         // Brighten by +40 on each RGB channel (clamped to 255) to signal interactability.
         color = {
@@ -220,6 +235,7 @@ export class NativeHoloRenderer {
       rigidEntities,
       grabbableEntities,
       syncedEntities,
+      glowingEntities,
       activeTraitIds,
     };
   }

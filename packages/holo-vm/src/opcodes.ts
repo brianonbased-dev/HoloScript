@@ -302,6 +302,8 @@ export enum HoloTraitId {
   Clickable = 0x07,
   /** @synced — entity is eligible for host/network state synchronization. */
   Synced = 0x08,
+  /** @glowing — entity emits a native glow/high-emissive visual signal. */
+  Glowing = 0x09,
 }
 
 // =============================================================================

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-13T06:10:19.915Z",
+  "generatedAt": "2026-07-13T06:22:50.771Z",
   "source": "scripts/measure-holob-trait-coverage.mjs",
   "corpus": {
     "extension": ".hsplus",
@@ -9,27 +9,28 @@
   },
   "traitUniverse": {
     "totalRegisteredTraits": 2338,
-    "stableHoloTraitIdTraits": 8,
-    "rendererSemanticTraits": 2,
-    "stableHoloTraitIdPercent": 0.34,
-    "rendererSemanticPercent": 0.09
+    "stableHoloTraitIdTraits": 9,
+    "rendererSemanticTraits": 3,
+    "stableHoloTraitIdPercent": 0.38,
+    "rendererSemanticPercent": 0.13
   },
   "corpusCoverage": {
     "metadataAttachmentPercent": 100,
     "metadataAttachmentNote": "HolobCompiler default path attaches any trait as generic metadata; this is not executable runtime semantics.",
-    "registeredTraitsWithStableHoloTraitId": 7,
-    "registeredTraitsWithHolobSpecialCase": 7,
-    "registeredTraitsWithRendererSemantics": 2,
-    "registeredTraitsGenericOnly": 231,
-    "stableHoloTraitIdPercent": 2.9,
-    "holobSpecialCasePercent": 2.9,
-    "rendererSemanticPercent": 0.83
+    "registeredTraitsWithStableHoloTraitId": 8,
+    "registeredTraitsWithHolobSpecialCase": 8,
+    "registeredTraitsWithRendererSemantics": 3,
+    "registeredTraitsGenericOnly": 230,
+    "stableHoloTraitIdPercent": 3.32,
+    "holobSpecialCasePercent": 3.32,
+    "rendererSemanticPercent": 1.24
   },
   "nativeRuntimeSets": {
     "stableHoloTraitIdTraits": [
       "clickable",
       "collidable",
       "collider",
+      "glowing",
       "gpu_physics",
       "grabbable",
       "gravity",
@@ -45,6 +46,8 @@
       "audio",
       "collidable",
       "collider",
+      "glow",
+      "glowing",
       "gpu_physics",
       "grabbable",
       "interactable",
@@ -59,26 +62,13 @@
       "visible"
     ],
     "rendererSemanticTraits": [
+      "glowing",
       "grabbable",
       "rigid",
       "synced"
     ]
   },
   "topGenericOnlyCorpusGaps": [
-    {
-      "name": "glowing",
-      "count": 74,
-      "files": [
-        "assets/sword.hsplus",
-        "compositions/holonews-claim-kiosk.hsplus",
-        "examples/autonomous-ecosystems/agent-portal-federation.hsplus",
-        "examples/autonomous-ecosystems/cultural-evolution.hsplus",
-        "examples/autonomous-ecosystems/economy-marketplace.hsplus",
-        "examples/autonomous-ecosystems/feedback-driven-npc.hsplus",
-        "examples/cryptography/secure-agent-handshake.hsplus",
-        "examples/enterprise/enterprise-lifecycle.hsplus"
-      ]
-    },
     {
       "name": "state_machine",
       "count": 52,
@@ -365,6 +355,14 @@
       "files": [
         "examples/pinball.refreshed.hsplus",
         "examples/vr-interactions.refreshed.hsplus"
+      ]
+    },
+    {
+      "name": "emissive",
+      "count": 6,
+      "files": [
+        "compositions/environments/city-rooftop.hsplus",
+        "compositions/environments/underwater-cave.hsplus"
       ]
     }
   ],
