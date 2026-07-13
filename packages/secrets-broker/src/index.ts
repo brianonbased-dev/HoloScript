@@ -668,6 +668,14 @@ export {
   type SecretResolveReceipt,
 } from './resolve-receipt';
 export {
+  sealDecodeReceipt,
+  sealDecodeReceiptChain,
+  verifyDecodeReceiptChain,
+  PAYLOAD_FIELDS as QEC_DECODE_PAYLOAD_FIELDS,
+  type QecDecodePayload,
+  type QecDecodeReceipt,
+} from './decode-receipt';
+export {
   compileSecretsManifest,
   SecretsManifestError,
   type SecretDecl,

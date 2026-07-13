@@ -44,6 +44,9 @@ export const SECURITY_CRYPTO_TRAITS = [
   'chain_of_trust',
   'detached_signature',
   'embedded_signature',
+  'decode_receipt', // SHA-256 hash-chained QEC decode receipt (qec-decode-receipt/v0); extends Paper 37 Quantum Receipt Chain
+
+
 
   // Zero-Knowledge Proofs
   'zero_knowledge_proof',

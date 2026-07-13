@@ -1,0 +1,53 @@
+// @decode_receipt — SHA-256 hash-chained receipts for the QEC decode log.
+//
+// Native .hsplus surface for decode-receipt.ts (secrets-broker), the error-correction
+// sibling of resolve_receipt.hsplus. Seals each QEC decode round (syndrome -> correction)
+// into a hash-chained receipt — SHA-256 over the qec-decode-receipt/v0 payload + prevHash —
+// making the decode log append-only and tamper-evident. Any edit, deletion, reorder, or
+// forged append breaks the chain (detected by verifyDecodeReceiptChain).
+//
+// This extends Paper 37 (Quantum Receipt Chain) from simulation auditability to
+// error-correction auditability — the `log` step for the QEC decode substrate. The
+// correction and logical_error are DERIVED by replaying the decoder over the sealed
+// syndrome, never author-asserted (F.123 proven-label discipline).
+//
+// ZERO physical-qubit state — only syndromes, corrections, the derived logical flag, and
+// hashes. Additive + side-effect-free: the decoder is untouched; a receipt sink seals + persists.
+//
+// QecDecodeReceipt (decode-receipt.ts):
+//   extends QecDecodePayload (schema, code, x_syndrome, z_syndrome, x_correction,
+//                             z_correction, logical_error)
+//   prev_hash: String | null      — null at genesis
+//   receipt_hash: "sha256:<hex>"  — SHA-256 over [schema,code,x_syndrome,z_syndrome,
+//                                    x_correction,z_correction,logical_error,prev_hash]
+//
+// Functions: sealDecodeReceipt(payload, prevHash) -> QecDecodeReceipt
+//            verifyDecodeReceiptChain(receipts) -> { ok, brokenAt, reason? }
+
+@trait decode_receipt {
+  capability_tags: ["decode_receipt", "qec", "syndrome_correction", "audit_chain", "hash_chain", "quantum_receipt_chain"]
+
+  @on_spawn => {
+    sealer = init_decode_receipt_sealer()
+    emit("decode_receipt_ready", {})
+  }
+
+  @on_seal(payload, prev_hash) => {
+    receipt = sealer.seal(payload, prev_hash)
+    emit("decode_receipt_sealed", { code: payload.code, logical_error: payload.logical_error })
+    return receipt
+  }
+
+  @on_verify_chain(receipts) => {
+    return sealer.verify_chain(receipts)
+  }
+
+  @receipt decode_receipt_config {
+    type: "QecDecodeReceipt"
+    schema: "qec-decode-receipt/v0"
+    hash: "SHA-256 over [schema,code,x_syndrome,z_syndrome,x_correction,z_correction,logical_error,prev_hash]"
+    extends: "Paper 37 Quantum Receipt Chain — decode step"
+    derived: "logical_error and corrections are replayed from the sealed syndrome, not asserted"
+    timestamp: now()
+  }
+}
