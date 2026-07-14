@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/net-service",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Railway-based hosting for holoscript.net docs",
   "releaseLane": "v0-preview",
   "type": "module",
@@ -35,6 +35,7 @@
     "directory": "services/holoscript-net"
   },
   "dependencies": {
+    "@holoscript/config": "workspace:*",
     "@holoscript/core": "workspace:*",
     "@holoscript/mcp-server": "workspace:*",
     "@holoscript/r3f-renderer": "workspace:*",
