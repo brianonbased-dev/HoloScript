@@ -13,7 +13,7 @@ export interface ROS2State {
   hardwareSyncDriftMs: number;
 }
 
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './types';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './types.js';
 
 export function createROS2HardwareLoopHandler(): TraitHandler<ROS2Config> {
   return {

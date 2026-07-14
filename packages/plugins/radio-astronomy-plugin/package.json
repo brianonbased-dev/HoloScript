@@ -1,9 +1,16 @@
 {
   "name": "@holoscript/radio-astronomy-plugin",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "description": "Radio Astrophysics plugin for HoloScript spatial environments. Adds primitives for interferometers, pulsar analysis, and synchrotron emissions.",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md",
+    "plugin.manifest.json"
+  ],
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
@@ -20,11 +27,14 @@
   ],
   "author": "brianonbased-dev",
   "license": "MIT",
-  "dependencies": {
-    "@holoscript/engine": "workspace:^"
-  },
   "peerDependencies": {
-    "@holoscript/core": ">=8.0.0"
+    "@holoscript/core": ">=8.0.0",
+    "@holoscript/engine": ">=6.1.4"
+  },
+  "peerDependenciesMeta": {
+    "@holoscript/engine": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "typescript": "^5.0.0",

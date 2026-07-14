@@ -16,18 +16,18 @@
  */
 
 // Compile-time: USD/URDF codegen (from holoscript-compiler)
-export { USDCodeGen } from './usd-codegen';
-export type { IsaacLabConfig } from './usd-codegen';
-export { Lexer, TokenType } from './lexer';
-export type { Token } from './lexer';
-export { Parser } from './parser';
-export * from './ast';
+export { USDCodeGen } from './usd-codegen.js';
+export type { IsaacLabConfig } from './usd-codegen.js';
+export { Lexer, TokenType } from './lexer.js';
+export type { Token } from './lexer.js';
+export { Parser } from './parser.js';
+export * from './ast.js';
 // Isaac Lab sim-to-real types
-export type { DomainRandomizationConfig, ActuatorGroupConfig } from './ast';
+export type { DomainRandomizationConfig, ActuatorGroupConfig } from './ast.js';
 
 // Internal imports for the narrow feed implementation (P1)
-import type { CompositionNode, DomainRandomizationConfig, ActuatorGroupConfig } from './ast';
-import { USDCodeGen } from './usd-codegen';
+import type { CompositionNode, DomainRandomizationConfig, ActuatorGroupConfig } from './ast.js';
+import { USDCodeGen } from './usd-codegen.js';
 
 // Runtime: ROS2/Gazebo integration
 export interface ROS2Config {
@@ -470,7 +470,7 @@ export function extractURDFFromHoloComposition(
 }
 
 // Traits
-export * from './traits/ROS2HardwareLoopTrait';
+export * from './traits/ROS2HardwareLoopTrait.js';
 
 // Version
 export const VERSION = '1.0.0';

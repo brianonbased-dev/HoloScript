@@ -1,8 +1,16 @@
 {
   "name": "@holoscript/robotics-plugin",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "HoloScript plugin for robotics: compile-time USD/URDF codegen + runtime ROS2/Gazebo integration. VR robot programming and digital twins.",
-  "main": "src/index.ts",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md",
+    "plugin.manifest.json"
+  ],
   "scripts": {
     "build": "tsc",
     "test": "vitest run",

@@ -5,14 +5,14 @@
  * Uses recursive descent parsing.
  */
 
-import { Token, TokenType } from './lexer';
+import { Token, TokenType } from './lexer.js';
 import {
   CompositionNode,
   ObjectNode,
   PropertyValue,
   DomainRandomizationConfig,
   ActuatorGroupConfig,
-} from './ast';
+} from './ast.js';
 
 export class Parser {
   private tokens: Token[];

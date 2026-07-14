@@ -16,7 +16,7 @@ import {
   DomainRandomizationConfig,
   ObjectNode,
   PropertyValue,
-} from './ast';
+} from './ast.js';
 
 export interface IsaacLabConfig {
   /** Isaac Lab version target for generated code */

@@ -6,7 +6,7 @@
  */
 
 import { RegularGrid3D } from '@holoscript/engine/simulation';
-import type { FITSFile } from './FITSParser';
+import type { FITSFile } from './FITSParser.js';
 
 /**
  * Convert a parsed FITS file to a RegularGrid3D.

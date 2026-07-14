@@ -1,5 +1,5 @@
 import { registerPluginTraits } from '@holoscript/core/runtime';
-import { createROS2HardwareLoopHandler } from './traits/ROS2HardwareLoopTrait';
+import { createROS2HardwareLoopHandler } from './traits/ROS2HardwareLoopTrait.js';
 
 export const ROBOTICS_PLUGIN_ID = 'robotics' as const;
 

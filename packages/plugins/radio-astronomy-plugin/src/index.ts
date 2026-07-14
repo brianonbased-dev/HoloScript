@@ -1,5 +1,8 @@
-import { RADIO_ASTRONOMY_TRAITS, RadioAstronomyTraitName } from './constants/astronomy-traits';
-import { PythonAstropyBridge, AstropyResult } from './bridge/python-runner';
+import {
+  RADIO_ASTRONOMY_TRAITS,
+  type RadioAstronomyTraitName,
+} from './constants/astronomy-traits.js';
+import { PythonAstropyBridge, type AstropyResult } from './bridge/python-runner.js';
 
 /**
  * @holoscript/radio-astronomy-plugin
@@ -14,15 +17,10 @@ export { RADIO_ASTRONOMY_TRAITS, type RadioAstronomyTraitName };
 // Export Bridges
 export { PythonAstropyBridge, type AstropyResult };
 
-// Export FITS parsing and visualization
-export { parseFITS, buildFITS, type FITSFile, type WCSInfo } from './fits/FITSParser';
-export { fitsToGrid3D, extractChannel, fitsDataRange } from './fits/FITSToGrid';
-export {
-  SpectralCubeViewer,
-  FITSViewerPanel,
-  type SpectralCubeViewerProps,
-  type FITSViewerPanelProps,
-} from './components/SpectralCubeViewer';
+// Export FITS parsing. The React/R3F viewer is intentionally not a root export:
+// cold consumers should not need browser UI peers to load the plugin vocabulary.
+export { parseFITS, buildFITS, type FITSFile, type WCSInfo } from './fits/FITSParser.js';
+export { fitsToGrid3D, extractChannel, fitsDataRange } from './fits/FITSToGrid.js';
 
 /**
  * Metadata exposing domain capabilities to the Studio / Schema Mapper.
