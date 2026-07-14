@@ -4162,6 +4162,9 @@ importers:
 
   services/holoscript-net:
     dependencies:
+      '@holoscript/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../packages/core
