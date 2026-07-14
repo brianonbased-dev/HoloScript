@@ -670,6 +670,17 @@ app.post('/mcp', express.json({ limit: '50mb' }), async (req, res) => {
   }
 });
 
-server.listen(port, () => {
-  console.log(`HoloScript.net Spatial Server running on port ${port}`);
-});
+export function startServer(listenPort: string | number = port) {
+  if (server.listening) return server;
+  server.listen(listenPort, () => {
+    console.log(`HoloScript.net Spatial Server running on port ${listenPort}`);
+  });
+  return server;
+}
+
+export { app, server };
+
+const entryPath = process.argv[1] ? path.resolve(process.argv[1]) : null;
+if (entryPath && fileURLToPath(import.meta.url) === entryPath) {
+  startServer();
+}

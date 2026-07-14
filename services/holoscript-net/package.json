@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/net-service",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "Railway-based hosting for holoscript.net docs",
   "releaseLane": "v0-preview",
   "type": "module",
