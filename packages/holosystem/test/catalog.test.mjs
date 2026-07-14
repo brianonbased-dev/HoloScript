@@ -155,6 +155,38 @@ test('lineage receipt maps registry artifacts without local machine paths', () =
   assert.doesNotMatch(JSON.stringify(receipt), /[A-Z]:\\/u);
 });
 
+test('lineage receipt maps a deprecated package only when it names a successor', () => {
+  const migratedPortfolio = {
+    packages: [
+      { ecosystem: 'npm', name: '@example/retired', expectedVersion: '1.0.0' },
+      { ecosystem: 'npm', name: '@example/abandoned', expectedVersion: '1.0.0' },
+    ],
+  };
+  const receipt = buildSourceLineageReceipt({
+    portfolio: migratedPortfolio,
+    metadata: [
+      {
+        ecosystem: 'npm',
+        name: '@example/retired',
+        deprecated: 'Deprecated: merged into @example/current. Use @example/current.',
+        successor: '@example/current',
+      },
+      {
+        ecosystem: 'npm',
+        name: '@example/abandoned',
+        deprecated: 'Deprecated without a migration target.',
+      },
+    ],
+    now: new Date('2026-07-13T00:00:00.000Z'),
+  });
+
+  assert.equal(receipt.artifacts[0].mapped, true);
+  assert.equal(receipt.artifacts[0].lineageKind, 'migration');
+  assert.equal(receipt.artifacts[0].successor, '@example/current');
+  assert.equal(receipt.artifacts[1].mapped, false);
+  assert.equal(receipt.summary.mapped, 1);
+});
+
 test('bounded next-work selection excludes active batches and names stop conditions', () => {
   const lineage = buildSourceLineageReceipt({
     portfolio,
@@ -243,6 +275,31 @@ test('registry lineage queries the expected artifact and preserves integrity and
   assert.equal(receipt.artifacts[0].version, '2.0.0');
   assert.equal(receipt.artifacts[0].integrity, 'sha512-exact');
   assert.equal(receipt.artifacts[0].sourceRevision, 'revision-200');
+});
+
+test('registry lineage extracts a named npm deprecation successor', async () => {
+  const receipt = await discoverSourceLineage({
+    portfolio: {
+      packages: [{ ecosystem: 'npm', name: '@example/retired', expectedVersion: '1.0.0' }],
+    },
+    fetchImpl: async () => ({
+      ok: true,
+      status: 200,
+      async json() {
+        return {
+          name: '@example/retired',
+          version: '1.0.0',
+          deprecated: 'Merged into @example/current. Use @example/current.',
+          dist: { integrity: 'sha512-retired' },
+        };
+      },
+    }),
+    now: new Date('2026-07-13T00:00:00.000Z'),
+  });
+
+  assert.equal(receipt.status, 'complete');
+  assert.equal(receipt.artifacts[0].lineageKind, 'migration');
+  assert.equal(receipt.artifacts[0].successor, '@example/current');
 });
 
 test('consumer input rejects local specs and hashes stable public evidence', () => {

@@ -179,6 +179,13 @@ export function buildSourceLineageReceipt({ portfolio, metadata = [], now = new 
   const artifacts = list(portfolio?.packages).map((row) => {
     const source = metadataByArtifact.get(artifactKey(row.ecosystem, row.name)) || {};
     const sourceRepository = normalizeRepositoryUrl(source.sourceRepository || source.repository);
+    const deprecated = typeof source.deprecated === 'string' && source.deprecated.trim()
+      ? source.deprecated.trim()
+      : null;
+    const successor = typeof source.successor === 'string' && source.successor.trim()
+      ? source.successor.trim()
+      : null;
+    const migrationMapped = Boolean(deprecated && successor);
     return {
       ecosystem: row.ecosystem,
       name: row.name,
@@ -189,7 +196,10 @@ export function buildSourceLineageReceipt({ portfolio, metadata = [], now = new 
       registryError: source.registryError ? String(source.registryError).slice(0, 240) : null,
       integrity: typeof source.integrity === 'string' ? source.integrity : null,
       sourceRevision: typeof source.sourceRevision === 'string' ? source.sourceRevision : null,
-      mapped: Boolean(sourceRepository),
+      deprecated,
+      successor,
+      lineageKind: sourceRepository ? 'repository' : migrationMapped ? 'migration' : 'unknown',
+      mapped: Boolean(sourceRepository) || migrationMapped,
     };
   });
   const mapped = artifacts.filter((artifact) => artifact.mapped).length;
@@ -207,6 +217,7 @@ export function buildSourceLineageReceipt({ portfolio, metadata = [], now = new 
       registryMetadataIsEvidence: true,
       localPathsForbidden: true,
       unknownLineageBlocksSourceClaims: true,
+      deprecatedPackagesRequireNamedSuccessors: true,
     },
   };
   receipt.receiptHash = hashReceipt({ ...receipt, generatedAt: null });
@@ -450,6 +461,12 @@ function pypiRepository(info) {
   return normalizeRepositoryUrl(info?.home_page);
 }
 
+function npmMigrationSuccessor(message) {
+  if (typeof message !== 'string' || !message.trim()) return null;
+  const match = message.match(/\buse\s+(@[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._-]*|[a-z0-9][a-z0-9._-]*)\b/iu);
+  return match?.[1] || null;
+}
+
 export async function discoverSourceLineage({
   portfolio,
   fetchImpl = globalThis.fetch,
@@ -472,6 +489,8 @@ export async function discoverSourceLineage({
         registryError: response.error || null,
         integrity: response.body?.dist?.integrity || null,
         sourceRevision: response.body?.gitHead || null,
+        deprecated: typeof response.body?.deprecated === 'string' ? response.body.deprecated : null,
+        successor: npmMigrationSuccessor(response.body?.deprecated),
       };
     }
     const suffix = version ? `/${encodeURIComponent(version)}` : '';
