@@ -172,8 +172,8 @@ describe('x402PaymentService', () => {
         headers: {},
         url: '/api/test',
         params: { twin_id: 'test' },
-        ip: '10.0.0.99',
-        socket: { remoteAddress: '10.0.0.99' },
+        ip: '203.0.113.99',
+        socket: { remoteAddress: '203.0.113.99' },
       }) as unknown as Request;
 
     const makeRes = () => {

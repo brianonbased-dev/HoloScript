@@ -181,16 +181,19 @@ function hasHardcodedSecretLiteral(line) {
   // The operator must be a property ':' or a SINGLE assignment '=', never a comparison (==, ===,
   // !==, <=, >=) — `this.password === "function"` is a typeof check, not a secret assignment.
   const OP = '(?::|(?<![=!<>])=(?!=))';
-  const secretAssignmentLike = new RegExp(
-    `(?:api[_-]?key|apikey|password|secret|token|authorization)\\s*${OP}\\s*[^,\\n]*['"]` +
-      `|(?:api[_-]?key|apikey|password|secret|token|authorization)\\w*\\s*${OP}\\s*[^,\\n]*['"]` +
-      `|\\|\\|\\s*['"]`,
-    'iu'
+  // Inspect only the bounded assignment segment. A minified bundle can put an innocent
+  // `tokens=[]` and an unrelated digest literal on the same physical line; scanning every
+  // quoted literal on that line incorrectly joins those distant values into one finding.
+  const SECRET_FIELD = '(?:api[_-]?key|apikey|password(?:hash|value)?|secret(?:key|value)?|(?:access|refresh|auth|bearer|session|api)?token(?:key|value|secret)?|authorization)';
+  const secretAssignmentSegments = new RegExp(
+    `\\b${SECRET_FIELD}\\b\\s*${OP}\\s*[^,;\\n]{0,512}`,
+    'giu'
   );
-  if (!secretAssignmentLike.test(line)) return false;
-  for (const match of line.matchAll(SECRET_LITERAL_RE)) {
-    const literal = match[2];
-    if (looksLikeSecretValue(literal) && !SECRET_PLACEHOLDER_RE.test(literal) && !isNonSecretToken(literal)) return true;
+  for (const segment of line.matchAll(secretAssignmentSegments)) {
+    for (const match of segment[0].matchAll(SECRET_LITERAL_RE)) {
+      const literal = match[2];
+      if (looksLikeSecretValue(literal) && !SECRET_PLACEHOLDER_RE.test(literal) && !isNonSecretToken(literal)) return true;
+    }
   }
   return false;
 }

@@ -1,10 +1,28 @@
 {
   "name": "@holoscript/narupa-plugin",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "Multi-agent orchestration for VR-based drug discovery using Narupa integration with HoloScript",
-  "main": "src/index.ts",
+  "releaseLane": "v0-preview",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "plugin.manifest.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
-    "build": "tsc",
+    "build": "tsup src/index.ts --format esm --dts --clean --sourcemap --external @holoscript/core",
     "test": "vitest run",
     "clean": "rimraf dist",
     "test:coverage": "vitest run --coverage"
@@ -20,6 +38,11 @@
   ],
   "author": "HoloScript Contributors",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/plugins/scientific-plugin"
+  },
   "peerDependencies": {
     "@holoscript/core": ">=8.0.0"
   },

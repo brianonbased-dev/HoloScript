@@ -22,7 +22,7 @@ describe('PaymentWebhookService', () => {
 
   beforeEach(() => {
     service = new PaymentWebhookService({
-      secrets: { x402: 'test-secret-x402', stripe: 'test-secret-stripe' },
+      secrets: { x402: 'test-secret', stripe: 'test-secret' },
     });
   });
 

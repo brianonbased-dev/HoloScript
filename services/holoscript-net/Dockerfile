@@ -112,7 +112,7 @@ RUN mkdir -p /app/node_modules/@holoscript && \
 # Build the service (client + server)
 WORKDIR /app/services/holoscript-net
 RUN pnpm run build:client && \
-	pnpm exec tsup server.ts --out-dir dist/server --external @holoscript/mcp-server --external @holoscript/core
+	pnpm exec tsup server.ts --format esm --clean --out-dir dist/server --external @holoscript/mcp-server --external @holoscript/core
 
 # Production stage
 FROM base AS runner

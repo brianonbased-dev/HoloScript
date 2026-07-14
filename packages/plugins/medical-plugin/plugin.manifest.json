@@ -1,6 +1,6 @@
 {
   "id": "medical-plugin",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "name": "DICOM medical imaging and surgical simulation",
   "description": "DICOM medical imaging and surgical simulation for HoloScript - VR medical training. THIN: DICOM viewer and surgical interfaces are type-only stubs; only clinical calculators are implemented.",
   "traits": [
@@ -8,5 +8,5 @@
   ],
   "autoRegister": true,
   "coreVersion": ">=8.0.0",
-  "runtimeEntry": "./src/runtime.ts"
+  "runtimeEntry": "./dist/index.js"
 }

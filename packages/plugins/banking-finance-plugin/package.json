@@ -1,13 +1,38 @@
 {
   "name": "@holoscript/plugin-banking-finance",
-  "version": "2.0.2",
-  "main": "src/index.ts",
+  "version": "2.0.3",
+  "description": "Deterministic banking and finance trait handlers for HoloScript simulations and policy-controlled agent workflows.",
+  "releaseLane": "v0-preview",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "plugin.manifest.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "peerDependencies": {
     "@holoscript/core": ">=8.0.0"
   },
   "license": "MIT",
   "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean --sourcemap --external @holoscript/core",
     "test": "vitest run --passWithNoTests",
     "test:coverage": "vitest run --coverage --passWithNoTests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/plugins/banking-finance-plugin"
   }
 }

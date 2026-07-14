@@ -41,6 +41,13 @@ await wallet.initialize();
 Simulation results are labeled with `simulated: true`; they are not payment or
 custody receipts. Never use simulation mode as evidence of a live transaction.
 
+## Release boundary
+
+This package is a `v0-preview` integration. The exported wallet primitives and
+fail-closed credential checks are supported; live settlement, rollback, and
+provider-specific recovery remain the caller's responsibility and require
+external custody receipts.
+
 ## Custody boundary
 
 - Credentials remain caller-owned options or environment variables.

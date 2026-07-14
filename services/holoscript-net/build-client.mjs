@@ -8,6 +8,24 @@ import { fileURLToPath } from 'url';
 
 const __dirname = _path.dirname(fileURLToPath(import.meta.url));
 
+function publicLiveEvidenceManifest(source) {
+  const manifest = JSON.parse(source);
+  const commit = manifest?.tiles?.commit || {};
+  return {
+    schemaVersion: manifest.schemaVersion,
+    generatedAt: manifest.generatedAt,
+    notes: 'Public verification summary. Source paths and private process state are excluded.',
+    tiles: {
+      fleet: manifest?.tiles?.fleet || {},
+      anchor: manifest?.tiles?.anchor || {},
+      commit: {
+        ...commit,
+        repo: commit.repo === 'ai-ecosystem' ? 'HoloScript ecosystem' : commit.repo,
+      },
+    },
+  };
+}
+
 const nodeShimModules = [
   '@aztec/bb.js',
   'puppeteer-core',
@@ -219,8 +237,13 @@ ${shimImportMapEntries}
   // Live evidence strip: copy the committed manifest into the native client build.
   const docManifest = _path.resolve(__dirname, '../../docs/public/live-evidence.json');
   if (fs.existsSync(docManifest)) {
-    fs.copyFileSync(docManifest, _path.join('dist/client', 'live-evidence.json'));
-    console.log('[build] copied docs/public/live-evidence.json -> dist/client/live-evidence.json');
+    const publicManifest = publicLiveEvidenceManifest(fs.readFileSync(docManifest, 'utf8'));
+    fs.writeFileSync(
+      _path.join('dist/client', 'live-evidence.json'),
+      `${JSON.stringify(publicManifest, null, 2)}\n`,
+      'utf8',
+    );
+    console.log('[build] projected public live evidence -> dist/client/live-evidence.json');
   } else {
     console.warn('[build] docs/public/live-evidence.json missing — run: node scripts/build-live-evidence-manifest.mjs');
   }

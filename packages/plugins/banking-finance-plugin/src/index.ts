@@ -28,7 +28,7 @@ export * from './fixedincome';
 
 export const pluginMeta = {
   name: '@holoscript/plugin-banking-finance',
-  version: '1.0.0',
+  version: '2.0.3',
   traits: ['account', 'transaction', 'kyc', 'portfolio', 'risk_model', 'fixed_income_solver'],
 };
 export const traitHandlers = [

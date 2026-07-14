@@ -25,7 +25,7 @@ export type { DatabaseQueryConfig, DatabaseQueryResult } from './database-fetche
 export type { NarupaServerConfig, NarupaServerStatus, MolecularDynamicsConfig } from './types';
 
 // Version
-export const VERSION = '1.2.0';
+export const VERSION = '2.0.3';
 
 // Default exports for convenience
 export default {

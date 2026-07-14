@@ -129,8 +129,8 @@ describe('x402PaymentService', () => {
       });
 
       const req = {
-        ip: '10.0.0.1',
-        socket: { remoteAddress: '10.0.0.1' },
+        ip: '203.0.113.1',
+        socket: { remoteAddress: '203.0.113.1' },
         headers: {},
         params: { twin_id: 'my_twin' },
       } as unknown as Request;

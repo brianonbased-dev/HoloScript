@@ -1,11 +1,24 @@
 {
   "name": "@holoscript/marketplace-api",
-  "private": true,
-  "version": "1.2.5",
+  "version": "1.2.6",
   "description": "HoloScript Trait Marketplace API - publishing, discovery, and dependency resolution",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "releaseLane": "v0-preview",
+  "main": "./dist/index.js",
   "type": "module",
+  "exports": {
+    ".": "./dist/index.js",
+    "./server": "./dist/server.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup",
     "dev": "tsx watch src/server.ts",
@@ -54,8 +67,19 @@
   ],
   "author": "HoloScript Team",
   "license": "MIT",
-  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/marketplace-api"
+  },
+  "homepage": "https://github.com/brianonbased-dev/HoloScript/tree/main/packages/marketplace-api",
   "bugs": {
     "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  },
+  "holorepo": {
+    "publicConsumption": {
+      "coreRule": "Library imports are side-effect free; service startup is explicit and caller-configured.",
+      "localAdapterBoundary": "Database, cache, payment, secrets, deployment, and storage remain caller-owned."
+    }
   }
 }

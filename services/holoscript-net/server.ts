@@ -1,6 +1,7 @@
 import express from 'express';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import compression from 'compression';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -463,7 +464,10 @@ app.use(
 );
 
 // Serve Static Files
-const ROOT = process.cwd();
+const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
+const ROOT = path.basename(MODULE_DIR) === 'server' && path.basename(path.dirname(MODULE_DIR)) === 'dist'
+  ? path.resolve(MODULE_DIR, '../..')
+  : MODULE_DIR;
 const NATIVE_ENGINE_DIST = path.resolve(ROOT, './dist/client');
 const COMPOSITIONS_DIR = path.resolve(ROOT, '../../docs');
 
