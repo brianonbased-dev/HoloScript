@@ -1,6 +1,6 @@
 {
   "name": "brittney-service",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Brittney Cloud Service — AI-powered HoloScript spatial intelligence gateway",
   "private": true,
   "type": "module",

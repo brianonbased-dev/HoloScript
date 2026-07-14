@@ -1,5 +1,12 @@
 # @holoscript/studio
 
+## 6.1.2
+
+### Patch Changes
+
+- Updated dependencies [68c87fc]
+  - @holoscript/llm-provider@1.5.0
+
 ## 6.1.1
 
 ### Patch Changes
