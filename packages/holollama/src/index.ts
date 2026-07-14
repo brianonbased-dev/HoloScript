@@ -40,11 +40,17 @@ export type {
 } from './brain.js';
 export {
   HOLOLLAMA_MODEL_WORKSPACE_PROBE_SCHEMA,
+  LEGACY_MODEL_WORKSPACE_RECEIPT_SCHEMA,
   MODEL_WORKSPACE_CAPABILITY_SCHEMA,
+  MODEL_WORKSPACE_CONTROL_PROFILE,
   MODEL_WORKSPACE_HASH_CANONICALIZATION,
+  MODEL_WORKSPACE_MEASUREMENT_PROFILE,
   MODEL_WORKSPACE_RECEIPT_SCHEMA,
+  MODEL_WORKSPACE_SCORE_PROFILE,
+  MODEL_WORKSPACE_SIGNAL_RECEIPT_SCHEMA,
   hashModelWorkspacePayload,
   observeHoloLlamaModelWorkspace,
+  summarizeModelWorkspaceSignal,
   validateModelWorkspaceReceipt,
 } from './model-workspace-probe.js';
 export type {
@@ -52,10 +58,12 @@ export type {
   HoloLlamaWorkspaceProbeFetch,
   HoloLlamaWorkspaceProbeFetchResponse,
   ModelWorkspaceConcept,
+  ModelWorkspaceDistributionMetrics,
   ModelWorkspaceEstimator,
   ModelWorkspaceLayerObservation,
   ModelWorkspaceReceipt,
   ModelWorkspaceReceiptExpectation,
+  ModelWorkspaceSignalReceipt,
   ObserveHoloLlamaModelWorkspaceOptions,
 } from './model-workspace-probe.js';
 

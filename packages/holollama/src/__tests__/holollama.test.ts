@@ -18,9 +18,13 @@ import {
   hashModelWorkspacePayload,
   listHoloLlamaBrains,
   listHoloLlamaProfiles,
+  LEGACY_MODEL_WORKSPACE_RECEIPT_SCHEMA,
   MODEL_WORKSPACE_CAPABILITY_SCHEMA,
+  MODEL_WORKSPACE_CONTROL_PROFILE,
   MODEL_WORKSPACE_HASH_CANONICALIZATION,
+  MODEL_WORKSPACE_MEASUREMENT_PROFILE,
   MODEL_WORKSPACE_RECEIPT_SCHEMA,
+  MODEL_WORKSPACE_SCORE_PROFILE,
   observeHoloLlamaModelWorkspace,
   parseHoloLlamaSystemdShow,
   preflightHoloLlamaVision,
@@ -29,6 +33,7 @@ import {
   resolveHoloLlamaExpectedSpecFromCode,
   selectHoloLlamaBrain,
   summarizeHoloLlamaBundle,
+  summarizeModelWorkspaceSignal,
   validateModelWorkspaceReceipt,
   verifyHoloLlamaHarnessSafety,
   verifyHoloLlamaServerContract,
@@ -69,6 +74,8 @@ function modelWorkspaceCapability() {
     method: 'jacobian_lens',
     estimator: 'explicit_pair_average_v0',
     paperParity: false,
+    measurementProfile: MODEL_WORKSPACE_MEASUREMENT_PROFILE,
+    controlProfile: MODEL_WORKSPACE_CONTROL_PROFILE,
     layers: [0],
     lensSha256: `sha256:${'4'.repeat(64)}`,
   };
@@ -108,10 +115,13 @@ function modelWorkspaceFixture(prompt = 'composition "'): ModelWorkspaceReceipt 
       layers: [0],
       requestedPositions: [-1],
       positions: [2],
+      measurementProfile: MODEL_WORKSPACE_MEASUREMENT_PROFILE,
       seed: null,
     },
     observation: {
       status: 'observed',
+      measurementProfile: MODEL_WORKSPACE_MEASUREMENT_PROFILE,
+      controlProfile: MODEL_WORKSPACE_CONTROL_PROFILE,
       layerBand: { start: 0, end: 0 },
       layers: [
         {
@@ -122,8 +132,25 @@ function modelWorkspaceFixture(prompt = 'composition "'): ModelWorkspaceReceipt 
             { tokenId: 5, token: 'y', scoreE8: 100_000_000, probabilityE8: 30_000_000 },
           ],
           tailProbabilityMassE8: 60_000_000,
+          controlTailProbabilityMassE8: 70_000_000,
+          distributionMetrics: {
+            mappedControlJensenShannonDivergenceNatsE8: 1_000_000,
+            mappedTargetJensenShannonDivergenceNatsE8: 2_000_000,
+            controlTargetJensenShannonDivergenceNatsE8: 3_000_000,
+            lensGainJensenShannonNatsE8: 1_000_000,
+            totalVariationDistanceE8: 10_000_000,
+            mappedEntropyNatsE8: 150_000_000,
+            controlEntropyNatsE8: 140_000_000,
+            mappedMaxProbabilityE8: 40_000_000,
+            controlMaxProbabilityE8: 30_000_000,
+          },
         },
       ],
+      summary: {
+        scoreProfile: MODEL_WORKSPACE_SCORE_PROFILE,
+        coordinateCount: 1,
+        scoreE8: 1_000_000,
+      },
     },
     observationSha256: '',
     runtime: {
@@ -1150,6 +1177,98 @@ composition "owned-edge" {
     const observeBody = JSON.parse(String(vi.mocked(fetchImpl).mock.calls[1]?.[1]?.body));
     expect(observeBody).not.toHaveProperty('mode');
     expect(observeBody).not.toHaveProperty('intervention');
+  });
+
+  it('summarizes the full-distribution signal and rejects rehashed invalid metrics', () => {
+    const receipt = modelWorkspaceFixture();
+    const signal = summarizeModelWorkspaceSignal(receipt);
+    expect(signal).toMatchObject({
+      measurementProfile: MODEL_WORKSPACE_MEASUREMENT_PROFILE,
+      controlProfile: MODEL_WORKSPACE_CONTROL_PROFILE,
+      scoreProfile: MODEL_WORKSPACE_SCORE_PROFILE,
+      scoreE8: 1_000_000,
+      coordinateCount: 1,
+      sourceReceiptHash: receipt.receiptHash,
+      lensSha256: receipt.lens.lensSha256,
+    });
+    expect(signal.receiptHash).toBe(hashModelWorkspacePayload({ ...signal, receiptHash: null }));
+
+    const tampered = structuredClone(receipt);
+    tampered.observation.layers[0]!.distributionMetrics!.mappedControlJensenShannonDivergenceNatsE8 = 100_000_000;
+    tampered.observation.summary!.scoreE8 = 100_000_000;
+    tampered.observationSha256 = hashModelWorkspacePayload(tampered.observation);
+    tampered.receiptHash = hashModelWorkspacePayload({ ...tampered, receiptHash: null });
+    expect(validateModelWorkspaceReceipt(tampered).blockers).toContain(
+      'observation layer 0 distribution metrics are invalid'
+    );
+
+    const wrongPosition = structuredClone(receipt);
+    wrongPosition.input.positions = [0];
+    wrongPosition.observation.layers[0]!.position = 0;
+    wrongPosition.observationSha256 = hashModelWorkspacePayload(wrongPosition.observation);
+    wrongPosition.receiptHash = hashModelWorkspacePayload({
+      ...wrongPosition,
+      receiptHash: null,
+    });
+    expect(validateModelWorkspaceReceipt(wrongPosition).blockers).toContain(
+      'bounded input provenance is invalid'
+    );
+
+    const missingTruncation = structuredClone(receipt) as Record<string, any>;
+    delete missingTruncation.input.originalTokenCount;
+    delete missingTruncation.input.truncated;
+    delete missingTruncation.input.truncationPolicy;
+    missingTruncation.receiptHash = hashModelWorkspacePayload({
+      ...missingTruncation,
+      receiptHash: null,
+    });
+    expect(validateModelWorkspaceReceipt(missingTruncation).blockers).toContain(
+      'bounded input provenance is invalid'
+    );
+  });
+
+  it('keeps historical v0.1 workspace receipts verifiable without v0.2 profile fields', () => {
+    const legacy = structuredClone(modelWorkspaceFixture()) as Record<string, any>;
+    legacy.schema = LEGACY_MODEL_WORKSPACE_RECEIPT_SCHEMA;
+    delete legacy.input.measurementProfile;
+    delete legacy.observation.measurementProfile;
+    delete legacy.observation.controlProfile;
+    delete legacy.observation.summary;
+    for (const layer of legacy.observation.layers) {
+      delete layer.controlTailProbabilityMassE8;
+      delete layer.distributionMetrics;
+    }
+    legacy.observationSha256 = hashModelWorkspacePayload(legacy.observation);
+    legacy.receiptHash = hashModelWorkspacePayload({ ...legacy, receiptHash: null });
+    expect(validateModelWorkspaceReceipt(legacy)).toMatchObject({ ok: true, blockers: [] });
+  });
+
+  it('rejects a HoloServe capability that downgrades the advertised measurement profile', async () => {
+    const downgraded = { ...modelWorkspaceCapability() } as Record<string, unknown>;
+    delete downgraded.measurementProfile;
+    const fetchImpl: HoloLlamaWorkspaceProbeFetch = vi.fn(async () =>
+      workspaceJsonResponse({
+        backend: 'pytorch-holo',
+        model: { name: 'holorunner-s0' },
+        model_workspace_probe: {
+          schema: MODEL_WORKSPACE_CAPABILITY_SCHEMA,
+          observe: true,
+          intervention: false,
+          models: { 'holorunner-s0': downgraded },
+        },
+      })
+    );
+
+    const result = await observeHoloLlamaModelWorkspace({
+      endpoint: 'http://127.0.0.1:8080',
+      prompt: 'test',
+      model: 'holorunner-s0',
+      generatedAt: '2026-07-14T00:00:00.000Z',
+      fetchImpl,
+    });
+    expect(result.status).toBe('unsupported');
+    expect(result.blockers).toEqual(['model_workspace_probe_not_advertised']);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 
   it('accepts the reference estimator receipt and rejects a false parity label', () => {

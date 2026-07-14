@@ -1,5 +1,8 @@
 # ruff: noqa: E402 - torch availability must be gated before model imports
+import hashlib
 import json
+import math
+from types import SimpleNamespace
 
 import pytest
 
@@ -7,11 +10,31 @@ torch = pytest.importorskip("torch")
 
 from holoserve.model import GPT
 from holoserve.server import Handler, _workspace_request_id
+from holoserve.workspace_eval import (
+    GAP_PRIME,
+    LEGACY_COMPARATOR_PROFILE,
+    _bootstrap_delta,
+    _legacy_union_top_k_jsd,
+    _load_fresh_contract,
+    _normalized_template_id,
+    _paired_reliability,
+    _validate_capability,
+    _validate_fresh_evaluation_matrix,
+    _validate_fresh_prompt_matrix,
+    _validate_receipt,
+    cohen_kappa,
+    integer_mean_e8,
+    roc_auc,
+    threshold_at_fpr,
+)
 from holoserve.workspace_probe import (
     ALL_VALID_CURRENT_AND_FUTURE_POSITION_POLICY,
     JACOBIAN_LENS_ESTIMATOR_V1,
     JACOBIAN_LENS_V1_REFERENCE_COMMIT,
+    MODEL_WORKSPACE_CONTROL_PROFILE,
+    MODEL_WORKSPACE_MEASUREMENT_PROFILE,
     MODEL_WORKSPACE_RECEIPT_SCHEMA,
+    MODEL_WORKSPACE_SCORE_PROFILE,
     ModelWorkspaceProbe,
     WorkspaceProbeError,
     fit_jacobian_lens,
@@ -20,6 +43,8 @@ from holoserve.workspace_probe import (
     merge_jacobian_lens_v1_artifacts,
     save_jacobian_lens_artifact,
     sha256_json,
+    _full_distribution_metrics,
+    _largest_remainder_probability_e8,
 )
 
 
@@ -396,6 +421,198 @@ def test_workspace_request_ids_are_collision_resistant():
     assert all(request_id.startswith("workspace-holo-") for request_id in request_ids)
 
 
+def test_workspace_eval_statistics_are_tie_aware_and_cross_runtime_deterministic():
+    assert integer_mean_e8([1, 2]) == 2
+    assert integer_mean_e8([-1, -2]) == -2
+    assert roc_auc([1, 1, 0], [True, False, False]) == 0.75
+    assert threshold_at_fpr([9, 8, 7, 6], [True, True, False, False]) == 8
+    assert math.isfinite(threshold_at_fpr([9, 8, 7, 6], [False, True, True, True]))
+    assert cohen_kappa([True, True, False, False], [True, True, False, False]) == 1
+    assert cohen_kappa([False, False], [False, False]) is None
+
+
+def test_workspace_eval_legacy_comparator_bootstrap_and_constant_reliability():
+    mapped = [
+        {"tokenId": 1, "probabilityE8": 75_000_000},
+        {"tokenId": 2, "probabilityE8": 25_000_000},
+    ]
+    control = [
+        {"tokenId": 2, "probabilityE8": 75_000_000},
+        {"tokenId": 1, "probabilityE8": 25_000_000},
+    ]
+    legacy = _legacy_union_top_k_jsd(mapped, control)
+    assert legacy == pytest.approx(0.130812_032_432_678_4)
+
+    rows = [
+        {
+            "caseId": f"{vertical}-{index}",
+            "vertical": vertical,
+            "scoreE8": score,
+            "legacyComparatorScoreHex": comparator.hex(),
+        }
+        for vertical in ("a", "b")
+        for index, (score, comparator) in enumerate(((2, 0.2), (1, 0.1)))
+    ]
+    labels = {"a-0": True, "a-1": False, "b-0": True, "b-1": False}
+    assert _bootstrap_delta(rows, labels, samples=10, seed=7) == [0.0, 0.0, 0.0]
+    with pytest.raises(ValueError, match="bootstrap samples"):
+        _bootstrap_delta(rows, labels, samples=0, seed=7)
+
+    key_a = ("unprimed", "a")
+    key_b = ("unprimed", "b")
+    reliability = _paired_reliability(
+        key_a,
+        key_b,
+        cells={
+            key_a: [{"caseId": "1", "scoreE8": 5}, {"caseId": "2", "scoreE8": 5}],
+            key_b: [{"caseId": "1", "scoreE8": 8}, {"caseId": "2", "scoreE8": 8}],
+        },
+        decision_maps={key_a: {"1": False, "2": False}, key_b: {"1": False, "2": False}},
+    )
+    assert reliability["scorePearson"] is None
+    assert reliability["decisionKappa"] is None
+
+
+def test_fresh_contract_requires_attestation_and_complete_registered_matrix():
+    prompts = []
+    labels = {}
+    identities = {}
+    vertical_counts = {}
+    for vertical_index in range(6):
+        vertical = f"vertical-{vertical_index}"
+        vertical_counts[vertical] = 40
+        for item_index in range(40):
+            case_id = f"{vertical}-{item_index}"
+            scenario = f"Scenario {case_id}"
+            ask = f"Resolve {case_id}"
+            template_id = _normalized_template_id(vertical, scenario, ask)
+            unprimed = f"\nSituation: {scenario}\n\nTask: {ask} Output JSON only.\n"
+            for frame, prompt in (
+                ("unprimed", unprimed),
+                ("primed", GAP_PRIME + unprimed),
+            ):
+                prompts.append(
+                    {
+                        "caseId": case_id,
+                        "vertical": vertical,
+                        "templateId": template_id,
+                        "frame": frame,
+                        "prompt": prompt,
+                    }
+                )
+            labels[case_id] = item_index % 2 == 0
+            identities[case_id] = (vertical, template_id)
+    report = {
+        "caseCount": 240,
+        "uniqueCaseCount": 240,
+        "uniqueTemplateCount": 240,
+        "positiveCount": 120,
+        "negativeCount": 120,
+        "verticalCounts": vertical_counts,
+    }
+    _validate_fresh_prompt_matrix(prompts, report)
+
+    seen = {
+        (case_id, frame, alias)
+        for case_id in labels
+        for frame in ("unprimed", "primed")
+        for alias in ("a", "b")
+    }
+    cells = {(frame, alias): [] for frame in ("unprimed", "primed") for alias in ("a", "b")}
+    _validate_fresh_evaluation_matrix(
+        seen=seen,
+        cells=cells,
+        labels=labels,
+        case_identities=identities,
+        report=report,
+    )
+    seen.pop()
+    with pytest.raises(ValueError, match="complete 2x2"):
+        _validate_fresh_evaluation_matrix(
+            seen=seen,
+            cells=cells,
+            labels=labels,
+            case_identities=identities,
+            report=report,
+        )
+
+    with pytest.raises(ValueError, match="fresh run requires"):
+        _load_fresh_contract(
+            SimpleNamespace(fresh_manifest=None, fresh_report=None, preregistration=None),
+            prompt_sha256=f"sha256:{'1' * 64}",
+            labels_sha256=None,
+            models=[],
+            layers=[2, 5, 8],
+            positions=[-1],
+            k=25,
+            code_revision="0" * 40,
+        )
+
+
+def test_workspace_eval_rejects_rehashed_out_of_contract_receipts(tmp_path):
+    _, probe, _ = fitted_probe(tmp_path)
+    prompt = "Situation: test. Task: decide. Output JSON only."
+    binding = {
+        "alias": "a",
+        "modelId": "holorunner-s0",
+        "lensSha256": probe.lens.lens_sha256,
+    }
+    capability = probe.capability()
+    health = {
+        "backend": "pytorch-holo",
+        "model_workspace_probe": {
+            "schema": capability["schema"],
+            "observe": True,
+            "intervention": False,
+            "models": {"holorunner-s0": capability},
+        },
+    }
+    assert _validate_capability(health, binding, [0]) == capability
+    receipt = probe.observe(
+        torch.tensor([[1, 3, 4]], dtype=torch.long),
+        prompt_sha256=f"sha256:{hashlib.sha256(prompt.encode()).hexdigest()}",
+        requested_model="holorunner-s0",
+        request_id="workspace-test",
+        layers=[0],
+        positions=[-1],
+        k=3,
+        created_at="2026-07-14T00:00:00.000Z",
+    )
+    extracted = _validate_receipt(
+        receipt,
+        prompt=prompt,
+        binding=binding,
+        checkpoint_sha256=f"sha256:{'1' * 64}",
+        tokenizer_sha256=f"sha256:{'2' * 64}",
+        layers=[0],
+        positions=[-1],
+        k=3,
+        allow_truncated=False,
+        capability=capability,
+    )
+    assert extracted["legacyComparatorProfile"] == LEGACY_COMPARATOR_PROFILE
+
+    tampered = json.loads(json.dumps(receipt))
+    tampered["observation"]["layers"][0]["distributionMetrics"][
+        "mappedControlJensenShannonDivergenceNatsE8"
+    ] = "999999999"
+    tampered["observationSha256"] = sha256_json(tampered["observation"])
+    tampered["receiptHash"] = sha256_json({**tampered, "receiptHash": None})
+    with pytest.raises(ValueError, match="distribution metrics"):
+        _validate_receipt(
+            tampered,
+            prompt=prompt,
+            binding=binding,
+            checkpoint_sha256=f"sha256:{'1' * 64}",
+            tokenizer_sha256=f"sha256:{'2' * 64}",
+            layers=[0],
+            positions=[-1],
+            k=3,
+            allow_truncated=False,
+            capability=capability,
+        )
+
+
 def test_fit_and_observe_emit_a_bounded_deterministic_receipt(tmp_path):
     model, probe, _ = fitted_probe(tmp_path)
     ids = torch.tensor([[1, 3, 4]], dtype=torch.long)
@@ -426,7 +643,22 @@ def test_fit_and_observe_emit_a_bounded_deterministic_receipt(tmp_path):
         "retention": "receipt_only",
     }
     assert len(first["observation"]["layers"][0]["concepts"]) == 3
+    assert first["input"]["measurementProfile"] == MODEL_WORKSPACE_MEASUREMENT_PROFILE
+    assert first["observation"]["measurementProfile"] == MODEL_WORKSPACE_MEASUREMENT_PROFILE
+    assert first["observation"]["controlProfile"] == MODEL_WORKSPACE_CONTROL_PROFILE
+    assert first["observation"]["summary"] == {
+        "scoreProfile": MODEL_WORKSPACE_SCORE_PROFILE,
+        "coordinateCount": 1,
+        "scoreE8": first["observation"]["layers"][0]["distributionMetrics"][
+            "mappedControlJensenShannonDivergenceNatsE8"
+        ],
+    }
     assert 0 <= first["observation"]["layers"][0]["tailProbabilityMassE8"] <= 100_000_000
+    assert (
+        sum(item["probabilityE8"] for item in first["observation"]["layers"][0]["controlConcepts"])
+        + first["observation"]["layers"][0]["controlTailProbabilityMassE8"]
+        == 100_000_000
+    )
     assert torch.equal(before_logits, after_logits)
     assert all(parameter.grad is None for parameter in model.parameters())
     serialized = json.dumps(first)
@@ -438,7 +670,67 @@ def test_fit_and_observe_emit_a_bounded_deterministic_receipt(tmp_path):
             "concepts",
             "controlConcepts",
             "tailProbabilityMassE8",
+            "controlTailProbabilityMassE8",
+            "distributionMetrics",
         }
+
+
+def test_full_distribution_metrics_are_k_invariant_symmetric_and_zero_at_identity(tmp_path):
+    _, probe, _ = fitted_probe(tmp_path)
+    ids = torch.tensor([[1, 3, 4]], dtype=torch.long)
+    kwargs = {
+        "prompt_sha256": f"sha256:{'4' * 64}",
+        "requested_model": "holorunner-s0",
+        "request_id": "workspace-test",
+        "layers": [0],
+        "positions": [-1],
+        "created_at": "2026-07-14T00:00:00.000Z",
+    }
+    k1 = probe.observe(ids, k=1, **kwargs)["observation"]["layers"][0]
+    k3 = probe.observe(ids, k=3, **kwargs)["observation"]["layers"][0]
+    assert k1["distributionMetrics"] == k3["distributionMetrics"]
+
+    left = torch.tensor([3.0, 1.0, -2.0])
+    right = torch.tensor([-1.0, 2.0, 0.5])
+    forward = _full_distribution_metrics(left, right, left)
+    reverse = _full_distribution_metrics(right, left, left)
+    assert (
+        forward["mappedControlJensenShannonDivergenceNatsE8"]
+        == reverse["mappedControlJensenShannonDivergenceNatsE8"]
+    )
+    assert forward["lensGainJensenShannonNatsE8"] == (
+        forward["controlTargetJensenShannonDivergenceNatsE8"]
+        - forward["mappedTargetJensenShannonDivergenceNatsE8"]
+    )
+    identity = _full_distribution_metrics(left, left, left)
+    assert identity["mappedControlJensenShannonDivergenceNatsE8"] == 0
+    assert identity["mappedTargetJensenShannonDivergenceNatsE8"] == 0
+    assert identity["lensGainJensenShannonNatsE8"] == 0
+
+    mapped = torch.log(torch.tensor([0.75, 0.25], dtype=torch.float64))
+    control = torch.log(torch.tensor([0.25, 0.75], dtype=torch.float64))
+    analytic = _full_distribution_metrics(mapped, control, mapped)
+    assert analytic == {
+        "mappedControlJensenShannonDivergenceNatsE8": 13_081_204,
+        "mappedTargetJensenShannonDivergenceNatsE8": 0,
+        "controlTargetJensenShannonDivergenceNatsE8": 13_081_204,
+        "lensGainJensenShannonNatsE8": 13_081_204,
+        "totalVariationDistanceE8": 50_000_000,
+        "mappedEntropyNatsE8": 56_233_514,
+        "controlEntropyNatsE8": 56_233_514,
+        "mappedMaxProbabilityE8": 75_000_000,
+        "controlMaxProbabilityE8": 75_000_000,
+    }
+
+
+def test_sparse_probability_quantization_preserves_mass_and_tail():
+    uniform = _largest_remainder_probability_e8([1 / 6] * 6 + [0.0])
+    assert uniform == [16_666_667] * 4 + [16_666_666] * 2 + [0]
+    assert sum(uniform) == 100_000_000
+
+    concentrated = _largest_remainder_probability_e8([0.999_999_991, 0.000_000_004, 0.000_000_005])
+    assert concentrated == [99_999_999, 0, 1]
+    assert sum(concentrated) == 100_000_000
 
 
 def test_lens_binding_rejects_checkpoint_mismatch(tmp_path):

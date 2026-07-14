@@ -27,9 +27,12 @@ from torch.nn import functional as F
 
 
 JACOBIAN_LENS_ARTIFACT_SCHEMA = "holoscript.jacobian-lens-artifact.v0.1.0"
-MODEL_WORKSPACE_RECEIPT_SCHEMA = "holoscript.model-workspace-receipt.v0.1.0"
-MODEL_WORKSPACE_CAPABILITY_SCHEMA = "holoscript.model-workspace-capability.v0.1.0"
+MODEL_WORKSPACE_RECEIPT_SCHEMA = "holoscript.model-workspace-receipt.v0.2.0"
+MODEL_WORKSPACE_CAPABILITY_SCHEMA = "holoscript.model-workspace-capability.v0.2.0"
 MODEL_WORKSPACE_HASH_CANONICALIZATION = "holoscript.integer-measurement-json.v0.1.0"
+MODEL_WORKSPACE_MEASUREMENT_PROFILE = "full-distribution-v1"
+MODEL_WORKSPACE_CONTROL_PROFILE = "uncorrected-logit-lens-v1"
+MODEL_WORKSPACE_SCORE_PROFILE = "mean-mapped-control-full-vocabulary-jsd-nats-v1"
 JACOBIAN_LENS_ESTIMATOR_V0 = "explicit_pair_average_v0"
 JACOBIAN_LENS_ESTIMATOR = JACOBIAN_LENS_ESTIMATOR_V0
 JACOBIAN_LENS_ESTIMATOR_V1 = "corpus_position_average_v1"
@@ -1023,6 +1026,8 @@ class ModelWorkspaceProbe:
             "method": "jacobian_lens",
             "estimator": estimator["name"],
             "paperParity": estimator["paperParity"],
+            "measurementProfile": MODEL_WORKSPACE_MEASUREMENT_PROFILE,
+            "controlProfile": MODEL_WORKSPACE_CONTROL_PROFILE,
             "layers": list(self.lens.layers),
             "lensSha256": self.lens.lens_sha256,
         }
@@ -1089,7 +1094,7 @@ class ModelWorkspaceProbe:
         device = next(self.model.parameters()).device
         idx = token_ids.to(device=device, dtype=torch.long)
         with torch.no_grad():
-            _, residuals = self.model.forward_with_residuals(idx)
+            model_logits, residuals = self.model.forward_with_residuals(idx)
             layer_observations = []
             for layer in selected_layers:
                 matrix = self.lens.matrices[layer].to(
@@ -1103,8 +1108,11 @@ class ModelWorkspaceProbe:
                     control_logits = self.model.head(
                         self.model.lnf(activation.view(1, 1, -1))[0, 0]
                     )
-                    mapped_probs = F.softmax(mapped_logits, dim=-1)
-                    control_probs = F.softmax(control_logits, dim=-1)
+                    # Sparse receipt probabilities use the same float64 softmax domain as
+                    # the full-distribution metrics below. This keeps the top-1 receipt
+                    # mass and mapped/control max-probability metrics cross-runtime aligned.
+                    mapped_probs = F.softmax(mapped_logits.to(dtype=torch.float64), dim=-1)
+                    control_probs = F.softmax(control_logits.to(dtype=torch.float64), dim=-1)
                     if not all(
                         torch.isfinite(value).all()
                         for value in (
@@ -1119,28 +1127,46 @@ class ModelWorkspaceProbe:
                             "nonfinite_workspace_observation",
                             f"layer {layer} position {position} produced non-finite values",
                         )
-                    concepts = self._top_concepts(mapped_logits, mapped_probs, k)
-                    control_concepts = self._top_concepts(control_logits, control_probs, k)
+                    concepts, mapped_tail_e8 = self._top_concepts(mapped_logits, mapped_probs, k)
+                    control_concepts, control_tail_e8 = self._top_concepts(
+                        control_logits, control_probs, k
+                    )
+                    distribution_metrics = _full_distribution_metrics(
+                        mapped_logits,
+                        control_logits,
+                        model_logits[0, position],
+                    )
                     layer_observations.append(
                         {
                             "layer": layer,
                             "position": position,
                             "concepts": concepts,
                             "controlConcepts": control_concepts,
-                            "tailProbabilityMassE8": max(
-                                0,
-                                MEASUREMENT_E8 - sum(item["probabilityE8"] for item in concepts),
-                            ),
+                            "tailProbabilityMassE8": mapped_tail_e8,
+                            "controlTailProbabilityMassE8": control_tail_e8,
+                            "distributionMetrics": distribution_metrics,
                         }
                     )
 
         observation = {
             "status": "observed",
+            "measurementProfile": MODEL_WORKSPACE_MEASUREMENT_PROFILE,
+            "controlProfile": MODEL_WORKSPACE_CONTROL_PROFILE,
             "layerBand": {
                 "start": min(selected_layers),
                 "end": max(selected_layers),
             },
             "layers": layer_observations,
+            "summary": {
+                "scoreProfile": MODEL_WORKSPACE_SCORE_PROFILE,
+                "coordinateCount": len(layer_observations),
+                "scoreE8": _integer_mean_e8(
+                    [
+                        item["distributionMetrics"]["mappedControlJensenShannonDivergenceNatsE8"]
+                        for item in layer_observations
+                    ]
+                ),
+            },
         }
         metadata = self.lens.metadata
         model_meta = metadata["model"]
@@ -1184,6 +1210,7 @@ class ModelWorkspaceProbe:
                 "layers": selected_layers,
                 "requestedPositions": requested_positions,
                 "positions": normalized_positions,
+                "measurementProfile": MODEL_WORKSPACE_MEASUREMENT_PROFILE,
                 "seed": None,
             },
             "observation": observation,
@@ -1221,23 +1248,23 @@ class ModelWorkspaceProbe:
         receipt["receiptHash"] = sha256_json(receipt)
         return receipt
 
-    def _top_concepts(self, logits, probabilities, k: int) -> list[dict[str, Any]]:
+    def _top_concepts(self, logits, probabilities, k: int) -> tuple[list[dict[str, Any]], int]:
         values, indices = torch.topk(probabilities, k=k)
+        top_probabilities = [float(probability.item()) for probability in values]
+        tail_probability = max(0.0, 1.0 - math.fsum(top_probabilities))
+        quantized = _largest_remainder_probability_e8([*top_probabilities, tail_probability])
         concepts = []
-        for probability, token_id_tensor in zip(values, indices, strict=True):
+        for probability_e8, token_id_tensor in zip(quantized[:-1], indices, strict=True):
             token_id = int(token_id_tensor.item())
             concepts.append(
                 {
                     "tokenId": token_id,
                     "token": self._token_text(token_id),
                     "scoreE8": _measurement_e8(float(logits[token_id].item())),
-                    "probabilityE8": _measurement_e8(
-                        float(probability.item()),
-                        probability=True,
-                    ),
+                    "probabilityE8": probability_e8,
                 }
             )
-        return concepts
+        return concepts, quantized[-1]
 
     def _token_text(self, token_id: int) -> str:
         if 0 <= token_id < len(self.token_bytes):
@@ -1283,6 +1310,129 @@ def _measurement_e8(value: float, *, probability: bool = False) -> int:
             "workspace measurements must remain JavaScript-safe E8 integers",
         )
     return scaled
+
+
+def _largest_remainder_probability_e8(probabilities: Sequence[float]) -> list[int]:
+    """Quantize a complete categorical partition while preserving exactly one E8 mass.
+
+    The final category is the aggregate sparse tail. Hamilton/largest-remainder
+    apportionment minimizes integer quantization error, and the original category
+    order is the deterministic tie-break.
+    """
+
+    if not probabilities or any(
+        not math.isfinite(probability) or probability < 0 for probability in probabilities
+    ):
+        raise WorkspaceProbeError(
+            "invalid_workspace_distribution",
+            "probability partitions must be finite and nonnegative",
+        )
+    total = math.fsum(probabilities)
+    if total <= 0:
+        raise WorkspaceProbeError(
+            "invalid_workspace_distribution",
+            "probability partitions must contain positive mass",
+        )
+    scaled = [probability * MEASUREMENT_E8 / total for probability in probabilities]
+    apportioned = [math.floor(value) for value in scaled]
+    remaining = MEASUREMENT_E8 - sum(apportioned)
+    order = sorted(
+        range(len(scaled)),
+        key=lambda index: (-(scaled[index] - apportioned[index]), index),
+    )
+    for index in order[:remaining]:
+        apportioned[index] += 1
+    if sum(apportioned) != MEASUREMENT_E8:
+        raise WorkspaceProbeError(
+            "workspace_measurement_out_of_range",
+            "probability apportionment did not preserve complete distribution mass",
+        )
+    return apportioned
+
+
+def _full_distribution_metrics(
+    mapped_logits: torch.Tensor,
+    control_logits: torch.Tensor,
+    target_logits: torch.Tensor,
+) -> dict[str, int]:
+    """Compare complete vocabulary distributions before sparse receipt truncation."""
+
+    if (
+        mapped_logits.ndim != 1
+        or control_logits.shape != mapped_logits.shape
+        or target_logits.shape != mapped_logits.shape
+        or mapped_logits.numel() < 1
+    ):
+        raise WorkspaceProbeError(
+            "invalid_workspace_distribution",
+            "workspace distributions must be non-empty vectors with matching shapes",
+        )
+    mapped_logits = mapped_logits.detach().to(dtype=torch.float64)
+    control_logits = control_logits.detach().to(dtype=torch.float64)
+    target_logits = target_logits.detach().to(dtype=torch.float64)
+    if not all(
+        torch.isfinite(value).all() for value in (mapped_logits, control_logits, target_logits)
+    ):
+        raise WorkspaceProbeError(
+            "nonfinite_workspace_observation",
+            "workspace distributions must be finite",
+        )
+    mapped_log = F.log_softmax(mapped_logits, dim=-1)
+    control_log = F.log_softmax(control_logits, dim=-1)
+    target_log = F.log_softmax(target_logits, dim=-1)
+    mapped = mapped_log.exp()
+    control = control_log.exp()
+    mapped_control_jsd = _jensen_shannon_divergence_nats(mapped_log, control_log)
+    mapped_target_jsd = _jensen_shannon_divergence_nats(mapped_log, target_log)
+    control_target_jsd = _jensen_shannon_divergence_nats(control_log, target_log)
+    total_variation = 0.5 * torch.sum(torch.abs(mapped - control))
+    mapped_entropy = -torch.sum(mapped * mapped_log)
+    control_entropy = -torch.sum(control * control_log)
+    mapped_control_jsd_e8 = _measurement_e8(max(0.0, float(mapped_control_jsd.item())))
+    mapped_target_jsd_e8 = _measurement_e8(max(0.0, float(mapped_target_jsd.item())))
+    control_target_jsd_e8 = _measurement_e8(max(0.0, float(control_target_jsd.item())))
+    return {
+        "mappedControlJensenShannonDivergenceNatsE8": mapped_control_jsd_e8,
+        "mappedTargetJensenShannonDivergenceNatsE8": mapped_target_jsd_e8,
+        "controlTargetJensenShannonDivergenceNatsE8": control_target_jsd_e8,
+        "lensGainJensenShannonNatsE8": control_target_jsd_e8 - mapped_target_jsd_e8,
+        "totalVariationDistanceE8": _measurement_e8(
+            float(total_variation.item()),
+            probability=True,
+        ),
+        "mappedEntropyNatsE8": _measurement_e8(max(0.0, float(mapped_entropy.item()))),
+        "controlEntropyNatsE8": _measurement_e8(max(0.0, float(control_entropy.item()))),
+        "mappedMaxProbabilityE8": _measurement_e8(
+            float(mapped.max().item()),
+            probability=True,
+        ),
+        "controlMaxProbabilityE8": _measurement_e8(
+            float(control.max().item()),
+            probability=True,
+        ),
+    }
+
+
+def _jensen_shannon_divergence_nats(
+    left_log_probabilities: torch.Tensor,
+    right_log_probabilities: torch.Tensor,
+) -> torch.Tensor:
+    midpoint_log = torch.logaddexp(left_log_probabilities, right_log_probabilities) - math.log(2.0)
+    left = left_log_probabilities.exp()
+    right = right_log_probabilities.exp()
+    return 0.5 * (
+        torch.sum(left * (left_log_probabilities - midpoint_log))
+        + torch.sum(right * (right_log_probabilities - midpoint_log))
+    )
+
+
+def _integer_mean_e8(values: Sequence[int]) -> int:
+    if not values:
+        raise WorkspaceProbeError(
+            "invalid_workspace_distribution",
+            "workspace summary requires at least one coordinate",
+        )
+    return (sum(values) + len(values) // 2) // len(values)
 
 
 def _validate_hash_value(value: Any) -> Any:
@@ -1337,6 +1487,9 @@ __all__ = [
     "JACOBIAN_LENS_V1_REFERENCE_COMMIT",
     "MODEL_WORKSPACE_CAPABILITY_SCHEMA",
     "MODEL_WORKSPACE_HASH_CANONICALIZATION",
+    "MODEL_WORKSPACE_CONTROL_PROFILE",
+    "MODEL_WORKSPACE_MEASUREMENT_PROFILE",
+    "MODEL_WORKSPACE_SCORE_PROFILE",
     "MODEL_WORKSPACE_RECEIPT_SCHEMA",
     "MAX_WORKSPACE_POSITIONS",
     "MAX_WORKSPACE_TOP_K",

@@ -1,16 +1,22 @@
 import { createHash } from 'node:crypto';
 
-export const MODEL_WORKSPACE_RECEIPT_SCHEMA = 'holoscript.model-workspace-receipt.v0.1.0' as const;
+export const LEGACY_MODEL_WORKSPACE_RECEIPT_SCHEMA =
+  'holoscript.model-workspace-receipt.v0.1.0' as const;
+export const MODEL_WORKSPACE_RECEIPT_SCHEMA = 'holoscript.model-workspace-receipt.v0.2.0' as const;
 export const MODEL_WORKSPACE_CAPABILITY_SCHEMA =
-  'holoscript.model-workspace-capability.v0.1.0' as const;
+  'holoscript.model-workspace-capability.v0.2.0' as const;
 export const MODEL_WORKSPACE_HASH_CANONICALIZATION =
   'holoscript.integer-measurement-json.v0.1.0' as const;
+export const MODEL_WORKSPACE_MEASUREMENT_PROFILE = 'full-distribution-v1' as const;
+export const MODEL_WORKSPACE_CONTROL_PROFILE = 'uncorrected-logit-lens-v1' as const;
+export const MODEL_WORKSPACE_SCORE_PROFILE =
+  'mean-mapped-control-full-vocabulary-jsd-nats-v1' as const;
+export const MODEL_WORKSPACE_SIGNAL_RECEIPT_SCHEMA =
+  'holollama.model-workspace-signal-receipt.v0.1.0' as const;
 export const HOLOLLAMA_MODEL_WORKSPACE_PROBE_SCHEMA =
   'holollama.model-workspace-probe.v0.1.0' as const;
 
-export type ModelWorkspaceEstimator =
-  | 'explicit_pair_average_v0'
-  | 'corpus_position_average_v1';
+export type ModelWorkspaceEstimator = 'explicit_pair_average_v0' | 'corpus_position_average_v1';
 
 export interface ModelWorkspaceConcept {
   tokenId: number;
@@ -19,16 +25,30 @@ export interface ModelWorkspaceConcept {
   probabilityE8: number;
 }
 
+export interface ModelWorkspaceDistributionMetrics {
+  mappedControlJensenShannonDivergenceNatsE8: number;
+  mappedTargetJensenShannonDivergenceNatsE8: number;
+  controlTargetJensenShannonDivergenceNatsE8: number;
+  lensGainJensenShannonNatsE8: number;
+  totalVariationDistanceE8: number;
+  mappedEntropyNatsE8: number;
+  controlEntropyNatsE8: number;
+  mappedMaxProbabilityE8: number;
+  controlMaxProbabilityE8: number;
+}
+
 export interface ModelWorkspaceLayerObservation {
   layer: number;
   position: number;
   concepts: ModelWorkspaceConcept[];
   controlConcepts: ModelWorkspaceConcept[];
   tailProbabilityMassE8: number;
+  controlTailProbabilityMassE8?: number;
+  distributionMetrics?: ModelWorkspaceDistributionMetrics;
 }
 
 export interface ModelWorkspaceReceipt {
-  schema: typeof MODEL_WORKSPACE_RECEIPT_SCHEMA;
+  schema: typeof MODEL_WORKSPACE_RECEIPT_SCHEMA | typeof LEGACY_MODEL_WORKSPACE_RECEIPT_SCHEMA;
   kind: 'ModelWorkspaceReceipt';
   mode: 'observe';
   createdAt: string;
@@ -65,12 +85,20 @@ export interface ModelWorkspaceReceipt {
     layers: number[];
     requestedPositions: number[];
     positions: number[];
+    measurementProfile?: typeof MODEL_WORKSPACE_MEASUREMENT_PROFILE;
     seed: null;
   };
   observation: {
     status: 'observed';
+    measurementProfile?: typeof MODEL_WORKSPACE_MEASUREMENT_PROFILE;
+    controlProfile?: typeof MODEL_WORKSPACE_CONTROL_PROFILE;
     layerBand: { start: number; end: number };
     layers: ModelWorkspaceLayerObservation[];
+    summary?: {
+      scoreProfile: typeof MODEL_WORKSPACE_SCORE_PROFILE;
+      coordinateCount: number;
+      scoreE8: number;
+    };
   };
   observationSha256: string;
   runtime: {
@@ -103,6 +131,21 @@ export interface ModelWorkspaceReceiptExpectation {
   k: number;
   lensSha256: string;
   estimator: ModelWorkspaceEstimator;
+  measurementProfile: typeof MODEL_WORKSPACE_MEASUREMENT_PROFILE;
+  controlProfile: typeof MODEL_WORKSPACE_CONTROL_PROFILE;
+}
+
+export interface ModelWorkspaceSignalReceipt {
+  schema: typeof MODEL_WORKSPACE_SIGNAL_RECEIPT_SCHEMA;
+  kind: 'ModelWorkspaceSignalReceipt';
+  measurementProfile: typeof MODEL_WORKSPACE_MEASUREMENT_PROFILE;
+  controlProfile: typeof MODEL_WORKSPACE_CONTROL_PROFILE;
+  scoreProfile: typeof MODEL_WORKSPACE_SCORE_PROFILE;
+  scoreE8: number;
+  coordinateCount: number;
+  sourceReceiptHash: string;
+  lensSha256: string;
+  receiptHash: string;
 }
 
 export interface HoloLlamaWorkspaceProbeFetchResponse {
@@ -238,6 +281,14 @@ export async function observeHoloLlamaModelWorkspace(
     )
       ? selectedCapability.estimator
       : null;
+  const advertisedMeasurementProfile =
+    selectedCapability?.measurementProfile === MODEL_WORKSPACE_MEASUREMENT_PROFILE
+      ? MODEL_WORKSPACE_MEASUREMENT_PROFILE
+      : null;
+  const advertisedControlProfile =
+    selectedCapability?.controlProfile === MODEL_WORKSPACE_CONTROL_PROFILE
+      ? MODEL_WORKSPACE_CONTROL_PROFILE
+      : null;
   const observeSupported =
     backend === 'pytorch-holo' &&
     capabilityRoot?.schema === MODEL_WORKSPACE_CAPABILITY_SCHEMA &&
@@ -248,6 +299,8 @@ export async function observeHoloLlamaModelWorkspace(
     selectedCapability.intervention === false &&
     selectedCapability.method === 'jacobian_lens' &&
     advertisedEstimator !== null &&
+    advertisedMeasurementProfile !== null &&
+    advertisedControlProfile !== null &&
     isSha256(selectedCapability.lensSha256) &&
     advertisedLayers.length > 0;
 
@@ -283,6 +336,8 @@ export async function observeHoloLlamaModelWorkspace(
     k: expectedK,
     lensSha256: String(selectedCapability!.lensSha256),
     estimator: advertisedEstimator!,
+    measurementProfile: advertisedMeasurementProfile!,
+    controlProfile: advertisedControlProfile!,
   };
 
   const observe = await fetchJson(fetchImpl, `${endpoint}/v1/model-workspace/observe`, {
@@ -349,7 +404,9 @@ export function validateModelWorkspaceReceipt(
 ): { ok: boolean; receipt?: ModelWorkspaceReceipt; blockers: string[] } {
   const blockers: string[] = [];
   if (!isRecord(value)) return { ok: false, blockers: ['receipt body is not an object'] };
-  if (value.schema !== MODEL_WORKSPACE_RECEIPT_SCHEMA) {
+  const currentReceipt = value.schema === MODEL_WORKSPACE_RECEIPT_SCHEMA;
+  const legacyReceipt = value.schema === LEGACY_MODEL_WORKSPACE_RECEIPT_SCHEMA;
+  if (!currentReceipt && !legacyReceipt) {
     blockers.push(`unexpected receipt schema: ${String(value.schema)}`);
   }
   if (value.kind !== 'ModelWorkspaceReceipt')
@@ -419,7 +476,8 @@ export function validateModelWorkspaceReceipt(
     Number(lens.jacobianCount) < 1 ||
     !Number.isSafeInteger(lens.k) ||
     Number(lens.k) < 1 ||
-    Number(lens.k) > 25
+    Number(lens.k) > 25 ||
+    (tokenizer !== null && Number(lens.k) > Number(tokenizer.vocabSize))
   ) {
     blockers.push('lens provenance or sparse-readout bound is invalid');
   }
@@ -429,17 +487,33 @@ export function validateModelWorkspaceReceipt(
     input && Array.isArray(input.requestedPositions) ? input.requestedPositions : null;
   const inputLayers = input && Array.isArray(input.layers) ? input.layers : null;
   const hasTruncationMetadata = Boolean(
-    input &&
-      ('originalTokenCount' in input || 'truncated' in input || 'truncationPolicy' in input)
+    input && ('originalTokenCount' in input || 'truncated' in input || 'truncationPolicy' in input)
   );
   const validTruncationMetadata = Boolean(
     input &&
-      Number.isSafeInteger(input.originalTokenCount) &&
-      Number(input.originalTokenCount) >= Number(input.tokenCount) &&
-      typeof input.truncated === 'boolean' &&
-      input.truncated === (Number(input.originalTokenCount) > Number(input.tokenCount)) &&
-      input.truncationPolicy ===
-        (input.truncated ? 'left-truncate-to-model-block-size' : 'none')
+    Number.isSafeInteger(input.originalTokenCount) &&
+    Number(input.originalTokenCount) >= Number(input.tokenCount) &&
+    typeof input.truncated === 'boolean' &&
+    input.truncated === Number(input.originalTokenCount) > Number(input.tokenCount) &&
+    input.truncationPolicy === (input.truncated ? 'left-truncate-to-model-block-size' : 'none')
+  );
+  const validNormalizedPositions = Boolean(
+    input &&
+    Number.isSafeInteger(input.tokenCount) &&
+    Number(input.tokenCount) > 0 &&
+    requestedPositions &&
+    positions &&
+    requestedPositions.length === positions.length &&
+    requestedPositions.every((requested, index) => {
+      if (!Number.isSafeInteger(requested)) return false;
+      const normalized =
+        Number(requested) < 0 ? Number(requested) + Number(input.tokenCount) : Number(requested);
+      return (
+        normalized >= 0 &&
+        normalized < Number(input.tokenCount) &&
+        Number(positions[index]) === normalized
+      );
+    })
   );
   if (
     !input ||
@@ -460,9 +534,14 @@ export function validateModelWorkspaceReceipt(
     positions.some((position) => !Number.isSafeInteger(position) || Number(position) < 0) ||
     new Set(positions).size !== positions.length ||
     requestedPositions.length !== positions.length ||
+    !validNormalizedPositions ||
+    (currentReceipt && input.measurementProfile !== MODEL_WORKSPACE_MEASUREMENT_PROFILE) ||
+    (legacyReceipt && 'measurementProfile' in input) ||
     input.seed !== null ||
-    ((lens?.estimator === 'corpus_position_average_v1' || hasTruncationMetadata) &&
-      !validTruncationMetadata)
+    (currentReceipt
+      ? !validTruncationMetadata
+      : (lens?.estimator === 'corpus_position_average_v1' || hasTruncationMetadata) &&
+        !validTruncationMetadata)
   ) {
     blockers.push('bounded input provenance is invalid');
   }
@@ -484,6 +563,9 @@ export function validateModelWorkspaceReceipt(
     if (lens?.estimator !== expectation.estimator) {
       blockers.push('receipt estimator does not match the advertised model capability');
     }
+    if (input?.measurementProfile !== expectation.measurementProfile) {
+      blockers.push('receipt measurement profile does not match the advertised model capability');
+    }
   }
   blockers.push(
     ...validateWorkspaceObservation(
@@ -491,7 +573,10 @@ export function validateModelWorkspaceReceipt(
       lens && Number.isSafeInteger(lens.k) ? Number(lens.k) : null,
       inputLayers,
       positions,
-      tokenizer && Number.isSafeInteger(tokenizer.vocabSize) ? Number(tokenizer.vocabSize) : null
+      tokenizer && Number.isSafeInteger(tokenizer.vocabSize) ? Number(tokenizer.vocabSize) : null,
+      currentReceipt,
+      expectation?.measurementProfile ?? null,
+      expectation?.controlProfile ?? null
     )
   );
   const runtime = isRecord(value.runtime) ? value.runtime : null;
@@ -567,7 +652,10 @@ function validateWorkspaceObservation(
   k: number | null,
   inputLayers: unknown[] | null,
   positions: unknown[] | null,
-  vocabSize: number | null
+  vocabSize: number | null,
+  currentReceipt: boolean,
+  expectedMeasurementProfile: string | null,
+  expectedControlProfile: string | null
 ): string[] {
   if (!observation || observation.status !== 'observed') {
     return ['workspace observation is missing or not observed'];
@@ -598,7 +686,29 @@ function validateWorkspaceObservation(
   }
 
   const blockers: string[] = [];
+  if (
+    currentReceipt &&
+    (observation.measurementProfile !== MODEL_WORKSPACE_MEASUREMENT_PROFILE ||
+      observation.controlProfile !== MODEL_WORKSPACE_CONTROL_PROFILE ||
+      (expectedMeasurementProfile !== null &&
+        observation.measurementProfile !== expectedMeasurementProfile) ||
+      (expectedControlProfile !== null && observation.controlProfile !== expectedControlProfile))
+  ) {
+    blockers.push('workspace observation measurement or control profile is invalid');
+  }
+  if (
+    !currentReceipt &&
+    ('measurementProfile' in observation ||
+      'controlProfile' in observation ||
+      'summary' in observation)
+  ) {
+    blockers.push('legacy workspace observation contains v0.2 profile fields');
+  }
   const coordinates = new Set<string>();
+  const primaryScores: number[] = [];
+  const maxJensenShannonNatsE8 = Math.round(Math.log(2) * 100_000_000);
+  const maxEntropyNatsE8 =
+    vocabSize === null ? null : Math.round(Math.log(vocabSize) * 100_000_000);
   for (const [index, item] of layers.entries()) {
     if (!isRecord(item)) {
       blockers.push(`observation layer ${index} is not an object`);
@@ -619,7 +729,9 @@ function validateWorkspaceObservation(
       k === null ||
       concepts.length !== k ||
       controls.length !== k ||
-      !isE8Probability(item.tailProbabilityMassE8)
+      !isE8Probability(item.tailProbabilityMassE8) ||
+      (currentReceipt && !isE8Probability(item.controlTailProbabilityMassE8)) ||
+      (!currentReceipt && ('controlTailProbabilityMassE8' in item || 'distributionMetrics' in item))
     ) {
       blockers.push(`observation layer ${index} is malformed or unbounded`);
       continue;
@@ -641,6 +753,22 @@ function validateWorkspaceObservation(
     if (conceptErrors) {
       blockers.push(`observation layer ${index} contains invalid concepts`);
     } else {
+      const conceptRecords = concepts as Record<string, unknown>[];
+      const controlRecords = controls as Record<string, unknown>[];
+      const hasInvalidSparseOrdering = [conceptRecords, controlRecords].some((records) => {
+        const tokenIds = records.map((concept) => Number(concept.tokenId));
+        const probabilities = records.map((concept) => Number(concept.probabilityE8));
+        return (
+          new Set(tokenIds).size !== tokenIds.length ||
+          probabilities.some(
+            (probability, probabilityIndex) =>
+              probabilityIndex > 0 && probability > probabilities[probabilityIndex - 1]!
+          )
+        );
+      });
+      if (hasInvalidSparseOrdering) {
+        blockers.push(`observation layer ${index} sparse concepts are duplicated or unsorted`);
+      }
       const probabilityTotal = concepts.reduce(
         (sum, concept) => sum + Number((concept as Record<string, unknown>).probabilityE8),
         0
@@ -652,12 +780,117 @@ function validateWorkspaceObservation(
       if (probabilityTotal + Number(item.tailProbabilityMassE8) !== 100_000_000) {
         blockers.push(`observation layer ${index} probability mass is inconsistent`);
       }
-      if (controlTotal > 100_000_000) {
-        blockers.push(`observation layer ${index} control probability mass is invalid`);
+      if (
+        currentReceipt
+          ? controlTotal + Number(item.controlTailProbabilityMassE8) !== 100_000_000
+          : controlTotal > 100_000_000
+      ) {
+        blockers.push(`observation layer ${index} control probability mass is inconsistent`);
+      }
+    }
+
+    if (currentReceipt) {
+      const metrics = isRecord(item.distributionMetrics) ? item.distributionMetrics : null;
+      const jsdFields = [
+        metrics?.mappedControlJensenShannonDivergenceNatsE8,
+        metrics?.mappedTargetJensenShannonDivergenceNatsE8,
+        metrics?.controlTargetJensenShannonDivergenceNatsE8,
+      ];
+      const entropyFields = [metrics?.mappedEntropyNatsE8, metrics?.controlEntropyNatsE8];
+      if (
+        !metrics ||
+        jsdFields.some(
+          (measurement) =>
+            !Number.isSafeInteger(measurement) ||
+            Number(measurement) < 0 ||
+            Number(measurement) > maxJensenShannonNatsE8
+        ) ||
+        !Number.isSafeInteger(metrics.lensGainJensenShannonNatsE8) ||
+        Math.abs(Number(metrics.lensGainJensenShannonNatsE8)) > maxJensenShannonNatsE8 ||
+        !isE8Probability(metrics.totalVariationDistanceE8) ||
+        entropyFields.some(
+          (measurement) =>
+            !Number.isSafeInteger(measurement) ||
+            Number(measurement) < 0 ||
+            maxEntropyNatsE8 === null ||
+            Number(measurement) > maxEntropyNatsE8
+        ) ||
+        !isE8Probability(metrics.mappedMaxProbabilityE8) ||
+        !isE8Probability(metrics.controlMaxProbabilityE8) ||
+        Math.abs(
+          Number(metrics.mappedMaxProbabilityE8) -
+            Number((concepts[0] as Record<string, unknown>).probabilityE8)
+        ) > 1 ||
+        Math.abs(
+          Number(metrics.controlMaxProbabilityE8) -
+            Number((controls[0] as Record<string, unknown>).probabilityE8)
+        ) > 1 ||
+        Number(metrics.lensGainJensenShannonNatsE8) !==
+          Number(metrics.controlTargetJensenShannonDivergenceNatsE8) -
+            Number(metrics.mappedTargetJensenShannonDivergenceNatsE8)
+      ) {
+        blockers.push(`observation layer ${index} distribution metrics are invalid`);
+      } else {
+        primaryScores.push(Number(metrics.mappedControlJensenShannonDivergenceNatsE8));
       }
     }
   }
+
+  if (currentReceipt) {
+    const summary = isRecord(observation.summary) ? observation.summary : null;
+    if (
+      !summary ||
+      summary.scoreProfile !== MODEL_WORKSPACE_SCORE_PROFILE ||
+      !Number.isSafeInteger(summary.coordinateCount) ||
+      Number(summary.coordinateCount) !== layers.length ||
+      !Number.isSafeInteger(summary.scoreE8) ||
+      primaryScores.length !== layers.length ||
+      Number(summary.scoreE8) !== integerMeanE8(primaryScores)
+    ) {
+      blockers.push('workspace observation summary is invalid');
+    }
+  }
   return blockers;
+}
+
+function integerMeanE8(values: number[]): number {
+  if (values.length < 1) return Number.NaN;
+  return Math.floor(
+    (values.reduce((sum, value) => sum + value, 0) + Math.floor(values.length / 2)) / values.length
+  );
+}
+
+export function summarizeModelWorkspaceSignal(value: unknown): ModelWorkspaceSignalReceipt {
+  const validation = validateModelWorkspaceReceipt(value);
+  if (!validation.ok || !validation.receipt) {
+    throw new TypeError(`invalid model workspace receipt: ${validation.blockers.join('; ')}`);
+  }
+  const receipt = validation.receipt;
+  if (
+    receipt.schema !== MODEL_WORKSPACE_RECEIPT_SCHEMA ||
+    receipt.input.measurementProfile !== MODEL_WORKSPACE_MEASUREMENT_PROFILE ||
+    receipt.observation.measurementProfile !== MODEL_WORKSPACE_MEASUREMENT_PROFILE ||
+    receipt.observation.controlProfile !== MODEL_WORKSPACE_CONTROL_PROFILE ||
+    !receipt.observation.summary
+  ) {
+    throw new TypeError('model workspace receipt does not carry the full-distribution profile');
+  }
+  const summary = receipt.observation.summary;
+  const unsigned: Omit<ModelWorkspaceSignalReceipt, 'receiptHash'> = {
+    schema: MODEL_WORKSPACE_SIGNAL_RECEIPT_SCHEMA,
+    kind: 'ModelWorkspaceSignalReceipt',
+    measurementProfile: MODEL_WORKSPACE_MEASUREMENT_PROFILE,
+    controlProfile: MODEL_WORKSPACE_CONTROL_PROFILE,
+    scoreProfile: MODEL_WORKSPACE_SCORE_PROFILE,
+    scoreE8: summary.scoreE8,
+    coordinateCount: summary.coordinateCount,
+    sourceReceiptHash: receipt.receiptHash,
+    lensSha256: receipt.lens.lensSha256,
+  };
+  return {
+    ...unsigned,
+    receiptHash: hashModelWorkspacePayload({ ...unsigned, receiptHash: null }),
+  };
 }
 
 export function hashModelWorkspacePayload(value: unknown): string {
@@ -796,10 +1029,7 @@ function isSupportedWorkspaceEstimator(
   );
 }
 
-function isSupportedWorkspacePositionPolicy(
-  estimator: unknown,
-  positionPolicy: unknown
-): boolean {
+function isSupportedWorkspacePositionPolicy(estimator: unknown, positionPolicy: unknown): boolean {
   return (
     (estimator === 'explicit_pair_average_v0' &&
       positionPolicy === 'explicit-source-target-pairs') ||

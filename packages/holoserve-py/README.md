@@ -111,7 +111,28 @@ position-policy hashes. A mismatch fails startup. `/health.model_workspace_probe
 advertises per-model availability; a model without a bound artifact abstains.
 Receipts retain the full prompt hash and record both original and observed token
 counts plus the exact left-truncation policy when a prompt exceeds the model
-window; v1 verifiers reject missing or inconsistent truncation metadata.
+window; v0.2 verifiers reject missing or inconsistent truncation metadata.
+Receipt schema v0.2 advertises `measurementProfile: full-distribution-v1` and
+computes distribution comparisons from float64 log-softmax values before the
+mapped and control views are truncated to top-k. Each coordinate binds mapped
+and control tail mass, full-vocabulary mapped/control JSD and total variation,
+entropy and maximum-probability diagnostics, and mapped/control distance to the
+model's actual final distribution. `lensGainJensenShannonNatsE8` is the signed
+control-to-final minus mapped-to-final distance, so it distinguishes useful
+transport from mere correction magnitude without another model forward pass.
+Each sparse top-k view and its aggregate tail are quantized as one categorical
+partition with Hamilton largest-remainder apportionment. Fractional-remainder
+ties preserve original top-k-plus-tail category order, and every partition sums
+to exactly 100,000,000 E8 units.
+The receipt summary uses the fixed
+`mean-mapped-control-full-vocabulary-jsd-nats-v1` profile and integer
+round-half-up aggregation.
+
+These distribution comparisons are HoloScript diagnostics, not Anthropic's
+published target-token rank/pass@k metric and not paper-experiment parity. They
+remain tokenizer-bound measurements; final-distribution distance is a lens
+fidelity diagnostic, while mapped/control JSD is only an exploratory candidate
+signal.
 The endpoint accepts observation fields only and rejects `mode`, `intervention`,
 `direction`, `strength`, activation vectors, and unknown fields. A future write
 capability requires a separate endpoint and receipt schema.
@@ -124,11 +145,51 @@ fitter derives its corpus hash from the exact ordered post-truncation token
 sequences and rejects a caller-supplied mismatch or overlapping merge shards.
 `fit_jacobian_lens` remains available for v0 compatibility. The resulting
 `ModelWorkspaceReceipt` is a tokenizer-bound measurement, not intent, truth,
-identity, consciousness, or policy authority. Sparse scores and probabilities
-use exact E8 integer fields, allowing HoloServe and HoloLlama to recompute the
-same receipt hashes without lossy floating-point canonicalization. Receipts bind
-the prompt hash, requested layers/positions/k, selected model, and advertised
-lens artifact.
+identity, consciousness, or policy authority. Sparse scores, probabilities,
+and full-distribution diagnostics use exact E8 integer fields, allowing
+HoloServe and HoloLlama to recompute the same receipt hashes without lossy
+floating-point canonicalization. Receipts bind the prompt hash, requested
+layers/positions/k, selected model, measurement profile, and advertised lens
+artifact. SHA-256 receipts provide integrity and provenance binding, not server
+authentication; deployments still need an authenticated transport boundary.
+
+For leakage-safe corpus runs, use the two-phase evaluator. `collect` accepts
+prompt-only JSONL rows (`caseId`, `vertical`, `templateId`, `frame`, `prompt`),
+rejects label-shaped fields and truncation by default, verifies every HoloServe
+receipt, and atomically persists both canonical source receipts and each
+layer/position metric. `evaluate` revalidates and re-derives the rows from those
+receipts and the original prompt manifest before it opens a separate JSONL label
+manifest (`caseId`, `positive`). It then reports leave-one-vertical-out
+thresholds, vertical-macro AUC, delta against the
+registered normalized union-top-k legacy comparator, whole-vertical bootstrap
+intervals, A/B and frame agreement, and the fixed promotion gates. Diagnostic
+runs can never set `promotionAllowed: true`.
+
+```bash
+python -m holoserve.workspace_eval collect \
+  --endpoint http://127.0.0.1:8080 \
+  --prompt-manifest prompts.jsonl --output rows.jsonl \
+  --receipt-output receipts.jsonl --run-manifest collect.json \
+  --model a=holorunner-s0=sha256:<lens> \
+  --checkpoint-sha256 sha256:<checkpoint> --tokenizer-sha256 sha256:<tokenizer> \
+  --layers 2 5 8 --positions -1 --k 25
+
+python -m holoserve.workspace_eval evaluate \
+  --rows rows.jsonl --receipts receipts.jsonl --prompt-manifest prompts.jsonl \
+  --collection-manifest collect.json \
+  --labels labels.jsonl --output evaluation.json \
+  --status diagnostic --primary-frame unprimed --primary-alias a
+```
+
+A `fresh` run additionally requires `--fresh-manifest`, `--fresh-report`, and
+`--preregistration`. Before its first HTTP observation, collection verifies the
+exact 240-case balanced compact-frame design, distinct A/B lenses, zero-match
+leakage commitments, independent adjudication, frozen run parameters, an
+implementation commit whose complete HoloServe Python package tree and
+`pyproject.toml` bytes match `git show`, and an
+immutable Git-tag seal containing the exact manifest. Evaluation re-verifies the
+source receipts, implementation and corpus seals, label commitment, and all 960
+case/frame/lens rows before promotion is even possible.
 
 ## Native constrained decoding (no GBNF, no llama.cpp)
 

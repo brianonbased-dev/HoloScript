@@ -143,6 +143,7 @@ import {
   doctorHoloLlamaProfiles,
   observeHoloLlamaModelWorkspace,
   probeHoloLlamaLiveLifecycle,
+  summarizeModelWorkspaceSignal,
   writeHoloLlamaBundleFiles,
 } from '@holoscript/holollama';
 
@@ -169,6 +170,9 @@ const workspace = await observeHoloLlamaModelWorkspace({
   k: 10,
 });
 console.log(workspace.status, workspace.modelWorkspaceReceipt?.observation);
+if (workspace.modelWorkspaceReceipt) {
+  console.log(summarizeModelWorkspaceSignal(workspace.modelWorkspaceReceipt));
+}
 ```
 
 `observeHoloLlamaModelWorkspace` is a typed client and verifier for HoloServe's
@@ -176,13 +180,28 @@ read-only `/v1/model-workspace/observe` endpoint. It health-checks the backend,
 requires a model-bound `jacobian_lens` capability, recomputes the integer-domain
 observation and receipt hashes, binds the receipt to the requested prompt,
 layers, positions, k, model, and advertised lens, and validates the safety
-envelope. It accepts only the honest estimator/parity contracts:
+envelope. The advertised v0.2 capability must bind the exact
+`full-distribution-v1` measurement profile and `uncorrected-logit-lens-v1`
+control profile; a downgraded capability or receipt fails closed. It accepts
+only the honest estimator/parity contracts:
 `explicit_pair_average_v0` with `paperParity: false`, or
 `corpus_position_average_v1` with `paperParity: true`,
 `parityScope: reference-estimator-only`, and `paperExperimentParity: false`.
-For v1 it also requires internally consistent original/observed token counts and
-an explicit `none` or `left-truncate-to-model-block-size` policy, so a clipped
+For every v0.2 receipt it also requires internally consistent requested versus
+normalized token positions, original/observed token counts, and an explicit
+`none` or `left-truncate-to-model-block-size` policy, so a clipped
 prompt cannot pass as an untruncated measurement.
+`summarizeModelWorkspaceSignal` validates a v0.2 source receipt and emits a
+hash-bound signal receipt using the server-computed, cross-runtime deterministic
+mean full-vocabulary mapped/control JSD. HoloLlama also verifies both sparse
+tail masses, the complete-distribution metric bounds, target-fidelity lens gain,
+exact mass conservation, coordinate count, and summary arithmetic. Historical v0.1 receipts remain
+verifiable, but cannot be promoted into the new signal profile.
+
+The JSD signal is a preregistered HoloScript candidate, not Anthropic's
+target-token rank/pass@k evaluation and not a paper-parity claim. Target-relative
+metrics diagnose lens fidelity only. Neither signal is intent, truth, identity,
+consciousness, or policy authority.
 Standard llama.cpp/GGUF HoloLlama nodes fail closed because they do not expose
 differentiable hidden states. The client never synthesizes a latent readout from
 request/response traces and exposes no intervention method.
