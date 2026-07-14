@@ -85,6 +85,8 @@ interface OpenAIStreamChunk {
   choices?: Array<{ delta?: OpenAIStreamDelta; finish_reason?: string | null }>;
   model?: string;
   usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+  holo_gpu?: unknown;
+  holo_hardware?: unknown;
 }
 
 interface RouteResponse {
@@ -391,44 +393,16 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
     }
   }
 
-  private async readWorkerHardwareTelemetry(
-    workerUrl: string,
-    authData: unknown
-  ): Promise<Record<string, string>> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), Math.min(this.config.timeoutMs, 5000));
-    try {
-      const response = await fetch(`${workerUrl}/telemetry/hardware`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.vastKey}` },
-        body: JSON.stringify({ auth_data: authData, session_id: null, payload: {} }),
-        signal: controller.signal,
-      });
-      const text = await response.text().catch(() => '');
-      let parsed: unknown;
-      try {
-        parsed = text ? JSON.parse(text) : undefined;
-      } catch {
-        return hardwareTelemetryHeaders(
-          undefined,
-          `worker hardware telemetry returned non-JSON body: HTTP ${response.status}`
-        );
-      }
-
-      const headers = hardwareTelemetryHeaders(parsed);
-      if (!response.ok && !headers['x-holoscript-hardware-caveat']) {
-        return hardwareTelemetryHeaders(
-          parsed,
-          `worker hardware telemetry unavailable: HTTP ${response.status}`
-        );
-      }
-      return headers;
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      return hardwareTelemetryHeaders(undefined, `worker hardware telemetry unreachable: ${msg}`);
-    } finally {
-      clearTimeout(timeoutId);
-    }
+  private completionBoundTelemetryHeaders(
+    hardwareTelemetry: unknown,
+    gpuTelemetry: unknown,
+    fallbackCaveat: string
+  ): Record<string, string> {
+    const hardwareGpu = gpuTelemetryFromHardware(hardwareTelemetry);
+    return {
+      ...gpuTelemetryHeaders(gpuTelemetry ?? hardwareGpu, gpuTelemetry ?? hardwareGpu ? undefined : fallbackCaveat),
+      ...hardwareTelemetryHeaders(hardwareTelemetry, hardwareTelemetry ? undefined : fallbackCaveat),
+    };
   }
 
   private buildRequestId(response: Response, requestIdx?: number): string | undefined {
@@ -519,16 +493,18 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
     request: LLMCompletionRequest,
     model: string = this.defaultHoloScriptModel
   ): AsyncIterable<LLMStreamChunk> {
-    const { response, workerUrl, authData, requestIdx } = await this.postWorker(
+    const { response, workerUrl, requestIdx } = await this.postWorker(
       this.buildPayload(request, model, true)
     );
     const requestId = this.buildRequestId(response, requestIdx);
     const responseHeaders = this.buildResponseHeaders(response, workerUrl, requestIdx);
+    const noCompletionTelemetryCaveat =
+      'stream ended without completion-bound holo_hardware/holo_gpu telemetry; not polling worker /telemetry endpoints because Vast serverless workers scale to zero outside real requests.';
 
     if (!response.body) {
       const finalResponseHeaders = {
         ...responseHeaders,
-        ...(await this.readWorkerHardwareTelemetry(workerUrl, authData)),
+        ...this.completionBoundTelemetryHeaders(undefined, undefined, noCompletionTelemetryCaveat),
       };
       yield { type: 'message_stop', finishReason: 'stop', usage: this.zeroUsage(), model, requestId, responseHeaders: finalResponseHeaders };
       return;
@@ -544,6 +520,8 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
     let finalModel = model;
     let streamErrored = false;
     let pendingToolCall: { id: string; name: string; argsBuf: string } | null = null;
+    let streamHardwareTelemetry: unknown;
+    let streamGpuTelemetry: unknown;
 
     const flushPending = function* (
       pending: { id: string; name: string; argsBuf: string } | null
@@ -583,6 +561,8 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
           const choice = chunk.choices?.[0];
           const delta = choice?.delta;
           if (chunk.model) finalModel = chunk.model;
+          if (chunk.holo_hardware !== undefined) streamHardwareTelemetry = chunk.holo_hardware;
+          if (chunk.holo_gpu !== undefined) streamGpuTelemetry = chunk.holo_gpu;
           if (chunk.usage) {
             usage = {
               promptTokens: chunk.usage.prompt_tokens ?? 0,
@@ -636,7 +616,11 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
 
     const finalResponseHeaders = {
       ...responseHeaders,
-      ...(await this.readWorkerHardwareTelemetry(workerUrl, authData)),
+      ...this.completionBoundTelemetryHeaders(
+        streamHardwareTelemetry,
+        streamGpuTelemetry,
+        noCompletionTelemetryCaveat
+      ),
     };
     yield { type: 'message_stop', finishReason, usage, model: finalModel, requestId, responseHeaders: finalResponseHeaders };
     if (streamErrored) {

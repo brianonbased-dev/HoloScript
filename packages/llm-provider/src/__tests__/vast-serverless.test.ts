@@ -39,30 +39,12 @@ describe('VastServerlessAdapter', () => {
         calls.push({ url, body });
         if (url === ROUTE)
           return json({ url: 'http://worker.test:8000', signature: 'sig123', request_idx: 0 });
-        if (url === 'http://worker.test:8000/telemetry/hardware')
-          return json({
-            observed: true,
-            source: 'worker:linux-procfs+nvidia-smi',
-            sampledAt: '2026-06-27T21:06:01.435146+00:00',
-            cpu: { observed: true, logicalCores: 16, utilizationPct: 32.5 },
-            memory: { observed: true, usedPct: 64.1 },
-            disk: { observed: true, usedPct: 41.7 },
-            gpu: {
-              observed: true,
-              source: 'worker:nvidia-smi',
-              end: {
-                name: 'NVIDIA GeForce RTX 5090',
-                utilizationGpuPct: 42,
-                memoryUsedMiB: 2600,
-                memoryTotalMiB: 32607,
-              },
-            },
-          });
         return sse([
           'data: {"choices":[{"delta":{"content":"Hi"}}],"model":"qwen3:14b"}\n',
           'data: {"choices":[{"delta":{"tool_calls":[{"id":"c1","function":{"name":"find_tools","arguments":"{\\"goal\\""}}]}}]}\n',
           'data: {"choices":[{"delta":{"tool_calls":[{"function":{"arguments":":\\"compile to unity\\"}"}}]}}]}\n',
           'data: {"choices":[{"finish_reason":"tool_calls"}]}\n',
+          'data: {"holo_hardware":{"observed":true,"source":"worker:linux-procfs+nvidia-smi","sampledAt":"2026-06-27T21:06:01.435146+00:00","cpu":{"observed":true,"logicalCores":16,"utilizationPct":32.5},"memory":{"observed":true,"usedPct":64.1},"disk":{"observed":true,"usedPct":41.7},"gpu":{"observed":true,"source":"worker:nvidia-smi","end":{"name":"NVIDIA GeForce RTX 5090","utilizationGpuPct":42,"memoryUsedMiB":2600,"memoryTotalMiB":32607}}}}\n',
           'data: [DONE]\n',
         ]);
       })
@@ -91,9 +73,8 @@ describe('VastServerlessAdapter', () => {
     expect(calls[1].body.session_id).toBeNull();
     expect((calls[1].body.payload as Record<string, unknown>).stream).toBe(true);
     expect((calls[1].body.payload as Record<string, unknown>).model).toBe('qwen3:14b');
-    expect(calls[2].url).toBe('http://worker.test:8000/telemetry/hardware');
-    expect(calls[2].body.auth_data).toMatchObject({ signature: 'sig123' });
-    expect(calls[2].body.payload).toEqual({});
+    expect(calls.map((call) => call.url)).not.toContain('http://worker.test:8000/telemetry/hardware');
+    expect(calls).toHaveLength(2);
     // 3. SSE → LLMStreamChunk, tool args assembled across fragments
     const types = chunks.map((c) => c.type);
     expect(types).toEqual(
@@ -156,6 +137,32 @@ describe('VastServerlessAdapter', () => {
     for await (const c of adapter.streamCompletion(req())) chunks.push(c);
     expect(routeHits).toBe(3); // 2 not-ready polls + 1 ready
     expect(chunks.some((c) => c.type === 'text_delta')).toBe(true);
+  });
+
+  it('does not poll worker telemetry endpoints when stream telemetry is absent', async () => {
+    const calls: string[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        calls.push(url);
+        if (url === ROUTE) return json({ url: 'http://worker.test:8000', request_idx: 12 });
+        return sse(['data: {"choices":[{"delta":{"content":"ok"}}],"model":"qwen3:14b"}\n', 'data: [DONE]\n']);
+      })
+    );
+    const adapter = new VastServerlessAdapter({
+      apiKey: 'vk',
+      endpointName: 'holoscript-qwen-coder',
+      model: 'qwen3:14b',
+      pollIntervalMs: 1,
+    });
+    const chunks: LLMStreamChunk[] = [];
+    for await (const c of adapter.streamCompletion(req())) chunks.push(c);
+
+    expect(calls).toEqual([ROUTE, 'http://worker.test:8000/v1/chat/completions']);
+    const stop = chunks.at(-1) as Extract<LLMStreamChunk, { type: 'message_stop' }>;
+    expect(stop.responseHeaders?.['x-holoscript-hardware-source']).toBe('worker:vast-serverless-telemetry');
+    expect(stop.responseHeaders?.['x-holoscript-hardware-caveat']).toMatch(/not polling worker \/telemetry endpoints/);
+    expect(stop.responseHeaders?.['x-holoscript-gpu-caveat']).toMatch(/not polling worker \/telemetry endpoints/);
   });
 
   it('complete() returns content + parsed tool uses via the envelope', async () => {
