@@ -11,6 +11,8 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  buildBallisticArcEvidence,
+  buildSegmentReceipt,
   renderLiveSegmentSceneSource,
   renderSegmentReplayStill,
   runSegmentedCapture,
@@ -348,11 +350,27 @@ try {
         },
         {
           type: 'ballistic_sample',
-          payload: { rockPosition: { x: -0.014, y: 2.073078, z: 0.02 } },
+          payload: {
+            timeSeconds: 0.18,
+            rockPosition: { x: -0.014, y: 2.073078, z: 0.02 },
+            gravity: 9.81,
+          },
         },
         {
           type: 'ballistic_sample',
-          payload: { rockPosition: { x: 0.922, y: 2.208312, z: 0.02 } },
+          payload: {
+            timeSeconds: 0.36,
+            rockPosition: { x: 0.922, y: 2.208312, z: 0.02 },
+            gravity: 9.81,
+          },
+        },
+        {
+          type: 'ballistic_sample',
+          payload: {
+            timeSeconds: 0.54,
+            rockPosition: { x: 1.858, y: 2.025702, z: 0.02 },
+            gravity: 9.81,
+          },
         },
         {
           type: 'target_contact',
@@ -407,6 +425,70 @@ try {
   assertOk(
     sha256(kinematicImpact) !== sha256(worldModelImpact),
     'world-model impact payload changes still pixels'
+  );
+  const ballisticArcEvidence = buildBallisticArcEvidence(worldModelReplay);
+  assertEq(
+    ballisticArcEvidence.status,
+    'gravity-fit-pass',
+    'ballistic arc evidence fits gravity'
+  );
+  assertEq(ballisticArcEvidence.sampleCount, 3, 'ballistic arc evidence counts samples');
+  assertEq(ballisticArcEvidence.checks.gravityPlausible, true, 'ballistic gravity plausible');
+  assertOk(
+    ballisticArcEvidence.maxResidualM <= 0.001,
+    'ballistic samples match solver residual tolerance'
+  );
+  const ballisticReceipt = buildSegmentReceipt({
+    segment: {
+      id: '07_ballistic_arc',
+      title: 'Ballistic Arc',
+      expectedStill: '07_ballistic_arc.png',
+      checks: ['trajectory_visible'],
+    },
+    index: 7,
+    outputDir: tmp,
+    stillPath: join(tmp, '07_ballistic_arc.png'),
+    stillMode: 'world-model-pixel-replay',
+    commandResults: [],
+    eventLogPath: join(tmp, 'events', '07_ballistic_arc.json'),
+    posePhysicsPath: join(tmp, 'pose-physics', '07_ballistic_arc.json'),
+    taskSeedPath: join(tmp, 'task-seeds', '07_ballistic_arc.json'),
+    sceneSnapshot,
+    worldModelReplay,
+  });
+  assertEq(
+    ballisticReceipt.ballisticArcEvidence.status,
+    'gravity-fit-pass',
+    'ballistic receipt exposes fit evidence'
+  );
+  assertOk(
+    ballisticReceipt.oracle.findings.some((finding) => finding.includes('Ballistic arc replay fit')),
+    'ballistic oracle names trajectory fit'
+  );
+  const placeholderBallisticReceipt = buildSegmentReceipt({
+    ...ballisticReceipt,
+    segment: {
+      id: '07_ballistic_arc',
+      title: 'Ballistic Arc',
+      expectedStill: '07_ballistic_arc.png',
+      checks: ['trajectory_visible'],
+    },
+    index: 7,
+    outputDir: tmp,
+    stillPath: join(tmp, '07_ballistic_arc.png'),
+    stillMode: 'placeholder',
+    commandResults: [],
+    eventLogPath: join(tmp, 'events', '07_ballistic_arc.json'),
+    posePhysicsPath: join(tmp, 'pose-physics', '07_ballistic_arc.json'),
+    taskSeedPath: join(tmp, 'task-seeds', '07_ballistic_arc.json'),
+    sceneSnapshot,
+    worldModelReplay,
+  });
+  assertOk(
+    placeholderBallisticReceipt.oracle.findings.some((finding) =>
+      finding.includes('Ballistic arc replay fit')
+    ),
+    'placeholder ballistic oracle still names trajectory fit'
   );
 
   console.log('Test 4c: live segment scene source carries pose, camera, and provenance');

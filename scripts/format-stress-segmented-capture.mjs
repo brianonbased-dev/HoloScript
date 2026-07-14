@@ -1041,6 +1041,99 @@ function eventPayloadVelocity(event, field) {
   return velocity ? velocity.map((value) => Number(value.toFixed(3))) : null;
 }
 
+function roundMetric(value, digits = 6) {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? Number(value.toFixed(digits))
+    : null;
+}
+
+function ballisticSampleEvents(worldModelReplay) {
+  return worldModelEvents(worldModelReplay).filter((event) => event?.type === 'ballistic_sample');
+}
+
+export function buildBallisticArcEvidence(worldModelReplay) {
+  const release =
+    worldModelEvent(worldModelReplay, 'release') ??
+    worldModelEvent(worldModelReplay, 'release_constraint_detached');
+  const releasePosition = eventPayloadVector(release, 'releasePosition');
+  const releaseVelocity = eventPayloadVelocity(release, 'releaseVelocity');
+  const sampleEvents = ballisticSampleEvents(worldModelReplay);
+  const gravityCandidates = sampleEvents
+    .map((event) => finiteMetric(event?.payload?.gravity))
+    .filter((value) => value !== null);
+  const gravityInput = gravityCandidates.length > 0 ? gravityCandidates[0] : -9.81;
+  const gravityY = gravityInput <= 0 ? gravityInput : -gravityInput;
+  const gravityMps2 = Math.abs(gravityInput);
+  const samples = sampleEvents
+    .map((event) => {
+      const timeSeconds = finiteMetric(event?.payload?.timeSeconds);
+      const position =
+        eventPayloadVector(event, 'rockPosition') ?? eventPayloadVector(event, 'toolPosition');
+      if (timeSeconds === null || !position) return null;
+      const expected =
+        releasePosition && releaseVelocity
+          ? [
+              releasePosition[0] + releaseVelocity[0] * timeSeconds,
+              releasePosition[1] +
+                releaseVelocity[1] * timeSeconds +
+                0.5 * gravityY * timeSeconds ** 2,
+              releasePosition[2] + releaseVelocity[2] * timeSeconds,
+            ].map((value) => Number(value.toFixed(6)))
+          : null;
+      const residualM = expected
+        ? Math.sqrt(
+            (position[0] - expected[0]) ** 2 +
+              (position[1] - expected[1]) ** 2 +
+              (position[2] - expected[2]) ** 2
+          )
+        : null;
+      return {
+        timeSeconds,
+        position,
+        expectedPosition: expected,
+        residualM: roundMetric(residualM),
+        sourceEventType: event.type,
+      };
+    })
+    .filter(Boolean);
+  const maxResidualM =
+    samples.length > 0
+      ? Math.max(...samples.map((sample) => sample.residualM ?? Number.POSITIVE_INFINITY))
+      : null;
+  const monotonicTime = samples.every(
+    (sample, index) => index === 0 || sample.timeSeconds > samples[index - 1].timeSeconds
+  );
+  const gravityConsistent = maxResidualM !== null && maxResidualM <= 0.01;
+  const status =
+    releasePosition && releaseVelocity && samples.length >= 3 && monotonicTime && gravityConsistent
+      ? 'gravity-fit-pass'
+      : samples.length > 0
+        ? 'partial-trajectory-evidence'
+        : 'missing-trajectory-evidence';
+
+  return {
+    schema: 'format-stress-ballistic-arc-evidence-v1',
+    source: 'world-model-replay',
+    status,
+    solver: worldModelReplay?.scene?.id ?? null,
+    trajectoryId: worldModelReplay?.trajectory?.id ?? null,
+    eventLogHash: worldModelReplay?.result?.eventLogHash ?? null,
+    releasePosition,
+    releaseVelocityMps: releaseVelocity,
+    gravityMps2,
+    gravityY,
+    sampleCount: samples.length,
+    monotonicTime,
+    maxResidualM: roundMetric(maxResidualM),
+    samples,
+    checks: {
+      releaseRecorded: Boolean(releasePosition && releaseVelocity),
+      arcSamplesRecorded: samples.length >= 3,
+      gravityPlausible: gravityConsistent,
+    },
+  };
+}
+
 function worldModelTrajectorySamples(worldModelReplay, { includeImpact = false } = {}) {
   const events = worldModelEvents(worldModelReplay);
   const samples = [];
@@ -1178,10 +1271,14 @@ function applyWorldModelPoseOverrides(pose, segment, worldModelReplay, worldMode
 
   if (segment.id === '07_ballistic_arc') {
     const samples = worldModelTrajectorySamples(worldModelReplay);
+    const ballisticArc = buildBallisticArcEvidence(worldModelReplay);
     if (samples.length > 0) {
       next.bodies.rock.position = samples[samples.length - 1];
       next.physics.arcSamples = samples;
     }
+    next.physics.ballisticArc = ballisticArc;
+    next.physics.gravityMps2 = ballisticArc.gravityMps2;
+    next.physics.trajectoryId = ballisticArc.trajectoryId;
     return next;
   }
 
@@ -1403,6 +1500,8 @@ export function buildSegmentReceipt({
       stillMode === LIVE_SEGMENT_SCREENSHOT_MODE);
   const worldModelEvents = worldModelEventsForSegment(worldModelReplay, segment.id);
   const hasWorldModelEvidence = worldModelEvents.length > 0;
+  const ballisticArcEvidence =
+    segment.id === '07_ballistic_arc' ? buildBallisticArcEvidence(worldModelReplay) : null;
   const hasLiveSegmentScreenshot = stillMode === LIVE_SEGMENT_SCREENSHOT_MODE;
   const hasWorldModelPixelReplay =
     hasWorldModelEvidence && stillMode === WORLD_MODEL_PIXEL_REPLAY_MODE;
@@ -1433,6 +1532,7 @@ export function buildSegmentReceipt({
     posePhysicsJson: rel(outputDir, posePhysicsPath),
     runtimeScene: sceneRuntimeSummary(sceneSnapshot),
     worldModelEvents,
+    ballisticArcEvidence,
     oracle: {
       status,
       owningSurface: owner,
@@ -1446,13 +1546,17 @@ export function buildSegmentReceipt({
           : hasWorldModelPixelReplay
             ? [
                 'World-model replay emitted semantic events for this segment.',
-                'The still renderer consumed the replay event payload for rock position and trajectory.',
+                segment.id === '07_ballistic_arc' && ballisticArcEvidence
+                  ? `Ballistic arc replay fit ${ballisticArcEvidence.sampleCount} samples against gravity with max residual ${ballisticArcEvidence.maxResidualM}m.`
+                  : 'The still renderer consumed the replay event payload for rock position and trajectory.',
                 `Next owner: ${owner}.`,
               ]
             : hasWorldModelEvidence
               ? [
                   'World-model replay emitted semantic events for this segment.',
-                  'The still is still kinematic; event provenance is replay-backed but pixels are not yet event-driven.',
+                  segment.id === '07_ballistic_arc' && ballisticArcEvidence
+                    ? `Ballistic arc replay fit ${ballisticArcEvidence.sampleCount} samples against gravity with max residual ${ballisticArcEvidence.maxResidualM}m.`
+                    : 'The still is still kinematic; event provenance is replay-backed but pixels are not yet event-driven.',
                   `Next owner: ${owner}.`,
                 ]
               : replayStill
@@ -1879,6 +1983,49 @@ export async function runSegmentedCapture(rawOptions = {}) {
     const posePhysicsPath = join(poseDir, `${segment.id}.json`);
     const taskSeedPath = join(seedDir, `${segment.id}.json`);
     const worldModelEvents = worldModelEventsForSegment(worldModelReplay, segment.id);
+    const ballisticArcEvidence =
+      segment.id === '07_ballistic_arc' ? buildBallisticArcEvidence(worldModelReplay) : null;
+    const eventLogEvents = [
+      { type: 'segment_requested', segment: segment.id, atMs: index * 250 },
+      {
+        type: 'runtime_scene_snapshot_loaded',
+        segment: segment.id,
+        atMs: index * 250,
+        objectCount: sceneSnapshot.objectCount,
+        source: sceneSnapshot.source,
+      },
+      {
+        type:
+          stillMode === LIVE_SEGMENT_SCREENSHOT_MODE
+            ? 'live_segment_screenshot_emitted'
+            : stillMode === WORLD_MODEL_PIXEL_REPLAY_MODE
+              ? 'world_model_pixel_replay_still_emitted'
+              : stillMode === SEGMENT_REPLAY_MODE
+                ? 'segment_replay_still_emitted'
+                : 'still_evidence_recorded',
+        segment: segment.id,
+        atMs: index * 250 + 1,
+        still: rel(outputDir, stillPath),
+        stillMode,
+      },
+      ...(ballisticArcEvidence
+        ? [
+            {
+              type: 'ballistic_arc_evidence_recorded',
+              segment: segment.id,
+              atMs: index * 250 + 2,
+              ballisticArcEvidence,
+            },
+          ]
+        : []),
+      { type: 'evidence_receipt_emitted', segment: segment.id, atMs: index * 250 + 3 },
+      ...worldModelEvents.map((event, eventIndex) => ({
+        type: 'world_model_event_replayed',
+        segment: segment.id,
+        atMs: index * 250 + 4 + eventIndex,
+        worldModelEvent: event,
+      })),
+    ];
 
     writeJson(eventLogPath, {
       schema: 'format-stress-segment-event-log-v1',
@@ -1886,37 +2033,8 @@ export async function runSegmentedCapture(rawOptions = {}) {
       source: 'format-stress-segmented-capture',
       runtimeScene: sceneRuntimeSummary(sceneSnapshot),
       worldModelReplay: worldModelReplaySummary(worldModelReplay),
-      events: [
-        { type: 'segment_requested', segment: segment.id, atMs: index * 250 },
-        {
-          type: 'runtime_scene_snapshot_loaded',
-          segment: segment.id,
-          atMs: index * 250,
-          objectCount: sceneSnapshot.objectCount,
-          source: sceneSnapshot.source,
-        },
-        {
-          type:
-            stillMode === LIVE_SEGMENT_SCREENSHOT_MODE
-              ? 'live_segment_screenshot_emitted'
-              : stillMode === WORLD_MODEL_PIXEL_REPLAY_MODE
-                ? 'world_model_pixel_replay_still_emitted'
-                : stillMode === SEGMENT_REPLAY_MODE
-                  ? 'segment_replay_still_emitted'
-                  : 'still_evidence_recorded',
-          segment: segment.id,
-          atMs: index * 250 + 1,
-          still: rel(outputDir, stillPath),
-          stillMode,
-        },
-        { type: 'evidence_receipt_emitted', segment: segment.id, atMs: index * 250 + 2 },
-        ...worldModelEvents.map((event) => ({
-          type: 'world_model_event_replayed',
-          segment: segment.id,
-          atMs: index * 250 + 3,
-          worldModelEvent: event,
-        })),
-      ],
+      ballisticArcEvidence,
+      events: eventLogEvents,
       commandEvidence: commandResults.map((command) => ({
         id: command.id,
         success: command.success,
@@ -1969,6 +2087,7 @@ export async function runSegmentedCapture(rawOptions = {}) {
     posePhysicsJson: receipt.posePhysicsJson,
     runtimeScene: receipt.runtimeScene,
     worldModelEvents: receipt.worldModelEvents,
+    ballisticArcEvidence: receipt.ballisticArcEvidence,
   }));
 
   const coverage = {
@@ -1998,6 +2117,9 @@ export async function runSegmentedCapture(rawOptions = {}) {
     ).length,
     segmentsWithWorldModelPixelReplay: receipts.filter(
       (receipt) => receipt.stillMode === WORLD_MODEL_PIXEL_REPLAY_MODE
+    ).length,
+    segmentsWithBallisticArcEvidence: receipts.filter(
+      (receipt) => receipt.ballisticArcEvidence?.status === 'gravity-fit-pass'
     ).length,
   };
 
