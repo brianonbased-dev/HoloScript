@@ -430,13 +430,18 @@ export async function extractAndVerifySigning(
   // Unsigned requests from founder callers are accepted during the transition
   // period until all agent surfaces implement client-side signing.
   if (options.bypassSigning) {
+    // Founder clients may still use the shared signed-envelope transport. The
+    // bypass skips cryptographic verification, but route handlers must receive
+    // the same effective payload they would receive on the verified path.
+    const bypassEnvelope = extractEnvelope(reqBody);
     return {
-      effectiveBody: reqBody,
+      effectiveBody: bypassEnvelope ? bypassEnvelope.body : reqBody,
       ctx: {
-        signedRequest: false,
+        signedRequest: Boolean(bypassEnvelope),
         signingValid: true,
         signer: null,
-        signingReason: 'founder-bypass',
+        signingReason: bypassEnvelope ? 'founder-bypass-envelope' : 'founder-bypass',
+        signingProtocol: 'classical',
       },
     };
   }

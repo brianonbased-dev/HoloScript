@@ -225,6 +225,48 @@ describe('extractAndVerifySigning — unsigned bodies respect timed cutover', ()
   });
 });
 
+describe('extractAndVerifySigning - founder bypass', () => {
+  it('passes an unsigned founder body through without verification', async () => {
+    const body = { snapshot: { captured_at: FRESH_TS } };
+    const r = await extractAndVerifySigning(body, { bypassSigning: true });
+
+    expect(r.effectiveBody).toBe(body);
+    expect(r.ctx).toMatchObject({
+      signedRequest: false,
+      signingValid: true,
+      signer: null,
+      signingReason: 'founder-bypass',
+      signingProtocol: 'classical',
+    });
+    expect(mockVerifyMessage).not.toHaveBeenCalled();
+  });
+
+  it('unwraps a classical founder envelope before the route consumes it', async () => {
+    const env = buildEnvelope({ body: { snapshot: { captured_at: FRESH_TS } } });
+    const r = await extractAndVerifySigning(env, { bypassSigning: true });
+
+    expect(r.effectiveBody).toEqual(env.body);
+    expect(r.ctx).toMatchObject({
+      signedRequest: true,
+      signingValid: true,
+      signer: null,
+      signingReason: 'founder-bypass-envelope',
+      signingProtocol: 'classical',
+    });
+    expect(mockVerifyMessage).not.toHaveBeenCalled();
+  });
+
+  it('preserves a null payload when unwrapping a founder envelope', async () => {
+    const r = await extractAndVerifySigning(buildEnvelope({ body: null }), {
+      bypassSigning: true,
+    });
+
+    expect(r.effectiveBody).toBeNull();
+    expect(r.ctx.signingReason).toBe('founder-bypass-envelope');
+    expect(mockVerifyMessage).not.toHaveBeenCalled();
+  });
+});
+
 describe('extractAndVerifySigning — unsigned (legacy) bodies', () => {
   it('rejects legacy bodies by default (strict-by-default)', async () => {
     const legacy = { team: 'core', op: 'claim', taskId: 'abc' };
