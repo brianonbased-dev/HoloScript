@@ -242,6 +242,35 @@ describe('FleetPanel telemetry mapping', () => {
               orphans: [],
               resource_flow: {
                 provider: 'vast.ai',
+                spend_accounting: {
+                  schema_version: 'holomesh.vast-spend-accounting/v1',
+                  provider: 'vast.ai',
+                  status: 'captured-provenance-gap',
+                  observed_at_utc: '2026-07-13T18:59:00.000Z',
+                  freshness_status: 'fresh',
+                  age_ms: 60_000,
+                  max_age_ms: 900_000,
+                  rail: 'purchased_compute',
+                  reset_window: 'utc_day',
+                  vendor_total_usd: 0.076,
+                  observed_purchased_compute_usd: 0.076,
+                  monetary_complete: true,
+                  monetary_gap_reasons: [],
+                  provenance_complete: false,
+                  provenance_gap_reasons: [
+                    'vendor_ledger_total_mismatch',
+                    'vendor_task_attribution_incomplete',
+                    'vendor_manifest_attribution_incomplete',
+                    'vendor_receipt_attribution_incomplete',
+                  ],
+                  intentional_gap_captured: true,
+                  cap_applicable: true,
+                  cap_usd: 100,
+                  observed_admission_verdict: 'under-cap',
+                  trusted_admission_verdict: 'under-cap',
+                  trusted_headroom_usd: 99.924,
+                  no_paid_actions: true,
+                },
                 utilized: {
                   instance_count: 1,
                   active_compute_count: 1,
@@ -335,6 +364,14 @@ describe('FleetPanel telemetry mapping', () => {
     expect(screen.getByText('GPU 42%')).toBeInTheDocument();
     expect(screen.getByText(/CPU 18%/)).toBeInTheDocument();
     expect(screen.getByText(/effective \$0\.2500\/h/)).toBeInTheDocument();
+    expect(screen.getByText('Vast vendor spend')).toBeInTheDocument();
+    expect(screen.getByText('Purchased-compute cap')).toBeInTheDocument();
+    expect(screen.getByText(/\$0\.0760 observed/)).toBeInTheDocument();
+    expect(screen.getByText(/\$99\.9240 trusted headroom of \$100\.0000 daily cap/)).toBeInTheDocument();
+    expect(screen.getByText(/under-cap/)).toBeInTheDocument();
+    expect(screen.getByText(/monetary complete/)).toBeInTheDocument();
+    expect(screen.getByText(/provenance incomplete \(4 gaps\)/)).toBeInTheDocument();
+    expect(screen.getByText(/fresh \(1m old\)/)).toBeInTheDocument();
     expect(screen.getByText('Produced (Vast)')).toBeInTheDocument();
     expect(
       screen.getByText(/1 contracts · 0 products verified · 1 artifacts \+ 1 receipts verified/)

@@ -199,6 +199,30 @@ function validV2FleetSnapshot(capturedAt = freshCapturedAt()) {
       schema_version: 'holomesh.vast-resource-flow/v1',
       provider: 'vast.ai',
       captured_at: capturedAt,
+      spend_accounting: {
+        schema_version: 'holomesh.vast-spend-accounting/v1',
+        provider: 'vast.ai',
+        status: 'ok',
+        observed_at_utc: capturedAt,
+        freshness_status: 'fresh',
+        age_ms: 0,
+        max_age_ms: 900_000,
+        rail: 'purchased_compute',
+        reset_window: 'utc_day',
+        vendor_total_usd: 0.076,
+        observed_purchased_compute_usd: 0.076,
+        monetary_complete: true,
+        monetary_gap_reasons: [],
+        provenance_complete: true,
+        provenance_gap_reasons: [],
+        intentional_gap_captured: false,
+        cap_applicable: true,
+        cap_usd: 100,
+        observed_admission_verdict: 'under-cap',
+        trusted_admission_verdict: 'under-cap',
+        trusted_headroom_usd: 99.924,
+        no_paid_actions: true,
+      },
       utilized: {
         instance_count: 1,
         active_compute_count: 0,
@@ -1096,6 +1120,12 @@ describe('Board Routes — Fleet Snapshot', () => {
     expect(res._status).toBe(200);
     expect(res._body.health.status).toBe('ok');
     expect(res._body.snapshot.resource_flow.provider).toBe('vast.ai');
+    expect(res._body.snapshot.resource_flow.spend_accounting).toMatchObject({
+      schema_version: 'holomesh.vast-spend-accounting/v1',
+      vendor_total_usd: 0.076,
+      trusted_headroom_usd: 99.924,
+      trusted_admission_verdict: 'under-cap',
+    });
     expect(res._body.snapshot.resource_flow.produced.verified_receipt_count).toBe(0);
     expect(res._body.snapshot.resource_flow.produced.verified_current_binding_count).toBe(0);
     expect(res._body.snapshot.resource_flow.produced.product_verification_policy).toContain(
@@ -1104,6 +1134,102 @@ describe('Board Routes — Fleet Snapshot', () => {
     expect(res._body.snapshot.resource_flow.stored.verified_receipt_location_count).toBe(0);
     expect(res._body.health.ageMs).toBeGreaterThanOrEqual(0);
     expect(res._body.health.ageMs).toBeLessThan(5_000);
+  });
+
+  it.each([
+    [
+      'omitted accounting',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        (snapshot.resource_flow as unknown as { spend_accounting?: unknown })
+          .spend_accounting = undefined;
+      },
+    ],
+    [
+      'unknown receipt identity field',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        (snapshot.resource_flow.spend_accounting as unknown as Record<string, unknown>)
+          .receipt_id = `sha256:${'a'.repeat(64)}`;
+      },
+    ],
+    [
+      'negative vendor total',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.spend_accounting.vendor_total_usd = -1;
+      },
+    ],
+    [
+      'incoherent trusted headroom',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.spend_accounting.trusted_headroom_usd = 999;
+      },
+    ],
+    [
+      'purchased-compute total below the Vast vendor total',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.spend_accounting.vendor_total_usd = 1;
+        snapshot.resource_flow.spend_accounting.observed_purchased_compute_usd = 0.5;
+        snapshot.resource_flow.spend_accounting.trusted_headroom_usd = 99.5;
+      },
+    ],
+    [
+      'future observation clamped to fresh age zero',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.spend_accounting.observed_at_utc = new Date(
+          Date.parse(snapshot.captured_at) + 60 * 1000,
+        ).toISOString();
+        snapshot.resource_flow.spend_accounting.age_ms = 0;
+      },
+    ],
+    [
+      'stale accounting without its visibility gap',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        const accounting = snapshot.resource_flow.spend_accounting as unknown as Record<string, unknown>;
+        accounting.observed_at_utc = new Date(
+          Date.parse(snapshot.captured_at) - 16 * 60 * 1000,
+        ).toISOString();
+        accounting.age_ms = 16 * 60 * 1000;
+        accounting.freshness_status = 'stale';
+        accounting.trusted_admission_verdict = null;
+        accounting.trusted_headroom_usd = null;
+      },
+    ],
+    [
+      'monetary-incomplete accounting that retains trusted admission',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        snapshot.resource_flow.spend_accounting.monetary_complete = false;
+        snapshot.resource_flow.spend_accounting.monetary_gap_reasons = [
+          'strict_ledger_parse_failed',
+        ];
+      },
+    ],
+    [
+      'missing sentinel that retains trusted monetary values',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        const accounting = snapshot.resource_flow.spend_accounting as unknown as Record<string, unknown>;
+        accounting.status = 'missing';
+        accounting.freshness_status = 'missing';
+        accounting.observed_at_utc = null;
+        accounting.age_ms = null;
+      },
+    ],
+    [
+      'non-object accounting',
+      (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
+        (snapshot.resource_flow as unknown as { spend_accounting: unknown })
+          .spend_accounting = 'invalid';
+      },
+    ],
+  ])('rejects invalid Vast spend accounting: %s', async (_case, mutate) => {
+    const snapshot = validV2FleetSnapshot();
+    mutate(snapshot);
+    const res = await callBoard(
+      'POST',
+      '/api/holomesh/team/team_test_mobile/fleet',
+      { source: 'fleet-status-live.mjs', snapshot },
+      PARENT_KEY
+    );
+
+    expect(res._status).toBe(400);
   });
 
   it('keeps provider-attributed and fleet-catalog projections additive', async () => {

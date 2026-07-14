@@ -743,11 +743,43 @@ export interface TeamFleetResourceFlowConsumedV1 {
   [key: string]: unknown;
 }
 
+export interface TeamFleetSpendAccountingV1 {
+  schema_version: 'holomesh.vast-spend-accounting/v1';
+  provider: 'vast.ai';
+  status: 'ok' | 'captured-provenance-gap' | 'missing' | 'invalid';
+  observed_at_utc: string | null;
+  freshness_status: 'fresh' | 'stale' | 'missing' | 'invalid';
+  age_ms: number | null;
+  max_age_ms: number;
+  rail: 'purchased_compute';
+  reset_window: 'utc_day';
+  vendor_total_usd: number | null;
+  observed_purchased_compute_usd: number | null;
+  monetary_complete: boolean;
+  monetary_gap_reasons: string[];
+  provenance_complete: boolean;
+  provenance_gap_reasons: string[];
+  intentional_gap_captured: boolean;
+  cap_applicable: boolean;
+  cap_usd: number | null;
+  observed_admission_verdict:
+    | 'under-cap'
+    | 'cap-exceeded'
+    | 'not-applicable'
+    | 'blocked-monetary-coverage-incomplete'
+    | null;
+  trusted_admission_verdict: 'under-cap' | 'cap-exceeded' | null;
+  /** Signed: a negative value is the measured amount over the daily cap. */
+  trusted_headroom_usd: number | null;
+  no_paid_actions: boolean;
+}
+
 /** Versioned Vast utilized/produced/stored/consumed projection published by the local collector. */
 export interface TeamFleetResourceFlowV1 {
   schema_version: 'holomesh.vast-resource-flow/v1';
   provider: 'vast.ai';
   captured_at: string;
+  spend_accounting: TeamFleetSpendAccountingV1;
   utilized: TeamFleetResourceFlowUtilizedV1;
   produced: TeamFleetResourceFlowProducedV1;
   stored: TeamFleetResourceFlowStoredV1;

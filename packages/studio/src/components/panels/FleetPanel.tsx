@@ -58,6 +58,23 @@ export interface HardwareEntry {
 export interface ResourceFlowSummary {
   providerLabel: string;
   providerAttributionAvailable: boolean;
+  spendAccounting?: {
+    status: string;
+    observedAtUtc?: string;
+    freshnessStatus: string;
+    ageMs?: number;
+    vendorTotalUsd?: number;
+    observedPurchasedComputeUsd?: number;
+    monetaryComplete: boolean;
+    monetaryGapReasons: string[];
+    provenanceComplete: boolean;
+    provenanceGapReasons: string[];
+    capApplicable: boolean;
+    capUsd?: number;
+    observedAdmissionVerdict?: string;
+    trustedAdmissionVerdict?: string;
+    trustedHeadroomUsd?: number;
+  };
   utilized: {
     instanceCount: number;
     activeComputeCount: number;
@@ -195,6 +212,7 @@ export function toHardwareEntry(
 
 export function summarizeResourceFlow(value: unknown): ResourceFlowSummary | undefined {
   if (!isRecord(value)) return undefined;
+  const spendAccounting = isRecord(value.spend_accounting) ? value.spend_accounting : null;
   const utilized = isRecord(value.utilized) ? value.utilized : {};
   const produced = isRecord(value.produced) ? value.produced : {};
   const providerAttributed = isRecord(produced.provider_attributed)
@@ -322,6 +340,39 @@ export function summarizeResourceFlow(value: unknown): ResourceFlowSummary | und
   return {
     providerLabel,
     providerAttributionAvailable,
+    spendAccounting: spendAccounting
+      ? {
+          status: stringValue(spendAccounting.status) || 'unknown',
+          observedAtUtc: stringValue(spendAccounting.observed_at_utc),
+          freshnessStatus: stringValue(spendAccounting.freshness_status) || 'invalid',
+          ageMs: finiteNumber(spendAccounting.age_ms),
+          vendorTotalUsd: finiteNumber(spendAccounting.vendor_total_usd),
+          observedPurchasedComputeUsd: finiteNumber(
+            spendAccounting.observed_purchased_compute_usd
+          ),
+          monetaryComplete: spendAccounting.monetary_complete === true,
+          monetaryGapReasons: Array.isArray(spendAccounting.monetary_gap_reasons)
+            ? spendAccounting.monetary_gap_reasons.filter(
+                (reason): reason is string => typeof reason === 'string'
+              )
+            : [],
+          provenanceComplete: spendAccounting.provenance_complete === true,
+          provenanceGapReasons: Array.isArray(spendAccounting.provenance_gap_reasons)
+            ? spendAccounting.provenance_gap_reasons.filter(
+                (reason): reason is string => typeof reason === 'string'
+              )
+            : [],
+          capApplicable: spendAccounting.cap_applicable === true,
+          capUsd: finiteNumber(spendAccounting.cap_usd),
+          observedAdmissionVerdict: stringValue(
+            spendAccounting.observed_admission_verdict
+          ),
+          trustedAdmissionVerdict: stringValue(
+            spendAccounting.trusted_admission_verdict
+          ),
+          trustedHeadroomUsd: finiteNumber(spendAccounting.trusted_headroom_usd),
+        }
+      : undefined,
     utilized: {
       instanceCount: numberOrZero(utilized.instance_count),
       activeComputeCount: numberOrZero(utilized.active_compute_count),
@@ -682,6 +733,46 @@ export function FleetPanel() {
                 {formatUsd(data.resource_flow.utilized.projected24hUsd)}/24h
               </span>
             </div>
+            {data.resource_flow.spendAccounting && (
+              <>
+                <div className="flex justify-between gap-2">
+                  <span className="text-studio-muted">Vast vendor spend</span>
+                  <span className="text-right">
+                    {data.resource_flow.spendAccounting.vendorTotalUsd === undefined
+                      ? 'vendor total unavailable'
+                      : `${formatUsd(data.resource_flow.spendAccounting.vendorTotalUsd)} observed`}
+                    {' · '}
+                    {data.resource_flow.spendAccounting.freshnessStatus}
+                    {data.resource_flow.spendAccounting.ageMs === undefined
+                      ? ''
+                      : ` (${formatAgeMs(data.resource_flow.spendAccounting.ageMs)})`}
+                  </span>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <span className="text-studio-muted">Purchased-compute cap</span>
+                  <span className="text-right">
+                    {data.resource_flow.spendAccounting.trustedHeadroomUsd === undefined
+                      ? 'trusted headroom unavailable'
+                      : `${formatUsd(data.resource_flow.spendAccounting.trustedHeadroomUsd)} trusted headroom${
+                          data.resource_flow.spendAccounting.capUsd === undefined
+                            ? ''
+                            : ` of ${formatUsd(data.resource_flow.spendAccounting.capUsd)} daily cap`
+                        }`}
+                    {data.resource_flow.spendAccounting.trustedAdmissionVerdict
+                      ? ` · ${data.resource_flow.spendAccounting.trustedAdmissionVerdict}`
+                      : ''}
+                    {' · monetary '}
+                    {data.resource_flow.spendAccounting.monetaryComplete
+                      ? 'complete'
+                      : `incomplete (${data.resource_flow.spendAccounting.monetaryGapReasons.length} gaps)`}
+                    {' · provenance '}
+                    {data.resource_flow.spendAccounting.provenanceComplete
+                      ? 'complete'
+                      : `incomplete (${data.resource_flow.spendAccounting.provenanceGapReasons.length} gaps)`}
+                  </span>
+                </div>
+              </>
+            )}
             <div className="flex justify-between gap-2">
               <span className="text-studio-muted">
                 Produced (
