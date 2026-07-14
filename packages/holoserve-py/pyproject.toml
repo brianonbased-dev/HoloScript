@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "holoscript-holoserve"
+version = "0.1.0"
+description = "HoloServe — native sovereign PyTorch-direct inference server + sampler + constrained-decoding grammar for HoloRunner S0 (HOLO) models. No llama.cpp, no GGUF."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [{ name = "HoloScript Core" }]
+keywords = ["holoscript", "holoserve", "sovereign-inference", "constrained-decoding", "uaal", "ml"]
+
+dependencies = [
+  # Core — the byte-BPE codec (holoserve.tokenizer) and the NFA grammar engine
+  # (holoserve.grammar) are pure Python. numpy is used by the sampler/trainer for
+  # deterministic seeding; kept in core so `holoserve-sample` needs no extra beyond torch.
+  "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+# Heavy dep — required to ACTUALLY run the server/sampler/trainer (they torch.load a
+# checkpoint and run a forward pass). Isolated as an extra exactly like trait-inference
+# keeps its contribution model behind [model]: holoserve.grammar + holoserve.tokenizer
+# import and self-test with no torch installed.
+model = [
+  "torch>=2.1",
+]
+
+dev = [
+  "pytest>=7.4",
+  "pytest-cov>=4.1",
+  "ruff>=0.1.0",
+  "mypy>=1.7",
+]
+
+[project.scripts]
+holoserve = "holoserve.server:main"
+holoserve-sample = "holoserve.sampler:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["holoserve*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+
+[tool.mypy]
+python_version = "3.10"
+warn_unused_configs = true
+ignore_missing_imports = true

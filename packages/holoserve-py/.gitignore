@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# Build
+build/
+dist/
+
+# Runtime artifacts — loaded via --ckpt/--bins/--data-dir, never bundled in the wheel
+# (the S0 checkpoint is ~582MB). Kept out of git.
+*.pt
+*.bin
+*.safetensors
+checkpoints/
+bins/
+meta.json
+tokenizer.json
+
+# Generated samples / receipts — kept out of git, archived separately per anchor protocol
+*.jsonl
+*-receipt.json
+
+# IDE
+.vscode/
+.idea/
