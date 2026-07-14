@@ -36,10 +36,12 @@ Usage:
 Requires the [model] extra (torch).
 """
 import argparse
+import hashlib
 import json
 import queue
 import threading
 import time
+import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -52,6 +54,13 @@ from torch.nn import functional as F
 from holoserve import grammar as gram
 from holoserve import sampler as smp
 from holoserve.model import GPT
+from holoserve.workspace_probe import (
+    MODEL_WORKSPACE_CAPABILITY_SCHEMA,
+    ModelWorkspaceProbe,
+    WorkspaceProbeError,
+    load_jacobian_lens_artifact,
+    sha256_file,
+)
 
 # Phase 2: sovereign grammar-constrained decoding — the byte-NFA logit-mask (W.780). No GBNF,
 # no llama.cpp: every sampled token keeps the output a valid IR by construction (gram module).
@@ -109,6 +118,10 @@ DEFAULT_MODEL_NAME = MODEL_NAME
 MODEL = None
 
 
+def _workspace_request_id():
+    return f"workspace-holo-{uuid.uuid4().hex}"
+
+
 class HoloModel:
     """A resident HOLO model + tokenizer. Loaded once; generate() is serialized for safety.
 
@@ -118,10 +131,19 @@ class HoloModel:
     the single resident model.
     """
 
-    def __init__(self, ckpt_path, bins_dir, device):
+    def __init__(
+        self,
+        ckpt_path,
+        bins_dir,
+        device,
+        model_name=MODEL_NAME,
+        workspace_lens_path=None,
+    ):
         self.ckpt_path = Path(ckpt_path)
         self.bins_dir = Path(bins_dir)
         self.device = device
+        self.model_name = model_name
+        self.workspace_lens_path = Path(workspace_lens_path) if workspace_lens_path else None
         self._lock = threading.Lock()
         self._load()
 
@@ -166,6 +188,20 @@ class HoloModel:
         # constraint. The available verticals come straight from the W.780 grammar registry.
         self.token_bytes = gram.build_token_bytes(self.tokenizer, self.config["vocab_size"])
         self.grammars = set(gram.GRAMMARS.keys())
+        self.workspace_probe = None
+        if self.workspace_lens_path is not None:
+            lens = load_jacobian_lens_artifact(
+                self.workspace_lens_path,
+                checkpoint_sha256=sha256_file(self.ckpt_path),
+                tokenizer_sha256=sha256_file(self.bins_dir / "tokenizer.json"),
+                model=self.model,
+            )
+            self.workspace_probe = ModelWorkspaceProbe(
+                self.model,
+                lens,
+                self.token_bytes,
+                self.model_name,
+            )
 
     @property
     def busy(self):
@@ -257,6 +293,28 @@ class HoloModel:
             self.stream_generate(prompt, max_new_tokens, temperature, top_k, seed, grammar=grammar)
         )
 
+    def observe_workspace(self, prompt, request_id, layers=None, positions=None, k=10):
+        """Apply a precomputed lens under the generation serialization lock."""
+        if self.workspace_probe is None:
+            raise WorkspaceProbeError(
+                "workspace_lens_unavailable",
+                f"model '{self.model_name}' has no bound Jacobian-lens artifact",
+            )
+        prompt_sha256 = f"sha256:{hashlib.sha256(prompt.encode('utf-8')).hexdigest()}"
+        prompt_ids = [1] + smp.encode_text(prompt, self.merges, self.merge_id)
+        prompt_ids = prompt_ids[-self.block_size :]
+        token_ids = torch.tensor([prompt_ids], dtype=torch.long, device=self.device)
+        with self._lock:
+            return self.workspace_probe.observe(
+                token_ids,
+                prompt_sha256=prompt_sha256,
+                requested_model=self.model_name,
+                request_id=request_id,
+                layers=layers,
+                positions=positions,
+                k=k,
+            )
+
 
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
@@ -276,6 +334,19 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
     def _health(self):
+        workspace_models = {
+            name: (
+                model.workspace_probe.capability()
+                if model.workspace_probe is not None
+                else {
+                    "schema": MODEL_WORKSPACE_CAPABILITY_SCHEMA,
+                    "observe": False,
+                    "intervention": False,
+                    "reason": "workspace_lens_unavailable",
+                }
+            )
+            for name, model in sorted(MODELS.items())
+        }
         return {
             "status": "ok",
             "backend": "pytorch-holo",
@@ -288,6 +359,13 @@ class Handler(BaseHTTPRequestHandler):
             # every resident checkpoint (P4b — request `model` param selects one).
             "model": {"name": DEFAULT_MODEL_NAME, "params_millions": MODEL.params_millions, **MODEL.config},
             "models": sorted(MODELS),
+            "model_workspace_probe": {
+                "schema": MODEL_WORKSPACE_CAPABILITY_SCHEMA,
+                "observe": any(item["observe"] for item in workspace_models.values()),
+                "intervention": False,
+                "endpoint": "/v1/model-workspace/observe",
+                "models": workspace_models,
+            },
         }
 
     def do_GET(self):
@@ -346,15 +424,35 @@ class Handler(BaseHTTPRequestHandler):
             self.close_connection = True  # body length unknowable → can't drain safely
             self._json(400, {"error": {"message": "bad Content-Length", "type": "invalid_request_error"}})
             return
+        if length < 0:
+            self.close_connection = True
+            self._json(400, {"error": {
+                "message": "bad Content-Length",
+                "type": "invalid_request_error",
+            }})
+            return
+        if path == "/v1/model-workspace/observe" and length > 512 * 1024:
+            self.close_connection = True
+            self._json(413, {"error": {
+                "message": "workspace observation body exceeds the 512 KiB limit",
+                "type": "invalid_request_error",
+                "code": "workspace_probe_body_too_large",
+            }})
+            return
         raw = self.rfile.read(length) if length > 0 else b""
         chat = path == "/v1/chat/completions"
-        if not chat and path not in ("/v1/completions", "/completions"):
+        workspace_observe = path == "/v1/model-workspace/observe"
+        if not workspace_observe and not chat and path not in ("/v1/completions", "/completions"):
             self._json(404, {"error": {"message": f"not found: {self.path}", "type": "invalid_request_error"}})
             return
         try:
             req = json.loads(raw or b"{}")
         except Exception as exc:
             self._json(400, {"error": {"message": f"bad request body: {exc}", "type": "invalid_request_error"}})
+            return
+
+        if workspace_observe:
+            self._model_workspace_observe(req)
             return
 
         if chat:
@@ -475,6 +573,142 @@ class Handler(BaseHTTPRequestHandler):
                 "usage": usage,
                 "holo": holo,
             })
+
+    def _model_workspace_observe(self, req):
+        if not isinstance(req, dict):
+            self._json(400, {"error": {
+                "message": "request body must be an object",
+                "type": "invalid_request_error",
+                "code": "invalid_workspace_probe_request",
+            }})
+            return
+        mutation_fields = {
+            "mode",
+            "intervention",
+            "direction",
+            "strength",
+            "activation",
+            "vector",
+        }
+        forbidden = sorted(mutation_fields.intersection(req))
+        if forbidden:
+            self._json(400, {"error": {
+                "message": f"observation endpoint rejects mutation fields: {forbidden}",
+                "type": "invalid_request_error",
+                "code": "workspace_intervention_forbidden",
+            }})
+            return
+        allowed = {"model", "prompt", "layers", "positions", "k"}
+        unknown = sorted(set(req).difference(allowed))
+        if unknown:
+            self._json(400, {"error": {
+                "message": f"unknown workspace observation fields: {unknown}",
+                "type": "invalid_request_error",
+                "code": "unknown_workspace_probe_fields",
+            }})
+            return
+
+        model_name = req.get("model", DEFAULT_MODEL_NAME)
+        if not isinstance(model_name, str) or not model_name:
+            self._json(400, {"error": {
+                "message": "model must be a non-empty string",
+                "type": "invalid_request_error",
+                "code": "invalid_workspace_probe_model",
+            }})
+            return
+        prompt = req.get("prompt", "")
+        if not isinstance(prompt, str):
+            self._json(400, {"error": {
+                "message": "prompt must be a string",
+                "type": "invalid_request_error",
+                "code": "invalid_workspace_probe_prompt",
+            }})
+            return
+        try:
+            prompt_bytes = prompt.encode("utf-8")
+        except UnicodeEncodeError:
+            self._json(400, {"error": {
+                "message": "prompt must contain valid Unicode scalar values",
+                "type": "invalid_request_error",
+                "code": "invalid_workspace_probe_prompt",
+            }})
+            return
+        if len(prompt_bytes) > 256 * 1024:
+            self._json(413, {"error": {
+                "message": "prompt exceeds the 256 KiB observation limit",
+                "type": "invalid_request_error",
+                "code": "workspace_probe_prompt_too_large",
+            }})
+            return
+
+        layers = req.get("layers")
+        positions = req.get("positions")
+        if layers is not None and (
+            not isinstance(layers, list)
+            or any(not isinstance(layer, int) or isinstance(layer, bool) for layer in layers)
+        ):
+            self._json(400, {"error": {
+                "message": "layers must be an array of integers",
+                "type": "invalid_request_error",
+                "code": "invalid_workspace_probe_layers",
+            }})
+            return
+        if positions is not None and (
+            not isinstance(positions, list)
+            or any(
+                not isinstance(position, int) or isinstance(position, bool)
+                for position in positions
+            )
+        ):
+            self._json(400, {"error": {
+                "message": "positions must be an array of integers",
+                "type": "invalid_request_error",
+                "code": "invalid_workspace_probe_positions",
+            }})
+            return
+        k = req.get("k", 10)
+        if not isinstance(k, int) or isinstance(k, bool):
+            self._json(400, {"error": {
+                "message": "layers, positions, and k must be integers",
+                "type": "invalid_request_error",
+                "code": "invalid_workspace_probe_parameters",
+            }})
+            return
+
+        target = MODELS.get(model_name)
+        if target is None:
+            self._json(404, {"error": {
+                "message": f"model '{model_name}' not found. serving: {sorted(MODELS)}",
+                "type": "invalid_request_error",
+                "code": "model_not_found",
+            }})
+            return
+
+        request_id = _workspace_request_id()
+        try:
+            receipt = target.observe_workspace(
+                prompt,
+                request_id,
+                layers=layers,
+                positions=positions,
+                k=k,
+            )
+        except WorkspaceProbeError as exc:
+            status = 409 if exc.code == "workspace_lens_unavailable" else 400
+            self._json(status, {"error": {
+                "message": str(exc),
+                "type": "invalid_request_error",
+                "code": exc.code,
+            }})
+            return
+        except Exception as exc:
+            self._json(500, {"error": {
+                "message": f"workspace observation failed: {exc}",
+                "type": "server_error",
+                "code": "workspace_probe_failed",
+            }})
+            return
+        self._json(200, receipt)
 
     def _sse_stream(self, chat, req_id, created, prompt, grammar, max_tokens, temperature, top_k, seed, target, model_name):
         """OpenAI-compatible SSE: one `data: {json}` frame per text delta, a final
@@ -619,16 +853,39 @@ def main():
         "P.041 s1/s2 disposition pair from one process). BINS defaults to --bins. "
         "Requests select via the OpenAI `model` param; unknown names get 404.",
     )
+    parser.add_argument(
+        "--workspace-lens",
+        action="append",
+        default=[],
+        metavar="MODEL=PATH",
+        help="bind a precomputed Jacobian-lens artifact to a resident model. Repeatable; "
+        "enables read-only POST /v1/model-workspace/observe for that model.",
+    )
     args = parser.parse_args()
 
     device = args.device
     if device == "auto":
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
+    workspace_lenses = {}
+    for spec in args.workspace_lens:
+        if "=" not in spec:
+            raise SystemExit(f"--workspace-lens must be MODEL=PATH, got: {spec!r}")
+        name, lens_path = (part.strip() for part in spec.split("=", 1))
+        if not name or not lens_path or name in workspace_lenses:
+            raise SystemExit(f"invalid or duplicate --workspace-lens binding: {spec!r}")
+        workspace_lenses[name] = lens_path
+
     global MODEL
     print(f"[holoserve] loading {args.ckpt} on {device} ...", flush=True)
     t0 = time.time()
-    MODEL = HoloModel(args.ckpt, args.bins, device)
+    MODEL = HoloModel(
+        args.ckpt,
+        args.bins,
+        device,
+        DEFAULT_MODEL_NAME,
+        workspace_lenses.get(DEFAULT_MODEL_NAME),
+    )
     MODELS[DEFAULT_MODEL_NAME] = MODEL
     print(
         f"[holoserve] model resident: {MODEL.params_millions}M params, "
@@ -650,17 +907,30 @@ def main():
             raise SystemExit(f"--model-spec duplicate model name: {name!r}")
         print(f"[holoserve] loading extra model '{name}' from {ckpt_path} ...", flush=True)
         t1 = time.time()
-        MODELS[name] = HoloModel(ckpt_path, bins_path or args.bins, device)
+        MODELS[name] = HoloModel(
+            ckpt_path,
+            bins_path or args.bins,
+            device,
+            name,
+            workspace_lenses.get(name),
+        )
         print(
             f"[holoserve] '{name}' resident: {MODELS[name].params_millions}M params, "
             f"iter {MODELS[name].config['iter']}, load {time.time() - t1:.1f}s",
             flush=True,
         )
 
+    unknown_lens_models = sorted(set(workspace_lenses).difference(MODELS))
+    if unknown_lens_models:
+        raise SystemExit(
+            f"--workspace-lens references models that are not resident: {unknown_lens_models}"
+        )
+
     server = ThreadingHTTPServer((args.host, args.port), Handler)
     print(
         f"[holoserve] serving sovereign HOLO model at http://{args.host}:{args.port} "
-        f"(/health, /v1/completions) - PyTorch-direct, no llama.cpp",
+        f"(/health, /v1/completions, /v1/model-workspace/observe) - "
+        f"PyTorch-direct, no llama.cpp",
         flush=True,
     )
     try:

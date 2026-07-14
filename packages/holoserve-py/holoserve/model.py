@@ -55,7 +55,8 @@ class GPT(nn.Module):
         elif isinstance(m, nn.Embedding):
             nn.init.normal_(m.weight, mean=0.0, std=0.02)
 
-    def forward(self, idx, targets=None, type_ids=None):
+    def embed(self, idx, type_ids=None):
+        """Embed a token sequence before the transformer blocks."""
         T = idx.size(1)
         pos = torch.arange(T, device=idx.device)
         tok = self.tok(idx)
@@ -64,15 +65,43 @@ class GPT(nn.Module):
                 type_ids = torch.zeros_like(idx)
             type_ids = type_ids.to(device=idx.device, dtype=torch.long).clamp(0, self.structural_type_count - 1)
             tok = tok + self.struct(type_ids)
-        x = self.drop(tok + self.pos(pos))
+        return self.drop(tok + self.pos(pos))
+
+    def _forward_blocks(self, idx, type_ids=None, capture_residuals=False):
+        """Run transformer blocks, retaining residuals only when explicitly requested."""
+        x = self.embed(idx, type_ids=type_ids)
+        residuals = [] if capture_residuals else None
         for b in self.blocks:
             x = b(x)
-        x = self.lnf(x)
-        logits = self.head(x)
+            if residuals is not None:
+                residuals.append(x)
+        logits = self.head(self.lnf(x))
+        return logits, tuple(residuals) if residuals is not None else ()
+
+    def forward(self, idx, targets=None, type_ids=None):
+        logits, _ = self._forward_blocks(idx, type_ids=type_ids, capture_residuals=False)
         loss = None
         if targets is not None:
             loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=-1)
         return logits, loss
+
+    def forward_with_residuals(self, idx, type_ids=None):
+        """Observation-only surface for probes; ordinary callers keep `(logits, loss)`."""
+        return self._forward_blocks(idx, type_ids=type_ids, capture_residuals=True)
+
+    def forward_from_residual(self, residual, start_layer, normalize=True):
+        """Continue a captured residual through blocks `[start_layer, n_layer)`.
+
+        Jacobian-lens fitting differentiates this function with respect to one
+        source-position residual. It does not mutate model parameters or expose
+        an intervention path through the serving API.
+        """
+        if start_layer < 0 or start_layer > len(self.blocks):
+            raise ValueError(f"start_layer must be in [0, {len(self.blocks)}]")
+        x = residual
+        for b in self.blocks[start_layer:]:
+            x = b(x)
+        return self.lnf(x) if normalize else x
 
     def num_params(self):
         return sum(p.numel() for p in self.parameters())

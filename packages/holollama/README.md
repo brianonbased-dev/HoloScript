@@ -141,6 +141,7 @@ import {
   buildLlamaServeComposition,
   compileHoloLlamaBundle,
   doctorHoloLlamaProfiles,
+  observeHoloLlamaModelWorkspace,
   probeHoloLlamaLiveLifecycle,
   writeHoloLlamaBundleFiles,
 } from '@holoscript/holollama';
@@ -158,7 +159,28 @@ const live = await probeHoloLlamaLiveLifecycle({
   skipSystemd: true,
 });
 console.log(live.runtimeState);
+
+const workspace = await observeHoloLlamaModelWorkspace({
+  endpoint: 'http://127.0.0.1:8080',
+  model: 'holorunner-s0',
+  prompt: 'composition "',
+  layers: [1],
+  positions: [-1],
+  k: 10,
+});
+console.log(workspace.status, workspace.modelWorkspaceReceipt?.observation);
 ```
+
+`observeHoloLlamaModelWorkspace` is a typed client and verifier for HoloServe's
+read-only `/v1/model-workspace/observe` endpoint. It health-checks the backend,
+requires a model-bound `jacobian_lens` capability, recomputes the integer-domain
+observation and receipt hashes, binds the receipt to the requested prompt,
+layers, positions, k, model, and advertised lens, and validates the safety
+envelope. The current HoloServe estimator is surfaced honestly as
+`explicit_pair_average_v0` with `paperParity: false`. Standard llama.cpp/GGUF
+HoloLlama nodes fail closed because they do not expose differentiable hidden
+states. The client never synthesizes a latent readout from request/response
+traces and exposes no intervention method.
 
 ## Serving Strategy
 

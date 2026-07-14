@@ -61,13 +61,54 @@ never gets routed sovereign traffic.
 
 ### Endpoints
 
-| Method | Path | Purpose |
-| --- | --- | --- |
-| GET | `/health`, `/healthz` | sovereignty + model discovery contract |
-| GET | `/props`, `/slots` | fleet-router (llama-server) parity |
-| GET | `/v1/models` | resident model registry |
-| POST | `/v1/completions`, `/completions` | free / grammar-constrained completion (+ SSE `stream:true`) |
-| POST | `/v1/chat/completions` | OpenAI chat parity via **honest flattening** (the base model has no chat template, D.121) |
+| Method | Path                              | Purpose                                                                                   |
+| ------ | --------------------------------- | ----------------------------------------------------------------------------------------- |
+| GET    | `/health`, `/healthz`             | sovereignty + model discovery contract                                                    |
+| GET    | `/props`, `/slots`                | fleet-router (llama-server) parity                                                        |
+| GET    | `/v1/models`                      | resident model registry                                                                   |
+| POST   | `/v1/completions`, `/completions` | free / grammar-constrained completion (+ SSE `stream:true`)                               |
+| POST   | `/v1/chat/completions`            | OpenAI chat parity via **honest flattening** (the base model has no chat template, D.121) |
+| POST   | `/v1/model-workspace/observe`     | read-only, receipt-bound Jacobian-lens observation                                        |
+
+### Model workspace observation
+
+HoloServe can apply a precomputed, corpus-averaged Jacobian lens to captured
+post-block residuals. This first implementation is explicitly labeled
+`explicit_pair_average_v0` with `paperParity: false`: it averages full
+Jacobians for bounded source/target calibration pairs and does not claim the
+paper's batched estimator or frontier-model scale. Lens fitting is offline;
+serving never performs live per-request autograd and never returns raw prompts
+or activation tensors. Calibration cost grows with examples × explicit pairs ×
+layers × hidden width, so this v0 estimator is intentionally for bounded local
+experiments; its artifact metadata prevents it from being mistaken for paper
+parity.
+
+Bind each artifact to the exact resident model name when launching:
+
+```bash
+holoserve --ckpt /path/to/ckpt.pt --bins /path/to/bins \
+  --workspace-lens holorunner-s0=/path/to/holorunner-s0-jacobian-lens.pt
+
+curl -s localhost:8080/v1/model-workspace/observe \
+  -H 'content-type: application/json' \
+  -d '{"model":"holorunner-s0","prompt":"composition \"","layers":[1],"positions":[-1],"k":10}'
+```
+
+The lens artifact binds checkpoint, tokenizer, calibration-corpus, layer, and
+position-policy hashes. A mismatch fails startup. `/health.model_workspace_probe`
+advertises per-model availability; a model without a bound artifact abstains.
+The endpoint accepts observation fields only and rejects `mode`, `intervention`,
+`direction`, `strength`, activation vectors, and unknown fields. A future write
+capability requires a separate endpoint and receipt schema.
+
+Use `fit_jacobian_lens` and `save_jacobian_lens_artifact` from
+`holoserve.workspace_probe` in an offline calibration job. The resulting
+`ModelWorkspaceReceipt` is a tokenizer-bound measurement, not intent, truth,
+identity, consciousness, or policy authority. Sparse scores and probabilities
+use exact E8 integer fields, allowing HoloServe and HoloLlama to recompute the
+same receipt hashes without lossy floating-point canonicalization. Receipts bind
+the prompt hash, requested layers/positions/k, selected model, and advertised
+lens artifact.
 
 ## Native constrained decoding (no GBNF, no llama.cpp)
 
@@ -98,20 +139,21 @@ holoserve-sample --data-dir /path/to/s0/bins --ckpt /path/to/s0/ckpt/ckpt.pt \
 
 ## Modules
 
-| Module | Needs torch? | What it is |
-| --- | --- | --- |
-| `holoserve.tokenizer` | no | native byte-BPE codec (single source of truth) |
-| `holoserve.grammar` | no | byte-level NFA constrained-decoding engine + `GRAMMARS` |
-| `holoserve.model` | yes | the from-scratch S0 GPT (`Block` + `GPT`) |
-| `holoserve.sampler` | yes | deterministic offline JSONL sampler |
-| `holoserve.server` | yes | resident-model OpenAI-compatible HTTP server |
-| `holoserve.train` | yes | the from-scratch, resumable GPU trainer (optional) |
+| Module                      | Needs torch? | What it is                                                 |
+| --------------------------- | ------------ | ---------------------------------------------------------- |
+| `holoserve.tokenizer`       | no           | native byte-BPE codec (single source of truth)             |
+| `holoserve.grammar`         | no           | byte-level NFA constrained-decoding engine + `GRAMMARS`    |
+| `holoserve.model`           | yes          | the from-scratch S0 GPT (`Block` + `GPT`)                  |
+| `holoserve.sampler`         | yes          | deterministic offline JSONL sampler                        |
+| `holoserve.server`          | yes          | resident-model OpenAI-compatible HTTP server               |
+| `holoserve.workspace_probe` | yes          | offline Jacobian-lens fitting + read-only receipt emission |
+| `holoserve.train`           | yes          | the from-scratch, resumable GPU trainer (optional)         |
 
 ## Tests
 
 ```bash
-pip install -e ".[dev]"
-pytest        # torch-free structure/smoke tests (grammar + tokenizer)
+pip install -e ".[model,dev]"
+pytest        # includes the torch-backed model-workspace tests
 ```
 
 ## Provenance

@@ -1,4 +1,5 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
@@ -14,8 +15,13 @@ import {
   doctorHoloLlamaProfiles,
   extractSovereignDeviceRegistry,
   installHoloLlamaPublicHarness,
+  hashModelWorkspacePayload,
   listHoloLlamaBrains,
   listHoloLlamaProfiles,
+  MODEL_WORKSPACE_CAPABILITY_SCHEMA,
+  MODEL_WORKSPACE_HASH_CANONICALIZATION,
+  MODEL_WORKSPACE_RECEIPT_SCHEMA,
+  observeHoloLlamaModelWorkspace,
   parseHoloLlamaSystemdShow,
   preflightHoloLlamaVision,
   probeHoloLlamaLiveLifecycle,
@@ -25,6 +31,11 @@ import {
   summarizeHoloLlamaBundle,
   verifyHoloLlamaHarnessSafety,
   verifyHoloLlamaServerContract,
+} from '../index.js';
+import type {
+  HoloLlamaWorkspaceProbeFetch,
+  HoloLlamaWorkspaceProbeFetchResponse,
+  ModelWorkspaceReceipt,
 } from '../index.js';
 import { selectHoloLlamaBrain as selectHoloLlamaBrainFromSubpath } from '../brain.js';
 import { runCli } from '../cli.js';
@@ -36,7 +47,122 @@ const patchedJetsonExecutable = '/opt/holoscript/llama.cpp/build-holo/bin/llama-
 const patchedLaptopExecutable =
   'C:\\holoscript\\llama.cpp\\build-holo\\bin\\Release\\llama-server.exe';
 
+function workspaceJsonResponse(body: unknown, status = 200): HoloLlamaWorkspaceProbeFetchResponse {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    async json() {
+      return body;
+    },
+    async text() {
+      return JSON.stringify(body);
+    },
+  };
+}
+
+function modelWorkspaceCapability() {
+  return {
+    schema: MODEL_WORKSPACE_CAPABILITY_SCHEMA,
+    observe: true,
+    intervention: false,
+    method: 'jacobian_lens',
+    estimator: 'explicit_pair_average_v0',
+    paperParity: false,
+    layers: [0],
+    lensSha256: `sha256:${'4'.repeat(64)}`,
+  };
+}
+
+function modelWorkspaceFixture(prompt = 'composition "'): ModelWorkspaceReceipt {
+  const receipt: ModelWorkspaceReceipt = {
+    schema: MODEL_WORKSPACE_RECEIPT_SCHEMA,
+    kind: 'ModelWorkspaceReceipt',
+    mode: 'observe',
+    createdAt: '2026-07-14T00:00:00.000Z',
+    requestId: 'workspace-holo-test',
+    model: {
+      requestedId: 'holorunner-s0',
+      servedId: 'holorunner-s0',
+      checkpointSha256: `sha256:${'1'.repeat(64)}`,
+      architecture: 'holorunner-s0-gpt',
+    },
+    tokenizer: { sha256: `sha256:${'2'.repeat(64)}`, vocabSize: 16 },
+    lens: {
+      method: 'jacobian_lens',
+      estimator: 'explicit_pair_average_v0',
+      paperParity: false,
+      implementationVersion: '0.1.0',
+      corpusSha256: `sha256:${'3'.repeat(64)}`,
+      lensSha256: `sha256:${'4'.repeat(64)}`,
+      positionPolicy: 'explicit-source-target-pairs',
+      jacobianCount: 2,
+      k: 1,
+    },
+    input: {
+      promptSha256: `sha256:${createHash('sha256').update(prompt, 'utf8').digest('hex')}`,
+      tokenCount: 3,
+      layers: [0],
+      requestedPositions: [-1],
+      positions: [2],
+      seed: null,
+    },
+    observation: {
+      status: 'observed',
+      layerBand: { start: 0, end: 0 },
+      layers: [
+        {
+          layer: 0,
+          position: 2,
+          concepts: [{ tokenId: 4, token: 'x', scoreE8: 125_000_000, probabilityE8: 40_000_000 }],
+          controlConcepts: [
+            { tokenId: 5, token: 'y', scoreE8: 100_000_000, probabilityE8: 30_000_000 },
+          ],
+          tailProbabilityMassE8: 60_000_000,
+        },
+      ],
+    },
+    observationSha256: '',
+    runtime: {
+      backend: 'pytorch-holo',
+      device: 'cpu',
+      torchVersion: '2.10.0',
+      pythonVersion: '3.14.0',
+      holoserveVersion: '0.1.0',
+    },
+    integrity: {
+      algorithm: 'sha256',
+      canonicalization: MODEL_WORKSPACE_HASH_CANONICALIZATION,
+    },
+    safety: {
+      readOnly: true,
+      interventionApplied: false,
+      rawActivationsPersisted: false,
+      identityBinding: 'none',
+      retention: 'receipt_only',
+    },
+    limitations: ['bounded observation'],
+    receiptHash: '',
+  };
+  receipt.observationSha256 = hashModelWorkspacePayload(receipt.observation);
+  receipt.receiptHash = hashModelWorkspacePayload({ ...receipt, receiptHash: null });
+  return receipt;
+}
+
 describe('@holoscript/holollama', () => {
+  it('shares an integer-measurement receipt hash with Python', () => {
+    expect(
+      hashModelWorkspacePayload({
+        ids: [1, 2],
+        one: 1,
+        probabilityE8: 50_000_000,
+        scoreE8: 100_000_000,
+      })
+    ).toBe('sha256:e51db8a70ed743e27e3c8013a6ae1f424f0190d216a620e580338688a077f9aa');
+    expect(() => hashModelWorkspacePayload({ score: 1.000000001 })).toThrow(
+      'receipt measurements must use JavaScript-safe integers'
+    );
+  });
+
   it('exposes all fleet serving profiles', () => {
     expect(listHoloLlamaProfiles().map((profile) => profile.id)).toEqual([
       'jetson-orin',
@@ -978,5 +1104,181 @@ composition "owned-edge" {
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
+  });
+
+  it('observes a HoloServe workspace through a typed receipt without mutation fields', async () => {
+    const fetchImpl: HoloLlamaWorkspaceProbeFetch = vi.fn(async (url) => {
+      if (url.endsWith('/health')) {
+        return workspaceJsonResponse({
+          backend: 'pytorch-holo',
+          model: { name: 'holorunner-s0' },
+          model_workspace_probe: {
+            schema: MODEL_WORKSPACE_CAPABILITY_SCHEMA,
+            observe: true,
+            intervention: false,
+            models: { 'holorunner-s0': modelWorkspaceCapability() },
+          },
+        });
+      }
+      return workspaceJsonResponse(modelWorkspaceFixture());
+    });
+
+    const receipt = await observeHoloLlamaModelWorkspace({
+      endpoint: 'http://127.0.0.1:8080/',
+      prompt: 'composition "',
+      model: 'holorunner-s0',
+      layers: [0],
+      positions: [-1],
+      k: 1,
+      generatedAt: '2026-07-14T00:00:00.000Z',
+      fetchImpl,
+    });
+
+    expect(receipt.ok).toBe(true);
+    expect(receipt.status).toBe('observed');
+    expect(receipt.modelWorkspaceReceipt?.safety).toMatchObject({
+      readOnly: true,
+      interventionApplied: false,
+      rawActivationsPersisted: false,
+      identityBinding: 'none',
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    const observeBody = JSON.parse(String(vi.mocked(fetchImpl).mock.calls[1]?.[1]?.body));
+    expect(observeBody).not.toHaveProperty('mode');
+    expect(observeBody).not.toHaveProperty('intervention');
+  });
+
+  it('fails closed when a HoloLlama llama.cpp node lacks differentiable hidden states', async () => {
+    const fetchImpl: HoloLlamaWorkspaceProbeFetch = vi.fn(async () =>
+      workspaceJsonResponse({ backend: 'llama.cpp', model: { name: 'qwen3-4b' } })
+    );
+
+    const receipt = await observeHoloLlamaModelWorkspace({
+      endpoint: 'http://127.0.0.1:18080',
+      prompt: 'test',
+      generatedAt: '2026-07-14T00:00:00.000Z',
+      fetchImpl,
+    });
+
+    expect(receipt.ok).toBe(false);
+    expect(receipt.status).toBe('unsupported');
+    expect(receipt.blockers).toEqual(['backend_has_no_differentiable_hidden_state_access']);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects a validly hashed workspace receipt replayed for another prompt', async () => {
+    const fetchImpl: HoloLlamaWorkspaceProbeFetch = vi.fn(async (url) =>
+      url.endsWith('/health')
+        ? workspaceJsonResponse({
+            backend: 'pytorch-holo',
+            model: { name: 'holorunner-s0' },
+            model_workspace_probe: {
+              schema: MODEL_WORKSPACE_CAPABILITY_SCHEMA,
+              observe: true,
+              intervention: false,
+              models: { 'holorunner-s0': modelWorkspaceCapability() },
+            },
+          })
+        : workspaceJsonResponse(modelWorkspaceFixture('different prompt'))
+    );
+
+    const receipt = await observeHoloLlamaModelWorkspace({
+      endpoint: 'http://127.0.0.1:8080',
+      prompt: 'test',
+      model: 'holorunner-s0',
+      layers: [0],
+      positions: [-1],
+      k: 1,
+      generatedAt: '2026-07-14T00:00:00.000Z',
+      fetchImpl,
+    });
+
+    expect(receipt.ok).toBe(false);
+    expect(receipt.blockers).toContain(
+      'receipt prompt hash does not match the observation request'
+    );
+  });
+
+  it('rejects an unsafe or tampered HoloServe workspace receipt', async () => {
+    const original = modelWorkspaceFixture('test');
+    const unsafe = {
+      ...original,
+      safety: { ...original.safety, interventionApplied: true },
+    };
+    const fetchImpl: HoloLlamaWorkspaceProbeFetch = vi.fn(async (url) =>
+      url.endsWith('/health')
+        ? workspaceJsonResponse({
+            backend: 'pytorch-holo',
+            model: { name: 'holorunner-s0' },
+            model_workspace_probe: {
+              schema: MODEL_WORKSPACE_CAPABILITY_SCHEMA,
+              observe: true,
+              intervention: false,
+              models: { 'holorunner-s0': modelWorkspaceCapability() },
+            },
+          })
+        : workspaceJsonResponse(unsafe)
+    );
+
+    const receipt = await observeHoloLlamaModelWorkspace({
+      endpoint: 'http://127.0.0.1:8080',
+      prompt: 'test',
+      model: 'holorunner-s0',
+      layers: [0],
+      positions: [-1],
+      k: 1,
+      generatedAt: '2026-07-14T00:00:00.000Z',
+      fetchImpl,
+    });
+
+    expect(receipt.ok).toBe(false);
+    expect(receipt.status).toBe('failed');
+    expect(receipt.blockers).toContain('receipt safety envelope is missing or unsafe');
+  });
+
+  it('recomputes workspace receipt hashes and rejects changed observations', async () => {
+    const original = modelWorkspaceFixture('test');
+    const layer = original.observation.layers[0]!;
+    const tampered: ModelWorkspaceReceipt = {
+      ...original,
+      observation: {
+        ...original.observation,
+        layers: [
+          {
+            ...layer,
+            concepts: [{ ...layer.concepts[0]!, scoreE8: 9_900_000_000 }],
+          },
+        ],
+      },
+    };
+    const fetchImpl: HoloLlamaWorkspaceProbeFetch = vi.fn(async (url) =>
+      url.endsWith('/health')
+        ? workspaceJsonResponse({
+            backend: 'pytorch-holo',
+            model: { name: 'holorunner-s0' },
+            model_workspace_probe: {
+              schema: MODEL_WORKSPACE_CAPABILITY_SCHEMA,
+              observe: true,
+              intervention: false,
+              models: { 'holorunner-s0': modelWorkspaceCapability() },
+            },
+          })
+        : workspaceJsonResponse(tampered)
+    );
+
+    const receipt = await observeHoloLlamaModelWorkspace({
+      endpoint: 'http://127.0.0.1:8080',
+      prompt: 'test',
+      model: 'holorunner-s0',
+      layers: [0],
+      positions: [-1],
+      k: 1,
+      generatedAt: '2026-07-14T00:00:00.000Z',
+      fetchImpl,
+    });
+
+    expect(receipt.ok).toBe(false);
+    expect(receipt.blockers).toContain('observationSha256 does not match the observation payload');
+    expect(receipt.blockers).toContain('receiptHash does not match the receipt payload');
   });
 });

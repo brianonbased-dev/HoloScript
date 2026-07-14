@@ -38,6 +38,25 @@ export type {
   HoloLlamaBrainSelection,
   SelectHoloLlamaBrainOptions,
 } from './brain.js';
+export {
+  HOLOLLAMA_MODEL_WORKSPACE_PROBE_SCHEMA,
+  MODEL_WORKSPACE_CAPABILITY_SCHEMA,
+  MODEL_WORKSPACE_HASH_CANONICALIZATION,
+  MODEL_WORKSPACE_RECEIPT_SCHEMA,
+  hashModelWorkspacePayload,
+  observeHoloLlamaModelWorkspace,
+  validateModelWorkspaceReceipt,
+} from './model-workspace-probe.js';
+export type {
+  HoloLlamaModelWorkspaceProbeReceipt,
+  HoloLlamaWorkspaceProbeFetch,
+  HoloLlamaWorkspaceProbeFetchResponse,
+  ModelWorkspaceConcept,
+  ModelWorkspaceLayerObservation,
+  ModelWorkspaceReceipt,
+  ModelWorkspaceReceiptExpectation,
+  ObserveHoloLlamaModelWorkspaceOptions,
+} from './model-workspace-probe.js';
 
 export type HoloLlamaProfile = 'jetson-orin' | 'laptop-windows' | 'vast-linux-gpu';
 
