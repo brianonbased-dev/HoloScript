@@ -302,6 +302,7 @@ class HoloModel:
             )
         prompt_sha256 = f"sha256:{hashlib.sha256(prompt.encode('utf-8')).hexdigest()}"
         prompt_ids = [1] + smp.encode_text(prompt, self.merges, self.merge_id)
+        original_token_count = len(prompt_ids)
         prompt_ids = prompt_ids[-self.block_size :]
         token_ids = torch.tensor([prompt_ids], dtype=torch.long, device=self.device)
         with self._lock:
@@ -313,6 +314,7 @@ class HoloModel:
                 layers=layers,
                 positions=positions,
                 k=k,
+                original_token_count=original_token_count,
             )
 
 

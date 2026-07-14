@@ -73,15 +73,27 @@ never gets routed sovereign traffic.
 ### Model workspace observation
 
 HoloServe can apply a precomputed, corpus-averaged Jacobian lens to captured
-post-block residuals. This first implementation is explicitly labeled
-`explicit_pair_average_v0` with `paperParity: false`: it averages full
-Jacobians for bounded source/target calibration pairs and does not claim the
-paper's batched estimator or frontier-model scale. Lens fitting is offline;
-serving never performs live per-request autograd and never returns raw prompts
-or activation tensors. Calibration cost grows with examples × explicit pairs ×
-layers × hidden width, so this v0 estimator is intentionally for bounded local
-experiments; its artifact metadata prevents it from being mistaken for paper
-parity.
+post-block residuals. Two offline estimators are supported:
+
+- `explicit_pair_average_v0` (`paperParity: false`) preserves the bounded
+  source/target-pair implementation.
+- `corpus_position_average_v1` batches output-dimension cotangents over every
+  valid target position, averages valid source positions, and reuses one
+  retained graph for all requested source layers. It is pinned to Anthropic's
+  Apache-2.0 reference implementation at commit
+  `581d398613e5602a5af361e1c34d3a92ea82ba8e`.
+
+For v1, `paperParity: true` has the deliberately narrow scope
+`parityScope: reference-estimator-only`; every artifact also records
+`paperExperimentParity: false`. It means the estimator math matches the pinned
+reference, not that a calibration corpus reproduces the paper's model scale or
+experimental results.
+
+Lens fitting is offline. Serving never performs live per-request autograd and
+never returns raw prompts or activation tensors. V1 bounds dimension batch,
+sequence length, and projected CPU matrix workspace before allocation. Each
+prompt costs one forward pass plus `ceil(hidden_width / dim_batch)` backward
+passes.
 
 Bind each artifact to the exact resident model name when launching:
 
@@ -97,12 +109,20 @@ curl -s localhost:8080/v1/model-workspace/observe \
 The lens artifact binds checkpoint, tokenizer, calibration-corpus, layer, and
 position-policy hashes. A mismatch fails startup. `/health.model_workspace_probe`
 advertises per-model availability; a model without a bound artifact abstains.
+Receipts retain the full prompt hash and record both original and observed token
+counts plus the exact left-truncation policy when a prompt exceeds the model
+window; v1 verifiers reject missing or inconsistent truncation metadata.
 The endpoint accepts observation fields only and rejects `mode`, `intervention`,
 `direction`, `strength`, activation vectors, and unknown fields. A future write
 capability requires a separate endpoint and receipt schema.
 
-Use `fit_jacobian_lens` and `save_jacobian_lens_artifact` from
-`holoserve.workspace_probe` in an offline calibration job. The resulting
+Use `fit_jacobian_lens_v1`, `merge_jacobian_lens_v1_artifacts`, and
+`save_jacobian_lens_artifact` from `holoserve.workspace_probe` in an offline
+calibration job. Fit content-disjoint prompt shards, save each shard atomically,
+then merge with exact prompt-count weighting for a resumable larger run. The
+fitter derives its corpus hash from the exact ordered post-truncation token
+sequences and rejects a caller-supplied mismatch or overlapping merge shards.
+`fit_jacobian_lens` remains available for v0 compatibility. The resulting
 `ModelWorkspaceReceipt` is a tokenizer-bound measurement, not intent, truth,
 identity, consciousness, or policy authority. Sparse scores and probabilities
 use exact E8 integer fields, allowing HoloServe and HoloLlama to recompute the

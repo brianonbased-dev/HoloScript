@@ -29,6 +29,7 @@ import {
   resolveHoloLlamaExpectedSpecFromCode,
   selectHoloLlamaBrain,
   summarizeHoloLlamaBundle,
+  validateModelWorkspaceReceipt,
   verifyHoloLlamaHarnessSafety,
   verifyHoloLlamaServerContract,
 } from '../index.js';
@@ -101,6 +102,9 @@ function modelWorkspaceFixture(prompt = 'composition "'): ModelWorkspaceReceipt 
     input: {
       promptSha256: `sha256:${createHash('sha256').update(prompt, 'utf8').digest('hex')}`,
       tokenCount: 3,
+      originalTokenCount: 3,
+      truncated: false,
+      truncationPolicy: 'none',
       layers: [0],
       requestedPositions: [-1],
       positions: [2],
@@ -1146,6 +1150,119 @@ composition "owned-edge" {
     const observeBody = JSON.parse(String(vi.mocked(fetchImpl).mock.calls[1]?.[1]?.body));
     expect(observeBody).not.toHaveProperty('mode');
     expect(observeBody).not.toHaveProperty('intervention');
+  });
+
+  it('accepts the reference estimator receipt and rejects a false parity label', () => {
+    const base = modelWorkspaceFixture();
+    const v1 = {
+      ...base,
+      lens: {
+        ...base.lens,
+        estimator: 'corpus_position_average_v1',
+        paperParity: true,
+        parityScope: 'reference-estimator-only',
+        paperExperimentParity: false,
+        implementationVersion: '0.1.0',
+        positionPolicy: 'all-valid-current-and-future-targets',
+      },
+      receiptHash: '',
+    };
+    v1.receiptHash = hashModelWorkspacePayload({ ...v1, receiptHash: null });
+
+    expect(validateModelWorkspaceReceipt(v1).ok).toBe(true);
+
+    const mislabeled = {
+      ...v1,
+      lens: { ...v1.lens, paperParity: false },
+      receiptHash: '',
+    };
+    mislabeled.receiptHash = hashModelWorkspacePayload({ ...mislabeled, receiptHash: null });
+    const validation = validateModelWorkspaceReceipt(mislabeled);
+    expect(validation.ok).toBe(false);
+    expect(validation.blockers).toContain('lens provenance or sparse-readout bound is invalid');
+
+    const wrongPolicy = {
+      ...v1,
+      lens: { ...v1.lens, positionPolicy: 'explicit-source-target-pairs' },
+      receiptHash: '',
+    };
+    wrongPolicy.receiptHash = hashModelWorkspacePayload({ ...wrongPolicy, receiptHash: null });
+    expect(validateModelWorkspaceReceipt(wrongPolicy).blockers).toContain(
+      'lens provenance or sparse-readout bound is invalid'
+    );
+
+    const unrecorded = {
+      ...v1,
+      input: { ...v1.input },
+      receiptHash: '',
+    };
+    delete unrecorded.input.originalTokenCount;
+    delete unrecorded.input.truncated;
+    delete unrecorded.input.truncationPolicy;
+    unrecorded.receiptHash = hashModelWorkspacePayload({ ...unrecorded, receiptHash: null });
+    expect(validateModelWorkspaceReceipt(unrecorded).blockers).toContain(
+      'bounded input provenance is invalid'
+    );
+  });
+
+  it('binds a reference estimator receipt to its advertised HoloServe capability', async () => {
+    const base = modelWorkspaceFixture();
+    const receipt: ModelWorkspaceReceipt = {
+      ...base,
+      lens: {
+        ...base.lens,
+        estimator: 'corpus_position_average_v1',
+        paperParity: true,
+        parityScope: 'reference-estimator-only',
+        paperExperimentParity: false,
+        implementationVersion: '0.1.0',
+        positionPolicy: 'all-valid-current-and-future-targets',
+      },
+      receiptHash: '',
+    };
+    receipt.receiptHash = hashModelWorkspacePayload({ ...receipt, receiptHash: null });
+
+    const fetchImpl: HoloLlamaWorkspaceProbeFetch = vi.fn(async (url) =>
+      url.endsWith('/health')
+        ? workspaceJsonResponse({
+            backend: 'pytorch-holo',
+            model: { name: 'holorunner-s0' },
+            model_workspace_probe: {
+              schema: MODEL_WORKSPACE_CAPABILITY_SCHEMA,
+              observe: true,
+              intervention: false,
+              models: {
+                'holorunner-s0': {
+                  ...modelWorkspaceCapability(),
+                  estimator: 'corpus_position_average_v1',
+                  paperParity: true,
+                  parityScope: 'reference-estimator-only',
+                  paperExperimentParity: false,
+                },
+              },
+            },
+          })
+        : workspaceJsonResponse(receipt)
+    );
+
+    const result = await observeHoloLlamaModelWorkspace({
+      endpoint: 'http://127.0.0.1:8080',
+      prompt: 'composition "',
+      model: 'holorunner-s0',
+      layers: [0],
+      positions: [-1],
+      k: 1,
+      generatedAt: '2026-07-14T00:00:00.000Z',
+      fetchImpl,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.modelWorkspaceReceipt?.lens).toMatchObject({
+      estimator: 'corpus_position_average_v1',
+      paperParity: true,
+      parityScope: 'reference-estimator-only',
+      paperExperimentParity: false,
+    });
   });
 
   it('fails closed when a HoloLlama llama.cpp node lacks differentiable hidden states', async () => {

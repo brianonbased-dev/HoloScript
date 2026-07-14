@@ -52,6 +52,7 @@ export type {
   HoloLlamaWorkspaceProbeFetch,
   HoloLlamaWorkspaceProbeFetchResponse,
   ModelWorkspaceConcept,
+  ModelWorkspaceEstimator,
   ModelWorkspaceLayerObservation,
   ModelWorkspaceReceipt,
   ModelWorkspaceReceiptExpectation,

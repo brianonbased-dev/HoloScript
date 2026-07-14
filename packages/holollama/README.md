@@ -176,11 +176,16 @@ read-only `/v1/model-workspace/observe` endpoint. It health-checks the backend,
 requires a model-bound `jacobian_lens` capability, recomputes the integer-domain
 observation and receipt hashes, binds the receipt to the requested prompt,
 layers, positions, k, model, and advertised lens, and validates the safety
-envelope. The current HoloServe estimator is surfaced honestly as
-`explicit_pair_average_v0` with `paperParity: false`. Standard llama.cpp/GGUF
-HoloLlama nodes fail closed because they do not expose differentiable hidden
-states. The client never synthesizes a latent readout from request/response
-traces and exposes no intervention method.
+envelope. It accepts only the honest estimator/parity contracts:
+`explicit_pair_average_v0` with `paperParity: false`, or
+`corpus_position_average_v1` with `paperParity: true`,
+`parityScope: reference-estimator-only`, and `paperExperimentParity: false`.
+For v1 it also requires internally consistent original/observed token counts and
+an explicit `none` or `left-truncate-to-model-block-size` policy, so a clipped
+prompt cannot pass as an untruncated measurement.
+Standard llama.cpp/GGUF HoloLlama nodes fail closed because they do not expose
+differentiable hidden states. The client never synthesizes a latent readout from
+request/response traces and exposes no intervention method.
 
 ## Serving Strategy
 

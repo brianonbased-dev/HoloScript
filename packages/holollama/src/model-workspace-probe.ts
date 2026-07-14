@@ -8,6 +8,10 @@ export const MODEL_WORKSPACE_HASH_CANONICALIZATION =
 export const HOLOLLAMA_MODEL_WORKSPACE_PROBE_SCHEMA =
   'holollama.model-workspace-probe.v0.1.0' as const;
 
+export type ModelWorkspaceEstimator =
+  | 'explicit_pair_average_v0'
+  | 'corpus_position_average_v1';
+
 export interface ModelWorkspaceConcept {
   tokenId: number;
   token: string;
@@ -41,8 +45,10 @@ export interface ModelWorkspaceReceipt {
   };
   lens: {
     method: 'jacobian_lens';
-    estimator: 'explicit_pair_average_v0';
-    paperParity: false;
+    estimator: ModelWorkspaceEstimator;
+    paperParity: boolean;
+    parityScope?: 'reference-estimator-only';
+    paperExperimentParity?: false;
     implementationVersion: string;
     corpusSha256: string;
     lensSha256: string;
@@ -53,6 +59,9 @@ export interface ModelWorkspaceReceipt {
   input: {
     promptSha256: string;
     tokenCount: number;
+    originalTokenCount?: number;
+    truncated?: boolean;
+    truncationPolicy?: 'none' | 'left-truncate-to-model-block-size';
     layers: number[];
     requestedPositions: number[];
     positions: number[];
@@ -93,7 +102,7 @@ export interface ModelWorkspaceReceiptExpectation {
   requestedPositions: number[];
   k: number;
   lensSha256: string;
-  estimator: 'explicit_pair_average_v0';
+  estimator: ModelWorkspaceEstimator;
 }
 
 export interface HoloLlamaWorkspaceProbeFetchResponse {
@@ -219,6 +228,16 @@ export async function observeHoloLlamaModelWorkspace(
     selectedCapability.layers.every((layer) => Number.isSafeInteger(layer))
       ? (selectedCapability.layers as number[])
       : [];
+  const advertisedEstimator =
+    selectedCapability &&
+    isSupportedWorkspaceEstimator(
+      selectedCapability.estimator,
+      selectedCapability.paperParity,
+      selectedCapability.parityScope,
+      selectedCapability.paperExperimentParity
+    )
+      ? selectedCapability.estimator
+      : null;
   const observeSupported =
     backend === 'pytorch-holo' &&
     capabilityRoot?.schema === MODEL_WORKSPACE_CAPABILITY_SCHEMA &&
@@ -228,8 +247,7 @@ export async function observeHoloLlamaModelWorkspace(
     selectedCapability?.observe === true &&
     selectedCapability.intervention === false &&
     selectedCapability.method === 'jacobian_lens' &&
-    selectedCapability.estimator === 'explicit_pair_average_v0' &&
-    selectedCapability.paperParity === false &&
+    advertisedEstimator !== null &&
     isSha256(selectedCapability.lensSha256) &&
     advertisedLayers.length > 0;
 
@@ -264,7 +282,7 @@ export async function observeHoloLlamaModelWorkspace(
     requestedPositions: expectedPositions,
     k: expectedK,
     lensSha256: String(selectedCapability!.lensSha256),
-    estimator: 'explicit_pair_average_v0',
+    estimator: advertisedEstimator!,
   };
 
   const observe = await fetchJson(fetchImpl, `${endpoint}/v1/model-workspace/observe`, {
@@ -386,14 +404,17 @@ export function validateModelWorkspaceReceipt(
   if (lens?.method !== 'jacobian_lens') blockers.push('lens method must be jacobian_lens');
   if (
     !lens ||
-    lens.estimator !== 'explicit_pair_average_v0' ||
-    lens.paperParity !== false ||
+    !isSupportedWorkspaceEstimator(
+      lens.estimator,
+      lens.paperParity,
+      lens.parityScope,
+      lens.paperExperimentParity
+    ) ||
     !isSha256(lens.corpusSha256) ||
     !isSha256(lens.lensSha256) ||
     typeof lens.implementationVersion !== 'string' ||
     lens.implementationVersion.length < 1 ||
-    typeof lens.positionPolicy !== 'string' ||
-    lens.positionPolicy.length < 1 ||
+    !isSupportedWorkspacePositionPolicy(lens.estimator, lens.positionPolicy) ||
     !Number.isSafeInteger(lens.jacobianCount) ||
     Number(lens.jacobianCount) < 1 ||
     !Number.isSafeInteger(lens.k) ||
@@ -407,6 +428,19 @@ export function validateModelWorkspaceReceipt(
   const requestedPositions =
     input && Array.isArray(input.requestedPositions) ? input.requestedPositions : null;
   const inputLayers = input && Array.isArray(input.layers) ? input.layers : null;
+  const hasTruncationMetadata = Boolean(
+    input &&
+      ('originalTokenCount' in input || 'truncated' in input || 'truncationPolicy' in input)
+  );
+  const validTruncationMetadata = Boolean(
+    input &&
+      Number.isSafeInteger(input.originalTokenCount) &&
+      Number(input.originalTokenCount) >= Number(input.tokenCount) &&
+      typeof input.truncated === 'boolean' &&
+      input.truncated === (Number(input.originalTokenCount) > Number(input.tokenCount)) &&
+      input.truncationPolicy ===
+        (input.truncated ? 'left-truncate-to-model-block-size' : 'none')
+  );
   if (
     !input ||
     !isSha256(input.promptSha256) ||
@@ -426,7 +460,9 @@ export function validateModelWorkspaceReceipt(
     positions.some((position) => !Number.isSafeInteger(position) || Number(position) < 0) ||
     new Set(positions).size !== positions.length ||
     requestedPositions.length !== positions.length ||
-    input.seed !== null
+    input.seed !== null ||
+    ((lens?.estimator === 'corpus_position_average_v1' || hasTruncationMetadata) &&
+      !validTruncationMetadata)
   ) {
     blockers.push('bounded input provenance is invalid');
   }
@@ -743,6 +779,33 @@ function canonicalWorkspaceHashValue(value: unknown): unknown {
 
 function isSha256(value: unknown): value is string {
   return typeof value === 'string' && /^sha256:[a-f0-9]{64}$/u.test(value);
+}
+
+function isSupportedWorkspaceEstimator(
+  estimator: unknown,
+  paperParity: unknown,
+  parityScope?: unknown,
+  paperExperimentParity?: unknown
+): estimator is ModelWorkspaceEstimator {
+  return (
+    (estimator === 'explicit_pair_average_v0' && paperParity === false) ||
+    (estimator === 'corpus_position_average_v1' &&
+      paperParity === true &&
+      parityScope === 'reference-estimator-only' &&
+      paperExperimentParity === false)
+  );
+}
+
+function isSupportedWorkspacePositionPolicy(
+  estimator: unknown,
+  positionPolicy: unknown
+): boolean {
+  return (
+    (estimator === 'explicit_pair_average_v0' &&
+      positionPolicy === 'explicit-source-target-pairs') ||
+    (estimator === 'corpus_position_average_v1' &&
+      positionPolicy === 'all-valid-current-and-future-targets')
+  );
 }
 
 function isE8Probability(value: unknown): value is number {

@@ -8,11 +8,16 @@ torch = pytest.importorskip("torch")
 from holoserve.model import GPT
 from holoserve.server import Handler, _workspace_request_id
 from holoserve.workspace_probe import (
+    ALL_VALID_CURRENT_AND_FUTURE_POSITION_POLICY,
+    JACOBIAN_LENS_ESTIMATOR_V1,
+    JACOBIAN_LENS_V1_REFERENCE_COMMIT,
     MODEL_WORKSPACE_RECEIPT_SCHEMA,
     ModelWorkspaceProbe,
     WorkspaceProbeError,
     fit_jacobian_lens,
+    fit_jacobian_lens_v1,
     load_jacobian_lens_artifact,
+    merge_jacobian_lens_v1_artifacts,
     save_jacobian_lens_artifact,
     sha256_json,
 )
@@ -30,6 +35,65 @@ def tiny_model():
     )
     model.eval()
     return model
+
+
+def tiny_v1_model():
+    torch.manual_seed(11)
+    model = GPT(
+        vocab_size=12,
+        n_layer=3,
+        n_head=1,
+        n_embd=4,
+        block_size=8,
+        dropout=0.0,
+    )
+    model.eval()
+    return model
+
+
+def brute_force_all_valid_current_and_future(model, token_ids, layers, *, skip_first):
+    """Slow, explicit source-position baseline independent of v1 batching."""
+
+    with torch.no_grad():
+        _, residuals = model.forward_with_residuals(token_ids)
+    sequence_length = int(token_ids.size(1))
+    valid_positions = list(range(skip_first, sequence_length - 1))
+    expected = {}
+
+    for layer in layers:
+        total = torch.zeros((model.head.in_features, model.head.in_features))
+        base = residuals[layer].detach()
+        for source_position in valid_positions:
+            source = base[0, source_position].detach().clone().requires_grad_(True)
+            mask = torch.zeros(
+                (1, sequence_length, 1),
+                dtype=base.dtype,
+                device=base.device,
+            )
+            mask[:, source_position, :] = 1
+
+            def sum_valid_targets(source_value):
+                sequence = base * (1 - mask) + source_value.view(1, 1, -1) * mask
+                final_residual = model.forward_from_residual(
+                    sequence,
+                    layer + 1,
+                    normalize=False,
+                )
+                return final_residual[0, valid_positions].sum(dim=0)
+
+            total += (
+                torch.autograd.functional.jacobian(
+                    sum_valid_targets,
+                    source,
+                    create_graph=False,
+                    strict=False,
+                    vectorize=False,
+                )
+                .detach()
+                .cpu()
+            )
+        expected[layer] = total / len(valid_positions)
+    return expected
 
 
 def fitted_probe(tmp_path):
@@ -67,6 +131,263 @@ def test_forward_with_residuals_preserves_ordinary_logits():
     assert torch.equal(logits, observed_logits)
     assert len(residuals) == 2
     assert all(tuple(residual.shape) == (1, 3, 8) for residual in residuals)
+
+
+def test_v1_batched_all_future_estimator_matches_brute_force(tmp_path):
+    model = tiny_v1_model()
+    token_ids = torch.tensor([[1, 3, 4, 5, 6, 7]], dtype=torch.long)
+    truncated_ids = token_ids[:, :5]
+    expected = brute_force_all_valid_current_and_future(
+        model,
+        truncated_ids,
+        [0, 1],
+        skip_first=1,
+    )
+
+    artifact = fit_jacobian_lens_v1(
+        model,
+        [token_ids],
+        layers=[0, 1],
+        checkpoint_sha256=f"sha256:{'1' * 64}",
+        tokenizer_sha256=f"sha256:{'2' * 64}",
+        dim_batch=2,
+        max_seq_len=5,
+        skip_first=1,
+    )
+
+    assert artifact["estimator"]["name"] == JACOBIAN_LENS_ESTIMATOR_V1
+    assert artifact["estimator"]["paperParity"] is True
+    assert artifact["estimator"]["parityScope"] == "reference-estimator-only"
+    assert artifact["estimator"]["paperExperimentParity"] is False
+    assert artifact["estimator"]["vectorization"] == ("batched-output-cotangents-retained-graph")
+    assert artifact["estimator"]["reference"] == {
+        "repository": "https://github.com/anthropics/jacobian-lens",
+        "commit": JACOBIAN_LENS_V1_REFERENCE_COMMIT,
+        "license": "Apache-2.0",
+    }
+    sequence_sha256 = sha256_json([1, 3, 4, 5, 6])
+    corpus_sha256 = sha256_json([sequence_sha256])
+    assert artifact["calibration"] == {
+        "corpusSha256": corpus_sha256,
+        "jacobianCount": 1,
+        "sequenceCount": 1,
+        "tokenCount": 5,
+        "positionPolicy": ALL_VALID_CURRENT_AND_FUTURE_POSITION_POLICY,
+        "dimBatch": 2,
+        "maxSeqLen": 5,
+        "skipFirst": 1,
+        "validPositionCount": 3,
+        "promptTruncationPolicy": "right-truncate-token-ids-to-max-seq-len",
+        "corpusCanonicalization": "ordered-post-truncation-sequence-sha256-v1",
+        "sequenceSha256s": [sequence_sha256],
+        "sequenceTokenCounts": [5],
+        "shardSha256": sha256_json(
+            {
+                "sequenceSha256s": [sequence_sha256],
+                "sequenceTokenCounts": [5],
+            }
+        ),
+    }
+    for index, layer in enumerate(artifact["layers"]):
+        torch.testing.assert_close(
+            artifact["matrices"][index],
+            expected[layer],
+            rtol=0,
+            atol=1e-4,
+        )
+    assert all(parameter.grad is None for parameter in model.parameters())
+
+    path = tmp_path / "tiny-jacobian-lens-v1.pt"
+    save_jacobian_lens_artifact(artifact, path)
+    loaded = load_jacobian_lens_artifact(
+        path,
+        checkpoint_sha256=f"sha256:{'1' * 64}",
+        tokenizer_sha256=f"sha256:{'2' * 64}",
+        model=model,
+    )
+    capability = ModelWorkspaceProbe(model, loaded, [None] * 12, "holorunner-s0").capability()
+    assert capability["estimator"] == JACOBIAN_LENS_ESTIMATOR_V1
+    assert capability["paperParity"] is True
+    assert capability["parityScope"] == "reference-estimator-only"
+    assert capability["paperExperimentParity"] is False
+
+
+def test_v1_estimator_handles_a_partial_final_dimension_batch():
+    model = tiny_v1_model()
+    token_ids = torch.tensor([[1, 3, 4, 5, 6]], dtype=torch.long)
+    expected = brute_force_all_valid_current_and_future(
+        model,
+        token_ids,
+        [0],
+        skip_first=1,
+    )
+
+    artifact = fit_jacobian_lens_v1(
+        model,
+        [token_ids],
+        layers=[0],
+        checkpoint_sha256=f"sha256:{'1' * 64}",
+        tokenizer_sha256=f"sha256:{'2' * 64}",
+        dim_batch=3,
+        max_seq_len=5,
+        skip_first=1,
+    )
+
+    torch.testing.assert_close(artifact["matrices"][0], expected[0], rtol=0, atol=1e-4)
+
+
+@pytest.mark.parametrize(
+    ("overrides", "code"),
+    [
+        ({"layers": [2]}, "invalid_source_layers"),
+        ({"dim_batch": 0}, "invalid_dim_batch"),
+        ({"max_seq_len": 1}, "invalid_max_seq_len"),
+        ({"skip_first": -1}, "invalid_skip_first"),
+        ({"max_seq_len": 5, "skip_first": 4}, "invalid_skip_first"),
+    ],
+)
+def test_v1_estimator_rejects_unbounded_configuration(overrides, code):
+    model = tiny_v1_model()
+    kwargs = {
+        "layers": [0],
+        "checkpoint_sha256": f"sha256:{'1' * 64}",
+        "tokenizer_sha256": f"sha256:{'2' * 64}",
+        "dim_batch": 2,
+        "max_seq_len": 5,
+        "skip_first": 1,
+    }
+    kwargs.update(overrides)
+
+    with pytest.raises(WorkspaceProbeError) as error:
+        fit_jacobian_lens_v1(
+            model,
+            [torch.tensor([[1, 3, 4, 5, 6]], dtype=torch.long)],
+            **kwargs,
+        )
+    assert error.value.code == code
+
+
+def test_v1_estimator_fails_closed_on_too_short_prompt():
+    with pytest.raises(WorkspaceProbeError) as error:
+        fit_jacobian_lens_v1(
+            tiny_v1_model(),
+            [torch.tensor([[1]], dtype=torch.long)],
+            layers=[0],
+            checkpoint_sha256=f"sha256:{'1' * 64}",
+            tokenizer_sha256=f"sha256:{'2' * 64}",
+            dim_batch=2,
+            max_seq_len=5,
+            skip_first=0,
+        )
+    assert error.value.code == "prompt_too_short"
+
+
+def test_v1_estimator_rejects_supplied_corpus_hash_mismatch():
+    with pytest.raises(WorkspaceProbeError) as error:
+        fit_jacobian_lens_v1(
+            tiny_v1_model(),
+            [torch.tensor([[1, 3, 4, 5, 6]], dtype=torch.long)],
+            layers=[0],
+            checkpoint_sha256=f"sha256:{'1' * 64}",
+            tokenizer_sha256=f"sha256:{'2' * 64}",
+            calibration_corpus_sha256=f"sha256:{'3' * 64}",
+            dim_batch=2,
+            max_seq_len=5,
+            skip_first=1,
+        )
+    assert error.value.code == "calibration_corpus_hash_mismatch"
+
+
+def test_v1_estimator_rejects_a_projected_matrix_over_budget():
+    with pytest.raises(WorkspaceProbeError) as error:
+        fit_jacobian_lens_v1(
+            tiny_v1_model(),
+            [torch.tensor([[1, 3, 4, 5, 6]], dtype=torch.long)],
+            layers=[0],
+            checkpoint_sha256=f"sha256:{'1' * 64}",
+            tokenizer_sha256=f"sha256:{'2' * 64}",
+            dim_batch=2,
+            max_seq_len=5,
+            skip_first=1,
+            max_cpu_matrix_bytes=1,
+        )
+    assert error.value.code == "matrix_budget_exceeded"
+
+
+def test_v1_shard_merge_matches_direct_fit_with_exact_counts():
+    model = tiny_v1_model()
+    prompts = [
+        torch.tensor([[1, 3, 4, 5, 6]], dtype=torch.long),
+        torch.tensor([[2, 4, 5, 6, 7]], dtype=torch.long),
+    ]
+    kwargs = {
+        "layers": [0, 1],
+        "checkpoint_sha256": f"sha256:{'1' * 64}",
+        "tokenizer_sha256": f"sha256:{'2' * 64}",
+        "dim_batch": 2,
+        "max_seq_len": 5,
+        "skip_first": 1,
+    }
+    shards = [fit_jacobian_lens_v1(model, [prompt], **kwargs) for prompt in prompts]
+    merged = merge_jacobian_lens_v1_artifacts(shards)
+    direct = fit_jacobian_lens_v1(model, prompts, **kwargs)
+
+    torch.testing.assert_close(merged["matrices"], direct["matrices"], rtol=1e-6, atol=1e-6)
+    assert merged["calibration"] == direct["calibration"]
+
+
+def test_v1_shard_merge_rejects_overlapping_normalized_sequences():
+    model = tiny_v1_model()
+    prompt_a = torch.tensor([[1, 3, 4, 5, 6]], dtype=torch.long)
+    prompt_b = torch.tensor([[2, 4, 5, 6, 7]], dtype=torch.long)
+    prompt_c = torch.tensor([[3, 5, 6, 7, 8]], dtype=torch.long)
+    kwargs = {
+        "layers": [0, 1],
+        "checkpoint_sha256": f"sha256:{'1' * 64}",
+        "tokenizer_sha256": f"sha256:{'2' * 64}",
+        "dim_batch": 2,
+        "max_seq_len": 5,
+        "skip_first": 1,
+    }
+    shards = [
+        fit_jacobian_lens_v1(model, [prompt_a, prompt_b], **kwargs),
+        fit_jacobian_lens_v1(model, [prompt_b, prompt_c], **kwargs),
+    ]
+
+    with pytest.raises(WorkspaceProbeError) as error:
+        merge_jacobian_lens_v1_artifacts(shards)
+    assert error.value.code == "overlapping_v1_sequences"
+
+
+def test_v1_estimator_owns_rows_from_a_reused_generator_buffer():
+    model = tiny_v1_model()
+    prompt_a = torch.tensor([[1, 3, 4, 5, 6]], dtype=torch.long)
+    prompt_b = torch.tensor([[2, 4, 5, 6, 7]], dtype=torch.long)
+    shared = torch.empty_like(prompt_a)
+
+    def reused_buffer_batches():
+        shared.copy_(prompt_a)
+        yield shared
+        shared.copy_(prompt_b)
+        yield shared
+
+    kwargs = {
+        "layers": [0, 1],
+        "checkpoint_sha256": f"sha256:{'1' * 64}",
+        "tokenizer_sha256": f"sha256:{'2' * 64}",
+        "dim_batch": 2,
+        "max_seq_len": 5,
+        "skip_first": 1,
+    }
+    streamed = fit_jacobian_lens_v1(model, reused_buffer_batches(), **kwargs)
+    independent = fit_jacobian_lens_v1(
+        model,
+        [prompt_a.clone(), prompt_b.clone()],
+        **kwargs,
+    )
+
+    torch.testing.assert_close(streamed["matrices"], independent["matrices"], rtol=0, atol=0)
+    assert streamed["calibration"] == independent["calibration"]
 
 
 def test_workspace_request_ids_are_collision_resistant():
@@ -185,6 +506,58 @@ def test_lens_loader_rejects_float32_overflow_and_zero_information(tmp_path):
             model=model,
         )
     assert degenerate.value.code == "degenerate_lens_matrix"
+
+
+def test_lens_save_is_atomic_when_serialization_fails(tmp_path, monkeypatch):
+    target = tmp_path / "lens.pt"
+    target.write_bytes(b"trusted-existing-artifact")
+
+    def fail_after_partial_write(_artifact, path):
+        path.write_bytes(b"partial")
+        raise OSError("simulated serialization failure")
+
+    monkeypatch.setattr(torch, "save", fail_after_partial_write)
+    with pytest.raises(OSError, match="simulated serialization failure"):
+        save_jacobian_lens_artifact({"matrices": torch.ones(1)}, target)
+
+    assert target.read_bytes() == b"trusted-existing-artifact"
+    assert list(tmp_path.glob(".lens.pt.*.tmp")) == []
+
+
+@pytest.mark.parametrize(
+    ("mutation", "code"),
+    [
+        ("parity_scope", "invalid_lens_estimator"),
+        ("sequence_hash", "invalid_lens_metadata"),
+    ],
+)
+def test_v1_lens_loader_rejects_tampered_reference_provenance(tmp_path, mutation, code):
+    model = tiny_v1_model()
+    artifact = fit_jacobian_lens_v1(
+        model,
+        [torch.tensor([[1, 3, 4, 5, 6]], dtype=torch.long)],
+        layers=[0],
+        checkpoint_sha256=f"sha256:{'1' * 64}",
+        tokenizer_sha256=f"sha256:{'2' * 64}",
+        dim_batch=3,
+        max_seq_len=5,
+        skip_first=1,
+    )
+    if mutation == "parity_scope":
+        artifact["estimator"]["parityScope"] = "paper-experiment"
+    else:
+        artifact["calibration"]["sequenceSha256s"][0] = f"sha256:{'9' * 64}"
+    path = tmp_path / "tampered-v1.pt"
+    torch.save(artifact, path)
+
+    with pytest.raises(WorkspaceProbeError) as error:
+        load_jacobian_lens_artifact(
+            path,
+            checkpoint_sha256=f"sha256:{'1' * 64}",
+            tokenizer_sha256=f"sha256:{'2' * 64}",
+            model=model,
+        )
+    assert error.value.code == code
 
 
 @pytest.mark.parametrize(
