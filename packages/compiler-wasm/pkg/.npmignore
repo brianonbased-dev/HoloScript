@@ -1,0 +1,2 @@
+# wasm-pack writes a pkg/.gitignore that excludes all generated artifacts from
+# git. npm needs the generated JS, d.ts, and wasm files for browser consumers.

@@ -1,8 +1,11 @@
 # Rust build
 target/
 
-# WASM build output (generated)
-pkg/
+# WASM build output (generated). Keep pkg/.npmignore tracked so npm publish
+# includes generated artifacts from the working tree.
+pkg/*
+!pkg/
+!pkg/.npmignore
 pkg-node/
 pkg-bundler/
 

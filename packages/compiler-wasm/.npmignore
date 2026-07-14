@@ -1,0 +1,10 @@
+# Keep Rust build byproducts out of npm while allowing package.json "files" to
+# publish the generated browser WASM artifacts under pkg/.
+target/
+pkg-node/
+pkg-bundler/
+
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

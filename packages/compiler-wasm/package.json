@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/wasm",
-  "version": "6.1.0",
+  "version": "6.1.1",
   "description": "HoloScript parser compiled to WebAssembly for high-performance browser execution",
   "main": "pkg/holoscript_wasm.js",
   "types": "pkg/holoscript_wasm.d.ts",
@@ -11,6 +11,7 @@
   ],
   "scripts": {
     "build": "node scripts/build-wasm.mjs",
+    "prepack": "node scripts/assert-wasm-package.mjs",
     "build:nodejs": "wasm-pack build --target nodejs --out-dir pkg-node",
     "build:bundler": "wasm-pack build --target bundler --out-dir pkg-bundler",
     "test": "cargo test || echo 'cargo not installed, skipping WASM tests'",
