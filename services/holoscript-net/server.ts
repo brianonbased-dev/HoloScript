@@ -9,7 +9,6 @@ import http from 'http';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { tools, handleTool } from '@holoscript/mcp-server';
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -579,11 +578,21 @@ wss.on('connection', (ws) => {
 
 // --- Embedded MCP Brain ---
 const mcpTransports = new Map<string, SSEServerTransport>();
+let mcpModulePromise: Promise<typeof import('@holoscript/mcp-server')> | null = null;
+
+function loadMcpModule() {
+  mcpModulePromise ??= import('@holoscript/mcp-server');
+  return mcpModulePromise;
+}
 
 function createMcpServer() {
   const s = new Server({ name: 'holoscript-net', version: '6.0.0' }, { capabilities: { tools: {} } });
-  s.setRequestHandler(ListToolsRequestSchema, async () => ({ tools }));
+  s.setRequestHandler(ListToolsRequestSchema, async () => {
+    const { tools } = await loadMcpModule();
+    return { tools };
+  });
   s.setRequestHandler(CallToolRequestSchema, async (req) => {
+    const { handleTool } = await loadMcpModule();
     const { name, arguments: args } = req.params;
     const result = await handleTool(name, args || {});
     return { content: [{ type: 'text', text: typeof result === 'string' ? result : JSON.stringify(result, null, 2) }] };
@@ -619,6 +628,7 @@ app.post('/mcp', express.json({ limit: '50mb' }), async (req, res) => {
     }
 
     if (method === 'tools/list') {    
+       const { tools } = await loadMcpModule();
        res.json({
          jsonrpc: '2.0',
          id,
@@ -630,6 +640,7 @@ app.post('/mcp', express.json({ limit: '50mb' }), async (req, res) => {
     if (method === 'tools/call') {
        const { name, arguments: args } = params as { name: string, arguments?: Record<string, unknown> };
        try {
+         const { handleTool } = await loadMcpModule();
          const result = await handleTool(name, args || {});
          res.json({
            jsonrpc: '2.0',
