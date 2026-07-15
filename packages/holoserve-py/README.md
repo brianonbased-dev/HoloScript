@@ -153,6 +153,16 @@ layers/positions/k, selected model, measurement profile, and advertised lens
 artifact. SHA-256 receipts provide integrity and provenance binding, not server
 authentication; deployments still need an authenticated transport boundary.
 
+For same-endpoint fidelity work, use
+`fit_endpoint_affine_jacobian_lens_v1`. This separately named,
+`paperParity: false` estimator differentiates the final post-block residual at
+the prompt endpoint with respect to the same source coordinate, fits independent
+maps in declared absolute-position bins, and serves `J @ h + b` with a bin-wise
+mean anchor. It rejects oversize calibration prompts instead of slicing them and
+only admits final-token observations. Its receipts include a mean-final anchor
+control so a constant output prior cannot satisfy the fidelity gate. This path
+does not replace or rename Anthropic's present-and-future v1 estimator.
+
 For leakage-safe corpus runs, use the two-phase evaluator. `collect` accepts
 prompt-only JSONL rows (`caseId`, `vertical`, `templateId`, `frame`, `prompt`),
 rejects label-shaped fields and truncation by default, verifies every HoloServe
@@ -179,7 +189,18 @@ python -m holoserve.workspace_eval evaluate \
   --collection-manifest collect.json \
   --labels labels.jsonl --output evaluation.json \
   --status diagnostic --primary-frame unprimed --primary-alias a
+
+python -m holoserve.workspace_fidelity \
+  --rows rows.jsonl --receipts receipts.jsonl --prompt-manifest fidelity-h.jsonl \
+  --collection-manifest collect.json --preregistration s1-preregistration.md \
+  --output fidelity-evaluation.json
 ```
+
+`workspace_fidelity` never accepts labels. It replays all source receipts and
+requires positive, bootstrapped target-fidelity gain against both the identity
+logit lens and the mean-final anchor at layers 2 and 5, layer-8 non-inferiority,
+positive results in every position bin, entropy/max-probability improvement,
+non-collapsed token diversity, and paired A/B replication.
 
 A `fresh` run additionally requires `--fresh-manifest`, `--fresh-report`, and
 `--preregistration`. Before its first HTTP observation, collection verifies the

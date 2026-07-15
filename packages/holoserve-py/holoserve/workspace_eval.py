@@ -157,6 +157,10 @@ def _supported_estimator(value: dict[str, Any]) -> bool:
         and value.get("paperParity") is True
         and value.get("parityScope") == "reference-estimator-only"
         and value.get("paperExperimentParity") is False
+    ) or (
+        value.get("estimator") == "endpoint_self_jacobian_affine_v1"
+        and value.get("paperParity") is False
+        and value.get("transportProfile") == "mean-anchored-affine-final-residual-v1"
     )
 
 
@@ -167,6 +171,25 @@ def _supported_position_policy(estimator: Any, position_policy: Any) -> bool:
     ) or (
         estimator == "corpus_position_average_v1"
         and position_policy == "all-valid-current-and-future-targets"
+    ) or (
+        estimator == "endpoint_self_jacobian_affine_v1"
+        and position_policy == "endpoint-self-only"
+    )
+
+
+def _supported_endpoint_position_bins(value: Any) -> bool:
+    return (
+        isinstance(value, list)
+        and bool(value)
+        and all(
+            isinstance(item, list)
+            and len(item) == 2
+            and all(_is_int(bound, minimum=0, maximum=MAX_PROMPT_TOKENS - 1) for bound in item)
+            and item[0] <= item[1]
+            for item in value
+        )
+        and value[0][0] == 0
+        and all(left[1] + 1 == right[0] for left, right in zip(value, value[1:]))
     )
 
 
@@ -813,6 +836,13 @@ def _validate_capability(
         or capability.get("intervention") is not False
         or capability.get("method") != "jacobian_lens"
         or not _supported_estimator(capability)
+        or (
+            capability.get("estimator") == "endpoint_self_jacobian_affine_v1"
+            and (
+                capability.get("positionPolicy") != "endpoint-self-only"
+                or not _supported_endpoint_position_bins(capability.get("positionBins"))
+            )
+        )
         or capability.get("measurementProfile") != MODEL_WORKSPACE_MEASUREMENT_PROFILE
         or capability.get("controlProfile") != MODEL_WORKSPACE_CONTROL_PROFILE
         or capability.get("lensSha256") != binding["lensSha256"]
@@ -883,6 +913,8 @@ def _validate_receipt(
         or lens.get("paperParity") != capability.get("paperParity")
         or lens.get("parityScope") != capability.get("parityScope")
         or lens.get("paperExperimentParity") != capability.get("paperExperimentParity")
+        or lens.get("transportProfile") != capability.get("transportProfile")
+        or lens.get("positionBins") != capability.get("positionBins")
         or not isinstance(lens.get("implementationVersion"), str)
         or not lens["implementationVersion"]
         or not _is_sha256(lens.get("corpusSha256"))
@@ -925,6 +957,10 @@ def _validate_receipt(
         raise ValueError("workspace evaluation rejects truncated prompts")
     if not allow_truncated and original_token_count > MAX_PROMPT_TOKENS:
         raise ValueError("workspace evaluation rejects prompts longer than 512 tokens")
+    if lens.get("estimator") == "endpoint_self_jacobian_affine_v1" and (
+        requested_positions != [-1] or actual_positions != [token_count - 1]
+    ):
+        raise ValueError("endpoint affine evaluation requires the final token position")
 
     runtime = receipt.get("runtime")
     if (
@@ -985,6 +1021,7 @@ def _validate_receipt(
         concepts = coordinate.get("concepts")
         controls = coordinate.get("controlConcepts")
         metric = coordinate.get("distributionMetrics")
+        anchor_control = coordinate.get("anchorControlMetrics")
         if (
             coordinate_id not in expected_coordinates
             or coordinate_id in seen_coordinates
@@ -1057,6 +1094,58 @@ def _validate_receipt(
             or abs(metric["controlMaxProbabilityE8"] - controls[0]["probabilityE8"]) > 1
         ):
             raise ValueError(f"workspace coordinate {index} distribution metrics are invalid")
+        if lens.get("estimator") == "endpoint_self_jacobian_affine_v1":
+            if (
+                not isinstance(anchor_control, dict)
+                or set(anchor_control)
+                != {
+                    "anchorTargetJensenShannonDivergenceNatsE8",
+                    "mappedVsAnchorLensGainJensenShannonNatsE8",
+                    "anchorEntropyNatsE8",
+                    "anchorMaxProbabilityE8",
+                    "targetEntropyNatsE8",
+                    "targetMaxProbabilityE8",
+                    "mappedTopTokenId",
+                    "anchorTopTokenId",
+                    "targetTopTokenId",
+                }
+                or not _is_int(
+                    anchor_control.get("anchorTargetJensenShannonDivergenceNatsE8"),
+                    minimum=0,
+                    maximum=MAX_JENSEN_SHANNON_NATS_E8,
+                )
+                or not _is_int(
+                    anchor_control.get("mappedVsAnchorLensGainJensenShannonNatsE8"),
+                    minimum=-MAX_JENSEN_SHANNON_NATS_E8,
+                    maximum=MAX_JENSEN_SHANNON_NATS_E8,
+                )
+                or anchor_control["mappedVsAnchorLensGainJensenShannonNatsE8"]
+                != anchor_control["anchorTargetJensenShannonDivergenceNatsE8"]
+                - metric["mappedTargetJensenShannonDivergenceNatsE8"]
+                or not _is_int(
+                    anchor_control.get("anchorEntropyNatsE8"),
+                    minimum=0,
+                    maximum=max_entropy_e8,
+                )
+                or not _is_e8_probability(anchor_control.get("anchorMaxProbabilityE8"))
+                or not _is_int(
+                    anchor_control.get("targetEntropyNatsE8"),
+                    minimum=0,
+                    maximum=max_entropy_e8,
+                )
+                or not _is_e8_probability(anchor_control.get("targetMaxProbabilityE8"))
+                or any(
+                    not _is_int(
+                        anchor_control.get(field),
+                        minimum=0,
+                        maximum=tokenizer["vocabSize"] - 1,
+                    )
+                    for field in ("mappedTopTokenId", "anchorTopTokenId", "targetTopTokenId")
+                )
+            ):
+                raise ValueError(f"workspace coordinate {index} anchor control is invalid")
+        elif anchor_control is not None:
+            raise ValueError(f"workspace coordinate {index} has an unexpected anchor control")
         metrics.append(metric)
         lens_gains.append(metric["lensGainJensenShannonNatsE8"])
         legacy_scores.append(_legacy_union_top_k_jsd(concepts, controls))
@@ -1082,6 +1171,11 @@ def _validate_receipt(
                 "layer": int(coordinate["layer"]),
                 "position": int(coordinate["position"]),
                 "metrics": coordinate["distributionMetrics"],
+                **(
+                    {"anchorControlMetrics": coordinate["anchorControlMetrics"]}
+                    if "anchorControlMetrics" in coordinate
+                    else {}
+                ),
             }
             for coordinate in coordinate_rows
         ],

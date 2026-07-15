@@ -36,13 +36,18 @@ MODEL_WORKSPACE_SCORE_PROFILE = "mean-mapped-control-full-vocabulary-jsd-nats-v1
 JACOBIAN_LENS_ESTIMATOR_V0 = "explicit_pair_average_v0"
 JACOBIAN_LENS_ESTIMATOR = JACOBIAN_LENS_ESTIMATOR_V0
 JACOBIAN_LENS_ESTIMATOR_V1 = "corpus_position_average_v1"
+JACOBIAN_LENS_ESTIMATOR_V2 = "endpoint_self_jacobian_affine_v1"
 EXPLICIT_POSITION_POLICY = "explicit-source-target-pairs"
 ALL_VALID_CURRENT_AND_FUTURE_POSITION_POLICY = "all-valid-current-and-future-targets"
+ENDPOINT_SELF_POSITION_POLICY = "endpoint-self-only"
 JACOBIAN_LENS_V1_REFERENCE_REPOSITORY = "https://github.com/anthropics/jacobian-lens"
 JACOBIAN_LENS_V1_REFERENCE_COMMIT = "581d398613e5602a5af361e1c34d3a92ea82ba8e"
 JACOBIAN_LENS_V1_REFERENCE_LICENSE = "Apache-2.0"
 JACOBIAN_LENS_V1_CORPUS_CANONICALIZATION = "ordered-post-truncation-sequence-sha256-v1"
 JACOBIAN_LENS_V1_PROMPT_TRUNCATION_POLICY = "right-truncate-token-ids-to-max-seq-len"
+JACOBIAN_LENS_V2_PROMPT_TRUNCATION_POLICY = "reject-over-max-seq-len"
+JACOBIAN_LENS_V2_CORPUS_CANONICALIZATION = "ordered-whole-sequence-sha256-v1"
+JACOBIAN_LENS_V2_TRANSPORT_PROFILE = "mean-anchored-affine-final-residual-v1"
 WORKSPACE_PROBE_IMPLEMENTATION_VERSION = "0.1.0"
 MAX_WORKSPACE_TOP_K = 25
 MAX_WORKSPACE_POSITIONS = 4
@@ -65,6 +70,8 @@ class WorkspaceProbeError(ValueError):
 class LoadedJacobianLensArtifact:
     metadata: dict[str, Any]
     matrices: dict[int, torch.Tensor]
+    biases: dict[int, torch.Tensor]
+    target_means: dict[int, torch.Tensor]
     lens_sha256: str
 
     @property
@@ -544,6 +551,302 @@ def fit_jacobian_lens_v1(
     }
 
 
+def fit_endpoint_affine_jacobian_lens_v1(
+    model,
+    calibration_batches: Iterable[torch.Tensor],
+    *,
+    layers: Sequence[int],
+    checkpoint_sha256: str,
+    tokenizer_sha256: str,
+    calibration_corpus_sha256: str | None = None,
+    architecture: str = "holorunner-s0-gpt",
+    dim_batch: int = 8,
+    max_seq_len: int = 512,
+    position_bins: Sequence[tuple[int, int]] | None = None,
+    max_cpu_matrix_bytes: int = DEFAULT_MAX_JACOBIAN_LENS_CPU_MATRIX_BYTES,
+) -> dict[str, Any]:
+    """Fit a same-endpoint Jacobian with a bin-wise affine mean anchor.
+
+    Unlike :func:`fit_jacobian_lens_v1`, this estimator is not the paper's
+    present-and-future causal-disposition lens. For every complete calibration
+    prompt it differentiates the final post-block residual at the last token
+    only with respect to the source residual at that same token. Learned
+    absolute positions are kept explicit through caller-declared position bins.
+
+    Each bin serves ``J @ h + b``, where ``J`` is the average endpoint
+    Jacobian and ``b = mean(target) - J @ mean(source)``. The affine term makes
+    the local linearization target-fidelity shaped while the matrix itself
+    remains a causal Jacobian. Oversize prompts fail closed; no partial stream
+    chunk or silently truncated calibration sequence is admitted.
+    """
+
+    if any(type(layer) is not int for layer in layers):
+        raise WorkspaceProbeError("invalid_source_layers", "layers must contain integers")
+    layer_ids = sorted(set(layers))
+    if not layer_ids:
+        raise WorkspaceProbeError(
+            "invalid_source_layers",
+            "at least one source layer is required",
+        )
+
+    layer_count = len(model.blocks)
+    target_layer = layer_count - 1
+    if target_layer < 1 or any(layer < 0 or layer >= target_layer for layer in layer_ids):
+        raise WorkspaceProbeError(
+            "invalid_source_layers",
+            f"source layers must be a non-empty subset of [0, {target_layer - 1}]",
+        )
+
+    n_embd = int(model.head.in_features)
+    if (
+        type(dim_batch) is not int
+        or dim_batch < 1
+        or dim_batch > min(MAX_JACOBIAN_LENS_DIM_BATCH, n_embd)
+    ):
+        raise WorkspaceProbeError(
+            "invalid_dim_batch",
+            f"dim_batch must be in [1, {min(MAX_JACOBIAN_LENS_DIM_BATCH, n_embd)}]",
+        )
+    model_sequence_capacity = int(getattr(model.pos, "num_embeddings", 0))
+    sequence_limit = min(MAX_JACOBIAN_LENS_SEQUENCE_LENGTH, model_sequence_capacity)
+    if type(max_seq_len) is not int or max_seq_len < 1 or max_seq_len > sequence_limit:
+        raise WorkspaceProbeError(
+            "invalid_max_seq_len",
+            f"max_seq_len must be in [1, {sequence_limit}] for the resident model",
+        )
+    normalized_bins = _normalize_endpoint_position_bins(position_bins, max_seq_len=max_seq_len)
+    if type(max_cpu_matrix_bytes) is not int or max_cpu_matrix_bytes < 1:
+        raise WorkspaceProbeError(
+            "invalid_matrix_budget",
+            "max_cpu_matrix_bytes must be a positive integer",
+        )
+    projected_matrix_bytes = len(normalized_bins) * len(layer_ids) * n_embd * n_embd * 24
+    if projected_matrix_bytes > max_cpu_matrix_bytes:
+        raise WorkspaceProbeError(
+            "matrix_budget_exceeded",
+            f"projected CPU lens workspace {projected_matrix_bytes} bytes exceeds "
+            f"the {max_cpu_matrix_bytes}-byte budget",
+        )
+    for label, value in (
+        ("checkpoint", checkpoint_sha256),
+        ("tokenizer", tokenizer_sha256),
+    ):
+        if not _is_sha256(value):
+            raise WorkspaceProbeError(
+                "invalid_provenance_hash",
+                f"{label} hash must be a sha256 digest",
+            )
+    if calibration_corpus_sha256 is not None and not _is_sha256(calibration_corpus_sha256):
+        raise WorkspaceProbeError(
+            "invalid_provenance_hash",
+            "calibration corpus hash must be a sha256 digest when supplied",
+        )
+    if not isinstance(architecture, str) or not architecture.strip():
+        raise WorkspaceProbeError("invalid_architecture", "architecture must be non-empty")
+
+    prompts: list[tuple[torch.Tensor, int]] = []
+    sequence_sha256s: list[str] = []
+    sequence_token_counts: list[int] = []
+    vocab_size = int(model.head.out_features)
+    bin_counts = [0] * len(normalized_bins)
+    for batch in calibration_batches:
+        if (
+            not isinstance(batch, torch.Tensor)
+            or batch.ndim != 2
+            or batch.size(0) < 1
+            or batch.size(1) < 1
+            or batch.dtype == torch.bool
+            or batch.dtype.is_floating_point
+            or batch.dtype.is_complex
+        ):
+            raise WorkspaceProbeError(
+                "invalid_calibration_batch",
+                "calibration batches must be integer tensors shaped [batch, sequence]",
+            )
+        if int(batch.size(1)) > max_seq_len:
+            raise WorkspaceProbeError(
+                "calibration_prompt_too_long",
+                f"calibration prompt has {int(batch.size(1))} tokens; maximum is {max_seq_len}",
+            )
+        normalized_batch = batch.detach().to(device="cpu", dtype=torch.long)
+        for row in normalized_batch:
+            normalized = row.clone(memory_format=torch.contiguous_format)
+            sequence_length = int(normalized.numel())
+            if bool(((normalized < 0) | (normalized >= vocab_size)).any()):
+                raise WorkspaceProbeError(
+                    "invalid_calibration_token",
+                    f"calibration token ids must be in [0, {vocab_size - 1}]",
+                )
+            bin_index = _endpoint_position_bin(sequence_length - 1, normalized_bins)
+            if bin_index is None:
+                raise WorkspaceProbeError(
+                    "calibration_position_uncovered",
+                    f"endpoint {sequence_length - 1} is not covered by the position bins",
+                )
+            tokens = [int(token) for token in normalized.tolist()]
+            prompts.append((normalized.unsqueeze(0), bin_index))
+            sequence_sha256s.append(sha256_json(tokens))
+            sequence_token_counts.append(sequence_length)
+            bin_counts[bin_index] += 1
+
+    if not prompts:
+        raise WorkspaceProbeError("empty_calibration", "no calibration prompts were supplied")
+    empty_bins = [normalized_bins[index] for index, count in enumerate(bin_counts) if count == 0]
+    if empty_bins:
+        raise WorkspaceProbeError(
+            "empty_position_bin",
+            f"every endpoint position bin requires calibration prompts; empty bins: {empty_bins}",
+        )
+    derived_corpus_sha256 = sha256_json(sequence_sha256s)
+    if calibration_corpus_sha256 is not None and calibration_corpus_sha256 != derived_corpus_sha256:
+        raise WorkspaceProbeError(
+            "calibration_corpus_hash_mismatch",
+            "supplied corpus hash does not match the complete token sequences",
+        )
+
+    matrix_totals = [
+        {layer: torch.zeros((n_embd, n_embd), dtype=torch.float64) for layer in layer_ids}
+        for _ in normalized_bins
+    ]
+    source_totals = [
+        {layer: torch.zeros(n_embd, dtype=torch.float64) for layer in layer_ids}
+        for _ in normalized_bins
+    ]
+    target_totals = [torch.zeros(n_embd, dtype=torch.float64) for _ in normalized_bins]
+    n_passes = math.ceil(n_embd / dim_batch)
+    device = next(model.parameters()).device
+    was_training = model.training
+    model.eval()
+    model.zero_grad(set_to_none=True)
+
+    try:
+        for prompt, bin_index in prompts:
+            token_ids = prompt.to(device=device, dtype=torch.long)
+            replicated_ids = token_ids.expand(dim_batch, -1)
+            with torch.enable_grad():
+                _, residuals = model.forward_with_residuals(replicated_ids)
+                if len(residuals) != layer_count:
+                    raise WorkspaceProbeError(
+                        "invalid_model_residuals",
+                        "resident model did not retain every transformer-layer residual",
+                    )
+                target_activation = residuals[target_layer]
+                source_activations = [residuals[layer] for layer in layer_ids]
+                if not target_activation.requires_grad or any(
+                    not activation.requires_grad for activation in source_activations
+                ):
+                    raise WorkspaceProbeError(
+                        "non_differentiable_model",
+                        "resident model residual graph is not differentiable",
+                    )
+
+                per_prompt = {
+                    layer: torch.zeros((n_embd, n_embd), dtype=torch.float32)
+                    for layer in layer_ids
+                }
+                target_endpoint = target_activation[0, -1].detach().to(
+                    device="cpu", dtype=torch.float64
+                )
+                source_endpoints = {
+                    layer: activation[0, -1].detach().to(device="cpu", dtype=torch.float64)
+                    for layer, activation in zip(layer_ids, source_activations, strict=True)
+                }
+                batch_indices = torch.arange(dim_batch, device=device)
+                cotangent = torch.zeros_like(target_activation)
+                for pass_index, dim_start in enumerate(range(0, n_embd, dim_batch)):
+                    dimensions_this_pass = min(dim_batch, n_embd - dim_start)
+                    active_batch = batch_indices[:dimensions_this_pass]
+                    cotangent.zero_()
+                    cotangent[
+                        active_batch,
+                        -1,
+                        dim_start + active_batch,
+                    ] = 1.0
+                    gradients = torch.autograd.grad(
+                        outputs=target_activation,
+                        inputs=source_activations,
+                        grad_outputs=cotangent,
+                        retain_graph=pass_index < n_passes - 1,
+                    )
+                    for layer, gradient in zip(layer_ids, gradients, strict=True):
+                        per_prompt[layer][
+                            dim_start : dim_start + dimensions_this_pass,
+                            :,
+                        ] = gradient[:dimensions_this_pass, -1, :].detach().float().cpu()
+
+            target_totals[bin_index] += target_endpoint
+            for layer in layer_ids:
+                matrix = per_prompt[layer]
+                if not torch.isfinite(matrix).all():
+                    raise WorkspaceProbeError(
+                        "invalid_jacobian",
+                        f"layer {layer} produced a non-finite or malformed endpoint Jacobian",
+                    )
+                matrix_totals[bin_index][layer] += matrix.to(dtype=torch.float64)
+                source_totals[bin_index][layer] += source_endpoints[layer]
+    finally:
+        model.zero_grad(set_to_none=True)
+        model.train(was_training)
+
+    binned_matrices = []
+    binned_biases = []
+    binned_source_means = []
+    binned_target_means = []
+    for bin_index, count in enumerate(bin_counts):
+        target_mean = (target_totals[bin_index] / count).to(dtype=torch.float32)
+        matrices_for_bin = []
+        biases_for_bin = []
+        source_means_for_bin = []
+        target_means_for_bin = []
+        for layer in layer_ids:
+            matrix = (matrix_totals[bin_index][layer] / count).to(dtype=torch.float32)
+            source_mean = (source_totals[bin_index][layer] / count).to(dtype=torch.float32)
+            bias = target_mean - matrix @ source_mean
+            matrices_for_bin.append(matrix)
+            biases_for_bin.append(bias)
+            source_means_for_bin.append(source_mean)
+            target_means_for_bin.append(target_mean)
+        binned_matrices.append(torch.stack(matrices_for_bin))
+        binned_biases.append(torch.stack(biases_for_bin))
+        binned_source_means.append(torch.stack(source_means_for_bin))
+        binned_target_means.append(torch.stack(target_means_for_bin))
+
+    matrices = torch.stack(binned_matrices)
+    biases = torch.stack(binned_biases)
+    source_means = torch.stack(binned_source_means)
+    target_means = torch.stack(binned_target_means)
+    _require_finite_non_degenerate_binned_transport(matrices, biases, layer_ids)
+    calibration = _build_v2_calibration_metadata(
+        sequence_sha256s=sequence_sha256s,
+        sequence_token_counts=sequence_token_counts,
+        dim_batch=dim_batch,
+        max_seq_len=max_seq_len,
+        position_bins=normalized_bins,
+        position_bin_counts=bin_counts,
+    )
+    return {
+        "schema": JACOBIAN_LENS_ARTIFACT_SCHEMA,
+        "kind": "JacobianLensArtifact",
+        "method": "jacobian_lens",
+        "estimator": _v2_estimator_metadata(),
+        "implementationVersion": WORKSPACE_PROBE_IMPLEMENTATION_VERSION,
+        "model": {
+            "architecture": architecture,
+            "checkpointSha256": checkpoint_sha256,
+            "nLayer": layer_count,
+            "nEmbd": n_embd,
+            "vocabSize": vocab_size,
+        },
+        "tokenizer": {"sha256": tokenizer_sha256},
+        "calibration": calibration,
+        "layers": layer_ids,
+        "matrices": matrices,
+        "biases": biases,
+        "sourceMeans": source_means,
+        "targetMeans": target_means,
+    }
+
+
 def merge_jacobian_lens_v1_artifacts(
     artifacts: Sequence[dict[str, Any]],
 ) -> dict[str, Any]:
@@ -648,6 +951,96 @@ def _v1_estimator_metadata() -> dict[str, Any]:
     }
 
 
+def _v2_estimator_metadata() -> dict[str, Any]:
+    return {
+        "name": JACOBIAN_LENS_ESTIMATOR_V2,
+        "paperParity": False,
+        "vectorization": "batched-endpoint-output-cotangents-retained-graph",
+        "transportProfile": JACOBIAN_LENS_V2_TRANSPORT_PROFILE,
+        "anchor": "binwise-target-mean-minus-jacobian-source-mean",
+    }
+
+
+def _normalize_endpoint_position_bins(
+    position_bins: Sequence[tuple[int, int]] | None,
+    *,
+    max_seq_len: int,
+) -> list[list[int]]:
+    raw_bins: Sequence[tuple[int, int]] = position_bins or ((0, max_seq_len - 1),)
+    normalized: list[list[int]] = []
+    for value in raw_bins:
+        if (
+            not isinstance(value, (list, tuple))
+            or len(value) != 2
+            or any(type(bound) is not int for bound in value)
+        ):
+            raise WorkspaceProbeError(
+                "invalid_position_bins",
+                "position bins must contain inclusive integer [start, end] pairs",
+            )
+        start, end = map(int, value)
+        if start < 0 or end < start or end >= max_seq_len:
+            raise WorkspaceProbeError(
+                "invalid_position_bins",
+                f"position bin [{start}, {end}] is outside [0, {max_seq_len - 1}]",
+            )
+        normalized.append([start, end])
+    if (
+        not normalized
+        or normalized[0][0] != 0
+        or normalized[-1][1] != max_seq_len - 1
+        or any(left[1] + 1 != right[0] for left, right in zip(normalized, normalized[1:]))
+    ):
+        raise WorkspaceProbeError(
+            "invalid_position_bins",
+            "position bins must be ordered, contiguous, and cover [0, max_seq_len - 1]",
+        )
+    return normalized
+
+
+def _endpoint_position_bin(position: int, position_bins: Sequence[Sequence[int]]) -> int | None:
+    for index, (start, end) in enumerate(position_bins):
+        if start <= position <= end:
+            return index
+    return None
+
+
+def _build_v2_calibration_metadata(
+    *,
+    sequence_sha256s: Sequence[str],
+    sequence_token_counts: Sequence[int],
+    dim_batch: int,
+    max_seq_len: int,
+    position_bins: Sequence[Sequence[int]],
+    position_bin_counts: Sequence[int],
+) -> dict[str, Any]:
+    sequence_hashes = list(sequence_sha256s)
+    token_counts = [int(count) for count in sequence_token_counts]
+    bins = [[int(start), int(end)] for start, end in position_bins]
+    bin_counts = [int(count) for count in position_bin_counts]
+    return {
+        "corpusSha256": sha256_json(sequence_hashes),
+        "jacobianCount": len(sequence_hashes),
+        "sequenceCount": len(sequence_hashes),
+        "tokenCount": sum(token_counts),
+        "positionPolicy": ENDPOINT_SELF_POSITION_POLICY,
+        "positionBins": bins,
+        "positionBinCounts": bin_counts,
+        "dimBatch": dim_batch,
+        "maxSeqLen": max_seq_len,
+        "promptTruncationPolicy": JACOBIAN_LENS_V2_PROMPT_TRUNCATION_POLICY,
+        "corpusCanonicalization": JACOBIAN_LENS_V2_CORPUS_CANONICALIZATION,
+        "sequenceSha256s": sequence_hashes,
+        "sequenceTokenCounts": token_counts,
+        "shardSha256": sha256_json(
+            {
+                "sequenceSha256s": sequence_hashes,
+                "sequenceTokenCounts": token_counts,
+            }
+        ),
+    }
+
+
 def _build_v1_calibration_metadata(
     *,
     sequence_sha256s: Sequence[str],
@@ -699,6 +1092,104 @@ def _require_finite_non_degenerate_matrices(
         raise WorkspaceProbeError(
             "degenerate_jacobian",
             f"calibration produced zero-information lens layers: {degenerate_layers}",
+        )
+
+
+def _require_finite_non_degenerate_binned_transport(
+    matrices: torch.Tensor,
+    biases: torch.Tensor,
+    layer_ids: Sequence[int],
+) -> None:
+    if not torch.isfinite(matrices).all() or not torch.isfinite(biases).all():
+        raise WorkspaceProbeError(
+            "invalid_jacobian",
+            "endpoint affine transport overflowed the float32 serving representation",
+        )
+    degenerate = [
+        (bin_index, layer)
+        for bin_index in range(int(matrices.shape[0]))
+        for layer_index, layer in enumerate(layer_ids)
+        if float(torch.linalg.vector_norm(matrices[bin_index, layer_index]).item()) <= 1e-12
+    ]
+    if degenerate:
+        raise WorkspaceProbeError(
+            "degenerate_jacobian",
+            f"calibration produced zero-information endpoint matrices: {degenerate}",
+        )
+
+
+def _validate_v2_calibration_metadata(calibration: Any, *, n_embd: int) -> None:
+    if not isinstance(calibration, dict):
+        raise WorkspaceProbeError(
+            "invalid_lens_metadata",
+            "endpoint affine lens calibration metadata is required",
+        )
+    sequence_sha256s = calibration.get("sequenceSha256s")
+    sequence_token_counts = calibration.get("sequenceTokenCounts")
+    position_bins = calibration.get("positionBins")
+    position_bin_counts = calibration.get("positionBinCounts")
+    dim_batch = calibration.get("dimBatch")
+    max_seq_len = calibration.get("maxSeqLen")
+    sequence_count = calibration.get("sequenceCount")
+    try:
+        normalized_bins = _normalize_endpoint_position_bins(
+            position_bins,
+            max_seq_len=max_seq_len if type(max_seq_len) is int else 0,
+        )
+    except WorkspaceProbeError as error:
+        raise WorkspaceProbeError(
+            "invalid_lens_metadata",
+            "endpoint affine position-bin metadata is invalid",
+        ) from error
+    derived_bin_counts = [0] * len(normalized_bins)
+    if isinstance(sequence_token_counts, list):
+        for count in sequence_token_counts:
+            if type(count) is int and count >= 1:
+                bin_index = _endpoint_position_bin(count - 1, normalized_bins)
+                if bin_index is not None:
+                    derived_bin_counts[bin_index] += 1
+    if (
+        not _is_sha256(calibration.get("corpusSha256"))
+        or calibration.get("positionPolicy") != ENDPOINT_SELF_POSITION_POLICY
+        or calibration.get("promptTruncationPolicy")
+        != JACOBIAN_LENS_V2_PROMPT_TRUNCATION_POLICY
+        or calibration.get("corpusCanonicalization")
+        != JACOBIAN_LENS_V2_CORPUS_CANONICALIZATION
+        or type(dim_batch) is not int
+        or dim_batch < 1
+        or dim_batch > min(MAX_JACOBIAN_LENS_DIM_BATCH, n_embd)
+        or type(max_seq_len) is not int
+        or max_seq_len < 1
+        or max_seq_len > MAX_JACOBIAN_LENS_SEQUENCE_LENGTH
+        or normalized_bins != position_bins
+        or not isinstance(position_bin_counts, list)
+        or position_bin_counts != derived_bin_counts
+        or any(type(count) is not int or count < 1 for count in position_bin_counts)
+        or type(sequence_count) is not int
+        or sequence_count < 1
+        or type(calibration.get("jacobianCount")) is not int
+        or calibration["jacobianCount"] != sequence_count
+        or not isinstance(sequence_sha256s, list)
+        or len(sequence_sha256s) != sequence_count
+        or any(not _is_sha256(value) for value in sequence_sha256s)
+        or not isinstance(sequence_token_counts, list)
+        or len(sequence_token_counts) != sequence_count
+        or any(type(count) is not int or count < 1 or count > max_seq_len for count in sequence_token_counts)
+        or type(calibration.get("tokenCount")) is not int
+        or calibration["tokenCount"] != sum(sequence_token_counts)
+        or calibration["corpusSha256"] != sha256_json(sequence_sha256s)
+        or not _is_sha256(calibration.get("shardSha256"))
+        or calibration["shardSha256"]
+        != sha256_json(
+            {
+                "sequenceSha256s": sequence_sha256s,
+                "sequenceTokenCounts": sequence_token_counts,
+            }
+        )
+    ):
+        raise WorkspaceProbeError(
+            "invalid_lens_metadata",
+            "endpoint affine lens calibration provenance is incomplete or inconsistent",
         )
 
 
@@ -872,10 +1363,11 @@ def load_jacobian_lens_artifact(
         and estimator_meta.get("vectorization") == "full-output-jacobian-per-explicit-pair"
     )
     is_v1_estimator = estimator_meta == _v1_estimator_metadata()
-    if not is_v0_estimator and not is_v1_estimator:
+    is_v2_estimator = estimator_meta == _v2_estimator_metadata()
+    if not is_v0_estimator and not is_v1_estimator and not is_v2_estimator:
         raise WorkspaceProbeError(
             "invalid_lens_estimator",
-            "lens estimator metadata is not a supported v0 or pinned-reference v1 contract",
+            "lens estimator metadata is not a supported v0, pinned-reference v1, or endpoint-affine contract",
         )
     model_meta = payload.get("model")
     tokenizer_meta = payload.get("tokenizer")
@@ -952,8 +1444,10 @@ def load_jacobian_lens_artifact(
                 "invalid_lens_metadata",
                 "v0 lens calibration provenance is incomplete",
             )
-    else:
+    elif is_v1_estimator:
         _validate_v1_calibration_metadata(calibration_meta, n_embd=n_embd)
+    else:
+        _validate_v2_calibration_metadata(calibration_meta, n_embd=n_embd)
     if (
         not isinstance(layers, list)
         or not layers
@@ -964,31 +1458,71 @@ def load_jacobian_lens_artifact(
         raise WorkspaceProbeError(
             "invalid_lens_matrices", "layers and tensor matrices are required"
         )
-    if matrices.ndim != 3 or tuple(matrices.shape[1:]) != (n_embd, n_embd):
-        raise WorkspaceProbeError(
-            "invalid_lens_shape",
-            f"lens matrices must have shape [layers, {n_embd}, {n_embd}]",
+    biases = payload.get("biases")
+    source_means = payload.get("sourceMeans")
+    target_means = payload.get("targetMeans")
+    if is_v2_estimator:
+        position_bins = calibration_meta["positionBins"]
+        expected_matrix_shape = (len(position_bins), len(layers), n_embd, n_embd)
+        expected_vector_shape = (len(position_bins), len(layers), n_embd)
+        if (
+            matrices.ndim != 4
+            or tuple(matrices.shape) != expected_matrix_shape
+            or not isinstance(biases, torch.Tensor)
+            or not isinstance(source_means, torch.Tensor)
+            or not isinstance(target_means, torch.Tensor)
+            or tuple(biases.shape) != expected_vector_shape
+            or tuple(source_means.shape) != expected_vector_shape
+            or tuple(target_means.shape) != expected_vector_shape
+            or not all(
+                torch.isfinite(value).all()
+                for value in (matrices, biases, source_means, target_means)
+            )
+        ):
+            raise WorkspaceProbeError(
+                "invalid_lens_shape",
+                "endpoint affine matrices, biases, and anchor means have inconsistent shapes",
+            )
+        expected_biases = target_means.float() - torch.einsum(
+            "blij,blj->bli", matrices.float(), source_means.float()
         )
-    if len(layers) != int(matrices.shape[0]) or not torch.isfinite(matrices).all():
-        raise WorkspaceProbeError(
-            "invalid_lens_matrices",
-            "layer metadata and finite matrix count must agree",
-        )
+        if not torch.allclose(biases.float(), expected_biases, rtol=2e-5, atol=2e-5):
+            raise WorkspaceProbeError(
+                "invalid_lens_anchor",
+                "endpoint affine biases do not match the declared mean anchor",
+            )
+    else:
+        if matrices.ndim != 3 or tuple(matrices.shape[1:]) != (n_embd, n_embd):
+            raise WorkspaceProbeError(
+                "invalid_lens_shape",
+                f"lens matrices must have shape [layers, {n_embd}, {n_embd}]",
+            )
+        if len(layers) != int(matrices.shape[0]) or not torch.isfinite(matrices).all():
+            raise WorkspaceProbeError(
+                "invalid_lens_matrices",
+                "layer metadata and finite matrix count must agree",
+            )
 
     layer_map: dict[int, torch.Tensor] = {}
+    bias_map: dict[int, torch.Tensor] = {}
+    target_mean_map: dict[int, torch.Tensor] = {}
     for index, layer_value in enumerate(layers):
         layer = int(layer_value)
         if (
             layer < 0
             or layer >= len(model.blocks)
-            or (is_v1_estimator and layer >= len(model.blocks) - 1)
+            or ((is_v1_estimator or is_v2_estimator) and layer >= len(model.blocks) - 1)
             or layer in layer_map
         ):
             raise WorkspaceProbeError(
                 "invalid_lens_layer",
                 f"lens layer {layer} is duplicated or outside the resident model",
             )
-        matrix = matrices[index].detach().to(dtype=torch.float32, device="cpu")
+        matrix = (
+            matrices[:, index].detach().to(dtype=torch.float32, device="cpu")
+            if is_v2_estimator
+            else matrices[index].detach().to(dtype=torch.float32, device="cpu")
+        )
         if not torch.isfinite(matrix).all():
             raise WorkspaceProbeError(
                 "invalid_lens_matrices",
@@ -1000,10 +1534,26 @@ def load_jacobian_lens_artifact(
                 f"lens layer {layer} has no measurable mapping",
             )
         layer_map[layer] = matrix
-    metadata = {key: value for key, value in payload.items() if key != "matrices"}
+        bias_map[layer] = (
+            biases[:, index].detach().to(dtype=torch.float32, device="cpu")
+            if is_v2_estimator
+            else torch.zeros(n_embd, dtype=torch.float32)
+        )
+        target_mean_map[layer] = (
+            target_means[:, index].detach().to(dtype=torch.float32, device="cpu")
+            if is_v2_estimator
+            else torch.zeros(n_embd, dtype=torch.float32)
+        )
+    metadata = {
+        key: value
+        for key, value in payload.items()
+        if key not in {"matrices", "biases", "sourceMeans", "targetMeans"}
+    }
     return LoadedJacobianLensArtifact(
         metadata=metadata,
         matrices=layer_map,
+        biases=bias_map,
+        target_means=target_mean_map,
         lens_sha256=sha256_file(source),
     )
 
@@ -1034,6 +1584,10 @@ class ModelWorkspaceProbe:
         if estimator["name"] == JACOBIAN_LENS_ESTIMATOR_V1:
             capability["parityScope"] = estimator["parityScope"]
             capability["paperExperimentParity"] = estimator["paperExperimentParity"]
+        elif estimator["name"] == JACOBIAN_LENS_ESTIMATOR_V2:
+            capability["transportProfile"] = estimator["transportProfile"]
+            capability["positionPolicy"] = self.lens.metadata["calibration"]["positionPolicy"]
+            capability["positionBins"] = self.lens.metadata["calibration"]["positionBins"]
         return capability
 
     def observe(
@@ -1090,6 +1644,14 @@ class ModelWorkspaceProbe:
                 "duplicate_positions",
                 "positions must resolve to unique token coordinates",
             )
+        estimator_name = self.lens.metadata["estimator"]["name"]
+        if estimator_name == JACOBIAN_LENS_ESTIMATOR_V2 and normalized_positions != [
+            sequence_length - 1
+        ]:
+            raise WorkspaceProbeError(
+                "lens_position_unavailable",
+                "endpoint affine Jacobian observations require exactly the final token position",
+            )
 
         device = next(self.model.parameters()).device
         idx = token_ids.to(device=device, dtype=torch.long)
@@ -1097,13 +1659,38 @@ class ModelWorkspaceProbe:
             model_logits, residuals = self.model.forward_with_residuals(idx)
             layer_observations = []
             for layer in selected_layers:
-                matrix = self.lens.matrices[layer].to(
-                    device=device,
-                    dtype=residuals[layer].dtype,
-                )
                 for position in normalized_positions:
+                    if estimator_name == JACOBIAN_LENS_ESTIMATOR_V2:
+                        position_bins = self.lens.metadata["calibration"]["positionBins"]
+                        bin_index = _endpoint_position_bin(position, position_bins)
+                        if bin_index is None:
+                            raise WorkspaceProbeError(
+                                "lens_position_unavailable",
+                                f"position {position} is outside the calibrated endpoint bins",
+                            )
+                        matrix = self.lens.matrices[layer][bin_index].to(
+                            device=device,
+                            dtype=residuals[layer].dtype,
+                        )
+                        bias = self.lens.biases[layer][bin_index].to(
+                            device=device,
+                            dtype=residuals[layer].dtype,
+                        )
+                        target_mean = self.lens.target_means[layer][bin_index].to(
+                            device=device,
+                            dtype=residuals[layer].dtype,
+                        )
+                    else:
+                        matrix = self.lens.matrices[layer].to(
+                            device=device,
+                            dtype=residuals[layer].dtype,
+                        )
+                        bias = self.lens.biases[layer].to(
+                            device=device,
+                            dtype=residuals[layer].dtype,
+                        )
                     activation = residuals[layer][0, position]
-                    mapped = matrix @ activation
+                    mapped = matrix @ activation + bias
                     mapped_logits = self.model.head(self.model.lnf(mapped.view(1, 1, -1))[0, 0])
                     control_logits = self.model.head(
                         self.model.lnf(activation.view(1, 1, -1))[0, 0]
@@ -1136,17 +1723,25 @@ class ModelWorkspaceProbe:
                         control_logits,
                         model_logits[0, position],
                     )
-                    layer_observations.append(
-                        {
-                            "layer": layer,
-                            "position": position,
-                            "concepts": concepts,
-                            "controlConcepts": control_concepts,
-                            "tailProbabilityMassE8": mapped_tail_e8,
-                            "controlTailProbabilityMassE8": control_tail_e8,
-                            "distributionMetrics": distribution_metrics,
-                        }
-                    )
+                    coordinate = {
+                        "layer": layer,
+                        "position": position,
+                        "concepts": concepts,
+                        "controlConcepts": control_concepts,
+                        "tailProbabilityMassE8": mapped_tail_e8,
+                        "controlTailProbabilityMassE8": control_tail_e8,
+                        "distributionMetrics": distribution_metrics,
+                    }
+                    if estimator_name == JACOBIAN_LENS_ESTIMATOR_V2:
+                        anchor_logits = self.model.head(
+                            self.model.lnf(target_mean.view(1, 1, -1))[0, 0]
+                        )
+                        coordinate["anchorControlMetrics"] = _anchor_control_metrics(
+                            mapped_logits,
+                            anchor_logits,
+                            model_logits[0, position],
+                        )
+                    layer_observations.append(coordinate)
 
         observation = {
             "status": "observed",
@@ -1245,6 +1840,9 @@ class ModelWorkspaceProbe:
             receipt["lens"]["paperExperimentParity"] = metadata["estimator"][
                 "paperExperimentParity"
             ]
+        elif metadata["estimator"]["name"] == JACOBIAN_LENS_ESTIMATOR_V2:
+            receipt["lens"]["transportProfile"] = metadata["estimator"]["transportProfile"]
+            receipt["lens"]["positionBins"] = calibration_meta["positionBins"]
         receipt["receiptHash"] = sha256_json(receipt)
         return receipt
 
@@ -1413,6 +2011,58 @@ def _full_distribution_metrics(
     }
 
 
+def _anchor_control_metrics(
+    mapped_logits: torch.Tensor,
+    anchor_logits: torch.Tensor,
+    target_logits: torch.Tensor,
+) -> dict[str, int]:
+    """Measure whether the affine transport beats its bin-wise mean-only anchor."""
+
+    if (
+        mapped_logits.ndim != 1
+        or anchor_logits.shape != mapped_logits.shape
+        or target_logits.shape != mapped_logits.shape
+        or mapped_logits.numel() < 1
+    ):
+        raise WorkspaceProbeError(
+            "invalid_workspace_distribution",
+            "anchor-control distributions must be non-empty vectors with matching shapes",
+        )
+    mapped_log = F.log_softmax(mapped_logits.detach().to(dtype=torch.float64), dim=-1)
+    anchor_log = F.log_softmax(anchor_logits.detach().to(dtype=torch.float64), dim=-1)
+    target_log = F.log_softmax(target_logits.detach().to(dtype=torch.float64), dim=-1)
+    mapped = mapped_log.exp()
+    anchor = anchor_log.exp()
+    target = target_log.exp()
+    mapped_target = _measurement_e8(
+        max(0.0, float(_jensen_shannon_divergence_nats(mapped_log, target_log).item()))
+    )
+    anchor_target = _measurement_e8(
+        max(0.0, float(_jensen_shannon_divergence_nats(anchor_log, target_log).item()))
+    )
+    return {
+        "anchorTargetJensenShannonDivergenceNatsE8": anchor_target,
+        "mappedVsAnchorLensGainJensenShannonNatsE8": anchor_target - mapped_target,
+        "anchorEntropyNatsE8": _measurement_e8(
+            max(0.0, float((-torch.sum(anchor * anchor_log)).item()))
+        ),
+        "anchorMaxProbabilityE8": _measurement_e8(
+            float(anchor.max().item()),
+            probability=True,
+        ),
+        "targetEntropyNatsE8": _measurement_e8(
+            max(0.0, float((-torch.sum(target * target_log)).item()))
+        ),
+        "targetMaxProbabilityE8": _measurement_e8(
+            float(target.max().item()),
+            probability=True,
+        ),
+        "mappedTopTokenId": int(torch.argmax(mapped).item()),
+        "anchorTopTokenId": int(torch.argmax(anchor).item()),
+        "targetTopTokenId": int(torch.argmax(target).item()),
+    }
+
+
 def _jensen_shannon_divergence_nats(
     left_log_probabilities: torch.Tensor,
     right_log_probabilities: torch.Tensor,
@@ -1479,11 +2129,13 @@ def _utc_now() -> str:
 
 __all__ = [
     "ALL_VALID_CURRENT_AND_FUTURE_POSITION_POLICY",
+    "ENDPOINT_SELF_POSITION_POLICY",
     "EXPLICIT_POSITION_POLICY",
     "JACOBIAN_LENS_ARTIFACT_SCHEMA",
     "JACOBIAN_LENS_ESTIMATOR",
     "JACOBIAN_LENS_ESTIMATOR_V0",
     "JACOBIAN_LENS_ESTIMATOR_V1",
+    "JACOBIAN_LENS_ESTIMATOR_V2",
     "JACOBIAN_LENS_V1_REFERENCE_COMMIT",
     "MODEL_WORKSPACE_CAPABILITY_SCHEMA",
     "MODEL_WORKSPACE_HASH_CANONICALIZATION",
@@ -1498,6 +2150,7 @@ __all__ = [
     "WorkspaceProbeError",
     "fit_jacobian_lens",
     "fit_jacobian_lens_v1",
+    "fit_endpoint_affine_jacobian_lens_v1",
     "load_jacobian_lens_artifact",
     "merge_jacobian_lens_v1_artifacts",
     "save_jacobian_lens_artifact",

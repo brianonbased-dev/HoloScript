@@ -29,7 +29,9 @@ from holoserve.workspace_eval import (
 )
 from holoserve.workspace_probe import (
     ALL_VALID_CURRENT_AND_FUTURE_POSITION_POLICY,
+    ENDPOINT_SELF_POSITION_POLICY,
     JACOBIAN_LENS_ESTIMATOR_V1,
+    JACOBIAN_LENS_ESTIMATOR_V2,
     JACOBIAN_LENS_V1_REFERENCE_COMMIT,
     MODEL_WORKSPACE_CONTROL_PROFILE,
     MODEL_WORKSPACE_MEASUREMENT_PROFILE,
@@ -39,6 +41,7 @@ from holoserve.workspace_probe import (
     WorkspaceProbeError,
     fit_jacobian_lens,
     fit_jacobian_lens_v1,
+    fit_endpoint_affine_jacobian_lens_v1,
     load_jacobian_lens_artifact,
     merge_jacobian_lens_v1_artifacts,
     save_jacobian_lens_artifact,
@@ -119,6 +122,70 @@ def brute_force_all_valid_current_and_future(model, token_ids, layers, *, skip_f
             )
         expected[layer] = total / len(valid_positions)
     return expected
+
+
+def brute_force_endpoint_transport(model, prompts, layers, position_bins):
+    """Independent endpoint Jacobian and bin-wise affine-anchor baseline."""
+
+    grouped = {index: [] for index in range(len(position_bins))}
+    for token_ids in prompts:
+        with torch.no_grad():
+            _, residuals = model.forward_with_residuals(token_ids)
+        position = int(token_ids.size(1)) - 1
+        bin_index = next(
+            index
+            for index, (start, end) in enumerate(position_bins)
+            if start <= position <= end
+        )
+        row = {"target": residuals[-1][0, -1].detach().cpu(), "sources": {}, "jacobians": {}}
+        for layer in layers:
+            base = residuals[layer].detach()
+            source = base[0, -1].detach().clone().requires_grad_(True)
+            mask = torch.zeros((1, token_ids.size(1), 1), dtype=base.dtype)
+            mask[:, -1, :] = 1
+
+            def endpoint(source_value):
+                sequence = base * (1 - mask) + source_value.view(1, 1, -1) * mask
+                return model.forward_from_residual(sequence, layer + 1, normalize=False)[0, -1]
+
+            row["sources"][layer] = source.detach().cpu()
+            row["jacobians"][layer] = torch.autograd.functional.jacobian(
+                endpoint,
+                source,
+                create_graph=False,
+                strict=False,
+                vectorize=False,
+            ).detach().cpu()
+        grouped[bin_index].append(row)
+
+    matrices = []
+    biases = []
+    source_means = []
+    target_means = []
+    for bin_index in range(len(position_bins)):
+        rows = grouped[bin_index]
+        target_mean = torch.stack([row["target"] for row in rows]).mean(0)
+        bin_matrices = []
+        bin_biases = []
+        bin_source_means = []
+        bin_target_means = []
+        for layer in layers:
+            matrix = torch.stack([row["jacobians"][layer] for row in rows]).mean(0)
+            source_mean = torch.stack([row["sources"][layer] for row in rows]).mean(0)
+            bin_matrices.append(matrix)
+            bin_biases.append(target_mean - matrix @ source_mean)
+            bin_source_means.append(source_mean)
+            bin_target_means.append(target_mean)
+        matrices.append(torch.stack(bin_matrices))
+        biases.append(torch.stack(bin_biases))
+        source_means.append(torch.stack(bin_source_means))
+        target_means.append(torch.stack(bin_target_means))
+    return (
+        torch.stack(matrices),
+        torch.stack(biases),
+        torch.stack(source_means),
+        torch.stack(target_means),
+    )
 
 
 def fitted_probe(tmp_path):
@@ -259,6 +326,166 @@ def test_v1_estimator_handles_a_partial_final_dimension_batch():
     )
 
     torch.testing.assert_close(artifact["matrices"][0], expected[0], rtol=0, atol=1e-4)
+
+
+def test_endpoint_affine_estimator_matches_brute_force_and_binds_bins(tmp_path):
+    model = tiny_v1_model()
+    prompts = [
+        torch.tensor([[1, 3, 4]], dtype=torch.long),
+        torch.tensor([[1, 5, 6, 7, 8]], dtype=torch.long),
+    ]
+    position_bins = [(0, 3), (4, 7)]
+    expected = brute_force_endpoint_transport(model, prompts, [0, 1], position_bins)
+    artifact = fit_endpoint_affine_jacobian_lens_v1(
+        model,
+        prompts,
+        layers=[0, 1],
+        checkpoint_sha256=f"sha256:{'1' * 64}",
+        tokenizer_sha256=f"sha256:{'2' * 64}",
+        dim_batch=3,
+        max_seq_len=8,
+        position_bins=position_bins,
+    )
+
+    assert artifact["estimator"] == {
+        "name": JACOBIAN_LENS_ESTIMATOR_V2,
+        "paperParity": False,
+        "vectorization": "batched-endpoint-output-cotangents-retained-graph",
+        "transportProfile": "mean-anchored-affine-final-residual-v1",
+        "anchor": "binwise-target-mean-minus-jacobian-source-mean",
+    }
+    assert artifact["calibration"]["positionPolicy"] == ENDPOINT_SELF_POSITION_POLICY
+    assert artifact["calibration"]["positionBins"] == [[0, 3], [4, 7]]
+    assert artifact["calibration"]["positionBinCounts"] == [1, 1]
+    assert artifact["calibration"]["promptTruncationPolicy"] == "reject-over-max-seq-len"
+    for actual, wanted in zip(
+        (
+            artifact["matrices"],
+            artifact["biases"],
+            artifact["sourceMeans"],
+            artifact["targetMeans"],
+        ),
+        expected,
+        strict=True,
+    ):
+        torch.testing.assert_close(actual, wanted, rtol=0, atol=1e-4)
+    assert all(parameter.grad is None for parameter in model.parameters())
+
+    path = tmp_path / "endpoint-affine.pt"
+    save_jacobian_lens_artifact(artifact, path)
+    loaded = load_jacobian_lens_artifact(
+        path,
+        checkpoint_sha256=f"sha256:{'1' * 64}",
+        tokenizer_sha256=f"sha256:{'2' * 64}",
+        model=model,
+    )
+    probe = ModelWorkspaceProbe(model, loaded, [None] * 12, "holorunner-s0")
+    assert probe.capability() == {
+        "schema": "holoscript.model-workspace-capability.v0.2.0",
+        "observe": True,
+        "intervention": False,
+        "method": "jacobian_lens",
+        "estimator": JACOBIAN_LENS_ESTIMATOR_V2,
+        "paperParity": False,
+        "measurementProfile": MODEL_WORKSPACE_MEASUREMENT_PROFILE,
+        "controlProfile": MODEL_WORKSPACE_CONTROL_PROFILE,
+        "layers": [0, 1],
+        "lensSha256": loaded.lens_sha256,
+        "transportProfile": "mean-anchored-affine-final-residual-v1",
+        "positionPolicy": ENDPOINT_SELF_POSITION_POLICY,
+        "positionBins": [[0, 3], [4, 7]],
+    }
+    prompt_text = "endpoint test"
+    receipt = probe.observe(
+        prompts[0],
+        prompt_sha256=f"sha256:{hashlib.sha256(prompt_text.encode()).hexdigest()}",
+        requested_model="holorunner-s0",
+        request_id="workspace-endpoint-test",
+        layers=[0],
+        positions=[-1],
+        k=3,
+        created_at="2026-07-14T00:00:00.000Z",
+    )
+    assert receipt["lens"]["transportProfile"] == "mean-anchored-affine-final-residual-v1"
+    assert receipt["lens"]["positionBins"] == [[0, 3], [4, 7]]
+    binding = {
+        "alias": "a",
+        "modelId": "holorunner-s0",
+        "lensSha256": loaded.lens_sha256,
+    }
+    capability = probe.capability()
+    health = {
+        "backend": "pytorch-holo",
+        "model_workspace_probe": {
+            "schema": capability["schema"],
+            "observe": True,
+            "intervention": False,
+            "models": {"holorunner-s0": capability},
+        },
+    }
+    validated_capability = _validate_capability(health, binding, [0])
+    extracted = _validate_receipt(
+        receipt,
+        prompt=prompt_text,
+        binding=binding,
+        checkpoint_sha256=f"sha256:{'1' * 64}",
+        tokenizer_sha256=f"sha256:{'2' * 64}",
+        layers=[0],
+        positions=[-1],
+        k=3,
+        allow_truncated=False,
+        capability=validated_capability,
+    )
+    assert isinstance(extracted["lensGainE8"], int)
+    with pytest.raises(WorkspaceProbeError) as error:
+        probe.observe(
+            prompts[0],
+            prompt_sha256=f"sha256:{'4' * 64}",
+            requested_model="holorunner-s0",
+            request_id="workspace-endpoint-invalid-position",
+            positions=[0],
+            k=3,
+        )
+    assert error.value.code == "lens_position_unavailable"
+
+
+def test_endpoint_affine_estimator_rejects_uncovered_bins_and_tampered_anchor(tmp_path):
+    model = tiny_v1_model()
+    kwargs = {
+        "layers": [0],
+        "checkpoint_sha256": f"sha256:{'1' * 64}",
+        "tokenizer_sha256": f"sha256:{'2' * 64}",
+        "dim_batch": 2,
+        "max_seq_len": 8,
+        "position_bins": [(0, 3), (4, 7)],
+    }
+    with pytest.raises(WorkspaceProbeError) as empty:
+        fit_endpoint_affine_jacobian_lens_v1(
+            model,
+            [torch.tensor([[1, 3, 4]], dtype=torch.long)],
+            **kwargs,
+        )
+    assert empty.value.code == "empty_position_bin"
+
+    artifact = fit_endpoint_affine_jacobian_lens_v1(
+        model,
+        [
+            torch.tensor([[1, 3, 4]], dtype=torch.long),
+            torch.tensor([[1, 5, 6, 7, 8]], dtype=torch.long),
+        ],
+        **kwargs,
+    )
+    artifact["biases"][0, 0, 0] += 1
+    path = tmp_path / "tampered-endpoint-affine.pt"
+    torch.save(artifact, path)
+    with pytest.raises(WorkspaceProbeError) as tampered:
+        load_jacobian_lens_artifact(
+            path,
+            checkpoint_sha256=f"sha256:{'1' * 64}",
+            tokenizer_sha256=f"sha256:{'2' * 64}",
+            model=model,
+        )
+    assert tampered.value.code == "invalid_lens_anchor"
 
 
 @pytest.mark.parametrize(
