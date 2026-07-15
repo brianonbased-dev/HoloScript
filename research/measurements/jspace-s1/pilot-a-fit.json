@@ -1,0 +1,76 @@
+{
+  "calibrationCorpusSha256": "sha256:aefcd062fb2cf832503cdc82dbd94088b59df969d113354023f50a7b7b6d2f8c",
+  "calibrationShardSha256": "sha256:03d641e53a50eb54553d21828391cb0d16a3186a34599e2f1341c9ad2ea3d020",
+  "caseIdSetSha256": "sha256:17b4aa46c75805f3c982834a03710c8c41268c00f2beac6915abe9de5afb383b",
+  "checkpointSha256": "sha256:abbda748c6bd6dec69bd72f25ca5ab28876fbbdbf195f218439ddbd0a10ff914",
+  "corpusArtifactSha256": "sha256:59b3fbcee9ca368ca0a86352487576caaf0691c2f84e8a7d35974b50b4ea67eb",
+  "corpusManifestSha256": "sha256:e31555c6caabc96f3c8b312ee6a798b512508ef37381ea7a4e251a49f15f926a",
+  "createdAt": "2026-07-15T04:07:57.069Z",
+  "dimBatch": 8,
+  "elapsedMillis": 106082,
+  "estimator": "endpoint_self_jacobian_affine_v1",
+  "fitScriptSha256": "sha256:9a979058b1a18a19d08c997d9a9115cf47abfc1837854fb3fb443a723b4b640e",
+  "gitRevision": "43c603e8b504e682ce6fbaefa59e4d99854407ca",
+  "gpuTotalMemoryBytes": 6441926656,
+  "lane": "a",
+  "layers": [
+    2,
+    5,
+    8
+  ],
+  "lensSha256": "sha256:135b027acd191d790647ec3c16e8c43fa7790cf18ebdd0f4d01a503ee65603be",
+  "maxSeqLen": 512,
+  "model": {
+    "blockSize": 512,
+    "dropoutE8": 0,
+    "iteration": 5999,
+    "nEmbd": 640,
+    "nHead": 10,
+    "nLayer": 10,
+    "structuralTypeCount": 13,
+    "vocabSize": 562
+  },
+  "paperParity": false,
+  "peakGpuMemoryBytes": 2380338176,
+  "peakGpuMemoryShareE8": 36950718,
+  "positionBinCounts": [
+    6,
+    6,
+    6,
+    6
+  ],
+  "positionBins": [
+    [
+      0,
+      127
+    ],
+    [
+      128,
+      255
+    ],
+    [
+      256,
+      383
+    ],
+    [
+      384,
+      511
+    ]
+  ],
+  "positionPolicy": "endpoint-self-only",
+  "preregistrationSha256": "sha256:33785896808ce0832db6bed3869dc9d4ce680197f19c61dc5386288ea6a52614",
+  "rowCount": 24,
+  "runtime": {
+    "cuda": "12.8",
+    "device": "cuda",
+    "python": "3.14.0",
+    "torch": "2.10.0+cu128"
+  },
+  "schema": "holoscript.jspace-s1-fit-receipt.v0.1.0",
+  "selfHash": "sha256:04d907519dcc6970a09a27f3a1dd44cff9c696cc41a39b741234068273bd567f",
+  "semanticLabelsAccessed": false,
+  "stage": "pilot",
+  "startedAt": "2026-07-15T04:06:10.780Z",
+  "tokenizerSha256": "sha256:f92af6207d211728a530e95e44c60b3c95f700ea9c755ab6bd8614fbdac623d4",
+  "transportProfile": "mean-anchored-affine-final-residual-v1"
+}

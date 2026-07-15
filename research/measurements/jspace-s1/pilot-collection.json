@@ -1,0 +1,118 @@
+{
+  "allowTruncated": false,
+  "capabilities": {
+    "a": {
+      "controlProfile": "uncorrected-logit-lens-v1",
+      "estimator": "endpoint_self_jacobian_affine_v1",
+      "intervention": false,
+      "layers": [
+        2,
+        5,
+        8
+      ],
+      "lensSha256": "sha256:135b027acd191d790647ec3c16e8c43fa7790cf18ebdd0f4d01a503ee65603be",
+      "measurementProfile": "full-distribution-v1",
+      "method": "jacobian_lens",
+      "observe": true,
+      "paperParity": false,
+      "positionBins": [
+        [
+          0,
+          127
+        ],
+        [
+          128,
+          255
+        ],
+        [
+          256,
+          383
+        ],
+        [
+          384,
+          511
+        ]
+      ],
+      "positionPolicy": "endpoint-self-only",
+      "schema": "holoscript.model-workspace-capability.v0.2.0",
+      "transportProfile": "mean-anchored-affine-final-residual-v1"
+    },
+    "b": {
+      "controlProfile": "uncorrected-logit-lens-v1",
+      "estimator": "endpoint_self_jacobian_affine_v1",
+      "intervention": false,
+      "layers": [
+        2,
+        5,
+        8
+      ],
+      "lensSha256": "sha256:ba8b1e5e5a2464930440da46cfc6ec4b74557d96239203803275fabb75def6d2",
+      "measurementProfile": "full-distribution-v1",
+      "method": "jacobian_lens",
+      "observe": true,
+      "paperParity": false,
+      "positionBins": [
+        [
+          0,
+          127
+        ],
+        [
+          128,
+          255
+        ],
+        [
+          256,
+          383
+        ],
+        [
+          384,
+          511
+        ]
+      ],
+      "positionPolicy": "endpoint-self-only",
+      "schema": "holoscript.model-workspace-capability.v0.2.0",
+      "transportProfile": "mean-anchored-affine-final-residual-v1"
+    }
+  },
+  "checkpointSha256": "sha256:abbda748c6bd6dec69bd72f25ca5ab28876fbbdbf195f218439ddbd0a10ff914",
+  "codeFileSha256": "sha256:43bcabaefab5f4ed9d19054d759eade8388254859a86d047db805f36783f381d",
+  "codeRevision": "43c603e8b504e682ce6fbaefa59e4d99854407ca",
+  "controlProfile": "uncorrected-logit-lens-v1",
+  "createdAt": "2026-07-15T04:11:03.669Z",
+  "k": 25,
+  "layers": [
+    2,
+    5,
+    8
+  ],
+  "legacyComparatorProfile": "normalized-union-top-k-add-one-e8-jsd-nats-v1",
+  "maximumTokenCount": 512,
+  "measurementProfile": "full-distribution-v1",
+  "models": [
+    {
+      "alias": "a",
+      "lensSha256": "sha256:135b027acd191d790647ec3c16e8c43fa7790cf18ebdd0f4d01a503ee65603be",
+      "modelId": "holorunner-s0"
+    },
+    {
+      "alias": "b",
+      "lensSha256": "sha256:ba8b1e5e5a2464930440da46cfc6ec4b74557d96239203803275fabb75def6d2",
+      "modelId": "holorunner-s0-b"
+    }
+  ],
+  "positions": [
+    -1
+  ],
+  "promptCount": 24,
+  "promptManifestSha256": "sha256:bf4933d1e0512a3395f752b7ce92845e855a18acf6eef4f9486644f4ab853afd",
+  "receiptArtifactSha256": "sha256:b0fec05db3505f47ebbc867e76979c6d8c0606194f1a1032e8ee281be0cd8495",
+  "receiptCount": 48,
+  "rowArtifactSha256": "sha256:d7684c7f9c4b3f26f54233cd5c738ccb9b954c4f898ebd3e5c471c7b23f1fdf6",
+  "rowCount": 48,
+  "schema": "holoserve.workspace-signal-collection.v0.1.0",
+  "scoreProfile": "mean-mapped-control-full-vocabulary-jsd-nats-v1",
+  "selfHash": "sha256:253fffea0200fda1314b24ba9d9acfc5bc7c26c69252fc6de691b4c892c3104e",
+  "status": "diagnostic",
+  "tokenizerSha256": "sha256:f92af6207d211728a530e95e44c60b3c95f700ea9c755ab6bd8614fbdac623d4",
+  "truncatedRowCount": 0
+}

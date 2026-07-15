@@ -1,0 +1,95 @@
+{
+  "schema": "holoscript.jspace-s1-pilot-evidence-manifest.v0.1.0",
+  "status": "failed-frozen-gate",
+  "stage": "pilot",
+  "createdAt": "2026-07-15T04:11:07.175Z",
+  "checkpointSha256": "sha256:abbda748c6bd6dec69bd72f25ca5ab28876fbbdbf195f218439ddbd0a10ff914",
+  "tokenizerSha256": "sha256:f92af6207d211728a530e95e44c60b3c95f700ea9c755ab6bd8614fbdac623d4",
+  "preregistrationSha256": "sha256:33785896808ce0832db6bed3869dc9d4ce680197f19c61dc5386288ea6a52614",
+  "corpusManifestSha256": "sha256:e31555c6caabc96f3c8b312ee6a798b512508ef37381ea7a4e251a49f15f926a",
+  "gitRevision": "43c603e8b504e682ce6fbaefa59e4d99854407ca",
+  "semanticLabelsAccessed": false,
+  "promotedArtifacts": [
+    {
+      "path": "pilot-a-fit.json",
+      "bytes": 2279,
+      "sha256": "sha256:d6eaf29bcb03846810702db275404c5d5b7c2b8583d1bd2ecffd14bd375ee4fb"
+    },
+    {
+      "path": "pilot-b-fit.json",
+      "bytes": 2279,
+      "sha256": "sha256:38220c59b48e86bfbe33c9cdaab4dd3b59ffb2b96018a9c1483a912a7f3c693e"
+    },
+    {
+      "path": "pilot-collection.json",
+      "bytes": 3407,
+      "sha256": "sha256:669843817477a68ea6962ae8e7609d63041a679e3b931c27909467eeaefed0ea"
+    },
+    {
+      "path": "pilot-fidelity.json",
+      "bytes": 8625,
+      "sha256": "sha256:4702f9509b9eebfc4bac0dcca9868a28f1321d9f08d26decdf86e8cf03ecdcdb"
+    },
+    {
+      "path": "pilot-rows.jsonl",
+      "bytes": 144036,
+      "sha256": "sha256:d7684c7f9c4b3f26f54233cd5c738ccb9b954c4f898ebd3e5c471c7b23f1fdf6"
+    },
+    {
+      "path": "pilot-receipts.jsonl",
+      "bytes": 755325,
+      "sha256": "sha256:b0fec05db3505f47ebbc867e76979c6d8c0606194f1a1032e8ee281be0cd8495"
+    }
+  ],
+  "omittedArtifacts": [
+    {
+      "kind": "lens-binary",
+      "lane": "a",
+      "bytes": 19758943,
+      "sha256": "sha256:135b027acd191d790647ec3c16e8c43fa7790cf18ebdd0f4d01a503ee65603be",
+      "reason": "large reproducible binary; fit receipt and sealed corpus bind regeneration"
+    },
+    {
+      "kind": "lens-binary",
+      "lane": "b",
+      "bytes": 19758943,
+      "sha256": "sha256:ba8b1e5e5a2464930440da46cfc6ec4b74557d96239203803275fabb75def6d2",
+      "reason": "large reproducible binary; fit receipt and sealed corpus bind regeneration"
+    },
+    {
+      "kind": "billing-receipt",
+      "lane": "a",
+      "sha256": "sha256:6f07ad967143f0bc2179c3fb67f34a989cdd1b673fb7d1af0cfbb67db623cbe0",
+      "reason": "contains machine-local paths"
+    },
+    {
+      "kind": "billing-receipt",
+      "lane": "b",
+      "sha256": "sha256:ee945f2bc63ee00567864ea8fccf7c602c4520b39294633bb35a379bb85cd8dc",
+      "reason": "contains machine-local paths"
+    },
+    {
+      "kind": "billing-receipt",
+      "lane": "h",
+      "sha256": "sha256:dda56273daa9e44e3ebcb955b48f52cba68c56e09e259031722017a11cc6730e",
+      "reason": "local execution-accounting artifact"
+    }
+  ],
+  "privacyAudit": {
+    "absoluteLocalPathsFound": 0,
+    "credentialPatternsFound": 0,
+    "rawPromptsFound": 0,
+    "rawActivationsPersisted": false
+  },
+  "outcome": {
+    "passed": false,
+    "replicationPassed": true,
+    "laneAIdentityMacroGainMeanE8": 47698454,
+    "laneBIdentityMacroGainMeanE8": 47376311,
+    "laneAAnchorMacroGainBootstrapLower95E8": 623451,
+    "laneBAnchorMacroGainBootstrapLower95E8": -117607,
+    "targetTopTokenUniqueCount": 1,
+    "mappedTopTokenUniqueCount": 1,
+    "disposition": "do-not-run-confirmation; register a new residue"
+  }
+}
