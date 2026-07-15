@@ -1,0 +1,190 @@
+{
+  "schema": "holoscript.jspace-s4-pilot-evidence-manifest.v0.1.0",
+  "pathBase": "repository-root",
+  "status": "failed-frozen-gate",
+  "stage": "pilot",
+  "gitRevision": "ad1576afef78dee746fd7978b05839300c9efc0f",
+  "checkpointSha256": "sha256:abbda748c6bd6dec69bd72f25ca5ab28876fbbdbf195f218439ddbd0a10ff914",
+  "tokenizerSha256": "sha256:f92af6207d211728a530e95e44c60b3c95f700ea9c755ab6bd8614fbdac623d4",
+  "sources": [
+    {
+      "role": "preregistration",
+      "path": "research/2026-07-15-jspace-s4-centered-scalar-preregistration.md",
+      "sha256": "sha256:aab413a443cefbcc2dbacf5506c8fe687e4c4cde7b38fddd0d341d50ca1df930"
+    },
+    {
+      "role": "s2-corpus-manifest",
+      "path": "research/data/jspace-s2/corpus-manifest.json",
+      "sha256": "sha256:2c00dd213301a5ba57628b3226ae77f6b78216df0f8bb17ea0dddecccb2b0b64"
+    },
+    {
+      "role": "s3-selection-manifest",
+      "path": "research/data/jspace-s3/selection-manifest.json",
+      "sha256": "sha256:1c700238479b2b0e54839779de3ea2efe6298879227043e8495c559b502761af"
+    },
+    {
+      "role": "selection-manifest",
+      "path": "research/data/jspace-s4/selection-manifest.json",
+      "sha256": "sha256:addb0a5ff2e37a9507989ace490c86dfb3b1da5bbc1543c849b01932339d706f"
+    },
+    {
+      "role": "control-profile",
+      "path": "research/data/jspace-s4/control-profile.json",
+      "sha256": "sha256:356c5d0e8d17fe3668bd0e365d582c049cd8fa4b1847d8d5ae5c22780b9e1d98"
+    },
+    {
+      "role": "selection-code",
+      "path": "scripts/research/select_jspace_s4_corpus.py",
+      "sha256": "sha256:36f98bb07e03b611191f2a7596c2cb00e58a44ba73ce80fcf52ec631f7ae5af6"
+    },
+    {
+      "role": "fit-code",
+      "path": "scripts/research/fit_jspace_s4_lens.py",
+      "sha256": "sha256:37fdd1428ce32651dcf9bb451cfa03d2e39a4cb714712677344894639649f246"
+    },
+    {
+      "role": "fit-admission-tests",
+      "path": "scripts/research/test_fit_jspace_s4_lens.py",
+      "sha256": "sha256:378a723f62123689c116a0547b38d650e4c1b887794017fe1c7957867727d00f"
+    },
+    {
+      "role": "lens-loader",
+      "path": "packages/holoserve-py/holoserve/workspace_probe.py",
+      "sha256": "sha256:845303df04303664b2913431cb11ed1cc1331e308e87919b2a581f76be78ddce"
+    },
+    {
+      "role": "collection-code",
+      "path": "packages/holoserve-py/holoserve/workspace_eval.py",
+      "sha256": "sha256:d2d26c0db2a89602ccf165ed21b183e607a18a84fe2f353c8edc3c828b7ef5e4"
+    },
+    {
+      "role": "evaluation-code",
+      "path": "packages/holoserve-py/holoserve/workspace_fidelity.py",
+      "sha256": "sha256:7b74909edffe4975d5f1efd4b7e5a35803c0425f63d4b0500c5c47e14ce780ef"
+    },
+    {
+      "role": "holdout-prompt-artifact",
+      "path": "research/data/jspace-s4/fidelity-h-pilot.jsonl",
+      "sha256": "sha256:f73c5f8398f809f7ef3dc3d6271dea7409cd2048354f59cd3cb1772510d8bd2d"
+    }
+  ],
+  "promotedArtifacts": [
+    {
+      "path": "research/measurements/jspace-s4/pilot-a-fit.json",
+      "bytes": 10629,
+      "sha256": "sha256:664d2693db552697f64c83c95d316de7e17f223042f227755458f9e5fcda6822"
+    },
+    {
+      "path": "research/measurements/jspace-s4/pilot-b-fit.json",
+      "bytes": 10629,
+      "sha256": "sha256:b0e659255b25bd507f34f1a9b3e16f2be97c06b09837e05fbe44023dbb004639"
+    },
+    {
+      "path": "research/measurements/jspace-s4/pilot-collection.json",
+      "bytes": 3447,
+      "sha256": "sha256:2a81977cdffc8dd74b5f5f2743a6489889dd7c39f1ff3bda997269e88915c372"
+    },
+    {
+      "path": "research/measurements/jspace-s4/pilot-fidelity.json",
+      "bytes": 16158,
+      "sha256": "sha256:1ef1462297ca8ed84fc62f80593a9c334c9ecedfe85c5eaa1195c1b55be47a61"
+    },
+    {
+      "path": "research/measurements/jspace-s4/pilot-rows.jsonl",
+      "bytes": 353603,
+      "sha256": "sha256:f25edec72ac5f90411ce43e7405f0e6bd0b47f363e6438b3eb00c5bc8f6d52c4"
+    },
+    {
+      "path": "research/measurements/jspace-s4/pilot-receipts.jsonl",
+      "bytes": 1582553,
+      "sha256": "sha256:e989595e5a60e8d8cdef0bc42b6bd1c694f1e3661425502e200096d6e0d63020"
+    }
+  ],
+  "externalDerivedArtifacts": [
+    {
+      "role": "lens-a",
+      "bytes": 19794188,
+      "sha256": "sha256:29383380e47b1981a6d05724980753823858b39d28e91aa7e34fbeaa7a54aa72"
+    },
+    {
+      "role": "lens-b",
+      "bytes": 19794188,
+      "sha256": "sha256:cc36732c16e67e676ef16a37f677829573beba31220143fc5bd25538fd1875a2"
+    }
+  ],
+  "fitReceiptSelfHashes": {
+    "a": "sha256:9bd1596e3b64aaed1a6427dc9460d08362f07ddab1058fddfbb3f5ebd9b1a484",
+    "b": "sha256:cf3156d32b2b410c5faeb8c96726d0c630b0a4da6ee91c44dd2ae094180ab2e8"
+  },
+  "disclosureAudit": {
+    "scope": "promoted-artifacts",
+    "absoluteLocalPathCount": 0,
+    "credentialSignatureCount": 0,
+    "rawPromptFieldCount": 0,
+    "privateScalarFieldCount": 0,
+    "rawActivationsPersisted": false,
+    "boundedDecodedTopTokenOutputsPresent": true
+  },
+  "integrityAudit": {
+    "historicalFitSourceHashesMatched": "100/100",
+    "receiptHashesRecomputed": "96/96",
+    "observationHashesRecomputed": "96/96",
+    "rowReceiptCoordinatesUnique": 96,
+    "canonicalRowReceiptPromptValidationPassed": true,
+    "fitReceiptRevisionValidationPassed": true,
+    "fidelityInputHashesMatched": true
+  },
+  "outcome": {
+    "passed": false,
+    "fitInteriorGatesPassed": true,
+    "laneA": {
+      "identityMacroGainMeanE8": 5342599,
+      "identityMacroGainBootstrapLower95E8": 1356926,
+      "anchorMacroGainMeanE8": 4747199,
+      "anchorMacroGainBootstrapLower95E8": 1576134,
+      "centeredAttributionGainMeanE8": -2001401,
+      "centeredAttributionBootstrapLower95E8": -2528800,
+      "localTaylorAttributionBootstrapLower95E8": 4007534,
+      "jacobianSpecificAttributionBootstrapLower95E8": 827052,
+      "mappedTopTokenUniqueCount": 5,
+      "mappedTopTokenMaximumShareE8": 81250000,
+      "gates": {
+        "ceilingLayerNonInferiority": true,
+        "entropyError": true,
+        "macroAnchorGain": true,
+        "macroIdentityGain": true,
+        "maxProbabilityError": false,
+        "primaryLayers": false,
+        "targetTopTokenVariation": true,
+        "topTokenDiversity": false
+      }
+    },
+    "laneB": {
+      "identityMacroGainMeanE8": 3901593,
+      "identityMacroGainBootstrapLower95E8": -578581,
+      "anchorMacroGainMeanE8": 3567014,
+      "anchorMacroGainBootstrapLower95E8": 153776,
+      "centeredAttributionGainMeanE8": -1768297,
+      "centeredAttributionBootstrapLower95E8": -3232047,
+      "localTaylorAttributionBootstrapLower95E8": 4160997,
+      "jacobianSpecificAttributionBootstrapLower95E8": -580408,
+      "mappedTopTokenUniqueCount": 4,
+      "mappedTopTokenMaximumShareE8": 79166667,
+      "gates": {
+        "ceilingLayerNonInferiority": true,
+        "entropyError": false,
+        "macroAnchorGain": true,
+        "macroIdentityGain": false,
+        "maxProbabilityError": false,
+        "primaryLayers": false,
+        "targetTopTokenVariation": true,
+        "topTokenDiversity": false
+      }
+    },
+    "replicationPearsonE8": 95381204,
+    "replicationSignAgreementE8": 83333333,
+    "semanticLabelsAccessed": false,
+    "disposition": "do-not-run-confirmation-or-open-semantic-labels; preregister unscaled mean-centered Jacobian residue on the still-unobserved S4 confirmation source"
+  },
+  "selfHash": "sha256:21d7b5f82e141773fe32634ba50c62759c9929ba9386fd2ce2bbaaa76df8a38f"
+}
