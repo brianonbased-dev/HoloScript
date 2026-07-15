@@ -1,0 +1,33 @@
+{
+  "byteWindow": 64,
+  "candidateCorpusSha256": "sha256:7ca7748841807b12f9c4a12c44d04d8ce6bfb242df4e0a5c198a6d085fff8bf1",
+  "candidateCount": 576,
+  "decodedReferenceRowCounts": {
+    "train": 23346,
+    "val": 2595
+  },
+  "exposedBodyCount": 166,
+  "failedCaseIds": [],
+  "legacySequenceCount": 200,
+  "legacySequenceIndexSha256": "sha256:a9282def54d38ac348640cdf053493cbf473d3ad2a52e94402e86709216edeb1",
+  "matchCounts": {
+    "bodyContainment": 0,
+    "crossLaneByte64": 0,
+    "crossLaneToken32": 0,
+    "normalizedEquality": 0,
+    "referenceByte64": 0,
+    "referenceToken32": 0
+  },
+  "matchesByReferenceByte64": {},
+  "matchesByReferenceToken32": {},
+  "normalization": "nfkc-casefold-collapse-whitespace-v1",
+  "passed": true,
+  "referenceIndexSha256": "sha256:a06c4711823c579a52e75fc6ab45656508ffef1ec88d8567d63450627852a85b",
+  "s1BodyCount": 576,
+  "s1SequenceCount": 576,
+  "s1SequenceIndexSha256": "sha256:689ec32667a8a6f48a280a6eed8c193b4b555311db37769886f96ae1d5e95cf3",
+  "scannerSourceSha256": "sha256:d576674597db0065680206f3718c37480362d0febd62df44ce13f3cf51219952",
+  "schema": "holoscript.jspace-s2-leakage-report.v0.1.0",
+  "selfHash": "sha256:1bdddd888ce422777e812f8f3b7781ed37dc6877c43ab6fae32e22a5154c6491",
+  "tokenWindow": 32
+}

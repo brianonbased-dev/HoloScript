@@ -1,0 +1,126 @@
+{
+  "checkpointSha256": "sha256:abbda748c6bd6dec69bd72f25ca5ab28876fbbdbf195f218439ddbd0a10ff914",
+  "design": {
+    "endpointVariants": 2,
+    "families": 6,
+    "positionBins": 4,
+    "taskForms": 4
+  },
+  "endpointContexts": {
+    "form_0:0": {
+      "profile": "analysis-colon",
+      "terminalText": "Analysis:"
+    },
+    "form_0:1": {
+      "profile": "evidence-equals",
+      "terminalText": "Evidence ="
+    },
+    "form_1:0": {
+      "profile": "decision-list",
+      "terminalText": "Decision ["
+    },
+    "form_1:1": {
+      "profile": "options-object",
+      "terminalText": "Options {"
+    },
+    "form_2:0": {
+      "profile": "holoscript-object-name",
+      "terminalText": "HoloScript:\nobject \""
+    },
+    "form_2:1": {
+      "profile": "holoscript-line-comment",
+      "terminalText": "HoloScript:\n//"
+    },
+    "form_3:0": {
+      "profile": "trace-call",
+      "terminalText": "Trace step("
+    },
+    "form_3:1": {
+      "profile": "constraint-trait",
+      "terminalText": "Constraint @"
+    }
+  },
+  "generatorSourceSha256": "sha256:d576674597db0065680206f3718c37480362d0febd62df44ce13f3cf51219952",
+  "grammarPackSha256s": {
+    "a": "sha256:97f3c852f50290628edd674b60cd9bef938299802b37db0115429806f21c74d7",
+    "b": "sha256:467a841400a589684b942edb1e895a086f1178b822a3ecfdfdb705430e1847dd",
+    "h": "sha256:1de49d35e954189811f2ba69652cdb569197dc4a12c3ebc55385cac2c858be98"
+  },
+  "leakageReportSha256": "sha256:c4cbc8a65e092a756cae46466cad7938aca9fb5c1a31530d34f0badee7fb7d2a",
+  "pilotArtifacts": {
+    "a": {
+      "rowCount": 24,
+      "sha256": "sha256:20301df30e38d7ad95f5133db714879118e620fbfa757184bcd3d5d9fb0dafac"
+    },
+    "b": {
+      "rowCount": 24,
+      "sha256": "sha256:d4158b39ecae7af049ca1877266286f7c8cf7613142ba9f6aab509922a54d867"
+    },
+    "h": {
+      "rowCount": 24,
+      "sha256": "sha256:344f3263b623afefb677f4537d14f6e06c9c89f62519e587f8bdced3daa1c261"
+    }
+  },
+  "positionBins": [
+    [
+      0,
+      127
+    ],
+    [
+      128,
+      255
+    ],
+    [
+      256,
+      383
+    ],
+    [
+      384,
+      511
+    ]
+  ],
+  "positionRanges": [
+    [
+      96,
+      127
+    ],
+    [
+      160,
+      223
+    ],
+    [
+      288,
+      351
+    ],
+    [
+      416,
+      479
+    ]
+  ],
+  "preregistrationSha256": "sha256:3f94f416d6087bb104762a8b96de61862d423668d2f13adeee3967d91e45c431",
+  "referenceManifestSha256": "sha256:77f4e11eea6584667d606624e7f41a4598ac1f329bd6b137633f4b39574d7a0b",
+  "s1CorpusManifestSha256": "sha256:e31555c6caabc96f3c8b312ee6a798b512508ef37381ea7a4e251a49f15f926a",
+  "schema": "holoscript.jspace-s2-corpus-manifest.v0.1.0",
+  "seeds": {
+    "a": "sha256:5746d9f063dbbd0682ddcfbcc38fe9b1a875f3f2a251d1b2d5011efe95f4231a",
+    "b": "sha256:bc17fe947c2b274ffee15b8fc4c6e4febeaeacb3298fb549e0f993b6c7981a9e",
+    "h": "sha256:fc3d73acb9f63960a14cb8903c191f90f4f71b6a14c443717fd3e29df656d66b"
+  },
+  "selfHash": "sha256:e81354d29eb295de6fb0e7441b0d9907d5d776720083cf6ea9344b39b22b3361",
+  "semanticLabelsAccessed": false,
+  "splitArtifacts": {
+    "a": {
+      "rowCount": 192,
+      "sha256": "sha256:5fbbdffb628845e37c6b23042a37fdf534d4fb5bbaf33f723cb2e127147b3bcd"
+    },
+    "b": {
+      "rowCount": 192,
+      "sha256": "sha256:796331ac7eda195669302f304e774c355190d0890d75c2a264852af641d5590f"
+    },
+    "h": {
+      "rowCount": 192,
+      "sha256": "sha256:637bb546c8423e0e0388f47c7044e49b19f2a8cbe22b6026da0fcbcfc9a4cf26"
+    }
+  },
+  "tokenizerSha256": "sha256:f92af6207d211728a530e95e44c60b3c95f700ea9c755ab6bd8614fbdac623d4"
+}
