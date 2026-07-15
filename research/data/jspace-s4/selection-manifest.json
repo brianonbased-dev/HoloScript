@@ -1,0 +1,623 @@
+{
+  "checkpointSha256": "sha256:abbda748c6bd6dec69bd72f25ca5ab28876fbbdbf195f218439ddbd0a10ff914",
+  "confirmationArtifacts": {
+    "a": {
+      "caseIdSetSha256": "sha256:373631f3670820e9f67631c97cbf98fe65bf25902648ed616cf0ce679c9c8102",
+      "coordinateSetSha256": "sha256:1a5a1291a0f215c1a73f74683bbf34bef79b1ed953b8cb17e21192a46ce93ecc",
+      "file": "fit-a-confirmation.jsonl",
+      "promptHashSetSha256": "sha256:d3c4611ddb1bd76a5f1f347ae0ef27ec3cc33e036ede8c8ea9ceefcfabfbf8d8",
+      "rowCount": 72,
+      "sequenceHashSetSha256": "sha256:974467bb8f0ec123b3ce158d9759aba9c89246244423ef3af2ab44b045bdd21a",
+      "sha256": "sha256:005c411edc0a53684b95a627ced5672ea67ac74683531b2dd9016e52c0d68637"
+    },
+    "b": {
+      "caseIdSetSha256": "sha256:c0c1b9285839f2cce769bcdc648feb2e2b22793bd1e9fd86dfd1a416fb296683",
+      "coordinateSetSha256": "sha256:1a5a1291a0f215c1a73f74683bbf34bef79b1ed953b8cb17e21192a46ce93ecc",
+      "file": "fit-b-confirmation.jsonl",
+      "promptHashSetSha256": "sha256:2f5d96933159e82065f8b00b846fe5c85ba44baa1f039468988d863bdf823d7f",
+      "rowCount": 72,
+      "sequenceHashSetSha256": "sha256:7f3374c53c979825b7c63da376e02a54994ff541fd41e088affbefb427f8a973",
+      "sha256": "sha256:53c67df229050e9496d836d0a399e9dbe906dc2821efa5077813f976cc0d733b"
+    },
+    "h": {
+      "caseIdSetSha256": "sha256:f24d1d52f77242621909a5fd3c800a499bc8dabaebce1a7dc05f78b4a997dde8",
+      "coordinateSetSha256": "sha256:1a5a1291a0f215c1a73f74683bbf34bef79b1ed953b8cb17e21192a46ce93ecc",
+      "file": "fidelity-h-confirmation.jsonl",
+      "promptHashSetSha256": "sha256:2e7b4324b382ba081df4c375dc4582a2597165c0963e2519676a4b0ee79bc985",
+      "rowCount": 72,
+      "sequenceHashSetSha256": "sha256:9718b79f694491d64bf3fa72f3be13d5d929446c4c1b8c54112638952c828d62",
+      "sha256": "sha256:3bdbd1c027c5408fcd96d47825c2698b703fa92239ec01e6112138197dfd54d3"
+    }
+  },
+  "identifierHashing": {
+    "coordinateSetDigest": "sha256(canonical JSON of sorted unique [familyIndex,positionBinIndex,endpointSlot] arrays)",
+    "promptHash": "sha256(exact prompt UTF-8)",
+    "setDigest": "sha256(canonical JSON of sorted unique strings)"
+  },
+  "pilotArtifacts": {
+    "a": {
+      "caseIdSetSha256": "sha256:542561d2a5745959b6f30cec0f7b9e882933a040e4a1a6f8e1845fd3ba11862e",
+      "coordinateSetSha256": "sha256:b45a9913521be33b5889bbd326e76e87bd1e5ee28ab802f03440be3ae569ccde",
+      "file": "fit-a-pilot.jsonl",
+      "promptHashSetSha256": "sha256:5af8eac8cde119ad1cfe6635cbd4ea6d3ba72abfbeedfefcd5376a4369b1d4f8",
+      "rowCount": 48,
+      "sequenceHashSetSha256": "sha256:af6c634fa55064619b7a3fa73b47f6a9e0a5d49a004ae84d9762694986219803",
+      "sha256": "sha256:2da3005d4c6c53e122b48388d612334d0b27577ae8cb7e3e7d2e6c598582eeae"
+    },
+    "b": {
+      "caseIdSetSha256": "sha256:41d82f0451c329be0e02acd0e50d667619597b4334ba71cdce226fb4d32e916a",
+      "coordinateSetSha256": "sha256:b45a9913521be33b5889bbd326e76e87bd1e5ee28ab802f03440be3ae569ccde",
+      "file": "fit-b-pilot.jsonl",
+      "promptHashSetSha256": "sha256:4474c00f10eae393783a6fd5ee7a807ffb2e0ac388633b9b1911ce4c02f3bf0d",
+      "rowCount": 48,
+      "sequenceHashSetSha256": "sha256:a0d9b6e19eab1a2b70857b4d9a12fad4c1a5bb8ad1dfaa1b04b68ce2ce1e8979",
+      "sha256": "sha256:df0f238b2980bfe815d2e9f1c69296565e9de4ec0ca997e43047ae3793671d72"
+    },
+    "h": {
+      "caseIdSetSha256": "sha256:d01b2bc532f51be3e73cc59200cc4b90af01038f8d4c4fe741c5fc44b4144683",
+      "coordinateSetSha256": "sha256:b45a9913521be33b5889bbd326e76e87bd1e5ee28ab802f03440be3ae569ccde",
+      "file": "fidelity-h-pilot.jsonl",
+      "promptHashSetSha256": "sha256:05243bc421b5c05783ebcee24a186feeac6c98ac1cd2b17ce2a63d3b80982e88",
+      "rowCount": 48,
+      "sequenceHashSetSha256": "sha256:93f4f6ffbc2ffdcc0d6ae6f9f587a7cecf82f9414b4d4b4d4a6d80d1336e261a",
+      "sha256": "sha256:f73c5f8398f809f7ef3dc3d6271dea7409cd2048354f59cd3cb1772510d8bd2d"
+    }
+  },
+  "positionBins": [
+    [
+      0,
+      127
+    ],
+    [
+      128,
+      255
+    ],
+    [
+      256,
+      383
+    ],
+    [
+      384,
+      511
+    ]
+  ],
+  "preregistrationSha256": "sha256:aab413a443cefbcc2dbacf5506c8fe687e4c4cde7b38fddd0d341d50ca1df930",
+  "proof": {
+    "confirmation": {
+      "allEndpointProfilesPresentPerPositionBin": false,
+      "coordinateSetSha256": "sha256:1a5a1291a0f215c1a73f74683bbf34bef79b1ed953b8cb17e21192a46ce93ecc",
+      "eachFamilyRetainsEachEndpointAtLeastOnce": true,
+      "eachFamilySeesEachEndpointExactlyOnce": false,
+      "endpointProfileCounts": {
+        "analysis-colon": 9,
+        "constraint-trait": 9,
+        "decision-list": 9,
+        "evidence-equals": 9,
+        "holoscript-line-comment": 9,
+        "holoscript-object-name": 9,
+        "options-object": 9,
+        "trace-call": 9
+      },
+      "endpointProfileCountsPerPositionBin": {
+        "0": {
+          "analysis-colon": 1,
+          "constraint-trait": 3,
+          "decision-list": 3,
+          "evidence-equals": 2,
+          "holoscript-line-comment": 3,
+          "holoscript-object-name": 1,
+          "options-object": 3,
+          "trace-call": 2
+        },
+        "1": {
+          "analysis-colon": 2,
+          "constraint-trait": 3,
+          "decision-list": 3,
+          "evidence-equals": 1,
+          "holoscript-line-comment": 1,
+          "holoscript-object-name": 2,
+          "options-object": 2,
+          "trace-call": 4
+        },
+        "2": {
+          "analysis-colon": 4,
+          "constraint-trait": 3,
+          "decision-list": 0,
+          "evidence-equals": 2,
+          "holoscript-line-comment": 2,
+          "holoscript-object-name": 3,
+          "options-object": 4,
+          "trace-call": 0
+        },
+        "3": {
+          "analysis-colon": 2,
+          "constraint-trait": 0,
+          "decision-list": 3,
+          "evidence-equals": 4,
+          "holoscript-line-comment": 3,
+          "holoscript-object-name": 3,
+          "options-object": 0,
+          "trace-call": 3
+        }
+      },
+      "rowCount": 72,
+      "rowsPerFamily": {
+        "causal_temporal": 12,
+        "normative": 12,
+        "physical": 12,
+        "planning_tension": 12,
+        "relational": 12,
+        "semantic_pragmatic": 12
+      },
+      "rowsPerPositionBin": {
+        "0": 18,
+        "1": 18,
+        "2": 18,
+        "3": 18
+      }
+    },
+    "coordinateOrderExact": true,
+    "coordinatesIdenticalAcrossLanes": true,
+    "exposedObservationUnion": {
+      "caseIdSetSha256": "sha256:9ee70471e88cda20926e7bd1ce10d092f18d8c5a97032890a277b5cea238efe2",
+      "promptHashSetSha256": "sha256:08e430a4b5fe3146e99321bc65a9249bfaca50477ad8829b4b6dbfea26232cfa",
+      "rowCountAcrossInputArtifacts": 216,
+      "sequenceHashSetSha256": "sha256:a387ef5305921463a02a5a9e93d3fc334afd3eb9d798258caad82d61906c6360",
+      "uniqueCaseIdCount": 216,
+      "uniquePromptHashCount": 216,
+      "uniqueSequenceHashCount": 216
+    },
+    "noPromptGenerationEditsOrRanking": true,
+    "noSelectedSourceRowPreviouslyFitOrEvaluated": true,
+    "pilot": {
+      "allEndpointProfilesPresentPerPositionBin": true,
+      "coordinateSetSha256": "sha256:b45a9913521be33b5889bbd326e76e87bd1e5ee28ab802f03440be3ae569ccde",
+      "eachFamilyRetainsEachEndpointAtLeastOnce": false,
+      "eachFamilySeesEachEndpointExactlyOnce": true,
+      "endpointProfileCounts": {
+        "analysis-colon": 6,
+        "constraint-trait": 6,
+        "decision-list": 6,
+        "evidence-equals": 6,
+        "holoscript-line-comment": 6,
+        "holoscript-object-name": 6,
+        "options-object": 6,
+        "trace-call": 6
+      },
+      "endpointProfileCountsPerPositionBin": {
+        "0": {
+          "analysis-colon": 1,
+          "constraint-trait": 2,
+          "decision-list": 1,
+          "evidence-equals": 2,
+          "holoscript-line-comment": 1,
+          "holoscript-object-name": 1,
+          "options-object": 2,
+          "trace-call": 2
+        },
+        "1": {
+          "analysis-colon": 2,
+          "constraint-trait": 1,
+          "decision-list": 2,
+          "evidence-equals": 1,
+          "holoscript-line-comment": 1,
+          "holoscript-object-name": 2,
+          "options-object": 2,
+          "trace-call": 1
+        },
+        "2": {
+          "analysis-colon": 1,
+          "constraint-trait": 2,
+          "decision-list": 1,
+          "evidence-equals": 2,
+          "holoscript-line-comment": 2,
+          "holoscript-object-name": 2,
+          "options-object": 1,
+          "trace-call": 1
+        },
+        "3": {
+          "analysis-colon": 2,
+          "constraint-trait": 1,
+          "decision-list": 2,
+          "evidence-equals": 1,
+          "holoscript-line-comment": 2,
+          "holoscript-object-name": 1,
+          "options-object": 1,
+          "trace-call": 2
+        }
+      },
+      "rowCount": 48,
+      "rowsPerFamily": {
+        "causal_temporal": 8,
+        "normative": 8,
+        "physical": 8,
+        "planning_tension": 8,
+        "relational": 8,
+        "semantic_pragmatic": 8
+      },
+      "rowsPerPositionBin": {
+        "0": 12,
+        "1": 12,
+        "2": 12,
+        "3": 12
+      }
+    },
+    "selectedLanesPairwiseDisjoint": {
+      "a:b": {
+        "caseId": 0,
+        "promptHash": 0,
+        "sequenceHash": 0
+      },
+      "a:h": {
+        "caseId": 0,
+        "promptHash": 0,
+        "sequenceHash": 0
+      },
+      "b:h": {
+        "caseId": 0,
+        "promptHash": 0,
+        "sequenceHash": 0
+      }
+    },
+    "sourceRowsAreExactSealedS3ConfirmationMembers": true,
+    "uniformConfirmationEndpointByPositionClaimPermitted": false,
+    "zeroOverlapWithExposedS2AndS3ByCaseIdPromptHashAndSequenceHash": true,
+    "zeroPilotConfirmationOverlapByCaseIdPromptHashAndSequenceHash": true
+  },
+  "schema": "holoscript.jspace-s4-selection-manifest.v0.1.0",
+  "selector": {
+    "confirmationRule": "exact ordered complement within sealed S3 confirmation",
+    "coordinateOrder": "lexicographic [familyIndex,positionBinIndex,endpointSlot]",
+    "endpointSlots": [
+      {
+        "profile": "analysis-colon",
+        "slot": 0,
+        "taskForm": "form_0",
+        "variant": 0
+      },
+      {
+        "profile": "evidence-equals",
+        "slot": 1,
+        "taskForm": "form_0",
+        "variant": 1
+      },
+      {
+        "profile": "decision-list",
+        "slot": 2,
+        "taskForm": "form_1",
+        "variant": 0
+      },
+      {
+        "profile": "options-object",
+        "slot": 3,
+        "taskForm": "form_1",
+        "variant": 1
+      },
+      {
+        "profile": "holoscript-object-name",
+        "slot": 4,
+        "taskForm": "form_2",
+        "variant": 0
+      },
+      {
+        "profile": "holoscript-line-comment",
+        "slot": 5,
+        "taskForm": "form_2",
+        "variant": 1
+      },
+      {
+        "profile": "trace-call",
+        "slot": 6,
+        "taskForm": "form_3",
+        "variant": 0
+      },
+      {
+        "profile": "constraint-trait",
+        "slot": 7,
+        "taskForm": "form_3",
+        "variant": 1
+      }
+    ],
+    "familyOrder": [
+      "physical",
+      "relational",
+      "causal_temporal",
+      "normative",
+      "semantic_pragmatic",
+      "planning_tension"
+    ],
+    "pilotSlotTable": [
+      [
+        [
+          3,
+          4
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          7
+        ],
+        [
+          5,
+          6
+        ]
+      ],
+      [
+        [
+          0,
+          1
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          4,
+          7
+        ],
+        [
+          5,
+          6
+        ]
+      ],
+      [
+        [
+          6,
+          7
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          4
+        ]
+      ],
+      [
+        [
+          3,
+          7
+        ],
+        [
+          1,
+          6
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          0,
+          2
+        ]
+      ],
+      [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          5,
+          6
+        ],
+        [
+          0,
+          7
+        ]
+      ],
+      [
+        [
+          5,
+          6
+        ],
+        [
+          4,
+          7
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ]
+      ]
+    ],
+    "positionBins": [
+      [
+        0,
+        127
+      ],
+      [
+        128,
+        255
+      ],
+      [
+        256,
+        383
+      ],
+      [
+        384,
+        511
+      ]
+    ],
+    "ranking": null
+  },
+  "selectorSourceSha256": "sha256:36f98bb07e03b611191f2a7596c2cb00e58a44ba73ce80fcf52ec631f7ae5af6",
+  "selfHash": "sha256:870a25aeb2462df8c57e0291e93a9785b74d366478a881f319c0dfa76a046a20",
+  "semanticLabelsAccessed": false,
+  "sourceS2": {
+    "corpusManifest": {
+      "file": "research/data/jspace-s2/corpus-manifest.json",
+      "selfHash": "sha256:e81354d29eb295de6fb0e7441b0d9907d5d776720083cf6ea9344b39b22b3361",
+      "sha256": "sha256:2c00dd213301a5ba57628b3226ae77f6b78216df0f8bb17ea0dddecccb2b0b64"
+    },
+    "exposedPilotArtifacts": {
+      "a": {
+        "caseIdSetSha256": "sha256:2ed48ec11528991ac1b4c40588b9f66a2558a68fac858ebe46fd2553e7d1bb6b",
+        "coordinateSetSha256": "sha256:6cd3e61099679f81f046be52653f22b9c5a1875d75c31697ef293b17336f1e15",
+        "file": "research/data/jspace-s2/fit-a-pilot.jsonl",
+        "promptHashSetSha256": "sha256:789e14ee20f54ce2479d27de945b9c3b5cc47a4ef366abc0d3ead248d32a058f",
+        "rowCount": 24,
+        "sequenceHashSetSha256": "sha256:4ce17cf84b4955ad9c2e9dbc4844bbc626082aec843f52eaff53e4135ecee675",
+        "sha256": "sha256:20301df30e38d7ad95f5133db714879118e620fbfa757184bcd3d5d9fb0dafac"
+      },
+      "b": {
+        "caseIdSetSha256": "sha256:b280474ba6cb06fc5dee6457e670aeed4594787b7b6474f6ad7052f0a29b27ba",
+        "coordinateSetSha256": "sha256:6cd3e61099679f81f046be52653f22b9c5a1875d75c31697ef293b17336f1e15",
+        "file": "research/data/jspace-s2/fit-b-pilot.jsonl",
+        "promptHashSetSha256": "sha256:1d880099325191f81f09156c02d0dcbbce02148fe3968d45c610653a982e5fb2",
+        "rowCount": 24,
+        "sequenceHashSetSha256": "sha256:7c8ade2f70ebe4ff13e49645504081c0bdfa2748f45e1cc499417860c8f6c257",
+        "sha256": "sha256:d4158b39ecae7af049ca1877266286f7c8cf7613142ba9f6aab509922a54d867"
+      },
+      "h": {
+        "caseIdSetSha256": "sha256:2be1a97f611204e495240c7d5aa58511d06e68f4bf039ba16da048421c60e016",
+        "coordinateSetSha256": "sha256:6cd3e61099679f81f046be52653f22b9c5a1875d75c31697ef293b17336f1e15",
+        "file": "research/data/jspace-s2/fidelity-h-pilot.jsonl",
+        "promptHashSetSha256": "sha256:2623d5b4fc1945a85b2c4c7d20e445fd4090dc9b29ee76885b3fafeb2185f627",
+        "rowCount": 24,
+        "sequenceHashSetSha256": "sha256:8f54b67ddad1ae638b776009927ee30a77aa00ccc7c0b09f1ebc6140ec3163ac",
+        "sha256": "sha256:344f3263b623afefb677f4537d14f6e06c9c89f62519e587f8bdced3daa1c261"
+      }
+    },
+    "leakageReport": {
+      "file": "research/data/jspace-s2/leakage-report.json",
+      "passed": true,
+      "selfHash": "sha256:1bdddd888ce422777e812f8f3b7781ed37dc6877c43ab6fae32e22a5154c6491",
+      "sha256": "sha256:c4cbc8a65e092a756cae46466cad7938aca9fb5c1a31530d34f0badee7fb7d2a"
+    },
+    "referenceManifest": {
+      "file": "research/data/jspace-s2/reference-manifest.json",
+      "selfHash": "sha256:0dbb03057bfb3601661446bb80007ad52b11082b7b7e77365e9a642860320d24",
+      "sha256": "sha256:77f4e11eea6584667d606624e7f41a4598ac1f329bd6b137633f4b39574d7a0b"
+    },
+    "semanticLabelsAccessed": false
+  },
+  "sourceS3": {
+    "exposedPilotArtifacts": {
+      "a": {
+        "caseIdSetSha256": "sha256:7bb92ba54d11ae28d5d50c6562a9e06cacedf8258e624bbee44871ee819eb3a9",
+        "coordinateSetSha256": "sha256:eafa45716bf5ea9996e3742ab3a19adfa43e22918a7834e0c0b590d18f45cd55",
+        "file": "research/data/jspace-s3/fit-a-pilot.jsonl",
+        "promptHashSetSha256": "sha256:c918f432e8d763d4ea7376eca0cb4431dbd3ffa0352444ecdc9cf8efb07d7151",
+        "rowCount": 48,
+        "sequenceHashSetSha256": "sha256:d4c27e31ac7bbd4bb98d898725ef1a717fd120f5b5fb4cfc0c44eb423459e1e0",
+        "sha256": "sha256:37c2b7482e77615ec5794da41ade649966a85a8c983d9bcb89a902fdf9d11b8c"
+      },
+      "b": {
+        "caseIdSetSha256": "sha256:1370151d167a571065a820927d57992ca050d75c97710d13b8d4ec984a7ca09f",
+        "coordinateSetSha256": "sha256:eafa45716bf5ea9996e3742ab3a19adfa43e22918a7834e0c0b590d18f45cd55",
+        "file": "research/data/jspace-s3/fit-b-pilot.jsonl",
+        "promptHashSetSha256": "sha256:80d2196127f990c63fbb2d9fd9dba717b1fef02e815c2aefeac68fb5ea2e23a2",
+        "rowCount": 48,
+        "sequenceHashSetSha256": "sha256:6d07b13580c00725026f949cebeeb19f4f642cd00795b2ece7ea7a57a0527929",
+        "sha256": "sha256:2997b6422e14e0a2473910c1b45b78ef7abd0cd096cb51e6b5b4e2e4613f0d6f"
+      },
+      "h": {
+        "caseIdSetSha256": "sha256:cc7fce7d332b42d36491bd758d76d1595957090a553ed61c40e544accff43094",
+        "coordinateSetSha256": "sha256:eafa45716bf5ea9996e3742ab3a19adfa43e22918a7834e0c0b590d18f45cd55",
+        "file": "research/data/jspace-s3/fidelity-h-pilot.jsonl",
+        "promptHashSetSha256": "sha256:8bf121c8680df1a1cd7bd191d1e9756d17412101979b532a238bb83d0b8050c8",
+        "rowCount": 48,
+        "sequenceHashSetSha256": "sha256:f17d7aa645021df5c3f92a66cca525de879dae8f4e39d7bc902175740ca755b1",
+        "sha256": "sha256:2203feaacd57aec43b7a0f44877919ab29bc9cf3c9466df6ceeb8f6d57a4d137"
+      }
+    },
+    "failedPilotEvidenceManifest": {
+      "file": "research/measurements/jspace-s3/pilot-manifest.json",
+      "selfHash": "sha256:43ea32042b8d3676ea6917e2217456206483d47a51afe0343512cd5cbea24cf5",
+      "sha256": "sha256:ad5b19e0b16c4963b2ad83cad0c8b0f17d4f024b3374014c5e9b9617443737da",
+      "status": "failed-frozen-gate"
+    },
+    "preregistration": {
+      "file": "research/2026-07-15-jspace-s3-latin-endpoint-preregistration.md",
+      "sha256": "sha256:c850d7eda595e3eda2fdbcfbcf3e8172b876f7171594569da979e54cff822c18"
+    },
+    "promotedObservationArtifacts": {
+      "pilot-a-fit.json": {
+        "bytes": 6188,
+        "file": "research/measurements/jspace-s3/pilot-a-fit.json",
+        "sha256": "sha256:b72006dcc52d01a3792897a22132519be6e8758d7591ef4dace1e8612a2bc191"
+      },
+      "pilot-b-fit.json": {
+        "bytes": 6188,
+        "file": "research/measurements/jspace-s3/pilot-b-fit.json",
+        "sha256": "sha256:6632a10ca74fcb8a870eabef4b78a6cc861161913d7df42672eca9aec959a0c2"
+      },
+      "pilot-collection.json": {
+        "bytes": 3417,
+        "file": "research/measurements/jspace-s3/pilot-collection.json",
+        "sha256": "sha256:bc01c6824095ac03565926cf60810cf16ee3925091745db31e46359412929b37"
+      },
+      "pilot-fidelity.json": {
+        "bytes": 10485,
+        "file": "research/measurements/jspace-s3/pilot-fidelity.json",
+        "sha256": "sha256:cd8945ab62af7152e4b55e08e6b5693a3622b6156284e26ea37c2843e732d6c2"
+      },
+      "pilot-receipts.jsonl": {
+        "bytes": 1521563,
+        "file": "research/measurements/jspace-s3/pilot-receipts.jsonl",
+        "sha256": "sha256:3c7a0d2b17ffe581ae58e907b04c49a12b3f38489d1d8d25f33290d9577913ec"
+      },
+      "pilot-rows.jsonl": {
+        "bytes": 289635,
+        "file": "research/measurements/jspace-s3/pilot-rows.jsonl",
+        "sha256": "sha256:e814b703b810807eff02d0cbb166eb6c884847a6c43011274ee29a81170a18e8"
+      }
+    },
+    "selectionManifest": {
+      "file": "research/data/jspace-s3/selection-manifest.json",
+      "selfHash": "sha256:f09d04f0e8a18d06dc95acee5f26ac40e9f4f0490af93477a84edbd3c01ac7f2",
+      "sha256": "sha256:1c700238479b2b0e54839779de3ea2efe6298879227043e8495c559b502761af"
+    },
+    "selector": {
+      "file": "scripts/research/select_jspace_s3_corpus.py",
+      "sha256": "sha256:db7989aa764bfce553b76c6e95f16e20553152192853a99a51dec93a8200966d"
+    },
+    "semanticLabelsAccessed": false,
+    "stillUnobservedConfirmationArtifacts": {
+      "a": {
+        "caseIdSetSha256": "sha256:895b523ece2916bc182062d91b08371dd315bba5697a0125cf06868246cb819c",
+        "coordinateSetSha256": "sha256:fc5c05858082a3a69aa22282f67d79f94ad4e1899c050f7fc790327111d79fff",
+        "file": "research/data/jspace-s3/fit-a-confirmation.jsonl",
+        "promptHashSetSha256": "sha256:6c5754ec53eb9f59d5cbcbf5157622b4d93092864f41b86b35282b4a1d212c65",
+        "rowCount": 120,
+        "sequenceHashSetSha256": "sha256:0ba959ce483c44db46aeaf548aa343135c8b6b82d110b67aff06a24269983a0b",
+        "sha256": "sha256:8f903f6b8260d4e5feb2e07094ec246012213a3feccfb2807a577dd9657605da"
+      },
+      "b": {
+        "caseIdSetSha256": "sha256:f91ddce338fd2838734eeb722986d4b33e4de1bd4de478da667b7a782813b2ee",
+        "coordinateSetSha256": "sha256:fc5c05858082a3a69aa22282f67d79f94ad4e1899c050f7fc790327111d79fff",
+        "file": "research/data/jspace-s3/fit-b-confirmation.jsonl",
+        "promptHashSetSha256": "sha256:5b89a98e2771d9dc10e23ae5bd56b997afb4b009b9a4950af2c2183046652d57",
+        "rowCount": 120,
+        "sequenceHashSetSha256": "sha256:c5a7a088f93918d3c05ff5174aea6be7853ce4a9a94d7def48b794fed15ab377",
+        "sha256": "sha256:2e89761d6810b5ad163405e2cc666df0b8d9261c6b77b26beeb770b7684d73de"
+      },
+      "h": {
+        "caseIdSetSha256": "sha256:4472bd5f33e1086e47d5d9d4fdab516d5799be65f5d94d91b6781bbfae65bf34",
+        "coordinateSetSha256": "sha256:fc5c05858082a3a69aa22282f67d79f94ad4e1899c050f7fc790327111d79fff",
+        "file": "research/data/jspace-s3/fidelity-h-confirmation.jsonl",
+        "promptHashSetSha256": "sha256:448f2e300bfb4d0772f6f271c4d8ba86ab212def8238ca6d5266ee860af2b09e",
+        "rowCount": 120,
+        "sequenceHashSetSha256": "sha256:5b11f19e4f3054c75c2e235483350e0e710ccad2a05f9f249245388bea4ff7e7",
+        "sha256": "sha256:5bbbb8925f172fba7686c2641b0849107e360c7879991666f95b967132b5563e"
+      }
+    }
+  },
+  "tokenizerSha256": "sha256:f92af6207d211728a530e95e44c60b3c95f700ea9c755ab6bd8614fbdac623d4"
+}
