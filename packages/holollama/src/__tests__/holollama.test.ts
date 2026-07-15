@@ -21,6 +21,8 @@ import {
   LEGACY_MODEL_WORKSPACE_RECEIPT_SCHEMA,
   MODEL_WORKSPACE_CAPABILITY_SCHEMA,
   MODEL_WORKSPACE_CONTROL_PROFILE,
+  MODEL_WORKSPACE_ENDPOINT_AFFINE_TRANSPORT_PROFILE,
+  MODEL_WORKSPACE_ENDPOINT_POSITION_POLICY,
   MODEL_WORKSPACE_HASH_CANONICALIZATION,
   MODEL_WORKSPACE_MEASUREMENT_PROFILE,
   MODEL_WORKSPACE_RECEIPT_SCHEMA,
@@ -173,6 +175,33 @@ function modelWorkspaceFixture(prompt = 'composition "'): ModelWorkspaceReceipt 
     },
     limitations: ['bounded observation'],
     receiptHash: '',
+  };
+  receipt.observationSha256 = hashModelWorkspacePayload(receipt.observation);
+  receipt.receiptHash = hashModelWorkspacePayload({ ...receipt, receiptHash: null });
+  return receipt;
+}
+
+function endpointAffineWorkspaceFixture(prompt = 'composition "'): ModelWorkspaceReceipt {
+  const receipt = modelWorkspaceFixture(prompt);
+  receipt.lens = {
+    ...receipt.lens,
+    estimator: 'endpoint_self_jacobian_affine_v1',
+    paperParity: false,
+    implementationVersion: '0.1.0',
+    positionPolicy: MODEL_WORKSPACE_ENDPOINT_POSITION_POLICY,
+    positionBins: [[0, 127]],
+    transportProfile: MODEL_WORKSPACE_ENDPOINT_AFFINE_TRANSPORT_PROFILE,
+  };
+  receipt.observation.layers[0]!.anchorControlMetrics = {
+    anchorTargetJensenShannonDivergenceNatsE8: 4_000_000,
+    mappedVsAnchorLensGainJensenShannonNatsE8: 2_000_000,
+    anchorEntropyNatsE8: 145_000_000,
+    anchorMaxProbabilityE8: 35_000_000,
+    targetEntropyNatsE8: 155_000_000,
+    targetMaxProbabilityE8: 36_000_000,
+    mappedTopTokenId: 4,
+    anchorTopTokenId: 6,
+    targetTopTokenId: 7,
   };
   receipt.observationSha256 = hashModelWorkspacePayload(receipt.observation);
   receipt.receiptHash = hashModelWorkspacePayload({ ...receipt, receiptHash: null });
@@ -1241,6 +1270,29 @@ composition "owned-edge" {
     legacy.observationSha256 = hashModelWorkspacePayload(legacy.observation);
     legacy.receiptHash = hashModelWorkspacePayload({ ...legacy, receiptHash: null });
     expect(validateModelWorkspaceReceipt(legacy)).toMatchObject({ ok: true, blockers: [] });
+
+    const anchorLeakingLegacy = structuredClone(legacy) as Record<string, any>;
+    anchorLeakingLegacy.observation.layers[0].anchorControlMetrics = {
+      anchorTargetJensenShannonDivergenceNatsE8: 4_000_000,
+      mappedVsAnchorLensGainJensenShannonNatsE8: 2_000_000,
+      anchorEntropyNatsE8: 145_000_000,
+      anchorMaxProbabilityE8: 35_000_000,
+      targetEntropyNatsE8: 155_000_000,
+      targetMaxProbabilityE8: 36_000_000,
+      mappedTopTokenId: 4,
+      anchorTopTokenId: 6,
+      targetTopTokenId: 7,
+    };
+    anchorLeakingLegacy.observationSha256 = hashModelWorkspacePayload(
+      anchorLeakingLegacy.observation
+    );
+    anchorLeakingLegacy.receiptHash = hashModelWorkspacePayload({
+      ...anchorLeakingLegacy,
+      receiptHash: null,
+    });
+    expect(validateModelWorkspaceReceipt(anchorLeakingLegacy).blockers).toContain(
+      'observation layer 0 is malformed or unbounded'
+    );
   });
 
   it('rejects a HoloServe capability that downgrades the advertised measurement profile', async () => {
@@ -1382,6 +1434,203 @@ composition "owned-edge" {
       parityScope: 'reference-estimator-only',
       paperExperimentParity: false,
     });
+  });
+
+  it('binds the endpoint-affine estimator profile and position bins to its capability', async () => {
+    const receipt = endpointAffineWorkspaceFixture();
+    const fetchImpl: HoloLlamaWorkspaceProbeFetch = vi.fn(async (url) =>
+      url.endsWith('/health')
+        ? workspaceJsonResponse({
+            backend: 'pytorch-holo',
+            model: { name: 'holorunner-s0' },
+            model_workspace_probe: {
+              schema: MODEL_WORKSPACE_CAPABILITY_SCHEMA,
+              observe: true,
+              intervention: false,
+              models: {
+                'holorunner-s0': {
+                  ...modelWorkspaceCapability(),
+                  estimator: 'endpoint_self_jacobian_affine_v1',
+                  paperParity: false,
+                  positionPolicy: MODEL_WORKSPACE_ENDPOINT_POSITION_POLICY,
+                  positionBins: [[0, 127]],
+                  transportProfile: MODEL_WORKSPACE_ENDPOINT_AFFINE_TRANSPORT_PROFILE,
+                },
+              },
+            },
+          })
+        : workspaceJsonResponse(receipt)
+    );
+
+    const result = await observeHoloLlamaModelWorkspace({
+      endpoint: 'http://127.0.0.1:8080',
+      prompt: 'composition "',
+      model: 'holorunner-s0',
+      layers: [0],
+      positions: [-1],
+      k: 1,
+      generatedAt: '2026-07-14T00:00:00.000Z',
+      fetchImpl,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.modelWorkspaceReceipt?.lens).toMatchObject({
+      estimator: 'endpoint_self_jacobian_affine_v1',
+      paperParity: false,
+      positionPolicy: MODEL_WORKSPACE_ENDPOINT_POSITION_POLICY,
+      positionBins: [[0, 127]],
+      transportProfile: MODEL_WORKSPACE_ENDPOINT_AFFINE_TRANSPORT_PROFILE,
+    });
+
+    const mismatchedBinsFetch: HoloLlamaWorkspaceProbeFetch = vi.fn(async (url) =>
+      url.endsWith('/health')
+        ? workspaceJsonResponse({
+            backend: 'pytorch-holo',
+            model: { name: 'holorunner-s0' },
+            model_workspace_probe: {
+              schema: MODEL_WORKSPACE_CAPABILITY_SCHEMA,
+              observe: true,
+              intervention: false,
+              models: {
+                'holorunner-s0': {
+                  ...modelWorkspaceCapability(),
+                  estimator: 'endpoint_self_jacobian_affine_v1',
+                  paperParity: false,
+                  positionPolicy: MODEL_WORKSPACE_ENDPOINT_POSITION_POLICY,
+                  positionBins: [
+                    [0, 31],
+                    [32, 127],
+                  ],
+                  transportProfile: MODEL_WORKSPACE_ENDPOINT_AFFINE_TRANSPORT_PROFILE,
+                },
+              },
+            },
+          })
+        : workspaceJsonResponse(receipt)
+    );
+    const mismatch = await observeHoloLlamaModelWorkspace({
+      endpoint: 'http://127.0.0.1:8080',
+      prompt: 'composition "',
+      model: 'holorunner-s0',
+      layers: [0],
+      positions: [-1],
+      k: 1,
+      generatedAt: '2026-07-14T00:00:00.000Z',
+      fetchImpl: mismatchedBinsFetch,
+    });
+    expect(mismatch.ok).toBe(false);
+    expect(mismatch.blockers).toContain(
+      'receipt position bins do not match the advertised model capability'
+    );
+  });
+
+  it('rejects malformed endpoint-affine provenance and non-endpoint observations', () => {
+    const missingAnchor = endpointAffineWorkspaceFixture();
+    delete missingAnchor.observation.layers[0]!.anchorControlMetrics;
+    missingAnchor.observationSha256 = hashModelWorkspacePayload(missingAnchor.observation);
+    missingAnchor.receiptHash = hashModelWorkspacePayload({ ...missingAnchor, receiptHash: null });
+    expect(validateModelWorkspaceReceipt(missingAnchor).blockers).toContain(
+      'observation layer 0 anchor control metrics are invalid'
+    );
+
+    const falseAnchorGain = endpointAffineWorkspaceFixture();
+    falseAnchorGain.observation.layers[0]!.anchorControlMetrics!.mappedVsAnchorLensGainJensenShannonNatsE8 = 1_000_000;
+    falseAnchorGain.observationSha256 = hashModelWorkspacePayload(falseAnchorGain.observation);
+    falseAnchorGain.receiptHash = hashModelWorkspacePayload({
+      ...falseAnchorGain,
+      receiptHash: null,
+    });
+    expect(validateModelWorkspaceReceipt(falseAnchorGain).blockers).toContain(
+      'observation layer 0 anchor control metrics are invalid'
+    );
+
+    const missingTransport = endpointAffineWorkspaceFixture();
+    delete missingTransport.lens.transportProfile;
+    missingTransport.receiptHash = hashModelWorkspacePayload({
+      ...missingTransport,
+      receiptHash: null,
+    });
+    expect(validateModelWorkspaceReceipt(missingTransport).blockers).toContain(
+      'lens provenance or sparse-readout bound is invalid'
+    );
+
+    const gappedBins = endpointAffineWorkspaceFixture();
+    gappedBins.lens.positionBins = [
+      [0, 31],
+      [33, 127],
+    ];
+    gappedBins.receiptHash = hashModelWorkspacePayload({ ...gappedBins, receiptHash: null });
+    expect(validateModelWorkspaceReceipt(gappedBins).blockers).toContain(
+      'lens provenance or sparse-readout bound is invalid'
+    );
+
+    const wrongParity = endpointAffineWorkspaceFixture();
+    wrongParity.lens.paperParity = true;
+    wrongParity.receiptHash = hashModelWorkspacePayload({ ...wrongParity, receiptHash: null });
+    expect(validateModelWorkspaceReceipt(wrongParity).blockers).toContain(
+      'lens provenance or sparse-readout bound is invalid'
+    );
+
+    const wrongPolicy = endpointAffineWorkspaceFixture();
+    wrongPolicy.lens.positionPolicy = 'all-valid-current-and-future-targets';
+    wrongPolicy.receiptHash = hashModelWorkspacePayload({ ...wrongPolicy, receiptHash: null });
+    expect(validateModelWorkspaceReceipt(wrongPolicy).blockers).toContain(
+      'lens provenance or sparse-readout bound is invalid'
+    );
+
+    const nonEndpoint = endpointAffineWorkspaceFixture();
+    nonEndpoint.input.requestedPositions = [0];
+    nonEndpoint.input.positions = [0];
+    nonEndpoint.observation.layers[0]!.position = 0;
+    nonEndpoint.observationSha256 = hashModelWorkspacePayload(nonEndpoint.observation);
+    nonEndpoint.receiptHash = hashModelWorkspacePayload({ ...nonEndpoint, receiptHash: null });
+    expect(validateModelWorkspaceReceipt(nonEndpoint).blockers).toContain(
+      'bounded input provenance is invalid'
+    );
+
+    const uncoveredEndpoint = endpointAffineWorkspaceFixture();
+    uncoveredEndpoint.lens.positionBins = [[0, 1]];
+    uncoveredEndpoint.receiptHash = hashModelWorkspacePayload({
+      ...uncoveredEndpoint,
+      receiptHash: null,
+    });
+    expect(validateModelWorkspaceReceipt(uncoveredEndpoint).blockers).toContain(
+      'bounded input provenance is invalid'
+    );
+  });
+
+  it('rejects an endpoint-affine capability without its transport contract', async () => {
+    const fetchImpl: HoloLlamaWorkspaceProbeFetch = vi.fn(async () =>
+      workspaceJsonResponse({
+        backend: 'pytorch-holo',
+        model: { name: 'holorunner-s0' },
+        model_workspace_probe: {
+          schema: MODEL_WORKSPACE_CAPABILITY_SCHEMA,
+          observe: true,
+          intervention: false,
+          models: {
+            'holorunner-s0': {
+              ...modelWorkspaceCapability(),
+              estimator: 'endpoint_self_jacobian_affine_v1',
+              paperParity: false,
+              positionPolicy: MODEL_WORKSPACE_ENDPOINT_POSITION_POLICY,
+              positionBins: [[0, 127]],
+            },
+          },
+        },
+      })
+    );
+
+    const result = await observeHoloLlamaModelWorkspace({
+      endpoint: 'http://127.0.0.1:8080',
+      prompt: 'test',
+      model: 'holorunner-s0',
+      generatedAt: '2026-07-14T00:00:00.000Z',
+      fetchImpl,
+    });
+    expect(result.status).toBe('unsupported');
+    expect(result.blockers).toEqual(['model_workspace_probe_not_advertised']);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 
   it('fails closed when a HoloLlama llama.cpp node lacks differentiable hidden states', async () => {

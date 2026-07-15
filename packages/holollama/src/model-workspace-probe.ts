@@ -15,8 +15,16 @@ export const MODEL_WORKSPACE_SIGNAL_RECEIPT_SCHEMA =
   'holollama.model-workspace-signal-receipt.v0.1.0' as const;
 export const HOLOLLAMA_MODEL_WORKSPACE_PROBE_SCHEMA =
   'holollama.model-workspace-probe.v0.1.0' as const;
+export const MODEL_WORKSPACE_ENDPOINT_POSITION_POLICY = 'endpoint-self-only' as const;
+export const MODEL_WORKSPACE_ENDPOINT_AFFINE_TRANSPORT_PROFILE =
+  'mean-anchored-affine-final-residual-v1' as const;
 
-export type ModelWorkspaceEstimator = 'explicit_pair_average_v0' | 'corpus_position_average_v1';
+export type ModelWorkspaceEstimator =
+  | 'explicit_pair_average_v0'
+  | 'corpus_position_average_v1'
+  | 'endpoint_self_jacobian_affine_v1';
+
+export type ModelWorkspacePositionBin = [start: number, end: number];
 
 export interface ModelWorkspaceConcept {
   tokenId: number;
@@ -37,6 +45,18 @@ export interface ModelWorkspaceDistributionMetrics {
   controlMaxProbabilityE8: number;
 }
 
+export interface ModelWorkspaceAnchorControlMetrics {
+  anchorTargetJensenShannonDivergenceNatsE8: number;
+  mappedVsAnchorLensGainJensenShannonNatsE8: number;
+  anchorEntropyNatsE8: number;
+  anchorMaxProbabilityE8: number;
+  targetEntropyNatsE8: number;
+  targetMaxProbabilityE8: number;
+  mappedTopTokenId: number;
+  anchorTopTokenId: number;
+  targetTopTokenId: number;
+}
+
 export interface ModelWorkspaceLayerObservation {
   layer: number;
   position: number;
@@ -45,6 +65,7 @@ export interface ModelWorkspaceLayerObservation {
   tailProbabilityMassE8: number;
   controlTailProbabilityMassE8?: number;
   distributionMetrics?: ModelWorkspaceDistributionMetrics;
+  anchorControlMetrics?: ModelWorkspaceAnchorControlMetrics;
 }
 
 export interface ModelWorkspaceReceipt {
@@ -73,6 +94,8 @@ export interface ModelWorkspaceReceipt {
     corpusSha256: string;
     lensSha256: string;
     positionPolicy: string;
+    positionBins?: ModelWorkspacePositionBin[];
+    transportProfile?: typeof MODEL_WORKSPACE_ENDPOINT_AFFINE_TRANSPORT_PROFILE;
     jacobianCount: number;
     k: number;
   };
@@ -131,6 +154,8 @@ export interface ModelWorkspaceReceiptExpectation {
   k: number;
   lensSha256: string;
   estimator: ModelWorkspaceEstimator;
+  positionBins?: ModelWorkspacePositionBin[];
+  transportProfile?: typeof MODEL_WORKSPACE_ENDPOINT_AFFINE_TRANSPORT_PROFILE;
   measurementProfile: typeof MODEL_WORKSPACE_MEASUREMENT_PROFILE;
   controlProfile: typeof MODEL_WORKSPACE_CONTROL_PROFILE;
 }
@@ -277,7 +302,10 @@ export async function observeHoloLlamaModelWorkspace(
       selectedCapability.estimator,
       selectedCapability.paperParity,
       selectedCapability.parityScope,
-      selectedCapability.paperExperimentParity
+      selectedCapability.paperExperimentParity,
+      selectedCapability.transportProfile,
+      selectedCapability.positionBins,
+      selectedCapability.positionPolicy
     )
       ? selectedCapability.estimator
       : null;
@@ -336,6 +364,12 @@ export async function observeHoloLlamaModelWorkspace(
     k: expectedK,
     lensSha256: String(selectedCapability!.lensSha256),
     estimator: advertisedEstimator!,
+    ...(advertisedEstimator === 'endpoint_self_jacobian_affine_v1'
+      ? {
+          transportProfile: MODEL_WORKSPACE_ENDPOINT_AFFINE_TRANSPORT_PROFILE,
+          positionBins: cloneWorkspacePositionBins(selectedCapability!.positionBins),
+        }
+      : {}),
     measurementProfile: advertisedMeasurementProfile!,
     controlProfile: advertisedControlProfile!,
   };
@@ -465,8 +499,12 @@ export function validateModelWorkspaceReceipt(
       lens.estimator,
       lens.paperParity,
       lens.parityScope,
-      lens.paperExperimentParity
+      lens.paperExperimentParity,
+      lens.transportProfile,
+      lens.positionBins,
+      lens.positionPolicy
     ) ||
+    (legacyReceipt && lens.estimator === 'endpoint_self_jacobian_affine_v1') ||
     !isSha256(lens.corpusSha256) ||
     !isSha256(lens.lensSha256) ||
     typeof lens.implementationVersion !== 'string' ||
@@ -515,6 +553,14 @@ export function validateModelWorkspaceReceipt(
       );
     })
   );
+  const validEstimatorPositions = Boolean(
+    lens?.estimator !== 'endpoint_self_jacobian_affine_v1' ||
+    (input &&
+      positions &&
+      positions.length === 1 &&
+      Number(positions[0]) === Number(input.tokenCount) - 1 &&
+      workspacePositionBinsCover(Number(positions[0]), lens.positionBins))
+  );
   if (
     !input ||
     !isSha256(input.promptSha256) ||
@@ -535,6 +581,7 @@ export function validateModelWorkspaceReceipt(
     new Set(positions).size !== positions.length ||
     requestedPositions.length !== positions.length ||
     !validNormalizedPositions ||
+    !validEstimatorPositions ||
     (currentReceipt && input.measurementProfile !== MODEL_WORKSPACE_MEASUREMENT_PROFILE) ||
     (legacyReceipt && 'measurementProfile' in input) ||
     input.seed !== null ||
@@ -563,6 +610,18 @@ export function validateModelWorkspaceReceipt(
     if (lens?.estimator !== expectation.estimator) {
       blockers.push('receipt estimator does not match the advertised model capability');
     }
+    if (
+      expectation.estimator === 'endpoint_self_jacobian_affine_v1' &&
+      lens?.transportProfile !== expectation.transportProfile
+    ) {
+      blockers.push('receipt transport profile does not match the advertised model capability');
+    }
+    if (
+      expectation.estimator === 'endpoint_self_jacobian_affine_v1' &&
+      !workspacePositionBinsEqual(lens?.positionBins, expectation.positionBins)
+    ) {
+      blockers.push('receipt position bins do not match the advertised model capability');
+    }
     if (input?.measurementProfile !== expectation.measurementProfile) {
       blockers.push('receipt measurement profile does not match the advertised model capability');
     }
@@ -576,7 +635,8 @@ export function validateModelWorkspaceReceipt(
       tokenizer && Number.isSafeInteger(tokenizer.vocabSize) ? Number(tokenizer.vocabSize) : null,
       currentReceipt,
       expectation?.measurementProfile ?? null,
-      expectation?.controlProfile ?? null
+      expectation?.controlProfile ?? null,
+      lens?.estimator ?? null
     )
   );
   const runtime = isRecord(value.runtime) ? value.runtime : null;
@@ -655,7 +715,8 @@ function validateWorkspaceObservation(
   vocabSize: number | null,
   currentReceipt: boolean,
   expectedMeasurementProfile: string | null,
-  expectedControlProfile: string | null
+  expectedControlProfile: string | null,
+  estimator: unknown
 ): string[] {
   if (!observation || observation.status !== 'observed') {
     return ['workspace observation is missing or not observed'];
@@ -731,7 +792,10 @@ function validateWorkspaceObservation(
       controls.length !== k ||
       !isE8Probability(item.tailProbabilityMassE8) ||
       (currentReceipt && !isE8Probability(item.controlTailProbabilityMassE8)) ||
-      (!currentReceipt && ('controlTailProbabilityMassE8' in item || 'distributionMetrics' in item))
+      (!currentReceipt &&
+        ('controlTailProbabilityMassE8' in item ||
+          'distributionMetrics' in item ||
+          'anchorControlMetrics' in item))
     ) {
       blockers.push(`observation layer ${index} is malformed or unbounded`);
       continue;
@@ -832,6 +896,48 @@ function validateWorkspaceObservation(
         blockers.push(`observation layer ${index} distribution metrics are invalid`);
       } else {
         primaryScores.push(Number(metrics.mappedControlJensenShannonDivergenceNatsE8));
+      }
+
+      const anchorMetrics = isRecord(item.anchorControlMetrics) ? item.anchorControlMetrics : null;
+      if (estimator === 'endpoint_self_jacobian_affine_v1') {
+        const anchorTokenIds = [
+          anchorMetrics?.mappedTopTokenId,
+          anchorMetrics?.anchorTopTokenId,
+          anchorMetrics?.targetTopTokenId,
+        ];
+        if (
+          !anchorMetrics ||
+          !Number.isSafeInteger(anchorMetrics.anchorTargetJensenShannonDivergenceNatsE8) ||
+          Number(anchorMetrics.anchorTargetJensenShannonDivergenceNatsE8) < 0 ||
+          Number(anchorMetrics.anchorTargetJensenShannonDivergenceNatsE8) >
+            maxJensenShannonNatsE8 ||
+          !Number.isSafeInteger(anchorMetrics.mappedVsAnchorLensGainJensenShannonNatsE8) ||
+          Math.abs(Number(anchorMetrics.mappedVsAnchorLensGainJensenShannonNatsE8)) >
+            maxJensenShannonNatsE8 ||
+          !Number.isSafeInteger(anchorMetrics.anchorEntropyNatsE8) ||
+          Number(anchorMetrics.anchorEntropyNatsE8) < 0 ||
+          maxEntropyNatsE8 === null ||
+          Number(anchorMetrics.anchorEntropyNatsE8) > maxEntropyNatsE8 ||
+          !isE8Probability(anchorMetrics.anchorMaxProbabilityE8) ||
+          !Number.isSafeInteger(anchorMetrics.targetEntropyNatsE8) ||
+          Number(anchorMetrics.targetEntropyNatsE8) < 0 ||
+          Number(anchorMetrics.targetEntropyNatsE8) > maxEntropyNatsE8 ||
+          !isE8Probability(anchorMetrics.targetMaxProbabilityE8) ||
+          anchorTokenIds.some(
+            (tokenId) =>
+              !Number.isSafeInteger(tokenId) ||
+              Number(tokenId) < 0 ||
+              vocabSize === null ||
+              Number(tokenId) >= vocabSize
+          ) ||
+          Number(anchorMetrics.mappedVsAnchorLensGainJensenShannonNatsE8) !==
+            Number(anchorMetrics.anchorTargetJensenShannonDivergenceNatsE8) -
+              Number(metrics?.mappedTargetJensenShannonDivergenceNatsE8)
+        ) {
+          blockers.push(`observation layer ${index} anchor control metrics are invalid`);
+        }
+      } else if ('anchorControlMetrics' in item) {
+        blockers.push(`observation layer ${index} has estimator-confused anchor control metrics`);
       }
     }
   }
@@ -1018,14 +1124,22 @@ function isSupportedWorkspaceEstimator(
   estimator: unknown,
   paperParity: unknown,
   parityScope?: unknown,
-  paperExperimentParity?: unknown
+  paperExperimentParity?: unknown,
+  transportProfile?: unknown,
+  positionBins?: unknown,
+  positionPolicy?: unknown
 ): estimator is ModelWorkspaceEstimator {
   return (
     (estimator === 'explicit_pair_average_v0' && paperParity === false) ||
     (estimator === 'corpus_position_average_v1' &&
       paperParity === true &&
       parityScope === 'reference-estimator-only' &&
-      paperExperimentParity === false)
+      paperExperimentParity === false) ||
+    (estimator === 'endpoint_self_jacobian_affine_v1' &&
+      paperParity === false &&
+      transportProfile === MODEL_WORKSPACE_ENDPOINT_AFFINE_TRANSPORT_PROFILE &&
+      isCanonicalWorkspacePositionBins(positionBins) &&
+      positionPolicy === MODEL_WORKSPACE_ENDPOINT_POSITION_POLICY)
   );
 }
 
@@ -1034,7 +1148,58 @@ function isSupportedWorkspacePositionPolicy(estimator: unknown, positionPolicy: 
     (estimator === 'explicit_pair_average_v0' &&
       positionPolicy === 'explicit-source-target-pairs') ||
     (estimator === 'corpus_position_average_v1' &&
-      positionPolicy === 'all-valid-current-and-future-targets')
+      positionPolicy === 'all-valid-current-and-future-targets') ||
+    (estimator === 'endpoint_self_jacobian_affine_v1' &&
+      positionPolicy === MODEL_WORKSPACE_ENDPOINT_POSITION_POLICY)
+  );
+}
+
+function isCanonicalWorkspacePositionBins(value: unknown): value is ModelWorkspacePositionBin[] {
+  if (!Array.isArray(value) || value.length < 1 || value.length > 1_024) return false;
+  let expectedStart = 0;
+  for (const bin of value) {
+    if (
+      !Array.isArray(bin) ||
+      bin.length !== 2 ||
+      !Number.isSafeInteger(bin[0]) ||
+      !Number.isSafeInteger(bin[1]) ||
+      Number(bin[0]) !== expectedStart ||
+      Number(bin[1]) < expectedStart
+    ) {
+      return false;
+    }
+    expectedStart = Number(bin[1]) + 1;
+    if (!Number.isSafeInteger(expectedStart)) return false;
+  }
+  return true;
+}
+
+function cloneWorkspacePositionBins(value: unknown): ModelWorkspacePositionBin[] {
+  if (!isCanonicalWorkspacePositionBins(value)) {
+    throw new Error('workspace position bins are not canonical');
+  }
+  return value.map(([start, end]) => [start, end]);
+}
+
+function workspacePositionBinsCover(position: number, bins: unknown): boolean {
+  return (
+    Number.isSafeInteger(position) &&
+    isCanonicalWorkspacePositionBins(bins) &&
+    bins.some(([start, end]) => position >= start && position <= end)
+  );
+}
+
+function workspacePositionBinsEqual(
+  actual: unknown,
+  expected: ModelWorkspacePositionBin[] | undefined
+): boolean {
+  return (
+    isCanonicalWorkspacePositionBins(actual) &&
+    expected !== undefined &&
+    actual.length === expected.length &&
+    actual.every(
+      ([start, end], index) => start === expected[index]?.[0] && end === expected[index]?.[1]
+    )
   );
 }
 

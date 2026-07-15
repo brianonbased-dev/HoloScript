@@ -186,7 +186,17 @@ control profile; a downgraded capability or receipt fails closed. It accepts
 only the honest estimator/parity contracts:
 `explicit_pair_average_v0` with `paperParity: false`, or
 `corpus_position_average_v1` with `paperParity: true`,
-`parityScope: reference-estimator-only`, and `paperExperimentParity: false`.
+`parityScope: reference-estimator-only`, and `paperExperimentParity: false`, or
+`endpoint_self_jacobian_affine_v1` with `paperParity: false`,
+`positionPolicy: endpoint-self-only`, canonical contiguous `positionBins`, and
+`transportProfile: mean-anchored-affine-final-residual-v1`. The endpoint-affine
+contract is a target-fidelity estimator, not an Anthropic paper-parity claim;
+HoloLlama accepts its readouts only at the prompt endpoint and binds its bins
+and transport profile to the model capability advertised by HoloServe. Each
+endpoint-affine coordinate must also carry integer-domain `anchorControlMetrics`
+for mapped, mean-anchor, and target JSD/entropy/max-probability/top-token checks;
+HoloLlama verifies the gain arithmetic and vocabulary bounds so a collapsed
+mean-anchor readout cannot be reported as target-fidelity evidence.
 For every v0.2 receipt it also requires internally consistent requested versus
 normalized token positions, original/observed token counts, and an explicit
 `none` or `left-truncate-to-model-block-size` policy, so a clipped
