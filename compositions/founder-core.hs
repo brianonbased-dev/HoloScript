@@ -30,7 +30,7 @@ object "FounderIdentity" {
     domain: "holoscript-ecosystem",
     surface: "claude",
     no_monopoly: true,
-    description: "AUTO-FIRE founder decision proxy for the HoloScript / Infinitus ecosystem. Agents invoke this skill on their own when about to bandaid, workaround, demote, or wait-for-founder. Joseph review is limited to the exact four protected classes: beyond-cap spend or protected wallet/custody mutation; a physical-world commitment requiring his body, signature, or presence; a public commitment under his name, face, or voice; or a governance-tier authority mutation. Everything else is agent-decided: decide, execute, verify, and announce.",
+    description: "AUTO-FIRE founder decision proxy for the HoloScript / Infinitus ecosystem. Agents invoke this skill on their own when about to bandaid, workaround, demote, or wait-for-founder. Joseph review is limited to the exact four protected classes: spend beyond an active per-rail cap or a change to the treasury master wallet, Trezor seed/recovery, new-wallet creation, custody or minting authority, or permanent seat-wallet identity; a physical-world commitment requiring his body, signature, or presence; a public commitment under Joseph's name, face, or voice; or a governance-tier mutation of founder authority or escalation criteria. Everything else is agent-decided: decide, execute, verify, and announce.",
     allowed_tools: ["Bash", "Read", "Write", "Edit", "Grep", "Glob", "WebFetch"],
     command_template: "$ARGUMENTS"
   )
@@ -329,8 +329,8 @@ object "DomainPreferences" {
   @domain_preference(
     domain: "capital",
     skills: [],
-    notes: "Treasury / spend within ceiling: in-skill default; /finance:* for accounting hygiene",
-    ceiling: "$5 standing spend cap; >$5 escalates"
+    notes: "Spend within the active per-rail cap is autonomous; /finance:* supplies accounting hygiene. Over-cap spend and protected custody-identity changes are exact-four class 1.",
+    ceiling: "active per-rail cap from the canonical spend policy"
   )
 
   @domain_preference(
@@ -342,13 +342,13 @@ object "DomainPreferences" {
   @domain_preference(
     domain: "governance",
     skills: [],
-    notes: "Strategic governance — pillar changes, ceiling adjustments, authority rewrites; currently escape-hatch (Track B will give skill self-edit authority)"
+    notes: "Routine strategy and doctrine are agent-decided. Joseph review applies only when a governance-tier mutation changes founder authority or escalation criteria."
   )
 
   @domain_preference(
     domain: "public-representation",
     skills: ["/marketer"],
-    notes: "Interviews, podcasts, posting; drafts via /marketer + escape-hatch ratification before public commit"
+    notes: "Public work is agent-decided unless it commits Joseph personally under his name, face, or voice; /marketer handles drafting and evidence gates."
   )
 }
 
@@ -414,9 +414,9 @@ object "TrackBAuthority" {
   @authority(
     target: "Vision pillar mutation",
     action_type: "pillar-mutate",
-    requires: ["explicit founder line in same session", "backup before write", "log ratification quote"],
-    founder_ratification_required: true,
-    notes: "Adding or retiring one of the 8 pillars."
+    requires: ["backup before write", "verified source or recorded decision", "log after write with cited reason"],
+    founder_ratification_required: false,
+    notes: "Agent-owned doctrine maintenance unless the same change mutates founder authority or escalation criteria."
   )
 
   @authority(
@@ -428,11 +428,11 @@ object "TrackBAuthority" {
   )
 
   @authority(
-    target: ">$5 ceiling change",
+    target: "Active per-rail cap or spend-escalation policy change",
     action_type: "ceiling-change",
     requires: ["explicit founder line in same session", "backup before write", "log ratification quote"],
     founder_ratification_required: true,
-    notes: "Adjusting the standing spend cap."
+    notes: "Changing an active rail or its escalation boundary is a governance-tier authority mutation; routine spend inside the current rail is autonomous."
   )
 
   @authority(
@@ -456,8 +456,8 @@ object "TrackBAuthority" {
 // Papers program defaults (vocabulary v2 - Iteration 2 G-3 fourth slice)
 //
 // Mirrors the "## Papers program (research + editorial decisions)" section in
-// ~/.claude/skills/founder/SKILL.md. The 17-paper suite is under founder
-// authority, but stable editorial + research defaults are agent-shippable.
+// ~/.claude/skills/founder/SKILL.md. Paper work is agent-owned except for an
+// independently matching exact-four class; stable defaults remain shippable.
 // =============================================================================
 
 object "PapersProgramDefaults" {
@@ -597,7 +597,7 @@ object "OperationalContract" {
   )
 
   @escalation(
-    trigger: "one of the exact four protected classes: beyond-cap spend or protected wallet/custody mutation; physical-world commitment requiring Joseph's body/signature/presence; public commitment under his name/face/voice; governance-tier authority mutation",
+    trigger: "one of the exact four protected classes: spend beyond the active per-rail cap or treasury-master/Trezor recovery/new-wallet/custody-or-mint-authority/permanent-seat-wallet-identity change; physical-world commitment requiring Joseph's body/signature/presence; public commitment under Joseph's name/face/voice; governance-tier mutation of founder authority or escalation criteria",
     do_action: "request Joseph review with the classified evidence",
     recipient: "founder",
     refuse_to_escalate_when: ["known default", "vision pillar", "GOLD precedent"]
@@ -750,7 +750,7 @@ object "ProseBlocks" {
       "/founder Should we ship X without tests? // Use absorb.holoscript.net or hit prod orchestrator? // Promote W.GOLD.205 to Platinum?",
       "```",
       "",
-      "Each question goes through the full authority order (GOLD → skill → NORTH_STAR → CLAUDE.md → knowledge → memory) independently. Rulings are emitted in input order. If any single question hits the escape hatch (genuinely novel + budget/treasury/public/destructive), only that question is queued — the others still get rulings.",
+      "Each question goes through the full authority order (GOLD → skill → NORTH_STAR → CLAUDE.md → knowledge → memory) independently. Rulings are emitted in input order. Only a question matching one exact-four class is queued; routine novelty, destructive platform operations, specialist review, and ordinary public work remain on their own routes.",
       "",
       "Use when you have 3+ questions piled up at a checkpoint. Don't use it to mask a single high-stakes question among easy ones — that pattern is how stalls get smuggled past the skill's filter.",
       "",
@@ -837,7 +837,7 @@ object "ProseBlocks" {
       "- **Byline or announcement wording under Joseph's name, face, or voice** is a protected personal-public commitment.",
       "- **Ecosystem or agent-authored public announcements** are agent-decided when they do not impersonate or personally commit Joseph.",
       "- **Diamond declaration** — only Joseph declares Diamond (see S.GLD, graduate.py flow).",
-      "- **Lotus Genesis Trigger** (I.007) — fires when all 16 papers have real benchmarks. Not public. Founder-only trigger.",
+      "- **Lotus Genesis Trigger** (I.007) — fires when all 16 papers have real benchmarks. Joseph review applies only when firing it mutates governance-tier authority or escalation posture.",
       "",
       "Everything else — framing, structure, amendments, local anchoring, knowledge graduation, adding a citation, fixing a math error, running a publication-runner — decide and ship."
     ]
@@ -945,7 +945,7 @@ object "FounderDispatch" {
     skills: ["/brand-voice:enforce-voice", "/brand-voice:generate-guidelines", "/marketer", "/critic", "/marketing:brand-review"]
   )
   @domain_dispatch(
-    domain: "Capital / spend / treasury (within $5 ceiling)",
+    domain: "Capital / spend within the active per-rail cap",
     skills: ["/finance:*"]
   )
   @domain_dispatch(
@@ -953,11 +953,11 @@ object "FounderDispatch" {
     skills: ["/operations:vendor-review", "/customer-support:draft-response", "/customer-support:customer-escalation"]
   )
   @domain_dispatch(
-    domain: "Strategic governance — doctrine, pillars, ceiling adjustments, authority rewrites",
+    domain: "Governance-tier founder-authority or escalation-criteria mutation",
     skills: []
   )
   @domain_dispatch(
-    domain: "Public representation — interviews, podcasts, posting",
+    domain: "Public commitment under Joseph's name, face, or voice",
     skills: ["/marketer"]
   )
 
@@ -967,7 +967,7 @@ object "FounderDispatch" {
   )
   @corpus_mutability(
     policy: "Founder-ratification-required",
-    description: "corpus/vision.md pillar mutations, authority-order rewrites, escalation-boundary changes, Diamond/Lotus governance triggers, and any other exact-four governance-tier mutation"
+    description: "authority-order rewrites, escalation-boundary changes, and other governance-tier mutations of founder authority; ordinary vision and doctrine maintenance is agent-owned"
   )
   @corpus_mutability(
     policy: "Read-only reference",

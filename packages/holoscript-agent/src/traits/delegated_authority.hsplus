@@ -7,18 +7,20 @@
 // the runner's DECIDE→EXECUTE→ANNOUNCE loop.
 //
 // Scope tier semantics (D.051):
-//   T0 = Founder — ecosystem-level irreversibles, treasury, governance
-//   T1 = Senior agent — cross-team decisions, architecture calls, $100/day cap
+//   T0 = Joseph decision lane — exact-four protected classes only
+//   T1 = Senior agent — cross-team decisions and architecture within active rails
 //   T2 = Agent — within-team decisions, local mutations, reversible ops
 //   T3 = Observer — read-only, can propose but not execute
 //
-// The three-condition AND for founder escalation (NORTH_STAR §0):
-//   1. Irreversible at ecosystem level (Trezor seed, treasury, governance)
-//   2. Exceeds cap (>$100/day GPU fleet OR >$100/day wallet/on-chain)
-//   3. /founder skill explicitly escalated
-//
-// If any of the three is missing → DECIDE and proceed. This trait records
-// which tier the entity operates at and its per-action autonomy defaults.
+// Joseph review is limited to the exact four protected classes:
+//   1. Spend beyond an active rail, or treasury-master/Trezor recovery,
+//      new-wallet, custody/mint authority, or permanent seat-wallet mutation
+//   2. Physical-world commitment requiring Joseph body/signature/presence
+//   3. Public commitment under Joseph name/face/voice
+//   4. Governance-tier founder-authority or escalation-criteria mutation
+// Legal/export/compliance/IRB/privacy routes to specialists. Missing tools or
+// credentials route to platform controls. Force-push and hard-reset are
+// prohibited and replanned; neither is Joseph-approvable.
 //
 // Usage:
 //   entity#my_agent @delegated_authority(
@@ -37,16 +39,16 @@
   // Whether this entity may sign and broadcast wallet ops (up to daily cap)
   can_sign_wallet_ops: Bool = false
 
-  // Daily wallet/on-chain spend cap in USD (>cap → escalate)
-  wallet_daily_cap_usd: Float = 100.0
+  // Required active wallet/on-chain rail in USD
+  wallet_daily_cap_usd: Float
 
-  // Daily GPU fleet compute cap in USD (>cap → escalate)
-  gpu_daily_cap_usd: Float = 100.0
+  // Required active paid-GPU rail in USD (owned local fleet remains free)
+  gpu_daily_cap_usd: Float
 
-  // Escalation target when any cap is exceeded
-  escalation_target: String = "founder"
+  // Typed router keeps Joseph, specialist, platform, and prohibited paths separate
+  escalation_target: String = "authority_router"
 
-  capability_tags: ["delegated_authority", "scope_tier", "autonomy_policy", "founder_gate_aware"]
+  capability_tags: ["delegated_authority", "scope_tier", "autonomy_policy", "exact_four_aware", "typed_authority_routes"]
 
   @on_spawn => {
     register_authority({
@@ -65,19 +67,41 @@
   }
 
   @on_action_check(action) => {
-    allowed = check_authority(action, scope_tier, {
+    decision = classify_authority(action, scope_tier, {
       wallet_daily_cap_usd: wallet_daily_cap_usd,
       gpu_daily_cap_usd: gpu_daily_cap_usd
     })
-    if not allowed.proceed {
-      emit("authority_escalation_required", {
+    if decision.route == "prohibited_replan" {
+      emit("authority_operation_prohibited", {
         action: action.type,
-        reason: allowed.reason,
+        reason: decision.reason
+      })
+      return replan_action(action, decision.reason)
+    }
+    if decision.route == "specialist_review" {
+      emit("authority_specialist_review_required", {
+        action: action.type,
+        specialty: decision.specialty,
+        reason: decision.reason
+      })
+      return route_to_specialist(action, decision.specialty)
+    }
+    if decision.route == "platform_control" {
+      emit("authority_platform_control_required", {
+        action: action.type,
+        reason: decision.reason
+      })
+      return { proceed: false, route: "platform_control", reason: decision.reason }
+    }
+    if decision.route == "joseph_exact_four" {
+      emit("authority_joseph_decision_required", {
+        action: action.type,
+        protected_class: decision.protected_class,
         escalation_target: escalation_target
       })
-      invoke_skill("founder", action.description)
+      return { proceed: false, route: "joseph_exact_four", reason: decision.reason }
     }
-    return allowed
+    return { proceed: true, route: "autonomous", reason: decision.reason }
   }
 
   @receipt authority_grant {

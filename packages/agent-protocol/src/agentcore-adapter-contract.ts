@@ -74,10 +74,11 @@ export const AGENTCORE_PRIMITIVE_MAPPINGS: readonly AgentCorePrimitiveMapping[] 
   },
   {
     agentCorePrimitive: 'Policy (Cedar-equivalent)',
-    holoscriptEquivalent: 'StdlibPolicy + circuit breakers + founder-gate 3-condition test',
+    holoscriptEquivalent:
+      'StdlibPolicy + active-rail admission + exact-four authority and specialist/prohibited routing',
     ownership: 'sovereign',
     rationale:
-      'Decision points already exist (spend caps, founder-gate); adapter maps decision points to a PolicyPack shape, does not adopt Cedar.',
+      'Decision points distinguish routine active-cap execution, exact-four Joseph review, specialist review, platform controls, and prohibited replanning; the adapter maps those points to a PolicyPack shape without adopting Cedar.',
   },
   {
     agentCorePrimitive: 'Evaluations',
@@ -217,9 +218,11 @@ export function buildAgentCoreAdapterDryRun(
     policy: {
       policyPackVersion: 'holoscript.stdlib-policy.v1',
       decisionPoints: [
-        'founder-gate-3-condition',
-        'gpu-fleet-spend-cap',
-        'wallet-onchain-spend-cap',
+        'active-rail-cap-admission',
+        'joseph-exact-four-boundary',
+        'specialist-review-route',
+        'platform-control-route',
+        'prohibited-operation-replan',
         'circuit-breaker',
       ],
       cedarEquivalent: false,

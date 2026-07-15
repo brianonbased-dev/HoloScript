@@ -12,11 +12,14 @@
 //
 // Signing is delegated to a Web3Connector implementation (viem-based, from
 // @holoscript/marketplace-api). This trait wires the entity to the registry
-// so the @cost_guard trait can enforce the $100/day wallet cap (§0 policy).
+// so the @cost_guard trait can enforce the configured active wallet rail.
 //
-// Security rule (CLAUDE.md / §0): agents act autonomously within the
-// $100/day wallet cap. Above the cap → founder gate. This trait enforces
-// that cap locally via balance_threshold and daily_spend_limit_usd.
+// Security rule: agents sign and broadcast autonomously within the active
+// wallet rail. A projected over-cap transaction is denied locally and becomes
+// exact-four Joseph-review context; it is not granted merely because a human
+// approved a generic action. Treasury-master/Trezor recovery, new-wallet,
+// custody/mint authority, and permanent seat-wallet identity changes are the
+// other spend/custody members of that same protected class.
 //
 // NOTE: wallet_address is an identity anchor. NEVER rename it (F.119).
 // The private key NEVER appears as a literal here — resolved from HoloKey
@@ -35,8 +38,8 @@
   // Minimum ETH balance before triggering auto-refill signal
   balance_threshold_eth: Float = 0.001
 
-  // Daily USD spend cap enforced locally (§0 wallet cap policy)
-  daily_spend_limit_usd: Float = 100.0
+  // Configured active wallet rail; required so no fixed global cap is implied
+  daily_spend_limit_usd: Float
 
   // Emit a low_balance event when balance drops below threshold
   emit_balance_alerts: Bool = true
@@ -50,7 +53,8 @@
       agent_id: effective_id,
       wallet_address: wallet_address,
       network_id: network_id,
-      balance_threshold: balance_threshold_eth
+      balance_threshold: balance_threshold_eth,
+      daily_spend_limit_usd: daily_spend_limit_usd
     })
     emit("agent_wallet_registered", {
       agent_id: effective_id,
@@ -79,9 +83,17 @@
         spent_today_usd: spent_today,
         cap_usd: daily_spend_limit_usd
       })
-      return { allowed: false, reason: "daily_cap_exceeded" }
+      return {
+        allowed: false,
+        reason: "active_rail_cap_exceeded",
+        authority_route: "joseph_exact_four"
+      }
     }
-    return { allowed: true, remaining_usd: daily_spend_limit_usd - spent_today - amount_usd }
+    return {
+      allowed: true,
+      authority_route: "autonomous",
+      remaining_usd: daily_spend_limit_usd - spent_today - amount_usd
+    }
   }
 
   @on_despawn => {

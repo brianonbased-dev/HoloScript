@@ -67,7 +67,7 @@ composition "AgentCoreAdapterContract" {
         },
         {
           agentcore_primitive: "Policy (Cedar-equivalent)",
-          holoscript_equivalent: "StdlibPolicy + circuit breakers + founder-gate 3-condition test",
+          holoscript_equivalent: "StdlibPolicy + active-rail admission + exact-four authority and specialist/prohibited routing",
           ownership: "sovereign"
         },
         {

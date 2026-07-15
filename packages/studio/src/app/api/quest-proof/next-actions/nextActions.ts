@@ -1,22 +1,23 @@
 /**
  * NextActions aggregator (Anticipatory Actions, D.066 — pure half).
  *
- * The founder doctrine: anticipate the next 3-4 moves so the human TAPS instead
- * of typing. This maps the deployed team board's top open tasks into lightweight
- * `ProposedAction` views the Console renders as approve-on-tap chips.
+ * This maps exact-four open tasks into lightweight `ProposedAction` views the
+ * Console renders as Joseph-decision chips. Routine tasks are deliberately not
+ * approval work; agents decide, execute, verify, and announce them.
  *
  * Honesty note: this is NOT a full agi-action-manifest (that schema requires
  * provenance/verification/safety/replay/closeout we can't truthfully fill from a
- * board task). It carries the schema's KEY discriminators — actionType, status,
- * intent, and a `reversible` flag for the one-tap safety gate (D.044). The full
- * manifest is materialized at approve-time (N3). No facade.
+ * board task). It carries the key discriminators — actionType, authorityRoute,
+ * protected class, status, and intent. The full verifier-bound manifest is
+ * materialized at Joseph-decision time (N3). No facade.
  *
  * No Next/runtime imports — unit-testable standalone.
  */
 
 import {
   type FounderActionType,
-  IRREVERSIBLE_RE,
+  type JosephReviewClass,
+  deriveFounderReversibility,
   inferFounderActionType,
 } from '@holoscript/framework';
 
@@ -33,10 +34,11 @@ export interface ProposedAction {
   /** Source board task id (artifact ref the approve step will act on). */
   taskId: string;
   priority: number;
+  authorityRoute: 'joseph-exact-four';
+  josephReviewClass: JosephReviewClass;
   /**
-   * One-tap eligible iff reversible. Irreversible / spend / custody actions show
-   * the chip but route through the approval/safety-envelope gate (D.044) —
-   * never one-tap-auto.
+   * Legacy ActionChip projection. Exact-four decisions are never routine
+   * reversible work, so this is always false.
    */
   reversible: boolean;
   /** Where tapping the chip takes the founder (server-attached; needs TEAM_ID). */
@@ -61,8 +63,9 @@ export function chipLabel(title: string): string {
 }
 
 /**
- * Map open board tasks → ranked ProposedAction views (newest-highest-priority
- * first), capped. Only `open` tasks are anticipatable next moves.
+ * Map exact-four open board tasks to ranked Joseph-decision views. Autonomous,
+ * specialist, platform-control, and prohibited routes are excluded so the
+ * founder inbox cannot become the default workflow.
  */
 export function buildProposedActions(tasks: unknown, limit = 4): ProposedAction[] {
   const arr = Array.isArray(tasks) ? (tasks as BoardTaskLike[]) : [];
@@ -73,11 +76,14 @@ export function buildProposedActions(tasks: unknown, limit = 4): ProposedAction[
     const title = typeof t.title === 'string' ? t.title : '';
     const id = typeof t.id === 'string' ? t.id : '';
     if (!title || !id) continue;
-    const actionType = inferActionType(title);
-    const reversible =
-      !IRREVERSIBLE_RE.test(title) &&
-      actionType !== 'service_rental' &&
-      actionType !== 'mobility_coordination';
+    const authority = deriveFounderReversibility(title);
+    if (
+      authority.authorityRoute !== 'joseph-exact-four' ||
+      authority.josephReviewClass === undefined
+    ) {
+      continue;
+    }
+    const actionType = authority.actionType;
     out.push({
       id: `proposed:${id}`,
       label: chipLabel(title),
@@ -86,7 +92,9 @@ export function buildProposedActions(tasks: unknown, limit = 4): ProposedAction[
       status: 'proposed',
       taskId: id,
       priority: typeof t.priority === 'number' ? t.priority : 5,
-      reversible,
+      authorityRoute: 'joseph-exact-four',
+      josephReviewClass: authority.josephReviewClass,
+      reversible: false,
     });
   }
   // priority ascending (1 = most urgent) is the rank

@@ -3569,18 +3569,18 @@ export async function handleBoardRoutes(
   }
 
   // ──────────────────────────────────────────────────────────────────────────
-  // Founder-approval (N3 signed-write path).
+  // Exact-four Joseph decision (N3 signed-write path).
   //
-  // Separates APPROVAL (low-stakes founder intent, recorded here, Bearer-authed)
+  // Separates DECISION INTENT (exact-four context, recorded here, Bearer-authed)
   // from EXECUTION (the real mutation, performed later by a signing agent with
   // its own x402 envelope). This route is intentionally NOT x402-gated: it
   // records intent and mutates nothing privileged. The custody line (F.002) is
-  // never crossed — no signing key lives in the browser. The one-tap safety
-  // gate (D.044) is enforced server-side: only REVERSIBLE intents are admitted;
-  // irreversible / spend / custody intents are 403'd and stay on explicit review.
+  // never crossed — no signing key lives in the browser. Only exact-four intent
+  // is admitted. Routine work remains autonomous; specialist/platform/prohibited
+  // routes stay separate and cannot be converted into Joseph approval.
   // ──────────────────────────────────────────────────────────────────────────
 
-  // POST /api/holomesh/team/:id/founder-approval — record a one-tap approval
+  // POST /api/holomesh/team/:id/founder-approval — record an exact-four decision
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/founder-approval$/) && method === 'POST') {
     const access = await requireTeamAccessFresh(req, res, url, 'board:write');
     if (!access) return true;
@@ -3598,9 +3598,8 @@ export async function handleBoardRoutes(
       return true;
     }
 
-    // Re-derive reversibility from the SERVER's copy of the task title — never
-    // trust a client-sent reversible flag. Fall back to the client intent string
-    // only when the task is not on the board (e.g. just-closed); still gated.
+    // Re-derive the route from the SERVER's copy of the task title — never trust
+    // a client-sent route. Client intent is only a fallback and is still classified.
     const task = (team.taskBoard || []).find((t) => t.id === taskId);
     const clientIntent = typeof body.intent === 'string' ? body.intent.trim() : '';
     const intent = (task?.title || clientIntent || '').slice(0, 400);
@@ -3609,16 +3608,20 @@ export async function handleBoardRoutes(
       return true;
     }
 
-    const { actionType, reversible, reason } = deriveApprovalReversibility(intent);
-    if (!reversible) {
-      // 403 — irreversible/spend/custody intents are not one-tap. The Console
-      // keeps these on the explicit navigate-to-review path.
+    const authority = deriveApprovalReversibility(intent);
+    const { actionType, authorityRoute, josephReviewClass, reason } = authority;
+    if (authorityRoute !== 'joseph-exact-four' || !josephReviewClass) {
+      // This endpoint is not a generic permission oracle. Report the owning route.
       json(res, 403, {
-        error: 'intent is not one-tap eligible',
+        error: 'intent is not an exact-four Joseph decision',
         reason,
         actionType,
+        authorityRoute,
         taskId,
-        requiresExplicitReview: true,
+        agentMayProceed: authorityRoute === 'autonomous',
+        requiresSpecialistReview: authorityRoute === 'specialist-review',
+        requiresPlatformControl: authorityRoute === 'platform-control',
+        prohibited: authorityRoute === 'prohibited-replan',
       });
       return true;
     }
@@ -3628,6 +3631,8 @@ export async function handleBoardRoutes(
       taskId,
       intent,
       actionType,
+      authorityRoute: 'joseph-exact-four',
+      josephReviewClass,
       approvedByAgentId: caller.id,
       approvedByName: caller.name,
       status: 'approved',

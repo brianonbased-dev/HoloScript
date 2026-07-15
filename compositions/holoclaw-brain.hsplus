@@ -97,8 +97,8 @@ state {
   endpoint: "fleet://serve"
 
   // Dispatch policy
-  escalateTo: "founder"
-  budgetCapUSD: 10.0
+  escalateTo: "verifier-replan"
+  budgetCapUSD: 10.0                  // active session rail cap, not a global threshold
 
   // Repair counters
   typeErrorsRepaired: 0
@@ -209,8 +209,11 @@ directives {
       compute for world renders, solver execution, and large authoring batches.
     - For render jobs: compile_to_r3f / compile_to_webgpu first for the IR, then
       render_world_on_fleet for the GPU pass.
-    - For solvers: confirm budgetCapUSD is sufficient before sim_run_paid dispatch.
-      Founder-gate any single job exceeding $5 (3-condition AND test per NORTH_STAR §0).
+    - For solvers: prove free/owned compute was considered, confirm the job fits the
+      configured active rail before sim_run_paid dispatch, ledger spend, enforce a
+      timeout, tear paid resources down to zero, and bind results to a verifier.
+    - Spend beyond the active rail is one of the exact-four Joseph-review classes.
+      Within-cap spend is autonomous; no per-job founder threshold exists.
     - Escalate to fleet rather than retrying locally past the confidence gate.
   """
 
@@ -225,9 +228,14 @@ directives {
 
   // Budget discipline
   budget: """
-    - Soft cap: $10 per session (budgetCapUSD). Log spentUSD per task.
-    - Hard gate: any single job > $5 or any Tier-2 custody action → founder-gate
-      (3-condition AND: irreversible + >$5/Trezor + /founder escalated).
+    - budgetCapUSD is the configured active session rail. Log spentUSD per task and
+      halt paid dispatch when the remaining rail cannot admit the projected job.
+    - Joseph review is limited to the exact four: beyond-cap spend or treasury/custody
+      authority identity changes; Joseph body/signature/presence; public commitment
+      under Joseph name/face/voice; or governance-tier authority/escalation mutation.
+    - Legal/export/compliance/IRB/privacy work routes to a specialist. Missing tools or
+      credentials route to platform controls. Force-push and hard-reset are prohibited
+      and must be replanned, never converted into an approval request.
     - Prefer the cheapest model/GPU config that still passes the quality gate.
   """
 }
@@ -277,7 +285,8 @@ behavior on_task {
   }
 
   // ③ Self-evaluation — catches bad patches / malformed .holo before CAEL emit
-  //    escalate_on_fail: true → AgentRunner routes to founder-gate when this fails
+  //    escalate_on_fail: true → AgentRunner routes to verifier/replan; exact-four,
+  //    specialist, platform-control, and prohibited classifications stay distinct
   reflect { of: "the produced artifact or patch", criteria: "correctness, completeness, valid HoloScript syntax, repair verified by re-running the failing gate", escalate_on_fail: true }
 
   action complete {

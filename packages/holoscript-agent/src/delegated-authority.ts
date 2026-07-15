@@ -16,6 +16,13 @@ export interface TeamMessage {
 
 export type AuthorityRequestType = 'owner-op' | 'founder-gated';
 
+export type AuthorityRoute =
+  | 'autonomous'
+  | 'joseph-exact-four'
+  | 'specialist-review'
+  | 'platform-control'
+  | 'prohibited-replan';
+
 export interface AuthorityRequest {
   messageId: string;
   fromAgentId: string;
@@ -30,6 +37,7 @@ export interface AuthorityReceipt {
   requestMessageId: string;
   status: 'executed' | 'ruled' | 'rejected' | 'escalated' | 'deferred';
   action: string;
+  authorityRoute: AuthorityRoute;
   result?: unknown;
   ruling?: string;
   reason: string;
@@ -38,9 +46,9 @@ export interface AuthorityReceipt {
 
 export interface DelegatedAuthorityOptions {
   mesh: HolomeshClient;
-  /** Required for founder-gated rulings. Optional if handler only does owner-ops. */
+  /** Optional exact-four pre-vetting provider. It never substitutes for Joseph's decision. */
   provider?: ILLMProvider;
-  /** System prompt / founder-engine corpus. Injected into the LLM for rulings. */
+  /** Policy corpus injected into the optional pre-vetting model. */
   systemPrompt?: string;
   /** Agents whose requests are accepted. Empty = accept all team members. */
   allowList?: Set<string>;
@@ -54,7 +62,7 @@ export interface DelegatedAuthorityOptions {
 // Delegated Authority Handler
 //
 // Implements the E4 protocol: agents send messages to Brittney; on her next
-// tick she validates, executes owner-ops or rules via founder-engine, emits
+// tick she validates, executes owner-ops or routes typed authority, emits
 // a receipt, and responds on the team feed.
 // =============================================================================
 
@@ -192,12 +200,46 @@ export class DelegatedAuthorityHandler {
       return rejectReceipt(req, `Action "${req.action}" is not in the permitted-actions set.`);
     }
 
+    const authorityRoute = classifyAuthorityRoute(req);
+    if (authorityRoute === 'prohibited-replan') {
+      return rejectReceipt(
+        req,
+        'Force-push and hard-reset are prohibited operations. Replan; they cannot become approvable.',
+        authorityRoute
+      );
+    }
+    if (authorityRoute === 'specialist-review') {
+      return deferredReceipt(
+        req,
+        authorityRoute,
+        'Route legal, export-control, compliance, IRB, or privacy review to the relevant specialist; this is not Joseph approval.'
+      );
+    }
+    if (authorityRoute === 'platform-control') {
+      return deferredReceipt(
+        req,
+        authorityRoute,
+        'A tool, credential, permission, or platform control is missing. Repair it or route through the platform owner; this is not Joseph approval.'
+      );
+    }
+
     if (req.requestType === 'owner-op') {
       return this.executeOwnerOp(req);
     }
 
     if (req.requestType === 'founder-gated') {
-      return this.ruleFounderGated(req);
+      if (authorityRoute !== 'joseph-exact-four') {
+        return {
+          requestMessageId: req.messageId,
+          status: 'ruled',
+          action: req.action,
+          authorityRoute: 'autonomous',
+          ruling: 'Proceed autonomously: decide, execute, verify, and announce.',
+          reason: 'The request does not match any exact-four Joseph-review class.',
+          timestamp: new Date().toISOString(),
+        };
+      }
+      return this.preVetExactFour(req);
     }
 
     return rejectReceipt(req, `Unknown requestType: ${req.requestType}`);
@@ -279,6 +321,7 @@ export class DelegatedAuthorityHandler {
         requestMessageId: req.messageId,
         status: 'rejected',
         action: req.action,
+        authorityRoute: 'autonomous',
         reason: `Execution failed: ${reason}`,
         timestamp: new Date().toISOString(),
       };
@@ -286,17 +329,17 @@ export class DelegatedAuthorityHandler {
   }
 
   // ---------------------------------------------------------------------------
-  // Founder-gated ruling — invoke the LLM with the founder-engine + corpus
+  // Exact-four pre-vetting; the LLM summarizes evidence but never approves
   // ---------------------------------------------------------------------------
-  private async ruleFounderGated(req: AuthorityRequest): Promise<AuthorityReceipt> {
+  private async preVetExactFour(req: AuthorityRequest): Promise<AuthorityReceipt> {
     if (!this.provider) {
       return {
         requestMessageId: req.messageId,
-        status: 'deferred',
+        status: 'escalated',
         action: req.action,
+        authorityRoute: 'joseph-exact-four',
         reason:
-          'Founder-gated ruling requires an LLM provider (founder-engine not yet wired). ' +
-          'E5 (engine+corpus refactor) will provide the provider.',
+          'Exact-four context requires a verifier-bound Joseph decision. No pre-vetting provider is configured.',
         timestamp: new Date().toISOString(),
       };
     }
@@ -306,15 +349,15 @@ export class DelegatedAuthorityHandler {
         role: 'system',
         content:
           (this.systemPrompt ?? '') +
-          '\n\nYou are the founder-engine authority locus. ' +
-          'A peer agent has a founder-gated question. ' +
+          '\n\nYou are an exact-four pre-vetting assistant, not the approval authority. ' +
+          'A peer agent has a Joseph-review request. ' +
           'Apply the Four Refusals, the authority-order (GOLD > skill > NORTH_STAR > CLAUDE.md > knowledge > memory), ' +
-          'and the escape-hatch rules. ' +
-          'Decide clearly. Cite your sources. ' +
+          'and identify the exact protected class. Cite your sources. ' +
+          'Never authorize the action; Joseph and the verifier-bound decision path remain required. ' +
           'Format your ruling as:\n' +
-          'RULING: <decision>\n' +
+          'RULING: <pre-vetting summary>\n' +
           'REASON: <reasoning with citations>\n' +
-          'ESCALATE: <yes/no> — only yes if irreversible + >$5 + custody-crossing.',
+          'ESCALATE: yes',
       },
       {
         role: 'user',
@@ -331,16 +374,14 @@ export class DelegatedAuthorityHandler {
       const text = resp.content ?? '';
       const rulingMatch = text.match(/RULING:\s*(.+)/i);
       const reasonMatch = text.match(/REASON:\s*([\s\S]+?)(?=\nESCALATE:|$)/i);
-      const escalateMatch = text.match(/ESCALATE:\s*(yes|no)/i);
-
       const ruling = rulingMatch?.[1]?.trim() ?? text.slice(0, 500);
       const reason = reasonMatch?.[1]?.trim() ?? 'No explicit reasoning block returned.';
-      const escalate = escalateMatch?.[1]?.toLowerCase() === 'yes';
 
       return {
         requestMessageId: req.messageId,
-        status: escalate ? 'escalated' : 'ruled',
+        status: 'escalated',
         action: req.action,
+        authorityRoute: 'joseph-exact-four',
         ruling,
         reason,
         timestamp: new Date().toISOString(),
@@ -351,6 +392,7 @@ export class DelegatedAuthorityHandler {
         requestMessageId: req.messageId,
         status: 'rejected',
         action: req.action,
+        authorityRoute: 'joseph-exact-four',
         reason: `Ruling failed: ${reason}`,
         timestamp: new Date().toISOString(),
       };
@@ -367,17 +409,38 @@ function executedReceipt(req: AuthorityRequest, result: unknown): AuthorityRecei
     requestMessageId: req.messageId,
     status: 'executed',
     action: req.action,
+    authorityRoute: 'autonomous',
     result,
     reason: `Owner-op "${req.action}" executed successfully.`,
     timestamp: new Date().toISOString(),
   };
 }
 
-function rejectReceipt(req: AuthorityRequest, reason: string): AuthorityReceipt {
+function rejectReceipt(
+  req: AuthorityRequest,
+  reason: string,
+  authorityRoute: AuthorityRoute = 'autonomous'
+): AuthorityReceipt {
   return {
     requestMessageId: req.messageId,
     status: 'rejected',
     action: req.action,
+    authorityRoute,
+    reason,
+    timestamp: new Date().toISOString(),
+  };
+}
+
+function deferredReceipt(
+  req: AuthorityRequest,
+  authorityRoute: 'specialist-review' | 'platform-control',
+  reason: string
+): AuthorityReceipt {
+  return {
+    requestMessageId: req.messageId,
+    status: 'deferred',
+    action: req.action,
+    authorityRoute,
     reason,
     timestamp: new Date().toISOString(),
   };
@@ -399,4 +462,63 @@ function coerceRequestType(raw: unknown): AuthorityRequestType | null {
   if (raw === 'founder-gated' || raw === 'founder_gated' || raw === 'foundergated')
     return 'founder-gated';
   return null;
+}
+
+const PROHIBITED_OPERATION_RE = /\b(force[- ]?push|hard[- ]?reset)\b/i;
+const SPECIALIST_RE =
+  /\b(legal|export[- ]control|sanctions?|compliance|irb|institutional review board|privacy)\b/i;
+const PLATFORM_CONTROL_RE =
+  /\b(missing|unavailable|expired|denied|blocked)\b.{0,40}\b(tool|credential|api key|permission|platform|account access)\b|\b(tool|credential|api key|permission|platform|account access)\b.{0,40}\b(missing|unavailable|expired|denied|blocked)\b/i;
+const ACTIVE_RAIL_EXCEEDED_RE =
+  /\b(exceed(?:s|ed|ing)?|over|beyond)\b.{0,40}\bactive\b.{0,24}\b(cap|rail)\b|\bactive\b.{0,24}\b(cap|rail)\b.{0,40}\b(exceed(?:s|ed|ing)?|over|beyond)\b/i;
+const CUSTODY_AUTHORITY_RE =
+  /\b(treasury master wallet|trezor (?:seed|recovery)|(?:create|creating|creation of) (?:a )?new wallet|new[- ]wallet creation|custody authority|mint(?:ing)? authority|permanent seat[- ]wallet identity)\b/i;
+const JOSEPH_PHYSICAL_RE =
+  /\bjoseph(?:'s)?\b.{0,40}\b(body|physical signature|presence|must sign|must attend|must be present)\b|\b(body|physical signature|presence)\b.{0,40}\bjoseph(?:'s)?\b/i;
+const JOSEPH_PUBLIC_RE =
+  /\b(public|publish|announce|statement|press|post|broadcast)\b.{0,80}\bjoseph(?:'s)?\b.{0,24}\b(name|face|voice)\b|\bunder joseph(?:'s)? (?:name|face|voice)\b/i;
+const GOVERNANCE_MUTATION_RE =
+  /\b(change|mutate|modify|rewrite|alter|remove|weaken|expand)\b.{0,80}\b(founder authority|escalation criteria|governance[- ]tier|diamond|lotus|vault posture)\b/i;
+
+export function classifyAuthorityRoute(req: AuthorityRequest): AuthorityRoute {
+  const text = `${req.action}\n${req.rawContent}\n${JSON.stringify(req.payload)}`;
+  if (PROHIBITED_OPERATION_RE.test(text)) return 'prohibited-replan';
+
+  const projected = numberFromPayload(req.payload, 'projectedSpendUsd', 'projected_spend_usd');
+  const cap = numberFromPayload(req.payload, 'activeRailCapUsd', 'active_rail_cap_usd');
+  const exceedsStructuredCap = projected !== undefined && cap !== undefined && projected > cap;
+  const exactFourEvidence =
+    req.payload.exceedsActiveRailCap === true ||
+    req.payload.exceeds_active_rail_cap === true ||
+    req.payload.touchesTreasuryOrCustody === true ||
+    req.payload.touches_treasury_or_custody === true ||
+    req.payload.requiresJosephBodySignaturePresence === true ||
+    req.payload.requires_joseph_body_signature_presence === true ||
+    req.payload.publicCommitmentUnderJosephNameFaceVoice === true ||
+    req.payload.public_commitment_under_joseph_name_face_voice === true ||
+    req.payload.governanceTierMutation === true ||
+    req.payload.governance_tier_mutation === true;
+  if (
+    exceedsStructuredCap ||
+    exactFourEvidence ||
+    ACTIVE_RAIL_EXCEEDED_RE.test(text) ||
+    CUSTODY_AUTHORITY_RE.test(text) ||
+    JOSEPH_PHYSICAL_RE.test(text) ||
+    JOSEPH_PUBLIC_RE.test(text) ||
+    GOVERNANCE_MUTATION_RE.test(text)
+  ) {
+    return 'joseph-exact-four';
+  }
+  if (SPECIALIST_RE.test(text)) return 'specialist-review';
+  if (PLATFORM_CONTROL_RE.test(text)) return 'platform-control';
+  return 'autonomous';
+}
+
+function numberFromPayload(
+  payload: Record<string, unknown>,
+  camelKey: string,
+  snakeKey: string
+): number | undefined {
+  const value = payload[camelKey] ?? payload[snakeKey];
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }

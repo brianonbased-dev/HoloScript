@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { AgentWalletRegistry, getAgentWalletRegistry } from '../AgentWalletRegistry';
+import {
+  ActiveRailCapExceededError,
+  AgentWalletRegistry,
+  getAgentWalletRegistry,
+} from '../AgentWalletRegistry';
 
 describe('AgentWalletRegistry', () => {
   // Reset singleton between tests by accessing the private instance
@@ -41,6 +45,7 @@ describe('AgentWalletRegistry', () => {
       expect(wallet.walletAddress).toBe('0xABCD');
       expect(wallet.networkId).toBe(8453);
       expect(wallet.balanceThreshold).toBe(0.001);
+      expect(wallet.dailySpendLimitUsd).toBeUndefined();
     });
 
     it('registers a wallet with custom networkId', () => {
@@ -130,6 +135,44 @@ describe('AgentWalletRegistry', () => {
       // Implementation: '0x' + hex.slice(0, 64)
       const hexPart = sig.slice(2);
       expect(hexPart.length).toBeLessThanOrEqual(64);
+    });
+
+    it('authorizes and records spend within a configured active wallet rail', async () => {
+      registry.registerWallet('agent-1', '0xABC', 8453, 8);
+
+      await expect(
+        registry.authorizeTransaction('agent-1', { action: 'buy' }, 3)
+      ).resolves.toMatch(/^0x/);
+      expect(registry.getWallet('agent-1')).toMatchObject({
+        dailySpendLimitUsd: 8,
+        spentTodayUsd: 3,
+      });
+      expect(registry.authorizeSpend('agent-1', 2)).toMatchObject({
+        spentTodayUsd: 5,
+        remainingUsd: 3,
+        authorityRoute: 'autonomous',
+      });
+    });
+
+    it('denies over-cap spend and marks it exact-four without mutating the ledger', () => {
+      registry.registerWallet('agent-1', '0xABC', 8453, 5);
+      registry.authorizeSpend('agent-1', 4);
+
+      let error: unknown;
+      try {
+        registry.authorizeSpend('agent-1', 2);
+      } catch (caught) {
+        error = caught;
+      }
+
+      expect(error).toBeInstanceOf(ActiveRailCapExceededError);
+      expect((error as ActiveRailCapExceededError).authorityRoute).toBe('joseph-exact-four');
+      expect(registry.getWallet('agent-1')?.spentTodayUsd).toBe(4);
+    });
+
+    it('refuses spend authorization when no active wallet rail is configured', () => {
+      registry.registerWallet('agent-1', '0xABC');
+      expect(() => registry.authorizeSpend('agent-1', 1)).toThrow(/no active wallet rail/i);
     });
   });
 

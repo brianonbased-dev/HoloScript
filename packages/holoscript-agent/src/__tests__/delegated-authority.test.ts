@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
+  classifyAuthorityRoute,
   DelegatedAuthorityHandler,
   type TeamMessage,
   type AuthorityRequest,
@@ -184,7 +185,7 @@ describe('DelegatedAuthorityHandler.handleRequest — owner-op', () => {
 });
 
 describe('DelegatedAuthorityHandler.handleRequest — founder-gated', () => {
-  it('defers when no provider is wired', async () => {
+  it('rules ordinary agent-decidable questions autonomous without a provider', async () => {
     const { handler } = makeHandler();
     const req: AuthorityRequest = {
       messageId: 'msg_1',
@@ -196,55 +197,121 @@ describe('DelegatedAuthorityHandler.handleRequest — founder-gated', () => {
       rawContent: '@brittney founder-gated: should we descope the SNN package?',
     };
     const receipt = await handler.handleRequest(req);
-    expect(receipt.status).toBe('deferred');
-    expect(receipt.reason).toContain('E5');
+    expect(receipt.status).toBe('ruled');
+    expect(receipt.authorityRoute).toBe('autonomous');
+    expect(receipt.ruling).toMatch(/Proceed autonomously/i);
   });
 
-  it('rules via LLM when provider is wired', async () => {
+  it('pre-vets exact-four context via LLM but always escalates for Joseph decision', async () => {
     const provider = {
       complete: vi.fn(async () => ({
         content:
-          'RULING: Yes, descope it.\nREASON: The SNN package lacks benchmarks.\nESCALATE: no',
+          'RULING: Active rail would be exceeded.\nREASON: Projected spend is above the configured rail.\nESCALATE: yes',
         usage: { promptTokens: 100, completionTokens: 50, totalTokens: 150 },
       })),
     } as unknown as ILLMProvider;
 
-    const { handler } = makeHandler({ provider, systemPrompt: 'You are the founder.' });
+    const { handler } = makeHandler({ provider, systemPrompt: 'Pre-vet exact-four evidence.' });
     const req: AuthorityRequest = {
       messageId: 'msg_1',
       fromAgentId: 'agent_a',
       fromAgentName: 'claude1',
       requestType: 'founder-gated',
-      action: 'should-we-descope',
-      payload: {},
-      rawContent: '@brittney founder-gated: should we descope the SNN package?',
-    };
-    const receipt = await handler.handleRequest(req);
-    expect(receipt.status).toBe('ruled');
-    expect(receipt.ruling).toBe('Yes, descope it.');
-    expect(receipt.reason).toContain('The SNN package lacks benchmarks.');
-  });
-
-  it('escalates when LLM says ESCALATE: yes', async () => {
-    const provider = {
-      complete: vi.fn(async () => ({
-        content: 'RULING: Cannot decide.\nREASON: Involves treasury crossing.\nESCALATE: yes',
-        usage: { promptTokens: 100, completionTokens: 50, totalTokens: 150 },
-      })),
-    } as unknown as ILLMProvider;
-
-    const { handler } = makeHandler({ provider });
-    const req: AuthorityRequest = {
-      messageId: 'msg_1',
-      fromAgentId: 'agent_a',
-      fromAgentName: 'claude1',
-      requestType: 'founder-gated',
-      action: 'treasury-crossing',
-      payload: {},
-      rawContent: '@brittney founder-gated: should we cross the treasury?',
+      action: 'launch-paid-training',
+      payload: { projectedSpendUsd: 12, activeRailCapUsd: 10 },
+      rawContent: '@brittney founder-gated: launch paid training beyond the active rail',
     };
     const receipt = await handler.handleRequest(req);
     expect(receipt.status).toBe('escalated');
+    expect(receipt.authorityRoute).toBe('joseph-exact-four');
+    expect(receipt.ruling).toBe('Active rail would be exceeded.');
+    expect(receipt.reason).toContain('Projected spend');
+  });
+
+  it('escalates exact-four context even when no pre-vetting provider is wired', async () => {
+    const { handler } = makeHandler();
+    const req: AuthorityRequest = {
+      messageId: 'msg_1',
+      fromAgentId: 'agent_a',
+      fromAgentName: 'claude1',
+      requestType: 'founder-gated',
+      action: 'change-treasury-master-wallet',
+      payload: { touchesTreasuryOrCustody: true },
+      rawContent: '@brittney founder-gated: change the treasury master wallet',
+    };
+    const receipt = await handler.handleRequest(req);
+    expect(receipt.status).toBe('escalated');
+    expect(receipt.authorityRoute).toBe('joseph-exact-four');
+  });
+
+  it('routes specialist review separately from Joseph', async () => {
+    const { handler } = makeHandler();
+    const req: AuthorityRequest = {
+      messageId: 'msg_1',
+      fromAgentId: 'agent_a',
+      fromAgentName: 'claude1',
+      requestType: 'founder-gated',
+      action: 'review-export-control',
+      payload: {},
+      rawContent: '@brittney founder-gated: review export-control compliance',
+    };
+    const receipt = await handler.handleRequest(req);
+    expect(receipt.status).toBe('deferred');
+    expect(receipt.authorityRoute).toBe('specialist-review');
+    expect(receipt.reason).toMatch(/not Joseph approval/i);
+  });
+
+  it('rejects force-push as prohibited rather than approvable', async () => {
+    const { handler } = makeHandler();
+    const req: AuthorityRequest = {
+      messageId: 'msg_1',
+      fromAgentId: 'agent_a',
+      fromAgentName: 'claude1',
+      requestType: 'founder-gated',
+      action: 'force-push-main',
+      payload: {},
+      rawContent: '@brittney founder-gated: force-push main',
+    };
+    const receipt = await handler.handleRequest(req);
+    expect(receipt.status).toBe('rejected');
+    expect(receipt.authorityRoute).toBe('prohibited-replan');
+  });
+});
+
+describe('classifyAuthorityRoute', () => {
+  const request = (action: string, payload: Record<string, unknown> = {}): AuthorityRequest => ({
+    messageId: 'msg_policy',
+    fromAgentId: 'agent_a',
+    fromAgentName: 'claude1',
+    requestType: 'founder-gated',
+    action,
+    payload,
+    rawContent: action,
+  });
+
+  it('keeps within-cap wallet sign/broadcast autonomous', () => {
+    expect(
+      classifyAuthorityRoute(
+        request('sign and broadcast wallet transaction', {
+          projectedSpendUsd: 4,
+          activeRailCapUsd: 5,
+        })
+      )
+    ).toBe('autonomous');
+  });
+
+  it('uses typed projected spend to detect the exact-four cap boundary', () => {
+    expect(
+      classifyAuthorityRoute(
+        request('launch paid job', { projectedSpendUsd: 6, activeRailCapUsd: 5 })
+      )
+    ).toBe('joseph-exact-four');
+  });
+
+  it('routes a missing credential to platform control', () => {
+    expect(classifyAuthorityRoute(request('API key is missing for the deploy tool'))).toBe(
+      'platform-control'
+    );
   });
 });
 

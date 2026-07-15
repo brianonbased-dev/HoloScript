@@ -17,7 +17,7 @@
 
   @receipt fine_tune_trait_config {
     type: "FineTuneTraitReceipt"
-    doc: "I.023; GPU spend gated at >$100/day"
+    doc: "I.023; free-first, active-rail spend admission, timeout, teardown-to-zero, and verifier-bound promotion; Joseph review only for exact-four context"
     timestamp: now()
   }
 }

@@ -10,10 +10,12 @@
 // (unless you override the pricer). Only external APIs (Anthropic, OpenAI,
 // xAI, OpenRouter) incur tracked spend.
 //
-// The founder dual-cap policy (NORTH_STAR §0 / F.129):
-//   - GPU fleet: >$100/day → escalate to founder
-//   - Wallet/on-chain: >$100/day → escalate to founder
-//   - Within each cap: autonomous, no per-action approval needed
+// The ceiling is an active per-rail value supplied by the caller, not a global
+// founder threshold. Within-cap paid work is autonomous after free-first proof;
+// record spend, enforce timeouts, tear paid resources down to zero, and bind the
+// result to a verifier. Beyond-cap spend is one exact-four Joseph-review class.
+// Specialist review, missing platform controls, and prohibited operations are
+// separate routes and cannot be converted into spend approval.
 //
 // Usage:
 //   entity#expensive_agent @cost_guard(
@@ -22,8 +24,8 @@
 //   ) { ... }
 
 @trait cost_guard {
-  // Hard daily spend ceiling in USD (tripped = tick halted for the window)
-  daily_usd_ceiling: Float = 100.0
+  // Required active-rail ceiling in USD (tripped = tick halted for the window)
+  daily_usd_ceiling: Float
 
   // Emit a cost_guard_warning when spend reaches this fraction of the ceiling
   alert_at_fraction: Float = 0.8

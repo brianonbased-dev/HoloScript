@@ -1,60 +1,61 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { deriveApprovalReversibility, inferApprovalActionType } from '../founder-approval-policy';
 
-describe('founder-approval-policy — deriveApprovalReversibility', () => {
-  it('admits plain code intents as reversible one-tap', () => {
-    const r = deriveApprovalReversibility('Add a unit test for the parser');
-    expect(r.reversible).toBe(true);
-    expect(r.actionType).toBe('code');
+describe('founder-approval-policy — exact-four authority', () => {
+  it.each([
+    'Add a unit test for the parser',
+    'Deploy studio to production',
+    'Rent a GPU within the active rail',
+    'Sign and broadcast a wallet transaction within cap',
+  ])('keeps routine intent autonomous: %s', (intent) => {
+    expect(deriveApprovalReversibility(intent)).toMatchObject({
+      authorityRoute: 'autonomous',
+      reversible: true,
+    });
   });
 
-  it('admits spatial intents as reversible', () => {
-    const r = deriveApprovalReversibility('Render the scene preview for the demo zone');
-    expect(r.reversible).toBe(true);
-    expect(r.actionType).toBe('spatial');
+  it('detects structured active-rail overflow', () => {
+    expect(
+      deriveApprovalReversibility('Launch paid training', {
+        projectedSpendUsd: 6,
+        activeRailCapUsd: 5,
+      })
+    ).toMatchObject({
+      authorityRoute: 'joseph-exact-four',
+      josephReviewClass: 'spend-or-custody',
+    });
   });
 
   it.each([
-    ['Deploy studio to production', 'deploy'],
-    ['Force-push the rebased branch', 'force-push'],
-    ['Spend treasury on the audit', 'spend/treasury'],
-    ['Sign and broadcast the on-chain anchor', 'sign/broadcast'],
-    ['Merge to main after review', 'merge to main'],
-    ['Delete the stale world', 'delete'],
-  ])('blocks irreversible intent: %s', (title) => {
-    const r = deriveApprovalReversibility(title);
-    expect(r.reversible).toBe(false);
-    expect(r.reason).toMatch(/irreversible|review/i);
+    ['Change the treasury master wallet', 'spend-or-custody'],
+    ["Require Joseph's physical signature", 'physical-presence'],
+    ["Publish under Joseph's name", 'public-identity'],
+    ['Change founder authority', 'governance'],
+  ])('routes exact-four intent: %s', (intent, josephReviewClass) => {
+    expect(deriveApprovalReversibility(intent)).toMatchObject({
+      authorityRoute: 'joseph-exact-four',
+      josephReviewClass,
+    });
   });
 
-  it('blocks service_rental even without an irreversible verb', () => {
-    const r = deriveApprovalReversibility('Provision a GPU fleet for the benchmark');
-    expect(r.actionType).toBe('service_rental');
-    expect(r.reversible).toBe(false);
+  it('keeps specialist and platform routes out of Joseph approval', () => {
+    expect(deriveApprovalReversibility('Run legal export-control review').authorityRoute).toBe(
+      'specialist-review'
+    );
+    expect(deriveApprovalReversibility('Deploy credential is missing').authorityRoute).toBe(
+      'platform-control'
+    );
   });
 
-  it('blocks mobility_coordination', () => {
-    const r = deriveApprovalReversibility('Coordinate the door-to-door mobility trip');
-    expect(r.actionType).toBe('mobility_coordination');
-    expect(r.reversible).toBe(false);
-  });
+  it.each(['force-push main', 'hard-reset the shared tree'])(
+    'prohibits %s rather than making it approvable',
+    (intent) => {
+      expect(deriveApprovalReversibility(intent).authorityRoute).toBe('prohibited-replan');
+    }
+  );
 
-  it('inferApprovalActionType prioritizes rental over spatial', () => {
-    // "render" (spatial) + "gpu" (rental) → rental wins (spend gate is stricter)
+  it('keeps rental/spatial action type as presentation-only metadata', () => {
     expect(inferApprovalActionType('render on a rented gpu')).toBe('service_rental');
-  });
-
-  it('does NOT classify a software "route" as mobility_coordination', () => {
-    // "route" in an API/code context is NOT a mobility trip — regression from
-    // the over-broad MOBILITY_RE that matched any "route" keyword.
-    const r = deriveApprovalReversibility('Add the founder-approval route');
-    expect(r.actionType).toBe('code');
-    expect(r.reversible).toBe(true);
-  });
-
-  it('still blocks actual mobility coordination', () => {
-    const r = deriveApprovalReversibility('Coordinate the mobility trip for door-to-door delivery');
-    expect(r.actionType).toBe('mobility_coordination');
-    expect(r.reversible).toBe(false);
+    expect(inferApprovalActionType('Add the founder-approval route')).toBe('code');
   });
 });

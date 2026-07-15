@@ -3,7 +3,7 @@
 composition "HoloShellFlagshipReadinessPolicy" {
   state ReadinessState {
     selectedWorkflow: "prepare-computer-for-hololand-world"
-    approvalsRequired: 0
+    platformControlsRequired: 0
     receiptsCaptured: 0
     blockers: []
     taskSeeds: []
@@ -46,7 +46,9 @@ composition "HoloShellFlagshipReadinessPolicy" {
     ]
   }
 
-  policy "BreakGlass" using "PermissionEnvelope" {
+  // These operations use capability/platform controls and receipts. They do
+  // not route to Joseph unless an independent exact-four class matches.
+  policy "PlatformControlledExecute" using "PermissionEnvelope" {
     readOnly: false
     guardedExecute: true
     breakGlass: true
@@ -81,9 +83,9 @@ composition "HoloShellFlagshipReadinessPolicy" {
   }
 
   action classifyOperation(operation) {
-    if (operation.kind in BreakGlass.appliesTo) {
-      ReadinessState.approvalsRequired = ReadinessState.approvalsRequired + 1
-      return "break_glass"
+    if (operation.kind in PlatformControlledExecute.appliesTo) {
+      ReadinessState.platformControlsRequired = ReadinessState.platformControlsRequired + 1
+      return "platform_controlled_execute"
     }
     if (operation.kind in GuardedExecute.appliesTo) {
       return "guarded_execute"

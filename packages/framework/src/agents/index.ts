@@ -92,7 +92,12 @@ export { OrchestratorAgent, type OrchestratorConfig } from './OrchestratorAgent'
 export { UAA2_AGENT_MEMORY_TRAIT } from './shared-traits';
 
 // Agent Wallet Registry (Autonomous wallet management)
-export { AgentWalletRegistry, type AgentWallet } from './AgentWalletRegistry';
+export {
+  AgentWalletRegistry,
+  ActiveRailCapExceededError,
+  type AgentWallet,
+  type WalletSpendAuthorization,
+} from './AgentWalletRegistry';
 
 // Authenticated CRDT (DID-signed conflict-free state sync)
 export * from './AuthenticatedCRDT';

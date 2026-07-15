@@ -36,9 +36,8 @@ export async function GET(req: NextRequest) {
     }
     const body = await res.json().catch(() => null);
     const tasks = Array.isArray(body?.tasks) ? body.tasks : [];
-    // Tapping a REVERSIBLE chip records a founder-approval via POST below (the
-    // one-tap signed-write path, N3). Irreversible chips carry an href so the
-    // panel routes them to explicit review instead (D.044).
+    // Only exact-four tasks become Joseph-decision chips. Routine, specialist,
+    // platform-control, and prohibited routes were removed by the shared classifier.
     const boardHref = `/holomesh/team/${TEAM_ID}/board`;
     const actions = buildProposedActions(tasks, limit).map((a) => ({ ...a, href: boardHref }));
     return NextResponse.json({ ok: true, actions });
@@ -52,14 +51,11 @@ export async function GET(req: NextRequest) {
 }
 
 /**
- * POST — one-tap founder approval (N3 signed-write path).
+ * POST — exact-four Joseph decision intent (N3 signed-write path).
  *
- * The panel calls this when a founder taps a REVERSIBLE chip. It proxies the
- * tap (server-side Bearer key) to the team-API `founder-approval` route, which
- * records low-stakes intent a signing agent later executes. No signing key ever
- * reaches the browser (F.002 custody). The team-API re-derives reversibility
- * server-side and 403s irreversible/spend/custody intents (D.044) — Studio does
- * NOT pre-trust the client; it forwards taskId and lets the authority decide.
+ * Studio never trusts a client-supplied route. The team API reclassifies the
+ * server-side task title and admits only exact-four context. Other routes are
+ * returned verbatim so the UI cannot turn them into generic Joseph approval.
  */
 export async function POST(req: NextRequest) {
   if (!TEAM_ID) {
@@ -94,14 +90,16 @@ export async function POST(req: NextRequest) {
     });
     const upstream = await res.json().catch(() => null);
     if (res.status === 403) {
-      // Irreversible intent — surface the review requirement so the panel keeps
-      // it on the explicit navigate-to-review path instead of optimistically
-      // removing the chip.
       return NextResponse.json(
         {
           ok: false,
-          requiresExplicitReview: true,
-          reason: upstream?.reason ?? 'intent is not one-tap eligible',
+          error: upstream?.error ?? 'intent is not an exact-four Joseph decision',
+          reason: upstream?.reason,
+          authorityRoute: upstream?.authorityRoute,
+          agentMayProceed: upstream?.agentMayProceed === true,
+          requiresSpecialistReview: upstream?.requiresSpecialistReview === true,
+          requiresPlatformControl: upstream?.requiresPlatformControl === true,
+          prohibited: upstream?.prohibited === true,
         },
         { status: 403 }
       );

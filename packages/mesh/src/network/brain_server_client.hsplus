@@ -17,7 +17,8 @@
 //
 // On the Jetson Orin Super (I.022): this is how edge agents with on-device
 // GPU can serve small-model inference to multiple HoloScript agent entities
-// in parallel without burning the $100/day GPU fleet cap.
+// without paid-rail spend. Paid fallback must use free-first proof, the active
+// per-rail cap, a ledger, timeout, teardown-to-zero, and verifier-bound output.
 //
 // Hardware note (W.755): Jetson model store is on the Samsung 990 NVMe;
 // laptop is NOT a model store. Route brain_server_client to the Jetson

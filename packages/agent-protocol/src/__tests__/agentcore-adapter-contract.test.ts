@@ -63,6 +63,23 @@ describe('AgentCore adapter contract (CG-025)', () => {
     expect(ownerships.has('bridge-only')).toBe(true);
   });
 
+  it('projects active-rail and exact-four routing without a broad founder gate', () => {
+    const receipt = buildAgentCoreAdapterDryRun(FIXTURE_AGENT);
+
+    expect(receipt.policy.decisionPoints).toEqual(
+      expect.arrayContaining([
+        'active-rail-cap-admission',
+        'joseph-exact-four-boundary',
+        'specialist-review-route',
+        'platform-control-route',
+        'prohibited-operation-replan',
+      ])
+    );
+    expect(receipt.policy.decisionPoints).not.toContain('founder-gate-3-condition');
+    expect(receipt.policy.decisionPoints).not.toContain('gpu-fleet-spend-cap');
+    expect(receipt.policy.decisionPoints).not.toContain('wallet-onchain-spend-cap');
+  });
+
   it('validates a well-formed receipt as valid', () => {
     const receipt = buildAgentCoreAdapterDryRun(FIXTURE_AGENT);
     expect(validateAgentCoreAdapterReceipt(receipt)).toEqual({ valid: true, errors: [] });

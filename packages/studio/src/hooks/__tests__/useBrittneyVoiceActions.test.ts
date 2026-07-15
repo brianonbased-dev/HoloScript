@@ -31,7 +31,9 @@ function action(overrides: Partial<ProposedAction> = {}): ProposedAction {
     status: 'proposed',
     taskId: overrides.taskId ?? 'task_001',
     priority: overrides.priority ?? 2,
-    reversible: overrides.reversible ?? true,
+    authorityRoute: 'joseph-exact-four',
+    josephReviewClass: overrides.josephReviewClass ?? 'governance',
+    reversible: overrides.reversible ?? false,
     href: overrides.href,
   };
 }

@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 /**
- * POST /api/quest-proof/next-actions — the N3 one-tap approval proxy.
+ * POST /api/quest-proof/next-actions — the N3 exact-four decision proxy.
  *
  * The route reads HOLOMESH_* env at module load, so each test sets env then
  * dynamic-imports a fresh module (vi.resetModules). global fetch is mocked to
  * stand in for the team-API `founder-approval` route.
  */
-describe('next-actions POST — founder one-tap approval proxy', () => {
+describe('next-actions POST — exact-four Joseph decision proxy', () => {
   const ORIG_TEAM = process.env.HOLOMESH_TEAM_ID;
   const ORIG_KEY = process.env.HOLOMESH_API_KEY;
 
@@ -66,11 +66,16 @@ describe('next-actions POST — founder one-tap approval proxy', () => {
     expect(JSON.parse(init.body).taskId).toBe('task_1');
   });
 
-  it('surfaces requiresExplicitReview when the team-API 403s an irreversible intent', async () => {
+  it('preserves a non-Joseph authority route from an upstream 403', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ error: 'not one-tap eligible', reason: 'irreversible' }), {
-        status: 403,
-      })
+      new Response(
+        JSON.stringify({
+          error: 'not an exact-four Joseph decision',
+          authorityRoute: 'autonomous',
+          agentMayProceed: true,
+        }),
+        { status: 403 }
+      )
     );
     vi.stubGlobal('fetch', fetchMock);
 
@@ -80,7 +85,9 @@ describe('next-actions POST — founder one-tap approval proxy', () => {
 
     expect(res.status).toBe(403);
     expect(json.ok).toBe(false);
-    expect(json.requiresExplicitReview).toBe(true);
+    expect(json.authorityRoute).toBe('autonomous');
+    expect(json.agentMayProceed).toBe(true);
+    expect(json.requiresSpecialistReview).toBe(false);
   });
 
   it('502s when the team-API errors', async () => {

@@ -607,9 +607,9 @@ export interface RetiredDoneLogReceipt {
 }
 
 /**
- * A founder one-tap approval (N3 signed-write path). The Console records this
- * when a founder taps a REVERSIBLE next-action chip. It mutates nothing
- * privileged — it is an intent ticket a signing agent consumes. The signing
+ * An exact-four Joseph decision intent (N3 signed-write path). Routine work,
+ * specialist review, platform controls, and prohibited replanning never enter
+ * this queue. It mutates nothing privileged; a signing agent consumes it,
  * agent re-validates, materializes the agi-action-manifest, executes with its
  * own x402 signature, and PATCHes status → 'executed' + a resultRef.
  */
@@ -619,8 +619,10 @@ export interface FounderApprovalRecord {
   taskId: string;
   /** Human-readable intent (the task title / what tapping does). */
   intent: string;
-  /** Re-derived server-side; only reversible intents are ever recorded. */
+  /** Presentation classification; authority is carried separately below. */
   actionType: 'code' | 'spatial' | 'service_rental' | 'mobility_coordination';
+  authorityRoute: 'joseph-exact-four';
+  josephReviewClass: 'spend-or-custody' | 'physical-presence' | 'public-identity' | 'governance';
   /** Identity that tapped approve (from Bearer auth, never client-supplied). */
   approvedByAgentId: string;
   approvedByName: string;

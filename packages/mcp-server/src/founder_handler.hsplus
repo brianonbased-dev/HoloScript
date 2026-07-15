@@ -1,10 +1,24 @@
-// @founder_handler — Founder handler: routes founder-gated decisions and governance approvals via MCP.
+// @founder_handler — Exact-four Joseph-decision router via MCP.
+// Routine work remains autonomous. Specialist review, owner/platform
+// authorization, and prohibited replanning are separate non-founder routes.
 //
 // Native .hsplus surface for mcp-server/src/founder-handler.ts.
 
 @trait founder_handler {
-  capability_tags: ["founder_handler", "founder_gate_mcp", "governance_approval_route", "mcp_server"]
+  capability_tags: ["founder_handler", "joseph_exact_four", "typed_authority_routes", "mcp_server"]
   @on_spawn => { emit("founder_handler_ready", {}) }
-  @on_handle(decision_request) => { result = handle_founder_decision(decision_request); return result }
-  @receipt founder_handler_config { type: "FounderHandlerReceipt"; timestamp: now() }
+  @on_handle(decision_request) => {
+    classification = classify_authority_route(decision_request)
+    if classification.route != "joseph_exact_four" {
+      return classification
+    }
+    result = handle_joseph_exact_four_decision(decision_request, classification.protected_class)
+    return result
+  }
+  @receipt founder_handler_config {
+    type: "FounderHandlerReceipt"
+    joseph_review_classes: ["spend_or_custody_identity", "physical_presence", "public_joseph_identity", "governance_authority_mutation"]
+    non_founder_routes: ["autonomous", "specialist_review", "owner_authorization", "platform_authorization", "prohibited_replan"]
+    timestamp: now()
+  }
 }

@@ -1,27 +1,30 @@
-// @founder_reversibility — SSOT for founder-approval reversibility verb classification.
+// @founder_reversibility — SSOT for typed authority routing.
 //
 // Native .hsplus surface for framework/board/founder-reversibility.ts.
-//
-// FounderActionType: code | spatial | service_rental | mobility_coordination
-// classifyAction(intent) → FounderActionType + reversible: boolean
-// Used by BOTH: mcp-server/routes (authority) and studio/api (chip filter)
-// Divergence between the two would cause silent UX failure — single source prevents this.
+// Joseph review is limited to the exact four protected classes:
+//   1. spend beyond the active rail or treasury/custody-authority identity change
+//   2. physical commitment requiring Joseph body/signature/presence
+//   3. public commitment under Joseph name/face/voice
+//   4. governance-tier founder-authority or escalation-criteria mutation
+// Specialist review, platform controls, and prohibited replanning are separate.
+// Force-push and hard-reset are prohibited, never approvable.
 
 @trait founder_reversibility {
-  capability_tags: ["founder_reversibility", "verb_classification", "reversibility_policy", "ssot", "framework"]
+  capability_tags: ["exact_four_authority", "typed_authority_routes", "active_rail_policy", "ssot", "framework"]
 
   @on_spawn => {
-    emit("founder_reversibility_ready", {})
+    emit("authority_router_ready", {})
   }
 
-  @on_classify(intent) => {
-    return classify_founder_action(intent)
+  @on_classify(intent, context) => {
+    return classify_authority_route(intent, context)
   }
 
   @receipt founder_reversibility_config {
-    type: "FounderReversibilityReceipt"
-    action_types: ["code", "spatial", "service_rental", "mobility_coordination"]
-    consumers: ["mcp-server authority", "studio chip filter"]
+    type: "FounderAuthorityRoutingReceipt"
+    authority_routes: ["autonomous", "joseph_exact_four", "specialist_review", "platform_control", "prohibited_replan"]
+    joseph_review_classes: ["spend_or_custody", "physical_presence", "public_identity", "governance"]
+    consumers: ["mcp-server authority", "studio projection"]
     timestamp: now()
   }
 }

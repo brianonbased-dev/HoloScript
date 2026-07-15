@@ -1881,14 +1881,16 @@ describe('Board Routes — Founder Approval (N3 signed-write path)', () => {
     persistTeamStore();
   }
 
-  it('records a reversible approval and round-trips it Bearer-authed', async () => {
-    seedTask('task_rev_1', 'Add a unit test for the holoscript parser');
+  it('records an exact-four decision and round-trips it Bearer-authed', async () => {
+    seedTask('task_rev_1', 'Change the treasury master wallet');
 
     const post = await callBoard('POST', APPROVAL_URL, { taskId: 'task_rev_1' }, PARENT_KEY);
     expect(post._status).toBe(201);
     expect(post._body.success).toBe(true);
     expect(post._body.approval.status).toBe('approved');
     expect(post._body.approval.actionType).toBe('code');
+    expect(post._body.approval.authorityRoute).toBe('joseph-exact-four');
+    expect(post._body.approval.josephReviewClass).toBe('spend-or-custody');
     expect(post._body.approval.taskId).toBe('task_rev_1');
     expect(post._body.approval.approvedByAgentId).toBe(PARENT_ID);
 
@@ -1906,25 +1908,26 @@ describe('Board Routes — Founder Approval (N3 signed-write path)', () => {
     expect(teamStore.get(TEAM)?.founderApprovals?.[0].id).toBe(post._body.approval.id);
   });
 
-  it('403s an irreversible (deploy) intent — stays on explicit review', async () => {
+  it('403s an ordinary deploy because agents may proceed without Joseph', async () => {
     seedTask('task_irrev_1', 'Deploy studio to production and merge to main');
 
     const post = await callBoard('POST', APPROVAL_URL, { taskId: 'task_irrev_1' }, PARENT_KEY);
     expect(post._status).toBe(403);
-    expect(post._body.requiresExplicitReview).toBe(true);
-    expect(post._body.error).toMatch(/not one-tap/i);
+    expect(post._body.agentMayProceed).toBe(true);
+    expect(post._body.authorityRoute).toBe('autonomous');
+    expect(post._body.error).toMatch(/not an exact-four/i);
 
     // Nothing recorded.
     expect(teamStore.get(TEAM)?.founderApprovals ?? []).toHaveLength(0);
   });
 
-  it('403s a service_rental intent (spend gate, D.044)', async () => {
-    seedTask('task_rent_1', 'Provision a GPU fleet on vast.ai for the benchmark');
+  it('routes specialist review separately instead of creating Joseph approval', async () => {
+    seedTask('task_rent_1', 'Run legal export-control review for the release');
 
     const post = await callBoard('POST', APPROVAL_URL, { taskId: 'task_rent_1' }, PARENT_KEY);
     expect(post._status).toBe(403);
-    expect(post._body.actionType).toBe('service_rental');
-    expect(post._body.requiresExplicitReview).toBe(true);
+    expect(post._body.authorityRoute).toBe('specialist-review');
+    expect(post._body.requiresSpecialistReview).toBe(true);
   });
 
   it('rejects a missing taskId with 400', async () => {
@@ -1933,7 +1936,7 @@ describe('Board Routes — Founder Approval (N3 signed-write path)', () => {
   });
 
   it('lets a signing agent PATCH the lifecycle approved → executing → executed', async () => {
-    seedTask('task_rev_2', 'Refactor the trait composition helper');
+    seedTask('task_rev_2', "Publish the commitment under Joseph's name");
     const post = await callBoard('POST', APPROVAL_URL, { taskId: 'task_rev_2' }, PARENT_KEY);
     expect(post._status).toBe(201);
     const approvalId = post._body.approval.id;

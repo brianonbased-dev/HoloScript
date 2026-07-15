@@ -4,7 +4,7 @@ composition "HoloShellDocumentSpreadsheetCustodyPolicy" {
   state CustodyState {
     selectedWorkflow: "document-spreadsheet-custody"
     selectedFileKind: "unknown"
-    approvalsRequired: 0
+    boundaryAuthorizationsRequired: 0
     receiptsCaptured: 0
     blockers: []
     taskSeeds: []
@@ -51,7 +51,10 @@ composition "HoloShellDocumentSpreadsheetCustodyPolicy" {
     ]
   }
 
-  policy "BreakGlass" using "PermissionEnvelope" {
+  // Owner authorization protects source mutation and outbound commitments;
+  // account/credential operations remain subject to platform controls. Neither
+  // route is a Joseph-review class unless it independently matches exact-four.
+  policy "OwnerOrPlatformAuthorization" using "PermissionEnvelope" {
     readOnly: false
     guardedExecute: true
     breakGlass: true
@@ -69,12 +72,12 @@ composition "HoloShellDocumentSpreadsheetCustodyPolicy" {
 
   state_machine "CustodyWorkflow" {
     initial: "idle"
-    states: ["idle", "snapshotted", "parsed", "previewed", "approved", "exported", "verified", "filed", "blocked"]
+    states: ["idle", "snapshotted", "parsed", "previewed", "authorized", "exported", "verified", "filed", "blocked"]
     transition "select" { from: "idle", to: "snapshotted" }
     transition "parse" { from: "snapshotted", to: "parsed" }
     transition "preview" { from: "parsed", to: "previewed" }
-    transition "approve" { from: "previewed", to: "approved" }
-    transition "export" { from: "approved", to: "exported" }
+    transition "authorize" { from: "previewed", to: "authorized" }
+    transition "export" { from: "authorized", to: "exported" }
     transition "verify" { from: "exported", to: "verified" }
     transition "file_task" { from: "verified", to: "filed" }
     transition "block" { from: "*", to: "blocked" }
@@ -97,7 +100,7 @@ composition "HoloShellDocumentSpreadsheetCustodyPolicy" {
 
   role "BrowserAccountWitness" {
     laneId: "browser-account"
-    owns: ["google_microsoft_boundary", "share_upload_break_glass", "screenshot_witness"]
+    owns: ["google_microsoft_boundary", "share_upload_authorization", "screenshot_witness"]
   }
 
   role "HoloLandProductAgent" {
@@ -106,9 +109,9 @@ composition "HoloShellDocumentSpreadsheetCustodyPolicy" {
   }
 
   action classifyOperation(operation) {
-    if (operation.kind in BreakGlass.appliesTo) {
-      CustodyState.approvalsRequired = CustodyState.approvalsRequired + 1
-      return "break_glass"
+    if (operation.kind in OwnerOrPlatformAuthorization.appliesTo) {
+      CustodyState.boundaryAuthorizationsRequired = CustodyState.boundaryAuthorizationsRequired + 1
+      return "owner_or_platform_authorization"
     }
     if (operation.kind in GuardedExecute.appliesTo) {
       return "guarded_execute"

@@ -338,13 +338,25 @@ export {
 // Founder reversibility policy — canonical shared regexes (task_1780431630769_a2um)
 export {
   type FounderActionType,
+  type FounderAuthorityContext,
+  type FounderAuthorityRoute,
   type FounderReversibility,
+  type JosephReviewClass,
   IRREVERSIBLE_RE,
+  PROHIBITED_OPERATION_RE,
+  SPECIALIST_RE,
+  PLATFORM_CONTROL_RE,
+  ACTIVE_RAIL_CAP_RE,
+  CUSTODY_AUTHORITY_RE,
+  JOSEPH_PHYSICAL_RE,
+  JOSEPH_PUBLIC_RE,
+  GOVERNANCE_MUTATION_RE,
   SPATIAL_RE,
   RENTAL_RE,
   MOBILITY_RE,
   inferFounderActionType,
   deriveFounderReversibility,
+  deriveJosephReviewClass,
 } from './board';
 
 // HoloLand receipt model (task_1778186605462_4z0o)

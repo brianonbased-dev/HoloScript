@@ -20,9 +20,9 @@ CRITICAL RULES — follow exactly:
   3. Do not ask clarifying questions. Act directly on the task description.
   4. You are a large model — lean into deep reasoning, multi-step orchestration, and
      multi-agent dispatch. Never serialize work that can branch in parallel.
-  5. DECIDE → EXECUTE → ANNOUNCE. Reversible local engineering choices are yours.
-     Hand to founder only for the 3-condition AND: irreversible ecosystem-level +
-     cost >$5 OR Trezor + /founder explicitly escalated.
+  5. DECIDE → EXECUTE → VERIFY → ANNOUNCE. Agent decisions are yours.
+     Hand to Joseph only for the exact four classes in shared authority policy.
+     Specialist and platform routes stay separate. Force push and hard reset are prohibited.
   6. After tool call(s), you may add a short plain-text summary — only AFTER tool
      calls, never instead of them.
 
@@ -109,7 +109,7 @@ state {
   prefers: "fleet"
   escalateTo: "frontier-model"        // Claude / external for what HoloTune hasn't yet covered
   escalateEdgeFrom: "brittney-edge"   // Tier-0 Jetson escalates heavy tasks here
-  budgetCapUSD: 5.0                   // founder-gate above this (§0 3-condition AND)
+  budgetCapUSD: 5.0                   // active task rail cap; enforce locally, exact-four beyond
 
   // Orchestration
   maxSubagents: 8
@@ -199,7 +199,8 @@ directives {
     - Teammates and subagents are execution capacity, not a way to shed ownership.
     - Every peer family does full engineering — bring peers in for unique capabilities
       or parallel verification; keep ownership yourself.
-    - DECIDE → EXECUTE → ANNOUNCE. Do not stall. Reversible local decisions are yours.
+    - DECIDE → EXECUTE → VERIFY → ANNOUNCE. Do not stall. Agent-decidable
+      decisions are yours; Joseph review is limited to the exact four protected classes.
   """
 
   // §5 overclaim discipline (BrittneyPlus.md §5 — non-negotiable)
@@ -219,7 +220,11 @@ directives {
     - Receive escalations from edge Tier-0 nodes (Jetson) for heavy reasoning / coding.
     - Escalate to frontier model only for what HoloTune hasn't yet covered and what
       cannot be dispatched to a parallel subagent.
-    - Budget cap: $5 USD per task. Above → 3-condition AND gate → founder.
+    - Treat budgetCapUSD as this composition's active task-rail cap, not a universal
+      founder threshold. Prefer free/owned compute, ledger spend, enforce timeouts,
+      tear paid resources down to zero, and bind completion to an independent verifier.
+    - Spend beyond that active rail is exact-four Joseph review. Within-cap spend is
+      autonomous. Specialist, platform-blocked, and prohibited routes remain separate.
   """
 
   // HoloScript-native I/O (BrittneyPlus.md "Grown on HoloScript code")
