@@ -1,0 +1,110 @@
+{
+  "schema": "holoscript.jspace-s2-pilot-evidence-manifest.v0.1.0",
+  "pathBase": "repository-root",
+  "status": "failed-frozen-gate",
+  "stage": "pilot",
+  "gitRevision": "4556f8a6e18c3e2d92c404f36a3c2208bced0ba2",
+  "checkpointSha256": "sha256:abbda748c6bd6dec69bd72f25ca5ab28876fbbdbf195f218439ddbd0a10ff914",
+  "tokenizerSha256": "sha256:f92af6207d211728a530e95e44c60b3c95f700ea9c755ab6bd8614fbdac623d4",
+  "sources": [
+    {
+      "role": "preregistration",
+      "path": "research/2026-07-15-jspace-s2-varied-endpoint-preregistration.md",
+      "sha256": "sha256:3f94f416d6087bb104762a8b96de61862d423668d2f13adeee3967d91e45c431"
+    },
+    {
+      "role": "corpus-manifest",
+      "path": "research/data/jspace-s2/corpus-manifest.json",
+      "sha256": "sha256:2c00dd213301a5ba57628b3226ae77f6b78216df0f8bb17ea0dddecccb2b0b64"
+    },
+    {
+      "role": "fit-code",
+      "path": "scripts/research/fit_jspace_s2_lens.py",
+      "sha256": "sha256:cab00603d710d748c028a6e193a06db5843be516ffd5efd014b91d97181cc6d4"
+    },
+    {
+      "role": "collection-code",
+      "path": "packages/holoserve-py/holoserve/workspace_eval.py",
+      "sha256": "sha256:14922aebdcbe4706a4ecde111739bbbf50bae3ca7437910eb20ec97f955d802a"
+    },
+    {
+      "role": "evaluation-code",
+      "path": "packages/holoserve-py/holoserve/workspace_fidelity.py",
+      "sha256": "sha256:257d14fa3d723c38fb6a16a8429ba11f77b6d1a6bcf13d5e9fa31f8411cafd75"
+    }
+  ],
+  "promotedArtifacts": [
+    {
+      "path": "research/measurements/jspace-s2/pilot-a-fit.json",
+      "bytes": 2284,
+      "sha256": "sha256:06c7196accef08e66a549f115049d116b4f165d1561e48ee148ce22d1e6c444f"
+    },
+    {
+      "path": "research/measurements/jspace-s2/pilot-b-fit.json",
+      "bytes": 2284,
+      "sha256": "sha256:304cf0e805111b0225f34904a8da04bc0f13e101b168d72692fb298f47e235cf"
+    },
+    {
+      "path": "research/measurements/jspace-s2/pilot-collection.json",
+      "bytes": 3417,
+      "sha256": "sha256:cba534421db0117766d0e5e5b8f38b8446e3462726852cb6069f9f079bab870e"
+    },
+    {
+      "path": "research/measurements/jspace-s2/pilot-fidelity.json",
+      "bytes": 10477,
+      "sha256": "sha256:d0c9d388c354ef663cf9b226422076935ef7392ecf81521459862af2f773a003"
+    },
+    {
+      "path": "research/measurements/jspace-s2/pilot-rows.jsonl",
+      "bytes": 144877,
+      "sha256": "sha256:adbf558e4c55d0a7cf7b57af2d89909c78d930dcd0f06ce50ddb4d7fd498b230"
+    },
+    {
+      "path": "research/measurements/jspace-s2/pilot-receipts.jsonl",
+      "bytes": 759273,
+      "sha256": "sha256:d713f16598f7f0d36f556a6180b29b8c6fb2865cb865606d52e984ddd425d44f"
+    }
+  ],
+  "externalDerivedArtifacts": [
+    {
+      "role": "lens-a",
+      "bytes": 19789928,
+      "sha256": "sha256:fe4a6f56a9b09681cfe36f7457618093224aa31c1fa0f56e6420f5be3403185e"
+    },
+    {
+      "role": "lens-b",
+      "bytes": 19789928,
+      "sha256": "sha256:9ea0d270c990c0ff8b94ccb6c2017a34f63c3bd193cd191ce57419f23ff77966"
+    }
+  ],
+  "billingReceiptSha256s": {
+    "fitA": "sha256:a30541ec68df76d79a61f27cf0d91369425ac8515445b2f355071827c789ad24",
+    "fitB": "sha256:7afaaae41e21df9a0707f6c21adb9089d64a6b1d27a90552f3b84e8e22f24010",
+    "holdout": "sha256:ad209e3f001ba784779e142207ebc909d5e881351e1ee6357959d54f5ad2aeb2"
+  },
+  "disclosureAudit": {
+    "scope": "promoted-artifacts",
+    "absoluteLocalPathCount": 0,
+    "credentialSignatureCount": 0,
+    "rawPromptFieldCount": 0,
+    "rawActivationsPersisted": false
+  },
+  "outcome": {
+    "passed": false,
+    "laneAIdentityMacroGainMeanE8": 9571180,
+    "laneAIdentityMacroGainBootstrapLower95E8": 8160579,
+    "laneAAnchorMacroGainMeanE8": -785004,
+    "laneAAnchorMacroGainBootstrapLower95E8": -6812489,
+    "laneBIdentityMacroGainMeanE8": 5097283,
+    "laneBIdentityMacroGainBootstrapLower95E8": 1683122,
+    "laneBAnchorMacroGainMeanE8": -4329185,
+    "laneBAnchorMacroGainBootstrapLower95E8": -15484542,
+    "replicationPearsonE8": 87088720,
+    "replicationSignAgreementE8": 83333333,
+    "targetTopTokenUniqueCount": 8,
+    "targetTopTokenUniqueCountsByPositionBin": [4, 1, 3, 2],
+    "pilotEndpointProfilesPerPositionBin": 2,
+    "disposition": "do-not-run-confirmation; register a new sampling/transport residue"
+  },
+  "selfHash": "sha256:56b078f581a7cfb601e9bbef05af824878b0e8f424634c61907191713ddfdffc"
+}

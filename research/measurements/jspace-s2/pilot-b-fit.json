@@ -1,0 +1,76 @@
+{
+  "calibrationCorpusSha256": "sha256:5a565b21b6dfebe31894e332aa11ab863a7b998d599c85b840a9d8c424d40922",
+  "calibrationShardSha256": "sha256:e09487b462fab8b72007794d77ec427e6834cd91f23cc55f0944d56ec51ac6cb",
+  "caseIdSetSha256": "sha256:bd7acfaeacee106a8870a515aec2c787bcbacf93258cd4bfee4fd1c35be3318c",
+  "checkpointSha256": "sha256:abbda748c6bd6dec69bd72f25ca5ab28876fbbdbf195f218439ddbd0a10ff914",
+  "corpusArtifactSha256": "sha256:d4158b39ecae7af049ca1877266286f7c8cf7613142ba9f6aab509922a54d867",
+  "corpusManifestSha256": "sha256:2c00dd213301a5ba57628b3226ae77f6b78216df0f8bb17ea0dddecccb2b0b64",
+  "createdAt": "2026-07-15T04:56:39.220Z",
+  "dimBatch": 8,
+  "elapsedMillis": 117703,
+  "estimator": "endpoint_self_jacobian_local_taylor_v1",
+  "fitScriptSha256": "sha256:cab00603d710d748c028a6e193a06db5843be516ffd5efd014b91d97181cc6d4",
+  "gitRevision": "4556f8a6e18c3e2d92c404f36a3c2208bced0ba2",
+  "gpuTotalMemoryBytes": 6441926656,
+  "lane": "b",
+  "layers": [
+    2,
+    5,
+    8
+  ],
+  "lensSha256": "sha256:9ea0d270c990c0ff8b94ccb6c2017a34f63c3bd193cd191ce57419f23ff77966",
+  "maxSeqLen": 512,
+  "model": {
+    "blockSize": 512,
+    "dropoutE8": 0,
+    "iteration": 5999,
+    "nEmbd": 640,
+    "nHead": 10,
+    "nLayer": 10,
+    "structuralTypeCount": 13,
+    "vocabSize": 562
+  },
+  "paperParity": false,
+  "peakGpuMemoryBytes": 2123630592,
+  "peakGpuMemoryShareE8": 32965768,
+  "positionBinCounts": [
+    6,
+    6,
+    6,
+    6
+  ],
+  "positionBins": [
+    [
+      0,
+      127
+    ],
+    [
+      128,
+      255
+    ],
+    [
+      256,
+      383
+    ],
+    [
+      384,
+      511
+    ]
+  ],
+  "positionPolicy": "endpoint-self-only",
+  "preregistrationSha256": "sha256:3f94f416d6087bb104762a8b96de61862d423668d2f13adeee3967d91e45c431",
+  "rowCount": 24,
+  "runtime": {
+    "cuda": "12.8",
+    "device": "cuda",
+    "python": "3.14.0",
+    "torch": "2.10.0+cu128"
+  },
+  "schema": "holoscript.jspace-s2-fit-receipt.v0.1.0",
+  "selfHash": "sha256:76037cdf8287d6188b7f528191d66b2406f29c5d9dc72b25db32bc1f75a6b221",
+  "semanticLabelsAccessed": false,
+  "stage": "pilot",
+  "startedAt": "2026-07-15T04:54:41.020Z",
+  "tokenizerSha256": "sha256:f92af6207d211728a530e95e44c60b3c95f700ea9c755ab6bd8614fbdac623d4",
+  "transportProfile": "local-taylor-affine-final-residual-v1"
+}
