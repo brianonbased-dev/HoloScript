@@ -1,0 +1,224 @@
+{
+  "schema": "holoscript.jspace-s5-pilot-evidence-manifest.v0.1.0",
+  "pathBase": "repository-root",
+  "status": "failed-frozen-gate",
+  "stage": "pilot",
+  "gitRevision": "c36043724c0be14ca110893515f9d06a2424d7c0",
+  "checkpointSha256": "sha256:abbda748c6bd6dec69bd72f25ca5ab28876fbbdbf195f218439ddbd0a10ff914",
+  "tokenizerSha256": "sha256:f92af6207d211728a530e95e44c60b3c95f700ea9c755ab6bd8614fbdac623d4",
+  "experimentProfile": "s5-unscaled-mean-centered-jacobian-v1",
+  "formulaSha256": "sha256:b776c634fb7b171952149c5fed7a9e3a8a73ad98798e10ce469687fc6817c6a1",
+  "controlProfileSha256": "sha256:af99d45a1963ca975078a5b29d1803d936441ddfa1cfa42d953430880d0a4e0b",
+  "sources": [
+    {
+      "role": "preregistration",
+      "path": "research/2026-07-15-jspace-s5-unscaled-centered-preregistration.md",
+      "sha256": "sha256:9802d838be9832aa011903ae29799f44b176820d9c12a8600d97e39e4338b599"
+    },
+    {
+      "role": "s2-corpus-manifest",
+      "path": "research/data/jspace-s2/corpus-manifest.json",
+      "sha256": "sha256:2c00dd213301a5ba57628b3226ae77f6b78216df0f8bb17ea0dddecccb2b0b64"
+    },
+    {
+      "role": "s3-selection-manifest",
+      "path": "research/data/jspace-s3/selection-manifest.json",
+      "sha256": "sha256:1c700238479b2b0e54839779de3ea2efe6298879227043e8495c559b502761af"
+    },
+    {
+      "role": "s4-selection-manifest",
+      "path": "research/data/jspace-s4/selection-manifest.json",
+      "sha256": "sha256:addb0a5ff2e37a9507989ace490c86dfb3b1da5bbc1543c849b01932339d706f"
+    },
+    {
+      "role": "s4-control-profile",
+      "path": "research/data/jspace-s4/control-profile.json",
+      "sha256": "sha256:356c5d0e8d17fe3668bd0e365d582c049cd8fa4b1847d8d5ae5c22780b9e1d98"
+    },
+    {
+      "role": "s4-failed-pilot-evidence",
+      "path": "research/measurements/jspace-s4/pilot-manifest.json",
+      "sha256": "sha256:1d3ca97311f929343b6569a211324b45133934f4e05caaabd5464989f1ffcfe0"
+    },
+    {
+      "role": "selection-manifest",
+      "path": "research/data/jspace-s5/selection-manifest.json",
+      "sha256": "sha256:858a9da11e6feb241cec38dbf5f1ec56a2ce88a801dacb0384de11e5b44714f5"
+    },
+    {
+      "role": "control-profile",
+      "path": "research/data/jspace-s5/control-profile.json",
+      "sha256": "sha256:05195b99d7e032a550ea2eaadd9c46f7dc04dddcdb22ac13707016ba711fa37b"
+    },
+    {
+      "role": "selection-code",
+      "path": "scripts/research/select_jspace_s5_corpus.py",
+      "sha256": "sha256:063a92a961c7e41a64a022f3ca316c5d832afe1a7ca377756a723a66639a8317"
+    },
+    {
+      "role": "fit-code",
+      "path": "scripts/research/fit_jspace_s5_lens.py",
+      "sha256": "sha256:86ea877d99cc9ceb42f3552763c71df7d510c12e0bc136c6ab76f772f293b219"
+    },
+    {
+      "role": "fit-admission-tests",
+      "path": "scripts/research/test_fit_jspace_s5_lens.py",
+      "sha256": "sha256:a0accbc3078885a77b3d5a187a367ac4cf212984456d5c961334ebb6590ad9b1"
+    },
+    {
+      "role": "lens-loader",
+      "path": "packages/holoserve-py/holoserve/workspace_probe.py",
+      "sha256": "sha256:3207abec96eff3c9530b23f8a0a0358c2984eaed1848b0bfdc8b960dfa8ce5fe"
+    },
+    {
+      "role": "collection-code",
+      "path": "packages/holoserve-py/holoserve/workspace_eval.py",
+      "sha256": "sha256:7f32ac4dea98c689dc4b6d47aa61e40fc037df6de2170daf6b5ddc4b75cb1f2c"
+    },
+    {
+      "role": "evaluation-code",
+      "path": "packages/holoserve-py/holoserve/workspace_fidelity.py",
+      "sha256": "sha256:84b6f03fbb44d609e7be29178ee48eea008ea50ddeb4f20a334386f46f583224"
+    },
+    {
+      "role": "holdout-prompt-artifact",
+      "path": "research/data/jspace-s5/fidelity-h-pilot.jsonl",
+      "sha256": "sha256:4e74d069a11c27d6a254c21a627f5426a6b6c2526309868e4ae61dc119bf3e6b"
+    }
+  ],
+  "promotedArtifacts": [
+    {
+      "path": "research/measurements/jspace-s5/pilot-a-fit.json",
+      "bytes": 10224,
+      "sha256": "sha256:d06c8e877a7b1d724a79b2d09f02eda1b70af668fdda59d3e51f7c431d020547"
+    },
+    {
+      "path": "research/measurements/jspace-s5/pilot-b-fit.json",
+      "bytes": 10224,
+      "sha256": "sha256:6cf3e86a308c757a8c5522e1167dbc7e2250830bc8fa4525a127199140b9a296"
+    },
+    {
+      "path": "research/measurements/jspace-s5/pilot-collection.json",
+      "bytes": 3543,
+      "sha256": "sha256:bdec567cef9d5526ef050d0cc814749de105bb40b1e4733278fc5bda7ba29201"
+    },
+    {
+      "path": "research/measurements/jspace-s5/pilot-fidelity.json",
+      "bytes": 16269,
+      "sha256": "sha256:0daea72bfe50b25d3dd3113420ba15de2e3853f7e09d828a203d675d85e6a3d6"
+    },
+    {
+      "path": "research/measurements/jspace-s5/pilot-rows.jsonl",
+      "bytes": 265323,
+      "sha256": "sha256:f7a2116b5a1d2caa594609e178ed01c18910afc7d7b9f408351f4708353fa29f"
+    },
+    {
+      "path": "research/measurements/jspace-s5/pilot-receipts.jsonl",
+      "bytes": 1190681,
+      "sha256": "sha256:c3340b9630b053cf5726a7cafda9e22994f2b177de4f2d4f7f8f2c9bd7eec201"
+    }
+  ],
+  "externalDerivedArtifacts": [
+    {
+      "role": "lens-a",
+      "bytes": 19799820,
+      "sha256": "sha256:e731380cf1260385d6ae7071e42824f82f0bcb4c0638200ac2f09a6c11687953"
+    },
+    {
+      "role": "lens-b",
+      "bytes": 19799820,
+      "sha256": "sha256:6f2012bed2947850519a097108e89592fd980dd9016a6778128a7a098b6faadf"
+    }
+  ],
+  "fitReceiptSelfHashes": {
+    "a": "sha256:fd972dac397585060954442af99861b940a1cb0ed631b5622634cad7fc36ebb2",
+    "b": "sha256:fba20f202a027cd1c41462587d25d3ac86bc5c036ae43490d26407d95fae4490"
+  },
+  "disclosureAudit": {
+    "scope": "promoted-artifacts",
+    "absoluteLocalPathCount": 0,
+    "credentialSignatureCount": 0,
+    "rawPromptFieldCount": 0,
+    "privateScalarFieldCount": 0,
+    "rawActivationsPersisted": false,
+    "boundedDecodedTopTokenOutputsPresent": true
+  },
+  "integrityAudit": {
+    "historicalFitSourceHashesMatched": "92/92",
+    "receiptHashesRecomputed": "72/72",
+    "observationHashesRecomputed": "72/72",
+    "rowReceiptCoordinatesUnique": 72,
+    "canonicalRowReceiptPromptValidationPassed": true,
+    "fitReceiptRevisionValidationPassed": true,
+    "fidelityInputHashesMatched": true
+  },
+  "outcome": {
+    "passed": false,
+    "confirmationAdmitted": false,
+    "fitInteriorGatesPassed": true,
+    "laneA": {
+      "identityMacroGainMeanE8": 8374844,
+      "identityMacroGainBootstrapLower95E8": 1374007,
+      "anchorMacroGainMeanE8": 4857433,
+      "anchorMacroGainBootstrapLower95E8": -2493878,
+      "meanCenteringAttributionGainMeanE8": 6531408,
+      "meanCenteringAttributionBootstrapLower95E8": 3970726,
+      "unscaledAttributionGainMeanE8": -1519403,
+      "unscaledAttributionBootstrapLower95E8": -3922253,
+      "jacobianSpecificAttributionGainMeanE8": 1015893,
+      "jacobianSpecificAttributionBootstrapLower95E8": -4679995,
+      "attributionGates": {
+        "jacobianSpecific": false,
+        "meanCentering": true,
+        "unscaled": false
+      },
+      "mappedTopTokenUniqueCount": 8,
+      "mappedTopTokenMaximumShareE8": 61111111,
+      "gates": {
+        "ceilingLayerNonInferiority": true,
+        "entropyError": false,
+        "macroAnchorGain": false,
+        "macroIdentityGain": true,
+        "maxProbabilityError": false,
+        "primaryLayers": false,
+        "targetTopTokenVariation": true,
+        "topTokenDiversity": false
+      }
+    },
+    "laneB": {
+      "identityMacroGainMeanE8": 6140573,
+      "identityMacroGainBootstrapLower95E8": 382807,
+      "anchorMacroGainMeanE8": 5797971,
+      "anchorMacroGainBootstrapLower95E8": -1497878,
+      "meanCenteringAttributionGainMeanE8": 6849271,
+      "meanCenteringAttributionBootstrapLower95E8": 2621909,
+      "unscaledAttributionGainMeanE8": 941041,
+      "unscaledAttributionBootstrapLower95E8": -905277,
+      "jacobianSpecificAttributionGainMeanE8": 3299009,
+      "jacobianSpecificAttributionBootstrapLower95E8": -3345600,
+      "attributionGates": {
+        "jacobianSpecific": false,
+        "meanCentering": true,
+        "unscaled": false
+      },
+      "mappedTopTokenUniqueCount": 7,
+      "mappedTopTokenMaximumShareE8": 61111111,
+      "gates": {
+        "ceilingLayerNonInferiority": true,
+        "entropyError": true,
+        "macroAnchorGain": false,
+        "macroIdentityGain": true,
+        "maxProbabilityError": false,
+        "primaryLayers": false,
+        "targetTopTokenVariation": true,
+        "topTokenDiversity": false
+      }
+    },
+    "replicationPearsonE8": 87402843,
+    "replicationSignAgreementE8": 77777778,
+    "semanticLabelsAccessed": false,
+    "sealedLineageExhausted": true,
+    "disposition": "do-not-run-confirmation-or-open-semantic-labels; stop S2-S5 holdout carving; scale training, model capacity, or a newly preregistered untouched corpus"
+  },
+  "selfHash": "sha256:66f1ac6289ed025709c88b21275fd0822fde33af5859b007866b364f3581ca24"
+}

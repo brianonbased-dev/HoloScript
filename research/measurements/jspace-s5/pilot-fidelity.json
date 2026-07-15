@@ -1,0 +1,622 @@
+{
+  "aliases": {
+    "a": {
+      "attribution": {
+        "fitControlInteriorRequiredSeparately": true,
+        "gates": {
+          "jacobianSpecific": false,
+          "meanCentering": true,
+          "unscaled": false
+        },
+        "holdoutPassed": false,
+        "layers": {
+          "2": {
+            "jacobianSpecific": {
+              "gainBootstrap95E8": [
+                -9852556,
+                -1388527,
+                6676903
+              ],
+              "gainMeanE8": -1388527
+            },
+            "meanCentering": {
+              "gainBootstrap95E8": [
+                -1298943,
+                1100128,
+                3266597
+              ],
+              "gainMeanE8": 1100128
+            },
+            "unscaled": {
+              "gainBootstrap95E8": [
+                -7747877,
+                -2945327,
+                609223
+              ],
+              "gainMeanE8": -3014100
+            }
+          },
+          "5": {
+            "jacobianSpecific": {
+              "gainBootstrap95E8": [
+                -1077231,
+                3404506,
+                8447622
+              ],
+              "gainMeanE8": 3420312
+            },
+            "meanCentering": {
+              "gainBootstrap95E8": [
+                8206959,
+                11858341,
+                18405812
+              ],
+              "gainMeanE8": 11962688
+            },
+            "unscaled": {
+              "gainBootstrap95E8": [
+                -2041409,
+                -24706,
+                2087148
+              ],
+              "gainMeanE8": -24706
+            }
+          },
+          "8": {
+            "jacobianSpecific": {
+              "gainBootstrap95E8": [
+                7609175,
+                8808359,
+                10252358
+              ],
+              "gainMeanE8": 8836586
+            },
+            "meanCentering": {
+              "gainBootstrap95E8": [
+                2183754,
+                3585394,
+                4968851
+              ],
+              "gainMeanE8": 3585394
+            },
+            "unscaled": {
+              "gainBootstrap95E8": [
+                -109656,
+                31470,
+                126388
+              ],
+              "gainMeanE8": 25152
+            }
+          }
+        },
+        "macroPrimary": {
+          "jacobianSpecific": {
+            "gainBootstrap95E8": [
+              -4679995,
+              932128,
+              7089710
+            ],
+            "gainMeanE8": 1015893
+          },
+          "meanCentering": {
+            "gainBootstrap95E8": [
+              3970726,
+              6417649,
+              9598323
+            ],
+            "gainMeanE8": 6531408
+          },
+          "unscaled": {
+            "gainBootstrap95E8": [
+              -3922253,
+              -1512314,
+              340723
+            ],
+            "gainMeanE8": -1519403
+          }
+        }
+      },
+      "gates": {
+        "ceilingLayerNonInferiority": true,
+        "entropyError": false,
+        "macroAnchorGain": false,
+        "macroIdentityGain": true,
+        "maxProbabilityError": false,
+        "primaryLayers": false,
+        "targetTopTokenVariation": true,
+        "topTokenDiversity": false
+      },
+      "layers": {
+        "2": {
+          "anchorGainBootstrap95E8": [
+            -7113328,
+            2259943,
+            11215977
+          ],
+          "anchorGainMeanE8": 2259943,
+          "controlTargetMeanE8": 40430316,
+          "lensGainBootstrap95E8": [
+            -3965578,
+            6666987,
+            16652590
+          ],
+          "lensGainMeanE8": 6606684,
+          "lensGainPositiveRateE8": 55555556,
+          "lensGainWilsonLower95E8": 39581062,
+          "mappedTargetMeanE8": 33823632,
+          "positionBinGainMeansE8": {
+            "0": 6266496,
+            "1": 7817848,
+            "2": 14491075,
+            "3": -2148682
+          },
+          "ratioOfMeansReductionE8": 16340916
+        },
+        "5": {
+          "anchorGainBootstrap95E8": [
+            522404,
+            7454923,
+            14969757
+          ],
+          "anchorGainMeanE8": 7454923,
+          "controlTargetMeanE8": 38771656,
+          "lensGainBootstrap95E8": [
+            4679733,
+            10108030,
+            15963604
+          ],
+          "lensGainMeanE8": 10143004,
+          "lensGainPositiveRateE8": 75000000,
+          "lensGainWilsonLower95E8": 58929546,
+          "mappedTargetMeanE8": 28628652,
+          "positionBinGainMeansE8": {
+            "0": -896984,
+            "1": 11192916,
+            "2": 16666510,
+            "3": 13609574
+          },
+          "ratioOfMeansReductionE8": 26160874
+        },
+        "8": {
+          "anchorGainBootstrap95E8": [
+            22799577,
+            27071845,
+            31594110
+          ],
+          "anchorGainMeanE8": 27071845,
+          "controlTargetMeanE8": 17712432,
+          "lensGainBootstrap95E8": [
+            5309495,
+            8746404,
+            11947639
+          ],
+          "lensGainMeanE8": 8700702,
+          "lensGainPositiveRateE8": 94444444,
+          "lensGainWilsonLower95E8": 81855343,
+          "mappedTargetMeanE8": 9011730,
+          "positionBinGainMeansE8": {
+            "0": 6737984,
+            "1": 11969936,
+            "2": 4948705,
+            "3": 11146182
+          },
+          "ratioOfMeansReductionE8": 49122007
+        }
+      },
+      "macroPrimary": {
+        "anchorGainBootstrap95E8": [
+          -2493878,
+          4857433,
+          12510668
+        ],
+        "anchorGainMeanE8": 4857433,
+        "entropyErrorGainBootstrap95E8": [
+          -9164884,
+          17117639,
+          44720247
+        ],
+        "entropyErrorGainMeanE8": 17117639,
+        "lensGainBootstrap95E8": [
+          1374007,
+          8374844,
+          15165956
+        ],
+        "lensGainMeanE8": 8374844,
+        "maxProbabilityErrorGainBootstrap95E8": [
+          -9738389,
+          -4601550,
+          3148659
+        ],
+        "maxProbabilityErrorGainMeanE8": -4305661
+      },
+      "mappedTopTokenDiversity": {
+        "maximumShareE8": 61111111,
+        "uniqueCount": 8
+      },
+      "mappedTopTokenDiversityByPositionBin": {
+        "0": {
+          "maximumShareE8": 66666667,
+          "uniqueCount": 3
+        },
+        "1": {
+          "maximumShareE8": 33333333,
+          "uniqueCount": 6
+        },
+        "2": {
+          "maximumShareE8": 66666667,
+          "uniqueCount": 2
+        },
+        "3": {
+          "maximumShareE8": 77777778,
+          "uniqueCount": 3
+        }
+      },
+      "passed": false,
+      "recordCount": 36,
+      "targetTopTokenDiversity": {
+        "maximumShareE8": 47222222,
+        "uniqueCount": 12
+      },
+      "targetTopTokenDiversityByPositionBin": {
+        "0": {
+          "maximumShareE8": 44444444,
+          "uniqueCount": 5
+        },
+        "1": {
+          "maximumShareE8": 33333333,
+          "uniqueCount": 6
+        },
+        "2": {
+          "maximumShareE8": 55555556,
+          "uniqueCount": 4
+        },
+        "3": {
+          "maximumShareE8": 55555556,
+          "uniqueCount": 4
+        }
+      }
+    },
+    "b": {
+      "attribution": {
+        "fitControlInteriorRequiredSeparately": true,
+        "gates": {
+          "jacobianSpecific": false,
+          "meanCentering": true,
+          "unscaled": false
+        },
+        "holdoutPassed": false,
+        "layers": {
+          "2": {
+            "jacobianSpecific": {
+              "gainBootstrap95E8": [
+                -6852884,
+                1727912,
+                10710169
+              ],
+              "gainMeanE8": 1744062
+            },
+            "meanCentering": {
+              "gainBootstrap95E8": [
+                -4065344,
+                145599,
+                2787031
+              ],
+              "gainMeanE8": -39518
+            },
+            "unscaled": {
+              "gainBootstrap95E8": [
+                -2456178,
+                -69372,
+                2379136
+              ],
+              "gainMeanE8": -26907
+            }
+          },
+          "5": {
+            "jacobianSpecific": {
+              "gainBootstrap95E8": [
+                -1111117,
+                4853955,
+                10884670
+              ],
+              "gainMeanE8": 4853955
+            },
+            "meanCentering": {
+              "gainBootstrap95E8": [
+                7564860,
+                13530453,
+                21482792
+              ],
+              "gainMeanE8": 13738059
+            },
+            "unscaled": {
+              "gainBootstrap95E8": [
+                346431,
+                1908989,
+                3341676
+              ],
+              "gainMeanE8": 1908989
+            }
+          },
+          "8": {
+            "jacobianSpecific": {
+              "gainBootstrap95E8": [
+                8905048,
+                10235589,
+                11527362
+              ],
+              "gainMeanE8": 10226259
+            },
+            "meanCentering": {
+              "gainBootstrap95E8": [
+                1827606,
+                3462868,
+                5362910
+              ],
+              "gainMeanE8": 3502736
+            },
+            "unscaled": {
+              "gainBootstrap95E8": [
+                -452772,
+                -99064,
+                127214
+              ],
+              "gainMeanE8": -114112
+            }
+          }
+        },
+        "macroPrimary": {
+          "jacobianSpecific": {
+            "gainBootstrap95E8": [
+              -3345600,
+              3299009,
+              9991766
+            ],
+            "gainMeanE8": 3299009
+          },
+          "meanCentering": {
+            "gainBootstrap95E8": [
+              2621909,
+              6775015,
+              11383243
+            ],
+            "gainMeanE8": 6849271
+          },
+          "unscaled": {
+            "gainBootstrap95E8": [
+              -905277,
+              951998,
+              2679383
+            ],
+            "gainMeanE8": 941041
+          }
+        }
+      },
+      "gates": {
+        "ceilingLayerNonInferiority": true,
+        "entropyError": true,
+        "macroAnchorGain": false,
+        "macroIdentityGain": true,
+        "maxProbabilityError": false,
+        "primaryLayers": false,
+        "targetTopTokenVariation": true,
+        "topTokenDiversity": false
+      },
+      "layers": {
+        "2": {
+          "anchorGainBootstrap95E8": [
+            -4421224,
+            3361759,
+            11180935
+          ],
+          "anchorGainMeanE8": 3361759,
+          "controlTargetMeanE8": 40430316,
+          "lensGainBootstrap95E8": [
+            -3379737,
+            4533691,
+            13175612
+          ],
+          "lensGainMeanE8": 4533691,
+          "lensGainPositiveRateE8": 52777778,
+          "lensGainWilsonLower95E8": 37005938,
+          "mappedTargetMeanE8": 35896625,
+          "positionBinGainMeansE8": {
+            "0": 5434478,
+            "1": 8539179,
+            "2": 13141449,
+            "3": -8980342
+          },
+          "ratioOfMeansReductionE8": 11213593
+        },
+        "5": {
+          "anchorGainBootstrap95E8": [
+            539803,
+            8234182,
+            15912125
+          ],
+          "anchorGainMeanE8": 8234182,
+          "controlTargetMeanE8": 38771656,
+          "lensGainBootstrap95E8": [
+            2746159,
+            7698542,
+            13343431
+          ],
+          "lensGainMeanE8": 7747454,
+          "lensGainPositiveRateE8": 69444444,
+          "lensGainWilsonLower95E8": 53143727,
+          "mappedTargetMeanE8": 31024202,
+          "positionBinGainMeansE8": {
+            "0": 3530716,
+            "1": 9078569,
+            "2": 14842083,
+            "3": 3538448
+          },
+          "ratioOfMeansReductionE8": 19982262
+        },
+        "8": {
+          "anchorGainBootstrap95E8": [
+            24165638,
+            28953010,
+            33523870
+          ],
+          "anchorGainMeanE8": 28953010,
+          "controlTargetMeanE8": 17712432,
+          "lensGainBootstrap95E8": [
+            3279268,
+            7407057,
+            11322619
+          ],
+          "lensGainMeanE8": 7407057,
+          "lensGainPositiveRateE8": 88888889,
+          "lensGainWilsonLower95E8": 74685191,
+          "mappedTargetMeanE8": 10305375,
+          "positionBinGainMeansE8": {
+            "0": 5120383,
+            "1": 12675493,
+            "2": 706304,
+            "3": 11126051
+          },
+          "ratioOfMeansReductionE8": 41818408
+        }
+      },
+      "macroPrimary": {
+        "anchorGainBootstrap95E8": [
+          -1497878,
+          5937512,
+          12886185
+        ],
+        "anchorGainMeanE8": 5797971,
+        "entropyErrorGainBootstrap95E8": [
+          12134009,
+          40182177,
+          68858157
+        ],
+        "entropyErrorGainMeanE8": 40182177,
+        "lensGainBootstrap95E8": [
+          382807,
+          6140735,
+          11779447
+        ],
+        "lensGainMeanE8": 6140573,
+        "maxProbabilityErrorGainBootstrap95E8": [
+          -4529949,
+          1305367,
+          9722898
+        ],
+        "maxProbabilityErrorGainMeanE8": 1587394
+      },
+      "mappedTopTokenDiversity": {
+        "maximumShareE8": 61111111,
+        "uniqueCount": 7
+      },
+      "mappedTopTokenDiversityByPositionBin": {
+        "0": {
+          "maximumShareE8": 100000000,
+          "uniqueCount": 1
+        },
+        "1": {
+          "maximumShareE8": 44444444,
+          "uniqueCount": 5
+        },
+        "2": {
+          "maximumShareE8": 55555556,
+          "uniqueCount": 3
+        },
+        "3": {
+          "maximumShareE8": 44444444,
+          "uniqueCount": 4
+        }
+      },
+      "passed": false,
+      "recordCount": 36,
+      "targetTopTokenDiversity": {
+        "maximumShareE8": 47222222,
+        "uniqueCount": 12
+      },
+      "targetTopTokenDiversityByPositionBin": {
+        "0": {
+          "maximumShareE8": 44444444,
+          "uniqueCount": 5
+        },
+        "1": {
+          "maximumShareE8": 33333333,
+          "uniqueCount": 6
+        },
+        "2": {
+          "maximumShareE8": 55555556,
+          "uniqueCount": 4
+        },
+        "3": {
+          "maximumShareE8": 55555556,
+          "uniqueCount": 4
+        }
+      }
+    }
+  },
+  "bootstrap": {
+    "method": "whole-task-family-percentile-v1",
+    "samples": 10000,
+    "seed": "7301642128954031337"
+  },
+  "ceilingLayer": 8,
+  "checkpointSha256": "sha256:abbda748c6bd6dec69bd72f25ca5ab28876fbbdbf195f218439ddbd0a10ff914",
+  "codeFileSha256": "sha256:84b6f03fbb44d609e7be29178ee48eea008ea50ddeb4f20a334386f46f583224",
+  "collectionManifestSha256": "sha256:bdec567cef9d5526ef050d0cc814749de105bb40b1e4733278fc5bda7ba29201",
+  "createdAt": "2026-07-15T16:34:53.215Z",
+  "experimentProfile": "s5-unscaled-mean-centered-jacobian-v1",
+  "gateProfile": "s5-unscaled-mean-centered-jacobian-v1",
+  "layers": [
+    2,
+    5,
+    8
+  ],
+  "models": [
+    {
+      "alias": "a",
+      "lensSha256": "sha256:e731380cf1260385d6ae7071e42824f82f0bcb4c0638200ac2f09a6c11687953",
+      "modelId": "holorunner-s0"
+    },
+    {
+      "alias": "b",
+      "lensSha256": "sha256:6f2012bed2947850519a097108e89592fd980dd9016a6778128a7a098b6faadf",
+      "modelId": "holorunner-s0-b"
+    }
+  ],
+  "passed": false,
+  "positionBins": [
+    [
+      0,
+      127
+    ],
+    [
+      128,
+      255
+    ],
+    [
+      256,
+      383
+    ],
+    [
+      384,
+      511
+    ]
+  ],
+  "preregistrationSha256": "sha256:9802d838be9832aa011903ae29799f44b176820d9c12a8600d97e39e4338b599",
+  "primaryLayers": [
+    2,
+    5
+  ],
+  "promptManifestSha256": "sha256:4e74d069a11c27d6a254c21a627f5426a6b6c2526309868e4ae61dc119bf3e6b",
+  "receiptsSha256": "sha256:c3340b9630b053cf5726a7cafda9e22994f2b177de4f2d4f7f8f2c9bd7eec201",
+  "replication": {
+    "macroGainPearsonE8": 87402843,
+    "macroGainSignAgreementE8": 77777778,
+    "passed": false
+  },
+  "rowsSha256": "sha256:f7a2116b5a1d2caa594609e178ed01c18910afc7d7b9f408351f4708353fa29f",
+  "schema": "holoscript.model-workspace-fidelity-evaluation.v0.4.0",
+  "selfHash": "sha256:60438346b728e9a2ea6ac09282fd82a66dd5b32f6ba2ae071d6df7ca086d2b2e",
+  "semanticLabelsAccessed": false,
+  "status": "label-blind-target-fidelity",
+  "tokenizerSha256": "sha256:f92af6207d211728a530e95e44c60b3c95f700ea9c755ab6bd8614fbdac623d4"
+}
