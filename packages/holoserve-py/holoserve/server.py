@@ -66,6 +66,75 @@ from holoserve.workspace_probe import (
 # no llama.cpp: every sampled token keeps the output a valid IR by construction (gram module).
 
 MODEL_NAME = "holorunner-s0"
+MODEL_ARTIFACT_REGISTRY_SCHEMA = "holoscript.holoserve-model-artifact-registry.v0.1.0"
+MODEL_ARTIFACT_BINDING_SCHEMA = "holoscript.holoserve-model-artifact-binding.v0.1.0"
+MODEL_BINS_BINDING_SCHEMA = "holoscript.holoserve-bins-binding.v0.1.0"
+
+
+def _sha256_bytes(value):
+    return f"sha256:{hashlib.sha256(value).hexdigest()}"
+
+
+def _sha256_canonical_json(value):
+    encoded = json.dumps(
+        value,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+        allow_nan=False,
+    ).encode("utf-8")
+    return _sha256_bytes(encoded)
+
+
+def _is_sha256(value):
+    if not isinstance(value, str) or len(value) != 71 or not value.startswith("sha256:"):
+        return False
+    try:
+        int(value[7:], 16)
+    except ValueError:
+        return False
+    return True
+
+
+def _model_artifact_binding_for_health(model):
+    """Return a path-free binding for the bytes used by one resident model.
+
+    Health is a discovery surface, so it must not leak private custody paths. A
+    non-HoloModel/legacy registry entry abstains explicitly instead of implying
+    that its model name identifies known weights or tokenizer bins.
+    """
+    hashes = {
+        "checkpointSha256": getattr(model, "checkpoint_sha256", None),
+        "tokenizerSha256": getattr(model, "tokenizer_sha256", None),
+        "metaSha256": getattr(model, "meta_sha256", None),
+    }
+    missing = sorted(name for name, value in hashes.items() if not _is_sha256(value))
+    if missing:
+        return {
+            "schema": MODEL_ARTIFACT_BINDING_SCHEMA,
+            "available": False,
+            "reason": "artifact_hashes_unavailable",
+            "missing": missing,
+        }
+
+    bins_files = {
+        "meta.json": hashes["metaSha256"],
+        "tokenizer.json": hashes["tokenizerSha256"],
+    }
+    bins_payload = {
+        "schema": MODEL_BINS_BINDING_SCHEMA,
+        "files": bins_files,
+    }
+    return {
+        "schema": MODEL_ARTIFACT_BINDING_SCHEMA,
+        "available": True,
+        "checkpointSha256": hashes["checkpointSha256"],
+        "tokenizerSha256": hashes["tokenizerSha256"],
+        "bins": {
+            **bins_payload,
+            "bindingSha256": _sha256_canonical_json(bins_payload),
+        },
+    }
 
 
 def _partial_tail_len(buf):
@@ -183,11 +252,16 @@ class HoloModel:
         self._load()
 
     def _load(self):
-        self.tokenizer = json.loads((self.bins_dir / "tokenizer.json").read_text(encoding="utf-8"))
-        self.meta = json.loads((self.bins_dir / "meta.json").read_text(encoding="utf-8"))
+        tokenizer_bytes = (self.bins_dir / "tokenizer.json").read_bytes()
+        meta_bytes = (self.bins_dir / "meta.json").read_bytes()
+        self.tokenizer_sha256 = _sha256_bytes(tokenizer_bytes)
+        self.meta_sha256 = _sha256_bytes(meta_bytes)
+        self.tokenizer = json.loads(tokenizer_bytes.decode("utf-8"))
+        self.meta = json.loads(meta_bytes.decode("utf-8"))
         self.merges = self.tokenizer["merges"]
         self.merge_id = {merge[2]: index for index, merge in enumerate(self.merges)}
 
+        self.checkpoint_sha256 = sha256_file(self.ckpt_path)
         ckpt = torch.load(self.ckpt_path, map_location=self.device)
         cfg = ckpt.get("config", {})
         self.block_size = int(cfg.get("block_size", 128))
@@ -227,8 +301,8 @@ class HoloModel:
         if self.workspace_lens_path is not None:
             lens = load_jacobian_lens_artifact(
                 self.workspace_lens_path,
-                checkpoint_sha256=sha256_file(self.ckpt_path),
-                tokenizer_sha256=sha256_file(self.bins_dir / "tokenizer.json"),
+                checkpoint_sha256=self.checkpoint_sha256,
+                tokenizer_sha256=self.tokenizer_sha256,
                 model=self.model,
                 fit_receipt_path=self.workspace_fit_receipt_path,
             )
@@ -372,6 +446,10 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
     def _health(self):
+        artifact_models = {
+            name: _model_artifact_binding_for_health(model)
+            for name, model in sorted(MODELS.items())
+        }
         workspace_models = {
             name: (
                 model.workspace_probe.capability()
@@ -397,6 +475,11 @@ class Handler(BaseHTTPRequestHandler):
             # every resident checkpoint (P4b — request `model` param selects one).
             "model": {"name": DEFAULT_MODEL_NAME, "params_millions": MODEL.params_millions, **MODEL.config},
             "models": sorted(MODELS),
+            "model_artifact_bindings": {
+                "schema": MODEL_ARTIFACT_REGISTRY_SCHEMA,
+                "defaultModel": DEFAULT_MODEL_NAME,
+                "models": artifact_models,
+            },
             "model_workspace_probe": {
                 "schema": MODEL_WORKSPACE_CAPABILITY_SCHEMA,
                 "observe": any(item["observe"] for item in workspace_models.values()),

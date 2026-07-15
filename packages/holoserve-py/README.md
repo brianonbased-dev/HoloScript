@@ -59,6 +59,14 @@ server as a `backend: "pytorch-holo"` node only when `/health` asserts:
 A node that cannot assert `sovereign: true && llama_cpp: false` is refused — an impostor
 never gets routed sovereign traffic.
 
+The same response exposes `model_artifact_bindings` for the default model and every
+named registry entry. Each available entry binds the checkpoint SHA-256 to the exact
+`tokenizer.json` and `meta.json` byte hashes plus a canonical bins-binding SHA-256.
+Only hashes and fixed relative filenames are returned—custody paths remain private.
+A legacy/non-native registry entry without load-time hashes reports
+`available: false` with an explicit reason instead of implying a name-to-artifact
+binding. This ordinary health proof is independent of the optional workspace lens.
+
 ### Endpoints
 
 | Method | Path                              | Purpose                                                                                   |

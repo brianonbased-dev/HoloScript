@@ -43,6 +43,17 @@ def _sha256_file(path: Path) -> str:
     return f"sha256:{digest.hexdigest()}"
 
 
+def _sha256_json(value: dict) -> str:
+    encoded = json.dumps(
+        value,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+        allow_nan=False,
+    ).encode("utf-8")
+    return f"sha256:{hashlib.sha256(encoded).hexdigest()}"
+
+
 def _write_v4_fit_receipt(artifact: dict, lens_path: Path, receipt_path: Path) -> None:
     receipt = {
         "schema": "holoscript.jspace-s4-fit-receipt.v0.1.0",
@@ -204,6 +215,29 @@ def test_holo_model_passes_bound_fit_receipt_to_lens_loader(tmp_path, monkeypatc
     assert resident.workspace_probe[1] is loaded_lens
 
 
+def test_health_artifact_binding_abstains_when_hashes_are_unavailable(monkeypatch):
+    class LegacyResident:
+        device = "cpu"
+        grammars = set()
+        params_millions = 0.0
+        config = {}
+        workspace_probe = None
+
+    resident = LegacyResident()
+    monkeypatch.setattr(server_module, "MODEL", resident)
+    monkeypatch.setattr(server_module, "MODELS", {"legacy-model": resident})
+    monkeypatch.setattr(server_module, "DEFAULT_MODEL_NAME", "legacy-model")
+
+    health = server_module.Handler._health(object())
+
+    assert health["model_artifact_bindings"]["models"]["legacy-model"] == {
+        "schema": server_module.MODEL_ARTIFACT_BINDING_SCHEMA,
+        "available": False,
+        "reason": "artifact_hashes_unavailable",
+        "missing": ["checkpointSha256", "metaSha256", "tokenizerSha256"],
+    }
+
+
 def test_named_registry_routes_distinct_weights_and_model_bound_lens(tmp_path):
     bins = tmp_path / "bins"
     tokenizer_path = _write_bins(bins)
@@ -272,6 +306,37 @@ def test_named_registry_routes_distinct_weights_and_model_bound_lens(tmp_path):
     try:
         health = _wait_for_health(base_url, process)
         assert health["models"] == ["holorunner-s0", "holorunner-s0-b"]
+        artifact_registry = health["model_artifact_bindings"]
+        assert artifact_registry["schema"] == server_module.MODEL_ARTIFACT_REGISTRY_SCHEMA
+        assert artifact_registry["defaultModel"] == "holorunner-s0"
+        assert sorted(artifact_registry["models"]) == ["holorunner-s0", "holorunner-s0-b"]
+
+        bins_payload = {
+            "schema": server_module.MODEL_BINS_BINDING_SCHEMA,
+            "files": {
+                "meta.json": _sha256_file(bins / "meta.json"),
+                "tokenizer.json": _sha256_file(tokenizer_path),
+            },
+        }
+        expected_checkpoints = {
+            "holorunner-s0": _sha256_file(checkpoint_a),
+            "holorunner-s0-b": _sha256_file(checkpoint_b),
+        }
+        for model_name, checkpoint_sha256 in expected_checkpoints.items():
+            assert artifact_registry["models"][model_name] == {
+                "schema": server_module.MODEL_ARTIFACT_BINDING_SCHEMA,
+                "available": True,
+                "checkpointSha256": checkpoint_sha256,
+                "tokenizerSha256": bins_payload["files"]["tokenizer.json"],
+                "bins": {
+                    **bins_payload,
+                    "bindingSha256": _sha256_json(bins_payload),
+                },
+            }
+        serialized_bindings = json.dumps(artifact_registry)
+        assert str(checkpoint_a) not in serialized_bindings
+        assert str(checkpoint_b) not in serialized_bindings
+        assert str(bins) not in serialized_bindings
         assert health["model_workspace_probe"]["models"]["holorunner-s0"]["observe"] is False
         bound_capability = health["model_workspace_probe"]["models"]["holorunner-s0-b"]
         assert bound_capability["observe"] is True
