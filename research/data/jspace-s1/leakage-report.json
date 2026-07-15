@@ -1,0 +1,30 @@
+{
+  "byteWindow": 64,
+  "candidateCorpusSha256": "sha256:f12c77e6ceebad38fb09231a0c0713869b5786a72db1b93e3b5ef6ccf00d12a9",
+  "candidateCount": 576,
+  "decodedReferenceRowCounts": {
+    "train": 23346,
+    "val": 2595
+  },
+  "exposedBodyCount": 166,
+  "failedCaseIds": [],
+  "legacySequenceCount": 200,
+  "legacySequenceIndexSha256": "sha256:a9282def54d38ac348640cdf053493cbf473d3ad2a52e94402e86709216edeb1",
+  "matchCounts": {
+    "bodyContainment": 0,
+    "crossLaneByte64": 0,
+    "crossLaneToken32": 0,
+    "normalizedEquality": 0,
+    "referenceByte64": 0,
+    "referenceToken32": 0
+  },
+  "matchesByReferenceByte64": {},
+  "matchesByReferenceToken32": {},
+  "normalization": "nfkc-casefold-collapse-whitespace-v1",
+  "passed": true,
+  "referenceIndexSha256": "sha256:cb6e451413f169ef7a8505627e13917029b62427f340a2dd53b8f1bae9fbd18e",
+  "scannerSourceSha256": "sha256:6b9db8798ad299a410f9df575bfa2ff5b5818d5c6b523ada61f149bab981d7ff",
+  "schema": "holoscript.jspace-s1-leakage-report.v0.1.0",
+  "selfHash": "sha256:6db642522cab1d97b4a6b2d65f2bfc82ad80fb39bc0ba3275119e4157586d74b",
+  "tokenWindow": 32
+}

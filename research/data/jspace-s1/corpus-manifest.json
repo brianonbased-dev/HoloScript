@@ -1,0 +1,91 @@
+{
+  "checkpointSha256": "sha256:abbda748c6bd6dec69bd72f25ca5ab28876fbbdbf195f218439ddbd0a10ff914",
+  "design": {
+    "families": 6,
+    "positionBins": 4,
+    "taskForms": 4,
+    "variants": 2
+  },
+  "generatorSourceSha256": "sha256:6b9db8798ad299a410f9df575bfa2ff5b5818d5c6b523ada61f149bab981d7ff",
+  "grammarPackSha256s": {
+    "a": "sha256:ad0fc0d8d1c5047e5222694e8415d5deba163847dcdc09f17923ff000cba1425",
+    "b": "sha256:aeac5231d4a2ef028181b1bc3847ac0c14cb3f5084c80e66b919b31207c76ac6",
+    "h": "sha256:d5c0ad91e8188f84bd4f306abd891ade00ecf6af48ce667814bfd9773c82b443"
+  },
+  "leakageReportSha256": "sha256:b1047bc4e4349155b66e0025b655166e9d917ae02290cb9395b73318ee0199b8",
+  "pilotArtifacts": {
+    "a": {
+      "rowCount": 24,
+      "sha256": "sha256:59b3fbcee9ca368ca0a86352487576caaf0691c2f84e8a7d35974b50b4ea67eb"
+    },
+    "b": {
+      "rowCount": 24,
+      "sha256": "sha256:4ee72465d01820051be7dfe09ff63c38bd6f27749ac92b78e1a577cd105d0d08"
+    },
+    "h": {
+      "rowCount": 24,
+      "sha256": "sha256:bf4933d1e0512a3395f752b7ce92845e855a18acf6eef4f9486644f4ab853afd"
+    }
+  },
+  "positionBins": [
+    [
+      0,
+      127
+    ],
+    [
+      128,
+      255
+    ],
+    [
+      256,
+      383
+    ],
+    [
+      384,
+      511
+    ]
+  ],
+  "positionRanges": [
+    [
+      96,
+      127
+    ],
+    [
+      160,
+      223
+    ],
+    [
+      288,
+      351
+    ],
+    [
+      416,
+      479
+    ]
+  ],
+  "preregistrationSha256": "sha256:33785896808ce0832db6bed3869dc9d4ce680197f19c61dc5386288ea6a52614",
+  "referenceManifestSha256": "sha256:c47f0304f92dbbc33fe16f84a8819294c4a41d49ebb088e062a62913cc9f1c2b",
+  "schema": "holoscript.jspace-s1-corpus-manifest.v0.1.0",
+  "seeds": {
+    "a": "sha256:966d55f25c4ed4d4f237bd53e56bc09d5467b23c628ef28ef6eb1b53fe9403be",
+    "b": "sha256:151581c4c72713fb699e509107120f6f79e02cc8e7988f5b9bf8cf1ecf7ba5d9",
+    "h": "sha256:7694438d9e3d5fb1030d6f38555d32b5cd7e4a7767584af4b864cb5693ba6526"
+  },
+  "selfHash": "sha256:08f05d696f6b2deeede721e1bbb49420b8d7eff8e12fab905527ff282528e886",
+  "semanticLabelsAccessed": false,
+  "splitArtifacts": {
+    "a": {
+      "rowCount": 192,
+      "sha256": "sha256:2452e8ff4bd98a682edf85a3d364d263e5145b0f97377a531c37fe091f6f1f35"
+    },
+    "b": {
+      "rowCount": 192,
+      "sha256": "sha256:8b09d3a1ab6bcc70bb77c11feca1f7823b91e1b8f869a02c3b30a986eefd86f5"
+    },
+    "h": {
+      "rowCount": 192,
+      "sha256": "sha256:14698029f1412bfe371e35d0295618b5ae8665aef379571b7ca28cbf26486c4a"
+    }
+  },
+  "tokenizerSha256": "sha256:f92af6207d211728a530e95e44c60b3c95f700ea9c755ab6bd8614fbdac623d4"
+}

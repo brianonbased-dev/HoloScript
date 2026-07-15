@@ -1,0 +1,12 @@
+{
+  "checkpointSha256": "sha256:abbda748c6bd6dec69bd72f25ca5ab28876fbbdbf195f218439ddbd0a10ff914",
+  "exposedPromptManifestSha256": "sha256:2885bc0ce110f361885d93817466988e79cdc07d7bb55c72cd97b70f50332e31",
+  "legacySequenceCount": 200,
+  "legacySequenceIndexSha256": "sha256:a9282def54d38ac348640cdf053493cbf473d3ad2a52e94402e86709216edeb1",
+  "referenceIndexSha256": "sha256:cb6e451413f169ef7a8505627e13917029b62427f340a2dd53b8f1bae9fbd18e",
+  "schema": "holoscript.jspace-s1-reference-manifest.v0.1.0",
+  "selfHash": "sha256:85ce56baf4fc36058e76492c887a5534075fc8b63f7f38e37615b5e59214c24f",
+  "tokenizerSha256": "sha256:f92af6207d211728a530e95e44c60b3c95f700ea9c755ab6bd8614fbdac623d4",
+  "trainBinSha256": "sha256:c9c99637eb320a4033f9a9d74a0a923c73ec7741add739d5ada098cd345c6dcc",
+  "validationBinSha256": "sha256:0961be610d51c9586729b0946a4f184aad0a35a4e8806b7093c27c93c1b3b06c"
+}
