@@ -21,6 +21,7 @@ from holoserve.model import GPT
 from holoserve.server import (
     _parse_workspace_path_bindings,
     _validate_workspace_path_bindings,
+    build_argument_parser,
 )
 from holoserve.workspace_probe import (
     JACOBIAN_LENS_V4_CONTROL_PROFILE_SHA256,
@@ -182,6 +183,48 @@ def test_workspace_fit_receipt_bindings_are_fail_closed():
         )
 
 
+def test_default_model_name_cli_is_backward_compatible_and_fail_closed():
+    parser = build_argument_parser()
+    default = parser.parse_args(["--ckpt", "model.pt", "--bins", "bins"])
+    assert default.model_name == "holorunner-s0"
+
+    selected = parser.parse_args(
+        ["--ckpt", "model.pt", "--bins", "bins", "--model-name", "HoloMind-s2"]
+    )
+    assert selected.model_name == "HoloMind-s2"
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(
+            ["--ckpt", "model.pt", "--bins", "bins", "--model-name", "HoloMind s2"]
+        )
+
+
+def test_additional_model_names_share_the_portable_and_duplicate_contract():
+    parsed = server_module._parse_additional_model_specs(
+        ["holorunner-s0=legacy.pt@legacy-bins"],
+        "HoloMind-s2",
+    )
+    assert parsed == [("holorunner-s0", "legacy.pt", "legacy-bins")]
+
+    with pytest.raises(SystemExit, match="invalid model name"):
+        server_module._parse_additional_model_specs(
+            ["Holo Mind=extra.pt@bins"],
+            "HoloMind-s2",
+        )
+
+    with pytest.raises(SystemExit, match="duplicate model name: 'HoloMind-s2'"):
+        server_module._parse_additional_model_specs(
+            ["HoloMind-s2=duplicate.pt@bins"],
+            "HoloMind-s2",
+        )
+
+    with pytest.raises(SystemExit, match="duplicate model name: 'extra-model'"):
+        server_module._parse_additional_model_specs(
+            ["extra-model=a.pt", "extra-model=b.pt"],
+            "HoloMind-s2",
+        )
+
+
 def test_holo_model_passes_bound_fit_receipt_to_lens_loader(tmp_path, monkeypatch):
     bins = tmp_path / "bins"
     _write_bins(bins)
@@ -283,6 +326,8 @@ def test_named_registry_routes_distinct_weights_and_model_bound_lens(tmp_path):
             str(checkpoint_a),
             "--bins",
             str(bins),
+            "--model-name",
+            "HoloMind-s2",
             "--model-spec",
             f"holorunner-s0-b={checkpoint_b}@{bins}",
             "--workspace-lens",
@@ -305,11 +350,11 @@ def test_named_registry_routes_distinct_weights_and_model_bound_lens(tmp_path):
 
     try:
         health = _wait_for_health(base_url, process)
-        assert health["models"] == ["holorunner-s0", "holorunner-s0-b"]
+        assert health["models"] == ["HoloMind-s2", "holorunner-s0-b"]
         artifact_registry = health["model_artifact_bindings"]
         assert artifact_registry["schema"] == server_module.MODEL_ARTIFACT_REGISTRY_SCHEMA
-        assert artifact_registry["defaultModel"] == "holorunner-s0"
-        assert sorted(artifact_registry["models"]) == ["holorunner-s0", "holorunner-s0-b"]
+        assert artifact_registry["defaultModel"] == "HoloMind-s2"
+        assert sorted(artifact_registry["models"]) == ["HoloMind-s2", "holorunner-s0-b"]
 
         bins_payload = {
             "schema": server_module.MODEL_BINS_BINDING_SCHEMA,
@@ -319,7 +364,7 @@ def test_named_registry_routes_distinct_weights_and_model_bound_lens(tmp_path):
             },
         }
         expected_checkpoints = {
-            "holorunner-s0": _sha256_file(checkpoint_a),
+            "HoloMind-s2": _sha256_file(checkpoint_a),
             "holorunner-s0-b": _sha256_file(checkpoint_b),
         }
         for model_name, checkpoint_sha256 in expected_checkpoints.items():
@@ -337,7 +382,7 @@ def test_named_registry_routes_distinct_weights_and_model_bound_lens(tmp_path):
         assert str(checkpoint_a) not in serialized_bindings
         assert str(checkpoint_b) not in serialized_bindings
         assert str(bins) not in serialized_bindings
-        assert health["model_workspace_probe"]["models"]["holorunner-s0"]["observe"] is False
+        assert health["model_workspace_probe"]["models"]["HoloMind-s2"]["observe"] is False
         bound_capability = health["model_workspace_probe"]["models"]["holorunner-s0-b"]
         assert bound_capability["observe"] is True
         assert bound_capability["estimator"] == "endpoint_self_jacobian_scalar_calibrated_v1"
@@ -346,12 +391,12 @@ def test_named_registry_routes_distinct_weights_and_model_bound_lens(tmp_path):
         status, models = _request_json(f"{base_url}/v1/models")
         assert status == 200
         assert [entry["id"] for entry in models["data"]] == [
-            "holorunner-s0",
+            "HoloMind-s2",
             "holorunner-s0-b",
         ]
 
         completions = {}
-        for model_name in ("holorunner-s0", "holorunner-s0-b"):
+        for model_name in ("HoloMind-s2", "holorunner-s0-b"):
             status, completion = _request_json(
                 f"{base_url}/v1/completions",
                 {
@@ -378,7 +423,7 @@ def test_named_registry_routes_distinct_weights_and_model_bound_lens(tmp_path):
                 "grammar": None,
             }
             completions[model_name] = completion["choices"][0]["text"]
-        assert completions == {"holorunner-s0": "A", "holorunner-s0-b": "B"}
+        assert completions == {"HoloMind-s2": "A", "holorunner-s0-b": "B"}
 
         status, unknown = _request_json(
             f"{base_url}/v1/completions",
@@ -428,7 +473,7 @@ def test_named_registry_routes_distinct_weights_and_model_bound_lens(tmp_path):
 
         status, unavailable = _request_json(
             f"{base_url}/v1/model-workspace/observe",
-            {"model": "holorunner-s0", "prompt": "x", "layers": [0], "k": 1},
+            {"model": "HoloMind-s2", "prompt": "x", "layers": [0], "k": 1},
         )
         assert status == 409
         assert unavailable["error"]["code"] == "workspace_lens_unavailable"

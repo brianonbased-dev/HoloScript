@@ -39,6 +39,7 @@ import argparse
 import hashlib
 import json
 import queue
+import re
 import threading
 import time
 import uuid
@@ -69,6 +70,7 @@ MODEL_NAME = "holorunner-s0"
 MODEL_ARTIFACT_REGISTRY_SCHEMA = "holoscript.holoserve-model-artifact-registry.v0.1.0"
 MODEL_ARTIFACT_BINDING_SCHEMA = "holoscript.holoserve-model-artifact-binding.v0.1.0"
 MODEL_BINS_BINDING_SCHEMA = "holoscript.holoserve-bins-binding.v0.1.0"
+MODEL_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 
 
 def _sha256_bytes(value):
@@ -94,6 +96,38 @@ def _is_sha256(value):
     except ValueError:
         return False
     return True
+
+
+def _parse_model_name(value):
+    """Accept one portable registry identifier for the default resident model."""
+    if not isinstance(value, str) or not MODEL_NAME_RE.fullmatch(value):
+        raise argparse.ArgumentTypeError(
+            "model name must be a portable 1-128 character identifier "
+            "([A-Za-z0-9][A-Za-z0-9._-]*)"
+        )
+    return value
+
+
+def _parse_additional_model_specs(specs, default_model_name):
+    """Parse additional resident models and reject ambiguous registry identities."""
+    parsed = []
+    names = {default_model_name}
+    for spec in specs:
+        if "=" not in spec:
+            raise SystemExit(f"--model-spec must be NAME=CKPT[@BINS], got: {spec!r}")
+        name, rest = spec.split("=", 1)
+        ckpt_path, _, bins_path = rest.partition("@")
+        try:
+            name = _parse_model_name(name.strip())
+        except argparse.ArgumentTypeError as error:
+            raise SystemExit(f"--model-spec invalid model name in {spec!r}: {error}") from error
+        if not ckpt_path:
+            raise SystemExit(f"--model-spec must be NAME=CKPT[@BINS], got: {spec!r}")
+        if name in names:
+            raise SystemExit(f"--model-spec duplicate model name: {name!r}")
+        names.add(name)
+        parsed.append((name, ckpt_path, bins_path))
+    return parsed
 
 
 def _model_artifact_binding_for_health(model):
@@ -975,7 +1009,7 @@ class Handler(BaseHTTPRequestHandler):
             abort.set()
 
 
-def main():
+def build_argument_parser():
     parser = argparse.ArgumentParser(description="Native sovereign inference server for HOLO models (PyTorch-direct, no llama.cpp).")
     # --ckpt and --bins are REQUIRED: the package makes no assumption about a
     # <root>/scripts/ position and does not bundle the ~582MB checkpoint. Runtime
@@ -985,6 +1019,13 @@ def main():
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8080)
     parser.add_argument("--device", default="auto", help="auto|cuda|cpu")
+    parser.add_argument(
+        "--model-name",
+        type=_parse_model_name,
+        default=MODEL_NAME,
+        help="portable name for the default resident model and every response binding "
+        f"(default: {MODEL_NAME})",
+    )
     parser.add_argument(
         "--model-spec",
         action="append",
@@ -1010,7 +1051,16 @@ def main():
         help="bind a receipt-bound Jacobian-lens fit receipt to a resident model. "
         "Repeatable; each binding requires a matching --workspace-lens binding.",
     )
+    return parser
+
+
+def main():
+    parser = build_argument_parser()
     args = parser.parse_args()
+
+    global MODEL, DEFAULT_MODEL_NAME
+    DEFAULT_MODEL_NAME = args.model_name
+    additional_models = _parse_additional_model_specs(args.model_spec, DEFAULT_MODEL_NAME)
 
     device = args.device
     if device == "auto":
@@ -1026,7 +1076,6 @@ def main():
     )
     _validate_workspace_path_bindings(workspace_lenses, workspace_fit_receipts)
 
-    global MODEL
     print(f"[holoserve] loading {args.ckpt} on {device} ...", flush=True)
     t0 = time.time()
     MODEL = HoloModel(
@@ -1046,16 +1095,7 @@ def main():
     )
     # P4b registry: additional named checkpoints (e.g. the P.041 s1/s2 disposition
     # pair) resident in the same process; requests select via the `model` param.
-    for spec in args.model_spec:
-        if "=" not in spec:
-            raise SystemExit(f"--model-spec must be NAME=CKPT[@BINS], got: {spec!r}")
-        name, rest = spec.split("=", 1)
-        name = name.strip()
-        ckpt_path, _, bins_path = rest.partition("@")
-        if not name or not ckpt_path:
-            raise SystemExit(f"--model-spec must be NAME=CKPT[@BINS], got: {spec!r}")
-        if name in MODELS:
-            raise SystemExit(f"--model-spec duplicate model name: {name!r}")
+    for name, ckpt_path, bins_path in additional_models:
         print(f"[holoserve] loading extra model '{name}' from {ckpt_path} ...", flush=True)
         t1 = time.time()
         MODELS[name] = HoloModel(

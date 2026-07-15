@@ -37,6 +37,21 @@ wheel (the S0 checkpoint is ~582 MB) — they are supplied at launch via require
 holoserve --ckpt /path/to/s0/ckpt/ckpt.pt --bins /path/to/s0/bins --port 8080
 ```
 
+The default resident name remains `holorunner-s0` for compatibility. A promoted
+native artifact can carry its model identity through discovery and every completion
+without renaming the runtime:
+
+```bash
+holoserve --model-name HoloMind-s2 \
+  --ckpt /path/to/holomind-s2/ckpt.pt --bins /path/to/receipt-matched/bins \
+  --port 8080
+```
+
+Model names are portable identifiers (`[A-Za-z0-9][A-Za-z0-9._-]*`, at most 128
+characters). The rule covers both `--model-name` and each `--model-spec` name;
+invalid or duplicate names (including a duplicate of the selected default) fail
+before any checkpoint is loaded.
+
 Serve multiple named checkpoints from one process (e.g. the s1/s2 disposition pair) with
 repeatable `--model-spec NAME=CKPT[@BINS]`; requests select via the OpenAI `model` param,
 and an unknown name returns 404 (the name→weights binding stays honest for eval receipts).
