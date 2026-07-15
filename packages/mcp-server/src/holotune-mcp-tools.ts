@@ -66,7 +66,7 @@ export const holotuneToolDefinitions: Tool[] = [
   {
     name: 'holotune_launch',
     description:
-      'Prepare or launch a HoloTune GPU training run. Safe-by-default: dryRun unless dryRun:false/apply:true; non-dry launch requires a founderGate receipt.',
+      'Prepare or launch a HoloTune GPU training run. Safe-by-default: dryRun unless dryRun:false/apply:true; routine non-dry launch requires signed-seat, free-first, and active-cap spend-admission receipts. FounderGate is exact-four pre-vetting only.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -77,10 +77,14 @@ export const holotuneToolDefinitions: Tool[] = [
         gpuBudgetUsd: { type: 'number' },
         dryRun: { type: 'boolean' },
         apply: { type: 'boolean' },
+        signedSeat: { type: 'object', description: 'Receipt binding a registered signing seat to this launch.' },
+        freeFirstReceipt: { type: 'object', description: 'Receipt proving the free/local path was exhausted.' },
+        spendAdmission: { type: 'object', description: 'Active-rail cap, ledger, timeout, teardown, and verifier admission receipt.' },
+        authorityEvidence: { type: 'object', description: 'Typed exact-four evidence. Omit or set all fields false for routine launch.' },
         founderGate: {
           type: 'object',
           description:
-            'Founder-gate receipt summary. Accepts manifestHash plus approved:true/valid:true.',
+            'Exact-four pre-vetting manifest summary only. It is not required for routine launch and does not replace a verifier-bound Joseph decision.',
         },
       },
     },
@@ -104,7 +108,7 @@ export const holotuneToolDefinitions: Tool[] = [
   {
     name: 'holotune_promote',
     description:
-      'Prepare or apply a versioned adapter promotion. Non-dry promote-to-serve requires a founderGate receipt and returns a rollback pointer.',
+      'Prepare or apply a versioned adapter promotion. Routine non-dry promotion requires eval, promotion-gate, registry-admission, artifact, and rollback controls. FounderGate is exact-four pre-vetting only.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -114,9 +118,12 @@ export const holotuneToolDefinitions: Tool[] = [
         ggufUri: { type: 'string' },
         previousVersion: { type: 'string' },
         evalReceipt: { type: 'object' },
+        promotionGateReceipt: { type: 'object' },
+        registryAdmission: { type: 'object' },
         dryRun: { type: 'boolean' },
         apply: { type: 'boolean' },
-        founderGate: { type: 'object' },
+        authorityEvidence: { type: 'object', description: 'Typed exact-four evidence. Omit or set all fields false for routine promotion.' },
+        founderGate: { type: 'object', description: 'Exact-four pre-vetting manifest only; never routine promotion authority.' },
       },
     },
   },
@@ -213,7 +220,7 @@ function founderGateSummary(args: JsonRecord): JsonRecord {
     return {
       present: false,
       valid: false,
-      reason: 'missing founderGate receipt',
+      reason: 'no exact-four pre-vetting manifest supplied',
     };
   }
 
@@ -225,15 +232,48 @@ function founderGateSummary(args: JsonRecord): JsonRecord {
         : typeof gate.receiptHash === 'string'
           ? gate.receiptHash
           : '';
-  const approved = gate.approved === true || gate.valid === true || gate.status === 'approved';
-  const valid = approved && manifestHash.length > 0;
+  const vetted = gate.valid === true || gate.status === 'vetted';
+  const valid = vetted && manifestHash.length > 0;
   return {
     present: true,
     valid,
     manifestHash: manifestHash || null,
     reviewer: typeof gate.reviewer === 'string' ? gate.reviewer : null,
-    reason: valid ? 'founder gate receipt present' : 'founderGate needs manifestHash and approved:true',
+    reason: valid ? 'exact-four pre-vetting manifest present' : 'founderGate needs manifestHash and valid:true; it is not an approval receipt',
   };
+}
+
+function controlReceiptSummary(args: JsonRecord, key: string): JsonRecord {
+  const receipt = recordArg(args, key);
+  if (!receipt) return { present: false, valid: false, reason: `missing ${key}` };
+  const nested = receipt.receipt && typeof receipt.receipt === 'object' && !Array.isArray(receipt.receipt)
+    ? receipt.receipt as JsonRecord
+    : null;
+  const receiptHash = [receipt.receiptHash, receipt.manifestHash, receipt.hash, nested?.receiptHash]
+    .find((value): value is string => typeof value === 'string' && value.length > 0) ?? '';
+  const status = typeof receipt.status === 'string' ? receipt.status.toLowerCase() : '';
+  const valid = receiptHash.length > 0 && (
+    receipt.valid === true || receipt.passed === true || receipt.approved === true ||
+    status === 'pass' || status === 'passed' || status === 'approved' || status === 'admitted'
+  );
+  return {
+    present: true,
+    valid,
+    receiptHash: receiptHash || null,
+    reason: valid ? `${key} valid` : `${key} needs a bound receipt hash and PASS/admitted verdict`,
+  };
+}
+
+function exactFourSummary(args: JsonRecord): JsonRecord {
+  const evidence = recordArg(args, 'authorityEvidence') ?? recordArg(args, 'authority_evidence') ?? {};
+  const classes = new Set<string>();
+  if (evidence.exceedsActiveRailCap === true || evidence.exceeds_active_rail_cap === true ||
+      evidence.touchesTreasuryOrCustody === true || evidence.touches_treasury_or_custody === true ||
+      evidence.newWalletOrMintAuthorityMutation === true || evidence.new_wallet_or_mint_authority_mutation === true) classes.add('spend');
+  if (evidence.requiresJosephBodySignaturePresence === true || evidence.requires_joseph_body_signature_presence === true) classes.add('physical');
+  if (evidence.publicCommitmentUnderJosephNameFaceVoice === true || evidence.public_commitment_under_joseph_name_face_voice === true) classes.add('public');
+  if (evidence.governanceTierMutation === true || evidence.governance_tier_mutation === true) classes.add('governance');
+  return { required: classes.size > 0, classes: [...classes] };
 }
 
 function isDryRun(args: JsonRecord): boolean {
@@ -262,8 +302,11 @@ function status(args: JsonRecord): JsonRecord {
     stateRootHint: '~/.ai-ecosystem/holotune',
     governance: {
       safeByDefault: true,
-      gpuSpendRequiresFounderGate: true,
-      promoteToServeRequiresFounderGate: true,
+      routineGpuSpendRequiresFounderGate: false,
+      routinePromoteToServeRequiresFounderGate: false,
+      exactFourRequiresVerifierBoundJosephDecision: true,
+      routineLaunchControls: ['signedSeat', 'freeFirstReceipt', 'spendAdmission'],
+      routinePromotionControls: ['evalReceipt', 'promotionGateReceipt', 'registryAdmission'],
       receipts: 'immutable operation receipts with sha256 hashes',
       rollback: 'versioned adapter registry keeps previousVersion for instant rollback',
     },
@@ -300,13 +343,30 @@ function launch(args: JsonRecord): JsonRecord {
   const identity = stringArg(args, 'identity', 'unknown-agent');
   const dryRun = isDryRun(args);
   const gate = founderGateSummary(args);
-  if (!dryRun && gate.valid !== true) {
+  const authority = exactFourSummary(args);
+  if (!dryRun && authority.required === true) {
     return {
       ok: false,
-      error: 'founder-gate-required',
+      error: 'exact-four-decision-verifier-required',
       founderGateRequired: true,
       founderGate: gate,
-      message: 'Non-dry HoloTune GPU launch is blocked until a valid founderGate receipt is supplied.',
+      authority,
+      message: 'Exact-four launch context needs a verifier-bound Joseph decision; a pre-vetting manifest alone cannot authorize spend.',
+    };
+  }
+  const launchControls = {
+    signedSeat: controlReceiptSummary(args, 'signedSeat'),
+    freeFirstReceipt: controlReceiptSummary(args, 'freeFirstReceipt'),
+    spendAdmission: controlReceiptSummary(args, 'spendAdmission'),
+  };
+  if (!dryRun && Object.values(launchControls).some((control) => control.valid !== true)) {
+    return {
+      ok: false,
+      error: 'launch-controls-required',
+      founderGateRequired: false,
+      launchControls,
+      authority,
+      message: 'Routine non-dry HoloTune launch requires signed-seat, free-first, and active-cap spend-admission receipts.',
     };
   }
 
@@ -317,6 +377,8 @@ function launch(args: JsonRecord): JsonRecord {
     corpusUri: stringArg(args, 'corpusUri') || null,
     recipe: stringArg(args, 'recipe', 'datasets/lora-recipe.py'),
     gpuBudgetUsd: numberArg(args, 'gpuBudgetUsd', 0),
+    authority,
+    launchControls,
     founderGate: gate,
   };
 
@@ -373,13 +435,15 @@ function promote(args: JsonRecord): JsonRecord {
   const ggufUri = stringArg(args, 'ggufUri');
   const version = stringArg(args, 'version', stableVersion(identity));
   const gate = founderGateSummary(args);
-  if (!dryRun && gate.valid !== true) {
+  const authority = exactFourSummary(args);
+  if (!dryRun && authority.required === true) {
     return {
       ok: false,
-      error: 'founder-gate-required',
+      error: 'exact-four-decision-verifier-required',
       founderGateRequired: true,
       founderGate: gate,
-      message: 'Promote-to-serve is blocked until a valid founderGate receipt is supplied.',
+      authority,
+      message: 'Exact-four promotion context needs a verifier-bound Joseph decision; a pre-vetting manifest alone cannot authorize registry mutation.',
     };
   }
   if (!dryRun && !adapterUri) {
@@ -387,6 +451,21 @@ function promote(args: JsonRecord): JsonRecord {
       ok: false,
       error: 'adapter-uri-required',
       message: 'Non-dry promotion requires adapterUri.',
+    };
+  }
+  const promotionControls = {
+    evalReceipt: controlReceiptSummary(args, 'evalReceipt'),
+    promotionGateReceipt: controlReceiptSummary(args, 'promotionGateReceipt'),
+    registryAdmission: controlReceiptSummary(args, 'registryAdmission'),
+  };
+  if (!dryRun && Object.values(promotionControls).some((control) => control.valid !== true)) {
+    return {
+      ok: false,
+      error: 'promotion-controls-required',
+      founderGateRequired: false,
+      promotionControls,
+      authority,
+      message: 'Routine non-dry promotion requires eval, promotion-gate, and registry-admission receipts.',
     };
   }
 
@@ -399,6 +478,10 @@ function promote(args: JsonRecord): JsonRecord {
     previousVersion: stringArg(args, 'previousVersion') || null,
     downloadable: ggufUri.length > 0,
     evalReceipt: recordArg(args, 'evalReceipt'),
+    promotionGateReceipt: recordArg(args, 'promotionGateReceipt'),
+    registryAdmission: recordArg(args, 'registryAdmission'),
+    promotionControls,
+    authority,
     founderGate: gate,
   };
 

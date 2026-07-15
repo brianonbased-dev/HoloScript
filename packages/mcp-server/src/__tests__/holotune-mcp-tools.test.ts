@@ -31,7 +31,8 @@ describe('holotune MCP tools', () => {
     })) as Record<string, unknown>;
     expect(result.ok).toBe(true);
     expect(result.mcpTools).toEqual(TOOL_NAMES);
-    expect((result.governance as Record<string, unknown>).gpuSpendRequiresFounderGate).toBe(true);
+    expect((result.governance as Record<string, unknown>).routineGpuSpendRequiresFounderGate).toBe(false);
+    expect((result.governance as Record<string, unknown>).exactFourRequiresVerifierBoundJosephDecision).toBe(true);
   });
 
   it('curates inline traces into SFT rows and hashes the corpus', async () => {
@@ -50,7 +51,7 @@ describe('holotune MCP tools', () => {
     expect(result.jsonl).toContain('"target":"t1"');
   });
 
-  it('keeps GPU launch dry-run by default and blocks non-dry launch without founder gate', async () => {
+  it('keeps GPU launch dry-run by default and blocks non-dry launch without routine controls', async () => {
     const preview = (await handleHoloTuneTool('holotune_launch', {
       identity: 'agent-a',
       corpusHash: 'sha256:abc',
@@ -65,19 +66,34 @@ describe('holotune MCP tools', () => {
       apply: true,
     })) as Record<string, unknown>;
     expect(blocked.ok).toBe(false);
-    expect(blocked.error).toBe('founder-gate-required');
+    expect(blocked.error).toBe('launch-controls-required');
+    expect(blocked.founderGateRequired).toBe(false);
   });
 
-  it('allows non-dry launch with a valid founder-gate receipt summary', async () => {
+  it('allows routine non-dry launch with signed-seat, free-first, and spend-admission receipts', async () => {
+    const pass = (id: string) => ({ receiptHash: `sha256:${id}`, status: 'pass' });
     const result = (await handleHoloTuneTool('holotune_launch', {
       identity: 'agent-a',
       corpusHash: 'sha256:abc',
       dryRun: false,
-      founderGate: { manifestHash: 'sha256:gate', approved: true, reviewer: 'grok1' },
+      signedSeat: pass('seat'),
+      freeFirstReceipt: pass('free'),
+      spendAdmission: pass('spend'),
     })) as Record<string, unknown>;
     expect(result.ok).toBe(true);
     expect(result.spendIntent).toBe(true);
     expect((result.receipt as Record<string, unknown>).receiptHash).toMatch(/^sha256:/);
+  });
+
+  it('keeps exact-four launch blocked without a verifier-bound Joseph decision', async () => {
+    const result = (await handleHoloTuneTool('holotune_launch', {
+      identity: 'agent-a',
+      apply: true,
+      authorityEvidence: { exceedsActiveRailCap: true },
+      founderGate: { manifestHash: 'sha256:gate', valid: true },
+    })) as Record<string, unknown>;
+    expect(result.ok).toBe(false);
+    expect(result.error).toBe('exact-four-decision-verifier-required');
   });
 
   it('evaluates tuned metrics against a baseline', async () => {
@@ -94,15 +110,16 @@ describe('holotune MCP tools', () => {
     expect(result.improvedCount).toBe(1);
   });
 
-  it('blocks non-dry promote without founder gate and returns rollback metadata when gated', async () => {
+  it('blocks non-dry promote without routine controls and returns rollback metadata when admitted', async () => {
     const blocked = (await handleHoloTuneTool('holotune_promote', {
       identity: 'agent-a',
       adapterUri: 'file:///adapter',
       apply: true,
     })) as Record<string, unknown>;
     expect(blocked.ok).toBe(false);
-    expect(blocked.error).toBe('founder-gate-required');
+    expect(blocked.error).toBe('promotion-controls-required');
 
+    const pass = (id: string) => ({ receiptHash: `sha256:${id}`, passed: true });
     const promoted = (await handleHoloTuneTool('holotune_promote', {
       identity: 'agent-a',
       version: 'v2',
@@ -110,12 +127,26 @@ describe('holotune MCP tools', () => {
       adapterUri: 'file:///adapter',
       ggufUri: 'file:///model.gguf',
       dryRun: false,
-      founderGate: { manifestHash: 'sha256:gate', approved: true },
+      evalReceipt: pass('eval'),
+      promotionGateReceipt: pass('promotion'),
+      registryAdmission: pass('registry'),
     })) as Record<string, unknown>;
     expect(promoted.ok).toBe(true);
     expect(promoted.version).toBe('v2');
     expect(promoted.rollbackPointer).toBe('v1');
     expect(promoted.downloadable).toBe(true);
+  });
+
+  it('keeps exact-four promotion blocked even when pre-vetting evidence is present', async () => {
+    const result = (await handleHoloTuneTool('holotune_promote', {
+      identity: 'agent-a',
+      adapterUri: 'file:///adapter',
+      apply: true,
+      authorityEvidence: { governanceTierMutation: true },
+      founderGate: { manifestHash: 'sha256:gate', valid: true },
+    })) as Record<string, unknown>;
+    expect(result.ok).toBe(false);
+    expect(result.error).toBe('exact-four-decision-verifier-required');
   });
 
   it('builds serve and download plans without claiming missing GGUF files exist', async () => {
