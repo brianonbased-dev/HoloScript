@@ -16,8 +16,19 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
+from holoserve import server as server_module
 from holoserve.model import GPT
-from holoserve.workspace_probe import fit_jacobian_lens_v1, save_jacobian_lens_artifact
+from holoserve.server import (
+    _parse_workspace_path_bindings,
+    _validate_workspace_path_bindings,
+)
+from holoserve.workspace_probe import (
+    JACOBIAN_LENS_V4_CONTROL_PROFILE_SHA256,
+    fit_endpoint_scalar_calibrated_jacobian_lens_v1,
+    jacobian_lens_v4_fit_receipt_fields,
+    save_jacobian_lens_artifact,
+    sha256_json,
+)
 
 
 VOCAB_SIZE = 262
@@ -30,6 +41,20 @@ def _sha256_file(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return f"sha256:{digest.hexdigest()}"
+
+
+def _write_v4_fit_receipt(artifact: dict, lens_path: Path, receipt_path: Path) -> None:
+    receipt = {
+        "schema": "holoscript.jspace-s4-fit-receipt.v0.1.0",
+        **jacobian_lens_v4_fit_receipt_fields(
+            artifact,
+            lens_sha256=_sha256_file(lens_path),
+        ),
+        "semanticLabelsAccessed": False,
+        "selfHash": None,
+    }
+    receipt["selfHash"] = sha256_json(receipt)
+    receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
 
 
 def _write_bins(path: Path) -> Path:
@@ -122,6 +147,63 @@ def _wait_for_health(base_url: str, process: subprocess.Popen[str]) -> dict:
     raise AssertionError("HoloServe did not become healthy within 20 seconds")
 
 
+def test_workspace_fit_receipt_bindings_are_fail_closed():
+    with pytest.raises(SystemExit, match="must be MODEL=PATH"):
+        _parse_workspace_path_bindings(["malformed"], "--workspace-fit-receipt")
+
+    with pytest.raises(SystemExit, match="invalid or duplicate"):
+        _parse_workspace_path_bindings(
+            ["holorunner-s0=first.json", "holorunner-s0=second.json"],
+            "--workspace-fit-receipt",
+        )
+
+    with pytest.raises(SystemExit, match="matching --workspace-lens"):
+        _validate_workspace_path_bindings(
+            {},
+            {"holorunner-s0": "fit-receipt.json"},
+        )
+
+    with pytest.raises(SystemExit, match="models that are not resident"):
+        _validate_workspace_path_bindings(
+            {"unknown-model": "lens.pt"},
+            {"unknown-model": "fit-receipt.json"},
+            {"holorunner-s0": object()},
+        )
+
+
+def test_holo_model_passes_bound_fit_receipt_to_lens_loader(tmp_path, monkeypatch):
+    bins = tmp_path / "bins"
+    _write_bins(bins)
+    checkpoint = tmp_path / "model.pt"
+    _write_checkpoint(checkpoint, _engineered_model(ord("A")))
+    lens_path = tmp_path / "lens.pt"
+    fit_receipt_path = tmp_path / "fit-receipt.json"
+    captured = {}
+    loaded_lens = object()
+
+    def fake_load_lens(path, **kwargs):
+        captured["path"] = path
+        captured.update(kwargs)
+        return loaded_lens
+
+    monkeypatch.setattr(server_module, "load_jacobian_lens_artifact", fake_load_lens)
+    monkeypatch.setattr(server_module, "ModelWorkspaceProbe", lambda *args: args)
+
+    resident = server_module.HoloModel(
+        checkpoint,
+        bins,
+        "cpu",
+        "receipt-bound-model",
+        lens_path,
+        fit_receipt_path,
+    )
+
+    assert resident.workspace_fit_receipt_path == fit_receipt_path
+    assert captured["path"] == lens_path
+    assert captured["fit_receipt_path"] == fit_receipt_path
+    assert resident.workspace_probe[1] is loaded_lens
+
+
 def test_named_registry_routes_distinct_weights_and_model_bound_lens(tmp_path):
     bins = tmp_path / "bins"
     tokenizer_path = _write_bins(bins)
@@ -132,18 +214,24 @@ def test_named_registry_routes_distinct_weights_and_model_bound_lens(tmp_path):
     _write_checkpoint(checkpoint_a, model_a)
     _write_checkpoint(checkpoint_b, model_b)
 
-    lens = fit_jacobian_lens_v1(
+    lens = fit_endpoint_scalar_calibrated_jacobian_lens_v1(
         model_b,
-        [torch.tensor([[PROMPT_TOKEN_ID, 6 + ord("B"), PROMPT_TOKEN_ID]])],
+        [
+            torch.tensor([[PROMPT_TOKEN_ID]]),
+            torch.tensor([[6 + ord("y")]]),
+        ],
         layers=[0],
         checkpoint_sha256=_sha256_file(checkpoint_b),
         tokenizer_sha256=_sha256_file(tokenizer_path),
+        control_profile_sha256=JACOBIAN_LENS_V4_CONTROL_PROFILE_SHA256,
         dim_batch=2,
-        max_seq_len=3,
-        skip_first=0,
+        max_seq_len=8,
+        position_bins=[(0, 7)],
     )
     lens_path = tmp_path / "b-lens.pt"
     save_jacobian_lens_artifact(lens, lens_path)
+    fit_receipt_path = tmp_path / "b-fit-receipt.json"
+    _write_v4_fit_receipt(lens, lens_path, fit_receipt_path)
 
     port = _free_port()
     base_url = f"http://127.0.0.1:{port}"
@@ -165,6 +253,8 @@ def test_named_registry_routes_distinct_weights_and_model_bound_lens(tmp_path):
             f"holorunner-s0-b={checkpoint_b}@{bins}",
             "--workspace-lens",
             f"holorunner-s0-b={lens_path}",
+            "--workspace-fit-receipt",
+            f"holorunner-s0-b={fit_receipt_path}",
             "--device",
             "cpu",
             "--host",
@@ -185,8 +275,8 @@ def test_named_registry_routes_distinct_weights_and_model_bound_lens(tmp_path):
         assert health["model_workspace_probe"]["models"]["holorunner-s0"]["observe"] is False
         bound_capability = health["model_workspace_probe"]["models"]["holorunner-s0-b"]
         assert bound_capability["observe"] is True
-        assert bound_capability["estimator"] == "corpus_position_average_v1"
-        assert bound_capability["paperParity"] is True
+        assert bound_capability["estimator"] == "endpoint_self_jacobian_scalar_calibrated_v1"
+        assert bound_capability["paperParity"] is False
 
         status, models = _request_json(f"{base_url}/v1/models")
         assert status == 200
@@ -237,8 +327,8 @@ def test_named_registry_routes_distinct_weights_and_model_bound_lens(tmp_path):
             "checkpointSha256": _sha256_file(checkpoint_b),
             "architecture": "holorunner-s0-gpt",
         }
-        assert receipt["lens"]["estimator"] == "corpus_position_average_v1"
-        assert receipt["lens"]["paperParity"] is True
+        assert receipt["lens"]["estimator"] == "endpoint_self_jacobian_scalar_calibrated_v1"
+        assert receipt["lens"]["paperParity"] is False
         assert receipt["input"]["originalTokenCount"] == receipt["input"]["tokenCount"]
         assert receipt["input"]["truncated"] is False
         assert receipt["input"]["truncationPolicy"] == "none"

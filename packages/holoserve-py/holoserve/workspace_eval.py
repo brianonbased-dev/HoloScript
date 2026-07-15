@@ -17,6 +17,7 @@ import math
 import os
 from pathlib import Path
 import random
+import re
 import subprocess
 import tempfile
 from typing import Any, Iterable, Sequence
@@ -27,8 +28,10 @@ import numpy as np
 from holoserve.workspace_probe import (
     JACOBIAN_LENS_ESTIMATOR_V2,
     JACOBIAN_LENS_ESTIMATOR_V3,
+    JACOBIAN_LENS_ESTIMATOR_V4,
     JACOBIAN_LENS_V2_TRANSPORT_PROFILE,
     JACOBIAN_LENS_V3_TRANSPORT_PROFILE,
+    JACOBIAN_LENS_V4_TRANSPORT_PROFILE,
     MODEL_WORKSPACE_CAPABILITY_SCHEMA,
     MODEL_WORKSPACE_CONTROL_PROFILE,
     MODEL_WORKSPACE_MEASUREMENT_PROFILE,
@@ -88,9 +91,23 @@ FORBIDDEN_RECEIPT_FIELDS = {
     "truth",
     "vector",
 }
+ALLOWED_PUBLIC_TARGET_MEASUREMENT_FIELDS = {
+    "anchortargetjensenshannondivergencenatse8",
+    "controltargetjensenshannondivergencenatse8",
+    "mappedtargetjensenshannondivergencenatse8",
+    "targetentropynatse8",
+    "targetjensenshannondivergencenatse8",
+    "targetmaxprobabilitye8",
+    "targettoptokenid",
+}
+PRIVATE_SCALAR_SHORT_NAMES = {"b", "c", "ci", "jbar", "m", "s", "si", "xbar", "ybar"}
+PUBLIC_SCALAR_IDENTITY_PARENT = re.compile(
+    r"^observation\.layers\[\d+\]\.transportControlMetrics$"
+)
 ENDPOINT_ESTIMATOR_TRANSPORT_PROFILES = {
     JACOBIAN_LENS_ESTIMATOR_V2: JACOBIAN_LENS_V2_TRANSPORT_PROFILE,
     JACOBIAN_LENS_ESTIMATOR_V3: JACOBIAN_LENS_V3_TRANSPORT_PROFILE,
+    JACOBIAN_LENS_ESTIMATOR_V4: JACOBIAN_LENS_V4_TRANSPORT_PROFILE,
 }
 GAP_PRIME = (
     " If the scene is underdetermined, or the obligations conflict with no precedence, or the"
@@ -217,6 +234,50 @@ def _find_forbidden_receipt_fields(value: Any, path: str = "") -> list[str]:
         if key.casefold() in FORBIDDEN_RECEIPT_FIELDS:
             found.append(child_path)
         found.extend(_find_forbidden_receipt_fields(child, child_path))
+    return found
+
+
+def _find_private_scalar_fields(value: Any, path: str = "") -> list[str]:
+    if isinstance(value, list):
+        return [
+            found
+            for index, child in enumerate(value)
+            for found in _find_private_scalar_fields(child, f"{path}[{index}]")
+        ]
+    if not isinstance(value, dict):
+        return []
+    found = []
+    for key, child in value.items():
+        child_path = f"{path}.{key}" if path else key
+        normalized_key = "".join(character for character in key.casefold() if character.isalnum())
+        public_scalar_identity_control = (
+            normalized_key == "scalaridentity"
+            and PUBLIC_SCALAR_IDENTITY_PARENT.fullmatch(path) is not None
+        )
+        private_artifact_shape = (
+            normalized_key in PRIVATE_SCALAR_SHORT_NAMES
+            or "alpha" in normalized_key
+            or "beta" in normalized_key
+            or ("scalar" in normalized_key and not public_scalar_identity_control)
+            or "statistic" in normalized_key
+            or normalized_key in {"stat", "stats"}
+            or normalized_key.endswith("stats")
+            or "matri" in normalized_key
+            or "bias" in normalized_key
+            or "source" in normalized_key
+            or "mean" in normalized_key
+            or "ridge" in normalized_key
+            or "clipbound" in normalized_key
+            or "sample" in normalized_key
+            or "sequence" in normalized_key
+            or (
+                "target" in normalized_key
+                and normalized_key not in ALLOWED_PUBLIC_TARGET_MEASUREMENT_FIELDS
+            )
+        )
+        if private_artifact_shape:
+            found.append(child_path)
+        found.extend(_find_private_scalar_fields(child, child_path))
     return found
 
 
@@ -833,6 +894,23 @@ def _validate_capability(
     capabilities = capability_root.get("models") if isinstance(capability_root, dict) else None
     capability = capabilities.get(binding["modelId"]) if isinstance(capabilities, dict) else None
     advertised_layers = capability.get("layers") if isinstance(capability, dict) else None
+    estimator = capability.get("estimator") if isinstance(capability, dict) else None
+    expected_capability_fields = {
+        "schema",
+        "observe",
+        "intervention",
+        "method",
+        "estimator",
+        "paperParity",
+        "measurementProfile",
+        "controlProfile",
+        "layers",
+        "lensSha256",
+    }
+    if estimator == "corpus_position_average_v1":
+        expected_capability_fields.update({"parityScope", "paperExperimentParity"})
+    elif estimator in ENDPOINT_ESTIMATOR_TRANSPORT_PROFILES:
+        expected_capability_fields.update({"transportProfile", "positionPolicy", "positionBins"})
     if (
         health.get("backend") != "pytorch-holo"
         or not isinstance(capability_root, dict)
@@ -840,11 +918,13 @@ def _validate_capability(
         or capability_root.get("observe") is not True
         or capability_root.get("intervention") is not False
         or not isinstance(capability, dict)
+        or set(capability) != expected_capability_fields
         or capability.get("schema") != MODEL_WORKSPACE_CAPABILITY_SCHEMA
         or capability.get("observe") is not True
         or capability.get("intervention") is not False
         or capability.get("method") != "jacobian_lens"
         or not _supported_estimator(capability)
+        or bool(_find_private_scalar_fields(capability))
         or (
             capability.get("estimator") in ENDPOINT_ESTIMATOR_TRANSPORT_PROFILES
             and (
@@ -878,7 +958,27 @@ def _validate_receipt(
     allow_truncated: bool,
     capability: dict[str, Any],
 ) -> dict[str, Any]:
+    expected_receipt_fields = {
+        "schema",
+        "kind",
+        "mode",
+        "createdAt",
+        "requestId",
+        "model",
+        "tokenizer",
+        "lens",
+        "input",
+        "observation",
+        "observationSha256",
+        "runtime",
+        "integrity",
+        "safety",
+        "limitations",
+        "receiptHash",
+    }
     if (
+        set(receipt) != expected_receipt_fields
+        or
         receipt.get("schema") != MODEL_WORKSPACE_RECEIPT_SCHEMA
         or receipt.get("kind") != "ModelWorkspaceReceipt"
         or receipt.get("mode") != "observe"
@@ -895,6 +995,7 @@ def _validate_receipt(
     integrity = receipt.get("integrity")
     if (
         not isinstance(integrity, dict)
+        or set(integrity) != {"algorithm", "canonicalization"}
         or integrity.get("algorithm") != "sha256"
         or integrity.get("canonicalization") != MODEL_WORKSPACE_HASH_CANONICALIZATION
         or receipt["observationSha256"] != sha256_json(observation)
@@ -905,17 +1006,36 @@ def _validate_receipt(
     tokenizer = receipt.get("tokenizer")
     lens = receipt.get("lens")
     input_meta = receipt.get("input")
+    expected_lens_fields = {
+        "method",
+        "estimator",
+        "paperParity",
+        "implementationVersion",
+        "corpusSha256",
+        "lensSha256",
+        "positionPolicy",
+        "jacobianCount",
+        "k",
+    }
+    if isinstance(lens, dict):
+        if lens.get("estimator") == "corpus_position_average_v1":
+            expected_lens_fields.update({"parityScope", "paperExperimentParity"})
+        elif lens.get("estimator") in ENDPOINT_ESTIMATOR_TRANSPORT_PROFILES:
+            expected_lens_fields.update({"transportProfile", "positionBins"})
     if (
         not isinstance(model, dict)
+        or set(model) != {"requestedId", "servedId", "checkpointSha256", "architecture"}
         or model.get("requestedId") != binding["modelId"]
         or model.get("servedId") != binding["modelId"]
         or model.get("checkpointSha256") != checkpoint_sha256
         or not isinstance(model.get("architecture"), str)
         or not model["architecture"]
         or not isinstance(tokenizer, dict)
+        or set(tokenizer) != {"sha256", "vocabSize"}
         or tokenizer.get("sha256") != tokenizer_sha256
         or not _is_int(tokenizer.get("vocabSize"), minimum=1)
         or not isinstance(lens, dict)
+        or set(lens) != expected_lens_fields
         or lens.get("method") != "jacobian_lens"
         or not _supported_estimator(lens)
         or lens.get("estimator") != capability.get("estimator")
@@ -933,6 +1053,19 @@ def _validate_receipt(
         or lens.get("k") != k
         or not _is_int(k, minimum=1, maximum=min(MAX_WORKSPACE_TOP_K, tokenizer["vocabSize"]))
         or not isinstance(input_meta, dict)
+        or set(input_meta)
+        != {
+            "promptSha256",
+            "tokenCount",
+            "originalTokenCount",
+            "truncated",
+            "truncationPolicy",
+            "layers",
+            "requestedPositions",
+            "positions",
+            "measurementProfile",
+            "seed",
+        }
     ):
         raise ValueError("workspace receipt model, tokenizer, or lens provenance is invalid")
 
@@ -974,6 +1107,8 @@ def _validate_receipt(
     runtime = receipt.get("runtime")
     if (
         not isinstance(runtime, dict)
+        or set(runtime)
+        != {"backend", "device", "torchVersion", "pythonVersion", "holoserveVersion"}
         or runtime.get("backend") != "pytorch-holo"
         or any(
             not isinstance(runtime.get(field), str) or not runtime[field]
@@ -1001,6 +1136,12 @@ def _validate_receipt(
     forbidden = _find_forbidden_receipt_fields(receipt)
     if forbidden:
         raise ValueError(f"workspace receipt contains forbidden fields: {forbidden}")
+    private_scalar_fields = _find_private_scalar_fields(receipt)
+    if private_scalar_fields:
+        raise ValueError(
+            "workspace receipt contains private scalar artifact fields: "
+            f"{private_scalar_fields}"
+        )
 
     coordinate_rows = observation.get("layers")
     summary = observation.get("summary")
@@ -1008,6 +1149,9 @@ def _validate_receipt(
         (layer, position) for layer in input_layers for position in actual_positions
     }
     if (
+        set(observation)
+        != {"status", "measurementProfile", "controlProfile", "layerBand", "layers", "summary"}
+        or
         observation.get("status") != "observed"
         or observation.get("measurementProfile") != MODEL_WORKSPACE_MEASUREMENT_PROFILE
         or observation.get("controlProfile") != MODEL_WORKSPACE_CONTROL_PROFILE
@@ -1016,6 +1160,7 @@ def _validate_receipt(
         or len(coordinate_rows) != len(expected_coordinates)
         or len(coordinate_rows) > 1024
         or not isinstance(summary, dict)
+        or set(summary) != {"scoreProfile", "coordinateCount", "scoreE8"}
     ):
         raise ValueError("workspace observation coordinates or summary are missing")
     metrics = []
@@ -1031,9 +1176,24 @@ def _validate_receipt(
         controls = coordinate.get("controlConcepts")
         metric = coordinate.get("distributionMetrics")
         anchor_control = coordinate.get("anchorControlMetrics")
+        transport_controls = coordinate.get("transportControlMetrics")
+        expected_coordinate_fields = {
+            "layer",
+            "position",
+            "concepts",
+            "controlConcepts",
+            "tailProbabilityMassE8",
+            "controlTailProbabilityMassE8",
+            "distributionMetrics",
+        }
+        if lens.get("estimator") in ENDPOINT_ESTIMATOR_TRANSPORT_PROFILES:
+            expected_coordinate_fields.add("anchorControlMetrics")
+        if lens.get("estimator") == JACOBIAN_LENS_ESTIMATOR_V4:
+            expected_coordinate_fields.add("transportControlMetrics")
         if (
             coordinate_id not in expected_coordinates
             or coordinate_id in seen_coordinates
+            or set(coordinate) != expected_coordinate_fields
             or not isinstance(concepts, list)
             or len(concepts) != k
             or not isinstance(controls, list)
@@ -1050,6 +1210,7 @@ def _validate_receipt(
             for concept in sparse:
                 if (
                     not isinstance(concept, dict)
+                    or set(concept) != {"tokenId", "token", "scoreE8", "probabilityE8"}
                     or not _is_int(
                         concept.get("tokenId"), minimum=0, maximum=tokenizer["vocabSize"] - 1
                     )
@@ -1082,7 +1243,20 @@ def _validate_receipt(
             metric.get("mappedEntropyNatsE8"),
             metric.get("controlEntropyNatsE8"),
         )
+        expected_distribution_fields = {
+            "mappedControlJensenShannonDivergenceNatsE8",
+            "mappedTargetJensenShannonDivergenceNatsE8",
+            "controlTargetJensenShannonDivergenceNatsE8",
+            "lensGainJensenShannonNatsE8",
+            "totalVariationDistanceE8",
+            "mappedEntropyNatsE8",
+            "controlEntropyNatsE8",
+            "mappedMaxProbabilityE8",
+            "controlMaxProbabilityE8",
+        }
         if (
+            set(metric) != expected_distribution_fields
+            or
             any(
                 not _is_int(value, minimum=0, maximum=MAX_JENSEN_SHANNON_NATS_E8)
                 for value in jsd_fields
@@ -1155,6 +1329,29 @@ def _validate_receipt(
                 raise ValueError(f"workspace coordinate {index} anchor control is invalid")
         elif anchor_control is not None:
             raise ValueError(f"workspace coordinate {index} has an unexpected anchor control")
+        if lens.get("estimator") == JACOBIAN_LENS_ESTIMATOR_V4:
+            if (
+                not isinstance(transport_controls, dict)
+                or set(transport_controls)
+                != {"unscaledCentered", "localTaylor", "scalarIdentity"}
+                or any(
+                    not isinstance(control, dict)
+                    or set(control) != {"targetJensenShannonDivergenceNatsE8"}
+                    or not _is_int(
+                        control.get("targetJensenShannonDivergenceNatsE8"),
+                        minimum=0,
+                        maximum=MAX_JENSEN_SHANNON_NATS_E8,
+                    )
+                    for control in transport_controls.values()
+                )
+            ):
+                raise ValueError(
+                    f"workspace coordinate {index} S4 transport controls are invalid"
+                )
+        elif transport_controls is not None:
+            raise ValueError(
+                f"workspace coordinate {index} has unexpected S4 transport controls"
+            )
         metrics.append(metric)
         lens_gains.append(metric["lensGainJensenShannonNatsE8"])
         legacy_scores.append(_legacy_union_top_k_jsd(concepts, controls))
@@ -1183,6 +1380,11 @@ def _validate_receipt(
                 **(
                     {"anchorControlMetrics": coordinate["anchorControlMetrics"]}
                     if "anchorControlMetrics" in coordinate
+                    else {}
+                ),
+                **(
+                    {"transportControlMetrics": coordinate["transportControlMetrics"]}
+                    if "transportControlMetrics" in coordinate
                     else {}
                 ),
             }

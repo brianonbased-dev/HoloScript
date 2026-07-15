@@ -1,0 +1,60 @@
+{
+  "ceilingLayer": 8,
+  "claimAdmission": {
+    "jacobianSpecific": [
+      "scalarCalibrationClaimAdmitted",
+      "primaryBetaInterior",
+      "jacobianSpecificGainBootstrapLowerAboveZero"
+    ],
+    "scalarCalibration": [
+      "primaryAlphaInterior",
+      "centeredGainBootstrapLowerAboveZero",
+      "localTaylorGainBootstrapLowerAboveZero"
+    ]
+  },
+  "controls": [
+    {
+      "name": "identityLogitLens",
+      "ordinaryComparator": true,
+      "transport": "h_l"
+    },
+    {
+      "name": "meanFinalAnchor",
+      "ordinaryComparator": true,
+      "transport": "ybar"
+    },
+    {
+      "attributionGain": "centered",
+      "name": "unscaledCentered",
+      "transport": "Jbar@x+ybar-Jbar@xbar"
+    },
+    {
+      "attributionGain": "localTaylor",
+      "name": "localTaylor",
+      "transport": "Jbar@x+ybar-mean_i(J_i@x_i)"
+    },
+    {
+      "attributionGain": "jacobianSpecific",
+      "name": "scalarIdentity",
+      "transport": "beta*x+ybar-beta*xbar"
+    },
+    {
+      "estimator": "endpoint_self_jacobian_scalar_calibrated_v1",
+      "name": "scalarCalibratedJacobian",
+      "transport": "alpha*Jbar@x+ybar-alpha*Jbar@xbar"
+    }
+  ],
+  "gateProfile": "s4-mean-centered-scalar-jacobian-v1",
+  "layers": [
+    2,
+    5,
+    8
+  ],
+  "preregistrationSha256": "sha256:aab413a443cefbcc2dbacf5506c8fe687e4c4cde7b38fddd0d341d50ca1df930",
+  "primaryLayers": [
+    2,
+    5
+  ],
+  "schema": "holoscript.jspace-s4-control-profile.v0.1.0",
+  "selfHash": "sha256:9c914202bc680ba5e6d1d3fc2413ba81cc61e2bd7cae52d8dda9a9bf314204fa"
+}

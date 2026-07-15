@@ -13,17 +13,22 @@ from holoserve.model import GPT
 from holoserve.workspace_fidelity import (
     S1_GATE_PROFILE,
     S2_GATE_PROFILE,
+    S4_GATE_PROFILE,
     _bootstrap_interval,
     _summarize_alias,
     _wilson_lower,
     evaluate_fidelity,
 )
 from holoserve.workspace_probe import (
+    JACOBIAN_LENS_V4_CONTROL_PROFILE_SHA256,
     ModelWorkspaceProbe,
     fit_endpoint_affine_jacobian_lens_v1,
     fit_endpoint_local_taylor_jacobian_lens_v1,
+    fit_endpoint_scalar_calibrated_jacobian_lens_v1,
+    jacobian_lens_v4_fit_receipt_fields,
     load_jacobian_lens_artifact,
     save_jacobian_lens_artifact,
+    sha256_file,
     sha256_json,
 )
 
@@ -118,6 +123,11 @@ def test_fidelity_summary_requires_input_dependent_top_token_diversity():
             fit_endpoint_local_taylor_jacobian_lens_v1,
             "holoscript.model-workspace-fidelity-evaluation.v0.2.0",
         ),
+        (
+            S4_GATE_PROFILE,
+            fit_endpoint_scalar_calibrated_jacobian_lens_v1,
+            "holoscript.model-workspace-fidelity-evaluation.v0.3.0",
+        ),
     ),
 )
 def test_label_blind_evaluator_replays_a_complete_ab_receipt_matrix(
@@ -140,23 +150,48 @@ def test_label_blind_evaluator_replays_a_complete_ab_receipt_matrix(
         ("a", torch.tensor([[1, 3, 4]], dtype=torch.long)),
         ("b", torch.tensor([[1, 5, 6]], dtype=torch.long)),
     ):
+        calibration_batches = [calibration]
+        if gate_profile == S4_GATE_PROFILE:
+            calibration_batches.append(
+                torch.tensor([[1, 7 if alias == "a" else 8, 5]], dtype=torch.long)
+            )
         artifact = fitter(
             model,
-            [calibration],
+            calibration_batches,
             layers=[2, 5, 8],
             checkpoint_sha256=checkpoint_sha256,
             tokenizer_sha256=tokenizer_sha256,
             dim_batch=2,
             max_seq_len=8,
             position_bins=[(0, 7)],
+            **(
+                {"control_profile_sha256": JACOBIAN_LENS_V4_CONTROL_PROFILE_SHA256}
+                if gate_profile == S4_GATE_PROFILE
+                else {}
+            ),
         )
         path = tmp_path / f"lens-{alias}.pt"
         save_jacobian_lens_artifact(artifact, path)
+        fit_receipt_path = None
+        if gate_profile == S4_GATE_PROFILE:
+            fit_receipt = {
+                "schema": "holoscript.jspace-s4-fit-receipt.v0.1.0",
+                **jacobian_lens_v4_fit_receipt_fields(
+                    artifact,
+                    lens_sha256=sha256_file(path),
+                ),
+                "semanticLabelsAccessed": False,
+                "selfHash": None,
+            }
+            fit_receipt["selfHash"] = sha256_json(fit_receipt)
+            fit_receipt_path = tmp_path / f"lens-{alias}-fit-receipt.json"
+            fit_receipt_path.write_text(json.dumps(fit_receipt), encoding="utf-8")
         loaded = load_jacobian_lens_artifact(
             path,
             checkpoint_sha256=checkpoint_sha256,
             tokenizer_sha256=tokenizer_sha256,
             model=model,
+            fit_receipt_path=fit_receipt_path,
         )
         probes[alias] = ModelWorkspaceProbe(model, loaded, [None] * 12, f"model-{alias}")
 
@@ -292,9 +327,11 @@ def test_label_blind_evaluator_replays_a_complete_ab_receipt_matrix(
     )
     result = json.loads(output_path.read_text(encoding="utf-8"))
     assert result["schema"] == expected_schema
-    if gate_profile == S2_GATE_PROFILE:
-        assert result["gateProfile"] == S2_GATE_PROFILE
+    if gate_profile != S1_GATE_PROFILE:
+        assert result["gateProfile"] == gate_profile
     else:
         assert "gateProfile" not in result
+    if gate_profile == S4_GATE_PROFILE:
+        assert all("attribution" in result["aliases"][alias] for alias in ("a", "b"))
     assert result["semanticLabelsAccessed"] is False
     assert result["selfHash"] == sha256_json({**result, "selfHash": None})

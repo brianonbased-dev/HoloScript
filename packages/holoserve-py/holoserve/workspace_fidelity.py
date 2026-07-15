@@ -24,16 +24,20 @@ from . import workspace_eval as we
 from .workspace_probe import (
     JACOBIAN_LENS_ESTIMATOR_V2,
     JACOBIAN_LENS_ESTIMATOR_V3,
+    JACOBIAN_LENS_ESTIMATOR_V4,
     JACOBIAN_LENS_V2_TRANSPORT_PROFILE,
     JACOBIAN_LENS_V3_TRANSPORT_PROFILE,
+    JACOBIAN_LENS_V4_TRANSPORT_PROFILE,
     sha256_json,
 )
 
 
 FIDELITY_EVALUATION_SCHEMA = "holoscript.model-workspace-fidelity-evaluation.v0.1.0"
 FIDELITY_EVALUATION_SCHEMA_V2 = "holoscript.model-workspace-fidelity-evaluation.v0.2.0"
+FIDELITY_EVALUATION_SCHEMA_V3 = "holoscript.model-workspace-fidelity-evaluation.v0.3.0"
 S1_GATE_PROFILE = "s1-endpoint-affine-v1"
 S2_GATE_PROFILE = "s2-local-taylor-varied-endpoint-v1"
+S4_GATE_PROFILE = "s4-mean-centered-scalar-jacobian-v1"
 DEFAULT_GATE_PROFILE = S1_GATE_PROFILE
 FIDELITY_PROFILES = {
     S1_GATE_PROFILE: {
@@ -45,6 +49,11 @@ FIDELITY_PROFILES = {
         "estimator": JACOBIAN_LENS_ESTIMATOR_V3,
         "transportProfile": JACOBIAN_LENS_V3_TRANSPORT_PROFILE,
         "schema": FIDELITY_EVALUATION_SCHEMA_V2,
+    },
+    S4_GATE_PROFILE: {
+        "estimator": JACOBIAN_LENS_ESTIMATOR_V4,
+        "transportProfile": JACOBIAN_LENS_V4_TRANSPORT_PROFILE,
+        "schema": FIDELITY_EVALUATION_SCHEMA_V3,
     },
 }
 PRIMARY_LAYERS = (2, 5)
@@ -242,7 +251,10 @@ def _load_bound_rows(args: argparse.Namespace) -> tuple[
 
 
 def _records_for_alias(
-    rows: Sequence[dict[str, Any]], alias: str, position_bins: Sequence[Sequence[int]]
+    rows: Sequence[dict[str, Any]],
+    alias: str,
+    position_bins: Sequence[Sequence[int]],
+    gate_profile: str = DEFAULT_GATE_PROFILE,
 ) -> list[dict[str, Any]]:
     records = []
     for row in rows:
@@ -257,6 +269,16 @@ def _records_for_alias(
             anchor = coordinate.get("anchorControlMetrics")
             if not isinstance(anchor, dict):
                 raise ValueError("endpoint fidelity row lacks the anchor control")
+            transport_controls = coordinate.get("transportControlMetrics")
+            if gate_profile == S4_GATE_PROFILE:
+                if (
+                    not isinstance(transport_controls, dict)
+                    or set(transport_controls)
+                    != {"unscaledCentered", "localTaylor", "scalarIdentity"}
+                ):
+                    raise ValueError("S4 fidelity row lacks frozen transport controls")
+            elif transport_controls is not None:
+                raise ValueError("non-S4 fidelity row contains S4 transport controls")
             mapped_entropy_error = abs(
                 metrics["mappedEntropyNatsE8"] - anchor["targetEntropyNatsE8"]
             )
@@ -279,6 +301,32 @@ def _records_for_alias(
                 "mappedTopTokenId": int(anchor["mappedTopTokenId"]),
                 "targetTopTokenId": int(anchor["targetTopTokenId"]),
             }
+            if gate_profile == S4_GATE_PROFILE:
+                mapped_target = int(
+                    metrics["mappedTargetJensenShannonDivergenceNatsE8"]
+                )
+                layer_values[layer].update(
+                    {
+                        "centeredGain": int(
+                            transport_controls["unscaledCentered"][
+                                "targetJensenShannonDivergenceNatsE8"
+                            ]
+                        )
+                        - mapped_target,
+                        "localTaylorGain": int(
+                            transport_controls["localTaylor"][
+                                "targetJensenShannonDivergenceNatsE8"
+                            ]
+                        )
+                        - mapped_target,
+                        "jacobianSpecificGain": int(
+                            transport_controls["scalarIdentity"][
+                                "targetJensenShannonDivergenceNatsE8"
+                            ]
+                        )
+                        - mapped_target,
+                    }
+                )
         records.append(
             {
                 "caseId": row["caseId"],
@@ -294,6 +342,27 @@ def _records_for_alias(
                 ),
                 "macroMaxProbabilityErrorGain": _mean_int(
                     [layer_values[layer]["maxProbabilityErrorGain"] for layer in PRIMARY_LAYERS]
+                ),
+                **(
+                    {
+                        "macroCenteredGain": _mean_int(
+                            [layer_values[layer]["centeredGain"] for layer in PRIMARY_LAYERS]
+                        ),
+                        "macroLocalTaylorGain": _mean_int(
+                            [
+                                layer_values[layer]["localTaylorGain"]
+                                for layer in PRIMARY_LAYERS
+                            ]
+                        ),
+                        "macroJacobianSpecificGain": _mean_int(
+                            [
+                                layer_values[layer]["jacobianSpecificGain"]
+                                for layer in PRIMARY_LAYERS
+                            ]
+                        ),
+                    }
+                    if gate_profile == S4_GATE_PROFILE
+                    else {}
                 ),
             }
         )
@@ -413,6 +482,60 @@ def _summarize_alias(
             seed=seed ^ 0x94D049BB133111EB,
         ),
     }
+    attribution = None
+    if gate_profile == S4_GATE_PROFILE:
+        attribution_metrics = {
+            "centered": ("centeredGain", "macroCenteredGain", 0x2D358DCCAA6C78A5),
+            "localTaylor": (
+                "localTaylorGain",
+                "macroLocalTaylorGain",
+                0x8BB84B93962EACC9,
+            ),
+            "jacobianSpecific": (
+                "jacobianSpecificGain",
+                "macroJacobianSpecificGain",
+                0x4F1BBCDCBFA54001,
+            ),
+        }
+        attribution_layers: dict[str, dict[str, Any]] = {}
+        for layer in (*PRIMARY_LAYERS, CEILING_LAYER):
+            attribution_layers[str(layer)] = {}
+            for name, (layer_field, _macro_field, seed_mask) in attribution_metrics.items():
+                values = [record["layers"][layer][layer_field] for record in records]
+                attribution_layers[str(layer)][name] = {
+                    "gainMeanE8": _mean_int(values),
+                    "gainBootstrap95E8": _bootstrap_interval(
+                        records,
+                        lambda record, selected=layer, field=layer_field: record["layers"][
+                            selected
+                        ][field],
+                        samples=samples,
+                        seed=(seed ^ seed_mask ^ layer) & ((1 << 64) - 1),
+                    ),
+                }
+        attribution_macro = {}
+        for name, (_layer_field, macro_field, seed_mask) in attribution_metrics.items():
+            values = [record[macro_field] for record in records]
+            attribution_macro[name] = {
+                "gainMeanE8": _mean_int(values),
+                "gainBootstrap95E8": _bootstrap_interval(
+                    records,
+                    lambda record, field=macro_field: record[field],
+                    samples=samples,
+                    seed=(seed ^ seed_mask) & ((1 << 64) - 1),
+                ),
+            }
+        attribution_gates = {
+            name: attribution_macro[name]["gainBootstrap95E8"][0] > 0
+            for name in attribution_metrics
+        }
+        attribution = {
+            "macroPrimary": attribution_macro,
+            "layers": attribution_layers,
+            "gates": attribution_gates,
+            "holdoutPassed": all(attribution_gates.values()),
+            "fitScalarInteriorRequiredSeparately": True,
+        }
     mapped_top = [record["layers"][PRIMARY_LAYERS[0]]["mappedTopTokenId"] for record in records]
     target_top = [record["layers"][PRIMARY_LAYERS[0]]["targetTopTokenId"] for record in records]
     mapped_diversity = _diversity(mapped_top)
@@ -490,9 +613,10 @@ def _summarize_alias(
                 "mappedTopTokenDiversityByPositionBin": mapped_diversity_by_bin,
                 "targetTopTokenDiversityByPositionBin": target_diversity_by_bin,
             }
-            if gate_profile == S2_GATE_PROFILE
+            if gate_profile != S1_GATE_PROFILE
             else {}
         ),
+        **({"attribution": attribution} if attribution is not None else {}),
         "gates": gates,
         "passed": all(gates.values()),
     }
@@ -508,7 +632,7 @@ def evaluate_fidelity(args: argparse.Namespace) -> None:
         raise ValueError("fidelity evaluation requires the frozen preregistration")
     bins = _capability_bins(capabilities["a"], gate_profile)
     records = {
-        alias: _records_for_alias(rows, alias, bins)
+        alias: _records_for_alias(rows, alias, bins, gate_profile)
         for alias in ("a", "b")
     }
     if [record["caseId"] for record in records["a"]] != [
@@ -573,7 +697,7 @@ def evaluate_fidelity(args: argparse.Namespace) -> None:
         and replication["passed"],
         "selfHash": None,
     }
-    if gate_profile == S2_GATE_PROFILE:
+    if gate_profile != S1_GATE_PROFILE:
         result["gateProfile"] = gate_profile
     result["selfHash"] = sha256_json(result)
     we._write_json_atomic(args.output, result)

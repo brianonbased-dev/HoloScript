@@ -122,6 +122,37 @@ def _workspace_request_id():
     return f"workspace-holo-{uuid.uuid4().hex}"
 
 
+def _parse_workspace_path_bindings(specs, option):
+    bindings = {}
+    for spec in specs:
+        if "=" not in spec:
+            raise SystemExit(f"{option} must be MODEL=PATH, got: {spec!r}")
+        name, path = (part.strip() for part in spec.split("=", 1))
+        if not name or not path or name in bindings:
+            raise SystemExit(f"invalid or duplicate {option} binding: {spec!r}")
+        bindings[name] = path
+    return bindings
+
+
+def _validate_workspace_path_bindings(workspace_lenses, workspace_fit_receipts, models=None):
+    receipts_without_lenses = sorted(set(workspace_fit_receipts).difference(workspace_lenses))
+    if receipts_without_lenses:
+        raise SystemExit(
+            "--workspace-fit-receipt requires a matching --workspace-lens binding for "
+            f"each model: {receipts_without_lenses}"
+        )
+    if models is None:
+        return
+    unknown_workspace_models = sorted(
+        set(workspace_lenses).union(workspace_fit_receipts).difference(models)
+    )
+    if unknown_workspace_models:
+        raise SystemExit(
+            "--workspace-lens/--workspace-fit-receipt references models that are not "
+            f"resident: {unknown_workspace_models}"
+        )
+
+
 class HoloModel:
     """A resident HOLO model + tokenizer. Loaded once; generate() is serialized for safety.
 
@@ -138,12 +169,16 @@ class HoloModel:
         device,
         model_name=MODEL_NAME,
         workspace_lens_path=None,
+        workspace_fit_receipt_path=None,
     ):
         self.ckpt_path = Path(ckpt_path)
         self.bins_dir = Path(bins_dir)
         self.device = device
         self.model_name = model_name
         self.workspace_lens_path = Path(workspace_lens_path) if workspace_lens_path else None
+        self.workspace_fit_receipt_path = (
+            Path(workspace_fit_receipt_path) if workspace_fit_receipt_path else None
+        )
         self._lock = threading.Lock()
         self._load()
 
@@ -195,6 +230,7 @@ class HoloModel:
                 checkpoint_sha256=sha256_file(self.ckpt_path),
                 tokenizer_sha256=sha256_file(self.bins_dir / "tokenizer.json"),
                 model=self.model,
+                fit_receipt_path=self.workspace_fit_receipt_path,
             )
             self.workspace_probe = ModelWorkspaceProbe(
                 self.model,
@@ -863,20 +899,29 @@ def main():
         help="bind a precomputed Jacobian-lens artifact to a resident model. Repeatable; "
         "enables read-only POST /v1/model-workspace/observe for that model.",
     )
+    parser.add_argument(
+        "--workspace-fit-receipt",
+        action="append",
+        default=[],
+        metavar="MODEL=PATH",
+        help="bind a scalar-calibrated Jacobian-lens fit receipt to a resident model. "
+        "Repeatable; each binding requires a matching --workspace-lens binding.",
+    )
     args = parser.parse_args()
 
     device = args.device
     if device == "auto":
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    workspace_lenses = {}
-    for spec in args.workspace_lens:
-        if "=" not in spec:
-            raise SystemExit(f"--workspace-lens must be MODEL=PATH, got: {spec!r}")
-        name, lens_path = (part.strip() for part in spec.split("=", 1))
-        if not name or not lens_path or name in workspace_lenses:
-            raise SystemExit(f"invalid or duplicate --workspace-lens binding: {spec!r}")
-        workspace_lenses[name] = lens_path
+    workspace_lenses = _parse_workspace_path_bindings(
+        args.workspace_lens,
+        "--workspace-lens",
+    )
+    workspace_fit_receipts = _parse_workspace_path_bindings(
+        args.workspace_fit_receipt,
+        "--workspace-fit-receipt",
+    )
+    _validate_workspace_path_bindings(workspace_lenses, workspace_fit_receipts)
 
     global MODEL
     print(f"[holoserve] loading {args.ckpt} on {device} ...", flush=True)
@@ -887,6 +932,7 @@ def main():
         device,
         DEFAULT_MODEL_NAME,
         workspace_lenses.get(DEFAULT_MODEL_NAME),
+        workspace_fit_receipts.get(DEFAULT_MODEL_NAME),
     )
     MODELS[DEFAULT_MODEL_NAME] = MODEL
     print(
@@ -915,6 +961,7 @@ def main():
             device,
             name,
             workspace_lenses.get(name),
+            workspace_fit_receipts.get(name),
         )
         print(
             f"[holoserve] '{name}' resident: {MODELS[name].params_millions}M params, "
@@ -922,11 +969,7 @@ def main():
             flush=True,
         )
 
-    unknown_lens_models = sorted(set(workspace_lenses).difference(MODELS))
-    if unknown_lens_models:
-        raise SystemExit(
-            f"--workspace-lens references models that are not resident: {unknown_lens_models}"
-        )
+    _validate_workspace_path_bindings(workspace_lenses, workspace_fit_receipts, MODELS)
 
     server = ThreadingHTTPServer((args.host, args.port), Handler)
     print(

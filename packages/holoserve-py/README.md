@@ -99,7 +99,8 @@ Bind each artifact to the exact resident model name when launching:
 
 ```bash
 holoserve --ckpt /path/to/ckpt.pt --bins /path/to/bins \
-  --workspace-lens holorunner-s0=/path/to/holorunner-s0-jacobian-lens.pt
+  --workspace-lens holorunner-s0=/path/to/holorunner-s0-jacobian-lens.pt \
+  --workspace-fit-receipt holorunner-s0=/path/to/s4-fit-receipt.json
 
 curl -s localhost:8080/v1/model-workspace/observe \
   -H 'content-type: application/json' \
@@ -107,7 +108,11 @@ curl -s localhost:8080/v1/model-workspace/observe \
 ```
 
 The lens artifact binds checkpoint, tokenizer, calibration-corpus, layer, and
-position-policy hashes. A mismatch fails startup. `/health.model_workspace_probe`
+position-policy hashes. Scalar-calibrated V4 lenses additionally require a
+self-hashed fit receipt matching the saved lens hash, sequence order and set,
+sample/bin counts, scalar-statistics digest, formula, and frozen control-profile
+digest. Missing, substituted, or estimator-confused receipts fail startup;
+earlier estimators reject a V4 receipt. `/health.model_workspace_probe`
 advertises per-model availability; a model without a bound artifact abstains.
 Receipts retain the full prompt hash and record both original and observed token
 counts plus the exact left-truncation policy when a prompt exceeds the model
@@ -153,10 +158,10 @@ layers/positions/k, selected model, measurement profile, and advertised lens
 artifact. SHA-256 receipts provide integrity and provenance binding, not server
 authentication; deployments still need an authenticated transport boundary.
 
-For same-endpoint fidelity work, HoloServe exposes two separately named,
-`paperParity: false` estimators. Both differentiate the final post-block residual
+For same-endpoint fidelity work, HoloServe exposes three separately named,
+`paperParity: false` estimators. All differentiate the final post-block residual
 at the prompt endpoint with respect to the same source coordinate, fit independent
-maps in declared inclusive absolute-position bins, serve `J @ h + b`, reject
+maps in declared inclusive absolute-position bins, serve `M @ h + b`, reject
 oversize calibration prompts instead of slicing them, and only admit final-token
 observations:
 
@@ -168,9 +173,24 @@ observations:
   `b = mean_i(y_i - J_i @ x_i)`. Its artifact serializes
   `jacobianSourceProductMeans = mean_i(J_i @ x_i)` and loading fails closed unless
   `b = mean_i(y_i) - jacobianSourceProductMeans` for every layer and position bin.
+- `fit_endpoint_scalar_calibrated_jacobian_lens_v1` emits
+  `endpoint_self_jacobian_scalar_calibrated_v1`. It sets `Jbar=mean_i(J_i)`,
+  centers `x_i` and `y_i`, and fits one fixed-contract nonnegative scalar per
+  layer/bin from `C / (1.001 * S)`, clipped to `[0,2]`. Serving uses
+  `M=alpha*Jbar` and `b=ybar-M*xbar`. The artifact stores float64 sufficient
+  statistics, not alpha or beta. Its caller must supply the preregistered
+  `control_profile_sha256`; the artifact seals that value with source-order/set,
+  count, formula, and statistic digests in `fitBinding`. The loader requires the
+  matching scalar-redacted fit receipt, derives and verifies the transport, and
+  only then casts it to float32. The unscaled-centered, S3 local-Taylor, and
+  identically regularized scalar-identity controls are evaluated from the same
+  receipt without another model forward pass.
 
-Receipts for both include a mean-final anchor control so a constant output prior
-cannot satisfy the fidelity gate. Neither path replaces or renames Anthropic's
+Receipts for all three include a mean-final anchor control so a constant output
+prior cannot satisfy the fidelity gate. Scalar values, sufficient statistics,
+matrices, biases, and calibration samples remain artifact-private; public
+capabilities and receipts bind them only through `lensSha256` and reject leaked
+private fields. None of these paths replaces or renames Anthropic's
 present-and-future v1 estimator.
 
 For leakage-safe corpus runs, use the two-phase evaluator. `collect` accepts

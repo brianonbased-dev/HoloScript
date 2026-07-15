@@ -20,16 +20,63 @@ export const MODEL_WORKSPACE_ENDPOINT_AFFINE_TRANSPORT_PROFILE =
   'mean-anchored-affine-final-residual-v1' as const;
 export const MODEL_WORKSPACE_LOCAL_TAYLOR_TRANSPORT_PROFILE =
   'local-taylor-affine-final-residual-v1' as const;
+export const MODEL_WORKSPACE_SCALAR_CALIBRATED_TRANSPORT_PROFILE =
+  'mean-centered-scalar-jacobian-final-residual-v1' as const;
+
+const MODEL_WORKSPACE_ENDPOINT_TRANSPORT_PROFILES = {
+  endpoint_self_jacobian_affine_v1: MODEL_WORKSPACE_ENDPOINT_AFFINE_TRANSPORT_PROFILE,
+  endpoint_self_jacobian_local_taylor_v1: MODEL_WORKSPACE_LOCAL_TAYLOR_TRANSPORT_PROFILE,
+  endpoint_self_jacobian_scalar_calibrated_v1: MODEL_WORKSPACE_SCALAR_CALIBRATED_TRANSPORT_PROFILE,
+} as const;
+
+const MODEL_WORKSPACE_CAPABILITY_ALLOWED_FIELD_PATHS = new Set(['intervention']);
+const MODEL_WORKSPACE_FORBIDDEN_FIELD_NAMES = new Set([
+  'activation',
+  'activations',
+  'b',
+  'c',
+  'ci',
+  'conscious',
+  'consciousness',
+  'direction',
+  'hiddenstate',
+  'hiddenstates',
+  'intent',
+  'intervention',
+  'jbar',
+  'm',
+  'residual',
+  'residuals',
+  'safe',
+  'sentient',
+  's',
+  'si',
+  'strength',
+  'truth',
+  'vector',
+  'xbar',
+  'ybar',
+]);
+const MODEL_WORKSPACE_ALLOWED_TARGET_MEASUREMENT_FIELDS = new Set([
+  'anchortargetjensenshannondivergencenatse8',
+  'controltargetjensenshannondivergencenatse8',
+  'mappedtargetjensenshannondivergencenatse8',
+  'targetentropynatse8',
+  'targetjensenshannondivergencenatse8',
+  'targetmaxprobabilitye8',
+  'targettoptokenid',
+]);
+
+export type ModelWorkspaceEndpointEstimator =
+  keyof typeof MODEL_WORKSPACE_ENDPOINT_TRANSPORT_PROFILES;
 
 export type ModelWorkspaceEstimator =
   | 'explicit_pair_average_v0'
   | 'corpus_position_average_v1'
-  | 'endpoint_self_jacobian_affine_v1'
-  | 'endpoint_self_jacobian_local_taylor_v1';
+  | ModelWorkspaceEndpointEstimator;
 
 export type ModelWorkspaceTransportProfile =
-  | typeof MODEL_WORKSPACE_ENDPOINT_AFFINE_TRANSPORT_PROFILE
-  | typeof MODEL_WORKSPACE_LOCAL_TAYLOR_TRANSPORT_PROFILE;
+  (typeof MODEL_WORKSPACE_ENDPOINT_TRANSPORT_PROFILES)[ModelWorkspaceEndpointEstimator];
 
 export type ModelWorkspacePositionBin = [start: number, end: number];
 
@@ -64,6 +111,16 @@ export interface ModelWorkspaceAnchorControlMetrics {
   targetTopTokenId: number;
 }
 
+export interface ModelWorkspaceTransportControlMetric {
+  targetJensenShannonDivergenceNatsE8: number;
+}
+
+export interface ModelWorkspaceTransportControlMetrics {
+  unscaledCentered: ModelWorkspaceTransportControlMetric;
+  localTaylor: ModelWorkspaceTransportControlMetric;
+  scalarIdentity: ModelWorkspaceTransportControlMetric;
+}
+
 export interface ModelWorkspaceLayerObservation {
   layer: number;
   position: number;
@@ -73,6 +130,7 @@ export interface ModelWorkspaceLayerObservation {
   controlTailProbabilityMassE8?: number;
   distributionMetrics?: ModelWorkspaceDistributionMetrics;
   anchorControlMetrics?: ModelWorkspaceAnchorControlMetrics;
+  transportControlMetrics?: ModelWorkspaceTransportControlMetrics;
 }
 
 export interface ModelWorkspaceReceipt {
@@ -324,6 +382,16 @@ export async function observeHoloLlamaModelWorkspace(
     selectedCapability?.controlProfile === MODEL_WORKSPACE_CONTROL_PROFILE
       ? MODEL_WORKSPACE_CONTROL_PROFILE
       : null;
+  const forbiddenCapabilityFields = selectedCapability
+    ? findForbiddenWorkspaceFields(
+        selectedCapability,
+        '',
+        MODEL_WORKSPACE_CAPABILITY_ALLOWED_FIELD_PATHS
+      )
+    : [];
+  const validCapabilityFields = selectedCapability
+    ? hasExactWorkspaceCapabilityFields(selectedCapability)
+    : false;
   const observeSupported =
     backend === 'pytorch-holo' &&
     capabilityRoot?.schema === MODEL_WORKSPACE_CAPABILITY_SCHEMA &&
@@ -337,7 +405,9 @@ export async function observeHoloLlamaModelWorkspace(
     advertisedMeasurementProfile !== null &&
     advertisedControlProfile !== null &&
     isSha256(selectedCapability.lensSha256) &&
-    advertisedLayers.length > 0;
+    advertisedLayers.length > 0 &&
+    validCapabilityFields &&
+    forbiddenCapabilityFields.length === 0;
 
   if (!observeSupported) {
     const reason =
@@ -448,6 +518,29 @@ export function validateModelWorkspaceReceipt(
   if (!isRecord(value)) return { ok: false, blockers: ['receipt body is not an object'] };
   const currentReceipt = value.schema === MODEL_WORKSPACE_RECEIPT_SCHEMA;
   const legacyReceipt = value.schema === LEGACY_MODEL_WORKSPACE_RECEIPT_SCHEMA;
+  if (
+    currentReceipt &&
+    !hasExactKeys(value, [
+      'schema',
+      'kind',
+      'mode',
+      'createdAt',
+      'requestId',
+      'model',
+      'tokenizer',
+      'lens',
+      'input',
+      'observation',
+      'observationSha256',
+      'runtime',
+      'integrity',
+      'safety',
+      'limitations',
+      'receiptHash',
+    ])
+  ) {
+    blockers.push('receipt public envelope contains undeclared fields');
+  }
   if (!currentReceipt && !legacyReceipt) {
     blockers.push(`unexpected receipt schema: ${String(value.schema)}`);
   }
@@ -471,6 +564,8 @@ export function validateModelWorkspaceReceipt(
   const model = isRecord(value.model) ? value.model : null;
   if (
     !model ||
+    (currentReceipt &&
+      !hasExactKeys(model, ['requestedId', 'servedId', 'checkpointSha256', 'architecture'])) ||
     typeof model.requestedId !== 'string' ||
     model.requestedId.length < 1 ||
     typeof model.servedId !== 'string' ||
@@ -493,6 +588,7 @@ export function validateModelWorkspaceReceipt(
   const tokenizer = isRecord(value.tokenizer) ? value.tokenizer : null;
   if (
     !tokenizer ||
+    (currentReceipt && !hasExactKeys(tokenizer, ['sha256', 'vocabSize'])) ||
     !isSha256(tokenizer.sha256) ||
     !Number.isSafeInteger(tokenizer.vocabSize) ||
     Number(tokenizer.vocabSize) < 1
@@ -500,9 +596,26 @@ export function validateModelWorkspaceReceipt(
     blockers.push('tokenizer binding is incomplete');
   }
   const lens = isRecord(value.lens) ? value.lens : null;
+  const expectedLensFields = [
+    'method',
+    'estimator',
+    'paperParity',
+    'implementationVersion',
+    'corpusSha256',
+    'lensSha256',
+    'positionPolicy',
+    'jacobianCount',
+    'k',
+    ...(lens?.estimator === 'corpus_position_average_v1'
+      ? ['parityScope', 'paperExperimentParity']
+      : workspaceTransportProfileForEstimator(lens?.estimator) !== null
+        ? ['transportProfile', 'positionBins']
+        : []),
+  ];
   if (lens?.method !== 'jacobian_lens') blockers.push('lens method must be jacobian_lens');
   if (
     !lens ||
+    (currentReceipt && !hasExactKeys(lens, expectedLensFields)) ||
     !isSupportedWorkspaceEstimator(
       lens.estimator,
       lens.paperParity,
@@ -512,7 +625,7 @@ export function validateModelWorkspaceReceipt(
       lens.positionBins,
       lens.positionPolicy
     ) ||
-    (legacyReceipt && isEndpointWorkspaceEstimator(lens.estimator)) ||
+    (legacyReceipt && workspaceTransportProfileForEstimator(lens.estimator) !== null) ||
     !isSha256(lens.corpusSha256) ||
     !isSha256(lens.lensSha256) ||
     typeof lens.implementationVersion !== 'string' ||
@@ -562,8 +675,9 @@ export function validateModelWorkspaceReceipt(
     })
   );
   const validEstimatorPositions = Boolean(
-    !isEndpointWorkspaceEstimator(lens?.estimator) ||
-    (input &&
+    workspaceTransportProfileForEstimator(lens?.estimator) === null ||
+    (lens &&
+      input &&
       positions &&
       positions.length === 1 &&
       Number(positions[0]) === Number(input.tokenCount) - 1 &&
@@ -571,6 +685,19 @@ export function validateModelWorkspaceReceipt(
   );
   if (
     !input ||
+    (currentReceipt &&
+      !hasExactKeys(input, [
+        'promptSha256',
+        'tokenCount',
+        'originalTokenCount',
+        'truncated',
+        'truncationPolicy',
+        'layers',
+        'requestedPositions',
+        'positions',
+        'measurementProfile',
+        'seed',
+      ])) ||
     !isSha256(input.promptSha256) ||
     !Number.isSafeInteger(input.tokenCount) ||
     Number(input.tokenCount) < 1 ||
@@ -619,13 +746,13 @@ export function validateModelWorkspaceReceipt(
       blockers.push('receipt estimator does not match the advertised model capability');
     }
     if (
-      isEndpointWorkspaceEstimator(expectation.estimator) &&
+      workspaceTransportProfileForEstimator(expectation.estimator) !== null &&
       lens?.transportProfile !== expectation.transportProfile
     ) {
       blockers.push('receipt transport profile does not match the advertised model capability');
     }
     if (
-      isEndpointWorkspaceEstimator(expectation.estimator) &&
+      workspaceTransportProfileForEstimator(expectation.estimator) !== null &&
       !workspacePositionBinsEqual(lens?.positionBins, expectation.positionBins)
     ) {
       blockers.push('receipt position bins do not match the advertised model capability');
@@ -649,6 +776,15 @@ export function validateModelWorkspaceReceipt(
   );
   const runtime = isRecord(value.runtime) ? value.runtime : null;
   if (
+    (currentReceipt &&
+      runtime !== null &&
+      !hasExactKeys(runtime, [
+        'backend',
+        'device',
+        'torchVersion',
+        'pythonVersion',
+        'holoserveVersion',
+      ])) ||
     runtime?.backend !== 'pytorch-holo' ||
     typeof runtime.device !== 'string' ||
     runtime.device.length < 1 ||
@@ -663,6 +799,9 @@ export function validateModelWorkspaceReceipt(
   }
   const integrity = isRecord(value.integrity) ? value.integrity : null;
   if (
+    (currentReceipt &&
+      integrity !== null &&
+      !hasExactKeys(integrity, ['algorithm', 'canonicalization'])) ||
     integrity?.algorithm !== 'sha256' ||
     integrity.canonicalization !== MODEL_WORKSPACE_HASH_CANONICALIZATION
   ) {
@@ -671,6 +810,14 @@ export function validateModelWorkspaceReceipt(
   const safety = isRecord(value.safety) ? value.safety : null;
   if (
     !safety ||
+    (currentReceipt &&
+      !hasExactKeys(safety, [
+        'readOnly',
+        'interventionApplied',
+        'rawActivationsPersisted',
+        'identityBinding',
+        'retention',
+      ])) ||
     safety.readOnly !== true ||
     safety.interventionApplied !== false ||
     safety.rawActivationsPersisted !== false ||
@@ -679,7 +826,7 @@ export function validateModelWorkspaceReceipt(
   ) {
     blockers.push('receipt safety envelope is missing or unsafe');
   }
-  const forbidden = findForbiddenReceiptFields(value);
+  const forbidden = findForbiddenWorkspaceFields(value);
   if (forbidden.length > 0) blockers.push(`forbidden receipt fields: ${forbidden.join(', ')}`);
   const limitations = Array.isArray(value.limitations) ? value.limitations : null;
   if (
@@ -739,7 +886,17 @@ function validateWorkspaceObservation(
     Number.isSafeInteger(layer)
   );
   if (
+    (currentReceipt &&
+      !hasExactKeys(observation, [
+        'status',
+        'measurementProfile',
+        'controlProfile',
+        'layerBand',
+        'layers',
+        'summary',
+      ])) ||
     !layerBand ||
+    (currentReceipt && !hasExactKeys(layerBand, ['start', 'end'])) ||
     !Number.isSafeInteger(layerBand.start) ||
     !Number.isSafeInteger(layerBand.end) ||
     !layers ||
@@ -786,6 +943,17 @@ function validateWorkspaceObservation(
     const concepts = Array.isArray(item.concepts) ? item.concepts : null;
     const controls = Array.isArray(item.controlConcepts) ? item.controlConcepts : null;
     const coordinate = `${String(item.layer)}:${String(item.position)}`;
+    const expectedCoordinateFields = [
+      'layer',
+      'position',
+      'concepts',
+      'controlConcepts',
+      'tailProbabilityMassE8',
+      'controlTailProbabilityMassE8',
+      'distributionMetrics',
+      'anchorControlMetrics',
+      'transportControlMetrics',
+    ];
     if (
       !Number.isSafeInteger(item.layer) ||
       Number(item.layer) < 0 ||
@@ -795,6 +963,7 @@ function validateWorkspaceObservation(
       !expectedCoordinates.has(coordinate) ||
       !concepts ||
       !controls ||
+      (currentReceipt && !hasOnlyDeclaredKeys(item, expectedCoordinateFields)) ||
       k === null ||
       concepts.length !== k ||
       controls.length !== k ||
@@ -803,7 +972,8 @@ function validateWorkspaceObservation(
       (!currentReceipt &&
         ('controlTailProbabilityMassE8' in item ||
           'distributionMetrics' in item ||
-          'anchorControlMetrics' in item))
+          'anchorControlMetrics' in item ||
+          'transportControlMetrics' in item))
     ) {
       blockers.push(`observation layer ${index} is malformed or unbounded`);
       continue;
@@ -812,6 +982,8 @@ function validateWorkspaceObservation(
     const conceptErrors = [...concepts, ...controls].some((concept) => {
       if (!isRecord(concept)) return true;
       return (
+        (currentReceipt &&
+          !hasExactKeys(concept, ['tokenId', 'token', 'scoreE8', 'probabilityE8'])) ||
         !Number.isSafeInteger(concept.tokenId) ||
         Number(concept.tokenId) < 0 ||
         vocabSize === null ||
@@ -871,6 +1043,17 @@ function validateWorkspaceObservation(
       const entropyFields = [metrics?.mappedEntropyNatsE8, metrics?.controlEntropyNatsE8];
       if (
         !metrics ||
+        !hasExactKeys(metrics, [
+          'mappedControlJensenShannonDivergenceNatsE8',
+          'mappedTargetJensenShannonDivergenceNatsE8',
+          'controlTargetJensenShannonDivergenceNatsE8',
+          'lensGainJensenShannonNatsE8',
+          'totalVariationDistanceE8',
+          'mappedEntropyNatsE8',
+          'controlEntropyNatsE8',
+          'mappedMaxProbabilityE8',
+          'controlMaxProbabilityE8',
+        ]) ||
         jsdFields.some(
           (measurement) =>
             !Number.isSafeInteger(measurement) ||
@@ -907,7 +1090,7 @@ function validateWorkspaceObservation(
       }
 
       const anchorMetrics = isRecord(item.anchorControlMetrics) ? item.anchorControlMetrics : null;
-      if (isEndpointWorkspaceEstimator(estimator)) {
+      if (workspaceTransportProfileForEstimator(estimator) !== null) {
         const anchorTokenIds = [
           anchorMetrics?.mappedTopTokenId,
           anchorMetrics?.anchorTopTokenId,
@@ -915,6 +1098,17 @@ function validateWorkspaceObservation(
         ];
         if (
           !anchorMetrics ||
+          !hasExactKeys(anchorMetrics, [
+            'anchorTargetJensenShannonDivergenceNatsE8',
+            'mappedVsAnchorLensGainJensenShannonNatsE8',
+            'anchorEntropyNatsE8',
+            'anchorMaxProbabilityE8',
+            'targetEntropyNatsE8',
+            'targetMaxProbabilityE8',
+            'mappedTopTokenId',
+            'anchorTopTokenId',
+            'targetTopTokenId',
+          ]) ||
           !Number.isSafeInteger(anchorMetrics.anchorTargetJensenShannonDivergenceNatsE8) ||
           Number(anchorMetrics.anchorTargetJensenShannonDivergenceNatsE8) < 0 ||
           Number(anchorMetrics.anchorTargetJensenShannonDivergenceNatsE8) >
@@ -947,6 +1141,32 @@ function validateWorkspaceObservation(
       } else if ('anchorControlMetrics' in item) {
         blockers.push(`observation layer ${index} has estimator-confused anchor control metrics`);
       }
+      const transportControls = isRecord(item.transportControlMetrics)
+        ? item.transportControlMetrics
+        : null;
+      if (estimator === 'endpoint_self_jacobian_scalar_calibrated_v1') {
+        const expectedControlNames = ['localTaylor', 'scalarIdentity', 'unscaledCentered'];
+        const validControlNames =
+          transportControls !== null &&
+          Object.keys(transportControls).sort().join(',') === expectedControlNames.join(',');
+        const validControls =
+          validControlNames &&
+          expectedControlNames.every((name) => {
+            const control = isRecord(transportControls[name]) ? transportControls[name] : null;
+            return (
+              control !== null &&
+              Object.keys(control).length === 1 &&
+              Number.isSafeInteger(control.targetJensenShannonDivergenceNatsE8) &&
+              Number(control.targetJensenShannonDivergenceNatsE8) >= 0 &&
+              Number(control.targetJensenShannonDivergenceNatsE8) <= maxJensenShannonNatsE8
+            );
+          });
+        if (!validControls) {
+          blockers.push(`observation layer ${index} S4 transport controls are invalid`);
+        }
+      } else if ('transportControlMetrics' in item) {
+        blockers.push(`observation layer ${index} has estimator-confused S4 transport controls`);
+      }
     }
   }
 
@@ -954,6 +1174,7 @@ function validateWorkspaceObservation(
     const summary = isRecord(observation.summary) ? observation.summary : null;
     if (
       !summary ||
+      !hasExactKeys(summary, ['scoreProfile', 'coordinateCount', 'scoreE8']) ||
       summary.scoreProfile !== MODEL_WORKSPACE_SCORE_PROFILE ||
       !Number.isSafeInteger(summary.coordinateCount) ||
       Number(summary.coordinateCount) !== layers.length ||
@@ -1073,36 +1294,92 @@ function normalizeEndpoint(value: string): string {
   return url.toString().replace(/\/$/u, '');
 }
 
-function findForbiddenReceiptFields(value: unknown, path = ''): string[] {
+function findForbiddenWorkspaceFields(
+  value: unknown,
+  path = '',
+  allowedPaths: ReadonlySet<string> = new Set()
+): string[] {
   if (Array.isArray(value)) {
-    return value.flatMap((item, index) => findForbiddenReceiptFields(item, `${path}[${index}]`));
+    return value.flatMap((item, index) =>
+      findForbiddenWorkspaceFields(item, `${path}[${index}]`, allowedPaths)
+    );
   }
   if (!isRecord(value)) return [];
-  const forbidden = new Set([
-    'activation',
-    'activations',
-    'conscious',
-    'consciousness',
-    'direction',
-    'hiddenstate',
-    'hiddenstates',
-    'intent',
-    'intervention',
-    'residual',
-    'residuals',
-    'safe',
-    'sentient',
-    'strength',
-    'truth',
-    'vector',
-  ]);
   return Object.entries(value).flatMap(([key, child]) => {
     const childPath = path ? `${path}.${key}` : key;
+    const normalizedKey = key.toLowerCase().replace(/[^a-z0-9]/gu, '');
+    const isPublicScalarIdentityControl =
+      normalizedKey === 'scalaridentity' &&
+      /^observation\.layers\[\d+\]\.transportControlMetrics$/u.test(path);
+    const hasPrivateArtifactShape =
+      normalizedKey.includes('alpha') ||
+      normalizedKey.includes('beta') ||
+      (normalizedKey.includes('scalar') && !isPublicScalarIdentityControl) ||
+      normalizedKey.includes('statistic') ||
+      normalizedKey === 'stat' ||
+      normalizedKey === 'stats' ||
+      normalizedKey.endsWith('stats') ||
+      normalizedKey.includes('matri') ||
+      normalizedKey.includes('bias') ||
+      normalizedKey.includes('source') ||
+      normalizedKey.includes('mean') ||
+      normalizedKey.includes('ridge') ||
+      normalizedKey.includes('clipbound') ||
+      normalizedKey.includes('sample') ||
+      normalizedKey.includes('sequence') ||
+      (normalizedKey.includes('target') &&
+        !MODEL_WORKSPACE_ALLOWED_TARGET_MEASUREMENT_FIELDS.has(normalizedKey));
     return [
-      ...(forbidden.has(key.toLowerCase()) ? [childPath] : []),
-      ...findForbiddenReceiptFields(child, childPath),
+      ...(!allowedPaths.has(childPath) &&
+      (MODEL_WORKSPACE_FORBIDDEN_FIELD_NAMES.has(normalizedKey) || hasPrivateArtifactShape)
+        ? [childPath]
+        : []),
+      ...findForbiddenWorkspaceFields(child, childPath, allowedPaths),
     ];
   });
+}
+
+function hasExactWorkspaceCapabilityFields(value: Record<string, unknown>): boolean {
+  const expected = new Set([
+    'schema',
+    'observe',
+    'intervention',
+    'method',
+    'estimator',
+    'paperParity',
+    'measurementProfile',
+    'controlProfile',
+    'layers',
+    'lensSha256',
+  ]);
+  if (value.estimator === 'corpus_position_average_v1') {
+    expected.add('parityScope');
+    expected.add('paperExperimentParity');
+  } else if (workspaceTransportProfileForEstimator(value.estimator) !== null) {
+    expected.add('transportProfile');
+    expected.add('positionPolicy');
+    expected.add('positionBins');
+  }
+  return (
+    Object.keys(value).length === expected.size &&
+    Object.keys(value).every((key) => expected.has(key))
+  );
+}
+
+function hasExactKeys(value: Record<string, unknown>, expectedKeys: readonly string[]): boolean {
+  const expected = new Set(expectedKeys);
+  return (
+    Object.keys(value).length === expected.size &&
+    Object.keys(value).every((key) => expected.has(key))
+  );
+}
+
+function hasOnlyDeclaredKeys(
+  value: Record<string, unknown>,
+  allowedKeys: readonly string[]
+): boolean {
+  const allowed = new Set(allowedKeys);
+  return Object.keys(value).every((key) => allowed.has(key));
 }
 
 function canonicalWorkspaceHashValue(value: unknown): unknown {
@@ -1128,25 +1405,16 @@ function isSha256(value: unknown): value is string {
   return typeof value === 'string' && /^sha256:[a-f0-9]{64}$/u.test(value);
 }
 
-function isEndpointWorkspaceEstimator(
-  estimator: unknown
-): estimator is 'endpoint_self_jacobian_affine_v1' | 'endpoint_self_jacobian_local_taylor_v1' {
-  return (
-    estimator === 'endpoint_self_jacobian_affine_v1' ||
-    estimator === 'endpoint_self_jacobian_local_taylor_v1'
-  );
-}
-
 function workspaceTransportProfileForEstimator(
   estimator: unknown
 ): ModelWorkspaceTransportProfile | null {
-  if (estimator === 'endpoint_self_jacobian_affine_v1') {
-    return MODEL_WORKSPACE_ENDPOINT_AFFINE_TRANSPORT_PROFILE;
+  if (
+    typeof estimator !== 'string' ||
+    !Object.prototype.hasOwnProperty.call(MODEL_WORKSPACE_ENDPOINT_TRANSPORT_PROFILES, estimator)
+  ) {
+    return null;
   }
-  if (estimator === 'endpoint_self_jacobian_local_taylor_v1') {
-    return MODEL_WORKSPACE_LOCAL_TAYLOR_TRANSPORT_PROFILE;
-  }
-  return null;
+  return MODEL_WORKSPACE_ENDPOINT_TRANSPORT_PROFILES[estimator as ModelWorkspaceEndpointEstimator];
 }
 
 function isSupportedWorkspaceEstimator(
@@ -1179,7 +1447,7 @@ function isSupportedWorkspacePositionPolicy(estimator: unknown, positionPolicy: 
       positionPolicy === 'explicit-source-target-pairs') ||
     (estimator === 'corpus_position_average_v1' &&
       positionPolicy === 'all-valid-current-and-future-targets') ||
-    (isEndpointWorkspaceEstimator(estimator) &&
+    (workspaceTransportProfileForEstimator(estimator) !== null &&
       positionPolicy === MODEL_WORKSPACE_ENDPOINT_POSITION_POLICY)
   );
 }

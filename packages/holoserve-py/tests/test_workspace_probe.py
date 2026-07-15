@@ -1,4 +1,5 @@
 # ruff: noqa: E402 - torch availability must be gated before model imports
+import copy
 import hashlib
 import json
 import math
@@ -33,7 +34,9 @@ from holoserve.workspace_probe import (
     JACOBIAN_LENS_ESTIMATOR_V1,
     JACOBIAN_LENS_ESTIMATOR_V2,
     JACOBIAN_LENS_ESTIMATOR_V3,
+    JACOBIAN_LENS_ESTIMATOR_V4,
     JACOBIAN_LENS_V1_REFERENCE_COMMIT,
+    JACOBIAN_LENS_V4_CONTROL_PROFILE_SHA256,
     MODEL_WORKSPACE_CONTROL_PROFILE,
     MODEL_WORKSPACE_MEASUREMENT_PROFILE,
     MODEL_WORKSPACE_RECEIPT_SCHEMA,
@@ -44,13 +47,35 @@ from holoserve.workspace_probe import (
     fit_jacobian_lens_v1,
     fit_endpoint_affine_jacobian_lens_v1,
     fit_endpoint_local_taylor_jacobian_lens_v1,
+    fit_endpoint_scalar_calibrated_jacobian_lens_v1,
+    jacobian_lens_v4_fit_binding_payload,
+    jacobian_lens_v4_fit_receipt_fields,
     load_jacobian_lens_artifact,
     merge_jacobian_lens_v1_artifacts,
     save_jacobian_lens_artifact,
+    sha256_file,
     sha256_json,
     _full_distribution_metrics,
     _largest_remainder_probability_e8,
 )
+
+
+TEST_S4_CONTROL_PROFILE_SHA256 = JACOBIAN_LENS_V4_CONTROL_PROFILE_SHA256
+
+
+def _write_test_v4_fit_receipt(artifact, lens_path, receipt_path):
+    receipt = {
+        "schema": "holoscript.jspace-s4-fit-receipt.v0.1.0",
+        **jacobian_lens_v4_fit_receipt_fields(
+            artifact,
+            lens_sha256=sha256_file(lens_path),
+        ),
+        "semanticLabelsAccessed": False,
+        "selfHash": None,
+    }
+    receipt["selfHash"] = sha256_json(receipt)
+    receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+    return receipt_path
 
 
 def tiny_model():
@@ -574,6 +599,15 @@ def test_endpoint_local_taylor_intercept_uses_mean_per_sample_remainder(tmp_path
         tokenizer_sha256=tokenizer_hash,
         model=model,
     )
+    with pytest.raises(WorkspaceProbeError) as confused_fit_receipt:
+        load_jacobian_lens_artifact(
+            path,
+            checkpoint_sha256=checkpoint_hash,
+            tokenizer_sha256=tokenizer_hash,
+            model=model,
+            fit_receipt_path=tmp_path / "not-valid-for-local-taylor.json",
+        )
+    assert confused_fit_receipt.value.code == "invalid_lens_fit_receipt"
     probe = ModelWorkspaceProbe(model, loaded, [None] * 16, "synthetic-endpoint")
     capability = probe.capability()
     assert capability["estimator"] == JACOBIAN_LENS_ESTIMATOR_V3
@@ -645,6 +679,368 @@ def test_endpoint_local_taylor_intercept_uses_mean_per_sample_remainder(tmp_path
             model=model,
         )
     assert missing_products.value.code == "invalid_lens_shape"
+
+
+def test_endpoint_scalar_calibration_is_centered_private_and_fail_closed(tmp_path):
+    model = SyntheticEndpointModel(nonlinear=True)
+    checkpoint_hash = f"sha256:{'1' * 64}"
+    tokenizer_hash = f"sha256:{'2' * 64}"
+    prompts = [
+        torch.tensor([[1]], dtype=torch.long),
+        torch.tensor([[3]], dtype=torch.long),
+    ]
+    artifact = fit_endpoint_scalar_calibrated_jacobian_lens_v1(
+        model,
+        prompts,
+        layers=[0],
+        checkpoint_sha256=checkpoint_hash,
+        tokenizer_sha256=tokenizer_hash,
+        control_profile_sha256=TEST_S4_CONTROL_PROFILE_SHA256,
+        dim_batch=1,
+        max_seq_len=4,
+        position_bins=[(0, 3)],
+    )
+
+    assert artifact["estimator"] == {
+        "name": JACOBIAN_LENS_ESTIMATOR_V4,
+        "paperParity": False,
+        "vectorization": "batched-endpoint-output-cotangents-retained-graph",
+        "transportProfile": "mean-centered-scalar-jacobian-final-residual-v1",
+        "anchor": "binwise-target-mean-minus-scaled-mean-jacobian-source-mean",
+        "scalarCalibration": "binwise-mean-centered-multiplicative-shrink-clipped-v1",
+        "ridgeFraction": 0.001,
+        "clipBounds": [0.0, 2.0],
+        "scalarIdentityControl": "binwise-mean-centered-scalar-identity-v1",
+    }
+    torch.testing.assert_close(artifact["matrices"][0, 0], torch.tensor([[4.0]]))
+    torch.testing.assert_close(artifact["sourceMeans"][0, 0], torch.tensor([2.0]))
+    torch.testing.assert_close(artifact["targetMeans"][0, 0], torch.tensor([5.0]))
+    torch.testing.assert_close(
+        artifact["jacobianSourceProductMeans"][0, 0], torch.tensor([10.0])
+    )
+    assert artifact["centeredJacobianEnergyMeans"].dtype == torch.float64
+    assert artifact["centeredJacobianTargetCrossMeans"].dtype == torch.float64
+    assert artifact["centeredIdentityEnergyMeans"].dtype == torch.float64
+    assert artifact["centeredIdentityTargetCrossMeans"].dtype == torch.float64
+    torch.testing.assert_close(
+        artifact["centeredJacobianEnergyMeans"], torch.tensor([[16.0]], dtype=torch.float64)
+    )
+    torch.testing.assert_close(
+        artifact["centeredJacobianTargetCrossMeans"],
+        torch.tensor([[16.0]], dtype=torch.float64),
+    )
+    torch.testing.assert_close(
+        artifact["centeredIdentityEnergyMeans"],
+        torch.tensor([[1.0]], dtype=torch.float64),
+    )
+    torch.testing.assert_close(
+        artifact["centeredIdentityTargetCrossMeans"],
+        torch.tensor([[4.0]], dtype=torch.float64),
+    )
+    assert all(key not in artifact for key in ("alpha", "beta", "scalars"))
+
+    alpha = 1.0 / 1.001
+    expected_matrix = torch.tensor([[4.0 * alpha]], dtype=torch.float32)
+    expected_bias = torch.tensor([5.0 - 8.0 * alpha], dtype=torch.float32)
+    torch.testing.assert_close(artifact["biases"][0, 0], expected_bias)
+
+    path = tmp_path / "endpoint-scalar.pt"
+    save_jacobian_lens_artifact(artifact, path)
+    with pytest.raises(WorkspaceProbeError) as missing_fit_receipt:
+        load_jacobian_lens_artifact(
+            path,
+            checkpoint_sha256=checkpoint_hash,
+            tokenizer_sha256=tokenizer_hash,
+            model=model,
+        )
+    assert missing_fit_receipt.value.code == "missing_lens_fit_receipt"
+    fit_receipt_path = _write_test_v4_fit_receipt(
+        artifact,
+        path,
+        tmp_path / "endpoint-scalar-fit-receipt.json",
+    )
+    for receipt_tamper in ("lensSha256", "scalarStatisticsSha256", "alphaRaw"):
+        tampered_receipt = json.loads(fit_receipt_path.read_text(encoding="utf-8"))
+        tampered_receipt[receipt_tamper] = (
+            1 if receipt_tamper == "alphaRaw" else f"sha256:{'f' * 64}"
+        )
+        tampered_receipt["selfHash"] = sha256_json(
+            {**tampered_receipt, "selfHash": None}
+        )
+        tampered_receipt_path = tmp_path / f"tampered-fit-{receipt_tamper}.json"
+        tampered_receipt_path.write_text(
+            json.dumps(tampered_receipt), encoding="utf-8"
+        )
+        with pytest.raises(WorkspaceProbeError) as tampered_fit_receipt:
+            load_jacobian_lens_artifact(
+                path,
+                checkpoint_sha256=checkpoint_hash,
+                tokenizer_sha256=tokenizer_hash,
+                model=model,
+                fit_receipt_path=tampered_receipt_path,
+            )
+        assert tampered_fit_receipt.value.code == "invalid_lens_fit_receipt"
+    loaded = load_jacobian_lens_artifact(
+        path,
+        checkpoint_sha256=checkpoint_hash,
+        tokenizer_sha256=tokenizer_hash,
+        model=model,
+        fit_receipt_path=fit_receipt_path,
+    )
+    torch.testing.assert_close(loaded.matrices[0][0], expected_matrix)
+    torch.testing.assert_close(loaded.biases[0][0], expected_bias)
+    assert loaded.control_matrices is not None
+    assert loaded.control_biases is not None
+    assert loaded.control_scalars is not None
+    torch.testing.assert_close(
+        loaded.control_matrices["unscaledCentered"][0][0], torch.tensor([[4.0]])
+    )
+    torch.testing.assert_close(
+        loaded.control_biases["localTaylor"][0][0], torch.tensor([-5.0])
+    )
+    torch.testing.assert_close(
+        loaded.control_scalars["scalarIdentity"][0][0], torch.tensor(2.0)
+    )
+
+    probe = ModelWorkspaceProbe(model, loaded, [None] * 16, "synthetic-scalar")
+    capability = probe.capability()
+    assert capability["estimator"] == JACOBIAN_LENS_ESTIMATOR_V4
+    assert (
+        capability["transportProfile"]
+        == "mean-centered-scalar-jacobian-final-residual-v1"
+    )
+    assert not any(
+        key in capability
+        for key in ("alpha", "beta", "matrices", "centeredJacobianEnergyMeans")
+    )
+    prompt = "scalar x"
+    receipt = probe.observe(
+        prompts[0],
+        prompt_sha256=f"sha256:{hashlib.sha256(prompt.encode()).hexdigest()}",
+        requested_model="synthetic-scalar",
+        request_id="workspace-scalar-test",
+        layers=[0],
+        positions=[-1],
+        k=3,
+        created_at="2026-07-14T00:00:00.000Z",
+    )
+    controls = receipt["observation"]["layers"][0]["transportControlMetrics"]
+    assert set(controls) == {"unscaledCentered", "localTaylor", "scalarIdentity"}
+    receipt_text = json.dumps(receipt, sort_keys=True)
+    assert '"alpha"' not in receipt_text
+    assert '"beta"' not in receipt_text
+    binding = {
+        "alias": "a",
+        "modelId": "synthetic-scalar",
+        "lensSha256": loaded.lens_sha256,
+    }
+    health = {
+        "backend": "pytorch-holo",
+        "model_workspace_probe": {
+            "schema": capability["schema"],
+            "observe": True,
+            "intervention": False,
+            "models": {"synthetic-scalar": capability},
+        },
+    }
+    validated_capability = _validate_capability(health, binding, [0])
+    for private_field in (
+        "alphaRaw",
+        "calibrationAlpha",
+        "betaRaw",
+        "fitScalars",
+        "S",
+        "C",
+        "S_I",
+        "C_I",
+        "Jbar",
+        "xbar",
+        "ybar",
+        "M",
+        "b",
+        "scalarIdentity",
+    ):
+        leaked_health = copy.deepcopy(health)
+        leaked_health["model_workspace_probe"]["models"]["synthetic-scalar"][
+            private_field
+        ] = 99_900_100
+        with pytest.raises(ValueError, match="capability mismatch"):
+            _validate_capability(leaked_health, binding, [0])
+    extracted = _validate_receipt(
+        receipt,
+        prompt=prompt,
+        binding=binding,
+        checkpoint_sha256=checkpoint_hash,
+        tokenizer_sha256=tokenizer_hash,
+        layers=[0],
+        positions=[-1],
+        k=3,
+        allow_truncated=False,
+        capability=validated_capability,
+    )
+    assert set(extracted["coordinates"][0]["transportControlMetrics"]) == {
+        "unscaledCentered",
+        "localTaylor",
+        "scalarIdentity",
+    }
+    for private_field in (
+        "alphaRaw",
+        "calibrationAlpha",
+        "betaRaw",
+        "fitScalars",
+        "S",
+        "C",
+        "S_I",
+        "C_I",
+        "Jbar",
+        "xbar",
+        "ybar",
+        "M",
+        "b",
+        "scalarIdentity",
+    ):
+        leaked_receipt = copy.deepcopy(receipt)
+        leaked_receipt["lens"][private_field] = 99_900_100
+        leaked_receipt["receiptHash"] = sha256_json(
+            {**leaked_receipt, "receiptHash": None}
+        )
+        with pytest.raises(ValueError):
+            _validate_receipt(
+                leaked_receipt,
+                prompt=prompt,
+                binding=binding,
+                checkpoint_sha256=checkpoint_hash,
+                tokenizer_sha256=tokenizer_hash,
+                layers=[0],
+                positions=[-1],
+                k=3,
+                allow_truncated=False,
+                capability=validated_capability,
+            )
+    missing_controls = copy.deepcopy(receipt)
+    missing_controls["observation"]["layers"][0].pop("transportControlMetrics")
+    missing_controls["observationSha256"] = sha256_json(
+        missing_controls["observation"]
+    )
+    missing_controls["receiptHash"] = sha256_json(
+        {**missing_controls, "receiptHash": None}
+    )
+    with pytest.raises(ValueError):
+        _validate_receipt(
+            missing_controls,
+            prompt=prompt,
+            binding=binding,
+            checkpoint_sha256=checkpoint_hash,
+            tokenizer_sha256=tokenizer_hash,
+            layers=[0],
+            positions=[-1],
+            k=3,
+            allow_truncated=False,
+            capability=validated_capability,
+        )
+
+    tamper_cases = []
+    missing = copy.deepcopy(artifact)
+    missing.pop("centeredJacobianEnergyMeans")
+    tamper_cases.append(("missing", missing, "invalid_lens_shape"))
+    wrong_dtype = copy.deepcopy(artifact)
+    wrong_dtype["centeredJacobianEnergyMeans"] = wrong_dtype[
+        "centeredJacobianEnergyMeans"
+    ].float()
+    tamper_cases.append(("dtype", wrong_dtype, "invalid_lens_shape"))
+    zero_energy = copy.deepcopy(artifact)
+    zero_energy["centeredJacobianEnergyMeans"].zero_()
+    zero_energy["fitBinding"] = jacobian_lens_v4_fit_binding_payload(
+        zero_energy,
+        control_profile_sha256=TEST_S4_CONTROL_PROFILE_SHA256,
+    )
+    tamper_cases.append(("zero", zero_energy, "degenerate_scalar_calibration"))
+    leaked_scalar = copy.deepcopy(artifact)
+    leaked_scalar["alpha"] = torch.tensor([[alpha]], dtype=torch.float64)
+    tamper_cases.append(("alpha", leaked_scalar, "invalid_lens_shape"))
+    leaked_raw_scalar = copy.deepcopy(artifact)
+    leaked_raw_scalar["alphaRaw"] = torch.tensor([[alpha]], dtype=torch.float64)
+    tamper_cases.append(("alpha-raw", leaked_raw_scalar, "invalid_lens_shape"))
+    substituted_control_profile = copy.deepcopy(artifact)
+    substituted_control_profile["fitBinding"]["controlProfileSha256"] = (
+        f"sha256:{'f' * 64}"
+    )
+    tamper_cases.append(
+        (
+            "control-profile-substitution",
+            substituted_control_profile,
+            "invalid_lens_fit_binding",
+        )
+    )
+    for field in (
+        "matrices",
+        "biases",
+        "sourceMeans",
+        "targetMeans",
+        "jacobianSourceProductMeans",
+    ):
+        wrong_serving_dtype = copy.deepcopy(artifact)
+        wrong_serving_dtype[field] = wrong_serving_dtype[field].double()
+        tamper_cases.append(
+            (f"{field}-dtype", wrong_serving_dtype, "invalid_lens_shape")
+        )
+    overflowing_alpha = copy.deepcopy(artifact)
+    overflowing_alpha["centeredJacobianEnergyMeans"].fill_(
+        torch.finfo(torch.float64).tiny
+    )
+    overflowing_alpha["fitBinding"] = jacobian_lens_v4_fit_binding_payload(
+        overflowing_alpha,
+        control_profile_sha256=TEST_S4_CONTROL_PROFILE_SHA256,
+    )
+    tamper_cases.append(
+        ("alpha-overflow", overflowing_alpha, "invalid_scalar_calibration")
+    )
+    overflowing_beta = copy.deepcopy(artifact)
+    overflowing_beta["centeredIdentityEnergyMeans"].fill_(
+        torch.finfo(torch.float64).tiny / 2
+    )
+    overflowing_beta["fitBinding"] = jacobian_lens_v4_fit_binding_payload(
+        overflowing_beta,
+        control_profile_sha256=TEST_S4_CONTROL_PROFILE_SHA256,
+    )
+    tamper_cases.append(
+        ("beta-overflow", overflowing_beta, "invalid_scalar_calibration")
+    )
+    wrong_bias = copy.deepcopy(artifact)
+    wrong_bias["biases"][0, 0, 0] += 1
+    tamper_cases.append(("bias", wrong_bias, "invalid_lens_anchor"))
+    bool_clip_bound = copy.deepcopy(artifact)
+    bool_clip_bound["estimator"]["clipBounds"] = [False, 2.0]
+    tamper_cases.append(("bool-clip-bound", bool_clip_bound, "invalid_lens_estimator"))
+    for name, tampered, expected_code in tamper_cases:
+        tampered_path = tmp_path / f"tampered-scalar-{name}.pt"
+        torch.save(tampered, tampered_path)
+        try:
+            load_jacobian_lens_artifact(
+                tampered_path,
+                checkpoint_sha256=checkpoint_hash,
+                tokenizer_sha256=tokenizer_hash,
+                model=model,
+                fit_receipt_path=fit_receipt_path,
+            )
+        except WorkspaceProbeError as error:
+            assert error.code == expected_code, name
+        else:
+            pytest.fail(f"tampered scalar artifact was accepted: {name}")
+
+    with pytest.raises(WorkspaceProbeError) as degenerate:
+        fit_endpoint_scalar_calibrated_jacobian_lens_v1(
+            model,
+            [prompts[0]],
+            layers=[0],
+            checkpoint_sha256=checkpoint_hash,
+            tokenizer_sha256=tokenizer_hash,
+            control_profile_sha256=TEST_S4_CONTROL_PROFILE_SHA256,
+            dim_batch=1,
+            max_seq_len=4,
+            position_bins=[(0, 3)],
+        )
+    assert degenerate.value.code == "degenerate_scalar_calibration"
 
 
 def test_endpoint_local_taylor_is_exact_for_known_affine_mapping():

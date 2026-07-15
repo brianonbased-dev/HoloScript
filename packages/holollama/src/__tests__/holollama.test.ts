@@ -27,6 +27,7 @@ import {
   MODEL_WORKSPACE_LOCAL_TAYLOR_TRANSPORT_PROFILE,
   MODEL_WORKSPACE_MEASUREMENT_PROFILE,
   MODEL_WORKSPACE_RECEIPT_SCHEMA,
+  MODEL_WORKSPACE_SCALAR_CALIBRATED_TRANSPORT_PROFILE,
   MODEL_WORKSPACE_SCORE_PROFILE,
   observeHoloLlamaModelWorkspace,
   parseHoloLlamaSystemdShow,
@@ -213,6 +214,20 @@ function localTaylorWorkspaceFixture(prompt = 'composition "'): ModelWorkspaceRe
   const receipt = endpointAffineWorkspaceFixture(prompt);
   receipt.lens.estimator = 'endpoint_self_jacobian_local_taylor_v1';
   receipt.lens.transportProfile = MODEL_WORKSPACE_LOCAL_TAYLOR_TRANSPORT_PROFILE;
+  receipt.receiptHash = hashModelWorkspacePayload({ ...receipt, receiptHash: null });
+  return receipt;
+}
+
+function scalarCalibratedWorkspaceFixture(prompt = 'composition "'): ModelWorkspaceReceipt {
+  const receipt = endpointAffineWorkspaceFixture(prompt);
+  receipt.lens.estimator = 'endpoint_self_jacobian_scalar_calibrated_v1';
+  receipt.lens.transportProfile = MODEL_WORKSPACE_SCALAR_CALIBRATED_TRANSPORT_PROFILE;
+  receipt.observation.layers[0]!.transportControlMetrics = {
+    unscaledCentered: { targetJensenShannonDivergenceNatsE8: 3_000_000 },
+    localTaylor: { targetJensenShannonDivergenceNatsE8: 3_500_000 },
+    scalarIdentity: { targetJensenShannonDivergenceNatsE8: 4_500_000 },
+  };
+  receipt.observationSha256 = hashModelWorkspacePayload(receipt.observation);
   receipt.receiptHash = hashModelWorkspacePayload({ ...receipt, receiptHash: null });
   return receipt;
 }
@@ -1580,28 +1595,317 @@ composition "owned-edge" {
     });
   });
 
-  it('keeps endpoint-affine and local-Taylor transport contracts non-interchangeable', () => {
-    const localTaylorWithAffineTransport = localTaylorWorkspaceFixture();
-    localTaylorWithAffineTransport.lens.transportProfile =
-      MODEL_WORKSPACE_ENDPOINT_AFFINE_TRANSPORT_PROFILE;
-    localTaylorWithAffineTransport.receiptHash = hashModelWorkspacePayload({
-      ...localTaylorWithAffineTransport,
-      receiptHash: null,
-    });
-    expect(validateModelWorkspaceReceipt(localTaylorWithAffineTransport).blockers).toContain(
-      'lens provenance or sparse-readout bound is invalid'
+  it('binds the endpoint scalar-calibrated estimator without exposing private fit data', async () => {
+    const receipt = scalarCalibratedWorkspaceFixture();
+    const capability = {
+      ...modelWorkspaceCapability(),
+      estimator: 'endpoint_self_jacobian_scalar_calibrated_v1',
+      paperParity: false,
+      positionPolicy: MODEL_WORKSPACE_ENDPOINT_POSITION_POLICY,
+      positionBins: [[0, 127]],
+      transportProfile: MODEL_WORKSPACE_SCALAR_CALIBRATED_TRANSPORT_PROFILE,
+    };
+    const fetchImpl: HoloLlamaWorkspaceProbeFetch = vi.fn(async (url) =>
+      url.endsWith('/health')
+        ? workspaceJsonResponse({
+            backend: 'pytorch-holo',
+            model: { name: 'holorunner-s0' },
+            model_workspace_probe: {
+              schema: MODEL_WORKSPACE_CAPABILITY_SCHEMA,
+              observe: true,
+              intervention: false,
+              models: { 'holorunner-s0': capability },
+            },
+          })
+        : workspaceJsonResponse(receipt)
     );
 
-    const endpointAffineWithLocalTaylorTransport = endpointAffineWorkspaceFixture();
-    endpointAffineWithLocalTaylorTransport.lens.transportProfile =
-      MODEL_WORKSPACE_LOCAL_TAYLOR_TRANSPORT_PROFILE;
-    endpointAffineWithLocalTaylorTransport.receiptHash = hashModelWorkspacePayload({
-      ...endpointAffineWithLocalTaylorTransport,
-      receiptHash: null,
+    const result = await observeHoloLlamaModelWorkspace({
+      endpoint: 'http://127.0.0.1:8080',
+      prompt: 'composition "',
+      model: 'holorunner-s0',
+      layers: [0],
+      positions: [-1],
+      k: 1,
+      generatedAt: '2026-07-14T00:00:00.000Z',
+      fetchImpl,
     });
-    expect(
-      validateModelWorkspaceReceipt(endpointAffineWithLocalTaylorTransport).blockers
-    ).toContain('lens provenance or sparse-readout bound is invalid');
+
+    expect(result.ok).toBe(true);
+    expect(result.modelWorkspaceReceipt?.lens).toMatchObject({
+      estimator: 'endpoint_self_jacobian_scalar_calibrated_v1',
+      paperParity: false,
+      positionPolicy: MODEL_WORKSPACE_ENDPOINT_POSITION_POLICY,
+      positionBins: [[0, 127]],
+      transportProfile: MODEL_WORKSPACE_SCALAR_CALIBRATED_TRANSPORT_PROFILE,
+    });
+    expect(result.modelWorkspaceReceipt?.observation.layers[0]?.transportControlMetrics).toEqual({
+      unscaledCentered: { targetJensenShannonDivergenceNatsE8: 3_000_000 },
+      localTaylor: { targetJensenShannonDivergenceNatsE8: 3_500_000 },
+      scalarIdentity: { targetJensenShannonDivergenceNatsE8: 4_500_000 },
+    });
+    for (const privateField of [
+      'alpha',
+      'beta',
+      'matrices',
+      'biases',
+      'sourceMeans',
+      'targetMeans',
+      'centeredJacobianEnergyMeans',
+    ]) {
+      expect(capability).not.toHaveProperty(privateField);
+      expect(result.modelWorkspaceReceipt?.lens).not.toHaveProperty(privateField);
+    }
+  });
+
+  it('rejects renamed S4 fit data and scalar-identity controls outside coordinates', async () => {
+    for (const privateField of ['S', 'C', 'S_I', 'C_I', 'Jbar', 'xbar', 'ybar', 'M', 'b']) {
+      const receipt = scalarCalibratedWorkspaceFixture() as unknown as Record<string, unknown> & {
+        lens: Record<string, unknown>;
+        receiptHash: string;
+      };
+      receipt.lens[privateField] = 1;
+      receipt.receiptHash = hashModelWorkspacePayload({ ...receipt, receiptHash: null });
+      expect(validateModelWorkspaceReceipt(receipt).blockers).toEqual(
+        expect.arrayContaining([expect.stringContaining('forbidden receipt fields')])
+      );
+    }
+
+    const misplaced = scalarCalibratedWorkspaceFixture() as unknown as Record<string, unknown> & {
+      lens: Record<string, unknown>;
+      receiptHash: string;
+    };
+    misplaced.lens.transportControlMetrics = {
+      scalarIdentity: { targetJensenShannonDivergenceNatsE8: 1 },
+    };
+    misplaced.receiptHash = hashModelWorkspacePayload({ ...misplaced, receiptHash: null });
+    expect(validateModelWorkspaceReceipt(misplaced).blockers).toEqual(
+      expect.arrayContaining([expect.stringContaining('forbidden receipt fields')])
+    );
+
+    const capability = {
+      ...modelWorkspaceCapability(),
+      estimator: 'endpoint_self_jacobian_scalar_calibrated_v1',
+      paperParity: false,
+      positionPolicy: MODEL_WORKSPACE_ENDPOINT_POSITION_POLICY,
+      positionBins: [[0, 127]],
+      transportProfile: MODEL_WORKSPACE_SCALAR_CALIBRATED_TRANSPORT_PROFILE,
+      metadata: {
+        transportControlMetrics: {
+          scalarIdentity: 1,
+        },
+      },
+    };
+    const result = await observeHoloLlamaModelWorkspace({
+      endpoint: 'http://127.0.0.1:8080',
+      prompt: 'composition "',
+      model: 'holorunner-s0',
+      layers: [0],
+      positions: [-1],
+      k: 1,
+      generatedAt: '2026-07-14T00:00:00.000Z',
+      fetchImpl: vi.fn(async () =>
+        workspaceJsonResponse({
+          backend: 'pytorch-holo',
+          model: { name: 'holorunner-s0' },
+          model_workspace_probe: {
+            schema: MODEL_WORKSPACE_CAPABILITY_SCHEMA,
+            observe: true,
+            intervention: false,
+            models: { 'holorunner-s0': capability },
+          },
+        })
+      ),
+    });
+    expect(result.status).toBe('unsupported');
+  });
+
+  it('requires exact S4 controls and rejects them on earlier endpoint estimators', () => {
+    const missing = scalarCalibratedWorkspaceFixture();
+    delete missing.observation.layers[0]!.transportControlMetrics;
+    missing.observationSha256 = hashModelWorkspacePayload(missing.observation);
+    missing.receiptHash = hashModelWorkspacePayload({ ...missing, receiptHash: null });
+    expect(validateModelWorkspaceReceipt(missing).blockers).toContain(
+      'observation layer 0 S4 transport controls are invalid'
+    );
+
+    const malformed = scalarCalibratedWorkspaceFixture();
+    malformed.observation.layers[0]!.transportControlMetrics!.scalarIdentity = {
+      targetJensenShannonDivergenceNatsE8: 70_000_000,
+    };
+    malformed.observationSha256 = hashModelWorkspacePayload(malformed.observation);
+    malformed.receiptHash = hashModelWorkspacePayload({ ...malformed, receiptHash: null });
+    expect(validateModelWorkspaceReceipt(malformed).blockers).toContain(
+      'observation layer 0 S4 transport controls are invalid'
+    );
+
+    const confused = endpointAffineWorkspaceFixture();
+    confused.observation.layers[0]!.transportControlMetrics =
+      scalarCalibratedWorkspaceFixture().observation.layers[0]!.transportControlMetrics;
+    confused.observationSha256 = hashModelWorkspacePayload(confused.observation);
+    confused.receiptHash = hashModelWorkspacePayload({ ...confused, receiptHash: null });
+    expect(validateModelWorkspaceReceipt(confused).blockers).toContain(
+      'observation layer 0 has estimator-confused S4 transport controls'
+    );
+  });
+
+  it('keeps every endpoint estimator transport contract non-interchangeable', () => {
+    const contracts = [
+      {
+        profile: MODEL_WORKSPACE_ENDPOINT_AFFINE_TRANSPORT_PROFILE,
+        fixture: endpointAffineWorkspaceFixture,
+      },
+      {
+        profile: MODEL_WORKSPACE_LOCAL_TAYLOR_TRANSPORT_PROFILE,
+        fixture: localTaylorWorkspaceFixture,
+      },
+      {
+        profile: MODEL_WORKSPACE_SCALAR_CALIBRATED_TRANSPORT_PROFILE,
+        fixture: scalarCalibratedWorkspaceFixture,
+      },
+    ] as const;
+
+    for (const contract of contracts) {
+      for (const wrongProfile of contracts
+        .map(({ profile }) => profile)
+        .filter((profile) => profile !== contract.profile)) {
+        const mismatched = contract.fixture();
+        mismatched.lens.transportProfile = wrongProfile;
+        mismatched.receiptHash = hashModelWorkspacePayload({
+          ...mismatched,
+          receiptHash: null,
+        });
+        expect(validateModelWorkspaceReceipt(mismatched).blockers).toContain(
+          'lens provenance or sparse-readout bound is invalid'
+        );
+      }
+    }
+  });
+
+  it('rejects every cross-profile endpoint capability before observation', async () => {
+    const contracts = [
+      {
+        estimator: 'endpoint_self_jacobian_affine_v1',
+        profile: MODEL_WORKSPACE_ENDPOINT_AFFINE_TRANSPORT_PROFILE,
+      },
+      {
+        estimator: 'endpoint_self_jacobian_local_taylor_v1',
+        profile: MODEL_WORKSPACE_LOCAL_TAYLOR_TRANSPORT_PROFILE,
+      },
+      {
+        estimator: 'endpoint_self_jacobian_scalar_calibrated_v1',
+        profile: MODEL_WORKSPACE_SCALAR_CALIBRATED_TRANSPORT_PROFILE,
+      },
+    ] as const;
+
+    for (const contract of contracts) {
+      for (const wrongProfile of contracts
+        .map(({ profile }) => profile)
+        .filter((profile) => profile !== contract.profile)) {
+        const fetchImpl: HoloLlamaWorkspaceProbeFetch = vi.fn(async () =>
+          workspaceJsonResponse({
+            backend: 'pytorch-holo',
+            model: { name: 'holorunner-s0' },
+            model_workspace_probe: {
+              schema: MODEL_WORKSPACE_CAPABILITY_SCHEMA,
+              observe: true,
+              intervention: false,
+              models: {
+                'holorunner-s0': {
+                  ...modelWorkspaceCapability(),
+                  estimator: contract.estimator,
+                  paperParity: false,
+                  positionPolicy: MODEL_WORKSPACE_ENDPOINT_POSITION_POLICY,
+                  positionBins: [[0, 127]],
+                  transportProfile: wrongProfile,
+                },
+              },
+            },
+          })
+        );
+
+        const result = await observeHoloLlamaModelWorkspace({
+          endpoint: 'http://127.0.0.1:8080',
+          prompt: 'test',
+          model: 'holorunner-s0',
+          generatedAt: '2026-07-14T00:00:00.000Z',
+          fetchImpl,
+        });
+        expect(result.status).toBe('unsupported');
+        expect(result.blockers).toEqual(['model_workspace_probe_not_advertised']);
+        expect(fetchImpl).toHaveBeenCalledTimes(1);
+      }
+    }
+  });
+
+  it('rejects scalar calibration internals from capabilities and receipts', async () => {
+    const forbiddenFields = [
+      'alphaE8',
+      'betaE8',
+      'scalarCalibration',
+      'sufficientStatistics',
+      'matrices',
+      'biases',
+      'sourceMeans',
+      'targetMeans',
+      'centeredJacobianEnergyMeans',
+      'centeredJacobianTargetCrossMeans',
+      'ridgeFractionE8',
+      'clipBoundsE8',
+      'sampleCounts',
+      'sequenceOrderDigest',
+      'S',
+      'C',
+      'S_I',
+      'C_I',
+    ] as const;
+
+    for (const forbiddenField of forbiddenFields) {
+      const fetchImpl: HoloLlamaWorkspaceProbeFetch = vi.fn(async () =>
+        workspaceJsonResponse({
+          backend: 'pytorch-holo',
+          model: { name: 'holorunner-s0' },
+          model_workspace_probe: {
+            schema: MODEL_WORKSPACE_CAPABILITY_SCHEMA,
+            observe: true,
+            intervention: false,
+            models: {
+              'holorunner-s0': {
+                ...modelWorkspaceCapability(),
+                estimator: 'endpoint_self_jacobian_scalar_calibrated_v1',
+                paperParity: false,
+                positionPolicy: MODEL_WORKSPACE_ENDPOINT_POSITION_POLICY,
+                positionBins: [[0, 127]],
+                transportProfile: MODEL_WORKSPACE_SCALAR_CALIBRATED_TRANSPORT_PROFILE,
+                [forbiddenField]: 1,
+              },
+            },
+          },
+        })
+      );
+      const capabilityResult = await observeHoloLlamaModelWorkspace({
+        endpoint: 'http://127.0.0.1:8080',
+        prompt: 'test',
+        model: 'holorunner-s0',
+        generatedAt: '2026-07-14T00:00:00.000Z',
+        fetchImpl,
+      });
+      expect(capabilityResult.status).toBe('unsupported');
+      expect(fetchImpl).toHaveBeenCalledTimes(1);
+
+      const leakedReceipt = structuredClone(scalarCalibratedWorkspaceFixture()) as unknown as {
+        lens: Record<string, unknown>;
+        receiptHash: string;
+      };
+      leakedReceipt.lens[forbiddenField] = 1;
+      leakedReceipt.receiptHash = hashModelWorkspacePayload({
+        ...leakedReceipt,
+        receiptHash: null,
+      });
+      expect(validateModelWorkspaceReceipt(leakedReceipt).blockers).toContain(
+        `forbidden receipt fields: lens.${forbiddenField}`
+      );
+    }
   });
 
   it('applies endpoint and anchor-control constraints to local-Taylor receipts', () => {

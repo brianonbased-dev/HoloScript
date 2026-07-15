@@ -192,16 +192,31 @@ only the honest estimator/parity contracts:
 `transportProfile: mean-anchored-affine-final-residual-v1`, or
 `endpoint_self_jacobian_local_taylor_v1` with `paperParity: false`, the same
 endpoint-only position/bin contract, and
-`transportProfile: local-taylor-affine-final-residual-v1`. These endpoint-family
-contracts are target-fidelity estimators, not Anthropic paper-parity claims.
+`transportProfile: local-taylor-affine-final-residual-v1`, or
+`endpoint_self_jacobian_scalar_calibrated_v1` with `paperParity: false`, the
+same endpoint-only position/bin contract, and
+`transportProfile: mean-centered-scalar-jacobian-final-residual-v1`. These
+endpoint-family contracts are target-fidelity estimators, not Anthropic
+paper-parity claims.
 HoloLlama accepts their readouts only at the prompt endpoint, binds their bins
 and transport profile to the model capability advertised by HoloServe, and
-rejects either estimator when it carries the other estimator's transport
-profile. Each endpoint-family coordinate must also carry integer-domain
+rejects every endpoint estimator when it carries another estimator's transport
+profile. Scalar-calibration coefficients and private fit internals—including
+alpha/beta values, sufficient statistics, matrices, biases, source/target
+means, ridge/clip metadata, and sample/sequence digests—must remain inside the
+hash-bound lens artifact. A capability or receipt that leaks those fields fails
+closed, including renamed one-letter formula aliases. Capabilities must have the
+exact estimator-specific public field set, and `scalarIdentity` is allowed only
+at an S4 observation coordinate whose complete control shape is validated. Each
+endpoint-family coordinate must also carry integer-domain
 `anchorControlMetrics` for mapped, mean-anchor, and target
 JSD/entropy/max-probability/top-token checks; HoloLlama verifies the gain
 arithmetic and vocabulary bounds so a collapsed mean-anchor readout cannot be
 reported as target-fidelity evidence.
+Scalar-calibrated coordinates additionally require exact
+`transportControlMetrics` for the unscaled-centered, local-Taylor, and
+scalar-identity ablations. Earlier endpoint estimators reject those S4-only
+controls.
 For every v0.2 receipt it also requires internally consistent requested versus
 normalized token positions, original/observed token counts, and an explicit
 `none` or `left-truncate-to-model-block-size` policy, so a clipped
