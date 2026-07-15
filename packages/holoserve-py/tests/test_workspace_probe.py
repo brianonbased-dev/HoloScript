@@ -37,6 +37,13 @@ from holoserve.workspace_probe import (
     JACOBIAN_LENS_ESTIMATOR_V4,
     JACOBIAN_LENS_V1_REFERENCE_COMMIT,
     JACOBIAN_LENS_V4_CONTROL_PROFILE_SHA256,
+    JACOBIAN_LENS_S5_CONTROL_PROFILE_SHA256,
+    JACOBIAN_LENS_S5_EXPERIMENT_PROFILE,
+    JACOBIAN_LENS_S5_FIT_BINDING_SCHEMA,
+    JACOBIAN_LENS_S5_FIT_RECEIPT_SCHEMA,
+    JACOBIAN_LENS_S5_FORMULA,
+    JACOBIAN_LENS_S5_FORMULA_SHA256,
+    JACOBIAN_LENS_S5_TENSOR_DIGEST_SCHEMA,
     MODEL_WORKSPACE_CONTROL_PROFILE,
     MODEL_WORKSPACE_MEASUREMENT_PROFILE,
     MODEL_WORKSPACE_RECEIPT_SCHEMA,
@@ -48,6 +55,9 @@ from holoserve.workspace_probe import (
     fit_endpoint_affine_jacobian_lens_v1,
     fit_endpoint_local_taylor_jacobian_lens_v1,
     fit_endpoint_scalar_calibrated_jacobian_lens_v1,
+    fit_endpoint_unscaled_centered_jacobian_lens_v1,
+    jacobian_lens_s5_fit_receipt_fields,
+    jacobian_lens_s5_tensor_sha256,
     jacobian_lens_v4_fit_binding_payload,
     jacobian_lens_v4_fit_receipt_fields,
     load_jacobian_lens_artifact,
@@ -61,6 +71,12 @@ from holoserve.workspace_probe import (
 
 
 TEST_S4_CONTROL_PROFILE_SHA256 = JACOBIAN_LENS_V4_CONTROL_PROFILE_SHA256
+TEST_S5_FIT_SOURCE_SHA256S = {
+    "research/2026-07-15-jspace-s5-unscaled-centered-preregistration.md": (
+        f"sha256:{'6' * 64}"
+    ),
+    "scripts/research/select_jspace_s5_subset.py": f"sha256:{'7' * 64}",
+}
 
 
 def _write_test_v4_fit_receipt(artifact, lens_path, receipt_path):
@@ -75,6 +91,21 @@ def _write_test_v4_fit_receipt(artifact, lens_path, receipt_path):
                 f"sha256:{'3' * 64}"
             )
         },
+        "semanticLabelsAccessed": False,
+        "selfHash": None,
+    }
+    receipt["selfHash"] = sha256_json(receipt)
+    receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+    return receipt_path
+
+
+def _write_test_s5_fit_receipt(artifact, lens_path, receipt_path):
+    receipt = {
+        "schema": JACOBIAN_LENS_S5_FIT_RECEIPT_SCHEMA,
+        **jacobian_lens_s5_fit_receipt_fields(
+            artifact,
+            lens_sha256=sha256_file(lens_path),
+        ),
         "semanticLabelsAccessed": False,
         "selfHash": None,
     }
@@ -1066,6 +1097,400 @@ def test_endpoint_scalar_calibration_is_centered_private_and_fail_closed(tmp_pat
             position_bins=[(0, 3)],
         )
     assert degenerate.value.code == "degenerate_scalar_calibration"
+
+
+def test_s5_unscaled_transport_is_receipt_bound_and_receipt_confusion_fails(tmp_path):
+    model = SyntheticEndpointModel(nonlinear=True)
+    checkpoint_hash = f"sha256:{'1' * 64}"
+    tokenizer_hash = f"sha256:{'2' * 64}"
+    source_hash = f"sha256:{'3' * 64}"
+    preregistration_hash = f"sha256:{'4' * 64}"
+    selector_hash = f"sha256:{'5' * 64}"
+    prompts = [
+        torch.tensor([[1]], dtype=torch.long),
+        torch.tensor([[3]], dtype=torch.long),
+    ]
+    artifact = fit_endpoint_unscaled_centered_jacobian_lens_v1(
+        model,
+        prompts,
+        layers=[0],
+        checkpoint_sha256=checkpoint_hash,
+        tokenizer_sha256=tokenizer_hash,
+        source_artifact_sha256=source_hash,
+        preregistration_sha256=preregistration_hash,
+        selector_sha256=selector_hash,
+        fit_source_sha256s=TEST_S5_FIT_SOURCE_SHA256S,
+        dim_batch=1,
+        max_seq_len=4,
+        position_bins=[(0, 3)],
+    )
+
+    assert artifact["estimator"] == {
+        "name": JACOBIAN_LENS_ESTIMATOR_V2,
+        "paperParity": False,
+        "vectorization": "batched-endpoint-output-cotangents-retained-graph",
+        "transportProfile": "mean-anchored-affine-final-residual-v1",
+        "anchor": "binwise-target-mean-minus-jacobian-source-mean",
+    }
+    binding = artifact["fitBinding"]
+    assert set(binding) == {
+        "schema",
+        "experimentProfile",
+        "estimator",
+        "transportProfile",
+        "formulaSha256",
+        "controlProfileSha256",
+        "checkpointSha256",
+        "tokenizerSha256",
+        "sourceArtifactSha256",
+        "calibrationCorpusSha256",
+        "calibrationShardSha256",
+        "sampleCount",
+        "positionBinCounts",
+        "sequenceOrderSha256",
+        "sequenceSetSha256",
+        "tensorDigestSchema",
+        "tensorSha256",
+        "layers",
+        "positionBins",
+        "preregistrationSha256",
+        "selectorSha256",
+        "fitSourceSha256s",
+    }
+    assert binding["schema"] == JACOBIAN_LENS_S5_FIT_BINDING_SCHEMA
+    assert binding["experimentProfile"] == JACOBIAN_LENS_S5_EXPERIMENT_PROFILE
+    assert binding["formulaSha256"] == JACOBIAN_LENS_S5_FORMULA_SHA256
+    assert binding["controlProfileSha256"] == JACOBIAN_LENS_S5_CONTROL_PROFILE_SHA256
+    assert JACOBIAN_LENS_S5_CONTROL_PROFILE_SHA256 != JACOBIAN_LENS_V4_CONTROL_PROFILE_SHA256
+    assert binding["tensorDigestSchema"] == JACOBIAN_LENS_S5_TENSOR_DIGEST_SCHEMA
+    assert binding["tensorSha256"] == jacobian_lens_s5_tensor_sha256(artifact)
+    assert binding["sourceArtifactSha256"] == source_hash
+    assert binding["preregistrationSha256"] == preregistration_hash
+    assert binding["selectorSha256"] == selector_hash
+    assert binding["fitSourceSha256s"] == TEST_S5_FIT_SOURCE_SHA256S
+    assert (
+        f"sha256:{hashlib.sha256(JACOBIAN_LENS_S5_FORMULA.encode('utf-8')).hexdigest()}"
+        == JACOBIAN_LENS_S5_FORMULA_SHA256
+    )
+    torch.testing.assert_close(artifact["matrices"][0, 0], torch.tensor([[4.0]]))
+    torch.testing.assert_close(artifact["biases"][0, 0], torch.tensor([-3.0]))
+    assert artifact["jacobianSourceProductMeans"].dtype == torch.float32
+    assert all(
+        artifact[name].dtype == torch.float64
+        for name in (
+            "centeredJacobianEnergyMeans",
+            "centeredJacobianTargetCrossMeans",
+            "centeredIdentityEnergyMeans",
+            "centeredIdentityTargetCrossMeans",
+        )
+    )
+
+    s5_path = tmp_path / "endpoint-s5.pt"
+    save_jacobian_lens_artifact(artifact, s5_path)
+    with pytest.raises(WorkspaceProbeError) as missing_receipt:
+        load_jacobian_lens_artifact(
+            s5_path,
+            checkpoint_sha256=checkpoint_hash,
+            tokenizer_sha256=tokenizer_hash,
+            model=model,
+        )
+    assert missing_receipt.value.code == "missing_lens_fit_receipt"
+
+    s5_receipt_path = _write_test_s5_fit_receipt(
+        artifact,
+        s5_path,
+        tmp_path / "endpoint-s5-fit-receipt.json",
+    )
+    s5_receipt = json.loads(s5_receipt_path.read_text(encoding="utf-8"))
+    assert type(s5_receipt["primaryAlphaInterior"]) is bool
+    assert type(s5_receipt["primaryBetaInterior"]) is bool
+    assert "alphaRaw" not in s5_receipt
+    assert "betaRaw" not in s5_receipt
+    assert s5_receipt["fitSourceSha256s"] == TEST_S5_FIT_SOURCE_SHA256S
+
+    source_map_mutations = {}
+    omitted_sources = copy.deepcopy(s5_receipt)
+    omitted_sources.pop("fitSourceSha256s")
+    source_map_mutations["omitted"] = omitted_sources
+    added_source = copy.deepcopy(s5_receipt)
+    added_source["fitSourceSha256s"]["docs/extra.md"] = f"sha256:{'8' * 64}"
+    source_map_mutations["added"] = added_source
+    renamed_source = copy.deepcopy(s5_receipt)
+    renamed_digest = renamed_source["fitSourceSha256s"].pop(
+        "scripts/research/select_jspace_s5_subset.py"
+    )
+    renamed_source["fitSourceSha256s"][
+        "scripts/research/select_jspace_s5_subset_v2.py"
+    ] = renamed_digest
+    source_map_mutations["renamed"] = renamed_source
+    changed_source = copy.deepcopy(s5_receipt)
+    changed_source["fitSourceSha256s"][
+        "scripts/research/select_jspace_s5_subset.py"
+    ] = f"sha256:{'9' * 64}"
+    source_map_mutations["changed"] = changed_source
+    for name, mutated in source_map_mutations.items():
+        mutated["selfHash"] = sha256_json({**mutated, "selfHash": None})
+        mutated_path = tmp_path / f"endpoint-s5-fit-sources-{name}.json"
+        mutated_path.write_text(json.dumps(mutated), encoding="utf-8")
+        with pytest.raises(WorkspaceProbeError) as source_map_error:
+            load_jacobian_lens_artifact(
+                s5_path,
+                checkpoint_sha256=checkpoint_hash,
+                tokenizer_sha256=tokenizer_hash,
+                model=model,
+                fit_receipt_path=mutated_path,
+            )
+        assert source_map_error.value.code == "invalid_lens_fit_receipt", name
+
+    receipt_field_mutations = {
+        "source": ("sourceArtifactSha256", f"sha256:{'a' * 64}"),
+        "preregistration": ("preregistrationSha256", f"sha256:{'b' * 64}"),
+        "selector": ("selectorSha256", f"sha256:{'c' * 64}"),
+        "order": ("sequenceOrderSha256", f"sha256:{'d' * 64}"),
+        "set": ("sequenceSetSha256", f"sha256:{'e' * 64}"),
+        "count": ("rowCount", s5_receipt["rowCount"] + 1),
+        "tensor": ("tensorSha256", f"sha256:{'f' * 64}"),
+        "lens": ("lensSha256", f"sha256:{'0' * 64}"),
+    }
+    for name, (field, value) in receipt_field_mutations.items():
+        mutated = copy.deepcopy(s5_receipt)
+        mutated[field] = value
+        mutated["selfHash"] = sha256_json({**mutated, "selfHash": None})
+        mutated_path = tmp_path / f"endpoint-s5-fit-{name}.json"
+        mutated_path.write_text(json.dumps(mutated), encoding="utf-8")
+        with pytest.raises(WorkspaceProbeError) as field_error:
+            load_jacobian_lens_artifact(
+                s5_path,
+                checkpoint_sha256=checkpoint_hash,
+                tokenizer_sha256=tokenizer_hash,
+                model=model,
+                fit_receipt_path=mutated_path,
+            )
+        assert field_error.value.code == "invalid_lens_fit_receipt", name
+
+    invalid_self_hash = copy.deepcopy(s5_receipt)
+    invalid_self_hash["selfHash"] = f"sha256:{'1' * 64}"
+    leaked_scalar = copy.deepcopy(s5_receipt)
+    leaked_scalar["alphaRaw"] = 1
+    leaked_scalar["selfHash"] = sha256_json({**leaked_scalar, "selfHash": None})
+    for name, mutated in (
+        ("self-hash", invalid_self_hash),
+        ("privacy", leaked_scalar),
+    ):
+        mutated_path = tmp_path / f"endpoint-s5-fit-{name}.json"
+        mutated_path.write_text(json.dumps(mutated), encoding="utf-8")
+        with pytest.raises(WorkspaceProbeError) as envelope_error:
+            load_jacobian_lens_artifact(
+                s5_path,
+                checkpoint_sha256=checkpoint_hash,
+                tokenizer_sha256=tokenizer_hash,
+                model=model,
+                fit_receipt_path=mutated_path,
+            )
+        assert envelope_error.value.code == "invalid_lens_fit_receipt", name
+
+    loaded = load_jacobian_lens_artifact(
+        s5_path,
+        checkpoint_sha256=checkpoint_hash,
+        tokenizer_sha256=tokenizer_hash,
+        model=model,
+        fit_receipt_path=s5_receipt_path,
+    )
+    torch.testing.assert_close(loaded.matrices[0][0], torch.tensor([[4.0]]))
+    torch.testing.assert_close(loaded.biases[0][0], torch.tensor([-3.0]))
+    assert loaded.control_matrices is not None
+    assert loaded.control_biases is not None
+    assert loaded.control_scalars is not None
+    alpha = 1.0 / 1.001
+    torch.testing.assert_close(
+        loaded.control_matrices["scalarCalibrated"][0][0],
+        torch.tensor([[4.0 * alpha]]),
+    )
+    torch.testing.assert_close(loaded.control_biases["localTaylor"][0][0], torch.tensor([-5.0]))
+    torch.testing.assert_close(loaded.control_scalars["scalarIdentity"][0][0], torch.tensor(2.0))
+    probe = ModelWorkspaceProbe(model, loaded, [None] * 16, "synthetic-s5")
+    capability = probe.capability()
+    assert capability["estimator"] == JACOBIAN_LENS_ESTIMATOR_V2
+    assert capability["experimentProfile"] == JACOBIAN_LENS_S5_EXPERIMENT_PROFILE
+    prompt = "s5 x"
+    observation_receipt = probe.observe(
+        prompts[0],
+        prompt_sha256=f"sha256:{hashlib.sha256(prompt.encode()).hexdigest()}",
+        requested_model="synthetic-s5",
+        request_id="workspace-s5-test",
+        layers=[0],
+        positions=[-1],
+        k=3,
+        created_at="2026-07-15T00:00:00.000Z",
+    )
+    assert observation_receipt["lens"]["experimentProfile"] == JACOBIAN_LENS_S5_EXPERIMENT_PROFILE
+    assert set(observation_receipt["observation"]["layers"][0]["transportControlMetrics"]) == {
+        "scalarCalibrated",
+        "localTaylor",
+        "scalarIdentity",
+    }
+    workspace_binding = {
+        "alias": "a",
+        "modelId": "synthetic-s5",
+        "lensSha256": loaded.lens_sha256,
+    }
+    health = {
+        "backend": "pytorch-holo",
+        "model_workspace_probe": {
+            "schema": capability["schema"],
+            "observe": True,
+            "intervention": False,
+            "models": {"synthetic-s5": capability},
+        },
+    }
+    validated_capability = _validate_capability(health, workspace_binding, [0])
+    extracted = _validate_receipt(
+        observation_receipt,
+        prompt=prompt,
+        binding=workspace_binding,
+        checkpoint_sha256=checkpoint_hash,
+        tokenizer_sha256=tokenizer_hash,
+        layers=[0],
+        positions=[-1],
+        k=3,
+        allow_truncated=False,
+        capability=validated_capability,
+    )
+    assert set(extracted["coordinates"][0]["transportControlMetrics"]) == {
+        "scalarCalibrated",
+        "localTaylor",
+        "scalarIdentity",
+    }
+
+    unknown_profile_health = copy.deepcopy(health)
+    unknown_profile_health["model_workspace_probe"]["models"]["synthetic-s5"][
+        "experimentProfile"
+    ] = "s5-unknown-profile"
+    with pytest.raises(ValueError, match="capability mismatch"):
+        _validate_capability(unknown_profile_health, workspace_binding, [0])
+
+    missing_profile = copy.deepcopy(observation_receipt)
+    missing_profile["lens"].pop("experimentProfile")
+    missing_profile["receiptHash"] = sha256_json(
+        {**missing_profile, "receiptHash": None}
+    )
+    with pytest.raises(ValueError, match="lens provenance"):
+        _validate_receipt(
+            missing_profile,
+            prompt=prompt,
+            binding=workspace_binding,
+            checkpoint_sha256=checkpoint_hash,
+            tokenizer_sha256=tokenizer_hash,
+            layers=[0],
+            positions=[-1],
+            k=3,
+            allow_truncated=False,
+            capability=validated_capability,
+        )
+
+    confused_controls = copy.deepcopy(observation_receipt)
+    transport_controls = confused_controls["observation"]["layers"][0][
+        "transportControlMetrics"
+    ]
+    transport_controls["unscaledCentered"] = transport_controls.pop("scalarCalibrated")
+    confused_controls["observationSha256"] = sha256_json(
+        confused_controls["observation"]
+    )
+    confused_controls["receiptHash"] = sha256_json(
+        {**confused_controls, "receiptHash": None}
+    )
+    with pytest.raises(ValueError, match="S5 transport controls"):
+        _validate_receipt(
+            confused_controls,
+            prompt=prompt,
+            binding=workspace_binding,
+            checkpoint_sha256=checkpoint_hash,
+            tokenizer_sha256=tokenizer_hash,
+            layers=[0],
+            positions=[-1],
+            k=3,
+            allow_truncated=False,
+            capability=validated_capability,
+        )
+
+    historical_v2 = fit_endpoint_affine_jacobian_lens_v1(
+        model,
+        prompts,
+        layers=[0],
+        checkpoint_sha256=checkpoint_hash,
+        tokenizer_sha256=tokenizer_hash,
+        dim_batch=1,
+        max_seq_len=4,
+        position_bins=[(0, 3)],
+    )
+    historical_v2_path = tmp_path / "historical-v2.pt"
+    save_jacobian_lens_artifact(historical_v2, historical_v2_path)
+    load_jacobian_lens_artifact(
+        historical_v2_path,
+        checkpoint_sha256=checkpoint_hash,
+        tokenizer_sha256=tokenizer_hash,
+        model=model,
+    )
+    with pytest.raises(WorkspaceProbeError) as v2_s5_receipt_confusion:
+        load_jacobian_lens_artifact(
+            historical_v2_path,
+            checkpoint_sha256=checkpoint_hash,
+            tokenizer_sha256=tokenizer_hash,
+            model=model,
+            fit_receipt_path=s5_receipt_path,
+        )
+    assert v2_s5_receipt_confusion.value.code == "invalid_lens_fit_receipt"
+
+    v4_artifact = fit_endpoint_scalar_calibrated_jacobian_lens_v1(
+        model,
+        prompts,
+        layers=[0],
+        checkpoint_sha256=checkpoint_hash,
+        tokenizer_sha256=tokenizer_hash,
+        control_profile_sha256=TEST_S4_CONTROL_PROFILE_SHA256,
+        dim_batch=1,
+        max_seq_len=4,
+        position_bins=[(0, 3)],
+    )
+    v4_path = tmp_path / "endpoint-v4-confusion.pt"
+    save_jacobian_lens_artifact(v4_artifact, v4_path)
+    v4_receipt_path = _write_test_v4_fit_receipt(
+        v4_artifact,
+        v4_path,
+        tmp_path / "endpoint-v4-confusion-receipt.json",
+    )
+    with pytest.raises(WorkspaceProbeError) as s5_v4_receipt_confusion:
+        load_jacobian_lens_artifact(
+            s5_path,
+            checkpoint_sha256=checkpoint_hash,
+            tokenizer_sha256=tokenizer_hash,
+            model=model,
+            fit_receipt_path=v4_receipt_path,
+        )
+    assert s5_v4_receipt_confusion.value.code == "invalid_lens_fit_receipt"
+    with pytest.raises(WorkspaceProbeError) as v4_s5_receipt_confusion:
+        load_jacobian_lens_artifact(
+            v4_path,
+            checkpoint_sha256=checkpoint_hash,
+            tokenizer_sha256=tokenizer_hash,
+            model=model,
+            fit_receipt_path=s5_receipt_path,
+        )
+    assert v4_s5_receipt_confusion.value.code == "invalid_lens_fit_receipt"
+
+    tampered = copy.deepcopy(artifact)
+    tampered["matrices"][0, 0, 0, 0] += 0.25
+    tampered_path = tmp_path / "endpoint-s5-tampered.pt"
+    torch.save(tampered, tampered_path)
+    with pytest.raises(WorkspaceProbeError) as tensor_tamper:
+        load_jacobian_lens_artifact(
+            tampered_path,
+            checkpoint_sha256=checkpoint_hash,
+            tokenizer_sha256=tokenizer_hash,
+            model=model,
+            fit_receipt_path=s5_receipt_path,
+        )
+    assert tensor_tamper.value.code == "invalid_lens_fit_binding"
 
 
 def test_endpoint_local_taylor_is_exact_for_known_affine_mapping():

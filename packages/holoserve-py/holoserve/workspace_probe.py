@@ -76,6 +76,28 @@ JACOBIAN_LENS_V4_SCALAR_STATISTIC_KEYS = (
     "centeredIdentityEnergyMeans",
     "centeredIdentityTargetCrossMeans",
 )
+JACOBIAN_LENS_S5_FIT_BINDING_SCHEMA = "holoscript.jspace-s5-fit-binding.v0.1.0"
+JACOBIAN_LENS_S5_FIT_RECEIPT_SCHEMA = "holoscript.jspace-s5-fit-receipt.v0.1.0"
+JACOBIAN_LENS_S5_TENSOR_DIGEST_SCHEMA = "holoscript.jspace-s5-tensor-digest.v0.1.0"
+JACOBIAN_LENS_S5_EXPERIMENT_PROFILE = "s5-unscaled-mean-centered-jacobian-v1"
+JACOBIAN_LENS_S5_FORMULA = (
+    "endpoint_self_jacobian_affine_v1:M=mean_i(J_i);xbar=mean_i(x_i);"
+    "ybar=mean_i(y_i);b=ybar-M@xbar;yhat=M@x+b"
+)
+JACOBIAN_LENS_S5_FORMULA_SHA256 = (
+    "sha256:b776c634fb7b171952149c5fed7a9e3a8a73ad98798e10ce469687fc6817c6a1"
+)
+JACOBIAN_LENS_S5_CONTROL_PROFILE_SHA256 = (
+    "sha256:af99d45a1963ca975078a5b29d1803d936441ddfa1cfa42d953430880d0a4e0b"
+)
+JACOBIAN_LENS_S5_TENSOR_KEYS = (
+    "matrices",
+    "biases",
+    "sourceMeans",
+    "targetMeans",
+    "jacobianSourceProductMeans",
+    *JACOBIAN_LENS_V4_SCALAR_STATISTIC_KEYS,
+)
 WORKSPACE_PROBE_IMPLEMENTATION_VERSION = "0.1.0"
 MAX_WORKSPACE_TOP_K = 25
 MAX_WORKSPACE_POSITIONS = 4
@@ -258,6 +280,217 @@ def jacobian_lens_v4_fit_binding_payload(
         "scalarStatisticsSha256": jacobian_lens_v4_scalar_statistics_sha256(artifact),
         "scalarFormulaSha256": jacobian_lens_v4_scalar_formula_sha256(),
         "controlProfileSha256": control_profile_sha256,
+    }
+
+
+def _sha256_tensor_bytes(tensor: torch.Tensor) -> str:
+    cpu = tensor.detach().to(device="cpu").contiguous()
+    array = cpu.numpy()
+    little_endian = array.astype(array.dtype.newbyteorder("<"), copy=False)
+    return f"sha256:{hashlib.sha256(little_endian.tobytes(order='C')).hexdigest()}"
+
+
+def jacobian_lens_s5_tensor_payload(artifact: dict[str, Any]) -> dict[str, Any]:
+    """Return the bounded digest payload for every private S5 fit tensor."""
+
+    tensors = []
+    for name in JACOBIAN_LENS_S5_TENSOR_KEYS:
+        tensor = artifact.get(name)
+        expected_dtype = (
+            torch.float64 if name in JACOBIAN_LENS_V4_SCALAR_STATISTIC_KEYS else torch.float32
+        )
+        if (
+            not isinstance(tensor, torch.Tensor)
+            or tensor.dtype != expected_dtype
+            or not torch.isfinite(tensor).all()
+        ):
+            raise WorkspaceProbeError(
+                "invalid_lens_fit_binding",
+                f"S5 tensor {name} must be finite {str(expected_dtype).removeprefix('torch.')}",
+            )
+        cpu = tensor.detach().to(device="cpu").contiguous()
+        tensors.append(
+            {
+                "name": name,
+                "dtype": str(cpu.dtype).removeprefix("torch."),
+                "shape": list(cpu.shape),
+                "valuesSha256": _sha256_tensor_bytes(cpu),
+            }
+        )
+    return {
+        "schema": JACOBIAN_LENS_S5_TENSOR_DIGEST_SCHEMA,
+        "byteOrder": "little",
+        "tensorOrder": list(JACOBIAN_LENS_S5_TENSOR_KEYS),
+        "tensors": tensors,
+    }
+
+
+def jacobian_lens_s5_tensor_sha256(artifact: dict[str, Any]) -> str:
+    return sha256_json(jacobian_lens_s5_tensor_payload(artifact))
+
+
+def _canonical_s5_fit_source_sha256s(value: Any) -> dict[str, str]:
+    if not isinstance(value, dict) or not value:
+        raise WorkspaceProbeError(
+            "invalid_lens_fit_binding",
+            "S5 fit sources must be a non-empty repo-relative digest map",
+        )
+    canonical: dict[str, str] = {}
+    if any(not isinstance(source, str) for source in value):
+        raise WorkspaceProbeError(
+            "invalid_lens_fit_binding",
+            "S5 fit source paths must be strings",
+        )
+    for source in sorted(value):
+        digest = value[source]
+        if (
+            not isinstance(source, str)
+            or not source
+            or source != source.strip()
+            or source.startswith("/")
+            or "\\" in source
+            or ":" in source
+            or any(part in {"", ".", ".."} for part in source.split("/"))
+            or not _is_sha256(digest)
+        ):
+            raise WorkspaceProbeError(
+                "invalid_lens_fit_binding",
+                "S5 fit sources require canonical repo-relative paths and sha256 digests",
+            )
+        canonical[source] = digest
+    return canonical
+
+
+def jacobian_lens_s5_fit_binding_payload(
+    artifact: dict[str, Any],
+    *,
+    source_artifact_sha256: str,
+    preregistration_sha256: str,
+    selector_sha256: str,
+    fit_source_sha256s: dict[str, str],
+) -> dict[str, Any]:
+    """Seal the receipt-bound S5 identity without relabeling historical V2."""
+
+    calibration = artifact.get("calibration")
+    model = artifact.get("model")
+    tokenizer = artifact.get("tokenizer")
+    layers = artifact.get("layers")
+    if (
+        artifact.get("estimator") != _v2_estimator_metadata()
+        or not isinstance(calibration, dict)
+        or not isinstance(model, dict)
+        or not isinstance(tokenizer, dict)
+        or not isinstance(layers, list)
+        or not layers
+        or any(type(layer) is not int for layer in layers)
+        or layers != sorted(set(layers))
+        or any(
+            not _is_sha256(value)
+            for value in (
+                source_artifact_sha256,
+                preregistration_sha256,
+                selector_sha256,
+                model.get("checkpointSha256"),
+                tokenizer.get("sha256"),
+            )
+        )
+    ):
+        raise WorkspaceProbeError(
+            "invalid_lens_fit_binding",
+            "S5 fit binding requires canonical V2 metadata and complete hash provenance",
+        )
+    n_embd = model.get("nEmbd")
+    if type(n_embd) is not int or n_embd < 1:
+        raise WorkspaceProbeError(
+            "invalid_lens_fit_binding",
+            "S5 fit binding requires a positive hidden width",
+        )
+    try:
+        _validate_v2_calibration_metadata(calibration, n_embd=n_embd)
+    except WorkspaceProbeError as error:
+        raise WorkspaceProbeError(
+            "invalid_lens_fit_binding",
+            "S5 fit binding requires exact endpoint calibration provenance",
+        ) from error
+    sequence_sha256s = calibration["sequenceSha256s"]
+    position_bin_counts = calibration["positionBinCounts"]
+    position_bins = calibration["positionBins"]
+    canonical_fit_sources = _canonical_s5_fit_source_sha256s(fit_source_sha256s)
+    if len(set(sequence_sha256s)) != len(sequence_sha256s):
+        raise WorkspaceProbeError(
+            "invalid_lens_fit_binding",
+            "S5 fit binding requires unique complete calibration sequences",
+        )
+    expected_matrix_shape = (
+        len(position_bins),
+        len(layers),
+        n_embd,
+        n_embd,
+    )
+    expected_vector_shape = (len(position_bins), len(layers), n_embd)
+    expected_scalar_shape = (len(position_bins), len(layers))
+    expected_shapes = {
+        "matrices": expected_matrix_shape,
+        "biases": expected_vector_shape,
+        "sourceMeans": expected_vector_shape,
+        "targetMeans": expected_vector_shape,
+        "jacobianSourceProductMeans": expected_vector_shape,
+        **{name: expected_scalar_shape for name in JACOBIAN_LENS_V4_SCALAR_STATISTIC_KEYS},
+    }
+    if any(
+        not isinstance(artifact.get(name), torch.Tensor) or tuple(artifact[name].shape) != shape
+        for name, shape in expected_shapes.items()
+    ):
+        raise WorkspaceProbeError(
+            "invalid_lens_fit_binding",
+            "S5 fit tensors do not match the declared layers, bins, and hidden width",
+        )
+    if not torch.equal(
+        artifact["targetMeans"],
+        artifact["targetMeans"][:, :1].expand_as(artifact["targetMeans"]),
+    ):
+        raise WorkspaceProbeError(
+            "invalid_lens_fit_binding",
+            "S5 target means must agree across repeated layer slots",
+        )
+    expected_biases = artifact["targetMeans"].to(dtype=torch.float64) - torch.einsum(
+        "blij,blj->bli",
+        artifact["matrices"].to(dtype=torch.float64),
+        artifact["sourceMeans"].to(dtype=torch.float64),
+    )
+    if not torch.allclose(
+        artifact["biases"].to(dtype=torch.float64),
+        expected_biases,
+        rtol=2e-5,
+        atol=2e-5,
+    ):
+        raise WorkspaceProbeError(
+            "invalid_lens_fit_binding",
+            "S5 serialized bias does not match ybar - Jbar @ xbar",
+        )
+    return {
+        "schema": JACOBIAN_LENS_S5_FIT_BINDING_SCHEMA,
+        "experimentProfile": JACOBIAN_LENS_S5_EXPERIMENT_PROFILE,
+        "estimator": JACOBIAN_LENS_ESTIMATOR_V2,
+        "transportProfile": JACOBIAN_LENS_V2_TRANSPORT_PROFILE,
+        "formulaSha256": JACOBIAN_LENS_S5_FORMULA_SHA256,
+        "controlProfileSha256": JACOBIAN_LENS_S5_CONTROL_PROFILE_SHA256,
+        "checkpointSha256": model["checkpointSha256"],
+        "tokenizerSha256": tokenizer["sha256"],
+        "sourceArtifactSha256": source_artifact_sha256,
+        "calibrationCorpusSha256": calibration["corpusSha256"],
+        "calibrationShardSha256": calibration["shardSha256"],
+        "sampleCount": len(sequence_sha256s),
+        "positionBinCounts": list(position_bin_counts),
+        "sequenceOrderSha256": sha256_json(sequence_sha256s),
+        "sequenceSetSha256": sha256_json(sorted(sequence_sha256s)),
+        "tensorDigestSchema": JACOBIAN_LENS_S5_TENSOR_DIGEST_SCHEMA,
+        "tensorSha256": jacobian_lens_s5_tensor_sha256(artifact),
+        "layers": list(layers),
+        "positionBins": [list(position_bin) for position_bin in position_bins],
+        "preregistrationSha256": preregistration_sha256,
+        "selectorSha256": selector_sha256,
+        "fitSourceSha256s": canonical_fit_sources,
     }
 
 
@@ -728,6 +961,7 @@ def _fit_endpoint_jacobian_lens_v1(
     position_bins: Sequence[tuple[int, int]] | None = None,
     max_cpu_matrix_bytes: int = DEFAULT_MAX_JACOBIAN_LENS_CPU_MATRIX_BYTES,
     control_profile_sha256: str | None = None,
+    s5_fit_provenance: dict[str, Any] | None = None,
     estimator_name: str,
 ) -> dict[str, Any]:
     """Fit a bounded same-endpoint Jacobian with an explicit affine anchor contract.
@@ -749,6 +983,40 @@ def _fit_endpoint_jacobian_lens_v1(
     if estimator_mode is None:
         _endpoint_estimator_metadata(estimator_name)
         raise AssertionError("unreachable endpoint estimator dispatch")
+    is_s5_fit = s5_fit_provenance is not None
+    canonical_s5_fit_sources: dict[str, str] | None = None
+    if is_s5_fit:
+        if estimator_name != JACOBIAN_LENS_ESTIMATOR_V2:
+            raise WorkspaceProbeError(
+                "invalid_lens_fit_binding",
+                "S5 receipt binding is only valid for the canonical V2 estimator",
+            )
+        expected_s5_keys = {
+            "source_artifact_sha256",
+            "preregistration_sha256",
+            "selector_sha256",
+            "fit_source_sha256s",
+        }
+        if (
+            not isinstance(s5_fit_provenance, dict)
+            or set(s5_fit_provenance) != expected_s5_keys
+            or any(
+                not _is_sha256(s5_fit_provenance[key])
+                for key in (
+                    "source_artifact_sha256",
+                    "preregistration_sha256",
+                    "selector_sha256",
+                )
+            )
+        ):
+            raise WorkspaceProbeError(
+                "invalid_lens_fit_binding",
+                "S5 fit provenance requires exact source, preregistration, and selector hashes",
+            )
+        canonical_s5_fit_sources = _canonical_s5_fit_source_sha256s(
+            s5_fit_provenance["fit_source_sha256s"]
+        )
+        estimator_mode = "unscaled_centered"
     if estimator_mode == "mean_centered_scalar":
         if control_profile_sha256 != JACOBIAN_LENS_V4_CONTROL_PROFILE_SHA256:
             raise WorkspaceProbeError(
@@ -802,7 +1070,11 @@ def _fit_endpoint_jacobian_lens_v1(
             "max_cpu_matrix_bytes must be a positive integer",
         )
     projected_matrix_bytes = len(normalized_bins) * len(layer_ids) * n_embd * n_embd * 24
-    if estimator_mode in {"local_taylor", "mean_centered_scalar"}:
+    if estimator_mode in {
+        "local_taylor",
+        "mean_centered_scalar",
+        "unscaled_centered",
+    }:
         projected_matrix_bytes += len(normalized_bins) * len(layer_ids) * n_embd * 8
     if projected_matrix_bytes > max_cpu_matrix_bytes:
         raise WorkspaceProbeError(
@@ -886,7 +1158,7 @@ def _fit_endpoint_jacobian_lens_v1(
             "calibration_corpus_hash_mismatch",
             "supplied corpus hash does not match the complete token sequences",
         )
-    if estimator_mode == "mean_centered_scalar":
+    if estimator_mode in {"mean_centered_scalar", "unscaled_centered"}:
         projected_matrix_bytes += len(prompts) * (len(layer_ids) + 1) * n_embd * 8
         if projected_matrix_bytes > max_cpu_matrix_bytes:
             raise WorkspaceProbeError(
@@ -906,6 +1178,7 @@ def _fit_endpoint_jacobian_lens_v1(
     needs_jacobian_source_products = estimator_mode in {
         "local_taylor",
         "mean_centered_scalar",
+        "unscaled_centered",
     }
     jacobian_source_product_totals = (
         [
@@ -917,16 +1190,13 @@ def _fit_endpoint_jacobian_lens_v1(
     )
     target_totals = [torch.zeros(n_embd, dtype=torch.float64) for _ in normalized_bins]
     source_samples = (
-        [
-            {layer: [] for layer in layer_ids}
-            for _ in normalized_bins
-        ]
-        if estimator_mode == "mean_centered_scalar"
+        [{layer: [] for layer in layer_ids} for _ in normalized_bins]
+        if estimator_mode in {"mean_centered_scalar", "unscaled_centered"}
         else None
     )
     target_samples = (
         [[] for _ in normalized_bins]
-        if estimator_mode == "mean_centered_scalar"
+        if estimator_mode in {"mean_centered_scalar", "unscaled_centered"}
         else None
     )
     n_passes = math.ceil(n_embd / dim_batch)
@@ -1115,9 +1385,10 @@ def _fit_endpoint_jacobian_lens_v1(
                     )
                 alpha = torch.clamp(alpha_raw, min=clip_lower, max=clip_upper)
                 scaled_matrix64 = alpha * matrix64
-                bias = (target_mean64 - scaled_matrix64 @ source_mean64).to(
-                    dtype=torch.float32
+                serving_matrix64 = (
+                    scaled_matrix64 if estimator_mode == "mean_centered_scalar" else matrix64
                 )
+                bias = (target_mean64 - serving_matrix64 @ source_mean64).to(dtype=torch.float32)
                 jacobian_source_product_mean64 = (
                     jacobian_source_product_totals[bin_index][layer] / count
                 )
@@ -1140,7 +1411,7 @@ def _fit_endpoint_jacobian_lens_v1(
             binned_jacobian_source_product_means.append(
                 torch.stack(jacobian_source_product_means_for_bin)
             )
-        if estimator_mode == "mean_centered_scalar":
+        if estimator_mode in {"mean_centered_scalar", "unscaled_centered"}:
             binned_centered_jacobian_energy_means.append(
                 torch.stack(centered_jacobian_energy_means_for_bin)
             )
@@ -1195,23 +1466,28 @@ def _fit_endpoint_jacobian_lens_v1(
     }
     if jacobian_source_product_means is not None:
         artifact["jacobianSourceProductMeans"] = jacobian_source_product_means
-    if estimator_mode == "mean_centered_scalar":
-        artifact["centeredJacobianEnergyMeans"] = torch.stack(
-            binned_centered_jacobian_energy_means
-        )
+    if estimator_mode in {"mean_centered_scalar", "unscaled_centered"}:
+        artifact["centeredJacobianEnergyMeans"] = torch.stack(binned_centered_jacobian_energy_means)
         artifact["centeredJacobianTargetCrossMeans"] = torch.stack(
             binned_centered_jacobian_target_cross_means
         )
-        artifact["centeredIdentityEnergyMeans"] = torch.stack(
-            binned_centered_identity_energy_means
-        )
+        artifact["centeredIdentityEnergyMeans"] = torch.stack(binned_centered_identity_energy_means)
         artifact["centeredIdentityTargetCrossMeans"] = torch.stack(
             binned_centered_identity_target_cross_means
         )
-        artifact["fitBinding"] = jacobian_lens_v4_fit_binding_payload(
-            artifact,
-            control_profile_sha256=control_profile_sha256,
-        )
+        if estimator_mode == "mean_centered_scalar":
+            artifact["fitBinding"] = jacobian_lens_v4_fit_binding_payload(
+                artifact,
+                control_profile_sha256=control_profile_sha256,
+            )
+        else:
+            artifact["fitBinding"] = jacobian_lens_s5_fit_binding_payload(
+                artifact,
+                source_artifact_sha256=s5_fit_provenance["source_artifact_sha256"],
+                preregistration_sha256=s5_fit_provenance["preregistration_sha256"],
+                selector_sha256=s5_fit_provenance["selector_sha256"],
+                fit_source_sha256s=canonical_s5_fit_sources,
+            )
     return artifact
 
 
@@ -1243,6 +1519,48 @@ def fit_endpoint_affine_jacobian_lens_v1(
         max_seq_len=max_seq_len,
         position_bins=position_bins,
         max_cpu_matrix_bytes=max_cpu_matrix_bytes,
+        estimator_name=JACOBIAN_LENS_ESTIMATOR_V2,
+    )
+
+
+def fit_endpoint_unscaled_centered_jacobian_lens_v1(
+    model,
+    calibration_batches: Iterable[torch.Tensor],
+    *,
+    layers: Sequence[int],
+    checkpoint_sha256: str,
+    tokenizer_sha256: str,
+    source_artifact_sha256: str,
+    preregistration_sha256: str,
+    selector_sha256: str,
+    fit_source_sha256s: dict[str, str],
+    calibration_corpus_sha256: str | None = None,
+    architecture: str = "holorunner-s0-gpt",
+    dim_batch: int = 8,
+    max_seq_len: int = 512,
+    position_bins: Sequence[tuple[int, int]] | None = None,
+    max_cpu_matrix_bytes: int = DEFAULT_MAX_JACOBIAN_LENS_CPU_MATRIX_BYTES,
+) -> dict[str, Any]:
+    """Fit the canonical V2 transport with fail-closed S5 receipt provenance."""
+
+    return _fit_endpoint_jacobian_lens_v1(
+        model,
+        calibration_batches,
+        layers=layers,
+        checkpoint_sha256=checkpoint_sha256,
+        tokenizer_sha256=tokenizer_sha256,
+        calibration_corpus_sha256=calibration_corpus_sha256,
+        architecture=architecture,
+        dim_batch=dim_batch,
+        max_seq_len=max_seq_len,
+        position_bins=position_bins,
+        max_cpu_matrix_bytes=max_cpu_matrix_bytes,
+        s5_fit_provenance={
+            "source_artifact_sha256": source_artifact_sha256,
+            "preregistration_sha256": preregistration_sha256,
+            "selector_sha256": selector_sha256,
+            "fit_source_sha256s": fit_source_sha256s,
+        },
         estimator_name=JACOBIAN_LENS_ESTIMATOR_V2,
     )
 
@@ -1953,6 +2271,100 @@ def jacobian_lens_v4_fit_receipt_fields(
     }
 
 
+def jacobian_lens_s5_fit_receipt_fields(
+    artifact: dict[str, Any],
+    *,
+    lens_sha256: str,
+) -> dict[str, Any]:
+    """Derive the scalar-redacted fields an S5 fit receipt must bind."""
+
+    if artifact.get("estimator") != _v2_estimator_metadata() or not _is_sha256(lens_sha256):
+        raise WorkspaceProbeError(
+            "invalid_lens_fit_receipt",
+            "S5 fit receipt fields require a canonical V2 artifact and saved digest",
+        )
+    fit_binding = artifact.get("fitBinding")
+    if (
+        not isinstance(fit_binding, dict)
+        or fit_binding.get("schema") != JACOBIAN_LENS_S5_FIT_BINDING_SCHEMA
+    ):
+        raise WorkspaceProbeError(
+            "invalid_lens_fit_binding",
+            "S5 artifact is missing its fit binding",
+        )
+    expected_fit_binding = jacobian_lens_s5_fit_binding_payload(
+        artifact,
+        source_artifact_sha256=fit_binding.get("sourceArtifactSha256"),
+        preregistration_sha256=fit_binding.get("preregistrationSha256"),
+        selector_sha256=fit_binding.get("selectorSha256"),
+        fit_source_sha256s=fit_binding.get("fitSourceSha256s"),
+    )
+    if sha256_json(fit_binding) != sha256_json(expected_fit_binding):
+        raise WorkspaceProbeError(
+            "invalid_lens_fit_binding",
+            "S5 artifact fit binding does not match its tensors and provenance",
+        )
+
+    energy = artifact["centeredJacobianEnergyMeans"].to(dtype=torch.float64)
+    cross = artifact["centeredJacobianTargetCrossMeans"].to(dtype=torch.float64)
+    identity_energy = artifact["centeredIdentityEnergyMeans"].to(dtype=torch.float64)
+    identity_cross = artifact["centeredIdentityTargetCrossMeans"].to(dtype=torch.float64)
+    if bool((energy <= 0).any()) or bool((identity_energy <= 0).any()):
+        raise WorkspaceProbeError(
+            "degenerate_scalar_calibration",
+            "S5 attribution-control energies must be positive",
+        )
+    alpha_raw = cross / ((1.0 + JACOBIAN_LENS_V4_RIDGE_FRACTION) * energy)
+    beta_raw = identity_cross / ((1.0 + JACOBIAN_LENS_V4_RIDGE_FRACTION) * identity_energy)
+    if not torch.isfinite(alpha_raw).all() or not torch.isfinite(beta_raw).all():
+        raise WorkspaceProbeError(
+            "invalid_scalar_calibration",
+            "S5 attribution-control coefficients must be finite",
+        )
+    lower, upper = JACOBIAN_LENS_V4_CLIP_BOUNDS
+    alpha = torch.clamp(alpha_raw, min=lower, max=upper)
+    beta = torch.clamp(beta_raw, min=lower, max=upper)
+    layers = artifact.get("layers")
+    primary_indices = (
+        [index for index, layer in enumerate(layers) if layer in {2, 5}]
+        if isinstance(layers, list)
+        else []
+    )
+    primary_alpha_interior = bool(primary_indices) and bool(
+        ((alpha[:, primary_indices] > lower) & (alpha[:, primary_indices] < upper)).all().item()
+    )
+    primary_beta_interior = bool(primary_indices) and bool(
+        ((beta[:, primary_indices] > lower) & (beta[:, primary_indices] < upper)).all().item()
+    )
+    return {
+        "estimator": JACOBIAN_LENS_ESTIMATOR_V2,
+        "transportProfile": JACOBIAN_LENS_V2_TRANSPORT_PROFILE,
+        "experimentProfile": JACOBIAN_LENS_S5_EXPERIMENT_PROFILE,
+        "formulaSha256": fit_binding["formulaSha256"],
+        "controlProfileSha256": fit_binding["controlProfileSha256"],
+        "tensorDigestSchema": fit_binding["tensorDigestSchema"],
+        "tensorSha256": fit_binding["tensorSha256"],
+        "fitBindingSha256": sha256_json(fit_binding),
+        "primaryAlphaInterior": primary_alpha_interior,
+        "primaryBetaInterior": primary_beta_interior,
+        "checkpointSha256": fit_binding["checkpointSha256"],
+        "tokenizerSha256": fit_binding["tokenizerSha256"],
+        "sourceArtifactSha256": fit_binding["sourceArtifactSha256"],
+        "calibrationCorpusSha256": fit_binding["calibrationCorpusSha256"],
+        "calibrationShardSha256": fit_binding["calibrationShardSha256"],
+        "sequenceOrderSha256": fit_binding["sequenceOrderSha256"],
+        "sequenceSetSha256": fit_binding["sequenceSetSha256"],
+        "rowCount": fit_binding["sampleCount"],
+        "positionBinCounts": fit_binding["positionBinCounts"],
+        "layers": fit_binding["layers"],
+        "positionBins": fit_binding["positionBins"],
+        "preregistrationSha256": fit_binding["preregistrationSha256"],
+        "selectorSha256": fit_binding["selectorSha256"],
+        "fitSourceSha256s": dict(fit_binding["fitSourceSha256s"]),
+        "lensSha256": lens_sha256,
+    }
+
+
 def _fit_receipt_contains_private_scalar(
     value: Any,
     path: tuple[str, ...] = (),
@@ -2036,6 +2448,49 @@ def _validate_v4_fit_receipt(
         )
 
 
+def _validate_s5_fit_receipt(
+    fit_receipt_path: str | Path | None,
+    *,
+    artifact: dict[str, Any],
+    lens_sha256: str,
+) -> None:
+    if fit_receipt_path is None:
+        raise WorkspaceProbeError(
+            "missing_lens_fit_receipt",
+            "S5 lenses require a provenance-bound fit receipt",
+        )
+    source = Path(fit_receipt_path)
+    try:
+        receipt = json.loads(source.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise WorkspaceProbeError(
+            "invalid_lens_fit_receipt",
+            "S5 fit receipt is missing or malformed",
+        ) from error
+    if not isinstance(receipt, dict):
+        raise WorkspaceProbeError(
+            "invalid_lens_fit_receipt",
+            "S5 fit receipt must be a JSON object",
+        )
+    expected = jacobian_lens_s5_fit_receipt_fields(
+        artifact,
+        lens_sha256=lens_sha256,
+    )
+    actual = {key: receipt.get(key) for key in expected}
+    if (
+        receipt.get("schema") != JACOBIAN_LENS_S5_FIT_RECEIPT_SCHEMA
+        or receipt.get("semanticLabelsAccessed") is not False
+        or not _is_sha256(receipt.get("selfHash"))
+        or receipt["selfHash"] != sha256_json({**receipt, "selfHash": None})
+        or sha256_json(actual) != sha256_json(expected)
+        or _fit_receipt_contains_private_scalar(receipt)
+    ):
+        raise WorkspaceProbeError(
+            "invalid_lens_fit_receipt",
+            "S5 fit receipt does not match the lens or privacy contract",
+        )
+
+
 def load_jacobian_lens_artifact(
     path: str | Path,
     *,
@@ -2070,6 +2525,12 @@ def load_jacobian_lens_artifact(
     is_v2_estimator = estimator_meta == _v2_estimator_metadata()
     is_v3_estimator = estimator_meta == _v3_estimator_metadata()
     is_v4_estimator = _is_v4_estimator_metadata(estimator_meta)
+    raw_fit_binding = payload.get("fitBinding")
+    is_s5_artifact = (
+        is_v2_estimator
+        and isinstance(raw_fit_binding, dict)
+        and raw_fit_binding.get("schema") == JACOBIAN_LENS_S5_FIT_BINDING_SCHEMA
+    )
     is_endpoint_estimator = is_v2_estimator or is_v3_estimator or is_v4_estimator
     if not is_v0_estimator and not is_v1_estimator and not is_endpoint_estimator:
         raise WorkspaceProbeError(
@@ -2077,10 +2538,10 @@ def load_jacobian_lens_artifact(
             "lens estimator metadata is not a supported v0, pinned-reference v1, "
             "endpoint-affine, endpoint-local-Taylor, or endpoint-scalar contract",
         )
-    if fit_receipt_path is not None and not is_v4_estimator:
+    if fit_receipt_path is not None and not (is_v4_estimator or is_s5_artifact):
         raise WorkspaceProbeError(
             "invalid_lens_fit_receipt",
-            "fit receipts are only valid for scalar-calibrated lens artifacts",
+            "fit receipts are only valid for receipt-bound S4 or S5 artifacts",
         )
     expected_top_level_fields = {
         "schema",
@@ -2096,9 +2557,9 @@ def load_jacobian_lens_artifact(
     }
     if is_endpoint_estimator:
         expected_top_level_fields.update({"biases", "sourceMeans", "targetMeans"})
-    if is_v3_estimator or is_v4_estimator:
+    if is_v3_estimator or is_v4_estimator or is_s5_artifact:
         expected_top_level_fields.add("jacobianSourceProductMeans")
-    if is_v4_estimator:
+    if is_v4_estimator or is_s5_artifact:
         expected_top_level_fields.update(
             {
                 "centeredJacobianEnergyMeans",
@@ -2248,6 +2709,11 @@ def load_jacobian_lens_artifact(
     v4_local_taylor_biases = None
     v4_identity_biases = None
     v4_identity_scalars = None
+    s5_scalar_matrices = None
+    s5_scalar_biases = None
+    s5_local_taylor_biases = None
+    s5_identity_biases = None
+    s5_identity_scalars = None
     if is_endpoint_estimator:
         position_bins = calibration_meta["positionBins"]
         expected_matrix_shape = (len(position_bins), len(layers), n_embd, n_embd)
@@ -2262,7 +2728,7 @@ def load_jacobian_lens_artifact(
             or tuple(source_means.shape) != expected_vector_shape
             or tuple(target_means.shape) != expected_vector_shape
             or (
-                is_v4_estimator
+                (is_v4_estimator or is_s5_artifact)
                 and any(
                     value.dtype != torch.float32
                     for value in (matrices, biases, source_means, target_means)
@@ -2286,16 +2752,102 @@ def load_jacobian_lens_artifact(
                 "endpoint target means must agree across repeated layer slots",
             )
         if is_v2_estimator:
-            if jacobian_source_product_means is not None or any(
-                value is not None for value in scalar_stat_values
-            ):
-                raise WorkspaceProbeError(
-                    "invalid_lens_shape",
-                    "endpoint mean-anchor artifacts cannot contain later-estimator statistics",
+            if is_s5_artifact:
+                expected_scalar_shape = (len(position_bins), len(layers))
+                if (
+                    not isinstance(jacobian_source_product_means, torch.Tensor)
+                    or tuple(jacobian_source_product_means.shape) != expected_vector_shape
+                    or jacobian_source_product_means.dtype != torch.float32
+                    or not torch.isfinite(jacobian_source_product_means).all()
+                    or not all(isinstance(value, torch.Tensor) for value in scalar_stat_values)
+                    or not all(
+                        tuple(value.shape) == expected_scalar_shape
+                        and value.dtype == torch.float64
+                        and torch.isfinite(value).all()
+                        for value in scalar_stat_values
+                    )
+                ):
+                    raise WorkspaceProbeError(
+                        "invalid_lens_shape",
+                        "S5 endpoint artifacts require finite attribution-control statistics",
+                    )
+                expected_fit_binding = jacobian_lens_s5_fit_binding_payload(
+                    payload,
+                    source_artifact_sha256=fit_binding.get("sourceArtifactSha256"),
+                    preregistration_sha256=fit_binding.get("preregistrationSha256"),
+                    selector_sha256=fit_binding.get("selectorSha256"),
+                    fit_source_sha256s=fit_binding.get("fitSourceSha256s"),
                 )
-            expected_biases = target_means.float() - torch.einsum(
-                "blij,blj->bli", matrices.float(), source_means.float()
-            )
+                if sha256_json(fit_binding) != sha256_json(expected_fit_binding):
+                    raise WorkspaceProbeError(
+                        "invalid_lens_fit_binding",
+                        "S5 artifact fit binding does not match its tensors and provenance",
+                    )
+                energy = centered_jacobian_energy_means.to(dtype=torch.float64)
+                cross = centered_jacobian_target_cross_means.to(dtype=torch.float64)
+                identity_energy = centered_identity_energy_means.to(dtype=torch.float64)
+                identity_cross = centered_identity_target_cross_means.to(dtype=torch.float64)
+                if bool((energy <= 0).any()) or bool((identity_energy <= 0).any()):
+                    raise WorkspaceProbeError(
+                        "degenerate_scalar_calibration",
+                        "S5 attribution-control energies must be positive",
+                    )
+                ridge_fraction = JACOBIAN_LENS_V4_RIDGE_FRACTION
+                clip_lower, clip_upper = JACOBIAN_LENS_V4_CLIP_BOUNDS
+                alpha_raw = cross / ((1.0 + ridge_fraction) * energy)
+                beta_raw = identity_cross / ((1.0 + ridge_fraction) * identity_energy)
+                if not torch.isfinite(alpha_raw).all() or not torch.isfinite(beta_raw).all():
+                    raise WorkspaceProbeError(
+                        "invalid_scalar_calibration",
+                        "S5 attribution-control coefficients must be finite",
+                    )
+                alpha = torch.clamp(alpha_raw, min=clip_lower, max=clip_upper)
+                beta = torch.clamp(beta_raw, min=clip_lower, max=clip_upper)
+                expected_biases = target_means.to(dtype=torch.float64) - torch.einsum(
+                    "blij,blj->bli",
+                    matrices.to(dtype=torch.float64),
+                    source_means.to(dtype=torch.float64),
+                )
+                s5_scalar_matrices = alpha[..., None, None] * matrices.to(dtype=torch.float64)
+                s5_scalar_biases = target_means.to(dtype=torch.float64) - torch.einsum(
+                    "blij,blj->bli",
+                    s5_scalar_matrices,
+                    source_means.to(dtype=torch.float64),
+                )
+                s5_local_taylor_biases = target_means.to(
+                    dtype=torch.float64
+                ) - jacobian_source_product_means.to(dtype=torch.float64)
+                s5_identity_biases = target_means.to(dtype=torch.float64) - (
+                    beta[..., None] * source_means.to(dtype=torch.float64)
+                )
+                s5_identity_scalars = beta
+                if not all(
+                    torch.isfinite(value).all()
+                    for value in (
+                        alpha,
+                        beta,
+                        expected_biases,
+                        s5_scalar_matrices,
+                        s5_scalar_biases,
+                        s5_local_taylor_biases,
+                        s5_identity_biases,
+                    )
+                ):
+                    raise WorkspaceProbeError(
+                        "invalid_scalar_calibration",
+                        "derived S5 attribution controls must be finite",
+                    )
+            else:
+                if jacobian_source_product_means is not None or any(
+                    value is not None for value in scalar_stat_values
+                ):
+                    raise WorkspaceProbeError(
+                        "invalid_lens_shape",
+                        "endpoint mean-anchor artifacts cannot contain later-estimator statistics",
+                    )
+                expected_biases = target_means.float() - torch.einsum(
+                    "blij,blj->bli", matrices.float(), source_means.float()
+                )
         elif is_v3_estimator:
             if (
                 not isinstance(jacobian_source_product_means, torch.Tensor)
@@ -2416,6 +2968,12 @@ def load_jacobian_lens_artifact(
                 artifact=payload,
                 lens_sha256=lens_sha256,
             )
+        elif is_s5_artifact:
+            _validate_s5_fit_receipt(
+                fit_receipt_path,
+                artifact=payload,
+                lens_sha256=lens_sha256,
+            )
     else:
         if matrices.ndim != 3 or tuple(matrices.shape[1:]) != (n_embd, n_embd):
             raise WorkspaceProbeError(
@@ -2438,6 +2996,14 @@ def load_jacobian_lens_artifact(
         control_matrix_maps = {"unscaledCentered": {}, "localTaylor": {}}
         control_bias_maps = {
             "unscaledCentered": {},
+            "localTaylor": {},
+            "scalarIdentity": {},
+        }
+        control_scalar_maps = {"scalarIdentity": {}}
+    elif is_s5_artifact:
+        control_matrix_maps = {"scalarCalibrated": {}, "localTaylor": {}}
+        control_bias_maps = {
+            "scalarCalibrated": {},
             "localTaylor": {},
             "scalarIdentity": {},
         }
@@ -2486,28 +3052,39 @@ def load_jacobian_lens_artifact(
             control_matrix_maps["unscaledCentered"][layer] = (
                 matrices[:, index].detach().to(dtype=torch.float32, device="cpu")
             )
-            control_matrix_maps["localTaylor"][layer] = control_matrix_maps[
-                "unscaledCentered"
-            ][layer]
+            control_matrix_maps["localTaylor"][layer] = control_matrix_maps["unscaledCentered"][
+                layer
+            ]
             control_bias_maps["unscaledCentered"][layer] = (
-                v4_centered_biases[:, index]
-                .detach()
-                .to(dtype=torch.float32, device="cpu")
+                v4_centered_biases[:, index].detach().to(dtype=torch.float32, device="cpu")
             )
             control_bias_maps["localTaylor"][layer] = (
-                v4_local_taylor_biases[:, index]
-                .detach()
-                .to(dtype=torch.float32, device="cpu")
+                v4_local_taylor_biases[:, index].detach().to(dtype=torch.float32, device="cpu")
             )
             control_bias_maps["scalarIdentity"][layer] = (
-                v4_identity_biases[:, index]
-                .detach()
-                .to(dtype=torch.float32, device="cpu")
+                v4_identity_biases[:, index].detach().to(dtype=torch.float32, device="cpu")
             )
             control_scalar_maps["scalarIdentity"][layer] = (
-                v4_identity_scalars[:, index]
-                .detach()
-                .to(dtype=torch.float32, device="cpu")
+                v4_identity_scalars[:, index].detach().to(dtype=torch.float32, device="cpu")
+            )
+        elif is_s5_artifact:
+            control_matrix_maps["scalarCalibrated"][layer] = (
+                s5_scalar_matrices[:, index].detach().to(dtype=torch.float32, device="cpu")
+            )
+            control_matrix_maps["localTaylor"][layer] = (
+                matrices[:, index].detach().to(dtype=torch.float32, device="cpu")
+            )
+            control_bias_maps["scalarCalibrated"][layer] = (
+                s5_scalar_biases[:, index].detach().to(dtype=torch.float32, device="cpu")
+            )
+            control_bias_maps["localTaylor"][layer] = (
+                s5_local_taylor_biases[:, index].detach().to(dtype=torch.float32, device="cpu")
+            )
+            control_bias_maps["scalarIdentity"][layer] = (
+                s5_identity_biases[:, index].detach().to(dtype=torch.float32, device="cpu")
+            )
+            control_scalar_maps["scalarIdentity"][layer] = (
+                s5_identity_scalars[:, index].detach().to(dtype=torch.float32, device="cpu")
             )
     metadata = {
         key: value
@@ -2526,6 +3103,8 @@ def load_jacobian_lens_artifact(
             "fitBinding",
         }
     }
+    if is_s5_artifact:
+        metadata["experimentProfile"] = JACOBIAN_LENS_S5_EXPERIMENT_PROFILE
     return LoadedJacobianLensArtifact(
         metadata=metadata,
         matrices=layer_map,
@@ -2568,6 +3147,8 @@ class ModelWorkspaceProbe:
             capability["transportProfile"] = estimator["transportProfile"]
             capability["positionPolicy"] = self.lens.metadata["calibration"]["positionPolicy"]
             capability["positionBins"] = self.lens.metadata["calibration"]["positionBins"]
+            if "experimentProfile" in self.lens.metadata:
+                capability["experimentProfile"] = self.lens.metadata["experimentProfile"]
         return capability
 
     def observe(
@@ -2721,7 +3302,11 @@ class ModelWorkspaceProbe:
                             anchor_logits,
                             model_logits[0, position],
                         )
-                        if estimator_name == JACOBIAN_LENS_ESTIMATOR_V4:
+                        experiment_profile = self.lens.metadata.get("experimentProfile")
+                        if (
+                            estimator_name == JACOBIAN_LENS_ESTIMATOR_V4
+                            or experiment_profile == JACOBIAN_LENS_S5_EXPERIMENT_PROFILE
+                        ):
                             if (
                                 self.lens.control_matrices is None
                                 or self.lens.control_biases is None
@@ -2732,10 +3317,15 @@ class ModelWorkspaceProbe:
                                     "loaded scalar lens is missing private evaluation controls",
                                 )
                             transport_controls: dict[str, dict[str, int]] = {}
-                            for control_name in ("unscaledCentered", "localTaylor"):
-                                control_matrix = self.lens.control_matrices[control_name][
-                                    layer
-                                ][bin_index].to(device=device, dtype=activation.dtype)
+                            matrix_control_names = (
+                                ("unscaledCentered", "localTaylor")
+                                if estimator_name == JACOBIAN_LENS_ESTIMATOR_V4
+                                else ("scalarCalibrated", "localTaylor")
+                            )
+                            for control_name in matrix_control_names:
+                                control_matrix = self.lens.control_matrices[control_name][layer][
+                                    bin_index
+                                ].to(device=device, dtype=activation.dtype)
                                 control_bias = self.lens.control_biases[control_name][layer][
                                     bin_index
                                 ].to(device=device, dtype=activation.dtype)
@@ -2868,6 +3458,8 @@ class ModelWorkspaceProbe:
         elif _is_endpoint_estimator_name(metadata["estimator"]["name"]):
             receipt["lens"]["transportProfile"] = metadata["estimator"]["transportProfile"]
             receipt["lens"]["positionBins"] = calibration_meta["positionBins"]
+            if "experimentProfile" in metadata:
+                receipt["lens"]["experimentProfile"] = metadata["experimentProfile"]
         receipt["receiptHash"] = sha256_json(receipt)
         return receipt
 

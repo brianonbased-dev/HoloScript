@@ -14,17 +14,26 @@ from holoserve.workspace_fidelity import (
     S1_GATE_PROFILE,
     S2_GATE_PROFILE,
     S4_GATE_PROFILE,
+    S5_GATE_PROFILE,
     _bootstrap_interval,
+    _capability_bins,
+    _records_for_alias,
     _summarize_alias,
     _wilson_lower,
     evaluate_fidelity,
 )
 from holoserve.workspace_probe import (
+    JACOBIAN_LENS_ESTIMATOR_V2,
+    JACOBIAN_LENS_S5_EXPERIMENT_PROFILE,
+    JACOBIAN_LENS_S5_FIT_RECEIPT_SCHEMA,
+    JACOBIAN_LENS_V2_TRANSPORT_PROFILE,
     JACOBIAN_LENS_V4_CONTROL_PROFILE_SHA256,
     ModelWorkspaceProbe,
     fit_endpoint_affine_jacobian_lens_v1,
     fit_endpoint_local_taylor_jacobian_lens_v1,
     fit_endpoint_scalar_calibrated_jacobian_lens_v1,
+    fit_endpoint_unscaled_centered_jacobian_lens_v1,
+    jacobian_lens_s5_fit_receipt_fields,
     jacobian_lens_v4_fit_receipt_fields,
     load_jacobian_lens_artifact,
     save_jacobian_lens_artifact,
@@ -33,7 +42,12 @@ from holoserve.workspace_probe import (
 )
 
 
-def _records(collapsed: bool = False):
+TEST_S5_FIT_SOURCE_SHA256S = {
+    "packages/holoserve-py/tests/test_workspace_fidelity.py": f"sha256:{'6' * 64}"
+}
+
+
+def _records(collapsed: bool = False, attribution_gain: int = 700_000):
     rows = []
     for index in range(24):
         layers = {}
@@ -48,6 +62,9 @@ def _records(collapsed: bool = False):
                 "maxProbabilityErrorGain": 300_000,
                 "mappedTopTokenId": 1 if collapsed else index,
                 "targetTopTokenId": index,
+                "meanCenteringGain": attribution_gain,
+                "unscaledGain": attribution_gain + 100_000,
+                "jacobianSpecificGain": attribution_gain + 200_000,
             }
         rows.append(
             {
@@ -59,6 +76,9 @@ def _records(collapsed: bool = False):
                 "macroAnchorGain": 1_000_000 + index,
                 "macroEntropyErrorGain": 400_000,
                 "macroMaxProbabilityErrorGain": 300_000,
+                "macroMeanCenteringGain": attribution_gain,
+                "macroUnscaledGain": attribution_gain + 100_000,
+                "macroJacobianSpecificGain": attribution_gain + 200_000,
             }
         )
     return rows
@@ -110,6 +130,112 @@ def test_fidelity_summary_requires_input_dependent_top_token_diversity():
     assert inconclusive_s2["passed"] is False
 
 
+def test_s5_attribution_gates_are_directional_and_separate_from_ordinary_gates():
+    passing = _summarize_alias(
+        _records(), samples=200, seed=23, gate_profile=S5_GATE_PROFILE
+    )
+    attribution = passing["attribution"]
+    assert set(attribution["gates"]) == {
+        "meanCentering",
+        "unscaled",
+        "jacobianSpecific",
+    }
+    assert all(attribution["gates"].values())
+    assert attribution["holdoutPassed"] is True
+    assert attribution["fitControlInteriorRequiredSeparately"] is True
+    assert "fitScalarInteriorRequiredSeparately" not in attribution
+    assert passing["passed"] is True
+
+    failing = _summarize_alias(
+        _records(attribution_gain=-900_000),
+        samples=200,
+        seed=23,
+        gate_profile=S5_GATE_PROFILE,
+    )
+    assert failing["attribution"]["gates"]["meanCentering"] is False
+    assert failing["attribution"]["holdoutPassed"] is False
+    assert failing["passed"] is True
+
+
+def test_s5_capability_requires_exact_experiment_profile():
+    capability = {
+        "estimator": JACOBIAN_LENS_ESTIMATOR_V2,
+        "paperParity": False,
+        "transportProfile": JACOBIAN_LENS_V2_TRANSPORT_PROFILE,
+        "experimentProfile": JACOBIAN_LENS_S5_EXPERIMENT_PROFILE,
+        "positionPolicy": "endpoint-self-only",
+        "positionBins": [[0, 7]],
+    }
+    assert _capability_bins(capability, S5_GATE_PROFILE) == [[0, 7]]
+    for profile in (None, S4_GATE_PROFILE, "s5-confused-profile"):
+        confused = dict(capability)
+        if profile is None:
+            confused.pop("experimentProfile")
+        else:
+            confused["experimentProfile"] = profile
+        with pytest.raises(ValueError, match="S5|s5"):
+            _capability_bins(confused, S5_GATE_PROFILE)
+
+
+def _s5_fidelity_row(transport_controls):
+    return {
+        "caseId": "case-s5",
+        "vertical": "family-s5",
+        "modelAlias": "a",
+        "tokenCount": 3,
+        "coordinates": [
+            {
+                "layer": layer,
+                "metrics": {
+                    "lensGainJensenShannonNatsE8": 400,
+                    "mappedTargetJensenShannonDivergenceNatsE8": 100,
+                    "controlTargetJensenShannonDivergenceNatsE8": 500,
+                    "mappedEntropyNatsE8": 200,
+                    "controlEntropyNatsE8": 300,
+                    "mappedMaxProbabilityE8": 600,
+                    "controlMaxProbabilityE8": 500,
+                },
+                "anchorControlMetrics": {
+                    "mappedVsAnchorLensGainJensenShannonNatsE8": 300,
+                    "targetEntropyNatsE8": 100,
+                    "targetMaxProbabilityE8": 700,
+                    "mappedTopTokenId": layer,
+                    "targetTopTokenId": layer + 1,
+                },
+                "transportControlMetrics": transport_controls,
+            }
+            for layer in (2, 5, 8)
+        ],
+    }
+
+
+def test_s5_records_require_exact_controls_and_compute_registered_directions():
+    controls = {
+        "scalarCalibrated": {"targetJensenShannonDivergenceNatsE8": 160},
+        "localTaylor": {"targetJensenShannonDivergenceNatsE8": 140},
+        "scalarIdentity": {"targetJensenShannonDivergenceNatsE8": 180},
+    }
+    records = _records_for_alias(
+        [_s5_fidelity_row(controls)], "a", [[0, 7]], S5_GATE_PROFILE
+    )
+    assert records[0]["layers"][2]["meanCenteringGain"] == 40
+    assert records[0]["layers"][2]["unscaledGain"] == 60
+    assert records[0]["layers"][2]["jacobianSpecificGain"] == 80
+
+    for confused in (
+        {key: value for key, value in controls.items() if key != "scalarCalibrated"},
+        {
+            "unscaledCentered": controls["scalarCalibrated"],
+            "localTaylor": controls["localTaylor"],
+            "scalarIdentity": controls["scalarIdentity"],
+        },
+    ):
+        with pytest.raises(ValueError, match="S5 fidelity row"):
+            _records_for_alias(
+                [_s5_fidelity_row(confused)], "a", [[0, 7]], S5_GATE_PROFILE
+            )
+
+
 @pytest.mark.parametrize(
     ("gate_profile", "fitter", "expected_schema"),
     (
@@ -127,6 +253,11 @@ def test_fidelity_summary_requires_input_dependent_top_token_diversity():
             S4_GATE_PROFILE,
             fit_endpoint_scalar_calibrated_jacobian_lens_v1,
             "holoscript.model-workspace-fidelity-evaluation.v0.3.0",
+        ),
+        (
+            S5_GATE_PROFILE,
+            fit_endpoint_unscaled_centered_jacobian_lens_v1,
+            "holoscript.model-workspace-fidelity-evaluation.v0.4.0",
         ),
     ),
 )
@@ -151,7 +282,7 @@ def test_label_blind_evaluator_replays_a_complete_ab_receipt_matrix(
         ("b", torch.tensor([[1, 5, 6]], dtype=torch.long)),
     ):
         calibration_batches = [calibration]
-        if gate_profile == S4_GATE_PROFILE:
+        if gate_profile in {S4_GATE_PROFILE, S5_GATE_PROFILE}:
             calibration_batches.append(
                 torch.tensor([[1, 7 if alias == "a" else 8, 5]], dtype=torch.long)
             )
@@ -167,7 +298,16 @@ def test_label_blind_evaluator_replays_a_complete_ab_receipt_matrix(
             **(
                 {"control_profile_sha256": JACOBIAN_LENS_V4_CONTROL_PROFILE_SHA256}
                 if gate_profile == S4_GATE_PROFILE
-                else {}
+                else (
+                    {
+                        "source_artifact_sha256": f"sha256:{'3' * 64}",
+                        "preregistration_sha256": f"sha256:{'4' * 64}",
+                        "selector_sha256": f"sha256:{'5' * 64}",
+                        "fit_source_sha256s": TEST_S5_FIT_SOURCE_SHA256S,
+                    }
+                    if gate_profile == S5_GATE_PROFILE
+                    else {}
+                )
             ),
         )
         path = tmp_path / f"lens-{alias}.pt"
@@ -177,6 +317,19 @@ def test_label_blind_evaluator_replays_a_complete_ab_receipt_matrix(
             fit_receipt = {
                 "schema": "holoscript.jspace-s4-fit-receipt.v0.1.0",
                 **jacobian_lens_v4_fit_receipt_fields(
+                    artifact,
+                    lens_sha256=sha256_file(path),
+                ),
+                "semanticLabelsAccessed": False,
+                "selfHash": None,
+            }
+            fit_receipt["selfHash"] = sha256_json(fit_receipt)
+            fit_receipt_path = tmp_path / f"lens-{alias}-fit-receipt.json"
+            fit_receipt_path.write_text(json.dumps(fit_receipt), encoding="utf-8")
+        elif gate_profile == S5_GATE_PROFILE:
+            fit_receipt = {
+                "schema": JACOBIAN_LENS_S5_FIT_RECEIPT_SCHEMA,
+                **jacobian_lens_s5_fit_receipt_fields(
                     artifact,
                     lens_sha256=sha256_file(path),
                 ),
@@ -333,5 +486,12 @@ def test_label_blind_evaluator_replays_a_complete_ab_receipt_matrix(
         assert "gateProfile" not in result
     if gate_profile == S4_GATE_PROFILE:
         assert all("attribution" in result["aliases"][alias] for alias in ("a", "b"))
+    elif gate_profile == S5_GATE_PROFILE:
+        assert result["experimentProfile"] == JACOBIAN_LENS_S5_EXPERIMENT_PROFILE
+        assert all(
+            set(result["aliases"][alias]["attribution"]["gates"])
+            == {"meanCentering", "unscaled", "jacobianSpecific"}
+            for alias in ("a", "b")
+        )
     assert result["semanticLabelsAccessed"] is False
     assert result["selfHash"] == sha256_json({**result, "selfHash": None})

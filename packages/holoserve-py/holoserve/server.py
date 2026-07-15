@@ -904,7 +904,7 @@ def main():
         action="append",
         default=[],
         metavar="MODEL=PATH",
-        help="bind a scalar-calibrated Jacobian-lens fit receipt to a resident model. "
+        help="bind a receipt-bound Jacobian-lens fit receipt to a resident model. "
         "Repeatable; each binding requires a matching --workspace-lens binding.",
     )
     args = parser.parse_args()

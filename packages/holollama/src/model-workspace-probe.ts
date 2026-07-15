@@ -22,12 +22,25 @@ export const MODEL_WORKSPACE_LOCAL_TAYLOR_TRANSPORT_PROFILE =
   'local-taylor-affine-final-residual-v1' as const;
 export const MODEL_WORKSPACE_SCALAR_CALIBRATED_TRANSPORT_PROFILE =
   'mean-centered-scalar-jacobian-final-residual-v1' as const;
+export const MODEL_WORKSPACE_S5_EXPERIMENT_PROFILE =
+  's5-unscaled-mean-centered-jacobian-v1' as const;
 
 const MODEL_WORKSPACE_ENDPOINT_TRANSPORT_PROFILES = {
   endpoint_self_jacobian_affine_v1: MODEL_WORKSPACE_ENDPOINT_AFFINE_TRANSPORT_PROFILE,
   endpoint_self_jacobian_local_taylor_v1: MODEL_WORKSPACE_LOCAL_TAYLOR_TRANSPORT_PROFILE,
   endpoint_self_jacobian_scalar_calibrated_v1: MODEL_WORKSPACE_SCALAR_CALIBRATED_TRANSPORT_PROFILE,
 } as const;
+
+const MODEL_WORKSPACE_S4_TRANSPORT_CONTROL_NAMES = [
+  'localTaylor',
+  'scalarIdentity',
+  'unscaledCentered',
+] as const;
+const MODEL_WORKSPACE_S5_TRANSPORT_CONTROL_NAMES = [
+  'localTaylor',
+  'scalarCalibrated',
+  'scalarIdentity',
+] as const;
 
 const MODEL_WORKSPACE_CAPABILITY_ALLOWED_FIELD_PATHS = new Set(['intervention']);
 const MODEL_WORKSPACE_FORBIDDEN_FIELD_NAMES = new Set([
@@ -78,6 +91,8 @@ export type ModelWorkspaceEstimator =
 export type ModelWorkspaceTransportProfile =
   (typeof MODEL_WORKSPACE_ENDPOINT_TRANSPORT_PROFILES)[ModelWorkspaceEndpointEstimator];
 
+export type ModelWorkspaceExperimentProfile = typeof MODEL_WORKSPACE_S5_EXPERIMENT_PROFILE;
+
 export type ModelWorkspacePositionBin = [start: number, end: number];
 
 export interface ModelWorkspaceConcept {
@@ -115,11 +130,21 @@ export interface ModelWorkspaceTransportControlMetric {
   targetJensenShannonDivergenceNatsE8: number;
 }
 
-export interface ModelWorkspaceTransportControlMetrics {
+export interface ModelWorkspaceS4TransportControlMetrics {
   unscaledCentered: ModelWorkspaceTransportControlMetric;
   localTaylor: ModelWorkspaceTransportControlMetric;
   scalarIdentity: ModelWorkspaceTransportControlMetric;
 }
+
+export interface ModelWorkspaceS5TransportControlMetrics {
+  scalarCalibrated: ModelWorkspaceTransportControlMetric;
+  localTaylor: ModelWorkspaceTransportControlMetric;
+  scalarIdentity: ModelWorkspaceTransportControlMetric;
+}
+
+export type ModelWorkspaceTransportControlMetrics =
+  | ModelWorkspaceS4TransportControlMetrics
+  | ModelWorkspaceS5TransportControlMetrics;
 
 export interface ModelWorkspaceLayerObservation {
   layer: number;
@@ -161,6 +186,7 @@ export interface ModelWorkspaceReceipt {
     positionPolicy: string;
     positionBins?: ModelWorkspacePositionBin[];
     transportProfile?: ModelWorkspaceTransportProfile;
+    experimentProfile?: ModelWorkspaceExperimentProfile;
     jacobianCount: number;
     k: number;
   };
@@ -221,6 +247,7 @@ export interface ModelWorkspaceReceiptExpectation {
   estimator: ModelWorkspaceEstimator;
   positionBins?: ModelWorkspacePositionBin[];
   transportProfile?: ModelWorkspaceTransportProfile;
+  experimentProfile?: ModelWorkspaceExperimentProfile;
   measurementProfile: typeof MODEL_WORKSPACE_MEASUREMENT_PROFILE;
   controlProfile: typeof MODEL_WORKSPACE_CONTROL_PROFILE;
 }
@@ -370,7 +397,8 @@ export async function observeHoloLlamaModelWorkspace(
       selectedCapability.paperExperimentParity,
       selectedCapability.transportProfile,
       selectedCapability.positionBins,
-      selectedCapability.positionPolicy
+      selectedCapability.positionPolicy,
+      selectedCapability.experimentProfile
     )
       ? selectedCapability.estimator
       : null;
@@ -434,6 +462,10 @@ export async function observeHoloLlamaModelWorkspace(
   const expectedPositions = options.positions ? [...options.positions] : [-1];
   const expectedK = options.k ?? 10;
   const expectedTransportProfile = workspaceTransportProfileForEstimator(advertisedEstimator);
+  const expectedExperimentProfile =
+    selectedCapability?.experimentProfile === MODEL_WORKSPACE_S5_EXPERIMENT_PROFILE
+      ? MODEL_WORKSPACE_S5_EXPERIMENT_PROFILE
+      : null;
   const expectation: ModelWorkspaceReceiptExpectation = {
     requestedModel,
     promptSha256: sha256Text(options.prompt),
@@ -448,6 +480,7 @@ export async function observeHoloLlamaModelWorkspace(
           positionBins: cloneWorkspacePositionBins(selectedCapability!.positionBins),
         }
       : {}),
+    ...(expectedExperimentProfile === null ? {} : { experimentProfile: expectedExperimentProfile }),
     measurementProfile: advertisedMeasurementProfile!,
     controlProfile: advertisedControlProfile!,
   };
@@ -611,6 +644,9 @@ export function validateModelWorkspaceReceipt(
       : workspaceTransportProfileForEstimator(lens?.estimator) !== null
         ? ['transportProfile', 'positionBins']
         : []),
+    ...(lens?.experimentProfile === MODEL_WORKSPACE_S5_EXPERIMENT_PROFILE
+      ? ['experimentProfile']
+      : []),
   ];
   if (lens?.method !== 'jacobian_lens') blockers.push('lens method must be jacobian_lens');
   if (
@@ -623,7 +659,8 @@ export function validateModelWorkspaceReceipt(
       lens.paperExperimentParity,
       lens.transportProfile,
       lens.positionBins,
-      lens.positionPolicy
+      lens.positionPolicy,
+      lens.experimentProfile
     ) ||
     (legacyReceipt && workspaceTransportProfileForEstimator(lens.estimator) !== null) ||
     !isSha256(lens.corpusSha256) ||
@@ -757,6 +794,9 @@ export function validateModelWorkspaceReceipt(
     ) {
       blockers.push('receipt position bins do not match the advertised model capability');
     }
+    if (lens?.experimentProfile !== expectation.experimentProfile) {
+      blockers.push('receipt experiment profile does not match the advertised model capability');
+    }
     if (input?.measurementProfile !== expectation.measurementProfile) {
       blockers.push('receipt measurement profile does not match the advertised model capability');
     }
@@ -771,7 +811,8 @@ export function validateModelWorkspaceReceipt(
       currentReceipt,
       expectation?.measurementProfile ?? null,
       expectation?.controlProfile ?? null,
-      lens?.estimator ?? null
+      lens?.estimator ?? null,
+      lens?.experimentProfile ?? null
     )
   );
   const runtime = isRecord(value.runtime) ? value.runtime : null;
@@ -871,7 +912,8 @@ function validateWorkspaceObservation(
   currentReceipt: boolean,
   expectedMeasurementProfile: string | null,
   expectedControlProfile: string | null,
-  estimator: unknown
+  estimator: unknown,
+  experimentProfile: unknown
 ): string[] {
   if (!observation || observation.status !== 'observed') {
     return ['workspace observation is missing or not observed'];
@@ -1144,8 +1186,21 @@ function validateWorkspaceObservation(
       const transportControls = isRecord(item.transportControlMetrics)
         ? item.transportControlMetrics
         : null;
-      if (estimator === 'endpoint_self_jacobian_scalar_calibrated_v1') {
-        const expectedControlNames = ['localTaylor', 'scalarIdentity', 'unscaledCentered'];
+      const transportControlContract =
+        estimator === 'endpoint_self_jacobian_affine_v1' &&
+        experimentProfile === MODEL_WORKSPACE_S5_EXPERIMENT_PROFILE
+          ? {
+              generation: 'S5',
+              names: MODEL_WORKSPACE_S5_TRANSPORT_CONTROL_NAMES,
+            }
+          : estimator === 'endpoint_self_jacobian_scalar_calibrated_v1'
+            ? {
+                generation: 'S4',
+                names: MODEL_WORKSPACE_S4_TRANSPORT_CONTROL_NAMES,
+              }
+            : null;
+      if (transportControlContract !== null) {
+        const expectedControlNames = transportControlContract.names;
         const validControlNames =
           transportControls !== null &&
           Object.keys(transportControls).sort().join(',') === expectedControlNames.join(',');
@@ -1162,10 +1217,20 @@ function validateWorkspaceObservation(
             );
           });
         if (!validControls) {
-          blockers.push(`observation layer ${index} S4 transport controls are invalid`);
+          blockers.push(
+            `observation layer ${index} ${transportControlContract.generation} transport controls are invalid`
+          );
         }
       } else if ('transportControlMetrics' in item) {
-        blockers.push(`observation layer ${index} has estimator-confused S4 transport controls`);
+        const hasExactS5ControlNames =
+          transportControls !== null &&
+          Object.keys(transportControls).sort().join(',') ===
+            MODEL_WORKSPACE_S5_TRANSPORT_CONTROL_NAMES.join(',');
+        blockers.push(
+          estimator === 'endpoint_self_jacobian_affine_v1' && hasExactS5ControlNames
+            ? `observation layer ${index} S5 transport controls require the exact experiment profile`
+            : `observation layer ${index} has estimator-confused S4 transport controls`
+        );
       }
     }
   }
@@ -1308,13 +1373,13 @@ function findForbiddenWorkspaceFields(
   return Object.entries(value).flatMap(([key, child]) => {
     const childPath = path ? `${path}.${key}` : key;
     const normalizedKey = key.toLowerCase().replace(/[^a-z0-9]/gu, '');
-    const isPublicScalarIdentityControl =
-      normalizedKey === 'scalaridentity' &&
+    const isPublicTransportScalarControl =
+      (normalizedKey === 'scalaridentity' || normalizedKey === 'scalarcalibrated') &&
       /^observation\.layers\[\d+\]\.transportControlMetrics$/u.test(path);
     const hasPrivateArtifactShape =
       normalizedKey.includes('alpha') ||
       normalizedKey.includes('beta') ||
-      (normalizedKey.includes('scalar') && !isPublicScalarIdentityControl) ||
+      (normalizedKey.includes('scalar') && !isPublicTransportScalarControl) ||
       normalizedKey.includes('statistic') ||
       normalizedKey === 'stat' ||
       normalizedKey === 'stats' ||
@@ -1359,6 +1424,9 @@ function hasExactWorkspaceCapabilityFields(value: Record<string, unknown>): bool
     expected.add('transportProfile');
     expected.add('positionPolicy');
     expected.add('positionBins');
+  }
+  if (value.experimentProfile === MODEL_WORKSPACE_S5_EXPERIMENT_PROFILE) {
+    expected.add('experimentProfile');
   }
   return (
     Object.keys(value).length === expected.size &&
@@ -1424,20 +1492,28 @@ function isSupportedWorkspaceEstimator(
   paperExperimentParity?: unknown,
   transportProfile?: unknown,
   positionBins?: unknown,
-  positionPolicy?: unknown
+  positionPolicy?: unknown,
+  experimentProfile?: unknown
 ): estimator is ModelWorkspaceEstimator {
   const endpointTransportProfile = workspaceTransportProfileForEstimator(estimator);
   return (
-    (estimator === 'explicit_pair_average_v0' && paperParity === false) ||
+    (estimator === 'explicit_pair_average_v0' &&
+      paperParity === false &&
+      experimentProfile === undefined) ||
     (estimator === 'corpus_position_average_v1' &&
       paperParity === true &&
       parityScope === 'reference-estimator-only' &&
-      paperExperimentParity === false) ||
+      paperExperimentParity === false &&
+      experimentProfile === undefined) ||
     (endpointTransportProfile !== null &&
       paperParity === false &&
       transportProfile === endpointTransportProfile &&
       isCanonicalWorkspacePositionBins(positionBins) &&
-      positionPolicy === MODEL_WORKSPACE_ENDPOINT_POSITION_POLICY)
+      positionPolicy === MODEL_WORKSPACE_ENDPOINT_POSITION_POLICY &&
+      (experimentProfile === undefined ||
+        (estimator === 'endpoint_self_jacobian_affine_v1' &&
+          transportProfile === MODEL_WORKSPACE_ENDPOINT_AFFINE_TRANSPORT_PROFILE &&
+          experimentProfile === MODEL_WORKSPACE_S5_EXPERIMENT_PROFILE)))
   );
 }
 

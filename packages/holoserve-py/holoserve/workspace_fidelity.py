@@ -25,6 +25,7 @@ from .workspace_probe import (
     JACOBIAN_LENS_ESTIMATOR_V2,
     JACOBIAN_LENS_ESTIMATOR_V3,
     JACOBIAN_LENS_ESTIMATOR_V4,
+    JACOBIAN_LENS_S5_EXPERIMENT_PROFILE,
     JACOBIAN_LENS_V2_TRANSPORT_PROFILE,
     JACOBIAN_LENS_V3_TRANSPORT_PROFILE,
     JACOBIAN_LENS_V4_TRANSPORT_PROFILE,
@@ -35,9 +36,11 @@ from .workspace_probe import (
 FIDELITY_EVALUATION_SCHEMA = "holoscript.model-workspace-fidelity-evaluation.v0.1.0"
 FIDELITY_EVALUATION_SCHEMA_V2 = "holoscript.model-workspace-fidelity-evaluation.v0.2.0"
 FIDELITY_EVALUATION_SCHEMA_V3 = "holoscript.model-workspace-fidelity-evaluation.v0.3.0"
+FIDELITY_EVALUATION_SCHEMA_V4 = "holoscript.model-workspace-fidelity-evaluation.v0.4.0"
 S1_GATE_PROFILE = "s1-endpoint-affine-v1"
 S2_GATE_PROFILE = "s2-local-taylor-varied-endpoint-v1"
 S4_GATE_PROFILE = "s4-mean-centered-scalar-jacobian-v1"
+S5_GATE_PROFILE = "s5-unscaled-mean-centered-jacobian-v1"
 DEFAULT_GATE_PROFILE = S1_GATE_PROFILE
 FIDELITY_PROFILES = {
     S1_GATE_PROFILE: {
@@ -54,6 +57,12 @@ FIDELITY_PROFILES = {
         "estimator": JACOBIAN_LENS_ESTIMATOR_V4,
         "transportProfile": JACOBIAN_LENS_V4_TRANSPORT_PROFILE,
         "schema": FIDELITY_EVALUATION_SCHEMA_V3,
+    },
+    S5_GATE_PROFILE: {
+        "estimator": JACOBIAN_LENS_ESTIMATOR_V2,
+        "transportProfile": JACOBIAN_LENS_V2_TRANSPORT_PROFILE,
+        "experimentProfile": JACOBIAN_LENS_S5_EXPERIMENT_PROFILE,
+        "schema": FIDELITY_EVALUATION_SCHEMA_V4,
     },
 }
 PRIMARY_LAYERS = (2, 5)
@@ -123,6 +132,7 @@ def _capability_bins(
         capability.get("estimator") != profile["estimator"]
         or capability.get("paperParity") is not False
         or capability.get("transportProfile") != profile["transportProfile"]
+        or capability.get("experimentProfile") != profile.get("experimentProfile")
         or capability.get("positionPolicy") != "endpoint-self-only"
         or not we._supported_endpoint_position_bins(bins)
     ):
@@ -277,8 +287,15 @@ def _records_for_alias(
                     != {"unscaledCentered", "localTaylor", "scalarIdentity"}
                 ):
                     raise ValueError("S4 fidelity row lacks frozen transport controls")
+            elif gate_profile == S5_GATE_PROFILE:
+                if (
+                    not isinstance(transport_controls, dict)
+                    or set(transport_controls)
+                    != {"scalarCalibrated", "localTaylor", "scalarIdentity"}
+                ):
+                    raise ValueError("S5 fidelity row lacks frozen transport controls")
             elif transport_controls is not None:
-                raise ValueError("non-S4 fidelity row contains S4 transport controls")
+                raise ValueError("fidelity row contains unexpected transport controls")
             mapped_entropy_error = abs(
                 metrics["mappedEntropyNatsE8"] - anchor["targetEntropyNatsE8"]
             )
@@ -327,6 +344,32 @@ def _records_for_alias(
                         - mapped_target,
                     }
                 )
+            elif gate_profile == S5_GATE_PROFILE:
+                mapped_target = int(
+                    metrics["mappedTargetJensenShannonDivergenceNatsE8"]
+                )
+                layer_values[layer].update(
+                    {
+                        "meanCenteringGain": int(
+                            transport_controls["localTaylor"][
+                                "targetJensenShannonDivergenceNatsE8"
+                            ]
+                        )
+                        - mapped_target,
+                        "unscaledGain": int(
+                            transport_controls["scalarCalibrated"][
+                                "targetJensenShannonDivergenceNatsE8"
+                            ]
+                        )
+                        - mapped_target,
+                        "jacobianSpecificGain": int(
+                            transport_controls["scalarIdentity"][
+                                "targetJensenShannonDivergenceNatsE8"
+                            ]
+                        )
+                        - mapped_target,
+                    }
+                )
         records.append(
             {
                 "caseId": row["caseId"],
@@ -362,7 +405,30 @@ def _records_for_alias(
                         ),
                     }
                     if gate_profile == S4_GATE_PROFILE
-                    else {}
+                    else (
+                        {
+                            "macroMeanCenteringGain": _mean_int(
+                                [
+                                    layer_values[layer]["meanCenteringGain"]
+                                    for layer in PRIMARY_LAYERS
+                                ]
+                            ),
+                            "macroUnscaledGain": _mean_int(
+                                [
+                                    layer_values[layer]["unscaledGain"]
+                                    for layer in PRIMARY_LAYERS
+                                ]
+                            ),
+                            "macroJacobianSpecificGain": _mean_int(
+                                [
+                                    layer_values[layer]["jacobianSpecificGain"]
+                                    for layer in PRIMARY_LAYERS
+                                ]
+                            ),
+                        }
+                        if gate_profile == S5_GATE_PROFILE
+                        else {}
+                    )
                 ),
             }
         )
@@ -483,20 +549,36 @@ def _summarize_alias(
         ),
     }
     attribution = None
-    if gate_profile == S4_GATE_PROFILE:
-        attribution_metrics = {
-            "centered": ("centeredGain", "macroCenteredGain", 0x2D358DCCAA6C78A5),
-            "localTaylor": (
-                "localTaylorGain",
-                "macroLocalTaylorGain",
-                0x8BB84B93962EACC9,
-            ),
-            "jacobianSpecific": (
-                "jacobianSpecificGain",
-                "macroJacobianSpecificGain",
-                0x4F1BBCDCBFA54001,
-            ),
-        }
+    if gate_profile in {S4_GATE_PROFILE, S5_GATE_PROFILE}:
+        attribution_metrics = (
+            {
+                "centered": ("centeredGain", "macroCenteredGain", 0x2D358DCCAA6C78A5),
+                "localTaylor": (
+                    "localTaylorGain",
+                    "macroLocalTaylorGain",
+                    0x8BB84B93962EACC9,
+                ),
+                "jacobianSpecific": (
+                    "jacobianSpecificGain",
+                    "macroJacobianSpecificGain",
+                    0x4F1BBCDCBFA54001,
+                ),
+            }
+            if gate_profile == S4_GATE_PROFILE
+            else {
+                "meanCentering": (
+                    "meanCenteringGain",
+                    "macroMeanCenteringGain",
+                    0x2D358DCCAA6C78A5,
+                ),
+                "unscaled": ("unscaledGain", "macroUnscaledGain", 0x8BB84B93962EACC9),
+                "jacobianSpecific": (
+                    "jacobianSpecificGain",
+                    "macroJacobianSpecificGain",
+                    0x4F1BBCDCBFA54001,
+                ),
+            }
+        )
         attribution_layers: dict[str, dict[str, Any]] = {}
         for layer in (*PRIMARY_LAYERS, CEILING_LAYER):
             attribution_layers[str(layer)] = {}
@@ -534,7 +616,11 @@ def _summarize_alias(
             "layers": attribution_layers,
             "gates": attribution_gates,
             "holdoutPassed": all(attribution_gates.values()),
-            "fitScalarInteriorRequiredSeparately": True,
+            **(
+                {"fitScalarInteriorRequiredSeparately": True}
+                if gate_profile == S4_GATE_PROFILE
+                else {"fitControlInteriorRequiredSeparately": True}
+            ),
         }
     mapped_top = [record["layers"][PRIMARY_LAYERS[0]]["mappedTopTokenId"] for record in records]
     target_top = [record["layers"][PRIMARY_LAYERS[0]]["targetTopTokenId"] for record in records]
@@ -699,6 +785,8 @@ def evaluate_fidelity(args: argparse.Namespace) -> None:
     }
     if gate_profile != S1_GATE_PROFILE:
         result["gateProfile"] = gate_profile
+    if gate_profile == S5_GATE_PROFILE:
+        result["experimentProfile"] = JACOBIAN_LENS_S5_EXPERIMENT_PROFILE
     result["selfHash"] = sha256_json(result)
     we._write_json_atomic(args.output, result)
 

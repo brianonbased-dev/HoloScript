@@ -1,0 +1,66 @@
+{
+  "ceilingLayer": 8,
+  "claimAdmission": {
+    "jacobianSpecific": [
+      "primaryBetaInterior",
+      "jacobianSpecificGainBootstrapLowerAboveZero"
+    ],
+    "meanCentering": [
+      "meanCenteringGainBootstrapLowerAboveZero"
+    ],
+    "unscaledOverCalibrated": [
+      "meanCenteringClaimAdmitted",
+      "primaryAlphaInterior",
+      "unscaledGainBootstrapLowerAboveZero"
+    ]
+  },
+  "controls": [
+    {
+      "name": "identityLogitLens",
+      "ordinaryComparator": true,
+      "transport": "h_l"
+    },
+    {
+      "name": "meanFinalAnchor",
+      "ordinaryComparator": true,
+      "transport": "ybar"
+    },
+    {
+      "attributionGain": "meanCentering",
+      "name": "localTaylor",
+      "transport": "Jbar@x+ybar-mean_i(J_i@x_i)"
+    },
+    {
+      "attributionGain": "unscaled",
+      "estimator": "endpoint_self_jacobian_scalar_calibrated_v1",
+      "name": "scalarCalibratedJacobian",
+      "transport": "alpha*Jbar@x+ybar-alpha*Jbar@xbar"
+    },
+    {
+      "attributionGain": "jacobianSpecific",
+      "name": "scalarIdentity",
+      "transport": "beta*x+ybar-beta*xbar"
+    }
+  ],
+  "experimentProfile": "s5-unscaled-mean-centered-jacobian-v1",
+  "formulaSha256": "sha256:b776c634fb7b171952149c5fed7a9e3a8a73ad98798e10ce469687fc6817c6a1",
+  "gateProfile": "s5-unscaled-mean-centered-jacobian-v1",
+  "layers": [
+    2,
+    5,
+    8
+  ],
+  "preregistrationSha256": "sha256:9802d838be9832aa011903ae29799f44b176820d9c12a8600d97e39e4338b599",
+  "primaryLayers": [
+    2,
+    5
+  ],
+  "primaryTransport": {
+    "estimator": "endpoint_self_jacobian_affine_v1",
+    "name": "unscaledCenteredJacobian",
+    "transport": "Jbar@x+ybar-Jbar@xbar"
+  },
+  "schema": "holoscript.jspace-s5-control-profile.v0.1.0",
+  "selfHash": "sha256:af99d45a1963ca975078a5b29d1803d936441ddfa1cfa42d953430880d0a4e0b",
+  "sourceS4ControlProfileSha256": "sha256:9c914202bc680ba5e6d1d3fc2413ba81cc61e2bd7cae52d8dda9a9bf314204fa"
+}
