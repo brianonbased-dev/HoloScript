@@ -47,4 +47,10 @@ than committed. Billing receipts are also hash-bound but omitted because the
 training receipts contain machine-local paths. Promoted JSON/JSONL contains no
 raw prompts, raw activations, credentials, or absolute local paths.
 
+The [replay manifest](./pilot-replay-manifest.json) pins the historical source
+revision and hashes, exact evaluator arguments, disclosure audit, and canonical
+comparison projection. Its replay scope is evaluation from sealed receipts;
+bit-exact re-collection additionally requires regenerating the two hash-bound
+lens tensors from the sealed fit inputs and checkpoint.
+
 Frozen protocol: [S1 preregistration](../../2026-07-14-jspace-s1-target-fidelity-preregistration.md).

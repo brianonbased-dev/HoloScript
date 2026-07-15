@@ -1,0 +1,143 @@
+{
+  "schema": "holoscript.jspace-s1-pilot-replay.v0.1.0",
+  "pathBase": "repository-root",
+  "stage": "pilot",
+  "gitRevision": "43c603e8b504e682ce6fbaefa59e4d99854407ca",
+  "checkpointSha256": "sha256:abbda748c6bd6dec69bd72f25ca5ab28876fbbdbf195f218439ddbd0a10ff914",
+  "tokenizerSha256": "sha256:f92af6207d211728a530e95e44c60b3c95f700ea9c755ab6bd8614fbdac623d4",
+  "sources": [
+    {
+      "role": "preregistration",
+      "path": "research/2026-07-14-jspace-s1-target-fidelity-preregistration.md",
+      "sha256": "sha256:33785896808ce0832db6bed3869dc9d4ce680197f19c61dc5386288ea6a52614"
+    },
+    {
+      "role": "corpus-manifest",
+      "path": "research/data/jspace-s1/corpus-manifest.json",
+      "sha256": "sha256:e31555c6caabc96f3c8b312ee6a798b512508ef37381ea7a4e251a49f15f926a"
+    },
+    {
+      "role": "fit-a-input",
+      "path": "research/data/jspace-s1/fit-a-pilot.jsonl",
+      "sha256": "sha256:59b3fbcee9ca368ca0a86352487576caaf0691c2f84e8a7d35974b50b4ea67eb"
+    },
+    {
+      "role": "fit-b-input",
+      "path": "research/data/jspace-s1/fit-b-pilot.jsonl",
+      "sha256": "sha256:4ee72465d01820051be7dfe09ff63c38bd6f27749ac92b78e1a577cd105d0d08"
+    },
+    {
+      "role": "holdout-input",
+      "path": "research/data/jspace-s1/fidelity-h-pilot.jsonl",
+      "sha256": "sha256:bf4933d1e0512a3395f752b7ce92845e855a18acf6eef4f9486644f4ab853afd"
+    },
+    {
+      "role": "fit-code",
+      "path": "scripts/research/fit_jspace_s1_lens.py",
+      "sha256": "sha256:9a979058b1a18a19d08c997d9a9115cf47abfc1837854fb3fb443a723b4b640e"
+    },
+    {
+      "role": "collection-code",
+      "path": "packages/holoserve-py/holoserve/workspace_eval.py",
+      "sha256": "sha256:43bcabaefab5f4ed9d19054d759eade8388254859a86d047db805f36783f381d"
+    },
+    {
+      "role": "evaluation-code",
+      "path": "packages/holoserve-py/holoserve/workspace_fidelity.py",
+      "sha256": "sha256:d61ec127e877069f79a29fb410b1c4a8e516ad3c62ee82166d7f360d3d871f22"
+    }
+  ],
+  "artifacts": [
+    {
+      "role": "fit-a-receipt",
+      "path": "research/measurements/jspace-s1/pilot-a-fit.json",
+      "bytes": 2279,
+      "sha256": "sha256:d6eaf29bcb03846810702db275404c5d5b7c2b8583d1bd2ecffd14bd375ee4fb"
+    },
+    {
+      "role": "fit-b-receipt",
+      "path": "research/measurements/jspace-s1/pilot-b-fit.json",
+      "bytes": 2279,
+      "sha256": "sha256:38220c59b48e86bfbe33c9cdaab4dd3b59ffb2b96018a9c1483a912a7f3c693e"
+    },
+    {
+      "role": "collection-manifest",
+      "path": "research/measurements/jspace-s1/pilot-collection.json",
+      "bytes": 3407,
+      "sha256": "sha256:669843817477a68ea6962ae8e7609d63041a679e3b931c27909467eeaefed0ea"
+    },
+    {
+      "role": "frozen-evaluation",
+      "path": "research/measurements/jspace-s1/pilot-fidelity.json",
+      "bytes": 8625,
+      "sha256": "sha256:4702f9509b9eebfc4bac0dcca9868a28f1321d9f08d26decdf86e8cf03ecdcdb"
+    },
+    {
+      "role": "derived-rows",
+      "path": "research/measurements/jspace-s1/pilot-rows.jsonl",
+      "bytes": 144036,
+      "sha256": "sha256:d7684c7f9c4b3f26f54233cd5c738ccb9b954c4f898ebd3e5c471c7b23f1fdf6"
+    },
+    {
+      "role": "source-receipts",
+      "path": "research/measurements/jspace-s1/pilot-receipts.jsonl",
+      "bytes": 755325,
+      "sha256": "sha256:b0fec05db3505f47ebbc867e76979c6d8c0606194f1a1032e8ee281be0cd8495"
+    }
+  ],
+  "externalDerivedArtifacts": [
+    {
+      "role": "lens-a",
+      "bytes": 19758943,
+      "sha256": "sha256:135b027acd191d790647ec3c16e8c43fa7790cf18ebdd0f4d01a503ee65603be",
+      "availability": "not-promoted; regenerate from the sealed fit input and checkpoint"
+    },
+    {
+      "role": "lens-b",
+      "bytes": 19758943,
+      "sha256": "sha256:ba8b1e5e5a2464930440da46cfc6ec4b74557d96239203803275fabb75def6d2",
+      "availability": "not-promoted; regenerate from the sealed fit input and checkpoint"
+    }
+  ],
+  "replay": {
+    "scope": "evaluation-from-sealed-receipts",
+    "env": {
+      "PYTHONPATH": "packages/holoserve-py"
+    },
+    "module": "holoserve.workspace_fidelity",
+    "argv": [
+      "--rows",
+      "research/measurements/jspace-s1/pilot-rows.jsonl",
+      "--receipts",
+      "research/measurements/jspace-s1/pilot-receipts.jsonl",
+      "--prompt-manifest",
+      "research/data/jspace-s1/fidelity-h-pilot.jsonl",
+      "--collection-manifest",
+      "research/measurements/jspace-s1/pilot-collection.json",
+      "--preregistration",
+      "research/2026-07-14-jspace-s1-target-fidelity-preregistration.md",
+      "--output",
+      "pilot-fidelity.replay.json",
+      "--bootstrap-samples",
+      "10000",
+      "--bootstrap-seed",
+      "7301642128954031337"
+    ],
+    "comparison": {
+      "excludeFields": [
+        "createdAt",
+        "selfHash"
+      ],
+      "canonicalizer": "holoserve.workspace_probe.sha256_json",
+      "expectedSha256": "sha256:c3df1c4fcd4d2ce5386b3a411c104c1b106d522e3d412c762f2a5450e87f791d"
+    }
+  },
+  "disclosureAudit": {
+    "scope": "promoted-artifacts",
+    "absoluteLocalPathCount": 0,
+    "credentialSignatureCount": 0,
+    "rawPromptFieldCount": 0,
+    "rawActivationsPersisted": false
+  },
+  "selfHash": "sha256:ab67c874fa0e5275d76bbcc45aa0203492999e6c5484ff58fc29b5e2a90999a9"
+}
