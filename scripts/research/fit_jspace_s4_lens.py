@@ -464,6 +464,11 @@ def _contains_private_numeric_scalars(
         "scalaridentitycontrol",
     }
     if isinstance(value, dict):
+        if path and path[-1] == "fitsourcesha256s":
+            return any(
+                not isinstance(source, str) or not _is_sha256(digest)
+                for source, digest in value.items()
+            )
         for key, nested in value.items():
             normalized = "".join(char for char in str(key).lower() if char.isalnum())
             scalar_identity_metric = (

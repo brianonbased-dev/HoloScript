@@ -70,6 +70,11 @@ def _write_test_v4_fit_receipt(artifact, lens_path, receipt_path):
             artifact,
             lens_sha256=sha256_file(lens_path),
         ),
+        "fitSourceSha256s": {
+            "research/2026-07-15-jspace-s4-centered-scalar-preregistration.md": (
+                f"sha256:{'3' * 64}"
+            )
+        },
         "semanticLabelsAccessed": False,
         "selfHash": None,
     }
@@ -780,6 +785,26 @@ def test_endpoint_scalar_calibration_is_centered_private_and_fail_closed(tmp_pat
                 fit_receipt_path=tampered_receipt_path,
             )
         assert tampered_fit_receipt.value.code == "invalid_lens_fit_receipt"
+    invalid_source_receipt = json.loads(fit_receipt_path.read_text(encoding="utf-8"))
+    invalid_source_receipt["fitSourceSha256s"] = {
+        "research/2026-07-15-jspace-s4-centered-scalar-preregistration.md": 1
+    }
+    invalid_source_receipt["selfHash"] = sha256_json(
+        {**invalid_source_receipt, "selfHash": None}
+    )
+    invalid_source_receipt_path = tmp_path / "invalid-fit-source-digest.json"
+    invalid_source_receipt_path.write_text(
+        json.dumps(invalid_source_receipt), encoding="utf-8"
+    )
+    with pytest.raises(WorkspaceProbeError) as invalid_source_digest:
+        load_jacobian_lens_artifact(
+            path,
+            checkpoint_sha256=checkpoint_hash,
+            tokenizer_sha256=tokenizer_hash,
+            model=model,
+            fit_receipt_path=invalid_source_receipt_path,
+        )
+    assert invalid_source_digest.value.code == "invalid_lens_fit_receipt"
     loaded = load_jacobian_lens_artifact(
         path,
         checkpoint_sha256=checkpoint_hash,

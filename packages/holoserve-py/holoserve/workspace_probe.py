@@ -1953,7 +1953,10 @@ def jacobian_lens_v4_fit_receipt_fields(
     }
 
 
-def _fit_receipt_contains_private_scalar(value: Any) -> bool:
+def _fit_receipt_contains_private_scalar(
+    value: Any,
+    path: tuple[str, ...] = (),
+) -> bool:
     allowed_scalar_fields = {
         "primaryalphainterior",
         "primarybetainterior",
@@ -1965,9 +1968,14 @@ def _fit_receipt_contains_private_scalar(value: Any) -> bool:
         "scalarstatisticssha256",
     }
     if isinstance(value, list):
-        return any(_fit_receipt_contains_private_scalar(item) for item in value)
+        return any(_fit_receipt_contains_private_scalar(item, path) for item in value)
     if not isinstance(value, dict):
         return False
+    if path and path[-1] == "fitsourcesha256s":
+        return any(
+            not isinstance(source, str) or not _is_sha256(digest)
+            for source, digest in value.items()
+        )
     for key, child in value.items():
         normalized = "".join(character for character in key.casefold() if character.isalnum())
         if (
@@ -1980,7 +1988,7 @@ def _fit_receipt_contains_private_scalar(value: Any) -> bool:
             )
         ):
             return True
-        if _fit_receipt_contains_private_scalar(child):
+        if _fit_receipt_contains_private_scalar(child, (*path, normalized)):
             return True
     return False
 

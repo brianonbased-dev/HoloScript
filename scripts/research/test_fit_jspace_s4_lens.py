@@ -312,6 +312,25 @@ class JSpaceS4FitRunnerTests(unittest.TestCase):
                 }
             )
         )
+        frozen_source_map = {
+            "research/2026-07-15-jspace-s4-centered-scalar-preregistration.md": (
+                f"sha256:{'b' * 64}"
+            )
+        }
+        self.assertFalse(
+            runner._contains_private_numeric_scalars(
+                {"fitSourceSha256s": frozen_source_map}
+            )
+        )
+        self.assertTrue(
+            runner._contains_private_numeric_scalars(
+                {
+                    "fitSourceSha256s": {
+                        "research/2026-07-15-jspace-s4-centered-scalar-preregistration.md": 1
+                    }
+                }
+            )
+        )
 
     def test_generated_receipt_digest_tamper_is_rejected(self) -> None:
         artifact = _scalar_artifact()
@@ -322,7 +341,12 @@ class JSpaceS4FitRunnerTests(unittest.TestCase):
             expected_position_bin_counts=[1, 1, 1, 1],
         )
         source_hash = runner.sha256_file(RUNNER_PATH)
-        sources = {"scripts/research/fit_jspace_s4_lens.py": source_hash}
+        sources = {
+            "scripts/research/fit_jspace_s4_lens.py": source_hash,
+            "research/2026-07-15-jspace-s4-centered-scalar-preregistration.md": (
+                f"sha256:{'6' * 64}"
+            ),
+        }
         corpus_binding = {
             "sourceSelectionSha256": f"sha256:{'1' * 64}",
             "sequenceOrderSha256": artifact["fitBinding"][
