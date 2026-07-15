@@ -25,6 +25,10 @@ from urllib.request import Request, urlopen
 import numpy as np
 
 from holoserve.workspace_probe import (
+    JACOBIAN_LENS_ESTIMATOR_V2,
+    JACOBIAN_LENS_ESTIMATOR_V3,
+    JACOBIAN_LENS_V2_TRANSPORT_PROFILE,
+    JACOBIAN_LENS_V3_TRANSPORT_PROFILE,
     MODEL_WORKSPACE_CAPABILITY_SCHEMA,
     MODEL_WORKSPACE_CONTROL_PROFILE,
     MODEL_WORKSPACE_MEASUREMENT_PROFILE,
@@ -83,6 +87,10 @@ FORBIDDEN_RECEIPT_FIELDS = {
     "strength",
     "truth",
     "vector",
+}
+ENDPOINT_ESTIMATOR_TRANSPORT_PROFILES = {
+    JACOBIAN_LENS_ESTIMATOR_V2: JACOBIAN_LENS_V2_TRANSPORT_PROFILE,
+    JACOBIAN_LENS_ESTIMATOR_V3: JACOBIAN_LENS_V3_TRANSPORT_PROFILE,
 }
 GAP_PRIME = (
     " If the scene is underdetermined, or the obligations conflict with no precedence, or the"
@@ -158,9 +166,10 @@ def _supported_estimator(value: dict[str, Any]) -> bool:
         and value.get("parityScope") == "reference-estimator-only"
         and value.get("paperExperimentParity") is False
     ) or (
-        value.get("estimator") == "endpoint_self_jacobian_affine_v1"
+        value.get("estimator") in ENDPOINT_ESTIMATOR_TRANSPORT_PROFILES
         and value.get("paperParity") is False
-        and value.get("transportProfile") == "mean-anchored-affine-final-residual-v1"
+        and value.get("transportProfile")
+        == ENDPOINT_ESTIMATOR_TRANSPORT_PROFILES[value["estimator"]]
     )
 
 
@@ -172,7 +181,7 @@ def _supported_position_policy(estimator: Any, position_policy: Any) -> bool:
         estimator == "corpus_position_average_v1"
         and position_policy == "all-valid-current-and-future-targets"
     ) or (
-        estimator == "endpoint_self_jacobian_affine_v1"
+        estimator in ENDPOINT_ESTIMATOR_TRANSPORT_PROFILES
         and position_policy == "endpoint-self-only"
     )
 
@@ -837,7 +846,7 @@ def _validate_capability(
         or capability.get("method") != "jacobian_lens"
         or not _supported_estimator(capability)
         or (
-            capability.get("estimator") == "endpoint_self_jacobian_affine_v1"
+            capability.get("estimator") in ENDPOINT_ESTIMATOR_TRANSPORT_PROFILES
             and (
                 capability.get("positionPolicy") != "endpoint-self-only"
                 or not _supported_endpoint_position_bins(capability.get("positionBins"))
@@ -957,7 +966,7 @@ def _validate_receipt(
         raise ValueError("workspace evaluation rejects truncated prompts")
     if not allow_truncated and original_token_count > MAX_PROMPT_TOKENS:
         raise ValueError("workspace evaluation rejects prompts longer than 512 tokens")
-    if lens.get("estimator") == "endpoint_self_jacobian_affine_v1" and (
+    if lens.get("estimator") in ENDPOINT_ESTIMATOR_TRANSPORT_PROFILES and (
         requested_positions != [-1] or actual_positions != [token_count - 1]
     ):
         raise ValueError("endpoint affine evaluation requires the final token position")
@@ -1094,7 +1103,7 @@ def _validate_receipt(
             or abs(metric["controlMaxProbabilityE8"] - controls[0]["probabilityE8"]) > 1
         ):
             raise ValueError(f"workspace coordinate {index} distribution metrics are invalid")
-        if lens.get("estimator") == "endpoint_self_jacobian_affine_v1":
+        if lens.get("estimator") in ENDPOINT_ESTIMATOR_TRANSPORT_PROFILES:
             if (
                 not isinstance(anchor_control, dict)
                 or set(anchor_control)

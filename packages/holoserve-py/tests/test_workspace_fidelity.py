@@ -11,6 +11,8 @@ from holoserve import workspace_eval as we
 from holoserve.model import GPT
 
 from holoserve.workspace_fidelity import (
+    S1_GATE_PROFILE,
+    S2_GATE_PROFILE,
     _bootstrap_interval,
     _summarize_alias,
     _wilson_lower,
@@ -19,6 +21,7 @@ from holoserve.workspace_fidelity import (
 from holoserve.workspace_probe import (
     ModelWorkspaceProbe,
     fit_endpoint_affine_jacobian_lens_v1,
+    fit_endpoint_local_taylor_jacobian_lens_v1,
     load_jacobian_lens_artifact,
     save_jacobian_lens_artifact,
     sha256_json,
@@ -84,8 +87,42 @@ def test_fidelity_summary_requires_input_dependent_top_token_diversity():
     assert collapsed["gates"]["topTokenDiversity"] is False
     assert collapsed["passed"] is False
 
+    varied_s2 = _summarize_alias(
+        _records(), samples=200, seed=19, gate_profile=S2_GATE_PROFILE
+    )
+    assert varied_s2["gates"]["targetTopTokenVariation"] is True
+    assert varied_s2["gates"]["topTokenDiversity"] is True
+    assert varied_s2["passed"] is True
 
-def test_label_blind_evaluator_replays_a_complete_ab_receipt_matrix(tmp_path):
+    constant_target = _records(collapsed=True)
+    for record in constant_target:
+        for layer in (2, 5, 8):
+            record["layers"][layer]["targetTopTokenId"] = 1
+    inconclusive_s2 = _summarize_alias(
+        constant_target, samples=200, seed=19, gate_profile=S2_GATE_PROFILE
+    )
+    assert inconclusive_s2["gates"]["targetTopTokenVariation"] is False
+    assert inconclusive_s2["passed"] is False
+
+
+@pytest.mark.parametrize(
+    ("gate_profile", "fitter", "expected_schema"),
+    (
+        (
+            S1_GATE_PROFILE,
+            fit_endpoint_affine_jacobian_lens_v1,
+            "holoscript.model-workspace-fidelity-evaluation.v0.1.0",
+        ),
+        (
+            S2_GATE_PROFILE,
+            fit_endpoint_local_taylor_jacobian_lens_v1,
+            "holoscript.model-workspace-fidelity-evaluation.v0.2.0",
+        ),
+    ),
+)
+def test_label_blind_evaluator_replays_a_complete_ab_receipt_matrix(
+    tmp_path, gate_profile, fitter, expected_schema
+):
     torch.manual_seed(29)
     model = GPT(
         vocab_size=12,
@@ -103,7 +140,7 @@ def test_label_blind_evaluator_replays_a_complete_ab_receipt_matrix(tmp_path):
         ("a", torch.tensor([[1, 3, 4]], dtype=torch.long)),
         ("b", torch.tensor([[1, 5, 6]], dtype=torch.long)),
     ):
-        artifact = fit_endpoint_affine_jacobian_lens_v1(
+        artifact = fitter(
             model,
             [calibration],
             layers=[2, 5, 8],
@@ -250,9 +287,14 @@ def test_label_blind_evaluator_replays_a_complete_ab_receipt_matrix(tmp_path):
             output=str(output_path),
             bootstrap_samples=50,
             bootstrap_seed=31,
+            gate_profile=gate_profile,
         )
     )
     result = json.loads(output_path.read_text(encoding="utf-8"))
-    assert result["schema"] == "holoscript.model-workspace-fidelity-evaluation.v0.1.0"
+    assert result["schema"] == expected_schema
+    if gate_profile == S2_GATE_PROFILE:
+        assert result["gateProfile"] == S2_GATE_PROFILE
+    else:
+        assert "gateProfile" not in result
     assert result["semanticLabelsAccessed"] is False
     assert result["selfHash"] == sha256_json({**result, "selfHash": None})

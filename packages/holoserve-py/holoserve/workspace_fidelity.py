@@ -1,9 +1,11 @@
-"""Label-blind target-fidelity gate for endpoint-affine workspace lenses.
+"""Label-blind target-fidelity gates for registered endpoint workspace lenses.
 
 This evaluator consumes HoloServe's already receipt-validated collection shape,
 replays every canonical source receipt, and tests whether two independently fit
 endpoint Jacobian lenses improve on both the identity logit lens and the
-bin-wise mean-final anchor. It never accepts or reads semantic labels.
+bin-wise mean-final anchor. The default preserves frozen S1 behavior; the S2
+profile adds preregistered target-relative endpoint-diversity checks. It never
+accepts or reads semantic labels.
 """
 
 from __future__ import annotations
@@ -19,12 +21,32 @@ from typing import Any, Callable, Sequence
 import numpy as np
 
 from . import workspace_eval as we
-from .workspace_probe import sha256_json
+from .workspace_probe import (
+    JACOBIAN_LENS_ESTIMATOR_V2,
+    JACOBIAN_LENS_ESTIMATOR_V3,
+    JACOBIAN_LENS_V2_TRANSPORT_PROFILE,
+    JACOBIAN_LENS_V3_TRANSPORT_PROFILE,
+    sha256_json,
+)
 
 
 FIDELITY_EVALUATION_SCHEMA = "holoscript.model-workspace-fidelity-evaluation.v0.1.0"
-FIDELITY_ESTIMATOR = "endpoint_self_jacobian_affine_v1"
-FIDELITY_TRANSPORT_PROFILE = "mean-anchored-affine-final-residual-v1"
+FIDELITY_EVALUATION_SCHEMA_V2 = "holoscript.model-workspace-fidelity-evaluation.v0.2.0"
+S1_GATE_PROFILE = "s1-endpoint-affine-v1"
+S2_GATE_PROFILE = "s2-local-taylor-varied-endpoint-v1"
+DEFAULT_GATE_PROFILE = S1_GATE_PROFILE
+FIDELITY_PROFILES = {
+    S1_GATE_PROFILE: {
+        "estimator": JACOBIAN_LENS_ESTIMATOR_V2,
+        "transportProfile": JACOBIAN_LENS_V2_TRANSPORT_PROFILE,
+        "schema": FIDELITY_EVALUATION_SCHEMA,
+    },
+    S2_GATE_PROFILE: {
+        "estimator": JACOBIAN_LENS_ESTIMATOR_V3,
+        "transportProfile": JACOBIAN_LENS_V3_TRANSPORT_PROFILE,
+        "schema": FIDELITY_EVALUATION_SCHEMA_V2,
+    },
+}
 PRIMARY_LAYERS = (2, 5)
 CEILING_LAYER = 8
 
@@ -81,22 +103,30 @@ def _wilson_lower(positive: int, total: int, z: float = 1.959963984540054) -> fl
     return (centre - margin) / denominator
 
 
-def _capability_bins(capability: dict[str, Any]) -> list[list[int]]:
+def _capability_bins(
+    capability: dict[str, Any], gate_profile: str = DEFAULT_GATE_PROFILE
+) -> list[list[int]]:
+    profile = FIDELITY_PROFILES.get(gate_profile)
+    if profile is None:
+        raise ValueError(f"unsupported fidelity gate profile: {gate_profile}")
     bins = capability.get("positionBins")
     if (
-        capability.get("estimator") != FIDELITY_ESTIMATOR
+        capability.get("estimator") != profile["estimator"]
         or capability.get("paperParity") is not False
-        or capability.get("transportProfile") != FIDELITY_TRANSPORT_PROFILE
+        or capability.get("transportProfile") != profile["transportProfile"]
         or capability.get("positionPolicy") != "endpoint-self-only"
         or not we._supported_endpoint_position_bins(bins)
     ):
-        raise ValueError("fidelity evaluation requires the endpoint affine capability")
+        raise ValueError(
+            f"fidelity evaluation requires the {gate_profile} endpoint capability"
+        )
     return bins
 
 
 def _load_bound_rows(args: argparse.Namespace) -> tuple[
     list[dict[str, Any]], dict[str, Any], dict[str, dict[str, Any]]
 ]:
+    gate_profile = getattr(args, "gate_profile", DEFAULT_GATE_PROFILE)
     rows = we._read_jsonl(args.rows)
     receipts_rows = we._read_jsonl(args.receipts)
     prompts_rows = we._read_jsonl(args.prompt_manifest)
@@ -130,7 +160,10 @@ def _load_bound_rows(args: argparse.Namespace) -> tuple[
         or set(capabilities) != {"a", "b"}
     ):
         raise ValueError("fidelity collection requires distinct A/B lens policies")
-    bins_by_alias = {alias: _capability_bins(capabilities[alias]) for alias in ("a", "b")}
+    bins_by_alias = {
+        alias: _capability_bins(capabilities[alias], gate_profile)
+        for alias in ("a", "b")
+    }
     if bins_by_alias["a"] != bins_by_alias["b"]:
         raise ValueError("A/B endpoint lenses must share the frozen position bins")
 
@@ -275,9 +308,30 @@ def _diversity(values: Sequence[int]) -> dict[str, float | int]:
     }
 
 
+def _diversity_by_position_bin(
+    records: Sequence[dict[str, Any]], field: str
+) -> dict[str, dict[str, float | int]]:
+    return {
+        str(position_bin): _diversity(
+            [
+                record["layers"][PRIMARY_LAYERS[0]][field]
+                for record in records
+                if record["positionBin"] == position_bin
+            ]
+        )
+        for position_bin in sorted({record["positionBin"] for record in records})
+    }
+
+
 def _summarize_alias(
-    records: list[dict[str, Any]], *, samples: int, seed: int
+    records: list[dict[str, Any]],
+    *,
+    samples: int,
+    seed: int,
+    gate_profile: str = DEFAULT_GATE_PROFILE,
 ) -> dict[str, Any]:
+    if gate_profile not in FIDELITY_PROFILES:
+        raise ValueError(f"unsupported fidelity gate profile: {gate_profile}")
     layer_results = {}
     for layer in (*PRIMARY_LAYERS, CEILING_LAYER):
         gains = [record["layers"][layer]["gain"] for record in records]
@@ -363,6 +417,8 @@ def _summarize_alias(
     target_top = [record["layers"][PRIMARY_LAYERS[0]]["targetTopTokenId"] for record in records]
     mapped_diversity = _diversity(mapped_top)
     target_diversity = _diversity(target_top)
+    mapped_diversity_by_bin = _diversity_by_position_bin(records, "mappedTopTokenId")
+    target_diversity_by_bin = _diversity_by_position_bin(records, "targetTopTokenId")
     gates = {
         "macroIdentityGain": macro["lensGainBootstrap95E8"][0] > 0,
         "macroAnchorGain": macro["anchorGainBootstrap95E8"][0] > 0,
@@ -383,39 +439,74 @@ def _summarize_alias(
             layer_results[str(CEILING_LAYER)]["lensGainMeanE8"] >= -10_000
             and layer_results[str(CEILING_LAYER)]["lensGainBootstrap95E8"][0] > -50_000
         ),
-        "topTokenDiversity": (
+    }
+    if gate_profile == S1_GATE_PROFILE:
+        gates["topTokenDiversity"] = (
             mapped_diversity["uniqueCount"] * 5 >= 4 * target_diversity["uniqueCount"]
             and mapped_diversity["maximumShareE8"]
             <= max(10_000_000, (5 * target_diversity["maximumShareE8"] + 3) // 4)
             and all(
-                len(
-                    {
-                        record["layers"][PRIMARY_LAYERS[0]]["mappedTopTokenId"]
-                        for record in records
-                        if record["positionBin"] == position_bin
-                    }
-                )
-                > 1
-                for position_bin in sorted({record["positionBin"] for record in records})
+                value["uniqueCount"] > 1 for value in mapped_diversity_by_bin.values()
             )
-        ),
-    }
+        )
+    else:
+        gates["targetTopTokenVariation"] = (
+            target_diversity["uniqueCount"] >= 4
+            and target_diversity["maximumShareE8"] <= 50_000_000
+            and all(
+                value["uniqueCount"] >= 2
+                for value in target_diversity_by_bin.values()
+            )
+        )
+        gates["topTokenDiversity"] = (
+            mapped_diversity["uniqueCount"] * 5 >= 4 * target_diversity["uniqueCount"]
+            and mapped_diversity["maximumShareE8"]
+            <= max(10_000_000, (5 * target_diversity["maximumShareE8"] + 3) // 4)
+            and all(
+                mapped_diversity_by_bin[position_bin]["uniqueCount"] >= 2
+                and mapped_diversity_by_bin[position_bin]["uniqueCount"] * 5
+                >= 4 * target_diversity_by_bin[position_bin]["uniqueCount"]
+                and mapped_diversity_by_bin[position_bin]["maximumShareE8"]
+                <= max(
+                    20_000_000,
+                    (
+                        5
+                        * target_diversity_by_bin[position_bin]["maximumShareE8"]
+                        + 3
+                    )
+                    // 4,
+                )
+                for position_bin in target_diversity_by_bin
+            )
+        )
     return {
         "recordCount": len(records),
         "macroPrimary": macro,
         "layers": layer_results,
         "mappedTopTokenDiversity": mapped_diversity,
         "targetTopTokenDiversity": target_diversity,
+        **(
+            {
+                "mappedTopTokenDiversityByPositionBin": mapped_diversity_by_bin,
+                "targetTopTokenDiversityByPositionBin": target_diversity_by_bin,
+            }
+            if gate_profile == S2_GATE_PROFILE
+            else {}
+        ),
         "gates": gates,
         "passed": all(gates.values()),
     }
 
 
 def evaluate_fidelity(args: argparse.Namespace) -> None:
+    gate_profile = getattr(args, "gate_profile", DEFAULT_GATE_PROFILE)
+    profile = FIDELITY_PROFILES.get(gate_profile)
+    if profile is None:
+        raise ValueError(f"unsupported fidelity gate profile: {gate_profile}")
     rows, collection, capabilities = _load_bound_rows(args)
     if not Path(args.preregistration).is_file():
         raise ValueError("fidelity evaluation requires the frozen preregistration")
-    bins = _capability_bins(capabilities["a"])
+    bins = _capability_bins(capabilities["a"], gate_profile)
     records = {
         alias: _records_for_alias(rows, alias, bins)
         for alias in ("a", "b")
@@ -430,6 +521,7 @@ def evaluate_fidelity(args: argparse.Namespace) -> None:
             samples=args.bootstrap_samples,
             seed=args.bootstrap_seed
             ^ int.from_bytes(hashlib.sha256(alias.encode()).digest()[:8], "big"),
+            gate_profile=gate_profile,
         )
         for alias in ("a", "b")
     }
@@ -453,7 +545,7 @@ def evaluate_fidelity(args: argparse.Namespace) -> None:
         and sign_agreement_e8 >= 90_000_000,
     }
     result = {
-        "schema": FIDELITY_EVALUATION_SCHEMA,
+        "schema": profile["schema"],
         "status": "label-blind-target-fidelity",
         "createdAt": we._utc_now(),
         "rowsSha256": we._sha256_file(args.rows),
@@ -481,6 +573,8 @@ def evaluate_fidelity(args: argparse.Namespace) -> None:
         and replication["passed"],
         "selfHash": None,
     }
+    if gate_profile == S2_GATE_PROFILE:
+        result["gateProfile"] = gate_profile
     result["selfHash"] = sha256_json(result)
     we._write_json_atomic(args.output, result)
 
@@ -495,6 +589,11 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--output", required=True)
     parser.add_argument("--bootstrap-samples", type=int, default=10_000)
     parser.add_argument("--bootstrap-seed", type=int, default=7_301_642_128_954_031_337)
+    parser.add_argument(
+        "--gate-profile",
+        choices=tuple(FIDELITY_PROFILES),
+        default=DEFAULT_GATE_PROFILE,
+    )
     return parser
 
 

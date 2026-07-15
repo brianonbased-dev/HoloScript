@@ -37,6 +37,7 @@ JACOBIAN_LENS_ESTIMATOR_V0 = "explicit_pair_average_v0"
 JACOBIAN_LENS_ESTIMATOR = JACOBIAN_LENS_ESTIMATOR_V0
 JACOBIAN_LENS_ESTIMATOR_V1 = "corpus_position_average_v1"
 JACOBIAN_LENS_ESTIMATOR_V2 = "endpoint_self_jacobian_affine_v1"
+JACOBIAN_LENS_ESTIMATOR_V3 = "endpoint_self_jacobian_local_taylor_v1"
 EXPLICIT_POSITION_POLICY = "explicit-source-target-pairs"
 ALL_VALID_CURRENT_AND_FUTURE_POSITION_POLICY = "all-valid-current-and-future-targets"
 ENDPOINT_SELF_POSITION_POLICY = "endpoint-self-only"
@@ -48,6 +49,7 @@ JACOBIAN_LENS_V1_PROMPT_TRUNCATION_POLICY = "right-truncate-token-ids-to-max-seq
 JACOBIAN_LENS_V2_PROMPT_TRUNCATION_POLICY = "reject-over-max-seq-len"
 JACOBIAN_LENS_V2_CORPUS_CANONICALIZATION = "ordered-whole-sequence-sha256-v1"
 JACOBIAN_LENS_V2_TRANSPORT_PROFILE = "mean-anchored-affine-final-residual-v1"
+JACOBIAN_LENS_V3_TRANSPORT_PROFILE = "local-taylor-affine-final-residual-v1"
 WORKSPACE_PROBE_IMPLEMENTATION_VERSION = "0.1.0"
 MAX_WORKSPACE_TOP_K = 25
 MAX_WORKSPACE_POSITIONS = 4
@@ -551,7 +553,7 @@ def fit_jacobian_lens_v1(
     }
 
 
-def fit_endpoint_affine_jacobian_lens_v1(
+def _fit_endpoint_jacobian_lens_v1(
     model,
     calibration_batches: Iterable[torch.Tensor],
     *,
@@ -564,8 +566,9 @@ def fit_endpoint_affine_jacobian_lens_v1(
     max_seq_len: int = 512,
     position_bins: Sequence[tuple[int, int]] | None = None,
     max_cpu_matrix_bytes: int = DEFAULT_MAX_JACOBIAN_LENS_CPU_MATRIX_BYTES,
+    estimator_name: str,
 ) -> dict[str, Any]:
-    """Fit a same-endpoint Jacobian with a bin-wise affine mean anchor.
+    """Fit a bounded same-endpoint Jacobian with an explicit affine anchor contract.
 
     Unlike :func:`fit_jacobian_lens_v1`, this estimator is not the paper's
     present-and-future causal-disposition lens. For every complete calibration
@@ -573,12 +576,18 @@ def fit_endpoint_affine_jacobian_lens_v1(
     only with respect to the source residual at that same token. Learned
     absolute positions are kept explicit through caller-declared position bins.
 
-    Each bin serves ``J @ h + b``, where ``J`` is the average endpoint
-    Jacobian and ``b = mean(target) - J @ mean(source)``. The affine term makes
-    the local linearization target-fidelity shaped while the matrix itself
-    remains a causal Jacobian. Oversize prompts fail closed; no partial stream
-    chunk or silently truncated calibration sequence is admitted.
+    Each bin serves ``J @ h + b``. The public wrappers select either the legacy
+    mean anchor or the per-example local-Taylor intercept while sharing the same
+    bounded Jacobian computation. Oversize prompts fail closed; no partial
+    stream chunk or silently truncated calibration sequence is admitted.
     """
+
+    if estimator_name not in {JACOBIAN_LENS_ESTIMATOR_V2, JACOBIAN_LENS_ESTIMATOR_V3}:
+        raise WorkspaceProbeError(
+            "invalid_lens_estimator",
+            "endpoint fitter requires a registered affine estimator contract",
+        )
+    local_taylor = estimator_name == JACOBIAN_LENS_ESTIMATOR_V3
 
     if any(type(layer) is not int for layer in layers):
         raise WorkspaceProbeError("invalid_source_layers", "layers must contain integers")
@@ -621,6 +630,8 @@ def fit_endpoint_affine_jacobian_lens_v1(
             "max_cpu_matrix_bytes must be a positive integer",
         )
     projected_matrix_bytes = len(normalized_bins) * len(layer_ids) * n_embd * n_embd * 24
+    if local_taylor:
+        projected_matrix_bytes += len(normalized_bins) * len(layer_ids) * n_embd * 8
     if projected_matrix_bytes > max_cpu_matrix_bytes:
         raise WorkspaceProbeError(
             "matrix_budget_exceeded",
@@ -712,6 +723,14 @@ def fit_endpoint_affine_jacobian_lens_v1(
         {layer: torch.zeros(n_embd, dtype=torch.float64) for layer in layer_ids}
         for _ in normalized_bins
     ]
+    jacobian_source_product_totals = (
+        [
+            {layer: torch.zeros(n_embd, dtype=torch.float64) for layer in layer_ids}
+            for _ in normalized_bins
+        ]
+        if local_taylor
+        else None
+    )
     target_totals = [torch.zeros(n_embd, dtype=torch.float64) for _ in normalized_bins]
     n_passes = math.ceil(n_embd / dim_batch)
     device = next(model.parameters()).device
@@ -784,6 +803,10 @@ def fit_endpoint_affine_jacobian_lens_v1(
                     )
                 matrix_totals[bin_index][layer] += matrix.to(dtype=torch.float64)
                 source_totals[bin_index][layer] += source_endpoints[layer]
+                if jacobian_source_product_totals is not None:
+                    jacobian_source_product_totals[bin_index][layer] += (
+                        matrix.to(dtype=torch.float64) @ source_endpoints[layer]
+                    )
     finally:
         model.zero_grad(set_to_none=True)
         model.train(was_training)
@@ -792,16 +815,25 @@ def fit_endpoint_affine_jacobian_lens_v1(
     binned_biases = []
     binned_source_means = []
     binned_target_means = []
+    binned_jacobian_source_product_means = []
     for bin_index, count in enumerate(bin_counts):
         target_mean = (target_totals[bin_index] / count).to(dtype=torch.float32)
         matrices_for_bin = []
         biases_for_bin = []
         source_means_for_bin = []
         target_means_for_bin = []
+        jacobian_source_product_means_for_bin = []
         for layer in layer_ids:
             matrix = (matrix_totals[bin_index][layer] / count).to(dtype=torch.float32)
             source_mean = (source_totals[bin_index][layer] / count).to(dtype=torch.float32)
-            bias = target_mean - matrix @ source_mean
+            if jacobian_source_product_totals is None:
+                bias = target_mean - matrix @ source_mean
+            else:
+                jacobian_source_product_mean = (
+                    jacobian_source_product_totals[bin_index][layer] / count
+                ).to(dtype=torch.float32)
+                bias = target_mean - jacobian_source_product_mean
+                jacobian_source_product_means_for_bin.append(jacobian_source_product_mean)
             matrices_for_bin.append(matrix)
             biases_for_bin.append(bias)
             source_means_for_bin.append(source_mean)
@@ -810,11 +842,18 @@ def fit_endpoint_affine_jacobian_lens_v1(
         binned_biases.append(torch.stack(biases_for_bin))
         binned_source_means.append(torch.stack(source_means_for_bin))
         binned_target_means.append(torch.stack(target_means_for_bin))
+        if jacobian_source_product_totals is not None:
+            binned_jacobian_source_product_means.append(
+                torch.stack(jacobian_source_product_means_for_bin)
+            )
 
     matrices = torch.stack(binned_matrices)
     biases = torch.stack(binned_biases)
     source_means = torch.stack(binned_source_means)
     target_means = torch.stack(binned_target_means)
+    jacobian_source_product_means = (
+        torch.stack(binned_jacobian_source_product_means) if local_taylor else None
+    )
     _require_finite_non_degenerate_binned_transport(matrices, biases, layer_ids)
     calibration = _build_v2_calibration_metadata(
         sequence_sha256s=sequence_sha256s,
@@ -824,11 +863,13 @@ def fit_endpoint_affine_jacobian_lens_v1(
         position_bins=normalized_bins,
         position_bin_counts=bin_counts,
     )
-    return {
+    artifact = {
         "schema": JACOBIAN_LENS_ARTIFACT_SCHEMA,
         "kind": "JacobianLensArtifact",
         "method": "jacobian_lens",
-        "estimator": _v2_estimator_metadata(),
+        "estimator": (
+            _v3_estimator_metadata() if local_taylor else _v2_estimator_metadata()
+        ),
         "implementationVersion": WORKSPACE_PROBE_IMPLEMENTATION_VERSION,
         "model": {
             "architecture": architecture,
@@ -845,6 +886,73 @@ def fit_endpoint_affine_jacobian_lens_v1(
         "sourceMeans": source_means,
         "targetMeans": target_means,
     }
+    if jacobian_source_product_means is not None:
+        artifact["jacobianSourceProductMeans"] = jacobian_source_product_means
+    return artifact
+
+
+def fit_endpoint_affine_jacobian_lens_v1(
+    model,
+    calibration_batches: Iterable[torch.Tensor],
+    *,
+    layers: Sequence[int],
+    checkpoint_sha256: str,
+    tokenizer_sha256: str,
+    calibration_corpus_sha256: str | None = None,
+    architecture: str = "holorunner-s0-gpt",
+    dim_batch: int = 8,
+    max_seq_len: int = 512,
+    position_bins: Sequence[tuple[int, int]] | None = None,
+    max_cpu_matrix_bytes: int = DEFAULT_MAX_JACOBIAN_LENS_CPU_MATRIX_BYTES,
+) -> dict[str, Any]:
+    """Fit the existing bin-wise mean-anchored endpoint transport unchanged."""
+
+    return _fit_endpoint_jacobian_lens_v1(
+        model,
+        calibration_batches,
+        layers=layers,
+        checkpoint_sha256=checkpoint_sha256,
+        tokenizer_sha256=tokenizer_sha256,
+        calibration_corpus_sha256=calibration_corpus_sha256,
+        architecture=architecture,
+        dim_batch=dim_batch,
+        max_seq_len=max_seq_len,
+        position_bins=position_bins,
+        max_cpu_matrix_bytes=max_cpu_matrix_bytes,
+        estimator_name=JACOBIAN_LENS_ESTIMATOR_V2,
+    )
+
+
+def fit_endpoint_local_taylor_jacobian_lens_v1(
+    model,
+    calibration_batches: Iterable[torch.Tensor],
+    *,
+    layers: Sequence[int],
+    checkpoint_sha256: str,
+    tokenizer_sha256: str,
+    calibration_corpus_sha256: str | None = None,
+    architecture: str = "holorunner-s0-gpt",
+    dim_batch: int = 8,
+    max_seq_len: int = 512,
+    position_bins: Sequence[tuple[int, int]] | None = None,
+    max_cpu_matrix_bytes: int = DEFAULT_MAX_JACOBIAN_LENS_CPU_MATRIX_BYTES,
+) -> dict[str, Any]:
+    """Fit ``J=mean(J_i)``, ``b=mean(y_i - J_i @ x_i)`` per endpoint bin."""
+
+    return _fit_endpoint_jacobian_lens_v1(
+        model,
+        calibration_batches,
+        layers=layers,
+        checkpoint_sha256=checkpoint_sha256,
+        tokenizer_sha256=tokenizer_sha256,
+        calibration_corpus_sha256=calibration_corpus_sha256,
+        architecture=architecture,
+        dim_batch=dim_batch,
+        max_seq_len=max_seq_len,
+        position_bins=position_bins,
+        max_cpu_matrix_bytes=max_cpu_matrix_bytes,
+        estimator_name=JACOBIAN_LENS_ESTIMATOR_V3,
+    )
 
 
 def merge_jacobian_lens_v1_artifacts(
@@ -958,6 +1066,16 @@ def _v2_estimator_metadata() -> dict[str, Any]:
         "vectorization": "batched-endpoint-output-cotangents-retained-graph",
         "transportProfile": JACOBIAN_LENS_V2_TRANSPORT_PROFILE,
         "anchor": "binwise-target-mean-minus-jacobian-source-mean",
+    }
+
+
+def _v3_estimator_metadata() -> dict[str, Any]:
+    return {
+        "name": JACOBIAN_LENS_ESTIMATOR_V3,
+        "paperParity": False,
+        "vectorization": "batched-endpoint-output-cotangents-retained-graph",
+        "transportProfile": JACOBIAN_LENS_V3_TRANSPORT_PROFILE,
+        "anchor": "binwise-mean-target-minus-mean-per-sample-jacobian-source-product",
     }
 
 
@@ -1364,10 +1482,13 @@ def load_jacobian_lens_artifact(
     )
     is_v1_estimator = estimator_meta == _v1_estimator_metadata()
     is_v2_estimator = estimator_meta == _v2_estimator_metadata()
-    if not is_v0_estimator and not is_v1_estimator and not is_v2_estimator:
+    is_v3_estimator = estimator_meta == _v3_estimator_metadata()
+    is_endpoint_estimator = is_v2_estimator or is_v3_estimator
+    if not is_v0_estimator and not is_v1_estimator and not is_endpoint_estimator:
         raise WorkspaceProbeError(
             "invalid_lens_estimator",
-            "lens estimator metadata is not a supported v0, pinned-reference v1, or endpoint-affine contract",
+            "lens estimator metadata is not a supported v0, pinned-reference v1, "
+            "endpoint-affine, or endpoint-local-Taylor contract",
         )
     model_meta = payload.get("model")
     tokenizer_meta = payload.get("tokenizer")
@@ -1461,7 +1582,8 @@ def load_jacobian_lens_artifact(
     biases = payload.get("biases")
     source_means = payload.get("sourceMeans")
     target_means = payload.get("targetMeans")
-    if is_v2_estimator:
+    jacobian_source_product_means = payload.get("jacobianSourceProductMeans")
+    if is_endpoint_estimator:
         position_bins = calibration_meta["positionBins"]
         expected_matrix_shape = (len(position_bins), len(layers), n_embd, n_embd)
         expected_vector_shape = (len(position_bins), len(layers), n_embd)
@@ -1483,13 +1605,26 @@ def load_jacobian_lens_artifact(
                 "invalid_lens_shape",
                 "endpoint affine matrices, biases, and anchor means have inconsistent shapes",
             )
-        expected_biases = target_means.float() - torch.einsum(
-            "blij,blj->bli", matrices.float(), source_means.float()
-        )
+        if is_v3_estimator:
+            if (
+                not isinstance(jacobian_source_product_means, torch.Tensor)
+                or tuple(jacobian_source_product_means.shape) != expected_vector_shape
+                or not torch.isfinite(jacobian_source_product_means).all()
+            ):
+                raise WorkspaceProbeError(
+                    "invalid_lens_shape",
+                    "endpoint local-Taylor artifacts require finite per-sample "
+                    "Jacobian-source product means",
+                )
+            expected_biases = target_means.float() - jacobian_source_product_means.float()
+        else:
+            expected_biases = target_means.float() - torch.einsum(
+                "blij,blj->bli", matrices.float(), source_means.float()
+            )
         if not torch.allclose(biases.float(), expected_biases, rtol=2e-5, atol=2e-5):
             raise WorkspaceProbeError(
                 "invalid_lens_anchor",
-                "endpoint affine biases do not match the declared mean anchor",
+                "endpoint affine biases do not match the declared estimator anchor",
             )
     else:
         if matrices.ndim != 3 or tuple(matrices.shape[1:]) != (n_embd, n_embd):
@@ -1511,7 +1646,7 @@ def load_jacobian_lens_artifact(
         if (
             layer < 0
             or layer >= len(model.blocks)
-            or ((is_v1_estimator or is_v2_estimator) and layer >= len(model.blocks) - 1)
+            or ((is_v1_estimator or is_endpoint_estimator) and layer >= len(model.blocks) - 1)
             or layer in layer_map
         ):
             raise WorkspaceProbeError(
@@ -1520,7 +1655,7 @@ def load_jacobian_lens_artifact(
             )
         matrix = (
             matrices[:, index].detach().to(dtype=torch.float32, device="cpu")
-            if is_v2_estimator
+            if is_endpoint_estimator
             else matrices[index].detach().to(dtype=torch.float32, device="cpu")
         )
         if not torch.isfinite(matrix).all():
@@ -1536,18 +1671,25 @@ def load_jacobian_lens_artifact(
         layer_map[layer] = matrix
         bias_map[layer] = (
             biases[:, index].detach().to(dtype=torch.float32, device="cpu")
-            if is_v2_estimator
+            if is_endpoint_estimator
             else torch.zeros(n_embd, dtype=torch.float32)
         )
         target_mean_map[layer] = (
             target_means[:, index].detach().to(dtype=torch.float32, device="cpu")
-            if is_v2_estimator
+            if is_endpoint_estimator
             else torch.zeros(n_embd, dtype=torch.float32)
         )
     metadata = {
         key: value
         for key, value in payload.items()
-        if key not in {"matrices", "biases", "sourceMeans", "targetMeans"}
+        if key
+        not in {
+            "matrices",
+            "biases",
+            "sourceMeans",
+            "targetMeans",
+            "jacobianSourceProductMeans",
+        }
     }
     return LoadedJacobianLensArtifact(
         metadata=metadata,
@@ -1584,7 +1726,10 @@ class ModelWorkspaceProbe:
         if estimator["name"] == JACOBIAN_LENS_ESTIMATOR_V1:
             capability["parityScope"] = estimator["parityScope"]
             capability["paperExperimentParity"] = estimator["paperExperimentParity"]
-        elif estimator["name"] == JACOBIAN_LENS_ESTIMATOR_V2:
+        elif estimator["name"] in {
+            JACOBIAN_LENS_ESTIMATOR_V2,
+            JACOBIAN_LENS_ESTIMATOR_V3,
+        }:
             capability["transportProfile"] = estimator["transportProfile"]
             capability["positionPolicy"] = self.lens.metadata["calibration"]["positionPolicy"]
             capability["positionBins"] = self.lens.metadata["calibration"]["positionBins"]
@@ -1645,9 +1790,10 @@ class ModelWorkspaceProbe:
                 "positions must resolve to unique token coordinates",
             )
         estimator_name = self.lens.metadata["estimator"]["name"]
-        if estimator_name == JACOBIAN_LENS_ESTIMATOR_V2 and normalized_positions != [
-            sequence_length - 1
-        ]:
+        if estimator_name in {
+            JACOBIAN_LENS_ESTIMATOR_V2,
+            JACOBIAN_LENS_ESTIMATOR_V3,
+        } and normalized_positions != [sequence_length - 1]:
             raise WorkspaceProbeError(
                 "lens_position_unavailable",
                 "endpoint affine Jacobian observations require exactly the final token position",
@@ -1660,7 +1806,10 @@ class ModelWorkspaceProbe:
             layer_observations = []
             for layer in selected_layers:
                 for position in normalized_positions:
-                    if estimator_name == JACOBIAN_LENS_ESTIMATOR_V2:
+                    if estimator_name in {
+                        JACOBIAN_LENS_ESTIMATOR_V2,
+                        JACOBIAN_LENS_ESTIMATOR_V3,
+                    }:
                         position_bins = self.lens.metadata["calibration"]["positionBins"]
                         bin_index = _endpoint_position_bin(position, position_bins)
                         if bin_index is None:
@@ -1732,7 +1881,10 @@ class ModelWorkspaceProbe:
                         "controlTailProbabilityMassE8": control_tail_e8,
                         "distributionMetrics": distribution_metrics,
                     }
-                    if estimator_name == JACOBIAN_LENS_ESTIMATOR_V2:
+                    if estimator_name in {
+                        JACOBIAN_LENS_ESTIMATOR_V2,
+                        JACOBIAN_LENS_ESTIMATOR_V3,
+                    }:
                         anchor_logits = self.model.head(
                             self.model.lnf(target_mean.view(1, 1, -1))[0, 0]
                         )
@@ -1840,7 +1992,10 @@ class ModelWorkspaceProbe:
             receipt["lens"]["paperExperimentParity"] = metadata["estimator"][
                 "paperExperimentParity"
             ]
-        elif metadata["estimator"]["name"] == JACOBIAN_LENS_ESTIMATOR_V2:
+        elif metadata["estimator"]["name"] in {
+            JACOBIAN_LENS_ESTIMATOR_V2,
+            JACOBIAN_LENS_ESTIMATOR_V3,
+        }:
             receipt["lens"]["transportProfile"] = metadata["estimator"]["transportProfile"]
             receipt["lens"]["positionBins"] = calibration_meta["positionBins"]
         receipt["receiptHash"] = sha256_json(receipt)
@@ -2136,7 +2291,10 @@ __all__ = [
     "JACOBIAN_LENS_ESTIMATOR_V0",
     "JACOBIAN_LENS_ESTIMATOR_V1",
     "JACOBIAN_LENS_ESTIMATOR_V2",
+    "JACOBIAN_LENS_ESTIMATOR_V3",
     "JACOBIAN_LENS_V1_REFERENCE_COMMIT",
+    "JACOBIAN_LENS_V2_TRANSPORT_PROFILE",
+    "JACOBIAN_LENS_V3_TRANSPORT_PROFILE",
     "MODEL_WORKSPACE_CAPABILITY_SCHEMA",
     "MODEL_WORKSPACE_HASH_CANONICALIZATION",
     "MODEL_WORKSPACE_CONTROL_PROFILE",
@@ -2151,6 +2309,7 @@ __all__ = [
     "fit_jacobian_lens",
     "fit_jacobian_lens_v1",
     "fit_endpoint_affine_jacobian_lens_v1",
+    "fit_endpoint_local_taylor_jacobian_lens_v1",
     "load_jacobian_lens_artifact",
     "merge_jacobian_lens_v1_artifacts",
     "save_jacobian_lens_artifact",

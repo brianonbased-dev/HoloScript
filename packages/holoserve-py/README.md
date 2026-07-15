@@ -73,7 +73,7 @@ never gets routed sovereign traffic.
 ### Model workspace observation
 
 HoloServe can apply a precomputed, corpus-averaged Jacobian lens to captured
-post-block residuals. Two offline estimators are supported:
+post-block residuals. The compatibility and paper-reference estimators are:
 
 - `explicit_pair_average_v0` (`paperParity: false`) preserves the bounded
   source/target-pair implementation.
@@ -153,15 +153,25 @@ layers/positions/k, selected model, measurement profile, and advertised lens
 artifact. SHA-256 receipts provide integrity and provenance binding, not server
 authentication; deployments still need an authenticated transport boundary.
 
-For same-endpoint fidelity work, use
-`fit_endpoint_affine_jacobian_lens_v1`. This separately named,
-`paperParity: false` estimator differentiates the final post-block residual at
-the prompt endpoint with respect to the same source coordinate, fits independent
-maps in declared absolute-position bins, and serves `J @ h + b` with a bin-wise
-mean anchor. It rejects oversize calibration prompts instead of slicing them and
-only admits final-token observations. Its receipts include a mean-final anchor
-control so a constant output prior cannot satisfy the fidelity gate. This path
-does not replace or rename Anthropic's present-and-future v1 estimator.
+For same-endpoint fidelity work, HoloServe exposes two separately named,
+`paperParity: false` estimators. Both differentiate the final post-block residual
+at the prompt endpoint with respect to the same source coordinate, fit independent
+maps in declared inclusive absolute-position bins, serve `J @ h + b`, reject
+oversize calibration prompts instead of slicing them, and only admit final-token
+observations:
+
+- `fit_endpoint_affine_jacobian_lens_v1` retains
+  `endpoint_self_jacobian_affine_v1`: `J = mean_i(J_i)` and
+  `b = mean_i(y_i) - J @ mean_i(x_i)`.
+- `fit_endpoint_local_taylor_jacobian_lens_v1` emits the distinct
+  `endpoint_self_jacobian_local_taylor_v1`: `J = mean_i(J_i)` and
+  `b = mean_i(y_i - J_i @ x_i)`. Its artifact serializes
+  `jacobianSourceProductMeans = mean_i(J_i @ x_i)` and loading fails closed unless
+  `b = mean_i(y_i) - jacobianSourceProductMeans` for every layer and position bin.
+
+Receipts for both include a mean-final anchor control so a constant output prior
+cannot satisfy the fidelity gate. Neither path replaces or renames Anthropic's
+present-and-future v1 estimator.
 
 For leakage-safe corpus runs, use the two-phase evaluator. `collect` accepts
 prompt-only JSONL rows (`caseId`, `vertical`, `templateId`, `frame`, `prompt`),

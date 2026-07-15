@@ -32,6 +32,7 @@ from holoserve.workspace_probe import (
     ENDPOINT_SELF_POSITION_POLICY,
     JACOBIAN_LENS_ESTIMATOR_V1,
     JACOBIAN_LENS_ESTIMATOR_V2,
+    JACOBIAN_LENS_ESTIMATOR_V3,
     JACOBIAN_LENS_V1_REFERENCE_COMMIT,
     MODEL_WORKSPACE_CONTROL_PROFILE,
     MODEL_WORKSPACE_MEASUREMENT_PROFILE,
@@ -42,6 +43,7 @@ from holoserve.workspace_probe import (
     fit_jacobian_lens,
     fit_jacobian_lens_v1,
     fit_endpoint_affine_jacobian_lens_v1,
+    fit_endpoint_local_taylor_jacobian_lens_v1,
     load_jacobian_lens_artifact,
     merge_jacobian_lens_v1_artifacts,
     save_jacobian_lens_artifact,
@@ -77,6 +79,42 @@ def tiny_v1_model():
     )
     model.eval()
     return model
+
+
+class SyntheticEndpointModel(torch.nn.Module):
+    """Minimal differentiable endpoint model with a known residual mapping."""
+
+    def __init__(self, *, nonlinear: bool):
+        super().__init__()
+        self.nonlinear = nonlinear
+        n_embd = 1 if nonlinear else 2
+        self.blocks = torch.nn.ModuleList([torch.nn.Identity(), torch.nn.Identity()])
+        self.pos = torch.nn.Embedding(4, n_embd)
+        self.head = torch.nn.Linear(n_embd, 16, bias=False)
+        self.lnf = torch.nn.Identity()
+        self.register_buffer(
+            "transform",
+            torch.tensor([[2.0, -1.0], [0.5, 3.0]]) if not nonlinear else torch.eye(1),
+        )
+        self.register_buffer(
+            "offset",
+            torch.tensor([1.25, -2.0]) if not nonlinear else torch.zeros(1),
+        )
+        self.eval()
+
+    def forward_with_residuals(self, token_ids):
+        values = token_ids.to(dtype=self.head.weight.dtype)
+        source = (
+            values.unsqueeze(-1)
+            if self.nonlinear
+            else torch.stack((values, values * 0.5 + 1.0), dim=-1)
+        ).requires_grad_(True)
+        target = (
+            source.square()
+            if self.nonlinear
+            else source @ self.transform.transpose(0, 1) + self.offset
+        )
+        return self.head(target), [source, target]
 
 
 def brute_force_all_valid_current_and_future(model, token_ids, layers, *, skip_first):
@@ -358,6 +396,7 @@ def test_endpoint_affine_estimator_matches_brute_force_and_binds_bins(tmp_path):
     assert artifact["calibration"]["positionBins"] == [[0, 3], [4, 7]]
     assert artifact["calibration"]["positionBinCounts"] == [1, 1]
     assert artifact["calibration"]["promptTruncationPolicy"] == "reject-over-max-seq-len"
+    assert "jacobianSourceProductMeans" not in artifact
     for actual, wanted in zip(
         (
             artifact["matrices"],
@@ -486,6 +525,160 @@ def test_endpoint_affine_estimator_rejects_uncovered_bins_and_tampered_anchor(tm
             model=model,
         )
     assert tampered.value.code == "invalid_lens_anchor"
+
+
+def test_endpoint_local_taylor_intercept_uses_mean_per_sample_remainder(tmp_path):
+    model = SyntheticEndpointModel(nonlinear=True)
+    checkpoint_hash = f"sha256:{'1' * 64}"
+    tokenizer_hash = f"sha256:{'2' * 64}"
+    prompts = [
+        torch.tensor([[1]], dtype=torch.long),
+        torch.tensor([[3]], dtype=torch.long),
+    ]
+    artifact = fit_endpoint_local_taylor_jacobian_lens_v1(
+        model,
+        prompts,
+        layers=[0],
+        checkpoint_sha256=checkpoint_hash,
+        tokenizer_sha256=tokenizer_hash,
+        dim_batch=1,
+        max_seq_len=4,
+        position_bins=[(0, 3)],
+    )
+
+    assert artifact["estimator"] == {
+        "name": JACOBIAN_LENS_ESTIMATOR_V3,
+        "paperParity": False,
+        "vectorization": "batched-endpoint-output-cotangents-retained-graph",
+        "transportProfile": "local-taylor-affine-final-residual-v1",
+        "anchor": "binwise-mean-target-minus-mean-per-sample-jacobian-source-product",
+    }
+    torch.testing.assert_close(artifact["matrices"][0, 0], torch.tensor([[4.0]]))
+    torch.testing.assert_close(artifact["sourceMeans"][0, 0], torch.tensor([2.0]))
+    torch.testing.assert_close(artifact["targetMeans"][0, 0], torch.tensor([5.0]))
+    torch.testing.assert_close(
+        artifact["jacobianSourceProductMeans"][0, 0], torch.tensor([10.0])
+    )
+    torch.testing.assert_close(artifact["biases"][0, 0], torch.tensor([-5.0]))
+    mean_anchored_bias = artifact["targetMeans"][0, 0] - (
+        artifact["matrices"][0, 0] @ artifact["sourceMeans"][0, 0]
+    )
+    torch.testing.assert_close(mean_anchored_bias, torch.tensor([-3.0]))
+    assert not torch.allclose(artifact["biases"][0, 0], mean_anchored_bias)
+
+    path = tmp_path / "endpoint-local-taylor.pt"
+    save_jacobian_lens_artifact(artifact, path)
+    loaded = load_jacobian_lens_artifact(
+        path,
+        checkpoint_sha256=checkpoint_hash,
+        tokenizer_sha256=tokenizer_hash,
+        model=model,
+    )
+    probe = ModelWorkspaceProbe(model, loaded, [None] * 16, "synthetic-endpoint")
+    capability = probe.capability()
+    assert capability["estimator"] == JACOBIAN_LENS_ESTIMATOR_V3
+    assert capability["transportProfile"] == "local-taylor-affine-final-residual-v1"
+
+    prompt = "x"
+    receipt = probe.observe(
+        prompts[0],
+        prompt_sha256=f"sha256:{hashlib.sha256(prompt.encode()).hexdigest()}",
+        requested_model="synthetic-endpoint",
+        request_id="workspace-local-taylor-test",
+        layers=[0],
+        positions=[-1],
+        k=3,
+        created_at="2026-07-14T00:00:00.000Z",
+    )
+    binding = {
+        "alias": "a",
+        "modelId": "synthetic-endpoint",
+        "lensSha256": loaded.lens_sha256,
+    }
+    health = {
+        "backend": "pytorch-holo",
+        "model_workspace_probe": {
+            "schema": capability["schema"],
+            "observe": True,
+            "intervention": False,
+            "models": {"synthetic-endpoint": capability},
+        },
+    }
+    validated_capability = _validate_capability(health, binding, [0])
+    extracted = _validate_receipt(
+        receipt,
+        prompt=prompt,
+        binding=binding,
+        checkpoint_sha256=checkpoint_hash,
+        tokenizer_sha256=tokenizer_hash,
+        layers=[0],
+        positions=[-1],
+        k=3,
+        allow_truncated=False,
+        capability=validated_capability,
+    )
+    assert isinstance(extracted["lensGainE8"], int)
+
+    artifact["estimator"] = {**artifact["estimator"], "anchor": "mean-anchor"}
+    tampered_metadata_path = tmp_path / "tampered-local-taylor-metadata.pt"
+    torch.save(artifact, tampered_metadata_path)
+    with pytest.raises(WorkspaceProbeError) as tampered_metadata:
+        load_jacobian_lens_artifact(
+            tampered_metadata_path,
+            checkpoint_sha256=checkpoint_hash,
+            tokenizer_sha256=tokenizer_hash,
+            model=model,
+        )
+    assert tampered_metadata.value.code == "invalid_lens_estimator"
+
+    artifact["estimator"]["anchor"] = (
+        "binwise-mean-target-minus-mean-per-sample-jacobian-source-product"
+    )
+    artifact.pop("jacobianSourceProductMeans")
+    tampered_path = tmp_path / "missing-local-taylor-products.pt"
+    torch.save(artifact, tampered_path)
+    with pytest.raises(WorkspaceProbeError) as missing_products:
+        load_jacobian_lens_artifact(
+            tampered_path,
+            checkpoint_sha256=checkpoint_hash,
+            tokenizer_sha256=tokenizer_hash,
+            model=model,
+        )
+    assert missing_products.value.code == "invalid_lens_shape"
+
+
+def test_endpoint_local_taylor_is_exact_for_known_affine_mapping():
+    model = SyntheticEndpointModel(nonlinear=False)
+    prompts = [
+        torch.tensor([[0, 2]], dtype=torch.long),
+        torch.tensor([[0, 1, 2, 4]], dtype=torch.long),
+    ]
+    artifact = fit_endpoint_local_taylor_jacobian_lens_v1(
+        model,
+        prompts,
+        layers=[0],
+        checkpoint_sha256=f"sha256:{'1' * 64}",
+        tokenizer_sha256=f"sha256:{'2' * 64}",
+        dim_batch=2,
+        max_seq_len=4,
+        position_bins=[(0, 1), (2, 3)],
+    )
+
+    expected_matrices = model.transform.expand(2, 1, -1, -1)
+    expected_biases = model.offset.expand(2, 1, -1)
+    torch.testing.assert_close(artifact["matrices"], expected_matrices, rtol=0, atol=1e-6)
+    torch.testing.assert_close(artifact["biases"], expected_biases, rtol=0, atol=1e-6)
+    assert artifact["calibration"]["positionBins"] == [[0, 1], [2, 3]]
+    assert artifact["calibration"]["positionBinCounts"] == [1, 1]
+
+    for bin_index, prompt in enumerate(prompts):
+        _, residuals = model.forward_with_residuals(prompt)
+        source = residuals[0][0, -1].detach()
+        target = residuals[-1][0, -1].detach()
+        mapped = artifact["matrices"][bin_index, 0] @ source + artifact["biases"][
+            bin_index, 0
+        ]
+        torch.testing.assert_close(mapped, target, rtol=0, atol=1e-6)
 
 
 @pytest.mark.parametrize(
