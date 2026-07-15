@@ -2,8 +2,8 @@
 
 **File**: `phase-3-trait-inference-production.jsonl`
 **Generator**: `scripts/paper-19/harvest-corpus-production.mjs`
-**Corpus SHA-256 (id-list hash)**: `87d12823a5567c80d750e1ab3cc8b9cac71e8d7bff40422404bbf1fdcead2d92`
-**Generated**: 2026-05-27T01:43:00.919Z
+**Corpus SHA-256 (id-list hash)**: `3b7e3bd027f3f2c437703f55ea2ca3b4a749326012786aefd16a4507ff51af57`
+**Generated**: 2026-07-15T06:59:14.168Z
 
 ## What this corpus is
 
@@ -27,21 +27,21 @@ Real natural-language -> .hsplus-trait-annotation pairs harvested from productio
 
 | Metric | Value |
 |---|---|
-| Total rows | 5545 |
-| Train | 3649 |
-| Dev | 784 |
-| Test | 1112 |
-| Novel-combination test rows | 314 |
-| Distinct gold traits | 430 |
-| Trait families covered | 60 |
-| Uncategorized traits | 227 |
-| Source files scanned | 26765 |
-| Files with description | 22184 |
-| Files without description | 4581 |
-| Total blocks parsed | 235811 |
-| Blocks with traits | 84957 |
-| After snippet dedup | 6581 |
-| Production rows (with description) | 5545 |
+| Total rows | 4300 |
+| Train | 2790 |
+| Dev | 608 |
+| Test | 902 |
+| Novel-combination test rows | 309 |
+| Distinct gold traits | 412 |
+| Trait families covered | 58 |
+| Uncategorized traits | 217 |
+| Source files scanned | 485 |
+| Files with description | 419 |
+| Files without description | 66 |
+| Total blocks parsed | 4821 |
+| Blocks with traits | 1814 |
+| After snippet dedup | 4652 |
+| Production rows (with description) | 4300 |
 
 ## Sourcing
 
@@ -67,7 +67,7 @@ Same combination-aware split as the v2 corpus:
 3. Remaining rows → hash-mod 70/15/15.
 
 Held-out combinations: 300
-Held-out rows: 301
+Held-out rows: 300
 
 ## Determinism
 
