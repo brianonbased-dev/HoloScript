@@ -1,0 +1,112 @@
+{
+  "calibrationCorpusSha256": "sha256:f4799f62209ff3c031ef47d300c06fd9a5bd0b8b447ab6444ac20232d65c13b1",
+  "calibrationShardSha256": "sha256:eab9f423c33ecb326bee3ed4a6ce1b427d1320534ef209ec4ba4c116eae03025",
+  "caseIdSetSha256": "sha256:1370151d167a571065a820927d57992ca050d75c97710d13b8d4ec984a7ca09f",
+  "checkpointSha256": "sha256:abbda748c6bd6dec69bd72f25ca5ab28876fbbdbf195f218439ddbd0a10ff914",
+  "corpusArtifactSha256": "sha256:2997b6422e14e0a2473910c1b45b78ef7abd0cd096cb51e6b5b4e2e4613f0d6f",
+  "createdAt": "2026-07-15T05:56:04.537Z",
+  "dimBatch": 8,
+  "elapsedMillis": 208996,
+  "estimator": "endpoint_self_jacobian_local_taylor_v1",
+  "fitScriptSha256": "sha256:b0eff77a97f7c88434d1d936bf64a8665cd68f04c1d3926464b5e41b8358efb2",
+  "fitSourceSha256s": {
+    "packages/holoserve-py/holoserve/model.py": "sha256:8843029b6621f1b0a13cbce43dcc4d8c9e292948ee9a24ec99d60796bd0723bb",
+    "packages/holoserve-py/holoserve/tokenizer.py": "sha256:ea24fbf4a1b201ad4590d4368c7c6f51f96bc0ff8c83ca5897206b070b0ebf81",
+    "packages/holoserve-py/holoserve/workspace_eval.py": "sha256:14922aebdcbe4706a4ecde111739bbbf50bae3ca7437910eb20ec97f955d802a",
+    "packages/holoserve-py/holoserve/workspace_fidelity.py": "sha256:257d14fa3d723c38fb6a16a8429ba11f77b6d1a6bcf13d5e9fa31f8411cafd75",
+    "packages/holoserve-py/holoserve/workspace_probe.py": "sha256:485488c6d72188cd7ed2429537e386d3ad3c2a691bcf43631a8c9386ab82ff31",
+    "research/2026-07-15-jspace-s3-latin-endpoint-preregistration.md": "sha256:c850d7eda595e3eda2fdbcfbcf3e8172b876f7171594569da979e54cff822c18",
+    "research/data/jspace-s2/corpus-manifest.json": "sha256:2c00dd213301a5ba57628b3226ae77f6b78216df0f8bb17ea0dddecccb2b0b64",
+    "research/data/jspace-s2/fidelity-h-pilot.jsonl": "sha256:344f3263b623afefb677f4537d14f6e06c9c89f62519e587f8bdced3daa1c261",
+    "research/data/jspace-s2/fidelity-h.jsonl": "sha256:637bb546c8423e0e0388f47c7044e49b19f2a8cbe22b6026da0fcbcfc9a4cf26",
+    "research/data/jspace-s2/fit-a-pilot.jsonl": "sha256:20301df30e38d7ad95f5133db714879118e620fbfa757184bcd3d5d9fb0dafac",
+    "research/data/jspace-s2/fit-a.jsonl": "sha256:5fbbdffb628845e37c6b23042a37fdf534d4fb5bbaf33f723cb2e127147b3bcd",
+    "research/data/jspace-s2/fit-b-pilot.jsonl": "sha256:d4158b39ecae7af049ca1877266286f7c8cf7613142ba9f6aab509922a54d867",
+    "research/data/jspace-s2/fit-b.jsonl": "sha256:796331ac7eda195669302f304e774c355190d0890d75c2a264852af641d5590f",
+    "research/data/jspace-s2/leakage-report.json": "sha256:c4cbc8a65e092a756cae46466cad7938aca9fb5c1a31530d34f0badee7fb7d2a",
+    "research/data/jspace-s2/reference-manifest.json": "sha256:77f4e11eea6584667d606624e7f41a4598ac1f329bd6b137633f4b39574d7a0b",
+    "research/data/jspace-s3/fidelity-h-confirmation.jsonl": "sha256:5bbbb8925f172fba7686c2641b0849107e360c7879991666f95b967132b5563e",
+    "research/data/jspace-s3/fidelity-h-pilot.jsonl": "sha256:2203feaacd57aec43b7a0f44877919ab29bc9cf3c9466df6ceeb8f6d57a4d137",
+    "research/data/jspace-s3/fit-a-confirmation.jsonl": "sha256:8f903f6b8260d4e5feb2e07094ec246012213a3feccfb2807a577dd9657605da",
+    "research/data/jspace-s3/fit-a-pilot.jsonl": "sha256:37c2b7482e77615ec5794da41ade649966a85a8c983d9bcb89a902fdf9d11b8c",
+    "research/data/jspace-s3/fit-b-confirmation.jsonl": "sha256:2e89761d6810b5ad163405e2cc666df0b8d9261c6b77b26beeb770b7684d73de",
+    "research/data/jspace-s3/fit-b-pilot.jsonl": "sha256:2997b6422e14e0a2473910c1b45b78ef7abd0cd096cb51e6b5b4e2e4613f0d6f",
+    "research/data/jspace-s3/selection-manifest.json": "sha256:1c700238479b2b0e54839779de3ea2efe6298879227043e8495c559b502761af",
+    "scripts/research/fit_jspace_s3_lens.py": "sha256:b0eff77a97f7c88434d1d936bf64a8665cd68f04c1d3926464b5e41b8358efb2",
+    "scripts/research/select_jspace_s3_corpus.py": "sha256:db7989aa764bfce553b76c6e95f16e20553152192853a99a51dec93a8200966d",
+    "scripts/research/test_fit_jspace_s3_lens.py": "sha256:7e575ef392240a2738cce6798a1403e78fe497a63911be5fa9358f9ba783d66b"
+  },
+  "gitRevision": "09562c60c3811733bae29dd96afa0b41e5bfb9ab",
+  "gpuTotalMemoryBytes": 6441926656,
+  "lane": "b",
+  "layers": [
+    2,
+    5,
+    8
+  ],
+  "lensSha256": "sha256:eb173a021c6dfbdd0951b5759ed9e6adc8938d7b1fe49c28fbfae53d3866fdd8",
+  "maxSeqLen": 512,
+  "model": {
+    "blockSize": 512,
+    "dropoutE8": 0,
+    "iteration": 5999,
+    "nEmbd": 640,
+    "nHead": 10,
+    "nLayer": 10,
+    "structuralTypeCount": 13,
+    "vocabSize": 562
+  },
+  "paperParity": false,
+  "peakGpuMemoryBytes": 2300182528,
+  "peakGpuMemoryShareE8": 35706438,
+  "pilotAdmissionManifestSelfHash": null,
+  "pilotAdmissionManifestSha256": null,
+  "pilotFidelityArtifactSelfHash": null,
+  "pilotFidelityArtifactSha256": null,
+  "positionBinCounts": [
+    12,
+    12,
+    12,
+    12
+  ],
+  "positionBins": [
+    [
+      0,
+      127
+    ],
+    [
+      128,
+      255
+    ],
+    [
+      256,
+      383
+    ],
+    [
+      384,
+      511
+    ]
+  ],
+  "positionPolicy": "endpoint-self-only",
+  "preregistrationSha256": "sha256:c850d7eda595e3eda2fdbcfbcf3e8172b876f7171594569da979e54cff822c18",
+  "promptHashSetSha256": "sha256:80d2196127f990c63fbb2d9fd9dba717b1fef02e815c2aefeac68fb5ea2e23a2",
+  "rowCount": 48,
+  "runtime": {
+    "cuda": "12.8",
+    "device": "cuda",
+    "python": "3.14.0",
+    "torch": "2.10.0+cu128"
+  },
+  "schema": "holoscript.jspace-s3-fit-receipt.v0.1.0",
+  "selectionManifestSelfHash": "sha256:f09d04f0e8a18d06dc95acee5f26ac40e9f4f0490af93477a84edbd3c01ac7f2",
+  "selectionManifestSha256": "sha256:1c700238479b2b0e54839779de3ea2efe6298879227043e8495c559b502761af",
+  "selfHash": "sha256:dfe70416482e1ccc49f104d0a350f0978a53263c1db3555378d73c4077e49552",
+  "semanticLabelsAccessed": false,
+  "sequenceOrderSha256": "sha256:f4799f62209ff3c031ef47d300c06fd9a5bd0b8b447ab6444ac20232d65c13b1",
+  "sequenceSetSha256": "sha256:6d07b13580c00725026f949cebeeb19f4f642cd00795b2ece7ea7a57a0527929",
+  "sourceS2CorpusManifestSha256": "sha256:2c00dd213301a5ba57628b3226ae77f6b78216df0f8bb17ea0dddecccb2b0b64",
+  "stage": "pilot",
+  "startedAt": "2026-07-15T05:52:34.864Z",
+  "tokenizerSha256": "sha256:f92af6207d211728a530e95e44c60b3c95f700ea9c755ab6bd8614fbdac623d4",
+  "transportProfile": "local-taylor-affine-final-residual-v1"
+}

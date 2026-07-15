@@ -1,0 +1,146 @@
+{
+  "schema": "holoscript.jspace-s3-pilot-evidence-manifest.v0.1.0",
+  "pathBase": "repository-root",
+  "status": "failed-frozen-gate",
+  "stage": "pilot",
+  "gitRevision": "09562c60c3811733bae29dd96afa0b41e5bfb9ab",
+  "checkpointSha256": "sha256:abbda748c6bd6dec69bd72f25ca5ab28876fbbdbf195f218439ddbd0a10ff914",
+  "tokenizerSha256": "sha256:f92af6207d211728a530e95e44c60b3c95f700ea9c755ab6bd8614fbdac623d4",
+  "sources": [
+    {
+      "role": "preregistration",
+      "path": "research/2026-07-15-jspace-s3-latin-endpoint-preregistration.md",
+      "sha256": "sha256:c850d7eda595e3eda2fdbcfbcf3e8172b876f7171594569da979e54cff822c18"
+    },
+    {
+      "role": "s2-corpus-manifest",
+      "path": "research/data/jspace-s2/corpus-manifest.json",
+      "sha256": "sha256:2c00dd213301a5ba57628b3226ae77f6b78216df0f8bb17ea0dddecccb2b0b64"
+    },
+    {
+      "role": "selection-manifest",
+      "path": "research/data/jspace-s3/selection-manifest.json",
+      "sha256": "sha256:1c700238479b2b0e54839779de3ea2efe6298879227043e8495c559b502761af"
+    },
+    {
+      "role": "selection-code",
+      "path": "scripts/research/select_jspace_s3_corpus.py",
+      "sha256": "sha256:db7989aa764bfce553b76c6e95f16e20553152192853a99a51dec93a8200966d"
+    },
+    {
+      "role": "fit-code",
+      "path": "scripts/research/fit_jspace_s3_lens.py",
+      "sha256": "sha256:b0eff77a97f7c88434d1d936bf64a8665cd68f04c1d3926464b5e41b8358efb2"
+    },
+    {
+      "role": "fit-admission-tests",
+      "path": "scripts/research/test_fit_jspace_s3_lens.py",
+      "sha256": "sha256:7e575ef392240a2738cce6798a1403e78fe497a63911be5fa9358f9ba783d66b"
+    },
+    {
+      "role": "collection-code",
+      "path": "packages/holoserve-py/holoserve/workspace_eval.py",
+      "sha256": "sha256:14922aebdcbe4706a4ecde111739bbbf50bae3ca7437910eb20ec97f955d802a"
+    },
+    {
+      "role": "evaluation-code",
+      "path": "packages/holoserve-py/holoserve/workspace_fidelity.py",
+      "sha256": "sha256:257d14fa3d723c38fb6a16a8429ba11f77b6d1a6bcf13d5e9fa31f8411cafd75"
+    },
+    {
+      "role": "holdout-prompt-artifact",
+      "path": "research/data/jspace-s3/fidelity-h-pilot.jsonl",
+      "sha256": "sha256:2203feaacd57aec43b7a0f44877919ab29bc9cf3c9466df6ceeb8f6d57a4d137"
+    }
+  ],
+  "promotedArtifacts": [
+    {
+      "path": "research/measurements/jspace-s3/pilot-a-fit.json",
+      "bytes": 6188,
+      "sha256": "sha256:b72006dcc52d01a3792897a22132519be6e8758d7591ef4dace1e8612a2bc191"
+    },
+    {
+      "path": "research/measurements/jspace-s3/pilot-b-fit.json",
+      "bytes": 6188,
+      "sha256": "sha256:6632a10ca74fcb8a870eabef4b78a6cc861161913d7df42672eca9aec959a0c2"
+    },
+    {
+      "path": "research/measurements/jspace-s3/pilot-collection.json",
+      "bytes": 3417,
+      "sha256": "sha256:bc01c6824095ac03565926cf60810cf16ee3925091745db31e46359412929b37"
+    },
+    {
+      "path": "research/measurements/jspace-s3/pilot-fidelity.json",
+      "bytes": 10485,
+      "sha256": "sha256:cd8945ab62af7152e4b55e08e6b5693a3622b6156284e26ea37c2843e732d6c2"
+    },
+    {
+      "path": "research/measurements/jspace-s3/pilot-rows.jsonl",
+      "bytes": 289635,
+      "sha256": "sha256:e814b703b810807eff02d0cbb166eb6c884847a6c43011274ee29a81170a18e8"
+    },
+    {
+      "path": "research/measurements/jspace-s3/pilot-receipts.jsonl",
+      "bytes": 1521563,
+      "sha256": "sha256:3c7a0d2b17ffe581ae58e907b04c49a12b3f38489d1d8d25f33290d9577913ec"
+    }
+  ],
+  "externalDerivedArtifacts": [
+    {
+      "role": "lens-a",
+      "bytes": 19791912,
+      "sha256": "sha256:e87d36e71db8226228e5f7cbdc666741be7e4c0c862f65e43e2d4f7441e8f49c"
+    },
+    {
+      "role": "lens-b",
+      "bytes": 19791912,
+      "sha256": "sha256:eb173a021c6dfbdd0951b5759ed9e6adc8938d7b1fe49c28fbfae53d3866fdd8"
+    }
+  ],
+  "billingReceiptSha256s": {
+    "fitA": "sha256:6096e3d024000b023a669f83fe554bbccdfdcb0176e10ea523b67a215e123078",
+    "fitB": "sha256:8388bb4e6913dbf8879e0ecb0f90cbd83ce22f3b46deb1f05a7a66141caf8f0a",
+    "holdout": "sha256:846f0bdc47a356398427d2e74a69d15301a05b7a5e4c186b23b27b8bdf2f6c46"
+  },
+  "disclosureAudit": {
+    "scope": "promoted-artifacts",
+    "absoluteLocalPathCount": 0,
+    "credentialSignatureCount": 0,
+    "rawPromptFieldCount": 0,
+    "rawActivationsPersisted": false,
+    "boundedDecodedTopTokenOutputsPresent": true
+  },
+  "integrityAudit": {
+    "historicalSourceHashesMatched": "25/25",
+    "receiptHashesRecomputed": "96/96",
+    "observationHashesRecomputed": "96/96",
+    "rowReceiptCoordinatesUnique": 96,
+    "canonicalRowReceiptPromptValidationPassed": true,
+    "fidelitySummaryReplayMatched": true
+  },
+  "outcome": {
+    "passed": false,
+    "targetVariationGatePassed": true,
+    "laneAIdentityMacroGainMeanE8": -1149427,
+    "laneAIdentityMacroGainBootstrapLower95E8": -5010314,
+    "laneAAnchorMacroGainMeanE8": -1657170,
+    "laneAAnchorMacroGainBootstrapLower95E8": -5910790,
+    "laneBIdentityMacroGainMeanE8": -3402541,
+    "laneBIdentityMacroGainBootstrapLower95E8": -7190873,
+    "laneBAnchorMacroGainMeanE8": -3496094,
+    "laneBAnchorMacroGainBootstrapLower95E8": -7513838,
+    "replicationPearsonE8": 88300272,
+    "replicationSignAgreementE8": 87500000,
+    "targetTopTokenUniqueCount": 19,
+    "targetTopTokenUniqueCountsByPositionBin": [7, 6, 7, 6],
+    "targetTopTokenMaximumShareE8": 47916667,
+    "targetTopTokenMaximumSharesByPositionBinE8": [41666667, 50000000, 50000000, 50000000],
+    "laneAMappedTopTokenUniqueCount": 7,
+    "laneAMappedTopTokenUniqueCountsByPositionBin": [3, 5, 1, 2],
+    "laneBMappedTopTokenUniqueCount": 6,
+    "laneBMappedTopTokenUniqueCountsByPositionBin": [5, 3, 1, 2],
+    "mappedTopTokenMaximumShareE8": 81250000,
+    "disposition": "do-not-run-confirmation-or-open-semantic-labels; register a new estimator residue"
+  },
+  "selfHash": "sha256:43ea32042b8d3676ea6917e2217456206483d47a51afe0343512cd5cbea24cf5"
+}

@@ -1,0 +1,391 @@
+{
+  "aliases": {
+    "a": {
+      "gates": {
+        "ceilingLayerNonInferiority": true,
+        "entropyError": false,
+        "macroAnchorGain": false,
+        "macroIdentityGain": false,
+        "maxProbabilityError": false,
+        "primaryLayers": false,
+        "targetTopTokenVariation": true,
+        "topTokenDiversity": false
+      },
+      "layers": {
+        "2": {
+          "anchorGainBootstrap95E8": [
+            -683212,
+            3505600,
+            7729017
+          ],
+          "anchorGainMeanE8": 3505600,
+          "controlTargetMeanE8": 39351679,
+          "lensGainBootstrap95E8": [
+            490197,
+            5185037,
+            10226789
+          ],
+          "lensGainMeanE8": 5185037,
+          "lensGainPositiveRateE8": 60416667,
+          "lensGainWilsonLower95E8": 46310408,
+          "mappedTargetMeanE8": 34166641,
+          "positionBinGainMeansE8": {
+            "0": -432971,
+            "1": 4510781,
+            "2": 2254052,
+            "3": 14408288
+          },
+          "ratioOfMeansReductionE8": 13176152
+        },
+        "5": {
+          "anchorGainBootstrap95E8": [
+            -12303426,
+            -6677778,
+            -2522829
+          ],
+          "anchorGainMeanE8": -6819942,
+          "controlTargetMeanE8": 37008291,
+          "lensGainBootstrap95E8": [
+            -11627545,
+            -7483892,
+            -3338780
+          ],
+          "lensGainMeanE8": -7483892,
+          "lensGainPositiveRateE8": 39583333,
+          "lensGainWilsonLower95E8": 27020828,
+          "mappedTargetMeanE8": 44492183,
+          "positionBinGainMeansE8": {
+            "0": -9743551,
+            "1": -6857105,
+            "2": -11502991,
+            "3": -1831921
+          },
+          "ratioOfMeansReductionE8": -20222204
+        },
+        "8": {
+          "anchorGainBootstrap95E8": [
+            23564119,
+            25414352,
+            27687538
+          ],
+          "anchorGainMeanE8": 25478338,
+          "controlTargetMeanE8": 17105380,
+          "lensGainBootstrap95E8": [
+            3460159,
+            4811709,
+            6960201
+          ],
+          "lensGainMeanE8": 4911476,
+          "lensGainPositiveRateE8": 79166667,
+          "lensGainWilsonLower95E8": 65741099,
+          "mappedTargetMeanE8": 12193904,
+          "positionBinGainMeansE8": {
+            "0": 2996520,
+            "1": 3759496,
+            "2": 6047346,
+            "3": 6842542
+          },
+          "ratioOfMeansReductionE8": 28713048
+        }
+      },
+      "macroPrimary": {
+        "anchorGainBootstrap95E8": [
+          -5910790,
+          -1622873,
+          2421393
+        ],
+        "anchorGainMeanE8": -1657170,
+        "entropyErrorGainBootstrap95E8": [
+          -13413532,
+          1990756,
+          16290000
+        ],
+        "entropyErrorGainMeanE8": 1758659,
+        "lensGainBootstrap95E8": [
+          -5010314,
+          -1149450,
+          3019967
+        ],
+        "lensGainMeanE8": -1149427,
+        "maxProbabilityErrorGainBootstrap95E8": [
+          -8188370,
+          -5074489,
+          -2265770
+        ],
+        "maxProbabilityErrorGainMeanE8": -5102484
+      },
+      "mappedTopTokenDiversity": {
+        "maximumShareE8": 81250000,
+        "uniqueCount": 7
+      },
+      "mappedTopTokenDiversityByPositionBin": {
+        "0": {
+          "maximumShareE8": 75000000,
+          "uniqueCount": 3
+        },
+        "1": {
+          "maximumShareE8": 58333333,
+          "uniqueCount": 5
+        },
+        "2": {
+          "maximumShareE8": 100000000,
+          "uniqueCount": 1
+        },
+        "3": {
+          "maximumShareE8": 91666667,
+          "uniqueCount": 2
+        }
+      },
+      "passed": false,
+      "recordCount": 48,
+      "targetTopTokenDiversity": {
+        "maximumShareE8": 47916667,
+        "uniqueCount": 19
+      },
+      "targetTopTokenDiversityByPositionBin": {
+        "0": {
+          "maximumShareE8": 41666667,
+          "uniqueCount": 7
+        },
+        "1": {
+          "maximumShareE8": 50000000,
+          "uniqueCount": 6
+        },
+        "2": {
+          "maximumShareE8": 50000000,
+          "uniqueCount": 7
+        },
+        "3": {
+          "maximumShareE8": 50000000,
+          "uniqueCount": 6
+        }
+      }
+    },
+    "b": {
+      "gates": {
+        "ceilingLayerNonInferiority": true,
+        "entropyError": false,
+        "macroAnchorGain": false,
+        "macroIdentityGain": false,
+        "maxProbabilityError": false,
+        "primaryLayers": false,
+        "targetTopTokenVariation": true,
+        "topTokenDiversity": false
+      },
+      "layers": {
+        "2": {
+          "anchorGainBootstrap95E8": [
+            -394203,
+            2307008,
+            5333672
+          ],
+          "anchorGainMeanE8": 2365815,
+          "controlTargetMeanE8": 39351679,
+          "lensGainBootstrap95E8": [
+            65742,
+            3631062,
+            7664277
+          ],
+          "lensGainMeanE8": 3631062,
+          "lensGainPositiveRateE8": 62500000,
+          "lensGainWilsonLower95E8": 48362764,
+          "mappedTargetMeanE8": 35720617,
+          "positionBinGainMeansE8": {
+            "0": -1572381,
+            "1": 3142726,
+            "2": 2370769,
+            "3": 10583132
+          },
+          "ratioOfMeansReductionE8": 9227210
+        },
+        "5": {
+          "anchorGainBootstrap95E8": [
+            -14971312,
+            -9315246,
+            -4459488
+          ],
+          "anchorGainMeanE8": -9358003,
+          "controlTargetMeanE8": 37008291,
+          "lensGainBootstrap95E8": [
+            -15297604,
+            -10436144,
+            -5546070
+          ],
+          "lensGainMeanE8": -10436144,
+          "lensGainPositiveRateE8": 35416667,
+          "lensGainWilsonLower95E8": 23433644,
+          "mappedTargetMeanE8": 47444435,
+          "positionBinGainMeansE8": {
+            "0": -10936654,
+            "1": -6190510,
+            "2": -15818403,
+            "3": -8799008
+          },
+          "ratioOfMeansReductionE8": -28199476
+        },
+        "8": {
+          "anchorGainBootstrap95E8": [
+            23771718,
+            25912652,
+            28830517
+          ],
+          "anchorGainMeanE8": 26014949,
+          "controlTargetMeanE8": 17105380,
+          "lensGainBootstrap95E8": [
+            2815826,
+            4944735,
+            8201150
+          ],
+          "lensGainMeanE8": 5033897,
+          "lensGainPositiveRateE8": 77083333,
+          "lensGainWilsonLower95E8": 63460736,
+          "mappedTargetMeanE8": 12071483,
+          "positionBinGainMeansE8": {
+            "0": 5876869,
+            "1": 3501575,
+            "2": 3498510,
+            "3": 7258634
+          },
+          "ratioOfMeansReductionE8": 29428735
+        }
+      },
+      "macroPrimary": {
+        "anchorGainBootstrap95E8": [
+          -7513838,
+          -3496094,
+          271893
+        ],
+        "anchorGainMeanE8": -3496094,
+        "entropyErrorGainBootstrap95E8": [
+          -20922357,
+          4601095,
+          29574929
+        ],
+        "entropyErrorGainMeanE8": 4580421,
+        "lensGainBootstrap95E8": [
+          -7190873,
+          -3440240,
+          843074
+        ],
+        "lensGainMeanE8": -3402541,
+        "maxProbabilityErrorGainBootstrap95E8": [
+          -8446753,
+          -4108839,
+          63924
+        ],
+        "maxProbabilityErrorGainMeanE8": -4108839
+      },
+      "mappedTopTokenDiversity": {
+        "maximumShareE8": 81250000,
+        "uniqueCount": 6
+      },
+      "mappedTopTokenDiversityByPositionBin": {
+        "0": {
+          "maximumShareE8": 50000000,
+          "uniqueCount": 5
+        },
+        "1": {
+          "maximumShareE8": 83333333,
+          "uniqueCount": 3
+        },
+        "2": {
+          "maximumShareE8": 100000000,
+          "uniqueCount": 1
+        },
+        "3": {
+          "maximumShareE8": 91666667,
+          "uniqueCount": 2
+        }
+      },
+      "passed": false,
+      "recordCount": 48,
+      "targetTopTokenDiversity": {
+        "maximumShareE8": 47916667,
+        "uniqueCount": 19
+      },
+      "targetTopTokenDiversityByPositionBin": {
+        "0": {
+          "maximumShareE8": 41666667,
+          "uniqueCount": 7
+        },
+        "1": {
+          "maximumShareE8": 50000000,
+          "uniqueCount": 6
+        },
+        "2": {
+          "maximumShareE8": 50000000,
+          "uniqueCount": 7
+        },
+        "3": {
+          "maximumShareE8": 50000000,
+          "uniqueCount": 6
+        }
+      }
+    }
+  },
+  "bootstrap": {
+    "method": "whole-task-family-percentile-v1",
+    "samples": 10000,
+    "seed": "7301642128954031337"
+  },
+  "ceilingLayer": 8,
+  "checkpointSha256": "sha256:abbda748c6bd6dec69bd72f25ca5ab28876fbbdbf195f218439ddbd0a10ff914",
+  "codeFileSha256": "sha256:257d14fa3d723c38fb6a16a8429ba11f77b6d1a6bcf13d5e9fa31f8411cafd75",
+  "collectionManifestSha256": "sha256:bc01c6824095ac03565926cf60810cf16ee3925091745db31e46359412929b37",
+  "createdAt": "2026-07-15T05:57:59.892Z",
+  "gateProfile": "s2-local-taylor-varied-endpoint-v1",
+  "layers": [
+    2,
+    5,
+    8
+  ],
+  "models": [
+    {
+      "alias": "a",
+      "lensSha256": "sha256:e87d36e71db8226228e5f7cbdc666741be7e4c0c862f65e43e2d4f7441e8f49c",
+      "modelId": "holorunner-s0"
+    },
+    {
+      "alias": "b",
+      "lensSha256": "sha256:eb173a021c6dfbdd0951b5759ed9e6adc8938d7b1fe49c28fbfae53d3866fdd8",
+      "modelId": "holorunner-s0-b"
+    }
+  ],
+  "passed": false,
+  "positionBins": [
+    [
+      0,
+      127
+    ],
+    [
+      128,
+      255
+    ],
+    [
+      256,
+      383
+    ],
+    [
+      384,
+      511
+    ]
+  ],
+  "preregistrationSha256": "sha256:c850d7eda595e3eda2fdbcfbcf3e8172b876f7171594569da979e54cff822c18",
+  "primaryLayers": [
+    2,
+    5
+  ],
+  "promptManifestSha256": "sha256:2203feaacd57aec43b7a0f44877919ab29bc9cf3c9466df6ceeb8f6d57a4d137",
+  "receiptsSha256": "sha256:3c7a0d2b17ffe581ae58e907b04c49a12b3f38489d1d8d25f33290d9577913ec",
+  "replication": {
+    "macroGainPearsonE8": 88300272,
+    "macroGainSignAgreementE8": 87500000,
+    "passed": false
+  },
+  "rowsSha256": "sha256:e814b703b810807eff02d0cbb166eb6c884847a6c43011274ee29a81170a18e8",
+  "schema": "holoscript.model-workspace-fidelity-evaluation.v0.2.0",
+  "selfHash": "sha256:84da70ad5df4d7e1240bedd23ae86003dadedb86c941a5b2dc9d49662b03f1da",
+  "semanticLabelsAccessed": false,
+  "status": "label-blind-target-fidelity",
+  "tokenizerSha256": "sha256:f92af6207d211728a530e95e44c60b3c95f700ea9c755ab6bd8614fbdac623d4"
+}
