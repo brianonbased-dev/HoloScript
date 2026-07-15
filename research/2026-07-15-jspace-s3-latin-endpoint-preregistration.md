@@ -53,13 +53,14 @@ manifest. It must verify the S2 corpus manifest self-hash, full-artifact hashes,
 pilot-artifact hashes, leakage-report hash and self-hash, checkpoint hash,
 tokenizer hash, and `semanticLabelsAccessed: false` before selection.
 
-Every case ID and token-sequence hash in the 24-row S2 pilot artifact for the
-same lane is an exposed observation and must be excluded. S3 selection fails if
-any selected pilot or confirmation row overlaps that exposed set, if a selected
-row is not an exact member of its sealed S2 full artifact, or if A/B/H select
-different `(family, position bin, task form, variant)` coordinates. No exposed
-S2 row may be pooled into an S3 fit, holdout, confidence interval, or
-confirmation.
+Every case ID, SHA-256 hash of the exact UTF-8 prompt, and token-sequence hash
+in the 24-row S2 pilot artifact for the same lane is an exposed observation and
+must be excluded. S3 selection fails if any selected pilot or confirmation row
+overlaps that exposed set, if a selected row is not an exact member of its
+sealed S2 full artifact, or if A/B/H select different
+`(family, position bin, task form, variant)` coordinates. The selected A/B/H
+sets must also remain mutually disjoint by all three identities. No exposed S2
+row may be pooled into an S3 fit, holdout, confidence interval, or confirmation.
 
 The inherited S2 leakage admission remains binding: zero equality,
 containment, normalized UTF-8 64-byte content-window overlap, and tokenizer
@@ -104,8 +105,8 @@ pilot lane therefore has exactly 48 rows: two endpoint profiles per family and
 position bin, 12 rows per bin, all eight endpoint profiles in every bin, each
 endpoint profile six times globally, and every family seeing every endpoint
 profile exactly once. The selector must mechanically prove these invariants,
-zero overlap with the S2 pilot case IDs and sequence hashes, and a self-hashed
-selection manifest before any model observation.
+zero overlap with the S2 pilot case IDs, exact-prompt hashes, and sequence
+hashes, and a self-hashed selection manifest before any model observation.
 
 ## Frozen independent confirmation set
 
