@@ -24,6 +24,7 @@ import {
   MODEL_WORKSPACE_ENDPOINT_AFFINE_TRANSPORT_PROFILE,
   MODEL_WORKSPACE_ENDPOINT_POSITION_POLICY,
   MODEL_WORKSPACE_HASH_CANONICALIZATION,
+  MODEL_WORKSPACE_LOCAL_TAYLOR_TRANSPORT_PROFILE,
   MODEL_WORKSPACE_MEASUREMENT_PROFILE,
   MODEL_WORKSPACE_RECEIPT_SCHEMA,
   MODEL_WORKSPACE_SCORE_PROFILE,
@@ -204,6 +205,14 @@ function endpointAffineWorkspaceFixture(prompt = 'composition "'): ModelWorkspac
     targetTopTokenId: 7,
   };
   receipt.observationSha256 = hashModelWorkspacePayload(receipt.observation);
+  receipt.receiptHash = hashModelWorkspacePayload({ ...receipt, receiptHash: null });
+  return receipt;
+}
+
+function localTaylorWorkspaceFixture(prompt = 'composition "'): ModelWorkspaceReceipt {
+  const receipt = endpointAffineWorkspaceFixture(prompt);
+  receipt.lens.estimator = 'endpoint_self_jacobian_local_taylor_v1';
+  receipt.lens.transportProfile = MODEL_WORKSPACE_LOCAL_TAYLOR_TRANSPORT_PROFILE;
   receipt.receiptHash = hashModelWorkspacePayload({ ...receipt, receiptHash: null });
   return receipt;
 }
@@ -1522,6 +1531,133 @@ composition "owned-edge" {
     expect(mismatch.blockers).toContain(
       'receipt position bins do not match the advertised model capability'
     );
+  });
+
+  it('binds the endpoint local-Taylor estimator and its distinct transport profile', async () => {
+    const receipt = localTaylorWorkspaceFixture();
+    const fetchImpl: HoloLlamaWorkspaceProbeFetch = vi.fn(async (url) =>
+      url.endsWith('/health')
+        ? workspaceJsonResponse({
+            backend: 'pytorch-holo',
+            model: { name: 'holorunner-s0' },
+            model_workspace_probe: {
+              schema: MODEL_WORKSPACE_CAPABILITY_SCHEMA,
+              observe: true,
+              intervention: false,
+              models: {
+                'holorunner-s0': {
+                  ...modelWorkspaceCapability(),
+                  estimator: 'endpoint_self_jacobian_local_taylor_v1',
+                  paperParity: false,
+                  positionPolicy: MODEL_WORKSPACE_ENDPOINT_POSITION_POLICY,
+                  positionBins: [[0, 127]],
+                  transportProfile: MODEL_WORKSPACE_LOCAL_TAYLOR_TRANSPORT_PROFILE,
+                },
+              },
+            },
+          })
+        : workspaceJsonResponse(receipt)
+    );
+
+    const result = await observeHoloLlamaModelWorkspace({
+      endpoint: 'http://127.0.0.1:8080',
+      prompt: 'composition "',
+      model: 'holorunner-s0',
+      layers: [0],
+      positions: [-1],
+      k: 1,
+      generatedAt: '2026-07-14T00:00:00.000Z',
+      fetchImpl,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.modelWorkspaceReceipt?.lens).toMatchObject({
+      estimator: 'endpoint_self_jacobian_local_taylor_v1',
+      paperParity: false,
+      positionPolicy: MODEL_WORKSPACE_ENDPOINT_POSITION_POLICY,
+      positionBins: [[0, 127]],
+      transportProfile: MODEL_WORKSPACE_LOCAL_TAYLOR_TRANSPORT_PROFILE,
+    });
+  });
+
+  it('keeps endpoint-affine and local-Taylor transport contracts non-interchangeable', () => {
+    const localTaylorWithAffineTransport = localTaylorWorkspaceFixture();
+    localTaylorWithAffineTransport.lens.transportProfile =
+      MODEL_WORKSPACE_ENDPOINT_AFFINE_TRANSPORT_PROFILE;
+    localTaylorWithAffineTransport.receiptHash = hashModelWorkspacePayload({
+      ...localTaylorWithAffineTransport,
+      receiptHash: null,
+    });
+    expect(validateModelWorkspaceReceipt(localTaylorWithAffineTransport).blockers).toContain(
+      'lens provenance or sparse-readout bound is invalid'
+    );
+
+    const endpointAffineWithLocalTaylorTransport = endpointAffineWorkspaceFixture();
+    endpointAffineWithLocalTaylorTransport.lens.transportProfile =
+      MODEL_WORKSPACE_LOCAL_TAYLOR_TRANSPORT_PROFILE;
+    endpointAffineWithLocalTaylorTransport.receiptHash = hashModelWorkspacePayload({
+      ...endpointAffineWithLocalTaylorTransport,
+      receiptHash: null,
+    });
+    expect(
+      validateModelWorkspaceReceipt(endpointAffineWithLocalTaylorTransport).blockers
+    ).toContain('lens provenance or sparse-readout bound is invalid');
+  });
+
+  it('applies endpoint and anchor-control constraints to local-Taylor receipts', () => {
+    const missingAnchor = localTaylorWorkspaceFixture();
+    delete missingAnchor.observation.layers[0]!.anchorControlMetrics;
+    missingAnchor.observationSha256 = hashModelWorkspacePayload(missingAnchor.observation);
+    missingAnchor.receiptHash = hashModelWorkspacePayload({ ...missingAnchor, receiptHash: null });
+    expect(validateModelWorkspaceReceipt(missingAnchor).blockers).toContain(
+      'observation layer 0 anchor control metrics are invalid'
+    );
+
+    const nonEndpoint = localTaylorWorkspaceFixture();
+    nonEndpoint.input.requestedPositions = [0];
+    nonEndpoint.input.positions = [0];
+    nonEndpoint.observation.layers[0]!.position = 0;
+    nonEndpoint.observationSha256 = hashModelWorkspacePayload(nonEndpoint.observation);
+    nonEndpoint.receiptHash = hashModelWorkspacePayload({ ...nonEndpoint, receiptHash: null });
+    expect(validateModelWorkspaceReceipt(nonEndpoint).blockers).toContain(
+      'bounded input provenance is invalid'
+    );
+  });
+
+  it('rejects a local-Taylor capability that advertises the endpoint-affine transport', async () => {
+    const fetchImpl: HoloLlamaWorkspaceProbeFetch = vi.fn(async () =>
+      workspaceJsonResponse({
+        backend: 'pytorch-holo',
+        model: { name: 'holorunner-s0' },
+        model_workspace_probe: {
+          schema: MODEL_WORKSPACE_CAPABILITY_SCHEMA,
+          observe: true,
+          intervention: false,
+          models: {
+            'holorunner-s0': {
+              ...modelWorkspaceCapability(),
+              estimator: 'endpoint_self_jacobian_local_taylor_v1',
+              paperParity: false,
+              positionPolicy: MODEL_WORKSPACE_ENDPOINT_POSITION_POLICY,
+              positionBins: [[0, 127]],
+              transportProfile: MODEL_WORKSPACE_ENDPOINT_AFFINE_TRANSPORT_PROFILE,
+            },
+          },
+        },
+      })
+    );
+
+    const result = await observeHoloLlamaModelWorkspace({
+      endpoint: 'http://127.0.0.1:8080',
+      prompt: 'test',
+      model: 'holorunner-s0',
+      generatedAt: '2026-07-14T00:00:00.000Z',
+      fetchImpl,
+    });
+
+    expect(result.status).toBe('unsupported');
+    expect(result.blockers).toEqual(['model_workspace_probe_not_advertised']);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 
   it('rejects malformed endpoint-affine provenance and non-endpoint observations', () => {

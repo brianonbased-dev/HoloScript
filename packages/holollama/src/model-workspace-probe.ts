@@ -18,11 +18,18 @@ export const HOLOLLAMA_MODEL_WORKSPACE_PROBE_SCHEMA =
 export const MODEL_WORKSPACE_ENDPOINT_POSITION_POLICY = 'endpoint-self-only' as const;
 export const MODEL_WORKSPACE_ENDPOINT_AFFINE_TRANSPORT_PROFILE =
   'mean-anchored-affine-final-residual-v1' as const;
+export const MODEL_WORKSPACE_LOCAL_TAYLOR_TRANSPORT_PROFILE =
+  'local-taylor-affine-final-residual-v1' as const;
 
 export type ModelWorkspaceEstimator =
   | 'explicit_pair_average_v0'
   | 'corpus_position_average_v1'
-  | 'endpoint_self_jacobian_affine_v1';
+  | 'endpoint_self_jacobian_affine_v1'
+  | 'endpoint_self_jacobian_local_taylor_v1';
+
+export type ModelWorkspaceTransportProfile =
+  | typeof MODEL_WORKSPACE_ENDPOINT_AFFINE_TRANSPORT_PROFILE
+  | typeof MODEL_WORKSPACE_LOCAL_TAYLOR_TRANSPORT_PROFILE;
 
 export type ModelWorkspacePositionBin = [start: number, end: number];
 
@@ -95,7 +102,7 @@ export interface ModelWorkspaceReceipt {
     lensSha256: string;
     positionPolicy: string;
     positionBins?: ModelWorkspacePositionBin[];
-    transportProfile?: typeof MODEL_WORKSPACE_ENDPOINT_AFFINE_TRANSPORT_PROFILE;
+    transportProfile?: ModelWorkspaceTransportProfile;
     jacobianCount: number;
     k: number;
   };
@@ -155,7 +162,7 @@ export interface ModelWorkspaceReceiptExpectation {
   lensSha256: string;
   estimator: ModelWorkspaceEstimator;
   positionBins?: ModelWorkspacePositionBin[];
-  transportProfile?: typeof MODEL_WORKSPACE_ENDPOINT_AFFINE_TRANSPORT_PROFILE;
+  transportProfile?: ModelWorkspaceTransportProfile;
   measurementProfile: typeof MODEL_WORKSPACE_MEASUREMENT_PROFILE;
   controlProfile: typeof MODEL_WORKSPACE_CONTROL_PROFILE;
 }
@@ -356,6 +363,7 @@ export async function observeHoloLlamaModelWorkspace(
   const expectedLayers = [...new Set(options.layers ?? advertisedLayers)].sort((a, b) => a - b);
   const expectedPositions = options.positions ? [...options.positions] : [-1];
   const expectedK = options.k ?? 10;
+  const expectedTransportProfile = workspaceTransportProfileForEstimator(advertisedEstimator);
   const expectation: ModelWorkspaceReceiptExpectation = {
     requestedModel,
     promptSha256: sha256Text(options.prompt),
@@ -364,9 +372,9 @@ export async function observeHoloLlamaModelWorkspace(
     k: expectedK,
     lensSha256: String(selectedCapability!.lensSha256),
     estimator: advertisedEstimator!,
-    ...(advertisedEstimator === 'endpoint_self_jacobian_affine_v1'
+    ...(expectedTransportProfile !== null
       ? {
-          transportProfile: MODEL_WORKSPACE_ENDPOINT_AFFINE_TRANSPORT_PROFILE,
+          transportProfile: expectedTransportProfile,
           positionBins: cloneWorkspacePositionBins(selectedCapability!.positionBins),
         }
       : {}),
@@ -504,7 +512,7 @@ export function validateModelWorkspaceReceipt(
       lens.positionBins,
       lens.positionPolicy
     ) ||
-    (legacyReceipt && lens.estimator === 'endpoint_self_jacobian_affine_v1') ||
+    (legacyReceipt && isEndpointWorkspaceEstimator(lens.estimator)) ||
     !isSha256(lens.corpusSha256) ||
     !isSha256(lens.lensSha256) ||
     typeof lens.implementationVersion !== 'string' ||
@@ -554,7 +562,7 @@ export function validateModelWorkspaceReceipt(
     })
   );
   const validEstimatorPositions = Boolean(
-    lens?.estimator !== 'endpoint_self_jacobian_affine_v1' ||
+    !isEndpointWorkspaceEstimator(lens?.estimator) ||
     (input &&
       positions &&
       positions.length === 1 &&
@@ -611,13 +619,13 @@ export function validateModelWorkspaceReceipt(
       blockers.push('receipt estimator does not match the advertised model capability');
     }
     if (
-      expectation.estimator === 'endpoint_self_jacobian_affine_v1' &&
+      isEndpointWorkspaceEstimator(expectation.estimator) &&
       lens?.transportProfile !== expectation.transportProfile
     ) {
       blockers.push('receipt transport profile does not match the advertised model capability');
     }
     if (
-      expectation.estimator === 'endpoint_self_jacobian_affine_v1' &&
+      isEndpointWorkspaceEstimator(expectation.estimator) &&
       !workspacePositionBinsEqual(lens?.positionBins, expectation.positionBins)
     ) {
       blockers.push('receipt position bins do not match the advertised model capability');
@@ -899,7 +907,7 @@ function validateWorkspaceObservation(
       }
 
       const anchorMetrics = isRecord(item.anchorControlMetrics) ? item.anchorControlMetrics : null;
-      if (estimator === 'endpoint_self_jacobian_affine_v1') {
+      if (isEndpointWorkspaceEstimator(estimator)) {
         const anchorTokenIds = [
           anchorMetrics?.mappedTopTokenId,
           anchorMetrics?.anchorTopTokenId,
@@ -1120,6 +1128,27 @@ function isSha256(value: unknown): value is string {
   return typeof value === 'string' && /^sha256:[a-f0-9]{64}$/u.test(value);
 }
 
+function isEndpointWorkspaceEstimator(
+  estimator: unknown
+): estimator is 'endpoint_self_jacobian_affine_v1' | 'endpoint_self_jacobian_local_taylor_v1' {
+  return (
+    estimator === 'endpoint_self_jacobian_affine_v1' ||
+    estimator === 'endpoint_self_jacobian_local_taylor_v1'
+  );
+}
+
+function workspaceTransportProfileForEstimator(
+  estimator: unknown
+): ModelWorkspaceTransportProfile | null {
+  if (estimator === 'endpoint_self_jacobian_affine_v1') {
+    return MODEL_WORKSPACE_ENDPOINT_AFFINE_TRANSPORT_PROFILE;
+  }
+  if (estimator === 'endpoint_self_jacobian_local_taylor_v1') {
+    return MODEL_WORKSPACE_LOCAL_TAYLOR_TRANSPORT_PROFILE;
+  }
+  return null;
+}
+
 function isSupportedWorkspaceEstimator(
   estimator: unknown,
   paperParity: unknown,
@@ -1129,15 +1158,16 @@ function isSupportedWorkspaceEstimator(
   positionBins?: unknown,
   positionPolicy?: unknown
 ): estimator is ModelWorkspaceEstimator {
+  const endpointTransportProfile = workspaceTransportProfileForEstimator(estimator);
   return (
     (estimator === 'explicit_pair_average_v0' && paperParity === false) ||
     (estimator === 'corpus_position_average_v1' &&
       paperParity === true &&
       parityScope === 'reference-estimator-only' &&
       paperExperimentParity === false) ||
-    (estimator === 'endpoint_self_jacobian_affine_v1' &&
+    (endpointTransportProfile !== null &&
       paperParity === false &&
-      transportProfile === MODEL_WORKSPACE_ENDPOINT_AFFINE_TRANSPORT_PROFILE &&
+      transportProfile === endpointTransportProfile &&
       isCanonicalWorkspacePositionBins(positionBins) &&
       positionPolicy === MODEL_WORKSPACE_ENDPOINT_POSITION_POLICY)
   );
@@ -1149,7 +1179,7 @@ function isSupportedWorkspacePositionPolicy(estimator: unknown, positionPolicy: 
       positionPolicy === 'explicit-source-target-pairs') ||
     (estimator === 'corpus_position_average_v1' &&
       positionPolicy === 'all-valid-current-and-future-targets') ||
-    (estimator === 'endpoint_self_jacobian_affine_v1' &&
+    (isEndpointWorkspaceEstimator(estimator) &&
       positionPolicy === MODEL_WORKSPACE_ENDPOINT_POSITION_POLICY)
   );
 }

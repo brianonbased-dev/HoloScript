@@ -47,6 +47,7 @@ export {
   MODEL_WORKSPACE_ENDPOINT_POSITION_POLICY,
   MODEL_WORKSPACE_HASH_CANONICALIZATION,
   MODEL_WORKSPACE_MEASUREMENT_PROFILE,
+  MODEL_WORKSPACE_LOCAL_TAYLOR_TRANSPORT_PROFILE,
   MODEL_WORKSPACE_RECEIPT_SCHEMA,
   MODEL_WORKSPACE_SCORE_PROFILE,
   MODEL_WORKSPACE_SIGNAL_RECEIPT_SCHEMA,
@@ -68,6 +69,7 @@ export type {
   ModelWorkspaceReceipt,
   ModelWorkspaceReceiptExpectation,
   ModelWorkspaceSignalReceipt,
+  ModelWorkspaceTransportProfile,
   ObserveHoloLlamaModelWorkspaceOptions,
 } from './model-workspace-probe.js';
 
