@@ -220,9 +220,18 @@ fsc_split_repo_url "$REPO_URL"
 fsc_export_git_auth
 if [ -d "$REPO_DIR/.git" ]; then
   echo "$LOG repo exists at $REPO_DIR — pulling latest..."
-  cd "$REPO_DIR" || exit 2
-  git fetch --depth 1 origin "$FLEET_REPO_REF" 2>/dev/null && git reset --hard FETCH_HEAD 2>/dev/null \
-    || echo "$LOG WARN: git pull failed, using existing checkout"
+  if [ -z "$(git -C "$REPO_DIR" status --porcelain 2>/dev/null)" ] && fetch_and_checkout_ref "$FLEET_REPO_REF"; then
+    cd "$REPO_DIR" || exit 2
+  else
+    # Never rewrite or discard an existing checkout. A dirty or stale repo gets
+    # a fresh run-scoped clone, preserving local state and reproducibility.
+    REPO_DIR="${REPO_DIR}.fleet-checkout-$$"
+    echo "$LOG existing checkout was dirty or could not switch refs; cloning into $REPO_DIR"
+    clone_repo_with_retry \
+      || download_repo_archive_fallback \
+      || { echo "$LOG FATAL: fresh clone/archive fetch failed"; exit 2; }
+    cd "$REPO_DIR" || exit 2
+  fi
 else
   clone_repo_with_retry \
     || download_repo_archive_fallback \
