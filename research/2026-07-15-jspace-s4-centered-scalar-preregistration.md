@@ -64,10 +64,13 @@ generated prefixes, and reject-over-limit behavior.
 
 Non-finite statistics or `S <= 0` abort. There is no fallback, parameter
 sweep, alternate ridge, alternate clipping range, or outcome-guided retry.
-Any primary layer/bin with `alpha <= 0` or `alpha >= 2` fails the
-calibration-attribution gate. The upper boundary indicates cap saturation; the
-lower boundary is the mean-final anchor and cannot establish calibrated
-transport.
+The primary layer/bin cells are exactly layers `{2, 5}` crossed with all four
+registered position bins. Any primary cell with `alpha <= 0` or `alpha >= 2`
+fails the calibration-attribution gate. Any primary cell with `beta <= 0` or
+`beta >= 2` also prohibits a Jacobian-specific claim because a boundary-limited
+scalar-identity comparator is not an admissible mechanism control. The upper
+boundary indicates cap saturation; the lower boundary is the mean-final anchor
+and cannot establish calibrated transport.
 
 The fixed `rho` is a roughly 0.1% multiplicative OLS shrink, not a tuned ridge.
 Clipping supplies the stability bound and must be disclosed.
@@ -222,16 +225,31 @@ Persist for each `[position bin, source layer]`:
 - `ridgeFraction=0.001`, `clipBounds=[0,2]`; and
 - exact sample counts, sequence-order digest, and sequence-set digest.
 
-The serialized artifact and loader must reject unless they can recompute and
-verify all formulas above, including `M`, `b`, S3-control bias, alpha, beta,
-finite values, positive energies, tensor shapes, repeated target-mean
-agreement, estimator/transport identity, checkpoint, tokenizer, corpus,
-position bins, sample counts, sequence hashes, artifact self-hash, and lens
-hash. Scalar-statistics and control-profile digests are bound into the lens and
-fit receipt. Fitted alpha and beta are not separately serialized. The loader
-derives them from the sufficient statistics, replaces the loaded serving matrix
-with `alpha * matrices`, and retains the unscaled matrix only in the private
-evaluation object needed for frozen controls.
+The fitter owns the definitions of `S`, `C`, `S_I`, and `C_I` because the
+per-row `x`, `y`, and `J` values are deliberately not serialized. Before
+discarding those transient values, it recomputes the four statistics from the
+sealed rows in float64, verifies equality with the serialized float64 values,
+and binds their tensor digest, sample counts, sequence-order digest, and
+sequence-set digest into the fit receipt. A source-row or digest mismatch
+aborts.
+
+The loader verifies the fit-receipt and lens hashes, estimator metadata,
+float64 statistic dtype, exact tensor shapes, finite values, positive energies,
+checkpoint, tokenizer, corpus, position bins, sample counts, sequence hashes,
+and repeated target-mean agreement. It then derives values in this exact
+float64 operation order: denominator `(1.0 + 0.001) * S`, division `C /
+denominator`, clipping to `[0.0, 2.0]`, and multiplication `alpha * Jbar`; beta
+uses the identical order with `C_I` and `S_I`. Alpha and beta are not
+quantized or separately serialized. The loader computes `b = ybar - M xbar`
+in float64, compares it with the serialized float32 bias using
+`rtol=2e-5, atol=2e-5`, then casts the verified serving matrix and control
+values to float32. It also verifies the S3-control bias from the serialized
+Jacobian-source-product mean. Scalar-statistics and control-profile digests are
+bound into the lens and fit receipt.
+
+The loaded serving matrix replaces serialized `Jbar` with `alpha * Jbar`.
+The unscaled matrix remains only in the private evaluation object needed for
+the frozen controls.
 
 HoloLlama exposes the exact estimator-to-transport capability mapping and lens
 hash, but not numeric alpha/beta values. It rejects missing or tampered scalar
