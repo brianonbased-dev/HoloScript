@@ -316,7 +316,10 @@ def _compact_content(
         "causal_temporal": f"{tag}: the {obj} has a timed cause; {pack['marker']} omits the present clock value.",
         "normative": f"{tag}: {person} has two duties for one {obj}; {pack['marker']} ranks neither.",
         "semantic_pragmatic": f"{tag}: a sentence about the {obj} has {pack['marker']} asserted and backgrounded cues.",
-        "planning_tension": f"{tag}: a route reaches one goal and one {pack['marker']} endpoint of unlisted status.",
+        "planning_tension": (
+            f"{tag}: one branch meets a goal; a {pack['marker']} branch ends "
+            f"unclassified by {obj}."
+        ),
     }
     asks = {
         "physical": f"{verb.capitalize()} the {pack['marker']} access.",
@@ -324,7 +327,9 @@ def _compact_content(
         "causal_temporal": f"{verb.capitalize()} the {pack['marker']} causal-time status.",
         "normative": f"{verb.capitalize()} the {pack['marker']} compliance status.",
         "semantic_pragmatic": f"{verb.capitalize()} the {pack['marker']} content split.",
-        "planning_tension": f"{verb.capitalize()} the {pack['marker']} goal tension.",
+        "planning_tension": (
+            f"{verb.capitalize()} whether opposed endpoints remain."
+        ),
     }
     return cores[family], asks[family]
 
