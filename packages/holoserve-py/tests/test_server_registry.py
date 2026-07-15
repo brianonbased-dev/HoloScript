@@ -365,6 +365,18 @@ def test_named_registry_routes_distinct_weights_and_model_bound_lens(tmp_path):
             )
             assert status == 200
             assert completion["model"] == model_name
+            expected_binding = artifact_registry["models"][model_name]
+            assert completion["holo"]["model_artifact_binding"] == expected_binding
+            assert completion["holo"]["model_artifact_binding_sha256"] == _sha256_json(
+                expected_binding
+            )
+            assert completion["holo"]["decoding"] == {
+                "seed": 20260714,
+                "temperature": 1.0,
+                "top_k": 1,
+                "max_tokens": 1,
+                "grammar": None,
+            }
             completions[model_name] = completion["choices"][0]["text"]
         assert completions == {"holorunner-s0": "A", "holorunner-s0-b": "B"}
 

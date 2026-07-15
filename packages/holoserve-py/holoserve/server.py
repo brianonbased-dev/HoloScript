@@ -656,12 +656,22 @@ class Handler(BaseHTTPRequestHandler):
             "completion_tokens": result["completion_tokens"],
             "total_tokens": result["prompt_tokens"] + result["completion_tokens"],
         }
+        artifact_binding = _model_artifact_binding_for_health(target)
         holo = {
             "backend": "pytorch-holo",
             "sovereign": True,
             "llama_cpp": False,
             "elapsed_s": round(elapsed, 3),
             "tokens_per_s": round(result["completion_tokens"] / elapsed, 1) if elapsed > 0 else None,
+            "model_artifact_binding": artifact_binding,
+            "model_artifact_binding_sha256": _sha256_canonical_json(artifact_binding),
+            "decoding": {
+                "seed": seed,
+                "temperature": temperature,
+                "top_k": top_k,
+                "max_tokens": max_tokens,
+                "grammar": grammar,
+            },
             **({"grammar": grammar, "grammar_complete": result.get("grammar_complete", False)}
                if grammar is not None else {}),
         }
@@ -927,10 +937,20 @@ class Handler(BaseHTTPRequestHandler):
                             "completion_tokens": ev["completion_tokens"],
                             "total_tokens": ev["prompt_tokens"] + ev["completion_tokens"],
                         }
+                        artifact_binding = _model_artifact_binding_for_health(target)
                         holo = {
                             "backend": "pytorch-holo",
                             "sovereign": True,
                             "llama_cpp": False,
+                            "model_artifact_binding": artifact_binding,
+                            "model_artifact_binding_sha256": _sha256_canonical_json(artifact_binding),
+                            "decoding": {
+                                "seed": seed,
+                                "temperature": temperature,
+                                "top_k": top_k,
+                                "max_tokens": max_tokens,
+                                "grammar": grammar,
+                            },
                             **({"grammar": grammar, "grammar_complete": ev.get("grammar_complete", False)}
                                if grammar is not None else {}),
                         }

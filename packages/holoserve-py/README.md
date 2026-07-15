@@ -67,6 +67,12 @@ A legacy/non-native registry entry without load-time hashes reports
 `available: false` with an explicit reason instead of implying a name-to-artifact
 binding. This ordinary health proof is independent of the optional workspace lens.
 
+Every completion (including the terminal SSE chunk) repeats the selected path-free
+`model_artifact_binding`, its canonical SHA-256, and the effective decoding settings
+after server clamps (`seed`, temperature, top-k, max tokens, and grammar). Evaluation
+clients can therefore reject a response from the wrong resident weights or a decoder
+configuration different from the one recorded in their run receipt.
+
 ### Endpoints
 
 | Method | Path                              | Purpose                                                                                   |
