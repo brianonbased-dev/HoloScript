@@ -26,6 +26,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { classifyTypecheckResult } from './typecheck-classify.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..');
@@ -102,11 +103,10 @@ function typecheck(pkg) {
       finish({ pkg, ok: false, errors: 0, toolingFailure: true, out: `${out}\n${err?.stack || err}`.trim() });
     });
     child.on('close', (code) => {
-      const errors = (out.match(/error TS\d+/g) || []).length;
       // tsc exited non-zero but produced no parseable diagnostics -> it never actually ran
-      // (MODULE_NOT_FOUND, crashed, killed) rather than ran-and-found-nothing.
-      const toolingFailure = code !== 0 && errors === 0;
-      finish({ pkg, ok: code === 0, errors, toolingFailure, out });
+      // (MODULE_NOT_FOUND, crashed, killed) rather than ran-and-found-nothing. Classification
+      // lives in ./typecheck-classify.mjs so it is unit-testable without running this gate.
+      finish({ pkg, ...classifyTypecheckResult(code, out), out });
     });
   });
 }
