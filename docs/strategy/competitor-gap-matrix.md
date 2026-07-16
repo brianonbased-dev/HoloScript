@@ -1,6 +1,6 @@
 # Competitor Gap Matrix
 
-> Generated: 2026-07-08T03:12:00Z | Next review: 2026-07-13
+> Generated: 2026-07-16T21:15:00Z | Next review: 2026-08-16
 
 | ID | Vertical | Competitor | Severity | Direction | Status | Title |
 |---|---|---|---|---|---|---|
@@ -35,6 +35,7 @@
 | CG-057 | Creator economy / on-chain assets | OpenSea / NFT Marketplaces | 🟢 P3 | watch | 👁️ Watch | NFT marketplace — WATCH + BUILD-INTERNAL (HoloScript Protocol is the sovereign answer) |
 | CG-058 | Phone-sleeve VR (sovereign revival) | Google Cardboard / phone-sleeve VR category | 🟡 P2 | differentiator | 👁️ Watch | PhoneSleeveVR sovereign revival — compiler exists, no product or marketing yet |
 | CG-073 | W.501 live MCP compile/generate surface coverage | Vercel v0 / Lovable / Bolt / Subframe / specialist SDK ecosystems | 🟡 P2 | differentiator | 👁️ Watch | W.501 live MCP compile/generate and substrate-tool coverage row prevents unconsumed tool surfaces |
+| CG-074 | Quantum computing stack | IBM / Google / Quantinuum hardware + Qiskit / Cirq / PennyLane SDK ecosystems | 🟢 P3 | watch | 👁️ Watch | Quantum stack watch row — bridge posture; reconcile vendor logical-qubit claims per W.910; track PQC deadline drift and who adjudicates IBM’s end-2026 advantage claim |
 
 ## Detailed Gap Descriptions
 
@@ -870,3 +871,34 @@ Rerun W.501 monthly. Promote dedicated rows when a family needs product motion (
 - https://lovable.dev/guides/best-ai-app-builders
 - packages/mcp-server/src/handlers.ts
 - packages/mcp-server/src/compiler-tools.ts
+
+### CG-074 — Quantum stack watch row — bridge posture; reconcile vendor logical-qubit claims per W.910; track PQC deadline drift and who adjudicates IBM’s end-2026 advantage claim
+
+- **Vertical:** Quantum computing stack
+- **Competitor:** IBM / Google / Quantinuum hardware + Qiskit / Cirq / PennyLane SDK ecosystems
+- **Severity:** P3
+- **Direction:** watch
+- **Status:** watch
+
+**Competitor Advantage:**
+Capital and roadmaps, not shipped advantage: IBM targets “quantum advantage” end-2026 (Nighthawk) and fault-tolerant Starling 2029 (200 logical qubits); Google demonstrated below-threshold QEC (Willow, Nature Dec 2024) and the one unrefuted advantage-class demo (Quantum Echoes OTOC, Oct 2025 — a physics observable, not a utility task); Quantinuum holds gate-fidelity records (vendor figures). Every prior NISQ advantage claim was classically closed within ~18 months.
+
+**HoloScript State:**
+compile_to_qasm shipped (QuantumCircuitCompiler — OpenQASM 3.0: VQE ansatz, QAOA, Jordan-Wigner); qm-bridge plugin routes VQE/QAOA to IBM (aer|gated hardware) and Quantinuum (sim-surrogate default) next to PySCF/Psi4/QE/TBLite under SimulationContract scale:quantum; quantum-lab skill enforces variational-principle gate + dual receipts; QECDecoder graduated with real-GPU receipt (commit 74fc018ab) awaiting its @decode_receipt consumer; 2026-07-12 NMoS ruling: quantum hardware = BRIDGE (“do NOT scaffold a sovereign quantum computer”), QEC decode/verify = BUILD-INTERNAL.
+
+**Needed Response:**
+1. Reconcile every vendor logical-qubit claim per W.910: code distance + logical error rate + real-time decode demonstrated — never raw qubit counts; cross-platform logical-qubit counts are not comparable units. 2. IBM end-2026 “advantage” trigger: treat as real only after independent adversarial classical reproduction attempts fail for ~18 months (the historical closure window); vendor-chosen instances are gameable. 3. Consume the QECDecoder via @decode_receipt (board task task_1784233848271_fr5i) and benchmark vs published ~550ns FPGA closed loops. 4. Track PQC deadline drift (CNSA 2.0: 2030 KEX / 2033 signatures / 2035 exclusive) via the CBOM annual re-check. 5. Keep every public claim attestation-shaped (Paper 37 posture); never claim classical verification of supremacy-scale outputs.
+
+**Evidence:**
+- packages/core/src/compiler/QuantumCircuitCompiler.ts — OpenQASM 3.0 emitter (compile_to_qasm MCP tool)
+- packages/plugins/qm-bridge/src/backends/{ibm-quantum,quantinuum}.ts — QPUs as SimSolver backends behind HoloScript dispatch
+- packages/snn-webgpu/src/qec/qec-decoder.ts + benchmarks/qec-decode-benchmark.json — real-GPU QEC decode receipt (RTX 3060, 34,440,393 decodes/s)
+- ai-ecosystem research/2026-07-12_quantum-error-correction.md — NMoS ruling: hardware=BRIDGE, QEC decode=BUILD-INTERNAL
+- ai-ecosystem research/2026-07-16_quantum-computing-as-competitor.md — 6-agent competitor analysis (this row discharges its §7.3 action + CG-073’s compile_to_qasm promotion note)
+- ai-ecosystem research/2026-07-16_pqc-cbom-inventory.md — live CBOM + PQC posture receipt
+
+**Sources:**
+- research/paper-37-quantum-receipt-chain.md
+- https://arxiv.org/abs/2607.07530 (The NISQ Trap — 8-year advantage-claim closure record)
+- https://www.ibm.com/quantum/blog/large-scale-ftqc (IBM Starling roadmap)
+- https://blog.google/innovation-and-ai/technology/research/quantum-hardware-verifiable-advantage/ (Quantum Echoes)
