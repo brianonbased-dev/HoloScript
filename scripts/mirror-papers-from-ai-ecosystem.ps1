@@ -18,7 +18,7 @@
 $ErrorActionPreference = "Stop"
 
 $RepoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
-$SourceDir = Join-Path $env:USERPROFILE ".ai-ecosystem" "research"
+$SourceDir = Join-Path (Join-Path $env:USERPROFILE ".ai-ecosystem") "research"
 $TargetDir = Join-Path $RepoRoot "research"
 
 # Finished + submitted papers: HoloScript-canonical, NOT mirrored from ai-ecosystem.
