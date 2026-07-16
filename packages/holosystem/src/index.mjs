@@ -9,6 +9,7 @@ export {
 } from './substrate.mjs';
 
 export { HOLOSYSTEM_SUBSTRATE_IMPORT_SCHEMA, importNpmPackageLock } from './substrate-import.mjs';
+export { importDebianPackageSnapshot } from './substrate-import-debian.mjs';
 
 export {
   HOLOSYSTEM_CATALOG_SCHEMA,

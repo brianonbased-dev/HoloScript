@@ -220,6 +220,133 @@ const imported = importNpmPackageLock({
 });
 ```
 
+### Import an installed Debian package graph
+
+`substrate-import-debian` converts offline Debian evidence into an
+operating-system substrate graph. It accepts one or more independently anchored
+repository indexes, parses the standard control-stanza format,
+resolves `Depends`, `Pre-Depends`, alternatives, exact version relations, and
+installed virtual-package providers according to the
+[Debian relationship rules](https://www.debian.org/doc/debian-policy/ch-relationships.html),
+and binds each installed package to the SHA-256 or SHA-512 and `Filename` in a
+caller-anchored `Packages` index.
+
+The command does not run `dpkg`, `apt`, or any package script. Supply:
+
+- the installed `dpkg` status text;
+- each uncompressed repository `Packages` index and its expected digest;
+- a JSON map for every installed `package:architecture`, containing hashes for
+  any `preinst`, `postinst`, `prerm`, `postrm`, or `config` scripts;
+- a config containing the repository base, system root, custody, and optional
+  rebuild policy.
+
+```json
+{
+  "repository": {
+    "uri": "https://deb.debian.org/debian/",
+    "packagesIndexDigest": "sha256:<digest of the exact Packages input>"
+  },
+  "root": {
+    "id": "demo-linux",
+    "version": "12.1-1",
+    "custody": {
+      "mode": "owned",
+      "owner": "demo",
+      "trustDomain": "demo-os-release"
+    },
+    "source": {
+      "uri": "https://images.example.com/demo-linux",
+      "revision": "snapshot-20260716"
+    }
+  }
+}
+```
+
+```json
+{
+  "base-files:amd64": {},
+  "demo-app:amd64": {
+    "postinst": "sha256:<digest of the installed postinst file>"
+  }
+}
+```
+
+```bash
+npx holosystem substrate-import-debian \
+  --status status \
+  --packages Packages \
+  --maintainer-scripts maintainer-scripts.json \
+  --config debian-substrate-import.json \
+  --output debian-substrate-input.json \
+  --json
+```
+
+Real installations usually span base, security, update, or third-party
+archives. Use `--sources` instead of `--packages` for those systems. The source
+manifest is a JSON array; local `packages` paths are read by the CLI but are not
+copied into the receipt.
+
+```json
+[
+  {
+    "packages": "Packages.main",
+    "uri": "https://deb.debian.org/debian/",
+    "packagesIndexDigest": "sha256:<digest>",
+    "custody": {
+      "owner": "debian-main",
+      "trustDomain": "debian-main-archive"
+    }
+  },
+  {
+    "packages": "Packages.security",
+    "uri": "https://security.debian.org/debian-security/",
+    "packagesIndexDigest": "sha256:<digest>",
+    "custody": {
+      "owner": "debian-security",
+      "trustDomain": "debian-security-archive"
+    }
+  }
+]
+```
+
+```bash
+npx holosystem substrate-import-debian \
+  --status status \
+  --sources debian-sources.json \
+  --maintainer-scripts maintainer-scripts.json \
+  --config debian-substrate-import.json \
+  --output debian-substrate-input.json \
+  --json
+```
+
+Every fully installed package becomes an external-custody component and the
+system root depends on all of them, including packages no longer reachable from
+another package. The importer implements Debian's version ordering, including
+epochs and the special tilde order. It fails closed on an index-digest mismatch,
+missing package artifact, unsatisfied or ambiguous dependency, path traversal,
+or incomplete maintainer-script evidence.
+
+A digest anchors each supplied index but does not prove that a Debian `Release`
+or `InRelease` signature was verified. That boundary remains explicit in the
+receipt and in the blocking `repository-authentication` coverage gap. Likewise, Debian
+[maintainer scripts execute during package transitions](https://www.debian.org/doc/debian-policy/ch-maintainerscripts.html),
+so any present script still blocks substrate readiness. The generated input
+marks operating-system coverage as included and leaves `native-build` and
+`repository-authentication` missing; signed rebuild attestations and the
+existing `substrate` gate remain required.
+
+```js
+import { importDebianPackageSnapshot } from '@holoscript/holosystem';
+
+const imported = importDebianPackageSnapshot({
+  status,
+  sources: [{ packagesIndex, repository, custody }],
+  maintainerScripts,
+  root,
+  verificationPolicy,
+});
+```
+
 ## What It Creates
 
 The default configuration pins public contracts for:

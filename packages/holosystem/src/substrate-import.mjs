@@ -177,6 +177,19 @@ function sanitizeVerificationPolicy(value, issues) {
   };
 }
 
+export const _substrateImportInternals = Object.freeze({
+  compareText,
+  hashJson,
+  hashReceipt,
+  isRecord,
+  issue,
+  pinnedRevision,
+  pinnedVersion,
+  portableSource,
+  sanitizeVerificationPolicy,
+  validId,
+});
+
 function packageNameFromPath(path) {
   const marker = 'node_modules/';
   const index = path.lastIndexOf(marker);
