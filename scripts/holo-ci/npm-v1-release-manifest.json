@@ -79,6 +79,26 @@
       "role": "xr-embodiment",
       "allowFirstPublish": true,
       "v1Intent": "Reusable VR/WebXR embodiment layer for users and agents in shared spatial worlds."
+    },
+    {
+      "name": "@holoscript/agent-protocol",
+      "role": "agent-protocol-types",
+      "v1Intent": "Type-only uAA2++ agent protocol spec (interfaces, enums, PWG format) consumed by @holoscript/core and @holoscript/framework."
+    },
+    {
+      "name": "@holoscript/llm-provider",
+      "role": "llm-provider-sdk",
+      "v1Intent": "Unified LLM provider SDK (OpenAI, Anthropic, Gemini, OpenRouter, xAI, HoloServe/local adapters) consumed by @holoscript/core."
+    },
+    {
+      "name": "@holoscript/snn-webgpu",
+      "role": "spiking-neural-network-webgpu",
+      "v1Intent": "WebGPU compute library for spiking neural network simulation consumed by @holoscript/engine."
+    },
+    {
+      "name": "@holoscript/holoembed",
+      "role": "structural-nl-code-embeddings",
+      "v1Intent": "768-dim NL->code embedding service consumed by @holoscript/engine and the Absorb pipeline."
     }
   ]
 }
