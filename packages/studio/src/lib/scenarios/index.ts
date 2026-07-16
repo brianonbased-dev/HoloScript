@@ -235,7 +235,6 @@ export * as useCollaboration from '../hooks/useCollaboration';
 export * as useCombat from '../hooks/useCombat';
 export * as useCompiler from '../hooks/useCompiler';
 export * as useCompilerBridge from '../hooks/useCompilerBridge';
-export * as useCreatorStats from '../hooks/useCreatorStats';
 export * as useCulture from '../hooks/useCulture';
 export * as useDaemonJobs from '../hooks/useDaemonJobs';
 export * as useDebugger from '../hooks/useDebugger';
