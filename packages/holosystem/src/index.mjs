@@ -2,6 +2,13 @@ export const HOLOSYSTEM_CONFIG_SCHEMA = 'holoscript.holosystem.consumer.v1';
 export const HOLOSYSTEM_INSPECTION_SCHEMA = 'holoscript.holosystem.inspection.v1';
 
 export {
+  HOLOSYSTEM_REBUILD_ATTESTATION_SCHEMA,
+  HOLOSYSTEM_SUBSTRATE_SCHEMA,
+  buildSubstrateClosure,
+  createRebuildAttestationPayload,
+} from './substrate.mjs';
+
+export {
   HOLOSYSTEM_CATALOG_SCHEMA,
   HOLOSYSTEM_CONSUMER_INPUT_SCHEMA,
   HOLOSYSTEM_LINEAGE_SCHEMA,

@@ -41,7 +41,7 @@
     "node": ">=18"
   },
   "scripts": {
-    "build": "node --check src/index.mjs && node --check src/catalog.mjs && node --check bin/holosystem.mjs",
+    "build": "node --check src/index.mjs && node --check src/catalog.mjs && node --check src/substrate.mjs && node --check bin/holosystem.mjs",
     "test": "node --test test/*.test.mjs",
     "smoke": "node bin/holosystem.mjs --help",
     "check": "pnpm run build && pnpm run test && pnpm run smoke",

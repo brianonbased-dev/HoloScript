@@ -55,6 +55,82 @@ returns one highest-priority candidate, and carries authority, validation, lease
 and spend stop conditions. It selects work; it does not claim a board task,
 publish a package, spend funds, or bypass caller authority.
 
+## Substrate Closure
+
+The substrate closure replaces an implicit operating-system dependency tower
+with a deterministic, caller-owned infrastructure graph. Every component names
+an exact version, portable source revision, content digest, custody owner,
+dependency edges, and a cryptographically authenticated rebuild. External
+components can remain during migration, but they are visible sovereignty
+boundaries rather than hidden transitive dependencies.
+
+```bash
+npx holosystem substrate \
+  --input substrate.json \
+  --output substrate-lock.json \
+  --json
+```
+
+```js
+import { buildSubstrateClosure, createRebuildAttestationPayload } from '@holoscript/holosystem';
+
+const component = {
+  id: 'holosystem',
+  kind: 'runtime',
+  version: '1.0.0',
+  custody: {
+    mode: 'owned',
+    owner: 'holoscript',
+    trustDomain: 'holoscript-release',
+  },
+  source: { uri: 'holorepo://holoscript', revision: 'abc123' },
+  artifact: { digest: 'sha256:<64 lowercase hex characters>' },
+  requires: [],
+  verification: {
+    rebuilds: [
+      {
+        verifier: 'independent-builder',
+        digest: 'sha256:<same 64 lowercase hex characters>',
+        signature: '<Ed25519 signature in canonical base64>',
+      },
+    ],
+  },
+};
+
+// The independent builder signs this exact UTF-8 payload with its private key.
+const payload = createRebuildAttestationPayload({
+  verifier: 'independent-builder',
+  component,
+});
+
+const receipt = buildSubstrateClosure({
+  root: 'holosystem',
+  verificationPolicy: {
+    minimumIndependentRebuilds: 1,
+    trustRoots: [
+      {
+        verifier: 'independent-builder',
+        trustDomain: 'independent-builders',
+        publicKey: '<Ed25519 public key in PEM format>',
+      },
+    ],
+  },
+  components: [component],
+});
+```
+
+The command exits with code `2` and still emits the blocked receipt when it
+finds a missing or unreachable dependency, a cycle, a floating version, a local
+source path, an invalid digest, an untrusted verifier, a forged signature, a
+same-domain rebuild, or too few matching rebuilds. The receipt exposes only
+public-key fingerprints, not the supplied PEM text.
+
+Trust domains are assertions in the caller-owned policy. The signature proves
+that the named key attested to the exact component tuple; it does not prove that
+the builder is organizationally independent or that the component is safe.
+Production trust roots therefore belong to independently governed rebuilders,
+not keys created by the component custodian for the same release.
+
 ## What It Creates
 
 The default configuration pins public contracts for:
