@@ -494,11 +494,91 @@ does not prove the Docker host, compiler-image supply chain, host kernel, CPU,
 or organizational independence; those remain named boundaries.
 
 This tracer commences the build/execution layer. It is not a claim that
-HoloSystem already replaces a hypervisor, measured boot, UEFI/device firmware,
-an ISA backend, or physical hardware verification. Those require separate
-target contracts and receipts rather than broader process execution in this API.
+HoloSystem already replaces measured boot, UEFI/device firmware, an ISA backend,
+or physical hardware verification. Those require separate target contracts and
+receipts rather than broader process execution in this API.
 The adversary classes, attack specifications, test mapping, and residual trust
 boundary are recorded in the [native-build threat model](./docs/native-build-threat-model.md).
+
+### Launch a measured machine VM
+
+`vm-launch` extends the executable tracer below the container boundary. It boots
+an AMD64 Linux kernel and initramfs as a full-system q35 guest with QEMU TCG. The
+initial vocabulary is deliberately closed: Windows AMD64 host, QEMU's
+`qemu-system-x86_64.exe`, q35, TCG, 128 MiB, one CPU, and exactly two launches.
+Plans cannot provide a command, argument, environment variable, device, network,
+firmware, monitor, display, or hardware-acceleration setting.
+
+First measure the complete caller-owned QEMU runtime closure and both guest
+artifacts:
+
+```bash
+npx holosystem vm-executor --runtime C:/absolute/path/to/qemu-runtime --json
+npx holosystem vm-asset --kind kernel --file C:/absolute/path/to/vmlinuz --json
+npx holosystem vm-asset --kind initrd --file C:/absolute/path/to/initramfs --json
+```
+
+Create a plan with those digests and the SHA-256 digest of the exact expected
+serial success signal:
+
+```json
+{
+  "schema": "holoscript.holosystem.vm-launch-plan.v1",
+  "id": "demo-vm-proof",
+  "host": { "os": "windows", "architecture": "amd64" },
+  "executor": {
+    "kind": "qemu-system",
+    "binary": "qemu-system-x86_64.exe",
+    "binaryDigest": "sha256:<qemu-executable-digest>",
+    "runtimeDigest": "sha256:<complete-runtime-manifest-digest>"
+  },
+  "target": { "architecture": "amd64", "machine": "q35", "accelerator": "tcg" },
+  "guest": {
+    "kernelDigest": "sha256:<kernel-digest>",
+    "initrdDigest": "sha256:<initrd-digest>",
+    "expectedConsoleDigest": "sha256:<exact-serial-output-digest>"
+  },
+  "resources": { "memoryMiB": 128, "cpus": 1, "timeoutSeconds": 30 },
+  "launches": 2
+}
+```
+
+```bash
+npx holosystem vm-launch \
+  --plan vm-launch.json \
+  --runtime C:/absolute/path/to/qemu-runtime \
+  --kernel C:/absolute/path/to/vmlinuz \
+  --initrd C:/absolute/path/to/initramfs \
+  --output vm-launch-receipt.json \
+  --json
+```
+
+The runner creates a private snapshot and remeasures the complete QEMU closure,
+kernel, and initramfs before and after each launch. It then generates QEMU
+arguments that disable user configuration, default devices, networking, USB,
+display, monitor, and reboot;
+passes only a minimal environment; bounds output and time; and requires both
+launches to produce the pinned serial digest, no emulator diagnostics, and the
+fixed debug-exit code. Receipts contain only digests and byte counts, never raw
+console output or operational host paths.
+
+A verified receipt includes `machine-vm-launch`, `guest-artifact-measurement`,
+and `virtual-device-minimization`. It always reports `hardwareBacked: false` and
+keeps both `hardware-hypervisor-acceleration` and `host-process-isolation`
+missing: TCG is software emulation, and this tracer does not sandbox the QEMU
+host process. It is not WHPX, KVM, an IOMMU, measured boot, or a
+confidential-computing boundary. Firmware files in the supplied runtime are
+hashed, but their authenticity is not proven. The exact claims and residual
+boundaries are in the [VM launch threat model](./docs/vm-launch-threat-model.md).
+
+```js
+import {
+  inspectVmExecutor,
+  inspectVmLaunchAsset,
+  inspectVmLaunchPlan,
+  runVmLaunch,
+} from '@holoscript/holosystem';
+```
 
 ## What It Creates
 

@@ -23,6 +23,16 @@ export {
   inspectNativeBuildSource,
   runNativeBuild,
 } from './native-build.mjs';
+export {
+  HOLOSYSTEM_VM_ASSET_SCHEMA,
+  HOLOSYSTEM_VM_EXECUTOR_SCHEMA,
+  HOLOSYSTEM_VM_LAUNCH_PLAN_SCHEMA,
+  HOLOSYSTEM_VM_LAUNCH_RECEIPT_SCHEMA,
+  inspectVmExecutor,
+  inspectVmLaunchAsset,
+  inspectVmLaunchPlan,
+  runVmLaunch,
+} from './vm-launch.mjs';
 
 export {
   HOLOSYSTEM_CATALOG_SCHEMA,

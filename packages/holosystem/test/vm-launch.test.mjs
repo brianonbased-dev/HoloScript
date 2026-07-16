@@ -1,0 +1,357 @@
+import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import test from 'node:test';
+
+import {
+  HOLOSYSTEM_VM_LAUNCH_PLAN_SCHEMA,
+  HOLOSYSTEM_VM_LAUNCH_RECEIPT_SCHEMA,
+  inspectVmExecutor,
+  inspectVmLaunchAsset,
+  inspectVmLaunchPlan,
+  runVmLaunchWithProcessRunnerForTest,
+} from '../src/vm-launch.mjs';
+import { runVmLaunch } from '../src/index.mjs';
+
+const CONSOLE = Buffer.from('HOLOSYSTEM_VM_OK\r\n');
+
+function sha256(value) {
+  return `sha256:${createHash('sha256').update(value).digest('hex')}`;
+}
+
+function fixture() {
+  const cwd = mkdtempSync(join(tmpdir(), 'holosystem-vm-launch-test-'));
+  const runtimeDirectory = join(cwd, 'runtime');
+  const shareDirectory = join(runtimeDirectory, 'share');
+  const executorPath = join(runtimeDirectory, 'qemu-system-x86_64.exe');
+  const kernelPath = join(cwd, 'vmlinuz');
+  const initrdPath = join(cwd, 'initramfs.cpio.gz');
+  mkdirSync(shareDirectory, { recursive: true });
+  writeFileSync(executorPath, 'pinned qemu executable');
+  writeFileSync(join(runtimeDirectory, 'runtime.dll'), 'pinned runtime dependency');
+  writeFileSync(join(shareDirectory, 'bios-256k.bin'), 'pinned firmware dependency');
+  writeFileSync(kernelPath, 'pinned kernel');
+  writeFileSync(initrdPath, 'pinned initrd');
+
+  const executor = inspectVmExecutor({ executorDirectory: runtimeDirectory });
+  const kernel = inspectVmLaunchAsset({ assetPath: kernelPath, kind: 'kernel' });
+  const initrd = inspectVmLaunchAsset({ assetPath: initrdPath, kind: 'initrd' });
+  assert.equal(executor.ready, true);
+  assert.equal(kernel.ready, true);
+  assert.equal(initrd.ready, true);
+
+  const plan = {
+    schema: HOLOSYSTEM_VM_LAUNCH_PLAN_SCHEMA,
+    id: 'vm-proof',
+    host: { os: 'windows', architecture: 'amd64' },
+    executor: {
+      kind: 'qemu-system',
+      binary: 'qemu-system-x86_64.exe',
+      binaryDigest: executor.binaryDigest,
+      runtimeDigest: executor.digest,
+    },
+    target: { architecture: 'amd64', machine: 'q35', accelerator: 'tcg' },
+    guest: {
+      kernelDigest: kernel.digest,
+      initrdDigest: initrd.digest,
+      expectedConsoleDigest: sha256(CONSOLE),
+    },
+    resources: { memoryMiB: 128, cpus: 1, timeoutSeconds: 30 },
+    launches: 2,
+  };
+  return { cwd, runtimeDirectory, executorPath, kernelPath, initrdPath, plan };
+}
+
+function successfulRunner(calls = []) {
+  return (command, args, options) => {
+    calls.push({ command, args, options });
+    return { status: 33, signal: null, stdout: Buffer.from(CONSOLE), stderr: Buffer.alloc(0) };
+  };
+}
+
+test('accepts only a closed machine-VM launch vocabulary', () => {
+  const item = fixture();
+  try {
+    assert.equal(inspectVmLaunchPlan(item.plan).ready, true);
+    const unsafe = structuredClone(item.plan);
+    unsafe.command = 'powershell -Command curl attacker';
+    unsafe.executor.args = ['-net', 'user'];
+    unsafe.target.accelerator = 'whpx';
+    unsafe.resources.cpus = 32;
+    const blocked = inspectVmLaunchPlan(unsafe);
+    assert.equal(blocked.ready, false);
+    assert.ok(blocked.issues.some((entry) => entry.code === 'vm-launch-field-unknown'));
+    assert.ok(blocked.issues.some((entry) => entry.code === 'vm-launch-accelerator-unsupported'));
+    assert.ok(blocked.issues.some((entry) => entry.code === 'vm-launch-limit-invalid'));
+  } finally {
+    rmSync(item.cwd, { recursive: true, force: true });
+  }
+});
+
+test('inspects the complete QEMU runtime closure deterministically', () => {
+  const item = fixture();
+  try {
+    const left = inspectVmExecutor({ executorDirectory: item.runtimeDirectory });
+    const right = inspectVmExecutor({ executorDirectory: item.runtimeDirectory });
+    assert.equal(left.ready, true);
+    assert.equal(left.digest, right.digest);
+    assert.equal(left.summary.files, 3);
+    assert.equal(left.binaryDigest, sha256('pinned qemu executable'));
+    assert.ok(left.files.some((entry) => entry.path === 'share/bios-256k.bin'));
+    assert.ok(!JSON.stringify(left).includes(item.runtimeDirectory));
+  } finally {
+    rmSync(item.cwd, { recursive: true, force: true });
+  }
+});
+
+test('launches two measured guests through hardened generated QEMU argv', () => {
+  const item = fixture();
+  const calls = [];
+  try {
+    const receipt = runVmLaunchWithProcessRunnerForTest({
+      plan: item.plan,
+      executorDirectory: item.runtimeDirectory,
+      kernelPath: item.kernelPath,
+      initrdPath: item.initrdPath,
+      processRunner: successfulRunner(calls),
+      now: new Date('2026-07-16T00:00:00.000Z'),
+    });
+
+    assert.equal(receipt.schema, HOLOSYSTEM_VM_LAUNCH_RECEIPT_SCHEMA);
+    assert.equal(receipt.status, 'verified');
+    assert.equal(receipt.verified, true);
+    assert.equal(receipt.deterministic, true);
+    assert.equal(receipt.launches.length, 2);
+    assert.match(receipt.measurementDigest, /^sha256:[a-f0-9]{64}$/u);
+    assert.deepEqual(receipt.coverage.includedLayers, [
+      'guest-artifact-measurement',
+      'machine-vm-launch',
+      'virtual-device-minimization',
+    ]);
+    assert.deepEqual(receipt.coverage.missingLayers, [
+      'hardware-hypervisor-acceleration',
+      'host-process-isolation',
+    ]);
+    assert.equal(calls.length, 2);
+
+    for (const call of calls) {
+      assert.notEqual(call.command, item.executorPath);
+      assert.ok(call.args.includes('-no-user-config'));
+      assert.ok(call.args.includes('-nodefaults'));
+      assert.ok(call.args.includes('q35,accel=tcg,usb=off'));
+      assert.ok(call.args.includes('-nic'));
+      assert.ok(call.args.includes('none'));
+      assert.ok(call.args.includes('-monitor'));
+      assert.ok(call.args.includes('-display'));
+      assert.ok(call.args.includes('isa-debug-exit,iobase=0xf4,iosize=0x04'));
+      assert.ok(!call.args.includes('-netdev'));
+      assert.equal(call.options.shell, false);
+    }
+    assert.ok(!JSON.stringify(receipt).includes(item.cwd));
+    assert.ok(!JSON.stringify(receipt).includes('HOLOSYSTEM_VM_OK'));
+  } finally {
+    rmSync(item.cwd, { recursive: true, force: true });
+  }
+});
+
+test('launches verified private snapshots despite later source substitution', () => {
+  const item = fixture();
+  const calls = [];
+  const runner = successfulRunner(calls);
+  try {
+    const receipt = runVmLaunchWithProcessRunnerForTest({
+      plan: item.plan,
+      executorDirectory: item.runtimeDirectory,
+      kernelPath: item.kernelPath,
+      initrdPath: item.initrdPath,
+      processRunner: (command, args, options) => {
+        const snapshotKernel = args[args.indexOf('-kernel') + 1];
+        const snapshotInitrd = args[args.indexOf('-initrd') + 1];
+        assert.equal(sha256(readFileSync(command)), item.plan.executor.binaryDigest);
+        assert.equal(sha256(readFileSync(snapshotKernel)), item.plan.guest.kernelDigest);
+        assert.equal(sha256(readFileSync(snapshotInitrd)), item.plan.guest.initrdDigest);
+        writeFileSync(item.executorPath, 'attacker replaced qemu');
+        writeFileSync(item.kernelPath, 'attacker replaced kernel');
+        writeFileSync(item.initrdPath, 'attacker replaced initrd');
+        assert.equal(sha256(readFileSync(command)), item.plan.executor.binaryDigest);
+        assert.equal(sha256(readFileSync(snapshotKernel)), item.plan.guest.kernelDigest);
+        assert.equal(sha256(readFileSync(snapshotInitrd)), item.plan.guest.initrdDigest);
+        return runner(command, args, options);
+      },
+    });
+    assert.equal(receipt.verified, true);
+    assert.equal(new Set(calls.map((entry) => entry.command)).size, 1);
+  } finally {
+    rmSync(item.cwd, { recursive: true, force: true });
+  }
+});
+
+test('detects persistent mutation of the private launch snapshot', () => {
+  const item = fixture();
+  let launches = 0;
+  try {
+    const receipt = runVmLaunchWithProcessRunnerForTest({
+      plan: item.plan,
+      executorDirectory: item.runtimeDirectory,
+      kernelPath: item.kernelPath,
+      initrdPath: item.initrdPath,
+      processRunner: (command) => {
+        launches += 1;
+        if (launches === 1) writeFileSync(command, 'runtime self-modified after measurement');
+        return { status: 33, signal: null, stdout: Buffer.from(CONSOLE), stderr: Buffer.alloc(0) };
+      },
+    });
+    assert.equal(receipt.verified, false);
+    assert.ok(receipt.issues.some((entry) => entry.code === 'vm-launch-snapshot-drift'));
+  } finally {
+    rmSync(item.cwd, { recursive: true, force: true });
+  }
+});
+
+test('blocks runtime and guest artifact drift before process launch', () => {
+  const runtime = fixture();
+  const guest = fixture();
+  try {
+    let launches = 0;
+    runtime.plan.executor.runtimeDigest = sha256('wrong runtime');
+    const runtimeReceipt = runVmLaunchWithProcessRunnerForTest({
+      plan: runtime.plan,
+      executorDirectory: runtime.runtimeDirectory,
+      kernelPath: runtime.kernelPath,
+      initrdPath: runtime.initrdPath,
+      processRunner: () => {
+        launches += 1;
+      },
+    });
+    assert.equal(launches, 0);
+    assert.ok(runtimeReceipt.issues.some((entry) => entry.code === 'vm-launch-runtime-mismatch'));
+
+    guest.plan.guest.kernelDigest = sha256('wrong kernel');
+    const guestReceipt = runVmLaunchWithProcessRunnerForTest({
+      plan: guest.plan,
+      executorDirectory: guest.runtimeDirectory,
+      kernelPath: guest.kernelPath,
+      initrdPath: guest.initrdPath,
+      processRunner: () => {
+        launches += 1;
+      },
+    });
+    assert.equal(launches, 0);
+    assert.ok(guestReceipt.issues.some((entry) => entry.code === 'vm-launch-kernel-mismatch'));
+  } finally {
+    rmSync(runtime.cwd, { recursive: true, force: true });
+    rmSync(guest.cwd, { recursive: true, force: true });
+  }
+});
+
+test('blocks wrong guest signal, diagnostics, exit code, and nondeterminism', () => {
+  const cases = [
+    {
+      result: { status: 0, stdout: CONSOLE, stderr: Buffer.alloc(0) },
+      code: 'vm-launch-exit-mismatch',
+    },
+    {
+      result: { status: 33, stdout: Buffer.from('forged'), stderr: Buffer.alloc(0) },
+      code: 'vm-launch-console-mismatch',
+    },
+    {
+      result: { status: 33, stdout: CONSOLE, stderr: Buffer.from('host path secret') },
+      code: 'vm-launch-diagnostics-present',
+    },
+  ];
+  for (const entry of cases) {
+    const item = fixture();
+    try {
+      const receipt = runVmLaunchWithProcessRunnerForTest({
+        plan: item.plan,
+        executorDirectory: item.runtimeDirectory,
+        kernelPath: item.kernelPath,
+        initrdPath: item.initrdPath,
+        processRunner: () => ({ signal: null, ...entry.result }),
+      });
+      assert.equal(receipt.verified, false);
+      assert.ok(receipt.issues.some((issue) => issue.code === entry.code));
+      assert.ok(!JSON.stringify(receipt).includes('host path secret'));
+    } finally {
+      rmSync(item.cwd, { recursive: true, force: true });
+    }
+  }
+});
+
+test('does not publish process-runner injection through the package API', () => {
+  const item = fixture();
+  let injected = 0;
+  try {
+    const receipt = runVmLaunch({
+      plan: item.plan,
+      executorDirectory: item.runtimeDirectory,
+      kernelPath: item.kernelPath,
+      initrdPath: item.initrdPath,
+      processRunner: () => {
+        injected += 1;
+        return { status: 33, stdout: CONSOLE, stderr: Buffer.alloc(0) };
+      },
+    });
+    assert.equal(injected, 0);
+    assert.equal(receipt.verified, false);
+    assert.ok(receipt.issues.some((entry) => entry.code === 'vm-launch-execution-failed'));
+  } finally {
+    rmSync(item.cwd, { recursive: true, force: true });
+  }
+});
+
+test('exposes executor and asset inspection plus fail-closed launch through the CLI', () => {
+  const item = fixture();
+  try {
+    const cli = join(process.cwd(), 'bin', 'holosystem.mjs');
+    const executor = spawnSync(
+      process.execPath,
+      [cli, 'vm-executor', '--runtime', item.runtimeDirectory, '--json'],
+      {
+        encoding: 'utf8',
+      }
+    );
+    assert.equal(executor.status, 0, executor.stderr);
+    assert.equal(JSON.parse(executor.stdout).ready, true);
+
+    const kernel = spawnSync(
+      process.execPath,
+      [cli, 'vm-asset', '--kind', 'kernel', '--file', item.kernelPath, '--json'],
+      { encoding: 'utf8' }
+    );
+    assert.equal(kernel.status, 0, kernel.stderr);
+    assert.equal(JSON.parse(kernel.stdout).digest, item.plan.guest.kernelDigest);
+
+    const unsafe = structuredClone(item.plan);
+    unsafe.command = 'cmd.exe /c whoami';
+    const planPath = join(item.cwd, 'unsafe-plan.json');
+    writeFileSync(planPath, JSON.stringify(unsafe));
+    const blocked = spawnSync(
+      process.execPath,
+      [
+        cli,
+        'vm-launch',
+        '--plan',
+        planPath,
+        '--runtime',
+        item.runtimeDirectory,
+        '--kernel',
+        item.kernelPath,
+        '--initrd',
+        item.initrdPath,
+        '--json',
+      ],
+      { encoding: 'utf8' }
+    );
+    assert.equal(blocked.status, 2);
+    const receipt = JSON.parse(blocked.stdout);
+    assert.equal(receipt.verified, false);
+    assert.ok(receipt.issues.some((entry) => entry.code === 'vm-launch-field-unknown'));
+    assert.ok(!blocked.stdout.includes(item.cwd));
+  } finally {
+    rmSync(item.cwd, { recursive: true, force: true });
+  }
+});

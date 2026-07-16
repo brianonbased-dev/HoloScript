@@ -11,7 +11,10 @@ import {
   importNpmPackageLock,
   inspectNativeBuildSource,
   inspectHoloSystemConfig,
+  inspectVmExecutor,
+  inspectVmLaunchAsset,
   runNativeBuild,
+  runVmLaunch,
 } from '../src/index.mjs';
 
 const CLI_RECEIPT_SCHEMA = 'holoscript.holosystem.cli-receipt.v1';
@@ -27,6 +30,9 @@ Usage:
   holosystem substrate-import-debian --status <status> (--packages <Packages> | --sources <json>) --maintainer-scripts <json> --config <file> [--output <file>] [--force] [--json]
   holosystem native-build-source --source <directory> [--json]
   holosystem native-build --plan <file> --source <directory> --executor <file> --artifact-dir <directory> [--output <receipt>] [--force] [--json]
+  holosystem vm-executor --runtime <directory> [--json]
+  holosystem vm-asset --kind <kernel|initrd> --file <file> [--json]
+  holosystem vm-launch --plan <file> --runtime <directory> --kernel <file> --initrd <file> [--output <receipt>] [--force] [--json]
   holosystem substrate --input <file> [--output <file>] [--force] [--json]
   holosystem --help
   holosystem --version
@@ -561,6 +567,109 @@ function runNativeBuildCommand(args) {
   if (!nativeBuild.verified) process.exitCode = 2;
 }
 
+function runVmExecutor(args) {
+  let parsed;
+  try {
+    parsed = parseArguments(args, { runtime: 'value', json: 'boolean' });
+  } catch (error) {
+    die(error.message, { json: args.includes('--json') });
+  }
+  const { options, positionals } = parsed;
+  if (positionals.length > 0) {
+    die('vm-executor does not accept positional arguments.', { json: options.json });
+  }
+  const report = inspectVmExecutor({ executorDirectory: options.runtime });
+  if (options.json) outputJson(report);
+  else {
+    process.stdout.write(
+      `VM executor: ${report.ready ? 'ready' : 'blocked'} files=${report.summary.files} bytes=${report.summary.bytes}\n`
+    );
+    if (report.digest) process.stdout.write(`Digest: ${report.digest}\n`);
+    for (const item of report.issues) {
+      process.stdout.write(`BLOCK ${item.code} ${item.path}: ${item.message}\n`);
+    }
+  }
+  if (!report.ready) process.exitCode = 2;
+}
+
+function runVmAsset(args) {
+  let parsed;
+  try {
+    parsed = parseArguments(args, { kind: 'value', file: 'value', json: 'boolean' });
+  } catch (error) {
+    die(error.message, { json: args.includes('--json') });
+  }
+  const { options, positionals } = parsed;
+  if (positionals.length > 0) {
+    die('vm-asset does not accept positional arguments.', { json: options.json });
+  }
+  const report = inspectVmLaunchAsset({ assetPath: options.file, kind: options.kind });
+  if (options.json) outputJson(report);
+  else {
+    process.stdout.write(
+      `VM asset: ${report.ready ? 'ready' : 'blocked'} kind=${report.kind || 'invalid'} bytes=${report.bytes ?? 0}\n`
+    );
+    if (report.digest) process.stdout.write(`Digest: ${report.digest}\n`);
+    for (const item of report.issues) {
+      process.stdout.write(`BLOCK ${item.code} ${item.path}: ${item.message}\n`);
+    }
+  }
+  if (!report.ready) process.exitCode = 2;
+}
+
+function runVmLaunchCommand(args) {
+  let parsed;
+  try {
+    parsed = parseArguments(args, {
+      plan: 'value',
+      runtime: 'value',
+      kernel: 'value',
+      initrd: 'value',
+      output: 'value',
+      force: 'boolean',
+      json: 'boolean',
+    });
+  } catch (error) {
+    die(error.message, { json: args.includes('--json') });
+  }
+  const { options, positionals } = parsed;
+  if (positionals.length > 0) {
+    die('vm-launch does not accept positional arguments.', { json: options.json });
+  }
+
+  let launch;
+  try {
+    const plan = readJsonFile(options.plan, 'plan');
+    if (!options.runtime) throw new Error('--runtime is required.');
+    if (!options.kernel) throw new Error('--kernel is required.');
+    if (!options.initrd) throw new Error('--initrd is required.');
+    launch = runVmLaunch({
+      plan,
+      executorDirectory: options.runtime,
+      kernelPath: options.kernel,
+      initrdPath: options.initrd,
+    });
+    if (options.output) writeJsonOutput(options.output, launch, { force: options.force });
+  } catch (error) {
+    die(`Cannot run VM launch: ${error.message}`, { json: options.json, code: 2 });
+  }
+
+  if (options.json) outputJson(launch);
+  else {
+    process.stdout.write(
+      `VM launch: ${launch.status} deterministic=${launch.deterministic ? 'yes' : 'no'} hardware-backed=no\n`
+    );
+    if (launch.measurementDigest) {
+      process.stdout.write(`Measurement: ${launch.measurementDigest}\n`);
+    }
+    for (const item of launch.issues) {
+      process.stdout.write(`BLOCK ${item.code} ${item.path}: ${item.message}\n`);
+    }
+    if (options.output) process.stdout.write(`Wrote ${options.output}\n`);
+  }
+  if (!launch.verified) process.exitCode = 2;
+}
+
 const argv = process.argv.slice(2);
 const command = argv[0];
 if (!command || command === '--help' || command === '-h' || command === 'help') {
@@ -584,6 +693,12 @@ if (!command || command === '--help' || command === '-h' || command === 'help') 
   runNativeBuildSource(argv.slice(1));
 } else if (command === 'native-build') {
   runNativeBuildCommand(argv.slice(1));
+} else if (command === 'vm-executor') {
+  runVmExecutor(argv.slice(1));
+} else if (command === 'vm-asset') {
+  runVmAsset(argv.slice(1));
+} else if (command === 'vm-launch') {
+  runVmLaunchCommand(argv.slice(1));
 } else if (command === 'substrate') {
   runSubstrate(argv.slice(1));
 } else {
