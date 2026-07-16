@@ -14,7 +14,7 @@
  *
  * Supported circuit types:
  *   - VQE   -  hardware-efficient ansatz for molecular energy estimation
- *   - QAOA  -  Max-Cut circuit for combinatorial optimisation
+ *   - QAOA  -  Max-Cut or upper-triangular QUBO circuit
  *   - stub  -  emitted when no quantum trait is found (1 qubit, warning attached)
  *
  * Jordan-Wigner qubit mapping (sto-3g basis):
@@ -69,8 +69,10 @@ export interface QASMOutput {
   circuitType: 'vqe' | 'qaoa' | 'grover' | 'custom';
   /** Molecule this circuit encodes (VQE only) */
   molecule?: { atoms: QuantumAtom[] };
-  /** Weight matrix this circuit encodes (QAOA only) */
+  /** MaxCut adjacency or upper-triangular QUBO matrix encoded by this circuit. */
   weightMatrix?: number[][];
+  /** Binary optimization objective encoded by the QAOA circuit. */
+  optimizationProblem?: 'maxcut' | 'qubo';
   /** Recommended execution backend */
   recommendedBackend: 'aer' | 'ibm-quantum';
   /** Non-fatal warning messages (e.g. circuit too large for near-term hardware) */
@@ -82,6 +84,15 @@ export interface QASMOutput {
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
+
+type TraitConfig = Record<string, unknown>;
+
+function configValue(entry: unknown): unknown {
+  if (typeof entry === 'object' && entry !== null && 'value' in entry) {
+    return (entry as { value?: unknown }).value;
+  }
+  return entry;
+}
 
 /**
  * Count sto-3g spin-orbitals (and therefore qubits) for a list of atoms.
@@ -104,17 +115,42 @@ function qubitsForMolecule(atoms: QuantumAtom[]): number {
  * Extract a numeric value from a HoloScript trait config entry.
  * Returns `undefined` when the key is absent or the value cannot be cast.
  */
-function extractNumber(
-  config: Record<string, { value?: unknown; type?: string }>,
-  key: string
-): number | undefined {
+function extractNumber(config: TraitConfig, key: string): number | undefined {
   const entry = config[key];
-  if (!entry) return undefined;
-  const v = entry.value;
+  if (entry === undefined) return undefined;
+  const v = configValue(entry);
   if (typeof v === 'number') return v;
   if (typeof v === 'string') {
     const n = parseFloat(v);
     return isNaN(n) ? undefined : n;
+  }
+  return undefined;
+}
+
+function extractString(config: TraitConfig, ...keys: string[]): string | undefined {
+  for (const key of keys) {
+    const value = configValue(config[key]);
+    if (typeof value === 'string' && value.trim().length > 0) return value.trim();
+  }
+  return undefined;
+}
+
+function extractNumberArray(config: TraitConfig, ...keys: string[]): number[] | undefined {
+  for (const key of keys) {
+    let value = configValue(config[key]);
+    if (typeof value === 'string') {
+      try {
+        value = JSON.parse(value);
+      } catch {
+        continue;
+      }
+    }
+    if (
+      Array.isArray(value) &&
+      value.every((entry): entry is number => typeof entry === 'number' && Number.isFinite(entry))
+    ) {
+      return value;
+    }
   }
   return undefined;
 }
@@ -124,12 +160,10 @@ function extractNumber(
  *
  * Accepts either a pre-parsed array or a JSON-encoded string.
  */
-function extractAtoms(
-  config: Record<string, { value?: unknown; type?: string }>
-): QuantumAtom[] | undefined {
+function extractAtoms(config: TraitConfig): QuantumAtom[] | undefined {
   const entry = config['molecule'] ?? config['atoms'];
   if (!entry) return undefined;
-  let raw = entry.value;
+  let raw = configValue(entry);
   if (typeof raw === 'string') {
     try {
       raw = JSON.parse(raw);
@@ -150,12 +184,15 @@ function extractAtoms(
  * Extract a weight matrix from a HoloScript trait config entry.
  * Accepts pre-parsed 2-D number arrays or JSON-encoded strings.
  */
-function extractWeightMatrix(
-  config: Record<string, { value?: unknown; type?: string }>
-): number[][] | undefined {
-  const entry = config['weightMatrix'] ?? config['weight_matrix'] ?? config['adjacency'];
+function extractWeightMatrix(config: TraitConfig): number[][] | undefined {
+  const entry =
+    config['quboMatrix'] ??
+    config['qubo_matrix'] ??
+    config['weightMatrix'] ??
+    config['weight_matrix'] ??
+    config['adjacency'];
   if (!entry) return undefined;
-  let raw = entry.value;
+  let raw = configValue(entry);
   if (typeof raw === 'string') {
     try {
       raw = JSON.parse(raw);
@@ -261,7 +298,7 @@ function generateVQECircuit(
 // ---------------------------------------------------------------------------
 
 /**
- * Generate a QAOA Max-Cut circuit in OpenQASM 3.0 (p = 1 rounds).
+ * Generate a QAOA circuit in OpenQASM 3.0.
  *
  * Applies the standard QAOA recipe:
  *   1. Hadamard superposition
@@ -272,6 +309,7 @@ function generateVQECircuit(
 function generateQAOACircuit(
   weightMatrix: number[][],
   p: number,
+  optimizationProblem: 'maxcut' | 'qubo',
   initialGamma?: number,
   initialBeta?: number
 ): {
@@ -311,7 +349,9 @@ function generateQAOACircuit(
 
   lines.push('OPENQASM 3.0;');
   lines.push('include "stdgates.inc";');
-  lines.push(`// QAOA Max-Cut circuit for ${n}-node graph (p=${p})`);
+  lines.push(
+    `// QAOA ${optimizationProblem === 'qubo' ? 'upper-triangular QUBO' : 'Max-Cut'} circuit for ${n} binary variables (p=${p})`
+  );
   lines.push('// Generated by HoloScript QuantumCircuitCompiler');
   lines.push(`qubit[${n}] q;`);
   lines.push(`bit[${n}] c;`);
@@ -330,15 +370,38 @@ function generateQAOACircuit(
 
   for (let round = 0; round < p; round++) {
     lines.push(`// Problem unitary  -  round ${round + 1} (gamma=gamma_${round})`);
-    for (let i = 0; i < n; i++) {
-      for (let j = i + 1; j < n; j++) {
-        const w = weightMatrix[i]?.[j] ?? 0;
-        if (w !== 0) {
-          // RZZ(2*gamma*w) = CNOT  -  RZ(2*gamma*w)  -  CNOT  -  symbolic gamma
-          lines.push(`// Edge (${i},${j}) weight=${w}: rzz(2.0*gamma_${round}*${w.toFixed(4)})`);
+    if (optimizationProblem === 'qubo') {
+      // QUBO convention: f(x)=sum_i Qii*x_i + sum_{i<j} Qij*x_i*x_j.
+      // With x=(1-Z)/2, Qii contributes -Qii/2*Zi and Qij contributes
+      // -Qij/4*(Zi+Zj)+Qij/4*ZiZj. Global identity phases are omitted.
+      for (let i = 0; i < n; i++) {
+        const qii = weightMatrix[i]?.[i] ?? 0;
+        if (qii !== 0) {
+          lines.push(`// QUBO linear x_${i} coefficient=${qii}`);
+          lines.push(`rz(-1.0 * gamma_${round} * ${qii.toFixed(4)}) q[${i}];`);
+        }
+        for (let j = i + 1; j < n; j++) {
+          const qij = weightMatrix[i]?.[j] ?? 0;
+          if (qij === 0) continue;
+          lines.push(`// QUBO pair x_${i}*x_${j} coefficient=${qij}`);
+          lines.push(`rz(-0.5 * gamma_${round} * ${qij.toFixed(4)}) q[${i}];`);
+          lines.push(`rz(-0.5 * gamma_${round} * ${qij.toFixed(4)}) q[${j}];`);
           lines.push(`cx q[${i}], q[${j}];`);
-          lines.push(`rz(2.0 * gamma_${round} * ${w.toFixed(4)}) q[${j}];`);
+          lines.push(`rz(0.5 * gamma_${round} * ${qij.toFixed(4)}) q[${j}];`);
           lines.push(`cx q[${i}], q[${j}];`);
+        }
+      }
+    } else {
+      for (let i = 0; i < n; i++) {
+        for (let j = i + 1; j < n; j++) {
+          const w = weightMatrix[i]?.[j] ?? 0;
+          if (w !== 0) {
+            // RZZ(2*gamma*w) = CNOT - RZ(2*gamma*w) - CNOT.
+            lines.push(`// Edge (${i},${j}) weight=${w}: rzz(2.0*gamma_${round}*${w.toFixed(4)})`);
+            lines.push(`cx q[${i}], q[${j}];`);
+            lines.push(`rz(2.0 * gamma_${round} * ${w.toFixed(4)}) q[${j}];`);
+            lines.push(`cx q[${i}], q[${j}];`);
+          }
         }
       }
     }
@@ -353,8 +416,13 @@ function generateQAOACircuit(
   lines.push('c = measure q;');
 
   // Depth: superposition (1) + p  -  (problem + mixer) + measurement (1)
-  const edgeCount = weightMatrix.flat().filter((w) => w !== 0).length / 2;
-  const estimatedDepth = 1 + p * (Math.ceil(edgeCount * 3) + 1) + 1;
+  const termCount = weightMatrix.reduce(
+    (count, row, i) =>
+      count + row.slice(optimizationProblem === 'qubo' ? i : i + 1).filter((w) => w !== 0).length,
+    0
+  );
+  const estimatedDepth =
+    1 + p * (Math.ceil(termCount * (optimizationProblem === 'qubo' ? 5 : 3)) + 1) + 1;
 
   return { qasm: lines.join('\n'), numQubits: n, estimatedDepth, warnings, paramNames };
 }
@@ -379,7 +447,7 @@ function generateStubCircuit(): { qasm: string; warnings: string[] } {
     warnings: [
       'No @quantumCircuit (or @quantum_circuit) trait found in the composition. ' +
         'A stub 1-qubit circuit has been emitted. ' +
-        'Add a @quantumCircuit trait with `molecule` or `weightMatrix` params to generate a real circuit.',
+        'Add a @quantum_circuit trait with `molecule`, `weightMatrix`, or `quboMatrix` params to generate a real circuit.',
     ],
   };
 }
@@ -412,6 +480,7 @@ export class QuantumCircuitCompiler extends CompilerBase {
    * `@quantumCircuit` or `@quantum_circuit` trait. Trait params drive the type:
    *   - `molecule` (or `atoms`)  -  VQE hardware-efficient ansatz
    *   - `weightMatrix` / `weight_matrix` / `adjacency` / `numNodes`  -  QAOA Max-Cut
+   *   - `quboMatrix` / `qubo_matrix`  -  QAOA upper-triangular QUBO minimization
    *   - none of the above  -  stub 1-qubit circuit with a warning
    *
    * @param composition - Parsed HoloScript AST
@@ -447,11 +516,21 @@ export class QuantumCircuitCompiler extends CompilerBase {
 
     const { trait } = quantum;
     // Normalise config access  -  trait.config values may be raw HoloValue objects
-    const cfg = trait.config as Record<string, { value?: unknown; type?: string }>;
+    const cfg = trait.config as TraitConfig;
 
     // Determine circuit type by inspecting trait params
     const atoms = extractAtoms(cfg);
     const weightMatrix = extractWeightMatrix(cfg);
+    const requestedProblem = extractString(
+      cfg,
+      'problemType',
+      'problem_type',
+      'optimizationProblem'
+    );
+    const hasExplicitQuboMatrix =
+      cfg['quboMatrix'] !== undefined || cfg['qubo_matrix'] !== undefined;
+    const optimizationProblem: 'maxcut' | 'qubo' =
+      requestedProblem?.toLowerCase() === 'qubo' || hasExplicitQuboMatrix ? 'qubo' : 'maxcut';
     const numNodes = extractNumber(cfg, 'numNodes') ?? extractNumber(cfg, 'num_nodes');
 
     if (atoms && atoms.length > 0) {
@@ -459,7 +538,7 @@ export class QuantumCircuitCompiler extends CompilerBase {
     }
 
     if (weightMatrix) {
-      return this.buildQAOAOutput(weightMatrix, cfg);
+      return this.buildQAOAOutput(weightMatrix, cfg, optimizationProblem);
     }
 
     if (numNodes !== undefined && numNodes > 0) {
@@ -468,13 +547,13 @@ export class QuantumCircuitCompiler extends CompilerBase {
       const matrix: number[][] = Array.from({ length: n }, (_, i) =>
         Array.from({ length: n }, (_, j) => (i !== j ? 1 : 0))
       );
-      return this.buildQAOAOutput(matrix, cfg);
+      return this.buildQAOAOutput(matrix, cfg, 'maxcut');
     }
 
     // Fallback: stub
     const { qasm, warnings } = generateStubCircuit();
     warnings.unshift(
-      '@quantumCircuit trait found but neither `molecule`/`atoms` nor `weightMatrix`/`numNodes` ' +
+      '@quantumCircuit trait found but neither `molecule`/`atoms`, `weightMatrix`/`numNodes`, nor `quboMatrix` ' +
         'params are present. Add params to generate a circuit.'
     );
     return {
@@ -514,14 +593,9 @@ export class QuantumCircuitCompiler extends CompilerBase {
   }
 
   /** Build a {@link QASMOutput} for a VQE circuit. */
-  private buildVQEOutput(
-    atoms: QuantumAtom[],
-    cfg: Record<string, { value?: unknown; type?: string }>
-  ): QASMOutput {
+  private buildVQEOutput(atoms: QuantumAtom[], cfg: TraitConfig): QASMOutput {
     const moleculeName =
-      (extractNumber(cfg, 'moleculeName') !== undefined
-        ? undefined
-        : (cfg['moleculeName']?.value as string | undefined)) ??
+      extractString(cfg, 'moleculeName', 'molecule_name') ??
       atoms.map((a) => a.symbol).join('') ??
       'molecule';
 
@@ -531,10 +605,7 @@ export class QuantumCircuitCompiler extends CompilerBase {
     );
 
     // Allow initial VQE parameters from config (array of per-qubit-per-layer angles)
-    const initialParams =
-      (cfg['initialParams']?.value as number[] | undefined) ??
-      (cfg['initial_params']?.value as number[] | undefined) ??
-      undefined;
+    const initialParams = extractNumberArray(cfg, 'initialParams', 'initial_params');
 
     const { qasm, numQubits, estimatedDepth, warnings, paramNames } = generateVQECircuit(
       atoms,
@@ -559,7 +630,8 @@ export class QuantumCircuitCompiler extends CompilerBase {
   /** Build a {@link QASMOutput} for a QAOA circuit. */
   private buildQAOAOutput(
     weightMatrix: number[][],
-    cfg: Record<string, { value?: unknown; type?: string }>
+    cfg: TraitConfig,
+    optimizationProblem: 'maxcut' | 'qubo'
   ): QASMOutput {
     const p = Math.max(1, Math.round(extractNumber(cfg, 'p') ?? 1));
 
@@ -570,6 +642,7 @@ export class QuantumCircuitCompiler extends CompilerBase {
     const { qasm, numQubits, estimatedDepth, warnings, paramNames } = generateQAOACircuit(
       weightMatrix,
       p,
+      optimizationProblem,
       initialGamma,
       initialBeta
     );
@@ -581,6 +654,7 @@ export class QuantumCircuitCompiler extends CompilerBase {
       estimatedDepth,
       circuitType: 'qaoa',
       weightMatrix,
+      optimizationProblem,
       recommendedBackend: numQubits <= 50 ? 'aer' : 'ibm-quantum',
       warnings,
       paramNames,

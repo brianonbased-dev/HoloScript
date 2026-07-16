@@ -3,12 +3,14 @@
 """
 quantum_receipt_verify.py -- independent verifier for HoloScript quantum receipts.
 
-Receipts emitted by scripts/quantum_execute.py for real IBM backend runs must be
-independently re-verifiable by anyone, not just the agent that produced them.
+Receipts emitted by scripts/quantum_execute.py are independently re-verifiable
+by anyone, not just the agent that produced them. Simulator receipts use a
+canonical JSON hash. IBM receipts additionally retain the legacy value/job hash
+and can be checked against IBM Runtime.
 
-  offline (default): recompute payload_hash = sha256({"energy": <value>, "job_id": <id>})
-                     and confirm it matches the value stored in the receipt
-                     (tamper-evidence on the local file).
+  offline (default): recompute canonical ``hash_payload`` hashes for simulator
+                     and IBM receipts. For legacy IBM entries, also recompute
+                     sha256({"energy": <value>, "job_id": <id>}).
 
   online (--online): query IBM Runtime for each job_id; confirm the job exists and
                      ran on the claimed backend. For VQE energy receipts, also
@@ -23,6 +25,7 @@ The hashed/certified value is the first present of:
 
 Usage:
     python3 scripts/quantum_receipt_verify.py
+    python3 scripts/quantum_receipt_verify.py --receipt quantum_receipts/example.json
     python3 scripts/quantum_receipt_verify.py --online
     IBM_QUANTUM_API_KEY=<token> python3 scripts/quantum_receipt_verify.py --online
 """
@@ -94,7 +97,7 @@ def certified_entries(r: dict) -> list[dict]:
         "value": value,
         "job_id": r.get("job_id"),
         "backend": r.get("backend"),
-        "payload_hash": r.get("payload_hash"),
+        "payload_hash": r.get("legacy_payload_hash", r.get("payload_hash")),
         "is_energy": is_energy,
     }]
 
@@ -103,6 +106,16 @@ def expected_hash(value: float, job_id: str) -> str:
     return hashlib.sha256(
         json.dumps({"energy": value, "job_id": job_id}, sort_keys=True).encode()
     ).hexdigest()
+
+
+def expected_generic_hash(payload: dict) -> str:
+    encoded = json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def load_ibm_key() -> str | None:
@@ -130,9 +143,18 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Verify HoloScript quantum receipts.")
     ap.add_argument("--online", action="store_true", help="cross-check job IDs against IBM Runtime")
     ap.add_argument("--tol", type=float, default=1e-6, help="energy match tolerance (Ha)")
+    ap.add_argument(
+        "--receipt",
+        action="append",
+        help="verify only this receipt path (repeatable)",
+    )
     args = ap.parse_args()
 
-    receipts = find_receipts()
+    receipts = (
+        [pathlib.Path(path).expanduser().resolve() for path in args.receipt]
+        if args.receipt
+        else find_receipts()
+    )
     if not receipts:
         print("no receipts found")
         return 0
@@ -152,8 +174,19 @@ def main() -> int:
     for path in receipts:
         r = json.loads(path.read_text(encoding="utf-8"))
         name = path.name
+        hash_payload = r.get("hash_payload")
+        if isinstance(hash_payload, dict):
+            stored_generic = r.get("payload_hash")
+            want_generic = expected_generic_hash(hash_payload)
+            if stored_generic != want_generic:
+                print(f"FAIL  {name}  canonical payload_hash mismatch")
+                failures += 1
+            else:
+                print(f"OK    {name}  canonical payload hash verifies")
+
         if not is_ibm_receipt(r):
-            print(f"SKIP  {name}  (not an IBM-backend receipt)")
+            if not isinstance(hash_payload, dict):
+                print(f"SKIP  {name}  (not an IBM-backend or generic receipt)")
             continue
 
         entries = certified_entries(r)

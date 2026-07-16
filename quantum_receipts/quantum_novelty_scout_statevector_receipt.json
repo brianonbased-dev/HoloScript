@@ -1,0 +1,792 @@
+{
+  "schema": "cael-quantum-v1.qaoa-novelty-scout",
+  "created_at": "2026-07-16T22:50:32.757507+00:00",
+  "claim_boundary": "QAOA prioritizes a diverse candidate portfolio from declared ordinal priors. It neither searches the literature nor proves novelty, quantum advantage, or publication readiness.",
+  "fixture": "research/quantum-novelty-scout/candidates-v1.json",
+  "input_sha256": "208f1ef5e96fedd8c90bd93959ef270dd31351cde7a246f0733032eb8104f2e4",
+  "candidate_count": 12,
+  "target_cardinality": 4,
+  "score_basis": "Each 0..1 score is a researcher prior grounded in the 2026-06-05 novelty-defensibility pass and current local evidence. Fresh primary-source kill tests remain mandatory.",
+  "score_weights": {
+    "prior_art_distance": 2.0,
+    "implementation_support": 1.75,
+    "evidence_support": 1.5,
+    "falsifiability": 1.25,
+    "strategic_value": 1.0,
+    "prior_art_overlap": -1.75,
+    "remaining_cost": -1.0
+  },
+  "qubo": {
+    "matrix": [
+      [
+        -89.6025,
+        24.6,
+        24.2727272727,
+        24.2727272727,
+        24.2727272727,
+        24.2727272727,
+        24.2727272727,
+        24.2727272727,
+        24.0,
+        24.0,
+        24.0,
+        24.2727272727
+      ],
+      [
+        0.0,
+        -67.3,
+        24.2727272727,
+        24.2727272727,
+        24.2727272727,
+        24.0,
+        24.0,
+        24.6,
+        24.0,
+        24.0,
+        24.0,
+        24.2727272727
+      ],
+      [
+        0.0,
+        0.0,
+        -89.055,
+        24.6,
+        24.6,
+        24.2727272727,
+        24.0,
+        24.2727272727,
+        24.2727272727,
+        24.0,
+        24.2727272727,
+        24.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        -66.96,
+        24.2727272727,
+        24.0,
+        24.0,
+        24.2727272727,
+        24.0,
+        24.0,
+        24.0,
+        24.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -67.2075,
+        24.0,
+        24.2727272727,
+        24.2727272727,
+        24.2727272727,
+        24.2727272727,
+        24.0,
+        24.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -68.0225,
+        24.0,
+        24.2727272727,
+        24.2727272727,
+        24.0,
+        24.2727272727,
+        24.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -68.27,
+        24.2727272727,
+        24.2727272727,
+        24.2727272727,
+        24.0,
+        24.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -68.425,
+        24.0,
+        24.0,
+        24.0,
+        24.2727272727
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -86.2875,
+        24.6,
+        24.6,
+        24.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -86.755,
+        24.0,
+        24.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -67.15,
+        24.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -88.2525
+      ]
+    ],
+    "constant_offset": 192.0,
+    "candidate_rewards": [
+      5.6025,
+      -16.7,
+      5.055,
+      -17.04,
+      -16.7925,
+      -15.9775,
+      -15.73,
+      -15.575,
+      2.2875,
+      2.755,
+      -16.85,
+      4.2525
+    ],
+    "tag_similarities": [
+      [
+        0.0,
+        0.2,
+        0.09090909090909091,
+        0.09090909090909091,
+        0.09090909090909091,
+        0.09090909090909091,
+        0.09090909090909091,
+        0.09090909090909091,
+        0.0,
+        0.0,
+        0.0,
+        0.09090909090909091
+      ],
+      [
+        0.0,
+        0.0,
+        0.09090909090909091,
+        0.09090909090909091,
+        0.09090909090909091,
+        0.0,
+        0.0,
+        0.2,
+        0.0,
+        0.0,
+        0.0,
+        0.09090909090909091
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.2,
+        0.2,
+        0.09090909090909091,
+        0.0,
+        0.09090909090909091,
+        0.09090909090909091,
+        0.0,
+        0.09090909090909091,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.09090909090909091,
+        0.0,
+        0.0,
+        0.09090909090909091,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.09090909090909091,
+        0.09090909090909091,
+        0.09090909090909091,
+        0.09090909090909091,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.09090909090909091,
+        0.09090909090909091,
+        0.0,
+        0.09090909090909091,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.09090909090909091,
+        0.09090909090909091,
+        0.09090909090909091,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.09090909090909091
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.2,
+        0.2,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "target_cardinality": 4,
+    "cardinality_penalty": 12.0,
+    "redundancy_penalty": 3.0,
+    "kill_status_adjustments": {
+      "killed": -20.0,
+      "narrowed": -1.0,
+      "survives_tightened_claim": 0.0,
+      "pending_fresh_source_check": 0.0
+    },
+    "convention": "upper triangular: sum_i Qii*x_i + sum_{i<j} Qij*x_i*x_j"
+  },
+  "composition": "research/quantum-novelty-scout/novelty-portfolio.holo",
+  "execution_receipt": {
+    "schema": "cael-quantum-v1.qaoa",
+    "timestamp": "2026-07-16T22:50:32.680752+00:00",
+    "script": "scripts/quantum_execute.py",
+    "task": "qaoa",
+    "method": "QAOA-qubo-p1",
+    "problem_type": "qubo",
+    "objective_sense": "minimize",
+    "matrix_convention": "upper-triangular: sum_i Qii*x_i + sum_{i<j} Qij*x_i*x_j",
+    "input_sha256": "a940826b2151142b1178ce43201b64592e1746bcacc5a6f7a649f9a580aa79d5",
+    "execution_mode": "aer",
+    "backend": "statevector-sampler",
+    "shots": 128,
+    "job_id": "simulator:a940826b2151142b",
+    "all_job_ids": [],
+    "optimizer": "expectation-grid",
+    "optimizer_evaluations": 16,
+    "optimal_value": -208.3793181819,
+    "optimal_bitstring": "101000001001",
+    "best_sampled_expectation": -152.40532137796407,
+    "selected_parameters": [
+      1.0471975511965976,
+      1.0471975511965976
+    ],
+    "classical_optimal_value": -209.11954545460003,
+    "classical_optimal_bitstring": "101000000101",
+    "optimality_gap": 0.7402272727000252,
+    "approximation_ratio": null,
+    "num_qubits": 12,
+    "wall_time_s": 0.4515924000006635,
+    "hash_scheme": "sha256-canonical-json-v1",
+    "hash_payload": {
+      "input_sha256": "a940826b2151142b1178ce43201b64592e1746bcacc5a6f7a649f9a580aa79d5",
+      "job_id": "simulator:a940826b2151142b",
+      "optimal_bitstring": "101000001001",
+      "optimal_value": -208.3793181819
+    },
+    "payload_hash": "631af8b2e4ae1e28e583c5007789e261327c2e7848acc7a014bb558049eb0e4f"
+  },
+  "results": {
+    "qaoa": {
+      "bitstring": "101000001001",
+      "selected_ids": [
+        "P1",
+        "P0c",
+        "P10",
+        "P37"
+      ],
+      "selected_count": 4,
+      "raw_qubo_objective": -208.3793181819,
+      "shifted_objective": -16.379318181900004,
+      "reward_sum": 17.1975,
+      "redundancy_penalty": 0.8181818181818181,
+      "constraint_penalty": 0.0,
+      "portfolio_score": 16.379318181818185,
+      "runtime_seconds": 0.4515924000006635,
+      "shots_per_evaluation": 128,
+      "optimizer_evaluations": 16,
+      "measurement_budget": 2048,
+      "best_sampled_expectation": -152.40532137796407,
+      "selected_parameters": [
+        1.0471975511965976,
+        1.0471975511965976
+      ]
+    },
+    "exact": {
+      "bitstring": "101000000101",
+      "selected_ids": [
+        "P1",
+        "P0c",
+        "P11",
+        "P37"
+      ],
+      "selected_count": 4,
+      "raw_qubo_objective": -209.11954545460003,
+      "shifted_objective": -17.11954545460003,
+      "reward_sum": 17.665,
+      "redundancy_penalty": 0.5454545454545454,
+      "constraint_penalty": 0.0,
+      "portfolio_score": 17.119545454545452,
+      "runtime_seconds": 0.03869679999479558,
+      "evaluations": 4096
+    },
+    "greedy": {
+      "bitstring": "101000000101",
+      "selected_ids": [
+        "P1",
+        "P0c",
+        "P11",
+        "P37"
+      ],
+      "selected_count": 4,
+      "raw_qubo_objective": -209.11954545460003,
+      "shifted_objective": -17.11954545460003,
+      "reward_sum": 17.665,
+      "redundancy_penalty": 0.5454545454545454,
+      "constraint_penalty": 0.0,
+      "portfolio_score": 17.119545454545452,
+      "runtime_seconds": 0.00010469999688211828,
+      "evaluations": 42
+    },
+    "budget_matched_random": {
+      "bitstring": "001000001101",
+      "selected_ids": [
+        "P0c",
+        "P10",
+        "P11",
+        "P37"
+      ],
+      "selected_count": 4,
+      "raw_qubo_objective": -205.47727272730003,
+      "shifted_objective": -13.477272727300033,
+      "reward_sum": 14.35,
+      "redundancy_penalty": 0.8727272727272728,
+      "constraint_penalty": 0.0,
+      "portfolio_score": 13.477272727272727,
+      "runtime_seconds": 0.02234159999352414,
+      "evaluations": 2048,
+      "seed": 17,
+      "budget_basis": "one random bitstring per QAOA shot across all parameter evaluations"
+    }
+  },
+  "qaoa_optimality_gap": 0.7402272727000252,
+  "recommended_portfolio": {
+    "bitstring": "101000000101",
+    "selected_ids": [
+      "P1",
+      "P0c",
+      "P11",
+      "P37"
+    ],
+    "selected_count": 4,
+    "raw_qubo_objective": -209.11954545460003,
+    "shifted_objective": -17.11954545460003,
+    "reward_sum": 17.665,
+    "redundancy_penalty": 0.5454545454545454,
+    "constraint_penalty": 0.0,
+    "portfolio_score": 17.119545454545452,
+    "runtime_seconds": 0.03869679999479558,
+    "evaluations": 4096
+  },
+  "selected_candidates": [
+    {
+      "id": "P1",
+      "title": "Physics-solver MCP re-execution equivalence",
+      "tightened_claim": "A contracted-sandbox MCP integration makes physics-solver results re-executable under recorder-versus-replayer equivalence with per-step canonical-digest identity and an explicit determinism contract.",
+      "claim_stage": "tightened_hypothesis",
+      "scores": {
+        "prior_art_distance": 0.75,
+        "implementation_support": 0.95,
+        "evidence_support": 0.9,
+        "falsifiability": 0.96,
+        "strategic_value": 0.88,
+        "prior_art_overlap": 0.48,
+        "remaining_cost": 0.15
+      },
+      "tags": [
+        "mcp",
+        "physics",
+        "receipts",
+        "reexecution",
+        "determinism",
+        "security"
+      ],
+      "local_sources": [
+        "research/paper-1-mcp-trust-usenix.tex",
+        "research/benchmark-results-2026-05-21-paper-1-mcp-ablation.md"
+      ],
+      "kill_test": {
+        "named_prior": "NabaOS / Tool Receipts, Not Zero-Knowledge Proofs (arXiv:2603.10060)",
+        "status": "survives_tightened_claim",
+        "checked_at": "2026-07-16",
+        "assessment": "NabaOS signs tool-execution receipts and independently re-fetches URLs for deep delegation; its checked abstract does not re-execute a physics solver under an explicit recorder-versus-replayer equivalence contract. The paper's current generic first wording still needs the tightened physics-solver scope before submission.",
+        "sources": [
+          {
+            "kind": "primary_paper",
+            "url": "https://arxiv.org/abs/2603.10060",
+            "finding": "HMAC-signed execution receipts, claim cross-checking, and independent URL re-fetching; no general physics-solver replay equivalence."
+          },
+          {
+            "kind": "local_code",
+            "path": "packages/engine/src/simulation/CAELRecorder.ts",
+            "finding": "Records contracted simulation events and per-step state digests."
+          },
+          {
+            "kind": "local_code",
+            "path": "packages/engine/src/simulation/CAELReplayer.ts",
+            "finding": "Independently reconstructs the run and compares captured state digests."
+          }
+        ]
+      }
+    },
+    {
+      "id": "P0c",
+      "title": "Physics state in the full agent-loop receipt",
+      "tightened_claim": "Physics-solver-computed fields, geometry hashes, and world deltas are load-bearing state in a single-timestep perception-cognition-action-physics receipt chain.",
+      "claim_stage": "tightened_hypothesis",
+      "scores": {
+        "prior_art_distance": 0.75,
+        "implementation_support": 0.9,
+        "evidence_support": 0.86,
+        "falsifiability": 0.9,
+        "strategic_value": 0.85,
+        "prior_art_overlap": 0.62,
+        "remaining_cost": 0.2
+      },
+      "tags": [
+        "cael",
+        "physics",
+        "agents",
+        "hash-chain",
+        "replay",
+        "provenance"
+      ],
+      "local_sources": [
+        "research/paper-0c-cael-aamas.tex",
+        "packages/engine/src/simulation/__tests__/paper-0c-cael-overhead.test.ts"
+      ],
+      "kill_test": {
+        "named_prior": "Blockchain-monitored perception-reasoning-action pipelines and event-sourced agent runtimes",
+        "status": "survives_tightened_claim",
+        "checked_at": "2026-07-16",
+        "assessment": "The generic full-loop ledger and replay/fork claims are anticipated, but the checked priors do not make solver-computed geometry and physical field state load-bearing in the same per-timestep agent receipt. Local CAELAgent code hashes geometry plus solver field data before and after action.",
+        "sources": [
+          {
+            "kind": "primary_paper",
+            "url": "https://arxiv.org/abs/2512.20985",
+            "finding": "Stores and verifies each perception-conceptualization-action cycle on a permissioned blockchain."
+          },
+          {
+            "kind": "primary_paper",
+            "url": "https://arxiv.org/abs/2605.21997",
+            "finding": "Provides append-only event sourcing, deterministic replay, cheap forking, and lineage for agent runs."
+          },
+          {
+            "kind": "local_code",
+            "path": "packages/engine/src/simulation/CAELAgent.ts",
+            "finding": "StructuralActionMapper binds geometry and physics field hashes into world-delta receipts."
+          }
+        ]
+      }
+    },
+    {
+      "id": "P11",
+      "title": "Multi-modality trait conflict algebra",
+      "tightened_claim": "Single-user, single-object grab/throw/hover conflicts on one transform channel are resolved with a disjoint-write distributivity side condition that separates sequential composition from conflict merge.",
+      "claim_stage": "tightened_hypothesis",
+      "scores": {
+        "prior_art_distance": 0.72,
+        "implementation_support": 0.7,
+        "evidence_support": 0.45,
+        "falsifiability": 0.82,
+        "strategic_value": 0.75,
+        "prior_art_overlap": 0.52,
+        "remaining_cost": 0.45
+      },
+      "tags": [
+        "traits",
+        "semiring",
+        "conflict-resolution",
+        "multi-modality",
+        "runtime",
+        "formal"
+      ],
+      "local_sources": [
+        "research/paper-11-hsplus-ecoop.tex",
+        "research/benchmark-results-2026-05-20-paper-11-trait-gpu-bench.md"
+      ],
+      "kill_test": {
+        "named_prior": "Same-author Paper 3 plus the current runtime and proof surface",
+        "status": "narrowed",
+        "checked_at": "2026-07-16",
+        "assessment": "The runtime semiring resolver and commutativity tests are shipped. The paper states a disjoint-write precondition in a definition, but it does not contain the separately identified Theorem 2 and the repository has no distributivity test. Keep the contribution at deterministic multi-modality resolution until that formal/evidence gap is closed.",
+        "sources": [
+          {
+            "kind": "local_code",
+            "path": "packages/core/src/compiler/traits/ProvenanceSemiring.ts",
+            "finding": "Implements deterministic property conflict resolution."
+          },
+          {
+            "kind": "local_test",
+            "path": "packages/core/src/compiler/__tests__/paper-11-imperative-baseline.bench.test.ts",
+            "finding": "Tests commutativity against imperative last-write-wins but not distributivity."
+          },
+          {
+            "kind": "local_paper",
+            "path": "research/paper-11-hsplus-ecoop.tex",
+            "finding": "Contains one order-independence theorem; the disjoint-write condition appears in a definition."
+          }
+        ]
+      }
+    },
+    {
+      "id": "P37",
+      "title": "Receipt-backed NISQ ceiling characterization",
+      "tightened_claim": "A simulator-to-QPU workflow emits tamper-evident, offline-verifiable receipts that bind inputs, results, backend job identifiers, and the explicit NISQ-ceiling conclusion without claiming quantum advantage.",
+      "claim_stage": "tightened_hypothesis",
+      "scores": {
+        "prior_art_distance": 0.58,
+        "implementation_support": 0.97,
+        "evidence_support": 0.97,
+        "falsifiability": 0.98,
+        "strategic_value": 0.9,
+        "prior_art_overlap": 0.62,
+        "remaining_cost": 0.1
+      },
+      "tags": [
+        "quantum",
+        "receipts",
+        "tamper-evidence",
+        "qpu",
+        "nisq",
+        "verification"
+      ],
+      "local_sources": [
+        "research/paper-37-quantum-receipt-chain.md",
+        "quantum_receipts/h2-vqe-ibm-kingston-2026-05-21.json",
+        "scripts/quantum_receipt_verify.py"
+      ],
+      "kill_test": {
+        "named_prior": "IBM Runtime job provenance, Qiskit compilation verification, and transparent VQE hardware characterization",
+        "status": "narrowed",
+        "checked_at": "2026-07-16",
+        "assessment": "Job IDs, later result retrieval, compilation verification, and transparent H2/VQE hardware characterization are prior art. Keep Paper 37 as a HoloScript evidence-chain and NISQ-ceiling case study, not a first or quantum-advantage claim; its distinguishing engineering delta is the canonical offline hash joined to online job retrieval and an explicit no-advantage boundary.",
+        "sources": [
+          {
+            "kind": "official_documentation",
+            "url": "https://docs.quantum.ibm.com/guides/monitor-job",
+            "finding": "IBM recommends saving unique job IDs and supports later retrieval of jobs and results."
+          },
+          {
+            "kind": "primary_paper",
+            "url": "https://arxiv.org/abs/2009.02376",
+            "finding": "Verifies results of the IBM Qiskit compilation flow by circuit equivalence checking."
+          },
+          {
+            "kind": "primary_paper",
+            "url": "https://arxiv.org/abs/2604.11478",
+            "finding": "Provides transparent H2 VQE accuracy-cost and NISQ hardware characterization."
+          },
+          {
+            "kind": "local_code",
+            "path": "scripts/quantum_receipt_verify.py",
+            "finding": "Now verifies canonical simulator hashes offline and IBM-backed receipts online."
+          }
+        ]
+      }
+    }
+  ],
+  "source_grounding_complete": true,
+  "hardware_gate": {
+    "decision": "NO_GO",
+    "criteria": {
+      "qaoa_strictly_beats_greedy": false,
+      "qaoa_strictly_beats_budget_random": true,
+      "classical_exact_not_cheaper": false,
+      "nontrivial_problem_scale": false,
+      "selected_kill_tests_complete": true
+    },
+    "reason": "IBM hardware is not justified unless QAOA adds comparative signal at nontrivial scale after source grounding.",
+    "ibm_job_submitted": false
+  },
+  "environment": {
+    "python": "3.14.0",
+    "qiskit": "2.1.2",
+    "platform": "Windows-11-10.0.26200-SP0"
+  },
+  "code_hashes": {
+    "scout_sha256": "e9d94fceab0d1da3aaa89b813c9ac763693945375d0297a0dc2b8651c8dca6e1",
+    "executor_sha256": "8bba9401e300749d6b543c8865a14b8ac2680c4f01ade6077330ecdd6d449899",
+    "verifier_sha256": "dc88beb8e7305be2c33914c77710499b3bc7a76c6a7e820953ac3f7e2b761529",
+    "composition_sha256": "d93b529a7ee6824764d1f158fd056b384fbb73a8b20840a31a137697be4af054"
+  },
+  "hash_scheme": "sha256-canonical-json-v1",
+  "hash_payload": {
+    "input_sha256": "208f1ef5e96fedd8c90bd93959ef270dd31351cde7a246f0733032eb8104f2e4",
+    "qubo_sha256": "20d6a3573818197a46008a2a7ab43678f72c2d7b7ddb6ce6772c7d7906a99569",
+    "execution_payload_hash": "631af8b2e4ae1e28e583c5007789e261327c2e7848acc7a014bb558049eb0e4f",
+    "code_hashes": {
+      "scout_sha256": "e9d94fceab0d1da3aaa89b813c9ac763693945375d0297a0dc2b8651c8dca6e1",
+      "executor_sha256": "8bba9401e300749d6b543c8865a14b8ac2680c4f01ade6077330ecdd6d449899",
+      "verifier_sha256": "dc88beb8e7305be2c33914c77710499b3bc7a76c6a7e820953ac3f7e2b761529",
+      "composition_sha256": "d93b529a7ee6824764d1f158fd056b384fbb73a8b20840a31a137697be4af054"
+    },
+    "results": {
+      "qaoa": {
+        "bitstring": "101000001001",
+        "objective": -208.3793181819
+      },
+      "exact": {
+        "bitstring": "101000000101",
+        "objective": -209.11954545460003
+      },
+      "greedy": {
+        "bitstring": "101000000101",
+        "objective": -209.11954545460003
+      },
+      "budget_random": {
+        "bitstring": "001000001101",
+        "objective": -205.47727272730003
+      }
+    },
+    "hardware_gate_decision": "NO_GO"
+  },
+  "payload_hash": "8ff6e1b58ce5de2156c10d534ef4006d661c3b72e56a03a152583dc3d563f43b"
+}

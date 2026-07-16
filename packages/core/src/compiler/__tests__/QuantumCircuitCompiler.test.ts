@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { QuantumCircuitCompiler } from '../QuantumCircuitCompiler';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
+import { parseHolo } from '../../parser/HoloCompositionParser';
 
 describe('QuantumCircuitCompiler', () => {
   const compiler = new QuantumCircuitCompiler();
@@ -71,6 +72,67 @@ describe('QuantumCircuitCompiler', () => {
     expect(out.qasm).not.toContain('gamma=0.5');
     expect(out.qasm).not.toContain('beta=0.5');
     expect(out.paramNames).toEqual(['gamma_0', 'beta_0']);
+    expect(out.optimizationProblem).toBe('maxcut');
+  });
+
+  it('emits diagonal and pairwise phase terms for an upper-triangular QUBO', () => {
+    const composition: HoloComposition = {
+      objects: [
+        {
+          name: 'NoveltyPortfolio',
+          traits: [
+            {
+              name: 'quantumCircuit',
+              config: {
+                problemType: { value: 'qubo', type: 'string' },
+                quboMatrix: {
+                  value: [
+                    [-1, 2],
+                    [0, -3],
+                  ],
+                  type: 'array',
+                },
+                p: { value: 1, type: 'number' },
+              },
+            },
+          ],
+        },
+      ],
+    };
+
+    const out = compiler.compile(composition);
+    expect(out.circuitType).toBe('qaoa');
+    expect(out.optimizationProblem).toBe('qubo');
+    expect(out.qasm).toContain('QAOA upper-triangular QUBO');
+    expect(out.qasm).toContain('QUBO linear x_0 coefficient=-1');
+    expect(out.qasm).toContain('QUBO linear x_1 coefficient=-3');
+    expect(out.qasm).toContain('QUBO pair x_0*x_1 coefficient=2');
+    expect(out.qasm).toContain('rz(-0.5 * gamma_0 * 2.0000) q[0]');
+    expect(out.qasm).toContain('rz(0.5 * gamma_0 * 2.0000) q[1]');
+  });
+
+  it('compiles raw trait config emitted by the real .holo parser', () => {
+    const parsed = parseHolo(`
+      composition "Quantum Novelty Scout" {
+        object "Portfolio" {
+          @quantumCircuit(
+            problemType: "qubo",
+            quboMatrix: "[[-1,2],[0,-3]]",
+            p: 1
+          )
+        }
+      }
+    `);
+    expect(parsed.success).toBe(true);
+
+    const out = compiler.compile(parsed.ast!);
+    expect(out.circuitType).toBe('qaoa');
+    expect(out.optimizationProblem).toBe('qubo');
+    expect(out.numQubits).toBe(2);
+    expect(out.weightMatrix).toEqual([
+      [-1, 2],
+      [0, -3],
+    ]);
   });
 
   it('warns on stub when no quantum trait is found', () => {

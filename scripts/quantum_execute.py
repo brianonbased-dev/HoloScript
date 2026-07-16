@@ -53,16 +53,33 @@ def _payload_hash(value: float, job_id: str) -> str:
     ).hexdigest()
 
 
-def _write_receipt(receipt: dict[str, Any]) -> str | None:
+def _canonical_hash(payload: Any) -> str:
+    encoded = json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _write_receipt(
+    receipt: dict[str, Any],
+    path_override: str | None = None,
+) -> str | None:
     """Best-effort write of a committable receipt file. Never breaks the
     stdout JSON contract the TypeScript bridge relies on."""
     try:
-        out_dir = pathlib.Path(__file__).resolve().parent.parent / "quantum_receipts"
-        out_dir.mkdir(exist_ok=True)
-        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        backend = str(receipt.get("backend", "ibm")).replace("/", "_")
-        task = str(receipt.get("task", receipt.get("method", "run"))).replace("/", "_")
-        path = out_dir / f"quantum_{task}_{backend}_{stamp}_receipt.json"
+        if path_override:
+            path = pathlib.Path(path_override).expanduser().resolve()
+            path.parent.mkdir(parents=True, exist_ok=True)
+        else:
+            out_dir = pathlib.Path(__file__).resolve().parent.parent / "quantum_receipts"
+            out_dir.mkdir(exist_ok=True)
+            stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+            backend = str(receipt.get("backend", "ibm")).replace("/", "_")
+            task = str(receipt.get("task", receipt.get("method", "run"))).replace("/", "_")
+            path = out_dir / f"quantum_{task}_{backend}_{stamp}_receipt.json"
         path.write_text(json.dumps(receipt, indent=2), encoding="utf-8")
         return str(path)
     except Exception:
@@ -1050,20 +1067,141 @@ def run_vqe(params: dict[str, Any]) -> dict[str, Any]:
 # QAOA
 # ---------------------------------------------------------------------------
 
-def run_qaoa(params: dict[str, Any]) -> dict[str, Any]:
-    """Run QAOA for Max-Cut using Qiskit Sampler primitive.
+def _validate_qaoa_matrix(matrix: Any, problem_type: str) -> list[list[float]]:
+    if not isinstance(matrix, list) or not matrix:
+        raise ValueError(f"{problem_type} matrix must be a non-empty square array")
+    n = len(matrix)
+    if n > 20:
+        raise ValueError(
+            f"Problem has {n} variables (max 20 for the statevector QAOA prototype)"
+        )
+    normalized: list[list[float]] = []
+    for row_index, row in enumerate(matrix):
+        if not isinstance(row, list) or len(row) != n:
+            length = len(row) if isinstance(row, list) else "non-array"
+            raise ValueError(
+                f"{problem_type} matrix row {row_index} has length {length}, expected {n}"
+            )
+        normalized.append([float(value) for value in row])
+    if problem_type == "qubo":
+        for i in range(n):
+            for j in range(i):
+                if abs(normalized[i][j]) > 1e-12:
+                    raise ValueError(
+                        "qubo_matrix uses an upper-triangular convention; "
+                        f"entry [{i}][{j}] must be zero"
+                    )
+    return normalized
 
-    Uses a p-round QAOA ansatz with a grid search over (gamma, beta) when
-    p == 1, falling back to random initialisation for p > 1.  Evaluates
-    the Max-Cut objective on every sampled bitstring and tracks the best.
+
+def _qaoa_objective(
+    bitstring: str,
+    matrix: list[list[float]],
+    problem_type: str,
+) -> float:
+    n = len(matrix)
+    if len(bitstring) != n or any(bit not in "01" for bit in bitstring):
+        raise ValueError(f"invalid {n}-variable bitstring: {bitstring!r}")
+    if problem_type == "maxcut":
+        return float(
+            sum(
+                matrix[i][j]
+                for i in range(n)
+                for j in range(i + 1, n)
+                if bitstring[i] != bitstring[j]
+            )
+        )
+    return float(
+        sum(matrix[i][i] * int(bitstring[i]) for i in range(n))
+        + sum(
+            matrix[i][j] * int(bitstring[i]) * int(bitstring[j])
+            for i in range(n)
+            for j in range(i + 1, n)
+        )
+    )
+
+
+def _qaoa_pauli_terms(
+    matrix: list[list[float]],
+    problem_type: str,
+) -> list[tuple[str, float]]:
+    n = len(matrix)
+
+    def z_label(*indices: int) -> str:
+        label = ["I"] * n
+        for index in indices:
+            label[index] = "Z"
+        return "".join(label)
+
+    terms: list[tuple[str, float]] = []
+    if problem_type == "maxcut":
+        for i in range(n):
+            for j in range(i + 1, n):
+                weight = matrix[i][j]
+                if weight != 0.0:
+                    terms.append((z_label(i, j), -weight / 2))
+                    terms.append(("I" * n, weight / 2))
+    else:
+        # f(x)=sum_i Qii*x_i + sum_{i<j} Qij*x_i*x_j, with x=(1-Z)/2.
+        for i in range(n):
+            qii = matrix[i][i]
+            if qii != 0.0:
+                terms.append(("I" * n, qii / 2))
+                terms.append((z_label(i), -qii / 2))
+            for j in range(i + 1, n):
+                qij = matrix[i][j]
+                if qij == 0.0:
+                    continue
+                terms.append(("I" * n, qij / 4))
+                terms.append((z_label(i), -qij / 4))
+                terms.append((z_label(j), -qij / 4))
+                terms.append((z_label(i, j), qij / 4))
+    return terms or [("I" * n, 0.0)]
+
+
+def _qaoa_parameter_values(
+    parameters: Any,
+    gamma: float,
+    beta: float,
+) -> list[float]:
+    """Bind QAOA angles in Qiskit's declared parameter order.
+
+    Qiskit currently renders the vectors as Greek ``β`` and ``γ``.  Accept
+    English spellings as well, then fall back to QAOAAnsatz's documented
+    beta-vector-before-gamma-vector order for unfamiliar renderings.
+    """
+    ordered = list(parameters)
+    midpoint = len(ordered) // 2
+    values: list[float] = []
+    for index, parameter in enumerate(ordered):
+        name = str(parameter).lower()
+        if "beta" in name or "β" in name:
+            values.append(float(beta))
+        elif "gamma" in name or "γ" in name:
+            values.append(float(gamma))
+        else:
+            values.append(float(beta if index < midpoint else gamma))
+    return values
+
+
+def run_qaoa(params: dict[str, Any]) -> dict[str, Any]:
+    """Run receipt-backed QAOA for Max-Cut or an upper-triangular QUBO.
+
+    Parameter settings are ranked by sampled expected objective. The reported
+    bitstring is the best observation from the winning setting, and the exact
+    optimum is computed for comparison when the problem has at most 20 bits.
 
     Parameters
     ----------
     params : dict
         task          : "qaoa"
         weight_matrix : 2-D list of floats (n × n adjacency / weight matrix)
+        qubo_matrix   : upper-triangular QUBO matrix (selects minimization)
         p             : int, QAOA rounds (default 1)
         execution_mode: "aer" | "ibm-quantum"  (default "aer")
+        shots         : samples per parameter setting
+        grid_points   : p=1 grid points per angle axis
+        seed          : statevector sampler and parameter-search seed
 
     Returns
     -------
@@ -1084,36 +1222,39 @@ def run_qaoa(params: dict[str, Any]) -> dict[str, Any]:
             )
         }
 
-    weight_matrix: list[list[float]] = params.get("weight_matrix", [[0, 1], [1, 0]])
+    problem_type = "qubo" if "qubo_matrix" in params else "maxcut"
+    raw_matrix = params.get(
+        "qubo_matrix" if problem_type == "qubo" else "weight_matrix",
+        [[0, 1], [1, 0]],
+    )
+    weight_matrix = _validate_qaoa_matrix(raw_matrix, problem_type)
     p: int = max(1, int(params.get("p", 1)))
     execution_mode: str = params.get("execution_mode", "aer")
-
-    n = len(weight_matrix)
-
-    if n > 20:
+    if execution_mode not in {"aer", "ibm-quantum"}:
+        return {"error": f"Unsupported QAOA execution_mode: {execution_mode}"}
+    objective_sense = "minimize" if problem_type == "qubo" else "maximize"
+    requested_sense = str(params.get("objective_sense", objective_sense)).lower()
+    if requested_sense != objective_sense:
         return {
             "error": (
-                f"Graph has {n} nodes (max 20 for Aer QAOA prototype). "
-                "Reduce graph size or use a classical solver for larger instances."
+                f"{problem_type} uses objective_sense={objective_sense}; "
+                f"received {requested_sense}"
             )
         }
+
+    n = len(weight_matrix)
+    default_shots = 4096 if execution_mode == "ibm-quantum" else 1024
+    shots = max(1, min(int(params.get("shots", default_shots)), 100_000))
+    grid_points = max(2, min(int(params.get("grid_points", 8)), 16))
+    seed = int(params.get("seed", 17))
+    rng = np.random.default_rng(seed)
 
     # -----------------------------------------------------------------------
     # Max-Cut cost Hamiltonian: H = Σ w_ij (I − Z_i Z_j) / 2
     # -----------------------------------------------------------------------
-    pauli_terms: list[tuple[str, float]] = []
-    for i in range(n):
-        for j in range(i + 1, n):
-            w = float(weight_matrix[i][j])
-            if w != 0.0:
-                zz = "I" * i + "Z" + "I" * (j - i - 1) + "Z" + "I" * (n - j - 1)
-                pauli_terms.append((zz, -w / 2))
-                pauli_terms.append(("I" * n, w / 2))
-
-    if not pauli_terms:
-        pauli_terms = [("I" * n, 0.0)]
-
-    cost_op = SparsePauliOp.from_list(pauli_terms)
+    cost_op = SparsePauliOp.from_list(
+        _qaoa_pauli_terms(weight_matrix, problem_type)
+    ).simplify()
     mixer_op = SparsePauliOp.from_list(
         [("I" * i + "X" + "I" * (n - i - 1), 1.0) for i in range(n)]
     )
@@ -1121,8 +1262,9 @@ def run_qaoa(params: dict[str, Any]) -> dict[str, Any]:
     ansatz = QAOAAnsatz(cost_op, reps=p, mixer_operator=mixer_op)
     sampler_ansatz = ansatz.copy()
     sampler_ansatz.measure_all()
+    qaoa_job_ids: list[str] = []
+    qaoa_eval_count = 0
 
-    execution_mode: str = params.get("execution_mode", "aer")
     ibm_backend_name: str = params.get("ibm_backend", "ibm_fez")
     api_token: str | None = _secret_value(
         "IBM_QUANTUM_API_KEY",
@@ -1158,11 +1300,9 @@ def run_qaoa(params: dict[str, Any]) -> dict[str, Any]:
         pm = generate_preset_pass_manager(backend=backend, optimization_level=1)
         isa_ansatz = pm.run(sampler_ansatz)
         opts = SamplerOptions()
-        opts.default_shots = 4096
+        opts.default_shots = shots
         hw_sampler = IBMSampler(mode=backend, options=opts)
         qaoa_backend_name = backend.name
-        qaoa_job_ids: list[str] = []
-        qaoa_eval_count = 0
         qaoa_progress = _ProgressReceiptWriter(
             task="qaoa",
             backend=qaoa_backend_name,
@@ -1172,8 +1312,10 @@ def run_qaoa(params: dict[str, Any]) -> dict[str, Any]:
         qaoa_progress.write(
             "run_started",
             task="qaoa",
+            problem_type=problem_type,
             backend=qaoa_backend_name,
             p=p,
+            shots=shots,
             job_timeout_seconds=job_timeout_seconds,
         )
 
@@ -1210,7 +1352,8 @@ def run_qaoa(params: dict[str, Any]) -> dict[str, Any]:
             )
             return counts
     else:
-        sampler = StatevectorSampler()
+        sampler = StatevectorSampler(default_shots=shots, seed=seed)
+        qaoa_backend_name = "statevector-sampler"
 
         def _sample(params_vals: list[float]) -> dict[str, int]:  # type: ignore[misc]
             pub = (sampler_ansatz, params_vals)
@@ -1219,56 +1362,52 @@ def run_qaoa(params: dict[str, Any]) -> dict[str, Any]:
 
     t0 = time.monotonic()
 
-    best_bitstring = "0" * n
-    best_value = 0.0
+    best_expectation = float("inf") if objective_sense == "minimize" else float("-inf")
+    best_counts: dict[str, int] = {}
+    best_parameters: list[float] = []
 
     # Grid search over (gamma, beta) for p == 1; random for p > 1.
     # On real hardware, collapse to a single best-guess point to save QPU time.
-    import numpy as np
-
     if execution_mode == "ibm-quantum":
         # Use π/4, π/8 as a single warm-start point (Farhi et al. p=1 optimum approx)
         gamma_vals = [np.pi / 4]
         beta_vals = [np.pi / 8]
     else:
-        gamma_vals = np.linspace(0, np.pi, 8)
-        beta_vals = np.linspace(0, np.pi / 2, 8)
+        gamma_vals = np.linspace(0, np.pi, grid_points)
+        beta_vals = np.linspace(0, np.pi / 2, grid_points)
 
     try:
         for gamma in gamma_vals:
             for beta in beta_vals:
                 if p == 1:
-                    params_vals = [float(gamma), float(beta)]
+                    params_vals = _qaoa_parameter_values(ansatz.parameters, gamma, beta)
                 else:
-                    params_vals = np.random.uniform(0, np.pi, ansatz.num_parameters).tolist()
-
-                # Pad / trim to match actual parameter count
-                if len(params_vals) != ansatz.num_parameters:
-                    params_vals = np.random.uniform(
-                        0, np.pi, ansatz.num_parameters
-                    ).tolist()
+                    params_vals = rng.uniform(0, np.pi, ansatz.num_parameters).tolist()
 
                 counts: dict[str, int] = _sample(params_vals)
-
-                for bitstring, _count in counts.items():
-                    # Evaluate Max-Cut objective for this bitstring
-                    cut_value = sum(
-                        weight_matrix[i][j]
-                        for i in range(n)
-                        for j in range(i + 1, n)
-                        if int(bitstring[i]) != int(bitstring[j])
-                    )
-                    if cut_value > best_value:
-                        best_value = cut_value
-                        best_bitstring = bitstring
+                total = sum(counts.values())
+                if total <= 0:
+                    continue
+                expectation = sum(
+                    _qaoa_objective(bitstring, weight_matrix, problem_type) * count
+                    for bitstring, count in counts.items()
+                ) / total
+                improves = (
+                    expectation < best_expectation
+                    if objective_sense == "minimize"
+                    else expectation > best_expectation
+                )
+                if improves:
+                    best_expectation = float(expectation)
+                    best_counts = counts
+                    best_parameters = params_vals
     except Exception as exc:
         if execution_mode == "ibm-quantum":
             qaoa_progress.write(
                 "run_failed",
                 error_type=type(exc).__name__,
                 error=str(exc),
-                best_bitstring=best_bitstring,
-                best_value=float(best_value),
+                best_expectation=best_expectation,
                 evaluations=len(qaoa_job_ids),
             )
             return {
@@ -1276,69 +1415,150 @@ def run_qaoa(params: dict[str, Any]) -> dict[str, Any]:
                 "execution_backend": execution_mode,
                 "backend": qaoa_backend_name,
                 "optimizer_evaluations": len(qaoa_job_ids),
-                "best_bitstring": best_bitstring,
-                "best_value": float(best_value),
+                "best_expectation": best_expectation,
                 "progress_receipt_path": qaoa_progress.path_str,
             }
         raise
 
+    if not best_counts:
+        return {"error": "QAOA sampler produced no counts"}
+
+    sampled_values = {
+        bitstring: _qaoa_objective(bitstring, weight_matrix, problem_type)
+        for bitstring in best_counts
+    }
+    best_bitstring = (
+        min(sampled_values, key=sampled_values.get)
+        if objective_sense == "minimize"
+        else max(sampled_values, key=sampled_values.get)
+    )
+    best_value = float(sampled_values[best_bitstring])
+
     # -----------------------------------------------------------------------
     # Classical optimum (brute-force, feasible for n ≤ 20)
     # -----------------------------------------------------------------------
-    classical_opt = 0.0
+    classical_opt = float("inf") if objective_sense == "minimize" else float("-inf")
+    classical_bitstring = "0" * n
     for mask in range(1 << n):
-        cut = sum(
-            weight_matrix[i][j]
-            for i in range(n)
-            for j in range(i + 1, n)
-            if ((mask >> i) & 1) != ((mask >> j) & 1)
+        bitstring = format(mask, f"0{n}b")
+        value = _qaoa_objective(bitstring, weight_matrix, problem_type)
+        improves = (
+            value < classical_opt
+            if objective_sense == "minimize"
+            else value > classical_opt
         )
-        classical_opt = max(classical_opt, cut)
+        if improves:
+            classical_opt = value
+            classical_bitstring = bitstring
 
-    approx_ratio = best_value / classical_opt if classical_opt > 0 else 1.0
+    approx_ratio = None
+    if problem_type == "maxcut":
+        approx_ratio = best_value / classical_opt if classical_opt > 0 else 1.0
     wall_time = time.monotonic() - t0
 
     result_out: dict[str, Any] = {
         "optimal_bitstring": best_bitstring,
         "optimal_value": float(best_value),
-        "approximation_ratio": float(approx_ratio),
+        "best_sampled_expectation": best_expectation,
+        "selected_parameters": best_parameters,
+        "classical_optimal_bitstring": classical_bitstring,
+        "classical_optimal_value": float(classical_opt),
+        "optimality_gap": abs(float(best_value) - float(classical_opt)),
+        "approximation_ratio": float(approx_ratio) if approx_ratio is not None else None,
         "circuit_depth_p": p,
         "num_qubits": n,
         "execution_backend": execution_mode,
+        "backend": qaoa_backend_name,
+        "shots": shots,
+        "optimizer_evaluations": (
+            qaoa_eval_count
+            if execution_mode == "ibm-quantum"
+            else len(gamma_vals) * len(beta_vals)
+        ),
         "wall_time_seconds": wall_time,
     }
 
+    input_payload = {
+        "problem_type": problem_type,
+        "matrix": weight_matrix,
+        "p": p,
+        "shots": shots,
+        "grid_points": grid_points,
+        "seed": seed,
+        "execution_mode": execution_mode,
+    }
+    input_sha256 = _canonical_hash(input_payload)
+    cert_job_id = (
+        qaoa_job_ids[-1]
+        if qaoa_job_ids
+        else f"simulator:{input_sha256[:16]}"
+    )
+    hash_payload = {
+        "input_sha256": input_sha256,
+        "job_id": cert_job_id,
+        "optimal_bitstring": best_bitstring,
+        "optimal_value": float(best_value),
+    }
+    receipt: dict[str, Any] = {
+        "schema": "cael-quantum-v1.qaoa",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "script": "scripts/quantum_execute.py",
+        "task": "qaoa",
+        "method": f"QAOA-{problem_type}-p{p}",
+        "problem_type": problem_type,
+        "objective_sense": objective_sense,
+        "matrix_convention": (
+            "upper-triangular: sum_i Qii*x_i + sum_{i<j} Qij*x_i*x_j"
+            if problem_type == "qubo"
+            else "symmetric weighted adjacency; each i<j edge counted once"
+        ),
+        "input_sha256": input_sha256,
+        "execution_mode": execution_mode,
+        "backend": qaoa_backend_name,
+        "shots": shots,
+        "job_id": cert_job_id,
+        "all_job_ids": qaoa_job_ids,
+        "optimizer": "expectation-grid" if p == 1 else "expectation-random",
+        "optimizer_evaluations": result_out["optimizer_evaluations"],
+        "optimal_value": float(best_value),
+        "optimal_bitstring": best_bitstring,
+        "best_sampled_expectation": best_expectation,
+        "selected_parameters": best_parameters,
+        "classical_optimal_value": float(classical_opt),
+        "classical_optimal_bitstring": classical_bitstring,
+        "optimality_gap": abs(float(best_value) - float(classical_opt)),
+        "approximation_ratio": (
+            float(approx_ratio) if approx_ratio is not None else None
+        ),
+        "num_qubits": n,
+        "wall_time_s": wall_time,
+        "hash_scheme": "sha256-canonical-json-v1",
+        "hash_payload": hash_payload,
+        "payload_hash": _canonical_hash(hash_payload),
+    }
+    if execution_mode == "ibm-quantum":
+        receipt["legacy_payload_hash"] = _payload_hash(float(best_value), cert_job_id)
+
+    result_out["receipt"] = receipt
+
     if execution_mode == "ibm-quantum" and qaoa_job_ids:
-        cert_job_id = qaoa_job_ids[-1]
         qaoa_progress.write(
             "run_completed",
             best_bitstring=best_bitstring,
             best_value=float(best_value),
+            expected_value=best_expectation,
             job_id=cert_job_id,
             evaluations=len(qaoa_job_ids),
         )
-        receipt = {
-            "schema": "cael-quantum-v1",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "script": "scripts/quantum_execute.py",
-            "task": "qaoa",
-            "method": f"QAOA-Maxcut-p{p}",
-            "execution_mode": "ibm-quantum",
-            "backend": qaoa_backend_name,
-            "shots": 4096,
-            "job_id": cert_job_id,
-            "all_job_ids": qaoa_job_ids,
-            "optimal_value": float(best_value),
-            "optimal_bitstring": best_bitstring,
-            "approximation_ratio": float(approx_ratio),
-            "wall_time_s": round(wall_time, 1),
-            "payload_hash": _payload_hash(float(best_value), cert_job_id),
-        }
-        result_out["receipt"] = receipt
-        receipt_path = _write_receipt(receipt)
+        result_out["progress_receipt_path"] = qaoa_progress.path_str
+
+    if _as_bool(params.get("write_receipt"), execution_mode == "ibm-quantum"):
+        receipt_path = _write_receipt(
+            receipt,
+            str(params["receipt_path"]) if params.get("receipt_path") else None,
+        )
         if receipt_path:
             result_out["receipt_path"] = receipt_path
-        result_out["progress_receipt_path"] = qaoa_progress.path_str
 
     return result_out
 
