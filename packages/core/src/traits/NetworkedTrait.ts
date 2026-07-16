@@ -663,6 +663,33 @@ export class NetworkedTrait {
     return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
   }
 
+  /**
+   * SLERP for networked rotation interpolation (tuple-in / tuple-out).
+   *
+   * DO NOT "dedup" this into `../math/Quaternion.slerp` without reading this first.
+   * It is a near-duplicate of that function — same shortest-arc flip, same
+   * `dot > 0.9995` normalize-lerp fallback, same s0/s1 coefficients — but it is
+   * deliberately NOT bit-identical: the main branch below returns the raw
+   * `s0*a + s1*b` combination, whereas `Quaternion.slerp` wraps its result in
+   * `normalize(...)`. For exact unit inputs the two agree analytically; in floating
+   * point they differ in the last ULPs.
+   *
+   * That matters here because this is a netcode path: rotations interpolated by two
+   * clients on different builds must agree, and a last-ULP change is a *behavior*
+   * change that no single-version test can catch (the failure mode is version-skew
+   * divergence, which only reproduces with two builds live). Migrating this requires
+   * either bit-exactness proven against golden values for every branch, or a
+   * cross-version replay test — neither exists today.
+   *
+   * Also note `Quaternion.slerp` is currently package-private (not in core's
+   * package.json `exports`) and returns a hybrid `{x,y,z,w}` object with
+   * NON-enumerable numeric indices — it indexes like a tuple but `JSON.stringify`
+   * drops the indices and spreading it throws. It is not a drop-in for a real tuple
+   * on a serialization path.
+   *
+   * Analysis: ai-ecosystem `research/2026-07-15_interpolation.md` +
+   * `research/2026-07-15_native-interpolate-trait-feasibility.md`.
+   */
   private slerpQuat(
     a: [number, number, number, number],
     b: [number, number, number, number],
