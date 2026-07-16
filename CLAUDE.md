@@ -99,7 +99,7 @@ Use this doctrine when evaluating feature placement:
 
 - Brittney is the primary intelligence interface
 - Studio is the primary creation environment
-- HoloScript is the substrate and native medium
+- HoloScript is the general-purpose semantic systems language, substrate, and native medium
 - Standard IDEs are compatibility bridges
 
 Implications:
@@ -260,11 +260,11 @@ holoscript (PyPI)            Python bindings + robotics module
 
 ```text
 Situation                                    → Use
-Simple object/scene, no interactivity        → .hs
-Object needs grab/physics/network/traits     → .hsplus
-AI-generated, cross-platform, declarative    → .holo
+Logic, process, pipeline, or headless program → .hs
+Typed behavior, agent, effect, or trait program → .hsplus
+Whole-system composition / cross-target orchestration → .holo
 Perceivable render/UI surface (page/panel/viewer) → .holo (→ @generated .tsx; NEVER hand-author .tsx)
-Tooling, CLI, parser, adapter code           → .ts (TypeScript)
+Bootstrap tooling not yet expressible in HoloScript → .ts / Rust with an explicit migration seam
 ```
 
 ### Trait Category Index

@@ -4,7 +4,7 @@
 
 ---
 
-HoloScript is an AI-native, declarative platform for interfaces, spatial scenes, services, agents, and device workflows. Compile targets and tool inventory change over time; verify them from `ExportTarget` and live MCP health instead of copying a count.
+HoloScript is a general-purpose semantic systems programming language with AI-native tooling and declarative, imperative, reactive, and compositional surfaces. Interfaces, spatial scenes, services, agents, runtimes, simulations, and device workflows are programs in the same language. Compile targets and tool inventory change over time; verify them from `ExportTarget` and live MCP health instead of copying a count.
 
 ## Quick Navigation
 
@@ -24,7 +24,7 @@ HoloScript is an AI-native, declarative platform for interfaces, spatial scenes,
 
 ### 1. HoloScript Language
 
-HoloScript uses a declarative syntax with **traits** that define object behavior:
+HoloScript supports compiler-visible declarations and **traits** that define program behavior and effects. This example exercises the spatial composition surface:
 
 ```holoscript
 sphere {

@@ -3,6 +3,7 @@
 **Status**: Draft for founder review
 **Purpose**: Claim the unclaimed positioning space between Apple ("spatial computing") and NVIDIA ("Physical AI")
 **Primary use**: Homepage headline, pitch deck opener, press positioning
+**Identity boundary**: Spatial Sovereignty is one market wedge of HoloScript, not the language category. The umbrella identity is a general-purpose semantic systems programming language; spatial computing is a first-class domain and compile/runtime target.
 
 ---
 

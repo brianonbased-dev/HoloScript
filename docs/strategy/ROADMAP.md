@@ -2,7 +2,7 @@
 
 > Describe what you want. It runs everywhere.
 >
-> _The declarative language for the spatial and autonomous web._
+> _A general-purpose semantic systems programming language for sovereign computation._
 
 > **Current release marker: HoloScript 6.x** — package manifests and public docs are aligned to the 6.x line. See [CHANGELOG.md](../../CHANGELOG.md) for release-line corrections and full history.
 > **V6 vision document:** [docs/strategy/vision/VISION_V6.md](./vision/VISION_V6.md) (realized).
@@ -14,10 +14,11 @@
 
 ## Current State (6.x line, refreshed 2026-05-18)
 
-6.x is the current outward-facing platform line. The active roadmap is no longer "finish the v5/v6 feature list"; it is verification, adoption, and physical-world closure over the substrate that already shipped.
+6.x is the current outward-facing platform line. The active roadmap is no longer "finish the v5/v6 feature list"; it is verification, adoption, physical-world closure, and systems-language closure over the substrate that already shipped. Existing scene, service, agent, compiler, and runtime paths prove breadth; they do not yet close the memory/ABI/concurrency/native-tooling/self-hosting bar.
 
 | Surface                 | Current state                                                                                                                                                                                             | Evidence                                                                                                                                                                               |
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Language identity       | General-purpose semantic systems programming language under active construction. Declarative and spatial programming are first-class mechanisms, not the category boundary.                             | [language identity contract](../spec/language-identity.md), [spec/reality ledger](../spec/spec-vs-reality-gap.md)                                                                      |
 | Platform release        | Current public release story stays on 6.x while generated v7/v8 metadata is treated as drift. Option C security plus Route 2b/2d cross-adapter verification remain part of the 6.x continuation evidence. | [CHANGELOG.md](../../CHANGELOG.md)                                                                                                                                                     |
 | Live metrics            | Counts are dynamic and must be re-derived before citation.                                                                                                                                                | [docs/NUMBERS.md](../NUMBERS.md)                                                                                                                                                       |
 | Studio funnel           | Progressive creation, team, HoloMesh, agent, and provisioning surfaces exist; ongoing work is polish and discoverability.                                                                                 | [packages/studio/README.md](../../packages/studio/README.md)                                                                                                                           |
@@ -38,6 +39,21 @@
 ---
 
 ## Active 6.x Lanes
+
+### 0. General-Purpose Systems-Language Closure
+
+HoloScript must become capable of implementing the systems it currently describes or reaches
+through bridge compilers. The active closure bar is:
+
+- explicit memory/resource, layout, ABI/FFI, concurrency, effect, and unsafe-boundary semantics;
+- sovereign native lowering plus owned VM execution that does not depend on an external engine;
+- debugger, profiler, build/link, diagnostics, and sanitizer-equivalent tooling;
+- staged migration of compiler, runtime, standard-library, and system-service implementation
+  from bootstrap TypeScript/Rust into HoloScript where the language can carry it safely;
+- tests and receipts that distinguish native execution from generated bridge artifacts.
+
+Do not answer a missing primitive by relabeling HoloScript as a DSL. File the primitive, compiler,
+runtime, or tooling gap and keep the language identity intact.
 
 ### 1. Evidence Over Claims
 

@@ -113,16 +113,16 @@ Time is of the utmost importance in HoloScript. Slowness reads as broken in spat
 
 _Anchor product UX to these rows before adding features. Features that violate these budgets require architectural review._
 
-## Utility-First Framing (not only 3D/XR)
+## Systems-Language Framing (not a DSL, not only 3D/XR)
 
-HoloScript is a universal semantic platform. Spatial rendering is one output channel, not the whole product surface.
+HoloScript is a general-purpose semantic systems programming language under active construction. Spatial rendering and declarative composition are language capabilities, not the product boundary. Do not introduce HoloScript as a scene DSL, spatial-only language, asset format, or description layer above TypeScript, Rust, or C++.
 
 - **Pipelines**: `.hs` files model source → transform → sink flows that compile to service/runtime outputs.
 - **Knowledge market**: HoloMesh/HoloDaemon workflows support agent contributions, discovery, and reputation loops.
 - **Observability**: telemetry and tracing live in runtime/core paths (OpenTelemetry spans, diagnostics).
 - **Schema mapping**: Absorb and mapping flows convert structured inputs (code/data/schema) into semantic compositions.
 
-When writing docs or code comments, describe the problem solved first (pipeline, orchestration, schema, observability), then the optional spatial presentation.
+When writing docs or code comments, describe the program and systems capability first (execution, memory/resource effects, pipeline, orchestration, schema, observability), then the optional spatial presentation. If a systems primitive is not implemented, name the gap rather than redefining HoloScript around what the current bootstrap can already do.
 
 ## Development Workflow
 
@@ -188,13 +188,13 @@ Pre-commit hooks enforce conventional commits. Format: `type(scope): description
 
 ## File Formats
 
-HoloScript has three source formats — use the right one:
+HoloScript has three source surfaces — use the one whose current parser/runtime owns the required capability. These are capability envelopes within one general-purpose language, not separate domain DSLs:
 
 | Format    | Purpose                                       | Example              |
 | --------- | --------------------------------------------- | -------------------- |
-| `.holo`   | Scene compositions, spatial worlds, templates | storefront.holo      |
-| `.hsplus` | Agent behaviors, state machines, governance   | planner-agent.hsplus |
-| `.hs`     | Data pipelines (source → transform → sink)    | inventory-sync.hs    |
+| `.holo`   | Whole-system compositions, targets, environments | storefront.holo      |
+| `.hsplus` | Typed behaviors, agents, state machines, effects | planner-agent.hsplus |
+| `.hs`     | Logic and process programs; pipelines are the strongest current lane | inventory-sync.hs    |
 
 Spatial keywords (`environment`, `object`, `template`) produce a SyntaxError in `.hs` pipeline files. Use `.holo` for scenes.
 

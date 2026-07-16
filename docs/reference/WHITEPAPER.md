@@ -5,6 +5,12 @@
 **Category:** Language Design · AI Alignment · Spatial Computing  
 **Version:** 1.0 — Final Draft
 
+> **Current language-identity note (2026-07-16):** this paper studies the spatial
+> executable-semantics subset. HoloScript's umbrella identity is a general-purpose semantic
+> systems programming language under active construction; spatial computing is one first-class
+> domain. Historical claims below remain part of the paper record and are not a current
+> systems-language completion claim.
+
 ---
 
 ## Abstract
@@ -43,7 +49,7 @@ This is not a partial address of the Symbol Grounding Problem in the sense that 
 
 ## 2. The HoloScript Architecture
 
-HoloScript is a spatial computing language implemented as a three-format architecture. Each format serves a distinct role in the semantic stack.
+HoloScript is a general-purpose semantic systems programming language implemented through a three-format architecture. This paper examines the spatial executable-semantics subset; each format serves a distinct role in that subset and in the broader systems stack.
 
 ### 2.1 Format Hierarchy
 
@@ -289,14 +295,14 @@ The output is an XML fragment consumed directly by ROS's physics simulation (Gaz
 
 A one-directional compiler (HoloScript → runtime) grounds symbols in the forward direction: syntax produces physics. This is necessary but not sufficient to _close the loop_. A fully grounded system must also allow the inverse: physical reality can be read back as semantic declarations.
 
-HoloScript implements this through `UnityToHoloScriptConverter.ts` (`packages/core/src/traits/UnityToHoloScriptConverter.ts`), a bidirectional converter that translates Unity scene data — C# MonoBehaviour component configurations, material properties, prefab hierarchies — back into HoloScript DSL:
+HoloScript implements this through `UnityToHoloScriptConverter.ts` (`packages/core/src/traits/UnityToHoloScriptConverter.ts`), a bidirectional converter that translates Unity scene data — C# MonoBehaviour component configurations, material properties, prefab hierarchies — back into HoloScript semantic source/IR:
 
 ```typescript
 /**
  * UnityToHoloScriptConverter
  *
  * Converts Unity scene data (C# MonoBehaviour attributes, materials, prefabs)
- * into HoloScript DSL and trait configurations.
+ * into HoloScript semantic source/IR and trait configurations.
  *
  * This is the primary migration path for Unity developers moving to HoloScript.
  * @version 4.0.0
@@ -318,7 +324,7 @@ Declaration         │  C# .cs │ │  Udon   │ │  XML     │
                     └────┬────┘ └─────────┘ └──────────┘
                          │
                     ┌────▼─────────────────────────┐
-                    │ UnityToHoloScriptConverter    │──► HoloScript DSL
+                    │ UnityToHoloScriptConverter    │──► HoloScript source/IR
                     └──────────────────────────────┘
 ```
 
@@ -368,7 +374,7 @@ Academic papers are written in LaTeX, not in PDFs. The source format is human-re
 
 Spatial computing has historically lacked an equivalent. The dominant workflow is: author in Unity → export to binary FBX → never meaningfully edit the source again. The source and the output are conflated in the same tool, and the "source" has no formal semantics beyond what Unity interprets it to mean.
 
-HoloScript is spatial computing's LaTeX. The `.holo` file is the source: semantically rich, human-readable, AI-writable. The compiled outputs (Unity C#, URDF, VRChat Udon, WebGPU shaders, iOS ARKit) are the rendered outputs. The separation is complete and the source format is formally specified.
+HoloScript's spatial surface is spatial computing's LaTeX. The `.holo` file is the source: semantically rich, human-readable, AI-writable. The compiled outputs (Unity C#, URDF, VRChat Udon, WebGPU shaders, iOS ARKit) are rendered bridge outputs. This analogy describes one domain of the broader systems language.
 
 ### 5.2 Reproducibility and Provenance
 

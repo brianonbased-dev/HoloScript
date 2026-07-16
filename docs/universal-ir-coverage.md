@@ -2,7 +2,7 @@
 
 **Status:** Draft v1.2 — 2026-04-23 (Wave B Stream 3 + Wave D negative sweep stream 3 follow-up; per `research/2026-04-21_multi-mode-plan.md`). Plugin stub manifest in §2.1. Executable probe column + contract-gate policy in §2.2.
 **Audience:** External integrators, pipeline architects, founding-team sales.
-**Claim:** HoloScript is not a new asset format. It is an **intermediate representation** that sits **above** geometry standards (glTF, USD, FBX, VRM) and **beside** generative tools (URDFormer, Scenethesis, Marble, Genie 3), describing **semantics, behavior, and multi-target compilation** in a form that survives the trip across engines (Unity, Unreal, R3F, Godot, WebGPU, WebXR).
+**Claim:** HoloScript is a general-purpose semantic systems programming language whose compiler uses an **intermediate representation** above geometry standards (glTF, USD, FBX, VRM) and beside generative tools (URDFormer, Scenethesis, Marble, Genie 3). That IR preserves **semantics, behavior, effects, and multi-target compilation** across engines (Unity, Unreal, R3F, Godot, WebGPU, WebXR). Calling out the IR architecture does not demote HoloScript to an asset format or a description layer above another "real" implementation language.
 
 ## 1. Why this matrix exists
 

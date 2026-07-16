@@ -265,7 +265,7 @@ Extracted from `R3FCompiler.ts` and reused at runtime:
 
 ### What HoloScript Can Do Now
 
-✅ **Parse** - .holo declarative language
+✅ **Parse** - HoloScript systems-language source surfaces (`.hs`, `.hsplus`, `.holo`)
 ✅ **Validate** - Type checking, trait validation
 ✅ **Execute** - Runtime platform execution
 ✅ **Render** - Real-time 3D rendering with PBR
@@ -280,7 +280,7 @@ Extracted from `R3FCompiler.ts` and reused at runtime:
 
 | Feature                  | Unity              | HoloScript            |
 | ------------------------ | ------------------ | --------------------- |
-| **Declarative Language** | ❌ C# scripting    | ✅ .holo language     |
+| **Semantic systems language** | ❌ Engine-specific C# APIs | ✅ One HoloScript language across `.hs`, `.hsplus`, and `.holo` |
 | **Runtime Execution**    | ✅ Game engine     | ✅ Web runtime        |
 | **Visual Editor**        | ✅ Unity Editor    | 🚧 Hololand (planned) |
 | **Physics**              | ✅ PhysX           | ✅ Custom physics     |

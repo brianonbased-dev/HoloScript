@@ -10,6 +10,7 @@
 
 | File | What it is |
 |------|------------|
+| [`language-identity.md`](./language-identity.md) | The canonical category and wording contract: general-purpose semantic systems programming language, current honesty boundary, and systems-language acceptance gates. |
 | [`holoscript-grammar-ssot.md`](./holoscript-grammar-ssot.md) | The accepted-grammar router: parser-backed sources only, plus the conformance test that keeps `get_syntax_reference` examples aligned with the production parser path. |
 | [`uaal-language-spec.md`](./uaal-language-spec.md) | The reclaimed uAAL (cognitive) + HOLO (spatial) language definition: primitives, instruction set, and a **real-vs-aspirational** reconciliation with the shipped code. |
 | [`spec-vs-reality-gap.md`](./spec-vs-reality-gap.md) | The language-build backlog: each spec claim mapped to its actual code status (shipped / island / absent), with the seam that would close it. |
@@ -20,8 +21,9 @@ Related existing docs (do not duplicate): [`../agents/uaal-vm.md`](../agents/uaa
 
 ## The three-format model
 
-HoloScript is **one language in three surfaces** (MEMORY F.120), all descending from the
-uaa2-service genesis:
+HoloScript is a **general-purpose semantic systems programming language in three surfaces**
+(MEMORY F.120), all descending from the uaa2-service genesis. The table records current
+implementation strengths; it does not define a permanent set of domains:
 
 | Format | Role | Descends from | Canonical compiler/runtime | Status |
 |--------|------|---------------|----------------------------|--------|

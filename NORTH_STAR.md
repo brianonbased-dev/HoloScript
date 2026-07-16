@@ -1,9 +1,30 @@
 # North Star -- HoloScript
 
-**Role**: Core platform. Language, compilers, traits, MCP server, Studio, renderer.
+**Role**: General-purpose semantic systems programming language and its sovereign compiler/runtime stack.
 **Upstream oracle**: `~/.ai-ecosystem/NORTH_STAR.md` (read that for decision trees, workflow patterns, cost thresholds)
 **No local STRATEGY.md or SYSTEM_MAP.md**: ratified-directions and system-map content live upstream at `~/.ai-ecosystem/STRATEGY.md` and `~/.ai-ecosystem/SYSTEM_MAP.md` — cross-repo citations naming those files unqualified mean the ai-ecosystem repo, not this one.
 **GOLD Drive**: `GOLD_ROOT` or default vault root when mounted (Diamond > Platinum > GOLD > knowledge store) — intake per `~/.ai-ecosystem/CLAUDE.md`. **Live entry counts** are only authoritative in `$GOLD_ROOT/INDEX.md` (not this file).
+
+## Language identity — load-bearing
+
+**HoloScript is a general-purpose semantic systems programming language under active construction.**
+It is not a spatial DSL, scene notation, asset format, prompt wrapper, or transpiler front end. Its
+declarative composition model is one way to express programs; it does not limit what programs may
+own. The language target includes applications, services, runtimes, compilers, simulations, agents,
+devices, operating layers, and worlds.
+
+Systems-language claims are earned structurally. The language must progressively own:
+
+- memory, resource, lifetime, and unsafe-boundary semantics;
+- data layout, calling conventions, ABI stability, and FFI;
+- concurrency, effects, determinism, and hardware-facing I/O;
+- sovereign native code generation, VM execution, debugging, and profiling;
+- enough compiler, runtime, and standard-library implementation to self-host in stages.
+
+Until each layer is proven, say what is implemented and name the gap. Generating C++, TypeScript,
+Rust, engine projects, or deployment manifests is bridge evidence, not proof that HoloScript already
+owns the underlying systems layer. Canonical wording and acceptance gates live in
+[`docs/spec/language-identity.md`](docs/spec/language-identity.md).
 
 ## ∞ The Thesis (founder-ratified 2026-06-15) — read before any architectural call
 
@@ -47,8 +68,9 @@ a question the substrate answers. Full doctrine + reasoning:
 4. **Never hardcode domain vocabulary into core.** Plugins are data, not code.
 5. **Simulation-first.** Digital twin before physical twin. Every feature.
 6. **Sovereign > bridge.** New capabilities go in sovereign compilers only.
-7. **Commit to main.** All agents, all changes. Pre-commit hook is the gate.
-8. **Stage explicitly.** `git add <file>`, never `git add -A` or `git add .`
+7. **Systems-language ratchet.** Never constrain the language to scenes, descriptions, or external-runtime wrappers; move semantics and execution into owned language/runtime layers.
+8. **Commit to main.** All agents, all changes. Pre-commit hook is the gate.
+9. **Stage explicitly.** `git add <file>`, never `git add -A` or `git add .`
 
 ## Key paths
 

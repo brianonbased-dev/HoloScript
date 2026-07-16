@@ -1,8 +1,9 @@
 # Universal Use Boundary
 
-HoloScript is universal at the source and contract layer. That does not mean
-every user should clone the full engine monorepo, edit internals, or run the
-founder/operator workspace.
+HoloScript is a general-purpose semantic systems programming language. Its
+source and contract model is universal; spatial programs are one first-class
+domain. General-purpose does not mean every builder should clone the full engine
+monorepo, edit internals, or run the founder/operator workspace.
 
 The stable product boundary is:
 

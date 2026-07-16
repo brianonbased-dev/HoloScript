@@ -1,5 +1,11 @@
 # ∞.HOLOSCRIPT_LANGUAGE_2026_02_03.md
 
+> **Historical compression, not the current language identity contract.** This February 2026
+> snapshot concentrates on the spatial subset and preserves its original terminology. HoloScript
+> is now canonically defined as a general-purpose semantic systems programming language under
+> active construction. Current identity and acceptance gates:
+> [`../spec/language-identity.md`](../spec/language-identity.md).
+
 **Knowledge Domain**: Spatial Computing Language  
 **Compression Date**: Feb 3, 2026  
 **Source Documents**: 12 files, 5,000+ lines  

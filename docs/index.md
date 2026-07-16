@@ -1,7 +1,7 @@
 ---
 layout: page
-title: HoloScript - The Open Platform for Spatial Worlds
-description: Create with AI. Own what you build. Ship everywhere. HoloScript lets anyone create interactive 3D worlds, sell them on an open marketplace, and deploy autonomous agents. Open source and free forever.
+title: HoloScript - General-Purpose Semantic Systems Programming Language
+description: Program applications, services, runtimes, simulations, agents, devices, and spatial worlds in one semantic systems language. Own the source, execute it directly, and compile it across sovereign and bridge targets.
 ---
 
 <LandingPage />

@@ -1,18 +1,18 @@
 <p align="center">
-  <img src="hero.svg" alt="HoloScript — build your own games and apps, no code, your data stays yours" width="100%">
+  <img src="hero.svg" alt="HoloScript — a general-purpose semantic systems programming language" width="100%">
 </p>
 
 # HoloScript
 
-Build your own games and apps — no coding, no data handed to Big Tech, no lock-in. Describe what you want; HoloScript turns it into a real, running creation you own, and runs it anywhere you need.
+**HoloScript is a general-purpose semantic systems programming language under active construction.** It is intended to program applications, services, runtimes, simulations, agents, devices, and spatial worlds from owned source files. Declarative composition and traits are language mechanisms, not a domain boundary and not a shorthand for "scene DSL."
 
-Anyone can create — and developers, teams, and AI agents build on the same engine. You (or an agent) describe what you want in `.holo`, `.hsplus`, or `.hs` files — screens, scenes, services, data, devices, agent workflows. HoloScript runs those files directly while you iterate, then translates the same source when you need code for a browser, engine, robot, service, or deployment. Because it compiles to your choice of platform, your creation moves with you — no single vendor can lock it in.
+Humans and AI agents write `.holo`, `.hsplus`, or `.hs` programs for screens, scenes, services, data, devices, runtimes, and agent workflows. HoloScript can interpret those programs while they evolve, lower them through its own VM and sovereign backends, or compile bridge artifacts for an external browser, engine, robot, service, or deployment target. The source remains HoloScript; generated C++, TypeScript, Rust, engine code, and interchange formats are outputs rather than the language's ceiling.
 
 Think of it as three practical pieces:
 
-- readable project files for what should exist and how it should behave
-- a runner that can execute those files before you choose a final platform
-- tools that turn the same source into apps, scenes, services, agent tools, and deployment artifacts
+- a programming language whose source preserves semantics, behavior, effects, and constraints
+- runtimes and VMs that execute that source without requiring an external engine
+- compilers that lower the same program into native, sovereign, and compatibility targets
 
 Use this to connect an AI coding agent to HoloScript tools:
 
@@ -37,11 +37,11 @@ Use this to connect an AI coding agent to HoloScript tools:
 
 Full reference: [docs/PUBLIC_ACCESS.md](docs/PUBLIC_ACCESS.md).
 
-## Why teams choose HoloScript
+## Why build systems in HoloScript
 
 HoloScript helps when the same product idea has to show up in too many places: a browser preview, engine export, service API, agent workflow, robotics simulation, internal tool, or digital twin. Instead of burying the idea in framework-specific glue, it keeps the intent in a readable source file that humans can review, agents can edit, and HoloScript can run.
 
-### 1) Describe the thing, not the glue
+### 1) Program semantics, not framework glue
 
 Use `.holo`, `.hsplus`, or `.hs` files to define behavior, data, interfaces, objects, and workflows. Run them directly, then translate them to platform code when that is worth it.
 
@@ -69,7 +69,11 @@ Add production concerns as traits instead of one-off glue:
 
 Start with a dashboard, workflow, agent task, or 3D scene. Add traits and plugins as the work grows, without rewriting the core idea.
 
-HoloScript is not trying to replace every tool in your stack. It keeps the intent portable so each target can still do what it does best.
+HoloScript is intended to occupy the full general-purpose systems-language layer. External engines, operating-system APIs, hardware SDKs, and interchange formats remain useful bridge targets, but they do not define the language. New language power belongs in sovereign parsers, runtimes, VMs, standard libraries, and compiler backends.
+
+### Systems-language bar
+
+The identity is ahead of some implementation layers. HoloScript does not claim systems-language closure merely because it can generate target code. The remaining bar includes an explicit memory and resource model, stable data layout and ABI/FFI contracts, concurrency and effect semantics, native code generation, debugger/profiler support, and progressive self-hosting. Current status belongs in the [language identity contract](docs/spec/language-identity.md) and [spec-versus-reality ledger](docs/spec/spec-vs-reality-gap.md).
 
 ## Who this is for
 

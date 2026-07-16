@@ -1,20 +1,22 @@
 # File Formats
 
-HoloScript has three file formats. Each owns a lane — they are a progression, not alternatives.
+HoloScript is one general-purpose semantic systems programming language with three source
+surfaces. Each currently owns a parser/runtime lane; those lanes are an implementation map, not
+three domain DSLs and not a ceiling on the language.
 
 The simplest mental model:
 
-- `.hs` tells a process story: data comes in, changes shape, gets validated, and goes somewhere useful.
-- `.hsplus` tells a behavior story: objects gain state, traits, actions, events, and agent logic.
-- `.holo` tells a world story: environment, metadata, systems, targets, and orchestration live together.
+- `.hs` tells a logic/process story: computation, data, validation, and headless execution.
+- `.hsplus` tells a behavior/effect story: state, traits, actions, events, agents, and resources.
+- `.holo` tells a whole-system story: programs, environments, metadata, targets, and orchestration live together.
 
 ## Overview
 
 | Extension | Purpose        | Parser                | Best For                            |
 | --------- | -------------- | --------------------- | ----------------------------------- |
-| `.holo`   | Worlds         | HoloCompositionParser | Scenes, compositions, AI generation |
-| `.hsplus` | Behaviors      | HoloScriptPlusParser  | Agent logic, traits, reactive state |
-| `.hs`     | Data Pipelines | PipelineParser        | ETL flows, sync jobs, monitoring    |
+| `.holo`   | Whole-system composition | HoloCompositionParser | Programs spanning environments, targets, services, and embodiment |
+| `.hsplus` | Typed behavior and effects | HoloScriptPlusParser | Agent logic, traits, reactive state, resource policies |
+| `.hs`     | Logic and processes | PipelineParser | Headless logic; pipelines are the strongest current lane |
 
 ## Story-First Examples
 
@@ -140,9 +142,10 @@ Full grammar reference: [pipeline-grammar.md](./pipeline-grammar.md)
 
 ---
 
-## .hsplus — Behaviors
+## .hsplus — Typed Behaviors and Effects
 
-Extended format with VR traits, reactive state, and agent logic.
+Typed behavior surface with traits, reactive state, agent logic, effects, and reusable runtime
+contracts. VR interaction is one library domain, not the surface boundary.
 
 ```hsplus
 @state {
@@ -211,9 +214,10 @@ networked_object syncedPlayer {
 
 ---
 
-## .holo — Worlds
+## .holo — Whole-System Compositions
 
-Declarative scene composition designed for AI generation and spatial computing.
+Whole-system composition surface for binding programs, environments, services, agents, devices,
+deployment targets, and spatial worlds. The example below exercises the spatial subset.
 
 ```holo
 composition "Dispensary" {
@@ -293,6 +297,7 @@ composition "Dispensary" {
 - Complete game levels and worlds
 - Multi-object spatial compositions
 - Scenes that need their own data pipelines
+- Systems that bind agents, services, policies, devices, and deployment targets
 - Cross-platform compilation to registered targets
 
 ---
@@ -301,7 +306,7 @@ composition "Dispensary" {
 
 | Feature          | .hs (Pipelines)      | .hsplus (Behaviors)        | .holo (Worlds)             |
 | ---------------- | -------------------- | -------------------------- | -------------------------- |
-| Mental model     | Data flows           | Reactive agents            | Declarative scenes         |
+| Mental model     | Logic and processes   | Typed behavior and effects | Whole-system composition   |
 | Root block       | `pipeline "Name" {}` | (none)                     | `composition "Name" {}`    |
 | Objects          | ❌                   | `composition name {}`      | `object "name" {}`         |
 | Data source/sink | ✅                   | ❌                         | ✅ (inline pipeline)       |
@@ -332,7 +337,11 @@ All compile from HoloScript to whatever runtime the target needs.
 
 ```
 
-HoloScript is the **intermediate representation**, not the implementation language. It bridges TypeScript (infrastructure), Python (ML/AI), and registered spatial targets from one source of truth.
+HoloScript is the **programming language** and also supplies the semantic intermediate
+representations used by its compilers. TypeScript, Rust, Python, C++, engines, and registered
+targets are bootstrap implementations, foreign interfaces, or generated outputs—not a higher
+"real" implementation layer. The systems-language program progressively moves compiler, runtime,
+standard-library, memory/resource, and native execution responsibilities into HoloScript itself.
 
 ---
 

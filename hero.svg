@@ -1,10 +1,10 @@
 <svg viewBox="0 0 1200 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ht hd">
-<title id="ht">HoloScript — build your own games and apps, no code, your data stays yours</title>
+<title id="ht">HoloScript — general-purpose semantic systems programming language</title>
 <desc id="hd">A single .holo source you own feeds the HoloScript engine and runs anywhere — VR/AR, game engines, robotics, web, science, advanced formats — so your creation is never locked to one vendor.</desc>
 <rect width="1200" height="600" fill="#0C1222"/>
 <rect x="0" y="0" width="1200" height="6" fill="#38BDF8"/>
 <text x="56" y="88" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="54" font-weight="700" fill="#F5F8FF">HoloScript</text>
-<text x="58" y="126" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="22" fill="#9DB0D0">Build your own games and apps — no code, own your data, no lock-in</text>
+<text x="58" y="126" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="22" fill="#9DB0D0">Program systems with semantic source, sovereign runtimes, and no lock-in</text>
 <rect x="56" y="250" width="210" height="140" rx="14" fill="#121C34" stroke="#38BDF8" stroke-width="2"/>
 <text x="161" y="300" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#CFE6FF">one semantic</text>
 <text x="161" y="325" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#CFE6FF">source</text>

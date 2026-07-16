@@ -2,7 +2,7 @@
   "name": "holoscript",
   "version": "6.1.3",
   "private": true,
-  "description": "HoloScript - The open platform for spatial worlds",
+  "description": "HoloScript — a general-purpose semantic systems programming language",
   "license": "MIT",
   "workspaces": [
     "packages/*",
