@@ -47,6 +47,17 @@ export interface RewardFunctionOptions {
   maxLintIssues?: number;
   /** File extension for generated code files */
   fileExtension?: string;
+  /**
+   * File extension for the temp file written specifically for the vitest
+   * test-pass run (testPassReward). Must satisfy vitest's own default
+   * test-file include glob (`**\/*.{test,spec}.?(c|m)[jt]s?(x)`) so the
+   * completion is actually discovered as a test file — a plain `fileExtension`
+   * like '.ts' never matches, so vitest reports numTotalTests: 0 regardless of
+   * the completion's real content. Kept separate from `fileExtension` because
+   * typeCheckReward/lintReward want the real extension (eslint/tsc may apply
+   * relaxed *.test.ts overrides that would skew those signals).
+   */
+  testFileExtension?: string;
   /** Whether to clean up temporary files after evaluation */
   cleanup?: boolean;
   /** Context for the optional provenance-validity (V) reward term */
@@ -152,6 +163,7 @@ const DEFAULT_OPTIONS: Required<Omit<RewardFunctionOptions, TermContextKeys>> = 
   timeout: 30_000,
   maxLintIssues: 20,
   fileExtension: '.ts',
+  testFileExtension: '.test.ts',
   cleanup: true,
 };
 
@@ -233,7 +245,12 @@ export function createGRPORewardFunctions(runner: RewardToolRunner) {
 
     for (const completion of completions) {
       const eval_ = await evaluateWithTimeout(async (): Promise<number> => {
-        const filePath = await runner.writeTempFile(completion, opts.fileExtension);
+        // Use testFileExtension (default '.test.ts'), NOT fileExtension: vitest's
+        // CLI filters positional path args against its own test-file include glob,
+        // so a file named 'completion.ts' never matches and numTotalTests is
+        // always 0 regardless of the completion's actual content (see doc comment
+        // on RewardFunctionOptions.testFileExtension).
+        const filePath = await runner.writeTempFile(completion, opts.testFileExtension);
         try {
           const result = await runner.runVitest(filePath, { timeout: opts.timeout });
           if (result.total === 0) return 0;

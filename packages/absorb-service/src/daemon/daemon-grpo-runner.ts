@@ -90,7 +90,33 @@ export interface DaemonGRPOResult {
 // REAL TOOL RUNNER (reuses same implementation as MCP tool)
 // =============================================================================
 
-const realToolRunner: RewardToolRunner = {
+/**
+ * A vitest config injected into the reward temp dir, isolated from whatever
+ * package the daemon happens to be running from. Without this, `npx vitest`
+ * walks up from the temp dir's cwd and picks up the nearest ancestor
+ * vitest.config.ts (e.g. absorb-service's own, which restricts `include` to
+ * `src/**` / `src/__tests__/**`) — a completion temp file living outside that
+ * tree is invisible to vitest no matter what it's named. This config's
+ * permissive `include` matches vitest's own default test-file glob so a
+ * `*.test.ts` / `*.spec.ts` completion is always discovered when the CLI is
+ * pointed at it via `--config` + `--root` (see realToolRunner.runVitest).
+ */
+const EPHEMERAL_VITEST_CONFIG = `export default {
+  test: {
+    globals: true,
+    environment: 'node',
+    include: ['**/*.test.ts', '**/*.spec.ts'],
+    passWithNoTests: false,
+  },
+};
+`;
+
+// Exported (not just module-private) so tests can exercise the REAL
+// implementation end-to-end (real vitest subprocess, real temp files)
+// instead of re-deriving a second hand-rolled copy that could silently
+// diverge from the fix — see GRPORewardFunctions.test.ts's
+// 'real (non-mocked) tool runner' suite.
+export const realToolRunner: RewardToolRunner = {
   async writeTempFile(content: string, extension: string): Promise<string> {
     const tmpDir = fs.mkdtempSync(path.join(process.cwd(), '.grpo-tmp-'));
     const filePath = path.join(tmpDir, `completion${extension}`);
@@ -100,13 +126,12 @@ const realToolRunner: RewardToolRunner = {
 
   async deleteTempFile(filePath: string): Promise<void> {
     try {
+      // Recursive removal (not unlink+rmdir): the vitest run may have left an
+      // ephemeral vitest.config.mjs and/or a .vite cache dir alongside the
+      // completion file — a plain rmdir would silently no-op on a non-empty
+      // dir and leak temp dirs.
       const dir = path.dirname(filePath);
-      await fs.promises.unlink(filePath);
-      try {
-        await fs.promises.rmdir(dir);
-      } catch {
-        // Directory not empty or other error — that's fine
-      }
+      await fs.promises.rm(dir, { recursive: true, force: true });
     } catch {
       // Best effort cleanup
     }
@@ -118,8 +143,15 @@ const realToolRunner: RewardToolRunner = {
   ): Promise<{ passed: number; total: number; coveragePercent?: number; output: string }> {
     const timeout = options?.timeout ?? 30_000;
     const workDir = path.dirname(filePath);
+    const configPath = path.join(workDir, 'vitest.config.mjs');
     try {
-      const cmd = `npx vitest run --reporter=json "${filePath}" 2>&1`;
+      fs.writeFileSync(configPath, EPHEMERAL_VITEST_CONFIG, 'utf-8');
+    } catch {
+      // Best effort — if this fails, fall through to the (broken) ancestor
+      // config rather than crash the whole reward evaluation.
+    }
+    try {
+      const cmd = `npx vitest run --reporter=json --root "${workDir}" --config "${configPath}" "${filePath}" 2>&1`;
       const { stdout, stderr } = await execAsync(cmd, {
         cwd: workDir,
         timeout,
@@ -142,8 +174,29 @@ const realToolRunner: RewardToolRunner = {
       }
       return { passed: 0, total: 0, output: output.slice(0, 2000) };
     } catch (e: unknown) {
+      // `vitest run` exits non-zero whenever ANY test in the file fails —
+      // not just on a crash — so this branch is hit for every completion
+      // with a partial pass rate, not only total failures. execAsync still
+      // captures stdout/stderr on a rejected exec, and the JSON reporter's
+      // output (with the real passed/total counts) is in there; parse it
+      // the same way the try branch does instead of discarding it wholesale
+      // (which previously collapsed every partial-pass completion to 0/0).
       const execErr = e as { stdout?: string; stderr?: string };
       const output = (execErr.stdout ?? '') + (execErr.stderr ?? '');
+      const jsonMatch = output.match(/\{[\s\S]*"numTotalTests"[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          const result = JSON.parse(jsonMatch[0]);
+          return {
+            passed: result.numPassedTests ?? 0,
+            total: result.numTotalTests ?? 0,
+            coveragePercent: result.coveragePercent,
+            output: output.slice(0, 1000),
+          };
+        } catch {
+          // JSON parse failed — fall through to the zeroed result below.
+        }
+      }
       return { passed: 0, total: 0, output: output.slice(0, 1000) };
     }
   },

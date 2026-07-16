@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { RewardToolRunner } from '../GRPORewardFunctions';
 import { createGRPORewardFunctions, GRPO_REWARD_WEIGHTS } from '../GRPORewardFunctions';
+// Real (non-mocked) tool runner — the actual production implementation that
+// shells out to a real `npx vitest` subprocess. Imported (not re-derived)
+// so this test exercises the FIX itself rather than a second hand-rolled
+// copy that could silently diverge from it.
+import { realToolRunner } from '../../daemon/daemon-grpo-runner';
 
 // =============================================================================
 // MOCK TOOL RUNNER
@@ -151,7 +156,10 @@ describe('GRPORewardFunctions', () => {
 
       await fns.testPassReward(['code'], { cleanup: true });
 
-      expect(runner.writeTempFile).toHaveBeenCalledWith('code', '.ts');
+      // testPassReward must write a vitest-discoverable filename ('.test.ts'
+      // by default), NOT the generic fileExtension ('.ts') used by
+      // typeCheck/lint — see RewardFunctionOptions.testFileExtension.
+      expect(runner.writeTempFile).toHaveBeenCalledWith('code', '.test.ts');
       expect(runner.deleteTempFile).toHaveBeenCalledWith('/tmp/test-file.ts');
     });
 
@@ -198,6 +206,76 @@ describe('GRPORewardFunctions', () => {
       const rewards = await fns.testPassReward(['code']);
       expect(rewards[0]).toBeLessThanOrEqual(1.0);
     });
+  });
+
+  // ---------------------------------------------------------------------------
+  // testPassReward — REAL (non-mocked) tool runner
+  //
+  // Regression test for the bug where testPassReward always scored 0: the
+  // mocked-runner suite above can't catch this because it never actually
+  // shells out to vitest, so it never observed vitest's CLI filtering a
+  // positional path arg against its own test-file include glob. This suite
+  // uses the real production `realToolRunner` (real temp files, real `npx
+  // vitest` subprocess) end-to-end.
+  // ---------------------------------------------------------------------------
+
+  describe('testPassReward (real, non-mocked tool runner)', () => {
+    const fns = createGRPORewardFunctions(realToolRunner);
+
+    it('returns a nonzero reward for a completion with a genuinely passing test', async () => {
+      const passingCompletion = `
+import { describe, it, expect } from 'vitest';
+
+describe('genuinely passing completion', () => {
+  it('adds numbers correctly', () => {
+    expect(1 + 1).toBe(2);
+  });
+});
+`;
+
+      const rewards = await fns.testPassReward([passingCompletion], { timeout: 45_000 });
+
+      expect(rewards).toHaveLength(1);
+      expect(rewards[0]).toBeGreaterThan(0);
+      expect(rewards[0]).toBe(1.0);
+    }, 60_000);
+
+    it('returns 0/low for a completion with a genuinely failing test (not just flipped to always-pass)', async () => {
+      const failingCompletion = `
+import { describe, it, expect } from 'vitest';
+
+describe('genuinely failing completion', () => {
+  it('asserts something false', () => {
+    expect(1 + 1).toBe(3);
+  });
+});
+`;
+
+      const rewards = await fns.testPassReward([failingCompletion], { timeout: 45_000 });
+
+      expect(rewards).toHaveLength(1);
+      expect(rewards[0]).toBe(0);
+    }, 60_000);
+
+    it('returns a partial reward when some tests in the completion pass and some fail', async () => {
+      const mixedCompletion = `
+import { describe, it, expect } from 'vitest';
+
+describe('mixed completion', () => {
+  it('passes', () => {
+    expect(2 + 2).toBe(4);
+  });
+  it('fails', () => {
+    expect(2 + 2).toBe(5);
+  });
+});
+`;
+
+      const rewards = await fns.testPassReward([mixedCompletion], { timeout: 45_000 });
+
+      expect(rewards).toHaveLength(1);
+      expect(rewards[0]).toBeCloseTo(0.5, 4);
+    }, 60_000);
   });
 
   // ---------------------------------------------------------------------------
