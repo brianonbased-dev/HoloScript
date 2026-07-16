@@ -78,12 +78,16 @@ export function deriveUrdfPerception(artifact: string): PerceiverDerivation {
    * WORLD position of a link = the sum of joint origins walking child → parent
    * → … → base_link (3e: spatial groups chain placements — reading a nested
    * link's local origin as world was a shared-blind-spot false consensus).
-   * Convention note: THIS compiler echoes each link's local joint origin into
-   * its visual origin, so the visual origin is NOT additive placement — the
-   * chain sum alone is the world position (the echo-vs-ROS-semantics question
-   * is filed as its own canary task, not decided here). Returns null when any
-   * chain joint carries a non-zero rpy (rotation composition out of scope —
-   * abstain rather than emit a wrong world fact) or on a malformed chain.
+   * This matches true URDF/ROS semantics directly: a link's own frame IS its
+   * parent joint's target frame, so the joint-origin chain alone carries
+   * placement. The <visual>/<collision> origin is a LOCAL offset of the
+   * geometry within that link frame (e.g. a mesh asset's authored origin),
+   * never a second copy of the link's placement — this compiler emits it as
+   * identity absent a distinct local-offset field (task_1783682255746_2had
+   * fixed the prior double-placement bug where it echoed the joint origin).
+   * Returns null when any chain joint carries a non-zero rpy (rotation
+   * composition out of scope — abstain rather than emit a wrong world fact)
+   * or on a malformed chain.
    */
   function worldChainOrigin(link: string): number[] | null {
     const sum = [0, 0, 0];
@@ -143,7 +147,8 @@ export function deriveUrdfPerception(artifact: string): PerceiverDerivation {
     //   revolute/continuous  → rotation about an axis through the joint origin
     //                          preserves distance from it: radius = extent
     //                          (the visual center coincides with the joint
-    //                          origin under this compiler's echo convention).
+    //                          origin: the link frame IS the joint frame, and
+    //                          the visual origin within it is identity).
     //   prismatic            → translation within [lower,upper] along an axis:
     //                          radius = extent + max(|lower|,|upper|)
     //                          (sphere over the swept segment; limits required —

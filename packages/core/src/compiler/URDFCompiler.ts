@@ -861,12 +861,20 @@ export class URDFCompiler extends CompilerBase {
       });
     }
 
-    // Create link
+    // Create link. `link.origin` feeds ONLY the <visual>/<collision> origin —
+    // per URDF semantics that is a LOCAL offset of the geometry within the
+    // link/joint frame (e.g. an authored mesh whose origin doesn't coincide
+    // with the link's logical pivot), never a second copy of the link's
+    // placement. The joint below already carries the object's actual
+    // position/rotation; echoing it here as well double-places every link
+    // for real ROS/Gazebo/RViz/MoveIt consumers (task_1783682255746_2had).
+    // HoloScript objects don't currently express a distinct local mesh
+    // offset, so this is identity until such a field exists.
     const link: URDFLink = {
       name: linkName,
       origin: {
-        xyz: position,
-        rpy: rotation,
+        xyz: [0, 0, 0],
+        rpy: [0, 0, 0],
       },
     };
 
