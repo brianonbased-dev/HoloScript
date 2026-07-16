@@ -4,6 +4,9 @@
  * one policy for HoloClaw, the fleet supervisor, and Brittney.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { resolveSovereignProvider, resolveSovereignProviderAsync } from '../sovereign-resolver';
 import { __clearLocalModelPickerCache } from '../local-model-picker';
 import { BrittneyCloudAdapter } from '../adapters/brittney-cloud';
@@ -40,6 +43,8 @@ const ENV_KEYS = [
   'HOLOSERVE_URL',
   'HOLOSERVE_ENDPOINT',
   'HOLOSERVE_MODEL',
+  'HOLOSERVE_PARITY_PINS',
+  'HOLOSERVE_PARITY_REGISTRY',
   'OLLAMA_HOST',
   'OLLAMA_BASE_URL',
   'OLLAMA_URL',
@@ -357,5 +362,91 @@ describe('resolveSovereignProviderAsync — HoloServe sovereignty gate (D.118/W.
       })
     );
     await expect(resolveSovereignProviderAsync()).rejects.toThrow(/unreachable.*holoserve\.py/s);
+  });
+});
+
+describe('per-model HoloServe parity pin (dependency-sovereignty-ladder, 2026-07-16)', () => {
+  let registryDir: string | null = null;
+
+  afterEach(() => {
+    if (registryDir) {
+      rmSync(registryDir, { recursive: true, force: true });
+      registryDir = null;
+    }
+  });
+
+  function writeRegistry(pins: Record<string, { verdict: string }>): string {
+    registryDir = mkdtempSync(join(tmpdir(), 'holoserve-parity-'));
+    const path = join(registryDir, 'pinned-models.json');
+    writeFileSync(
+      path,
+      JSON.stringify({ schema: 'holoserve-parity-pin-registry/v0', pins }, null, 2)
+    );
+    return path;
+  }
+
+  it('a model pinned via HOLOSERVE_PARITY_PINS resolves to holoserve even when HoloLlama is configured', () => {
+    vi.stubEnv('HOLOSERVE_PARITY_PINS', 'brittney-edge-v0-5');
+    vi.stubEnv('HOLOLLAMA_URL', 'http://box:18080');
+    vi.stubEnv('HOLO_LLM_MODEL', 'brittney-edge-v0-5');
+    const r = resolveSovereignProvider();
+    expect(r.providerName).toBe('holoserve');
+    expect(r.provider).toBeInstanceOf(LocalLLMAdapter);
+    expect(r.model).toBe('brittney-edge-v0-5');
+  });
+
+  it("explicit 'holollama' cannot reach llama-server for a pinned model (the strangler ruling)", () => {
+    vi.stubEnv('HOLOSERVE_PARITY_PINS', 'holorunner-s0-custody');
+    const r = resolveSovereignProvider({ explicit: 'holollama', model: 'holorunner-s0-custody' });
+    expect(r.providerName).toBe('holoserve');
+    expect(r.model).toBe('holorunner-s0-custody');
+  });
+
+  it('pins apply on the TERMINAL HoloLlama default path too (nothing else configured)', () => {
+    vi.stubEnv('HOLOSERVE_PARITY_PINS', 'pinned-model');
+    vi.stubEnv('HOLO_LLM_MODEL', 'pinned-model');
+    const r = resolveSovereignProvider();
+    expect(r.providerName).toBe('holoserve');
+  });
+
+  it('a model WITHOUT a receipt keeps behavior exactly unchanged (fail-open)', () => {
+    vi.stubEnv('HOLOSERVE_PARITY_PINS', 'some-other-model');
+    vi.stubEnv('HOLOLLAMA_URL', 'http://box:18080');
+    vi.stubEnv('HOLO_LLM_MODEL', 'unpinned-model');
+    const r = resolveSovereignProvider();
+    expect(r.providerName).toBe('holollama');
+    expect(r.model).toBe('unpinned-model');
+  });
+
+  it('registry file: verdict "pass" pins, any other verdict does not', () => {
+    const path = writeRegistry({
+      'model-pass': { verdict: 'pass' },
+      'model-fail': { verdict: 'fail' },
+    });
+    vi.stubEnv('HOLOSERVE_PARITY_REGISTRY', path);
+    expect(resolveSovereignProvider({ explicit: 'holollama', model: 'model-pass' }).providerName).toBe(
+      'holoserve'
+    );
+    expect(resolveSovereignProvider({ explicit: 'holollama', model: 'model-fail' }).providerName).toBe(
+      'holollama'
+    );
+  });
+
+  it('a missing or unreadable registry file pins NOTHING (fail-open, never throws)', () => {
+    vi.stubEnv('HOLOSERVE_PARITY_REGISTRY', join(tmpdir(), 'does-not-exist', 'registry.json'));
+    const r = resolveSovereignProvider({ explicit: 'holollama', model: 'model-pass' });
+    expect(r.providerName).toBe('holollama');
+  });
+
+  it('async resolution of a pinned model still enforces the HoloServe sovereignty invariant', async () => {
+    vi.stubEnv('HOLOSERVE_PARITY_PINS', 'pinned-model');
+    vi.stubEnv('HOLO_LLM_MODEL', 'pinned-model');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ json: async () => ({ sovereign: true, llama_cpp: false, gguf: false }) }))
+    );
+    const r = await resolveSovereignProviderAsync();
+    expect(r.providerName).toBe('holoserve');
+    expect(r.model).toBe('pinned-model');
   });
 });

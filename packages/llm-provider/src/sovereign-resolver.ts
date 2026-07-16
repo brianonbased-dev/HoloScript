@@ -29,8 +29,13 @@
  *   HOLO_LLM_FLEET_MODEL | BRITTNEY_FLEET_MODEL   fleet model
  *   VAST_API_KEY                                  Vast route + worker bearer
  *   ANTHROPIC_API_KEY / XAI_API_KEY / OPENAI_API_KEY  BYOK fallbacks
+ *   HOLOSERVE_PARITY_PINS                         inline comma-separated pinned models
+ *   HOLOSERVE_PARITY_REGISTRY                     path to the parity pin registry JSON
+ *                                                 (maintained by ai-ecosystem
+ *                                                 scripts/holoserve-llamaserver-parity-receipt.mjs)
  */
 
+import { readFileSync } from 'node:fs';
 import type { ILLMProvider } from './types';
 import { OLLAMA_DEFAULT_BASE_URL, pickLocalModel } from './local-model-picker';
 import { FLEET_DEFAULT_MODEL, LOCAL_DEFAULT_MODEL } from './model-policy';
@@ -71,6 +76,49 @@ const HOLOLLAMA_DEFAULT_URL = 'http://127.0.0.1:18080';
  */
 const HOLOSERVE_DEFAULT_URL = 'http://127.0.0.1:8099';
 const HOLOSERVE_DEFAULT_MODEL = 'holorunner-s0';
+
+/**
+ * Per-model HoloServe pin — the dependency-sovereignty-ladder strangler
+ * (ratified 2026-07-16). D.118 retires llama.cpp PER MODEL, not by fiat: a model
+ * with a PASSING HoloServe↔llama-server parity receipt is PINNED to HoloServe
+ * (the llama-server lane becomes unreachable for it); a model WITHOUT a receipt
+ * keeps exactly the current behavior (fail-open).
+ *
+ * Pin sources (both fail-open — unset/missing/corrupt input pins NOTHING):
+ *   HOLOSERVE_PARITY_PINS      comma-separated model names (deployment/inline)
+ *   HOLOSERVE_PARITY_REGISTRY  path to the pin-registry JSON maintained by
+ *                              ai-ecosystem scripts/holoserve-llamaserver-parity-receipt.mjs
+ *                              ({ pins: { "<model>": { verdict: "pass", ... } } });
+ *                              only entries with verdict === 'pass' pin.
+ *
+ * Read fresh on every resolution (resolution is per-provider-construction, not
+ * per-token) so a receipt landing or being revoked takes effect without a restart.
+ */
+function holoServeParityPins(): ReadonlySet<string> {
+  const pins = new Set<string>();
+  const inline = env('HOLOSERVE_PARITY_PINS');
+  if (inline) {
+    for (const entry of inline.split(',')) {
+      const trimmed = entry.trim();
+      if (trimmed) pins.add(trimmed);
+    }
+  }
+  const registryPath = env('HOLOSERVE_PARITY_REGISTRY');
+  if (registryPath) {
+    try {
+      const parsed: unknown = JSON.parse(readFileSync(registryPath, 'utf-8'));
+      const registry = (parsed && typeof parsed === 'object' ? parsed : {}) as {
+        pins?: Record<string, { verdict?: unknown }>;
+      };
+      for (const [model, entry] of Object.entries(registry.pins ?? {})) {
+        if (entry && typeof entry === 'object' && entry.verdict === 'pass') pins.add(model);
+      }
+    } catch {
+      /* fail-open: an unreadable registry pins nothing — behavior unchanged */
+    }
+  }
+  return pins;
+}
 
 export interface ResolvedSovereignProvider {
   provider: ILLMProvider;
@@ -375,12 +423,18 @@ function resolveHoloLlama(
   baseUrlOverride: string | undefined,
   opts: SovereignResolveOptions
 ): ResolvedSovereignProvider {
+  const model = modelOverride(opts) || OLLAMA_DEFAULT_MODEL;
+  // Per-model strangler pin (2026-07-16 ruling): a model with a PASSING parity
+  // receipt resolves ONLY to HoloServe — llama-server is unreachable for it.
+  // Unpinned models fall through to the unchanged HoloLlama resolution below.
+  if (holoServeParityPins().has(model)) {
+    return resolveHoloServe(undefined, { ...opts, model });
+  }
   const baseURL = (
     baseUrlOverride ||
     env('HOLOLLAMA_URL', 'HOLOLLAMA_ENDPOINT') ||
     HOLOLLAMA_DEFAULT_URL
   ).replace(/\/+$/, '');
-  const model = modelOverride(opts) || OLLAMA_DEFAULT_MODEL;
   const provider = new LocalLLMAdapter({
     baseURL,
     model,
