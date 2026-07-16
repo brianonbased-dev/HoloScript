@@ -145,7 +145,7 @@ exports[`Compiler golden-output regression > URDF: canonical scene → URDF XML 
 
   <link name="hero">
     <visual>
-      <origin xyz="0 1.6 0" rpy="0.000000 0.000000 0.000000"/>
+      <origin xyz="0 0 0" rpy="0.000000 0.000000 0.000000"/>
       <geometry>
         <box size="1 1 1"/>
       </geometry>
@@ -173,7 +173,7 @@ exports[`Compiler golden-output regression > URDF: canonical scene → URDF XML 
 
   <link name="collectible">
     <visual>
-      <origin xyz="2 1 -3" rpy="0.000000 0.000000 0.000000"/>
+      <origin xyz="0 0 0" rpy="0.000000 0.000000 0.000000"/>
       <geometry>
         <sphere radius="0.5"/>
       </geometry>

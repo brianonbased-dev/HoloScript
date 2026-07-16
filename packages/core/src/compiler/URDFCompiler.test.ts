@@ -54,6 +54,35 @@ describe('URDFCompiler', () => {
     } as HoloObjectDecl;
   }
 
+  // Helper to pull the <origin xyz="..." rpy="..."/> out of a specific element
+  // block (a <visual>, <collision>, or <joint>...) so tests can distinguish
+  // the LINK-local visual/collision origin from the JOINT placement origin,
+  // instead of matching either indiscriminately (task_1783682255746_2had).
+  function extractOrigin(block: string | null): { xyz: string; rpy: string } | null {
+    if (!block) return null;
+    const m = /<origin xyz="([^"]+)" rpy="([^"]+)"\/>/.exec(block);
+    return m ? { xyz: m[1], rpy: m[2] } : null;
+  }
+
+  function getVisualBlock(urdf: string, linkName: string): string | null {
+    const link = new RegExp(`<link name="${linkName}">([\\s\\S]*?)</link>`).exec(urdf);
+    if (!link) return null;
+    return /<visual>([\s\S]*?)<\/visual>/.exec(link[1])?.[1] ?? null;
+  }
+
+  function getCollisionBlock(urdf: string, linkName: string): string | null {
+    const link = new RegExp(`<link name="${linkName}">([\\s\\S]*?)</link>`).exec(urdf);
+    if (!link) return null;
+    return /<collision>([\s\S]*?)<\/collision>/.exec(link[1])?.[1] ?? null;
+  }
+
+  function getJointBlock(urdf: string, childLinkName: string): string | null {
+    const joint = new RegExp(
+      `<joint name="[^"]*" type="[^"]*">([\\s\\S]*?<child link="${childLinkName}"\\/>[\\s\\S]*?)<\\/joint>`
+    ).exec(urdf);
+    return joint ? joint[1] : null;
+  }
+
   describe('Basic Compilation', () => {
     it('should generate valid URDF XML structure', () => {
       const composition = createComposition();
@@ -335,6 +364,69 @@ describe('URDFCompiler', () => {
       const urdf = compiler.compile(composition);
 
       expect(urdf).toContain('<origin xyz="0 0 0"');
+    });
+
+    // =========================================================================
+    // Regression: URDFCompiler must NOT double-place links by echoing the
+    // object's position/rotation into BOTH the parent joint's origin AND the
+    // link's <visual>/<collision> origin. Under true URDF/ROS semantics the
+    // link frame sits at the joint origin, and the visual/collision origin is
+    // a LOCAL offset within that frame — a real ROS consumer (RViz/Gazebo/
+    // MoveIt) sums joint + visual, so double-emission places every link twice
+    // as far from the origin as intended. See task_1783682255746_2had.
+    // =========================================================================
+    it('carries a nonzero position on the JOINT only — visual/collision origin stays identity', () => {
+      const composition = createComposition({
+        objects: [
+          createObject({
+            name: 'HandleBot',
+            properties: [
+              { key: 'geometry', value: 'cube' },
+              { key: 'position', value: [1, 2, 3] },
+            ],
+            traits: ['collidable'],
+          }),
+        ],
+      });
+      const urdf = compiler.compile(composition);
+
+      const jointOrigin = extractOrigin(getJointBlock(urdf, 'handlebot'));
+      const visualOrigin = extractOrigin(getVisualBlock(urdf, 'handlebot'));
+      const collisionOrigin = extractOrigin(getCollisionBlock(urdf, 'handlebot'));
+
+      // The joint alone carries the real placement...
+      expect(jointOrigin?.xyz).toBe('1 2 3');
+      // ...and the visual/collision origin — the geometry's LOCAL offset
+      // within the link frame — must be identity, not a duplicate of it.
+      expect(visualOrigin?.xyz).toBe('0 0 0');
+      expect(collisionOrigin?.xyz).toBe('0 0 0');
+      // Explicit double-placement guard: visual/collision must never equal
+      // the joint's nonzero translation (the exact bug this regression
+      // covers — a real ROS consumer would place the mesh at joint+visual).
+      expect(visualOrigin?.xyz).not.toBe(jointOrigin?.xyz);
+      expect(collisionOrigin?.xyz).not.toBe(jointOrigin?.xyz);
+    });
+
+    it('carries a nonzero rotation on the JOINT only — visual origin rpy stays identity', () => {
+      const composition = createComposition({
+        objects: [
+          createObject({
+            name: 'RotatedHandle',
+            properties: [
+              { key: 'geometry', value: 'cube' },
+              { key: 'rotation', value: [90, 0, 0] },
+            ],
+          }),
+        ],
+      });
+      const urdf = compiler.compile(composition);
+
+      const jointOrigin = extractOrigin(getJointBlock(urdf, 'rotatedhandle'));
+      const visualOrigin = extractOrigin(getVisualBlock(urdf, 'rotatedhandle'));
+
+      expect(jointOrigin?.rpy).toMatch(/^1\.5707\d*/);
+      expect(visualOrigin?.rpy).toBe('0.000000 0.000000 0.000000');
+      expect(visualOrigin?.rpy).not.toBe(jointOrigin?.rpy);
     });
   });
 

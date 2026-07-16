@@ -188,6 +188,34 @@ describe('URDFCompiler', () => {
     expect(xml).toContain('3.5');
   });
 
+  // Regression: the joint carries placement; the link's <visual> origin must
+  // stay identity rather than duplicating it (double-placement bug,
+  // task_1783682255746_2had — a real ROS consumer sums joint + visual).
+  it('does not duplicate object position into the visual origin', () => {
+    const comp = makeComposition({
+      objects: [
+        {
+          name: 'item',
+          properties: [
+            { key: 'geometry', value: 'box' },
+            { key: 'position', value: [1.5, 2.5, 3.5] },
+          ],
+          traits: [],
+        },
+      ] as any,
+    });
+    const xml = compiler.compile(comp, 'test-token');
+    const linkBlock = /<link name="item">([\s\S]*?)<\/link>/.exec(xml)?.[1] ?? '';
+    const visualBlock = /<visual>([\s\S]*?)<\/visual>/.exec(linkBlock)?.[1] ?? '';
+    const visualOrigin = /<origin xyz="([^"]+)"/.exec(visualBlock)?.[1];
+    const jointBlock = /<joint[^>]*>([\s\S]*?<child link="item"\/>[\s\S]*?)<\/joint>/.exec(xml)?.[1] ?? '';
+    const jointOrigin = /<origin xyz="([^"]+)"/.exec(jointBlock)?.[1];
+
+    expect(jointOrigin).toBe('1.5 2.5 3.5');
+    expect(visualOrigin).toBe('0 0 0');
+    expect(visualOrigin).not.toBe(jointOrigin);
+  });
+
   // =========== Joints ===========
 
   it('creates fixed joint connecting object to parent', () => {
