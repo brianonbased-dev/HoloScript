@@ -42,6 +42,7 @@ import {
   humanBenefitReward,
 } from './BeneficiaryRewards';
 import type { BeneficiaryComposeConfig, BeneficiaryReceipt } from './BeneficiaryRewards';
+import { uaalResolutionReward } from './UAALResolutionRewards';
 
 // =============================================================================
 // TYPES
@@ -60,6 +61,8 @@ export interface GRPOOrchestratorConfig {
     provenanceValidityReward?: number;
     /** Weight for the faithful-calibration (Z_m) term. Requires enableFaithfulCalibration. */
     faithfulCalibrationReward?: number;
+    /** Weight for the uAAL-resolution disposition term. Requires enableUaalResolution. */
+    uaalResolutionReward?: number;
   };
   /**
    * Enable the provenance-validity (V) reward term. Default: false.
@@ -73,6 +76,16 @@ export interface GRPOOrchestratorConfig {
    * full weight set (base 5 + enabled extras) must sum to 1.0.
    */
   enableFaithfulCalibration?: boolean;
+  /**
+   * Enable the uAAL-resolution disposition reward term (B2). Default: false —
+   * this is the reward-layer pass's flag-gated, off-by-default registration.
+   * When enabled, weights.uaalResolutionReward must be provided and the full
+   * weight set (base 5 + enabled extras) must sum to 1.0. Gold is computed
+   * IN-TERM via the imported verifier-of-record (`gradeByResolver`); the
+   * caller only supplies the oracle IR per completion via
+   * `kwargs.uaalResolution`.
+   */
+  enableUaalResolution?: boolean;
   /**
    * Enable the multi-beneficiary HOLARCHY composition. When set (non-null) the
    * composite reward is NO LONGER the flat weighted sum: R_self (the existing
@@ -178,6 +191,7 @@ const DEFAULT_CONFIG: Required<GRPOOrchestratorConfig> = {
   cacheEnabled: true,
   enableProvenanceValidity: false,
   enableFaithfulCalibration: false,
+  enableUaalResolution: false,
   beneficiaryHolarchy: null,
 };
 
@@ -185,6 +199,7 @@ const DEFAULT_CONFIG: Required<GRPOOrchestratorConfig> = {
 type ResolvedWeights = { [K in keyof typeof GRPO_REWARD_WEIGHTS]: number } & {
   provenanceValidityReward: number;
   faithfulCalibrationReward: number;
+  uaalResolutionReward: number;
 };
 
 // =============================================================================
@@ -232,6 +247,14 @@ export class GRPORewardOrchestrator {
     if (!this.config.enableFaithfulCalibration && (w.faithfulCalibrationReward ?? 0) !== 0) {
       throw new Error('weights.faithfulCalibrationReward requires enableFaithfulCalibration: true');
     }
+    if (this.config.enableUaalResolution && w.uaalResolutionReward === undefined) {
+      throw new Error(
+        'enableUaalResolution requires weights.uaalResolutionReward (full set must sum to 1.0)'
+      );
+    }
+    if (!this.config.enableUaalResolution && (w.uaalResolutionReward ?? 0) !== 0) {
+      throw new Error('weights.uaalResolutionReward requires enableUaalResolution: true');
+    }
 
     // Validate weights sum to 1.0
     this.resolvedWeights = {
@@ -245,6 +268,9 @@ export class GRPORewardOrchestrator {
         : 0,
       faithfulCalibrationReward: this.config.enableFaithfulCalibration
         ? (w.faithfulCalibrationReward as number)
+        : 0,
+      uaalResolutionReward: this.config.enableUaalResolution
+        ? (w.uaalResolutionReward as number)
         : 0,
     };
 
@@ -271,6 +297,7 @@ export class GRPORewardOrchestrator {
     ];
     if (this.config.enableProvenanceValidity) fnNames.push('provenanceValidityReward');
     if (this.config.enableFaithfulCalibration) fnNames.push('faithfulCalibrationReward');
+    if (this.config.enableUaalResolution) fnNames.push('uaalResolutionReward');
     if (this.config.beneficiaryHolarchy) fnNames.push('agentBenefitReward', 'humanBenefitReward');
     for (const name of fnNames) {
       this.stats.set(name, createEmptyStats());
@@ -288,6 +315,7 @@ export class GRPORewardOrchestrator {
       this.config.cacheEnabled &&
       !this.config.enableProvenanceValidity &&
       !this.config.enableFaithfulCalibration &&
+      !this.config.enableUaalResolution &&
       !this.config.beneficiaryHolarchy
     );
   }
@@ -382,6 +410,13 @@ export class GRPORewardOrchestrator {
         name: 'faithfulCalibrationReward',
         fn: faithfulCalibrationReward,
         weight: this.resolvedWeights.faithfulCalibrationReward,
+      });
+    }
+    if (this.config.enableUaalResolution) {
+      rewardEntries.push({
+        name: 'uaalResolutionReward',
+        fn: uaalResolutionReward,
+        weight: this.resolvedWeights.uaalResolutionReward,
       });
     }
     // Holarchy mode runs the two beneficiary terms at weight 0 — they produce the
@@ -553,6 +588,7 @@ export class GRPORewardOrchestrator {
     ];
     if (this.config.enableProvenanceValidity) fns.push(provenanceValidityReward);
     if (this.config.enableFaithfulCalibration) fns.push(faithfulCalibrationReward);
+    if (this.config.enableUaalResolution) fns.push(uaalResolutionReward);
     if (this.config.beneficiaryHolarchy) fns.push(agentBenefitReward, humanBenefitReward);
     return fns;
   }
@@ -608,13 +644,19 @@ export class GRPORewardOrchestrator {
   getWeights(): { [K in keyof typeof GRPO_REWARD_WEIGHTS]: number } & {
     provenanceValidityReward?: number;
     faithfulCalibrationReward?: number;
+    uaalResolutionReward?: number;
   } {
-    const { provenanceValidityReward: pv, faithfulCalibrationReward: fc, ...base } =
-      this.resolvedWeights;
+    const {
+      provenanceValidityReward: pv,
+      faithfulCalibrationReward: fc,
+      uaalResolutionReward: ur,
+      ...base
+    } = this.resolvedWeights;
     return {
       ...base,
       ...(this.config.enableProvenanceValidity ? { provenanceValidityReward: pv } : {}),
       ...(this.config.enableFaithfulCalibration ? { faithfulCalibrationReward: fc } : {}),
+      ...(this.config.enableUaalResolution ? { uaalResolutionReward: ur } : {}),
     };
   }
 

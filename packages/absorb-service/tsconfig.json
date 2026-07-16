@@ -23,7 +23,8 @@
       "@holoscript/core": ["../core/dist/index.d.ts"],
       "@holoscript/core/runtime": ["../core/dist/runtime.d.ts"],
       "@holoscript/core/traits": ["../core/dist/traits/index.d.ts"],
-      "@holoscript/core/scripting": ["../core/dist/entries/scripting.d.ts"]
+      "@holoscript/core/scripting": ["../core/dist/entries/scripting.d.ts"],
+      "@holoscript/uaal": ["../uaal/dist/index.d.ts"]
     }
   },
   "include": ["src/**/*"],

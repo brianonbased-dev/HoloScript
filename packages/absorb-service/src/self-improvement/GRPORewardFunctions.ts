@@ -35,6 +35,7 @@ import type {
   AgentBenefitRewardContext,
   HumanBenefitRewardContext,
 } from './BeneficiaryRewards';
+import type { UAALResolutionRewardContext } from './UAALResolutionRewards';
 
 /** Options passed to reward functions via kwargs */
 export interface RewardFunctionOptions {
@@ -56,6 +57,8 @@ export interface RewardFunctionOptions {
   agentBenefit?: AgentBenefitRewardContext;
   /** Context for the optional human-benefit (R_humans) reward term */
   humanBenefit?: HumanBenefitRewardContext;
+  /** Context for the optional uAAL-resolution disposition reward term */
+  uaalResolution?: UAALResolutionRewardContext;
 }
 
 /**
@@ -140,7 +143,7 @@ export interface RewardToolRunner {
 // =============================================================================
 
 /** Tool-execution options always resolve; term contexts stay caller-supplied. */
-type TermContextKeys = 'provenance' | 'calibration' | 'agentBenefit' | 'humanBenefit';
+type TermContextKeys = 'provenance' | 'calibration' | 'agentBenefit' | 'humanBenefit' | 'uaalResolution';
 type ResolvedRewardOptions = Required<Omit<RewardFunctionOptions, TermContextKeys>> &
   Pick<RewardFunctionOptions, TermContextKeys>;
 
