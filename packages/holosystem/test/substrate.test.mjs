@@ -27,6 +27,10 @@ const verificationPolicy = {
     trustRoot('self-builder', 'holoscript-release', selfBuilder.publicKey),
   ],
 };
+const completeCoverage = {
+  includedLayers: ['kernel', 'runtime', 'toolchain'],
+  missingLayers: [],
+};
 
 function component({
   id,
@@ -50,6 +54,7 @@ function component({
       revision: `${id}-revision`,
     },
     artifact: { digest: artifactDigest },
+    execution: { installScripts: 'none' },
     requires,
     verification: {
       rebuilds: [
@@ -72,6 +77,7 @@ function component({
 test('builds a deterministic, dependency-first substrate closure', () => {
   const input = {
     root: 'holosystem',
+    coverage: completeCoverage,
     verificationPolicy,
     components: [
       component({ id: 'linux-kernel', kind: 'kernel', mode: 'external', owner: 'linux' }),
@@ -98,6 +104,7 @@ test('builds a deterministic, dependency-first substrate closure', () => {
   });
   const right = buildSubstrateClosure({
     root: input.root,
+    coverage: input.coverage,
     verificationPolicy: input.verificationPolicy,
     components: input.components.slice().reverse(),
     now: new Date('2026-07-17T00:00:00.000Z'),
@@ -135,6 +142,7 @@ test('builds a deterministic, dependency-first substrate closure', () => {
 test('fails closed on implicit, unreachable, cyclic, and unverifiable infrastructure', () => {
   const receipt = buildSubstrateClosure({
     root: 'holosystem',
+    coverage: completeCoverage,
     verificationPolicy,
     components: [
       component({
@@ -177,6 +185,7 @@ test('rejects floating versions, local source paths, duplicate ids, and self-att
 
   const receipt = buildSubstrateClosure({
     root: 'runtime',
+    coverage: completeCoverage,
     verificationPolicy,
     components: [first, component({ id: 'runtime' })],
   });
@@ -195,6 +204,7 @@ test('rejects forged attestations and trust roots that are not Ed25519 keys', ()
 
   const receipt = buildSubstrateClosure({
     root: 'runtime',
+    coverage: completeCoverage,
     verificationPolicy: {
       minimumIndependentRebuilds: 1,
       trustRoots: [

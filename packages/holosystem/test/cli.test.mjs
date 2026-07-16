@@ -32,6 +32,65 @@ test('package bin is wired to the executable CLI and help is available', () => {
   assert.match(result.stdout, /holosystem catalog/u);
   assert.match(result.stdout, /holosystem lineage/u);
   assert.match(result.stdout, /holosystem substrate/u);
+  assert.match(result.stdout, /holosystem substrate-import/u);
+});
+
+test('substrate-import emits a lock-derived input that preserves closure gaps', () => {
+  const cwd = mkdtempSync(join(tmpdir(), 'holosystem-substrate-import-cli-'));
+  const integrity = `sha512-${Buffer.alloc(64, 7).toString('base64')}`;
+  const lockfile = {
+    name: 'demo-app',
+    version: '1.0.0',
+    lockfileVersion: 3,
+    packages: {
+      '': { name: 'demo-app', version: '1.0.0', dependencies: { alpha: '1.0.0' } },
+      'node_modules/alpha': {
+        version: '1.0.0',
+        resolved: 'https://registry.npmjs.org/alpha/-/alpha-1.0.0.tgz',
+        integrity,
+      },
+    },
+  };
+  const config = {
+    root: {
+      id: 'demo-app',
+      custody: { mode: 'owned', owner: 'demo', trustDomain: 'demo-release' },
+      source: { uri: 'https://github.com/example/demo', revision: 'demo-revision-1' },
+    },
+  };
+
+  try {
+    writeFileSync(join(cwd, 'package-lock.json'), JSON.stringify(lockfile), 'utf8');
+    writeFileSync(join(cwd, 'import-config.json'), JSON.stringify(config), 'utf8');
+    const imported = run(
+      [
+        'substrate-import',
+        '--lock',
+        'package-lock.json',
+        '--config',
+        'import-config.json',
+        '--output',
+        'substrate-input.json',
+        '--json',
+      ],
+      { cwd }
+    );
+
+    assert.equal(imported.status, 0, imported.stderr);
+    const receipt = JSON.parse(imported.stdout);
+    assert.equal(receipt.status, 'coverage-and-attestation-required');
+    assert.equal(receipt.importable, true);
+    assert.deepEqual(
+      JSON.parse(readFileSync(join(cwd, 'substrate-input.json'), 'utf8')),
+      receipt.input
+    );
+
+    const closed = run(['substrate', '--input', 'substrate-input.json', '--json'], { cwd });
+    assert.equal(closed.status, 2, closed.stderr);
+    assert.equal(JSON.parse(closed.stdout).ready, false);
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
 });
 
 test('create writes a portable config and inspect emits an agent receipt', () => {
@@ -97,6 +156,10 @@ test('substrate writes a deterministic closure receipt and blocks unverifiable c
   const builder = generateKeyPairSync('ed25519');
   const input = {
     root: 'holosystem',
+    coverage: {
+      includedLayers: ['runtime'],
+      missingLayers: [],
+    },
     verificationPolicy: {
       minimumIndependentRebuilds: 1,
       trustRoots: [
@@ -115,6 +178,7 @@ test('substrate writes a deterministic closure receipt and blocks unverifiable c
         custody: { mode: 'owned', owner: 'holoscript', trustDomain: 'holoscript-release' },
         source: { uri: 'holorepo://holoscript', revision: 'abc123' },
         artifact: { digest: sha },
+        execution: { installScripts: 'none' },
         requires: [],
         verification: {
           rebuilds: [{ verifier: 'independent-builder', digest: sha, signature: '' }],

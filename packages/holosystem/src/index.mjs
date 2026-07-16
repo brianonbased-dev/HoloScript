@@ -8,6 +8,8 @@ export {
   createRebuildAttestationPayload,
 } from './substrate.mjs';
 
+export { HOLOSYSTEM_SUBSTRATE_IMPORT_SCHEMA, importNpmPackageLock } from './substrate-import.mjs';
+
 export {
   HOLOSYSTEM_CATALOG_SCHEMA,
   HOLOSYSTEM_CONSUMER_INPUT_SCHEMA,

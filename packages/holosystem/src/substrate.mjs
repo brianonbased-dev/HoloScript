@@ -3,13 +3,17 @@ import { createHash, createPublicKey, verify } from 'node:crypto';
 export const HOLOSYSTEM_SUBSTRATE_SCHEMA = 'holoscript.holosystem.substrate.v1';
 export const HOLOSYSTEM_REBUILD_ATTESTATION_SCHEMA = 'holoscript.holosystem.rebuild-attestation.v1';
 
-const DIGEST_PATTERN = /^sha256:[a-f0-9]{64}$/u;
+const DIGEST_PATTERN = /^(?:sha256:[a-f0-9]{64}|sha512:[a-f0-9]{128})$/u;
 const PORTABLE_SOURCE_PATTERN = /^(?:git\+https|https|holorepo|npm|pypi|oci):\/\//u;
 const FLOATING_VERSION_PATTERN =
   /(?:^|[\s:])(?:latest|main|master|next|workspace|file|link|portal|git|https?)(?:$|[\s:])|[*^~<>=|]/iu;
 
 function list(value) {
   return Array.isArray(value) ? value : [];
+}
+
+function isRecord(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
 function validId(value) {
@@ -68,6 +72,7 @@ function encodeRebuildAttestation({ verifier, component }) {
         revision: component.source.revision,
       },
       artifact: { digest: component.artifact.digest },
+      execution: { installScripts: component.execution.installScripts },
     },
   });
 }
@@ -80,7 +85,8 @@ export function createRebuildAttestationPayload({ verifier, component } = {}) {
     !pinnedVersion(component?.version) ||
     !portableSource(component?.source?.uri) ||
     !pinnedRevision(component?.source?.revision) ||
-    !validDigest(component?.artifact?.digest)
+    !validDigest(component?.artifact?.digest) ||
+    !['none', 'present'].includes(component?.execution?.installScripts)
   ) {
     throw new TypeError('Cannot create a rebuild attestation for an invalid component tuple.');
   }
@@ -111,6 +117,82 @@ function issue(issues, code, path, message) {
 
 function compareText(left, right) {
   return String(left || '').localeCompare(String(right || ''));
+}
+
+function normalizeCoverage(value, issues) {
+  const issueCountBefore = issues.length;
+  if (!isRecord(value)) {
+    issue(
+      issues,
+      'substrate-coverage-missing',
+      'coverage',
+      'Substrate coverage and known missing layers must be declared.'
+    );
+  }
+  const normalizeLayers = (layers, path) => {
+    const normalized = [];
+    const seen = new Set();
+    for (const [index, layer] of list(layers).entries()) {
+      if (!validId(layer)) {
+        issue(issues, 'substrate-layer-invalid', `${path}[${index}]`, 'Layer id is invalid.');
+        continue;
+      }
+      if (seen.has(layer)) {
+        issue(
+          issues,
+          'substrate-layer-duplicate',
+          `${path}[${index}]`,
+          'Layer ids must be unique within each coverage set.'
+        );
+        continue;
+      }
+      seen.add(layer);
+      normalized.push(layer);
+    }
+    return normalized.sort(compareText);
+  };
+  if (!Array.isArray(value?.includedLayers) || value.includedLayers.length === 0) {
+    issue(
+      issues,
+      'substrate-included-layers-missing',
+      'coverage.includedLayers',
+      'At least one covered substrate layer is required.'
+    );
+  }
+  if (!Array.isArray(value?.missingLayers)) {
+    issue(
+      issues,
+      'substrate-missing-layers-undeclared',
+      'coverage.missingLayers',
+      'Known missing substrate layers must be an explicit array.'
+    );
+  }
+  const includedLayers = normalizeLayers(value?.includedLayers, 'coverage.includedLayers');
+  const missingLayers = normalizeLayers(value?.missingLayers, 'coverage.missingLayers');
+  const includedSet = new Set(includedLayers);
+  for (const [index, layer] of missingLayers.entries()) {
+    if (includedSet.has(layer)) {
+      issue(
+        issues,
+        'substrate-layer-conflict',
+        `coverage.missingLayers[${index}]`,
+        'A layer cannot be both included and missing.'
+      );
+    }
+  }
+  if (missingLayers.length > 0) {
+    issue(
+      issues,
+      'substrate-coverage-incomplete',
+      'coverage.missingLayers',
+      'Known substrate layers are not represented in this closure.'
+    );
+  }
+  return {
+    includedLayers,
+    missingLayers,
+    complete: missingLayers.length === 0 && issues.length === issueCountBefore,
+  };
 }
 
 function normalizeVerificationPolicy(value, issues) {
@@ -246,7 +328,12 @@ function normalizeRebuild(value, componentPath, index, component, trustRootMap, 
     issue(issues, 'rebuild-verifier-invalid', `${path}.verifier`, 'Verifier id must be portable.');
   }
   if (!digest) {
-    issue(issues, 'rebuild-digest-invalid', `${path}.digest`, 'Rebuild digest must be sha256.');
+    issue(
+      issues,
+      'rebuild-digest-invalid',
+      `${path}.digest`,
+      'Rebuild digest must be sha256 or sha512.'
+    );
   }
   if (!signature) {
     issue(
@@ -295,7 +382,8 @@ function normalizeRebuild(value, componentPath, index, component, trustRootMap, 
     component.version &&
     component.source.uri &&
     component.source.revision &&
-    component.artifact.digest
+    component.artifact.digest &&
+    component.execution.installScripts
   );
   let signatureVerified = false;
   let attestationHash = null;
@@ -340,6 +428,9 @@ function normalizeComponent(value, index, verificationPolicy, issues) {
   const sourceUri = portableSource(value?.source?.uri) ? value.source.uri : null;
   const sourceRevision = pinnedRevision(value?.source?.revision) ? value.source.revision : null;
   const artifactDigest = validDigest(value?.artifact?.digest) ? value.artifact.digest : null;
+  const installScripts = ['none', 'present'].includes(value?.execution?.installScripts)
+    ? value.execution.installScripts
+    : null;
 
   if (!id) issue(issues, 'component-id-invalid', `${path}.id`, 'Component id must be portable.');
   if (!kind)
@@ -392,7 +483,22 @@ function normalizeComponent(value, index, verificationPolicy, issues) {
       issues,
       'artifact-digest-invalid',
       `${path}.artifact.digest`,
-      'Artifact digest must be sha256.'
+      'Artifact digest must be sha256 or sha512.'
+    );
+  }
+  if (!installScripts) {
+    issue(
+      issues,
+      'install-script-status-missing',
+      `${path}.execution.installScripts`,
+      'Component must declare whether installation scripts are present.'
+    );
+  } else if (installScripts === 'present') {
+    issue(
+      issues,
+      'install-script-present',
+      `${path}.execution.installScripts`,
+      'Installation scripts require a future enforced disable or sandbox receipt.'
     );
   }
   if (!Array.isArray(value?.requires)) {
@@ -418,6 +524,7 @@ function normalizeComponent(value, index, verificationPolicy, issues) {
     },
     source: { uri: sourceUri, revision: sourceRevision },
     artifact: { digest: artifactDigest },
+    execution: { installScripts },
   };
   const rebuilds = list(value?.verification?.rebuilds)
     .map((item, rebuildIndex) =>
@@ -460,6 +567,7 @@ function normalizeComponent(value, index, verificationPolicy, issues) {
     },
     source: { uri: sourceUri, revision: sourceRevision },
     artifact: { digest: artifactDigest },
+    execution: { installScripts },
     requires,
     verification: {
       rebuilds,
@@ -521,11 +629,13 @@ function dependencyFirstOrder(root, componentMap) {
 
 export function buildSubstrateClosure({
   root,
+  coverage: coverageInput,
   verificationPolicy: policyInput,
   components = [],
   now = new Date(),
 } = {}) {
   const issues = [];
+  const coverage = normalizeCoverage(coverageInput, issues);
   const verificationPolicy = normalizeVerificationPolicy(policyInput, issues);
   const normalizedRoot = validId(root) ? root : null;
   if (!normalizedRoot) {
@@ -638,7 +748,8 @@ export function buildSubstrateClosure({
     status: ready ? 'ready' : 'blocked',
     ready,
     root: normalizedRoot,
-    rule: 'Every infrastructure dependency is explicit, pinned, custody-attributed, content-addressed, and rebuilt under a distinct trust domain authorized by the caller policy.',
+    rule: 'Every infrastructure dependency is explicit, pinned, custody-attributed, content-addressed, free of unmodeled install scripts, and rebuilt under a distinct trust domain authorized by the caller policy.',
+    coverage,
     verificationPolicy: {
       minimumIndependentRebuilds: verificationPolicy.minimumIndependentRebuilds,
       trustRoots: verificationPolicy.trustRoots,
@@ -649,6 +760,9 @@ export function buildSubstrateClosure({
       independentlyVerified,
       owned: uniqueComponents.filter((component) => component.custody.mode === 'owned').length,
       external: externalBoundaries.length,
+      installScriptPackages: uniqueComponents.filter(
+        (component) => component.execution.installScripts === 'present'
+      ).length,
       issues: issues.length,
     },
     sovereignty: {
@@ -665,6 +779,8 @@ export function buildSubstrateClosure({
       trustDomainsAreCallerAssertions: true,
       policyIndependenceIsNotOrganizationalProof: true,
       signedPolicyIndependentRebuildRequired: true,
+      installScriptsRequireEnforcedDisableOrSandboxReceipt: true,
+      declaredCoverageIsNotDiscoveryProof: true,
       externalDependenciesRemainVisible: true,
     },
   };

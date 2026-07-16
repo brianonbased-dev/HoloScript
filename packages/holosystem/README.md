@@ -60,7 +60,8 @@ publish a package, spend funds, or bypass caller authority.
 The substrate closure replaces an implicit operating-system dependency tower
 with a deterministic, caller-owned infrastructure graph. Every component names
 an exact version, portable source revision, content digest, custody owner,
-dependency edges, and a cryptographically authenticated rebuild. External
+dependency edges, installation-script state, and a cryptographically
+authenticated rebuild. External
 components can remain during migration, but they are visible sovereignty
 boundaries rather than hidden transitive dependencies.
 
@@ -85,6 +86,7 @@ const component = {
   },
   source: { uri: 'holorepo://holoscript', revision: 'abc123' },
   artifact: { digest: 'sha256:<64 lowercase hex characters>' },
+  execution: { installScripts: 'none' },
   requires: [],
   verification: {
     rebuilds: [
@@ -105,6 +107,10 @@ const payload = createRebuildAttestationPayload({
 
 const receipt = buildSubstrateClosure({
   root: 'holosystem',
+  coverage: {
+    includedLayers: ['kernel', 'runtime', 'toolchain'],
+    missingLayers: [],
+  },
   verificationPolicy: {
     minimumIndependentRebuilds: 1,
     trustRoots: [
@@ -122,14 +128,97 @@ const receipt = buildSubstrateClosure({
 The command exits with code `2` and still emits the blocked receipt when it
 finds a missing or unreachable dependency, a cycle, a floating version, a local
 source path, an invalid digest, an untrusted verifier, a forged signature, a
-same-domain rebuild, or too few matching rebuilds. The receipt exposes only
-public-key fingerprints, not the supplied PEM text.
+same-domain rebuild, a present installation script, or too few matching
+rebuilds. The receipt exposes only public-key fingerprints, not the supplied
+PEM text. Installation scripts remain blocked until a later execution layer can
+prove they were forcibly disabled or sandboxed.
+
+`coverage.includedLayers` declares what the graph represents, while any known
+gap remains in `coverage.missingLayers` and blocks readiness. Coverage is still
+a caller assertion rather than discovery proof; importers must carry their
+known blind spots into this field.
 
 Trust domains are assertions in the caller-owned policy. The signature proves
 that the named key attested to the exact component tuple; it does not prove that
 the builder is organizationally independent or that the component is safe.
 Production trust roots therefore belong to independently governed rebuilders,
 not keys created by the component custodian for the same release.
+
+### Import an npm dependency graph
+
+`substrate-import` derives the graph from an npm `package-lock.json` instead of
+asking an operator to maintain the dependency edges manually. It supports lock
+formats [v2 and v3](https://docs.npmjs.com/cli/v11/configuring-npm/package-lock-json/),
+preserves nested Node resolution, converts canonical npm SRI
+integrity into content digests, and marks every registry package as external
+custody.
+
+```json
+{
+  "root": {
+    "id": "demo-app",
+    "custody": {
+      "mode": "owned",
+      "owner": "demo",
+      "trustDomain": "demo-release"
+    },
+    "source": {
+      "uri": "https://github.com/example/demo",
+      "revision": "demo-revision-1"
+    }
+  },
+  "verificationPolicy": {
+    "minimumIndependentRebuilds": 1,
+    "trustRoots": [
+      {
+        "verifier": "rebuild-farm",
+        "trustDomain": "independent-rebuild-farm",
+        "publicKey": "<Ed25519 public key in PEM format>"
+      }
+    ]
+  }
+}
+```
+
+```bash
+npx holosystem substrate-import \
+  --lock package-lock.json \
+  --config substrate-import.json \
+  --output substrate-input.json \
+  --json
+```
+
+The command writes the generated closure input to `--output` and emits an
+import receipt on stdout. A valid import has status
+`coverage-and-attestation-required`, or `execution-policy-required` when a
+package declares an installation script; neither means `ready`. Lockfiles prove
+resolution and registry integrity, but not a rebuild, safe lifecycle execution,
+or complete operating-system coverage. After independent builders attach signed
+attestations, run the existing
+`holosystem substrate --input substrate-input.json --json` gate.
+
+Production dependencies are imported by default. Set `"includeDev": true` in
+the import configuration to include direct development dependencies. Optional
+branches present in the lock are retained as a conservative superset; missing
+optional dependencies are counted but do not block import. No package or
+install script is executed. `registry.npmjs.org` lockfile indirection is
+preserved as `npm://configured-registry/...` instead of pretending that the
+configured registry endpoint is known. The root component's artifact digest
+represents the canonical lockfile, not a compiled application artifact. Native
+libraries and operating-system packages are not derived yet, so those gaps are
+carried into the generated input and block the closure. Local links,
+missing runtime entries, malformed or weak integrity, non-portable sources, and
+private keys in the trust policy block import without echoing their values.
+
+```js
+import { importNpmPackageLock } from '@holoscript/holosystem';
+
+const imported = importNpmPackageLock({
+  lockfile,
+  root,
+  verificationPolicy,
+});
+```
 
 ## What It Creates
 
