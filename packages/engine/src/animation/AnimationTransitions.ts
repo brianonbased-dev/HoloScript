@@ -142,7 +142,7 @@ export class AnimationTransitionSystem {
             this.toVec3(toBone.position as IVector3 | { x: number; y: number; z: number }),
             t
           ),
-          rotation: this.slerpQuat(fromBone.rotation, toBone.rotation, t),
+          rotation: this.nlerpQuat(fromBone.rotation, toBone.rotation, t),
         });
       }
 
@@ -195,7 +195,17 @@ export class AnimationTransitionSystem {
     return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
   }
 
-  private slerpQuat(
+  /**
+   * Normalized-lerp (NLERP) of two quaternions with shortest-arc correction.
+   *
+   * This is NLERP by design, not SLERP: it linearly blends the components (after a
+   * double-cover sign flip when dot < 0) and renormalizes. NLERP traces the same arc
+   * as SLERP at a fraction of the cost and is the correct choice for short ragdoll↔anim
+   * transition blends, where SLERP's constant-angular-velocity property is not visible.
+   * (Previously named `slerpQuat`, which was a misnomer — true SLERP lives in
+   * `@holoscript/core` `Quaternion.slerp`.)
+   */
+  private nlerpQuat(
     a: [number, number, number, number] & Partial<{ x: number; y: number; z: number; w: number }>,
     b: [number, number, number, number] & Partial<{ x: number; y: number; z: number; w: number }>,
     t: number
