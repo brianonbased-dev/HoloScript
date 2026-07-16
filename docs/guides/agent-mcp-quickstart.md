@@ -1,6 +1,6 @@
-# Agent MCP Quickstart: Spatial + Economic Superpowers
+# Agent MCP Quickstart: HoloScript Language and Systems Tools
 
-Give any AI agent (Claude, Cursor, Windsurf, CrewAI) spatial and economic superpowers on the **HoloScript AI-Native Spatial Operating System**. Agents can parse, validate, and generate **spatial compositions** and **economic protocols** across registered backend targets (verify count via `docs/NUMBERS.md`).
+Connect any AI agent (Claude, Cursor, Windsurf, CrewAI) to the tool surface for the **HoloScript general-purpose semantic systems programming language**. Agents can parse, validate, run, inspect, and compile programs spanning services, agents, simulations, devices, spatial compositions, and economic protocols across registered backends. Discover the live tool and target inventory instead of copying counts.
 
 ## 1. Connect to the Hosted MCP Server
 

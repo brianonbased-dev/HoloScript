@@ -473,7 +473,7 @@
           {
             "id": "welcome",
             "title": "Welcome to HoloScript",
-            "description": "The first spatial programming language for VR/AR development.\n\n[Open Welcome Guide](command:markdown.showPreview?%5B%22walkthroughs/getting-started/01-welcome.md%22%5D)",
+            "description": "A general-purpose semantic systems programming language with AI-native tooling and spatial computing as a first-class domain.\n\n[Open Welcome Guide](command:markdown.showPreview?%5B%22walkthroughs/getting-started/01-welcome.md%22%5D)",
             "media": {
               "markdown": "walkthroughs/getting-started/01-welcome.md"
             }

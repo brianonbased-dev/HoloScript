@@ -1,6 +1,6 @@
 # tree-sitter-holoscript
 
-Tree-sitter grammar for [HoloScript](https://holoscript.net) — the open platform for spatial worlds.
+Tree-sitter grammar for [HoloScript](https://holoscript.net), a general-purpose semantic systems programming language with spatial computing as a first-class domain.
 
 ## Features
 
@@ -189,7 +189,7 @@ npm run build:wasm
 
 ## Related
 
-- [HoloScript](https://holoscript.net) — The open platform for spatial worlds
+- [HoloScript](https://holoscript.net) — General-purpose semantic systems programming language
 - [VS Code Extension](https://marketplace.visualstudio.com/items?itemName=holoscript.holoscript) - Full IDE support
 - [@holoscript/lsp](../lsp) - Language Server Protocol implementation
 

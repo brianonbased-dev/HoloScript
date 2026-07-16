@@ -10,7 +10,7 @@ Successfully implemented three major phases in parallel, adding 2,650+ lines of 
 
 ## What Was Implemented
 
-### Phase 3: HoloScript+ DSL Trait Annotations
+### Phase 3: HoloScript+ Language Trait Annotations
 
 **File:** `packages/core/src/HoloScriptPlusParser.ts` (1,000+ LOC)
 

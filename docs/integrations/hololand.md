@@ -2,7 +2,7 @@
 
 This guide covers how to build worlds for the **Hololand VR Platform** using HoloScript.
 
-> **Important:** HoloScript is a complete language with its own runtime. Hololand is a first-party VR social platform APPLICATION that uses HoloScript—think "Roblox for VR" or "Steam for spatial computing."
+> **Important:** HoloScript is a general-purpose semantic systems programming language with its own runtime and compiler stack. Hololand is a first-party VR social platform application that uses one domain of HoloScript; it is not the language runtime or category boundary.
 
 ---
 
@@ -23,7 +23,7 @@ This guide covers how to build worlds for the **Hololand VR Platform** using Hol
 
 ### What is HoloScript?
 
-HoloScript is a **complete programming language** for spatial computing with:
+HoloScript is a **general-purpose semantic systems programming language**. Hololand consumes its spatial subset through:
 
 - **Full Language Runtime**: `@holoscript/runtime` provides `BrowserRuntime`, `HeadlessRuntime`, `PhysicsWorld`, and `TraitSystem`
 - **Parser & Compiler**: Complete language toolchain in `@holoscript/core`

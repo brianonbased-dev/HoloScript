@@ -21,7 +21,7 @@ HoloScript currently compiles to 25+ targets spanning:
 - **IoT/Digital Twins**: DTDL (Azure), W3C WoT, MQTT
 - **AI**: MCP Protocol, LLM adapters
 
-Sprint 8 addresses identified gaps to complete the vision of HoloScript as the universal spatial computing language.
+Sprint 8 addresses identified gaps in HoloScript's path toward a general-purpose semantic systems programming language, with spatial computing as a demanding proving ground.
 
 ---
 

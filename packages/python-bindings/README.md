@@ -1,6 +1,6 @@
 # holoscript
 
-Python bindings for [HoloScript](https://github.com/brianonbased-dev/HoloScript) — parse, validate, and bridge domain-specific scientific tools into the HoloScript spatial computing ecosystem.
+Python bindings for [HoloScript](https://github.com/brianonbased-dev/HoloScript) — parse, validate, and bridge Python and domain-specific scientific tools into HoloScript's general-purpose semantic systems language stack.
 
 The README you see on [pypi.org/project/holoscript](https://pypi.org/project/holoscript/) comes from this file in the published wheel and sdist. Bump the package version (e.g. 6.0.7) when refreshing PyPI-facing docs so the project page picks up changes after the next release.
 

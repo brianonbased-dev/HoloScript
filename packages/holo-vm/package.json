@@ -1,7 +1,7 @@
 {
   "name": "@holoscript/holo-vm",
   "version": "8.0.6",
-  "description": "HOLO VM — HoloScript native bytecode execution engine for spatial computing",
+  "description": "HOLO VM — sovereign bytecode execution engine for the HoloScript semantic systems language",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

@@ -1,7 +1,7 @@
 # Video 1: Getting Started with HoloScript (10 min)
 
-**Target audience:** Complete beginners — developers new to spatial computing
-**Goal:** Install HoloScript, write first scene, see it run
+**Target audience:** Complete beginners — developers new to HoloScript
+**Goal:** Install HoloScript, write a first program using the spatial surface, see it run
 
 ---
 
@@ -9,8 +9,8 @@
 
 ### 0:00 — Intro (60s)
 
-> "Welcome to HoloScript — the declarative language for building VR and AR experiences.
-> In the next 10 minutes you'll go from zero to a working 3D scene.
+> "Welcome to HoloScript — a general-purpose semantic systems programming language.
+> In the next 10 minutes you'll use its spatial composition surface to go from zero to a working 3D program.
 > No Unity, no Unreal, no C# — just HoloScript."
 
 **[SCREEN: HoloScript logo animation]**

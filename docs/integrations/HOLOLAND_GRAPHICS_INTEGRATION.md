@@ -1,6 +1,6 @@
 # Hololand Graphics System Integration Guide
 
-> **Architecture Note:** HoloScript is a complete language with its own runtime (`@holoscript/runtime`). Hololand is a VR social platform APPLICATION built with HoloScript. This guide covers how Hololand uses HoloScript's graphics traits.
+> **Architecture Note:** HoloScript is a general-purpose semantic systems programming language with its own runtime (`@holoscript/runtime`). Hololand is a VR social platform application built with HoloScript. This guide covers one spatial/graphics domain; it does not define the language boundary.
 
 ## Overview
 

@@ -1,4 +1,4 @@
-# Phase 3: HoloScript+ DSL Trait Annotations
+# Phase 3: HoloScript+ Language Trait Annotations
 
 Declarative trait configuration system enabling graphics properties to be specified directly in HoloScript+ code.
 

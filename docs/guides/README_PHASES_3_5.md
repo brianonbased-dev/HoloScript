@@ -347,7 +347,7 @@ db53bd5 - feat: implement Phases 3-5 in parallel
 
 ### API Reference
 
-- `HoloScriptPlusParser` - DSL parsing
+- `HoloScriptPlusParser` - language-surface parsing
 - `HololandGraphicsPipelineService` - Graphics management
 - `PlatformPerformanceOptimizer` - Performance tuning
 
@@ -376,7 +376,7 @@ db53bd5 - feat: implement Phases 3-5 in parallel
 
 ### New in This Release
 
-- HoloScript+ DSL trait annotations
+- HoloScript+ language trait annotations
 - Hololand graphics pipeline service
 - Platform performance optimizer
 - 2,650+ LOC of production code

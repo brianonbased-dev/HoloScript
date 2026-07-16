@@ -15,13 +15,13 @@ Show HN: HoloScript – Write once, compile to 30+ targets across web, XR, and r
 ````
 Hi HN,
 
-I've been working on HoloScript, a declarative language for VR/AR development that compiles to 18 different platforms from a single source file.
+I've been working on HoloScript, a general-purpose semantic systems programming language under active construction. Its spatial surface already demonstrates one source lowering across registered runtimes and engines; the language target also includes services, agents, simulations, devices, and sovereign execution.
 
 **The Problem:**
 Building a VR app today means choosing Unity, Unreal, or WebXR and being locked in. Want to publish on Quest AND VRChat AND the web? Rewrite everything 3 times.
 
 **The Solution:**
-HoloScript is a declarative language where you describe *what* you want, not *how* to render it:
+HoloScript keeps semantics and effects visible to the compiler. Declarative composition is one programming mechanism, not a scene-DSL boundary:
 
 ```holo
 composition "VR Gallery" {
@@ -81,7 +81,7 @@ Would love feedback from anyone building VR/AR experiences!
 ### Title
 ```
 
-HoloScript v6.0.2: A declarative language that compiles to 30+ targets (Unity, Unreal, VRChat, visionOS, robotics, web, and more) from a single source
+HoloScript: a general-purpose semantic systems programming language that executes owned source and compiles to registered sovereign and bridge targets
 
 ```
 
@@ -92,7 +92,7 @@ I've released v6.0.2 of HoloScript, a semantic language for XR, web, agents, and
 
 ## What is it?
 
-A declarative language where you describe 3D scenes once and compile to any major platform:
+A general-purpose semantic systems programming language whose `.holo` surface can compose a spatial program once and lower it across registered platforms:
 
 ```holo
 composition "Interactive Scene" {

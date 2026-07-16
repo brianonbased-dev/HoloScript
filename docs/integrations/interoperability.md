@@ -1,6 +1,6 @@
 # HoloScript Language Interoperability Architecture
 
-> **HoloScript is a language interop hub** that compiles from a single source language to registered target languages/formats spanning VR/AR/XR, web, mobile, robotics, IoT, and AI ecosystems.
+> **HoloScript is a general-purpose semantic systems programming language and language interop hub.** Its programs lower to sovereign runtimes and registered bridge languages/formats spanning native execution, services, VR/AR/XR, web, mobile, robotics, IoT, and AI ecosystems.
 
 ---
 

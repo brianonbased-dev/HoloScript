@@ -1,21 +1,21 @@
 # HoloScript Enhanced
 
-Language support for HoloScript+ - a declarative language for spatial computing and XR development.
+Language tooling for HoloScript, a general-purpose semantic systems programming language. The extension supports `.hs`, `.hsplus`, and `.holo`; spatial preview is one tool surface rather than the language category.
 
 ## Features
 
 - **Syntax Highlighting** for `.holo`, `.hs`, and `.hsplus` files
-- **3,300+ VR Traits** - Built-in traits for XR interactions across 114 categories
+- **Semantic Traits** - Completion across spatial, systems, agent, service, security, data, and device domains
 - **IntelliSense** - Autocomplete for traits, objects, and properties
 - **Hover Documentation** - Trait and keyword documentation on hover
 - **Semantic Tokens** - Rich syntax coloring (15 token types, 6 modifiers)
 - **LSP Integration** - Full Language Server Protocol support via `@holoscript/lsp`
 - **3D Preview** - Live preview panel for `.holo` files
-- **AI Agent API** - 10+ commands for AI-assisted scene generation
+- **AI Agent API** - Commands for AI-assisted program generation and inspection
 - **MCP Orchestrator** - Integration with MCP mesh orchestrator
 - **Debugger** - Built-in debug adapter for HoloScript
 - **Smart Asset Editor** - Custom editor for `.hsa` files
-- **Getting Started Walkthrough** - 6-step onboarding for new users
+- **Getting Started Walkthrough** - Guided onboarding for new language users
 
 ## MCP — `mcp.holoscript.net` (streamable HTTP)
 
@@ -33,7 +33,7 @@ Syntax highlighting (`.holo`, `.hs`, `.hsplus`) and the **live preview** panel a
 
 `orb`, `sphere`, `cube`, `box`, `cylinder`, `cone`, `plane`, `mesh`, `avatar`, `light`, `camera`, `scene`, `group`, `text`, `panel`, `button`, `slider`, `zone`
 
-### VR Traits (3,300+ across 114 categories, highlights below)
+### Semantic Traits (selected spatial highlights)
 
 **Interaction:** `@grabbable`, `@throwable`, `@hoverable`, `@clickable`, `@draggable`, `@pointable`, `@collidable`, `@physics`, `@gravity`, `@trigger`, `@teleport`
 

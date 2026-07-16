@@ -1,6 +1,6 @@
 # My HoloScript App
 
-Built with [HoloScript](https://github.com/brianonbased-dev/HoloScript) — the open AI-spatial reality protocol.
+Built with [HoloScript](https://github.com/brianonbased-dev/HoloScript) — a general-purpose semantic systems programming language. This template exercises its interactive spatial surface.
 
 ## Getting Started
 

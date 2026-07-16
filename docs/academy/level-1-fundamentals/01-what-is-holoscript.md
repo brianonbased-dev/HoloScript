@@ -1,6 +1,6 @@
 # Lesson 1.1: What is HoloScript?
 
-Welcome to HoloScript Academy! In this first lesson, you'll learn what HoloScript is, why it was created, and what makes it unique for VR/XR development.
+Welcome to HoloScript Academy! In this first lesson, you'll learn why HoloScript is being built as a general-purpose semantic systems programming language. The worked example uses its spatial programming surface; VR/XR is a domain, not the language boundary.
 
 ## Learning Objectives
 
@@ -12,9 +12,9 @@ By the end of this lesson, you will:
 
 ## What is HoloScript?
 
-**HoloScript** is a full programming language for interfaces, spatial scenes, services, agents, and device workflows. It includes a dual parser (TypeScript + Rust/WASM), its own AST, type system, standard library, LSP, package ecosystem, and registered compiler targets whose current set should be verified from `ExportTarget` before citing:
+**HoloScript** is a general-purpose semantic systems programming language under active construction for applications, interfaces, services, runtimes, simulations, agents, devices, and spatial worlds. It includes parser and VM paths, its own AST, type system, standard library, LSP, package ecosystem, and registered compiler targets whose current set should be verified from `ExportTarget` before citing. Declarative composition is one language mechanism, not evidence that HoloScript is a DSL:
 
-- **Declarative 3D scenes** - Describe what you want, not how to build it
+- **Compiler-visible semantics** - Express behavior and effects in forms the compiler can inspect
 - **Built-in VR interactions** - Grabbing, pointing, and physics out of the box
 - **Multiplayer-first** - Networking is a core feature, not an afterthought
 - **AI-ready** - First-class support for AI behaviors and NPCs
@@ -135,6 +135,7 @@ HoloScript isn't just a language - it's an ecosystem:
 
 **Use HoloScript when:**
 
+- Building services, runtimes, simulations, agents, tools, or device programs
 - Building social VR experiences
 - Creating multiplayer games
 - Prototyping VR ideas quickly
@@ -142,7 +143,7 @@ HoloScript isn't just a language - it's an ecosystem:
 
 **Consider alternatives when:**
 
-- You need extremely low-level control
+- You need a systems primitive HoloScript has not yet closed, such as a specific ABI, memory-layout, native-debugger, or self-hosting path
 - Building AAA game graphics
 - Working with existing Unity/Unreal projects
 
@@ -155,7 +156,8 @@ HoloScript isn't just a language - it's an ecosystem:
 
 ## Summary
 
-- HoloScript is a full programming language for VR/XR development
+- HoloScript is a general-purpose semantic systems programming language under active construction
+- VR/XR is one first-class domain, not the language boundary
 - It uses **compositions**, **orbs**, **traits**, and **event handlers**
 - The `@` symbol adds behaviors (traits) to objects
 - HoloScript dramatically reduces code compared to traditional engines

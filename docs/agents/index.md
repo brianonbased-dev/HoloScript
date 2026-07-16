@@ -2,7 +2,7 @@
 
 ## Overview
 
-HoloScript is an **AI-native semantic platform** built to host autonomous intelligence in inspectable source files, runtimes, and MCP tools. At its core is the **uAA2++ (Universal Autonomous Agent) protocol**, which gives agents explicit lifecycle, perception, coordination, and settlement surfaces. Agents are not just NPCs; they are first-class actors that can perceive scenes, communicate across realities, claim ownership of objects, and trade autonomously when the relevant protocol path is wired.
+HoloScript is a **general-purpose semantic systems programming language** with AI-native source, runtime, compiler, and MCP tooling. Autonomous intelligence is a first-class systems-programming domain rather than a scene add-on. At its core is the **uAA2++ (Universal Autonomous Agent) protocol**, which gives agents explicit lifecycle, perception, coordination, and settlement surfaces. Agents are not just NPCs; they are first-class actors that can perceive environments, operate services and devices, communicate across realities, claim ownership of objects, and trade autonomously when the relevant protocol path is wired.
 
 ```text
 ┌─────────────────────────────────────────────────────────┐

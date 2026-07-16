@@ -4,7 +4,7 @@
 
 Hololand is a VR world hosting and social platform where creators build immersive experiences using HoloScript. Think "Roblox for VR" or "Steam for spatial computing."
 
-> **Important:** HoloScript is a complete language with its own runtime. Hololand is a first-party APPLICATION that uses HoloScript - not the runtime itself.
+> **Important:** HoloScript is a general-purpose semantic systems programming language with its own runtime and compiler stack. Hololand is a first-party spatial application that uses HoloScript—not the runtime or the language boundary.
 
 ---
 

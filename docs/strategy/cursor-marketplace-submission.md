@@ -11,7 +11,7 @@
 Per `deep-dive-babylon-mcp.md`: Cursor's MCP marketplace is the distribution surface for agent-native tooling in 2026. The first-listed, most-downloaded, best-reviewed MCP server in a category becomes the default. For HoloScript:
 
 - **Babylon.js community MCP**: ~20 tools, scene-manipulation only, community-maintained
-- **HoloScript MCP**: 215+ tools, semantic IR + simulation + codebase intelligence + HoloMesh, first-party
+- **HoloScript MCP**: live-discovered language, simulation, codebase-intelligence, and HoloMesh tools, first-party
 
 If HoloScript lists first with a crisp description, we own "spatial / simulation MCP in Cursor" as the default answer when a Cursor user searches. Babylon's listing becomes "the other one."
 
@@ -56,11 +56,11 @@ Agent-native spatial, simulation, and codebase intelligence for Cursor.
 ### Long description (2-3 paragraphs)
 
 ```
-HoloScript is a universal semantic platform for spatial computing and scientific
-simulation. It compiles a single .holo source to 30+ targets (Three.js, React
-Three Fiber, Unity, Unreal, USD, WebGPU, and more) and exposes all of its
-capabilities as MCP tools — 215+ of them — so Cursor agents can author, compile,
-simulate, and verify 3D scenes and physics simulations as first-class operations.
+HoloScript is a general-purpose semantic systems programming language under active
+construction. Its spatial and scientific surfaces compile owned source to registered
+targets such as Three.js, React Three Fiber, Unity, Unreal, USD, and WebGPU, while
+the live MCP inventory lets Cursor agents author, compile, simulate, inspect, and verify
+programs as first-class operations.
 It now includes a bundled **bio-discovery skill** and plugin, allowing agents
 to query ChEMBL and Open Targets and output hash-verified AlphaFold binding scenes.
 
@@ -122,7 +122,7 @@ tier is free with no rate limits during the beta.
 Recommended visuals for the listing (create or reuse):
 
 1. **Hero**: The drug-discovery flagship demo (AlphaFold + ChEMBL verifiable binding scene from `.claude/skills/bio-discovery/SKILL.md`)
-2. **Tool list screenshot**: Cursor showing the 215+ HoloScript tools accessible in the MCP picker
+2. **Tool list screenshot**: Cursor showing the live-discovered HoloScript tools in the MCP picker
 3. **Workflow demo**: Short GIF of asking Cursor to "compile this .holo to USD" and seeing the file appear
 4. **Codebase intel**: Cursor asking "what calls trainVAE" and getting HoloScript Absorb's GraphRAG answer
 
@@ -137,10 +137,11 @@ Recommended visuals for the listing (create or reuse):
 
 ## What is HoloScript?
 
-HoloScript is a universal semantic platform. One `.holo` file compiles to 30+ targets
-(Three.js, R3F, Unity, Unreal, USD, WebGPU). Every capability is exposed as an MCP tool.
+HoloScript is a general-purpose semantic systems programming language. Its `.holo`
+surface composes whole systems and lowers to registered targets such as Three.js, R3F,
+Unity, Unreal, USD, and WebGPU. Discover current capabilities through the MCP inventory.
 
-## What the 215+ MCP tools do
+## What the MCP tools do
 
 - **Compile**: `.holo` → any supported target (parse, compile, codegen)
 - **Simulate**: Run FEA/physics simulations with browser-native WebGPU, replay bit-identically

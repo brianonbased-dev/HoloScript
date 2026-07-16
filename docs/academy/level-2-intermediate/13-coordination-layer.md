@@ -1,6 +1,6 @@
 # Lesson 2.13: The Universal Coordination Layer
 
-Welcome to the graduation lesson of **HoloScript Academy Level 2**. In this session, we zoom out to understand the "Big Picture": how HoloScript evolves from a spatial language into a **Universal Coordination Layer**.
+Welcome to the graduation lesson of **HoloScript Academy Level 2**. In this session, we zoom out to understand the "Big Picture": how HoloScript's spatial capabilities fit within a general-purpose semantic systems language and its **Universal Coordination Layer**.
 
 ## Learning Objectives
 

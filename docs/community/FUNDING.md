@@ -1,6 +1,6 @@
 # Funding HoloScript
 
-HoloScript is an **AI-Native Spatial Operating System** for the agentic era, governed by the HoloScript Foundation. We need your support to sustain development, maintain compiler backends (see `docs/NUMBERS.md` for current count), and build the future of AI-native spatial infrastructure.
+HoloScript is a **general-purpose semantic systems programming language and open execution stack** for the agentic era, governed by the HoloScript Foundation. Spatial computing is a first-class domain, not its boundary. We need your support to sustain language design, sovereign runtimes, compiler backends (see `docs/NUMBERS.md` for current inventory), systems tooling, and AI-native infrastructure.
 
 ---
 
@@ -158,7 +158,7 @@ Academic research on spatial computing:
 
 - LLM + spatial computing integration
 - Performance optimization techniques
-- Novel DSL patterns for VR/AR
+- Novel language and systems patterns, including spatial and embodied computing
 
 **Requirements**:
 

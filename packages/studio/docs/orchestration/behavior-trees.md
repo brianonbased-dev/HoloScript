@@ -522,7 +522,7 @@ downloadBehaviorTreeJSON(tree.nodes, 'patrol_tree');
 Transform JSON to executable code:
 
 ```typescript
-// HoloScript DSL Example
+// HoloScript language example
 behavior PatrolBehavior {
   sequence {
     condition hasWaypoint()

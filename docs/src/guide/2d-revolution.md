@@ -1,6 +1,6 @@
 # Revolutionizing 2D UI with HoloScript V6
 
-HoloScript V6 introduces a dramatic shift in how we build flat interfaces (dashboards, forms, apps, mobile/web). Instead of settling for "rectangles and CSS" or managing complex native elements, the V6 framework bridges the gap by making 2D interfaces living, agent-native, physics-aware projections of the universal semantic platform.
+HoloScript V6 introduced a shift in how we build flat interfaces (dashboards, forms, apps, mobile/web). Instead of treating UI as a separate framework DSL, the 2D surface is a living, agent-native, physics-aware projection of the same general-purpose semantic systems programming language.
 
 We call this **HoloScript's Semantic2D Pipeline**.
 

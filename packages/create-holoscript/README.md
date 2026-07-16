@@ -1,8 +1,8 @@
 # create-holoscript
 
-**Create HoloScript apps with zero configuration.** Scaffold a working 3D scene and open it in your browser in **30 seconds**.
+**Create HoloScript programs with zero configuration.** Scaffold an owned project and run its first program locally.
 
-[HoloScript](https://github.com/brianonbased-dev/HoloScript) is the open AI-spatial reality protocol — a declarative language for building 3D worlds, VR/AR experiences, and spatial applications.
+[HoloScript](https://github.com/brianonbased-dev/HoloScript) is a general-purpose semantic systems programming language under active construction. The starter templates currently emphasize browser and spatial programs; they are an onboarding path, not the language boundary.
 
 ## 30-Second Quick Start (`--go`)
 

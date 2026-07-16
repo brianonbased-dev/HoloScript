@@ -300,7 +300,7 @@ RenderingTrait
 
 ## Integration Ready
 
-### For HoloScript+ DSL
+### For the HoloScript+ language surface
 
 ```hsplus
 composition "GraphicsDemo" {
@@ -343,7 +343,7 @@ composition "GraphicsDemo" {
 ### Immediate Tasks (Pending)
 
 1. Update OrbNode type with visual properties
-2. Implement HoloScript+ DSL trait annotations (@material, @lighting, @rendering)
+2. Implement HoloScript+ language trait annotations (`@material`, `@lighting`, `@rendering`)
 3. Create Hololand GPU-accelerated rendering backend
 4. Implement shader compilation pipeline
 
@@ -370,7 +370,7 @@ composition "GraphicsDemo" {
 - ✅ 1,456 lines of test code (99 comprehensive tests)
 - ✅ 524 lines of documentation with examples
 - ✅ 217 total passing tests (100% success rate)
-- ✅ Ready for HoloScript+ DSL integration
+- ✅ Ready for HoloScript+ language integration
 - ✅ Foundational for Hololand graphics pipeline
 
 **Quality Metrics**:

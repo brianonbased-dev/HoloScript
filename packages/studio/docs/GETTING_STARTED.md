@@ -1,8 +1,8 @@
 # 🚀 Getting Started with HoloScript Studio
 
-> **Build 3D worlds with natural language. No installation. No coding required.**
+> **Program with HoloScript through language, agents, and visual projections.**
 
-HoloScript Studio is an AI-native spatial IDE for the web. In 5 minutes you'll have a working interactive 3D world.
+HoloScript Studio is the AI-native workbench for a general-purpose semantic systems programming language. It exposes source, agents, services, compilers, receipts, and visual projections in one web environment. This five-minute path starts with an interactive 3D program; the viewport is an onboarding surface, not Studio's boundary.
 
 ---
 
@@ -120,7 +120,9 @@ Import `.glb` files and animate skeletons:
 
 ### HoloScript Language (Expert Mode)
 
-HoloScript is a declarative spatial computing DSL:
+HoloScript is a general-purpose semantic systems programming language with declarative,
+imperative, reactive, and compositional surfaces. This example uses the `.holo` spatial
+composition surface:
 
 ```holoscript
 world "My World" {
@@ -241,5 +243,5 @@ Click the **VR** button in the header (requires WebXR-compatible headset):
 
 ---
 
-_HoloScript Studio — AI-native spatial IDE for the web_  
+_HoloScript Studio — AI-native systems-language workbench for the web_
 _v0.1.0 — Beta Launch 2026_

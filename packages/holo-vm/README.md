@@ -1,8 +1,8 @@
 # @holoscript/holo-vm
 
-**HOLO VM** — HoloScript's native bytecode execution engine for spatial computing.
+**HOLO VM** — HoloScript's sovereign bytecode execution engine for semantic systems programs.
 
-Compile `.holo` / `.hsplus` / `.hs` → `.holob` bytecode → run anywhere.
+Compile `.holo` / `.hsplus` / `.hs` programs → `.holob` bytecode → execute them in an owned VM.
 
 ## Installation
 
