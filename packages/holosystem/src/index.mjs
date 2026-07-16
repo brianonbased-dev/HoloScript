@@ -14,6 +14,15 @@ export {
   HOLOSYSTEM_DEBIAN_RELEASE_AUTH_SCHEMA,
   verifyDebianRepositoryRelease,
 } from './substrate-debian-release.mjs';
+export {
+  HOLOSYSTEM_NATIVE_BUILD_PLAN_SCHEMA,
+  HOLOSYSTEM_NATIVE_BUILD_RECEIPT_SCHEMA,
+  HOLOSYSTEM_NATIVE_BUILD_SOURCE_SCHEMA,
+  createNativeRebuildAttestationPayload,
+  inspectNativeBuildPlan,
+  inspectNativeBuildSource,
+  runNativeBuild,
+} from './native-build.mjs';
 
 export {
   HOLOSYSTEM_CATALOG_SCHEMA,

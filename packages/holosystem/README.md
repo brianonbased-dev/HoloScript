@@ -393,6 +393,113 @@ returns `holoscript.holosystem.debian-release-auth.v1`; `verified` is true only
 when OpenPGP verification, signer pinning, release identity and freshness, and
 the signed Packages checksum and size all pass.
 
+### Build a native artifact in a closed executor
+
+`native-build` is the first executable bridge from the substrate graph to a
+reproducible native artifact. The initial vocabulary deliberately supports one
+small target: a C11 translation unit compiled by GCC into a Linux AMD64 GNU ELF
+executable. It does not accept a shell command, arbitrary compiler executable,
+free-form flags, lifecycle script, network mode, user id, or weaker isolation
+policy from the plan.
+
+Hash the caller-owned source tree first:
+
+```bash
+npx holosystem native-build-source --source ./native-source --json
+```
+
+Then create a plan using that source digest and a digest-pinned local Docker
+binary plus an immutable OCI manifest reference:
+
+```json
+{
+  "schema": "holoscript.holosystem.native-build-plan.v1",
+  "id": "demo-native-build",
+  "source": {
+    "digest": "sha256:<source-manifest-digest>",
+    "sourceDateEpoch": 1700000000
+  },
+  "target": {
+    "os": "linux",
+    "architecture": "amd64",
+    "abi": "gnu"
+  },
+  "executor": {
+    "kind": "docker",
+    "digest": "sha256:<docker-binary-digest>",
+    "image": "docker.io/library/gcc@sha256:<amd64-manifest-digest>"
+  },
+  "compiler": {
+    "family": "gcc",
+    "language": "c11",
+    "source": "main.c",
+    "optimization": "speed"
+  },
+  "output": {
+    "path": "demo",
+    "format": "elf-executable"
+  },
+  "limits": {
+    "timeoutSeconds": 60,
+    "memoryMiB": 512,
+    "cpus": 1,
+    "pids": 64,
+    "tmpfsMiB": 64
+  },
+  "rebuilds": 2
+}
+```
+
+```bash
+npx holosystem native-build \
+  --plan native-build.json \
+  --source ./native-source \
+  --executor /absolute/operational/path/to/docker \
+  --artifact-dir ./native-output \
+  --output native-build-receipt.json \
+  --json
+```
+
+The first successful run is intentionally `artifact-pin-required` and exits
+with code `2`. It performs two clean builds and reports their common digest but
+does not claim `native-build` coverage. Copy that digest into
+`expectedArtifactDigest`, use a new empty artifact directory, and rerun. Only a
+matching reproducible result returns `verified`, exits `0`, and includes the
+`native-build` layer.
+
+The runner verifies an immutable source snapshot before mounting it, checks the
+Docker executable digest, prohibits image pulls and networking, mounts both the
+root filesystem and source read-only, drops all Linux capabilities, enables
+`no-new-privileges`, runs as uid/gid 65534, bounds time, memory, CPU, PIDs and
+temporary storage, and invokes `/usr/local/bin/gcc` directly with generated
+deterministic arguments. It rejects undeclared files, symlink outputs,
+non-AMD64 ELF results, mismatched artifact pins, and differing rebuild digests.
+Compiler logs are represented only by byte counts and hashes; operational host
+paths are not copied into the receipt.
+
+```js
+import {
+  createNativeRebuildAttestationPayload,
+  inspectNativeBuildPlan,
+  inspectNativeBuildSource,
+  runNativeBuild,
+} from '@holoscript/holosystem';
+```
+
+`createNativeRebuildAttestationPayload` joins a verified native receipt to the
+existing `holoscript.holosystem.rebuild-attestation.v1` payload. The independent
+builder still signs that payload outside this package, and the substrate gate
+still verifies the signature against caller-owned trust roots. The receipt
+does not prove the Docker host, compiler-image supply chain, host kernel, CPU,
+or organizational independence; those remain named boundaries.
+
+This tracer commences the build/execution layer. It is not a claim that
+HoloSystem already replaces a hypervisor, measured boot, UEFI/device firmware,
+an ISA backend, or physical hardware verification. Those require separate
+target contracts and receipts rather than broader process execution in this API.
+The adversary classes, attack specifications, test mapping, and residual trust
+boundary are recorded in the [native-build threat model](./docs/native-build-threat-model.md).
+
 ## What It Creates
 
 The default configuration pins public contracts for:

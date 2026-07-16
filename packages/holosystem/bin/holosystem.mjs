@@ -9,7 +9,9 @@ import {
   discoverSourceLineage,
   importDebianPackageSnapshot,
   importNpmPackageLock,
+  inspectNativeBuildSource,
   inspectHoloSystemConfig,
+  runNativeBuild,
 } from '../src/index.mjs';
 
 const CLI_RECEIPT_SCHEMA = 'holoscript.holosystem.cli-receipt.v1';
@@ -23,6 +25,8 @@ Usage:
   holosystem lineage --portfolio <file> [--concurrency <1-12>] [--output <file>] [--json]
   holosystem substrate-import --lock <package-lock.json> --config <file> [--output <file>] [--force] [--json]
   holosystem substrate-import-debian --status <status> (--packages <Packages> | --sources <json>) --maintainer-scripts <json> --config <file> [--output <file>] [--force] [--json]
+  holosystem native-build-source --source <directory> [--json]
+  holosystem native-build --plan <file> --source <directory> --executor <file> --artifact-dir <directory> [--output <receipt>] [--force] [--json]
   holosystem substrate --input <file> [--output <file>] [--force] [--json]
   holosystem --help
   holosystem --version
@@ -479,6 +483,84 @@ function runSubstrate(args) {
   if (!substrate.ready) process.exitCode = 2;
 }
 
+function runNativeBuildSource(args) {
+  let parsed;
+  try {
+    parsed = parseArguments(args, { source: 'value', json: 'boolean' });
+  } catch (error) {
+    die(error.message, { json: args.includes('--json') });
+  }
+  const { options, positionals } = parsed;
+  if (positionals.length > 0) {
+    die('native-build-source does not accept positional arguments.', { json: options.json });
+  }
+  const report = inspectNativeBuildSource({ sourceDirectory: options.source });
+  if (options.json) outputJson(report);
+  else {
+    process.stdout.write(
+      `Native source: ${report.ready ? 'ready' : 'blocked'} files=${report.summary.files} bytes=${report.summary.bytes}\n`
+    );
+    if (report.digest) process.stdout.write(`Digest: ${report.digest}\n`);
+    for (const item of report.issues) {
+      process.stdout.write(`BLOCK ${item.code} ${item.path}: ${item.message}\n`);
+    }
+  }
+  if (!report.ready) process.exitCode = 2;
+}
+
+function runNativeBuildCommand(args) {
+  let parsed;
+  try {
+    parsed = parseArguments(args, {
+      plan: 'value',
+      source: 'value',
+      executor: 'value',
+      'artifact-dir': 'value',
+      output: 'value',
+      force: 'boolean',
+      json: 'boolean',
+    });
+  } catch (error) {
+    die(error.message, { json: args.includes('--json') });
+  }
+  const { options, positionals } = parsed;
+  if (positionals.length > 0) {
+    die('native-build does not accept positional arguments.', { json: options.json });
+  }
+
+  let nativeBuild;
+  try {
+    const plan = readJsonFile(options.plan, 'plan');
+    if (!options.source) throw new Error('--source is required.');
+    if (!options.executor) throw new Error('--executor is required.');
+    if (!options['artifact-dir']) throw new Error('--artifact-dir is required.');
+    nativeBuild = runNativeBuild({
+      plan,
+      sourceDirectory: options.source,
+      outputDirectory: options['artifact-dir'],
+      executorPath: options.executor,
+    });
+    if (options.output) writeJsonOutput(options.output, nativeBuild, { force: options.force });
+  } catch (error) {
+    die(`Cannot run native build: ${error.message}`, { json: options.json, code: 2 });
+  }
+
+  if (options.json) outputJson(nativeBuild);
+  else {
+    process.stdout.write(
+      `Native build: ${nativeBuild.status} reproducible=${nativeBuild.reproducible ? 'yes' : 'no'} verified=${nativeBuild.verified ? 'yes' : 'no'}\n`
+    );
+    if (nativeBuild.output.digest) {
+      process.stdout.write(`Artifact: ${nativeBuild.output.path} ${nativeBuild.output.digest}\n`);
+    }
+    for (const item of nativeBuild.issues) {
+      process.stdout.write(`BLOCK ${item.code} ${item.path}: ${item.message}\n`);
+    }
+    if (options.output) process.stdout.write(`Wrote ${options.output}\n`);
+  }
+  if (!nativeBuild.verified) process.exitCode = 2;
+}
+
 const argv = process.argv.slice(2);
 const command = argv[0];
 if (!command || command === '--help' || command === '-h' || command === 'help') {
@@ -498,6 +580,10 @@ if (!command || command === '--help' || command === '-h' || command === 'help') 
   runSubstrateImport(argv.slice(1));
 } else if (command === 'substrate-import-debian') {
   runDebianSubstrateImport(argv.slice(1));
+} else if (command === 'native-build-source') {
+  runNativeBuildSource(argv.slice(1));
+} else if (command === 'native-build') {
+  runNativeBuildCommand(argv.slice(1));
 } else if (command === 'substrate') {
   runSubstrate(argv.slice(1));
 } else {
