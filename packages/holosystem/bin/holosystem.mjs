@@ -15,6 +15,7 @@ import {
   inspectVmLaunchAsset,
   runNativeBuild,
   runVmLaunch,
+  runWhpxVmLaunch,
 } from '../src/index.mjs';
 
 const CLI_RECEIPT_SCHEMA = 'holoscript.holosystem.cli-receipt.v1';
@@ -33,6 +34,7 @@ Usage:
   holosystem vm-executor --runtime <directory> [--json]
   holosystem vm-asset --kind <kernel|initrd> --file <file> [--json]
   holosystem vm-launch --plan <file> --runtime <directory> --kernel <file> --initrd <file> [--output <receipt>] [--force] [--json]
+  holosystem vm-launch-whpx --plan <file> --runtime <directory> --kernel <file> --initrd <file> [--output <receipt>] [--force] [--json]
   holosystem substrate --input <file> [--output <file>] [--force] [--json]
   holosystem --help
   holosystem --version
@@ -617,7 +619,7 @@ function runVmAsset(args) {
   if (!report.ready) process.exitCode = 2;
 }
 
-function runVmLaunchCommand(args) {
+function runVmLaunchCommand(args, { launcher = runVmLaunch, commandName = 'vm-launch' } = {}) {
   let parsed;
   try {
     parsed = parseArguments(args, {
@@ -634,7 +636,7 @@ function runVmLaunchCommand(args) {
   }
   const { options, positionals } = parsed;
   if (positionals.length > 0) {
-    die('vm-launch does not accept positional arguments.', { json: options.json });
+    die(`${commandName} does not accept positional arguments.`, { json: options.json });
   }
 
   let launch;
@@ -643,7 +645,7 @@ function runVmLaunchCommand(args) {
     if (!options.runtime) throw new Error('--runtime is required.');
     if (!options.kernel) throw new Error('--kernel is required.');
     if (!options.initrd) throw new Error('--initrd is required.');
-    launch = runVmLaunch({
+    launch = launcher({
       plan,
       executorDirectory: options.runtime,
       kernelPath: options.kernel,
@@ -657,7 +659,7 @@ function runVmLaunchCommand(args) {
   if (options.json) outputJson(launch);
   else {
     process.stdout.write(
-      `VM launch: ${launch.status} deterministic=${launch.deterministic ? 'yes' : 'no'} hardware-backed=no\n`
+      `VM launch: ${launch.status} deterministic=${launch.deterministic ? 'yes' : 'no'} hardware-backed=${launch.hardwareBacked ? 'yes' : 'no'} host-isolated=${launch.isolation?.verified ? 'yes' : 'no'}\n`
     );
     if (launch.measurementDigest) {
       process.stdout.write(`Measurement: ${launch.measurementDigest}\n`);
@@ -699,6 +701,11 @@ if (!command || command === '--help' || command === '-h' || command === 'help') 
   runVmAsset(argv.slice(1));
 } else if (command === 'vm-launch') {
   runVmLaunchCommand(argv.slice(1));
+} else if (command === 'vm-launch-whpx') {
+  runVmLaunchCommand(argv.slice(1), {
+    launcher: runWhpxVmLaunch,
+    commandName: 'vm-launch-whpx',
+  });
 } else if (command === 'substrate') {
   runSubstrate(argv.slice(1));
 } else {

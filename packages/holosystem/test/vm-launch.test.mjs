@@ -9,14 +9,19 @@ import test from 'node:test';
 import {
   HOLOSYSTEM_VM_LAUNCH_PLAN_SCHEMA,
   HOLOSYSTEM_VM_LAUNCH_RECEIPT_SCHEMA,
+  HOLOSYSTEM_WHPX_VM_LAUNCH_PLAN_SCHEMA,
+  HOLOSYSTEM_WHPX_VM_LAUNCH_RECEIPT_SCHEMA,
   inspectVmExecutor,
   inspectVmLaunchAsset,
   inspectVmLaunchPlan,
+  inspectWhpxVmLaunchPlan,
   runVmLaunchWithProcessRunnerForTest,
+  runWhpxVmLaunchWithProcessRunnerForTest,
 } from '../src/vm-launch.mjs';
-import { runVmLaunch } from '../src/index.mjs';
+import { runVmLaunch, runWhpxVmLaunch } from '../src/index.mjs';
 
 const CONSOLE = Buffer.from('HOLOSYSTEM_VM_OK\r\n');
+const WHPX_DIAGNOSTICS = Buffer.from('pinned WHPX host diagnostic\r\n');
 
 function sha256(value) {
   return `sha256:${createHash('sha256').update(value).digest('hex')}`;
@@ -79,13 +84,158 @@ test('accepts only a closed machine-VM launch vocabulary', () => {
     const unsafe = structuredClone(item.plan);
     unsafe.command = 'powershell -Command curl attacker';
     unsafe.executor.args = ['-net', 'user'];
-    unsafe.target.accelerator = 'whpx';
+    unsafe.target.accelerator = 'kvm';
     unsafe.resources.cpus = 32;
     const blocked = inspectVmLaunchPlan(unsafe);
     assert.equal(blocked.ready, false);
     assert.ok(blocked.issues.some((entry) => entry.code === 'vm-launch-field-unknown'));
     assert.ok(blocked.issues.some((entry) => entry.code === 'vm-launch-accelerator-unsupported'));
     assert.ok(blocked.issues.some((entry) => entry.code === 'vm-launch-limit-invalid'));
+  } finally {
+    rmSync(item.cwd, { recursive: true, force: true });
+  }
+});
+
+test('keeps WHPX in a separately named closed adapter with no downgrade path', () => {
+  const item = fixture();
+  try {
+    const whpxPlan = structuredClone(item.plan);
+    whpxPlan.schema = HOLOSYSTEM_WHPX_VM_LAUNCH_PLAN_SCHEMA;
+    whpxPlan.target.accelerator = 'whpx';
+    whpxPlan.guest.expectedDiagnosticsDigest = sha256(WHPX_DIAGNOSTICS);
+
+    assert.equal(inspectWhpxVmLaunchPlan(whpxPlan).ready, true);
+    assert.equal(inspectVmLaunchPlan(whpxPlan).ready, false);
+
+    const downgrade = structuredClone(whpxPlan);
+    downgrade.target.accelerator = 'tcg';
+    downgrade.fallback = 'tcg';
+    const blocked = inspectWhpxVmLaunchPlan(downgrade);
+    assert.equal(blocked.ready, false);
+    assert.ok(blocked.issues.some((entry) => entry.code === 'vm-launch-field-unknown'));
+    assert.ok(blocked.issues.some((entry) => entry.code === 'vm-launch-accelerator-unsupported'));
+  } finally {
+    rmSync(item.cwd, { recursive: true, force: true });
+  }
+});
+
+test('proves explicit WHPX execution without claiming host-process isolation', () => {
+  const item = fixture();
+  const calls = [];
+  try {
+    const plan = structuredClone(item.plan);
+    plan.schema = HOLOSYSTEM_WHPX_VM_LAUNCH_PLAN_SCHEMA;
+    plan.target.accelerator = 'whpx';
+    plan.guest.expectedDiagnosticsDigest = sha256(WHPX_DIAGNOSTICS);
+    const receipt = runWhpxVmLaunchWithProcessRunnerForTest({
+      plan,
+      executorDirectory: item.runtimeDirectory,
+      kernelPath: item.kernelPath,
+      initrdPath: item.initrdPath,
+      processRunner: (command, args, options) => {
+        calls.push({ command, args, options });
+        return {
+          status: 33,
+          signal: null,
+          stdout: Buffer.from(CONSOLE),
+          stderr: Buffer.from(`${command}: ${WHPX_DIAGNOSTICS}`),
+        };
+      },
+      now: new Date('2026-07-16T00:00:00.000Z'),
+    });
+
+    assert.equal(receipt.schema, HOLOSYSTEM_WHPX_VM_LAUNCH_RECEIPT_SCHEMA);
+    assert.equal(receipt.status, 'verified');
+    assert.equal(receipt.verified, true);
+    assert.equal(receipt.deterministic, true);
+    assert.equal(receipt.hardwareBacked, true);
+    assert.deepEqual(receipt.acceleration, {
+      adapter: 'qemu-whpx',
+      evidence: 'two-explicit-successful-launches',
+      verified: true,
+    });
+    assert.deepEqual(receipt.isolation, {
+      hostProcess: 'ambient-windows-process',
+      verified: false,
+    });
+    assert.deepEqual(receipt.coverage.includedLayers, [
+      'guest-artifact-measurement',
+      'hardware-hypervisor-acceleration',
+      'machine-vm-launch',
+      'virtual-device-minimization',
+    ]);
+    assert.deepEqual(receipt.coverage.missingLayers, ['host-process-isolation']);
+    assert.ok(!receipt.boundaries.includes('hardware-hypervisor-acceleration'));
+    assert.ok(receipt.boundaries.includes('host-process-isolation'));
+    assert.equal(calls.length, 2);
+    for (const call of calls) {
+      assert.ok(call.args.includes('q35,accel=whpx,usb=off'));
+      assert.ok(!call.args.includes('q35,accel=tcg,usb=off'));
+      assert.equal(call.options.shell, false);
+    }
+  } finally {
+    rmSync(item.cwd, { recursive: true, force: true });
+  }
+});
+
+test('does not overclaim WHPX when explicit execution or diagnostics disagree', () => {
+  const cases = [
+    {
+      result: { status: null, signal: null, stdout: Buffer.alloc(0), stderr: Buffer.alloc(0) },
+      code: 'vm-launch-execution-failed',
+    },
+    {
+      result: { status: 33, signal: null, stdout: CONSOLE, stderr: Buffer.from('different') },
+      code: 'vm-launch-diagnostics-mismatch',
+    },
+  ];
+  for (const entry of cases) {
+    const item = fixture();
+    try {
+      const plan = structuredClone(item.plan);
+      plan.schema = HOLOSYSTEM_WHPX_VM_LAUNCH_PLAN_SCHEMA;
+      plan.target.accelerator = 'whpx';
+      plan.guest.expectedDiagnosticsDigest = sha256(WHPX_DIAGNOSTICS);
+      const receipt = runWhpxVmLaunchWithProcessRunnerForTest({
+        plan,
+        executorDirectory: item.runtimeDirectory,
+        kernelPath: item.kernelPath,
+        initrdPath: item.initrdPath,
+        processRunner: () => entry.result,
+      });
+      assert.equal(receipt.verified, false);
+      assert.equal(receipt.hardwareBacked, false);
+      assert.equal(receipt.acceleration.verified, false);
+      assert.ok(receipt.issues.some((issue) => issue.code === entry.code));
+    } finally {
+      rmSync(item.cwd, { recursive: true, force: true });
+    }
+  }
+});
+
+test('normalizes only a generated WHPX prefix at a diagnostic line boundary', () => {
+  const item = fixture();
+  try {
+    const plan = structuredClone(item.plan);
+    plan.schema = HOLOSYSTEM_WHPX_VM_LAUNCH_PLAN_SCHEMA;
+    plan.target.accelerator = 'whpx';
+    plan.guest.expectedDiagnosticsDigest = sha256(WHPX_DIAGNOSTICS);
+    const receipt = runWhpxVmLaunchWithProcessRunnerForTest({
+      plan,
+      executorDirectory: item.runtimeDirectory,
+      kernelPath: item.kernelPath,
+      initrdPath: item.initrdPath,
+      processRunner: (command) => ({
+        status: 33,
+        signal: null,
+        stdout: CONSOLE,
+        stderr: Buffer.from(`${command}: ${WHPX_DIAGNOSTICS}embedded ${command}: must-remain\r\n`),
+      }),
+    });
+    assert.equal(receipt.verified, false);
+    assert.equal(receipt.hardwareBacked, false);
+    assert.ok(receipt.issues.some((entry) => entry.code === 'vm-launch-diagnostics-mismatch'));
+    assert.ok(!JSON.stringify(receipt).includes('must-remain'));
   } finally {
     rmSync(item.cwd, { recursive: true, force: true });
   }
@@ -298,6 +448,25 @@ test('does not publish process-runner injection through the package API', () => 
     assert.equal(injected, 0);
     assert.equal(receipt.verified, false);
     assert.ok(receipt.issues.some((entry) => entry.code === 'vm-launch-execution-failed'));
+
+    const whpxPlan = structuredClone(item.plan);
+    whpxPlan.schema = HOLOSYSTEM_WHPX_VM_LAUNCH_PLAN_SCHEMA;
+    whpxPlan.target.accelerator = 'whpx';
+    whpxPlan.guest.expectedDiagnosticsDigest = sha256(WHPX_DIAGNOSTICS);
+    const whpxReceipt = runWhpxVmLaunch({
+      plan: whpxPlan,
+      executorDirectory: item.runtimeDirectory,
+      kernelPath: item.kernelPath,
+      initrdPath: item.initrdPath,
+      processRunner: () => {
+        injected += 1;
+        return { status: 33, stdout: CONSOLE, stderr: WHPX_DIAGNOSTICS };
+      },
+    });
+    assert.equal(injected, 0);
+    assert.equal(whpxReceipt.verified, false);
+    assert.equal(whpxReceipt.hardwareBacked, false);
+    assert.ok(whpxReceipt.issues.some((entry) => entry.code === 'vm-launch-execution-failed'));
   } finally {
     rmSync(item.cwd, { recursive: true, force: true });
   }
@@ -351,6 +520,36 @@ test('exposes executor and asset inspection plus fail-closed launch through the 
     assert.equal(receipt.verified, false);
     assert.ok(receipt.issues.some((entry) => entry.code === 'vm-launch-field-unknown'));
     assert.ok(!blocked.stdout.includes(item.cwd));
+
+    const whpxPlan = structuredClone(item.plan);
+    whpxPlan.schema = HOLOSYSTEM_WHPX_VM_LAUNCH_PLAN_SCHEMA;
+    whpxPlan.target.accelerator = 'whpx';
+    whpxPlan.guest.expectedDiagnosticsDigest = sha256(WHPX_DIAGNOSTICS);
+    whpxPlan.fallback = 'tcg';
+    const whpxPlanPath = join(item.cwd, 'unsafe-whpx-plan.json');
+    writeFileSync(whpxPlanPath, JSON.stringify(whpxPlan));
+    const whpxBlocked = spawnSync(
+      process.execPath,
+      [
+        cli,
+        'vm-launch-whpx',
+        '--plan',
+        whpxPlanPath,
+        '--runtime',
+        item.runtimeDirectory,
+        '--kernel',
+        item.kernelPath,
+        '--initrd',
+        item.initrdPath,
+        '--json',
+      ],
+      { encoding: 'utf8' }
+    );
+    assert.equal(whpxBlocked.status, 2);
+    const whpxReceipt = JSON.parse(whpxBlocked.stdout);
+    assert.equal(whpxReceipt.schema, HOLOSYSTEM_WHPX_VM_LAUNCH_RECEIPT_SCHEMA);
+    assert.equal(whpxReceipt.verified, false);
+    assert.ok(whpxReceipt.issues.some((entry) => entry.code === 'vm-launch-field-unknown'));
   } finally {
     rmSync(item.cwd, { recursive: true, force: true });
   }

@@ -503,11 +503,13 @@ boundary are recorded in the [native-build threat model](./docs/native-build-thr
 ### Launch a measured machine VM
 
 `vm-launch` extends the executable tracer below the container boundary. It boots
-an AMD64 Linux kernel and initramfs as a full-system q35 guest with QEMU TCG. The
-initial vocabulary is deliberately closed: Windows AMD64 host, QEMU's
-`qemu-system-x86_64.exe`, q35, TCG, 128 MiB, one CPU, and exactly two launches.
-Plans cannot provide a command, argument, environment variable, device, network,
-firmware, monitor, display, or hardware-acceleration setting.
+an AMD64 Linux kernel and initramfs as a full-system q35 guest with QEMU TCG.
+`vm-launch-whpx` is a separately named adapter for QEMU's Windows Hypervisor
+Platform backend. The adapters do not share an accelerator switch and never
+fall back to one another. Both vocabularies are deliberately closed: Windows
+AMD64 host, `qemu-system-x86_64.exe`, q35, 128 MiB, one CPU, and exactly two
+launches. Plans cannot provide a command, argument, environment variable,
+device, network, firmware, monitor, display, or fallback setting.
 
 First measure the complete caller-owned QEMU runtime closure and both guest
 artifacts:
@@ -543,6 +545,13 @@ serial success signal:
 }
 ```
 
+For WHPX, use schema `holoscript.holosystem.whpx-vm-launch-plan.v1`, set the
+target accelerator to `whpx`, and add `guest.expectedDiagnosticsDigest`. That
+digest pins the exact WHPX diagnostic bytes after removal of only the generated
+private executor-path prefix. The WHPX adapter requires successful explicit
+WHPX execution; feature labels or QEMU's compiled backend list are not treated
+as proof that acceleration is usable.
+
 ```bash
 npx holosystem vm-launch \
   --plan vm-launch.json \
@@ -553,30 +562,43 @@ npx holosystem vm-launch \
   --json
 ```
 
+Use `npx holosystem vm-launch-whpx` with the same four caller-owned artifact
+arguments for the WHPX schema. WHPX requires the Windows Hypervisor Platform
+API exposed to QEMU; see the [QEMU WHPX documentation](https://www.qemu.org/docs/master/system/whpx.html)
+and [Microsoft's Windows Hypervisor Platform API overview](https://learn.microsoft.com/en-us/virtualization/api/).
+
 The runner creates a private snapshot and remeasures the complete QEMU closure,
 kernel, and initramfs before and after each launch. It then generates QEMU
 arguments that disable user configuration, default devices, networking, USB,
 display, monitor, and reboot;
 passes only a minimal environment; bounds output and time; and requires both
-launches to produce the pinned serial digest, no emulator diagnostics, and the
-fixed debug-exit code. Receipts contain only digests and byte counts, never raw
-console output or operational host paths.
+launches to produce the pinned serial digest and fixed debug-exit code. TCG
+requires no emulator diagnostics. WHPX requires the normalized diagnostic
+digest pinned by its plan; unexpected bytes block the receipt. Receipts contain
+only digests and byte counts, never raw console output or operational host
+paths.
 
-A verified receipt includes `machine-vm-launch`, `guest-artifact-measurement`,
-and `virtual-device-minimization`. It always reports `hardwareBacked: false` and
-keeps both `hardware-hypervisor-acceleration` and `host-process-isolation`
-missing: TCG is software emulation, and this tracer does not sandbox the QEMU
-host process. It is not WHPX, KVM, an IOMMU, measured boot, or a
-confidential-computing boundary. Firmware files in the supplied runtime are
-hashed, but their authenticity is not proven. The exact claims and residual
-boundaries are in the [VM launch threat model](./docs/vm-launch-threat-model.md).
+A verified TCG receipt includes `machine-vm-launch`,
+`guest-artifact-measurement`, and `virtual-device-minimization`, reports
+`hardwareBacked: false`, and leaves hardware acceleration missing. A verified
+WHPX receipt additionally includes `hardware-hypervisor-acceleration` and sets
+`hardwareBacked: true` only after two explicit WHPX launches succeed. Both
+adapters leave `host-process-isolation` missing: QEMU still has the ambient
+rights of the Windows process. Receipts therefore expose
+`isolation.hostProcess: "ambient-windows-process"` and
+`isolation.verified: false` even when WHPX acceleration is verified. Neither
+receipt proves an IOMMU, measured boot, firmware authenticity, confidential
+memory, or side-channel resistance. The
+exact claims are in the [VM launch threat model](./docs/vm-launch-threat-model.md).
 
 ```js
 import {
   inspectVmExecutor,
   inspectVmLaunchAsset,
   inspectVmLaunchPlan,
+  inspectWhpxVmLaunchPlan,
   runVmLaunch,
+  runWhpxVmLaunch,
 } from '@holoscript/holosystem';
 ```
 

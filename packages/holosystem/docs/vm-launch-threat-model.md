@@ -2,18 +2,20 @@
 
 ## Claim
 
-`vm-launch` proves that two launches of the same measured QEMU runtime, Linux
-kernel, and initramfs reached the same pinned serial success signal through a
-generated, closed full-system QEMU invocation. Optional virtual devices are
-minimized: there is no default device set, network, USB, display, or monitor. The
-receipt binds the plan, complete runtime manifest, executable, guest artifacts,
-and fixed launch policy.
+`vm-launch` and `vm-launch-whpx` prove that two launches of the same measured
+QEMU runtime, Linux kernel, and initramfs reached the same pinned serial success
+signal through generated, closed full-system QEMU invocations. Optional virtual
+devices are minimized: there is no default device set, network, USB, display, or
+monitor. Each receipt binds the plan, complete runtime manifest, executable,
+guest artifacts, and adapter-specific fixed launch policy.
 
-This is a machine-VM execution receipt, not a hardware-backed isolation receipt.
-The only accepted accelerator is QEMU TCG. A verified receipt therefore sets
-`hardwareBacked` to `false` and leaves `hardware-hypervisor-acceleration` and
-`host-process-isolation` missing. QEMU retains the ambient rights of its Windows
-host process in this tracer.
+The TCG adapter is a machine-VM execution receipt and sets `hardwareBacked` to
+`false`. The separately named WHPX adapter selects only `accel=whpx`, has no TCG
+fallback, and sets `hardwareBacked` to `true` only when two explicit WHPX boots
+succeed with matching observations. This proves use of QEMU's hardware-backed
+Windows Hypervisor Platform adapter for those launches; it does not prove host
+process isolation. QEMU retains the ambient rights of its Windows process in
+both adapters.
 
 ## Protected assets and trust boundaries
 
@@ -26,8 +28,8 @@ The tracer does not prove:
 
 - QEMU, the guest kernel, initramfs, or firmware were built from trusted source;
 - Windows, the CPU, QEMU, or Node.js implemented the measurement correctly;
-- hardware virtualization, IOMMU separation, measured boot, Secure Boot, TPM,
-  confidential memory, or side-channel resistance;
+- TCG hardware virtualization, or WHPX IOMMU separation, measured boot, Secure
+  Boot, TPM, confidential memory, or side-channel resistance;
 - host crash dumps, swap, hibernation, debugger state, or physical custody are
   protected;
 - the guest success program establishes a broader workload security property.
@@ -40,31 +42,36 @@ than implied away by a successful boot.
 | Adversary action                                                                                     | Required result                                                            | Receipt or test evidence                                   |
 | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------- |
 | Add a shell command, argument vector, environment field, device, network mode, or unknown plan field | Reject before process launch                                               | `vm-launch-field-unknown`; closed-vocabulary test          |
-| Select WHPX or otherwise request an unsupported stronger claim                                       | Reject rather than downgrade or overclaim                                  | `vm-launch-accelerator-unsupported`                        |
+| Put WHPX in a TCG plan, TCG in a WHPX plan, or request a fallback                                    | Reject rather than downgrade, cross-route, or overclaim                    | Separate schemas; accelerator/unknown-field tests          |
 | Replace any QEMU executable, DLL, firmware file, kernel, or initramfs before measurement             | Reject before process launch                                               | Runtime, binary, kernel, and initrd digest mismatch issues |
 | Replace measured files while the launch snapshot is being created                                    | Reject the snapshot                                                        | Runtime, kernel, and initrd snapshot mismatch issues       |
 | Replace caller-owned files after the first launch                                                    | Second launch still uses the same private snapshot                         | Private-snapshot substitution test                         |
 | Persistently self-modify the private runtime or guest artifacts during a launch                      | Reject on post-launch remeasurement                                        | Private-snapshot drift test                                |
 | Inject QEMU behavior through inherited environment variables or user configuration                   | Launch with a minimal environment and `-no-user-config`                    | Generated-argv test                                        |
 | Obtain implicit host devices or a communication channel                                              | Start with `-nodefaults`, `-nic none`, USB off, no display, and no monitor | Generated-argv test                                        |
-| Forge the guest signal, use the wrong exit path, or emit emulator diagnostics                        | Reject the receipt and retain no raw output                                | Console, exit-code, and diagnostics tests                  |
+| Forge the guest signal, use the wrong exit path, or change adapter diagnostics                       | Reject the receipt and retain no raw output                                | Console, exit-code, and diagnostic-digest tests            |
 | Make clean launches observably disagree                                                              | Reject deterministic coverage                                              | `vm-launch-nondeterministic`                               |
 | Inject a fake process runner through the public API                                                  | Ignore it and execute only the bound process implementation                | Public process-runner injection test                       |
 | Put an operational path or guest output in the receipt                                               | Withhold it; report only digest and byte count                             | Receipt disclosure assertions                              |
 
 ## Fixed launch policy
 
-The plan does not express QEMU arguments. The implementation generates a q35
-TCG invocation with one CPU, 128 MiB, no user configuration, no default devices,
-no network, no USB, no display, no monitor, no reboot, direct kernel boot, serial
-stdio, and a fixed ISA debug-exit device. The guest command line is fixed and
-disables trust in CPU random seeding. The process has a bounded timeout and
-output buffer and receives only a small host/runtime environment.
+The plan does not express QEMU arguments. Each implementation generates a q35
+invocation for exactly one bound accelerator (`tcg` or `whpx`) with one CPU,
+128 MiB, no user configuration, no default devices, no network, no USB, no
+display, no monitor, no reboot, direct kernel boot, serial stdio, and a fixed
+ISA debug-exit device. The TCG adapter pins QEMU's `max` CPU model; the WHPX
+adapter leaves CPU selection to that hardware backend because the TCG model is
+not a valid substitute. The guest command line is fixed and disables trust in
+CPU random seeding. The process has a bounded timeout and output buffer and
+receives only a small host/runtime environment.
 
 Exactly two launches are required. The snapshot is remeasured immediately before
-and after each launch. Each launch must exit with the fixed debug-exit status,
-produce the plan-pinned serial digest, and emit zero stderr bytes. Raw stdout and
-stderr are never included in the receipt.
+and after each launch. Each launch must exit with the fixed debug-exit status and
+produce the plan-pinned serial digest. TCG must emit zero stderr bytes. WHPX must
+produce the plan-pinned diagnostic digest after removal of only the exact,
+randomized private-executor prefix that QEMU repeats at diagnostic line starts. Raw
+stdout and stderr are never included in the receipt.
 
 ## Residual risk and next layer
 
@@ -73,11 +80,12 @@ changes its digest. Hashing does not establish provenance or measured boot.
 Windows QEMU also cannot disable host crash-dump capture through this contract;
 `host-crash-dump-custody` remains an explicit boundary.
 
-QEMU is not placed in an AppContainer, restricted token, job-object filesystem
+QEMU is not yet placed in an AppContainer, restricted token, job-object filesystem
 sandbox, or separate host VM. `virtual-device-minimization` therefore describes
 only the generated guest-facing virtual device surface; it must not be read as
 host-process or physical-device isolation.
 
-The next stronger adapters must use separately named receipts for a supported
-hardware accelerator and for firmware/measured-boot evidence. They must not
-reinterpret this TCG receipt as proof of either property.
+The next stronger layer must add a separately measured Windows host-process
+sandbox and firmware/measured-boot evidence. It must not reinterpret WHPX
+execution as proof of either property, and it must continue to report IOMMU,
+device-assignment, crash-dump custody, and side-channel boundaries separately.

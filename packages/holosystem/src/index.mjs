@@ -28,10 +28,14 @@ export {
   HOLOSYSTEM_VM_EXECUTOR_SCHEMA,
   HOLOSYSTEM_VM_LAUNCH_PLAN_SCHEMA,
   HOLOSYSTEM_VM_LAUNCH_RECEIPT_SCHEMA,
+  HOLOSYSTEM_WHPX_VM_LAUNCH_PLAN_SCHEMA,
+  HOLOSYSTEM_WHPX_VM_LAUNCH_RECEIPT_SCHEMA,
   inspectVmExecutor,
   inspectVmLaunchAsset,
   inspectVmLaunchPlan,
+  inspectWhpxVmLaunchPlan,
   runVmLaunch,
+  runWhpxVmLaunch,
 } from './vm-launch.mjs';
 
 export {

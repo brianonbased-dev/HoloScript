@@ -16,6 +16,9 @@ export const HOLOSYSTEM_VM_LAUNCH_PLAN_SCHEMA = 'holoscript.holosystem.vm-launch
 export const HOLOSYSTEM_VM_EXECUTOR_SCHEMA = 'holoscript.holosystem.vm-executor.v1';
 export const HOLOSYSTEM_VM_ASSET_SCHEMA = 'holoscript.holosystem.vm-asset.v1';
 export const HOLOSYSTEM_VM_LAUNCH_RECEIPT_SCHEMA = 'holoscript.holosystem.vm-launch-receipt.v1';
+export const HOLOSYSTEM_WHPX_VM_LAUNCH_PLAN_SCHEMA = 'holoscript.holosystem.whpx-vm-launch-plan.v1';
+export const HOLOSYSTEM_WHPX_VM_LAUNCH_RECEIPT_SCHEMA =
+  'holoscript.holosystem.whpx-vm-launch-receipt.v1';
 
 const DIGEST_PATTERN = /^sha256:[a-f0-9]{64}$/u;
 const EXECUTOR_BINARY = 'qemu-system-x86_64.exe';
@@ -26,7 +29,7 @@ const MAX_KERNEL_BYTES = 128 * 1024 * 1024;
 const MAX_INITRD_BYTES = 512 * 1024 * 1024;
 const MAX_CONSOLE_BYTES = 1024 * 1024;
 const EXPECTED_EXIT_CODE = 33;
-const POLICY = Object.freeze({
+const TCG_POLICY = Object.freeze({
   accelerator: 'tcg',
   userConfiguration: 'disabled',
   defaultDevices: 'disabled',
@@ -37,6 +40,20 @@ const POLICY = Object.freeze({
   reboot: 'disabled',
   processEnvironment: 'minimal',
   guestSignal: 'serial-digest-and-debug-exit',
+  diagnostics: 'none',
+});
+const WHPX_POLICY = Object.freeze({
+  accelerator: 'whpx',
+  userConfiguration: 'disabled',
+  defaultDevices: 'disabled',
+  network: 'none',
+  display: 'none',
+  monitor: 'none',
+  usb: 'disabled',
+  reboot: 'disabled',
+  processEnvironment: 'minimal',
+  guestSignal: 'serial-digest-and-debug-exit',
+  diagnostics: 'pinned-digest',
 });
 const BOUNDARIES = Object.freeze([
   'guest-artifact-provenance',
@@ -48,6 +65,24 @@ const BOUNDARIES = Object.freeze([
   'qemu-runtime-supply-chain',
   'side-channel-resistance',
 ]);
+const TCG_ADAPTER = Object.freeze({
+  accelerator: 'tcg',
+  accelerationName: 'qemu-tcg',
+  hardwareBacked: false,
+  planSchema: HOLOSYSTEM_VM_LAUNCH_PLAN_SCHEMA,
+  receiptSchema: HOLOSYSTEM_VM_LAUNCH_RECEIPT_SCHEMA,
+  policy: TCG_POLICY,
+  requiresDiagnosticsDigest: false,
+});
+const WHPX_ADAPTER = Object.freeze({
+  accelerator: 'whpx',
+  accelerationName: 'qemu-whpx',
+  hardwareBacked: true,
+  planSchema: HOLOSYSTEM_WHPX_VM_LAUNCH_PLAN_SCHEMA,
+  receiptSchema: HOLOSYSTEM_WHPX_VM_LAUNCH_RECEIPT_SCHEMA,
+  policy: WHPX_POLICY,
+  requiresDiagnosticsDigest: true,
+});
 
 function isRecord(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -127,6 +162,7 @@ function normalizedPlan(plan) {
       kernelDigest: plan.guest.kernelDigest,
       initrdDigest: plan.guest.initrdDigest,
       expectedConsoleDigest: plan.guest.expectedConsoleDigest,
+      expectedDiagnosticsDigest: plan.guest.expectedDiagnosticsDigest || null,
     },
     resources: {
       memoryMiB: plan.resources.memoryMiB,
@@ -137,7 +173,7 @@ function normalizedPlan(plan) {
   };
 }
 
-export function inspectVmLaunchPlan(plan) {
+function inspectVmLaunchPlanForAdapter(plan, adapter) {
   const issues = [];
   if (!isRecord(plan)) {
     issue(issues, 'vm-launch-plan-invalid', '$', 'VM launch plan must be a JSON object.');
@@ -150,13 +186,8 @@ export function inspectVmLaunchPlan(plan) {
     '',
     issues
   );
-  if (plan.schema !== HOLOSYSTEM_VM_LAUNCH_PLAN_SCHEMA) {
-    issue(
-      issues,
-      'vm-launch-schema-mismatch',
-      'schema',
-      `Expected ${HOLOSYSTEM_VM_LAUNCH_PLAN_SCHEMA}.`
-    );
+  if (plan.schema !== adapter.planSchema) {
+    issue(issues, 'vm-launch-schema-mismatch', 'schema', `Expected ${adapter.planSchema}.`);
   }
   if (!validId(plan.id)) {
     issue(issues, 'vm-launch-id-invalid', 'id', 'Launch id must be a portable identifier.');
@@ -198,24 +229,32 @@ export function inspectVmLaunchPlan(plan) {
       'This tracer supports only the explicit AMD64 q35 machine target.'
     );
   }
-  if (plan.target?.accelerator !== 'tcg') {
+  if (plan.target?.accelerator !== adapter.accelerator) {
     issue(
       issues,
       'vm-launch-accelerator-unsupported',
       'target.accelerator',
-      'Only the software TCG tracer is supported; hardware-backed claims require a separate adapter.'
+      `This adapter requires the explicit ${adapter.accelerator} accelerator and never falls back.`
     );
   }
 
   knownKeys(
     plan.guest,
-    new Set(['kernelDigest', 'initrdDigest', 'expectedConsoleDigest']),
+    new Set([
+      'kernelDigest',
+      'initrdDigest',
+      'expectedConsoleDigest',
+      ...(adapter.requiresDiagnosticsDigest ? ['expectedDiagnosticsDigest'] : []),
+    ]),
     'guest',
     issues
   );
   inspectDigest(plan.guest?.kernelDigest, 'guest.kernelDigest', issues);
   inspectDigest(plan.guest?.initrdDigest, 'guest.initrdDigest', issues);
   inspectDigest(plan.guest?.expectedConsoleDigest, 'guest.expectedConsoleDigest', issues);
+  if (adapter.requiresDiagnosticsDigest) {
+    inspectDigest(plan.guest?.expectedDiagnosticsDigest, 'guest.expectedDiagnosticsDigest', issues);
+  }
 
   knownKeys(plan.resources, new Set(['memoryMiB', 'cpus', 'timeoutSeconds']), 'resources', issues);
   if (
@@ -242,6 +281,14 @@ export function inspectVmLaunchPlan(plan) {
   }
 
   return { ready: issues.length === 0, issues };
+}
+
+export function inspectVmLaunchPlan(plan) {
+  return inspectVmLaunchPlanForAdapter(plan, TCG_ADAPTER);
+}
+
+export function inspectWhpxVmLaunchPlan(plan) {
+  return inspectVmLaunchPlanForAdapter(plan, WHPX_ADAPTER);
 }
 
 function scanRuntime(directory, issues) {
@@ -440,19 +487,48 @@ function logSummary(value) {
   return { bytes: bytes.length, digest: hashBytes(bytes) };
 }
 
+function normalizedDiagnostics(value, command) {
+  const bytes = Buffer.isBuffer(value) ? value : Buffer.from(String(value || ''), 'utf8');
+  if (bytes.length === 0) return bytes;
+  const prefix = Buffer.from(`${command}: `, 'utf8');
+  const chunks = [];
+  let offset = 0;
+  let scan = 0;
+  for (let index = bytes.indexOf(prefix, scan); index !== -1; index = bytes.indexOf(prefix, scan)) {
+    if (index !== 0 && bytes[index - 1] !== 0x0a) {
+      scan = index + 1;
+      continue;
+    }
+    chunks.push(bytes.subarray(offset, index));
+    offset = index + prefix.length;
+    scan = offset;
+  }
+  chunks.push(bytes.subarray(offset));
+  return Buffer.concat(chunks);
+}
+
 function finishReceipt(receipt) {
   return { ...receipt, receiptHash: hashJson(receipt) };
 }
 
-function baseReceipt(plan, now, issues) {
+function baseReceipt(plan, now, issues, adapter) {
   return {
-    schema: HOLOSYSTEM_VM_LAUNCH_RECEIPT_SCHEMA,
+    schema: adapter.receiptSchema,
     generatedAt: now.toISOString(),
     id: validId(plan?.id) ? plan.id : null,
     status: 'blocked',
     verified: false,
     deterministic: false,
     hardwareBacked: false,
+    acceleration: {
+      adapter: adapter.accelerationName,
+      evidence: adapter.hardwareBacked ? 'two-explicit-successful-launches' : 'software-emulation',
+      verified: false,
+    },
+    isolation: {
+      hostProcess: 'ambient-windows-process',
+      verified: false,
+    },
     measurementDigest: null,
     executor: {
       kind: plan?.executor?.kind === 'qemu-system' ? 'qemu-system' : null,
@@ -475,8 +551,10 @@ function baseReceipt(plan, now, issues) {
         : null,
     },
     target:
-      plan?.target?.architecture === 'amd64' && plan?.target?.machine === 'q35'
-        ? { architecture: 'amd64', machine: 'q35', accelerator: 'tcg' }
+      plan?.target?.architecture === 'amd64' &&
+      plan?.target?.machine === 'q35' &&
+      plan?.target?.accelerator === adapter.accelerator
+        ? { architecture: 'amd64', machine: 'q35', accelerator: adapter.accelerator }
         : null,
     resources:
       isRecord(plan?.resources) &&
@@ -489,7 +567,7 @@ function baseReceipt(plan, now, issues) {
             timeoutSeconds: plan.resources.timeoutSeconds,
           }
         : null,
-    policy: { ...POLICY },
+    policy: { ...adapter.policy },
     launches: [],
     coverage: {
       includedLayers: [],
@@ -501,19 +579,20 @@ function baseReceipt(plan, now, issues) {
         'virtual-device-minimization',
       ],
     },
-    boundaries: [...BOUNDARIES],
+    boundaries: BOUNDARIES.filter(
+      (layer) => !(adapter.hardwareBacked && layer === 'hardware-hypervisor-acceleration')
+    ),
     issues,
   };
 }
 
-function qemuArguments(plan, kernelPath, initrdPath) {
+function qemuArguments(plan, kernelPath, initrdPath, adapter) {
   return [
     '-no-user-config',
     '-nodefaults',
     '-machine',
-    'q35,accel=tcg,usb=off',
-    '-cpu',
-    'max',
+    `q35,accel=${adapter.accelerator},usb=off`,
+    ...(adapter === TCG_ADAPTER ? ['-cpu', 'max'] : []),
     '-m',
     `${plan.resources.memoryMiB}M`,
     '-smp',
@@ -579,10 +658,11 @@ function launchSnapshotMatches(plan, runtimeDirectory, kernelPath, initrdPath) {
 
 function runVmLaunchWithProcessRunner(
   { plan, executorDirectory, kernelPath, initrdPath, now = new Date() } = {},
-  processRunner
+  processRunner,
+  adapter
 ) {
-  const inspection = inspectVmLaunchPlan(plan);
-  const receipt = baseReceipt(plan, now, [...inspection.issues]);
+  const inspection = inspectVmLaunchPlanForAdapter(plan, adapter);
+  const receipt = baseReceipt(plan, now, [...inspection.issues], adapter);
   if (!inspection.ready) return finishReceipt(receipt);
 
   const executor = inspectVmExecutor({ executorDirectory });
@@ -685,11 +765,11 @@ function runVmLaunchWithProcessRunner(
       binaryDigest: pinnedExecutor.binaryDigest,
       kernelDigest: pinnedKernel.digest,
       initrdDigest: pinnedInitrd.digest,
-      policy: POLICY,
+      policy: adapter.policy,
     });
 
     const command = join(snapshotRuntime, EXECUTOR_BINARY);
-    const args = qemuArguments(plan, snapshotKernel, snapshotInitrd);
+    const args = qemuArguments(plan, snapshotKernel, snapshotInitrd, adapter);
     const options = {
       encoding: null,
       env: minimalEnvironment(snapshotRoot, snapshotRuntime),
@@ -716,7 +796,11 @@ function runVmLaunchWithProcessRunner(
         result = { status: null, signal: null, stdout: Buffer.alloc(0), stderr: Buffer.alloc(0) };
       }
       const stdout = logSummary(result?.stdout);
-      const stderr = logSummary(result?.stderr);
+      const stderr = logSummary(
+        adapter.requiresDiagnosticsDigest
+          ? normalizedDiagnostics(result?.stderr, command)
+          : result?.stderr
+      );
       const launch = {
         index: index + 1,
         exitCode: Number.isInteger(result?.status) ? result.status : null,
@@ -748,7 +832,17 @@ function runVmLaunchWithProcessRunner(
           'Guest serial output does not match the pinned success digest.'
         );
       }
-      if (stderr.bytes !== 0) {
+      if (
+        adapter.requiresDiagnosticsDigest &&
+        stderr.digest !== plan.guest.expectedDiagnosticsDigest
+      ) {
+        issue(
+          receipt.issues,
+          'vm-launch-diagnostics-mismatch',
+          `launches[${index}].stderr`,
+          'Host emulator diagnostics do not match the pinned adapter digest; raw bytes are withheld.'
+        );
+      } else if (!adapter.requiresDiagnosticsDigest && stderr.bytes !== 0) {
         issue(
           receipt.issues,
           'vm-launch-diagnostics-present',
@@ -788,20 +882,30 @@ function runVmLaunchWithProcessRunner(
   if (receipt.deterministic) {
     receipt.status = 'verified';
     receipt.verified = true;
+    receipt.hardwareBacked = adapter.hardwareBacked;
+    receipt.acceleration.verified = adapter.hardwareBacked;
     receipt.coverage = {
       includedLayers: [
         'guest-artifact-measurement',
+        ...(adapter.hardwareBacked ? ['hardware-hypervisor-acceleration'] : []),
         'machine-vm-launch',
         'virtual-device-minimization',
       ],
-      missingLayers: ['hardware-hypervisor-acceleration', 'host-process-isolation'],
+      missingLayers: [
+        ...(!adapter.hardwareBacked ? ['hardware-hypervisor-acceleration'] : []),
+        'host-process-isolation',
+      ],
     };
   }
   return finishReceipt(receipt);
 }
 
 export function runVmLaunch(options = {}) {
-  return runVmLaunchWithProcessRunner(options, spawnSync);
+  return runVmLaunchWithProcessRunner(options, spawnSync, TCG_ADAPTER);
+}
+
+export function runWhpxVmLaunch(options = {}) {
+  return runVmLaunchWithProcessRunner(options, spawnSync, WHPX_ADAPTER);
 }
 
 // Repository tests need a deterministic process boundary without publishing an
@@ -811,5 +915,13 @@ export function runVmLaunchWithProcessRunnerForTest(options = {}) {
     throw new TypeError('processRunner test adapter is required.');
   }
   const { processRunner, ...launchOptions } = options;
-  return runVmLaunchWithProcessRunner(launchOptions, processRunner);
+  return runVmLaunchWithProcessRunner(launchOptions, processRunner, TCG_ADAPTER);
+}
+
+export function runWhpxVmLaunchWithProcessRunnerForTest(options = {}) {
+  if (typeof options.processRunner !== 'function') {
+    throw new TypeError('processRunner test adapter is required.');
+  }
+  const { processRunner, ...launchOptions } = options;
+  return runVmLaunchWithProcessRunner(launchOptions, processRunner, WHPX_ADAPTER);
 }
