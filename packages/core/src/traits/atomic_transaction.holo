@@ -1,0 +1,14 @@
+@trait {
+  name: "@atomic_transaction",
+  category: "web3",
+  description: "Atomic transaction coordinator. Manages multi-step transaction state with commit/rollback (2PC-style begin/commit/rollback) semantics. Config is context-dependent and set at instance construction. NOT a port of core/traits/TransactionTrait.ts despite the original filename and an earlier claim here — that ledger handler is pay/transfer/stake/unstake/deposit with no begin/commit/rollback concept and is natively described as @core_transaction (core_transaction.holo). Renamed from bare '@transaction' and moved from transaction.holo to atomic_transaction.holo to disambiguate (task_1784182188049_7xzd, 2026-07-16) — three files previously declared the identical name '@transaction' (this one, core_transaction.holo, and economics/transaction.holo, the canonical @transaction).",
+  props: {},
+  events: {
+    on_committed: "transaction:committed",
+    on_rolled_back: "transaction:rolled_back",
+    begin: "transaction.begin",
+    commit: "transaction.commit",
+    rollback: "transaction.rollback"
+  },
+  behaviors: ["@rollback", "@persistent", "@resource_accounting"]
+}
