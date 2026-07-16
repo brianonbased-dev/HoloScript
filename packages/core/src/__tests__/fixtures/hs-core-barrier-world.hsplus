@@ -1,0 +1,107 @@
+// HS-Core barrier world — deterministic Stage-A fixture for the HSI-IR vertical slice
+// (task 9v9q, research/2026-07-14_holoscript-native-intelligence-opportunity-EVOLVED.md).
+//
+// One agent, one target, three barriers with three-state opacity:
+//   GlassPane  -> opaque: false   (transparent)
+//   StoneSlab  -> opaque: true    (opaque)
+//   VeilPanel  -> opacity ABSENT  (unknown — deliberate, do not "fix")
+// All values are literal and deterministic — no Date.now(), no Math.random().
+
+composition "HSCoreBarrierWorld" {
+  state {
+    scoutZone: "west"
+    goalReached: false
+    inspections: 0
+    traversals: 0
+  }
+
+  template "AgentBody" {
+    geometry: "sphere"
+    color: "#3366ff"
+    role: "agent"
+  }
+
+  template "BeaconCore" {
+    geometry: "box"
+    color: "#ffcc00"
+    role: "target"
+  }
+
+  template "GlassWall" {
+    geometry: "box"
+    color: "#ccffee"
+    role: "barrier"
+    opaque: false
+  }
+
+  template "StoneWall" {
+    geometry: "box"
+    color: "#665544"
+    role: "barrier"
+    opaque: true
+  }
+
+  template "VeilWall" {
+    geometry: "box"
+    color: "#8877aa"
+    role: "barrier"
+  }
+
+  object "Scout" using "AgentBody" {
+    position: [-4, 0, 0]
+  }
+
+  object "Beacon" using "BeaconCore" {
+    position: [4, 0, 0]
+  }
+
+  object "GlassPane" using "GlassWall" {
+    position: [0, 0, -2]
+  }
+
+  object "StoneSlab" using "StoneWall" {
+    position: [0, 0, 0]
+  }
+
+  object "VeilPanel" using "VeilWall" {
+    position: [0, 0, 2]
+  }
+
+  connect Scout to Beacon as "seeks"
+  connect GlassPane to Beacon as "shields"
+  connect StoneSlab to Beacon as "shields"
+  connect VeilPanel to Beacon as "shields"
+
+  logic {
+    on_traverse {
+      traversals += 1
+      scoutZone = "east"
+      goalReached = true
+    }
+    on_inspect {
+      inspections += 1
+    }
+  }
+
+  state_machine TraversalControl {
+    initial: Scanning
+    input clearance: number = 0
+    input probe: trigger
+
+    state Scanning {}
+    state Traversing {}
+    state Inspecting {}
+
+    Scanning -> Traversing when clearance > 0.5
+    Scanning -> Inspecting on probe
+    Inspecting -> Scanning when clearance <= 0.5
+    Traversing -> Scanning when clearance <= 0.5
+  }
+
+  sim_contract {
+    precondition "no_prior_traversals" { traversals == 0 }
+    invariant "bounded_traversals" { traversals <= 3 }
+    invariant "bounded_inspections" { inspections <= 5 }
+    receipt { goalReached: boolean, traversals: number }
+  }
+}

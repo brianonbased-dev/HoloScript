@@ -179,6 +179,7 @@ export type CompilerName =
   | 'agent-inference'
   | 'omnigent-agent-yaml'
   | 'daimon-seed'
+  | 'hsi-ir'
   | 'mcp-config'
   | 'mcp-server'
   // neuromorphic
@@ -271,6 +272,7 @@ export const ANSCapabilityPath = {
   AGENT_INFERENCE: '/compile/ai/agent-inference',
   OMNIGENT_AGENT_YAML: '/compile/ai/omnigent-agent-yaml',
   DAIMON_SEED: '/compile/ai/daimon-seed',
+  HSI_IR: '/compile/ai/hsi-ir',
   MCP_CONFIG: '/compile/ai/mcp-config',
   MCP_SERVER: '/compile/ai/mcp-server',
 
@@ -351,6 +353,7 @@ export const COMPILER_DOMAIN_MAP: Readonly<Record<CompilerName, ANSDomainValue>>
   'agent-inference': ANSDomain.AI,
   'omnigent-agent-yaml': ANSDomain.AI,
   'daimon-seed': ANSDomain.AI,
+  'hsi-ir': ANSDomain.AI,
   'mcp-config': ANSDomain.AI,
   'mcp-server': ANSDomain.AI,
   // neuromorphic
@@ -414,6 +417,7 @@ export const COMPILER_ANS_MAP: Readonly<Record<CompilerName, ANSCapabilityPathVa
   'agent-inference': ANSCapabilityPath.AGENT_INFERENCE,
   'omnigent-agent-yaml': ANSCapabilityPath.OMNIGENT_AGENT_YAML,
   'daimon-seed': ANSCapabilityPath.DAIMON_SEED,
+  'hsi-ir': ANSCapabilityPath.HSI_IR,
   'mcp-config': ANSCapabilityPath.MCP_CONFIG,
   'mcp-server': ANSCapabilityPath.MCP_SERVER,
   nir: ANSCapabilityPath.NIR,

@@ -47,6 +47,7 @@ export const ANSCapabilityPath = {
   AGENT_INFERENCE: '/compile/ai/agent-inference',
   OMNIGENT_AGENT_YAML: '/compile/ai/omnigent-agent-yaml',
   DAIMON_SEED: '/compile/ai/daimon-seed',
+  HSI_IR: '/compile/ai/hsi-ir',
   NIR: '/compile/neuromorphic/nir',
   MULTI_LAYER: '/compile/meta/multi-layer',
   INCREMENTAL: '/compile/meta/incremental',

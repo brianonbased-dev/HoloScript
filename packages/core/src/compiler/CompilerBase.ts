@@ -143,6 +143,7 @@ const COMPILER_CLASS_TO_ANS_NAME: Readonly<Record<string, CompilerName>> = {
   AgentInferenceCompiler: 'agent-inference',
   OmnigentAgentYamlCompiler: 'omnigent-agent-yaml',
   DaimonSeedCompiler: 'daimon-seed',
+  HSIIRCompiler: 'hsi-ir',
   CodeEditorCompiler: 'code-editor',
   SVGCompiler: 'svg',
 };

@@ -222,6 +222,73 @@ export type {
   HysteresisExp2Result,
 } from './DaimonSeedCompiler';
 
+// HSI-IR Stage-A vertical slice: HS-Core lowering, exact traces, LearningGraph, audit plane.
+export {
+  HSIIRCompiler,
+  createHSIIRCompiler,
+  lowerCompositionToHSIIR,
+  lowerHoloExpression,
+  HSI_OBSERVATION_MEDIATOR_EDGE,
+} from './HSIIRCompiler';
+export { runExactTrace } from './HSIExactTrace';
+export { projectLearningGraph } from './HSILearningGraph';
+export {
+  runHSIAudit,
+  generateAuditCases,
+  renameComposition,
+  renameTrace,
+  reorderComposition,
+  applyIntervention,
+  behavioralProjection,
+} from './HSIAuditVerifier';
+export {
+  HSIAdmissionError,
+  HSI_IR_SCHEMA_VERSION,
+  HSI_TRACE_SCHEMA_VERSION,
+  HSI_LEARNING_GRAPH_SCHEMA_VERSION,
+  HSI_AUDIT_SCHEMA_VERSION,
+  hsiStableStringify,
+  hsiSha256,
+  hsiSourceTextDigest,
+} from './HSIIRTypes';
+export type {
+  HSIIRDocument,
+  HSIIRSchemaVersion,
+  HSIEntity,
+  HSIRelation,
+  HSIStateField,
+  HSIObservationRule,
+  HSIEventHandler,
+  HSIEffect,
+  HSIAssignEffect,
+  HSIEmitEffect,
+  HSIBranchEffect,
+  HSIStateMachine,
+  HSIMachineInput,
+  HSITransition,
+  HSIPredicate,
+  HSIScalar,
+  HSISourceSpan,
+  HSIOpacity,
+  HSIAccess,
+  HSIScenarioStep,
+  HSITrace,
+  HSITraceStep,
+  HSITraceEffectRecord,
+  HSITraceTransitionRecord,
+  HSILearningGraph,
+  HSILearningNode,
+  HSILearningEdge,
+  HSILearningNodeType,
+  HSILearningEdgeType,
+  HSIIntervention,
+  HSIAuditCase,
+  HSIAuditCheckResult,
+  HSIAuditManifest,
+} from './HSIIRTypes';
+export type { HSIIRLoweringOptions } from './HSIIRCompiler';
+export type { HSIRenameMap, HSICompositionIntervention, HSIAuditInput } from './HSIAuditVerifier';
+
 // Agent context compiler
 export { ContextCompiler, ContextCompileError, createContextCompiler } from './ContextCompiler';
 export type {
