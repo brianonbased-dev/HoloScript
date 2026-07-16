@@ -214,7 +214,7 @@ describe('ReactionDiffusionSolver', () => {
     expect(stats).toHaveProperty('totalSubsteps');
   });
 
-  it('couples to ThermalSolver via CouplingManagerV2', () => {
+  it('couples to ThermalSolver via CouplingManagerV2', async () => {
     // Create reaction-diffusion solver
     const rdSolver = new ReactionDiffusionSolver(
       makeSimpleConfig({
@@ -267,10 +267,11 @@ describe('ReactionDiffusionSolver', () => {
     expect(statsBefore.solverCount).toBe(2);
     expect(statsBefore.couplingCount).toBe(2);
 
-    // Step the coupled system — should not throw
-    expect(async () => {
-      await coupling.step(0.001);
-    }).not.toThrow();
+    // Step the coupled system — the co-located 125↔125 fields transfer without error.
+    // (Previously this used `expect(async () => …).not.toThrow()`, which passes
+    // vacuously: an async fn handed to `.not.toThrow()` returns a promise and never
+    // throws synchronously, so it could not catch a coupling regression.)
+    await expect(coupling.step(0.001)).resolves.toBeInstanceOf(Array);
 
     coupling.dispose();
   });

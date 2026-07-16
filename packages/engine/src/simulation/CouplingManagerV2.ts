@@ -106,7 +106,30 @@ export class CouplingManagerV2 {
     return this.lastEvents;
   }
 
-  /** Transfer a field value from source solver to target solver. */
+  /**
+   * Transfer a field value from source solver to target solver.
+   *
+   * Transfer semantics: **co-located, same-topology, element-index-mapped**.
+   * Every `FieldData` (RegularGrid3D or bare typed array) is reduced to its flat
+   * numeric buffer and transferred element-for-element with the coupling
+   * transform. This is correct only when source and target discretizations are
+   * co-located and share topology (equal element counts) — the assumption every
+   * production coupling in-tree relies on.
+   *
+   * Two behaviours are deliberate:
+   *  - ALL four container combinations (grid↔grid, array↔array, grid↔array,
+   *    array↔grid) are handled. Previously grid↔array pairs matched neither
+   *    branch and were a **silent no-op** — the actual live coupling
+   *    (thermal `temperature` Float32Array ↔ reaction `temperature_grid`
+   *    RegularGrid3D) transferred nothing.
+   *  - A genuine element-count mismatch **throws** rather than silently
+   *    truncating to `min(len)`. `FieldData` carries no geometry
+   *    (grids have spacing but no origin; arrays carry no coordinates), so
+   *    non-matching discretizations cannot be interpolated here — transferring a
+   *    prefix would be silently-wrong physics. Cross-discretization interpolation
+   *    (trilinear by world coordinate / TET10 shape-function remap) requires a
+   *    geometry-carrying field model and is intentionally not implemented here.
+   */
   private transferField(coupling: FieldCouplingV2): void {
     const sourceSolver = this.solvers.get(coupling.source.solver);
     const targetSolver = this.solvers.get(coupling.target.solver);
@@ -116,23 +139,23 @@ export class CouplingManagerV2 {
     const targetField = targetSolver.getField(coupling.target.field);
     if (!sourceField || !targetField) return;
 
-    // Grid-to-grid transfer
-    if (sourceField instanceof RegularGrid3D && targetField instanceof RegularGrid3D) {
-      const sd = sourceField.data;
-      const td = targetField.data;
-      const len = Math.min(sd.length, td.length);
-      for (let i = 0; i < len; i++) {
-        td[i] = coupling.transform(sd[i]);
-      }
-      return;
+    const sd = flatBuffer(sourceField);
+    const td = flatBuffer(targetField);
+
+    if (sd.length !== td.length) {
+      throw new Error(
+        `CouplingManagerV2: cannot transfer field ` +
+          `'${coupling.source.solver}.${coupling.source.field}' (${sd.length} values) → ` +
+          `'${coupling.target.solver}.${coupling.target.field}' (${td.length} values): ` +
+          `source and target discretizations differ. Field transfer supports only ` +
+          `co-located, same-topology discretizations (equal element counts). ` +
+          `Cross-discretization interpolation is not implemented (the field model ` +
+          `carries no geometry — grids have no origin, arrays no coordinates).`
+      );
     }
 
-    // Array-to-array transfer
-    if (isTypedArray(sourceField) && isTypedArray(targetField)) {
-      const len = Math.min(sourceField.length, targetField.length);
-      for (let i = 0; i < len; i++) {
-        (targetField as Float32Array)[i] = coupling.transform(sourceField[i]);
-      }
+    for (let i = 0; i < td.length; i++) {
+      td[i] = coupling.transform(sd[i]);
     }
   }
 
@@ -169,6 +192,7 @@ export class CouplingManagerV2 {
   }
 }
 
-function isTypedArray(v: FieldData): v is Float32Array | Float64Array {
-  return v instanceof Float32Array || v instanceof Float64Array;
+/** Reduce any FieldData to its flat numeric buffer (grid → backing data, typed array → itself). */
+function flatBuffer(field: FieldData): Float32Array | Float64Array {
+  return field instanceof RegularGrid3D ? field.data : field;
 }
