@@ -247,6 +247,9 @@
     "check:apex-poison-retired:test": "node scripts/__tests__/check-apex-poison-retired.test.mjs",
     "check:render-surface-native": "node scripts/holo-ci/check-render-surface-native.mjs",
     "check:render-surface-native:test": "node scripts/__tests__/check-render-surface-native.test.mjs",
+    "check:orchestrator-fetch-canonical": "node scripts/holo-ci/check-orchestrator-fetch-canonical.mjs",
+    "check:orchestrator-fetch-canonical:update": "node scripts/holo-ci/check-orchestrator-fetch-canonical.mjs --update",
+    "check:mcp-gate-coverage": "node scripts/holo-ci/check-mcp-gate-coverage.mjs",
     "check:verified-view": "node scripts/holo-ci/check-verified-view.mjs",
     "check:verified-view:update": "node scripts/holo-ci/check-verified-view.mjs --update-baseline",
     "check:export-targets-sync": "node scripts/holo-ci/check-export-targets-sync.mjs",
@@ -380,7 +383,7 @@
   "author": "Brian X Base Team",
   "repository": {
     "type": "git",
-    "url": "https://github.com/brianonbased-dev/HoloScript.git"
+    "url": "git+https://github.com/brianonbased-dev/HoloScript.git"
   },
   "dependencies": {
     "@holoscript/cli": "workspace:*",
@@ -391,5 +394,16 @@
     "tree-sitter-rust": "^0.24.0",
     "tree-sitter-typescript": "^0.23.2",
     "ts-morph": "^27.0.2"
-  }
+  },
+  "main": "sync_wpg.js",
+  "directories": {
+    "doc": "docs",
+    "example": "examples"
+  },
+  "keywords": [],
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  },
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme"
 }

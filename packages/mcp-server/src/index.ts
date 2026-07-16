@@ -87,6 +87,7 @@ import { listSkillResources, readSkillResource } from './skill-resources';
 import { isHologramMcpResponse, wrapHologramMcpEnvelope } from '@holoscript/core';
 import type { SigningContext } from './holomesh/identity/signing-middleware';
 import { authorizeToolCall, registerKnownTools } from './security/tool-scopes';
+import { gateToolCall, classifyMcpEnvelopeResult } from './tool-call-gate';
 
 declare const __SERVICE_VERSION__: string;
 
@@ -368,9 +369,22 @@ function assertBatchInnerToolAuthorized(toolName: string, signingCtx?: SigningCo
 //      extractAndVerifySigning(body) → SigningContext.
 //   2. Pass that signingCtx through securedToolExecution → handleTool.
 //   3. The leaf gate at handleSecretsBrokerTool then fires automatically.
+//
+// WRAP-WITH-RECEIPTS fold point (dependency-sovereignty-ladder, 2026-07-16):
+// every stdio tool call routes through gateToolCall — one NDJSON receipt per
+// call (sha256 of canonical-JSON args, NEVER raw args) plus the typed seam
+// where FounderGate / x402 / envelope-validation checks plug in. Behavior-
+// neutral: the default check is pass-through and executeSingleTool never
+// throws (failures come back as isError results, which the classifier maps
+// onto the receipt's error status).
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
-  return await executeSingleTool(name, args || {});
+  return await gateToolCall(
+    { name, args: args || {} },
+    { transport: 'stdio', callerId: null },
+    (env) => executeSingleTool(env.name, env.args),
+    { classifyResult: classifyMcpEnvelopeResult }
+  );
 });
 
 // === O(1) TOOL DISPATCH REGISTRY ===

@@ -283,6 +283,54 @@ else
     echo -e "  ${GREEN}✓${NC} No staged render .tsx"
 fi
 
+# Gate 5e2: MCP gate coverage (WRAP-WITH-RECEIPTS, dependency-sovereignty-ladder 2026-07-16).
+# Every setRequestHandler(CallToolRequestSchema) fold point under packages/mcp-server/src must
+# route through gateToolCall (packages/mcp-server/src/tool-call-gate.ts) — per-call NDJSON
+# receipts + the typed FounderGate/x402 check seam. Fast static scan; only runs when mcp-server
+# source is staged so unrelated commits skip it. HoloCI's mcp-gate-coverage gate is the
+# authoritative layer; this is the dev floor.
+echo "  ├─ MCP gate coverage (gateToolCall)..."
+STAGED_MCP_SRC=$(git diff --cached --name-only -- 'packages/mcp-server/src/**/*.ts' 2>/dev/null || true)
+if [ -n "$STAGED_MCP_SRC" ]; then
+    MCPGATE_OUT=$(run_with_timeout 30 node scripts/holo-ci/check-mcp-gate-coverage.mjs 2>&1)
+    MCPGATE_STATUS=$?
+    if [ "$MCPGATE_STATUS" -ne 0 ]; then
+        echo -e "  ${RED}❌ Ungated CallToolRequestSchema handler (must route through gateToolCall)${NC}"
+        echo "$MCPGATE_OUT"
+        echo "     Fix: wrap the handler's dispatch in gateToolCall (packages/mcp-server/src/tool-call-gate.ts)"
+        FAILED=1
+    else
+        echo -e "  ${GREEN}✓${NC} All CallToolRequestSchema handlers route through gateToolCall"
+    fi
+else
+    echo -e "  ${GREEN}✓${NC} No staged mcp-server source"
+fi
+
+# Gate 5e3: Orchestrator-fetch chokepoint ratchet (CHOKEPOINT-CAPTURE, dependency-sovereignty-ladder
+# 2026-07-16). New files hardcoding the raw Railway orchestrator URL literal (outside
+# packages/connector-core and @holoscript/config) are blocked (CHOKEPOINT-GREW); route through the
+# typed ResilientOrchestratorFetch client (Jetson-first cascade) instead. Grandfathered debt lives in
+# scripts/holo-ci/orchestrator-fetch-canonical-baseline.json. Scoped to STAGED files (--files) so a
+# peer's unstaged WIP can't block your commit (multi-agent, D.077). HoloCI's orchestrator-fetch gate
+# is the authoritative full-tree layer; this is the dev floor.
+echo "  ├─ Orchestrator-fetch chokepoint ratchet..."
+STAGED_ALL=$(git diff --cached --name-only --diff-filter=ACMR 2>/dev/null || true)
+if [ -n "$STAGED_ALL" ]; then
+    CHOKE_OUT=$(run_with_timeout 30 node scripts/holo-ci/check-orchestrator-fetch-canonical.mjs --files "$STAGED_ALL" 2>&1)
+    CHOKE_STATUS=$?
+    if [ "$CHOKE_STATUS" -ne 0 ]; then
+        echo -e "  ${RED}❌ New raw orchestrator-URL literal (CHOKEPOINT-GREW)${NC}"
+        echo "$CHOKE_OUT"
+        echo "     Fix: use ResilientOrchestratorFetch (packages/connector-core) or @holoscript/config ENDPOINTS,"
+        echo "          or (intentional grandfather) run: node scripts/holo-ci/check-orchestrator-fetch-canonical.mjs --update"
+        FAILED=1
+    else
+        echo -e "  ${GREEN}✓${NC} No new raw orchestrator-URL literals (typed client is the growing path)"
+    fi
+else
+    echo -e "  ${GREEN}✓${NC} No staged files"
+fi
+
 # Gate 5e: Quest MR emit golden-diff — the in-core QuestCompiler (surface: immersive_mr) must
 # byte-match the reference app (apps/quest-universal-qr-scanner/android-mr). Parses scanner.holo via
 # the real HoloCompositionParser + trait-dispatch (NO regex). Enforces "edit the spec, not the

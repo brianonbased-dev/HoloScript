@@ -177,6 +177,31 @@ const HOLOSCRIPT_GATES: Record<string, GateSpec> = {
     profiles: ['quick', 'full'],
     resource_requirements: { max_dph: 0.2 },
   },
+  // WRAP-WITH-RECEIPTS coverage ratchet (dependency-sovereignty-ladder, 2026-07-16).
+  // Every setRequestHandler(CallToolRequestSchema) fold point under packages/mcp-server/src
+  // must route through gateToolCall (tool-call-gate.ts) — the single typed gate that emits
+  // one NDJSON receipt per tool call and hosts the FounderGate/x402/envelope-check seam.
+  // Fast static check, modeled on the render-surface freeze above.
+  'mcp-gate-coverage': {
+    description:
+      'MCP gate coverage ratchet: every setRequestHandler(CallToolRequestSchema) site under packages/mcp-server/src must route through gateToolCall (per-call NDJSON receipts + typed check seam)',
+    step: 'node scripts/holo-ci/check-mcp-gate-coverage.mjs',
+    profiles: ['quick', 'full'],
+    resource_requirements: { max_dph: 0.2 },
+  },
+  // CHOKEPOINT-CAPTURE ratchet (dependency-sovereignty-ladder, 2026-07-16).
+  // Raw fetch() sites hardcoding the Railway orchestrator URL literal bypass the typed
+  // ResilientOrchestratorFetch client (packages/connector-core — Jetson-first cascade, short
+  // LAN timeout, circuit breaker), blocking the Jetson-primary orchestrator migration.
+  // Existing raw-literal files are grandfathered into a checked-in baseline; NEW files are
+  // blocked (CHOKEPOINT-GREW). Fast static check, modeled on the render-surface freeze above.
+  'orchestrator-fetch-canonical': {
+    description:
+      'Orchestrator-fetch chokepoint ratchet: new files hardcoding the raw Railway orchestrator URL (outside connector-core/@holoscript/config) are blocked; route through ResilientOrchestratorFetch (Jetson-first typed client)',
+    step: 'node scripts/holo-ci/check-orchestrator-fetch-canonical.mjs',
+    profiles: ['quick', 'full'],
+    resource_requirements: { max_dph: 0.2 },
+  },
   // Retro-wire (F.073 sister): check-publish-surface.mjs was an orphan gate (run by nobody).
   // Pins the published npm surface to an explicit allowlist + flags description mojibake.
   // Lockstep with the canonical scripts/holo-ci/gates.mjs publish-surface gate.

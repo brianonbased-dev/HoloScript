@@ -97,6 +97,7 @@ import {
   extractAndVerifySigning,
   type SigningContext,
 } from './holomesh/identity/signing-middleware';
+import { gateToolCall } from './tool-call-gate';
 import { initDurableAttestationRegistry } from './holomesh/identity/attestation-persistence';
 import {
   initStores,
@@ -928,7 +929,16 @@ function createMcpServer(sessionAuthContext?: TokenIntrospection): Server {
     };
   });
 
-  // Handle tool calls with triple-gate security
+  // Handle tool calls with triple-gate security.
+  //
+  // WRAP-WITH-RECEIPTS fold point (dependency-sovereignty-ladder, 2026-07-16):
+  // every HTTP/SSE tool call routes through gateToolCall — one NDJSON receipt
+  // per call (sha256 of canonical-JSON args, NEVER raw args) plus the typed
+  // seam where FounderGate / x402 / envelope-validation checks plug in.
+  // Behavior-neutral: the default check is pass-through; the existing triple
+  // gate + audit log keep running DOWNSTREAM inside securedToolExecution,
+  // which never throws (failures come back as isError, which the classifier
+  // maps onto the receipt's error status).
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
 
@@ -939,7 +949,19 @@ function createMcpServer(sessionAuthContext?: TokenIntrospection): Server {
       agentId: 'mcp-session-legacy',
     };
 
-    const { result, isError } = await securedToolExecution(name, args || {}, auth);
+    const { result, isError } = await gateToolCall(
+      { name, args: args || {} },
+      {
+        transport: 'http',
+        callerId: auth.agentId ?? auth.clientId ?? null,
+        scopes: auth.scopes,
+      },
+      (env) => securedToolExecution(env.name, env.args, auth),
+      {
+        classifyResult: (r) =>
+          r.isError ? { ok: false, errorClass: 'ToolExecutionError' } : { ok: true },
+      }
+    );
 
     // Hologram MCP envelope detection (task_1778114362909_zp7u): if the tool
     // returned a HologramMcpResponse, surface the typed channel so REST/MCP
