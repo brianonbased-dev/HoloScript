@@ -16,7 +16,7 @@ export async function GET() {
 
     domains: {
       scene_authoring: {
-        description: 'Create and edit 3D scenes using HoloScript DSL or visual node graph',
+        description: 'Create and edit 3D scenes using HoloScript source or a visual node graph',
         tools: [
           'parse_hs',
           'parse_holo',

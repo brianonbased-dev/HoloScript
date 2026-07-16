@@ -5,7 +5,7 @@ import type { Trait, HSPlusNode, TraitContext, TraitEvent, TraitHandler } from '
  * UnityToHoloScriptConverter
  *
  * Converts Unity scene data (C# MonoBehaviour attributes, materials, prefabs)
- * into HoloScript DSL and trait configurations.
+ * into HoloScript source and trait configurations.
  *
  * This is the primary migration path for Unity developers moving to HoloScript.
  * See: docs/UNITY_MIGRATION_GUIDE.md

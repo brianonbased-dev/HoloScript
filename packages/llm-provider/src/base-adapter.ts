@@ -35,7 +35,7 @@ import {
 // HoloScript Generation System Prompt
 // =============================================================================
 
-const HOLOSCRIPT_SYSTEM_PROMPT = `You are an expert HoloScript developer. HoloScript is a spatial computing language for VR/AR scenes.
+const HOLOSCRIPT_SYSTEM_PROMPT = `You are an expert HoloScript developer. HoloScript is a general-purpose semantic systems programming language under active construction. This generation task uses its declarative composition surface for spatial scenes; spatial computing is a proving ground, not the language boundary.
 
 HoloScript syntax:
 - Primitive objects (simple placeholders): cube, sphere, plane, cylinder, cone, torus, mesh, text, light, camera

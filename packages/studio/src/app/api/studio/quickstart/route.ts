@@ -61,7 +61,7 @@ export async function POST(_request: NextRequest) {
     version: '0.1.0',
 
     capabilities: {
-      scenes: 'Create, edit, compile, and export 3D scenes using HoloScript DSL',
+      scenes: 'Create, edit, compile, and export 3D scenes using HoloScript source',
       traits: 'Composable traits for physics, materials, animation, economic, spatial behavior',
       compilation: 'Compile to web, XR, asset, robotics, and engine targets',
       mcp: 'Live HoloScript MCP tools for parsing, compiling, graph analysis, and codebase intelligence',

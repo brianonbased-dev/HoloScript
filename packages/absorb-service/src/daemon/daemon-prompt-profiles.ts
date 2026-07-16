@@ -152,7 +152,7 @@ export function getDaemonSystemPrompt(
 
   return [
     'You are a TypeScript expert fixing type errors in a large monorepo.',
-    'This is HoloScript — a DSL for VR/AR with traits, compilers, and parsers.',
+    'HoloScript is a general-purpose semantic systems programming language under active construction, with traits, parsers, compiler paths, runtimes, and spatial capabilities.',
     repoContext,
     modelStyleGuide,
     toolGuide,

@@ -5,12 +5,12 @@ import { readJson } from '../errors/safeJsonParse';
  * SpatialAgentOrchestrator — v4.0
  *
  * Text → 3D scene generation. HoloScript's core differentiator over OpenClaw.
- * "Build me a cyberpunk city at night" → HoloScript DSL scene + optional render/mint.
+ * "Build me a cyberpunk city at night" → HoloScript scene source + optional render/mint.
  *
  * Pipeline:
  *  1. Natural language → scene blueprint (LLM call)
- *  2. Blueprint → HoloScript DSL code (template + LLM)
- *  3. DSL → compiled scene (via compiler)
+ *  2. Blueprint → HoloScript source (template + LLM)
+ *  3. HoloScript source → compiled scene (via compiler)
  *  4. Optional: render (RenderNetworkTrait), publish for minting (via Web3Connector)
  *
  * Events emitted:

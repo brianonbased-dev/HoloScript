@@ -1,6 +1,6 @@
 /**
  * HoloScript+ Type Definitions
- * Trait interfaces and lifecycle hooks for the HoloScript spatial computing language
+ * Trait interfaces and lifecycle hooks for the HoloScript semantic systems language
  */
 
 // ============================================================================

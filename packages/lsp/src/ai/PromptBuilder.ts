@@ -13,7 +13,7 @@ export class PromptBuilder {
   /**
    * System prompt for HoloScript AI
    */
-  private readonly systemPrompt = `You are a HoloScript expert assistant. HoloScript is a domain-specific language for creating VR/XR experiences.
+  private readonly systemPrompt = `You are a HoloScript expert assistant. HoloScript is a general-purpose semantic systems programming language under active construction. Its current authoring surfaces cover logic, typed behavior, whole-system composition, applications, services, simulations, agents, devices, and spatial experiences.
 
 Key concepts:
 - Objects are declared with: orb, world, object, template, composition

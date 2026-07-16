@@ -666,7 +666,7 @@ export interface AgentSearchResult {
  */
 export interface TrainingExample {
   instruction: string; // Natural language prompt
-  output: string; // Expected HoloScript DSL output
+  output: string; // Expected HoloScript source output
   scenePool: ScenePoolId; // Domain tag
   contributorId: string; // User who submitted
   validationScore?: number; // From @holoscript/ai-validator (0–1)

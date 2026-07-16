@@ -1,13 +1,13 @@
 /**
  * tree-sitter-holoscript
  *
- * Tree-sitter grammar for HoloScript — spatial computing language.
- * Supports .hs (agent behaviors + spatial awareness),
+ * Tree-sitter grammar for HoloScript — a general-purpose semantic systems language.
+ * Supports .hs (logic, processes, agents, and headless programs),
  *          .hsplus (full apps: modules/structs/enums/typed functions),
- *          .holo (world compositions: environments/NPCs/quests/networking).
+ *          .holo (whole-system composition, including spatial worlds).
  *
- * 18 compile targets: Unity, Unreal, Godot, VisionOS, VRChat, Babylon,
- * PlayCanvas, R3F, WASM, WebGPU, URDF, DTDL, SDF, USD, glTF, Android, iOS, AndroidXR
+ * Compile targets are registered through ExportTarget; inspect the live registry
+ * before citing the supported set.
  *
  * @see https://github.com/nicholascsmith/HoloScript
  * @see https://tree-sitter.github.io/tree-sitter/

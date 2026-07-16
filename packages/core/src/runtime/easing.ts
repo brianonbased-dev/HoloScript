@@ -5,10 +5,10 @@
  *
  * **Vocabulary**: this module uses camelCase easing names
  * (`easeIn`, `easeOut`, `easeInOut`, plus `-Quad` variants) as
- * required by the HoloScript animation DSL. `MorphTrait.ts` has its
+ * required by the HoloScript animation language surface. `MorphTrait.ts` has its
  * own hyphenated vocabulary (`ease-in`, `ease-out`, `ease-in-out`)
  * for CSS-style compatibility — intentionally kept separate; do not
- * unify without DSL+CSS migration.
+ * unify without a language+CSS vocabulary migration.
  *
  * Behavior is LOCKED by HoloScriptRuntime.characterization.test.ts.
  * Any edit here must re-pass the characterization harness without
@@ -20,7 +20,7 @@
  *         packages/core/src/HoloScriptRuntime.characterization.test.ts
  */
 
-/** Easing curve name (camelCase — HoloScript DSL vocabulary) */
+/** Easing curve name (camelCase — HoloScript language vocabulary) */
 export type EasingName =
   | 'linear'
   | 'easeIn'
