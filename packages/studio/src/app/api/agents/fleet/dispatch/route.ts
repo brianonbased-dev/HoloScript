@@ -144,7 +144,7 @@ async function fetchFleetAgents(teamId: string, clientAuth?: string | null): Pro
     // If presence data is available, use it as the heartbeat gate:
     // any agent not in the live set is treated as offline so it is never
     // selected — avoids picking legacy/stale seats (e.g. antigravity-seed).
-    const heartbeatGated = liveAgentIds.size > 0 && !liveAgentIds.has(id);
+    const heartbeatGated = fleetAgentHeartbeatGated(raw, liveAgentIds);
     const rawStatus = raw['status'] ? String(raw['status']) : 'online';
     const staticSkills = uniqueStrings([
       ...stringList(raw['skills']),
@@ -180,6 +180,18 @@ async function fetchFleetAgents(teamId: string, clientAuth?: string | null): Pro
   }
 
   return agents;
+}
+
+export function fleetAgentHeartbeatGated(
+  raw: Record<string, unknown>,
+  liveAgentIds: ReadonlySet<string>
+): boolean {
+  const id = String(raw['id'] ?? raw['agentId'] ?? raw['handle'] ?? '');
+  // `/members` is already pruned by the HoloMesh heartbeat TTL and exposes an
+  // authoritative online boolean. Keep using the dedicated presence set when
+  // available, but never disable gating merely because GET /presence is absent.
+  if (raw['online'] === false) return true;
+  return liveAgentIds.size > 0 && !liveAgentIds.has(id);
 }
 
 // ── Claim helper ─────────────────────────────────────────────────────────────
