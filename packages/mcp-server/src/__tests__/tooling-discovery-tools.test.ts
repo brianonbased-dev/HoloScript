@@ -288,6 +288,49 @@ describe('tooling discovery and batch dispatch', () => {
     expect(bundle?.tools).toContain('get_tool_health');
   });
 
+  // ---------------------------------------------------------------------------
+  // holon field (board task_1783967615617_deaf — holon registry discovery wiring)
+  // ---------------------------------------------------------------------------
+
+  it('tags tools with their holon brand via the curated prefix map', () => {
+    const manifest = buildToolManifest(
+      [
+        tool('holo_secrets_grant', 'Grant a scoped secret lease'),
+        tool('holo_secrets_resolve', 'Resolve a secret value'),
+        tool('holo_secrets_revoke', 'Revoke a secret lease'),
+        tool('holo_tunnel_create', 'Open a HoloTunnel share'),
+        tool('holo_tunnel_status', 'Check tunnel status'),
+        tool('holo_tunnel_close', 'Close a tunnel'),
+        tool('parse_hs', 'Parse HoloScript into AST'),
+      ],
+      { includeInputSchema: false, includeOutputSchema: false }
+    );
+
+    // Spot check from the board task: holo_secrets_* -> HoloKey, holo_tunnel_* -> HoloTunnel.
+    for (const name of ['holo_secrets_grant', 'holo_secrets_resolve', 'holo_secrets_revoke']) {
+      expect(manifest.find((t) => t.name === name)?.holon).toBe('HoloKey');
+    }
+    for (const name of ['holo_tunnel_create', 'holo_tunnel_status', 'holo_tunnel_close']) {
+      expect(manifest.find((t) => t.name === name)?.holon).toBe('HoloTunnel');
+    }
+
+    // A tool with no known holon mapping gets no `holon` field at all (not a
+    // falsy placeholder) so JSON output stays clean for the common case.
+    expect(manifest.find((t) => t.name === 'parse_hs')?.holon).toBeUndefined();
+    expect(Object.prototype.hasOwnProperty.call(manifest.find((t) => t.name === 'parse_hs') ?? {}, 'holon')).toBe(
+      false
+    );
+  });
+
+  it('resolves an exact-name holon mapping without prefix collision', () => {
+    const manifest = buildToolManifest(
+      [tool('holo_ci_dispatch', 'Dispatch remote CI'), tool('compile_to_holob', 'Compile to HoloVM bytecode')],
+      { includeInputSchema: false, includeOutputSchema: false }
+    );
+    expect(manifest.find((t) => t.name === 'holo_ci_dispatch')?.holon).toBe('HoloCI');
+    expect(manifest.find((t) => t.name === 'compile_to_holob')?.holon).toBe('HoloVM');
+  });
+
   it('executes batched calls and returns structured per-call results', async () => {
     const payload = await handleBatchToolCall(
       {

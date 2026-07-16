@@ -150,9 +150,57 @@ export interface ToolManifestEntry {
   description?: string;
   category: string;
   tags: string[];
+  /**
+   * The Holo* brand this tool belongs to (e.g. "HoloKey", "HoloTunnel"), when
+   * known. Sourced from ai-ecosystem/config/holon-registry.json (schema
+   * holon-registry.v1) via the HOLON_TOOL_PREFIXES table below — see
+   * inferHolon() for the matching rule. Board task_1783967615617_deaf: before
+   * this field existed, an agent calling get_tool_manifest / suggest_tools_for_goal
+   * had no way to learn that e.g. holo_secrets_grant/_resolve/_revoke are the
+   * HoloKey holon, or that holo_tunnel_create/_status/_close are HoloTunnel —
+   * the brand-to-tool mapping lived ONLY in the ecosystem glossary, invisible
+   * from the tool manifest itself. Absent when no mapping is known; this is
+   * NOT the same claim as the registry's own `advertised_surfaces.mcp_tools`
+   * flag (which measures whether the brand string ALREADY appears in a tool's
+   * own name/description before this field existed).
+   */
+  holon?: string;
   inputSchema?: Record<string, unknown>;
   outputSchema?: OutputSchemaEntry;
   examples?: Array<{ args: Record<string, unknown> }>;
+}
+
+/**
+ * Tool-name-prefix -> holon brand mapping, curated from
+ * ai-ecosystem/config/holon-registry.json entries' own `code_root`/`notes`
+ * evidence (each row below is backed by an exact tool-name citation already
+ * recorded there as of 2026-07-15). Deliberately NOT exhaustive across all 50
+ * registered holons — only prefixes with clear, already-documented tool-name
+ * evidence are listed; extend as more mappings are curated. Exact-name rows
+ * (no shared prefix with a sibling tool) are listed as a full tool name.
+ */
+const HOLON_TOOL_PREFIXES: ReadonlyArray<{ prefix: string; holon: string; exact?: boolean }> = [
+  { prefix: 'holo_secrets_', holon: 'HoloKey' },
+  { prefix: 'holo_tunnel_', holon: 'HoloTunnel' },
+  { prefix: 'holotune_', holon: 'HoloTune' },
+  { prefix: 'holo_hologram_', holon: 'HoloGram' },
+  { prefix: 'hololand_', holon: 'HoloLand' },
+  { prefix: 'holo_holotwin_', holon: 'HoloTwin' },
+  { prefix: 'holo_reconstruct_', holon: 'HoloMap' },
+  { prefix: 'holo_map_', holon: 'HoloMap' },
+  { prefix: 'holo_daemon_', holon: 'HoloDaemon' },
+  { prefix: 'holoshell_download_recovery_', holon: 'HoloShell' },
+  { prefix: 'holo_graph_', holon: 'HoloGraph' },
+  { prefix: 'holo_ci_dispatch', holon: 'HoloCI', exact: true },
+  { prefix: 'compile_to_holob', holon: 'HoloVM', exact: true },
+];
+
+/** Look up a tool's holon by exact name or prefix match. Returns undefined when unknown. */
+function inferHolon(name: string): string | undefined {
+  for (const { prefix, holon, exact } of HOLON_TOOL_PREFIXES) {
+    if (exact ? name === prefix : name.startsWith(prefix)) return holon;
+  }
+  return undefined;
 }
 
 const EXPLICIT_OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
@@ -366,15 +414,19 @@ export function buildToolManifest(
   const includeOutputSchema = opts.includeOutputSchema !== false;
   const includeExamples = opts.includeExamples === true;
 
-  return allTools.map((tool) => ({
-    name: tool.name,
-    description: tool.description,
-    category: inferCategory(tool.name),
-    tags: inferTags(tool.name, tool.description),
-    ...(includeInputSchema ? { inputSchema: tool.inputSchema as Record<string, unknown> } : {}),
-    ...(includeOutputSchema ? { outputSchema: inferOutputSchema(tool.name) } : {}),
-    ...(includeExamples ? { examples: inferExamples(tool.name) } : {}),
-  }));
+  return allTools.map((tool) => {
+    const holon = inferHolon(tool.name);
+    return {
+      name: tool.name,
+      description: tool.description,
+      category: inferCategory(tool.name),
+      tags: inferTags(tool.name, tool.description),
+      ...(holon ? { holon } : {}),
+      ...(includeInputSchema ? { inputSchema: tool.inputSchema as Record<string, unknown> } : {}),
+      ...(includeOutputSchema ? { outputSchema: inferOutputSchema(tool.name) } : {}),
+      ...(includeExamples ? { examples: inferExamples(tool.name) } : {}),
+    };
+  });
 }
 
 function getWordTokens(s: string): string[] {
