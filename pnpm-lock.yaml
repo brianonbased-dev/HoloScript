@@ -260,6 +260,9 @@ importers:
       '@holoscript/llm-provider':
         specifier: workspace:*
         version: link:../llm-provider
+      '@holoscript/uaal':
+        specifier: workspace:*
+        version: link:../uaal
       '@modelcontextprotocol/sdk':
         specifier: ^1.27.1
         version: 1.29.0(zod@4.4.3)
@@ -1560,6 +1563,8 @@ importers:
       vitest:
         specifier: ^4.1.5
         version: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@24.13.2)(@vitest/coverage-v8@4.1.8)(@vitest/ui@4.1.8)(jsdom@28.1.0(@noble/hashes@2.2.0))(vite@8.0.16(@types/node@24.13.2)(esbuild@0.28.1)(jiti@1.21.7)(terser@5.48.0)(tsx@4.22.4)(yaml@2.9.0))
+
+  packages/holosystem: {}
 
   packages/linter:
     dependencies:
