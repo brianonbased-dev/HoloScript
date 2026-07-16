@@ -1,0 +1,48 @@
+// Golden fixture: native-renderer.assets-xr-device.v1
+// (holoscript.native-renderer-contract.v1 — packages/runtime/src/native-renderer-contract.ts)
+//
+// Asset loading and XR device semantics. Parsed by the renderer conformance
+// runner (packages/engine/src/native-render/__conformance__/) with the real
+// @holoscript/core parser; asset/XR declarations are structural — neither
+// engine backend implements asset_loading or xr_device_semantics at the
+// renderer seam yet, and the coverage matrix records exactly that.
+//
+// Contract expectations encoded here:
+//   assets: terrain_mesh (mesh, holo://assets/terrain.glb, preload),
+//           sky_splat (splat, holo://assets/sky.spz, stream)
+//   xrDevice: local-floor + bounded-floor reference spaces, hit-test/anchors/layers,
+//             left+right select/squeeze controller inputs, haptics, passthrough
+
+composition "Native Renderer Golden — Assets XR Device" {
+  object "terrain_mesh" {
+    type: "asset"
+    asset_type: "mesh"
+    uri: "holo://assets/terrain.glb"
+    load_policy: "preload"
+  }
+
+  object "sky_splat" {
+    type: "asset"
+    asset_type: "splat"
+    uri: "holo://assets/sky.spz"
+    load_policy: "stream"
+  }
+
+  object "xr_device" {
+    type: "xr_device"
+    reference_spaces: ["local-floor", "bounded-floor"]
+    required_features: ["hit-test", "anchors", "layers"]
+    controller_inputs: ["left.select", "right.select", "left.squeeze", "right.squeeze"]
+    haptics: true
+    passthrough: true
+  }
+
+  object "anchor_probe" {
+    @position
+
+    geometry: "cube"
+    position: [0, 0, -1.5]
+    scale: [0.25, 0.25, 0.25]
+    color: "#88ff88"
+  }
+}

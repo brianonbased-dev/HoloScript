@@ -178,6 +178,7 @@
     "check:no-third-party-qr": "node scripts/holo-ci/check-no-third-party-qr.mjs --staged",
     "check:no-third-party-qr:audit": "node scripts/holo-ci/check-no-third-party-qr.mjs --all",
     "check:native-render-contract": "node scripts/holo-ci/check-native-render-contract.mjs",
+    "check:renderer-conformance": "node scripts/holo-ci/check-renderer-conformance.mjs",
     "check:native-authoring-shape": "node scripts/holo-ci/check-native-authoring-shape.mjs",
     "check:interaction-taste": "node scripts/holo-ci/check-interaction-taste.mjs",
     "check:interaction-taste:gate": "node scripts/holo-ci/check-interaction-taste.mjs --check --baseline=examples/.interaction-taste-baseline-2026-07-03.json",

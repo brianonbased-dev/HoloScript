@@ -1,0 +1,66 @@
+// Golden fixture: native-renderer.scene-camera-materials.v1
+// (holoscript.native-renderer-contract.v1 — packages/runtime/src/native-renderer-contract.ts)
+//
+// Scene graph, camera, and material semantics. This file is the SOURCE-OWNED
+// authoring artifact the contract's source receipt points at; the renderer
+// conformance runner (packages/engine/src/native-render/__conformance__/)
+// parses it with the real @holoscript/core parser and drives it through BOTH
+// engine backends (WebGPUBackendRenderer native, ThreeJSRenderer bridge).
+//
+// Contract expectations encoded here:
+//   sceneGraph: root scene + [rig(group), key_light(light), hero_cube(cube), orbit_sphere(sphere)]
+//   camera: perspective, position [0, 1.6, 5], target [0, 1, 0], fov 60
+//   materials: hero_pbr (pbr #5cc8ff r=0.42 m=0.15), accent_unlit (unlit #ffde59)
+//   traits: @position, @material, @light
+
+composition "Native Renderer Golden — Scene Camera Materials" {
+  camera {
+    type: "perspective"
+    position: [0, 1.6, 5]
+    target: [0, 1, 0]
+    fov: 60
+    reference_space: "local"
+  }
+
+  object "rig" {
+    @position
+
+    geometry: "group"
+    position: [0, 0, 0]
+  }
+
+  object "key_light" {
+    @light
+
+    type: "directional_light"
+    position: [2, 4, 3]
+    intensity: 0.8
+    color: "#ffffff"
+  }
+
+  object "hero_cube" {
+    @position
+    @material
+
+    geometry: "cube"
+    position: [0, 1, 0]
+    scale: [1, 1, 1]
+    material_id: "hero_pbr"
+    material_type: "pbr"
+    color: "#5cc8ff"
+    roughness: 0.42
+    metalness: 0.15
+  }
+
+  object "orbit_sphere" {
+    @position
+    @material
+
+    geometry: "sphere"
+    position: [1.5, 1, 0]
+    scale: [0.5, 0.5, 0.5]
+    material_id: "accent_unlit"
+    material_type: "unlit"
+    color: "#ffde59"
+  }
+}

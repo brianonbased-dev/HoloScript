@@ -1,0 +1,64 @@
+// Golden fixture: native-renderer.input-timeline-state.v1
+// (holoscript.native-renderer-contract.v1 — packages/runtime/src/native-renderer-contract.ts)
+//
+// Input, timeline, interaction, and state semantics as a native .hsplus surface.
+// The renderer conformance runner records this fixture's source receipt
+// (path + sha256) but does not yet drive it through the backends: neither
+// engine backend implements input/timeline/interaction/state at the renderer
+// seam, and the runner's coverage matrix reports that honestly instead of
+// pretending an exercised pass. When a backend grows one of these capabilities,
+// wire this fixture through the .hsplus parse path in the conformance runner.
+//
+// Contract expectations encoded here:
+//   inputs: primary_select (controller selectstart/selectend → activate),
+//           pointer_hover (pointerenter/pointerleave → preview)
+//   timeline: door_open (portal_door rotation.y, keyframes [0, 0.35, 1], cubic)
+//   interactions: activate_portal (portal_button activate → portal.closed -> portal.open)
+//   state: stores portal + player, session persistence
+
+@trait portal_scene_semantics {
+  capability_tags: ["input", "timeline", "interaction", "state", "native-renderer-golden"]
+
+  @state_machine portal {
+    initial: "closed"
+    transitions: ["portal.closed -> portal.open"]
+    persistence: "session"
+  }
+
+  @state_machine player {
+    initial: "idle"
+    transitions: ["player.idle -> player.entering"]
+    persistence: "session"
+  }
+
+  @input primary_select {
+    kind: "controller"
+    events: ["selectstart", "selectend"]
+    semantic_action: "activate"
+  }
+
+  @input pointer_hover {
+    kind: "pointer"
+    events: ["pointerenter", "pointerleave"]
+    semantic_action: "preview"
+  }
+
+  @timeline door_open {
+    target: "portal_door"
+    property: "rotation.y"
+    keyframes: [0, 0.35, 1]
+    interpolation: "cubic"
+  }
+
+  @on_activate(source) => {
+    transition("portal", "portal.closed -> portal.open")
+    emit("interaction", { id: "activate_portal", source: "portal_button" })
+  }
+
+  @receipt input_timeline_state_golden {
+    type: "NativeRendererGoldenReceipt"
+    fixture: "native-renderer.input-timeline-state.v1"
+    capabilities: ["input", "timeline", "interaction", "state"]
+    timestamp: now()
+  }
+}

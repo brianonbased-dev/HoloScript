@@ -13,6 +13,7 @@
     "node_modules",
     "dist",
     "**/__tests__/**",
+    "**/__conformance__/**",
     "**/*.test.ts",
     "**/*.spec.ts",
     "**/*.bench.ts"
