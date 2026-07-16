@@ -245,12 +245,15 @@ function makeHoloShellSnapshotReceipt(
   };
 }
 
-async function waitForAbsorbTerminalStatus(jobId: string): Promise<Record<string, unknown>> {
+async function waitForAbsorbTerminalStatus(
+  jobId: string,
+  includeResult = false
+): Promise<Record<string, unknown>> {
   for (let i = 0; i < 100; i++) {
-    const status = (await handleCodebaseTool('holo_get_absorb_status', { jobId })) as Record<
-      string,
-      unknown
-    >;
+    const status = (await handleCodebaseTool('holo_get_absorb_status', {
+      jobId,
+      includeResult,
+    })) as Record<string, unknown>;
     if (status.status === 'complete' || status.status === 'error') return status;
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
@@ -329,6 +332,7 @@ describe('holo_absorb_repo root validation', () => {
 
     const status = (await handleCodebaseTool('holo_get_absorb_status', {
       jobId: result.jobId,
+      includeResult: true,
     })) as { status?: string; phase?: string; result?: { error?: string } };
     expect(status.status).toBe('error');
     expect(status.phase).toBe('Root directory unavailable');
@@ -380,7 +384,16 @@ describe('holo_absorb_repo root validation', () => {
     const status = await waitForAbsorbTerminalStatus(accepted.jobId!);
     expect(status.status).toBe('error');
     expect(status.phase).toBe('Root directory unavailable');
-    expect(status.result).toMatchObject({
+    expect(status.result).toBeUndefined();
+    expect(status.resultAvailable).toBe(true);
+    expect(status.resultBytes).toBeGreaterThan(0);
+    expect(status.resultKeys).toContain('graphUnavailableReceipt');
+
+    const statusWithResult = (await handleCodebaseTool('holo_get_absorb_status', {
+      jobId: accepted.jobId,
+      includeResult: true,
+    })) as Record<string, unknown>;
+    expect(statusWithResult.result).toMatchObject({
       error: 'rootDir_unavailable',
       graphUnavailableReceipt: {
         kind: 'GraphUnavailableReceipt',
@@ -439,7 +452,7 @@ describe('holo_absorb_repo root validation', () => {
     });
     expect(accepted.jobId).toMatch(/^absorb-/);
 
-    const status = await waitForAbsorbTerminalStatus(accepted.jobId!);
+    const status = await waitForAbsorbTerminalStatus(accepted.jobId!, true);
     expect(status.status).toBe('complete');
     expect(status.result).toMatchObject({
       rootDir,
@@ -1392,7 +1405,7 @@ describe('holo_absorb_repo root validation', () => {
     expect(accepted.scanPlan?.totalCandidateFiles).toBe(3);
     expect(accepted.jobId).toMatch(/^absorb-/);
 
-    const status = await waitForAbsorbTerminalStatus(accepted.jobId!);
+    const status = await waitForAbsorbTerminalStatus(accepted.jobId!, true);
     expect(status.status).toBe('complete');
     expect(status.result).toMatchObject({
       rootDir: repoDir,

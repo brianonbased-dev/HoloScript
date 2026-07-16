@@ -380,6 +380,86 @@ interface AbsorbJob {
 
 const absorbJobs = new Map<string, AbsorbJob>();
 
+/**
+ * Result fields that are already persisted to the graph cache and are far too
+ * large to echo through an MCP transcript. `graph` measured 826 KB on a
+ * 292-file repo; because each forked session replays its ancestor's transcript,
+ * every inlined copy was duplicated into every descendant (139 rollout files /
+ * 174 MB observed). These are reported as metadata and never inlined — callers
+ * read the cache file or query the graph via holo_query_codebase.
+ */
+const ABSORB_RESULT_CACHED_BLOB_FIELDS: readonly string[] = ['graph'];
+
+/** Ceiling for the remaining result body echoed back through MCP. */
+const ABSORB_RESULT_INLINE_BUDGET_BYTES = 64 * 1024;
+
+interface AbsorbOmittedResultField {
+  field: string;
+  bytes: number;
+  recoverVia: string;
+}
+
+function serializedBytes(value: unknown): number {
+  const json = JSON.stringify(value);
+  return json === undefined ? 0 : Buffer.byteLength(json, 'utf-8');
+}
+
+/**
+ * Build the transcript-safe view of a terminal absorb result: blob fields are
+ * always stripped, and whatever remains is inlined only on request and only
+ * under the byte budget.
+ */
+function buildAbsorbResultEnvelope(
+  result: unknown,
+  includeResult: boolean
+): Record<string, unknown> {
+  const record =
+    typeof result === 'object' && result !== null && !Array.isArray(result)
+      ? (result as Record<string, unknown>)
+      : null;
+
+  const omitted: AbsorbOmittedResultField[] = [];
+  const retained: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(record ?? {})) {
+    if (ABSORB_RESULT_CACHED_BLOB_FIELDS.includes(key)) {
+      omitted.push({ field: key, bytes: serializedBytes(value), recoverVia: getCacheFile() });
+    } else {
+      retained[key] = value;
+    }
+  }
+
+  const body = record ? retained : result;
+  const bodyBytes = serializedBytes(body);
+  const envelope: Record<string, unknown> = {
+    resultAvailable: true,
+    resultKeys: record ? Object.keys(record) : [],
+    resultBytes: bodyBytes + omitted.reduce((total, entry) => total + entry.bytes, 0),
+  };
+
+  if (omitted.length > 0) {
+    envelope.resultOmittedFields = omitted;
+  }
+
+  if (!includeResult) {
+    // Only advertise includeResult when it can actually deliver the body,
+    // otherwise the hint provokes a second call that returns nothing new.
+    envelope.resultHint =
+      bodyBytes <= ABSORB_RESULT_INLINE_BUDGET_BYTES
+        ? 'Call holo_get_absorb_status again with includeResult:true to retrieve the result body.'
+        : `Result body is ${bodyBytes} bytes, over the ${ABSORB_RESULT_INLINE_BUDGET_BYTES}-byte inline budget. Query the absorbed graph via holo_query_codebase or holo_ask_codebase instead.`;
+    return envelope;
+  }
+
+  if (bodyBytes > ABSORB_RESULT_INLINE_BUDGET_BYTES) {
+    envelope.resultTruncated = true;
+    envelope.resultHint = `Result body is ${bodyBytes} bytes, over the ${ABSORB_RESULT_INLINE_BUDGET_BYTES}-byte inline budget. Query the absorbed graph via holo_query_codebase or holo_ask_codebase instead.`;
+    return envelope;
+  }
+
+  envelope.result = body;
+  return envelope;
+}
+
 function setAbsorbJobScanPlan(
   jobId: string | undefined,
   scanPlan: AbsorbScanPlanReceipt | undefined
@@ -2439,11 +2519,17 @@ export const codebaseTools: Tool[] = [
   {
     name: 'holo_get_absorb_status',
     description:
-      'Get progress status of a running absorb job by jobId. Returns current progress, phase, files processed, and completion status.',
+      'Get compact progress status of a running absorb job by jobId. The absorbed graph is never returned by this tool — it is written to the graph cache; query it via holo_query_codebase or holo_ask_codebase. Completed result bodies are reported as metadata (resultBytes/resultKeys) and inlined only when includeResult:true and they fit the inline budget.',
     inputSchema: {
       type: 'object',
       properties: {
         jobId: { type: 'string', description: 'Job ID returned from holo_absorb_repo' },
+        includeResult: {
+          type: 'boolean',
+          description:
+            'Inline the terminal result body (excluding the cached graph blob) when it fits the inline budget. Defaults to false.',
+          default: false,
+        },
       },
       required: ['jobId'],
     },
@@ -4991,7 +5077,7 @@ async function handleGetAbsorbStatus(args: Record<string, unknown>): Promise<unk
   }
 
   if (job.result && (job.status === 'complete' || job.status === 'error')) {
-    response.result = job.result;
+    Object.assign(response, buildAbsorbResultEnvelope(job.result, args.includeResult === true));
   }
 
   return response;
