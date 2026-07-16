@@ -166,10 +166,16 @@ function readDebianSources(path) {
     }
     return {
       packagesIndex: readTextFile(entry.packages, `sources[${index}].packages`),
-      repository: entry.repository || {
-        uri: entry.uri,
-        packagesIndexDigest: entry.packagesIndexDigest,
-      },
+      repository: entry.repository
+        ? {
+            ...entry.repository,
+            authentication: entry.authentication || entry.repository.authentication,
+          }
+        : {
+            uri: entry.uri,
+            packagesIndexDigest: entry.packagesIndexDigest,
+            authentication: entry.authentication,
+          },
       custody: entry.custody,
     };
   });

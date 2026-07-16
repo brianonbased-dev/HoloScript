@@ -292,6 +292,28 @@ copied into the receipt.
     "packages": "Packages.main",
     "uri": "https://deb.debian.org/debian/",
     "packagesIndexDigest": "sha256:<digest>",
+    "authentication": {
+      "inReleasePath": "InRelease",
+      "verifier": {
+        "path": "/usr/bin/gpgv",
+        "digest": "sha256:<gpgv-binary-digest>"
+      },
+      "keyrings": [
+        {
+          "path": "/usr/share/keyrings/debian-archive-keyring.gpg",
+          "digest": "sha256:<keyring-digest>"
+        }
+      ],
+      "trustedFingerprints": ["<exact-primary-or-signing-key-fingerprint>"],
+      "expected": {
+        "suite": "stable",
+        "codename": "trixie",
+        "architecture": "amd64",
+        "component": "main"
+      },
+      "packagesIndexPath": "main/binary-amd64/Packages",
+      "maxReleaseAgeSeconds": 604800
+    },
     "custody": {
       "owner": "debian-main",
       "trustDomain": "debian-main-archive"
@@ -319,21 +341,39 @@ npx holosystem substrate-import-debian \
   --json
 ```
 
+Authentication paths are operational inputs resolved from the current working
+directory and are not copied into receipts. Use `releasePath` plus
+`releaseSignaturePath` instead of `inReleasePath` for detached `Release.gpg`
+signatures. A Git-for-Windows verifier can set `verifier.pathStyle` to `msys`;
+other verifiers use the default `native` path style. The package never fetches
+or imports keys, so establishing the verifier digest, keyring digest, and exact
+fingerprint allowlist remains a caller-owned trust-bootstrap operation.
+On the first import, omit `minimumReleaseDate`; on later imports, copy the
+accepted `release.date` from the last receipt to reject rollback within the
+freshness window. Multi-signed archives require every signature visible to
+`gpgv` to resolve through the pinned keyring and fingerprint allowlist. Treat
+archive key transitions as explicit configuration updates rather than weakening
+verification. Signing-key compromise, key lifecycle, and the trusted clock
+remain caller-owned boundaries.
+
 Every fully installed package becomes an external-custody component and the
 system root depends on all of them, including packages no longer reachable from
 another package. The importer implements Debian's version ordering, including
 epochs and the special tilde order. It fails closed on an index-digest mismatch,
 missing package artifact, unsatisfied or ambiguous dependency, path traversal,
-or incomplete maintainer-script evidence.
+incomplete maintainer-script evidence, untrusted signature, stale Release,
+distribution identity change, or signed index mismatch.
 
-A digest anchors each supplied index but does not prove that a Debian `Release`
-or `InRelease` signature was verified. That boundary remains explicit in the
-receipt and in the blocking `repository-authentication` coverage gap. Likewise, Debian
+A source without authentication still uses its caller digest only; it does not
+claim that a Debian `Release` or `InRelease` signature was verified and retains
+the blocking `repository-authentication` coverage gap. When every source passes,
+the receipt includes that layer and records the signed Release-to-Packages hash
+chain, pinned verifier and keyring digests, exact signer fingerprints, and replay
+window. Likewise, Debian
 [maintainer scripts execute during package transitions](https://www.debian.org/doc/debian-policy/ch-maintainerscripts.html),
 so any present script still blocks substrate readiness. The generated input
-marks operating-system coverage as included and leaves `native-build` and
-`repository-authentication` missing; signed rebuild attestations and the
-existing `substrate` gate remain required.
+always marks operating-system coverage as included. Signed rebuild attestations,
+native-build provenance, and the existing `substrate` gate remain required.
 
 ```js
 import { importDebianPackageSnapshot } from '@holoscript/holosystem';
@@ -346,6 +386,12 @@ const imported = importDebianPackageSnapshot({
   verificationPolicy,
 });
 ```
+
+For a verification-only workflow, call `verifyDebianRepositoryRelease` with the
+same authentication fields plus `packagesIndex` and `packagesIndexDigest`. It
+returns `holoscript.holosystem.debian-release-auth.v1`; `verified` is true only
+when OpenPGP verification, signer pinning, release identity and freshness, and
+the signed Packages checksum and size all pass.
 
 ## What It Creates
 

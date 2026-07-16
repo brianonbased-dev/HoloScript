@@ -4,6 +4,7 @@ import {
   HOLOSYSTEM_SUBSTRATE_IMPORT_SCHEMA,
   _substrateImportInternals,
 } from './substrate-import.mjs';
+import { verifyDebianRepositoryRelease } from './substrate-debian-release.mjs';
 
 const {
   compareText,
@@ -248,7 +249,7 @@ function normalizeCustody(value, path, issues) {
   return { mode: 'external', owner, trustDomain };
 }
 
-function normalizeRepository(repository, packagesIndex, path, issues) {
+function normalizeRepository(repository, packagesIndex, path, issues, now) {
   let uri = null;
   if (portableSource(repository?.uri) && String(repository.uri).startsWith('https://')) {
     const parsed = new URL(repository.uri);
@@ -283,7 +284,18 @@ function normalizeRepository(repository, packagesIndex, path, issues) {
       'Packages index does not match its caller-provided digest.'
     );
   }
-  return { packagesIndexDigest, uri };
+  const authentication = repository?.authentication
+    ? verifyDebianRepositoryRelease({
+        ...repository.authentication,
+        packagesIndex,
+        packagesIndexDigest,
+        now,
+      })
+    : null;
+  for (const finding of authentication?.issues || []) {
+    issue(issues, finding.code, `${path}.authentication.${finding.path}`, finding.message);
+  }
+  return { authentication, packagesIndexDigest, uri };
 }
 
 function portableFilename(value) {
@@ -367,7 +379,8 @@ function buildPackageIndex(paragraphs, repository, custody, wantedKeys, path, is
 function buildRepositorySources(
   { sources, packagesIndex, repository, externalCustody },
   installed,
-  issues
+  issues,
+  now
 ) {
   const fallbackCustody = normalizeCustody(externalCustody, 'externalCustody', issues);
   const hasSources = sources != null;
@@ -393,7 +406,7 @@ function buildRepositorySources(
   const normalizedSources = rawSources.map((source, index) => {
     const path = hasSources ? `sources[${index}]` : 'repository';
     const text = source?.packagesIndex;
-    const normalizedRepository = normalizeRepository(source?.repository, text, path, issues);
+    const normalizedRepository = normalizeRepository(source?.repository, text, path, issues, now);
     const custody = source?.custody
       ? normalizeCustody(source.custody, `${path}.custody`, issues)
       : fallbackCustody;
@@ -438,10 +451,14 @@ function buildRepositorySources(
 
   return {
     evidence: normalizedSources.map((source) => ({
+      authentication: source.repository.authentication,
       custody: source.custody,
       packagesIndexDigest: source.repository.packagesIndexDigest,
       uri: source.repository.uri,
     })),
+    allAuthenticated: normalizedSources.every(
+      (source) => source.repository.authentication?.verified === true
+    ),
     packageIndex,
   };
 }
@@ -798,7 +815,8 @@ export function importDebianPackageSnapshot({
   const repositorySources = buildRepositorySources(
     { sources, packagesIndex, repository, externalCustody },
     installed,
-    issues
+    issues,
+    now
   );
   const packageIndex = repositorySources.packageIndex;
   const scripts = normalizeMaintainerScripts(maintainerScripts, installed, issues);
@@ -904,8 +922,12 @@ export function importDebianPackageSnapshot({
   const input = {
     root: normalizedRoot.id,
     coverage: {
-      includedLayers: ['operating-system'],
-      missingLayers: ['native-build', 'repository-authentication'],
+      includedLayers: repositorySources.allAuthenticated
+        ? ['operating-system', 'repository-authentication']
+        : ['operating-system'],
+      missingLayers: repositorySources.allAuthenticated
+        ? ['native-build']
+        : ['native-build', 'repository-authentication'],
     },
     verificationPolicy: sanitizedVerificationPolicy,
     components,
@@ -938,7 +960,10 @@ export function importDebianPackageSnapshot({
     input,
     issues,
     boundaries: {
-      packagesIndexDigestIsCallerAnchorNotReleaseSignatureProof: true,
+      packagesIndexDigestIsCallerAnchorNotReleaseSignatureProof:
+        !repositorySources.allAuthenticated,
+      releaseSignaturesAndIndexHashChainsVerified: repositorySources.allAuthenticated,
+      gpgvBinaryKeyringsAndFingerprintsRemainCallerTrustAnchors: repositorySources.allAuthenticated,
       installedStatusIsNotRuntimeBehaviorProof: true,
       generatedComponentsRequireSignedAttestations: true,
       archiveCustodyRemainsExternal: true,
