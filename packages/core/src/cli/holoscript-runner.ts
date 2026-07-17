@@ -19,7 +19,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as readline from 'readline';
 import { spawn } from 'child_process';
-import { randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import type { ActionHandler } from '@holoscript/engine/runtime';
 import type { HSPlusAST } from '../types/HoloScriptPlus';
 
@@ -960,6 +960,100 @@ async function runDaemon(runtime: DaemonRuntime, opts: CLIOptions): Promise<void
 
 // ── Commands ────────────────────────────────────────────────────────────────
 
+const RUN_RECEIPT_SCHEMA = 'holoscript.cli.run-receipt.v1';
+const RUN_SOURCE_EXTENSIONS = new Set(['.holo', '.hs', '.hsplus']);
+
+interface RunReceiptError {
+  code?: string;
+  message: string;
+  line?: number;
+  column?: number;
+}
+
+interface RuntimeCounters {
+  tickCount: number | null;
+  nodesProcessed: number | null;
+  instanceCount: number | null;
+  peakInstanceCount: number | null;
+  eventCount: number | null;
+}
+
+function sha256(value: string): string {
+  return `sha256:${createHash('sha256').update(value).digest('hex')}`;
+}
+
+function summarizeRunParseErrors(errors: unknown): RunReceiptError[] {
+  if (!Array.isArray(errors)) return [];
+
+  return errors.slice(0, 8).map((error) => {
+    const item = error && typeof error === 'object' ? (error as Record<string, unknown>) : {};
+    const summary: RunReceiptError = {
+      message: typeof item.message === 'string' ? item.message : 'HoloScript parse failed',
+    };
+    if (typeof item.code === 'string') summary.code = item.code;
+    if (Number.isInteger(item.line)) summary.line = item.line as number;
+    if (Number.isInteger(item.column)) summary.column = item.column as number;
+    return summary;
+  });
+}
+
+function integerStat(stats: Record<string, unknown>, key: string): number | null {
+  const value = stats[key];
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : null;
+}
+
+function normalizeRuntimeCounters(stats: Record<string, unknown>): RuntimeCounters {
+  return {
+    tickCount: integerStat(stats, 'tickCount') ?? integerStat(stats, 'updateCount'),
+    nodesProcessed: integerStat(stats, 'nodesProcessed'),
+    instanceCount: integerStat(stats, 'instanceCount'),
+    peakInstanceCount: integerStat(stats, 'peakInstanceCount'),
+    eventCount: integerStat(stats, 'eventCount'),
+  };
+}
+
+function resolvePortableRunOutput(output: string | undefined): string | undefined {
+  if (!output) return undefined;
+
+  const portable = output.replace(/\\/gu, '/');
+  const segments = portable.split('/');
+  if (
+    path.isAbsolute(output) ||
+    /^[a-z]:/iu.test(portable) ||
+    portable.startsWith('//') ||
+    segments.some((segment) => segment === '..') ||
+    path.extname(portable).toLowerCase() !== '.json'
+  ) {
+    throw new Error('Run receipt output must be a portable, relative .json path');
+  }
+
+  const resolved = path.resolve(process.cwd(), output);
+  const relative = path.relative(process.cwd(), resolved);
+  if (relative.startsWith('..') || path.isAbsolute(relative)) {
+    throw new Error('Run receipt output must stay within the working directory');
+  }
+  return resolved;
+}
+
+function emitRunReceipt(
+  opts: CLIOptions,
+  outputPath: string | undefined,
+  stableReceipt: Record<string, unknown>
+): Record<string, unknown> {
+  const receipt = {
+    ...stableReceipt,
+    generatedAt: new Date().toISOString(),
+    receiptHash: sha256(JSON.stringify(stableReceipt)),
+  };
+
+  if (outputPath) {
+    fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+    fs.writeFileSync(outputPath, `${JSON.stringify(receipt, null, 2)}\n`, 'utf-8');
+  }
+  if (opts.json) console.log(JSON.stringify(receipt));
+  return receipt;
+}
+
 async function runScript(opts: CLIOptions): Promise<void> {
   if (!opts.file) {
     console.error('Error: No input file specified');
@@ -974,11 +1068,62 @@ async function runScript(opts: CLIOptions): Promise<void> {
 
   const source = fs.readFileSync(filePath, 'utf-8');
   const ext = path.extname(filePath);
+  const outputPath = resolvePortableRunOutput(opts.output);
 
-  console.log(`[holoscript] Running ${path.basename(filePath)} (target: ${opts.target})`);
+  if (opts.watch && (opts.json || outputPath)) {
+    throw new Error('Run receipts cannot be combined with --watch');
+  }
+
+  if (!opts.json) {
+    console.log(`[holoscript] Running ${path.basename(filePath)} (target: ${opts.target})`);
+  }
 
   // Parse the source
+  if (!RUN_SOURCE_EXTENSIONS.has(ext.toLowerCase())) {
+    const errors: RunReceiptError[] = [
+      {
+        code: 'CLI001',
+        message: 'HoloScript run accepts only .holo, .hs, or .hsplus source',
+      },
+    ];
+    emitRunReceipt(opts, outputPath, {
+      schema: RUN_RECEIPT_SCHEMA,
+      ok: false,
+      source: {
+        file: path.basename(filePath),
+        extension: ext.toLowerCase(),
+        digest: sha256(source),
+        parsePassed: false,
+        errors,
+      },
+      execution: null,
+    });
+    if (!opts.json) console.error(`[holoscript] Admission failed — ${errors[0].message}`);
+    process.exitCode = 2;
+    return;
+  }
+
   const parseResult = parse(source);
+  if (!parseResult.success || !parseResult.ast) {
+    const errors = summarizeRunParseErrors(parseResult.errors);
+    emitRunReceipt(opts, outputPath, {
+      schema: RUN_RECEIPT_SCHEMA,
+      ok: false,
+      source: {
+        file: path.basename(filePath),
+        extension: ext.toLowerCase(),
+        digest: sha256(source),
+        parsePassed: false,
+        errors,
+      },
+      execution: null,
+    });
+    if (!opts.json) {
+      console.error(`[holoscript] Parse failed — ${errors[0]?.message ?? 'invalid HoloScript'}`);
+    }
+    process.exitCode = 2;
+    return;
+  }
   const ast = parseResult.ast as HSPlusAST;
 
   if (opts.debug) {
@@ -1046,11 +1191,48 @@ async function runScript(opts: CLIOptions): Promise<void> {
 
   runtime.stop();
 
-  // Report
-  const stats = runtime.getStats() as unknown as { tickCount: number; nodesProcessed: number };
-  console.log(
-    `[holoscript] Complete — ${stats.tickCount} ticks, ${stats.nodesProcessed} nodes processed`
-  );
+  // Report actual counters exposed by either supported headless runtime shape.
+  const stats = runtime.getStats() as unknown as Record<string, unknown>;
+  const counters = normalizeRuntimeCounters(stats);
+  const sceneRuntime = runtime as unknown as {
+    getSceneReceipt?: () => Record<string, unknown>;
+  };
+  const scene = sceneRuntime.getSceneReceipt?.() ?? {
+    schema: 'holoscript-headless-scene-receipt-unavailable-v1',
+    rootId: null,
+    objectCount: 0,
+    objects: [],
+  };
+  const stableReceipt = {
+    schema: RUN_RECEIPT_SCHEMA,
+    ok: true,
+    source: {
+      file: path.basename(filePath),
+      extension: ext.toLowerCase(),
+      digest: sha256(source),
+      parsePassed: true,
+      topLevelNodes: ast.body?.length ?? 0,
+    },
+    execution: {
+      target: opts.target,
+      profile: profile.name,
+      requestedTicks: opts.ticks,
+      counters,
+      scene,
+      policy: {
+        shellAllowed: opts.allowShell,
+        networkAllowed: opts.allowedHosts.length > 0,
+        allowedPathCount: opts.allowedPaths.length,
+      },
+    },
+  };
+  emitRunReceipt(opts, outputPath, stableReceipt);
+  if (!opts.json) {
+    const objectCount = integerStat(scene, 'objectCount') ?? 0;
+    console.log(
+      `[holoscript] Complete — ${counters.tickCount ?? 'unknown'} ticks, ${objectCount} scene objects`
+    );
+  }
 
   // Watch mode: re-run on file changes
   if (opts.watch) {
@@ -1069,6 +1251,10 @@ async function runScript(opts: CLIOptions): Promise<void> {
       try {
         const newSource = fs.readFileSync(filePath, 'utf-8');
         const newParseResult = parse(newSource);
+        if (!newParseResult.success || !newParseResult.ast) {
+          const parseError = summarizeRunParseErrors(newParseResult.errors)[0];
+          throw new Error(parseError?.message ?? 'invalid HoloScript');
+        }
         const newAst = newParseResult.ast as HSPlusAST;
         const newRuntime = createHeadlessRuntime(newAst as unknown as EngineAST, {
           profile:
@@ -1082,12 +1268,11 @@ async function runScript(opts: CLIOptions): Promise<void> {
         newRuntime.start();
         runTicks(newRuntime as unknown as { tick: () => void }, opts.ticks);
         newRuntime.stop();
-        const newStats = newRuntime.getStats() as unknown as {
-          tickCount: number;
-          nodesProcessed: number;
-        };
+        const newStats = normalizeRuntimeCounters(
+          newRuntime.getStats() as unknown as Record<string, unknown>
+        );
         console.log(
-          `[holoscript] Complete — ${newStats.tickCount} ticks, ${newStats.nodesProcessed} nodes`
+          `[holoscript] Complete — ${newStats.tickCount ?? 'unknown'} ticks, ${newStats.nodesProcessed ?? 'unknown'} nodes`
         );
       } catch (err: unknown) {
         console.error(`[holoscript] Error:`, (err as Error).message);
@@ -2995,7 +3180,7 @@ function showHelp(): void {
 HoloScript CLI — Headless Runner v5.0
 
 Usage:
-  holoscript run <file>     [--target node|python|ros2] [--profile headless|minimal|full] [--ticks <n>] [--daemon] [--debug]
+  holoscript run <file>     [--target node|python|ros2] [--profile headless|minimal|full] [--ticks <n>] [--output <receipt.json>] [--json] [--daemon] [--debug]
   holoscript test <file>    [--debug]
   holoscript compile <file> [--target node|python] [--output <path>] [--enforce-gotchas]
   holoscript deploy <file>  [--share] [--publish] [--price <eth>] [--mint-nft] [--wallet-key <key>] [--author <name>] [--license <type>] [--server <url>]
