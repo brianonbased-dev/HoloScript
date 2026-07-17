@@ -1,6 +1,6 @@
 {
   "schema": "cael-quantum-v2.qaoa-novelty-scout",
-  "created_at": "2026-07-17T00:13:55.289501+00:00",
+  "created_at": "2026-07-17T00:24:47.475148+00:00",
   "claim_boundary": "QAOA prioritizes a diverse candidate portfolio from declared ordinal priors plus declared-path availability and exact shared implementation-file identity. File presence and hashes do not prove claim alignment, semantic correctness, test execution, novelty, quantum advantage, or publication readiness.",
   "fixture": "research/quantum-novelty-scout/candidates-v1.json",
   "input_sha256": "cf94bf334db69c53b3a3e65e5e880efd2db7c3aa2dc86666cedc0827e740c674",
@@ -1019,22 +1019,22 @@
             "path": "scripts/quantum_receipt_verify.py",
             "exists": true,
             "admitted": true,
-            "worktree_bytes": 43847,
-            "worktree_sha256": "5a1b9eb8f4c8d66d4d7f1065b87e84cff6cd836f8a31f86d99a1353a6d1511c2",
-            "git_blob_oid": "9de6cf3149720eaa8aff6d2509212cf4d215067d",
-            "git_blob_bytes": 43847,
-            "git_blob_sha256": "5a1b9eb8f4c8d66d4d7f1065b87e84cff6cd836f8a31f86d99a1353a6d1511c2"
+            "worktree_bytes": 45093,
+            "worktree_sha256": "3d43ddcc85ce6ec48aa80eecee39d65f2754807efca5986cc02afdb433fe710c",
+            "git_blob_oid": "87031b3fc3e44ab073d5eb61aa9cb2e8442f23cc",
+            "git_blob_bytes": 45093,
+            "git_blob_sha256": "3d43ddcc85ce6ec48aa80eecee39d65f2754807efca5986cc02afdb433fe710c"
           },
           {
             "category": "verification",
             "path": "scripts/__tests__/test_quantum_novelty_scout.py",
             "exists": true,
             "admitted": true,
-            "worktree_bytes": 17936,
-            "worktree_sha256": "81919b9df894bcac5719397e4be5f724d105ca2e434e78ab58b944cad711fc01",
-            "git_blob_oid": "b564aafe4dc9802375ed9548662dcee3978c7226",
-            "git_blob_bytes": 17936,
-            "git_blob_sha256": "81919b9df894bcac5719397e4be5f724d105ca2e434e78ab58b944cad711fc01"
+            "worktree_bytes": 19206,
+            "worktree_sha256": "3ab3ea4e7c501449636f9ae296e475da4ffcef4180ed3e1282d2a44050f75e76",
+            "git_blob_oid": "c99a1256b2978e5d124a3b0efbadd9908362310e",
+            "git_blob_bytes": 19206,
+            "git_blob_sha256": "3ab3ea4e7c501449636f9ae296e475da4ffcef4180ed3e1282d2a44050f75e76"
           },
           {
             "category": "execution_evidence",
@@ -1049,7 +1049,7 @@
           }
         ],
         "implementation_file_hash_count": 2,
-        "implementation_set_fingerprint": "c1850403f6ac995e3dd7f503e9665b3313da958be548b34838e2ba9d0b87920f"
+        "implementation_set_fingerprint": "746c7128c255363fe04fcc6a49039f8d64719b1aa1285ab819eefcc7638276eb"
       }
     ],
     "tag_similarities": [
@@ -1445,7 +1445,7 @@
   },
   "execution_receipt": {
     "schema": "cael-quantum-v1.qaoa",
-    "timestamp": "2026-07-17T00:13:49.997528+00:00",
+    "timestamp": "2026-07-17T00:24:42.363823+00:00",
     "script": "scripts/quantum_execute.py",
     "task": "qaoa",
     "method": "QAOA-qubo-p1",
@@ -1472,7 +1472,7 @@
     "optimality_gap": 0.0,
     "approximation_ratio": null,
     "num_qubits": 12,
-    "wall_time_s": 0.4562758000101894,
+    "wall_time_s": 0.5039020999975037,
     "hash_scheme": "sha256-canonical-json-v1",
     "hash_payload": {
       "input_sha256": "3ec66a8077cf5362c2adb7d1217f0c930a34d1dea39626fcdc8c9ec75a883177",
@@ -1500,7 +1500,7 @@
       "code_redundancy_penalty": 0.0,
       "constraint_penalty": 0.0,
       "portfolio_score": 18.559545454545454,
-      "runtime_seconds": 0.4562758000101894,
+      "runtime_seconds": 0.5039020999975037,
       "shots_per_evaluation": 128,
       "optimizer_evaluations": 16,
       "measurement_budget": 2048,
@@ -1527,7 +1527,7 @@
       "code_redundancy_penalty": 0.0,
       "constraint_penalty": 0.0,
       "portfolio_score": 18.559545454545454,
-      "runtime_seconds": 0.03806419999455102,
+      "runtime_seconds": 0.03837369999382645,
       "evaluations": 4096
     },
     "greedy": {
@@ -1547,7 +1547,7 @@
       "code_redundancy_penalty": 0.0,
       "constraint_penalty": 0.0,
       "portfolio_score": 18.559545454545454,
-      "runtime_seconds": 9.070002124644816e-05,
+      "runtime_seconds": 7.789998198859394e-05,
       "evaluations": 42
     },
     "budget_matched_random": {
@@ -1567,7 +1567,7 @@
       "code_redundancy_penalty": 0.625,
       "constraint_penalty": 0.0,
       "portfolio_score": 14.992272727272725,
-      "runtime_seconds": 0.02060790001996793,
+      "runtime_seconds": 0.022113600018201396,
       "evaluations": 2048,
       "seed": 17,
       "budget_basis": "one random bitstring per QAOA shot across all parameter evaluations"
@@ -1591,7 +1591,7 @@
     "code_redundancy_penalty": 0.0,
     "constraint_penalty": 0.0,
     "portfolio_score": 18.559545454545454,
-    "runtime_seconds": 0.03806419999455102,
+    "runtime_seconds": 0.03837369999382645,
     "evaluations": 4096
   },
   "selected_candidates": [
@@ -2074,22 +2074,22 @@
           "path": "scripts/quantum_receipt_verify.py",
           "exists": true,
           "admitted": true,
-          "worktree_bytes": 43847,
-          "worktree_sha256": "5a1b9eb8f4c8d66d4d7f1065b87e84cff6cd836f8a31f86d99a1353a6d1511c2",
-          "git_blob_oid": "9de6cf3149720eaa8aff6d2509212cf4d215067d",
-          "git_blob_bytes": 43847,
-          "git_blob_sha256": "5a1b9eb8f4c8d66d4d7f1065b87e84cff6cd836f8a31f86d99a1353a6d1511c2"
+          "worktree_bytes": 45093,
+          "worktree_sha256": "3d43ddcc85ce6ec48aa80eecee39d65f2754807efca5986cc02afdb433fe710c",
+          "git_blob_oid": "87031b3fc3e44ab073d5eb61aa9cb2e8442f23cc",
+          "git_blob_bytes": 45093,
+          "git_blob_sha256": "3d43ddcc85ce6ec48aa80eecee39d65f2754807efca5986cc02afdb433fe710c"
         },
         {
           "category": "verification",
           "path": "scripts/__tests__/test_quantum_novelty_scout.py",
           "exists": true,
           "admitted": true,
-          "worktree_bytes": 17936,
-          "worktree_sha256": "81919b9df894bcac5719397e4be5f724d105ca2e434e78ab58b944cad711fc01",
-          "git_blob_oid": "b564aafe4dc9802375ed9548662dcee3978c7226",
-          "git_blob_bytes": 17936,
-          "git_blob_sha256": "81919b9df894bcac5719397e4be5f724d105ca2e434e78ab58b944cad711fc01"
+          "worktree_bytes": 19206,
+          "worktree_sha256": "3ab3ea4e7c501449636f9ae296e475da4ffcef4180ed3e1282d2a44050f75e76",
+          "git_blob_oid": "c99a1256b2978e5d124a3b0efbadd9908362310e",
+          "git_blob_bytes": 19206,
+          "git_blob_sha256": "3ab3ea4e7c501449636f9ae296e475da4ffcef4180ed3e1282d2a44050f75e76"
         },
         {
           "category": "execution_evidence",
@@ -2104,7 +2104,7 @@
         }
       ],
       "implementation_file_hash_count": 2,
-      "implementation_set_fingerprint": "c1850403f6ac995e3dd7f503e9665b3313da958be548b34838e2ba9d0b87920f"
+      "implementation_set_fingerprint": "746c7128c255363fe04fcc6a49039f8d64719b1aa1285ab819eefcc7638276eb"
     }
   ],
   "source_grounding_complete": true,
@@ -2135,12 +2135,12 @@
   "code_hashes": {
     "scout_sha256": "b7f9d0716c76aa07862cce6b12d846bf8580ec08146e21301312cf097aef40f2",
     "executor_sha256": "8bba9401e300749d6b543c8865a14b8ac2680c4f01ade6077330ecdd6d449899",
-    "verifier_sha256": "5a1b9eb8f4c8d66d4d7f1065b87e84cff6cd836f8a31f86d99a1353a6d1511c2",
-    "composition_sha256": "a6a8abdbe67bc3ac8d921d23738fefc3effb8cd7897f0dcc9d8c6fe72b1efd35"
+    "verifier_sha256": "3d43ddcc85ce6ec48aa80eecee39d65f2754807efca5986cc02afdb433fe710c",
+    "composition_sha256": "cf1d9fb09f9d5862f7f68e012c73f5a2bb59a53d98a52b7887093487516b3716"
   },
   "source_state": {
-    "head_commit": "f188947bd6f2134ae81fe47e9eb98ac01e86350e",
-    "head_tree": "e8ce6b0bab033640dd1e0610c45307fd963aa9e9",
+    "head_commit": "1a63d024389dd48b8aa94324fea28004e13d5564",
+    "head_tree": "420009c6eafcfc8625341dc7205c779f2932176a",
     "scoped_dirty": false,
     "scoped_status": [],
     "files": [
@@ -2162,19 +2162,19 @@
       },
       {
         "path": "scripts/quantum_receipt_verify.py",
-        "worktree_bytes": 43847,
-        "worktree_sha256": "5a1b9eb8f4c8d66d4d7f1065b87e84cff6cd836f8a31f86d99a1353a6d1511c2",
-        "git_blob_oid": "9de6cf3149720eaa8aff6d2509212cf4d215067d",
-        "git_blob_bytes": 43847,
-        "git_blob_sha256": "5a1b9eb8f4c8d66d4d7f1065b87e84cff6cd836f8a31f86d99a1353a6d1511c2"
+        "worktree_bytes": 45093,
+        "worktree_sha256": "3d43ddcc85ce6ec48aa80eecee39d65f2754807efca5986cc02afdb433fe710c",
+        "git_blob_oid": "87031b3fc3e44ab073d5eb61aa9cb2e8442f23cc",
+        "git_blob_bytes": 45093,
+        "git_blob_sha256": "3d43ddcc85ce6ec48aa80eecee39d65f2754807efca5986cc02afdb433fe710c"
       },
       {
         "path": "scripts/__tests__/test_quantum_novelty_scout.py",
-        "worktree_bytes": 17936,
-        "worktree_sha256": "81919b9df894bcac5719397e4be5f724d105ca2e434e78ab58b944cad711fc01",
-        "git_blob_oid": "b564aafe4dc9802375ed9548662dcee3978c7226",
-        "git_blob_bytes": 17936,
-        "git_blob_sha256": "81919b9df894bcac5719397e4be5f724d105ca2e434e78ab58b944cad711fc01"
+        "worktree_bytes": 19206,
+        "worktree_sha256": "3ab3ea4e7c501449636f9ae296e475da4ffcef4180ed3e1282d2a44050f75e76",
+        "git_blob_oid": "c99a1256b2978e5d124a3b0efbadd9908362310e",
+        "git_blob_bytes": 19206,
+        "git_blob_sha256": "3ab3ea4e7c501449636f9ae296e475da4ffcef4180ed3e1282d2a44050f75e76"
       },
       {
         "path": "research/quantum-novelty-scout/candidates-v1.json",
@@ -2187,10 +2187,10 @@
       {
         "path": "research/quantum-novelty-scout/novelty-portfolio.holo",
         "worktree_bytes": 1683,
-        "worktree_sha256": "a08041d84b39547dec2e68ac4c2c2c5bcf3258f6452d317ff9c79e1dea6fae7f",
-        "git_blob_oid": "e6957a0606bb6251e1f788a018cdd15e4e3bcc66",
+        "worktree_sha256": "0afe5208bf988c4f71122f16dcbdc4bfee72ca17d0ccaa494b03008adb6396b7",
+        "git_blob_oid": "3bf86f8db77c8734c8638611ac36b78b356444e2",
         "git_blob_bytes": 1666,
-        "git_blob_sha256": "a6a8abdbe67bc3ac8d921d23738fefc3effb8cd7897f0dcc9d8c6fe72b1efd35"
+        "git_blob_sha256": "cf1d9fb09f9d5862f7f68e012c73f5a2bb59a53d98a52b7887093487516b3716"
       },
       {
         "path": "pnpm-lock.yaml",
@@ -2491,10 +2491,10 @@
     "code_hashes": {
       "scout_sha256": "b7f9d0716c76aa07862cce6b12d846bf8580ec08146e21301312cf097aef40f2",
       "executor_sha256": "8bba9401e300749d6b543c8865a14b8ac2680c4f01ade6077330ecdd6d449899",
-      "verifier_sha256": "5a1b9eb8f4c8d66d4d7f1065b87e84cff6cd836f8a31f86d99a1353a6d1511c2",
-      "composition_sha256": "a6a8abdbe67bc3ac8d921d23738fefc3effb8cd7897f0dcc9d8c6fe72b1efd35"
+      "verifier_sha256": "3d43ddcc85ce6ec48aa80eecee39d65f2754807efca5986cc02afdb433fe710c",
+      "composition_sha256": "cf1d9fb09f9d5862f7f68e012c73f5a2bb59a53d98a52b7887093487516b3716"
     },
-    "code_evidence_sha256": "92e803cc7924b90b932e179859a20efddca4fcbb03bd6bd031bf44837234b0f0",
+    "code_evidence_sha256": "781b7275687ffa896039a3767ee14a51b3d2ef0e46c375072e7158c373751ad3",
     "results": {
       "qaoa": {
         "bitstring": "101000000101",
@@ -2515,5 +2515,5 @@
     },
     "hardware_gate_decision": "NO_GO"
   },
-  "payload_hash": "6143d554de7810e1457c20e85818c7a2efbb01cabc05c87d2f6c8da3a9fe55e0"
+  "payload_hash": "1453fe044480e443cfb9f6c296b526fa4c90f52f20373d4c962e41db56b16143"
 }
