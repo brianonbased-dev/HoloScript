@@ -1,0 +1,141 @@
+{
+  "schema": "holoscript.paper6.quaternion-conformance.v1",
+  "run_id": "7cda4f4a-95c1-47d5-ba80-4635c6b060c3",
+  "captured_at": "2026-07-17T20:03:52.605Z",
+  "status": "single-adapter-pass",
+  "contract": {
+    "version": "paper6-q14-cordic-slerp-v1",
+    "algorithm": "fixed-point approximate shortest-arc SLERP via integer CORDIC",
+    "quaternion_encoding": "signed Q14 i32",
+    "time_encoding": "unsigned Q15 u32",
+    "output_encoding": "four signed Q14 i32 words per case",
+    "canonical_hash_encoding": "little-endian signed i32 words"
+  },
+  "claim_scope": "Exact WGSL/TypeScript-oracle byte agreement and three same-session dispatches on the named adapter.",
+  "nonclaims": [
+    "Not the shipped AnimationClip nlerp policy.",
+    "Not MinimaxSLERP and not a minimax transcendental library.",
+    "Not a cross-machine or cross-vendor result.",
+    "Not a universal claim about ordinary WGSL f32 arithmetic."
+  ],
+  "code_as_experimental_variable": {
+    "oracle": "independently scheduled TypeScript BigInt",
+    "gpu": "separately authored WGSL i32/u32",
+    "compiler_backend": "browser WebGPU",
+    "hardware_vendor": "qualcomm"
+  },
+  "source": {
+    "base_git_commit": "b22aa90fcb38e0c761d9f93f75eb0cb54993f046",
+    "paths": [
+      "packages/engine/src/animation/paper/QuaternionInterpolationContract.ts",
+      "packages/engine/src/animation/paper/QuaternionInterpolationWGSL.ts",
+      "packages/engine/tests/quaternion-interpolation-webgpu.spec.ts",
+      "packages/engine/playwright.config.ts"
+    ],
+    "all_paths_tracked": true,
+    "source_paths_clean_at_capture": true,
+    "source_unchanged_during_run": true,
+    "head_unchanged_during_run": true,
+    "end_git_commit": "b22aa90fcb38e0c761d9f93f75eb0cb54993f046",
+    "source_status_porcelain": "",
+    "contract_ts_sha256": "dffa22ef092b83c5ec4f61346e6ae12987a3587a9c9d515be0b28ff0e0ff3bf7",
+    "wgsl_wrapper_ts_sha256": "bfbcb2960371cfba76618e42a95c8d708a8fd5177a12f27523d74ef282b3c94c",
+    "kernel_wgsl_sha256": "bdc510c041dfe13a92f86660bab28775775161934eb35aefee9ae6fd1f12c47e",
+    "harness_ts_sha256": "28f87ca4bdb6c66704374a8e4567870a774be9036fc17a697a4ffba488097d99",
+    "playwright_config_ts_sha256": "e680ac071ef8788913f3bf67398ac7f63d774312e4923eb06f9a9e40e2198d20"
+  },
+  "fixture": {
+    "case_count": 1114,
+    "construction": "72 named adversarial cases, a 129-dot by 8-time integer sweep, nine near-branch cases, and one negative-dot ordinary-CORDIC case",
+    "row_bytes": 48,
+    "input_sha256": "01ea6512a4286134c978920875d3e007c38bbe4178ec3bd26ec412af33ec8c92",
+    "oracle_output_sha256": "fd4bd0dfb66ed1f41bdc193aa382d51ad0fdf84190d6c3d15ca47156678e7a84",
+    "branch_boundary_dot_q15": [
+      32758,
+      32760,
+      32762
+    ],
+    "negative_dot_ordinary_cordic_case": "negative-dot-x90-t16384"
+  },
+  "execution": {
+    "mode": "webgpu-browser-android-cdp",
+    "requested_power_preference": "high-performance",
+    "hardware_label": "Samsung Galaxy S23 Ultra / Adreno 740",
+    "machine_fingerprint_sha256": "ab4f25917e15474e1671da706a316d72467baeff4c7b9d8b3376e489206d27db",
+    "browser_user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Mobile Safari/537.36",
+    "secure_context": true,
+    "origin": "http://127.0.0.1:50883",
+    "adapter": {
+      "vendor": "qualcomm",
+      "architecture": "adreno-7xx",
+      "device": "",
+      "description": "",
+      "driver": "",
+      "isFallbackAdapter": false
+    },
+    "launch_contract": {
+      "transport": "adb-cdp",
+      "chrome_package": "com.android.chrome",
+      "cdp_socket": "localabstract:chrome_devtools_remote"
+    },
+    "toolchain": {
+      "node": "v24.15.0",
+      "pnpm": "9.15.9",
+      "git": "git version 2.51.0.windows.2",
+      "package_manager_user_agent": "pnpm/9.15.9 npm/? node/v24.15.0 win32 x64",
+      "playwright": "1.60.0",
+      "playwright_project": "chromium-webgpu",
+      "browser_version": "150.0.7871.115"
+    },
+    "host": {
+      "controller": {
+        "platform": "win32",
+        "release": "10.0.26200",
+        "arch": "x64"
+      },
+      "device": {
+        "serial_sha256": "e2aefebe4b00dee2c133674ebad6dca6dde913860f676e987b7104c2770c227c",
+        "manufacturer": "samsung",
+        "model": "SM-S918U",
+        "android_release": "16",
+        "android_sdk": "36",
+        "abi": "arm64-v8a",
+        "board_platform": "kalama",
+        "gles_renderer": "Qualcomm, Adreno (TM) 740, OpenGL ES 3.2 V@0676.77.1 (GIT@3df4c357f0, I515341007c, 1769513954) (Date:01/27/26)",
+        "build_fingerprint_sha256": "739ed370510bb65e97d0b0bfbd414cc10fd7f36754eaa5d3f8947e417ada1455",
+        "chrome_package": "com.android.chrome",
+        "chrome_version": "150.0.7871.115"
+      },
+      "node_little_endian": true,
+      "browser_little_endian": true
+    },
+    "compile_ms": 6.300000011920929,
+    "compilation_messages": [],
+    "repeated_dispatch_ms": [
+      8.899999976158142,
+      2.800000011920929,
+      2.5
+    ],
+    "repeated_dispatch_output_sha256": [
+      "fd4bd0dfb66ed1f41bdc193aa382d51ad0fdf84190d6c3d15ca47156678e7a84",
+      "fd4bd0dfb66ed1f41bdc193aa382d51ad0fdf84190d6c3d15ca47156678e7a84",
+      "fd4bd0dfb66ed1f41bdc193aa382d51ad0fdf84190d6c3d15ca47156678e7a84"
+    ]
+  },
+  "negative_control": {
+    "case_id": "identity-x180-t16384",
+    "mutation": "tQ15: 16384 -> 0",
+    "input_sha256": "16eddb7e9d00b6f384c59bbd691c3df9050d7416395597f1c4c353919de94348",
+    "oracle_output_sha256": "001d06d03a32aed3144104da883a477ea05d5fcb507a9d18b82a1b5fbe55416b",
+    "gpu_output_sha256": "001d06d03a32aed3144104da883a477ea05d5fcb507a9d18b82a1b5fbe55416b",
+    "oracle_equal": true,
+    "changed_digest": true,
+    "dispatch_ms": 2.699999988079071
+  },
+  "verdict": {
+    "oracle_equal": true,
+    "same_session_repeated_dispatches_equal": true,
+    "negative_control_detected": true,
+    "cross_vendor": "inconclusive-missing-independent-second-machine-vendor"
+  }
+}
