@@ -1,0 +1,15 @@
+[package]
+name = "holoscript-native"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+description = "Sovereign native machine-code backend for HoloScript"
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+cranelift = { version = "=0.129.2", features = ["module", "native", "object"] }
+holoscript-wasm = { path = "../compiler-wasm", default-features = false }
+serde.workspace = true
+serde_json.workspace = true
+sha2 = "0.10"

@@ -32,7 +32,7 @@
 //! runtimes). The `WasmParserBridge` falls back to `HoloScriptPlusParser`
 //! (full-grammar TS parser) automatically when WASM is unavailable.
 
-mod ast;
+pub mod ast;
 mod kotlin_emit;
 mod lexer;
 mod parser;
@@ -41,6 +41,31 @@ pub mod types;
 mod uaal_emit;
 
 use wasm_bindgen::prelude::*;
+
+/// Stable parser diagnostic shared by non-WASM compiler backends.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParseDiagnostic {
+    pub message: String,
+    pub line: usize,
+    pub column: usize,
+}
+
+/// Parse HoloScript into the canonical Rust AST without crossing a JSON or WASM boundary.
+///
+/// Target backends use this entry point so native, WASM, and future machine targets share
+/// one lexer and parser rather than creating target-specific grammar islands.
+pub fn parse_ast(source: &str) -> Result<ast::Ast, Vec<ParseDiagnostic>> {
+    parser::Parser::new(source).parse().map_err(|errors| {
+        errors
+            .into_iter()
+            .map(|error| ParseDiagnostic {
+                message: error.message,
+                line: error.line,
+                column: error.column,
+            })
+            .collect()
+    })
+}
 
 /// Native-only re-export of the parser entry point for the
 /// `parser_bench` binary. NOT exported to WASM — `__bench_parse`
