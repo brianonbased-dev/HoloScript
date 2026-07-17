@@ -316,6 +316,34 @@ export type {
   BaselineResult,
 } from './HSICausalLoop';
 
+// HSI N3 falsification harness: the deterministic structural-semantic tournament battery (Stage D first layer).
+export {
+  HSI_N3_TOURNAMENT_SCHEMA_VERSION,
+  generateBarrierWorldSource,
+  generateTournamentBattery,
+  oracleLabel,
+  scoreArm,
+  runTournament,
+  exactOracleArm,
+  edgeBlindArm,
+  dynamicsOnlyArm,
+} from './HSINTournament';
+export type {
+  HSIN3TournamentSchemaVersion,
+  HSINOodAxis,
+  HSINMetamorphicKind,
+  HSINOpacityLabel,
+  HSINBarrierSpec,
+  HSINWorldParams,
+  HSINPrediction,
+  HSINWorldVariant,
+  HSINMetamorphicCase,
+  HSINBattery,
+  TournamentArm,
+  HSINScorecard,
+  HSINTournamentReceipt,
+} from './HSINTournament';
+
 // Agent context compiler
 export { ContextCompiler, ContextCompileError, createContextCompiler } from './ContextCompiler';
 export type {
