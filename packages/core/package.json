@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/core",
-  "version": "8.0.15",
+  "version": "8.0.16",
   "description": "Core parser, AST, type/trait system, compiler infrastructure, and runtime for the HoloScript general-purpose semantic systems language",
   "type": "module",
   "main": "./dist/index.js",
@@ -255,7 +255,7 @@
     "holo-decision": "./bin/holo-decision.mjs"
   },
   "scripts": {
-    "prepublishOnly": "pnpm run test:release && pnpm run build",
+    "prepublishOnly": "node scripts/verify-publish-manager.mjs && pnpm run test:release && pnpm run build",
     "verify:workspace": "node scripts/verify-internal-workspace-protocol.mjs",
     "build": "node scripts/verify-internal-workspace-protocol.mjs && node scripts/gen-quest-mr-templates.mjs && tsup && node scripts/generate-types.mjs",
     "dev": "tsup --watch",

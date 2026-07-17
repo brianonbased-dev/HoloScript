@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/holosystem",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "description": "Portable bootstrap, consumption catalog, lineage, and bounded-work contract for HoloSystem consumers.",
   "releaseLane": "v0-preview",
   "keywords": [
@@ -59,7 +59,7 @@
     }
   },
   "peerDependencies": {
-    "@holoscript/core": "8.0.15"
+    "@holoscript/core": "8.0.16"
   },
   "peerDependenciesMeta": {
     "@holoscript/core": {

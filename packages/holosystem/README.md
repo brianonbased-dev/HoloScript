@@ -68,7 +68,7 @@ npx holosystem source-canon \
 
 The gate reads the fixed Git-tracked file inventory and accepts only `.holo`,
 `.hs`, and `.hsplus` as canonical authored source. It then parses the actual
-tracked bytes with the exact optional peer `@holoscript/core@8.0.15`; when that
+tracked bytes with the exact optional peer `@holoscript/core@8.0.16`; when that
 parser is unavailable, the gate fails closed. This prevents JavaScript or another
 language from becoming canonical merely by being renamed. Other HoloSystem
 commands remain usable without the optional peer.
