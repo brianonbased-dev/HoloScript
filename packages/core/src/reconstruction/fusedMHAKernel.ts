@@ -29,6 +29,7 @@ struct Params {
   kLen:     u32,
   dHead:    u32,   // head dimension (= sqrt-scale base)
   vHead:    u32,   // output feature dim per head (usually == dHead)
+  causal:   u32,   // 0 = bidirectional (default), 1 = causal (mask key ki > query qRow)
 }
 
 @group(0) @binding(0) var<storage, read>       Q:   array<f32>;  // [h, qLen, dHead]
@@ -64,7 +65,9 @@ fn main(
       for (var d = 0u; d < p.dHead; d++) {
         dot = dot + Q[qBase + d] * K[kBase + d];
       }
-      scores[ki] = dot * scale;
+      // Causal mask: a query at qRow may not attend to future keys (ki > qRow).
+      // -1e30 survives the stable-softmax max-subtraction as exp(-huge)=0.
+      scores[ki] = select(dot * scale, -1e30, p.causal == 1u && ki > qRow);
     }
   }
   workgroupBarrier();
@@ -125,6 +128,8 @@ export interface FusedMHAParams {
   dHead: number;
   /** If omitted, defaults to dHead */
   vHead?: number;
+  /** Causal self-attention: mask key positions ki > query qRow. Default false (bidirectional). */
+  causal?: boolean;
 }
 
 export interface FusedMHAKernel {
@@ -182,6 +187,7 @@ export function createFusedMHAKernel(device: GPUDevice): FusedMHAKernel {
       pu[2] = kLen;
       pu[3] = dHead;
       pu[4] = vHead;
+      pu[5] = params.causal ? 1 : 0;
       const paramsBuf = device.createBuffer({
         size: paramAB.byteLength,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,

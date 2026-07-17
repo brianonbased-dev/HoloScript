@@ -21,6 +21,7 @@ import { fileURLToPath } from 'node:url';
 import { createLayerNormKernel } from '../layerNormKernel';
 import { createSoftmaxKernel } from '../softmaxKernel';
 import { createGeluKernel } from '../geluKernel';
+import { createFusedMHAKernel } from '../fusedMHAKernel';
 
 interface AdapterInfo {
   vendor?: string;
@@ -159,6 +160,54 @@ function refGelu(input: Float32Array): Float64Array {
   return out;
 }
 
+/** f64 reference multi-head attention: softmax(Q·Kᵀ/√dHead [+causal mask]) · V. */
+function refMHA(
+  Q: Float32Array,
+  K: Float32Array,
+  V: Float32Array,
+  numHeads: number,
+  qLen: number,
+  kLen: number,
+  dHead: number,
+  vHead: number,
+  causal: boolean
+): Float64Array {
+  const out = new Float64Array(numHeads * qLen * vHead);
+  const scale = 1 / Math.sqrt(dHead);
+  for (let h = 0; h < numHeads; h++) {
+    for (let q = 0; q < qLen; q++) {
+      const scores = new Float64Array(kLen);
+      let mx = -Infinity;
+      for (let ki = 0; ki < kLen; ki++) {
+        if (causal && ki > q) {
+          scores[ki] = -Infinity;
+          continue;
+        }
+        let dot = 0;
+        const qBase = (h * qLen + q) * dHead;
+        const kBase = (h * kLen + ki) * dHead;
+        for (let d = 0; d < dHead; d++) dot += Q[qBase + d] * K[kBase + d];
+        scores[ki] = dot * scale;
+        if (scores[ki] > mx) mx = scores[ki];
+      }
+      let s = 0;
+      for (let ki = 0; ki < kLen; ki++) {
+        const e = scores[ki] === -Infinity ? 0 : Math.exp(scores[ki] - mx);
+        scores[ki] = e;
+        s += e;
+      }
+      for (let ki = 0; ki < kLen; ki++) scores[ki] /= s;
+      const oBase = (h * qLen + q) * vHead;
+      for (let vi = 0; vi < vHead; vi++) {
+        let acc = 0;
+        for (let ki = 0; ki < kLen; ki++) acc += scores[ki] * V[(h * kLen + ki) * vHead + vi];
+        out[oBase + vi] = acc;
+      }
+    }
+  }
+  return out;
+}
+
 describe('HoloTorch op parity (WGSL vs f64 reference, real GPU)', () => {
   it('layernorm matches f64 reference (holo n_embd=384)', async () => {
     const device = await getDevice();
@@ -239,5 +288,57 @@ describe('HoloTorch op parity (WGSL vs f64 reference, real GPU)', () => {
     );
     writeParityReceipt('gelu', { n, form: 'gpt2-tanh', ...cmp, verdict: cmp.allClose ? 'pass' : 'fail' });
     expect(cmp.allClose).toBe(true);
+  }, 120000);
+
+  it('fused-MHA causal + bidirectional parity, and the causal invariant (token 0 attends only to itself)', async () => {
+    const device = await getDevice();
+    if (!device) {
+      console.warn('[holotorch-parity] no WebGPU adapter — skipping fused-mha');
+      return;
+    }
+    const mha = createFusedMHAKernel(device);
+    const rand = rng(17);
+    // holo arch: n_head=6, dHead=n_embd/n_head=64. Self-attention: qLen==kLen==T.
+    const numHeads = 6;
+    const dHead = 64;
+    const T = 8;
+    const mk = (len: number): Float32Array => {
+      const a = new Float32Array(numHeads * len * dHead);
+      for (let i = 0; i < a.length; i++) a[i] = rand();
+      return a;
+    };
+    const Q = mk(T);
+    const K = mk(T);
+    const V = mk(T);
+
+    for (const causal of [true, false]) {
+      const got = await mha.run(Q, K, V, { numHeads, qLen: T, kLen: T, dHead, causal });
+      const ref = refMHA(Q, K, V, numHeads, T, T, dHead, dHead, causal);
+      const cmp = compareAllClose(got, ref, 1e-3, 1e-2);
+      console.warn(
+        `[holotorch-parity]   fused-mha causal=${causal} [h${numHeads} T${T} d${dHead}] relToScale=${cmp.relToScale.toExponential(2)} maxAbs=${cmp.maxAbs.toExponential(2)} allClose=${cmp.allClose}`
+      );
+      writeParityReceipt(`fused-mha-${causal ? 'causal' : 'bidir'}`, {
+        dims: { numHeads, qLen: T, kLen: T, dHead, causal },
+        ...cmp,
+        verdict: cmp.allClose ? 'pass' : 'fail',
+      });
+      expect(cmp.allClose).toBe(true);
+
+      // Structural causal invariant: query 0 attends only to key 0 (softmax of one score = 1),
+      // so its output must equal V[head, 0, :] exactly (up to fp32).
+      if (causal) {
+        let maxT0Err = 0;
+        for (let h = 0; h < numHeads; h++) {
+          for (let vi = 0; vi < dHead; vi++) {
+            const o = got[(h * T + 0) * dHead + vi];
+            const v0 = V[(h * T + 0) * dHead + vi];
+            maxT0Err = Math.max(maxT0Err, Math.abs(o - v0));
+          }
+        }
+        console.warn(`[holotorch-parity]   fused-mha causal token-0 invariant maxErr=${maxT0Err.toExponential(2)}`);
+        expect(maxT0Err).toBeLessThan(1e-5);
+      }
+    }
   }, 120000);
 });
