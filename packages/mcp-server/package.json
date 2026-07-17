@@ -68,6 +68,7 @@
     "@holoscript/mesh": "workspace:^",
     "@holoscript/secrets-broker": "workspace:^",
     "@holoscript/security-sandbox": "workspace:^",
+    "@holoscript/wasm": "workspace:^",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "@noble/post-quantum": "^0.6.0",
     "@opentelemetry/api": "^1.9.1",

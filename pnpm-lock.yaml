@@ -1884,6 +1884,9 @@ importers:
       '@holoscript/security-sandbox':
         specifier: workspace:^
         version: link:../security-sandbox
+      '@holoscript/wasm':
+        specifier: workspace:^
+        version: link:../compiler-wasm
       '@modelcontextprotocol/sdk':
         specifier: ^1.27.1
         version: 1.29.0(zod@4.4.3)

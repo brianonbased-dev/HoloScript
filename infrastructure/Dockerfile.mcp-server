@@ -37,6 +37,7 @@ COPY packages/core-types/ packages/core-types/
 COPY packages/crdt/ packages/crdt/
 COPY packages/agent-protocol/ packages/agent-protocol/
 COPY packages/core/ packages/core/
+COPY packages/compiler-wasm/ packages/compiler-wasm/
 COPY packages/holomap/ packages/holomap/
 COPY packages/uaal/ packages/uaal/
 COPY packages/crdt-spatial/ packages/crdt-spatial/
@@ -141,6 +142,7 @@ COPY --from=builder /app/packages/core-types/dist packages/core-types/dist
 COPY --from=builder /app/packages/crdt/dist packages/crdt/dist
 COPY --from=builder /app/packages/agent-protocol/dist packages/agent-protocol/dist
 COPY --from=builder /app/packages/core/dist packages/core/dist
+COPY --from=builder /app/packages/compiler-wasm/pkg-node packages/compiler-wasm/pkg-node
 COPY --from=builder /app/packages/holomap/dist packages/holomap/dist
 COPY packages/holomap/profiles/ packages/holomap/profiles/
 COPY --from=builder /app/packages/uaal/dist packages/uaal/dist
@@ -177,6 +179,7 @@ RUN mkdir -p /app/node_modules/@holoscript && \
     ln -sfn /app/packages/mesh /app/node_modules/@holoscript/mesh && \
     ln -sfn /app/packages/absorb-service /app/node_modules/@holoscript/absorb-service && \
     ln -sfn /app/packages/core /app/node_modules/@holoscript/core && \
+    ln -sfn /app/packages/compiler-wasm /app/node_modules/@holoscript/wasm && \
     ln -sfn /app/packages/agent-protocol /app/node_modules/@holoscript/agent-protocol && \
     ln -sfn /app/packages/crdt /app/node_modules/@holoscript/crdt && \
     ln -sfn /app/packages/config /app/node_modules/@holoscript/config && \
@@ -187,6 +190,7 @@ RUN mkdir -p /app/node_modules/@holoscript && \
 
 # Fail fast if critical build artifacts are missing
 RUN test -f /app/packages/core/dist/index.cjs && \
+    test -f /app/packages/compiler-wasm/pkg-node/holoscript_wasm_bg.wasm && \
     test -f /app/packages/core/dist/reconstruction/index.js && \
     test -f /app/packages/core/dist/paper-0c-spike/index.js && \
     test -f /app/packages/core/dist/hololand/index.cjs && \

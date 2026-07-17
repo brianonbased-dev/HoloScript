@@ -75,6 +75,19 @@ cargo run -p holoscript-native --bin holoscriptc -- examples/native/stack-slot-e
 The compile receipt reports `hs-machine-v2`; running the executable exits with
 code `5`.
 
+### Canonical validation and lexical security
+
+`.hs` validation uses the Rust parser distributed by `@holoscript/wasm/node`,
+the same parser crate consumed by the native compiler. Typed signatures, stack
+slots, loads, and stores therefore do not depend on the legacy scene parser to
+be admitted by the public `validate_holoscript` tool.
+
+Before AST construction, that parser labels the canonical HS010 host-capability
+lexemes as forbidden executable tokens. It reports HS010 with source location
+and does not lower the source. Exact lexemes are matched case-insensitively;
+their appearance inside comments or string data remains valid. This firewall is
+compiler-owned, so callers and MCP handlers must not reimplement or bypass it.
+
 ## Compatibility and non-goals
 
 Programs without `slot` declarations continue to select v0 or v1 unchanged.

@@ -18,6 +18,7 @@ import {
   type AutoRigRigType,
   type NativeAutoRigPlan,
 } from '@holoscript/core';
+import { validate_detailed as validateCanonicalHsDetailed } from '@holoscript/wasm/node';
 
 import {
   suggestUniversalTraits,
@@ -1031,11 +1032,21 @@ async function handleValidate(args: Record<string, unknown>) {
 
     // Parse based on format
     let parseResult;
+    let validator: 'holo-parser' | 'rust-wasm' | 'typescript-hsplus';
     if (detectedFormat === 'holo') {
       parseResult = parseHolo(code);
+      validator = 'holo-parser';
+    } else if (detectedFormat === 'hs') {
+      parseResult = JSON.parse(validateCanonicalHsDetailed(code)) as {
+        valid: boolean;
+        errors: Array<{ message: string; line?: number; column?: number }>;
+        warnings?: Array<{ message: string; line?: number; column?: number }>;
+      };
+      validator = 'rust-wasm';
     } else {
       const parser = new HoloScriptPlusParser();
       parseResult = parser.parse(code);
+      validator = 'typescript-hsplus';
     }
 
     const errors: AIFriendlyError[] = [];
@@ -1080,6 +1091,7 @@ async function handleValidate(args: Record<string, unknown>) {
     return {
       valid: errors.length === 0,
       format: detectedFormat,
+      validator,
       errors,
       ...(includeWarnings && { warnings }),
       summary:
@@ -1650,6 +1662,9 @@ function toAIFriendlyError(
 }
 
 function extractErrorCode(message: string): string {
+  const canonical = message.match(/\b(HS(?:P)?\d{3})\b/);
+  if (canonical) return canonical[1];
+
   // Extract error code from message if present
   const match = message.match(/\[(E\d+|W\d+)\]/);
   if (match) return match[1];

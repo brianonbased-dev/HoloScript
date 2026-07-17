@@ -69,6 +69,44 @@ describe('MCP Tool Error Cases', () => {
     expect(result.error).toBeUndefined();
   });
 
+  it('validate_holoscript accepts the canonical native machine syntax', async () => {
+    const result = (await handleTool('validate_holoscript', {
+      code: `function main(): i32 {
+        slot value: i32 = 2
+        store(value, 5)
+        return load(value)
+      }`,
+      format: 'hs',
+    })) as Record<string, unknown>;
+
+    expect(result.valid).toBe(true);
+    expect(result.errors).toEqual([]);
+    expect(result.validator).toBe('rust-wasm');
+  });
+
+  it('validate_holoscript keeps HS010 ahead of native machine parsing', async () => {
+    const result = (await handleTool('validate_holoscript', {
+      code: 'function main(): i32 { return process(5) }',
+      format: 'hs',
+      capabilityManifest: {
+        protocol: 'holoscript.capability.v1',
+        declaredCapabilities: ['holoscript:validate', 'filesystem:read:local-source'],
+        attestation: {
+          manifestHash: 'sha256:test',
+          signer: 'codex-test',
+          trustTier: 'verified',
+          attestedAt: '2026-06-30T00:00:00.000Z',
+        },
+      },
+    })) as Record<string, unknown>;
+
+    expect(result.valid).toBe(false);
+    expect(result.validator).toBe('rust-wasm');
+    expect(result.errors).toEqual([
+      expect.objectContaining({ code: 'HS010', message: expect.stringContaining('process') }),
+    ]);
+  });
+
   it('validate_holoscript reports a clear error when source is missing', async () => {
     const result = (await handleTool('validate_holoscript', {
       format: 'holo',

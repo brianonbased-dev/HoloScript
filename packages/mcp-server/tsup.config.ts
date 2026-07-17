@@ -21,6 +21,7 @@ export default defineConfig({
     '@holoscript/core',
     '@holoscript/crdt-spatial',
     '@holoscript/holomap',
+    '@holoscript/wasm/node',
     '@huggingface/transformers',
     'onnxruntime-node',
     'onnxruntime-web',
