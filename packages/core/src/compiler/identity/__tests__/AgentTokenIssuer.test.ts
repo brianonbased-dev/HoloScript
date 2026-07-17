@@ -207,10 +207,35 @@ describe('AgentTokenIssuer', () => {
       expect(result.payload?.intent.workflow_step).toBe(WorkflowStep.PARSE_TOKENS);
     });
 
-    it('should reject token with invalid signature', () => {
+    it('should reject legacy HS256 jsonwebtoken envelopes fail-closed (strangler contract)', () => {
+      // Header alg HS256 → the retired jsonwebtoken path. Rejected with an
+      // explicit reason, never verified (dependency-sovereignty-ladder).
       const fakeToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.invalid';
       const result = issuer.verifyToken(fakeToken);
 
+      expect(result.valid).toBe(false);
+      expect(result.errorCode).toBe('LEGACY_JWT_REJECTED');
+      expect(result.error).toContain('no longer accepted');
+    });
+
+    it('should reject a tampered capability token with INVALID_SIGNATURE', async () => {
+      const keyPair = await generateAgentKeyPair(AgentRole.SYNTAX_ANALYZER);
+      const token = await issuer.issueToken({
+        agentConfig: { role: AgentRole.SYNTAX_ANALYZER, name: 'syntax-v1', version: '1.0.0' },
+        workflowStep: WorkflowStep.PARSE_TOKENS,
+        workflowId: 'tamper-test',
+        initiatedBy: AgentRole.ORCHESTRATOR,
+        keyPair,
+      });
+
+      const [headerB64, payloadB64, signatureB64] = token.split('.');
+      const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8')) as {
+        aud: string;
+      };
+      payload.aud = 'attacker-audience';
+      const tamperedPayloadB64 = Buffer.from(JSON.stringify(payload)).toString('base64url');
+
+      const result = issuer.verifyToken(`${headerB64}.${tamperedPayloadB64}.${signatureB64}`);
       expect(result.valid).toBe(false);
       expect(result.errorCode).toBe('INVALID_SIGNATURE');
     });

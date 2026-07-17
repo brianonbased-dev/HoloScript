@@ -98,6 +98,7 @@ import {
   type SigningContext,
 } from './holomesh/identity/signing-middleware';
 import { gateToolCall } from './tool-call-gate';
+import { founderGateX402ToolCallCheck } from './tool-call-checks';
 import { initDurableAttestationRegistry } from './holomesh/identity/attestation-persistence';
 import {
   initStores,
@@ -934,11 +935,14 @@ function createMcpServer(sessionAuthContext?: TokenIntrospection): Server {
   // WRAP-WITH-RECEIPTS fold point (dependency-sovereignty-ladder, 2026-07-16):
   // every HTTP/SSE tool call routes through gateToolCall — one NDJSON receipt
   // per call (sha256 of canonical-JSON args, NEVER raw args) plus the typed
-  // seam where FounderGate / x402 / envelope-validation checks plug in.
-  // Behavior-neutral: the default check is pass-through; the existing triple
-  // gate + audit log keep running DOWNSTREAM inside securedToolExecution,
-  // which never throws (failures come back as isError, which the classifier
-  // maps onto the receipt's error status).
+  // seam where FounderGate / x402 / envelope-validation checks plug in. The
+  // seam now runs the REAL check (tool-call-checks.ts): exact-four/prohibited
+  // authority routing on the tool NAME plus the same pure Gate-2 scope
+  // authorization the downstream triple gate re-runs. A denial throws
+  // ToolCallGateDeniedError pre-dispatch (receipt written first, deniedBy
+  // names the branch). The triple gate + audit log keep running DOWNSTREAM
+  // inside securedToolExecution, which never throws (failures come back as
+  // isError, which the classifier maps onto the receipt's error status).
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
 
@@ -958,6 +962,7 @@ function createMcpServer(sessionAuthContext?: TokenIntrospection): Server {
       },
       (env) => securedToolExecution(env.name, env.args, auth),
       {
+        check: founderGateX402ToolCallCheck,
         classifyResult: (r) =>
           r.isError ? { ok: false, errorClass: 'ToolExecutionError' } : { ok: true },
       }

@@ -28,8 +28,6 @@ import {
   resetRBAC,
 } from './AgentRBAC';
 
-import { AgentTokenIssuer } from './AgentTokenIssuer';
-
 import type { Capability, CapabilityToken, CapabilityVerificationResult } from './CapabilityToken';
 
 import {

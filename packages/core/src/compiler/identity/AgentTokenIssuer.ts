@@ -1,19 +1,45 @@
 /**
- * HoloScript Compiler Agent Token Issuer
+ * HoloScript Compiler Agent Token Issuer — RETIRED jsonwebtoken path.
  *
- * Issues and verifies short-lived JWT tokens for compiler agents based on
- * Agentic JWT specification.
+ * SOVEREIGN TOKEN PATH (dependency-sovereignty-ladder, ratified 2026-07-16;
+ * follow-up to the mcp-server agent-identity flip in 9666ba21c):
+ * this module no longer touches the `jsonwebtoken` package at all. The legacy
+ * HS256 shared-secret JWT path is structurally unusable:
  *
- * Features:
- * - Workflow-aware token issuance with delegation chains
- * - Proof-of-Possession (PoP) binding via JWK thumbprint
- * - Intent-based authorization (workflow step validation)
- * - Token verification and claims extraction
+ *   - `issueToken` signs UCAN-style capability tokens (Ed25519 / EdDSA) via
+ *     `CapabilityTokenIssuer`, carrying the full legacy `IntentTokenPayload`
+ *     view in the token facts (`fct.intent_payload`) so every existing
+ *     consumer (AgentRBAC, PopMiddleware, PackageScopeEnforcer,
+ *     SpatialMemoryZones, AgentCommitSigner) keeps its claims contract.
+ *   - `verifyToken` FAILS CLOSED on any legacy jsonwebtoken/HS256-envelope
+ *     token with an explicit reason (`LEGACY_JWT_REJECTED`) — never verified,
+ *     never thrown. Only EdDSA capability tokens issued by this path verify.
  *
- * @version 1.0.0
+ * Presentation cache: `CapabilityTokenIssuer.verify` consumes the token nonce
+ * (replay protection), which would make a second verification of the SAME raw
+ * token fail. The legacy contract verifies one token many times (AgentRBAC
+ * checks per resource access), so successful verifications are cached
+ * in-process keyed by the SHA-256 of the exact raw token bytes; byte-identical
+ * re-presentations are served from the cache (signature already proven for
+ * those exact bytes; expiry and workflow-state re-checked on every hit). A
+ * tampered token differs in bytes, misses the cache, and fails signature
+ * verification. This mirrors the shipped pattern in
+ * packages/mcp-server/src/agent-identity-tools.ts.
+ *
+ * Trust model (same as the mcp-server sovereign lane): tokens are
+ * self-certifying — the Ed25519 verification key travels in `fct.publicKey`
+ * and the signature must verify against it; issuer/audience claims are then
+ * checked against this issuer's identity. The legacy path's shared secret
+ * (which defaulted to a well-known dev string) is gone.
+ *
+ * @deprecated Prefer `CapabilityTokenIssuer` (UCAN capabilities) for new
+ * code. This class remains as the compatibility adapter for the legacy
+ * `IntentTokenPayload` consumers only; the jsonwebtoken path it used to wrap
+ * cannot be reached anymore.
+ *
+ * @version 2.0.0
  */
 
-import jwt from 'jsonwebtoken';
 import * as crypto from 'crypto';
 import {
   AgentRole,
@@ -21,7 +47,6 @@ import {
   AgentPermission,
   WorkflowStep,
   IntentTokenPayload,
-  AgentChecksum,
   AgentKeyPair,
   calculateAgentChecksum,
   getDefaultPermissions,
@@ -46,7 +71,11 @@ export interface TokenIssuerConfig {
   /** Issuer identifier (default: 'holoscript-orchestrator') */
   issuer?: string;
 
-  /** JWT signing secret */
+  /**
+   * @deprecated Ignored. The sovereign capability path signs with the
+   * request's Ed25519 key pair; there is no shared JWT secret anymore.
+   * Accepted so existing construction sites keep compiling.
+   */
   jwtSecret?: string;
 
   /** Token expiration time (default: '24h') */
@@ -89,13 +118,18 @@ export interface TokenVerificationResult {
   valid: boolean;
   payload?: IntentTokenPayload;
   error?: string;
-  errorCode?: 'EXPIRED' | 'INVALID_SIGNATURE' | 'INVALID_CLAIMS' | 'WORKFLOW_VIOLATION';
+  errorCode?:
+    | 'EXPIRED'
+    | 'INVALID_SIGNATURE'
+    | 'INVALID_CLAIMS'
+    | 'WORKFLOW_VIOLATION'
+    | 'LEGACY_JWT_REJECTED';
 }
 
 /**
  * Options for issuing a UCAN capability token through the AgentTokenIssuer.
  *
- * Bridges the JWT-based token request model to the UCAN capability model
+ * Bridges the legacy token request model to the UCAN capability model
  * by mapping agent roles to capabilities automatically.
  */
 export interface CapabilityTokenOptions {
@@ -119,13 +153,16 @@ export interface CapabilityTokenOptions {
 }
 
 /**
- * Result of issuing a hybrid token containing both JWT and UCAN capability token.
+ * Result of issuing a hybrid token pair for the same agent and intent context.
  *
- * Enables gradual migration from JWT-only to UCAN by providing both token formats
- * for the same agent and intent context.
+ * Historically `jwt` was an HS256 jsonwebtoken; on the sovereign path both
+ * members are EdDSA-signed. The field name is kept for source compatibility.
  */
 export interface HybridTokenResult {
-  /** Traditional JWT token (existing format) */
+  /**
+   * Legacy-view token (verifiable via `verifyToken`, carries the
+   * `IntentTokenPayload` claims). EdDSA capability format on the wire.
+   */
   jwt: string;
 
   /** UCAN capability token */
@@ -165,18 +202,75 @@ export interface DelegationRequest {
 }
 
 const DEFAULT_ISSUER = 'holoscript-orchestrator';
-const DEFAULT_JWT_SECRET = process.env.AGENT_JWT_SECRET || 'dev-secret-change-in-production';
 const DEFAULT_TOKEN_EXPIRATION = '24h';
+const LEGACY_AUDIENCE = 'holoscript-compiler';
+
+// ---------------------------------------------------------------------------
+// Fail-closed decoding helpers (no external deps)
+// ---------------------------------------------------------------------------
+
+function sha256Hex(value: string): string {
+  return crypto.createHash('sha256').update(value, 'utf8').digest('hex');
+}
+
+function decodeJsonSegment(segment: string): Record<string, unknown> | undefined {
+  try {
+    const parsed: unknown = JSON.parse(Buffer.from(segment, 'base64url').toString('utf8'));
+    if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>;
+    }
+    return undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return undefined;
+}
+
+function asString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+/** Structural check for the embedded legacy claims view (fail closed). */
+function isIntentTokenPayload(value: unknown): value is IntentTokenPayload {
+  const record = asRecord(value);
+  if (!record) return false;
+  const intent = asRecord(record.intent);
+  return (
+    typeof record.iss === 'string' &&
+    typeof record.sub === 'string' &&
+    typeof record.aud === 'string' &&
+    typeof record.exp === 'number' &&
+    typeof record.agent_role === 'string' &&
+    asRecord(record.agent_checksum) !== undefined &&
+    Array.isArray(record.permissions) &&
+    intent !== undefined &&
+    typeof intent.workflow_id === 'string' &&
+    typeof intent.workflow_step === 'string'
+  );
+}
 
 /**
- * Agent Token Issuer
+ * Presentation cache — successful verifications keyed by SHA-256 of the exact
+ * raw token bytes. Module-level (shared across issuer instances, like the
+ * legacy shared-secret verification was process-wide). Expiry and workflow
+ * state are re-checked on every hit; entries never bypass claim checks.
+ */
+const intentPresentationCache = new Map<string, IntentTokenPayload>();
+
+/**
+ * Agent Token Issuer — compatibility adapter over the sovereign capability
+ * path. See the module docblock for the retirement contract.
  *
- * Central authority for issuing and verifying agent JWT tokens.
- * Implements Agentic JWT specification for workflow-aware authorization.
+ * @deprecated Prefer `CapabilityTokenIssuer` for new code.
  */
 export class AgentTokenIssuer {
   private issuer: string;
-  private jwtSecret: string;
   private tokenExpiration: string | number;
   private strictWorkflowValidation: boolean;
 
@@ -185,26 +279,20 @@ export class AgentTokenIssuer {
 
   constructor(config: TokenIssuerConfig = {}) {
     this.issuer = config.issuer || DEFAULT_ISSUER;
-    this.jwtSecret = config.jwtSecret || DEFAULT_JWT_SECRET;
     this.tokenExpiration = config.tokenExpiration || DEFAULT_TOKEN_EXPIRATION;
     this.strictWorkflowValidation = config.strictWorkflowValidation ?? true;
-
-    if (this.jwtSecret === DEFAULT_JWT_SECRET && process.env.NODE_ENV === 'production') {
-      console.error(
-        '[TOKEN_ISSUER] Using default JWT secret in production! Set AGENT_JWT_SECRET environment variable.'
-      );
-    }
+    // config.jwtSecret is deliberately ignored: the jsonwebtoken HS256 path
+    // is retired and cannot be re-enabled through configuration.
   }
 
   /**
-   * Issue intent token for agent
+   * Issue an intent token for an agent.
    *
-   * Creates a signed JWT with:
-   * - Standard claims (iss, sub, aud, exp, iat, jti)
-   * - Agent identity (role, checksum)
-   * - Permissions (RBAC)
-   * - Intent metadata (workflow context)
-   * - PoP binding (JWK thumbprint)
+   * SOVEREIGN PATH: the token on the wire is an EdDSA UCAN capability token
+   * signed with the request's Ed25519 key pair via `CapabilityTokenIssuer`.
+   * The full legacy `IntentTokenPayload` view (standard claims, agent
+   * identity/checksum, permissions, intent metadata, PoP binding) travels in
+   * the token facts and is reconstructed verbatim by `verifyToken`.
    */
   async issueToken(request: TokenRequest): Promise<string> {
     const {
@@ -236,17 +324,20 @@ export class AgentTokenIssuer {
     // Build delegation chain
     const updatedDelegationChain = [...delegationChain, agentConfig.role];
 
-    // Create intent token payload
     const now = Math.floor(Date.now() / 1000);
+    const lifetimeSec =
+      typeof this.tokenExpiration === 'string'
+        ? this.parseExpiration(this.tokenExpiration)
+        : this.tokenExpiration;
+
+    // Legacy claims view — embedded in the signed token facts and returned
+    // verbatim by verifyToken so existing consumers keep their contract.
     const payload: IntentTokenPayload = {
-      // Standard JWT claims
+      // Standard claims
       iss: this.issuer,
       sub: `agent:${agentConfig.role}:${agentConfig.name}`,
-      aud: 'holoscript-compiler',
-      exp:
-        typeof this.tokenExpiration === 'string'
-          ? now + this.parseExpiration(this.tokenExpiration)
-          : now + this.tokenExpiration,
+      aud: LEGACY_AUDIENCE,
+      exp: now + lifetimeSec,
       iat: now,
       jti: crypto.randomUUID(),
 
@@ -275,10 +366,29 @@ export class AgentTokenIssuer {
       publicKey: keyPair.publicKey,
     };
 
-    // Sign token
-    const token = jwt.sign(payload, this.jwtSecret, {
-      algorithm: 'HS256',
-    });
+    // Role permissions → UCAN capabilities (same bridge as the identity framework).
+    const resource = agentConfig.scope
+      ? `${HOLOSCRIPT_RESOURCE_SCHEME}${agentConfig.scope}`
+      : HOLOSCRIPT_RESOURCE_ALL;
+    const capabilities: Capability[] = permissions.map((perm) => ({
+      with: resource,
+      can: PERMISSION_TO_ACTION[perm] || perm,
+    }));
+
+    // Sign as an EdDSA capability token (the ONLY signing path).
+    const capToken = await this.getCapabilityTokenIssuer().issueRoot(
+      {
+        issuer: payload.sub,
+        audience: LEGACY_AUDIENCE,
+        capabilities,
+        lifetimeSec,
+        facts: {
+          intent_payload: payload,
+          publicKey: keyPair.publicKey,
+        },
+      },
+      keyPair
+    );
 
     // Update workflow state
     this.workflowState.set(workflowId, workflowStep);
@@ -287,65 +397,32 @@ export class AgentTokenIssuer {
     const keystore = getKeystore();
     await keystore.storeCredential({
       role: agentConfig.role,
-      token,
+      token: capToken.raw,
       keyPair,
       createdAt: new Date(now * 1000),
-      expiresAt: new Date(payload.exp * 1000),
+      expiresAt: new Date(capToken.payload.exp * 1000),
     });
 
-    return token;
+    return capToken.raw;
   }
 
   /**
-   * Verify agent token
+   * Verify an agent token — FAIL CLOSED.
    *
    * Validates:
-   * - Signature authenticity
-   * - Token expiration
-   * - Claims structure
+   * - EdDSA capability-token structure (legacy HS256 jsonwebtoken envelopes
+   *   are rejected with `LEGACY_JWT_REJECTED`, never verified)
+   * - Ed25519 signature against the embedded verification key
+   * - Expiration
+   * - Issuer / audience claims
+   * - Required legacy claims structure
    * - Workflow step sequence (if strict mode)
+   *
+   * Never throws — every failure mode maps to a rejected result.
    */
   verifyToken(token: string): TokenVerificationResult {
     try {
-      // Verify signature and decode
-      const decoded = jwt.verify(token, this.jwtSecret, {
-        issuer: this.issuer,
-        audience: 'holoscript-compiler',
-      }) as IntentTokenPayload;
-
-      // Validate required claims
-      if (!decoded.agent_role || !decoded.agent_checksum || !decoded.intent) {
-        return {
-          valid: false,
-          error: 'Missing required claims',
-          errorCode: 'INVALID_CLAIMS',
-        };
-      }
-
-      // Validate workflow sequence if strict mode
-      if (this.strictWorkflowValidation) {
-        const currentStep = this.workflowState.get(decoded.intent.workflow_id);
-        if (currentStep && currentStep !== decoded.intent.workflow_step) {
-          return {
-            valid: false,
-            error: `Workflow step mismatch: expected ${currentStep}, got ${decoded.intent.workflow_step}`,
-            errorCode: 'WORKFLOW_VIOLATION',
-          };
-        }
-      }
-
-      return {
-        valid: true,
-        payload: decoded,
-      };
-    } catch (error: unknown) {
-      if (error instanceof Error && error.name === 'TokenExpiredError') {
-        return {
-          valid: false,
-          error: 'Token expired',
-          errorCode: 'EXPIRED',
-        };
-      } else if (error instanceof Error && error.name === 'JsonWebTokenError') {
+      if (typeof token !== 'string' || token.length === 0) {
         return {
           valid: false,
           error: 'Invalid signature or malformed token',
@@ -353,12 +430,139 @@ export class AgentTokenIssuer {
         };
       }
 
+      const tokenSha256 = sha256Hex(token);
+
+      // Byte-identical re-presentation of an already-proven token: serve from
+      // the presentation cache instead of re-consuming the replay nonce.
+      const cached = intentPresentationCache.get(tokenSha256);
+      if (cached) {
+        const now = Math.floor(Date.now() / 1000);
+        if (cached.exp <= now) {
+          intentPresentationCache.delete(tokenSha256);
+          return { valid: false, error: 'Token expired', errorCode: 'EXPIRED' };
+        }
+        return this.checkClaimsAndWorkflow(structuredClone(cached));
+      }
+
+      const parts = token.split('.');
+      if (parts.length !== 3 || parts.some((part) => part.length === 0)) {
+        return {
+          valid: false,
+          error: 'Invalid signature or malformed token',
+          errorCode: 'INVALID_SIGNATURE',
+        };
+      }
+
+      const header = decodeJsonSegment(parts[0]);
+      if (!header || typeof header.alg !== 'string') {
+        return {
+          valid: false,
+          error: 'Malformed token: header segment is not decodable JSON with an alg claim.',
+          errorCode: 'INVALID_SIGNATURE',
+        };
+      }
+
+      if (header.alg !== 'EdDSA') {
+        // The legacy jsonwebtoken path issued HS256-envelope tokens. Reject
+        // them all explicitly — the sovereign capability path is the only
+        // accepted one (strangler contract, dependency-sovereignty-ladder).
+        return {
+          valid: false,
+          error:
+            `Legacy ${header.alg} jsonwebtoken envelope is no longer accepted. ` +
+            'Reissue a sovereign capability token via issueToken.',
+          errorCode: 'LEGACY_JWT_REJECTED',
+        };
+      }
+
+      const rawPayload = decodeJsonSegment(parts[1]);
+      if (!rawPayload) {
+        return {
+          valid: false,
+          error: 'Malformed token: payload segment is not decodable JSON.',
+          errorCode: 'INVALID_SIGNATURE',
+        };
+      }
+
+      const facts = asRecord(rawPayload.fct);
+      const verificationKey = asString(facts?.publicKey);
+      if (!verificationKey) {
+        return {
+          valid: false,
+          error:
+            'Capability token does not embed its Ed25519 verification key (fct.publicKey). Fail closed.',
+          errorCode: 'INVALID_CLAIMS',
+        };
+      }
+
+      const verification = this.getCapabilityTokenIssuer().verify(token, verificationKey);
+      if (!verification.valid || !verification.payload) {
+        if (verification.errorCode === 'EXPIRED') {
+          return { valid: false, error: 'Token expired', errorCode: 'EXPIRED' };
+        }
+        return {
+          valid: false,
+          error: verification.error ?? 'Invalid signature or malformed token',
+          errorCode: 'INVALID_SIGNATURE',
+        };
+      }
+
+      const verifiedFacts = asRecord(verification.payload.fct);
+      const intentPayload = verifiedFacts?.intent_payload;
+      if (!isIntentTokenPayload(intentPayload)) {
+        return {
+          valid: false,
+          error: 'Missing required claims',
+          errorCode: 'INVALID_CLAIMS',
+        };
+      }
+
+      intentPresentationCache.set(tokenSha256, intentPayload);
+
+      return this.checkClaimsAndWorkflow(structuredClone(intentPayload));
+    } catch (error: unknown) {
+      // Fail closed — no verification error may escape as an unhandled throw.
       return {
         valid: false,
         error: error instanceof Error ? error.message : String(error),
         errorCode: 'INVALID_CLAIMS',
       };
     }
+  }
+
+  /**
+   * Issuer/audience claim checks + strict workflow sequencing — run on both
+   * the fresh-verification and presentation-cache paths.
+   */
+  private checkClaimsAndWorkflow(payload: IntentTokenPayload): TokenVerificationResult {
+    if (payload.iss !== this.issuer || payload.aud !== LEGACY_AUDIENCE) {
+      return {
+        valid: false,
+        error: `Token issuer/audience mismatch: expected ${this.issuer}/${LEGACY_AUDIENCE}`,
+        errorCode: 'INVALID_CLAIMS',
+      };
+    }
+
+    if (!payload.agent_role || !payload.agent_checksum || !payload.intent) {
+      return {
+        valid: false,
+        error: 'Missing required claims',
+        errorCode: 'INVALID_CLAIMS',
+      };
+    }
+
+    if (this.strictWorkflowValidation) {
+      const currentStep = this.workflowState.get(payload.intent.workflow_id);
+      if (currentStep && currentStep !== payload.intent.workflow_step) {
+        return {
+          valid: false,
+          error: `Workflow step mismatch: expected ${currentStep}, got ${payload.intent.workflow_step}`,
+          errorCode: 'WORKFLOW_VIOLATION',
+        };
+      }
+    }
+
+    return { valid: true, payload };
   }
 
   /**
@@ -419,8 +623,8 @@ export class AgentTokenIssuer {
    *
    * Maps the agent's role to capabilities using the PERMISSION_TO_ACTION bridge
    * constants defined in CapabilityToken.ts. This enables agents that currently
-   * use JWT tokens to obtain equivalent UCAN capability tokens for the gradual
-   * migration to capability-based authorization.
+   * use legacy tokens to obtain equivalent UCAN capability tokens for the
+   * gradual migration to capability-based authorization.
    *
    * @param options  Capability token issuance options
    * @returns        Signed UCAN CapabilityToken
@@ -457,14 +661,15 @@ export class AgentTokenIssuer {
   }
 
   /**
-   * Issue both a JWT token and a UCAN capability token for the same agent
-   * and intent context.
+   * Issue both a legacy-view token and a UCAN capability token for the same
+   * agent and intent context.
    *
-   * This method enables gradual migration from JWT-only authorization to
-   * UCAN capability-based authorization. Consuming services can validate
-   * either token during the transition period.
+   * This method enables gradual migration from `IntentTokenPayload`-view
+   * authorization to UCAN capability-based authorization. Consuming services
+   * can validate either token during the transition period. Both members are
+   * EdDSA-signed on the sovereign path.
    *
-   * @param request          Standard JWT token request parameters
+   * @param request          Standard token request parameters
    * @param capabilityOptions  Additional options for the capability token
    *                           (audience defaults to 'holoscript-compiler')
    * @returns                 HybridTokenResult with both tokens
@@ -478,11 +683,11 @@ export class AgentTokenIssuer {
       facts?: Record<string, unknown>;
     }
   ): Promise<HybridTokenResult> {
-    // Issue the traditional JWT token (unchanged behavior)
+    // Issue the legacy-view token (verifiable via verifyToken)
     const jwtToken = await this.issueToken(request);
 
     // Issue the UCAN capability token
-    const audience = capabilityOptions?.audience ?? 'holoscript-compiler';
+    const audience = capabilityOptions?.audience ?? LEGACY_AUDIENCE;
     const capabilityToken = await this.issueCapabilityToken({
       agentConfig: request.agentConfig,
       audience,
@@ -626,20 +831,20 @@ let globalIssuer: AgentTokenIssuer | null = null;
 
 /**
  * Get or create global token issuer
+ *
+ * @deprecated Prefer `getCapabilityTokenIssuer` for new code.
  */
 export function getTokenIssuer(config?: TokenIssuerConfig): AgentTokenIssuer {
   if (!globalIssuer) {
-    globalIssuer = new AgentTokenIssuer({
-      ...config,
-      jwtSecret: process.env.AGENT_JWT_SECRET,
-    });
+    globalIssuer = new AgentTokenIssuer(config);
   }
   return globalIssuer;
 }
 
 /**
- * Reset global issuer (for testing)
+ * Reset global issuer and the presentation cache (for testing)
  */
 export function resetTokenIssuer(): void {
   globalIssuer = null;
+  intentPresentationCache.clear();
 }

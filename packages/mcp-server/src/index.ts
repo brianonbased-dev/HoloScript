@@ -88,6 +88,7 @@ import { isHologramMcpResponse, wrapHologramMcpEnvelope } from '@holoscript/core
 import type { SigningContext } from './holomesh/identity/signing-middleware';
 import { authorizeToolCall, registerKnownTools } from './security/tool-scopes';
 import { gateToolCall, classifyMcpEnvelopeResult } from './tool-call-gate';
+import { founderGateX402ToolCallCheck } from './tool-call-checks';
 
 declare const __SERVICE_VERSION__: string;
 
@@ -373,17 +374,20 @@ function assertBatchInnerToolAuthorized(toolName: string, signingCtx?: SigningCo
 // WRAP-WITH-RECEIPTS fold point (dependency-sovereignty-ladder, 2026-07-16):
 // every stdio tool call routes through gateToolCall — one NDJSON receipt per
 // call (sha256 of canonical-JSON args, NEVER raw args) plus the typed seam
-// where FounderGate / x402 / envelope-validation checks plug in. Behavior-
-// neutral: the default check is pass-through and executeSingleTool never
-// throws (failures come back as isError results, which the classifier maps
-// onto the receipt's error status).
+// where FounderGate / x402 / envelope-validation checks plug in. The seam now
+// runs the REAL check (tool-call-checks.ts): exact-four/prohibited authority
+// routing on the tool NAME plus Gate-2 scope authorization (trusted local
+// stdio = admin:*, still fail-closed on unregistered names). A denial throws
+// ToolCallGateDeniedError pre-dispatch (receipt written first);
+// executeSingleTool itself never throws (failures come back as isError
+// results, which the classifier maps onto the receipt's error status).
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
   return await gateToolCall(
     { name, args: args || {} },
     { transport: 'stdio', callerId: null },
     (env) => executeSingleTool(env.name, env.args),
-    { classifyResult: classifyMcpEnvelopeResult }
+    { classifyResult: classifyMcpEnvelopeResult, check: founderGateX402ToolCallCheck }
   );
 });
 
