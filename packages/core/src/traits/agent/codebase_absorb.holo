@@ -1,5 +1,5 @@
 @trait {
-  name: "@absorb",
+  name: "@codebase_absorb",
   category: "agent",
   description: "Codebase absorption into a semantic graph for query, impact analysis, and symbol resolution. Wraps the HoloGraph absorb pipeline. Authored from AbsorbTrait.ts.",
   props: {

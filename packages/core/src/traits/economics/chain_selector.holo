@@ -1,5 +1,5 @@
 @trait {
-  name: "@chain",
+  name: "@chain_selector",
   category: "economics",
   description: "Blockchain chain selector and network switcher. Manages multi-chain connectivity, gas estimation, and network switching for Base, Ethereum, and HoloScript mesh. Authored from ChainTrait.ts.",
   props: {

@@ -1,5 +1,5 @@
 @trait {
-  name: "@choreography",
+  name: "@dance_choreography",
   category: "anim",
   description: "Multi-character synchronized choreography director. Sequences animations across a group of entities with beat-sync, spatial formation, and emotional arc. Authored from ChoreographyTrait.ts.",
   props: {

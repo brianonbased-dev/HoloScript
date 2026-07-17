@@ -1,5 +1,5 @@
 @trait {
-  name: "@beatmap",
+  name: "@rhythm_beatmap",
   category: "media",
   description: "Rhythm game beatmap loader and event emitter. Parses .osu, .chart, or HoloScript beatmap formats and fires note events synchronized to the audio track. Authored from BeatmapTrait.ts.",
   props: {

@@ -1,5 +1,5 @@
 @trait {
-  name: "@avatar_intent",
+  name: "@avatar_intent_broadcast",
   category: "agent",
   description: "Avatar intention broadcaster. Emits the current agent intent (moving, talking, building, idle, in-combat) as spatial signals readable by co-present avatars and world systems. Authored from AvatarIntentTrait.ts.",
   props: {
