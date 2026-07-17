@@ -39,6 +39,20 @@ const MUTABLE_REFERENCE_EXIT_FIVE: &str = r#"
         return *writer
     }
 "#;
+const SCOPED_REFERENCE_EXIT_FIVE: &str = r#"
+    function main(): i32 {
+        slot value: i32 = 2
+        scope {
+            let first: &i32 = &value
+            let second: &i32 = &value
+        }
+        scope {
+            let first: &mut i32 = &mut value
+            *first = 5
+        }
+        return load(value)
+    }
+"#;
 
 fn scratch_executable(name: &str) -> std::path::PathBuf {
     let nonce = SystemTime::now()
@@ -160,6 +174,24 @@ fn compiles_typed_non_escaping_references() {
 }
 
 #[test]
+fn compiles_scoped_reference_lifetimes_and_releases_borrows() {
+    let executable = scratch_executable("native-scoped-reference");
+    let artifact = compile_executable(
+        SCOPED_REFERENCE_EXIT_FIVE,
+        &executable,
+        &NativeCompileOptions::host(),
+    )
+    .expect("scoped references should release their borrows at lexical scope exit");
+
+    assert_eq!(artifact.machine_contract, "hs-machine-v4");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("scoped-reference executable should run");
+    assert_eq!(status.code(), Some(5));
+    fs::remove_file(&artifact.executable).expect("remove scoped-reference executable");
+}
+
+#[test]
 fn emits_deterministic_objects_for_the_same_source() {
     let options = NativeCompileOptions::host();
 
@@ -169,12 +201,135 @@ fn emits_deterministic_objects_for_the_same_source() {
         STACK_SLOT_EXIT_FIVE,
         REFERENCE_EXIT_FIVE,
         MUTABLE_REFERENCE_EXIT_FIVE,
+        SCOPED_REFERENCE_EXIT_FIVE,
     ] {
         let first = compile_object(source, &options).expect("first object should compile");
         let second = compile_object(source, &options).expect("second object should compile");
 
         assert_eq!(first, second);
     }
+}
+
+#[test]
+fn scoped_reference_contract_removes_bindings_and_preserves_outer_borrows() {
+    let options = NativeCompileOptions::host();
+
+    let dangling_reference = compile_object(
+        r#"function main(): i32 {
+           slot value: i32 = 5
+           scope { let view: &i32 = &value }
+           return *view
+         }"#,
+        &options,
+    )
+    .expect_err("a scoped reference binding must disappear at scope exit");
+    assert!(dangling_reference
+        .to_string()
+        .contains("`view` is not a typed local reference"));
+
+    let dangling_local = compile_object(
+        r#"function main(): i32 {
+           scope { let inner: i32 = 5 }
+           return inner
+         }"#,
+        &options,
+    )
+    .expect_err("a scoped scalar binding must disappear at scope exit");
+    assert!(dangling_local
+        .to_string()
+        .contains("references unknown local `inner`"));
+
+    let dangling_slot = compile_object(
+        r#"function main(): i32 {
+           scope { slot inner: i32 = 5 }
+           return load(inner)
+         }"#,
+        &options,
+    )
+    .expect_err("a scoped stack-slot binding must disappear at scope exit");
+    assert!(dangling_slot
+        .to_string()
+        .contains("`load` references unknown stack slot `inner`"));
+
+    let outer_borrow = compile_object(
+        r#"function main(): i32 {
+           slot value: i32 = 5
+           let view: &i32 = &value
+           scope { let writer: &mut i32 = &mut value }
+           return *view
+         }"#,
+        &options,
+    )
+    .expect_err("an inner scope must respect an active outer shared borrow");
+    assert!(outer_borrow
+        .to_string()
+        .contains("cannot mutably borrow stack slot `value`"));
+
+    let branch_lifetime = compile_object(
+        r#"function main(): i32 {
+           slot value: i32 = 5
+           if (true) { scope { let view: &i32 = &value } }
+           return load(value)
+         }"#,
+        &options,
+    )
+    .expect_err("branch-sensitive lifetime inference must fail closed");
+    assert!(branch_lifetime
+        .to_string()
+        .contains("does not yet infer reference lifetimes across control-flow branches"));
+
+    let scoped_return = compile_object(
+        r#"function main(): i32 {
+           scope { return 5 }
+           return 0
+         }"#,
+        &options,
+    )
+    .expect_err("scope-internal returns require versioned control-flow lowering");
+    assert!(scoped_return
+        .to_string()
+        .contains("returns inside lexical `scope` are not yet supported"));
+
+    let active_shadow = compile_object(
+        r#"function main(): i32 {
+           let value: i32 = 2
+           scope { let value: i32 = 5 }
+           return value
+         }"#,
+        &options,
+    )
+    .expect_err("an active binding must not be shadowed inside a lexical scope");
+    assert!(active_shadow
+        .to_string()
+        .contains("redeclares binding `value`"));
+
+    let scoped_reference_return = compile_object(
+        r#"function leak(): &i32 {
+           scope {}
+           slot value: i32 = 5
+           let view: &i32 = &value
+           return view
+         }
+         function main(): i32 { return 5 }"#,
+        &options,
+    )
+    .expect_err("v4 references must not escape through function returns");
+    assert!(scoped_reference_return
+        .to_string()
+        .contains("hs-machine-v4 references cannot appear in function returns"));
+
+    let scoped_reference_parameter = compile_object(
+        r#"function read(value: &i32): i32 {
+           scope {}
+           return *value
+         }
+         function main(): i32 { return 5 }"#,
+        &options,
+    )
+    .expect_err("v4 references must not cross function ABIs");
+    assert!(scoped_reference_parameter
+        .to_string()
+        .contains("hs-machine-v4 references cannot appear in function parameters"));
 }
 
 #[test]

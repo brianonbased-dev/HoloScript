@@ -465,6 +465,7 @@ fn node_kind(node: &AstNode) -> &'static str {
         AstNode::StructDeclaration(_) => "StructDeclaration",
         AstNode::VariableDeclaration(_) => "VariableDeclaration",
         AstNode::StackSlotDeclaration(_) => "StackSlotDeclaration",
+        AstNode::LexicalScope(_) => "LexicalScope",
         AstNode::Assignment(_) => "Assignment",
         AstNode::EventHandler(_) => "EventHandler",
         AstNode::MovementStatement(_) => "MovementStatement",

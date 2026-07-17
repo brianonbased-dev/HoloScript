@@ -5,10 +5,11 @@
 //! typed local bindings. `hs-machine-v2` adds typed, non-escaping addressable stack
 //! slots with explicit loads and stores. `hs-machine-v3` adds typed references whose
 //! provenance and borrow state remain compiler-owned rather than becoming integer
-//! addresses. Everything outside the selected contract fails closed with a native
-//! compile diagnostic.
+//! addresses. `hs-machine-v4` adds lexical lifetime boundaries that release scoped
+//! borrows and remove scoped bindings. Everything outside the selected contract fails
+//! closed with a native compile diagnostic.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::env;
 use std::fmt;
 use std::fs;
@@ -30,6 +31,7 @@ pub const MACHINE_CONTRACT: &str = "hs-machine-v0";
 pub const TYPED_MACHINE_CONTRACT: &str = "hs-machine-v1";
 pub const MEMORY_MACHINE_CONTRACT: &str = "hs-machine-v2";
 pub const REFERENCE_MACHINE_CONTRACT: &str = "hs-machine-v3";
+pub const REFERENCE_SCOPE_MACHINE_CONTRACT: &str = "hs-machine-v4";
 
 struct CompiledObject {
     bytes: Vec<u8>,
@@ -108,7 +110,12 @@ fn compile_unit(
         NativeCompileError::new(format!("HoloScript parse failed: {rendered}"))
     })?;
 
-    if has_reference_machine_metadata(&ast) {
+    if has_scope_machine_metadata(&ast) {
+        Ok(CompiledObject {
+            bytes: lower_typed_ast_to_object(&ast, REFERENCE_SCOPE_MACHINE_CONTRACT, true)?,
+            machine_contract: REFERENCE_SCOPE_MACHINE_CONTRACT,
+        })
+    } else if has_reference_machine_metadata(&ast) {
         Ok(CompiledObject {
             bytes: lower_typed_ast_to_object(&ast, REFERENCE_MACHINE_CONTRACT, true)?,
             machine_contract: REFERENCE_MACHINE_CONTRACT,
@@ -310,6 +317,32 @@ fn has_reference_machine_metadata(ast: &Ast) -> bool {
     })
 }
 
+fn has_scope_machine_metadata(ast: &Ast) -> bool {
+    ast.body.iter().any(|node| {
+        matches!(
+            node,
+            AstNode::Function(function) if function.body.iter().any(node_uses_lexical_scope)
+        )
+    })
+}
+
+fn node_uses_lexical_scope(node: &AstNode) -> bool {
+    match node {
+        AstNode::LexicalScope(_) => true,
+        AstNode::If(if_node) => {
+            if_node.consequent.iter().any(node_uses_lexical_scope)
+                || if_node
+                    .alternate
+                    .as_ref()
+                    .is_some_and(|body| body.iter().any(node_uses_lexical_scope))
+        }
+        AstNode::For(for_node) => for_node.body.iter().any(node_uses_lexical_scope),
+        AstNode::ForOf(for_node) => for_node.body.iter().any(node_uses_lexical_scope),
+        AstNode::While(while_node) => while_node.body.iter().any(node_uses_lexical_scope),
+        _ => false,
+    }
+}
+
 fn node_uses_reference_syntax(node: &AstNode) -> bool {
     match node {
         AstNode::VariableDeclaration(local) => {
@@ -320,6 +353,7 @@ fn node_uses_reference_syntax(node: &AstNode) -> bool {
                 || node_uses_reference_syntax(&local.value)
         }
         AstNode::StackSlotDeclaration(slot) => node_uses_reference_syntax(&slot.value),
+        AstNode::LexicalScope(scope) => scope.body.iter().any(node_uses_reference_syntax),
         AstNode::UnaryExpression(unary) => {
             matches!(unary.operator.as_str(), "&" | "&mut" | "*")
                 || node_uses_reference_syntax(&unary.argument)
@@ -612,7 +646,7 @@ fn collect_typed_function_specs<'a>(
         };
         if matches!(
             machine_contract,
-            MEMORY_MACHINE_CONTRACT | REFERENCE_MACHINE_CONTRACT
+            MEMORY_MACHINE_CONTRACT | REFERENCE_MACHINE_CONTRACT | REFERENCE_SCOPE_MACHINE_CONTRACT
         ) && matches!(function.name.as_str(), "load" | "store")
         {
             return Err(NativeCompileError::new(format!(
@@ -645,7 +679,11 @@ fn collect_typed_function_specs<'a>(
                         function.name
                     ))
                 })?;
-            if machine_contract == REFERENCE_MACHINE_CONTRACT && type_name.starts_with('&') {
+            if matches!(
+                machine_contract,
+                REFERENCE_MACHINE_CONTRACT | REFERENCE_SCOPE_MACHINE_CONTRACT
+            ) && type_name.starts_with('&')
+            {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} references cannot appear in function parameters; `{param_name}` in `{}` would escape its declaring function",
                     function.name
@@ -663,7 +701,11 @@ fn collect_typed_function_specs<'a>(
                 function.name
             ))
         })?;
-        if machine_contract == REFERENCE_MACHINE_CONTRACT && return_name.starts_with('&') {
+        if matches!(
+            machine_contract,
+            REFERENCE_MACHINE_CONTRACT | REFERENCE_SCOPE_MACHINE_CONTRACT
+        ) && return_name.starts_with('&')
+        {
             return Err(NativeCompileError::new(format!(
                 "{machine_contract} references cannot appear in function returns; `{}` would expose an address-bearing value",
                 function.name
@@ -719,11 +761,53 @@ fn lower_typed_body(
     machine_contract: &str,
     memory_enabled: bool,
 ) -> Result<(), NativeCompileError> {
-    let mut returned = false;
     let mut stack_slots = HashMap::new();
     let mut references = HashMap::new();
     let mut borrow_states = HashMap::new();
-    for (index, statement) in spec.node.body.iter().enumerate() {
+    let mut function_borrow_leases = Vec::new();
+    let returned = lower_typed_statements(
+        builder,
+        module,
+        functions,
+        locals,
+        &mut stack_slots,
+        &mut references,
+        &mut borrow_states,
+        &mut function_borrow_leases,
+        &spec.node.body,
+        spec,
+        machine_contract,
+        memory_enabled,
+        true,
+    )?;
+
+    if !returned {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} function `{}` has no return statement",
+            spec.node.name
+        )));
+    }
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn lower_typed_statements(
+    builder: &mut FunctionBuilder<'_>,
+    module: &mut ObjectModule,
+    functions: &HashMap<String, TypedFunctionAbi>,
+    locals: &mut HashMap<String, TypedValue>,
+    stack_slots: &mut HashMap<String, TypedStackSlot>,
+    references: &mut HashMap<String, TypedReference>,
+    borrow_states: &mut HashMap<String, BorrowState>,
+    borrow_leases: &mut Vec<TypedReference>,
+    statements: &[AstNode],
+    spec: &TypedFunctionSpec<'_>,
+    machine_contract: &str,
+    memory_enabled: bool,
+    allow_return: bool,
+) -> Result<bool, NativeCompileError> {
+    let mut returned = false;
+    for (index, statement) in statements.iter().enumerate() {
         if returned {
             return Err(NativeCompileError::new(format!(
                 "{machine_contract} function `{}` contains unreachable statements after return",
@@ -749,7 +833,10 @@ fn lower_typed_body(
                 if let Some(reference_type) =
                     ReferenceType::parse(type_name, &type_context, machine_contract)?
                 {
-                    if machine_contract != REFERENCE_MACHINE_CONTRACT {
+                    if !matches!(
+                        machine_contract,
+                        REFERENCE_MACHINE_CONTRACT | REFERENCE_SCOPE_MACHINE_CONTRACT
+                    ) {
                         return Err(NativeCompileError::new(format!(
                             "{machine_contract} does not enable typed references"
                         )));
@@ -767,10 +854,11 @@ fn lower_typed_body(
                         &local.name,
                         reference_type,
                         &local.value,
-                        &stack_slots,
-                        &mut borrow_states,
+                        stack_slots,
+                        borrow_states,
                         machine_contract,
                     )?;
+                    borrow_leases.push(reference.clone());
                     references.insert(local.name.clone(), reference);
                     continue;
                 }
@@ -789,9 +877,9 @@ fn lower_typed_body(
                     module,
                     functions,
                     locals,
-                    &stack_slots,
-                    &references,
-                    &borrow_states,
+                    stack_slots,
+                    references,
+                    borrow_states,
                     &local.value,
                     machine_type,
                     &format!("initializer for `{}`", local.name),
@@ -828,9 +916,9 @@ fn lower_typed_body(
                     module,
                     functions,
                     locals,
-                    &stack_slots,
-                    &references,
-                    &borrow_states,
+                    stack_slots,
+                    references,
+                    borrow_states,
                     &slot.value,
                     machine_type,
                     &format!("initializer for stack slot `{}`", slot.name),
@@ -865,28 +953,61 @@ fn lower_typed_body(
                     module,
                     functions,
                     locals,
-                    &stack_slots,
-                    &references,
-                    &borrow_states,
+                    stack_slots,
+                    references,
+                    borrow_states,
                     call,
                     machine_contract,
                 )?;
             }
-            AstNode::Assignment(assignment) if machine_contract == REFERENCE_MACHINE_CONTRACT => {
+            AstNode::Assignment(assignment)
+                if matches!(
+                    machine_contract,
+                    REFERENCE_MACHINE_CONTRACT | REFERENCE_SCOPE_MACHINE_CONTRACT
+                ) =>
+            {
                 lower_reference_assignment(
                     builder,
                     module,
                     functions,
                     locals,
-                    &stack_slots,
-                    &references,
-                    &borrow_states,
+                    stack_slots,
+                    references,
+                    borrow_states,
                     assignment,
                     machine_contract,
                 )?;
             }
+            AstNode::LexicalScope(scope)
+                if machine_contract == REFERENCE_SCOPE_MACHINE_CONTRACT =>
+            {
+                lower_lexical_scope(
+                    builder,
+                    module,
+                    functions,
+                    locals,
+                    stack_slots,
+                    references,
+                    borrow_states,
+                    scope,
+                    spec,
+                    machine_contract,
+                    memory_enabled,
+                )?;
+            }
+            AstNode::If(_) if machine_contract == REFERENCE_SCOPE_MACHINE_CONTRACT => {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} function `{}` does not yet infer reference lifetimes across control-flow branches",
+                    spec.node.name
+                )));
+            }
             AstNode::Return(return_node) => {
-                if index + 1 != spec.node.body.len() {
+                if !allow_return {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} returns inside lexical `scope` are not yet supported; return after the scope exits"
+                    )));
+                }
+                if index + 1 != statements.len() {
                     return Err(NativeCompileError::new(format!(
                         "{machine_contract} return must be the final statement in function `{}`",
                         spec.node.name
@@ -904,9 +1025,9 @@ fn lower_typed_body(
                     module,
                     functions,
                     locals,
-                    &stack_slots,
-                    &references,
-                    &borrow_states,
+                    stack_slots,
+                    references,
+                    borrow_states,
                     argument,
                     spec.result,
                     &format!("return from `{}`", spec.node.name),
@@ -930,11 +1051,88 @@ fn lower_typed_body(
         }
     }
 
-    if !returned {
-        return Err(NativeCompileError::new(format!(
-            "{machine_contract} function `{}` has no return statement",
-            spec.node.name
-        )));
+    Ok(returned)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn lower_lexical_scope(
+    builder: &mut FunctionBuilder<'_>,
+    module: &mut ObjectModule,
+    functions: &HashMap<String, TypedFunctionAbi>,
+    locals: &mut HashMap<String, TypedValue>,
+    stack_slots: &mut HashMap<String, TypedStackSlot>,
+    references: &mut HashMap<String, TypedReference>,
+    borrow_states: &mut HashMap<String, BorrowState>,
+    scope: &holoscript_wasm::ast::LexicalScopeNode,
+    spec: &TypedFunctionSpec<'_>,
+    machine_contract: &str,
+    memory_enabled: bool,
+) -> Result<(), NativeCompileError> {
+    let outer_locals = locals.keys().cloned().collect::<HashSet<_>>();
+    let outer_stack_slots = stack_slots.keys().cloned().collect::<HashSet<_>>();
+    let outer_references = references.keys().cloned().collect::<HashSet<_>>();
+    let mut scoped_borrow_leases = Vec::new();
+
+    lower_typed_statements(
+        builder,
+        module,
+        functions,
+        locals,
+        stack_slots,
+        references,
+        borrow_states,
+        &mut scoped_borrow_leases,
+        &scope.body,
+        spec,
+        machine_contract,
+        memory_enabled,
+        false,
+    )?;
+
+    for reference in scoped_borrow_leases.iter().rev() {
+        release_borrow(reference, borrow_states, machine_contract)?;
+    }
+    locals.retain(|name, _| outer_locals.contains(name));
+    references.retain(|name, _| outer_references.contains(name));
+    stack_slots.retain(|name, _| outer_stack_slots.contains(name));
+    borrow_states.retain(|slot_name, state| {
+        outer_stack_slots.contains(slot_name) && (state.shared > 0 || state.exclusive)
+    });
+    Ok(())
+}
+
+fn release_borrow(
+    reference: &TypedReference,
+    borrow_states: &mut HashMap<String, BorrowState>,
+    machine_contract: &str,
+) -> Result<(), NativeCompileError> {
+    let remove_state = {
+        let state = borrow_states.get_mut(&reference.slot_name).ok_or_else(|| {
+            NativeCompileError::new(format!(
+                "{machine_contract} lost borrow state for scoped reference to `{}`",
+                reference.slot_name
+            ))
+        })?;
+        if reference.mutable {
+            if !state.exclusive {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} lost exclusive borrow state for scoped reference to `{}`",
+                    reference.slot_name
+                )));
+            }
+            state.exclusive = false;
+        } else {
+            state.shared = state.shared.checked_sub(1).ok_or_else(|| {
+                NativeCompileError::new(format!(
+                    "{machine_contract} lost shared borrow state for scoped reference to `{}`",
+                    reference.slot_name
+                ))
+            })?;
+        }
+        state.shared == 0 && !state.exclusive
+    };
+    if remove_state {
+        borrow_states.remove(&reference.slot_name);
     }
     Ok(())
 }
@@ -1563,6 +1761,7 @@ fn ast_node_name(node: &AstNode) -> &'static str {
         AstNode::MemberExpression(_) => "MemberExpression",
         AstNode::Array(_) => "Array",
         AstNode::ObjectLiteral(_) => "ObjectLiteral",
+        AstNode::LexicalScope(_) => "LexicalScope",
         _ => "unsupported",
     }
 }

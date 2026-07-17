@@ -270,9 +270,8 @@ impl Parser {
                     properties.push(self.parse_property()?);
                 }
             } else {
-                return Err(
-                    self.error("Expected state, action, exports, trait, or property in module body")
-                );
+                return Err(self
+                    .error("Expected state, action, exports, trait, or property in module body"));
             }
         }
 
@@ -2128,6 +2127,9 @@ impl Parser {
     }
 
     fn parse_statement(&mut self) -> Result<AstNode, ParseError> {
+        if self.check_value("scope") && self.peek_next_is(TokenType::LBrace) {
+            return self.parse_lexical_scope();
+        }
         if self.check_value("slot") {
             return self.parse_stack_slot_declaration();
         }
@@ -2142,6 +2144,18 @@ impl Parser {
             TokenType::OnEvent => self.parse_game_event_block(),
             _ => self.parse_expression_statement(),
         }
+    }
+
+    fn parse_lexical_scope(&mut self) -> Result<AstNode, ParseError> {
+        self.advance(); // consume contextual `scope` keyword
+        self.expect(TokenType::LBrace)?;
+        let mut body = Vec::new();
+        while !self.check(TokenType::RBrace) && !self.is_at_end() {
+            body.push(self.parse_statement()?);
+        }
+        self.expect(TokenType::RBrace)?;
+
+        Ok(AstNode::LexicalScope(LexicalScopeNode { body, loc: None }))
     }
 
     fn parse_if_statement(&mut self) -> Result<AstNode, ParseError> {
@@ -3342,6 +3356,38 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_lexical_scope_as_canonical_statement_node() {
+        let source = r#"function main(): i32 {
+            slot value: i32 = 2
+            scope {
+                let view: &i32 = &value
+            }
+            return load(value)
+        }"#;
+        let mut parser = Parser::new(source);
+        let program = parser.parse().expect("lexical scope should parse");
+        let json = serde_json::to_value(program).expect("AST should serialize");
+
+        assert_eq!(json["body"][0]["body"][1]["type"], "LexicalScope");
+        assert_eq!(
+            json["body"][0]["body"][1]["body"][0]["type"],
+            "VariableDeclaration"
+        );
+    }
+
+    #[test]
+    fn test_scope_remains_an_identifier_outside_a_scope_block() {
+        let mut parser = Parser::new("function main() { scope() return 5 }");
+        let program = parser
+            .parse()
+            .expect("contextual scope keyword must preserve calls named scope");
+        let AstNode::Function(function) = &program.body[0] else {
+            panic!("Expected Function node");
+        };
+        assert!(matches!(function.body[0], AstNode::CallExpression(_)));
+    }
+
+    #[test]
     fn test_reference_tokens_preserve_multiplication_and_logical_and() {
         for (source, expected_operator) in [
             ("function main() { return 2 * 3 }", "*"),
@@ -3364,8 +3410,7 @@ mod tests {
 
     #[test]
     fn test_untyped_function_preserves_legacy_serialized_shape() {
-        let mut parser =
-            Parser::new("function identity(value) { let copy = value return copy }");
+        let mut parser = Parser::new("function identity(value) { let copy = value return copy }");
         let program = parser.parse().expect("legacy function should parse");
         let json = serde_json::to_value(program).expect("AST should serialize");
         let function = &json["body"][0];

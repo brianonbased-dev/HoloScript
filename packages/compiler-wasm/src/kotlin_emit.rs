@@ -236,6 +236,11 @@ fn check_assignment_mutability_in_body(
                     scopes.pop();
                 }
             }
+            AstNode::LexicalScope(scope) => {
+                scopes.push(HashMap::new());
+                check_assignment_mutability_in_body(&scope.body, scopes)?;
+                scopes.pop();
+            }
             _ => {}
         }
     }
@@ -2279,6 +2284,7 @@ fn node_kind(node: &AstNode) -> &'static str {
         AstNode::StructDeclaration(_) => "StructDeclaration",
         AstNode::VariableDeclaration(_) => "VariableDeclaration",
         AstNode::StackSlotDeclaration(_) => "StackSlotDeclaration",
+        AstNode::LexicalScope(_) => "LexicalScope",
         AstNode::Assignment(_) => "Assignment",
         AstNode::Return(_) => "Return",
         AstNode::If(_) => "If",
@@ -2747,6 +2753,20 @@ function f(x) {
 }"#;
         let ast = crate::parse_ast(src).expect("v3 reference syntax should parse");
         check_semantics(&ast).expect("native reference assignment should pass shared admission");
+    }
+
+    #[test]
+    fn detailed_semantics_admit_native_lexical_reference_scopes() {
+        let src = r#"function main(): i32 {
+  slot value: i32 = 2
+  scope {
+    let writer: &mut i32 = &mut value
+    *writer = 5
+  }
+  return load(value)
+}"#;
+        let ast = crate::parse_ast(src).expect("v4 lexical scope syntax should parse");
+        check_semantics(&ast).expect("native lexical scope should pass shared admission");
     }
 
     #[test]

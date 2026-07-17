@@ -85,6 +85,7 @@ pub enum AstNode {
     StructDeclaration(StructDeclarationNode),
     VariableDeclaration(VariableDeclarationNode),
     StackSlotDeclaration(StackSlotDeclarationNode),
+    LexicalScope(LexicalScopeNode),
     Assignment(AssignmentNode),
 
     // Event handlers
@@ -588,6 +589,18 @@ pub struct StackSlotDeclarationNode {
     pub name: String,
     pub type_annotation: String,
     pub value: Box<AstNode>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub loc: Option<Location>,
+}
+
+/// Compiler-owned lexical lifetime boundary: `scope { ... }`.
+///
+/// Unlike a scene `LogicNode`, this is a canonical statement node. Native machine contracts use
+/// it to delimit local/reference visibility and to release scoped borrow leases atomically when
+/// control reaches the closing brace.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LexicalScopeNode {
+    pub body: Vec<AstNode>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub loc: Option<Location>,
 }
