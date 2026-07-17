@@ -1,5 +1,12 @@
 /**
- * HSI-IR — HoloScript Intelligence IR (Stage A of the native-intelligence program).
+ * HSI-IR — the compiler's world-IR dialect of HoloMeaning (stratum ②).
+ *
+ * STRATUM MEMBERSHIP (docs/spec/language-architecture.md §2, 2026-07-17): "HSI-IR" is not a
+ * rival meaning IR — it is the compiler-owned LOWERING TARGET inside the HoloMeaning stratum,
+ * and it imports the canonical resolution contract from @holoscript/meaning rather than
+ * mirroring it. These types stay in core (not packages/meaning) for one documented reason:
+ * the ExpressionIR dependency below is core-internal; moving the types would invert the
+ * core→meaning direction. If ExpressionIR is ever extracted, these types can follow.
  *
  * Versioned, compiler-owned typed representation lowered from the canonical
  * HoloComposition AST (parseHolo/parseHoloStrict). No new parser, no new file
@@ -11,8 +18,8 @@
  *    when the parser provides one, a source span.
  *  - Opacity is three-state: `'transparent' | 'opaque' | 'unknown'` where
  *    UNKNOWN means the attribute was ABSENT in source — the same gap-aware
- *    vocabulary as the uAAL containment/access resolvers, so the Stage-B causal
- *    loop (task 6mg9) consumes this world without translation.
+ *    vocabulary as the HoloMeaning containment/access resolvers, so the Stage-B
+ *    causal loop (task 6mg9) consumes this world without translation.
  *  - Artifacts are deterministic: canonical collection order, stable key order,
  *    and a sha256 digest computed over the digest-free document.
  */

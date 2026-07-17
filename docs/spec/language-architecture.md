@@ -226,8 +226,16 @@ moves land one at a time behind receipts:
    status-union mirror in `verifier.ts`, fixed by import. `CONTRACT_HOMES` collapsed to the
    ONE meaning home; probe-verified both directions (planted duplicate resolver in uaal fails
    strict and names the canonical definition; clean tree passes).
-3. **Re-home HSI-IR as HoloMeaning** (rename/absorb); update the three-format papers to cite HoloMeaning as
-   the meaning stratum.
+3. **Re-home HSI-IR as HoloMeaning** — ✅ DONE 2026-07-17 (naming re-home): HSI-IR's headers now
+   declare it the compiler's world-IR dialect *inside* the HoloMeaning stratum, importing the
+   canonical contract — not a rival meaning IR. Its types stay physically in core for ONE
+   documented reason (the core-internal `ExpressionIR` dependency; moving them would invert
+   core→meaning) — if ExpressionIR is ever extracted, they can follow. Stage-3 landed with it:
+   the verifier of record (`gradeByResolver`) and the eight family test files moved into
+   `packages/meaning` (uaal keeps shims; VM tests stay). **Papers**: the three format papers
+   (P10 `.hs` / P11 `.hsplus` / P12 `.holo`) are tracked but not yet authored as files — a board
+   task directs them to cite HoloMeaning as the meaning stratum at authoring time; the live
+   citation surfaces (DEFINITIONS glossary, this spec, the holon registry) are updated now.
 4. **Turn on the remaining gate rules** (6.1, 6.3, 6.5, 6.4) once the tree is green.
 5. **Stratum-① conformance** (`.hsplus` parse rate) proceeds independently on its own track.
 
