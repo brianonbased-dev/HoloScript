@@ -13,8 +13,10 @@
 //! bounds-checked half-open slice projections. `hs-machine-v8` adds local, non-escaping
 //! borrowed slice values with lexical alias leases. `hs-machine-v9` adds direct-call
 //! borrowed slice parameters with an explicit base-plus-length ABI, caller-side alias
-//! validation, and callee-side bounds checks. Everything outside the selected contract
-//! fails closed with a native compile diagnostic.
+//! validation, and callee-side bounds checks. `hs-machine-v10` adds call-duration
+//! forwarding and literal sub-slice reborrows while keeping root provenance and alias
+//! state compiler-owned. Everything outside the selected contract fails closed with a
+//! native compile diagnostic.
 
 use std::collections::{HashMap, HashSet};
 use std::env;
@@ -47,6 +49,7 @@ pub const AGGREGATE_MACHINE_CONTRACT: &str = "hs-machine-v6";
 pub const FIXED_ARRAY_MACHINE_CONTRACT: &str = "hs-machine-v7";
 pub const SLICE_MACHINE_CONTRACT: &str = "hs-machine-v8";
 pub const SLICE_CALL_MACHINE_CONTRACT: &str = "hs-machine-v9";
+pub const SLICE_FORWARD_MACHINE_CONTRACT: &str = "hs-machine-v10";
 
 struct CompiledObject {
     bytes: Vec<u8>,
@@ -165,7 +168,12 @@ fn compile_unit(
         NativeCompileError::new(format!("HoloScript parse failed: {rendered}"))
     })?;
 
-    if has_slice_parameter_machine_metadata(&ast) {
+    if has_slice_forward_machine_metadata(&ast) {
+        Ok(CompiledObject {
+            bytes: lower_typed_ast_to_object(&ast, SLICE_FORWARD_MACHINE_CONTRACT, true)?,
+            machine_contract: SLICE_FORWARD_MACHINE_CONTRACT,
+        })
+    } else if has_slice_parameter_machine_metadata(&ast) {
         Ok(CompiledObject {
             bytes: lower_typed_ast_to_object(&ast, SLICE_CALL_MACHINE_CONTRACT, true)?,
             machine_contract: SLICE_CALL_MACHINE_CONTRACT,
@@ -433,6 +441,144 @@ fn has_slice_parameter_machine_metadata(ast: &Ast) -> bool {
                     .any(|annotation| annotation_uses_slice_reference(annotation))
         )
     })
+}
+
+fn has_slice_forward_machine_metadata(ast: &Ast) -> bool {
+    ast.body.iter().any(|node| {
+        let AstNode::Function(function) = node else {
+            return false;
+        };
+        let mut slice_names = function
+            .params
+            .iter()
+            .zip(function.param_types.iter())
+            .filter_map(|(name, annotation)| {
+                if annotation
+                    .as_deref()
+                    .is_some_and(annotation_uses_slice_reference)
+                {
+                    Some(name.clone())
+                } else {
+                    None
+                }
+            })
+            .collect::<HashSet<_>>();
+        body_uses_slice_forward(&function.body, &mut slice_names)
+    })
+}
+
+fn body_uses_slice_forward(nodes: &[AstNode], slice_names: &mut HashSet<String>) -> bool {
+    for node in nodes {
+        if node_uses_slice_forward(node, slice_names) {
+            return true;
+        }
+        if let AstNode::VariableDeclaration(local) = node {
+            if local
+                .type_annotation
+                .as_deref()
+                .is_some_and(annotation_uses_slice_reference)
+            {
+                slice_names.insert(local.name.clone());
+            }
+        }
+    }
+    false
+}
+
+fn node_uses_slice_forward(node: &AstNode, slice_names: &HashSet<String>) -> bool {
+    match node {
+        AstNode::CallExpression(call) => {
+            call.arguments
+                .iter()
+                .any(|argument| slice_forward_argument(argument, slice_names))
+                || node_uses_slice_forward(&call.callee, slice_names)
+                || call
+                    .arguments
+                    .iter()
+                    .any(|argument| node_uses_slice_forward(argument, slice_names))
+        }
+        AstNode::VariableDeclaration(local) => node_uses_slice_forward(&local.value, slice_names),
+        AstNode::StackSlotDeclaration(slot) => node_uses_slice_forward(&slot.value, slice_names),
+        AstNode::Return(return_node) => return_node
+            .argument
+            .as_deref()
+            .is_some_and(|argument| node_uses_slice_forward(argument, slice_names)),
+        AstNode::If(if_node) => {
+            node_uses_slice_forward(&if_node.test, slice_names)
+                || {
+                    let mut consequent_names = slice_names.clone();
+                    body_uses_slice_forward(&if_node.consequent, &mut consequent_names)
+                }
+                || if_node.alternate.as_ref().is_some_and(|alternate| {
+                    let mut alternate_names = slice_names.clone();
+                    body_uses_slice_forward(alternate, &mut alternate_names)
+                })
+        }
+        AstNode::While(while_node) => {
+            node_uses_slice_forward(&while_node.test, slice_names) || {
+                let mut body_names = slice_names.clone();
+                body_uses_slice_forward(&while_node.body, &mut body_names)
+            }
+        }
+        AstNode::ForOf(for_node) => {
+            node_uses_slice_forward(&for_node.range, slice_names) || {
+                let mut body_names = slice_names.clone();
+                body_uses_slice_forward(&for_node.body, &mut body_names)
+            }
+        }
+        AstNode::For(for_node) => {
+            for_node
+                .init
+                .as_deref()
+                .is_some_and(|value| node_uses_slice_forward(value, slice_names))
+                || for_node
+                    .test
+                    .as_deref()
+                    .is_some_and(|value| node_uses_slice_forward(value, slice_names))
+                || for_node
+                    .update
+                    .as_deref()
+                    .is_some_and(|value| node_uses_slice_forward(value, slice_names))
+                || {
+                    let mut body_names = slice_names.clone();
+                    body_uses_slice_forward(&for_node.body, &mut body_names)
+                }
+        }
+        AstNode::LexicalScope(scope) => {
+            let mut body_names = slice_names.clone();
+            body_uses_slice_forward(&scope.body, &mut body_names)
+        }
+        AstNode::Assignment(assignment) => {
+            node_uses_slice_forward(&assignment.target, slice_names)
+                || node_uses_slice_forward(&assignment.value, slice_names)
+        }
+        AstNode::BinaryExpression(binary) => {
+            node_uses_slice_forward(&binary.left, slice_names)
+                || node_uses_slice_forward(&binary.right, slice_names)
+        }
+        AstNode::UnaryExpression(unary) => node_uses_slice_forward(&unary.argument, slice_names),
+        AstNode::MemberExpression(member) => {
+            node_uses_slice_forward(&member.object, slice_names)
+                || node_uses_slice_forward(&member.property, slice_names)
+        }
+        _ => false,
+    }
+}
+
+fn slice_forward_argument(argument: &AstNode, slice_names: &HashSet<String>) -> bool {
+    match argument {
+        AstNode::Identifier(identifier) => slice_names.contains(&identifier.name),
+        AstNode::UnaryExpression(borrow) if matches!(borrow.operator.as_str(), "&" | "&mut") => {
+            let AstNode::MemberExpression(range) = borrow.argument.as_ref() else {
+                return false;
+            };
+            let AstNode::Identifier(root) = range.object.as_ref() else {
+                return false;
+            };
+            slice_names.contains(&root.name)
+        }
+        _ => false,
+    }
 }
 
 fn annotation_uses_slice_reference(annotation: &str) -> bool {
@@ -715,6 +861,7 @@ fn bool_enabled(machine_contract: &str) -> bool {
             | FIXED_ARRAY_MACHINE_CONTRACT
             | SLICE_MACHINE_CONTRACT
             | SLICE_CALL_MACHINE_CONTRACT
+            | SLICE_FORWARD_MACHINE_CONTRACT
     )
 }
 
@@ -726,6 +873,7 @@ fn control_flow_enabled(machine_contract: &str) -> bool {
             | FIXED_ARRAY_MACHINE_CONTRACT
             | SLICE_MACHINE_CONTRACT
             | SLICE_CALL_MACHINE_CONTRACT
+            | SLICE_FORWARD_MACHINE_CONTRACT
     )
 }
 
@@ -738,6 +886,7 @@ fn scoped_lifetimes_enabled(machine_contract: &str) -> bool {
             | FIXED_ARRAY_MACHINE_CONTRACT
             | SLICE_MACHINE_CONTRACT
             | SLICE_CALL_MACHINE_CONTRACT
+            | SLICE_FORWARD_MACHINE_CONTRACT
     )
 }
 
@@ -751,6 +900,7 @@ fn references_enabled(machine_contract: &str) -> bool {
             | FIXED_ARRAY_MACHINE_CONTRACT
             | SLICE_MACHINE_CONTRACT
             | SLICE_CALL_MACHINE_CONTRACT
+            | SLICE_FORWARD_MACHINE_CONTRACT
     )
 }
 
@@ -765,6 +915,7 @@ fn memory_contract_enabled(machine_contract: &str) -> bool {
             | FIXED_ARRAY_MACHINE_CONTRACT
             | SLICE_MACHINE_CONTRACT
             | SLICE_CALL_MACHINE_CONTRACT
+            | SLICE_FORWARD_MACHINE_CONTRACT
     )
 }
 
@@ -775,13 +926,17 @@ fn aggregate_contract_enabled(machine_contract: &str) -> bool {
             | FIXED_ARRAY_MACHINE_CONTRACT
             | SLICE_MACHINE_CONTRACT
             | SLICE_CALL_MACHINE_CONTRACT
+            | SLICE_FORWARD_MACHINE_CONTRACT
     )
 }
 
 fn fixed_arrays_enabled(machine_contract: &str) -> bool {
     matches!(
         machine_contract,
-        FIXED_ARRAY_MACHINE_CONTRACT | SLICE_MACHINE_CONTRACT | SLICE_CALL_MACHINE_CONTRACT
+        FIXED_ARRAY_MACHINE_CONTRACT
+            | SLICE_MACHINE_CONTRACT
+            | SLICE_CALL_MACHINE_CONTRACT
+            | SLICE_FORWARD_MACHINE_CONTRACT
     )
 }
 
@@ -1208,6 +1363,12 @@ struct BorrowState {
     exclusive: bool,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+enum SliceBorrowRoot {
+    Stack(String),
+    Parameter,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum FlowOutcome {
     FallsThrough,
@@ -1448,7 +1609,10 @@ fn collect_typed_function_specs<'a>(
             )? {
                 match reference_type.target {
                     ReferenceTarget::Slice(element_type)
-                        if machine_contract == SLICE_CALL_MACHINE_CONTRACT =>
+                        if matches!(
+                            machine_contract,
+                            SLICE_CALL_MACHINE_CONTRACT | SLICE_FORWARD_MACHINE_CONTRACT
+                        ) =>
                     {
                         params.push(MachineParameter::Slice {
                             element_type,
@@ -2401,7 +2565,9 @@ fn lower_reference_initializer(
         ReferenceTarget::Slice(expected_element) => {
             if !matches!(
                 machine_contract,
-                SLICE_MACHINE_CONTRACT | SLICE_CALL_MACHINE_CONTRACT
+                SLICE_MACHINE_CONTRACT
+                    | SLICE_CALL_MACHINE_CONTRACT
+                    | SLICE_FORWARD_MACHINE_CONTRACT
             ) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} does not enable borrowed slice values"
@@ -2936,6 +3102,7 @@ fn lower_typed_expression(
                             builder,
                             module,
                             stack_slots,
+                            references,
                             borrow_states,
                             &mut call_borrows,
                             argument,
@@ -2972,8 +3139,9 @@ fn lower_borrowed_slice_call_argument(
     builder: &mut FunctionBuilder<'_>,
     module: &ObjectModule,
     stack_slots: &HashMap<String, TypedStackSlot>,
+    references: &HashMap<String, TypedReference>,
     borrow_states: &HashMap<String, BorrowState>,
-    call_borrows: &mut HashMap<String, BorrowState>,
+    call_borrows: &mut HashMap<SliceBorrowRoot, BorrowState>,
     argument: &AstNode,
     expected_element: MachineType,
     mutable: bool,
@@ -2981,12 +3149,58 @@ fn lower_borrowed_slice_call_argument(
     callee_name: &str,
     machine_contract: &str,
 ) -> Result<(Value, Value), NativeCompileError> {
+    if let AstNode::Identifier(identifier) = argument {
+        return lower_forwarded_slice_call_argument(
+            builder,
+            module,
+            stack_slots,
+            references,
+            borrow_states,
+            call_borrows,
+            &identifier.name,
+            None,
+            expected_element,
+            mutable,
+            argument_index,
+            callee_name,
+            machine_contract,
+        );
+    }
+
     let AstNode::UnaryExpression(borrow) = argument else {
         return Err(NativeCompileError::new(format!(
-            "{machine_contract} slice argument {} to `{callee_name}` must be a direct range reborrow",
+            "{machine_contract} slice argument {} to `{callee_name}` must be a direct range reborrow or a named slice forwarding",
             argument_index + 1
         )));
     };
+    if let AstNode::MemberExpression(range_access) = borrow.argument.as_ref() {
+        if let AstNode::Identifier(root) = range_access.object.as_ref() {
+            if references.contains_key(&root.name) {
+                if !range_access.computed {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} slice argument {} to `{callee_name}` requires a half-open named slice range",
+                        argument_index + 1
+                    )));
+                }
+                return lower_forwarded_slice_call_argument(
+                    builder,
+                    module,
+                    stack_slots,
+                    references,
+                    borrow_states,
+                    call_borrows,
+                    &root.name,
+                    Some((borrow.operator.as_str(), range_access.property.as_ref())),
+                    expected_element,
+                    mutable,
+                    argument_index,
+                    callee_name,
+                    machine_contract,
+                );
+            }
+        }
+    }
+
     let expected_operator = if mutable { "&mut" } else { "&" };
     if borrow.operator != expected_operator {
         return Err(NativeCompileError::new(format!(
@@ -3045,7 +3259,9 @@ fn lower_borrowed_slice_call_argument(
     }
 
     let active = borrow_states.get(&root.name).copied().unwrap_or_default();
-    let siblings = call_borrows.entry(root.name.clone()).or_default();
+    let siblings = call_borrows
+        .entry(SliceBorrowRoot::Stack(root.name.clone()))
+        .or_default();
     if mutable {
         if active.exclusive || active.shared > 0 || siblings.exclusive || siblings.shared > 0 {
             return Err(NativeCompileError::new(format!(
@@ -3075,6 +3291,218 @@ fn lower_borrowed_slice_call_argument(
     );
     let length = builder.ins().iconst(types::I32, i64::from(end - start));
     Ok((base, length))
+}
+
+#[allow(clippy::too_many_arguments)]
+fn lower_forwarded_slice_call_argument(
+    builder: &mut FunctionBuilder<'_>,
+    module: &ObjectModule,
+    stack_slots: &HashMap<String, TypedStackSlot>,
+    references: &HashMap<String, TypedReference>,
+    borrow_states: &HashMap<String, BorrowState>,
+    call_borrows: &mut HashMap<SliceBorrowRoot, BorrowState>,
+    reference_name: &str,
+    subrange: Option<(&str, &AstNode)>,
+    expected_element: MachineType,
+    mutable: bool,
+    argument_index: usize,
+    callee_name: &str,
+    machine_contract: &str,
+) -> Result<(Value, Value), NativeCompileError> {
+    if machine_contract != SLICE_FORWARD_MACHINE_CONTRACT {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} slice argument {} to `{callee_name}` must be a direct range reborrow",
+            argument_index + 1
+        )));
+    }
+    let reference = references.get(reference_name).ok_or_else(|| {
+        NativeCompileError::new(format!(
+            "{machine_contract} slice argument {} to `{callee_name}` references unknown slice `{reference_name}`",
+            argument_index + 1
+        ))
+    })?;
+    let TypedReferenceLayout::Slice {
+        element_type,
+        storage,
+    } = &reference.layout
+    else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} slice argument {} to `{callee_name}` requires a borrowed slice reference; `{reference_name}` is scalar",
+            argument_index + 1
+        )));
+    };
+    if *element_type != expected_element {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} slice argument {} to `{callee_name}` expects elements of `{}`, but slice `{reference_name}` stores `{}`",
+            argument_index + 1,
+            expected_element.name(),
+            element_type.name()
+        )));
+    }
+    if mutable && !reference.mutable {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} cannot mutably forward immutable slice `{reference_name}` to argument {} of `{callee_name}`",
+            argument_index + 1
+        )));
+    }
+    if let Some((operator, _)) = subrange {
+        let expected_operator = if mutable { "&mut" } else { "&" };
+        if operator != expected_operator {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} slice argument {} to `{callee_name}` expects `{expected_operator}`, found `{operator}`",
+                argument_index + 1
+            )));
+        }
+    }
+
+    let (start, end) = match subrange {
+        Some((_, range)) => {
+            let Some((start, end)) = parse_slice_range(range, machine_contract)? else {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} slice argument {} to `{callee_name}` requires a half-open named slice range",
+                    argument_index + 1
+                )));
+            };
+            if start > end {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} slice range {start}..{end} is not half-open and ordered for `{reference_name}`"
+                )));
+            }
+            if end > i32::MAX as u32 {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} slice range end {end} exceeds the i32 length ABI for `{reference_name}`"
+                )));
+            }
+            (start, end)
+        }
+        None => (0, 0),
+    };
+
+    let borrow_root = match storage {
+        SliceStorage::Stack { slot_name, .. } => {
+            let active = borrow_states.get(slot_name).copied().unwrap_or_default();
+            if reference.mutable {
+                if !active.exclusive {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} lost the exclusive provenance lease for mutable slice `{reference_name}`"
+                    )));
+                }
+            } else if active.shared == 0 {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} lost the shared provenance lease for slice `{reference_name}`"
+                )));
+            }
+            SliceBorrowRoot::Stack(slot_name.clone())
+        }
+        SliceStorage::Parameter { .. } => SliceBorrowRoot::Parameter,
+    };
+    acquire_forwarded_call_borrow(
+        call_borrows,
+        borrow_root,
+        mutable,
+        reference_name,
+        callee_name,
+        machine_contract,
+    )?;
+
+    let pointer_type = module.target_config().pointer_type();
+    match storage {
+        SliceStorage::Stack {
+            slot_name,
+            base_offset,
+            length,
+        } => {
+            if subrange.is_some() {
+                validate_slice_range(start, end, *length, reference_name, machine_contract)?;
+            }
+            let stack_slot = stack_slots.get(slot_name).ok_or_else(|| {
+                NativeCompileError::new(format!(
+                    "{machine_contract} forwarded slice `{reference_name}` lost its stack-slot provenance"
+                ))
+            })?;
+            let relative_offset = start
+                .checked_mul(element_type.stack_size())
+                .and_then(|offset| base_offset.checked_add(offset))
+                .ok_or_else(|| {
+                    NativeCompileError::new(format!(
+                        "{machine_contract} slice `{reference_name}` byte offset overflowed"
+                    ))
+                })?;
+            let base = builder.ins().stack_addr(
+                pointer_type,
+                stack_slot.slot,
+                i32::try_from(relative_offset).map_err(|_| {
+                    NativeCompileError::new(format!(
+                        "{machine_contract} slice `{reference_name}` byte offset exceeds the native stack ABI"
+                    ))
+                })?,
+            );
+            let forwarded_length = if subrange.is_some() {
+                end - start
+            } else {
+                *length
+            };
+            let length = builder
+                .ins()
+                .iconst(types::I32, i64::from(forwarded_length));
+            Ok((base, length))
+        }
+        SliceStorage::Parameter { base, length } => {
+            if subrange.is_none() {
+                return Ok((*base, *length));
+            }
+            let end_value = builder.ins().iconst(types::I32, i64::from(end));
+            let outside = builder
+                .ins()
+                .icmp(IntCC::UnsignedGreaterThan, end_value, *length);
+            builder.ins().trapnz(outside, TrapCode::unwrap_user(1));
+
+            let byte_offset = u64::from(start) * u64::from(element_type.stack_size());
+            if pointer_type == types::I32 && byte_offset > u64::from(u32::MAX) {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} slice `{reference_name}` byte offset exceeds the target pointer width"
+                )));
+            }
+            let forwarded_base = if byte_offset == 0 {
+                *base
+            } else {
+                let offset = builder.ins().iconst(
+                    pointer_type,
+                    i64::try_from(byte_offset).expect("i32 slice length bounds the byte offset"),
+                );
+                builder.ins().iadd(*base, offset)
+            };
+            let forwarded_length = builder.ins().iconst(types::I32, i64::from(end - start));
+            Ok((forwarded_base, forwarded_length))
+        }
+    }
+}
+
+fn acquire_forwarded_call_borrow(
+    call_borrows: &mut HashMap<SliceBorrowRoot, BorrowState>,
+    root: SliceBorrowRoot,
+    mutable: bool,
+    reference_name: &str,
+    callee_name: &str,
+    machine_contract: &str,
+) -> Result<(), NativeCompileError> {
+    let siblings = call_borrows.entry(root).or_default();
+    if mutable {
+        if siblings.exclusive || siblings.shared > 0 {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} cannot mutably forward slice `{reference_name}` to `{callee_name}` because a sibling slice argument has the same or potentially aliasing provenance"
+            )));
+        }
+        siblings.exclusive = true;
+    } else {
+        if siblings.exclusive {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} cannot immutably forward slice `{reference_name}` to `{callee_name}` because a sibling mutable slice argument has the same or potentially aliasing provenance"
+            )));
+        }
+        siblings.shared += 1;
+    }
+    Ok(())
 }
 
 fn known_expression_type(

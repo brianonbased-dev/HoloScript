@@ -170,6 +170,39 @@ const BORROWED_SLICE_CALL_EXIT_FIVE: &str = r#"
         return read(&values[1..4], observed - 2) + updated - 5
     }
 "#;
+const FORWARDED_SLICE_CALL_EXIT_FIVE: &str = r#"
+    function read(values: &[i32], index: i32): i32 {
+        return load(values[index])
+    }
+
+    function descend(values: &[i32], depth: i32): i32 {
+        if (depth == 0) {
+            return read(&values[1..3], 0)
+        } else {
+            return descend(values, depth - 1)
+        }
+    }
+
+    function add_two(values: &mut [i32], index: i32): i32 {
+        store(values[index], load(values[index]) + 2)
+        return load(values[index])
+    }
+
+    function forward_mut(values: &mut [i32], index: i32): i32 {
+        return add_two(values, index)
+    }
+
+    function narrow_mut(values: &mut [i32]): i32 {
+        return forward_mut(&mut values[1..3], 0)
+    }
+
+    function main(): i32 {
+        slot values: [i32; 4] = [1, 2, 3, 4]
+        let observed: i32 = descend(&values[0..4], 2)
+        let updated: i32 = narrow_mut(&mut values[0..4])
+        return observed + updated - 1
+    }
+"#;
 
 fn scratch_executable(name: &str) -> std::path::PathBuf {
     let nonce = SystemTime::now()
@@ -499,6 +532,88 @@ fn compiles_call_safe_borrowed_slice_parameters() {
 }
 
 #[test]
+fn compiles_forwarded_and_nested_reborrowed_slice_parameters() {
+    let executable = scratch_executable("native-forwarded-slice-call");
+    let artifact = compile_executable(
+        FORWARDED_SLICE_CALL_EXIT_FIVE,
+        &executable,
+        &NativeCompileOptions::host(),
+    )
+    .expect("slice parameters should forward and sub-slice through nested direct calls");
+    assert_eq!(artifact.machine_contract, "hs-machine-v10");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("forwarded-slice executable should run");
+    assert_eq!(status.code(), Some(5));
+    fs::remove_file(&artifact.executable).expect("remove forwarded-slice executable");
+
+    let executable = scratch_executable("native-local-slice-forward");
+    let artifact = compile_executable(
+        r#"function read(values: &[i32], index: i32): i32 {
+               return load(values[index])
+           }
+           function add_two(values: &mut [i32], index: i32): i32 {
+               store(values[index], load(values[index]) + 2)
+               return load(values[index])
+           }
+           function main(): i32 {
+               slot values: [i32; 3] = [1, 3, 4]
+               let writer: &mut [i32] = &mut values[0..3]
+               let observed: i32 = read(writer, 1)
+               let updated: i32 = add_two(writer, 1)
+               return observed + updated - 3
+           }"#,
+        &executable,
+        &NativeCompileOptions::host(),
+    )
+    .expect("a mutable local slice should permit shared and mutable call-duration reborrows");
+    assert_eq!(artifact.machine_contract, "hs-machine-v10");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("local-slice forwarding executable should run");
+    assert_eq!(status.code(), Some(5));
+    fs::remove_file(&artifact.executable).expect("remove local-slice forwarding executable");
+
+    compile_object(
+        r#"function sum(first: &[i32], second: &[i32]): i32 {
+               return load(first[0]) + load(second[0])
+           }
+           function relay(first: &[i32], second: &[i32]): i32 {
+               return sum(first, second)
+           }
+           function main(): i32 {
+               slot values: [i32; 2] = [2, 3]
+               return relay(&values[0..1], &values[1..2])
+           }"#,
+        &NativeCompileOptions::host(),
+    )
+    .expect("shared parameter-derived slice forwarding should coexist");
+
+    let source = r#"function read(values: &[i32], index: i32): i32 {
+           return load(values[index])
+       }
+       function narrow(values: &[i32]): i32 {
+           return read(&values[1..3], 0)
+       }
+       function main(): i32 {
+           slot values: [i32; 2] = [1, 2]
+           return narrow(&values[0..2])
+       }"#;
+    let executable = scratch_executable("native-forwarded-slice-bounds");
+    let artifact = compile_executable(source, &executable, &NativeCompileOptions::host())
+        .expect("parameter sub-slice bounds should compile to a runtime trap");
+    assert_eq!(artifact.machine_contract, "hs-machine-v10");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("out-of-bounds parameter sub-slice executable should launch");
+    assert!(
+        !status.success(),
+        "out-of-bounds parameter sub-slice must trap"
+    );
+    fs::remove_file(&artifact.executable).expect("remove trapping sub-slice executable");
+}
+
+#[test]
 fn emits_deterministic_objects_for_the_same_source() {
     let options = NativeCompileOptions::host();
 
@@ -515,6 +630,7 @@ fn emits_deterministic_objects_for_the_same_source() {
         FIXED_ARRAY_EXIT_FIVE,
         BORROWED_SLICE_EXIT_FIVE,
         BORROWED_SLICE_CALL_EXIT_FIVE,
+        FORWARDED_SLICE_CALL_EXIT_FIVE,
     ] {
         let first = compile_object(source, &options).expect("first object should compile");
         let second = compile_object(source, &options).expect("second object should compile");
@@ -600,10 +716,6 @@ fn borrowed_slice_call_contract_enforces_abi_aliasing_and_non_escape() {
             "expects elements of `i64`, but stack slot `values` stores `i32`",
         ),
         (
-            "function read(values: &[i32]): i32 { return load(values[0]) } function main(): i32 { slot values: [i32; 2] = [1, 2] let view: &[i32] = &values[0..2] return read(view) }",
-            "must be a direct range reborrow",
-        ),
-        (
             "function combine(first: &mut [i32], second: &[i32]): i32 { return 5 } function main(): i32 { slot values: [i32; 4] = [1, 2, 3, 4] return combine(&mut values[0..2], &values[2..4]) }",
             "cannot immutably reborrow stack slot `values` for call to `combine` because an exclusive borrow exists",
         ),
@@ -622,6 +734,53 @@ fn borrowed_slice_call_contract_enforces_abi_aliasing_and_non_escape() {
         (
             "function read(value: &i32, values: &[i32]): i32 { return 5 } function main(): i32 { return 5 }",
             "hs-machine-v9 references cannot appear in function parameters",
+        ),
+    ] {
+        let error = compile_object(source, &options).expect_err(message);
+        assert!(error.to_string().contains(message), "{error}");
+    }
+}
+
+#[test]
+fn forwarded_slice_contract_preserves_mutability_provenance_and_non_escape() {
+    let options = NativeCompileOptions::host();
+
+    for (source, message) in [
+        (
+            "function write(values: &mut [i32]): i32 { return 5 } function relay(values: &[i32]): i32 { return write(values) } function main(): i32 { slot values: [i32; 1] = [1] return relay(&values[0..1]) }",
+            "cannot mutably forward immutable slice `values`",
+        ),
+        (
+            "function combine(first: &mut [i32], second: &[i32]): i32 { return 5 } function relay(first: &mut [i32], second: &[i32]): i32 { return combine(first, second) } function main(): i32 { return 5 }",
+            "potentially aliasing provenance",
+        ),
+        (
+            "function combine(first: &mut [i32], second: &mut [i32]): i32 { return 5 } function main(): i32 { slot values: [i32; 2] = [1, 2] let writer: &mut [i32] = &mut values[0..2] return combine(writer, writer) }",
+            "sibling slice argument has the same or potentially aliasing provenance",
+        ),
+        (
+            "function read(values: &[i64]): i32 { return 5 } function relay(values: &[i32]): i32 { return read(values) } function main(): i32 { return 5 }",
+            "expects elements of `i64`, but slice `values` stores `i32`",
+        ),
+        (
+            "function read(values: &[i32]): i32 { return 5 } function main(): i32 { slot values: [i32; 3] = [1, 2, 3] let view: &[i32] = &values[1..3] return read(&view[1..3]) }",
+            "slice range 1..3 exceeds fixed array length 2 for `view`",
+        ),
+        (
+            "function read(values: &[i32]): i32 { return 5 } function relay(values: &[i32]): i32 { return read(&values[2..1]) } function main(): i32 { return 5 }",
+            "slice range 2..1 is not half-open and ordered for `values`",
+        ),
+        (
+            "function read(values: &[i32]): i32 { return 5 } function relay(values: &[i32]): i32 { return read(&values[0..2147483648]) } function main(): i32 { return 5 }",
+            "slice range end 2147483648 exceeds the i32 length ABI for `values`",
+        ),
+        (
+            "function read(values: &[i32]): i32 { return load(values[0]) } function relay(values: &[i32]): i32 { return read(values) } function leak(values: &[i32]): &[i32] { return values } function main(): i32 { return 5 }",
+            "hs-machine-v10 references cannot appear in function returns",
+        ),
+        (
+            "function read(values: &[i32]): i32 { return load(values[0]) } function relay(values: &[i32]): i32 { return read(values) } function expose(values: &[i32]): i32 { return values } function main(): i32 { return 5 }",
+            "slice reference `values` cannot escape as a scalar value",
         ),
     ] {
         let error = compile_object(source, &options).expect_err(message);
