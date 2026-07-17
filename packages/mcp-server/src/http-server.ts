@@ -97,7 +97,7 @@ import {
   extractAndVerifySigning,
   type SigningContext,
 } from './holomesh/identity/signing-middleware';
-import { gateToolCall } from './tool-call-gate';
+import { frameDeclarationFromMcpMeta, gateToolCall } from './tool-call-gate';
 import { founderGateX402ToolCallCheck } from './tool-call-checks';
 import { initDurableAttestationRegistry } from './holomesh/identity/attestation-persistence';
 import {
@@ -937,14 +937,18 @@ function createMcpServer(sessionAuthContext?: TokenIntrospection): Server {
   // per call (sha256 of canonical-JSON args, NEVER raw args) plus the typed
   // seam where FounderGate / x402 / envelope-validation checks plug in. The
   // seam now runs the REAL check (tool-call-checks.ts): exact-four/prohibited
-  // authority routing on the tool NAME plus the same pure Gate-2 scope
-  // authorization the downstream triple gate re-runs. A denial throws
+  // authority routing on the tool NAME, active @frame_declaration enforcement,
+  // and the same pure Gate-2 scope authorization the downstream triple gate
+  // re-runs. A denial throws
   // ToolCallGateDeniedError pre-dispatch (receipt written first, deniedBy
   // names the branch). The triple gate + audit log keep running DOWNSTREAM
   // inside securedToolExecution, which never throws (failures come back as
   // isError, which the classifier maps onto the receipt's error status).
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
+    const frameDeclaration = frameDeclarationFromMcpMeta(
+      (request.params as { _meta?: unknown })._meta
+    );
 
     // Use session auth context or default to admin (for legacy compat)
     const auth: TokenIntrospection = sessionAuthContext || {
@@ -959,6 +963,7 @@ function createMcpServer(sessionAuthContext?: TokenIntrospection): Server {
         transport: 'http',
         callerId: auth.agentId ?? auth.clientId ?? null,
         scopes: auth.scopes,
+        ...(frameDeclaration !== undefined ? { frameDeclaration } : {}),
       },
       (env) => securedToolExecution(env.name, env.args, auth),
       {

@@ -175,6 +175,7 @@ async function cmdRun(opts: { once: boolean }): Promise<void> {
     teamId: identity.teamId,
     signer: buildRequestSigner(seat),
     localKnowledgePath: process.env.HOLOSCRIPT_AGENT_LOCAL_KNOWLEDGE_PATH,
+    frameDeclaration: brain.frameDeclaration,
   });
 
   const commitHook = buildCommitHook(identity, mesh);

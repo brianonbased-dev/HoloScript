@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import type { FrameDeclarationContract, FrameTier } from '@holoscript/agent-protocol';
 import type { OnTaskAction, RuntimeBrainConfig } from './types.js';
 
 export async function loadBrain(
@@ -22,12 +23,33 @@ export async function loadBrain(
     capabilityTags,
     domain,
     scopeTier,
+    frameDeclaration: extractFrameDeclaration(raw),
     requires,
     prefers,
     avoids,
     reflect: extractReflect(raw),
     onTaskActions: extractOnTaskActions(raw),
     idle: extractIdleDirective(raw),
+  };
+}
+
+/** Parse an authored frame into the transport-safe protocol contract. */
+function extractFrameDeclaration(brain: string): FrameDeclarationContract | undefined {
+  const block = sliceNamedBlock(brain, 'frame_declaration');
+  if (block === undefined) return undefined;
+
+  const tier = (key: string): FrameTier => {
+    const parsed = Number((scalarField(block, key) ?? '2').split(',')[0].trim());
+    return parsed === 0 || parsed === 1 || parsed === 2 || parsed === 3 ? parsed : 2;
+  };
+
+  return {
+    domain: scalarField(block, 'domain') ?? '*',
+    horizon: scalarField(block, 'horizon') ?? '',
+    capability_tier: tier('capability_tier'),
+    trust_tier: tier('trust_tier'),
+    allowed_tools: listField(block, 'allowed_tools') ?? [],
+    denied_domains: listField(block, 'denied_domains') ?? [],
   };
 }
 

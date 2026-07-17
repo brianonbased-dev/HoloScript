@@ -1,5 +1,9 @@
 import { readFile, appendFile, mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
+import {
+  FRAME_DECLARATION_MCP_META_KEY,
+  type FrameDeclarationContract,
+} from '@holoscript/agent-protocol';
 import type { BoardTask } from './types.js';
 import type { CaelAuditRecord } from './cael-builder.js';
 
@@ -23,6 +27,8 @@ export interface HolomeshClientOptions {
    * Set via HOLOSCRIPT_AGENT_LOCAL_KNOWLEDGE_PATH env var (index.ts).
    */
   localKnowledgePath?: string;
+  /** Active brain frame, attached automatically to every MCP tool call. */
+  frameDeclaration?: FrameDeclarationContract;
 }
 
 export interface TeamMessage {
@@ -61,6 +67,7 @@ export class HolomeshClient {
   private readonly fetchImpl: typeof fetch;
   private readonly signer?: RequestSigner;
   private readonly localKnowledgePath?: string;
+  private readonly frameDeclaration?: FrameDeclarationContract;
 
   constructor(opts: HolomeshClientOptions) {
     this.apiBase = opts.apiBase.replace(/\/$/, '');
@@ -69,6 +76,7 @@ export class HolomeshClient {
     this.fetchImpl = opts.fetchImpl ?? fetch;
     this.signer = opts.signer;
     this.localKnowledgePath = opts.localKnowledgePath;
+    this.frameDeclaration = opts.frameDeclaration;
   }
 
   /** Wrap body in a signed envelope when a signer is available (strict-mode endpoints). */
@@ -282,10 +290,14 @@ export class HolomeshClient {
   async invokeTool(tool: string, args: Record<string, unknown> = {}): Promise<{ ok: boolean; text: string }> {
     const root = this.apiBase.replace(/\/api\/holomesh\/?$/, '');
     try {
+      const params: Record<string, unknown> = { name: tool, arguments: args };
+      if (this.frameDeclaration) {
+        params._meta = { [FRAME_DECLARATION_MCP_META_KEY]: this.frameDeclaration };
+      }
       const res = await this.fetchImpl(`${root}/mcp`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${this.bearer}`, 'content-type': 'application/json' },
-        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: tool, arguments: args } }),
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params }),
       });
       if (!res.ok) {
         const t = await res.text().catch(() => '');

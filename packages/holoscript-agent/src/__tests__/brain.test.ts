@@ -113,6 +113,44 @@ describe('loadBrain', () => {
     expect((await loadBrain(path, 'hot')).scopeTier).toBe('hot');
   });
 
+  it('extracts @frame_declaration as a typed runtime tool boundary', async () => {
+    const path = join(dir, 'framed.hsplus');
+    writeFileSync(
+      path,
+      `
+#version 6.0.0
+brain FramedAgent : @behavior_tree {
+  @frame_declaration {
+    domain: "holoscript-language"
+    horizon: "2026-07"
+    capability_tier: 2
+    trust_tier: 1
+    allowed_tools: ["parse_hs", "validate_holoscript"]
+    denied_domains: ["finance", "medical-advice"]
+  }
+  identity { domain: "holoscript-language" }
+}
+`,
+      'utf8'
+    );
+
+    const brain = await loadBrain(path);
+    expect(brain.frameDeclaration).toEqual({
+      domain: 'holoscript-language',
+      horizon: '2026-07',
+      capability_tier: 2,
+      trust_tier: 1,
+      allowed_tools: ['parse_hs', 'validate_holoscript'],
+      denied_domains: ['finance', 'medical-advice'],
+    });
+  });
+
+  it('leaves unframed brains backward-compatible', async () => {
+    const path = join(dir, 'unframed.hsplus');
+    writeFileSync(path, MINI_BRAIN, 'utf8');
+    expect((await loadBrain(path)).frameDeclaration).toBeUndefined();
+  });
+
   // ─── Universal+segregated routing fields (founder ruling 2026-05-06) ─────
   // Brains may declare requires / prefers / avoids capability arrays in the
   // identity block; router uses them at session start to pick a provider.

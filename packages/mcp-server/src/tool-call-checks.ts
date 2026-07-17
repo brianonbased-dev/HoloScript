@@ -1,11 +1,11 @@
 /**
  * tool-call-checks.ts — the REAL pre-dispatch check wired at both CallTool
  * fold points (dependency-sovereignty-ladder follow-up, 2026-07-16: "wire a
- * real FounderGate/x402 ToolCallCheck at the two gate call sites").
+ * real FounderGate/frame/x402 ToolCallCheck at the two gate call sites").
  *
  * The seam (`ToolCallCheck` in tool-call-gate.ts) was built for exactly this:
  * FounderGate / x402 verification running BEFORE dispatch, in one place
- * instead of two transport handlers. This module composes the two real,
+ * instead of two transport handlers. This module composes three real,
  * already-canonical verifications:
  *
  *   1. FOUNDER GATE (exact-four authority routing) — the shared
@@ -24,7 +24,12 @@
  *      branch is behavior-neutral for the current surface and a live forcing
  *      function for any future custody-class tool name.
  *
- *   2. X402 SEAT / SCOPE AUTHORIZATION — the same pure Gate-2 authorizer
+ *   2. ACTIVE BRAIN FRAME — the language-authored `@frame_declaration` is
+ *      carried in namespaced MCP metadata by the headless runtime and checked
+ *      with core's canonical trait evaluator. Invalid declarations fail closed;
+ *      absent declarations preserve legacy clients.
+ *
+ *   3. X402 SEAT / SCOPE AUTHORIZATION — the same pure Gate-2 authorizer
  *      (`authorizeToolCall`, security/tool-scopes.ts) that x402-seat OAuth
  *      introspection feeds downstream. Running it at the fold point makes two
  *      things true pre-dispatch, on BOTH transports:
@@ -44,11 +49,15 @@
  */
 
 import { deriveFounderReversibility } from '@holoscript/framework';
+import { checkToolAllowed } from '@holoscript/core';
 import { authorizeToolCall } from './security/tool-scopes';
 import type { ToolCallCheck, ToolCallCheckDecision } from './tool-call-gate';
 
 /** Check id recorded when the FounderGate branch denies. */
 export const FOUNDER_GATE_CHECK_ID = 'founder-gate-exact-four';
+
+/** Check id recorded when an active brain frame denies the call. */
+export const FRAME_DECLARATION_CHECK_ID = 'frame-declaration';
 
 /** Check id recorded when the x402 scope-authorization branch denies. */
 export const X402_SCOPE_CHECK_ID = 'x402-scope-authorization';
@@ -92,7 +101,7 @@ function founderGateDenial(toolName: string): ToolCallCheckDecision | undefined 
 }
 
 /**
- * The real FounderGate/x402 pre-dispatch check — wired as the `check` option
+ * The real FounderGate/frame/x402 pre-dispatch check — wired as the `check` option
  * at both `gateToolCall` fold points (index.ts stdio, http-server.ts HTTP).
  */
 export const founderGateX402ToolCallCheck: ToolCallCheck = (envelope, ctx) => {
@@ -102,7 +111,38 @@ export const founderGateX402ToolCallCheck: ToolCallCheck = (envelope, ctx) => {
     return founderDenial;
   }
 
-  // 2) x402 seat/scope authorization (Gate-2 authorizer at the fold point).
+  // 2) Active brain frame — fail closed for invalid metadata, then enforce
+  // the authored tool allowlist using the canonical core trait helper.
+  if (ctx.frameDeclaration === null) {
+    return {
+      allowed: false,
+      check: FRAME_DECLARATION_CHECK_ID,
+      reason: 'frame_violation: undeclared_frame: invalid frame declaration metadata',
+      violation: {
+        event: 'frame_violation',
+        violationType: 'undeclared_frame',
+        tool: envelope.name,
+      },
+    };
+  }
+  if (ctx.frameDeclaration !== undefined) {
+    const frameResult = checkToolAllowed(ctx.frameDeclaration, envelope.name);
+    if (!frameResult.allowed) {
+      return {
+        allowed: false,
+        check: FRAME_DECLARATION_CHECK_ID,
+        reason: `frame_violation: ${frameResult.violation_type}: ${frameResult.detail ?? 'tool denied by active frame'}`,
+        violation: {
+          event: 'frame_violation',
+          violationType: frameResult.violation_type ?? 'tool_not_allowed',
+          tool: envelope.name,
+          frameDomain: ctx.frameDeclaration.domain,
+        },
+      };
+    }
+  }
+
+  // 3) x402 seat/scope authorization (Gate-2 authorizer at the fold point).
   const scopes =
     ctx.transport === 'stdio' && (ctx.callerId === null || ctx.callerId === undefined)
       ? TRUSTED_LOCAL_SCOPES

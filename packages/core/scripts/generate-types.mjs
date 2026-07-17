@@ -7021,6 +7021,30 @@ export class AuditLogger {
   purgeExpired(): number;
   getEventCount(filter?: AuditQueryFilter): number;
 }
+
+export type FrameTier = 0 | 1 | 2 | 3;
+export const FRAME_DECLARATION_MCP_META_KEY: 'holoscript.dev/frame-declaration';
+export interface FrameDeclaration {
+  domain: string;
+  horizon: string;
+  capability_tier: FrameTier;
+  trust_tier: FrameTier;
+  allowed_tools: string[];
+  denied_domains: string[];
+}
+export type FrameDeclarationConfig = Partial<FrameDeclaration>;
+export type FrameViolationType =
+  | 'tool_not_allowed'
+  | 'domain_denied'
+  | 'horizon_exceeded'
+  | 'tier_exceeded'
+  | 'undeclared_frame';
+export interface FrameCheckResult {
+  allowed: boolean;
+  violation_type?: FrameViolationType;
+  detail?: string;
+}
+export function checkToolAllowed(frame: FrameDeclaration, tool: string): FrameCheckResult;
 `;
 
 // Confabulation risk layer — the per-trait enum/type/range prop-schema validator plus the

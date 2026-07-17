@@ -39,6 +39,11 @@ import { createHash } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import {
+  FRAME_DECLARATION_MCP_META_KEY,
+  type FrameDeclaration,
+  type FrameViolationType,
+} from '@holoscript/core';
 
 // ── Envelope / context types ─────────────────────────────────────────────────
 
@@ -63,6 +68,8 @@ export interface ToolCallGateContext {
   readonly sessionId?: string;
   /** Granted scopes (OAuth or signing envelope) when the transport knows them. */
   readonly scopes?: readonly string[];
+  /** Active brain frame. `null` means the metadata key was present but invalid. */
+  readonly frameDeclaration?: FrameDeclaration | null;
 }
 
 // ── Check seam (FounderGate / x402 / envelope validation plug in here) ───────
@@ -74,6 +81,8 @@ export interface ToolCallCheckDecision {
   readonly check: string;
   /** Human-readable denial reason (used in the thrown error when denied). */
   readonly reason?: string;
+  /** Structured frame denial persisted into the central gate receipt. */
+  readonly violation?: FrameViolationReceipt;
 }
 
 /**
@@ -129,6 +138,58 @@ export interface ToolCallReceipt {
   readonly errorClass?: string;
   /** The check that denied the call, when denial (not dispatch) produced the error. */
   readonly deniedBy?: string;
+  /** Structured frame boundary event when frame enforcement denied the call. */
+  readonly frameViolation?: FrameViolationReceipt;
+}
+
+/** Stable receipt payload for a frame boundary denial. */
+export interface FrameViolationReceipt {
+  readonly event: 'frame_violation';
+  readonly violationType: FrameViolationType;
+  readonly tool: string;
+  readonly frameDomain?: string;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isFrameTier(value: unknown): value is 0 | 1 | 2 | 3 {
+  return value === 0 || value === 1 || value === 2 || value === 3;
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((entry) => typeof entry === 'string');
+}
+
+/**
+ * Read the namespaced frame from MCP `_meta`.
+ * `undefined` means no frame was supplied; `null` means supplied but invalid.
+ */
+export function frameDeclarationFromMcpMeta(
+  meta: unknown
+): FrameDeclaration | null | undefined {
+  if (
+    !isRecord(meta) ||
+    !Object.prototype.hasOwnProperty.call(meta, FRAME_DECLARATION_MCP_META_KEY)
+  ) {
+    return undefined;
+  }
+
+  const value = meta[FRAME_DECLARATION_MCP_META_KEY];
+  if (
+    !isRecord(value) ||
+    typeof value.domain !== 'string' ||
+    typeof value.horizon !== 'string' ||
+    !isFrameTier(value.capability_tier) ||
+    !isFrameTier(value.trust_tier) ||
+    !isStringArray(value.allowed_tools) ||
+    !isStringArray(value.denied_domains)
+  ) {
+    return null;
+  }
+
+  return value as unknown as FrameDeclaration;
 }
 
 // ── Canonical JSON + hashing (pattern: core/trust stableTrustStringify) ──────
@@ -276,7 +337,7 @@ export async function gateToolCall<T>(
 
   const finishReceipt = (
     status: 'ok' | 'error',
-    extra?: { errorClass?: string; deniedBy?: string }
+    extra?: { errorClass?: string; deniedBy?: string; frameViolation?: FrameViolationReceipt }
   ): void => {
     const endedAtMs = Date.now();
     writeToolCallReceipt({
@@ -286,12 +347,19 @@ export async function gateToolCall<T>(
       status,
       ...(extra?.errorClass !== undefined ? { errorClass: extra.errorClass } : {}),
       ...(extra?.deniedBy !== undefined ? { deniedBy: extra.deniedBy } : {}),
+      ...(extra?.frameViolation !== undefined
+        ? { frameViolation: extra.frameViolation }
+        : {}),
     });
   };
 
   const decision = await check(envelope, ctx);
   if (!decision.allowed) {
-    finishReceipt('error', { errorClass: 'ToolCallGateDeniedError', deniedBy: decision.check });
+    finishReceipt('error', {
+      errorClass: 'ToolCallGateDeniedError',
+      deniedBy: decision.check,
+      ...(decision.violation !== undefined ? { frameViolation: decision.violation } : {}),
+    });
     throw new ToolCallGateDeniedError(envelope.name, decision.check, decision.reason);
   }
 

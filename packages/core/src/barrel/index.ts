@@ -258,3 +258,13 @@ export type {
   MatterUnit,
 } from '../matter/StagedMatter';
 export { consolidate, createMatterUnit } from '../matter/StagedMatter';
+
+// FrameDeclarationTrait — runtime boundary checks for declared agent frames (D.101)
+export { FRAME_DECLARATION_MCP_META_KEY } from '@holoscript/agent-protocol';
+export type {
+  FrameCheckResult,
+  FrameDeclaration,
+  FrameDeclarationConfig,
+  FrameViolationType,
+} from '../traits/FrameDeclarationTrait';
+export { checkToolAllowed } from '../traits/FrameDeclarationTrait';

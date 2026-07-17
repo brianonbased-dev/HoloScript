@@ -202,4 +202,67 @@ describe('HolomeshClient', () => {
       expect('capabilityTags' in sentBody).toBe(false);
     });
   });
+
+  describe('frame declaration MCP auto-intercept', () => {
+    it('attaches the active brain frame as MCP metadata with no call-site boilerplate', async () => {
+      const calls: Array<{ body: Record<string, unknown> }> = [];
+      const fetchImpl: typeof fetch = (async (_url, init?: RequestInit) => {
+        calls.push({ body: JSON.parse(String(init?.body)) as Record<string, unknown> });
+        return new Response(
+          JSON.stringify({ result: { content: [{ type: 'text', text: 'ok' }] } }),
+          { status: 200 }
+        );
+      }) as unknown as typeof fetch;
+
+      const client = new HolomeshClient({
+        apiBase: 'https://mcp.holoscript.net/api/holomesh',
+        bearer: 'b',
+        teamId: 't',
+        fetchImpl,
+        frameDeclaration: {
+          domain: 'holoscript-language',
+          horizon: '2026-07',
+          capability_tier: 2,
+          trust_tier: 2,
+          allowed_tools: ['validate_holoscript'],
+          denied_domains: ['finance'],
+        },
+      });
+
+      await expect(
+        client.invokeTool('validate_holoscript', { code: '#version 6.0.0' })
+      ).resolves.toEqual({ ok: true, text: 'ok' });
+
+      const params = calls[0].body.params as Record<string, unknown>;
+      expect(params._meta).toEqual({
+        'holoscript.dev/frame-declaration': {
+          domain: 'holoscript-language',
+          horizon: '2026-07',
+          capability_tier: 2,
+          trust_tier: 2,
+          allowed_tools: ['validate_holoscript'],
+          denied_domains: ['finance'],
+        },
+      });
+      expect(params.arguments).toEqual({ code: '#version 6.0.0' });
+    });
+
+    it('omits frame metadata for legacy clients without a declared frame', async () => {
+      const calls: Array<{ body: Record<string, unknown> }> = [];
+      const fetchImpl: typeof fetch = (async (_url, init?: RequestInit) => {
+        calls.push({ body: JSON.parse(String(init?.body)) as Record<string, unknown> });
+        return new Response(JSON.stringify({ result: { content: [] } }), { status: 200 });
+      }) as unknown as typeof fetch;
+      const client = new HolomeshClient({
+        apiBase: 'https://mcp.holoscript.net/api/holomesh',
+        bearer: 'b',
+        teamId: 't',
+        fetchImpl,
+      });
+
+      await client.invokeTool('parse_hs', {});
+      const params = calls[0].body.params as Record<string, unknown>;
+      expect(params._meta).toBeUndefined();
+    });
+  });
 });

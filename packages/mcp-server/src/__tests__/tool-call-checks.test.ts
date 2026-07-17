@@ -24,6 +24,7 @@ import {
   founderGateX402ToolCallCheck,
   normalizeToolNameForAuthorityRouting,
   FOUNDER_GATE_CHECK_ID,
+  FRAME_DECLARATION_CHECK_ID,
   X402_SCOPE_CHECK_ID,
   FOUNDER_GATE_X402_CHECK_ID,
 } from '../tool-call-checks';
@@ -116,6 +117,59 @@ describe('founderGateX402ToolCallCheck', () => {
     expect(decision.allowed).toBe(true);
   });
 
+  it('auto-denies a registered MCP tool outside the active brain allowlist', async () => {
+    registerKnownTools(['parse_hs', 'compile_holoscript']);
+    const decision = await runCheck('compile_holoscript', {
+      ...httpCtx(['tools:write']),
+      frameDeclaration: {
+        domain: 'holoscript-language',
+        horizon: '2026-07',
+        capability_tier: 2,
+        trust_tier: 2,
+        allowed_tools: ['parse_hs'],
+        denied_domains: [],
+      },
+    });
+
+    expect(decision.allowed).toBe(false);
+    expect(decision.check).toBe(FRAME_DECLARATION_CHECK_ID);
+    expect(decision.reason).toContain('frame_violation');
+    expect(decision.violation).toMatchObject({
+      event: 'frame_violation',
+      violationType: 'tool_not_allowed',
+      tool: 'compile_holoscript',
+    });
+  });
+
+  it('allows a registered MCP tool inside the active brain allowlist', async () => {
+    registerKnownTools(['parse_hs']);
+    const decision = await runCheck('parse_hs', {
+      ...httpCtx(['tools:read']),
+      frameDeclaration: {
+        domain: 'holoscript-language',
+        horizon: '2026-07',
+        capability_tier: 2,
+        trust_tier: 2,
+        allowed_tools: ['parse_hs'],
+        denied_domains: [],
+      },
+    });
+
+    expect(decision.allowed).toBe(true);
+    expect(decision.check).toBe(FOUNDER_GATE_X402_CHECK_ID);
+  });
+
+  it('fails closed when frame metadata is present but malformed', async () => {
+    registerKnownTools(['parse_hs']);
+    const decision = await runCheck('parse_hs', {
+      ...httpCtx(['tools:read']),
+      frameDeclaration: null,
+    });
+    expect(decision.allowed).toBe(false);
+    expect(decision.check).toBe(FRAME_DECLARATION_CHECK_ID);
+    expect(decision.violation?.violationType).toBe('undeclared_frame');
+  });
+
   it('REGRESSION: no live scope-mapped tool name is founder-denied (behavior-neutral surface)', async () => {
     const scopes = ['tools:read', 'tools:write', 'tools:admin', 'tools:codebase', 'tools:browser'];
     const liveNames = [...new Set(scopes.flatMap((scope) => getToolsForScope(scope)))];
@@ -148,5 +202,41 @@ describe('founderGateX402ToolCallCheck', () => {
     ).rejects.toBeInstanceOf(ToolCallGateDeniedError);
 
     expect(dispatched).toBe(false);
+  });
+
+  it('persists frame_violation in the central gate receipt', async () => {
+    registerKnownTools(['parse_hs', 'compile_holoscript']);
+    const receiptPath = process.env.HOLOSCRIPT_TOOL_CALL_RECEIPT_PATH!;
+    fs.rmSync(receiptPath, { force: true });
+
+    await expect(
+      gateToolCall(
+        { name: 'compile_holoscript', args: {} },
+        {
+          ...httpCtx(['tools:write']),
+          frameDeclaration: {
+            domain: 'holoscript-language',
+            horizon: '2026-07',
+            capability_tier: 2,
+            trust_tier: 2,
+            allowed_tools: ['parse_hs'],
+            denied_domains: [],
+          },
+        },
+        async () => ({}),
+        { check: founderGateX402ToolCallCheck }
+      )
+    ).rejects.toBeInstanceOf(ToolCallGateDeniedError);
+
+    const [receipt] = fs
+      .readFileSync(receiptPath, 'utf8')
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line) as Record<string, unknown>);
+    expect(receipt.frameViolation).toMatchObject({
+      event: 'frame_violation',
+      violationType: 'tool_not_allowed',
+      tool: 'compile_holoscript',
+    });
   });
 });

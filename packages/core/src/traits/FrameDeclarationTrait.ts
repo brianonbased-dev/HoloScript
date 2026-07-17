@@ -37,6 +37,7 @@
  * @D101-compatible pure language work
  */
 
+import type { FrameDeclarationContract } from '@holoscript/agent-protocol';
 import type { HSPlusNode } from './TraitTypes';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -47,7 +48,7 @@ interface TraitCtx {
 }
 
 /** The declared frame of reference carried by a brain */
-export interface FrameDeclaration {
+export interface FrameDeclaration extends FrameDeclarationContract {
   /** Primary knowledge domain. "*" means unrestricted. */
   domain: string;
   /**

@@ -1,4 +1,5 @@
 import type { LLMProviderName, TokenUsage } from '@holoscript/llm-provider';
+import type { FrameDeclarationContract } from '@holoscript/agent-protocol';
 
 export interface AgentIdentity {
   handle: string;
@@ -19,6 +20,12 @@ export interface RuntimeBrainConfig {
   capabilityTags: string[];
   domain: string;
   scopeTier: 'cold' | 'warm' | 'hot';
+  /**
+   * Optional `@frame_declaration` boundary authored by the brain. The mesh
+   * client transports it automatically and the MCP fold point enforces it.
+   * Absent keeps legacy brains backward-compatible.
+   */
+  frameDeclaration?: FrameDeclarationContract;
   /**
    * Capability keys (from `Capabilities` in @holoscript/llm-provider) that
    * this brain MUST have. Router refuses to assign the brain to a provider

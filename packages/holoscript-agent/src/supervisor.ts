@@ -141,6 +141,7 @@ export class Supervisor {
       bearer: identity.x402Bearer,
       teamId: identity.teamId,
       fetchImpl: this.opts.fetchImpl,
+      frameDeclaration: brain.frameDeclaration,
     });
     const onTaskExecuted = effectiveSpec.enableCommitHook
       ? this.buildCommitHook(effectiveSpec, identity, mesh)

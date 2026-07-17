@@ -23,6 +23,7 @@ import {
   classifyMcpEnvelopeResult,
   canonicalJsonStringify,
   sha256OfCanonicalJson,
+  frameDeclarationFromMcpMeta,
   resolveToolCallReceiptPath,
   ToolCallGateDeniedError,
   type ToolCallReceipt,
@@ -179,5 +180,26 @@ describe('gateToolCall', () => {
     expect(canonicalJsonStringify({ b: 1, a: { d: undefined, c: [2, { z: 1, y: 0 }] } })).toBe(
       '{"a":{"c":[2,{"y":0,"z":1}]},"b":1}'
     );
+  });
+
+  it('parses valid frame metadata and marks malformed declarations as invalid', () => {
+    const declaration = {
+      domain: 'holoscript-language',
+      horizon: '2026-07',
+      capability_tier: 2,
+      trust_tier: 2,
+      allowed_tools: ['parse_hs'],
+      denied_domains: ['finance'],
+    } as const;
+
+    expect(
+      frameDeclarationFromMcpMeta({ 'holoscript.dev/frame-declaration': declaration })
+    ).toEqual(declaration);
+    expect(frameDeclarationFromMcpMeta({})).toBeUndefined();
+    expect(
+      frameDeclarationFromMcpMeta({
+        'holoscript.dev/frame-declaration': { ...declaration, capability_tier: 7 },
+      })
+    ).toBeNull();
   });
 });
