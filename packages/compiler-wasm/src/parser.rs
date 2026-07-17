@@ -1071,7 +1071,7 @@ impl Parser {
             fields.push(self.expect_identifier()?);
             let field_type = if self.check(TokenType::Colon) {
                 self.advance();
-                Some(self.expect_identifier()?)
+                Some(self.parse_value_type_annotation()?)
             } else {
                 None
             };
@@ -2412,7 +2412,7 @@ impl Parser {
 
     fn parse_type_annotation(&mut self) -> Result<String, ParseError> {
         if !self.check(TokenType::Ampersand) {
-            return self.expect_identifier();
+            return self.parse_value_type_annotation();
         }
 
         self.advance();
@@ -2426,6 +2426,19 @@ impl Parser {
         } else {
             format!("&{pointee}")
         })
+    }
+
+    fn parse_value_type_annotation(&mut self) -> Result<String, ParseError> {
+        if !self.check(TokenType::LBracket) {
+            return self.expect_identifier();
+        }
+
+        self.advance();
+        let element = self.expect_identifier()?;
+        self.expect(TokenType::Semicolon)?;
+        let length = self.expect(TokenType::Number)?.value.clone();
+        self.expect(TokenType::RBracket)?;
+        Ok(format!("[{element}; {length}]"))
     }
 
     fn expect_string(&mut self) -> Result<String, ParseError> {
@@ -3322,6 +3335,56 @@ mod tests {
         assert_eq!(slot.name, "value");
         assert_eq!(slot.type_annotation, "i32");
         assert!(matches!(function.body[1], AstNode::CallExpression(_)));
+    }
+
+    #[test]
+    fn test_parse_fixed_array_slot_and_slice_projection() {
+        let source = r#"function main(): i32 {
+            slot values: [i32; 4] = [1, 2, 3, 4]
+            let index: i32 = 1
+            return load(values[1..4][index])
+        }"#;
+        let mut parser = Parser::new(source);
+        let program = parser
+            .parse()
+            .expect("fixed array storage and slice projection should parse");
+
+        let AstNode::Function(function) = &program.body[0] else {
+            panic!("Expected Function node");
+        };
+        let AstNode::StackSlotDeclaration(slot) = &function.body[0] else {
+            panic!("Expected StackSlotDeclaration node");
+        };
+        assert_eq!(slot.type_annotation, "[i32; 4]");
+        assert!(matches!(
+            slot.value.as_ref(),
+            AstNode::Array(array) if array.elements.len() == 4
+        ));
+
+        let AstNode::Return(return_node) = &function.body[2] else {
+            panic!("Expected Return node");
+        };
+        let AstNode::CallExpression(load) = return_node
+            .argument
+            .as_deref()
+            .expect("return should carry a load expression")
+        else {
+            panic!("Expected CallExpression node");
+        };
+        assert!(matches!(
+            load.arguments.first(),
+            Some(AstNode::MemberExpression(outer))
+                if outer.computed
+                    && matches!(
+                        outer.object.as_ref(),
+                        AstNode::MemberExpression(inner)
+                            if inner.computed
+                                && matches!(
+                                    inner.property.as_ref(),
+                                    AstNode::BinaryExpression(range) if range.operator == ".."
+                                )
+                    )
+        ));
     }
 
     #[test]

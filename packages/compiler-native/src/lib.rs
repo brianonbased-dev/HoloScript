@@ -9,8 +9,9 @@
 //! borrows and remove scoped bindings. `hs-machine-v5` adds native booleans,
 //! comparisons, short-circuit logic, branches, and bounded while loops with cleanup
 //! on every lexical-scope exit. `hs-machine-v6` adds typed, contiguous stack aggregates
-//! with deterministic field layout. Everything outside the selected contract fails
-//! closed with a native compile diagnostic.
+//! with deterministic field layout. `hs-machine-v7` adds fixed-size scalar arrays and
+//! bounds-checked half-open slice projections. Everything outside the selected contract
+//! fails closed with a native compile diagnostic.
 
 use std::collections::{HashMap, HashSet};
 use std::env;
@@ -20,15 +21,15 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use cranelift::codegen::ir::{
-    condcodes::IntCC, types, AbiParam, InstBuilder, StackSlot, StackSlotData, StackSlotKind,
-    UserFuncName, Value,
+    condcodes::IntCC, types, AbiParam, InstBuilder, MemFlags, StackSlot, StackSlotData,
+    StackSlotKind, TrapCode, UserFuncName, Value,
 };
 use cranelift::codegen::settings;
 use cranelift::frontend::{FunctionBuilder, FunctionBuilderContext};
 use cranelift::module::{default_libcall_names, FuncId, Linkage, Module};
 use cranelift::object::{ObjectBuilder, ObjectModule};
 use holoscript_wasm::ast::{
-    AssignmentNode, Ast, AstNode, BinaryExpression, CallExpression, FunctionNode,
+    AssignmentNode, Ast, AstNode, BinaryExpression, CallExpression, FunctionNode, MemberExpression,
 };
 use serde::Serialize;
 use sha2::{Digest, Sha256};
@@ -40,6 +41,7 @@ pub const REFERENCE_MACHINE_CONTRACT: &str = "hs-machine-v3";
 pub const REFERENCE_SCOPE_MACHINE_CONTRACT: &str = "hs-machine-v4";
 pub const CONTROL_FLOW_MACHINE_CONTRACT: &str = "hs-machine-v5";
 pub const AGGREGATE_MACHINE_CONTRACT: &str = "hs-machine-v6";
+pub const FIXED_ARRAY_MACHINE_CONTRACT: &str = "hs-machine-v7";
 
 struct CompiledObject {
     bytes: Vec<u8>,
@@ -158,7 +160,12 @@ fn compile_unit(
         NativeCompileError::new(format!("HoloScript parse failed: {rendered}"))
     })?;
 
-    if has_aggregate_machine_metadata(&ast) {
+    if has_fixed_array_machine_metadata(&ast) {
+        Ok(CompiledObject {
+            bytes: lower_typed_ast_to_object(&ast, FIXED_ARRAY_MACHINE_CONTRACT, true)?,
+            machine_contract: FIXED_ARRAY_MACHINE_CONTRACT,
+        })
+    } else if has_aggregate_machine_metadata(&ast) {
         Ok(CompiledObject {
             bytes: lower_typed_ast_to_object(&ast, AGGREGATE_MACHINE_CONTRACT, true)?,
             machine_contract: AGGREGATE_MACHINE_CONTRACT,
@@ -351,6 +358,54 @@ fn has_aggregate_machine_metadata(ast: &Ast) -> bool {
             AstNode::StructDeclaration(structure) if !structure.field_types.is_empty()
         )
     })
+}
+
+fn has_fixed_array_machine_metadata(ast: &Ast) -> bool {
+    ast.body.iter().any(|node| match node {
+        AstNode::Function(function) => {
+            function
+                .return_type
+                .as_deref()
+                .is_some_and(annotation_uses_fixed_array)
+                || function
+                    .param_types
+                    .iter()
+                    .flatten()
+                    .any(|annotation| annotation_uses_fixed_array(annotation))
+                || function.body.iter().any(node_uses_fixed_array_type)
+        }
+        AstNode::StructDeclaration(structure) => structure
+            .field_types
+            .iter()
+            .flatten()
+            .any(|annotation| annotation_uses_fixed_array(annotation)),
+        _ => false,
+    })
+}
+
+fn annotation_uses_fixed_array(annotation: &str) -> bool {
+    annotation.starts_with('[')
+}
+
+fn node_uses_fixed_array_type(node: &AstNode) -> bool {
+    match node {
+        AstNode::VariableDeclaration(local) => local
+            .type_annotation
+            .as_deref()
+            .is_some_and(annotation_uses_fixed_array),
+        AstNode::StackSlotDeclaration(slot) => annotation_uses_fixed_array(&slot.type_annotation),
+        AstNode::If(if_node) => {
+            if_node.consequent.iter().any(node_uses_fixed_array_type)
+                || if_node
+                    .alternate
+                    .as_ref()
+                    .is_some_and(|alternate| alternate.iter().any(node_uses_fixed_array_type))
+        }
+        AstNode::While(while_node) => while_node.body.iter().any(node_uses_fixed_array_type),
+        AstNode::ForOf(for_node) => for_node.body.iter().any(node_uses_fixed_array_type),
+        AstNode::LexicalScope(scope) => scope.body.iter().any(node_uses_fixed_array_type),
+        _ => false,
+    }
 }
 
 fn has_memory_machine_metadata(ast: &Ast) -> bool {
@@ -573,14 +628,14 @@ impl MachineType {
 fn bool_enabled(machine_contract: &str) -> bool {
     matches!(
         machine_contract,
-        CONTROL_FLOW_MACHINE_CONTRACT | AGGREGATE_MACHINE_CONTRACT
+        CONTROL_FLOW_MACHINE_CONTRACT | AGGREGATE_MACHINE_CONTRACT | FIXED_ARRAY_MACHINE_CONTRACT
     )
 }
 
 fn control_flow_enabled(machine_contract: &str) -> bool {
     matches!(
         machine_contract,
-        CONTROL_FLOW_MACHINE_CONTRACT | AGGREGATE_MACHINE_CONTRACT
+        CONTROL_FLOW_MACHINE_CONTRACT | AGGREGATE_MACHINE_CONTRACT | FIXED_ARRAY_MACHINE_CONTRACT
     )
 }
 
@@ -590,6 +645,7 @@ fn scoped_lifetimes_enabled(machine_contract: &str) -> bool {
         REFERENCE_SCOPE_MACHINE_CONTRACT
             | CONTROL_FLOW_MACHINE_CONTRACT
             | AGGREGATE_MACHINE_CONTRACT
+            | FIXED_ARRAY_MACHINE_CONTRACT
     )
 }
 
@@ -600,6 +656,7 @@ fn references_enabled(machine_contract: &str) -> bool {
             | REFERENCE_SCOPE_MACHINE_CONTRACT
             | CONTROL_FLOW_MACHINE_CONTRACT
             | AGGREGATE_MACHINE_CONTRACT
+            | FIXED_ARRAY_MACHINE_CONTRACT
     )
 }
 
@@ -611,7 +668,83 @@ fn memory_contract_enabled(machine_contract: &str) -> bool {
             | REFERENCE_SCOPE_MACHINE_CONTRACT
             | CONTROL_FLOW_MACHINE_CONTRACT
             | AGGREGATE_MACHINE_CONTRACT
+            | FIXED_ARRAY_MACHINE_CONTRACT
     )
+}
+
+fn aggregate_contract_enabled(machine_contract: &str) -> bool {
+    matches!(
+        machine_contract,
+        AGGREGATE_MACHINE_CONTRACT | FIXED_ARRAY_MACHINE_CONTRACT
+    )
+}
+
+fn fixed_arrays_enabled(machine_contract: &str) -> bool {
+    machine_contract == FIXED_ARRAY_MACHINE_CONTRACT
+}
+
+#[derive(Debug, Clone)]
+struct FixedArrayLayout {
+    element_type: MachineType,
+    length: u32,
+    size: u32,
+}
+
+impl FixedArrayLayout {
+    fn parse(
+        annotation: &str,
+        context: &str,
+        machine_contract: &str,
+    ) -> Result<Option<Self>, NativeCompileError> {
+        if !annotation_uses_fixed_array(annotation) {
+            return Ok(None);
+        }
+        if !fixed_arrays_enabled(machine_contract) {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} does not enable fixed array storage"
+            )));
+        }
+
+        let Some(body) = annotation
+            .strip_prefix('[')
+            .and_then(|body| body.strip_suffix(']'))
+        else {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} {context} has malformed fixed array type `{annotation}`"
+            )));
+        };
+        let Some((element, length)) = body.split_once(';') else {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} {context} has malformed fixed array type `{annotation}`"
+            )));
+        };
+        let element_type = MachineType::parse(element.trim(), context, machine_contract)?;
+        let length = length.trim().parse::<u32>().map_err(|_| {
+            NativeCompileError::new(format!(
+                "{machine_contract} {context} requires an unsigned integer fixed array length; found `{}`",
+                length.trim()
+            ))
+        })?;
+        if length == 0 {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} {context} fixed array length must be greater than zero"
+            )));
+        }
+        let size = element_type
+            .stack_size()
+            .checked_mul(length)
+            .filter(|size| *size <= i32::MAX as u32)
+            .ok_or_else(|| {
+                NativeCompileError::new(format!(
+                    "{machine_contract} {context} fixed array exceeds addressable native stack offsets"
+                ))
+            })?;
+        Ok(Some(Self {
+            element_type,
+            length,
+            size,
+        }))
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -722,6 +855,18 @@ fn collect_aggregate_layouts(
                     structure.name,
                 )));
             }
+            if FixedArrayLayout::parse(
+                type_name,
+                &format!("field `{field_name}` in struct `{}`", structure.name),
+                machine_contract,
+            )?
+            .is_some()
+            {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} fixed arrays as aggregate fields are not enabled; field `{field_name}` in struct `{}` uses `{type_name}`",
+                    structure.name
+                )));
+            }
             let machine_type = MachineType::parse(
                 type_name,
                 &format!("field `{field_name}` in struct `{}`", structure.name),
@@ -812,13 +957,14 @@ struct TypedStackSlot {
 enum StackSlotLayout {
     Scalar(MachineType),
     Aggregate(AggregateLayout),
+    FixedArray(FixedArrayLayout),
 }
 
 impl TypedStackSlot {
     fn scalar_type(&self) -> Option<MachineType> {
         match self.layout {
             StackSlotLayout::Scalar(machine_type) => Some(machine_type),
-            StackSlotLayout::Aggregate(_) => None,
+            StackSlotLayout::Aggregate(_) | StackSlotLayout::FixedArray(_) => None,
         }
     }
 }
@@ -1025,7 +1171,7 @@ fn collect_typed_function_specs<'a>(
     let mut names = HashMap::new();
     for node in &ast.body {
         if matches!(node, AstNode::StructDeclaration(_))
-            && machine_contract == AGGREGATE_MACHINE_CONTRACT
+            && aggregate_contract_enabled(machine_contract)
         {
             continue;
         }
@@ -1085,6 +1231,18 @@ fn collect_typed_function_specs<'a>(
                     function.name
                 )));
             }
+            if FixedArrayLayout::parse(
+                type_name,
+                &format!("parameter `{param_name}` in function `{}`", function.name),
+                machine_contract,
+            )?
+            .is_some()
+            {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} fixed arrays cannot appear in function parameters; `{param_name}` in `{}` uses `{type_name}`",
+                    function.name
+                )));
+            }
             params.push(MachineType::parse(
                 type_name,
                 &format!("parameter `{param_name}` in function `{}`", function.name),
@@ -1106,6 +1264,18 @@ fn collect_typed_function_specs<'a>(
         if aggregate_layouts.contains_key(return_name) {
             return Err(NativeCompileError::new(format!(
                 "{machine_contract} aggregates cannot appear in function returns; `{}` returns `{return_name}`",
+                function.name
+            )));
+        }
+        if FixedArrayLayout::parse(
+            return_name,
+            &format!("return type of function `{}`", function.name),
+            machine_contract,
+        )?
+        .is_some()
+        {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} fixed arrays cannot appear in function returns; `{}` returns `{return_name}`",
                 function.name
             )));
         }
@@ -1243,6 +1413,12 @@ fn lower_typed_statements(
                         local.name
                     )));
                 }
+                if FixedArrayLayout::parse(type_name, &type_context, machine_contract)?.is_some() {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} fixed array local `{}` must use addressable `slot` storage",
+                        local.name
+                    )));
+                }
                 if let Some(reference_type) =
                     ReferenceType::parse(type_name, &type_context, machine_contract)?
                 {
@@ -1312,6 +1488,71 @@ fn lower_typed_statements(
                         "{machine_contract} function `{}` redeclares binding `{}`",
                         spec.node.name, slot.name
                     )));
+                }
+                let array_context = format!(
+                    "stack slot `{}` in function `{}`",
+                    slot.name, spec.node.name
+                );
+                if let Some(layout) = FixedArrayLayout::parse(
+                    &slot.type_annotation,
+                    &array_context,
+                    machine_contract,
+                )? {
+                    let AstNode::Array(initializer) = slot.value.as_ref() else {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} fixed array stack slot `{}` must be initialized with an array literal",
+                            slot.name
+                        )));
+                    };
+                    if initializer.elements.len() != layout.length as usize {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} fixed array stack slot `{}` expects {} elements, found {}",
+                            slot.name,
+                            layout.length,
+                            initializer.elements.len()
+                        )));
+                    }
+                    let mut initial_values = Vec::with_capacity(initializer.elements.len());
+                    for (index, element) in initializer.elements.iter().enumerate() {
+                        initial_values.push(lower_typed_expression(
+                            builder,
+                            module,
+                            functions,
+                            locals,
+                            stack_slots,
+                            references,
+                            borrow_states,
+                            element,
+                            layout.element_type,
+                            &format!("element {index} of fixed array `{}`", slot.name),
+                            machine_contract,
+                            memory_enabled,
+                        )?);
+                    }
+                    let stack_slot = builder.create_sized_stack_slot(StackSlotData::new(
+                        StackSlotKind::ExplicitSlot,
+                        layout.size,
+                        layout.element_type.stack_align_shift(),
+                    ));
+                    for (index, initial_value) in initial_values.into_iter().enumerate() {
+                        let offset = u32::try_from(index)
+                            .expect("fixed array length is validated")
+                            .checked_mul(layout.element_type.stack_size())
+                            .expect("fixed array size is validated");
+                        builder.ins().stack_store(
+                            initial_value.value,
+                            stack_slot,
+                            i32::try_from(offset).expect("fixed array offset is validated"),
+                        );
+                    }
+                    stack_slots.insert(
+                        slot.name.clone(),
+                        TypedStackSlot {
+                            slot: stack_slot,
+                            layout: StackSlotLayout::FixedArray(layout),
+                        },
+                    );
+                    continue;
                 }
                 if let Some(layout) = aggregate_layouts.get(&slot.type_annotation) {
                     let AstNode::CallExpression(constructor) = slot.value.as_ref() else {
@@ -1854,7 +2095,7 @@ fn lower_reference_initializer(
             borrow.operator,
         )));
     }
-    if machine_contract == AGGREGATE_MACHINE_CONTRACT
+    if aggregate_contract_enabled(machine_contract)
         && matches!(borrow.argument.as_ref(), AstNode::MemberExpression(_))
     {
         return Err(NativeCompileError::new(format!(
@@ -2260,7 +2501,11 @@ fn lower_typed_expression(
             if memory_enabled && callee.name == "load" {
                 return lower_typed_load(
                     builder,
+                    module,
+                    functions,
+                    locals,
                     stack_slots,
+                    references,
                     borrow_states,
                     call,
                     expected,
@@ -2343,6 +2588,7 @@ fn known_expression_type(
     locals: &HashMap<String, TypedValue>,
     stack_slots: &HashMap<String, TypedStackSlot>,
     references: &HashMap<String, TypedReference>,
+    machine_contract: &str,
 ) -> Option<MachineType> {
     match node {
         AstNode::Boolean(_) => Some(MachineType::Bool),
@@ -2358,9 +2604,14 @@ fn known_expression_type(
                 .get(&identifier.name)
                 .map(|reference| reference.pointee)
         }
-        AstNode::UnaryExpression(unary) if unary.operator == "-" => {
-            known_expression_type(&unary.argument, functions, locals, stack_slots, references)
-        }
+        AstNode::UnaryExpression(unary) if unary.operator == "-" => known_expression_type(
+            &unary.argument,
+            functions,
+            locals,
+            stack_slots,
+            references,
+            machine_contract,
+        ),
         AstNode::BinaryExpression(binary)
             if matches!(
                 binary.operator.as_str(),
@@ -2369,11 +2620,24 @@ fn known_expression_type(
         {
             Some(MachineType::Bool)
         }
-        AstNode::BinaryExpression(binary) => {
-            known_expression_type(&binary.left, functions, locals, stack_slots, references).or_else(
-                || known_expression_type(&binary.right, functions, locals, stack_slots, references),
+        AstNode::BinaryExpression(binary) => known_expression_type(
+            &binary.left,
+            functions,
+            locals,
+            stack_slots,
+            references,
+            machine_contract,
+        )
+        .or_else(|| {
+            known_expression_type(
+                &binary.right,
+                functions,
+                locals,
+                stack_slots,
+                references,
+                machine_contract,
             )
-        }
+        }),
         AstNode::CallExpression(call) => {
             let AstNode::Identifier(callee) = call.callee.as_ref() else {
                 return None;
@@ -2383,7 +2647,7 @@ fn known_expression_type(
                     call.arguments.first()?,
                     stack_slots,
                     "load",
-                    AGGREGATE_MACHINE_CONTRACT,
+                    machine_contract,
                 )
                 .ok()
                 .map(|access| access.machine_type)
@@ -2418,9 +2682,22 @@ fn lower_typed_comparison(
         )));
     }
 
-    let left_type = known_expression_type(&binary.left, functions, locals, stack_slots, references);
-    let right_type =
-        known_expression_type(&binary.right, functions, locals, stack_slots, references);
+    let left_type = known_expression_type(
+        &binary.left,
+        functions,
+        locals,
+        stack_slots,
+        references,
+        machine_contract,
+    );
+    let right_type = known_expression_type(
+        &binary.right,
+        functions,
+        locals,
+        stack_slots,
+        references,
+        machine_contract,
+    );
     let operand_type = match (left_type, right_type) {
         (Some(left), Some(right)) if left == right => left,
         (Some(left), None) if left != MachineType::Bool => left,
@@ -2562,20 +2839,27 @@ fn lower_typed_logical(
     })
 }
 
-struct ResolvedStackAccess {
+struct DynamicArrayIndex<'a> {
+    expression: &'a AstNode,
+    bound: u32,
+    element_size: u32,
+}
+
+struct ResolvedStackAccess<'a> {
     slot: StackSlot,
     machine_type: MachineType,
     offset: i32,
+    dynamic_index: Option<DynamicArrayIndex<'a>>,
     root_name: String,
     display: String,
 }
 
-fn resolve_stack_access(
-    argument: &AstNode,
+fn resolve_stack_access<'a>(
+    argument: &'a AstNode,
     stack_slots: &HashMap<String, TypedStackSlot>,
     operation: &str,
     machine_contract: &str,
-) -> Result<ResolvedStackAccess, NativeCompileError> {
+) -> Result<ResolvedStackAccess<'a>, NativeCompileError> {
     match argument {
         AstNode::Identifier(identifier) => {
             let stack_slot = stack_slots.get(&identifier.name).ok_or_else(|| {
@@ -2585,8 +2869,18 @@ fn resolve_stack_access(
                 ))
             })?;
             let Some(machine_type) = stack_slot.scalar_type() else {
+                let storage = match stack_slot.layout {
+                    StackSlotLayout::Aggregate(_) => "aggregate",
+                    StackSlotLayout::FixedArray(_) => "fixed array",
+                    StackSlotLayout::Scalar(_) => unreachable!("scalar type was already checked"),
+                };
+                let requirement = if matches!(stack_slot.layout, StackSlotLayout::FixedArray(_)) {
+                    "an element index"
+                } else {
+                    "a field projection"
+                };
                 return Err(NativeCompileError::new(format!(
-                    "{machine_contract} aggregate slot `{}` requires a field projection",
+                    "{machine_contract} {storage} slot `{}` requires {requirement}",
                     identifier.name
                 )));
             };
@@ -2594,15 +2888,14 @@ fn resolve_stack_access(
                 slot: stack_slot.slot,
                 machine_type,
                 offset: 0,
+                dynamic_index: None,
                 root_name: identifier.name.clone(),
                 display: identifier.name.clone(),
             })
         }
         AstNode::MemberExpression(member) => {
             if member.computed {
-                return Err(NativeCompileError::new(format!(
-                    "{machine_contract} `{operation}` does not support computed aggregate field access"
-                )));
+                return resolve_array_access(member, stack_slots, operation, machine_contract);
             }
             let AstNode::Identifier(root) = member.object.as_ref() else {
                 return Err(NativeCompileError::new(format!(
@@ -2640,6 +2933,7 @@ fn resolve_stack_access(
                 slot: stack_slot.slot,
                 machine_type: field.machine_type,
                 offset: i32::try_from(field.offset).expect("validated aggregate field offset"),
+                dynamic_index: None,
                 root_name: root.name.clone(),
                 display: format!("{}.{}", root.name, property.name),
             })
@@ -2650,9 +2944,268 @@ fn resolve_stack_access(
     }
 }
 
+fn resolve_array_access<'a>(
+    member: &'a MemberExpression,
+    stack_slots: &HashMap<String, TypedStackSlot>,
+    operation: &str,
+    machine_contract: &str,
+) -> Result<ResolvedStackAccess<'a>, NativeCompileError> {
+    if let AstNode::Identifier(root) = member.object.as_ref() {
+        let stack_slot = stack_slots.get(&root.name).ok_or_else(|| {
+            NativeCompileError::new(format!(
+                "{machine_contract} `{operation}` references unknown stack slot `{}`",
+                root.name
+            ))
+        })?;
+        let StackSlotLayout::FixedArray(layout) = &stack_slot.layout else {
+            let message = if matches!(stack_slot.layout, StackSlotLayout::Aggregate(_)) {
+                format!(
+                    "{machine_contract} `{operation}` does not support computed aggregate field access"
+                )
+            } else {
+                format!(
+                    "{machine_contract} scalar stack slot `{}` does not support indexed access",
+                    root.name
+                )
+            };
+            return Err(NativeCompileError::new(message));
+        };
+        if let Some((start, end)) = parse_slice_range(&member.property, machine_contract)? {
+            validate_slice_range(start, end, layout.length, &root.name, machine_contract)?;
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} slice projection `{}[{start}..{end}]` requires an element index",
+                root.name
+            )));
+        }
+        return finish_array_access(
+            root.name.as_str(),
+            stack_slot,
+            layout,
+            member.property.as_ref(),
+            0,
+            layout.length,
+            format!("{}[index]", root.name),
+            machine_contract,
+        );
+    }
+
+    let AstNode::MemberExpression(slice) = member.object.as_ref() else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} `{operation}` requires a direct fixed array slot or slice projection"
+        )));
+    };
+    if !slice.computed {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} `{operation}` supports nested access only for a computed slice projection"
+        )));
+    }
+    let AstNode::Identifier(root) = slice.object.as_ref() else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} `{operation}` requires a direct fixed array slot as the slice root"
+        )));
+    };
+    let stack_slot = stack_slots.get(&root.name).ok_or_else(|| {
+        NativeCompileError::new(format!(
+            "{machine_contract} `{operation}` references unknown stack slot `{}`",
+            root.name
+        ))
+    })?;
+    let StackSlotLayout::FixedArray(layout) = &stack_slot.layout else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} `{operation}` slice root `{}` is not a fixed array slot",
+            root.name
+        )));
+    };
+    let Some((start, end)) = parse_slice_range(&slice.property, machine_contract)? else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} `{operation}` supports nested computed access only for `array[start..end][index]` slice projections"
+        )));
+    };
+    validate_slice_range(start, end, layout.length, &root.name, machine_contract)?;
+    let base_offset = start
+        .checked_mul(layout.element_type.stack_size())
+        .expect("fixed array size is validated");
+    finish_array_access(
+        root.name.as_str(),
+        stack_slot,
+        layout,
+        member.property.as_ref(),
+        base_offset,
+        end - start,
+        format!("{}[{start}..{end}][index]", root.name),
+        machine_contract,
+    )
+}
+
+fn parse_slice_range(
+    node: &AstNode,
+    machine_contract: &str,
+) -> Result<Option<(u32, u32)>, NativeCompileError> {
+    let AstNode::BinaryExpression(range) = node else {
+        return Ok(None);
+    };
+    if range.operator != ".." {
+        return Ok(None);
+    }
+    let start = parse_slice_bound(&range.left, "start", machine_contract)?;
+    let end = parse_slice_bound(&range.right, "end", machine_contract)?;
+    Ok(Some((start, end)))
+}
+
+fn parse_slice_bound(
+    node: &AstNode,
+    boundary: &str,
+    machine_contract: &str,
+) -> Result<u32, NativeCompileError> {
+    let AstNode::Number(number) = node else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} slice {boundary} must be a non-negative integer literal"
+        )));
+    };
+    number.raw.parse::<u32>().map_err(|_| {
+        NativeCompileError::new(format!(
+            "{machine_contract} slice {boundary} must be a non-negative integer literal; found `{}`",
+            number.raw
+        ))
+    })
+}
+
+fn validate_slice_range(
+    start: u32,
+    end: u32,
+    array_length: u32,
+    array_name: &str,
+    machine_contract: &str,
+) -> Result<(), NativeCompileError> {
+    if start > end {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} slice range {start}..{end} is not half-open and ordered for `{array_name}`"
+        )));
+    }
+    if end > array_length {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} slice range {start}..{end} exceeds fixed array length {array_length} for `{array_name}`"
+        )));
+    }
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn finish_array_access<'a>(
+    root_name: &str,
+    stack_slot: &TypedStackSlot,
+    layout: &FixedArrayLayout,
+    index: &'a AstNode,
+    base_offset: u32,
+    bound: u32,
+    display: String,
+    machine_contract: &str,
+) -> Result<ResolvedStackAccess<'a>, NativeCompileError> {
+    if let AstNode::Number(number) = index {
+        let index = number.raw.parse::<u32>().map_err(|_| {
+            NativeCompileError::new(format!(
+                "{machine_contract} fixed array index must be a non-negative `i32` integer; found `{}`",
+                number.raw
+            ))
+        })?;
+        if index >= bound {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} constant index {index} is outside bound {bound} for `{root_name}`"
+            )));
+        }
+        let offset = base_offset
+            .checked_add(
+                index
+                    .checked_mul(layout.element_type.stack_size())
+                    .expect("fixed array size is validated"),
+            )
+            .expect("fixed array size is validated");
+        return Ok(ResolvedStackAccess {
+            slot: stack_slot.slot,
+            machine_type: layout.element_type,
+            offset: i32::try_from(offset).expect("fixed array offset is validated"),
+            dynamic_index: None,
+            root_name: root_name.to_string(),
+            display,
+        });
+    }
+
+    Ok(ResolvedStackAccess {
+        slot: stack_slot.slot,
+        machine_type: layout.element_type,
+        offset: i32::try_from(base_offset).expect("fixed array offset is validated"),
+        dynamic_index: Some(DynamicArrayIndex {
+            expression: index,
+            bound,
+            element_size: layout.element_type.stack_size(),
+        }),
+        root_name: root_name.to_string(),
+        display,
+    })
+}
+
+#[allow(clippy::too_many_arguments)]
+fn lower_checked_stack_address(
+    builder: &mut FunctionBuilder<'_>,
+    module: &mut ObjectModule,
+    functions: &HashMap<String, TypedFunctionAbi>,
+    locals: &HashMap<String, TypedValue>,
+    stack_slots: &HashMap<String, TypedStackSlot>,
+    references: &HashMap<String, TypedReference>,
+    borrow_states: &HashMap<String, BorrowState>,
+    access: &ResolvedStackAccess<'_>,
+    machine_contract: &str,
+) -> Result<Value, NativeCompileError> {
+    let dynamic = access
+        .dynamic_index
+        .as_ref()
+        .expect("checked address requires a dynamic array index");
+    let index = lower_typed_expression(
+        builder,
+        module,
+        functions,
+        locals,
+        stack_slots,
+        references,
+        borrow_states,
+        dynamic.expression,
+        MachineType::I32,
+        &format!("index for `{}`", access.display),
+        machine_contract,
+        true,
+    )?;
+    let out_of_bounds = builder.ins().icmp_imm(
+        IntCC::UnsignedGreaterThanOrEqual,
+        index.value,
+        i64::from(dynamic.bound),
+    );
+    builder
+        .ins()
+        .trapnz(out_of_bounds, TrapCode::unwrap_user(1));
+
+    let pointer_type = module.target_config().pointer_type();
+    let pointer_index = if pointer_type == types::I32 {
+        index.value
+    } else {
+        builder.ins().uextend(pointer_type, index.value)
+    };
+    let scaled_index = builder
+        .ins()
+        .imul_imm(pointer_index, i64::from(dynamic.element_size));
+    let base = builder
+        .ins()
+        .stack_addr(pointer_type, access.slot, access.offset);
+    Ok(builder.ins().iadd(base, scaled_index))
+}
+
+#[allow(clippy::too_many_arguments)]
 fn lower_typed_load(
     builder: &mut FunctionBuilder<'_>,
+    module: &mut ObjectModule,
+    functions: &HashMap<String, TypedFunctionAbi>,
+    locals: &HashMap<String, TypedValue>,
     stack_slots: &HashMap<String, TypedStackSlot>,
+    references: &HashMap<String, TypedReference>,
     borrow_states: &HashMap<String, BorrowState>,
     call: &CallExpression,
     expected: MachineType,
@@ -2687,10 +3240,28 @@ fn lower_typed_load(
             access.machine_type.name()
         )));
     }
-    Ok(TypedValue {
-        value: builder
+    let value = if access.dynamic_index.is_some() {
+        let address = lower_checked_stack_address(
+            builder,
+            module,
+            functions,
+            locals,
+            stack_slots,
+            references,
+            borrow_states,
+            &access,
+            machine_contract,
+        )?;
+        builder
             .ins()
-            .stack_load(access.machine_type.ir_type(), access.slot, access.offset),
+            .load(access.machine_type.ir_type(), MemFlags::new(), address, 0)
+    } else {
+        builder
+            .ins()
+            .stack_load(access.machine_type.ir_type(), access.slot, access.offset)
+    };
+    Ok(TypedValue {
+        value,
         machine_type: access.machine_type,
     })
 }
@@ -2728,6 +3299,21 @@ fn lower_typed_store(
     } else {
         format!("store to stack slot `{}`", access.display)
     };
+    let address = if access.dynamic_index.is_some() {
+        Some(lower_checked_stack_address(
+            builder,
+            module,
+            functions,
+            locals,
+            stack_slots,
+            references,
+            borrow_states,
+            &access,
+            machine_contract,
+        )?)
+    } else {
+        None
+    };
     let value = lower_typed_expression(
         builder,
         module,
@@ -2742,9 +3328,15 @@ fn lower_typed_store(
         machine_contract,
         true,
     )?;
-    builder
-        .ins()
-        .stack_store(value.value, access.slot, access.offset);
+    if let Some(address) = address {
+        builder
+            .ins()
+            .store(MemFlags::new(), value.value, address, 0);
+    } else {
+        builder
+            .ins()
+            .stack_store(value.value, access.slot, access.offset);
+    }
     Ok(())
 }
 

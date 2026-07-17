@@ -397,6 +397,12 @@ fn is_numeric_builtin_call(name: &str) -> bool {
 pub fn emit_functions(ast: &Ast, indent: &str) -> Result<String, KotlinEmitError> {
     check_semantics(ast)?;
 
+    if let Some((annotation, context)) = find_fixed_array_annotation(ast) {
+        return Err(KotlinEmitError::new(format!(
+            "fixed array type `{annotation}` in {context} requires target-specific bounds lowering; the Kotlin bridge does not erase native array semantics"
+        )));
+    }
+
     // First pass: collect the declared enum names so return-type inference can recognize an
     // `Enum.Member` reference as that enum's value (and so a stray member name can't be read
     // as a plain identifier). `.hs` enums are data-only — name + bare member list.
@@ -475,6 +481,83 @@ pub fn emit_functions(ast: &Ast, indent: &str) -> Result<String, KotlinEmitError
         }
     }
     Ok(blocks.join("\n\n"))
+}
+
+fn find_fixed_array_annotation(ast: &Ast) -> Option<(&str, String)> {
+    ast.body
+        .iter()
+        .find_map(find_fixed_array_annotation_in_node)
+}
+
+fn find_fixed_array_annotation_in_node(node: &AstNode) -> Option<(&str, String)> {
+    match node {
+        AstNode::Function(function) => {
+            if let Some(annotation) = function
+                .return_type
+                .as_deref()
+                .filter(|annotation| annotation.starts_with('['))
+            {
+                return Some((
+                    annotation,
+                    format!("return type of function `{}`", function.name),
+                ));
+            }
+            for (index, annotation) in function.param_types.iter().enumerate() {
+                if let Some(annotation) = annotation
+                    .as_deref()
+                    .filter(|annotation| annotation.starts_with('['))
+                {
+                    let parameter = function
+                        .params
+                        .get(index)
+                        .map(String::as_str)
+                        .unwrap_or("<unknown>");
+                    return Some((
+                        annotation,
+                        format!("parameter `{parameter}` of function `{}`", function.name),
+                    ));
+                }
+            }
+            function
+                .body
+                .iter()
+                .find_map(find_fixed_array_annotation_in_node)
+        }
+        AstNode::VariableDeclaration(local) => local
+            .type_annotation
+            .as_deref()
+            .filter(|annotation| annotation.starts_with('['))
+            .map(|annotation| (annotation, format!("local `{}`", local.name))),
+        AstNode::StackSlotDeclaration(slot) if slot.type_annotation.starts_with('[') => Some((
+            slot.type_annotation.as_str(),
+            format!("stack slot `{}`", slot.name),
+        )),
+        AstNode::If(if_node) => if_node
+            .consequent
+            .iter()
+            .find_map(find_fixed_array_annotation_in_node)
+            .or_else(|| {
+                if_node.alternate.as_ref().and_then(|alternate| {
+                    alternate
+                        .iter()
+                        .find_map(find_fixed_array_annotation_in_node)
+                })
+            }),
+        AstNode::While(while_node) => while_node
+            .body
+            .iter()
+            .find_map(find_fixed_array_annotation_in_node),
+        AstNode::ForOf(for_node) => for_node
+            .body
+            .iter()
+            .find_map(find_fixed_array_annotation_in_node),
+        AstNode::LexicalScope(scope) => scope
+            .body
+            .iter()
+            .find_map(find_fixed_array_annotation_in_node),
+        AstNode::Export(export) => find_fixed_array_annotation_in_node(&export.declaration),
+        _ => None,
+    }
 }
 
 /// Validate every top-level `import { a, b, .. } from "source"` against the declarations that
@@ -2899,6 +2982,19 @@ function mk() {
         assert!(error
             .to_string()
             .contains("typed struct `Packet` requires target-specific layout lowering"));
+    }
+
+    #[test]
+    fn fixed_machine_arrays_fail_closed_until_kotlin_bounds_lowering_exists() {
+        let src = r#"function main(): i32 {
+  slot values: [i32; 2] = [1, 2]
+  return load(values[0])
+}"#;
+        let error = compile_source_to_kotlin(src, "  ")
+            .expect_err("Kotlin must not silently erase native fixed-array bounds semantics");
+        assert!(error.to_string().contains(
+            "fixed array type `[i32; 2]` in stack slot `values` requires target-specific bounds lowering"
+        ));
     }
 
     #[test]

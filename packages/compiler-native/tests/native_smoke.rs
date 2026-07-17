@@ -122,6 +122,18 @@ const AGGREGATE_EXIT_FIVE: &str = r#"
         return load(packet.code)
     }
 "#;
+const FIXED_ARRAY_EXIT_FIVE: &str = r#"
+    struct Delta { amount: i32 }
+
+    function main(): i32 {
+        slot delta: Delta = Delta(2)
+        slot values: [i32; 4] = [1, 2, 3, 4]
+        let direct_index: i32 = 2
+        let slice_index: i32 = 1
+        store(values[1..4][slice_index], load(values[direct_index]) + load(delta.amount))
+        return load(values[direct_index])
+    }
+"#;
 
 fn scratch_executable(name: &str) -> std::path::PathBuf {
     let nonce = SystemTime::now()
@@ -329,6 +341,37 @@ fn compiles_contiguous_typed_aggregates_with_exact_layout() {
 }
 
 #[test]
+fn compiles_fixed_arrays_and_bounds_checked_slice_projections() {
+    let executable = scratch_executable("native-fixed-array");
+    let artifact = compile_executable(
+        FIXED_ARRAY_EXIT_FIVE,
+        &executable,
+        &NativeCompileOptions::host(),
+    )
+    .expect("fixed arrays and bounded slice projections should compile");
+    assert_eq!(artifact.machine_contract, "hs-machine-v7");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("fixed-array executable should run");
+    assert_eq!(status.code(), Some(5));
+    fs::remove_file(&artifact.executable).expect("remove fixed-array executable");
+
+    for (name, index) in [("upper-bound", "4"), ("negative", "-1")] {
+        let source = format!(
+            "function main(): i32 {{ slot values: [i32; 4] = [1, 2, 3, 4] let index: i32 = {index} return load(values[index]) }}"
+        );
+        let executable = scratch_executable(&format!("native-array-{name}"));
+        let artifact = compile_executable(&source, &executable, &NativeCompileOptions::host())
+            .expect("dynamic out-of-bounds access should compile to a runtime trap");
+        let status = Command::new(&artifact.executable)
+            .status()
+            .expect("out-of-bounds executable should launch");
+        assert!(!status.success(), "out-of-bounds index {index} must trap");
+        fs::remove_file(&artifact.executable).expect("remove trapping array executable");
+    }
+}
+
+#[test]
 fn emits_deterministic_objects_for_the_same_source() {
     let options = NativeCompileOptions::host();
 
@@ -342,11 +385,67 @@ fn emits_deterministic_objects_for_the_same_source() {
         CONTROL_FLOW_EXIT_FIVE,
         CONTROL_FLOW_BOOL_MEMORY_EXIT_FIVE,
         AGGREGATE_EXIT_FIVE,
+        FIXED_ARRAY_EXIT_FIVE,
     ] {
         let first = compile_object(source, &options).expect("first object should compile");
         let second = compile_object(source, &options).expect("second object should compile");
 
         assert_eq!(first, second);
+    }
+}
+
+#[test]
+fn fixed_array_contract_rejects_ambiguous_layout_escape_and_bounds() {
+    let options = NativeCompileOptions::host();
+
+    for (source, message) in [
+        (
+            "function main(): i32 { slot values: [i32; 0] = [] return 5 }",
+            "fixed array length must be greater than zero",
+        ),
+        (
+            "function main(): i32 { slot values: [i32; 2] = [1] return 5 }",
+            "expects 2 elements, found 1",
+        ),
+        (
+            "function take(values: [i32; 2]): i32 { return 5 } function main(): i32 { return 5 }",
+            "fixed arrays cannot appear in function parameters",
+        ),
+        (
+            "function make(): [i32; 2] { return 5 } function main(): i32 { return 5 }",
+            "fixed arrays cannot appear in function returns",
+        ),
+        (
+            "function main(): i32 { let values: [i32; 2] = [1, 2] return 5 }",
+            "fixed array local `values` must use addressable `slot` storage",
+        ),
+        (
+            "struct Bad { values: [i32; 2] } function main(): i32 { return 5 }",
+            "fixed arrays as aggregate fields are not enabled",
+        ),
+        (
+            "function main(): i32 { slot values: [i32; 2] = [1, 2] return load(values) }",
+            "fixed array slot `values` requires an element index",
+        ),
+        (
+            "function main(): i32 { slot values: [i32; 2] = [1, 2] return load(values[2]) }",
+            "constant index 2 is outside bound 2",
+        ),
+        (
+            "function main(): i32 { slot values: [i32; 4] = [1, 2, 3, 4] return load(values[3..2][0]) }",
+            "slice range 3..2 is not half-open and ordered",
+        ),
+        (
+            "function main(): i32 { slot values: [i32; 4] = [1, 2, 3, 4] return load(values[1..5][0]) }",
+            "slice range 1..5 exceeds fixed array length 4",
+        ),
+        (
+            "function main(): i32 { slot values: [i32; 4] = [1, 2, 3, 4] return load(values[1..3]) }",
+            "slice projection `values[1..3]` requires an element index",
+        ),
+    ] {
+        let error = compile_object(source, &options).expect_err(message);
+        assert!(error.to_string().contains(message), "{error}");
     }
 }
 
