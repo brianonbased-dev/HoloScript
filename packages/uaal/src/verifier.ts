@@ -47,6 +47,7 @@ import {
   resolveAccess,
   resolveValidity,
 } from './semantic';
+import type { MeaningResolutionStatus } from '@holoscript/meaning';
 import type { UAALBeneficiaryIR } from './beneficiary';
 import { resolveBeneficiary } from './beneficiary';
 import type { UAALVibeIR } from './vibe';
@@ -84,7 +85,7 @@ export interface VerifierQuery {
 /** The canonical label for one IR under its family resolver — the only ground truth a builder may use. */
 export interface VerifierLabel {
   family: UAALResolvedFamily;
-  status: 'resolved' | 'unresolvable';
+  status: MeaningResolutionStatus;
   reason?: UAALGapReason;
   gap?: UAALStructuredGap;
   /** The resolver's answer when resolved (the family's Recovery type). */

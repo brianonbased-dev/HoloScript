@@ -212,14 +212,20 @@ moves land one at a time behind receipts:
    HSI mirror (`HSICausalLoop.ts:79`) plus an unknown one in the GRPO reward receipt
    (`UAALResolutionRewards.ts:192`). Those reds **are** the pain-receipt that admits the
    extraction.
-2. **Extract HoloMeaning upstream** — ✅ STAGE 1 DONE 2026-07-17: `@holoscript/meaning`
-   created (the contract — resolution record, status union, gap taxonomy, `structuredGap`);
-   `packages/uaal` imports + re-exports it (every existing import unchanged); core
-   (`HSICausalLoop`) and absorb-service (`UAALResolutionRewards`) import it — **both mirrors
-   deleted**. Gate 6.2 flipped to `--strict` at the pre-commit dev floor (Gate 5g2) and in the
-   HoloCI catalog (`language-strata`); a planted-mirror probe fails it, the clean tree passes.
-   REMAINING (stage 2): move the `resolve*` family bodies into the meaning home and collapse
-   the gate's CONTRACT_HOMES to one — its own WIP slice.
+2. **Extract HoloMeaning upstream** — ✅ DONE 2026-07-17 (both stages, same day):
+   **Stage 1**: `@holoscript/meaning` created (the contract — resolution record, status union,
+   gap taxonomy, `structuredGap`); core (`HSICausalLoop`) and absorb-service
+   (`UAALResolutionRewards`) import it — **both mirrors deleted**. Gate 6.2 went `--strict` at
+   the pre-commit dev floor (Gate 5g2) and in the HoloCI catalog (`language-strata`).
+   **Stage 2**: the family semantics themselves (`semantic` / `beneficiary` / `vibe` /
+   `affective-harm` — all `resolve*`/`recover*` bodies and family IRs) moved into the meaning
+   home via history-preserving renames; `packages/uaal` keeps tiny `export * from
+   '@holoscript/meaning'` shims at the old paths, so every existing import — the published
+   `/semantic` subpath, verifier/merge/query, and the whole test suite — is unchanged and the
+   full uaal suite passes THROUGH the shims. The collapse pre-check surfaced one latent
+   status-union mirror in `verifier.ts`, fixed by import. `CONTRACT_HOMES` collapsed to the
+   ONE meaning home; probe-verified both directions (planted duplicate resolver in uaal fails
+   strict and names the canonical definition; clean tree passes).
 3. **Re-home HSI-IR as HoloMeaning** (rename/absorb); update the three-format papers to cite HoloMeaning as
    the meaning stratum.
 4. **Turn on the remaining gate rules** (6.1, 6.3, 6.5, 6.4) once the tree is green.

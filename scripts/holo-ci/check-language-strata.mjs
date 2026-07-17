@@ -15,8 +15,8 @@
  *
  * WHAT IT DOES (read-only, no install, no network):
  *   - Enumerates the canonical meaning-family resolvers: `export function resolve<Family>`
- *     under the resolver home (packages/uaal/src until §8 stage 2). The CONTRACT home is
- *     @holoscript/meaning (packages/meaning/src) — §8.2 stage 1 landed 2026-07-17.
+ *     under the meaning home (packages/meaning/src — contract + family semantics since
+ *     §8.2 stage 2, 2026-07-17; @holoscript/uaal re-exports via shims).
  *   - Walks every packages/<pkg>/src TS source outside the home (skipping tests, fixtures,
  *     stories, dist, node_modules, .d.ts) and reports:
  *       RULE-A  duplicate resolver — a function/const DEFINITION reusing a canonical
@@ -53,12 +53,12 @@ const STRICT = args.includes('--strict');
 const rootIdx = args.indexOf('--root');
 const ROOT = rootIdx >= 0 ? args[rootIdx + 1] : process.cwd();
 
-// The homes of the meaning stratum during the staged extraction (language-architecture.md §8):
-//   packages/meaning/src — @holoscript/meaning, the CONTRACT home (§8.2 stage 1, landed 2026-07-17);
-//   packages/uaal/src    — the resolver bodies' pre-stage-2 home (collapses into meaning at §8.3).
-// Stage 2 reduces CONTRACT_HOMES to the meaning home alone — update in the same commit as the move.
-const CONTRACT_HOMES = [join('packages', 'meaning', 'src'), join('packages', 'uaal', 'src')];
-const RESOLVER_HOME = join('packages', 'uaal', 'src');
+// The ONE home of the meaning stratum (language-architecture.md §8.2 — stage 2 landed 2026-07-17):
+// packages/meaning/src (@holoscript/meaning) holds the contract AND the family semantics
+// (semantic/beneficiary/vibe/affective-harm). @holoscript/uaal re-exports via shims and is
+// scanned like any other consumer. If the home ever moves again, update these in the same commit.
+const CONTRACT_HOMES = [join('packages', 'meaning', 'src')];
+const RESOLVER_HOME = join('packages', 'meaning', 'src');
 
 const TAG = '[language-strata]';
 const CANON_POINTER = 'docs/spec/language-architecture.md §6.2';
