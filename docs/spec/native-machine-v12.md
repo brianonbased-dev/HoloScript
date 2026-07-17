@@ -1,6 +1,6 @@
 # Native machine contract v12: affine owned buffers
 
-Status: implemented by `packages/compiler-native`
+Status: implemented by `packages/compiler-native`; superseded by v13 for owned calls
 
 `hs-machine-v12` extends v11 with local, heap-backed contiguous buffers whose
 ownership, move state, borrow state, and cleanup order remain compiler metadata.

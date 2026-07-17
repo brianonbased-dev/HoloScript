@@ -3447,6 +3447,54 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_owned_buffer_parameter_return_and_explicit_transfers() {
+        let source = r#"function relay(values: [i32]): [i32] {
+            return move(values)
+        }
+        function main(): i32 {
+            let values: [i32] = buffer(2, 5)
+            let relayed: [i32] = relay(move(values))
+            return 5
+        }"#;
+        let mut parser = Parser::new(source);
+        let program = parser
+            .parse()
+            .expect("owned call and return transfer syntax should parse");
+
+        let AstNode::Function(relay) = &program.body[0] else {
+            panic!("Expected relay function");
+        };
+        assert_eq!(relay.param_types[0].as_deref(), Some("[i32]"));
+        assert_eq!(relay.return_type.as_deref(), Some("[i32]"));
+        assert!(matches!(
+            &relay.body[0],
+            AstNode::Return(return_node)
+                if matches!(
+                    return_node.argument.as_deref(),
+                    Some(AstNode::CallExpression(call))
+                        if matches!(call.callee.as_ref(), AstNode::Identifier(name) if name.name == "move")
+                )
+        ));
+
+        let AstNode::Function(main) = &program.body[1] else {
+            panic!("Expected main function");
+        };
+        let AstNode::VariableDeclaration(relayed) = &main.body[1] else {
+            panic!("Expected relayed owner declaration");
+        };
+        assert!(matches!(
+            relayed.value.as_ref(),
+            AstNode::CallExpression(call)
+                if matches!(call.callee.as_ref(), AstNode::Identifier(name) if name.name == "relay")
+                    && matches!(
+                        call.arguments.first(),
+                        Some(AstNode::CallExpression(transfer))
+                            if matches!(transfer.callee.as_ref(), AstNode::Identifier(name) if name.name == "move")
+                    )
+        ));
+    }
+
+    #[test]
     fn test_parse_borrowed_slice_types_and_range_initializers() {
         let source = r#"function main(): i32 {
             slot values: [i32; 4] = [1, 2, 3, 4]

@@ -629,6 +629,21 @@ function main() {
     }
 
     #[test]
+    fn rejects_owned_transfer_abi_until_ownership_opcodes_exist() {
+        let error = compile_source_to_uaal(
+            r#"function relay(values: [i32]): [i32] {
+  return move(values)
+}
+function main(): i32 { return 5 }"#,
+        )
+        .expect_err("compile_to_uaal must not erase the owned return ABI");
+
+        assert!(error.message.contains(
+            "owned buffer type `[i32]` in return type of function `relay` requires allocator, move, and drop opcodes"
+        ));
+    }
+
+    #[test]
     fn rejects_function_call_arity_mismatch() {
         let error = compile_source_to_uaal(
             r#"function echo(x) {

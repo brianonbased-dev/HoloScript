@@ -2,8 +2,10 @@ use std::fs;
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use cranelift::object::object::{Object, ObjectSection, ObjectSymbol, RelocationTarget};
 use holoscript_native::{
     compile_executable, compile_object, inspect_native_layouts, NativeCompileOptions,
+    NativeOwnedBufferFfi, HOST_ALLOCATOR_PROVENANCE_ID, OWNED_BUFFER_ABI_VERSION,
 };
 
 const EXIT_FIVE: &str = include_str!("../../../examples/native/exit-five.hs");
@@ -207,6 +209,8 @@ const RUNTIME_SLICE_REBORROW_EXIT_FIVE: &str =
     include_str!("../../../examples/native/runtime-slice-reborrow-exit-five.hs");
 const OWNED_BUFFER_MOVE_EXIT_FIVE: &str =
     include_str!("../../../examples/native/owned-buffer-move-exit-five.hs");
+const OWNED_BUFFER_TRANSFER_EXIT_FIVE: &str =
+    include_str!("../../../examples/native/owned-buffer-transfer-exit-five.hs");
 
 fn scratch_executable(name: &str) -> std::path::PathBuf {
     let nonce = SystemTime::now()
@@ -215,6 +219,40 @@ fn scratch_executable(name: &str) -> std::path::PathBuf {
         .as_nanos();
     let suffix = if cfg!(windows) { ".exe" } else { "" };
     std::env::temp_dir().join(format!("holoscript-{name}-{nonce}{suffix}"))
+}
+
+fn remove_scratch_executable_with_retry(path: &std::path::Path) {
+    let mut last_error = None;
+    for _ in 0..20 {
+        match fs::remove_file(path) {
+            Ok(()) => return,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return,
+            Err(error) => last_error = Some(error),
+        }
+        std::thread::sleep(std::time::Duration::from_millis(25));
+    }
+    panic!(
+        "remove scratch executable {}: {}",
+        path.display(),
+        last_error.expect("a failed removal must record its error")
+    );
+}
+
+fn relocation_count_to_symbol(object_bytes: &[u8], expected: &str) -> usize {
+    let file = cranelift::object::object::File::parse(object_bytes)
+        .expect("native compiler must emit a readable object");
+    file.sections()
+        .flat_map(|section| section.relocations())
+        .filter(|(_, relocation)| {
+            let RelocationTarget::Symbol(index) = relocation.target() else {
+                return false;
+            };
+            file.symbol_by_index(index)
+                .ok()
+                .and_then(|symbol| symbol.name().ok())
+                .is_some_and(|name| name.trim_start_matches('_') == expected)
+        })
+        .count()
 }
 
 #[test]
@@ -614,7 +652,7 @@ fn compiles_forwarded_and_nested_reborrowed_slice_parameters() {
         !status.success(),
         "out-of-bounds parameter sub-slice must trap"
     );
-    fs::remove_file(&artifact.executable).expect("remove trapping sub-slice executable");
+    remove_scratch_executable_with_retry(&artifact.executable);
 }
 
 #[test]
@@ -750,7 +788,7 @@ fn compiles_affine_owned_buffers_moves_borrows_and_return_cleanup() {
     )
     .expect("owned buffers should compile through the allocator ABI");
 
-    assert_eq!(artifact.machine_contract, "hs-machine-v12");
+    assert_eq!(artifact.machine_contract, "hs-machine-v13");
     let status = Command::new(&artifact.executable)
         .status()
         .expect("owned-buffer executable should run");
@@ -780,12 +818,86 @@ fn owned_buffers_drop_on_scope_fallthrough_and_support_explicit_drop() {
     )
     .expect("scope cleanup, explicit drop, and zero-length ownership should compile");
 
-    assert_eq!(artifact.machine_contract, "hs-machine-v12");
+    assert_eq!(artifact.machine_contract, "hs-machine-v13");
     let status = Command::new(&artifact.executable)
         .status()
         .expect("owned-buffer cleanup executable should run");
     assert_eq!(status.code(), Some(5));
     fs::remove_file(&artifact.executable).expect("remove owned-buffer cleanup executable");
+}
+
+#[test]
+fn owned_transfer_abi_returns_consumes_and_emits_one_deallocator() {
+    assert_eq!(OWNED_BUFFER_ABI_VERSION, 1);
+    assert_eq!(HOST_ALLOCATOR_PROVENANCE_ID, 1);
+    assert_eq!(std::mem::offset_of!(NativeOwnedBufferFfi, data), 0);
+    assert_eq!(
+        std::mem::offset_of!(NativeOwnedBufferFfi, length),
+        std::mem::size_of::<*mut u8>()
+    );
+    assert_eq!(
+        std::mem::offset_of!(NativeOwnedBufferFfi, allocator_id),
+        std::mem::size_of::<*mut u8>() + std::mem::size_of::<i32>()
+    );
+
+    let first = compile_object(
+        OWNED_BUFFER_TRANSFER_EXIT_FIVE,
+        &NativeCompileOptions::host(),
+    )
+    .expect("owned transfer ABI should compile");
+    let second = compile_object(
+        OWNED_BUFFER_TRANSFER_EXIT_FIVE,
+        &NativeCompileOptions::host(),
+    )
+    .expect("owned transfer ABI should compile deterministically");
+    assert_eq!(first, second);
+    assert_eq!(
+        relocation_count_to_symbol(&first, "free"),
+        1,
+        "producer and caller must transfer without emitting competing cleanup calls"
+    );
+
+    let executable = scratch_executable("native-owned-buffer-transfer");
+    let artifact = compile_executable(
+        OWNED_BUFFER_TRANSFER_EXIT_FIVE,
+        &executable,
+        &NativeCompileOptions::host(),
+    )
+    .expect("owned return and consuming parameter should link");
+    assert_eq!(artifact.machine_contract, "hs-machine-v13");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("owned transfer executable should run");
+    assert_eq!(status.code(), Some(5));
+    fs::remove_file(&artifact.executable).expect("remove owned transfer executable");
+}
+
+#[test]
+fn owned_transfer_conditional_join_accepts_equal_states() {
+    let source = r#"
+        function consume(values: [i32]): i32 {
+            return 5
+        }
+
+        function main(): i32 {
+            let values: [i32] = buffer(2, 5)
+            if (true) {
+                let result: i32 = consume(move(values))
+            } else {
+                let result: i32 = consume(move(values))
+            }
+            return 5
+        }
+    "#;
+    let executable = scratch_executable("native-owned-buffer-join");
+    let artifact = compile_executable(source, &executable, &NativeCompileOptions::host())
+        .expect("equal ownership states from both branches should join");
+    assert_eq!(artifact.machine_contract, "hs-machine-v13");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("conditional ownership executable should run");
+    assert_eq!(status.code(), Some(5));
+    fs::remove_file(&artifact.executable).expect("remove ownership join executable");
 }
 
 #[test]
@@ -845,12 +957,24 @@ fn owned_buffer_contract_rejects_copy_double_drop_active_borrow_and_abi_escape()
             "cannot move across a lexical scope boundary",
         ),
         (
-            "function consume(values: [i32]): i32 { return 5 } function main(): i32 { return 5 }",
-            "owned buffers cannot cross function parameters",
+            "function consume(values: [i32]): i32 { return 5 } function main(): i32 { let values: [i32] = buffer(2, 0) return consume(values) }",
+            "must use explicit `move(owner)`",
         ),
         (
-            "function make(): [i32] { return 5 } function main(): i32 { return 5 }",
-            "owned buffer returns are not enabled",
+            "function make(): [i32] { let values: [i32] = buffer(2, 0) return values } function main(): i32 { return 5 }",
+            "must use explicit `return move(owner)`",
+        ),
+        (
+            "function consume(values: [i32]): i32 { return 5 } function main(): i32 { let values: [i32] = buffer(2, 0) let first: i32 = consume(move(values)) let second: i32 = consume(move(values)) return second }",
+            "was already moved before argument 1 to `consume`",
+        ),
+        (
+            "function consume(values: [i32]): i32 { return 5 } function main(): i32 { let values: [i32] = buffer(2, 0) if (true) { let result: i32 = consume(move(values)) } return 5 }",
+            "conditional ownership join for `values`",
+        ),
+        (
+            "function consume(values: [i32]): i32 { return 5 } function main(): i32 { let values: [i32] = buffer(2, 0) while (true) { let result: i32 = consume(move(values)) } return 5 }",
+            "loop body changes ownership of `values`",
         ),
         (
             "struct Bad { values: [i32] } function main(): i32 { return 5 }",

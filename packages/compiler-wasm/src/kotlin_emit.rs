@@ -3056,6 +3056,19 @@ function mk() {
     }
 
     #[test]
+    fn owned_transfer_abi_fails_closed_on_kotlin_bridge() {
+        let src = r#"function relay(values: [i32]): [i32] {
+  return move(values)
+}
+function main(): i32 { return 5 }"#;
+        let error = compile_source_to_kotlin(src, "  ")
+            .expect_err("Kotlin must not silently erase the owned return ABI");
+        assert!(error.to_string().contains(
+            "owned buffer type `[i32]` in return type of function `relay` requires target-specific allocator, move, and drop lowering"
+        ));
+    }
+
+    #[test]
     fn infers_struct_return_for_struct_constructor() {
         // A function whose every return constructs the declared struct returns that struct type.
         let src = r#"struct Vec2 { x, y }
