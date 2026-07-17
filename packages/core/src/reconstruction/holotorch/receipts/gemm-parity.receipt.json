@@ -1,0 +1,95 @@
+{
+  "schema": "holotorch-inference-parity.v0",
+  "op": "gemm",
+  "kernel": "packages/core/src/reconstruction/gemmKernel.ts",
+  "reference": "f64-accumulation CPU matmul",
+  "adapter": {
+    "vendor": "nvidia",
+    "architecture": "ampere",
+    "device": "nvidia-geforce-rtx-3060-laptop-gpu",
+    "description": "D3D12 driver version 32.0.16.1062"
+  },
+  "seed": 1234,
+  "tolerance": {
+    "metric": "numpy-allclose",
+    "atol": 0.001,
+    "rtol": 0.01,
+    "scaleMetric": "maxAbs/max|ref|"
+  },
+  "worstAbs": 0.00005626678466796875,
+  "worstRelToScale": 0.0000013122683568327233,
+  "perShape": [
+    {
+      "tag": "aligned-16",
+      "M": 16,
+      "N": 16,
+      "K": 16,
+      "maxAbs": 4.76837158203125e-7,
+      "maxRefAbs": 4.372203350067139,
+      "relToScale": 1.0906106601738979e-7,
+      "allClose": true
+    },
+    {
+      "tag": "attn-out-proj",
+      "M": 8,
+      "N": 384,
+      "K": 384,
+      "maxAbs": 0.0000171661376953125,
+      "maxRefAbs": 25.825590133666992,
+      "relToScale": 6.646948862142059e-7,
+      "allClose": true
+    },
+    {
+      "tag": "fused-qkv",
+      "M": 8,
+      "N": 1152,
+      "K": 384,
+      "maxAbs": 0.000019073486328125,
+      "maxRefAbs": 25.701082229614258,
+      "relToScale": 7.421277500193139e-7,
+      "allClose": true
+    },
+    {
+      "tag": "mlp-fc1-4x",
+      "M": 8,
+      "N": 1536,
+      "K": 384,
+      "maxAbs": 0.0000152587890625,
+      "maxRefAbs": 27.11878204345703,
+      "relToScale": 5.626649839232547e-7,
+      "allClose": true
+    },
+    {
+      "tag": "mlp-fc2-down",
+      "M": 8,
+      "N": 384,
+      "K": 1536,
+      "maxAbs": 0.00005626678466796875,
+      "maxRefAbs": 42.877498626708984,
+      "relToScale": 0.0000013122683568327233,
+      "allClose": true
+    },
+    {
+      "tag": "lm-head-vocab562-unaligned",
+      "M": 1,
+      "N": 562,
+      "K": 384,
+      "maxAbs": 0.00001049041748046875,
+      "maxRefAbs": 21.477977752685547,
+      "relToScale": 4.884266852896361e-7,
+      "allClose": true
+    },
+    {
+      "tag": "all-unaligned-primes",
+      "M": 5,
+      "N": 7,
+      "K": 13,
+      "maxAbs": 2.384185791015625e-7,
+      "maxRefAbs": 2.6241025924682617,
+      "relToScale": 9.085718667626603e-8,
+      "allClose": true
+    }
+  ],
+  "verdict": "pass",
+  "note": "Ran on the discrete GPU (adapter nvidia/ampere = RTX 3060) via powerPreference:high-performance. Correctness parity is device-independent (IEEE fp32). D.128/D.129 forcing function: the WGSL backend may serve a model only when op-by-op parity is proven."
+}
