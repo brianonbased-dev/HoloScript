@@ -206,7 +206,7 @@ class QuantumNoveltyScoutTests(unittest.TestCase):
                 evaluate_code_evidence(fixture, root)
 
     def test_real_statevector_scout_emits_tamper_evident_receipt(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(dir=SCRIPTS_DIR / "__tests__") as directory:
             root = pathlib.Path(directory)
             receipt = run_scout(
                 self.fixture_path,

@@ -100,6 +100,7 @@ def _git_blob_bytes(oid: str, repo_root: pathlib.Path) -> bytes | None:
 
 def source_state(
     fixture_path: pathlib.Path,
+    composition_path: pathlib.Path,
     code_evidence: list[dict[str, Any]],
 ) -> dict[str, Any]:
     source_paths = [
@@ -108,6 +109,7 @@ def source_state(
         REPO_ROOT / "scripts" / "quantum_receipt_verify.py",
         REPO_ROOT / "scripts" / "__tests__" / "test_quantum_novelty_scout.py",
         fixture_path.resolve(),
+        composition_path.resolve(),
         REPO_ROOT / "pnpm-lock.yaml",
     ]
     source_paths.extend(
@@ -732,13 +734,25 @@ def run_scout(
         "ibm_job_submitted": False,
     }
 
+    snapshot = source_state(
+        fixture_path,
+        composition_path,
+        qubo["code_evidence"],
+    )
+    snapshot_by_path = {item["path"]: item for item in snapshot["files"]}
     code_hashes = {
-        "scout_sha256": file_sha256(pathlib.Path(__file__).resolve()),
-        "executor_sha256": file_sha256(REPO_ROOT / "scripts" / "quantum_execute.py"),
-        "verifier_sha256": file_sha256(
-            REPO_ROOT / "scripts" / "quantum_receipt_verify.py"
-        ),
-        "composition_sha256": file_sha256(composition_path),
+        "scout_sha256": snapshot_by_path[
+            display_path(pathlib.Path(__file__).resolve())
+        ]["git_blob_sha256"],
+        "executor_sha256": snapshot_by_path["scripts/quantum_execute.py"][
+            "git_blob_sha256"
+        ],
+        "verifier_sha256": snapshot_by_path["scripts/quantum_receipt_verify.py"][
+            "git_blob_sha256"
+        ],
+        "composition_sha256": snapshot_by_path[display_path(composition_path)][
+            "git_blob_sha256"
+        ],
     }
     result_summary = {
         "qaoa": {
@@ -809,8 +823,9 @@ def run_scout(
             "qiskit": importlib.metadata.version("qiskit"),
             "platform": platform.platform(),
         },
+        "code_hash_basis": "SHA-256 of pinned Git blob bytes",
         "code_hashes": code_hashes,
-        "source_state": source_state(fixture_path, qubo["code_evidence"]),
+        "source_state": snapshot,
         "hash_scheme": "sha256-canonical-json-v2",
         "hash_scope": FULL_RECEIPT_HASH_SCOPE,
         "hash_payload": hash_payload,

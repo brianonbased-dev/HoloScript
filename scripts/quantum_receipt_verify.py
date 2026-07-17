@@ -375,6 +375,23 @@ def _recompute_qubo_from_source(
     """Rebuild every code-derived QUBO input from pinned fixture and Git blobs."""
 
     source_records, source_blobs, errors = _validate_source_snapshot(receipt)
+    expected_code_paths = {
+        "scout_sha256": "scripts/quantum_novelty_scout.py",
+        "executor_sha256": "scripts/quantum_execute.py",
+        "verifier_sha256": "scripts/quantum_receipt_verify.py",
+        "composition_sha256": _safe_repo_path(receipt.get("composition")),
+    }
+    expected_code_hashes = {}
+    for key, path in expected_code_paths.items():
+        source = source_records.get(path or "")
+        if source is None:
+            errors.append(f"pinned code source is unavailable: {path}")
+        else:
+            expected_code_hashes[key] = source["git_blob_sha256"]
+    if receipt.get("code_hash_basis") != "SHA-256 of pinned Git blob bytes":
+        errors.append("code hash basis is not the pinned Git blob convention")
+    if receipt.get("code_hashes") != expected_code_hashes:
+        errors.append("pipeline code hashes do not match pinned source blobs")
     fixture_path = _safe_repo_path(receipt.get("fixture"))
     if fixture_path is None or fixture_path not in source_blobs:
         errors.append("pinned candidate fixture is unavailable")
