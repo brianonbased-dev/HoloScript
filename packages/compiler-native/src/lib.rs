@@ -2,8 +2,9 @@
 //!
 //! `hs-machine-v0` proves a single untyped integer entry point. `hs-machine-v1` adds
 //! explicit `i32`/`i64` function signatures, direct HoloScript calls, and immutable
-//! typed local bindings. Everything outside the selected contract fails closed with a
-//! native compile diagnostic.
+//! typed local bindings. `hs-machine-v2` adds typed, non-escaping addressable stack
+//! slots with explicit loads and stores. Everything outside the selected contract fails
+//! closed with a native compile diagnostic.
 
 use std::collections::HashMap;
 use std::env;
@@ -12,17 +13,20 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use cranelift::codegen::ir::{types, AbiParam, InstBuilder, UserFuncName, Value};
+use cranelift::codegen::ir::{
+    types, AbiParam, InstBuilder, StackSlot, StackSlotData, StackSlotKind, UserFuncName, Value,
+};
 use cranelift::codegen::settings;
 use cranelift::frontend::{FunctionBuilder, FunctionBuilderContext};
 use cranelift::module::{default_libcall_names, FuncId, Linkage, Module};
 use cranelift::object::{ObjectBuilder, ObjectModule};
-use holoscript_wasm::ast::{Ast, AstNode, FunctionNode};
+use holoscript_wasm::ast::{Ast, AstNode, CallExpression, FunctionNode};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
 pub const MACHINE_CONTRACT: &str = "hs-machine-v0";
 pub const TYPED_MACHINE_CONTRACT: &str = "hs-machine-v1";
+pub const MEMORY_MACHINE_CONTRACT: &str = "hs-machine-v2";
 
 struct CompiledObject {
     bytes: Vec<u8>,
@@ -101,9 +105,14 @@ fn compile_unit(
         NativeCompileError::new(format!("HoloScript parse failed: {rendered}"))
     })?;
 
-    if has_typed_machine_metadata(&ast) {
+    if has_memory_machine_metadata(&ast) {
         Ok(CompiledObject {
-            bytes: lower_v1_ast_to_object(&ast)?,
+            bytes: lower_typed_ast_to_object(&ast, MEMORY_MACHINE_CONTRACT, true)?,
+            machine_contract: MEMORY_MACHINE_CONTRACT,
+        })
+    } else if has_typed_machine_metadata(&ast) {
+        Ok(CompiledObject {
+            bytes: lower_typed_ast_to_object(&ast, TYPED_MACHINE_CONTRACT, false)?,
             machine_contract: TYPED_MACHINE_CONTRACT,
         })
     } else {
@@ -262,6 +271,19 @@ fn has_typed_machine_metadata(ast: &Ast) -> bool {
     })
 }
 
+fn has_memory_machine_metadata(ast: &Ast) -> bool {
+    ast.body.iter().any(|node| {
+        matches!(
+            node,
+            AstNode::Function(function)
+                if function
+                    .body
+                    .iter()
+                    .any(|statement| matches!(statement, AstNode::StackSlotDeclaration(_)))
+        )
+    })
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum MachineType {
     I32,
@@ -269,12 +291,16 @@ enum MachineType {
 }
 
 impl MachineType {
-    fn parse(name: &str, context: &str) -> Result<Self, NativeCompileError> {
+    fn parse(
+        name: &str,
+        context: &str,
+        machine_contract: &str,
+    ) -> Result<Self, NativeCompileError> {
         match name {
             "i32" => Ok(Self::I32),
             "i64" => Ok(Self::I64),
             other => Err(NativeCompileError::new(format!(
-                "{TYPED_MACHINE_CONTRACT} supports only `i32` and `i64`; {context} uses `{other}`"
+                "{machine_contract} supports only `i32` and `i64`; {context} uses `{other}`"
             ))),
         }
     }
@@ -290,6 +316,20 @@ impl MachineType {
         match self {
             Self::I32 => "i32",
             Self::I64 => "i64",
+        }
+    }
+
+    fn stack_size(self) -> u32 {
+        match self {
+            Self::I32 => 4,
+            Self::I64 => 8,
+        }
+    }
+
+    fn stack_align_shift(self) -> u8 {
+        match self {
+            Self::I32 => 2,
+            Self::I64 => 3,
         }
     }
 }
@@ -313,8 +353,18 @@ struct TypedValue {
     machine_type: MachineType,
 }
 
-fn lower_v1_ast_to_object(ast: &Ast) -> Result<Vec<u8>, NativeCompileError> {
-    let specs = collect_typed_function_specs(ast)?;
+#[derive(Clone, Copy)]
+struct TypedStackSlot {
+    slot: StackSlot,
+    machine_type: MachineType,
+}
+
+fn lower_typed_ast_to_object(
+    ast: &Ast,
+    machine_contract: &'static str,
+    memory_enabled: bool,
+) -> Result<Vec<u8>, NativeCompileError> {
+    let specs = collect_typed_function_specs(ast, machine_contract)?;
     let mut module = create_object_module()?;
     let mut functions = HashMap::new();
 
@@ -377,13 +427,21 @@ fn lower_v1_ast_to_object(ast: &Ast) -> Result<Vec<u8>, NativeCompileError> {
                     .is_some()
                 {
                     return Err(NativeCompileError::new(format!(
-                        "{TYPED_MACHINE_CONTRACT} function `{}` declares duplicate parameter `{name}`",
+                        "{machine_contract} function `{}` declares duplicate parameter `{name}`",
                         spec.node.name
                     )));
                 }
             }
 
-            lower_typed_body(&mut builder, &mut module, &functions, &mut locals, spec)?;
+            lower_typed_body(
+                &mut builder,
+                &mut module,
+                &functions,
+                &mut locals,
+                spec,
+                machine_contract,
+                memory_enabled,
+            )?;
             builder.seal_all_blocks();
             builder.finalize();
         }
@@ -430,12 +488,13 @@ fn lower_v1_ast_to_object(ast: &Ast) -> Result<Vec<u8>, NativeCompileError> {
         .map_err(|error| NativeCompileError::new(format!("object emission failed: {error}")))
 }
 
-fn collect_typed_function_specs(
-    ast: &Ast,
-) -> Result<Vec<TypedFunctionSpec<'_>>, NativeCompileError> {
+fn collect_typed_function_specs<'a>(
+    ast: &'a Ast,
+    machine_contract: &str,
+) -> Result<Vec<TypedFunctionSpec<'a>>, NativeCompileError> {
     if ast.body.is_empty() {
         return Err(NativeCompileError::new(format!(
-            "{TYPED_MACHINE_CONTRACT} requires at least one typed function"
+            "{machine_contract} requires at least one typed function"
         )));
     }
 
@@ -444,18 +503,26 @@ fn collect_typed_function_specs(
     for node in &ast.body {
         let AstNode::Function(function) = node else {
             return Err(NativeCompileError::new(format!(
-                "{TYPED_MACHINE_CONTRACT} accepts only top-level function declarations"
+                "{machine_contract} accepts only top-level function declarations"
             )));
         };
+        if machine_contract == MEMORY_MACHINE_CONTRACT
+            && matches!(function.name.as_str(), "load" | "store")
+        {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} reserves function name `{}` for explicit memory access",
+                function.name
+            )));
+        }
         if names.insert(function.name.as_str(), ()).is_some() {
             return Err(NativeCompileError::new(format!(
-                "{TYPED_MACHINE_CONTRACT} declares duplicate function `{}`",
+                "{machine_contract} declares duplicate function `{}`",
                 function.name
             )));
         }
         if function.params.len() != function.param_types.len() && !function.params.is_empty() {
             return Err(NativeCompileError::new(format!(
-                "{TYPED_MACHINE_CONTRACT} function `{}` requires a type annotation for every parameter",
+                "{machine_contract} function `{}` requires a type annotation for every parameter",
                 function.name
             )));
         }
@@ -468,24 +535,26 @@ fn collect_typed_function_specs(
                 .and_then(Option::as_deref)
                 .ok_or_else(|| {
                     NativeCompileError::new(format!(
-                        "{TYPED_MACHINE_CONTRACT} parameter `{param_name}` in function `{}` requires an explicit type",
+                        "{machine_contract} parameter `{param_name}` in function `{}` requires an explicit type",
                         function.name
                     ))
                 })?;
             params.push(MachineType::parse(
                 type_name,
                 &format!("parameter `{param_name}` in function `{}`", function.name),
+                machine_contract,
             )?);
         }
         let return_name = function.return_type.as_deref().ok_or_else(|| {
             NativeCompileError::new(format!(
-                "{TYPED_MACHINE_CONTRACT} function `{}` requires an explicit return type",
+                "{machine_contract} function `{}` requires an explicit return type",
                 function.name
             ))
         })?;
         let result = MachineType::parse(
             return_name,
             &format!("return type of function `{}`", function.name),
+            machine_contract,
         )?;
         specs.push(TypedFunctionSpec {
             node: function,
@@ -499,12 +568,12 @@ fn collect_typed_function_specs(
         .find(|spec| spec.node.name == "main")
         .ok_or_else(|| {
             NativeCompileError::new(format!(
-                "{TYPED_MACHINE_CONTRACT} requires a typed `main` function"
+                "{machine_contract} requires a typed `main` function"
             ))
         })?;
     if !main.params.is_empty() {
         return Err(NativeCompileError::new(format!(
-            "{TYPED_MACHINE_CONTRACT} `main` cannot declare parameters"
+            "{machine_contract} `main` cannot declare parameters"
         )));
     }
     Ok(specs)
@@ -529,12 +598,15 @@ fn lower_typed_body(
     functions: &HashMap<String, TypedFunctionAbi>,
     locals: &mut HashMap<String, TypedValue>,
     spec: &TypedFunctionSpec<'_>,
+    machine_contract: &str,
+    memory_enabled: bool,
 ) -> Result<(), NativeCompileError> {
     let mut returned = false;
+    let mut stack_slots = HashMap::new();
     for (index, statement) in spec.node.body.iter().enumerate() {
         if returned {
             return Err(NativeCompileError::new(format!(
-                "{TYPED_MACHINE_CONTRACT} function `{}` contains unreachable statements after return",
+                "{machine_contract} function `{}` contains unreachable statements after return",
                 spec.node.name
             )));
         }
@@ -542,23 +614,24 @@ fn lower_typed_body(
             AstNode::VariableDeclaration(local) => {
                 if local.mutable {
                     return Err(NativeCompileError::new(format!(
-                        "{TYPED_MACHINE_CONTRACT} local `{}` must be immutable (`let` or `const`)",
+                        "{machine_contract} local `{}` must be immutable (`let` or `const`)",
                         local.name
                     )));
                 }
                 let type_name = local.type_annotation.as_deref().ok_or_else(|| {
                     NativeCompileError::new(format!(
-                        "{TYPED_MACHINE_CONTRACT} local `{}` requires an explicit type",
+                        "{machine_contract} local `{}` requires an explicit type",
                         local.name
                     ))
                 })?;
                 let machine_type = MachineType::parse(
                     type_name,
                     &format!("local `{}` in function `{}`", local.name, spec.node.name),
+                    machine_contract,
                 )?;
-                if locals.contains_key(&local.name) {
+                if locals.contains_key(&local.name) || stack_slots.contains_key(&local.name) {
                     return Err(NativeCompileError::new(format!(
-                        "{TYPED_MACHINE_CONTRACT} function `{}` redeclares local `{}`",
+                        "{machine_contract} function `{}` redeclares binding `{}`",
                         spec.node.name, local.name
                     )));
                 }
@@ -567,22 +640,90 @@ fn lower_typed_body(
                     module,
                     functions,
                     locals,
+                    &stack_slots,
                     &local.value,
                     machine_type,
                     &format!("initializer for `{}`", local.name),
+                    machine_contract,
+                    memory_enabled,
                 )?;
                 locals.insert(local.name.clone(), value);
+            }
+            AstNode::StackSlotDeclaration(slot) => {
+                if !memory_enabled {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} does not enable addressable stack slots"
+                    )));
+                }
+                if locals.contains_key(&slot.name) || stack_slots.contains_key(&slot.name) {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} function `{}` redeclares binding `{}`",
+                        spec.node.name, slot.name
+                    )));
+                }
+                let machine_type = MachineType::parse(
+                    &slot.type_annotation,
+                    &format!(
+                        "stack slot `{}` in function `{}`",
+                        slot.name, spec.node.name
+                    ),
+                    machine_contract,
+                )?;
+                let initial_value = lower_typed_expression(
+                    builder,
+                    module,
+                    functions,
+                    locals,
+                    &stack_slots,
+                    &slot.value,
+                    machine_type,
+                    &format!("initializer for stack slot `{}`", slot.name),
+                    machine_contract,
+                    memory_enabled,
+                )?;
+                let stack_slot = builder.create_sized_stack_slot(StackSlotData::new(
+                    StackSlotKind::ExplicitSlot,
+                    machine_type.stack_size(),
+                    machine_type.stack_align_shift(),
+                ));
+                builder
+                    .ins()
+                    .stack_store(initial_value.value, stack_slot, 0);
+                stack_slots.insert(
+                    slot.name.clone(),
+                    TypedStackSlot {
+                        slot: stack_slot,
+                        machine_type,
+                    },
+                );
+            }
+            AstNode::CallExpression(call)
+                if memory_enabled
+                    && matches!(
+                    call.callee.as_ref(),
+                    AstNode::Identifier(callee) if callee.name == "store"
+                ) =>
+            {
+                lower_typed_store(
+                    builder,
+                    module,
+                    functions,
+                    locals,
+                    &stack_slots,
+                    call,
+                    machine_contract,
+                )?;
             }
             AstNode::Return(return_node) => {
                 if index + 1 != spec.node.body.len() {
                     return Err(NativeCompileError::new(format!(
-                        "{TYPED_MACHINE_CONTRACT} return must be the final statement in function `{}`",
+                        "{machine_contract} return must be the final statement in function `{}`",
                         spec.node.name
                     )));
                 }
                 let argument = return_node.argument.as_deref().ok_or_else(|| {
                     NativeCompileError::new(format!(
-                        "{TYPED_MACHINE_CONTRACT} function `{}` must return `{}`",
+                        "{machine_contract} function `{}` must return `{}`",
                         spec.node.name,
                         spec.result.name()
                     ))
@@ -592,17 +733,25 @@ fn lower_typed_body(
                     module,
                     functions,
                     locals,
+                    &stack_slots,
                     argument,
                     spec.result,
                     &format!("return from `{}`", spec.node.name),
+                    machine_contract,
+                    memory_enabled,
                 )?;
                 builder.ins().return_(&[value.value]);
                 returned = true;
             }
             _ => {
+                let supported = if memory_enabled {
+                    "typed immutable locals, typed stack slots, explicit stores, and a final return"
+                } else {
+                    "typed immutable locals and a final return"
+                };
                 return Err(NativeCompileError::new(format!(
-                    "{TYPED_MACHINE_CONTRACT} function `{}` supports only typed immutable locals and a final return",
-                    spec.node.name
+                    "{machine_contract} function `{}` supports only {supported}",
+                    spec.node.name,
                 )));
             }
         }
@@ -610,34 +759,38 @@ fn lower_typed_body(
 
     if !returned {
         return Err(NativeCompileError::new(format!(
-            "{TYPED_MACHINE_CONTRACT} function `{}` has no return statement",
+            "{machine_contract} function `{}` has no return statement",
             spec.node.name
         )));
     }
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn lower_typed_expression(
     builder: &mut FunctionBuilder<'_>,
     module: &mut ObjectModule,
     functions: &HashMap<String, TypedFunctionAbi>,
     locals: &HashMap<String, TypedValue>,
+    stack_slots: &HashMap<String, TypedStackSlot>,
     node: &AstNode,
     expected: MachineType,
     context: &str,
+    machine_contract: &str,
+    memory_enabled: bool,
 ) -> Result<TypedValue, NativeCompileError> {
     let value = match node {
         AstNode::Number(number) => {
             let value = match expected {
                 MachineType::I32 => number.raw.parse::<i32>().map(i64::from).map_err(|_| {
                     NativeCompileError::new(format!(
-                        "{TYPED_MACHINE_CONTRACT} {context} requires an `i32` literal; found `{}`",
+                        "{machine_contract} {context} requires an `i32` literal; found `{}`",
                         number.raw
                     ))
                 })?,
                 MachineType::I64 => number.raw.parse::<i64>().map_err(|_| {
                     NativeCompileError::new(format!(
-                        "{TYPED_MACHINE_CONTRACT} {context} requires an `i64` literal; found `{}`",
+                        "{machine_contract} {context} requires an `i64` literal; found `{}`",
                         number.raw
                     ))
                 })?,
@@ -648,13 +801,19 @@ fn lower_typed_expression(
             }
         }
         AstNode::Identifier(identifier) => {
+            if stack_slots.contains_key(&identifier.name) {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} stack slot `{}` is not a scalar value; use `load({})`",
+                    identifier.name, identifier.name
+                )));
+            }
             let value = locals.get(&identifier.name).copied().ok_or_else(|| {
                 NativeCompileError::new(format!(
-                    "{TYPED_MACHINE_CONTRACT} {context} references unknown local `{}`",
+                    "{machine_contract} {context} references unknown local `{}`",
                     identifier.name
                 ))
             })?;
-            require_type(value, expected, context)?
+            require_type(value, expected, context, machine_contract)?
         }
         AstNode::UnaryExpression(unary) if unary.operator == "-" => {
             let argument = lower_typed_expression(
@@ -662,9 +821,12 @@ fn lower_typed_expression(
                 module,
                 functions,
                 locals,
+                stack_slots,
                 &unary.argument,
                 expected,
                 context,
+                machine_contract,
+                memory_enabled,
             )?;
             TypedValue {
                 value: builder.ins().ineg(argument.value),
@@ -677,18 +839,24 @@ fn lower_typed_expression(
                 module,
                 functions,
                 locals,
+                stack_slots,
                 &binary.left,
                 expected,
                 context,
+                machine_contract,
+                memory_enabled,
             )?;
             let right = lower_typed_expression(
                 builder,
                 module,
                 functions,
                 locals,
+                stack_slots,
                 &binary.right,
                 expected,
                 context,
+                machine_contract,
+                memory_enabled,
             )?;
             let value = match binary.operator.as_str() {
                 "+" => builder.ins().iadd(left.value, right.value),
@@ -696,7 +864,7 @@ fn lower_typed_expression(
                 "*" => builder.ins().imul(left.value, right.value),
                 operator => {
                     return Err(NativeCompileError::new(format!(
-                        "{TYPED_MACHINE_CONTRACT} does not support binary operator `{operator}`"
+                        "{machine_contract} does not support binary operator `{operator}`"
                     )));
                 }
             };
@@ -708,18 +876,33 @@ fn lower_typed_expression(
         AstNode::CallExpression(call) => {
             let AstNode::Identifier(callee) = call.callee.as_ref() else {
                 return Err(NativeCompileError::new(format!(
-                    "{TYPED_MACHINE_CONTRACT} supports calls only to named HoloScript functions"
+                    "{machine_contract} supports calls only to named HoloScript functions"
                 )));
             };
+            if memory_enabled && callee.name == "load" {
+                return lower_typed_load(
+                    builder,
+                    stack_slots,
+                    call,
+                    expected,
+                    context,
+                    machine_contract,
+                );
+            }
+            if memory_enabled && callee.name == "store" {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} `store(slot, value)` is a statement and cannot be used as a value"
+                )));
+            }
             let abi = functions.get(&callee.name).ok_or_else(|| {
                 NativeCompileError::new(format!(
-                    "{TYPED_MACHINE_CONTRACT} calls unknown function `{}`",
+                    "{machine_contract} calls unknown function `{}`",
                     callee.name
                 ))
             })?;
             if call.arguments.len() != abi.params.len() {
                 return Err(NativeCompileError::new(format!(
-                    "{TYPED_MACHINE_CONTRACT} call to `{}` expects {} arguments, found {}",
+                    "{machine_contract} call to `{}` expects {} arguments, found {}",
                     callee.name,
                     abi.params.len(),
                     call.arguments.len()
@@ -727,7 +910,7 @@ fn lower_typed_expression(
             }
             if abi.result != expected {
                 return Err(NativeCompileError::new(format!(
-                    "{TYPED_MACHINE_CONTRACT} {context} expects `{}`, but `{}` returns `{}`; implicit coercions are forbidden",
+                    "{machine_contract} {context} expects `{}`, but `{}` returns `{}`; implicit coercions are forbidden",
                     expected.name(),
                     callee.name,
                     abi.result.name()
@@ -746,9 +929,12 @@ fn lower_typed_expression(
                         module,
                         functions,
                         locals,
+                        stack_slots,
                         argument,
                         machine_type,
                         &format!("argument {} to `{}`", index + 1, callee.name),
+                        machine_contract,
+                        memory_enabled,
                     )?
                     .value,
                 );
@@ -762,7 +948,7 @@ fn lower_typed_expression(
         }
         other => {
             return Err(NativeCompileError::new(format!(
-                "{TYPED_MACHINE_CONTRACT} {context} does not support expression node `{}`",
+                "{machine_contract} {context} does not support expression node `{}`",
                 ast_node_name(other)
             )));
         }
@@ -770,14 +956,98 @@ fn lower_typed_expression(
     Ok(value)
 }
 
+fn lower_typed_load(
+    builder: &mut FunctionBuilder<'_>,
+    stack_slots: &HashMap<String, TypedStackSlot>,
+    call: &CallExpression,
+    expected: MachineType,
+    context: &str,
+    machine_contract: &str,
+) -> Result<TypedValue, NativeCompileError> {
+    if call.arguments.len() != 1 {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} `load` expects exactly one stack slot, found {} arguments",
+            call.arguments.len()
+        )));
+    }
+    let AstNode::Identifier(identifier) = &call.arguments[0] else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} `load` requires a stack-slot identifier"
+        )));
+    };
+    let stack_slot = stack_slots.get(&identifier.name).copied().ok_or_else(|| {
+        NativeCompileError::new(format!(
+            "{machine_contract} `load` references unknown stack slot `{}`",
+            identifier.name
+        ))
+    })?;
+    if stack_slot.machine_type != expected {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} {context} expects `{}`, but stack slot `{}` stores `{}`; implicit coercions are forbidden",
+            expected.name(),
+            identifier.name,
+            stack_slot.machine_type.name()
+        )));
+    }
+    Ok(TypedValue {
+        value: builder
+            .ins()
+            .stack_load(stack_slot.machine_type.ir_type(), stack_slot.slot, 0),
+        machine_type: stack_slot.machine_type,
+    })
+}
+
+fn lower_typed_store(
+    builder: &mut FunctionBuilder<'_>,
+    module: &mut ObjectModule,
+    functions: &HashMap<String, TypedFunctionAbi>,
+    locals: &HashMap<String, TypedValue>,
+    stack_slots: &HashMap<String, TypedStackSlot>,
+    call: &CallExpression,
+    machine_contract: &str,
+) -> Result<(), NativeCompileError> {
+    if call.arguments.len() != 2 {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} `store` expects a stack slot and one value, found {} arguments",
+            call.arguments.len()
+        )));
+    }
+    let AstNode::Identifier(identifier) = &call.arguments[0] else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} `store` requires a stack-slot identifier as its first argument"
+        )));
+    };
+    let stack_slot = stack_slots.get(&identifier.name).copied().ok_or_else(|| {
+        NativeCompileError::new(format!(
+            "{machine_contract} `store` references unknown stack slot `{}`",
+            identifier.name
+        ))
+    })?;
+    let value = lower_typed_expression(
+        builder,
+        module,
+        functions,
+        locals,
+        stack_slots,
+        &call.arguments[1],
+        stack_slot.machine_type,
+        &format!("store to stack slot `{}`", identifier.name),
+        machine_contract,
+        true,
+    )?;
+    builder.ins().stack_store(value.value, stack_slot.slot, 0);
+    Ok(())
+}
+
 fn require_type(
     value: TypedValue,
     expected: MachineType,
     context: &str,
+    machine_contract: &str,
 ) -> Result<TypedValue, NativeCompileError> {
     if value.machine_type != expected {
         return Err(NativeCompileError::new(format!(
-            "{TYPED_MACHINE_CONTRACT} {context} expects `{}`, found `{}`; implicit coercions are forbidden",
+            "{machine_contract} {context} expects `{}`, found `{}`; implicit coercions are forbidden",
             expected.name(),
             value.machine_type.name()
         )));

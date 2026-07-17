@@ -84,6 +84,7 @@ pub enum AstNode {
     EnumDeclaration(EnumDeclarationNode),
     StructDeclaration(StructDeclarationNode),
     VariableDeclaration(VariableDeclarationNode),
+    StackSlotDeclaration(StackSlotDeclarationNode),
     Assignment(AssignmentNode),
 
     // Event handlers
@@ -573,6 +574,20 @@ pub struct VariableDeclarationNode {
     pub type_annotation: Option<String>,
     pub value: Box<AstNode>,
     pub mutable: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub loc: Option<Location>,
+}
+
+/// Addressable, function-local machine storage: `slot value: i32 = 0`.
+///
+/// A stack slot is deliberately distinct from an SSA local. Its identity carries provenance:
+/// consumers must use the native `load(slot)` and `store(slot, value)` operations, and the slot
+/// cannot be treated as a scalar value or escape its declaring function.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StackSlotDeclarationNode {
+    pub name: String,
+    pub type_annotation: String,
+    pub value: Box<AstNode>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub loc: Option<Location>,
 }

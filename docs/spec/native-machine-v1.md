@@ -72,3 +72,6 @@ legacy emitters.
 v1 does not define casts, mutable locals, branches, loops, recursion admission,
 pointers, addressable stack slots, structs, alignment, allocation, FFI imports,
 syscalls, strings, files, concurrency, or cross-compilation.
+
+The addressable-memory successor is
+[HoloScript Native Machine Contract v2](native-machine-v2.md).

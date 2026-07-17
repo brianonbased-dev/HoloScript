@@ -2091,6 +2091,9 @@ impl Parser {
     }
 
     fn parse_statement(&mut self) -> Result<AstNode, ParseError> {
+        if self.check_value("slot") {
+            return self.parse_stack_slot_declaration();
+        }
         match self.peek().token_type {
             TokenType::If => self.parse_if_statement(),
             TokenType::For => self.parse_for_statement(),
@@ -2225,6 +2228,22 @@ impl Parser {
             type_annotation,
             value: Box::new(value),
             mutable,
+            loc: None,
+        }))
+    }
+
+    fn parse_stack_slot_declaration(&mut self) -> Result<AstNode, ParseError> {
+        self.advance(); // consume contextual `slot` keyword
+        let name = self.expect_identifier()?;
+        self.expect(TokenType::Colon)?;
+        let type_annotation = self.expect_identifier()?;
+        self.expect(TokenType::Equals)?;
+        let value = self.parse_expression()?;
+
+        Ok(AstNode::StackSlotDeclaration(StackSlotDeclarationNode {
+            name,
+            type_annotation,
+            value: Box::new(value),
             loc: None,
         }))
     }
@@ -3190,6 +3209,27 @@ mod tests {
         };
         assert_eq!(local.name, "result");
         assert_eq!(local.type_annotation.as_deref(), Some("i64"));
+    }
+
+    #[test]
+    fn test_parse_typed_stack_slot_declaration() {
+        let source = r#"function main(): i32 {
+            slot value: i32 = 2
+            store(value, 5)
+            return load(value)
+        }"#;
+        let mut parser = Parser::new(source);
+        let program = parser.parse().expect("typed stack slot should parse");
+
+        let AstNode::Function(function) = &program.body[0] else {
+            panic!("Expected Function node");
+        };
+        let AstNode::StackSlotDeclaration(slot) = &function.body[0] else {
+            panic!("Expected StackSlotDeclaration node");
+        };
+        assert_eq!(slot.name, "value");
+        assert_eq!(slot.type_annotation, "i32");
+        assert!(matches!(function.body[1], AstNode::CallExpression(_)));
     }
 
     #[test]

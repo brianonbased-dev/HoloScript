@@ -16,6 +16,14 @@ const I64_EXIT_FIVE: &str = r#"
         return result
     }
 "#;
+const STACK_SLOT_EXIT_FIVE: &str = include_str!("../../../examples/native/stack-slot-exit-five.hs");
+const I64_STACK_SLOT_EXIT_FIVE: &str = r#"
+    function main(): i64 {
+        slot value: i64 = 2
+        store(value, load(value) + 3)
+        return load(value)
+    }
+"#;
 
 fn scratch_executable(name: &str) -> std::path::PathBuf {
     let nonce = SystemTime::now()
@@ -78,15 +86,208 @@ fn compiles_i64_signatures_through_the_process_adapter() {
 }
 
 #[test]
+fn compiles_addressable_stack_slots_with_explicit_loads_and_stores() {
+    let executable = scratch_executable("native-stack-slot");
+
+    let artifact = compile_executable(
+        STACK_SLOT_EXIT_FIVE,
+        &executable,
+        &NativeCompileOptions::host(),
+    )
+    .expect("typed stack slots should compile to a native executable");
+
+    assert_eq!(artifact.machine_contract, "hs-machine-v2");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("stack-slot native HoloScript executable should run");
+    assert_eq!(status.code(), Some(5));
+
+    fs::remove_file(&artifact.executable).expect("remove stack-slot smoke-test executable");
+}
+
+#[test]
+fn compiles_naturally_aligned_i64_stack_slots() {
+    let executable = scratch_executable("native-i64-stack-slot");
+
+    let artifact = compile_executable(
+        I64_STACK_SLOT_EXIT_FIVE,
+        &executable,
+        &NativeCompileOptions::host(),
+    )
+    .expect("i64 stack slots should compile to a native executable");
+
+    assert_eq!(artifact.machine_contract, "hs-machine-v2");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("i64 stack-slot executable should run");
+    assert_eq!(status.code(), Some(5));
+
+    fs::remove_file(&artifact.executable).expect("remove i64 stack-slot executable");
+}
+
+#[test]
 fn emits_deterministic_objects_for_the_same_source() {
     let options = NativeCompileOptions::host();
 
-    for source in ["function main() { return 2 * 3 - 1 }", TYPED_EXIT_FIVE] {
+    for source in [
+        "function main() { return 2 * 3 - 1 }",
+        TYPED_EXIT_FIVE,
+        STACK_SLOT_EXIT_FIVE,
+    ] {
         let first = compile_object(source, &options).expect("first object should compile");
         let second = compile_object(source, &options).expect("second object should compile");
 
         assert_eq!(first, second);
     }
+}
+
+#[test]
+fn memory_contract_enforces_slot_provenance_and_binding_identity() {
+    let options = NativeCompileOptions::host();
+
+    let implicit_address = compile_object(
+        "function main(): i32 {\
+           let value: i32 = 2\
+           store(value, 5)\
+           return value\
+         }",
+        &options,
+    )
+    .expect_err("an SSA local must never become addressable implicitly");
+    assert!(implicit_address.to_string().contains("hs-machine-v1"));
+
+    let duplicate = compile_object(
+        "function main(): i32 {\
+           let value: i32 = 2\
+           slot value: i32 = 3\
+           return load(value)\
+         }",
+        &options,
+    )
+    .expect_err("a slot cannot collide with an SSA local");
+    assert!(duplicate.to_string().contains("redeclares binding `value`"));
+
+    let direct_return = compile_object(
+        "function main(): i32 { slot value: i32 = 5 return value }",
+        &options,
+    )
+    .expect_err("a stack slot cannot be returned as a scalar");
+    assert!(direct_return.to_string().contains("is not a scalar value"));
+
+    let escaped_argument = compile_object(
+        "function identity(value: i32): i32 { return value }\
+         function main(): i32 {\
+           slot value: i32 = 5\
+           return identity(value)\
+         }",
+        &options,
+    )
+    .expect_err("a stack slot cannot escape through a function argument");
+    assert!(escaped_argument.to_string().contains("use `load(value)`"));
+
+    let reserved_name = compile_object(
+        "function load(value: i32): i32 { return value }\
+         function main(): i32 { slot value: i32 = 5 return load(value) }",
+        &options,
+    )
+    .expect_err("v2 reserves its memory operation names");
+    assert!(reserved_name
+        .to_string()
+        .contains("reserves function name `load`"));
+}
+
+#[test]
+fn memory_contract_rejects_invalid_loads_stores_and_layout_types() {
+    let options = NativeCompileOptions::host();
+
+    let wrong_width = compile_object(
+        "function main(): i32 {\
+           slot value: i32 = 0\
+           store(value, 2147483648)\
+           return load(value)\
+         }",
+        &options,
+    )
+    .expect_err("stores must fit the slot width exactly");
+    assert!(wrong_width
+        .to_string()
+        .contains("requires an `i32` literal"));
+
+    let wrong_result_width = compile_object(
+        "function main(): i64 { slot value: i32 = 5 return load(value) }",
+        &options,
+    )
+    .expect_err("loads must not widen implicitly");
+    assert!(wrong_result_width
+        .to_string()
+        .contains("stack slot `value` stores `i32`"));
+
+    let unknown_slot = compile_object(
+        "function main(): i32 {\
+           slot value: i32 = 0\
+           store(missing, 5)\
+           return load(value)\
+         }",
+        &options,
+    )
+    .expect_err("stores must name a declared stack slot");
+    assert!(unknown_slot
+        .to_string()
+        .contains("unknown stack slot `missing`"));
+
+    let wrong_load_arity = compile_object(
+        "function main(): i32 { slot value: i32 = 0 return load() }",
+        &options,
+    )
+    .expect_err("load arity must be exact");
+    assert!(wrong_load_arity
+        .to_string()
+        .contains("exactly one stack slot"));
+
+    let wrong_store_arity = compile_object(
+        "function main(): i32 {\
+           slot value: i32 = 0\
+           store(value)\
+           return load(value)\
+         }",
+        &options,
+    )
+    .expect_err("store arity must be exact");
+    assert!(wrong_store_arity
+        .to_string()
+        .contains("a stack slot and one value"));
+
+    let scalar_load = compile_object(
+        "function main(): i32 {\
+           slot marker: i32 = 0\
+           let value: i32 = 5\
+           return load(value)\
+         }",
+        &options,
+    )
+    .expect_err("load must not accept an SSA local");
+    assert!(scalar_load
+        .to_string()
+        .contains("unknown stack slot `value`"));
+
+    let unsupported_layout = compile_object(
+        "function main(): i32 { slot value: i16 = 0 return 0 }",
+        &options,
+    )
+    .expect_err("v2 supports only layouts it specifies exactly");
+    assert!(unsupported_layout
+        .to_string()
+        .contains("supports only `i32` and `i64`"));
+}
+
+#[test]
+fn typed_v1_preserves_user_functions_named_load() {
+    let source = "function load(value: i32): i32 { return value }\
+                  function main(): i32 { return load(5) }";
+    let object = compile_object(source, &NativeCompileOptions::host())
+        .expect("v1 function names remain compatible without a v2 slot declaration");
+
+    assert!(!object.is_empty());
 }
 
 #[test]
