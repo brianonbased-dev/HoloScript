@@ -1,7 +1,7 @@
 @trait {
   name: "@abtest",
   category: "devops",
-  description: "A/B experiment framework with frequentist and multi-armed bandit modes. default_strategy: equal (50/50), weighted, or bandit. alpha is the significance threshold (default: 0.05). min_sample_size gates analysis (default: 30 per variant). min_detectable_effect is the MDE for power calculations (default: 0.1 = 10%). statistical_power target (default: 0.8). auto_complete ends experiments when significance is reached. max_duration=0 disables time-based auto-close. privacy_mode: anonymous (hashed user id), pseudonymous, or none. enable_bandit switches to epsilon-greedy bandit (bandit_epsilon: explore rate). custom_tags are arbitrary metadata labels. Port of ABTestTrait.ts (handler name: abtest).",
+  description: "A/B testing framework for spatial computing scenes. Deterministic hash-based variant assignment (djb2 — no PII required), multiple concurrent experiments, chi-squared and z-test significance, conversion tracking, multi-armed bandit adaptive allocation (epsilon-greedy), and anonymous/pseudonymous privacy modes. Port of ABTestTrait.ts (handler name: abtest).",
   props: {
     enabled: boolean = true,
     default_strategy: enum("equal" | "weighted" | "bandit") = "equal",
@@ -11,19 +11,21 @@
     statistical_power: number = 0.8,
     auto_complete: boolean = false,
     max_duration: number = 0,
-    privacy_mode: enum("anonymous" | "pseudonymous" | "none") = "anonymous",
+    privacy_mode: enum("anonymous" | "pseudonymous") = "anonymous",
     enable_bandit: boolean = false,
-    bandit_epsilon: number = 0.1
+    bandit_epsilon: number = 0.1,
+    custom_tags: dict<string,string> = {}
   },
   events: {
-    attached: "abtest_ready",
-    on_variant_assigned: "abtest_variant_assigned",
-    on_experiment_complete: "abtest_complete",
-    on_significance_reached: "abtest_significant",
-    start: "abtest_start",
-    assign: "abtest_assign",
-    record: "abtest_record",
-    complete: "abtest_complete_experiment"
+    on_assigned: "abtest:assigned",
+    on_converted: "abtest:converted",
+    on_significant: "abtest:significant",
+    on_completed: "abtest:completed",
+    on_error: "abtest:error",
+    assign: "abtest:assign",
+    track: "abtest:track",
+    get_variant: "abtest:get_variant",
+    get_stats: "abtest:get_stats"
   },
-  behaviors: ["@analytics", "@economy"]
+  behaviors: ["@consent_management", "@analytics"]
 }
