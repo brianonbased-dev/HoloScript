@@ -1,19 +1,18 @@
 /**
  * AnimationSamplingProbe — P2-0 substrate probe.
  *
- * Scope honesty: P2-0's submission claim is hash-verified
- * ANIMATION RETARGETING across backends (source rig -> target rig
- * transform produces bit-identical motion curves). HoloScript does
- * not yet ship a retargeter. What it DOES ship is `AnimClip.sample(t)`,
- * and retargeting determinism would build on sampling determinism
- * as its substrate. This probe validates the substrate only.
+ * Scope honesty: P2-0's implemented claim is same-process
+ * reproducibility for a frozen scalar clip-sampling fixture. Portable
+ * retargeting, quaternion interpolation, and cross-backend identity are
+ * future gates; HoloScript does not yet ship that paper substrate. What
+ * it DOES ship is `AnimClip.sample(t)`, and this probe validates only
+ * that narrower path.
  *
- * Read this as: "before we can claim retargeting determinism, we
- * must confirm clip-sampling determinism." A retargeter that calls
- * `sample()` N times and combines results cannot be deterministic
- * if `sample()` itself is not. Benchmarks that exercise the full
- * retargeting pipeline belong in a later probe once the retargeter
- * ships (CAEL paper-forces-code pattern).
+ * Read this as: "before evaluating portable retargeting, confirm
+ * same-process clip-sampling repeatability." The current test compares
+ * repeated invocations; it does not pin a published digest or prove a
+ * cross-machine result. Full retargeting benchmarks belong in a later
+ * probe once the missing substrate ships.
  *
  * Reusable: paper test suite calls `runAnimationSamplingProbe(spec)`
  * and returns `Uint8Array` of concatenated sample outputs. The

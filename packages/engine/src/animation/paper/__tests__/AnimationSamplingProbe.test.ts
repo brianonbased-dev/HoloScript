@@ -1,11 +1,10 @@
 /**
  * AnimationSamplingProbe — P2-0 substrate determinism test.
  *
- * Proves the minimum claim P2-0 depends on: `AnimClip.sample(t)`
- * produces byte-identical output across independent runs of the same
- * input spec. Retargeting determinism across backends is the full
- * paper claim and requires a retargeter (not yet shipped). This
- * probe validates the substrate.
+ * Exercises P2-0's implemented narrow claim: `AnimClip.sample(t)`
+ * produces byte-identical output across repeated invocations of the
+ * same input spec in one process. It does not pin a published digest,
+ * execute a retargeter, or prove cross-backend identity.
  *
  * Same pattern as Paper #2 LIFDeterminismProbe:
  *   - DeterminismHarness from @holoscript/core
