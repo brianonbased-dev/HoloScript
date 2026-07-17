@@ -1,0 +1,28 @@
+{
+  "schema": "holotorch-inference-parity.v0",
+  "op": "model-e2e",
+  "adapter": {
+    "vendor": "nvidia",
+    "architecture": "ampere",
+    "device": "nvidia-geforce-rtx-3060-laptop-gpu",
+    "description": "D3D12 driver version 32.0.16.1062"
+  },
+  "sourceCkpt": "C:\\Users\\josep\\.ai-ecosystem\\.scratch\\holorunner\\s0\\ckpt\\ckpt.pt",
+  "config": {
+    "nLayer": 4,
+    "nHead": 4,
+    "nEmbd": 128,
+    "vocab": 562,
+    "seqLen": 8,
+    "blockSize": 128,
+    "structCount": 13
+  },
+  "maxAbs": 5.960464477539062e-7,
+  "maxRefAbs": 3.2405762672424316,
+  "relToScale": 1.8393223877465226e-7,
+  "allClose": true,
+  "argmaxAgree": 8,
+  "argmaxTotal": 8,
+  "verdict": "pass",
+  "note": "adapter nvidia-geforce-rtx-3060-laptop-gpu; REAL checkpoint weights vs torch GPT.forward reference logits — the D.128/D.129 forcing-function receipt."
+}
