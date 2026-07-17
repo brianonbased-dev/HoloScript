@@ -521,20 +521,18 @@ fi
 # outside the canonical homes is a mirror and is blocked. The uAAL/HSI-IR overload this prevents
 # was the root cause of the 2026-07 language-design loop (two IRs for one meaning stratum).
 echo "  ├─ Language-strata gate (one meaning, defined once)..."
-STAGED_STRATA_TS=$(git diff --cached --name-only --diff-filter=ACM -- 'packages/*/src/**/*.ts' 2>/dev/null || true)
-if [ -n "$STAGED_STRATA_TS" ]; then
-    STRATA_OUT=$(run_with_timeout 30 node scripts/holo-ci/check-language-strata.mjs --strict 2>&1)
-    STRATA_STATUS=$?
-    if [ "$STRATA_STATUS" -ne 0 ]; then
-        echo -e "  ${RED}❌ Meaning-stratum mirror (second definition outside @holoscript/meaning)${NC}"
-        echo "$STRATA_OUT"
-        echo "     Fix: import the contract from @holoscript/meaning (docs/spec/language-architecture.md §6.2); never re-declare it."
-        FAILED=1
-    else
-        echo -e "  ${GREEN}✓${NC} One meaning stratum, defined once"
-    fi
+# Runs UNCONDITIONALLY (fast full-tree static walk, <2s): staged-file trigger-matching proved
+# fragile on the stage-2 landing commit itself — its git-mv renames (index status R) slipped the
+# ACM diff-filter and skipped the gate (2026-07-17). A move IS how a mirror escapes; always check.
+STRATA_OUT=$(run_with_timeout 30 node scripts/holo-ci/check-language-strata.mjs --strict 2>&1)
+STRATA_STATUS=$?
+if [ "$STRATA_STATUS" -ne 0 ]; then
+    echo -e "  ${RED}❌ Meaning-stratum mirror (second definition outside @holoscript/meaning)${NC}"
+    echo "$STRATA_OUT"
+    echo "     Fix: import the contract from @holoscript/meaning (docs/spec/language-architecture.md §6.2); never re-declare it."
+    FAILED=1
 else
-    echo -e "  ${GREEN}✓${NC} No staged package TS (language-strata skipped)"
+    echo -e "  ${GREEN}✓${NC} One meaning stratum, defined once"
 fi
 
 # Gate 5h: No third-party QR-code service gate (F.106/F.117: generate QR codes LOCALLY).
