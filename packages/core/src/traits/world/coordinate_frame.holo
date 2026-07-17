@@ -1,5 +1,5 @@
 @trait {
-  name: "@frame_declaration",
+  name: "@coordinate_frame",
   category: "world",
   description: "Coordinate frame declaration. Names a spatial reference frame (world, body, sensor, tool, map) and stores its transform relative to the parent frame for digital twin and robotics use. Authored from FrameDeclarationTrait.ts.",
   props: {

@@ -1,5 +1,5 @@
 @trait {
-  name: "@feedback_loop",
+  name: "@rlhf_signal_collector",
   category: "cognitive",
   description: "Agent self-improvement feedback loop. Collects outcome signals (user ratings, goal completions, supervisor scores), stores them as RLHF-style pairs, and surfaces them for holotune fine-tuning runs. Authored from FeedbackLoopTrait.ts.",
   props: {
