@@ -3495,6 +3495,49 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_nested_owned_aggregate_field_transfer_path() {
+        let source = r#"
+            struct Payload { values: [i32], marker: i32 }
+            struct Envelope { payload: Payload }
+            function extract(): [i32] {
+                slot envelope: Envelope = Envelope(Payload(buffer(2, 5), 5))
+                return move(envelope.payload.values)
+            }
+        "#;
+        let mut parser = Parser::new(source);
+        let program = parser
+            .parse()
+            .expect("nested owned aggregate transfer path should parse");
+
+        let AstNode::StructDeclaration(payload) = &program.body[0] else {
+            panic!("Expected Payload struct");
+        };
+        assert_eq!(payload.field_types[0].as_deref(), Some("[i32]"));
+        let AstNode::Function(extract) = &program.body[2] else {
+            panic!("Expected extract function");
+        };
+        let AstNode::Return(return_node) = &extract.body[1] else {
+            panic!("Expected owned field return");
+        };
+        let Some(AstNode::CallExpression(transfer)) = return_node.argument.as_deref() else {
+            panic!("Expected move call");
+        };
+        let Some(AstNode::MemberExpression(values)) = transfer.arguments.first() else {
+            panic!("Expected owned aggregate field path");
+        };
+        assert!(matches!(
+            values.property.as_ref(),
+            AstNode::Identifier(property) if property.name == "values"
+        ));
+        assert!(matches!(
+            values.object.as_ref(),
+            AstNode::MemberExpression(payload)
+                if matches!(payload.object.as_ref(), AstNode::Identifier(root) if root.name == "envelope")
+                    && matches!(payload.property.as_ref(), AstNode::Identifier(property) if property.name == "payload")
+        ));
+    }
+
+    #[test]
     fn test_parse_borrowed_slice_types_and_range_initializers() {
         let source = r#"function main(): i32 {
             slot values: [i32; 4] = [1, 2, 3, 4]

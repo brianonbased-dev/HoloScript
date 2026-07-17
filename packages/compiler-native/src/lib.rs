@@ -20,8 +20,10 @@
 //! affine, heap-backed owned buffers, explicit moves and drops, whole-buffer slice borrows,
 //! and compiler-emitted cleanup through a host allocator ABI. `hs-machine-v13` adds consuming
 //! owned parameters, owned returns through a versioned C-compatible out record, allocator
-//! provenance, and path-sensitive ownership joins. Everything outside the selected contract
-//! fails closed with a native compile diagnostic.
+//! provenance, and path-sensitive ownership joins. `hs-machine-v14` adds recursively laid-out
+//! aggregates whose owned-buffer leaves participate in the same affine state machine and
+//! deterministic drop glue. Everything outside the selected contract fails closed with a native
+//! compile diagnostic.
 
 use std::collections::{HashMap, HashSet};
 use std::env;
@@ -58,10 +60,11 @@ pub const SLICE_FORWARD_MACHINE_CONTRACT: &str = "hs-machine-v10";
 pub const SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT: &str = "hs-machine-v11";
 pub const LOCAL_OWNED_BUFFER_MACHINE_CONTRACT: &str = "hs-machine-v12";
 pub const OWNED_BUFFER_MACHINE_CONTRACT: &str = "hs-machine-v13";
+pub const OWNED_AGGREGATE_MACHINE_CONTRACT: &str = "hs-machine-v14";
 pub const OWNED_BUFFER_ABI_VERSION: u32 = 1;
 pub const HOST_ALLOCATOR_PROVENANCE_ID: u32 = 1;
 
-/// Foreign bridge layout for an owned buffer returned by `hs-machine-v13`.
+/// Foreign bridge layout for an owned buffer returned by `hs-machine-v13` or later.
 ///
 /// Native HoloScript calls pass owned parameters as these three fields in order.
 /// Owned returns receive a trailing pointer to this record and initialize it before
@@ -150,7 +153,7 @@ pub fn compile_object(
     Ok(compile_unit(source, options)?.bytes)
 }
 
-/// Parse canonical HoloScript and report the exact native v6 aggregate layouts.
+/// Parse canonical HoloScript and report exact host-native aggregate layouts.
 pub fn inspect_native_layouts(source: &str) -> Result<Vec<NativeStructLayout>, NativeCompileError> {
     let ast = holoscript_wasm::parse_ast(source).map_err(|diagnostics| {
         let rendered = diagnostics
@@ -165,7 +168,14 @@ pub fn inspect_native_layouts(source: &str) -> Result<Vec<NativeStructLayout>, N
             .join("; ");
         NativeCompileError::new(format!("HoloScript parse failed: {rendered}"))
     })?;
-    collect_aggregate_layouts(&ast, AGGREGATE_MACHINE_CONTRACT).map(|layouts| {
+    let machine_contract = if has_owned_aggregate_machine_metadata(&ast) {
+        OWNED_AGGREGATE_MACHINE_CONTRACT
+    } else {
+        AGGREGATE_MACHINE_CONTRACT
+    };
+    let module = create_object_module()?;
+    let pointer_type = module.target_config().pointer_type();
+    collect_aggregate_layouts(&ast, machine_contract, pointer_type).map(|layouts| {
         layouts
             .into_iter()
             .map(AggregateLayout::into_public)
@@ -191,7 +201,12 @@ fn compile_unit(
         NativeCompileError::new(format!("HoloScript parse failed: {rendered}"))
     })?;
 
-    if has_owned_buffer_machine_metadata(&ast) {
+    if has_owned_aggregate_machine_metadata(&ast) {
+        Ok(CompiledObject {
+            bytes: lower_typed_ast_to_object(&ast, OWNED_AGGREGATE_MACHINE_CONTRACT, true)?,
+            machine_contract: OWNED_AGGREGATE_MACHINE_CONTRACT,
+        })
+    } else if has_owned_buffer_machine_metadata(&ast) {
         Ok(CompiledObject {
             bytes: lower_typed_ast_to_object(&ast, OWNED_BUFFER_MACHINE_CONTRACT, true)?,
             machine_contract: OWNED_BUFFER_MACHINE_CONTRACT,
@@ -412,6 +427,20 @@ fn has_aggregate_machine_metadata(ast: &Ast) -> bool {
         matches!(
             node,
             AstNode::StructDeclaration(structure) if !structure.field_types.is_empty()
+        )
+    })
+}
+
+fn has_owned_aggregate_machine_metadata(ast: &Ast) -> bool {
+    ast.body.iter().any(|node| {
+        matches!(
+            node,
+            AstNode::StructDeclaration(structure)
+                if structure
+                    .field_types
+                    .iter()
+                    .flatten()
+                    .any(|annotation| annotation_uses_owned_buffer(annotation))
         )
     })
 }
@@ -1101,6 +1130,7 @@ fn bool_enabled(machine_contract: &str) -> bool {
             | SLICE_FORWARD_MACHINE_CONTRACT
             | SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT
             | OWNED_BUFFER_MACHINE_CONTRACT
+            | OWNED_AGGREGATE_MACHINE_CONTRACT
     )
 }
 
@@ -1115,6 +1145,7 @@ fn control_flow_enabled(machine_contract: &str) -> bool {
             | SLICE_FORWARD_MACHINE_CONTRACT
             | SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT
             | OWNED_BUFFER_MACHINE_CONTRACT
+            | OWNED_AGGREGATE_MACHINE_CONTRACT
     )
 }
 
@@ -1130,6 +1161,7 @@ fn scoped_lifetimes_enabled(machine_contract: &str) -> bool {
             | SLICE_FORWARD_MACHINE_CONTRACT
             | SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT
             | OWNED_BUFFER_MACHINE_CONTRACT
+            | OWNED_AGGREGATE_MACHINE_CONTRACT
     )
 }
 
@@ -1146,6 +1178,7 @@ fn references_enabled(machine_contract: &str) -> bool {
             | SLICE_FORWARD_MACHINE_CONTRACT
             | SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT
             | OWNED_BUFFER_MACHINE_CONTRACT
+            | OWNED_AGGREGATE_MACHINE_CONTRACT
     )
 }
 
@@ -1163,6 +1196,7 @@ fn memory_contract_enabled(machine_contract: &str) -> bool {
             | SLICE_FORWARD_MACHINE_CONTRACT
             | SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT
             | OWNED_BUFFER_MACHINE_CONTRACT
+            | OWNED_AGGREGATE_MACHINE_CONTRACT
     )
 }
 
@@ -1176,6 +1210,14 @@ fn aggregate_contract_enabled(machine_contract: &str) -> bool {
             | SLICE_FORWARD_MACHINE_CONTRACT
             | SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT
             | OWNED_BUFFER_MACHINE_CONTRACT
+            | OWNED_AGGREGATE_MACHINE_CONTRACT
+    )
+}
+
+fn owned_buffers_enabled(machine_contract: &str) -> bool {
+    matches!(
+        machine_contract,
+        OWNED_BUFFER_MACHINE_CONTRACT | OWNED_AGGREGATE_MACHINE_CONTRACT
     )
 }
 
@@ -1188,6 +1230,7 @@ fn fixed_arrays_enabled(machine_contract: &str) -> bool {
             | SLICE_FORWARD_MACHINE_CONTRACT
             | SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT
             | OWNED_BUFFER_MACHINE_CONTRACT
+            | OWNED_AGGREGATE_MACHINE_CONTRACT
     )
 }
 
@@ -1269,7 +1312,7 @@ impl OwnedBufferLayout {
         if !annotation_uses_owned_buffer(annotation) {
             return Ok(None);
         }
-        if machine_contract != OWNED_BUFFER_MACHINE_CONTRACT {
+        if !owned_buffers_enabled(machine_contract) {
             return Err(NativeCompileError::new(format!(
                 "{machine_contract} does not enable owned buffer storage"
             )));
@@ -1292,8 +1335,27 @@ impl OwnedBufferLayout {
 #[derive(Debug, Clone)]
 struct AggregateFieldLayout {
     name: String,
-    machine_type: MachineType,
+    field_type: AggregateFieldType,
     offset: u32,
+    size: u32,
+    align_shift: u8,
+}
+
+#[derive(Debug, Clone)]
+enum AggregateFieldType {
+    Scalar(MachineType),
+    Owned(OwnedBufferLayout),
+    Aggregate(Box<AggregateLayout>),
+}
+
+impl AggregateFieldType {
+    fn name(&self) -> String {
+        match self {
+            Self::Scalar(machine_type) => machine_type.name().to_string(),
+            Self::Owned(layout) => format!("[{}]", layout.element_type.name()),
+            Self::Aggregate(layout) => layout.name.clone(),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -1320,10 +1382,10 @@ impl AggregateLayout {
                 .into_iter()
                 .map(|field| NativeFieldLayout {
                     name: field.name,
-                    machine_type: field.machine_type.name().to_string(),
+                    machine_type: field.field_type.name(),
                     offset: field.offset,
-                    size: field.machine_type.stack_size(),
-                    alignment: 1_u32 << field.machine_type.stack_align_shift(),
+                    size: field.size,
+                    alignment: 1_u32 << field.align_shift,
                 })
                 .collect(),
         }
@@ -1333,23 +1395,18 @@ impl AggregateLayout {
 fn collect_aggregate_layouts(
     ast: &Ast,
     machine_contract: &str,
+    pointer_type: Type,
 ) -> Result<Vec<AggregateLayout>, NativeCompileError> {
-    let struct_names = ast
-        .body
-        .iter()
-        .filter_map(|node| match node {
-            AstNode::StructDeclaration(structure) => Some(structure.name.as_str()),
-            _ => None,
-        })
-        .collect::<HashSet<_>>();
-    let mut layouts = Vec::new();
-    let mut declared_names = HashSet::new();
-
+    let mut declarations = HashMap::new();
+    let mut declaration_order = Vec::new();
     for node in &ast.body {
         let AstNode::StructDeclaration(structure) = node else {
             continue;
         };
-        if !declared_names.insert(structure.name.as_str()) {
+        if declarations
+            .insert(structure.name.clone(), structure)
+            .is_some()
+        {
             return Err(NativeCompileError::new(format!(
                 "{machine_contract} declares duplicate struct `{}`",
                 structure.name
@@ -1378,100 +1435,163 @@ fn collect_aggregate_layouts(
                 structure.name
             )));
         }
+        declaration_order.push(structure.name.clone());
+    }
 
-        let mut offset = 0_u32;
-        let mut align_shift = 0_u8;
-        let mut fields = Vec::with_capacity(structure.fields.len());
-        let mut field_names = HashSet::new();
-        for (field_name, type_name) in structure
-            .fields
-            .iter()
-            .zip(structure.field_types.iter().flatten())
-        {
-            if !field_names.insert(field_name.as_str()) {
-                return Err(NativeCompileError::new(format!(
-                    "{machine_contract} struct `{}` declares duplicate field `{field_name}`",
-                    structure.name
-                )));
-            }
-            if struct_names.contains(type_name.as_str()) {
+    let mut layouts = HashMap::new();
+    let mut resolving = Vec::new();
+    for name in &declaration_order {
+        resolve_aggregate_layout(
+            name,
+            &declarations,
+            &mut layouts,
+            &mut resolving,
+            machine_contract,
+            pointer_type,
+        )?;
+    }
+
+    Ok(declaration_order
+        .into_iter()
+        .map(|name| {
+            layouts
+                .remove(&name)
+                .expect("resolved aggregate layout must remain cached")
+        })
+        .collect())
+}
+
+fn resolve_aggregate_layout(
+    name: &str,
+    declarations: &HashMap<String, &holoscript_wasm::ast::StructDeclarationNode>,
+    layouts: &mut HashMap<String, AggregateLayout>,
+    resolving: &mut Vec<String>,
+    machine_contract: &str,
+    pointer_type: Type,
+) -> Result<AggregateLayout, NativeCompileError> {
+    if let Some(layout) = layouts.get(name) {
+        return Ok(layout.clone());
+    }
+    if let Some(cycle_start) = resolving.iter().position(|resolving| resolving == name) {
+        let mut cycle = resolving[cycle_start..].to_vec();
+        cycle.push(name.to_string());
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} recursive by-value aggregate cycle is not finite: {}",
+            cycle.join(" -> ")
+        )));
+    }
+    let structure = declarations
+        .get(name)
+        .copied()
+        .expect("aggregate resolution must start from a declaration");
+    resolving.push(name.to_string());
+
+    let mut offset = 0_u32;
+    let mut align_shift = 0_u8;
+    let mut fields = Vec::with_capacity(structure.fields.len());
+    let mut field_names = HashSet::new();
+    for (field_name, type_name) in structure
+        .fields
+        .iter()
+        .zip(structure.field_types.iter().flatten())
+    {
+        if !field_names.insert(field_name.as_str()) {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} struct `{}` declares duplicate field `{field_name}`",
+                structure.name
+            )));
+        }
+        let context = format!("field `{field_name}` in struct `{}`", structure.name);
+        if annotation_uses_slice_reference(type_name) {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} borrowed slices as aggregate fields are not enabled; field `{field_name}` in struct `{}` uses `{type_name}`",
+                structure.name
+            )));
+        }
+
+        let field_type = if declarations.contains_key(type_name) {
+            if machine_contract != OWNED_AGGREGATE_MACHINE_CONTRACT {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} field `{field_name}` uses unsupported nested aggregate type `{type_name}` in struct `{}`",
                     structure.name,
                 )));
             }
-            if annotation_uses_slice_reference(type_name) {
-                return Err(NativeCompileError::new(format!(
-                    "{machine_contract} borrowed slices as aggregate fields are not enabled; field `{field_name}` in struct `{}` uses `{type_name}`",
-                    structure.name
-                )));
-            }
-            if OwnedBufferLayout::parse(
+            AggregateFieldType::Aggregate(Box::new(resolve_aggregate_layout(
                 type_name,
-                &format!("field `{field_name}` in struct `{}`", structure.name),
+                declarations,
+                layouts,
+                resolving,
                 machine_contract,
-            )?
-            .is_some()
-            {
+                pointer_type,
+            )?))
+        } else if let Some(layout) =
+            OwnedBufferLayout::parse(type_name, &context, machine_contract)?
+        {
+            if machine_contract != OWNED_AGGREGATE_MACHINE_CONTRACT {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} owned buffers as aggregate fields are not enabled; field `{field_name}` in struct `{}` uses `{type_name}`",
                     structure.name
                 )));
             }
-            if FixedArrayLayout::parse(
-                type_name,
-                &format!("field `{field_name}` in struct `{}`", structure.name),
-                machine_contract,
-            )?
-            .is_some()
-            {
-                return Err(NativeCompileError::new(format!(
-                    "{machine_contract} fixed arrays as aggregate fields are not enabled; field `{field_name}` in struct `{}` uses `{type_name}`",
-                    structure.name
-                )));
-            }
-            let machine_type = MachineType::parse(
-                type_name,
-                &format!("field `{field_name}` in struct `{}`", structure.name),
-                machine_contract,
-            )?;
-            let field_alignment = 1_u32 << machine_type.stack_align_shift();
-            offset = align_up(offset, field_alignment, machine_contract, &structure.name)?;
-            fields.push(AggregateFieldLayout {
-                name: field_name.clone(),
-                machine_type,
-                offset,
-            });
-            offset = offset
-                .checked_add(machine_type.stack_size())
-                .ok_or_else(|| {
-                    NativeCompileError::new(format!(
-                        "{machine_contract} struct `{}` exceeds native stack layout limits",
-                        structure.name
-                    ))
-                })?;
-            align_shift = align_shift.max(machine_type.stack_align_shift());
-        }
-        let size = align_up(
-            offset,
-            1_u32 << align_shift,
-            machine_contract,
-            &structure.name,
-        )?;
-        if size > i32::MAX as u32 {
+            AggregateFieldType::Owned(layout)
+        } else if FixedArrayLayout::parse(type_name, &context, machine_contract)?.is_some() {
             return Err(NativeCompileError::new(format!(
-                "{machine_contract} struct `{}` exceeds addressable native stack offsets",
+                "{machine_contract} fixed arrays as aggregate fields are not enabled; field `{field_name}` in struct `{}` uses `{type_name}`",
                 structure.name
             )));
-        }
-        layouts.push(AggregateLayout {
-            name: structure.name.clone(),
-            size,
-            align_shift,
-            fields,
+        } else {
+            AggregateFieldType::Scalar(MachineType::parse(type_name, &context, machine_contract)?)
+        };
+
+        let (field_size, field_align_shift) = match &field_type {
+            AggregateFieldType::Scalar(machine_type) => {
+                (machine_type.stack_size(), machine_type.stack_align_shift())
+            }
+            AggregateFieldType::Owned(_) => {
+                let (_, _, size, align_shift) = owned_buffer_abi_offsets(pointer_type);
+                (size, align_shift)
+            }
+            AggregateFieldType::Aggregate(layout) => (layout.size, layout.align_shift),
+        };
+        let field_alignment = 1_u32 << field_align_shift;
+        offset = align_up(offset, field_alignment, machine_contract, &structure.name)?;
+        fields.push(AggregateFieldLayout {
+            name: field_name.clone(),
+            field_type,
+            offset,
+            size: field_size,
+            align_shift: field_align_shift,
         });
+        offset = offset.checked_add(field_size).ok_or_else(|| {
+            NativeCompileError::new(format!(
+                "{machine_contract} struct `{}` exceeds native stack layout limits",
+                structure.name
+            ))
+        })?;
+        align_shift = align_shift.max(field_align_shift);
     }
-    Ok(layouts)
+
+    let size = align_up(
+        offset,
+        1_u32 << align_shift,
+        machine_contract,
+        &structure.name,
+    )?;
+    if size > i32::MAX as u32 {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} struct `{}` exceeds addressable native stack offsets",
+            structure.name
+        )));
+    }
+    let layout = AggregateLayout {
+        name: structure.name.clone(),
+        size,
+        align_shift,
+        fields,
+    };
+    resolving.pop();
+    layouts.insert(name.to_string(), layout.clone());
+    Ok(layout)
 }
 
 fn align_up(
@@ -1852,14 +1972,15 @@ fn lower_typed_ast_to_object(
     machine_contract: &'static str,
     memory_enabled: bool,
 ) -> Result<Vec<u8>, NativeCompileError> {
-    let aggregate_layouts = collect_aggregate_layouts(ast, machine_contract)?;
+    let mut module = create_object_module()?;
+    let pointer_type = module.target_config().pointer_type();
+    let aggregate_layouts = collect_aggregate_layouts(ast, machine_contract, pointer_type)?;
     let aggregate_layouts = aggregate_layouts
         .into_iter()
         .map(|layout| (layout.name.clone(), layout))
         .collect::<HashMap<_, _>>();
     let specs = collect_typed_function_specs(ast, machine_contract, &aggregate_layouts)?;
-    let mut module = create_object_module()?;
-    let allocator = if machine_contract == OWNED_BUFFER_MACHINE_CONTRACT {
+    let allocator = if owned_buffers_enabled(machine_contract) {
         Some(declare_allocator_abi(&mut module)?)
     } else {
         None
@@ -2101,7 +2222,7 @@ fn collect_typed_function_specs<'a>(
                 function.name
             )));
         }
-        if machine_contract == OWNED_BUFFER_MACHINE_CONTRACT
+        if owned_buffers_enabled(machine_contract)
             && matches!(function.name.as_str(), "buffer" | "move" | "drop")
         {
             return Err(NativeCompileError::new(format!(
@@ -2163,6 +2284,7 @@ fn collect_typed_function_specs<'a>(
                                 | SLICE_FORWARD_MACHINE_CONTRACT
                                 | SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT
                                 | OWNED_BUFFER_MACHINE_CONTRACT
+                                | OWNED_AGGREGATE_MACHINE_CONTRACT
                         ) =>
                     {
                         params.push(MachineParameter::Slice {
@@ -2636,62 +2758,31 @@ fn lower_typed_statements(
                     continue;
                 }
                 if let Some(layout) = aggregate_layouts.get(&slot.type_annotation) {
-                    let AstNode::CallExpression(constructor) = slot.value.as_ref() else {
-                        return Err(NativeCompileError::new(format!(
-                            "{machine_contract} aggregate stack slot `{}` must be initialized with `{}(...)`",
-                            slot.name, layout.name
-                        )));
-                    };
-                    let AstNode::Identifier(constructor_name) = constructor.callee.as_ref() else {
-                        return Err(NativeCompileError::new(format!(
-                            "{machine_contract} aggregate stack slot `{}` requires a named constructor",
-                            slot.name
-                        )));
-                    };
-                    if constructor_name.name != layout.name {
-                        return Err(NativeCompileError::new(format!(
-                            "{machine_contract} stack slot `{}` expects constructor `{}`, found `{}`",
-                            slot.name, layout.name, constructor_name.name
-                        )));
-                    }
-                    if constructor.arguments.len() != layout.fields.len() {
-                        return Err(NativeCompileError::new(format!(
-                            "{machine_contract} constructor `{}` expects {} fields, found {}",
-                            layout.name,
-                            layout.fields.len(),
-                            constructor.arguments.len()
-                        )));
-                    }
-
-                    let mut initial_values = Vec::with_capacity(layout.fields.len());
-                    for (field, argument) in layout.fields.iter().zip(&constructor.arguments) {
-                        initial_values.push(lower_typed_expression(
-                            builder,
-                            module,
-                            functions,
-                            locals,
-                            stack_slots,
-                            references,
-                            borrow_states,
-                            argument,
-                            field.machine_type,
-                            &format!("field `{}` in constructor `{}`", field.name, layout.name),
-                            machine_contract,
-                            memory_enabled,
-                        )?);
-                    }
                     let stack_slot = builder.create_sized_stack_slot(StackSlotData::new(
                         StackSlotKind::ExplicitSlot,
                         layout.size,
                         layout.align_shift,
                     ));
-                    for (field, initial_value) in layout.fields.iter().zip(initial_values) {
-                        builder.ins().stack_store(
-                            initial_value.value,
-                            stack_slot,
-                            i32::try_from(field.offset).expect("validated aggregate field offset"),
-                        );
-                    }
+                    lower_aggregate_initializer(
+                        builder,
+                        module,
+                        functions,
+                        locals,
+                        stack_slots,
+                        references,
+                        borrow_states,
+                        owned_buffers,
+                        owner_order,
+                        allocator,
+                        stack_slot,
+                        &slot.name,
+                        layout,
+                        &slot.value,
+                        0,
+                        machine_contract,
+                        memory_enabled,
+                        scope_depth,
+                    )?;
                     stack_slots.insert(
                         slot.name.clone(),
                         TypedStackSlot {
@@ -2740,7 +2831,7 @@ fn lower_typed_statements(
                 );
             }
             AstNode::CallExpression(call)
-                if machine_contract == OWNED_BUFFER_MACHINE_CONTRACT
+                if owned_buffers_enabled(machine_contract)
                     && matches!(
                         call.callee.as_ref(),
                         AstNode::Identifier(callee) if callee.name == "drop"
@@ -2968,6 +3059,169 @@ fn lower_typed_statements(
 }
 
 #[allow(clippy::too_many_arguments)]
+fn lower_aggregate_initializer(
+    builder: &mut FunctionBuilder<'_>,
+    module: &mut ObjectModule,
+    functions: &HashMap<String, TypedFunctionAbi>,
+    locals: &HashMap<String, TypedValue>,
+    stack_slots: &HashMap<String, TypedStackSlot>,
+    references: &HashMap<String, TypedReference>,
+    borrow_states: &HashMap<String, BorrowState>,
+    owned_buffers: &mut HashMap<String, OwnedBuffer>,
+    owner_order: &mut Vec<String>,
+    allocator: Option<AllocatorAbi>,
+    stack_slot: StackSlot,
+    owner_prefix: &str,
+    layout: &AggregateLayout,
+    initializer: &AstNode,
+    base_offset: u32,
+    machine_contract: &str,
+    memory_enabled: bool,
+    scope_depth: usize,
+) -> Result<(), NativeCompileError> {
+    let AstNode::CallExpression(constructor) = initializer else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} aggregate `{owner_prefix}` must be initialized with `{}(...)`",
+            layout.name
+        )));
+    };
+    let AstNode::Identifier(constructor_name) = constructor.callee.as_ref() else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} aggregate `{owner_prefix}` requires a named constructor"
+        )));
+    };
+    if constructor_name.name != layout.name {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} aggregate `{owner_prefix}` expects constructor `{}`, found `{}`",
+            layout.name, constructor_name.name
+        )));
+    }
+    if constructor.arguments.len() != layout.fields.len() {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} constructor `{}` expects {} fields, found {}",
+            layout.name,
+            layout.fields.len(),
+            constructor.arguments.len()
+        )));
+    }
+
+    for (field, argument) in layout.fields.iter().zip(&constructor.arguments) {
+        let field_offset = base_offset.checked_add(field.offset).ok_or_else(|| {
+            NativeCompileError::new(format!(
+                "{machine_contract} aggregate `{owner_prefix}` exceeds addressable native stack offsets"
+            ))
+        })?;
+        let field_owner = format!("{owner_prefix}.{}", field.name);
+        match &field.field_type {
+            AggregateFieldType::Scalar(machine_type) => {
+                let initial_value = lower_typed_expression(
+                    builder,
+                    module,
+                    functions,
+                    locals,
+                    stack_slots,
+                    references,
+                    borrow_states,
+                    argument,
+                    *machine_type,
+                    &format!("field `{}` in constructor `{}`", field.name, layout.name),
+                    machine_contract,
+                    memory_enabled,
+                )?;
+                builder.ins().stack_store(
+                    initial_value.value,
+                    stack_slot,
+                    i32::try_from(field_offset).expect("validated aggregate field offset"),
+                );
+            }
+            AggregateFieldType::Owned(owned_layout) => {
+                let allocator = allocator.ok_or_else(|| {
+                    NativeCompileError::new(format!(
+                        "{machine_contract} lost its owned buffer allocator ABI"
+                    ))
+                })?;
+                let owner = lower_owned_buffer_initializer(
+                    builder,
+                    module,
+                    functions,
+                    locals,
+                    stack_slots,
+                    references,
+                    borrow_states,
+                    owned_buffers,
+                    allocator,
+                    &field_owner,
+                    owned_layout.element_type,
+                    argument,
+                    machine_contract,
+                    memory_enabled,
+                    scope_depth,
+                )?;
+                store_owned_buffer_in_aggregate(builder, module, stack_slot, field_offset, &owner);
+                owned_buffers.insert(field_owner.clone(), owner);
+                owner_order.push(field_owner);
+            }
+            AggregateFieldType::Aggregate(nested) => {
+                lower_aggregate_initializer(
+                    builder,
+                    module,
+                    functions,
+                    locals,
+                    stack_slots,
+                    references,
+                    borrow_states,
+                    owned_buffers,
+                    owner_order,
+                    allocator,
+                    stack_slot,
+                    &field_owner,
+                    nested,
+                    argument,
+                    field_offset,
+                    machine_contract,
+                    memory_enabled,
+                    scope_depth,
+                )?;
+            }
+        }
+    }
+    Ok(())
+}
+
+fn store_owned_buffer_in_aggregate(
+    builder: &mut FunctionBuilder<'_>,
+    module: &ObjectModule,
+    stack_slot: StackSlot,
+    offset: u32,
+    owner: &OwnedBuffer,
+) {
+    let pointer_type = module.target_config().pointer_type();
+    let (length_offset, allocator_offset, _, _) = owned_buffer_abi_offsets(pointer_type);
+    let offset = i32::try_from(offset).expect("validated aggregate field offset");
+    builder.ins().stack_store(owner.base, stack_slot, offset);
+    builder
+        .ins()
+        .stack_store(owner.length, stack_slot, offset + length_offset);
+    builder
+        .ins()
+        .stack_store(owner.allocator_id, stack_slot, offset + allocator_offset);
+}
+
+fn owned_buffer_path(node: &AstNode) -> Option<String> {
+    match node {
+        AstNode::Identifier(identifier) => Some(identifier.name.clone()),
+        AstNode::MemberExpression(member) if !member.computed => {
+            let root = owned_buffer_path(&member.object)?;
+            let AstNode::Identifier(property) = member.property.as_ref() else {
+                return None;
+            };
+            Some(format!("{root}.{}", property.name))
+        }
+        _ => None,
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
 fn lower_owned_buffer_initializer(
     builder: &mut FunctionBuilder<'_>,
     module: &mut ObjectModule,
@@ -3059,21 +3313,21 @@ fn lower_owned_buffer_initializer(
                     call.arguments.len()
                 )));
             }
-            let AstNode::Identifier(source_name) = &call.arguments[0] else {
+            let Some(source_name) = owned_buffer_path(&call.arguments[0]) else {
                 return Err(NativeCompileError::new(format!(
-                    "{machine_contract} `move` requires a named owned buffer"
+                    "{machine_contract} `move` requires a named owned buffer or owned aggregate field"
                 )));
             };
-            let source = owned_buffers.get(&source_name.name).ok_or_else(|| {
+            let source = owned_buffers.get(&source_name).ok_or_else(|| {
                 NativeCompileError::new(format!(
                     "{machine_contract} `move` references unknown owned buffer `{}`",
-                    source_name.name
+                    source_name
                 ))
             })?;
             if source.scope_depth != scope_depth {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} owned buffer `{}` cannot move across a lexical scope boundary",
-                    source_name.name
+                    source_name
                 )));
             }
             match source.state {
@@ -3081,31 +3335,28 @@ fn lower_owned_buffer_initializer(
                 OwnedBufferState::Moved => {
                     return Err(NativeCompileError::new(format!(
                         "{machine_contract} owned buffer `{}` was already moved",
-                        source_name.name
+                        source_name
                     )));
                 }
                 OwnedBufferState::Dropped => {
                     return Err(NativeCompileError::new(format!(
                         "{machine_contract} owned buffer `{}` was already dropped",
-                        source_name.name
+                        source_name
                     )));
                 }
             }
-            let active = borrow_states
-                .get(&source_name.name)
-                .copied()
-                .unwrap_or_default();
+            let active = borrow_states.get(&source_name).copied().unwrap_or_default();
             if active.shared > 0 || active.exclusive {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} cannot move owned buffer `{}` while a borrow is active",
-                    source_name.name
+                    source_name
                 )));
             }
             if source.element_type != element_type {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} owned buffer `{owner_name}` expects elements of `{}`, but `{}` stores `{}`",
                     element_type.name(),
-                    source_name.name,
+                    source_name,
                     source.element_type.name()
                 )));
             }
@@ -3118,7 +3369,7 @@ fn lower_owned_buffer_initializer(
                 scope_depth,
             };
             owned_buffers
-                .get_mut(&source_name.name)
+                .get_mut(&source_name)
                 .expect("owned source was just resolved")
                 .state = OwnedBufferState::Moved;
             Ok(moved)
@@ -3373,30 +3624,30 @@ fn lower_owned_call_argument(
             argument_index + 1
         )));
     }
-    let AstNode::Identifier(owner_name) = &transfer.arguments[0] else {
+    let Some(owner_name) = owned_buffer_path(&transfer.arguments[0]) else {
         return Err(NativeCompileError::new(format!(
-            "{machine_contract} owned argument {} to `{callee_name}` requires a named owner",
+            "{machine_contract} owned argument {} to `{callee_name}` requires a named owner or owned aggregate field",
             argument_index + 1
         )));
     };
-    let owner = owned_buffers.get(&owner_name.name).ok_or_else(|| {
+    let owner = owned_buffers.get(&owner_name).ok_or_else(|| {
         NativeCompileError::new(format!(
             "{machine_contract} owned argument {} to `{callee_name}` references unknown owner `{}`",
             argument_index + 1,
-            owner_name.name
+            owner_name
         ))
     })?;
     require_live_owned_transfer(
         owner,
         borrow_states,
-        &owner_name.name,
+        &owner_name,
         expected_element,
         &format!("argument {} to `{callee_name}`", argument_index + 1),
         machine_contract,
     )?;
     let transferred = owner.clone();
     owned_buffers
-        .get_mut(&owner_name.name)
+        .get_mut(&owner_name)
         .expect("owned call argument was just resolved")
         .state = OwnedBufferState::Moved;
     Ok(transferred)
@@ -3425,28 +3676,28 @@ fn lower_owned_buffer_return(
             "{machine_contract} owned return from `{function_name}` must use explicit `return move(owner)`"
         )));
     }
-    let AstNode::Identifier(owner_name) = &transfer.arguments[0] else {
+    let Some(owner_name) = owned_buffer_path(&transfer.arguments[0]) else {
         return Err(NativeCompileError::new(format!(
-            "{machine_contract} owned return from `{function_name}` requires a named owner"
+            "{machine_contract} owned return from `{function_name}` requires a named owner or owned aggregate field"
         )));
     };
-    let owner = owned_buffers.get(&owner_name.name).ok_or_else(|| {
+    let owner = owned_buffers.get(&owner_name).ok_or_else(|| {
         NativeCompileError::new(format!(
             "{machine_contract} owned return from `{function_name}` references unknown owner `{}`",
-            owner_name.name
+            owner_name
         ))
     })?;
     require_live_owned_transfer(
         owner,
         borrow_states,
-        &owner_name.name,
+        &owner_name,
         expected_element,
         &format!("return from `{function_name}`"),
         machine_contract,
     )?;
     let transferred = owner.clone();
     owned_buffers
-        .get_mut(&owner_name.name)
+        .get_mut(&owner_name)
         .expect("owned return was just resolved")
         .state = OwnedBufferState::Moved;
     Ok(transferred)
@@ -3573,21 +3824,21 @@ fn lower_owned_buffer_drop(
             call.arguments.len()
         )));
     }
-    let AstNode::Identifier(owner_name) = &call.arguments[0] else {
+    let Some(owner_name) = owned_buffer_path(&call.arguments[0]) else {
         return Err(NativeCompileError::new(format!(
-            "{machine_contract} `drop` requires a named owned buffer"
+            "{machine_contract} `drop` requires a named owned buffer or owned aggregate field"
         )));
     };
-    let owner = owned_buffers.get(&owner_name.name).ok_or_else(|| {
+    let owner = owned_buffers.get(&owner_name).ok_or_else(|| {
         NativeCompileError::new(format!(
             "{machine_contract} `drop` references unknown owned buffer `{}`",
-            owner_name.name
+            owner_name
         ))
     })?;
     if owner.scope_depth != scope_depth {
         return Err(NativeCompileError::new(format!(
             "{machine_contract} owned buffer `{}` cannot be dropped from a nested lexical scope",
-            owner_name.name
+            owner_name
         )));
     }
     match owner.state {
@@ -3595,29 +3846,26 @@ fn lower_owned_buffer_drop(
         OwnedBufferState::Moved => {
             return Err(NativeCompileError::new(format!(
                 "{machine_contract} owned buffer `{}` cannot be dropped after move",
-                owner_name.name
+                owner_name
             )));
         }
         OwnedBufferState::Dropped => {
             return Err(NativeCompileError::new(format!(
                 "{machine_contract} owned buffer `{}` cannot be dropped twice",
-                owner_name.name
+                owner_name
             )));
         }
     }
-    let active = borrow_states
-        .get(&owner_name.name)
-        .copied()
-        .unwrap_or_default();
+    let active = borrow_states.get(&owner_name).copied().unwrap_or_default();
     if active.shared > 0 || active.exclusive {
         return Err(NativeCompileError::new(format!(
             "{machine_contract} cannot drop owned buffer `{}` while a borrow is active",
-            owner_name.name
+            owner_name
         )));
     }
     emit_owned_buffer_deallocation(builder, module, allocator, owner);
     owned_buffers
-        .get_mut(&owner_name.name)
+        .get_mut(&owner_name)
         .expect("owned buffer was just resolved")
         .state = OwnedBufferState::Dropped;
     Ok(())
@@ -4210,25 +4458,26 @@ fn lower_reference_initializer(
                     | SLICE_FORWARD_MACHINE_CONTRACT
                     | SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT
                     | OWNED_BUFFER_MACHINE_CONTRACT
+                    | OWNED_AGGREGATE_MACHINE_CONTRACT
             ) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} does not enable borrowed slice values"
                 )));
             }
-            if let AstNode::Identifier(root) = borrow.argument.as_ref() {
-                if let Some(owner) = owned_buffers.get(&root.name) {
+            if let Some(owner_name) = owned_buffer_path(borrow.argument.as_ref()) {
+                if let Some(owner) = owned_buffers.get(&owner_name) {
                     match owner.state {
                         OwnedBufferState::Live => {}
                         OwnedBufferState::Moved => {
                             return Err(NativeCompileError::new(format!(
                                 "{machine_contract} cannot borrow owned buffer `{}` after move",
-                                root.name
+                                owner_name
                             )));
                         }
                         OwnedBufferState::Dropped => {
                             return Err(NativeCompileError::new(format!(
                                 "{machine_contract} cannot borrow owned buffer `{}` after drop",
-                                root.name
+                                owner_name
                             )));
                         }
                     }
@@ -4236,15 +4485,15 @@ fn lower_reference_initializer(
                         return Err(NativeCompileError::new(format!(
                             "{machine_contract} slice reference `{reference_name}` expects elements of `{}`, but owned buffer `{}` stores `{}`",
                             expected_element.name(),
-                            root.name,
+                            owner_name,
                             owner.element_type.name()
                         )));
                     }
-                    let slot_name = root.name.clone();
+                    let slot_name = owner_name.clone();
                     let layout = TypedReferenceLayout::Slice {
                         element_type: owner.element_type,
                         storage: SliceStorage::Heap {
-                            owner_name: root.name.clone(),
+                            owner_name,
                             base: owner.base,
                             length: owner.length,
                         },
@@ -4273,7 +4522,7 @@ fn lower_reference_initializer(
             }
 
             let AstNode::MemberExpression(range_access) = borrow.argument.as_ref() else {
-                let source_boundary = if machine_contract == OWNED_BUFFER_MACHINE_CONTRACT {
+                let source_boundary = if owned_buffers_enabled(machine_contract) {
                     "a whole owned buffer or a half-open fixed-array range"
                 } else {
                     "a half-open fixed-array range"
@@ -5053,6 +5302,7 @@ fn lower_forwarded_slice_call_argument(
         SLICE_FORWARD_MACHINE_CONTRACT
             | SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT
             | OWNED_BUFFER_MACHINE_CONTRACT
+            | OWNED_AGGREGATE_MACHINE_CONTRACT
     ) {
         return Err(NativeCompileError::new(format!(
             "{machine_contract} slice argument {} to `{callee_name}` must be a direct range reborrow",
@@ -5103,7 +5353,9 @@ fn lower_forwarded_slice_call_argument(
         Some((_, range_node))
             if matches!(
                 machine_contract,
-                SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT | OWNED_BUFFER_MACHINE_CONTRACT
+                SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT
+                    | OWNED_BUFFER_MACHINE_CONTRACT
+                    | OWNED_AGGREGATE_MACHINE_CONTRACT
             ) =>
         {
             let AstNode::BinaryExpression(range) = range_node else {
@@ -5818,46 +6070,81 @@ fn resolve_stack_access<'a>(
                     machine_contract,
                 );
             }
-            let AstNode::Identifier(root) = member.object.as_ref() else {
+            let Some(path) = owned_buffer_path(argument) else {
                 return Err(NativeCompileError::new(format!(
-                    "{machine_contract} `{operation}` requires a direct aggregate slot as the field root"
+                    "{machine_contract} `{operation}` requires a named aggregate field path"
                 )));
             };
-            let AstNode::Identifier(property) = member.property.as_ref() else {
-                return Err(NativeCompileError::new(format!(
-                    "{machine_contract} `{operation}` requires a named aggregate field"
-                )));
-            };
-            let stack_slot = stack_slots.get(&root.name).ok_or_else(|| {
+            let mut segments = path.split('.');
+            let root_name = segments
+                .next()
+                .expect("owned buffer paths always contain a root identifier");
+            let field_names = segments.collect::<Vec<_>>();
+            let stack_slot = stack_slots.get(root_name).ok_or_else(|| {
                 NativeCompileError::new(format!(
                     "{machine_contract} `{operation}` references unknown aggregate slot `{}`",
-                    root.name
+                    root_name
                 ))
             })?;
-            let StackSlotLayout::Aggregate(layout) = &stack_slot.layout else {
+            let StackSlotLayout::Aggregate(root_layout) = &stack_slot.layout else {
                 return Err(NativeCompileError::new(format!(
-                    "{machine_contract} scalar stack slot `{}` has no field `{}`",
-                    root.name, property.name
+                    "{machine_contract} scalar stack slot `{root_name}` has no aggregate fields"
                 )));
             };
-            let field = layout
-                .fields
-                .iter()
-                .find(|field| field.name == property.name)
-                .ok_or_else(|| {
+            let mut layout = root_layout;
+            let mut offset = 0_u32;
+            let mut machine_type = None;
+            for (index, field_name) in field_names.iter().enumerate() {
+                let field = layout
+                    .fields
+                    .iter()
+                    .find(|field| field.name == *field_name)
+                    .ok_or_else(|| {
+                        NativeCompileError::new(format!(
+                            "{machine_contract} aggregate `{}` has no field `{field_name}`",
+                            layout.name
+                        ))
+                    })?;
+                offset = offset.checked_add(field.offset).ok_or_else(|| {
                     NativeCompileError::new(format!(
-                        "{machine_contract} aggregate `{}` has no field `{}`",
-                        layout.name, property.name
+                        "{machine_contract} aggregate field path `{path}` exceeds addressable native stack offsets"
                     ))
                 })?;
+                let is_final = index + 1 == field_names.len();
+                match (&field.field_type, is_final) {
+                    (AggregateFieldType::Scalar(value_type), true) => {
+                        machine_type = Some(*value_type);
+                    }
+                    (AggregateFieldType::Owned(_), true) => {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} owned aggregate field `{path}` must be accessed with `move`, a borrow, or `drop`"
+                        )));
+                    }
+                    (AggregateFieldType::Aggregate(_), true) => {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} aggregate field `{path}` requires a scalar field projection"
+                        )));
+                    }
+                    (AggregateFieldType::Aggregate(nested), false) => {
+                        layout = nested;
+                    }
+                    (AggregateFieldType::Scalar(_), false)
+                    | (AggregateFieldType::Owned(_), false) => {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} field path `{path}` projects through non-aggregate field `{field_name}`"
+                        )));
+                    }
+                }
+            }
+            let machine_type = machine_type.expect("member paths always contain a field");
             Ok(ResolvedStackAccess {
                 slot: Some(stack_slot.slot),
                 base_address: None,
-                machine_type: field.machine_type,
-                offset: i32::try_from(field.offset).expect("validated aggregate field offset"),
+                machine_type,
+                offset: i32::try_from(offset).expect("validated aggregate field offset"),
                 dynamic_index: None,
-                root_name: root.name.clone(),
-                display: format!("{}.{}", root.name, property.name),
+                root_name: root_name.to_string(),
+                display: path,
                 provenance: StackAccessProvenance::Owner,
             })
         }

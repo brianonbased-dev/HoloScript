@@ -5,7 +5,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use cranelift::object::object::{Object, ObjectSection, ObjectSymbol, RelocationTarget};
 use holoscript_native::{
     compile_executable, compile_object, inspect_native_layouts, NativeCompileOptions,
-    NativeOwnedBufferFfi, HOST_ALLOCATOR_PROVENANCE_ID, OWNED_BUFFER_ABI_VERSION,
+    NativeOwnedBufferFfi, HOST_ALLOCATOR_PROVENANCE_ID, OWNED_AGGREGATE_MACHINE_CONTRACT,
+    OWNED_BUFFER_ABI_VERSION,
 };
 
 const EXIT_FIVE: &str = include_str!("../../../examples/native/exit-five.hs");
@@ -211,6 +212,8 @@ const OWNED_BUFFER_MOVE_EXIT_FIVE: &str =
     include_str!("../../../examples/native/owned-buffer-move-exit-five.hs");
 const OWNED_BUFFER_TRANSFER_EXIT_FIVE: &str =
     include_str!("../../../examples/native/owned-buffer-transfer-exit-five.hs");
+const OWNED_AGGREGATE_DROP_EXIT_FIVE: &str =
+    include_str!("../../../examples/native/owned-aggregate-drop-exit-five.hs");
 
 fn scratch_executable(name: &str) -> std::path::PathBuf {
     let nonce = SystemTime::now()
@@ -901,6 +904,190 @@ fn owned_transfer_conditional_join_accepts_equal_states() {
 }
 
 #[test]
+fn owned_aggregate_fields_layout_move_call_and_recursive_drop_deterministically() {
+    assert_eq!(OWNED_AGGREGATE_MACHINE_CONTRACT, "hs-machine-v14");
+    let owned_size = u32::try_from(std::mem::size_of::<NativeOwnedBufferFfi>())
+        .expect("owned ABI record size fits the public layout report");
+    let owned_alignment = u32::try_from(std::mem::align_of::<NativeOwnedBufferFfi>())
+        .expect("owned ABI record alignment fits the public layout report");
+    let align_up = |value: u32, alignment: u32| (value + alignment - 1) & !(alignment - 1);
+    let payload_size = align_up(owned_size * 2 + 4, owned_alignment);
+    let envelope_size = align_up(payload_size + owned_size, owned_alignment);
+
+    let layouts = inspect_native_layouts(OWNED_AGGREGATE_DROP_EXIT_FIVE)
+        .expect("recursive owned aggregate layouts should be inspectable");
+    assert_eq!(layouts.len(), 2);
+    let payload = &layouts[0];
+    assert_eq!(payload.name, "Payload");
+    assert_eq!(payload.size, payload_size);
+    assert_eq!(payload.alignment, owned_alignment);
+    assert_eq!(payload.fields[0].machine_type, "[i32]");
+    assert_eq!(payload.fields[0].offset, 0);
+    assert_eq!(payload.fields[0].size, owned_size);
+    assert_eq!(payload.fields[1].machine_type, "[i32]");
+    assert_eq!(payload.fields[1].offset, owned_size);
+    assert_eq!(payload.fields[2].machine_type, "i32");
+    assert_eq!(payload.fields[2].offset, owned_size * 2);
+
+    let envelope = &layouts[1];
+    assert_eq!(envelope.name, "Envelope");
+    assert_eq!(envelope.size, envelope_size);
+    assert_eq!(envelope.alignment, owned_alignment);
+    assert_eq!(envelope.fields[0].machine_type, "Payload");
+    assert_eq!(envelope.fields[0].offset, 0);
+    assert_eq!(envelope.fields[0].size, payload_size);
+    assert_eq!(envelope.fields[1].machine_type, "[i32]");
+    assert_eq!(envelope.fields[1].offset, payload_size);
+
+    let first = compile_object(
+        OWNED_AGGREGATE_DROP_EXIT_FIVE,
+        &NativeCompileOptions::host(),
+    )
+    .expect("recursive owned aggregate object should compile");
+    let second = compile_object(
+        OWNED_AGGREGATE_DROP_EXIT_FIVE,
+        &NativeCompileOptions::host(),
+    )
+    .expect("recursive owned aggregate object should compile deterministically");
+    assert_eq!(first, second);
+    assert_eq!(
+        relocation_count_to_symbol(&first, "free"),
+        3,
+        "the consumed field and two untouched aggregate leaves must each have one deallocator"
+    );
+
+    let executable = scratch_executable("native-owned-aggregate-drop");
+    let artifact = compile_executable(
+        OWNED_AGGREGATE_DROP_EXIT_FIVE,
+        &executable,
+        &NativeCompileOptions::host(),
+    )
+    .expect("recursive owned aggregate should compile to a native executable");
+    assert_eq!(artifact.machine_contract, "hs-machine-v14");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("recursive owned aggregate executable should run");
+    assert_eq!(status.code(), Some(5));
+    remove_scratch_executable_with_retry(&artifact.executable);
+}
+
+#[test]
+fn owned_aggregate_field_can_return_through_the_owned_result_abi() {
+    let source = r#"
+        struct Packet { values: [i32] }
+
+        function make(): [i32] {
+            slot packet: Packet = Packet(buffer(2, 5))
+            return move(packet.values)
+        }
+
+        function consume(values: [i32]): i32 {
+            let view: &[i32] = &values
+            return load(view[0])
+        }
+
+        function main(): i32 {
+            let values: [i32] = make()
+            return consume(move(values))
+        }
+    "#;
+    let object = compile_object(source, &NativeCompileOptions::host())
+        .expect("owned aggregate field should return through the ABI");
+    assert_eq!(relocation_count_to_symbol(&object, "free"), 1);
+
+    let executable = scratch_executable("native-owned-aggregate-return");
+    let artifact = compile_executable(source, &executable, &NativeCompileOptions::host())
+        .expect("owned aggregate field return should link");
+    assert_eq!(artifact.machine_contract, "hs-machine-v14");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("owned aggregate field return executable should run");
+    assert_eq!(status.code(), Some(5));
+    remove_scratch_executable_with_retry(&artifact.executable);
+}
+
+#[test]
+fn owned_aggregate_field_state_machine_rejects_copy_alias_and_escape() {
+    let options = NativeCompileOptions::host();
+    for (source, expected) in [
+        (
+            "struct Packet { values: [i32] } function main(): i32 { let values: [i32] = buffer(1, 5) slot packet: Packet = Packet(values) return 5 }",
+            "owned buffer `packet.values` must be initialized by `buffer(count, fill)` or `move(owner)`",
+        ),
+        (
+            "struct Packet { first: [i32], second: [i32] } function main(): i32 { let values: [i32] = buffer(1, 5) slot packet: Packet = Packet(move(values), values) return 5 }",
+            "owned buffer `packet.second` must be initialized by `buffer(count, fill)` or `move(owner)`",
+        ),
+        (
+            "struct Packet { values: [i32] } function consume(values: [i32]): i32 { return 5 } function main(): i32 { slot packet: Packet = Packet(buffer(1, 5)) let first: i32 = consume(move(packet.values)) let second: i32 = consume(move(packet.values)) return second }",
+            "owned buffer `packet.values` was already moved before argument 1 to `consume`",
+        ),
+        (
+            "struct Packet { values: [i32] } function main(): i32 { slot packet: Packet = Packet(buffer(1, 5)) let view: &[i32] = &packet.values drop(packet.values) return 5 }",
+            "cannot drop owned buffer `packet.values` while a borrow is active",
+        ),
+        (
+            "struct Packet { values: [i32] } function consume(values: [i32]): i32 { return 5 } function main(): i32 { slot packet: Packet = Packet(buffer(1, 5)) if (true) { let result: i32 = consume(move(packet.values)) } return 5 }",
+            "conditional ownership join for `packet.values`",
+        ),
+        (
+            "struct Packet { values: [i32] } function consume(values: [i32]): i32 { return 5 } function main(): i32 { slot packet: Packet = Packet(buffer(1, 5)) while (false) { let result: i32 = consume(move(packet.values)) } return 5 }",
+            "loop body changes ownership of `packet.values`",
+        ),
+        (
+            "struct Node { values: [i32], next: Node } function main(): i32 { return 5 }",
+            "recursive by-value aggregate cycle is not finite: Node -> Node",
+        ),
+        (
+            "struct Packet { values: [i32] } function take(packet: Packet): i32 { return 5 } function main(): i32 { return 5 }",
+            "aggregates cannot appear in function parameters",
+        ),
+        (
+            "struct Packet { values: [i32] } function make(): Packet { slot packet: Packet = Packet(buffer(1, 5)) return packet } function main(): i32 { return 5 }",
+            "aggregates cannot appear in function returns",
+        ),
+        (
+            "struct Packet { values: [i32] } function main(): i32 { slot packet: Packet = Packet(buffer(1, 5)) drop(packet) return 5 }",
+            "`drop` references unknown owned buffer `packet`",
+        ),
+        (
+            "struct Packet { values: [i32] } function main(): i32 { slot packet: Packet = Packet(buffer(1, 5)) return load(packet.values) }",
+            "owned aggregate field `packet.values` must be accessed with `move`, a borrow, or `drop`",
+        ),
+    ] {
+        let error = compile_object(source, &options)
+            .expect_err("invalid owned aggregate program must fail closed");
+        assert!(
+            error.to_string().contains(expected),
+            "expected `{expected}` in `{error}`"
+        );
+    }
+
+    let equal_branch_states = r#"
+        struct Packet { values: [i32] }
+        function consume(values: [i32]): i32 { return 5 }
+        function main(): i32 {
+            slot packet: Packet = Packet(buffer(1, 5))
+            if (true) {
+                let result: i32 = consume(move(packet.values))
+            } else {
+                let result: i32 = consume(move(packet.values))
+            }
+            return 5
+        }
+    "#;
+    let executable = scratch_executable("native-owned-aggregate-join");
+    let artifact = compile_executable(equal_branch_states, &executable, &options)
+        .expect("equal owned-field states from both branches should join");
+    assert_eq!(artifact.machine_contract, "hs-machine-v14");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("owned aggregate branch-join executable should run");
+    assert_eq!(status.code(), Some(5));
+    remove_scratch_executable_with_retry(&artifact.executable);
+}
+
+#[test]
 fn owned_buffer_runtime_guards_trap_before_invalid_allocation_or_access() {
     let cases = [
         (
@@ -975,10 +1162,6 @@ fn owned_buffer_contract_rejects_copy_double_drop_active_borrow_and_abi_escape()
         (
             "function consume(values: [i32]): i32 { return 5 } function main(): i32 { let values: [i32] = buffer(2, 0) while (true) { let result: i32 = consume(move(values)) } return 5 }",
             "loop body changes ownership of `values`",
-        ),
-        (
-            "struct Bad { values: [i32] } function main(): i32 { return 5 }",
-            "owned buffers as aggregate fields are not enabled",
         ),
         (
             "function main(): i32 { slot values: [i32] = buffer(2, 0) return 5 }",

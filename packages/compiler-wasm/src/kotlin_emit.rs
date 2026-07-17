@@ -563,6 +563,24 @@ fn find_type_annotation_in_node(
             slot.type_annotation.as_str(),
             format!("stack slot `{}`", slot.name),
         )),
+        AstNode::StructDeclaration(structure) => {
+            structure
+                .field_types
+                .iter()
+                .enumerate()
+                .find_map(|(index, annotation)| {
+                    let annotation = annotation.as_deref().filter(|value| predicate(value))?;
+                    let field_name = structure
+                        .fields
+                        .get(index)
+                        .map(String::as_str)
+                        .unwrap_or("<unknown>");
+                    Some((
+                        annotation,
+                        format!("field `{field_name}` of struct `{}`", structure.name),
+                    ))
+                })
+        }
         AstNode::If(if_node) => if_node
             .consequent
             .iter()
@@ -3065,6 +3083,20 @@ function main(): i32 { return 5 }"#;
             .expect_err("Kotlin must not silently erase the owned return ABI");
         assert!(error.to_string().contains(
             "owned buffer type `[i32]` in return type of function `relay` requires target-specific allocator, move, and drop lowering"
+        ));
+    }
+
+    #[test]
+    fn owned_aggregate_fields_fail_closed_on_kotlin_bridge() {
+        let src = r#"struct Packet { values: [i32] }
+function main(): i32 {
+  slot packet: Packet = Packet(buffer(2, 5))
+  return 5
+}"#;
+        let error = compile_source_to_kotlin(src, "  ")
+            .expect_err("Kotlin must not erase owned aggregate field semantics");
+        assert!(error.to_string().contains(
+            "owned buffer type `[i32]` in field `values` of struct `Packet` requires target-specific allocator, move, and drop lowering"
         ));
     }
 

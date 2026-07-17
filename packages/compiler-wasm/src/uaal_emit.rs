@@ -644,6 +644,22 @@ function main(): i32 { return 5 }"#,
     }
 
     #[test]
+    fn rejects_owned_aggregate_fields_until_ownership_opcodes_exist() {
+        let error = compile_source_to_uaal(
+            r#"struct Packet { values: [i32] }
+function main(): i32 {
+  slot packet: Packet = Packet(buffer(2, 5))
+  return 5
+}"#,
+        )
+        .expect_err("compile_to_uaal must not erase owned aggregate field semantics");
+
+        assert!(error.message.contains(
+            "owned buffer type `[i32]` in field `values` of struct `Packet` requires allocator, move, and drop opcodes"
+        ));
+    }
+
+    #[test]
     fn rejects_function_call_arity_mismatch() {
         let error = compile_source_to_uaal(
             r#"function echo(x) {

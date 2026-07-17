@@ -107,10 +107,12 @@ reclamation after a trap, matching v12.
 
 ## Deliberate boundaries
 
-v13 still rejects owned aggregate fields, addressable owned `slot` storage, implicit
-copies, unversioned foreign records, unknown allocator provenance, and nested
-ownership-consuming expressions. Kotlin and UAAL emitters fail closed until they
-implement compatible allocator, transfer, provenance, and cleanup semantics.
+Under the v13 contract, owned aggregate fields are rejected; v14 lifts that boundary
+with recursive layouts and field-qualified ownership. v13 still rejects addressable
+standalone owned `slot` storage, implicit copies, unversioned foreign records, unknown
+allocator provenance, and nested ownership-consuming expressions. Kotlin and UAAL
+emitters fail closed until they implement compatible allocator, transfer, provenance,
+and cleanup semantics.
 
 ## Compatibility
 
