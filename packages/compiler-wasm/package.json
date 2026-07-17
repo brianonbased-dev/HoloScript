@@ -4,8 +4,21 @@
   "description": "HoloScript parser compiled to WebAssembly for high-performance browser execution",
   "main": "pkg/holoscript_wasm.js",
   "types": "pkg/holoscript_wasm.d.ts",
+  "exports": {
+    ".": {
+      "types": "./pkg/holoscript_wasm.d.ts",
+      "browser": "./pkg/holoscript_wasm.js",
+      "default": "./pkg/holoscript_wasm.js"
+    },
+    "./node": {
+      "types": "./pkg-node/holoscript_wasm.d.ts",
+      "require": "./pkg-node/holoscript_wasm.js",
+      "default": "./pkg-node/holoscript_wasm.js"
+    }
+  },
   "files": [
     "pkg",
+    "pkg-node",
     "LICENSE",
     "README.md"
   ],

@@ -2,6 +2,28 @@
 
 use crate::token::{get_keyword, Token, TokenType};
 
+/// Capabilities that canonical HoloScript source cannot name. This is the HS010 lexical
+/// firewall: comments and strings remain data, but executable tokens for host escape hatches
+/// never enter the AST.
+const FORBIDDEN_LEXEMES: &[&str] = &[
+    "process",
+    "require",
+    "eval",
+    "constructor",
+    "prototype",
+    "__proto__",
+    "fs",
+    "child_process",
+    "exec",
+];
+
+fn is_forbidden_lexeme(value: &str) -> bool {
+    let candidate = value.trim_start_matches('@');
+    FORBIDDEN_LEXEMES
+        .iter()
+        .any(|blocked| candidate.eq_ignore_ascii_case(blocked))
+}
+
 /// Lexer for tokenizing HoloScript source code
 pub struct Lexer<'a> {
     chars: std::iter::Peekable<std::str::CharIndices<'a>>,
@@ -540,7 +562,11 @@ impl<'a> Lexer<'a> {
             }
         }
 
-        let token_type = get_keyword(&value).unwrap_or(TokenType::Identifier);
+        let token_type = if is_forbidden_lexeme(&value) {
+            TokenType::Forbidden
+        } else {
+            get_keyword(&value).unwrap_or(TokenType::Identifier)
+        };
         Token::new(
             token_type,
             value,
@@ -568,8 +594,13 @@ impl<'a> Lexer<'a> {
             }
         }
 
+        let token_type = if is_forbidden_lexeme(&value) {
+            TokenType::Forbidden
+        } else {
+            TokenType::Trait
+        };
         Token::new(
-            TokenType::Trait,
+            token_type,
             value,
             start_line,
             start_column,
@@ -748,6 +779,24 @@ mod tests {
         assert_eq!(tokens[0].value, "@grabbable");
         assert_eq!(tokens[1].token_type, TokenType::Trait);
         assert_eq!(tokens[1].value, "@physics");
+    }
+
+    #[test]
+    fn test_hs010_forbidden_lexemes_are_exact_case_insensitive_tokens() {
+        let source = format!("{} Process @fs", FORBIDDEN_LEXEMES.join(" "));
+        let mut lexer = Lexer::new(&source);
+        let tokens: Vec<Token> = lexer
+            .tokenize()
+            .into_iter()
+            .filter(|token| token.token_type != TokenType::Eof)
+            .collect();
+
+        assert_eq!(tokens.len(), FORBIDDEN_LEXEMES.len() + 2);
+        assert!(
+            tokens
+                .iter()
+                .all(|token| token.token_type == TokenType::Forbidden)
+        );
     }
 
     #[test]

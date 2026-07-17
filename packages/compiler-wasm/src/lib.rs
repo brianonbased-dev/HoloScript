@@ -394,6 +394,28 @@ mod tests {
     }
 
     #[test]
+    fn test_validate_detailed_enforces_hs010_lexical_firewall() {
+        let source = r#"function main(): i32 { return process(5) }"#;
+        let result = validate_detailed(source);
+
+        assert!(result.contains("\"valid\":false"), "{result}");
+        assert!(result.contains("HS010"), "{result}");
+        assert!(result.contains("process"), "{result}");
+    }
+
+    #[test]
+    fn test_hs010_ignores_comments_and_string_literals() {
+        let source = r#"// process require eval
+orb documentation { note: "process require eval" }
+function main(): i32 {
+  let note: i32 = 5
+  return note
+}"#;
+
+        assert!(validate(source));
+    }
+
+    #[test]
     fn test_validate_detailed_invalid() {
         let source = r#"{{{{ invalid syntax"#;
         let result = validate_detailed(source);

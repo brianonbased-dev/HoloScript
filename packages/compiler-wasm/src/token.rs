@@ -111,6 +111,7 @@ pub enum TokenType {
     // Special
     Newline,
     Whitespace,
+    Forbidden,
     Eof,
     Invalid,
 }

@@ -1,12 +1,12 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-07-06T06:15:00Z",
+  "generatedAt": "2026-07-17T06:07:00Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "74aa6c0ceefd4d276aa4fc65279f4cef017b92a9",
+  "sourceCommit": "d24472c411aced47e7ae6b40bb4362b0bb665000+working-tree-hs010",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
-    "corepack pnpm --filter @holoscript/wasm run test",
-    "corepack pnpm --filter @holoscript/wasm run build:nodejs"
+    "$env:Path = 'C:\\Users\\josep\\.cargo\\bin;' + $env:Path",
+    "wasm-pack build --target nodejs --out-dir pkg-node"
   ],
   "toolchain": {
     "rustc": "1.91.0",
@@ -15,7 +15,9 @@
   },
   "result": {
     "rebuilt": true,
-    "artifactBytesChanged": false,
-    "note": "wasm-pack rebuild from the current source commit produced byte-identical pkg-node JS/WASM artifacts; this receipt records the fresh rebuild so the history-based drift gate can distinguish verified freshness from stale artifacts."
+    "artifactBytesChanged": true,
+    "wasmBytes": 280055,
+    "wasmSha256": "9758d214ec857be13eb0727886fb5fc59c65976909e835115a927106acf447a4",
+    "note": "Rebuilt the Node WASM artifact from the working-tree Rust parser containing the canonical HS010 lexical firewall. The source changes are committed with this artifact so the working-tree suffix resolves to that commit."
   }
 }

@@ -45,8 +45,22 @@ pub struct Parser {
 impl Parser {
     pub fn new(source: &str) -> Self {
         let mut lexer = Lexer::new(source);
-        let tokens: Vec<Token> = lexer
-            .tokenize()
+        let raw_tokens = lexer.tokenize();
+        let errors = raw_tokens
+            .iter()
+            .filter(|token| token.token_type == TokenType::Forbidden)
+            .map(|token| {
+                ParseError::new(
+                    format!(
+                        "HS010: Security violation: blocked lexical capability `{}`",
+                        token.value.trim_start_matches('@')
+                    ),
+                    token.line,
+                    token.column,
+                )
+            })
+            .collect();
+        let tokens: Vec<Token> = raw_tokens
             .into_iter()
             .filter(|t| {
                 !matches!(
@@ -62,12 +76,15 @@ impl Parser {
         Self {
             tokens,
             current: 0,
-            errors: Vec::new(),
+            errors,
         }
     }
 
     /// Parse the source code into an AST
     pub fn parse(&mut self) -> Result<Ast, Vec<ParseError>> {
+        if !self.errors.is_empty() {
+            return Err(self.errors.clone());
+        }
         let mut ast = Ast::default();
 
         while !self.is_at_end() {
