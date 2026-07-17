@@ -1,0 +1,25 @@
+{
+  "schema": "holotorch-inference-parity.v0",
+  "op": "model",
+  "adapter": {
+    "vendor": "nvidia",
+    "architecture": "ampere",
+    "device": "nvidia-geforce-rtx-3060-laptop-gpu",
+    "description": "D3D12 driver version 32.0.16.1062"
+  },
+  "dims": {
+    "nLayer": 2,
+    "seqLen": 8,
+    "nEmbd": 384,
+    "nHead": 6,
+    "vocab": 562
+  },
+  "maxAbs": 0.0000019628787062409003,
+  "maxRefAbs": 1.9635233145765372,
+  "relToScale": 9.996717083363098e-7,
+  "allClose": true,
+  "argmaxAgree": 8,
+  "argmaxTotal": 8,
+  "verdict": "pass",
+  "note": "adapter nvidia-geforce-rtx-3060-laptop-gpu; random weights (real weights via ckpt adapter, separate piece)."
+}
