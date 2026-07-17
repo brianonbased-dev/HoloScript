@@ -308,19 +308,35 @@ def _git_worktree_blob_oid(path: str) -> str | None:
     return completed.stdout.strip() if completed.returncode == 0 else None
 
 
-def _dirty_paths(status_lines: object) -> set[str]:
-    paths: set[str] = set()
+def _status_by_path(status_lines: object) -> dict[str, str]:
+    paths: dict[str, str] = {}
     if not isinstance(status_lines, list):
         return paths
     for line in status_lines:
         if not isinstance(line, str) or len(line) < 4:
             continue
+        status = line[:2]
         payload = line[3:].strip().strip('"').replace("\\", "/")
         if " -> " in payload:
-            paths.update(part.strip().strip('"') for part in payload.split(" -> "))
+            for part in payload.split(" -> "):
+                paths[part.strip().strip('"')] = status
         elif payload:
-            paths.add(payload)
+            paths[payload] = status
     return paths
+
+
+@functools.lru_cache(maxsize=512)
+def _live_status_for_path(path: str) -> str | None:
+    completed = subprocess.run(
+        ["git", "status", "--porcelain=v1", "--", path],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if completed.returncode != 0:
+        return None
+    return _status_by_path(completed.stdout.splitlines()).get(path)
 
 
 def _validate_source_snapshot(
@@ -329,9 +345,12 @@ def _validate_source_snapshot(
     errors: list[str] = []
     source_state = receipt["source_state"]
     status_lines = source_state["scoped_status"]
-    dirty_paths = _dirty_paths(status_lines)
+    status_by_path = _status_by_path(status_lines)
     if bool(status_lines) != bool(source_state["scoped_dirty"]):
         errors.append("source snapshot dirty flag does not match its status")
+    for path, status in status_by_path.items():
+        if _live_status_for_path(path) != status:
+            errors.append(f"source snapshot status is not live-verifiable: {path}")
     head_commit = source_state["head_commit"]
     records: dict[str, dict] = {}
     blobs: dict[str, bytes] = {}
@@ -356,7 +375,7 @@ def _validate_source_snapshot(
             errors.append(f"source snapshot Git blob hash mismatch: {path}")
         head_oid = _git_tree_blob_oid(head_commit, path)
         if head_oid != oid:
-            if path not in dirty_paths:
+            if path not in status_by_path:
                 errors.append(
                     f"source snapshot path is not pinned by HEAD or status: {path}"
                 )
@@ -428,6 +447,8 @@ def _recompute_qubo_from_source(
     implementation_sets: list[set[str]] = []
     expected_availabilities: list[float] = []
     expected_required: list[bool] = []
+    head_commit = receipt["source_state"]["head_commit"]
+    status_by_path = _status_by_path(receipt["source_state"]["scoped_status"])
 
     for candidate, evidence in zip(candidates, qubo["code_evidence"], strict=True):
         expected_file_order = [
@@ -460,6 +481,13 @@ def _recompute_qubo_from_source(
                 path = _safe_repo_path(record.get("path"))
                 source = source_records.get(path or "")
                 blob = source_blobs.get(path or "")
+                head_oid = _git_tree_blob_oid(head_commit, path) if path else None
+                status = status_by_path.get(path or "")
+                deleted_in_snapshot = bool(status and "D" in status)
+                if head_oid is not None and source is None and not deleted_in_snapshot:
+                    errors.append(
+                        f"{candidate['id']} existing fixture path is omitted from source snapshot: {path}"
+                    )
                 exists = source is not None and blob is not None
                 suffix_allowed = (
                     pathlib.PurePosixPath(path).suffix.lower() in allowed_extensions

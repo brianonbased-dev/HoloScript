@@ -282,6 +282,36 @@ class QuantumNoveltyScoutTests(unittest.TestCase):
             )
             self.assertFalse(verify_receipt(forged_blob))
 
+            omitted_source = copy.deepcopy(receipt)
+            omitted_path = omitted_source["qubo"]["code_evidence"][0]["files"][0][
+                "path"
+            ]
+            omitted_source["source_state"]["files"] = [
+                item
+                for item in omitted_source["source_state"]["files"]
+                if item["path"] != omitted_path
+            ]
+            self.rehash_full_receipt(omitted_source)
+            self.assertTrue(
+                any(
+                    "existing fixture path is omitted" in error
+                    for error in novelty_scout_receipt_errors(omitted_source)
+                )
+            )
+            self.assertFalse(verify_receipt(omitted_source))
+
+            forged_deletion = copy.deepcopy(omitted_source)
+            forged_deletion["source_state"]["scoped_dirty"] = True
+            forged_deletion["source_state"]["scoped_status"] = [f" D {omitted_path}"]
+            self.rehash_full_receipt(forged_deletion)
+            self.assertTrue(
+                any(
+                    "status is not live-verifiable" in error
+                    for error in novelty_scout_receipt_errors(forged_deletion)
+                )
+            )
+            self.assertFalse(verify_receipt(forged_deletion))
+
             mutations = [
                 lambda value: value["qubo"]["matrix"][0].__setitem__(0, 0),
                 lambda value: value["recommended_portfolio"][
