@@ -6,6 +6,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { handleValidationTool } from '../validation-tools';
+import { ConfabulationValidator, DERIVED_TRAIT_CONFLICTS } from '@holoscript/core';
 
 // =============================================================================
 // HELPERS
@@ -178,19 +179,37 @@ describe('validate_composition', () => {
     });
 
     it('suppresses advisory warnings for traits with unresolved .holo conflicts', async () => {
+      // Dynamically pick a still-conflicted trait that declares an enum prop, so this test
+      // survives the frdb collision cleanup (which shrinks DERIVED_TRAIT_CONFLICTS over time).
+      const v = new ConfabulationValidator({ includeDerivedSchemas: true });
+      let picked: string | undefined;
+      let enumProp: string | undefined;
+      for (const name of DERIVED_TRAIT_CONFLICTS) {
+        const schema = v.getTraitSchema(name);
+        const p = schema?.properties.find(
+          (pr) => pr.type === 'enum' && (pr.enumValues?.length ?? 0) > 0
+        );
+        if (p) {
+          picked = name;
+          enumProp = p.name;
+          break;
+        }
+      }
+      // If no conflicted trait declares an enum anymore, suppression has nothing to act on.
+      if (!picked || !enumProp) return;
       const result = await validate(`
-        composition "A11yScene" {
-          object Panel {
-            @accessible(role: "not_a_real_role")
+        composition "ConflictScene" {
+          object O {
+            @${picked}(${enumProp}: "__definitely_not_a_valid_enum_value__")
             position: [0, 1, 0]
           }
         }
       `);
-      // `accessible` is in DERIVED_TRAIT_CONFLICTS — advisory is suppressed until Phase 2 triage.
-      const accessibleWarn = result.diagnostics.find(
-        (d) => d.source === 'accessible' && d.code.startsWith('CONFAB')
+      // Trait is in DERIVED_TRAIT_CONFLICTS — its advisory is suppressed until the conflict is triaged.
+      const warn = result.diagnostics.find(
+        (d) => d.source === picked && d.code.startsWith('CONFAB')
       );
-      expect(accessibleWarn).toBeUndefined();
+      expect(warn).toBeUndefined();
     });
   });
 });

@@ -20,7 +20,9 @@ describe('ConfabulationValidator — derived .holo schema registration', () => {
     expect(abtest).toBeDefined();
     const strategy = abtest?.properties.find((p) => p.name === 'default_strategy');
     expect(strategy?.type).toBe('enum');
-    expect(strategy?.enumValues).toContain('multi_armed_bandit');
+    // @abtest was disambiguated (frdb): the canonical devops/abtest.holo matches the shipped
+    // ABTestConfig (equal|weighted|bandit), not the deleted analytics port's 'multi_armed_bandit'.
+    expect(strategy?.enumValues).toContain('bandit');
   });
 
   it('lets hand-written built-ins win over derived on name conflict', () => {
