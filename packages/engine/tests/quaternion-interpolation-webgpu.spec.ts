@@ -9,13 +9,14 @@
 
 import { createHash, randomUUID } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import http from 'node:http';
 import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { expect, test, type Page } from '@playwright/test';
+import { chromium, expect, test, type Browser, type Page } from '@playwright/test';
 import {
   PAPER6_Q14_SLERP_CASES,
   QUATERNION_Q14_ONE,
@@ -41,10 +42,12 @@ const contractPath = path.join(
 );
 const wgslPath = path.join(packageRoot, 'src/animation/paper/QuaternionInterpolationWGSL.ts');
 const harnessPath = fileURLToPath(import.meta.url);
+const playwrightConfigPath = path.join(packageRoot, 'playwright.config.ts');
 const sourcePaths = [
   'packages/engine/src/animation/paper/QuaternionInterpolationContract.ts',
   'packages/engine/src/animation/paper/QuaternionInterpolationWGSL.ts',
   'packages/engine/tests/quaternion-interpolation-webgpu.spec.ts',
+  'packages/engine/playwright.config.ts',
 ] as const;
 
 interface SourceSnapshot {
@@ -54,13 +57,15 @@ interface SourceSnapshot {
   readonly contractSource: string;
   readonly wgslSource: string;
   readonly harnessSource: string;
+  readonly playwrightConfigSource: string;
 }
 
 async function captureSourceSnapshot(): Promise<SourceSnapshot> {
-  const [contractSource, wgslSource, harnessSource] = await Promise.all([
+  const [contractSource, wgslSource, harnessSource, playwrightConfigSource] = await Promise.all([
     fs.readFile(contractPath, 'utf8'),
     fs.readFile(wgslPath, 'utf8'),
     fs.readFile(harnessPath, 'utf8'),
+    fs.readFile(playwrightConfigPath, 'utf8'),
   ]);
   const head = execFileSync('git', ['rev-parse', 'HEAD'], {
     cwd: repoRoot,
@@ -78,7 +83,20 @@ async function captureSourceSnapshot(): Promise<SourceSnapshot> {
     .split(/\r?\n/u)
     .filter(Boolean)
     .sort();
-  return { head, status, trackedPaths, contractSource, wgslSource, harnessSource };
+  return {
+    head,
+    status,
+    trackedPaths,
+    contractSource,
+    wgslSource,
+    harnessSource,
+    playwrightConfigSource,
+  };
+}
+
+function sourceSnapshotWithoutHead(snapshot: SourceSnapshot): Omit<SourceSnapshot, 'head'> {
+  const { head: _head, ...sourceIdentity } = snapshot;
+  return sourceIdentity;
 }
 
 function integerSqrtNumber(value: number): number {
@@ -188,6 +206,183 @@ function close(server: http.Server): Promise<void> {
   });
 }
 
+interface AndroidDeviceMetadata {
+  readonly serial_sha256: string;
+  readonly manufacturer: string;
+  readonly model: string;
+  readonly android_release: string;
+  readonly android_sdk: string;
+  readonly abi: string;
+  readonly board_platform: string;
+  readonly gles_renderer: string;
+  readonly build_fingerprint_sha256: string;
+  readonly chrome_package: string;
+  readonly chrome_version: string;
+}
+
+interface AndroidChromeSession {
+  readonly browser: Browser;
+  readonly page: Page;
+  readonly device: AndroidDeviceMetadata;
+  readonly cleanup: () => Promise<void>;
+}
+
+function resolveAdbPath(): string {
+  const configured = process.env.PAPER6_ADB_PATH?.trim();
+  if (configured) {
+    if (!existsSync(configured)) throw new Error(`PAPER6_ADB_PATH does not exist: ${configured}`);
+    return configured;
+  }
+
+  const candidates =
+    process.platform === 'win32'
+      ? [
+          path.join(process.env.LOCALAPPDATA ?? '', 'Android/Sdk/platform-tools/adb.exe'),
+          'C:/Android/platform-tools/adb.exe',
+        ]
+      : ['/usr/bin/adb', '/usr/local/bin/adb'];
+  return candidates.find((candidate) => candidate && existsSync(candidate)) ?? 'adb';
+}
+
+function runAdb(adbPath: string, serial: string, args: readonly string[]): string {
+  return execFileSync(adbPath, ['-s', serial, ...args], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  }).trim();
+}
+
+function readAndroidProperty(adbPath: string, serial: string, property: string): string {
+  return runAdb(adbPath, serial, ['shell', 'getprop', property]);
+}
+
+function sleep(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+async function settleWithin(promise: Promise<unknown>, milliseconds: number): Promise<void> {
+  await Promise.race([promise.catch(() => undefined), sleep(milliseconds)]);
+}
+
+async function connectAndroidChrome(
+  serial: string,
+  harnessPort: number,
+  harnessUrl: string
+): Promise<AndroidChromeSession> {
+  const adbPath = resolveAdbPath();
+  const devices = execFileSync(adbPath, ['devices'], { encoding: 'utf8' });
+  const deviceState = devices
+    .split(/\r?\n/u)
+    .map((line) => line.trim().split(/\s+/u))
+    .find(([candidate]) => candidate === serial)?.[1];
+  if (deviceState !== 'device') {
+    throw new Error(
+      `PAPER6_ANDROID_SERIAL ${serial} is not an authorized attached device; state=${String(
+        deviceState ?? 'missing'
+      )}`
+    );
+  }
+
+  const chromePackage =
+    process.env.PAPER6_ANDROID_CHROME_PACKAGE?.trim() || 'com.android.chrome';
+  const chromeDump = runAdb(adbPath, serial, ['shell', 'dumpsys', 'package', chromePackage]);
+  const chromeVersion = /^\s*versionName=(.+)$/mu.exec(chromeDump)?.[1]?.trim() ?? 'unknown';
+  if (chromeVersion === 'unknown') {
+    throw new Error(`could not resolve ${chromePackage} version on Android device`);
+  }
+
+  const surfaceFlinger = runAdb(adbPath, serial, ['shell', 'dumpsys', 'SurfaceFlinger']);
+  const glesRenderer = /^\s*GLES:\s*(.+)$/mu.exec(surfaceFlinger)?.[1]?.trim() ?? 'unknown';
+  const buildFingerprint = readAndroidProperty(adbPath, serial, 'ro.build.fingerprint');
+  const device: AndroidDeviceMetadata = {
+    serial_sha256: sha256Text(serial),
+    manufacturer: readAndroidProperty(adbPath, serial, 'ro.product.manufacturer'),
+    model: readAndroidProperty(adbPath, serial, 'ro.product.model'),
+    android_release: readAndroidProperty(adbPath, serial, 'ro.build.version.release'),
+    android_sdk: readAndroidProperty(adbPath, serial, 'ro.build.version.sdk'),
+    abi: readAndroidProperty(adbPath, serial, 'ro.product.cpu.abi'),
+    board_platform: readAndroidProperty(adbPath, serial, 'ro.board.platform'),
+    gles_renderer: glesRenderer,
+    build_fingerprint_sha256: sha256Text(buildFingerprint),
+    chrome_package: chromePackage,
+    chrome_version: chromeVersion,
+  };
+
+  const cdpSocket =
+    process.env.PAPER6_ANDROID_CDP_SOCKET?.trim() || 'localabstract:chrome_devtools_remote';
+  const forwardedPortText = runAdb(adbPath, serial, ['forward', 'tcp:0', cdpSocket]);
+  const forwardedPort = Number(forwardedPortText);
+  if (!Number.isInteger(forwardedPort) || forwardedPort <= 0) {
+    throw new Error(`adb did not allocate a CDP port: ${forwardedPortText}`);
+  }
+
+  let browser: Browser | undefined;
+  let page: Page | undefined;
+  const removeAdbMappings = () => {
+    try {
+      runAdb(adbPath, serial, ['reverse', '--remove', `tcp:${harnessPort}`]);
+    } catch {}
+    try {
+      runAdb(adbPath, serial, ['forward', '--remove', `tcp:${forwardedPort}`]);
+    } catch {}
+  };
+  try {
+    runAdb(adbPath, serial, [
+      'reverse',
+      `tcp:${harnessPort}`,
+      `tcp:${harnessPort}`,
+    ]);
+    runAdb(adbPath, serial, [
+      'shell',
+      'am',
+      'start',
+      '-W',
+      '-a',
+      'android.intent.action.VIEW',
+      '-d',
+      harnessUrl,
+      chromePackage,
+    ]);
+
+    let lastError: unknown;
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      try {
+        browser = await chromium.connectOverCDP(`http://127.0.0.1:${forwardedPort}`, {
+          timeout: 2_000,
+          noDefaults: true,
+        });
+        break;
+      } catch (error) {
+        lastError = error;
+        await sleep(500);
+      }
+    }
+    if (!browser) {
+      throw new Error(`could not connect to Android Chrome CDP: ${String(lastError)}`);
+    }
+
+    const context = browser.contexts()[0];
+    if (!context) throw new Error('Android Chrome exposed no default browser context');
+    page = context.pages().find((candidate) => candidate.url() === harnessUrl);
+    if (!page) page = await context.newPage();
+    await page.goto(harnessUrl);
+  } catch (error) {
+    removeAdbMappings();
+    if (browser) await settleWithin(browser.close(), 2_000);
+    throw error;
+  }
+
+  return {
+    browser,
+    page,
+    device,
+    cleanup: async () => {
+      if (page) await settleWithin(page.close({ runBeforeUnload: false }), 2_000);
+      removeAdbMappings();
+      if (browser) await settleWithin(browser.close(), 2_000);
+    },
+  };
+}
+
 interface GpuRunResult {
   readonly adapter: {
     readonly vendor: string;
@@ -197,6 +392,8 @@ interface GpuRunResult {
     readonly driver: string;
     readonly isFallbackAdapter: boolean;
   };
+  readonly secureContext: boolean;
+  readonly origin: string;
   readonly browserLittleEndian: boolean;
   readonly userAgent: string;
   readonly compileMs: number;
@@ -339,6 +536,8 @@ async function runGpuContract(
         const negativeControl = await dispatch(negative);
         return {
           adapter: identity,
+          secureContext: isSecureContext,
+          origin: location.origin,
           browserLittleEndian,
           userAgent: navigator.userAgent,
           compileMs,
@@ -375,7 +574,14 @@ test.describe('Paper 6 Q14 integer CORDIC quaternion conformance', () => {
       : path.join(repoRoot, '.bench-logs', 'paper6-q14-cordic-slerp-local.json');
     await fs.rm(receiptPath, { force: true });
     const runId = randomUUID();
-    test.setTimeout(120_000);
+    const configuredTimeout = Number(process.env.PAPER6_TEST_TIMEOUT_MS);
+    test.setTimeout(
+      Number.isFinite(configuredTimeout) && configuredTimeout > 0
+        ? configuredTimeout
+        : process.env.PAPER6_ANDROID_SERIAL
+          ? 300_000
+          : 120_000
+    );
 
     const sourceBefore = await captureSourceSnapshot();
     const allSourcePathsTracked = sourcePaths.every((sourcePath) =>
@@ -410,6 +616,7 @@ test.describe('Paper 6 Q14 integer CORDIC quaternion conformance', () => {
     const negativeOracle = encodeQuaternionInterpolationOracleResults(negativeCases);
     const requestedPowerPreference: 'low-power' | 'high-performance' =
       process.env.PAPER6_WEBGPU_POWER_PREFERENCE === 'low-power' ? 'low-power' : 'high-performance';
+    const androidSerial = process.env.PAPER6_ANDROID_SERIAL?.trim();
     const nodeLittleEndian = new Uint8Array(new Int32Array([0x01020304]).buffer)[0] === 0x04;
     expect(nodeLittleEndian, 'the current GPU upload path requires a little-endian Node host').toBe(
       true
@@ -420,17 +627,30 @@ test.describe('Paper 6 Q14 integer CORDIC quaternion conformance', () => {
 
     const server = createHarnessServer();
     const port = await listen(server);
+    const harnessUrl = `http://127.0.0.1:${port}/paper6-q14-cordic-slerp`;
     let gpu: GpuRunResult;
+    let browserVersion = browser.version();
+    let androidDevice: AndroidDeviceMetadata | undefined;
+    let androidSession: AndroidChromeSession | undefined;
     try {
-      await page.goto(`http://127.0.0.1:${port}/paper6-q14-cordic-slerp`);
+      let executionPage = page;
+      if (androidSerial) {
+        androidSession = await connectAndroidChrome(androidSerial, port, harnessUrl);
+        executionPage = androidSession.page;
+        androidDevice = androidSession.device;
+        browserVersion = androidSession.browser.version();
+      } else {
+        await page.goto(harnessUrl);
+      }
       gpu = await runGpuContract(
-        page,
+        executionPage,
         canonicalInput,
         negativeInput,
         GPU_CASES.length,
         requestedPowerPreference
       );
     } finally {
+      await androidSession?.cleanup();
       await close(server);
     }
 
@@ -445,6 +665,8 @@ test.describe('Paper 6 Q14 integer CORDIC quaternion conformance', () => {
       .trim();
     expect(adapterText.length, 'adapter identity must not be empty').toBeGreaterThan(0);
     expect(gpu.adapter.isFallbackAdapter).toBe(false);
+    expect(gpu.secureContext, 'WebGPU evidence must run in a secure context').toBe(true);
+    expect(gpu.origin).toBe(`http://127.0.0.1:${port}`);
     expect(gpu.browserLittleEndian).toBe(true);
     expect(adapterText).not.toMatch(/swiftshader|llvmpipe|software raster|microsoft basic/i);
     const expectedVendor = process.env.PAPER6_EXPECTED_GPU_VENDOR;
@@ -466,9 +688,10 @@ test.describe('Paper 6 Q14 integer CORDIC quaternion conformance', () => {
     expect(negativeControlDetected).toBe(true);
 
     const sourceAfter = await captureSourceSnapshot();
-    expect(sourceAfter, 'source, HEAD, and cleanliness must not change during capture').toEqual(
-      sourceBefore
-    );
+    expect(
+      sourceSnapshotWithoutHead(sourceAfter),
+      'tracked source/config blobs and cleanliness must not change during capture'
+    ).toEqual(sourceSnapshotWithoutHead(sourceBefore));
     const packageManagerUserAgent = process.env.npm_config_user_agent ?? '';
     const pnpmVersion = /(?:^|\s)pnpm\/([^\s]+)/.exec(packageManagerUserAgent)?.[1] ?? 'unknown';
     const gitVersion = execFileSync('git', ['--version'], {
@@ -481,16 +704,26 @@ test.describe('Paper 6 Q14 integer CORDIC quaternion conformance', () => {
     };
     const playwrightVersion = playwrightPackage.version ?? 'unknown';
     const playwrightProject = testInfo.project.name;
-    const browserVersion = browser.version();
     if (publicationSourceEligible) {
       expect(pnpmVersion).not.toBe('unknown');
       expect(playwrightVersion).not.toBe('unknown');
       expect(playwrightProject.trim().length).toBeGreaterThan(0);
       expect(browserVersion.trim().length).toBeGreaterThan(0);
     }
-    const machineFingerprint = sha256Text(
-      `${os.hostname()}|${os.arch()}|${os.cpus()[0]?.model ?? 'unknown'}`
-    );
+    const machineFingerprint = androidDevice
+      ? sha256Text(
+          [
+            androidDevice.serial_sha256,
+            androidDevice.manufacturer,
+            androidDevice.model,
+            androidDevice.android_release,
+            androidDevice.abi,
+            androidDevice.board_platform,
+            androidDevice.gles_renderer,
+            androidDevice.build_fingerprint_sha256,
+          ].join('|')
+        )
+      : sha256Text(`${os.hostname()}|${os.arch()}|${os.cpus()[0]?.model ?? 'unknown'}`);
 
     const receipt = {
       schema: 'holoscript.paper6.quaternion-conformance.v1',
@@ -525,11 +758,14 @@ test.describe('Paper 6 Q14 integer CORDIC quaternion conformance', () => {
         all_paths_tracked: allSourcePathsTracked,
         source_paths_clean_at_capture: sourceBefore.status.length === 0,
         source_unchanged_during_run: true,
+        head_unchanged_during_run: sourceAfter.head === sourceBefore.head,
+        end_git_commit: sourceAfter.head,
         source_status_porcelain: sourceBefore.status,
         contract_ts_sha256: sha256Text(sourceBefore.contractSource),
         wgsl_wrapper_ts_sha256: sha256Text(sourceBefore.wgslSource),
         kernel_wgsl_sha256: sha256Text(QUATERNION_INTERPOLATION_WGSL),
         harness_ts_sha256: sha256Text(sourceBefore.harnessSource),
+        playwright_config_ts_sha256: sha256Text(sourceBefore.playwrightConfigSource),
       },
       fixture: {
         case_count: GPU_CASES.length,
@@ -542,12 +778,31 @@ test.describe('Paper 6 Q14 integer CORDIC quaternion conformance', () => {
         negative_dot_ordinary_cordic_case: NEGATIVE_DOT_ORDINARY_CORDIC_CASE.id,
       },
       execution: {
-        mode: 'webgpu-browser',
+        mode: androidDevice ? 'webgpu-browser-android-cdp' : 'webgpu-browser',
         requested_power_preference: requestedPowerPreference,
-        hardware_label: process.env.PAPER6_HARDWARE_LABEL ?? 'unlabeled-local',
+        hardware_label:
+          process.env.PAPER6_HARDWARE_LABEL ??
+          (androidDevice ? `${androidDevice.manufacturer} ${androidDevice.model}`.trim() : 'unlabeled-local'),
         machine_fingerprint_sha256: machineFingerprint,
         browser_user_agent: gpu.userAgent,
+        secure_context: gpu.secureContext,
+        origin: gpu.origin,
         adapter: gpu.adapter,
+        launch_contract: androidDevice
+          ? {
+              transport: 'adb-cdp',
+              chrome_package: androidDevice.chrome_package,
+              cdp_socket:
+                process.env.PAPER6_ANDROID_CDP_SOCKET?.trim() ||
+                'localabstract:chrome_devtools_remote',
+            }
+          : {
+              transport: 'playwright-launch',
+              executable_path: process.env.WEBGPU_CHROME?.trim() || 'playwright-config-default',
+              webgpu_determinism_native: process.env.WEBGPU_DETERMINISM_NATIVE === '1',
+              bench_vulkan_backend: process.env.BENCH_VULKAN_BACKEND ?? '',
+              headless: process.env.BENCH_HEADLESS !== '0',
+            },
         toolchain: {
           node: process.version,
           pnpm: pnpmVersion,
@@ -558,9 +813,16 @@ test.describe('Paper 6 Q14 integer CORDIC quaternion conformance', () => {
           browser_version: browserVersion,
         },
         host: {
-          platform: os.platform(),
-          release: os.release(),
-          arch: os.arch(),
+          controller: {
+            platform: os.platform(),
+            release: os.release(),
+            arch: os.arch(),
+          },
+          device: androidDevice ?? {
+            platform: os.platform(),
+            release: os.release(),
+            arch: os.arch(),
+          },
           node_little_endian: nodeLittleEndian,
           browser_little_endian: gpu.browserLittleEndian,
         },
