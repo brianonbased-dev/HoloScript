@@ -289,6 +289,33 @@ export type {
 export type { HSIIRLoweringOptions } from './HSIIRCompiler';
 export type { HSIRenameMap, HSICompositionIntervention, HSIAuditInput } from './HSIAuditVerifier';
 
+// HSI-IR Stage B: the causal snapshot -> resolver -> policy -> capability-gated action -> mutation -> receipt loop.
+export {
+  HSI_CAUSAL_LOOP_SCHEMA_VERSION,
+  runCausalLoop,
+  runCausalLoopFromIR,
+  captureSnapshot,
+  resolveContainment,
+  selectPolicy,
+  gateAction,
+  withOpacityCounterfactual,
+  benchmarkBaselines,
+} from './HSICausalLoop';
+export type {
+  HSICausalLoopSchemaVersion,
+  HSIPolicy,
+  HSIActionName,
+  HSICausalOutcome,
+  HSISceneSnapshot,
+  HSIContainmentResolution,
+  HSIGatedAction,
+  HSICausalReceipt,
+  HSICausalLoopInput,
+  BaselineKind,
+  BaselineDecision,
+  BaselineResult,
+} from './HSICausalLoop';
+
 // Agent context compiler
 export { ContextCompiler, ContextCompileError, createContextCompiler } from './ContextCompiler';
 export type {
