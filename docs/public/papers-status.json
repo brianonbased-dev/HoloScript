@@ -1,15 +1,15 @@
 {
-  "schema": "paper-audit-matrix.v2",
-  "generatedAt": "2026-07-12T23:55:42.414Z",
+  "schema": "paper-audit-matrix.v3",
+  "generatedAt": "2026-07-17T06:00:15.638Z",
   "canonicalRouterPath": "research/paper-audit-matrix.md",
   "matrixSourcePath": "research/paper-audit-matrix/front-matrix-core-papers.md",
-  "scriptCommit": "e4b00fbc9ceb628c18a898297576ce2aff46f4d3",
+  "scriptCommit": "f4b8aa912fb9ebb49ada55f0c3b91dbfe98b0d6c",
   "totals": {
     "papers": 17,
     "cellsByToken": {
-      "✅": 222,
-      "⚠️": 29,
-      "❌": 7,
+      "✅": 154,
+      "⚠️": 88,
+      "❌": 16,
       "➖": 14
     }
   },
@@ -24,7 +24,7 @@
     "anchorBase",
     "venueFit",
     "citations",
-    "empClaims",
+    "evidencePair",
     "calStory",
     "twinTest",
     "decoderCost",
@@ -48,19 +48,19 @@
         },
         "rtxBench": {
           "token": "✅",
-          "evidence": "GPU benchmark heading + RTX hardware citation"
+          "evidence": "section-local typed GPU artifact + existing validator; no projected/future veto"
         },
         "fullLoop": {
-          "token": "✅",
-          "evidence": "Full-Loop / End-to-End demo heading present"
+          "token": "⚠️",
+          "evidence": "demo structure or partial evidence only; missing/unparseable citations and future work cannot complete the gate"
         },
         "ablation": {
           "token": "✅",
           "evidence": "Ablation subsection or paragraph heading"
         },
         "userStudy": {
-          "token": "✅",
-          "evidence": "user/developer study heading + N-count or preregistered claim"
+          "token": "⚠️",
+          "evidence": "study-shaped prose or partial citation set; typed study data + protocol/analysis/validator pair not complete"
         },
         "threatModel": {
           "token": "➖",
@@ -82,9 +82,11 @@
           "token": "✅",
           "evidence": "46 distinct cite keys, \\bibliography{holoscript} present"
         },
-        "empClaims": {
+        "evidencePair": {
           "token": "✅",
-          "evidence": "no \\todo{measure:} markers"
+          "scope": "paper-wide-path-presence",
+          "claimSupport": "unverified",
+          "evidence": "2 existing typed path(s) + 10 existing validator-shaped path(s); paths are not claim-bound or executed here"
         },
         "calStory": {
           "token": "✅",
@@ -104,7 +106,7 @@
         },
         "staleness": {
           "token": "✅",
-          "evidence": "0 open \\todo{}, 8d since last commit"
+          "evidence": "0 open \\todo{}, 12d since last commit"
         }
       },
       "lastCommit": {
@@ -155,20 +157,20 @@
           "evidence": "novelty/contributions heading or first-claim phrase present"
         },
         "rtxBench": {
-          "token": "✅",
-          "evidence": "GPU benchmark heading + RTX hardware citation"
+          "token": "⚠️",
+          "evidence": "GPU/RTX structure or partial evidence only; missing/unparseable citations and projections cannot complete the gate"
         },
         "fullLoop": {
-          "token": "✅",
-          "evidence": "Full-Loop / End-to-End demo heading present"
+          "token": "⚠️",
+          "evidence": "demo structure or partial evidence only; missing/unparseable citations and future work cannot complete the gate"
         },
         "ablation": {
           "token": "✅",
           "evidence": "Ablation subsection or paragraph heading"
         },
         "userStudy": {
-          "token": "✅",
-          "evidence": "user/developer study heading + N-count or preregistered claim"
+          "token": "⚠️",
+          "evidence": "study-shaped prose or partial citation set; typed study data + protocol/analysis/validator pair not complete"
         },
         "threatModel": {
           "token": "✅",
@@ -190,9 +192,11 @@
           "token": "✅",
           "evidence": "24 distinct cite keys, \\bibliography{holoscript} present"
         },
-        "empClaims": {
+        "evidencePair": {
           "token": "✅",
-          "evidence": "no \\todo{measure:} markers"
+          "scope": "paper-wide-path-presence",
+          "claimSupport": "unverified",
+          "evidence": "2 existing typed path(s) + 9 existing validator-shaped path(s); paths are not claim-bound or executed here"
         },
         "calStory": {
           "token": "✅",
@@ -212,7 +216,7 @@
         },
         "staleness": {
           "token": "✅",
-          "evidence": "0 open \\todo{}, 8d since last commit"
+          "evidence": "0 open \\todo{}, 12d since last commit"
         }
       },
       "lastCommit": {
@@ -263,20 +267,20 @@
           "evidence": "novelty/contributions heading or first-claim phrase present"
         },
         "rtxBench": {
-          "token": "✅",
-          "evidence": "GPU benchmark heading + RTX hardware citation"
+          "token": "⚠️",
+          "evidence": "GPU/RTX structure or partial evidence only; missing/unparseable citations and projections cannot complete the gate"
         },
         "fullLoop": {
-          "token": "✅",
-          "evidence": "Full-Loop / End-to-End demo heading present"
+          "token": "⚠️",
+          "evidence": "demo structure or partial evidence only; missing/unparseable citations and future work cannot complete the gate"
         },
         "ablation": {
           "token": "✅",
           "evidence": "Ablation subsection or paragraph heading"
         },
         "userStudy": {
-          "token": "✅",
-          "evidence": "user/developer study heading + N-count or preregistered claim"
+          "token": "⚠️",
+          "evidence": "study-shaped prose or partial citation set; typed study data + protocol/analysis/validator pair not complete"
         },
         "threatModel": {
           "token": "➖",
@@ -298,9 +302,11 @@
           "token": "✅",
           "evidence": "27 distinct cite keys, \\bibliography{holoscript} present"
         },
-        "empClaims": {
+        "evidencePair": {
           "token": "✅",
-          "evidence": "no \\todo{measure:} markers"
+          "scope": "paper-wide-path-presence",
+          "claimSupport": "unverified",
+          "evidence": "5 existing typed path(s) + 5 existing validator-shaped path(s); paths are not claim-bound or executed here"
         },
         "calStory": {
           "token": "✅",
@@ -320,7 +326,7 @@
         },
         "staleness": {
           "token": "✅",
-          "evidence": "0 open \\todo{}, 8d since last commit"
+          "evidence": "0 open \\todo{}, 12d since last commit"
         }
       },
       "lastCommit": {
@@ -371,12 +377,12 @@
           "evidence": "novelty/contributions heading or first-claim phrase present"
         },
         "rtxBench": {
-          "token": "✅",
-          "evidence": "GPU benchmark heading + RTX hardware citation"
+          "token": "⚠️",
+          "evidence": "GPU/RTX structure or partial evidence only; missing/unparseable citations and projections cannot complete the gate"
         },
         "fullLoop": {
-          "token": "✅",
-          "evidence": "Full-Loop / End-to-End demo heading present"
+          "token": "⚠️",
+          "evidence": "demo structure or partial evidence only; missing/unparseable citations and future work cannot complete the gate"
         },
         "ablation": {
           "token": "✅",
@@ -384,7 +390,7 @@
         },
         "userStudy": {
           "token": "⚠️",
-          "evidence": "partial: heading or N-count present, not both"
+          "evidence": "study-shaped prose or partial citation set; typed study data + protocol/analysis/validator pair not complete"
         },
         "threatModel": {
           "token": "➖",
@@ -406,9 +412,11 @@
           "token": "✅",
           "evidence": "33 distinct cite keys, \\bibliography{holoscript} present"
         },
-        "empClaims": {
+        "evidencePair": {
           "token": "✅",
-          "evidence": "no \\todo{measure:} markers"
+          "scope": "paper-wide-path-presence",
+          "claimSupport": "unverified",
+          "evidence": "3 existing typed path(s) + 11 existing validator-shaped path(s); paths are not claim-bound or executed here"
         },
         "calStory": {
           "token": "✅",
@@ -428,7 +436,7 @@
         },
         "staleness": {
           "token": "✅",
-          "evidence": "0 open \\todo{}, 8d since last commit"
+          "evidence": "0 open \\todo{}, 12d since last commit"
         }
       },
       "lastCommit": {
@@ -470,8 +478,8 @@
       "target": "USENIX Sec '27",
       "basename": "paper-4-sandbox-usenix.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-4-sandbox-usenix.tex",
-      "loc": 2890,
-      "sha256Prefix": "508738ea",
+      "loc": 2863,
+      "sha256Prefix": "7e248a9f",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -479,24 +487,24 @@
           "evidence": "novelty/contributions heading or first-claim phrase present"
         },
         "rtxBench": {
-          "token": "✅",
-          "evidence": "GPU benchmark heading + RTX hardware citation"
+          "token": "⚠️",
+          "evidence": "GPU/RTX structure or partial evidence only; missing/unparseable citations and projections cannot complete the gate"
         },
         "fullLoop": {
-          "token": "✅",
-          "evidence": "Full-Loop / End-to-End demo heading present"
+          "token": "⚠️",
+          "evidence": "demo structure or partial evidence only; missing/unparseable citations and future work cannot complete the gate"
         },
         "ablation": {
           "token": "✅",
           "evidence": "Ablation subsection or paragraph heading"
         },
         "userStudy": {
-          "token": "✅",
-          "evidence": "user/developer study heading + N-count or preregistered claim"
+          "token": "⚠️",
+          "evidence": "study-shaped prose or partial citation set; typed study data + protocol/analysis/validator pair not complete"
         },
         "threatModel": {
           "token": "✅",
-          "evidence": "10 threat-model references"
+          "evidence": "9 threat-model references"
         },
         "anchorOts": {
           "token": "✅",
@@ -514,9 +522,11 @@
           "token": "✅",
           "evidence": "46 distinct cite keys, \\bibliography{holoscript} present"
         },
-        "empClaims": {
+        "evidencePair": {
           "token": "✅",
-          "evidence": "no \\todo{measure:} markers"
+          "scope": "paper-wide-path-presence",
+          "claimSupport": "unverified",
+          "evidence": "6 existing typed path(s) + 12 existing validator-shaped path(s); paths are not claim-bound or executed here"
         },
         "calStory": {
           "token": "✅",
@@ -535,16 +545,21 @@
           "evidence": "scaling memo cited or quantified scale-out claim with heading"
         },
         "staleness": {
-          "token": "✅",
-          "evidence": "0 open \\todo{}, 8d since last commit"
+          "token": "⚠️",
+          "evidence": "0 open \\todo{}, 0d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
-        "isoDate": "2026-07-04T04:08:21-07:00",
-        "subject": "docs(papers): canon realignment item 4 -- name sovereignty across 19 abstracts"
+        "hash": "4809672be23f91b8d0281a3f46f8efffd40ab9ba",
+        "isoDate": "2026-07-16T14:29:21-07:00",
+        "subject": "docs(ecosystem): align paper claims with verified evidence"
       },
       "recentCommits": [
+        {
+          "hash": "4809672be23f91b8d0281a3f46f8efffd40ab9ba",
+          "isoDate": "2026-07-16T14:29:21-07:00",
+          "subject": "docs(ecosystem): align paper claims with verified evidence"
+        },
         {
           "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
           "isoDate": "2026-07-04T04:08:21-07:00",
@@ -564,11 +579,6 @@
           "hash": "4d5d5ce540eaf0f1892e17cf6ec911a80b970c5e",
           "isoDate": "2026-06-02T18:40:43-07:00",
           "subject": "docs(papers): reconcile tropical-semiring mislabel + shared agent-provenance-receipt related-work (task_1780428738566_diph)"
-        },
-        {
-          "hash": "07cc9bfbe82155ef2df2a08ed9fe533d50412c8c",
-          "isoDate": "2026-06-02T13:08:09-07:00",
-          "subject": "research(paper-4): adversarial-security qualifier + cite PhysVEC + drop GPU-accel novelty + fix texttt corruption"
         }
       ]
     },
@@ -587,20 +597,20 @@
           "evidence": "novelty/contributions heading or first-claim phrase present"
         },
         "rtxBench": {
-          "token": "✅",
-          "evidence": "GPU benchmark heading + RTX hardware citation"
+          "token": "⚠️",
+          "evidence": "GPU/RTX structure or partial evidence only; missing/unparseable citations and projections cannot complete the gate"
         },
         "fullLoop": {
-          "token": "✅",
-          "evidence": "Full-Loop / End-to-End demo heading present"
+          "token": "⚠️",
+          "evidence": "demo structure or partial evidence only; missing/unparseable citations and future work cannot complete the gate"
         },
         "ablation": {
           "token": "✅",
           "evidence": "Ablation subsection or paragraph heading"
         },
         "userStudy": {
-          "token": "✅",
-          "evidence": "user/developer study heading + N-count or preregistered claim"
+          "token": "⚠️",
+          "evidence": "study-shaped prose or partial citation set; typed study data + protocol/analysis/validator pair not complete"
         },
         "threatModel": {
           "token": "⚠️",
@@ -622,9 +632,11 @@
           "token": "✅",
           "evidence": "34 distinct cite keys, \\bibliography{holoscript} present"
         },
-        "empClaims": {
+        "evidencePair": {
           "token": "✅",
-          "evidence": "no \\todo{measure:} markers"
+          "scope": "paper-wide-path-presence",
+          "claimSupport": "unverified",
+          "evidence": "2 existing typed path(s) + 6 existing validator-shaped path(s); paths are not claim-bound or executed here"
         },
         "calStory": {
           "token": "✅",
@@ -644,7 +656,7 @@
         },
         "staleness": {
           "token": "✅",
-          "evidence": "0 open \\todo{}, 8d since last commit"
+          "evidence": "0 open \\todo{}, 12d since last commit"
         }
       },
       "lastCommit": {
@@ -686,8 +698,8 @@
       "target": "SCA '27",
       "basename": "paper-6-animation-sca.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-6-animation-sca.tex",
-      "loc": 1653,
-      "sha256Prefix": "71ff788f",
+      "loc": 1575,
+      "sha256Prefix": "6fc6fee2",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -695,20 +707,20 @@
           "evidence": "novelty/contributions heading or first-claim phrase present"
         },
         "rtxBench": {
-          "token": "✅",
-          "evidence": "GPU benchmark heading + RTX hardware citation"
+          "token": "⚠️",
+          "evidence": "GPU/RTX structure or partial evidence only; missing/unparseable citations and projections cannot complete the gate"
         },
         "fullLoop": {
-          "token": "✅",
-          "evidence": "Full-Loop / End-to-End demo heading present"
+          "token": "⚠️",
+          "evidence": "demo structure or partial evidence only; missing/unparseable citations and future work cannot complete the gate"
         },
         "ablation": {
           "token": "✅",
           "evidence": "Ablation subsection or paragraph heading"
         },
         "userStudy": {
-          "token": "✅",
-          "evidence": "user/developer study heading + N-count or preregistered claim"
+          "token": "⚠️",
+          "evidence": "study-shaped prose or partial citation set; typed study data + protocol/analysis/validator pair not complete"
         },
         "threatModel": {
           "token": "➖",
@@ -728,11 +740,13 @@
         },
         "citations": {
           "token": "✅",
-          "evidence": "17 distinct cite keys, \\bibliography{holoscript} present"
+          "evidence": "16 distinct cite keys, \\bibliography{holoscript} present"
         },
-        "empClaims": {
+        "evidencePair": {
           "token": "✅",
-          "evidence": "no \\todo{measure:} markers"
+          "scope": "paper-wide-path-presence",
+          "claimSupport": "unverified",
+          "evidence": "2 existing typed path(s) + 1 existing validator-shaped path(s); paths are not claim-bound or executed here"
         },
         "calStory": {
           "token": "✅",
@@ -747,20 +761,30 @@
           "evidence": "asymptotic class declaration + Complexity/Cost heading"
         },
         "scalingMemo": {
-          "token": "✅",
-          "evidence": "scaling memo cited or quantified scale-out claim with heading"
+          "token": "⚠️",
+          "evidence": "scaling discussed without memo or quantified target"
         },
         "staleness": {
-          "token": "✅",
-          "evidence": "0 open \\todo{}, 8d since last commit"
+          "token": "⚠️",
+          "evidence": "0 open \\todo{}, 0d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
-        "isoDate": "2026-07-04T04:08:21-07:00",
-        "subject": "docs(papers): canon realignment item 4 -- name sovereignty across 19 abstracts"
+        "hash": "e355ed70f25b72a07bf96624544135b37fdf3832",
+        "isoDate": "2026-07-16T22:36:18-07:00",
+        "subject": "docs(core): scope animation evidence to runnable tests"
       },
       "recentCommits": [
+        {
+          "hash": "e355ed70f25b72a07bf96624544135b37fdf3832",
+          "isoDate": "2026-07-16T22:36:18-07:00",
+          "subject": "docs(core): scope animation evidence to runnable tests"
+        },
+        {
+          "hash": "4809672be23f91b8d0281a3f46f8efffd40ab9ba",
+          "isoDate": "2026-07-16T14:29:21-07:00",
+          "subject": "docs(ecosystem): align paper claims with verified evidence"
+        },
         {
           "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
           "isoDate": "2026-07-04T04:08:21-07:00",
@@ -775,16 +799,6 @@
           "hash": "2962ed80c448cf44e2a2e26dbf86ecd638fe6976",
           "isoDate": "2026-06-02T19:14:10-07:00",
           "subject": "paper(6): rescope novelty off deterministic-lockstep prior art"
-        },
-        {
-          "hash": "fe78867a746c6990a0e20f2b72463dbdb01270ef",
-          "isoDate": "2026-05-13T22:44:14-07:00",
-          "subject": "docs(ecosystem): add paper 6 performance model"
-        },
-        {
-          "hash": "4b639899d0a372a0a6310c5cdffe91e3b9cfacac",
-          "isoDate": "2026-05-11T23:02:58-07:00",
-          "subject": "paper(6): Twin-test fill — WebGPU/CPU fallback as two-impl agreement"
         }
       ]
     },
@@ -794,8 +808,8 @@
       "target": "SIGGRAPH/I3D '27",
       "basename": "paper-7-ik-siggraph.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-7-ik-siggraph.tex",
-      "loc": 398,
-      "sha256Prefix": "011372dd",
+      "loc": 416,
+      "sha256Prefix": "88fdb9b0",
       "retired": true,
       "pillars": {
         "novelty": {
@@ -804,19 +818,19 @@
         },
         "rtxBench": {
           "token": "❌",
-          "evidence": "no RTX/H100/A100 citation found"
+          "evidence": "no admissible RTX/H100/A100 benchmark evidence"
         },
         "fullLoop": {
           "token": "❌",
-          "evidence": "no demo heading found"
+          "evidence": "no admissible full-loop execution evidence"
         },
         "ablation": {
-          "token": "✅",
-          "evidence": "Ablation subsection or paragraph heading"
+          "token": "❌",
+          "evidence": "no ablation signal found"
         },
         "userStudy": {
-          "token": "✅",
-          "evidence": "user/developer study heading + N-count or preregistered claim"
+          "token": "⚠️",
+          "evidence": "study-shaped prose or partial citation set; typed study data + protocol/analysis/validator pair not complete"
         },
         "threatModel": {
           "token": "➖",
@@ -838,17 +852,19 @@
           "token": "✅",
           "evidence": "9 distinct cite keys, \\bibliography{holoscript} present"
         },
-        "empClaims": {
-          "token": "✅",
-          "evidence": "no \\todo{measure:} markers"
+        "evidencePair": {
+          "token": "⚠️",
+          "scope": "paper-wide-path-presence",
+          "claimSupport": "unverified",
+          "evidence": "partial paper-wide path pair or open measurement TODO; claim support remains unverified"
         },
         "calStory": {
-          "token": "❌",
-          "evidence": "no calibration/setup/pipeline structure"
+          "token": "✅",
+          "evidence": "Calibration/Setup/Reproducibility heading + automation pointer"
         },
         "twinTest": {
-          "token": "⚠️",
-          "evidence": "partial: cross-platform without equivalence assertion, or vice versa"
+          "token": "❌",
+          "evidence": "no two-impl equivalence test"
         },
         "decoderCost": {
           "token": "❌",
@@ -859,16 +875,26 @@
           "evidence": "no scaling discussion (W.316 risk)"
         },
         "staleness": {
-          "token": "✅",
-          "evidence": "0 open \\todo{}, 8d since last commit"
+          "token": "⚠️",
+          "evidence": "0 open \\todo{}, 0d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
-        "isoDate": "2026-07-04T04:08:21-07:00",
-        "subject": "docs(papers): canon realignment item 4 -- name sovereignty across 19 abstracts"
+        "hash": "e355ed70f25b72a07bf96624544135b37fdf3832",
+        "isoDate": "2026-07-16T22:36:18-07:00",
+        "subject": "docs(core): scope animation evidence to runnable tests"
       },
       "recentCommits": [
+        {
+          "hash": "e355ed70f25b72a07bf96624544135b37fdf3832",
+          "isoDate": "2026-07-16T22:36:18-07:00",
+          "subject": "docs(core): scope animation evidence to runnable tests"
+        },
+        {
+          "hash": "4809672be23f91b8d0281a3f46f8efffd40ab9ba",
+          "isoDate": "2026-07-16T14:29:21-07:00",
+          "subject": "docs(ecosystem): align paper claims with verified evidence"
+        },
         {
           "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
           "isoDate": "2026-07-04T04:08:21-07:00",
@@ -883,16 +909,6 @@
           "hash": "93702f9e2a56797c844fa8e935b8b94851f835e1",
           "isoDate": "2026-05-02T22:52:22-07:00",
           "subject": "[paper-7] update IK latency table with 2026-05-03 benchmark numbers"
-        },
-        {
-          "hash": "e2b9bf3334919612ca0bbc65fa6c21aee1825a21",
-          "isoDate": "2026-04-26T17:22:03-07:00",
-          "subject": "docs(paper-7-ik): \\measuredFrom{} sweep — annotate tab:overhead"
-        },
-        {
-          "hash": "3d11a0f92724d14b63d085e215d49abad1b61884",
-          "isoDate": "2026-04-25T00:23:03-07:00",
-          "subject": "fix(papers): compile-state sweep — papers 0c/7/9 EXIT=0; paper-4 partial"
         }
       ]
     },
@@ -902,8 +918,8 @@
       "target": "SIGGRAPH '27",
       "basename": "paper-8-unified-siggraph.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-8-unified-siggraph.tex",
-      "loc": 1184,
-      "sha256Prefix": "ba6e4029",
+      "loc": 1051,
+      "sha256Prefix": "2eadad7b",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -911,20 +927,20 @@
           "evidence": "novelty/contributions heading or first-claim phrase present"
         },
         "rtxBench": {
-          "token": "✅",
-          "evidence": "GPU benchmark heading + RTX hardware citation"
+          "token": "⚠️",
+          "evidence": "GPU/RTX structure or partial evidence only; missing/unparseable citations and projections cannot complete the gate"
         },
         "fullLoop": {
-          "token": "✅",
-          "evidence": "Full-Loop / End-to-End demo heading present"
+          "token": "⚠️",
+          "evidence": "demo structure or partial evidence only; missing/unparseable citations and future work cannot complete the gate"
         },
         "ablation": {
-          "token": "✅",
-          "evidence": "Ablation subsection or paragraph heading"
+          "token": "⚠️",
+          "evidence": "partial: ablation in caption/label/prose, no heading"
         },
         "userStudy": {
-          "token": "✅",
-          "evidence": "user/developer study heading + N-count or preregistered claim"
+          "token": "⚠️",
+          "evidence": "study-shaped prose or partial citation set; typed study data + protocol/analysis/validator pair not complete"
         },
         "threatModel": {
           "token": "➖",
@@ -944,19 +960,21 @@
         },
         "citations": {
           "token": "✅",
-          "evidence": "28 distinct cite keys, \\bibliography{holoscript} present"
+          "evidence": "25 distinct cite keys, \\bibliography{holoscript} present"
         },
-        "empClaims": {
-          "token": "✅",
-          "evidence": "no \\todo{measure:} markers"
+        "evidencePair": {
+          "token": "⚠️",
+          "scope": "paper-wide-path-presence",
+          "claimSupport": "unverified",
+          "evidence": "partial paper-wide path pair or open measurement TODO; claim support remains unverified"
         },
         "calStory": {
           "token": "✅",
           "evidence": "Calibration/Setup/Reproducibility heading + automation pointer"
         },
         "twinTest": {
-          "token": "✅",
-          "evidence": "explicit two-impl/digital-twin equivalence + assertion"
+          "token": "⚠️",
+          "evidence": "partial: cross-platform without equivalence assertion, or vice versa"
         },
         "decoderCost": {
           "token": "✅",
@@ -967,16 +985,26 @@
           "evidence": "scaling discussed without memo or quantified target"
         },
         "staleness": {
-          "token": "✅",
-          "evidence": "0 open \\todo{}, 8d since last commit"
+          "token": "⚠️",
+          "evidence": "0 open \\todo{}, 0d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
-        "isoDate": "2026-07-04T04:08:21-07:00",
-        "subject": "docs(papers): canon realignment item 4 -- name sovereignty across 19 abstracts"
+        "hash": "e355ed70f25b72a07bf96624544135b37fdf3832",
+        "isoDate": "2026-07-16T22:36:18-07:00",
+        "subject": "docs(core): scope animation evidence to runnable tests"
       },
       "recentCommits": [
+        {
+          "hash": "e355ed70f25b72a07bf96624544135b37fdf3832",
+          "isoDate": "2026-07-16T22:36:18-07:00",
+          "subject": "docs(core): scope animation evidence to runnable tests"
+        },
+        {
+          "hash": "4809672be23f91b8d0281a3f46f8efffd40ab9ba",
+          "isoDate": "2026-07-16T14:29:21-07:00",
+          "subject": "docs(ecosystem): align paper claims with verified evidence"
+        },
         {
           "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
           "isoDate": "2026-07-04T04:08:21-07:00",
@@ -991,16 +1019,6 @@
           "hash": "4def468fa5266c4e16fe090ea524bd8642163b22",
           "isoDate": "2026-06-02T18:18:38-07:00",
           "subject": "paper(8): fix semiring mislabel, scope ->pose, re-headline to per-node hash verify, reconcile demo numbers"
-        },
-        {
-          "hash": "28dfe73caa17e3b4a20cfcd0645ecd8a40f83f96",
-          "isoDate": "2026-05-25T00:44:24-07:00",
-          "subject": "feat(papers): reconcile HoloScript-only content into ai-ecosystem canonical (founder ruling 2026-05-25)"
-        },
-        {
-          "hash": "23edff31d75c52bc80e0564aa3ff01ae3faa27bc",
-          "isoDate": "2026-05-20T21:22:51-07:00",
-          "subject": "docs(paper-8): F.017 hygiene — added \\measuredFrom right after the long physics-to-physics paragraph in the CouplingManagerV2 subsection"
         }
       ]
     },
@@ -1010,8 +1028,8 @@
       "target": "SIG Asia '27",
       "basename": "paper-9-verifiable-motion-siggraphasia.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-9-verifiable-motion-siggraphasia.tex",
-      "loc": 1287,
-      "sha256Prefix": "89d787a5",
+      "loc": 1325,
+      "sha256Prefix": "3ef10813",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -1019,20 +1037,20 @@
           "evidence": "novelty/contributions heading or first-claim phrase present"
         },
         "rtxBench": {
-          "token": "✅",
-          "evidence": "GPU benchmark heading + RTX hardware citation"
+          "token": "⚠️",
+          "evidence": "GPU/RTX structure or partial evidence only; missing/unparseable citations and projections cannot complete the gate"
         },
         "fullLoop": {
-          "token": "✅",
-          "evidence": "Full-Loop / End-to-End demo heading present"
+          "token": "⚠️",
+          "evidence": "demo structure or partial evidence only; missing/unparseable citations and future work cannot complete the gate"
         },
         "ablation": {
-          "token": "✅",
-          "evidence": "Ablation subsection or paragraph heading"
+          "token": "❌",
+          "evidence": "no ablation signal found"
         },
         "userStudy": {
-          "token": "✅",
-          "evidence": "user/developer study heading + N-count or preregistered claim"
+          "token": "⚠️",
+          "evidence": "study-shaped prose or partial citation set; typed study data + protocol/analysis/validator pair not complete"
         },
         "threatModel": {
           "token": "➖",
@@ -1052,39 +1070,56 @@
         },
         "citations": {
           "token": "✅",
-          "evidence": "16 distinct cite keys, \\bibliography{holoscript} present"
+          "evidence": "13 distinct cite keys, \\bibliography{holoscript} present"
         },
-        "empClaims": {
+        "evidencePair": {
           "token": "✅",
-          "evidence": "no \\todo{measure:} markers"
+          "scope": "paper-wide-path-presence",
+          "claimSupport": "unverified",
+          "evidence": "1 existing typed path(s) + 1 existing validator-shaped path(s); paths are not claim-bound or executed here"
         },
         "calStory": {
           "token": "✅",
           "evidence": "Calibration/Setup/Reproducibility heading + automation pointer"
         },
         "twinTest": {
-          "token": "✅",
-          "evidence": "explicit two-impl/digital-twin equivalence + assertion"
+          "token": "⚠️",
+          "evidence": "partial: cross-platform without equivalence assertion, or vice versa"
         },
         "decoderCost": {
           "token": "✅",
           "evidence": "asymptotic class declaration + Complexity/Cost heading"
         },
         "scalingMemo": {
-          "token": "⚠️",
-          "evidence": "scaling discussed without memo or quantified target"
+          "token": "❌",
+          "evidence": "no scaling discussion (W.316 risk)"
         },
         "staleness": {
-          "token": "✅",
-          "evidence": "0 open \\todo{}, 8d since last commit"
+          "token": "⚠️",
+          "evidence": "0 open \\todo{}, 0d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
-        "isoDate": "2026-07-04T04:08:21-07:00",
-        "subject": "docs(papers): canon realignment item 4 -- name sovereignty across 19 abstracts"
+        "hash": "50fb6ab39ea983522901d898693854b2105223af",
+        "isoDate": "2026-07-16T19:51:29-07:00",
+        "subject": "docs(core): align paper claims with executable evidence"
       },
       "recentCommits": [
+        {
+          "hash": "50fb6ab39ea983522901d898693854b2105223af",
+          "isoDate": "2026-07-16T19:51:29-07:00",
+          "subject": "docs(core): align paper claims with executable evidence"
+        },
+        {
+          "hash": "4809672be23f91b8d0281a3f46f8efffd40ab9ba",
+          "isoDate": "2026-07-16T14:29:21-07:00",
+          "subject": "docs(ecosystem): align paper claims with verified evidence"
+        },
+        {
+          "hash": "cf95532222817d4f7b43197fb3867a5ef5141281",
+          "isoDate": "2026-07-15T22:49:17-07:00",
+          "subject": "research(judges): resolve P9/P17/P31 protocol gaps post-JudgmentBench"
+        },
         {
           "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
           "isoDate": "2026-07-04T04:08:21-07:00",
@@ -1094,21 +1129,6 @@
           "hash": "51e926369bb7bdb42fa5b7cfe341ef925362e0e6",
           "isoDate": "2026-06-20T23:58:27-07:00",
           "subject": "docs(ecosystem): update paper 9 motion benchmark"
-        },
-        {
-          "hash": "d222fc76928555be00ba3d5619dd205607ca66bf",
-          "isoDate": "2026-06-04T20:12:54-07:00",
-          "subject": "paper(9): retighten ML overclaim — honest \"untrained reference backend\" disclosure"
-        },
-        {
-          "hash": "0bfb62ab4bcf75932abba2748f0322edab94f41a",
-          "isoDate": "2026-06-02T19:09:29-07:00",
-          "subject": "fix(paper-9): rescope OVERCLAIMED inference-time-feasibility headline"
-        },
-        {
-          "hash": "ebd98d2d28cee43f70357f2976115f53cefaf7b5",
-          "isoDate": "2026-05-26T04:39:35-07:00",
-          "subject": "docs(core): cite paper twin-test harnesses"
         }
       ]
     },
@@ -1127,20 +1147,20 @@
           "evidence": "novelty/contributions heading or first-claim phrase present"
         },
         "rtxBench": {
-          "token": "✅",
-          "evidence": "GPU benchmark heading + RTX hardware citation"
+          "token": "⚠️",
+          "evidence": "GPU/RTX structure or partial evidence only; missing/unparseable citations and projections cannot complete the gate"
         },
         "fullLoop": {
-          "token": "✅",
-          "evidence": "Full-Loop / End-to-End demo heading present"
+          "token": "⚠️",
+          "evidence": "demo structure or partial evidence only; missing/unparseable citations and future work cannot complete the gate"
         },
         "ablation": {
           "token": "✅",
           "evidence": "Ablation subsection or paragraph heading"
         },
         "userStudy": {
-          "token": "✅",
-          "evidence": "user/developer study heading + N-count or preregistered claim"
+          "token": "⚠️",
+          "evidence": "study-shaped prose or partial citation set; typed study data + protocol/analysis/validator pair not complete"
         },
         "threatModel": {
           "token": "➖",
@@ -1162,9 +1182,11 @@
           "token": "✅",
           "evidence": "19 distinct cite keys, \\bibliography{holoscript} present"
         },
-        "empClaims": {
-          "token": "✅",
-          "evidence": "no \\todo{measure:} markers"
+        "evidencePair": {
+          "token": "⚠️",
+          "scope": "paper-wide-path-presence",
+          "claimSupport": "unverified",
+          "evidence": "partial paper-wide path pair or open measurement TODO; claim support remains unverified"
         },
         "calStory": {
           "token": "✅",
@@ -1184,7 +1206,7 @@
         },
         "staleness": {
           "token": "✅",
-          "evidence": "0 open \\todo{}, 8d since last commit"
+          "evidence": "0 open \\todo{}, 12d since last commit"
         }
       },
       "lastCommit": {
@@ -1235,20 +1257,20 @@
           "evidence": "novelty/contributions heading or first-claim phrase present"
         },
         "rtxBench": {
-          "token": "✅",
-          "evidence": "GPU benchmark heading + RTX hardware citation"
+          "token": "⚠️",
+          "evidence": "GPU/RTX structure or partial evidence only; missing/unparseable citations and projections cannot complete the gate"
         },
         "fullLoop": {
-          "token": "✅",
-          "evidence": "Full-Loop / End-to-End demo heading present"
+          "token": "⚠️",
+          "evidence": "demo structure or partial evidence only; missing/unparseable citations and future work cannot complete the gate"
         },
         "ablation": {
           "token": "✅",
           "evidence": "Ablation subsection or paragraph heading"
         },
         "userStudy": {
-          "token": "✅",
-          "evidence": "user/developer study heading + N-count or preregistered claim"
+          "token": "⚠️",
+          "evidence": "study-shaped prose or partial citation set; typed study data + protocol/analysis/validator pair not complete"
         },
         "threatModel": {
           "token": "➖",
@@ -1270,9 +1292,11 @@
           "token": "✅",
           "evidence": "26 distinct cite keys, \\bibliography{holoscript} present"
         },
-        "empClaims": {
+        "evidencePair": {
           "token": "✅",
-          "evidence": "no \\todo{measure:} markers"
+          "scope": "paper-wide-path-presence",
+          "claimSupport": "unverified",
+          "evidence": "3 existing typed path(s) + 5 existing validator-shaped path(s); paths are not claim-bound or executed here"
         },
         "calStory": {
           "token": "✅",
@@ -1292,7 +1316,7 @@
         },
         "staleness": {
           "token": "✅",
-          "evidence": "0 open \\todo{}, 19d since last commit"
+          "evidence": "0 open \\todo{}, 24d since last commit"
         }
       },
       "lastCommit": {
@@ -1343,20 +1367,20 @@
           "evidence": "novelty/contributions heading or first-claim phrase present"
         },
         "rtxBench": {
-          "token": "✅",
-          "evidence": "GPU benchmark heading + RTX hardware citation"
+          "token": "⚠️",
+          "evidence": "GPU/RTX structure or partial evidence only; missing/unparseable citations and projections cannot complete the gate"
         },
         "fullLoop": {
-          "token": "✅",
-          "evidence": "Full-Loop / End-to-End demo heading present"
+          "token": "⚠️",
+          "evidence": "demo structure or partial evidence only; missing/unparseable citations and future work cannot complete the gate"
         },
         "ablation": {
           "token": "✅",
           "evidence": "Ablation subsection or paragraph heading"
         },
         "userStudy": {
-          "token": "✅",
-          "evidence": "user/developer study heading + N-count or preregistered claim"
+          "token": "⚠️",
+          "evidence": "study-shaped prose or partial citation set; typed study data + protocol/analysis/validator pair not complete"
         },
         "threatModel": {
           "token": "➖",
@@ -1378,9 +1402,11 @@
           "token": "✅",
           "evidence": "18 distinct cite keys, \\bibliography{holoscript} present"
         },
-        "empClaims": {
-          "token": "✅",
-          "evidence": "no \\todo{measure:} markers"
+        "evidencePair": {
+          "token": "⚠️",
+          "scope": "paper-wide-path-presence",
+          "claimSupport": "unverified",
+          "evidence": "partial paper-wide path pair or open measurement TODO; claim support remains unverified"
         },
         "calStory": {
           "token": "✅",
@@ -1400,7 +1426,7 @@
         },
         "staleness": {
           "token": "✅",
-          "evidence": "0 open \\todo{}, 8d since last commit"
+          "evidence": "0 open \\todo{}, 12d since last commit"
         }
       },
       "lastCommit": {
@@ -1442,8 +1468,8 @@
       "target": "SIGGRAPH '28",
       "basename": "paper-13-dumbglass-siggraph.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-13-dumbglass-siggraph.tex",
-      "loc": 1099,
-      "sha256Prefix": "96b19c40",
+      "loc": 930,
+      "sha256Prefix": "96448d38",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -1451,20 +1477,20 @@
           "evidence": "novelty/contributions heading or first-claim phrase present"
         },
         "rtxBench": {
-          "token": "✅",
-          "evidence": "GPU benchmark heading + RTX hardware citation"
+          "token": "⚠️",
+          "evidence": "GPU/RTX structure or partial evidence only; missing/unparseable citations and projections cannot complete the gate"
         },
         "fullLoop": {
-          "token": "✅",
-          "evidence": "Full-Loop / End-to-End demo heading present"
+          "token": "⚠️",
+          "evidence": "demo structure or partial evidence only; missing/unparseable citations and future work cannot complete the gate"
         },
         "ablation": {
-          "token": "✅",
-          "evidence": "Ablation subsection or paragraph heading"
+          "token": "❌",
+          "evidence": "no ablation signal found"
         },
         "userStudy": {
-          "token": "✅",
-          "evidence": "user/developer study heading + N-count or preregistered claim"
+          "token": "⚠️",
+          "evidence": "study-shaped prose or partial citation set; typed study data + protocol/analysis/validator pair not complete"
         },
         "threatModel": {
           "token": "➖",
@@ -1484,39 +1510,51 @@
         },
         "citations": {
           "token": "✅",
-          "evidence": "27 distinct cite keys, \\bibliography{holoscript} present"
+          "evidence": "26 distinct cite keys, \\bibliography{holoscript} present"
         },
-        "empClaims": {
+        "evidencePair": {
           "token": "✅",
-          "evidence": "no \\todo{measure:} markers"
+          "scope": "paper-wide-path-presence",
+          "claimSupport": "unverified",
+          "evidence": "2 existing typed path(s) + 2 existing validator-shaped path(s); paths are not claim-bound or executed here"
         },
         "calStory": {
-          "token": "✅",
-          "evidence": "Calibration/Setup/Reproducibility heading + automation pointer"
+          "token": "❌",
+          "evidence": "no calibration/setup/pipeline structure"
         },
         "twinTest": {
-          "token": "✅",
-          "evidence": "explicit two-impl/digital-twin equivalence + assertion"
+          "token": "❌",
+          "evidence": "no two-impl equivalence test"
         },
         "decoderCost": {
           "token": "✅",
           "evidence": "asymptotic class declaration + Complexity/Cost heading"
         },
         "scalingMemo": {
-          "token": "✅",
-          "evidence": "scaling memo cited or quantified scale-out claim with heading"
+          "token": "⚠️",
+          "evidence": "scaling discussed without memo or quantified target"
         },
         "staleness": {
-          "token": "✅",
-          "evidence": "0 open \\todo{}, 8d since last commit"
+          "token": "⚠️",
+          "evidence": "0 open \\todo{}, 0d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
-        "isoDate": "2026-07-04T04:08:21-07:00",
-        "subject": "docs(papers): canon realignment item 4 -- name sovereignty across 19 abstracts"
+        "hash": "50fb6ab39ea983522901d898693854b2105223af",
+        "isoDate": "2026-07-16T19:51:29-07:00",
+        "subject": "docs(core): align paper claims with executable evidence"
       },
       "recentCommits": [
+        {
+          "hash": "50fb6ab39ea983522901d898693854b2105223af",
+          "isoDate": "2026-07-16T19:51:29-07:00",
+          "subject": "docs(core): align paper claims with executable evidence"
+        },
+        {
+          "hash": "4809672be23f91b8d0281a3f46f8efffd40ab9ba",
+          "isoDate": "2026-07-16T14:29:21-07:00",
+          "subject": "docs(ecosystem): align paper claims with verified evidence"
+        },
         {
           "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
           "isoDate": "2026-07-04T04:08:21-07:00",
@@ -1531,23 +1569,13 @@
           "hash": "a00680e49c260f8d2bb6c523e34c5a1d4711f25e",
           "isoDate": "2026-05-28T16:44:37-07:00",
           "subject": "fix(papers): program-wide codebase-reflection drift sweep — close stale claims across 8 papers"
-        },
-        {
-          "hash": "28dfe73caa17e3b4a20cfcd0645ecd8a40f83f96",
-          "isoDate": "2026-05-25T00:44:24-07:00",
-          "subject": "feat(papers): reconcile HoloScript-only content into ai-ecosystem canonical (founder ruling 2026-05-25)"
-        },
-        {
-          "hash": "738b8964cac3ed1abbef904f53d1bc0946f485be",
-          "isoDate": "2026-05-20T21:28:21-07:00",
-          "subject": "docs(paper-13): add KHR_gaussian_splatting + SPZ related-work citation pass (DELTA-B closes grok scout task_1779180755794_6c0q)"
         }
       ]
     },
     {
       "rowId": "TVCG",
       "title": "Trust by Construction (SimulationContract)",
-      "target": "**IEEE TVCG — 🔴 DESK-REJECTED → resubmission staged** (TVCG-2026-04-0403 returned by AE before external review; new-submission package ready, pending founder signoff + portal upload — see `../revisions/tvcg-revision-1/README.md`)",
+      "target": "**IEEE TVCG — 🔴 original submission desk-rejected; later revision not evidenced as resubmitted.** Immutable submitted PDF: HoloScript tag `tvcg-submitted-2026-04-12`, blob `85bcf00c`. The same current PDF path is a later revision blob `5b9317d5`; no portal receipt or `tvcg-revision-1-submitted-*` tag was found, so it is not labeled submitted. See `../revisions/tvcg-revision-1/README.md`.",
       "basename": "trust-by-construction-paper.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/trust-by-construction-paper.tex",
       "loc": 1903,
@@ -1560,19 +1588,19 @@
         },
         "rtxBench": {
           "token": "⚠️",
-          "evidence": "partial: RTX citation without GPU benchmark heading, or vice versa"
+          "evidence": "GPU/RTX structure or partial evidence only; missing/unparseable citations and projections cannot complete the gate"
         },
         "fullLoop": {
           "token": "❌",
-          "evidence": "no demo heading found"
+          "evidence": "no admissible full-loop execution evidence"
         },
         "ablation": {
           "token": "✅",
           "evidence": "artifact-gate and per-guarantee contract-shell ablation present"
         },
         "userStudy": {
-          "token": "❌",
-          "evidence": "no user-study signal found"
+          "token": "⚠️",
+          "evidence": "study-shaped prose or partial citation set; typed study data + protocol/analysis/validator pair not complete"
         },
         "threatModel": {
           "token": "➖",
@@ -1594,9 +1622,11 @@
           "token": "✅",
           "evidence": "38 distinct cite keys, \\bibliography{holoscript} present"
         },
-        "empClaims": {
-          "token": "✅",
-          "evidence": "no \\todo{measure:} markers"
+        "evidencePair": {
+          "token": "❌",
+          "scope": "paper-wide-path-presence",
+          "claimSupport": "unverified",
+          "evidence": "no paper-wide typed-path + validator-shaped-path pair, or 6+ measurement TODOs"
         },
         "calStory": {
           "token": "⚠️",
@@ -1616,7 +1646,7 @@
         },
         "staleness": {
           "token": "✅",
-          "evidence": "0 open \\todo{}, 8d since last commit"
+          "evidence": "0 open \\todo{}, 12d since last commit"
         }
       },
       "lastCommit": {
@@ -1658,8 +1688,8 @@
       "target": "SIGGRAPH '27",
       "basename": "paper-capstone-program2-siggraph.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-capstone-program2-siggraph.tex",
-      "loc": 1166,
-      "sha256Prefix": "f5ce1970",
+      "loc": 939,
+      "sha256Prefix": "a98ad8a3",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -1667,20 +1697,20 @@
           "evidence": "novelty/contributions heading or first-claim phrase present"
         },
         "rtxBench": {
-          "token": "✅",
-          "evidence": "GPU benchmark heading + RTX hardware citation"
+          "token": "⚠️",
+          "evidence": "GPU/RTX structure or partial evidence only; missing/unparseable citations and projections cannot complete the gate"
         },
         "fullLoop": {
-          "token": "✅",
-          "evidence": "Full-Loop / End-to-End demo heading present"
+          "token": "⚠️",
+          "evidence": "demo structure or partial evidence only; missing/unparseable citations and future work cannot complete the gate"
         },
         "ablation": {
-          "token": "✅",
-          "evidence": "Ablation subsection or paragraph heading"
+          "token": "❌",
+          "evidence": "no ablation signal found"
         },
         "userStudy": {
-          "token": "✅",
-          "evidence": "user/developer study heading + N-count or preregistered claim"
+          "token": "⚠️",
+          "evidence": "study-shaped prose or partial citation set; typed study data + protocol/analysis/validator pair not complete"
         },
         "threatModel": {
           "token": "➖",
@@ -1700,39 +1730,56 @@
         },
         "citations": {
           "token": "✅",
-          "evidence": "6 distinct cite keys, \\bibliography{holoscript} present"
+          "evidence": "5 distinct cite keys, \\bibliography{holoscript} present"
         },
-        "empClaims": {
-          "token": "✅",
-          "evidence": "no \\todo{measure:} markers"
+        "evidencePair": {
+          "token": "❌",
+          "scope": "paper-wide-path-presence",
+          "claimSupport": "unverified",
+          "evidence": "no paper-wide typed-path + validator-shaped-path pair, or 6+ measurement TODOs"
         },
         "calStory": {
           "token": "✅",
           "evidence": "Calibration/Setup/Reproducibility heading + automation pointer"
         },
         "twinTest": {
-          "token": "✅",
-          "evidence": "explicit two-impl/digital-twin equivalence + assertion"
+          "token": "⚠️",
+          "evidence": "partial: cross-platform without equivalence assertion, or vice versa"
         },
         "decoderCost": {
           "token": "✅",
           "evidence": "asymptotic class declaration + Complexity/Cost heading"
         },
         "scalingMemo": {
-          "token": "⚠️",
-          "evidence": "scaling discussed without memo or quantified target"
+          "token": "❌",
+          "evidence": "no scaling discussion (W.316 risk)"
         },
         "staleness": {
-          "token": "✅",
-          "evidence": "0 open \\todo{}, 8d since last commit"
+          "token": "⚠️",
+          "evidence": "0 open \\todo{}, 0d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "ef367f56ec83e498eff0d1c2e3b43930e8ef8ade",
-        "isoDate": "2026-07-04T03:55:11-07:00",
-        "subject": "docs(papers): realign the 3 built-on-weak-canon papers to strong canon"
+        "hash": "e355ed70f25b72a07bf96624544135b37fdf3832",
+        "isoDate": "2026-07-16T22:36:18-07:00",
+        "subject": "docs(core): scope animation evidence to runnable tests"
       },
       "recentCommits": [
+        {
+          "hash": "e355ed70f25b72a07bf96624544135b37fdf3832",
+          "isoDate": "2026-07-16T22:36:18-07:00",
+          "subject": "docs(core): scope animation evidence to runnable tests"
+        },
+        {
+          "hash": "4809672be23f91b8d0281a3f46f8efffd40ab9ba",
+          "isoDate": "2026-07-16T14:29:21-07:00",
+          "subject": "docs(ecosystem): align paper claims with verified evidence"
+        },
+        {
+          "hash": "8df11ec98c1762f068374e869df2704d4124b6a9",
+          "isoDate": "2026-07-16T12:52:46-07:00",
+          "subject": "docs(ecosystem): scope P2 determinism claims to shipped probe"
+        },
         {
           "hash": "ef367f56ec83e498eff0d1c2e3b43930e8ef8ade",
           "isoDate": "2026-07-04T03:55:11-07:00",
@@ -1742,21 +1789,6 @@
           "hash": "28dfe73caa17e3b4a20cfcd0645ecd8a40f83f96",
           "isoDate": "2026-05-25T00:44:24-07:00",
           "subject": "feat(papers): reconcile HoloScript-only content into ai-ecosystem canonical (founder ruling 2026-05-25)"
-        },
-        {
-          "hash": "9e9e4aebbf52fcd1e1c97c309def68e0a7c31f58",
-          "isoDate": "2026-05-11T22:12:14-07:00",
-          "subject": "paper(C2): Twin-test fill — cross-vendor hardware as two-impl agreement"
-        },
-        {
-          "hash": "3767a2af386a0f0ff90bd0e21065f9696361c642",
-          "isoDate": "2026-05-03T07:23:57-07:00",
-          "subject": "docs(paper-capstone-p2): annotate 3 empirical tables with measuredFrom + create canonical gpu-bench.json"
-        },
-        {
-          "hash": "c38f92045d8051287890f32edf309b4c490d49e7",
-          "isoDate": "2026-04-26T18:07:45-07:00",
-          "subject": "docs(paper-capstone-program2): \\measuredFrom{} sweep — 0 of 5 tables annotated"
         }
       ]
     },
@@ -1775,20 +1807,20 @@
           "evidence": "novelty/contributions heading or first-claim phrase present"
         },
         "rtxBench": {
-          "token": "✅",
-          "evidence": "GPU benchmark heading + RTX hardware citation"
+          "token": "⚠️",
+          "evidence": "GPU/RTX structure or partial evidence only; missing/unparseable citations and projections cannot complete the gate"
         },
         "fullLoop": {
-          "token": "✅",
-          "evidence": "Full-Loop / End-to-End demo heading present"
+          "token": "⚠️",
+          "evidence": "demo structure or partial evidence only; missing/unparseable citations and future work cannot complete the gate"
         },
         "ablation": {
           "token": "✅",
           "evidence": "Ablation subsection or paragraph heading"
         },
         "userStudy": {
-          "token": "✅",
-          "evidence": "user/developer study heading + N-count or preregistered claim"
+          "token": "⚠️",
+          "evidence": "study-shaped prose or partial citation set; typed study data + protocol/analysis/validator pair not complete"
         },
         "threatModel": {
           "token": "➖",
@@ -1810,9 +1842,11 @@
           "token": "✅",
           "evidence": "36 distinct cite keys, \\bibliography{holoscript} present"
         },
-        "empClaims": {
+        "evidencePair": {
           "token": "✅",
-          "evidence": "no \\todo{measure:} markers"
+          "scope": "paper-wide-path-presence",
+          "claimSupport": "unverified",
+          "evidence": "1 existing typed path(s) + 9 existing validator-shaped path(s); paths are not claim-bound or executed here"
         },
         "calStory": {
           "token": "✅",
@@ -1832,7 +1866,7 @@
         },
         "staleness": {
           "token": "✅",
-          "evidence": "0 open \\todo{}, 8d since last commit"
+          "evidence": "0 open \\todo{}, 12d since last commit"
         }
       },
       "lastCommit": {
