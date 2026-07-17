@@ -16,8 +16,10 @@
 //! validation, and callee-side bounds checks. `hs-machine-v10` adds call-duration
 //! forwarding and literal sub-slice reborrows while keeping root provenance and alias
 //! state compiler-owned. `hs-machine-v11` adds runtime-indexed named sub-slice
-//! reborrows with signed range guards before pointer arithmetic. Everything outside the
-//! selected contract fails closed with a native compile diagnostic.
+//! reborrows with signed range guards before pointer arithmetic. `hs-machine-v12` adds
+//! affine, heap-backed owned buffers, explicit moves and drops, whole-buffer slice borrows,
+//! and compiler-emitted cleanup through a host allocator ABI. Everything outside the selected
+//! contract fails closed with a native compile diagnostic.
 
 use std::collections::{HashMap, HashSet};
 use std::env;
@@ -52,6 +54,7 @@ pub const SLICE_MACHINE_CONTRACT: &str = "hs-machine-v8";
 pub const SLICE_CALL_MACHINE_CONTRACT: &str = "hs-machine-v9";
 pub const SLICE_FORWARD_MACHINE_CONTRACT: &str = "hs-machine-v10";
 pub const SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT: &str = "hs-machine-v11";
+pub const OWNED_BUFFER_MACHINE_CONTRACT: &str = "hs-machine-v12";
 
 struct CompiledObject {
     bytes: Vec<u8>,
@@ -170,7 +173,12 @@ fn compile_unit(
         NativeCompileError::new(format!("HoloScript parse failed: {rendered}"))
     })?;
 
-    if has_runtime_slice_forward_machine_metadata(&ast) {
+    if has_owned_buffer_machine_metadata(&ast) {
+        Ok(CompiledObject {
+            bytes: lower_typed_ast_to_object(&ast, OWNED_BUFFER_MACHINE_CONTRACT, true)?,
+            machine_contract: OWNED_BUFFER_MACHINE_CONTRACT,
+        })
+    } else if has_runtime_slice_forward_machine_metadata(&ast) {
         Ok(CompiledObject {
             bytes: lower_typed_ast_to_object(&ast, SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT, true)?,
             machine_contract: SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT,
@@ -748,6 +756,54 @@ fn annotation_uses_slice_reference(annotation: &str) -> bool {
     annotation.starts_with("&[") || annotation.starts_with("&mut [")
 }
 
+fn annotation_uses_owned_buffer(annotation: &str) -> bool {
+    annotation.starts_with('[') && annotation.ends_with(']') && !annotation.contains(';')
+}
+
+fn has_owned_buffer_machine_metadata(ast: &Ast) -> bool {
+    ast.body.iter().any(|node| match node {
+        AstNode::Function(function) => {
+            function
+                .return_type
+                .as_deref()
+                .is_some_and(annotation_uses_owned_buffer)
+                || function
+                    .param_types
+                    .iter()
+                    .flatten()
+                    .any(|annotation| annotation_uses_owned_buffer(annotation))
+                || function.body.iter().any(node_uses_owned_buffer_type)
+        }
+        AstNode::StructDeclaration(structure) => structure
+            .field_types
+            .iter()
+            .flatten()
+            .any(|annotation| annotation_uses_owned_buffer(annotation)),
+        _ => false,
+    })
+}
+
+fn node_uses_owned_buffer_type(node: &AstNode) -> bool {
+    match node {
+        AstNode::VariableDeclaration(local) => local
+            .type_annotation
+            .as_deref()
+            .is_some_and(annotation_uses_owned_buffer),
+        AstNode::StackSlotDeclaration(slot) => annotation_uses_owned_buffer(&slot.type_annotation),
+        AstNode::If(if_node) => {
+            if_node.consequent.iter().any(node_uses_owned_buffer_type)
+                || if_node
+                    .alternate
+                    .as_ref()
+                    .is_some_and(|alternate| alternate.iter().any(node_uses_owned_buffer_type))
+        }
+        AstNode::While(while_node) => while_node.body.iter().any(node_uses_owned_buffer_type),
+        AstNode::ForOf(for_node) => for_node.body.iter().any(node_uses_owned_buffer_type),
+        AstNode::LexicalScope(scope) => scope.body.iter().any(node_uses_owned_buffer_type),
+        _ => false,
+    }
+}
+
 fn node_uses_slice_reference_type(node: &AstNode) -> bool {
     match node {
         AstNode::VariableDeclaration(local) => local
@@ -775,7 +831,7 @@ fn node_uses_slice_reference_type(node: &AstNode) -> bool {
 }
 
 fn annotation_uses_fixed_array(annotation: &str) -> bool {
-    annotation.starts_with('[')
+    annotation.starts_with('[') && annotation.contains(';')
 }
 
 fn node_uses_fixed_array_type(node: &AstNode) -> bool {
@@ -1026,6 +1082,7 @@ fn bool_enabled(machine_contract: &str) -> bool {
             | SLICE_CALL_MACHINE_CONTRACT
             | SLICE_FORWARD_MACHINE_CONTRACT
             | SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT
+            | OWNED_BUFFER_MACHINE_CONTRACT
     )
 }
 
@@ -1039,6 +1096,7 @@ fn control_flow_enabled(machine_contract: &str) -> bool {
             | SLICE_CALL_MACHINE_CONTRACT
             | SLICE_FORWARD_MACHINE_CONTRACT
             | SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT
+            | OWNED_BUFFER_MACHINE_CONTRACT
     )
 }
 
@@ -1053,6 +1111,7 @@ fn scoped_lifetimes_enabled(machine_contract: &str) -> bool {
             | SLICE_CALL_MACHINE_CONTRACT
             | SLICE_FORWARD_MACHINE_CONTRACT
             | SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT
+            | OWNED_BUFFER_MACHINE_CONTRACT
     )
 }
 
@@ -1068,6 +1127,7 @@ fn references_enabled(machine_contract: &str) -> bool {
             | SLICE_CALL_MACHINE_CONTRACT
             | SLICE_FORWARD_MACHINE_CONTRACT
             | SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT
+            | OWNED_BUFFER_MACHINE_CONTRACT
     )
 }
 
@@ -1084,6 +1144,7 @@ fn memory_contract_enabled(machine_contract: &str) -> bool {
             | SLICE_CALL_MACHINE_CONTRACT
             | SLICE_FORWARD_MACHINE_CONTRACT
             | SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT
+            | OWNED_BUFFER_MACHINE_CONTRACT
     )
 }
 
@@ -1096,6 +1157,7 @@ fn aggregate_contract_enabled(machine_contract: &str) -> bool {
             | SLICE_CALL_MACHINE_CONTRACT
             | SLICE_FORWARD_MACHINE_CONTRACT
             | SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT
+            | OWNED_BUFFER_MACHINE_CONTRACT
     )
 }
 
@@ -1107,6 +1169,7 @@ fn fixed_arrays_enabled(machine_contract: &str) -> bool {
             | SLICE_CALL_MACHINE_CONTRACT
             | SLICE_FORWARD_MACHINE_CONTRACT
             | SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT
+            | OWNED_BUFFER_MACHINE_CONTRACT
     )
 }
 
@@ -1170,6 +1233,40 @@ impl FixedArrayLayout {
             element_type,
             length,
             size,
+        }))
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+struct OwnedBufferLayout {
+    element_type: MachineType,
+}
+
+impl OwnedBufferLayout {
+    fn parse(
+        annotation: &str,
+        context: &str,
+        machine_contract: &str,
+    ) -> Result<Option<Self>, NativeCompileError> {
+        if !annotation_uses_owned_buffer(annotation) {
+            return Ok(None);
+        }
+        if machine_contract != OWNED_BUFFER_MACHINE_CONTRACT {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} does not enable owned buffer storage"
+            )));
+        }
+        let element = annotation
+            .strip_prefix('[')
+            .and_then(|element| element.strip_suffix(']'))
+            .filter(|element| !element.is_empty())
+            .ok_or_else(|| {
+                NativeCompileError::new(format!(
+                    "{machine_contract} {context} has malformed owned buffer type `{annotation}`"
+                ))
+            })?;
+        Ok(Some(Self {
+            element_type: MachineType::parse(element, context, machine_contract)?,
         }))
     }
 }
@@ -1240,7 +1337,10 @@ fn collect_aggregate_layouts(
                 structure.name
             )));
         }
-        if matches!(structure.name.as_str(), "load" | "store") {
+        if matches!(
+            structure.name.as_str(),
+            "load" | "store" | "buffer" | "move" | "drop"
+        ) {
             return Err(NativeCompileError::new(format!(
                 "{machine_contract} reserves struct name `{}` for explicit memory access",
                 structure.name
@@ -1285,6 +1385,18 @@ fn collect_aggregate_layouts(
             if annotation_uses_slice_reference(type_name) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} borrowed slices as aggregate fields are not enabled; field `{field_name}` in struct `{}` uses `{type_name}`",
+                    structure.name
+                )));
+            }
+            if OwnedBufferLayout::parse(
+                type_name,
+                &format!("field `{field_name}` in struct `{}`", structure.name),
+                machine_contract,
+            )?
+            .is_some()
+            {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} owned buffers as aggregate fields are not enabled; field `{field_name}` in struct `{}` uses `{type_name}`",
                     structure.name
                 )));
             }
@@ -1496,6 +1608,11 @@ enum SliceStorage {
         base: Value,
         length: Value,
     },
+    Heap {
+        owner_name: String,
+        base: Value,
+        length: Value,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -1523,8 +1640,34 @@ impl TypedReference {
                 storage: SliceStorage::Parameter { .. },
                 ..
             } => None,
+            TypedReferenceLayout::Slice {
+                storage: SliceStorage::Heap { owner_name, .. },
+                ..
+            } => Some(owner_name),
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum OwnedBufferState {
+    Live,
+    Moved,
+    Dropped,
+}
+
+#[derive(Debug, Clone)]
+struct OwnedBuffer {
+    base: Value,
+    length: Value,
+    element_type: MachineType,
+    state: OwnedBufferState,
+    scope_depth: usize,
+}
+
+#[derive(Clone, Copy)]
+struct AllocatorAbi {
+    allocate: FuncId,
+    deallocate: FuncId,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -1536,6 +1679,7 @@ struct BorrowState {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 enum SliceBorrowRoot {
     Stack(String),
+    Owned(String),
     Parameter,
 }
 
@@ -1543,6 +1687,29 @@ enum SliceBorrowRoot {
 enum FlowOutcome {
     FallsThrough,
     Returns,
+}
+
+fn declare_allocator_abi(module: &mut ObjectModule) -> Result<AllocatorAbi, NativeCompileError> {
+    let pointer_type = module.target_config().pointer_type();
+    let mut allocate_signature = module.make_signature();
+    allocate_signature.params.push(AbiParam::new(pointer_type));
+    allocate_signature.returns.push(AbiParam::new(pointer_type));
+    let allocate = module
+        .declare_function("malloc", Linkage::Import, &allocate_signature)
+        .map_err(|error| NativeCompileError::new(format!("declare allocator failed: {error}")))?;
+
+    let mut deallocate_signature = module.make_signature();
+    deallocate_signature
+        .params
+        .push(AbiParam::new(pointer_type));
+    let deallocate = module
+        .declare_function("free", Linkage::Import, &deallocate_signature)
+        .map_err(|error| NativeCompileError::new(format!("declare deallocator failed: {error}")))?;
+
+    Ok(AllocatorAbi {
+        allocate,
+        deallocate,
+    })
 }
 
 fn lower_typed_ast_to_object(
@@ -1557,6 +1724,11 @@ fn lower_typed_ast_to_object(
         .collect::<HashMap<_, _>>();
     let specs = collect_typed_function_specs(ast, machine_contract, &aggregate_layouts)?;
     let mut module = create_object_module()?;
+    let allocator = if machine_contract == OWNED_BUFFER_MACHINE_CONTRACT {
+        Some(declare_allocator_abi(&mut module)?)
+    } else {
+        None
+    };
     let mut functions = HashMap::new();
 
     for spec in &specs {
@@ -1658,6 +1830,7 @@ fn lower_typed_ast_to_object(
                 &aggregate_layouts,
                 &mut locals,
                 parameter_references,
+                allocator,
                 spec,
                 machine_contract,
                 memory_enabled,
@@ -1741,6 +1914,14 @@ fn collect_typed_function_specs<'a>(
                 function.name
             )));
         }
+        if machine_contract == OWNED_BUFFER_MACHINE_CONTRACT
+            && matches!(function.name.as_str(), "buffer" | "move" | "drop")
+        {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} reserves function name `{}` for owned buffer lifetime operations",
+                function.name
+            )));
+        }
         if aggregate_layouts.contains_key(&function.name) {
             return Err(NativeCompileError::new(format!(
                 "{machine_contract} function `{}` collides with an aggregate constructor",
@@ -1772,6 +1953,18 @@ fn collect_typed_function_specs<'a>(
                         function.name
                     ))
                 })?;
+            if OwnedBufferLayout::parse(
+                type_name,
+                &format!("parameter `{param_name}` in function `{}`", function.name),
+                machine_contract,
+            )?
+            .is_some()
+            {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} owned buffers cannot cross function parameters; `{param_name}` in `{}` must be borrowed as `&[T]` or `&mut [T]`",
+                    function.name
+                )));
+            }
             if let Some(reference_type) = ReferenceType::parse(
                 type_name,
                 &format!("parameter `{param_name}` in function `{}`", function.name),
@@ -1784,6 +1977,7 @@ fn collect_typed_function_specs<'a>(
                             SLICE_CALL_MACHINE_CONTRACT
                                 | SLICE_FORWARD_MACHINE_CONTRACT
                                 | SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT
+                                | OWNED_BUFFER_MACHINE_CONTRACT
                         ) =>
                     {
                         params.push(MachineParameter::Slice {
@@ -1830,6 +2024,18 @@ fn collect_typed_function_specs<'a>(
                 function.name
             ))
         })?;
+        if OwnedBufferLayout::parse(
+            return_name,
+            &format!("return type of function `{}`", function.name),
+            machine_contract,
+        )?
+        .is_some()
+        {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} owned buffer returns are not enabled; `{}` must retain or drop ownership locally",
+                function.name
+            )));
+        }
         if references_enabled(machine_contract) && return_name.starts_with('&') {
             return Err(NativeCompileError::new(format!(
                 "{machine_contract} references cannot appear in function returns; `{}` would expose an address-bearing value",
@@ -1918,6 +2124,7 @@ fn lower_typed_body(
     aggregate_layouts: &HashMap<String, AggregateLayout>,
     locals: &mut HashMap<String, TypedValue>,
     mut references: HashMap<String, TypedReference>,
+    allocator: Option<AllocatorAbi>,
     spec: &TypedFunctionSpec<'_>,
     machine_contract: &str,
     memory_enabled: bool,
@@ -1925,6 +2132,8 @@ fn lower_typed_body(
     let mut stack_slots = HashMap::new();
     let mut borrow_states = HashMap::new();
     let mut function_borrow_leases = Vec::new();
+    let mut owned_buffers = HashMap::new();
+    let mut owner_order = Vec::new();
     let outcome = lower_typed_statements(
         builder,
         module,
@@ -1935,11 +2144,15 @@ fn lower_typed_body(
         &mut references,
         &mut borrow_states,
         &mut function_borrow_leases,
+        &mut owned_buffers,
+        &mut owner_order,
+        allocator,
         &spec.node.body,
         spec,
         machine_contract,
         memory_enabled,
         true,
+        0,
     )?;
 
     if outcome != FlowOutcome::Returns {
@@ -1962,11 +2175,15 @@ fn lower_typed_statements(
     references: &mut HashMap<String, TypedReference>,
     borrow_states: &mut HashMap<String, BorrowState>,
     borrow_leases: &mut Vec<TypedReference>,
+    owned_buffers: &mut HashMap<String, OwnedBuffer>,
+    owner_order: &mut Vec<String>,
+    allocator: Option<AllocatorAbi>,
     statements: &[AstNode],
     spec: &TypedFunctionSpec<'_>,
     machine_contract: &str,
     memory_enabled: bool,
     allow_return: bool,
+    scope_depth: usize,
 ) -> Result<FlowOutcome, NativeCompileError> {
     let mut outcome = FlowOutcome::FallsThrough;
     for (index, statement) in statements.iter().enumerate() {
@@ -1992,6 +2209,45 @@ fn lower_typed_statements(
                 })?;
                 let type_context =
                     format!("local `{}` in function `{}`", local.name, spec.node.name);
+                if let Some(layout) =
+                    OwnedBufferLayout::parse(type_name, &type_context, machine_contract)?
+                {
+                    if locals.contains_key(&local.name)
+                        || stack_slots.contains_key(&local.name)
+                        || references.contains_key(&local.name)
+                        || owned_buffers.contains_key(&local.name)
+                    {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} function `{}` redeclares binding `{}`",
+                            spec.node.name, local.name
+                        )));
+                    }
+                    let allocator = allocator.ok_or_else(|| {
+                        NativeCompileError::new(format!(
+                            "{machine_contract} lost its owned buffer allocator ABI"
+                        ))
+                    })?;
+                    let owner = lower_owned_buffer_initializer(
+                        builder,
+                        module,
+                        functions,
+                        locals,
+                        stack_slots,
+                        references,
+                        borrow_states,
+                        owned_buffers,
+                        allocator,
+                        &local.name,
+                        layout.element_type,
+                        &local.value,
+                        machine_contract,
+                        memory_enabled,
+                        scope_depth,
+                    )?;
+                    owned_buffers.insert(local.name.clone(), owner);
+                    owner_order.push(local.name.clone());
+                    continue;
+                }
                 if aggregate_layouts.contains_key(type_name) {
                     return Err(NativeCompileError::new(format!(
                         "{machine_contract} aggregate local `{}` must use addressable `slot` storage",
@@ -2015,6 +2271,7 @@ fn lower_typed_statements(
                     if locals.contains_key(&local.name)
                         || stack_slots.contains_key(&local.name)
                         || references.contains_key(&local.name)
+                        || owned_buffers.contains_key(&local.name)
                     {
                         return Err(NativeCompileError::new(format!(
                             "{machine_contract} function `{}` redeclares binding `{}`",
@@ -2026,6 +2283,7 @@ fn lower_typed_statements(
                         reference_type,
                         &local.value,
                         stack_slots,
+                        owned_buffers,
                         borrow_states,
                         machine_contract,
                     )?;
@@ -2037,6 +2295,7 @@ fn lower_typed_statements(
                 if locals.contains_key(&local.name)
                     || stack_slots.contains_key(&local.name)
                     || references.contains_key(&local.name)
+                    || owned_buffers.contains_key(&local.name)
                 {
                     return Err(NativeCompileError::new(format!(
                         "{machine_contract} function `{}` redeclares binding `{}`",
@@ -2068,6 +2327,7 @@ fn lower_typed_statements(
                 if locals.contains_key(&slot.name)
                     || stack_slots.contains_key(&slot.name)
                     || references.contains_key(&slot.name)
+                    || owned_buffers.contains_key(&slot.name)
                 {
                     return Err(NativeCompileError::new(format!(
                         "{machine_contract} function `{}` redeclares binding `{}`",
@@ -2081,6 +2341,12 @@ fn lower_typed_statements(
                 if annotation_uses_slice_reference(&slot.type_annotation) {
                     return Err(NativeCompileError::new(format!(
                         "{machine_contract} borrowed slice `{}` cannot use addressable `slot` storage; slice descriptors are local reference values",
+                        slot.name
+                    )));
+                }
+                if annotation_uses_owned_buffer(&slot.type_annotation) {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} owned buffer `{}` must use affine local `let` storage, not addressable `slot` storage",
                         slot.name
                     )));
                 }
@@ -2250,6 +2516,24 @@ fn lower_typed_statements(
                 );
             }
             AstNode::CallExpression(call)
+                if machine_contract == OWNED_BUFFER_MACHINE_CONTRACT
+                    && matches!(
+                        call.callee.as_ref(),
+                        AstNode::Identifier(callee) if callee.name == "drop"
+                    ) =>
+            {
+                lower_owned_buffer_drop(
+                    builder,
+                    module,
+                    call,
+                    owned_buffers,
+                    borrow_states,
+                    allocator.expect("v12 must declare its allocator ABI"),
+                    machine_contract,
+                    scope_depth,
+                )?;
+            }
+            AstNode::CallExpression(call)
                 if memory_enabled
                     && matches!(
                         call.callee.as_ref(),
@@ -2291,10 +2575,14 @@ fn lower_typed_statements(
                     stack_slots,
                     references,
                     borrow_states,
+                    owned_buffers,
+                    owner_order,
+                    allocator,
                     scope,
                     spec,
                     machine_contract,
                     memory_enabled,
+                    scope_depth,
                 )?;
             }
             AstNode::If(if_node) if control_flow_enabled(machine_contract) => {
@@ -2307,10 +2595,14 @@ fn lower_typed_statements(
                     stack_slots,
                     references,
                     borrow_states,
+                    owned_buffers,
+                    owner_order,
+                    allocator,
                     if_node,
                     spec,
                     machine_contract,
                     memory_enabled,
+                    scope_depth,
                 )?;
             }
             AstNode::While(while_node) if control_flow_enabled(machine_contract) => {
@@ -2323,10 +2615,14 @@ fn lower_typed_statements(
                     stack_slots,
                     references,
                     borrow_states,
+                    owned_buffers,
+                    owner_order,
+                    allocator,
                     while_node,
                     spec,
                     machine_contract,
                     memory_enabled,
+                    scope_depth,
                 )?;
             }
             AstNode::If(_) if machine_contract == REFERENCE_SCOPE_MACHINE_CONTRACT => {
@@ -2368,6 +2664,15 @@ fn lower_typed_statements(
                     machine_contract,
                     memory_enabled,
                 )?;
+                if let Some(allocator) = allocator {
+                    emit_owned_buffer_cleanup(
+                        builder,
+                        module,
+                        owned_buffers,
+                        owner_order,
+                        allocator,
+                    );
+                }
                 builder.ins().return_(&[value.value]);
                 outcome = FlowOutcome::Returns;
             }
@@ -2389,6 +2694,375 @@ fn lower_typed_statements(
 }
 
 #[allow(clippy::too_many_arguments)]
+fn lower_owned_buffer_initializer(
+    builder: &mut FunctionBuilder<'_>,
+    module: &mut ObjectModule,
+    functions: &HashMap<String, TypedFunctionAbi>,
+    locals: &HashMap<String, TypedValue>,
+    stack_slots: &HashMap<String, TypedStackSlot>,
+    references: &HashMap<String, TypedReference>,
+    borrow_states: &HashMap<String, BorrowState>,
+    owned_buffers: &mut HashMap<String, OwnedBuffer>,
+    allocator: AllocatorAbi,
+    owner_name: &str,
+    element_type: MachineType,
+    initializer: &AstNode,
+    machine_contract: &str,
+    memory_enabled: bool,
+    scope_depth: usize,
+) -> Result<OwnedBuffer, NativeCompileError> {
+    let AstNode::CallExpression(call) = initializer else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} owned buffer `{owner_name}` must be initialized by `buffer(count, fill)` or `move(owner)`"
+        )));
+    };
+    let AstNode::Identifier(callee) = call.callee.as_ref() else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} owned buffer `{owner_name}` requires a direct lifetime operation"
+        )));
+    };
+
+    match callee.name.as_str() {
+        "buffer" => {
+            if call.arguments.len() != 2 {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} `buffer` expects a signed `i32` element count and one fill value, found {} arguments",
+                    call.arguments.len()
+                )));
+            }
+            let length = lower_typed_expression(
+                builder,
+                module,
+                functions,
+                locals,
+                stack_slots,
+                references,
+                borrow_states,
+                &call.arguments[0],
+                MachineType::I32,
+                &format!("length of owned buffer `{owner_name}`"),
+                machine_contract,
+                memory_enabled,
+            )?;
+            let fill = lower_typed_expression(
+                builder,
+                module,
+                functions,
+                locals,
+                stack_slots,
+                references,
+                borrow_states,
+                &call.arguments[1],
+                element_type,
+                &format!("fill value of owned buffer `{owner_name}`"),
+                machine_contract,
+                memory_enabled,
+            )?;
+            let base = emit_owned_buffer_allocation(
+                builder,
+                module,
+                allocator,
+                length.value,
+                fill.value,
+                element_type,
+            );
+            Ok(OwnedBuffer {
+                base,
+                length: length.value,
+                element_type,
+                state: OwnedBufferState::Live,
+                scope_depth,
+            })
+        }
+        "move" => {
+            if call.arguments.len() != 1 {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} `move` expects exactly one owned buffer, found {} arguments",
+                    call.arguments.len()
+                )));
+            }
+            let AstNode::Identifier(source_name) = &call.arguments[0] else {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} `move` requires a named owned buffer"
+                )));
+            };
+            let source = owned_buffers.get(&source_name.name).ok_or_else(|| {
+                NativeCompileError::new(format!(
+                    "{machine_contract} `move` references unknown owned buffer `{}`",
+                    source_name.name
+                ))
+            })?;
+            if source.scope_depth != scope_depth {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} owned buffer `{}` cannot move across a lexical scope boundary",
+                    source_name.name
+                )));
+            }
+            match source.state {
+                OwnedBufferState::Live => {}
+                OwnedBufferState::Moved => {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} owned buffer `{}` was already moved",
+                        source_name.name
+                    )));
+                }
+                OwnedBufferState::Dropped => {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} owned buffer `{}` was already dropped",
+                        source_name.name
+                    )));
+                }
+            }
+            let active = borrow_states
+                .get(&source_name.name)
+                .copied()
+                .unwrap_or_default();
+            if active.shared > 0 || active.exclusive {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} cannot move owned buffer `{}` while a borrow is active",
+                    source_name.name
+                )));
+            }
+            if source.element_type != element_type {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} owned buffer `{owner_name}` expects elements of `{}`, but `{}` stores `{}`",
+                    element_type.name(),
+                    source_name.name,
+                    source.element_type.name()
+                )));
+            }
+            let moved = OwnedBuffer {
+                base: source.base,
+                length: source.length,
+                element_type: source.element_type,
+                state: OwnedBufferState::Live,
+                scope_depth,
+            };
+            owned_buffers
+                .get_mut(&source_name.name)
+                .expect("owned source was just resolved")
+                .state = OwnedBufferState::Moved;
+            Ok(moved)
+        }
+        other => Err(NativeCompileError::new(format!(
+            "{machine_contract} owned buffer `{owner_name}` cannot be initialized by `{other}`; use `buffer(count, fill)` or `move(owner)`"
+        ))),
+    }
+}
+
+fn emit_owned_buffer_allocation(
+    builder: &mut FunctionBuilder<'_>,
+    module: &mut ObjectModule,
+    allocator: AllocatorAbi,
+    length: Value,
+    fill: Value,
+    element_type: MachineType,
+) -> Value {
+    let negative = builder.ins().icmp_imm(IntCC::SignedLessThan, length, 0);
+    builder.ins().trapnz(negative, TrapCode::unwrap_user(1));
+
+    let pointer_type = module.target_config().pointer_type();
+    if let Some(max_length) = runtime_slice_start_limit(pointer_type, element_type.stack_size(), 0)
+    {
+        let too_large =
+            builder
+                .ins()
+                .icmp_imm(IntCC::UnsignedGreaterThan, length, i64::from(max_length));
+        builder.ins().trapnz(too_large, TrapCode::unwrap_user(1));
+    }
+    let pointer_length = if pointer_type == types::I32 {
+        length
+    } else {
+        builder.ins().uextend(pointer_type, length)
+    };
+    let bytes = builder
+        .ins()
+        .imul_imm(pointer_length, i64::from(element_type.stack_size()));
+    let zero_bytes = builder.ins().icmp_imm(IntCC::Equal, bytes, 0);
+    let one = builder.ins().iconst(pointer_type, 1);
+    let allocation_size = builder.ins().select(zero_bytes, one, bytes);
+    let allocate = module.declare_func_in_func(allocator.allocate, builder.func);
+    let allocation = builder.ins().call(allocate, &[allocation_size]);
+    let base = builder.inst_results(allocation)[0];
+    let allocation_failed = builder.ins().icmp_imm(IntCC::Equal, base, 0);
+    builder
+        .ins()
+        .trapnz(allocation_failed, TrapCode::unwrap_user(2));
+
+    let header = builder.create_block();
+    let body = builder.create_block();
+    let exit = builder.create_block();
+    builder.append_block_param(header, types::I32);
+    let zero = builder.ins().iconst(types::I32, 0);
+    builder.ins().jump(header, &[zero.into()]);
+
+    builder.switch_to_block(header);
+    let index = builder.block_params(header)[0];
+    let has_next = builder.ins().icmp(IntCC::SignedLessThan, index, length);
+    builder.ins().brif(has_next, body, &[], exit, &[]);
+
+    builder.switch_to_block(body);
+    let address = offset_runtime_slice_base(
+        builder,
+        pointer_type,
+        base,
+        index,
+        element_type.stack_size(),
+    );
+    builder.ins().store(MemFlags::new(), fill, address, 0);
+    let next = builder.ins().iadd_imm(index, 1);
+    builder.ins().jump(header, &[next.into()]);
+
+    builder.switch_to_block(exit);
+    base
+}
+
+#[allow(clippy::too_many_arguments)]
+fn lower_owned_buffer_drop(
+    builder: &mut FunctionBuilder<'_>,
+    module: &mut ObjectModule,
+    call: &CallExpression,
+    owned_buffers: &mut HashMap<String, OwnedBuffer>,
+    borrow_states: &HashMap<String, BorrowState>,
+    allocator: AllocatorAbi,
+    machine_contract: &str,
+    scope_depth: usize,
+) -> Result<(), NativeCompileError> {
+    if call.arguments.len() != 1 {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} `drop` expects exactly one owned buffer, found {} arguments",
+            call.arguments.len()
+        )));
+    }
+    let AstNode::Identifier(owner_name) = &call.arguments[0] else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} `drop` requires a named owned buffer"
+        )));
+    };
+    let owner = owned_buffers.get(&owner_name.name).ok_or_else(|| {
+        NativeCompileError::new(format!(
+            "{machine_contract} `drop` references unknown owned buffer `{}`",
+            owner_name.name
+        ))
+    })?;
+    if owner.scope_depth != scope_depth {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} owned buffer `{}` cannot be dropped from a nested lexical scope",
+            owner_name.name
+        )));
+    }
+    match owner.state {
+        OwnedBufferState::Live => {}
+        OwnedBufferState::Moved => {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} owned buffer `{}` cannot be dropped after move",
+                owner_name.name
+            )));
+        }
+        OwnedBufferState::Dropped => {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} owned buffer `{}` cannot be dropped twice",
+                owner_name.name
+            )));
+        }
+    }
+    let active = borrow_states
+        .get(&owner_name.name)
+        .copied()
+        .unwrap_or_default();
+    if active.shared > 0 || active.exclusive {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} cannot drop owned buffer `{}` while a borrow is active",
+            owner_name.name
+        )));
+    }
+    let base = owner.base;
+    emit_owned_buffer_deallocation(builder, module, allocator, base);
+    owned_buffers
+        .get_mut(&owner_name.name)
+        .expect("owned buffer was just resolved")
+        .state = OwnedBufferState::Dropped;
+    Ok(())
+}
+
+fn emit_owned_buffer_deallocation(
+    builder: &mut FunctionBuilder<'_>,
+    module: &mut ObjectModule,
+    allocator: AllocatorAbi,
+    base: Value,
+) {
+    let deallocate = module.declare_func_in_func(allocator.deallocate, builder.func);
+    builder.ins().call(deallocate, &[base]);
+}
+
+fn emit_owned_buffer_cleanup(
+    builder: &mut FunctionBuilder<'_>,
+    module: &mut ObjectModule,
+    owned_buffers: &HashMap<String, OwnedBuffer>,
+    owner_order: &[String],
+    allocator: AllocatorAbi,
+) {
+    emit_owned_buffer_cleanup_for_order(builder, module, owned_buffers, owner_order, allocator);
+}
+
+fn emit_owned_buffer_cleanup_for_order(
+    builder: &mut FunctionBuilder<'_>,
+    module: &mut ObjectModule,
+    owned_buffers: &HashMap<String, OwnedBuffer>,
+    owner_order: &[String],
+    allocator: AllocatorAbi,
+) {
+    let states = owned_buffers
+        .iter()
+        .map(|(name, owner)| (name.clone(), owner.state))
+        .collect::<HashMap<_, _>>();
+    for owner_name in owned_buffer_cleanup_order(&states, owner_order) {
+        let owner = owned_buffers
+            .get(&owner_name)
+            .expect("owned cleanup order must reference a declared owner");
+        emit_owned_buffer_deallocation(builder, module, allocator, owner.base);
+    }
+}
+
+fn owned_buffer_cleanup_order(
+    states: &HashMap<String, OwnedBufferState>,
+    owner_order: &[String],
+) -> Vec<String> {
+    owner_order
+        .iter()
+        .rev()
+        .filter(|name| states.get(*name) == Some(&OwnedBufferState::Live))
+        .cloned()
+        .collect()
+}
+
+#[cfg(test)]
+mod owned_buffer_tests {
+    use super::*;
+
+    #[test]
+    fn cleanup_is_reverse_declaration_order_and_skips_consumed_owners() {
+        let states = HashMap::from([
+            ("first".to_string(), OwnedBufferState::Live),
+            ("moved".to_string(), OwnedBufferState::Moved),
+            ("dropped".to_string(), OwnedBufferState::Dropped),
+            ("last".to_string(), OwnedBufferState::Live),
+        ]);
+        let order = vec![
+            "first".to_string(),
+            "moved".to_string(),
+            "dropped".to_string(),
+            "last".to_string(),
+        ];
+
+        assert_eq!(
+            owned_buffer_cleanup_order(&states, &order),
+            vec!["last".to_string(), "first".to_string()]
+        );
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
 fn lower_typed_if(
     builder: &mut FunctionBuilder<'_>,
     module: &mut ObjectModule,
@@ -2398,10 +3072,14 @@ fn lower_typed_if(
     stack_slots: &mut HashMap<String, TypedStackSlot>,
     references: &mut HashMap<String, TypedReference>,
     borrow_states: &mut HashMap<String, BorrowState>,
+    owned_buffers: &mut HashMap<String, OwnedBuffer>,
+    owner_order: &mut Vec<String>,
+    allocator: Option<AllocatorAbi>,
     if_node: &holoscript_wasm::ast::IfNode,
     spec: &TypedFunctionSpec<'_>,
     machine_contract: &str,
     memory_enabled: bool,
+    scope_depth: usize,
 ) -> Result<FlowOutcome, NativeCompileError> {
     let condition = lower_typed_expression(
         builder,
@@ -2434,11 +3112,15 @@ fn lower_typed_if(
         stack_slots,
         references,
         borrow_states,
+        owned_buffers,
+        owner_order,
+        allocator,
         &if_node.consequent,
         spec,
         machine_contract,
         memory_enabled,
         true,
+        scope_depth + 1,
     )?;
     if consequent_outcome == FlowOutcome::FallsThrough {
         builder.ins().jump(merge_block, &[]);
@@ -2455,11 +3137,15 @@ fn lower_typed_if(
         stack_slots,
         references,
         borrow_states,
+        owned_buffers,
+        owner_order,
+        allocator,
         alternate,
         spec,
         machine_contract,
         memory_enabled,
         true,
+        scope_depth + 1,
     )?;
     if alternate_outcome == FlowOutcome::FallsThrough {
         builder.ins().jump(merge_block, &[]);
@@ -2483,10 +3169,14 @@ fn lower_typed_while(
     stack_slots: &mut HashMap<String, TypedStackSlot>,
     references: &mut HashMap<String, TypedReference>,
     borrow_states: &mut HashMap<String, BorrowState>,
+    owned_buffers: &mut HashMap<String, OwnedBuffer>,
+    owner_order: &mut Vec<String>,
+    allocator: Option<AllocatorAbi>,
     while_node: &holoscript_wasm::ast::WhileNode,
     spec: &TypedFunctionSpec<'_>,
     machine_contract: &str,
     memory_enabled: bool,
+    scope_depth: usize,
 ) -> Result<(), NativeCompileError> {
     let header_block = builder.create_block();
     let body_block = builder.create_block();
@@ -2522,11 +3212,15 @@ fn lower_typed_while(
         stack_slots,
         references,
         borrow_states,
+        owned_buffers,
+        owner_order,
+        allocator,
         &while_node.body,
         spec,
         machine_contract,
         memory_enabled,
         true,
+        scope_depth + 1,
     )?;
     if body_outcome == FlowOutcome::FallsThrough {
         builder.ins().jump(header_block, &[]);
@@ -2546,10 +3240,14 @@ fn lower_lexical_scope(
     stack_slots: &mut HashMap<String, TypedStackSlot>,
     references: &mut HashMap<String, TypedReference>,
     borrow_states: &mut HashMap<String, BorrowState>,
+    owned_buffers: &mut HashMap<String, OwnedBuffer>,
+    owner_order: &mut Vec<String>,
+    allocator: Option<AllocatorAbi>,
     scope: &holoscript_wasm::ast::LexicalScopeNode,
     spec: &TypedFunctionSpec<'_>,
     machine_contract: &str,
     memory_enabled: bool,
+    scope_depth: usize,
 ) -> Result<FlowOutcome, NativeCompileError> {
     lower_scoped_statements(
         builder,
@@ -2560,11 +3258,15 @@ fn lower_lexical_scope(
         stack_slots,
         references,
         borrow_states,
+        owned_buffers,
+        owner_order,
+        allocator,
         &scope.body,
         spec,
         machine_contract,
         memory_enabled,
         control_flow_enabled(machine_contract),
+        scope_depth + 1,
     )
 }
 
@@ -2578,15 +3280,25 @@ fn lower_scoped_statements(
     stack_slots: &mut HashMap<String, TypedStackSlot>,
     references: &mut HashMap<String, TypedReference>,
     borrow_states: &mut HashMap<String, BorrowState>,
+    owned_buffers: &mut HashMap<String, OwnedBuffer>,
+    owner_order: &mut Vec<String>,
+    allocator: Option<AllocatorAbi>,
     statements: &[AstNode],
     spec: &TypedFunctionSpec<'_>,
     machine_contract: &str,
     memory_enabled: bool,
     allow_return: bool,
+    scope_depth: usize,
 ) -> Result<FlowOutcome, NativeCompileError> {
     let outer_locals = locals.keys().cloned().collect::<HashSet<_>>();
     let outer_stack_slots = stack_slots.keys().cloned().collect::<HashSet<_>>();
     let outer_references = references.keys().cloned().collect::<HashSet<_>>();
+    let outer_owned_buffers = owned_buffers.keys().cloned().collect::<HashSet<_>>();
+    let outer_owned_states = owned_buffers
+        .iter()
+        .map(|(name, owner)| (name.clone(), owner.state))
+        .collect::<HashMap<_, _>>();
+    let outer_owner_order_len = owner_order.len();
     let outer_borrow_states = borrow_states.clone();
     let mut scoped_borrow_leases = Vec::new();
 
@@ -2600,21 +3312,48 @@ fn lower_scoped_statements(
         references,
         borrow_states,
         &mut scoped_borrow_leases,
+        owned_buffers,
+        owner_order,
+        allocator,
         statements,
         spec,
         machine_contract,
         memory_enabled,
         allow_return,
+        scope_depth,
     )?;
 
+    if outcome == FlowOutcome::FallsThrough {
+        if let Some(allocator) = allocator {
+            emit_owned_buffer_cleanup_for_order(
+                builder,
+                module,
+                owned_buffers,
+                &owner_order[outer_owner_order_len..],
+                allocator,
+            );
+        }
+    }
     for reference in scoped_borrow_leases.iter().rev() {
         release_borrow(reference, borrow_states, machine_contract)?;
     }
     locals.retain(|name, _| outer_locals.contains(name));
     references.retain(|name, _| outer_references.contains(name));
     stack_slots.retain(|name, _| outer_stack_slots.contains(name));
+    owned_buffers.retain(|name, _| outer_owned_buffers.contains(name));
+    owner_order.truncate(outer_owner_order_len);
+    if owned_buffers
+        .iter()
+        .any(|(name, owner)| outer_owned_states.get(name) != Some(&owner.state))
+    {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} cleanup edge changed an outer owned buffer in function `{}`",
+            spec.node.name
+        )));
+    }
     borrow_states.retain(|slot_name, state| {
-        outer_stack_slots.contains(slot_name) && (state.shared > 0 || state.exclusive)
+        (outer_stack_slots.contains(slot_name) || outer_owned_buffers.contains(slot_name))
+            && (state.shared > 0 || state.exclusive)
     });
     if *borrow_states != outer_borrow_states {
         return Err(NativeCompileError::new(format!(
@@ -2671,6 +3410,7 @@ fn lower_reference_initializer(
     reference_type: ReferenceType,
     initializer: &AstNode,
     stack_slots: &HashMap<String, TypedStackSlot>,
+    owned_buffers: &HashMap<String, OwnedBuffer>,
     borrow_states: &mut HashMap<String, BorrowState>,
     machine_contract: &str,
 ) -> Result<TypedReference, NativeCompileError> {
@@ -2741,14 +3481,77 @@ fn lower_reference_initializer(
                     | SLICE_CALL_MACHINE_CONTRACT
                     | SLICE_FORWARD_MACHINE_CONTRACT
                     | SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT
+                    | OWNED_BUFFER_MACHINE_CONTRACT
             ) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} does not enable borrowed slice values"
                 )));
             }
+            if let AstNode::Identifier(root) = borrow.argument.as_ref() {
+                if let Some(owner) = owned_buffers.get(&root.name) {
+                    match owner.state {
+                        OwnedBufferState::Live => {}
+                        OwnedBufferState::Moved => {
+                            return Err(NativeCompileError::new(format!(
+                                "{machine_contract} cannot borrow owned buffer `{}` after move",
+                                root.name
+                            )));
+                        }
+                        OwnedBufferState::Dropped => {
+                            return Err(NativeCompileError::new(format!(
+                                "{machine_contract} cannot borrow owned buffer `{}` after drop",
+                                root.name
+                            )));
+                        }
+                    }
+                    if owner.element_type != expected_element {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} slice reference `{reference_name}` expects elements of `{}`, but owned buffer `{}` stores `{}`",
+                            expected_element.name(),
+                            root.name,
+                            owner.element_type.name()
+                        )));
+                    }
+                    let slot_name = root.name.clone();
+                    let layout = TypedReferenceLayout::Slice {
+                        element_type: owner.element_type,
+                        storage: SliceStorage::Heap {
+                            owner_name: root.name.clone(),
+                            base: owner.base,
+                            length: owner.length,
+                        },
+                    };
+                    let state = borrow_states.entry(slot_name.clone()).or_default();
+                    if reference_type.mutable {
+                        if state.exclusive || state.shared > 0 {
+                            return Err(NativeCompileError::new(format!(
+                                "{machine_contract} cannot mutably borrow owned buffer `{slot_name}` because an active borrow already exists"
+                            )));
+                        }
+                        state.exclusive = true;
+                    } else {
+                        if state.exclusive {
+                            return Err(NativeCompileError::new(format!(
+                                "{machine_contract} cannot immutably borrow owned buffer `{slot_name}` because an exclusive borrow is active"
+                            )));
+                        }
+                        state.shared += 1;
+                    }
+                    return Ok(TypedReference {
+                        layout,
+                        mutable: reference_type.mutable,
+                    });
+                }
+            }
+
             let AstNode::MemberExpression(range_access) = borrow.argument.as_ref() else {
+                let source_boundary = if machine_contract == OWNED_BUFFER_MACHINE_CONTRACT {
+                    "a whole owned buffer or a half-open fixed-array range"
+                } else {
+                    "a half-open fixed-array range"
+                };
                 return Err(NativeCompileError::new(format!(
-                    "{machine_contract} slice reference `{reference_name}` requires a half-open fixed-array range"
+                    "{machine_contract} slice reference `{reference_name}` requires {source_boundary}"
                 )));
             };
             if !range_access.computed {
@@ -3506,7 +4309,9 @@ fn lower_forwarded_slice_call_argument(
 ) -> Result<(Value, Value), NativeCompileError> {
     if !matches!(
         machine_contract,
-        SLICE_FORWARD_MACHINE_CONTRACT | SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT
+        SLICE_FORWARD_MACHINE_CONTRACT
+            | SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT
+            | OWNED_BUFFER_MACHINE_CONTRACT
     ) {
         return Err(NativeCompileError::new(format!(
             "{machine_contract} slice argument {} to `{callee_name}` must be a direct range reborrow",
@@ -3554,7 +4359,12 @@ fn lower_forwarded_slice_call_argument(
     }
 
     let forwarded_range = match subrange {
-        Some((_, range_node)) if machine_contract == SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT => {
+        Some((_, range_node))
+            if matches!(
+                machine_contract,
+                SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT | OWNED_BUFFER_MACHINE_CONTRACT
+            ) =>
+        {
             let AstNode::BinaryExpression(range) = range_node else {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} slice argument {} to `{callee_name}` requires a half-open named slice range",
@@ -3638,6 +4448,21 @@ fn lower_forwarded_slice_call_argument(
             SliceBorrowRoot::Stack(slot_name.clone())
         }
         SliceStorage::Parameter { .. } => SliceBorrowRoot::Parameter,
+        SliceStorage::Heap { owner_name, .. } => {
+            let active = borrow_states.get(owner_name).copied().unwrap_or_default();
+            if reference.mutable {
+                if !active.exclusive {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} lost the exclusive provenance lease for mutable slice `{reference_name}`"
+                    )));
+                }
+            } else if active.shared == 0 {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} lost the shared provenance lease for slice `{reference_name}`"
+                )));
+            }
+            SliceBorrowRoot::Owned(owner_name.clone())
+        }
     };
     acquire_forwarded_call_borrow(
         call_borrows,
@@ -3728,55 +4553,58 @@ fn lower_forwarded_slice_call_argument(
                 }
             }
         }
-        SliceStorage::Parameter { base, length } => match forwarded_range {
-            ForwardedSliceRange::Whole => Ok((*base, *length)),
-            ForwardedSliceRange::Literal { start, end } => {
-                let end_value = builder.ins().iconst(types::I32, i64::from(end));
-                let outside = builder
-                    .ins()
-                    .icmp(IntCC::UnsignedGreaterThan, end_value, *length);
-                builder.ins().trapnz(outside, TrapCode::unwrap_user(1));
+        SliceStorage::Parameter { base, length } | SliceStorage::Heap { base, length, .. } => {
+            match forwarded_range {
+                ForwardedSliceRange::Whole => Ok((*base, *length)),
+                ForwardedSliceRange::Literal { start, end } => {
+                    let end_value = builder.ins().iconst(types::I32, i64::from(end));
+                    let outside =
+                        builder
+                            .ins()
+                            .icmp(IntCC::UnsignedGreaterThan, end_value, *length);
+                    builder.ins().trapnz(outside, TrapCode::unwrap_user(1));
 
-                let byte_offset = u64::from(start) * u64::from(element_type.stack_size());
-                if pointer_type == types::I32 && byte_offset > u64::from(u32::MAX) {
-                    return Err(NativeCompileError::new(format!(
+                    let byte_offset = u64::from(start) * u64::from(element_type.stack_size());
+                    if pointer_type == types::I32 && byte_offset > u64::from(u32::MAX) {
+                        return Err(NativeCompileError::new(format!(
                         "{machine_contract} slice `{reference_name}` byte offset exceeds the target pointer width"
                     )));
+                    }
+                    let forwarded_base = if byte_offset == 0 {
+                        *base
+                    } else {
+                        let offset = builder.ins().iconst(
+                            pointer_type,
+                            i64::try_from(byte_offset)
+                                .expect("i32 slice length bounds the byte offset"),
+                        );
+                        builder.ins().iadd(*base, offset)
+                    };
+                    let forwarded_length = builder.ins().iconst(types::I32, i64::from(end - start));
+                    Ok((forwarded_base, forwarded_length))
                 }
-                let forwarded_base = if byte_offset == 0 {
-                    *base
-                } else {
-                    let offset = builder.ins().iconst(
+                ForwardedSliceRange::Runtime { start, end } => {
+                    emit_runtime_slice_range_checks(
+                        builder,
+                        start,
+                        end,
+                        *length,
                         pointer_type,
-                        i64::try_from(byte_offset)
-                            .expect("i32 slice length bounds the byte offset"),
+                        element_type.stack_size(),
+                        0,
                     );
-                    builder.ins().iadd(*base, offset)
-                };
-                let forwarded_length = builder.ins().iconst(types::I32, i64::from(end - start));
-                Ok((forwarded_base, forwarded_length))
+                    let forwarded_base = offset_runtime_slice_base(
+                        builder,
+                        pointer_type,
+                        *base,
+                        start,
+                        element_type.stack_size(),
+                    );
+                    let forwarded_length = builder.ins().isub(end, start);
+                    Ok((forwarded_base, forwarded_length))
+                }
             }
-            ForwardedSliceRange::Runtime { start, end } => {
-                emit_runtime_slice_range_checks(
-                    builder,
-                    start,
-                    end,
-                    *length,
-                    pointer_type,
-                    element_type.stack_size(),
-                    0,
-                );
-                let forwarded_base = offset_runtime_slice_base(
-                    builder,
-                    pointer_type,
-                    *base,
-                    start,
-                    element_type.stack_size(),
-                );
-                let forwarded_length = builder.ins().isub(end, start);
-                Ok((forwarded_base, forwarded_length))
-            }
-        },
+        }
     }
 }
 
@@ -4352,6 +5180,27 @@ fn resolve_array_access<'a>(
                     root_name: root.name.clone(),
                     display: format!("{}[index]", root.name),
                     provenance: StackAccessProvenance::SliceParameter {
+                        reference_name: root.name.clone(),
+                        mutable: reference.mutable,
+                    },
+                }),
+                SliceStorage::Heap {
+                    owner_name,
+                    base,
+                    length,
+                } => Ok(ResolvedStackAccess {
+                    slot: None,
+                    base_address: Some(*base),
+                    machine_type: *element_type,
+                    offset: 0,
+                    dynamic_index: Some(DynamicArrayIndex {
+                        expression: member.property.as_ref(),
+                        bound: DynamicArrayBound::Runtime(*length),
+                        element_size: element_type.stack_size(),
+                    }),
+                    root_name: owner_name.clone(),
+                    display: format!("{}[index]", root.name),
+                    provenance: StackAccessProvenance::Slice {
                         reference_name: root.name.clone(),
                         mutable: reference.mutable,
                     },

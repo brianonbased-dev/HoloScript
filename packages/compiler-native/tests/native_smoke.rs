@@ -205,6 +205,8 @@ const FORWARDED_SLICE_CALL_EXIT_FIVE: &str = r#"
 "#;
 const RUNTIME_SLICE_REBORROW_EXIT_FIVE: &str =
     include_str!("../../../examples/native/runtime-slice-reborrow-exit-five.hs");
+const OWNED_BUFFER_MOVE_EXIT_FIVE: &str =
+    include_str!("../../../examples/native/owned-buffer-move-exit-five.hs");
 
 fn scratch_executable(name: &str) -> std::path::PathBuf {
     let nonce = SystemTime::now()
@@ -726,6 +728,147 @@ fn runtime_indexed_slice_contract_preserves_type_alias_and_escape_boundaries() {
     ] {
         let error = compile_object(source, &options).expect_err(message);
         assert!(error.to_string().contains(message), "{error}");
+    }
+}
+
+#[test]
+fn compiles_affine_owned_buffers_moves_borrows_and_return_cleanup() {
+    let first = compile_object(OWNED_BUFFER_MOVE_EXIT_FIVE, &NativeCompileOptions::host())
+        .expect("first owned-buffer object should compile");
+    let second = compile_object(OWNED_BUFFER_MOVE_EXIT_FIVE, &NativeCompileOptions::host())
+        .expect("second owned-buffer object should compile");
+    assert_eq!(
+        first, second,
+        "owned-buffer cleanup order must be deterministic"
+    );
+
+    let executable = scratch_executable("native-owned-buffer-move");
+    let artifact = compile_executable(
+        OWNED_BUFFER_MOVE_EXIT_FIVE,
+        &executable,
+        &NativeCompileOptions::host(),
+    )
+    .expect("owned buffers should compile through the allocator ABI");
+
+    assert_eq!(artifact.machine_contract, "hs-machine-v12");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("owned-buffer executable should run");
+    assert_eq!(status.code(), Some(5));
+    fs::remove_file(&artifact.executable).expect("remove owned-buffer executable");
+}
+
+#[test]
+fn owned_buffers_drop_on_scope_fallthrough_and_support_explicit_drop() {
+    let executable = scratch_executable("native-owned-buffer-scope-drop");
+    let artifact = compile_executable(
+        r#"function main(): i32 {
+               scope {
+                   let temporary: [i64] = buffer(3, 9)
+                   scope {
+                       let view: &[i64] = &temporary
+                       let observed: i64 = load(view[1])
+                   }
+               }
+               let explicit: [bool] = buffer(2, true)
+               drop(explicit)
+               let empty: [i32] = buffer(0, 0)
+               return 5
+           }"#,
+        &executable,
+        &NativeCompileOptions::host(),
+    )
+    .expect("scope cleanup, explicit drop, and zero-length ownership should compile");
+
+    assert_eq!(artifact.machine_contract, "hs-machine-v12");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("owned-buffer cleanup executable should run");
+    assert_eq!(status.code(), Some(5));
+    fs::remove_file(&artifact.executable).expect("remove owned-buffer cleanup executable");
+}
+
+#[test]
+fn owned_buffer_runtime_guards_trap_before_invalid_allocation_or_access() {
+    let cases = [
+        (
+            "negative-length",
+            "function main(): i32 { let count: i32 = -1 let values: [i32] = buffer(count, 0) return 5 }",
+        ),
+        (
+            "out-of-bounds",
+            "function main(): i32 { let values: [i32] = buffer(2, 0) scope { let view: &[i32] = &values return load(view[2]) } }",
+        ),
+    ];
+
+    for (name, source) in cases {
+        let executable = scratch_executable(&format!("native-owned-buffer-{name}"));
+        let artifact = compile_executable(source, &executable, &NativeCompileOptions::host())
+            .expect("guarded owned-buffer program should compile");
+        let status = Command::new(&artifact.executable)
+            .status()
+            .expect("guarded owned-buffer executable should launch");
+        assert!(!status.success(), "{name} must trap");
+        fs::remove_file(&artifact.executable).expect("remove trapping owned-buffer executable");
+    }
+}
+
+#[test]
+fn owned_buffer_contract_rejects_copy_double_drop_active_borrow_and_abi_escape() {
+    let cases = [
+        (
+            "function main(): i32 { let first: [i32] = buffer(2, 0) let copied: [i32] = first return 5 }",
+            "must be initialized by `buffer(count, fill)` or `move(owner)`",
+        ),
+        (
+            "function main(): i32 { let first: [i32] = buffer(2, 0) let moved: [i32] = move(first) let again: [i32] = move(first) return 5 }",
+            "owned buffer `first` was already moved",
+        ),
+        (
+            "function main(): i32 { let values: [i32] = buffer(2, 0) drop(values) drop(values) return 5 }",
+            "owned buffer `values` cannot be dropped twice",
+        ),
+        (
+            "function main(): i32 { let values: [i32] = buffer(2, 0) let view: &[i32] = &values drop(values) return 5 }",
+            "cannot drop owned buffer `values` while a borrow is active",
+        ),
+        (
+            "function main(): i32 { let values: [i32] = buffer(2, 0) let view: &[i32] = &values let moved: [i32] = move(values) return 5 }",
+            "cannot move owned buffer `values` while a borrow is active",
+        ),
+        (
+            "function main(): i32 { let values: [i32] = buffer(2, 0) drop(values) let view: &[i32] = &values return 5 }",
+            "cannot borrow owned buffer `values` after drop",
+        ),
+        (
+            "function main(): i32 { let values: [i32] = buffer(2, 0) scope { let moved: [i32] = move(values) } return 5 }",
+            "cannot move across a lexical scope boundary",
+        ),
+        (
+            "function consume(values: [i32]): i32 { return 5 } function main(): i32 { return 5 }",
+            "owned buffers cannot cross function parameters",
+        ),
+        (
+            "function make(): [i32] { return 5 } function main(): i32 { return 5 }",
+            "owned buffer returns are not enabled",
+        ),
+        (
+            "struct Bad { values: [i32] } function main(): i32 { return 5 }",
+            "owned buffers as aggregate fields are not enabled",
+        ),
+        (
+            "function main(): i32 { slot values: [i32] = buffer(2, 0) return 5 }",
+            "owned buffer `values` must use affine local `let` storage",
+        ),
+    ];
+
+    for (source, expected) in cases {
+        let error = compile_object(source, &NativeCompileOptions::host())
+            .expect_err("invalid owned-buffer program must fail closed");
+        assert!(
+            error.to_string().contains(expected),
+            "expected `{expected}` in `{error}`"
+        );
     }
 }
 

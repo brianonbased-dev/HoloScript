@@ -402,6 +402,11 @@ pub fn emit_functions(ast: &Ast, indent: &str) -> Result<String, KotlinEmitError
             "borrowed slice type `{annotation}` in {context} requires target-specific borrow and bounds lowering; the Kotlin bridge does not erase native alias semantics"
         )));
     }
+    if let Some((annotation, context)) = find_owned_buffer_annotation(ast) {
+        return Err(KotlinEmitError::new(format!(
+            "owned buffer type `{annotation}` in {context} requires target-specific allocator, move, and drop lowering; the Kotlin bridge does not erase affine ownership"
+        )));
+    }
     if let Some((annotation, context)) = find_fixed_array_annotation(ast) {
         return Err(KotlinEmitError::new(format!(
             "fixed array type `{annotation}` in {context} requires target-specific bounds lowering; the Kotlin bridge does not erase native array semantics"
@@ -489,7 +494,15 @@ pub fn emit_functions(ast: &Ast, indent: &str) -> Result<String, KotlinEmitError
 }
 
 fn find_fixed_array_annotation(ast: &Ast) -> Option<(&str, String)> {
-    find_type_annotation(ast, |annotation| annotation.starts_with('['))
+    find_type_annotation(ast, |annotation| {
+        annotation.starts_with('[') && annotation.contains(';')
+    })
+}
+
+pub(crate) fn find_owned_buffer_annotation(ast: &Ast) -> Option<(&str, String)> {
+    find_type_annotation(ast, |annotation| {
+        annotation.starts_with('[') && annotation.ends_with(']') && !annotation.contains(';')
+    })
 }
 
 fn find_borrowed_slice_annotation(ast: &Ast) -> Option<(&str, String)> {
@@ -3026,6 +3039,19 @@ function mk() {
             .expect_err("Kotlin must not silently erase native slice borrow semantics");
         assert!(error.to_string().contains(
             "borrowed slice type `&[i32]` in local `view` requires target-specific borrow and bounds lowering"
+        ));
+    }
+
+    #[test]
+    fn owned_machine_buffers_fail_closed_until_kotlin_ownership_lowering_exists() {
+        let src = r#"function main(): i32 {
+  let values: [i32] = buffer(2, 0)
+  return 5
+}"#;
+        let error = compile_source_to_kotlin(src, "  ")
+            .expect_err("Kotlin must not silently erase native owned-buffer semantics");
+        assert!(error.to_string().contains(
+            "owned buffer type `[i32]` in local `values` requires target-specific allocator, move, and drop lowering"
         ));
     }
 

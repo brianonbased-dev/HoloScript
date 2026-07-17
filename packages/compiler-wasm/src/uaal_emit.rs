@@ -11,7 +11,7 @@ use serde::Serialize;
 use serde_json::Value;
 
 use crate::ast::{Ast, AstNode, CallExpression, FunctionNode};
-use crate::kotlin_emit::{check_semantics, SemanticDiagnostic};
+use crate::kotlin_emit::{check_semantics, find_owned_buffer_annotation, SemanticDiagnostic};
 
 const OP_PUSH: u16 = 0x01;
 const OP_JUMP: u16 = 0x30;
@@ -102,6 +102,11 @@ pub fn compile_source_to_uaal_json(source: &str) -> Result<String, UaalEmitError
 
 pub fn emit_uaal_bytecode(ast: &Ast) -> Result<UaalBytecode, UaalEmitError> {
     check_semantics(ast)?;
+    if let Some((annotation, context)) = find_owned_buffer_annotation(ast) {
+        return Err(UaalEmitError::new(format!(
+            "owned buffer type `{annotation}` in {context} requires allocator, move, and drop opcodes; compile_to_uaal does not erase affine ownership"
+        )));
+    }
 
     let functions = collect_functions(ast)?;
     if functions.is_empty() {
@@ -606,6 +611,21 @@ function main() {
         .expect_err("missing function should fail");
 
         assert!(error.message.contains("unresolved function call `missing`"));
+    }
+
+    #[test]
+    fn rejects_owned_buffers_until_ownership_opcodes_exist() {
+        let error = compile_source_to_uaal(
+            r#"function main(): i32 {
+  let values: [i32] = buffer(2, 0)
+  return 5
+}"#,
+        )
+        .expect_err("compile_to_uaal must not silently erase native owned-buffer semantics");
+
+        assert!(error.message.contains(
+            "owned buffer type `[i32]` in local `values` requires allocator, move, and drop opcodes"
+        ));
     }
 
     #[test]

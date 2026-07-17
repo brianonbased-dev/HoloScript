@@ -2036,7 +2036,7 @@ impl Parser {
                 self.advance();
                 Ok(AstNode::Null(NullLiteral { loc: None }))
             }
-            TokenType::Identifier => {
+            TokenType::Identifier | TokenType::Move => {
                 self.advance();
                 Ok(AstNode::Identifier(IdentifierNode {
                     name: token.value,
@@ -2442,6 +2442,10 @@ impl Parser {
 
         self.advance();
         let element = self.expect_identifier()?;
+        if self.check(TokenType::RBracket) {
+            self.advance();
+            return Ok(format!("[{element}]"));
+        }
         self.expect(TokenType::Semicolon)?;
         let length = self.expect(TokenType::Number)?.value.clone();
         self.expect(TokenType::RBracket)?;
@@ -3391,6 +3395,54 @@ mod tests {
                                     AstNode::BinaryExpression(range) if range.operator == ".."
                                 )
                     )
+        ));
+    }
+
+    #[test]
+    fn test_parse_owned_buffer_type_and_initializer() {
+        let source = r#"function main(): i32 {
+            let values: [i32] = buffer(4, 0)
+            let moved: [i32] = move(values)
+            let view: &[i32] = &moved
+            return 5
+        }"#;
+        let mut parser = Parser::new(source);
+        let program = parser
+            .parse()
+            .expect("owned buffers and whole-buffer borrows should parse");
+
+        let AstNode::Function(function) = &program.body[0] else {
+            panic!("Expected Function node");
+        };
+        let AstNode::VariableDeclaration(owner) = &function.body[0] else {
+            panic!("Expected owned buffer declaration");
+        };
+        assert_eq!(owner.type_annotation.as_deref(), Some("[i32]"));
+        assert!(matches!(
+            owner.value.as_ref(),
+            AstNode::CallExpression(call)
+                if matches!(call.callee.as_ref(), AstNode::Identifier(name) if name.name == "buffer")
+                    && call.arguments.len() == 2
+        ));
+
+        let AstNode::VariableDeclaration(moved) = &function.body[1] else {
+            panic!("Expected moved owned buffer declaration");
+        };
+        assert!(matches!(
+            moved.value.as_ref(),
+            AstNode::CallExpression(call)
+                if matches!(call.callee.as_ref(), AstNode::Identifier(name) if name.name == "move")
+                    && call.arguments.len() == 1
+        ));
+
+        let AstNode::VariableDeclaration(view) = &function.body[2] else {
+            panic!("Expected borrowed slice declaration");
+        };
+        assert!(matches!(
+            view.value.as_ref(),
+            AstNode::UnaryExpression(unary)
+                if unary.operator == "&"
+                    && matches!(unary.argument.as_ref(), AstNode::Identifier(name) if name.name == "moved")
         ));
     }
 
