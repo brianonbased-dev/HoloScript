@@ -104,10 +104,12 @@ a v8 slice to a Kotlin collection.
 
 ## Compatibility and selection
 
-Any `&[T]` or `&mut [T]` annotation selects `hs-machine-v8`. v8 inherits v7
-fixed arrays and checked indexing, v6 aggregate layouts, v5 control flow and
-booleans, and v2-v4 storage, scalar-reference provenance, and lexical cleanup.
-Existing scalar references retain their v3-v7 behavior.
+Local `&[T]` or `&mut [T]` annotations select `hs-machine-v8`. Borrowed slice
+parameters select the successor [`hs-machine-v9`](native-machine-v9.md)
+contract; slice returns remain rejected. v8 inherits v7 fixed arrays and
+checked indexing, v6 aggregate layouts, v5 control flow and booleans, and
+v2-v4 storage, scalar-reference provenance, and lexical cleanup. Existing
+scalar references retain their v3-v7 behavior.
 
 Executable, runtime-trap, compile-time rejection, deterministic-object, parser,
 and Kotlin fail-closed proofs live in

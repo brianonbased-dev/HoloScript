@@ -11,8 +11,10 @@
 //! on every lexical-scope exit. `hs-machine-v6` adds typed, contiguous stack aggregates
 //! with deterministic field layout. `hs-machine-v7` adds fixed-size scalar arrays and
 //! bounds-checked half-open slice projections. `hs-machine-v8` adds local, non-escaping
-//! borrowed slice values with lexical alias leases. Everything outside the selected
-//! contract fails closed with a native compile diagnostic.
+//! borrowed slice values with lexical alias leases. `hs-machine-v9` adds direct-call
+//! borrowed slice parameters with an explicit base-plus-length ABI, caller-side alias
+//! validation, and callee-side bounds checks. Everything outside the selected contract
+//! fails closed with a native compile diagnostic.
 
 use std::collections::{HashMap, HashSet};
 use std::env;
@@ -44,6 +46,7 @@ pub const CONTROL_FLOW_MACHINE_CONTRACT: &str = "hs-machine-v5";
 pub const AGGREGATE_MACHINE_CONTRACT: &str = "hs-machine-v6";
 pub const FIXED_ARRAY_MACHINE_CONTRACT: &str = "hs-machine-v7";
 pub const SLICE_MACHINE_CONTRACT: &str = "hs-machine-v8";
+pub const SLICE_CALL_MACHINE_CONTRACT: &str = "hs-machine-v9";
 
 struct CompiledObject {
     bytes: Vec<u8>,
@@ -162,7 +165,12 @@ fn compile_unit(
         NativeCompileError::new(format!("HoloScript parse failed: {rendered}"))
     })?;
 
-    if has_slice_machine_metadata(&ast) {
+    if has_slice_parameter_machine_metadata(&ast) {
+        Ok(CompiledObject {
+            bytes: lower_typed_ast_to_object(&ast, SLICE_CALL_MACHINE_CONTRACT, true)?,
+            machine_contract: SLICE_CALL_MACHINE_CONTRACT,
+        })
+    } else if has_slice_machine_metadata(&ast) {
         Ok(CompiledObject {
             bytes: lower_typed_ast_to_object(&ast, SLICE_MACHINE_CONTRACT, true)?,
             machine_contract: SLICE_MACHINE_CONTRACT,
@@ -410,6 +418,20 @@ fn has_slice_machine_metadata(ast: &Ast) -> bool {
             .flatten()
             .any(|annotation| annotation_uses_slice_reference(annotation)),
         _ => false,
+    })
+}
+
+fn has_slice_parameter_machine_metadata(ast: &Ast) -> bool {
+    ast.body.iter().any(|node| {
+        matches!(
+            node,
+            AstNode::Function(function)
+                if function
+                    .param_types
+                    .iter()
+                    .flatten()
+                    .any(|annotation| annotation_uses_slice_reference(annotation))
+        )
     })
 }
 
@@ -692,6 +714,7 @@ fn bool_enabled(machine_contract: &str) -> bool {
             | AGGREGATE_MACHINE_CONTRACT
             | FIXED_ARRAY_MACHINE_CONTRACT
             | SLICE_MACHINE_CONTRACT
+            | SLICE_CALL_MACHINE_CONTRACT
     )
 }
 
@@ -702,6 +725,7 @@ fn control_flow_enabled(machine_contract: &str) -> bool {
             | AGGREGATE_MACHINE_CONTRACT
             | FIXED_ARRAY_MACHINE_CONTRACT
             | SLICE_MACHINE_CONTRACT
+            | SLICE_CALL_MACHINE_CONTRACT
     )
 }
 
@@ -713,6 +737,7 @@ fn scoped_lifetimes_enabled(machine_contract: &str) -> bool {
             | AGGREGATE_MACHINE_CONTRACT
             | FIXED_ARRAY_MACHINE_CONTRACT
             | SLICE_MACHINE_CONTRACT
+            | SLICE_CALL_MACHINE_CONTRACT
     )
 }
 
@@ -725,6 +750,7 @@ fn references_enabled(machine_contract: &str) -> bool {
             | AGGREGATE_MACHINE_CONTRACT
             | FIXED_ARRAY_MACHINE_CONTRACT
             | SLICE_MACHINE_CONTRACT
+            | SLICE_CALL_MACHINE_CONTRACT
     )
 }
 
@@ -738,20 +764,24 @@ fn memory_contract_enabled(machine_contract: &str) -> bool {
             | AGGREGATE_MACHINE_CONTRACT
             | FIXED_ARRAY_MACHINE_CONTRACT
             | SLICE_MACHINE_CONTRACT
+            | SLICE_CALL_MACHINE_CONTRACT
     )
 }
 
 fn aggregate_contract_enabled(machine_contract: &str) -> bool {
     matches!(
         machine_contract,
-        AGGREGATE_MACHINE_CONTRACT | FIXED_ARRAY_MACHINE_CONTRACT | SLICE_MACHINE_CONTRACT
+        AGGREGATE_MACHINE_CONTRACT
+            | FIXED_ARRAY_MACHINE_CONTRACT
+            | SLICE_MACHINE_CONTRACT
+            | SLICE_CALL_MACHINE_CONTRACT
     )
 }
 
 fn fixed_arrays_enabled(machine_contract: &str) -> bool {
     matches!(
         machine_contract,
-        FIXED_ARRAY_MACHINE_CONTRACT | SLICE_MACHINE_CONTRACT
+        FIXED_ARRAY_MACHINE_CONTRACT | SLICE_MACHINE_CONTRACT | SLICE_CALL_MACHINE_CONTRACT
     )
 }
 
@@ -1008,15 +1038,24 @@ fn align_up(
 
 struct TypedFunctionSpec<'a> {
     node: &'a FunctionNode,
-    params: Vec<MachineType>,
+    params: Vec<MachineParameter>,
     result: MachineType,
 }
 
 #[derive(Clone)]
 struct TypedFunctionAbi {
     func_id: FuncId,
-    params: Vec<MachineType>,
+    params: Vec<MachineParameter>,
     result: MachineType,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum MachineParameter {
+    Scalar(MachineType),
+    Slice {
+        element_type: MachineType,
+        mutable: bool,
+    },
 }
 
 #[derive(Clone, Copy)]
@@ -1111,26 +1150,54 @@ impl ReferenceType {
 
 #[derive(Debug, Clone)]
 enum TypedReferenceLayout {
-    Scalar(MachineType),
+    Scalar {
+        machine_type: MachineType,
+        slot_name: String,
+    },
     Slice {
         element_type: MachineType,
+        storage: SliceStorage,
+    },
+}
+
+#[derive(Debug, Clone)]
+enum SliceStorage {
+    Stack {
+        slot_name: String,
         base_offset: u32,
         length: u32,
+    },
+    Parameter {
+        base: Value,
+        length: Value,
     },
 }
 
 #[derive(Debug, Clone)]
 struct TypedReference {
-    slot_name: String,
     layout: TypedReferenceLayout,
     mutable: bool,
 }
 
 impl TypedReference {
     fn scalar_pointee(&self) -> Option<MachineType> {
-        match self.layout {
-            TypedReferenceLayout::Scalar(machine_type) => Some(machine_type),
+        match &self.layout {
+            TypedReferenceLayout::Scalar { machine_type, .. } => Some(*machine_type),
             TypedReferenceLayout::Slice { .. } => None,
+        }
+    }
+
+    fn stack_root(&self) -> Option<&str> {
+        match &self.layout {
+            TypedReferenceLayout::Scalar { slot_name, .. }
+            | TypedReferenceLayout::Slice {
+                storage: SliceStorage::Stack { slot_name, .. },
+                ..
+            } => Some(slot_name),
+            TypedReferenceLayout::Slice {
+                storage: SliceStorage::Parameter { .. },
+                ..
+            } => None,
         }
     }
 }
@@ -1200,31 +1267,58 @@ fn lower_typed_ast_to_object(
             builder.append_block_params_for_function_params(block);
             builder.switch_to_block(block);
 
-            let block_params = builder.block_params(block).to_vec();
+            let mut block_params = builder.block_params(block).to_vec().into_iter();
             let mut locals = HashMap::new();
-            for ((name, machine_type), value) in spec
-                .node
-                .params
-                .iter()
-                .zip(spec.params.iter().copied())
-                .zip(block_params)
-            {
-                if locals
-                    .insert(
-                        name.clone(),
-                        TypedValue {
-                            value,
-                            machine_type,
-                        },
-                    )
-                    .is_some()
-                {
+            let mut parameter_references = HashMap::new();
+            for (name, parameter) in spec.node.params.iter().zip(spec.params.iter().copied()) {
+                if locals.contains_key(name) || parameter_references.contains_key(name) {
                     return Err(NativeCompileError::new(format!(
                         "{machine_contract} function `{}` declares duplicate parameter `{name}`",
                         spec.node.name
                     )));
                 }
+                match parameter {
+                    MachineParameter::Scalar(machine_type) => {
+                        let value = block_params
+                            .next()
+                            .expect("scalar parameter must have one ABI value");
+                        locals.insert(
+                            name.clone(),
+                            TypedValue {
+                                value,
+                                machine_type,
+                            },
+                        );
+                    }
+                    MachineParameter::Slice {
+                        element_type,
+                        mutable,
+                    } => {
+                        let base = block_params
+                            .next()
+                            .expect("slice parameter must have an ABI base pointer");
+                        let length = block_params
+                            .next()
+                            .expect("slice parameter must have an ABI length");
+                        let negative_length =
+                            builder.ins().icmp_imm(IntCC::SignedLessThan, length, 0);
+                        builder
+                            .ins()
+                            .trapnz(negative_length, TrapCode::unwrap_user(1));
+                        parameter_references.insert(
+                            name.clone(),
+                            TypedReference {
+                                layout: TypedReferenceLayout::Slice {
+                                    element_type,
+                                    storage: SliceStorage::Parameter { base, length },
+                                },
+                                mutable,
+                            },
+                        );
+                    }
+                }
             }
+            debug_assert!(block_params.next().is_none());
 
             lower_typed_body(
                 &mut builder,
@@ -1232,6 +1326,7 @@ fn lower_typed_ast_to_object(
                 &functions,
                 &aggregate_layouts,
                 &mut locals,
+                parameter_references,
                 spec,
                 machine_contract,
                 memory_enabled,
@@ -1346,11 +1441,28 @@ fn collect_typed_function_specs<'a>(
                         function.name
                     ))
                 })?;
-            if references_enabled(machine_contract) && type_name.starts_with('&') {
-                return Err(NativeCompileError::new(format!(
-                    "{machine_contract} references cannot appear in function parameters; `{param_name}` in `{}` would escape its declaring function",
-                    function.name
-                )));
+            if let Some(reference_type) = ReferenceType::parse(
+                type_name,
+                &format!("parameter `{param_name}` in function `{}`", function.name),
+                machine_contract,
+            )? {
+                match reference_type.target {
+                    ReferenceTarget::Slice(element_type)
+                        if machine_contract == SLICE_CALL_MACHINE_CONTRACT =>
+                    {
+                        params.push(MachineParameter::Slice {
+                            element_type,
+                            mutable: reference_type.mutable,
+                        });
+                        continue;
+                    }
+                    _ => {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} references cannot appear in function parameters; `{param_name}` in `{}` would escape its declaring function",
+                            function.name
+                        )));
+                    }
+                }
             }
             if aggregate_layouts.contains_key(type_name) {
                 return Err(NativeCompileError::new(format!(
@@ -1370,11 +1482,11 @@ fn collect_typed_function_specs<'a>(
                     function.name
                 )));
             }
-            params.push(MachineType::parse(
+            params.push(MachineParameter::Scalar(MachineType::parse(
                 type_name,
                 &format!("parameter `{param_name}` in function `{}`", function.name),
                 machine_contract,
-            )?);
+            )?));
         }
         let return_name = function.return_type.as_deref().ok_or_else(|| {
             NativeCompileError::new(format!(
@@ -1441,13 +1553,23 @@ fn collect_typed_function_specs<'a>(
 
 fn machine_signature(
     module: &ObjectModule,
-    params: &[MachineType],
+    params: &[MachineParameter],
     result: MachineType,
 ) -> cranelift::codegen::ir::Signature {
     let mut signature = module.make_signature();
-    signature
-        .params
-        .extend(params.iter().map(|ty| AbiParam::new(ty.ir_type())));
+    for parameter in params {
+        match parameter {
+            MachineParameter::Scalar(machine_type) => {
+                signature.params.push(AbiParam::new(machine_type.ir_type()));
+            }
+            MachineParameter::Slice { .. } => {
+                signature
+                    .params
+                    .push(AbiParam::new(module.target_config().pointer_type()));
+                signature.params.push(AbiParam::new(types::I32));
+            }
+        }
+    }
     signature.returns.push(AbiParam::new(result.ir_type()));
     signature
 }
@@ -1459,12 +1581,12 @@ fn lower_typed_body(
     functions: &HashMap<String, TypedFunctionAbi>,
     aggregate_layouts: &HashMap<String, AggregateLayout>,
     locals: &mut HashMap<String, TypedValue>,
+    mut references: HashMap<String, TypedReference>,
     spec: &TypedFunctionSpec<'_>,
     machine_contract: &str,
     memory_enabled: bool,
 ) -> Result<(), NativeCompileError> {
     let mut stack_slots = HashMap::new();
-    let mut references = HashMap::new();
     let mut borrow_states = HashMap::new();
     let mut function_borrow_leases = Vec::new();
     let outcome = lower_typed_statements(
@@ -2172,18 +2294,23 @@ fn release_borrow(
     borrow_states: &mut HashMap<String, BorrowState>,
     machine_contract: &str,
 ) -> Result<(), NativeCompileError> {
+    let slot_name = reference.stack_root().ok_or_else(|| {
+        NativeCompileError::new(format!(
+            "{machine_contract} attempted to release a non-local slice parameter borrow"
+        ))
+    })?;
     let remove_state = {
-        let state = borrow_states.get_mut(&reference.slot_name).ok_or_else(|| {
+        let state = borrow_states.get_mut(slot_name).ok_or_else(|| {
             NativeCompileError::new(format!(
                 "{machine_contract} lost borrow state for scoped reference to `{}`",
-                reference.slot_name
+                slot_name
             ))
         })?;
         if reference.mutable {
             if !state.exclusive {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} lost exclusive borrow state for scoped reference to `{}`",
-                    reference.slot_name
+                    slot_name
                 )));
             }
             state.exclusive = false;
@@ -2191,14 +2318,14 @@ fn release_borrow(
             state.shared = state.shared.checked_sub(1).ok_or_else(|| {
                 NativeCompileError::new(format!(
                     "{machine_contract} lost shared borrow state for scoped reference to `{}`",
-                    reference.slot_name
+                    slot_name
                 ))
             })?;
         }
         state.shared == 0 && !state.exclusive
     };
     if remove_state {
-        borrow_states.remove(&reference.slot_name);
+        borrow_states.remove(slot_name);
     }
     Ok(())
 }
@@ -2265,11 +2392,17 @@ fn lower_reference_initializer(
             }
             (
                 identifier.name.clone(),
-                TypedReferenceLayout::Scalar(machine_type),
+                TypedReferenceLayout::Scalar {
+                    machine_type,
+                    slot_name: identifier.name.clone(),
+                },
             )
         }
         ReferenceTarget::Slice(expected_element) => {
-            if machine_contract != SLICE_MACHINE_CONTRACT {
+            if !matches!(
+                machine_contract,
+                SLICE_MACHINE_CONTRACT | SLICE_CALL_MACHINE_CONTRACT
+            ) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} does not enable borrowed slice values"
                 )));
@@ -2323,8 +2456,11 @@ fn lower_reference_initializer(
                 root.name.clone(),
                 TypedReferenceLayout::Slice {
                     element_type: array.element_type,
-                    base_offset,
-                    length: end - start,
+                    storage: SliceStorage::Stack {
+                        slot_name: root.name.clone(),
+                        base_offset,
+                        length: end - start,
+                    },
                 },
             )
         }
@@ -2350,7 +2486,6 @@ fn lower_reference_initializer(
     }
 
     Ok(TypedReference {
-        slot_name,
         layout,
         mutable: reference_type.mutable,
     })
@@ -2390,7 +2525,10 @@ fn lower_reference_dereference(
             pointee.name()
         )));
     }
-    let stack_slot = stack_slots.get(&reference.slot_name).ok_or_else(|| {
+    let slot_name = reference
+        .stack_root()
+        .expect("scalar references always retain stack provenance");
+    let stack_slot = stack_slots.get(slot_name).ok_or_else(|| {
         NativeCompileError::new(format!(
             "{machine_contract} reference `{}` lost its stack-slot provenance",
             identifier.name
@@ -2454,7 +2592,10 @@ fn lower_reference_assignment(
             identifier.name, identifier.name
         )));
     };
-    let stack_slot = stack_slots.get(&reference.slot_name).ok_or_else(|| {
+    let slot_name = reference
+        .stack_root()
+        .expect("scalar references always retain stack provenance");
+    let stack_slot = stack_slots.get(slot_name).ok_or_else(|| {
         NativeCompileError::new(format!(
             "{machine_contract} reference `{}` lost its stack-slot provenance",
             identifier.name
@@ -2535,7 +2676,7 @@ fn lower_typed_expression(
         AstNode::Identifier(identifier) => {
             if let Some(reference) = references.get(&identifier.name) {
                 let message = match reference.layout {
-                    TypedReferenceLayout::Scalar(_) => format!(
+                    TypedReferenceLayout::Scalar { .. } => format!(
                         "{machine_contract} reference `{}` cannot escape as a scalar value; dereference it with `*{}`",
                         identifier.name, identifier.name
                     ),
@@ -2761,30 +2902,53 @@ fn lower_typed_expression(
                     abi.result.name()
                 )));
             }
-            let mut arguments = Vec::with_capacity(call.arguments.len());
-            for (index, (argument, machine_type)) in call
+            let mut arguments = Vec::with_capacity(call.arguments.len() * 2);
+            let mut call_borrows = HashMap::new();
+            for (index, (argument, parameter)) in call
                 .arguments
                 .iter()
                 .zip(abi.params.iter().copied())
                 .enumerate()
             {
-                arguments.push(
-                    lower_typed_expression(
-                        builder,
-                        module,
-                        functions,
-                        locals,
-                        stack_slots,
-                        references,
-                        borrow_states,
-                        argument,
-                        machine_type,
-                        &format!("argument {} to `{}`", index + 1, callee.name),
-                        machine_contract,
-                        memory_enabled,
-                    )?
-                    .value,
-                );
+                match parameter {
+                    MachineParameter::Scalar(machine_type) => arguments.push(
+                        lower_typed_expression(
+                            builder,
+                            module,
+                            functions,
+                            locals,
+                            stack_slots,
+                            references,
+                            borrow_states,
+                            argument,
+                            machine_type,
+                            &format!("argument {} to `{}`", index + 1, callee.name),
+                            machine_contract,
+                            memory_enabled,
+                        )?
+                        .value,
+                    ),
+                    MachineParameter::Slice {
+                        element_type,
+                        mutable,
+                    } => {
+                        let (base, length) = lower_borrowed_slice_call_argument(
+                            builder,
+                            module,
+                            stack_slots,
+                            borrow_states,
+                            &mut call_borrows,
+                            argument,
+                            element_type,
+                            mutable,
+                            index,
+                            &callee.name,
+                            machine_contract,
+                        )?;
+                        arguments.push(base);
+                        arguments.push(length);
+                    }
+                }
             }
             let local_callee = module.declare_func_in_func(abi.func_id, builder.func);
             let call = builder.ins().call(local_callee, &arguments);
@@ -2801,6 +2965,116 @@ fn lower_typed_expression(
         }
     };
     Ok(value)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn lower_borrowed_slice_call_argument(
+    builder: &mut FunctionBuilder<'_>,
+    module: &ObjectModule,
+    stack_slots: &HashMap<String, TypedStackSlot>,
+    borrow_states: &HashMap<String, BorrowState>,
+    call_borrows: &mut HashMap<String, BorrowState>,
+    argument: &AstNode,
+    expected_element: MachineType,
+    mutable: bool,
+    argument_index: usize,
+    callee_name: &str,
+    machine_contract: &str,
+) -> Result<(Value, Value), NativeCompileError> {
+    let AstNode::UnaryExpression(borrow) = argument else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} slice argument {} to `{callee_name}` must be a direct range reborrow",
+            argument_index + 1
+        )));
+    };
+    let expected_operator = if mutable { "&mut" } else { "&" };
+    if borrow.operator != expected_operator {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} slice argument {} to `{callee_name}` expects `{expected_operator}`, found `{}`",
+            argument_index + 1,
+            borrow.operator
+        )));
+    }
+    let AstNode::MemberExpression(range_access) = borrow.argument.as_ref() else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} slice argument {} to `{callee_name}` requires a half-open fixed-array range",
+            argument_index + 1
+        )));
+    };
+    if !range_access.computed {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} slice argument {} to `{callee_name}` requires a half-open fixed-array range",
+            argument_index + 1
+        )));
+    }
+    let AstNode::Identifier(root) = range_access.object.as_ref() else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} slice argument {} to `{callee_name}` requires a direct fixed-array slot as its provenance root",
+            argument_index + 1
+        )));
+    };
+    let Some((start, end)) = parse_slice_range(&range_access.property, machine_contract)? else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} slice argument {} to `{callee_name}` requires a half-open fixed-array range",
+            argument_index + 1
+        )));
+    };
+    let stack_slot = stack_slots.get(&root.name).ok_or_else(|| {
+        NativeCompileError::new(format!(
+            "{machine_contract} slice argument {} to `{callee_name}` requires a declared fixed-array slot; `{}` is not addressable",
+            argument_index + 1,
+            root.name
+        ))
+    })?;
+    let StackSlotLayout::FixedArray(array) = &stack_slot.layout else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} slice argument {} to `{callee_name}` requires a fixed-array slot; `{}` has incompatible storage",
+            argument_index + 1,
+            root.name
+        )));
+    };
+    validate_slice_range(start, end, array.length, &root.name, machine_contract)?;
+    if array.element_type != expected_element {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} slice argument {} to `{callee_name}` expects elements of `{}`, but stack slot `{}` stores `{}`",
+            argument_index + 1,
+            expected_element.name(),
+            root.name,
+            array.element_type.name()
+        )));
+    }
+
+    let active = borrow_states.get(&root.name).copied().unwrap_or_default();
+    let siblings = call_borrows.entry(root.name.clone()).or_default();
+    if mutable {
+        if active.exclusive || active.shared > 0 || siblings.exclusive || siblings.shared > 0 {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} cannot mutably reborrow stack slot `{}` for call to `{callee_name}` because an active or sibling borrow exists",
+                root.name
+            )));
+        }
+        siblings.exclusive = true;
+    } else {
+        if active.exclusive || siblings.exclusive {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} cannot immutably reborrow stack slot `{}` for call to `{callee_name}` because an exclusive borrow exists",
+                root.name
+            )));
+        }
+        siblings.shared += 1;
+    }
+
+    let base_offset = start
+        .checked_mul(array.element_type.stack_size())
+        .expect("fixed array size is validated");
+    let pointer_type = module.target_config().pointer_type();
+    let base = builder.ins().stack_addr(
+        pointer_type,
+        stack_slot.slot,
+        i32::try_from(base_offset).expect("fixed array offset is validated"),
+    );
+    let length = builder.ins().iconst(types::I32, i64::from(end - start));
+    Ok((base, length))
 }
 
 fn known_expression_type(
@@ -3063,8 +3337,14 @@ fn lower_typed_logical(
 
 struct DynamicArrayIndex<'a> {
     expression: &'a AstNode,
-    bound: u32,
+    bound: DynamicArrayBound,
     element_size: u32,
+}
+
+#[derive(Clone, Copy)]
+enum DynamicArrayBound {
+    Constant(u32),
+    Runtime(Value),
 }
 
 enum StackAccessProvenance {
@@ -3073,10 +3353,15 @@ enum StackAccessProvenance {
         reference_name: String,
         mutable: bool,
     },
+    SliceParameter {
+        reference_name: String,
+        mutable: bool,
+    },
 }
 
 struct ResolvedStackAccess<'a> {
-    slot: StackSlot,
+    slot: Option<StackSlot>,
+    base_address: Option<Value>,
     machine_type: MachineType,
     offset: i32,
     dynamic_index: Option<DynamicArrayIndex<'a>>,
@@ -3096,7 +3381,7 @@ fn resolve_stack_access<'a>(
         AstNode::Identifier(identifier) => {
             if let Some(reference) = references.get(&identifier.name) {
                 let requirement = match reference.layout {
-                    TypedReferenceLayout::Scalar(_) => "must be dereferenced with `*`",
+                    TypedReferenceLayout::Scalar { .. } => "must be dereferenced with `*`",
                     TypedReferenceLayout::Slice { .. } => "must be indexed",
                 };
                 return Err(NativeCompileError::new(format!(
@@ -3127,7 +3412,8 @@ fn resolve_stack_access<'a>(
                 )));
             };
             Ok(ResolvedStackAccess {
-                slot: stack_slot.slot,
+                slot: Some(stack_slot.slot),
+                base_address: None,
                 machine_type,
                 offset: 0,
                 dynamic_index: None,
@@ -3179,7 +3465,8 @@ fn resolve_stack_access<'a>(
                     ))
                 })?;
             Ok(ResolvedStackAccess {
-                slot: stack_slot.slot,
+                slot: Some(stack_slot.slot),
+                base_address: None,
                 machine_type: field.machine_type,
                 offset: i32::try_from(field.offset).expect("validated aggregate field offset"),
                 dynamic_index: None,
@@ -3205,35 +3492,59 @@ fn resolve_array_access<'a>(
         if let Some(reference) = references.get(&root.name) {
             let TypedReferenceLayout::Slice {
                 element_type,
-                base_offset,
-                length,
-            } = reference.layout
+                storage,
+            } = &reference.layout
             else {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} scalar reference `{}` does not support indexed access",
                     root.name
                 )));
             };
-            let stack_slot = stack_slots.get(&reference.slot_name).ok_or_else(|| {
-                NativeCompileError::new(format!(
-                    "{machine_contract} slice reference `{}` lost its stack-slot provenance",
-                    root.name
-                ))
-            })?;
-            return finish_array_access(
-                reference.slot_name.as_str(),
-                stack_slot,
-                element_type,
-                member.property.as_ref(),
-                base_offset,
-                length,
-                format!("{}[index]", root.name),
-                StackAccessProvenance::Slice {
-                    reference_name: root.name.clone(),
-                    mutable: reference.mutable,
-                },
-                machine_contract,
-            );
+            return match storage {
+                SliceStorage::Stack {
+                    slot_name,
+                    base_offset,
+                    length,
+                } => {
+                    let stack_slot = stack_slots.get(slot_name).ok_or_else(|| {
+                        NativeCompileError::new(format!(
+                            "{machine_contract} slice reference `{}` lost its stack-slot provenance",
+                            root.name
+                        ))
+                    })?;
+                    finish_array_access(
+                        slot_name,
+                        stack_slot,
+                        *element_type,
+                        member.property.as_ref(),
+                        *base_offset,
+                        *length,
+                        format!("{}[index]", root.name),
+                        StackAccessProvenance::Slice {
+                            reference_name: root.name.clone(),
+                            mutable: reference.mutable,
+                        },
+                        machine_contract,
+                    )
+                }
+                SliceStorage::Parameter { base, length } => Ok(ResolvedStackAccess {
+                    slot: None,
+                    base_address: Some(*base),
+                    machine_type: *element_type,
+                    offset: 0,
+                    dynamic_index: Some(DynamicArrayIndex {
+                        expression: member.property.as_ref(),
+                        bound: DynamicArrayBound::Runtime(*length),
+                        element_size: element_type.stack_size(),
+                    }),
+                    root_name: root.name.clone(),
+                    display: format!("{}[index]", root.name),
+                    provenance: StackAccessProvenance::SliceParameter {
+                        reference_name: root.name.clone(),
+                        mutable: reference.mutable,
+                    },
+                }),
+            };
         }
         let stack_slot = stack_slots.get(&root.name).ok_or_else(|| {
             NativeCompileError::new(format!(
@@ -3408,7 +3719,8 @@ fn finish_array_access<'a>(
             )
             .expect("fixed array size is validated");
         return Ok(ResolvedStackAccess {
-            slot: stack_slot.slot,
+            slot: Some(stack_slot.slot),
+            base_address: None,
             machine_type: element_type,
             offset: i32::try_from(offset).expect("fixed array offset is validated"),
             dynamic_index: None,
@@ -3419,12 +3731,13 @@ fn finish_array_access<'a>(
     }
 
     Ok(ResolvedStackAccess {
-        slot: stack_slot.slot,
+        slot: Some(stack_slot.slot),
+        base_address: None,
         machine_type: element_type,
         offset: i32::try_from(base_offset).expect("fixed array offset is validated"),
         dynamic_index: Some(DynamicArrayIndex {
             expression: index,
-            bound,
+            bound: DynamicArrayBound::Constant(bound),
             element_size: element_type.stack_size(),
         }),
         root_name: root_name.to_string(),
@@ -3483,6 +3796,16 @@ fn validate_stack_access_borrow(
                 )));
             }
         }
+        StackAccessProvenance::SliceParameter {
+            reference_name,
+            mutable,
+        } => {
+            if operation == "store" && !mutable {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} cannot write through immutable slice parameter `{reference_name}`"
+                )));
+            }
+        }
     }
     Ok(())
 }
@@ -3517,11 +3840,18 @@ fn lower_checked_stack_address(
         machine_contract,
         true,
     )?;
-    let out_of_bounds = builder.ins().icmp_imm(
-        IntCC::UnsignedGreaterThanOrEqual,
-        index.value,
-        i64::from(dynamic.bound),
-    );
+    let out_of_bounds = match dynamic.bound {
+        DynamicArrayBound::Constant(bound) => builder.ins().icmp_imm(
+            IntCC::UnsignedGreaterThanOrEqual,
+            index.value,
+            i64::from(bound),
+        ),
+        DynamicArrayBound::Runtime(bound) => {
+            builder
+                .ins()
+                .icmp(IntCC::UnsignedGreaterThanOrEqual, index.value, bound)
+        }
+    };
     builder
         .ins()
         .trapnz(out_of_bounds, TrapCode::unwrap_user(1));
@@ -3535,9 +3865,18 @@ fn lower_checked_stack_address(
     let scaled_index = builder
         .ins()
         .imul_imm(pointer_index, i64::from(dynamic.element_size));
-    let base = builder
-        .ins()
-        .stack_addr(pointer_type, access.slot, access.offset);
+    let base = if let Some(base) = access.base_address {
+        debug_assert_eq!(builder.func.dfg.value_type(base), pointer_type);
+        base
+    } else {
+        builder.ins().stack_addr(
+            pointer_type,
+            access
+                .slot
+                .expect("local checked access must retain its stack slot"),
+            access.offset,
+        )
+    };
     Ok(builder.ins().iadd(base, scaled_index))
 }
 
@@ -3597,9 +3936,13 @@ fn lower_typed_load(
             .ins()
             .load(access.machine_type.ir_type(), MemFlags::new(), address, 0)
     } else {
-        builder
-            .ins()
-            .stack_load(access.machine_type.ir_type(), access.slot, access.offset)
+        builder.ins().stack_load(
+            access.machine_type.ir_type(),
+            access
+                .slot
+                .expect("direct access must retain its stack slot"),
+            access.offset,
+        )
     };
     Ok(TypedValue {
         value,
@@ -3672,9 +4015,13 @@ fn lower_typed_store(
             .ins()
             .store(MemFlags::new(), value.value, address, 0);
     } else {
-        builder
-            .ins()
-            .stack_store(value.value, access.slot, access.offset);
+        builder.ins().stack_store(
+            value.value,
+            access
+                .slot
+                .expect("direct access must retain its stack slot"),
+            access.offset,
+        );
     }
     Ok(())
 }
