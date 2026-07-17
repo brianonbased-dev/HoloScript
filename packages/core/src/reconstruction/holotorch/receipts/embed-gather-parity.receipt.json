@@ -1,0 +1,20 @@
+{
+  "schema": "holotorch-inference-parity.v0",
+  "op": "embed-gather",
+  "adapter": {
+    "vendor": "nvidia",
+    "architecture": "ampere",
+    "device": "nvidia-geforce-rtx-3060-laptop-gpu",
+    "description": "D3D12 driver version 32.0.16.1062"
+  },
+  "dims": {
+    "seqLen": 8,
+    "dModel": 384,
+    "vocab": 562
+  },
+  "maxAbs": 5.960464477539063e-8,
+  "maxRefAbs": 1.972544550895691,
+  "relToScale": 3.021713489225144e-8,
+  "allClose": true,
+  "verdict": "pass"
+}

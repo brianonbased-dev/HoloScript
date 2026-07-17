@@ -22,6 +22,8 @@ import { createLayerNormKernel } from '../layerNormKernel';
 import { createSoftmaxKernel } from '../softmaxKernel';
 import { createGeluKernel } from '../geluKernel';
 import { createFusedMHAKernel } from '../fusedMHAKernel';
+import { createBiasAddKernel } from '../biasAddKernel';
+import { createEmbeddingGatherKernel } from '../embeddingGatherKernel';
 
 interface AdapterInfo {
   vendor?: string;
@@ -340,5 +342,62 @@ describe('HoloTorch op parity (WGSL vs f64 reference, real GPU)', () => {
         expect(maxT0Err).toBeLessThan(1e-5);
       }
     }
+  }, 120000);
+
+  it('bias-add (row-broadcast) matches reference to fp32-exact', async () => {
+    const device = await getDevice();
+    if (!device) {
+      console.warn('[holotorch-parity] no WebGPU adapter — skipping bias-add');
+      return;
+    }
+    const kernel = createBiasAddKernel(device);
+    const rand = rng(23);
+    const rows = 8;
+    const cols = 384;
+    const input = new Float32Array(rows * cols);
+    for (let i = 0; i < input.length; i++) input[i] = rand() * 3;
+    const bias = new Float32Array(cols);
+    for (let i = 0; i < cols; i++) bias[i] = rand();
+
+    const got = await kernel.run(input, bias, rows, cols);
+    const ref = new Float64Array(rows * cols);
+    for (let m = 0; m < rows; m++) for (let n = 0; n < cols; n++) ref[m * cols + n] = input[m * cols + n] + bias[n];
+    const cmp = compareAllClose(got, ref, 1e-5, 1e-4);
+    console.warn(
+      `[holotorch-parity]   bias-add [${rows}x${cols}] maxAbs=${cmp.maxAbs.toExponential(2)} allClose=${cmp.allClose}`
+    );
+    writeParityReceipt('bias-add', { dims: { rows, cols }, ...cmp, verdict: cmp.allClose ? 'pass' : 'fail' });
+    expect(cmp.allClose).toBe(true);
+  }, 120000);
+
+  it('embedding-gather (token + learned-positional) matches reference to fp32-exact', async () => {
+    const device = await getDevice();
+    if (!device) {
+      console.warn('[holotorch-parity] no WebGPU adapter — skipping embed-gather');
+      return;
+    }
+    const kernel = createEmbeddingGatherKernel(device);
+    const rand = rng(29);
+    const seqLen = 8;
+    const dModel = 384;
+    const vocab = 562; // holo arch vocab
+    const wte = new Float32Array(vocab * dModel);
+    for (let i = 0; i < wte.length; i++) wte[i] = rand();
+    const wpe = new Float32Array(seqLen * dModel);
+    for (let i = 0; i < wpe.length; i++) wpe[i] = rand();
+    const ids = new Uint32Array(seqLen);
+    for (let t = 0; t < seqLen; t++) ids[t] = Math.floor((rand() * 0.5 + 0.5) * vocab) % vocab;
+
+    const got = await kernel.run(ids, wte, wpe, seqLen, dModel, vocab);
+    const ref = new Float64Array(seqLen * dModel);
+    for (let t = 0; t < seqLen; t++) {
+      for (let d = 0; d < dModel; d++) ref[t * dModel + d] = wte[ids[t] * dModel + d] + wpe[t * dModel + d];
+    }
+    const cmp = compareAllClose(got, ref, 1e-5, 1e-4);
+    console.warn(
+      `[holotorch-parity]   embed-gather [T${seqLen} d${dModel} v${vocab}] maxAbs=${cmp.maxAbs.toExponential(2)} allClose=${cmp.allClose}`
+    );
+    writeParityReceipt('embed-gather', { dims: { seqLen, dModel, vocab }, ...cmp, verdict: cmp.allClose ? 'pass' : 'fail' });
+    expect(cmp.allClose).toBe(true);
   }, 120000);
 });
