@@ -1,6 +1,6 @@
 {
   "schema": "holoscript.paper6.quaternion-cross-vendor-pair.v1",
-  "captured_at": "2026-07-17T20:12:05.884Z",
+  "captured_at": "2026-07-17T20:19:59.948Z",
   "status": "two-machine-two-vendor-pass",
   "claim_scope": "Exact integer WGSL/BigInt-oracle byte agreement on two named machines and two GPU vendors under one controller.",
   "nonclaims": [
@@ -33,9 +33,9 @@
       "harness_ts_sha256": "28f87ca4bdb6c66704374a8e4567870a774be9036fc17a697a4ffba488097d99",
       "playwright_config_ts_sha256": "e680ac071ef8788913f3bf67398ac7f63d774312e4923eb06f9a9e40e2198d20"
     },
-    "validator_git_commit": "338eea7395317faf8d932f9d7a04aa27ecbd0daf",
+    "validator_git_commit": "f21a2e6feb1601b4e0868e392f0a7a830f3df67c",
     "validator_path": "packages/engine/scripts/pair-paper6-quaternion-receipts.mjs",
-    "validator_sha256": "71622bbd4aa6fc3a189dd0f549e5e50c9294cf2a5053ba03f94041f8165f39f0"
+    "validator_sha256": "fba26e71b5b177e697ac9a636eae1620dca76b809951e9ea0f10f8517b603b43"
   },
   "fixture": {
     "case_count": 1114,
