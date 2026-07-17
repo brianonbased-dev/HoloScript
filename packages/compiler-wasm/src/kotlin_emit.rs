@@ -397,6 +397,11 @@ fn is_numeric_builtin_call(name: &str) -> bool {
 pub fn emit_functions(ast: &Ast, indent: &str) -> Result<String, KotlinEmitError> {
     check_semantics(ast)?;
 
+    if let Some((annotation, context)) = find_borrowed_slice_annotation(ast) {
+        return Err(KotlinEmitError::new(format!(
+            "borrowed slice type `{annotation}` in {context} requires target-specific borrow and bounds lowering; the Kotlin bridge does not erase native alias semantics"
+        )));
+    }
     if let Some((annotation, context)) = find_fixed_array_annotation(ast) {
         return Err(KotlinEmitError::new(format!(
             "fixed array type `{annotation}` in {context} requires target-specific bounds lowering; the Kotlin bridge does not erase native array semantics"
@@ -484,18 +489,31 @@ pub fn emit_functions(ast: &Ast, indent: &str) -> Result<String, KotlinEmitError
 }
 
 fn find_fixed_array_annotation(ast: &Ast) -> Option<(&str, String)> {
-    ast.body
-        .iter()
-        .find_map(find_fixed_array_annotation_in_node)
+    find_type_annotation(ast, |annotation| annotation.starts_with('['))
 }
 
-fn find_fixed_array_annotation_in_node(node: &AstNode) -> Option<(&str, String)> {
+fn find_borrowed_slice_annotation(ast: &Ast) -> Option<(&str, String)> {
+    find_type_annotation(ast, |annotation| {
+        annotation.starts_with("&[") || annotation.starts_with("&mut [")
+    })
+}
+
+fn find_type_annotation(ast: &Ast, predicate: fn(&str) -> bool) -> Option<(&str, String)> {
+    ast.body
+        .iter()
+        .find_map(|node| find_type_annotation_in_node(node, predicate))
+}
+
+fn find_type_annotation_in_node(
+    node: &AstNode,
+    predicate: fn(&str) -> bool,
+) -> Option<(&str, String)> {
     match node {
         AstNode::Function(function) => {
             if let Some(annotation) = function
                 .return_type
                 .as_deref()
-                .filter(|annotation| annotation.starts_with('['))
+                .filter(|annotation| predicate(annotation))
             {
                 return Some((
                     annotation,
@@ -505,7 +523,7 @@ fn find_fixed_array_annotation_in_node(node: &AstNode) -> Option<(&str, String)>
             for (index, annotation) in function.param_types.iter().enumerate() {
                 if let Some(annotation) = annotation
                     .as_deref()
-                    .filter(|annotation| annotation.starts_with('['))
+                    .filter(|annotation| predicate(annotation))
                 {
                     let parameter = function
                         .params
@@ -521,41 +539,41 @@ fn find_fixed_array_annotation_in_node(node: &AstNode) -> Option<(&str, String)>
             function
                 .body
                 .iter()
-                .find_map(find_fixed_array_annotation_in_node)
+                .find_map(|node| find_type_annotation_in_node(node, predicate))
         }
         AstNode::VariableDeclaration(local) => local
             .type_annotation
             .as_deref()
-            .filter(|annotation| annotation.starts_with('['))
+            .filter(|annotation| predicate(annotation))
             .map(|annotation| (annotation, format!("local `{}`", local.name))),
-        AstNode::StackSlotDeclaration(slot) if slot.type_annotation.starts_with('[') => Some((
+        AstNode::StackSlotDeclaration(slot) if predicate(&slot.type_annotation) => Some((
             slot.type_annotation.as_str(),
             format!("stack slot `{}`", slot.name),
         )),
         AstNode::If(if_node) => if_node
             .consequent
             .iter()
-            .find_map(find_fixed_array_annotation_in_node)
+            .find_map(|node| find_type_annotation_in_node(node, predicate))
             .or_else(|| {
                 if_node.alternate.as_ref().and_then(|alternate| {
                     alternate
                         .iter()
-                        .find_map(find_fixed_array_annotation_in_node)
+                        .find_map(|node| find_type_annotation_in_node(node, predicate))
                 })
             }),
         AstNode::While(while_node) => while_node
             .body
             .iter()
-            .find_map(find_fixed_array_annotation_in_node),
+            .find_map(|node| find_type_annotation_in_node(node, predicate)),
         AstNode::ForOf(for_node) => for_node
             .body
             .iter()
-            .find_map(find_fixed_array_annotation_in_node),
+            .find_map(|node| find_type_annotation_in_node(node, predicate)),
         AstNode::LexicalScope(scope) => scope
             .body
             .iter()
-            .find_map(find_fixed_array_annotation_in_node),
-        AstNode::Export(export) => find_fixed_array_annotation_in_node(&export.declaration),
+            .find_map(|node| find_type_annotation_in_node(node, predicate)),
+        AstNode::Export(export) => find_type_annotation_in_node(&export.declaration, predicate),
         _ => None,
     }
 }
@@ -2994,6 +3012,20 @@ function mk() {
             .expect_err("Kotlin must not silently erase native fixed-array bounds semantics");
         assert!(error.to_string().contains(
             "fixed array type `[i32; 2]` in stack slot `values` requires target-specific bounds lowering"
+        ));
+    }
+
+    #[test]
+    fn borrowed_machine_slices_fail_closed_until_kotlin_borrow_lowering_exists() {
+        let src = r#"function main(): i32 {
+  slot values: [i32; 2] = [1, 2]
+  let view: &[i32] = &values[0..2]
+  return load(view[0])
+}"#;
+        let error = compile_source_to_kotlin(src, "  ")
+            .expect_err("Kotlin must not silently erase native slice borrow semantics");
+        assert!(error.to_string().contains(
+            "borrowed slice type `&[i32]` in local `view` requires target-specific borrow and bounds lowering"
         ));
     }
 

@@ -1071,7 +1071,7 @@ impl Parser {
             fields.push(self.expect_identifier()?);
             let field_type = if self.check(TokenType::Colon) {
                 self.advance();
-                Some(self.parse_value_type_annotation()?)
+                Some(self.parse_type_annotation()?)
             } else {
                 None
             };
@@ -2420,7 +2420,14 @@ impl Parser {
         if mutable {
             self.advance();
         }
-        let pointee = self.expect_identifier()?;
+        let pointee = if self.check(TokenType::LBracket) {
+            self.advance();
+            let element = self.expect_identifier()?;
+            self.expect(TokenType::RBracket)?;
+            format!("[{element}]")
+        } else {
+            self.expect_identifier()?
+        };
         Ok(if mutable {
             format!("&mut {pointee}")
         } else {
@@ -3384,6 +3391,51 @@ mod tests {
                                     AstNode::BinaryExpression(range) if range.operator == ".."
                                 )
                     )
+        ));
+    }
+
+    #[test]
+    fn test_parse_borrowed_slice_types_and_range_initializers() {
+        let source = r#"function main(): i32 {
+            slot values: [i32; 4] = [1, 2, 3, 4]
+            let view: &[i32] = &values[1..4]
+            let writer: &mut [i32] = &mut values[0..2]
+            return load(view[1])
+        }"#;
+        let mut parser = Parser::new(source);
+        let program = parser
+            .parse()
+            .expect("borrowed slice types and range initializers should parse");
+
+        let AstNode::Function(function) = &program.body[0] else {
+            panic!("Expected Function node");
+        };
+        let AstNode::VariableDeclaration(view) = &function.body[1] else {
+            panic!("Expected immutable slice declaration");
+        };
+        assert_eq!(view.type_annotation.as_deref(), Some("&[i32]"));
+        assert!(matches!(
+            view.value.as_ref(),
+            AstNode::UnaryExpression(unary)
+                if unary.operator == "&"
+                    && matches!(
+                        unary.argument.as_ref(),
+                        AstNode::MemberExpression(member)
+                            if member.computed
+                                && matches!(
+                                    member.property.as_ref(),
+                                    AstNode::BinaryExpression(range) if range.operator == ".."
+                                )
+                    )
+        ));
+
+        let AstNode::VariableDeclaration(writer) = &function.body[2] else {
+            panic!("Expected mutable slice declaration");
+        };
+        assert_eq!(writer.type_annotation.as_deref(), Some("&mut [i32]"));
+        assert!(matches!(
+            writer.value.as_ref(),
+            AstNode::UnaryExpression(unary) if unary.operator == "&mut"
         ));
     }
 

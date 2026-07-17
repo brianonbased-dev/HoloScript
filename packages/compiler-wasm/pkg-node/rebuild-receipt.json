@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-07-17T19:37:52Z",
+  "generatedAt": "2026-07-17T20:07:34Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "50123bbdd02d775d7fd2b11f4d6ed21084f94a2d+working-tree-hs-machine-v7",
+  "sourceCommit": "50027c392bae66a345978f46fc7ab86ba7c202f6+working-tree-hs-machine-v8",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
     "$env:Path = 'C:\\Users\\josep\\.cargo\\bin;' + $env:Path",
@@ -16,8 +16,8 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 285701,
-    "wasmSha256": "0c3e1af9b4957616a3af9a22db14cb4ba1aa3c7cd535c9c70934acf67cc9eaf7",
-    "note": "Rebuilt the Node WASM artifact from the working-tree Rust parser containing canonical fixed-array annotations for hs-machine-v7 while preserving legacy array literals. The source changes are committed with this artifact so the working-tree suffix resolves to that commit."
+    "wasmBytes": 286902,
+    "wasmSha256": "b130ef11601a17db98b2ff0cf3e9471fcb7b82274c94bae13595b6e1bc7b05c0",
+    "note": "Rebuilt the Node WASM artifact from the working-tree Rust parser containing canonical borrowed-slice annotations for hs-machine-v8 while preserving scalar references and fixed arrays. The source changes are committed with this artifact so the working-tree suffix resolves to that commit."
   }
 }

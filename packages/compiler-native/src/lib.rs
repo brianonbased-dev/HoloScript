@@ -10,8 +10,9 @@
 //! comparisons, short-circuit logic, branches, and bounded while loops with cleanup
 //! on every lexical-scope exit. `hs-machine-v6` adds typed, contiguous stack aggregates
 //! with deterministic field layout. `hs-machine-v7` adds fixed-size scalar arrays and
-//! bounds-checked half-open slice projections. Everything outside the selected contract
-//! fails closed with a native compile diagnostic.
+//! bounds-checked half-open slice projections. `hs-machine-v8` adds local, non-escaping
+//! borrowed slice values with lexical alias leases. Everything outside the selected
+//! contract fails closed with a native compile diagnostic.
 
 use std::collections::{HashMap, HashSet};
 use std::env;
@@ -42,6 +43,7 @@ pub const REFERENCE_SCOPE_MACHINE_CONTRACT: &str = "hs-machine-v4";
 pub const CONTROL_FLOW_MACHINE_CONTRACT: &str = "hs-machine-v5";
 pub const AGGREGATE_MACHINE_CONTRACT: &str = "hs-machine-v6";
 pub const FIXED_ARRAY_MACHINE_CONTRACT: &str = "hs-machine-v7";
+pub const SLICE_MACHINE_CONTRACT: &str = "hs-machine-v8";
 
 struct CompiledObject {
     bytes: Vec<u8>,
@@ -160,7 +162,12 @@ fn compile_unit(
         NativeCompileError::new(format!("HoloScript parse failed: {rendered}"))
     })?;
 
-    if has_fixed_array_machine_metadata(&ast) {
+    if has_slice_machine_metadata(&ast) {
+        Ok(CompiledObject {
+            bytes: lower_typed_ast_to_object(&ast, SLICE_MACHINE_CONTRACT, true)?,
+            machine_contract: SLICE_MACHINE_CONTRACT,
+        })
+    } else if has_fixed_array_machine_metadata(&ast) {
         Ok(CompiledObject {
             bytes: lower_typed_ast_to_object(&ast, FIXED_ARRAY_MACHINE_CONTRACT, true)?,
             machine_contract: FIXED_ARRAY_MACHINE_CONTRACT,
@@ -381,6 +388,59 @@ fn has_fixed_array_machine_metadata(ast: &Ast) -> bool {
             .any(|annotation| annotation_uses_fixed_array(annotation)),
         _ => false,
     })
+}
+
+fn has_slice_machine_metadata(ast: &Ast) -> bool {
+    ast.body.iter().any(|node| match node {
+        AstNode::Function(function) => {
+            function
+                .return_type
+                .as_deref()
+                .is_some_and(annotation_uses_slice_reference)
+                || function
+                    .param_types
+                    .iter()
+                    .flatten()
+                    .any(|annotation| annotation_uses_slice_reference(annotation))
+                || function.body.iter().any(node_uses_slice_reference_type)
+        }
+        AstNode::StructDeclaration(structure) => structure
+            .field_types
+            .iter()
+            .flatten()
+            .any(|annotation| annotation_uses_slice_reference(annotation)),
+        _ => false,
+    })
+}
+
+fn annotation_uses_slice_reference(annotation: &str) -> bool {
+    annotation.starts_with("&[") || annotation.starts_with("&mut [")
+}
+
+fn node_uses_slice_reference_type(node: &AstNode) -> bool {
+    match node {
+        AstNode::VariableDeclaration(local) => local
+            .type_annotation
+            .as_deref()
+            .is_some_and(annotation_uses_slice_reference),
+        AstNode::StackSlotDeclaration(slot) => {
+            annotation_uses_slice_reference(&slot.type_annotation)
+        }
+        AstNode::If(if_node) => {
+            if_node
+                .consequent
+                .iter()
+                .any(node_uses_slice_reference_type)
+                || if_node
+                    .alternate
+                    .as_ref()
+                    .is_some_and(|alternate| alternate.iter().any(node_uses_slice_reference_type))
+        }
+        AstNode::While(while_node) => while_node.body.iter().any(node_uses_slice_reference_type),
+        AstNode::ForOf(for_node) => for_node.body.iter().any(node_uses_slice_reference_type),
+        AstNode::LexicalScope(scope) => scope.body.iter().any(node_uses_slice_reference_type),
+        _ => false,
+    }
 }
 
 fn annotation_uses_fixed_array(annotation: &str) -> bool {
@@ -628,14 +688,20 @@ impl MachineType {
 fn bool_enabled(machine_contract: &str) -> bool {
     matches!(
         machine_contract,
-        CONTROL_FLOW_MACHINE_CONTRACT | AGGREGATE_MACHINE_CONTRACT | FIXED_ARRAY_MACHINE_CONTRACT
+        CONTROL_FLOW_MACHINE_CONTRACT
+            | AGGREGATE_MACHINE_CONTRACT
+            | FIXED_ARRAY_MACHINE_CONTRACT
+            | SLICE_MACHINE_CONTRACT
     )
 }
 
 fn control_flow_enabled(machine_contract: &str) -> bool {
     matches!(
         machine_contract,
-        CONTROL_FLOW_MACHINE_CONTRACT | AGGREGATE_MACHINE_CONTRACT | FIXED_ARRAY_MACHINE_CONTRACT
+        CONTROL_FLOW_MACHINE_CONTRACT
+            | AGGREGATE_MACHINE_CONTRACT
+            | FIXED_ARRAY_MACHINE_CONTRACT
+            | SLICE_MACHINE_CONTRACT
     )
 }
 
@@ -646,6 +712,7 @@ fn scoped_lifetimes_enabled(machine_contract: &str) -> bool {
             | CONTROL_FLOW_MACHINE_CONTRACT
             | AGGREGATE_MACHINE_CONTRACT
             | FIXED_ARRAY_MACHINE_CONTRACT
+            | SLICE_MACHINE_CONTRACT
     )
 }
 
@@ -657,6 +724,7 @@ fn references_enabled(machine_contract: &str) -> bool {
             | CONTROL_FLOW_MACHINE_CONTRACT
             | AGGREGATE_MACHINE_CONTRACT
             | FIXED_ARRAY_MACHINE_CONTRACT
+            | SLICE_MACHINE_CONTRACT
     )
 }
 
@@ -669,18 +737,22 @@ fn memory_contract_enabled(machine_contract: &str) -> bool {
             | CONTROL_FLOW_MACHINE_CONTRACT
             | AGGREGATE_MACHINE_CONTRACT
             | FIXED_ARRAY_MACHINE_CONTRACT
+            | SLICE_MACHINE_CONTRACT
     )
 }
 
 fn aggregate_contract_enabled(machine_contract: &str) -> bool {
     matches!(
         machine_contract,
-        AGGREGATE_MACHINE_CONTRACT | FIXED_ARRAY_MACHINE_CONTRACT
+        AGGREGATE_MACHINE_CONTRACT | FIXED_ARRAY_MACHINE_CONTRACT | SLICE_MACHINE_CONTRACT
     )
 }
 
 fn fixed_arrays_enabled(machine_contract: &str) -> bool {
-    machine_contract == FIXED_ARRAY_MACHINE_CONTRACT
+    matches!(
+        machine_contract,
+        FIXED_ARRAY_MACHINE_CONTRACT | SLICE_MACHINE_CONTRACT
+    )
 }
 
 #[derive(Debug, Clone)]
@@ -855,6 +927,12 @@ fn collect_aggregate_layouts(
                     structure.name,
                 )));
             }
+            if annotation_uses_slice_reference(type_name) {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} borrowed slices as aggregate fields are not enabled; field `{field_name}` in struct `{}` uses `{type_name}`",
+                    structure.name
+                )));
+            }
             if FixedArrayLayout::parse(
                 type_name,
                 &format!("field `{field_name}` in struct `{}`", structure.name),
@@ -970,8 +1048,23 @@ impl TypedStackSlot {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ReferenceTarget {
+    Scalar(MachineType),
+    Slice(MachineType),
+}
+
+impl ReferenceTarget {
+    fn display(self) -> String {
+        match self {
+            Self::Scalar(machine_type) => machine_type.name().to_string(),
+            Self::Slice(element_type) => format!("[{}]", element_type.name()),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct ReferenceType {
-    pointee: MachineType,
+    target: ReferenceTarget,
     mutable: bool,
 }
 
@@ -994,18 +1087,52 @@ impl ReferenceType {
                 "{machine_contract} {context} has an incomplete reference type `{annotation}`"
             )));
         }
-        Ok(Some(Self {
-            pointee: MachineType::parse(pointee, context, machine_contract)?,
-            mutable,
-        }))
+        let target = if pointee.starts_with('[') {
+            let Some(element) = pointee
+                .strip_prefix('[')
+                .and_then(|element| element.strip_suffix(']'))
+            else {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} {context} has malformed slice reference type `{annotation}`"
+                )));
+            };
+            if element.contains(';') || element.is_empty() {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} {context} slice references use `&[T]` or `&mut [T]`; found `{annotation}`"
+                )));
+            }
+            ReferenceTarget::Slice(MachineType::parse(element, context, machine_contract)?)
+        } else {
+            ReferenceTarget::Scalar(MachineType::parse(pointee, context, machine_contract)?)
+        };
+        Ok(Some(Self { target, mutable }))
     }
+}
+
+#[derive(Debug, Clone)]
+enum TypedReferenceLayout {
+    Scalar(MachineType),
+    Slice {
+        element_type: MachineType,
+        base_offset: u32,
+        length: u32,
+    },
 }
 
 #[derive(Debug, Clone)]
 struct TypedReference {
     slot_name: String,
-    pointee: MachineType,
+    layout: TypedReferenceLayout,
     mutable: bool,
+}
+
+impl TypedReference {
+    fn scalar_pointee(&self) -> Option<MachineType> {
+        match self.layout {
+            TypedReferenceLayout::Scalar(machine_type) => Some(machine_type),
+            TypedReferenceLayout::Slice { .. } => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -1493,6 +1620,12 @@ fn lower_typed_statements(
                     "stack slot `{}` in function `{}`",
                     slot.name, spec.node.name
                 );
+                if annotation_uses_slice_reference(&slot.type_annotation) {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} borrowed slice `{}` cannot use addressable `slot` storage; slice descriptors are local reference values",
+                        slot.name
+                    )));
+                }
                 if let Some(layout) = FixedArrayLayout::parse(
                     &slot.type_annotation,
                     &array_context,
@@ -2080,14 +2213,15 @@ fn lower_reference_initializer(
 ) -> Result<TypedReference, NativeCompileError> {
     let AstNode::UnaryExpression(borrow) = initializer else {
         return Err(NativeCompileError::new(format!(
-            "{machine_contract} reference `{reference_name}` must be initialized directly with `&slot` or `&mut slot`"
+            "{machine_contract} reference `{reference_name}` must be initialized directly with a matching borrow expression"
         )));
     };
     let expected_operator = if reference_type.mutable { "&mut" } else { "&" };
+    let target_display = reference_type.target.display();
     let expected_annotation = if reference_type.mutable {
-        format!("&mut {}", reference_type.pointee.name())
+        format!("&mut {target_display}")
     } else {
-        format!("&{}", reference_type.pointee.name())
+        format!("&{target_display}")
     };
     if borrow.operator != expected_operator {
         return Err(NativeCompileError::new(format!(
@@ -2095,45 +2229,113 @@ fn lower_reference_initializer(
             borrow.operator,
         )));
     }
-    if aggregate_contract_enabled(machine_contract)
-        && matches!(borrow.argument.as_ref(), AstNode::MemberExpression(_))
-    {
-        return Err(NativeCompileError::new(format!(
-            "field references are not enabled by {machine_contract}; reference `{reference_name}` must borrow a scalar stack slot"
-        )));
-    }
-    let AstNode::Identifier(identifier) = borrow.argument.as_ref() else {
-        return Err(NativeCompileError::new(format!(
-            "{machine_contract} reference `{reference_name}` requires a declared stack slot as its provenance root"
-        )));
+    let (slot_name, layout) = match reference_type.target {
+        ReferenceTarget::Scalar(expected) => {
+            if aggregate_contract_enabled(machine_contract)
+                && matches!(borrow.argument.as_ref(), AstNode::MemberExpression(_))
+            {
+                return Err(NativeCompileError::new(format!(
+                    "field references are not enabled by {machine_contract}; reference `{reference_name}` must borrow a scalar stack slot"
+                )));
+            }
+            let AstNode::Identifier(identifier) = borrow.argument.as_ref() else {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} reference `{reference_name}` requires a declared stack slot as its provenance root"
+                )));
+            };
+            let stack_slot = stack_slots.get(&identifier.name).ok_or_else(|| {
+                NativeCompileError::new(format!(
+                    "{machine_contract} reference `{reference_name}` requires a declared stack slot; `{}` is not addressable",
+                    identifier.name
+                ))
+            })?;
+            let Some(machine_type) = stack_slot.scalar_type() else {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} reference `{reference_name}` cannot borrow aggregate stack slot `{}` without a field projection",
+                    identifier.name
+                )));
+            };
+            if machine_type != expected {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} reference `{reference_name}` expects `{}`, but stack slot `{}` stores `{}`",
+                    expected.name(),
+                    identifier.name,
+                    machine_type.name()
+                )));
+            }
+            (
+                identifier.name.clone(),
+                TypedReferenceLayout::Scalar(machine_type),
+            )
+        }
+        ReferenceTarget::Slice(expected_element) => {
+            if machine_contract != SLICE_MACHINE_CONTRACT {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} does not enable borrowed slice values"
+                )));
+            }
+            let AstNode::MemberExpression(range_access) = borrow.argument.as_ref() else {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} slice reference `{reference_name}` requires a half-open fixed-array range"
+                )));
+            };
+            if !range_access.computed {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} slice reference `{reference_name}` requires a half-open fixed-array range"
+                )));
+            }
+            let AstNode::Identifier(root) = range_access.object.as_ref() else {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} slice reference `{reference_name}` requires a direct fixed-array slot as its provenance root"
+                )));
+            };
+            let Some((start, end)) = parse_slice_range(&range_access.property, machine_contract)?
+            else {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} slice reference `{reference_name}` requires a half-open fixed-array range"
+                )));
+            };
+            let stack_slot = stack_slots.get(&root.name).ok_or_else(|| {
+                NativeCompileError::new(format!(
+                    "{machine_contract} slice reference `{reference_name}` requires a declared fixed-array slot; `{}` is not addressable",
+                    root.name
+                ))
+            })?;
+            let StackSlotLayout::FixedArray(array) = &stack_slot.layout else {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} slice reference `{reference_name}` requires a fixed-array slot; `{}` has incompatible storage",
+                    root.name
+                )));
+            };
+            validate_slice_range(start, end, array.length, &root.name, machine_contract)?;
+            if array.element_type != expected_element {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} slice reference `{reference_name}` expects elements of `{}`, but stack slot `{}` stores `{}`",
+                    expected_element.name(),
+                    root.name,
+                    array.element_type.name()
+                )));
+            }
+            let base_offset = start
+                .checked_mul(array.element_type.stack_size())
+                .expect("fixed array size is validated");
+            (
+                root.name.clone(),
+                TypedReferenceLayout::Slice {
+                    element_type: array.element_type,
+                    base_offset,
+                    length: end - start,
+                },
+            )
+        }
     };
-    let stack_slot = stack_slots.get(&identifier.name).ok_or_else(|| {
-        NativeCompileError::new(format!(
-            "{machine_contract} reference `{reference_name}` requires a declared stack slot; `{}` is not addressable",
-            identifier.name
-        ))
-    })?;
-    let Some(machine_type) = stack_slot.scalar_type() else {
-        return Err(NativeCompileError::new(format!(
-            "{machine_contract} reference `{reference_name}` cannot borrow aggregate stack slot `{}` without a field projection",
-            identifier.name
-        )));
-    };
-    if machine_type != reference_type.pointee {
-        return Err(NativeCompileError::new(format!(
-            "{machine_contract} reference `{reference_name}` expects `{}`, but stack slot `{}` stores `{}`",
-            reference_type.pointee.name(),
-            identifier.name,
-            machine_type.name()
-        )));
-    }
 
-    let state = borrow_states.entry(identifier.name.clone()).or_default();
+    let state = borrow_states.entry(slot_name.clone()).or_default();
     if reference_type.mutable {
         if state.exclusive || state.shared > 0 {
             return Err(NativeCompileError::new(format!(
                 "{machine_contract} cannot mutably borrow stack slot `{}` because an active borrow already exists",
-                identifier.name
+                slot_name
             )));
         }
         state.exclusive = true;
@@ -2141,15 +2343,15 @@ fn lower_reference_initializer(
         if state.exclusive {
             return Err(NativeCompileError::new(format!(
                 "{machine_contract} cannot immutably borrow stack slot `{}` because an exclusive borrow is active",
-                identifier.name
+                slot_name
             )));
         }
         state.shared += 1;
     }
 
     Ok(TypedReference {
-        slot_name: identifier.name.clone(),
-        pointee: reference_type.pointee,
+        slot_name,
+        layout,
         mutable: reference_type.mutable,
     })
 }
@@ -2174,12 +2376,18 @@ fn lower_reference_dereference(
             identifier.name
         ))
     })?;
-    if reference.pointee != expected {
+    let Some(pointee) = reference.scalar_pointee() else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} slice reference `{}` must be indexed; it cannot be dereferenced as a scalar",
+            identifier.name
+        )));
+    };
+    if pointee != expected {
         return Err(NativeCompileError::new(format!(
             "{machine_contract} {context} expects `{}`, but reference `{}` points to `{}`; implicit coercions are forbidden",
             expected.name(),
             identifier.name,
-            reference.pointee.name()
+            pointee.name()
         )));
     }
     let stack_slot = stack_slots.get(&reference.slot_name).ok_or_else(|| {
@@ -2191,8 +2399,8 @@ fn lower_reference_dereference(
     Ok(TypedValue {
         value: builder
             .ins()
-            .stack_load(reference.pointee.ir_type(), stack_slot.slot, 0),
-        machine_type: reference.pointee,
+            .stack_load(pointee.ir_type(), stack_slot.slot, 0),
+        machine_type: pointee,
     })
 }
 
@@ -2240,6 +2448,12 @@ fn lower_reference_assignment(
             identifier.name
         )));
     }
+    let Some(pointee) = reference.scalar_pointee() else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} slice reference `{}` must be indexed; use `store({}[index], value)`",
+            identifier.name, identifier.name
+        )));
+    };
     let stack_slot = stack_slots.get(&reference.slot_name).ok_or_else(|| {
         NativeCompileError::new(format!(
             "{machine_contract} reference `{}` lost its stack-slot provenance",
@@ -2255,7 +2469,7 @@ fn lower_reference_assignment(
         references,
         borrow_states,
         &assignment.value,
-        reference.pointee,
+        pointee,
         &format!("assignment through reference `{}`", identifier.name),
         machine_contract,
         true,
@@ -2319,11 +2533,18 @@ fn lower_typed_expression(
             }
         }
         AstNode::Identifier(identifier) => {
-            if references.contains_key(&identifier.name) {
-                return Err(NativeCompileError::new(format!(
-                    "{machine_contract} reference `{}` cannot escape as a scalar value; dereference it with `*{}`",
-                    identifier.name, identifier.name
-                )));
+            if let Some(reference) = references.get(&identifier.name) {
+                let message = match reference.layout {
+                    TypedReferenceLayout::Scalar(_) => format!(
+                        "{machine_contract} reference `{}` cannot escape as a scalar value; dereference it with `*{}`",
+                        identifier.name, identifier.name
+                    ),
+                    TypedReferenceLayout::Slice { .. } => format!(
+                        "{machine_contract} slice reference `{}` cannot escape as a scalar value; index it with `{}[index]`",
+                        identifier.name, identifier.name
+                    ),
+                };
+                return Err(NativeCompileError::new(message));
             }
             if stack_slots.contains_key(&identifier.name) {
                 return Err(NativeCompileError::new(format!(
@@ -2602,7 +2823,7 @@ fn known_expression_type(
             };
             references
                 .get(&identifier.name)
-                .map(|reference| reference.pointee)
+                .and_then(TypedReference::scalar_pointee)
         }
         AstNode::UnaryExpression(unary) if unary.operator == "-" => known_expression_type(
             &unary.argument,
@@ -2646,6 +2867,7 @@ fn known_expression_type(
                 resolve_stack_access(
                     call.arguments.first()?,
                     stack_slots,
+                    references,
                     "load",
                     machine_contract,
                 )
@@ -2845,6 +3067,14 @@ struct DynamicArrayIndex<'a> {
     element_size: u32,
 }
 
+enum StackAccessProvenance {
+    Owner,
+    Slice {
+        reference_name: String,
+        mutable: bool,
+    },
+}
+
 struct ResolvedStackAccess<'a> {
     slot: StackSlot,
     machine_type: MachineType,
@@ -2852,16 +3082,28 @@ struct ResolvedStackAccess<'a> {
     dynamic_index: Option<DynamicArrayIndex<'a>>,
     root_name: String,
     display: String,
+    provenance: StackAccessProvenance,
 }
 
 fn resolve_stack_access<'a>(
     argument: &'a AstNode,
     stack_slots: &HashMap<String, TypedStackSlot>,
+    references: &HashMap<String, TypedReference>,
     operation: &str,
     machine_contract: &str,
 ) -> Result<ResolvedStackAccess<'a>, NativeCompileError> {
     match argument {
         AstNode::Identifier(identifier) => {
+            if let Some(reference) = references.get(&identifier.name) {
+                let requirement = match reference.layout {
+                    TypedReferenceLayout::Scalar(_) => "must be dereferenced with `*`",
+                    TypedReferenceLayout::Slice { .. } => "must be indexed",
+                };
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} reference `{}` {requirement} before `{operation}`",
+                    identifier.name
+                )));
+            }
             let stack_slot = stack_slots.get(&identifier.name).ok_or_else(|| {
                 NativeCompileError::new(format!(
                     "{machine_contract} `{operation}` references unknown stack slot `{}`",
@@ -2891,11 +3133,18 @@ fn resolve_stack_access<'a>(
                 dynamic_index: None,
                 root_name: identifier.name.clone(),
                 display: identifier.name.clone(),
+                provenance: StackAccessProvenance::Owner,
             })
         }
         AstNode::MemberExpression(member) => {
             if member.computed {
-                return resolve_array_access(member, stack_slots, operation, machine_contract);
+                return resolve_array_access(
+                    member,
+                    stack_slots,
+                    references,
+                    operation,
+                    machine_contract,
+                );
             }
             let AstNode::Identifier(root) = member.object.as_ref() else {
                 return Err(NativeCompileError::new(format!(
@@ -2936,6 +3185,7 @@ fn resolve_stack_access<'a>(
                 dynamic_index: None,
                 root_name: root.name.clone(),
                 display: format!("{}.{}", root.name, property.name),
+                provenance: StackAccessProvenance::Owner,
             })
         }
         _ => Err(NativeCompileError::new(format!(
@@ -2947,10 +3197,44 @@ fn resolve_stack_access<'a>(
 fn resolve_array_access<'a>(
     member: &'a MemberExpression,
     stack_slots: &HashMap<String, TypedStackSlot>,
+    references: &HashMap<String, TypedReference>,
     operation: &str,
     machine_contract: &str,
 ) -> Result<ResolvedStackAccess<'a>, NativeCompileError> {
     if let AstNode::Identifier(root) = member.object.as_ref() {
+        if let Some(reference) = references.get(&root.name) {
+            let TypedReferenceLayout::Slice {
+                element_type,
+                base_offset,
+                length,
+            } = reference.layout
+            else {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} scalar reference `{}` does not support indexed access",
+                    root.name
+                )));
+            };
+            let stack_slot = stack_slots.get(&reference.slot_name).ok_or_else(|| {
+                NativeCompileError::new(format!(
+                    "{machine_contract} slice reference `{}` lost its stack-slot provenance",
+                    root.name
+                ))
+            })?;
+            return finish_array_access(
+                reference.slot_name.as_str(),
+                stack_slot,
+                element_type,
+                member.property.as_ref(),
+                base_offset,
+                length,
+                format!("{}[index]", root.name),
+                StackAccessProvenance::Slice {
+                    reference_name: root.name.clone(),
+                    mutable: reference.mutable,
+                },
+                machine_contract,
+            );
+        }
         let stack_slot = stack_slots.get(&root.name).ok_or_else(|| {
             NativeCompileError::new(format!(
                 "{machine_contract} `{operation}` references unknown stack slot `{}`",
@@ -2980,11 +3264,12 @@ fn resolve_array_access<'a>(
         return finish_array_access(
             root.name.as_str(),
             stack_slot,
-            layout,
+            layout.element_type,
             member.property.as_ref(),
             0,
             layout.length,
             format!("{}[index]", root.name),
+            StackAccessProvenance::Owner,
             machine_contract,
         );
     }
@@ -3028,11 +3313,12 @@ fn resolve_array_access<'a>(
     finish_array_access(
         root.name.as_str(),
         stack_slot,
-        layout,
+        layout.element_type,
         member.property.as_ref(),
         base_offset,
         end - start,
         format!("{}[{start}..{end}][index]", root.name),
+        StackAccessProvenance::Owner,
         machine_contract,
     )
 }
@@ -3094,11 +3380,12 @@ fn validate_slice_range(
 fn finish_array_access<'a>(
     root_name: &str,
     stack_slot: &TypedStackSlot,
-    layout: &FixedArrayLayout,
+    element_type: MachineType,
     index: &'a AstNode,
     base_offset: u32,
     bound: u32,
     display: String,
+    provenance: StackAccessProvenance,
     machine_contract: &str,
 ) -> Result<ResolvedStackAccess<'a>, NativeCompileError> {
     if let AstNode::Number(number) = index {
@@ -3116,32 +3403,88 @@ fn finish_array_access<'a>(
         let offset = base_offset
             .checked_add(
                 index
-                    .checked_mul(layout.element_type.stack_size())
+                    .checked_mul(element_type.stack_size())
                     .expect("fixed array size is validated"),
             )
             .expect("fixed array size is validated");
         return Ok(ResolvedStackAccess {
             slot: stack_slot.slot,
-            machine_type: layout.element_type,
+            machine_type: element_type,
             offset: i32::try_from(offset).expect("fixed array offset is validated"),
             dynamic_index: None,
             root_name: root_name.to_string(),
             display,
+            provenance,
         });
     }
 
     Ok(ResolvedStackAccess {
         slot: stack_slot.slot,
-        machine_type: layout.element_type,
+        machine_type: element_type,
         offset: i32::try_from(base_offset).expect("fixed array offset is validated"),
         dynamic_index: Some(DynamicArrayIndex {
             expression: index,
             bound,
-            element_size: layout.element_type.stack_size(),
+            element_size: element_type.stack_size(),
         }),
         root_name: root_name.to_string(),
         display,
+        provenance,
     })
+}
+
+fn validate_stack_access_borrow(
+    access: &ResolvedStackAccess<'_>,
+    borrow_states: &HashMap<String, BorrowState>,
+    operation: &str,
+    machine_contract: &str,
+) -> Result<(), NativeCompileError> {
+    match &access.provenance {
+        StackAccessProvenance::Owner => {
+            let state = borrow_states
+                .get(&access.root_name)
+                .copied()
+                .unwrap_or_default();
+            if operation == "load" && state.exclusive {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} cannot directly load stack slot `{}` while an exclusive borrow is active",
+                    access.root_name
+                )));
+            }
+            if operation == "store" && (state.shared > 0 || state.exclusive) {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} cannot store to stack slot `{}` while an active borrow exists",
+                    access.root_name
+                )));
+            }
+        }
+        StackAccessProvenance::Slice {
+            reference_name,
+            mutable,
+        } => {
+            if operation == "store" && !mutable {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} cannot write through immutable slice reference `{reference_name}`"
+                )));
+            }
+            let state = borrow_states.get(&access.root_name).ok_or_else(|| {
+                NativeCompileError::new(format!(
+                    "{machine_contract} lost active borrow state for slice reference `{reference_name}`"
+                ))
+            })?;
+            let lease_is_active = if *mutable {
+                state.exclusive
+            } else {
+                state.shared > 0 && !state.exclusive
+            };
+            if !lease_is_active {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} slice reference `{reference_name}` no longer owns a valid borrow lease"
+                )));
+            }
+        }
+    }
+    Ok(())
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -3218,16 +3561,14 @@ fn lower_typed_load(
             call.arguments.len()
         )));
     }
-    let access = resolve_stack_access(&call.arguments[0], stack_slots, "load", machine_contract)?;
-    if borrow_states
-        .get(&access.root_name)
-        .is_some_and(|state| state.exclusive)
-    {
-        return Err(NativeCompileError::new(format!(
-            "{machine_contract} cannot directly load stack slot `{}` while an exclusive borrow is active",
-            access.root_name
-        )));
-    }
+    let access = resolve_stack_access(
+        &call.arguments[0],
+        stack_slots,
+        references,
+        "load",
+        machine_contract,
+    )?;
+    validate_stack_access_borrow(&access, borrow_states, "load", machine_contract)?;
     if access.machine_type != expected {
         let storage = if access.display.contains('.') {
             format!("aggregate field `{}`", access.display)
@@ -3284,16 +3625,14 @@ fn lower_typed_store(
             call.arguments.len()
         )));
     }
-    let access = resolve_stack_access(&call.arguments[0], stack_slots, "store", machine_contract)?;
-    if borrow_states
-        .get(&access.root_name)
-        .is_some_and(|state| state.shared > 0 || state.exclusive)
-    {
-        return Err(NativeCompileError::new(format!(
-            "{machine_contract} cannot store to stack slot `{}` while an active borrow exists",
-            access.root_name
-        )));
-    }
+    let access = resolve_stack_access(
+        &call.arguments[0],
+        stack_slots,
+        references,
+        "store",
+        machine_contract,
+    )?;
+    validate_stack_access_borrow(&access, borrow_states, "store", machine_contract)?;
     let value_context = if access.display.contains('.') {
         format!("field `{}`", access.display)
     } else {

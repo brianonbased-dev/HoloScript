@@ -134,6 +134,25 @@ const FIXED_ARRAY_EXIT_FIVE: &str = r#"
         return load(values[direct_index])
     }
 "#;
+const BORROWED_SLICE_EXIT_FIVE: &str = r#"
+    struct Delta { amount: i32 }
+
+    function main(): i32 {
+        slot delta: Delta = Delta(2)
+        slot values: [i32; 4] = [1, 2, 3, 4]
+        scope {
+            let view: &[i32] = &values[1..4]
+            let index: i32 = 1
+            let observed: i32 = load(view[index])
+        }
+        scope {
+            let writer: &mut [i32] = &mut values[1..4]
+            let index: i32 = 1
+            store(writer[index], load(writer[index]) + load(delta.amount))
+        }
+        return load(values[2])
+    }
+"#;
 
 fn scratch_executable(name: &str) -> std::path::PathBuf {
     let nonce = SystemTime::now()
@@ -372,6 +391,51 @@ fn compiles_fixed_arrays_and_bounds_checked_slice_projections() {
 }
 
 #[test]
+fn compiles_non_escaping_borrowed_slices_with_lexical_alias_release() {
+    let executable = scratch_executable("native-borrowed-slice");
+    let artifact = compile_executable(
+        BORROWED_SLICE_EXIT_FIVE,
+        &executable,
+        &NativeCompileOptions::host(),
+    )
+    .expect("borrowed slices should compile with lexical alias release");
+    assert_eq!(artifact.machine_contract, "hs-machine-v8");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("borrowed-slice executable should run");
+    assert_eq!(status.code(), Some(5));
+    fs::remove_file(&artifact.executable).expect("remove borrowed-slice executable");
+
+    compile_object(
+        r#"function main(): i32 {
+           slot values: [i32; 4] = [1, 2, 3, 4]
+           let first: &[i32] = &values[0..3]
+           let second: &[i32] = &values[1..4]
+           return load(first[0]) + load(second[0]) + 2
+         }"#,
+        &NativeCompileOptions::host(),
+    )
+    .expect("multiple shared slice borrows should coexist");
+
+    for (name, index) in [("upper-bound", "2"), ("negative", "-1")] {
+        let source = format!(
+            "function main(): i32 {{ slot values: [i32; 4] = [1, 2, 3, 4] let view: &[i32] = &values[1..3] let index: i32 = {index} return load(view[index]) }}"
+        );
+        let executable = scratch_executable(&format!("native-slice-{name}"));
+        let artifact = compile_executable(&source, &executable, &NativeCompileOptions::host())
+            .expect("dynamic borrowed-slice out-of-bounds access should compile to a runtime trap");
+        let status = Command::new(&artifact.executable)
+            .status()
+            .expect("out-of-bounds borrowed-slice executable should launch");
+        assert!(
+            !status.success(),
+            "out-of-bounds slice index {index} must trap"
+        );
+        fs::remove_file(&artifact.executable).expect("remove trapping slice executable");
+    }
+}
+
+#[test]
 fn emits_deterministic_objects_for_the_same_source() {
     let options = NativeCompileOptions::host();
 
@@ -386,11 +450,79 @@ fn emits_deterministic_objects_for_the_same_source() {
         CONTROL_FLOW_BOOL_MEMORY_EXIT_FIVE,
         AGGREGATE_EXIT_FIVE,
         FIXED_ARRAY_EXIT_FIVE,
+        BORROWED_SLICE_EXIT_FIVE,
     ] {
         let first = compile_object(source, &options).expect("first object should compile");
         let second = compile_object(source, &options).expect("second object should compile");
 
         assert_eq!(first, second);
+    }
+}
+
+#[test]
+fn borrowed_slice_contract_enforces_bounds_aliasing_and_non_escape() {
+    let options = NativeCompileOptions::host();
+
+    for (source, message) in [
+        (
+            "function main(): i32 { slot values: [i32; 4] = [1, 2, 3, 4] let view: &[i32] = &values[1..3] return load(view[2]) }",
+            "constant index 2 is outside bound 2",
+        ),
+        (
+            "function main(): i32 { slot values: [i32; 2] = [1, 2] let view: &[i32] = &values[0..2] store(view[0], 5) return 5 }",
+            "cannot write through immutable slice reference `view`",
+        ),
+        (
+            "function main(): i32 { slot values: [i32; 2] = [1, 2] let view: &[i32] = &values[0..2] let writer: &mut [i32] = &mut values[0..2] return load(view[0]) }",
+            "cannot mutably borrow stack slot `values`",
+        ),
+        (
+            "function main(): i32 { slot values: [i32; 2] = [1, 2] let writer: &mut [i32] = &mut values[0..2] let view: &[i32] = &values[0..2] return load(writer[0]) }",
+            "cannot immutably borrow stack slot `values`",
+        ),
+        (
+            "function main(): i32 { slot values: [i32; 2] = [1, 2] let view: &[i32] = &values[0..2] store(values[0], 5) return load(view[0]) }",
+            "cannot store to stack slot `values` while an active borrow exists",
+        ),
+        (
+            "function read(values: &[i32]): i32 { return 5 } function main(): i32 { return 5 }",
+            "hs-machine-v8 references cannot appear in function parameters",
+        ),
+        (
+            "function leak(): &[i32] { return 5 } function main(): i32 { return 5 }",
+            "hs-machine-v8 references cannot appear in function returns",
+        ),
+        (
+            "function main(): i32 { slot values: [i32; 2] = [1, 2] let view: &[i32] = &values[0..2] return view }",
+            "slice reference `view` cannot escape as a scalar value",
+        ),
+        (
+            "function main(): i32 { slot values: [i32; 2] = [1, 2] let view: &[i64] = &values[0..2] return 5 }",
+            "slice reference `view` expects elements of `i64`, but stack slot `values` stores `i32`",
+        ),
+        (
+            "function main(): i32 { slot values: [i32; 2] = [1, 2] let view: &[i32] = &values return 5 }",
+            "slice reference `view` requires a half-open fixed-array range",
+        ),
+        (
+            "function main(): i32 { slot values: [i32; 2] = [1, 2] let view: &[i32] = &values[0] return 5 }",
+            "slice reference `view` requires a half-open fixed-array range",
+        ),
+        (
+            "function main(): i32 { slot view: &[i32] = 5 return 5 }",
+            "borrowed slice `view` cannot use addressable `slot` storage",
+        ),
+        (
+            "struct Bad { view: &[i32] } function main(): i32 { return 5 }",
+            "borrowed slices as aggregate fields are not enabled",
+        ),
+        (
+            "function main(): i32 { slot values: [i32; 2] = [1, 2] let view: &[i32] = &values[0..2] return *view }",
+            "slice reference `view` must be indexed",
+        ),
+    ] {
+        let error = compile_object(source, &options).expect_err(message);
+        assert!(error.to_string().contains(message), "{error}");
     }
 }
 
