@@ -29,6 +29,16 @@ const SCRIPT_RELATIVE_PATH = 'packages/engine/scripts/pair-paper6-quaternion-rec
 
 const RECEIPT_SCHEMA = 'holoscript.paper6.quaternion-conformance.v1';
 const PAIR_SCHEMA = 'holoscript.paper6.quaternion-cross-vendor-pair.v1';
+const CONTRACT_V1 = Object.freeze({
+  version: 'paper6-q14-cordic-slerp-v1',
+  algorithm: 'fixed-point approximate shortest-arc SLERP via integer CORDIC',
+  quaternion_encoding: 'signed Q14 i32',
+  time_encoding: 'unsigned Q15 u32',
+  output_encoding: 'four signed Q14 i32 words per case',
+  canonical_hash_encoding: 'little-endian signed i32 words',
+});
+const KERNEL_WGSL_SHA256_V1 =
+  'bdc510c041dfe13a92f86660bab28775775161934eb35aefee9ae6fd1f12c47e';
 const REQUIRED_SOURCE_HASHES = [
   'contract_ts_sha256',
   'wgsl_wrapper_ts_sha256',
@@ -54,6 +64,19 @@ function sha256File(filePath) {
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
+}
+
+function assertExactRecord(actual, expected, label) {
+  assert(actual && typeof actual === 'object' && !Array.isArray(actual), `${label} must be an object`);
+  const actualKeys = Object.keys(actual).sort();
+  const expectedKeys = Object.keys(expected).sort();
+  assert(
+    JSON.stringify(actualKeys) === JSON.stringify(expectedKeys),
+    `${label} fields do not match the pinned v1 contract`
+  );
+  for (const [field, value] of Object.entries(expected)) {
+    assert(actual[field] === value, `${label}.${field} does not match the pinned v1 contract`);
+  }
 }
 
 function readReceipt(filePath) {
@@ -144,10 +167,7 @@ function recomputeMachineFingerprint(label, receipt) {
 function validateSingle(label, receipt) {
   assert(receipt?.schema === RECEIPT_SCHEMA, `${label}: schema must be ${RECEIPT_SCHEMA}`);
   assert(receipt?.status === 'single-adapter-pass', `${label}: status must be single-adapter-pass`);
-  assert(
-    receipt?.contract?.version === 'paper6-q14-cordic-slerp-v1',
-    `${label}: unexpected contract version`
-  );
+  assertExactRecord(receipt?.contract, CONTRACT_V1, `${label}: contract`);
   assert(receipt?.source?.all_paths_tracked === true, `${label}: source paths must all be tracked`);
   assert(
     receipt?.source?.source_paths_clean_at_capture === true,
@@ -165,6 +185,10 @@ function validateSingle(label, receipt) {
   for (const field of REQUIRED_SOURCE_HASHES) {
     assert(/^[0-9a-f]{64}$/u.test(receipt?.source?.[field] ?? ''), `${label}: invalid ${field}`);
   }
+  assert(
+    receipt.source.kernel_wgsl_sha256 === KERNEL_WGSL_SHA256_V1,
+    `${label}: kernel_wgsl_sha256 does not match the pinned v1 kernel`
+  );
 
   const adapter = receipt?.execution?.adapter ?? {};
   const adapterText = Object.values(adapter).join(' ');
@@ -436,12 +460,15 @@ export function pairReceipts(leftPath, rightPath, outputPath) {
       'Not an independent-laboratory replication; both devices were driven by one controller.',
       'Not an interpolation accuracy or performance result.',
     ],
-    contract: left.contract,
+    contract: CONTRACT_V1,
     source: {
       experiment_base_git_commit: left.source.base_git_commit,
       paths: left.source.paths,
       hashes: Object.fromEntries(
-        REQUIRED_SOURCE_HASHES.map((field) => [field, left.source[field]])
+        REQUIRED_SOURCE_HASHES.map((field) => [
+          field,
+          field === 'kernel_wgsl_sha256' ? KERNEL_WGSL_SHA256_V1 : left.source[field],
+        ])
       ),
       validator_git_commit: validatorCommit,
       validator_path: SCRIPT_RELATIVE_PATH,
