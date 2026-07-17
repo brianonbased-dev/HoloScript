@@ -1,9 +1,9 @@
 {
   "schema": "paper-audit-matrix.v3",
-  "generatedAt": "2026-07-17T06:19:35.654Z",
+  "generatedAt": "2026-07-17T06:56:53.861Z",
   "canonicalRouterPath": "research/paper-audit-matrix.md",
   "matrixSourcePath": "research/paper-audit-matrix/front-matrix-core-papers.md",
-  "scriptCommit": "7b4efdfa23ea28b46a6de339f25ed5108f32ca7a",
+  "scriptCommit": "0587177666eddb6a106521604b78e6209ee4f710",
   "totals": {
     "papers": 17,
     "cellsByToken": {
@@ -698,8 +698,8 @@
       "target": "SCA '27",
       "basename": "paper-6-animation-sca.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-6-animation-sca.tex",
-      "loc": 1581,
-      "sha256Prefix": "0f8eb58d",
+      "loc": 1591,
+      "sha256Prefix": "afe6eb90",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -770,11 +770,16 @@
         }
       },
       "lastCommit": {
-        "hash": "7b4efdfa23ea28b46a6de339f25ed5108f32ca7a",
-        "isoDate": "2026-07-16T23:19:10-07:00",
-        "subject": "docs(core): align paper 6 with quaternion benchmark"
+        "hash": "0587177666eddb6a106521604b78e6209ee4f710",
+        "isoDate": "2026-07-16T23:55:53-07:00",
+        "subject": "docs(core): correct paper 6 ablation semantics"
       },
       "recentCommits": [
+        {
+          "hash": "0587177666eddb6a106521604b78e6209ee4f710",
+          "isoDate": "2026-07-16T23:55:53-07:00",
+          "subject": "docs(core): correct paper 6 ablation semantics"
+        },
         {
           "hash": "7b4efdfa23ea28b46a6de339f25ed5108f32ca7a",
           "isoDate": "2026-07-16T23:19:10-07:00",
@@ -794,11 +799,6 @@
           "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
           "isoDate": "2026-07-04T04:08:21-07:00",
           "subject": "docs(papers): canon realignment item 4 -- name sovereignty across 19 abstracts"
-        },
-        {
-          "hash": "ddd3019d94cad3f53239dfb3a9c494e3d2a115de",
-          "isoDate": "2026-06-13T13:56:53-07:00",
-          "subject": "docs(papers): novelty rescopes P2/P6/P8/P10 — journalist-verified prior art, critic-audited"
         }
       ]
     },
