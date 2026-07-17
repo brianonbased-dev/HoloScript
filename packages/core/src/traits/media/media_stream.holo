@@ -1,5 +1,5 @@
 @trait {
-  name: "@stream",
+  name: "@media_stream",
   category: "media",
   description: "Live media stream source and sink adapter. Connects an inbound RTMP/WebRTC/HLS stream or an outbound broadcast encoder to the entity's display surface, managing track negotiation, buffering, quality adaptation, and reconnect logic. Authored from StreamTrait.ts.",
   props: {
