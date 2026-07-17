@@ -125,10 +125,17 @@ export async function checkReallyValid(source, format, options = {}) {
     });
   }
 
+  // Advisory trait prop-schema (enum/type) diagnostics. SEPARATE from `diagnostics`
+  // and deliberately NOT folded into `ok` — this surface reports, it never gates.
+  const { semanticDiagnostics, semanticDiagnosticsUnavailable } =
+    await computeSemanticDiagnostics(normalizedFormat, primary.ast, options);
+
   return {
     ok: diagnostics.length === 0,
     format: normalizedFormat,
     diagnostics,
+    semanticDiagnostics,
+    semanticDiagnosticsUnavailable,
     primary: summarizeParse(primary),
     newlineInvariant: noFinalOk === oneFinalOk,
     nodeCountFidelity:
@@ -252,6 +259,71 @@ async function parseWithLiveToolParser(source, format) {
     return new HoloScriptCodeParser().parse(source);
   }
   throw new Error(`Unsupported HoloScript format: ${format}`);
+}
+
+// -----------------------------------------------------------------------------
+// Advisory semantic (trait prop-schema) diagnostics — .holo only, ignored by `ok`.
+// -----------------------------------------------------------------------------
+// The confabulation prop-schema validator (per-trait enum/type) is resolved from
+// @holoscript/core's dist and built ONCE: checkReallyValid parses 3x per row and runs
+// across the whole corpus, so a per-call ~1080-schema construction is forbidden. If the
+// dist predates the ConfabulationValidator / DERIVED_TRAIT_CONFLICTS exports, the resolver
+// yields { unavailable: 'core-dist-stale' } and we never call `new undefined()`. Traits in
+// DERIVED_TRAIT_CONFLICTS are suppressed: their derived schema was resolved by a
+// .holo-vs-.holo coin flip and may hold the wrong enum set.
+let confabValidatorPromise;
+
+async function resolveConfabValidator() {
+  if (!confabValidatorPromise) {
+    confabValidatorPromise = (async () => {
+      try {
+        const core = await import('@holoscript/core');
+        const ConfabulationValidator = core?.ConfabulationValidator;
+        const conflicts = core?.DERIVED_TRAIT_CONFLICTS;
+        if (typeof ConfabulationValidator !== 'function' || !Array.isArray(conflicts)) {
+          return { unavailable: 'core-dist-stale' };
+        }
+        const validator = new ConfabulationValidator({
+          includeDerivedSchemas: true,
+          validatePrerequisites: false,
+          validateConflicts: false,
+        });
+        return { validator, conflictedTraits: new Set(conflicts) };
+      } catch {
+        return { unavailable: 'core-dist-stale' };
+      }
+    })();
+  }
+  return confabValidatorPromise;
+}
+
+async function computeSemanticDiagnostics(normalizedFormat, ast, options) {
+  // .holo-only ceiling: needs a real parsed AST from the live core parser. The Rust shadow
+  // path passes options.parseContent and yields ast:null, so it is excluded here.
+  if (normalizedFormat !== '.holo' || !ast || options.parseContent) {
+    return { semanticDiagnostics: [], semanticDiagnosticsUnavailable: undefined };
+  }
+  const confab = await resolveConfabValidator();
+  if (confab.unavailable) {
+    return { semanticDiagnostics: [], semanticDiagnosticsUnavailable: confab.unavailable };
+  }
+  try {
+    const result = confab.validator.validateComposition(ast);
+    const semanticDiagnostics = [];
+    for (const err of result.errors ?? []) {
+      if (err.traitName && confab.conflictedTraits.has(err.traitName)) continue;
+      semanticDiagnostics.push({
+        code: String(err.code),
+        message: err.message,
+        traitName: err.traitName,
+        suggestion: err.suggestion,
+      });
+    }
+    return { semanticDiagnostics, semanticDiagnosticsUnavailable: undefined };
+  } catch {
+    // Advisory only — a prop-schema check failure must never break the guard verdict.
+    return { semanticDiagnostics: [], semanticDiagnosticsUnavailable: undefined };
+  }
 }
 
 function normalizeErrors(result) {

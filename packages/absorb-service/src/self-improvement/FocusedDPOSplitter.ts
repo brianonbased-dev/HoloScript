@@ -34,6 +34,12 @@
 import { HoloCompositionParser } from '@holoscript/core';
 // @ts-ignore - Automatic remediation for TS2614
 import type { HoloComposition, HoloObjectDecl, HoloParseResult } from '@holoscript/core';
+// Optional confabulation prop-schema validator (per-trait enum/type). Imported as a
+// namespace so a stale @holoscript/core dist that predates these exports resolves to
+// `undefined` at runtime instead of throwing a strict-ESM link error — the guard then
+// no-ops the advisory to []. Under vitest the alias points at core source, where both exist.
+import * as HoloCore from '@holoscript/core';
+import type { ConfabulationValidator } from '@holoscript/core';
 
 // =============================================================================
 // TYPES
@@ -145,18 +151,41 @@ interface HoloCorpusParseSummary {
   astNodeCount: number;
   astNodeTypes: Record<string, number>;
   exception?: string;
+  /**
+   * The parsed composition, retained internally so the advisory prop-schema check can
+   * reuse it without re-parsing. Never surfaced on the public summary fields (they Omit it).
+   */
+  ast?: HoloComposition | null;
+}
+
+/**
+ * A single advisory trait prop-schema (enum/type) finding. SEPARATE from the
+ * quarantine diagnostics that drive `ok` — reported only, never gating.
+ */
+export interface HoloCorpusSemanticDiagnostic {
+  code: string;
+  message: string;
+  traitName?: string;
+  suggestion?: string;
 }
 
 export interface HoloCorpusValidationDetails {
   ok: boolean;
   diagnostics: HoloCorpusValidationDiagnostic[];
-  primary: Omit<HoloCorpusParseSummary, 'exception'>;
+  /**
+   * Advisory per-trait prop-schema findings (.holo only). Deliberately IGNORED by `ok`
+   * and by the DPO admission logic — this field reports, it never quarantines a row.
+   */
+  semanticDiagnostics: HoloCorpusSemanticDiagnostic[];
+  /** Set to 'core-dist-stale' when the confab validator could not be resolved from core. */
+  semanticDiagnosticsUnavailable?: string;
+  primary: Omit<HoloCorpusParseSummary, 'exception' | 'ast'>;
   newlineInvariant: boolean;
   nodeCountFidelity: boolean;
   sourceNodeCount: HoloCorpusNodeCount;
   astNodeCount: number;
-  withoutTrailingNewline: Omit<HoloCorpusParseSummary, 'exception'>;
-  withTrailingNewline: Omit<HoloCorpusParseSummary, 'exception'>;
+  withoutTrailingNewline: Omit<HoloCorpusParseSummary, 'exception' | 'ast'>;
+  withTrailingNewline: Omit<HoloCorpusParseSummary, 'exception' | 'ast'>;
 }
 
 export type DegradationStrategy =
@@ -296,6 +325,81 @@ const HOLO_AST_TYPES = new Set([
   'loottable',
 ]);
 
+// -----------------------------------------------------------------------------
+// Advisory trait prop-schema (enum/type) resolution — built ONCE, stale-dist tolerant.
+// -----------------------------------------------------------------------------
+// The confabulation validator loads ~1080 derived schemas, so it must be constructed a
+// single time and cached, never per row. If the resolved @holoscript/core predates the
+// ConfabulationValidator / DERIVED_TRAIT_CONFLICTS exports (stale dist), namespace access
+// yields undefined and we record 'core-dist-stale' instead of calling `new undefined()`.
+// Traits in DERIVED_TRAIT_CONFLICTS are suppressed (their derived schema was resolved by a
+// .holo-vs-.holo coin flip and may carry the wrong enum set).
+type DpoConfabResolution =
+  | { validator: ConfabulationValidator; conflictedTraits: Set<string> }
+  | { unavailable: string };
+
+let dpoConfabResolution: DpoConfabResolution | undefined;
+
+function resolveDpoConfabValidator(): DpoConfabResolution {
+  if (dpoConfabResolution === undefined) {
+    try {
+      const Ctor = (
+        HoloCore as { ConfabulationValidator?: new (config: unknown) => ConfabulationValidator }
+      ).ConfabulationValidator;
+      const conflicts = (HoloCore as { DERIVED_TRAIT_CONFLICTS?: unknown }).DERIVED_TRAIT_CONFLICTS;
+      if (typeof Ctor !== 'function' || !Array.isArray(conflicts)) {
+        dpoConfabResolution = { unavailable: 'core-dist-stale' };
+      } else {
+        dpoConfabResolution = {
+          validator: new Ctor({
+            includeDerivedSchemas: true,
+            validatePrerequisites: false,
+            validateConflicts: false,
+          }),
+          conflictedTraits: new Set(conflicts as string[]),
+        };
+      }
+    } catch {
+      dpoConfabResolution = { unavailable: 'core-dist-stale' };
+    }
+  }
+  return dpoConfabResolution;
+}
+
+/**
+ * Advisory only. Returns per-trait prop-schema findings for a parsed composition,
+ * suppressing conflicted traits. Never throws and never influences `ok` or admission.
+ */
+function computeHoloCorpusSemanticDiagnostics(ast: HoloComposition | null | undefined): {
+  semanticDiagnostics: HoloCorpusSemanticDiagnostic[];
+  semanticDiagnosticsUnavailable?: string;
+} {
+  if (!ast) {
+    return { semanticDiagnostics: [] };
+  }
+  const confab = resolveDpoConfabValidator();
+  if ('unavailable' in confab) {
+    return { semanticDiagnostics: [], semanticDiagnosticsUnavailable: confab.unavailable };
+  }
+  try {
+    const result = confab.validator.validateComposition(ast);
+    const semanticDiagnostics: HoloCorpusSemanticDiagnostic[] = [];
+    for (const err of result.errors ?? []) {
+      if (err.traitName && confab.conflictedTraits.has(err.traitName)) continue;
+      semanticDiagnostics.push({
+        code: String(err.code),
+        message: err.message,
+        traitName: err.traitName,
+        suggestion: err.suggestion,
+      });
+    }
+    return { semanticDiagnostics };
+  } catch {
+    // Advisory only — a prop-schema check failure must never break row validation.
+    return { semanticDiagnostics: [] };
+  }
+}
+
 /**
  * Package-local equivalent of scripts/lang-audit/assert-really-valid.mjs for
  * DPO corpus rows. A row is acceptable only when the parser reports zero
@@ -356,9 +460,16 @@ export function checkHoloCorpusRowReallyValid(
     });
   }
 
+  // Advisory trait prop-schema (enum/type) findings, reusing the already-parsed AST.
+  // SEPARATE from `diagnostics` and deliberately NOT folded into `ok` — reported only.
+  const { semanticDiagnostics, semanticDiagnosticsUnavailable } =
+    computeHoloCorpusSemanticDiagnostics(primary.ast);
+
   return {
     ok: diagnostics.length === 0,
     diagnostics,
+    semanticDiagnostics,
+    semanticDiagnosticsUnavailable,
     primary: summarizeHoloParse(primary),
     newlineInvariant: noFinalOk === oneFinalOk,
     nodeCountFidelity:
@@ -377,7 +488,7 @@ function parseAndSummarizeHolo(
   try {
     const result = parser.parse(source) as any;
     const errors = normalizeHoloErrors(result);
-    const ast = result?.ast ?? result?.root ?? null;
+    const ast = (result?.ast ?? result?.root ?? null) as HoloComposition | null;
     const astNodes = countHoloAstSemanticNodes(ast);
     return {
       threw: false,
@@ -385,6 +496,7 @@ function parseAndSummarizeHolo(
       errors,
       astNodeCount: astNodes.count,
       astNodeTypes: astNodes.byType,
+      ast,
     };
   } catch (err) {
     return {
@@ -394,6 +506,7 @@ function parseAndSummarizeHolo(
       astNodeCount: 0,
       astNodeTypes: {},
       exception: err instanceof Error ? err.message : String(err),
+      ast: null,
     };
   }
 }
@@ -421,7 +534,7 @@ function isZeroErrorParse(parseSummary: HoloCorpusParseSummary): boolean {
 
 function summarizeHoloParse(
   parseSummary: HoloCorpusParseSummary
-): Omit<HoloCorpusParseSummary, 'exception'> {
+): Omit<HoloCorpusParseSummary, 'exception' | 'ast'> {
   return {
     threw: parseSummary.threw,
     successFlag: parseSummary.successFlag,

@@ -89,6 +89,9 @@ async function main() {
   const results = { '.hsplus': bucket(), '.hs': bucket(), '.holo': bucket() };
   const files = { '.hsplus': [], '.hs': [], '.holo': [] };
   const guardErrorCounts = {};
+  // Advisory trait prop-schema (enum/type) findings. SEPARATE from the guard verdict —
+  // report-only, never gates. `.holo`-only in practice; other formats yield [].
+  const semanticCounts = { total: 0, filesWithFindings: 0, byCode: {}, unavailable: {} };
 
   walk(SCAN_ROOT, (abs) => {
     const ext = path.extname(abs);
@@ -112,6 +115,20 @@ async function main() {
       } catch (err) {
         recordThrow(b, abs, String(err).slice(0, 200), maxSamples);
         continue;
+      }
+
+      // Tally advisory semantic findings independently of the pass/fail verdict:
+      // a file can be really-valid (ok) yet still carry prop-schema advisories.
+      if (Array.isArray(guarded.semanticDiagnostics) && guarded.semanticDiagnostics.length > 0) {
+        semanticCounts.filesWithFindings++;
+        for (const d of guarded.semanticDiagnostics) {
+          semanticCounts.total++;
+          semanticCounts.byCode[d.code] = (semanticCounts.byCode[d.code] ?? 0) + 1;
+        }
+      }
+      if (guarded.semanticDiagnosticsUnavailable) {
+        const reason = guarded.semanticDiagnosticsUnavailable;
+        semanticCounts.unavailable[reason] = (semanticCounts.unavailable[reason] ?? 0) + 1;
       }
 
       if (guarded.ok) {
@@ -149,6 +166,15 @@ async function main() {
       totalFailingOrThrowing: totalFail,
       realParseablePct: Number(parseablePct.toFixed(2)),
     },
+    // Advisory only — reported so drift is visible, never used to gate this audit.
+    semantic: {
+      name: 'confabulation-prop-schema',
+      note: 'Advisory trait enum/type findings; ignored by the really-valid verdict.',
+      total: semanticCounts.total,
+      filesWithFindings: semanticCounts.filesWithFindings,
+      byCode: semanticCounts.byCode,
+      unavailable: semanticCounts.unavailable,
+    },
   };
 
   if (asJson) {
@@ -174,6 +200,14 @@ async function main() {
       `Only ${report.summary.totalActuallyParseable} (${report.summary.realParseablePct}%) are really valid.`
   );
   console.log(`Guard rejection codes: ${JSON.stringify(report.guard.errorCounts)}`);
+  const sem = report.semantic;
+  const unavailableSuffix = Object.keys(sem.unavailable).length
+    ? ` | unavailable: ${JSON.stringify(sem.unavailable)}`
+    : '';
+  console.log(
+    `Semantic prop-schema advisories (report-only, not gated): ${sem.total} finding(s) across ` +
+      `${sem.filesWithFindings} file(s). By code: ${JSON.stringify(sem.byCode)}${unavailableSuffix}`
+  );
 }
 
 main();

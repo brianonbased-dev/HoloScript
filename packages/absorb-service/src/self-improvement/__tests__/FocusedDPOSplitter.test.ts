@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   FocusedDPOSplitter,
+  checkHoloCorpusRowReallyValid,
   type ASTSegment,
   type DPOPair,
   type FocusedDPOConfig,
@@ -844,6 +845,46 @@ composition "Deep" {
         // Should have significant overlap (>30% of chosen words)
         expect(overlap / chosenWords.size).toBeGreaterThan(0.3);
       }
+    });
+  });
+
+  // ===========================================================================
+  // ADVISORY semanticDiagnostics — separate from the quarantine verdict (ok).
+  // ===========================================================================
+  describe('checkHoloCorpusRowReallyValid semanticDiagnostics', () => {
+    it('surfaces a prop-schema advisory for a .holo trait with a bad enum value', () => {
+      const source = [
+        'composition "T" {',
+        '  object "O" {',
+        '    @rigid(type: "not_a_body")',
+        '    position: [0, 0, 0]',
+        '  }',
+        '}',
+      ].join('\n');
+      const result = checkHoloCorpusRowReallyValid(source, new HoloCompositionParser());
+
+      // Under vitest, @holoscript/core aliases to source, so the validator must resolve.
+      expect(result.semanticDiagnosticsUnavailable).toBeUndefined();
+      const finding = result.semanticDiagnostics.find(
+        (d) => d.traitName === 'rigid' && /ENUM/i.test(d.code)
+      );
+      expect(finding).toBeDefined();
+      // The advisory is SEPARATE from `ok` and from DPO admission: the row is still valid.
+      expect(result.ok).toBe(true);
+    });
+
+    it('returns empty semanticDiagnostics for a clean .holo row', () => {
+      const source = [
+        'composition "Clean" {',
+        '  object "Ball" {',
+        '    geometry: "sphere"',
+        '    position: [0, 1, 0]',
+        '  }',
+        '}',
+      ].join('\n');
+      const result = checkHoloCorpusRowReallyValid(source, new HoloCompositionParser());
+      expect(result.semanticDiagnostics).toEqual([]);
+      expect(result.semanticDiagnosticsUnavailable).toBeUndefined();
     });
   });
 });
