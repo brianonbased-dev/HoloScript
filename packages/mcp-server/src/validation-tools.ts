@@ -12,7 +12,12 @@
  */
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { parseHolo, BUILTIN_CONSTRAINTS } from '@holoscript/core';
+import {
+  parseHolo,
+  BUILTIN_CONSTRAINTS,
+  ConfabulationValidator,
+  DERIVED_TRAIT_CONFLICTS,
+} from '@holoscript/core';
 import type {
   HoloComposition,
   HoloObjectDecl,
@@ -20,6 +25,19 @@ import type {
   HoloDomainType,
 } from '@holoscript/core';
 import type { TraitConstraint } from '@holoscript/core';
+
+// Advisory per-trait prop-schema validator (enum/type) built once — its registry loads ~1080
+// schemas, so it must not be reconstructed per validate call. Prerequisite/conflict graph checks
+// are off: this surface advises on declared prop shape only. Findings are emitted as WARNINGS
+// (never errors) so `valid` is unaffected. Traits in DERIVED_TRAIT_CONFLICTS are suppressed:
+// their derived schema was resolved by a .holo-vs-.holo coin flip and may hold the wrong enum
+// set, so advising on them would be majority-noise until the conflicts are triaged (Phase 2).
+const PROP_SCHEMA_VALIDATOR = new ConfabulationValidator({
+  includeDerivedSchemas: true,
+  validatePrerequisites: false,
+  validateConflicts: false,
+});
+const CONFLICTED_TRAITS = new Set(DERIVED_TRAIT_CONFLICTS);
 
 // =============================================================================
 // TYPES
@@ -328,6 +346,26 @@ function validateComposition(code: string): ValidationResult {
   // Step 5: Check domain coherence
   const coherenceDiags = checkDomainCoherence(domainBlockTraits);
   diagnostics.push(...coherenceDiags);
+
+  // Step 5.5: Advisory per-trait prop-schema check (enum/type) against schemas derived from the
+  // .holo trait tree. WARNINGS ONLY — these never flip `valid` (which stays !hasErrors). Traits
+  // with unresolved .holo-vs-.holo conflicts are suppressed so the advisory stream is high-signal.
+  try {
+    const propResult = PROP_SCHEMA_VALIDATOR.validateComposition(composition);
+    for (const err of propResult.errors) {
+      const traitName = (err as { traitName?: string }).traitName;
+      if (traitName && CONFLICTED_TRAITS.has(traitName)) continue;
+      diagnostics.push({
+        severity: 'warning',
+        code: String(err.code),
+        message: err.message,
+        source: traitName,
+        suggestion: (err as { suggestion?: string }).suggestion,
+      });
+    }
+  } catch {
+    // Advisory only — a prop-schema check failure must never break composition validation.
+  }
 
   // Step 6: Collect domains used
   const domainsUsed = new Set<string>();

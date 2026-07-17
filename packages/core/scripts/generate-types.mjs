@@ -7023,13 +7023,42 @@ export class AuditLogger {
 }
 `;
 
+// Confabulation risk layer — the per-trait enum/type/range prop-schema validator plus the
+// schemas/conflicts derived from the .holo trait tree. Public API (see core/src/index.ts) so the
+// shared validate_composition fold point can advise on trait props authored in .holo. tsup emits
+// the runtime; this hand-crafted .d.ts declares the surface consumers import.
+const confabulationValidatorDTS = `
+// ============================================================================
+// Confabulation risk layer — trait prop-schema validator (enum/type/range)
+// ============================================================================
+export type TraitPropertyType = 'string' | 'number' | 'boolean' | 'array' | 'object' | 'color' | 'vector3' | 'enum' | 'any';
+export interface TraitPropertySchema { name: string; type: TraitPropertyType; required?: boolean; defaultValue?: unknown; min?: number; max?: number; enumValues?: string[]; description?: string; }
+export interface TraitSchema { name: string; category: string; properties: TraitPropertySchema[]; conflictsWith?: string[]; requires?: string[]; }
+export interface ConfabulationValidatorConfig { riskThreshold?: number; unknownPropertySeverity?: 'error' | 'warning'; validatePrerequisites?: boolean; validateConflicts?: boolean; validateRanges?: boolean; customSchemas?: TraitSchema[]; strict?: boolean; includeDerivedSchemas?: boolean; }
+export interface ConfabulationError { code: string; message: string; traitName?: string; objectName?: string; suggestion?: string; [key: string]: any; }
+export interface ConfabulationWarning { code: string; message: string; traitName?: string; objectName?: string; suggestion?: string; riskContribution?: number; [key: string]: any; }
+export interface ConfabulationValidationResult { valid: boolean; riskScore: number; errors: ConfabulationError[]; warnings: ConfabulationWarning[]; traitsChecked: number; propertiesChecked: number; validationTimeMs: number; }
+export declare class ConfabulationValidator {
+  constructor(config?: ConfabulationValidatorConfig);
+  validateComposition(composition: any): ConfabulationValidationResult;
+  validateTraitProperties(traitName: string, properties: Record<string, unknown>, objectName?: string): { errors: ConfabulationError[]; warnings: ConfabulationWarning[] };
+  getTraitSchema(traitName: string): TraitSchema | undefined;
+  registerSchema(schema: TraitSchema): void;
+  registerSchemas(schemas: TraitSchema[]): void;
+}
+export declare function getConfabulationValidator(config?: ConfabulationValidatorConfig): ConfabulationValidator;
+export declare const DERIVED_TRAIT_SCHEMAS: TraitSchema[];
+export declare const DERIVED_TRAIT_CONFLICTS: string[];
+`;
+
 const finalMainDTS =
   mainDTS +
   holoLandTraitsDTS +
   careFieldDTS +
   conversationDaemonDTS +
   daemonCustomizationDTS +
-  missingBarrelExportsDTS;
+  missingBarrelExportsDTS +
+  confabulationValidatorDTS;
 
 // Write type declaration files
 const files = [

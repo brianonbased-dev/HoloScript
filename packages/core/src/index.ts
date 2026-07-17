@@ -77,3 +77,19 @@ export {
 
 // Perceptual color science (non-Riemannian). Sovereign primitive; see ./color.
 export * from './color';
+
+// Confabulation risk layer — the per-trait enum/type/range prop-schema validator, plus the
+// schemas derived from the .holo trait tree. Public so the shared validate_composition fold
+// point can advise on trait props authored in .holo. DERIVED_TRAIT_CONFLICTS lists trait names
+// whose derived schema was resolved via a .holo-vs-.holo conflict (registry may be wrong there;
+// advisory surfaces suppress them until triaged). See
+// research/2026-07-17_semanticvalidator-shared-props-validator-feasibility.md.
+export {
+  ConfabulationValidator,
+  getConfabulationValidator,
+  type ConfabulationValidatorConfig,
+} from './compiler/identity/ConfabulationValidator';
+export {
+  DERIVED_TRAIT_SCHEMAS,
+  DERIVED_TRAIT_CONFLICTS,
+} from './compiler/identity/derived-trait-schemas.generated';

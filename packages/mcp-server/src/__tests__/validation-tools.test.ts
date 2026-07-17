@@ -141,4 +141,56 @@ describe('validate_composition', () => {
       expect(errors.some((e) => e.suggestion && e.suggestion.length > 0)).toBe(true);
     });
   });
+
+  // Phase 1 — advisory per-trait prop-schema check (enum/type). Warnings only; never flips
+  // `valid`; suppresses traits with unresolved .holo-vs-.holo conflicts.
+  describe('advisory prop-schema warnings', () => {
+    it('surfaces an invalid enum value as a WARNING without flipping valid', async () => {
+      const result = await validate(`
+        composition "RigidScene" {
+          object Ball {
+            @rigid(type: "not_a_body_type")
+            position: [0, 1, 0]
+          }
+        }
+      `);
+      // Advisory only: an invalid enum must NOT make the composition invalid.
+      expect(result.valid).toBe(true);
+      const enumWarn = result.diagnostics.find(
+        (d) =>
+          d.severity === 'warning' &&
+          d.code === 'CONFAB_INVALID_ENUM_VALUE' &&
+          d.source === 'rigid'
+      );
+      expect(enumWarn).toBeDefined();
+    });
+
+    it('does not warn for a valid enum value', async () => {
+      const result = await validate(`
+        composition "RigidScene" {
+          object Ball {
+            @rigid(type: "dynamic")
+            position: [0, 1, 0]
+          }
+        }
+      `);
+      expect(result.diagnostics.some((d) => d.code === 'CONFAB_INVALID_ENUM_VALUE')).toBe(false);
+    });
+
+    it('suppresses advisory warnings for traits with unresolved .holo conflicts', async () => {
+      const result = await validate(`
+        composition "A11yScene" {
+          object Panel {
+            @accessible(role: "not_a_real_role")
+            position: [0, 1, 0]
+          }
+        }
+      `);
+      // `accessible` is in DERIVED_TRAIT_CONFLICTS — advisory is suppressed until Phase 2 triage.
+      const accessibleWarn = result.diagnostics.find(
+        (d) => d.source === 'accessible' && d.code.startsWith('CONFAB')
+      );
+      expect(accessibleWarn).toBeUndefined();
+    });
+  });
 });

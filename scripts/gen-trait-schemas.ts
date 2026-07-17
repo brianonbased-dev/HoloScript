@@ -46,6 +46,7 @@ function main(): void {
   const files = holoFiles(TRAITS_DIR);
   const byName = new Map<string, { schema: TraitSchema; rel: string }>();
   const conflicts: string[] = [];
+  const conflictNames = new Set<string>();
   let derived = 0;
   let skipped = 0;
 
@@ -66,11 +67,13 @@ function main(): void {
     if (existing) {
       if (JSON.stringify(existing.schema) !== JSON.stringify(schema)) {
         conflicts.push(`  ${schema.name}: kept ${existing.rel}, ignored divergent ${rel}`);
+        conflictNames.add(schema.name);
       }
       continue; // deterministic winner = first in sorted-path order
     }
     byName.set(schema.name, { schema, rel });
   }
+  const sortedConflictNames = [...conflictNames].sort((a, b) => a.localeCompare(b));
 
   const schemas = [...byName.values()]
     .map((v) => v.schema)
@@ -91,7 +94,14 @@ function main(): void {
 
   const body =
     `import type { TraitSchema } from './ConfabulationValidator';\n\n` +
-    `export const DERIVED_TRAIT_SCHEMAS: TraitSchema[] = ${JSON.stringify(schemas, null, 2)};\n`;
+    `export const DERIVED_TRAIT_SCHEMAS: TraitSchema[] = ${JSON.stringify(schemas, null, 2)};\n\n` +
+    `/**\n` +
+    ` * Trait names whose derived schema was resolved via a .holo-vs-.holo conflict\n` +
+    ` * (same handler name, divergent props across files; first-in-sorted-path kept).\n` +
+    ` * The registry may hold the WRONG variant for these, so enforcement/advisory\n` +
+    ` * surfaces should suppress or flag them until the conflicts are triaged (Phase 2).\n` +
+    ` */\n` +
+    `export const DERIVED_TRAIT_CONFLICTS: string[] = ${JSON.stringify(sortedConflictNames, null, 2)};\n`;
 
   writeFileSync(OUT, `${header}\n${body}`, 'utf8');
 
