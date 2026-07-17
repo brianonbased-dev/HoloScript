@@ -1066,8 +1066,16 @@ impl Parser {
         self.expect(TokenType::LBrace)?;
 
         let mut fields = Vec::new();
+        let mut field_types = Vec::new();
         while !self.check(TokenType::RBrace) && !self.is_at_end() {
             fields.push(self.expect_identifier()?);
+            let field_type = if self.check(TokenType::Colon) {
+                self.advance();
+                Some(self.expect_identifier()?)
+            } else {
+                None
+            };
+            field_types.push(field_type);
             if self.check(TokenType::Comma) {
                 self.advance();
             }
@@ -1078,6 +1086,11 @@ impl Parser {
         Ok(AstNode::StructDeclaration(StructDeclarationNode {
             name,
             fields,
+            field_types: if field_types.iter().all(Option::is_none) {
+                Vec::new()
+            } else {
+                field_types
+            },
             loc: Some(self.location_from(start_loc)),
         }))
     }
@@ -3473,9 +3486,30 @@ function decideRoute(isWorldLink) {
                 s.fields,
                 vec!["x".to_string(), "y".to_string(), "z".to_string()]
             );
+            assert!(s.field_types.is_empty());
         } else {
             panic!("Expected StructDeclaration node, got {:?}", program.body[0]);
         }
+    }
+
+    #[test]
+    fn test_parse_typed_struct_fields_without_changing_legacy_field_names() {
+        let source = r#"struct Packet { enabled: bool, count: i64, code: i32 }"#;
+        let mut parser = Parser::new(source);
+        let program = parser.parse().expect("typed struct should parse");
+        let AstNode::StructDeclaration(packet) = &program.body[0] else {
+            panic!("expected StructDeclaration node");
+        };
+
+        assert_eq!(packet.fields, vec!["enabled", "count", "code"]);
+        assert_eq!(
+            packet.field_types,
+            vec![
+                Some("bool".to_string()),
+                Some("i64".to_string()),
+                Some("i32".to_string())
+            ]
+        );
     }
 
     #[test]

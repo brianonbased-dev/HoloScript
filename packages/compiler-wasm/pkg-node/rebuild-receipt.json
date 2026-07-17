@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-07-17T13:51:20Z",
+  "generatedAt": "2026-07-17T18:51:42Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "13fadfddb1a41b4466c2212545d7fc5636e0e849+working-tree-hs-machine-v4",
+  "sourceCommit": "2b25fce75797d12d698673c0724c0514d852edf2+working-tree-hs-machine-v6",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
     "$env:Path = 'C:\\Users\\josep\\.cargo\\bin;' + $env:Path",
@@ -16,8 +16,8 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 282125,
-    "wasmSha256": "8ccf92ecb8c0635f20b4bc038f11a1c1ccf43bed25723c13fda323ed94a85e2e",
-    "note": "Rebuilt the Node WASM artifact from the working-tree Rust parser containing the canonical hs-machine-v4 LexicalScope node, hs-machine-v3 reference syntax, and the HS010 lexical firewall. The source changes are committed with this artifact so the working-tree suffix resolves to that commit."
+    "wasmBytes": 283391,
+    "wasmSha256": "99606890640888cbd19c4c9c9cd018909c23bbe4415d71f7c83d9a9b86ad9e20",
+    "note": "Rebuilt the Node WASM artifact from the working-tree Rust parser containing canonical typed struct fields for hs-machine-v6 while preserving legacy untyped struct serialization. The source changes are committed with this artifact so the working-tree suffix resolves to that commit."
   }
 }

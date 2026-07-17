@@ -544,15 +544,19 @@ pub struct EnumDeclarationNode {
     pub loc: Option<Location>,
 }
 
-/// Struct (record) declaration: `struct Vec3 { x, y, z }` or `struct Hit { id, dist }`.
-/// A named immutable data carrier whose fields are bare identifiers (untyped in the `.hs`
-/// logic subset — the Kotlin backend types each field by usage, defaulting to `Float`).
-/// The Kotlin backend emits `data class <Name>(val <field>: <T>, …)`; pure functions can
-/// return a struct to carry a multi-field result without resorting to a side-effecting host call.
+/// Struct (record) declaration: `struct Vec3 { x, y, z }` or
+/// `struct Packet { enabled: bool, count: i64 }`.
+///
+/// Legacy untyped records remain inferred data carriers for target emitters such as Kotlin.
+/// Explicit field types carry deterministic systems-language layout metadata for native machine
+/// contracts; emitters without an equivalent target layout must fail closed.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StructDeclarationNode {
     pub name: String,
     pub fields: Vec<String>,
+    /// Empty for legacy inferred records; otherwise aligned 1:1 with `fields`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub field_types: Vec<Option<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub loc: Option<Location>,
 }

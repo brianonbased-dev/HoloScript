@@ -8,8 +8,9 @@
 //! addresses. `hs-machine-v4` adds lexical lifetime boundaries that release scoped
 //! borrows and remove scoped bindings. `hs-machine-v5` adds native booleans,
 //! comparisons, short-circuit logic, branches, and bounded while loops with cleanup
-//! on every lexical-scope exit. Everything outside the selected contract fails closed
-//! with a native compile diagnostic.
+//! on every lexical-scope exit. `hs-machine-v6` adds typed, contiguous stack aggregates
+//! with deterministic field layout. Everything outside the selected contract fails
+//! closed with a native compile diagnostic.
 
 use std::collections::{HashMap, HashSet};
 use std::env;
@@ -38,6 +39,7 @@ pub const MEMORY_MACHINE_CONTRACT: &str = "hs-machine-v2";
 pub const REFERENCE_MACHINE_CONTRACT: &str = "hs-machine-v3";
 pub const REFERENCE_SCOPE_MACHINE_CONTRACT: &str = "hs-machine-v4";
 pub const CONTROL_FLOW_MACHINE_CONTRACT: &str = "hs-machine-v5";
+pub const AGGREGATE_MACHINE_CONTRACT: &str = "hs-machine-v6";
 
 struct CompiledObject {
     bytes: Vec<u8>,
@@ -69,6 +71,23 @@ pub struct NativeArtifact {
     pub executable: PathBuf,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct NativeFieldLayout {
+    pub name: String,
+    pub machine_type: String,
+    pub offset: u32,
+    pub size: u32,
+    pub alignment: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct NativeStructLayout {
+    pub name: String,
+    pub size: u32,
+    pub alignment: u32,
+    pub fields: Vec<NativeFieldLayout>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NativeCompileError {
     message: String,
@@ -98,6 +117,29 @@ pub fn compile_object(
     Ok(compile_unit(source, options)?.bytes)
 }
 
+/// Parse canonical HoloScript and report the exact native v6 aggregate layouts.
+pub fn inspect_native_layouts(source: &str) -> Result<Vec<NativeStructLayout>, NativeCompileError> {
+    let ast = holoscript_wasm::parse_ast(source).map_err(|diagnostics| {
+        let rendered = diagnostics
+            .into_iter()
+            .map(|diagnostic| {
+                format!(
+                    "{}:{}: {}",
+                    diagnostic.line, diagnostic.column, diagnostic.message
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("; ");
+        NativeCompileError::new(format!("HoloScript parse failed: {rendered}"))
+    })?;
+    collect_aggregate_layouts(&ast, AGGREGATE_MACHINE_CONTRACT).map(|layouts| {
+        layouts
+            .into_iter()
+            .map(AggregateLayout::into_public)
+            .collect()
+    })
+}
+
 fn compile_unit(
     source: &str,
     _options: &NativeCompileOptions,
@@ -116,7 +158,12 @@ fn compile_unit(
         NativeCompileError::new(format!("HoloScript parse failed: {rendered}"))
     })?;
 
-    if has_control_flow_machine_metadata(&ast) {
+    if has_aggregate_machine_metadata(&ast) {
+        Ok(CompiledObject {
+            bytes: lower_typed_ast_to_object(&ast, AGGREGATE_MACHINE_CONTRACT, true)?,
+            machine_contract: AGGREGATE_MACHINE_CONTRACT,
+        })
+    } else if has_control_flow_machine_metadata(&ast) {
         Ok(CompiledObject {
             bytes: lower_typed_ast_to_object(&ast, CONTROL_FLOW_MACHINE_CONTRACT, true)?,
             machine_contract: CONTROL_FLOW_MACHINE_CONTRACT,
@@ -297,6 +344,15 @@ fn has_typed_machine_metadata(ast: &Ast) -> bool {
     })
 }
 
+fn has_aggregate_machine_metadata(ast: &Ast) -> bool {
+    ast.body.iter().any(|node| {
+        matches!(
+            node,
+            AstNode::StructDeclaration(structure) if !structure.field_types.is_empty()
+        )
+    })
+}
+
 fn has_memory_machine_metadata(ast: &Ast) -> bool {
     ast.body.iter().any(|node| {
         matches!(
@@ -465,11 +521,11 @@ impl MachineType {
         machine_contract: &str,
     ) -> Result<Self, NativeCompileError> {
         match name {
-            "bool" if machine_contract == CONTROL_FLOW_MACHINE_CONTRACT => Ok(Self::Bool),
+            "bool" if bool_enabled(machine_contract) => Ok(Self::Bool),
             "i32" => Ok(Self::I32),
             "i64" => Ok(Self::I64),
             other => {
-                let supported = if machine_contract == CONTROL_FLOW_MACHINE_CONTRACT {
+                let supported = if bool_enabled(machine_contract) {
                     "`bool`, `i32`, and `i64`"
                 } else {
                     "`i32` and `i64`"
@@ -514,6 +570,219 @@ impl MachineType {
     }
 }
 
+fn bool_enabled(machine_contract: &str) -> bool {
+    matches!(
+        machine_contract,
+        CONTROL_FLOW_MACHINE_CONTRACT | AGGREGATE_MACHINE_CONTRACT
+    )
+}
+
+fn control_flow_enabled(machine_contract: &str) -> bool {
+    matches!(
+        machine_contract,
+        CONTROL_FLOW_MACHINE_CONTRACT | AGGREGATE_MACHINE_CONTRACT
+    )
+}
+
+fn scoped_lifetimes_enabled(machine_contract: &str) -> bool {
+    matches!(
+        machine_contract,
+        REFERENCE_SCOPE_MACHINE_CONTRACT
+            | CONTROL_FLOW_MACHINE_CONTRACT
+            | AGGREGATE_MACHINE_CONTRACT
+    )
+}
+
+fn references_enabled(machine_contract: &str) -> bool {
+    matches!(
+        machine_contract,
+        REFERENCE_MACHINE_CONTRACT
+            | REFERENCE_SCOPE_MACHINE_CONTRACT
+            | CONTROL_FLOW_MACHINE_CONTRACT
+            | AGGREGATE_MACHINE_CONTRACT
+    )
+}
+
+fn memory_contract_enabled(machine_contract: &str) -> bool {
+    matches!(
+        machine_contract,
+        MEMORY_MACHINE_CONTRACT
+            | REFERENCE_MACHINE_CONTRACT
+            | REFERENCE_SCOPE_MACHINE_CONTRACT
+            | CONTROL_FLOW_MACHINE_CONTRACT
+            | AGGREGATE_MACHINE_CONTRACT
+    )
+}
+
+#[derive(Debug, Clone)]
+struct AggregateFieldLayout {
+    name: String,
+    machine_type: MachineType,
+    offset: u32,
+}
+
+#[derive(Debug, Clone)]
+struct AggregateLayout {
+    name: String,
+    size: u32,
+    align_shift: u8,
+    fields: Vec<AggregateFieldLayout>,
+}
+
+impl AggregateLayout {
+    fn alignment(&self) -> u32 {
+        1_u32 << self.align_shift
+    }
+
+    fn into_public(self) -> NativeStructLayout {
+        let alignment = self.alignment();
+        NativeStructLayout {
+            name: self.name,
+            size: self.size,
+            alignment,
+            fields: self
+                .fields
+                .into_iter()
+                .map(|field| NativeFieldLayout {
+                    name: field.name,
+                    machine_type: field.machine_type.name().to_string(),
+                    offset: field.offset,
+                    size: field.machine_type.stack_size(),
+                    alignment: 1_u32 << field.machine_type.stack_align_shift(),
+                })
+                .collect(),
+        }
+    }
+}
+
+fn collect_aggregate_layouts(
+    ast: &Ast,
+    machine_contract: &str,
+) -> Result<Vec<AggregateLayout>, NativeCompileError> {
+    let struct_names = ast
+        .body
+        .iter()
+        .filter_map(|node| match node {
+            AstNode::StructDeclaration(structure) => Some(structure.name.as_str()),
+            _ => None,
+        })
+        .collect::<HashSet<_>>();
+    let mut layouts = Vec::new();
+    let mut declared_names = HashSet::new();
+
+    for node in &ast.body {
+        let AstNode::StructDeclaration(structure) = node else {
+            continue;
+        };
+        if !declared_names.insert(structure.name.as_str()) {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} declares duplicate struct `{}`",
+                structure.name
+            )));
+        }
+        if matches!(structure.name.as_str(), "load" | "store") {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} reserves struct name `{}` for explicit memory access",
+                structure.name
+            )));
+        }
+        if structure.fields.is_empty() {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} struct `{}` must declare at least one field",
+                structure.name
+            )));
+        }
+        if structure.field_types.len() != structure.fields.len()
+            || structure.field_types.iter().any(Option::is_none)
+        {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} struct `{}` requires a type for every field",
+                structure.name
+            )));
+        }
+
+        let mut offset = 0_u32;
+        let mut align_shift = 0_u8;
+        let mut fields = Vec::with_capacity(structure.fields.len());
+        let mut field_names = HashSet::new();
+        for (field_name, type_name) in structure
+            .fields
+            .iter()
+            .zip(structure.field_types.iter().flatten())
+        {
+            if !field_names.insert(field_name.as_str()) {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} struct `{}` declares duplicate field `{field_name}`",
+                    structure.name
+                )));
+            }
+            if struct_names.contains(type_name.as_str()) {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} field `{field_name}` uses unsupported nested aggregate type `{type_name}` in struct `{}`",
+                    structure.name,
+                )));
+            }
+            let machine_type = MachineType::parse(
+                type_name,
+                &format!("field `{field_name}` in struct `{}`", structure.name),
+                machine_contract,
+            )?;
+            let field_alignment = 1_u32 << machine_type.stack_align_shift();
+            offset = align_up(offset, field_alignment, machine_contract, &structure.name)?;
+            fields.push(AggregateFieldLayout {
+                name: field_name.clone(),
+                machine_type,
+                offset,
+            });
+            offset = offset
+                .checked_add(machine_type.stack_size())
+                .ok_or_else(|| {
+                    NativeCompileError::new(format!(
+                        "{machine_contract} struct `{}` exceeds native stack layout limits",
+                        structure.name
+                    ))
+                })?;
+            align_shift = align_shift.max(machine_type.stack_align_shift());
+        }
+        let size = align_up(
+            offset,
+            1_u32 << align_shift,
+            machine_contract,
+            &structure.name,
+        )?;
+        if size > i32::MAX as u32 {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} struct `{}` exceeds addressable native stack offsets",
+                structure.name
+            )));
+        }
+        layouts.push(AggregateLayout {
+            name: structure.name.clone(),
+            size,
+            align_shift,
+            fields,
+        });
+    }
+    Ok(layouts)
+}
+
+fn align_up(
+    value: u32,
+    alignment: u32,
+    machine_contract: &str,
+    struct_name: &str,
+) -> Result<u32, NativeCompileError> {
+    let mask = alignment - 1;
+    value
+        .checked_add(mask)
+        .map(|padded| padded & !mask)
+        .ok_or_else(|| {
+            NativeCompileError::new(format!(
+                "{machine_contract} struct `{struct_name}` exceeds native stack layout limits"
+            ))
+        })
+}
+
 struct TypedFunctionSpec<'a> {
     node: &'a FunctionNode,
     params: Vec<MachineType>,
@@ -533,10 +802,25 @@ struct TypedValue {
     machine_type: MachineType,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 struct TypedStackSlot {
     slot: StackSlot,
-    machine_type: MachineType,
+    layout: StackSlotLayout,
+}
+
+#[derive(Clone)]
+enum StackSlotLayout {
+    Scalar(MachineType),
+    Aggregate(AggregateLayout),
+}
+
+impl TypedStackSlot {
+    fn scalar_type(&self) -> Option<MachineType> {
+        match self.layout {
+            StackSlotLayout::Scalar(machine_type) => Some(machine_type),
+            StackSlotLayout::Aggregate(_) => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -595,7 +879,12 @@ fn lower_typed_ast_to_object(
     machine_contract: &'static str,
     memory_enabled: bool,
 ) -> Result<Vec<u8>, NativeCompileError> {
-    let specs = collect_typed_function_specs(ast, machine_contract)?;
+    let aggregate_layouts = collect_aggregate_layouts(ast, machine_contract)?;
+    let aggregate_layouts = aggregate_layouts
+        .into_iter()
+        .map(|layout| (layout.name.clone(), layout))
+        .collect::<HashMap<_, _>>();
+    let specs = collect_typed_function_specs(ast, machine_contract, &aggregate_layouts)?;
     let mut module = create_object_module()?;
     let mut functions = HashMap::new();
 
@@ -668,6 +957,7 @@ fn lower_typed_ast_to_object(
                 &mut builder,
                 &mut module,
                 &functions,
+                &aggregate_layouts,
                 &mut locals,
                 spec,
                 machine_contract,
@@ -723,6 +1013,7 @@ fn lower_typed_ast_to_object(
 fn collect_typed_function_specs<'a>(
     ast: &'a Ast,
     machine_contract: &str,
+    aggregate_layouts: &HashMap<String, AggregateLayout>,
 ) -> Result<Vec<TypedFunctionSpec<'a>>, NativeCompileError> {
     if ast.body.is_empty() {
         return Err(NativeCompileError::new(format!(
@@ -733,21 +1024,27 @@ fn collect_typed_function_specs<'a>(
     let mut specs = Vec::with_capacity(ast.body.len());
     let mut names = HashMap::new();
     for node in &ast.body {
+        if matches!(node, AstNode::StructDeclaration(_))
+            && machine_contract == AGGREGATE_MACHINE_CONTRACT
+        {
+            continue;
+        }
         let AstNode::Function(function) = node else {
             return Err(NativeCompileError::new(format!(
                 "{machine_contract} accepts only top-level function declarations"
             )));
         };
-        if matches!(
-            machine_contract,
-            MEMORY_MACHINE_CONTRACT
-                | REFERENCE_MACHINE_CONTRACT
-                | REFERENCE_SCOPE_MACHINE_CONTRACT
-                | CONTROL_FLOW_MACHINE_CONTRACT
-        ) && matches!(function.name.as_str(), "load" | "store")
+        if memory_contract_enabled(machine_contract)
+            && matches!(function.name.as_str(), "load" | "store")
         {
             return Err(NativeCompileError::new(format!(
                 "{machine_contract} reserves function name `{}` for explicit memory access",
+                function.name
+            )));
+        }
+        if aggregate_layouts.contains_key(&function.name) {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} function `{}` collides with an aggregate constructor",
                 function.name
             )));
         }
@@ -776,15 +1073,15 @@ fn collect_typed_function_specs<'a>(
                         function.name
                     ))
                 })?;
-            if matches!(
-                machine_contract,
-                REFERENCE_MACHINE_CONTRACT
-                    | REFERENCE_SCOPE_MACHINE_CONTRACT
-                    | CONTROL_FLOW_MACHINE_CONTRACT
-            ) && type_name.starts_with('&')
-            {
+            if references_enabled(machine_contract) && type_name.starts_with('&') {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} references cannot appear in function parameters; `{param_name}` in `{}` would escape its declaring function",
+                    function.name
+                )));
+            }
+            if aggregate_layouts.contains_key(type_name) {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} aggregates cannot appear in function parameters; `{param_name}` in `{}` uses `{type_name}`",
                     function.name
                 )));
             }
@@ -800,15 +1097,15 @@ fn collect_typed_function_specs<'a>(
                 function.name
             ))
         })?;
-        if matches!(
-            machine_contract,
-            REFERENCE_MACHINE_CONTRACT
-                | REFERENCE_SCOPE_MACHINE_CONTRACT
-                | CONTROL_FLOW_MACHINE_CONTRACT
-        ) && return_name.starts_with('&')
-        {
+        if references_enabled(machine_contract) && return_name.starts_with('&') {
             return Err(NativeCompileError::new(format!(
                 "{machine_contract} references cannot appear in function returns; `{}` would expose an address-bearing value",
+                function.name
+            )));
+        }
+        if aggregate_layouts.contains_key(return_name) {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} aggregates cannot appear in function returns; `{}` returns `{return_name}`",
                 function.name
             )));
         }
@@ -858,10 +1155,12 @@ fn machine_signature(
     signature
 }
 
+#[allow(clippy::too_many_arguments)]
 fn lower_typed_body(
     builder: &mut FunctionBuilder<'_>,
     module: &mut ObjectModule,
     functions: &HashMap<String, TypedFunctionAbi>,
+    aggregate_layouts: &HashMap<String, AggregateLayout>,
     locals: &mut HashMap<String, TypedValue>,
     spec: &TypedFunctionSpec<'_>,
     machine_contract: &str,
@@ -875,6 +1174,7 @@ fn lower_typed_body(
         builder,
         module,
         functions,
+        aggregate_layouts,
         locals,
         &mut stack_slots,
         &mut references,
@@ -901,6 +1201,7 @@ fn lower_typed_statements(
     builder: &mut FunctionBuilder<'_>,
     module: &mut ObjectModule,
     functions: &HashMap<String, TypedFunctionAbi>,
+    aggregate_layouts: &HashMap<String, AggregateLayout>,
     locals: &mut HashMap<String, TypedValue>,
     stack_slots: &mut HashMap<String, TypedStackSlot>,
     references: &mut HashMap<String, TypedReference>,
@@ -936,15 +1237,16 @@ fn lower_typed_statements(
                 })?;
                 let type_context =
                     format!("local `{}` in function `{}`", local.name, spec.node.name);
+                if aggregate_layouts.contains_key(type_name) {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} aggregate local `{}` must use addressable `slot` storage",
+                        local.name
+                    )));
+                }
                 if let Some(reference_type) =
                     ReferenceType::parse(type_name, &type_context, machine_contract)?
                 {
-                    if !matches!(
-                        machine_contract,
-                        REFERENCE_MACHINE_CONTRACT
-                            | REFERENCE_SCOPE_MACHINE_CONTRACT
-                            | CONTROL_FLOW_MACHINE_CONTRACT
-                    ) {
+                    if !references_enabled(machine_contract) {
                         return Err(NativeCompileError::new(format!(
                             "{machine_contract} does not enable typed references"
                         )));
@@ -1011,6 +1313,72 @@ fn lower_typed_statements(
                         spec.node.name, slot.name
                     )));
                 }
+                if let Some(layout) = aggregate_layouts.get(&slot.type_annotation) {
+                    let AstNode::CallExpression(constructor) = slot.value.as_ref() else {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} aggregate stack slot `{}` must be initialized with `{}(...)`",
+                            slot.name, layout.name
+                        )));
+                    };
+                    let AstNode::Identifier(constructor_name) = constructor.callee.as_ref() else {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} aggregate stack slot `{}` requires a named constructor",
+                            slot.name
+                        )));
+                    };
+                    if constructor_name.name != layout.name {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} stack slot `{}` expects constructor `{}`, found `{}`",
+                            slot.name, layout.name, constructor_name.name
+                        )));
+                    }
+                    if constructor.arguments.len() != layout.fields.len() {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} constructor `{}` expects {} fields, found {}",
+                            layout.name,
+                            layout.fields.len(),
+                            constructor.arguments.len()
+                        )));
+                    }
+
+                    let mut initial_values = Vec::with_capacity(layout.fields.len());
+                    for (field, argument) in layout.fields.iter().zip(&constructor.arguments) {
+                        initial_values.push(lower_typed_expression(
+                            builder,
+                            module,
+                            functions,
+                            locals,
+                            stack_slots,
+                            references,
+                            borrow_states,
+                            argument,
+                            field.machine_type,
+                            &format!("field `{}` in constructor `{}`", field.name, layout.name),
+                            machine_contract,
+                            memory_enabled,
+                        )?);
+                    }
+                    let stack_slot = builder.create_sized_stack_slot(StackSlotData::new(
+                        StackSlotKind::ExplicitSlot,
+                        layout.size,
+                        layout.align_shift,
+                    ));
+                    for (field, initial_value) in layout.fields.iter().zip(initial_values) {
+                        builder.ins().stack_store(
+                            initial_value.value,
+                            stack_slot,
+                            i32::try_from(field.offset).expect("validated aggregate field offset"),
+                        );
+                    }
+                    stack_slots.insert(
+                        slot.name.clone(),
+                        TypedStackSlot {
+                            slot: stack_slot,
+                            layout: StackSlotLayout::Aggregate(layout.clone()),
+                        },
+                    );
+                    continue;
+                }
                 let machine_type = MachineType::parse(
                     &slot.type_annotation,
                     &format!(
@@ -1045,7 +1413,7 @@ fn lower_typed_statements(
                     slot.name.clone(),
                     TypedStackSlot {
                         slot: stack_slot,
-                        machine_type,
+                        layout: StackSlotLayout::Scalar(machine_type),
                     },
                 );
             }
@@ -1068,14 +1436,7 @@ fn lower_typed_statements(
                     machine_contract,
                 )?;
             }
-            AstNode::Assignment(assignment)
-                if matches!(
-                    machine_contract,
-                    REFERENCE_MACHINE_CONTRACT
-                        | REFERENCE_SCOPE_MACHINE_CONTRACT
-                        | CONTROL_FLOW_MACHINE_CONTRACT
-                ) =>
-            {
+            AstNode::Assignment(assignment) if references_enabled(machine_contract) => {
                 lower_reference_assignment(
                     builder,
                     module,
@@ -1088,16 +1449,12 @@ fn lower_typed_statements(
                     machine_contract,
                 )?;
             }
-            AstNode::LexicalScope(scope)
-                if matches!(
-                    machine_contract,
-                    REFERENCE_SCOPE_MACHINE_CONTRACT | CONTROL_FLOW_MACHINE_CONTRACT
-                ) =>
-            {
+            AstNode::LexicalScope(scope) if scoped_lifetimes_enabled(machine_contract) => {
                 outcome = lower_lexical_scope(
                     builder,
                     module,
                     functions,
+                    aggregate_layouts,
                     locals,
                     stack_slots,
                     references,
@@ -1108,11 +1465,12 @@ fn lower_typed_statements(
                     memory_enabled,
                 )?;
             }
-            AstNode::If(if_node) if machine_contract == CONTROL_FLOW_MACHINE_CONTRACT => {
+            AstNode::If(if_node) if control_flow_enabled(machine_contract) => {
                 outcome = lower_typed_if(
                     builder,
                     module,
                     functions,
+                    aggregate_layouts,
                     locals,
                     stack_slots,
                     references,
@@ -1123,11 +1481,12 @@ fn lower_typed_statements(
                     memory_enabled,
                 )?;
             }
-            AstNode::While(while_node) if machine_contract == CONTROL_FLOW_MACHINE_CONTRACT => {
+            AstNode::While(while_node) if control_flow_enabled(machine_contract) => {
                 lower_typed_while(
                     builder,
                     module,
                     functions,
+                    aggregate_layouts,
                     locals,
                     stack_slots,
                     references,
@@ -1202,6 +1561,7 @@ fn lower_typed_if(
     builder: &mut FunctionBuilder<'_>,
     module: &mut ObjectModule,
     functions: &HashMap<String, TypedFunctionAbi>,
+    aggregate_layouts: &HashMap<String, AggregateLayout>,
     locals: &mut HashMap<String, TypedValue>,
     stack_slots: &mut HashMap<String, TypedStackSlot>,
     references: &mut HashMap<String, TypedReference>,
@@ -1237,6 +1597,7 @@ fn lower_typed_if(
         builder,
         module,
         functions,
+        aggregate_layouts,
         locals,
         stack_slots,
         references,
@@ -1257,6 +1618,7 @@ fn lower_typed_if(
         builder,
         module,
         functions,
+        aggregate_layouts,
         locals,
         stack_slots,
         references,
@@ -1284,6 +1646,7 @@ fn lower_typed_while(
     builder: &mut FunctionBuilder<'_>,
     module: &mut ObjectModule,
     functions: &HashMap<String, TypedFunctionAbi>,
+    aggregate_layouts: &HashMap<String, AggregateLayout>,
     locals: &mut HashMap<String, TypedValue>,
     stack_slots: &mut HashMap<String, TypedStackSlot>,
     references: &mut HashMap<String, TypedReference>,
@@ -1322,6 +1685,7 @@ fn lower_typed_while(
         builder,
         module,
         functions,
+        aggregate_layouts,
         locals,
         stack_slots,
         references,
@@ -1345,6 +1709,7 @@ fn lower_lexical_scope(
     builder: &mut FunctionBuilder<'_>,
     module: &mut ObjectModule,
     functions: &HashMap<String, TypedFunctionAbi>,
+    aggregate_layouts: &HashMap<String, AggregateLayout>,
     locals: &mut HashMap<String, TypedValue>,
     stack_slots: &mut HashMap<String, TypedStackSlot>,
     references: &mut HashMap<String, TypedReference>,
@@ -1358,6 +1723,7 @@ fn lower_lexical_scope(
         builder,
         module,
         functions,
+        aggregate_layouts,
         locals,
         stack_slots,
         references,
@@ -1366,7 +1732,7 @@ fn lower_lexical_scope(
         spec,
         machine_contract,
         memory_enabled,
-        machine_contract == CONTROL_FLOW_MACHINE_CONTRACT,
+        control_flow_enabled(machine_contract),
     )
 }
 
@@ -1375,6 +1741,7 @@ fn lower_scoped_statements(
     builder: &mut FunctionBuilder<'_>,
     module: &mut ObjectModule,
     functions: &HashMap<String, TypedFunctionAbi>,
+    aggregate_layouts: &HashMap<String, AggregateLayout>,
     locals: &mut HashMap<String, TypedValue>,
     stack_slots: &mut HashMap<String, TypedStackSlot>,
     references: &mut HashMap<String, TypedReference>,
@@ -1395,6 +1762,7 @@ fn lower_scoped_statements(
         builder,
         module,
         functions,
+        aggregate_layouts,
         locals,
         stack_slots,
         references,
@@ -1486,23 +1854,36 @@ fn lower_reference_initializer(
             borrow.operator,
         )));
     }
+    if machine_contract == AGGREGATE_MACHINE_CONTRACT
+        && matches!(borrow.argument.as_ref(), AstNode::MemberExpression(_))
+    {
+        return Err(NativeCompileError::new(format!(
+            "field references are not enabled by {machine_contract}; reference `{reference_name}` must borrow a scalar stack slot"
+        )));
+    }
     let AstNode::Identifier(identifier) = borrow.argument.as_ref() else {
         return Err(NativeCompileError::new(format!(
             "{machine_contract} reference `{reference_name}` requires a declared stack slot as its provenance root"
         )));
     };
-    let stack_slot = stack_slots.get(&identifier.name).copied().ok_or_else(|| {
+    let stack_slot = stack_slots.get(&identifier.name).ok_or_else(|| {
         NativeCompileError::new(format!(
             "{machine_contract} reference `{reference_name}` requires a declared stack slot; `{}` is not addressable",
             identifier.name
         ))
     })?;
-    if stack_slot.machine_type != reference_type.pointee {
+    let Some(machine_type) = stack_slot.scalar_type() else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} reference `{reference_name}` cannot borrow aggregate stack slot `{}` without a field projection",
+            identifier.name
+        )));
+    };
+    if machine_type != reference_type.pointee {
         return Err(NativeCompileError::new(format!(
             "{machine_contract} reference `{reference_name}` expects `{}`, but stack slot `{}` stores `{}`",
             reference_type.pointee.name(),
             identifier.name,
-            stack_slot.machine_type.name()
+            machine_type.name()
         )));
     }
 
@@ -1560,15 +1941,12 @@ fn lower_reference_dereference(
             reference.pointee.name()
         )));
     }
-    let stack_slot = stack_slots
-        .get(&reference.slot_name)
-        .copied()
-        .ok_or_else(|| {
-            NativeCompileError::new(format!(
-                "{machine_contract} reference `{}` lost its stack-slot provenance",
-                identifier.name
-            ))
-        })?;
+    let stack_slot = stack_slots.get(&reference.slot_name).ok_or_else(|| {
+        NativeCompileError::new(format!(
+            "{machine_contract} reference `{}` lost its stack-slot provenance",
+            identifier.name
+        ))
+    })?;
     Ok(TypedValue {
         value: builder
             .ins()
@@ -1621,15 +1999,12 @@ fn lower_reference_assignment(
             identifier.name
         )));
     }
-    let stack_slot = stack_slots
-        .get(&reference.slot_name)
-        .copied()
-        .ok_or_else(|| {
-            NativeCompileError::new(format!(
-                "{machine_contract} reference `{}` lost its stack-slot provenance",
-                identifier.name
-            ))
-        })?;
+    let stack_slot = stack_slots.get(&reference.slot_name).ok_or_else(|| {
+        NativeCompileError::new(format!(
+            "{machine_contract} reference `{}` lost its stack-slot provenance",
+            identifier.name
+        ))
+    })?;
     let value = lower_typed_expression(
         builder,
         module,
@@ -2004,10 +2379,14 @@ fn known_expression_type(
                 return None;
             };
             if callee.name == "load" {
-                let AstNode::Identifier(slot) = call.arguments.first()? else {
-                    return None;
-                };
-                stack_slots.get(&slot.name).map(|slot| slot.machine_type)
+                resolve_stack_access(
+                    call.arguments.first()?,
+                    stack_slots,
+                    "load",
+                    AGGREGATE_MACHINE_CONTRACT,
+                )
+                .ok()
+                .map(|access| access.machine_type)
             } else {
                 functions.get(&callee.name).map(|abi| abi.result)
             }
@@ -2183,6 +2562,94 @@ fn lower_typed_logical(
     })
 }
 
+struct ResolvedStackAccess {
+    slot: StackSlot,
+    machine_type: MachineType,
+    offset: i32,
+    root_name: String,
+    display: String,
+}
+
+fn resolve_stack_access(
+    argument: &AstNode,
+    stack_slots: &HashMap<String, TypedStackSlot>,
+    operation: &str,
+    machine_contract: &str,
+) -> Result<ResolvedStackAccess, NativeCompileError> {
+    match argument {
+        AstNode::Identifier(identifier) => {
+            let stack_slot = stack_slots.get(&identifier.name).ok_or_else(|| {
+                NativeCompileError::new(format!(
+                    "{machine_contract} `{operation}` references unknown stack slot `{}`",
+                    identifier.name
+                ))
+            })?;
+            let Some(machine_type) = stack_slot.scalar_type() else {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} aggregate slot `{}` requires a field projection",
+                    identifier.name
+                )));
+            };
+            Ok(ResolvedStackAccess {
+                slot: stack_slot.slot,
+                machine_type,
+                offset: 0,
+                root_name: identifier.name.clone(),
+                display: identifier.name.clone(),
+            })
+        }
+        AstNode::MemberExpression(member) => {
+            if member.computed {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} `{operation}` does not support computed aggregate field access"
+                )));
+            }
+            let AstNode::Identifier(root) = member.object.as_ref() else {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} `{operation}` requires a direct aggregate slot as the field root"
+                )));
+            };
+            let AstNode::Identifier(property) = member.property.as_ref() else {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} `{operation}` requires a named aggregate field"
+                )));
+            };
+            let stack_slot = stack_slots.get(&root.name).ok_or_else(|| {
+                NativeCompileError::new(format!(
+                    "{machine_contract} `{operation}` references unknown aggregate slot `{}`",
+                    root.name
+                ))
+            })?;
+            let StackSlotLayout::Aggregate(layout) = &stack_slot.layout else {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} scalar stack slot `{}` has no field `{}`",
+                    root.name, property.name
+                )));
+            };
+            let field = layout
+                .fields
+                .iter()
+                .find(|field| field.name == property.name)
+                .ok_or_else(|| {
+                    NativeCompileError::new(format!(
+                        "{machine_contract} aggregate `{}` has no field `{}`",
+                        layout.name, property.name
+                    ))
+                })?;
+            Ok(ResolvedStackAccess {
+                slot: stack_slot.slot,
+                machine_type: field.machine_type,
+                offset: i32::try_from(field.offset).expect("validated aggregate field offset"),
+                root_name: root.name.clone(),
+                display: format!("{}.{}", root.name, property.name),
+            })
+        }
+        _ => Err(NativeCompileError::new(format!(
+            "{machine_contract} `{operation}` requires a stack slot or aggregate field"
+        ))),
+    }
+}
+
 fn lower_typed_load(
     builder: &mut FunctionBuilder<'_>,
     stack_slots: &HashMap<String, TypedStackSlot>,
@@ -2198,39 +2665,33 @@ fn lower_typed_load(
             call.arguments.len()
         )));
     }
-    let AstNode::Identifier(identifier) = &call.arguments[0] else {
-        return Err(NativeCompileError::new(format!(
-            "{machine_contract} `load` requires a stack-slot identifier"
-        )));
-    };
-    let stack_slot = stack_slots.get(&identifier.name).copied().ok_or_else(|| {
-        NativeCompileError::new(format!(
-            "{machine_contract} `load` references unknown stack slot `{}`",
-            identifier.name
-        ))
-    })?;
+    let access = resolve_stack_access(&call.arguments[0], stack_slots, "load", machine_contract)?;
     if borrow_states
-        .get(&identifier.name)
+        .get(&access.root_name)
         .is_some_and(|state| state.exclusive)
     {
         return Err(NativeCompileError::new(format!(
             "{machine_contract} cannot directly load stack slot `{}` while an exclusive borrow is active",
-            identifier.name
+            access.root_name
         )));
     }
-    if stack_slot.machine_type != expected {
+    if access.machine_type != expected {
+        let storage = if access.display.contains('.') {
+            format!("aggregate field `{}`", access.display)
+        } else {
+            format!("stack slot `{}`", access.display)
+        };
         return Err(NativeCompileError::new(format!(
-            "{machine_contract} {context} expects `{}`, but stack slot `{}` stores `{}`; implicit coercions are forbidden",
+            "{machine_contract} {context} expects `{}`, but {storage} stores `{}`; implicit coercions are forbidden",
             expected.name(),
-            identifier.name,
-            stack_slot.machine_type.name()
+            access.machine_type.name()
         )));
     }
     Ok(TypedValue {
         value: builder
             .ins()
-            .stack_load(stack_slot.machine_type.ir_type(), stack_slot.slot, 0),
-        machine_type: stack_slot.machine_type,
+            .stack_load(access.machine_type.ir_type(), access.slot, access.offset),
+        machine_type: access.machine_type,
     })
 }
 
@@ -2252,26 +2713,21 @@ fn lower_typed_store(
             call.arguments.len()
         )));
     }
-    let AstNode::Identifier(identifier) = &call.arguments[0] else {
-        return Err(NativeCompileError::new(format!(
-            "{machine_contract} `store` requires a stack-slot identifier as its first argument"
-        )));
-    };
-    let stack_slot = stack_slots.get(&identifier.name).copied().ok_or_else(|| {
-        NativeCompileError::new(format!(
-            "{machine_contract} `store` references unknown stack slot `{}`",
-            identifier.name
-        ))
-    })?;
+    let access = resolve_stack_access(&call.arguments[0], stack_slots, "store", machine_contract)?;
     if borrow_states
-        .get(&identifier.name)
+        .get(&access.root_name)
         .is_some_and(|state| state.shared > 0 || state.exclusive)
     {
         return Err(NativeCompileError::new(format!(
             "{machine_contract} cannot store to stack slot `{}` while an active borrow exists",
-            identifier.name
+            access.root_name
         )));
     }
+    let value_context = if access.display.contains('.') {
+        format!("field `{}`", access.display)
+    } else {
+        format!("store to stack slot `{}`", access.display)
+    };
     let value = lower_typed_expression(
         builder,
         module,
@@ -2281,12 +2737,14 @@ fn lower_typed_store(
         references,
         borrow_states,
         &call.arguments[1],
-        stack_slot.machine_type,
-        &format!("store to stack slot `{}`", identifier.name),
+        access.machine_type,
+        &value_context,
         machine_contract,
         true,
     )?;
-    builder.ins().stack_store(value.value, stack_slot.slot, 0);
+    builder
+        .ins()
+        .stack_store(value.value, access.slot, access.offset);
     Ok(())
 }
 

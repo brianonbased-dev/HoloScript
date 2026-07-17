@@ -2,7 +2,9 @@ use std::fs;
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use holoscript_native::{compile_executable, compile_object, NativeCompileOptions};
+use holoscript_native::{
+    compile_executable, compile_object, inspect_native_layouts, NativeCompileOptions,
+};
 
 const EXIT_FIVE: &str = include_str!("../../../examples/native/exit-five.hs");
 const TYPED_EXIT_FIVE: &str = include_str!("../../../examples/native/typed-exit-five.hs");
@@ -103,6 +105,21 @@ const CONTROL_FLOW_BOOL_MEMORY_EXIT_FIVE: &str = r#"
         } else {
             return 1
         }
+    }
+"#;
+const AGGREGATE_EXIT_FIVE: &str = r#"
+    struct Packet { enabled: bool, count: i64, code: i32 }
+
+    function main(): i32 {
+        slot packet: Packet = Packet(false, 2, 1)
+        store(packet.enabled, true)
+        while (load(packet.count) < 5) {
+            store(packet.count, load(packet.count) + 1)
+        }
+        if (load(packet.enabled) && load(packet.count) == 5) {
+            store(packet.code, 5)
+        }
+        return load(packet.code)
     }
 "#;
 
@@ -277,6 +294,41 @@ fn compiles_bool_branches_loops_and_early_scope_cleanup_edges() {
 }
 
 #[test]
+fn compiles_contiguous_typed_aggregates_with_exact_layout() {
+    let layouts = inspect_native_layouts(AGGREGATE_EXIT_FIVE)
+        .expect("typed aggregate layout should be inspectable");
+    assert_eq!(layouts.len(), 1);
+    let packet = &layouts[0];
+    assert_eq!(packet.name, "Packet");
+    assert_eq!(packet.size, 24);
+    assert_eq!(packet.alignment, 8);
+    assert_eq!(packet.fields.len(), 3);
+    assert_eq!(packet.fields[0].name, "enabled");
+    assert_eq!(packet.fields[0].machine_type, "bool");
+    assert_eq!(packet.fields[0].offset, 0);
+    assert_eq!(packet.fields[1].name, "count");
+    assert_eq!(packet.fields[1].machine_type, "i64");
+    assert_eq!(packet.fields[1].offset, 8);
+    assert_eq!(packet.fields[2].name, "code");
+    assert_eq!(packet.fields[2].machine_type, "i32");
+    assert_eq!(packet.fields[2].offset, 16);
+
+    let executable = scratch_executable("native-aggregate");
+    let artifact = compile_executable(
+        AGGREGATE_EXIT_FIVE,
+        &executable,
+        &NativeCompileOptions::host(),
+    )
+    .expect("typed aggregate should compile to a native executable");
+    assert_eq!(artifact.machine_contract, "hs-machine-v6");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("aggregate executable should run");
+    assert_eq!(status.code(), Some(5));
+    fs::remove_file(&artifact.executable).expect("remove aggregate executable");
+}
+
+#[test]
 fn emits_deterministic_objects_for_the_same_source() {
     let options = NativeCompileOptions::host();
 
@@ -289,11 +341,87 @@ fn emits_deterministic_objects_for_the_same_source() {
         SCOPED_REFERENCE_EXIT_FIVE,
         CONTROL_FLOW_EXIT_FIVE,
         CONTROL_FLOW_BOOL_MEMORY_EXIT_FIVE,
+        AGGREGATE_EXIT_FIVE,
     ] {
         let first = compile_object(source, &options).expect("first object should compile");
         let second = compile_object(source, &options).expect("second object should compile");
 
         assert_eq!(first, second);
+    }
+}
+
+#[test]
+fn aggregate_contract_rejects_ambiguous_layout_and_escape() {
+    let options = NativeCompileOptions::host();
+
+    for (source, message) in [
+        (
+            "struct Pair { left: i32, left: i64 } function main(): i32 { return 5 }",
+            "duplicate field `left`",
+        ),
+        (
+            "struct Pair { left: i32 } struct Pair { right: i64 } function main(): i32 { return 5 }",
+            "duplicate struct `Pair`",
+        ),
+        (
+            "struct Empty {} struct Pair { value: i32 } function main(): i32 { return 5 }",
+            "struct `Empty` must declare at least one field",
+        ),
+        (
+            "struct Pair { left: i32, right } function main(): i32 { return 5 }",
+            "requires a type for every field",
+        ),
+        (
+            "struct Inner { value: i32 } struct Outer { inner: Inner } function main(): i32 { return 5 }",
+            "field `inner` uses unsupported nested aggregate type `Inner`",
+        ),
+        (
+            "struct Pair { value: i32 } function take(pair: Pair): i32 { return 5 } function main(): i32 { return 5 }",
+            "aggregates cannot appear in function parameters",
+        ),
+        (
+            "struct Pair { value: i32 } function make(): Pair { slot pair: Pair = Pair(5) return pair } function main(): i32 { return 5 }",
+            "aggregates cannot appear in function returns",
+        ),
+        (
+            "struct Pair { value: i32 } function main(): i32 { let pair: Pair = Pair(5) return 5 }",
+            "aggregate local `pair` must use addressable `slot` storage",
+        ),
+        (
+            "struct Pair { value: i32 } function main(): i32 { slot pair: Pair = Pair() return 5 }",
+            "constructor `Pair` expects 1 fields, found 0",
+        ),
+        (
+            "struct Pair { value: i32 } function main(): i32 { slot pair: Pair = Other(5) return 5 }",
+            "expects constructor `Pair`, found `Other`",
+        ),
+        (
+            "struct Pair { value: i32 } function main(): i32 { slot pair: Pair = Pair(5) return load(pair.missing) }",
+            "aggregate `Pair` has no field `missing`",
+        ),
+        (
+            "struct Pair { value: i32 } function main(): i32 { slot pair: Pair = Pair(5) store(pair.value, true) return 5 }",
+            "field `pair.value` expects `i32`, but found `bool`",
+        ),
+        (
+            "struct Pair { value: i32 } function main(): i32 { slot pair: Pair = Pair(5) return load(pair) }",
+            "aggregate slot `pair` requires a field projection",
+        ),
+        (
+            "struct Pair { value: i32 } function main(): i32 { slot pair: Pair = Pair(5) return load(pair[\"value\"]) }",
+            "does not support computed aggregate field access",
+        ),
+        (
+            "struct Pair { value: i32 } function main(): i32 { slot pair: Pair = Pair(5) let view: &i32 = &pair.value return *view }",
+            "field references are not enabled by hs-machine-v6",
+        ),
+        (
+            "struct Pair { value: i32 } function main(): i32 { scope { slot pair: Pair = Pair(5) } return load(pair.value) }",
+            "references unknown aggregate slot `pair`",
+        ),
+    ] {
+        let error = compile_object(source, &options).expect_err(message);
+        assert!(error.to_string().contains(message), "{error}");
     }
 }
 

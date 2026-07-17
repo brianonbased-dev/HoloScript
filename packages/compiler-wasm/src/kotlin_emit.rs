@@ -420,6 +420,12 @@ pub fn emit_functions(ast: &Ast, indent: &str) -> Result<String, KotlinEmitError
             _ => None,
         })
         .collect();
+    if let Some(typed) = structs.iter().find(|decl| !decl.field_types.is_empty()) {
+        return Err(KotlinEmitError::new(format!(
+            "typed struct `{}` requires target-specific layout lowering; the Kotlin bridge supports only legacy inferred record fields",
+            typed.name
+        )));
+    }
     let struct_names: Vec<String> = structs.iter().map(|s| s.name.clone()).collect();
 
     // Collect every top-level `function` name too, so an imported *function* specifier (the
@@ -2880,6 +2886,19 @@ function f(x) {
             out.contains("data class Vec3(val x: Float, val y: Float, val z: Float)"),
             "{out}"
         );
+    }
+
+    #[test]
+    fn typed_machine_structs_fail_closed_until_kotlin_layout_lowering_exists() {
+        let src = r#"struct Packet { enabled: bool, count: i64, code: i32 }
+function mk() {
+  return Packet(false, 2, 1)
+}"#;
+        let error = compile_source_to_kotlin(src, "  ")
+            .expect_err("Kotlin must not silently erase native field layout types");
+        assert!(error
+            .to_string()
+            .contains("typed struct `Packet` requires target-specific layout lowering"));
     }
 
     #[test]
