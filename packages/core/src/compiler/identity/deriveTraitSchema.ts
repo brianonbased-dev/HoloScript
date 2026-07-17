@@ -103,3 +103,85 @@ export function deriveTraitSchemaFromHolo(source: string): TraitSchema | null {
 
   return { name, category, properties };
 }
+
+/**
+ * How two+ derived schemas sharing one trait name diverge — drives Phase 2 conflict triage.
+ * - `enum-divergent` / `prop-superset`: UNION-SAFE. Merging (accept any value valid in any
+ *   variant) never false-rejects; it only misses cross-variant confusion (the safe direction).
+ * - `type-conflict`: a shared prop has different types across variants — which wins is a real
+ *   judgment; not union-safe.
+ * - `disjoint`: variants share <50% of prop names — likely GENUINELY DIFFERENT traits colliding
+ *   on one handler name; needs a rename, not a merge.
+ */
+export type TraitConflictCategory = 'enum-divergent' | 'prop-superset' | 'type-conflict' | 'disjoint';
+
+function propByName(s: TraitSchema): Map<string, TraitPropertySchema> {
+  return new Map(s.properties.map((p) => [p.name, p]));
+}
+
+/** Categorize a set of same-named derived schema variants. Assumes ≥2 non-identical variants. */
+export function categorizeTraitConflict(variants: TraitSchema[]): TraitConflictCategory {
+  let anyTypeConflict = false;
+  let anyEnumDivergent = false;
+  let minJaccard = 1;
+  for (let i = 0; i < variants.length; i++) {
+    for (let j = i + 1; j < variants.length; j++) {
+      const a = propByName(variants[i]);
+      const b = propByName(variants[j]);
+      const keysA = new Set(a.keys());
+      const keysB = new Set(b.keys());
+      const inter = [...keysA].filter((k) => keysB.has(k)).length;
+      const union = new Set([...keysA, ...keysB]).size;
+      minJaccard = Math.min(minJaccard, union === 0 ? 1 : inter / union);
+      for (const [name, pa] of a) {
+        const pb = b.get(name);
+        if (!pb) continue;
+        if (pa.type !== pb.type) anyTypeConflict = true;
+        else if (pa.type === 'enum') {
+          const ea = (pa.enumValues ?? []).slice().sort().join('|');
+          const eb = (pb.enumValues ?? []).slice().sort().join('|');
+          if (ea !== eb) anyEnumDivergent = true;
+        }
+      }
+    }
+  }
+  if (anyTypeConflict) return 'type-conflict';
+  if (minJaccard < 0.5) return 'disjoint';
+  if (anyEnumDivergent) return 'enum-divergent';
+  return 'prop-superset';
+}
+
+/** enum-divergent and prop-superset can be safely merged by union; type-conflict/disjoint cannot. */
+export function isUnionSafeConflict(category: TraitConflictCategory): boolean {
+  return category === 'enum-divergent' || category === 'prop-superset';
+}
+
+/**
+ * Merge union-safe same-named variants into one schema: union of props by name, and per shared
+ * enum prop the union of enumValues. Never narrows, so it cannot false-reject a value that was
+ * valid in any variant. A prop whose type genuinely differs across variants (should not occur for
+ * union-safe inputs) is emitted as `any` (unenforceable) rather than guessing a winner.
+ */
+export function mergeTraitSchemas(variants: TraitSchema[]): TraitSchema {
+  const name = variants[0].name;
+  const category = variants.find((v) => v.category && v.category !== 'uncategorized')?.category ?? variants[0].category;
+  const merged = new Map<string, TraitPropertySchema>();
+  for (const variant of variants) {
+    for (const prop of variant.properties) {
+      const existing = merged.get(prop.name);
+      if (!existing) {
+        merged.set(prop.name, { ...prop, enumValues: prop.enumValues ? [...prop.enumValues] : undefined });
+        continue;
+      }
+      if (existing.type !== prop.type) {
+        merged.set(prop.name, { name: prop.name, type: 'any' });
+        continue;
+      }
+      if (existing.type === 'enum') {
+        const union = new Set([...(existing.enumValues ?? []), ...(prop.enumValues ?? [])]);
+        existing.enumValues = [...union].sort((a, b) => a.localeCompare(b));
+      }
+    }
+  }
+  return { name, category, properties: [...merged.values()] };
+}
