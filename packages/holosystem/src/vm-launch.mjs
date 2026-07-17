@@ -11,6 +11,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 export const HOLOSYSTEM_VM_LAUNCH_PLAN_SCHEMA = 'holoscript.holosystem.vm-launch-plan.v1';
 export const HOLOSYSTEM_VM_EXECUTOR_SCHEMA = 'holoscript.holosystem.vm-executor.v1';
@@ -19,6 +20,14 @@ export const HOLOSYSTEM_VM_LAUNCH_RECEIPT_SCHEMA = 'holoscript.holosystem.vm-lau
 export const HOLOSYSTEM_WHPX_VM_LAUNCH_PLAN_SCHEMA = 'holoscript.holosystem.whpx-vm-launch-plan.v1';
 export const HOLOSYSTEM_WHPX_VM_LAUNCH_RECEIPT_SCHEMA =
   'holoscript.holosystem.whpx-vm-launch-receipt.v1';
+export const HOLOSYSTEM_WHPX_SANDBOXED_VM_LAUNCH_PLAN_SCHEMA =
+  'holoscript.holosystem.whpx-sandboxed-vm-launch-plan.v1';
+export const HOLOSYSTEM_WHPX_SANDBOXED_VM_LAUNCH_RECEIPT_SCHEMA =
+  'holoscript.holosystem.whpx-sandboxed-vm-launch-receipt.v1';
+export const HOLOSYSTEM_WINDOWS_SANDBOX_PROTOCOL =
+  'holoscript.holosystem.windows-sandbox-launch.v1';
+export const HOLOSYSTEM_WINDOWS_SANDBOX_LAUNCHER_SCHEMA =
+  'holoscript.holosystem.windows-sandbox-launcher.v1';
 
 const DIGEST_PATTERN = /^sha256:[a-f0-9]{64}$/u;
 const EXECUTOR_BINARY = 'qemu-system-x86_64.exe';
@@ -29,6 +38,16 @@ const MAX_KERNEL_BYTES = 128 * 1024 * 1024;
 const MAX_INITRD_BYTES = 512 * 1024 * 1024;
 const MAX_CONSOLE_BYTES = 1024 * 1024;
 const EXPECTED_EXIT_CODE = 33;
+const SANDBOX_LAUNCHER_BINARY = 'holosystem-sandbox-launcher.exe';
+const SANDBOX_KIND = 'windows-low-integrity-job-v1';
+const SANDBOX_PROCESS_MEMORY_BYTES = 512 * 1024 * 1024;
+const SANDBOX_PROTOCOL_BYTES = 3 * 1024 * 1024;
+const SANDBOX_LAUNCHER_PATH = fileURLToPath(
+  new URL(`../native/windows-x64/${SANDBOX_LAUNCHER_BINARY}`, import.meta.url)
+);
+export const HOLOSYSTEM_WINDOWS_SANDBOX_LAUNCHER_DIGEST = hashBytes(
+  readFileSync(SANDBOX_LAUNCHER_PATH)
+);
 const TCG_POLICY = Object.freeze({
   accelerator: 'tcg',
   userConfiguration: 'disabled',
@@ -54,6 +73,13 @@ const WHPX_POLICY = Object.freeze({
   processEnvironment: 'minimal',
   guestSignal: 'serial-digest-and-debug-exit',
   diagnostics: 'pinned-digest',
+});
+const WHPX_SANDBOXED_POLICY = Object.freeze({
+  ...WHPX_POLICY,
+  hostProcess: SANDBOX_KIND,
+  token: 'disable-max-privilege-low-integrity',
+  job: 'pre-resume-kill-on-close-active-process-memory-ui',
+  writableTemp: 'low-integrity-private-snapshot',
 });
 const BOUNDARIES = Object.freeze([
   'guest-artifact-provenance',
@@ -82,6 +108,17 @@ const WHPX_ADAPTER = Object.freeze({
   receiptSchema: HOLOSYSTEM_WHPX_VM_LAUNCH_RECEIPT_SCHEMA,
   policy: WHPX_POLICY,
   requiresDiagnosticsDigest: true,
+  hostSandboxed: false,
+});
+const WHPX_SANDBOXED_ADAPTER = Object.freeze({
+  accelerator: 'whpx',
+  accelerationName: 'qemu-whpx',
+  hardwareBacked: true,
+  planSchema: HOLOSYSTEM_WHPX_SANDBOXED_VM_LAUNCH_PLAN_SCHEMA,
+  receiptSchema: HOLOSYSTEM_WHPX_SANDBOXED_VM_LAUNCH_RECEIPT_SCHEMA,
+  policy: WHPX_SANDBOXED_POLICY,
+  requiresDiagnosticsDigest: true,
+  hostSandboxed: true,
 });
 
 function isRecord(value) {
@@ -169,6 +206,9 @@ function normalizedPlan(plan) {
       cpus: plan.resources.cpus,
       timeoutSeconds: plan.resources.timeoutSeconds,
     },
+    sandbox: plan.sandbox
+      ? { kind: plan.sandbox.kind, launcherDigest: plan.sandbox.launcherDigest }
+      : null,
     launches: plan.launches,
   };
 }
@@ -182,7 +222,17 @@ function inspectVmLaunchPlanForAdapter(plan, adapter) {
 
   knownKeys(
     plan,
-    new Set(['schema', 'id', 'host', 'executor', 'target', 'guest', 'resources', 'launches']),
+    new Set([
+      'schema',
+      'id',
+      'host',
+      'executor',
+      'target',
+      'guest',
+      'resources',
+      ...(adapter.hostSandboxed ? ['sandbox'] : []),
+      'launches',
+    ]),
     '',
     issues
   );
@@ -280,6 +330,19 @@ function inspectVmLaunchPlanForAdapter(plan, adapter) {
     );
   }
 
+  if (adapter.hostSandboxed) {
+    knownKeys(plan.sandbox, new Set(['kind', 'launcherDigest']), 'sandbox', issues);
+    if (plan.sandbox?.kind !== SANDBOX_KIND) {
+      issue(
+        issues,
+        'vm-launch-sandbox-unsupported',
+        'sandbox.kind',
+        `This adapter requires ${SANDBOX_KIND}.`
+      );
+    }
+    inspectDigest(plan.sandbox?.launcherDigest, 'sandbox.launcherDigest', issues);
+  }
+
   return { ready: issues.length === 0, issues };
 }
 
@@ -289,6 +352,10 @@ export function inspectVmLaunchPlan(plan) {
 
 export function inspectWhpxVmLaunchPlan(plan) {
   return inspectVmLaunchPlanForAdapter(plan, WHPX_ADAPTER);
+}
+
+export function inspectWhpxSandboxedVmLaunchPlan(plan) {
+  return inspectVmLaunchPlanForAdapter(plan, WHPX_SANDBOXED_ADAPTER);
 }
 
 function scanRuntime(directory, issues) {
@@ -482,6 +549,40 @@ export function inspectVmLaunchAsset({ assetPath, kind } = {}) {
   };
 }
 
+export function inspectWindowsVmSandboxLauncher() {
+  const issues = [];
+  let content = null;
+  try {
+    const stats = lstatSync(SANDBOX_LAUNCHER_PATH);
+    if (!stats.isFile() || stats.isSymbolicLink()) throw new TypeError('not a regular file');
+    content = readFileSync(SANDBOX_LAUNCHER_PATH);
+  } catch {
+    issue(
+      issues,
+      'vm-launch-sandbox-launcher-invalid',
+      'sandbox.launcher',
+      'The packaged Windows sandbox launcher must be a readable regular file.'
+    );
+  }
+  const digest = content ? hashBytes(content) : null;
+  if (digest && digest !== HOLOSYSTEM_WINDOWS_SANDBOX_LAUNCHER_DIGEST) {
+    issue(
+      issues,
+      'vm-launch-sandbox-launcher-drift',
+      'sandbox.launcherDigest',
+      'The packaged Windows sandbox launcher changed after module initialization.'
+    );
+  }
+  return {
+    schema: HOLOSYSTEM_WINDOWS_SANDBOX_LAUNCHER_SCHEMA,
+    ready: issues.length === 0,
+    kind: SANDBOX_KIND,
+    digest: issues.length === 0 ? digest : null,
+    bytes: issues.length === 0 ? content.length : null,
+    issues,
+  };
+}
+
 function logSummary(value) {
   const bytes = Buffer.isBuffer(value) ? value : Buffer.from(String(value || ''), 'utf8');
   return { bytes: bytes.length, digest: hashBytes(bytes) };
@@ -525,10 +626,33 @@ function baseReceipt(plan, now, issues, adapter) {
       evidence: adapter.hardwareBacked ? 'two-explicit-successful-launches' : 'software-emulation',
       verified: false,
     },
-    isolation: {
-      hostProcess: 'ambient-windows-process',
-      verified: false,
-    },
+    isolation: adapter.hostSandboxed
+      ? {
+          hostProcess: SANDBOX_KIND,
+          scope: 'integrity-privilege-lifetime-resource-ui',
+          verified: false,
+          launcherDigest: DIGEST_PATTERN.test(plan?.sandbox?.launcherDigest || '')
+            ? plan.sandbox.launcherDigest
+            : null,
+          controls: {
+            filteredToken: false,
+            disableMaxPrivilege: false,
+            enabledPrivilegeCount: null,
+            privilegesBounded: false,
+            lowIntegrity: false,
+            assignedBeforeResume: false,
+            handleAllowlist: false,
+            killOnClose: false,
+            activeProcessLimit: false,
+            processMemoryLimit: false,
+            uiRestrictions: false,
+            writableTempLowIntegrity: false,
+          },
+        }
+      : {
+          hostProcess: 'ambient-windows-process',
+          verified: false,
+        },
     measurementDigest: null,
     executor: {
       kind: plan?.executor?.kind === 'qemu-system' ? 'qemu-system' : null,
@@ -579,9 +703,16 @@ function baseReceipt(plan, now, issues, adapter) {
         'virtual-device-minimization',
       ],
     },
-    boundaries: BOUNDARIES.filter(
-      (layer) => !(adapter.hardwareBacked && layer === 'hardware-hypervisor-acceleration')
-    ),
+    boundaries: [
+      ...BOUNDARIES.filter(
+        (layer) =>
+          !(adapter.hardwareBacked && layer === 'hardware-hypervisor-acceleration') &&
+          !(adapter.hostSandboxed && layer === 'host-process-isolation')
+      ),
+      ...(adapter.hostSandboxed
+        ? ['host-filesystem-confidentiality', 'host-network-isolation']
+        : []),
+    ],
     issues,
   };
 }
@@ -617,12 +748,12 @@ function qemuArguments(plan, kernelPath, initrdPath, adapter) {
   ];
 }
 
-function minimalEnvironment(snapshotRoot, runtimeDirectory) {
+function minimalEnvironment(snapshotRoot, runtimeDirectory, temporaryDirectory = snapshotRoot) {
   const env = {
     HOME: snapshotRoot,
     USERPROFILE: snapshotRoot,
-    TEMP: snapshotRoot,
-    TMP: snapshotRoot,
+    TEMP: temporaryDirectory,
+    TMP: temporaryDirectory,
     PATH: runtimeDirectory,
     LANG: 'C',
     LC_ALL: 'C',
@@ -630,6 +761,104 @@ function minimalEnvironment(snapshotRoot, runtimeDirectory) {
   if (typeof process.env.SystemRoot === 'string') env.SystemRoot = process.env.SystemRoot;
   if (typeof process.env.WINDIR === 'string') env.WINDIR = process.env.WINDIR;
   return env;
+}
+
+const SANDBOX_CONTROL_KEYS = Object.freeze([
+  'filteredToken',
+  'disableMaxPrivilege',
+  'enabledPrivilegeCount',
+  'privilegesBounded',
+  'lowIntegrity',
+  'assignedBeforeResume',
+  'handleAllowlist',
+  'killOnClose',
+  'activeProcessLimit',
+  'processMemoryLimit',
+  'uiRestrictions',
+  'writableTempLowIntegrity',
+]);
+
+function canonicalBase64(value) {
+  if (
+    typeof value !== 'string' ||
+    value.length > Math.ceil(MAX_CONSOLE_BYTES / 3) * 4 ||
+    !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u.test(value)
+  ) {
+    return null;
+  }
+  const bytes = Buffer.from(value, 'base64');
+  return bytes.toString('base64') === value && bytes.length <= MAX_CONSOLE_BYTES ? bytes : null;
+}
+
+function parseSandboxProtocol(result) {
+  if (
+    result?.status !== 0 ||
+    result?.signal ||
+    result?.error ||
+    logSummary(result?.stderr).bytes !== 0
+  ) {
+    return { ready: false, issueCode: 'vm-launch-sandbox-launcher-failed' };
+  }
+  let message;
+  try {
+    const encoded = Buffer.isBuffer(result.stdout)
+      ? result.stdout.toString('utf8')
+      : String(result.stdout || '');
+    message = JSON.parse(encoded.trim());
+  } catch {
+    return { ready: false, issueCode: 'vm-launch-sandbox-protocol-invalid' };
+  }
+  if (
+    !isRecord(message) ||
+    message.protocol !== HOLOSYSTEM_WINDOWS_SANDBOX_PROTOCOL ||
+    !isRecord(message.isolation) ||
+    Object.keys(message).some(
+      (key) =>
+        ![
+          'protocol',
+          'launched',
+          'timedOut',
+          'exitCode',
+          'isolation',
+          'stdoutBase64',
+          'stderrBase64',
+          'errorStage',
+          'errorCode',
+        ].includes(key)
+    ) ||
+    Object.keys(message.isolation).some((key) => !SANDBOX_CONTROL_KEYS.includes(key))
+  ) {
+    return { ready: false, issueCode: 'vm-launch-sandbox-protocol-invalid' };
+  }
+  const stdout = canonicalBase64(message.stdoutBase64);
+  const stderr = canonicalBase64(message.stderrBase64);
+  const controlsReady =
+    SANDBOX_CONTROL_KEYS.every(
+      (key) => key === 'enabledPrivilegeCount' || message.isolation[key] === true
+    ) &&
+    Number.isInteger(message.isolation.enabledPrivilegeCount) &&
+    message.isolation.enabledPrivilegeCount >= 0 &&
+    message.isolation.enabledPrivilegeCount <= 1;
+  if (
+    message.launched !== true ||
+    message.timedOut !== false ||
+    !Number.isInteger(message.exitCode) ||
+    message.errorStage !== null ||
+    message.errorCode !== 0 ||
+    !controlsReady ||
+    !stdout ||
+    !stderr
+  ) {
+    return { ready: false, issueCode: 'vm-launch-sandbox-evidence-invalid' };
+  }
+  return {
+    ready: true,
+    status: message.exitCode,
+    signal: null,
+    stdout,
+    stderr,
+    isolation: Object.fromEntries(SANDBOX_CONTROL_KEYS.map((key) => [key, message.isolation[key]])),
+  };
 }
 
 function copyRuntimeSnapshot(sourceDirectory, report, destinationDirectory) {
@@ -656,6 +885,20 @@ function launchSnapshotMatches(plan, runtimeDirectory, kernelPath, initrdPath) {
   );
 }
 
+function sandboxLauncherSnapshotMatches(plan, launcherPath, adapter) {
+  if (!adapter.hostSandboxed) return true;
+  try {
+    const stats = lstatSync(launcherPath);
+    return (
+      stats.isFile() &&
+      !stats.isSymbolicLink() &&
+      hashBytes(readFileSync(launcherPath)) === plan.sandbox.launcherDigest
+    );
+  } catch {
+    return false;
+  }
+}
+
 function runVmLaunchWithProcessRunner(
   { plan, executorDirectory, kernelPath, initrdPath, now = new Date() } = {},
   processRunner,
@@ -668,7 +911,13 @@ function runVmLaunchWithProcessRunner(
   const executor = inspectVmExecutor({ executorDirectory });
   const kernel = inspectVmLaunchAsset({ assetPath: kernelPath, kind: 'kernel' });
   const initrd = inspectVmLaunchAsset({ assetPath: initrdPath, kind: 'initrd' });
-  receipt.issues.push(...executor.issues, ...kernel.issues, ...initrd.issues);
+  const sandboxLauncher = adapter.hostSandboxed ? inspectWindowsVmSandboxLauncher() : null;
+  receipt.issues.push(
+    ...executor.issues,
+    ...kernel.issues,
+    ...initrd.issues,
+    ...(sandboxLauncher?.issues || [])
+  );
   if (executor.ready && executor.digest !== plan.executor.runtimeDigest) {
     issue(
       receipt.issues,
@@ -701,6 +950,18 @@ function runVmLaunchWithProcessRunner(
       'Guest initrd does not match the pinned plan digest.'
     );
   }
+  if (
+    adapter.hostSandboxed &&
+    sandboxLauncher?.ready &&
+    sandboxLauncher.digest !== plan.sandbox.launcherDigest
+  ) {
+    issue(
+      receipt.issues,
+      'vm-launch-sandbox-launcher-mismatch',
+      'sandbox.launcherDigest',
+      'Packaged Windows sandbox launcher does not match the pinned plan digest.'
+    );
+  }
   if (receipt.issues.length > 0) return finishReceipt(receipt);
 
   const sourceRuntime = resolve(executorDirectory);
@@ -710,12 +971,18 @@ function runVmLaunchWithProcessRunner(
   const snapshotRuntime = join(snapshotRoot, 'runtime');
   const snapshotKernel = join(snapshotRoot, 'vmlinuz');
   const snapshotInitrd = join(snapshotRoot, 'initramfs');
+  const snapshotLauncher = join(snapshotRoot, SANDBOX_LAUNCHER_BINARY);
+  const snapshotTemporary = join(snapshotRoot, 'sandbox-temp');
 
   try {
     try {
       copyRuntimeSnapshot(sourceRuntime, executor, snapshotRuntime);
       copyFileSync(sourceKernel, snapshotKernel);
       copyFileSync(sourceInitrd, snapshotInitrd);
+      if (adapter.hostSandboxed) {
+        copyFileSync(SANDBOX_LAUNCHER_PATH, snapshotLauncher);
+        mkdirSync(snapshotTemporary);
+      }
     } catch {
       issue(
         receipt.issues,
@@ -729,6 +996,16 @@ function runVmLaunchWithProcessRunner(
     const pinnedExecutor = inspectVmExecutor({ executorDirectory: snapshotRuntime });
     const pinnedKernel = inspectVmLaunchAsset({ assetPath: snapshotKernel, kind: 'kernel' });
     const pinnedInitrd = inspectVmLaunchAsset({ assetPath: snapshotInitrd, kind: 'initrd' });
+    let pinnedLauncherDigest = null;
+    if (adapter.hostSandboxed) {
+      try {
+        const stats = lstatSync(snapshotLauncher);
+        if (!stats.isFile() || stats.isSymbolicLink()) throw new TypeError('not a regular file');
+        pinnedLauncherDigest = hashBytes(readFileSync(snapshotLauncher));
+      } catch {
+        pinnedLauncherDigest = null;
+      }
+    }
     if (
       !pinnedExecutor.ready ||
       pinnedExecutor.digest !== plan.executor.runtimeDigest ||
@@ -757,6 +1034,14 @@ function runVmLaunchWithProcessRunner(
         'Guest initrd changed while its private launch snapshot was materialized.'
       );
     }
+    if (adapter.hostSandboxed && pinnedLauncherDigest !== plan.sandbox.launcherDigest) {
+      issue(
+        receipt.issues,
+        'vm-launch-sandbox-launcher-snapshot-mismatch',
+        'sandbox.launcherDigest',
+        'Windows sandbox launcher changed while its private snapshot was materialized.'
+      );
+    }
     if (receipt.issues.length > 0) return finishReceipt(receipt);
 
     receipt.measurementDigest = hashJson({
@@ -765,22 +1050,49 @@ function runVmLaunchWithProcessRunner(
       binaryDigest: pinnedExecutor.binaryDigest,
       kernelDigest: pinnedKernel.digest,
       initrdDigest: pinnedInitrd.digest,
+      ...(adapter.hostSandboxed ? { sandboxLauncherDigest: pinnedLauncherDigest } : {}),
       policy: adapter.policy,
     });
 
-    const command = join(snapshotRuntime, EXECUTOR_BINARY);
-    const args = qemuArguments(plan, snapshotKernel, snapshotInitrd, adapter);
+    const qemuCommand = join(snapshotRuntime, EXECUTOR_BINARY);
+    const qemuArgs = qemuArguments(plan, snapshotKernel, snapshotInitrd, adapter);
+    const command = adapter.hostSandboxed ? snapshotLauncher : qemuCommand;
+    const args = adapter.hostSandboxed
+      ? [
+          '--executable',
+          qemuCommand,
+          '--working-directory',
+          snapshotRuntime,
+          '--sandbox-root',
+          snapshotRoot,
+          '--writable-temp',
+          snapshotTemporary,
+          '--timeout-ms',
+          String(plan.resources.timeoutSeconds * 1000),
+          '--process-memory-bytes',
+          String(SANDBOX_PROCESS_MEMORY_BYTES),
+          '--',
+          ...qemuArgs,
+        ]
+      : qemuArgs;
     const options = {
       encoding: null,
-      env: minimalEnvironment(snapshotRoot, snapshotRuntime),
-      maxBuffer: MAX_CONSOLE_BYTES,
+      env: minimalEnvironment(
+        snapshotRoot,
+        snapshotRuntime,
+        adapter.hostSandboxed ? snapshotTemporary : snapshotRoot
+      ),
+      maxBuffer: adapter.hostSandboxed ? SANDBOX_PROTOCOL_BYTES : MAX_CONSOLE_BYTES,
       shell: false,
-      timeout: plan.resources.timeoutSeconds * 1000,
+      timeout: plan.resources.timeoutSeconds * 1000 + (adapter.hostSandboxed ? 5000 : 0),
       windowsHide: true,
     };
 
     for (let index = 0; index < plan.launches; index += 1) {
-      if (!launchSnapshotMatches(plan, snapshotRuntime, snapshotKernel, snapshotInitrd)) {
+      if (
+        !launchSnapshotMatches(plan, snapshotRuntime, snapshotKernel, snapshotInitrd) ||
+        !sandboxLauncherSnapshotMatches(plan, snapshotLauncher, adapter)
+      ) {
         issue(
           receipt.issues,
           'vm-launch-snapshot-drift',
@@ -795,10 +1107,30 @@ function runVmLaunchWithProcessRunner(
       } catch {
         result = { status: null, signal: null, stdout: Buffer.alloc(0), stderr: Buffer.alloc(0) };
       }
+      if (adapter.hostSandboxed) {
+        const protocol = parseSandboxProtocol(result);
+        if (!protocol.ready) {
+          issue(
+            receipt.issues,
+            protocol.issueCode,
+            `launches[${index}].isolation`,
+            'Measured Windows sandbox launcher did not return complete closed-protocol evidence.'
+          );
+          result = {
+            status: null,
+            signal: null,
+            stdout: Buffer.alloc(0),
+            stderr: Buffer.alloc(0),
+            isolation: null,
+          };
+        } else {
+          result = protocol;
+        }
+      }
       const stdout = logSummary(result?.stdout);
       const stderr = logSummary(
         adapter.requiresDiagnosticsDigest
-          ? normalizedDiagnostics(result?.stderr, command)
+          ? normalizedDiagnostics(result?.stderr, qemuCommand)
           : result?.stderr
       );
       const launch = {
@@ -807,6 +1139,7 @@ function runVmLaunchWithProcessRunner(
         signal: typeof result?.signal === 'string' ? result.signal : null,
         stdout,
         stderr,
+        ...(adapter.hostSandboxed ? { isolation: result?.isolation || null } : {}),
       };
       receipt.launches.push(launch);
       if (result?.status === null || result?.status === undefined || result?.error) {
@@ -850,7 +1183,10 @@ function runVmLaunchWithProcessRunner(
           'Host emulator diagnostics were emitted; raw bytes are withheld.'
         );
       }
-      if (!launchSnapshotMatches(plan, snapshotRuntime, snapshotKernel, snapshotInitrd)) {
+      if (
+        !launchSnapshotMatches(plan, snapshotRuntime, snapshotKernel, snapshotInitrd) ||
+        !sandboxLauncherSnapshotMatches(plan, snapshotLauncher, adapter)
+      ) {
         issue(
           receipt.issues,
           'vm-launch-snapshot-drift',
@@ -864,8 +1200,14 @@ function runVmLaunchWithProcessRunner(
     rmSync(snapshotRoot, { recursive: true, force: true });
   }
 
-  const launchSignatures = receipt.launches.map(({ exitCode, signal, stdout, stderr }) =>
-    hashJson({ exitCode, signal, stdout, stderr })
+  const launchSignatures = receipt.launches.map(({ exitCode, signal, stdout, stderr, isolation }) =>
+    hashJson({
+      exitCode,
+      signal,
+      stdout,
+      stderr,
+      ...(adapter.hostSandboxed ? { isolation } : {}),
+    })
   );
   if (launchSignatures.length === plan.launches && new Set(launchSignatures).size !== 1) {
     issue(
@@ -884,16 +1226,27 @@ function runVmLaunchWithProcessRunner(
     receipt.verified = true;
     receipt.hardwareBacked = adapter.hardwareBacked;
     receipt.acceleration.verified = adapter.hardwareBacked;
+    if (adapter.hostSandboxed) {
+      receipt.isolation = {
+        ...receipt.isolation,
+        verified: true,
+        controls: { ...receipt.launches[0].isolation },
+      };
+    }
     receipt.coverage = {
       includedLayers: [
         'guest-artifact-measurement',
         ...(adapter.hardwareBacked ? ['hardware-hypervisor-acceleration'] : []),
+        ...(adapter.hostSandboxed ? ['host-process-isolation'] : []),
         'machine-vm-launch',
         'virtual-device-minimization',
       ],
       missingLayers: [
         ...(!adapter.hardwareBacked ? ['hardware-hypervisor-acceleration'] : []),
-        'host-process-isolation',
+        ...(!adapter.hostSandboxed ? ['host-process-isolation'] : []),
+        ...(adapter.hostSandboxed
+          ? ['host-filesystem-confidentiality', 'host-network-isolation']
+          : []),
       ],
     };
   }
@@ -906,6 +1259,10 @@ export function runVmLaunch(options = {}) {
 
 export function runWhpxVmLaunch(options = {}) {
   return runVmLaunchWithProcessRunner(options, spawnSync, WHPX_ADAPTER);
+}
+
+export function runWhpxSandboxedVmLaunch(options = {}) {
+  return runVmLaunchWithProcessRunner(options, spawnSync, WHPX_SANDBOXED_ADAPTER);
 }
 
 // Repository tests need a deterministic process boundary without publishing an
@@ -924,4 +1281,12 @@ export function runWhpxVmLaunchWithProcessRunnerForTest(options = {}) {
   }
   const { processRunner, ...launchOptions } = options;
   return runVmLaunchWithProcessRunner(launchOptions, processRunner, WHPX_ADAPTER);
+}
+
+export function runWhpxSandboxedVmLaunchWithProcessRunnerForTest(options = {}) {
+  if (typeof options.processRunner !== 'function') {
+    throw new TypeError('processRunner test adapter is required.');
+  }
+  const { processRunner, ...launchOptions } = options;
+  return runVmLaunchWithProcessRunner(launchOptions, processRunner, WHPX_SANDBOXED_ADAPTER);
 }

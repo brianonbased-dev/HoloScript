@@ -15,6 +15,7 @@ import {
   inspectVmLaunchAsset,
   runNativeBuild,
   runVmLaunch,
+  runWhpxSandboxedVmLaunch,
   runWhpxVmLaunch,
 } from '../src/index.mjs';
 
@@ -35,6 +36,7 @@ Usage:
   holosystem vm-asset --kind <kernel|initrd> --file <file> [--json]
   holosystem vm-launch --plan <file> --runtime <directory> --kernel <file> --initrd <file> [--output <receipt>] [--force] [--json]
   holosystem vm-launch-whpx --plan <file> --runtime <directory> --kernel <file> --initrd <file> [--output <receipt>] [--force] [--json]
+  holosystem vm-launch-whpx-sandboxed --plan <file> --runtime <directory> --kernel <file> --initrd <file> [--output <receipt>] [--force] [--json]
   holosystem substrate --input <file> [--output <file>] [--force] [--json]
   holosystem --help
   holosystem --version
@@ -705,6 +707,11 @@ if (!command || command === '--help' || command === '-h' || command === 'help') 
   runVmLaunchCommand(argv.slice(1), {
     launcher: runWhpxVmLaunch,
     commandName: 'vm-launch-whpx',
+  });
+} else if (command === 'vm-launch-whpx-sandboxed') {
+  runVmLaunchCommand(argv.slice(1), {
+    launcher: runWhpxSandboxedVmLaunch,
+    commandName: 'vm-launch-whpx-sandboxed',
   });
 } else if (command === 'substrate') {
   runSubstrate(argv.slice(1));

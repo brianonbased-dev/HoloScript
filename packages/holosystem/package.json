@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/holosystem",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Portable bootstrap, consumption catalog, lineage, and bounded-work contract for HoloSystem consumers.",
   "releaseLane": "v0-preview",
   "keywords": [
@@ -34,6 +34,7 @@
   "files": [
     "bin",
     "docs",
+    "native",
     "src",
     "README.md",
     "LICENSE"

@@ -11,14 +11,21 @@ import {
   HOLOSYSTEM_VM_LAUNCH_RECEIPT_SCHEMA,
   HOLOSYSTEM_WHPX_VM_LAUNCH_PLAN_SCHEMA,
   HOLOSYSTEM_WHPX_VM_LAUNCH_RECEIPT_SCHEMA,
+  HOLOSYSTEM_WHPX_SANDBOXED_VM_LAUNCH_PLAN_SCHEMA,
+  HOLOSYSTEM_WHPX_SANDBOXED_VM_LAUNCH_RECEIPT_SCHEMA,
+  HOLOSYSTEM_WINDOWS_SANDBOX_LAUNCHER_DIGEST,
+  HOLOSYSTEM_WINDOWS_SANDBOX_PROTOCOL,
   inspectVmExecutor,
   inspectVmLaunchAsset,
   inspectVmLaunchPlan,
+  inspectWindowsVmSandboxLauncher,
+  inspectWhpxSandboxedVmLaunchPlan,
   inspectWhpxVmLaunchPlan,
   runVmLaunchWithProcessRunnerForTest,
+  runWhpxSandboxedVmLaunchWithProcessRunnerForTest,
   runWhpxVmLaunchWithProcessRunnerForTest,
 } from '../src/vm-launch.mjs';
-import { runVmLaunch, runWhpxVmLaunch } from '../src/index.mjs';
+import { runVmLaunch, runWhpxSandboxedVmLaunch, runWhpxVmLaunch } from '../src/index.mjs';
 
 const CONSOLE = Buffer.from('HOLOSYSTEM_VM_OK\r\n');
 const WHPX_DIAGNOSTICS = Buffer.from('pinned WHPX host diagnostic\r\n');
@@ -74,6 +81,55 @@ function successfulRunner(calls = []) {
   return (command, args, options) => {
     calls.push({ command, args, options });
     return { status: 33, signal: null, stdout: Buffer.from(CONSOLE), stderr: Buffer.alloc(0) };
+  };
+}
+
+function sandboxedPlan(item) {
+  const plan = structuredClone(item.plan);
+  plan.schema = HOLOSYSTEM_WHPX_SANDBOXED_VM_LAUNCH_PLAN_SCHEMA;
+  plan.target.accelerator = 'whpx';
+  plan.guest.expectedDiagnosticsDigest = sha256(WHPX_DIAGNOSTICS);
+  plan.sandbox = {
+    kind: 'windows-low-integrity-job-v1',
+    launcherDigest: HOLOSYSTEM_WINDOWS_SANDBOX_LAUNCHER_DIGEST,
+  };
+  return plan;
+}
+
+function sandboxProtocolRunner(calls = [], mutate = (value) => value) {
+  return (command, args, options) => {
+    calls.push({ command, args, options });
+    const qemuCommand = args[args.indexOf('--executable') + 1];
+    const message = mutate({
+      protocol: HOLOSYSTEM_WINDOWS_SANDBOX_PROTOCOL,
+      launched: true,
+      timedOut: false,
+      exitCode: 33,
+      isolation: {
+        filteredToken: true,
+        disableMaxPrivilege: true,
+        enabledPrivilegeCount: 1,
+        privilegesBounded: true,
+        lowIntegrity: true,
+        assignedBeforeResume: true,
+        handleAllowlist: true,
+        killOnClose: true,
+        activeProcessLimit: true,
+        processMemoryLimit: true,
+        uiRestrictions: true,
+        writableTempLowIntegrity: true,
+      },
+      stdoutBase64: CONSOLE.toString('base64'),
+      stderrBase64: Buffer.from(`${qemuCommand}: ${WHPX_DIAGNOSTICS}`).toString('base64'),
+      errorStage: null,
+      errorCode: 0,
+    });
+    return {
+      status: 0,
+      signal: null,
+      stdout: Buffer.from(`${JSON.stringify(message)}\r\n`),
+      stderr: Buffer.alloc(0),
+    };
   };
 }
 
@@ -175,6 +231,131 @@ test('proves explicit WHPX execution without claiming host-process isolation', (
     }
   } finally {
     rmSync(item.cwd, { recursive: true, force: true });
+  }
+});
+
+test('measures the packaged Windows sandbox launcher', () => {
+  const report = inspectWindowsVmSandboxLauncher();
+  assert.equal(report.ready, true);
+  assert.equal(report.kind, 'windows-low-integrity-job-v1');
+  assert.equal(report.digest, HOLOSYSTEM_WINDOWS_SANDBOX_LAUNCHER_DIGEST);
+  assert.ok(report.bytes > 0);
+});
+
+test('keeps sandboxed WHPX in a separate closed vocabulary', () => {
+  const item = fixture();
+  try {
+    const plan = sandboxedPlan(item);
+    assert.equal(inspectWhpxSandboxedVmLaunchPlan(plan).ready, true);
+    assert.equal(inspectWhpxVmLaunchPlan(plan).ready, false);
+
+    const downgrade = structuredClone(plan);
+    downgrade.sandbox.kind = 'ambient-windows-process';
+    downgrade.fallback = 'ambient';
+    const blocked = inspectWhpxSandboxedVmLaunchPlan(downgrade);
+    assert.equal(blocked.ready, false);
+    assert.ok(blocked.issues.some((entry) => entry.code === 'vm-launch-field-unknown'));
+    assert.ok(blocked.issues.some((entry) => entry.code === 'vm-launch-sandbox-unsupported'));
+  } finally {
+    rmSync(item.cwd, { recursive: true, force: true });
+  }
+});
+
+test('proves WHPX under a low-integrity filtered token and pre-resume Job Object', () => {
+  const item = fixture();
+  const calls = [];
+  try {
+    const receipt = runWhpxSandboxedVmLaunchWithProcessRunnerForTest({
+      plan: sandboxedPlan(item),
+      executorDirectory: item.runtimeDirectory,
+      kernelPath: item.kernelPath,
+      initrdPath: item.initrdPath,
+      processRunner: sandboxProtocolRunner(calls),
+      now: new Date('2026-07-16T00:00:00.000Z'),
+    });
+
+    assert.equal(receipt.schema, HOLOSYSTEM_WHPX_SANDBOXED_VM_LAUNCH_RECEIPT_SCHEMA);
+    assert.equal(receipt.status, 'verified');
+    assert.equal(receipt.verified, true);
+    assert.equal(receipt.hardwareBacked, true);
+    assert.equal(receipt.isolation.hostProcess, 'windows-low-integrity-job-v1');
+    assert.equal(receipt.isolation.scope, 'integrity-privilege-lifetime-resource-ui');
+    assert.equal(receipt.isolation.verified, true);
+    assert.equal(receipt.isolation.launcherDigest, HOLOSYSTEM_WINDOWS_SANDBOX_LAUNCHER_DIGEST);
+    assert.deepEqual(receipt.isolation.controls, {
+      filteredToken: true,
+      disableMaxPrivilege: true,
+      enabledPrivilegeCount: 1,
+      privilegesBounded: true,
+      lowIntegrity: true,
+      assignedBeforeResume: true,
+      handleAllowlist: true,
+      killOnClose: true,
+      activeProcessLimit: true,
+      processMemoryLimit: true,
+      uiRestrictions: true,
+      writableTempLowIntegrity: true,
+    });
+    assert.deepEqual(receipt.coverage.includedLayers, [
+      'guest-artifact-measurement',
+      'hardware-hypervisor-acceleration',
+      'host-process-isolation',
+      'machine-vm-launch',
+      'virtual-device-minimization',
+    ]);
+    assert.deepEqual(receipt.coverage.missingLayers, [
+      'host-filesystem-confidentiality',
+      'host-network-isolation',
+    ]);
+    assert.ok(!receipt.boundaries.includes('host-process-isolation'));
+    assert.ok(receipt.boundaries.includes('host-filesystem-confidentiality'));
+    assert.ok(receipt.boundaries.includes('host-network-isolation'));
+    assert.equal(calls.length, 2);
+    for (const call of calls) {
+      assert.match(call.command, /holosystem-sandbox-launcher\.exe$/u);
+      assert.ok(call.args.includes('--executable'));
+      assert.ok(call.args.includes('--writable-temp'));
+      assert.ok(call.args.includes('--'));
+      assert.ok(call.args.includes('q35,accel=whpx,usb=off'));
+      assert.equal(call.options.shell, false);
+    }
+    assert.ok(!JSON.stringify(receipt).includes(item.cwd));
+  } finally {
+    rmSync(item.cwd, { recursive: true, force: true });
+  }
+});
+
+test('blocks incomplete or forged Windows sandbox evidence', () => {
+  const mutations = [
+    {
+      mutate: (message) => ({
+        ...message,
+        isolation: { ...message.isolation, lowIntegrity: false },
+      }),
+      code: 'vm-launch-sandbox-evidence-invalid',
+    },
+    {
+      mutate: (message) => ({ ...message, fallback: 'ambient' }),
+      code: 'vm-launch-sandbox-protocol-invalid',
+    },
+  ];
+  for (const entry of mutations) {
+    const item = fixture();
+    try {
+      const receipt = runWhpxSandboxedVmLaunchWithProcessRunnerForTest({
+        plan: sandboxedPlan(item),
+        executorDirectory: item.runtimeDirectory,
+        kernelPath: item.kernelPath,
+        initrdPath: item.initrdPath,
+        processRunner: sandboxProtocolRunner([], entry.mutate),
+      });
+      assert.equal(receipt.verified, false);
+      assert.equal(receipt.hardwareBacked, false);
+      assert.equal(receipt.isolation.verified, false);
+      assert.ok(receipt.issues.some((issue) => issue.code === entry.code));
+    } finally {
+      rmSync(item.cwd, { recursive: true, force: true });
+    }
   }
 });
 
@@ -467,6 +648,28 @@ test('does not publish process-runner injection through the package API', () => 
     assert.equal(whpxReceipt.verified, false);
     assert.equal(whpxReceipt.hardwareBacked, false);
     assert.ok(whpxReceipt.issues.some((entry) => entry.code === 'vm-launch-execution-failed'));
+
+    const sandboxedReceipt = runWhpxSandboxedVmLaunch({
+      plan: sandboxedPlan(item),
+      executorDirectory: item.runtimeDirectory,
+      kernelPath: item.kernelPath,
+      initrdPath: item.initrdPath,
+      processRunner: () => {
+        injected += 1;
+        return sandboxProtocolRunner()('', [], {});
+      },
+    });
+    assert.equal(injected, 0);
+    assert.equal(sandboxedReceipt.verified, false);
+    assert.equal(sandboxedReceipt.hardwareBacked, false);
+    assert.equal(sandboxedReceipt.isolation.verified, false);
+    assert.ok(
+      sandboxedReceipt.issues.some((entry) =>
+        ['vm-launch-sandbox-evidence-invalid', 'vm-launch-sandbox-launcher-failed'].includes(
+          entry.code
+        )
+      )
+    );
   } finally {
     rmSync(item.cwd, { recursive: true, force: true });
   }

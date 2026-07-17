@@ -511,6 +511,16 @@ AMD64 host, `qemu-system-x86_64.exe`, q35, 128 MiB, one CPU, and exactly two
 launches. Plans cannot provide a command, argument, environment variable,
 device, network, firmware, monitor, display, or fallback setting.
 
+`vm-launch-whpx-sandboxed` is a third, separately named vocabulary. It retains
+the explicit WHPX contract and additionally launches QEMU through the measured
+Windows helper shipped in this package. The helper creates a
+`CreateRestrictedToken(DISABLE_MAX_PRIVILEGE)` filtered token, lowers it to low
+integrity, admits at most the single Windows pass-through privilege, creates
+the process suspended with an explicit three-handle allowlist, assigns it to a
+kill-on-close Job Object with one-process, memory, and UI restrictions, and
+only then resumes it. A private low-integrity temporary directory is the only
+intended writable launch location.
+
 First measure the complete caller-owned QEMU runtime closure and both guest
 artifacts:
 
@@ -567,6 +577,25 @@ arguments for the WHPX schema. WHPX requires the Windows Hypervisor Platform
 API exposed to QEMU; see the [QEMU WHPX documentation](https://www.qemu.org/docs/master/system/whpx.html)
 and [Microsoft's Windows Hypervisor Platform API overview](https://learn.microsoft.com/en-us/virtualization/api/).
 
+For the sandboxed adapter, use schema
+`holoscript.holosystem.whpx-sandboxed-vm-launch-plan.v1`, add the following
+closed field, and call `vm-launch-whpx-sandboxed`:
+
+```json
+{
+  "sandbox": {
+    "kind": "windows-low-integrity-job-v1",
+    "launcherDigest": "sha256:<HOLOSYSTEM_WINDOWS_SANDBOX_LAUNCHER_DIGEST>"
+  }
+}
+```
+
+The exported `HOLOSYSTEM_WINDOWS_SANDBOX_LAUNCHER_DIGEST` is the digest of the
+package's audited launcher binary. A plan with another digest is blocked before
+process creation. The launcher source and local rebuild recipe are shipped in
+`native/windows-sandbox`; the measured binary is shipped in
+`native/windows-x64`.
+
 The runner creates a private snapshot and remeasures the complete QEMU closure,
 kernel, and initramfs before and after each launch. It then generates QEMU
 arguments that disable user configuration, default devices, networking, USB,
@@ -583,12 +612,21 @@ A verified TCG receipt includes `machine-vm-launch`,
 `hardwareBacked: false`, and leaves hardware acceleration missing. A verified
 WHPX receipt additionally includes `hardware-hypervisor-acceleration` and sets
 `hardwareBacked: true` only after two explicit WHPX launches succeed. Both
-adapters leave `host-process-isolation` missing: QEMU still has the ambient
+ambient adapters leave `host-process-isolation` missing: QEMU still has the ambient
 rights of the Windows process. Receipts therefore expose
 `isolation.hostProcess: "ambient-windows-process"` and
 `isolation.verified: false` even when WHPX acceleration is verified. Neither
-receipt proves an IOMMU, measured boot, firmware authenticity, confidential
-memory, or side-channel resistance. The
+ambient adapter receipt proves an IOMMU, measured boot, firmware authenticity,
+confidential memory, or side-channel resistance.
+
+A verified `vm-launch-whpx-sandboxed` receipt includes
+`host-process-isolation` only for the declared integrity, privilege,
+inherited-handle, lifetime, process-count, memory, and UI scope. It deliberately
+leaves `host-filesystem-confidentiality` and `host-network-isolation` missing:
+low integrity prevents writes up to medium-integrity objects but does not
+prevent reads, and the filtered token is not an AppContainer network capability
+boundary. The sandboxed receipt also does not prove the broader hardware and
+firmware properties named above. The
 exact claims are in the [VM launch threat model](./docs/vm-launch-threat-model.md).
 
 ```js
@@ -596,8 +634,11 @@ import {
   inspectVmExecutor,
   inspectVmLaunchAsset,
   inspectVmLaunchPlan,
+  inspectWindowsVmSandboxLauncher,
+  inspectWhpxSandboxedVmLaunchPlan,
   inspectWhpxVmLaunchPlan,
   runVmLaunch,
+  runWhpxSandboxedVmLaunch,
   runWhpxVmLaunch,
 } from '@holoscript/holosystem';
 ```
