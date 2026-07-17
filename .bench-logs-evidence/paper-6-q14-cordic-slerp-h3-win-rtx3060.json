@@ -1,0 +1,115 @@
+{
+  "schema": "holoscript.paper6.quaternion-conformance.v1",
+  "run_id": "7f4ed8a4-b72a-4488-ad72-e24bd7420ec4",
+  "captured_at": "2026-07-17T18:50:51.274Z",
+  "status": "single-adapter-pass",
+  "contract": {
+    "version": "paper6-q14-cordic-slerp-v1",
+    "algorithm": "fixed-point approximate shortest-arc SLERP via integer CORDIC",
+    "quaternion_encoding": "signed Q14 i32",
+    "time_encoding": "unsigned Q15 u32",
+    "output_encoding": "four signed Q14 i32 words per case",
+    "canonical_hash_encoding": "little-endian signed i32 words"
+  },
+  "claim_scope": "Exact WGSL/TypeScript-oracle byte agreement and three same-session dispatches on the named adapter.",
+  "nonclaims": [
+    "Not the shipped AnimationClip nlerp policy.",
+    "Not MinimaxSLERP and not a minimax transcendental library.",
+    "Not a cross-machine or cross-vendor result.",
+    "Not a universal claim about ordinary WGSL f32 arithmetic."
+  ],
+  "code_as_experimental_variable": {
+    "oracle": "independently scheduled TypeScript BigInt",
+    "gpu": "separately authored WGSL i32/u32",
+    "compiler_backend": "browser WebGPU",
+    "hardware_vendor": "nvidia"
+  },
+  "source": {
+    "base_git_commit": "2b25fce75797d12d698673c0724c0514d852edf2",
+    "paths": [
+      "packages/engine/src/animation/paper/QuaternionInterpolationContract.ts",
+      "packages/engine/src/animation/paper/QuaternionInterpolationWGSL.ts",
+      "packages/engine/tests/quaternion-interpolation-webgpu.spec.ts"
+    ],
+    "all_paths_tracked": true,
+    "source_paths_clean_at_capture": true,
+    "source_unchanged_during_run": true,
+    "source_status_porcelain": "",
+    "contract_ts_sha256": "dffa22ef092b83c5ec4f61346e6ae12987a3587a9c9d515be0b28ff0e0ff3bf7",
+    "wgsl_wrapper_ts_sha256": "bfbcb2960371cfba76618e42a95c8d708a8fd5177a12f27523d74ef282b3c94c",
+    "kernel_wgsl_sha256": "bdc510c041dfe13a92f86660bab28775775161934eb35aefee9ae6fd1f12c47e",
+    "harness_ts_sha256": "8ba99e1a22b17559e16ae8efd2ce641de5c2700f4522e1679257930df077f69e"
+  },
+  "fixture": {
+    "case_count": 1114,
+    "construction": "72 named adversarial cases, a 129-dot by 8-time integer sweep, nine near-branch cases, and one negative-dot ordinary-CORDIC case",
+    "row_bytes": 48,
+    "input_sha256": "01ea6512a4286134c978920875d3e007c38bbe4178ec3bd26ec412af33ec8c92",
+    "oracle_output_sha256": "fd4bd0dfb66ed1f41bdc193aa382d51ad0fdf84190d6c3d15ca47156678e7a84",
+    "branch_boundary_dot_q15": [
+      32758,
+      32760,
+      32762
+    ],
+    "negative_dot_ordinary_cordic_case": "negative-dot-x90-t16384"
+  },
+  "execution": {
+    "mode": "webgpu-browser",
+    "requested_power_preference": "high-performance",
+    "hardware_label": "h3-laptop-rtx3060/windows/chrome150/d3d12",
+    "machine_fingerprint_sha256": "3f021f3002ecacd29bc413833f3b92553c3215db598594bf968ff37ec98d8c12",
+    "browser_user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/150.0.0.0 Safari/537.36",
+    "adapter": {
+      "vendor": "nvidia",
+      "architecture": "ampere",
+      "device": "0x2520",
+      "description": "NVIDIA GeForce RTX 3060 Laptop GPU",
+      "driver": "D3D12 driver version 32.0.16.1062",
+      "isFallbackAdapter": false
+    },
+    "toolchain": {
+      "node": "v24.15.0",
+      "pnpm": "9.15.9",
+      "git": "git version 2.51.0.windows.2",
+      "package_manager_user_agent": "pnpm/9.15.9 npm/? node/v24.15.0 win32 x64",
+      "playwright": "1.60.0",
+      "playwright_project": "chromium-webgpu",
+      "browser_version": "150.0.7871.124"
+    },
+    "host": {
+      "platform": "win32",
+      "release": "10.0.26200",
+      "arch": "x64",
+      "node_little_endian": true,
+      "browser_little_endian": true
+    },
+    "compile_ms": 129.80000001192093,
+    "compilation_messages": [],
+    "repeated_dispatch_ms": [
+      8,
+      1.5,
+      2.800000011920929
+    ],
+    "repeated_dispatch_output_sha256": [
+      "fd4bd0dfb66ed1f41bdc193aa382d51ad0fdf84190d6c3d15ca47156678e7a84",
+      "fd4bd0dfb66ed1f41bdc193aa382d51ad0fdf84190d6c3d15ca47156678e7a84",
+      "fd4bd0dfb66ed1f41bdc193aa382d51ad0fdf84190d6c3d15ca47156678e7a84"
+    ]
+  },
+  "negative_control": {
+    "case_id": "identity-x180-t16384",
+    "mutation": "tQ15: 16384 -> 0",
+    "input_sha256": "16eddb7e9d00b6f384c59bbd691c3df9050d7416395597f1c4c353919de94348",
+    "oracle_output_sha256": "001d06d03a32aed3144104da883a477ea05d5fcb507a9d18b82a1b5fbe55416b",
+    "gpu_output_sha256": "001d06d03a32aed3144104da883a477ea05d5fcb507a9d18b82a1b5fbe55416b",
+    "oracle_equal": true,
+    "changed_digest": true,
+    "dispatch_ms": 0.7999999821186066
+  },
+  "verdict": {
+    "oracle_equal": true,
+    "same_session_repeated_dispatches_equal": true,
+    "negative_control_detected": true,
+    "cross_vendor": "inconclusive-missing-independent-second-machine-vendor"
+  }
+}
