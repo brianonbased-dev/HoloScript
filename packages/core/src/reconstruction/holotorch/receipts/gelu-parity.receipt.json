@@ -1,0 +1,17 @@
+{
+  "schema": "holotorch-inference-parity.v0",
+  "op": "gelu",
+  "adapter": {
+    "vendor": "nvidia",
+    "architecture": "ampere",
+    "device": "nvidia-geforce-rtx-3060-laptop-gpu",
+    "description": "D3D12 driver version 32.0.16.1062"
+  },
+  "n": 4096,
+  "form": "gpt2-tanh",
+  "maxAbs": 6.420500282544594e-7,
+  "maxRefAbs": 5.999629497443393,
+  "relToScale": 1.0701494626094071e-7,
+  "allClose": true,
+  "verdict": "pass"
+}

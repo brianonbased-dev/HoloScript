@@ -1,0 +1,243 @@
+/**
+ * holotorch-ops-parity.test.ts — HoloTorch inference-parity, S2 op coverage.
+ *
+ * Extends the GEMM parity (holotorch-gemm-parity.test.ts) to the remaining
+ * EXISTING forward-pass kernels of the HoloMap WebGPU substrate — LayerNorm,
+ * softmax, GELU — proving each numerically correct against an f64 reference on
+ * real hardware before the net-new decoder pieces (causal mask, embedding-gather,
+ * bias epilogue) are added. Each op emits a holotorch-inference-parity.v0 receipt.
+ *
+ * Metric: numpy.allclose (|got-ref| <= atol + rtol*|ref|) — per-element relative
+ * error is the wrong tool near zero (see the GEMM test). GPU-less env → honest skip.
+ *
+ * NOTE: harness bootstrap is duplicated from the GEMM test on purpose for now;
+ * a shared holotorch/parityHarness.ts extraction is the follow-up cleanup once the
+ * op set stabilizes (2 consumers now justify it).
+ */
+import { describe, it, expect } from 'vitest';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { createLayerNormKernel } from '../layerNormKernel';
+import { createSoftmaxKernel } from '../softmaxKernel';
+import { createGeluKernel } from '../geluKernel';
+
+interface AdapterInfo {
+  vendor?: string;
+  architecture?: string;
+  device?: string;
+  description?: string;
+}
+
+let capturedAdapterInfo: AdapterInfo = {};
+let cachedDevice: GPUDevice | null | undefined;
+
+/** Bootstrap node-webgpu once and cache the device (Dawn dislikes many devices). */
+async function getDevice(): Promise<GPUDevice | null> {
+  if (cachedDevice !== undefined) return cachedDevice;
+  const g = globalThis as unknown as { navigator?: { gpu?: GPU } };
+  if (!g.navigator?.gpu) {
+    try {
+      const mod = (await import('webgpu')) as unknown as {
+        create?: (flags: string[]) => GPU;
+        globals?: Record<string, unknown>;
+        default?: { create?: (flags: string[]) => GPU; globals?: Record<string, unknown> };
+      };
+      const create = mod.create ?? mod.default?.create;
+      const globals = mod.globals ?? mod.default?.globals ?? {};
+      const gpu = typeof create === 'function' ? create([]) : undefined;
+      if (!gpu || typeof (gpu as { requestAdapter?: unknown }).requestAdapter !== 'function') {
+        cachedDevice = null;
+        return null;
+      }
+      g.navigator ??= {} as { gpu?: GPU };
+      g.navigator.gpu = gpu;
+      const target = globalThis as unknown as Record<string, unknown>;
+      for (const [k, v] of Object.entries(globals)) {
+        if (target[k] == null) Object.defineProperty(globalThis, k, { value: v, writable: true, configurable: true });
+      }
+    } catch {
+      cachedDevice = null;
+      return null;
+    }
+  }
+  const adapter = await g.navigator!.gpu!.requestAdapter({ powerPreference: 'high-performance' });
+  if (!adapter) {
+    cachedDevice = null;
+    return null;
+  }
+  const info = (adapter as unknown as { info?: AdapterInfo }).info ?? {};
+  capturedAdapterInfo = { vendor: info.vendor, architecture: info.architecture, device: info.device, description: info.description };
+  cachedDevice = await adapter.requestDevice();
+  return cachedDevice;
+}
+
+function compareAllClose(
+  got: Float32Array,
+  ref: Float64Array,
+  atol: number,
+  rtol: number
+): { maxAbs: number; maxRefAbs: number; relToScale: number; allClose: boolean } {
+  let maxAbs = 0;
+  let maxRefAbs = 0;
+  let allClose = true;
+  for (let i = 0; i < got.length; i++) {
+    const abs = Math.abs(got[i] - ref[i]);
+    const r = Math.abs(ref[i]);
+    if (abs > maxAbs) maxAbs = abs;
+    if (r > maxRefAbs) maxRefAbs = r;
+    if (abs > atol + rtol * r) allClose = false;
+  }
+  return { maxAbs, maxRefAbs, relToScale: maxAbs / Math.max(maxRefAbs, 1e-12), allClose };
+}
+
+function writeParityReceipt(op: string, payload: Record<string, unknown>): void {
+  const here = dirname(fileURLToPath(import.meta.url));
+  const outDir = join(here, '..', 'holotorch', 'receipts');
+  mkdirSync(outDir, { recursive: true });
+  writeFileSync(
+    join(outDir, `${op}-parity.receipt.json`),
+    `${JSON.stringify({ schema: 'holotorch-inference-parity.v0', op, adapter: capturedAdapterInfo, ...payload }, null, 2)}\n`
+  );
+}
+
+function rng(seed: number): () => number {
+  let s = seed >>> 0;
+  return () => {
+    s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
+    return (s / 0xffffffff) * 2 - 1;
+  };
+}
+
+function refLayerNorm(
+  input: Float32Array,
+  gamma: Float32Array,
+  beta: Float32Array,
+  rows: number,
+  dModel: number,
+  eps: number
+): Float64Array {
+  const out = new Float64Array(rows * dModel);
+  for (let r = 0; r < rows; r++) {
+    let mean = 0;
+    for (let c = 0; c < dModel; c++) mean += input[r * dModel + c];
+    mean /= dModel;
+    let v = 0;
+    for (let c = 0; c < dModel; c++) {
+      const d = input[r * dModel + c] - mean;
+      v += d * d;
+    }
+    v /= dModel;
+    const inv = 1 / Math.sqrt(v + eps);
+    for (let c = 0; c < dModel; c++) out[r * dModel + c] = (input[r * dModel + c] - mean) * inv * gamma[c] + beta[c];
+  }
+  return out;
+}
+
+function refSoftmax(input: Float32Array, rows: number, cols: number): Float64Array {
+  const out = new Float64Array(rows * cols);
+  for (let r = 0; r < rows; r++) {
+    let m = -Infinity;
+    for (let c = 0; c < cols; c++) m = Math.max(m, input[r * cols + c]);
+    let s = 0;
+    for (let c = 0; c < cols; c++) {
+      const e = Math.exp(input[r * cols + c] - m);
+      out[r * cols + c] = e;
+      s += e;
+    }
+    for (let c = 0; c < cols; c++) out[r * cols + c] /= s;
+  }
+  return out;
+}
+
+function refGelu(input: Float32Array): Float64Array {
+  const out = new Float64Array(input.length);
+  for (let i = 0; i < input.length; i++) {
+    const x = input[i];
+    out[i] = 0.5 * x * (1 + Math.tanh(0.7978845608 * (x + 0.044715 * x * x * x)));
+  }
+  return out;
+}
+
+describe('HoloTorch op parity (WGSL vs f64 reference, real GPU)', () => {
+  it('layernorm matches f64 reference (holo n_embd=384)', async () => {
+    const device = await getDevice();
+    if (!device) {
+      console.warn('[holotorch-parity] no WebGPU adapter — skipping layernorm');
+      return;
+    }
+    const ln = createLayerNormKernel(device);
+    const rand = rng(7);
+    const rows = 8;
+    const dModel = 384;
+    const eps = 1e-5;
+    const input = new Float32Array(rows * dModel);
+    for (let i = 0; i < input.length; i++) input[i] = rand() * 3;
+    const gamma = new Float32Array(dModel);
+    for (let i = 0; i < dModel; i++) gamma[i] = 1 + 0.1 * rand();
+    const beta = new Float32Array(dModel);
+    for (let i = 0; i < dModel; i++) beta[i] = 0.1 * rand();
+
+    const got = await ln.run(input, gamma, beta);
+    const ref = refLayerNorm(input, gamma, beta, rows, dModel, eps);
+    const cmp = compareAllClose(got, ref, 1e-3, 1e-2);
+    console.warn(
+      `[holotorch-parity]   layernorm [${rows}x${dModel}] relToScale=${cmp.relToScale.toExponential(2)} maxAbs=${cmp.maxAbs.toExponential(2)} allClose=${cmp.allClose}`
+    );
+    writeParityReceipt('layernorm', { dims: { rows, dModel, eps }, ...cmp, verdict: cmp.allClose ? 'pass' : 'fail' });
+    expect(cmp.allClose).toBe(true);
+  }, 120000);
+
+  it('softmax matches f64 reference and rows sum to 1 (attention + vocab widths)', async () => {
+    const device = await getDevice();
+    if (!device) {
+      console.warn('[holotorch-parity] no WebGPU adapter — skipping softmax');
+      return;
+    }
+    const sm = createSoftmaxKernel(device);
+    const rand = rng(11);
+    for (const { rows, cols, tag } of [
+      { rows: 6, cols: 8, tag: 'attn' },
+      { rows: 2, cols: 562, tag: 'vocab' },
+    ]) {
+      const input = new Float32Array(rows * cols);
+      for (let i = 0; i < input.length; i++) input[i] = rand() * 5;
+      const got = await sm.run(input, rows, cols);
+      const ref = refSoftmax(input, rows, cols);
+      const cmp = compareAllClose(got, ref, 1e-4, 1e-3);
+      let maxSumErr = 0;
+      for (let r = 0; r < rows; r++) {
+        let s = 0;
+        for (let c = 0; c < cols; c++) s += got[r * cols + c];
+        maxSumErr = Math.max(maxSumErr, Math.abs(s - 1));
+      }
+      console.warn(
+        `[holotorch-parity]   softmax-${tag} [${rows}x${cols}] relToScale=${cmp.relToScale.toExponential(2)} maxAbs=${cmp.maxAbs.toExponential(2)} sumErr=${maxSumErr.toExponential(2)} allClose=${cmp.allClose}`
+      );
+      writeParityReceipt(`softmax-${tag}`, { dims: { rows, cols }, ...cmp, maxSumErr, verdict: cmp.allClose ? 'pass' : 'fail' });
+      expect(cmp.allClose).toBe(true);
+      expect(maxSumErr).toBeLessThan(1e-4);
+    }
+  }, 120000);
+
+  it('gelu (GPT-2 tanh) matches f64 reference', async () => {
+    const device = await getDevice();
+    if (!device) {
+      console.warn('[holotorch-parity] no WebGPU adapter — skipping gelu');
+      return;
+    }
+    const gelu = createGeluKernel(device);
+    const rand = rng(13);
+    const n = 4096;
+    const input = new Float32Array(n);
+    for (let i = 0; i < n; i++) input[i] = rand() * 6; // range [-6, 6]
+    const got = await gelu.run(input);
+    const ref = refGelu(input);
+    const cmp = compareAllClose(got, ref, 1e-4, 1e-3);
+    console.warn(
+      `[holotorch-parity]   gelu [n=${n}] relToScale=${cmp.relToScale.toExponential(2)} maxAbs=${cmp.maxAbs.toExponential(2)} allClose=${cmp.allClose}`
+    );
+    writeParityReceipt('gelu', { n, form: 'gpt2-tanh', ...cmp, verdict: cmp.allClose ? 'pass' : 'fail' });
+    expect(cmp.allClose).toBe(true);
+  }, 120000);
+});

@@ -33,6 +33,24 @@ import { promisify } from 'util';
 
 const execAsync = promisify(exec);
 
+/**
+ * A vitest config injected into the reward temp dir, isolated from mcp-server's
+ * own vitest.config.ts (which restricts `include` to `src/**`, so a temp file
+ * under a cwd `.grpo-tmp-*` dir is otherwise invisible to discovery). Written
+ * into the completion's temp dir and pointed at via `--config` + `--root` (see
+ * realToolRunner.runVitest). Mirrors daemon-grpo-runner.ts's fix for the same
+ * vitest-CLI-glob-discovery bug.
+ */
+const EPHEMERAL_VITEST_CONFIG = `export default {
+  test: {
+    globals: true,
+    environment: 'node',
+    include: ['**/*.test.ts', '**/*.spec.ts'],
+    passWithNoTests: false,
+  },
+};
+`;
+
 function errMsg(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
@@ -70,8 +88,15 @@ const realToolRunner: RewardToolRunner = {
   ): Promise<{ passed: number; total: number; coveragePercent?: number; output: string }> {
     const timeout = options?.timeout ?? 30_000;
     const workDir = path.dirname(filePath);
+    const configPath = path.join(workDir, 'vitest.config.mjs');
     try {
-      const cmd = `npx vitest run --reporter=json "${filePath}" 2>&1`;
+      fs.writeFileSync(configPath, EPHEMERAL_VITEST_CONFIG, 'utf-8');
+    } catch {
+      // Best effort — if this fails, fall through to the (broken) ancestor
+      // config rather than crash the whole reward evaluation.
+    }
+    try {
+      const cmd = `npx vitest run --reporter=json --root "${workDir}" --config "${configPath}" "${filePath}" 2>&1`;
       const { stdout, stderr } = await execAsync(cmd, {
         cwd: workDir,
         timeout,
