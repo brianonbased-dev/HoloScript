@@ -27,6 +27,25 @@ full Job UI restrictions. Its `host-process-isolation` claim is limited to
 those controls. It is not an AppContainer and does not claim host filesystem
 confidentiality or host network isolation.
 
+`vm-launch-whpx-appcontainer` is another separate schema and receipt. It adds
+an ephemeral zero-capability AppContainer identity to the same filtered,
+low-integrity token and pre-resume Job boundary. The identity receives inherited
+read/execute access to the private measured snapshot and modify access only to
+the private temp directory. Before QEMU starts, the launcher runs an
+AppContainer child under the same token and verifies that it cannot read a
+caller-readable protected sentinel or connect to a live loopback listener. The
+receipt claims filesystem confidentiality and network isolation only when the
+token identity, zero capability count, exact denial errors, and both WHPX boots
+all verify.
+
+`vm-launch-appcontainer` applies the same boundary to TCG with a fixed 64 MiB
+translation buffer. It can claim process, filesystem, and network isolation
+after two deterministic boots, but it cannot claim hardware acceleration. On
+the validated Windows 11 host, zero-capability QEMU receives access denied
+(`0x80070005`) while initializing WHPX. That negative result is preserved as a
+blocked WHPX AppContainer receipt; it is never combined with the verified TCG
+AppContainer receipt or the separately verified low-integrity WHPX receipt.
+
 ## Protected assets and trust boundaries
 
 The protected inputs are the declarative plan, the complete caller-owned QEMU
@@ -65,6 +84,10 @@ than implied away by a successful boot.
 | Select ambient execution, weaken a sandbox control, change the launcher, or forge its protocol       | Reject the distinct sandbox schema, launcher digest, or incomplete evidence | Closed sandbox vocabulary and protocol-forgery tests       |
 | Pass inherited parent handles into sandboxed QEMU                                                    | Admit only NUL input and the two bounded output pipes                       | Native handle-list evidence and receipt assertion          |
 | Spawn another process or escape launcher lifetime/resource bounds                                    | Assign suspended QEMU before resume to a one-process, kill-on-close Job     | Native Job evidence and adversarial receipt tests          |
+| Add an AppContainer capability, path grant, network mode, command, or fallback                        | Reject the distinct closed plan vocabulary before launch                    | AppContainer closed-vocabulary test                        |
+| Forge the AppContainer SID, capability count, profile cleanup, or grant evidence                      | Reject the closed native protocol                                            | AppContainer protocol-forgery test                         |
+| Read a caller-readable file outside the measured snapshot                                             | Require exact access-denied evidence from a zero-capability AppContainer     | Protected-sentinel canary and receipt assertion            |
+| Connect to the host loopback listener from compromised QEMU                                           | Require bounded WSA deny/drop evidence and no accepted connection            | Loopback canary and receipt assertion                      |
 | Put an operational path or guest output in the receipt                                               | Withhold it; report only digest and byte count                              | Receipt disclosure assertions                              |
 
 ## Fixed launch policy
@@ -93,6 +116,20 @@ rejects unknown fields, non-canonical base64, an unbounded enabled-privilege
 count, a missing control, or launcher stderr. Launcher and QEMU snapshots are
 remeasured before and after both launches.
 
+The AppContainer adapter uses the same measured launcher but a distinct plan,
+protocol, and control vocabulary. It never accepts caller-specified capabilities
+or ACL paths. Each native invocation creates a fresh AppContainer profile,
+applies the fixed grants, runs both canaries, creates QEMU with the same zero
+capability `SECURITY_CAPABILITIES`, checks the suspended child token, and deletes
+the profile during cleanup. HoloSystem rejects a nonzero capability count,
+unexpected bounded denial code, accepted loopback connection, incomplete cleanup, or
+any unknown protocol field.
+
+The TCG AppContainer plan also fixes `tcg,tb-size=64`; a caller cannot enlarge
+the JIT translation buffer or relax the 512 MiB process limit. Its receipt keeps
+`hardware-hypervisor-acceleration` missing even when every confinement canary
+passes.
+
 ## Residual risk and next layer
 
 The QEMU runtime closure includes firmware data files and DLLs, so substitution
@@ -114,8 +151,9 @@ isolation controls verify. The launcher binary is measured, but source-to-binary
 reproducibility and code signing remain part of `qemu-runtime-supply-chain` and
 host correctness trust.
 
-The next stronger layer is an AppContainer or separate-host-VM adapter that can
-retain WHPX access while proving capability-scoped filesystem and network
-denial, followed by firmware/measured-boot evidence. It must continue to report
-IOMMU, device-assignment, crash-dump custody, and side-channel boundaries
-separately.
+The TCG AppContainer tracer implements capability-scoped filesystem and network
+denial without hardware acceleration; the WHPX form remains blocked on the
+validated host. It does not turn the Windows kernel into a separate trust
+domain. The next layers are a WHPX broker or independent host boundary and
+firmware/measured-boot evidence. IOMMU, device-assignment, crash-dump custody,
+host correctness, and side-channel boundaries remain separate.

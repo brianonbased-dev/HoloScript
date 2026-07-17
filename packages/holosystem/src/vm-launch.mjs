@@ -8,6 +8,7 @@ import {
   readdirSync,
   readFileSync,
   rmSync,
+  writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve, sep } from 'node:path';
@@ -24,10 +25,22 @@ export const HOLOSYSTEM_WHPX_SANDBOXED_VM_LAUNCH_PLAN_SCHEMA =
   'holoscript.holosystem.whpx-sandboxed-vm-launch-plan.v1';
 export const HOLOSYSTEM_WHPX_SANDBOXED_VM_LAUNCH_RECEIPT_SCHEMA =
   'holoscript.holosystem.whpx-sandboxed-vm-launch-receipt.v1';
+export const HOLOSYSTEM_WHPX_APPCONTAINER_VM_LAUNCH_PLAN_SCHEMA =
+  'holoscript.holosystem.whpx-appcontainer-vm-launch-plan.v1';
+export const HOLOSYSTEM_WHPX_APPCONTAINER_VM_LAUNCH_RECEIPT_SCHEMA =
+  'holoscript.holosystem.whpx-appcontainer-vm-launch-receipt.v1';
+export const HOLOSYSTEM_APPCONTAINER_VM_LAUNCH_PLAN_SCHEMA =
+  'holoscript.holosystem.appcontainer-vm-launch-plan.v1';
+export const HOLOSYSTEM_APPCONTAINER_VM_LAUNCH_RECEIPT_SCHEMA =
+  'holoscript.holosystem.appcontainer-vm-launch-receipt.v1';
 export const HOLOSYSTEM_WINDOWS_SANDBOX_PROTOCOL =
   'holoscript.holosystem.windows-sandbox-launch.v1';
+export const HOLOSYSTEM_WINDOWS_APPCONTAINER_PROTOCOL =
+  'holoscript.holosystem.windows-appcontainer-launch.v1';
 export const HOLOSYSTEM_WINDOWS_SANDBOX_LAUNCHER_SCHEMA =
   'holoscript.holosystem.windows-sandbox-launcher.v1';
+export const HOLOSYSTEM_WINDOWS_APPCONTAINER_CANARY_SCHEMA =
+  'holoscript.holosystem.windows-appcontainer-canary.v1';
 
 const DIGEST_PATTERN = /^sha256:[a-f0-9]{64}$/u;
 const EXECUTOR_BINARY = 'qemu-system-x86_64.exe';
@@ -39,14 +52,22 @@ const MAX_INITRD_BYTES = 512 * 1024 * 1024;
 const MAX_CONSOLE_BYTES = 1024 * 1024;
 const EXPECTED_EXIT_CODE = 33;
 const SANDBOX_LAUNCHER_BINARY = 'holosystem-sandbox-launcher.exe';
+const APPCONTAINER_CANARY_BINARY = 'holosystem-appcontainer-canary.exe';
 const SANDBOX_KIND = 'windows-low-integrity-job-v1';
+const APPCONTAINER_KIND = 'windows-appcontainer-deny-v1';
 const SANDBOX_PROCESS_MEMORY_BYTES = 512 * 1024 * 1024;
 const SANDBOX_PROTOCOL_BYTES = 3 * 1024 * 1024;
 const SANDBOX_LAUNCHER_PATH = fileURLToPath(
   new URL(`../native/windows-x64/${SANDBOX_LAUNCHER_BINARY}`, import.meta.url)
 );
+const APPCONTAINER_CANARY_PATH = fileURLToPath(
+  new URL(`../native/windows-x64/${APPCONTAINER_CANARY_BINARY}`, import.meta.url)
+);
 export const HOLOSYSTEM_WINDOWS_SANDBOX_LAUNCHER_DIGEST = hashBytes(
   readFileSync(SANDBOX_LAUNCHER_PATH)
+);
+export const HOLOSYSTEM_WINDOWS_APPCONTAINER_CANARY_DIGEST = hashBytes(
+  readFileSync(APPCONTAINER_CANARY_PATH)
 );
 const TCG_POLICY = Object.freeze({
   accelerator: 'tcg',
@@ -80,6 +101,27 @@ const WHPX_SANDBOXED_POLICY = Object.freeze({
   token: 'disable-max-privilege-low-integrity',
   job: 'pre-resume-kill-on-close-active-process-memory-ui',
   writableTemp: 'low-integrity-private-snapshot',
+});
+const WHPX_APPCONTAINER_POLICY = Object.freeze({
+  ...WHPX_POLICY,
+  hostProcess: APPCONTAINER_KIND,
+  token: 'disable-max-privilege-appcontainer-low-integrity',
+  capabilities: 'none',
+  filesystem: 'snapshot-read-execute-writable-temp-modify',
+  network: 'appcontainer-default-deny',
+  canaries: 'caller-readable-sentinel-and-loopback-listener',
+  job: 'pre-resume-kill-on-close-active-process-memory-ui',
+});
+const APPCONTAINER_TCG_POLICY = Object.freeze({
+  ...TCG_POLICY,
+  network: 'appcontainer-default-deny',
+  hostProcess: APPCONTAINER_KIND,
+  token: 'disable-max-privilege-appcontainer-low-integrity',
+  capabilities: 'none',
+  filesystem: 'snapshot-read-execute-writable-temp-modify',
+  canaries: 'caller-readable-sentinel-and-loopback-listener',
+  job: 'pre-resume-kill-on-close-active-process-memory-ui',
+  translationBufferMiB: 64,
 });
 const BOUNDARIES = Object.freeze([
   'guest-artifact-provenance',
@@ -119,6 +161,44 @@ const WHPX_SANDBOXED_ADAPTER = Object.freeze({
   policy: WHPX_SANDBOXED_POLICY,
   requiresDiagnosticsDigest: true,
   hostSandboxed: true,
+  sandboxKind: SANDBOX_KIND,
+  sandboxProtocol: HOLOSYSTEM_WINDOWS_SANDBOX_PROTOCOL,
+  isolationScope: 'integrity-privilege-lifetime-resource-ui',
+  filesystemConfidentiality: false,
+  networkIsolation: false,
+  appContainer: false,
+});
+const WHPX_APPCONTAINER_ADAPTER = Object.freeze({
+  accelerator: 'whpx',
+  accelerationName: 'qemu-whpx',
+  hardwareBacked: true,
+  planSchema: HOLOSYSTEM_WHPX_APPCONTAINER_VM_LAUNCH_PLAN_SCHEMA,
+  receiptSchema: HOLOSYSTEM_WHPX_APPCONTAINER_VM_LAUNCH_RECEIPT_SCHEMA,
+  policy: WHPX_APPCONTAINER_POLICY,
+  requiresDiagnosticsDigest: true,
+  hostSandboxed: true,
+  sandboxKind: APPCONTAINER_KIND,
+  sandboxProtocol: HOLOSYSTEM_WINDOWS_APPCONTAINER_PROTOCOL,
+  isolationScope: 'appcontainer-zero-capability-snapshot-grant',
+  filesystemConfidentiality: true,
+  networkIsolation: true,
+  appContainer: true,
+});
+const APPCONTAINER_TCG_ADAPTER = Object.freeze({
+  accelerator: 'tcg',
+  accelerationName: 'qemu-tcg',
+  hardwareBacked: false,
+  planSchema: HOLOSYSTEM_APPCONTAINER_VM_LAUNCH_PLAN_SCHEMA,
+  receiptSchema: HOLOSYSTEM_APPCONTAINER_VM_LAUNCH_RECEIPT_SCHEMA,
+  policy: APPCONTAINER_TCG_POLICY,
+  requiresDiagnosticsDigest: false,
+  hostSandboxed: true,
+  sandboxKind: APPCONTAINER_KIND,
+  sandboxProtocol: HOLOSYSTEM_WINDOWS_APPCONTAINER_PROTOCOL,
+  isolationScope: 'appcontainer-zero-capability-snapshot-grant',
+  filesystemConfidentiality: true,
+  networkIsolation: true,
+  appContainer: true,
 });
 
 function isRecord(value) {
@@ -331,16 +411,24 @@ function inspectVmLaunchPlanForAdapter(plan, adapter) {
   }
 
   if (adapter.hostSandboxed) {
-    knownKeys(plan.sandbox, new Set(['kind', 'launcherDigest']), 'sandbox', issues);
-    if (plan.sandbox?.kind !== SANDBOX_KIND) {
+    knownKeys(
+      plan.sandbox,
+      new Set(['kind', 'launcherDigest', ...(adapter.appContainer ? ['canaryDigest'] : [])]),
+      'sandbox',
+      issues
+    );
+    if (plan.sandbox?.kind !== adapter.sandboxKind) {
       issue(
         issues,
         'vm-launch-sandbox-unsupported',
         'sandbox.kind',
-        `This adapter requires ${SANDBOX_KIND}.`
+        `This adapter requires ${adapter.sandboxKind}.`
       );
     }
     inspectDigest(plan.sandbox?.launcherDigest, 'sandbox.launcherDigest', issues);
+    if (adapter.appContainer) {
+      inspectDigest(plan.sandbox?.canaryDigest, 'sandbox.canaryDigest', issues);
+    }
   }
 
   return { ready: issues.length === 0, issues };
@@ -356,6 +444,14 @@ export function inspectWhpxVmLaunchPlan(plan) {
 
 export function inspectWhpxSandboxedVmLaunchPlan(plan) {
   return inspectVmLaunchPlanForAdapter(plan, WHPX_SANDBOXED_ADAPTER);
+}
+
+export function inspectWhpxAppContainerVmLaunchPlan(plan) {
+  return inspectVmLaunchPlanForAdapter(plan, WHPX_APPCONTAINER_ADAPTER);
+}
+
+export function inspectAppContainerVmLaunchPlan(plan) {
+  return inspectVmLaunchPlanForAdapter(plan, APPCONTAINER_TCG_ADAPTER);
 }
 
 function scanRuntime(directory, issues) {
@@ -583,6 +679,40 @@ export function inspectWindowsVmSandboxLauncher() {
   };
 }
 
+export function inspectWindowsVmAppContainerCanary() {
+  const issues = [];
+  let content = null;
+  try {
+    const stats = lstatSync(APPCONTAINER_CANARY_PATH);
+    if (!stats.isFile() || stats.isSymbolicLink()) throw new TypeError('not a regular file');
+    content = readFileSync(APPCONTAINER_CANARY_PATH);
+  } catch {
+    issue(
+      issues,
+      'vm-launch-appcontainer-canary-invalid',
+      'sandbox.canary',
+      'The packaged Windows AppContainer canary must be a readable regular file.'
+    );
+  }
+  const digest = content ? hashBytes(content) : null;
+  if (digest && digest !== HOLOSYSTEM_WINDOWS_APPCONTAINER_CANARY_DIGEST) {
+    issue(
+      issues,
+      'vm-launch-appcontainer-canary-drift',
+      'sandbox.canaryDigest',
+      'The packaged Windows AppContainer canary changed after module initialization.'
+    );
+  }
+  return {
+    schema: HOLOSYSTEM_WINDOWS_APPCONTAINER_CANARY_SCHEMA,
+    ready: issues.length === 0,
+    kind: APPCONTAINER_KIND,
+    digest: issues.length === 0 ? digest : null,
+    bytes: issues.length === 0 ? content.length : null,
+    issues,
+  };
+}
+
 function logSummary(value) {
   const bytes = Buffer.isBuffer(value) ? value : Buffer.from(String(value || ''), 'utf8');
   return { bytes: bytes.length, digest: hashBytes(bytes) };
@@ -628,26 +758,20 @@ function baseReceipt(plan, now, issues, adapter) {
     },
     isolation: adapter.hostSandboxed
       ? {
-          hostProcess: SANDBOX_KIND,
-          scope: 'integrity-privilege-lifetime-resource-ui',
+          hostProcess: adapter.sandboxKind,
+          scope: adapter.isolationScope,
           verified: false,
           launcherDigest: DIGEST_PATTERN.test(plan?.sandbox?.launcherDigest || '')
             ? plan.sandbox.launcherDigest
             : null,
-          controls: {
-            filteredToken: false,
-            disableMaxPrivilege: false,
-            enabledPrivilegeCount: null,
-            privilegesBounded: false,
-            lowIntegrity: false,
-            assignedBeforeResume: false,
-            handleAllowlist: false,
-            killOnClose: false,
-            activeProcessLimit: false,
-            processMemoryLimit: false,
-            uiRestrictions: false,
-            writableTempLowIntegrity: false,
-          },
+          ...(adapter.appContainer
+            ? {
+                canaryDigest: DIGEST_PATTERN.test(plan?.sandbox?.canaryDigest || '')
+                  ? plan.sandbox.canaryDigest
+                  : null,
+              }
+            : {}),
+          controls: emptyIsolationControls(adapter),
         }
       : {
           hostProcess: 'ambient-windows-process',
@@ -709,21 +833,24 @@ function baseReceipt(plan, now, issues, adapter) {
           !(adapter.hardwareBacked && layer === 'hardware-hypervisor-acceleration') &&
           !(adapter.hostSandboxed && layer === 'host-process-isolation')
       ),
-      ...(adapter.hostSandboxed
-        ? ['host-filesystem-confidentiality', 'host-network-isolation']
+      ...(adapter.hostSandboxed && !adapter.filesystemConfidentiality
+        ? ['host-filesystem-confidentiality']
         : []),
+      ...(adapter.hostSandboxed && !adapter.networkIsolation ? ['host-network-isolation'] : []),
     ],
     issues,
   };
 }
 
 function qemuArguments(plan, kernelPath, initrdPath, adapter) {
+  const appContainerTcg = adapter === APPCONTAINER_TCG_ADAPTER;
   return [
     '-no-user-config',
     '-nodefaults',
     '-machine',
-    `q35,accel=${adapter.accelerator},usb=off`,
-    ...(adapter === TCG_ADAPTER ? ['-cpu', 'max'] : []),
+    appContainerTcg ? 'q35,usb=off' : `q35,accel=${adapter.accelerator},usb=off`,
+    ...(appContainerTcg ? ['-accel', 'tcg,tb-size=64'] : []),
+    ...([TCG_ADAPTER, APPCONTAINER_TCG_ADAPTER].includes(adapter) ? ['-cpu', 'max'] : []),
     '-m',
     `${plan.resources.memoryMiB}M`,
     '-smp',
@@ -749,17 +876,29 @@ function qemuArguments(plan, kernelPath, initrdPath, adapter) {
 }
 
 function minimalEnvironment(snapshotRoot, runtimeDirectory, temporaryDirectory = snapshotRoot) {
+  const systemRoot = process.env.SystemRoot || process.env.WINDIR;
+  const systemDrive = process.env.SystemDrive || systemRoot?.slice(0, 2);
   const env = {
+    APPDATA: temporaryDirectory,
     HOME: snapshotRoot,
+    HOMEDRIVE: systemDrive,
+    HOMEPATH: '\\',
+    LOCALAPPDATA: temporaryDirectory,
+    OS: 'Windows_NT',
+    Path: runtimeDirectory,
+    PATHEXT: '.COM;.EXE;.BAT;.CMD',
     USERPROFILE: snapshotRoot,
     TEMP: temporaryDirectory,
     TMP: temporaryDirectory,
-    PATH: runtimeDirectory,
     LANG: 'C',
     LC_ALL: 'C',
   };
-  if (typeof process.env.SystemRoot === 'string') env.SystemRoot = process.env.SystemRoot;
-  if (typeof process.env.WINDIR === 'string') env.WINDIR = process.env.WINDIR;
+  if (systemDrive) env.SystemDrive = systemDrive;
+  if (systemRoot) {
+    env.SystemRoot = systemRoot;
+    env.windir = systemRoot;
+    env.ComSpec = join(systemRoot, 'System32', 'cmd.exe');
+  }
   return env;
 }
 
@@ -777,6 +916,74 @@ const SANDBOX_CONTROL_KEYS = Object.freeze([
   'uiRestrictions',
   'writableTempLowIntegrity',
 ]);
+const APPCONTAINER_CONTROL_KEYS = Object.freeze([
+  'filteredToken',
+  'disableMaxPrivilege',
+  'enabledPrivilegeCount',
+  'privilegesBounded',
+  'lowIntegrity',
+  'assignedBeforeResume',
+  'handleAllowlist',
+  'killOnClose',
+  'activeProcessLimit',
+  'processMemoryLimit',
+  'uiRestrictions',
+  'appContainer',
+  'appContainerSidMatched',
+  'capabilityCount',
+  'snapshotReadExecuteGrant',
+  'writableTempModifyGrant',
+  'filesystemCanaryDenied',
+  'filesystemCanaryError',
+  'networkCanaryDenied',
+  'networkCanaryError',
+  'loopbackAccepted',
+  'profileDeleted',
+]);
+
+function isolationControlKeys(adapter) {
+  return adapter.appContainer ? APPCONTAINER_CONTROL_KEYS : SANDBOX_CONTROL_KEYS;
+}
+
+function emptyIsolationControls(adapter) {
+  return Object.fromEntries(
+    isolationControlKeys(adapter).map((key) => [
+      key,
+      ['enabledPrivilegeCount', 'capabilityCount', 'filesystemCanaryError', 'networkCanaryError'].includes(
+        key
+      )
+        ? null
+        : false,
+    ])
+  );
+}
+
+function isolationControlsReady(controls, adapter) {
+  if (
+    !Number.isInteger(controls.enabledPrivilegeCount) ||
+    controls.enabledPrivilegeCount < 0 ||
+    controls.enabledPrivilegeCount > 1
+  ) {
+    return false;
+  }
+  if (!adapter.appContainer) {
+    return SANDBOX_CONTROL_KEYS.every(
+      (key) => key === 'enabledPrivilegeCount' || controls[key] === true
+    );
+  }
+  return (
+    APPCONTAINER_CONTROL_KEYS.every(
+      (key) =>
+        ['enabledPrivilegeCount', 'capabilityCount', 'filesystemCanaryError', 'networkCanaryError'].includes(
+          key
+        ) ||
+        (key === 'loopbackAccepted' ? controls[key] === false : controls[key] === true)
+    ) &&
+    controls.capabilityCount === 0 &&
+    controls.filesystemCanaryError === 5 &&
+    [10013, 10060].includes(controls.networkCanaryError)
+  );
+}
 
 function canonicalBase64(value) {
   if (
@@ -790,7 +997,7 @@ function canonicalBase64(value) {
   return bytes.toString('base64') === value && bytes.length <= MAX_CONSOLE_BYTES ? bytes : null;
 }
 
-function parseSandboxProtocol(result) {
+function parseSandboxProtocol(result, adapter) {
   if (
     result?.status !== 0 ||
     result?.signal ||
@@ -810,7 +1017,7 @@ function parseSandboxProtocol(result) {
   }
   if (
     !isRecord(message) ||
-    message.protocol !== HOLOSYSTEM_WINDOWS_SANDBOX_PROTOCOL ||
+    message.protocol !== adapter.sandboxProtocol ||
     !isRecord(message.isolation) ||
     Object.keys(message).some(
       (key) =>
@@ -826,19 +1033,14 @@ function parseSandboxProtocol(result) {
           'errorCode',
         ].includes(key)
     ) ||
-    Object.keys(message.isolation).some((key) => !SANDBOX_CONTROL_KEYS.includes(key))
+    Object.keys(message.isolation).some((key) => !isolationControlKeys(adapter).includes(key)) ||
+    Object.keys(message.isolation).length !== isolationControlKeys(adapter).length
   ) {
     return { ready: false, issueCode: 'vm-launch-sandbox-protocol-invalid' };
   }
   const stdout = canonicalBase64(message.stdoutBase64);
   const stderr = canonicalBase64(message.stderrBase64);
-  const controlsReady =
-    SANDBOX_CONTROL_KEYS.every(
-      (key) => key === 'enabledPrivilegeCount' || message.isolation[key] === true
-    ) &&
-    Number.isInteger(message.isolation.enabledPrivilegeCount) &&
-    message.isolation.enabledPrivilegeCount >= 0 &&
-    message.isolation.enabledPrivilegeCount <= 1;
+  const controlsReady = isolationControlsReady(message.isolation, adapter);
   if (
     message.launched !== true ||
     message.timedOut !== false ||
@@ -857,7 +1059,9 @@ function parseSandboxProtocol(result) {
     signal: null,
     stdout,
     stderr,
-    isolation: Object.fromEntries(SANDBOX_CONTROL_KEYS.map((key) => [key, message.isolation[key]])),
+    isolation: Object.fromEntries(
+      isolationControlKeys(adapter).map((key) => [key, message.isolation[key]])
+    ),
   };
 }
 
@@ -885,14 +1089,19 @@ function launchSnapshotMatches(plan, runtimeDirectory, kernelPath, initrdPath) {
   );
 }
 
-function sandboxLauncherSnapshotMatches(plan, launcherPath, adapter) {
+function sandboxArtifactsSnapshotMatch(plan, launcherPath, canaryPath, adapter) {
   if (!adapter.hostSandboxed) return true;
   try {
     const stats = lstatSync(launcherPath);
+    const canaryStats = adapter.appContainer ? lstatSync(canaryPath) : null;
     return (
       stats.isFile() &&
       !stats.isSymbolicLink() &&
-      hashBytes(readFileSync(launcherPath)) === plan.sandbox.launcherDigest
+      hashBytes(readFileSync(launcherPath)) === plan.sandbox.launcherDigest &&
+      (!adapter.appContainer ||
+        (canaryStats.isFile() &&
+          !canaryStats.isSymbolicLink() &&
+          hashBytes(readFileSync(canaryPath)) === plan.sandbox.canaryDigest))
     );
   } catch {
     return false;
@@ -912,11 +1121,13 @@ function runVmLaunchWithProcessRunner(
   const kernel = inspectVmLaunchAsset({ assetPath: kernelPath, kind: 'kernel' });
   const initrd = inspectVmLaunchAsset({ assetPath: initrdPath, kind: 'initrd' });
   const sandboxLauncher = adapter.hostSandboxed ? inspectWindowsVmSandboxLauncher() : null;
+  const appContainerCanary = adapter.appContainer ? inspectWindowsVmAppContainerCanary() : null;
   receipt.issues.push(
     ...executor.issues,
     ...kernel.issues,
     ...initrd.issues,
-    ...(sandboxLauncher?.issues || [])
+    ...(sandboxLauncher?.issues || []),
+    ...(appContainerCanary?.issues || [])
   );
   if (executor.ready && executor.digest !== plan.executor.runtimeDigest) {
     issue(
@@ -962,6 +1173,18 @@ function runVmLaunchWithProcessRunner(
       'Packaged Windows sandbox launcher does not match the pinned plan digest.'
     );
   }
+  if (
+    adapter.appContainer &&
+    appContainerCanary?.ready &&
+    appContainerCanary.digest !== plan.sandbox.canaryDigest
+  ) {
+    issue(
+      receipt.issues,
+      'vm-launch-appcontainer-canary-mismatch',
+      'sandbox.canaryDigest',
+      'Packaged Windows AppContainer canary does not match the pinned plan digest.'
+    );
+  }
   if (receipt.issues.length > 0) return finishReceipt(receipt);
 
   const sourceRuntime = resolve(executorDirectory);
@@ -972,7 +1195,12 @@ function runVmLaunchWithProcessRunner(
   const snapshotKernel = join(snapshotRoot, 'vmlinuz');
   const snapshotInitrd = join(snapshotRoot, 'initramfs');
   const snapshotLauncher = join(snapshotRoot, SANDBOX_LAUNCHER_BINARY);
+  const snapshotCanary = join(snapshotRoot, APPCONTAINER_CANARY_BINARY);
   const snapshotTemporary = join(snapshotRoot, 'sandbox-temp');
+  const protectedRoot = adapter.appContainer
+    ? mkdtempSync(join(tmpdir(), 'holosystem-vm-protected-'))
+    : null;
+  const protectedSentinel = protectedRoot ? join(protectedRoot, 'caller-readable.bin') : null;
 
   try {
     try {
@@ -982,6 +1210,10 @@ function runVmLaunchWithProcessRunner(
       if (adapter.hostSandboxed) {
         copyFileSync(SANDBOX_LAUNCHER_PATH, snapshotLauncher);
         mkdirSync(snapshotTemporary);
+      }
+      if (adapter.appContainer) copyFileSync(APPCONTAINER_CANARY_PATH, snapshotCanary);
+      if (adapter.appContainer) {
+        writeFileSync(protectedSentinel, Buffer.from('holosystem-appcontainer-read-canary-v1'));
       }
     } catch {
       issue(
@@ -997,6 +1229,7 @@ function runVmLaunchWithProcessRunner(
     const pinnedKernel = inspectVmLaunchAsset({ assetPath: snapshotKernel, kind: 'kernel' });
     const pinnedInitrd = inspectVmLaunchAsset({ assetPath: snapshotInitrd, kind: 'initrd' });
     let pinnedLauncherDigest = null;
+    let pinnedCanaryDigest = null;
     if (adapter.hostSandboxed) {
       try {
         const stats = lstatSync(snapshotLauncher);
@@ -1004,6 +1237,15 @@ function runVmLaunchWithProcessRunner(
         pinnedLauncherDigest = hashBytes(readFileSync(snapshotLauncher));
       } catch {
         pinnedLauncherDigest = null;
+      }
+    }
+    if (adapter.appContainer) {
+      try {
+        const stats = lstatSync(snapshotCanary);
+        if (!stats.isFile() || stats.isSymbolicLink()) throw new TypeError('not a regular file');
+        pinnedCanaryDigest = hashBytes(readFileSync(snapshotCanary));
+      } catch {
+        pinnedCanaryDigest = null;
       }
     }
     if (
@@ -1042,6 +1284,14 @@ function runVmLaunchWithProcessRunner(
         'Windows sandbox launcher changed while its private snapshot was materialized.'
       );
     }
+    if (adapter.appContainer && pinnedCanaryDigest !== plan.sandbox.canaryDigest) {
+      issue(
+        receipt.issues,
+        'vm-launch-appcontainer-canary-snapshot-mismatch',
+        'sandbox.canaryDigest',
+        'Windows AppContainer canary changed while its private snapshot was materialized.'
+      );
+    }
     if (receipt.issues.length > 0) return finishReceipt(receipt);
 
     receipt.measurementDigest = hashJson({
@@ -1051,6 +1301,7 @@ function runVmLaunchWithProcessRunner(
       kernelDigest: pinnedKernel.digest,
       initrdDigest: pinnedInitrd.digest,
       ...(adapter.hostSandboxed ? { sandboxLauncherDigest: pinnedLauncherDigest } : {}),
+      ...(adapter.appContainer ? { appContainerCanaryDigest: pinnedCanaryDigest } : {}),
       policy: adapter.policy,
     });
 
@@ -1071,6 +1322,16 @@ function runVmLaunchWithProcessRunner(
           String(plan.resources.timeoutSeconds * 1000),
           '--process-memory-bytes',
           String(SANDBOX_PROCESS_MEMORY_BYTES),
+          ...(adapter.appContainer
+            ? [
+                '--appcontainer-deny',
+                'v1',
+                '--protected-sentinel',
+                protectedSentinel,
+                '--canary-executable',
+                snapshotCanary,
+              ]
+            : []),
           '--',
           ...qemuArgs,
         ]
@@ -1091,7 +1352,7 @@ function runVmLaunchWithProcessRunner(
     for (let index = 0; index < plan.launches; index += 1) {
       if (
         !launchSnapshotMatches(plan, snapshotRuntime, snapshotKernel, snapshotInitrd) ||
-        !sandboxLauncherSnapshotMatches(plan, snapshotLauncher, adapter)
+        !sandboxArtifactsSnapshotMatch(plan, snapshotLauncher, snapshotCanary, adapter)
       ) {
         issue(
           receipt.issues,
@@ -1108,7 +1369,7 @@ function runVmLaunchWithProcessRunner(
         result = { status: null, signal: null, stdout: Buffer.alloc(0), stderr: Buffer.alloc(0) };
       }
       if (adapter.hostSandboxed) {
-        const protocol = parseSandboxProtocol(result);
+        const protocol = parseSandboxProtocol(result, adapter);
         if (!protocol.ready) {
           issue(
             receipt.issues,
@@ -1185,7 +1446,7 @@ function runVmLaunchWithProcessRunner(
       }
       if (
         !launchSnapshotMatches(plan, snapshotRuntime, snapshotKernel, snapshotInitrd) ||
-        !sandboxLauncherSnapshotMatches(plan, snapshotLauncher, adapter)
+        !sandboxArtifactsSnapshotMatch(plan, snapshotLauncher, snapshotCanary, adapter)
       ) {
         issue(
           receipt.issues,
@@ -1198,6 +1459,7 @@ function runVmLaunchWithProcessRunner(
     }
   } finally {
     rmSync(snapshotRoot, { recursive: true, force: true });
+    if (protectedRoot) rmSync(protectedRoot, { recursive: true, force: true });
   }
 
   const launchSignatures = receipt.launches.map(({ exitCode, signal, stdout, stderr, isolation }) =>
@@ -1238,14 +1500,19 @@ function runVmLaunchWithProcessRunner(
         'guest-artifact-measurement',
         ...(adapter.hardwareBacked ? ['hardware-hypervisor-acceleration'] : []),
         ...(adapter.hostSandboxed ? ['host-process-isolation'] : []),
+        ...(adapter.filesystemConfidentiality ? ['host-filesystem-confidentiality'] : []),
+        ...(adapter.networkIsolation ? ['host-network-isolation'] : []),
         'machine-vm-launch',
         'virtual-device-minimization',
       ],
       missingLayers: [
         ...(!adapter.hardwareBacked ? ['hardware-hypervisor-acceleration'] : []),
         ...(!adapter.hostSandboxed ? ['host-process-isolation'] : []),
-        ...(adapter.hostSandboxed
-          ? ['host-filesystem-confidentiality', 'host-network-isolation']
+        ...(adapter.hostSandboxed && !adapter.filesystemConfidentiality
+          ? ['host-filesystem-confidentiality']
+          : []),
+        ...(adapter.hostSandboxed && !adapter.networkIsolation
+          ? ['host-network-isolation']
           : []),
       ],
     };
@@ -1263,6 +1530,14 @@ export function runWhpxVmLaunch(options = {}) {
 
 export function runWhpxSandboxedVmLaunch(options = {}) {
   return runVmLaunchWithProcessRunner(options, spawnSync, WHPX_SANDBOXED_ADAPTER);
+}
+
+export function runWhpxAppContainerVmLaunch(options = {}) {
+  return runVmLaunchWithProcessRunner(options, spawnSync, WHPX_APPCONTAINER_ADAPTER);
+}
+
+export function runAppContainerVmLaunch(options = {}) {
+  return runVmLaunchWithProcessRunner(options, spawnSync, APPCONTAINER_TCG_ADAPTER);
 }
 
 // Repository tests need a deterministic process boundary without publishing an
@@ -1289,4 +1564,20 @@ export function runWhpxSandboxedVmLaunchWithProcessRunnerForTest(options = {}) {
   }
   const { processRunner, ...launchOptions } = options;
   return runVmLaunchWithProcessRunner(launchOptions, processRunner, WHPX_SANDBOXED_ADAPTER);
+}
+
+export function runWhpxAppContainerVmLaunchWithProcessRunnerForTest(options = {}) {
+  if (typeof options.processRunner !== 'function') {
+    throw new TypeError('processRunner test adapter is required.');
+  }
+  const { processRunner, ...launchOptions } = options;
+  return runVmLaunchWithProcessRunner(launchOptions, processRunner, WHPX_APPCONTAINER_ADAPTER);
+}
+
+export function runAppContainerVmLaunchWithProcessRunnerForTest(options = {}) {
+  if (typeof options.processRunner !== 'function') {
+    throw new TypeError('processRunner test adapter is required.');
+  }
+  const { processRunner, ...launchOptions } = options;
+  return runVmLaunchWithProcessRunner(launchOptions, processRunner, APPCONTAINER_TCG_ADAPTER);
 }

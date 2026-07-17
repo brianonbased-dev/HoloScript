@@ -14,7 +14,9 @@ import {
   inspectVmExecutor,
   inspectVmLaunchAsset,
   runNativeBuild,
+  runAppContainerVmLaunch,
   runVmLaunch,
+  runWhpxAppContainerVmLaunch,
   runWhpxSandboxedVmLaunch,
   runWhpxVmLaunch,
 } from '../src/index.mjs';
@@ -35,8 +37,10 @@ Usage:
   holosystem vm-executor --runtime <directory> [--json]
   holosystem vm-asset --kind <kernel|initrd> --file <file> [--json]
   holosystem vm-launch --plan <file> --runtime <directory> --kernel <file> --initrd <file> [--output <receipt>] [--force] [--json]
+  holosystem vm-launch-appcontainer --plan <file> --runtime <directory> --kernel <file> --initrd <file> [--output <receipt>] [--force] [--json]
   holosystem vm-launch-whpx --plan <file> --runtime <directory> --kernel <file> --initrd <file> [--output <receipt>] [--force] [--json]
   holosystem vm-launch-whpx-sandboxed --plan <file> --runtime <directory> --kernel <file> --initrd <file> [--output <receipt>] [--force] [--json]
+  holosystem vm-launch-whpx-appcontainer --plan <file> --runtime <directory> --kernel <file> --initrd <file> [--output <receipt>] [--force] [--json]
   holosystem substrate --input <file> [--output <file>] [--force] [--json]
   holosystem --help
   holosystem --version
@@ -703,6 +707,11 @@ if (!command || command === '--help' || command === '-h' || command === 'help') 
   runVmAsset(argv.slice(1));
 } else if (command === 'vm-launch') {
   runVmLaunchCommand(argv.slice(1));
+} else if (command === 'vm-launch-appcontainer') {
+  runVmLaunchCommand(argv.slice(1), {
+    launcher: runAppContainerVmLaunch,
+    commandName: 'vm-launch-appcontainer',
+  });
 } else if (command === 'vm-launch-whpx') {
   runVmLaunchCommand(argv.slice(1), {
     launcher: runWhpxVmLaunch,
@@ -712,6 +721,11 @@ if (!command || command === '--help' || command === '-h' || command === 'help') 
   runVmLaunchCommand(argv.slice(1), {
     launcher: runWhpxSandboxedVmLaunch,
     commandName: 'vm-launch-whpx-sandboxed',
+  });
+} else if (command === 'vm-launch-whpx-appcontainer') {
+  runVmLaunchCommand(argv.slice(1), {
+    launcher: runWhpxAppContainerVmLaunch,
+    commandName: 'vm-launch-whpx-appcontainer',
   });
 } else if (command === 'substrate') {
   runSubstrate(argv.slice(1));

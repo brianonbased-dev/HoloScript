@@ -14,19 +14,36 @@ import {
   HOLOSYSTEM_WHPX_VM_LAUNCH_RECEIPT_SCHEMA,
   HOLOSYSTEM_WHPX_SANDBOXED_VM_LAUNCH_PLAN_SCHEMA,
   HOLOSYSTEM_WHPX_SANDBOXED_VM_LAUNCH_RECEIPT_SCHEMA,
+  HOLOSYSTEM_WHPX_APPCONTAINER_VM_LAUNCH_PLAN_SCHEMA,
+  HOLOSYSTEM_WHPX_APPCONTAINER_VM_LAUNCH_RECEIPT_SCHEMA,
+  HOLOSYSTEM_APPCONTAINER_VM_LAUNCH_PLAN_SCHEMA,
+  HOLOSYSTEM_APPCONTAINER_VM_LAUNCH_RECEIPT_SCHEMA,
+  HOLOSYSTEM_WINDOWS_APPCONTAINER_PROTOCOL,
+  HOLOSYSTEM_WINDOWS_APPCONTAINER_CANARY_DIGEST,
   HOLOSYSTEM_WINDOWS_SANDBOX_LAUNCHER_DIGEST,
   HOLOSYSTEM_WINDOWS_SANDBOX_PROTOCOL,
   inspectVmExecutor,
+  inspectAppContainerVmLaunchPlan,
   inspectVmLaunchAsset,
   inspectVmLaunchPlan,
   inspectWindowsVmSandboxLauncher,
+  inspectWindowsVmAppContainerCanary,
   inspectWhpxSandboxedVmLaunchPlan,
+  inspectWhpxAppContainerVmLaunchPlan,
   inspectWhpxVmLaunchPlan,
   runVmLaunchWithProcessRunnerForTest,
+  runAppContainerVmLaunchWithProcessRunnerForTest,
   runWhpxSandboxedVmLaunchWithProcessRunnerForTest,
+  runWhpxAppContainerVmLaunchWithProcessRunnerForTest,
   runWhpxVmLaunchWithProcessRunnerForTest,
 } from '../src/vm-launch.mjs';
-import { runVmLaunch, runWhpxSandboxedVmLaunch, runWhpxVmLaunch } from '../src/index.mjs';
+import {
+  runAppContainerVmLaunch,
+  runVmLaunch,
+  runWhpxAppContainerVmLaunch,
+  runWhpxSandboxedVmLaunch,
+  runWhpxVmLaunch,
+} from '../src/index.mjs';
 
 const CONSOLE = Buffer.from('HOLOSYSTEM_VM_OK\r\n');
 const WHPX_DIAGNOSTICS = Buffer.from('pinned WHPX host diagnostic\r\n');
@@ -122,6 +139,83 @@ function sandboxProtocolRunner(calls = [], mutate = (value) => value) {
       },
       stdoutBase64: CONSOLE.toString('base64'),
       stderrBase64: Buffer.from(`${qemuCommand}: ${WHPX_DIAGNOSTICS}`).toString('base64'),
+      errorStage: null,
+      errorCode: 0,
+    });
+    return {
+      status: 0,
+      signal: null,
+      stdout: Buffer.from(`${JSON.stringify(message)}\r\n`),
+      stderr: Buffer.alloc(0),
+    };
+  };
+}
+
+function appContainerPlan(item) {
+  const plan = structuredClone(item.plan);
+  plan.schema = HOLOSYSTEM_WHPX_APPCONTAINER_VM_LAUNCH_PLAN_SCHEMA;
+  plan.target.accelerator = 'whpx';
+  plan.guest.expectedDiagnosticsDigest = sha256(WHPX_DIAGNOSTICS);
+  plan.sandbox = {
+    kind: 'windows-appcontainer-deny-v1',
+    launcherDigest: HOLOSYSTEM_WINDOWS_SANDBOX_LAUNCHER_DIGEST,
+    canaryDigest: HOLOSYSTEM_WINDOWS_APPCONTAINER_CANARY_DIGEST,
+  };
+  return plan;
+}
+
+function appContainerTcgPlan(item) {
+  const plan = structuredClone(item.plan);
+  plan.schema = HOLOSYSTEM_APPCONTAINER_VM_LAUNCH_PLAN_SCHEMA;
+  plan.sandbox = {
+    kind: 'windows-appcontainer-deny-v1',
+    launcherDigest: HOLOSYSTEM_WINDOWS_SANDBOX_LAUNCHER_DIGEST,
+    canaryDigest: HOLOSYSTEM_WINDOWS_APPCONTAINER_CANARY_DIGEST,
+  };
+  return plan;
+}
+
+function appContainerProtocolRunner(
+  calls = [],
+  mutate = (value) => value,
+  diagnostics = WHPX_DIAGNOSTICS
+) {
+  return (command, args, options) => {
+    calls.push({ command, args, options });
+    const qemuCommand = args[args.indexOf('--executable') + 1];
+    const message = mutate({
+      protocol: HOLOSYSTEM_WINDOWS_APPCONTAINER_PROTOCOL,
+      launched: true,
+      timedOut: false,
+      exitCode: 33,
+      isolation: {
+        filteredToken: true,
+        disableMaxPrivilege: true,
+        enabledPrivilegeCount: 0,
+        privilegesBounded: true,
+        lowIntegrity: true,
+        assignedBeforeResume: true,
+        handleAllowlist: true,
+        killOnClose: true,
+        activeProcessLimit: true,
+        processMemoryLimit: true,
+        uiRestrictions: true,
+        appContainer: true,
+        appContainerSidMatched: true,
+        capabilityCount: 0,
+        snapshotReadExecuteGrant: true,
+        writableTempModifyGrant: true,
+        filesystemCanaryDenied: true,
+        filesystemCanaryError: 5,
+        networkCanaryDenied: true,
+        networkCanaryError: 10013,
+        loopbackAccepted: false,
+        profileDeleted: true,
+      },
+      stdoutBase64: CONSOLE.toString('base64'),
+      stderrBase64: diagnostics.length
+        ? Buffer.from(`${qemuCommand}: ${diagnostics}`).toString('base64')
+        : '',
       errorStage: null,
       errorCode: 0,
     });
@@ -243,6 +337,14 @@ test('measures the packaged Windows sandbox launcher', () => {
   assert.ok(report.bytes > 0);
 });
 
+test('measures the packaged native AppContainer canary', () => {
+  const report = inspectWindowsVmAppContainerCanary();
+  assert.equal(report.ready, true);
+  assert.equal(report.kind, 'windows-appcontainer-deny-v1');
+  assert.equal(report.digest, HOLOSYSTEM_WINDOWS_APPCONTAINER_CANARY_DIGEST);
+  assert.ok(report.bytes > 0);
+});
+
 test('keeps sandboxed WHPX in a separate closed vocabulary', () => {
   const item = fixture();
   try {
@@ -357,6 +459,131 @@ test('blocks incomplete or forged Windows sandbox evidence', () => {
     } finally {
       rmSync(item.cwd, { recursive: true, force: true });
     }
+  }
+});
+
+test('keeps AppContainer WHPX in a distinct zero-capability vocabulary', () => {
+  const item = fixture();
+  try {
+    const plan = appContainerPlan(item);
+    assert.equal(inspectWhpxAppContainerVmLaunchPlan(plan).ready, true);
+    assert.equal(inspectWhpxSandboxedVmLaunchPlan(plan).ready, false);
+
+    const broadened = structuredClone(plan);
+    broadened.sandbox.capabilities = ['internetClient'];
+    broadened.sandbox.readPaths = ['C:/'];
+    broadened.fallback = 'windows-low-integrity-job-v1';
+    const blocked = inspectWhpxAppContainerVmLaunchPlan(broadened);
+    assert.equal(blocked.ready, false);
+    assert.ok(blocked.issues.some((entry) => entry.code === 'vm-launch-field-unknown'));
+  } finally {
+    rmSync(item.cwd, { recursive: true, force: true });
+  }
+});
+
+test('requires functional file and network denial before claiming AppContainer isolation', () => {
+  const item = fixture();
+  const calls = [];
+  try {
+    const receipt = runWhpxAppContainerVmLaunchWithProcessRunnerForTest({
+      plan: appContainerPlan(item),
+      executorDirectory: item.runtimeDirectory,
+      kernelPath: item.kernelPath,
+      initrdPath: item.initrdPath,
+      processRunner: appContainerProtocolRunner(calls),
+      now: new Date('2026-07-16T00:00:00.000Z'),
+    });
+
+    assert.equal(receipt.schema, HOLOSYSTEM_WHPX_APPCONTAINER_VM_LAUNCH_RECEIPT_SCHEMA);
+    assert.equal(receipt.verified, true);
+    assert.equal(receipt.hardwareBacked, true);
+    assert.equal(receipt.isolation.hostProcess, 'windows-appcontainer-deny-v1');
+    assert.equal(receipt.isolation.scope, 'appcontainer-zero-capability-snapshot-grant');
+    assert.equal(receipt.isolation.verified, true);
+    assert.equal(receipt.isolation.controls.appContainer, true);
+    assert.equal(receipt.isolation.controls.capabilityCount, 0);
+    assert.equal(receipt.isolation.controls.filesystemCanaryDenied, true);
+    assert.equal(receipt.isolation.controls.filesystemCanaryError, 5);
+    assert.equal(receipt.isolation.controls.networkCanaryDenied, true);
+    assert.equal(receipt.isolation.controls.networkCanaryError, 10013);
+    assert.equal(receipt.isolation.controls.loopbackAccepted, false);
+    assert.deepEqual(receipt.coverage.missingLayers, []);
+    assert.ok(!receipt.boundaries.includes('host-filesystem-confidentiality'));
+    assert.ok(!receipt.boundaries.includes('host-network-isolation'));
+    assert.equal(calls.length, 2);
+    for (const call of calls) {
+      assert.ok(call.args.includes('--appcontainer-deny'));
+      assert.ok(call.args.includes('--protected-sentinel'));
+      assert.ok(call.args.includes('q35,accel=whpx,usb=off'));
+    }
+
+    for (const mutate of [
+      (message) => ({
+        ...message,
+        isolation: { ...message.isolation, capabilityCount: 1 },
+      }),
+      (message) => ({
+        ...message,
+        isolation: { ...message.isolation, filesystemCanaryDenied: false },
+      }),
+      (message) => ({
+        ...message,
+        isolation: { ...message.isolation, networkCanaryError: 0 },
+      }),
+      (message) => ({ ...message, protocol: HOLOSYSTEM_WINDOWS_SANDBOX_PROTOCOL }),
+    ]) {
+      const blocked = runWhpxAppContainerVmLaunchWithProcessRunnerForTest({
+        plan: appContainerPlan(item),
+        executorDirectory: item.runtimeDirectory,
+        kernelPath: item.kernelPath,
+        initrdPath: item.initrdPath,
+        processRunner: appContainerProtocolRunner([], mutate),
+      });
+      assert.equal(blocked.verified, false);
+      assert.equal(blocked.isolation.verified, false);
+      assert.ok(
+        blocked.issues.some((entry) =>
+          ['vm-launch-sandbox-evidence-invalid', 'vm-launch-sandbox-protocol-invalid'].includes(
+            entry.code
+          )
+        )
+      );
+    }
+  } finally {
+    rmSync(item.cwd, { recursive: true, force: true });
+  }
+});
+
+test('boots a fully AppContainer-confined TCG machine without claiming hardware acceleration', () => {
+  const item = fixture();
+  const calls = [];
+  try {
+    const plan = appContainerTcgPlan(item);
+    assert.equal(inspectAppContainerVmLaunchPlan(plan).ready, true);
+    assert.equal(inspectWhpxAppContainerVmLaunchPlan(plan).ready, false);
+    const receipt = runAppContainerVmLaunchWithProcessRunnerForTest({
+      plan,
+      executorDirectory: item.runtimeDirectory,
+      kernelPath: item.kernelPath,
+      initrdPath: item.initrdPath,
+      processRunner: appContainerProtocolRunner(calls, (message) => message, Buffer.alloc(0)),
+      now: new Date('2026-07-16T00:00:00.000Z'),
+    });
+    assert.equal(receipt.schema, HOLOSYSTEM_APPCONTAINER_VM_LAUNCH_RECEIPT_SCHEMA);
+    assert.equal(receipt.verified, true);
+    assert.equal(receipt.hardwareBacked, false);
+    assert.equal(receipt.isolation.verified, true);
+    assert.deepEqual(receipt.coverage.missingLayers, ['hardware-hypervisor-acceleration']);
+    assert.ok(receipt.coverage.includedLayers.includes('host-filesystem-confidentiality'));
+    assert.ok(receipt.coverage.includedLayers.includes('host-network-isolation'));
+    assert.equal(calls.length, 2);
+    for (const call of calls) {
+      assert.ok(call.args.includes('q35,usb=off'));
+      assert.ok(call.args.includes('tcg,tb-size=64'));
+      assert.ok(!call.args.includes('q35,accel=whpx,usb=off'));
+    }
+  } finally {
+    rmSync(item.cwd, { recursive: true, force: true });
   }
 });
 
@@ -671,6 +898,42 @@ test('does not publish process-runner injection through the package API', () => 
         )
       )
     );
+
+    const appContainerReceipt = runWhpxAppContainerVmLaunch({
+      plan: appContainerPlan(item),
+      executorDirectory: item.runtimeDirectory,
+      kernelPath: item.kernelPath,
+      initrdPath: item.initrdPath,
+      processRunner: () => {
+        injected += 1;
+        return appContainerProtocolRunner()('', [], {});
+      },
+    });
+    assert.equal(injected, 0);
+    assert.equal(appContainerReceipt.verified, false);
+    assert.equal(appContainerReceipt.hardwareBacked, false);
+    assert.equal(appContainerReceipt.isolation.verified, false);
+    assert.ok(
+      appContainerReceipt.issues.some((entry) =>
+        ['vm-launch-sandbox-evidence-invalid', 'vm-launch-sandbox-launcher-failed'].includes(
+          entry.code
+        )
+      )
+    );
+
+    const appContainerTcgReceipt = runAppContainerVmLaunch({
+      plan: appContainerTcgPlan(item),
+      executorDirectory: item.runtimeDirectory,
+      kernelPath: item.kernelPath,
+      initrdPath: item.initrdPath,
+      processRunner: () => {
+        injected += 1;
+        return appContainerProtocolRunner([], (message) => message, Buffer.alloc(0))('', [], {});
+      },
+    });
+    assert.equal(injected, 0);
+    assert.equal(appContainerTcgReceipt.verified, false);
+    assert.equal(appContainerTcgReceipt.isolation.verified, false);
   } finally {
     rmSync(item.cwd, { recursive: true, force: true });
   }
@@ -754,6 +1017,38 @@ test('exposes executor and asset inspection plus fail-closed launch through the 
     assert.equal(whpxReceipt.schema, HOLOSYSTEM_WHPX_VM_LAUNCH_RECEIPT_SCHEMA);
     assert.equal(whpxReceipt.verified, false);
     assert.ok(whpxReceipt.issues.some((entry) => entry.code === 'vm-launch-field-unknown'));
+
+    const appContainerUnsafe = appContainerPlan(item);
+    appContainerUnsafe.capabilities = ['internetClient'];
+    const appContainerPlanPath = join(item.cwd, 'unsafe-appcontainer-plan.json');
+    writeFileSync(appContainerPlanPath, JSON.stringify(appContainerUnsafe));
+    const appContainerBlocked = spawnSync(
+      process.execPath,
+      [
+        cli,
+        'vm-launch-whpx-appcontainer',
+        '--plan',
+        appContainerPlanPath,
+        '--runtime',
+        item.runtimeDirectory,
+        '--kernel',
+        item.kernelPath,
+        '--initrd',
+        item.initrdPath,
+        '--json',
+      ],
+      { encoding: 'utf8' }
+    );
+    assert.equal(appContainerBlocked.status, 2);
+    const appContainerReceipt = JSON.parse(appContainerBlocked.stdout);
+    assert.equal(
+      appContainerReceipt.schema,
+      HOLOSYSTEM_WHPX_APPCONTAINER_VM_LAUNCH_RECEIPT_SCHEMA
+    );
+    assert.equal(appContainerReceipt.verified, false);
+    assert.ok(
+      appContainerReceipt.issues.some((entry) => entry.code === 'vm-launch-field-unknown')
+    );
   } finally {
     rmSync(item.cwd, { recursive: true, force: true });
   }

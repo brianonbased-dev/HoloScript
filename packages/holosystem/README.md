@@ -521,6 +521,20 @@ kill-on-close Job Object with one-process, memory, and UI restrictions, and
 only then resumes it. A private low-integrity temporary directory is the only
 intended writable launch location.
 
+`vm-launch-whpx-appcontainer` is a fourth, separately named vocabulary. It
+retains those restricted-token and Job controls, gives an ephemeral Windows
+AppContainer identity zero capabilities, grants that identity only read/execute
+access to the measured launch snapshot and modify access to its private temp
+directory, and requires file-read plus loopback-connect attack canaries to fail
+before either WHPX launch begins. The plan cannot name a capability, path,
+command, network mode, or fallback.
+
+`vm-launch-appcontainer` uses the same zero-capability boundary with QEMU TCG.
+It fixes the translation buffer at 64 MiB so the one-process 512 MiB Job limit
+remains effective. This is the fully confined adapter proven on the validated
+Windows host: it proves the machine VM and host file/network boundary, but sets
+`hardwareBacked: false` and keeps hardware acceleration missing.
+
 First measure the complete caller-owned QEMU runtime closure and both guest
 artifacts:
 
@@ -596,6 +610,25 @@ process creation. The launcher source and local rebuild recipe are shipped in
 `native/windows-sandbox`; the measured binary is shipped in
 `native/windows-x64`.
 
+For the AppContainer adapter, use schema
+`holoscript.holosystem.whpx-appcontainer-vm-launch-plan.v1`, use the same
+launcher digest with sandbox kind `windows-appcontainer-deny-v1`, and call
+`vm-launch-whpx-appcontainer`. The launcher creates and deletes a fresh profile
+for each launch. Its closed receipt protocol must prove the child AppContainer
+SID, zero capabilities, low-integrity filtered token, snapshot/temp grants,
+access-denied (`5`) for a protected caller-readable file, plus either explicit
+WSA access-denied (`10013`) or a bounded WFP-style packet-drop timeout (`10060`)
+with no accepted live loopback connection. Any missing or changed observation
+blocks the receipt.
+
+Use schema `holoscript.holosystem.appcontainer-vm-launch-plan.v1`, target
+accelerator `tcg`, the same two sandbox digests, and command
+`vm-launch-appcontainer` for the software-emulated confined lane. On the
+validated Windows 11 host, the WHPX AppContainer form fails closed because
+Windows returns `0x80070005` when zero-capability QEMU initializes WHPX. The
+package does not merge that result with the separately proven hardware-backed
+low-integrity WHPX receipt.
+
 The runner creates a private snapshot and remeasures the complete QEMU closure,
 kernel, and initramfs before and after each launch. It then generates QEMU
 arguments that disable user configuration, default devices, networking, USB,
@@ -629,15 +662,31 @@ boundary. The sandboxed receipt also does not prove the broader hardware and
 firmware properties named above. The
 exact claims are in the [VM launch threat model](./docs/vm-launch-threat-model.md).
 
+A verified `vm-launch-whpx-appcontainer` receipt additionally includes
+`host-filesystem-confidentiality` and `host-network-isolation` for the tested
+zero-capability AppContainer boundary. Those are scoped claims: they do not
+establish QEMU provenance, host-kernel correctness, IOMMU separation, measured
+boot, firmware authenticity, crash-dump custody, confidential memory, or
+side-channel resistance.
+
+A verified `vm-launch-appcontainer` receipt includes the same process,
+filesystem, and network layers while leaving
+`hardware-hypervisor-acceleration` missing. Receipts describe one executed
+boundary, not the union of properties observed in different launches.
+
 ```js
 import {
   inspectVmExecutor,
+  inspectAppContainerVmLaunchPlan,
   inspectVmLaunchAsset,
   inspectVmLaunchPlan,
   inspectWindowsVmSandboxLauncher,
+  inspectWhpxAppContainerVmLaunchPlan,
   inspectWhpxSandboxedVmLaunchPlan,
   inspectWhpxVmLaunchPlan,
   runVmLaunch,
+  runAppContainerVmLaunch,
+  runWhpxAppContainerVmLaunch,
   runWhpxSandboxedVmLaunch,
   runWhpxVmLaunch,
 } from '@holoscript/holosystem';
