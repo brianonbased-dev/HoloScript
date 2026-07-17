@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/holosystem",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "Portable bootstrap, consumption catalog, lineage, and bounded-work contract for HoloSystem consumers.",
   "releaseLane": "v0-preview",
   "keywords": [
@@ -43,7 +43,7 @@
     "node": ">=18"
   },
   "scripts": {
-    "build": "node --check src/index.mjs && node --check src/catalog.mjs && node --check src/substrate.mjs && node --check src/substrate-import.mjs && node --check src/substrate-debian-release.mjs && node --check src/substrate-import-debian.mjs && node --check src/native-build.mjs && node --check src/vm-launch.mjs && node --check bin/holosystem.mjs",
+    "build": "node --check src/index.mjs && node --check src/catalog.mjs && node --check src/source-canon.mjs && node --check src/substrate.mjs && node --check src/substrate-import.mjs && node --check src/substrate-debian-release.mjs && node --check src/substrate-import-debian.mjs && node --check src/native-build.mjs && node --check src/vm-launch.mjs && node --check bin/holosystem.mjs",
     "test": "node --test test/*.test.mjs",
     "smoke": "node bin/holosystem.mjs --help",
     "check": "pnpm run build && pnpm run test && pnpm run smoke",
@@ -56,6 +56,14 @@
       "coreRule": "Cold consumers create and inspect configuration, discover unlike public rails separately, map source lineage, and select bounded next work from caller-owned evidence.",
       "localBoundary": "Machine paths, credentials, private repositories, and operator state are caller inputs, never package defaults.",
       "supportBoundary": "Configuration, public discovery, lineage, and bounded selection are supported; installation, credential acquisition, board mutation, service mutation, spending, and publishing remain caller-authorized operations."
+    }
+  },
+  "peerDependencies": {
+    "@holoscript/core": "8.0.14"
+  },
+  "peerDependenciesMeta": {
+    "@holoscript/core": {
+      "optional": true
     }
   }
 }

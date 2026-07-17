@@ -10,6 +10,7 @@ import {
   importDebianPackageSnapshot,
   importNpmPackageLock,
   inspectNativeBuildSource,
+  inspectGitTrackedSourceCanon,
   inspectHoloSystemConfig,
   inspectVmExecutor,
   inspectVmLaunchAsset,
@@ -19,6 +20,7 @@ import {
   runWhpxAppContainerVmLaunch,
   runWhpxSandboxedVmLaunch,
   runWhpxVmLaunch,
+  renderSourceCanonProjection,
 } from '../src/index.mjs';
 
 const CLI_RECEIPT_SCHEMA = 'holoscript.holosystem.cli-receipt.v1';
@@ -34,6 +36,7 @@ Usage:
   holosystem substrate-import-debian --status <status> (--packages <Packages> | --sources <json>) --maintainer-scripts <json> --config <file> [--output <file>] [--force] [--json]
   holosystem native-build-source --source <directory> [--json]
   holosystem native-build --plan <file> --source <directory> --executor <file> --artifact-dir <directory> [--output <receipt>] [--force] [--json]
+  holosystem source-canon [--output <projection.hsplus>] [--force] [--json]
   holosystem vm-executor --runtime <directory> [--json]
   holosystem vm-asset --kind <kernel|initrd> --file <file> [--json]
   holosystem vm-launch --plan <file> --runtime <directory> --kernel <file> --initrd <file> [--output <receipt>] [--force] [--json]
@@ -204,6 +207,63 @@ function writeJsonOutput(path, value, { force = false } = {}) {
   if (existsSync(absolute) && !force)
     throw new Error(`${path} already exists; use --force to replace it.`);
   writeFileSync(absolute, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
+}
+
+function writeSourceCanonProjection(path, value, { force = false } = {}) {
+  if (
+    typeof path !== 'string' ||
+    !path.endsWith('.hsplus') ||
+    /^[A-Za-z]:[\\/]/u.test(path) ||
+    /^(?:[\\/]{1,2}|~[\\/])/u.test(path) ||
+    path.replaceAll('\\', '/').split('/').some((segment) => segment === '..' || segment === '.')
+  ) {
+    throw new Error('--output must be a portable repository-relative .hsplus path.');
+  }
+  const absolute = resolve(process.cwd(), path);
+  if (existsSync(absolute) && !force)
+    throw new Error(`${path} already exists; use --force to replace it.`);
+  writeFileSync(absolute, value, 'utf8');
+}
+
+async function runSourceCanon(args) {
+  let parsed;
+  try {
+    parsed = parseArguments(args, {
+      output: 'value',
+      force: 'boolean',
+      json: 'boolean',
+    });
+  } catch (error) {
+    die(error.message, { json: args.includes('--json') });
+  }
+  const { options, positionals } = parsed;
+  if (positionals.length > 0) {
+    die('source-canon does not accept positional arguments.', { json: options.json });
+  }
+
+  let report;
+  try {
+    report = await inspectGitTrackedSourceCanon({ rootDirectory: process.cwd() });
+    if (options.output) {
+      writeSourceCanonProjection(options.output, renderSourceCanonProjection(report), {
+        force: options.force,
+      });
+    }
+  } catch (error) {
+    die(`Cannot inspect source canon: ${error.message}`, { json: options.json, code: 2 });
+  }
+
+  if (options.json) outputJson(report);
+  else {
+    process.stdout.write(
+      `Source canon: ${report.status} HoloScript=${report.summary.holoScriptFiles} foreign=${report.summary.foreignFiles}\n`
+    );
+    for (const issue of report.issues) {
+      process.stdout.write(`BLOCK ${issue.code} ${issue.path}: ${issue.message}\n`);
+    }
+    if (options.output) process.stdout.write(`Wrote ${options.output}\n`);
+  }
+  if (!report.verified) process.exitCode = 2;
 }
 
 function runInspect(args) {
@@ -701,6 +761,8 @@ if (!command || command === '--help' || command === '-h' || command === 'help') 
   runNativeBuildSource(argv.slice(1));
 } else if (command === 'native-build') {
   runNativeBuildCommand(argv.slice(1));
+} else if (command === 'source-canon') {
+  await runSourceCanon(argv.slice(1));
 } else if (command === 'vm-executor') {
   runVmExecutor(argv.slice(1));
 } else if (command === 'vm-asset') {

@@ -21,6 +21,21 @@ function run(args, { cwd, input } = {}) {
   });
 }
 
+function git(cwd, args) {
+  const result = spawnSync('git', ['-C', cwd, ...args], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  return result;
+}
+
+function initializeRepository(cwd, files) {
+  git(cwd, ['init', '--quiet']);
+  git(cwd, ['config', 'user.email', 'source-canon@example.invalid']);
+  git(cwd, ['config', 'user.name', 'Source Canon Test']);
+  for (const [path, contents] of Object.entries(files)) writeFileSync(join(cwd, path), contents);
+  git(cwd, ['add', ...Object.keys(files)]);
+  git(cwd, ['commit', '--quiet', '-m', 'test: source canon fixture']);
+}
+
 test('package bin is wired to the executable CLI and help is available', () => {
   const manifest = JSON.parse(readFileSync(join(PACKAGE_ROOT, 'package.json'), 'utf8'));
   const result = run(['--help'], { cwd: PACKAGE_ROOT });
@@ -31,8 +46,77 @@ test('package bin is wired to the executable CLI and help is available', () => {
   assert.match(result.stdout, /holosystem inspect/u);
   assert.match(result.stdout, /holosystem catalog/u);
   assert.match(result.stdout, /holosystem lineage/u);
+  assert.match(result.stdout, /holosystem source-canon/u);
   assert.match(result.stdout, /holosystem substrate/u);
   assert.match(result.stdout, /holosystem substrate-import/u);
+});
+
+test('source-canon blocks foreign tracked source and writes only a HoloScript projection', () => {
+  const cwd = mkdtempSync(join(tmpdir(), 'holosystem-source-canon-cli-'));
+  try {
+    initializeRepository(cwd, {
+      'HOLOSYSTEM.holo': 'composition "HoloSystem" {}\n',
+      'status.mjs': 'export const status = "foreign";\n',
+    });
+
+    const blocked = run(
+      ['source-canon', '--output', 'source-canon.hsplus', '--json'],
+      { cwd }
+    );
+    assert.equal(blocked.status, 2, blocked.stderr);
+    const report = JSON.parse(blocked.stdout);
+    assert.equal(report.status, 'blocked');
+    assert.equal(report.summary.holoScriptFiles, 1);
+    assert.equal(report.summary.foreignFiles, 1);
+    assert.match(readFileSync(join(cwd, 'source-canon.hsplus'), 'utf8'), /foreignFiles: 1/u);
+
+    const wrongFormat = run(
+      ['source-canon', '--output', 'source-canon.json', '--json'],
+      { cwd }
+    );
+    assert.equal(wrongFormat.status, 2);
+    assert.match(wrongFormat.stderr, /\.hsplus/u);
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
+test('source-canon verifies a HoloScript-only tracked repository', () => {
+  const cwd = mkdtempSync(join(tmpdir(), 'holosystem-source-canon-cli-'));
+  try {
+    initializeRepository(cwd, {
+      'HOLOSYSTEM.holo': 'composition "HoloSystem" {}\n',
+      'runtime.hsplus': '@trait Runtime {}\n',
+      'logic.hs': 'function ready() { return true }\n',
+    });
+
+    const verified = run(['source-canon', '--json'], { cwd });
+    assert.equal(verified.status, 0, verified.stderr);
+    const report = JSON.parse(verified.stdout);
+    assert.equal(report.status, 'verified');
+    assert.equal(report.verified, true);
+    assert.equal(report.summary.foreignFiles, 0);
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
+test('source-canon blocks foreign code disguised with a HoloScript extension', () => {
+  const cwd = mkdtempSync(join(tmpdir(), 'holosystem-source-canon-cli-'));
+  try {
+    initializeRepository(cwd, {
+      'status.hs': 'export const status = "foreign";\n',
+    });
+
+    const blocked = run(['source-canon', '--json'], { cwd });
+    assert.equal(blocked.status, 2, blocked.stderr);
+    const report = JSON.parse(blocked.stdout);
+    assert.equal(report.summary.foreignFiles, 0);
+    assert.equal(report.summary.parseFailed, 1);
+    assert.ok(report.issues.some((issue) => issue.code === 'holoscript-source-invalid'));
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
 });
 
 test('substrate-import emits a lock-derived input that preserves closure gaps', () => {

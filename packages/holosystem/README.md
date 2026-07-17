@@ -55,6 +55,48 @@ returns one highest-priority candidate, and carries authority, validation, lease
 and spend stop conditions. It selects work; it does not claim a board task,
 publish a package, spend funds, or bypass caller authority.
 
+## HoloScript Source Canon
+
+`source-canon` is the consumer-side language-sovereignty gate. Run it from the
+root of a Git repository:
+
+```bash
+npx holosystem source-canon \
+  --output runtime/visual-state/source-canon.hsplus \
+  --json
+```
+
+The gate reads the fixed Git-tracked file inventory and accepts only `.holo`,
+`.hs`, and `.hsplus` as canonical authored source. It then parses the actual
+tracked bytes with the exact optional peer `@holoscript/core@8.0.14`; when that
+parser is unavailable, the gate fails closed. This prevents JavaScript or another
+language from becoming canonical merely by being renamed. Other HoloSystem
+commands remain usable without the optional peer.
+
+A caller cannot widen the registry with an extension allowlist. A future format
+becomes canonical only when a HoloScript release owns its parser and adds it to
+the package registry.
+
+The command exits `0` only when at least one HoloScript source file exists and
+every tracked file uses a canonical format. It exits `2` with every foreign
+tracked path named otherwise. When `--output` is supplied, the durable
+founder-visible projection must itself be a portable repository-relative
+`.hsplus` path; JSON remains available only on standard output for transient
+agent pipelines.
+
+This gate audits Git-tracked canon. Dependency caches, runtime receipts, and
+untracked generated artifacts are not silently promoted to source truth. They
+remain non-canonical operational state and must stay untracked or move to an
+external runtime store as the consumer migration proceeds.
+
+```js
+import {
+  inspectGitTrackedSourceCanon,
+  inspectSourceCanon,
+  renderSourceCanonProjection,
+} from '@holoscript/holosystem';
+```
+
 ## Substrate Closure
 
 The substrate closure replaces an implicit operating-system dependency tower
@@ -749,6 +791,9 @@ npx holosystem inspect holosystem.config.json --json
 
 # Pipeline input is supported.
 npx holosystem create --stdout | npx holosystem inspect - --json
+
+# Prove that Git-tracked authoring is HoloScript-only.
+npx holosystem source-canon --output source-canon.hsplus --json
 ```
 
 Creation never installs packages, connects to storage, acquires credentials, or

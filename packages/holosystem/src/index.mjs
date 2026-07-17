@@ -59,6 +59,14 @@ export {
 } from './vm-launch.mjs';
 
 export {
+  HOLOSCRIPT_CANONICAL_SOURCE_EXTENSIONS,
+  HOLOSYSTEM_SOURCE_CANON_SCHEMA,
+  inspectGitTrackedSourceCanon,
+  inspectSourceCanon,
+  renderSourceCanonProjection,
+} from './source-canon.mjs';
+
+export {
   HOLOSYSTEM_CATALOG_SCHEMA,
   HOLOSYSTEM_CONSUMER_INPUT_SCHEMA,
   HOLOSYSTEM_LINEAGE_SCHEMA,
