@@ -59,3 +59,5 @@ v0 does not yet define typed function signatures, pointers, layout, allocation,
 FFI imports, syscalls, files, strings, concurrency, or cross-compilation. Those
 enter through later versioned contracts; none are inferred from the legacy
 untyped `number` surface.
+
+The typed successor is [HoloScript Native Machine Contract v1](native-machine-v1.md).

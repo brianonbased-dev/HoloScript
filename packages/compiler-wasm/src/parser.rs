@@ -960,13 +960,32 @@ impl Parser {
         self.expect(TokenType::LParen)?;
 
         let mut params = Vec::new();
+        let mut param_types = Vec::new();
         while !self.check(TokenType::RParen) && !self.is_at_end() {
             params.push(self.expect_identifier()?);
+            let param_type = if self.check(TokenType::Colon) {
+                self.advance();
+                Some(self.expect_identifier()?)
+            } else {
+                None
+            };
+            param_types.push(param_type);
             if !self.check(TokenType::RParen) {
                 self.expect(TokenType::Comma)?;
             }
         }
         self.expect(TokenType::RParen)?;
+
+        let return_type = if self.check(TokenType::Colon) {
+            self.advance();
+            Some(self.expect_identifier()?)
+        } else {
+            None
+        };
+
+        if param_types.iter().all(Option::is_none) {
+            param_types.clear();
+        }
 
         self.expect(TokenType::LBrace)?;
 
@@ -980,6 +999,8 @@ impl Parser {
         Ok(AstNode::Function(FunctionNode {
             name,
             params,
+            param_types,
+            return_type,
             body,
             loc: Some(self.location_from(start_loc)),
         }))
@@ -2190,11 +2211,18 @@ impl Parser {
         let mutable = self.check(TokenType::Var);
         self.advance(); // consume const/let/var
         let name = self.expect_identifier()?;
+        let type_annotation = if self.check(TokenType::Colon) {
+            self.advance();
+            Some(self.expect_identifier()?)
+        } else {
+            None
+        };
         self.expect(TokenType::Equals)?;
         let value = self.parse_expression()?;
 
         Ok(AstNode::VariableDeclaration(VariableDeclarationNode {
             name,
+            type_annotation,
             value: Box::new(value),
             mutable,
             loc: None,
@@ -3136,6 +3164,45 @@ mod tests {
         } else {
             panic!("Expected GameEventBlock node");
         }
+    }
+
+    #[test]
+    fn test_parse_typed_function_signature_and_local() {
+        let source = r#"function add(left: i32, right: i64): i64 {
+            let result: i64 = left + right
+            return result
+        }"#;
+        let mut parser = Parser::new(source);
+        let program = parser.parse().expect("typed function should parse");
+
+        let AstNode::Function(function) = &program.body[0] else {
+            panic!("Expected Function node");
+        };
+        assert_eq!(function.params, vec!["left", "right"]);
+        assert_eq!(
+            function.param_types,
+            vec![Some("i32".to_string()), Some("i64".to_string())]
+        );
+        assert_eq!(function.return_type.as_deref(), Some("i64"));
+
+        let AstNode::VariableDeclaration(local) = &function.body[0] else {
+            panic!("Expected VariableDeclaration node");
+        };
+        assert_eq!(local.name, "result");
+        assert_eq!(local.type_annotation.as_deref(), Some("i64"));
+    }
+
+    #[test]
+    fn test_untyped_function_preserves_legacy_serialized_shape() {
+        let mut parser =
+            Parser::new("function identity(value) { let copy = value return copy }");
+        let program = parser.parse().expect("legacy function should parse");
+        let json = serde_json::to_value(program).expect("AST should serialize");
+        let function = &json["body"][0];
+
+        assert!(function.get("param_types").is_none());
+        assert!(function.get("return_type").is_none());
+        assert!(function["body"][0].get("type_annotation").is_none());
     }
 
     #[test]

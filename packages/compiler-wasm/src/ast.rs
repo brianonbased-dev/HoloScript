@@ -518,6 +518,13 @@ pub struct ExportNode {
 pub struct FunctionNode {
     pub name: String,
     pub params: Vec<String>,
+    /// Optional machine-level type for each parameter. Empty for legacy untyped functions so
+    /// their serialized AST shape remains unchanged; otherwise aligned 1:1 with `params`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub param_types: Vec<Option<String>>,
+    /// Explicit return type when written as `function name(...): type`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub return_type: Option<String>,
     pub body: Vec<AstNode>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub loc: Option<Location>,
@@ -561,6 +568,9 @@ pub struct StructDeclarationNode {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VariableDeclarationNode {
     pub name: String,
+    /// Explicit local type when written as `let name: type = value`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub type_annotation: Option<String>,
     pub value: Box<AstNode>,
     pub mutable: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
