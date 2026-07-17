@@ -124,7 +124,8 @@ export function createHoloTorchBlock(device: GPUDevice): HoloTorchBlock {
       // ---- mlp ----
       const m = await layerNorm.run(x1, w.ln2g, w.ln2b);
       const h1 = await linear(m, w.wfc1, w.bfc1, T, nEmbd, 4 * nEmbd);
-      const hg = await gelu.run(h1);
+      const hg = await gelu.run(h1, 'erf'); // holo arch uses nn.GELU() = exact erf
+
       const h2 = await linear(hg, w.wfc2, w.bfc2, T, 4 * nEmbd, nEmbd);
       return addInto(x1, h2);
     },

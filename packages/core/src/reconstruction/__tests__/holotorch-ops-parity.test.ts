@@ -153,11 +153,20 @@ function refSoftmax(input: Float32Array, rows: number, cols: number): Float64Arr
   return out;
 }
 
-function refGelu(input: Float32Array): Float64Array {
+function erfAS(x: number): number {
+  const t = 1 / (1 + 0.3275911 * Math.abs(x));
+  const y = 1 - (((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t) * Math.exp(-x * x);
+  return x >= 0 ? y : -y;
+}
+
+function refGelu(input: Float32Array, form: 'tanh' | 'erf'): Float64Array {
   const out = new Float64Array(input.length);
   for (let i = 0; i < input.length; i++) {
     const x = input[i];
-    out[i] = 0.5 * x * (1 + Math.tanh(0.7978845608 * (x + 0.044715 * x * x * x)));
+    out[i] =
+      form === 'erf'
+        ? 0.5 * x * (1 + erfAS(x * 0.70710678118654752))
+        : 0.5 * x * (1 + Math.tanh(0.7978845608 * (x + 0.044715 * x * x * x)));
   }
   return out;
 }
@@ -271,7 +280,7 @@ describe('HoloTorch op parity (WGSL vs f64 reference, real GPU)', () => {
     }
   }, 120000);
 
-  it('gelu (GPT-2 tanh) matches f64 reference', async () => {
+  it('gelu matches reference for both tanh and exact-erf forms', async () => {
     const device = await getDevice();
     if (!device) {
       console.warn('[holotorch-parity] no WebGPU adapter — skipping gelu');
@@ -282,14 +291,17 @@ describe('HoloTorch op parity (WGSL vs f64 reference, real GPU)', () => {
     const n = 4096;
     const input = new Float32Array(n);
     for (let i = 0; i < n; i++) input[i] = rand() * 6; // range [-6, 6]
-    const got = await gelu.run(input);
-    const ref = refGelu(input);
-    const cmp = compareAllClose(got, ref, 1e-4, 1e-3);
-    console.warn(
-      `[holotorch-parity]   gelu [n=${n}] relToScale=${cmp.relToScale.toExponential(2)} maxAbs=${cmp.maxAbs.toExponential(2)} allClose=${cmp.allClose}`
-    );
-    writeParityReceipt('gelu', { n, form: 'gpt2-tanh', ...cmp, verdict: cmp.allClose ? 'pass' : 'fail' });
-    expect(cmp.allClose).toBe(true);
+
+    for (const form of ['tanh', 'erf'] as const) {
+      const got = await gelu.run(input, form);
+      const ref = refGelu(input, form);
+      const cmp = compareAllClose(got, ref, 1e-4, 1e-3);
+      console.warn(
+        `[holotorch-parity]   gelu-${form} [n=${n}] relToScale=${cmp.relToScale.toExponential(2)} maxAbs=${cmp.maxAbs.toExponential(2)} allClose=${cmp.allClose}`
+      );
+      writeParityReceipt(`gelu-${form}`, { n, form, ...cmp, verdict: cmp.allClose ? 'pass' : 'fail' });
+      expect(cmp.allClose).toBe(true);
+    }
   }, 120000);
 
   it('fused-MHA causal + bidirectional parity, and the causal invariant (token 0 attends only to itself)', async () => {

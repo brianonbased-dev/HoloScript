@@ -1,6 +1,6 @@
 {
   "schema": "holotorch-inference-parity.v0",
-  "op": "gelu",
+  "op": "gelu-erf",
   "adapter": {
     "vendor": "nvidia",
     "architecture": "ampere",
@@ -8,10 +8,10 @@
     "description": "D3D12 driver version 32.0.16.1062"
   },
   "n": 4096,
-  "form": "gpt2-tanh",
-  "maxAbs": 6.420500282544594e-7,
-  "maxRefAbs": 5.999629497443393,
-  "relToScale": 1.0701494626094071e-7,
+  "form": "erf",
+  "maxAbs": 4.4504011942336774e-7,
+  "maxRefAbs": 5.999629491574147,
+  "relToScale": 7.417793382881061e-8,
   "allClose": true,
   "verdict": "pass"
 }

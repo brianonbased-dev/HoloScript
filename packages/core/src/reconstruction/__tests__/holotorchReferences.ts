@@ -54,11 +54,19 @@ export function refLinear(
   return out;
 }
 
+/** Abramowitz & Stegun 7.1.26 erf (matches geluKernel's WGSL erf_approx). */
+export function erfAS(x: number): number {
+  const t = 1 / (1 + 0.3275911 * Math.abs(x));
+  const y = 1 - (((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t) * Math.exp(-x * x);
+  return x >= 0 ? y : -y;
+}
+
+/** Exact (erf) GELU — matches the holo arch's nn.GELU() and geluKernel form='erf'. */
 export function refGelu(x: ArrayLike<number>, n: number): Float64Array {
   const out = new Float64Array(n);
   for (let i = 0; i < n; i++) {
     const xi = x[i];
-    out[i] = 0.5 * xi * (1 + Math.tanh(0.7978845608 * (xi + 0.044715 * xi * xi * xi)));
+    out[i] = 0.5 * xi * (1 + erfAS(xi * 0.70710678118654752));
   }
   return out;
 }

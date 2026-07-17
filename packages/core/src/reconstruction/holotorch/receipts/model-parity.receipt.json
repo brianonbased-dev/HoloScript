@@ -14,9 +14,9 @@
     "nHead": 6,
     "vocab": 562
   },
-  "maxAbs": 0.0000019628787062409003,
-  "maxRefAbs": 1.9635233145765372,
-  "relToScale": 9.996717083363098e-7,
+  "maxAbs": 0.0000017923391095742147,
+  "maxRefAbs": 1.963535672818642,
+  "relToScale": 9.128120942164113e-7,
   "allClose": true,
   "argmaxAgree": 8,
   "argmaxTotal": 8,

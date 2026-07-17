@@ -12,9 +12,9 @@
     "nEmbd": 384,
     "nHead": 6
   },
-  "maxAbs": 0.0000016427967597376636,
+  "maxAbs": 0.00014512309881581364,
   "maxRefAbs": 1.9895605820951698,
-  "relToScale": 8.257083370679089e-7,
+  "relToScale": 0.00007294228691593155,
   "allClose": true,
   "verdict": "pass",
   "note": "adapter nvidia-geforce-rtx-3060-laptop-gpu; random weights (real weights via ckpt adapter, separate piece)."
