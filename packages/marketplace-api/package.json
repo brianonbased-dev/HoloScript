@@ -21,6 +21,7 @@
   },
   "scripts": {
     "build": "tsup",
+    "prepublishOnly": "pnpm run build",
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
     "test": "vitest run --passWithNoTests",

@@ -10,8 +10,12 @@
     "dist",
     "Dockerfile"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup",
+    "prepublishOnly": "pnpm run build",
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
     "test": "vitest run --passWithNoTests",
