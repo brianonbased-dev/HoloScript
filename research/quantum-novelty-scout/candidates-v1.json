@@ -1,19 +1,29 @@
 {
-  "schema": "holoscript.quantum-novelty-candidates.v1",
-  "description": "Ordinal research priors for selecting a diverse paper-claim portfolio. Scores are auditable hypotheses, not measurements or novelty proof.",
-  "score_basis": "Each 0..1 score is a researcher prior grounded in the 2026-06-05 novelty-defensibility pass and current local evidence. Fresh primary-source kill tests remain mandatory.",
+  "schema": "holoscript.quantum-novelty-candidates.v2",
+  "description": "Ordinal research priors plus repository-observed, hash-bound code evidence for selecting a diverse paper-claim portfolio. Neither source-file presence nor the scores prove novelty or semantic correctness.",
+  "score_basis": "Each score in scores is a researcher prior grounded in the 2026-06-05 novelty-defensibility pass and current local evidence. The former implementation-support prior is replaced by declared-path availability and exact shared-file identity derived from code_evidence at execution time. These observations do not establish semantic claim support. Fresh primary-source kill tests remain mandatory.",
   "target_cardinality": 4,
   "cardinality_penalty": 12.0,
   "redundancy_penalty": 3.0,
   "kill_status_adjustments": {"killed": -20.0, "narrowed": -1.0, "survives_tightened_claim": 0.0, "pending_fresh_source_check": 0.0},
   "score_weights": {
     "prior_art_distance": 2.0,
-    "implementation_support": 1.75,
     "evidence_support": 1.5,
     "falsifiability": 1.25,
     "strategic_value": 1.0,
     "prior_art_overlap": -1.75,
     "remaining_cost": -1.0
+  },
+  "code_evidence_policy": {
+    "declared_path_availability_weight": 2.0,
+    "missing_required_path_penalty": -8.0,
+    "similarity_penalty": 1.25,
+    "required_categories": ["implementation", "verification"],
+    "category_weights": {"implementation": 0.5, "verification": 0.3, "execution_evidence": 0.2},
+    "similarity_basis": "Jaccard overlap of SHA-256 identities for the pinned Git blob bytes of declared implementation files",
+    "max_file_bytes": 2000000,
+    "allowed_extensions": [".ts", ".tsx", ".js", ".mjs", ".cjs", ".py", ".holo", ".hs", ".hsplus", ".json", ".md"],
+    "claim_boundary": "Availability means the declared repository-relative regular files passed extension and size admission and were hashed. It does not mean they implement the paper claim correctly or that tests ran or passed."
   },
   "candidates": [
     {
@@ -21,9 +31,10 @@
       "title": "Physics-solver MCP re-execution equivalence",
       "tightened_claim": "A contracted-sandbox MCP integration makes physics-solver results re-executable under recorder-versus-replayer equivalence with per-step canonical-digest identity and an explicit determinism contract.",
       "claim_stage": "tightened_hypothesis",
-      "scores": {"prior_art_distance": 0.75, "implementation_support": 0.95, "evidence_support": 0.90, "falsifiability": 0.96, "strategic_value": 0.88, "prior_art_overlap": 0.48, "remaining_cost": 0.15},
+      "scores": {"prior_art_distance": 0.75, "evidence_support": 0.90, "falsifiability": 0.96, "strategic_value": 0.88, "prior_art_overlap": 0.48, "remaining_cost": 0.15},
       "tags": ["mcp", "physics", "receipts", "reexecution", "determinism", "security"],
       "local_sources": ["research/paper-1-mcp-trust-usenix.tex", "research/benchmark-results-2026-05-21-paper-1-mcp-ablation.md"],
+      "code_evidence": {"implementation": ["packages/engine/src/simulation/CAELRecorder.ts", "packages/engine/src/simulation/CAELReplayer.ts"], "verification": ["packages/engine/src/simulation/__tests__/paper-cael-replay-benchmark.test.ts"], "execution_evidence": ["research/benchmark-results-2026-05-21-paper-1-mcp-ablation.md"]},
       "kill_test": {"named_prior": "NabaOS / Tool Receipts, Not Zero-Knowledge Proofs (arXiv:2603.10060)", "status": "survives_tightened_claim", "checked_at": "2026-07-16", "assessment": "NabaOS signs tool-execution receipts and independently re-fetches URLs for deep delegation; its checked abstract does not re-execute a physics solver under an explicit recorder-versus-replayer equivalence contract. The paper's current generic first wording still needs the tightened physics-solver scope before submission.", "sources": [{"kind": "primary_paper", "url": "https://arxiv.org/abs/2603.10060", "finding": "HMAC-signed execution receipts, claim cross-checking, and independent URL re-fetching; no general physics-solver replay equivalence."}, {"kind": "local_code", "path": "packages/engine/src/simulation/CAELRecorder.ts", "finding": "Records contracted simulation events and per-step state digests."}, {"kind": "local_code", "path": "packages/engine/src/simulation/CAELReplayer.ts", "finding": "Independently reconstructs the run and compares captured state digests."}]}
     },
     {
@@ -31,9 +42,10 @@
       "title": "Adversarial in-sandbox physical correctness",
       "tightened_claim": "Physical-correctness checks execute inside the sandbox boundary against an adversarially tuned simulation generator and expose a measured security-fix lifecycle.",
       "claim_stage": "tightened_hypothesis",
-      "scores": {"prior_art_distance": 0.65, "implementation_support": 0.65, "evidence_support": 0.45, "falsifiability": 0.90, "strategic_value": 0.75, "prior_art_overlap": 0.65, "remaining_cost": 0.55},
+      "scores": {"prior_art_distance": 0.65, "evidence_support": 0.45, "falsifiability": 0.90, "strategic_value": 0.75, "prior_art_overlap": 0.65, "remaining_cost": 0.55},
       "tags": ["sandbox", "physics", "adversarial", "security", "verification", "lifecycle"],
       "local_sources": ["research/paper-4-sandbox-usenix.tex", "packages/core/src/plugins/__tests__/paper-4-sandbox-bench.test.ts"],
+      "code_evidence": {"implementation": ["packages/security-sandbox/src/index.ts"], "verification": ["packages/core/src/plugins/__tests__/paper-4-sandbox-bench.test.ts"], "execution_evidence": []},
       "kill_test": {"named_prior": "PhysVEC plus verifiable-agent execution systems", "status": "killed", "checked_at": "2026-07-16", "assessment": "PhysVEC anticipates integrated programming and physical-validity verification. More importantly, the tightened in-sandbox claim is false to the current artifact: executeContractedSimulation validates the source, then runs HoloVM and the CAEL/contract solver in the host process; the paper itself says sandbox steps 1-3 and contract steps 4-7 are adjacent layers. Rescope to an adjacent-layer pipeline or move contract execution into the isolate.", "sources": [{"kind": "primary_paper", "url": "https://arxiv.org/abs/2604.00149", "finding": "PhysVEC integrates programming and scientific verifiers for coding correctness and physical validity."}, {"kind": "primary_paper", "url": "https://arxiv.org/abs/2607.05397", "finding": "Formalizes contract-bound, tamper-evident, replayable proof of agent execution."}, {"kind": "local_code", "path": "packages/security-sandbox/src/index.ts", "finding": "executeContractedSimulation runs validation, HoloVM, solver, and recorder sequentially in the host method rather than executing physical checks inside the isolated context."}, {"kind": "local_paper", "path": "research/paper-4-sandbox-usenix.tex", "finding": "Algorithm caption explicitly places steps 1-3 in the sandbox and steps 4-7 in the contract layer."}]}
     },
     {
@@ -41,9 +53,10 @@
       "title": "Physics state in the full agent-loop receipt",
       "tightened_claim": "Physics-solver-computed fields, geometry hashes, and world deltas are load-bearing state in a single-timestep perception-cognition-action-physics receipt chain.",
       "claim_stage": "tightened_hypothesis",
-      "scores": {"prior_art_distance": 0.75, "implementation_support": 0.90, "evidence_support": 0.86, "falsifiability": 0.90, "strategic_value": 0.85, "prior_art_overlap": 0.62, "remaining_cost": 0.20},
+      "scores": {"prior_art_distance": 0.75, "evidence_support": 0.86, "falsifiability": 0.90, "strategic_value": 0.85, "prior_art_overlap": 0.62, "remaining_cost": 0.20},
       "tags": ["cael", "physics", "agents", "hash-chain", "replay", "provenance"],
       "local_sources": ["research/paper-0c-cael-aamas.tex", "packages/engine/src/simulation/__tests__/paper-0c-cael-overhead.test.ts"],
+      "code_evidence": {"implementation": ["packages/engine/src/simulation/CAELAgent.ts"], "verification": ["packages/engine/src/simulation/__tests__/paper-0c-cael-overhead.test.ts"], "execution_evidence": []},
       "kill_test": {"named_prior": "Blockchain-monitored perception-reasoning-action pipelines and event-sourced agent runtimes", "status": "survives_tightened_claim", "checked_at": "2026-07-16", "assessment": "The generic full-loop ledger and replay/fork claims are anticipated, but the checked priors do not make solver-computed geometry and physical field state load-bearing in the same per-timestep agent receipt. Local CAELAgent code hashes geometry plus solver field data before and after action.", "sources": [{"kind": "primary_paper", "url": "https://arxiv.org/abs/2512.20985", "finding": "Stores and verifies each perception-conceptualization-action cycle on a permissioned blockchain."}, {"kind": "primary_paper", "url": "https://arxiv.org/abs/2605.21997", "finding": "Provides append-only event sourcing, deterministic replay, cheap forking, and lineage for agent runs."}, {"kind": "local_code", "path": "packages/engine/src/simulation/CAELAgent.ts", "finding": "StructuralActionMapper binds geometry and physics field hashes into world-delta receipts."}]}
     },
     {
@@ -51,9 +64,10 @@
       "title": "Browser-native per-spike CAEL receipts",
       "tightened_claim": "A zero-install WebGPU LIF/STDP runtime executes in a browser and emits a per-spike CAEL receipt inside contracted physics.",
       "claim_stage": "tightened_hypothesis",
-      "scores": {"prior_art_distance": 0.78, "implementation_support": 0.55, "evidence_support": 0.20, "falsifiability": 0.80, "strategic_value": 0.75, "prior_art_overlap": 0.55, "remaining_cost": 0.65},
+      "scores": {"prior_art_distance": 0.78, "evidence_support": 0.20, "falsifiability": 0.80, "strategic_value": 0.75, "prior_art_overlap": 0.55, "remaining_cost": 0.65},
       "tags": ["webgpu", "snn", "browser", "per-spike", "cael", "physics"],
       "local_sources": ["research/paper-2-snn-neurips.tex", "scripts/mesh-deploy/gate-bootstrappers/paper-2-snn-bench.sh"],
+      "code_evidence": {"implementation": ["packages/engine/src/simulation/SNNCognitionEngine.ts", "packages/snn-webgpu/src/paper/LIFDeterminismProbe.ts"], "verification": ["packages/snn-webgpu/src/paper/__tests__/LIFDeterminismProbe.test.ts"], "execution_evidence": []},
       "kill_test": {"named_prior": "Per-action ledger anchoring (arXiv:2512.20985) and the shipped receipt granularity", "status": "killed", "checked_at": "2026-07-16", "assessment": "The browser LIF runtime is real, but the tightened per-spike receipt claim is not. The CAEL loop emits one cognition entry per agent tick and SNNCognitionEngine.encode truncates the spike list to the first 64 events. The existing determinism probe hashes final membrane-potential bytes, not individual spike receipts.", "sources": [{"kind": "primary_paper", "url": "https://arxiv.org/abs/2512.20985", "finding": "Anticipates the generic per-cycle provenance claim."}, {"kind": "local_code", "path": "packages/engine/src/simulation/SNNCognitionEngine.ts", "finding": "Encodes a per-tick snapshot and slices spikes to 64."}, {"kind": "local_code", "path": "packages/snn-webgpu/src/paper/LIFDeterminismProbe.ts", "finding": "Hashes final membrane-potential state rather than emitting one receipt per spike."}]}
     },
     {
@@ -61,9 +75,10 @@
       "title": "Physics-replay arbitration for spatial CRDTs",
       "tightened_claim": "Divergent spatial-CRDT merges are arbitrated by replaying both branches through a physics contract and selecting the branch that satisfies declared invariants.",
       "claim_stage": "tightened_hypothesis",
-      "scores": {"prior_art_distance": 0.80, "implementation_support": 0.45, "evidence_support": 0.25, "falsifiability": 0.93, "strategic_value": 0.82, "prior_art_overlap": 0.45, "remaining_cost": 0.75},
+      "scores": {"prior_art_distance": 0.80, "evidence_support": 0.25, "falsifiability": 0.93, "strategic_value": 0.82, "prior_art_overlap": 0.45, "remaining_cost": 0.75},
       "tags": ["crdt", "physics", "replay", "collaboration", "spatial", "semiring"],
       "local_sources": ["research/paper-3-crdt-ecoop.tex"],
+      "code_evidence": {"implementation": [], "verification": ["packages/engine/src/simulation/__tests__/paper-multi-agent-crdt.test.ts"], "execution_evidence": []},
       "kill_test": {"named_prior": "Collaborative 3D modeling on blockchain (arXiv:1901.02629) and the shipped dispute harness", "status": "killed", "checked_at": "2026-07-16", "assessment": "The public prior covers collaborative mesh-history provenance but not physics arbitration. The current HoloScript harness also does not implement the tightened delta: it merges by timestamp, verifies a CAEL hash chain, and explicitly says it cannot run a full contracted replay. No branch physics invariant is evaluated to choose a winner.", "sources": [{"kind": "primary_paper", "url": "https://arxiv.org/abs/1901.02629", "finding": "Uses blockchain as a decentralized mesh-modification history and version-control substrate, without physics-solver arbitration."}, {"kind": "local_test", "path": "packages/engine/src/simulation/__tests__/paper-multi-agent-crdt.test.ts", "finding": "Experiment 3 uses timestamp authority and hash verification; it explicitly omits full contracted replay."}, {"kind": "local_paper", "path": "research/paper-3-crdt-ecoop.tex", "finding": "Claims both branches are replayed and selected by physics invariants, exceeding the harness."}]}
     },
     {
@@ -71,9 +86,10 @@
       "title": "Non-omissible cascade provenance",
       "tightened_claim": "Provenance is inherited across keyword-graph-semantic-LLM retrieval stages and cannot be silently omitted when a backend is unreachable or empty.",
       "claim_stage": "tightened_hypothesis",
-      "scores": {"prior_art_distance": 0.66, "implementation_support": 0.88, "evidence_support": 0.70, "falsifiability": 0.82, "strategic_value": 0.70, "prior_art_overlap": 0.75, "remaining_cost": 0.30},
+      "scores": {"prior_art_distance": 0.66, "evidence_support": 0.70, "falsifiability": 0.82, "strategic_value": 0.70, "prior_art_overlap": 0.75, "remaining_cost": 0.30},
       "tags": ["graphrag", "provenance", "cascade", "graceful-degradation", "mcp", "hashing"],
       "local_sources": ["research/paper-5-graphrag-icse.tex"],
+      "code_evidence": {"implementation": ["packages/mcp-server/src/absorb-provenance-tools.ts", "packages/absorb-service/src/mcp/codebase-tools.ts", "packages/absorb-service/src/engine/GraphRAGEngine.ts"], "verification": ["packages/mcp-server/src/__tests__/absorb-provenance-tools.test.ts"], "execution_evidence": []},
       "kill_test": {"named_prior": "blackwell-systems/knowing content-addressed code graph and the shipped Absorb wrapper", "status": "killed", "checked_at": "2026-07-16", "assessment": "The broad provenance novelty is anticipated by knowing's content-addressed code graph, git-bound Merkle snapshots, staleness detection, and offline relationship/absence proofs. More decisively, HoloScript's production provenance wrapper is miswired: it calls handleCodebaseTool with holo_ask_codebase, but that handler has no such case and returns null; tests pass only because they inject a resolver. The live GraphRAG engine begins with semantic search rather than the paper's keyword-to-graph-to-semantic cascade. The wrapper does preserve orchestrator empty/error state when exercised, but truncates SHA-256 to 16 hex characters. Rescope to a negative-provenance wrapper after wiring it to handleGraphRagTool and add real empty/unreachable end-to-end tests.", "sources": [{"kind": "primary_repository", "url": "https://github.com/blackwell-systems/knowing", "finding": "Ships content-addressed nodes and edges, git-bound hierarchical Merkle snapshots, freshness checks, and offline inclusion/absence proofs for code intelligence."}, {"kind": "local_code", "path": "packages/mcp-server/src/absorb-provenance-tools.ts", "finding": "Production invokes handleCodebaseTool('holo_ask_codebase'), while its tests inject a resolver; provenanceHash retains only 16 SHA-256 hex characters."}, {"kind": "local_code", "path": "packages/absorb-service/src/mcp/codebase-tools.ts", "finding": "handleCodebaseTool has no holo_ask_codebase case and returns null for that name."}, {"kind": "local_code", "path": "packages/absorb-service/src/engine/GraphRAGEngine.ts", "finding": "The implemented flow starts at semantic search, then graph enrichment and optional LLM synthesis; it has no keyword cascade stage."}, {"kind": "recovered_temp_paper", "path": "C:/Users/josep/AppData/Local/Temp/holorunner-bland-worktree-3246c0ca/research/paper-5-graphrag-icse.tex", "finding": "Claims a four-layer inherited provenance cascade and always-populated production envelope beyond the shipped wiring."}]}
     },
     {
@@ -81,9 +97,10 @@
       "title": "Skeletal-animation determinism contract",
       "tightened_claim": "Blend-tree, curve, and hierarchy sampling are bound to a clip/rig-topology contract preimage with frame-to-clip-to-scene provenance composition.",
       "claim_stage": "tightened_hypothesis",
-      "scores": {"prior_art_distance": 0.74, "implementation_support": 0.85, "evidence_support": 0.60, "falsifiability": 0.82, "strategic_value": 0.74, "prior_art_overlap": 0.55, "remaining_cost": 0.40},
+      "scores": {"prior_art_distance": 0.74, "evidence_support": 0.60, "falsifiability": 0.82, "strategic_value": 0.74, "prior_art_overlap": 0.55, "remaining_cost": 0.40},
       "tags": ["animation", "determinism", "gpu", "contracts", "semiring", "reproducibility"],
       "local_sources": ["research/paper-6-animation-sca.tex", "research/benchmark-results-2026-05-21-paper-6-gpu-bench-rtx3060.md"],
+      "code_evidence": {"implementation": ["packages/engine/src/animation/AnimationClip.ts", "packages/engine/src/animation/paper/AnimationSamplingProbe.ts"], "verification": ["packages/engine/src/animation/paper/__tests__/AnimationSamplingProbe.test.ts"], "execution_evidence": ["research/benchmark-results-2026-05-21-paper-6-gpu-bench-rtx3060.md"]},
       "kill_test": {"named_prior": "The shipped scalar-sampling probe versus the paper's MinimaxSLERP theorem", "status": "killed", "checked_at": "2026-07-16", "assessment": "The submitted claim exceeds the artifact in three load-bearing ways. AnimClip.sample returns one scalar per track; its slerp mode falls through to ordinary component-wise linear interpolation. The frozen paper probe deliberately uses only linear interpolation over four scalar tracks and proves same-process reproducibility, not cross-vendor identity. Meanwhile the capstone invokes MinimaxSLERP and proves cross-platform SLERP determinism although no minimax implementation is present. Scope Lemma 1 and Theorem 1 to same-process scalar clip sampling, and move cross-vendor bit identity plus MinimaxSLERP to gated future work.", "sources": [{"kind": "local_code", "path": "packages/engine/src/animation/AnimationClip.ts", "finding": "AnimClip.sample emits scalar values, and the slerp enum is handled by the default component-wise linear interpolation branch."}, {"kind": "local_probe", "path": "packages/engine/src/animation/paper/AnimationSamplingProbe.ts", "finding": "The canonical probe freezes four scalar tracks with linear interpolation and states that a retargeter is not shipped."}, {"kind": "local_test", "path": "packages/engine/src/animation/paper/__tests__/AnimationSamplingProbe.test.ts", "finding": "Checks three same-process runs of the scalar sampler; it explicitly says cross-backend retargeting remains the full unimplemented claim."}, {"kind": "local_paper", "path": "research/paper-capstone-program2-siggraph.tex", "finding": "Invokes MinimaxSLERP and states cross-platform SLERP and transcendental determinism theorems without the corresponding shipped substrate."}]}
     },
     {
@@ -91,9 +108,10 @@
       "title": "Subsystem-attributed per-node verification",
       "tightened_claim": "Per-node hashes decompose physics, animation, IK, and cloth state so a mismatch is attributed and rejected before rendering rather than detected only after a lockstep tick.",
       "claim_stage": "tightened_hypothesis",
-      "scores": {"prior_art_distance": 0.86, "implementation_support": 0.70, "evidence_support": 0.48, "falsifiability": 0.90, "strategic_value": 0.92, "prior_art_overlap": 0.42, "remaining_cost": 0.55},
+      "scores": {"prior_art_distance": 0.86, "evidence_support": 0.48, "falsifiability": 0.90, "strategic_value": 0.92, "prior_art_overlap": 0.42, "remaining_cost": 0.55},
       "tags": ["physics", "animation", "hashing", "subsystem-attribution", "rendering", "verification"],
       "local_sources": ["research/paper-8-unified-siggraph.tex", "research/benchmark-results-2026-05-21-paper-8-publication.md"],
+      "code_evidence": {"implementation": ["packages/engine/src/animation/paper/Paper8CrossBackendDeterminismProbe.ts", "packages/engine/src/animation/paper/benchmarks/paper-8-publication.ts"], "verification": ["packages/engine/src/animation/paper/benchmarks/__tests__/paper-8-publication.test.ts"], "execution_evidence": ["research/benchmark-results-2026-05-21-paper-8-publication.md"]},
       "kill_test": {"named_prior": "Deterministic lockstep checksumming versus the shipped Paper 8 harness", "status": "killed", "checked_at": "2026-07-16", "assessment": "The tightened reject-before-render contribution is not implemented by the publication artifact. The cross-backend matrix runs the same CPU/JS IK solver twice in one process; four GPU records are descriptive metadata only. The full-loop demo hashes synthetic PRNG buffers with a non-cryptographic 32-bit function, spot-checks only the first agent, discards verifyOk, and has no renderer or rejection path. The live paper TeX was intentionally untracked; the recoverable temp copy claims SHA-256, real subsystem state, cross-GPU execution, and frame rejection that the harness does not perform.", "sources": [{"kind": "local_code", "path": "packages/engine/src/animation/paper/Paper8CrossBackendDeterminismProbe.ts", "finding": "Documents same-process JS cross-run modeling, simulated GPU metadata, synthetic subsystem buffers, non-cryptographic hashing, and a discarded verification result."}, {"kind": "local_code", "path": "packages/engine/src/animation/paper/benchmarks/paper-8-publication.ts", "finding": "Copies GPU configuration labels into output but never dispatches work to a GPU or renderer."}, {"kind": "local_report", "path": "research/benchmark-results-2026-05-21-paper-8-publication.md", "finding": "Calls the pipeline fully substantiated despite the harness/source mismatch and even reports chain lengths that differ from the code."}, {"kind": "recovered_temp_paper", "path": "C:/Users/josep/AppData/Local/Temp/holorunner-bland-worktree-3246c0ca/research/paper-8-unified-siggraph.tex", "finding": "Claims cryptographic per-node hashes, cross-GPU identity, real subsystem contributions, and reject-before-render; git history shows paper mirrors were deliberately untracked as local caches."}]}
     },
     {
@@ -101,9 +119,10 @@
       "title": "Semiring-denotational multi-backend compiler",
       "tightened_claim": "A multi-backend compiler uses a provenance semiring as a denotational target; the divisibility result is scoped as a soundness corollary and empirical parity is gated on an executed target matrix.",
       "claim_stage": "tightened_hypothesis",
-      "scores": {"prior_art_distance": 0.72, "implementation_support": 0.55, "evidence_support": 0.25, "falsifiability": 0.88, "strategic_value": 0.95, "prior_art_overlap": 0.48, "remaining_cost": 0.70},
+      "scores": {"prior_art_distance": 0.72, "evidence_support": 0.25, "falsifiability": 0.88, "strategic_value": 0.95, "prior_art_overlap": 0.48, "remaining_cost": 0.70},
       "tags": ["compiler", "semiring", "multi-backend", "denotational-semantics", "provenance", "formal"],
       "local_sources": ["research/paper-10-hs-core-pldi.tex", "research/benchmark-results-2026-05-21-paper-10-cross-target-theorem-matrix.md"],
+      "code_evidence": {"implementation": ["packages/core/src/compiler/CompilerBase.ts", "packages/core/src/compiler/traits/ProvenanceSemiring.ts"], "verification": ["packages/core/src/compiler/__tests__/paper-10-cross-target-theorem-matrix.test.ts"], "execution_evidence": ["research/benchmark-results-2026-05-21-paper-10-cross-target-theorem-matrix.md"]},
       "kill_test": {"named_prior": "Cross-layer policy compilation and zero-knowledge compilation provenance", "status": "narrowed", "checked_at": "2026-07-16", "assessment": "The external works compile one declarative source to many targets with verification or prove source-to-binary provenance, but do not use a provenance semiring as the denotational target. The current HoloScript theorem evidence is nevertheless inadequate: the harness checks lexicographic minima of SHA-256 strings on one source and three targets, while the promised 50-source matrix remains future work. Demote the theorem to a construction corollary and keep empirical parity gated.", "sources": [{"kind": "primary_paper", "url": "https://arxiv.org/abs/2603.27299", "finding": "Compiles one declarative policy source into multiple orchestration, infrastructure, and protocol targets with cross-layer verification."}, {"kind": "primary_paper", "url": "https://arxiv.org/abs/2602.11887", "finding": "Produces cryptographic proofs that a binary came from claimed source and compiler via zkVM compilation."}, {"kind": "local_test", "path": "packages/core/src/compiler/__tests__/paper-10-cross-target-theorem-matrix.test.ts", "finding": "Checks a lexicographic SHA-256 minimum on a single source across three targets."}, {"kind": "local_report", "path": "research/benchmark-results-2026-05-21-paper-10-cross-target-theorem-matrix.md", "finding": "States the full 50x3 matrix remains camera-ready work."}]}
     },
     {
@@ -111,9 +130,10 @@
       "title": "Multi-modality trait conflict algebra",
       "tightened_claim": "Single-user, single-object grab/throw/hover conflicts on one transform channel are resolved with a disjoint-write distributivity side condition that separates sequential composition from conflict merge.",
       "claim_stage": "tightened_hypothesis",
-      "scores": {"prior_art_distance": 0.72, "implementation_support": 0.70, "evidence_support": 0.45, "falsifiability": 0.82, "strategic_value": 0.75, "prior_art_overlap": 0.52, "remaining_cost": 0.45},
+      "scores": {"prior_art_distance": 0.72, "evidence_support": 0.45, "falsifiability": 0.82, "strategic_value": 0.75, "prior_art_overlap": 0.52, "remaining_cost": 0.45},
       "tags": ["traits", "semiring", "conflict-resolution", "multi-modality", "runtime", "formal"],
       "local_sources": ["research/paper-11-hsplus-ecoop.tex", "research/benchmark-results-2026-05-20-paper-11-trait-gpu-bench.md"],
+      "code_evidence": {"implementation": ["packages/core/src/compiler/traits/ProvenanceSemiring.ts"], "verification": ["packages/core/src/compiler/__tests__/paper-11-imperative-baseline.bench.test.ts"], "execution_evidence": ["research/benchmark-results-2026-05-20-paper-11-trait-gpu-bench.md"]},
       "kill_test": {"named_prior": "Same-author Paper 3 plus the current runtime and proof surface", "status": "narrowed", "checked_at": "2026-07-16", "assessment": "The runtime semiring resolver and commutativity tests are shipped. The paper states a disjoint-write precondition in a definition, but it does not contain the separately identified Theorem 2 and the repository has no distributivity test. Keep the contribution at deterministic multi-modality resolution until that formal/evidence gap is closed.", "sources": [{"kind": "local_code", "path": "packages/core/src/compiler/traits/ProvenanceSemiring.ts", "finding": "Implements deterministic property conflict resolution."}, {"kind": "local_test", "path": "packages/core/src/compiler/__tests__/paper-11-imperative-baseline.bench.test.ts", "finding": "Tests commutativity against imperative last-write-wins but not distributivity."}, {"kind": "local_paper", "path": "research/paper-11-hsplus-ecoop.tex", "finding": "Contains one order-independence theorem; the disjoint-write condition appears in a definition."}]}
     },
     {
@@ -121,9 +141,10 @@
       "title": "Cryptographic plugin attribution after compilation",
       "tightened_claim": "A scene extension remains cryptographically attributable to its plugin in the compiled artifact, preserving a provenance chain stronger than OpenUSD PCP layer-source tracking after flattening.",
       "claim_stage": "tightened_hypothesis",
-      "scores": {"prior_art_distance": 0.70, "implementation_support": 0.55, "evidence_support": 0.30, "falsifiability": 0.88, "strategic_value": 0.85, "prior_art_overlap": 0.55, "remaining_cost": 0.65},
+      "scores": {"prior_art_distance": 0.70, "evidence_support": 0.30, "falsifiability": 0.88, "strategic_value": 0.85, "prior_art_overlap": 0.55, "remaining_cost": 0.65},
       "tags": ["compiler", "plugins", "provenance", "cryptographic", "compiled-artifact", "openusd"],
       "local_sources": ["research/paper-12-holo-i3d.tex", "docs/public/evidence/paper-12-hololand-envelope.json"],
+      "code_evidence": {"implementation": ["packages/plugins/structural-biology-plugin/src/index.ts", "packages/plugins/structural-biology-plugin/src/receipt.ts"], "verification": ["packages/plugins/structural-biology-plugin/src/__tests__/index.test.ts"], "execution_evidence": ["docs/public/evidence/paper-12-hololand-envelope.json"]},
       "kill_test": {"named_prior": "OpenUSD layer-stack flattening and the shipped plugin-chain implementation", "status": "killed", "checked_at": "2026-07-16", "assessment": "OpenUSD officially flattens a layer stack into one layer and uses the source layer only while resolving asset paths. That supports the attribution distinction, but HoloScript's checked structural-biology chainHash is 32-bit FNV-1a, not a cryptographic hash. The cryptographic compiled-artifact claim is therefore not currently shippable.", "sources": [{"kind": "official_documentation", "url": "https://openusd.org/release/api/flatten_utils_8h.html", "finding": "UsdFlattenLayerStack produces one layer and passes source-layer context to asset-path resolution during flattening."}, {"kind": "local_code", "path": "packages/plugins/structural-biology-plugin/src/index.ts", "finding": "chainHash uses a 32-bit FNV-1a helper."}, {"kind": "local_test", "path": "packages/plugins/structural-biology-plugin/src/__tests__/index.test.ts", "finding": "Verifies tamper detection for the FNV chain but labels the in-memory object as a compiled artifact."}]}
     },
     {
@@ -131,9 +152,10 @@
       "title": "Receipt-backed NISQ ceiling characterization",
       "tightened_claim": "A simulator-to-QPU workflow emits tamper-evident, offline-verifiable receipts that bind inputs, results, backend job identifiers, and the explicit NISQ-ceiling conclusion without claiming quantum advantage.",
       "claim_stage": "tightened_hypothesis",
-      "scores": {"prior_art_distance": 0.58, "implementation_support": 0.97, "evidence_support": 0.97, "falsifiability": 0.98, "strategic_value": 0.90, "prior_art_overlap": 0.62, "remaining_cost": 0.10},
+      "scores": {"prior_art_distance": 0.58, "evidence_support": 0.97, "falsifiability": 0.98, "strategic_value": 0.90, "prior_art_overlap": 0.62, "remaining_cost": 0.10},
       "tags": ["quantum", "receipts", "tamper-evidence", "qpu", "nisq", "verification"],
       "local_sources": ["research/paper-37-quantum-receipt-chain.md", "quantum_receipts/h2-vqe-ibm-kingston-2026-05-21.json", "scripts/quantum_receipt_verify.py"],
+      "code_evidence": {"implementation": ["scripts/quantum_execute.py", "scripts/quantum_receipt_verify.py"], "verification": ["scripts/__tests__/test_quantum_novelty_scout.py"], "execution_evidence": ["quantum_receipts/h2-vqe-ibm-kingston-2026-05-21.json"]},
       "kill_test": {"named_prior": "IBM Runtime job provenance, Qiskit compilation verification, and transparent VQE hardware characterization", "status": "narrowed", "checked_at": "2026-07-16", "assessment": "Job IDs, later result retrieval, compilation verification, and transparent H2/VQE hardware characterization are prior art. Keep Paper 37 as a HoloScript evidence-chain and NISQ-ceiling case study, not a first or quantum-advantage claim; its distinguishing engineering delta is the canonical offline hash joined to online job retrieval and an explicit no-advantage boundary.", "sources": [{"kind": "official_documentation", "url": "https://docs.quantum.ibm.com/guides/monitor-job", "finding": "IBM recommends saving unique job IDs and supports later retrieval of jobs and results."}, {"kind": "primary_paper", "url": "https://arxiv.org/abs/2009.02376", "finding": "Verifies results of the IBM Qiskit compilation flow by circuit equivalence checking."}, {"kind": "primary_paper", "url": "https://arxiv.org/abs/2604.11478", "finding": "Provides transparent H2 VQE accuracy-cost and NISQ hardware characterization."}, {"kind": "local_code", "path": "scripts/quantum_receipt_verify.py", "finding": "Now verifies canonical simulator hashes offline and IBM-backed receipts online."}]}
     }
   ]
