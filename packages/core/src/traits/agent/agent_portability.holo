@@ -1,5 +1,5 @@
 @trait {
-  name: "@portable",
+  name: "@agent_portability",
   category: "agent",
   description: "Agent portability handle. Packages the entity's identity, memory snapshot, and active trait state into a transferable capsule that can be deserialized on a different host, fleet node, or XR device without loss of continuity. Authored from PortableTrait.ts.",
   props: {

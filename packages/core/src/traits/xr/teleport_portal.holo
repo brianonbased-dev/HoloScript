@@ -1,5 +1,5 @@
 @trait {
-  name: "@portal_presence",
+  name: "@teleport_portal",
   category: "xr",
   description: "Spatial portal for cross-world presence. Renders a live viewport into a remote HoloScript world behind a physical archway, teleports the player on walk-through, and synchronizes the transition with the target world's spawn anchor. Authored from PortalPresenceTrait.ts.",
   props: {
