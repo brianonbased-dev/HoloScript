@@ -39,6 +39,22 @@ const CONTRACT_V1 = Object.freeze({
 });
 const KERNEL_WGSL_SHA256_V1 =
   'bdc510c041dfe13a92f86660bab28775775161934eb35aefee9ae6fd1f12c47e';
+const FIXTURE_V1 = Object.freeze({
+  case_count: 1114,
+  construction:
+    '72 named adversarial cases, a 129-dot by 8-time integer sweep, nine near-branch cases, and one negative-dot ordinary-CORDIC case',
+  row_bytes: 48,
+  input_sha256: '01ea6512a4286134c978920875d3e007c38bbe4178ec3bd26ec412af33ec8c92',
+  oracle_output_sha256: 'fd4bd0dfb66ed1f41bdc193aa382d51ad0fdf84190d6c3d15ca47156678e7a84',
+  branch_boundary_dot_q15: Object.freeze([32758, 32760, 32762]),
+  negative_dot_ordinary_cordic_case: 'negative-dot-x90-t16384',
+});
+const NEGATIVE_CONTROL_V1 = Object.freeze({
+  case_id: 'identity-x180-t16384',
+  mutation: 'tQ15: 16384 -> 0',
+  input_sha256: '16eddb7e9d00b6f384c59bbd691c3df9050d7416395597f1c4c353919de94348',
+  oracle_output_sha256: '001d06d03a32aed3144104da883a477ea05d5fcb507a9d18b82a1b5fbe55416b',
+});
 const REQUIRED_SOURCE_HASHES = [
   'contract_ts_sha256',
   'wgsl_wrapper_ts_sha256',
@@ -75,8 +91,23 @@ function assertExactRecord(actual, expected, label) {
     `${label} fields do not match the pinned v1 contract`
   );
   for (const [field, value] of Object.entries(expected)) {
-    assert(actual[field] === value, `${label}.${field} does not match the pinned v1 contract`);
+    assert(
+      JSON.stringify(actual[field]) === JSON.stringify(value),
+      `${label}.${field} does not match the pinned v1 value`
+    );
   }
+}
+
+function canonicalJson(value) {
+  if (Array.isArray(value)) return value.map(canonicalJson);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map((key) => [key, canonicalJson(value[key])])
+    );
+  }
+  return value;
 }
 
 function readReceipt(filePath) {
@@ -189,6 +220,13 @@ function validateSingle(label, receipt) {
     receipt.source.kernel_wgsl_sha256 === KERNEL_WGSL_SHA256_V1,
     `${label}: kernel_wgsl_sha256 does not match the pinned v1 kernel`
   );
+  assertExactRecord(receipt?.fixture, FIXTURE_V1, `${label}: fixture`);
+  for (const [field, value] of Object.entries(NEGATIVE_CONTROL_V1)) {
+    assert(
+      receipt?.negative_control?.[field] === value,
+      `${label}: negative_control.${field} does not match the pinned v1 value`
+    );
+  }
 
   const adapter = receipt?.execution?.adapter ?? {};
   const adapterText = Object.values(adapter).join(' ');
@@ -368,6 +406,109 @@ function verifyExperimentBlobsAtCommit(receipt) {
   }
 }
 
+function currentValidatorIdentity() {
+  const validatorCommit = execFileSync('git', ['rev-parse', 'HEAD'], {
+    cwd: REPO_ROOT,
+    encoding: 'utf8',
+  }).trim();
+  const validatorStatus = execFileSync(
+    'git',
+    ['status', '--porcelain=v1', '--', SCRIPT_RELATIVE_PATH],
+    { cwd: REPO_ROOT, encoding: 'utf8' }
+  ).trim();
+  const validatorTracked = execFileSync('git', ['ls-files', '--', SCRIPT_RELATIVE_PATH], {
+    cwd: REPO_ROOT,
+    encoding: 'utf8',
+  }).trim();
+  assert(validatorTracked === SCRIPT_RELATIVE_PATH, 'pair validator must be tracked');
+  assert(validatorStatus === '', 'pair validator must be clean before aggregate capture or verification');
+  return { validatorCommit, validatorSha256: sha256File(SCRIPT_PATH) };
+}
+
+function buildAggregate({
+  capturedAt,
+  leftRecord,
+  rightRecord,
+  left,
+  right,
+  leftVendor,
+  rightVendor,
+  validatorCommit,
+  validatorSha256,
+}) {
+  return {
+    schema: PAIR_SCHEMA,
+    captured_at: capturedAt,
+    status: 'two-machine-two-vendor-pass',
+    claim_scope:
+      'Exact integer WGSL/BigInt-oracle byte agreement on two named machines and two GPU vendors under one controller.',
+    nonclaims: [
+      'Not the shipped AnimationClip nlerp policy.',
+      'Not MinimaxSLERP and not a minimax transcendental library.',
+      'Not a universal claim about ordinary WGSL f32 arithmetic.',
+      'Not an independent-laboratory replication; both devices were driven by one controller.',
+      'Not an interpolation accuracy or performance result.',
+    ],
+    contract: CONTRACT_V1,
+    source: {
+      experiment_base_git_commit: left.source.base_git_commit,
+      paths: left.source.paths,
+      hashes: Object.fromEntries(
+        REQUIRED_SOURCE_HASHES.map((field) => [
+          field,
+          field === 'kernel_wgsl_sha256' ? KERNEL_WGSL_SHA256_V1 : left.source[field],
+        ])
+      ),
+      validator_git_commit: validatorCommit,
+      validator_path: SCRIPT_RELATIVE_PATH,
+      validator_sha256: validatorSha256,
+    },
+    fixture: {
+      case_count: FIXTURE_V1.case_count,
+      row_bytes: FIXTURE_V1.row_bytes,
+      input_sha256: FIXTURE_V1.input_sha256,
+      oracle_output_sha256: FIXTURE_V1.oracle_output_sha256,
+      negative_control_input_sha256: NEGATIVE_CONTROL_V1.input_sha256,
+      negative_control_oracle_output_sha256: NEGATIVE_CONTROL_V1.oracle_output_sha256,
+    },
+    receipts: [
+      { label: 'left', vendor: leftVendor, record: leftRecord, receipt: left },
+      { label: 'right', vendor: rightVendor, record: rightRecord, receipt: right },
+    ].map(({ label, vendor, record, receipt }) => ({
+      label,
+      path: repoRelativeOrAbsolute(record.absolutePath),
+      sha256: record.sha256,
+      run_id: receipt.run_id,
+      captured_at: receipt.captured_at,
+      normalized_vendor: vendor,
+      machine_fingerprint_sha256: receipt.execution.machine_fingerprint_sha256,
+      mode: receipt.execution.mode,
+      hardware_label: receipt.execution.hardware_label,
+      adapter: receipt.execution.adapter,
+      browser_user_agent: receipt.execution.browser_user_agent,
+      host_device: receipt.execution.host.device,
+      repeated_dispatch_output_sha256: receipt.execution.repeated_dispatch_output_sha256,
+      negative_control_gpu_output_sha256: receipt.negative_control.gpu_output_sha256,
+    })),
+    comparison: {
+      source_and_config_identity_equal: true,
+      fixture_identity_equal: true,
+      oracle_output_equal: true,
+      repeated_gpu_outputs_equal_to_oracle: true,
+      negative_control_outputs_equal_to_oracle: true,
+      machine_fingerprints_distinct: true,
+      normalized_vendors_distinct: true,
+      normalized_vendors: [leftVendor, rightVendor],
+    },
+    verdict: {
+      two_machine_receipts_distinct: true,
+      two_gpu_vendors_distinct: true,
+      integer_contract_cross_vendor_byte_agreement: true,
+      independent_lab_replication: false,
+    },
+  };
+}
+
 export function validateReceiptPair(left, right) {
   validateSingle('left', left);
   validateSingle('right', right);
@@ -431,93 +572,18 @@ export function pairReceipts(leftPath, rightPath, outputPath) {
   const { leftVendor, rightVendor } = validateReceiptPair(left, right);
   verifyExperimentBlobsAtCommit(left);
 
-  const validatorCommit = execFileSync('git', ['rev-parse', 'HEAD'], {
-    cwd: REPO_ROOT,
-    encoding: 'utf8',
-  }).trim();
-  const validatorStatus = execFileSync(
-    'git',
-    ['status', '--porcelain=v1', '--', SCRIPT_RELATIVE_PATH],
-    { cwd: REPO_ROOT, encoding: 'utf8' }
-  ).trim();
-  const validatorTracked = execFileSync('git', ['ls-files', '--', SCRIPT_RELATIVE_PATH], {
-    cwd: REPO_ROOT,
-    encoding: 'utf8',
-  }).trim();
-  assert(validatorTracked === SCRIPT_RELATIVE_PATH, 'pair validator must be tracked');
-  assert(validatorStatus === '', 'pair validator must be clean before aggregate capture');
-
-  const aggregate = {
-    schema: PAIR_SCHEMA,
-    captured_at: new Date().toISOString(),
-    status: 'two-machine-two-vendor-pass',
-    claim_scope:
-      'Exact integer WGSL/BigInt-oracle byte agreement on two named machines and two GPU vendors under one controller.',
-    nonclaims: [
-      'Not the shipped AnimationClip nlerp policy.',
-      'Not MinimaxSLERP and not a minimax transcendental library.',
-      'Not a universal claim about ordinary WGSL f32 arithmetic.',
-      'Not an independent-laboratory replication; both devices were driven by one controller.',
-      'Not an interpolation accuracy or performance result.',
-    ],
-    contract: CONTRACT_V1,
-    source: {
-      experiment_base_git_commit: left.source.base_git_commit,
-      paths: left.source.paths,
-      hashes: Object.fromEntries(
-        REQUIRED_SOURCE_HASHES.map((field) => [
-          field,
-          field === 'kernel_wgsl_sha256' ? KERNEL_WGSL_SHA256_V1 : left.source[field],
-        ])
-      ),
-      validator_git_commit: validatorCommit,
-      validator_path: SCRIPT_RELATIVE_PATH,
-      validator_sha256: sha256File(SCRIPT_PATH),
-    },
-    fixture: {
-      case_count: left.fixture.case_count,
-      row_bytes: left.fixture.row_bytes,
-      input_sha256: left.fixture.input_sha256,
-      oracle_output_sha256: left.fixture.oracle_output_sha256,
-      negative_control_input_sha256: left.negative_control.input_sha256,
-      negative_control_oracle_output_sha256: left.negative_control.oracle_output_sha256,
-    },
-    receipts: [
-      { label: 'left', vendor: leftVendor, record: leftRecord, receipt: left },
-      { label: 'right', vendor: rightVendor, record: rightRecord, receipt: right },
-    ].map(({ label, vendor, record, receipt }) => ({
-      label,
-      path: repoRelativeOrAbsolute(record.absolutePath),
-      sha256: record.sha256,
-      run_id: receipt.run_id,
-      captured_at: receipt.captured_at,
-      normalized_vendor: vendor,
-      machine_fingerprint_sha256: receipt.execution.machine_fingerprint_sha256,
-      mode: receipt.execution.mode,
-      hardware_label: receipt.execution.hardware_label,
-      adapter: receipt.execution.adapter,
-      browser_user_agent: receipt.execution.browser_user_agent,
-      host_device: receipt.execution.host.device,
-      repeated_dispatch_output_sha256: receipt.execution.repeated_dispatch_output_sha256,
-      negative_control_gpu_output_sha256: receipt.negative_control.gpu_output_sha256,
-    })),
-    comparison: {
-      source_and_config_identity_equal: true,
-      fixture_identity_equal: true,
-      oracle_output_equal: true,
-      repeated_gpu_outputs_equal_to_oracle: true,
-      negative_control_outputs_equal_to_oracle: true,
-      machine_fingerprints_distinct: true,
-      normalized_vendors_distinct: true,
-      normalized_vendors: [leftVendor, rightVendor],
-    },
-    verdict: {
-      two_machine_receipts_distinct: true,
-      two_gpu_vendors_distinct: true,
-      integer_contract_cross_vendor_byte_agreement: true,
-      independent_lab_replication: false,
-    },
-  };
+  const { validatorCommit, validatorSha256 } = currentValidatorIdentity();
+  const aggregate = buildAggregate({
+    capturedAt: new Date().toISOString(),
+    leftRecord,
+    rightRecord,
+    left,
+    right,
+    leftVendor,
+    rightVendor,
+    validatorCommit,
+    validatorSha256,
+  });
 
   mkdirSync(path.dirname(absoluteOutput), { recursive: true });
   const temporaryPath = `${absoluteOutput}.${process.pid}.${Date.now()}.tmp`;
@@ -534,29 +600,125 @@ export function pairReceipts(leftPath, rightPath, outputPath) {
   return aggregate;
 }
 
+export function verifyAggregate(aggregatePath) {
+  assert(aggregatePath, 'aggregate path is required');
+  const absoluteAggregate = path.resolve(aggregatePath);
+  assert(
+    path.dirname(absoluteAggregate).toLowerCase() === EVIDENCE_ROOT.toLowerCase(),
+    `aggregate must be directly inside ${EVIDENCE_ROOT}`
+  );
+  const aggregate = readReceipt(absoluteAggregate).receipt;
+  assert(aggregate?.schema === PAIR_SCHEMA, `aggregate schema must be ${PAIR_SCHEMA}`);
+  assert(aggregate?.status === 'two-machine-two-vendor-pass', 'aggregate status is not a pass');
+  assert(
+    typeof aggregate.captured_at === 'string' && !Number.isNaN(Date.parse(aggregate.captured_at)),
+    'aggregate captured_at is missing or invalid'
+  );
+  assert(
+    aggregate?.source?.validator_path === SCRIPT_RELATIVE_PATH,
+    'aggregate validator path is not canonical'
+  );
+  assert(
+    /^[0-9a-f]{40}$/u.test(aggregate?.source?.validator_git_commit ?? ''),
+    'aggregate validator commit is missing or malformed'
+  );
+  assert(
+    /^[0-9a-f]{64}$/u.test(aggregate?.source?.validator_sha256 ?? ''),
+    'aggregate validator hash is missing or malformed'
+  );
+  assert(Array.isArray(aggregate.receipts) && aggregate.receipts.length === 2, 'aggregate needs two receipts');
+
+  const receiptRecords = aggregate.receipts.map((record, index) => {
+    assert(typeof record.path === 'string' && record.path.length > 0, `aggregate receipt ${index} path missing`);
+    const absolutePath = path.resolve(REPO_ROOT, record.path);
+    assert(
+      path.dirname(absolutePath).toLowerCase() === EVIDENCE_ROOT.toLowerCase(),
+      `aggregate receipt ${index} must be directly inside ${EVIDENCE_ROOT}`
+    );
+    assert(absolutePath !== absoluteAggregate, `aggregate receipt ${index} collides with aggregate`);
+    const loaded = readReceipt(absolutePath);
+    assert(loaded.sha256 === record.sha256, `aggregate receipt ${index} hash mismatch`);
+    return loaded;
+  });
+  const [leftRecord, rightRecord] = receiptRecords;
+  const left = leftRecord.receipt;
+  const right = rightRecord.receipt;
+  const { leftVendor, rightVendor } = validateReceiptPair(left, right);
+  verifyExperimentBlobsAtCommit(left);
+
+  let validatorBlob;
+  try {
+    validatorBlob = execFileSync(
+      'git',
+      ['show', `${aggregate.source.validator_git_commit}:${SCRIPT_RELATIVE_PATH}`],
+      { cwd: REPO_ROOT, encoding: null, maxBuffer: 16 * 1024 * 1024 }
+    );
+  } catch (error) {
+    throw new Error(`cannot read aggregate validator blob: ${error.message}`);
+  }
+  assert(
+    sha256Bytes(validatorBlob) === aggregate.source.validator_sha256,
+    'aggregate validator blob hash mismatch'
+  );
+  const { validatorSha256: currentValidatorSha256 } = currentValidatorIdentity();
+  assert(
+    currentValidatorSha256 === aggregate.source.validator_sha256,
+    'current clean validator differs from aggregate validator'
+  );
+
+  const expected = buildAggregate({
+    capturedAt: aggregate.captured_at,
+    leftRecord,
+    rightRecord,
+    left,
+    right,
+    leftVendor,
+    rightVendor,
+    validatorCommit: aggregate.source.validator_git_commit,
+    validatorSha256: aggregate.source.validator_sha256,
+  });
+  assert(
+    JSON.stringify(canonicalJson(aggregate)) === JSON.stringify(canonicalJson(expected)),
+    'aggregate content does not match its verified receipts and pinned v1 contract'
+  );
+  return aggregate;
+}
+
 function parseArgs(argv) {
   const positional = [];
   let output;
+  let verify;
   for (let index = 0; index < argv.length; index += 1) {
     if (argv[index] === '--out') {
       output = argv[index + 1];
+      index += 1;
+    } else if (argv[index] === '--verify') {
+      verify = argv[index + 1];
       index += 1;
     } else {
       positional.push(argv[index]);
     }
   }
-  return { left: positional[0], right: positional[1], output };
+  return { left: positional[0], right: positional[1], output, verify };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
   const args = parseArgs(process.argv.slice(2));
-  if (!args.left || !args.right || !args.output) {
+  if (!args.verify && (!args.left || !args.right || !args.output)) {
     console.error(
-      'Usage: node packages/engine/scripts/pair-paper6-quaternion-receipts.mjs <left.json> <right.json> --out <pair.json>'
+      'Usage: node packages/engine/scripts/pair-paper6-quaternion-receipts.mjs <left.json> <right.json> --out <pair.json> | --verify <pair.json>'
     );
     process.exit(2);
   }
   try {
+    if (args.verify) {
+      const aggregate = verifyAggregate(args.verify);
+      console.log(
+        `[paper6-q14-pair] verified ${aggregate.status} -> ${path.resolve(args.verify)} ` +
+          `(${aggregate.comparison.normalized_vendors.join(' + ')})`
+      );
+      process.exit(0);
+    }
     const aggregate = pairReceipts(args.left, args.right, args.output);
     console.log(
       `[paper6-q14-pair] ${aggregate.status} -> ${path.resolve(args.output)} ` +

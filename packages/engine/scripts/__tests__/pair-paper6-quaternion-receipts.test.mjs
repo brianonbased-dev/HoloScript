@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url';
 import {
   pairReceipts,
   resolveEvidenceOutputPath,
+  verifyAggregate,
   validateReceiptPair,
 } from '../pair-paper6-quaternion-receipts.mjs';
 
@@ -30,10 +31,14 @@ const actualS23Receipt = path.join(
   evidenceRoot,
   'paper-6-q14-cordic-slerp-s23-adreno740-r2.json'
 );
+const actualAggregate = path.join(
+  evidenceRoot,
+  'paper-6-q14-cordic-slerp-cross-vendor-rtx3060-s23-r1.json'
+);
 
 function buildReceipt({ vendor, architecture, mode = 'webgpu-browser', identitySeed = vendor }) {
-  const oracle = hash('a');
-  const negative = hash('b');
+  const oracle = 'fd4bd0dfb66ed1f41bdc193aa382d51ad0fdf84190d6c3d15ca47156678e7a84';
+  const negative = '001d06d03a32aed3144104da883a477ea05d5fcb507a9d18b82a1b5fbe55416b';
   const android = mode === 'webgpu-browser-android-cdp';
   const device = android
     ? {
@@ -101,8 +106,10 @@ function buildReceipt({ vendor, architecture, mode = 'webgpu-browser', identityS
     },
     fixture: {
       case_count: 1114,
+      construction:
+        '72 named adversarial cases, a 129-dot by 8-time integer sweep, nine near-branch cases, and one negative-dot ordinary-CORDIC case',
       row_bytes: 48,
-      input_sha256: hash('6'),
+      input_sha256: '01ea6512a4286134c978920875d3e007c38bbe4178ec3bd26ec412af33ec8c92',
       oracle_output_sha256: oracle,
       branch_boundary_dot_q15: [32758, 32760, 32762],
       negative_dot_ordinary_cordic_case: 'negative-dot-x90-t16384',
@@ -140,9 +147,9 @@ function buildReceipt({ vendor, architecture, mode = 'webgpu-browser', identityS
       repeated_dispatch_output_sha256: [oracle, oracle, oracle],
     },
     negative_control: {
-      case_id: 'identity-x180-t0',
+      case_id: 'identity-x180-t16384',
       mutation: 'tQ15: 16384 -> 0',
-      input_sha256: hash('7'),
+      input_sha256: '16eddb7e9d00b6f384c59bbd691c3df9050d7416395597f1c4c353919de94348',
       oracle_output_sha256: negative,
       gpu_output_sha256: negative,
       oracle_equal: true,
@@ -230,6 +237,24 @@ test('rejects two receipts that identically substitute the pinned kernel digest'
   assert.throws(() => validateReceiptPair(left, right), /kernel_wgsl_sha256 does not match/u);
 });
 
+test('rejects two receipts that identically fabricate the pinned fixture and results', () => {
+  const left = nvidia();
+  const right = qualcomm();
+  for (const receipt of [left, right]) {
+    receipt.fixture.case_count = 1;
+    receipt.fixture.row_bytes = 4;
+    receipt.fixture.input_sha256 = hash('8');
+    receipt.fixture.oracle_output_sha256 = hash('9');
+    receipt.fixture.branch_boundary_dot_q15 = [];
+    receipt.execution.repeated_dispatch_output_sha256 = [hash('9'), hash('9'), hash('9')];
+    receipt.negative_control.case_id = 'fabricated-case';
+    receipt.negative_control.input_sha256 = hash('a');
+    receipt.negative_control.oracle_output_sha256 = hash('b');
+    receipt.negative_control.gpu_output_sha256 = hash('b');
+  }
+  assert.throws(() => validateReceiptPair(left, right), /fixture\.case_count does not match/u);
+});
+
 test('rejects a GPU dispatch that differs from the oracle', () => {
   const right = qualcomm();
   right.execution.repeated_dispatch_output_sha256[1] = hash('d');
@@ -276,6 +301,12 @@ test('pairs the committed-source RTX 3060 and S23 receipts through the productio
   } finally {
     rmSync(output, { force: true });
   }
+});
+
+test('re-verifies the committed aggregate, receipt files, and Git blobs', () => {
+  const aggregate = verifyAggregate(actualAggregate);
+  assert.equal(aggregate.status, 'two-machine-two-vendor-pass');
+  assert.equal(aggregate.verdict.integer_contract_cross_vendor_byte_agreement, true);
 });
 
 test('never overwrites an existing aggregate path', () => {
