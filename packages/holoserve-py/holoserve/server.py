@@ -296,7 +296,10 @@ class HoloModel:
         self.merge_id = {merge[2]: index for index, merge in enumerate(self.merges)}
 
         self.checkpoint_sha256 = sha256_file(self.ckpt_path)
-        ckpt = torch.load(self.ckpt_path, map_location=self.device)
+        # weights_only=True: refuse arbitrary pickle-object execution on load
+        # (defense-in-depth; matches train.py resume path). Checkpoint is a plain
+        # dict of state_dicts + scalars, so this is format-compatible.
+        ckpt = torch.load(self.ckpt_path, map_location=self.device, weights_only=True)
         cfg = ckpt.get("config", {})
         self.block_size = int(cfg.get("block_size", 128))
         struct_count = int(
