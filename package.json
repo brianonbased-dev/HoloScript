@@ -135,6 +135,8 @@
     "check:npm-deprecations": "node scripts/holo-ci/check-npm-deprecations.mjs",
     "check:package-architecture": "node scripts/holo-ci/check-package-architecture.mjs",
     "check:package-architecture:test": "node scripts/holo-ci/check-package-architecture.mjs --self-test",
+    "check:language-strata": "node scripts/holo-ci/check-language-strata.mjs",
+    "check:language-strata:strict": "node scripts/holo-ci/check-language-strata.mjs --strict",
     "check:package-doc-mold": "node scripts/holo-ci/package-doc-mold.mjs",
     "check:package-doc-mold:test": "node scripts/holo-ci/package-doc-mold.mjs --self-test",
     "package:opportunity-map": "node scripts/holo-ci/package-opportunity-map.mjs",
