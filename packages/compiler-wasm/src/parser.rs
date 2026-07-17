@@ -982,7 +982,7 @@ impl Parser {
             params.push(self.expect_identifier()?);
             let param_type = if self.check(TokenType::Colon) {
                 self.advance();
-                Some(self.expect_identifier()?)
+                Some(self.parse_type_annotation()?)
             } else {
                 None
             };
@@ -995,7 +995,7 @@ impl Parser {
 
         let return_type = if self.check(TokenType::Colon) {
             self.advance();
-            Some(self.expect_identifier()?)
+            Some(self.parse_type_annotation()?)
         } else {
             None
         };
@@ -1899,7 +1899,27 @@ impl Parser {
     }
 
     fn parse_unary_expression(&mut self) -> Result<AstNode, ParseError> {
-        if self.check(TokenType::Bang) || self.check(TokenType::Minus) {
+        if self.check(TokenType::Ampersand) {
+            self.advance();
+            let operator = if self.check_value("mut") {
+                self.advance();
+                "&mut"
+            } else {
+                "&"
+            };
+            let argument = self.parse_unary_expression()?;
+            return Ok(AstNode::UnaryExpression(UnaryExpression {
+                operator: operator.to_string(),
+                argument: Box::new(argument),
+                prefix: true,
+                loc: None,
+            }));
+        }
+
+        if self.check(TokenType::Bang)
+            || self.check(TokenType::Minus)
+            || self.check(TokenType::Star)
+        {
             let op = self.advance().value.clone();
             let argument = self.parse_unary_expression()?;
             return Ok(AstNode::UnaryExpression(UnaryExpression {
@@ -2233,12 +2253,22 @@ impl Parser {
         let name = self.expect_identifier()?;
         let type_annotation = if self.check(TokenType::Colon) {
             self.advance();
-            Some(self.expect_identifier()?)
+            Some(self.parse_type_annotation()?)
         } else {
             None
         };
         self.expect(TokenType::Equals)?;
-        let value = self.parse_expression()?;
+        let value = if type_annotation
+            .as_deref()
+            .is_some_and(|annotation| annotation.starts_with('&'))
+        {
+            // A v3 reference initializer is deliberately a single borrow expression. Stopping
+            // at the unary expression keeps a following `*reference = ...` statement from being
+            // consumed as legacy multiplication in this newline-insensitive grammar.
+            self.parse_unary_expression()?
+        } else {
+            self.parse_expression()?
+        };
 
         Ok(AstNode::VariableDeclaration(VariableDeclarationNode {
             name,
@@ -2253,7 +2283,7 @@ impl Parser {
         self.advance(); // consume contextual `slot` keyword
         let name = self.expect_identifier()?;
         self.expect(TokenType::Colon)?;
-        let type_annotation = self.expect_identifier()?;
+        let type_annotation = self.parse_type_annotation()?;
         self.expect(TokenType::Equals)?;
         let value = self.parse_expression()?;
 
@@ -2351,6 +2381,24 @@ impl Parser {
         } else {
             Err(self.error("Expected identifier"))
         }
+    }
+
+    fn parse_type_annotation(&mut self) -> Result<String, ParseError> {
+        if !self.check(TokenType::Ampersand) {
+            return self.expect_identifier();
+        }
+
+        self.advance();
+        let mutable = self.check_value("mut");
+        if mutable {
+            self.advance();
+        }
+        let pointee = self.expect_identifier()?;
+        Ok(if mutable {
+            format!("&mut {pointee}")
+        } else {
+            format!("&{pointee}")
+        })
     }
 
     fn expect_string(&mut self) -> Result<String, ParseError> {
@@ -3247,6 +3295,71 @@ mod tests {
         assert_eq!(slot.name, "value");
         assert_eq!(slot.type_annotation, "i32");
         assert!(matches!(function.body[1], AstNode::CallExpression(_)));
+    }
+
+    #[test]
+    fn test_parse_typed_reference_borrows_and_dereference_assignment() {
+        let source = r#"function main(): i32 {
+            slot readable: i32 = 2
+            slot writable: i32 = 0
+            let view: &i32 = &readable
+            let writer: &mut i32 = &mut writable
+            *writer = 5
+            return *view
+        }"#;
+        let mut parser = Parser::new(source);
+        let program = parser.parse().expect("typed references should parse");
+
+        let AstNode::Function(function) = &program.body[0] else {
+            panic!("Expected Function node");
+        };
+        let AstNode::VariableDeclaration(view) = &function.body[2] else {
+            panic!("Expected immutable reference declaration");
+        };
+        assert_eq!(view.type_annotation.as_deref(), Some("&i32"));
+        assert!(matches!(
+            view.value.as_ref(),
+            AstNode::UnaryExpression(unary) if unary.operator == "&"
+        ));
+
+        let AstNode::VariableDeclaration(writer) = &function.body[3] else {
+            panic!("Expected mutable reference declaration");
+        };
+        assert_eq!(writer.type_annotation.as_deref(), Some("&mut i32"));
+        assert!(matches!(
+            writer.value.as_ref(),
+            AstNode::UnaryExpression(unary) if unary.operator == "&mut"
+        ));
+
+        let AstNode::Assignment(assignment) = &function.body[4] else {
+            panic!("Expected dereference assignment");
+        };
+        assert_eq!(assignment.operator, "=");
+        assert!(matches!(
+            assignment.target.as_ref(),
+            AstNode::UnaryExpression(unary) if unary.operator == "*"
+        ));
+    }
+
+    #[test]
+    fn test_reference_tokens_preserve_multiplication_and_logical_and() {
+        for (source, expected_operator) in [
+            ("function main() { return 2 * 3 }", "*"),
+            ("function main() { return left && right }", "&&"),
+        ] {
+            let mut parser = Parser::new(source);
+            let program = parser.parse().expect("legacy binary operator should parse");
+            let AstNode::Function(function) = &program.body[0] else {
+                panic!("Expected Function node");
+            };
+            let AstNode::Return(return_node) = &function.body[0] else {
+                panic!("Expected Return node");
+            };
+            assert!(matches!(
+                return_node.argument.as_deref(),
+                Some(AstNode::BinaryExpression(binary)) if binary.operator == expected_operator
+            ));
+        }
     }
 
     #[test]

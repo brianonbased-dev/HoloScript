@@ -280,7 +280,7 @@ impl<'a> Lexer<'a> {
                     )
                 } else {
                     Token::new(
-                        TokenType::Invalid,
+                        TokenType::Ampersand,
                         "&",
                         start_line,
                         start_column,
@@ -737,6 +737,27 @@ mod tests {
                 TokenType::StarEquals,
                 TokenType::SlashEquals,
                 TokenType::PercentEquals,
+            ]
+        );
+    }
+
+    #[test]
+    fn test_reference_ampersand_stays_distinct_from_logical_and() {
+        let mut lexer = Lexer::new("&value && ready");
+        let tokens: Vec<TokenType> = lexer
+            .tokenize()
+            .into_iter()
+            .map(|token| token.token_type)
+            .filter(|token| token != &TokenType::Eof)
+            .collect();
+
+        assert_eq!(
+            tokens,
+            vec![
+                TokenType::Ampersand,
+                TokenType::Identifier,
+                TokenType::And,
+                TokenType::Identifier,
             ]
         );
     }

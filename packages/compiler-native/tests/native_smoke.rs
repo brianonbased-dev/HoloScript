@@ -24,6 +24,21 @@ const I64_STACK_SLOT_EXIT_FIVE: &str = r#"
         return load(value)
     }
 "#;
+const REFERENCE_EXIT_FIVE: &str = r#"
+    function main(): i32 {
+        slot readable: i32 = 5
+        let view: &i32 = &readable
+        return *view
+    }
+"#;
+const MUTABLE_REFERENCE_EXIT_FIVE: &str = r#"
+    function main(): i32 {
+        slot writable: i32 = 2
+        let writer: &mut i32 = &mut writable
+        *writer = 5
+        return *writer
+    }
+"#;
 
 fn scratch_executable(name: &str) -> std::path::PathBuf {
     let nonce = SystemTime::now()
@@ -126,6 +141,25 @@ fn compiles_naturally_aligned_i64_stack_slots() {
 }
 
 #[test]
+fn compiles_typed_non_escaping_references() {
+    for (name, source) in [
+        ("native-reference", REFERENCE_EXIT_FIVE),
+        ("native-mutable-reference", MUTABLE_REFERENCE_EXIT_FIVE),
+    ] {
+        let executable = scratch_executable(name);
+        let artifact = compile_executable(source, &executable, &NativeCompileOptions::host())
+            .expect("typed references should compile to a native executable");
+
+        assert_eq!(artifact.machine_contract, "hs-machine-v3");
+        let status = Command::new(&artifact.executable)
+            .status()
+            .expect("reference executable should run");
+        assert_eq!(status.code(), Some(5));
+        fs::remove_file(&artifact.executable).expect("remove reference smoke-test executable");
+    }
+}
+
+#[test]
 fn emits_deterministic_objects_for_the_same_source() {
     let options = NativeCompileOptions::host();
 
@@ -133,12 +167,114 @@ fn emits_deterministic_objects_for_the_same_source() {
         "function main() { return 2 * 3 - 1 }",
         TYPED_EXIT_FIVE,
         STACK_SLOT_EXIT_FIVE,
+        REFERENCE_EXIT_FIVE,
+        MUTABLE_REFERENCE_EXIT_FIVE,
     ] {
         let first = compile_object(source, &options).expect("first object should compile");
         let second = compile_object(source, &options).expect("second object should compile");
 
         assert_eq!(first, second);
     }
+}
+
+#[test]
+fn reference_contract_enforces_aliasing_provenance_and_non_escape() {
+    let options = NativeCompileOptions::host();
+
+    let shared_then_mutable = compile_object(
+        r#"function main(): i32 {
+           slot value: i32 = 5
+           let view: &i32 = &value
+           let writer: &mut i32 = &mut value
+           return *view
+         }"#,
+        &options,
+    )
+    .expect_err("a mutable borrow must be exclusive");
+    assert!(
+        shared_then_mutable
+            .to_string()
+            .contains("cannot mutably borrow stack slot `value`"),
+        "unexpected diagnostic: {shared_then_mutable}"
+    );
+
+    let mutable_then_shared = compile_object(
+        r#"function main(): i32 {
+           slot value: i32 = 5
+           let writer: &mut i32 = &mut value
+           let view: &i32 = &value
+           return *writer
+         }"#,
+        &options,
+    )
+    .expect_err("an exclusive borrow must reject aliases");
+    assert!(mutable_then_shared
+        .to_string()
+        .contains("cannot immutably borrow stack slot `value`"));
+
+    let shared_write = compile_object(
+        r#"function main(): i32 {
+           slot value: i32 = 0
+           let view: &i32 = &value
+           *view = 5
+           return *view
+         }"#,
+        &options,
+    )
+    .expect_err("an immutable reference must not write");
+    assert!(shared_write
+        .to_string()
+        .contains("immutable reference `view`"));
+
+    let owner_write_while_borrowed = compile_object(
+        r#"function main(): i32 {
+           slot value: i32 = 0
+           let view: &i32 = &value
+           store(value, 5)
+           return *view
+         }"#,
+        &options,
+    )
+    .expect_err("direct mutation must respect active borrows");
+    assert!(owner_write_while_borrowed
+        .to_string()
+        .contains("active borrow"));
+
+    let ssa_borrow = compile_object(
+        "function main(): i32 { let value: i32 = 5 let view: &i32 = &value return *view }",
+        &options,
+    )
+    .expect_err("only explicit stack slots are addressable");
+    assert!(ssa_borrow
+        .to_string()
+        .contains("requires a declared stack slot"));
+
+    let escaped_return = compile_object(
+        "function main(): i32 { slot value: i32 = 5 let view: &i32 = &value return view }",
+        &options,
+    )
+    .expect_err("references must not escape through returns");
+    assert!(escaped_return.to_string().contains("cannot escape"));
+
+    let reference_return_type = compile_object(
+        "function leak(): &i32 { slot value: i32 = 5 let view: &i32 = &value return view }\
+         function main(): i32 { return 5 }",
+        &options,
+    )
+    .expect_err("v3 references must not appear in function return types");
+    assert!(reference_return_type
+        .to_string()
+        .contains("cannot appear in function returns"));
+
+    let reference_parameter = compile_object(
+        "function read(value: &i32): i32 { return *value }\
+         function main(): i32 { slot value: i32 = 5 return read(&value) }",
+        &options,
+    )
+    .expect_err("v3 references must not cross function ABIs");
+    assert!(reference_parameter
+        .to_string()
+        .contains("cannot appear in function parameters"));
 }
 
 #[test]

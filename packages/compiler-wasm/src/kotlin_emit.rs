@@ -180,6 +180,12 @@ fn check_assignment_mutability_in_body(
                 }
             }
             AstNode::Assignment(a) => {
+                if is_reference_dereference_target(&a.target) {
+                    // Native v3 validates the reference's pointee type, mutability, provenance,
+                    // and borrow state. The shared detailed validator must admit this canonical
+                    // systems-language l-value without treating it as Kotlin-local reassignment.
+                    continue;
+                }
                 let Some(target) = assignment_target_identifier(&a.target) else {
                     return Err(semantic_error(
                         "assignment target in .hs logic must be a local `var` identifier",
@@ -248,6 +254,14 @@ fn assignment_target_identifier(node: &AstNode) -> Option<&str> {
         AstNode::Identifier(id) => Some(&id.name),
         _ => None,
     }
+}
+
+fn is_reference_dereference_target(node: &AstNode) -> bool {
+    matches!(
+        node,
+        AstNode::UnaryExpression(unary)
+            if unary.operator == "*" && matches!(unary.argument.as_ref(), AstNode::Identifier(_))
+    )
 }
 
 fn semantic_error(
@@ -2721,6 +2735,18 @@ function f(x) {
             "{msg}"
         );
         assert!(msg.contains("declare it with `var`"), "{msg}");
+    }
+
+    #[test]
+    fn detailed_semantics_admit_native_reference_dereference_assignment() {
+        let src = r#"function main(): i32 {
+  slot value: i32 = 2
+  let writer: &mut i32 = &mut value
+  *writer = 5
+  return *writer
+}"#;
+        let ast = crate::parse_ast(src).expect("v3 reference syntax should parse");
+        check_semantics(&ast).expect("native reference assignment should pass shared admission");
     }
 
     #[test]

@@ -59,6 +59,7 @@ pub enum TokenType {
     Slash,
     Percent,
     Bang,
+    Ampersand,
     And,
     Or,
     Lt,

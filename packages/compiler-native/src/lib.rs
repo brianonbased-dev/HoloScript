@@ -3,8 +3,10 @@
 //! `hs-machine-v0` proves a single untyped integer entry point. `hs-machine-v1` adds
 //! explicit `i32`/`i64` function signatures, direct HoloScript calls, and immutable
 //! typed local bindings. `hs-machine-v2` adds typed, non-escaping addressable stack
-//! slots with explicit loads and stores. Everything outside the selected contract fails
-//! closed with a native compile diagnostic.
+//! slots with explicit loads and stores. `hs-machine-v3` adds typed references whose
+//! provenance and borrow state remain compiler-owned rather than becoming integer
+//! addresses. Everything outside the selected contract fails closed with a native
+//! compile diagnostic.
 
 use std::collections::HashMap;
 use std::env;
@@ -20,13 +22,14 @@ use cranelift::codegen::settings;
 use cranelift::frontend::{FunctionBuilder, FunctionBuilderContext};
 use cranelift::module::{default_libcall_names, FuncId, Linkage, Module};
 use cranelift::object::{ObjectBuilder, ObjectModule};
-use holoscript_wasm::ast::{Ast, AstNode, CallExpression, FunctionNode};
+use holoscript_wasm::ast::{AssignmentNode, Ast, AstNode, CallExpression, FunctionNode};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
 pub const MACHINE_CONTRACT: &str = "hs-machine-v0";
 pub const TYPED_MACHINE_CONTRACT: &str = "hs-machine-v1";
 pub const MEMORY_MACHINE_CONTRACT: &str = "hs-machine-v2";
+pub const REFERENCE_MACHINE_CONTRACT: &str = "hs-machine-v3";
 
 struct CompiledObject {
     bytes: Vec<u8>,
@@ -105,7 +108,12 @@ fn compile_unit(
         NativeCompileError::new(format!("HoloScript parse failed: {rendered}"))
     })?;
 
-    if has_memory_machine_metadata(&ast) {
+    if has_reference_machine_metadata(&ast) {
+        Ok(CompiledObject {
+            bytes: lower_typed_ast_to_object(&ast, REFERENCE_MACHINE_CONTRACT, true)?,
+            machine_contract: REFERENCE_MACHINE_CONTRACT,
+        })
+    } else if has_memory_machine_metadata(&ast) {
         Ok(CompiledObject {
             bytes: lower_typed_ast_to_object(&ast, MEMORY_MACHINE_CONTRACT, true)?,
             machine_contract: MEMORY_MACHINE_CONTRACT,
@@ -284,6 +292,57 @@ fn has_memory_machine_metadata(ast: &Ast) -> bool {
     })
 }
 
+fn has_reference_machine_metadata(ast: &Ast) -> bool {
+    ast.body.iter().any(|node| {
+        let AstNode::Function(function) = node else {
+            return false;
+        };
+        function
+            .return_type
+            .as_deref()
+            .is_some_and(|annotation| annotation.starts_with('&'))
+            || function
+                .param_types
+                .iter()
+                .flatten()
+                .any(|annotation| annotation.starts_with('&'))
+            || function.body.iter().any(node_uses_reference_syntax)
+    })
+}
+
+fn node_uses_reference_syntax(node: &AstNode) -> bool {
+    match node {
+        AstNode::VariableDeclaration(local) => {
+            local
+                .type_annotation
+                .as_deref()
+                .is_some_and(|annotation| annotation.starts_with('&'))
+                || node_uses_reference_syntax(&local.value)
+        }
+        AstNode::StackSlotDeclaration(slot) => node_uses_reference_syntax(&slot.value),
+        AstNode::UnaryExpression(unary) => {
+            matches!(unary.operator.as_str(), "&" | "&mut" | "*")
+                || node_uses_reference_syntax(&unary.argument)
+        }
+        AstNode::BinaryExpression(binary) => {
+            node_uses_reference_syntax(&binary.left) || node_uses_reference_syntax(&binary.right)
+        }
+        AstNode::Assignment(assignment) => {
+            node_uses_reference_syntax(&assignment.target)
+                || node_uses_reference_syntax(&assignment.value)
+        }
+        AstNode::CallExpression(call) => {
+            node_uses_reference_syntax(&call.callee)
+                || call.arguments.iter().any(node_uses_reference_syntax)
+        }
+        AstNode::Return(return_node) => return_node
+            .argument
+            .as_deref()
+            .is_some_and(node_uses_reference_syntax),
+        _ => false,
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum MachineType {
     I32,
@@ -357,6 +416,51 @@ struct TypedValue {
 struct TypedStackSlot {
     slot: StackSlot,
     machine_type: MachineType,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct ReferenceType {
+    pointee: MachineType,
+    mutable: bool,
+}
+
+impl ReferenceType {
+    fn parse(
+        annotation: &str,
+        context: &str,
+        machine_contract: &str,
+    ) -> Result<Option<Self>, NativeCompileError> {
+        let Some(rest) = annotation.strip_prefix('&') else {
+            return Ok(None);
+        };
+        let (mutable, pointee) = if let Some(pointee) = rest.strip_prefix("mut ") {
+            (true, pointee)
+        } else {
+            (false, rest)
+        };
+        if pointee.is_empty() {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} {context} has an incomplete reference type `{annotation}`"
+            )));
+        }
+        Ok(Some(Self {
+            pointee: MachineType::parse(pointee, context, machine_contract)?,
+            mutable,
+        }))
+    }
+}
+
+#[derive(Debug, Clone)]
+struct TypedReference {
+    slot_name: String,
+    pointee: MachineType,
+    mutable: bool,
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+struct BorrowState {
+    shared: usize,
+    exclusive: bool,
 }
 
 fn lower_typed_ast_to_object(
@@ -506,8 +610,10 @@ fn collect_typed_function_specs<'a>(
                 "{machine_contract} accepts only top-level function declarations"
             )));
         };
-        if machine_contract == MEMORY_MACHINE_CONTRACT
-            && matches!(function.name.as_str(), "load" | "store")
+        if matches!(
+            machine_contract,
+            MEMORY_MACHINE_CONTRACT | REFERENCE_MACHINE_CONTRACT
+        ) && matches!(function.name.as_str(), "load" | "store")
         {
             return Err(NativeCompileError::new(format!(
                 "{machine_contract} reserves function name `{}` for explicit memory access",
@@ -539,6 +645,12 @@ fn collect_typed_function_specs<'a>(
                         function.name
                     ))
                 })?;
+            if machine_contract == REFERENCE_MACHINE_CONTRACT && type_name.starts_with('&') {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} references cannot appear in function parameters; `{param_name}` in `{}` would escape its declaring function",
+                    function.name
+                )));
+            }
             params.push(MachineType::parse(
                 type_name,
                 &format!("parameter `{param_name}` in function `{}`", function.name),
@@ -551,6 +663,12 @@ fn collect_typed_function_specs<'a>(
                 function.name
             ))
         })?;
+        if machine_contract == REFERENCE_MACHINE_CONTRACT && return_name.starts_with('&') {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} references cannot appear in function returns; `{}` would expose an address-bearing value",
+                function.name
+            )));
+        }
         let result = MachineType::parse(
             return_name,
             &format!("return type of function `{}`", function.name),
@@ -603,6 +721,8 @@ fn lower_typed_body(
 ) -> Result<(), NativeCompileError> {
     let mut returned = false;
     let mut stack_slots = HashMap::new();
+    let mut references = HashMap::new();
+    let mut borrow_states = HashMap::new();
     for (index, statement) in spec.node.body.iter().enumerate() {
         if returned {
             return Err(NativeCompileError::new(format!(
@@ -624,12 +744,41 @@ fn lower_typed_body(
                         local.name
                     ))
                 })?;
-                let machine_type = MachineType::parse(
-                    type_name,
-                    &format!("local `{}` in function `{}`", local.name, spec.node.name),
-                    machine_contract,
-                )?;
-                if locals.contains_key(&local.name) || stack_slots.contains_key(&local.name) {
+                let type_context =
+                    format!("local `{}` in function `{}`", local.name, spec.node.name);
+                if let Some(reference_type) =
+                    ReferenceType::parse(type_name, &type_context, machine_contract)?
+                {
+                    if machine_contract != REFERENCE_MACHINE_CONTRACT {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} does not enable typed references"
+                        )));
+                    }
+                    if locals.contains_key(&local.name)
+                        || stack_slots.contains_key(&local.name)
+                        || references.contains_key(&local.name)
+                    {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} function `{}` redeclares binding `{}`",
+                            spec.node.name, local.name
+                        )));
+                    }
+                    let reference = lower_reference_initializer(
+                        &local.name,
+                        reference_type,
+                        &local.value,
+                        &stack_slots,
+                        &mut borrow_states,
+                        machine_contract,
+                    )?;
+                    references.insert(local.name.clone(), reference);
+                    continue;
+                }
+                let machine_type = MachineType::parse(type_name, &type_context, machine_contract)?;
+                if locals.contains_key(&local.name)
+                    || stack_slots.contains_key(&local.name)
+                    || references.contains_key(&local.name)
+                {
                     return Err(NativeCompileError::new(format!(
                         "{machine_contract} function `{}` redeclares binding `{}`",
                         spec.node.name, local.name
@@ -641,6 +790,8 @@ fn lower_typed_body(
                     functions,
                     locals,
                     &stack_slots,
+                    &references,
+                    &borrow_states,
                     &local.value,
                     machine_type,
                     &format!("initializer for `{}`", local.name),
@@ -655,7 +806,10 @@ fn lower_typed_body(
                         "{machine_contract} does not enable addressable stack slots"
                     )));
                 }
-                if locals.contains_key(&slot.name) || stack_slots.contains_key(&slot.name) {
+                if locals.contains_key(&slot.name)
+                    || stack_slots.contains_key(&slot.name)
+                    || references.contains_key(&slot.name)
+                {
                     return Err(NativeCompileError::new(format!(
                         "{machine_contract} function `{}` redeclares binding `{}`",
                         spec.node.name, slot.name
@@ -675,6 +829,8 @@ fn lower_typed_body(
                     functions,
                     locals,
                     &stack_slots,
+                    &references,
+                    &borrow_states,
                     &slot.value,
                     machine_type,
                     &format!("initializer for stack slot `{}`", slot.name),
@@ -700,9 +856,9 @@ fn lower_typed_body(
             AstNode::CallExpression(call)
                 if memory_enabled
                     && matches!(
-                    call.callee.as_ref(),
-                    AstNode::Identifier(callee) if callee.name == "store"
-                ) =>
+                        call.callee.as_ref(),
+                        AstNode::Identifier(callee) if callee.name == "store"
+                    ) =>
             {
                 lower_typed_store(
                     builder,
@@ -710,7 +866,22 @@ fn lower_typed_body(
                     functions,
                     locals,
                     &stack_slots,
+                    &references,
+                    &borrow_states,
                     call,
+                    machine_contract,
+                )?;
+            }
+            AstNode::Assignment(assignment) if machine_contract == REFERENCE_MACHINE_CONTRACT => {
+                lower_reference_assignment(
+                    builder,
+                    module,
+                    functions,
+                    locals,
+                    &stack_slots,
+                    &references,
+                    &borrow_states,
+                    assignment,
                     machine_contract,
                 )?;
             }
@@ -734,6 +905,8 @@ fn lower_typed_body(
                     functions,
                     locals,
                     &stack_slots,
+                    &references,
+                    &borrow_states,
                     argument,
                     spec.result,
                     &format!("return from `{}`", spec.node.name),
@@ -766,6 +939,193 @@ fn lower_typed_body(
     Ok(())
 }
 
+fn lower_reference_initializer(
+    reference_name: &str,
+    reference_type: ReferenceType,
+    initializer: &AstNode,
+    stack_slots: &HashMap<String, TypedStackSlot>,
+    borrow_states: &mut HashMap<String, BorrowState>,
+    machine_contract: &str,
+) -> Result<TypedReference, NativeCompileError> {
+    let AstNode::UnaryExpression(borrow) = initializer else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} reference `{reference_name}` must be initialized directly with `&slot` or `&mut slot`"
+        )));
+    };
+    let expected_operator = if reference_type.mutable { "&mut" } else { "&" };
+    let expected_annotation = if reference_type.mutable {
+        format!("&mut {}", reference_type.pointee.name())
+    } else {
+        format!("&{}", reference_type.pointee.name())
+    };
+    if borrow.operator != expected_operator {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} reference `{reference_name}` has type `{expected_annotation}`, but its initializer uses `{}`",
+            borrow.operator,
+        )));
+    }
+    let AstNode::Identifier(identifier) = borrow.argument.as_ref() else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} reference `{reference_name}` requires a declared stack slot as its provenance root"
+        )));
+    };
+    let stack_slot = stack_slots.get(&identifier.name).copied().ok_or_else(|| {
+        NativeCompileError::new(format!(
+            "{machine_contract} reference `{reference_name}` requires a declared stack slot; `{}` is not addressable",
+            identifier.name
+        ))
+    })?;
+    if stack_slot.machine_type != reference_type.pointee {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} reference `{reference_name}` expects `{}`, but stack slot `{}` stores `{}`",
+            reference_type.pointee.name(),
+            identifier.name,
+            stack_slot.machine_type.name()
+        )));
+    }
+
+    let state = borrow_states.entry(identifier.name.clone()).or_default();
+    if reference_type.mutable {
+        if state.exclusive || state.shared > 0 {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} cannot mutably borrow stack slot `{}` because an active borrow already exists",
+                identifier.name
+            )));
+        }
+        state.exclusive = true;
+    } else {
+        if state.exclusive {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} cannot immutably borrow stack slot `{}` because an exclusive borrow is active",
+                identifier.name
+            )));
+        }
+        state.shared += 1;
+    }
+
+    Ok(TypedReference {
+        slot_name: identifier.name.clone(),
+        pointee: reference_type.pointee,
+        mutable: reference_type.mutable,
+    })
+}
+
+fn lower_reference_dereference(
+    builder: &mut FunctionBuilder<'_>,
+    stack_slots: &HashMap<String, TypedStackSlot>,
+    references: &HashMap<String, TypedReference>,
+    argument: &AstNode,
+    expected: MachineType,
+    context: &str,
+    machine_contract: &str,
+) -> Result<TypedValue, NativeCompileError> {
+    let AstNode::Identifier(identifier) = argument else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} dereference requires a named local reference"
+        )));
+    };
+    let reference = references.get(&identifier.name).ok_or_else(|| {
+        NativeCompileError::new(format!(
+            "{machine_contract} `{}` is not a typed local reference",
+            identifier.name
+        ))
+    })?;
+    if reference.pointee != expected {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} {context} expects `{}`, but reference `{}` points to `{}`; implicit coercions are forbidden",
+            expected.name(),
+            identifier.name,
+            reference.pointee.name()
+        )));
+    }
+    let stack_slot = stack_slots
+        .get(&reference.slot_name)
+        .copied()
+        .ok_or_else(|| {
+            NativeCompileError::new(format!(
+                "{machine_contract} reference `{}` lost its stack-slot provenance",
+                identifier.name
+            ))
+        })?;
+    Ok(TypedValue {
+        value: builder
+            .ins()
+            .stack_load(reference.pointee.ir_type(), stack_slot.slot, 0),
+        machine_type: reference.pointee,
+    })
+}
+
+#[allow(clippy::too_many_arguments)]
+fn lower_reference_assignment(
+    builder: &mut FunctionBuilder<'_>,
+    module: &mut ObjectModule,
+    functions: &HashMap<String, TypedFunctionAbi>,
+    locals: &HashMap<String, TypedValue>,
+    stack_slots: &HashMap<String, TypedStackSlot>,
+    references: &HashMap<String, TypedReference>,
+    borrow_states: &HashMap<String, BorrowState>,
+    assignment: &AssignmentNode,
+    machine_contract: &str,
+) -> Result<(), NativeCompileError> {
+    if assignment.operator != "=" {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} dereference assignment supports only `=`"
+        )));
+    }
+    let AstNode::UnaryExpression(target) = assignment.target.as_ref() else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} assignment target must be a mutable dereference"
+        )));
+    };
+    if target.operator != "*" {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} assignment target must be a mutable dereference"
+        )));
+    }
+    let AstNode::Identifier(identifier) = target.argument.as_ref() else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} dereference assignment requires a named local reference"
+        )));
+    };
+    let reference = references.get(&identifier.name).ok_or_else(|| {
+        NativeCompileError::new(format!(
+            "{machine_contract} `{}` is not a typed local reference",
+            identifier.name
+        ))
+    })?;
+    if !reference.mutable {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} cannot write through immutable reference `{}`",
+            identifier.name
+        )));
+    }
+    let stack_slot = stack_slots
+        .get(&reference.slot_name)
+        .copied()
+        .ok_or_else(|| {
+            NativeCompileError::new(format!(
+                "{machine_contract} reference `{}` lost its stack-slot provenance",
+                identifier.name
+            ))
+        })?;
+    let value = lower_typed_expression(
+        builder,
+        module,
+        functions,
+        locals,
+        stack_slots,
+        references,
+        borrow_states,
+        &assignment.value,
+        reference.pointee,
+        &format!("assignment through reference `{}`", identifier.name),
+        machine_contract,
+        true,
+    )?;
+    builder.ins().stack_store(value.value, stack_slot.slot, 0);
+    Ok(())
+}
+
 #[allow(clippy::too_many_arguments)]
 fn lower_typed_expression(
     builder: &mut FunctionBuilder<'_>,
@@ -773,6 +1133,8 @@ fn lower_typed_expression(
     functions: &HashMap<String, TypedFunctionAbi>,
     locals: &HashMap<String, TypedValue>,
     stack_slots: &HashMap<String, TypedStackSlot>,
+    references: &HashMap<String, TypedReference>,
+    borrow_states: &HashMap<String, BorrowState>,
     node: &AstNode,
     expected: MachineType,
     context: &str,
@@ -801,6 +1163,12 @@ fn lower_typed_expression(
             }
         }
         AstNode::Identifier(identifier) => {
+            if references.contains_key(&identifier.name) {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} reference `{}` cannot escape as a scalar value; dereference it with `*{}`",
+                    identifier.name, identifier.name
+                )));
+            }
             if stack_slots.contains_key(&identifier.name) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} stack slot `{}` is not a scalar value; use `load({})`",
@@ -822,6 +1190,8 @@ fn lower_typed_expression(
                 functions,
                 locals,
                 stack_slots,
+                references,
+                borrow_states,
                 &unary.argument,
                 expected,
                 context,
@@ -833,6 +1203,21 @@ fn lower_typed_expression(
                 machine_type: expected,
             }
         }
+        AstNode::UnaryExpression(unary) if unary.operator == "*" => lower_reference_dereference(
+            builder,
+            stack_slots,
+            references,
+            &unary.argument,
+            expected,
+            context,
+            machine_contract,
+        )?,
+        AstNode::UnaryExpression(unary) if matches!(unary.operator.as_str(), "&" | "&mut") => {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} address-of expression `{}` is allowed only as a typed reference-local initializer",
+                unary.operator
+            )));
+        }
         AstNode::BinaryExpression(binary) => {
             let left = lower_typed_expression(
                 builder,
@@ -840,6 +1225,8 @@ fn lower_typed_expression(
                 functions,
                 locals,
                 stack_slots,
+                references,
+                borrow_states,
                 &binary.left,
                 expected,
                 context,
@@ -852,6 +1239,8 @@ fn lower_typed_expression(
                 functions,
                 locals,
                 stack_slots,
+                references,
+                borrow_states,
                 &binary.right,
                 expected,
                 context,
@@ -883,6 +1272,7 @@ fn lower_typed_expression(
                 return lower_typed_load(
                     builder,
                     stack_slots,
+                    borrow_states,
                     call,
                     expected,
                     context,
@@ -930,6 +1320,8 @@ fn lower_typed_expression(
                         functions,
                         locals,
                         stack_slots,
+                        references,
+                        borrow_states,
                         argument,
                         machine_type,
                         &format!("argument {} to `{}`", index + 1, callee.name),
@@ -959,6 +1351,7 @@ fn lower_typed_expression(
 fn lower_typed_load(
     builder: &mut FunctionBuilder<'_>,
     stack_slots: &HashMap<String, TypedStackSlot>,
+    borrow_states: &HashMap<String, BorrowState>,
     call: &CallExpression,
     expected: MachineType,
     context: &str,
@@ -981,6 +1374,15 @@ fn lower_typed_load(
             identifier.name
         ))
     })?;
+    if borrow_states
+        .get(&identifier.name)
+        .is_some_and(|state| state.exclusive)
+    {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} cannot directly load stack slot `{}` while an exclusive borrow is active",
+            identifier.name
+        )));
+    }
     if stack_slot.machine_type != expected {
         return Err(NativeCompileError::new(format!(
             "{machine_contract} {context} expects `{}`, but stack slot `{}` stores `{}`; implicit coercions are forbidden",
@@ -997,12 +1399,15 @@ fn lower_typed_load(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 fn lower_typed_store(
     builder: &mut FunctionBuilder<'_>,
     module: &mut ObjectModule,
     functions: &HashMap<String, TypedFunctionAbi>,
     locals: &HashMap<String, TypedValue>,
     stack_slots: &HashMap<String, TypedStackSlot>,
+    references: &HashMap<String, TypedReference>,
+    borrow_states: &HashMap<String, BorrowState>,
     call: &CallExpression,
     machine_contract: &str,
 ) -> Result<(), NativeCompileError> {
@@ -1023,12 +1428,23 @@ fn lower_typed_store(
             identifier.name
         ))
     })?;
+    if borrow_states
+        .get(&identifier.name)
+        .is_some_and(|state| state.shared > 0 || state.exclusive)
+    {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} cannot store to stack slot `{}` while an active borrow exists",
+            identifier.name
+        )));
+    }
     let value = lower_typed_expression(
         builder,
         module,
         functions,
         locals,
         stack_slots,
+        references,
+        borrow_states,
         &call.arguments[1],
         stack_slot.machine_type,
         &format!("store to stack slot `{}`", identifier.name),

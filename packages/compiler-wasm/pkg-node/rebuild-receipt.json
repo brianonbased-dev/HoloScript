@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-07-17T06:07:00Z",
+  "generatedAt": "2026-07-17T07:24:53Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "d24472c411aced47e7ae6b40bb4362b0bb665000+working-tree-hs010",
+  "sourceCommit": "b9dd8c3c33401f6ed60fb4452418369f3e79913a+working-tree-hs-machine-v3",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
     "$env:Path = 'C:\\Users\\josep\\.cargo\\bin;' + $env:Path",
@@ -16,8 +16,8 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 280055,
-    "wasmSha256": "9758d214ec857be13eb0727886fb5fc59c65976909e835115a927106acf447a4",
-    "note": "Rebuilt the Node WASM artifact from the working-tree Rust parser containing the canonical HS010 lexical firewall. The source changes are committed with this artifact so the working-tree suffix resolves to that commit."
+    "wasmBytes": 281189,
+    "wasmSha256": "ec2e931d1770306ae10d9ac239107326cf2eb9e5aae5d1aaf814b278821b7f5e",
+    "note": "Rebuilt the Node WASM artifact from the working-tree Rust parser containing hs-machine-v3 reference syntax and the canonical HS010 lexical firewall. The source changes are committed with this artifact so the working-tree suffix resolves to that commit."
   }
 }
