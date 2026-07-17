@@ -26,6 +26,111 @@
   note = {DRIFT-FIXED-2026-05-10: previous metadata used arXiv:2104.10309 for Graph4Code. Live arXiv source is arXiv:2002.09440, "A Toolkit for Generating Code Knowledge Graphs".}
 }
 
+% -- Paper 6 quaternion interpolation and reproducible-math prior art (2026-07-17) --
+@article{shoemake1985quaternion,
+  author  = {Shoemake, Ken},
+  title   = {Animating Rotation with Quaternion Curves},
+  journal = {ACM SIGGRAPH Computer Graphics},
+  year    = {1985},
+  volume  = {19},
+  number  = {3},
+  pages   = {245--254},
+  doi     = {10.1145/325165.325242},
+  url     = {https://doi.org/10.1145/325165.325242},
+  note    = {Foundational quaternion-curve and spherical interpolation reference.}
+}
+
+@misc{budge2007fastslerp,
+  author       = {Budge, William},
+  title        = {Fast Approximation to the Spherical Linear Interpolation Function},
+  year         = {2007},
+  howpublished = {U.S. Patent 7,219,114 B2},
+  url          = {https://patents.google.com/patent/US7219114B2/en},
+  note         = {Filed 2002-04-10; describes bivariate minimax/Chebyshev polynomial approximations of SLERP scale factors for animation.}
+}
+
+@inproceedings{arteaga2014bitreproducible,
+  author    = {Arteaga, Andrea and Fuhrer, Oliver and Hoefler, Torsten},
+  title     = {Designing Bit-Reproducible Portable High-Performance Applications},
+  booktitle = {2014 IEEE 28th International Parallel and Distributed Processing Symposium},
+  year      = {2014},
+  pages     = {1235--1244},
+  publisher = {IEEE},
+  doi       = {10.1109/IPDPS.2014.127},
+  url       = {https://doi.org/10.1109/IPDPS.2014.127}
+}
+
+@inproceedings{lim2021rlibm32,
+  author    = {Lim, Jay P. and Nagarakatte, Santosh},
+  title     = {High Performance Correctly Rounded Math Libraries for 32-bit Floating Point Representations},
+  booktitle = {Proceedings of the 42nd ACM SIGPLAN International Conference on Programming Language Design and Implementation},
+  year      = {2021},
+  pages     = {359--374},
+  publisher = {Association for Computing Machinery},
+  doi       = {10.1145/3453483.3454049},
+  url       = {https://doi.org/10.1145/3453483.3454049}
+}
+
+@article{volder1959cordic,
+  author  = {Volder, Jack E.},
+  title   = {The CORDIC Trigonometric Computing Technique},
+  journal = {IRE Transactions on Electronic Computers},
+  year    = {1959},
+  volume  = {EC-8},
+  number  = {3},
+  pages   = {330--334},
+  doi     = {10.1109/TEC.1959.5222693},
+  url     = {https://doi.org/10.1109/TEC.1959.5222693}
+}
+
+@misc{wgsl2026spec,
+  author       = {{W3C GPU for the Web Working Group}},
+  title        = {WebGPU Shading Language},
+  year         = {2026},
+  howpublished = {W3C Candidate Recommendation Draft},
+  url          = {https://www.w3.org/TR/WGSL/},
+  note         = {Current specification consulted 2026-07-17. Sections 15.7.2, 15.7.4, and 15.7.5 leave floating-point rounding direction unspecified and permit flush-to-zero, reassociation, and fusion.}
+}
+
+@online{gaffer-deterministic-lockstep,
+  author    = {Glenn Fiedler},
+  title     = {Deterministic Lockstep},
+  year      = {2014},
+  url       = {https://gafferongames.com/post/deterministic_lockstep/},
+  note      = {Gaffer On Games}
+}
+
+@misc{nvidia-rfa-gtc2024,
+  author       = {{NVIDIA}},
+  title        = {{Restoring the Scientific Method to HPC: High Performance Reproducible Parallel Reductions}},
+  year         = {2024},
+  howpublished = {NVIDIA GTC 2024 session; basis for the Reproducible Floating-point Accumulator (RFA) in the CUDA Core Compute Libraries (CCCL/CUB)},
+  note         = {RFA pins reduction order via fixed exponent-bin accumulation so a parallel GPU reduction is bitwise reproducible and architecture-independent. Cited in Paper 6 to disclaim novelty in FP-reduction-order pinning as a technique. Surface checked 2026-06-13.},
+  url          = {https://www.nvidia.com/en-us/on-demand/session/gtc24-s62401/}
+}
+
+@misc{thinkingmachines-nondeterminism2025,
+  author       = {He, Horace and {Thinking Machines Lab}},
+  title        = {{Defeating Nondeterminism in LLM Inference}},
+  year         = {2025},
+  month        = sep,
+  howpublished = {Thinking Machines Lab, Connectionism blog},
+  url          = {https://thinkingmachines.ai/blog/defeating-nondeterminism-in-llm-inference/},
+  note         = {Blog post (not peer-reviewed), published 2025-09-10; batch-invariant kernels use fixed reduction order to make inference outputs independent of server load.}
+}
+
+@misc{deterministic-tp-inference2025,
+  author       = {Zhang, Ziyang and Ding, Xinheng and Yuan, Jiayi and Liu, Rixin and Mao, Huizi and Xing, Jiarong and Liu, Zirui},
+  title        = {{Deterministic Inference across Tensor Parallel Sizes That Eliminates Training-Inference Mismatch}},
+  year         = {2025},
+  month        = nov,
+  eprint       = {2511.17826},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.LG},
+  url          = {https://arxiv.org/abs/2511.17826},
+  note         = {Tree-based invariant kernels give bit-identical inference outputs across tensor-parallel sizes.}
+}
+
 @article{aberman-skin2020,
   title={Skeleton-aware networks for deep motion retargeting},
   author={Aberman, Kfir and others},
