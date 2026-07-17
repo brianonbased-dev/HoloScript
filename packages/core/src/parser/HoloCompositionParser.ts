@@ -3186,11 +3186,25 @@ export class HoloCompositionParser {
    */
   private parseEnumTypeSpec(): string {
     this.advance(); // consume 'enum'
-    let spec = 'enum';
-    if (this.check('LPAREN')) {
-      spec += this.parseParenthesizedLiteral();
+    if (!this.check('LPAREN')) return 'enum';
+    // Walk the parenthesized group collecting the quoted members explicitly and
+    // re-emit a canonical `enum("a" | "b" | "c")` string. parseParenthesizedLiteral
+    // concatenates tokens and drops the `|` separators, mangling the member list into
+    // `enum("a""b""c")` — unrecoverable by downstream trait props-schema derivation
+    // (the enum enforcer needs the individual members). Collecting the STRING tokens
+    // keeps every member faithfully readable while the return type stays a string, so
+    // no existing consumer of the props type-spec changes shape.
+    const values: string[] = [];
+    let depth = 0;
+    while (!this.isAtEnd()) {
+      const token = this.current();
+      if (token.type === 'LPAREN') depth++;
+      if (token.type === 'RPAREN') depth--;
+      if (token.type === 'STRING') values.push(token.value);
+      this.advance();
+      if (depth === 0) break;
     }
-    return spec;
+    return `enum(${values.map((v) => `"${v}"`).join(' | ')})`;
   }
 
   private parseFunctionValue(): HoloValue {

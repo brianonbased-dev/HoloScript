@@ -90,6 +90,7 @@
     "eval:brain-intent:fleet": "node scripts/evaluate-brain-intent-loop.mjs --case research/brain-intent-eval/cases/fleet-trust-auditor-gate.case.json --brain compositions/fleet-trust-auditor-brain.hsplus --runtime-gate --strict",
     "eval:brain-intent:test": "node scripts/__tests__/evaluate-brain-intent-loop.test.mjs",
     "benchmark": "tsx benchmarks/tools/benchmark-runner.ts",
+    "gen:trait-schemas": "tsx scripts/gen-trait-schemas.ts",
     "ops:dashboard": "tsx docs/ops/admin-cli.ts",
     "webgpu:determinism": "node scripts/run-webgpu-determinism.mjs --production-evidence",
     "webgpu:determinism:mock": "node scripts/run-webgpu-determinism.mjs --mock",

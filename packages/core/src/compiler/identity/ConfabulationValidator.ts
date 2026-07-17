@@ -23,6 +23,10 @@
 
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 import type { Extensible } from '../../types/utility-types';
+// Schemas derived from the .holo trait tree (opt-in via config.includeDerivedSchemas).
+// The generated module imports only `type { TraitSchema }` from here, so the cycle is
+// type-only and erased at runtime. Regenerate: pnpm gen:trait-schemas.
+import { DERIVED_TRAIT_SCHEMAS } from './derived-trait-schemas.generated';
 
 // =============================================================================
 // TYPES
@@ -214,6 +218,17 @@ export interface ConfabulationValidatorConfig {
 
   /** Strict mode: treat warnings as errors (default: false) */
   strict?: boolean;
+
+  /**
+   * Register the schemas derived from the `.holo` trait tree
+   * (`DERIVED_TRAIT_SCHEMAS`, ~1000 traits) in addition to the hand-written
+   * built-ins. Off by default so existing callers keep the 63-schema behavior;
+   * the shared prop-schema fold point opts in to enforce enum/type across every
+   * trait authors actually declared. Hand-written built-ins win on name conflict
+   * (they carry richer range/default info the `.holo` grammar does not declare).
+   * Default: false.
+   */
+  includeDerivedSchemas?: boolean;
 }
 
 // =============================================================================
@@ -1418,10 +1433,19 @@ export class ConfabulationValidator {
       validateRanges: config.validateRanges ?? true,
       customSchemas: config.customSchemas ?? [],
       strict: config.strict ?? false,
+      includeDerivedSchemas: config.includeDerivedSchemas ?? false,
     };
 
-    // Build the schema registry
+    // Build the schema registry. Precedence (later wins): derived-from-.holo <
+    // hand-written built-ins < caller custom schemas. Derived schemas (opt-in)
+    // close the ~770-trait coverage gap; built-ins keep priority because they
+    // carry range/default info the .holo grammar does not declare.
     this.schemaRegistry = new Map();
+    if (this.config.includeDerivedSchemas) {
+      for (const schema of DERIVED_TRAIT_SCHEMAS) {
+        this.schemaRegistry.set(schema.name, schema);
+      }
+    }
     for (const schema of BUILT_IN_TRAIT_SCHEMAS) {
       this.schemaRegistry.set(schema.name, schema);
     }

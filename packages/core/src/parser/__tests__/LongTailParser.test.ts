@@ -324,4 +324,30 @@ describe('A-009 long-tail parser drift', () => {
     expect(result.errors).toHaveLength(0);
     expect(result.ast).toBeTruthy();
   });
+
+  // Structured enum lowering (trait props-schema enforcer, prereq step 1): the parser
+  // must emit a canonical `enum("a" | "b" | "c")` string whose members are recoverable.
+  // Regression against the prior token-concatenated form `enum("a""b""c")` that dropped
+  // the `|` separators and made the member list unrecoverable by schema derivation.
+  it('lowers enum() type-spec to a faithful, member-recoverable string', () => {
+    const result = parseHolo(`
+      @trait {
+        name: "@abtest",
+        category: "analytics",
+        props: {
+          default_strategy: enum("equal" | "weighted" | "multi_armed_bandit") = "equal"
+        }
+      }
+    `);
+
+    expect(result.errors).toHaveLength(0);
+    const traits = (
+      result.ast as unknown as {
+        traits?: Array<{ config?: { props?: Record<string, unknown> } }>;
+      }
+    ).traits;
+    expect(traits?.[0]?.config?.props?.default_strategy).toBe(
+      'enum("equal" | "weighted" | "multi_armed_bandit")'
+    );
+  });
 });
