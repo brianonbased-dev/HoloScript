@@ -91,6 +91,7 @@
     "eval:brain-intent:test": "node scripts/__tests__/evaluate-brain-intent-loop.test.mjs",
     "benchmark": "tsx benchmarks/tools/benchmark-runner.ts",
     "gen:trait-schemas": "tsx scripts/gen-trait-schemas.ts",
+    "audit:trait-prop-validity": "tsx scripts/holo-ci/audit-trait-prop-validity.ts",
     "ops:dashboard": "tsx docs/ops/admin-cli.ts",
     "webgpu:determinism": "node scripts/run-webgpu-determinism.mjs --production-evidence",
     "webgpu:determinism:mock": "node scripts/run-webgpu-determinism.mjs --mock",
