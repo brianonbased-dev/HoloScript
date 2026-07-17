@@ -22,6 +22,7 @@ import {
   type MixamoBoneAnimation,
   type MixamoKeyframe,
 } from '../MixamoRetargeter';
+import type { ClipSampleValue, QuaternionValue } from '../AnimationClip';
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -48,6 +49,18 @@ function makeSource(boneAnims: MixamoBoneAnimation[]): MixamoAnimationSource {
     duration,
     boneAnimations: boneAnims,
   };
+}
+
+function asQuaternion(value: ClipSampleValue | number | number[] | undefined): QuaternionValue {
+  expect(Array.isArray(value)).toBe(true);
+  if (!Array.isArray(value) || value.length !== 4) {
+    throw new Error('expected a quaternion value');
+  }
+  return value as QuaternionValue;
+}
+
+function quaternionNorm(value: QuaternionValue): number {
+  return Math.hypot(value[0], value[1], value[2], value[3]);
 }
 
 const WALK_HIPS_ANIMATION: MixamoBoneAnimation = {
@@ -89,7 +102,7 @@ describe('VRM retargeting', () => {
     expect(clip.getDuration()).toBe(1.0);
 
     const tracks = clip.getTracks();
-    expect(tracks.length).toBe(7); // pos x,y,z + rot x,y,z,w
+    expect(tracks.length).toBe(4); // pos x,y,z + one quaternion rotation track
 
     const posX = tracks.find((t) => t.id === 'hips-pos-x');
     expect(posX).toBeDefined();
@@ -99,12 +112,16 @@ describe('VRM retargeting', () => {
     expect(posX!.keyframes.length).toBe(3);
     expect(posX!.keyframes[1].value).toBeCloseTo(0.05, 5);
 
-    const rotW = tracks.find((t) => t.id === 'hips-rot-w');
-    expect(rotW).toBeDefined();
-    expect(rotW!.targetPath).toBe('hips');
-    expect(rotW!.property).toBe('rotation');
-    expect(rotW!.component).toBe('w');
-    expect(rotW!.keyframes[0].value).toBeCloseTo(1, 5);
+    const rotation = tracks.find((t) => t.id === 'hips-rot');
+    expect(rotation).toBeDefined();
+    expect(rotation!.targetPath).toBe('hips');
+    expect(rotation!.property).toBe('rotation');
+    expect(rotation!.component).toBeUndefined();
+    expect(rotation!.interpolation).toBe('nlerp');
+    expect(asQuaternion(rotation!.keyframes[0].value)).toEqual([0, 0, 0, 1]);
+    for (const keyframe of rotation!.keyframes) {
+      expect(quaternionNorm(asQuaternion(keyframe.value))).toBeCloseTo(1, 12);
+    }
   });
 
   it('retargets multiple bones', () => {
@@ -116,7 +133,7 @@ describe('VRM retargeting', () => {
     const clip = retargetToVRM(source);
 
     const tracks = clip.getTracks();
-    expect(tracks.length).toBe(21); // 3 bones × 7 tracks
+    expect(tracks.length).toBe(12); // 3 bones × (3 scalar position + 1 quaternion rotation)
 
     // Left leg
     const leftLegPosY = tracks.find((t) => t.id === 'leftUpperLeg-pos-y');
@@ -124,9 +141,9 @@ describe('VRM retargeting', () => {
     expect(leftLegPosY!.keyframes[1].value).toBeCloseTo(-0.1, 5);
 
     // Right leg
-    const rightLegRotX = tracks.find((t) => t.id === 'rightUpperLeg-rot-x');
-    expect(rightLegRotX).toBeDefined();
-    expect(rightLegRotX!.keyframes[1].value).toBeCloseTo(-0.1, 5);
+    const rightLegRotation = tracks.find((t) => t.id === 'rightUpperLeg-rot');
+    expect(rightLegRotation).toBeDefined();
+    expect(asQuaternion(rightLegRotation!.keyframes[1].value)[0]).toBeCloseTo(-0.1, 5);
   });
 });
 
@@ -222,8 +239,8 @@ describe('retarget overrides', () => {
     const clip = retargeter.retarget(source, config);
 
     // Identity rotation at t=0 should be offset by the global offset
-    const rotW = clip.getTracks().find((t) => t.id === 'hips-rot-w')!;
-    expect(rotW.keyframes[0].value).toBeCloseTo(Math.cos(Math.PI / 4), 4);
+    const rotation = clip.getTracks().find((t) => t.id === 'hips-rot')!;
+    expect(asQuaternion(rotation.keyframes[0].value)[3]).toBeCloseTo(Math.cos(Math.PI / 4), 4);
   });
 
   it('inverts rotation when invertRotation is set', () => {
@@ -236,8 +253,8 @@ describe('retarget overrides', () => {
     const retargeter = new MixamoRetargeter();
     const clip = retargeter.retarget(source, config);
 
-    const rotY = clip.getTracks().find((t) => t.id === 'hips-rot-y')!;
-    expect(rotY.keyframes[1].value).toBeCloseTo(-0.05, 5); // negated
+    const rotation = clip.getTracks().find((t) => t.id === 'hips-rot')!;
+    expect(asQuaternion(rotation.keyframes[1].value)[1]).toBeCloseTo(-0.05, 5); // conjugated
   });
 
   it('allows target bone name override', () => {
@@ -269,6 +286,16 @@ describe('clip configuration', () => {
 
     expect(clip.isLooping()).toBe(true);
     expect(clip.getSpeed()).toBeCloseTo(1.5, 5);
+  });
+
+  it('migrates the legacy slerp config to linear scalars plus quaternion nlerp', () => {
+    const source = makeSource([WALK_HIPS_ANIMATION]);
+    const clip = retargetToVRM(source, { interpolationMode: 'slerp' });
+
+    const scalarTracks = clip.getTracks().filter((track) => track.property !== 'rotation');
+    const rotation = clip.getTracks().find((track) => track.property === 'rotation');
+    expect(scalarTracks.every((track) => track.interpolation === 'linear')).toBe(true);
+    expect(rotation?.interpolation).toBe('nlerp');
   });
 });
 
@@ -360,7 +387,7 @@ describe('determinism', () => {
       expect(tracksA[i].keyframes.length).toBe(tracksB[i].keyframes.length);
       for (let j = 0; j < tracksA[i].keyframes.length; j++) {
         expect(tracksA[i].keyframes[j].time).toBe(tracksB[i].keyframes[j].time);
-        expect(tracksA[i].keyframes[j].value).toBe(tracksB[i].keyframes[j].value);
+        expect(tracksA[i].keyframes[j].value).toEqual(tracksB[i].keyframes[j].value);
       }
     }
   });
@@ -377,8 +404,27 @@ describe('determinism', () => {
 
     expect(sampleA.size).toBe(sampleB.size);
     for (const [key, valA] of sampleA) {
-      expect(sampleB.get(key)).toBe(valA);
+      expect(sampleB.get(key)).toEqual(valA);
     }
+  });
+
+  it('samples sign-equivalent retargeted quaternions on the shortest arc', () => {
+    const orientation: QuaternionValue = [0.2, -0.3, 0.1, 0.9];
+    const source = makeSource([
+      {
+        mixamoBoneName: 'mixamorig:Hips',
+        keyframes: [
+          makeKeyframe(0, [0, 0, 0], orientation),
+          makeKeyframe(1, [0, 0, 0], orientation.map((component) => -component) as QuaternionValue),
+        ],
+      },
+    ]);
+    const clip = retargetToVRM(source);
+
+    const start = asQuaternion(clip.sampleValues(0).get('hips.rotation'));
+    const midpoint = asQuaternion(clip.sampleValues(0.5).get('hips.rotation'));
+    expect(midpoint).toEqual(start);
+    expect(quaternionNorm(midpoint)).toBeCloseTo(1, 12);
   });
 });
 

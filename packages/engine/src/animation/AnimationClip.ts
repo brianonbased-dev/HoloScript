@@ -11,28 +11,262 @@
 // TYPES
 // =============================================================================
 
-export type InterpolationMode = 'step' | 'linear' | 'cubic' | 'slerp';
+export type ScalarInterpolationMode = 'step' | 'linear' | 'cubic';
+export type QuaternionInterpolationMode = 'nlerp';
+/** @deprecated Legacy label retained as a typed migration input. It sampled linearly. */
+export type LegacyInterpolationMode = 'slerp';
+export type InterpolationMode =
+  | ScalarInterpolationMode
+  | QuaternionInterpolationMode
+  | LegacyInterpolationMode;
 
-export interface ClipKeyframe {
+export type QuaternionValue = [number, number, number, number];
+export type ClipSampleValue = number | QuaternionValue;
+
+export interface ScalarClipKeyframe {
   time: number;
-  value: number | number[];
+  value: number;
   inTangent?: number;
   outTangent?: number;
 }
 
-export interface ClipTrack {
+/** Legacy component-vector keyframe sampled through its track's component. */
+export interface ComponentClipKeyframe {
+  time: number;
+  value: number[];
+  inTangent?: number;
+  outTangent?: number;
+}
+
+export interface QuaternionClipKeyframe {
+  time: number;
+  value: QuaternionValue;
+}
+
+export type ScalarTrackKeyframe = ScalarClipKeyframe | ComponentClipKeyframe;
+export type ClipKeyframe = ScalarTrackKeyframe | QuaternionClipKeyframe;
+
+interface ClipTrackBase {
   id: string;
   targetPath: string; // e.g. "root/spine/head"
   property: string; // e.g. "position", "rotation", "scale"
-  component?: string; // e.g. "x", "y", "z" or null for full vector
-  interpolation: InterpolationMode;
-  keyframes: ClipKeyframe[];
 }
+
+export interface ScalarClipTrack extends ClipTrackBase {
+  component?: string; // e.g. "x", "y", "z" or null for full vector
+  interpolation: ScalarInterpolationMode;
+  keyframes: ScalarTrackKeyframe[];
+}
+
+export interface QuaternionClipTrack extends ClipTrackBase {
+  property: 'rotation';
+  component?: never;
+  interpolation: QuaternionInterpolationMode;
+  keyframes: QuaternionClipKeyframe[];
+}
+
+/**
+ * @deprecated Component-valued `slerp` tracks never performed quaternion
+ * interpolation. `AnimClip.addTrack()` accepts this shape so 6.1 callers can
+ * migrate without a cast and stores it as an honest scalar `linear` track.
+ */
+export interface LegacySlerpClipTrack extends ClipTrackBase {
+  component?: string;
+  interpolation: LegacyInterpolationMode;
+  keyframes: ScalarTrackKeyframe[];
+}
+
+export type ClipTrack = ScalarClipTrack | QuaternionClipTrack | LegacySlerpClipTrack;
+type PreparedClipTrack = ScalarClipTrack | QuaternionClipTrack;
 
 export interface ClipEvent {
   time: number;
   name: string;
   data: Record<string, unknown>;
+}
+
+const IDENTITY_QUATERNION: QuaternionValue = [0, 0, 0, 1];
+
+function componentIndex(component: string): number {
+  const named: Record<string, number> = { x: 0, y: 1, z: 2, w: 3 };
+  return named[component] ?? Number.parseInt(component, 10);
+}
+
+function cloneTrack(track: PreparedClipTrack): PreparedClipTrack {
+  if (track.interpolation === 'nlerp') {
+    return {
+      ...track,
+      keyframes: track.keyframes.map((keyframe) => ({
+        ...keyframe,
+        value: [
+          keyframe.value[0],
+          keyframe.value[1],
+          keyframe.value[2],
+          keyframe.value[3],
+        ] as QuaternionValue,
+      })),
+    };
+  }
+
+  return {
+    ...track,
+    keyframes: track.keyframes.map(
+      (keyframe): ScalarTrackKeyframe =>
+        Array.isArray(keyframe.value)
+          ? { ...keyframe, value: [...keyframe.value] }
+          : { ...keyframe, value: keyframe.value }
+    ),
+  };
+}
+
+function normalizeQuaternion(value: readonly number[], context: string): QuaternionValue {
+  if (value.length !== 4) {
+    throw new TypeError(`${context} must contain exactly four components`);
+  }
+
+  for (const component of value) {
+    if (!Number.isFinite(component)) {
+      throw new TypeError(`${context} must contain only finite numbers`);
+    }
+  }
+
+  // Scale before squaring so finite subnormal and near-MAX_VALUE inputs do
+  // not underflow or overflow while computing their norm.
+  const maxComponent = Math.max(
+    Math.abs(value[0]),
+    Math.abs(value[1]),
+    Math.abs(value[2]),
+    Math.abs(value[3])
+  );
+  if (maxComponent === 0) {
+    throw new RangeError(`${context} must not be the zero quaternion`);
+  }
+
+  const scaled: QuaternionValue = [
+    value[0] / maxComponent,
+    value[1] / maxComponent,
+    value[2] / maxComponent,
+    value[3] / maxComponent,
+  ];
+  const inverseNorm = 1 / Math.hypot(scaled[0], scaled[1], scaled[2], scaled[3]);
+  return [
+    scaled[0] * inverseNorm,
+    scaled[1] * inverseNorm,
+    scaled[2] * inverseNorm,
+    scaled[3] * inverseNorm,
+  ];
+}
+
+function normalizedLerpQuaternion(
+  from: readonly number[],
+  to: readonly number[],
+  weight: number,
+  context: string
+): QuaternionValue {
+  const a = normalizeQuaternion(from, `${context} start`);
+  let b = normalizeQuaternion(to, `${context} end`);
+  const dot = a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
+
+  // q and -q encode the same orientation. Flip the second endpoint when
+  // necessary so normalized lerp follows the shorter orientation arc.
+  if (dot < 0) {
+    b = [-b[0], -b[1], -b[2], -b[3]];
+  }
+
+  return normalizeQuaternion(
+    [
+      a[0] + (b[0] - a[0]) * weight,
+      a[1] + (b[1] - a[1]) * weight,
+      a[2] + (b[2] - a[2]) * weight,
+      a[3] + (b[3] - a[3]) * weight,
+    ],
+    `${context} result`
+  );
+}
+
+function prepareTrack(track: ClipTrack): PreparedClipTrack {
+  if (track.interpolation === 'slerp') {
+    // Runtime migration for clips produced by the old component-track API.
+    // The old implementation performed scalar lerp despite its label, so store
+    // the behavior under its honest name. Tuple rotations must use `nlerp`.
+    return prepareTrack({ ...track, interpolation: 'linear' });
+  }
+  const interpolation = (track as { interpolation: string }).interpolation;
+  if (!['step', 'linear', 'cubic', 'nlerp'].includes(interpolation)) {
+    throw new TypeError(`Track "${track.id}" uses unsupported interpolation "${interpolation}"`);
+  }
+
+  let previousTime = Number.NEGATIVE_INFINITY;
+  for (const keyframe of track.keyframes) {
+    if (!Number.isFinite(keyframe.time)) {
+      throw new TypeError(`Track "${track.id}" keyframe time must be finite`);
+    }
+    if (keyframe.time < previousTime) {
+      throw new RangeError(`Track "${track.id}" keyframes must be sorted by time`);
+    }
+    previousTime = keyframe.time;
+  }
+
+  if (track.interpolation === 'nlerp') {
+    const runtimeShape = track as { id: string; property: string; component?: unknown };
+    if (runtimeShape.property !== 'rotation' || runtimeShape.component !== undefined) {
+      throw new TypeError(
+        `Quaternion track "${runtimeShape.id}" must target rotation without a component`
+      );
+    }
+
+    return {
+      ...track,
+      keyframes: track.keyframes.map((keyframe, index) => {
+        if (!Array.isArray(keyframe.value)) {
+          throw new TypeError(`Quaternion track "${track.id}" keyframe ${index} must be a tuple`);
+        }
+        return {
+          ...keyframe,
+          value: normalizeQuaternion(
+            keyframe.value,
+            `Quaternion track "${track.id}" keyframe ${index}`
+          ),
+        };
+      }),
+    };
+  }
+
+  for (let index = 0; index < track.keyframes.length; index++) {
+    const keyframe = track.keyframes[index];
+    if (Array.isArray(keyframe.value)) {
+      if (!track.component) {
+        throw new TypeError(
+          `Scalar component-vector track "${track.id}" requires an explicit component`
+        );
+      }
+      const selectedIndex = componentIndex(track.component);
+      if (
+        !Number.isInteger(selectedIndex) ||
+        selectedIndex < 0 ||
+        selectedIndex >= keyframe.value.length
+      ) {
+        throw new RangeError(
+          `Scalar component-vector track "${track.id}" keyframe ${index} does not contain component "${track.component}"`
+        );
+      }
+      if (!keyframe.value.every(Number.isFinite)) {
+        throw new TypeError(
+          `Scalar component-vector track "${track.id}" keyframe ${index} must contain finite numbers`
+        );
+      }
+    } else if (typeof keyframe.value !== 'number' || !Number.isFinite(keyframe.value)) {
+      throw new TypeError(`Scalar track "${track.id}" keyframe ${index} must be a finite number`);
+    }
+    if (keyframe.inTangent !== undefined && !Number.isFinite(keyframe.inTangent)) {
+      throw new TypeError(`Scalar track "${track.id}" keyframe ${index} has invalid inTangent`);
+    }
+    if (keyframe.outTangent !== undefined && !Number.isFinite(keyframe.outTangent)) {
+      throw new TypeError(`Scalar track "${track.id}" keyframe ${index} has invalid outTangent`);
+    }
+  }
+
+  return cloneTrack(track);
 }
 
 // =============================================================================
@@ -42,7 +276,7 @@ export interface ClipEvent {
 export class AnimClip {
   readonly id: string;
   readonly name: string;
-  private tracks: ClipTrack[] = [];
+  private tracks: PreparedClipTrack[] = [];
   private events: ClipEvent[] = [];
   private _duration = 0;
   private loop = false;
@@ -87,18 +321,20 @@ export class AnimClip {
   // ---------------------------------------------------------------------------
 
   addTrack(track: ClipTrack): void {
-    this.tracks.push(track);
+    const preparedTrack = prepareTrack(track);
+    this.tracks.push(preparedTrack);
     // Update duration from keyframes
-    for (const kf of track.keyframes) {
+    for (const kf of preparedTrack.keyframes) {
       if (kf.time > this._duration) this._duration = kf.time;
     }
   }
 
   getTrack(id: string): ClipTrack | undefined {
-    return this.tracks.find((t) => t.id === id);
+    const track = this.tracks.find((candidate) => candidate.id === id);
+    return track ? cloneTrack(track) : undefined;
   }
   getTracks(): ClipTrack[] {
-    return [...this.tracks];
+    return this.tracks.map(cloneTrack);
   }
   getTrackCount(): number {
     return this.tracks.length;
@@ -125,9 +361,38 @@ export class AnimClip {
   // Sampling
   // ---------------------------------------------------------------------------
 
+  /**
+   * Backward-compatible scalar/component sampling view.
+   *
+   * Quaternion tracks are exposed through the four component keys used by the
+   * pre-nlerp API, keeping the established `Map<string, number>` boundary.
+   * Quaternion-aware code should call `sampleValues()` for tuple values.
+   */
   sample(time: number): Map<string, number> {
-    const wrapped = this.wrapTime(time);
+    const values = this.sampleValues(time);
     const result = new Map<string, number>();
+
+    for (const track of this.tracks) {
+      const key = track.component
+        ? `${track.targetPath}.${track.property}.${track.component}`
+        : `${track.targetPath}.${track.property}`;
+      const value = values.get(key);
+      if (Array.isArray(value)) {
+        for (const [index, component] of ['x', 'y', 'z', 'w'].entries()) {
+          result.set(`${key}.${component}`, value[index]);
+        }
+      } else if (typeof value === 'number') {
+        result.set(key, value);
+      }
+    }
+
+    return result;
+  }
+
+  /** Sample scalar tracks and tuple-valued quaternion tracks without flattening. */
+  sampleValues(time: number): Map<string, ClipSampleValue> {
+    const wrapped = this.wrapTime(time);
+    const result = new Map<string, ClipSampleValue>();
 
     for (const track of this.tracks) {
       const value = this.sampleTrack(track, wrapped);
@@ -140,40 +405,43 @@ export class AnimClip {
     return result;
   }
 
-  private componentIndex(component: string): number {
-    const map: Record<string, number> = { x: 0, y: 1, z: 2, w: 3 };
-    return map[component] ?? parseInt(component, 10);
+  private segmentIndex(keyframes: readonly { time: number }[], time: number): number {
+    let index = 0;
+    for (; index < keyframes.length - 1; index++) {
+      if (time < keyframes[index + 1].time) break;
+    }
+    return Math.min(index, keyframes.length - 2);
   }
 
-  private sampleTrack(track: ClipTrack, time: number): number {
+  private sampleTrack(track: PreparedClipTrack, time: number): ClipSampleValue {
+    if (track.interpolation === 'nlerp') {
+      return this.sampleQuaternionTrack(track, time);
+    }
+    return this.sampleScalarTrack(track, time);
+  }
+
+  private sampleScalarTrack(track: ScalarClipTrack, time: number): number {
     const kfs = track.keyframes;
     if (kfs.length === 0) return 0;
-    if (kfs.length === 1) return typeof kfs[0].value === 'number' ? kfs[0].value : 0;
+    const valueAt = (index: number): number => {
+      const value = kfs[index].value;
+      return Array.isArray(value) ? value[componentIndex(track.component!)] : value;
+    };
+    if (kfs.length === 1) return valueAt(0);
+    if (track.interpolation === 'step' && time >= kfs[kfs.length - 1].time) {
+      return valueAt(kfs.length - 1);
+    }
 
     // Find surrounding keyframes
-    let i = 0;
-    for (; i < kfs.length - 1; i++) {
-      if (time < kfs[i + 1].time) break;
-    }
-    if (i >= kfs.length - 1) i = kfs.length - 2;
+    const i = this.segmentIndex(kfs, time);
 
     const k0 = kfs[i];
     const k1 = kfs[i + 1];
     const dt = k1.time - k0.time;
     const t = dt > 0 ? (time - k0.time) / dt : 0;
 
-    const v0 =
-      typeof k0.value === 'number'
-        ? k0.value
-        : Array.isArray(k0.value) && track.component
-          ? (k0.value[this.componentIndex(track.component)] ?? 0)
-          : 0;
-    const v1 =
-      typeof k1.value === 'number'
-        ? k1.value
-        : Array.isArray(k1.value) && track.component
-          ? (k1.value[this.componentIndex(track.component)] ?? 0)
-          : 0;
+    const v0 = valueAt(i);
+    const v1 = valueAt(i + 1);
 
     switch (track.interpolation) {
       case 'step':
@@ -193,9 +461,22 @@ export class AnimClip {
           (t3 - t2) * m1 * dt
         );
       }
-      default:
-        return v0 + (v1 - v0) * t;
     }
+  }
+
+  private sampleQuaternionTrack(track: QuaternionClipTrack, time: number): QuaternionValue {
+    const kfs = track.keyframes;
+    if (kfs.length === 0) return [...IDENTITY_QUATERNION];
+    if (kfs.length === 1) {
+      return normalizeQuaternion(kfs[0].value, `Track "${track.id}" sample`);
+    }
+
+    const i = this.segmentIndex(kfs, time);
+    const k0 = kfs[i];
+    const k1 = kfs[i + 1];
+    const dt = k1.time - k0.time;
+    const weight = dt > 0 ? (time - k0.time) / dt : 0;
+    return normalizedLerpQuaternion(k0.value, k1.value, weight, `Track "${track.id}" sample`);
   }
 
   private wrapTime(time: number): number {
@@ -224,17 +505,54 @@ export class AnimClip {
   // ---------------------------------------------------------------------------
 
   static blend(
-    a: Map<string, number>,
-    b: Map<string, number>,
+    a: ReadonlyMap<string, number>,
+    b: ReadonlyMap<string, number>,
     weight: number
-  ): Map<string, number> {
-    const result = new Map<string, number>();
+  ): Map<string, number>;
+  static blend(
+    a: ReadonlyMap<string, ClipSampleValue>,
+    b: ReadonlyMap<string, ClipSampleValue>,
+    weight: number
+  ): Map<string, ClipSampleValue>;
+  static blend(
+    a: ReadonlyMap<string, ClipSampleValue>,
+    b: ReadonlyMap<string, ClipSampleValue>,
+    weight: number
+  ): Map<string, ClipSampleValue> {
+    if (!Number.isFinite(weight)) {
+      throw new TypeError('Blend weight must be finite');
+    }
+
+    const result = new Map<string, ClipSampleValue>();
     const allKeys = new Set([...a.keys(), ...b.keys()]);
 
     for (const key of allKeys) {
-      const va = a.get(key) ?? 0;
-      const vb = b.get(key) ?? 0;
-      result.set(key, va * (1 - weight) + vb * weight);
+      const va = a.get(key);
+      const vb = b.get(key);
+      const hasQuaternion = Array.isArray(va) || Array.isArray(vb);
+
+      if (hasQuaternion) {
+        if ((va !== undefined && !Array.isArray(va)) || (vb !== undefined && !Array.isArray(vb))) {
+          throw new TypeError(`Cannot blend scalar and quaternion values for "${key}"`);
+        }
+        result.set(
+          key,
+          normalizedLerpQuaternion(
+            va ?? IDENTITY_QUATERNION,
+            vb ?? IDENTITY_QUATERNION,
+            weight,
+            `Blend "${key}"`
+          )
+        );
+        continue;
+      }
+
+      const scalarA = va ?? 0;
+      const scalarB = vb ?? 0;
+      if (typeof scalarA !== 'number' || typeof scalarB !== 'number') {
+        throw new TypeError(`Cannot blend invalid scalar values for "${key}"`);
+      }
+      result.set(key, scalarA * (1 - weight) + scalarB * weight);
     }
 
     return result;

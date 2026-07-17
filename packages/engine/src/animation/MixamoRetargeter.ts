@@ -5,7 +5,8 @@
  *
  * Takes parsed Mixamo animation data (bone-local transforms over time) and
  * remaps it onto target skeleton bone names, producing an engine-native
- * `AnimClip` compatible with `BoneSystem` and `AnimationEngine`.
+ * `AnimClip`. Applying those samples to `BoneSystem`/`AnimationEngine` is a
+ * separate runtime-integration step; this module only builds and samples clips.
  *
  * Pattern: source-rig → humanoid canonical → target-rig
  *   1. Mixamo bone names are looked up via MIXAMO_BONE_MAP
@@ -24,7 +25,7 @@ import {
   VRM_BONE_MAP,
   URDF_BONE_MAP,
 } from '../character/HumanoidSkeleton';
-import { AnimClip, type ClipTrack, type InterpolationMode } from './AnimationClip';
+import { AnimClip, type ClipTrack, type ScalarInterpolationMode } from './AnimationClip';
 
 // =============================================================================
 // TYPES
@@ -78,8 +79,12 @@ export interface RetargetConfig {
   globalPositionScale?: number;
   /** Global rotation offset in radians [x, y, z]. */
   globalRotationOffset?: [number, number, number];
-  /** Interpolation mode for generated tracks. Default: 'linear' for position, 'slerp' for rotation. */
-  interpolationMode?: InterpolationMode;
+  /**
+   * Scalar interpolation for position and scale tracks. Rotation always uses
+   * normalized lerp. Legacy `slerp` is accepted as a migration alias for the
+   * scalar `linear` behavior the old implementation actually performed.
+   */
+  interpolationMode?: ScalarInterpolationMode | 'slerp';
   /** Loop mode for the output clip. */
   loop?: boolean;
   /** Speed multiplier. */
@@ -105,8 +110,9 @@ for (const [humanoidName, mixamoName] of Object.entries(MIXAMO_BONE_MAP)) {
  * Mixamo animation retargeter.
  *
  * Converts Mixamo-sourced animation curves into target-skeleton `AnimClip`
- * tracks. The retargeting is deterministic: identical input + config always
- * produces identical output tracks (required for P2-0 determinism claims).
+ * tracks. Identical input and configuration produce identical output within
+ * one runtime. The frozen P2-0 paper probe is scalar-only and does not use or
+ * make a portability claim about this retargeter.
  *
  * @example
  * ```ts
@@ -116,7 +122,7 @@ for (const [humanoidName, mixamoName] of Object.entries(MIXAMO_BONE_MAP)) {
  * const source = parseMixamoFBX(fbxBuffer); // user-provided parser
  * const clip = retargeter.retarget(source, vrmRetargetConfig());
  *
- * // clip is ready for AnimationEngine.play()
+ * // clip can now be sampled; runtime pose application is a separate integration.
  * ```
  */
 export class MixamoRetargeter {
@@ -178,6 +184,8 @@ export class MixamoRetargeter {
     const posScale = (overrides.positionScale ?? 1.0) * (config.globalPositionScale ?? 1.0);
     const rotOffset = overrides.rotationOffset ?? config.globalRotationOffset ?? [0, 0, 0];
     const invertRot = overrides.invertRotation ?? false;
+    const scalarInterpolation =
+      config.interpolationMode === 'slerp' ? 'linear' : (config.interpolationMode ?? 'linear');
 
     // --- Position tracks (x, y, z) ---
     const posComponents: Array<{ component: string; idx: number }> = [
@@ -192,7 +200,7 @@ export class MixamoRetargeter {
         targetPath: targetBoneName,
         property: 'position',
         component,
-        interpolation: config.interpolationMode ?? 'linear',
+        interpolation: scalarInterpolation,
         keyframes: kfs.map((kf) => ({
           time: kf.time,
           value: kf.position[idx] * posScale,
@@ -201,60 +209,50 @@ export class MixamoRetargeter {
       clip.addTrack(track);
     }
 
-    // --- Rotation tracks (quaternion x, y, z, w) ---
+    // --- Rotation track (one quaternion tuple, normalized by AnimClip) ---
     // Pre-compute offset quaternion if rotationOffset is non-zero
     const offsetQuat =
       rotOffset[0] !== 0 || rotOffset[1] !== 0 || rotOffset[2] !== 0
         ? eulerToQuaternion(rotOffset[0], rotOffset[1], rotOffset[2])
         : null;
 
-    const rotComponents: Array<{ component: string; idx: number }> = [
-      { component: 'x', idx: 0 },
-      { component: 'y', idx: 1 },
-      { component: 'z', idx: 2 },
-      { component: 'w', idx: 3 },
-    ];
+    const rotationTrack: ClipTrack = {
+      id: `${targetBoneName}-rot`,
+      targetPath: targetBoneName,
+      property: 'rotation',
+      interpolation: 'nlerp',
+      keyframes: kfs.map((kf) => {
+        let qx = kf.rotation[0];
+        let qy = kf.rotation[1];
+        let qz = kf.rotation[2];
+        let qw = kf.rotation[3];
 
-    for (const { component, idx } of rotComponents) {
-      const track: ClipTrack = {
-        id: `${targetBoneName}-rot-${component}`,
-        targetPath: targetBoneName,
-        property: 'rotation',
-        component,
-        interpolation: 'slerp',
-        keyframes: kfs.map((kf) => {
-          let qx = kf.rotation[0];
-          let qy = kf.rotation[1];
-          let qz = kf.rotation[2];
-          let qw = kf.rotation[3];
+        if (invertRot) {
+          qx = -qx;
+          qy = -qy;
+          qz = -qz;
+        }
 
-          if (invertRot) {
-            qx = -qx;
-            qy = -qy;
-            qz = -qz;
-          }
+        if (offsetQuat) {
+          const [ox, oy, oz, ow] = offsetQuat;
+          // q' = offset * q  (Hamilton product)
+          const rx = ow * qx + ox * qw + oy * qz - oz * qy;
+          const ry = ow * qy - ox * qz + oy * qw + oz * qx;
+          const rz = ow * qz + ox * qy - oy * qx + oz * qw;
+          const rw = ow * qw - ox * qx - oy * qy - oz * qz;
+          qx = rx;
+          qy = ry;
+          qz = rz;
+          qw = rw;
+        }
 
-          if (offsetQuat) {
-            const [ox, oy, oz, ow] = offsetQuat;
-            // q' = offset * q  (hamilton product)
-            const rx = ow * qx + ox * qw + oy * qz - oz * qy;
-            const ry = ow * qy - ox * qz + oy * qw + oz * qx;
-            const rz = ow * qz + ox * qy - oy * qx + oz * qw;
-            const rw = ow * qw - ox * qx - oy * qy - oz * qz;
-            qx = rx;
-            qy = ry;
-            qz = rz;
-            qw = rw;
-          }
-
-          return {
-            time: kf.time,
-            value: [qx, qy, qz, qw][idx],
-          };
-        }),
-      };
-      clip.addTrack(track);
-    }
+        return {
+          time: kf.time,
+          value: [qx, qy, qz, qw],
+        };
+      }),
+    };
+    clip.addTrack(rotationTrack);
 
     // --- Scale tracks (optional, usually identity) ---
     const hasNonIdentityScale = kfs.some(
@@ -278,7 +276,7 @@ export class MixamoRetargeter {
           targetPath: targetBoneName,
           property: 'scale',
           component,
-          interpolation: config.interpolationMode ?? 'linear',
+          interpolation: scalarInterpolation,
           keyframes: kfs.map((kf) => ({
             time: kf.time,
             value: kf.scale?.[idx] ?? 1.0,
@@ -337,7 +335,9 @@ export function urdfRetargetConfig(overrides?: Partial<RetargetConfig>): Retarge
 /**
  * Convert Euler angles (radians, XYZ order) to a quaternion [x, y, z, w].
  *
- * Deterministic: same input always produces the same output bit pattern.
+ * Reproducible within one JavaScript runtime for identical numeric inputs.
+ * Native trigonometric functions are not claimed to be bit-identical across
+ * engines or hardware vendors.
  */
 function eulerToQuaternion(ex: number, ey: number, ez: number): [number, number, number, number] {
   const cx = Math.cos(ex * 0.5);

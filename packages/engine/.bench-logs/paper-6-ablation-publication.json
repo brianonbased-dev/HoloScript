@@ -1,30 +1,56 @@
 {
-  "schema_version": "paper-6-ablation-v1",
+  "schema_version": "paper-6-ablation-v2",
   "benchmark": "paper-6-ablation-publication",
   "paper_ref": "ai-ecosystem/research/paper-6-animation-sca.tex",
   "harness": "packages/engine/src/animation/paper/benchmarks/p6-ablation-publication.ts",
   "source_clip_id": "paper-6-publication-walk",
   "frames": 60,
-  "iterations": 1500,
-  "measured_at": "2026-05-10T18:31:08.966Z",
+  "iterations_per_round": 1500,
+  "warmup_iterations": 100,
+  "timing_rounds": 5,
+  "sampling_contract": "full-clip-playback+quaternion-nlerp[x,y,z,w]",
+  "comparison_contract": "aligned-position[x,y,z]-in-source-bone-order",
+  "timing_contract": "100 warm-up iterations followed by five rotated-order rounds; median/min/max cover clip.sampleValues playback only. Foot-Y normalization and retarget construction are excluded, and raw-position-only samples fewer tracks.",
+  "comparability_note": "V2 hashes and max-L1 values use aligned xyz position channels. Playback timings are not comparable to pre-v2 component-track artifacts.",
+  "environment": {
+    "execution": "single-process-cpu-javascript",
+    "os": "win32 10.0.26200",
+    "arch": "x64",
+    "cpu_model": "11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz",
+    "logical_cores": 16,
+    "node": "v24.15.0"
+  },
+  "measured_at": "2026-07-17T06:51:07.731Z",
   "rows": [
     {
-      "variant": "full-solver",
-      "per_frame_us": 9.659,
+      "variant": "foot-y-normalized",
+      "sample_only_per_frame_us_median": 18.475,
+      "sample_only_per_frame_us_min": 18.104,
+      "sample_only_per_frame_us_max": 19.088,
+      "sampled_tracks": 28,
+      "comparison_hash": "18aad9ad",
       "reference_hash_equal": true,
-      "divergence_vs_reference": 0
+      "max_position_l1_vs_reference": 0
     },
     {
-      "variant": "minus-solver",
-      "per_frame_us": 12.717,
+      "variant": "retarget-only",
+      "sample_only_per_frame_us_median": 19.011,
+      "sample_only_per_frame_us_min": 18.464,
+      "sample_only_per_frame_us_max": 19.501,
+      "sampled_tracks": 28,
+      "comparison_hash": "fc2cd0f5",
       "reference_hash_equal": false,
-      "divergence_vs_reference": 0.033
+      "max_position_l1_vs_reference": 0.033
     },
     {
-      "variant": "baseline-no-pipeline",
-      "per_frame_us": 5.31,
+      "variant": "raw-position-only",
+      "sample_only_per_frame_us_median": 14.105,
+      "sample_only_per_frame_us_min": 13.772,
+      "sample_only_per_frame_us_max": 15.542,
+      "sampled_tracks": 21,
+      "comparison_hash": "fc2cd0f5",
       "reference_hash_equal": false,
-      "divergence_vs_reference": 1.01292
+      "max_position_l1_vs_reference": 0.033
     }
   ]
 }

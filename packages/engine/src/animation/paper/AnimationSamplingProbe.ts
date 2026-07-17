@@ -2,11 +2,10 @@
  * AnimationSamplingProbe — P2-0 substrate probe.
  *
  * Scope honesty: P2-0's implemented claim is same-process
- * reproducibility for a frozen scalar clip-sampling fixture. Portable
- * retargeting, quaternion interpolation, and cross-backend identity are
- * future gates; HoloScript does not yet ship that paper substrate. What
- * it DOES ship is `AnimClip.sample(t)`, and this probe validates only
- * that narrower path.
+ * reproducibility for a frozen scalar clip-sampling fixture. `AnimClip`
+ * now supports isolated quaternion tracks, but portable runtime pose
+ * application and cross-backend identity remain future gates. This probe
+ * deliberately validates only the narrower scalar path.
  *
  * Read this as: "before evaluating portable retargeting, confirm
  * same-process clip-sampling repeatability." The current test compares
@@ -21,7 +20,7 @@
  * @see NORTH_STAR DT-14. @see Program 2 scoping memo P2-0 entry.
  */
 
-import { AnimClip, type ClipTrack } from '../AnimationClip';
+import { AnimClip, type ScalarClipTrack, type ScalarInterpolationMode } from '../AnimationClip';
 
 export interface AnimationSamplingProbeOptions {
   /**
@@ -34,7 +33,7 @@ export interface AnimationSamplingProbeOptions {
     id: string;
     name: string;
     duration: number;
-    interpolation: 'step' | 'linear' | 'cubic' | 'slerp';
+    interpolation: ScalarInterpolationMode;
     tracks: Array<{
       id: string;
       targetPath: string;
@@ -75,7 +74,7 @@ export function runAnimationSamplingProbe(options: AnimationSamplingProbeOptions
 
   const clip = new AnimClip(clipSpec.id, clipSpec.name, clipSpec.duration);
   for (const trackSpec of clipSpec.tracks) {
-    const track: ClipTrack = {
+    const track: ScalarClipTrack = {
       id: trackSpec.id,
       targetPath: trackSpec.targetPath,
       property: trackSpec.property,
@@ -104,7 +103,10 @@ export function runAnimationSamplingProbe(options: AnimationSamplingProbeOptions
         ? `${trackSpec.targetPath}.${trackSpec.property}.${trackSpec.component}`
         : `${trackSpec.targetPath}.${trackSpec.property}`;
       const value = sampled.get(key);
-      buffer[idx++] = value === undefined ? 0 : value;
+      if (typeof value !== 'number') {
+        throw new TypeError(`Scalar probe track "${trackSpec.id}" did not produce a scalar value`);
+      }
+      buffer[idx++] = value;
     }
   }
 
