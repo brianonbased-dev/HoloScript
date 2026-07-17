@@ -710,6 +710,13 @@ test.describe('Paper 6 Q14 integer CORDIC quaternion conformance', () => {
       expect(playwrightProject.trim().length).toBeGreaterThan(0);
       expect(browserVersion.trim().length).toBeGreaterThan(0);
     }
+    const controllerDevice = {
+      platform: os.platform(),
+      release: os.release(),
+      arch: os.arch(),
+      hostname_sha256: sha256Text(os.hostname()),
+      cpu_model: os.cpus()[0]?.model ?? 'unknown',
+    };
     const machineFingerprint = androidDevice
       ? sha256Text(
           [
@@ -723,7 +730,13 @@ test.describe('Paper 6 Q14 integer CORDIC quaternion conformance', () => {
             androidDevice.build_fingerprint_sha256,
           ].join('|')
         )
-      : sha256Text(`${os.hostname()}|${os.arch()}|${os.cpus()[0]?.model ?? 'unknown'}`);
+      : sha256Text(
+          [
+            controllerDevice.hostname_sha256,
+            controllerDevice.arch,
+            controllerDevice.cpu_model,
+          ].join('|')
+        );
 
     const receipt = {
       schema: 'holoscript.paper6.quaternion-conformance.v1',
@@ -818,11 +831,7 @@ test.describe('Paper 6 Q14 integer CORDIC quaternion conformance', () => {
             release: os.release(),
             arch: os.arch(),
           },
-          device: androidDevice ?? {
-            platform: os.platform(),
-            release: os.release(),
-            arch: os.arch(),
-          },
+          device: androidDevice ?? controllerDevice,
           node_little_endian: nodeLittleEndian,
           browser_little_endian: gpu.browserLittleEndian,
         },
