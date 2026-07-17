@@ -5,6 +5,7 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import {
   HOLOSYSTEM_VM_LAUNCH_PLAN_SCHEMA,
@@ -678,7 +679,7 @@ test('does not publish process-runner injection through the package API', () => 
 test('exposes executor and asset inspection plus fail-closed launch through the CLI', () => {
   const item = fixture();
   try {
-    const cli = join(process.cwd(), 'bin', 'holosystem.mjs');
+    const cli = fileURLToPath(new URL('../bin/holosystem.mjs', import.meta.url));
     const executor = spawnSync(
       process.execPath,
       [cli, 'vm-executor', '--runtime', item.runtimeDirectory, '--json'],
