@@ -203,6 +203,8 @@ const FORWARDED_SLICE_CALL_EXIT_FIVE: &str = r#"
         return observed + updated - 1
     }
 "#;
+const RUNTIME_SLICE_REBORROW_EXIT_FIVE: &str =
+    include_str!("../../../examples/native/runtime-slice-reborrow-exit-five.hs");
 
 fn scratch_executable(name: &str) -> std::path::PathBuf {
     let nonce = SystemTime::now()
@@ -614,6 +616,120 @@ fn compiles_forwarded_and_nested_reborrowed_slice_parameters() {
 }
 
 #[test]
+fn compiles_runtime_indexed_named_slice_reborrows() {
+    let executable = scratch_executable("native-runtime-slice-reborrow");
+    let artifact = compile_executable(
+        RUNTIME_SLICE_REBORROW_EXIT_FIVE,
+        &executable,
+        &NativeCompileOptions::host(),
+    )
+    .expect("runtime-indexed shared and mutable parameter reborrows should compile");
+    assert_eq!(artifact.machine_contract, "hs-machine-v11");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("runtime-indexed slice executable should run");
+    assert_eq!(status.code(), Some(5));
+    fs::remove_file(&artifact.executable).expect("remove runtime-indexed slice executable");
+
+    let executable = scratch_executable("native-runtime-local-slice-reborrow");
+    let artifact = compile_executable(
+        r#"function read(values: &[i32], index: i32): i32 {
+               return load(values[index])
+           }
+           function main(): i32 {
+               slot values: [i32; 4] = [1, 2, 3, 4]
+               let view: &[i32] = &values[1..4]
+               let start: i32 = 1
+               let end: i32 = 3
+               return read(&view[start..end], 0) + 2
+           }"#,
+        &executable,
+        &NativeCompileOptions::host(),
+    )
+    .expect("runtime-indexed stack-rooted slice reborrows should compile");
+    assert_eq!(artifact.machine_contract, "hs-machine-v11");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("runtime-indexed local-slice executable should run");
+    assert_eq!(status.code(), Some(5));
+    fs::remove_file(&artifact.executable).expect("remove runtime local-slice executable");
+}
+
+#[test]
+fn runtime_indexed_slice_reborrows_trap_before_invalid_addressing() {
+    for (name, start, end) in [
+        ("negative-start", "-1", "2"),
+        ("negative-end", "0", "-1"),
+        ("reversed", "3", "2"),
+        ("upper-bound", "0", "5"),
+    ] {
+        let source = format!(
+            "function accept(values: &[i32]): i32 {{ return 5 }} function narrow(values: &[i32], start: i32, end: i32): i32 {{ return accept(&values[start..end]) }} function main(): i32 {{ slot values: [i32; 4] = [1, 2, 3, 4] return narrow(&values[0..4], {start}, {end}) }}"
+        );
+        let executable = scratch_executable(&format!("native-runtime-slice-{name}"));
+        let artifact = compile_executable(&source, &executable, &NativeCompileOptions::host())
+            .expect("invalid runtime range should compile to a checked trap");
+        assert_eq!(artifact.machine_contract, "hs-machine-v11");
+        let status = Command::new(&artifact.executable)
+            .status()
+            .expect("invalid runtime range executable should launch");
+        assert!(!status.success(), "runtime range {start}..{end} must trap");
+        fs::remove_file(&artifact.executable).expect("remove trapping runtime-range executable");
+    }
+
+    let executable = scratch_executable("native-runtime-empty-slice");
+    let artifact = compile_executable(
+        r#"function accept(values: &[i32]): i32 { return 5 }
+           function narrow(values: &[i32], edge: i32): i32 {
+               return accept(&values[edge..edge])
+           }
+           function main(): i32 {
+               slot values: [i32; 4] = [1, 2, 3, 4]
+               return narrow(&values[0..4], 2)
+           }"#,
+        &executable,
+        &NativeCompileOptions::host(),
+    )
+    .expect("an ordered empty runtime sub-slice should remain valid");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("empty runtime sub-slice executable should run");
+    assert_eq!(status.code(), Some(5));
+    fs::remove_file(&artifact.executable).expect("remove empty runtime-slice executable");
+}
+
+#[test]
+fn runtime_indexed_slice_contract_preserves_type_alias_and_escape_boundaries() {
+    let options = NativeCompileOptions::host();
+
+    for (source, message) in [
+        (
+            "function write(values: &mut [i32]): i32 { return 5 } function relay(values: &[i32], start: i32, end: i32): i32 { return write(&mut values[start..end]) } function main(): i32 { return 5 }",
+            "cannot mutably forward immutable slice `values`",
+        ),
+        (
+            "function combine(first: &mut [i32], second: &[i32]): i32 { return 5 } function relay(first: &mut [i32], second: &[i32], start: i32, end: i32): i32 { return combine(&mut first[start..end], &second[start..end]) } function main(): i32 { return 5 }",
+            "potentially aliasing provenance",
+        ),
+        (
+            "function read(values: &[i32]): i32 { return 5 } function narrow(values: &[i32], start: i32, end: i32): i32 { return read(&values[start..end]) } function leak(values: &[i32]): &[i32] { return values } function main(): i32 { return 5 }",
+            "hs-machine-v11 references cannot appear in function returns",
+        ),
+        (
+            "function read(values: &[i32]): i32 { return 5 } function narrow(values: &[i32], start: i64, end: i32): i32 { return read(&values[start..end]) } function main(): i32 { return 5 }",
+            "slice range start for `values` expects `i32`, found `i64`",
+        ),
+        (
+            "function read(values: &[i32]): i32 { return 5 } function select_v11(values: &[i32], start: i32, end: i32): i32 { return read(&values[start..end]) } function main(): i32 { slot values: [i32; 2] = [1, 2] let start: i32 = 0 return read(&values[start..2]) }",
+            "slice start must be a non-negative integer literal",
+        ),
+    ] {
+        let error = compile_object(source, &options).expect_err(message);
+        assert!(error.to_string().contains(message), "{error}");
+    }
+}
+
+#[test]
 fn emits_deterministic_objects_for_the_same_source() {
     let options = NativeCompileOptions::host();
 
@@ -631,6 +747,7 @@ fn emits_deterministic_objects_for_the_same_source() {
         BORROWED_SLICE_EXIT_FIVE,
         BORROWED_SLICE_CALL_EXIT_FIVE,
         FORWARDED_SLICE_CALL_EXIT_FIVE,
+        RUNTIME_SLICE_REBORROW_EXIT_FIVE,
     ] {
         let first = compile_object(source, &options).expect("first object should compile");
         let second = compile_object(source, &options).expect("second object should compile");
