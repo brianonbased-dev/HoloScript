@@ -1,9 +1,9 @@
 {
   "schema": "paper-audit-matrix.v3",
-  "generatedAt": "2026-07-17T06:56:53.861Z",
+  "generatedAt": "2026-07-17T14:33:57.618Z",
   "canonicalRouterPath": "research/paper-audit-matrix.md",
   "matrixSourcePath": "research/paper-audit-matrix/front-matrix-core-papers.md",
-  "scriptCommit": "0587177666eddb6a106521604b78e6209ee4f710",
+  "scriptCommit": "ffda910370fd08be7e8a3a30229e70bf112f8ca5",
   "totals": {
     "papers": 17,
     "cellsByToken": {
@@ -106,7 +106,7 @@
         },
         "staleness": {
           "token": "✅",
-          "evidence": "0 open \\todo{}, 12d since last commit"
+          "evidence": "0 open \\todo{}, 13d since last commit"
         }
       },
       "lastCommit": {
@@ -216,7 +216,7 @@
         },
         "staleness": {
           "token": "✅",
-          "evidence": "0 open \\todo{}, 12d since last commit"
+          "evidence": "0 open \\todo{}, 13d since last commit"
         }
       },
       "lastCommit": {
@@ -326,7 +326,7 @@
         },
         "staleness": {
           "token": "✅",
-          "evidence": "0 open \\todo{}, 12d since last commit"
+          "evidence": "0 open \\todo{}, 13d since last commit"
         }
       },
       "lastCommit": {
@@ -436,7 +436,7 @@
         },
         "staleness": {
           "token": "✅",
-          "evidence": "0 open \\todo{}, 12d since last commit"
+          "evidence": "0 open \\todo{}, 13d since last commit"
         }
       },
       "lastCommit": {
@@ -656,7 +656,7 @@
         },
         "staleness": {
           "token": "✅",
-          "evidence": "0 open \\todo{}, 12d since last commit"
+          "evidence": "0 open \\todo{}, 13d since last commit"
         }
       },
       "lastCommit": {
@@ -698,8 +698,8 @@
       "target": "SCA '27",
       "basename": "paper-6-animation-sca.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-6-animation-sca.tex",
-      "loc": 1591,
-      "sha256Prefix": "afe6eb90",
+      "loc": 1643,
+      "sha256Prefix": "0f50f0b0",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -746,7 +746,7 @@
           "token": "✅",
           "scope": "paper-wide-path-presence",
           "claimSupport": "unverified",
-          "evidence": "2 existing typed path(s) + 1 existing validator-shaped path(s); paths are not claim-bound or executed here"
+          "evidence": "3 existing typed path(s) + 2 existing validator-shaped path(s); paths are not claim-bound or executed here"
         },
         "calStory": {
           "token": "✅",
@@ -770,11 +770,16 @@
         }
       },
       "lastCommit": {
-        "hash": "0587177666eddb6a106521604b78e6209ee4f710",
-        "isoDate": "2026-07-16T23:55:53-07:00",
-        "subject": "docs(core): correct paper 6 ablation semantics"
+        "hash": "ffda910370fd08be7e8a3a30229e70bf112f8ca5",
+        "isoDate": "2026-07-17T07:33:30-07:00",
+        "subject": "docs(papers): add runtime pose hierarchy evidence"
       },
       "recentCommits": [
+        {
+          "hash": "ffda910370fd08be7e8a3a30229e70bf112f8ca5",
+          "isoDate": "2026-07-17T07:33:30-07:00",
+          "subject": "docs(papers): add runtime pose hierarchy evidence"
+        },
         {
           "hash": "0587177666eddb6a106521604b78e6209ee4f710",
           "isoDate": "2026-07-16T23:55:53-07:00",
@@ -794,11 +799,6 @@
           "hash": "4809672be23f91b8d0281a3f46f8efffd40ab9ba",
           "isoDate": "2026-07-16T14:29:21-07:00",
           "subject": "docs(ecosystem): align paper claims with verified evidence"
-        },
-        {
-          "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
-          "isoDate": "2026-07-04T04:08:21-07:00",
-          "subject": "docs(papers): canon realignment item 4 -- name sovereignty across 19 abstracts"
         }
       ]
     },
@@ -1206,7 +1206,7 @@
         },
         "staleness": {
           "token": "✅",
-          "evidence": "0 open \\todo{}, 12d since last commit"
+          "evidence": "0 open \\todo{}, 13d since last commit"
         }
       },
       "lastCommit": {
@@ -1426,7 +1426,7 @@
         },
         "staleness": {
           "token": "✅",
-          "evidence": "0 open \\todo{}, 12d since last commit"
+          "evidence": "0 open \\todo{}, 13d since last commit"
         }
       },
       "lastCommit": {
@@ -1646,7 +1646,7 @@
         },
         "staleness": {
           "token": "✅",
-          "evidence": "0 open \\todo{}, 12d since last commit"
+          "evidence": "0 open \\todo{}, 13d since last commit"
         }
       },
       "lastCommit": {
@@ -1688,8 +1688,8 @@
       "target": "SIGGRAPH '27",
       "basename": "paper-capstone-program2-siggraph.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-capstone-program2-siggraph.tex",
-      "loc": 939,
-      "sha256Prefix": "a98ad8a3",
+      "loc": 961,
+      "sha256Prefix": "d01d3dfd",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -1760,11 +1760,16 @@
         }
       },
       "lastCommit": {
-        "hash": "e355ed70f25b72a07bf96624544135b37fdf3832",
-        "isoDate": "2026-07-16T22:36:18-07:00",
-        "subject": "docs(core): scope animation evidence to runnable tests"
+        "hash": "ffda910370fd08be7e8a3a30229e70bf112f8ca5",
+        "isoDate": "2026-07-17T07:33:30-07:00",
+        "subject": "docs(papers): add runtime pose hierarchy evidence"
       },
       "recentCommits": [
+        {
+          "hash": "ffda910370fd08be7e8a3a30229e70bf112f8ca5",
+          "isoDate": "2026-07-17T07:33:30-07:00",
+          "subject": "docs(papers): add runtime pose hierarchy evidence"
+        },
         {
           "hash": "e355ed70f25b72a07bf96624544135b37fdf3832",
           "isoDate": "2026-07-16T22:36:18-07:00",
@@ -1784,11 +1789,6 @@
           "hash": "ef367f56ec83e498eff0d1c2e3b43930e8ef8ade",
           "isoDate": "2026-07-04T03:55:11-07:00",
           "subject": "docs(papers): realign the 3 built-on-weak-canon papers to strong canon"
-        },
-        {
-          "hash": "28dfe73caa17e3b4a20cfcd0645ecd8a40f83f96",
-          "isoDate": "2026-05-25T00:44:24-07:00",
-          "subject": "feat(papers): reconcile HoloScript-only content into ai-ecosystem canonical (founder ruling 2026-05-25)"
         }
       ]
     },
@@ -1866,7 +1866,7 @@
         },
         "staleness": {
           "token": "✅",
-          "evidence": "0 open \\todo{}, 12d since last commit"
+          "evidence": "0 open \\todo{}, 13d since last commit"
         }
       },
       "lastCommit": {
