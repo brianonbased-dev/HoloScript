@@ -14,6 +14,9 @@ export {
   type Keyframe as AnimationEngineKeyframe,
   type AnimationClip as EngineAnimationClip,
   type ActiveAnimation,
+  type SkeletalPoseOptions,
+  type SkeletalPlaybackOptions,
+  type SkeletalPoseApplication,
 } from './AnimationEngine';
 
 export {

@@ -6,6 +6,9 @@
  * and a centralized update loop for all active animations.
  */
 
+import { AnimClip, type ClipSampleValue, type ClipTrack } from './AnimationClip';
+import { BoneSystem, type BoneTransform } from './BoneSystem';
+
 // =============================================================================
 // EASING FUNCTIONS
 // =============================================================================
@@ -76,6 +79,35 @@ export interface ActiveAnimation {
   loopCount: number;
 }
 
+export interface SkeletalPoseOptions {
+  /** Map an AnimClip target path to a BoneSystem ID. Identity by default. */
+  resolveBoneId?: (targetPath: string) => string | undefined;
+  /** Reject missing bones and unsupported pose tracks before mutating the rig. */
+  strict?: boolean;
+}
+
+export interface SkeletalPlaybackOptions extends SkeletalPoseOptions {
+  delay?: number;
+  onComplete?: () => void;
+}
+
+export interface SkeletalPoseApplication {
+  clipId: string;
+  sampleTime: number;
+  appliedTracks: number;
+  updatedBoneIds: string[];
+  missingTargets: string[];
+  unsupportedTrackIds: string[];
+}
+
+interface ActiveSkeletalAnimation {
+  clip: AnimClip;
+  bones: BoneSystem;
+  elapsed: number;
+  isPaused: boolean;
+  options: SkeletalPlaybackOptions;
+}
+
 // =============================================================================
 // INTERPOLATION
 // =============================================================================
@@ -120,6 +152,31 @@ function interpolateKeyframes(keyframes: Keyframe[], t: number): number {
   return lerp(prevKf.value, nextKf.value, easedT);
 }
 
+function sampledTrackKey(track: ClipTrack): string {
+  return track.component
+    ? `${track.targetPath}.${track.property}.${track.component}`
+    : `${track.targetPath}.${track.property}`;
+}
+
+function scalarPoseField(track: ClipTrack): keyof BoneTransform | null {
+  switch (`${track.property}.${track.component ?? ''}`) {
+    case 'position.x':
+      return 'tx';
+    case 'position.y':
+      return 'ty';
+    case 'position.z':
+      return 'tz';
+    case 'scale.x':
+      return 'sx';
+    case 'scale.y':
+      return 'sy';
+    case 'scale.z':
+      return 'sz';
+    default:
+      return null;
+  }
+}
+
 // =============================================================================
 // ANIMATION ENGINE
 // =============================================================================
@@ -127,11 +184,13 @@ function interpolateKeyframes(keyframes: Keyframe[], t: number): number {
 export class AnimationEngine {
   private animations: Map<string, ActiveAnimation> = new Map();
   private propertySetters: Map<string, (value: number) => void> = new Map();
+  private skeletalAnimations: Map<string, ActiveSkeletalAnimation> = new Map();
 
   /**
    * Register an animation clip and start playing it.
    */
   play(clip: AnimationClip, setter: (value: number) => void): void {
+    this.stop(clip.id);
     this.animations.set(clip.id, {
       clip,
       elapsed: -clip.delay, // Negative = waiting for delay
@@ -144,11 +203,113 @@ export class AnimationEngine {
   }
 
   /**
+   * Register an AnimClip for skeletal playback through the centralized update
+   * loop. AnimClip owns seconds-based sampling, speed, and wrap behavior.
+   */
+  playSkeletal(clip: AnimClip, bones: BoneSystem, options: SkeletalPlaybackOptions = {}): void {
+    const delay = options.delay ?? 0;
+    if (!Number.isFinite(delay) || delay < 0) {
+      throw new RangeError('Skeletal animation delay must be a finite non-negative number');
+    }
+
+    this.stop(clip.id);
+    this.skeletalAnimations.set(clip.id, {
+      clip,
+      bones,
+      elapsed: -delay,
+      isPaused: false,
+      options,
+    });
+  }
+
+  /**
+   * Sample an engine-native AnimClip and atomically apply its local pose to a
+   * BoneSystem. Strict mode is the default so mapping gaps cannot false-pass
+   * as a valid partial pose.
+   */
+  applySkeletalPose(
+    clip: AnimClip,
+    bones: BoneSystem,
+    time: number,
+    options: SkeletalPoseOptions = {}
+  ): SkeletalPoseApplication {
+    if (!Number.isFinite(time)) {
+      throw new TypeError('Skeletal pose sample time must be finite');
+    }
+
+    const strict = options.strict ?? true;
+    const resolveBoneId = options.resolveBoneId ?? ((targetPath: string) => targetPath);
+    const sampled = clip.sampleValues(time);
+    const staged = new Map<string, Partial<BoneTransform>>();
+    const stagedTrackCounts = new Map<string, number>();
+    const missingTargets = new Set<string>();
+    const unsupportedTrackIds: string[] = [];
+
+    for (const track of clip.getTracks()) {
+      const boneId = resolveBoneId(track.targetPath);
+      if (!boneId || !bones.getBone(boneId)) {
+        missingTargets.add(track.targetPath);
+        continue;
+      }
+
+      const value: ClipSampleValue | undefined = sampled.get(sampledTrackKey(track));
+      const transform = staged.get(boneId) ?? {};
+
+      if (track.property === 'rotation' && !track.component && Array.isArray(value)) {
+        if (value.length !== 4 || !value.every(Number.isFinite)) {
+          unsupportedTrackIds.push(track.id);
+          continue;
+        }
+        const [rx, ry, rz, rw] = value as [number, number, number, number];
+        Object.assign(transform, { rx, ry, rz, rw });
+      } else if (typeof value === 'number') {
+        const field = scalarPoseField(track);
+        if (!field || !Number.isFinite(value)) {
+          unsupportedTrackIds.push(track.id);
+          continue;
+        }
+        transform[field] = value;
+      } else {
+        unsupportedTrackIds.push(track.id);
+        continue;
+      }
+
+      staged.set(boneId, transform);
+      stagedTrackCounts.set(boneId, (stagedTrackCounts.get(boneId) ?? 0) + 1);
+    }
+
+    const missing = [...missingTargets];
+    if (strict && (missing.length > 0 || unsupportedTrackIds.length > 0)) {
+      const details = [
+        missing.length > 0 ? `missing bone targets: ${missing.join(', ')}` : '',
+        unsupportedTrackIds.length > 0
+          ? `unsupported pose tracks: ${unsupportedTrackIds.join(', ')}`
+          : '',
+      ]
+        .filter(Boolean)
+        .join('; ');
+      throw new Error(`Cannot apply skeletal clip "${clip.id}": ${details}`);
+    }
+
+    bones.applyLocalTransforms(staged);
+
+    return {
+      clipId: clip.id,
+      sampleTime: time,
+      appliedTracks: [...stagedTrackCounts.values()].reduce((sum, count) => sum + count, 0),
+      updatedBoneIds: [...staged.keys()],
+      missingTargets: missing,
+      unsupportedTrackIds,
+    };
+  }
+
+  /**
    * Stop and remove an animation.
    */
   stop(clipId: string): void {
     this.animations.delete(clipId);
     this.propertySetters.delete(clipId);
+    this.skeletalAnimations.delete(clipId);
   }
 
   /**
@@ -157,6 +318,8 @@ export class AnimationEngine {
   pause(clipId: string): void {
     const anim = this.animations.get(clipId);
     if (anim) anim.isPaused = true;
+    const skeletal = this.skeletalAnimations.get(clipId);
+    if (skeletal) skeletal.isPaused = true;
   }
 
   /**
@@ -165,20 +328,22 @@ export class AnimationEngine {
   resume(clipId: string): void {
     const anim = this.animations.get(clipId);
     if (anim) anim.isPaused = false;
+    const skeletal = this.skeletalAnimations.get(clipId);
+    if (skeletal) skeletal.isPaused = false;
   }
 
   /**
    * Check if an animation is active.
    */
   isActive(clipId: string): boolean {
-    return this.animations.has(clipId);
+    return this.animations.has(clipId) || this.skeletalAnimations.has(clipId);
   }
 
   /**
    * Get all active animation IDs.
    */
   getActiveIds(): string[] {
-    return Array.from(this.animations.keys());
+    return [...this.animations.keys(), ...this.skeletalAnimations.keys()];
   }
 
   /**
@@ -247,6 +412,28 @@ export class AnimationEngine {
       this.animations.delete(id);
       this.propertySetters.delete(id);
     }
+
+    const skeletalToRemove: string[] = [];
+    for (const [id, anim] of this.skeletalAnimations) {
+      if (anim.isPaused) continue;
+
+      anim.elapsed += delta;
+      if (anim.elapsed < 0) continue;
+
+      this.applySkeletalPose(anim.clip, anim.bones, anim.elapsed, anim.options);
+
+      const wrapMode = anim.clip.getWrapMode();
+      const isFinitePlayback = wrapMode === 'once' || wrapMode === 'clamp';
+      if (isFinitePlayback && anim.elapsed * anim.clip.getSpeed() >= anim.clip.getDuration()) {
+        skeletalToRemove.push(id);
+      }
+    }
+
+    for (const id of skeletalToRemove) {
+      const anim = this.skeletalAnimations.get(id);
+      this.skeletalAnimations.delete(id);
+      anim?.options.onComplete?.();
+    }
   }
 
   /**
@@ -255,5 +442,6 @@ export class AnimationEngine {
   clear(): void {
     this.animations.clear();
     this.propertySetters.clear();
+    this.skeletalAnimations.clear();
   }
 }

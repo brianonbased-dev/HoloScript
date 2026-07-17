@@ -5,8 +5,9 @@
  *
  * Takes parsed Mixamo animation data (bone-local transforms over time) and
  * remaps it onto target skeleton bone names, producing an engine-native
- * `AnimClip`. Applying those samples to `BoneSystem`/`AnimationEngine` is a
- * separate runtime-integration step; this module only builds and samples clips.
+ * `AnimClip`. `AnimationEngine.playSkeletal()` is the production bridge that
+ * samples this output into a matching `BoneSystem`; this module itself only
+ * performs table-driven name mapping, offsets, and clip construction.
  *
  * Pattern: source-rig → humanoid canonical → target-rig
  *   1. Mixamo bone names are looked up via MIXAMO_BONE_MAP
@@ -122,7 +123,7 @@ for (const [humanoidName, mixamoName] of Object.entries(MIXAMO_BONE_MAP)) {
  * const source = parseMixamoFBX(fbxBuffer); // user-provided parser
  * const clip = retargeter.retarget(source, vrmRetargetConfig());
  *
- * // clip can now be sampled; runtime pose application is a separate integration.
+ * animationEngine.playSkeletal(clip, matchingBoneSystem);
  * ```
  */
 export class MixamoRetargeter {

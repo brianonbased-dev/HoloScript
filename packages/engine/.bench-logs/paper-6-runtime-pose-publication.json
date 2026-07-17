@@ -1,0 +1,148 @@
+{
+  "schema_version": "paper-6-runtime-pose-v1",
+  "benchmark": "paper-6-runtime-pose-publication",
+  "paper_ref": "ai-ecosystem/research/paper-6-animation-sca.tex",
+  "harness": "packages/engine/src/animation/paper/benchmarks/p6-runtime-pose-publication.ts",
+  "runtime_path": [
+    "MixamoRetargeter.retarget",
+    "AnimationEngine.playSkeletal/update",
+    "AnimClip.sampleValues",
+    "BoneSystem.applyLocalTransforms/updateWorldTransforms"
+  ],
+  "fixture": {
+    "topology": "hips -> leftUpperLeg -> leftLowerLeg",
+    "bone_order": ["hips", "leftUpperLeg", "leftLowerLeg"],
+    "sample_time_seconds": 0.5,
+    "transform_fields_per_local_or_world_pose": [
+      "tx",
+      "ty",
+      "tz",
+      "rx",
+      "ry",
+      "rz",
+      "rw",
+      "sx",
+      "sy",
+      "sz"
+    ],
+    "packed_views_per_bone": ["local", "world"],
+    "encoding": "IEEE-754 binary32 little-endian",
+    "canonicalization": "abs(value)<1e-7 => +0; quaternion sign w>=0",
+    "pose_bytes": 240,
+    "hierarchy_scope": "compact TRS with identity scale; no shear"
+  },
+  "verification": {
+    "expected_pose_asserted": true,
+    "repeat_runs": 3,
+    "unique_pose_hashes": 1,
+    "pose_hash": "sha256:cd6baaf5651417328c9b89ca25050e87f71e5730dc89ad159e31243d7a88e84d",
+    "negative_control": "root rotation removed",
+    "negative_control_hash": "sha256:aae123fed6147980637becae80a5f7d03ddbfe6756920e0a9811005a57d97979",
+    "negative_control_diverged": true,
+    "negative_control_child_world_position_changed": true,
+    "negative_control_child_world_rotation_changed": true
+  },
+  "expected_pose": {
+    "hips": {
+      "local": {
+        "tx": 1,
+        "ty": 2,
+        "tz": 3,
+        "rx": 0,
+        "ry": 0,
+        "rz": 0.707106781,
+        "rw": 0.707106781,
+        "sx": 1,
+        "sy": 1,
+        "sz": 1
+      },
+      "world": {
+        "tx": 1,
+        "ty": 2,
+        "tz": 3,
+        "rx": 0,
+        "ry": 0,
+        "rz": 0.707106781,
+        "rw": 0.707106781,
+        "sx": 1,
+        "sy": 1,
+        "sz": 1
+      }
+    },
+    "leftUpperLeg": {
+      "local": {
+        "tx": 0,
+        "ty": 1,
+        "tz": 0,
+        "rx": 0.707106781,
+        "ry": 0,
+        "rz": 0,
+        "rw": 0.707106781,
+        "sx": 1,
+        "sy": 1,
+        "sz": 1
+      },
+      "world": {
+        "tx": 0,
+        "ty": 2,
+        "tz": 3,
+        "rx": 0.5,
+        "ry": 0.5,
+        "rz": 0.5,
+        "rw": 0.5,
+        "sx": 1,
+        "sy": 1,
+        "sz": 1
+      }
+    },
+    "leftLowerLeg": {
+      "local": {
+        "tx": 0,
+        "ty": 1,
+        "tz": 0,
+        "rx": 0,
+        "ry": 0,
+        "rz": 0,
+        "rw": 1,
+        "sx": 1,
+        "sy": 1,
+        "sz": 1
+      },
+      "world": {
+        "tx": 0,
+        "ty": 2,
+        "tz": 4,
+        "rx": 0.5,
+        "ry": 0.5,
+        "rz": 0.5,
+        "rw": 0.5,
+        "sx": 1,
+        "sy": 1,
+        "sz": 1
+      }
+    }
+  },
+  "claims": {
+    "same_process_fixed_fixture_pose_identity": true,
+    "quaternion_nlerp_local_sampling": true,
+    "hamilton_parent_child_rotation": true,
+    "parent_rotated_child_offsets": true,
+    "rendered": false,
+    "skinning_palette_verified": false,
+    "general_rig_or_nonuniform_scale_guarantee": false,
+    "independent_engine_or_implementation": false,
+    "gpu_or_wgsl": false,
+    "cross_browser_vendor_or_machine_identity": false,
+    "slerp": false,
+    "minimax_slerp": false
+  },
+  "environment": {
+    "execution": "single-process-cpu-javascript",
+    "os": "win32 10.0.26200",
+    "arch": "x64",
+    "cpu_model": "11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz",
+    "logical_cores": 16,
+    "node": "v24.15.0"
+  },
+  "measured_at": "2026-07-17T14:21:32.140Z"
+}
