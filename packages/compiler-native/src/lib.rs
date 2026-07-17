@@ -6,8 +6,10 @@
 //! slots with explicit loads and stores. `hs-machine-v3` adds typed references whose
 //! provenance and borrow state remain compiler-owned rather than becoming integer
 //! addresses. `hs-machine-v4` adds lexical lifetime boundaries that release scoped
-//! borrows and remove scoped bindings. Everything outside the selected contract fails
-//! closed with a native compile diagnostic.
+//! borrows and remove scoped bindings. `hs-machine-v5` adds native booleans,
+//! comparisons, short-circuit logic, branches, and bounded while loops with cleanup
+//! on every lexical-scope exit. Everything outside the selected contract fails closed
+//! with a native compile diagnostic.
 
 use std::collections::{HashMap, HashSet};
 use std::env;
@@ -17,13 +19,16 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use cranelift::codegen::ir::{
-    types, AbiParam, InstBuilder, StackSlot, StackSlotData, StackSlotKind, UserFuncName, Value,
+    condcodes::IntCC, types, AbiParam, InstBuilder, StackSlot, StackSlotData, StackSlotKind,
+    UserFuncName, Value,
 };
 use cranelift::codegen::settings;
 use cranelift::frontend::{FunctionBuilder, FunctionBuilderContext};
 use cranelift::module::{default_libcall_names, FuncId, Linkage, Module};
 use cranelift::object::{ObjectBuilder, ObjectModule};
-use holoscript_wasm::ast::{AssignmentNode, Ast, AstNode, CallExpression, FunctionNode};
+use holoscript_wasm::ast::{
+    AssignmentNode, Ast, AstNode, BinaryExpression, CallExpression, FunctionNode,
+};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
@@ -32,6 +37,7 @@ pub const TYPED_MACHINE_CONTRACT: &str = "hs-machine-v1";
 pub const MEMORY_MACHINE_CONTRACT: &str = "hs-machine-v2";
 pub const REFERENCE_MACHINE_CONTRACT: &str = "hs-machine-v3";
 pub const REFERENCE_SCOPE_MACHINE_CONTRACT: &str = "hs-machine-v4";
+pub const CONTROL_FLOW_MACHINE_CONTRACT: &str = "hs-machine-v5";
 
 struct CompiledObject {
     bytes: Vec<u8>,
@@ -110,7 +116,12 @@ fn compile_unit(
         NativeCompileError::new(format!("HoloScript parse failed: {rendered}"))
     })?;
 
-    if has_scope_machine_metadata(&ast) {
+    if has_control_flow_machine_metadata(&ast) {
+        Ok(CompiledObject {
+            bytes: lower_typed_ast_to_object(&ast, CONTROL_FLOW_MACHINE_CONTRACT, true)?,
+            machine_contract: CONTROL_FLOW_MACHINE_CONTRACT,
+        })
+    } else if has_scope_machine_metadata(&ast) {
         Ok(CompiledObject {
             bytes: lower_typed_ast_to_object(&ast, REFERENCE_SCOPE_MACHINE_CONTRACT, true)?,
             machine_contract: REFERENCE_SCOPE_MACHINE_CONTRACT,
@@ -326,6 +337,69 @@ fn has_scope_machine_metadata(ast: &Ast) -> bool {
     })
 }
 
+fn has_control_flow_machine_metadata(ast: &Ast) -> bool {
+    ast.body.iter().any(|node| {
+        let AstNode::Function(function) = node else {
+            return false;
+        };
+        function
+            .return_type
+            .as_deref()
+            .is_some_and(annotation_uses_bool)
+            || function
+                .param_types
+                .iter()
+                .flatten()
+                .any(|annotation| annotation_uses_bool(annotation))
+            || function.body.iter().any(node_uses_control_flow)
+    })
+}
+
+fn annotation_uses_bool(annotation: &str) -> bool {
+    matches!(annotation, "bool" | "&bool" | "&mut bool")
+}
+
+fn node_uses_control_flow(node: &AstNode) -> bool {
+    match node {
+        AstNode::Boolean(_) | AstNode::If(_) | AstNode::While(_) => true,
+        AstNode::VariableDeclaration(local) => {
+            local
+                .type_annotation
+                .as_deref()
+                .is_some_and(annotation_uses_bool)
+                || node_uses_control_flow(&local.value)
+        }
+        AstNode::StackSlotDeclaration(slot) => {
+            annotation_uses_bool(&slot.type_annotation) || node_uses_control_flow(&slot.value)
+        }
+        AstNode::LexicalScope(scope) => scope.body.iter().any(|statement| {
+            matches!(statement, AstNode::Return(_)) || node_uses_control_flow(statement)
+        }),
+        AstNode::UnaryExpression(unary) => {
+            unary.operator == "!" || node_uses_control_flow(&unary.argument)
+        }
+        AstNode::BinaryExpression(binary) => {
+            matches!(
+                binary.operator.as_str(),
+                "==" | "!=" | "<" | "<=" | ">" | ">=" | "&&" | "||"
+            ) || node_uses_control_flow(&binary.left)
+                || node_uses_control_flow(&binary.right)
+        }
+        AstNode::Assignment(assignment) => {
+            node_uses_control_flow(&assignment.target) || node_uses_control_flow(&assignment.value)
+        }
+        AstNode::CallExpression(call) => {
+            node_uses_control_flow(&call.callee)
+                || call.arguments.iter().any(node_uses_control_flow)
+        }
+        AstNode::Return(return_node) => return_node
+            .argument
+            .as_deref()
+            .is_some_and(node_uses_control_flow),
+        _ => false,
+    }
+}
+
 fn node_uses_lexical_scope(node: &AstNode) -> bool {
     match node {
         AstNode::LexicalScope(_) => true,
@@ -379,6 +453,7 @@ fn node_uses_reference_syntax(node: &AstNode) -> bool {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum MachineType {
+    Bool,
     I32,
     I64,
 }
@@ -390,16 +465,25 @@ impl MachineType {
         machine_contract: &str,
     ) -> Result<Self, NativeCompileError> {
         match name {
+            "bool" if machine_contract == CONTROL_FLOW_MACHINE_CONTRACT => Ok(Self::Bool),
             "i32" => Ok(Self::I32),
             "i64" => Ok(Self::I64),
-            other => Err(NativeCompileError::new(format!(
-                "{machine_contract} supports only `i32` and `i64`; {context} uses `{other}`"
-            ))),
+            other => {
+                let supported = if machine_contract == CONTROL_FLOW_MACHINE_CONTRACT {
+                    "`bool`, `i32`, and `i64`"
+                } else {
+                    "`i32` and `i64`"
+                };
+                Err(NativeCompileError::new(format!(
+                    "{machine_contract} supports only {supported}; {context} uses `{other}`"
+                )))
+            }
         }
     }
 
     fn ir_type(self) -> cranelift::codegen::ir::Type {
         match self {
+            Self::Bool => types::I8,
             Self::I32 => types::I32,
             Self::I64 => types::I64,
         }
@@ -407,6 +491,7 @@ impl MachineType {
 
     fn name(self) -> &'static str {
         match self {
+            Self::Bool => "bool",
             Self::I32 => "i32",
             Self::I64 => "i64",
         }
@@ -414,6 +499,7 @@ impl MachineType {
 
     fn stack_size(self) -> u32 {
         match self {
+            Self::Bool => 1,
             Self::I32 => 4,
             Self::I64 => 8,
         }
@@ -421,6 +507,7 @@ impl MachineType {
 
     fn stack_align_shift(self) -> u8 {
         match self {
+            Self::Bool => 0,
             Self::I32 => 2,
             Self::I64 => 3,
         }
@@ -491,10 +578,16 @@ struct TypedReference {
     mutable: bool,
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 struct BorrowState {
     shared: usize,
     exclusive: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum FlowOutcome {
+    FallsThrough,
+    Returns,
 }
 
 fn lower_typed_ast_to_object(
@@ -609,6 +702,7 @@ fn lower_typed_ast_to_object(
         let call = builder.ins().call(local_main, &[]);
         let value = builder.inst_results(call)[0];
         let exit_code = match source_main.result {
+            MachineType::Bool => builder.ins().uextend(types::I32, value),
             MachineType::I32 => value,
             MachineType::I64 => builder.ins().ireduce(types::I32, value),
         };
@@ -646,7 +740,10 @@ fn collect_typed_function_specs<'a>(
         };
         if matches!(
             machine_contract,
-            MEMORY_MACHINE_CONTRACT | REFERENCE_MACHINE_CONTRACT | REFERENCE_SCOPE_MACHINE_CONTRACT
+            MEMORY_MACHINE_CONTRACT
+                | REFERENCE_MACHINE_CONTRACT
+                | REFERENCE_SCOPE_MACHINE_CONTRACT
+                | CONTROL_FLOW_MACHINE_CONTRACT
         ) && matches!(function.name.as_str(), "load" | "store")
         {
             return Err(NativeCompileError::new(format!(
@@ -681,7 +778,9 @@ fn collect_typed_function_specs<'a>(
                 })?;
             if matches!(
                 machine_contract,
-                REFERENCE_MACHINE_CONTRACT | REFERENCE_SCOPE_MACHINE_CONTRACT
+                REFERENCE_MACHINE_CONTRACT
+                    | REFERENCE_SCOPE_MACHINE_CONTRACT
+                    | CONTROL_FLOW_MACHINE_CONTRACT
             ) && type_name.starts_with('&')
             {
                 return Err(NativeCompileError::new(format!(
@@ -703,7 +802,9 @@ fn collect_typed_function_specs<'a>(
         })?;
         if matches!(
             machine_contract,
-            REFERENCE_MACHINE_CONTRACT | REFERENCE_SCOPE_MACHINE_CONTRACT
+            REFERENCE_MACHINE_CONTRACT
+                | REFERENCE_SCOPE_MACHINE_CONTRACT
+                | CONTROL_FLOW_MACHINE_CONTRACT
         ) && return_name.starts_with('&')
         {
             return Err(NativeCompileError::new(format!(
@@ -736,6 +837,11 @@ fn collect_typed_function_specs<'a>(
             "{machine_contract} `main` cannot declare parameters"
         )));
     }
+    if main.result == MachineType::Bool {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} process entry `main` must return `i32` or `i64`"
+        )));
+    }
     Ok(specs)
 }
 
@@ -765,7 +871,7 @@ fn lower_typed_body(
     let mut references = HashMap::new();
     let mut borrow_states = HashMap::new();
     let mut function_borrow_leases = Vec::new();
-    let returned = lower_typed_statements(
+    let outcome = lower_typed_statements(
         builder,
         module,
         functions,
@@ -781,7 +887,7 @@ fn lower_typed_body(
         true,
     )?;
 
-    if !returned {
+    if outcome != FlowOutcome::Returns {
         return Err(NativeCompileError::new(format!(
             "{machine_contract} function `{}` has no return statement",
             spec.node.name
@@ -805,10 +911,10 @@ fn lower_typed_statements(
     machine_contract: &str,
     memory_enabled: bool,
     allow_return: bool,
-) -> Result<bool, NativeCompileError> {
-    let mut returned = false;
+) -> Result<FlowOutcome, NativeCompileError> {
+    let mut outcome = FlowOutcome::FallsThrough;
     for (index, statement) in statements.iter().enumerate() {
-        if returned {
+        if outcome == FlowOutcome::Returns {
             return Err(NativeCompileError::new(format!(
                 "{machine_contract} function `{}` contains unreachable statements after return",
                 spec.node.name
@@ -835,7 +941,9 @@ fn lower_typed_statements(
                 {
                     if !matches!(
                         machine_contract,
-                        REFERENCE_MACHINE_CONTRACT | REFERENCE_SCOPE_MACHINE_CONTRACT
+                        REFERENCE_MACHINE_CONTRACT
+                            | REFERENCE_SCOPE_MACHINE_CONTRACT
+                            | CONTROL_FLOW_MACHINE_CONTRACT
                     ) {
                         return Err(NativeCompileError::new(format!(
                             "{machine_contract} does not enable typed references"
@@ -963,7 +1071,9 @@ fn lower_typed_statements(
             AstNode::Assignment(assignment)
                 if matches!(
                     machine_contract,
-                    REFERENCE_MACHINE_CONTRACT | REFERENCE_SCOPE_MACHINE_CONTRACT
+                    REFERENCE_MACHINE_CONTRACT
+                        | REFERENCE_SCOPE_MACHINE_CONTRACT
+                        | CONTROL_FLOW_MACHINE_CONTRACT
                 ) =>
             {
                 lower_reference_assignment(
@@ -979,9 +1089,12 @@ fn lower_typed_statements(
                 )?;
             }
             AstNode::LexicalScope(scope)
-                if machine_contract == REFERENCE_SCOPE_MACHINE_CONTRACT =>
+                if matches!(
+                    machine_contract,
+                    REFERENCE_SCOPE_MACHINE_CONTRACT | CONTROL_FLOW_MACHINE_CONTRACT
+                ) =>
             {
-                lower_lexical_scope(
+                outcome = lower_lexical_scope(
                     builder,
                     module,
                     functions,
@@ -990,6 +1103,36 @@ fn lower_typed_statements(
                     references,
                     borrow_states,
                     scope,
+                    spec,
+                    machine_contract,
+                    memory_enabled,
+                )?;
+            }
+            AstNode::If(if_node) if machine_contract == CONTROL_FLOW_MACHINE_CONTRACT => {
+                outcome = lower_typed_if(
+                    builder,
+                    module,
+                    functions,
+                    locals,
+                    stack_slots,
+                    references,
+                    borrow_states,
+                    if_node,
+                    spec,
+                    machine_contract,
+                    memory_enabled,
+                )?;
+            }
+            AstNode::While(while_node) if machine_contract == CONTROL_FLOW_MACHINE_CONTRACT => {
+                lower_typed_while(
+                    builder,
+                    module,
+                    functions,
+                    locals,
+                    stack_slots,
+                    references,
+                    borrow_states,
+                    while_node,
                     spec,
                     machine_contract,
                     memory_enabled,
@@ -1035,7 +1178,7 @@ fn lower_typed_statements(
                     memory_enabled,
                 )?;
                 builder.ins().return_(&[value.value]);
-                returned = true;
+                outcome = FlowOutcome::Returns;
             }
             _ => {
                 let supported = if memory_enabled {
@@ -1051,7 +1194,150 @@ fn lower_typed_statements(
         }
     }
 
-    Ok(returned)
+    Ok(outcome)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn lower_typed_if(
+    builder: &mut FunctionBuilder<'_>,
+    module: &mut ObjectModule,
+    functions: &HashMap<String, TypedFunctionAbi>,
+    locals: &mut HashMap<String, TypedValue>,
+    stack_slots: &mut HashMap<String, TypedStackSlot>,
+    references: &mut HashMap<String, TypedReference>,
+    borrow_states: &mut HashMap<String, BorrowState>,
+    if_node: &holoscript_wasm::ast::IfNode,
+    spec: &TypedFunctionSpec<'_>,
+    machine_contract: &str,
+    memory_enabled: bool,
+) -> Result<FlowOutcome, NativeCompileError> {
+    let condition = lower_typed_expression(
+        builder,
+        module,
+        functions,
+        locals,
+        stack_slots,
+        references,
+        borrow_states,
+        &if_node.test,
+        MachineType::Bool,
+        "if condition",
+        machine_contract,
+        memory_enabled,
+    )?;
+    let consequent_block = builder.create_block();
+    let alternate_block = builder.create_block();
+    let merge_block = builder.create_block();
+    builder
+        .ins()
+        .brif(condition.value, consequent_block, &[], alternate_block, &[]);
+
+    builder.switch_to_block(consequent_block);
+    let consequent_outcome = lower_scoped_statements(
+        builder,
+        module,
+        functions,
+        locals,
+        stack_slots,
+        references,
+        borrow_states,
+        &if_node.consequent,
+        spec,
+        machine_contract,
+        memory_enabled,
+        true,
+    )?;
+    if consequent_outcome == FlowOutcome::FallsThrough {
+        builder.ins().jump(merge_block, &[]);
+    }
+
+    builder.switch_to_block(alternate_block);
+    let alternate = if_node.alternate.as_deref().unwrap_or(&[]);
+    let alternate_outcome = lower_scoped_statements(
+        builder,
+        module,
+        functions,
+        locals,
+        stack_slots,
+        references,
+        borrow_states,
+        alternate,
+        spec,
+        machine_contract,
+        memory_enabled,
+        true,
+    )?;
+    if alternate_outcome == FlowOutcome::FallsThrough {
+        builder.ins().jump(merge_block, &[]);
+    }
+
+    if consequent_outcome == FlowOutcome::Returns && alternate_outcome == FlowOutcome::Returns {
+        Ok(FlowOutcome::Returns)
+    } else {
+        builder.switch_to_block(merge_block);
+        Ok(FlowOutcome::FallsThrough)
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn lower_typed_while(
+    builder: &mut FunctionBuilder<'_>,
+    module: &mut ObjectModule,
+    functions: &HashMap<String, TypedFunctionAbi>,
+    locals: &mut HashMap<String, TypedValue>,
+    stack_slots: &mut HashMap<String, TypedStackSlot>,
+    references: &mut HashMap<String, TypedReference>,
+    borrow_states: &mut HashMap<String, BorrowState>,
+    while_node: &holoscript_wasm::ast::WhileNode,
+    spec: &TypedFunctionSpec<'_>,
+    machine_contract: &str,
+    memory_enabled: bool,
+) -> Result<(), NativeCompileError> {
+    let header_block = builder.create_block();
+    let body_block = builder.create_block();
+    let exit_block = builder.create_block();
+    builder.ins().jump(header_block, &[]);
+
+    builder.switch_to_block(header_block);
+    let condition = lower_typed_expression(
+        builder,
+        module,
+        functions,
+        locals,
+        stack_slots,
+        references,
+        borrow_states,
+        &while_node.test,
+        MachineType::Bool,
+        "while condition",
+        machine_contract,
+        memory_enabled,
+    )?;
+    builder
+        .ins()
+        .brif(condition.value, body_block, &[], exit_block, &[]);
+
+    builder.switch_to_block(body_block);
+    let body_outcome = lower_scoped_statements(
+        builder,
+        module,
+        functions,
+        locals,
+        stack_slots,
+        references,
+        borrow_states,
+        &while_node.body,
+        spec,
+        machine_contract,
+        memory_enabled,
+        true,
+    )?;
+    if body_outcome == FlowOutcome::FallsThrough {
+        builder.ins().jump(header_block, &[]);
+    }
+
+    builder.switch_to_block(exit_block);
+    Ok(())
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -1067,13 +1353,45 @@ fn lower_lexical_scope(
     spec: &TypedFunctionSpec<'_>,
     machine_contract: &str,
     memory_enabled: bool,
-) -> Result<(), NativeCompileError> {
+) -> Result<FlowOutcome, NativeCompileError> {
+    lower_scoped_statements(
+        builder,
+        module,
+        functions,
+        locals,
+        stack_slots,
+        references,
+        borrow_states,
+        &scope.body,
+        spec,
+        machine_contract,
+        memory_enabled,
+        machine_contract == CONTROL_FLOW_MACHINE_CONTRACT,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn lower_scoped_statements(
+    builder: &mut FunctionBuilder<'_>,
+    module: &mut ObjectModule,
+    functions: &HashMap<String, TypedFunctionAbi>,
+    locals: &mut HashMap<String, TypedValue>,
+    stack_slots: &mut HashMap<String, TypedStackSlot>,
+    references: &mut HashMap<String, TypedReference>,
+    borrow_states: &mut HashMap<String, BorrowState>,
+    statements: &[AstNode],
+    spec: &TypedFunctionSpec<'_>,
+    machine_contract: &str,
+    memory_enabled: bool,
+    allow_return: bool,
+) -> Result<FlowOutcome, NativeCompileError> {
     let outer_locals = locals.keys().cloned().collect::<HashSet<_>>();
     let outer_stack_slots = stack_slots.keys().cloned().collect::<HashSet<_>>();
     let outer_references = references.keys().cloned().collect::<HashSet<_>>();
+    let outer_borrow_states = borrow_states.clone();
     let mut scoped_borrow_leases = Vec::new();
 
-    lower_typed_statements(
+    let outcome = lower_typed_statements(
         builder,
         module,
         functions,
@@ -1082,11 +1400,11 @@ fn lower_lexical_scope(
         references,
         borrow_states,
         &mut scoped_borrow_leases,
-        &scope.body,
+        statements,
         spec,
         machine_contract,
         memory_enabled,
-        false,
+        allow_return,
     )?;
 
     for reference in scoped_borrow_leases.iter().rev() {
@@ -1098,7 +1416,13 @@ fn lower_lexical_scope(
     borrow_states.retain(|slot_name, state| {
         outer_stack_slots.contains(slot_name) && (state.shared > 0 || state.exclusive)
     });
-    Ok(())
+    if *borrow_states != outer_borrow_states {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} cleanup edge changed outer borrow state in function `{}`",
+            spec.node.name
+        )));
+    }
+    Ok(outcome)
 }
 
 fn release_borrow(
@@ -1342,6 +1666,12 @@ fn lower_typed_expression(
     let value = match node {
         AstNode::Number(number) => {
             let value = match expected {
+                MachineType::Bool => {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} {context} expects `bool`, but `{}` is an integer literal",
+                        number.raw
+                    )));
+                }
                 MachineType::I32 => number.raw.parse::<i32>().map(i64::from).map_err(|_| {
                     NativeCompileError::new(format!(
                         "{machine_contract} {context} requires an `i32` literal; found `{}`",
@@ -1358,6 +1688,18 @@ fn lower_typed_expression(
             TypedValue {
                 value: builder.ins().iconst(expected.ir_type(), value),
                 machine_type: expected,
+            }
+        }
+        AstNode::Boolean(boolean) => {
+            if expected != MachineType::Bool {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} {context} expects `{}`, but found `bool`",
+                    expected.name()
+                )));
+            }
+            TypedValue {
+                value: builder.ins().iconst(types::I8, i64::from(boolean.value)),
+                machine_type: MachineType::Bool,
             }
         }
         AstNode::Identifier(identifier) => {
@@ -1382,6 +1724,11 @@ fn lower_typed_expression(
             require_type(value, expected, context, machine_contract)?
         }
         AstNode::UnaryExpression(unary) if unary.operator == "-" => {
+            if expected == MachineType::Bool {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} unary `-` requires an integer operand"
+                )));
+            }
             let argument = lower_typed_expression(
                 builder,
                 module,
@@ -1401,6 +1748,32 @@ fn lower_typed_expression(
                 machine_type: expected,
             }
         }
+        AstNode::UnaryExpression(unary) if unary.operator == "!" => {
+            if expected != MachineType::Bool {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} logical `!` produces `bool`, but {context} expects `{}`",
+                    expected.name()
+                )));
+            }
+            let argument = lower_typed_expression(
+                builder,
+                module,
+                functions,
+                locals,
+                stack_slots,
+                references,
+                borrow_states,
+                &unary.argument,
+                MachineType::Bool,
+                context,
+                machine_contract,
+                memory_enabled,
+            )?;
+            TypedValue {
+                value: builder.ins().icmp_imm(IntCC::Equal, argument.value, 0),
+                machine_type: MachineType::Bool,
+            }
+        }
         AstNode::UnaryExpression(unary) if unary.operator == "*" => lower_reference_dereference(
             builder,
             stack_slots,
@@ -1416,7 +1789,50 @@ fn lower_typed_expression(
                 unary.operator
             )));
         }
+        AstNode::BinaryExpression(binary)
+            if matches!(
+                binary.operator.as_str(),
+                "==" | "!=" | "<" | "<=" | ">" | ">="
+            ) =>
+        {
+            return lower_typed_comparison(
+                builder,
+                module,
+                functions,
+                locals,
+                stack_slots,
+                references,
+                borrow_states,
+                binary,
+                expected,
+                context,
+                machine_contract,
+                memory_enabled,
+            );
+        }
+        AstNode::BinaryExpression(binary) if matches!(binary.operator.as_str(), "&&" | "||") => {
+            return lower_typed_logical(
+                builder,
+                module,
+                functions,
+                locals,
+                stack_slots,
+                references,
+                borrow_states,
+                binary,
+                expected,
+                context,
+                machine_contract,
+                memory_enabled,
+            );
+        }
         AstNode::BinaryExpression(binary) => {
+            if expected == MachineType::Bool {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} operator `{}` requires integer operands",
+                    binary.operator
+                )));
+            }
             let left = lower_typed_expression(
                 builder,
                 module,
@@ -1544,6 +1960,227 @@ fn lower_typed_expression(
         }
     };
     Ok(value)
+}
+
+fn known_expression_type(
+    node: &AstNode,
+    functions: &HashMap<String, TypedFunctionAbi>,
+    locals: &HashMap<String, TypedValue>,
+    stack_slots: &HashMap<String, TypedStackSlot>,
+    references: &HashMap<String, TypedReference>,
+) -> Option<MachineType> {
+    match node {
+        AstNode::Boolean(_) => Some(MachineType::Bool),
+        AstNode::Identifier(identifier) => {
+            locals.get(&identifier.name).map(|value| value.machine_type)
+        }
+        AstNode::UnaryExpression(unary) if unary.operator == "!" => Some(MachineType::Bool),
+        AstNode::UnaryExpression(unary) if unary.operator == "*" => {
+            let AstNode::Identifier(identifier) = unary.argument.as_ref() else {
+                return None;
+            };
+            references
+                .get(&identifier.name)
+                .map(|reference| reference.pointee)
+        }
+        AstNode::UnaryExpression(unary) if unary.operator == "-" => {
+            known_expression_type(&unary.argument, functions, locals, stack_slots, references)
+        }
+        AstNode::BinaryExpression(binary)
+            if matches!(
+                binary.operator.as_str(),
+                "==" | "!=" | "<" | "<=" | ">" | ">=" | "&&" | "||"
+            ) =>
+        {
+            Some(MachineType::Bool)
+        }
+        AstNode::BinaryExpression(binary) => {
+            known_expression_type(&binary.left, functions, locals, stack_slots, references).or_else(
+                || known_expression_type(&binary.right, functions, locals, stack_slots, references),
+            )
+        }
+        AstNode::CallExpression(call) => {
+            let AstNode::Identifier(callee) = call.callee.as_ref() else {
+                return None;
+            };
+            if callee.name == "load" {
+                let AstNode::Identifier(slot) = call.arguments.first()? else {
+                    return None;
+                };
+                stack_slots.get(&slot.name).map(|slot| slot.machine_type)
+            } else {
+                functions.get(&callee.name).map(|abi| abi.result)
+            }
+        }
+        _ => None,
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn lower_typed_comparison(
+    builder: &mut FunctionBuilder<'_>,
+    module: &mut ObjectModule,
+    functions: &HashMap<String, TypedFunctionAbi>,
+    locals: &HashMap<String, TypedValue>,
+    stack_slots: &HashMap<String, TypedStackSlot>,
+    references: &HashMap<String, TypedReference>,
+    borrow_states: &HashMap<String, BorrowState>,
+    binary: &BinaryExpression,
+    expected: MachineType,
+    context: &str,
+    machine_contract: &str,
+    memory_enabled: bool,
+) -> Result<TypedValue, NativeCompileError> {
+    if expected != MachineType::Bool {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} comparison `{}` produces `bool`, but {context} expects `{}`",
+            binary.operator,
+            expected.name()
+        )));
+    }
+
+    let left_type = known_expression_type(&binary.left, functions, locals, stack_slots, references);
+    let right_type =
+        known_expression_type(&binary.right, functions, locals, stack_slots, references);
+    let operand_type = match (left_type, right_type) {
+        (Some(left), Some(right)) if left == right => left,
+        (Some(left), None) if left != MachineType::Bool => left,
+        (None, Some(right)) if right != MachineType::Bool => right,
+        (None, None) => MachineType::I32,
+        _ => {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} comparison operands have incompatible types"
+            )));
+        }
+    };
+    if operand_type == MachineType::Bool && !matches!(binary.operator.as_str(), "==" | "!=") {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} ordering comparison `{}` requires integer operands",
+            binary.operator
+        )));
+    }
+
+    let left = lower_typed_expression(
+        builder,
+        module,
+        functions,
+        locals,
+        stack_slots,
+        references,
+        borrow_states,
+        &binary.left,
+        operand_type,
+        "left comparison operand",
+        machine_contract,
+        memory_enabled,
+    )?;
+    let right = lower_typed_expression(
+        builder,
+        module,
+        functions,
+        locals,
+        stack_slots,
+        references,
+        borrow_states,
+        &binary.right,
+        operand_type,
+        "right comparison operand",
+        machine_contract,
+        memory_enabled,
+    )?;
+    let condition = match binary.operator.as_str() {
+        "==" => IntCC::Equal,
+        "!=" => IntCC::NotEqual,
+        "<" => IntCC::SignedLessThan,
+        "<=" => IntCC::SignedLessThanOrEqual,
+        ">" => IntCC::SignedGreaterThan,
+        ">=" => IntCC::SignedGreaterThanOrEqual,
+        _ => unreachable!("comparison operators are filtered by the caller"),
+    };
+    Ok(TypedValue {
+        value: builder.ins().icmp(condition, left.value, right.value),
+        machine_type: MachineType::Bool,
+    })
+}
+
+#[allow(clippy::too_many_arguments)]
+fn lower_typed_logical(
+    builder: &mut FunctionBuilder<'_>,
+    module: &mut ObjectModule,
+    functions: &HashMap<String, TypedFunctionAbi>,
+    locals: &HashMap<String, TypedValue>,
+    stack_slots: &HashMap<String, TypedStackSlot>,
+    references: &HashMap<String, TypedReference>,
+    borrow_states: &HashMap<String, BorrowState>,
+    binary: &BinaryExpression,
+    expected: MachineType,
+    context: &str,
+    machine_contract: &str,
+    memory_enabled: bool,
+) -> Result<TypedValue, NativeCompileError> {
+    if expected != MachineType::Bool {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} logical `{}` produces `bool`, but {context} expects `{}`",
+            binary.operator,
+            expected.name()
+        )));
+    }
+    let left = lower_typed_expression(
+        builder,
+        module,
+        functions,
+        locals,
+        stack_slots,
+        references,
+        borrow_states,
+        &binary.left,
+        MachineType::Bool,
+        "left logical operand",
+        machine_contract,
+        memory_enabled,
+    )?;
+    let right_block = builder.create_block();
+    let short_block = builder.create_block();
+    let merge_block = builder.create_block();
+    let result = builder.append_block_param(merge_block, types::I8);
+    if binary.operator == "&&" {
+        builder
+            .ins()
+            .brif(left.value, right_block, &[], short_block, &[]);
+    } else {
+        builder
+            .ins()
+            .brif(left.value, short_block, &[], right_block, &[]);
+    }
+
+    builder.switch_to_block(short_block);
+    let short_value = builder
+        .ins()
+        .iconst(types::I8, i64::from(binary.operator == "||"));
+    builder.ins().jump(merge_block, &[short_value.into()]);
+
+    builder.switch_to_block(right_block);
+    let right = lower_typed_expression(
+        builder,
+        module,
+        functions,
+        locals,
+        stack_slots,
+        references,
+        borrow_states,
+        &binary.right,
+        MachineType::Bool,
+        "right logical operand",
+        machine_contract,
+        memory_enabled,
+    )?;
+    builder.ins().jump(merge_block, &[right.value.into()]);
+
+    builder.switch_to_block(merge_block);
+    Ok(TypedValue {
+        value: result,
+        machine_type: MachineType::Bool,
+    })
 }
 
 fn lower_typed_load(

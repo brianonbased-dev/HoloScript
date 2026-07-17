@@ -53,6 +53,58 @@ const SCOPED_REFERENCE_EXIT_FIVE: &str = r#"
         return load(value)
     }
 "#;
+const CONTROL_FLOW_EXIT_FIVE: &str = r#"
+    function below(left: i32, right: i32): bool {
+        return left < right
+    }
+
+    function select(flag: bool, left: i32, right: i32): i32 {
+        if (flag) {
+            return left
+        } else {
+            return right
+        }
+    }
+
+    function main(): i32 {
+        slot counter: i32 = 0
+        while (below(load(counter), 5)) {
+            scope {
+                let writer: &mut i32 = &mut counter
+                *writer = *writer + 1
+            }
+        }
+        scope {
+            let view: &i32 = &counter
+            if (*view == 5 && true) {
+                return select(false, 2, *view)
+            }
+        }
+        return 1
+    }
+"#;
+const CONTROL_FLOW_BOOL_MEMORY_EXIT_FIVE: &str = r#"
+    function ordered(left: i64, right: i64): bool {
+        return left < right
+    }
+
+    function main(): i32 {
+        slot flag: bool = false
+        scope {
+            let writer: &mut bool = &mut flag
+            *writer = !*writer
+        }
+        if (load(flag) || false) {
+            if (2 != 3 && 2 <= 2 && 3 > 2 && 3 >= 3 && ordered(-1, 2)) {
+                return 5
+            } else {
+                return 2
+            }
+        } else {
+            return 1
+        }
+    }
+"#;
 
 fn scratch_executable(name: &str) -> std::path::PathBuf {
     let nonce = SystemTime::now()
@@ -192,6 +244,39 @@ fn compiles_scoped_reference_lifetimes_and_releases_borrows() {
 }
 
 #[test]
+fn compiles_bool_branches_loops_and_early_scope_cleanup_edges() {
+    let executable = scratch_executable("native-control-flow");
+    let artifact = compile_executable(
+        CONTROL_FLOW_EXIT_FIVE,
+        &executable,
+        &NativeCompileOptions::host(),
+    )
+    .expect("typed control flow should compile to a native executable");
+
+    assert_eq!(artifact.machine_contract, "hs-machine-v5");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("control-flow executable should run");
+    assert_eq!(status.code(), Some(5));
+    fs::remove_file(&artifact.executable).expect("remove control-flow executable");
+
+    let executable = scratch_executable("native-bool-memory");
+    let artifact = compile_executable(
+        CONTROL_FLOW_BOOL_MEMORY_EXIT_FIVE,
+        &executable,
+        &NativeCompileOptions::host(),
+    )
+    .expect("bool slots, bool references, logical operators, and comparisons should compile");
+
+    assert_eq!(artifact.machine_contract, "hs-machine-v5");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("bool-memory executable should run");
+    assert_eq!(status.code(), Some(5));
+    fs::remove_file(&artifact.executable).expect("remove bool-memory executable");
+}
+
+#[test]
 fn emits_deterministic_objects_for_the_same_source() {
     let options = NativeCompileOptions::host();
 
@@ -202,12 +287,131 @@ fn emits_deterministic_objects_for_the_same_source() {
         REFERENCE_EXIT_FIVE,
         MUTABLE_REFERENCE_EXIT_FIVE,
         SCOPED_REFERENCE_EXIT_FIVE,
+        CONTROL_FLOW_EXIT_FIVE,
+        CONTROL_FLOW_BOOL_MEMORY_EXIT_FIVE,
     ] {
         let first = compile_object(source, &options).expect("first object should compile");
         let second = compile_object(source, &options).expect("second object should compile");
 
         assert_eq!(first, second);
     }
+}
+
+#[test]
+fn control_flow_contract_enforces_types_and_edge_scopes() {
+    let options = NativeCompileOptions::host();
+
+    let branch_local_escape = compile_object(
+        r#"function main(): i32 {
+           if (true) { let inner: i32 = 5 }
+           return inner
+         }"#,
+        &options,
+    )
+    .expect_err("branch-local scalar bindings must not survive the join");
+    assert!(branch_local_escape
+        .to_string()
+        .contains("references unknown local `inner`"));
+
+    let branch_reference_escape = compile_object(
+        r#"function main(): i32 {
+           slot value: i32 = 5
+           if (true) { let view: &i32 = &value }
+           return *view
+         }"#,
+        &options,
+    )
+    .expect_err("branch-local references must not survive the join");
+    assert!(branch_reference_escape
+        .to_string()
+        .contains("`view` is not a typed local reference"));
+
+    let non_bool_condition = compile_object(
+        "function main(): i32 { if (1) { return 5 } else { return 2 } }",
+        &options,
+    )
+    .expect_err("if conditions must have type bool");
+    assert!(non_bool_condition
+        .to_string()
+        .contains("if condition expects `bool`"));
+
+    let mixed_comparison = compile_object(
+        "function main(): i32 { if (1 == true) { return 5 } else { return 2 } }",
+        &options,
+    )
+    .expect_err("comparison operands must have one concrete type");
+    assert!(mixed_comparison
+        .to_string()
+        .contains("comparison operands have incompatible types"));
+
+    let bool_arithmetic = compile_object(
+        "function main(): i32 { let flag: bool = true + false return 5 }",
+        &options,
+    )
+    .expect_err("boolean arithmetic must fail closed");
+    assert!(bool_arithmetic
+        .to_string()
+        .contains("operator `+` requires integer operands"));
+
+    let bool_ordering = compile_object(
+        "function main(): i32 { if (true < false) { return 5 } else { return 2 } }",
+        &options,
+    )
+    .expect_err("ordering comparisons must remain integer-only");
+    assert!(bool_ordering
+        .to_string()
+        .contains("ordering comparison `<` requires integer operands"));
+
+    let bool_main = compile_object("function main(): bool { return true }", &options)
+        .expect_err("the process entry point must return an integer exit status");
+    assert!(bool_main
+        .to_string()
+        .contains("process entry `main` must return `i32` or `i64`"));
+
+    let bool_reference_abi = compile_object(
+        r#"function leak(): &bool {
+           slot flag: bool = false
+           let view: &bool = &flag
+           return view
+         }
+         function main(): i32 { return 5 }"#,
+        &options,
+    )
+    .expect_err("v5 bool references must remain compiler-owned and non-escaping");
+    assert!(bool_reference_abi
+        .to_string()
+        .contains("hs-machine-v5 references cannot appear in function returns"));
+
+    let outer_borrow_after_join = compile_object(
+        r#"function main(): i32 {
+           slot value: i32 = 5
+           let view: &i32 = &value
+           if (true) {}
+           let writer: &mut i32 = &mut value
+           return *view
+         }"#,
+        &options,
+    )
+    .expect_err("a join must preserve outer borrow state");
+    assert!(outer_borrow_after_join
+        .to_string()
+        .contains("cannot mutably borrow stack slot `value`"));
+
+    let loop_local_escape = compile_object(
+        r#"function main(): i32 {
+           slot count: i32 = 0
+           while (load(count) < 1) {
+             let iteration: i32 = 5
+             store(count, load(count) + 1)
+           }
+           return iteration
+         }"#,
+        &options,
+    )
+    .expect_err("loop-body bindings must not survive the back edge");
+    assert!(loop_local_escape
+        .to_string()
+        .contains("references unknown local `iteration`"));
 }
 
 #[test]
@@ -270,25 +474,20 @@ fn scoped_reference_contract_removes_bindings_and_preserves_outer_borrows() {
            slot value: i32 = 5
            if (true) { scope { let view: &i32 = &value } }
            return load(value)
-         }"#,
+        }"#,
         &options,
     )
-    .expect_err("branch-sensitive lifetime inference must fail closed");
-    assert!(branch_lifetime
-        .to_string()
-        .contains("does not yet infer reference lifetimes across control-flow branches"));
+    .expect("v5 branch scopes must release their compiler-owned borrow leases");
+    assert!(!branch_lifetime.is_empty());
 
     let scoped_return = compile_object(
         r#"function main(): i32 {
            scope { return 5 }
-           return 0
          }"#,
         &options,
     )
-    .expect_err("scope-internal returns require versioned control-flow lowering");
-    assert!(scoped_return
-        .to_string()
-        .contains("returns inside lexical `scope` are not yet supported"));
+    .expect("v5 scope-internal returns must lower through a cleanup edge");
+    assert!(!scoped_return.is_empty());
 
     let active_shadow = compile_object(
         r#"function main(): i32 {
