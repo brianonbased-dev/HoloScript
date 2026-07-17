@@ -66,7 +66,7 @@ const TRAITS_DIR = path.resolve(__dirname, '..');
  * Do not raise this number to "fix" a failing test — a rise means a NEW
  * collision was introduced. Lowering it (as other duplicates get cleaned up)
  * is welcome and expected over time. */
-const DUPLICATE_GROUP_BASELINE = 223;
+const DUPLICATE_GROUP_BASELINE = 151;
 
 interface HoloTraitFile {
   absPath: string;
