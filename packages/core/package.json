@@ -307,6 +307,7 @@
     "@holoscript/assimp-plugin": "workspace:^",
     "@holoscript/core-types": "workspace:^",
     "@holoscript/llm-provider": "workspace:^",
+    "@holoscript/meaning": "workspace:^",
     "@holoscript/platform": "workspace:^",
     "@mediapipe/tasks-vision": "0.10.17",
     "jose": "^6.2.2",

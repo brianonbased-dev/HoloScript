@@ -180,11 +180,12 @@ The gate is CI, fails closed, and enforces:
 5. **Family-admission completeness.** A family present in HoloMeaning but missing any of its four
    loop artifacts (§4) fails `check:family-admission`.
 
-Ship order for the gate: (6.2) first — highest-leverage, cheapest. **Shipped 2026-07-17**
-(`pnpm check:language-strata`, report-only; `check:language-strata:strict` wired for the flip):
-first run lit the known HSI mirror (`HSICausalLoop.ts:79`) **and** a previously unknown second
-mirror in the GRPO reward receipt (`UAALResolutionRewards.ts:192`) — the gate earned its keep
-on day one. Then (6.1), (6.3), (6.5), (6.4).
+Ship order for the gate: (6.2) first — highest-leverage, cheapest. **Shipped 2026-07-17**:
+first run (report-only) lit the known HSI mirror (`HSICausalLoop.ts:79`) **and** a previously
+unknown second mirror in the GRPO reward receipt (`UAALResolutionRewards.ts:192`) — the gate
+earned its keep on day one. Same day, §8.2 stage 1 killed both mirrors and 6.2 went **strict**
+at the pre-commit dev floor (Gate 5g2) and in the HoloCI catalog (`language-strata`). Then
+(6.1), (6.3), (6.5), (6.4).
 
 ---
 
@@ -211,8 +212,14 @@ moves land one at a time behind receipts:
    HSI mirror (`HSICausalLoop.ts:79`) plus an unknown one in the GRPO reward receipt
    (`UAALResolutionRewards.ts:192`). Those reds **are** the pain-receipt that admits the
    extraction.
-2. **Extract HoloMeaning upstream** — move family semantics to HoloMeaning's home; `packages/uaal` and `core`
-   both import it; delete the mirror. Flip 6.2 to fail-closed.
+2. **Extract HoloMeaning upstream** — ✅ STAGE 1 DONE 2026-07-17: `@holoscript/meaning`
+   created (the contract — resolution record, status union, gap taxonomy, `structuredGap`);
+   `packages/uaal` imports + re-exports it (every existing import unchanged); core
+   (`HSICausalLoop`) and absorb-service (`UAALResolutionRewards`) import it — **both mirrors
+   deleted**. Gate 6.2 flipped to `--strict` at the pre-commit dev floor (Gate 5g2) and in the
+   HoloCI catalog (`language-strata`); a planted-mirror probe fails it, the clean tree passes.
+   REMAINING (stage 2): move the `resolve*` family bodies into the meaning home and collapse
+   the gate's CONTRACT_HOMES to one — its own WIP slice.
 3. **Re-home HSI-IR as HoloMeaning** (rename/absorb); update the three-format papers to cite HoloMeaning as
    the meaning stratum.
 4. **Turn on the remaining gate rules** (6.1, 6.3, 6.5, 6.4) once the tree is green.

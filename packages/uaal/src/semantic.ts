@@ -1,3 +1,12 @@
+// Stratum-② contract — defined ONCE in @holoscript/meaning (HoloMeaning), imported here.
+// docs/spec/language-architecture.md §3/§8.2: meaning lives upstream of both the VMs and core.
+import {
+  structuredGap,
+  type UAALGapReason,
+  type UAALStructuredGap,
+  type UAALResolution,
+} from '@holoscript/meaning';
+
 export interface UAALRateTest {
   hits: number;
   total: number;
@@ -2567,49 +2576,12 @@ export function recoverDischargeable(ir: UAALCompositionIR): DischargeableRecove
 // gaps flip to unresolvable (no false gaps — asserted by resolution.test.ts).
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type UAALGapReason =
-  | 'underdetermined'
-  | 'unprioritized_conflict'
-  | 'cyclic_dependency'
-  | 'missing_precondition';
-
-/**
- * A structured, family-scoped gap reason (roadmap Wave 0.2). The coarse `reason` (one of the four
- * base buckets) stays for backward compatibility; `gap` additionally carries the FAMILY-SCOPED code
- * plus a pointer to the offending atom, so a gap corpus can teach WHY the abstention fired
- * ('affordance.unstated_precondition') and not merely THAT it did ('missing_precondition'). Collapsing
- * every family's honesty failure into one opaque base bucket is itself a form of confabulation.
- */
-export interface UAALStructuredGap {
-  /** Family-scoped code, e.g. 'affordance.unstated_precondition' | 'beneficiary.unstated_impact'. */
-  code: string;
-  /** The semantic family that produced the abstention. */
-  family: string;
-  /** Which of the four generic base buckets this maps to (keeps `reason` and `gap` consistent). */
-  base: UAALGapReason;
-  /** Optional pointer to the missing/conflicting atom (an id or a short description). */
-  evidence?: string;
-}
-
-export interface UAALResolution<A = unknown> {
-  query: string;
-  status: 'resolved' | 'unresolvable';
-  answer?: A;
-  reason?: UAALGapReason;
-  /** Structured, family-scoped reason. Present when status==='unresolvable' on an upgraded resolver. */
-  gap?: UAALStructuredGap;
-  obstruction?: string;
-}
-
-/** Construct a structured gap and its coarse base bucket together, so they can never disagree. */
-export function structuredGap(
-  family: string,
-  code: string,
-  base: UAALGapReason,
-  evidence?: string,
-): UAALStructuredGap {
-  return { code, family, base, ...(evidence !== undefined ? { evidence } : {}) };
-}
+// ─── Resolution contract (UAALGapReason / UAALStructuredGap / UAALResolution / structuredGap) ────
+// MOVED to @holoscript/meaning (2026-07-17, language-architecture.md §8.2 stage 1) and re-exported
+// below so every existing `@holoscript/uaal` and `@holoscript/uaal/semantic` import is unchanged.
+// The definitions exist exactly once; `check:language-strata` fails any re-declaration.
+export { structuredGap };
+export type { UAALGapReason, UAALStructuredGap, UAALResolution };
 
 // Raw opacity: true | false | undefined (absent). Unlike opacityMap (which coerces absent → false via
 // Boolean()), this preserves the crucial distinction between "explicitly transparent" and "unstated".

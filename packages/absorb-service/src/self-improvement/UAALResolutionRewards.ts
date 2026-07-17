@@ -30,6 +30,7 @@
  * @module self-improvement
  */
 
+import type { MeaningResolutionStatus } from '@holoscript/meaning';
 import type { GRPORewardFunction, RewardFunctionOptions } from './GRPORewardFunctions';
 import {
   gradeByResolver,
@@ -189,7 +190,7 @@ export interface UaalResolutionReceipt {
   class: UaalResolutionClass;
   reward: number;
   /** The resolver's gold status for this row, or null when the row/gold itself failed closed. */
-  goldStatus: 'resolved' | 'unresolvable' | null;
+  goldStatus: MeaningResolutionStatus | null;
   goldCode?: string;
   emittedCode?: string;
 }

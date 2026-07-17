@@ -17,16 +17,17 @@
  *     acts on that three-state value directly and abstains (inspect) on 'unknown' rather than confabulating.
  *   - The IR is IMPORTED, never re-authored. Entity opacity, provenance digest, and the exact-trace VM all
  *     come from Stage A. This module only wires resolver -> policy -> gate -> mutation -> receipt.
- *   - HSIContainmentResolution mirrors uAAL's UAALResolution<OcclusionRecovery> STRUCTURALLY
- *     (status 'resolved'|'unresolvable' + underdetermined gap reason) so a future gradeByResolver / GRPO
- *     reward join (task e1x6) stays a no-translation step — without adding a core -> uaal dependency edge
- *     (uaal is dependency-free by design; this is the same mirror-not-import boundary the repo already uses).
+ *   - HSIContainmentResolution carries the canonical stratum-② resolution contract IMPORTED from
+ *     @holoscript/meaning (HoloMeaning; docs/spec/language-architecture.md §3), so the gradeByResolver /
+ *     GRPO reward join (task e1x6) stays a no-translation step. The former structural mirror was retired
+ *     2026-07-17: meaning lives upstream of both core and the VMs, so no core -> uaal edge is needed.
  *
  * The exact-semantic VM (runExactTrace) is the deterministic mutation plane used here; the ECS/bytecode
  * HoloVM (packages/engine) is the spatial/runtime plane, out of scope for a deterministic no-LLM proof
  * (W.830b: it is barely-wired; the exact-trace reducer is the solid, invariant-checked substrate).
  */
 
+import type { MeaningResolutionStatus } from '@holoscript/meaning';
 import type { HoloComposition } from '../parser/HoloCompositionTypes';
 import { parseHoloStrict } from '../parser/HoloCompositionParser';
 import type { Capability } from './identity/CapabilityToken';
@@ -71,12 +72,12 @@ export interface HSISceneSnapshot {
 }
 
 /**
- * Containment/occlusion resolution. Structurally mirrors uAAL UAALResolution<OcclusionRecovery>:
- * status is exactly 'resolved' | 'unresolvable'; a gap is status:'unresolvable' + reason, never a
+ * Containment/occlusion resolution, carrying the canonical resolution contract from @holoscript/meaning:
+ * status is exactly the imported MeaningResolutionStatus; a gap is status:'unresolvable' + reason, never a
  * third enum. 'unknown' opacity resolves to unresolvable/underdetermined (the abstention that drives inspect).
  */
 export interface HSIContainmentResolution {
-  readonly status: 'resolved' | 'unresolvable';
+  readonly status: MeaningResolutionStatus;
   readonly occluded: boolean | null;
   readonly occluder: string | null;
   readonly reason: string | null;

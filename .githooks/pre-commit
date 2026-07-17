@@ -515,6 +515,28 @@ else
     echo -e "  ${GREEN}✓${NC} No staged markdown"
 fi
 
+# Gate 5g2: Language-strata gate (stratum taxonomy, docs/spec/language-architecture.md §6.2).
+# The meaning stratum (HoloMeaning, @holoscript/meaning) is defined ONCE and imported — a second
+# definition of a canonical resolver name, the resolution-record union, or the gap-reason enum
+# outside the canonical homes is a mirror and is blocked. The uAAL/HSI-IR overload this prevents
+# was the root cause of the 2026-07 language-design loop (two IRs for one meaning stratum).
+echo "  ├─ Language-strata gate (one meaning, defined once)..."
+STAGED_STRATA_TS=$(git diff --cached --name-only --diff-filter=ACM -- 'packages/*/src/**/*.ts' 2>/dev/null || true)
+if [ -n "$STAGED_STRATA_TS" ]; then
+    STRATA_OUT=$(run_with_timeout 30 node scripts/holo-ci/check-language-strata.mjs --strict 2>&1)
+    STRATA_STATUS=$?
+    if [ "$STRATA_STATUS" -ne 0 ]; then
+        echo -e "  ${RED}❌ Meaning-stratum mirror (second definition outside @holoscript/meaning)${NC}"
+        echo "$STRATA_OUT"
+        echo "     Fix: import the contract from @holoscript/meaning (docs/spec/language-architecture.md §6.2); never re-declare it."
+        FAILED=1
+    else
+        echo -e "  ${GREEN}✓${NC} One meaning stratum, defined once"
+    fi
+else
+    echo -e "  ${GREEN}✓${NC} No staged package TS (language-strata skipped)"
+fi
+
 # Gate 5h: No third-party QR-code service gate (F.106/F.117: generate QR codes LOCALLY).
 # Scans STAGED packages/*/src files for a hosted QR-service hostname (api.qrserver.com et al).
 # Regression history: api.qrserver.com leaked every published .holo share/scan URL via

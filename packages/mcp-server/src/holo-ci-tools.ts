@@ -177,6 +177,17 @@ const HOLOSCRIPT_GATES: Record<string, GateSpec> = {
     profiles: ['quick', 'full'],
     resource_requirements: { max_dph: 0.2 },
   },
+  // ONE-MEANING ratchet (language stratum taxonomy 2026-07-17; docs/spec/language-architecture.md §6.2).
+  // The meaning stratum (HoloMeaning, @holoscript/meaning) is defined once and imported everywhere;
+  // a second definition of a canonical resolver name, the resolution-record union, or the gap-reason
+  // enum outside the canonical homes is a mirror and fails. Fast static check, modeled on render-surface.
+  'language-strata': {
+    description:
+      'Language-strata freeze: the meaning-stratum contract (HoloMeaning) is defined once — resolver names, the resolution-record union, and the gap-reason enum may not be re-declared outside the canonical homes',
+    step: 'node scripts/holo-ci/check-language-strata.mjs --strict',
+    profiles: ['quick', 'full'],
+    resource_requirements: { max_dph: 0.2 },
+  },
   // WRAP-WITH-RECEIPTS coverage ratchet (dependency-sovereignty-ladder, 2026-07-16).
   // Every setRequestHandler(CallToolRequestSchema) fold point under packages/mcp-server/src
   // must route through gateToolCall (tool-call-gate.ts) — the single typed gate that emits

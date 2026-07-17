@@ -26,6 +26,7 @@
     "@holoscript/llm-provider",
     "@holoscript/lsp",
     "@holoscript/mcp-server",
+    "@holoscript/meaning",
     "@holoscript/memory",
     "@holoscript/mesh",
     "@holoscript/mvc-schema",

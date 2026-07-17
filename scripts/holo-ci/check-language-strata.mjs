@@ -15,8 +15,8 @@
  *
  * WHAT IT DOES (read-only, no install, no network):
  *   - Enumerates the canonical meaning-family resolvers: `export function resolve<Family>`
- *     under the canonical home (today packages/uaal/src; the constant below moves WITH the
- *     HoloMeaning extraction, language-architecture.md §8.2 — update it in the same commit).
+ *     under the resolver home (packages/uaal/src until §8 stage 2). The CONTRACT home is
+ *     @holoscript/meaning (packages/meaning/src) — §8.2 stage 1 landed 2026-07-17.
  *   - Walks every packages/<pkg>/src TS source outside the home (skipping tests, fixtures,
  *     stories, dist, node_modules, .d.ts) and reports:
  *       RULE-A  duplicate resolver — a function/const DEFINITION reusing a canonical
@@ -31,9 +31,9 @@
  *     CONSUMING the types (imports, `=== 'unresolvable'` comparisons) never fires —
  *     only re-DECLARING them does. Consumers are the point; mirrors are the debt.
  *
- * MODE: report-only by default (exit 0 with findings printed) — the red it prints IS the
- *   pain-receipt that admits the HoloMeaning extraction (D.128 ladder). Flip to --strict
- *   (exit 1 on findings) after language-architecture.md §8.2 lands and the tree is green.
+ * MODE: report-only by default (exit 0 with findings printed); --strict exits 1 on findings.
+ *   §8.2 stage 1 landed 2026-07-17 (contract extracted to @holoscript/meaning, both mirrors
+ *   retired); the pre-commit dev floor and the HoloCI 'language-strata' gate run --strict.
  *
  * Usage:
  *   node scripts/holo-ci/check-language-strata.mjs            # report-only, always exit 0
@@ -53,9 +53,12 @@ const STRICT = args.includes('--strict');
 const rootIdx = args.indexOf('--root');
 const ROOT = rootIdx >= 0 ? args[rootIdx + 1] : process.cwd();
 
-// The ONE home of the meaning stratum. Moves with the HoloMeaning extraction
-// (docs/spec/language-architecture.md §8.2) — update in the same commit as the move.
-const CANONICAL_HOME = join('packages', 'uaal', 'src');
+// The homes of the meaning stratum during the staged extraction (language-architecture.md §8):
+//   packages/meaning/src — @holoscript/meaning, the CONTRACT home (§8.2 stage 1, landed 2026-07-17);
+//   packages/uaal/src    — the resolver bodies' pre-stage-2 home (collapses into meaning at §8.3).
+// Stage 2 reduces CONTRACT_HOMES to the meaning home alone — update in the same commit as the move.
+const CONTRACT_HOMES = [join('packages', 'meaning', 'src'), join('packages', 'uaal', 'src')];
+const RESOLVER_HOME = join('packages', 'uaal', 'src');
 
 const TAG = '[language-strata]';
 const CANON_POINTER = 'docs/spec/language-architecture.md §6.2';
@@ -87,23 +90,25 @@ function isCommentLine(line) {
   return t.startsWith('//') || t.startsWith('*') || t.startsWith('/*');
 }
 
-const homeAbs = join(ROOT, CANONICAL_HOME);
-if (!existsSync(homeAbs)) {
-  console.error(`${TAG} EXIT 2 — canonical meaning home not found: ${CANONICAL_HOME}`);
-  console.error(`${TAG} If the HoloMeaning extraction moved it, update CANONICAL_HOME in this gate (same commit).`);
-  process.exit(2);
+for (const home of CONTRACT_HOMES) {
+  if (!existsSync(join(ROOT, home))) {
+    console.error(`${TAG} EXIT 2 — canonical meaning home not found: ${home}`);
+    console.error(`${TAG} If the HoloMeaning extraction moved it, update CONTRACT_HOMES in this gate (same commit).`);
+    process.exit(2);
+  }
 }
+const resolverHomeAbs = join(ROOT, RESOLVER_HOME);
 
-// 1. Enumerate canonical resolvers from the home (self-maintaining — no hardcoded family list).
+// 1. Enumerate canonical resolvers from the resolver home (self-maintaining — no hardcoded family list).
 const canonicalResolvers = new Map(); // name -> defining file (repo-relative)
-for (const file of walk(homeAbs)) {
+for (const file of walk(resolverHomeAbs)) {
   const text = readFileSync(file, 'utf8');
   for (const m of text.matchAll(RESOLVER_EXPORT)) {
     canonicalResolvers.set(m[1], relative(ROOT, file).split(sep).join('/'));
   }
 }
 if (canonicalResolvers.size === 0) {
-  console.error(`${TAG} EXIT 2 — zero resolve* exports under ${CANONICAL_HOME}; the canonical set is empty.`);
+  console.error(`${TAG} EXIT 2 — zero resolve* exports under ${RESOLVER_HOME}; the canonical set is empty.`);
   process.exit(2);
 }
 
@@ -119,7 +124,7 @@ for (const pkg of readdirSync(packagesDir)) {
   if (!existsSync(src) || !statSync(src).isDirectory()) continue;
   for (const file of walk(src)) {
     const rel = relative(ROOT, file).split(sep).join('/');
-    if (rel.startsWith(CANONICAL_HOME.split(sep).join('/'))) continue;
+    if (CONTRACT_HOMES.some((home) => rel.startsWith(home.split(sep).join('/')))) continue;
     const lines = readFileSync(file, 'utf8').split('\n');
     lines.forEach((line, i) => {
       if (isCommentLine(line)) return;
@@ -146,7 +151,9 @@ for (const pkg of readdirSync(packagesDir)) {
 }
 
 // 3. Report.
-console.log(`${TAG} canonical meaning home: ${CANONICAL_HOME} (${canonicalResolvers.size} resolvers)`);
+console.log(
+  `${TAG} contract home: ${CONTRACT_HOMES[0]} · resolver home: ${RESOLVER_HOME} (${canonicalResolvers.size} resolvers)`
+);
 for (const f of findings) console.log(`${TAG} ${f}`);
 if (findings.length === 0) {
   console.log(`${TAG} OK — one meaning stratum, defined once. (${CANON_POINTER})`);

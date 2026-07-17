@@ -1,7 +1,7 @@
 {
-  "name": "@holoscript/uaal",
-  "version": "8.6.0",
-  "description": "uAAL — Universal Autonomous Agent Language VM. Stack-based bytecode execution engine for the uAA2++ 7-Phase Protocol.",
+  "name": "@holoscript/meaning",
+  "version": "0.1.0",
+  "description": "HoloMeaning — the stratum-2 meaning contract of the HoloScript language. The ONE typed resolution record (status, gap reasons, structured gap) that compiler, reward, corpus grader, and VMs all import. Canon: docs/spec/language-architecture.md.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -9,7 +9,6 @@
   "sideEffects": false,
   "files": [
     "dist",
-    "LICENSE",
     "README.md"
   ],
   "exports": {
@@ -17,30 +16,17 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    },
-    "./semantic": {
-      "types": "./dist/semantic.d.ts",
-      "import": "./dist/semantic.js",
-      "require": "./dist/semantic.cjs"
-    },
-    "./gate": {
-      "types": "./dist/gate.d.ts",
-      "import": "./dist/gate.js",
-      "require": "./dist/gate.cjs"
     }
   },
   "engines": {
     "node": ">=20"
-  },
-  "dependencies": {
-    "@holoscript/meaning": "workspace:^"
   },
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "prepublishOnly": "pnpm run test && pnpm run build"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
@@ -49,23 +35,12 @@
     "vitest": "^4.1.5"
   },
   "keywords": [
-    "uaal",
-    "uaa2",
-    "agent",
-    "protocol",
-    "bytecode",
-    "vm",
+    "holomeaning",
+    "holoscript",
+    "meaning",
     "semantic-ir",
-    "theory-of-mind",
-    "affordance",
-    "counterfactual",
-    "deontic",
-    "commitment",
-    "mereology",
-    "analogy",
-    "presupposition",
-    "motif",
-    "telos",
+    "resolution",
+    "honest-abstention",
     "ai-native"
   ],
   "author": "Brian X Base Team",
@@ -73,7 +48,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/brianonbased-dev/HoloScript.git",
-    "directory": "packages/uaal"
+    "directory": "packages/meaning"
   },
   "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
   "bugs": {
