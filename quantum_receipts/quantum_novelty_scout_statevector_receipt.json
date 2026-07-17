@@ -1,25 +1,54 @@
 {
-  "schema": "cael-quantum-v1.qaoa-novelty-scout",
-  "created_at": "2026-07-16T22:50:32.757507+00:00",
-  "claim_boundary": "QAOA prioritizes a diverse candidate portfolio from declared ordinal priors. It neither searches the literature nor proves novelty, quantum advantage, or publication readiness.",
+  "schema": "cael-quantum-v2.qaoa-novelty-scout",
+  "created_at": "2026-07-17T00:13:55.289501+00:00",
+  "claim_boundary": "QAOA prioritizes a diverse candidate portfolio from declared ordinal priors plus declared-path availability and exact shared implementation-file identity. File presence and hashes do not prove claim alignment, semantic correctness, test execution, novelty, quantum advantage, or publication readiness.",
   "fixture": "research/quantum-novelty-scout/candidates-v1.json",
-  "input_sha256": "208f1ef5e96fedd8c90bd93959ef270dd31351cde7a246f0733032eb8104f2e4",
+  "input_sha256": "cf94bf334db69c53b3a3e65e5e880efd2db7c3aa2dc86666cedc0827e740c674",
   "candidate_count": 12,
   "target_cardinality": 4,
-  "score_basis": "Each 0..1 score is a researcher prior grounded in the 2026-06-05 novelty-defensibility pass and current local evidence. Fresh primary-source kill tests remain mandatory.",
+  "score_basis": "Each score in scores is a researcher prior grounded in the 2026-06-05 novelty-defensibility pass and current local evidence. The former implementation-support prior is replaced by declared-path availability and exact shared-file identity derived from code_evidence at execution time. These observations do not establish semantic claim support. Fresh primary-source kill tests remain mandatory.",
   "score_weights": {
     "prior_art_distance": 2.0,
-    "implementation_support": 1.75,
     "evidence_support": 1.5,
     "falsifiability": 1.25,
     "strategic_value": 1.0,
     "prior_art_overlap": -1.75,
     "remaining_cost": -1.0
   },
+  "code_evidence_policy": {
+    "declared_path_availability_weight": 2.0,
+    "missing_required_path_penalty": -8.0,
+    "similarity_penalty": 1.25,
+    "required_categories": [
+      "implementation",
+      "verification"
+    ],
+    "category_weights": {
+      "implementation": 0.5,
+      "verification": 0.3,
+      "execution_evidence": 0.2
+    },
+    "similarity_basis": "Jaccard overlap of SHA-256 identities for the pinned Git blob bytes of declared implementation files",
+    "max_file_bytes": 2000000,
+    "allowed_extensions": [
+      ".ts",
+      ".tsx",
+      ".js",
+      ".mjs",
+      ".cjs",
+      ".py",
+      ".holo",
+      ".hs",
+      ".hsplus",
+      ".json",
+      ".md"
+    ],
+    "claim_boundary": "Availability means the declared repository-relative regular files passed extension and size admission and were hashed. It does not mean they implement the paper claim correctly or that tests ran or passed."
+  },
   "qubo": {
     "matrix": [
       [
-        -89.6025,
+        -89.94,
         24.6,
         24.2727272727,
         24.2727272727,
@@ -34,7 +63,7 @@
       ],
       [
         0.0,
-        -67.3,
+        -67.7625,
         24.2727272727,
         24.2727272727,
         24.2727272727,
@@ -49,7 +78,7 @@
       [
         0.0,
         0.0,
-        -89.055,
+        -89.08,
         24.6,
         24.6,
         24.2727272727,
@@ -64,7 +93,7 @@
         0.0,
         0.0,
         0.0,
-        -66.96,
+        -67.5975,
         24.2727272727,
         24.0,
         24.0,
@@ -79,7 +108,7 @@
         0.0,
         0.0,
         0.0,
-        -67.2075,
+        -59.02,
         24.0,
         24.2727272727,
         24.2727272727,
@@ -94,7 +123,7 @@
         0.0,
         0.0,
         0.0,
-        -68.0225,
+        -68.0825,
         24.0,
         24.2727272727,
         24.2727272727,
@@ -109,7 +138,7 @@
         0.0,
         0.0,
         0.0,
-        -68.27,
+        -68.7825,
         24.2727272727,
         24.2727272727,
         24.2727272727,
@@ -124,7 +153,7 @@
         0.0,
         0.0,
         0.0,
-        -68.425,
+        -69.2,
         24.0,
         24.0,
         24.0,
@@ -139,8 +168,8 @@
         0.0,
         0.0,
         0.0,
-        -86.2875,
-        24.6,
+        -87.325,
+        25.225,
         24.6,
         24.0
       ],
@@ -154,7 +183,7 @@
         0.0,
         0.0,
         0.0,
-        -86.755,
+        -87.53,
         24.0,
         24.0
       ],
@@ -169,7 +198,7 @@
         0.0,
         0.0,
         0.0,
-        -67.15,
+        -68.1875,
         24.0
       ],
       [
@@ -184,23 +213,844 @@
         0.0,
         0.0,
         0.0,
-        -88.2525
+        -88.555
       ]
     ],
     "constant_offset": 192.0,
     "candidate_rewards": [
-      5.6025,
-      -16.7,
-      5.055,
-      -17.04,
-      -16.7925,
-      -15.9775,
-      -15.73,
-      -15.575,
-      2.2875,
-      2.755,
-      -16.85,
-      4.2525
+      5.9399999999999995,
+      -16.237499999999997,
+      5.08,
+      -16.4025,
+      -24.979999999999997,
+      -15.917499999999999,
+      -15.217500000000001,
+      -14.8,
+      3.325,
+      3.53,
+      -15.8125,
+      4.555
+    ],
+    "prior_candidate_rewards": [
+      3.94,
+      -17.8375,
+      3.48,
+      -18.0025,
+      -17.58,
+      -17.5175,
+      -17.2175,
+      -16.8,
+      1.3250000000000002,
+      1.5299999999999998,
+      -17.8125,
+      2.555
+    ],
+    "code_evidence_adjustments": [
+      2.0,
+      1.6,
+      1.6,
+      1.6,
+      -7.4,
+      1.6,
+      2.0,
+      2.0,
+      2.0,
+      2.0,
+      2.0,
+      2.0
+    ],
+    "code_evidence": [
+      {
+        "candidate_id": "P1",
+        "declared_path_availability": 1.0,
+        "required_paths_available": true,
+        "missing_required_path_categories": [],
+        "categories": {
+          "implementation": {
+            "weight": 0.5,
+            "declared_count": 2,
+            "available_count": 2,
+            "availability_fraction": 1.0
+          },
+          "verification": {
+            "weight": 0.3,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          },
+          "execution_evidence": {
+            "weight": 0.2,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          }
+        },
+        "files": [
+          {
+            "category": "implementation",
+            "path": "packages/engine/src/simulation/CAELRecorder.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 8433,
+            "worktree_sha256": "64e20ae3c1397cd4b24b7e00f9fbc68c8def8d0229fe88c639868d4f24a93c88",
+            "git_blob_oid": "d9597ff8228916f307885c3b575e002515c257e5",
+            "git_blob_bytes": 8433,
+            "git_blob_sha256": "64e20ae3c1397cd4b24b7e00f9fbc68c8def8d0229fe88c639868d4f24a93c88"
+          },
+          {
+            "category": "implementation",
+            "path": "packages/engine/src/simulation/CAELReplayer.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 9968,
+            "worktree_sha256": "ca78426e53b7d8b1f81c92963e42a4ae770a755331e3ab4447488d7a992fdd32",
+            "git_blob_oid": "524406a13e317e4dfc1ee86793864e82607a31cf",
+            "git_blob_bytes": 9968,
+            "git_blob_sha256": "ca78426e53b7d8b1f81c92963e42a4ae770a755331e3ab4447488d7a992fdd32"
+          },
+          {
+            "category": "verification",
+            "path": "packages/engine/src/simulation/__tests__/paper-cael-replay-benchmark.test.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 24251,
+            "worktree_sha256": "ceb12efc3576541a7ccd9fe5b476aaf7193a63560205ba6b808a605a962da5e7",
+            "git_blob_oid": "88a77301366e4e263aeac101746f17c192544ff2",
+            "git_blob_bytes": 24251,
+            "git_blob_sha256": "ceb12efc3576541a7ccd9fe5b476aaf7193a63560205ba6b808a605a962da5e7"
+          },
+          {
+            "category": "execution_evidence",
+            "path": "research/benchmark-results-2026-05-21-paper-1-mcp-ablation.md",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 2639,
+            "worktree_sha256": "8694d12e9e98dd998827e0369ef05606999b144c73bdaa10098501a51127642f",
+            "git_blob_oid": "675928bf28d41b6f673b7ae4ef68bb657ccd398b",
+            "git_blob_bytes": 2639,
+            "git_blob_sha256": "8694d12e9e98dd998827e0369ef05606999b144c73bdaa10098501a51127642f"
+          }
+        ],
+        "implementation_file_hash_count": 2,
+        "implementation_set_fingerprint": "dd93d7ad572f1a2ffa2fb5744b3f52d32bc96afb63b9b0ebc4418e4a96959817"
+      },
+      {
+        "candidate_id": "P4",
+        "declared_path_availability": 0.8,
+        "required_paths_available": true,
+        "missing_required_path_categories": [],
+        "categories": {
+          "implementation": {
+            "weight": 0.5,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          },
+          "verification": {
+            "weight": 0.3,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          },
+          "execution_evidence": {
+            "weight": 0.2,
+            "declared_count": 0,
+            "available_count": 0,
+            "availability_fraction": 0.0
+          }
+        },
+        "files": [
+          {
+            "category": "implementation",
+            "path": "packages/security-sandbox/src/index.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 39481,
+            "worktree_sha256": "2b6799990a73ff59e8793ebb50de977f724dbf7894b114711cade3574f4595d8",
+            "git_blob_oid": "0be891518c07c470eb96009a1c74d0bd8e2c904d",
+            "git_blob_bytes": 39481,
+            "git_blob_sha256": "2b6799990a73ff59e8793ebb50de977f724dbf7894b114711cade3574f4595d8"
+          },
+          {
+            "category": "verification",
+            "path": "packages/core/src/plugins/__tests__/paper-4-sandbox-bench.test.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 3597,
+            "worktree_sha256": "57fd6869a86184f1900117f2cb11d31458aa24333e6423a1f6077b9455792eb4",
+            "git_blob_oid": "b88ffaa888b8c6cb759a45186e140aaea0991f54",
+            "git_blob_bytes": 3597,
+            "git_blob_sha256": "57fd6869a86184f1900117f2cb11d31458aa24333e6423a1f6077b9455792eb4"
+          }
+        ],
+        "implementation_file_hash_count": 1,
+        "implementation_set_fingerprint": "1fa436c332695859335faa9682eb7ea6c4f38b076b4ff8a0798d939323fd15e3"
+      },
+      {
+        "candidate_id": "P0c",
+        "declared_path_availability": 0.8,
+        "required_paths_available": true,
+        "missing_required_path_categories": [],
+        "categories": {
+          "implementation": {
+            "weight": 0.5,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          },
+          "verification": {
+            "weight": 0.3,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          },
+          "execution_evidence": {
+            "weight": 0.2,
+            "declared_count": 0,
+            "available_count": 0,
+            "availability_fraction": 0.0
+          }
+        },
+        "files": [
+          {
+            "category": "implementation",
+            "path": "packages/engine/src/simulation/CAELAgent.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 20342,
+            "worktree_sha256": "7d2d7a20bf846f3e07ed35dce1e1fa40db9d1e0fa0062a76120b18fc47431d8b",
+            "git_blob_oid": "acd391490565e163afbe725ba63b04e5372779a8",
+            "git_blob_bytes": 20342,
+            "git_blob_sha256": "7d2d7a20bf846f3e07ed35dce1e1fa40db9d1e0fa0062a76120b18fc47431d8b"
+          },
+          {
+            "category": "verification",
+            "path": "packages/engine/src/simulation/__tests__/paper-0c-cael-overhead.test.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 7806,
+            "worktree_sha256": "ddd514c05304d35810dff1a406c7312cc25bb0e863995972a427056a1d3ca278",
+            "git_blob_oid": "33568ec85d4ea7110f9e2734a6cc276583535fbe",
+            "git_blob_bytes": 7806,
+            "git_blob_sha256": "ddd514c05304d35810dff1a406c7312cc25bb0e863995972a427056a1d3ca278"
+          }
+        ],
+        "implementation_file_hash_count": 1,
+        "implementation_set_fingerprint": "7beffd8fcda33efcc8537bfce304517102a7061d20c370b597008990f4567221"
+      },
+      {
+        "candidate_id": "P2",
+        "declared_path_availability": 0.8,
+        "required_paths_available": true,
+        "missing_required_path_categories": [],
+        "categories": {
+          "implementation": {
+            "weight": 0.5,
+            "declared_count": 2,
+            "available_count": 2,
+            "availability_fraction": 1.0
+          },
+          "verification": {
+            "weight": 0.3,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          },
+          "execution_evidence": {
+            "weight": 0.2,
+            "declared_count": 0,
+            "available_count": 0,
+            "availability_fraction": 0.0
+          }
+        },
+        "files": [
+          {
+            "category": "implementation",
+            "path": "packages/engine/src/simulation/SNNCognitionEngine.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 13016,
+            "worktree_sha256": "37d989182f80ea394fba6592b21eac771506c175b35ac9ef901be6493a393054",
+            "git_blob_oid": "a10c078d1b8c1bb08af6740d87673dbd1e9f2b3f",
+            "git_blob_bytes": 13016,
+            "git_blob_sha256": "37d989182f80ea394fba6592b21eac771506c175b35ac9ef901be6493a393054"
+          },
+          {
+            "category": "implementation",
+            "path": "packages/snn-webgpu/src/paper/LIFDeterminismProbe.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 5768,
+            "worktree_sha256": "a1161a2503cb3f0d0bc32fcf294d66e6a06520eff2e98f2859168d9ff07ad8b5",
+            "git_blob_oid": "8b39b4e50ea6d1d9e14d2f596efe0120ff80b1ff",
+            "git_blob_bytes": 5768,
+            "git_blob_sha256": "a1161a2503cb3f0d0bc32fcf294d66e6a06520eff2e98f2859168d9ff07ad8b5"
+          },
+          {
+            "category": "verification",
+            "path": "packages/snn-webgpu/src/paper/__tests__/LIFDeterminismProbe.test.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 4956,
+            "worktree_sha256": "8bcc9d6197c219e2c4adf8178cf0b3306b608eee6ab5ca7643d27e86cab15f74",
+            "git_blob_oid": "8bc08d922a65f7fd4a89e1d214a929d0e0cdc926",
+            "git_blob_bytes": 4956,
+            "git_blob_sha256": "8bcc9d6197c219e2c4adf8178cf0b3306b608eee6ab5ca7643d27e86cab15f74"
+          }
+        ],
+        "implementation_file_hash_count": 2,
+        "implementation_set_fingerprint": "9b927f9347946a64e725e69077b6c0e94a1bf7bdf01c70ac1e50408960095654"
+      },
+      {
+        "candidate_id": "P3",
+        "declared_path_availability": 0.3,
+        "required_paths_available": false,
+        "missing_required_path_categories": [
+          "implementation"
+        ],
+        "categories": {
+          "implementation": {
+            "weight": 0.5,
+            "declared_count": 0,
+            "available_count": 0,
+            "availability_fraction": 0.0
+          },
+          "verification": {
+            "weight": 0.3,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          },
+          "execution_evidence": {
+            "weight": 0.2,
+            "declared_count": 0,
+            "available_count": 0,
+            "availability_fraction": 0.0
+          }
+        },
+        "files": [
+          {
+            "category": "verification",
+            "path": "packages/engine/src/simulation/__tests__/paper-multi-agent-crdt.test.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 34590,
+            "worktree_sha256": "f0c2580827bb48d2e559a4850854b6420dcb5017bc36086941ee246495cf55f1",
+            "git_blob_oid": "18bdafff6444f57d93934f8efe33d95205a4a7f6",
+            "git_blob_bytes": 34590,
+            "git_blob_sha256": "f0c2580827bb48d2e559a4850854b6420dcb5017bc36086941ee246495cf55f1"
+          }
+        ],
+        "implementation_file_hash_count": 0,
+        "implementation_set_fingerprint": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      {
+        "candidate_id": "P5",
+        "declared_path_availability": 0.8,
+        "required_paths_available": true,
+        "missing_required_path_categories": [],
+        "categories": {
+          "implementation": {
+            "weight": 0.5,
+            "declared_count": 3,
+            "available_count": 3,
+            "availability_fraction": 1.0
+          },
+          "verification": {
+            "weight": 0.3,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          },
+          "execution_evidence": {
+            "weight": 0.2,
+            "declared_count": 0,
+            "available_count": 0,
+            "availability_fraction": 0.0
+          }
+        },
+        "files": [
+          {
+            "category": "implementation",
+            "path": "packages/mcp-server/src/absorb-provenance-tools.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 10374,
+            "worktree_sha256": "513135dc0a68162643ce8c61dfe95c5e19dd79be0519c2bdf7eab2327d76e600",
+            "git_blob_oid": "3599021062eb13c600a3b6f134446f8179488565",
+            "git_blob_bytes": 10374,
+            "git_blob_sha256": "513135dc0a68162643ce8c61dfe95c5e19dd79be0519c2bdf7eab2327d76e600"
+          },
+          {
+            "category": "implementation",
+            "path": "packages/absorb-service/src/mcp/codebase-tools.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 192241,
+            "worktree_sha256": "9188f05795a4208a5396b3744cca2751dcf37b8a1eb73b0a85a591e1a04fb322",
+            "git_blob_oid": "55768a7584ad960366514e0c972491274db1c78e",
+            "git_blob_bytes": 192241,
+            "git_blob_sha256": "9188f05795a4208a5396b3744cca2751dcf37b8a1eb73b0a85a591e1a04fb322"
+          },
+          {
+            "category": "implementation",
+            "path": "packages/absorb-service/src/engine/GraphRAGEngine.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 12986,
+            "worktree_sha256": "38f47536131e6f7ea16e4b7fa1fcd3781b0ccdd4e25010551a94dafdf826737b",
+            "git_blob_oid": "796b77ee7efddfea56953960e609f139a20b9b34",
+            "git_blob_bytes": 12986,
+            "git_blob_sha256": "38f47536131e6f7ea16e4b7fa1fcd3781b0ccdd4e25010551a94dafdf826737b"
+          },
+          {
+            "category": "verification",
+            "path": "packages/mcp-server/src/__tests__/absorb-provenance-tools.test.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 4549,
+            "worktree_sha256": "4900eca9b2ac8cfacbd5bdce6a124f9f5a40eff722cae30233bdcdd900816a07",
+            "git_blob_oid": "a3ad4a5f31655bb6435f25c9c5d8f10fb9b0474c",
+            "git_blob_bytes": 4549,
+            "git_blob_sha256": "4900eca9b2ac8cfacbd5bdce6a124f9f5a40eff722cae30233bdcdd900816a07"
+          }
+        ],
+        "implementation_file_hash_count": 3,
+        "implementation_set_fingerprint": "954b2c1790ac60b512d5f865a60357406184058860c71269d4230ee1ea4480b2"
+      },
+      {
+        "candidate_id": "P6",
+        "declared_path_availability": 1.0,
+        "required_paths_available": true,
+        "missing_required_path_categories": [],
+        "categories": {
+          "implementation": {
+            "weight": 0.5,
+            "declared_count": 2,
+            "available_count": 2,
+            "availability_fraction": 1.0
+          },
+          "verification": {
+            "weight": 0.3,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          },
+          "execution_evidence": {
+            "weight": 0.2,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          }
+        },
+        "files": [
+          {
+            "category": "implementation",
+            "path": "packages/engine/src/animation/AnimationClip.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 6862,
+            "worktree_sha256": "f704833281c6153e1881862a56f78701f882588e9f87b8ae91ea9ebb8b490331",
+            "git_blob_oid": "6aa3517de981c7fd38778cbaaa8a105e167ef947",
+            "git_blob_bytes": 6862,
+            "git_blob_sha256": "f704833281c6153e1881862a56f78701f882588e9f87b8ae91ea9ebb8b490331"
+          },
+          {
+            "category": "implementation",
+            "path": "packages/engine/src/animation/paper/AnimationSamplingProbe.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 6182,
+            "worktree_sha256": "a2d9c97a071c7bc986c2f680e8fde5439d31bb47482a13c97818b94c3f7a2d0b",
+            "git_blob_oid": "2a9603e9b5ba7711d71bc9df1f8d26510bc38c3e",
+            "git_blob_bytes": 6182,
+            "git_blob_sha256": "a2d9c97a071c7bc986c2f680e8fde5439d31bb47482a13c97818b94c3f7a2d0b"
+          },
+          {
+            "category": "verification",
+            "path": "packages/engine/src/animation/paper/__tests__/AnimationSamplingProbe.test.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 5111,
+            "worktree_sha256": "abd137464f0c24c091f0d3811c83d015d486ba1b6e88cc7c970f5888a7f933b9",
+            "git_blob_oid": "d3c460694133d7b5d0516dbd6cc756cfae2ee1d1",
+            "git_blob_bytes": 5111,
+            "git_blob_sha256": "abd137464f0c24c091f0d3811c83d015d486ba1b6e88cc7c970f5888a7f933b9"
+          },
+          {
+            "category": "execution_evidence",
+            "path": "research/benchmark-results-2026-05-21-paper-6-gpu-bench-rtx3060.md",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 2016,
+            "worktree_sha256": "dfba28a4f707588217fae1865779cc6675129a96e3b2dafb449766faad4aeaac",
+            "git_blob_oid": "cee1bc6cae504efaaa67ce08d72bbe8a0ad80e9a",
+            "git_blob_bytes": 2016,
+            "git_blob_sha256": "dfba28a4f707588217fae1865779cc6675129a96e3b2dafb449766faad4aeaac"
+          }
+        ],
+        "implementation_file_hash_count": 2,
+        "implementation_set_fingerprint": "0da3a8d76f8f34a32d465e8355813b63e13c518788f194038d247ba88964417c"
+      },
+      {
+        "candidate_id": "P8",
+        "declared_path_availability": 1.0,
+        "required_paths_available": true,
+        "missing_required_path_categories": [],
+        "categories": {
+          "implementation": {
+            "weight": 0.5,
+            "declared_count": 2,
+            "available_count": 2,
+            "availability_fraction": 1.0
+          },
+          "verification": {
+            "weight": 0.3,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          },
+          "execution_evidence": {
+            "weight": 0.2,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          }
+        },
+        "files": [
+          {
+            "category": "implementation",
+            "path": "packages/engine/src/animation/paper/Paper8CrossBackendDeterminismProbe.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 14777,
+            "worktree_sha256": "914af1384b6e019defdc594b286f8514d9e9cd04436426844645663c71b6cfee",
+            "git_blob_oid": "64d68d73bc499340c6a09c1de3a6cef58f6cca65",
+            "git_blob_bytes": 14777,
+            "git_blob_sha256": "914af1384b6e019defdc594b286f8514d9e9cd04436426844645663c71b6cfee"
+          },
+          {
+            "category": "implementation",
+            "path": "packages/engine/src/animation/paper/benchmarks/paper-8-publication.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 8266,
+            "worktree_sha256": "d5f6f02c6f07b115a778ca5b4d8f8cf00b01c7a30d8dbf4e6cee748ee90b89a7",
+            "git_blob_oid": "57ab560aa747733effef20ce4af1bd090d13af11",
+            "git_blob_bytes": 8266,
+            "git_blob_sha256": "d5f6f02c6f07b115a778ca5b4d8f8cf00b01c7a30d8dbf4e6cee748ee90b89a7"
+          },
+          {
+            "category": "verification",
+            "path": "packages/engine/src/animation/paper/benchmarks/__tests__/paper-8-publication.test.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 14923,
+            "worktree_sha256": "53812d40e99cda23cf6d3b2f5d42957ad54bad186970170c0ffc9c24c62e9735",
+            "git_blob_oid": "56d24e698a24162f9ec2642cf6df0787a8ac05bc",
+            "git_blob_bytes": 14923,
+            "git_blob_sha256": "53812d40e99cda23cf6d3b2f5d42957ad54bad186970170c0ffc9c24c62e9735"
+          },
+          {
+            "category": "execution_evidence",
+            "path": "research/benchmark-results-2026-05-21-paper-8-publication.md",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 1902,
+            "worktree_sha256": "fd05b3178b1ac31268342c8e8c26fa3809a918eba1e454db20dc167736ed0f36",
+            "git_blob_oid": "05829b1d68affadc89ccb731ea85f1f6c9e06a74",
+            "git_blob_bytes": 1902,
+            "git_blob_sha256": "fd05b3178b1ac31268342c8e8c26fa3809a918eba1e454db20dc167736ed0f36"
+          }
+        ],
+        "implementation_file_hash_count": 2,
+        "implementation_set_fingerprint": "0b186494f76cbf2f8cbb4a22a6f27cd4f794417e54defb7f9549009baa2cfe27"
+      },
+      {
+        "candidate_id": "P10",
+        "declared_path_availability": 1.0,
+        "required_paths_available": true,
+        "missing_required_path_categories": [],
+        "categories": {
+          "implementation": {
+            "weight": 0.5,
+            "declared_count": 2,
+            "available_count": 2,
+            "availability_fraction": 1.0
+          },
+          "verification": {
+            "weight": 0.3,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          },
+          "execution_evidence": {
+            "weight": 0.2,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          }
+        },
+        "files": [
+          {
+            "category": "implementation",
+            "path": "packages/core/src/compiler/CompilerBase.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 35142,
+            "worktree_sha256": "2822e6655c50d0ecee162977feff8cc6495f453c7359335e9d8300a3ff9573b3",
+            "git_blob_oid": "506b3e184789f655eb35e500572fe435568fb3ac",
+            "git_blob_bytes": 35142,
+            "git_blob_sha256": "2822e6655c50d0ecee162977feff8cc6495f453c7359335e9d8300a3ff9573b3"
+          },
+          {
+            "category": "implementation",
+            "path": "packages/core/src/compiler/traits/ProvenanceSemiring.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 22938,
+            "worktree_sha256": "662e3a343f1392d52efa95f55cff8f0a1bec408ec133fca565f69d27cc091467",
+            "git_blob_oid": "704ae76551ab08b4fddf5d22d17451912fa25b3c",
+            "git_blob_bytes": 22938,
+            "git_blob_sha256": "662e3a343f1392d52efa95f55cff8f0a1bec408ec133fca565f69d27cc091467"
+          },
+          {
+            "category": "verification",
+            "path": "packages/core/src/compiler/__tests__/paper-10-cross-target-theorem-matrix.test.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 3229,
+            "worktree_sha256": "859ef285972f0d0d579031e1d332db8fdd7ff9c58daf3557f6a373401facb0f0",
+            "git_blob_oid": "c988e4a401a6741b21f2ad6af8fae35891bc9f08",
+            "git_blob_bytes": 3229,
+            "git_blob_sha256": "859ef285972f0d0d579031e1d332db8fdd7ff9c58daf3557f6a373401facb0f0"
+          },
+          {
+            "category": "execution_evidence",
+            "path": "research/benchmark-results-2026-05-21-paper-10-cross-target-theorem-matrix.md",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 2740,
+            "worktree_sha256": "435cf17dad5d4d72cd47bc02d75c37665ef2ba0f84e5ba3e0c054296b898d4b0",
+            "git_blob_oid": "eec232d2fcafbd0dcb3a1019840fed205a344986",
+            "git_blob_bytes": 2740,
+            "git_blob_sha256": "435cf17dad5d4d72cd47bc02d75c37665ef2ba0f84e5ba3e0c054296b898d4b0"
+          }
+        ],
+        "implementation_file_hash_count": 2,
+        "implementation_set_fingerprint": "bd52585d798e3d4a2ac79ae21c1aca40359c8f70816d6ea8bdf48bfd2d7e16bc"
+      },
+      {
+        "candidate_id": "P11",
+        "declared_path_availability": 1.0,
+        "required_paths_available": true,
+        "missing_required_path_categories": [],
+        "categories": {
+          "implementation": {
+            "weight": 0.5,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          },
+          "verification": {
+            "weight": 0.3,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          },
+          "execution_evidence": {
+            "weight": 0.2,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          }
+        },
+        "files": [
+          {
+            "category": "implementation",
+            "path": "packages/core/src/compiler/traits/ProvenanceSemiring.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 22938,
+            "worktree_sha256": "662e3a343f1392d52efa95f55cff8f0a1bec408ec133fca565f69d27cc091467",
+            "git_blob_oid": "704ae76551ab08b4fddf5d22d17451912fa25b3c",
+            "git_blob_bytes": 22938,
+            "git_blob_sha256": "662e3a343f1392d52efa95f55cff8f0a1bec408ec133fca565f69d27cc091467"
+          },
+          {
+            "category": "verification",
+            "path": "packages/core/src/compiler/__tests__/paper-11-imperative-baseline.bench.test.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 15620,
+            "worktree_sha256": "5501711d65b1f97051abf2fa4db4cf74348c39807cc0c51d655f8224e6c584f9",
+            "git_blob_oid": "2e2ce15dcdd6f748bacfb5c44d4aff9aa181d14b",
+            "git_blob_bytes": 15620,
+            "git_blob_sha256": "5501711d65b1f97051abf2fa4db4cf74348c39807cc0c51d655f8224e6c584f9"
+          },
+          {
+            "category": "execution_evidence",
+            "path": "research/benchmark-results-2026-05-20-paper-11-trait-gpu-bench.md",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 4004,
+            "worktree_sha256": "70b5522398adb214ddd6a656c6e0aeb3b3722bd51a05bef634f8edec56b00220",
+            "git_blob_oid": "74d0119f62525ab4fd116f0281c3558d20bed62a",
+            "git_blob_bytes": 4004,
+            "git_blob_sha256": "70b5522398adb214ddd6a656c6e0aeb3b3722bd51a05bef634f8edec56b00220"
+          }
+        ],
+        "implementation_file_hash_count": 1,
+        "implementation_set_fingerprint": "cfcae31c5b2ec6c34f84220cc18891b40374211f078de49df734e34ff857a8e2"
+      },
+      {
+        "candidate_id": "P12",
+        "declared_path_availability": 1.0,
+        "required_paths_available": true,
+        "missing_required_path_categories": [],
+        "categories": {
+          "implementation": {
+            "weight": 0.5,
+            "declared_count": 2,
+            "available_count": 2,
+            "availability_fraction": 1.0
+          },
+          "verification": {
+            "weight": 0.3,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          },
+          "execution_evidence": {
+            "weight": 0.2,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          }
+        },
+        "files": [
+          {
+            "category": "implementation",
+            "path": "packages/plugins/structural-biology-plugin/src/index.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 9539,
+            "worktree_sha256": "99cf63706ee38ba0225fd44ae10c36277400384221f71bebf5ce842e94e5f209",
+            "git_blob_oid": "a4ec2c93b3633d0c1bdc42572d0adf0cdb7254e5",
+            "git_blob_bytes": 9539,
+            "git_blob_sha256": "99cf63706ee38ba0225fd44ae10c36277400384221f71bebf5ce842e94e5f209"
+          },
+          {
+            "category": "implementation",
+            "path": "packages/plugins/structural-biology-plugin/src/receipt.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 16540,
+            "worktree_sha256": "9e53b1629816aa9c9246fd89d382b40635a0c0abc665bbf28d4cee05653488ad",
+            "git_blob_oid": "b287f5ad482b78af736d1ff70f3c832c2d5c48f6",
+            "git_blob_bytes": 16540,
+            "git_blob_sha256": "9e53b1629816aa9c9246fd89d382b40635a0c0abc665bbf28d4cee05653488ad"
+          },
+          {
+            "category": "verification",
+            "path": "packages/plugins/structural-biology-plugin/src/__tests__/index.test.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 21812,
+            "worktree_sha256": "5a74d1e2ee2527820275d9db30807df17a7ed9b4862f3d6cbd273270fcf8eae6",
+            "git_blob_oid": "ecee7adb79d3e09bb39c69fc53d1c6541b93a403",
+            "git_blob_bytes": 21812,
+            "git_blob_sha256": "5a74d1e2ee2527820275d9db30807df17a7ed9b4862f3d6cbd273270fcf8eae6"
+          },
+          {
+            "category": "execution_evidence",
+            "path": "docs/public/evidence/paper-12-hololand-envelope.json",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 5444,
+            "worktree_sha256": "488c6fe6b0712b145ef60ea179a9f97f64b848df3cc8be5b59067dbc5266e842",
+            "git_blob_oid": "1577cb869be8c14f2ac8fd35d1f2eb5686368f4e",
+            "git_blob_bytes": 5444,
+            "git_blob_sha256": "488c6fe6b0712b145ef60ea179a9f97f64b848df3cc8be5b59067dbc5266e842"
+          }
+        ],
+        "implementation_file_hash_count": 2,
+        "implementation_set_fingerprint": "2539424c33234fc4624ad318b3f0e4ed014c24c9b55c6220366332bd5fad7d27"
+      },
+      {
+        "candidate_id": "P37",
+        "declared_path_availability": 1.0,
+        "required_paths_available": true,
+        "missing_required_path_categories": [],
+        "categories": {
+          "implementation": {
+            "weight": 0.5,
+            "declared_count": 2,
+            "available_count": 2,
+            "availability_fraction": 1.0
+          },
+          "verification": {
+            "weight": 0.3,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          },
+          "execution_evidence": {
+            "weight": 0.2,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          }
+        },
+        "files": [
+          {
+            "category": "implementation",
+            "path": "scripts/quantum_execute.py",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 60245,
+            "worktree_sha256": "8bba9401e300749d6b543c8865a14b8ac2680c4f01ade6077330ecdd6d449899",
+            "git_blob_oid": "a8016e6adb4a38bc4ee465be5cc2e104c86ef0f7",
+            "git_blob_bytes": 60245,
+            "git_blob_sha256": "8bba9401e300749d6b543c8865a14b8ac2680c4f01ade6077330ecdd6d449899"
+          },
+          {
+            "category": "implementation",
+            "path": "scripts/quantum_receipt_verify.py",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 43847,
+            "worktree_sha256": "5a1b9eb8f4c8d66d4d7f1065b87e84cff6cd836f8a31f86d99a1353a6d1511c2",
+            "git_blob_oid": "9de6cf3149720eaa8aff6d2509212cf4d215067d",
+            "git_blob_bytes": 43847,
+            "git_blob_sha256": "5a1b9eb8f4c8d66d4d7f1065b87e84cff6cd836f8a31f86d99a1353a6d1511c2"
+          },
+          {
+            "category": "verification",
+            "path": "scripts/__tests__/test_quantum_novelty_scout.py",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 17936,
+            "worktree_sha256": "81919b9df894bcac5719397e4be5f724d105ca2e434e78ab58b944cad711fc01",
+            "git_blob_oid": "b564aafe4dc9802375ed9548662dcee3978c7226",
+            "git_blob_bytes": 17936,
+            "git_blob_sha256": "81919b9df894bcac5719397e4be5f724d105ca2e434e78ab58b944cad711fc01"
+          },
+          {
+            "category": "execution_evidence",
+            "path": "quantum_receipts/h2-vqe-ibm-kingston-2026-05-21.json",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 3948,
+            "worktree_sha256": "aa702dc7a066f2efe281d1a219b5c95ea4c8c75a900f45bafc53d108f1a05019",
+            "git_blob_oid": "94ca4e5681d3a2945578022086175243def0f46c",
+            "git_blob_bytes": 3849,
+            "git_blob_sha256": "6392c9ad340966cfe081b10cf134e61932651539c526c49ba0e8c41586a9b32c"
+          }
+        ],
+        "implementation_file_hash_count": 2,
+        "implementation_set_fingerprint": "c1850403f6ac995e3dd7f503e9665b3313da958be548b34838e2ba9d0b87920f"
+      }
     ],
     "tag_similarities": [
       [
@@ -372,9 +1222,210 @@
         0.0
       ]
     ],
+    "code_similarities": [
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.5,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    ],
     "target_cardinality": 4,
     "cardinality_penalty": 12.0,
     "redundancy_penalty": 3.0,
+    "code_similarity_penalty": 1.25,
+    "code_evidence_policy": {
+      "declared_path_availability_weight": 2.0,
+      "missing_required_path_penalty": -8.0,
+      "similarity_penalty": 1.25,
+      "required_categories": [
+        "implementation",
+        "verification"
+      ],
+      "category_weights": {
+        "implementation": 0.5,
+        "verification": 0.3,
+        "execution_evidence": 0.2
+      },
+      "similarity_basis": "Jaccard overlap of SHA-256 identities for the pinned Git blob bytes of declared implementation files",
+      "max_file_bytes": 2000000,
+      "allowed_extensions": [
+        ".ts",
+        ".tsx",
+        ".js",
+        ".mjs",
+        ".cjs",
+        ".py",
+        ".holo",
+        ".hs",
+        ".hsplus",
+        ".json",
+        ".md"
+      ],
+      "claim_boundary": "Availability means the declared repository-relative regular files passed extension and size admission and were hashed. It does not mean they implement the paper claim correctly or that tests ran or passed."
+    },
     "kill_status_adjustments": {
       "killed": -20.0,
       "narrowed": -1.0,
@@ -384,68 +1435,78 @@
     "convention": "upper triangular: sum_i Qii*x_i + sum_{i<j} Qij*x_i*x_j"
   },
   "composition": "research/quantum-novelty-scout/novelty-portfolio.holo",
+  "composition_role": "Generated declarative mirror of the matrix. The measured run invokes the Python QAOA executor directly; this file is not claimed as validated or as the execution source.",
+  "run_configuration": {
+    "seed": 17,
+    "shots": 128,
+    "grid_points": 4,
+    "p": 1,
+    "execution_mode": "aer"
+  },
   "execution_receipt": {
     "schema": "cael-quantum-v1.qaoa",
-    "timestamp": "2026-07-16T22:50:32.680752+00:00",
+    "timestamp": "2026-07-17T00:13:49.997528+00:00",
     "script": "scripts/quantum_execute.py",
     "task": "qaoa",
     "method": "QAOA-qubo-p1",
     "problem_type": "qubo",
     "objective_sense": "minimize",
     "matrix_convention": "upper-triangular: sum_i Qii*x_i + sum_{i<j} Qij*x_i*x_j",
-    "input_sha256": "a940826b2151142b1178ce43201b64592e1746bcacc5a6f7a649f9a580aa79d5",
+    "input_sha256": "3ec66a8077cf5362c2adb7d1217f0c930a34d1dea39626fcdc8c9ec75a883177",
     "execution_mode": "aer",
     "backend": "statevector-sampler",
     "shots": 128,
-    "job_id": "simulator:a940826b2151142b",
+    "job_id": "simulator:3ec66a8077cf5362",
     "all_job_ids": [],
     "optimizer": "expectation-grid",
     "optimizer_evaluations": 16,
-    "optimal_value": -208.3793181819,
-    "optimal_bitstring": "101000001001",
-    "best_sampled_expectation": -152.40532137796407,
+    "optimal_value": -210.55954545460003,
+    "optimal_bitstring": "101000000101",
+    "best_sampled_expectation": -150.0973987927383,
     "selected_parameters": [
-      1.0471975511965976,
+      0.5235987755982988,
       1.0471975511965976
     ],
-    "classical_optimal_value": -209.11954545460003,
+    "classical_optimal_value": -210.55954545460003,
     "classical_optimal_bitstring": "101000000101",
-    "optimality_gap": 0.7402272727000252,
+    "optimality_gap": 0.0,
     "approximation_ratio": null,
     "num_qubits": 12,
-    "wall_time_s": 0.4515924000006635,
+    "wall_time_s": 0.4562758000101894,
     "hash_scheme": "sha256-canonical-json-v1",
     "hash_payload": {
-      "input_sha256": "a940826b2151142b1178ce43201b64592e1746bcacc5a6f7a649f9a580aa79d5",
-      "job_id": "simulator:a940826b2151142b",
-      "optimal_bitstring": "101000001001",
-      "optimal_value": -208.3793181819
+      "input_sha256": "3ec66a8077cf5362c2adb7d1217f0c930a34d1dea39626fcdc8c9ec75a883177",
+      "job_id": "simulator:3ec66a8077cf5362",
+      "optimal_bitstring": "101000000101",
+      "optimal_value": -210.55954545460003
     },
-    "payload_hash": "631af8b2e4ae1e28e583c5007789e261327c2e7848acc7a014bb558049eb0e4f"
+    "payload_hash": "120a62d72d47c2e94d2b912f85e9891a0beb6b917d5dee7d3ca91ff58dabea75"
   },
   "results": {
     "qaoa": {
-      "bitstring": "101000001001",
+      "bitstring": "101000000101",
       "selected_ids": [
         "P1",
         "P0c",
-        "P10",
+        "P11",
         "P37"
       ],
       "selected_count": 4,
-      "raw_qubo_objective": -208.3793181819,
-      "shifted_objective": -16.379318181900004,
-      "reward_sum": 17.1975,
-      "redundancy_penalty": 0.8181818181818181,
+      "raw_qubo_objective": -210.55954545460003,
+      "shifted_objective": -18.559545454600027,
+      "reward_sum": 19.105,
+      "redundancy_penalty": 0.5454545454545454,
+      "tag_redundancy_penalty": 0.5454545454545454,
+      "code_redundancy_penalty": 0.0,
       "constraint_penalty": 0.0,
-      "portfolio_score": 16.379318181818185,
-      "runtime_seconds": 0.4515924000006635,
+      "portfolio_score": 18.559545454545454,
+      "runtime_seconds": 0.4562758000101894,
       "shots_per_evaluation": 128,
       "optimizer_evaluations": 16,
       "measurement_budget": 2048,
-      "best_sampled_expectation": -152.40532137796407,
+      "best_sampled_expectation": -150.0973987927383,
       "selected_parameters": [
-        1.0471975511965976,
+        0.5235987755982988,
         1.0471975511965976
       ]
     },
@@ -458,13 +1519,15 @@
         "P37"
       ],
       "selected_count": 4,
-      "raw_qubo_objective": -209.11954545460003,
-      "shifted_objective": -17.11954545460003,
-      "reward_sum": 17.665,
+      "raw_qubo_objective": -210.55954545460003,
+      "shifted_objective": -18.559545454600027,
+      "reward_sum": 19.105,
       "redundancy_penalty": 0.5454545454545454,
+      "tag_redundancy_penalty": 0.5454545454545454,
+      "code_redundancy_penalty": 0.0,
       "constraint_penalty": 0.0,
-      "portfolio_score": 17.119545454545452,
-      "runtime_seconds": 0.03869679999479558,
+      "portfolio_score": 18.559545454545454,
+      "runtime_seconds": 0.03806419999455102,
       "evaluations": 4096
     },
     "greedy": {
@@ -476,13 +1539,15 @@
         "P37"
       ],
       "selected_count": 4,
-      "raw_qubo_objective": -209.11954545460003,
-      "shifted_objective": -17.11954545460003,
-      "reward_sum": 17.665,
+      "raw_qubo_objective": -210.55954545460003,
+      "shifted_objective": -18.559545454600027,
+      "reward_sum": 19.105,
       "redundancy_penalty": 0.5454545454545454,
+      "tag_redundancy_penalty": 0.5454545454545454,
+      "code_redundancy_penalty": 0.0,
       "constraint_penalty": 0.0,
-      "portfolio_score": 17.119545454545452,
-      "runtime_seconds": 0.00010469999688211828,
+      "portfolio_score": 18.559545454545454,
+      "runtime_seconds": 9.070002124644816e-05,
       "evaluations": 42
     },
     "budget_matched_random": {
@@ -494,19 +1559,21 @@
         "P37"
       ],
       "selected_count": 4,
-      "raw_qubo_objective": -205.47727272730003,
-      "shifted_objective": -13.477272727300033,
-      "reward_sum": 14.35,
-      "redundancy_penalty": 0.8727272727272728,
+      "raw_qubo_objective": -206.99227272730002,
+      "shifted_objective": -14.99227272730002,
+      "reward_sum": 16.49,
+      "redundancy_penalty": 1.4977272727272728,
+      "tag_redundancy_penalty": 0.8727272727272728,
+      "code_redundancy_penalty": 0.625,
       "constraint_penalty": 0.0,
-      "portfolio_score": 13.477272727272727,
-      "runtime_seconds": 0.02234159999352414,
+      "portfolio_score": 14.992272727272725,
+      "runtime_seconds": 0.02060790001996793,
       "evaluations": 2048,
       "seed": 17,
       "budget_basis": "one random bitstring per QAOA shot across all parameter evaluations"
     }
   },
-  "qaoa_optimality_gap": 0.7402272727000252,
+  "qaoa_optimality_gap": 0.0,
   "recommended_portfolio": {
     "bitstring": "101000000101",
     "selected_ids": [
@@ -516,13 +1583,15 @@
       "P37"
     ],
     "selected_count": 4,
-    "raw_qubo_objective": -209.11954545460003,
-    "shifted_objective": -17.11954545460003,
-    "reward_sum": 17.665,
+    "raw_qubo_objective": -210.55954545460003,
+    "shifted_objective": -18.559545454600027,
+    "reward_sum": 19.105,
     "redundancy_penalty": 0.5454545454545454,
+    "tag_redundancy_penalty": 0.5454545454545454,
+    "code_redundancy_penalty": 0.0,
     "constraint_penalty": 0.0,
-    "portfolio_score": 17.119545454545452,
-    "runtime_seconds": 0.03869679999479558,
+    "portfolio_score": 18.559545454545454,
+    "runtime_seconds": 0.03806419999455102,
     "evaluations": 4096
   },
   "selected_candidates": [
@@ -533,7 +1602,6 @@
       "claim_stage": "tightened_hypothesis",
       "scores": {
         "prior_art_distance": 0.75,
-        "implementation_support": 0.95,
         "evidence_support": 0.9,
         "falsifiability": 0.96,
         "strategic_value": 0.88,
@@ -552,6 +1620,18 @@
         "research/paper-1-mcp-trust-usenix.tex",
         "research/benchmark-results-2026-05-21-paper-1-mcp-ablation.md"
       ],
+      "code_evidence": {
+        "implementation": [
+          "packages/engine/src/simulation/CAELRecorder.ts",
+          "packages/engine/src/simulation/CAELReplayer.ts"
+        ],
+        "verification": [
+          "packages/engine/src/simulation/__tests__/paper-cael-replay-benchmark.test.ts"
+        ],
+        "execution_evidence": [
+          "research/benchmark-results-2026-05-21-paper-1-mcp-ablation.md"
+        ]
+      },
       "kill_test": {
         "named_prior": "NabaOS / Tool Receipts, Not Zero-Knowledge Proofs (arXiv:2603.10060)",
         "status": "survives_tightened_claim",
@@ -583,7 +1663,6 @@
       "claim_stage": "tightened_hypothesis",
       "scores": {
         "prior_art_distance": 0.75,
-        "implementation_support": 0.9,
         "evidence_support": 0.86,
         "falsifiability": 0.9,
         "strategic_value": 0.85,
@@ -602,6 +1681,15 @@
         "research/paper-0c-cael-aamas.tex",
         "packages/engine/src/simulation/__tests__/paper-0c-cael-overhead.test.ts"
       ],
+      "code_evidence": {
+        "implementation": [
+          "packages/engine/src/simulation/CAELAgent.ts"
+        ],
+        "verification": [
+          "packages/engine/src/simulation/__tests__/paper-0c-cael-overhead.test.ts"
+        ],
+        "execution_evidence": []
+      },
       "kill_test": {
         "named_prior": "Blockchain-monitored perception-reasoning-action pipelines and event-sourced agent runtimes",
         "status": "survives_tightened_claim",
@@ -633,7 +1721,6 @@
       "claim_stage": "tightened_hypothesis",
       "scores": {
         "prior_art_distance": 0.72,
-        "implementation_support": 0.7,
         "evidence_support": 0.45,
         "falsifiability": 0.82,
         "strategic_value": 0.75,
@@ -652,6 +1739,17 @@
         "research/paper-11-hsplus-ecoop.tex",
         "research/benchmark-results-2026-05-20-paper-11-trait-gpu-bench.md"
       ],
+      "code_evidence": {
+        "implementation": [
+          "packages/core/src/compiler/traits/ProvenanceSemiring.ts"
+        ],
+        "verification": [
+          "packages/core/src/compiler/__tests__/paper-11-imperative-baseline.bench.test.ts"
+        ],
+        "execution_evidence": [
+          "research/benchmark-results-2026-05-20-paper-11-trait-gpu-bench.md"
+        ]
+      },
       "kill_test": {
         "named_prior": "Same-author Paper 3 plus the current runtime and proof surface",
         "status": "narrowed",
@@ -683,7 +1781,6 @@
       "claim_stage": "tightened_hypothesis",
       "scores": {
         "prior_art_distance": 0.58,
-        "implementation_support": 0.97,
         "evidence_support": 0.97,
         "falsifiability": 0.98,
         "strategic_value": 0.9,
@@ -703,6 +1800,18 @@
         "quantum_receipts/h2-vqe-ibm-kingston-2026-05-21.json",
         "scripts/quantum_receipt_verify.py"
       ],
+      "code_evidence": {
+        "implementation": [
+          "scripts/quantum_execute.py",
+          "scripts/quantum_receipt_verify.py"
+        ],
+        "verification": [
+          "scripts/__tests__/test_quantum_novelty_scout.py"
+        ],
+        "execution_evidence": [
+          "quantum_receipts/h2-vqe-ibm-kingston-2026-05-21.json"
+        ]
+      },
       "kill_test": {
         "named_prior": "IBM Runtime job provenance, Qiskit compilation verification, and transparent VQE hardware characterization",
         "status": "narrowed",
@@ -733,7 +1842,275 @@
       }
     }
   ],
+  "selected_code_evidence": [
+    {
+      "candidate_id": "P1",
+      "declared_path_availability": 1.0,
+      "required_paths_available": true,
+      "missing_required_path_categories": [],
+      "categories": {
+        "implementation": {
+          "weight": 0.5,
+          "declared_count": 2,
+          "available_count": 2,
+          "availability_fraction": 1.0
+        },
+        "verification": {
+          "weight": 0.3,
+          "declared_count": 1,
+          "available_count": 1,
+          "availability_fraction": 1.0
+        },
+        "execution_evidence": {
+          "weight": 0.2,
+          "declared_count": 1,
+          "available_count": 1,
+          "availability_fraction": 1.0
+        }
+      },
+      "files": [
+        {
+          "category": "implementation",
+          "path": "packages/engine/src/simulation/CAELRecorder.ts",
+          "exists": true,
+          "admitted": true,
+          "worktree_bytes": 8433,
+          "worktree_sha256": "64e20ae3c1397cd4b24b7e00f9fbc68c8def8d0229fe88c639868d4f24a93c88",
+          "git_blob_oid": "d9597ff8228916f307885c3b575e002515c257e5",
+          "git_blob_bytes": 8433,
+          "git_blob_sha256": "64e20ae3c1397cd4b24b7e00f9fbc68c8def8d0229fe88c639868d4f24a93c88"
+        },
+        {
+          "category": "implementation",
+          "path": "packages/engine/src/simulation/CAELReplayer.ts",
+          "exists": true,
+          "admitted": true,
+          "worktree_bytes": 9968,
+          "worktree_sha256": "ca78426e53b7d8b1f81c92963e42a4ae770a755331e3ab4447488d7a992fdd32",
+          "git_blob_oid": "524406a13e317e4dfc1ee86793864e82607a31cf",
+          "git_blob_bytes": 9968,
+          "git_blob_sha256": "ca78426e53b7d8b1f81c92963e42a4ae770a755331e3ab4447488d7a992fdd32"
+        },
+        {
+          "category": "verification",
+          "path": "packages/engine/src/simulation/__tests__/paper-cael-replay-benchmark.test.ts",
+          "exists": true,
+          "admitted": true,
+          "worktree_bytes": 24251,
+          "worktree_sha256": "ceb12efc3576541a7ccd9fe5b476aaf7193a63560205ba6b808a605a962da5e7",
+          "git_blob_oid": "88a77301366e4e263aeac101746f17c192544ff2",
+          "git_blob_bytes": 24251,
+          "git_blob_sha256": "ceb12efc3576541a7ccd9fe5b476aaf7193a63560205ba6b808a605a962da5e7"
+        },
+        {
+          "category": "execution_evidence",
+          "path": "research/benchmark-results-2026-05-21-paper-1-mcp-ablation.md",
+          "exists": true,
+          "admitted": true,
+          "worktree_bytes": 2639,
+          "worktree_sha256": "8694d12e9e98dd998827e0369ef05606999b144c73bdaa10098501a51127642f",
+          "git_blob_oid": "675928bf28d41b6f673b7ae4ef68bb657ccd398b",
+          "git_blob_bytes": 2639,
+          "git_blob_sha256": "8694d12e9e98dd998827e0369ef05606999b144c73bdaa10098501a51127642f"
+        }
+      ],
+      "implementation_file_hash_count": 2,
+      "implementation_set_fingerprint": "dd93d7ad572f1a2ffa2fb5744b3f52d32bc96afb63b9b0ebc4418e4a96959817"
+    },
+    {
+      "candidate_id": "P0c",
+      "declared_path_availability": 0.8,
+      "required_paths_available": true,
+      "missing_required_path_categories": [],
+      "categories": {
+        "implementation": {
+          "weight": 0.5,
+          "declared_count": 1,
+          "available_count": 1,
+          "availability_fraction": 1.0
+        },
+        "verification": {
+          "weight": 0.3,
+          "declared_count": 1,
+          "available_count": 1,
+          "availability_fraction": 1.0
+        },
+        "execution_evidence": {
+          "weight": 0.2,
+          "declared_count": 0,
+          "available_count": 0,
+          "availability_fraction": 0.0
+        }
+      },
+      "files": [
+        {
+          "category": "implementation",
+          "path": "packages/engine/src/simulation/CAELAgent.ts",
+          "exists": true,
+          "admitted": true,
+          "worktree_bytes": 20342,
+          "worktree_sha256": "7d2d7a20bf846f3e07ed35dce1e1fa40db9d1e0fa0062a76120b18fc47431d8b",
+          "git_blob_oid": "acd391490565e163afbe725ba63b04e5372779a8",
+          "git_blob_bytes": 20342,
+          "git_blob_sha256": "7d2d7a20bf846f3e07ed35dce1e1fa40db9d1e0fa0062a76120b18fc47431d8b"
+        },
+        {
+          "category": "verification",
+          "path": "packages/engine/src/simulation/__tests__/paper-0c-cael-overhead.test.ts",
+          "exists": true,
+          "admitted": true,
+          "worktree_bytes": 7806,
+          "worktree_sha256": "ddd514c05304d35810dff1a406c7312cc25bb0e863995972a427056a1d3ca278",
+          "git_blob_oid": "33568ec85d4ea7110f9e2734a6cc276583535fbe",
+          "git_blob_bytes": 7806,
+          "git_blob_sha256": "ddd514c05304d35810dff1a406c7312cc25bb0e863995972a427056a1d3ca278"
+        }
+      ],
+      "implementation_file_hash_count": 1,
+      "implementation_set_fingerprint": "7beffd8fcda33efcc8537bfce304517102a7061d20c370b597008990f4567221"
+    },
+    {
+      "candidate_id": "P11",
+      "declared_path_availability": 1.0,
+      "required_paths_available": true,
+      "missing_required_path_categories": [],
+      "categories": {
+        "implementation": {
+          "weight": 0.5,
+          "declared_count": 1,
+          "available_count": 1,
+          "availability_fraction": 1.0
+        },
+        "verification": {
+          "weight": 0.3,
+          "declared_count": 1,
+          "available_count": 1,
+          "availability_fraction": 1.0
+        },
+        "execution_evidence": {
+          "weight": 0.2,
+          "declared_count": 1,
+          "available_count": 1,
+          "availability_fraction": 1.0
+        }
+      },
+      "files": [
+        {
+          "category": "implementation",
+          "path": "packages/core/src/compiler/traits/ProvenanceSemiring.ts",
+          "exists": true,
+          "admitted": true,
+          "worktree_bytes": 22938,
+          "worktree_sha256": "662e3a343f1392d52efa95f55cff8f0a1bec408ec133fca565f69d27cc091467",
+          "git_blob_oid": "704ae76551ab08b4fddf5d22d17451912fa25b3c",
+          "git_blob_bytes": 22938,
+          "git_blob_sha256": "662e3a343f1392d52efa95f55cff8f0a1bec408ec133fca565f69d27cc091467"
+        },
+        {
+          "category": "verification",
+          "path": "packages/core/src/compiler/__tests__/paper-11-imperative-baseline.bench.test.ts",
+          "exists": true,
+          "admitted": true,
+          "worktree_bytes": 15620,
+          "worktree_sha256": "5501711d65b1f97051abf2fa4db4cf74348c39807cc0c51d655f8224e6c584f9",
+          "git_blob_oid": "2e2ce15dcdd6f748bacfb5c44d4aff9aa181d14b",
+          "git_blob_bytes": 15620,
+          "git_blob_sha256": "5501711d65b1f97051abf2fa4db4cf74348c39807cc0c51d655f8224e6c584f9"
+        },
+        {
+          "category": "execution_evidence",
+          "path": "research/benchmark-results-2026-05-20-paper-11-trait-gpu-bench.md",
+          "exists": true,
+          "admitted": true,
+          "worktree_bytes": 4004,
+          "worktree_sha256": "70b5522398adb214ddd6a656c6e0aeb3b3722bd51a05bef634f8edec56b00220",
+          "git_blob_oid": "74d0119f62525ab4fd116f0281c3558d20bed62a",
+          "git_blob_bytes": 4004,
+          "git_blob_sha256": "70b5522398adb214ddd6a656c6e0aeb3b3722bd51a05bef634f8edec56b00220"
+        }
+      ],
+      "implementation_file_hash_count": 1,
+      "implementation_set_fingerprint": "cfcae31c5b2ec6c34f84220cc18891b40374211f078de49df734e34ff857a8e2"
+    },
+    {
+      "candidate_id": "P37",
+      "declared_path_availability": 1.0,
+      "required_paths_available": true,
+      "missing_required_path_categories": [],
+      "categories": {
+        "implementation": {
+          "weight": 0.5,
+          "declared_count": 2,
+          "available_count": 2,
+          "availability_fraction": 1.0
+        },
+        "verification": {
+          "weight": 0.3,
+          "declared_count": 1,
+          "available_count": 1,
+          "availability_fraction": 1.0
+        },
+        "execution_evidence": {
+          "weight": 0.2,
+          "declared_count": 1,
+          "available_count": 1,
+          "availability_fraction": 1.0
+        }
+      },
+      "files": [
+        {
+          "category": "implementation",
+          "path": "scripts/quantum_execute.py",
+          "exists": true,
+          "admitted": true,
+          "worktree_bytes": 60245,
+          "worktree_sha256": "8bba9401e300749d6b543c8865a14b8ac2680c4f01ade6077330ecdd6d449899",
+          "git_blob_oid": "a8016e6adb4a38bc4ee465be5cc2e104c86ef0f7",
+          "git_blob_bytes": 60245,
+          "git_blob_sha256": "8bba9401e300749d6b543c8865a14b8ac2680c4f01ade6077330ecdd6d449899"
+        },
+        {
+          "category": "implementation",
+          "path": "scripts/quantum_receipt_verify.py",
+          "exists": true,
+          "admitted": true,
+          "worktree_bytes": 43847,
+          "worktree_sha256": "5a1b9eb8f4c8d66d4d7f1065b87e84cff6cd836f8a31f86d99a1353a6d1511c2",
+          "git_blob_oid": "9de6cf3149720eaa8aff6d2509212cf4d215067d",
+          "git_blob_bytes": 43847,
+          "git_blob_sha256": "5a1b9eb8f4c8d66d4d7f1065b87e84cff6cd836f8a31f86d99a1353a6d1511c2"
+        },
+        {
+          "category": "verification",
+          "path": "scripts/__tests__/test_quantum_novelty_scout.py",
+          "exists": true,
+          "admitted": true,
+          "worktree_bytes": 17936,
+          "worktree_sha256": "81919b9df894bcac5719397e4be5f724d105ca2e434e78ab58b944cad711fc01",
+          "git_blob_oid": "b564aafe4dc9802375ed9548662dcee3978c7226",
+          "git_blob_bytes": 17936,
+          "git_blob_sha256": "81919b9df894bcac5719397e4be5f724d105ca2e434e78ab58b944cad711fc01"
+        },
+        {
+          "category": "execution_evidence",
+          "path": "quantum_receipts/h2-vqe-ibm-kingston-2026-05-21.json",
+          "exists": true,
+          "admitted": true,
+          "worktree_bytes": 3948,
+          "worktree_sha256": "aa702dc7a066f2efe281d1a219b5c95ea4c8c75a900f45bafc53d108f1a05019",
+          "git_blob_oid": "94ca4e5681d3a2945578022086175243def0f46c",
+          "git_blob_bytes": 3849,
+          "git_blob_sha256": "6392c9ad340966cfe081b10cf134e61932651539c526c49ba0e8c41586a9b32c"
+        }
+      ],
+      "implementation_file_hash_count": 2,
+      "implementation_set_fingerprint": "c1850403f6ac995e3dd7f503e9665b3313da958be548b34838e2ba9d0b87920f"
+    }
+  ],
   "source_grounding_complete": true,
+  "selected_claims_not_killed": true,
+  "selected_code_evidence_paths_available": true,
+  "all_candidate_code_evidence_paths_available": false,
   "hardware_gate": {
     "decision": "NO_GO",
     "criteria": {
@@ -741,7 +2118,10 @@
       "qaoa_strictly_beats_budget_random": true,
       "classical_exact_not_cheaper": false,
       "nontrivial_problem_scale": false,
-      "selected_kill_tests_complete": true
+      "qaoa_target_cardinality_met": true,
+      "selected_kill_tests_complete": true,
+      "selected_claims_not_killed": true,
+      "selected_code_evidence_paths_available": true
     },
     "reason": "IBM hardware is not justified unless QAOA adds comparative signal at nontrivial scale after source grounding.",
     "ibm_job_submitted": false
@@ -751,42 +2131,389 @@
     "qiskit": "2.1.2",
     "platform": "Windows-11-10.0.26200-SP0"
   },
+  "code_hash_basis": "SHA-256 of pinned Git blob bytes",
   "code_hashes": {
-    "scout_sha256": "e9d94fceab0d1da3aaa89b813c9ac763693945375d0297a0dc2b8651c8dca6e1",
+    "scout_sha256": "b7f9d0716c76aa07862cce6b12d846bf8580ec08146e21301312cf097aef40f2",
     "executor_sha256": "8bba9401e300749d6b543c8865a14b8ac2680c4f01ade6077330ecdd6d449899",
-    "verifier_sha256": "dc88beb8e7305be2c33914c77710499b3bc7a76c6a7e820953ac3f7e2b761529",
-    "composition_sha256": "d93b529a7ee6824764d1f158fd056b384fbb73a8b20840a31a137697be4af054"
+    "verifier_sha256": "5a1b9eb8f4c8d66d4d7f1065b87e84cff6cd836f8a31f86d99a1353a6d1511c2",
+    "composition_sha256": "a6a8abdbe67bc3ac8d921d23738fefc3effb8cd7897f0dcc9d8c6fe72b1efd35"
   },
-  "hash_scheme": "sha256-canonical-json-v1",
+  "source_state": {
+    "head_commit": "f188947bd6f2134ae81fe47e9eb98ac01e86350e",
+    "head_tree": "e8ce6b0bab033640dd1e0610c45307fd963aa9e9",
+    "scoped_dirty": false,
+    "scoped_status": [],
+    "files": [
+      {
+        "path": "scripts/quantum_novelty_scout.py",
+        "worktree_bytes": 34819,
+        "worktree_sha256": "b7f9d0716c76aa07862cce6b12d846bf8580ec08146e21301312cf097aef40f2",
+        "git_blob_oid": "c81a09bd8dda3336d7acf664d7bcd83ae4a5f1df",
+        "git_blob_bytes": 34819,
+        "git_blob_sha256": "b7f9d0716c76aa07862cce6b12d846bf8580ec08146e21301312cf097aef40f2"
+      },
+      {
+        "path": "scripts/quantum_execute.py",
+        "worktree_bytes": 60245,
+        "worktree_sha256": "8bba9401e300749d6b543c8865a14b8ac2680c4f01ade6077330ecdd6d449899",
+        "git_blob_oid": "a8016e6adb4a38bc4ee465be5cc2e104c86ef0f7",
+        "git_blob_bytes": 60245,
+        "git_blob_sha256": "8bba9401e300749d6b543c8865a14b8ac2680c4f01ade6077330ecdd6d449899"
+      },
+      {
+        "path": "scripts/quantum_receipt_verify.py",
+        "worktree_bytes": 43847,
+        "worktree_sha256": "5a1b9eb8f4c8d66d4d7f1065b87e84cff6cd836f8a31f86d99a1353a6d1511c2",
+        "git_blob_oid": "9de6cf3149720eaa8aff6d2509212cf4d215067d",
+        "git_blob_bytes": 43847,
+        "git_blob_sha256": "5a1b9eb8f4c8d66d4d7f1065b87e84cff6cd836f8a31f86d99a1353a6d1511c2"
+      },
+      {
+        "path": "scripts/__tests__/test_quantum_novelty_scout.py",
+        "worktree_bytes": 17936,
+        "worktree_sha256": "81919b9df894bcac5719397e4be5f724d105ca2e434e78ab58b944cad711fc01",
+        "git_blob_oid": "b564aafe4dc9802375ed9548662dcee3978c7226",
+        "git_blob_bytes": 17936,
+        "git_blob_sha256": "81919b9df894bcac5719397e4be5f724d105ca2e434e78ab58b944cad711fc01"
+      },
+      {
+        "path": "research/quantum-novelty-scout/candidates-v1.json",
+        "worktree_bytes": 30632,
+        "worktree_sha256": "490a4e6c2904f52528a6e2c89776ca16e191f63e3d5574d553c5b647a05681de",
+        "git_blob_oid": "eeaaf44b614a4308e71b837cc86cdae0e2ad9aa2",
+        "git_blob_bytes": 30632,
+        "git_blob_sha256": "490a4e6c2904f52528a6e2c89776ca16e191f63e3d5574d553c5b647a05681de"
+      },
+      {
+        "path": "research/quantum-novelty-scout/novelty-portfolio.holo",
+        "worktree_bytes": 1683,
+        "worktree_sha256": "a08041d84b39547dec2e68ac4c2c2c5bcf3258f6452d317ff9c79e1dea6fae7f",
+        "git_blob_oid": "e6957a0606bb6251e1f788a018cdd15e4e3bcc66",
+        "git_blob_bytes": 1666,
+        "git_blob_sha256": "a6a8abdbe67bc3ac8d921d23738fefc3effb8cd7897f0dcc9d8c6fe72b1efd35"
+      },
+      {
+        "path": "pnpm-lock.yaml",
+        "worktree_bytes": 1007664,
+        "worktree_sha256": "ce60faae3445a33f0dd28e6879db710e69004d4bc3938a2c6a36c20a8a3f02f7",
+        "git_blob_oid": "faeb160e003e73c37e4a7d47196c715aec0617eb",
+        "git_blob_bytes": 1007664,
+        "git_blob_sha256": "ce60faae3445a33f0dd28e6879db710e69004d4bc3938a2c6a36c20a8a3f02f7"
+      },
+      {
+        "path": "packages/engine/src/simulation/CAELRecorder.ts",
+        "worktree_bytes": 8433,
+        "worktree_sha256": "64e20ae3c1397cd4b24b7e00f9fbc68c8def8d0229fe88c639868d4f24a93c88",
+        "git_blob_oid": "d9597ff8228916f307885c3b575e002515c257e5",
+        "git_blob_bytes": 8433,
+        "git_blob_sha256": "64e20ae3c1397cd4b24b7e00f9fbc68c8def8d0229fe88c639868d4f24a93c88"
+      },
+      {
+        "path": "packages/engine/src/simulation/CAELReplayer.ts",
+        "worktree_bytes": 9968,
+        "worktree_sha256": "ca78426e53b7d8b1f81c92963e42a4ae770a755331e3ab4447488d7a992fdd32",
+        "git_blob_oid": "524406a13e317e4dfc1ee86793864e82607a31cf",
+        "git_blob_bytes": 9968,
+        "git_blob_sha256": "ca78426e53b7d8b1f81c92963e42a4ae770a755331e3ab4447488d7a992fdd32"
+      },
+      {
+        "path": "packages/engine/src/simulation/__tests__/paper-cael-replay-benchmark.test.ts",
+        "worktree_bytes": 24251,
+        "worktree_sha256": "ceb12efc3576541a7ccd9fe5b476aaf7193a63560205ba6b808a605a962da5e7",
+        "git_blob_oid": "88a77301366e4e263aeac101746f17c192544ff2",
+        "git_blob_bytes": 24251,
+        "git_blob_sha256": "ceb12efc3576541a7ccd9fe5b476aaf7193a63560205ba6b808a605a962da5e7"
+      },
+      {
+        "path": "research/benchmark-results-2026-05-21-paper-1-mcp-ablation.md",
+        "worktree_bytes": 2639,
+        "worktree_sha256": "8694d12e9e98dd998827e0369ef05606999b144c73bdaa10098501a51127642f",
+        "git_blob_oid": "675928bf28d41b6f673b7ae4ef68bb657ccd398b",
+        "git_blob_bytes": 2639,
+        "git_blob_sha256": "8694d12e9e98dd998827e0369ef05606999b144c73bdaa10098501a51127642f"
+      },
+      {
+        "path": "packages/security-sandbox/src/index.ts",
+        "worktree_bytes": 39481,
+        "worktree_sha256": "2b6799990a73ff59e8793ebb50de977f724dbf7894b114711cade3574f4595d8",
+        "git_blob_oid": "0be891518c07c470eb96009a1c74d0bd8e2c904d",
+        "git_blob_bytes": 39481,
+        "git_blob_sha256": "2b6799990a73ff59e8793ebb50de977f724dbf7894b114711cade3574f4595d8"
+      },
+      {
+        "path": "packages/core/src/plugins/__tests__/paper-4-sandbox-bench.test.ts",
+        "worktree_bytes": 3597,
+        "worktree_sha256": "57fd6869a86184f1900117f2cb11d31458aa24333e6423a1f6077b9455792eb4",
+        "git_blob_oid": "b88ffaa888b8c6cb759a45186e140aaea0991f54",
+        "git_blob_bytes": 3597,
+        "git_blob_sha256": "57fd6869a86184f1900117f2cb11d31458aa24333e6423a1f6077b9455792eb4"
+      },
+      {
+        "path": "packages/engine/src/simulation/CAELAgent.ts",
+        "worktree_bytes": 20342,
+        "worktree_sha256": "7d2d7a20bf846f3e07ed35dce1e1fa40db9d1e0fa0062a76120b18fc47431d8b",
+        "git_blob_oid": "acd391490565e163afbe725ba63b04e5372779a8",
+        "git_blob_bytes": 20342,
+        "git_blob_sha256": "7d2d7a20bf846f3e07ed35dce1e1fa40db9d1e0fa0062a76120b18fc47431d8b"
+      },
+      {
+        "path": "packages/engine/src/simulation/__tests__/paper-0c-cael-overhead.test.ts",
+        "worktree_bytes": 7806,
+        "worktree_sha256": "ddd514c05304d35810dff1a406c7312cc25bb0e863995972a427056a1d3ca278",
+        "git_blob_oid": "33568ec85d4ea7110f9e2734a6cc276583535fbe",
+        "git_blob_bytes": 7806,
+        "git_blob_sha256": "ddd514c05304d35810dff1a406c7312cc25bb0e863995972a427056a1d3ca278"
+      },
+      {
+        "path": "packages/engine/src/simulation/SNNCognitionEngine.ts",
+        "worktree_bytes": 13016,
+        "worktree_sha256": "37d989182f80ea394fba6592b21eac771506c175b35ac9ef901be6493a393054",
+        "git_blob_oid": "a10c078d1b8c1bb08af6740d87673dbd1e9f2b3f",
+        "git_blob_bytes": 13016,
+        "git_blob_sha256": "37d989182f80ea394fba6592b21eac771506c175b35ac9ef901be6493a393054"
+      },
+      {
+        "path": "packages/snn-webgpu/src/paper/LIFDeterminismProbe.ts",
+        "worktree_bytes": 5768,
+        "worktree_sha256": "a1161a2503cb3f0d0bc32fcf294d66e6a06520eff2e98f2859168d9ff07ad8b5",
+        "git_blob_oid": "8b39b4e50ea6d1d9e14d2f596efe0120ff80b1ff",
+        "git_blob_bytes": 5768,
+        "git_blob_sha256": "a1161a2503cb3f0d0bc32fcf294d66e6a06520eff2e98f2859168d9ff07ad8b5"
+      },
+      {
+        "path": "packages/snn-webgpu/src/paper/__tests__/LIFDeterminismProbe.test.ts",
+        "worktree_bytes": 4956,
+        "worktree_sha256": "8bcc9d6197c219e2c4adf8178cf0b3306b608eee6ab5ca7643d27e86cab15f74",
+        "git_blob_oid": "8bc08d922a65f7fd4a89e1d214a929d0e0cdc926",
+        "git_blob_bytes": 4956,
+        "git_blob_sha256": "8bcc9d6197c219e2c4adf8178cf0b3306b608eee6ab5ca7643d27e86cab15f74"
+      },
+      {
+        "path": "packages/engine/src/simulation/__tests__/paper-multi-agent-crdt.test.ts",
+        "worktree_bytes": 34590,
+        "worktree_sha256": "f0c2580827bb48d2e559a4850854b6420dcb5017bc36086941ee246495cf55f1",
+        "git_blob_oid": "18bdafff6444f57d93934f8efe33d95205a4a7f6",
+        "git_blob_bytes": 34590,
+        "git_blob_sha256": "f0c2580827bb48d2e559a4850854b6420dcb5017bc36086941ee246495cf55f1"
+      },
+      {
+        "path": "packages/mcp-server/src/absorb-provenance-tools.ts",
+        "worktree_bytes": 10374,
+        "worktree_sha256": "513135dc0a68162643ce8c61dfe95c5e19dd79be0519c2bdf7eab2327d76e600",
+        "git_blob_oid": "3599021062eb13c600a3b6f134446f8179488565",
+        "git_blob_bytes": 10374,
+        "git_blob_sha256": "513135dc0a68162643ce8c61dfe95c5e19dd79be0519c2bdf7eab2327d76e600"
+      },
+      {
+        "path": "packages/absorb-service/src/mcp/codebase-tools.ts",
+        "worktree_bytes": 192241,
+        "worktree_sha256": "9188f05795a4208a5396b3744cca2751dcf37b8a1eb73b0a85a591e1a04fb322",
+        "git_blob_oid": "55768a7584ad960366514e0c972491274db1c78e",
+        "git_blob_bytes": 192241,
+        "git_blob_sha256": "9188f05795a4208a5396b3744cca2751dcf37b8a1eb73b0a85a591e1a04fb322"
+      },
+      {
+        "path": "packages/absorb-service/src/engine/GraphRAGEngine.ts",
+        "worktree_bytes": 12986,
+        "worktree_sha256": "38f47536131e6f7ea16e4b7fa1fcd3781b0ccdd4e25010551a94dafdf826737b",
+        "git_blob_oid": "796b77ee7efddfea56953960e609f139a20b9b34",
+        "git_blob_bytes": 12986,
+        "git_blob_sha256": "38f47536131e6f7ea16e4b7fa1fcd3781b0ccdd4e25010551a94dafdf826737b"
+      },
+      {
+        "path": "packages/mcp-server/src/__tests__/absorb-provenance-tools.test.ts",
+        "worktree_bytes": 4549,
+        "worktree_sha256": "4900eca9b2ac8cfacbd5bdce6a124f9f5a40eff722cae30233bdcdd900816a07",
+        "git_blob_oid": "a3ad4a5f31655bb6435f25c9c5d8f10fb9b0474c",
+        "git_blob_bytes": 4549,
+        "git_blob_sha256": "4900eca9b2ac8cfacbd5bdce6a124f9f5a40eff722cae30233bdcdd900816a07"
+      },
+      {
+        "path": "packages/engine/src/animation/AnimationClip.ts",
+        "worktree_bytes": 6862,
+        "worktree_sha256": "f704833281c6153e1881862a56f78701f882588e9f87b8ae91ea9ebb8b490331",
+        "git_blob_oid": "6aa3517de981c7fd38778cbaaa8a105e167ef947",
+        "git_blob_bytes": 6862,
+        "git_blob_sha256": "f704833281c6153e1881862a56f78701f882588e9f87b8ae91ea9ebb8b490331"
+      },
+      {
+        "path": "packages/engine/src/animation/paper/AnimationSamplingProbe.ts",
+        "worktree_bytes": 6182,
+        "worktree_sha256": "a2d9c97a071c7bc986c2f680e8fde5439d31bb47482a13c97818b94c3f7a2d0b",
+        "git_blob_oid": "2a9603e9b5ba7711d71bc9df1f8d26510bc38c3e",
+        "git_blob_bytes": 6182,
+        "git_blob_sha256": "a2d9c97a071c7bc986c2f680e8fde5439d31bb47482a13c97818b94c3f7a2d0b"
+      },
+      {
+        "path": "packages/engine/src/animation/paper/__tests__/AnimationSamplingProbe.test.ts",
+        "worktree_bytes": 5111,
+        "worktree_sha256": "abd137464f0c24c091f0d3811c83d015d486ba1b6e88cc7c970f5888a7f933b9",
+        "git_blob_oid": "d3c460694133d7b5d0516dbd6cc756cfae2ee1d1",
+        "git_blob_bytes": 5111,
+        "git_blob_sha256": "abd137464f0c24c091f0d3811c83d015d486ba1b6e88cc7c970f5888a7f933b9"
+      },
+      {
+        "path": "research/benchmark-results-2026-05-21-paper-6-gpu-bench-rtx3060.md",
+        "worktree_bytes": 2016,
+        "worktree_sha256": "dfba28a4f707588217fae1865779cc6675129a96e3b2dafb449766faad4aeaac",
+        "git_blob_oid": "cee1bc6cae504efaaa67ce08d72bbe8a0ad80e9a",
+        "git_blob_bytes": 2016,
+        "git_blob_sha256": "dfba28a4f707588217fae1865779cc6675129a96e3b2dafb449766faad4aeaac"
+      },
+      {
+        "path": "packages/engine/src/animation/paper/Paper8CrossBackendDeterminismProbe.ts",
+        "worktree_bytes": 14777,
+        "worktree_sha256": "914af1384b6e019defdc594b286f8514d9e9cd04436426844645663c71b6cfee",
+        "git_blob_oid": "64d68d73bc499340c6a09c1de3a6cef58f6cca65",
+        "git_blob_bytes": 14777,
+        "git_blob_sha256": "914af1384b6e019defdc594b286f8514d9e9cd04436426844645663c71b6cfee"
+      },
+      {
+        "path": "packages/engine/src/animation/paper/benchmarks/paper-8-publication.ts",
+        "worktree_bytes": 8266,
+        "worktree_sha256": "d5f6f02c6f07b115a778ca5b4d8f8cf00b01c7a30d8dbf4e6cee748ee90b89a7",
+        "git_blob_oid": "57ab560aa747733effef20ce4af1bd090d13af11",
+        "git_blob_bytes": 8266,
+        "git_blob_sha256": "d5f6f02c6f07b115a778ca5b4d8f8cf00b01c7a30d8dbf4e6cee748ee90b89a7"
+      },
+      {
+        "path": "packages/engine/src/animation/paper/benchmarks/__tests__/paper-8-publication.test.ts",
+        "worktree_bytes": 14923,
+        "worktree_sha256": "53812d40e99cda23cf6d3b2f5d42957ad54bad186970170c0ffc9c24c62e9735",
+        "git_blob_oid": "56d24e698a24162f9ec2642cf6df0787a8ac05bc",
+        "git_blob_bytes": 14923,
+        "git_blob_sha256": "53812d40e99cda23cf6d3b2f5d42957ad54bad186970170c0ffc9c24c62e9735"
+      },
+      {
+        "path": "research/benchmark-results-2026-05-21-paper-8-publication.md",
+        "worktree_bytes": 1902,
+        "worktree_sha256": "fd05b3178b1ac31268342c8e8c26fa3809a918eba1e454db20dc167736ed0f36",
+        "git_blob_oid": "05829b1d68affadc89ccb731ea85f1f6c9e06a74",
+        "git_blob_bytes": 1902,
+        "git_blob_sha256": "fd05b3178b1ac31268342c8e8c26fa3809a918eba1e454db20dc167736ed0f36"
+      },
+      {
+        "path": "packages/core/src/compiler/CompilerBase.ts",
+        "worktree_bytes": 35142,
+        "worktree_sha256": "2822e6655c50d0ecee162977feff8cc6495f453c7359335e9d8300a3ff9573b3",
+        "git_blob_oid": "506b3e184789f655eb35e500572fe435568fb3ac",
+        "git_blob_bytes": 35142,
+        "git_blob_sha256": "2822e6655c50d0ecee162977feff8cc6495f453c7359335e9d8300a3ff9573b3"
+      },
+      {
+        "path": "packages/core/src/compiler/traits/ProvenanceSemiring.ts",
+        "worktree_bytes": 22938,
+        "worktree_sha256": "662e3a343f1392d52efa95f55cff8f0a1bec408ec133fca565f69d27cc091467",
+        "git_blob_oid": "704ae76551ab08b4fddf5d22d17451912fa25b3c",
+        "git_blob_bytes": 22938,
+        "git_blob_sha256": "662e3a343f1392d52efa95f55cff8f0a1bec408ec133fca565f69d27cc091467"
+      },
+      {
+        "path": "packages/core/src/compiler/__tests__/paper-10-cross-target-theorem-matrix.test.ts",
+        "worktree_bytes": 3229,
+        "worktree_sha256": "859ef285972f0d0d579031e1d332db8fdd7ff9c58daf3557f6a373401facb0f0",
+        "git_blob_oid": "c988e4a401a6741b21f2ad6af8fae35891bc9f08",
+        "git_blob_bytes": 3229,
+        "git_blob_sha256": "859ef285972f0d0d579031e1d332db8fdd7ff9c58daf3557f6a373401facb0f0"
+      },
+      {
+        "path": "research/benchmark-results-2026-05-21-paper-10-cross-target-theorem-matrix.md",
+        "worktree_bytes": 2740,
+        "worktree_sha256": "435cf17dad5d4d72cd47bc02d75c37665ef2ba0f84e5ba3e0c054296b898d4b0",
+        "git_blob_oid": "eec232d2fcafbd0dcb3a1019840fed205a344986",
+        "git_blob_bytes": 2740,
+        "git_blob_sha256": "435cf17dad5d4d72cd47bc02d75c37665ef2ba0f84e5ba3e0c054296b898d4b0"
+      },
+      {
+        "path": "packages/core/src/compiler/__tests__/paper-11-imperative-baseline.bench.test.ts",
+        "worktree_bytes": 15620,
+        "worktree_sha256": "5501711d65b1f97051abf2fa4db4cf74348c39807cc0c51d655f8224e6c584f9",
+        "git_blob_oid": "2e2ce15dcdd6f748bacfb5c44d4aff9aa181d14b",
+        "git_blob_bytes": 15620,
+        "git_blob_sha256": "5501711d65b1f97051abf2fa4db4cf74348c39807cc0c51d655f8224e6c584f9"
+      },
+      {
+        "path": "research/benchmark-results-2026-05-20-paper-11-trait-gpu-bench.md",
+        "worktree_bytes": 4004,
+        "worktree_sha256": "70b5522398adb214ddd6a656c6e0aeb3b3722bd51a05bef634f8edec56b00220",
+        "git_blob_oid": "74d0119f62525ab4fd116f0281c3558d20bed62a",
+        "git_blob_bytes": 4004,
+        "git_blob_sha256": "70b5522398adb214ddd6a656c6e0aeb3b3722bd51a05bef634f8edec56b00220"
+      },
+      {
+        "path": "packages/plugins/structural-biology-plugin/src/index.ts",
+        "worktree_bytes": 9539,
+        "worktree_sha256": "99cf63706ee38ba0225fd44ae10c36277400384221f71bebf5ce842e94e5f209",
+        "git_blob_oid": "a4ec2c93b3633d0c1bdc42572d0adf0cdb7254e5",
+        "git_blob_bytes": 9539,
+        "git_blob_sha256": "99cf63706ee38ba0225fd44ae10c36277400384221f71bebf5ce842e94e5f209"
+      },
+      {
+        "path": "packages/plugins/structural-biology-plugin/src/receipt.ts",
+        "worktree_bytes": 16540,
+        "worktree_sha256": "9e53b1629816aa9c9246fd89d382b40635a0c0abc665bbf28d4cee05653488ad",
+        "git_blob_oid": "b287f5ad482b78af736d1ff70f3c832c2d5c48f6",
+        "git_blob_bytes": 16540,
+        "git_blob_sha256": "9e53b1629816aa9c9246fd89d382b40635a0c0abc665bbf28d4cee05653488ad"
+      },
+      {
+        "path": "packages/plugins/structural-biology-plugin/src/__tests__/index.test.ts",
+        "worktree_bytes": 21812,
+        "worktree_sha256": "5a74d1e2ee2527820275d9db30807df17a7ed9b4862f3d6cbd273270fcf8eae6",
+        "git_blob_oid": "ecee7adb79d3e09bb39c69fc53d1c6541b93a403",
+        "git_blob_bytes": 21812,
+        "git_blob_sha256": "5a74d1e2ee2527820275d9db30807df17a7ed9b4862f3d6cbd273270fcf8eae6"
+      },
+      {
+        "path": "docs/public/evidence/paper-12-hololand-envelope.json",
+        "worktree_bytes": 5444,
+        "worktree_sha256": "488c6fe6b0712b145ef60ea179a9f97f64b848df3cc8be5b59067dbc5266e842",
+        "git_blob_oid": "1577cb869be8c14f2ac8fd35d1f2eb5686368f4e",
+        "git_blob_bytes": 5444,
+        "git_blob_sha256": "488c6fe6b0712b145ef60ea179a9f97f64b848df3cc8be5b59067dbc5266e842"
+      },
+      {
+        "path": "quantum_receipts/h2-vqe-ibm-kingston-2026-05-21.json",
+        "worktree_bytes": 3948,
+        "worktree_sha256": "aa702dc7a066f2efe281d1a219b5c95ea4c8c75a900f45bafc53d108f1a05019",
+        "git_blob_oid": "94ca4e5681d3a2945578022086175243def0f46c",
+        "git_blob_bytes": 3849,
+        "git_blob_sha256": "6392c9ad340966cfe081b10cf134e61932651539c526c49ba0e8c41586a9b32c"
+      }
+    ]
+  },
+  "hash_scheme": "sha256-canonical-json-v2",
+  "hash_scope": "full_receipt_excluding_payload_hash",
   "hash_payload": {
-    "input_sha256": "208f1ef5e96fedd8c90bd93959ef270dd31351cde7a246f0733032eb8104f2e4",
-    "qubo_sha256": "20d6a3573818197a46008a2a7ab43678f72c2d7b7ddb6ce6772c7d7906a99569",
-    "execution_payload_hash": "631af8b2e4ae1e28e583c5007789e261327c2e7848acc7a014bb558049eb0e4f",
+    "input_sha256": "cf94bf334db69c53b3a3e65e5e880efd2db7c3aa2dc86666cedc0827e740c674",
+    "qubo_sha256": "cf96bd7344d65b6c99adc29dc6ba9beb241339e551e91a08042f46cd9df54ebd",
+    "execution_payload_hash": "120a62d72d47c2e94d2b912f85e9891a0beb6b917d5dee7d3ca91ff58dabea75",
     "code_hashes": {
-      "scout_sha256": "e9d94fceab0d1da3aaa89b813c9ac763693945375d0297a0dc2b8651c8dca6e1",
+      "scout_sha256": "b7f9d0716c76aa07862cce6b12d846bf8580ec08146e21301312cf097aef40f2",
       "executor_sha256": "8bba9401e300749d6b543c8865a14b8ac2680c4f01ade6077330ecdd6d449899",
-      "verifier_sha256": "dc88beb8e7305be2c33914c77710499b3bc7a76c6a7e820953ac3f7e2b761529",
-      "composition_sha256": "d93b529a7ee6824764d1f158fd056b384fbb73a8b20840a31a137697be4af054"
+      "verifier_sha256": "5a1b9eb8f4c8d66d4d7f1065b87e84cff6cd836f8a31f86d99a1353a6d1511c2",
+      "composition_sha256": "a6a8abdbe67bc3ac8d921d23738fefc3effb8cd7897f0dcc9d8c6fe72b1efd35"
     },
+    "code_evidence_sha256": "92e803cc7924b90b932e179859a20efddca4fcbb03bd6bd031bf44837234b0f0",
     "results": {
       "qaoa": {
-        "bitstring": "101000001001",
-        "objective": -208.3793181819
+        "bitstring": "101000000101",
+        "objective": -210.55954545460003
       },
       "exact": {
         "bitstring": "101000000101",
-        "objective": -209.11954545460003
+        "objective": -210.55954545460003
       },
       "greedy": {
         "bitstring": "101000000101",
-        "objective": -209.11954545460003
+        "objective": -210.55954545460003
       },
       "budget_random": {
         "bitstring": "001000001101",
-        "objective": -205.47727272730003
+        "objective": -206.99227272730002
       }
     },
     "hardware_gate_decision": "NO_GO"
   },
-  "payload_hash": "8ff6e1b58ce5de2156c10d534ef4006d661c3b72e56a03a152583dc3d563f43b"
+  "payload_hash": "6143d554de7810e1457c20e85818c7a2efbb01cabc05c87d2f6c8da3a9fe55e0"
 }
