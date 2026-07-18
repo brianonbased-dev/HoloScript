@@ -2,11 +2,10 @@
 
 /**
  * PaperFlowerScene — the 42-petal Fibonacci genesis sculpture (garden.seedable),
- * with each paper-bound petal's openness + tint driven by its REAL live
- * paper-audit health (deriveLotusHealth, baked in). The flower is an HONEST
- * instrument (F.037): 2 petals visibly WILT — TVCG "Trust by Construction"
- * (health 0.63, 3 failing pillars) and "Verifiable IK / IK Under Contract"
- * (retired) — because the papers earn it, not because anyone forced full bloom.
+ * with each paper-bound petal's openness + tint driven by a baked structural-
+ * readiness proxy over paper-audit tokens. The visualization exposes that basis
+ * and keeps empirical claim support unverified; bloom state is not proof that a
+ * paper's findings are true.
  *
  * Petal geometry is the REAL compiled botanical petal mesh; placement is the REAL
  * golden-angle spiral from the morphogenesis sim. Material is MeshStandardMaterial
@@ -28,7 +27,7 @@ function petalMaterialColor(petal: BakedPaperPetal): THREE.Color {
   const bloom = petal.bloomHealth ?? petal.bloomAuthored;
   const { dim, brown } = bloomTint(bloom);
   base.multiplyScalar(dim);
-  if (brown) base.lerp(WILT_BROWN, 0.55); // honest wilt: petal browns + dims
+  if (brown) base.lerp(WILT_BROWN, 0.55); // proxy wilt: petal browns + dims
   return base;
 }
 
@@ -45,7 +44,7 @@ function Petal({
   const ref = useRef<THREE.Group>(null);
   const handleRef = useRef<PetalShaderHandle | null>(null);
 
-  // Photoreal subsurface material when baked; honest per-petal color + wilt dim. Each
+  // Photoreal subsurface material when baked; per-petal proxy color + wilt dim. Each
   // wilted petal browns + dims (F.037) — the subsurface glow follows the health, so a
   // healthy petal glows backlit while a wilted one stays dull. Falls back to the
   // documented MeshStandardMaterial if no petal spec was baked.
@@ -73,7 +72,7 @@ function Petal({
 
   useEffect(() => () => built.dispose(), [built]);
 
-  // Openness from REAL bloom: wilted/sealed petals stay near-closed (droop), full
+  // Openness from the structural proxy: wilted/sealed petals stay near-closed, full
   // petals splay outward. A wilt also droops downward (negative tilt).
   const open = bloomOpenness(petal.bloomHealth ?? petal.bloomAuthored);
   const wilted = petal.bloomHealth === 'wilted';
@@ -83,7 +82,7 @@ function Petal({
   // Gentle idle sway so the live flower breathes (no hand-authored clock — phase
   // is just elapsed time, so it stays deterministic per-frame). Also drives the
   // subsurface shader's animation/bloom uniforms: a healthy petal glows backlit at
-  // full bloom; a wilted one keeps a low scatter gain (honest).
+  // full bloom; a proxy-wilted one keeps a low scatter gain.
   useFrame((state) => {
     const g = ref.current;
     if (g) {
@@ -128,7 +127,8 @@ function Petal({
                 transform: 'translateY(-14px)',
               }}
             >
-              wilted · health {((petal.health ?? 0) * 100).toFixed(0)}%
+              proxy wilt · readiness {((petal.health ?? 0) * 100).toFixed(0)}% · claims{' '}
+              {petal.claimSupport ?? 'unverified'}
             </div>
           </Html>
         )}
@@ -140,7 +140,7 @@ function Petal({
 export function PaperFlowerScene({ scene }: { scene: BakedScene }) {
   // Photoreal subsurface geometry (carries veinPhase) when the petal material was
   // baked; stock geometry otherwise. The spec is shared across all 42 petals;
-  // per-petal color + honest dim are layered on per petal in <Petal>.
+  // per-petal color + proxy dim are layered on per petal in <Petal>.
   const petalSpec = scene.petalMaterial as BakedPetalMaterial | undefined;
   const photoGeo = useMemo(() => buildPetalGeometry(scene.petalGeometry), [scene.petalGeometry]);
   const stockGeo = usePetalGeometry(scene.petalGeometry);

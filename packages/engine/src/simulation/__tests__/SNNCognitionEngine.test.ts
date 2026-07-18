@@ -1,14 +1,16 @@
 /**
- * SNNCognitionEngine tests — Paper #2 (SNN → CAEL integration)
+ * SNNCognitionEngine implementation tests — Paper #2 support surface
  *
  * Verifies that the snn-webgpu CPUReferenceSimulator backed engine correctly:
  *   1. Produces spike data from sensor readings in a single tick
- *   2. Uses biophysically correct LIF equations (mV-range membrane voltages)
- *   3. Integrates with CAELAgentLoop so every spike train is committed to
- *      the CAEL hash-chain trace (provenance claim for Paper #2)
- *   4. Encode output is deterministic (required for hash-chain integrity)
+ *   2. Uses the configured LIF equations and returns finite mV-range values
+ *   3. Serializes cognition snapshots into CAEL's hash-linked event log
+ *   4. Produces repeatable CPU-reference encoding for the tested fixture
  *   5. Zero-signal input produces no spikes (neuron resting state)
  *   6. High-signal input drives spiking above resting rate
+ *
+ * These tests do not prove biophysical validity, GPU/CPU parity, producer
+ * authenticity, or replay of cognition effects.
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -69,7 +71,7 @@ describe('SNNCognitionEngine', () => {
     expect(snap.spikes[0].population).toBe('snn-lif');
   });
 
-  it('produces biophysically valid membrane voltages (mV range)', async () => {
+  it('produces finite membrane voltages in the configured test range', async () => {
     const sensors: SensorReading[] = [makeSensorReading([0.5, 0.5])];
     await engine.think(sensors, 0.001);
     const voltages = engine.getMembraneVoltages();
@@ -98,13 +100,19 @@ describe('SNNCognitionEngine', () => {
     // Deterministic
     expect(JSON.stringify(enc1)).toBe(JSON.stringify(enc2));
 
-    // Required CAEL provenance fields
+    // Serialized cognition snapshot fields
     expect(enc1).toHaveProperty('id');
     expect(enc1).toHaveProperty('spikeCount');
     expect(enc1).toHaveProperty('spikes');
     expect(enc1).toHaveProperty('goalStack');
     expect(enc1).toHaveProperty('extra');
     expect((enc1.extra as Record<string, unknown>)['lifBackend']).toBe('cpu-reference');
+    expect((enc1.extra as Record<string, unknown>)['spikeObservationScope']).toBe(
+      'per-step-history'
+    );
+    expect((enc1.extra as Record<string, unknown>)['membraneVoltageScope']).toBe(
+      'final-state-snapshot'
+    );
   });
 
   it('goal stack reflects firing activity', async () => {
@@ -122,7 +130,7 @@ describe('SNNCognitionEngine', () => {
     expect(['stabilize_structure', 'monitor_structure']).toContain(snapActive.goalStack[0].id);
   });
 
-  it('integrates with CAELAgentLoop — spikes are recorded in CAEL trace', async () => {
+  it('records an encoded cognition snapshot in the CAEL event log', async () => {
     const { CAELRecorder } = await import('../CAELRecorder');
     const { CAELAgentLoop, FieldSensorBridge, SimpleActionSelector, StructuralActionMapper } =
       await import('../CAELAgent');
@@ -182,13 +190,13 @@ describe('SNNCognitionEngine', () => {
     const cognitionData = data.cognition as Record<string, unknown>;
     expect(cognitionData.id).toBe('snn-cognition-engine');
 
-    // Hash chain must be valid
+    // The log's internal hash chain verifies; this is not producer authentication.
     const entries = parseCAELJSONL(jsonl);
     const verify = verifyCAELHashChain(entries);
     expect(verify.valid).toBe(true);
   });
 
-  it('covers initialized WebGPU cognition path (with CPU fallback) in async CAEL loop', async () => {
+  it('labels either the initialized WebGPU observation scope or the CPU fallback', async () => {
     const { CAELRecorder } = await import('../CAELRecorder');
     const { CAELAgentLoop, FieldSensorBridge, SimpleActionSelector, StructuralActionMapper } =
       await import('../CAELAgent');
@@ -241,5 +249,11 @@ describe('SNNCognitionEngine', () => {
     const cognition = data.cognition as Record<string, unknown>;
     const extra = cognition.extra as Record<string, unknown>;
     expect(['webgpu', 'cpu-reference']).toContain(extra.lifBackend);
+    expect(extra.spikeObservationScope).toBe(
+      extra.lifBackend === 'webgpu' ? 'final-step-mask' : 'per-step-history'
+    );
+    expect(extra.membraneVoltageScope).toBe(
+      extra.lifBackend === 'webgpu' ? 'unavailable' : 'final-state-snapshot'
+    );
   });
 });

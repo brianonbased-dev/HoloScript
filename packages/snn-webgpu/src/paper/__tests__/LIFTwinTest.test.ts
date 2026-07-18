@@ -1,13 +1,12 @@
 /**
  * LIFTwinTest — Paper #2 twin-test equivalence substrate.
  *
- * Compares the CPU reference implementation (bit-exact ground truth)
- * against the WebGPU LIFSimulator on identical deterministic input.
- * The twin-test assertion is: membrane potentials match within
- * IEEE-754 f32 tolerance and spike masks are exact.
+ * Compares the CPU numerical reference against a live WebGPU LIFSimulator on
+ * identical deterministic input. The scoped assertions are membrane agreement
+ * within the declared tolerances and equality of the final spike masks for the
+ * tested live adapter. This is not cross-vendor byte-identity evidence.
  *
- * This test is the empirical substrate for the paper's
- * §Twin Test Equivalence subsection (W.315 / P.312).
+ * Fallback runs return before parity assertions and are not GPU evidence.
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';

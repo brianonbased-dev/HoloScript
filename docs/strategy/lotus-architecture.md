@@ -1,5 +1,13 @@
 # The Lotus: One Architecture, Sixteen Papers, One Stack
 
+> **Current-state boundary (2026-07-18).** This is a target architecture, not a
+> shipped-capability inventory. Paper 0c currently provides hash-linked event
+> recording and bounded `step`/`solve` replay, not full agent or world-mutation
+> replay. Paper 13 currently provides a narrow CPU provenance-hashing slice; no
+> validated GPU benchmark, full per-pixel provenance chain, or cross-backend
+> bit identity exists. Lotus bloom state is a structural paper-readiness proxy,
+> not empirical truth about the papers' claims.
+
 > **STATUS: DRAFT — DO NOT PUBLISH.**
 > **Embargo:** hold until Paper Program 2 Wave 1 is formally accepted.
 > Expected lift: Spring 2027 (SCA / I3D decisions).
@@ -10,13 +18,16 @@
 > after the first door is installed.
 > **Committed by:** antigravity-seed on behalf of @brianonbased-dev,
 > 2026-04-17. Ratified by decision #4 of
-> [Program 3 scoping memo](../../../.ai-ecosystem/research/2026-04-17_program-3-stalk-center-scoping.md).
+> the founder-research memo
+> `.ai-ecosystem/research/2026-04-17_program-3-stalk-center-scoping.md`.
 
 ---
 
 ## One line
 
-**HoloScript is the first spatial computing stack where every pixel on screen can be traced algebraically back to the source notation that produced it.** The trace is not metadata. It is the architecture.
+**Target:** make every rendered output traceable through declared scene inputs
+back to the source notation that produced it. End-to-end per-pixel provenance
+remains an acceptance criterion, not a current result.
 
 ---
 
@@ -24,13 +35,21 @@
 
 Imagine a lotus flower.
 
-The **roots**, hidden under water, are the substrate: a parser, a multi-target compiler, and a provenance semiring — the algebra that makes trust composable. These already exist; they have been running in shipped code since 2025.
+The **roots**, hidden under water, are the substrate: a parser, a multi-target
+compiler, and a proposed provenance algebra. Parser and compiler paths exist;
+their end-to-end composition into a verified rendering chain remains work.
 
-The **stalk** that rises from the roots is a family of formats — `.hs`, `.hsplus`, `.holo`, and their documentation sibling `.hs.md`. Each is a declarative language with formal semantics. Each carries the provenance semiring as a first-class semantic feature. A compiled output of any of these formats stands in an algebraic relationship to its source.
+The **stalk** that rises from the roots is a family of formats — `.hs`,
+`.hsplus`, `.holo`, and their documentation sibling `.hs.md`. The target is for
+each compiled output to carry a verifier-visible relationship to its source;
+that relationship is not yet proven uniformly across formats and targets.
 
 The **flower** at the top has many petals. Each petal is a projection — a contracted derivation of scene state. One petal is physics simulation; another is animation; another is UI layout; another is AI-generated motion; another is forensic-evidence export. A flower with many petals but the same stalk.
 
-The **center** of the flower, where the petals meet, is rendering. Every petal converges here. A pixel on screen is not a rendering decision; it is the algebraic synthesis of every contracted projection that contributed to it, composed through the provenance semiring, emerging through Dumb Glass — a renderer that performs zero semantic interpretation because all interpretation already happened upstream.
+The **center** of the flower, where the petals meet, is the proposed Dumb Glass
+rendering boundary. Its acceptance target is a renderer that receives declared
+upstream semantics and emits independently checkable provenance. The current
+Paper 13 path does not yet prove that property per pixel or on GPU.
 
 ```
                     ┌─ Animation ─────┐
@@ -76,20 +95,26 @@ Three things in modern spatial computing have resisted a clean architectural ans
 
 **Third, AI opacity.** Generative motion models produce plausible-looking but physically impossible animations. Large language models generate code whose training-data provenance is unknowable. An AI tool outputs a decision that cannot be traced back to why.
 
-The lotus addresses all three by making trust a compositional property of the architecture, not a runtime check applied after the fact. Sync bugs become unrepresentable because animation and physics write into the same transform graph under one hash. Cross-platform divergence becomes bounded because every compilation target's output is algebraically related to the source. AI opacity becomes auditable because every generated output carries a chain of hashes back through training data, through model checkpoint, to the original source code or dataset.
+The lotus proposes to address all three by making trust a compositional property
+of the architecture, not a runtime check applied after the fact. Making sync
+bugs unrepresentable, bounding cross-platform divergence, and tracing generated
+outputs through model and data provenance are program acceptance criteria; they
+are not established by the current paper-readiness matrix.
 
 The trace is not a feature you add. It is the architecture you choose.
 
 ## Sixteen papers, three programs, one stack
 
-The program that proves the lotus works is sixteen papers across three campaigns. Each paper is a **proof instrument** for a specific subsystem that has already shipped in code. The papers don't propose new software. They prove existing software works under contract.
+The program uses papers across three campaigns as proposed **proof instruments**
+for specific subsystems. Implementation and evidence maturity vary by paper;
+structural readiness does not establish that a subsystem works under contract.
 
 ### Program 1 — The first petals (8 papers, in flight)
 
 The simulation and agent-side petals. Physics, spiking neural networks, agent loops, collaborative state, security sandboxing, codebase intelligence, tool-use trust, and their compositional capstone.
 
 - `Trust by Construction: Provenance-Native Simulation Contracts` — IEEE TVCG, submitted
-- `CAEL: Causal Agent-Environment Loops` — AAMAS 2026
+- `CAEL: Causal Agent-Environment Loops` — AAMAS 2027 target (NOT SUBMITTED)
 - `Trust by Replay: Hash-Verified MCP Tool Use` — USENIX Security 2026
 - `Browser-Native Spiking Neural Networks` — NeurIPS 2026
 - `Conflict-Free Spatial State (CRDT)` — ECOOP 2027
@@ -132,7 +157,12 @@ Several things in the stack are real, shipped, and deliberately not papers.
 
 One claim, articulated and defended across sixteen papers: **trust is a property of an architecture, not a feature added on top of one.**
 
-If the lotus holds, the practical consequences follow immediately. Surgical-rehearsal systems can replay a simulation and know the replay is bit-identical to the original. Forensic-reconstruction tools can certify that a digital recreation derives from specific evidence inputs. Industrial digital twins can operate for months of continuous simulation and produce an audit trail a regulator can verify in finite time. Generative motion models can be deployed in regulated pipelines because their outputs carry provenance back to training data. AI agents can coordinate on shared spatial state and prove, after the fact, why each of them made the decision it made.
+If the lotus gates close, the intended consequences include independently
+checkable simulation replay, evidence-bound reconstruction, long-lived digital
+twin audit trails, provenance-aware generated motion, and accountable shared
+agent state. Bit-identical replay and causal explanation require separate
+hardware, state-oracle, and intervention evidence; the architecture diagram
+does not establish them.
 
 None of these applications is exotic. All of them are blocked today because the trust-of-process problem is unsolved. The lotus is a bet that solving it at the architectural level opens a set of verticals that soft-loss models and whole-file hashing cannot.
 
@@ -148,11 +178,17 @@ After Wave 1 acceptance, the calculus inverts. Publishing the full architecture 
 
 ## One line, again
 
-**HoloScript is the first spatial computing stack where every pixel on screen can be traced algebraically back to the source notation that produced it.** Sixteen papers. Three programs. One architecture.
+**Target:** one architecture in which rendered outputs can be traced through
+their declared projections to source. The current implementation has not yet
+closed the per-pixel or cross-backend proof gates.
 
 ---
 
-## Appendix: Current program state
+## Appendix: Historical program state
+
+The table below preserves the 2026-04-17 planning snapshot. It is not current
+submission, implementation, or empirical-evidence truth. Use the canonical
+paper matrix and claim-bound receipts for current decisions.
 
 | Program | Papers                    | Stage                             | Venue timing                                    |
 | ------- | ------------------------- | --------------------------------- | ----------------------------------------------- |
@@ -168,4 +204,7 @@ After Wave 1 acceptance, the calculus inverts. Publishing the full architecture 
 | 3       | P3-S3 `.holo` Composition | Skeleton                          | I3D 2027 (submit Nov 2026)                      |
 | 3       | **P3-CENTER Dumb Glass**  | **Skeleton**                      | **SIGGRAPH 2028 (submit Jan 2028)**             |
 
-**Source of truth for paper state:** `.ai-ecosystem/research/` (all `.tex` files) and the three scoping memos dated 2026-04-12 and 2026-04-17. Grep for `\todo{` and `\stub{` to find what's drafted vs. scaffolded at any time.
+**Current routing:** canonical manuscripts, novelty cards, and the paper matrix
+live under `.ai-ecosystem/research/`. The generated readiness snapshot at
+`docs/public/papers-status.json` is structural only; it is not empirical claim
+evidence.

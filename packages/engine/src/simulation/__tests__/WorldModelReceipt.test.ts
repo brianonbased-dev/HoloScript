@@ -1,25 +1,18 @@
 /**
- * WorldModelReceipt — end-to-end pipeline test.
+ * WorldModelReceipt — bounded comparison-record pipeline test.
  *
- * Proves the pipeline works: StructuralSolver (TET4 cantilever) →
+ * Checks the implemented pipeline: StructuralSolverAdapter →
  * ContractedSimulation.solve() → generateWorldModelReceipt() →
- * receipt with valid hash.
+ * receipt with a well-formed hash over the generator's compact projection.
  *
- * Novel contribution guard: asserts that WorldModelReceipt is the first
- * SimulationContract artifact that bridges JEPA prediction with physics
- * ground truth in a single cryptographically-verified record.
- *
- * The receipt JSON written to disk at the end of this test is ready for
- * base-anchoring via:
- *   python scripts/anchor_base.py packages/engine/src/simulation/__tests__/fixtures/world-model-receipt.json
- *
- * Paper 26 seed — "Verifiable World Models via Simulation Contracts".
+ * This test does not establish model quality, solver correctness, producer
+ * authenticity, raw-field commitment, external anchoring, or novelty.
  */
 
 import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
+import * as os from 'node:os';
 import * as path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import {
   ContractedSimulation,
   type WorldModelReceipt,
@@ -27,84 +20,28 @@ import {
   type PhysicsState,
 } from '../SimulationContract';
 import { StructuralSolver, type StructuralConfig } from '../StructuralSolver';
+import { StructuralSolverAdapter } from '../adapters/SolverAdapters';
 import { RegularGrid3D } from '../RegularGrid3D';
 import type { SimSolver, SolverMode, FieldData } from '../SimSolver';
 
-// ── Minimal cantilever mesh: two valid non-degenerate TET4 elements ───────────
-//
-//  5 nodes. Two tetrahedra sharing nodes 0,1,2 as the fixed base.
-//  Node 3 and node 4 are the free "tips" (positive Jacobian guaranteed by
-//  choosing apex above the base triangle).
-//
-//  Base triangle (nodes 0,1,2) lies in the z=0 plane.
-//  Apex of tet-0 is node 3 at (0.5, 0.3, 1.0) — positive det.
-//  Apex of tet-1 is node 4 at (0.5, 0.3, 2.0) — distinct apex, positive det.
-//
-//  Winding follows right-hand rule: det(J) > 0 for all tets.
-//
-const VERTICES = new Float32Array([
-  0.0,
-  0.0,
-  0.0, // 0 — base
-  1.0,
-  0.0,
-  0.0, // 1 — base
-  0.5,
-  1.0,
-  0.0, // 2 — base
-  0.5,
-  0.3,
-  1.0, // 3 — apex tet-0 (free)
-  0.5,
-  0.3,
-  2.0, // 4 — apex tet-1 (free)
-]);
-const TETRAHEDRA = new Uint32Array([
-  0,
-  1,
-  2,
-  3, // Tet 0: positive Jacobian
-  0,
-  2,
-  1,
-  4, // Tet 1: swapped 1↔2 so apex 4 stays above
-]);
-
-function buildConfig(): StructuralConfig {
-  return {
-    vertices: VERTICES.slice(),
-    tetrahedra: TETRAHEDRA.slice(),
+function buildReceiptContract(useCryptographicHash = false): ContractedSimulation {
+  const config: StructuralConfig = {
+    vertices: new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
+    tetrahedra: new Uint32Array([0, 1, 2, 3]),
     material: {
-      name: 'steel_a36',
-      youngs_modulus: 200e9,
+      density: 1000,
+      youngs_modulus: 1e6,
       poisson_ratio: 0.3,
-      yield_strength: 250e6,
-      density: 7850,
+      yield_strength: 1e8,
     },
-    constraints: [
-      {
-        id: 'base-fixed',
-        type: 'fixed',
-        // Fix the base triangle nodes 0,1,2
-        nodes: [0, 1, 2],
-      },
-    ],
-    loads: [
-      {
-        id: 'apex-load',
-        type: 'point',
-        // Load applied at node 4 (upper free apex)
-        nodeIndex: 4,
-        force: [
-          { value: 0, unit: 'N' },
-          { value: -1000, unit: 'N' },
-          { value: 0, unit: 'N' },
-        ],
-      },
-    ],
-    tolerance: 1e-6,
-    maxIterations: 500,
+    constraints: [{ id: 'fix', type: 'fixed', nodes: [0] }],
+    loads: [{ id: 'load', type: 'point', nodeIndex: 3, force: [0, 0, 100] }],
   };
+  const adapter = new StructuralSolverAdapter(new StructuralSolver(config));
+  return new ContractedSimulation(adapter, config as unknown as Record<string, unknown>, {
+    solverType: 'structural',
+    useCryptographicHash,
+  });
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -125,7 +62,12 @@ describe('WorldModelReceipt — new types', () => {
         solverType: 'structural',
       },
       delta_error: 1.5,
-      confidence_bound: { lo: 1.4, hi: 1.6, coverage: 0.95 },
+      confidence_bound: {
+        lo: 1.4,
+        hi: 1.6,
+        kind: 'uncalibrated-numerical-envelope',
+      },
+      predictionKind: 'caller-supplied',
       receiptId: 'wmr-test',
       issuedAt: new Date().toISOString(),
       receiptHash: 'wmr-abc',
@@ -140,13 +82,7 @@ describe('WorldModelReceipt — new types', () => {
 
 describe('WorldModelReceipt — ContractedSimulation.generateWorldModelReceipt()', () => {
   it('generates receipt with default predictor after steady-state solve()', async () => {
-    const config = buildConfig();
-    const solver = new StructuralSolver(config as unknown as StructuralConfig);
-    const contracted = new ContractedSimulation(
-      solver as unknown as import('../SimSolver').SimSolver,
-      config as unknown as Record<string, unknown>,
-      { solverType: 'structural', useCryptographicHash: false }
-    );
+    const contracted = buildReceiptContract();
 
     await contracted.solve();
     const receipt = await contracted.generateWorldModelReceipt();
@@ -160,7 +96,8 @@ describe('WorldModelReceipt — ContractedSimulation.generateWorldModelReceipt()
     // confidence_bound brackets delta_error
     expect(receipt.confidence_bound.lo).toBeLessThanOrEqual(receipt.delta_error);
     expect(receipt.confidence_bound.hi).toBeGreaterThanOrEqual(receipt.delta_error);
-    expect(receipt.confidence_bound.coverage).toBeCloseTo(0.95);
+    expect(receipt.confidence_bound.kind).toBe('uncalibrated-numerical-envelope');
+    expect(receipt.confidence_bound.coverage).toBeUndefined();
 
     // receipt is tied to the correct contract
     expect(receipt.contractId).toBe(contracted.getContractId());
@@ -170,6 +107,7 @@ describe('WorldModelReceipt — ContractedSimulation.generateWorldModelReceipt()
 
     // hashMode matches contract
     expect(receipt.hashMode).toBe('fnv1a');
+    expect(receipt.predictionKind).toBe('zero-baseline');
 
     // solver_ground_truth is populated
     expect(receipt.solver_ground_truth.geometryHash).toBe(
@@ -179,9 +117,9 @@ describe('WorldModelReceipt — ContractedSimulation.generateWorldModelReceipt()
     expect(receipt.solver_ground_truth.simTime).toBeGreaterThanOrEqual(0);
   });
 
-  it('generates receipt with custom JEPA predictor (real JEPAPredictor from AI Lab stack)', async () => {
-    // Real AI Lab integration: use the sovereign JEPAPredictor (the predictor half of jepa_objective)
-    // This proves: jepa_objective logic + solver ground truth → WorldModelReceipt (Base-anchorable)
+  it('labels a caller-supplied JEPAPredictor code path', async () => {
+    // Exercise the exported JEPAPredictor implementation as a caller-supplied
+    // callback. This is code-path coverage, not evidence of a trained model.
     // JEPAPredictor is re-exported from the @holoscript/core ./traits barrel
     // (traits/index.ts). The deep path ./traits/JEPAPredictor is NOT in core's
     // package.json exports field, so importing it directly throws a resolution
@@ -189,13 +127,7 @@ describe('WorldModelReceipt — ContractedSimulation.generateWorldModelReceipt()
     // exported barrel instead. (W.673-class export-surface gap.)
     const { JEPAPredictor } = await import('@holoscript/core/traits');
 
-    const config = buildConfig();
-    const solver = new StructuralSolver(config as unknown as StructuralConfig);
-    const contracted = new ContractedSimulation(
-      solver as unknown as import('../SimSolver').SimSolver,
-      config as unknown as Record<string, unknown>,
-      { solverType: 'structural' }
-    );
+    const contracted = buildReceiptContract();
 
     await contracted.solve();
 
@@ -235,18 +167,78 @@ describe('WorldModelReceipt — ContractedSimulation.generateWorldModelReceipt()
 
     expect(receipt.jepa_prediction.encoderId).toBe('jepa-continuum-v1');
     expect(receipt.jepa_prediction.dim).toBe(4);
+    expect(receipt.predictionKind).toBe('caller-supplied');
     expect(receipt.delta_error).toBeGreaterThanOrEqual(0);
     expect(Number.isFinite(receipt.delta_error)).toBe(true);
   });
 
-  it('SHA-256 receipt has sha-prefixed hash', async () => {
-    const config = buildConfig();
-    const solver = new StructuralSolver(config as unknown as StructuralConfig);
-    const contracted = new ContractedSimulation(
-      solver as unknown as import('../SimSolver').SimSolver,
-      config as unknown as Record<string, unknown>,
-      { solverType: 'structural', useCryptographicHash: true }
+  it('rejects a caller-supplied predictor without an explicit state encoder', async () => {
+    const contracted = buildReceiptContract();
+    await contracted.solve();
+
+    const predictor = (state: PhysicsState): LatentVector => ({
+      values: new Float32Array([0, 0]),
+      dim: 2,
+      encoderId: 'caller-space',
+      simTime: state.simTime,
+    });
+
+    await expect(contracted.generateWorldModelReceipt(predictor)).rejects.toThrow(
+      'requires an explicit stateEncoder'
     );
+  });
+
+  it('rejects mismatched caller-declared latent dimensions', async () => {
+    const contracted = buildReceiptContract();
+    await contracted.solve();
+
+    const predictor = (state: PhysicsState): LatentVector => ({
+      values: new Float32Array([0, 0]),
+      dim: 2,
+      encoderId: 'caller-space',
+      simTime: state.simTime,
+    });
+    const encoder = (): Float32Array => new Float32Array([0, 0, 0]);
+
+    await expect(contracted.generateWorldModelReceipt(predictor, encoder)).rejects.toThrow(
+      'latent dimension mismatch'
+    );
+  });
+
+  it('rejects non-finite, unlabeled, or wrong-timestep predictions', async () => {
+    const contracted = buildReceiptContract();
+    await contracted.solve();
+    const encoder = (): Float32Array => new Float32Array([0, 0]);
+    const prediction = (
+      state: PhysicsState,
+      overrides: Partial<LatentVector> = {}
+    ): LatentVector => ({
+      values: new Float32Array([0, 0]),
+      dim: 2,
+      encoderId: 'caller-space',
+      simTime: state.simTime,
+      ...overrides,
+    });
+
+    await expect(
+      contracted.generateWorldModelReceipt(
+        (state) => prediction(state, { values: new Float32Array([Number.NaN, 0]) }),
+        encoder
+      )
+    ).rejects.toThrow('values must all be finite');
+    await expect(
+      contracted.generateWorldModelReceipt((state) => prediction(state, { encoderId: '' }), encoder)
+    ).rejects.toThrow('encoderId must be a non-empty string');
+    await expect(
+      contracted.generateWorldModelReceipt(
+        (state) => prediction(state, { simTime: state.simTime + 1 }),
+        encoder
+      )
+    ).rejects.toThrow('does not match reference simTime');
+  });
+
+  it('SHA-256 receipt has sha-prefixed hash', async () => {
+    const contracted = buildReceiptContract(true);
 
     await contracted.solve();
     const receipt = await contracted.generateWorldModelReceipt();
@@ -290,7 +282,34 @@ class GridFieldSolverMock implements SimSolver {
   dispose(): void {}
 }
 
+class EmptyFieldSolverMock implements SimSolver {
+  readonly mode: SolverMode = 'steady';
+  readonly fieldNames = ['empty'] as const;
+  step(): void {}
+  solve(): void {}
+  getField(): FieldData | null {
+    return new Float32Array();
+  }
+  getStats(): Record<string, unknown> {
+    return { converged: true };
+  }
+  dispose(): void {}
+}
+
 describe('WorldModelReceipt — RegularGrid3D field capture (regression cr7d)', () => {
+  it('fails closed when the solver exposes no non-empty reference field', async () => {
+    const contracted = new ContractedSimulation(
+      new EmptyFieldSolverMock(),
+      {},
+      { solverType: 'empty-reference', useCryptographicHash: false }
+    );
+    await contracted.solve();
+
+    await expect(contracted.generateWorldModelReceipt()).rejects.toThrow(
+      'requires at least one non-empty typed-array solver field'
+    );
+  });
+
   it('does NOT throw "field.slice is not a function" for a grid-bearing solver', async () => {
     const solver = new GridFieldSolverMock();
     const contracted = new ContractedSimulation(
@@ -328,20 +347,15 @@ describe('WorldModelReceipt — RegularGrid3D field capture (regression cr7d)', 
     expect(fields.scalar_field.length).toBe(4);
     // Capture is a copy, not a live reference into the solver's buffer.
     expect(fields.concentration_grid_a).not.toBe(solver.getField('concentration_grid_a'));
-    // SHA-256 receipt over the grid-bearing state is well-formed.
+    // SHA-256 over the compact receipt projection is well-formed. Raw field
+    // values are not committed by the current projection.
     expect(receipt.receiptHash).toMatch(/^wmr-sha-[0-9a-f]{64}$/);
   });
 });
 
-describe('WorldModelReceipt — base-anchor pipeline', () => {
-  it('writes receipt JSON to fixtures dir for base-anchoring', async () => {
-    const config = buildConfig();
-    const solver = new StructuralSolver(config as unknown as StructuralConfig);
-    const contracted = new ContractedSimulation(
-      solver as unknown as import('../SimSolver').SimSolver,
-      config as unknown as Record<string, unknown>,
-      { solverType: 'structural', useCryptographicHash: true }
-    );
+describe('WorldModelReceipt — isolated serialization boundary', () => {
+  it('round-trips a scope-labeled receipt without mutating tracked fixtures', async () => {
+    const contracted = buildReceiptContract(true);
 
     await contracted.solve();
     const receipt = await contracted.generateWorldModelReceipt();
@@ -352,6 +366,7 @@ describe('WorldModelReceipt — base-anchor pipeline', () => {
       issuedAt: receipt.issuedAt,
       receiptHash: receipt.receiptHash,
       hashMode: receipt.hashMode,
+      predictionKind: receipt.predictionKind,
       contractId: receipt.contractId,
       delta_error: receipt.delta_error,
       confidence_bound: receipt.confidence_bound,
@@ -378,32 +393,34 @@ describe('WorldModelReceipt — base-anchor pipeline', () => {
           ])
         ),
       },
-      paper26_seed: {
+      paper26_candidate: {
         title: 'Verifiable World Models via Simulation Contracts',
-        novelty:
-          'First cryptographically-verified world model receipt tied to a physics simulation contract.',
+        status: 'open_research_question',
+        receipt_scope:
+          'Hashed comparison metadata; raw solver values, authentication, anchoring, and novelty are not established.',
         tvcg_boundary:
           'Above current TVCG submission scope (Trust by Construction, external review 2026-05-17).',
-        founder_review_required_for_paper_scoping: true,
+        anchoring_status: 'not_performed_by_this_test',
       },
     };
 
-    // Write to fixtures for anchoring
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = path.dirname(__filename);
-    const fixturesDir = path.join(__dirname, 'fixtures');
-    fs.mkdirSync(fixturesDir, { recursive: true });
-    const outPath = path.join(fixturesDir, 'world-model-receipt.json');
-    fs.writeFileSync(outPath, JSON.stringify(serializable, null, 2), 'utf-8');
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'world-model-receipt-'));
+    try {
+      const outPath = path.join(tempDir, 'world-model-receipt.json');
+      fs.writeFileSync(outPath, JSON.stringify(serializable, null, 2), 'utf-8');
 
-    // Verify the file round-trips
-    const loaded = JSON.parse(fs.readFileSync(outPath, 'utf-8'));
-    expect(loaded.receiptHash).toBe(receipt.receiptHash);
-    expect(loaded.delta_error).toBe(receipt.delta_error);
-    expect(loaded.paper26_seed.founder_review_required_for_paper_scoping).toBe(true);
+      const loaded = JSON.parse(fs.readFileSync(outPath, 'utf-8'));
+      expect(loaded.receiptHash).toBe(receipt.receiptHash);
+      expect(loaded.delta_error).toBe(receipt.delta_error);
+      expect(loaded.predictionKind).toBe('zero-baseline');
+      expect(loaded.paper26_candidate.status).toBe('open_research_question');
+      expect(loaded.paper26_candidate.anchoring_status).toBe('not_performed_by_this_test');
 
-    // The receipt hash is the canonical anchor artifact — assert it is stable
-    // (same inputs → same hash, modulo timestamp which is already in receiptId)
-    expect(loaded.receiptHash).toMatch(/^wmr-sha-[0-9a-f]{64}$/);
+      // A well-formed SHA-256 checksum is not evidence that an external anchor
+      // or producer-authentication step occurred.
+      expect(loaded.receiptHash).toMatch(/^wmr-sha-[0-9a-f]{64}$/);
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
   });
 });

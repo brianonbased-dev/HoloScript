@@ -1,23 +1,20 @@
 /**
  * LIFDeterminismProbe — Paper #2 same-backend determinism test.
  *
- * Proves the MINIMUM determinism claim: three independent runs of
- * the canonical LIF probe on the SAME backend produce the SAME
- * output hash. This is the baseline the cross-backend table sits on;
- * if same-backend runs disagree, cross-backend hash-equality is
- * meaningless.
+ * Checks that three runs through the active test context produce the same
+ * final-membrane-byte hash. This is live-GPU evidence only when `GPU_LIVE` is
+ * true; otherwise it checks deterministic fallback/mock plumbing.
  *
  * **Empirical cross-vendor note (2026-05-10):**
- * NVIDIA Ampere vs Intel Gen-12LP show ~1.5e-5 absolute variance
- * (IEEE-754 f32 `exp()` ULP differences). Spike masks remain exact.
- * The membrane-potential hash is therefore backend-scoped, not
- * cross-vendor. Full vendor matrix (AMD, Apple Silicon) is pending.
+ * NVIDIA Ampere vs Intel Gen-12LP produced different membrane hashes in the
+ * recorded observation. This probe does not read spike masks, so that result
+ * cannot establish spike-decision parity. AMD and Apple Silicon were not run.
  *
  * This test runs under vitest with the Dawn-native WebGPU backend
  * (see ../../__tests__/setup.ts) on hardware that supports it, and
- * the mock backend otherwise. Both paths must converge — mocks are
- * deterministic by construction; real GPU determinism is the claim
- * under test.
+ * the mock backend otherwise. The seed- and tick-divergence assertions return
+ * early when `GPU_LIVE` is false; a green fallback run must not be reported as
+ * GPU parity evidence.
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';

@@ -5,14 +5,14 @@
  * `ProbeResult` whose `outputHash` identifies this backend's final
  * membrane-potential state after N ticks.
  *
- * **Determinism scope (empirically verified 2026-05-10):**
- *  - Same-backend (same process, same GPU driver): hash is bit-identical.
- *  - Cross-vendor (NVIDIA Ampere vs Intel Gen-12LP): membrane potentials
- *    diverge by ~1.5e-5 absolute / ~0% relative due to IEEE-754 f32 `exp()`
- *    ULP differences. Spike masks remain exact because the threshold
- *    comparison is a discrete predicate insensitive to sub-ulp noise.
- *    Therefore the cryptographic determinism receipt for *spike decisions*
- *    holds cross-vendor; the membrane-potential hash is backend-scoped.
+ * **Evidence scope:**
+ *  - `outputHash` covers the final membrane-potential bytes only.
+ *  - A 2026-05-10 NVIDIA/Intel observation produced different hashes, so
+ *    cross-vendor byte identity is not established.
+ *  - This probe never reads or hashes spike masks. It therefore provides no
+ *    evidence for cross-vendor spike-decision identity.
+ *  - Same-backend repetition is GPU evidence only when the caller confirms a
+ *    live GPU backend; the Vitest suite can run against a deterministic mock.
  *
  * Reusable: this module exports a pure probe function that the paper
  * test suite calls. It never hardcodes a neuron count or tick count —
@@ -70,7 +70,7 @@ export interface LIFProbeOptions {
 /**
  * xorshift32 — tiny deterministic PRNG. Avoids reliance on host
  * Math.random (which is not seedable) and avoids GPU RNG (which
- * would defeat the cross-backend determinism claim).
+ * would add another source of backend variability).
  */
 function xorshift32(seed: number): () => number {
   let state = seed | 0 || 1; // avoid 0 state
@@ -99,9 +99,10 @@ function makeStimulus(
 
 /**
  * Run the probe. Returns the final membrane-potential state as a
- * `Uint8Array` view — the harness will hash these bytes, and two
- * runs with identical inputs against identical backends MUST produce
- * identical hashes.
+ * `Uint8Array` view for the harness to hash. Hash equality compares final
+ * membrane bytes; it is not a comparison of spike masks. A same-backend GPU
+ * claim additionally requires evidence that both runs used the intended live
+ * adapter rather than the fallback/mock backend.
  *
  * Caller is responsible for lifecycle of the `GPUContext`; the probe
  * creates and destroys its own `LIFSimulator` per invocation so

@@ -1,8 +1,8 @@
 {
   "_meta": {
     "paper": "paper-13",
-    "title": "Dumb-Glass WebGPU provenance hashing — GPU benchmark",
-    "description": "Canonical GPU bench for Dumb-Glass architecture (Epoch 8). Compares WebGPU compute-shader xxHash32 vs CPU SHA-256 provenance overhead at 60 Hz.",
+    "title": "Dumb-Glass WebGPU provenance hashing — projection model",
+    "description": "Historical performance projection for the Dumb-Glass architecture. No GPU command was executed and this file is not a measurement receipt.",
     "schema_version": "1.0",
     "captured_at": "2026-04-28T00:00:00.000Z",
     "captured_by": "github-copilot",
@@ -10,13 +10,16 @@
     "task_id": "task_1777252738149_2bkb",
     "parent_task_id": "task_1777246848166_2hh8",
     "implementation_file": "packages/r3f-renderer/src/utils/dumb-glass-wgsl.ts",
-    "cpu_baseline_file": "packages/r3f-renderer/src/__tests__/dumb-glass.test.ts"
+    "cpu_baseline_file": "packages/r3f-renderer/src/__tests__/dumb-glass.test.ts",
+    "status": "projection_only",
+    "is_measurement_receipt": false,
+    "load_bearing_evidence": false
   },
 
   "hardware_profile": {
-    "platform": "integrated-gpu-baseline",
-    "gpu_class": "Intel Iris Xe (estimated — integrated, 80 EU)",
-    "cpu": "Intel Core i7-1280P (estimated)",
+    "platform": "model_only_no_hardware_capture",
+    "gpu_class": "not captured",
+    "cpu": "not bound; historical ignored-log source only",
     "note": "Figures annotated from CPU benchmark (2026-04-18T07-20-56-134Z/dumb-glass.log) + theoretical GPU speedup model.  RTX hardware re-capture required for tab:rtx-bench (see task_1777252738149_yu7x)."
   },
 
@@ -63,7 +66,8 @@
       "vs_16_6ms_budget_p99_pct": 32.77
     },
     "pipeline_init_ms": 12.4,
-    "gpu_path": true
+    "gpu_path": false,
+    "execution_status": "not_executed_model_derived"
   },
 
   "gpu_wgsl_rtx_projected": {
@@ -85,15 +89,15 @@
   },
 
   "key_findings": [
-    "GPU xxHash32 reduces median per-frame provenance overhead from 4.74 ms to 0.78 ms (6× faster) on integrated GPU.",
-    "GPU path fits within 5% of 60 Hz budget at median, vs 28.4% for CPU SHA-256 baseline.",
-    "p99 still exceeds 16.6 ms budget on iGPU due to pipeline stall at readback; RTX path projects <2 ms p99.",
-    "Pipeline init cost (12 ms) is amortized after first frame — must be excluded from steady-state measurements.",
-    "CPU fallback (xxHash32) delivers ~2× improvement over SHA-256 even on CPU, reducing median to 2.3 ms."
+    "The model projects a 6× median speedup; no GPU execution validates it.",
+    "The model projects a median below 5% of a 60 Hz budget; this is not measured evidence.",
+    "The model's p99 and RTX values are projections, not captured pipeline behavior.",
+    "The modeled pipeline-init value is not measured.",
+    "The modeled CPU-fallback speedup is not measured."
   ],
 
   "contract_thresholds": {
-    "description": "Paper-13 neural-rendering contract — provenance hash must not exceed these budgets for the scene to be considered audit-complete.",
+    "description": "Proposed Paper-13 acceptance targets; these thresholds are not validated by this projection file.",
     "scene_graph_hash_budget_ms": 2.0,
     "pixel_tile_hash_budget_ms": 0.5,
     "total_frame_budget_ms": 5.0,

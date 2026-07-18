@@ -2,16 +2,17 @@
  * SNNCognitionEngine — snn-webgpu backed CAELCognitionEngine implementation.
  *
  * Replaces the inline SNNCognition placeholder (simplified V*leak+I LIF)
- * with a biophysically accurate Leaky Integrate-and-Fire implementation
- * sourced from @holoscript/snn-webgpu's CPUReferenceSimulator:
+ * with the parameterized Leaky Integrate-and-Fire implementation from
+ * @holoscript/snn-webgpu's CPUReferenceSimulator:
  *
  *   V[t+1] = V_rest + (V[t] - V_rest) * exp(-dt/tau) + I_syn[t]
  *   spike when V[t+1] >= V_threshold
  *   refractory period of 2ms post-spike
  *
- * The CPU path (CPUReferenceSimulator) is API-compatible with LIFSimulator
- * (the WebGPU GPU path). Upgrading to GPU execution is a constructor-level
- * swap — the CAELAgentLoop and all downstream consumers are unaffected.
+ * The wrapper accepts either CPUReferenceSimulator or LIFSimulator, but their
+ * observable histories are not equivalent: the CPU path records per-step
+ * spikes and final voltages, while the GPU path currently exposes only the
+ * final binary spike mask and no membrane-voltage snapshot.
  *
  * Sensor → Current mapping:
  *   sensor values (physical units, e.g. Pa stress, K temperature) are scaled
@@ -21,14 +22,14 @@
  *
  * Per-tick behaviour:
  *   Each think() call runs `stepsPerTick` LIF steps (default = round(dt_s * 1000)).
- *   All spikes are collected across all steps, timestamped in ms relative
- *   to the start of the tick window.
+ *   The CPU path collects spikes across every internal step and timestamps
+ *   them relative to the tick window. The GPU path reads one final binary
+ *   spike mask after all steps; it cannot reconstruct per-step timestamps.
  *
- * Paper #2 claim:
- *   "First browser-native SNN integrated with a hash-chain simulation trace
- *   (CAEL). Physical sensor readings from a running FEM/thermal solver feed
- *   directly into an SNN; every spike train is committed to a tamper-evident
- *   CAEL trace for provenance and counterfactual replay."
+ * Evidence boundary:
+ *   This adapter turns supplied sensor readings into a `CognitionSnapshot` for
+ *   a CAEL caller. It does not by itself prove a browser/GPU execution path,
+ *   cross-backend spike parity, trace authentication, or simulation replay.
  */
 
 import {
@@ -106,9 +107,9 @@ function deriveGoalStack(
 /**
  * CAEL cognition engine backed by snn-webgpu CPUReferenceSimulator.
  *
- * Drop-in replacement for the SNNCognition placeholder. Satisfies the
- * synchronous CAELCognitionEngine interface by running the CPU LIF path,
- * which is bit-exact with the WebGPU GPU path for future GPU upgrade.
+ * Replacement for the SNNCognition placeholder. The CPU and WebGPU backends
+ * share the wrapper's output shape, but no bit-exact or spike-history parity
+ * claim is made between them.
  */
 export class SNNCognitionEngine implements CAELCognitionEngine {
   readonly id: string;
@@ -178,14 +179,14 @@ export class SNNCognitionEngine implements CAELCognitionEngine {
       await this.sim.stepN(steps);
 
       const spikesResult = await this.sim.readSpikes();
-      // readSpikes returns an array where >0 indicates a spike timestamp (or similar).
-      // Converting WebGPU flat buffer spikes to the CAEL representation.
-      // Based on WebGPU LIF, index matches neuron id.
+      // readSpikes exposes the final binary mask (0/1), not spike timestamps or
+      // a history over the internal steps. Preserve the existing CAEL snapshot
+      // shape by labeling each observed bit at the end of the tick window.
       for (let i = 0; i < spikesResult.data.length; i++) {
         if (spikesResult.data[i] > 0) {
           allSpikes.push({
             neuronIndex: i,
-            timestampMs: spikesResult.data[i], // Assumes buffer holds time or just >0 for a spike
+            timestampMs: steps * this.lifDt,
             population: this.population,
           });
           totalSpikeCount++;
@@ -235,6 +236,8 @@ export class SNNCognitionEngine implements CAELCognitionEngine {
           steps > 0 ? Number((totalSpikeCount / (this.neuronCount * steps)).toFixed(6)) : 0,
         lifBackend: backend,
         lifDtMs: this.lifDt,
+        spikeObservationScope: backend === 'webgpu' ? 'final-step-mask' : 'per-step-history',
+        membraneVoltageScope: backend === 'webgpu' ? 'unavailable' : 'final-state-snapshot',
       },
     };
   }

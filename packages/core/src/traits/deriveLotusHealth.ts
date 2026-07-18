@@ -1,16 +1,17 @@
 /**
- * deriveLotusHealth — the bind from real paper-benchmark health to lotus bloom.
+ * deriveLotusHealth — paper-audit structural readiness mapped to lotus bloom.
  *
  * This is the keystone of the "living lotus": it turns the machine-generated
  * paper-audit (`docs/public/papers-status.json`) into a per-petal bloom state and
- * an aggregate openness, so the flower on holoscript.net is a TRUTHFUL instrument
- * of the research program — it blooms where the engineering + writing are strong
- * and wilts where benchmarks are weak, failing, or illegible (I.007, F.037, F.099).
+ * an aggregate openness. The result is a structural-readiness proxy over audit
+ * tokens. It does not execute evidence, bind tokens to individual claims, or
+ * verify that a paper's empirical claims are true (I.007, F.037, F.099).
  *
  * It is a PURE, deterministic reduction (no I/O, no clock) — the caller reads the
  * audit JSON; this maps it. That keeps it CAEL/SimulationContract-friendly and
- * makes a faked bloom structurally impossible: the only inputs are the audit
- * tokens. To show a fuller flower, the papers must actually get better.
+ * makes the score reproducible from the supplied tokens. It guarantees neither
+ * the correctness nor the freshness of those tokens, so every result carries an
+ * explicit unverified-claim-support label.
  *
  * Token weights: ✅ = 1.0 (passing), ⚠️ = 0.5 (partial), ❌ = 0.0 (failing/red),
  * ➖ = not-applicable (excluded from the denominator).
@@ -23,10 +24,22 @@ import type { LotusBloomState } from './BotanicalLotusTrait';
 /** The audit token for one pillar of one paper. */
 export type PillarToken = '✅' | '⚠️' | '❌' | '➖';
 
+/** What the numeric score actually measures. Kept machine-readable downstream. */
+export const LOTUS_HEALTH_BASIS = 'structural-readiness-proxy' as const;
+/** Structural token reduction does not itself verify empirical paper claims. */
+export const LOTUS_CLAIM_SUPPORT = 'unverified' as const;
+
+export type LotusHealthBasis = typeof LOTUS_HEALTH_BASIS;
+export type LotusClaimSupport = typeof LOTUS_CLAIM_SUPPORT;
+
 /** One pillar cell in the paper-audit matrix (`papers-status.json`). */
 export interface PaperPillarCell {
   token: PillarToken;
   evidence?: string;
+  /** Optional v3 manifest scope for the detector that produced this cell. */
+  scope?: string;
+  /** Optional source signal; preserved for audit, never upgraded by this reducer. */
+  claimSupport?: string;
 }
 
 /** One paper row from `docs/public/papers-status.json`. */
@@ -40,7 +53,11 @@ export interface PaperStatusRow {
 
 /** The `papers-status.json` document (only the fields this reduction needs). */
 export interface PapersStatusDoc {
+  schema?: string;
   generatedAt?: string;
+  canonicalRouterPath?: string;
+  matrixSourcePath?: string;
+  scriptCommit?: string;
   papers: PaperStatusRow[];
 }
 
@@ -56,6 +73,12 @@ export interface PaperHealth {
   partial: number;
   /** Failing/red pillar count — the signal that wilts a non-retired paper. */
   failing: number;
+  /** Explicit semantic boundary for `health` and `bloom`. */
+  basis: LotusHealthBasis;
+  /** Always unverified: structural scoring is not claim verification. */
+  claimSupport: LotusClaimSupport;
+  /** Claim-support labels supplied by source cells, retained without promotion. */
+  sourceClaimSupport: string[];
 }
 
 /** The whole flower's health: one entry per petal + a cell-weighted aggregate. */
@@ -65,6 +88,14 @@ export interface LotusHealth {
   /** The aggregate as a bloom state — drives the hero flower's overall openness. */
   aggregateBloom: LotusBloomState;
   perPaper: PaperHealth[];
+  /** Explicit semantic boundary for the aggregate and every per-paper score. */
+  basis: LotusHealthBasis;
+  /** Always unverified: no evidence is executed by this pure reduction. */
+  claimSupport: LotusClaimSupport;
+  /** Distinct claim-support labels present in source cells. */
+  sourceClaimSupport: string[];
+  sourceSchema?: string;
+  sourceScriptCommit?: string;
   generatedAt?: string;
 }
 
@@ -83,12 +114,26 @@ const TOKEN_WEIGHT: Record<Exclude<PillarToken, '➖'>, number> = {
 const WILT_FAILING_THRESHOLD = 3;
 const WILT_HEALTH_CEILING = 0.7;
 
+function sourceClaimSupportForRow(row: PaperStatusRow): string[] {
+  return [
+    ...new Set(
+      Object.values(row.pillars)
+        .map((cell) => cell?.claimSupport)
+        .filter((value): value is string => typeof value === 'string' && value.length > 0)
+    ),
+  ].sort();
+}
+
 /**
  * Map a paper's health to a bloom state. Retired papers are dead petals (wilted);
  * papers with several failing pillars and low health wilt; otherwise the petal
  * opens with health. `sealed` = an early, unproven bud; `wilted` = degraded.
  */
-export function bloomForPaperHealth(health: number, retired: boolean, failing: number): LotusBloomState {
+export function bloomForPaperHealth(
+  health: number,
+  retired: boolean,
+  failing: number
+): LotusBloomState {
   if (retired) return 'wilted';
   if (failing >= WILT_FAILING_THRESHOLD && health < WILT_HEALTH_CEILING) return 'wilted';
   if (health >= 0.9) return 'full';
@@ -124,6 +169,9 @@ export function paperHealth(row: PaperStatusRow): PaperHealth {
     passing,
     partial,
     failing,
+    basis: LOTUS_HEALTH_BASIS,
+    claimSupport: LOTUS_CLAIM_SUPPORT,
+    sourceClaimSupport: sourceClaimSupportForRow(row),
   };
 }
 
@@ -149,14 +197,22 @@ export function deriveLotusHealth(doc: PapersStatusDoc): LotusHealth {
     }
   }
   const aggregate = applicable > 0 ? sum / applicable : 0;
+  const sourceClaimSupport = [
+    ...new Set(perPaper.flatMap((paper) => paper.sourceClaimSupport)),
+  ].sort();
 
   return {
     aggregate,
-    // The hero flower never claims more than the aggregate earns; a retired paper
-    // can't drag the whole flower to "dead", so the aggregate uses the non-wilt
-    // health ladder (failing-driven wilt is a per-petal signal, not aggregate).
+    // Preserve the existing aggregate bloom ladder for compatibility. A retired
+    // paper does not drag the whole flower to "dead"; failing-driven wilt remains
+    // a per-petal visualization rather than an aggregate rule.
     aggregateBloom: bloomForPaperHealth(aggregate, false, 0),
     perPaper,
+    basis: LOTUS_HEALTH_BASIS,
+    claimSupport: LOTUS_CLAIM_SUPPORT,
+    sourceClaimSupport,
+    sourceSchema: doc.schema,
+    sourceScriptCommit: doc.scriptCommit,
     generatedAt: doc.generatedAt,
   };
 }

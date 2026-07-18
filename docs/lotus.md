@@ -1,6 +1,6 @@
 ---
 title: The Lotus
-description: 16 papers. One algebra. One verifiable chain from source notation to rendered pixel. Live bloom state for every petal in the HoloScript research program.
+description: A target provenance architecture and structural readiness view for the HoloScript paper program.
 layout: page
 ---
 
@@ -8,15 +8,24 @@ layout: page
 
 <Lotus />
 
+> **Current-state boundary (2026-07-18).** Bloom state summarizes structural
+> paper readiness; it is not empirical truth. CAEL currently replays bounded
+> `step`/`solve` operations, not a full agent loop. Dumb Glass currently has a
+> narrow CPU provenance-hashing slice and no validated GPU or per-pixel proof.
+
 ## What is the Lotus?
 
 The lotus is a structure where every part depends on every other part.
 
-The **roots** — a parser, a multi-target compiler, and a provenance semiring — are already running in shipped code. The **stalk** is a family of formats (`.hs`, `.hsplus`, `.holo`) carrying provenance as a first-class semantic feature. The **petals** are projections — physics simulation, animation, agent reasoning, evidence retrieval — each a paper proving its subsystem operates under a provenance contract. The **center** is rendering: Dumb Glass, where every pixel can be traced algebraically back to the source notation that produced it.
+The **roots** include parser and compiler paths. The **stalk** is a family of
+formats (`.hs`, `.hsplus`, `.holo`). The **petals** are paper tracks evaluating
+physics, animation, agent reasoning, and evidence retrieval. The **center** is
+the Dumb Glass target: rendering with independently checkable provenance back
+to declared inputs. End-to-end per-pixel provenance remains a promotion gate.
 
-16 papers. One algebra. One verifiable chain from source notation to rendered pixel.
+One paper program. One target chain from source notation to rendered output.
 
-The lotus stands.
+The lotus is the program map; its bloom is a readiness proxy.
 
 ::: details Full Architecture
 See [The Lotus Architecture](/strategy/lotus-architecture) for the complete paper-by-paper breakdown, algebra, and competitive positioning.

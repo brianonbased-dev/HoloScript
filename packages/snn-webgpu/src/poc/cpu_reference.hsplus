@@ -3,7 +3,9 @@
 // Native .hsplus surface for snn-webgpu/poc/cpu-reference.ts.
 // Preserved from @holoscript/snn-poc (RFC-0042 PoC).
 //
-// Bit-exact (within f32 precision) reference for validating WebGPU compute output.
+// CPU numerical reference for comparing WebGPU compute output. Cross-backend
+// parity requires an explicit tolerance, compared observables, and a live-GPU
+// receipt; this surface does not assert byte identity.
 //   V[t+1] = V_rest + (V[t] - V_rest) * exp(-dt/tau) + I_syn[t]
 //   if V[t+1] >= V_thresh => spike=1, V=V_reset, refractory=2ms
 //
@@ -25,7 +27,7 @@
 
   @receipt cpu_reference_config {
     type: "CPUReferenceReceipt"
-    purpose: "bit-exact reference for WebGPU shader validation"
+    purpose: "CPU numerical reference; WebGPU parity requires explicit tolerance and live-backend evidence"
     lif_math: "V[t+1] = V_rest + (V[t] - V_rest) * exp(-dt/tau) + I_syn[t]"
     refractory_ms: 2
     timestamp: now()

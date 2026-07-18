@@ -21,15 +21,18 @@
  *   lives in @holoscript/r3f-renderer, which is unavailable at runtime, so the
  *   viewer drives the REAL compiled petal geometry with MeshStandardMaterial keyed
  *   to the REAL per-ring petal colors (the documented fallback: a robust real
- *   flower over a fragile photoreal one). Everything structural is real.
+ *   flower over a fragile photoreal one). The paper-audit overlay is kept
+ *   separate and explicitly labeled as a structural-readiness proxy; it does
+ *   not verify empirical paper claims.
  *
  * Usage: pnpm holo:build  (runs compile-holo-pages.ts then this baker)
  *
- * @cites I.007, F.037 (honest bloom), F.099 (show the rendered artifact), F.014
+ * @cites I.007, F.037 (scope-labeled bloom), F.099 (show the rendered artifact), F.014
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
-import { join } from 'path';
+import { dirname, join, resolve } from 'path';
+import { fileURLToPath } from 'url';
 import { parseHolo } from '../../../packages/core/src/parser/HoloCompositionParser';
 import {
   SceneIRCompiler as R3FCompiler,
@@ -44,12 +47,25 @@ import {
   type BotanicalLotusRenderProfile,
   type LotusCompiledMaterialSpec,
 } from '../../../packages/core/src/traits/BotanicalLotusTrait';
-import { deriveLotusHealth, type PapersStatusDoc } from '../../../packages/core/src/traits/deriveLotusHealth';
+import {
+  deriveLotusHealth,
+  type LotusClaimSupport,
+  type LotusHealthBasis,
+  type PapersStatusDoc,
+} from '../../../packages/core/src/traits/deriveLotusHealth';
 
-const SERVICE_ROOT = join(import.meta.dirname || __dirname, '..');
+const SCRIPT_PATH = fileURLToPath(import.meta.url);
+const SERVICE_ROOT = resolve(dirname(SCRIPT_PATH), '..');
+const REPO_ROOT = resolve(SERVICE_ROOT, '..', '..');
 const SCENES_DIR = join(SERVICE_ROOT, 'public', 'scenes');
-const AUDIT_PATH = join(SERVICE_ROOT, 'public', 'papers-status.json');
 const MANIFEST_PATH = join(SCENES_DIR, 'baked-manifest.json');
+
+/** Canonical manifest written by scripts/build-papers-status-manifest.mjs. */
+export const PAPERS_STATUS_RELATIVE_PATH = 'docs/public/papers-status.json';
+export const PAPERS_STATUS_PATH = join(REPO_ROOT, 'docs', 'public', 'papers-status.json');
+export const PAPERS_STATUS_SCHEMA = 'paper-audit-matrix.v3';
+/** Compatibility mirror served at /papers-status.json; never a source of truth. */
+export const SERVICE_PAPERS_STATUS_PATH = join(SERVICE_ROOT, 'public', 'papers-status.json');
 
 // ── Serialized geometry: typed arrays → plain number[] (JSON-safe). ──────────
 interface BakedGeometry {
@@ -137,7 +153,15 @@ interface BakedTimelineKey {
   value: number;
 }
 
-/** A paper-bound petal (seedable scene) with REAL health-derived bloom. */
+interface BakedHealthSource {
+  path: typeof PAPERS_STATUS_RELATIVE_PATH;
+  schema?: string;
+  generatedAt?: string;
+  scriptCommit?: string;
+  sourceClaimSupport: string[];
+}
+
+/** A paper-bound petal with a structural-readiness bloom overlay. */
 interface BakedPaperPetal {
   index: number;
   ring: number;
@@ -150,10 +174,13 @@ interface BakedPaperPetal {
   title: string;
   /** Authored bloom from the .holo @glowing encoding. */
   bloomAuthored: string;
-  /** REAL bloom from the live paper-audit health (honest overlay). */
+  /** Bloom derived from structural paper-audit tokens. */
   bloomHealth: string | null;
-  /** 0..1 health from deriveLotusHealth, or null if unmatched. */
+  /** 0..1 structural-readiness proxy from deriveLotusHealth, or null if unmatched. */
   health: number | null;
+  healthBasis: LotusHealthBasis | null;
+  claimSupport: LotusClaimSupport | null;
+  sourceClaimSupport: string[];
   retired: boolean;
   failing: number | null;
   rowId: string | null;
@@ -180,6 +207,9 @@ interface BakedScene {
   colors?: Record<string, string>;
   aggregate?: number;
   aggregateBloom?: string;
+  healthBasis?: LotusHealthBasis;
+  claimSupport?: LotusClaimSupport;
+  healthSource?: BakedHealthSource;
   // symbolic (refreshed)
   nodes?: BakedPrimitive[];
 }
@@ -395,7 +425,7 @@ function normalizeTitle(t: string): string {
     .trim();
 }
 
-function bakePaperFlower(
+export function bakePaperFlower(
   objects: unknown[],
   name: string,
   audit: PapersStatusDoc | null
@@ -412,7 +442,7 @@ function bakePaperFlower(
   const health = audit ? deriveLotusHealth(audit) : null;
   const perPaper = health?.perPaper ?? [];
 
-  // Map each paper-bound petal title onto the live audit by normalized title match.
+  // Map each paper-bound petal title onto the structural audit by normalized title match.
   const paperPetals: BakedPaperPetal[] = scene.petals.map((pt) => {
     const nt = normalizeTitle(pt.title);
     let match = perPaper.find((pp) => {
@@ -442,6 +472,9 @@ function bakePaperFlower(
       bloomAuthored: pt.bloom,
       bloomHealth: match ? match.bloom : null,
       health: match ? match.health : null,
+      healthBasis: match ? match.basis : null,
+      claimSupport: match ? match.claimSupport : null,
+      sourceClaimSupport: match?.sourceClaimSupport ?? [],
       retired: match ? match.retired : false,
       failing: match ? match.failing : null,
       rowId: match ? match.rowId : null,
@@ -470,6 +503,17 @@ function bakePaperFlower(
     },
     aggregate: health?.aggregate,
     aggregateBloom: health?.aggregateBloom,
+    healthBasis: health?.basis,
+    claimSupport: health?.claimSupport,
+    healthSource: audit
+      ? {
+          path: PAPERS_STATUS_RELATIVE_PATH,
+          schema: audit.schema,
+          generatedAt: audit.generatedAt,
+          scriptCommit: audit.scriptCommit,
+          sourceClaimSupport: health?.sourceClaimSupport ?? [],
+        }
+      : undefined,
     camera: { position: [0, 1.5, 9], target: [0, 0.5, 0] },
   };
 }
@@ -496,20 +540,42 @@ function bakeSymbolic(ast: unknown, objects: unknown[], name: string): BakedScen
   };
 }
 
-function loadAudit(): PapersStatusDoc | null {
-  if (!existsSync(AUDIT_PATH)) {
-    console.warn('  ⚠ papers-status.json missing — paper flower will have no health overlay');
+export function loadAudit(path = PAPERS_STATUS_PATH): PapersStatusDoc | null {
+  if (!existsSync(path)) {
+    console.warn(`  ⚠ ${PAPERS_STATUS_RELATIVE_PATH} missing — paper flower will have no readiness overlay`);
     return null;
   }
   try {
-    return JSON.parse(readFileSync(AUDIT_PATH, 'utf-8')) as PapersStatusDoc;
+    const audit = JSON.parse(readFileSync(path, 'utf-8')) as PapersStatusDoc;
+    if (audit.schema !== PAPERS_STATUS_SCHEMA || !Array.isArray(audit.papers)) {
+      console.warn(
+        `  ⚠ papers-status manifest must be ${PAPERS_STATUS_SCHEMA}; received ${audit.schema ?? 'unknown'} — readiness overlay disabled`
+      );
+      return null;
+    }
+    return audit;
   } catch (e) {
     console.warn('  ⚠ papers-status.json unreadable:', (e as Error).message);
     return null;
   }
 }
 
-function compileScene(file: string): { ast: unknown; objects: unknown[] } {
+/**
+ * Keep the legacy public URL source-compatible without letting it become a
+ * second authority. The canonical docs/public v3 file is copied only after
+ * loadAudit validates it; identical bytes are left untouched.
+ */
+export function syncPublicPapersStatusCopy(
+  source = PAPERS_STATUS_PATH,
+  target = SERVICE_PAPERS_STATUS_PATH
+): boolean {
+  const sourceBytes = readFileSync(source);
+  if (existsSync(target) && readFileSync(target).equals(sourceBytes)) return false;
+  writeFileSync(target, sourceBytes);
+  return true;
+}
+
+export function compileScene(file: string): { ast: unknown; objects: unknown[] } {
   const src = readFileSync(join(SCENES_DIR, file), 'utf-8');
   const parsed = parseHolo(src);
   if (!parsed.success || !parsed.ast) {
@@ -522,6 +588,9 @@ function compileScene(file: string): { ast: unknown; objects: unknown[] } {
 function main(): void {
   if (!existsSync(SCENES_DIR)) mkdirSync(SCENES_DIR, { recursive: true });
   const audit = loadAudit();
+  if (audit && syncPublicPapersStatusCopy()) {
+    console.log('  ✓ canonical papers-status v3 → public/papers-status.json compatibility mirror');
+  }
 
   const baked: { name: string; file: string; kind: string }[] = [];
 
@@ -535,14 +604,14 @@ function main(): void {
     baked.push({ name: 'pond', file: 'lotus-pond.baked.json', kind: scene.kind });
   }
 
-  // 2) paper flower (seedable, paper-bound, honest bloom)
+  // 2) paper flower (seedable, paper-bound structural-readiness proxy)
   {
     const { objects } = compileScene('garden.seedable.holo');
     const scene = bakePaperFlower(objects, 'seedable', audit);
     const wilted = (scene.paperPetals ?? []).filter((pp) => pp.bloomHealth === 'wilted');
     const out = join(SCENES_DIR, 'garden.seedable.baked.json');
     writeFileSync(out, JSON.stringify(scene));
-    console.log(`  ✓ seedable → garden.seedable.baked.json (${scene.paperPetals?.length ?? 0} petals, ${wilted.length} health-wilted: ${wilted.map((w) => `${w.rowId}:${w.title.replace(/^Petal\s+\S+\s*/, '').slice(0, 28)}`).join(' | ')})`);
+    console.log(`  ✓ seedable → garden.seedable.baked.json (${scene.paperPetals?.length ?? 0} petals, ${wilted.length} proxy-wilted: ${wilted.map((w) => `${w.rowId}:${w.title.replace(/^Petal\s+\S+\s*/, '').slice(0, 28)}`).join(' | ')})`);
     baked.push({ name: 'seedable', file: 'garden.seedable.baked.json', kind: scene.kind });
   }
 
@@ -563,4 +632,6 @@ function main(): void {
   console.log(`\nBaked ${baked.length} lotus scenes → public/scenes/*.baked.json`);
 }
 
-main();
+if (process.argv[1] && resolve(process.argv[1]) === resolve(SCRIPT_PATH)) {
+  main();
+}

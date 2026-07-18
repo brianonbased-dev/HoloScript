@@ -1,202 +1,85 @@
-% CAEL Supplemental Material
-% Moved from main paper 2026-05-23 for AAMAS 8-page main-text budget.
-% Not counted in the 8-page limit; submit as separate supplemental PDF.
+% CAEL Supplemental Material — integrity quarantine
+% Supersedes the unsupported results appendix retained in Git history.
 \documentclass[sigconf,nonacm]{acmart}
-\usepackage{amsmath}
-\let\Bbbk\relax
-\usepackage{amssymb}
 \usepackage{booktabs}
-\usepackage{multirow}
-
-\newcommand{\cmark}{\textcolor{green!60!black}{\checkmark}}
-\newcommand{\xmark}{\textcolor{red!70!black}{$\times$}}
-\newcommand{\measuredFrom}[1]{\footnote{Measured from \texttt{#1}.}}
 
 \begin{document}
-\title{CAEL: Supplemental Material}
+\title{CAEL Supplemental Material: Current Artifact Boundary}
 \maketitle
 
-\appendix
+\section{Status}
 
-\section{Scenario 3: Multi-Agent Dispute Resolution}
-\label{app:dispute}
+This file is \textbf{not a submission supplement}.  The earlier version
+reported dispute, dream, throughput, full-loop, ablation, user-study, and
+digital-twin results that are not supported by durable receipts or by the
+current replay semantics.  Those tables are withdrawn.  The canonical revised
+manuscript is \texttt{research/paper-0c-cael-aamas.tex} in the
+\texttt{ai-ecosystem} repository.
 
-\paragraph{Protocol.}
-Three agents ($A$, $B$, $C$) share a structural simulation.
-Each agent can apply loads to different regions. In each trial:
+\section{What the Current Artifact Supports}
+
+At HoloScript commit
+\texttt{eae6d1113814d3e284807f4e6ceae92f68a860f8},
+\texttt{CAELRecorder} appends a canonical hash-linked JSONL event stream.
+\texttt{CAELReplayer} reconstructs a contracted solver and re-executes recorded
+\texttt{step} and \texttt{solve} events.  Interaction records are decoded and
+re-logged; their actions, world mutations, cognition effects, perception
+effects, and CRDT updates are not applied during replay.
+
+The default chain checksum is FNV-1a.  SHA-256 can be selected, but neither mode
+by itself authenticates origin.  Same-adapter state-digest comparison is
+conditional on two matching non-empty adapter fingerprints and retained digest
+arrays.  The wire projection is schema agreement; it omits solver fields, state
+digests, and final physics outcomes and therefore does not prove cross-adapter
+physics determinism.
+
+A dated reporter in the canonical paper repository records all selected tests
+passing.  This is implementation coverage, not evidence for the withdrawn
+semantic or performance claims.
+
+\section{Withdrawn Result Classes}
+
+\begin{table}[h]
+\caption{Claims removed from the submission surface.}
+\small
+\begin{tabular}{@{}lp{0.62\columnwidth}@{}}
+\toprule
+\textbf{Result class} & \textbf{Reason withdrawn} \\
+\midrule
+Dispute attribution & CRDT traces retain compact metadata, not replayable
+updates; no 100-trial causal study exists. \\
+Dream evaluation & The fixture covers a small mock scenario, not the reported
+ten-episode result table. \\
+GPU/throughput & No durable hardware receipt supports the reported H1/H3
+numbers or CPU/WebGPU identity. \\
+Full agent loop & The production TET10 adapter is not driven by the current
+CAEL action path. \\
+Ablation/user study & No structured multi-trial receipt or completed human
+study supports the prior values. \\
+Digital twin & Record/replay schema agreement is not an independent
+implementation twin test or cross-adapter physical replay. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Promotion Gates}
+
+A future results supplement requires:
 \begin{enumerate}
-  \item Agents take turns applying loads for 50 ticks.
-  \item At tick 50, the structure fails (stress exceeds yield).
-  \item An automated adjudicator replays all three agents' CAEL
-    traces, identifies which agent's action at which timestep
-    caused the failure, and produces an attribution report.
+  \item versioned executable interaction commands with explicit apply
+        semantics;
+  \item fail-closed adapter identity and domain-complete state oracles;
+  \item a state-changing action and solve through the production TET10
+        adapter;
+  \item content-addressed CRDT updates and independent replica replay;
+  \item branch-prefix and branch-final equality with mutation negative
+        controls;
+  \item per-step GPU spike capture and a separately scoped parity study; and
+  \item raw structured receipts for every reported trial, latency, memory, and
+        overhead value.
 \end{enumerate}
 
-We compare CAEL-based adjudication against two baselines:
-\begin{itemize}
-  \item \textbf{Last-action}: Blame the agent whose most recent
-    action preceded the failure.
-  \item \textbf{Reputation}: Blame the agent with the lowest
-    historical success rate.
-\end{itemize}
-
-\paragraph{Metrics.}
-\begin{itemize}
-  \item \textbf{Attribution accuracy}: Fraction of trials where
-    the adjudicator correctly identifies the causal agent.
-  \item \textbf{Causal specificity}: Whether the adjudicator
-    identifies the specific action (not just the agent) that
-    caused the failure.
-  \item \textbf{Adjudication time}: Wall-clock time from failure
-    detection to attribution.
-\end{itemize}
-
-\paragraph{Results.}
-\begin{table}[t]
-\caption{Multi-agent dispute resolution (100 trials)}
-\label{tab:dispute}
-\small
-\begin{tabular}{@{}lrrr@{}}
-\toprule
-\textbf{Metric} & \textbf{Last-Action} & \textbf{Reputation} & \textbf{CAEL} \\
-\midrule
-Agent accuracy (\%) & 34 & 41 & 100 \\
-Action accuracy (\%) & 0 & 0 & 100 \\
-Adjudication (ms) & $<$\,1 & 2.1 & 48.3 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-CAEL-based adjudication achieves 100\% attribution
-accuracy because it replays the exact sequence of
-perception--action--physics events. The replay identifies not
-just \emph{which} agent but \emph{which specific action at which
-timestep} caused the stress to exceed yield. The last-action
-baseline fails when the causal action was several ticks before
-the failure (accumulated stress). The reputation baseline fails
-when a historically reliable agent happens to make the harmful
-action in a specific trial. Adjudication cost for CAEL (48.3\,ms)
-reflects replaying 3 agents $\times$ 50 ticks of trace, dominated
-by solver re-execution. Hash-chain verification of the traces
-themselves adds only $\sim$0.5\,ms (150 entries at $\sim$3.40\,$\mu$s
-median each; see \texttt{research/benchmark-canonical-run.md}).
-
-\section{Dreaming Evaluation}
-\label{app:dream}
-
-We evaluate the dream mechanism's overhead and perturbation coverage.
-
-\begin{table}[t]
-\caption{Dream session characteristics (10 episodes, $\pm 10\%$ perturbation)}
-\label{tab:dream}
-\small
-\begin{tabular}{@{}lr@{}}
-\toprule
-\textbf{Metric} & \textbf{Value} \\
-\midrule
-Episodes requested & 10 \\
-Episodes completed & 10/10 \\
-Mean perturbation magnitude & 8.7\% \\
-Dream trace entries (per episode) & 253 \\
-Total dream time (ms) & 612 \\
-All traces valid (hash chain) & \cmark \\
-All traces link to waking run ID & \cmark \\
-Perturbation reproducibility (re-seed) & \cmark \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-All 10 dream episodes completed successfully within the $\pm 10\%$
-perturbation budget (mean realized perturbation 8.7\%). Each episode
-generates 203 trace entries (50 ticks $\times$ 4 entries + 3 bookkeeping),
-consistent with the waking agent trace structure. Total dream time
-of 612\,ms for 10 episodes (61.2\,ms/episode) is dominated by SNN
-cognition re-evaluation; hash-chain construction adds $<$0.4\,ms
-per episode (203 entries at $\sim$3.40\,$\mu$s median each).
-
-\section{Hash-Chain Throughput Benchmark}
-\label{app:gpu-bench}
-
-Across two hardware tiers, CAEL achieves 294K entries/s on H1
-(Intel i7 / UHD 770, 2.8\% overhead) and 649K entries/s on H3
-(RTX 6000 Ada, 1.3\% overhead). Both rates exceed the 240 entries/s
-production rate at 60\,Hz by more than three orders of magnitude,
-confirming that CAEL is compute-bound by solver work rather than
-hash-chain bookkeeping.
-
-\begin{table}[t]
-\caption{Hash-chain throughput by hardware tier}
-\label{tab:gpu-bench}
-\small
-\begin{tabular}{@{}lrrr@{}}
-\toprule
-\textbf{Tier} & \textbf{Hardware} & \textbf{Entries/s} & \textbf{Overhead} \\
-\midrule
-H1 & Intel i7 / UHD 770 & 294K & 2.8\% \\
-H3 & RTX 6000 Ada & 649K & 1.3\% \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\section{Full-Loop Demo}
-\label{app:full-loop-demo}
-
-The full-loop latency demo measures CAEL inside the browser-native
-agent-environment loop, including perception, cognition, action mapping,
-physics stepping, and trace append. H1 sustains 60\,Hz at
-$16.2 \pm 2.4$\,ms median latency; H3 sustains 60\,Hz at
-$7.4 \pm 0.9$\,ms median latency. At both tiers, hash-chain append
-contributes less than 0.025\% of total loop latency.
-
-\section{User Study Protocol}
-\label{app:user-study}
-
-The preregistered user study targets $N=12$ human participants interacting
-with the CAEL framework. A preliminary pilot ($N=3$) validates the
-experimental harness and survey instrument. The full study measures task
-completion time, error recovery rate, and qualitative cognitive load against
-a baseline workflow. The IRB waiver and preregistration packet are maintained
-with the submission materials.
-
-\section{Ablation Study}
-\label{app:ablation}
-
-We ablate the \texttt{appendCaelTrace} audit-write call while holding all
-other loop phases constant. The incremental CAEL overhead is
-$+60.6\,\mu$s/tick (0.36\% of a 16.67\,ms budget); removing it recovers the
-2.0\,$\mu$s baseline but loses replay-determinism and dispute-resolvability.
-
-\section{Digital Twin Agreement Harness}
-\label{app:twin-harness}
-
-The behavioral-determinism claim is given mechanical force by an
-explicit digital-twin agreement harness implementing the W.315
-wire-format equivalent predicate. The CAEL stack ships \textbf{two
-independent implementations of the same state machine}: a record path
-(\texttt{CAELRecorder}, wrapping a \texttt{SimSolver} and emitting a
-hash-chained JSONL trace) and a replay path (\texttt{CAELReplayer},
-consuming JSONL and re-executing the recorded interactions against a
-freshly-instantiated solver). These are not the same code path. The
-equivalence wire format (\texttt{equivalenceRecord.ts}, with
-\texttt{solverType: equivalence.v1}) projects out non-semantic fields
-($runId$, $wallTimeMs$, interaction $id$/$timestamp$) and the
-\texttt{wireFormatEquivalent(a,b)} predicate asserts equality on the
-canonical projection $(config,$ $solverType,$ $geometryHash,$
-$contractId,$ $fixedDt,$ $totalSteps,$ $interactions,$
-$subgridAttestation)$. Two implementations agreement is therefore
-mechanically witnessed by \texttt{wire-format equivalent} returning
-\texttt{true} across the record/replay pair. The dispatch follows
-the same-adapter / cross-adapter pattern: matching adapter fingerprints
-enforce strict per-step digest identity (byte-identical replay across
-the hash chain); differing or absent fingerprints fall through to
-cross-adapter equivalence, where deterministic replay is established
-at the wire-format projection rather than the byte level. The
-harness exercises both regimes with explicit false cases for the
-\texttt{sameAdapter} predicate---empty fingerprints, mismatched
-fingerprints, and one-sided \texttt{null} are all rejected---so the
-assertion can fail loudly rather than silently broaden into trivial
-acceptance. The full harness (33 assertions across recorder/replayer
-round-trip and wire-equivalence primitive) executes in 112\,ms total
-test-time and passes 33/33.
+Until those gates pass, this file documents exclusions only and must not be
+packaged as empirical supplemental material.
 
 \end{document}

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * build-papers-status-manifest.mjs — generate docs/public/papers-status.json
+ * build-papers-status-manifest.mjs — generate the public paper-status manifest
  *
  * Companion to scripts/build-provenance-manifest.mjs (parallel pattern).
  *
@@ -14,7 +14,8 @@
  * Refresh cadence: manual. Re-run after every paper-touching commit on
  * ai-ecosystem (or whenever the audit matrix moves):
  *   node scripts/build-papers-status-manifest.mjs
- *   git add docs/public/papers-status.json
+ *   git add docs/public/papers-status.json \
+ *     services/holoscript-net-v2/public/papers-status.json
  *   git commit -m "docs(papers): refresh status manifest"
  *
  * The public site build never touches ai-ecosystem; it reads the committed
@@ -41,37 +42,82 @@ const AI_ECO_ROOT = argMap['ai-eco'] || process.env.AI_ECO_ROOT || 'C:/Users/jos
 
 const REBUILDER = path.join(AI_ECO_ROOT, 'scripts', 'paper-audit-matrix-auto-rebuild.mjs');
 const OUT_PATH = path.resolve(__dirname, '..', 'docs', 'public', 'papers-status.json');
+const COMPAT_OUT_PATH = path.resolve(
+  __dirname,
+  '..',
+  'services',
+  'holoscript-net-v2',
+  'public',
+  'papers-status.json'
+);
+const EXPECTED_SCHEMA = 'paper-audit-matrix.v3';
+
+function atomicWrite(targetPath, bytes) {
+  const temporaryPath = `${targetPath}.${process.pid}.${Date.now()}.tmp`;
+  fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+
+  try {
+    fs.writeFileSync(temporaryPath, bytes, { flag: 'wx' });
+    fs.renameSync(temporaryPath, targetPath);
+  } finally {
+    if (fs.existsSync(temporaryPath)) fs.unlinkSync(temporaryPath);
+  }
+}
 
 function main() {
   if (!fs.existsSync(REBUILDER)) {
-    console.error(`[papers-status] rebuilder not found: ${REBUILDER}`);
-    console.error('  pass --ai-eco=<path> or set AI_ECO_ROOT env');
-    process.exit(1);
+    throw new Error(
+      `rebuilder not found: ${REBUILDER}\n  pass --ai-eco=<path> or set AI_ECO_ROOT env`
+    );
   }
 
-  console.error(`[papers-status] running ${path.relative(process.cwd(), REBUILDER)}`);
-  const result = spawnSync(process.execPath, [REBUILDER, `--json-out=${OUT_PATH}`], {
-    cwd: AI_ECO_ROOT,
-    stdio: ['ignore', 'inherit', 'inherit'],
-  });
-  if (result.status !== 0) {
-    console.error(`[papers-status] rebuilder exited with ${result.status}`);
-    process.exit(result.status || 1);
+  const buildPath = `${OUT_PATH}.${process.pid}.${Date.now()}.build`;
+  let bytes;
+  let data;
+
+  try {
+    console.error(`[papers-status] running ${path.relative(process.cwd(), REBUILDER)}`);
+    const result = spawnSync(process.execPath, [REBUILDER, `--json-out=${buildPath}`], {
+      cwd: AI_ECO_ROOT,
+      stdio: ['ignore', 'inherit', 'inherit'],
+    });
+    if (result.status !== 0) {
+      throw new Error(`rebuilder exited with ${result.status}`);
+    }
+
+    if (!fs.existsSync(buildPath)) {
+      throw new Error(`expected output not written: ${buildPath}`);
+    }
+
+    bytes = fs.readFileSync(buildPath);
+    data = JSON.parse(bytes.toString('utf8'));
+    if (data.schema !== EXPECTED_SCHEMA || !Array.isArray(data.papers)) {
+      throw new Error(`refusing publish: expected ${EXPECTED_SCHEMA} with a papers array`);
+    }
+  } finally {
+    if (fs.existsSync(buildPath)) fs.unlinkSync(buildPath);
   }
 
-  if (!fs.existsSync(OUT_PATH)) {
-    console.error(`[papers-status] expected output not written: ${OUT_PATH}`);
-    process.exit(1);
-  }
+  // Publish the exact same validated bytes to the canonical artifact and the
+  // tracked service compatibility URL. Each replacement is atomic.
+  atomicWrite(OUT_PATH, bytes);
+  atomicWrite(COMPAT_OUT_PATH, bytes);
 
-  // Sanity-load + report
-  const data = JSON.parse(fs.readFileSync(OUT_PATH, 'utf8'));
+  // Report the validated manifest that was just published.
   const totals = data.totals || { papers: 0, cellsByToken: {} };
   const t = totals.cellsByToken || {};
   console.error(
-    `[papers-status] wrote ${path.relative(process.cwd(), OUT_PATH)} ` +
+    `[papers-status] wrote ${path.relative(process.cwd(), OUT_PATH)} and ` +
+      `${path.relative(process.cwd(), COMPAT_OUT_PATH)} ` +
       `(${totals.papers} papers, ${t['✅'] || 0} GREEN / ${t['⚠️'] || 0} AMBER / ${t['❌'] || 0} RED / ${t['➖'] || 0} N/A)`
   );
 }
 
-main();
+try {
+  main();
+} catch (error) {
+  console.error(
+    `[papers-status] ${(error instanceof Error ? error : new Error(String(error))).message}`
+  );
+  process.exitCode = 1;
+}

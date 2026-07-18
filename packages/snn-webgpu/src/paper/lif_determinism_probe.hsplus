@@ -4,12 +4,11 @@
 //
 // Runs a fixed-input LIF sim through the GPU; returns ProbeResult { outputHash }.
 //
-// Determinism scope (empirically verified 2026-05-10):
-//   Same-backend: hash is bit-identical
-//   Cross-vendor (NVIDIA Ampere vs Intel Gen-12LP): membrane potentials diverge by ~1.5e-5
-//   → Spike masks are bit-identical cross-vendor (threshold comparison is discrete)
-//   → Cryptographic determinism receipt for SPIKE DECISIONS holds cross-vendor
-//   → Membrane-potential hash is backend-scoped only
+// Evidence scope:
+//   output_hash covers final membrane-potential bytes, not spike masks.
+//   A 2026-05-10 NVIDIA/Intel observation produced different membrane hashes.
+//   Same-backend GPU repeatability requires a confirmed live GPU backend;
+//   fallback/mock convergence is not hardware evidence.
 //
 // runLIFDeterminismProbe(ctx, { neuron_count, tick_count, stimulus_seed }) → ProbeResult
 
@@ -21,16 +20,20 @@
     emit("lif_determinism_probe_ready", {})
   }
 
-  @on_probe(neuron_count, tick_count, stimulus_seed) => {
-    result = probe.run(neuron_count, tick_count, stimulus_seed)
-    emit("probe_complete", { output_hash: result.output_hash })
-    return result
-  }
+@on_probe(neuron_count, tick_count, stimulus_seed) => {
+  result = probe.run(neuron_count, tick_count, stimulus_seed)
+  emit("probe_complete", { output_hash: result.output_hash })
+  return result
+}
 
-  @receipt lif_determinism_probe_config {
-    type: "LIFDeterminismProbeReceipt"
-    cross_vendor_guarantee: "spike decisions (discrete threshold) — NOT membrane potentials (f32 ULP)"
-    verified: "2026-05-10"
-    timestamp: now()
-  }
+@receipt lif_determinism_probe_config {
+  type: "LIFDeterminismProbeReceipt"
+  output_hash_scope: "final membrane-potential bytes"
+  same_backend_claim: "repeatability only when a live GPU backend is confirmed"
+  cross_vendor_status: "NVIDIA and Intel membrane hashes differed in the 2026-05-10 observation"
+  spike_mask_status: "not measured by this probe"
+  gpu_evidence_requirement: "GPU_LIVE must be true; fallback convergence is not GPU evidence"
+  observation_date: "2026-05-10"
+  timestamp: now()
+}
 }

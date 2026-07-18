@@ -1,19 +1,20 @@
-# Cross-Vendor SNN Determinism Validation Report
+# Cross-Vendor SNN Membrane-State Observation
 
 > Task: `task_1778381112560_wh1h` — [inversion-critic] Cross-vendor SNN determinism validation  
 > Date: 2026-05-10  
 > Agent: claudecode-claude-x402
+> Integrity correction: 2026-07-17
 
 ## Executive Summary
 
-The `LIFDeterminismProbe` was executed on two distinct GPU vendors available on the local machine:
+This file records the 2026-05-10 `LIFDeterminismProbe` observation on two adapters. The probe output is the final membrane-potential byte array; it does not contain spike masks.
 
 | Vendor | Architecture             | Power Preference   | Hash (sha256)      |
 | ------ | ------------------------ | ------------------ | ------------------ |
 | NVIDIA | Ampere (RTX 3060 Laptop) | `high-performance` | `2c70fe2e...266b7` |
 | Intel  | Gen-12LP (UHD Graphics)  | `low-power`        | `2e903cc2...cc21f` |
 
-**Result:** Membrane-potential hashes are **NOT bit-identical** cross-vendor.
+**Observed result:** The NVIDIA and Intel membrane-potential hashes were **not bit-identical**.
 
 **Quantitative variance:**
 
@@ -21,27 +22,27 @@ The `LIFDeterminismProbe` was executed on two distinct GPU vendors available on 
 - Mean absolute difference: `5.4893e-6`
 - Max relative difference: `0.0000%`
 
-This variance is well below the 1% behavioral threshold. It is bounded by IEEE-754 f32 `exp()` ULP differences between GPU driver shader compilers. **Spike masks remain exact** because the threshold comparison (`v >= v_threshold`) is a discrete predicate insensitive to sub-ulp noise.
+These values describe the recorded membrane arrays only. The original report attributed the difference to backend floating-point behavior, but this probe alone does not isolate that cause. It also cannot support any conclusion about spike-mask identity because no spike mask was read or hashed.
 
-## Implications for Paper #2
+## Evidence Boundary for Paper #2
 
-1. **Cryptographic determinism receipt for _spike decisions_ holds cross-vendor.**  
-   The spike is a binary event; the receipt can be verified on any backend.
+1. **No cross-vendor spike-decision result was measured.**
+   A discrete threshold does not by itself guarantee parity when membrane values differ, especially for values near threshold. A separate probe must read and compare spike masks before making that claim.
 
-2. **Membrane-potential hash is backend-scoped, not cross-vendor.**  
-   The `outputHash` of `runLIFDeterminismProbe` must only be compared across runs on the _same_ GPU/driver configuration. Cross-vendor comparisons should use epsilon-tolerance (`maxAbsDiff < 1e-4`) rather than hash equality.
+2. **The current hash is a final-membrane-byte hash.**
+   The observed cross-vendor hashes differ. Any epsilon criterion is a separately declared numerical-acceptance policy, not hash equality and not a spike-parity result.
 
-3. **Claim downgrade applied.**  
-   `LIFDeterminismProbe.ts` JSDoc and test comments have been updated to reflect the scoped determinism boundary. The paper abstract's "determinism receipt" claim is still valid because it refers to spike-level CAEL trace chaining, not membrane-potential byte identity.
+3. **A green unit test is not necessarily GPU evidence.**
+   The Vitest setup can use a deterministic fallback/mock backend. Seed- and tick-divergence assertions return early when `GPU_LIVE` is false. Same-backend GPU repeatability may be reported only with a receipt confirming a live adapter.
 
 ## Pending Vendors
 
-The following vendors were requested but are **not available on this machine** and remain queued for future hardware access:
+The recorded observation has no rows for:
 
 - **AMD** (e.g., RDNA3 discrete or integrated)
 - **Apple Silicon** (M-series, requires macOS + Dawn or Safari WebGPU)
 
-When hardware becomes available, re-run `scripts/cross-vendor-determinism-runner.mjs` with the new adapter and append the row to this report.
+When hardware becomes available, re-run `scripts/cross-vendor-determinism-runner.mjs`, record adapter/driver identity and live-GPU status, and append rather than infer the missing rows.
 
 ## Runner Usage
 
@@ -51,16 +52,17 @@ pnpm build
 node scripts/cross-vendor-determinism-runner.mjs
 ```
 
-The script bootstraps the `webgpu` (Dawn) npm package, enumerates `high-performance` and `low-power` adapters, runs the canonical LIF probe on each, and prints both SHA-256 hashes and quantitative variance metrics.
+The script bootstraps the `webgpu` (Dawn) npm package, requests `high-performance` and `low-power` adapters, runs the canonical LIF membrane probe, and prints hashes and numerical variance metrics. Power preference is not itself proof of distinct vendor selection; retain the adapter identity in each hardware receipt.
 
 ## Decision Log
 
-- **Deterministic-float WGSL mode:** Deferred. The measured variance (`~1.5e-5`) is 4–5 orders of magnitude below the 1% trigger threshold. Building a custom `exp()` polynomial or fixed-point LIF emulator is a larger R&D task (multi-day) and is not justified by the current evidence. If future AMD/Apple rows show variance >1%, this decision should be revisited.
-- **Probabilistic downgrade:** Applied to the _membrane-potential hash_ claim only. The _spike-decision_ determinism claim remains intact.
+- **Deterministic-float WGSL mode:** Deferred in the 2026-05-10 run. The recorded membrane difference was `~1.5e-5`; no claim about unmeasured spike masks follows from that magnitude.
+- **Cross-vendor claim:** The current probe refutes cross-vendor membrane-byte identity for the two recorded adapters. Spike-decision identity remains untested, not verified.
 
 ## Files Modified
 
-- `packages/snn-webgpu/src/paper/LIFDeterminismProbe.ts` — JSDoc scoped to backend-scoped hash + cross-vendor epsilon note.
-- `packages/snn-webgpu/src/paper/__tests__/LIFDeterminismProbe.test.ts` — Empirical cross-vendor note added to test header.
-- `packages/snn-webgpu/scripts/cross-vendor-determinism-runner.mjs` — New reusable runner for future vendor rows.
-- `packages/snn-webgpu/cross-vendor-determinism-report.md` — This report.
+- `packages/snn-webgpu/src/paper/LIFDeterminismProbe.ts` — hashes final membrane-potential bytes.
+- `packages/snn-webgpu/src/paper/lif_determinism_probe.hsplus` — declares the same evidence boundary.
+- `packages/snn-webgpu/src/paper/__tests__/LIFDeterminismProbe.test.ts` — documents live-GPU versus fallback scope.
+- `packages/snn-webgpu/scripts/cross-vendor-determinism-runner.mjs` — runner for future hardware rows.
+- `packages/snn-webgpu/cross-vendor-determinism-results.md` — this corrected report.

@@ -2,9 +2,9 @@
  * CPU Reference Implementation for LIF Neuron Simulation
  *
  * Preserved from @holoscript/snn-poc (RFC-0042 PoC).
- * Provides a bit-exact (within floating-point precision) reference
- * implementation of the LIF neuron model for validating the WebGPU
- * compute shader output.
+ * Provides a CPU numerical reference for comparing the WebGPU compute shader
+ * under explicitly declared membrane tolerances and spike observables. It does
+ * not assert byte identity across backends or vendors.
  *
  * The same mathematical model is used:
  *   V[t+1] = V_rest + (V[t] - V_rest) * exp(-dt/tau) + I_syn[t]

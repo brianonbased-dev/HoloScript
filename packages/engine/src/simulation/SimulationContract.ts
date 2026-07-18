@@ -377,9 +377,9 @@ export function coarsestCommonScale(a: SimulationScale, b: SimulationScale): Sim
  * along with its embedding context so downstream consumers can compute
  * prediction error in latent space without needing the raw field tensors.
  *
- * Novel contribution: this is the first type in the HoloScript SimulationContract
- * surface that bridges world-model predictions with verified solver ground truth.
- * WorldModelReceipt (below) is the join record.
+ * `WorldModelReceipt` (below) can pair this value with a solver-produced
+ * reference state. The type alone does not establish that a trained model,
+ * a particular encoder, or an external verifier was used.
  *
  * Paper 26 seed — "Verifiable World Models via Simulation Contracts".
  */
@@ -401,11 +401,12 @@ export interface LatentVector {
 }
 
 /**
- * A snapshot of solver-verified physical state at a fixed simulation time.
+ * A snapshot of solver-produced physical state at a fixed simulation time.
  *
  * Produced by `ContractedSimulation` after `solve()` or `step()` completes.
- * Contains the raw field values the solver actually computed — this is the
- * "ground truth" the world model is compared against in `WorldModelReceipt`.
+ * Contains the raw field values the solver actually computed. A
+ * `WorldModelReceipt` treats this as its in-simulation reference state; the
+ * type does not independently prove physical correctness.
  */
 export interface PhysicsState {
   /** Simulation time (s) this state corresponds to. */
@@ -425,48 +426,47 @@ export interface PhysicsState {
 }
 
 /**
- * A closed real interval [lo, hi] used to bound uncertainty.
- *
- * `confidence_bound` in WorldModelReceipt is the confidence interval on
- * the `delta_error` measurement: with the stated probability the true
- * prediction error falls in [lo, hi].
+ * A closed real interval [lo, hi]. The current WorldModelReceipt generator
+ * emits an uncalibrated numerical envelope, not a probabilistic confidence
+ * interval. `coverage` is reserved for independently calibrated callers.
  */
 export interface Interval {
   /** Lower bound (inclusive). */
   lo: number;
   /** Upper bound (inclusive). */
   hi: number;
-  /** Probability level this interval covers, e.g. 0.95 for a 95% CI. */
+  /** Machine-readable semantics for the interval. */
+  kind?: 'uncalibrated-numerical-envelope' | 'calibrated-confidence-interval';
+  /** Probability level, present only for a calibrated confidence interval. */
   coverage?: number;
 }
 
 /**
- * WorldModelReceipt — cryptographically-verified join of a JEPA world-model
- * prediction and the solver's ground truth for the same physical state.
+ * WorldModelReceipt — a hashed comparison record between a latent prediction
+ * (or the generator's zero-vector baseline) and a solver-produced reference
+ * state.
  *
  * ## Why this matters
  *
- * World models (LeCun JEPA, VPT-style, etc.) make predictions in latent space.
- * Until now there has been no mechanism to verify those predictions against a
- * physics-consistent ground truth and produce a tamper-evident record of the
- * comparison. WorldModelReceipt closes that gap:
+ * World models can make predictions in latent space. This record places a
+ * prediction and a solver result next to their measured latent-space error:
  *
- *   1. The JEPA predictor produces `jepa_prediction` — a latent embedding of
- *      its prediction for the current physics state.
- *   2. `ContractedSimulation` runs the authoritative physics solver and captures
- *      `solver_ground_truth` — the actual field values.
+ *   1. A caller-supplied predictor produces `jepa_prediction`, or the generator
+ *      emits a zero-vector baseline when no predictor is supplied.
+ *   2. `ContractedSimulation` captures the solver-produced field values in
+ *      `solver_ground_truth`.
  *   3. `delta_error` is the L2 norm between the prediction and the ground truth
  *      projected back to the same embedding space.
- *   4. `confidence_bound` bounds the measurement uncertainty.
- *   5. The whole record is hashed (SHA-256 or FNV-1a per the contract's mode)
- *      and can be base-anchored on-chain via `anchor_base.py`.
+ *   4. The legacy-named `confidence_bound` records an uncalibrated numerical
+ *      envelope; it does not attach a probability to the error.
+ *   5. A compact canonical projection is hashed using the contract's declared
+ *      mode. FNV-1a is the default and is non-cryptographic; SHA-256 is opt-in.
  *
- * ## Novel contribution
- *
- * This is the first platform to issue cryptographically-verified world model
- * receipts tied to a physics simulation contract. Prior work (LeCun JEPA,
- * OpenAI VPT, DeepMind AlphaCode) either lacks physics grounding or lacks
- * cryptographic verification. WorldModelReceipt brings both.
+ * The current hash commits to prediction metadata/values, error metadata, and
+ * solver field names and lengths, but not the raw solver field values. A hash
+ * detects changes only within that projection. It does not authenticate the
+ * producer, verify the solver, prove model quality, or establish that an
+ * external/on-chain anchor exists.
  *
  * Paper 26 seed — "Verifiable World Models via Simulation Contracts".
  * TVCG scope boundary: above the submitted "Trust by Construction" paper
@@ -476,33 +476,44 @@ export interface Interval {
 export interface WorldModelReceipt {
   // ── Core fields (required) ──────────────────────────────────────────────────
 
-  /** JEPA/world-model prediction in latent space for this physics state. */
+  /**
+   * Latent prediction in the legacy `jepa_prediction` field. This can be a
+   * caller-supplied model output or the generator's zero-vector baseline; see
+   * `predictionKind`.
+   */
   jepa_prediction: LatentVector;
 
-  /** Solver-verified ground truth for the same physics state. */
+  /** Solver-produced reference state for the same simulation point. */
   solver_ground_truth: PhysicsState;
 
   /**
    * Prediction error: L2 distance between `jepa_prediction.values` and the
    * ground-truth projection in the same embedding space.
    *
-   * Computed as ‖encode(solver_ground_truth) − jepa_prediction.values‖₂
-   * where `encode` uses the same encoder as the predictor.
+   * Computed as ‖encode(solver_ground_truth) − jepa_prediction.values‖₂.
+   * Compatibility of the caller-supplied encoder and predictor is
+   * caller-declared; the generator enforces only non-empty labels, finite
+   * values, equal dimensions, and matching simulation time.
    *
-   * A value of 0.0 indicates perfect prediction; higher values indicate
-   * divergence. The scale is embedding-space-relative (compare within the
-   * same `encoderId`, not across models).
+   * A value of 0.0 indicates numeric equality between the two supplied vectors,
+   * not model correctness. Higher values indicate vector divergence. The scale
+   * is caller-declared and embedding-space-relative.
    */
   delta_error: number;
 
   /**
-   * Confidence interval on `delta_error`.
-   *
-   * Accounts for floating-point quantization in the embedding, solver
-   * convergence tolerance, and (when provided) Monte-Carlo uncertainty
-   * from the world model. Typical `coverage` = 0.95.
+   * Legacy-named interval around `delta_error`. The current generator emits an
+   * `uncalibrated-numerical-envelope` derived from a fixed quantization term
+   * and the contract tolerance. It carries no probability or coverage claim.
    */
   confidence_bound: Interval;
+
+  /**
+   * How `jepa_prediction` was obtained. The current generator always emits
+   * this field; it is optional only so older serialized receipts remain
+   * assignable to this interface.
+   */
+  predictionKind?: 'zero-baseline' | 'caller-supplied';
 
   // ── Provenance / integrity ──────────────────────────────────────────────────
 
@@ -516,13 +527,17 @@ export interface WorldModelReceipt {
   issuedAt: string;
 
   /**
-   * Hash of the receipt's canonical JSON (fields above, sorted, no `receiptHash`
-   * itself). Produced under the same hash mode as the parent contract.
-   * Used by `anchor_base.py` as the anchored artifact hash.
+   * Hash of the generator's compact canonical projection (excluding
+   * `receiptHash`). Solver fields are represented by name and length, not raw
+   * values. The hash can be supplied to an external anchor, but this object is
+   * not evidence that anchoring occurred.
    */
   receiptHash: string;
 
-  /** Hash mode used to produce `receiptHash`. */
+  /**
+   * Hash mode used to produce `receiptHash`. `fnv1a` is the default,
+   * non-cryptographic integrity checksum; `sha256` is opt-in.
+   */
   hashMode: 'fnv1a' | 'sha256';
 
   /**
@@ -3416,8 +3431,9 @@ export class ContractedSimulation {
   }
 
   /**
-   * Generate a WorldModelReceipt that pairs a JEPA-style latent prediction
-   * with the solver's verified ground truth for the current simulation state.
+   * Generate a WorldModelReceipt that pairs a caller-supplied latent prediction,
+   * or an explicit zero-vector baseline, with the solver-produced reference
+   * state for the current simulation.
    *
    * ## Pipeline
    *
@@ -3429,29 +3445,39 @@ export class ContractedSimulation {
    *
    * This method:
    *   1. Captures the solver's current field values as `solver_ground_truth`.
-   *   2. Calls `jepaPredictor` to get the world model's prediction.
+   *   2. Calls `jepaPredictor` when supplied; otherwise emits a zero baseline.
    *   3. Calls `stateEncoder` to embed the ground truth.
-   *   4. Computes `delta_error` as L2 distance in latent space.
-   *   5. Assigns `confidence_bound` from solver convergence tolerance +
-   *      embedding quantization (1/1e6 per component, same as Route 2b).
-   *   6. Hashes the canonical receipt JSON under the contract's hash mode
-   *      and records it as `receiptHash`.
+   *   4. Validates equal, finite vector dimensions and computes their L2 distance.
+   *   5. Assigns an uncalibrated numerical envelope from contract tolerance +
+   *      a fixed 1e-6-per-component quantization heuristic.
+   *   6. Hashes the compact canonical receipt projection under the contract's
+   *      declared mode and records it as `receiptHash`.
    *
    * ## Default predictor / encoder
    *
    * When `jepaPredictor` is omitted, a zero-vector prediction is used
    * (delta_error = ‖encoded ground truth‖₂ — useful for baseline testing).
-   * When `stateEncoder` is omitted, a trivial projection copies the first
-   * field's values (or zeros if no fields) into the latent space.
+   * When `stateEncoder` is omitted on the zero-baseline path, a trivial
+   * projection copies the first non-empty field's values. Receipts fail closed
+   * when the solver exposes no non-empty typed-array field. A
+   * caller-supplied predictor requires an explicit `stateEncoder`; the method
+   * validates dimensions but cannot verify that both functions share semantic
+   * encoder identity.
    *
    * @param jepaPredictor  World model → latent prediction. May be async.
    * @param stateEncoder   PhysicsState → latent embedding for comparison.
-   * @returns A fully-populated WorldModelReceipt ready for anchoring.
+   * @returns A receipt with its hash mode and prediction kind disclosed.
+   *          Anchoring and producer authentication are external operations.
    */
   async generateWorldModelReceipt(
     jepaPredictor?: (state: PhysicsState) => LatentVector | Promise<LatentVector>,
     stateEncoder?: (state: PhysicsState) => Float32Array
   ): Promise<WorldModelReceipt> {
+    if (jepaPredictor && !stateEncoder) {
+      throw new Error(
+        'WorldModelReceipt caller-supplied predictor requires an explicit stateEncoder'
+      );
+    }
     // 1. Capture current solver state as ground truth.
     //
     // SimSolver.getField returns FieldData = RegularGrid3D | Float32Array |
@@ -3473,8 +3499,12 @@ export class ContractedSimulation {
       if (gridData instanceof Float64Array || gridData instanceof Float32Array) {
         capturedFields[fieldName] = gridData.slice();
       }
-      // Fields with no slice-able buffer are skipped — the receipt captures the
-      // typed-array-backed fields and remains hashable/anchorable.
+      // Fields with no slice-able buffer are skipped; the receipt covers only
+      // the typed-array-backed fields represented in `capturedFields`.
+    }
+
+    if (!Object.values(capturedFields).some((field) => field.length > 0)) {
+      throw new Error('WorldModelReceipt requires at least one non-empty typed-array solver field');
     }
 
     const groundTruth: PhysicsState = {
@@ -3490,21 +3520,28 @@ export class ContractedSimulation {
     if (stateEncoder) {
       groundTruthEmbedding = stateEncoder(groundTruth);
     } else {
-      // Default: use first field values (or empty) as trivial embedding
-      const firstField = Object.values(capturedFields)[0];
-      if (firstField && firstField.length > 0) {
-        groundTruthEmbedding = new Float32Array(firstField.length);
-        for (let i = 0; i < firstField.length; i++) {
-          groundTruthEmbedding[i] = firstField[i];
-        }
-      } else {
-        groundTruthEmbedding = new Float32Array(4);
+      // Default: use the first non-empty solver field as a trivial projection.
+      const firstField = Object.values(capturedFields).find((field) => field.length > 0)!;
+      groundTruthEmbedding = new Float32Array(firstField.length);
+      for (let i = 0; i < firstField.length; i++) {
+        groundTruthEmbedding[i] = firstField[i];
       }
+    }
+
+    if (
+      !(groundTruthEmbedding instanceof Float32Array) ||
+      groundTruthEmbedding.length === 0 ||
+      !groundTruthEmbedding.every(Number.isFinite)
+    ) {
+      throw new Error('WorldModelReceipt stateEncoder must return a non-empty finite Float32Array');
     }
 
     const latentDim = groundTruthEmbedding.length;
 
-    // 3. Get JEPA prediction
+    // 3. Get caller-supplied prediction or disclose the zero-vector baseline.
+    const predictionKind: NonNullable<WorldModelReceipt['predictionKind']> = jepaPredictor
+      ? 'caller-supplied'
+      : 'zero-baseline';
     let prediction: LatentVector;
     if (jepaPredictor) {
       prediction = await jepaPredictor(groundTruth);
@@ -3518,27 +3555,50 @@ export class ContractedSimulation {
       };
     }
 
+    if (!(prediction.values instanceof Float32Array)) {
+      throw new Error('WorldModelReceipt predictor values must be a Float32Array');
+    }
+    if (prediction.dim !== prediction.values.length) {
+      throw new Error(
+        `WorldModelReceipt predictor dim ${prediction.dim} does not match values length ${prediction.values.length}`
+      );
+    }
+    if (prediction.values.length !== latentDim) {
+      throw new Error(
+        `WorldModelReceipt latent dimension mismatch: encoder=${latentDim}, predictor=${prediction.values.length}`
+      );
+    }
+    if (!prediction.values.every(Number.isFinite)) {
+      throw new Error('WorldModelReceipt predictor values must all be finite');
+    }
+    if (typeof prediction.encoderId !== 'string' || prediction.encoderId.trim().length === 0) {
+      throw new Error('WorldModelReceipt predictor encoderId must be a non-empty string');
+    }
+    if (!Number.isFinite(prediction.simTime) || prediction.simTime !== groundTruth.simTime) {
+      throw new Error(
+        `WorldModelReceipt predictor simTime ${prediction.simTime} does not match reference simTime ${groundTruth.simTime}`
+      );
+    }
+
     // 4. Compute L2 delta_error in latent space
     // ‖encode(ground_truth) − prediction.values‖₂
     const predValues = prediction.values;
-    const len = Math.min(groundTruthEmbedding.length, predValues.length);
     let sumSq = 0;
-    for (let i = 0; i < len; i++) {
+    for (let i = 0; i < latentDim; i++) {
       const d = groundTruthEmbedding[i] - predValues[i];
       sumSq += d * d;
     }
     const deltaError = Math.sqrt(sumSq);
 
-    // 5. Compute confidence bound from solver tolerance + embedding quantization.
-    // Per Route 2b: quantization quantum = 1/1e6 per component.
-    // Combined bound = sqrt(dim) * quantization + (scale-envelope tolerance * field_scale)
+    // 5. Compute an uncalibrated numerical envelope from contract tolerance and
+    // a fixed quantization heuristic. This is not a probabilistic confidence interval.
     const quantization = 1e-6;
     const scaleToleranceContrib = this.scaleEnvelope.tolerance * (deltaError + 1e-15);
     const halfWidth = Math.sqrt(latentDim) * quantization + scaleToleranceContrib;
     const confidenceBound: Interval = {
       lo: Math.max(0, deltaError - halfWidth),
       hi: deltaError + halfWidth,
-      coverage: 0.95,
+      kind: 'uncalibrated-numerical-envelope',
     };
 
     // 6. Hash the canonical receipt (excluding receiptHash itself)
@@ -3558,6 +3618,7 @@ export class ContractedSimulation {
         simTime: prediction.simTime,
         values: Array.from(prediction.values),
       },
+      predictionKind,
       receiptId,
       solver_ground_truth: {
         contractId: groundTruth.contractId,
@@ -3584,6 +3645,7 @@ export class ContractedSimulation {
       solver_ground_truth: groundTruth,
       delta_error: deltaError,
       confidence_bound: confidenceBound,
+      predictionKind,
       receiptId,
       issuedAt,
       receiptHash,

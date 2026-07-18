@@ -30,7 +30,7 @@ describe('paperHealth — token reduction', () => {
   });
 });
 
-describe('bloomForPaperHealth — honest wilt mapping', () => {
+describe('bloomForPaperHealth — structural token mapping', () => {
   it('retired papers are dead petals (wilted) regardless of health', () => {
     expect(bloomForPaperHealth(0.95, true, 0)).toBe('wilted');
   });
@@ -45,11 +45,13 @@ describe('bloomForPaperHealth — honest wilt mapping', () => {
   });
 });
 
-describe('deriveLotusHealth — the honest flower', () => {
+describe('deriveLotusHealth — structural readiness proxy', () => {
   // Mirrors the real docs/public/papers-status.json shape: a retired IK paper
   // with 5 reds, a desk-rejected capstone with 3 reds, and healthy papers.
   const doc: PapersStatusDoc = {
+    schema: 'paper-audit-matrix.v3',
     generatedAt: '2026-06-10T06:44:14.000Z',
+    scriptCommit: 'fixture-commit',
     papers: [
       row('7', 'Verifiable IK', ['❌', '❌', '❌', '❌', '❌', '⚠️', '➖'], true), // retired, 5 reds
       row('TVCG', 'Trust by Construction', ['❌', '❌', '❌', '⚠️', '⚠️', '⚠️', '⚠️', '⚠️', '➖']), // 3 reds, 5 warns
@@ -65,12 +67,18 @@ describe('deriveLotusHealth — the honest flower', () => {
     expect(by['TVCG'].bloom).toBe('wilted'); // 3 reds, health < 0.7 → wilted
     expect(by['10'].bloom).toBe('full'); // 15✅ + 1⚠️ ≈ 0.97
     expect(by['2'].bloom).toBe('full'); // all ✅
+    expect(by['2'].basis).toBe('structural-readiness-proxy');
+    expect(by['2'].claimSupport).toBe('unverified');
   });
 
-  it('reports an aggregate below full — the flower is honestly imperfect', () => {
+  it('reports an aggregate below full for the supplied token mix', () => {
     const out = deriveLotusHealth(doc);
     expect(out.aggregate).toBeLessThan(1);
     expect(out.aggregate).toBeGreaterThan(0.5);
+    expect(out.basis).toBe('structural-readiness-proxy');
+    expect(out.claimSupport).toBe('unverified');
+    expect(out.sourceSchema).toBe('paper-audit-matrix.v3');
+    expect(out.sourceScriptCommit).toBe('fixture-commit');
     expect(out.generatedAt).toBe('2026-06-10T06:44:14.000Z');
   });
 
@@ -78,14 +86,29 @@ describe('deriveLotusHealth — the honest flower', () => {
     expect(deriveLotusHealth(doc)).toEqual(deriveLotusHealth(doc));
   });
 
-  it('a faked full bloom is impossible without changing the audit tokens', () => {
-    // Flip the IK paper to all-green and un-retire it → only THEN does it bloom.
-    const faked: PapersStatusDoc = {
-      ...doc,
-      papers: doc.papers.map((p) =>
-        p.rowId === '7' ? row('7', 'Verifiable IK', []) : p
-      ),
+  it('keeps an all-green structural bloom explicitly unverified', () => {
+    const structurallyGreen = row('green', 'Structurally Green Paper', []);
+    structurallyGreen.pillars.evidencePair = {
+      token: '✅',
+      scope: 'paper-wide-path-presence',
+      claimSupport: 'unverified',
     };
-    expect(deriveLotusHealth(faked).perPaper.find((p) => p.rowId === '7')?.bloom).toBe('full');
+    const out = deriveLotusHealth({
+      schema: 'paper-audit-matrix.v3',
+      papers: [structurallyGreen],
+    });
+
+    expect(out.aggregate).toBe(1);
+    expect(out.aggregateBloom).toBe('full');
+    expect(out.basis).toBe('structural-readiness-proxy');
+    expect(out.claimSupport).toBe('unverified');
+    expect(out.sourceClaimSupport).toEqual(['unverified']);
+    expect(out.perPaper[0]).toMatchObject({
+      health: 1,
+      bloom: 'full',
+      basis: 'structural-readiness-proxy',
+      claimSupport: 'unverified',
+      sourceClaimSupport: ['unverified'],
+    });
   });
 });

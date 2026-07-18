@@ -132,6 +132,16 @@ export interface BakedTimelineKey {
 }
 
 export type BloomState = 'full' | 'blooming' | 'budding' | 'sealed' | 'wilted';
+export type LotusHealthBasis = 'structural-readiness-proxy';
+export type LotusClaimSupport = 'unverified';
+
+export interface BakedHealthSource {
+  path: 'docs/public/papers-status.json';
+  schema?: string;
+  generatedAt?: string;
+  scriptCommit?: string;
+  sourceClaimSupport: string[];
+}
 
 export interface BakedPaperPetal {
   index: number;
@@ -145,7 +155,13 @@ export interface BakedPaperPetal {
   title: string;
   bloomAuthored: BloomState;
   bloomHealth: BloomState | null;
+  /** Backward-compatible field name; value is a structural-readiness proxy. */
   health: number | null;
+  /** Optional so previously baked JSON remains readable until the next bake. */
+  healthBasis?: LotusHealthBasis | null;
+  /** Structural readiness does not verify empirical paper claims. */
+  claimSupport?: LotusClaimSupport | null;
+  sourceClaimSupport?: string[];
   retired: boolean;
   failing: number | null;
   rowId: string | null;
@@ -171,13 +187,16 @@ export interface BakedScene {
   colors?: Record<string, string>;
   aggregate?: number;
   aggregateBloom?: BloomState;
+  healthBasis?: LotusHealthBasis;
+  claimSupport?: LotusClaimSupport;
+  healthSource?: BakedHealthSource;
   nodes?: BakedPrimitive[];
 }
 
 /** The three switchable scenes. `pond` is the default. */
 export const LOTUS_SCENES: { id: string; label: string; file: string; blurb: string }[] = [
   { id: 'pond', label: 'Pond', file: '/scenes/lotus-pond.baked.json', blurb: 'Full botanical pond — flower, stem, water, pads, leaves' },
-  { id: 'seedable', label: 'Paper flower', file: '/scenes/garden.seedable.baked.json', blurb: '42-petal Fibonacci genesis sculpture, petals bound to live paper health' },
+  { id: 'seedable', label: 'Paper flower', file: '/scenes/garden.seedable.baked.json', blurb: '42-petal Fibonacci genesis sculpture, petals bound to paper-audit structural readiness' },
   { id: 'refreshed', label: 'Baseline', file: '/scenes/garden.refreshed.baked.json', blurb: 'Bloom-readability baseline — root, stalk, center, petals' },
 ];
 
@@ -198,7 +217,7 @@ export function bloomOpenness(b: BloomState | null): number {
   }
 }
 
-/** Bloom → a tint multiplier + droop signal for honest visual wilt. */
+/** Bloom → a tint multiplier + droop signal for proxy-driven visual wilt. */
 export function bloomTint(b: BloomState | null): { dim: number; brown: boolean } {
   if (b === 'wilted') return { dim: 0.45, brown: true };
   if (b === 'sealed') return { dim: 0.6, brown: false };

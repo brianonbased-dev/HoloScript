@@ -50,7 +50,7 @@ function LotusWorldComponent() {
 
     </h1>
 <h4 className="text-xl text-gray-400 max-w-2xl mx-auto text-gray-300 text-sm md:text-base">
-      {`Three lotus scenes — all authored in .holo, compiled by HoloScript. Walk through them in your headset, on desktop, or by touch. The paper flower's petals open and wilt with the real health of the research program.`}
+      {`Three lotus scenes — all authored in .holo, compiled by HoloScript. Walk through them in your headset, on desktop, or by touch. The paper flower maps audit tokens to a structural-readiness bloom; it does not verify empirical claims.`}
 
     </h4>
     </section>
@@ -63,7 +63,7 @@ function LotusWorldComponent() {
 <footer className="relative z-10 px-6 md:px-10 py-8 text-center">
 
       <span className="text-sm text-gray-500 text-gray-500 max-w-2xl mx-auto">
-      {`This world is HoloScript: three .holo scenes compiled by HoloScript's own parser, R3F compiler, and botanical-lotus trait. The bloom is a truthful instrument of the paper program — it never claims more than the papers earn.`}
+      {`This world is HoloScript: three .holo scenes compiled by HoloScript's parser, R3F compiler, and botanical-lotus trait. Bloom is a structural-readiness proxy; empirical claim support remains unverified.`}
 
     </span>
     </footer>
