@@ -1,0 +1,852 @@
+{
+  "schema": "holoscript.quantum-paradox-probes.v1",
+  "description": "Mechanics pilot for selecting a diverse portfolio of PP-001 and PP-003 follow-up probes. The authors knew the pilot results before assigning scores. Selection does not establish paradox productivity, novelty, or quantum advantage.",
+  "score_basis": "Author-assigned follow-up-planning priors. Explicit outcome fields and known paradox-label tokens are excluded from score names and tags, but the authors were not blinded and optimizer outcome independence is not claimed.",
+  "target_cardinality": 4,
+  "cardinality_penalty": 12,
+  "redundancy_penalty": 3,
+  "kill_status_adjustments": {
+    "pending_fresh_source_check": 0
+  },
+  "score_weights": {
+    "expected_information_gain": 2,
+    "falsifier_readiness": 1.5,
+    "strategic_value": 1,
+    "expected_cost": -1
+  },
+  "code_evidence_policy": {
+    "declared_path_availability_weight": 2,
+    "missing_required_path_penalty": -8,
+    "similarity_penalty": 1.25,
+    "required_categories": [
+      "implementation",
+      "verification"
+    ],
+    "category_weights": {
+      "implementation": 0.5,
+      "verification": 0.3,
+      "execution_evidence": 0.2
+    },
+    "similarity_basis": "For paradox fixtures, the scout replaces this ordinary basis with Jaccard overlap of declared-state Git-blob SHA-256 sets.",
+    "max_file_bytes": 2000000,
+    "allowed_extensions": [
+      ".ts",
+      ".tsx",
+      ".js",
+      ".mjs",
+      ".cjs",
+      ".py",
+      ".holo",
+      ".hs",
+      ".hsplus",
+      ".json",
+      ".md"
+    ],
+    "claim_boundary": "Availability and hashing establish only that declared repository files exist and are bound. They do not establish semantic correctness, causality, or paper novelty."
+  },
+  "paradox_probe_policy": {
+    "ranking_field_allowlist": [
+      "expected_information_gain",
+      "falsifier_readiness",
+      "strategic_value",
+      "expected_cost"
+    ],
+    "forbidden_ranking_tokens": [
+      "adjudication",
+      "bounded_tradeoff",
+      "bug",
+      "dissolved",
+      "empirical_anomaly",
+      "impossibility",
+      "new_mechanism",
+      "novelty",
+      "outcome",
+      "paradox_score",
+      "productive",
+      "retired",
+      "unresolved",
+      "value_tension",
+      "verdict"
+    ],
+    "allowed_stages": [
+      "normalized",
+      "falsifiable",
+      "reproduced"
+    ],
+    "require_outcome_field_exclusion": true,
+    "author_blinding_claimed": false,
+    "control_labels_are_author_supplied": true,
+    "require_code_state_binding": true,
+    "durable_receipt_requires_committed_sources": true,
+    "declared_state_path_churn_weight": 1.25,
+    "adjudication_corpus": "research/quantum-novelty-scout/paradox-probe-controls-v1.json",
+    "adjudication_corpus_schema": "holoscript.paradox-control-corpus.v1",
+    "adjudication_corpus_sha256": "f85e042f45be562e87b288a68837a34cf66463843b1944a69025bca28169b7a1",
+    "control_executor": "scripts/paradox_probe_controls.py",
+    "control_executor_sha256": "9eec4c279cab4e6c64188cf27a586e83e0aaff1e852ecc6e6bdc608440cc421a",
+    "control_receipt": "research/quantum-novelty-scout/paradox-probe-control-receipt-v1.json",
+    "control_receipt_sha256": "dfbdf2d6133b8202dec85e486536453088511970492cc2c0de62f3681fa7f2f9",
+    "passing_control_receipt_required": true,
+    "claim_boundary": "The QUBO uses author-assigned priors, declared file availability, declared-state path churn, tag similarity, and state-blob Jaccard similarity. Only score names and tags receive lexical label screening. Authors were not blinded; outcome independence, independent control execution, paradox productivity, novelty, and quantum advantage are not claimed."
+  },
+  "candidates": [
+    {
+      "id": "QP-PP001-01",
+      "title": "Replicate the scalar sandbox timing shift",
+      "scores": {
+        "expected_information_gain": 0.95,
+        "falsifier_readiness": 0.95,
+        "strategic_value": 0.8,
+        "expected_cost": 0.2
+      },
+      "tags": [
+        "pp001",
+        "sandbox",
+        "timing",
+        "scalar",
+        "replication"
+      ],
+      "code_evidence": {
+        "implementation": [
+          "packages/core/src/plugins/PluginSandboxRunner.ts"
+        ],
+        "verification": [
+          "research/paradox-to-proof/pp001/pp001_living_artifact.mjs"
+        ],
+        "execution_evidence": [
+          "research/paradox-to-proof/pp001/receipt.json",
+          "research/paradox-to-proof/pp001/report.md"
+        ]
+      },
+      "kill_test": {
+        "named_prior": "Fresh primary-source comparison is required after portfolio selection.",
+        "status": "pending_fresh_source_check",
+        "sources": []
+      },
+      "paradox_probe": {
+        "card_id": "PP-001",
+        "probe_id": "QP-001",
+        "stage": "falsifiable",
+        "falsifier": "A randomized blocked rerun finds the scalar-expression state ratio inside a declared null envelope.",
+        "stopping_rule": "Stop after the declared process-level sample count on the second host.",
+        "outcome_fields_excluded": true,
+        "code_state": {
+          "variable_id": "C-PP001-01",
+          "binding_basis": "pinned_git_blob_sha256",
+          "complete": true,
+          "states": [
+            {
+              "id": "before",
+              "source_ref": "c83c2d3c8857c88357bee226df826114ab87432e",
+              "paths": [
+                "packages/core/src/plugins/PluginSandboxRunner.ts"
+              ]
+            },
+            {
+              "id": "after",
+              "source_ref": "d225d6572e455d38d28d7482a315b4390870fb1b",
+              "paths": [
+                "packages/core/src/plugins/PluginSandboxRunner.ts"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "QP-PP001-02",
+      "title": "Resolve the varying-code boundary miss",
+      "scores": {
+        "expected_information_gain": 0.85,
+        "falsifier_readiness": 0.9,
+        "strategic_value": 0.75,
+        "expected_cost": 0.2
+      },
+      "tags": [
+        "pp001",
+        "sandbox",
+        "timing",
+        "jit",
+        "envelope"
+      ],
+      "code_evidence": {
+        "implementation": [
+          "packages/core/src/plugins/PluginSandboxRunner.ts"
+        ],
+        "verification": [
+          "research/paradox-to-proof/pp001/pp001_living_artifact.mjs"
+        ],
+        "execution_evidence": [
+          "research/paradox-to-proof/pp001/receipt.json"
+        ]
+      },
+      "kill_test": {
+        "named_prior": "Fresh primary-source comparison is required after portfolio selection.",
+        "status": "pending_fresh_source_check",
+        "sources": []
+      },
+      "paradox_probe": {
+        "card_id": "PP-001",
+        "probe_id": "QP-002",
+        "stage": "falsifiable",
+        "falsifier": "The varying-code ratio remains outside the declared effect envelope under randomized process order.",
+        "stopping_rule": "Stop at the declared confidence-width or maximum-process rule.",
+        "outcome_fields_excluded": true,
+        "code_state": {
+          "variable_id": "C-PP001-02",
+          "binding_basis": "pinned_git_blob_sha256",
+          "complete": true,
+          "states": [
+            {
+              "id": "before",
+              "source_ref": "c83c2d3c8857c88357bee226df826114ab87432e",
+              "paths": [
+                "packages/core/src/plugins/PluginSandboxRunner.ts"
+              ]
+            },
+            {
+              "id": "after",
+              "source_ref": "d225d6572e455d38d28d7482a315b4390870fb1b",
+              "paths": [
+                "packages/core/src/plugins/PluginSandboxRunner.ts"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "QP-PP001-03",
+      "title": "Replace the VM timing control with an untreated control",
+      "scores": {
+        "expected_information_gain": 0.9,
+        "falsifier_readiness": 0.85,
+        "strategic_value": 0.85,
+        "expected_cost": 0.3
+      },
+      "tags": [
+        "pp001",
+        "sandbox",
+        "control",
+        "factorial",
+        "timing"
+      ],
+      "code_evidence": {
+        "implementation": [
+          "packages/core/src/plugins/PluginSandboxRunner.ts"
+        ],
+        "verification": [
+          "research/paradox-to-proof/pp001/pp001_living_artifact.mjs"
+        ],
+        "execution_evidence": [
+          "research/paradox-to-proof/pp001/report.md"
+        ]
+      },
+      "kill_test": {
+        "named_prior": "Fresh primary-source comparison is required after portfolio selection.",
+        "status": "pending_fresh_source_check",
+        "sources": []
+      },
+      "paradox_probe": {
+        "card_id": "PP-001",
+        "probe_id": "QP-003",
+        "stage": "falsifiable",
+        "falsifier": "A control path that executes no changed runner code shifts with the treated paths.",
+        "stopping_rule": "Stop after the declared factorial state matrix and host block complete.",
+        "outcome_fields_excluded": true,
+        "code_state": {
+          "variable_id": "C-PP001-03",
+          "binding_basis": "pinned_git_blob_sha256",
+          "complete": true,
+          "states": [
+            {
+              "id": "before",
+              "source_ref": "c83c2d3c8857c88357bee226df826114ab87432e",
+              "paths": [
+                "packages/core/src/plugins/PluginSandboxRunner.ts"
+              ]
+            },
+            {
+              "id": "after",
+              "source_ref": "d225d6572e455d38d28d7482a315b4390870fb1b",
+              "paths": [
+                "packages/core/src/plugins/PluginSandboxRunner.ts"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "QP-PP001-04",
+      "title": "Instrument the loaded-module dependency closure",
+      "scores": {
+        "expected_information_gain": 0.92,
+        "falsifier_readiness": 0.75,
+        "strategic_value": 0.9,
+        "expected_cost": 0.4
+      },
+      "tags": [
+        "pp001",
+        "dependency",
+        "module-graph",
+        "provenance",
+        "instrumentation"
+      ],
+      "code_evidence": {
+        "implementation": [
+          "packages/core/src/plugins/PluginSandboxRunner.ts"
+        ],
+        "verification": [
+          "research/paradox-to-proof/pp001/pp001_living_artifact.mjs"
+        ],
+        "execution_evidence": [
+          "research/paradox-to-proof/pp001/receipt.json"
+        ]
+      },
+      "kill_test": {
+        "named_prior": "Fresh primary-source comparison is required after portfolio selection.",
+        "status": "pending_fresh_source_check",
+        "sources": []
+      },
+      "paradox_probe": {
+        "card_id": "PP-001",
+        "probe_id": "QP-004",
+        "stage": "falsifiable",
+        "falsifier": "A changed path outside the declared closure appears in the measured probe's loaded-module graph.",
+        "stopping_rule": "Stop after both state graphs are captured and every differing loaded blob is classified.",
+        "outcome_fields_excluded": true,
+        "code_state": {
+          "variable_id": "C-PP001-04",
+          "binding_basis": "pinned_git_blob_sha256",
+          "complete": true,
+          "states": [
+            {
+              "id": "before",
+              "source_ref": "c83c2d3c8857c88357bee226df826114ab87432e",
+              "paths": [
+                "packages/core/src/plugins/PluginSandboxRunner.ts"
+              ]
+            },
+            {
+              "id": "after",
+              "source_ref": "d225d6572e455d38d28d7482a315b4390870fb1b",
+              "paths": [
+                "packages/core/src/plugins/PluginSandboxRunner.ts"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "QP-PP001-05",
+      "title": "Add a cross-state replay semantic digest",
+      "scores": {
+        "expected_information_gain": 0.95,
+        "falsifier_readiness": 0.7,
+        "strategic_value": 0.95,
+        "expected_cost": 0.45
+      },
+      "tags": [
+        "pp001",
+        "replay",
+        "semantic-digest",
+        "integrity",
+        "state"
+      ],
+      "code_evidence": {
+        "implementation": [
+          "packages/core/src/plugins/PluginSandboxRunner.ts"
+        ],
+        "verification": [
+          "research/paradox-to-proof/pp001/pp001_living_artifact.mjs"
+        ],
+        "execution_evidence": [
+          "research/paradox-to-proof/pp001/report.md"
+        ]
+      },
+      "kill_test": {
+        "named_prior": "Fresh primary-source comparison is required after portfolio selection.",
+        "status": "pending_fresh_source_check",
+        "sources": []
+      },
+      "paradox_probe": {
+        "card_id": "PP-001",
+        "probe_id": "QP-005",
+        "stage": "falsifiable",
+        "falsifier": "The two code states produce different deterministic final-state digests under the same sealed trace.",
+        "stopping_rule": "Stop after the declared trace set is replayed in both states or the first digest mismatch is sealed.",
+        "outcome_fields_excluded": true,
+        "code_state": {
+          "variable_id": "C-PP001-05",
+          "binding_basis": "pinned_git_blob_sha256",
+          "complete": true,
+          "states": [
+            {
+              "id": "before",
+              "source_ref": "c83c2d3c8857c88357bee226df826114ab87432e",
+              "paths": [
+                "packages/core/src/plugins/PluginSandboxRunner.ts"
+              ]
+            },
+            {
+              "id": "after",
+              "source_ref": "d225d6572e455d38d28d7482a315b4390870fb1b",
+              "paths": [
+                "packages/core/src/plugins/PluginSandboxRunner.ts"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "QP-PP001-06",
+      "title": "Reproduce PP-001 across a second host",
+      "scores": {
+        "expected_information_gain": 0.88,
+        "falsifier_readiness": 0.65,
+        "strategic_value": 0.9,
+        "expected_cost": 0.7
+      },
+      "tags": [
+        "pp001",
+        "cross-host",
+        "replication",
+        "environment",
+        "timing"
+      ],
+      "code_evidence": {
+        "implementation": [
+          "packages/core/src/plugins/PluginSandboxRunner.ts"
+        ],
+        "verification": [
+          "research/paradox-to-proof/pp001/pp001_living_artifact.mjs"
+        ],
+        "execution_evidence": [
+          "research/paradox-to-proof/pp001/receipt.json",
+          "research/paradox-to-proof/pp001/report.md"
+        ]
+      },
+      "kill_test": {
+        "named_prior": "Fresh primary-source comparison is required after portfolio selection.",
+        "status": "pending_fresh_source_check",
+        "sources": []
+      },
+      "paradox_probe": {
+        "card_id": "PP-001",
+        "probe_id": "QP-006",
+        "stage": "falsifiable",
+        "falsifier": "The direction or declared magnitude class fails to reproduce on the second host.",
+        "stopping_rule": "Stop after one preregistered host block per machine and no adaptive reruns.",
+        "outcome_fields_excluded": true,
+        "code_state": {
+          "variable_id": "C-PP001-06",
+          "binding_basis": "pinned_git_blob_sha256",
+          "complete": true,
+          "states": [
+            {
+              "id": "before",
+              "source_ref": "c83c2d3c8857c88357bee226df826114ab87432e",
+              "paths": [
+                "packages/core/src/plugins/PluginSandboxRunner.ts"
+              ]
+            },
+            {
+              "id": "after",
+              "source_ref": "d225d6572e455d38d28d7482a315b4390870fb1b",
+              "paths": [
+                "packages/core/src/plugins/PluginSandboxRunner.ts"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "QP-PP003-01",
+      "title": "Promote the API proof-scope composite",
+      "scores": {
+        "expected_information_gain": 0.8,
+        "falsifier_readiness": 0.95,
+        "strategic_value": 0.8,
+        "expected_cost": 0.2
+      },
+      "tags": [
+        "pp003",
+        "api",
+        "typed-composite",
+        "scope",
+        "schema"
+      ],
+      "code_evidence": {
+        "implementation": [
+          "packages/plugins/holonews-plugin/src/traits/proof-adjacency-guard.mjs"
+        ],
+        "verification": [
+          "scripts/__tests__/pp003_proof_adjacency.test.mjs"
+        ],
+        "execution_evidence": [
+          "research/paradox-to-proof/pp003/pp003-receipt.json",
+          "research/paradox-to-proof/pp003/report.md"
+        ]
+      },
+      "kill_test": {
+        "named_prior": "Fresh primary-source comparison is required after portfolio selection.",
+        "status": "pending_fresh_source_check",
+        "sources": []
+      },
+      "paradox_probe": {
+        "card_id": "PP-003",
+        "probe_id": "QP-007",
+        "stage": "falsifiable",
+        "falsifier": "A standalone proof marker can be represented or emitted without its scope boundary in the promoted API schema.",
+        "stopping_rule": "Stop after the schema mutation corpus runs against the production emitter.",
+        "outcome_fields_excluded": true,
+        "code_state": {
+          "variable_id": "C-PP003-01",
+          "binding_basis": "pinned_git_blob_sha256",
+          "complete": true,
+          "states": [
+            {
+              "id": "before",
+              "source_ref": "3b0650d8feb3c3ed6bb922e1deb5e5db471ed6b6",
+              "paths": [
+                "packages/plugins/holonews-plugin/src/traits/proof-adjacency-guard.mjs"
+              ]
+            },
+            {
+              "id": "after",
+              "source_ref": "1bb58109609c245a924b5af9b6857591dc99c757",
+              "paths": [
+                "packages/plugins/holonews-plugin/src/traits/proof-adjacency-guard.mjs"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "QP-PP003-02",
+      "title": "Promote the SVG scope wall into the emitter",
+      "scores": {
+        "expected_information_gain": 0.85,
+        "falsifier_readiness": 0.9,
+        "strategic_value": 0.85,
+        "expected_cost": 0.3
+      },
+      "tags": [
+        "pp003",
+        "svg",
+        "scope-wall",
+        "emitter",
+        "visibility"
+      ],
+      "code_evidence": {
+        "implementation": [
+          "packages/plugins/holonews-plugin/src/traits/claim-kiosk-trait.mjs"
+        ],
+        "verification": [
+          "scripts/__tests__/pp003_proof_adjacency.test.mjs"
+        ],
+        "execution_evidence": [
+          "research/paradox-to-proof/pp003/pp003-receipt.json"
+        ]
+      },
+      "kill_test": {
+        "named_prior": "Fresh primary-source comparison is required after portfolio selection.",
+        "status": "pending_fresh_source_check",
+        "sources": []
+      },
+      "paradox_probe": {
+        "card_id": "PP-003",
+        "probe_id": "QP-008",
+        "stage": "falsifiable",
+        "falsifier": "The production SVG emitter accepts a marker whose visible boundary is hidden, demoted, detached, or cropped.",
+        "stopping_rule": "Stop after every declared SVG mutation is accepted or rejected by the production path.",
+        "outcome_fields_excluded": true,
+        "code_state": {
+          "variable_id": "C-PP003-02",
+          "binding_basis": "pinned_git_blob_sha256",
+          "complete": true,
+          "states": [
+            {
+              "id": "before",
+              "source_ref": "3b0650d8feb3c3ed6bb922e1deb5e5db471ed6b6",
+              "paths": [
+                "packages/plugins/holonews-plugin/src/traits/claim-kiosk-trait.mjs"
+              ]
+            },
+            {
+              "id": "after",
+              "source_ref": "1bb58109609c245a924b5af9b6857591dc99c757",
+              "paths": [
+                "packages/plugins/holonews-plugin/src/traits/claim-kiosk-trait.mjs"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "QP-PP003-03",
+      "title": "Test P29 deployment correspondence",
+      "scores": {
+        "expected_information_gain": 0.95,
+        "falsifier_readiness": 0.75,
+        "strategic_value": 0.95,
+        "expected_cost": 0.5
+      },
+      "tags": [
+        "pp003",
+        "p29",
+        "correspondence",
+        "mcp",
+        "policy"
+      ],
+      "code_evidence": {
+        "implementation": [
+          "packages/mcp-server/src/security/SandboxCostComposition.ts"
+        ],
+        "verification": [
+          "scripts/__tests__/pp003_proof_adjacency.test.mjs"
+        ],
+        "execution_evidence": [
+          "research/paradox-to-proof/pp003/pp003-receipt.json",
+          "research/paradox-to-proof/pp003/report.md"
+        ]
+      },
+      "kill_test": {
+        "named_prior": "Fresh primary-source comparison is required after portfolio selection.",
+        "status": "pending_fresh_source_check",
+        "sources": []
+      },
+      "paradox_probe": {
+        "card_id": "PP-003",
+        "probe_id": "QP-009",
+        "stage": "falsifiable",
+        "falsifier": "A production MCP execution path bypasses the composed sandbox-and-cost policy represented by the theorem mirror.",
+        "stopping_rule": "Stop after every production caller is traced or the first bypass is sealed.",
+        "outcome_fields_excluded": true,
+        "code_state": {
+          "variable_id": "C-PP003-03",
+          "binding_basis": "pinned_git_blob_sha256",
+          "complete": true,
+          "states": [
+            {
+              "id": "before",
+              "source_ref": "3b0650d8feb3c3ed6bb922e1deb5e5db471ed6b6",
+              "paths": [
+                "packages/mcp-server/src/security/SandboxCostComposition.ts"
+              ]
+            },
+            {
+              "id": "after",
+              "source_ref": "1bb58109609c245a924b5af9b6857591dc99c757",
+              "paths": [
+                "packages/mcp-server/src/security/SandboxCostComposition.ts"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "QP-PP003-04",
+      "title": "Repair and compile the HoloNews target",
+      "scores": {
+        "expected_information_gain": 0.9,
+        "falsifier_readiness": 0.7,
+        "strategic_value": 0.9,
+        "expected_cost": 0.55
+      },
+      "tags": [
+        "pp003",
+        "holonews",
+        "compiler",
+        "target",
+        "composition"
+      ],
+      "code_evidence": {
+        "implementation": [
+          "compositions/holonews-claim-kiosk.hsplus"
+        ],
+        "verification": [
+          "scripts/__tests__/pp003_proof_adjacency.test.mjs"
+        ],
+        "execution_evidence": [
+          "research/paradox-to-proof/pp003/report.md"
+        ]
+      },
+      "kill_test": {
+        "named_prior": "Fresh primary-source comparison is required after portfolio selection.",
+        "status": "pending_fresh_source_check",
+        "sources": []
+      },
+      "paradox_probe": {
+        "card_id": "PP-003",
+        "probe_id": "QP-010",
+        "stage": "falsifiable",
+        "falsifier": "A repaired composition emits any named target without an inseparable scope boundary.",
+        "stopping_rule": "Stop after parse succeeds and the declared web and VR target artifacts are inspected.",
+        "outcome_fields_excluded": true,
+        "code_state": {
+          "variable_id": "C-PP003-04",
+          "binding_basis": "pinned_git_blob_sha256",
+          "complete": true,
+          "states": [
+            {
+              "id": "before",
+              "source_ref": "3b0650d8feb3c3ed6bb922e1deb5e5db471ed6b6",
+              "paths": [
+                "compositions/holonews-claim-kiosk.hsplus"
+              ]
+            },
+            {
+              "id": "after",
+              "source_ref": "1bb58109609c245a924b5af9b6857591dc99c757",
+              "paths": [
+                "compositions/holonews-claim-kiosk.hsplus"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "QP-PP003-05",
+      "title": "Rasterize and crop the social-card boundary",
+      "scores": {
+        "expected_information_gain": 0.9,
+        "falsifier_readiness": 0.65,
+        "strategic_value": 0.8,
+        "expected_cost": 0.6
+      },
+      "tags": [
+        "pp003",
+        "social-card",
+        "raster",
+        "crop",
+        "salience"
+      ],
+      "code_evidence": {
+        "implementation": [
+          "packages/plugins/holonews-plugin/src/traits/claim-kiosk-trait.mjs"
+        ],
+        "verification": [
+          "scripts/__tests__/pp003_proof_adjacency.test.mjs"
+        ],
+        "execution_evidence": [
+          "research/paradox-to-proof/pp003/pp003-receipt.json"
+        ]
+      },
+      "kill_test": {
+        "named_prior": "Fresh primary-source comparison is required after portfolio selection.",
+        "status": "pending_fresh_source_check",
+        "sources": []
+      },
+      "paradox_probe": {
+        "card_id": "PP-003",
+        "probe_id": "QP-011",
+        "stage": "falsifiable",
+        "falsifier": "A rasterized or cropped card retains the proof marker while losing or materially demoting its boundary.",
+        "stopping_rule": "Stop after the declared viewport, font, and crop matrix completes.",
+        "outcome_fields_excluded": true,
+        "code_state": {
+          "variable_id": "C-PP003-05",
+          "binding_basis": "pinned_git_blob_sha256",
+          "complete": true,
+          "states": [
+            {
+              "id": "before",
+              "source_ref": "3b0650d8feb3c3ed6bb922e1deb5e5db471ed6b6",
+              "paths": [
+                "packages/plugins/holonews-plugin/src/traits/claim-kiosk-trait.mjs"
+              ]
+            },
+            {
+              "id": "after",
+              "source_ref": "1bb58109609c245a924b5af9b6857591dc99c757",
+              "paths": [
+                "packages/plugins/holonews-plugin/src/traits/claim-kiosk-trait.mjs"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "QP-PP003-06",
+      "title": "Make proof scope a compiler-visible IR invariant",
+      "scores": {
+        "expected_information_gain": 0.98,
+        "falsifier_readiness": 0.6,
+        "strategic_value": 0.95,
+        "expected_cost": 0.8
+      },
+      "tags": [
+        "pp003",
+        "compiler-ir",
+        "scope",
+        "multi-target",
+        "invariant"
+      ],
+      "code_evidence": {
+        "implementation": [
+          "packages/plugins/holonews-plugin/src/traits/proof-adjacency-guard.mjs",
+          "packages/plugins/holonews-plugin/src/traits/claim-kiosk-trait.mjs",
+          "packages/mcp-server/src/security/SandboxCostComposition.ts",
+          "compositions/holonews-claim-kiosk.hsplus"
+        ],
+        "verification": [
+          "scripts/__tests__/pp003_proof_adjacency.test.mjs"
+        ],
+        "execution_evidence": [
+          "research/paradox-to-proof/pp003/pp003-receipt.json",
+          "research/paradox-to-proof/pp003/report.md"
+        ]
+      },
+      "kill_test": {
+        "named_prior": "Fresh primary-source comparison is required after portfolio selection.",
+        "status": "pending_fresh_source_check",
+        "sources": []
+      },
+      "paradox_probe": {
+        "card_id": "PP-003",
+        "probe_id": "QP-012",
+        "stage": "falsifiable",
+        "falsifier": "Any target emitter can consume the proof marker without consuming the same composite boundary node.",
+        "stopping_rule": "Stop after all named emitters share the typed IR or the first bypassing emitter is sealed.",
+        "outcome_fields_excluded": true,
+        "code_state": {
+          "variable_id": "C-PP003-06",
+          "binding_basis": "pinned_git_blob_sha256",
+          "complete": true,
+          "states": [
+            {
+              "id": "before",
+              "source_ref": "3b0650d8feb3c3ed6bb922e1deb5e5db471ed6b6",
+              "paths": [
+                "packages/plugins/holonews-plugin/src/traits/proof-adjacency-guard.mjs",
+                "packages/plugins/holonews-plugin/src/traits/claim-kiosk-trait.mjs",
+                "packages/mcp-server/src/security/SandboxCostComposition.ts",
+                "compositions/holonews-claim-kiosk.hsplus"
+              ]
+            },
+            {
+              "id": "after",
+              "source_ref": "1bb58109609c245a924b5af9b6857591dc99c757",
+              "paths": [
+                "packages/plugins/holonews-plugin/src/traits/proof-adjacency-guard.mjs",
+                "packages/plugins/holonews-plugin/src/traits/claim-kiosk-trait.mjs",
+                "packages/mcp-server/src/security/SandboxCostComposition.ts",
+                "compositions/holonews-claim-kiosk.hsplus"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
