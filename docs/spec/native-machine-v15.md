@@ -141,3 +141,6 @@ V15 still rejects unversioned foreign descriptors, implicit aggregate copies, ba
 aggregate arguments or returns, nested aggregate roots in whole moves, aggregate
 references, fixed-array aggregate fields, borrowed-slice aggregate fields, custom
 destructors, unwinding, and cyclic by-value layouts.
+
+The local aggregate-reference successor is
+[native machine contract v16](native-machine-v16.md).

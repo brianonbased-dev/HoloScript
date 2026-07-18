@@ -6,8 +6,8 @@ use cranelift::object::object::{Object, ObjectSection, ObjectSymbol, RelocationT
 use holoscript_native::{
     compile_executable, compile_object, inspect_native_layouts, NativeAggregateFfi,
     NativeCompileOptions, NativeOwnedBufferFfi, AFFINE_AGGREGATE_MACHINE_CONTRACT,
-    HOST_ALLOCATOR_PROVENANCE_ID, NATIVE_AGGREGATE_ABI_VERSION, OWNED_AGGREGATE_MACHINE_CONTRACT,
-    OWNED_BUFFER_ABI_VERSION,
+    AGGREGATE_REFERENCE_MACHINE_CONTRACT, HOST_ALLOCATOR_PROVENANCE_ID,
+    NATIVE_AGGREGATE_ABI_VERSION, OWNED_AGGREGATE_MACHINE_CONTRACT, OWNED_BUFFER_ABI_VERSION,
 };
 
 const EXIT_FIVE: &str = include_str!("../../../examples/native/exit-five.hs");
@@ -217,6 +217,8 @@ const OWNED_AGGREGATE_DROP_EXIT_FIVE: &str =
     include_str!("../../../examples/native/owned-aggregate-drop-exit-five.hs");
 const AFFINE_AGGREGATE_TRANSFER_EXIT_FIVE: &str =
     include_str!("../../../examples/native/affine-aggregate-transfer-exit-five.hs");
+const AGGREGATE_REFERENCE_EXIT_FIVE: &str =
+    include_str!("../../../examples/native/aggregate-reference-exit-five.hs");
 
 fn scratch_executable(name: &str) -> std::path::PathBuf {
     let nonce = SystemTime::now()
@@ -1236,6 +1238,108 @@ fn affine_aggregate_state_machine_rejects_implicit_partial_and_repeated_moves() 
 }
 
 #[test]
+fn aggregate_references_project_nested_fields_and_release_root_borrows() {
+    assert_eq!(AGGREGATE_REFERENCE_MACHINE_CONTRACT, "hs-machine-v16");
+    let first = compile_object(AGGREGATE_REFERENCE_EXIT_FIVE, &NativeCompileOptions::host())
+        .expect("aggregate and scalar-field references should compile");
+    let second = compile_object(AGGREGATE_REFERENCE_EXIT_FIVE, &NativeCompileOptions::host())
+        .expect("aggregate reference lowering should be deterministic");
+    assert_eq!(first, second);
+
+    let executable = scratch_executable("native-aggregate-reference");
+    let artifact = compile_executable(
+        AGGREGATE_REFERENCE_EXIT_FIVE,
+        &executable,
+        &NativeCompileOptions::host(),
+    )
+    .expect("aggregate reference projections should link");
+    assert_eq!(artifact.machine_contract, "hs-machine-v16");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("aggregate reference executable should run");
+    assert_eq!(status.code(), Some(5));
+    remove_scratch_executable_with_retry(&artifact.executable);
+
+    let v15_layout_source = r#"
+        struct Counters { current: i32, limit: i32 }
+        struct Packet { counters: Counters, enabled: bool }
+        function transfer(packet: Packet): Packet { return move(packet) }
+        function main(): i32 {
+            slot packet: Packet = Packet(Counters(1, 5), true)
+            slot transferred: Packet = transfer(move(packet))
+            return load(transferred.counters.limit)
+        }
+    "#;
+    let v15_layouts = inspect_native_layouts(v15_layout_source)
+        .expect("v15 aggregate layouts should remain inspectable");
+    let v16_layouts = inspect_native_layouts(AGGREGATE_REFERENCE_EXIT_FIVE)
+        .expect("v16 references should preserve aggregate layouts");
+    assert_eq!(v16_layouts, v15_layouts);
+}
+
+#[test]
+fn aggregate_reference_contract_rejects_alias_escape_and_moved_roots() {
+    let options = NativeCompileOptions::host();
+    for (source, expected) in [
+        (
+            "struct Packet { code: i32 } function main(): i32 { slot packet: Packet = Packet(5) let view: &Packet = &packet let writer: &mut Packet = &mut packet return 5 }",
+            "cannot mutably borrow stack slot `packet` because an active borrow already exists",
+        ),
+        (
+            "struct Packet { code: i32 } function main(): i32 { slot packet: Packet = Packet(5) let field: &i32 = &packet.code let writer: &mut Packet = &mut packet return 5 }",
+            "cannot mutably borrow stack slot `packet` because an active borrow already exists",
+        ),
+        (
+            "struct Packet { code: i32 } function main(): i32 { slot packet: Packet = Packet(5) let field: &i32 = &packet.code slot moved: Packet = move(packet) return 5 }",
+            "cannot move aggregate `packet` for initializer for aggregate `moved` while a borrow is active",
+        ),
+        (
+            "struct Packet { code: i32 } function main(): i32 { slot packet: Packet = Packet(5) let writer: &mut Packet = &mut packet return load(packet.code) }",
+            "cannot directly load stack slot `packet` while an exclusive borrow is active",
+        ),
+        (
+            "struct Packet { code: i32 } function main(): i32 { slot packet: Packet = Packet(1) let view: &Packet = &packet store(packet.code, 5) return 5 }",
+            "cannot store to stack slot `packet` while an active borrow exists",
+        ),
+        (
+            "struct Packet { code: i32 } function main(): i32 { slot packet: Packet = Packet(1) let view: &Packet = &packet store(view.code, 5) return 5 }",
+            "cannot write through immutable aggregate reference `view`",
+        ),
+        (
+            "struct Packet { code: i32 } function main(): i32 { slot packet: Packet = Packet(5) slot moved: Packet = move(packet) let view: &Packet = &packet return 5 }",
+            "cannot borrow aggregate `packet` after move",
+        ),
+        (
+            "struct Packet { code: i32 } function read(packet: &Packet): i32 { return load(packet.code) } function main(): i32 { return 5 }",
+            "references cannot appear in function parameters",
+        ),
+        (
+            "struct Packet { code: i32 } function main(): i32 { slot packet: Packet = Packet(5) let view: &Packet = &packet return view }",
+            "aggregate reference `view` cannot escape as a scalar value",
+        ),
+        (
+            "struct Packet { code: i32 } function main(): i32 { slot packet: Packet = Packet(5) let field: &i32 = &packet.code *field = 2 return 5 }",
+            "cannot write through immutable reference `field`",
+        ),
+        (
+            "struct Packet { code: i32 } function main(): i32 { slot packet: Packet = Packet(5) let field: &i64 = &packet.code return 5 }",
+            "reference `field` expects `i64`, but aggregate field `packet.code` stores `i32`",
+        ),
+        (
+            "struct Packet { code: i32 } function main(): i32 { slot packet: Packet = Packet(5) let view: &Packet = &packet let alias: &Packet = &view return 5 }",
+            "reborrows and nested aggregate borrows are not enabled",
+        ),
+    ] {
+        let error = compile_object(source, &options)
+            .expect_err("invalid aggregate reference program must fail closed");
+        assert!(
+            error.to_string().contains(expected),
+            "expected `{expected}` in `{error}`"
+        );
+    }
+}
+
+#[test]
 fn owned_buffer_runtime_guards_trap_before_invalid_allocation_or_access() {
     let cases = [
         (
@@ -1346,6 +1450,7 @@ fn emits_deterministic_objects_for_the_same_source() {
         BORROWED_SLICE_CALL_EXIT_FIVE,
         FORWARDED_SLICE_CALL_EXIT_FIVE,
         RUNTIME_SLICE_REBORROW_EXIT_FIVE,
+        AGGREGATE_REFERENCE_EXIT_FIVE,
     ] {
         let first = compile_object(source, &options).expect("first object should compile");
         let second = compile_object(source, &options).expect("second object should compile");
@@ -1610,10 +1715,6 @@ fn aggregate_contract_rejects_ambiguous_layout_and_escape() {
         (
             "struct Pair { value: i32 } function main(): i32 { slot pair: Pair = Pair(5) return load(pair[\"value\"]) }",
             "does not support computed aggregate field access",
-        ),
-        (
-            "struct Pair { value: i32 } function main(): i32 { slot pair: Pair = Pair(5) let view: &i32 = &pair.value return *view }",
-            "field references are not enabled by hs-machine-v6",
         ),
         (
             "struct Pair { value: i32 } function main(): i32 { scope { slot pair: Pair = Pair(5) } return load(pair.value) }",
