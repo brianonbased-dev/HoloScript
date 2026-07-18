@@ -1,12 +1,22 @@
 {
   "schema": "holoscript.paradox-control-receipt.v1",
   "corpus": "research/quantum-novelty-scout/paradox-probe-controls-v1.json",
-  "corpus_sha256": "9afb08b21efdbb10e6a5f0bc6fbf605ca0eae0ae9ffa84bec1baac2ae8dd3716",
+  "corpus_sha256": "f85e042f45be562e87b288a68837a34cf66463843b1944a69025bca28169b7a1",
   "record_count": 12,
   "passed_count": 12,
   "failed_count": 0,
   "all_labels_evaluation_only": true,
-  "claim_boundary": "Passing proves only that twelve known false-paradox controls replay their preregistered observations. It does not validate productive paradox discovery, novelty, or quantum advantage.",
+  "adjudication_protocol": {
+    "status": "author-adjudicated negative-control pilot",
+    "rule": "DISSOLVED iff the deterministic observation matches the declared expectation, a non-empty normalization dissolves the apparent tension under a cited authority, and replay passes.",
+    "author_blinding_claimed": false,
+    "independent_adjudication_claimed": false
+  },
+  "executor": {
+    "path": "scripts/paradox_probe_controls.py",
+    "sha256": "9eec4c279cab4e6c64188cf27a586e83e0aaff1e852ecc6e6bdc608440cc421a"
+  },
+  "claim_boundary": "Passing proves only that twelve author-adjudicated negative controls replay their declared observations under cited normalization authorities. The authors were not blinded and no independent adjudication is claimed. It does not validate productive paradox discovery, novelty, or quantum advantage.",
   "environment": {
     "python": "3.14.0"
   },
@@ -23,8 +33,13 @@
         "equals_decimal_0_3": false
       },
       "passed": true,
+      "declared_adjudication": "DISSOLVED",
       "adjudication": "DISSOLVED",
-      "normalization": "Binary floating-point values are not exact decimal rationals."
+      "normalization": "Binary floating-point values are not exact decimal rationals.",
+      "authority": {
+        "kind": "official-language-documentation",
+        "url": "https://docs.python.org/3/tutorial/floatingpoint.html"
+      }
     },
     {
       "id": "FP-002",
@@ -38,8 +53,13 @@
         "equals_self": false
       },
       "passed": true,
+      "declared_adjudication": "DISSOLVED",
       "adjudication": "DISSOLVED",
-      "normalization": "IEEE NaN comparison semantics deliberately make equality false."
+      "normalization": "IEEE NaN comparison semantics deliberately make equality false.",
+      "authority": {
+        "kind": "official-language-documentation",
+        "url": "https://docs.python.org/3/reference/expressions.html#comparisons"
+      }
     },
     {
       "id": "FP-003",
@@ -55,8 +75,13 @@
         "negative_sign": -1
       },
       "passed": true,
+      "declared_adjudication": "DISSOLVED",
       "adjudication": "DISSOLVED",
-      "normalization": "Numeric equality and representational sign are distinct predicates."
+      "normalization": "Numeric equality and representational sign are distinct predicates.",
+      "authority": {
+        "kind": "official-language-documentation",
+        "url": "https://docs.python.org/3/library/math.html#math.copysign"
+      }
     },
     {
       "id": "FP-004",
@@ -72,8 +97,13 @@
         "different": true
       },
       "passed": true,
+      "declared_adjudication": "DISSOLVED",
       "adjudication": "DISSOLVED",
-      "normalization": "Rounded machine addition is not real-number addition."
+      "normalization": "Rounded machine addition is not real-number addition.",
+      "authority": {
+        "kind": "official-language-documentation",
+        "url": "https://docs.python.org/3/tutorial/floatingpoint.html"
+      }
     },
     {
       "id": "FP-005",
@@ -87,8 +117,13 @@
         "nfc_equal": true
       },
       "passed": true,
+      "declared_adjudication": "DISSOLVED",
       "adjudication": "DISSOLVED",
-      "normalization": "Code-point sequences must be normalized before grapheme-level comparison."
+      "normalization": "Code-point sequences must be normalized before grapheme-level comparison.",
+      "authority": {
+        "kind": "unicode-standard-annex",
+        "url": "https://www.unicode.org/reports/tr15/"
+      }
     },
     {
       "id": "FP-006",
@@ -102,8 +137,13 @@
         "bool_value": true
       },
       "passed": true,
+      "declared_adjudication": "DISSOLVED",
       "adjudication": "DISSOLVED",
-      "normalization": "String truthiness tests emptiness, not semantic parsing."
+      "normalization": "String truthiness tests emptiness, not semantic parsing.",
+      "authority": {
+        "kind": "official-language-documentation",
+        "url": "https://docs.python.org/3/library/stdtypes.html#truth-value-testing"
+      }
     },
     {
       "id": "FP-007",
@@ -117,8 +157,13 @@
         "floor_identity": true
       },
       "passed": true,
+      "declared_adjudication": "DISSOLVED",
       "adjudication": "DISSOLVED",
-      "normalization": "Python // is floor division and preserves the division identity with modulo."
+      "normalization": "Python // is floor division and preserves the division identity with modulo.",
+      "authority": {
+        "kind": "official-language-documentation",
+        "url": "https://docs.python.org/3/reference/expressions.html#binary-arithmetic-operations"
+      }
     },
     {
       "id": "FP-008",
@@ -132,8 +177,13 @@
         "divisor_sign_rule": true
       },
       "passed": true,
+      "declared_adjudication": "DISSOLVED",
       "adjudication": "DISSOLVED",
-      "normalization": "Python remainder follows the divisor sign under floor division."
+      "normalization": "Python remainder follows the divisor sign under floor division.",
+      "authority": {
+        "kind": "official-language-documentation",
+        "url": "https://docs.python.org/3/reference/expressions.html#binary-arithmetic-operations"
+      }
     },
     {
       "id": "FP-009",
@@ -153,8 +203,13 @@
         "type": "list"
       },
       "passed": true,
+      "declared_adjudication": "DISSOLVED",
       "adjudication": "DISSOLVED",
-      "normalization": "JSON arrays do not encode the Python tuple/list distinction."
+      "normalization": "JSON arrays do not encode the Python tuple/list distinction.",
+      "authority": {
+        "kind": "internet-standard",
+        "url": "https://www.rfc-editor.org/rfc/rfc8259"
+      }
     },
     {
       "id": "FP-010",
@@ -172,8 +227,13 @@
         ]
       },
       "passed": true,
+      "declared_adjudication": "DISSOLVED",
       "adjudication": "DISSOLVED",
-      "normalization": "Both names reference the same mutable object."
+      "normalization": "Both names reference the same mutable object.",
+      "authority": {
+        "kind": "official-language-documentation",
+        "url": "https://docs.python.org/3/reference/datamodel.html#objects-values-and-types"
+      }
     },
     {
       "id": "FP-011",
@@ -187,8 +247,13 @@
         "equals_decimal_0_3": true
       },
       "passed": true,
+      "declared_adjudication": "DISSOLVED",
       "adjudication": "DISSOLVED",
-      "normalization": "Decimal and binary floating-point use different representations and contracts."
+      "normalization": "Decimal and binary floating-point use different representations and contracts.",
+      "authority": {
+        "kind": "official-language-documentation",
+        "url": "https://docs.python.org/3/library/decimal.html"
+      }
     },
     {
       "id": "FP-012",
@@ -202,9 +267,14 @@
         "expanded_equal": true
       },
       "passed": true,
+      "declared_adjudication": "DISSOLVED",
       "adjudication": "DISSOLVED",
-      "normalization": "The language defines a comparison chain as adjacent comparisons joined by logical and."
+      "normalization": "The language defines a comparison chain as adjacent comparisons joined by logical and.",
+      "authority": {
+        "kind": "official-language-documentation",
+        "url": "https://docs.python.org/3/reference/expressions.html#comparisons"
+      }
     }
   ],
-  "payload_hash": "820fa4005882cacdad7bd73ac88b3c9b2061fbded83cf49df7a5b72acfdd2850"
+  "payload_hash": "ebd1a546795e4876f374e187468e217b3764f0f268e29c4530519c7468ad7b9d"
 }

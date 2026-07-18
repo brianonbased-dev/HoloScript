@@ -57,18 +57,40 @@ ENV_FILE = REPO_ROOT / ".env"
 PARADOX_PROBE_FIXTURE_SCHEMA = "holoscript.quantum-paradox-probes.v1"
 PARADOX_FORBIDDEN_RANKING_TOKENS = {
     "adjudication",
+    "bounded_tradeoff",
+    "bug",
+    "dissolved",
+    "empirical_anomaly",
+    "impossibility",
+    "new_mechanism",
     "novelty",
     "outcome",
     "paradox_score",
+    "productive",
+    "retired",
+    "unresolved",
+    "value_tension",
     "verdict",
 }
-PARADOX_OPTIMIZER_INPUT_FIELDS = [
+PARADOX_CANDIDATE_OPTIMIZER_INPUT_FIELDS = [
+    "candidates[].id/order",
     "scores",
     "kill_test.status",
     "tags",
     "code_evidence",
+    "paradox_probe.code_state",
+]
+PARADOX_QUBO_CONFIGURATION_INPUT_FIELDS = [
+    "score_weights",
+    "target_cardinality",
+    "cardinality_penalty",
+    "redundancy_penalty",
+    "kill_status_adjustments",
+    "code_evidence_policy",
+    "paradox_probe_policy.declared_state_path_churn_weight",
 ]
 PARADOX_ALLOWED_STAGES = {"normalized", "falsifiable", "reproduced"}
+PARADOX_CONTROL_RECEIPT_SCHEMA = "holoscript.paradox-control-receipt.v1"
 
 
 def is_ibm_receipt(r: dict) -> bool:
@@ -273,6 +295,87 @@ def _structure_close(left: object, right: object) -> bool:
     return _close(left, right)
 
 
+def _scoped_source_signature(snapshot: object) -> str | None:
+    if not isinstance(snapshot, dict) or not isinstance(snapshot.get("files"), list):
+        return None
+    try:
+        return expected_generic_hash(
+            {
+                "scoped_dirty": snapshot["scoped_dirty"],
+                "scoped_status": snapshot["scoped_status"],
+                "files": [
+                    {
+                        "path": record["path"],
+                        "worktree_bytes": record["worktree_bytes"],
+                        "worktree_sha256": record["worktree_sha256"],
+                        "git_blob_oid": record["git_blob_oid"],
+                        "git_blob_bytes": record["git_blob_bytes"],
+                        "git_blob_sha256": record["git_blob_sha256"],
+                    }
+                    for record in snapshot["files"]
+                ],
+            }
+        )
+    except (KeyError, TypeError):
+        return None
+
+
+def _post_execution_snapshot_errors(
+    pre_snapshot: dict,
+    post_snapshot: object,
+    stability: object,
+) -> list[str]:
+    errors: list[str] = []
+    pre_signature = _scoped_source_signature(pre_snapshot)
+    post_signature = _scoped_source_signature(post_snapshot)
+    if pre_signature is None or post_signature is None:
+        return ["paradox execution source-stability snapshot is malformed"]
+    if pre_signature != post_signature:
+        errors.append("paradox scoped sources changed during execution")
+    if not isinstance(post_snapshot, dict):
+        return errors
+    post_head = post_snapshot.get("head_commit")
+    if _git_commit_tree_oid(post_head) != post_snapshot.get("head_tree"):
+        errors.append("post-execution HEAD tree does not match its commit")
+    post_status = post_snapshot.get("scoped_status")
+    if not isinstance(post_status, list):
+        errors.append("post-execution scoped status is malformed")
+        post_status = []
+    if bool(post_status) != bool(post_snapshot.get("scoped_dirty")):
+        errors.append("post-execution dirty flag does not match its status")
+    status_by_path = _status_by_path(post_status)
+    for record in post_snapshot.get("files", []):
+        if not isinstance(record, dict):
+            errors.append("post-execution source record is malformed")
+            continue
+        path = _safe_repo_path(record.get("path"))
+        if path is None:
+            errors.append("post-execution source snapshot contains an unsafe path")
+            continue
+        oid = record.get("git_blob_oid")
+        head_oid = _git_tree_blob_oid(post_head, path)
+        if head_oid != oid:
+            if path not in status_by_path:
+                errors.append(
+                    f"post-execution source is not pinned by HEAD or status: {path}"
+                )
+            elif _git_worktree_blob_oid(path) != oid:
+                errors.append(
+                    f"post-execution dirty source no longer matches its blob: {path}"
+                )
+    expected_stability = {
+        "pre_scoped_signature_sha256": pre_signature,
+        "post_scoped_signature_sha256": post_signature,
+        "scoped_sources_unchanged_during_execution": True,
+        "pre_head_commit": pre_snapshot.get("head_commit"),
+        "post_head_commit": post_snapshot.get("head_commit"),
+        "unrelated_head_advance_allowed": True,
+    }
+    if stability != expected_stability:
+        errors.append("paradox execution source-stability declaration is invalid")
+    return errors
+
+
 def _safe_repo_path(raw_path: object) -> str | None:
     if not isinstance(raw_path, str) or not raw_path:
         return None
@@ -304,6 +407,20 @@ def _git_tree_blob_oid(commit: object, path: str) -> str | None:
         return None
     completed = subprocess.run(
         ["git", "rev-parse", "--verify", f"{commit}:{path}"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return completed.stdout.strip() if completed.returncode == 0 else None
+
+
+@functools.lru_cache(maxsize=512)
+def _git_commit_tree_oid(commit: object) -> str | None:
+    if not isinstance(commit, str) or len(commit) not in {40, 64}:
+        return None
+    completed = subprocess.run(
+        ["git", "rev-parse", "--verify", f"{commit}^{{tree}}"],
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
@@ -368,6 +485,8 @@ def _validate_source_snapshot(
         if _live_status_for_path(path) != status:
             errors.append(f"source snapshot status is not live-verifiable: {path}")
     head_commit = source_state["head_commit"]
+    if _git_commit_tree_oid(head_commit) != source_state.get("head_tree"):
+        errors.append("source snapshot HEAD tree does not match its commit")
     records: dict[str, dict] = {}
     blobs: dict[str, bytes] = {}
     for record in source_state["files"]:
@@ -403,8 +522,17 @@ def _validate_source_snapshot(
 
 
 def _has_forbidden_ranking_token(value: str, forbidden: set[str]) -> bool:
-    normalized = value.strip().lower().replace("-", "_")
-    return any(token in normalized for token in forbidden)
+    camel_split = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "_", value.strip())
+    normalized = re.sub(r"[^a-z0-9]+", "_", camel_split.lower()).strip("_")
+    compact = normalized.replace("_", "")
+    return any(
+        re.search(rf"(?:^|_){re.escape(token)}(?:_|$)", normalized)
+        or (
+            len(token.replace("_", "")) >= 5
+            and token.replace("_", "") in compact
+        )
+        for token in forbidden
+    )
 
 
 def _expected_paradox_probe_contract(
@@ -425,10 +553,29 @@ def _expected_paradox_probe_contract(
             binding["state_fingerprint"] for binding in code_state_bindings
         ],
         "ranking_field_allowlist": policy["ranking_field_allowlist"],
-        "optimizer_input_fields": PARADOX_OPTIMIZER_INPUT_FIELDS,
+        "candidate_optimizer_input_fields": PARADOX_CANDIDATE_OPTIMIZER_INPUT_FIELDS,
+        "qubo_configuration_input_fields": PARADOX_QUBO_CONFIGURATION_INPUT_FIELDS,
         "adjudication_corpus": policy["adjudication_corpus"],
+        "adjudication_corpus_schema": policy["adjudication_corpus_schema"],
         "adjudication_corpus_sha256": policy["adjudication_corpus_sha256"],
-        "adjudication_labels_used_by_optimizer": False,
+        "control_executor": policy["control_executor"],
+        "control_executor_sha256": policy["control_executor_sha256"],
+        "control_receipt": policy["control_receipt"],
+        "control_receipt_sha256": policy["control_receipt_sha256"],
+        "passing_control_receipt_bound": policy[
+            "passing_control_receipt_required"
+        ],
+        "control_execution_independently_verified": False,
+        "explicit_outcome_fields_or_label_tokens_in_score_names_or_tags": False,
+        "optimizer_outcome_independence_claimed": False,
+        "author_blinding_claimed": policy["author_blinding_claimed"],
+        "control_labels_are_author_supplied": policy[
+            "control_labels_are_author_supplied"
+        ],
+        "declared_state_path_churn_weight": policy[
+            "declared_state_path_churn_weight"
+        ],
+        "code_similarity_basis": "declared-state Git blob SHA-256 Jaccard",
         "claim_boundary": policy["claim_boundary"],
     }
 
@@ -446,8 +593,6 @@ def _paradox_probe_fixture_errors(
         allowlist = policy["ranking_field_allowlist"]
         if allowlist != list(weights):
             errors.append("paradox ranking allowlist does not match score weights")
-        if "code_state_completeness" not in allowlist:
-            errors.append("paradox ranking omits observed code-state completeness")
         forbidden = {
             str(item).strip().lower().replace("-", "_")
             for item in policy["forbidden_ranking_tokens"]
@@ -460,16 +605,27 @@ def _paradox_probe_fixture_errors(
         allowed_stages = set(policy["allowed_stages"])
         if not allowed_stages <= PARADOX_ALLOWED_STAGES:
             errors.append("paradox allowed stages contain an unsupported stage")
-        if policy.get("require_blinded_outcome") is not True:
-            errors.append("paradox outcomes are not contractually blinded")
+        if policy.get("require_outcome_field_exclusion") is not True:
+            errors.append("paradox outcome fields are not contractually excluded")
+        if policy.get("author_blinding_claimed") is not False:
+            errors.append("paradox pilot makes an unsupported author-blinding claim")
+        if policy.get("control_labels_are_author_supplied") is not True:
+            errors.append("paradox control-label provenance is not explicit")
         if policy.get("require_code_state_binding") is not True:
             errors.append("paradox code-state binding is not required")
+        durable_sources = policy.get("durable_receipt_requires_committed_sources")
+        if not isinstance(durable_sources, bool):
+            errors.append("paradox durable source policy is not Boolean")
+        churn_weight = float(policy.get("declared_state_path_churn_weight", -1.0))
+        if not math.isfinite(churn_weight) or churn_weight < 0.0:
+            errors.append("paradox declared-state path-churn weight is invalid")
         if any(
             abs(float(value)) > 1e-12
             for value in fixture.get("kill_status_adjustments", {}).values()
         ):
             errors.append("paradox kill-status adjustment is nonzero")
 
+        corpus: dict | None = None
         corpus_path = _safe_repo_path(policy["adjudication_corpus"])
         corpus_hash = policy["adjudication_corpus_sha256"]
         corpus_blob = source_blobs.get(corpus_path or "")
@@ -479,15 +635,139 @@ def _paradox_probe_fixture_errors(
             errors.append("paradox adjudication corpus hash is not SHA-256")
         elif hashlib.sha256(corpus_blob).hexdigest() != corpus_hash:
             errors.append("paradox adjudication corpus hash mismatch")
+        else:
+            try:
+                corpus = json.loads(corpus_blob.decode("utf-8"))
+                if corpus.get("schema") != policy.get("adjudication_corpus_schema"):
+                    errors.append("paradox adjudication corpus schema mismatch")
+                if corpus.get("optimizer_dataflow") != "excluded":
+                    errors.append(
+                        "paradox control labels are not excluded from ranking dataflow"
+                    )
+                if (
+                    corpus.get("validation_access")
+                    != "schema-label-policy-and-replay"
+                ):
+                    errors.append("paradox control validation access is not declared")
+                if corpus.get("labels_evaluation_only") is not True:
+                    errors.append("paradox control labels are not evaluation-only")
+                records = corpus.get("records")
+                if not isinstance(records, list) or not records:
+                    errors.append("paradox control corpus has no labeled records")
+                elif any(
+                    not isinstance(record, dict)
+                    or not isinstance(record.get("adjudication"), str)
+                    or "expected_observation" not in record
+                    or not isinstance(record.get("normalization"), str)
+                    or not isinstance(record.get("authority"), dict)
+                    or not str(record["authority"].get("url", "")).startswith(
+                        "https://"
+                    )
+                    for record in records
+                ):
+                    errors.append("paradox control corpus record is incomplete")
+            except (UnicodeDecodeError, json.JSONDecodeError) as error:
+                errors.append(f"paradox adjudication corpus is malformed: {error}")
+
+        executor_path = _safe_repo_path(policy.get("control_executor"))
+        executor_hash = policy.get("control_executor_sha256")
+        executor_blob = source_blobs.get(executor_path or "")
+        if executor_path is None or executor_blob is None:
+            errors.append("pinned paradox control executor is unavailable")
+        elif not re.fullmatch(r"[0-9a-f]{64}", str(executor_hash)):
+            errors.append("paradox control executor hash is not SHA-256")
+        elif hashlib.sha256(executor_blob).hexdigest() != executor_hash:
+            errors.append("paradox control executor hash mismatch")
+
+        control_receipt_path = _safe_repo_path(policy.get("control_receipt"))
+        control_receipt_hash = policy.get("control_receipt_sha256")
+        control_receipt_blob = source_blobs.get(control_receipt_path or "")
+        if control_receipt_path is None or control_receipt_blob is None:
+            errors.append("pinned paradox control receipt is unavailable")
+        elif not re.fullmatch(r"[0-9a-f]{64}", str(control_receipt_hash)):
+            errors.append("paradox control receipt hash is not SHA-256")
+        elif hashlib.sha256(control_receipt_blob).hexdigest() != control_receipt_hash:
+            errors.append("paradox control receipt hash mismatch")
+        else:
+            try:
+                control_receipt = json.loads(control_receipt_blob.decode("utf-8"))
+                payload_hash = control_receipt.get("payload_hash")
+                control_payload = {
+                    key: value
+                    for key, value in control_receipt.items()
+                    if key != "payload_hash"
+                }
+                receipt_executor = control_receipt.get("executor")
+                control_results = control_receipt.get("results")
+                corpus_record_count = (
+                    len(corpus.get("records", []))
+                    if isinstance(corpus, dict)
+                    else None
+                )
+                corpus_records = (
+                    corpus.get("records", []) if isinstance(corpus, dict) else []
+                )
+                results_match_corpus = isinstance(control_results, list) and len(
+                    control_results
+                ) == len(corpus_records) and all(
+                    isinstance(result, dict)
+                    and result.get("id") == record.get("id")
+                    and result.get("probe") == record.get("probe")
+                    and result.get("expected") == record.get("expected_observation")
+                    and result.get("observed") == record.get("expected_observation")
+                    and result.get("passed") is True
+                    and result.get("declared_adjudication")
+                    == record.get("adjudication")
+                    and result.get("adjudication") == record.get("adjudication")
+                    and result.get("normalization") == record.get("normalization")
+                    and result.get("authority") == record.get("authority")
+                    for record, result in zip(corpus_records, control_results)
+                )
+                if (
+                    control_receipt.get("schema") != PARADOX_CONTROL_RECEIPT_SCHEMA
+                    or payload_hash != expected_generic_hash(control_payload)
+                    or control_receipt.get("corpus") != corpus_path
+                    or control_receipt.get("corpus_sha256") != corpus_hash
+                    or control_receipt.get("record_count") != corpus_record_count
+                    or control_receipt.get("passed_count") != corpus_record_count
+                    or control_receipt.get("failed_count") != 0
+                    or control_receipt.get("all_labels_evaluation_only") is not True
+                    or control_receipt.get("adjudication_protocol")
+                    != corpus.get("adjudication_protocol")
+                    or not results_match_corpus
+                    or not isinstance(receipt_executor, dict)
+                    or receipt_executor.get("path") != executor_path
+                    or receipt_executor.get("sha256") != executor_hash
+                ):
+                    errors.append(
+                        "paradox control receipt does not bind the declared passing semantics"
+                    )
+            except (UnicodeDecodeError, json.JSONDecodeError) as error:
+                errors.append(f"paradox control receipt is malformed: {error}")
+        if policy.get("passing_control_receipt_required") is not True:
+            errors.append("paradox passing-control-receipt binding is not explicit")
+
+        if not isinstance(policy.get("claim_boundary"), str) or not policy[
+            "claim_boundary"
+        ].strip():
+            errors.append("paradox claim boundary is missing")
 
         probe_ids: set[str] = set()
         variable_ids: set[str] = set()
         for candidate in fixture["candidates"]:
             candidate_id = candidate["id"]
+            if not isinstance(candidate_id, str) or not candidate_id:
+                errors.append("paradox candidate ID is invalid")
             if set(candidate["scores"]) != set(weights):
                 errors.append(f"{candidate_id} score fields exceed the allowlist")
-            for tag in candidate.get("tags", []):
-                if _has_forbidden_ranking_token(str(tag), forbidden):
+            tags = candidate.get("tags")
+            if not isinstance(tags, list) or any(
+                not isinstance(tag, str) for tag in tags
+            ):
+                errors.append(f"{candidate_id} optimizer tags are not a string list")
+                tags = []
+            for tag in tags:
+                if _has_forbidden_ranking_token(tag, forbidden):
                     errors.append(
                         f"{candidate_id} optimizer tag contains a forbidden ranking token"
                     )
@@ -499,35 +779,76 @@ def _paradox_probe_fixture_errors(
             if not re.fullmatch(r"PP-[0-9]{3}", str(probe["card_id"])):
                 errors.append(f"{candidate_id} paradox card ID is invalid")
             probe_id = probe["probe_id"]
-            if not probe_id or probe_id in probe_ids:
+            if (
+                not isinstance(probe_id, str)
+                or not probe_id
+                or probe_id in probe_ids
+            ):
                 errors.append("paradox probe IDs are not unique")
-            probe_ids.add(probe_id)
+            elif isinstance(probe_id, str):
+                probe_ids.add(probe_id)
             if probe["stage"] not in allowed_stages:
                 errors.append(f"{candidate_id} paradox stage is not allowed")
-            if not probe.get("falsifier") or not probe.get("stopping_rule"):
+            if any(
+                not isinstance(probe.get(key), str) or not probe[key].strip()
+                for key in ("falsifier", "stopping_rule")
+            ):
                 errors.append(f"{candidate_id} paradox falsifier is incomplete")
-            if probe.get("blinded_outcome") is not True:
-                errors.append(f"{candidate_id} paradox outcome is exposed")
+            if probe.get("outcome_fields_excluded") is not True:
+                errors.append(f"{candidate_id} paradox outcome fields are exposed")
 
             code_state = probe["code_state"]
             variable_id = code_state["variable_id"]
-            if not variable_id or variable_id in variable_ids:
+            if (
+                not isinstance(variable_id, str)
+                or not variable_id
+                or variable_id in variable_ids
+            ):
                 errors.append("code-state variable IDs are not unique")
-            variable_ids.add(variable_id)
+            elif isinstance(variable_id, str):
+                variable_ids.add(variable_id)
             if code_state.get("complete") is not True:
                 errors.append(f"{candidate_id} code-state binding is incomplete")
             if code_state.get("binding_basis") != "pinned_git_blob_sha256":
                 errors.append(f"{candidate_id} code-state basis is unsupported")
             states = code_state["states"]
-            state_paths = [path for state in states for path in state["paths"]]
+            if not isinstance(states, list):
+                errors.append(f"{candidate_id} code states are not a list")
+                states = []
+            if any(not isinstance(state, dict) for state in states):
+                errors.append(f"{candidate_id} code-state entries are not objects")
+                states = [state if isinstance(state, dict) else {} for state in states]
+            state_ids = [state.get("id") for state in states]
             implementation_paths = candidate["code_evidence"].get(
                 "implementation", []
             )
-            if sorted(set(state_paths)) != sorted(set(implementation_paths)):
-                errors.append(
-                    f"{candidate_id} code-state paths do not bind implementation evidence"
+            if len(states) < 2:
+                errors.append(f"{candidate_id} code-state variable has fewer than two states")
+            if any(not state_id for state_id in state_ids) or len(state_ids) != len(
+                set(state_ids)
+            ):
+                errors.append(f"{candidate_id} code-state IDs are not unique")
+            if any(
+                not isinstance(state.get("paths"), list)
+                or any(
+                    not isinstance(path, str) or not path
+                    for path in state.get("paths", [])
                 )
-            if any(not state.get("id") or not state.get("source_ref") for state in states):
+                or
+                len(state.get("paths", [])) != len(set(state.get("paths", [])))
+                or sorted(state.get("paths", [])) != sorted(implementation_paths)
+                for state in states
+            ):
+                errors.append(
+                    f"{candidate_id} code states do not share the implementation path set"
+                )
+            if any(
+                not isinstance(state.get("id"), str)
+                or not state["id"]
+                or not isinstance(state.get("source_ref"), str)
+                or not state["source_ref"]
+                for state in states
+            ):
                 errors.append(f"{candidate_id} code-state source is incomplete")
             for state in states:
                 source_ref = state.get("source_ref")
@@ -536,6 +857,10 @@ def _paradox_probe_fixture_errors(
                 ):
                     errors.append(
                         f"{candidate_id} code-state source is not a pinned commit"
+                    )
+                if durable_sources and source_ref == "WORKTREE":
+                    errors.append(
+                        f"{candidate_id} durable code-state source is not committed"
                     )
     except (KeyError, TypeError, ValueError) as error:
         errors.append(f"malformed paradox-probe fixture: {error}")
@@ -615,6 +940,23 @@ def _recompute_code_state_bindings(
             }
             for state in state_records
         ]
+        path_state_ids: dict[str, set[str]] = {}
+        path_hashes: dict[str, set[str]] = {}
+        for record in flat_files:
+            path_state_ids.setdefault(record["path"], set()).add(record["state_id"])
+            if record["git_blob_sha256"]:
+                path_hashes.setdefault(record["path"], set()).add(
+                    record["git_blob_sha256"]
+                )
+        comparable_paths = [
+            path for path, state_ids in path_state_ids.items() if len(state_ids) >= 2
+        ]
+        changed_paths = [
+            path for path in comparable_paths if len(path_hashes.get(path, set())) > 1
+        ]
+        declared_state_path_churn_fraction = (
+            len(changed_paths) / len(comparable_paths) if comparable_paths else 0.0
+        )
         binding = {
             "candidate_id": candidate["id"],
             "variable_id": code_state["variable_id"],
@@ -625,17 +967,20 @@ def _recompute_code_state_bindings(
             "available_path_count": available_count,
             "all_paths_available": available_count == declared_count,
             "observed_completeness": observed_completeness,
+            "comparable_path_count": len(comparable_paths),
+            "changed_path_count": len(changed_paths),
+            "declared_state_path_churn_fraction": declared_state_path_churn_fraction,
+            "state_blob_hashes": sorted(
+                {
+                    record["git_blob_sha256"]
+                    for record in flat_files
+                    if record["git_blob_sha256"]
+                }
+            ),
             "state_fingerprint": expected_generic_hash(fingerprint_payload),
         }
         if not binding["all_paths_available"]:
             errors.append(f"{candidate['id']} code-state path does not resolve")
-        if not _close(
-            candidate["scores"]["code_state_completeness"],
-            observed_completeness,
-        ):
-            errors.append(
-                f"{candidate['id']} code-state completeness is not blob-derived"
-            )
         bindings.append(binding)
     return bindings, errors
 
@@ -665,6 +1010,12 @@ def _recompute_qubo_from_source(
         errors.append("code hash basis is not the pinned Git blob convention")
     if receipt.get("code_hashes") != expected_code_hashes:
         errors.append("pipeline code hashes do not match pinned source blobs")
+    for required_path in (
+        "scripts/__tests__/test_quantum_novelty_scout.py",
+        "pnpm-lock.yaml",
+    ):
+        if required_path not in source_records:
+            errors.append(f"required source snapshot path is unavailable: {required_path}")
     fixture_path = _safe_repo_path(receipt.get("fixture"))
     if fixture_path is None or fixture_path not in source_blobs:
         errors.append("pinned candidate fixture is unavailable")
@@ -687,6 +1038,28 @@ def _recompute_qubo_from_source(
             source_blobs,
         )
         errors.extend(binding_errors)
+        post_execution_snapshot = receipt.get("post_execution_source_state")
+        errors.extend(
+            _post_execution_snapshot_errors(
+                receipt["source_state"],
+                post_execution_snapshot,
+                receipt.get("execution_source_stability"),
+            )
+        )
+        if (
+            fixture["paradox_probe_policy"].get(
+                "durable_receipt_requires_committed_sources"
+            )
+            is True
+            and (
+                receipt["source_state"].get("scoped_dirty") is not False
+                or not isinstance(post_execution_snapshot, dict)
+                or post_execution_snapshot.get("scoped_dirty") is not False
+            )
+        ):
+            errors.append(
+                "durable paradox receipt did not remain clean across execution"
+            )
 
     candidates = fixture["candidates"]
     if [candidate["id"] for candidate in candidates] != candidate_ids:
@@ -854,6 +1227,25 @@ def _recompute_qubo_from_source(
         code_adjustments.append(adjustment)
         rewards.append(prior + adjustment)
 
+    code_state_path_churn_adjustments = [0.0 for _ in candidates]
+    code_similarity_basis = policy["similarity_basis"]
+    if is_paradox_probe:
+        change_weight = float(
+            fixture["paradox_probe_policy"]["declared_state_path_churn_weight"]
+        )
+        code_state_path_churn_adjustments = [
+            change_weight * float(binding["declared_state_path_churn_fraction"])
+            for binding in code_state_bindings
+        ]
+        rewards = [
+            reward + code_state_path_churn_adjustments[index]
+            for index, reward in enumerate(rewards)
+        ]
+        implementation_sets = [
+            set(binding["state_blob_hashes"]) for binding in code_state_bindings
+        ]
+        code_similarity_basis = "declared-state Git blob SHA-256 Jaccard"
+
     size = len(candidates)
     target = int(fixture["target_cardinality"])
     cardinality_penalty = float(fixture["cardinality_penalty"])
@@ -891,12 +1283,14 @@ def _recompute_qubo_from_source(
         "candidate_rewards": rewards,
         "prior_candidate_rewards": prior_rewards,
         "code_evidence_adjustments": code_adjustments,
+        "code_state_path_churn_adjustments": code_state_path_churn_adjustments,
         "tag_similarities": tag_similarities,
         "code_similarities": code_similarities,
         "target_cardinality": target,
         "cardinality_penalty": cardinality_penalty,
         "redundancy_penalty": redundancy_penalty,
         "code_similarity_penalty": code_similarity_penalty,
+        "code_similarity_basis": code_similarity_basis,
         "code_evidence_policy": policy,
         "kill_status_adjustments": status_adjustments,
     }

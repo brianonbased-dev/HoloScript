@@ -13,6 +13,7 @@ import argparse
 import hashlib
 import importlib.metadata
 import json
+import math
 import pathlib
 import platform
 import random
@@ -42,18 +43,40 @@ FULL_RECEIPT_HASH_SCOPE = "full_receipt_excluding_payload_hash"
 PARADOX_PROBE_FIXTURE_SCHEMA = "holoscript.quantum-paradox-probes.v1"
 PARADOX_FORBIDDEN_RANKING_TOKENS = {
     "adjudication",
+    "bounded_tradeoff",
+    "bug",
+    "dissolved",
+    "empirical_anomaly",
+    "impossibility",
+    "new_mechanism",
     "novelty",
     "outcome",
     "paradox_score",
+    "productive",
+    "retired",
+    "unresolved",
+    "value_tension",
     "verdict",
 }
-PARADOX_OPTIMIZER_INPUT_FIELDS = [
+PARADOX_CANDIDATE_OPTIMIZER_INPUT_FIELDS = [
+    "candidates[].id/order",
     "scores",
     "kill_test.status",
     "tags",
     "code_evidence",
+    "paradox_probe.code_state",
+]
+PARADOX_QUBO_CONFIGURATION_INPUT_FIELDS = [
+    "score_weights",
+    "target_cardinality",
+    "cardinality_penalty",
+    "redundancy_penalty",
+    "kill_status_adjustments",
+    "code_evidence_policy",
+    "paradox_probe_policy.declared_state_path_churn_weight",
 ]
 PARADOX_ALLOWED_STAGES = {"normalized", "falsifiable", "reproduced"}
+PARADOX_CONTROL_RECEIPT_SCHEMA = "holoscript.paradox-control-receipt.v1"
 
 
 def canonical_hash(payload: Any) -> str:
@@ -168,9 +191,40 @@ def source_state(
     }
 
 
+def scoped_source_signature(snapshot: dict[str, Any]) -> str:
+    """Hash the scoped bytes/status while allowing unrelated HEAD advancement."""
+
+    return canonical_hash(
+        {
+            "scoped_dirty": snapshot["scoped_dirty"],
+            "scoped_status": snapshot["scoped_status"],
+            "files": [
+                {
+                    "path": record["path"],
+                    "worktree_bytes": record["worktree_bytes"],
+                    "worktree_sha256": record["worktree_sha256"],
+                    "git_blob_oid": record["git_blob_oid"],
+                    "git_blob_bytes": record["git_blob_bytes"],
+                    "git_blob_sha256": record["git_blob_sha256"],
+                }
+                for record in snapshot["files"]
+            ],
+        }
+    )
+
+
 def _has_forbidden_ranking_token(value: str, forbidden: set[str]) -> bool:
-    normalized = value.strip().lower().replace("-", "_")
-    return any(token in normalized for token in forbidden)
+    camel_split = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "_", value.strip())
+    normalized = re.sub(r"[^a-z0-9]+", "_", camel_split.lower()).strip("_")
+    compact = normalized.replace("_", "")
+    return any(
+        re.search(rf"(?:^|_){re.escape(token)}(?:_|$)", normalized)
+        or (
+            len(token.replace("_", "")) >= 5
+            and token.replace("_", "") in compact
+        )
+        for token in forbidden
+    )
 
 
 def _paradox_probe_contract(
@@ -191,10 +245,29 @@ def _paradox_probe_contract(
             binding["state_fingerprint"] for binding in code_state_bindings
         ],
         "ranking_field_allowlist": policy["ranking_field_allowlist"],
-        "optimizer_input_fields": PARADOX_OPTIMIZER_INPUT_FIELDS,
+        "candidate_optimizer_input_fields": PARADOX_CANDIDATE_OPTIMIZER_INPUT_FIELDS,
+        "qubo_configuration_input_fields": PARADOX_QUBO_CONFIGURATION_INPUT_FIELDS,
         "adjudication_corpus": policy["adjudication_corpus"],
+        "adjudication_corpus_schema": policy["adjudication_corpus_schema"],
         "adjudication_corpus_sha256": policy["adjudication_corpus_sha256"],
-        "adjudication_labels_used_by_optimizer": False,
+        "control_executor": policy["control_executor"],
+        "control_executor_sha256": policy["control_executor_sha256"],
+        "control_receipt": policy["control_receipt"],
+        "control_receipt_sha256": policy["control_receipt_sha256"],
+        "passing_control_receipt_bound": policy[
+            "passing_control_receipt_required"
+        ],
+        "control_execution_independently_verified": False,
+        "explicit_outcome_fields_or_label_tokens_in_score_names_or_tags": False,
+        "optimizer_outcome_independence_claimed": False,
+        "author_blinding_claimed": policy["author_blinding_claimed"],
+        "control_labels_are_author_supplied": policy[
+            "control_labels_are_author_supplied"
+        ],
+        "declared_state_path_churn_weight": policy[
+            "declared_state_path_churn_weight"
+        ],
+        "code_similarity_basis": "declared-state Git blob SHA-256 Jaccard",
         "claim_boundary": policy["claim_boundary"],
     }
 
@@ -209,8 +282,6 @@ def _validate_paradox_probe_fixture(fixture: dict[str, Any]) -> None:
         raise ValueError("paradox ranking_field_allowlist must be non-empty")
     if allowlist != list(weights):
         raise ValueError("paradox ranking allowlist must exactly match score_weights")
-    if "code_state_completeness" not in allowlist:
-        raise ValueError("paradox ranking must include observed code_state_completeness")
     forbidden = policy.get("forbidden_ranking_tokens")
     if not isinstance(forbidden, list) or any(
         not isinstance(item, str) or not item for item in forbidden
@@ -226,10 +297,20 @@ def _validate_paradox_probe_fixture(fixture: dict[str, Any]) -> None:
     allowed_stages = policy.get("allowed_stages")
     if not isinstance(allowed_stages, list) or not set(allowed_stages) <= PARADOX_ALLOWED_STAGES:
         raise ValueError("paradox allowed_stages contains an unsupported stage")
-    if policy.get("require_blinded_outcome") is not True:
-        raise ValueError("paradox probes must require blinded outcomes")
+    if policy.get("require_outcome_field_exclusion") is not True:
+        raise ValueError("paradox probes must exclude outcome fields")
+    if policy.get("author_blinding_claimed") is not False:
+        raise ValueError("this pilot must not claim author blinding")
+    if policy.get("control_labels_are_author_supplied") is not True:
+        raise ValueError("control-label provenance must be explicit")
     if policy.get("require_code_state_binding") is not True:
         raise ValueError("paradox probes must require code-state binding")
+    durable_sources = policy.get("durable_receipt_requires_committed_sources")
+    if not isinstance(durable_sources, bool):
+        raise ValueError("durable source policy must be Boolean")
+    churn_weight = float(policy.get("declared_state_path_churn_weight", -1.0))
+    if not math.isfinite(churn_weight) or churn_weight < 0.0:
+        raise ValueError("declared_state_path_churn_weight must be finite and nonnegative")
     if any(
         abs(float(value)) > 1e-12
         for value in fixture.get("kill_status_adjustments", {}).values()
@@ -247,6 +328,105 @@ def _validate_paradox_probe_fixture(fixture: dict[str, Any]) -> None:
         raise ValueError("paradox adjudication corpus hash must be SHA-256")
     if file_sha256(corpus_path) != corpus_hash:
         raise ValueError("paradox adjudication corpus hash mismatch")
+    try:
+        corpus = json.loads(corpus_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise ValueError(f"paradox adjudication corpus is malformed: {error}") from error
+    if corpus.get("schema") != policy.get("adjudication_corpus_schema"):
+        raise ValueError("paradox adjudication corpus schema mismatch")
+    if corpus.get("optimizer_dataflow") != "excluded":
+        raise ValueError("paradox control labels are not excluded from ranking dataflow")
+    if corpus.get("validation_access") != "schema-label-policy-and-replay":
+        raise ValueError("paradox control validation access is not declared")
+    if corpus.get("labels_evaluation_only") is not True:
+        raise ValueError("paradox control labels are not evaluation-only")
+    records = corpus.get("records")
+    if not isinstance(records, list) or not records:
+        raise ValueError("paradox control corpus has no labeled records")
+    for record in records:
+        if (
+            not isinstance(record, dict)
+            or not isinstance(record.get("adjudication"), str)
+            or "expected_observation" not in record
+            or not isinstance(record.get("normalization"), str)
+            or not isinstance(record.get("authority"), dict)
+            or not str(record["authority"].get("url", "")).startswith("https://")
+        ):
+            raise ValueError("paradox control corpus record is incomplete")
+
+    executor_raw = policy.get("control_executor")
+    executor_hash = policy.get("control_executor_sha256")
+    if not isinstance(executor_raw, str) or not executor_raw:
+        raise ValueError("paradox control executor path is required")
+    executor_path = _resolve_evidence_path(executor_raw, REPO_ROOT)
+    if not executor_path.is_file():
+        raise ValueError("paradox control executor is unavailable")
+    if not isinstance(executor_hash, str) or not re.fullmatch(
+        r"[0-9a-f]{64}", executor_hash
+    ):
+        raise ValueError("paradox control executor hash must be SHA-256")
+    if file_sha256(executor_path) != executor_hash:
+        raise ValueError("paradox control executor hash mismatch")
+
+    control_receipt_raw = policy.get("control_receipt")
+    control_receipt_hash = policy.get("control_receipt_sha256")
+    if not isinstance(control_receipt_raw, str) or not control_receipt_raw:
+        raise ValueError("paradox control receipt path is required")
+    control_receipt_path = _resolve_evidence_path(control_receipt_raw, REPO_ROOT)
+    if not control_receipt_path.is_file():
+        raise ValueError("paradox control receipt is unavailable")
+    if not isinstance(control_receipt_hash, str) or not re.fullmatch(
+        r"[0-9a-f]{64}", control_receipt_hash
+    ):
+        raise ValueError("paradox control receipt hash must be SHA-256")
+    if file_sha256(control_receipt_path) != control_receipt_hash:
+        raise ValueError("paradox control receipt hash mismatch")
+    try:
+        control_receipt = json.loads(control_receipt_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise ValueError(f"paradox control receipt is malformed: {error}") from error
+    payload_hash = control_receipt.get("payload_hash")
+    control_payload = {
+        key: value for key, value in control_receipt.items() if key != "payload_hash"
+    }
+    receipt_executor = control_receipt.get("executor")
+    control_results = control_receipt.get("results")
+    results_match_corpus = isinstance(control_results, list) and len(
+        control_results
+    ) == len(records) and all(
+        isinstance(result, dict)
+        and result.get("id") == record.get("id")
+        and result.get("probe") == record.get("probe")
+        and result.get("expected") == record.get("expected_observation")
+        and result.get("observed") == record.get("expected_observation")
+        and result.get("passed") is True
+        and result.get("declared_adjudication") == record.get("adjudication")
+        and result.get("adjudication") == record.get("adjudication")
+        and result.get("normalization") == record.get("normalization")
+        and result.get("authority") == record.get("authority")
+        for record, result in zip(records, control_results)
+    )
+    if (
+        control_receipt.get("schema") != PARADOX_CONTROL_RECEIPT_SCHEMA
+        or payload_hash != canonical_hash(control_payload)
+        or control_receipt.get("corpus") != display_path(corpus_path)
+        or control_receipt.get("corpus_sha256") != corpus_hash
+        or control_receipt.get("record_count") != len(records)
+        or control_receipt.get("passed_count") != len(records)
+        or control_receipt.get("failed_count") != 0
+        or control_receipt.get("all_labels_evaluation_only") is not True
+        or control_receipt.get("adjudication_protocol")
+        != corpus.get("adjudication_protocol")
+        or not results_match_corpus
+        or not isinstance(receipt_executor, dict)
+        or receipt_executor.get("path") != display_path(executor_path)
+        or receipt_executor.get("sha256") != executor_hash
+    ):
+        raise ValueError(
+            "paradox control receipt does not bind the declared passing semantics"
+        )
+    if policy.get("passing_control_receipt_required") is not True:
+        raise ValueError("paradox passing-control-receipt binding must be explicit")
     if not isinstance(policy.get("claim_boundary"), str) or not policy["claim_boundary"]:
         raise ValueError("paradox claim boundary is required")
 
@@ -280,8 +460,8 @@ def _validate_paradox_probe_fixture(fixture: dict[str, Any]) -> None:
         for key in ("falsifier", "stopping_rule"):
             if not isinstance(probe.get(key), str) or not probe[key].strip():
                 raise ValueError(f"{candidate_id} paradox {key} is required")
-        if probe.get("blinded_outcome") is not True:
-            raise ValueError(f"{candidate_id} paradox outcome must remain blinded")
+        if probe.get("outcome_fields_excluded") is not True:
+            raise ValueError(f"{candidate_id} paradox outcome fields are not excluded")
 
         code_state = probe.get("code_state")
         if not isinstance(code_state, dict) or code_state.get("complete") is not True:
@@ -297,9 +477,9 @@ def _validate_paradox_probe_fixture(fixture: dict[str, Any]) -> None:
         if code_state.get("binding_basis") != "pinned_git_blob_sha256":
             raise ValueError(f"{candidate_id} code-state binding basis is unsupported")
         states = code_state.get("states")
-        if not isinstance(states, list) or not states:
-            raise ValueError(f"{candidate_id} code-state binding has no states")
-        state_paths: list[str] = []
+        if not isinstance(states, list) or len(states) < 2:
+            raise ValueError(f"{candidate_id} code-state binding requires at least two states")
+        implementation_paths = candidate["code_evidence"].get("implementation", [])
         state_ids: set[str] = set()
         for state in states:
             if not isinstance(state, dict):
@@ -316,17 +496,22 @@ def _validate_paradox_probe_fixture(fixture: dict[str, Any]) -> None:
                 raise ValueError(
                     f"{candidate_id} code-state source_ref must be WORKTREE or a full commit"
                 )
+            if durable_sources and state["source_ref"] == "WORKTREE":
+                raise ValueError(
+                    f"{candidate_id} durable receipt requires committed code states"
+                )
             paths = state.get("paths")
             if not isinstance(paths, list) or not paths or any(
                 not isinstance(item, str) or not item for item in paths
             ):
                 raise ValueError(f"{candidate_id} code-state paths are required")
-            state_paths.extend(paths)
-        implementation_paths = candidate["code_evidence"].get("implementation", [])
-        if sorted(set(state_paths)) != sorted(set(implementation_paths)):
-            raise ValueError(
-                f"{candidate_id} code-state paths must equal implementation evidence"
-            )
+            if len(paths) != len(set(paths)) or sorted(paths) != sorted(
+                implementation_paths
+            ):
+                raise ValueError(
+                    f"{candidate_id} each code state must use the identical "
+                    "implementation evidence path set"
+                )
 
 
 def load_fixture(path: pathlib.Path) -> dict[str, Any]:
@@ -616,6 +801,23 @@ def evaluate_code_state_bindings(
             }
             for state in state_records
         ]
+        path_state_ids: dict[str, set[str]] = {}
+        path_hashes: dict[str, set[str]] = {}
+        for record in flat_files:
+            path_state_ids.setdefault(record["path"], set()).add(record["state_id"])
+            if record["git_blob_sha256"]:
+                path_hashes.setdefault(record["path"], set()).add(
+                    record["git_blob_sha256"]
+                )
+        comparable_paths = [
+            path for path, state_ids in path_state_ids.items() if len(state_ids) >= 2
+        ]
+        changed_paths = [
+            path for path in comparable_paths if len(path_hashes.get(path, set())) > 1
+        ]
+        declared_state_path_churn_fraction = (
+            len(changed_paths) / len(comparable_paths) if comparable_paths else 0.0
+        )
         binding = {
             "candidate_id": candidate["id"],
             "variable_id": code_state["variable_id"],
@@ -626,15 +828,18 @@ def evaluate_code_state_bindings(
             "available_path_count": available_count,
             "all_paths_available": available_count == declared_count,
             "observed_completeness": observed_completeness,
+            "comparable_path_count": len(comparable_paths),
+            "changed_path_count": len(changed_paths),
+            "declared_state_path_churn_fraction": declared_state_path_churn_fraction,
+            "state_blob_hashes": sorted(
+                {
+                    record["git_blob_sha256"]
+                    for record in flat_files
+                    if record["git_blob_sha256"]
+                }
+            ),
             "state_fingerprint": canonical_hash(fingerprint_payload),
         }
-        declared_completeness = float(
-            candidate["scores"]["code_state_completeness"]
-        )
-        if abs(declared_completeness - observed_completeness) > 1e-12:
-            raise ValueError(
-                f"{candidate['id']} code_state_completeness is not observed from blobs"
-            )
         bindings.append(binding)
     return bindings
 
@@ -694,7 +899,22 @@ def build_qubo(
         )
         for index, candidate in enumerate(candidates)
     ]
-    rewards = [item[0] for item in reward_parts]
+    code_state_path_churn_adjustments = [0.0 for _ in candidates]
+    if fixture.get("schema") == PARADOX_PROBE_FIXTURE_SCHEMA:
+        change_weight = float(
+            fixture["paradox_probe_policy"]["declared_state_path_churn_weight"]
+        )
+        code_state_path_churn_adjustments = [
+            change_weight * float(binding["declared_state_path_churn_fraction"])
+            for binding in code_state_bindings
+        ]
+        implementation_hash_sets = [
+            set(binding["state_blob_hashes"]) for binding in code_state_bindings
+        ]
+    rewards = [
+        item[0] + code_state_path_churn_adjustments[index]
+        for index, item in enumerate(reward_parts)
+    ]
     prior_rewards = [item[1] for item in reward_parts]
     code_adjustments = [item[2] for item in reward_parts]
     size = len(candidates)
@@ -729,6 +949,7 @@ def build_qubo(
         "candidate_rewards": rewards,
         "prior_candidate_rewards": prior_rewards,
         "code_evidence_adjustments": code_adjustments,
+        "code_state_path_churn_adjustments": code_state_path_churn_adjustments,
         "code_evidence": code_evidence,
         "tag_similarities": similarities,
         "code_similarities": code_similarities,
@@ -736,6 +957,11 @@ def build_qubo(
         "cardinality_penalty": cardinality_penalty,
         "redundancy_penalty": redundancy_penalty,
         "code_similarity_penalty": code_similarity_penalty,
+        "code_similarity_basis": (
+            "declared-state Git blob SHA-256 Jaccard"
+            if fixture.get("schema") == PARADOX_PROBE_FIXTURE_SCHEMA
+            else code_policy["similarity_basis"]
+        ),
         "code_evidence_policy": code_policy,
         "kill_status_adjustments": status_adjustments,
         "convention": "upper triangular: sum_i Qii*x_i + sum_{i<j} Qij*x_i*x_j",
@@ -925,14 +1151,12 @@ def verify_receipt(receipt: dict[str, Any]) -> bool:
     )
 
 
-def run_scout(
+def prepare_composition(
     fixture_path: pathlib.Path,
     composition_path: pathlib.Path,
-    receipt_path: pathlib.Path,
-    shots: int,
-    grid_points: int,
-    seed: int,
-) -> dict[str, Any]:
+) -> tuple[dict[str, Any], dict[str, Any], str]:
+    """Render the deterministic matrix mirror before sealing a clean-source run."""
+
     fixture = load_fixture(fixture_path)
     qubo = build_qubo(fixture)
     input_sha256 = canonical_hash(fixture)
@@ -943,6 +1167,46 @@ def run_scout(
     )
     composition_path.parent.mkdir(parents=True, exist_ok=True)
     composition_path.write_text(composition, encoding="utf-8")
+    return fixture, qubo, input_sha256
+
+
+def run_scout(
+    fixture_path: pathlib.Path,
+    composition_path: pathlib.Path,
+    receipt_path: pathlib.Path,
+    shots: int,
+    grid_points: int,
+    seed: int,
+) -> dict[str, Any]:
+    fixture, qubo, input_sha256 = prepare_composition(
+        fixture_path,
+        composition_path,
+    )
+    is_paradox_probe = fixture.get("schema") == PARADOX_PROBE_FIXTURE_SCHEMA
+    extra_source_paths: list[pathlib.Path] = []
+    pre_execution_snapshot: dict[str, Any] | None = None
+    if is_paradox_probe:
+        for field in ("adjudication_corpus", "control_executor", "control_receipt"):
+            extra_source_paths.append(
+                _resolve_evidence_path(fixture["paradox_probe_policy"][field], REPO_ROOT)
+            )
+        pre_execution_snapshot = source_state(
+            fixture_path,
+            composition_path,
+            qubo["code_evidence"],
+            extra_source_paths,
+        )
+        if (
+            fixture["paradox_probe_policy"].get(
+                "durable_receipt_requires_committed_sources"
+            )
+            is True
+            and pre_execution_snapshot["scoped_dirty"]
+        ):
+            raise RuntimeError(
+                "durable paradox receipt requires clean committed fixture, composition, "
+                "pipeline, tests, corpus, and current code-evidence paths before execution"
+            )
 
     qaoa_result = run_qaoa(
         {
@@ -1024,26 +1288,32 @@ def run_scout(
         "decision": "GO" if all(criteria.values()) else "NO_GO",
         "criteria": criteria,
         "reason": (
-            "All preregistered comparative and evidence gates passed."
+            "All declared comparative and evidence gates passed."
             if all(criteria.values())
             else "IBM hardware is not justified unless QAOA adds comparative signal at nontrivial scale after source grounding."
         ),
         "ibm_job_submitted": False,
     }
 
-    extra_source_paths: list[pathlib.Path] = []
-    if fixture.get("schema") == PARADOX_PROBE_FIXTURE_SCHEMA:
-        extra_source_paths.append(
-            _resolve_evidence_path(
-                fixture["paradox_probe_policy"]["adjudication_corpus"], REPO_ROOT
-            )
-        )
-    snapshot = source_state(
+    post_execution_snapshot = source_state(
         fixture_path,
         composition_path,
         qubo["code_evidence"],
         extra_source_paths,
     )
+    if is_paradox_probe:
+        if pre_execution_snapshot is None:
+            raise AssertionError("paradox source snapshot was not captured before execution")
+        if scoped_source_signature(pre_execution_snapshot) != scoped_source_signature(
+            post_execution_snapshot
+        ):
+            raise RuntimeError(
+                "paradox receipt aborted because scoped source bytes or status changed "
+                "during execution"
+            )
+        snapshot = pre_execution_snapshot
+    else:
+        snapshot = post_execution_snapshot
     snapshot_by_path = {item["path"]: item for item in snapshot["files"]}
     code_hashes = {
         "scout_sha256": snapshot_by_path[
@@ -1086,7 +1356,6 @@ def run_scout(
         "results": result_summary,
         "hardware_gate_decision": hardware_gate["decision"],
     }
-    is_paradox_probe = fixture.get("schema") == PARADOX_PROBE_FIXTURE_SCHEMA
     claim_boundary = (
         fixture["paradox_probe_policy"]["claim_boundary"]
         + " QAOA, exact, greedy, and random results compare portfolio-selection "
@@ -1146,6 +1415,17 @@ def run_scout(
     if is_paradox_probe:
         receipt["paradox_probe_policy"] = fixture["paradox_probe_policy"]
         receipt["paradox_probe_contract"] = qubo["paradox_probe_contract"]
+        receipt["post_execution_source_state"] = post_execution_snapshot
+        receipt["execution_source_stability"] = {
+            "pre_scoped_signature_sha256": scoped_source_signature(snapshot),
+            "post_scoped_signature_sha256": scoped_source_signature(
+                post_execution_snapshot
+            ),
+            "scoped_sources_unchanged_during_execution": True,
+            "pre_head_commit": snapshot["head_commit"],
+            "post_head_commit": post_execution_snapshot["head_commit"],
+            "unrelated_head_advance_allowed": True,
+        }
     receipt["payload_hash"] = canonical_hash(receipt)
     if not verify_receipt(receipt):
         raise AssertionError("generated receipt failed its own canonical hash check")
@@ -1164,7 +1444,29 @@ def main() -> int:
     parser.add_argument("--shots", type=int, default=128)
     parser.add_argument("--grid-points", type=int, default=4)
     parser.add_argument("--seed", type=int, default=17)
+    parser.add_argument(
+        "--prepare-only",
+        action="store_true",
+        help="write the deterministic .holo matrix mirror without executing QAOA",
+    )
     args = parser.parse_args()
+    if args.prepare_only:
+        fixture, qubo, input_sha256 = prepare_composition(
+            args.input.resolve(), args.composition_out.resolve()
+        )
+        print(
+            json.dumps(
+                {
+                    "composition": str(args.composition_out.resolve()),
+                    "fixture_sha256": input_sha256,
+                    "qubo_matrix_sha256": canonical_hash(qubo["matrix"]),
+                    "candidate_count": len(fixture["candidates"]),
+                    "execution_performed": False,
+                },
+                indent=2,
+            )
+        )
+        return 0
     receipt = run_scout(
         args.input.resolve(),
         args.composition_out.resolve(),

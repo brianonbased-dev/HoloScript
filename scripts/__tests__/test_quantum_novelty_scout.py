@@ -28,6 +28,7 @@ from quantum_novelty_scout import (  # noqa: E402
 )
 from quantum_execute import _qaoa_parameter_values  # noqa: E402
 from quantum_receipt_verify import (  # noqa: E402
+    _paradox_probe_fixture_errors,
     expected_receipt_hash,
     linked_code_evidence_verifies,
     novelty_scout_receipt_errors,
@@ -43,16 +44,26 @@ class QuantumNoveltyScoutTests(unittest.TestCase):
 
     def paradox_fixture(self) -> dict:
         fixture = json.loads(self.fixture_path.read_text(encoding="utf-8"))
-        corpus_path = self.fixture_path
+        corpus_path = (
+            REPO_ROOT
+            / "research"
+            / "quantum-novelty-scout"
+            / "paradox-probe-controls-v1.json"
+        )
+        control_executor_path = REPO_ROOT / "scripts" / "paradox_probe_controls.py"
+        control_receipt_path = (
+            corpus_path.parent / "paradox-probe-control-receipt-v1.json"
+        )
         fixture["schema"] = "holoscript.quantum-paradox-probes.v1"
         fixture["score_basis"] = (
-            "Preregistered probe-planning priors only. Adjudicated outcomes and "
-            "paradox verdicts are excluded from every optimizer input."
+            "Author-assigned probe-planning priors. Explicit outcome fields and "
+            "known paradox-label tokens are excluded from declared optimizer "
+            "channels, but the authors were not blinded and outcome independence "
+            "is not claimed."
         )
         fixture["score_weights"] = {
             "expected_information_gain": 2.0,
             "falsifier_readiness": 1.5,
-            "code_state_completeness": 1.25,
             "strategic_value": 1.0,
             "expected_cost": -1.0,
         }
@@ -63,23 +74,51 @@ class QuantumNoveltyScoutTests(unittest.TestCase):
             "ranking_field_allowlist": list(fixture["score_weights"]),
             "forbidden_ranking_tokens": [
                 "adjudication",
+                "bounded_tradeoff",
+                "bug",
+                "dissolved",
+                "empirical_anomaly",
+                "impossibility",
+                "new_mechanism",
                 "novelty",
                 "outcome",
                 "paradox_score",
+                "productive",
+                "retired",
+                "unresolved",
+                "value_tension",
                 "verdict",
             ],
             "allowed_stages": ["normalized", "falsifiable", "reproduced"],
-            "require_blinded_outcome": True,
+            "require_outcome_field_exclusion": True,
+            "author_blinding_claimed": False,
+            "control_labels_are_author_supplied": True,
             "require_code_state_binding": True,
+            "durable_receipt_requires_committed_sources": False,
+            "declared_state_path_churn_weight": 1.25,
             "adjudication_corpus": str(corpus_path.relative_to(REPO_ROOT)).replace(
                 "\\", "/"
             ),
+            "adjudication_corpus_schema": "holoscript.paradox-control-corpus.v1",
             "adjudication_corpus_sha256": hashlib.sha256(
                 corpus_path.read_bytes()
             ).hexdigest(),
+            "control_executor": str(
+                control_executor_path.relative_to(REPO_ROOT)
+            ).replace("\\", "/"),
+            "control_executor_sha256": hashlib.sha256(
+                control_executor_path.read_bytes()
+            ).hexdigest(),
+            "control_receipt": str(
+                control_receipt_path.relative_to(REPO_ROOT)
+            ).replace("\\", "/"),
+            "control_receipt_sha256": hashlib.sha256(
+                control_receipt_path.read_bytes()
+            ).hexdigest(),
+            "passing_control_receipt_required": True,
             "claim_boundary": (
-                "The QUBO ranks preregistered probes. It does not observe the "
-                "adjudication corpus, certify a paradox, or establish novelty."
+                "The QUBO excludes outcome fields but the authors were not blinded "
+                "to the control labels. It does not certify a paradox or novelty."
             ),
         }
         for index, candidate in enumerate(fixture["candidates"]):
@@ -94,7 +133,6 @@ class QuantumNoveltyScoutTests(unittest.TestCase):
             candidate["scores"] = {
                 "expected_information_gain": 0.55 + (index % 4) * 0.1,
                 "falsifier_readiness": 0.8,
-                "code_state_completeness": 1.0,
                 "strategic_value": 0.7,
                 "expected_cost": 0.25 + (index % 3) * 0.1,
             }
@@ -108,16 +146,21 @@ class QuantumNoveltyScoutTests(unittest.TestCase):
                 "card_id": "PP-001" if index % 2 == 0 else "PP-003",
                 "probe_id": f"QP-{index + 1:03d}",
                 "stage": "falsifiable",
-                "falsifier": f"preregistered falsifier {index + 1}",
+                "falsifier": f"declared falsifier {index + 1}",
                 "stopping_rule": "stop after the declared deterministic replay",
-                "blinded_outcome": True,
+                "outcome_fields_excluded": True,
                 "code_state": {
                     "variable_id": f"C-{index + 1:03d}",
                     "binding_basis": "pinned_git_blob_sha256",
                     "complete": True,
                     "states": [
                         {
-                            "id": "observed",
+                            "id": "before",
+                            "source_ref": "WORKTREE",
+                            "paths": candidate["code_evidence"]["implementation"],
+                        },
+                        {
+                            "id": "after",
                             "source_ref": "WORKTREE",
                             "paths": candidate["code_evidence"]["implementation"],
                         }
@@ -130,6 +173,14 @@ class QuantumNoveltyScoutTests(unittest.TestCase):
         path = root / "paradox-fixture.json"
         path.write_text(json.dumps(fixture, indent=2) + "\n", encoding="utf-8")
         return path
+
+    @staticmethod
+    def paradox_control_source_blobs(fixture: dict) -> dict[str, bytes]:
+        policy = fixture["paradox_probe_policy"]
+        return {
+            policy[field]: (REPO_ROOT / policy[field]).read_bytes()
+            for field in ("adjudication_corpus", "control_executor", "control_receipt")
+        }
 
     @staticmethod
     def rehash_full_receipt(receipt: dict) -> None:
@@ -198,11 +249,36 @@ class QuantumNoveltyScoutTests(unittest.TestCase):
         self.assertEqual(contract["card_ids"], ["PP-001", "PP-003"])
         self.assertEqual(len(contract["code_state_variable_ids"]), 12)
         self.assertEqual(len(contract["code_state_fingerprints"]), 12)
-        self.assertFalse(contract["adjudication_labels_used_by_optimizer"])
-        self.assertEqual(
-            contract["optimizer_input_fields"],
-            ["scores", "kill_test.status", "tags", "code_evidence"],
+        self.assertFalse(
+            contract["explicit_outcome_fields_or_label_tokens_in_score_names_or_tags"]
         )
+        self.assertFalse(contract["optimizer_outcome_independence_claimed"])
+        self.assertFalse(contract["author_blinding_claimed"])
+        self.assertEqual(
+            contract["candidate_optimizer_input_fields"],
+            [
+                "candidates[].id/order",
+                "scores",
+                "kill_test.status",
+                "tags",
+                "code_evidence",
+                "paradox_probe.code_state",
+            ],
+        )
+        self.assertEqual(
+            contract["qubo_configuration_input_fields"],
+            [
+                "score_weights",
+                "target_cardinality",
+                "cardinality_penalty",
+                "redundancy_penalty",
+                "kill_status_adjustments",
+                "code_evidence_policy",
+                "paradox_probe_policy.declared_state_path_churn_weight",
+            ],
+        )
+        self.assertTrue(contract["passing_control_receipt_bound"])
+        self.assertFalse(contract["control_execution_independently_verified"])
         self.assertTrue(
             all(
                 binding["all_paths_available"]
@@ -241,12 +317,52 @@ class QuantumNoveltyScoutTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "optimizer tag contains"):
                 load_fixture(path)
 
+        for encoded_label in (
+            "DISSOLVED",
+            "DISSOLVED result",
+            "DISSOLVED/result",
+            "DISSOLVED.result",
+            "preDissolvedSignal",
+            "DISSOLVEDRESULT",
+        ):
+            with self.subTest(encoded_label=encoded_label):
+                fixture = self.paradox_fixture()
+                fixture["candidates"][0]["tags"].append(encoded_label)
+                with tempfile.TemporaryDirectory(
+                    dir=SCRIPTS_DIR / "__tests__"
+                ) as directory:
+                    path = self.write_temp_fixture(pathlib.Path(directory), fixture)
+                    with self.assertRaisesRegex(ValueError, "optimizer tag contains"):
+                        load_fixture(path)
+
+        fixture = self.paradox_fixture()
+        ordinary_fixture = self.fixture_path
+        fixture["paradox_probe_policy"]["adjudication_corpus"] = str(
+            ordinary_fixture.relative_to(REPO_ROOT)
+        ).replace("\\", "/")
+        fixture["paradox_probe_policy"]["adjudication_corpus_sha256"] = (
+            hashlib.sha256(ordinary_fixture.read_bytes()).hexdigest()
+        )
+        with tempfile.TemporaryDirectory(dir=SCRIPTS_DIR / "__tests__") as directory:
+            path = self.write_temp_fixture(pathlib.Path(directory), fixture)
+            with self.assertRaisesRegex(ValueError, "corpus schema mismatch"):
+                load_fixture(path)
+
     def test_paradox_probe_contract_requires_complete_code_state_binding(self) -> None:
         fixture = self.paradox_fixture()
         fixture["candidates"][0]["paradox_probe"]["code_state"]["complete"] = False
         with tempfile.TemporaryDirectory(dir=SCRIPTS_DIR / "__tests__") as directory:
             path = self.write_temp_fixture(pathlib.Path(directory), fixture)
             with self.assertRaisesRegex(ValueError, "complete code-state binding"):
+                load_fixture(path)
+
+        fixture = self.paradox_fixture()
+        fixture["paradox_probe_policy"][
+            "durable_receipt_requires_committed_sources"
+        ] = True
+        with tempfile.TemporaryDirectory(dir=SCRIPTS_DIR / "__tests__") as directory:
+            path = self.write_temp_fixture(pathlib.Path(directory), fixture)
+            with self.assertRaisesRegex(ValueError, "requires committed code states"):
                 load_fixture(path)
 
         fixture = self.paradox_fixture()
@@ -258,6 +374,122 @@ class QuantumNoveltyScoutTests(unittest.TestCase):
             loaded = load_fixture(path)
             with self.assertRaisesRegex(ValueError, "does not resolve"):
                 build_qubo(loaded)
+
+        fixture = self.paradox_fixture()
+        fixture["candidates"][0]["paradox_probe"]["code_state"]["states"] = fixture[
+            "candidates"
+        ][0]["paradox_probe"]["code_state"]["states"][:1]
+        with tempfile.TemporaryDirectory(dir=SCRIPTS_DIR / "__tests__") as directory:
+            path = self.write_temp_fixture(pathlib.Path(directory), fixture)
+            with self.assertRaisesRegex(ValueError, "at least two states"):
+                load_fixture(path)
+
+        fixture = self.paradox_fixture()
+        fixture["candidates"][0]["paradox_probe"]["code_state"]["states"][1][
+            "paths"
+        ] = ["scripts/quantum_receipt_verify.py"]
+        with tempfile.TemporaryDirectory(dir=SCRIPTS_DIR / "__tests__") as directory:
+            path = self.write_temp_fixture(pathlib.Path(directory), fixture)
+            with self.assertRaisesRegex(ValueError, "identical implementation evidence"):
+                load_fixture(path)
+
+        fixture = self.paradox_fixture()
+        fixture["paradox_probe_policy"]["declared_state_path_churn_weight"] = float(
+            "nan"
+        )
+        with tempfile.TemporaryDirectory(dir=SCRIPTS_DIR / "__tests__") as directory:
+            path = self.write_temp_fixture(pathlib.Path(directory), fixture)
+            with self.assertRaisesRegex(ValueError, "finite and nonnegative"):
+                load_fixture(path)
+
+        fixture = self.paradox_fixture()
+        fixture["paradox_probe_policy"]["control_executor_sha256"] = "0" * 64
+        with tempfile.TemporaryDirectory(dir=SCRIPTS_DIR / "__tests__") as directory:
+            path = self.write_temp_fixture(pathlib.Path(directory), fixture)
+            with self.assertRaisesRegex(ValueError, "executor hash mismatch"):
+                load_fixture(path)
+
+        fixture = self.paradox_fixture()
+        fixture["candidates"][0]["paradox_probe"]["code_state"]["states"][1][
+            "id"
+        ] = "before"
+        with tempfile.TemporaryDirectory(dir=SCRIPTS_DIR / "__tests__") as directory:
+            path = self.write_temp_fixture(pathlib.Path(directory), fixture)
+            with self.assertRaisesRegex(ValueError, "IDs must be unique"):
+                load_fixture(path)
+
+        verifier_errors = _paradox_probe_fixture_errors(
+            fixture,
+            self.paradox_control_source_blobs(fixture),
+        )
+        self.assertTrue(
+            any("IDs are not unique" in error for error in verifier_errors),
+            verifier_errors,
+        )
+
+    def test_control_receipt_results_must_semantically_match_the_corpus(self) -> None:
+        fixture = self.paradox_fixture()
+        source_blobs = self.paradox_control_source_blobs(fixture)
+        policy = fixture["paradox_probe_policy"]
+        receipt_path = policy["control_receipt"]
+        forged = json.loads(source_blobs[receipt_path].decode("utf-8"))
+        forged["results"][1] = copy.deepcopy(forged["results"][0])
+        forged["results"][0]["observed"] = {"fabricated": True}
+        forged["payload_hash"] = canonical_hash(
+            {key: value for key, value in forged.items() if key != "payload_hash"}
+        )
+        forged_bytes = (json.dumps(forged, indent=2) + "\n").encode("utf-8")
+        policy["control_receipt_sha256"] = hashlib.sha256(forged_bytes).hexdigest()
+        source_blobs[receipt_path] = forged_bytes
+
+        verifier_errors = _paradox_probe_fixture_errors(fixture, source_blobs)
+        self.assertTrue(
+            any("declared passing semantics" in error for error in verifier_errors),
+            verifier_errors,
+        )
+
+    def test_historical_code_delta_changes_the_qubo_from_resolved_blobs(self) -> None:
+        fixture = self.paradox_fixture()
+        candidate = fixture["candidates"][0]
+        runner_path = "packages/core/src/plugins/PluginSandboxRunner.ts"
+        candidate["code_evidence"]["implementation"] = [runner_path]
+        candidate["paradox_probe"]["code_state"]["states"] = [
+            {
+                "id": "before",
+                "source_ref": "c83c2d3c8857c88357bee226df826114ab87432e",
+                "paths": [runner_path],
+            },
+            {
+                "id": "after",
+                "source_ref": "d225d6572e455d38d28d7482a315b4390870fb1b",
+                "paths": [runner_path],
+            },
+        ]
+        with tempfile.TemporaryDirectory(dir=SCRIPTS_DIR / "__tests__") as directory:
+            loaded = load_fixture(
+                self.write_temp_fixture(pathlib.Path(directory), fixture)
+            )
+        changed = build_qubo(loaded)
+        self.assertEqual(
+            changed["code_state_bindings"][0][
+                "declared_state_path_churn_fraction"
+            ],
+            1.0,
+        )
+        self.assertEqual(changed["code_state_path_churn_adjustments"][0], 1.25)
+
+        unchanged_fixture = copy.deepcopy(loaded)
+        unchanged_fixture["candidates"][0]["paradox_probe"]["code_state"][
+            "states"
+        ][1]["source_ref"] = "c83c2d3c8857c88357bee226df826114ab87432e"
+        unchanged = build_qubo(unchanged_fixture)
+        self.assertEqual(
+            unchanged["code_state_bindings"][0][
+                "declared_state_path_churn_fraction"
+            ],
+            0.0,
+        )
+        self.assertNotEqual(changed["matrix"][0][0], unchanged["matrix"][0][0])
 
     def test_paradox_probe_receipt_verifier_recomputes_contract(self) -> None:
         fixture = self.paradox_fixture()
@@ -277,7 +509,7 @@ class QuantumNoveltyScoutTests(unittest.TestCase):
             )
             forged = copy.deepcopy(receipt)
             forged["qubo"]["paradox_probe_contract"][
-                "adjudication_labels_used_by_optimizer"
+                "explicit_outcome_fields_or_label_tokens_in_score_names_or_tags"
             ] = True
             self.rehash_full_receipt(forged)
             self.assertTrue(
@@ -298,6 +530,28 @@ class QuantumNoveltyScoutTests(unittest.TestCase):
                 )
             )
 
+            forged_stability = copy.deepcopy(receipt)
+            forged_stability["post_execution_source_state"]["files"][0][
+                "worktree_sha256"
+            ] = "0" * 64
+            self.rehash_full_receipt(forged_stability)
+            self.assertTrue(
+                any(
+                    "changed during execution" in error
+                    for error in novelty_scout_receipt_errors(forged_stability)
+                )
+            )
+
+            forged_tree = copy.deepcopy(receipt)
+            forged_tree["source_state"]["head_tree"] = "0" * 40
+            self.rehash_full_receipt(forged_tree)
+            self.assertTrue(
+                any(
+                    "HEAD tree" in error
+                    for error in novelty_scout_receipt_errors(forged_tree)
+                )
+            )
+
     def test_false_paradox_control_corpus_is_executable_and_adjudicated(self) -> None:
         corpus_path = (
             REPO_ROOT
@@ -315,6 +569,14 @@ class QuantumNoveltyScoutTests(unittest.TestCase):
             {"DISSOLVED"},
         )
         self.assertTrue(result["all_labels_evaluation_only"])
+        self.assertFalse(result["adjudication_protocol"]["author_blinding_claimed"])
+        self.assertTrue(result["executor"]["sha256"])
+        saved = json.loads(
+            (
+                corpus_path.parent / "paradox-probe-control-receipt-v1.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertEqual(saved, result)
 
     def test_qiskit_greek_qaoa_parameters_bind_beta_then_gamma(self) -> None:
         ansatz = QAOAAnsatz(SparsePauliOp.from_list([("ZI", 1.0)]), reps=1)

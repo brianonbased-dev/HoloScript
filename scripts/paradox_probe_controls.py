@@ -138,10 +138,20 @@ def verify_control_corpus(path: pathlib.Path = DEFAULT_CORPUS) -> dict[str, Any]
     corpus = json.loads(path.read_text(encoding="utf-8"))
     if corpus.get("schema") != CORPUS_SCHEMA:
         raise ValueError("false-paradox corpus schema mismatch")
-    if corpus.get("optimizer_access") != "hash_only":
-        raise ValueError("false-paradox labels must be hash-only to the optimizer")
+    if corpus.get("optimizer_dataflow") != "excluded":
+        raise ValueError("false-paradox labels must be excluded from ranking dataflow")
+    if corpus.get("validation_access") != "schema-label-policy-and-replay":
+        raise ValueError("false-paradox validation access must be declared")
     if corpus.get("labels_evaluation_only") is not True:
         raise ValueError("false-paradox labels must be evaluation-only")
+    protocol = corpus.get("adjudication_protocol")
+    if (
+        not isinstance(protocol, dict)
+        or protocol.get("author_blinding_claimed") is not False
+        or protocol.get("independent_adjudication_claimed") is not False
+        or not protocol.get("rule")
+    ):
+        raise ValueError("false-paradox adjudication provenance is incomplete")
     records = corpus.get("records")
     if not isinstance(records, list) or len(records) != 12:
         raise ValueError("false-paradox pilot corpus requires exactly 12 controls")
@@ -155,11 +165,18 @@ def verify_control_corpus(path: pathlib.Path = DEFAULT_CORPUS) -> dict[str, Any]
         probe = PROBES.get(probe_name)
         if probe is None:
             raise ValueError(f"unknown false-paradox probe: {probe_name}")
-        if record.get("adjudication") != "DISSOLVED":
-            raise ValueError(f"{record['id']} is not a dissolved negative control")
+        authority = record.get("authority")
+        if (
+            not isinstance(authority, dict)
+            or not str(authority.get("url", "")).startswith("https://")
+            or not record.get("normalization")
+        ):
+            raise ValueError(f"{record['id']} has no normalization authority")
         observed = probe()
         expected = record.get("expected_observation")
-        passed = observed == expected
+        replay_passed = observed == expected
+        derived_adjudication = "DISSOLVED" if replay_passed else "UNRESOLVED"
+        passed = replay_passed and record.get("adjudication") == derived_adjudication
         results.append(
             {
                 "id": record["id"],
@@ -167,8 +184,10 @@ def verify_control_corpus(path: pathlib.Path = DEFAULT_CORPUS) -> dict[str, Any]
                 "observed": observed,
                 "expected": expected,
                 "passed": passed,
-                "adjudication": record["adjudication"],
+                "declared_adjudication": record.get("adjudication"),
+                "adjudication": derived_adjudication,
                 "normalization": record["normalization"],
+                "authority": authority,
             }
         )
 
@@ -181,10 +200,16 @@ def verify_control_corpus(path: pathlib.Path = DEFAULT_CORPUS) -> dict[str, Any]
         "passed_count": passed_count,
         "failed_count": len(records) - passed_count,
         "all_labels_evaluation_only": corpus["labels_evaluation_only"],
+        "adjudication_protocol": protocol,
+        "executor": {
+            "path": "scripts/paradox_probe_controls.py",
+            "sha256": hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest(),
+        },
         "claim_boundary": (
-            "Passing proves only that twelve known false-paradox controls replay "
-            "their preregistered observations. It does not validate productive "
-            "paradox discovery, novelty, or quantum advantage."
+            "Passing proves only that twelve author-adjudicated negative controls "
+            "replay their declared observations under cited normalization authorities. "
+            "The authors were not blinded and no independent adjudication is claimed. "
+            "It does not validate productive paradox discovery, novelty, or quantum advantage."
         ),
         "environment": {"python": platform.python_version()},
         "results": results,
@@ -200,7 +225,8 @@ def main() -> int:
     args = parser.parse_args()
     receipt = verify_control_corpus(args.corpus.resolve())
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
+    with args.out.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(json.dumps(receipt, indent=2) + "\n")
     print(json.dumps({
         "receipt": str(args.out.resolve()),
         "passed": receipt["passed_count"],

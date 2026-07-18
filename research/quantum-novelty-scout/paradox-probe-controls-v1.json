@@ -1,8 +1,15 @@
 {
   "schema": "holoscript.paradox-control-corpus.v1",
-  "description": "Twelve executable negative controls for the false-paradox normalization gate. Labels and observations are evaluation-only and are not QUBO inputs.",
-  "optimizer_access": "hash_only",
+  "description": "Twelve author-adjudicated executable negative controls for the false-paradox normalization gate. Labels are visible to validation code but excluded from QUBO reward and similarity dataflow.",
+  "optimizer_dataflow": "excluded",
+  "validation_access": "schema-label-policy-and-replay",
   "labels_evaluation_only": true,
+  "adjudication_protocol": {
+    "status": "author-adjudicated negative-control pilot",
+    "rule": "DISSOLVED iff the deterministic observation matches the declared expectation, a non-empty normalization dissolves the apparent tension under a cited authority, and replay passes.",
+    "author_blinding_claimed": false,
+    "independent_adjudication_claimed": false
+  },
   "records": [
     {
       "id": "FP-001",
@@ -11,6 +18,7 @@
       "probe": "binary_float_sum",
       "expected_observation": {"decimal_repr": "0.30000000000000004", "equals_decimal_0_3": false},
       "normalization": "Binary floating-point values are not exact decimal rationals.",
+      "authority": {"kind": "official-language-documentation", "url": "https://docs.python.org/3/tutorial/floatingpoint.html"},
       "adjudication": "DISSOLVED"
     },
     {
@@ -20,6 +28,7 @@
       "probe": "nan_self_inequality",
       "expected_observation": {"is_nan": true, "equals_self": false},
       "normalization": "IEEE NaN comparison semantics deliberately make equality false.",
+      "authority": {"kind": "official-language-documentation", "url": "https://docs.python.org/3/reference/expressions.html#comparisons"},
       "adjudication": "DISSOLVED"
     },
     {
@@ -29,6 +38,7 @@
       "probe": "signed_zero",
       "expected_observation": {"numeric_equal": true, "positive_sign": 1, "negative_sign": -1},
       "normalization": "Numeric equality and representational sign are distinct predicates.",
+      "authority": {"kind": "official-language-documentation", "url": "https://docs.python.org/3/library/math.html#math.copysign"},
       "adjudication": "DISSOLVED"
     },
     {
@@ -38,6 +48,7 @@
       "probe": "nonassociative_float_addition",
       "expected_observation": {"left": 1.0, "right": 0.0, "different": true},
       "normalization": "Rounded machine addition is not real-number addition.",
+      "authority": {"kind": "official-language-documentation", "url": "https://docs.python.org/3/tutorial/floatingpoint.html"},
       "adjudication": "DISSOLVED"
     },
     {
@@ -47,6 +58,7 @@
       "probe": "unicode_normalization",
       "expected_observation": {"raw_equal": false, "nfc_equal": true},
       "normalization": "Code-point sequences must be normalized before grapheme-level comparison.",
+      "authority": {"kind": "unicode-standard-annex", "url": "https://www.unicode.org/reports/tr15/"},
       "adjudication": "DISSOLVED"
     },
     {
@@ -56,6 +68,7 @@
       "probe": "nonempty_string_truthiness",
       "expected_observation": {"input": "False", "bool_value": true},
       "normalization": "String truthiness tests emptiness, not semantic parsing.",
+      "authority": {"kind": "official-language-documentation", "url": "https://docs.python.org/3/library/stdtypes.html#truth-value-testing"},
       "adjudication": "DISSOLVED"
     },
     {
@@ -65,6 +78,7 @@
       "probe": "negative_floor_division",
       "expected_observation": {"value": -2, "floor_identity": true},
       "normalization": "Python // is floor division and preserves the division identity with modulo.",
+      "authority": {"kind": "official-language-documentation", "url": "https://docs.python.org/3/reference/expressions.html#binary-arithmetic-operations"},
       "adjudication": "DISSOLVED"
     },
     {
@@ -74,6 +88,7 @@
       "probe": "negative_modulo",
       "expected_observation": {"value": 1, "divisor_sign_rule": true},
       "normalization": "Python remainder follows the divisor sign under floor division.",
+      "authority": {"kind": "official-language-documentation", "url": "https://docs.python.org/3/reference/expressions.html#binary-arithmetic-operations"},
       "adjudication": "DISSOLVED"
     },
     {
@@ -83,6 +98,7 @@
       "probe": "json_tuple_roundtrip",
       "expected_observation": {"value": [1, 2], "type": "list"},
       "normalization": "JSON arrays do not encode the Python tuple/list distinction.",
+      "authority": {"kind": "internet-standard", "url": "https://www.rfc-editor.org/rfc/rfc8259"},
       "adjudication": "DISSOLVED"
     },
     {
@@ -92,6 +108,7 @@
       "probe": "mutable_aliasing",
       "expected_observation": {"same_object": true, "right_value": [1]},
       "normalization": "Both names reference the same mutable object.",
+      "authority": {"kind": "official-language-documentation", "url": "https://docs.python.org/3/reference/datamodel.html#objects-values-and-types"},
       "adjudication": "DISSOLVED"
     },
     {
@@ -101,6 +118,7 @@
       "probe": "decimal_exact_sum",
       "expected_observation": {"decimal_repr": "0.3", "equals_decimal_0_3": true},
       "normalization": "Decimal and binary floating-point use different representations and contracts.",
+      "authority": {"kind": "official-language-documentation", "url": "https://docs.python.org/3/library/decimal.html"},
       "adjudication": "DISSOLVED"
     },
     {
@@ -110,6 +128,7 @@
       "probe": "chained_comparison",
       "expected_observation": {"value": true, "expanded_equal": true},
       "normalization": "The language defines a comparison chain as adjacent comparisons joined by logical and.",
+      "authority": {"kind": "official-language-documentation", "url": "https://docs.python.org/3/reference/expressions.html#comparisons"},
       "adjudication": "DISSOLVED"
     }
   ]
