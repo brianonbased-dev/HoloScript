@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 from qiskit.circuit.library import QAOAAnsatz
 from qiskit.quantum_info import SparsePauliOp
@@ -19,11 +20,16 @@ sys.path.insert(0, str(SCRIPTS_DIR))
 from quantum_novelty_scout import (  # noqa: E402
     build_qubo,
     canonical_hash,
+    encode_pyramid_bitstring,
     evaluate_code_evidence,
+    exact_baseline,
     greedy_marginal_reward,
     load_fixture,
+    pyramid_equivalence_certificate,
     portfolio_metrics,
+    qubo_objective,
     run_scout,
+    semantic_exact_baseline,
     verify_receipt,
 )
 from quantum_execute import _qaoa_parameter_values  # noqa: E402
@@ -41,6 +47,19 @@ class QuantumNoveltyScoutTests(unittest.TestCase):
         self.fixture_path = (
             REPO_ROOT / "research" / "quantum-novelty-scout" / "candidates-v1.json"
         )
+        self.pyramid_fixture_path = (
+            REPO_ROOT
+            / "research"
+            / "quantum-novelty-scout"
+            / "paradox-pyramid-probes-v1.json"
+        )
+
+    def pyramid_fixture(self) -> dict:
+        fixture = json.loads(self.pyramid_fixture_path.read_text(encoding="utf-8"))
+        fixture["paradox_probe_policy"][
+            "durable_receipt_requires_committed_sources"
+        ] = False
+        return fixture
 
     def paradox_fixture(self) -> dict:
         fixture = json.loads(self.fixture_path.read_text(encoding="utf-8"))
@@ -237,6 +256,538 @@ class QuantumNoveltyScoutTests(unittest.TestCase):
             -metrics["portfolio_score"],
             places=7,
         )
+
+    def test_pyramid9_block_couplings_and_objective_decomposition(self) -> None:
+        fixture = load_fixture(self.pyramid_fixture_path)
+        qubo = build_qubo(fixture, pyramid_variant="pairwise")
+
+        self.assertEqual(qubo["pyramid_variant"], "pairwise")
+        self.assertEqual(qubo["semantic_variable_count"], 9)
+        self.assertEqual(qubo["ancilla_variable_count"], 0)
+        self.assertEqual(qubo["total_variable_count"], 9)
+        self.assertEqual(len(qubo["matrix"]), 9)
+        self.assertTrue(all(len(row) == 9 for row in qubo["matrix"]))
+        self.assertEqual(
+            {
+                relation: sum(
+                    term["relation"] == relation
+                    for term in qubo["structural_pair_terms"]
+                )
+                for relation in (
+                    "same_face",
+                    "aligned_cross_face",
+                    "other_cross_face",
+                )
+            },
+            {
+                "same_face": 9,
+                "aligned_cross_face": 9,
+                "other_cross_face": 18,
+            },
+        )
+        self.assertEqual(len(qubo["structural_pair_terms"]), 36)
+        self.assertAlmostEqual(qubo["structural_pair_matrix"][0][1], 0.25)
+        self.assertAlmostEqual(qubo["structural_pair_matrix"][0][3], -0.2)
+        self.assertAlmostEqual(qubo["structural_pair_matrix"][0][4], 0.05)
+        for i in range(9):
+            self.assertEqual(qubo["structural_pair_matrix"][i][i], 0.0)
+            self.assertTrue(
+                all(qubo["structural_pair_matrix"][i][j] == 0.0 for j in range(i))
+            )
+        for i, j, delta in ((0, 1, 0.25), (0, 3, -0.2), (0, 4, 0.05)):
+            self.assertAlmostEqual(
+                qubo["matrix"][i][j],
+                qubo["base_portfolio_matrix"][i][j] + delta,
+            )
+
+        semantic = "100100100"
+        metrics = portfolio_metrics(semantic, fixture, qubo)
+        self.assertEqual(metrics["semantic_bitstring"], semantic)
+        self.assertEqual(metrics["ancilla_bitstring"], "")
+        self.assertEqual(metrics["selected_count"], 3)
+        self.assertEqual(metrics["face_counts"], {
+            "observability": 1,
+            "falsification": 1,
+            "proof-scope": 1,
+        })
+        self.assertTrue(metrics["model_constraints_satisfied"])
+        self.assertAlmostEqual(metrics["structural_pair_contribution"], -0.6)
+        self.assertAlmostEqual(
+            metrics["semantic_pairwise_raw_objective"],
+            metrics["base_raw_qubo_objective"]
+            + metrics["structural_pair_contribution"],
+        )
+        self.assertAlmostEqual(
+            metrics["raw_qubo_objective"],
+            metrics["semantic_pairwise_raw_objective"],
+        )
+
+    def test_pyramid9_rejects_invalid_geometry_coefficients_and_claims(self) -> None:
+        cases: list[tuple[str, dict, str]] = []
+
+        bad = self.pyramid_fixture()
+        bad["pyramid_qubo"]["faces"][0]["candidate_ids"] = bad[
+            "pyramid_qubo"
+        ]["faces"][0]["candidate_ids"][:2]
+        cases.append(("short-face", bad, "three unique candidates"))
+
+        bad = self.pyramid_fixture()
+        bad["pyramid_qubo"]["faces"][1]["candidate_ids"][0] = bad[
+            "pyramid_qubo"
+        ]["faces"][0]["candidate_ids"][0]
+        cases.append(("duplicate-member", bad, "partition candidates"))
+
+        for label, value in (
+            ("nonfinite-structural", float("inf")),
+            ("out-of-range-structural", 1.01),
+        ):
+            bad = self.pyramid_fixture()
+            bad["pyramid_qubo"]["structural_pair_coefficients"]["same_face"] = value
+            cases.append((label, bad, "finite, nontrivial, and in"))
+
+        bad = self.pyramid_fixture()
+        bad["pyramid_qubo"]["structural_pair_coefficients"] = {
+            "same_face": 0.0,
+            "aligned_cross_face": 0.0,
+            "other_cross_face": 0.0,
+        }
+        cases.append(("zero-structure", bad, "finite, nontrivial, and in"))
+
+        for label, value in (
+            ("zero-cubic", 0.0),
+            ("nonfinite-cubic", float("nan")),
+            ("out-of-range-cubic", -1.01),
+        ):
+            bad = self.pyramid_fixture()
+            bad["pyramid_qubo"]["aligned_cubic_coefficients"][0] = value
+            cases.append((label, bad, "three nonzero aligned cubic coefficients"))
+
+        bad = self.pyramid_fixture()
+        bad["pyramid_qubo"]["rosenberg_margin"] = 1e-7
+        cases.append(("weak-margin", bad, "margin must exceed"))
+
+        bad = self.pyramid_fixture()
+        bad["pyramid_qubo"]["quantum_advantage_claimed"] = True
+        cases.append(("overclaim", bad, "quantum_advantage_claimed=false"))
+
+        with tempfile.TemporaryDirectory(dir=SCRIPTS_DIR / "__tests__") as directory:
+            root = pathlib.Path(directory)
+            for label, fixture, message in cases:
+                with self.subTest(case=label):
+                    path = root / f"{label}.json"
+                    path.write_text(
+                        json.dumps(fixture, indent=2) + "\n", encoding="utf-8"
+                    )
+                    with self.assertRaisesRegex(ValueError, message):
+                        load_fixture(path)
+
+    def test_pyramid12_rosenberg_reduction_is_exact_and_ancillas_are_separate(self) -> None:
+        fixture = load_fixture(self.pyramid_fixture_path)
+        qubo = build_qubo(fixture, pyramid_variant="volume_quadratized")
+
+        self.assertEqual(qubo["semantic_variable_count"], 9)
+        self.assertEqual(qubo["ancilla_variable_count"], 3)
+        self.assertEqual(qubo["total_variable_count"], 12)
+        self.assertEqual(len(qubo["matrix"]), 12)
+        self.assertTrue(all(len(row) == 12 for row in qubo["matrix"]))
+        self.assertEqual(
+            [item["kind"] for item in qubo["variable_order"]],
+            ["semantic"] * 9 + ["ancilla"] * 3,
+        )
+        self.assertEqual(
+            [item["id"] for item in qubo["variable_order"][:9]],
+            [candidate["id"] for candidate in fixture["candidates"]],
+        )
+
+        for term, reduction in zip(
+            qubo["higher_order_terms"], qubo["quadratization"]["terms"]
+        ):
+            left, right = reduction["substitution_pair"]
+            remaining = reduction["remaining_index"]
+            ancilla = reduction["ancilla_index"]
+            coefficient = term["coefficient"]
+            strength = reduction["penalty_strength"]
+            self.assertAlmostEqual(strength, abs(coefficient) + 0.5)
+            self.assertAlmostEqual(
+                qubo["matrix"][left][right],
+                qubo["semantic_pairwise_matrix"][left][right] + strength,
+            )
+            self.assertAlmostEqual(qubo["matrix"][left][ancilla], -2 * strength)
+            self.assertAlmostEqual(qubo["matrix"][right][ancilla], -2 * strength)
+            self.assertAlmostEqual(qubo["matrix"][ancilla][ancilla], 3 * strength)
+            self.assertAlmostEqual(qubo["matrix"][remaining][ancilla], coefficient)
+
+        minimum_wrong_gap = float("inf")
+        for semantic_mask in range(1 << 9):
+            semantic = format(semantic_mask, "09b")
+            semantic_bits = [int(bit) for bit in semantic]
+            direct_hubo = qubo_objective(
+                semantic, qubo["semantic_pairwise_matrix"]
+            ) + sum(
+                float(term["coefficient"])
+                * semantic_bits[term["semantic_indices"][0]]
+                * semantic_bits[term["semantic_indices"][1]]
+                * semantic_bits[term["semantic_indices"][2]]
+                for term in qubo["higher_order_terms"]
+            )
+            expected = encode_pyramid_bitstring(semantic, qubo)
+            expected_ancillas = expected[9:]
+            values = {
+                format(mask, "03b"): qubo_objective(
+                    semantic + format(mask, "03b"), qubo["matrix"]
+                )
+                for mask in range(1 << 3)
+            }
+            best_value = min(values.values())
+            minimizing = [
+                ancillas
+                for ancillas, value in values.items()
+                if abs(value - best_value) <= 1e-6
+            ]
+            self.assertEqual(minimizing, [expected_ancillas])
+            self.assertAlmostEqual(best_value, direct_hubo, places=6)
+            minimum_wrong_gap = min(
+                minimum_wrong_gap,
+                min(
+                    value
+                    for ancillas, value in values.items()
+                    if ancillas != expected_ancillas
+                )
+                - direct_hubo,
+            )
+
+        certificate = qubo["quadratization"]["equivalence_certificate"]
+        self.assertEqual(certificate, pyramid_equivalence_certificate(qubo))
+        self.assertEqual(certificate["semantic_assignments_checked"], 512)
+        self.assertEqual(certificate["expanded_assignments_checked"], 4096)
+        self.assertLessEqual(certificate["max_abs_minimized_objective_error"], 1e-6)
+        self.assertAlmostEqual(certificate["minimum_infeasible_gap"], 0.5)
+        self.assertAlmostEqual(minimum_wrong_gap, 0.5)
+        self.assertTrue(certificate["all_minimizing_ancillas_match_products"])
+        self.assertTrue(certificate["expanded_optimum_projects_to_semantic_optimum"])
+
+    def test_pyramid_exact_results_select_only_semantic_candidate_ids(self) -> None:
+        fixture = load_fixture(self.pyramid_fixture_path)
+        candidate_ids = {candidate["id"] for candidate in fixture["candidates"]}
+
+        pairwise = build_qubo(fixture, pyramid_variant="pairwise")
+        pairwise_exact = semantic_exact_baseline(fixture, pairwise)
+        self.assertEqual(len(pairwise_exact["bitstring"]), 9)
+        self.assertEqual(pairwise_exact["semantic_bitstring"], pairwise_exact["bitstring"])
+        self.assertEqual(pairwise_exact["ancilla_bitstring"], "")
+        self.assertEqual(pairwise_exact["selected_count"], 3)
+        self.assertEqual(
+            pairwise_exact["selected_count"],
+            pairwise_exact["semantic_bitstring"].count("1"),
+        )
+        self.assertLessEqual(set(pairwise_exact["selected_ids"]), candidate_ids)
+
+        volume = build_qubo(fixture, pyramid_variant="volume_quadratized")
+        semantic_exact = semantic_exact_baseline(fixture, volume)
+        expanded_exact = exact_baseline(fixture, volume)
+        self.assertEqual(len(semantic_exact["bitstring"]), 12)
+        self.assertEqual(semantic_exact["semantic_bitstring"], semantic_exact["bitstring"][:9])
+        self.assertEqual(semantic_exact["ancilla_bitstring"], semantic_exact["bitstring"][9:])
+        self.assertEqual(
+            semantic_exact["ancilla_bitstring"],
+            semantic_exact["expected_ancilla_bitstring"],
+        )
+        self.assertTrue(semantic_exact["ancilla_feasible"])
+        self.assertEqual(semantic_exact["selected_count"], 3)
+        self.assertEqual(
+            semantic_exact["selected_count"],
+            semantic_exact["semantic_bitstring"].count("1"),
+        )
+        self.assertLessEqual(set(semantic_exact["selected_ids"]), candidate_ids)
+        self.assertFalse(
+            any(item.startswith("ancilla:") for item in semantic_exact["selected_ids"])
+        )
+        self.assertEqual(
+            expanded_exact["semantic_bitstring"], semantic_exact["semantic_bitstring"]
+        )
+        self.assertAlmostEqual(
+            expanded_exact["raw_qubo_objective"],
+            semantic_exact["raw_qubo_objective"],
+        )
+
+    def test_pyramid_receipts_recompute_and_reject_semantic_tampering(self) -> None:
+        with tempfile.TemporaryDirectory(dir=SCRIPTS_DIR / "__tests__") as directory:
+            root = pathlib.Path(directory)
+            fixture = self.pyramid_fixture()
+            fixture_path = root / "pyramid-fixture.json"
+            fixture_path.write_text(
+                json.dumps(fixture, indent=2) + "\n", encoding="utf-8"
+            )
+            receipts = {
+                variant: run_scout(
+                    fixture_path,
+                    root / f"{variant}-portfolio.holo",
+                    root / f"{variant}-receipt.json",
+                    shots=8,
+                    grid_points=2,
+                    seed=23,
+                    pyramid_variant=variant,
+                )
+                for variant in ("pairwise", "volume_quadratized")
+            }
+
+            candidate_ids = {candidate["id"] for candidate in fixture["candidates"]}
+            for variant, receipt in receipts.items():
+                with self.subTest(variant=variant):
+                    self.assertEqual(
+                        receipt["schema"],
+                        "cael-quantum-v3.qaoa-paradox-pyramid-scout",
+                    )
+                    self.assertEqual(receipt["pyramid_variant"], variant)
+                    self.assertEqual(receipt["candidate_count"], 9)
+                    self.assertEqual(receipt["semantic_variable_count"], 9)
+                    expected_ancillas = 3 if variant == "volume_quadratized" else 0
+                    expected_qubits = 9 + expected_ancillas
+                    self.assertEqual(receipt["ancilla_variable_count"], expected_ancillas)
+                    self.assertEqual(receipt["total_qubit_count"], expected_qubits)
+                    self.assertEqual(
+                        receipt["execution_receipt"]["num_qubits"], expected_qubits
+                    )
+                    self.assertEqual(receipt["hardware_gate"]["decision"], "NO_GO")
+                    self.assertFalse(
+                        receipt["hardware_gate"]["criteria"]["nontrivial_problem_scale"]
+                    )
+                    self.assertEqual(
+                        receipt["recommended_portfolio"],
+                        receipt["results"]["semantic_exact"],
+                    )
+                    recommended = receipt["recommended_portfolio"]
+                    self.assertEqual(recommended["selected_count"], 3)
+                    self.assertEqual(
+                        recommended["selected_count"],
+                        recommended["semantic_bitstring"].count("1"),
+                    )
+                    self.assertLessEqual(set(recommended["selected_ids"]), candidate_ids)
+                    self.assertFalse(
+                        any(
+                            item.startswith("ancilla:")
+                            for item in recommended["selected_ids"]
+                        )
+                    )
+                    self.assertEqual(novelty_scout_receipt_errors(receipt), [])
+                    self.assertTrue(verify_receipt(receipt))
+
+            pairwise = receipts["pairwise"]
+            forged_structure = copy.deepcopy(pairwise)
+            forged_structure["qubo"]["structural_pair_terms"][0][
+                "coefficient"
+            ] += 0.5
+            self.rehash_full_receipt(forged_structure)
+            structure_errors = novelty_scout_receipt_errors(forged_structure)
+            self.assertTrue(
+                any("structural_pair_terms" in error for error in structure_errors),
+                structure_errors,
+            )
+            self.assertFalse(verify_receipt(forged_structure))
+
+            forged_composition = copy.deepcopy(pairwise)
+            forged_composition["composition"] = forged_composition["fixture"]
+            fixture_record = next(
+                item
+                for item in forged_composition["source_state"]["files"]
+                if item["path"] == forged_composition["fixture"]
+            )
+            forged_composition["code_hashes"]["composition_sha256"] = fixture_record[
+                "git_blob_sha256"
+            ]
+            forged_composition["hash_payload"]["code_hashes"][
+                "composition_sha256"
+            ] = fixture_record["git_blob_sha256"]
+            self.rehash_full_receipt(forged_composition)
+            composition_errors = novelty_scout_receipt_errors(forged_composition)
+            self.assertIn(
+                "pyramid composition path is not a .holo artifact",
+                composition_errors,
+            )
+            self.assertFalse(verify_receipt(forged_composition))
+
+            forged_matrix = copy.deepcopy(pairwise)
+            forged_matrix["qubo"]["matrix"] = [
+                [0.0 for _ in range(21)] for _ in range(21)
+            ]
+            self.rehash_full_receipt(forged_matrix)
+            with mock.patch(
+                "quantum_receipt_verify._exact_qubo_solution",
+                side_effect=AssertionError("malformed matrix reached exact replay"),
+            ):
+                matrix_errors = novelty_scout_receipt_errors(forged_matrix)
+            self.assertIn(
+                "QUBO matrix dimension does not match the declared model",
+                matrix_errors,
+            )
+            self.assertFalse(verify_receipt(forged_matrix))
+
+            forged_replay_budget = copy.deepcopy(pairwise)
+            forged_replay_budget["results"]["qaoa"][
+                "shots_per_evaluation"
+            ] = 100_001
+            self.rehash_full_receipt(forged_replay_budget)
+            with mock.patch(
+                "quantum_receipt_verify._deterministic_statevector_qaoa_replay",
+                side_effect=AssertionError("unbounded replay reached the sampler"),
+            ):
+                replay_budget_errors = novelty_scout_receipt_errors(
+                    forged_replay_budget
+                )
+            self.assertIn(
+                "QAOA replay shots are outside the verified 1..100000 bound",
+                replay_budget_errors,
+            )
+            self.assertFalse(verify_receipt(forged_replay_budget))
+
+            forged_qaoa = copy.deepcopy(pairwise)
+            forged_bits = "0" * forged_qaoa["total_qubit_count"]
+            forged_metrics = portfolio_metrics(
+                forged_bits,
+                fixture,
+                forged_qaoa["qubo"],
+            )
+            original_qaoa = forged_qaoa["results"]["qaoa"]
+            forged_metrics.update(
+                {
+                    "runtime_seconds": original_qaoa["runtime_seconds"],
+                    "shots_per_evaluation": original_qaoa["shots_per_evaluation"],
+                    "optimizer_evaluations": original_qaoa["optimizer_evaluations"],
+                    "measurement_budget": original_qaoa["measurement_budget"],
+                    "best_sampled_expectation": 0.0,
+                    "selected_parameters": [0.0, 0.0],
+                }
+            )
+            forged_qaoa["results"]["qaoa"] = forged_metrics
+            nested = forged_qaoa["execution_receipt"]
+            nested["optimal_bitstring"] = forged_bits
+            nested["optimal_value"] = forged_metrics["raw_qubo_objective"]
+            nested["best_sampled_expectation"] = 0.0
+            nested["selected_parameters"] = [0.0, 0.0]
+            nested["optimality_gap"] = abs(
+                nested["optimal_value"] - nested["classical_optimal_value"]
+            )
+            nested["hash_payload"] = {
+                "input_sha256": nested["input_sha256"],
+                "job_id": nested["job_id"],
+                "optimal_bitstring": nested["optimal_bitstring"],
+                "optimal_value": nested["optimal_value"],
+            }
+            nested["payload_hash"] = canonical_hash(nested["hash_payload"])
+            forged_qaoa["hash_payload"]["execution_payload_hash"] = nested[
+                "payload_hash"
+            ]
+            forged_qaoa["hash_payload"]["results"]["qaoa"] = {
+                "bitstring": forged_bits,
+                "objective": forged_metrics["raw_qubo_objective"],
+            }
+            forged_qaoa["qaoa_optimality_gap"] = (
+                forged_metrics["raw_qubo_objective"]
+                - forged_qaoa["results"]["exact"]["raw_qubo_objective"]
+            )
+            criteria = forged_qaoa["hardware_gate"]["criteria"]
+            criteria["qaoa_strictly_beats_greedy"] = (
+                forged_metrics["raw_qubo_objective"]
+                < forged_qaoa["results"]["greedy"]["raw_qubo_objective"] - 1e-9
+            )
+            criteria["qaoa_strictly_beats_budget_random"] = (
+                forged_metrics["raw_qubo_objective"]
+                < forged_qaoa["results"]["budget_matched_random"][
+                    "raw_qubo_objective"
+                ]
+                - 1e-9
+            )
+            criteria["qaoa_target_cardinality_met"] = (
+                forged_metrics["selected_count"] == forged_qaoa["target_cardinality"]
+            )
+            criteria["qaoa_model_constraints_satisfied"] = forged_metrics[
+                "model_constraints_satisfied"
+            ]
+            decision = "GO" if all(criteria.values()) else "NO_GO"
+            forged_qaoa["hardware_gate"]["decision"] = decision
+            forged_qaoa["hash_payload"]["hardware_gate_decision"] = decision
+            self.rehash_full_receipt(forged_qaoa)
+            qaoa_errors = novelty_scout_receipt_errors(forged_qaoa)
+            self.assertTrue(
+                any("QAOA" in error and "replay" in error for error in qaoa_errors),
+                qaoa_errors,
+            )
+            self.assertFalse(verify_receipt(forged_qaoa))
+
+            volume = receipts["volume_quadratized"]
+            forged_ancilla = copy.deepcopy(volume)
+            forged_ancilla["results"]["semantic_exact"]["ancilla_bitstring"] = "111"
+            self.rehash_full_receipt(forged_ancilla)
+            ancilla_errors = novelty_scout_receipt_errors(forged_ancilla)
+            self.assertIn(
+                "semantic_exact.ancilla_bitstring does not recompute",
+                ancilla_errors,
+            )
+            self.assertFalse(verify_receipt(forged_ancilla))
+
+            forged_certificate = copy.deepcopy(volume)
+            forged_certificate["qubo"]["quadratization"][
+                "equivalence_certificate"
+            ]["minimum_infeasible_gap"] = 0.0
+            self.rehash_full_receipt(forged_certificate)
+            certificate_errors = novelty_scout_receipt_errors(forged_certificate)
+            self.assertTrue(
+                any("quadratization" in error for error in certificate_errors),
+                certificate_errors,
+            )
+            self.assertFalse(verify_receipt(forged_certificate))
+
+            forged_schema = copy.deepcopy(volume)
+            forged_schema["schema"] = "cael-quantum-v2.qaoa-novelty-scout"
+            self.rehash_full_receipt(forged_schema)
+            schema_errors = novelty_scout_receipt_errors(forged_schema)
+            self.assertTrue(schema_errors)
+            self.assertTrue(
+                any(
+                    "12..20" in error or "legacy receipt schema" in error
+                    for error in schema_errors
+                ),
+                schema_errors,
+            )
+            self.assertFalse(verify_receipt(forged_schema))
+
+    def test_legacy_flat_fixtures_and_committed_receipts_remain_compatible(self) -> None:
+        for schema in (
+            "cael-quantum-v2.qaoa-novelty-scout",
+            "cael-quantum-v3.qaoa-paradox-pyramid-scout",
+        ):
+            with self.subTest(minimal_schema=schema):
+                minimal = {"schema": schema}
+                self.assertFalse(verify_receipt(minimal))
+                self.assertEqual(
+                    novelty_scout_receipt_errors(minimal),
+                    ["novelty-scout receipt is missing required structure"],
+                )
+
+        flat_fixture = load_fixture(self.fixture_path)
+        flat_qubo = build_qubo(flat_fixture)
+        self.assertNotIn("pyramid_qubo", flat_fixture)
+        self.assertNotIn("pyramid_variant", flat_qubo)
+        self.assertEqual(len(flat_fixture["candidates"]), 12)
+        self.assertEqual(len(flat_qubo["matrix"]), 12)
+
+        legacy_paths = (
+            REPO_ROOT
+            / "quantum_receipts"
+            / "quantum_novelty_scout_statevector_receipt.json",
+            REPO_ROOT
+            / "quantum_receipts"
+            / "quantum_paradox_probe_scout_aer_receipt_v1.json",
+        )
+        for path in legacy_paths:
+            with self.subTest(receipt=path.name):
+                receipt = json.loads(path.read_text(encoding="utf-8"))
+                self.assertEqual(
+                    receipt["schema"], "cael-quantum-v2.qaoa-novelty-scout"
+                )
+                self.assertEqual(receipt["candidate_count"], 12)
+                self.assertEqual(novelty_scout_receipt_errors(receipt), [])
+                self.assertTrue(verify_receipt(receipt))
 
     def test_paradox_probe_contract_binds_code_state_without_outcome_leakage(self) -> None:
         fixture = self.paradox_fixture()

@@ -27,6 +27,7 @@ from quantum_execute import run_qaoa
 from quantum_receipt_verify import (
     NOVELTY_SCOUT_SCHEMA,
     RANDOM_BUDGET_BASIS,
+    looks_like_novelty_scout_receipt,
     novelty_scout_receipt_errors,
 )
 
@@ -77,6 +78,16 @@ PARADOX_QUBO_CONFIGURATION_INPUT_FIELDS = [
 ]
 PARADOX_ALLOWED_STAGES = {"normalized", "falsifiable", "reproduced"}
 PARADOX_CONTROL_RECEIPT_SCHEMA = "holoscript.paradox-control-receipt.v1"
+PYRAMID_QUBO_SCHEMA = "holoscript.paradox-pyramid-qubo.v1"
+PYRAMID_RECEIPT_SCHEMA = "cael-quantum-v3.qaoa-paradox-pyramid-scout"
+PYRAMID_VARIANTS = {"pairwise", "volume_quadratized"}
+PYRAMID_SEMANTIC_VARIABLE_COUNT = 9
+PYRAMID_VOLUME_TERM_COUNT = 3
+PYRAMID_EQUIVALENCE_TOLERANCE = 1e-6
+PYRAMID_RANDOM_BUDGET_BASIS = (
+    "one random semantic bitstring per QAOA shot across all parameter evaluations; "
+    "auxiliary bits are deterministically derived"
+)
 
 
 def canonical_hash(payload: Any) -> str:
@@ -230,10 +241,16 @@ def _has_forbidden_ranking_token(value: str, forbidden: set[str]) -> bool:
 def _paradox_probe_contract(
     fixture: dict[str, Any],
     code_state_bindings: list[dict[str, Any]],
+    selected_pyramid_variant: str | None = None,
 ) -> dict[str, Any]:
     policy = fixture["paradox_probe_policy"]
     probes = [candidate["paradox_probe"] for candidate in fixture["candidates"]]
-    return {
+    qubo_configuration_input_fields = list(PARADOX_QUBO_CONFIGURATION_INPUT_FIELDS)
+    if selected_pyramid_variant is not None:
+        qubo_configuration_input_fields.extend(
+            ["pyramid_qubo", "selected_pyramid_variant"]
+        )
+    contract = {
         "mode": "paradox_probe_selection",
         "fixture_schema": PARADOX_PROBE_FIXTURE_SCHEMA,
         "card_ids": sorted({probe["card_id"] for probe in probes}),
@@ -246,7 +263,7 @@ def _paradox_probe_contract(
         ],
         "ranking_field_allowlist": policy["ranking_field_allowlist"],
         "candidate_optimizer_input_fields": PARADOX_CANDIDATE_OPTIMIZER_INPUT_FIELDS,
-        "qubo_configuration_input_fields": PARADOX_QUBO_CONFIGURATION_INPUT_FIELDS,
+        "qubo_configuration_input_fields": qubo_configuration_input_fields,
         "adjudication_corpus": policy["adjudication_corpus"],
         "adjudication_corpus_schema": policy["adjudication_corpus_schema"],
         "adjudication_corpus_sha256": policy["adjudication_corpus_sha256"],
@@ -270,6 +287,9 @@ def _paradox_probe_contract(
         "code_similarity_basis": "declared-state Git blob SHA-256 Jaccard",
         "claim_boundary": policy["claim_boundary"],
     }
+    if selected_pyramid_variant is not None:
+        contract["selected_pyramid_variant"] = selected_pyramid_variant
+    return contract
 
 
 def _validate_paradox_probe_fixture(fixture: dict[str, Any]) -> None:
@@ -514,11 +534,305 @@ def _validate_paradox_probe_fixture(fixture: dict[str, Any]) -> None:
                 )
 
 
+def _validate_pyramid_qubo(fixture: dict[str, Any]) -> None:
+    config = fixture.get("pyramid_qubo")
+    if not isinstance(config, dict):
+        raise ValueError("pyramid_qubo must be an object")
+    if config.get("schema") != PYRAMID_QUBO_SCHEMA:
+        raise ValueError("pyramid_qubo schema mismatch")
+    if config.get("default_variant") not in PYRAMID_VARIANTS:
+        raise ValueError("pyramid_qubo default_variant is unsupported")
+    faces = config.get("faces")
+    if not isinstance(faces, list) or len(faces) != 3:
+        raise ValueError("pyramid_qubo requires exactly three ordered faces")
+    face_ids: list[str] = []
+    ordered_candidate_ids: list[str] = []
+    for face in faces:
+        if not isinstance(face, dict):
+            raise ValueError("pyramid_qubo face must be an object")
+        face_id = face.get("id")
+        members = face.get("candidate_ids")
+        if not isinstance(face_id, str) or not face_id or face_id in face_ids:
+            raise ValueError("pyramid_qubo face IDs must be non-empty and unique")
+        if (
+            not isinstance(members, list)
+            or len(members) != 3
+            or len(members) != len(set(members))
+            or any(not isinstance(item, str) or not item for item in members)
+        ):
+            raise ValueError("each pyramid_qubo face requires three unique candidates")
+        face_ids.append(face_id)
+        ordered_candidate_ids.extend(members)
+    fixture_ids = [candidate["id"] for candidate in fixture["candidates"]]
+    if ordered_candidate_ids != fixture_ids:
+        raise ValueError(
+            "pyramid_qubo faces must partition candidates in declared candidate order"
+        )
+
+    structural = config.get("structural_pair_coefficients")
+    expected_structural_keys = {
+        "same_face",
+        "aligned_cross_face",
+        "other_cross_face",
+    }
+    if not isinstance(structural, dict) or set(structural) != expected_structural_keys:
+        raise ValueError("pyramid structural pair coefficients are incomplete")
+    structural_values = [float(structural[key]) for key in structural]
+    if any(
+        not math.isfinite(value) or not -1.0 <= value <= 1.0
+        for value in structural_values
+    ) or not any(abs(value) > 1e-12 for value in structural_values):
+        raise ValueError(
+            "pyramid structural pair coefficients must be finite, nontrivial, and in [-1, 1]"
+        )
+    cubic = config.get("aligned_cubic_coefficients")
+    if (
+        not isinstance(cubic, list)
+        or len(cubic) != PYRAMID_VOLUME_TERM_COUNT
+        or any(
+            not math.isfinite(float(value))
+            or not -1.0 <= float(value) <= 1.0
+            or abs(float(value)) <= 1e-12
+            for value in cubic
+        )
+    ):
+        raise ValueError(
+            "pyramid requires three nonzero aligned cubic coefficients in [-1, 1]"
+        )
+    margin = float(config.get("rosenberg_margin", 0.0))
+    if not math.isfinite(margin) or margin <= PYRAMID_EQUIVALENCE_TOLERANCE:
+        raise ValueError("pyramid Rosenberg margin must exceed numerical tolerance")
+    if not isinstance(config.get("claim_boundary"), str) or not config["claim_boundary"]:
+        raise ValueError("pyramid claim boundary is required")
+    if not isinstance(config.get("coefficient_provenance"), str) or not config[
+        "coefficient_provenance"
+    ]:
+        raise ValueError("pyramid coefficient provenance is required")
+    for claim_field in (
+        "author_blinding_claimed",
+        "optimizer_outcome_independence_claimed",
+        "quantum_advantage_claimed",
+        "literal_3d_quantum_processing_claimed",
+    ):
+        if config.get(claim_field) is not False:
+            raise ValueError(f"pyramid fixture must set {claim_field}=false")
+
+
+def resolve_pyramid_variant(
+    fixture: dict[str, Any], requested_variant: str | None
+) -> str | None:
+    config = fixture.get("pyramid_qubo")
+    if config is None:
+        if requested_variant is not None:
+            raise ValueError("--pyramid-variant requires a pyramid_qubo fixture")
+        return None
+    variant = requested_variant or str(config["default_variant"])
+    if variant not in PYRAMID_VARIANTS:
+        raise ValueError(f"unsupported pyramid variant: {variant}")
+    return variant
+
+
+def pyramid_input_hash(fixture: dict[str, Any], variant: str | None) -> str:
+    if variant is None:
+        return canonical_hash(fixture)
+    return canonical_hash({"fixture": fixture, "pyramid_variant": variant})
+
+
+def _add_qubo_coefficient(
+    matrix: list[list[float]], left: int, right: int, value: float
+) -> None:
+    i, j = sorted((left, right))
+    matrix[i][j] = round(float(matrix[i][j]) + float(value), 10)
+
+
+def _pyramid_variable_contract(fixture: dict[str, Any]) -> list[dict[str, Any]]:
+    contract: list[dict[str, Any]] = []
+    for face_index, face in enumerate(fixture["pyramid_qubo"]["faces"]):
+        for slot, candidate_id in enumerate(face["candidate_ids"]):
+            contract.append(
+                {
+                    "index": len(contract),
+                    "kind": "semantic",
+                    "id": candidate_id,
+                    "candidate_id": candidate_id,
+                    "face_id": face["id"],
+                    "face_index": face_index,
+                    "slot": slot,
+                }
+            )
+    return contract
+
+
+def _apply_pyramid_qubo(
+    fixture: dict[str, Any],
+    base_qubo: dict[str, Any],
+    variant: str,
+) -> dict[str, Any]:
+    semantic_count = len(fixture["candidates"])
+    if semantic_count != PYRAMID_SEMANTIC_VARIABLE_COUNT:
+        raise ValueError("pyramid QUBO requires exactly nine semantic candidates")
+    config = fixture["pyramid_qubo"]
+    variables = _pyramid_variable_contract(fixture)
+    structural_coefficients = {
+        key: float(value)
+        for key, value in config["structural_pair_coefficients"].items()
+    }
+    structural_matrix = [
+        [0.0 for _ in range(semantic_count)] for _ in range(semantic_count)
+    ]
+    semantic_matrix = [row[:] for row in base_qubo["matrix"]]
+    structural_terms: list[dict[str, Any]] = []
+    for i in range(semantic_count):
+        for j in range(i + 1, semantic_count):
+            left = variables[i]
+            right = variables[j]
+            if left["face_index"] == right["face_index"]:
+                relation = "same_face"
+            elif left["slot"] == right["slot"]:
+                relation = "aligned_cross_face"
+            else:
+                relation = "other_cross_face"
+            coefficient = structural_coefficients[relation]
+            structural_matrix[i][j] = coefficient
+            _add_qubo_coefficient(semantic_matrix, i, j, coefficient)
+            structural_terms.append(
+                {
+                    "left_index": i,
+                    "right_index": j,
+                    "relation": relation,
+                    "coefficient": coefficient,
+                }
+            )
+
+    qubo = dict(base_qubo)
+    qubo.update(
+        {
+            "pyramid_variant": variant,
+            "semantic_variable_count": semantic_count,
+            "ancilla_variable_count": 0,
+            "total_variable_count": semantic_count,
+            "variable_order": variables[:],
+            "base_portfolio_matrix": base_qubo["matrix"],
+            "structural_pair_matrix": structural_matrix,
+            "semantic_pairwise_matrix": semantic_matrix,
+            "structural_pair_coefficients": structural_coefficients,
+            "structural_pair_terms": structural_terms,
+            "higher_order_terms": [],
+            "quadratization": None,
+            "matrix": semantic_matrix,
+            "convention": (
+                "upper triangular: first nine bits are semantic candidates; "
+                "sum_i Qii*x_i + sum_{i<j} Qij*x_i*x_j"
+            ),
+        }
+    )
+    if variant == "pairwise":
+        return qubo
+
+    cubic_coefficients = [
+        float(value) for value in config["aligned_cubic_coefficients"]
+    ]
+    margin = float(config["rosenberg_margin"])
+    total_count = semantic_count + PYRAMID_VOLUME_TERM_COUNT
+    expanded_matrix = [
+        [0.0 for _ in range(total_count)] for _ in range(total_count)
+    ]
+    for i in range(semantic_count):
+        for j in range(i, semantic_count):
+            expanded_matrix[i][j] = semantic_matrix[i][j]
+
+    higher_order_terms: list[dict[str, Any]] = []
+    reduction_terms: list[dict[str, Any]] = []
+    for slot, coefficient in enumerate(cubic_coefficients):
+        semantic_indices = [slot, 3 + slot, 6 + slot]
+        left, right, remaining = semantic_indices
+        ancilla_index = semantic_count + slot
+        ancilla_id = f"ancilla:aligned-volume:{slot}"
+        penalty_strength = abs(coefficient) + margin
+        _add_qubo_coefficient(expanded_matrix, left, right, penalty_strength)
+        _add_qubo_coefficient(expanded_matrix, left, ancilla_index, -2 * penalty_strength)
+        _add_qubo_coefficient(expanded_matrix, right, ancilla_index, -2 * penalty_strength)
+        _add_qubo_coefficient(expanded_matrix, ancilla_index, ancilla_index, 3 * penalty_strength)
+        _add_qubo_coefficient(expanded_matrix, remaining, ancilla_index, coefficient)
+        term_id = f"aligned-volume:{slot}"
+        semantic_ids = [variables[index]["id"] for index in semantic_indices]
+        higher_order_terms.append(
+            {
+                "id": term_id,
+                "slot": slot,
+                "semantic_indices": semantic_indices,
+                "semantic_ids": semantic_ids,
+                "coefficient": coefficient,
+            }
+        )
+        reduction_terms.append(
+            {
+                "higher_order_term_id": term_id,
+                "substitution": f"{ancilla_id}=x{left}*x{right}",
+                "substitution_pair": [left, right],
+                "remaining_index": remaining,
+                "ancilla_id": ancilla_id,
+                "ancilla_index": ancilla_index,
+                "cubic_coefficient": coefficient,
+                "penalty_strength": penalty_strength,
+                "minimum_wrong_assignment_gap_bound": margin,
+            }
+        )
+        variables.append(
+            {
+                "index": ancilla_index,
+                "kind": "ancilla",
+                "id": ancilla_id,
+                "represents_product_of": [left, right],
+                "higher_order_term_id": term_id,
+            }
+        )
+    qubo.update(
+        {
+            "ancilla_variable_count": PYRAMID_VOLUME_TERM_COUNT,
+            "total_variable_count": total_count,
+            "variable_order": variables,
+            "higher_order_terms": higher_order_terms,
+            "quadratization": {
+                "method": "rosenberg-pair-product-v1",
+                "penalty_polynomial": "M*(a*b-2*a*y-2*b*y+3*y)",
+                "strength_rule": "M_k=abs(t_k)+rosenberg_margin",
+                "rosenberg_margin": margin,
+                "ancillas_isolated": True,
+                "constant_offset_delta": 0.0,
+                "terms": reduction_terms,
+            },
+            "matrix": expanded_matrix,
+            "convention": (
+                "upper triangular: first nine bits are semantic candidates and final "
+                "three bits are deterministic Rosenberg ancillas"
+            ),
+        }
+    )
+    qubo["quadratization"]["equivalence_certificate"] = (
+        pyramid_equivalence_certificate(qubo)
+    )
+    return qubo
+
+
 def load_fixture(path: pathlib.Path) -> dict[str, Any]:
     fixture = json.loads(path.read_text(encoding="utf-8"))
     candidates = fixture.get("candidates")
-    if not isinstance(candidates, list) or not 12 <= len(candidates) <= 20:
-        raise ValueError("novelty benchmark requires 12..20 candidates")
+    is_pyramid = isinstance(fixture.get("pyramid_qubo"), dict)
+    valid_count = (
+        isinstance(candidates, list)
+        and (
+            len(candidates) == PYRAMID_SEMANTIC_VARIABLE_COUNT
+            if is_pyramid
+            else 12 <= len(candidates) <= 20
+        )
+    )
+    if not valid_count:
+        raise ValueError(
+            "pyramid benchmark requires exactly 9 candidates"
+            if is_pyramid
+            else "novelty benchmark requires 12..20 candidates"
+        )
     ids = [candidate.get("id") for candidate in candidates]
     if len(ids) != len(set(ids)) or any(not item for item in ids):
         raise ValueError("candidate IDs must be non-empty and unique")
@@ -557,6 +871,8 @@ def load_fixture(path: pathlib.Path) -> dict[str, Any]:
         raise ValueError("code evidence allowed_extensions must be a suffix list")
     if fixture.get("schema") == PARADOX_PROBE_FIXTURE_SCHEMA:
         _validate_paradox_probe_fixture(fixture)
+    if is_pyramid:
+        _validate_pyramid_qubo(fixture)
     for candidate in candidates:
         scores = candidate.get("scores")
         if not isinstance(scores, dict):
@@ -876,7 +1192,9 @@ def tag_similarity(left: dict[str, Any], right: dict[str, Any]) -> float:
 def build_qubo(
     fixture: dict[str, Any],
     repo_root: pathlib.Path = REPO_ROOT,
+    pyramid_variant: str | None = None,
 ) -> dict[str, Any]:
+    resolved_pyramid_variant = resolve_pyramid_variant(fixture, pyramid_variant)
     candidates = fixture["candidates"]
     weights = {key: float(value) for key, value in fixture["score_weights"].items()}
     target = int(fixture["target_cardinality"])
@@ -969,8 +1287,10 @@ def build_qubo(
     if fixture.get("schema") == PARADOX_PROBE_FIXTURE_SCHEMA:
         qubo["code_state_bindings"] = code_state_bindings
         qubo["paradox_probe_contract"] = _paradox_probe_contract(
-            fixture, code_state_bindings
+            fixture, code_state_bindings, resolved_pyramid_variant
         )
+    if resolved_pyramid_variant is not None:
+        return _apply_pyramid_qubo(fixture, qubo, resolved_pyramid_variant)
     return qubo
 
 
@@ -986,11 +1306,240 @@ def qubo_objective(bitstring: str, matrix: list[list[float]]) -> float:
     )
 
 
+def encode_pyramid_bitstring(semantic_bitstring: str, qubo: dict[str, Any]) -> str:
+    semantic_count = int(qubo["semantic_variable_count"])
+    if len(semantic_bitstring) != semantic_count or any(
+        bit not in "01" for bit in semantic_bitstring
+    ):
+        raise ValueError("invalid pyramid semantic bitstring")
+    if qubo["pyramid_variant"] == "pairwise":
+        return semantic_bitstring
+    semantic_bits = [int(bit) for bit in semantic_bitstring]
+    ancillas = [
+        str(semantic_bits[term["substitution_pair"][0]] * semantic_bits[term["substitution_pair"][1]])
+        for term in qubo["quadratization"]["terms"]
+    ]
+    return semantic_bitstring + "".join(ancillas)
+
+
+def pyramid_equivalence_certificate(qubo: dict[str, Any]) -> dict[str, Any]:
+    semantic_count = int(qubo["semantic_variable_count"])
+    ancilla_count = int(qubo["ancilla_variable_count"])
+    if qubo["pyramid_variant"] != "volume_quadratized" or ancilla_count == 0:
+        raise ValueError("equivalence certificate requires volume quadratization")
+    max_error = 0.0
+    minimum_infeasible_gap = float("inf")
+    all_minimizers_match = True
+    semantic_optimum = float("inf")
+    semantic_optimal_bitstring = "0" * semantic_count
+    expanded_optimum = float("inf")
+    expanded_optimal_bitstring = "0" * (semantic_count + ancilla_count)
+    for semantic_mask in range(1 << semantic_count):
+        semantic = format(semantic_mask, f"0{semantic_count}b")
+        semantic_bits = [int(bit) for bit in semantic]
+        direct_hubo = qubo_objective(semantic, qubo["semantic_pairwise_matrix"])
+        direct_hubo += sum(
+            float(term["coefficient"])
+            * semantic_bits[term["semantic_indices"][0]]
+            * semantic_bits[term["semantic_indices"][1]]
+            * semantic_bits[term["semantic_indices"][2]]
+            for term in qubo["higher_order_terms"]
+        )
+        expected = encode_pyramid_bitstring(semantic, qubo)
+        expected_ancillas = expected[semantic_count:]
+        values: list[tuple[float, str]] = []
+        for ancilla_mask in range(1 << ancilla_count):
+            ancillas = format(ancilla_mask, f"0{ancilla_count}b")
+            expanded = semantic + ancillas
+            value = qubo_objective(expanded, qubo["matrix"])
+            values.append((value, ancillas))
+            if value < expanded_optimum:
+                expanded_optimum = value
+                expanded_optimal_bitstring = expanded
+        best_value = min(value for value, _ in values)
+        minimizing_ancillas = [
+            ancillas
+            for value, ancillas in values
+            if abs(value - best_value) <= PYRAMID_EQUIVALENCE_TOLERANCE
+        ]
+        all_minimizers_match = all_minimizers_match and minimizing_ancillas == [
+            expected_ancillas
+        ]
+        max_error = max(max_error, abs(best_value - direct_hubo))
+        wrong_values = [
+            value for value, ancillas in values if ancillas != expected_ancillas
+        ]
+        minimum_infeasible_gap = min(
+            minimum_infeasible_gap, min(wrong_values) - direct_hubo
+        )
+        if direct_hubo < semantic_optimum:
+            semantic_optimum = direct_hubo
+            semantic_optimal_bitstring = semantic
+    expected_expanded_optimum = encode_pyramid_bitstring(
+        semantic_optimal_bitstring, qubo
+    )
+    certificate = {
+        "semantic_assignments_checked": 1 << semantic_count,
+        "expanded_assignments_checked": 1 << (semantic_count + ancilla_count),
+        "max_abs_minimized_objective_error": max_error,
+        "minimum_infeasible_gap": minimum_infeasible_gap,
+        "all_minimizing_ancillas_match_products": all_minimizers_match,
+        "semantic_optimal_bitstring": semantic_optimal_bitstring,
+        "expanded_optimal_bitstring": expanded_optimal_bitstring,
+        "expanded_optimum_projects_to_semantic_optimum": (
+            expanded_optimal_bitstring == expected_expanded_optimum
+            and abs(expanded_optimum - semantic_optimum)
+            <= PYRAMID_EQUIVALENCE_TOLERANCE
+        ),
+    }
+    if (
+        max_error > PYRAMID_EQUIVALENCE_TOLERANCE
+        or minimum_infeasible_gap <= PYRAMID_EQUIVALENCE_TOLERANCE
+        or not certificate["all_minimizing_ancillas_match_products"]
+        or not certificate["expanded_optimum_projects_to_semantic_optimum"]
+    ):
+        raise AssertionError("pyramid Rosenberg reduction failed exact enumeration")
+    return certificate
+
+
+def _pyramid_metrics(
+    bitstring: str,
+    fixture: dict[str, Any],
+    qubo: dict[str, Any],
+) -> dict[str, Any]:
+    semantic_count = int(qubo["semantic_variable_count"])
+    total_count = int(qubo["total_variable_count"])
+    if len(bitstring) != total_count or any(bit not in "01" for bit in bitstring):
+        raise ValueError("invalid pyramid QUBO bitstring")
+    semantic_bitstring = bitstring[:semantic_count]
+    ancilla_bitstring = bitstring[semantic_count:]
+    semantic_bits = [int(bit) for bit in semantic_bitstring]
+    selected_indices = [index for index, bit in enumerate(semantic_bits) if bit]
+    expected_expanded = encode_pyramid_bitstring(semantic_bitstring, qubo)
+    expected_ancillas = expected_expanded[semantic_count:]
+    ancilla_violations = [
+        index
+        for index, (actual, expected) in enumerate(
+            zip(ancilla_bitstring, expected_ancillas)
+        )
+        if actual != expected
+    ]
+    ancilla_feasible = not ancilla_violations
+
+    reward_sum = sum(qubo["candidate_rewards"][index] for index in selected_indices)
+    tag_redundancy = sum(
+        qubo["redundancy_penalty"] * qubo["tag_similarities"][i][j]
+        for offset, i in enumerate(selected_indices)
+        for j in selected_indices[offset + 1 :]
+    )
+    code_redundancy = sum(
+        qubo["code_similarity_penalty"] * qubo["code_similarities"][i][j]
+        for offset, i in enumerate(selected_indices)
+        for j in selected_indices[offset + 1 :]
+    )
+    redundancy = tag_redundancy + code_redundancy
+    constraint_penalty = (
+        qubo["cardinality_penalty"]
+        * (len(selected_indices) - qubo["target_cardinality"]) ** 2
+    )
+    base_raw = qubo_objective(semantic_bitstring, qubo["base_portfolio_matrix"])
+    structural_contribution = qubo_objective(
+        semantic_bitstring, qubo["structural_pair_matrix"]
+    )
+    semantic_pairwise_raw = qubo_objective(
+        semantic_bitstring, qubo["semantic_pairwise_matrix"]
+    )
+    direct_cubic = sum(
+        float(term["coefficient"])
+        * semantic_bits[term["semantic_indices"][0]]
+        * semantic_bits[term["semantic_indices"][1]]
+        * semantic_bits[term["semantic_indices"][2]]
+        for term in qubo["higher_order_terms"]
+    )
+    decoded_hubo_raw = semantic_pairwise_raw + direct_cubic
+    quadratic_cubic = 0.0
+    quadratization_penalty = 0.0
+    if qubo["pyramid_variant"] == "volume_quadratized":
+        ancilla_bits = [int(bit) for bit in ancilla_bitstring]
+        for term, reduction in zip(
+            qubo["higher_order_terms"], qubo["quadratization"]["terms"]
+        ):
+            left, right = reduction["substitution_pair"]
+            remaining = reduction["remaining_index"]
+            ancilla_offset = reduction["ancilla_index"] - semantic_count
+            y = ancilla_bits[ancilla_offset]
+            a = semantic_bits[left]
+            b = semantic_bits[right]
+            c = semantic_bits[remaining]
+            quadratic_cubic += float(term["coefficient"]) * y * c
+            quadratization_penalty += float(reduction["penalty_strength"]) * (
+                a * b - 2 * a * y - 2 * b * y + 3 * y
+            )
+    raw_objective = qubo_objective(bitstring, qubo["matrix"])
+    repaired_raw = qubo_objective(expected_expanded, qubo["matrix"])
+    expected_raw = (
+        semantic_pairwise_raw + quadratic_cubic + quadratization_penalty
+    )
+    if abs(raw_objective - expected_raw) > PYRAMID_EQUIVALENCE_TOLERANCE:
+        raise AssertionError("pyramid QUBO components no longer match the matrix")
+    if abs(repaired_raw - decoded_hubo_raw) > PYRAMID_EQUIVALENCE_TOLERANCE:
+        raise AssertionError("pyramid repaired QUBO no longer matches the HUBO")
+    expected_base_shifted = -reward_sum + redundancy + constraint_penalty
+    if (
+        abs(base_raw + qubo["constant_offset"] - expected_base_shifted)
+        > PYRAMID_EQUIVALENCE_TOLERANCE
+    ):
+        raise AssertionError("pyramid base portfolio semantics no longer match")
+
+    face_counts = {face["id"]: 0 for face in fixture["pyramid_qubo"]["faces"]}
+    for index in selected_indices:
+        face_counts[qubo["variable_order"][index]["face_id"]] += 1
+    one_per_face = all(count == 1 for count in face_counts.values())
+    target_met = len(selected_indices) == int(qubo["target_cardinality"])
+    return {
+        "bitstring": bitstring,
+        "semantic_bitstring": semantic_bitstring,
+        "ancilla_bitstring": ancilla_bitstring,
+        "expected_ancilla_bitstring": expected_ancillas,
+        "ancilla_feasible": ancilla_feasible,
+        "ancilla_violation_count": len(ancilla_violations),
+        "ancilla_violation_offsets": ancilla_violations,
+        "selected_ids": [fixture["candidates"][index]["id"] for index in selected_indices],
+        "selected_count": len(selected_indices),
+        "face_counts": face_counts,
+        "one_per_face": one_per_face,
+        "target_cardinality_met": target_met,
+        "model_constraints_satisfied": target_met and one_per_face and ancilla_feasible,
+        "raw_qubo_objective": raw_objective,
+        "shifted_objective": raw_objective + qubo["constant_offset"],
+        "base_raw_qubo_objective": base_raw,
+        "structural_pair_contribution": structural_contribution,
+        "semantic_pairwise_raw_objective": semantic_pairwise_raw,
+        "direct_cubic_contribution": direct_cubic,
+        "decoded_hubo_raw_objective": decoded_hubo_raw,
+        "quadratic_cubic_contribution": quadratic_cubic,
+        "quadratization_penalty": quadratization_penalty,
+        "repaired_bitstring": expected_expanded,
+        "repaired_raw_qubo_objective": repaired_raw,
+        "ancilla_excess_cost": raw_objective - repaired_raw,
+        "reward_sum": reward_sum,
+        "redundancy_penalty": redundancy,
+        "tag_redundancy_penalty": tag_redundancy,
+        "code_redundancy_penalty": code_redundancy,
+        "constraint_penalty": constraint_penalty,
+        "portfolio_score": (
+            reward_sum - redundancy - structural_contribution - direct_cubic
+        ),
+    }
+
+
 def portfolio_metrics(
     bitstring: str,
     fixture: dict[str, Any],
     qubo: dict[str, Any],
 ) -> dict[str, Any]:
+    if qubo.get("pyramid_variant") in PYRAMID_VARIANTS:
+        return _pyramid_metrics(bitstring, fixture, qubo)
     selected_indices = [index for index, bit in enumerate(bitstring) if bit == "1"]
     candidates = fixture["candidates"]
     reward_sum = sum(qubo["candidate_rewards"][index] for index in selected_indices)
@@ -1030,7 +1579,9 @@ def portfolio_metrics(
 
 
 def exact_baseline(fixture: dict[str, Any], qubo: dict[str, Any]) -> dict[str, Any]:
-    size = len(fixture["candidates"])
+    size = int(
+        qubo.get("total_variable_count", len(fixture["candidates"]))
+    )
     started = time.perf_counter()
     best_bits = "0" * size
     best_value = float("inf")
@@ -1047,6 +1598,32 @@ def exact_baseline(fixture: dict[str, Any], qubo: dict[str, Any]) -> dict[str, A
         )
     result["runtime_seconds"] = time.perf_counter() - started
     result["evaluations"] = 1 << size
+    return result
+
+
+def semantic_exact_baseline(
+    fixture: dict[str, Any], qubo: dict[str, Any]
+) -> dict[str, Any]:
+    if qubo.get("pyramid_variant") not in PYRAMID_VARIANTS:
+        return exact_baseline(fixture, qubo)
+    semantic_count = int(qubo["semantic_variable_count"])
+    started = time.perf_counter()
+    best_bits = encode_pyramid_bitstring("0" * semantic_count, qubo)
+    best_value = float("inf")
+    for mask in range(1 << semantic_count):
+        semantic = format(mask, f"0{semantic_count}b")
+        bits = encode_pyramid_bitstring(semantic, qubo)
+        value = qubo_objective(bits, qubo["matrix"])
+        if value < best_value:
+            best_value = value
+            best_bits = bits
+    result = portfolio_metrics(best_bits, fixture, qubo)
+    if result["selected_count"] != qubo["target_cardinality"]:
+        raise ValueError(
+            "cardinality_penalty is insufficient: semantic optimum violates target"
+        )
+    result["runtime_seconds"] = time.perf_counter() - started
+    result["evaluations"] = 1 << semantic_count
     return result
 
 
@@ -1069,6 +1646,36 @@ def greedy_baseline(fixture: dict[str, Any], qubo: dict[str, Any]) -> dict[str, 
     started = time.perf_counter()
     selected: list[int] = []
     available = set(range(len(fixture["candidates"])))
+    if qubo.get("pyramid_variant") in PYRAMID_VARIANTS:
+        semantic_count = int(qubo["semantic_variable_count"])
+        for _ in range(qubo["target_cardinality"]):
+            scored_choices: list[tuple[float, int]] = []
+            for index in available:
+                trial = set(selected)
+                trial.add(index)
+                semantic = "".join(
+                    "1" if bit_index in trial else "0"
+                    for bit_index in range(semantic_count)
+                )
+                metrics = portfolio_metrics(
+                    encode_pyramid_bitstring(semantic, qubo), fixture, qubo
+                )
+                scored_choices.append((metrics["decoded_hubo_raw_objective"], index))
+            _, choice = min(scored_choices, key=lambda item: (item[0], item[1]))
+            selected.append(choice)
+            available.remove(choice)
+        semantic = "".join(
+            "1" if index in selected else "0" for index in range(semantic_count)
+        )
+        result = portfolio_metrics(
+            encode_pyramid_bitstring(semantic, qubo), fixture, qubo
+        )
+        result["runtime_seconds"] = time.perf_counter() - started
+        result["evaluations"] = sum(
+            len(fixture["candidates"]) - i
+            for i in range(qubo["target_cardinality"])
+        )
+        return result
     for _ in range(qubo["target_cardinality"]):
         choice = max(
             available,
@@ -1100,10 +1707,19 @@ def random_baseline(
     started = time.perf_counter()
     rng = random.Random(seed)
     size = len(fixture["candidates"])
-    best_bits = "0" * size
+    best_bits = (
+        encode_pyramid_bitstring("0" * size, qubo)
+        if qubo.get("pyramid_variant") in PYRAMID_VARIANTS
+        else "0" * size
+    )
     best_value = float("inf")
     for _ in range(budget):
-        bits = format(rng.randrange(1 << size), f"0{size}b")
+        semantic = format(rng.randrange(1 << size), f"0{size}b")
+        bits = (
+            encode_pyramid_bitstring(semantic, qubo)
+            if qubo.get("pyramid_variant") in PYRAMID_VARIANTS
+            else semantic
+        )
         value = qubo_objective(bits, qubo["matrix"])
         if value < best_value:
             best_value = value
@@ -1112,7 +1728,11 @@ def random_baseline(
     result["runtime_seconds"] = time.perf_counter() - started
     result["evaluations"] = budget
     result["seed"] = seed
-    result["budget_basis"] = RANDOM_BUDGET_BASIS
+    result["budget_basis"] = (
+        PYRAMID_RANDOM_BUDGET_BASIS
+        if qubo.get("pyramid_variant") in PYRAMID_VARIANTS
+        else RANDOM_BUDGET_BASIS
+    )
     return result
 
 
@@ -1124,12 +1744,24 @@ def render_composition(
     matrix_json = json.dumps(qubo["matrix"], separators=(",", ":"))
     matrix_literal = json.dumps(matrix_json)
     code_evidence_sha256 = canonical_hash(qubo["code_evidence"])
+    variable_ids = (
+        [variable["id"] for variable in qubo["variable_order"]]
+        if qubo.get("pyramid_variant") in PYRAMID_VARIANTS
+        else candidate_ids
+    )
+    model_boundary = (
+        "// Pyramid geometry is a visual metaphor for a binary interaction model; "
+        "ancillas are encoding overhead, not research variables.\n"
+        if qubo.get("pyramid_variant") in PYRAMID_VARIANTS
+        else ""
+    )
     return (
         "// Generated by scripts/quantum_novelty_scout.py\n"
-        f"// Candidate fixture sha256: {input_sha256}\n"
+        f"// Canonical model input sha256: {input_sha256}\n"
         f"// Code evidence sha256: {code_evidence_sha256}\n"
-        f"// Variable order: {','.join(f'{index}={item}' for index, item in enumerate(candidate_ids))}\n"
+        f"// Variable order: {','.join(f'{index}={item}' for index, item in enumerate(variable_ids))}\n"
         "// QUBO ranks priors plus hash-bound code evidence; it does not prove novelty.\n"
+        f"{model_boundary}"
         "// This composition mirrors the Python-executed matrix; it is not an execution receipt.\n"
         'composition "Quantum Novelty Scout" {\n'
         '  object "Novelty Portfolio" {\n'
@@ -1146,20 +1778,23 @@ def render_composition(
 
 
 def verify_receipt(receipt: dict[str, Any]) -> bool:
-    return receipt.get("schema") == NOVELTY_SCOUT_SCHEMA and not (
-        novelty_scout_receipt_errors(receipt)
-    )
+    return looks_like_novelty_scout_receipt(receipt) and receipt.get("schema") in {
+        NOVELTY_SCOUT_SCHEMA,
+        PYRAMID_RECEIPT_SCHEMA,
+    } and not novelty_scout_receipt_errors(receipt)
 
 
 def prepare_composition(
     fixture_path: pathlib.Path,
     composition_path: pathlib.Path,
+    pyramid_variant: str | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any], str]:
     """Render the deterministic matrix mirror before sealing a clean-source run."""
 
     fixture = load_fixture(fixture_path)
-    qubo = build_qubo(fixture)
-    input_sha256 = canonical_hash(fixture)
+    resolved_variant = resolve_pyramid_variant(fixture, pyramid_variant)
+    qubo = build_qubo(fixture, pyramid_variant=resolved_variant)
+    input_sha256 = pyramid_input_hash(fixture, resolved_variant)
     composition = render_composition(
         qubo,
         input_sha256,
@@ -1177,11 +1812,15 @@ def run_scout(
     shots: int,
     grid_points: int,
     seed: int,
+    pyramid_variant: str | None = None,
 ) -> dict[str, Any]:
     fixture, qubo, input_sha256 = prepare_composition(
         fixture_path,
         composition_path,
+        pyramid_variant,
     )
+    resolved_pyramid_variant = qubo.get("pyramid_variant")
+    is_pyramid = resolved_pyramid_variant in PYRAMID_VARIANTS
     is_paradox_probe = fixture.get("schema") == PARADOX_PROBE_FIXTURE_SCHEMA
     extra_source_paths: list[pathlib.Path] = []
     pre_execution_snapshot: dict[str, Any] | None = None
@@ -1239,6 +1878,16 @@ def run_scout(
         }
     )
     exact = exact_baseline(fixture, qubo)
+    semantic_exact = semantic_exact_baseline(fixture, qubo) if is_pyramid else exact
+    if is_pyramid and (
+        exact["semantic_bitstring"] != semantic_exact["semantic_bitstring"]
+        or abs(
+            exact["raw_qubo_objective"]
+            - semantic_exact["raw_qubo_objective"]
+        )
+        > PYRAMID_EQUIVALENCE_TOLERANCE
+    ):
+        raise AssertionError("expanded and semantic pyramid exact optima disagree")
     greedy = greedy_baseline(fixture, qubo)
     random_result = random_baseline(
         fixture,
@@ -1250,10 +1899,13 @@ def run_scout(
     candidates_by_id = {
         candidate["id"]: candidate for candidate in fixture["candidates"]
     }
-    selected_candidates = [candidates_by_id[item] for item in exact["selected_ids"]]
+    recommended = semantic_exact if is_pyramid else exact
+    selected_candidates = [
+        candidates_by_id[item] for item in recommended["selected_ids"]
+    ]
     code_evidence_by_id = {item["candidate_id"]: item for item in qubo["code_evidence"]}
     selected_code_evidence = [
-        code_evidence_by_id[item] for item in exact["selected_ids"]
+        code_evidence_by_id[item] for item in recommended["selected_ids"]
     ]
     selected_code_evidence_paths_available = all(
         item["required_paths_available"] for item in selected_code_evidence
@@ -1276,7 +1928,9 @@ def run_scout(
         "qaoa_strictly_beats_budget_random": qaoa["raw_qubo_objective"]
         < random_result["raw_qubo_objective"] - 1e-9,
         "classical_exact_not_cheaper": exact["runtime_seconds"]
-        > qaoa["runtime_seconds"],
+        > qaoa["runtime_seconds"]
+        if not is_pyramid
+        else semantic_exact["runtime_seconds"] > qaoa["runtime_seconds"],
         "nontrivial_problem_scale": len(fixture["candidates"]) >= 18,
         "qaoa_target_cardinality_met": qaoa["selected_count"]
         == qubo["target_cardinality"],
@@ -1284,6 +1938,10 @@ def run_scout(
         "selected_claims_not_killed": selected_claims_not_killed,
         "selected_code_evidence_paths_available": selected_code_evidence_paths_available,
     }
+    if is_pyramid:
+        criteria["qaoa_model_constraints_satisfied"] = qaoa[
+            "model_constraints_satisfied"
+        ]
     hardware_gate = {
         "decision": "GO" if all(criteria.values()) else "NO_GO",
         "criteria": criteria,
@@ -1347,6 +2005,12 @@ def run_scout(
             "objective": random_result["raw_qubo_objective"],
         },
     }
+    if is_pyramid:
+        result_summary["semantic_exact"] = {
+            "bitstring": semantic_exact["bitstring"],
+            "semantic_bitstring": semantic_exact["semantic_bitstring"],
+            "objective": semantic_exact["raw_qubo_objective"],
+        }
     hash_payload = {
         "input_sha256": input_sha256,
         "qubo_sha256": canonical_hash(qubo["matrix"]),
@@ -1356,15 +2020,51 @@ def run_scout(
         "results": result_summary,
         "hardware_gate_decision": hardware_gate["decision"],
     }
-    claim_boundary = (
-        fixture["paradox_probe_policy"]["claim_boundary"]
-        + " QAOA, exact, greedy, and random results compare portfolio-selection "
-        "objectives only; they do not establish quantum advantage."
-        if is_paradox_probe
-        else "QAOA prioritizes a diverse candidate portfolio from declared ordinal priors plus declared-path availability and exact shared implementation-file identity. File presence and hashes do not prove claim alignment, semantic correctness, test execution, novelty, quantum advantage, or publication readiness."
-    )
+    if is_pyramid:
+        hash_payload.update(
+            {
+                "pyramid_variant": resolved_pyramid_variant,
+                "base_portfolio_matrix_sha256": canonical_hash(
+                    qubo["base_portfolio_matrix"]
+                ),
+                "semantic_pairwise_matrix_sha256": canonical_hash(
+                    qubo["semantic_pairwise_matrix"]
+                ),
+                "pyramid_model_sha256": canonical_hash(
+                    {
+                        "variable_order": qubo["variable_order"],
+                        "structural_pair_terms": qubo["structural_pair_terms"],
+                        "higher_order_terms": qubo["higher_order_terms"],
+                        "quadratization": qubo["quadratization"],
+                    }
+                ),
+            }
+        )
+        claim_boundary = (
+            fixture["pyramid_qubo"]["claim_boundary"]
+            + " The pyramid is a visual metaphor for a nine-variable binary "
+            "interaction model. The three volume ancillas, when present, are "
+            "deterministic encoding overhead. Exact, greedy, random, and local "
+            "seeded StatevectorSampler QAOA "
+            "results compare declared portfolio objectives only; they do not "
+            "establish literal 3D quantum processing, paradox productivity, "
+            "novelty, or quantum advantage. The simulator result is accepted only "
+            "when it deterministically replays under the recorded Python, Qiskit, "
+            "and NumPy versions; "
+            "this is not proof of a historical execution event. The seeded sampler "
+            "may reuse common random numbers across parameter evaluations; budget "
+            "matching counts samples but does not claim independent trials."
+        )
+    else:
+        claim_boundary = (
+            fixture["paradox_probe_policy"]["claim_boundary"]
+            + " QAOA, exact, greedy, and random results compare portfolio-selection "
+            "objectives only; they do not establish quantum advantage."
+            if is_paradox_probe
+            else "QAOA prioritizes a diverse candidate portfolio from declared ordinal priors plus declared-path availability and exact shared implementation-file identity. File presence and hashes do not prove claim alignment, semantic correctness, test execution, novelty, quantum advantage, or publication readiness."
+        )
     receipt = {
-        "schema": NOVELTY_SCOUT_SCHEMA,
+        "schema": PYRAMID_RECEIPT_SCHEMA if is_pyramid else NOVELTY_SCOUT_SCHEMA,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "claim_boundary": claim_boundary,
         "fixture": display_path(fixture_path),
@@ -1383,16 +2083,22 @@ def run_scout(
             "grid_points": effective_grid_points,
             "p": 1,
             "execution_mode": "aer",
+            **(
+                {"pyramid_variant": resolved_pyramid_variant}
+                if is_pyramid
+                else {}
+            ),
         },
         "execution_receipt": qaoa_result["receipt"],
         "results": {
             "qaoa": qaoa,
             "exact": exact,
+            **({"semantic_exact": semantic_exact} if is_pyramid else {}),
             "greedy": greedy,
             "budget_matched_random": random_result,
         },
         "qaoa_optimality_gap": qaoa["raw_qubo_objective"] - exact["raw_qubo_objective"],
-        "recommended_portfolio": exact,
+        "recommended_portfolio": recommended,
         "selected_candidates": selected_candidates,
         "selected_code_evidence": selected_code_evidence,
         "source_grounding_complete": source_grounding_complete,
@@ -1403,6 +2109,7 @@ def run_scout(
         "environment": {
             "python": platform.python_version(),
             "qiskit": importlib.metadata.version("qiskit"),
+            "numpy": importlib.metadata.version("numpy"),
             "platform": platform.platform(),
         },
         "code_hash_basis": "SHA-256 of pinned Git blob bytes",
@@ -1412,6 +2119,22 @@ def run_scout(
         "hash_scope": FULL_RECEIPT_HASH_SCOPE,
         "hash_payload": hash_payload,
     }
+    if is_pyramid:
+        receipt["pyramid_variant"] = resolved_pyramid_variant
+        receipt["semantic_variable_count"] = qubo["semantic_variable_count"]
+        receipt["ancilla_variable_count"] = qubo["ancilla_variable_count"]
+        receipt["total_qubit_count"] = qubo["total_variable_count"]
+        receipt["pyramid_qubo"] = fixture["pyramid_qubo"]
+        receipt["pyramid_model"] = {
+            "semantic_variable_count": qubo["semantic_variable_count"],
+            "ancilla_variable_count": qubo["ancilla_variable_count"],
+            "total_variable_count": qubo["total_variable_count"],
+            "variable_order": qubo["variable_order"],
+            "faces": fixture["pyramid_qubo"]["faces"],
+            "structural_pair_terms": qubo["structural_pair_terms"],
+            "higher_order_terms": qubo["higher_order_terms"],
+            "quadratization": qubo["quadratization"],
+        }
     if is_paradox_probe:
         receipt["paradox_probe_policy"] = fixture["paradox_probe_policy"]
         receipt["paradox_probe_contract"] = qubo["paradox_probe_contract"]
@@ -1445,6 +2168,15 @@ def main() -> int:
     parser.add_argument("--grid-points", type=int, default=4)
     parser.add_argument("--seed", type=int, default=17)
     parser.add_argument(
+        "--pyramid-variant",
+        choices=sorted(PYRAMID_VARIANTS),
+        default=None,
+        help=(
+            "select the nine-variable pairwise pyramid or its exact "
+            "twelve-qubit Rosenberg volume encoding"
+        ),
+    )
+    parser.add_argument(
         "--prepare-only",
         action="store_true",
         help="write the deterministic .holo matrix mirror without executing QAOA",
@@ -1452,7 +2184,9 @@ def main() -> int:
     args = parser.parse_args()
     if args.prepare_only:
         fixture, qubo, input_sha256 = prepare_composition(
-            args.input.resolve(), args.composition_out.resolve()
+            args.input.resolve(),
+            args.composition_out.resolve(),
+            args.pyramid_variant,
         )
         print(
             json.dumps(
@@ -1461,6 +2195,13 @@ def main() -> int:
                     "fixture_sha256": input_sha256,
                     "qubo_matrix_sha256": canonical_hash(qubo["matrix"]),
                     "candidate_count": len(fixture["candidates"]),
+                    "pyramid_variant": qubo.get("pyramid_variant"),
+                    "semantic_variable_count": qubo.get(
+                        "semantic_variable_count", len(fixture["candidates"])
+                    ),
+                    "total_qubit_count": qubo.get(
+                        "total_variable_count", len(fixture["candidates"])
+                    ),
                     "execution_performed": False,
                 },
                 indent=2,
@@ -1474,6 +2215,7 @@ def main() -> int:
         max(1, args.shots),
         max(2, args.grid_points),
         args.seed,
+        args.pyramid_variant,
     )
     summary = {
         "receipt": str(args.out.resolve()),
