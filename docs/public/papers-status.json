@@ -1,9 +1,9 @@
 {
   "schema": "paper-audit-matrix.v3",
-  "generatedAt": "2026-07-18T18:54:39.435Z",
+  "generatedAt": "2026-07-18T20:32:14.113Z",
   "canonicalRouterPath": "research/paper-audit-matrix.md",
   "matrixSourcePath": "research/paper-audit-matrix/front-matrix-core-papers.md",
-  "scriptCommit": "71fc3efb3826a4e4ca5a4a353891661cf73a70c5",
+  "scriptCommit": "35339f2c69c06a254aa48a5281d4e03e96536622",
   "totals": {
     "papers": 17,
     "cellsByToken": {
@@ -478,8 +478,8 @@
       "target": "USENIX Sec '27",
       "basename": "paper-4-sandbox-usenix.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-4-sandbox-usenix.tex",
-      "loc": 2303,
-      "sha256Prefix": "4e780017",
+      "loc": 2315,
+      "sha256Prefix": "f0ed99f6",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -526,7 +526,7 @@
           "token": "✅",
           "scope": "paper-wide-path-presence",
           "claimSupport": "unverified",
-          "evidence": "1 existing typed path(s) + 7 existing validator-shaped path(s); paths are not claim-bound or executed here"
+          "evidence": "4 existing typed path(s) + 7 existing validator-shaped path(s); paths are not claim-bound or executed here"
         },
         "calStory": {
           "token": "✅",
@@ -550,11 +550,16 @@
         }
       },
       "lastCommit": {
-        "hash": "173370a2446071ee55d178356ef5a22efa02247b",
-        "isoDate": "2026-07-18T02:38:18-07:00",
-        "subject": "fix(core): align paper claims with tracked evidence"
+        "hash": "35339f2c69c06a254aa48a5281d4e03e96536622",
+        "isoDate": "2026-07-18T13:31:43-07:00",
+        "subject": "fix(ecosystem): supersede Paper 4 historical claims"
       },
       "recentCommits": [
+        {
+          "hash": "35339f2c69c06a254aa48a5281d4e03e96536622",
+          "isoDate": "2026-07-18T13:31:43-07:00",
+          "subject": "fix(ecosystem): supersede Paper 4 historical claims"
+        },
         {
           "hash": "173370a2446071ee55d178356ef5a22efa02247b",
           "isoDate": "2026-07-18T02:38:18-07:00",
@@ -574,11 +579,6 @@
           "hash": "93dde386a9cb2c477a433c9ce2a4359d39af3b5a",
           "isoDate": "2026-07-04T04:08:21-07:00",
           "subject": "docs(papers): canon realignment item 4 -- name sovereignty across 19 abstracts"
-        },
-        {
-          "hash": "3f13443e2d13335afd6cca5f52c30976439b544d",
-          "isoDate": "2026-06-13T00:16:25-07:00",
-          "subject": "docs(papers): commence-all defensibility pass — P4/P11/P12 citation+scope fixes, P5/P3 kill-risks resolved by source-read, matrix refresh"
         }
       ]
     },
