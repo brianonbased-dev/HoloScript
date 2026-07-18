@@ -7,8 +7,8 @@
 //   LIF: lif_step | lif_step_batch
 //   Synaptic: compute_synaptic_current | compute_synaptic_current_tiled | stdp_weight_update
 //   Encoding: encode_rate | encode_temporal | encode_delta
-//   Decoding: decode_rate | decode_temporal
-//   Tropical: tropical_activation | tropical_gemm | tropical_spmv
+//   Decoding: decode_rate | decode_temporal | decode_population | decode_first_spike
+//   Tropical: tropical_activate | tropical_min_plus_gemm | tropical_spmv
 //   Large-scale: lif_step_partitioned | synaptic_current_shared_tiled
 //
 // WGSL imports: lif-neuron, synaptic-weights, spike-encode, spike-decode,
