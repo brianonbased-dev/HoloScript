@@ -8,6 +8,7 @@
  *   vibe            — the affective family
  *   affective-harm  — valence→harm derivation over beneficiary + vibe
  *   verifier        — the verifier of record (gradeByResolver — family → resolver dispatch)
+ *   uq              — split-conformal coverage (Mondrian) wrapped around the verifier V
  *
  * The execution VM (stratum ③) and its ABI remain in @holoscript/uaal, which re-exports
  * this surface via shims for backward compatibility.
@@ -19,5 +20,6 @@ export * from './beneficiary';
 export * from './vibe';
 export * from './affective-harm';
 export * from './verifier';
+export * from './uq';
 export * from './consistency';
 export * from './epistemic';
