@@ -29,7 +29,7 @@
  *   HOLO_LLM_FLEET_MODEL | BRITTNEY_FLEET_MODEL   fleet model
  *   VAST_API_KEY                                  Vast route + worker bearer
  *   ANTHROPIC_API_KEY / XAI_API_KEY / OPENAI_API_KEY  BYOK fallbacks
- *   HOLOSERVE_PARITY_PINS                         inline comma-separated pinned models
+ *   HOLOSERVE_PARITY_PINS                         model@binding-sha256 pins (comma-separated)
  *   HOLOSERVE_PARITY_REGISTRY                     path to the parity pin registry JSON
  *                                                 (maintained by ai-ecosystem
  *                                                 scripts/holoserve-llamaserver-parity-receipt.mjs)
@@ -45,6 +45,7 @@ import { XAIAdapter } from './adapters/xai';
 import { LocalLLMAdapter } from './adapters/local-llm';
 import { BrittneyCloudAdapter } from './adapters/brittney-cloud';
 import { VastServerlessAdapter } from './adapters/vast-serverless';
+import { admitHoloServeHealth } from './fleet-router';
 
 export type SovereignProviderName =
   | 'fleet'
@@ -76,31 +77,44 @@ const HOLOLLAMA_DEFAULT_URL = 'http://127.0.0.1:18080';
  */
 const HOLOSERVE_DEFAULT_URL = 'http://127.0.0.1:8099';
 const HOLOSERVE_DEFAULT_MODEL = 'holorunner-s0';
+const SHA256_RE = /^sha256:[0-9a-f]{64}$/u;
+const PORTABLE_MODEL_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,255}$/u;
 
 /**
  * Per-model HoloServe pin — the dependency-sovereignty-ladder strangler
  * (ratified 2026-07-16). D.118 retires llama.cpp PER MODEL, not by fiat: a model
  * with a PASSING HoloServe↔llama-server parity receipt is PINNED to HoloServe
- * (the llama-server lane becomes unreachable for it); a model WITHOUT a receipt
+ * through async live-binding admission (the llama-server lane becomes unreachable
+ * for it); a model WITHOUT a receipt
  * keeps exactly the current behavior (fail-open).
  *
  * Pin sources (both fail-open — unset/missing/corrupt input pins NOTHING):
- *   HOLOSERVE_PARITY_PINS      comma-separated model names (deployment/inline)
+ *   HOLOSERVE_PARITY_PINS      comma-separated model@sha256:<64-hex> pins
  *   HOLOSERVE_PARITY_REGISTRY  path to the pin-registry JSON maintained by
  *                              ai-ecosystem scripts/holoserve-llamaserver-parity-receipt.mjs
- *                              ({ pins: { "<model>": { verdict: "pass", ... } } });
- *                              only entries with verdict === 'pass' pin.
+ *                              ({ pins: { "<model>": { verdict: "pass",
+ *                              bindingSha256: "sha256:...", ... } } }); only
+ *                              exact artifact-bound pass entries pin.
  *
  * Read fresh on every resolution (resolution is per-provider-construction, not
  * per-token) so a receipt landing or being revoked takes effect without a restart.
  */
-function holoServeParityPins(): ReadonlySet<string> {
-  const pins = new Set<string>();
+interface HoloServeParityPin {
+  bindingSha256: string;
+}
+
+function holoServeParityPins(): ReadonlyMap<string, HoloServeParityPin> {
+  const pins = new Map<string, HoloServeParityPin>();
   const inline = env('HOLOSERVE_PARITY_PINS');
   if (inline) {
     for (const entry of inline.split(',')) {
       const trimmed = entry.trim();
-      if (trimmed) pins.add(trimmed);
+      const separator = trimmed.lastIndexOf('@');
+      const model = separator > 0 ? trimmed.slice(0, separator) : '';
+      const bindingSha256 = separator > 0 ? trimmed.slice(separator + 1) : '';
+      if (PORTABLE_MODEL_RE.test(model) && SHA256_RE.test(bindingSha256)) {
+        pins.set(model, { bindingSha256 });
+      }
     }
   }
   const registryPath = env('HOLOSERVE_PARITY_REGISTRY');
@@ -108,10 +122,21 @@ function holoServeParityPins(): ReadonlySet<string> {
     try {
       const parsed: unknown = JSON.parse(readFileSync(registryPath, 'utf-8'));
       const registry = (parsed && typeof parsed === 'object' ? parsed : {}) as {
-        pins?: Record<string, { verdict?: unknown }>;
+        schema?: unknown;
+        pins?: Record<string, { verdict?: unknown; bindingSha256?: unknown }>;
       };
+      if (registry.schema !== 'holoserve-parity-pin-registry/v0') return pins;
       for (const [model, entry] of Object.entries(registry.pins ?? {})) {
-        if (entry && typeof entry === 'object' && entry.verdict === 'pass') pins.add(model);
+        if (
+          PORTABLE_MODEL_RE.test(model) &&
+          entry &&
+          typeof entry === 'object' &&
+          entry.verdict === 'pass' &&
+          typeof entry.bindingSha256 === 'string' &&
+          SHA256_RE.test(entry.bindingSha256)
+        ) {
+          pins.set(model, { bindingSha256: entry.bindingSha256 });
+        }
       }
     } catch {
       /* fail-open: an unreadable registry pins nothing — behavior unchanged */
@@ -126,6 +151,8 @@ export interface ResolvedSovereignProvider {
   model: string;
   maxTokens: number;
   providerName: SovereignProviderName;
+  /** Exact parity-tested HoloServe binding when a strangler pin selected this route. */
+  artifactBindingSha256?: string;
 }
 
 export interface SovereignResolveOptions {
@@ -172,6 +199,13 @@ function maxTokensOverride(opts: SovereignResolveOptions): number | undefined {
 export function resolveSovereignProvider(
   opts: SovereignResolveOptions = {}
 ): ResolvedSovereignProvider {
+  return resolveSovereignProviderInternal(opts, false);
+}
+
+function resolveSovereignProviderInternal(
+  opts: SovereignResolveOptions,
+  allowParityHoloServe: boolean
+): ResolvedSovereignProvider {
   const explicit = (opts.explicit || env('HOLO_LLM_PROVIDER', 'BRITTNEY_PROVIDER'))?.toLowerCase();
 
   const anthropicKey = opts.anthropicKey || env('ANTHROPIC_API_KEY');
@@ -187,9 +221,9 @@ export function resolveSovereignProvider(
     case 'cloud':
       return resolveCloud(cloudUrl, opts);
     case 'holoserve':
-      return resolveHoloServe(undefined, opts);
+      return resolveHoloServe(undefined, opts, allowParityHoloServe);
     case 'holollama':
-      return resolveHoloLlama(undefined, opts);
+      return resolveHoloLlama(undefined, opts, allowParityHoloServe);
     case 'ollama':
       return resolveOllama(ollamaHost, opts);
     case 'anthropic':
@@ -219,9 +253,9 @@ export function resolveSovereignProvider(
   if (cloudUrl) return resolveCloud(cloudUrl, opts);
   // D.118: a configured HoloServe (fully sovereign HOLO runtime) beats HoloLlama (llama.cpp).
   const holoServeUrl = env('HOLOSERVE_URL', 'HOLOSERVE_ENDPOINT');
-  if (holoServeUrl) return resolveHoloServe(holoServeUrl, opts);
+  if (holoServeUrl) return resolveHoloServe(holoServeUrl, opts, allowParityHoloServe);
   const holoLlamaUrl = env('HOLOLLAMA_URL', 'HOLOLLAMA_ENDPOINT');
-  if (holoLlamaUrl) return resolveHoloLlama(holoLlamaUrl, opts);
+  if (holoLlamaUrl) return resolveHoloLlama(holoLlamaUrl, opts, allowParityHoloServe);
   if (ollamaHost) return resolveOllama(ollamaHost, opts);
   if (anthropicKey) return resolveAnthropic(anthropicKey, opts);
   if (env('XAI_API_KEY')) return resolveXai(opts);
@@ -229,7 +263,7 @@ export function resolveSovereignProvider(
 
   // Sovereign default (D.117): HoloLlama at :18080. If the local server is down the
   // CALL fails with a llama-server start hint — never a silent cloud/Ollama fallback.
-  return resolveHoloLlama(undefined, opts);
+  return resolveHoloLlama(undefined, opts, allowParityHoloServe);
 }
 
 /**
@@ -256,22 +290,35 @@ export async function resolveSovereignProviderAsync(
     } catch (fleetErr) {
       // Cold/unreachable fleet → sync fallback for THIS request. If none is
       // configured either, surface the fleet error (it has the warm-up hint).
+      let fallback: ResolvedSovereignProvider;
       try {
-        return await upgradeOllamaByDiscovery(
-          resolveSovereignProvider({ ...opts, explicit: undefined }),
-          opts
-        );
+        fallback = resolveSovereignProviderInternal({ ...opts, explicit: undefined }, true);
       } catch {
+        throw fleetErr;
+      }
+      try {
+        return await finalizeAsyncResolution(fallback, opts);
+      } catch (fallbackErr) {
+        if (fallback.providerName === 'holoserve') throw fallbackErr;
         throw fleetErr;
       }
     }
   }
-  const resolved = resolveSovereignProvider(opts);
+  const resolved = resolveSovereignProviderInternal(opts, true);
+  return finalizeAsyncResolution(resolved, opts);
+}
+
+async function finalizeAsyncResolution(
+  resolved: ResolvedSovereignProvider,
+  opts: SovereignResolveOptions
+): Promise<ResolvedSovereignProvider> {
   if (resolved.providerName === 'holoserve') {
     // Async path can afford the network round-trip: enforce the sovereignty invariant
     // before anyone sends a token to this provider.
     await verifyHoloServeSovereignty(
-      (env('HOLOSERVE_URL', 'HOLOSERVE_ENDPOINT') || HOLOSERVE_DEFAULT_URL).replace(/\/+$/, '')
+      (env('HOLOSERVE_URL', 'HOLOSERVE_ENDPOINT') || HOLOSERVE_DEFAULT_URL).replace(/\/+$/, ''),
+      resolved.model,
+      resolved.artifactBindingSha256
     );
     return resolved;
   }
@@ -344,7 +391,12 @@ function resolveOllama(
   const baseURL = host || OLLAMA_DEFAULT_BASE_URL;
   const model = modelOverride(opts) || OLLAMA_DEFAULT_MODEL;
   // Known-Ollama site — pin the native protocol; do not rely on the port heuristic.
-  const provider = new LocalLLMAdapter({ baseURL, model, nativeOllamaApi: true, timeoutMs: 300_000 });
+  const provider = new LocalLLMAdapter({
+    baseURL,
+    model,
+    nativeOllamaApi: true,
+    timeoutMs: 300_000,
+  });
   return {
     provider,
     model,
@@ -364,14 +416,15 @@ function resolveOllama(
 /**
  * HoloServe (D.118) — PyTorch-direct sovereign serving for HOLO-arch checkpoints. OpenAI
  * /v1 like llama-server, so the same LocalLLMAdapter drives it (nativeOllamaApi:false).
- * Single resident model → no discovery upgrade. The SYNC resolver trusts the configured
- * URL (call fails loud if the server is down — the sovereign-terminal philosophy); the
+ * Exact resident registry → no Ollama discovery upgrade. The SYNC resolver trusts the
+ * configured URL only for unpinned models; the
  * ASYNC path additionally verifies the /health sovereignty invariant via
  * verifyHoloServeSovereignty before handing the provider out.
  */
 function resolveHoloServe(
   baseUrlOverride: string | undefined,
-  opts: SovereignResolveOptions
+  opts: SovereignResolveOptions,
+  allowParityHoloServe = false
 ): ResolvedSovereignProvider {
   const baseURL = (
     baseUrlOverride ||
@@ -379,6 +432,13 @@ function resolveHoloServe(
     HOLOSERVE_DEFAULT_URL
   ).replace(/\/+$/, '');
   const model = modelOverride(opts) || env('HOLOSERVE_MODEL') || HOLOSERVE_DEFAULT_MODEL;
+  const parityPin = holoServeParityPins().get(model);
+  if (parityPin && !allowParityHoloServe) {
+    throw new Error(
+      `Model ${model} is artifact-pinned to HoloServe and requires ` +
+        'resolveSovereignProviderAsync() for live binding verification.'
+    );
+  }
   const provider = new LocalLLMAdapter({
     baseURL,
     model,
@@ -390,6 +450,7 @@ function resolveHoloServe(
     model,
     maxTokens: maxTokensOverride(opts) || 4096,
     providerName: 'holoserve',
+    ...(parityPin ? { artifactBindingSha256: parityPin.bindingSha256 } : {}),
   };
 }
 
@@ -399,36 +460,70 @@ function resolveHoloServe(
  * invariant is an impostor on the port — REFUSE it (throw), never fall through silently.
  * An UNREACHABLE server also throws (with the start hint): a configured HoloServe URL is
  * a commitment, matching the HoloLlama terminal-default philosophy of no silent fallback.
+ * A sovereignty label alone is insufficient: the expected model must have an
+ * exact, canonically hashed entry in `model_artifact_bindings`.
  */
-async function verifyHoloServeSovereignty(baseURL: string): Promise<void> {
-  let health: { sovereign?: unknown; llama_cpp?: unknown; gguf?: unknown };
+async function verifyHoloServeSovereignty(
+  baseURL: string,
+  expectedModel: string,
+  expectedBindingSha256?: string
+): Promise<void> {
+  let health: unknown;
   try {
     const response = await fetch(`${baseURL}/health`, { signal: AbortSignal.timeout(10_000) });
-    health = (await response.json()) as typeof health;
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    health = await response.json();
   } catch (err) {
+    let port = '8099';
+    try {
+      port = new URL(baseURL).port || port;
+    } catch {
+      // Keep the fenced instruction usable even when the configured URL is malformed.
+    }
     throw new Error(
       `HoloServe at ${baseURL} is unreachable (${(err as Error).message}). ` +
-        `Start it: python scripts/holoserve.py --ckpt <ckpt.pt> --port ${new URL(baseURL).port || '8099'}`
+        'Keep it fenced until an admitted launch supplies: ' +
+        'python scripts/holoserve.py --model-name <model> --ckpt <ckpt.pt> --bins <bins> ' +
+        '--snapshot-dir <existing-private-0700-dir> ' +
+        '--custody-receipt <receipt.json> --expected-custody-sha256 sha256:<64-hex> ' +
+        `--port ${port}`
     );
   }
-  if (!(health.sovereign === true && health.llama_cpp === false && health.gguf === false)) {
+  const admission = admitHoloServeHealth(health, expectedModel);
+  if (!admission) {
     throw new Error(
-      `REFUSING non-sovereign server at ${baseURL}: /health=${JSON.stringify(health)} ` +
+      `REFUSING non-sovereign or artifact-unbound server at ${baseURL}: ` +
+        `the exact canonical model_artifact_bindings entry for ${expectedModel} is required. ` +
         `(HoloServe must assert sovereign:true, llama_cpp:false, gguf:false — D.118)`
+    );
+  }
+  if (expectedBindingSha256 && admission.bindingSha256 !== expectedBindingSha256) {
+    throw new Error(
+      `REFUSING parity-artifact drift at ${baseURL}: ${expectedModel} does not match ` +
+        'the exact binding SHA-256 in its passing parity pin'
     );
   }
 }
 
 function resolveHoloLlama(
   baseUrlOverride: string | undefined,
-  opts: SovereignResolveOptions
+  opts: SovereignResolveOptions,
+  allowParityHoloServe = false
 ): ResolvedSovereignProvider {
   const model = modelOverride(opts) || OLLAMA_DEFAULT_MODEL;
   // Per-model strangler pin (2026-07-16 ruling): a model with a PASSING parity
   // receipt resolves ONLY to HoloServe — llama-server is unreachable for it.
-  // Unpinned models fall through to the unchanged HoloLlama resolution below.
-  if (holoServeParityPins().has(model)) {
-    return resolveHoloServe(undefined, { ...opts, model });
+  // Synchronous callers must upgrade instead of using an unverified checkpoint;
+  // unpinned models fall through to the unchanged HoloLlama resolution below.
+  const parityPin = holoServeParityPins().get(model);
+  if (parityPin) {
+    if (!allowParityHoloServe) {
+      throw new Error(
+        `Model ${model} is artifact-pinned to HoloServe and requires ` +
+          'resolveSovereignProviderAsync() for live binding verification.'
+      );
+    }
+    return resolveHoloServe(undefined, { ...opts, model }, allowParityHoloServe);
   }
   const baseURL = (
     baseUrlOverride ||

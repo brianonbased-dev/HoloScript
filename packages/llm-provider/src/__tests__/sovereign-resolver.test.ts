@@ -4,6 +4,7 @@
  * one policy for HoloClaw, the fleet supervisor, and Brittney.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { createHash } from 'node:crypto';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -13,6 +14,46 @@ import { BrittneyCloudAdapter } from '../adapters/brittney-cloud';
 import { LocalLLMAdapter } from '../adapters/local-llm';
 import { AnthropicAdapter } from '../adapters/anthropic';
 import { VastServerlessAdapter } from '../adapters/vast-serverless';
+import { admitHoloServeHealth } from '../fleet-router';
+
+const HOLOSERVE_REGISTRY_SCHEMA = 'holoscript.holoserve-model-artifact-registry.v0.1.0';
+const HOLOSERVE_BINDING_SCHEMA = 'holoscript.holoserve-model-artifact-binding.v0.1.0';
+const HOLOSERVE_BINS_SCHEMA = 'holoscript.holoserve-bins-binding.v0.1.0';
+const TOKENIZER_SHA256 = `sha256:${'2'.repeat(64)}`;
+const META_SHA256 = `sha256:${'3'.repeat(64)}`;
+
+function testHoloServeHealth(model: string, checkpointDigit = '1'): Record<string, unknown> {
+  const files = { 'meta.json': META_SHA256, 'tokenizer.json': TOKENIZER_SHA256 };
+  const binsPayload = { files, schema: HOLOSERVE_BINS_SCHEMA };
+  const binsBindingSha256 = `sha256:${createHash('sha256').update(JSON.stringify(binsPayload), 'utf8').digest('hex')}`;
+  const binding = {
+    schema: HOLOSERVE_BINDING_SCHEMA,
+    available: true,
+    checkpointSha256: `sha256:${checkpointDigit.repeat(64)}`,
+    tokenizerSha256: TOKENIZER_SHA256,
+    bins: { schema: HOLOSERVE_BINS_SCHEMA, files, bindingSha256: binsBindingSha256 },
+  };
+  return {
+    status: 'ok',
+    backend: 'pytorch-holo',
+    sovereign: true,
+    llama_cpp: false,
+    gguf: false,
+    model: { name: model, params_millions: 85 },
+    models: [model],
+    model_artifact_bindings: {
+      schema: HOLOSERVE_REGISTRY_SCHEMA,
+      defaultModel: model,
+      models: { [model]: binding },
+    },
+  };
+}
+
+function bindingSha256For(health: Record<string, unknown>, model: string): string {
+  const admission = admitHoloServeHealth(health, model);
+  if (!admission) throw new Error('invalid HoloServe test fixture');
+  return admission.bindingSha256;
+}
 
 const ENV_KEYS = [
   'HOLO_LLM_PROVIDER',
@@ -219,6 +260,23 @@ describe('resolveSovereignProviderAsync (Vast serverless fleet)', () => {
     expect(r.providerName).toBe('anthropic');
   });
 
+  it('fleet-cold fallback still verifies a configured HoloServe before returning it', async () => {
+    vi.stubEnv('VAST_API_KEY', 'vast-key');
+    vi.stubEnv('HOLOSERVE_URL', 'http://box:8099');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string | URL | Request) => {
+        if (String(url).endsWith('/health')) throw new Error('ECONNREFUSED');
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ status: { ready: 0, total: 1 } }),
+        };
+      })
+    );
+    await expect(resolveSovereignProviderAsync()).rejects.toThrow(/HoloServe.*unreachable/u);
+  });
+
   it('falls back to the HoloLlama sovereign default when the fleet is cold and nothing else is set (D.117)', async () => {
     vi.stubEnv('VAST_API_KEY', 'vast-key');
     vi.stubGlobal(
@@ -332,13 +390,14 @@ describe('resolveSovereignProviderAsync (Vast serverless fleet)', () => {
 });
 
 describe('resolveSovereignProviderAsync — HoloServe sovereignty gate (D.118/W.832)', () => {
-  const healthResponse = (body: unknown) => ({ json: async () => body }) as Response;
+  const healthResponse = (body: unknown) =>
+    ({ ok: true, status: 200, json: async () => body }) as Response;
 
-  it('resolves holoserve when /health asserts the sovereign invariant', async () => {
+  it('resolves holoserve only with the exact canonical artifact registry', async () => {
     vi.stubEnv('HOLOSERVE_URL', 'http://box:8099');
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () => healthResponse({ sovereign: true, llama_cpp: false, gguf: false }))
+      vi.fn(async () => healthResponse(testHoloServeHealth('holorunner-s0')))
     );
     const r = await resolveSovereignProviderAsync();
     expect(r.providerName).toBe('holoserve');
@@ -353,6 +412,47 @@ describe('resolveSovereignProviderAsync — HoloServe sovereignty gate (D.118/W.
     await expect(resolveSovereignProviderAsync()).rejects.toThrow(/REFUSING non-sovereign/);
   });
 
+  it('REFUSES a sovereign-labelled server with no artifact binding registry', async () => {
+    vi.stubEnv('HOLOSERVE_URL', 'http://box:8099');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        healthResponse({
+          status: 'ok',
+          backend: 'pytorch-holo',
+          sovereign: true,
+          llama_cpp: false,
+          gguf: false,
+        })
+      )
+    );
+    await expect(resolveSovereignProviderAsync()).rejects.toThrow(/artifact-unbound/);
+  });
+
+  it('REFUSES a registry that does not bind the requested model', async () => {
+    vi.stubEnv('HOLOSERVE_URL', 'http://box:8099');
+    vi.stubEnv('HOLO_LLM_MODEL', 'expected-model');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => healthResponse(testHoloServeHealth('wrong-model')))
+    );
+    await expect(resolveSovereignProviderAsync()).rejects.toThrow(/expected-model is required/);
+  });
+
+  it('REFUSES a non-canonical nested bins binding hash', async () => {
+    vi.stubEnv('HOLOSERVE_URL', 'http://box:8099');
+    const health = testHoloServeHealth('holorunner-s0');
+    const registry = health.model_artifact_bindings as {
+      models: Record<string, { bins: { bindingSha256: string } }>;
+    };
+    registry.models['holorunner-s0'].bins.bindingSha256 = `sha256:${'f'.repeat(64)}`;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => healthResponse(health))
+    );
+    await expect(resolveSovereignProviderAsync()).rejects.toThrow(/artifact-unbound/);
+  });
+
   it('an unreachable configured HoloServe throws with the start hint (URL = commitment)', async () => {
     vi.stubEnv('HOLOSERVE_URL', 'http://box:8099');
     vi.stubGlobal(
@@ -361,12 +461,16 @@ describe('resolveSovereignProviderAsync — HoloServe sovereignty gate (D.118/W.
         throw new Error('ECONNREFUSED');
       })
     );
-    await expect(resolveSovereignProviderAsync()).rejects.toThrow(/unreachable.*holoserve\.py/s);
+    await expect(resolveSovereignProviderAsync()).rejects.toThrow(
+      /unreachable.*--model-name.*--ckpt.*--bins.*--snapshot-dir.*--custody-receipt.*--expected-custody-sha256/s
+    );
   });
 });
 
 describe('per-model HoloServe parity pin (dependency-sovereignty-ladder, 2026-07-16)', () => {
   let registryDir: string | null = null;
+  const inlinePin = (model: string, bindingSha256 = `sha256:${'a'.repeat(64)}`) =>
+    `${model}@${bindingSha256}`;
 
   afterEach(() => {
     if (registryDir) {
@@ -375,7 +479,9 @@ describe('per-model HoloServe parity pin (dependency-sovereignty-ladder, 2026-07
     }
   });
 
-  function writeRegistry(pins: Record<string, { verdict: string }>): string {
+  function writeRegistry(
+    pins: Record<string, { verdict: string; bindingSha256?: string }>
+  ): string {
     registryDir = mkdtempSync(join(tmpdir(), 'holoserve-parity-'));
     const path = join(registryDir, 'pinned-models.json');
     writeFileSync(
@@ -385,32 +491,38 @@ describe('per-model HoloServe parity pin (dependency-sovereignty-ladder, 2026-07
     return path;
   }
 
-  it('a model pinned via HOLOSERVE_PARITY_PINS resolves to holoserve even when HoloLlama is configured', () => {
-    vi.stubEnv('HOLOSERVE_PARITY_PINS', 'brittney-edge-v0-5');
+  it('a synchronous parity pin requires the async live-binding admission path', () => {
+    vi.stubEnv('HOLOSERVE_PARITY_PINS', inlinePin('brittney-edge-v0-5'));
     vi.stubEnv('HOLOLLAMA_URL', 'http://box:18080');
     vi.stubEnv('HOLO_LLM_MODEL', 'brittney-edge-v0-5');
-    const r = resolveSovereignProvider();
-    expect(r.providerName).toBe('holoserve');
-    expect(r.provider).toBeInstanceOf(LocalLLMAdapter);
-    expect(r.model).toBe('brittney-edge-v0-5');
+    expect(() => resolveSovereignProvider()).toThrow(/requires resolveSovereignProviderAsync/u);
+  });
+
+  it('direct configured and explicit HoloServe sync routes cannot bypass a parity pin', () => {
+    vi.stubEnv('HOLOSERVE_PARITY_PINS', inlinePin('pinned-model'));
+    vi.stubEnv('HOLO_LLM_MODEL', 'pinned-model');
+    vi.stubEnv('HOLOSERVE_URL', 'http://box:8099');
+    expect(() => resolveSovereignProvider()).toThrow(/requires resolveSovereignProviderAsync/u);
+    expect(() => resolveSovereignProvider({ explicit: 'holoserve' })).toThrow(
+      /requires resolveSovereignProviderAsync/u
+    );
   });
 
   it("explicit 'holollama' cannot reach llama-server for a pinned model (the strangler ruling)", () => {
-    vi.stubEnv('HOLOSERVE_PARITY_PINS', 'holorunner-s0-custody');
-    const r = resolveSovereignProvider({ explicit: 'holollama', model: 'holorunner-s0-custody' });
-    expect(r.providerName).toBe('holoserve');
-    expect(r.model).toBe('holorunner-s0-custody');
+    vi.stubEnv('HOLOSERVE_PARITY_PINS', inlinePin('holorunner-s0-custody'));
+    expect(() =>
+      resolveSovereignProvider({ explicit: 'holollama', model: 'holorunner-s0-custody' })
+    ).toThrow(/requires resolveSovereignProviderAsync/u);
   });
 
   it('pins apply on the TERMINAL HoloLlama default path too (nothing else configured)', () => {
-    vi.stubEnv('HOLOSERVE_PARITY_PINS', 'pinned-model');
+    vi.stubEnv('HOLOSERVE_PARITY_PINS', inlinePin('pinned-model'));
     vi.stubEnv('HOLO_LLM_MODEL', 'pinned-model');
-    const r = resolveSovereignProvider();
-    expect(r.providerName).toBe('holoserve');
+    expect(() => resolveSovereignProvider()).toThrow(/requires resolveSovereignProviderAsync/u);
   });
 
   it('a model WITHOUT a receipt keeps behavior exactly unchanged (fail-open)', () => {
-    vi.stubEnv('HOLOSERVE_PARITY_PINS', 'some-other-model');
+    vi.stubEnv('HOLOSERVE_PARITY_PINS', inlinePin('some-other-model'));
     vi.stubEnv('HOLOLLAMA_URL', 'http://box:18080');
     vi.stubEnv('HOLO_LLM_MODEL', 'unpinned-model');
     const r = resolveSovereignProvider();
@@ -418,18 +530,28 @@ describe('per-model HoloServe parity pin (dependency-sovereignty-ladder, 2026-07
     expect(r.model).toBe('unpinned-model');
   });
 
+  it('a legacy name-only inline pin cannot strangle without an artifact binding hash', () => {
+    vi.stubEnv('HOLOSERVE_PARITY_PINS', 'name-only-model');
+    const r = resolveSovereignProvider({ explicit: 'holollama', model: 'name-only-model' });
+    expect(r.providerName).toBe('holollama');
+  });
+
   it('registry file: verdict "pass" pins, any other verdict does not', () => {
     const path = writeRegistry({
-      'model-pass': { verdict: 'pass' },
+      'model-pass': { verdict: 'pass', bindingSha256: `sha256:${'a'.repeat(64)}` },
+      'legacy-name-only': { verdict: 'pass' },
       'model-fail': { verdict: 'fail' },
     });
     vi.stubEnv('HOLOSERVE_PARITY_REGISTRY', path);
-    expect(resolveSovereignProvider({ explicit: 'holollama', model: 'model-pass' }).providerName).toBe(
-      'holoserve'
+    expect(() => resolveSovereignProvider({ explicit: 'holollama', model: 'model-pass' })).toThrow(
+      /requires resolveSovereignProviderAsync/u
     );
-    expect(resolveSovereignProvider({ explicit: 'holollama', model: 'model-fail' }).providerName).toBe(
-      'holollama'
-    );
+    expect(
+      resolveSovereignProvider({ explicit: 'holollama', model: 'model-fail' }).providerName
+    ).toBe('holollama');
+    expect(
+      resolveSovereignProvider({ explicit: 'holollama', model: 'legacy-name-only' }).providerName
+    ).toBe('holollama');
   });
 
   it('a missing or unreadable registry file pins NOTHING (fail-open, never throws)', () => {
@@ -439,14 +561,89 @@ describe('per-model HoloServe parity pin (dependency-sovereignty-ladder, 2026-07
   });
 
   it('async resolution of a pinned model still enforces the HoloServe sovereignty invariant', async () => {
-    vi.stubEnv('HOLOSERVE_PARITY_PINS', 'pinned-model');
+    const health = testHoloServeHealth('pinned-model');
+    vi.stubEnv(
+      'HOLOSERVE_PARITY_PINS',
+      inlinePin('pinned-model', bindingSha256For(health, 'pinned-model'))
+    );
     vi.stubEnv('HOLO_LLM_MODEL', 'pinned-model');
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () => ({ json: async () => ({ sovereign: true, llama_cpp: false, gguf: false }) }))
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => health,
+      }))
     );
     const r = await resolveSovereignProviderAsync();
     expect(r.providerName).toBe('holoserve');
     expect(r.model).toBe('pinned-model');
+  });
+
+  it('async resolution refuses checkpoint replacement under a parity-pinned model name', async () => {
+    const testedHealth = testHoloServeHealth('pinned-model', '1');
+    const replacementHealth = testHoloServeHealth('pinned-model', '4');
+    vi.stubEnv(
+      'HOLOSERVE_PARITY_PINS',
+      inlinePin('pinned-model', bindingSha256For(testedHealth, 'pinned-model'))
+    );
+    vi.stubEnv('HOLO_LLM_MODEL', 'pinned-model');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => replacementHealth,
+      }))
+    );
+    await expect(resolveSovereignProviderAsync()).rejects.toThrow(/parity-artifact drift/u);
+  });
+
+  it('configured and explicit HoloServe async routes retain the parity binding hash', async () => {
+    const testedHealth = testHoloServeHealth('pinned-model', '1');
+    const replacementHealth = testHoloServeHealth('pinned-model', '4');
+    vi.stubEnv(
+      'HOLOSERVE_PARITY_PINS',
+      inlinePin('pinned-model', bindingSha256For(testedHealth, 'pinned-model'))
+    );
+    vi.stubEnv('HOLO_LLM_MODEL', 'pinned-model');
+    vi.stubEnv('HOLOSERVE_URL', 'http://box:8099');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => replacementHealth,
+      }))
+    );
+    await expect(resolveSovereignProviderAsync()).rejects.toThrow(/parity-artifact drift/u);
+    await expect(resolveSovereignProviderAsync({ explicit: 'holoserve' })).rejects.toThrow(
+      /parity-artifact drift/u
+    );
+  });
+
+  it('fleet-cold parity fallback cannot bypass the exact artifact binding pin', async () => {
+    const testedHealth = testHoloServeHealth('pinned-model', '1');
+    const replacementHealth = testHoloServeHealth('pinned-model', '4');
+    vi.stubEnv('VAST_API_KEY', 'vast-key');
+    vi.stubEnv(
+      'HOLOSERVE_PARITY_PINS',
+      inlinePin('pinned-model', bindingSha256For(testedHealth, 'pinned-model'))
+    );
+    vi.stubEnv('HOLO_LLM_MODEL', 'pinned-model');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string | URL | Request) => {
+        if (String(url).endsWith('/health')) {
+          return { ok: true, status: 200, json: async () => replacementHealth };
+        }
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ status: { ready: 0, total: 1 } }),
+        };
+      })
+    );
+    await expect(resolveSovereignProviderAsync()).rejects.toThrow(/parity-artifact drift/u);
   });
 });

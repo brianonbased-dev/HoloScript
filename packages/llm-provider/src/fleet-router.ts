@@ -25,6 +25,7 @@
  * nodes are owned metal.
  */
 
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
@@ -32,6 +33,165 @@ import { isBlacklistedModel } from './model-policy';
 
 /** Serving backend a fleet node runs. Default (unset) = Ollama. */
 export type FleetBackend = 'ollama' | 'llama.cpp' | 'pytorch-holo';
+
+const HOLOSERVE_REGISTRY_SCHEMA = 'holoscript.holoserve-model-artifact-registry.v0.1.0';
+const HOLOSERVE_BINDING_SCHEMA = 'holoscript.holoserve-model-artifact-binding.v0.1.0';
+const HOLOSERVE_BINS_SCHEMA = 'holoscript.holoserve-bins-binding.v0.1.0';
+const SHA256_RE = /^sha256:[0-9a-f]{64}$/u;
+const PORTABLE_MODEL_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,255}$/u;
+
+type JsonRecord = Record<string, unknown>;
+
+export interface HoloServeArtifactAdmission {
+  defaultModel: string;
+  selectedModel: string;
+  /** Every resident model whose exact artifact binding was admitted. */
+  models: string[];
+  /** Canonical SHA-256 of the selected exact artifact binding. */
+  bindingSha256: string;
+  /** Canonical SHA-256 of the complete exact registry, used to detect probe-time drift. */
+  registrySha256: string;
+}
+
+function isRecord(value: unknown): value is JsonRecord {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function hasExactKeys(value: JsonRecord, expected: readonly string[]): boolean {
+  const actual = Object.keys(value).sort();
+  const wanted = [...expected].sort();
+  return actual.length === wanted.length && actual.every((key, index) => key === wanted[index]);
+}
+
+function canonicalJsonValue(value: unknown, seen: Set<object>): unknown {
+  if (value === null || typeof value === 'string' || typeof value === 'boolean') return value;
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) throw new Error('non-finite JSON number');
+    return value;
+  }
+  if (typeof value !== 'object') throw new Error('non-JSON value');
+  if (seen.has(value)) throw new Error('cyclic JSON value');
+  seen.add(value);
+  try {
+    if (Array.isArray(value)) {
+      return value.map((entry) => canonicalJsonValue(entry, seen));
+    }
+    if (Object.getOwnPropertySymbols(value).length !== 0)
+      throw new Error('symbol-keyed JSON value');
+    const canonical: JsonRecord = {};
+    for (const key of Object.keys(value).sort()) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      if (!descriptor || !descriptor.enumerable || !('value' in descriptor)) {
+        throw new Error('accessor-backed JSON value');
+      }
+      canonical[key] = canonicalJsonValue(descriptor.value, seen);
+    }
+    return canonical;
+  } finally {
+    seen.delete(value);
+  }
+}
+
+function canonicalJsonSha256(value: unknown): string | null {
+  try {
+    const canonical = canonicalJsonValue(value, new Set<object>());
+    const body = JSON.stringify(canonical);
+    if (typeof body !== 'string') return null;
+    return `sha256:${createHash('sha256').update(body, 'utf8').digest('hex')}`;
+  } catch {
+    return null;
+  }
+}
+
+function validHoloServeBinding(value: unknown): value is JsonRecord {
+  if (
+    !isRecord(value) ||
+    !hasExactKeys(value, ['schema', 'available', 'checkpointSha256', 'tokenizerSha256', 'bins'])
+  )
+    return false;
+  if (value.schema !== HOLOSERVE_BINDING_SCHEMA || value.available !== true) return false;
+  if (typeof value.checkpointSha256 !== 'string' || !SHA256_RE.test(value.checkpointSha256))
+    return false;
+  if (typeof value.tokenizerSha256 !== 'string' || !SHA256_RE.test(value.tokenizerSha256))
+    return false;
+
+  const bins = value.bins;
+  if (!isRecord(bins) || !hasExactKeys(bins, ['schema', 'files', 'bindingSha256'])) return false;
+  if (bins.schema !== HOLOSERVE_BINS_SCHEMA) return false;
+  if (typeof bins.bindingSha256 !== 'string' || !SHA256_RE.test(bins.bindingSha256)) return false;
+  const files = bins.files;
+  if (!isRecord(files) || !hasExactKeys(files, ['meta.json', 'tokenizer.json'])) return false;
+  const metaSha256 = files['meta.json'];
+  const tokenizerSha256 = files['tokenizer.json'];
+  if (typeof metaSha256 !== 'string' || !SHA256_RE.test(metaSha256)) return false;
+  if (typeof tokenizerSha256 !== 'string' || !SHA256_RE.test(tokenizerSha256)) return false;
+  if (value.tokenizerSha256 !== tokenizerSha256) return false;
+
+  const binsPayload = { schema: bins.schema, files };
+  return canonicalJsonSha256(binsPayload) === bins.bindingSha256;
+}
+
+/**
+ * Admit one HoloServe health payload only when its model registry binds exact,
+ * canonical artifact identities. This is deliberately stricter than checking
+ * sovereignty labels: a model name without a valid bytes binding is not routable.
+ */
+export function admitHoloServeHealth(
+  health: unknown,
+  expectedModel?: string
+): HoloServeArtifactAdmission | null {
+  // A real response came from strict JSON. Reject injected/proxied NaN, Infinity,
+  // accessors, cycles, undefined, or other values JSON could not faithfully carry.
+  if (canonicalJsonSha256(health) === null || !isRecord(health)) return null;
+  if (
+    health.status !== 'ok' ||
+    health.backend !== 'pytorch-holo' ||
+    health.sovereign !== true ||
+    health.llama_cpp !== false ||
+    health.gguf !== false
+  )
+    return null;
+
+  const registry = health.model_artifact_bindings;
+  if (!isRecord(registry) || !hasExactKeys(registry, ['schema', 'defaultModel', 'models']))
+    return null;
+  if (registry.schema !== HOLOSERVE_REGISTRY_SCHEMA) return null;
+  const defaultModel = registry.defaultModel;
+  if (typeof defaultModel !== 'string' || !PORTABLE_MODEL_RE.test(defaultModel)) return null;
+  const models = registry.models;
+  if (!isRecord(models)) return null;
+  const modelNames = Object.keys(models).sort();
+  if (modelNames.length === 0 || modelNames.some((name) => !PORTABLE_MODEL_RE.test(name)))
+    return null;
+  for (const name of modelNames) {
+    if (!validHoloServeBinding(models[name])) return null;
+  }
+  if (!Object.prototype.hasOwnProperty.call(models, defaultModel)) return null;
+
+  const modelSummary = health.model;
+  if (!isRecord(modelSummary) || modelSummary.name !== defaultModel) return null;
+  const advertisedModels = health.models;
+  if (
+    !Array.isArray(advertisedModels) ||
+    advertisedModels.some((name) => typeof name !== 'string') ||
+    new Set(advertisedModels).size !== advertisedModels.length ||
+    [...advertisedModels].sort().some((name, index) => name !== modelNames[index]) ||
+    advertisedModels.length !== modelNames.length
+  )
+    return null;
+
+  const selectedModel = expectedModel ?? defaultModel;
+  if (
+    !PORTABLE_MODEL_RE.test(selectedModel) ||
+    !Object.prototype.hasOwnProperty.call(models, selectedModel)
+  ) {
+    return null;
+  }
+  const bindingSha256 = canonicalJsonSha256(models[selectedModel]);
+  const registrySha256 = canonicalJsonSha256(registry);
+  if (!bindingSha256 || !registrySha256) return null;
+  return { defaultModel, selectedModel, models: modelNames, bindingSha256, registrySha256 };
+}
 
 /** One declared fleet node. Addresses are NOT here — only the registry handle. */
 export interface FleetNode {
@@ -262,13 +422,17 @@ interface RegistryDevice {
  * `endpoint`. Null when the file is missing, unparseable, or carries no
  * `local-llm` endpoint (→ the node is not a fleet member right now).
  */
-export async function resolveNodeEndpoint(handle: string, registryDir?: string): Promise<string | null> {
+export async function resolveNodeEndpoint(
+  handle: string,
+  registryDir?: string
+): Promise<string | null> {
   try {
     const file = join(registryDirDefault(registryDir), `${handle}.json`);
     const dev = JSON.parse(await readFile(file, 'utf8')) as RegistryDevice;
     const cap = (dev.capabilities ?? []).find((c) => c.id === 'local-llm');
     const endpoint = cap?.endpoint;
-    if (typeof endpoint === 'string' && /^https?:\/\//.test(endpoint)) return endpoint.replace(/\/$/, '');
+    if (typeof endpoint === 'string' && /^https?:\/\//.test(endpoint))
+      return endpoint.replace(/\/$/, '');
     return null;
   } catch {
     return null;
@@ -290,9 +454,17 @@ interface PsResponse {
 interface PropsResponse {
   model?: string;
   model_path?: string;
-  default_generation_settings?: { model?: string; model_path?: string };
+  default_generation_settings?: { model?: string; model_path?: string; n_ctx?: number };
+  total_slots?: number;
+  backend?: string;
+  models?: string[];
 }
-interface SlotsResponse extends Array<{ id?: number; state?: number; is_processing?: boolean }> {}
+interface SlotsResponse extends Array<{
+  id?: number;
+  state?: number;
+  is_processing?: boolean;
+  model?: string;
+}> {}
 
 async function fetchJson<T>(
   fetchImpl: FetchLike,
@@ -373,12 +545,15 @@ export async function discoverLlamaCppNode(
 /**
  * Probe one HoloServe node (the native PyTorch-direct sovereign server, D.118 —
  * scripts/holoserve.py in ai-ecosystem). Same `/health` + `/props` + `/slots`
- * surface and the same single-resident-model semantics as a llama-server, so it
+ * surface while its exact health registry may advertise multiple resident models, so it
  * shares {@link discoverLlamaCppNode}'s discovery body — with one addition: the
  * `/health` body must MACHINE-CHECKABLY assert sovereignty (`sovereign: true` and
  * not `llama_cpp: true`). A node declared `backend: "pytorch-holo"` whose health
  * doesn't carry that claim (e.g. someone pointed the handle at a llama-server) is
  * dropped rather than routed as sovereign.
+ * Admission additionally requires the exact canonical model-artifact registry,
+ * agreement with `/props`, finite slot
+ * telemetry, and an unchanged registry after all discovery probes.
  */
 export async function discoverPytorchHoloNode(
   handle: string,
@@ -387,16 +562,15 @@ export async function discoverPytorchHoloNode(
   opts: { timeoutMs?: number; fetchImpl?: FetchLike } = {}
 ): Promise<NodeDiscovery | null> {
   const sovereignGate = (health: unknown): boolean => {
-    const h = health as { sovereign?: unknown; llama_cpp?: unknown } | null;
-    // Demand the FULL machine-checkable claim, strictly typed: `llama_cpp !== true`
-    // would admit a stringly `'true'` from a boolean-mangling proxy. HoloServe always
+    // Demand the exact artifact registry as well as the typed sovereignty claim.
+    // It rejects stringly boolean claims and payloads missing required fields; HoloServe
     // sends both booleans — a payload missing either is not making the claim.
-    return h !== null && typeof h === 'object' && h.sovereign === true && h.llama_cpp === false;
+    return admitHoloServeHealth(health) !== null;
   };
   return discoverSingleModelServer(handle, baseURL, isBlocked, 'pytorch-holo', sovereignGate, opts);
 }
 
-/** Shared single-model-server discovery: gate on `/health`, model from `/props`, load from `/slots`. */
+/** Shared OpenAI-compatible discovery: gate on `/health`, identity from `/props`, load from `/slots`. */
 async function discoverSingleModelServer(
   handle: string,
   baseURL: string,
@@ -413,6 +587,9 @@ async function discoverSingleModelServer(
   if (health === null) return null; // unreachable / not ok → not a routable node this turn
   if (!healthGate(health)) return null; // reachable but fails the backend's health claim → dropped
 
+  const initialHoloAdmission = backend === 'pytorch-holo' ? admitHoloServeHealth(health) : null;
+  if (backend === 'pytorch-holo' && !initialHoloAdmission) return null;
+
   const props = await fetchJson<PropsResponse>(fetchImpl, `${base}/props`, timeoutMs);
   const rawModel =
     props?.default_generation_settings?.model ??
@@ -425,19 +602,70 @@ async function discoverSingleModelServer(
   // fabricating the handle as a model id the server cannot actually serve. Same "no usable
   // model → dropped" contract as the Ollama path (an empty installed list is filtered out).
   if (!rawModel) return null;
-  const installed = isBlocked(rawModel) ? [] : [rawModel];
+  if (initialHoloAdmission && rawModel !== initialHoloAdmission.defaultModel) return null;
+  if (initialHoloAdmission) {
+    if (
+      props?.backend !== 'pytorch-holo' ||
+      props.model !== initialHoloAdmission.defaultModel ||
+      props.default_generation_settings?.model !== initialHoloAdmission.defaultModel ||
+      !Number.isInteger(props.default_generation_settings?.n_ctx) ||
+      (props.default_generation_settings?.n_ctx ?? 0) <= 0 ||
+      !Number.isInteger(props.total_slots) ||
+      (props.total_slots ?? 0) <= 0 ||
+      !Array.isArray(props.models) ||
+      props.models.length !== initialHoloAdmission.models.length ||
+      [...props.models].sort().some((model, index) => model !== initialHoloAdmission.models[index])
+    )
+      return null;
+  }
+  const residentModels = initialHoloAdmission?.models ?? [rawModel];
+  const installed = residentModels.filter((model) => !isBlocked(model));
   const warm = new Set<string>(installed);
 
   const slots = await fetchJson<SlotsResponse>(fetchImpl, `${base}/slots`, timeoutMs);
+  if (initialHoloAdmission) {
+    if (!Array.isArray(slots) || slots.length !== props?.total_slots) return null;
+    const slotIds = new Set<number>();
+    for (const slot of slots) {
+      if (!isRecord(slot)) return null;
+      if (
+        !Number.isInteger(slot.id) ||
+        (slot.id ?? -1) < 0 ||
+        slotIds.has(slot.id as number) ||
+        !Number.isInteger(slot.state) ||
+        (slot.state ?? -1) < 0 ||
+        typeof slot.is_processing !== 'boolean' ||
+        typeof slot.model !== 'string' ||
+        !initialHoloAdmission.models.includes(slot.model)
+      )
+        return null;
+      slotIds.add(slot.id as number);
+    }
+  }
   const busySlots = Array.isArray(slots)
-    ? slots.filter((s) => s?.is_processing === true || (typeof s?.state === 'number' && s.state !== 0))
-        .length
+    ? slots.filter(
+        (s) => s?.is_processing === true || (typeof s?.state === 'number' && s.state !== 0)
+      ).length
     : 0;
   // Scale busy slots into a byte-ish magnitude comparable to Ollama's size_vram-based
   // loadScore, so a busy llama.cpp node does not read as ~1e9x freer than a resident
   // Ollama node in the shared least-loaded sort. Idle (0 slots) = 0 = genuinely free;
   // cross-backend comparison remains nominal (Ollama load conflates resident with active).
   const loadScore = busySlots * 1_000_000_000;
+
+  if (initialHoloAdmission) {
+    // Re-read identity after the other discovery probes so a process restart or
+    // mutable registry cannot splice one model binding into another route.
+    const finalHealth = await fetchJson<unknown>(fetchImpl, `${base}/health`, timeoutMs);
+    const finalAdmission = admitHoloServeHealth(finalHealth, initialHoloAdmission.defaultModel);
+    if (
+      !finalAdmission ||
+      finalAdmission.defaultModel !== initialHoloAdmission.defaultModel ||
+      finalAdmission.bindingSha256 !== initialHoloAdmission.bindingSha256 ||
+      finalAdmission.registrySha256 !== initialHoloAdmission.registrySha256
+    )
+      return null;
+  }
 
   return { handle, baseURL: base, installed, warm, loadScore, backend };
 }
@@ -474,7 +702,8 @@ export async function pickFleetModel(
   const isBlocked = (name: string): boolean =>
     isBlacklistedModel(name) || extraBlacklist.some((b) => name.toLowerCase().includes(b));
 
-  const resolveEndpoint = opts.resolveEndpoint ?? ((h: string) => resolveNodeEndpoint(h, opts.registryDir));
+  const resolveEndpoint =
+    opts.resolveEndpoint ?? ((h: string) => resolveNodeEndpoint(h, opts.registryDir));
 
   // Discover every declared node in parallel; drop unreachable / unregistered.
   const discovered = (
@@ -565,9 +794,12 @@ export async function pickFleetModel(
     : spec.warmPreferred && chosen.warm
       ? 'warm'
       : 'least-loaded';
-  const spilled = spec.primary && chosen.handle !== spec.primary ? ' (primary saturated → overflow)' : '';
+  const spilled =
+    spec.primary && chosen.handle !== spec.primary ? ' (primary saturated → overflow)' : '';
   const reason = `${tier} · ${chosen.handle} · load=${chosen.loadScore}${spilled}${
-    requested && chosen.model !== requested ? ` (requested ${requested} not installed; using ${chosen.model})` : ''
+    requested && chosen.model !== requested
+      ? ` (requested ${requested} not installed; using ${chosen.model})`
+      : ''
   }`;
   return { ...chosen, reason, candidates };
 }
@@ -609,8 +841,8 @@ export async function embedAcrossFleet(
   // @model_fleet brain — it just has to be installed somewhere reachable).
   const picked = await resolveLocalFleet({ ...opts, model: embedModel });
   if (!picked || picked.model !== embedModel) return null; // embed model not reachable on the fleet
-  // `/api/embed` is an Ollama-native surface. A single-model server (llama.cpp /
-  // pytorch-holo) can legitimately win routing for the embed model name, but it
+  // `/api/embed` is an Ollama-native surface. A llama.cpp or pytorch-holo server
+  // can legitimately win routing for the embed model name, but it
   // cannot answer this call — skip instead of POSTing into a 404. (Sovereign
   // embeddings are HoloEmbed's lane, not this chat fleet — see model-fleet.hsplus.)
   if (picked.backend !== 'ollama') return null;

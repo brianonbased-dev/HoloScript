@@ -7,6 +7,7 @@
  * hermetic — no real Ollama, no real files.
  */
 import { describe, expect, test } from 'vitest';
+import { createHash } from 'node:crypto';
 import {
   parseFleetSpec,
   pickFleetModel,
@@ -50,7 +51,9 @@ You are the Local Model Fleet.
 `;
 
 /** Build an injected fetch from a map of baseURL → {tags, ps}. Unknown host = unreachable. */
-function fakeFetch(nodes: Record<string, { tags: string[]; ps?: Array<{ name: string; vram: number }> }>): FetchLike {
+function fakeFetch(
+  nodes: Record<string, { tags: string[]; ps?: Array<{ name: string; vram: number }> }>
+): FetchLike {
   return async (url: string) => {
     const base = url.replace(/\/api\/(tags|ps)$/, '');
     const node = nodes[base];
@@ -61,7 +64,9 @@ function fakeFetch(nodes: Record<string, { tags: string[]; ps?: Array<{ name: st
     // /api/ps
     return {
       ok: true,
-      json: async () => ({ models: (node.ps ?? []).map((p) => ({ name: p.name, size_vram: p.vram })) }),
+      json: async () => ({
+        models: (node.ps ?? []).map((p) => ({ name: p.name, size_vram: p.vram })),
+      }),
     };
   };
 }
@@ -107,7 +112,11 @@ describe('pickFleetModel routing', () => {
         ps: [{ name: 'qwen3:4b-instruct', vram: 3_000_000_000 }], // warm here
       },
     });
-    const route = await pickFleetModel(SPEC, { model: 'qwen3:4b-instruct', resolveEndpoint, fetchImpl });
+    const route = await pickFleetModel(SPEC, {
+      model: 'qwen3:4b-instruct',
+      resolveEndpoint,
+      fetchImpl,
+    });
     expect(route).not.toBeNull();
     expect(route!.handle).toBe('laptop-rtx3060'); // warm beats lower load
     expect(route!.model).toBe('qwen3:4b-instruct');
@@ -122,16 +131,27 @@ describe('pickFleetModel routing', () => {
       },
       'http://192.168.0.23:11434': { tags: ['qwen3:4b-instruct'], ps: [] }, // idle
     });
-    const route = await pickFleetModel(SPEC, { model: 'qwen3:4b-instruct', resolveEndpoint, fetchImpl });
+    const route = await pickFleetModel(SPEC, {
+      model: 'qwen3:4b-instruct',
+      resolveEndpoint,
+      fetchImpl,
+    });
     expect(route!.handle).toBe('laptop-rtx3060'); // load 0 < jetson's 6GB
   });
 
   test('requested model installed on only one node → routes there', async () => {
     const fetchImpl = fakeFetch({
       'http://holojetson.local:11434': { tags: ['qwen3:4b'], ps: [] }, // no -instruct here
-      'http://192.168.0.23:11434': { tags: ['qwen3:4b-instruct', 'nomic-embed-text:latest'], ps: [] },
+      'http://192.168.0.23:11434': {
+        tags: ['qwen3:4b-instruct', 'nomic-embed-text:latest'],
+        ps: [],
+      },
     });
-    const route = await pickFleetModel(SPEC, { model: 'qwen3:4b-instruct', resolveEndpoint, fetchImpl });
+    const route = await pickFleetModel(SPEC, {
+      model: 'qwen3:4b-instruct',
+      resolveEndpoint,
+      fetchImpl,
+    });
     expect(route!.handle).toBe('laptop-rtx3060');
     expect(route!.model).toBe('qwen3:4b-instruct');
   });
@@ -141,7 +161,11 @@ describe('pickFleetModel routing', () => {
       // laptop offline (Ollama bound 127.0.0.1) — only the Jetson answers
       'http://holojetson.local:11434': { tags: ['qwen3:4b'], ps: [] },
     });
-    const route = await pickFleetModel(SPEC, { model: 'qwen3:4b-instruct', resolveEndpoint, fetchImpl });
+    const route = await pickFleetModel(SPEC, {
+      model: 'qwen3:4b-instruct',
+      resolveEndpoint,
+      fetchImpl,
+    });
     expect(route!.handle).toBe('jetson-orin');
     // requested -instruct not installed on the Jetson → falls back to its installed model
     expect(route!.model).toBe('qwen3:4b');
@@ -149,7 +173,11 @@ describe('pickFleetModel routing', () => {
   });
 
   test('all nodes unreachable → null (caller falls back to single-endpoint path)', async () => {
-    const route = await pickFleetModel(SPEC, { model: 'qwen3:4b-instruct', resolveEndpoint, fetchImpl: fakeFetch({}) });
+    const route = await pickFleetModel(SPEC, {
+      model: 'qwen3:4b-instruct',
+      resolveEndpoint,
+      fetchImpl: fakeFetch({}),
+    });
     expect(route).toBeNull();
   });
 
@@ -159,7 +187,11 @@ describe('pickFleetModel routing', () => {
       'http://192.168.0.23:11434': { tags: ['qwen3:4b-instruct'], ps: [] },
     });
     // Jetson offers only a blacklisted model → it has 0 usable installed → dropped.
-    const route = await pickFleetModel(SPEC, { model: 'qwen3:4b-instruct', resolveEndpoint, fetchImpl });
+    const route = await pickFleetModel(SPEC, {
+      model: 'qwen3:4b-instruct',
+      resolveEndpoint,
+      fetchImpl,
+    });
     expect(route!.handle).toBe('laptop-rtx3060');
     expect(route!.model).toBe('qwen3:4b-instruct');
   });
@@ -168,14 +200,20 @@ describe('pickFleetModel routing', () => {
     const fetchImpl = fakeFetch({
       'http://192.168.0.23:11434': { tags: ['qwen3:4b-instruct'], ps: [] },
     });
-    const route = await pickFleetModel(SPEC, { model: 'qwen2.5-coder:7b', resolveEndpoint, fetchImpl });
+    const route = await pickFleetModel(SPEC, {
+      model: 'qwen2.5-coder:7b',
+      resolveEndpoint,
+      fetchImpl,
+    });
     expect(route!.model).toBe('qwen3:4b-instruct'); // declared-and-installed fallback, not the blacklisted request
   });
 
   test('a node with no resolvable endpoint (not registered) is skipped', async () => {
     const onlyJetson = async (h: string): Promise<string | null> =>
       h === 'jetson-orin' ? 'http://holojetson.local:11434' : null;
-    const fetchImpl = fakeFetch({ 'http://holojetson.local:11434': { tags: ['qwen3:4b'], ps: [] } });
+    const fetchImpl = fakeFetch({
+      'http://holojetson.local:11434': { tags: ['qwen3:4b'], ps: [] },
+    });
     const route = await pickFleetModel(SPEC, { resolveEndpoint: onlyJetson, fetchImpl });
     expect(route!.handle).toBe('jetson-orin');
   });
@@ -185,9 +223,16 @@ describe('pickFleetModel routing', () => {
   // match it (this was live: embed routing fell back to a chat model and returned null).
   test('a bare requested model matches a `:latest`-tagged install (and echoes the bare name)', async () => {
     const fetchImpl = fakeFetch({
-      'http://holojetson.local:11434': { tags: ['nomic-embed-text:latest', 'qwen3:4b-instruct'], ps: [] },
+      'http://holojetson.local:11434': {
+        tags: ['nomic-embed-text:latest', 'qwen3:4b-instruct'],
+        ps: [],
+      },
     });
-    const route = await pickFleetModel(SPEC, { model: 'nomic-embed-text', resolveEndpoint, fetchImpl });
+    const route = await pickFleetModel(SPEC, {
+      model: 'nomic-embed-text',
+      resolveEndpoint,
+      fetchImpl,
+    });
     expect(route!.handle).toBe('jetson-orin');
     expect(route!.model).toBe('nomic-embed-text'); // echoes the caller's form; Ollama resolves :latest
     expect(route!.reason).not.toContain('not installed');
@@ -201,7 +246,11 @@ describe('pickFleetModel routing', () => {
         ps: [{ name: 'nomic-embed-text:latest', vram: 300_000_000 }], // warm here
       },
     });
-    const route = await pickFleetModel(SPEC, { model: 'nomic-embed-text', resolveEndpoint, fetchImpl });
+    const route = await pickFleetModel(SPEC, {
+      model: 'nomic-embed-text',
+      resolveEndpoint,
+      fetchImpl,
+    });
     expect(route!.handle).toBe('laptop-rtx3060'); // warm beats cold despite the :latest tag
     expect(route!.warm).toBe(true);
   });
@@ -231,13 +280,18 @@ function fakeFetchWithEmbed(
     }
     return {
       ok: true,
-      json: async () => ({ models: (node.ps ?? []).map((p) => ({ name: p.name, size_vram: p.vram })) }),
+      json: async () => ({
+        models: (node.ps ?? []).map((p) => ({ name: p.name, size_vram: p.vram })),
+      }),
     };
   };
 }
 
 // Brain with the Jetson declared PRIMARY (founder: jetson = main inference, laptop = on top).
-const PRIMARY_BRAIN = BRAIN_SRC.replace('  warm_preferred: true', '  warm_preferred: true\n  primary: "jetson-orin"\n  primary_max_load_gb: "6"');
+const PRIMARY_BRAIN = BRAIN_SRC.replace(
+  '  warm_preferred: true',
+  '  warm_preferred: true\n  primary: "jetson-orin"\n  primary_max_load_gb: "6"'
+);
 const PRIMARY_SPEC: FleetSpec = parseFleetSpec(PRIMARY_BRAIN)!;
 
 describe('primary-node preference (jetson main, laptop overflow)', () => {
@@ -251,7 +305,11 @@ describe('primary-node preference (jetson main, laptop overflow)', () => {
       'http://holojetson.local:11434': { tags: ['qwen3:4b-instruct'], ps: [] }, // idle
       'http://192.168.0.23:11434': { tags: ['qwen3:4b-instruct'], ps: [] }, // idle
     });
-    const route = await pickFleetModel(PRIMARY_SPEC, { model: 'qwen3:4b-instruct', resolveEndpoint, fetchImpl });
+    const route = await pickFleetModel(PRIMARY_SPEC, {
+      model: 'qwen3:4b-instruct',
+      resolveEndpoint,
+      fetchImpl,
+    });
     expect(route!.handle).toBe('jetson-orin');
     expect(route!.reason).toContain('primary');
   });
@@ -264,7 +322,11 @@ describe('primary-node preference (jetson main, laptop overflow)', () => {
         ps: [{ name: 'qwen3:4b-instruct', vram: 3_000_000_000 }], // warm overflow
       },
     });
-    const route = await pickFleetModel(PRIMARY_SPEC, { model: 'qwen3:4b-instruct', resolveEndpoint, fetchImpl });
+    const route = await pickFleetModel(PRIMARY_SPEC, {
+      model: 'qwen3:4b-instruct',
+      resolveEndpoint,
+      fetchImpl,
+    });
     expect(route!.handle).toBe('jetson-orin'); // unsaturated primary wins over a warm overflow
   });
 
@@ -276,7 +338,11 @@ describe('primary-node preference (jetson main, laptop overflow)', () => {
       },
       'http://192.168.0.23:11434': { tags: ['qwen3:4b-instruct'], ps: [] }, // free overflow
     });
-    const route = await pickFleetModel(PRIMARY_SPEC, { model: 'qwen3:4b-instruct', resolveEndpoint, fetchImpl });
+    const route = await pickFleetModel(PRIMARY_SPEC, {
+      model: 'qwen3:4b-instruct',
+      resolveEndpoint,
+      fetchImpl,
+    });
     expect(route!.handle).toBe('laptop-rtx3060');
     expect(route!.reason).toContain('overflow');
   });
@@ -285,7 +351,11 @@ describe('primary-node preference (jetson main, laptop overflow)', () => {
     const fetchImpl = fakeFetch({
       'http://192.168.0.23:11434': { tags: ['qwen3:4b-instruct'], ps: [] }, // only the laptop answers
     });
-    const route = await pickFleetModel(PRIMARY_SPEC, { model: 'qwen3:4b-instruct', resolveEndpoint, fetchImpl });
+    const route = await pickFleetModel(PRIMARY_SPEC, {
+      model: 'qwen3:4b-instruct',
+      resolveEndpoint,
+      fetchImpl,
+    });
     expect(route!.handle).toBe('laptop-rtx3060');
   });
 });
@@ -324,7 +394,10 @@ function fakeFetchLlama(
       }
       // /slots — an array of slot objects; state !== 0 (or is_processing) counts as busy.
       const busy = n.busySlots ?? 0;
-      const slots = Array.from({ length: Math.max(busy, 1) }, (_, i) => ({ id: i, state: i < busy ? 1 : 0 }));
+      const slots = Array.from({ length: Math.max(busy, 1) }, (_, i) => ({
+        id: i,
+        state: i < busy ? 1 : 0,
+      }));
       return { ok: true, json: async () => slots };
     }
     const base = url.replace(/\/api\/(tags|ps)$/, '');
@@ -335,7 +408,9 @@ function fakeFetchLlama(
     }
     return {
       ok: true,
-      json: async () => ({ models: (node.ps ?? []).map((p) => ({ name: p.name, size_vram: p.vram })) }),
+      json: async () => ({
+        models: (node.ps ?? []).map((p) => ({ name: p.name, size_vram: p.vram })),
+      }),
     };
   };
 }
@@ -375,7 +450,11 @@ describe('llama.cpp backend node kind', () => {
       { 'http://192.168.0.23:18080': { model: 'fara-7b', busySlots: 0 } },
       { 'http://holojetson.local:11434': { tags: ['qwen3:4b-instruct'], ps: [] } }
     );
-    const route = await pickFleetModel(LLAMA_SPEC, { model: 'fara-7b', resolveEndpoint: resolveLlama, fetchImpl });
+    const route = await pickFleetModel(LLAMA_SPEC, {
+      model: 'fara-7b',
+      resolveEndpoint: resolveLlama,
+      fetchImpl,
+    });
     expect(route!.handle).toBe('laptop-fara');
     expect(route!.model).toBe('fara-7b'); // from /props default_generation_settings.model
     expect(route!.warm).toBe(true); // a llama-server holds its one model resident
@@ -386,14 +465,22 @@ describe('llama.cpp backend node kind', () => {
       { 'http://192.168.0.23:18080': { model: 'fara-7b', healthy: false } },
       { 'http://holojetson.local:11434': { tags: ['qwen3:4b-instruct'], ps: [] } }
     );
-    const route = await pickFleetModel(LLAMA_SPEC, { model: 'qwen3:4b-instruct', resolveEndpoint: resolveLlama, fetchImpl });
+    const route = await pickFleetModel(LLAMA_SPEC, {
+      model: 'qwen3:4b-instruct',
+      resolveEndpoint: resolveLlama,
+      fetchImpl,
+    });
     expect(route!.handle).toBe('jetson-orin');
     expect(route!.model).toBe('qwen3:4b-instruct');
   });
 
   test('discoverLlamaCppNode derives installed/warm from /props and load from busy /slots', async () => {
-    const fetchImpl = fakeFetchLlama({ 'http://192.168.0.23:18080': { model: 'fara-7b', busySlots: 2 } });
-    const d = await discoverLlamaCppNode('laptop-fara', 'http://192.168.0.23:18080', () => false, { fetchImpl });
+    const fetchImpl = fakeFetchLlama({
+      'http://192.168.0.23:18080': { model: 'fara-7b', busySlots: 2 },
+    });
+    const d = await discoverLlamaCppNode('laptop-fara', 'http://192.168.0.23:18080', () => false, {
+      fetchImpl,
+    });
     expect(d).not.toBeNull();
     expect(d!.installed).toEqual(['fara-7b']); // the single loaded model
     expect(d!.warm.has('fara-7b')).toBe(true); // resident by definition once /health is ok
@@ -402,8 +489,12 @@ describe('llama.cpp backend node kind', () => {
   });
 
   test('discoverLlamaCppNode returns null when /health is not ok', async () => {
-    const fetchImpl = fakeFetchLlama({ 'http://192.168.0.23:18080': { model: 'fara-7b', healthy: false } });
-    const d = await discoverLlamaCppNode('laptop-fara', 'http://192.168.0.23:18080', () => false, { fetchImpl });
+    const fetchImpl = fakeFetchLlama({
+      'http://192.168.0.23:18080': { model: 'fara-7b', healthy: false },
+    });
+    const d = await discoverLlamaCppNode('laptop-fara', 'http://192.168.0.23:18080', () => false, {
+      fetchImpl,
+    });
     expect(d).toBeNull();
   });
 
@@ -415,15 +506,22 @@ describe('llama.cpp backend node kind', () => {
       if (url.endsWith('/slots')) return { ok: true, json: async () => [] };
       throw new Error('ECONNREFUSED');
     };
-    const d = await discoverLlamaCppNode('laptop-fara', 'http://192.168.0.23:18080', () => false, { fetchImpl });
+    const d = await discoverLlamaCppNode('laptop-fara', 'http://192.168.0.23:18080', () => false, {
+      fetchImpl,
+    });
     expect(d).toBeNull(); // dropped, not offered as model 'laptop-fara'
   });
 
   test('a blacklisted served model yields no installed candidate (node dropped)', async () => {
     const fetchImpl = fakeFetchLlama({ 'http://192.168.0.23:18080': { model: 'qwen2.5-coder' } });
-    const d = await discoverLlamaCppNode('laptop-fara', 'http://192.168.0.23:18080', (n) => n.includes('qwen2.5'), {
-      fetchImpl,
-    });
+    const d = await discoverLlamaCppNode(
+      'laptop-fara',
+      'http://192.168.0.23:18080',
+      (n) => n.includes('qwen2.5'),
+      {
+        fetchImpl,
+      }
+    );
     expect(d!.installed).toEqual([]); // blocked → not a routable model
   });
 });
@@ -433,6 +531,57 @@ describe('llama.cpp backend node kind', () => {
 // (ai-ecosystem scripts/holoserve.py): same /health + /props + /slots surface as a
 // llama-server, but /health must ASSERT sovereignty before the node is admitted.
 
+const TEST_HOLOSERVE_REGISTRY_SCHEMA = 'holoscript.holoserve-model-artifact-registry.v0.1.0';
+const TEST_HOLOSERVE_BINDING_SCHEMA = 'holoscript.holoserve-model-artifact-binding.v0.1.0';
+const TEST_HOLOSERVE_BINS_SCHEMA = 'holoscript.holoserve-bins-binding.v0.1.0';
+
+function testHoloServeHealth(model: string, checkpointDigit = '1'): Record<string, unknown> {
+  const tokenizerSha256 = `sha256:${'2'.repeat(64)}`;
+  const files = {
+    'meta.json': `sha256:${'3'.repeat(64)}`,
+    'tokenizer.json': tokenizerSha256,
+  };
+  const binsPayload = { files, schema: TEST_HOLOSERVE_BINS_SCHEMA };
+  const bindingSha256 = `sha256:${createHash('sha256').update(JSON.stringify(binsPayload), 'utf8').digest('hex')}`;
+  return {
+    status: 'ok',
+    backend: 'pytorch-holo',
+    sovereign: true,
+    llama_cpp: false,
+    gguf: false,
+    model: { name: model, params_millions: 85 },
+    models: [model],
+    model_artifact_bindings: {
+      schema: TEST_HOLOSERVE_REGISTRY_SCHEMA,
+      defaultModel: model,
+      models: {
+        [model]: {
+          schema: TEST_HOLOSERVE_BINDING_SCHEMA,
+          available: true,
+          checkpointSha256: `sha256:${checkpointDigit.repeat(64)}`,
+          tokenizerSha256,
+          bins: { schema: TEST_HOLOSERVE_BINS_SCHEMA, files, bindingSha256 },
+        },
+      },
+    },
+  };
+}
+
+function addTestHoloServeModel(
+  health: Record<string, unknown>,
+  model: string,
+  checkpointDigit: string
+): void {
+  const registry = health.model_artifact_bindings as {
+    models: Record<string, unknown>;
+  };
+  const extraRegistry = testHoloServeHealth(model, checkpointDigit).model_artifact_bindings as {
+    models: Record<string, unknown>;
+  };
+  registry.models[model] = extraRegistry.models[model];
+  health.models = Object.keys(registry.models).sort();
+}
+
 /**
  * Injected fetch answering a HoloServe node (/health with the sovereign claim,
  * /props with the model name, /slots with the single generation slot) plus Ollama
@@ -441,10 +590,23 @@ describe('llama.cpp backend node kind', () => {
 function fakeFetchHolo(
   holo: Record<
     string,
-    { model: string; busy?: boolean; healthy?: boolean; sovereign?: boolean; llamaCpp?: boolean }
+    {
+      model: string;
+      propsModel?: string;
+      propsModels?: string[];
+      propsTotalSlots?: unknown;
+      busy?: boolean;
+      healthy?: boolean;
+      sovereign?: boolean;
+      llamaCpp?: boolean;
+      health?: unknown;
+      finalHealth?: unknown;
+      slots?: unknown;
+    }
   >,
   ollama: Record<string, { tags: string[]; ps?: Array<{ name: string; vram: number }> }> = {}
 ): FetchLike {
+  const healthCalls = new Map<string, number>();
   return async (url: string) => {
     if (/\/(health|props|slots)$/.test(url)) {
       const base = url.replace(/\/(health|props|slots)$/, '');
@@ -452,29 +614,35 @@ function fakeFetchHolo(
       if (!n) throw new Error('ECONNREFUSED');
       if (url.endsWith('/health')) {
         if (n.healthy === false) return { ok: false, json: async () => ({}) };
-        // The HoloServe /health shape: machine-checkable sovereignty claim.
+        const call = healthCalls.get(base) ?? 0;
+        healthCalls.set(base, call + 1);
+        const defaultHealth = {
+          ...testHoloServeHealth(n.model),
+          sovereign: n.sovereign ?? true,
+          llama_cpp: n.llamaCpp ?? false,
+        };
+        const body =
+          call > 0 ? (n.finalHealth ?? n.health ?? defaultHealth) : (n.health ?? defaultHealth);
         return {
           ok: true,
-          json: async () => ({
-            status: 'ok',
-            backend: 'pytorch-holo',
-            sovereign: n.sovereign ?? true,
-            llama_cpp: n.llamaCpp ?? false,
-            gguf: false,
-            model: { name: n.model, params_millions: 49.932 },
-          }),
+          json: async () => body,
         };
       }
       if (url.endsWith('/props')) {
+        const healthModels = Object.keys(
+          (n.health as { model_artifact_bindings?: { models?: Record<string, unknown> } })
+            ?.model_artifact_bindings?.models ?? { [n.model]: {} }
+        );
         return {
           ok: true,
           json: async () => ({
-            default_generation_settings: { model: n.model, n_ctx: 512 },
-            model: n.model,
+            default_generation_settings: { model: n.propsModel ?? n.model, n_ctx: 512 },
+            model: n.propsModel ?? n.model,
             model_path: `.scratch/holorunner/s0/fleet-ckpt/ckpt.pt`,
-            total_slots: 1,
+            total_slots: n.propsTotalSlots ?? 1,
             backend: 'pytorch-holo',
             sovereign: true,
+            models: n.propsModels ?? healthModels,
           }),
         };
       }
@@ -482,7 +650,10 @@ function fakeFetchHolo(
       const busy = n.busy === true;
       return {
         ok: true,
-        json: async () => [{ id: 0, state: busy ? 1 : 0, is_processing: busy, model: n.model }],
+        json: async () =>
+          Object.prototype.hasOwnProperty.call(n, 'slots')
+            ? n.slots
+            : [{ id: 0, state: busy ? 1 : 0, is_processing: busy, model: n.model }],
       };
     }
     const base = url.replace(/\/api\/(tags|ps)$/, '');
@@ -493,7 +664,9 @@ function fakeFetchHolo(
     }
     return {
       ok: true,
-      json: async () => ({ models: (node.ps ?? []).map((p) => ({ name: p.name, size_vram: p.vram })) }),
+      json: async () => ({
+        models: (node.ps ?? []).map((p) => ({ name: p.name, size_vram: p.vram })),
+      }),
     };
   };
 }
@@ -531,7 +704,11 @@ describe('pytorch-holo backend node kind (HoloServe)', () => {
       { 'http://192.168.0.23:8099': { model: 'holorunner-s0' } },
       { 'http://holojetson.local:11434': { tags: ['qwen3:4b-instruct'], ps: [] } }
     );
-    const route = await pickFleetModel(HOLO_SPEC, { model: 'holorunner-s0', resolveEndpoint: resolveHolo, fetchImpl });
+    const route = await pickFleetModel(HOLO_SPEC, {
+      model: 'holorunner-s0',
+      resolveEndpoint: resolveHolo,
+      fetchImpl,
+    });
     expect(route!.handle).toBe('laptop-holoserve');
     expect(route!.model).toBe('holorunner-s0'); // from /props, NOT "ckpt.pt" from model_path
     expect(route!.warm).toBe(true); // resident once /health is ok
@@ -543,7 +720,11 @@ describe('pytorch-holo backend node kind (HoloServe)', () => {
       {},
       { 'http://holojetson.local:11434': { tags: ['qwen3:4b-instruct'], ps: [] } }
     );
-    const route = await pickFleetModel(HOLO_SPEC, { model: 'qwen3:4b-instruct', resolveEndpoint: resolveHolo, fetchImpl });
+    const route = await pickFleetModel(HOLO_SPEC, {
+      model: 'qwen3:4b-instruct',
+      resolveEndpoint: resolveHolo,
+      fetchImpl,
+    });
     expect(route!.handle).toBe('jetson-orin');
     expect(route!.backend).toBe('ollama');
   });
@@ -553,7 +734,11 @@ describe('pytorch-holo backend node kind (HoloServe)', () => {
       { 'http://192.168.0.23:8099': { model: 'holorunner-s0', sovereign: false } },
       { 'http://holojetson.local:11434': { tags: ['qwen3:4b-instruct'], ps: [] } }
     );
-    const route = await pickFleetModel(HOLO_SPEC, { model: 'holorunner-s0', resolveEndpoint: resolveHolo, fetchImpl });
+    const route = await pickFleetModel(HOLO_SPEC, {
+      model: 'holorunner-s0',
+      resolveEndpoint: resolveHolo,
+      fetchImpl,
+    });
     // The declared-sovereign node failed its claim → dropped; fleet degrades to the Ollama node.
     expect(route!.handle).toBe('jetson-orin');
   });
@@ -562,17 +747,108 @@ describe('pytorch-holo backend node kind (HoloServe)', () => {
     const fetchImpl = fakeFetchHolo({
       'http://192.168.0.23:8099': { model: 'holorunner-s0', llamaCpp: true },
     });
-    const d = await discoverPytorchHoloNode('laptop-holoserve', 'http://192.168.0.23:8099', () => false, {
-      fetchImpl,
-    });
+    const d = await discoverPytorchHoloNode(
+      'laptop-holoserve',
+      'http://192.168.0.23:8099',
+      () => false,
+      { fetchImpl }
+    );
     expect(d).toBeNull();
   });
 
-  test('discoverPytorchHoloNode: installed/warm from /props, busy slot as load, backend tagged', async () => {
-    const fetchImpl = fakeFetchHolo({ 'http://192.168.0.23:8099': { model: 'holorunner-s0', busy: true } });
-    const d = await discoverPytorchHoloNode('laptop-holoserve', 'http://192.168.0.23:8099', () => false, {
-      fetchImpl,
+  test('ARTIFACT GATE: a sovereign-labelled node with no exact binding registry is dropped', async () => {
+    const health = testHoloServeHealth('holorunner-s0');
+    delete health.model_artifact_bindings;
+    const fetchImpl = fakeFetchHolo({
+      'http://192.168.0.23:8099': { model: 'holorunner-s0', health },
     });
+    const d = await discoverPytorchHoloNode(
+      'laptop-holoserve',
+      'http://192.168.0.23:8099',
+      () => false,
+      { fetchImpl }
+    );
+    expect(d).toBeNull();
+  });
+
+  test('ARTIFACT GATE: a non-canonical nested bins hash is dropped', async () => {
+    const health = testHoloServeHealth('holorunner-s0');
+    const registry = health.model_artifact_bindings as {
+      models: Record<string, { bins: { bindingSha256: string } }>;
+    };
+    registry.models['holorunner-s0'].bins.bindingSha256 = `sha256:${'f'.repeat(64)}`;
+    const fetchImpl = fakeFetchHolo({
+      'http://192.168.0.23:8099': { model: 'holorunner-s0', health },
+    });
+    const d = await discoverPytorchHoloNode(
+      'laptop-holoserve',
+      'http://192.168.0.23:8099',
+      () => false,
+      {
+        fetchImpl,
+      }
+    );
+    expect(d).toBeNull();
+  });
+
+  test('MODEL GATE: /props must equal the artifact registry default model', async () => {
+    const fetchImpl = fakeFetchHolo({
+      'http://192.168.0.23:8099': { model: 'holorunner-s0', propsModel: 'wrong-model' },
+    });
+    const d = await discoverPytorchHoloNode(
+      'laptop-holoserve',
+      'http://192.168.0.23:8099',
+      () => false,
+      {
+        fetchImpl,
+      }
+    );
+    expect(d).toBeNull();
+  });
+
+  test('DRIFT GATE: a registry mutation between health probes drops the node', async () => {
+    const fetchImpl = fakeFetchHolo({
+      'http://192.168.0.23:8099': {
+        model: 'holorunner-s0',
+        finalHealth: testHoloServeHealth('holorunner-s0', '4'),
+      },
+    });
+    const d = await discoverPytorchHoloNode(
+      'laptop-holoserve',
+      'http://192.168.0.23:8099',
+      () => false,
+      {
+        fetchImpl,
+      }
+    );
+    expect(d).toBeNull();
+  });
+
+  test('STRICT JSON GATE: non-finite health telemetry drops the node', async () => {
+    const health = testHoloServeHealth('holorunner-s0');
+    (health.model as { params_millions: number }).params_millions = Number.NaN;
+    const fetchImpl = fakeFetchHolo({
+      'http://192.168.0.23:8099': { model: 'holorunner-s0', health },
+    });
+    const d = await discoverPytorchHoloNode(
+      'laptop-holoserve',
+      'http://192.168.0.23:8099',
+      () => false,
+      { fetchImpl }
+    );
+    expect(d).toBeNull();
+  });
+
+  test('discoverPytorchHoloNode: exact registry + /props identity is installed, warm, and load-scored', async () => {
+    const fetchImpl = fakeFetchHolo({
+      'http://192.168.0.23:8099': { model: 'holorunner-s0', busy: true },
+    });
+    const d = await discoverPytorchHoloNode(
+      'laptop-holoserve',
+      'http://192.168.0.23:8099',
+      () => false,
+      { fetchImpl }
+    );
     expect(d).not.toBeNull();
     expect(d!.installed).toEqual(['holorunner-s0']);
     expect(d!.warm.has('holorunner-s0')).toBe(true);
@@ -580,11 +856,64 @@ describe('pytorch-holo backend node kind (HoloServe)', () => {
     expect(d!.backend).toBe('pytorch-holo');
   });
 
-  test('discoverPytorchHoloNode returns null when /health is unreachable', async () => {
-    const fetchImpl = fakeFetchHolo({ 'http://192.168.0.23:8099': { model: 'holorunner-s0', healthy: false } });
-    const d = await discoverPytorchHoloNode('laptop-holoserve', 'http://192.168.0.23:8099', () => false, {
+  test('MULTI-MODEL GATE: every exact-bound resident model is installed and routable by name', async () => {
+    const health = testHoloServeHealth('default-model');
+    addTestHoloServeModel(health, 'secondary-model', '4');
+    const fetchImpl = fakeFetchHolo({
+      'http://192.168.0.23:8099': {
+        model: 'default-model',
+        health,
+        propsModels: ['default-model', 'secondary-model'],
+      },
+    });
+    const spec = parseFleetSpec(`
+      @model_fleet {
+        holo { node: "laptop-holoserve" backend: "pytorch-holo" models: ["default-model", "secondary-model"] }
+        strategy: "least-loaded"
+      }
+    `);
+    const route = await pickFleetModel(spec, {
+      model: 'secondary-model',
+      resolveEndpoint: () => 'http://192.168.0.23:8099',
       fetchImpl,
     });
+    expect(route).toMatchObject({
+      handle: 'laptop-holoserve',
+      model: 'secondary-model',
+      warm: true,
+      backend: 'pytorch-holo',
+    });
+  });
+
+  test('SLOT GATE: missing, empty, or non-finite HoloServe telemetry drops the node', async () => {
+    for (const slots of [
+      null,
+      [],
+      [{ id: 0, state: Number.NaN, is_processing: false, model: 'holorunner-s0' }],
+    ]) {
+      const fetchImpl = fakeFetchHolo({
+        'http://192.168.0.23:8099': { model: 'holorunner-s0', slots },
+      });
+      const discovered = await discoverPytorchHoloNode(
+        'laptop-holoserve',
+        'http://192.168.0.23:8099',
+        () => false,
+        { fetchImpl }
+      );
+      expect(discovered).toBeNull();
+    }
+  });
+
+  test('discoverPytorchHoloNode returns null when /health is unreachable', async () => {
+    const fetchImpl = fakeFetchHolo({
+      'http://192.168.0.23:8099': { model: 'holorunner-s0', healthy: false },
+    });
+    const d = await discoverPytorchHoloNode(
+      'laptop-holoserve',
+      'http://192.168.0.23:8099',
+      () => false,
+      { fetchImpl }
+    );
     expect(d).toBeNull();
   });
 
@@ -598,7 +927,11 @@ describe('pytorch-holo backend node kind (HoloServe)', () => {
       }
       return inner(url, init);
     };
-    const vec = await embedAcrossFleet('x', { spec: HOLO_SPEC, resolveEndpoint: resolveHolo, fetchImpl });
+    const vec = await embedAcrossFleet('x', {
+      spec: HOLO_SPEC,
+      resolveEndpoint: resolveHolo,
+      fetchImpl,
+    });
     expect(vec).toBeNull(); // guarded: pytorch-holo cannot answer Ollama /api/embed
     expect(embedCalls).toEqual([]); // and it was never asked to
   });
@@ -608,7 +941,10 @@ describe('embedAcrossFleet', () => {
   test('routes the embed to the node that has nomic-embed-text and returns the vector', async () => {
     const fetchImpl = fakeFetchWithEmbed(
       {
-        'http://holojetson.local:11434': { tags: ['nomic-embed-text', 'qwen3:4b-instruct'], ps: [] },
+        'http://holojetson.local:11434': {
+          tags: ['nomic-embed-text', 'qwen3:4b-instruct'],
+          ps: [],
+        },
         'http://192.168.0.23:11434': { tags: ['qwen3:4b-instruct'], ps: [] }, // no embed model here
       },
       { 'http://holojetson.local:11434': { embeddings: [[0.1, 0.2, 0.3]] } }
@@ -623,7 +959,12 @@ describe('embedAcrossFleet', () => {
 
   test('routes through a `:latest`-tagged nomic install (the live Jetson shape)', async () => {
     const fetchImpl = fakeFetchWithEmbed(
-      { 'http://holojetson.local:11434': { tags: ['nomic-embed-text:latest', 'qwen3:4b-instruct'], ps: [] } },
+      {
+        'http://holojetson.local:11434': {
+          tags: ['nomic-embed-text:latest', 'qwen3:4b-instruct'],
+          ps: [],
+        },
+      },
       { 'http://holojetson.local:11434': { embeddings: [[0.4, 0.5, 0.6]] } }
     );
     const vec = await embedAcrossFleet('how do HoloScript traits compose?', {
