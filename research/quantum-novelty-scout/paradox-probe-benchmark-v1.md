@@ -87,6 +87,44 @@ criterion by construction, and every fresh-source kill test remains pending.
 IBM hardware is therefore not authorized by this run even if Aer happens to
 match or beat a classical baseline.
 
+## Observed result
+
+Receipt:
+`quantum_receipts/quantum_paradox_probe_scout_aer_receipt_v1.json`
+
+Payload SHA-256:
+`3746d106b05a79a858e1ef2fb7f046d8bea51b6a9e31794dd2f1d7d98c280816`
+
+Lower QUBO objective is better:
+
+| Method | Selected probe IDs | Objective | Runtime |
+|---|---|---:|---:|
+| Exact enumeration | `QP-PP001-01`, `QP-PP001-04`, `QP-PP003-01`, `QP-PP003-02` | -215.1983333334 | 0.0393 s |
+| Greedy | same as exact | -215.1983333334 | receipt-bound |
+| Budget-matched random | `QP-PP001-01`, `QP-PP001-05`, `QP-PP003-02`, `QP-PP003-03` | -215.0333333334 | receipt-bound |
+| Aer QAOA | `QP-PP001-02`, `QP-PP001-05`, `QP-PP003-01`, `QP-PP003-02` | -214.8583333334 | 0.5011 s |
+
+Exact and greedy recommend:
+
+1. replicate the PP-001 scalar sandbox timing shift;
+2. instrument PP-001's loaded-module dependency closure;
+3. promote the PP-003 API proof-scope composite;
+4. promote the PP-003 SVG scope wall into an emitter.
+
+That recommendation is a planning result under author-assigned weights, not a
+scientific verdict on the four probes.
+
+Aer QAOA did not beat greedy, exact enumeration, or budget-matched random.
+Exact enumeration was also cheaper on this 12-candidate instance. The hardware
+gate returned `NO_GO`: only target cardinality, not-killed status, and selected
+path availability passed; comparative performance, scale, and completed
+fresh-source grounding did not.
+
+The pre- and post-execution scoped signatures matched at commit
+`e0d25b4d5182f17ff607f5f98ddbe069fe1ad0d4`. The independent verifier
+recomputed the fixture, code-state bindings, QUBO, classical baselines, receipt
+hash, and source-stability declaration with zero failures.
+
 ## Limits
 
 - The optimizer ranks a declared candidate set; it does not generate research
