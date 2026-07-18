@@ -118,7 +118,7 @@ class QuantumNoveltyScoutTests(unittest.TestCase):
                     "states": [
                         {
                             "id": "observed",
-                            "source_ref": "worktree-snapshot",
+                            "source_ref": "WORKTREE",
                             "paths": candidate["code_evidence"]["implementation"],
                         }
                     ],
@@ -197,10 +197,19 @@ class QuantumNoveltyScoutTests(unittest.TestCase):
         self.assertEqual(contract["mode"], "paradox_probe_selection")
         self.assertEqual(contract["card_ids"], ["PP-001", "PP-003"])
         self.assertEqual(len(contract["code_state_variable_ids"]), 12)
+        self.assertEqual(len(contract["code_state_fingerprints"]), 12)
         self.assertFalse(contract["adjudication_labels_used_by_optimizer"])
         self.assertEqual(
             contract["optimizer_input_fields"],
             ["scores", "kill_test.status", "tags", "code_evidence"],
+        )
+        self.assertTrue(
+            all(
+                binding["all_paths_available"]
+                and binding["observed_completeness"] == 1.0
+                and binding["state_fingerprint"]
+                for binding in qubo["code_state_bindings"]
+            )
         )
 
         changed_label_hash = copy.deepcopy(loaded)
@@ -240,6 +249,16 @@ class QuantumNoveltyScoutTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "complete code-state binding"):
                 load_fixture(path)
 
+        fixture = self.paradox_fixture()
+        fixture["candidates"][0]["paradox_probe"]["code_state"]["states"][0][
+            "source_ref"
+        ] = "f" * 40
+        with tempfile.TemporaryDirectory(dir=SCRIPTS_DIR / "__tests__") as directory:
+            path = self.write_temp_fixture(pathlib.Path(directory), fixture)
+            loaded = load_fixture(path)
+            with self.assertRaisesRegex(ValueError, "does not resolve"):
+                build_qubo(loaded)
+
     def test_paradox_probe_receipt_verifier_recomputes_contract(self) -> None:
         fixture = self.paradox_fixture()
         with tempfile.TemporaryDirectory(dir=SCRIPTS_DIR / "__tests__") as directory:
@@ -265,6 +284,17 @@ class QuantumNoveltyScoutTests(unittest.TestCase):
                 any(
                     "paradox_probe_contract" in error
                     for error in novelty_scout_receipt_errors(forged)
+                )
+            )
+            forged_binding = copy.deepcopy(receipt)
+            forged_binding["qubo"]["code_state_bindings"][0]["files"][0][
+                "git_blob_sha256"
+            ] = "0" * 64
+            self.rehash_full_receipt(forged_binding)
+            self.assertTrue(
+                any(
+                    "code_state_bindings" in error
+                    for error in novelty_scout_receipt_errors(forged_binding)
                 )
             )
 

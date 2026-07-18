@@ -173,7 +173,10 @@ def _has_forbidden_ranking_token(value: str, forbidden: set[str]) -> bool:
     return any(token in normalized for token in forbidden)
 
 
-def _paradox_probe_contract(fixture: dict[str, Any]) -> dict[str, Any]:
+def _paradox_probe_contract(
+    fixture: dict[str, Any],
+    code_state_bindings: list[dict[str, Any]],
+) -> dict[str, Any]:
     policy = fixture["paradox_probe_policy"]
     probes = [candidate["paradox_probe"] for candidate in fixture["candidates"]]
     return {
@@ -183,6 +186,9 @@ def _paradox_probe_contract(fixture: dict[str, Any]) -> dict[str, Any]:
         "probe_ids": [probe["probe_id"] for probe in probes],
         "code_state_variable_ids": [
             probe["code_state"]["variable_id"] for probe in probes
+        ],
+        "code_state_fingerprints": [
+            binding["state_fingerprint"] for binding in code_state_bindings
         ],
         "ranking_field_allowlist": policy["ranking_field_allowlist"],
         "optimizer_input_fields": PARADOX_OPTIMIZER_INPUT_FIELDS,
@@ -203,6 +209,8 @@ def _validate_paradox_probe_fixture(fixture: dict[str, Any]) -> None:
         raise ValueError("paradox ranking_field_allowlist must be non-empty")
     if allowlist != list(weights):
         raise ValueError("paradox ranking allowlist must exactly match score_weights")
+    if "code_state_completeness" not in allowlist:
+        raise ValueError("paradox ranking must include observed code_state_completeness")
     forbidden = policy.get("forbidden_ranking_tokens")
     if not isinstance(forbidden, list) or any(
         not isinstance(item, str) or not item for item in forbidden
@@ -302,6 +310,12 @@ def _validate_paradox_probe_fixture(fixture: dict[str, Any]) -> None:
             state_ids.add(state_id)
             if not isinstance(state.get("source_ref"), str) or not state["source_ref"]:
                 raise ValueError(f"{candidate_id} code-state source_ref is required")
+            if state["source_ref"] != "WORKTREE" and not re.fullmatch(
+                r"[0-9a-f]{40}", state["source_ref"]
+            ):
+                raise ValueError(
+                    f"{candidate_id} code-state source_ref must be WORKTREE or a full commit"
+                )
             paths = state.get("paths")
             if not isinstance(paths, list) or not paths or any(
                 not isinstance(item, str) or not item for item in paths
@@ -516,6 +530,115 @@ def evaluate_code_evidence(
     return records, implementation_hash_sets
 
 
+def evaluate_code_state_bindings(
+    fixture: dict[str, Any],
+    repo_root: pathlib.Path = REPO_ROOT,
+) -> list[dict[str, Any]]:
+    """Resolve every paradox probe's declared code states to immutable blobs."""
+
+    if fixture.get("schema") != PARADOX_PROBE_FIXTURE_SCHEMA:
+        return []
+    bindings: list[dict[str, Any]] = []
+    for candidate in fixture["candidates"]:
+        code_state = candidate["paradox_probe"]["code_state"]
+        state_records: list[dict[str, Any]] = []
+        flat_files: list[dict[str, Any]] = []
+        declared_count = 0
+        available_count = 0
+        for state in code_state["states"]:
+            source_ref = state["source_ref"]
+            if source_ref == "WORKTREE":
+                resolved_ref = "WORKTREE"
+            else:
+                resolved_ref = _git_output(
+                    repo_root, "rev-parse", "--verify", f"{source_ref}^{{commit}}"
+                )
+                if resolved_ref != source_ref:
+                    raise ValueError(
+                        f"{candidate['id']} code state {state['id']} source ref does not resolve"
+                    )
+            files = []
+            for raw_path in state["paths"]:
+                declared_count += 1
+                normalized_path = str(pathlib.PurePosixPath(raw_path))
+                if source_ref == "WORKTREE":
+                    path = _resolve_evidence_path(raw_path, repo_root)
+                    blob_oid = _git_blob_oid(path, repo_root) if path.is_file() else None
+                else:
+                    blob_oid = _git_output(
+                        repo_root,
+                        "rev-parse",
+                        "--verify",
+                        f"{resolved_ref}:{normalized_path}",
+                    )
+                    if blob_oid and _git_output(repo_root, "cat-file", "-t", blob_oid) != "blob":
+                        blob_oid = None
+                blob = _git_blob_bytes(blob_oid, repo_root) if blob_oid else None
+                available = blob is not None
+                if available:
+                    available_count += 1
+                record = {
+                    "state_id": state["id"],
+                    "path": normalized_path,
+                    "available": available,
+                    "git_blob_oid": blob_oid,
+                    "git_blob_bytes": len(blob) if blob is not None else None,
+                    "git_blob_sha256": (
+                        hashlib.sha256(blob).hexdigest() if blob is not None else None
+                    ),
+                }
+                files.append(record)
+                flat_files.append(record)
+            state_records.append(
+                {
+                    "id": state["id"],
+                    "source_ref": source_ref,
+                    "resolved_ref": resolved_ref,
+                    "files": files,
+                }
+            )
+        observed_completeness = (
+            available_count / declared_count if declared_count else 0.0
+        )
+        if not all(record["available"] for record in flat_files):
+            raise ValueError(f"{candidate['id']} code state path does not resolve")
+        fingerprint_payload = [
+            {
+                "id": state["id"],
+                "resolved_ref": state["resolved_ref"],
+                "files": [
+                    {
+                        "path": item["path"],
+                        "git_blob_sha256": item["git_blob_sha256"],
+                    }
+                    for item in state["files"]
+                ],
+            }
+            for state in state_records
+        ]
+        binding = {
+            "candidate_id": candidate["id"],
+            "variable_id": code_state["variable_id"],
+            "binding_basis": code_state["binding_basis"],
+            "states": state_records,
+            "files": flat_files,
+            "declared_path_count": declared_count,
+            "available_path_count": available_count,
+            "all_paths_available": available_count == declared_count,
+            "observed_completeness": observed_completeness,
+            "state_fingerprint": canonical_hash(fingerprint_payload),
+        }
+        declared_completeness = float(
+            candidate["scores"]["code_state_completeness"]
+        )
+        if abs(declared_completeness - observed_completeness) > 1e-12:
+            raise ValueError(
+                f"{candidate['id']} code_state_completeness is not observed from blobs"
+            )
+        bindings.append(binding)
+    return bindings
+
+
 def candidate_reward(
     candidate: dict[str, Any],
     weights: dict[str, float],
@@ -560,6 +683,7 @@ def build_qubo(
     }
     code_policy = fixture["code_evidence_policy"]
     code_evidence, implementation_hash_sets = evaluate_code_evidence(fixture, repo_root)
+    code_state_bindings = evaluate_code_state_bindings(fixture, repo_root)
     reward_parts = [
         candidate_reward(
             candidate,
@@ -617,7 +741,10 @@ def build_qubo(
         "convention": "upper triangular: sum_i Qii*x_i + sum_{i<j} Qij*x_i*x_j",
     }
     if fixture.get("schema") == PARADOX_PROBE_FIXTURE_SCHEMA:
-        qubo["paradox_probe_contract"] = _paradox_probe_contract(fixture)
+        qubo["code_state_bindings"] = code_state_bindings
+        qubo["paradox_probe_contract"] = _paradox_probe_contract(
+            fixture, code_state_bindings
+        )
     return qubo
 
 
