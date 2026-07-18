@@ -108,3 +108,6 @@ The executable and rejection proofs live in
 
 The local-reference predecessor is
 [native machine contract v16](native-machine-v16.md).
+
+The lexical parameter-reborrow successor is
+[native machine contract v18](native-machine-v18.md).

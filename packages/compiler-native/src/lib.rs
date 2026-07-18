@@ -26,8 +26,10 @@
 //! target-aware indirect ABI for aggregate parameters and results. `hs-machine-v16` adds
 //! compiler-owned aggregate references and scalar-field borrows with conservative whole-root
 //! aliasing. `hs-machine-v17` adds call-safe aggregate-reference parameters and controlled
-//! forwarding through a guarded, object-local pointer representation. Everything outside the
-//! selected contract fails closed with a native compile diagnostic.
+//! forwarding through a guarded, object-local pointer representation. `hs-machine-v18` adds
+//! one-level lexical reborrows from aggregate-reference parameters while retaining caller-root
+//! provenance and conservative whole-root aliasing. Everything outside the selected contract
+//! fails closed with a native compile diagnostic.
 
 use std::collections::{HashMap, HashSet};
 use std::env;
@@ -68,6 +70,7 @@ pub const OWNED_AGGREGATE_MACHINE_CONTRACT: &str = "hs-machine-v14";
 pub const AFFINE_AGGREGATE_MACHINE_CONTRACT: &str = "hs-machine-v15";
 pub const AGGREGATE_REFERENCE_MACHINE_CONTRACT: &str = "hs-machine-v16";
 pub const AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT: &str = "hs-machine-v17";
+pub const AGGREGATE_REBORROW_MACHINE_CONTRACT: &str = "hs-machine-v18";
 pub const OWNED_BUFFER_ABI_VERSION: u32 = 1;
 pub const NATIVE_AGGREGATE_ABI_VERSION: u32 = 1;
 pub const HOST_ALLOCATOR_PROVENANCE_ID: u32 = 1;
@@ -236,7 +239,9 @@ pub fn inspect_native_layouts(source: &str) -> Result<Vec<NativeStructLayout>, N
             .join("; ");
         NativeCompileError::new(format!("HoloScript parse failed: {rendered}"))
     })?;
-    let machine_contract = if has_aggregate_reference_call_machine_metadata(&ast) {
+    let machine_contract = if has_aggregate_reborrow_machine_metadata(&ast) {
+        AGGREGATE_REBORROW_MACHINE_CONTRACT
+    } else if has_aggregate_reference_call_machine_metadata(&ast) {
         AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
     } else if has_aggregate_reference_machine_metadata(&ast) {
         AGGREGATE_REFERENCE_MACHINE_CONTRACT
@@ -275,7 +280,12 @@ fn compile_unit(
         NativeCompileError::new(format!("HoloScript parse failed: {rendered}"))
     })?;
 
-    if has_aggregate_reference_call_machine_metadata(&ast) {
+    if has_aggregate_reborrow_machine_metadata(&ast) {
+        Ok(CompiledObject {
+            bytes: lower_typed_ast_to_object(&ast, AGGREGATE_REBORROW_MACHINE_CONTRACT, true)?,
+            machine_contract: AGGREGATE_REBORROW_MACHINE_CONTRACT,
+        })
+    } else if has_aggregate_reference_call_machine_metadata(&ast) {
         Ok(CompiledObject {
             bytes: lower_typed_ast_to_object(
                 &ast,
@@ -612,6 +622,80 @@ fn has_aggregate_reference_call_machine_metadata(ast: &Ast) -> bool {
                 .flatten()
                 .any(|annotation| annotation_references_aggregate(annotation, &aggregate_names))
         })
+}
+
+fn has_aggregate_reborrow_machine_metadata(ast: &Ast) -> bool {
+    let aggregate_names = ast
+        .body
+        .iter()
+        .filter_map(|node| match node {
+            AstNode::StructDeclaration(structure) => Some(structure.name.as_str()),
+            _ => None,
+        })
+        .collect::<HashSet<_>>();
+    !aggregate_names.is_empty()
+        && ast.body.iter().any(|node| {
+            let AstNode::Function(function) = node else {
+                return false;
+            };
+            let parameter_references = function
+                .params
+                .iter()
+                .zip(function.param_types.iter())
+                .filter_map(|(name, annotation)| {
+                    annotation
+                        .as_deref()
+                        .is_some_and(|annotation| {
+                            annotation_references_aggregate(annotation, &aggregate_names)
+                        })
+                        .then_some(name.as_str())
+                })
+                .collect::<HashSet<_>>();
+            !parameter_references.is_empty()
+                && statements_contain_parameter_reborrow(&function.body, &parameter_references)
+        })
+}
+
+fn statements_contain_parameter_reborrow(
+    statements: &[AstNode],
+    parameter_references: &HashSet<&str>,
+) -> bool {
+    statements.iter().any(|statement| match statement {
+        AstNode::VariableDeclaration(local)
+            if local
+                .type_annotation
+                .as_deref()
+                .is_some_and(|annotation| annotation.starts_with('&')) =>
+        {
+            let AstNode::UnaryExpression(borrow) = local.value.as_ref() else {
+                return false;
+            };
+            if !matches!(borrow.operator.as_str(), "&" | "&mut") {
+                return false;
+            }
+            match borrow.argument.as_ref() {
+                AstNode::Identifier(identifier) => {
+                    parameter_references.contains(identifier.name.as_str())
+                }
+                argument => owned_buffer_path(argument)
+                    .and_then(|path| path.split('.').next().map(str::to_string))
+                    .is_some_and(|root| parameter_references.contains(root.as_str())),
+            }
+        }
+        AstNode::LexicalScope(scope) => {
+            statements_contain_parameter_reborrow(&scope.body, parameter_references)
+        }
+        AstNode::If(if_node) => {
+            statements_contain_parameter_reborrow(&if_node.consequent, parameter_references)
+                || if_node.alternate.as_deref().is_some_and(|alternate| {
+                    statements_contain_parameter_reborrow(alternate, parameter_references)
+                })
+        }
+        AstNode::While(while_node) => {
+            statements_contain_parameter_reborrow(&while_node.body, parameter_references)
+        }
+        _ => false,
+    })
 }
 
 fn annotation_references_aggregate(annotation: &str, aggregate_names: &HashSet<&str>) -> bool {
@@ -1429,6 +1513,7 @@ fn bool_enabled(machine_contract: &str) -> bool {
             | AFFINE_AGGREGATE_MACHINE_CONTRACT
             | AGGREGATE_REFERENCE_MACHINE_CONTRACT
             | AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
+            | AGGREGATE_REBORROW_MACHINE_CONTRACT
     )
 }
 
@@ -1447,6 +1532,7 @@ fn control_flow_enabled(machine_contract: &str) -> bool {
             | AFFINE_AGGREGATE_MACHINE_CONTRACT
             | AGGREGATE_REFERENCE_MACHINE_CONTRACT
             | AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
+            | AGGREGATE_REBORROW_MACHINE_CONTRACT
     )
 }
 
@@ -1466,6 +1552,7 @@ fn scoped_lifetimes_enabled(machine_contract: &str) -> bool {
             | AFFINE_AGGREGATE_MACHINE_CONTRACT
             | AGGREGATE_REFERENCE_MACHINE_CONTRACT
             | AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
+            | AGGREGATE_REBORROW_MACHINE_CONTRACT
     )
 }
 
@@ -1486,6 +1573,7 @@ fn references_enabled(machine_contract: &str) -> bool {
             | AFFINE_AGGREGATE_MACHINE_CONTRACT
             | AGGREGATE_REFERENCE_MACHINE_CONTRACT
             | AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
+            | AGGREGATE_REBORROW_MACHINE_CONTRACT
     )
 }
 
@@ -1507,6 +1595,7 @@ fn memory_contract_enabled(machine_contract: &str) -> bool {
             | AFFINE_AGGREGATE_MACHINE_CONTRACT
             | AGGREGATE_REFERENCE_MACHINE_CONTRACT
             | AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
+            | AGGREGATE_REBORROW_MACHINE_CONTRACT
     )
 }
 
@@ -1524,6 +1613,7 @@ fn aggregate_contract_enabled(machine_contract: &str) -> bool {
             | AFFINE_AGGREGATE_MACHINE_CONTRACT
             | AGGREGATE_REFERENCE_MACHINE_CONTRACT
             | AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
+            | AGGREGATE_REBORROW_MACHINE_CONTRACT
     )
 }
 
@@ -1535,6 +1625,7 @@ fn owned_buffers_enabled(machine_contract: &str) -> bool {
             | AFFINE_AGGREGATE_MACHINE_CONTRACT
             | AGGREGATE_REFERENCE_MACHINE_CONTRACT
             | AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
+            | AGGREGATE_REBORROW_MACHINE_CONTRACT
     )
 }
 
@@ -1551,6 +1642,7 @@ fn fixed_arrays_enabled(machine_contract: &str) -> bool {
             | AFFINE_AGGREGATE_MACHINE_CONTRACT
             | AGGREGATE_REFERENCE_MACHINE_CONTRACT
             | AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
+            | AGGREGATE_REBORROW_MACHINE_CONTRACT
     )
 }
 
@@ -1560,18 +1652,28 @@ fn affine_aggregates_enabled(machine_contract: &str) -> bool {
         AFFINE_AGGREGATE_MACHINE_CONTRACT
             | AGGREGATE_REFERENCE_MACHINE_CONTRACT
             | AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
+            | AGGREGATE_REBORROW_MACHINE_CONTRACT
     )
 }
 
 fn aggregate_references_enabled(machine_contract: &str) -> bool {
     matches!(
         machine_contract,
-        AGGREGATE_REFERENCE_MACHINE_CONTRACT | AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
+        AGGREGATE_REFERENCE_MACHINE_CONTRACT
+            | AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
+            | AGGREGATE_REBORROW_MACHINE_CONTRACT
     )
 }
 
 fn aggregate_reference_calls_enabled(machine_contract: &str) -> bool {
-    machine_contract == AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
+    matches!(
+        machine_contract,
+        AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT | AGGREGATE_REBORROW_MACHINE_CONTRACT
+    )
+}
+
+fn aggregate_reborrows_enabled(machine_contract: &str) -> bool {
+    machine_contract == AGGREGATE_REBORROW_MACHINE_CONTRACT
 }
 
 #[derive(Debug, Clone)]
@@ -1897,6 +1999,7 @@ fn resolve_aggregate_layout(
                     | AFFINE_AGGREGATE_MACHINE_CONTRACT
                     | AGGREGATE_REFERENCE_MACHINE_CONTRACT
                     | AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
+                    | AGGREGATE_REBORROW_MACHINE_CONTRACT
             ) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} field `{field_name}` uses unsupported nested aggregate type `{type_name}` in struct `{}`",
@@ -1920,6 +2023,7 @@ fn resolve_aggregate_layout(
                     | AFFINE_AGGREGATE_MACHINE_CONTRACT
                     | AGGREGATE_REFERENCE_MACHINE_CONTRACT
                     | AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
+                    | AGGREGATE_REBORROW_MACHINE_CONTRACT
             ) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} owned buffers as aggregate fields are not enabled; field `{field_name}` in struct `{}` uses `{type_name}`",
@@ -2157,6 +2261,12 @@ enum TypedReferenceLayout {
         slot_name: String,
         offset: u32,
     },
+    ParameterScalar {
+        machine_type: MachineType,
+        base: Value,
+        offset: u32,
+        root_name: String,
+    },
     Slice {
         element_type: MachineType,
         storage: SliceStorage,
@@ -2171,6 +2281,7 @@ enum TypedReferenceLayout {
 enum AggregateReferenceStorage {
     Stack { slot_name: String },
     Parameter { base: Value },
+    ParameterReborrow { base: Value, root_name: String },
 }
 
 #[derive(Debug, Clone)]
@@ -2200,7 +2311,8 @@ struct TypedReference {
 impl TypedReference {
     fn scalar_pointee(&self) -> Option<MachineType> {
         match &self.layout {
-            TypedReferenceLayout::Scalar { machine_type, .. } => Some(*machine_type),
+            TypedReferenceLayout::Scalar { machine_type, .. }
+            | TypedReferenceLayout::ParameterScalar { machine_type, .. } => Some(*machine_type),
             TypedReferenceLayout::Slice { .. } | TypedReferenceLayout::Aggregate { .. } => None,
         }
     }
@@ -2220,14 +2332,39 @@ impl TypedReference {
                 storage: SliceStorage::Parameter { .. },
                 ..
             }
+            | TypedReferenceLayout::ParameterScalar { .. }
             | TypedReferenceLayout::Aggregate {
-                storage: AggregateReferenceStorage::Parameter { .. },
+                storage:
+                    AggregateReferenceStorage::Parameter { .. }
+                    | AggregateReferenceStorage::ParameterReborrow { .. },
                 ..
             } => None,
             TypedReferenceLayout::Slice {
                 storage: SliceStorage::Heap { owner_name, .. },
                 ..
             } => Some(owner_name),
+        }
+    }
+
+    fn borrow_root(&self) -> Option<&str> {
+        match &self.layout {
+            TypedReferenceLayout::ParameterScalar { root_name, .. }
+            | TypedReferenceLayout::Aggregate {
+                storage: AggregateReferenceStorage::ParameterReborrow { root_name, .. },
+                ..
+            } => Some(root_name),
+            _ => self.stack_root(),
+        }
+    }
+
+    fn parameter_reborrow_root(&self) -> Option<&str> {
+        match &self.layout {
+            TypedReferenceLayout::ParameterScalar { root_name, .. }
+            | TypedReferenceLayout::Aggregate {
+                storage: AggregateReferenceStorage::ParameterReborrow { root_name, .. },
+                ..
+            } => Some(root_name),
+            _ => None,
         }
     }
 }
@@ -3326,6 +3463,7 @@ fn collect_typed_function_specs<'a>(
                                 | AFFINE_AGGREGATE_MACHINE_CONTRACT
                                 | AGGREGATE_REFERENCE_MACHINE_CONTRACT
                                 | AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
+                                | AGGREGATE_REBORROW_MACHINE_CONTRACT
                         ) =>
                     {
                         params.push(MachineParameter::Slice {
@@ -4967,7 +5105,40 @@ fn lower_borrowed_aggregate_call_argument(
                     builder.ins().stack_addr(pointer_type, stack_slot.slot, 0),
                 )
             }
-            AggregateReferenceStorage::Parameter { base } => (CallBorrowRoot::Parameter, *base),
+            AggregateReferenceStorage::Parameter { base } => {
+                let active = borrow_states
+                    .get(&identifier.name)
+                    .copied()
+                    .unwrap_or_default();
+                if mutable && (active.shared > 0 || active.exclusive) {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} cannot mutably forward aggregate reference parameter `{}` while an active reborrow exists",
+                        identifier.name
+                    )));
+                }
+                if !mutable && active.exclusive {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} cannot forward aggregate reference parameter `{}` while an exclusive reborrow is active",
+                        identifier.name
+                    )));
+                }
+                (CallBorrowRoot::Parameter, *base)
+            }
+            AggregateReferenceStorage::ParameterReborrow { base, root_name } => {
+                let active = borrow_states.get(root_name).copied().unwrap_or_default();
+                let lease_is_active = if reference.mutable {
+                    active.exclusive
+                } else {
+                    active.shared > 0 && !active.exclusive
+                };
+                if !lease_is_active {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} aggregate parameter reborrow `{}` no longer owns a valid borrow lease",
+                        identifier.name
+                    )));
+                }
+                (CallBorrowRoot::Parameter, *base)
+            }
         };
         acquire_aggregate_call_borrow(
             call_borrows,
@@ -5865,6 +6036,11 @@ fn lower_scoped_statements(
     let outer_locals = locals.keys().cloned().collect::<HashSet<_>>();
     let outer_stack_slots = stack_slots.keys().cloned().collect::<HashSet<_>>();
     let outer_references = references.keys().cloned().collect::<HashSet<_>>();
+    let outer_parameter_reborrow_roots = references
+        .values()
+        .filter_map(TypedReference::parameter_reborrow_root)
+        .map(str::to_string)
+        .collect::<HashSet<_>>();
     let outer_owned_buffers = owned_buffers.keys().cloned().collect::<HashSet<_>>();
     let outer_owner_order_len = owner_order.len();
     let outer_borrow_states = borrow_states.clone();
@@ -5912,7 +6088,9 @@ fn lower_scoped_statements(
     owned_buffers.retain(|name, _| outer_owned_buffers.contains(name));
     owner_order.truncate(outer_owner_order_len);
     borrow_states.retain(|slot_name, state| {
-        (outer_stack_slots.contains(slot_name) || outer_owned_buffers.contains(slot_name))
+        (outer_stack_slots.contains(slot_name)
+            || outer_owned_buffers.contains(slot_name)
+            || outer_parameter_reborrow_roots.contains(slot_name))
             && (state.shared > 0 || state.exclusive || state.aggregate_moved)
     });
     let borrow_names = borrow_states
@@ -5938,9 +6116,9 @@ fn release_borrow(
     borrow_states: &mut HashMap<String, BorrowState>,
     machine_contract: &str,
 ) -> Result<(), NativeCompileError> {
-    let slot_name = reference.stack_root().ok_or_else(|| {
+    let slot_name = reference.borrow_root().ok_or_else(|| {
         NativeCompileError::new(format!(
-            "{machine_contract} attempted to release a non-local slice parameter borrow"
+            "{machine_contract} attempted to release a reference without a lexical borrow root"
         ))
     })?;
     let remove_state = {
@@ -5970,6 +6148,33 @@ fn release_borrow(
     };
     if remove_state {
         borrow_states.remove(slot_name);
+    }
+    Ok(())
+}
+
+fn validate_reference_lease(
+    reference: &TypedReference,
+    reference_name: &str,
+    borrow_states: &HashMap<String, BorrowState>,
+    machine_contract: &str,
+) -> Result<(), NativeCompileError> {
+    let Some(root_name) = reference.borrow_root() else {
+        return Ok(());
+    };
+    let state = borrow_states.get(root_name).ok_or_else(|| {
+        NativeCompileError::new(format!(
+            "{machine_contract} reference `{reference_name}` lost its borrow lease for root `{root_name}`"
+        ))
+    })?;
+    let lease_is_active = if reference.mutable {
+        state.exclusive
+    } else {
+        state.shared > 0 && !state.exclusive
+    };
+    if !lease_is_active {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} reference `{reference_name}` no longer owns a valid borrow lease"
+        )));
     }
     Ok(())
 }
@@ -6039,6 +6244,31 @@ struct ReferenceInitializerContext<'a> {
     machine_contract: &'a str,
 }
 
+fn acquire_parameter_reborrow(
+    root_name: &str,
+    mutable: bool,
+    borrow_states: &mut HashMap<String, BorrowState>,
+    machine_contract: &str,
+) -> Result<(), NativeCompileError> {
+    let state = borrow_states.entry(root_name.to_string()).or_default();
+    if mutable {
+        if state.exclusive || state.shared > 0 {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} cannot mutably reborrow aggregate reference parameter `{root_name}` because an active reborrow already exists"
+            )));
+        }
+        state.exclusive = true;
+    } else {
+        if state.exclusive {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} cannot immutably reborrow aggregate reference parameter `{root_name}` because an exclusive reborrow is active"
+            )));
+        }
+        state.shared += 1;
+    }
+    Ok(())
+}
+
 fn lower_reference_initializer(
     reference_name: &str,
     reference_type: ReferenceType,
@@ -6089,10 +6319,55 @@ fn lower_reference_initializer(
                     .next()
                     .expect("aggregate field paths always contain a root");
                 let field_names = segments.collect::<Vec<_>>();
-                if references.contains_key(root_name) {
-                    return Err(NativeCompileError::new(format!(
-                        "{machine_contract} reference `{reference_name}` cannot reborrow through aggregate reference `{root_name}`; reborrow chains are not enabled"
-                    )));
+                if let Some(source) = references.get(root_name) {
+                    if !aggregate_reborrows_enabled(machine_contract) {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} reference `{reference_name}` cannot reborrow through aggregate reference `{root_name}`; reborrow chains are not enabled"
+                        )));
+                    }
+                    let TypedReferenceLayout::Aggregate { layout, storage } = &source.layout else {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} reference `{reference_name}` requires aggregate-reference parameter provenance; `{root_name}` is not an aggregate reference"
+                        )));
+                    };
+                    let AggregateReferenceStorage::Parameter { base } = storage else {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} cannot reborrow aggregate reference `{root_name}`; v18 permits one parameter reborrow layer"
+                        )));
+                    };
+                    if reference_type.mutable && !source.mutable {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} cannot mutably reborrow immutable aggregate reference parameter `{root_name}`"
+                        )));
+                    }
+                    let (machine_type, offset) = resolve_aggregate_scalar_projection(
+                        layout,
+                        &field_names,
+                        &path,
+                        machine_contract,
+                    )?;
+                    if machine_type != expected {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} reference `{reference_name}` expects `{}`, but aggregate field `{path}` stores `{}`",
+                            expected.name(),
+                            machine_type.name()
+                        )));
+                    }
+                    acquire_parameter_reborrow(
+                        root_name,
+                        reference_type.mutable,
+                        borrow_states,
+                        machine_contract,
+                    )?;
+                    return Ok(TypedReference {
+                        layout: TypedReferenceLayout::ParameterScalar {
+                            machine_type,
+                            base: *base,
+                            offset,
+                            root_name: root_name.to_string(),
+                        },
+                        mutable: reference_type.mutable,
+                    });
                 }
                 let stack_slot = stack_slots.get(root_name).ok_or_else(|| {
                     NativeCompileError::new(format!(
@@ -6172,11 +6447,59 @@ fn lower_reference_initializer(
                     "{machine_contract} aggregate reference `{reference_name}` requires a complete named aggregate root; reborrows and nested aggregate borrows are not enabled"
                 )));
             };
-            if references.contains_key(&identifier.name) {
-                return Err(NativeCompileError::new(format!(
-                    "{machine_contract} aggregate reference `{reference_name}` cannot borrow reference `{}`; reborrows and nested aggregate borrows are not enabled",
-                    identifier.name
-                )));
+            if let Some(source) = references.get(&identifier.name) {
+                if !aggregate_reborrows_enabled(machine_contract) {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} aggregate reference `{reference_name}` cannot borrow reference `{}`; reborrows and nested aggregate borrows are not enabled",
+                        identifier.name
+                    )));
+                }
+                let TypedReferenceLayout::Aggregate { layout, storage } = &source.layout else {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} aggregate reference `{reference_name}` requires aggregate-reference parameter provenance; `{}` is not an aggregate reference",
+                        identifier.name
+                    )));
+                };
+                let AggregateReferenceStorage::Parameter { base } = storage else {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} cannot reborrow aggregate reference `{}`; v18 permits one parameter reborrow layer",
+                        identifier.name
+                    )));
+                };
+                if !source.mutable && reference_type.mutable {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} cannot mutably reborrow immutable aggregate reference parameter `{}`",
+                        identifier.name
+                    )));
+                }
+                let expected_layout = aggregate_layouts.get(&expected_name).ok_or_else(|| {
+                    NativeCompileError::new(format!(
+                        "{machine_contract} aggregate reference `{reference_name}` names unknown aggregate type `{expected_name}`"
+                    ))
+                })?;
+                if layout.name != expected_layout.name {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} aggregate reference `{reference_name}` expects `{expected_name}`, but reference parameter `{}` points to `{}`",
+                        identifier.name,
+                        layout.name
+                    )));
+                }
+                acquire_parameter_reborrow(
+                    &identifier.name,
+                    reference_type.mutable,
+                    borrow_states,
+                    machine_contract,
+                )?;
+                return Ok(TypedReference {
+                    layout: TypedReferenceLayout::Aggregate {
+                        layout: layout.clone(),
+                        storage: AggregateReferenceStorage::ParameterReborrow {
+                            base: *base,
+                            root_name: identifier.name.clone(),
+                        },
+                    },
+                    mutable: reference_type.mutable,
+                });
             }
             let stack_slot = stack_slots.get(&identifier.name).ok_or_else(|| {
                 NativeCompileError::new(format!(
@@ -6224,6 +6547,7 @@ fn lower_reference_initializer(
                     | AFFINE_AGGREGATE_MACHINE_CONTRACT
                     | AGGREGATE_REFERENCE_MACHINE_CONTRACT
                     | AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
+                    | AGGREGATE_REBORROW_MACHINE_CONTRACT
             ) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} does not enable borrowed slice values"
@@ -6385,10 +6709,12 @@ fn lower_reference_initializer(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 fn lower_reference_dereference(
     builder: &mut FunctionBuilder<'_>,
     stack_slots: &HashMap<String, TypedStackSlot>,
     references: &HashMap<String, TypedReference>,
+    borrow_states: &HashMap<String, BorrowState>,
     argument: &AstNode,
     expected: MachineType,
     context: &str,
@@ -6415,7 +6741,10 @@ fn lower_reference_dereference(
                 "{machine_contract} aggregate reference `{}` requires a scalar field projection; it cannot be dereferenced as a scalar",
                 identifier.name
             ),
-            TypedReferenceLayout::Scalar { .. } => unreachable!("scalar pointee was checked"),
+            TypedReferenceLayout::Scalar { .. }
+            | TypedReferenceLayout::ParameterScalar { .. } => {
+                unreachable!("scalar pointee was checked")
+            }
         };
         return Err(NativeCompileError::new(message));
     };
@@ -6427,24 +6756,35 @@ fn lower_reference_dereference(
             pointee.name()
         )));
     }
-    let slot_name = reference
-        .stack_root()
-        .expect("scalar references always retain stack provenance");
-    let stack_slot = stack_slots.get(slot_name).ok_or_else(|| {
-        NativeCompileError::new(format!(
-            "{machine_contract} reference `{}` lost its stack-slot provenance",
-            identifier.name
-        ))
-    })?;
-    let TypedReferenceLayout::Scalar { offset, .. } = &reference.layout else {
-        unreachable!("scalar references always retain scalar layout")
-    };
-    Ok(TypedValue {
-        value: builder.ins().stack_load(
+    validate_reference_lease(reference, &identifier.name, borrow_states, machine_contract)?;
+    let value = match &reference.layout {
+        TypedReferenceLayout::Scalar {
+            slot_name, offset, ..
+        } => {
+            let stack_slot = stack_slots.get(slot_name).ok_or_else(|| {
+                NativeCompileError::new(format!(
+                    "{machine_contract} reference `{}` lost its stack-slot provenance",
+                    identifier.name
+                ))
+            })?;
+            builder.ins().stack_load(
+                pointee.ir_type(),
+                stack_slot.slot,
+                i32::try_from(*offset).expect("aggregate offsets are validated"),
+            )
+        }
+        TypedReferenceLayout::ParameterScalar { base, offset, .. } => builder.ins().load(
             pointee.ir_type(),
-            stack_slot.slot,
+            MemFlags::new(),
+            *base,
             i32::try_from(*offset).expect("aggregate offsets are validated"),
         ),
+        TypedReferenceLayout::Slice { .. } | TypedReferenceLayout::Aggregate { .. } => {
+            unreachable!("scalar references always retain scalar layout")
+        }
+    };
+    Ok(TypedValue {
+        value,
         machine_type: pointee,
     })
 }
@@ -6501,22 +6841,16 @@ fn lower_reference_assignment(
             TypedReferenceLayout::Aggregate { .. } => {
                 format!("use `store({}.field, value)`", identifier.name)
             }
-            TypedReferenceLayout::Scalar { .. } => unreachable!("scalar pointee was checked"),
+            TypedReferenceLayout::Scalar { .. } | TypedReferenceLayout::ParameterScalar { .. } => {
+                unreachable!("scalar pointee was checked")
+            }
         };
         return Err(NativeCompileError::new(format!(
             "{machine_contract} reference `{}` cannot be assigned as a scalar; {guidance}",
             identifier.name
         )));
     };
-    let slot_name = reference
-        .stack_root()
-        .expect("scalar references always retain stack provenance");
-    let stack_slot = stack_slots.get(slot_name).ok_or_else(|| {
-        NativeCompileError::new(format!(
-            "{machine_contract} reference `{}` lost its stack-slot provenance",
-            identifier.name
-        ))
-    })?;
+    validate_reference_lease(reference, &identifier.name, borrow_states, machine_contract)?;
     let value = lower_typed_expression(
         builder,
         module,
@@ -6531,14 +6865,34 @@ fn lower_reference_assignment(
         machine_contract,
         true,
     )?;
-    let TypedReferenceLayout::Scalar { offset, .. } = &reference.layout else {
-        unreachable!("scalar references always retain scalar layout")
-    };
-    builder.ins().stack_store(
-        value.value,
-        stack_slot.slot,
-        i32::try_from(*offset).expect("aggregate offsets are validated"),
-    );
+    match &reference.layout {
+        TypedReferenceLayout::Scalar {
+            slot_name, offset, ..
+        } => {
+            let stack_slot = stack_slots.get(slot_name).ok_or_else(|| {
+                NativeCompileError::new(format!(
+                    "{machine_contract} reference `{}` lost its stack-slot provenance",
+                    identifier.name
+                ))
+            })?;
+            builder.ins().stack_store(
+                value.value,
+                stack_slot.slot,
+                i32::try_from(*offset).expect("aggregate offsets are validated"),
+            );
+        }
+        TypedReferenceLayout::ParameterScalar { base, offset, .. } => {
+            builder.ins().store(
+                MemFlags::new(),
+                value.value,
+                *base,
+                i32::try_from(*offset).expect("aggregate offsets are validated"),
+            );
+        }
+        TypedReferenceLayout::Slice { .. } | TypedReferenceLayout::Aggregate { .. } => {
+            unreachable!("scalar references always retain scalar layout")
+        }
+    }
     Ok(())
 }
 
@@ -6599,7 +6953,8 @@ fn lower_typed_expression(
         AstNode::Identifier(identifier) => {
             if let Some(reference) = references.get(&identifier.name) {
                 let message = match &reference.layout {
-                    TypedReferenceLayout::Scalar { .. } => format!(
+                    TypedReferenceLayout::Scalar { .. }
+                    | TypedReferenceLayout::ParameterScalar { .. } => format!(
                         "{machine_contract} reference `{}` cannot escape as a scalar value; dereference it with `*{}`",
                         identifier.name, identifier.name
                     ),
@@ -6683,6 +7038,7 @@ fn lower_typed_expression(
             builder,
             stack_slots,
             references,
+            borrow_states,
             &unary.argument,
             expected,
             context,
@@ -7131,6 +7487,7 @@ fn lower_forwarded_slice_call_argument(
             | AFFINE_AGGREGATE_MACHINE_CONTRACT
             | AGGREGATE_REFERENCE_MACHINE_CONTRACT
             | AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
+            | AGGREGATE_REBORROW_MACHINE_CONTRACT
     ) {
         return Err(NativeCompileError::new(format!(
             "{machine_contract} slice argument {} to `{callee_name}` must be a direct range reborrow",
@@ -7187,6 +7544,7 @@ fn lower_forwarded_slice_call_argument(
                     | AFFINE_AGGREGATE_MACHINE_CONTRACT
                     | AGGREGATE_REFERENCE_MACHINE_CONTRACT
                     | AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
+                    | AGGREGATE_REBORROW_MACHINE_CONTRACT
             ) =>
         {
             let AstNode::BinaryExpression(range) = range_node else {
@@ -7825,6 +8183,7 @@ enum StackAccessProvenance {
     AggregateReferenceParameter {
         reference_name: String,
         mutable: bool,
+        requires_lease: bool,
     },
     Slice {
         reference_name: String,
@@ -7858,7 +8217,10 @@ fn resolve_stack_access<'a>(
         AstNode::Identifier(identifier) => {
             if let Some(reference) = references.get(&identifier.name) {
                 let requirement = match &reference.layout {
-                    TypedReferenceLayout::Scalar { .. } => "must be dereferenced with `*`",
+                    TypedReferenceLayout::Scalar { .. }
+                    | TypedReferenceLayout::ParameterScalar { .. } => {
+                        "must be dereferenced with `*`"
+                    }
                     TypedReferenceLayout::Slice { .. } => "must be indexed",
                     TypedReferenceLayout::Aggregate { .. } => "must project a scalar field",
                 };
@@ -7967,6 +8329,21 @@ fn resolve_stack_access<'a>(
                         StackAccessProvenance::AggregateReferenceParameter {
                             reference_name: root_name.to_string(),
                             mutable: reference.mutable,
+                            requires_lease: false,
+                        },
+                    ),
+                    AggregateReferenceStorage::ParameterReborrow {
+                        base,
+                        root_name: borrow_root,
+                    } => (
+                        None,
+                        Some(*base),
+                        layout,
+                        borrow_root.clone(),
+                        StackAccessProvenance::AggregateReferenceParameter {
+                            reference_name: root_name.to_string(),
+                            mutable: reference.mutable,
+                            requires_lease: true,
                         },
                     ),
                 }
@@ -8363,10 +8740,35 @@ fn validate_stack_access_borrow(
         StackAccessProvenance::AggregateReferenceParameter {
             reference_name,
             mutable,
+            requires_lease,
         } => {
             if operation == "store" && !mutable {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} cannot write through immutable aggregate reference parameter `{reference_name}`"
+                )));
+            }
+            let state = borrow_states
+                .get(&access.root_name)
+                .copied()
+                .unwrap_or_default();
+            if *requires_lease {
+                let lease_is_active = if *mutable {
+                    state.exclusive
+                } else {
+                    state.shared > 0 && !state.exclusive
+                };
+                if !lease_is_active {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} aggregate parameter reborrow `{reference_name}` no longer owns a valid borrow lease"
+                    )));
+                }
+            } else if operation == "load" && state.exclusive {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} cannot load through aggregate reference parameter `{reference_name}` while an exclusive reborrow is active"
+                )));
+            } else if operation == "store" && (state.shared > 0 || state.exclusive) {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} cannot store through aggregate reference parameter `{reference_name}` while an active reborrow exists"
                 )));
             }
         }

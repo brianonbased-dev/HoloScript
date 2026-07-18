@@ -6,9 +6,9 @@ use cranelift::object::object::{Object, ObjectSection, ObjectSymbol, RelocationT
 use holoscript_native::{
     compile_executable, compile_object, inspect_native_layouts, NativeAggregateFfi,
     NativeCompileOptions, NativeOwnedBufferFfi, AFFINE_AGGREGATE_MACHINE_CONTRACT,
-    AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT, AGGREGATE_REFERENCE_MACHINE_CONTRACT,
-    HOST_ALLOCATOR_PROVENANCE_ID, NATIVE_AGGREGATE_ABI_VERSION, OWNED_AGGREGATE_MACHINE_CONTRACT,
-    OWNED_BUFFER_ABI_VERSION,
+    AGGREGATE_REBORROW_MACHINE_CONTRACT, AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT,
+    AGGREGATE_REFERENCE_MACHINE_CONTRACT, HOST_ALLOCATOR_PROVENANCE_ID,
+    NATIVE_AGGREGATE_ABI_VERSION, OWNED_AGGREGATE_MACHINE_CONTRACT, OWNED_BUFFER_ABI_VERSION,
 };
 
 const EXIT_FIVE: &str = include_str!("../../../examples/native/exit-five.hs");
@@ -222,6 +222,8 @@ const AGGREGATE_REFERENCE_EXIT_FIVE: &str =
     include_str!("../../../examples/native/aggregate-reference-exit-five.hs");
 const AGGREGATE_REFERENCE_CALL_EXIT_FIVE: &str =
     include_str!("../../../examples/native/aggregate-reference-call-exit-five.hs");
+const AGGREGATE_REBORROW_EXIT_FIVE: &str =
+    include_str!("../../../examples/native/aggregate-reborrow-exit-five.hs");
 
 fn scratch_executable(name: &str) -> std::path::PathBuf {
     let nonce = SystemTime::now()
@@ -1434,13 +1436,98 @@ fn aggregate_reference_call_contract_rejects_alias_escape_and_move_conflicts() {
             "struct Packet { code: i32 } function leak(packet: &Packet): &Packet { return packet } function main(): i32 { return 5 }",
             "hs-machine-v17 references cannot appear in function returns",
         ),
-        (
-            "struct Packet { code: i32 } function alias(packet: &Packet): i32 { let view: &Packet = &packet return 5 } function main(): i32 { slot packet: Packet = Packet(5) return alias(&packet) }",
-            "reborrows and nested aggregate borrows are not enabled",
-        ),
     ] {
         let error = compile_object(source, &options)
             .expect_err("invalid aggregate-reference call program must fail closed");
+        assert!(
+            error.to_string().contains(expected),
+            "expected `{expected}` in `{error}`"
+        );
+    }
+}
+
+#[test]
+fn aggregate_reference_parameters_support_lexical_reborrows() {
+    assert_eq!(AGGREGATE_REBORROW_MACHINE_CONTRACT, "hs-machine-v18");
+    let first = compile_object(AGGREGATE_REBORROW_EXIT_FIVE, &NativeCompileOptions::host())
+        .expect("aggregate-reference parameter reborrows should compile");
+    let second = compile_object(AGGREGATE_REBORROW_EXIT_FIVE, &NativeCompileOptions::host())
+        .expect("aggregate-reference parameter reborrow lowering should be deterministic");
+    assert_eq!(first, second);
+    compile_object(
+        "struct Packet { code: i32 } function read(packet: &Packet): i32 { return load(packet.code) } function alias(packet: &mut Packet): i32 { scope { let view: &Packet = &packet let direct: i32 = load(packet.code) let forwarded: i32 = read(packet) } store(packet.code, 5) return load(packet.code) } function main(): i32 { slot packet: Packet = Packet(1) return alias(&mut packet) }",
+        &NativeCompileOptions::host(),
+    )
+    .expect("a shared reborrow may coexist with original reads and must release before mutation");
+
+    let v17_layouts = inspect_native_layouts(AGGREGATE_REFERENCE_CALL_EXIT_FIVE)
+        .expect("v17 aggregate-reference layouts should remain inspectable");
+    let v18_layouts = inspect_native_layouts(AGGREGATE_REBORROW_EXIT_FIVE)
+        .expect("v18 reborrows should preserve aggregate layouts");
+    assert_eq!(v18_layouts, v17_layouts);
+
+    let executable = scratch_executable("native-aggregate-reborrow");
+    let artifact = compile_executable(
+        AGGREGATE_REBORROW_EXIT_FIVE,
+        &executable,
+        &NativeCompileOptions::host(),
+    )
+    .expect("aggregate-reference parameter reborrows should link");
+    assert_eq!(artifact.machine_contract, "hs-machine-v18");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("aggregate-reference parameter reborrow executable should run");
+    assert_eq!(status.code(), Some(5));
+    remove_scratch_executable_with_retry(&artifact.executable);
+}
+
+#[test]
+fn aggregate_parameter_reborrows_reject_alias_upgrade_chain_and_escape() {
+    let options = NativeCompileOptions::host();
+    for (source, expected) in [
+        (
+            "struct Packet { code: i32 } function alias(packet: &Packet): i32 { let writer: &mut Packet = &mut packet return 5 } function main(): i32 { slot packet: Packet = Packet(5) return alias(&packet) }",
+            "cannot mutably reborrow immutable aggregate reference parameter `packet`",
+        ),
+        (
+            "struct Packet { code: i32 } function alias(packet: &mut Packet): i32 { let first: &mut Packet = &mut packet let second: &mut Packet = &mut packet return 5 } function main(): i32 { slot packet: Packet = Packet(5) return alias(&mut packet) }",
+            "cannot mutably reborrow aggregate reference parameter `packet` because an active reborrow already exists",
+        ),
+        (
+            "struct Packet { code: i32 } function alias(packet: &mut Packet): i32 { let view: &Packet = &packet store(packet.code, 5) return 5 } function main(): i32 { slot packet: Packet = Packet(1) return alias(&mut packet) }",
+            "cannot store through aggregate reference parameter `packet` while an active reborrow exists",
+        ),
+        (
+            "struct Packet { code: i32 } function alias(packet: &mut Packet): i32 { let writer: &mut Packet = &mut packet return load(packet.code) } function main(): i32 { slot packet: Packet = Packet(5) return alias(&mut packet) }",
+            "cannot load through aggregate reference parameter `packet` while an exclusive reborrow is active",
+        ),
+        (
+            "struct Packet { code: i32 } function alias(packet: &Packet): i32 { let view: &Packet = &packet let nested: &Packet = &view return 5 } function main(): i32 { slot packet: Packet = Packet(5) return alias(&packet) }",
+            "cannot reborrow aggregate reference `view`; v18 permits one parameter reborrow layer",
+        ),
+        (
+            "struct Packet { code: i32 } function alias(packet: &Packet): i32 { let writer: &mut i32 = &mut packet.code return 5 } function main(): i32 { slot packet: Packet = Packet(5) return alias(&packet) }",
+            "cannot mutably reborrow immutable aggregate reference parameter `packet`",
+        ),
+        (
+            "struct Packet { code: i32 } function leak(packet: &Packet): &Packet { let view: &Packet = &packet return view } function main(): i32 { return 5 }",
+            "hs-machine-v18 references cannot appear in function returns",
+        ),
+        (
+            "struct Packet { code: i32 } function alias(packet: &mut Packet): i32 { scope { let writer: &mut Packet = &mut packet scope { store(packet.code, 5) } } return 5 } function main(): i32 { slot packet: Packet = Packet(1) return alias(&mut packet) }",
+            "cannot store through aggregate reference parameter `packet` while an active reborrow exists",
+        ),
+        (
+            "struct Packet { code: i32 } function write(packet: &mut Packet): i32 { return 5 } function alias(packet: &mut Packet): i32 { let view: &Packet = &packet return write(packet) } function main(): i32 { slot packet: Packet = Packet(1) return alias(&mut packet) }",
+            "cannot mutably forward aggregate reference parameter `packet` while an active reborrow exists",
+        ),
+        (
+            "struct Packet { code: i32 } function read(packet: &Packet): i32 { return 5 } function alias(packet: &mut Packet): i32 { let writer: &mut Packet = &mut packet return read(packet) } function main(): i32 { slot packet: Packet = Packet(1) return alias(&mut packet) }",
+            "cannot forward aggregate reference parameter `packet` while an exclusive reborrow is active",
+        ),
+    ] {
+        let error = compile_object(source, &options)
+            .expect_err("invalid aggregate parameter reborrow must fail closed");
         assert!(
             error.to_string().contains(expected),
             "expected `{expected}` in `{error}`"
