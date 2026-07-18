@@ -26,6 +26,7 @@ fn is_forbidden_lexeme(value: &str) -> bool {
 
 /// Lexer for tokenizing HoloScript source code
 pub struct Lexer<'a> {
+    source: &'a str,
     chars: std::iter::Peekable<std::str::CharIndices<'a>>,
     line: usize,
     column: usize,
@@ -35,6 +36,7 @@ pub struct Lexer<'a> {
 impl<'a> Lexer<'a> {
     pub fn new(source: &'a str) -> Self {
         Self {
+            source,
             chars: source.char_indices().peekable(),
             line: 1,
             column: 1,
@@ -103,7 +105,10 @@ impl<'a> Lexer<'a> {
                 self.read_line_comment(start, start_line, start_column)
             }
 
-            // Strings
+            // Strings and source-visible lifetime names. A lifetime marker is
+            // deliberately context-shaped so existing single-quoted strings
+            // keep their lexical meaning.
+            '\'' if self.is_lifetime_start(start) => self.read_lifetime(),
             '"' | '\'' => self.read_string(ch),
 
             // Numbers
@@ -359,6 +364,52 @@ impl<'a> Lexer<'a> {
         } else {
             None
         }
+    }
+
+    fn is_lifetime_start(&mut self, start: usize) -> bool {
+        let previous = self.source[..start].chars().next_back();
+        if !matches!(previous, Some('&' | '<'))
+            || !self
+                .peek_next()
+                .is_some_and(|next| next.is_ascii_alphabetic() || next == '_')
+        {
+            return false;
+        }
+        if previous == Some('&') {
+            return true;
+        }
+
+        let mut lookahead = self.chars.clone();
+        lookahead.next(); // apostrophe
+        while lookahead
+            .peek()
+            .is_some_and(|(_, ch)| ch.is_ascii_alphanumeric() || *ch == '_')
+        {
+            lookahead.next();
+        }
+        matches!(lookahead.peek(), Some((_, '>')))
+    }
+
+    fn read_lifetime(&mut self) -> Token {
+        let start = self.position;
+        let line = self.line;
+        let column = self.column;
+        self.advance(); // consume apostrophe
+        while let Some(&(_, ch)) = self.chars.peek() {
+            if ch.is_ascii_alphanumeric() || ch == '_' {
+                self.advance();
+            } else {
+                break;
+            }
+        }
+        Token::new(
+            TokenType::Lifetime,
+            &self.source[start + 1..self.position],
+            line,
+            column,
+            start,
+            self.position,
+        )
     }
 
     fn peek_next(&mut self) -> Option<char> {
@@ -763,6 +814,27 @@ mod tests {
     }
 
     #[test]
+    fn test_lifetime_markers_stay_distinct_from_single_quoted_strings() {
+        let mut lexer = Lexer::new(
+            "function view<'a>(packet: &'a Packet) { let label = 'a value' let comparison = left<'compact' }",
+        );
+        let tokens = lexer.tokenize();
+        let lifetimes = tokens
+            .iter()
+            .filter(|token| token.token_type == TokenType::Lifetime)
+            .map(|token| token.value.as_str())
+            .collect::<Vec<_>>();
+
+        assert_eq!(lifetimes, vec!["a", "a"]);
+        let strings = tokens
+            .iter()
+            .filter(|token| token.token_type == TokenType::String)
+            .map(|token| token.value.as_str())
+            .collect::<Vec<_>>();
+        assert_eq!(strings, vec!["a value", "compact"]);
+    }
+
+    #[test]
     fn test_struct_and_in_keywords() {
         let mut lexer = Lexer::new("struct in");
         let tokens: Vec<TokenType> = lexer
@@ -813,11 +885,9 @@ mod tests {
             .collect();
 
         assert_eq!(tokens.len(), FORBIDDEN_LEXEMES.len() + 2);
-        assert!(
-            tokens
-                .iter()
-                .all(|token| token.token_type == TokenType::Forbidden)
-        );
+        assert!(tokens
+            .iter()
+            .all(|token| token.token_type == TokenType::Forbidden));
     }
 
     #[test]

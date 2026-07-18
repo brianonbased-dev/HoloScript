@@ -2301,7 +2301,7 @@ fn emit_int_literal(raw: &str) -> String {
     let trimmed = raw.trim_end_matches(['f', 'F']);
     match trimmed.split_once('.') {
         Some((int_part, _frac)) if !int_part.is_empty() => int_part.to_string(),
-        Some((empty, _frac)) if empty.is_empty() => "0".to_string(),
+        Some(("", _frac)) => "0".to_string(),
         _ => trimmed.to_string(),
     }
 }

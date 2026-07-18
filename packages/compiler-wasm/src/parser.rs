@@ -973,6 +973,12 @@ impl Parser {
         self.advance(); // consume 'function'
 
         let name = self.expect_identifier()?;
+        let mut lifetimes = Vec::new();
+        if self.check(TokenType::Lt) {
+            self.advance();
+            lifetimes.push(self.expect(TokenType::Lifetime)?.value.clone());
+            self.expect(TokenType::Gt)?;
+        }
         self.expect(TokenType::LParen)?;
 
         let mut params = Vec::new();
@@ -1014,6 +1020,7 @@ impl Parser {
 
         Ok(AstNode::Function(FunctionNode {
             name,
+            lifetimes,
             params,
             param_types,
             return_type,
@@ -1500,6 +1507,7 @@ impl Parser {
     ///   - `@on_*[(params)] [=>] { ... }` event handlers    -> `members`
     ///   - `@receipt NAME { ... }` / `@synced { ... }` annotations -> `members`
     ///   - bare keyword reaction blocks `on_grab { ... }`   -> `members`
+    ///
     /// The opening `{` has already been consumed; this stops at the matching `}`,
     /// which the caller consumes.
     fn parse_trait_definition_body(
@@ -2416,6 +2424,11 @@ impl Parser {
         }
 
         self.advance();
+        let lifetime = if self.check(TokenType::Lifetime) {
+            Some(self.advance().value.clone())
+        } else {
+            None
+        };
         let mutable = self.check_value("mut");
         if mutable {
             self.advance();
@@ -2428,10 +2441,11 @@ impl Parser {
         } else {
             self.expect_identifier()?
         };
-        Ok(if mutable {
-            format!("&mut {pointee}")
-        } else {
-            format!("&{pointee}")
+        Ok(match (lifetime, mutable) {
+            (Some(lifetime), true) => format!("&'{lifetime} mut {pointee}"),
+            (Some(lifetime), false) => format!("&'{lifetime} {pointee}"),
+            (None, true) => format!("&mut {pointee}"),
+            (None, false) => format!("&{pointee}"),
         })
     }
 
@@ -2466,10 +2480,6 @@ impl Parser {
         } else {
             Err(self.error("Expected string or identifier"))
         }
-    }
-
-    fn expect_identifier_or_string(&mut self) -> Result<String, ParseError> {
-        self.expect_string_or_identifier()
     }
 
     /// A property key inside a `{ key: value }` config / receipt body. Accepts
@@ -3325,6 +3335,26 @@ mod tests {
         };
         assert_eq!(local.name, "result");
         assert_eq!(local.type_annotation.as_deref(), Some("i64"));
+    }
+
+    #[test]
+    fn test_parse_caller_tied_aggregate_reference_lifetime() {
+        let source = r#"function view<'a>(packet: &'a Packet): &'a Packet {
+            return packet
+        }"#;
+        let mut parser = Parser::new(source);
+        let program = parser
+            .parse()
+            .expect("explicit aggregate-reference lifetime should parse");
+
+        let AstNode::Function(function) = &program.body[0] else {
+            panic!("Expected Function node");
+        };
+        assert_eq!(function.lifetimes, vec!["a"]);
+        assert_eq!(function.param_types, vec![Some("&'a Packet".to_string())]);
+        assert_eq!(function.return_type.as_deref(), Some("&'a Packet"));
+        let serialized = serde_json::to_value(function).expect("function AST should serialize");
+        assert_eq!(serialized["lifetimes"], serde_json::json!(["a"]));
     }
 
     #[test]

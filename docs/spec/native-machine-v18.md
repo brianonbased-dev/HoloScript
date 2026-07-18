@@ -115,3 +115,6 @@ The executable and rejection proofs live in
 
 The aggregate-reference call predecessor is
 [native machine contract v17](native-machine-v17.md).
+
+The caller-tied borrowed-result successor is
+[native machine contract v19](native-machine-v19.md).

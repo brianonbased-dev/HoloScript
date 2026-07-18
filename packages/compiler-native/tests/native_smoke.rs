@@ -7,8 +7,9 @@ use holoscript_native::{
     compile_executable, compile_object, inspect_native_layouts, NativeAggregateFfi,
     NativeCompileOptions, NativeOwnedBufferFfi, AFFINE_AGGREGATE_MACHINE_CONTRACT,
     AGGREGATE_REBORROW_MACHINE_CONTRACT, AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT,
-    AGGREGATE_REFERENCE_MACHINE_CONTRACT, HOST_ALLOCATOR_PROVENANCE_ID,
-    NATIVE_AGGREGATE_ABI_VERSION, OWNED_AGGREGATE_MACHINE_CONTRACT, OWNED_BUFFER_ABI_VERSION,
+    AGGREGATE_REFERENCE_MACHINE_CONTRACT, BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT,
+    HOST_ALLOCATOR_PROVENANCE_ID, NATIVE_AGGREGATE_ABI_VERSION, OWNED_AGGREGATE_MACHINE_CONTRACT,
+    OWNED_BUFFER_ABI_VERSION,
 };
 
 const EXIT_FIVE: &str = include_str!("../../../examples/native/exit-five.hs");
@@ -224,6 +225,8 @@ const AGGREGATE_REFERENCE_CALL_EXIT_FIVE: &str =
     include_str!("../../../examples/native/aggregate-reference-call-exit-five.hs");
 const AGGREGATE_REBORROW_EXIT_FIVE: &str =
     include_str!("../../../examples/native/aggregate-reborrow-exit-five.hs");
+const AGGREGATE_BORROWED_RETURN_EXIT_FIVE: &str =
+    include_str!("../../../examples/native/aggregate-borrowed-return-exit-five.hs");
 
 fn scratch_executable(name: &str) -> std::path::PathBuf {
     let nonce = SystemTime::now()
@@ -1528,6 +1531,104 @@ fn aggregate_parameter_reborrows_reject_alias_upgrade_chain_and_escape() {
     ] {
         let error = compile_object(source, &options)
             .expect_err("invalid aggregate parameter reborrow must fail closed");
+        assert!(
+            error.to_string().contains(expected),
+            "expected `{expected}` in `{error}`"
+        );
+    }
+}
+
+#[test]
+fn aggregate_reference_results_are_tied_to_the_callers_root() {
+    assert_eq!(BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT, "hs-machine-v19");
+    let options = NativeCompileOptions::host();
+    let first = compile_object(AGGREGATE_BORROWED_RETURN_EXIT_FIVE, &options)
+        .expect("caller-tied aggregate reference result should compile");
+    let second = compile_object(AGGREGATE_BORROWED_RETURN_EXIT_FIVE, &options)
+        .expect("caller-tied aggregate reference lowering should be deterministic");
+    assert_eq!(first, second);
+
+    compile_object(
+        "struct Packet { code: i32 } function borrow<'a>(packet: &'a Packet): &'a Packet { return packet } function main(): i32 { slot packet: Packet = Packet(1) scope { let view: &Packet = borrow(&packet) let observed: i32 = load(view.code) } store(packet.code, 5) return load(packet.code) }",
+        &options,
+    )
+    .expect("a returned shared lease should release at lexical scope exit");
+    compile_object(
+        "struct Packet { code: i32 } function borrow_mut<'a>(packet: &'a mut Packet): &'a mut Packet { return packet } function main(): i32 { slot packet: Packet = Packet(1) let writer: &mut Packet = borrow_mut(&mut packet) store(writer.code, 5) return load(writer.code) }",
+        &options,
+    )
+    .expect("a returned mutable lease should retain exclusive caller provenance");
+
+    let executable = scratch_executable("native-aggregate-borrowed-return");
+    let artifact = compile_executable(AGGREGATE_BORROWED_RETURN_EXIT_FIVE, &executable, &options)
+        .expect("caller-tied aggregate reference result should link");
+    assert_eq!(artifact.machine_contract, "hs-machine-v19");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("aggregate borrowed-return executable should run");
+    assert_eq!(status.code(), Some(5));
+    remove_scratch_executable_with_retry(&artifact.executable);
+}
+
+#[test]
+fn aggregate_reference_results_reject_ambiguous_or_escaping_provenance() {
+    let options = NativeCompileOptions::host();
+    for (source, expected) in [
+        (
+            "struct Packet { code: i32 } function leak(packet: &'a Packet): &'a Packet { return packet } function main(): i32 { return 5 }",
+            "parameter lifetime `'a` is not declared",
+        ),
+        (
+            "struct Packet { code: i32 } function read(packet: &'a Packet): i32 { return load(packet.code) } function main(): i32 { return 5 }",
+            "parameter lifetime `'a` is not declared",
+        ),
+        (
+            "struct Packet { code: i32 } function leak(packet: &Packet): &'a Packet { return packet } function main(): i32 { return 5 }",
+            "declares borrowed return lifetime `'a` without binding it",
+        ),
+        (
+            "struct Packet { code: i32 } function leak<'a>(packet: &'a Packet): &Packet { return packet } function main(): i32 { return 5 }",
+            "borrowed aggregate return requires an explicit declared lifetime",
+        ),
+        (
+            "struct Packet { code: i32 } function choose<'a>(left: &'a Packet, right: &'a Packet): &'a Packet { return left } function main(): i32 { return 5 }",
+            "borrowed return lifetime `'a` has ambiguous provenance",
+        ),
+        (
+            "struct Packet { code: i32 } function leak<'a>(packet: &'a Packet): &'a Packet { slot local: Packet = Packet(5) let view: &Packet = &local return view } function main(): i32 { return 5 }",
+            "must return source parameter `packet` directly",
+        ),
+        (
+            "struct Packet { code: i32 } function borrow<'a>(packet: &'a Packet): &'a Packet { return packet } function main(): i32 { slot packet: Packet = Packet(1) let view: &Packet = borrow(&packet) store(packet.code, 5) return load(view.code) }",
+            "cannot store to stack slot `packet` while an active borrow exists",
+        ),
+        (
+            "struct Packet { code: i32 } function borrow_mut<'a>(packet: &'a mut Packet): &'a mut Packet { return packet } function main(): i32 { slot packet: Packet = Packet(1) let first: &mut Packet = borrow_mut(&mut packet) let second: &mut Packet = borrow_mut(&mut packet) return 5 }",
+            "cannot mutably borrow aggregate `packet` for call to `borrow_mut` because an active or sibling borrow exists",
+        ),
+        (
+            "struct Packet { code: i32 } function borrow<'a>(packet: &'a Packet): &'a Packet { return packet } function main(): i32 { slot packet: Packet = Packet(5) let code: i32 = borrow(&packet) return code }",
+            "returns a borrowed aggregate reference; bind it to a typed reference local",
+        ),
+        (
+            "struct Packet { values: [i32] } function borrow<'a>(packet: &'a Packet): &'a Packet { return packet } function main(): i32 { slot packet: Packet = Packet(buffer(1, 5)) let view: &Packet = borrow(&packet) drop(packet.values) return 5 }",
+            "cannot drop owned buffer `packet.values` while aggregate ancestor `packet` is borrowed",
+        ),
+        (
+            "struct Packet { values: [i32] } function borrow<'a>(packet: &'a Packet): &'a Packet { return packet } function main(): i32 { slot packet: Packet = Packet(buffer(1, 5)) let view: &Packet = borrow(&packet) let moved: [i32] = move(packet.values) return 5 }",
+            "cannot move owned buffer `packet.values` while aggregate ancestor `packet` is borrowed",
+        ),
+        (
+            "struct Packet { values: [i32] } function borrow_mut<'a>(packet: &'a mut Packet): &'a mut Packet { return packet } function main(): i32 { slot packet: Packet = Packet(buffer(1, 5)) let values: &[i32] = &packet.values let writer: &mut Packet = borrow_mut(&mut packet) return 5 }",
+            "descendant `packet.values` already has a conflicting borrow",
+        ),
+        (
+            "struct Packet { values: [i32] } function borrow<'a>(packet: &'a Packet): &'a Packet { return packet } function main(): i32 { slot packet: Packet = Packet(buffer(1, 5)) let moved: [i32] = move(packet.values) let view: &Packet = borrow(&packet) return 5 }",
+            "cannot borrow aggregate root `packet` for borrowed result from `borrow` because owned leaf `packet.values` is moved",
+        ),
+    ] {
+        let error = compile_object(source, &options)
+            .expect_err("invalid borrowed aggregate result must fail closed");
         assert!(
             error.to_string().contains(expected),
             "expected `{expected}` in `{error}`"

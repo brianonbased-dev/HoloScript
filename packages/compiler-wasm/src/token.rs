@@ -10,6 +10,9 @@ pub enum TokenType {
     Number,
     Boolean,
     Null,
+    /// A source-visible lifetime name such as `'a`. The lexer recognizes this
+    /// only immediately after `&` or `<`, preserving single-quoted strings.
+    Lifetime,
 
     // Identifiers and keywords
     Identifier,

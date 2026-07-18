@@ -519,6 +519,9 @@ pub struct ExportNode {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FunctionNode {
     pub name: String,
+    /// Explicit source lifetime binders from `function name<'a>(...)`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub lifetimes: Vec<String>,
     pub params: Vec<String>,
     /// Optional machine-level type for each parameter. Empty for legacy untyped functions so
     /// their serialized AST shape remains unchanged; otherwise aligned 1:1 with `params`.
