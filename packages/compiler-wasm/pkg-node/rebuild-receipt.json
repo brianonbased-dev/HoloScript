@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-07-18T22:23:28Z",
+  "generatedAt": "2026-07-18T23:15:07Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "3fe7c08fc9e7660871f65bce78a5cf5cf8e562a4+working-tree-hs-machine-v19",
+  "sourceCommit": "e9bc9896eb8c7c26d2cec413c66616563aebb63e+working-tree-hs-machine-v20",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
     "$env:Path = 'C:\\Users\\josep\\.cargo\\bin;' + $env:Path",
@@ -16,8 +16,8 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 289839,
-    "wasmSha256": "4259277083d4163084194416c6974baf64ae586181c2b493009b77a05dd0e205",
-    "note": "Rebuilt the Node WASM artifact from the working-tree Rust parser containing canonical source lifetime binders and lifetime-bearing aggregate references for hs-machine-v19. The source changes are committed with this artifact so the working-tree suffix resolves to that commit."
+    "wasmBytes": 290188,
+    "wasmSha256": "0ef2d6745c1bd0406a12f4685569b9b4f5d64a02ef9b7ee1a69e70521470396b",
+    "note": "Rebuilt the Node WASM artifact from the working-tree Rust parser and Kotlin fail-closed bridge containing canonical lifetime-bearing slice signatures for hs-machine-v20. A fresh Node process validated the caller-tied slice program through validate_detailed; the source changes are committed with this artifact so the working-tree suffix resolves to that commit."
   }
 }

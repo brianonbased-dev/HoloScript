@@ -8,8 +8,8 @@ use holoscript_native::{
     NativeCompileOptions, NativeOwnedBufferFfi, AFFINE_AGGREGATE_MACHINE_CONTRACT,
     AGGREGATE_REBORROW_MACHINE_CONTRACT, AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT,
     AGGREGATE_REFERENCE_MACHINE_CONTRACT, BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT,
-    HOST_ALLOCATOR_PROVENANCE_ID, NATIVE_AGGREGATE_ABI_VERSION, OWNED_AGGREGATE_MACHINE_CONTRACT,
-    OWNED_BUFFER_ABI_VERSION,
+    BORROWED_SLICE_RETURN_MACHINE_CONTRACT, HOST_ALLOCATOR_PROVENANCE_ID,
+    NATIVE_AGGREGATE_ABI_VERSION, OWNED_AGGREGATE_MACHINE_CONTRACT, OWNED_BUFFER_ABI_VERSION,
 };
 
 const EXIT_FIVE: &str = include_str!("../../../examples/native/exit-five.hs");
@@ -227,6 +227,8 @@ const AGGREGATE_REBORROW_EXIT_FIVE: &str =
     include_str!("../../../examples/native/aggregate-reborrow-exit-five.hs");
 const AGGREGATE_BORROWED_RETURN_EXIT_FIVE: &str =
     include_str!("../../../examples/native/aggregate-borrowed-return-exit-five.hs");
+const SLICE_BORROWED_RETURN_EXIT_FIVE: &str =
+    include_str!("../../../examples/native/slice-borrowed-return-exit-five.hs");
 
 fn scratch_executable(name: &str) -> std::path::PathBuf {
     let nonce = SystemTime::now()
@@ -1629,6 +1631,150 @@ fn aggregate_reference_results_reject_ambiguous_or_escaping_provenance() {
     ] {
         let error = compile_object(source, &options)
             .expect_err("invalid borrowed aggregate result must fail closed");
+        assert!(
+            error.to_string().contains(expected),
+            "expected `{expected}` in `{error}`"
+        );
+    }
+}
+
+#[test]
+fn slice_reference_results_preserve_runtime_bounds_and_caller_roots() {
+    assert_eq!(BORROWED_SLICE_RETURN_MACHINE_CONTRACT, "hs-machine-v20");
+    let options = NativeCompileOptions::host();
+    let first = compile_object(SLICE_BORROWED_RETURN_EXIT_FIVE, &options)
+        .expect("caller-tied slice result should compile");
+    let second = compile_object(SLICE_BORROWED_RETURN_EXIT_FIVE, &options)
+        .expect("caller-tied slice result lowering should be deterministic");
+    assert_eq!(first, second);
+
+    let runtime_source = r#"
+        function borrow<'a>(values: &'a [i32]): &'a [i32] { return values }
+        function main(): i32 {
+            slot values: [i32; 4] = [1, 2, 3, 4]
+            let source: &[i32] = &values[0..4]
+            let start: i32 = 1
+            let end: i32 = 3
+            let view: &[i32] = borrow(&source[start..end])
+            return load(view[1]) + 2
+        }
+    "#;
+    let executable = scratch_executable("native-slice-borrowed-runtime-return");
+    let artifact = compile_executable(runtime_source, &executable, &options)
+        .expect("runtime checked source range should retain its returned length");
+    assert_eq!(artifact.machine_contract, "hs-machine-v20");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("runtime slice-result executable should run");
+    assert_eq!(status.code(), Some(5));
+    remove_scratch_executable_with_retry(&artifact.executable);
+
+    let executable = scratch_executable("native-slice-borrowed-return");
+    let artifact = compile_executable(SLICE_BORROWED_RETURN_EXIT_FIVE, &executable, &options)
+        .expect("shared and mutable slice results should link");
+    assert_eq!(artifact.machine_contract, "hs-machine-v20");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("slice borrowed-return executable should run");
+    assert_eq!(status.code(), Some(5));
+    remove_scratch_executable_with_retry(&artifact.executable);
+
+    let owned_source = r#"
+        function borrow<'a>(values: &'a [i32]): &'a [i32] { return values }
+        function main(): i32 {
+            let values: [i32] = buffer(2, 5)
+            scope {
+                let source: &[i32] = &values
+                let view: &[i32] = borrow(source)
+                let observed: i32 = load(view[0])
+            }
+            drop(values)
+            return 5
+        }
+    "#;
+    compile_object(owned_source, &options)
+        .expect("an owned-buffer-rooted result should release both lexical leases before drop");
+
+    let bounds_source = r#"
+        function borrow<'a>(values: &'a [i32]): &'a [i32] { return values }
+        function main(): i32 {
+            slot values: [i32; 4] = [1, 2, 3, 4]
+            let view: &[i32] = borrow(&values[1..3])
+            return load(view[2])
+        }
+    "#;
+    let executable = scratch_executable("native-slice-borrowed-return-bounds");
+    let artifact = compile_executable(bounds_source, &executable, &options)
+        .expect("returned sub-slice bounds should compile to a runtime trap");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("returned sub-slice bounds executable should launch");
+    assert!(
+        !status.success(),
+        "returned length must guard sub-slice access"
+    );
+    remove_scratch_executable_with_retry(&artifact.executable);
+}
+
+#[test]
+fn slice_reference_results_reject_ambiguous_aliasing_or_escape() {
+    let options = NativeCompileOptions::host();
+    for (source, expected) in [
+        (
+            "function leak(values: &'a [i32]): &'a [i32] { return values } function main(): i32 { return 5 }",
+            "parameter lifetime `'a` is not declared",
+        ),
+        (
+            "function leak<'a>(values: &'a [i32]): &[i32] { return values } function main(): i32 { return 5 }",
+            "borrowed slice return requires an explicit declared lifetime",
+        ),
+        (
+            "function choose<'a>(left: &'a [i32], right: &'a [i32]): &'a [i32] { return left } function main(): i32 { return 5 }",
+            "borrowed return lifetime `'a` has ambiguous provenance",
+        ),
+        (
+            "struct Packet { code: i32 } function choose<'a>(values: &'a [i32], packet: &'a Packet): &'a [i32] { return values } function main(): i32 { return 5 }",
+            "borrowed return lifetime `'a` has ambiguous provenance across 2 parameters",
+        ),
+        (
+            "function leak<'a>(values: &'a [i32]): &'a [i32] { slot local: [i32; 1] = [5] let view: &[i32] = &local[0..1] return view } function main(): i32 { return 5 }",
+            "must return source parameter `values` directly",
+        ),
+        (
+            "function wrong<'a>(values: &'a [i32]): &'a [i64] { return values } function main(): i32 { return 5 }",
+            "borrowed slice return element `i64` does not match source parameter element `i32`",
+        ),
+        (
+            "function wrong<'a>(values: &'a mut [i32]): &'a [i32] { return values } function main(): i32 { return 5 }",
+            "borrowed return mutability must match source parameter `values`",
+        ),
+        (
+            "function borrow<'a>(values: &'a [i32]): &'a [i32] { return values } function main(): i32 { slot values: [i32; 2] = [1, 2] let view: &[i32] = borrow(&values[0..2]) store(values[0], 5) return load(view[0]) }",
+            "cannot store to stack slot `values` while an active borrow exists",
+        ),
+        (
+            "function borrow<'a>(values: &'a mut [i32]): &'a mut [i32] { return values } function main(): i32 { slot values: [i32; 2] = [1, 2] let first: &mut [i32] = borrow(&mut values[0..2]) let second: &mut [i32] = borrow(&mut values[0..2]) return 5 }",
+            "cannot mutably reborrow stack slot `values`",
+        ),
+        (
+            "function borrow<'a>(values: &'a [i32]): &'a [i32] { return values } function main(): i32 { slot values: [i32; 1] = [5] let scalar: i32 = borrow(&values[0..1]) return scalar }",
+            "returns a borrowed slice reference; bind it to a typed reference local",
+        ),
+        (
+            "function borrow<'a>(values: &'a [i32]): &'a [i32] { return values } function main(): i32 { slot values: [i32; 1] = [5] let first: &[i32] = borrow(&values[0..1]) let second: &[i32] = borrow(first) return 5 }",
+            "cannot extend nested returned slice `first`",
+        ),
+        (
+            "function borrow<'a>(values: &'a [i32]): &'a [i32] { return values } function relay(values: &[i32]): i32 { let view: &[i32] = borrow(values) return load(view[0]) } function main(): i32 { return 5 }",
+            "cannot extend slice parameter `values`",
+        ),
+        (
+            "function borrow<'a>(values: &'a [i32]): &'a [i32] { return values } function main(): i32 { slot values: [i32; 1] = [5] let view: &'a [i32] = borrow(&values[0..1]) return 5 }",
+            "local reference `view` cannot declare a source lifetime",
+        ),
+    ] {
+        let error = compile_object(source, &options)
+            .expect_err("invalid borrowed slice result must fail closed");
         assert!(
             error.to_string().contains(expected),
             "expected `{expected}` in `{error}`"

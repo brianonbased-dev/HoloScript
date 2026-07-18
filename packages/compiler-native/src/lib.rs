@@ -30,8 +30,10 @@
 //! one-level lexical reborrows from aggregate-reference parameters while retaining caller-root
 //! provenance and conservative whole-root aliasing. `hs-machine-v19` adds explicit source lifetime
 //! binders and aggregate-reference results tied to exactly one caller argument, then propagates the
-//! caller's whole-root lease to the result binding. Everything outside the selected contract fails
-//! closed with a native compile diagnostic.
+//! caller's whole-root lease to the result binding. `hs-machine-v20` extends the same caller-tied
+//! result model to borrowed slices, returning a guarded base-plus-length pair while retaining the
+//! caller's concrete array, slice-parameter, or owned-buffer root as compiler-only provenance.
+//! Everything outside the selected contract fails closed with a native compile diagnostic.
 
 use std::collections::{HashMap, HashSet};
 use std::env;
@@ -74,6 +76,7 @@ pub const AGGREGATE_REFERENCE_MACHINE_CONTRACT: &str = "hs-machine-v16";
 pub const AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT: &str = "hs-machine-v17";
 pub const AGGREGATE_REBORROW_MACHINE_CONTRACT: &str = "hs-machine-v18";
 pub const BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT: &str = "hs-machine-v19";
+pub const BORROWED_SLICE_RETURN_MACHINE_CONTRACT: &str = "hs-machine-v20";
 pub const OWNED_BUFFER_ABI_VERSION: u32 = 1;
 pub const NATIVE_AGGREGATE_ABI_VERSION: u32 = 1;
 pub const HOST_ALLOCATOR_PROVENANCE_ID: u32 = 1;
@@ -242,7 +245,9 @@ pub fn inspect_native_layouts(source: &str) -> Result<Vec<NativeStructLayout>, N
             .join("; ");
         NativeCompileError::new(format!("HoloScript parse failed: {rendered}"))
     })?;
-    let machine_contract = if has_borrowed_aggregate_return_machine_metadata(&ast) {
+    let machine_contract = if has_borrowed_slice_return_machine_metadata(&ast) {
+        BORROWED_SLICE_RETURN_MACHINE_CONTRACT
+    } else if has_borrowed_aggregate_return_machine_metadata(&ast) {
         BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
     } else if has_aggregate_reborrow_machine_metadata(&ast) {
         AGGREGATE_REBORROW_MACHINE_CONTRACT
@@ -285,7 +290,12 @@ fn compile_unit(
         NativeCompileError::new(format!("HoloScript parse failed: {rendered}"))
     })?;
 
-    if has_borrowed_aggregate_return_machine_metadata(&ast) {
+    if has_borrowed_slice_return_machine_metadata(&ast) {
+        Ok(CompiledObject {
+            bytes: lower_typed_ast_to_object(&ast, BORROWED_SLICE_RETURN_MACHINE_CONTRACT, true)?,
+            machine_contract: BORROWED_SLICE_RETURN_MACHINE_CONTRACT,
+        })
+    } else if has_borrowed_aggregate_return_machine_metadata(&ast) {
         Ok(CompiledObject {
             bytes: lower_typed_ast_to_object(
                 &ast,
@@ -685,6 +695,23 @@ fn has_borrowed_aggregate_return_machine_metadata(ast: &Ast) -> bool {
                 .return_type
                 .as_deref()
                 .is_some_and(|annotation| annotation.starts_with("&'"))
+    })
+}
+
+fn has_borrowed_slice_return_machine_metadata(ast: &Ast) -> bool {
+    ast.body.iter().any(|node| {
+        let AstNode::Function(function) = node else {
+            return false;
+        };
+        function.param_types.iter().flatten().any(|annotation| {
+            annotation.starts_with("&'")
+                && reference_annotation_pointee(annotation)
+                    .is_some_and(|pointee| pointee.starts_with('['))
+        }) || function.return_type.as_deref().is_some_and(|annotation| {
+            annotation.starts_with("&'")
+                && reference_annotation_pointee(annotation)
+                    .is_some_and(|pointee| pointee.starts_with('['))
+        })
     })
 }
 
@@ -1554,6 +1581,7 @@ fn bool_enabled(machine_contract: &str) -> bool {
             | AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
             | AGGREGATE_REBORROW_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
+            | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
     )
 }
 
@@ -1574,6 +1602,7 @@ fn control_flow_enabled(machine_contract: &str) -> bool {
             | AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
             | AGGREGATE_REBORROW_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
+            | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
     )
 }
 
@@ -1595,6 +1624,7 @@ fn scoped_lifetimes_enabled(machine_contract: &str) -> bool {
             | AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
             | AGGREGATE_REBORROW_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
+            | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
     )
 }
 
@@ -1617,6 +1647,7 @@ fn references_enabled(machine_contract: &str) -> bool {
             | AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
             | AGGREGATE_REBORROW_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
+            | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
     )
 }
 
@@ -1640,6 +1671,7 @@ fn memory_contract_enabled(machine_contract: &str) -> bool {
             | AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
             | AGGREGATE_REBORROW_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
+            | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
     )
 }
 
@@ -1659,6 +1691,7 @@ fn aggregate_contract_enabled(machine_contract: &str) -> bool {
             | AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
             | AGGREGATE_REBORROW_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
+            | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
     )
 }
 
@@ -1672,6 +1705,7 @@ fn owned_buffers_enabled(machine_contract: &str) -> bool {
             | AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
             | AGGREGATE_REBORROW_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
+            | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
     )
 }
 
@@ -1690,6 +1724,7 @@ fn fixed_arrays_enabled(machine_contract: &str) -> bool {
             | AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
             | AGGREGATE_REBORROW_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
+            | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
     )
 }
 
@@ -1701,6 +1736,7 @@ fn affine_aggregates_enabled(machine_contract: &str) -> bool {
             | AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
             | AGGREGATE_REBORROW_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
+            | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
     )
 }
 
@@ -1711,6 +1747,7 @@ fn aggregate_references_enabled(machine_contract: &str) -> bool {
             | AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
             | AGGREGATE_REBORROW_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
+            | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
     )
 }
 
@@ -1720,13 +1757,16 @@ fn aggregate_reference_calls_enabled(machine_contract: &str) -> bool {
         AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
             | AGGREGATE_REBORROW_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
+            | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
     )
 }
 
 fn aggregate_reborrows_enabled(machine_contract: &str) -> bool {
     matches!(
         machine_contract,
-        AGGREGATE_REBORROW_MACHINE_CONTRACT | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
+        AGGREGATE_REBORROW_MACHINE_CONTRACT
+            | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
+            | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
     )
 }
 
@@ -2055,6 +2095,7 @@ fn resolve_aggregate_layout(
                     | AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
                     | AGGREGATE_REBORROW_MACHINE_CONTRACT
                     | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
+                    | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
             ) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} field `{field_name}` uses unsupported nested aggregate type `{type_name}` in struct `{}`",
@@ -2080,6 +2121,7 @@ fn resolve_aggregate_layout(
                     | AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
                     | AGGREGATE_REBORROW_MACHINE_CONTRACT
                     | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
+                    | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
             ) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} owned buffers as aggregate fields are not enabled; field `{field_name}` in struct `{}` uses `{type_name}`",
@@ -2183,6 +2225,7 @@ enum MachineParameter {
     Slice {
         element_type: MachineType,
         mutable: bool,
+        lifetime: Option<String>,
     },
     Owned {
         element_type: MachineType,
@@ -2209,6 +2252,11 @@ enum MachineResult {
         source_parameter: usize,
         mutable: bool,
     },
+    SliceReference {
+        element_type: MachineType,
+        source_parameter: usize,
+        mutable: bool,
+    },
 }
 
 impl MachineResult {
@@ -2218,6 +2266,9 @@ impl MachineResult {
             Self::Owned(layout) => format!("[{}]", layout.element_type.name()),
             Self::Aggregate { .. } => "aggregate".to_string(),
             Self::AggregateReference { .. } => "aggregate reference".to_string(),
+            Self::SliceReference { element_type, .. } => {
+                format!("borrowed slice of `{}`", element_type.name())
+            }
         }
     }
 }
@@ -2385,6 +2436,25 @@ enum SliceStorage {
         base: Value,
         length: Value,
     },
+    Returned {
+        base: Value,
+        length: Value,
+        root: ReturnedSliceRoot,
+    },
+}
+
+#[derive(Debug, Clone)]
+enum ReturnedSliceRoot {
+    Stack(String),
+    Heap(String),
+}
+
+impl ReturnedSliceRoot {
+    fn name(&self) -> &str {
+        match self {
+            Self::Stack(name) | Self::Heap(name) => name,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -2428,6 +2498,22 @@ impl TypedReference {
                 storage: SliceStorage::Heap { owner_name, .. },
                 ..
             } => Some(owner_name),
+            TypedReferenceLayout::Slice {
+                storage:
+                    SliceStorage::Returned {
+                        root: ReturnedSliceRoot::Stack(root_name),
+                        ..
+                    },
+                ..
+            }
+            | TypedReferenceLayout::Slice {
+                storage:
+                    SliceStorage::Returned {
+                        root: ReturnedSliceRoot::Heap(root_name),
+                        ..
+                    },
+                ..
+            } => Some(root_name),
         }
     }
 
@@ -3208,6 +3294,7 @@ fn lower_typed_ast_to_object(
             .params
             .iter()
             .any(|parameter| matches!(parameter, MachineParameter::AggregateReference { .. }))
+            || matches!(spec.result, MachineResult::SliceReference { .. })
         {
             Linkage::Local
         } else {
@@ -3282,6 +3369,7 @@ fn lower_typed_ast_to_object(
                     MachineParameter::Slice {
                         element_type,
                         mutable,
+                        ..
                     } => {
                         let base = block_params
                             .next()
@@ -3413,7 +3501,9 @@ fn lower_typed_ast_to_object(
                         .expect("owned return must have an ABI out-record pointer"),
                 ),
                 MachineResult::Scalar(_) => None,
-                MachineResult::AggregateReference { .. } => None,
+                MachineResult::AggregateReference { .. } | MachineResult::SliceReference { .. } => {
+                    None
+                }
                 MachineResult::Aggregate { layout_fingerprint } => {
                     let descriptor = block_params
                         .next()
@@ -3490,7 +3580,8 @@ fn lower_typed_ast_to_object(
             MachineResult::Scalar(MachineType::I64) => builder.ins().ireduce(types::I32, value),
             MachineResult::Owned(_)
             | MachineResult::Aggregate { .. }
-            | MachineResult::AggregateReference { .. } => {
+            | MachineResult::AggregateReference { .. }
+            | MachineResult::SliceReference { .. } => {
                 unreachable!("typed main cannot return ownership")
             }
         };
@@ -3610,11 +3701,13 @@ fn collect_typed_function_specs<'a>(
                                 | AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
                                 | AGGREGATE_REBORROW_MACHINE_CONTRACT
                                 | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
+                                | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
                         ) =>
                     {
                         params.push(MachineParameter::Slice {
                             element_type: *element_type,
                             mutable: reference_type.mutable,
+                            lifetime: reference_type.lifetime.clone(),
                         });
                         continue;
                     }
@@ -3673,11 +3766,18 @@ fn collect_typed_function_specs<'a>(
             )?));
         }
         for parameter in &params {
-            if let MachineParameter::AggregateReference {
-                lifetime: Some(parameter_lifetime),
-                ..
-            } = parameter
-            {
+            let parameter_lifetime = match parameter {
+                MachineParameter::Slice {
+                    lifetime: Some(lifetime),
+                    ..
+                }
+                | MachineParameter::AggregateReference {
+                    lifetime: Some(lifetime),
+                    ..
+                } => Some(lifetime),
+                _ => None,
+            };
+            if let Some(parameter_lifetime) = parameter_lifetime {
                 if !function
                     .lifetimes
                     .iter()
@@ -3704,22 +3804,24 @@ fn collect_typed_function_specs<'a>(
             aggregate_layouts,
         )?;
         let result = if let Some(reference_type) = borrowed_result {
-            if machine_contract != BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT {
+            if !matches!(
+                machine_contract,
+                BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
+            ) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} references cannot appear in function returns; `{}` would expose an address-bearing value",
                     function.name
                 )));
             }
-            let ReferenceTarget::Aggregate(layout_name) = &reference_type.target else {
-                return Err(NativeCompileError::new(format!(
-                    "{machine_contract} function `{}` can return only a caller-tied aggregate reference",
-                    function.name
-                )));
+            let borrowed_result_kind = match &reference_type.target {
+                ReferenceTarget::Aggregate(_) => "borrowed aggregate return",
+                ReferenceTarget::Slice(_) => "borrowed slice return",
+                ReferenceTarget::Scalar(_) => "borrowed scalar return",
             };
             let lifetime = reference_type.lifetime.as_deref().ok_or_else(|| {
                 NativeCompileError::new(format!(
-                    "{machine_contract} function `{}` borrowed aggregate return requires an explicit declared lifetime",
-                    function.name
+                    "{machine_contract} function `{}` {borrowed_result_kind} requires an explicit declared lifetime",
+                    function.name,
                 ))
             })?;
             if !function
@@ -3738,65 +3840,153 @@ fn collect_typed_function_specs<'a>(
                     function.name
                 )));
             }
-            let sources = params
+            let lifetime_source_count = params
                 .iter()
-                .enumerate()
-                .filter_map(|(index, parameter)| match parameter {
-                    MachineParameter::AggregateReference {
-                        layout_name: parameter_layout,
-                        mutable,
+                .filter(|parameter| match parameter {
+                    MachineParameter::Slice {
                         lifetime: Some(parameter_lifetime),
-                    } if parameter_lifetime == lifetime => {
-                        Some((index, parameter_layout, *mutable))
+                        ..
                     }
-                    _ => None,
+                    | MachineParameter::AggregateReference {
+                        lifetime: Some(parameter_lifetime),
+                        ..
+                    } => parameter_lifetime == lifetime,
+                    _ => false,
                 })
-                .collect::<Vec<_>>();
-            if sources.len() > 1 {
+                .count();
+            if lifetime_source_count > 1 {
                 return Err(NativeCompileError::new(format!(
-                    "{machine_contract} function `{}` borrowed return lifetime `'{lifetime}` has ambiguous provenance across {} parameters",
-                    function.name,
-                    sources.len()
-                )));
-            }
-            let Some((source_parameter, parameter_layout, parameter_mutable)) =
-                sources.into_iter().next()
-            else {
-                return Err(NativeCompileError::new(format!(
-                    "{machine_contract} function `{}` borrowed return lifetime `'{lifetime}` does not identify exactly one aggregate-reference parameter",
-                    function.name
-                )));
-            };
-            if parameter_layout != layout_name {
-                return Err(NativeCompileError::new(format!(
-                    "{machine_contract} function `{}` borrowed return `{layout_name}` does not match source parameter aggregate `{parameter_layout}`",
+                    "{machine_contract} function `{}` borrowed return lifetime `'{lifetime}` has ambiguous provenance across {lifetime_source_count} parameters",
                     function.name
                 )));
             }
-            if parameter_mutable != reference_type.mutable {
-                return Err(NativeCompileError::new(format!(
-                    "{machine_contract} function `{}` borrowed return mutability must match source parameter `{}`",
-                    function.name, function.params[source_parameter]
-                )));
-            }
-            let layout = aggregate_layouts
-                .get(layout_name)
-                .expect("parsed aggregate references retain a known layout");
-            MachineResult::AggregateReference {
-                layout_fingerprint: layout.abi_fingerprint(pointer_type),
-                source_parameter,
-                mutable: reference_type.mutable,
+            match &reference_type.target {
+                ReferenceTarget::Aggregate(layout_name) => {
+                    let sources = params
+                        .iter()
+                        .enumerate()
+                        .filter_map(|(index, parameter)| match parameter {
+                            MachineParameter::AggregateReference {
+                                layout_name: parameter_layout,
+                                mutable,
+                                lifetime: Some(parameter_lifetime),
+                            } if parameter_lifetime == lifetime => {
+                                Some((index, parameter_layout, *mutable))
+                            }
+                            _ => None,
+                        })
+                        .collect::<Vec<_>>();
+                    if sources.len() > 1 {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} function `{}` borrowed return lifetime `'{lifetime}` has ambiguous provenance across {} parameters",
+                            function.name,
+                            sources.len()
+                        )));
+                    }
+                    let Some((source_parameter, parameter_layout, parameter_mutable)) =
+                        sources.into_iter().next()
+                    else {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} function `{}` borrowed return lifetime `'{lifetime}` does not identify exactly one aggregate-reference parameter",
+                            function.name
+                        )));
+                    };
+                    if parameter_layout != layout_name {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} function `{}` borrowed return `{layout_name}` does not match source parameter aggregate `{parameter_layout}`",
+                            function.name
+                        )));
+                    }
+                    if parameter_mutable != reference_type.mutable {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} function `{}` borrowed return mutability must match source parameter `{}`",
+                            function.name, function.params[source_parameter]
+                        )));
+                    }
+                    let layout = aggregate_layouts
+                        .get(layout_name)
+                        .expect("parsed aggregate references retain a known layout");
+                    MachineResult::AggregateReference {
+                        layout_fingerprint: layout.abi_fingerprint(pointer_type),
+                        source_parameter,
+                        mutable: reference_type.mutable,
+                    }
+                }
+                ReferenceTarget::Slice(element_type) => {
+                    if machine_contract != BORROWED_SLICE_RETURN_MACHINE_CONTRACT {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} function `{}` can return only a caller-tied aggregate reference",
+                            function.name
+                        )));
+                    }
+                    let sources = params
+                        .iter()
+                        .enumerate()
+                        .filter_map(|(index, parameter)| match parameter {
+                            MachineParameter::Slice {
+                                element_type: parameter_element,
+                                mutable,
+                                lifetime: Some(parameter_lifetime),
+                            } if parameter_lifetime == lifetime => {
+                                Some((index, *parameter_element, *mutable))
+                            }
+                            _ => None,
+                        })
+                        .collect::<Vec<_>>();
+                    if sources.len() > 1 {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} function `{}` borrowed return lifetime `'{lifetime}` has ambiguous provenance across {} parameters",
+                            function.name,
+                            sources.len()
+                        )));
+                    }
+                    let Some((source_parameter, parameter_element, parameter_mutable)) =
+                        sources.into_iter().next()
+                    else {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} function `{}` borrowed return lifetime `'{lifetime}` does not identify exactly one slice-reference parameter",
+                            function.name
+                        )));
+                    };
+                    if parameter_element != *element_type {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} function `{}` borrowed slice return element `{}` does not match source parameter element `{}`",
+                            function.name,
+                            element_type.name(),
+                            parameter_element.name()
+                        )));
+                    }
+                    if parameter_mutable != reference_type.mutable {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} function `{}` borrowed return mutability must match source parameter `{}`",
+                            function.name, function.params[source_parameter]
+                        )));
+                    }
+                    MachineResult::SliceReference {
+                        element_type: *element_type,
+                        source_parameter,
+                        mutable: reference_type.mutable,
+                    }
+                }
+                ReferenceTarget::Scalar(_) => {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} function `{}` can return only a caller-tied aggregate or slice reference",
+                        function.name
+                    )));
+                }
             }
         } else if let Some(layout) =
             OwnedBufferLayout::parse(return_name, &result_context, machine_contract)?
         {
             MachineResult::Owned(layout)
         } else {
-            if machine_contract == BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
-                && !function.lifetimes.is_empty()
+            if matches!(
+                machine_contract,
+                BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
+            ) && !function.lifetimes.is_empty()
             {
                 return Err(NativeCompileError::new(format!(
-                    "{machine_contract} function `{}` declares a lifetime binder without a borrowed aggregate return",
+                    "{machine_contract} function `{}` declares a lifetime binder without a borrowed reference return",
                     function.name
                 )));
             }
@@ -3902,6 +4092,12 @@ fn machine_signature(
         MachineResult::AggregateReference { .. } => signature
             .returns
             .push(AbiParam::new(module.target_config().pointer_type())),
+        MachineResult::SliceReference { .. } => {
+            signature
+                .returns
+                .push(AbiParam::new(module.target_config().pointer_type()));
+            signature.returns.push(AbiParam::new(types::I32));
+        }
         MachineResult::Owned(_) | MachineResult::Aggregate { .. } => signature
             .params
             .push(AbiParam::new(module.target_config().pointer_type())),
@@ -4084,22 +4280,41 @@ fn lower_typed_statements(
                         )));
                     }
                     let reference = if let AstNode::CallExpression(call) = local.value.as_ref() {
-                        lower_borrowed_aggregate_call_initializer(
-                            builder,
-                            module,
-                            functions,
-                            aggregate_layouts,
-                            locals,
-                            stack_slots,
-                            references,
-                            borrow_states,
-                            owned_buffers,
-                            &local.name,
-                            &reference_type,
-                            call,
-                            machine_contract,
-                            memory_enabled,
-                        )?
+                        match &reference_type.target {
+                            ReferenceTarget::Slice(_) => lower_borrowed_slice_call_initializer(
+                                builder,
+                                module,
+                                functions,
+                                locals,
+                                stack_slots,
+                                references,
+                                borrow_states,
+                                owned_buffers,
+                                &local.name,
+                                &reference_type,
+                                call,
+                                machine_contract,
+                                memory_enabled,
+                            )?,
+                            ReferenceTarget::Aggregate(_) | ReferenceTarget::Scalar(_) => {
+                                lower_borrowed_aggregate_call_initializer(
+                                    builder,
+                                    module,
+                                    functions,
+                                    aggregate_layouts,
+                                    locals,
+                                    stack_slots,
+                                    references,
+                                    borrow_states,
+                                    owned_buffers,
+                                    &local.name,
+                                    &reference_type,
+                                    call,
+                                    machine_contract,
+                                    memory_enabled,
+                                )?
+                            }
+                        }
                     } else {
                         lower_reference_initializer(
                             &local.name,
@@ -4576,6 +4791,64 @@ fn lower_typed_statements(
                             );
                         }
                         builder.ins().return_(&[*base]);
+                    }
+                    MachineResult::SliceReference {
+                        element_type,
+                        source_parameter,
+                        mutable,
+                    } => {
+                        let source_name = spec
+                            .node
+                            .params
+                            .get(source_parameter)
+                            .expect("borrowed slice result source parameter was validated");
+                        let AstNode::Identifier(returned) = argument else {
+                            return Err(NativeCompileError::new(format!(
+                                "{machine_contract} function `{}` borrowed slice result must return source parameter `{source_name}` directly",
+                                spec.node.name
+                            )));
+                        };
+                        if returned.name != *source_name {
+                            return Err(NativeCompileError::new(format!(
+                                "{machine_contract} function `{}` borrowed slice result must return source parameter `{source_name}` directly; found `{}`",
+                                spec.node.name, returned.name
+                            )));
+                        }
+                        let source = references.get(source_name).ok_or_else(|| {
+                            NativeCompileError::new(format!(
+                                "{machine_contract} function `{}` lost borrowed slice result source parameter `{source_name}`",
+                                spec.node.name
+                            ))
+                        })?;
+                        let TypedReferenceLayout::Slice {
+                            element_type: source_element,
+                            storage,
+                        } = &source.layout
+                        else {
+                            unreachable!("borrowed slice results require slice parameters")
+                        };
+                        if *source_element != element_type || source.mutable != mutable {
+                            return Err(NativeCompileError::new(format!(
+                                "{machine_contract} function `{}` borrowed slice result source no longer matches its declared element type or mutability",
+                                spec.node.name
+                            )));
+                        }
+                        let SliceStorage::Parameter { base, length } = storage else {
+                            return Err(NativeCompileError::new(format!(
+                                "{machine_contract} function `{}` borrowed slice result cannot escape local or returned storage",
+                                spec.node.name
+                            )));
+                        };
+                        if let Some(allocator) = allocator {
+                            emit_owned_buffer_cleanup(
+                                builder,
+                                module,
+                                owned_buffers,
+                                owner_order,
+                                allocator,
+                            );
+                        }
+                        builder.ins().return_(&[*base, *length]);
                     }
                     MachineResult::Owned(result_layout) => {
                         let owner = lower_owned_buffer_return(
@@ -5189,6 +5462,12 @@ fn lower_scalar_call_with_ownership(
                 callee.name
             )));
         }
+        MachineResult::SliceReference { .. } => {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} `{}` returns a borrowed slice reference; bind it to a typed reference local",
+                callee.name
+            )));
+        }
         MachineResult::Owned(_) | MachineResult::Aggregate { .. } => {
             return Err(NativeCompileError::new(format!(
                 "{machine_contract} {context} expects `{}`, but `{}` returns ownership; bind the result to an owned `[T]` local",
@@ -5284,6 +5563,7 @@ fn lower_call_arguments_with_ownership(
             MachineParameter::Slice {
                 element_type,
                 mutable,
+                ..
             } => {
                 let (base, length) = lower_borrowed_slice_call_argument(
                     builder,
@@ -6600,6 +6880,271 @@ fn resolve_aggregate_scalar_projection(
 }
 
 #[allow(clippy::too_many_arguments)]
+fn lower_borrowed_slice_call_initializer(
+    builder: &mut FunctionBuilder<'_>,
+    module: &mut ObjectModule,
+    functions: &HashMap<String, TypedFunctionAbi>,
+    locals: &HashMap<String, TypedValue>,
+    stack_slots: &HashMap<String, TypedStackSlot>,
+    references: &HashMap<String, TypedReference>,
+    borrow_states: &mut HashMap<String, BorrowState>,
+    owned_buffers: &mut HashMap<String, OwnedBuffer>,
+    reference_name: &str,
+    reference_type: &ReferenceType,
+    call: &CallExpression,
+    machine_contract: &str,
+    memory_enabled: bool,
+) -> Result<TypedReference, NativeCompileError> {
+    let AstNode::Identifier(callee) = call.callee.as_ref() else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} borrowed slice initializer `{reference_name}` requires a named function"
+        )));
+    };
+    let abi = functions.get(&callee.name).ok_or_else(|| {
+        NativeCompileError::new(format!(
+            "{machine_contract} borrowed slice initializer `{reference_name}` calls unknown function `{}`",
+            callee.name
+        ))
+    })?;
+    let MachineResult::SliceReference {
+        element_type,
+        source_parameter,
+        mutable,
+    } = abi.result
+    else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} function `{}` does not return a borrowed slice reference",
+            callee.name
+        )));
+    };
+    let ReferenceTarget::Slice(expected_element) = &reference_type.target else {
+        unreachable!("slice call initializers are selected from slice reference locals")
+    };
+    if *expected_element != element_type {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} reference `{reference_name}` expects elements of `{}`, but `{}` returns elements of `{}`",
+            expected_element.name(),
+            callee.name,
+            element_type.name()
+        )));
+    }
+    if reference_type.mutable != mutable {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} reference `{reference_name}` mutability must match the borrowed slice result of `{}`",
+            callee.name
+        )));
+    }
+    let Some(MachineParameter::Slice {
+        element_type: source_element,
+        mutable: source_mutable,
+        ..
+    }) = abi.params.get(source_parameter)
+    else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} function `{}` borrowed-slice provenance is not a slice reference",
+            callee.name
+        )));
+    };
+    if *source_element != element_type || *source_mutable != mutable {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} function `{}` borrowed-slice ABI disagrees with its source parameter",
+            callee.name
+        )));
+    }
+    let source_argument = call.arguments.get(source_parameter).ok_or_else(|| {
+        NativeCompileError::new(format!(
+            "{machine_contract} call to `{}` omitted its borrowed-slice source argument",
+            callee.name
+        ))
+    })?;
+    let returned_root = resolve_returned_slice_root(
+        source_argument,
+        stack_slots,
+        references,
+        &callee.name,
+        machine_contract,
+    )?;
+
+    let arguments = lower_call_arguments_with_ownership(
+        builder,
+        module,
+        functions,
+        locals,
+        stack_slots,
+        references,
+        borrow_states,
+        owned_buffers,
+        call,
+        abi,
+        machine_contract,
+        memory_enabled,
+    )?;
+    let local_callee = module.declare_func_in_func(abi.func_id, builder.func);
+    let call_inst = builder.ins().call(local_callee, &arguments);
+    let results = builder.inst_results(call_inst);
+    if results.len() != 2 {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} function `{}` did not produce its declared borrowed base-plus-length result",
+            callee.name
+        )));
+    }
+    let returned_base = results[0];
+    let returned_length = results[1];
+    validate_borrowed_slice_result(
+        builder,
+        module,
+        returned_base,
+        returned_length,
+        element_type,
+    );
+    acquire_returned_slice_borrow(
+        borrow_states,
+        returned_root.name(),
+        mutable,
+        reference_name,
+        &callee.name,
+        machine_contract,
+    )?;
+
+    Ok(TypedReference {
+        layout: TypedReferenceLayout::Slice {
+            element_type,
+            storage: SliceStorage::Returned {
+                base: returned_base,
+                length: returned_length,
+                root: returned_root,
+            },
+        },
+        mutable,
+    })
+}
+
+fn resolve_returned_slice_root(
+    source_argument: &AstNode,
+    stack_slots: &HashMap<String, TypedStackSlot>,
+    references: &HashMap<String, TypedReference>,
+    callee_name: &str,
+    machine_contract: &str,
+) -> Result<ReturnedSliceRoot, NativeCompileError> {
+    let source_name = match source_argument {
+        AstNode::Identifier(source) => source.name.as_str(),
+        AstNode::UnaryExpression(borrow) => {
+            let AstNode::MemberExpression(range) = borrow.argument.as_ref() else {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} borrowed slice result source for `{callee_name}` must be a named slice or direct range reborrow"
+                )));
+            };
+            let AstNode::Identifier(source) = range.object.as_ref() else {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} borrowed slice result source for `{callee_name}` must retain one concrete caller root"
+                )));
+            };
+            source.name.as_str()
+        }
+        _ => {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} borrowed slice result source for `{callee_name}` must be a named slice or direct range reborrow"
+            )));
+        }
+    };
+
+    if let Some(reference) = references.get(source_name) {
+        let TypedReferenceLayout::Slice { storage, .. } = &reference.layout else {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} borrowed slice result source `{source_name}` for `{callee_name}` is not a slice"
+            )));
+        };
+        return match storage {
+            SliceStorage::Stack { slot_name, .. } => {
+                Ok(ReturnedSliceRoot::Stack(slot_name.clone()))
+            }
+            SliceStorage::Heap { owner_name, .. } => {
+                Ok(ReturnedSliceRoot::Heap(owner_name.clone()))
+            }
+            SliceStorage::Parameter { .. } => Err(NativeCompileError::new(format!(
+                "{machine_contract} borrowed slice result from `{callee_name}` cannot extend slice parameter `{source_name}`; return chains require a concrete caller root"
+            ))),
+            SliceStorage::Returned { .. } => Err(NativeCompileError::new(format!(
+                "{machine_contract} borrowed slice result from `{callee_name}` cannot extend nested returned slice `{source_name}`"
+            ))),
+        };
+    }
+
+    let slot = stack_slots.get(source_name).ok_or_else(|| {
+        NativeCompileError::new(format!(
+            "{machine_contract} borrowed slice result source for `{callee_name}` lost caller root `{source_name}`"
+        ))
+    })?;
+    if !matches!(slot.layout, StackSlotLayout::FixedArray(_)) {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} borrowed slice result source `{source_name}` for `{callee_name}` is not fixed-array storage"
+        )));
+    }
+    Ok(ReturnedSliceRoot::Stack(source_name.to_string()))
+}
+
+fn validate_borrowed_slice_result(
+    builder: &mut FunctionBuilder<'_>,
+    module: &ObjectModule,
+    base: Value,
+    length: Value,
+    element_type: MachineType,
+) {
+    let negative = builder.ins().icmp_imm(IntCC::SignedLessThan, length, 0);
+    builder.ins().trapnz(negative, TrapCode::unwrap_user(1));
+    let null = builder.ins().icmp_imm(IntCC::Equal, base, 0);
+    builder.ins().trapnz(null, TrapCode::unwrap_user(2));
+    let alignment = 1_u32 << element_type.stack_align_shift();
+    if alignment > 1 {
+        let misalignment = builder.ins().band_imm(base, i64::from(alignment - 1));
+        builder.ins().trapnz(misalignment, TrapCode::unwrap_user(4));
+    }
+    if let Some(max_length) = runtime_slice_start_limit(
+        module.target_config().pointer_type(),
+        element_type.stack_size(),
+        0,
+    ) {
+        let too_large =
+            builder
+                .ins()
+                .icmp_imm(IntCC::UnsignedGreaterThan, length, i64::from(max_length));
+        builder.ins().trapnz(too_large, TrapCode::unwrap_user(1));
+    }
+}
+
+fn acquire_returned_slice_borrow(
+    borrow_states: &mut HashMap<String, BorrowState>,
+    root_name: &str,
+    mutable: bool,
+    reference_name: &str,
+    callee_name: &str,
+    machine_contract: &str,
+) -> Result<(), NativeCompileError> {
+    let state = borrow_states.entry(root_name.to_string()).or_default();
+    if state.aggregate_moved {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} cannot bind returned slice `{reference_name}` from `{callee_name}` because caller root `{root_name}` was moved"
+        )));
+    }
+    if mutable {
+        if state.shared > 0 || state.exclusive {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} cannot bind returned mutable slice `{reference_name}` from `{callee_name}` because caller root `{root_name}` already has an active borrow"
+            )));
+        }
+        state.exclusive = true;
+    } else {
+        if state.exclusive {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} cannot bind returned shared slice `{reference_name}` from `{callee_name}` because caller root `{root_name}` is exclusively borrowed"
+            )));
+        }
+        state.shared += 1;
+    }
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
 fn lower_borrowed_aggregate_call_initializer(
     builder: &mut FunctionBuilder<'_>,
     module: &mut ObjectModule,
@@ -7199,6 +7744,7 @@ fn lower_reference_initializer(
                     | AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
                     | AGGREGATE_REBORROW_MACHINE_CONTRACT
                     | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
+                    | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
             ) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} does not enable borrowed slice values"
@@ -7836,6 +8382,12 @@ fn lower_typed_expression(
                         callee.name
                     )));
                 }
+                MachineResult::SliceReference { .. } => {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} `{}` returns a borrowed slice reference; bind it to a typed reference local",
+                        callee.name
+                    )));
+                }
                 MachineResult::Owned(_) | MachineResult::Aggregate { .. } => {
                     return Err(NativeCompileError::new(format!(
                         "{machine_contract} {context} expects `{}`, but `{}` returns ownership; bind the result to an owned `[T]` local",
@@ -7881,6 +8433,7 @@ fn lower_typed_expression(
                     MachineParameter::Slice {
                         element_type,
                         mutable,
+                        ..
                     } => {
                         let (base, length) = lower_borrowed_slice_call_argument(
                             builder,
@@ -8150,6 +8703,7 @@ fn lower_forwarded_slice_call_argument(
             | AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
             | AGGREGATE_REBORROW_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
+            | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
     ) {
         return Err(NativeCompileError::new(format!(
             "{machine_contract} slice argument {} to `{callee_name}` must be a direct range reborrow",
@@ -8208,6 +8762,7 @@ fn lower_forwarded_slice_call_argument(
                     | AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT
                     | AGGREGATE_REBORROW_MACHINE_CONTRACT
                     | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
+                    | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
             ) =>
         {
             let AstNode::BinaryExpression(range) = range_node else {
@@ -8308,6 +8863,25 @@ fn lower_forwarded_slice_call_argument(
             }
             CallBorrowRoot::Owned(owner_name.clone())
         }
+        SliceStorage::Returned { root, .. } => {
+            let root_name = root.name();
+            let active = borrow_states.get(root_name).copied().unwrap_or_default();
+            if reference.mutable {
+                if !active.exclusive {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} lost the exclusive caller-root lease for returned mutable slice `{reference_name}`"
+                    )));
+                }
+            } else if active.shared == 0 {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} lost the caller-root lease for returned slice `{reference_name}`"
+                )));
+            }
+            match root {
+                ReturnedSliceRoot::Stack(name) => CallBorrowRoot::Stack(name.clone()),
+                ReturnedSliceRoot::Heap(name) => CallBorrowRoot::Owned(name.clone()),
+            }
+        }
     };
     acquire_forwarded_call_borrow(
         call_borrows,
@@ -8398,58 +8972,57 @@ fn lower_forwarded_slice_call_argument(
                 }
             }
         }
-        SliceStorage::Parameter { base, length } | SliceStorage::Heap { base, length, .. } => {
-            match forwarded_range {
-                ForwardedSliceRange::Whole => Ok((*base, *length)),
-                ForwardedSliceRange::Literal { start, end } => {
-                    let end_value = builder.ins().iconst(types::I32, i64::from(end));
-                    let outside =
-                        builder
-                            .ins()
-                            .icmp(IntCC::UnsignedGreaterThan, end_value, *length);
-                    builder.ins().trapnz(outside, TrapCode::unwrap_user(1));
+        SliceStorage::Parameter { base, length }
+        | SliceStorage::Heap { base, length, .. }
+        | SliceStorage::Returned { base, length, .. } => match forwarded_range {
+            ForwardedSliceRange::Whole => Ok((*base, *length)),
+            ForwardedSliceRange::Literal { start, end } => {
+                let end_value = builder.ins().iconst(types::I32, i64::from(end));
+                let outside = builder
+                    .ins()
+                    .icmp(IntCC::UnsignedGreaterThan, end_value, *length);
+                builder.ins().trapnz(outside, TrapCode::unwrap_user(1));
 
-                    let byte_offset = u64::from(start) * u64::from(element_type.stack_size());
-                    if pointer_type == types::I32 && byte_offset > u64::from(u32::MAX) {
-                        return Err(NativeCompileError::new(format!(
+                let byte_offset = u64::from(start) * u64::from(element_type.stack_size());
+                if pointer_type == types::I32 && byte_offset > u64::from(u32::MAX) {
+                    return Err(NativeCompileError::new(format!(
                         "{machine_contract} slice `{reference_name}` byte offset exceeds the target pointer width"
                     )));
-                    }
-                    let forwarded_base = if byte_offset == 0 {
-                        *base
-                    } else {
-                        let offset = builder.ins().iconst(
-                            pointer_type,
-                            i64::try_from(byte_offset)
-                                .expect("i32 slice length bounds the byte offset"),
-                        );
-                        builder.ins().iadd(*base, offset)
-                    };
-                    let forwarded_length = builder.ins().iconst(types::I32, i64::from(end - start));
-                    Ok((forwarded_base, forwarded_length))
                 }
-                ForwardedSliceRange::Runtime { start, end } => {
-                    emit_runtime_slice_range_checks(
-                        builder,
-                        start,
-                        end,
-                        *length,
+                let forwarded_base = if byte_offset == 0 {
+                    *base
+                } else {
+                    let offset = builder.ins().iconst(
                         pointer_type,
-                        element_type.stack_size(),
-                        0,
+                        i64::try_from(byte_offset)
+                            .expect("i32 slice length bounds the byte offset"),
                     );
-                    let forwarded_base = offset_runtime_slice_base(
-                        builder,
-                        pointer_type,
-                        *base,
-                        start,
-                        element_type.stack_size(),
-                    );
-                    let forwarded_length = builder.ins().isub(end, start);
-                    Ok((forwarded_base, forwarded_length))
-                }
+                    builder.ins().iadd(*base, offset)
+                };
+                let forwarded_length = builder.ins().iconst(types::I32, i64::from(end - start));
+                Ok((forwarded_base, forwarded_length))
             }
-        }
+            ForwardedSliceRange::Runtime { start, end } => {
+                emit_runtime_slice_range_checks(
+                    builder,
+                    start,
+                    end,
+                    *length,
+                    pointer_type,
+                    element_type.stack_size(),
+                    0,
+                );
+                let forwarded_base = offset_runtime_slice_base(
+                    builder,
+                    pointer_type,
+                    *base,
+                    start,
+                    element_type.stack_size(),
+                );
+                let forwarded_length = builder.ins().isub(end, start);
+                Ok((forwarded_base, forwarded_length))
+            }
+        },
     }
 }
 
@@ -8639,7 +9212,8 @@ fn known_expression_type(
                         MachineResult::Scalar(machine_type) => Some(machine_type),
                         MachineResult::Owned(_)
                         | MachineResult::Aggregate { .. }
-                        | MachineResult::AggregateReference { .. } => None,
+                        | MachineResult::AggregateReference { .. }
+                        | MachineResult::SliceReference { .. } => None,
                     })
             }
         }
@@ -9132,6 +9706,27 @@ fn resolve_array_access<'a>(
                         element_size: element_type.stack_size(),
                     }),
                     root_name: owner_name.clone(),
+                    display: format!("{}[index]", root.name),
+                    provenance: StackAccessProvenance::Slice {
+                        reference_name: root.name.clone(),
+                        mutable: reference.mutable,
+                    },
+                }),
+                SliceStorage::Returned {
+                    base,
+                    length,
+                    root: returned_root,
+                } => Ok(ResolvedStackAccess {
+                    slot: None,
+                    base_address: Some(*base),
+                    machine_type: *element_type,
+                    offset: 0,
+                    dynamic_index: Some(DynamicArrayIndex {
+                        expression: member.property.as_ref(),
+                        bound: DynamicArrayBound::Runtime(*length),
+                        element_size: element_type.stack_size(),
+                    }),
+                    root_name: returned_root.name().to_string(),
                     display: format!("{}[index]", root.name),
                     provenance: StackAccessProvenance::Slice {
                         reference_name: root.name.clone(),

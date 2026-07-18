@@ -507,7 +507,17 @@ pub(crate) fn find_owned_buffer_annotation(ast: &Ast) -> Option<(&str, String)> 
 
 fn find_borrowed_slice_annotation(ast: &Ast) -> Option<(&str, String)> {
     find_type_annotation(ast, |annotation| {
-        annotation.starts_with("&[") || annotation.starts_with("&mut [")
+        let Some(mut rest) = annotation.strip_prefix('&') else {
+            return false;
+        };
+        if let Some(lifetime_rest) = rest.strip_prefix('\'') {
+            let Some((_, pointee)) = lifetime_rest.split_once(' ') else {
+                return false;
+            };
+            rest = pointee;
+        }
+        let pointee = rest.strip_prefix("mut ").unwrap_or(rest);
+        pointee.starts_with('[') && pointee.ends_with(']') && !pointee.contains(';')
     })
 }
 
@@ -3057,6 +3067,16 @@ function mk() {
             .expect_err("Kotlin must not silently erase native slice borrow semantics");
         assert!(error.to_string().contains(
             "borrowed slice type `&[i32]` in local `view` requires target-specific borrow and bounds lowering"
+        ));
+
+        let lifetimed = r#"function view<'a>(values: &'a [i32]): &'a [i32] {
+  return values
+}
+function main(): i32 { return 5 }"#;
+        let error = compile_source_to_kotlin(lifetimed, "  ")
+            .expect_err("Kotlin must not erase caller-tied borrowed slice results");
+        assert!(error.to_string().contains(
+            "borrowed slice type `&'a [i32]` in return type of function `view` requires target-specific borrow and bounds lowering"
         ));
     }
 

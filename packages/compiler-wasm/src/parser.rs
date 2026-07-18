@@ -3358,6 +3358,26 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_caller_tied_slice_reference_lifetime() {
+        let source = r#"function view<'a>(values: &'a [i32]): &'a [i32] {
+            return values
+        }"#;
+        let mut parser = Parser::new(source);
+        let program = parser
+            .parse()
+            .expect("explicit slice-reference lifetime should parse");
+
+        let AstNode::Function(function) = &program.body[0] else {
+            panic!("Expected Function node");
+        };
+        assert_eq!(function.lifetimes, vec!["a"]);
+        assert_eq!(function.param_types, vec![Some("&'a [i32]".to_string())]);
+        assert_eq!(function.return_type.as_deref(), Some("&'a [i32]"));
+        let serialized = serde_json::to_value(function).expect("function AST should serialize");
+        assert_eq!(serialized["lifetimes"], serde_json::json!(["a"]));
+    }
+
+    #[test]
     fn test_parse_typed_stack_slot_declaration() {
         let source = r#"function main(): i32 {
             slot value: i32 = 2
