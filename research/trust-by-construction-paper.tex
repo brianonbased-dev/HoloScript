@@ -71,7 +71,9 @@ interaction provenance, auto-provenance, and exact replay. Trait composition
 and trust propagation follow a provenance semiring algebra with tropical
 strategies for conflict resolution, establishing a formal connection between
 simulation trust, graph optimization, and neural computation. We implement
-the contract atop a browser-native finite element framework with WebGPU
+the contract atop a browser-native, \emph{sovereign} finite element
+framework---fully on-device, requiring no server, cloud tenancy, or
+external notary either to compute or to verify---with WebGPU
 compute shaders, quadratic tetrahedral elements (TET10), and built-in
 verification infrastructure aligned with ASME~V\&V standards. We demonstrate that
 contracted simulations satisfy the recently proposed CURE principles for
@@ -299,7 +301,8 @@ identical.
 Browser-based finite element analysis has emerged as an alternative to
 desktop installation. As of April 2026:
 FEAScript~\cite{FEAScript2026} provides an open-source JavaScript FEA
-library supporting 1D and 2D linear elements.
+library supporting browser-side 1D/2D finite elements, including documented
+quadratic 2D mesh configurations.
 SPARSELAB~\cite{SPARSELAB2026} uses C++ compiled to WebAssembly for 3D
 structural analysis but lacks GPU acceleration and formal verification.
 CAEplex~\cite{CAEplex2026} offers a browser UI backed by server-side
@@ -307,11 +310,13 @@ solvers, retaining the client-server trust gap. SimScale~\cite{SimScale2026}
 provides a SaaS platform (\$2K+/year) with enterprise-grade solvers but no
 local computation or formal contract.
 
-None of these systems offer formal simulation contracts, built-in
-verification infrastructure, or zero-copy render/solver unification.
+None of these systems offer the full conjunction of formal simulation
+contracts, browser-local WebGPU solver compute, TET10/3D quadratic
+elements, built-in ASME V\&V-aligned verification, and zero-copy
+render/solver unification.
 To our knowledge, no existing browser-native FEA framework combines
-WebGPU compute, quadratic elements, and ASME~V\&V-aligned convergence
-analysis.
+WebGPU compute, TET10 quadratic elements, and SimulationContract-enforced
+ASME~V\&V-aligned convergence analysis.
 
 
 \subsection{Design by Contract in Scientific Computing}
@@ -367,6 +372,30 @@ directly: a simulation's complete state---configuration, geometry
 hash, interaction log, and fixed timestep---is captured in a
 self-contained artifact from which the simulation can be exactly
 replayed.
+
+
+\subsection{Agent-Provenance Receipts}
+\label{sec:related:agent-receipts}
+
+A contemporaneous line of work (2025--26) attests the execution of AI agent
+tool calls. Tool Receipts~\cite{toolreceipts2026} produce signed
+transport-level attestations of an individual tool call; ToolGate%
+~\cite{toolgate2026} gates Model Context Protocol tool invocation by
+capability scope; Verifiable Execution for LLM Tool
+Use~\cite{verifexec2026} verifies a single returned tool result; and
+PROV-AGENT~\cite{prov-agent2025} extends W3C PROV with MCP-mediated agent
+workflow provenance. In production tooling, Cursor's Merkle codebase
+index~\cite{cursormerkle2024} identifies a repository-state snapshot by its
+content-hash root. These establish per-call signing, capability-scoped
+gating, single-result verification, provenance-graph recording, and
+content-hash state identity, respectively. Our \cael{} provenance record
+differs along one axis: it is a single hash-\emph{chained} receipt over the
+\emph{full} solver-to-render pipeline, composed at each node under the
+provenance semiring of Green et al.~\cite{green-semiring2007}
+(\Cref{sec:related:reproducibility} above; distinct from the tropical
+min-plus/max-plus algebra used for the conflict-resolution strategies), and
+replayable to bit-identical equality---a per-pipeline replay receipt, not a
+per-call attestation of a tool invocation.
 
 % ============================================================================
 \section{The Embodied Simulation Model}
@@ -565,7 +594,7 @@ propose completion in text, but the runner admits completion only after it
 has observed at least one productive, side-effecting dispatch and the
 resulting artifact or receipt. Pure text, read-only inspection, and trivial
 shell commands are therefore unable to close the run, emit the downstream
-CAEL record, or charge the budget as completed work.
+\cael{} record, or charge the budget as completed work.
 
 This differs from post-hoc receipt checking. Tool Receipts / NabaOS
 generate signed tool receipts and cross-check claims after the model has
@@ -580,14 +609,15 @@ model calls tools directly has no equivalent single control point without
 rearchitecting the dispatch boundary.
 
 A deterministic ablation over the shipped classifier supports this narrow
-claim. With the gate enabled, 7/7 fabrication classes were blocked, 4/4
-genuine classes passed, and one known leak remained: a no-op hidden behind
-a productive command prefix. With the gate disabled, all seven fabrication
-classes were admitted. The result does not prove that the produced effect
-is the right effect; it proves the weaker, useful condition that completion
-is impossible without an auditable effect. Correctness of that effect is
-handled by the separate reflect gate and by replay of the emitted
-SimulationContract or CAEL artifact.
+claim~\cite{artifactgateablation2026}. With the gate enabled, 7/7
+fabrication classes were blocked, 4/4 genuine classes passed, and one
+known leak remained: a no-op hidden behind a productive command prefix.
+With the gate disabled, all seven fabrication classes were admitted. The
+result does not prove that the produced effect is the right effect; it
+proves the weaker, useful condition that completion is impossible without
+an auditable effect. Correctness of that effect is handled by the separate
+reflect gate and by replay of the emitted SimulationContract or \cael{}
+artifact.
 
 \subsection{Adversary Model and Guarantee Boundary}
 \label{sec:model:adversary}
@@ -749,12 +779,14 @@ eliminating them.
 \subsection{Algebraic Structure: Provenance Semiring}
 \label{sec:model:semiring}
 
-The simulation contract's trust properties have a precise algebraic
-characterization. Trait composition, trust propagation, and conflict
-resolution all follow semiring axioms.
+The simulation contract's numeric trust aggregation has a precise algebraic
+characterization. The implementation also exposes operational conflict
+policies for precedence, authority, error, and vector-valued cases; those
+policies are not each independent semirings.
 
 \begin{definition}[Provenance Semiring]
-A \emph{provenance semiring} $\mathcal{S} = (S, \oplus, \otimes, \bar{0},
+Following Green et al.~\cite{green-semiring2007}, a \emph{provenance semiring}
+$\mathcal{S} = (S, \oplus, \otimes, \bar{0},
 \bar{1})$ is a commutative semiring where:
 \begin{itemize}
   \item $\oplus$ aggregates provenance from multiple sources
@@ -788,13 +820,16 @@ Every ReLU layer evaluates a tropical polynomial, establishing a formal
 bridge between the simulation's algebraic infrastructure and spiking
 neural network cognition (where LIF firing rate approximates ReLU).
 
-The implementation provides a generic \texttt{Semiring<T>} interface
-with seven concrete strategies verified against the semiring axioms
-(associativity, commutativity, distributivity, identity, annihilation). Trait conflict resolution uses these strategies:
-when two solvers produce conflicting provenance for the same field,
-the semiring's $\oplus$ operation determines which source wins---with
-the choice of strategy (min-plus, max-plus, or custom) configurable per
-simulation contract.
+The implementation provides a generic \texttt{Semiring<T>} interface with
+three concrete numeric instances: sum-product, min-plus, and max-plus. Its
+provenance resolver exposes fourteen operational policy names spanning
+scalar, tropical, precedence, authority, error, and vector behavior. Tests
+exercise the numeric tropical laws and selected identity, commutativity,
+idempotence, and order-independence properties; they do not establish every
+semiring law for every operational policy. When two solvers produce
+conflicting provenance for the same field, the configured resolver policy
+determines the result. Only the three numeric instances are characterized
+here as concrete semirings.
 
 
 \subsection{Mapping to CURE Principles}
@@ -814,16 +849,15 @@ computational models. We show that the simulation contract satisfies each:
   \item[Reproducible.] Guarantees~3--6 ensure deterministic execution,
     complete provenance, and exact replay. The provenance record serves
     as an executable reproducibility package.
-  \item[Extensible.] The contract wraps a generic \texttt{SimSolver}
-    interface that currently supports three formally verified solver types
-    (structural FEM, thermal finite differences, and hydraulic network
-    analysis) with five additional implementations available (Navier-Stokes,
-    acoustic, FDTD electromagnetic, reaction-diffusion, and molecular
-    dynamics). Adding a new solver requires implementing five methods;
-    the contract, verification infrastructure, and provenance system
-    apply automatically. \Cref{tab:vv-summary} demonstrates this with
-    9~benchmarks across the three verified solver types, all using the
-    same contract wrapper.
+  \item[Extensible.] A generic \texttt{SimSolver} interface currently has
+    three numerically V\&V-benchmarked solver families (structural FEM,
+    thermal finite differences, and hydraulic network analysis), with five
+    additional implementations available (Navier-Stokes, acoustic, FDTD
+    electromagnetic, reaction-diffusion, and molecular dynamics). Adding a
+    new solver requires implementing five methods, which makes it eligible
+    for contract integration but does not establish its numerical
+    correctness. \Cref{tab:vv-summary} reports eight raw-solver benchmarks:
+    seven meet their stated criteria and the NAFEMS~LE1 case remains open.
 \end{description}
 
 
@@ -952,11 +986,11 @@ the fail-closed non-finite guard in commit~\texttt{0cc7b6b6d} (Wave-1.5).
 \subsection{WebGPU Sparse Linear Algebra}
 
 The structural solver uses a conjugate gradient (CG) method with
-GPU-accelerated sparse matrix-vector products. The implementation comprises
-eight WGSL compute shaders: CSR-format SpMV, fused vector update, SAXPY,
-dot product (with workgroup reduction), norm computation, diagonal
-preconditioner application, and two utility kernels for initialization and
-convergence checking. The solution buffer is created with combined
+GPU-accelerated sparse matrix-vector products. The implementation compiles
+one WGSL module into fourteen compute entry points and pipelines covering
+thirteen conceptual operations: two SpMV variants, vector updates, SAXPY,
+reductions, Jacobi preconditioning, scalar division, and utility kernels.
+The solution buffer is created with combined
 \texttt{STORAGE~|~COPY\_SRC~|~COPY\_DST} usage flags, plus an additional
 flag described below.
 
@@ -1096,7 +1130,7 @@ second TET4-shaped transient probe that removes one guarantee primitive at
 a time while holding the mesh, field sizes, fixed timestep, and timing
 protocol constant. The harness is
 \texttt{packages/engine/src/simulation/\_\_tests\_\_/tvcg-contract-ablation.test.ts};
-the committed artifact is
+the committed HoloScript artifact is
 \texttt{.bench-logs/tvcg-ablation-2026-06-21T00-00-00-000Z.json}
 (sha256 \texttt{1c18ea10b167a01c05e8f639834bc3168e0fb6dfb282356e7978a2d19e3be669}).
 It uses a 160-node, 40-element TET4 probe (480 DOF), 40 paired samples,
@@ -1325,17 +1359,16 @@ traction implementation in this codebase is open work and tracked in
 
 \subsection{Multi-Solver V\&V Summary}
 
-A key claim of the embodied simulation model is that the contract wraps
-\emph{any} solver implementing the \texttt{SimSolver} interface. To
-validate this, we run verification benchmarks across three solver types
-(\Cref{tab:vv-summary}). Each benchmark compares the numerical result
-against an analytical solution or accepted reference value.
+To evaluate the current numerical implementations, we run V\&V benchmarks
+across three solver families (\Cref{tab:vv-summary}). Each benchmark compares
+the raw solver result against an analytical solution or accepted reference
+value; contract-wrapper behavior is tested separately.
 
 \begin{table*}[t]
   \centering
-  \caption{Verification benchmarks across three solver types. All benchmarks
-    pass within stated tolerances. ``SPR'' indicates stress recovered via
-    superconvergent patch recovery.}
+  \caption{Eight numerical V\&V benchmarks across three solver families.
+    Seven meet their stated criteria; the NAFEMS LE1 case remains open.
+    ``SPR'' indicates stress recovered via superconvergent patch recovery.}
   \label{tab:vv-summary}
   \begin{tabular}{@{}llllrl@{}}
     \toprule
@@ -1356,11 +1389,14 @@ against an analytical solution or accepted reference value.
     in bending; error is expected. Tip deflection is positive and bounded.}
 \end{table*}
 
-All 11~benchmarks pass. The contract wrapper is applied identically to each
-solver---no solver-specific verification code is needed. This validates the
-``Extensible'' criterion of CURE: adding a new solver type requires
-implementing five interface methods; the contract, SPR, GCI, and report
-infrastructure apply automatically.
+The suite contains eight solver benchmarks. Seven meet their stated criteria
+(including the exact TET10 axial-bar result), while the NAFEMS~LE1 stress case
+remains open. These benchmarks exercise the raw solver implementations;
+separate contract tests exercise \texttt{ContractedSimulation}. The table
+therefore supports numerical behavior across three solver families, not formal
+verification or universal wrapper equivalence. Implementing the five-method
+interface enables contract integration, but numerical V\&V remains
+solver-specific.
 
 \subsection{NAFEMS LE1 Convergence}
 
@@ -1829,6 +1865,12 @@ durable than discipline-based approaches.
   ``IEEE Standard for Floating-Point Arithmetic,''
   IEEE Std 754-2019, 2019.
 
+\bibitem{green-semiring2007}
+  T.~J.~Green, G.~Karvounarakis, and V.~Tannen,
+  ``Provenance Semirings,''
+  \emph{Proc. ACM PODS}, pp.~31--40, 2007.
+  doi:10.1145/1265530.1265535.
+
 \bibitem{griffiths2026lawsofthought}
   A.~Griffiths,
   \emph{Laws of Thought},
@@ -1845,6 +1887,36 @@ durable than discipline-based approaches.
   ``Verify-Gated Completion as Admission Control in a Governed
   Multi-Agent Runtime: A Bounded Architecture Case Study,''
   arXiv:2605.17998, 2026.
+
+\bibitem{artifactgateablation2026}
+  HoloScript Team,
+  ``Artifact-Grounding Gate -- Fabrication-Rate Ablation,''
+  internal benchmark report,
+  \url{research/benchmark-results-2026-06-17-artifact-grounding-gate-ablation.md},
+  2026.
+
+\bibitem{toolgate2026}
+  ToolGate Authors,
+  ``ToolGate: Capability-Scoped Gating for Model Context Protocol Tool
+  Invocation,''
+  arXiv:2601.04688, 2026.
+
+\bibitem{verifexec2026}
+  Verifiable Execution Authors,
+  ``Verifiable Execution for LLM Tool Use,''
+  Preprint, April 2026.
+
+\bibitem{prov-agent2025}
+  R.~Souza, R.~Ferreira~da~Silva, and E.~Deelman,
+  ``PROV-AGENT: Unified Provenance for Tracking AI Agent Interactions in
+  Agentic Workflows,''
+  arXiv:2508.02866, 2025.
+
+\bibitem{cursormerkle2024}
+  Cursor (Anysphere),
+  ``Cursor Codebase Indexing: Merkle-Tree Synchronization of Repository
+  State,''
+  Cursor documentation, 2024.
 
 \end{thebibliography}
   \fi
