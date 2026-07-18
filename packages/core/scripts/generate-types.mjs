@@ -7356,6 +7356,154 @@ export declare function computeHoloMapReplayFingerprint(parts: {
 export declare function fnv1a32Hex(input: string): string;
 export declare function assertHoloMapManifestContract(m: ReconstructionManifest): void;
 
+/** HoloTorch WebGPU model types and shadow-only execution admission. */
+export interface BlockWeights {
+  ln1g: Float32Array;
+  ln1b: Float32Array;
+  wqkv: Float32Array;
+  bqkv: Float32Array;
+  wproj: Float32Array;
+  bproj: Float32Array;
+  ln2g: Float32Array;
+  ln2b: Float32Array;
+  wfc1: Float32Array;
+  bfc1: Float32Array;
+  wfc2: Float32Array;
+  bfc2: Float32Array;
+}
+export interface ModelWeights {
+  wte: Float32Array;
+  wpe: Float32Array;
+  blocks: BlockWeights[];
+  lnfg: Float32Array;
+  lnfb: Float32Array;
+}
+export interface ModelConfig { nEmbd: number; nHead: number; vocab: number; }
+export interface HoloTorchModel {
+  run(ids: Uint32Array, weights: ModelWeights, config: ModelConfig): Promise<Float32Array>;
+}
+export declare const HOLOTORCH_SHADOW_EXECUTION_SCHEMA: 'holoscript.holotorch-shadow-execution.v0.1.0';
+export declare const HOLOTORCH_TENSOR_SET_SCHEMA: 'holoscript.holotorch-tensor-set.v0.1.0';
+export declare const HOLOTORCH_ARTIFACT_BINDING_SCHEMA: 'holoscript.holotorch-artifact-binding.v0.1.0';
+export type HoloTorchSha256 = \`sha256:\${string}\`;
+export interface HoloTorchShadowBinding {
+  model: string;
+  architecture: 'holo-gpt2-v0';
+  config: {
+    nLayer: number;
+    nEmbd: number;
+    nHead: number;
+    vocab: number;
+    maxPosition: number;
+  };
+  artifactBindingSha256: HoloTorchSha256;
+  checkpointSha256: HoloTorchSha256;
+  tokenizerSha256: HoloTorchSha256;
+  expectedTensorSetSha256: HoloTorchSha256;
+  kernelSetSha256: HoloTorchSha256;
+  runtimeSha256: HoloTorchSha256;
+  sourceRevision: string;
+}
+export type HoloTorchArtifactBindingMaterial = Omit<
+  HoloTorchShadowBinding,
+  'artifactBindingSha256'
+>;
+export interface HoloTorchExecutionEnvironment {
+  available: boolean;
+  runtime: { name: string; version: string; hostOS: string };
+  adapter: {
+    vendor: string;
+    architecture: string;
+    device: string;
+    driver: string;
+    fingerprintSha256: HoloTorchSha256;
+  };
+}
+export interface HoloTorchTensorSetFingerprint {
+  tensorSetSha256: HoloTorchSha256;
+  tensorCount: number;
+  totalBytes: number;
+}
+export interface HoloTorchShadowExecutionReceipt {
+  schema: typeof HOLOTORCH_SHADOW_EXECUTION_SCHEMA;
+  authority: 'shadow-only';
+  status: 'observed';
+  trust: {
+    executionEvidence: 'caller-observed';
+    authentication: 'self-hash-only';
+    executionClass: 'one-shot-audit';
+  };
+  model: {
+    name: string;
+    architecture: 'holo-gpt2-v0';
+    config: { nLayer: number; nEmbd: number; nHead: number; vocab: number; maxPosition: number };
+  };
+  artifact: {
+    artifactBindingSha256: HoloTorchSha256;
+    checkpointSha256: HoloTorchSha256;
+    tokenizerSha256: HoloTorchSha256;
+    tensorSetSha256: HoloTorchSha256;
+    tensorCount: number;
+    totalBytes: number;
+  };
+  runtime: {
+    backend: 'holotorch-webgpu';
+    kernelSetSha256: HoloTorchSha256;
+    runtimeSha256: HoloTorchSha256;
+    sourceRevision: string;
+    name: string;
+    version: string;
+    hostOS: string;
+    adapter: {
+      vendor: string;
+      architecture: string;
+      device: string;
+      driver: string;
+      fingerprintSha256: HoloTorchSha256;
+    };
+  };
+  input: { dtype: 'u32le'; tokenCount: number; tokenIdsSha256: HoloTorchSha256 };
+  output: {
+    dtype: 'f32le';
+    shape: [number, number];
+    logitsSha256: HoloTorchSha256;
+    finite: true;
+  };
+  timing: { startedAt: string; durationMs: number };
+  receiptSha256: HoloTorchSha256;
+}
+export interface HoloTorchShadowVerificationPolicy {
+  artifactBindingSha256: HoloTorchSha256;
+  adapterFingerprintSha256: HoloTorchSha256;
+  sourceRevision: string;
+}
+export interface HoloTorchShadowExecutor {
+  execute(ids: Uint32Array): Promise<{
+    logits: Float32Array;
+    receipt: HoloTorchShadowExecutionReceipt;
+  }>;
+}
+export interface HoloTorchShadowClock { nowMs(): number; nowIso(): string; }
+export declare function fingerprintHoloTorchTensorSet(
+  weights: ModelWeights,
+  config: ModelConfig,
+): Promise<HoloTorchTensorSetFingerprint>;
+export declare function deriveHoloTorchArtifactBindingSha256(
+  binding: HoloTorchArtifactBindingMaterial,
+): Promise<HoloTorchSha256>;
+export declare function createHoloTorchShadowExecutor(args: {
+  model: HoloTorchModel | null;
+  weights: ModelWeights;
+  config: ModelConfig;
+  binding: HoloTorchShadowBinding;
+  environment: HoloTorchExecutionEnvironment;
+  clock?: HoloTorchShadowClock;
+}): Promise<HoloTorchShadowExecutor>;
+export declare function verifyHoloTorchShadowExecutionReceipt(
+  value: unknown,
+  expected: HoloTorchShadowVerificationPolicy,
+): Promise<{ valid: boolean; errors: string[] }>;
+
 /** @cross_perceiver_contract — perceiver-consensus receipt + per-artifact derivations */
 export declare const PERCEIVER_CONSENSUS_VERSION: 'perceiver-consensus-v3';
 export declare const POSITION_EPSILON: number;
