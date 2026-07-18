@@ -20,3 +20,4 @@ export * from './vibe';
 export * from './affective-harm';
 export * from './verifier';
 export * from './consistency';
+export * from './epistemic';
