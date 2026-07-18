@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-labelledby="pp003-title pp003-desc">
+  <title id="pp003-title">P42 proof-scope social card</title>
+  <desc id="pp003-desc">A proof marker and equally prominent not-proven boundary bound in one social-card group.</desc>
+  <rect width="1200" height="630" fill="#10151f" />
+  <g data-role="proof-scope-composite" data-composite-id="pp003-p42-hyatt-load-transfer">
+    <text data-role="proof-marker" data-label="PROVEN" data-composite-id="pp003-p42-hyatt-load-transfer" x="64" y="96" font-size="44" font-weight="700" opacity="1" fill="#6ee7a8">PROVEN</text>
+    <text data-role="proof-claim" data-composite-id="pp003-p42-hyatt-load-transfer" x="64" y="154" font-size="27" font-weight="500" opacity="1" fill="#ffffff">
+      <tspan x="64" dy="0">The Hyatt walkway connection change doubled</tspan>
+      <tspan x="64" dy="34">the upper hanger-rod load under the stated model.</tspan>
+    </text>
+    <text data-role="scope-boundary" data-label="NOT PROVEN" data-composite-id="pp003-p42-hyatt-load-transfer" x="64" y="350" font-size="44" font-weight="700" opacity="1" fill="#ffb4a2">NOT PROVEN</text>
+    <text data-role="scope-text" data-composite-id="pp003-p42-hyatt-load-transfer" x="64" y="408" font-size="25" font-weight="500" opacity="1" fill="#ffffff">
+      <tspan x="64" dy="0">This receipt covers only the load-transfer calculation.</tspan>
+      <tspan x="64" dy="34">Design authorization, communications, and regulatory approval</tspan>
+      <tspan x="64" dy="34">remain NOT PROVEN by this receipt.</tspan>
+    </text>
+    <a data-role="verify-link" href="https://mcp.holoscript.net/verify-cael?traceId=s-news-1-hyatt-walkway">
+      <text x="64" y="568" font-size="22" font-weight="500" fill="#8ec5ff">Re-run the scoped receipt</text>
+    </a>
+  </g>
+</svg>

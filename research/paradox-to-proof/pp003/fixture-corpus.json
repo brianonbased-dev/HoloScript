@@ -1,0 +1,206 @@
+{
+  "schemaVersion": "pp003-proof-adjacency-fixtures-v1",
+  "paradoxCard": "PP-003",
+  "stage": "falsifiable",
+  "verdict": "unresolved",
+  "targetForms": [
+    {
+      "id": "p29-api-json",
+      "paperId": "P29",
+      "target": "api-json",
+      "artifactPath": "research/paradox-to-proof/pp003/artifacts/p29-api-proof-composite.json",
+      "compositeId": "pp003-p29-composition-preserves-both",
+      "proof": {
+        "marker": "PROVEN",
+        "claim": "Lean 4 checks composition_preserves_both for the abstract two-component Boolean model.",
+        "proofId": "ATC.CompositionLaw.composition_preserves_both",
+        "verifyUrl": "https://github.com/brianonbased-dev/HoloScript/blob/main/research/paper-29-algebraic-trust-toolsandbox/ATC/CompositionLaw.lean"
+      },
+      "boundary": {
+        "marker": "NOT PROVEN",
+        "text": "The Lean theorem does not prove that every deployed MCP execution path implements the abstract check or that finer-grained production policies compose pointwise."
+      },
+      "presentation": {
+        "proofProminence": 100,
+        "boundaryProminence": 100
+      }
+    },
+    {
+      "id": "p42-social-card-svg",
+      "paperId": "P42",
+      "target": "social-card-svg",
+      "artifactPath": "research/paradox-to-proof/pp003/artifacts/p42-social-card-proof-composite.svg",
+      "compositeId": "pp003-p42-hyatt-load-transfer",
+      "proof": {
+        "marker": "PROVEN",
+        "claim": "The declared model reproduces the Hyatt walkway load-transfer result.",
+        "claimLines": [
+          "The Hyatt walkway connection change doubled",
+          "the upper hanger-rod load under the stated model."
+        ],
+        "proofId": "receipt_s-news-1",
+        "verifyUrl": "https://mcp.holoscript.net/verify-cael?traceId=s-news-1-hyatt-walkway"
+      },
+      "boundary": {
+        "marker": "NOT PROVEN",
+        "text": "This receipt covers only the load-transfer calculation. Design authorization, communications, and regulatory approval remain not proven by this receipt.",
+        "textLines": [
+          "This receipt covers only the load-transfer calculation.",
+          "Design authorization, communications, and regulatory approval",
+          "remain NOT PROVEN by this receipt."
+        ]
+      },
+      "presentation": {
+        "width": 1200,
+        "height": 630,
+        "proofX": 64,
+        "proofY": 96,
+        "proofFontSize": 44,
+        "proofFontWeight": 700,
+        "claimY": 154,
+        "claimFontSize": 27,
+        "boundaryX": 64,
+        "boundaryY": 350,
+        "boundaryFontSize": 44,
+        "boundaryFontWeight": 700,
+        "boundaryTextY": 408,
+        "boundaryTextFontSize": 25,
+        "lineHeight": 34
+      }
+    }
+  ],
+  "attacks": [
+    {
+      "id": "api-delete-boundary",
+      "targetFixture": "p29-api-json",
+      "mechanism": "Delete the scope-boundary member while retaining the proof marker.",
+      "expectedViolation": "missing-scope-boundary"
+    },
+    {
+      "id": "api-detach-boundary",
+      "targetFixture": "p29-api-json",
+      "mechanism": "Move the scope boundary outside the typed composite.",
+      "expectedViolation": "missing-scope-boundary"
+    },
+    {
+      "id": "api-demote-boundary",
+      "targetFixture": "p29-api-json",
+      "mechanism": "Reduce the boundary prominence below the proof marker.",
+      "expectedViolation": "boundary-less-prominent"
+    },
+    {
+      "id": "api-relabel-boundary",
+      "targetFixture": "p29-api-json",
+      "mechanism": "Replace the explicit NOT PROVEN label with neutral context copy.",
+      "expectedViolation": "invalid-boundary-label"
+    },
+    {
+      "id": "api-break-binding",
+      "targetFixture": "p29-api-json",
+      "mechanism": "Give the wall a different composite identity.",
+      "expectedViolation": "composite-binding-mismatch"
+    },
+    {
+      "id": "api-remove-prominence",
+      "targetFixture": "p29-api-json",
+      "mechanism": "Delete both numeric prominence fields so NaN comparison cannot silently pass.",
+      "expectedViolation": "invalid-prominence"
+    },
+    {
+      "id": "api-string-prominence",
+      "targetFixture": "p29-api-json",
+      "mechanism": "Replace numeric prominence with coercible strings.",
+      "expectedViolation": "invalid-prominence"
+    },
+    {
+      "id": "svg-delete-boundary",
+      "targetFixture": "p42-social-card-svg",
+      "mechanism": "Delete the visible NOT PROVEN marker while retaining the badge.",
+      "expectedViolation": "missing-scope-boundary"
+    },
+    {
+      "id": "svg-hide-boundary",
+      "targetFixture": "p42-social-card-svg",
+      "mechanism": "Keep wall markup but set display=none.",
+      "expectedViolation": "boundary-hidden"
+    },
+    {
+      "id": "svg-demote-boundary",
+      "targetFixture": "p42-social-card-svg",
+      "mechanism": "Shrink the NOT PROVEN marker below the proof-marker font size.",
+      "expectedViolation": "boundary-less-prominent"
+    },
+    {
+      "id": "svg-crop-boundary",
+      "targetFixture": "p42-social-card-svg",
+      "mechanism": "Move the NOT PROVEN marker below the declared viewport.",
+      "expectedViolation": "boundary-outside-viewport"
+    },
+    {
+      "id": "svg-break-binding",
+      "targetFixture": "p42-social-card-svg",
+      "mechanism": "Give the visible wall a different composite identity.",
+      "expectedViolation": "composite-binding-mismatch"
+    },
+    {
+      "id": "svg-hide-composite",
+      "targetFixture": "p42-social-card-svg",
+      "mechanism": "Hide the enclosing proof-scope group rather than either text node.",
+      "expectedViolation": "composite-hidden"
+    },
+    {
+      "id": "svg-shift-viewbox",
+      "targetFixture": "p42-social-card-svg",
+      "mechanism": "Shift the viewBox minimum so x=64 lies outside the actual viewport.",
+      "expectedViolation": "boundary-outside-viewport"
+    },
+    {
+      "id": "svg-unit-demote-boundary",
+      "targetFixture": "p42-social-card-svg",
+      "mechanism": "Use a CSS px unit so a tiny font cannot bypass numeric comparison through NaN.",
+      "expectedViolation": "boundary-less-prominent"
+    },
+    {
+      "id": "svg-transparent-boundary",
+      "targetFixture": "p42-social-card-svg",
+      "mechanism": "Keep the wall markup but set fill-opacity=0.",
+      "expectedViolation": "boundary-hidden"
+    },
+    {
+      "id": "svg-visible-relabel",
+      "targetFixture": "p42-social-card-svg",
+      "mechanism": "Keep NOT PROVEN metadata while changing the visible label to CONTEXT.",
+      "expectedViolation": "visible-label-mismatch"
+    },
+    {
+      "id": "svg-opacity-demote",
+      "targetFixture": "p42-social-card-svg",
+      "mechanism": "Make the boundary technically visible but materially less opaque than the proof marker.",
+      "expectedViolation": "boundary-less-prominent"
+    },
+    {
+      "id": "svg-empty-scope-text",
+      "targetFixture": "p42-social-card-svg",
+      "mechanism": "Keep the scope-text element but delete its visible explanation.",
+      "expectedViolation": "empty-boundary-text"
+    },
+    {
+      "id": "svg-transparent-paint",
+      "targetFixture": "p42-social-card-svg",
+      "mechanism": "Use an eight-digit hex paint with zero alpha.",
+      "expectedViolation": "boundary-hidden"
+    },
+    {
+      "id": "svg-transform-composite",
+      "targetFixture": "p42-social-card-svg",
+      "mechanism": "Translate the whole composite outside the viewport.",
+      "expectedViolation": "unsupported-visual-indirection"
+    },
+    {
+      "id": "svg-crop-scope-text",
+      "targetFixture": "p42-social-card-svg",
+      "mechanism": "Move only the scope explanation outside the viewport.",
+      "expectedViolation": "boundary-text-outside-viewport"
+    }
+  ]
+}

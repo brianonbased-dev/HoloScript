@@ -1,0 +1,195 @@
+{
+  "schemaVersion": "paradox-to-proof-receipt-v1",
+  "receiptId": "pp003-proof-adjacency-p29-p42-2026-07-17",
+  "recordedAtUtc": "2026-07-18T00:36:22.2783377Z",
+  "paradoxCard": "PP-003",
+  "papers": [
+    "P29",
+    "P42"
+  ],
+  "claim": "A valid proof marker cannot survive target emission unless an equally prominent NOT PROVEN boundary remains in the same typed composite and viewport.",
+  "result": {
+    "stage": "falsifiable",
+    "verdict": "unresolved",
+    "targetFormsPassed": 2,
+    "targetForms": [
+      "api-json",
+      "social-card-svg"
+    ],
+    "adversarialFixturesRejected": 22,
+    "negativeControl": "The existing display model reports showBadge=true before a post-model boundary deletion; the artifact verifier rejects the resulting output.",
+    "killConditionMet": false,
+    "broadCrossTargetGuarantee": false
+  },
+  "deepRatchet": [
+    {
+      "claim": "P29 proves two-component Boolean sandbox/cost composition in its Lean model.",
+      "verdict": "REAL"
+    },
+    {
+      "claim": "P29 is a correctness certificate for deployed MCP infrastructure.",
+      "verdict": "OVERCLAIMED",
+      "reason": "The production correspondence is not mechanized and the TypeScript theorem mirror has no tracked production execution caller."
+    },
+    {
+      "claim": "P42 receipt/display-model logic suppresses an unscoped badge.",
+      "verdict": "REAL"
+    },
+    {
+      "claim": "P42 proof adjacency is enforced across all compile targets.",
+      "verdict": "OVERCLAIMED",
+      "reason": "canRenderWall is trusted; the advertised HoloNews composition does not parse, and its source places the wall in a separate sibling object rather than an inseparable typed composite."
+    },
+    {
+      "claim": "The PP-003 pilot artifacts resist the named API and SVG attacks.",
+      "verdict": "REAL_PILOT_SCOPED"
+    }
+  ],
+  "codeState": {
+    "repository": "C:/Users/josep/Documents/GitHub/HoloScript",
+    "observedHead": "69d991aed5130919351b7ef01fefc02d62194d1f",
+    "implementationTree": [
+      "packages/plugins/holonews-plugin/src/traits/proof-adjacency-guard.mjs",
+      "packages/plugins/holonews-plugin/src/traits/claim-kiosk-trait.mjs",
+      "research/paper-29-algebraic-trust-toolsandbox/ATC/CompositionLaw.lean",
+      "packages/mcp-server/src/security/SandboxCostComposition.ts",
+      "compositions/holonews-claim-kiosk.hsplus",
+      "scripts/__tests__/pp003_proof_adjacency.test.mjs"
+    ],
+    "dirtyState": {
+      "state": "dirty",
+      "pilotScope": "new files only",
+      "unrelatedPreExistingChangesPresent": true,
+      "cleanSnapshotClaimed": false
+    },
+    "lock": {
+      "path": "pnpm-lock.yaml",
+      "sha256Observed": "a0bebdbc1ee6e4406ee394de6c6dc199e04bfa6a4f688e7a36a5312bd5e2410e"
+    },
+    "compiler": {
+      "status": "pilot-local emitters only",
+      "productionCompilerIntegration": false,
+      "targetEmitters": [
+        "renderApiArtifact",
+        "renderSvgArtifact"
+      ],
+      "existingComposition": {
+        "path": "compositions/holonews-claim-kiosk.hsplus",
+        "parseStatus": "FAIL",
+        "parseErrors": [
+          "HSP001 line 27: unexpected HASH",
+          "HSP101 line 54: unexpected STRING sky",
+          "HSP101 line 63: unexpected STRING lighting",
+          "HSP001 line 240: expected NPC name"
+        ],
+        "topology": "canRenderWall=true on ClaimKiosk; ProofAdjacencyWall is a separate sibling object"
+      }
+    },
+    "runner": {
+      "command": "node --test scripts/__tests__/pp003_proof_adjacency.test.mjs",
+      "node": "v24.15.0",
+      "pnpm": "9.15.9"
+    },
+    "policy": "resolveProofAdjacencyPolicy plus artifact-level same-composite, explicit-label, prominence, viewport, visibility, and HTTPS-link checks",
+    "ir": "holoscript-proof-scope-composite-v0-pilot",
+    "solver": {
+      "paper29": "Lean 4.15.0 composition_preserves_both",
+      "paper42": "No physical solver was re-run; the pilot tests proof-scope transport, not claim truth."
+    },
+    "recorder": "research/paradox-to-proof/pp003/pp003-receipt.json",
+    "verifier": "scripts/__tests__/pp003_proof_adjacency.test.mjs",
+    "dataSchema": "research/paradox-to-proof/pp003/fixture-corpus.json",
+    "contract": "PROVEN implies an equally prominent, visible, in-viewport NOT PROVEN boundary with identical composite identity and a portable verification URL.",
+    "runtime": {
+      "os": "Microsoft Windows 11 Home",
+      "lean": "4.15.0",
+      "lake": "5.0.0-1165156"
+    },
+    "hardware": {
+      "processor": "Intel64 Family 6 Model 141 Stepping 1",
+      "materialToClaim": false,
+      "note": "The pilot is a deterministic structural artifact test; no GPU or quantum hardware is involved."
+    },
+    "seeds": [],
+    "sha256Bindings": [
+      {
+        "path": "packages/plugins/holonews-plugin/src/traits/proof-adjacency-guard.mjs",
+        "sha256": "fed0049fc373b558849fec3e632939f51f9ef306ee631b7d4ebe6d882ef2e9a5"
+      },
+      {
+        "path": "packages/plugins/holonews-plugin/src/traits/claim-kiosk-trait.mjs",
+        "sha256": "32b53e400ce40874ea1fa8b20b96ad4b7a175bb3fe140a633244172811eb3cc7"
+      },
+      {
+        "path": "scripts/__tests__/holonews-proof-adjacency.test.mjs",
+        "sha256": "dcb939a84a84b8cea9fb97c02a094175551bd540b9e1632c52cd543e1d529201"
+      },
+      {
+        "path": "research/paper-29-algebraic-trust-toolsandbox/ATC/CompositionLaw.lean",
+        "sha256": "ccfc7232c3f1fd6cc433e4a6d3dc4bf70e42510bed783c6ec0552802b7a47d9b"
+      },
+      {
+        "path": "packages/mcp-server/src/security/SandboxCostComposition.ts",
+        "sha256": "5a3d86d1ec7bd80d858e52f0411c3024bf38d74f0db2ed290bc5e09d7523620a"
+      },
+      {
+        "path": "research/paper-29-algebraic-trust-composition-pldi.tex",
+        "sha256": "18a043e22dbc276cd6a1f4e08898bb7a88cbcf57ce34f7ed51c20e7094adc5df"
+      },
+      {
+        "path": "research/paradox-to-proof/pp003/fixture-corpus.json",
+        "sha256": "e3b28be94c4ecc2b74c8fa7a6a3dc7550e682b9a22cb761dc21e169915aaa5f7"
+      },
+      {
+        "path": "research/paradox-to-proof/pp003/artifacts/p29-api-proof-composite.json",
+        "sha256": "d9d17c08a919d1557a76975f352161021ccefdb82311b4ac6715944441f5ac24"
+      },
+      {
+        "path": "research/paradox-to-proof/pp003/artifacts/p42-social-card-proof-composite.svg",
+        "sha256": "8678e11c6dd1f8364e599ecff12d14d0555cdbc6b81d4232204dc598eafdd57f"
+      },
+      {
+        "path": "compositions/holonews-claim-kiosk.hsplus",
+        "sha256": "30b9fb55265b67896d170e6334f772b343d23e20ce2975eba0369c4f4b99edf4"
+      },
+      {
+        "path": "scripts/__tests__/pp003_proof_adjacency.test.mjs",
+        "sha256": "7de0ce9e5bb11b3d8e22a8c62dd03bc55b12513f13775d9919be4c932b912714"
+      },
+      {
+        "path": "research/paradox-to-proof/pp003/report.md",
+        "sha256": "4dfb2133bbf362a042f260f879d7226aab14a14997ea4fcb1d5995c0f87cda43"
+      }
+    ]
+  },
+  "validation": [
+    {
+      "command": "node --test scripts/__tests__/pp003_proof_adjacency.test.mjs",
+      "expected": "27 tests pass"
+    },
+    {
+      "command": "node scripts/__tests__/holonews-proof-adjacency.test.mjs",
+      "observed": "34 tests passed, 0 failed"
+    },
+    {
+      "command": "pnpm --filter @holoscript/mcp-server exec vitest run src/__tests__/SandboxCostComposition.test.ts",
+      "observed": "1 file passed, 22 tests passed"
+    },
+    {
+      "command": "lake build",
+      "workingDirectory": "research/paper-29-algebraic-trust-toolsandbox",
+      "observed": "Build completed successfully"
+    },
+    {
+      "command": "pnpm exec holoscript parse compositions/holonews-claim-kiosk.hsplus --json",
+      "observed": "Expected current failure: 4 parser errors"
+    },
+    {
+      "command": "pnpm exec holoscript compile compositions/holonews-claim-kiosk.hsplus --target r3f --json",
+      "observed": "Expected current failure at the same parser boundary; no target artifact emitted"
+    }
+  ],
+  "scopeBoundary": "This receipt proves only the two committed pilot artifacts and named mutation corpus. It does not prove real web, VR, API, or social-card production compilers preserve proof scope, nor that font metrics fully capture human prominence.",
+  "hashScheme": "sha256-canonical-json-excluding-payloadHash",
+  "payloadHash": "6af22943a003c7d8b583f3a767c2e924ae5b01b7080aea19e90248a60bda8682"
+}

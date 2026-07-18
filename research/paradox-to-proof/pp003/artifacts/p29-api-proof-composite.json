@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "holoscript-proof-scope-composite-v0-pilot",
+  "target": "api-json",
+  "composite": {
+    "id": "pp003-p29-composition-preserves-both",
+    "type": "proof-with-scope-boundary",
+    "proofMarker": {
+      "compositeId": "pp003-p29-composition-preserves-both",
+      "role": "proof-marker",
+      "label": "PROVEN",
+      "claim": "Lean 4 checks composition_preserves_both for the abstract two-component Boolean model.",
+      "proofId": "ATC.CompositionLaw.composition_preserves_both",
+      "prominence": 100
+    },
+    "scopeBoundary": {
+      "compositeId": "pp003-p29-composition-preserves-both",
+      "role": "scope-boundary",
+      "label": "NOT PROVEN",
+      "text": "The Lean theorem does not prove that every deployed MCP execution path implements the abstract check or that finer-grained production policies compose pointwise.",
+      "prominence": 100
+    },
+    "verification": {
+      "url": "https://github.com/brianonbased-dev/HoloScript/blob/main/research/paper-29-algebraic-trust-toolsandbox/ATC/CompositionLaw.lean"
+    },
+    "binding": "same-object"
+  }
+}
