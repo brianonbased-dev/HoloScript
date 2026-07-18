@@ -145,18 +145,25 @@ substrate families wait behind the *existing* open loops by this rule, not by a 
 
 ## 5. DECISION 3 — one canonical grammar authority for the surface
 
-"The parser is the spec," four contradictory grammars, and the `.hsplus` parse-rate gap
-(flagged 2026-07-02; re-verify against the current `compiler-wasm` before acting) are a
-**stratum-① problem, fully separate from the meaning circle** — do not let them contaminate
-each other.
+"The parser is the spec" and "four contradictory grammars" are a **stratum-① problem, fully
+separate from the meaning circle** — do not let them contaminate each other.
 
-> **The Rust/WASM grammar (`packages/compiler-wasm`) is the single canonical grammar
-> authority for surface syntax. Any human-readable grammar spec is *generated from* it or
-> *conformance-tested against* it — never a second hand-authored grammar that can drift.**
+> **The Rust/WASM grammar (`packages/compiler-wasm`) is the *growing* canonical grammar
+> authority for surface syntax, and its coverage must never regress.** Corrected 2026-07-17
+> against the shipped reality (the original wording overstated it): the WASM authority today
+> parses `.hs` and a growing `.hsplus` `@trait` subset; `.holo` and full `.hsplus` are authored
+> by the TS parsers (`HoloCompositionParser` / `HoloScriptPlusParser`) per the per-surface
+> router `docs/spec/holoscript-grammar-ssot.md`. So the honest §5 is **directional, not
+> present-tense**: the authority's coverage grows toward the whole surface, TS parsers are the
+> strangled predecessors, and the invariant that *is* enforced now is "**every file the
+> authority already parses keeps parsing**." A human-readable grammar spec is generated from or
+> conformance-tested against the authority — never a second hand-authored grammar that drifts.
 
-This is W.GOLD.002 again at stratum ①: the sovereign grammar, not bridge grammars. `.hsplus`'s
-low parse rate is then a *conformance bug against the one authority*, not evidence of a
-missing spec.
+This is W.GOLD.002 at stratum ①: the sovereign grammar, not bridge grammars. The `.hsplus`
+figure is now current, not the stale 2026-07-02 "0.22%" — the authority parses **97.96%** of
+the 2,303-file `.hsplus` corpus (TS **92.49%**; newline-drift 0/0; baseline
+`scripts/lang-audit/shadow-compare-results-2026-07-17.json`). The remaining misses are
+*conformance bugs against the growing authority*, not a missing spec.
 
 ---
 
@@ -184,8 +191,27 @@ Ship order for the gate: (6.2) first — highest-leverage, cheapest. **Shipped 2
 first run (report-only) lit the known HSI mirror (`HSICausalLoop.ts:79`) **and** a previously
 unknown second mirror in the GRPO reward receipt (`UAALResolutionRewards.ts:192`) — the gate
 earned its keep on day one. Same day, §8.2 stage 1 killed both mirrors and 6.2 went **strict**
-at the pre-commit dev floor (Gate 5g2) and in the HoloCI catalog (`language-strata`). Then
-(6.1), (6.3), (6.5), (6.4).
+at the pre-commit dev floor (Gate 5g2) and in the HoloCI catalog (`language-strata`).
+
+**Gate-family status (2026-07-17, `check:*` all shipped):**
+- **6.2 one-definition-per-family** — ✅ strict (pre-commit + catalog), unconditional.
+- **6.3 verifier-of-record** (`check:verifier-of-record`) — ✅ strict on this repo's reward terms
+  (pre-commit Gate 5g3 + catalog); green. Auditing the ai-ecosystem corpus builders with `--roots`
+  caught one real forked-verdict labeler (`build-gap-resolution-corpus.mjs` falsely claiming VoR
+  provenance) — header corrected to tell the truth, deeper fix tracked with the gap-code backlog.
+- **6.5 family-admission** (`check:family-admission`) — ✅ shipped **report-only** (catalog): every
+  admitted family must emit a family-scoped gap code (§4.2). First run flags exactly the 3
+  grandfathered families (occlusion / norm_status / dischargeable) that collapse to a coarse base
+  bucket — that red is the pain-receipt for giving them family-scoped codes; flips strict when clear.
+  The corpus+benchmark half (§4.3/§4.4) is a cross-repo follow-up (ai-ecosystem `scripts/corpus` +
+  `scripts/benchmark-*`), tracked.
+- **§5 grammar-authority** (`check:grammar-authority`) — ✅ shipped (catalog, full profile): wires the
+  existing Rust↔TS differential (`shadow-compare-rust-ts.mjs`) as a regression gate against a frozen
+  baseline (`shadow-compare-results-2026-07-17.json`; authority parses **97.96%** of the 2,303-file
+  `.hsplus` corpus) and chains `check:compiler-wasm-drift` for freshness. On landing it correctly
+  surfaces a **pre-existing** stale artifact (`compiler-wasm/src` advanced past `pkg-node`) — a real
+  drift needing a Rust-equipped node to rebuild; filed. The regression half (`--skip-drift`) is green.
+- **6.1 stratum tags, 6.4 bare-uAAL lint** — the remaining two; small, next.
 
 ---
 

@@ -535,6 +535,23 @@ else
     echo -e "  ${GREEN}✓${NC} One meaning stratum, defined once"
 fi
 
+# Gate 5g3: Verifier-of-record gate (language-architecture.md §6.3). A corpus/reward file that
+# emits abstention LABELS must route them through the shipped gradeByResolver, never a fork —
+# the function that labels training data must be the function that runs at inference. Strict on
+# this repo's packages/ (green today; protects the reward terms from a verdict-fork regression).
+# The corpus builders live in ai-ecosystem; audit them there with --roots (report-only).
+echo "  ├─ Verifier-of-record gate (labels from the shipped resolver)..."
+VOR_OUT=$(run_with_timeout 30 node scripts/holo-ci/check-verifier-of-record.mjs --strict 2>&1)
+VOR_STATUS=$?
+if [ "$VOR_STATUS" -ne 0 ]; then
+    echo -e "  ${RED}❌ Forked resolution verdict (labels not routed through gradeByResolver)${NC}"
+    echo "$VOR_OUT"
+    echo "     Fix: import gradeByResolver from @holoscript/meaning (or the @holoscript/uaal shim); never re-derive."
+    FAILED=1
+else
+    echo -e "  ${GREEN}✓${NC} Verifier of record: labels route through the shipped resolver"
+fi
+
 # Gate 5h: No third-party QR-code service gate (F.106/F.117: generate QR codes LOCALLY).
 # Scans STAGED packages/*/src files for a hosted QR-service hostname (api.qrserver.com et al).
 # Regression history: api.qrserver.com leaked every published .holo share/scan URL via

@@ -188,6 +188,32 @@ const HOLOSCRIPT_GATES: Record<string, GateSpec> = {
     profiles: ['quick', 'full'],
     resource_requirements: { max_dph: 0.2 },
   },
+  // Language hardening gates (language-architecture.md §5/§6.3/§6.5, 2026-07-17). Report-only where a
+  // known backlog exists (family-admission: 3 grandfathered families lack family-scoped gap codes);
+  // strict where green (verifier-of-record on this repo's reward terms, also wired at the pre-commit
+  // dev floor). grammar-authority chains check:compiler-wasm-drift then differentially regression-tests
+  // the surface parsers against the WASM authority baseline — full profile (walks the .hsplus corpus).
+  'family-admission': {
+    description:
+      'Family-admission: every admitted meaning family emits a family-scoped gap code (§4.2), not a collapsed base bucket — report-only until the grandfathered backlog clears',
+    step: 'node scripts/holo-ci/check-family-admission.mjs',
+    profiles: ['full'],
+    resource_requirements: { max_dph: 0.2 },
+  },
+  'verifier-of-record': {
+    description:
+      'Verifier of record: corpus/reward files emitting abstention labels must route through the shipped gradeByResolver, never a fork (§6.3)',
+    step: 'node scripts/holo-ci/check-verifier-of-record.mjs --strict',
+    profiles: ['quick', 'full'],
+    resource_requirements: { max_dph: 0.2 },
+  },
+  'grammar-authority': {
+    description:
+      'Grammar authority: the surface grammar has one growing authority (Rust/WASM) and its parse coverage never regresses (§5) — chains compiler-wasm-drift then the differential regression gate',
+    step: 'node scripts/holo-ci/check-grammar-authority.mjs',
+    profiles: ['full'],
+    resource_requirements: { max_dph: 0.4 },
+  },
   // WRAP-WITH-RECEIPTS coverage ratchet (dependency-sovereignty-ladder, 2026-07-16).
   // Every setRequestHandler(CallToolRequestSchema) fold point under packages/mcp-server/src
   // must route through gateToolCall (tool-call-gate.ts) — the single typed gate that emits
