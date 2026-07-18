@@ -195,9 +195,9 @@ const HOLOSCRIPT_GATES: Record<string, GateSpec> = {
   // the surface parsers against the WASM authority baseline — full profile (walks the .hsplus corpus).
   'family-admission': {
     description:
-      'Family-admission: every admitted meaning family emits a family-scoped gap code (§4.2), not a collapsed base bucket — report-only until the grandfathered backlog clears',
-    step: 'node scripts/holo-ci/check-family-admission.mjs',
-    profiles: ['full'],
+      'Family-admission: every admitted meaning family emits a family-scoped gap code (§4.2), not a collapsed base bucket — strict since 2026-07-17 (the grandfathered backlog cleared)',
+    step: 'node scripts/holo-ci/check-family-admission.mjs --strict',
+    profiles: ['quick', 'full'],
     resource_requirements: { max_dph: 0.2 },
   },
   'verifier-of-record': {

@@ -199,12 +199,15 @@ at the pre-commit dev floor (Gate 5g2) and in the HoloCI catalog (`language-stra
   (pre-commit Gate 5g3 + catalog); green. Auditing the ai-ecosystem corpus builders with `--roots`
   caught one real forked-verdict labeler (`build-gap-resolution-corpus.mjs` falsely claiming VoR
   provenance) — header corrected to tell the truth, deeper fix tracked with the gap-code backlog.
-- **6.5 family-admission** (`check:family-admission`) — ✅ shipped **report-only** (catalog): every
-  admitted family must emit a family-scoped gap code (§4.2). First run flags exactly the 3
-  grandfathered families (occlusion / norm_status / dischargeable) that collapse to a coarse base
-  bucket — that red is the pain-receipt for giving them family-scoped codes; flips strict when clear.
-  The corpus+benchmark half (§4.3/§4.4) is a cross-repo follow-up (ai-ecosystem `scripts/corpus` +
-  `scripts/benchmark-*`), tracked.
+- **6.5 family-admission** (`check:family-admission`) — ✅ **strict** (pre-commit Gate 5g4 + catalog).
+  Shipped report-only, flagged exactly the 3 grandfathered families (occlusion / norm_status /
+  dischargeable) collapsing to a coarse base bucket; same day they gained family-scoped codes
+  (`occlusion.opacity_unstated`, `norm_status.opposing_force` / `.resource_contention`,
+  `dischargeable.cyclic_order` / `.unstated_deadline` / `.unstated_magnitude`) — added to the
+  EXISTING abstention returns, so no abstention condition changed (zero false-gap), pinned by
+  `family-gap-codes.test.ts`. All 14 families now complete; the gate went strict. The corpus+benchmark
+  half (§4.3/§4.4) is a cross-repo follow-up (ai-ecosystem `scripts/corpus` + `scripts/benchmark-*`),
+  tracked.
 - **§5 grammar-authority** (`check:grammar-authority`) — ✅ shipped (catalog, full profile): wires the
   existing Rust↔TS differential (`shadow-compare-rust-ts.mjs`) as a regression gate against a frozen
   baseline (`shadow-compare-results-2026-07-17.json`; authority parses **97.96%** of the 2,303-file

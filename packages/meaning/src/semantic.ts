@@ -2620,6 +2620,7 @@ export function resolveOcclusion(
       query: 'occluded',
       status: 'unresolvable',
       reason: 'underdetermined',
+      gap: structuredGap('occlusion', 'occlusion.opacity_unstated', 'underdetermined', unknownContainer),
       obstruction: `the opacity of container "${unknownContainer}" between the agent and the object is unstated`,
     };
   }
@@ -2660,6 +2661,7 @@ export function resolveNormStatus(ir: UAALDeonticIR, normId: string | undefined)
           query: 'norm_status',
           status: 'unresolvable',
           reason: 'unprioritized_conflict',
+          gap: structuredGap('norm_status', 'norm_status.opposing_force', 'unprioritized_conflict', `${a.id}|${b.id}`),
           obstruction: `norms "${a.id}" (${a.force}) and "${b.id}" (${b.force}) both bear on act "${String(a.required_act)}" with no precedence`,
         };
       }
@@ -2670,6 +2672,7 @@ export function resolveNormStatus(ir: UAALDeonticIR, normId: string | undefined)
           query: 'norm_status',
           status: 'unresolvable',
           reason: 'unprioritized_conflict',
+          gap: structuredGap('norm_status', 'norm_status.resource_contention', 'unprioritized_conflict', String(a.resource)),
           obstruction: `obligations "${a.id}" and "${b.id}" both require the scarce resource "${String(a.resource)}" with no precedence`,
         };
       }
@@ -2761,6 +2764,7 @@ export function resolveDischargeable(ir: UAALCompositionIR): UAALResolution<Disc
       query: 'dischargeable',
       status: 'unresolvable',
       reason: 'cyclic_dependency',
+      gap: structuredGap('dischargeable', 'dischargeable.cyclic_order', 'cyclic_dependency', cycle.join('→')),
       obstruction: `discharge order forms a cycle (${cycle.join(' → ')}); no obligation can act first`,
     };
   }
@@ -2769,6 +2773,7 @@ export function resolveDischargeable(ir: UAALCompositionIR): UAALResolution<Disc
       query: 'dischargeable',
       status: 'unresolvable',
       reason: 'missing_precondition',
+      gap: structuredGap('dischargeable', 'dischargeable.unstated_deadline', 'missing_precondition'),
       obstruction: 'a deadline constrains discharge but neither the current time nor the deadline is stated',
     };
   }
@@ -2778,6 +2783,7 @@ export function resolveDischargeable(ir: UAALCompositionIR): UAALResolution<Disc
       query: 'dischargeable',
       status: 'unresolvable',
       reason: 'missing_precondition',
+      gap: structuredGap('dischargeable', 'dischargeable.unstated_magnitude', 'missing_precondition', missingMagnitude.attr),
       obstruction: `affordance "${missingMagnitude.action}" requires "${missingMagnitude.requirement}" but the agent's "${missingMagnitude.attr}" magnitude is unstated (capability can only be defaulted)`,
     };
   }

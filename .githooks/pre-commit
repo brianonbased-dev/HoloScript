@@ -552,6 +552,22 @@ else
     echo -e "  ${GREEN}✓${NC} Verifier of record: labels route through the shipped resolver"
 fi
 
+# Gate 5g4: Family-admission gate (language-architecture.md §4.2/§6.5). Every admitted meaning
+# family must abstain with a FAMILY-SCOPED gap code, not a collapsed base bucket. Went strict
+# 2026-07-17 once the 3 grandfathered families (occlusion/norm_status/dischargeable) gained codes;
+# a new family (or a regressed one) with only a coarse bucket now fails. Fast static walk.
+echo "  ├─ Family-admission gate (family-scoped gap codes)..."
+FAM_OUT=$(run_with_timeout 30 node scripts/holo-ci/check-family-admission.mjs --strict 2>&1)
+FAM_STATUS=$?
+if [ "$FAM_STATUS" -ne 0 ]; then
+    echo -e "  ${RED}❌ A meaning family abstains with only a coarse base bucket (no family-scoped gap code)${NC}"
+    echo "$FAM_OUT"
+    echo "     Fix: emit structuredGap('<family>.<code>', …) on the family's abstention path (§4.2)."
+    FAILED=1
+else
+    echo -e "  ${GREEN}✓${NC} Every admitted family emits a family-scoped gap code"
+fi
+
 # Gate 5h: No third-party QR-code service gate (F.106/F.117: generate QR codes LOCALLY).
 # Scans STAGED packages/*/src files for a hosted QR-service hostname (api.qrserver.com et al).
 # Regression history: api.qrserver.com leaked every published .holo share/scan URL via
