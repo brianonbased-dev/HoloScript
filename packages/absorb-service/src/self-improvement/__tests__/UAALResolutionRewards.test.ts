@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import type { RewardToolRunner } from '../GRPORewardFunctions';
 import { GRPORewardOrchestrator } from '../GRPORewardOrchestrator';
 import {
@@ -142,7 +143,7 @@ const FAMILY_CASES: FamilyCase[] = [
     completions: sevenRowCompletions({
       correctAnswer: { occluded: true, occluder: 'box' },
       wrongAnswer: { occluded: false, occluder: null },
-      correctCode: '', // occlusion is a founding family — no structured gap.code, falls back to `reason`
+      correctCode: 'occlusion.opacity_unstated',
       correctReason: 'underdetermined',
       wrongReason: 'missing_precondition', // must differ from correctReason for the reason-fallback path
     }),
@@ -348,7 +349,7 @@ describe('TS-vs-subprocess parity (cross-boundary grader)', () => {
 
   const graderExists = fs.existsSync(graderScript);
 
-  it.runIf(graderExists)('matches the Node subprocess grader bit-for-bit on the full 7x3 batch', () => {
+  it.runIf(graderExists)('matches the Node subprocess grader bit-for-bit on 7x3 plus aleatoric cases', () => {
     const cases: Array<{ row: UAALResolutionRow; completion: string }> = [];
     for (const fam of FAMILY_CASES) {
       cases.push({ row: fam.resolvedRow, completion: fam.completions.row1_resolved_correct });
@@ -359,6 +360,36 @@ describe('TS-vs-subprocess parity (cross-boundary grader)', () => {
       cases.push({ row: fam.unresolvableRow, completion: fam.completions.row6_confabulation });
       cases.push({ row: fam.resolvedRow, completion: fam.completions.row7_malformed });
     }
+    const aleatoricRow: UAALResolutionRow = {
+      family: 'counterfactual',
+      oracleIr: {
+        effects: [{ id: 'E', sufficientSets: [['A']], stochastic: true }],
+        occurs: ['A'],
+        query: { effect: 'E' },
+      },
+    };
+    cases.push(
+      {
+        row: aleatoricRow,
+        completion: JSON.stringify({
+          status: 'unresolvable',
+          reason: 'irreducible_stochastic',
+          code: 'counterfactual.irreducible_chance',
+        }),
+      },
+      {
+        row: aleatoricRow,
+        completion: JSON.stringify({
+          status: 'unresolvable',
+          reason: 'underdetermined',
+          code: 'some.wrong_code',
+        }),
+      },
+      {
+        row: aleatoricRow,
+        completion: JSON.stringify({ status: 'resolved', answer: { E: { A: true } } }),
+      }
+    );
 
     const tsResults = cases.map(({ row, completion }) => gradeUaalResolutionCompletion(completion, row));
 
@@ -369,10 +400,16 @@ describe('TS-vs-subprocess parity (cross-boundary grader)', () => {
         )
         .join('\n') + '\n';
 
-    const proc = spawnSync('node', [graderScript], {
+    // Force the subprocess through the current verifier source. The grader defaults to its
+    // installed @holoscript/uaal for production, but a source-vs-published comparison can pass or
+    // fail solely because the package registry lags this checkout. This override proves the process
+    // boundary itself against the exact verifier-of-record the TS lane imported above.
+    const verifierModule = pathToFileURL(path.resolve(__dirname, '../../../../uaal/src/index.ts')).href;
+    const proc = spawnSync('node', ['--import', 'tsx', graderScript], {
       input: stdinPayload,
       encoding: 'utf8',
       timeout: 30_000,
+      env: { ...process.env, UAAL_VERIFIER_MODULE: verifierModule },
     });
 
     expect(proc.status).toBe(0);
@@ -380,11 +417,7 @@ describe('TS-vs-subprocess parity (cross-boundary grader)', () => {
     expect(subprocessLines).toHaveLength(tsResults.length);
     const subprocessResults = subprocessLines.map((line) => JSON.parse(line));
 
-    tsResults.forEach((ts, i) => {
-      expect(subprocessResults[i].class).toBe(ts.class);
-      expect(subprocessResults[i].reward).toBe(ts.reward);
-      expect(subprocessResults[i].goldStatus).toBe(ts.goldStatus);
-    });
+    tsResults.forEach((ts, i) => expect(subprocessResults[i]).toEqual(ts));
   });
 
   it('fails loud (not skipped-silently) when the sibling grader script is genuinely absent', () => {
