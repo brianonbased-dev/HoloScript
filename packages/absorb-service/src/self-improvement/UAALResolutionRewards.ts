@@ -193,6 +193,14 @@ export interface UaalResolutionReceipt {
   goldStatus: MeaningResolutionStatus | null;
   goldCode?: string;
   emittedCode?: string;
+  /**
+   * True when the gold gap is ALEATORIC (irreducible_stochastic) rather than epistemic. Observability
+   * only — the reward numbers are unchanged: an aleatoric gold is `status:'unresolvable'`, so an honest
+   * abstention grades honest_abstain (like any legitimate unresolvable row) and over_abstention is
+   * structurally impossible for it. Surfacing the flag lets a corpus/receipt audit separate a
+   * calibrated random-outcome abstention from a missing-info one.
+   */
+  aleatoric?: true;
 }
 
 const MALFORMED_RECEIPT: UaalResolutionReceipt = Object.freeze({
@@ -200,6 +208,16 @@ const MALFORMED_RECEIPT: UaalResolutionReceipt = Object.freeze({
   reward: UAAL_RESOLUTION_REWARD_TABLE.malformed,
   goldStatus: null,
 });
+
+/**
+ * True iff the gold gap is ALEATORIC (irreducible_stochastic) — read structurally from the
+ * discriminant so this compiles regardless of whether the resolved @holoscript/meaning typings already
+ * carry the aleatoric-gap union. Fail-closed: any non-`true` value (an epistemic gap, an older gap
+ * shape, undefined) is treated as not-aleatoric.
+ */
+function isAleatoricGold(gap: VerifierLabel['gap']): boolean {
+  return (gap as { aleatoric?: unknown } | undefined)?.aleatoric === true;
+}
 
 /**
  * Grade one completion against its resolution row. Gold is computed HERE via
@@ -236,12 +254,18 @@ export function gradeUaalResolutionCompletion(
     return { class: cls, reward: UAAL_RESOLUTION_REWARD_TABLE[cls], goldStatus: gold.status };
   }
 
-  // gold.status === 'unresolvable'
+  // gold.status === 'unresolvable' — an ALEATORIC (irreducible_stochastic) gold reaches here too: it is
+  // just as `unresolvable` as an epistemic gap, so committing is confabulation and abstaining is an
+  // honest abstention. over_abstention is structurally impossible for it (that class fires only on a
+  // RESOLVED gold above). An aleatoric outcome must never be graded as if the model wrongly declined a
+  // knowable answer — abstaining IS the calibrated verdict.
+  const aleatoric = isAleatoricGold(gold.gap);
   if (emission.committed) {
     return {
       class: 'confabulation',
       reward: UAAL_RESOLUTION_REWARD_TABLE.confabulation,
       goldStatus: gold.status,
+      ...(aleatoric ? { aleatoric: true } : {}),
     };
   }
   // Family-scoped gap.code is only present on resolvers upgraded to the structured-gap
@@ -257,6 +281,7 @@ export function gradeUaalResolutionCompletion(
     goldStatus: gold.status,
     ...(goldCode !== undefined ? { goldCode } : {}),
     ...(emission.code !== undefined ? { emittedCode: emission.code } : {}),
+    ...(aleatoric ? { aleatoric: true } : {}),
   };
 }
 

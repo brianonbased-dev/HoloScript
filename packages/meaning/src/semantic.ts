@@ -1,7 +1,9 @@
 // Stratum-② contract — defined in ./contract (this package IS the meaning home, §8.2 stage 2).
 import {
   structuredGap,
+  aleatoricGap,
   type UAALGapReason,
+  type UAALEpistemicReason,
   type UAALStructuredGap,
   type UAALResolution,
 } from './contract';
@@ -457,6 +459,15 @@ export interface UAALCommitmentBenchmarkResult {
 export interface UAALCounterfactualEffect {
   id: string;
   sufficientSets?: string[][];
+  /**
+   * The effect is produced by a genuinely stochastic process (a coin flip, a decay, an irreducibly
+   * random draw). When the QUERIED effect declares this, counterfactual necessity ("was any cause
+   * necessary?") has no determinate answer AND no additional information would supply one — the outcome
+   * is irreducibly random. `resolveCounterfactual` abstains with the ALEATORIC class in that case,
+   * distinct from an underdetermined (missing sufficient set) or cyclic (ungrounded) epistemic gap.
+   * Absent/false ⇒ the ordinary deterministic production model; such an effect resolves normally.
+   */
+  stochastic?: boolean;
   [key: string]: unknown;
 }
 
@@ -2579,8 +2590,16 @@ export function recoverDischargeable(ir: UAALCompositionIR): DischargeableRecove
 // Defined in ./contract (§8.2 stage 2: this package IS the meaning home) and re-exported here so
 // sibling modules and the @holoscript/uaal shims keep their import shape.
 // The definitions exist exactly once; `check:language-strata` fails any re-declaration.
-export { structuredGap };
-export type { UAALGapReason, UAALStructuredGap, UAALResolution };
+export { structuredGap, aleatoricGap };
+export type {
+  UAALGapReason,
+  UAALEpistemicReason,
+  UAALAleatoricReason,
+  UAALStructuredGap,
+  UAALEpistemicGap,
+  UAALAleatoricGap,
+  UAALResolution,
+} from './contract';
 
 // Raw opacity: true | false | undefined (absent). Unlike opacityMap (which coerces absent → false via
 // Boolean()), this preserves the crucial distinction between "explicitly transparent" and "unstated".
@@ -2956,7 +2975,7 @@ export function resolveAffords(
   type Verdict =
     | { kind: 'affords' }
     | { kind: 'blocked'; reason: string }
-    | { kind: 'unknown'; code: string; base: UAALGapReason; evidence: string };
+    | { kind: 'unknown'; code: string; base: UAALEpistemicReason; evidence: string };
 
   const verdicts: Verdict[] = offers.map((offer): Verdict => {
     // Capability: a REQUIRED attribute the agent's body does not STATE is unknown, not a block.
@@ -3137,6 +3156,22 @@ function productionCycle(effects: Map<string, string[][]>, start: string): strin
 export function resolveCounterfactual(ir: UAALCounterfactualIR): UAALResolution<UAALNecessityMap> {
   const effectId = ir.query?.effect;
   if (truthyString(effectId)) {
+    // Aleatoric (irreducible): the queried effect is produced by a genuinely stochastic process.
+    // Counterfactual necessity has no determinate answer, and — unlike an underdetermined (missing
+    // sufficient set) or an ungrounded production cycle (cyclic_dependency) — NO additional information
+    // resolves it: the outcome is irreducibly random. This is the one place the necessity resolver
+    // returns an ALEATORIC gap rather than an epistemic one. Conservative: only the queried effect's
+    // own explicit `stochastic` flag triggers it; a deterministic IR is never flipped to a false gap.
+    const queried = (ir.effects || []).find((effect) => effect.id === effectId);
+    if (queried?.stochastic === true) {
+      return {
+        query: 'necessity',
+        status: 'unresolvable',
+        reason: 'irreducible_stochastic',
+        gap: aleatoricGap('counterfactual', 'counterfactual.irreducible_chance', String(effectId)),
+        obstruction: `effect "${String(effectId)}" arises from an irreducibly stochastic process; counterfactual necessity has no determinate answer and no further information would resolve it`,
+      };
+    }
     const effects = counterfactualEffectMap(ir);
     const cycle = productionCycle(effects, effectId as string);
     if (cycle) {
