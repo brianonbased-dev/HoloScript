@@ -1,0 +1,147 @@
+{
+  "schema": "holoscript.paradox_to_proof.pp001.preregistration.v1",
+  "card_id": "PP-001",
+  "title": "Living Artifact",
+  "preregistered_at": "2026-07-18T00:29:49.850Z",
+  "measurement_status_at_write": "not_started",
+  "question": "Does a deliberately changed sandbox runner alter a canonical Paper 4 measurement while an unchanged Paper 1 verifier probe remains semantically stable when both implementation states are identified rather than silently pooled?",
+  "states": {
+    "A": {
+      "role": "pre-change",
+      "commit": "c83c2d3c8857c88357bee226df826114ab87432e"
+    },
+    "B": {
+      "role": "post-change",
+      "commit": "d225d6572e455d38d28d7482a315b4390870fb1b",
+      "required_parent": "c83c2d3c8857c88357bee226df826114ab87432e",
+      "declared_delta": "PluginSandboxRunner adds one cached node:vm module handle, one reusable VM context per runner, and a bounded compiled-script cache."
+    }
+  },
+  "causal_cut": {
+    "adjacent_commits_required": true,
+    "required_identical_paths": [
+      "pnpm-lock.yaml",
+      "package.json",
+      "pnpm-workspace.yaml",
+      "packages/core/package.json",
+      "packages/engine/package.json",
+      "packages/core/src/plugins/__tests__/paper-4-sandbox-bench.test.ts",
+      "packages/engine/src/simulation/__tests__/paper-cael-replay-benchmark.test.ts",
+      "packages/engine/src/simulation/CAELRecorder.ts",
+      "packages/engine/src/simulation/CAELReplayer.ts",
+      "packages/engine/src/simulation/CAELTrace.ts",
+      "packages/engine/src/simulation/SimulationContract.ts",
+      "packages/engine/src/simulation/SimSolver.ts",
+      "packages/engine/src/simulation/RegularGrid3D.ts"
+    ],
+    "required_changed_probe_dependency": "packages/core/src/plugins/PluginSandboxRunner.ts",
+    "known_unrelated_commit_paths": [
+      "packages/core/src/ui/UIRenderer.ts",
+      "packages/engine/src/camera/CameraController.ts",
+      "packages/engine/src/combat/ProjectileSystem.ts",
+      "packages/engine/src/environment/GrassRenderer.ts",
+      "packages/engine/src/physics/ConstraintSolver.ts",
+      "packages/engine/src/physics/VehicleSystem.ts",
+      "packages/engine/src/simulation/__tests__/paper-multi-agent-crdt.test.ts",
+      "packages/engine/src/spatial/FrustumCuller.ts",
+      "packages/engine/src/spatial/OctreeSystem.ts",
+      "packages/engine/src/spatial/TransformGraph.ts"
+    ]
+  },
+  "probes": {
+    "paper_1_verifier_control": {
+      "paper_id": "P1",
+      "kind": "unchanged semantic control",
+      "harness": "packages/engine/src/simulation/__tests__/paper-cael-replay-benchmark.test.ts",
+      "test_name": "reports verify-only vs full replay wall time",
+      "command": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@holoscript/engine",
+        "exec",
+        "vitest",
+        "run",
+        "src/simulation/__tests__/paper-cael-replay-benchmark.test.ts",
+        "-t",
+        "reports verify-only vs full replay wall time",
+        "--no-watch"
+      ],
+      "replicates_per_state": 1,
+      "order": ["A1", "B1"]
+    },
+    "paper_4_runner_outcome": {
+      "paper_id": "P4",
+      "kind": "runner-sensitive performance outcome",
+      "harness": "packages/core/src/plugins/__tests__/paper-4-sandbox-bench.test.ts",
+      "command": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@holoscript/core",
+        "exec",
+        "vitest",
+        "run",
+        "src/plugins/__tests__/paper-4-sandbox-bench.test.ts",
+        "--no-watch"
+      ],
+      "environment": {
+        "PAPER_BENCH_N": "300"
+      },
+      "replicates_per_state": 3,
+      "order": ["A1", "B1", "B2", "A2", "A3", "B3"]
+    }
+  },
+  "execution_plan": {
+    "isolation": "detached Git worktrees; the dirty main checkout is neither checked out nor used to execute probes",
+    "dependency_install": [
+      "corepack",
+      "pnpm",
+      "install",
+      "--frozen-lockfile",
+      "--ignore-scripts"
+    ],
+    "host": "same Windows host, sequential execution",
+    "quantum_hardware": "forbidden",
+    "raw_output": "captured verbatim inside the receipt and SHA-256 bound"
+  },
+  "effect_envelope": {
+    "semantic_gate": {
+      "all_probe_processes_exit_zero": true,
+      "paper_1_chain_and_replay_test_passes_both_states": true,
+      "paper_4_structural_assertions_pass_all_replicates": true
+    },
+    "paper_4_aggregation": "For each metric and state, take the median of the three canonical per-run medians; then divide B by A.",
+    "paper_4_ratios_b_over_a": {
+      "vm_creation_median_ms": {
+        "min_inclusive": 0.4,
+        "max_inclusive": 1.6,
+        "role": "negative-control envelope because each sample constructs a new runner"
+      },
+      "simple_expression_median_ms": {
+        "min_inclusive": 0.02,
+        "max_inclusive": 0.6,
+        "role": "context-reuse plus repeated-script-cache sensitive"
+      },
+      "jit_eval_median_ms": {
+        "min_inclusive": 0.02,
+        "max_inclusive": 0.75,
+        "role": "context-reuse sensitive; code varies so the compiled-script cache should contribute less"
+      }
+    },
+    "p99_policy": "record but do not gate because three host-local replicates do not identify scheduler-tail effects",
+    "paper_1_timing_policy": "record but do not compare inferentially; this probe is a semantic control and its verifier closure is identical"
+  },
+  "adjudication": {
+    "mechanism_supported": "All semantic gates pass, the VM-creation ratio stays inside its control envelope, and both runner-sensitive ratios stay inside their preregistered envelopes.",
+    "partial_support": "All semantic gates pass and exactly one runner-sensitive ratio stays inside its envelope.",
+    "no_support_for_this_delta": "All semantic gates pass but neither runner-sensitive ratio stays inside its envelope.",
+    "confounded": "Any semantic gate fails, required code/dependency identities fail, the runtime differs between states, or the VM-creation negative control leaves its envelope."
+  },
+  "scope_limits": [
+    "This is a host-local implementation-state comparison, not a cross-vendor or cross-runtime claim.",
+    "The Paper 4 probe measures PluginSandboxRunner overhead; it does not establish hostile-code isolation or the composed three-layer Paper 4 architecture.",
+    "W.GOLD.035 and W.GOLD.039 motivate compiler-visible security boundaries, but this runtime-runner delta does not test HS010 or prove compiler-level security.",
+    "No novelty, quantum advantage, or paper-wide reproducibility claim follows from this pilot."
+  ]
+}

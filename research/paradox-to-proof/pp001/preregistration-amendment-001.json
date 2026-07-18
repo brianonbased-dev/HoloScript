@@ -1,0 +1,35 @@
+{
+  "schema": "holoscript.paradox_to_proof.pp001.preregistration_amendment.v1",
+  "amendment_id": "PP-001-A001",
+  "amended_at": "2026-07-18T00:43:26.273Z",
+  "base_preregistration_sha256": "778b2292f6291ce735a65ce4d4aa879e61e6ecc9b1f5e962c7a105ace507d451",
+  "reason": "Vitest 4.1.0 intercepted console output from passing tests, so the canonical probes exited successfully without exposing their metric lines to the receipt driver.",
+  "outcomes_observed_before_amendment": {
+    "metric_values": "none",
+    "semantic_status": "Two state-A Paper 4 processes exited zero, but their metric values were not emitted and are excluded.",
+    "paper_1": "not executed",
+    "paper_4_state_b": "not executed"
+  },
+  "excluded_attempts": [
+    {
+      "attempt": "driver-initial-A1",
+      "state": "A",
+      "probe": "paper_4_runner_outcome",
+      "disposition": "excluded because the driver failed before preserving raw output"
+    },
+    {
+      "attempt": "diagnostic-A",
+      "state": "A",
+      "probe": "paper_4_runner_outcome",
+      "exit_code": 0,
+      "disposition": "excluded diagnostic confirming that successful-test console interception, not a probe failure, caused the missing metric signature"
+    }
+  ],
+  "change": {
+    "append_to_each_vitest_command": ["--disableConsoleIntercept", "--no-color"],
+    "effect_on_probe": "output handling only; selected files, test names, environment, sample counts, order, states, dependencies, and assertions are unchanged",
+    "restart_registered_order": true
+  },
+  "effect_envelope_change": "none",
+  "scientific_status": "transparent protocol amendment before any metric value was observed"
+}
