@@ -4,35 +4,41 @@
 
 **Card:** PP-001 - Living Artifact
 
-**Scientific verdict:** `partial_support`
+**Protocol classification:** `partial_support`
+
+**Scientific interpretation:** `descriptive_local_association`
 
 **Receipt:** `receipt.json`, SHA-256
 `ac7808b394d5d5b4b3c28fbc0915031f48a2be2d48ff08e4e1fa5d14eacfa49c`
 
 ## Outcome
 
-A real implementation-state change altered a canonical Paper 4 measurement
-while the unchanged Paper 1 verifier probe remained semantically stable. The
-effect was differential rather than universal:
+Two adjacent implementation states differed on a canonical Paper 4 measurement
+while the unchanged Paper 1 verifier/replay probe remained executable and
+integrity-green. This is a descriptive state comparison, not an isolated causal
+estimate:
 
-| Canonical outcome | State A | State B | B/A | Preregistered result |
+| Canonical outcome | State A | State B | B/A | Declared-envelope result |
 |---|---:|---:|---:|---|
 | Paper 4 VM creation median | 0.69 ms | 0.65 ms | 0.9420 | control envelope pass |
 | Paper 4 simple-expression median | 0.61 ms | 0.13 ms | 0.2131 | effect envelope pass |
 | Paper 4 varying-code JIT median | 2.78 ms | 2.10 ms | 0.7554 | effect envelope miss (`max=0.75`) |
-| Paper 1 chain verification | 2.9215 us/entry | 3.0506 us/entry | observational only | semantic pass |
-| Paper 1 replay wall time | 623.37 ms | 670.00 ms | observational only | semantic pass |
+| Paper 1 chain verification | 2.9215 us/entry | 3.0506 us/entry | observational only | integrity-smoke pass |
+| Paper 1 replay wall time | 623.37 ms | 670.00 ms | observational only | execution-smoke pass |
 
-All eight registered Vitest processes exited zero. The simple-expression path
+All eight declared Vitest processes exited zero. The simple-expression path
 was about 4.69 times faster in B, and all three B replicates were faster than
 all three A replicates. The varying-code JIT path was about 1.32 times faster,
-but its ratio missed the preregistered upper bound by 0.0054. Per the sealed
-decision rule, this is `partial_support`, not a post-hoc full pass.
+but its ratio missed the declared upper bound by 0.0054. Per the sealed
+decision rule, the protocol classification is `partial_support`, not a post-hoc
+full pass. With three fixed-order processes per state, the complete 3-v-3
+separation is descriptive; the minimum exact two-sided permutation p-value is
+0.10.
 
 ## Experimental object
 
-The causal cut uses adjacent commits with identical probe sources, package
-manifests, and dependency lock:
+The declared comparison cut uses adjacent commits with identical probe sources,
+package manifests, and dependency lock:
 
 | Binding | State A - pre-change | State B - post-change |
 |---|---|---|
@@ -48,10 +54,11 @@ manifests, and dependency lock:
 State B adds a cached `node:vm` module handle, one reusable VM context per
 runner, and a bounded compiled-script cache. The Paper 4 harness is identical
 between states. The Paper 1 harness and its declared recorder/replayer/verifier
-closure are also identical, making Paper 1 an unchanged semantic control.
-Other files changed in the adjacent commit, but none belongs to the declared
-dependency closure of these selected probes; the complete changed-path list is
-preserved in the receipt.
+closure are also identical, making Paper 1 an unchanged integrity/execution
+smoke control. Eleven tracked paths changed in the adjacent commit. The receipt
+binds a manually declared dependency closure but does not instrument the actual
+transitive loaded-module graph, so it cannot prove those other paths were
+causally irrelevant.
 
 ## Runtime binding
 
@@ -69,21 +76,30 @@ Both detached worktrees used the same host and frozen dependency graph:
 
 The receipt binds every Git blob in the declared test, implementation, and
 dependency manifests; the runtime executable; raw stdout/stderr; parsed
-metrics; commands; environment; and clean-worktree state. The experiment
-driver is bound at SHA-256
+metrics; commands; probe-specific environment overrides; and clean-worktree
+state. Subprocesses inherited the ambient process environment, which was not
+fully enumerated, so this pilot does not claim complete environment capture.
+The experiment driver is bound at SHA-256
 `06d4bf24805a5a800558ae8d3a4b5313c0394576dedfd7960a6773427c773fe3`.
 
-## Preregistration and protocol incident
+## Declared pre-analysis protocol and protocol incident
 
-The base preregistration was written before execution and is bound at SHA-256
+The base protocol records a pre-execution timestamp and is bound at SHA-256
 `778b2292f6291ce735a65ce4d4aa879e61e6ecc9b1f5e962c7a105ace507d451`.
 Its outcome envelope was not changed.
 
+This chronology is not independently timestamped. The protocol, amendment,
+driver, receipt, and report first entered Git together after the measurements,
+so this artifact is a **declared pre-analysis protocol**, not a defensible
+externally anchored preregistration or Registered Report.
+
 Vitest initially intercepted console output from successful tests. One driver
 attempt and one state-A diagnostic therefore produced no visible metric values
-and are excluded. Before any metric value was observed, amendment
+and are excluded. The amendment states that no metric value was observed, but
+those excluded attempts have no preserved raw-output evidence; that statement
+is author-reported rather than independently verifiable. Amendment
 `PP-001-A001` added only `--disableConsoleIntercept --no-color`, restarted the
-registered order, and recorded both exclusions. The amendment is bound at
+declared order, and recorded both exclusions. The amendment is bound at
 SHA-256
 `4002f24d3fc2e40355fbf6a5e5d2d009efb505371a9ea1f81cbea8eb57878db1`.
 The selected code, tests, assertions, sample count, order, states, dependencies,
@@ -91,7 +107,7 @@ and effect envelope remained unchanged.
 
 ## Interpretation
 
-This pilot rejects silent transfer of Paper 4 performance evidence across
+This pilot shows why Paper 4 performance evidence should not transfer silently across
 these two implementation states. A receipt from A cannot honestly be cited as
 the measured overhead of B, even though the test source and dependency lock are
 unchanged. The code state is therefore an experimental variable, not incidental
@@ -99,9 +115,12 @@ metadata.
 
 The pilot does **not** show that every metric changes, that code evolution is
 incompatible with reproducibility, or that the Paper 4 sandbox provides a hard
-hostile-code boundary. The neutral VM-creation control and stable Paper 1
-semantic outcome show why evidence should be attached at the outcome level,
-not invalidated indiscriminately whenever a repository changes.
+hostile-code boundary. The declared VM-creation control stayed inside its wide
+envelope and the Paper 1 smoke probe stayed green. Neither is an independent
+untreated control: state B's module-scoped VM handle is still traversed by new
+runners, and Paper 1 compares no cross-state final-state digest. Evidence should
+therefore remain attached to the exact measured outcome rather than generalized
+across the repository.
 
 PP-001 should remain program-level `verdict=unresolved` until another deliberate
 delta and host reproduce the method. This local result is enough to advance the
@@ -119,10 +138,10 @@ node research/paradox-to-proof/pp001/pp001_living_artifact.mjs --verify
 
 The first command refuses to overwrite an existing receipt unless the operator
 explicitly supplies `--overwrite`. The second command is read-only and verifies
-the receipt sidecar, preregistration and amendment hashes, commit adjacency,
+the receipt sidecar, declared protocol and amendment hashes, commit adjacency,
 Git-blob bindings, clean state claims, runtime identity, raw-output hashes,
-metric reparsing, aggregate calculations, commands, environments, and the
-preregistered adjudication.
+metric reparsing, aggregate calculations, commands, probe-specific environment
+overrides, and the declared effect-envelope adjudication.
 
 ## Source reconciliation
 
