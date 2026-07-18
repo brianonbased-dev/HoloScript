@@ -39,4 +39,11 @@ describe('mcp-server production dependency closure', () => {
     expect(railwayConfig).toContain('"packages/meaning/**"');
     expect(railwayConfig).toContain('"packages/uaal/**"');
   });
+
+  it('preserves HoloMeaning re-exports in the built uAAL package', () => {
+    const buildConfig = readRepoFile('packages/uaal/tsup.config.ts');
+
+    expect(buildConfig).toContain('treeshake: false');
+    expect(buildConfig).toContain("noExternal: ['@holoscript/meaning']");
+  });
 });
