@@ -883,11 +883,11 @@ budget is not the practical bottleneck---scene parsing dominates for large $n$.
 \subsection{Limitations}
 
 \paragraph{Compile-time overhead.}
-Provenance tracking adds bounded but nonzero overhead to
-compilation. For extremely large scenes ($>$10{,}000 nodes)
-compiled to all $k$ targets simultaneously, the cumulative
-hashing cost may become significant. Batched hashing and
-incremental compilation (below) are mitigation strategies.
+Provenance tracking adds bounded but nonzero overhead to compilation. For
+sufficiently large scenes compiled to many targets, cumulative hashing cost may
+become significant; the crossover has not been measured. A large-scene stress
+run remains future work, with batched hashing and incremental compilation
+(below) as candidate mitigations.
 
 \paragraph{Compilation-only guarantee.}
 The semiring annotation verifies the compilation mapping:

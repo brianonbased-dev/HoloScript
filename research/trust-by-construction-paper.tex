@@ -24,6 +24,7 @@
 
 % Draft-mode annotations
 \newcommand{\todo}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
+\providecommand{\measuredFrom}[1]{}
 % \cmark / \xmark removed (unused, required pifont package)
 
 % Listing style for TypeScript
@@ -238,9 +239,9 @@ our implementation.
     computational models~\cite{CURE2026} (\Cref{sec:model:cure}).
   \item A browser-native implementation with WebGPU compute, TET10
     elements, and ASME~V\&V-aligned verification (\Cref{sec:implementation}).
-  \item An evaluation decomposing contract overhead by guarantee, measuring
-    full-solver variance, $O(h)$ convergence for TET4 ($p = 1.44$),
-    exact TET10 solutions, sub-millisecond geometry hashing, and
+  \item An evaluation reporting full-solver variance, a bounded surrogate
+    helper-shell ablation, current geometry-hashing status, $O(h)$ convergence
+    for TET4 ($p = 1.44$), exact TET10 solutions, and
     superconvergent stress recovery via SPR~\cite{ZZ1992}
     (\Cref{sec:evaluation}).
 \end{itemize}
@@ -1070,11 +1071,12 @@ browser.
 % ============================================================================
 
 We evaluate the simulation contract along five axes: contract enforcement
-overhead, per-guarantee ablation, displacement convergence, geometry hashing cost, and solver
-scaling. All CPU benchmarks are executed in Node.js~22.20 (V8) on a single
-thread; WebGPU benchmarks use the Dawn integrated-GPU backend. All
-measurements were collected on an 11th Gen Intel Core i7-11800H at
-2.30~GHz running Windows~11, with warmup runs discarded before timing.
+overhead, helper-shell ablation, displacement convergence, geometry hashing
+status, and solver scaling. Unless otherwise stated, the legacy CPU tables were
+collected on an 11th Gen Intel Core i7-11800H under Node.js~22.20. The separate
+2026-06-21 surrogate ablation artifact records Windows x64, Node.js~24.15.0, and
+Vitest~4.1.8 but not the CPU model; we do not compare its timings directly with
+the legacy Node~22 tables. WebGPU benchmarks use the Dawn integrated-GPU backend.
 Where ``median'' and ``p99'' are reported, they are computed from sorted
 samples of the listed iteration count; single-run reports are labeled
 explicitly.
@@ -1112,91 +1114,67 @@ Medium and Large indicate the contracted wrapper completes faster than
 the bare solver on those configurations---this is not a real speedup; it
 is V8 JIT and garbage-collection scheduling noise. The p99 is
 $2\text{--}5\times$ the median on every row, confirming the heavy-tail
-behavior characteristic of V8 asynchronous dispatch. The honest
-interpretation is that contract enforcement overhead is dominated by,
-and indistinguishable from, the runtime's own scheduling variance at
-solver sizes up to $\sim$900 DOF. This is consistent with our code
-analysis: the per-step cost of the deterministic stepper is three
-floating-point operations, interaction logging is one object allocation
-per user action, and geometry hashing runs only at construction. The
-dominant construction cost is \texttt{structuredClone()}, which deep-copies
-the configuration in $O(n)$ time but runs only once.
+behavior characteristic of V8 asynchronous dispatch. The sign-changing medians
+show that this benchmark cannot resolve wrapper overhead from runtime variance;
+they do not establish negligible overhead. In the current implementation,
+\texttt{ContractedSimulation} invokes \texttt{enforceGeometryIntegrity()} on
+step and solve paths, which re-hashes the mesh. Cost therefore depends on mesh
+size and call path; no construction-only hashing claim is made.
 
-\subsection{Ablation: Per-Guarantee Contract Overhead}
+\subsection{Surrogate Contract-Shell Helper Ablation}
 \label{sec:evaluation:ablation}
 
-To isolate which guarantee contributes to the contract shell cost, we run a
-second TET4-shaped transient probe that removes one guarantee primitive at
-a time while holding the mesh, field sizes, fixed timestep, and timing
-protocol constant. The harness is
+To isolate selected helper costs, we run a surrogate TET4-shaped contract-shell
+microbenchmark. It uses a custom probe solver and calls selected production
+helpers directly; it does not instantiate \texttt{ContractedSimulation}
+end-to-end. The harness is
 \texttt{packages/engine/src/simulation/\_\_tests\_\_/tvcg-contract-ablation.test.ts};
 the committed HoloScript artifact is
-\texttt{.bench-logs/tvcg-ablation-2026-06-21T00-00-00-000Z.json}
-(sha256 \texttt{1c18ea10b167a01c05e8f639834bc3168e0fb6dfb282356e7978a2d19e3be669}).
-It uses a 160-node, 40-element TET4 probe (480 DOF), 40 paired samples,
-50 runs per sample, and 10 fixed steps per run. The bare probe is
-intentionally tiny, so its relative overhead is not a solver-overhead
-claim; the useful quantity is the paired full-minus-disabled delta in
-\Cref{tab:ablation-tvcg}.
-
-\begin{table*}[t]
+\texttt{.bench-logs/tvcg-ablation-2026-06-21T00-00-00-000Z.json}. Its payload
+digest before insertion of the embedded digest field is
+\texttt{1c18ea10b167a01c05e8f639834bc3168e0fb6dfb282356e7978a2d19e3be669};
+the complete-file SHA-256 is
+\texttt{e01afc6c5fcca5e21778fd2a2159d9f0bd6276e85af43ede6aecc74659f7b9e7}.
+It uses 160 nodes, 40 elements, 40 paired samples, 50 runs per sample, and 10 fixed steps per run. Its values characterize only this surrogate.
+\begin{table*}[t]\measuredFrom{HoloScript/.bench-logs/tvcg-ablation-2026-06-21T00-00-00-000Z.json}
   \centering
-  \caption{Per-guarantee contract-shell ablation for the TVCG simulation
-    contract. Cost share is the median paired full-minus-disabled delta
+  \caption{Surrogate contract-shell helper ablation; not an end-to-end
+    \texttt{ContractedSimulation} guarantee ablation. Cost share is the median paired full-minus-disabled delta
     divided by that row's paired full-shell median; the global full-shell
     median is 0.0520 ms/step (19,236 ops/s). Negative rows are below
     timer noise, not speedups.}
   \label{tab:ablation-tvcg}
   \begin{tabular}{@{}lrrrp{0.42\textwidth}@{}}
     \toprule
-    Removed guarantee & Cost share & $\Delta$ ms/step & Disabled ops/s & Behavioral consequence \\
+    Removed helper path & Cost share & $\Delta$ ms/step & Disabled ops/s & Omitted operation in this surrogate \\
     \midrule
-    Geometry integrity & $86.7\%$ & 0.0441 & 146,482 & Mesh/render divergence and malformed connectivity are no longer rejected. \\
-    Unit validation & $0.3\%$ & 0.0002 & 12,757 & Out-of-range physical quantities can pass as raw numbers. \\
-    Deterministic stepping & $6.4\%$ & 0.0045 & 15,214 & Frame-rate-dependent stepping can change replayed state trajectories. \\
-    Interaction provenance & $-1.0\%$ & -0.0007 & 14,629 & User actions that changed solver state disappear from the receipt. \\
-    Auto-provenance & $-0.2\%$ & -0.0001 & 13,994 & The run no longer emits a config/result/timing evidence record. \\
-    Exact replay & $11.5\%$ & 0.0071 & 17,326 & A reviewer cannot reconstruct the run from a replay envelope. \\
+    Geometry integrity & $86.7\%$ & 0.0441 & 146,482 & Skips helper-level geometry hashing and sanity checks. \\
+    Unit validation & $0.3\%$ & 0.0002 & 12,757 & Skips helper-level unit validation. \\
+    Deterministic stepping & $6.4\%$ & 0.0045 & 15,214 & Steps directly instead of through \texttt{DeterministicStepper}. \\
+    Interaction provenance & $-1.0\%$ & -0.0007 & 14,629 & Does not append the local interaction objects. \\
+    Auto-provenance & $-0.2\%$ & -0.0001 & 13,994 & Does not construct the local provenance object. \\
+    Exact replay & $11.5\%$ & 0.0071 & 17,326 & Does not construct or geometry-check the local replay envelope. \\
     \bottomrule
   \end{tabular}
 \end{table*}
 
 \paragraph{Ablation interpretation.}
-The shell ablation makes the trade-off explicit. Geometry integrity is the
-only guarantee with a large isolated cost because it re-hashes and
-sanity-checks the mesh; this is also the guarantee that prevents the
-solver and renderer from silently diverging. Unit validation, deterministic
-stepping, and replay packaging are single-digit shares of the shell.
-Interaction provenance and auto-provenance have median paired deltas below
-the local timing noise floor, so their cost is operationally negligible in
-this probe; their value is behavioral, not throughput-based.
+Within this surrogate, helper-level geometry integrity has the largest isolated
+delta, while interaction and auto-provenance deltas fall below the local timing
+noise floor. These timings do not validate production behavioral consequences
+or measure guarantees inside \texttt{ContractedSimulation} end-to-end.
 
-\subsection{Geometry Hashing Cost}
+\subsection{Geometry Hashing Cost --- Current Status}
 
-The FNV-1a hash operates on the raw bytes of the vertex and element arrays,
-quantizing each floating-point value to $10^{-6}$ precision. The hash
-encodes both node count and element count in its output string for
-additional verification.
-
-\begin{table}[t]
-  \centering
-  \caption{Geometry hashing cost (FNV-1a, single invocation).}
-  \label{tab:hashing}
-  \begin{tabular}{@{}rrrr@{}}
-    \toprule
-    Nodes & Vertex floats & Elements & Hash time (ms) \\
-    \midrule
-     90 &    270 &   160 & 0.005 \\
-    306 &    918 &   640 & 0.017 \\
-    650 &  1,950 & 1,440 & 0.036 \\
-  1,122 &  3,366 & 2,560 & 0.069 \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-At 1,122 nodes the hash completes in 69~$\mu$s---negligible relative to
-any solver step. The cost scales linearly with mesh size as expected for
-a streaming hash.
+The current \texttt{hashGeometry} implementation canonicalizes connectivity by
+sorting vertices within each fixed-arity primitive and sorting the primitives
+before hashing, then quantizes vertex coordinates. Its current work is therefore
+$O(V + M\log M)$ for $V$ coordinate values and $M$ primitives, not a purely
+streaming-linear pass. We remove the legacy timing table because it predates
+this canonicalization, has no committed measurement receipt, and does not
+reproduce on the current implementation. Current performance remains to be
+measured with an artifact-producing harness and a non-tautological regression
+threshold.
 
 \subsection{Convergence Study}
 \label{sec:evaluation:convergence}
@@ -1653,12 +1631,10 @@ guarantees. We have shown that:
   \item The contract maps directly to the CURE principles for computational
     models~\cite{CURE2026}, providing trust by \emph{construction} rather
     than by discipline or co-location.
-  \item Contract enforcement overhead is indistinguishable from V8
-    scheduling variance in the full TET4 solver timings, while the
-    isolated shell ablation attributes 86.7\% of shell cost to geometry
-    integrity and shows interaction and auto-provenance below the local
-    timing noise floor. Geometry hashing completes in under 70~$\mu$s for
-    meshes of 1,000+ nodes.
+  \item The legacy full-solver benchmark cannot resolve contract overhead from
+    V8 scheduling variance. A separate surrogate helper-shell ablation reports
+    timing deltas but does not instantiate \texttt{ContractedSimulation}
+    end-to-end; current geometry-hashing performance remains unmeasured.
   \item The implementation achieves monotonic TET4 convergence ($p = 1.44$,
     GCI $= 0.36\%$), exact TET10 solutions on linear displacement fields,
     and transparent NAFEMS~LE1 reporting: per-DOF roller symmetry constraints

@@ -149,6 +149,8 @@ export class CodebaseGraph {
   private eventEmitIndex: Map<string, EventEdge[]> = new Map();
   /** eventName → edges where that event is listened to (HoloGraph) */
   private eventListenIndex: Map<string, EventEdge[]> = new Map();
+  private emitSitesByEvent: Map<string, EmitSite[]> = new Map();
+  private listenSitesByEvent: Map<string, ListenSite[]> = new Map();
 
   /** HoloGraph Phase 2: SimulationContract receipt edges keyed by filePath */
   private provenanceByFile: Map<string, ProvenanceEdge[]> = new Map();
@@ -283,16 +285,21 @@ export class CodebaseGraph {
     this.eventEdges = [];
     this.eventEmitIndex.clear();
     this.eventListenIndex.clear();
+    this.emitSitesByEvent.clear();
+    this.listenSitesByEvent.clear();
 
-    // Group listen sites by eventName for O(1) lookup
-    const listenByEvent = new Map<string, ListenSite[]>();
+    // Group raw sites once so getEventChain() never rescans the graph per query.
     for (const ls of this.allListenSites) {
-      if (!listenByEvent.has(ls.eventName)) listenByEvent.set(ls.eventName, []);
-      listenByEvent.get(ls.eventName)!.push(ls);
+      if (!this.listenSitesByEvent.has(ls.eventName)) this.listenSitesByEvent.set(ls.eventName, []);
+      this.listenSitesByEvent.get(ls.eventName)!.push(ls);
+    }
+    for (const es of this.allEmitSites) {
+      if (!this.emitSitesByEvent.has(es.eventName)) this.emitSitesByEvent.set(es.eventName, []);
+      this.emitSitesByEvent.get(es.eventName)!.push(es);
     }
 
     for (const es of this.allEmitSites) {
-      const listeners = listenByEvent.get(es.eventName) ?? [];
+      const listeners = this.listenSitesByEvent.get(es.eventName) ?? [];
       for (const ls of listeners) {
         const edge: EventEdge = {
           eventName: es.eventName,
@@ -321,7 +328,7 @@ export class CodebaseGraph {
     }
 
     // Index listen-only events (no emitter found in scanned scope)
-    for (const [name, sites] of listenByEvent) {
+    for (const name of this.listenSitesByEvent.keys()) {
       if (!this.eventListenIndex.has(name)) {
         this.eventListenIndex.set(name, []);
       }
@@ -957,7 +964,7 @@ export class CodebaseGraph {
    * Example: getEventEmitters('pillar:slice') → all emit sites for that event.
    */
   getEventEmitters(eventName: string): EventEdge[] {
-    return this.eventEmitIndex.get(eventName) ?? [];
+    return [...(this.eventEmitIndex.get(eventName) ?? [])];
   }
 
   /**
@@ -965,12 +972,14 @@ export class CodebaseGraph {
    * O(1) lookup.
    */
   getEventListeners(eventName: string): EventEdge[] {
-    return this.eventListenIndex.get(eventName) ?? [];
+    return [...(this.eventListenIndex.get(eventName) ?? [])];
   }
 
   /**
    * Get the full producer→consumer chain for an event name:
    * all emit sites and all listener registrations, plus resolved edges.
+   * Average-case O(1) index access after buildIndexes(), plus O(k) to copy the
+   * k matched emitters, listeners, and edges returned to the caller.
    */
   getEventChain(eventName: string): {
     eventName: string;
@@ -980,9 +989,9 @@ export class CodebaseGraph {
   } {
     return {
       eventName,
-      emitters: this.allEmitSites.filter((s) => s.eventName === eventName),
-      listeners: this.allListenSites.filter((s) => s.eventName === eventName),
-      edges: this.eventEdges.filter((e) => e.eventName === eventName),
+      emitters: [...(this.emitSitesByEvent.get(eventName) ?? [])],
+      listeners: [...(this.listenSitesByEvent.get(eventName) ?? [])],
+      edges: [...(this.eventEmitIndex.get(eventName) ?? [])],
     };
   }
 
@@ -1222,6 +1231,8 @@ export class CodebaseGraph {
     this.calleeIndex.clear();
     this.eventEmitIndex.clear();
     this.eventListenIndex.clear();
+    this.emitSitesByEvent.clear();
+    this.listenSitesByEvent.clear();
     this.provenanceByFile.clear();
     this.allProvenanceEdges = [];
     this.nodePositions.clear();

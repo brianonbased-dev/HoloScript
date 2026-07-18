@@ -216,6 +216,57 @@ describe('CodebaseGraph — EventEdge resolution', () => {
     expect(chain.edges).toHaveLength(1);
   });
 
+  it('getEventChain() reads prebuilt indexes without filtering backing arrays', () => {
+    const e = makeFile('/e.ts', {
+      emitSites: [{ callerId: 'emit', eventName: 'indexed:event' }],
+    });
+    const l = makeFile('/l.ts', {
+      listenSites: [{ callerId: 'listen', eventName: 'indexed:event' }],
+    });
+
+    graph.addFile(e);
+    graph.addFile(l);
+    graph.buildIndexes();
+
+    const internals = graph as unknown as {
+      allEmitSites: { filter: () => never };
+      allListenSites: { filter: () => never };
+      eventEdges: { filter: () => never };
+    };
+    const failOnScan = () => {
+      throw new Error('getEventChain scanned a backing array');
+    };
+    internals.allEmitSites.filter = failOnScan;
+    internals.allListenSites.filter = failOnScan;
+    internals.eventEdges.filter = failOnScan;
+
+    const chain = graph.getEventChain('indexed:event');
+    expect(chain.emitters).toHaveLength(1);
+    expect(chain.listeners).toHaveLength(1);
+    expect(chain.edges).toHaveLength(1);
+    chain.emitters.length = 0;
+    chain.listeners.length = 0;
+    chain.edges.length = 0;
+    expect(graph.getEventChain('indexed:event').emitters).toHaveLength(1);
+    expect(graph.getEventChain('indexed:event').listeners).toHaveLength(1);
+    expect(graph.getEventChain('indexed:event').edges).toHaveLength(1);
+
+    const emitterEdges = graph.getEventEmitters('indexed:event');
+    const listenerEdges = graph.getEventListeners('indexed:event');
+    emitterEdges.length = 0;
+    listenerEdges.length = 0;
+    expect(graph.getEventEmitters('indexed:event')).toHaveLength(1);
+    expect(graph.getEventListeners('indexed:event')).toHaveLength(1);
+    expect(graph.getEventChain('indexed:event').edges).toHaveLength(1);
+
+    expect(graph.getEventChain('missing:event')).toEqual({
+      eventName: 'missing:event',
+      emitters: [],
+      listeners: [],
+      edges: [],
+    });
+  });
+
   it('clear() resets event state', () => {
     const f = makeFile('/a.ts', { emitSites: [{ callerId: 'e', eventName: 'x:y' }] });
     graph.addFile(f);
