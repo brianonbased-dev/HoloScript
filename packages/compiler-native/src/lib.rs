@@ -22,8 +22,9 @@
 //! owned parameters, owned returns through a versioned C-compatible out record, allocator
 //! provenance, and path-sensitive ownership joins. `hs-machine-v14` adds recursively laid-out
 //! aggregates whose owned-buffer leaves participate in the same affine state machine and
-//! deterministic drop glue. Everything outside the selected contract fails closed with a native
-//! compile diagnostic.
+//! deterministic drop glue. `hs-machine-v15` adds whole-aggregate affine moves plus a versioned,
+//! target-aware indirect ABI for aggregate parameters and results. Everything outside the
+//! selected contract fails closed with a native compile diagnostic.
 
 use std::collections::{HashMap, HashSet};
 use std::env;
@@ -61,7 +62,9 @@ pub const SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT: &str = "hs-machine-v11";
 pub const LOCAL_OWNED_BUFFER_MACHINE_CONTRACT: &str = "hs-machine-v12";
 pub const OWNED_BUFFER_MACHINE_CONTRACT: &str = "hs-machine-v13";
 pub const OWNED_AGGREGATE_MACHINE_CONTRACT: &str = "hs-machine-v14";
+pub const AFFINE_AGGREGATE_MACHINE_CONTRACT: &str = "hs-machine-v15";
 pub const OWNED_BUFFER_ABI_VERSION: u32 = 1;
+pub const NATIVE_AGGREGATE_ABI_VERSION: u32 = 1;
 pub const HOST_ALLOCATOR_PROVENANCE_ID: u32 = 1;
 
 /// Foreign bridge layout for an owned buffer returned by `hs-machine-v13` or later.
@@ -75,6 +78,21 @@ pub struct NativeOwnedBufferFfi {
     pub data: *mut u8,
     pub length: i32,
     pub allocator_id: u32,
+}
+
+/// Versioned foreign bridge descriptor for an affine aggregate parameter or result.
+///
+/// Aggregate values remain in target-native payload storage. Native calls pass a pointer to
+/// this descriptor so the callee can reject ABI-version, layout, size, alignment, and pointer
+/// mismatches before loading any field or accepting recursive drop responsibility.
+#[repr(C)]
+#[derive(Debug)]
+pub struct NativeAggregateFfi {
+    pub data: *mut u8,
+    pub byte_length: u32,
+    pub alignment: u32,
+    pub layout_fingerprint: u32,
+    pub abi_version: u32,
 }
 
 struct CompiledObject {
@@ -121,7 +139,52 @@ pub struct NativeStructLayout {
     pub name: String,
     pub size: u32,
     pub alignment: u32,
+    pub abi_fingerprint: u32,
+    pub abi_version: u32,
     pub fields: Vec<NativeFieldLayout>,
+}
+
+impl NativeStructLayout {
+    /// Validate a foreign aggregate descriptor without dereferencing its payload.
+    ///
+    /// Generated `hs-machine-v15` callees emit the same checks before loading fields. Foreign
+    /// bridges can call this helper first to fail with a diagnostic instead of a machine trap.
+    pub fn validate_ffi_descriptor(
+        &self,
+        descriptor: &NativeAggregateFfi,
+    ) -> Result<(), NativeCompileError> {
+        if descriptor.abi_version != self.abi_version {
+            return Err(NativeCompileError::new(format!(
+                "aggregate `{}` ABI version mismatch: expected {}, found {}",
+                self.name, self.abi_version, descriptor.abi_version
+            )));
+        }
+        if descriptor.layout_fingerprint != self.abi_fingerprint {
+            return Err(NativeCompileError::new(format!(
+                "aggregate `{}` ABI fingerprint mismatch: expected {:#010x}, found {:#010x}",
+                self.name, self.abi_fingerprint, descriptor.layout_fingerprint
+            )));
+        }
+        if descriptor.byte_length != self.size || descriptor.alignment != self.alignment {
+            return Err(NativeCompileError::new(format!(
+                "aggregate `{}` ABI layout mismatch: expected {} bytes aligned to {}, found {} bytes aligned to {}",
+                self.name,
+                self.size,
+                self.alignment,
+                descriptor.byte_length,
+                descriptor.alignment
+            )));
+        }
+        if descriptor.data.is_null()
+            || (descriptor.data as usize) & (self.alignment as usize - 1) != 0
+        {
+            return Err(NativeCompileError::new(format!(
+                "aggregate `{}` ABI payload pointer is null or misaligned",
+                self.name
+            )));
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -168,7 +231,9 @@ pub fn inspect_native_layouts(source: &str) -> Result<Vec<NativeStructLayout>, N
             .join("; ");
         NativeCompileError::new(format!("HoloScript parse failed: {rendered}"))
     })?;
-    let machine_contract = if has_owned_aggregate_machine_metadata(&ast) {
+    let machine_contract = if has_affine_aggregate_machine_metadata(&ast) {
+        AFFINE_AGGREGATE_MACHINE_CONTRACT
+    } else if has_owned_aggregate_machine_metadata(&ast) {
         OWNED_AGGREGATE_MACHINE_CONTRACT
     } else {
         AGGREGATE_MACHINE_CONTRACT
@@ -178,7 +243,7 @@ pub fn inspect_native_layouts(source: &str) -> Result<Vec<NativeStructLayout>, N
     collect_aggregate_layouts(&ast, machine_contract, pointer_type).map(|layouts| {
         layouts
             .into_iter()
-            .map(AggregateLayout::into_public)
+            .map(|layout| layout.into_public(pointer_type))
             .collect()
     })
 }
@@ -201,7 +266,12 @@ fn compile_unit(
         NativeCompileError::new(format!("HoloScript parse failed: {rendered}"))
     })?;
 
-    if has_owned_aggregate_machine_metadata(&ast) {
+    if has_affine_aggregate_machine_metadata(&ast) {
+        Ok(CompiledObject {
+            bytes: lower_typed_ast_to_object(&ast, AFFINE_AGGREGATE_MACHINE_CONTRACT, true)?,
+            machine_contract: AFFINE_AGGREGATE_MACHINE_CONTRACT,
+        })
+    } else if has_owned_aggregate_machine_metadata(&ast) {
         Ok(CompiledObject {
             bytes: lower_typed_ast_to_object(&ast, OWNED_AGGREGATE_MACHINE_CONTRACT, true)?,
             machine_contract: OWNED_AGGREGATE_MACHINE_CONTRACT,
@@ -442,6 +512,62 @@ fn has_owned_aggregate_machine_metadata(ast: &Ast) -> bool {
                     .flatten()
                     .any(|annotation| annotation_uses_owned_buffer(annotation))
         )
+    })
+}
+
+fn has_affine_aggregate_machine_metadata(ast: &Ast) -> bool {
+    let aggregate_names = ast
+        .body
+        .iter()
+        .filter_map(|node| match node {
+            AstNode::StructDeclaration(structure) => Some(structure.name.as_str()),
+            _ => None,
+        })
+        .collect::<HashSet<_>>();
+    ast.body.iter().any(|node| {
+        let AstNode::Function(function) = node else {
+            return false;
+        };
+        function
+            .param_types
+            .iter()
+            .flatten()
+            .any(|annotation| aggregate_names.contains(annotation.as_str()))
+            || function
+                .return_type
+                .as_deref()
+                .is_some_and(|annotation| aggregate_names.contains(annotation))
+            || statements_use_whole_aggregate_move(&function.body, &aggregate_names)
+    })
+}
+
+fn statements_use_whole_aggregate_move(
+    statements: &[AstNode],
+    aggregate_names: &HashSet<&str>,
+) -> bool {
+    statements.iter().any(|statement| match statement {
+        AstNode::StackSlotDeclaration(slot)
+            if aggregate_names.contains(slot.type_annotation.as_str()) =>
+        {
+            matches!(
+                slot.value.as_ref(),
+                AstNode::CallExpression(call)
+                    if matches!(call.callee.as_ref(), AstNode::Identifier(callee) if callee.name == "move")
+            )
+        }
+        AstNode::LexicalScope(scope) => {
+            statements_use_whole_aggregate_move(&scope.body, aggregate_names)
+        }
+        AstNode::If(if_node) => {
+            statements_use_whole_aggregate_move(&if_node.consequent, aggregate_names)
+                || if_node.alternate.as_deref().is_some_and(|alternate| {
+                    statements_use_whole_aggregate_move(alternate, aggregate_names)
+                })
+        }
+        AstNode::While(while_node) => {
+            statements_use_whole_aggregate_move(&while_node.body, aggregate_names)
+        }
+        _ => false,
     })
 }
 
@@ -1131,6 +1257,7 @@ fn bool_enabled(machine_contract: &str) -> bool {
             | SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT
             | OWNED_BUFFER_MACHINE_CONTRACT
             | OWNED_AGGREGATE_MACHINE_CONTRACT
+            | AFFINE_AGGREGATE_MACHINE_CONTRACT
     )
 }
 
@@ -1146,6 +1273,7 @@ fn control_flow_enabled(machine_contract: &str) -> bool {
             | SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT
             | OWNED_BUFFER_MACHINE_CONTRACT
             | OWNED_AGGREGATE_MACHINE_CONTRACT
+            | AFFINE_AGGREGATE_MACHINE_CONTRACT
     )
 }
 
@@ -1162,6 +1290,7 @@ fn scoped_lifetimes_enabled(machine_contract: &str) -> bool {
             | SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT
             | OWNED_BUFFER_MACHINE_CONTRACT
             | OWNED_AGGREGATE_MACHINE_CONTRACT
+            | AFFINE_AGGREGATE_MACHINE_CONTRACT
     )
 }
 
@@ -1179,6 +1308,7 @@ fn references_enabled(machine_contract: &str) -> bool {
             | SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT
             | OWNED_BUFFER_MACHINE_CONTRACT
             | OWNED_AGGREGATE_MACHINE_CONTRACT
+            | AFFINE_AGGREGATE_MACHINE_CONTRACT
     )
 }
 
@@ -1197,6 +1327,7 @@ fn memory_contract_enabled(machine_contract: &str) -> bool {
             | SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT
             | OWNED_BUFFER_MACHINE_CONTRACT
             | OWNED_AGGREGATE_MACHINE_CONTRACT
+            | AFFINE_AGGREGATE_MACHINE_CONTRACT
     )
 }
 
@@ -1211,13 +1342,16 @@ fn aggregate_contract_enabled(machine_contract: &str) -> bool {
             | SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT
             | OWNED_BUFFER_MACHINE_CONTRACT
             | OWNED_AGGREGATE_MACHINE_CONTRACT
+            | AFFINE_AGGREGATE_MACHINE_CONTRACT
     )
 }
 
 fn owned_buffers_enabled(machine_contract: &str) -> bool {
     matches!(
         machine_contract,
-        OWNED_BUFFER_MACHINE_CONTRACT | OWNED_AGGREGATE_MACHINE_CONTRACT
+        OWNED_BUFFER_MACHINE_CONTRACT
+            | OWNED_AGGREGATE_MACHINE_CONTRACT
+            | AFFINE_AGGREGATE_MACHINE_CONTRACT
     )
 }
 
@@ -1231,6 +1365,7 @@ fn fixed_arrays_enabled(machine_contract: &str) -> bool {
             | SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT
             | OWNED_BUFFER_MACHINE_CONTRACT
             | OWNED_AGGREGATE_MACHINE_CONTRACT
+            | AFFINE_AGGREGATE_MACHINE_CONTRACT
     )
 }
 
@@ -1371,12 +1506,24 @@ impl AggregateLayout {
         1_u32 << self.align_shift
     }
 
-    fn into_public(self) -> NativeStructLayout {
+    fn abi_fingerprint(&self, pointer_type: Type) -> u32 {
+        let mut digest = Sha256::new();
+        digest.update(b"holoscript.native-aggregate-abi.v1\0");
+        digest.update(pointer_type.bytes().to_le_bytes());
+        hash_aggregate_layout(&mut digest, self);
+        let digest = digest.finalize();
+        u32::from_le_bytes([digest[0], digest[1], digest[2], digest[3]])
+    }
+
+    fn into_public(self, pointer_type: Type) -> NativeStructLayout {
         let alignment = self.alignment();
+        let abi_fingerprint = self.abi_fingerprint(pointer_type);
         NativeStructLayout {
             name: self.name,
             size: self.size,
             alignment,
+            abi_fingerprint,
+            abi_version: NATIVE_AGGREGATE_ABI_VERSION,
             fields: self
                 .fields
                 .into_iter()
@@ -1389,6 +1536,35 @@ impl AggregateLayout {
                 })
                 .collect(),
         }
+    }
+}
+
+fn hash_aggregate_layout(digest: &mut Sha256, layout: &AggregateLayout) {
+    digest.update(layout.name.as_bytes());
+    digest.update([0]);
+    digest.update(layout.size.to_le_bytes());
+    digest.update([layout.align_shift]);
+    for field in &layout.fields {
+        digest.update(field.name.as_bytes());
+        digest.update([0]);
+        digest.update(field.offset.to_le_bytes());
+        digest.update(field.size.to_le_bytes());
+        digest.update([field.align_shift]);
+        match &field.field_type {
+            AggregateFieldType::Scalar(machine_type) => {
+                digest.update(b"scalar\0");
+                digest.update(machine_type.name().as_bytes());
+            }
+            AggregateFieldType::Owned(owned) => {
+                digest.update(b"owned\0");
+                digest.update(owned.element_type.name().as_bytes());
+            }
+            AggregateFieldType::Aggregate(nested) => {
+                digest.update(b"aggregate\0");
+                hash_aggregate_layout(digest, nested);
+            }
+        }
+        digest.update([0xff]);
     }
 }
 
@@ -1510,7 +1686,10 @@ fn resolve_aggregate_layout(
         }
 
         let field_type = if declarations.contains_key(type_name) {
-            if machine_contract != OWNED_AGGREGATE_MACHINE_CONTRACT {
+            if !matches!(
+                machine_contract,
+                OWNED_AGGREGATE_MACHINE_CONTRACT | AFFINE_AGGREGATE_MACHINE_CONTRACT
+            ) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} field `{field_name}` uses unsupported nested aggregate type `{type_name}` in struct `{}`",
                     structure.name,
@@ -1527,7 +1706,10 @@ fn resolve_aggregate_layout(
         } else if let Some(layout) =
             OwnedBufferLayout::parse(type_name, &context, machine_contract)?
         {
-            if machine_contract != OWNED_AGGREGATE_MACHINE_CONTRACT {
+            if !matches!(
+                machine_contract,
+                OWNED_AGGREGATE_MACHINE_CONTRACT | AFFINE_AGGREGATE_MACHINE_CONTRACT
+            ) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} owned buffers as aggregate fields are not enabled; field `{field_name}` in struct `{}` uses `{type_name}`",
                     structure.name
@@ -1634,12 +1816,16 @@ enum MachineParameter {
     Owned {
         element_type: MachineType,
     },
+    Aggregate {
+        layout_fingerprint: u32,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum MachineResult {
     Scalar(MachineType),
     Owned(OwnedBufferLayout),
+    Aggregate { layout_fingerprint: u32 },
 }
 
 impl MachineResult {
@@ -1647,6 +1833,7 @@ impl MachineResult {
         match self {
             Self::Scalar(machine_type) => machine_type.name().to_string(),
             Self::Owned(layout) => format!("[{}]", layout.element_type.name()),
+            Self::Aggregate { .. } => "aggregate".to_string(),
         }
     }
 }
@@ -1831,6 +2018,7 @@ struct AllocatorAbi {
 struct BorrowState {
     shared: usize,
     exclusive: bool,
+    aggregate_moved: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -1967,6 +2155,499 @@ fn load_owned_buffer_result_record(
     }
 }
 
+fn aggregate_abi_offsets(pointer_type: Type) -> (i32, i32, i32, i32, u32, u8) {
+    let pointer_bytes = pointer_type.bytes();
+    let byte_length_offset =
+        i32::try_from(pointer_bytes).expect("pointer width fits native offsets");
+    let alignment_offset = byte_length_offset + 4;
+    let fingerprint_offset = alignment_offset + 4;
+    let version_offset = fingerprint_offset + 4;
+    let unaligned_size = pointer_bytes + 16;
+    let alignment = pointer_bytes;
+    let size = (unaligned_size + alignment - 1) & !(alignment - 1);
+    let align_shift = if pointer_type == types::I64 { 3 } else { 2 };
+    (
+        byte_length_offset,
+        alignment_offset,
+        fingerprint_offset,
+        version_offset,
+        size,
+        align_shift,
+    )
+}
+
+#[cfg(test)]
+mod aggregate_abi_tests {
+    use super::*;
+
+    #[test]
+    fn descriptor_layout_and_fingerprint_are_pointer_width_specific() {
+        assert_eq!(aggregate_abi_offsets(types::I32), (4, 8, 12, 16, 20, 2));
+        assert_eq!(aggregate_abi_offsets(types::I64), (8, 12, 16, 20, 24, 3));
+
+        let layout = AggregateLayout {
+            name: "Pair".to_string(),
+            size: 8,
+            align_shift: 2,
+            fields: vec![AggregateFieldLayout {
+                name: "value".to_string(),
+                field_type: AggregateFieldType::Scalar(MachineType::I32),
+                offset: 0,
+                size: 4,
+                align_shift: 2,
+            }],
+        };
+        assert_ne!(
+            layout.abi_fingerprint(types::I32),
+            layout.abi_fingerprint(types::I64),
+            "foreign layouts compiled for different pointer widths must not share ABI identity"
+        );
+    }
+}
+
+fn create_aggregate_ffi_record(
+    builder: &mut FunctionBuilder<'_>,
+    module: &ObjectModule,
+    payload_slot: StackSlot,
+    payload_offset: i32,
+    layout: &AggregateLayout,
+) -> Value {
+    let pointer_type = module.target_config().pointer_type();
+    let (
+        byte_length_offset,
+        alignment_offset,
+        fingerprint_offset,
+        version_offset,
+        size,
+        align_shift,
+    ) = aggregate_abi_offsets(pointer_type);
+    let descriptor_slot = builder.create_sized_stack_slot(StackSlotData::new(
+        StackSlotKind::ExplicitSlot,
+        size,
+        align_shift,
+    ));
+    let payload = builder
+        .ins()
+        .stack_addr(pointer_type, payload_slot, payload_offset);
+    let byte_length = builder.ins().iconst(types::I32, i64::from(layout.size));
+    let alignment = builder
+        .ins()
+        .iconst(types::I32, i64::from(layout.alignment()));
+    let fingerprint = builder.ins().iconst(
+        types::I32,
+        i64::from(layout.abi_fingerprint(pointer_type) as i32),
+    );
+    let version = builder
+        .ins()
+        .iconst(types::I32, i64::from(NATIVE_AGGREGATE_ABI_VERSION));
+    builder.ins().stack_store(payload, descriptor_slot, 0);
+    builder
+        .ins()
+        .stack_store(byte_length, descriptor_slot, byte_length_offset);
+    builder
+        .ins()
+        .stack_store(alignment, descriptor_slot, alignment_offset);
+    builder
+        .ins()
+        .stack_store(fingerprint, descriptor_slot, fingerprint_offset);
+    builder
+        .ins()
+        .stack_store(version, descriptor_slot, version_offset);
+    builder.ins().stack_addr(pointer_type, descriptor_slot, 0)
+}
+
+fn validate_aggregate_ffi_record(
+    builder: &mut FunctionBuilder<'_>,
+    module: &ObjectModule,
+    descriptor: Value,
+    layout: &AggregateLayout,
+) -> Value {
+    let pointer_type = module.target_config().pointer_type();
+    let (byte_length_offset, alignment_offset, fingerprint_offset, version_offset, _, _) =
+        aggregate_abi_offsets(pointer_type);
+    let null_descriptor = builder.ins().icmp_imm(IntCC::Equal, descriptor, 0);
+    builder
+        .ins()
+        .trapnz(null_descriptor, TrapCode::unwrap_user(2));
+    let payload = builder
+        .ins()
+        .load(pointer_type, MemFlags::new(), descriptor, 0);
+    let byte_length =
+        builder
+            .ins()
+            .load(types::I32, MemFlags::new(), descriptor, byte_length_offset);
+    let alignment = builder
+        .ins()
+        .load(types::I32, MemFlags::new(), descriptor, alignment_offset);
+    let fingerprint =
+        builder
+            .ins()
+            .load(types::I32, MemFlags::new(), descriptor, fingerprint_offset);
+    let version = builder
+        .ins()
+        .load(types::I32, MemFlags::new(), descriptor, version_offset);
+    for (actual, expected) in [
+        (byte_length, layout.size),
+        (alignment, layout.alignment()),
+        (fingerprint, layout.abi_fingerprint(pointer_type)),
+        (version, NATIVE_AGGREGATE_ABI_VERSION),
+    ] {
+        let mismatch = builder
+            .ins()
+            .icmp_imm(IntCC::NotEqual, actual, i64::from(expected as i32));
+        builder.ins().trapnz(mismatch, TrapCode::unwrap_user(4));
+    }
+    let null_payload = builder.ins().icmp_imm(IntCC::Equal, payload, 0);
+    builder.ins().trapnz(null_payload, TrapCode::unwrap_user(2));
+    let misalignment = builder
+        .ins()
+        .band_imm(payload, i64::from(layout.alignment() - 1));
+    builder.ins().trapnz(misalignment, TrapCode::unwrap_user(4));
+    payload
+}
+
+fn aggregate_layout_by_fingerprint<'a>(
+    aggregate_layouts: &'a HashMap<String, AggregateLayout>,
+    pointer_type: Type,
+    layout_fingerprint: u32,
+    context: &str,
+    machine_contract: &str,
+) -> Result<&'a AggregateLayout, NativeCompileError> {
+    let mut matches = aggregate_layouts
+        .values()
+        .filter(|layout| layout.abi_fingerprint(pointer_type) == layout_fingerprint);
+    let layout = matches.next().ok_or_else(|| {
+        NativeCompileError::new(format!(
+            "{machine_contract} lost aggregate ABI layout {layout_fingerprint:#010x} for {context}"
+        ))
+    })?;
+    if matches.next().is_some() {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} aggregate ABI fingerprint collision {layout_fingerprint:#010x} for {context}"
+        )));
+    }
+    Ok(layout)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn materialize_aggregate_from_pointer(
+    builder: &mut FunctionBuilder<'_>,
+    module: &ObjectModule,
+    payload: Value,
+    destination: StackSlot,
+    layout: &AggregateLayout,
+    owner_prefix: &str,
+    base_offset: u32,
+    owned_buffers: &mut HashMap<String, OwnedBuffer>,
+    owner_order: &mut Vec<String>,
+    scope_depth: usize,
+) {
+    let pointer_type = module.target_config().pointer_type();
+    let (length_offset, allocator_offset, _, _) = owned_buffer_abi_offsets(pointer_type);
+    for field in &layout.fields {
+        let offset = base_offset + field.offset;
+        let native_offset = i32::try_from(offset).expect("aggregate offsets are validated");
+        let owner_name = format!("{owner_prefix}.{}", field.name);
+        match &field.field_type {
+            AggregateFieldType::Scalar(machine_type) => {
+                let value = builder.ins().load(
+                    machine_type.ir_type(),
+                    MemFlags::new(),
+                    payload,
+                    native_offset,
+                );
+                builder.ins().stack_store(value, destination, native_offset);
+            }
+            AggregateFieldType::Owned(owned_layout) => {
+                let base =
+                    builder
+                        .ins()
+                        .load(pointer_type, MemFlags::new(), payload, native_offset);
+                let length = builder.ins().load(
+                    types::I32,
+                    MemFlags::new(),
+                    payload,
+                    native_offset + length_offset,
+                );
+                let allocator_id = builder.ins().load(
+                    types::I32,
+                    MemFlags::new(),
+                    payload,
+                    native_offset + allocator_offset,
+                );
+                emit_owned_buffer_abi_guards(
+                    builder,
+                    module,
+                    base,
+                    length,
+                    allocator_id,
+                    owned_layout.element_type,
+                );
+                let owner = OwnedBuffer {
+                    base,
+                    length,
+                    allocator_id,
+                    element_type: owned_layout.element_type,
+                    state: OwnedBufferState::Live,
+                    scope_depth,
+                };
+                store_owned_buffer_in_aggregate(builder, module, destination, offset, &owner);
+                owned_buffers.insert(owner_name.clone(), owner);
+                owner_order.push(owner_name);
+            }
+            AggregateFieldType::Aggregate(nested) => materialize_aggregate_from_pointer(
+                builder,
+                module,
+                payload,
+                destination,
+                nested,
+                &owner_name,
+                offset,
+                owned_buffers,
+                owner_order,
+                scope_depth,
+            ),
+        }
+    }
+}
+
+fn copy_aggregate_slot_to_slot(
+    builder: &mut FunctionBuilder<'_>,
+    module: &ObjectModule,
+    source: StackSlot,
+    destination: StackSlot,
+    layout: &AggregateLayout,
+    source_base_offset: u32,
+    destination_base_offset: u32,
+) {
+    let pointer_type = module.target_config().pointer_type();
+    let (length_offset, allocator_offset, _, _) = owned_buffer_abi_offsets(pointer_type);
+    for field in &layout.fields {
+        let source_offset = source_base_offset + field.offset;
+        let destination_offset = destination_base_offset + field.offset;
+        let native_source = i32::try_from(source_offset).expect("aggregate offsets are validated");
+        let native_destination =
+            i32::try_from(destination_offset).expect("aggregate offsets are validated");
+        match &field.field_type {
+            AggregateFieldType::Scalar(machine_type) => {
+                let value = builder
+                    .ins()
+                    .stack_load(machine_type.ir_type(), source, native_source);
+                builder
+                    .ins()
+                    .stack_store(value, destination, native_destination);
+            }
+            AggregateFieldType::Owned(_) => {
+                for (field_type, relative_offset) in [
+                    (pointer_type, 0),
+                    (types::I32, length_offset),
+                    (types::I32, allocator_offset),
+                ] {
+                    let value = builder.ins().stack_load(
+                        field_type,
+                        source,
+                        native_source + relative_offset,
+                    );
+                    builder.ins().stack_store(
+                        value,
+                        destination,
+                        native_destination + relative_offset,
+                    );
+                }
+            }
+            AggregateFieldType::Aggregate(nested) => copy_aggregate_slot_to_slot(
+                builder,
+                module,
+                source,
+                destination,
+                nested,
+                source_offset,
+                destination_offset,
+            ),
+        }
+    }
+}
+
+fn copy_aggregate_slot_to_pointer(
+    builder: &mut FunctionBuilder<'_>,
+    module: &ObjectModule,
+    source: StackSlot,
+    payload: Value,
+    layout: &AggregateLayout,
+    base_offset: u32,
+) {
+    let pointer_type = module.target_config().pointer_type();
+    let (length_offset, allocator_offset, _, _) = owned_buffer_abi_offsets(pointer_type);
+    for field in &layout.fields {
+        let offset = base_offset + field.offset;
+        let native_offset = i32::try_from(offset).expect("aggregate offsets are validated");
+        match &field.field_type {
+            AggregateFieldType::Scalar(machine_type) => {
+                let value = builder
+                    .ins()
+                    .stack_load(machine_type.ir_type(), source, native_offset);
+                builder
+                    .ins()
+                    .store(MemFlags::new(), value, payload, native_offset);
+            }
+            AggregateFieldType::Owned(_) => {
+                for (field_type, relative_offset) in [
+                    (pointer_type, 0),
+                    (types::I32, length_offset),
+                    (types::I32, allocator_offset),
+                ] {
+                    let value = builder.ins().stack_load(
+                        field_type,
+                        source,
+                        native_offset + relative_offset,
+                    );
+                    builder.ins().store(
+                        MemFlags::new(),
+                        value,
+                        payload,
+                        native_offset + relative_offset,
+                    );
+                }
+            }
+            AggregateFieldType::Aggregate(nested) => {
+                copy_aggregate_slot_to_pointer(builder, module, source, payload, nested, offset)
+            }
+        }
+    }
+}
+
+fn aggregate_owned_leaf_names(
+    layout: &AggregateLayout,
+    owner_prefix: &str,
+    names: &mut Vec<String>,
+) {
+    for field in &layout.fields {
+        let owner_name = format!("{owner_prefix}.{}", field.name);
+        match &field.field_type {
+            AggregateFieldType::Owned(_) => names.push(owner_name),
+            AggregateFieldType::Aggregate(nested) => {
+                aggregate_owned_leaf_names(nested, &owner_name, names);
+            }
+            AggregateFieldType::Scalar(_) => {}
+        }
+    }
+}
+
+fn affine_aggregate_move_source(
+    expression: &AstNode,
+    context: &str,
+    machine_contract: &str,
+) -> Result<String, NativeCompileError> {
+    let AstNode::CallExpression(transfer) = expression else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} {context} must use explicit `move(aggregate)`"
+        )));
+    };
+    if !matches!(transfer.callee.as_ref(), AstNode::Identifier(callee) if callee.name == "move")
+        || transfer.arguments.len() != 1
+    {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} {context} must use explicit `move(aggregate)`"
+        )));
+    }
+    let AstNode::Identifier(source) = &transfer.arguments[0] else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} {context} requires a named whole aggregate; nested aggregate moves are not enabled"
+        )));
+    };
+    Ok(source.name.clone())
+}
+
+struct PreparedAggregateTransfer {
+    source_name: String,
+    source: TypedStackSlot,
+    owned_leaves: Vec<(String, OwnedBuffer)>,
+}
+
+#[allow(clippy::too_many_arguments)]
+fn prepare_affine_aggregate_transfer(
+    module: &ObjectModule,
+    stack_slots: &HashMap<String, TypedStackSlot>,
+    owned_buffers: &HashMap<String, OwnedBuffer>,
+    borrow_states: &HashMap<String, BorrowState>,
+    expression: &AstNode,
+    expected_fingerprint: u32,
+    context: &str,
+    machine_contract: &str,
+) -> Result<PreparedAggregateTransfer, NativeCompileError> {
+    let source_name = affine_aggregate_move_source(expression, context, machine_contract)?;
+    let source = stack_slots.get(&source_name).cloned().ok_or_else(|| {
+        NativeCompileError::new(format!(
+            "{machine_contract} {context} references unknown aggregate `{source_name}`"
+        ))
+    })?;
+    let StackSlotLayout::Aggregate(layout) = &source.layout else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} {context} requires an aggregate, but `{source_name}` is scalar storage"
+        )));
+    };
+    let pointer_type = module.target_config().pointer_type();
+    if layout.abi_fingerprint(pointer_type) != expected_fingerprint {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} {context} expects an aggregate compatible with ABI layout {expected_fingerprint:#010x}, but `{source_name}` has `{}`",
+            layout.name
+        )));
+    }
+    let root_state = borrow_states.get(&source_name).copied().unwrap_or_default();
+    if root_state.aggregate_moved {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} aggregate `{source_name}` was already moved before {context}"
+        )));
+    }
+    if root_state.shared > 0 || root_state.exclusive {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} cannot move aggregate `{source_name}` for {context} while a borrow is active"
+        )));
+    }
+    let mut leaf_names = Vec::new();
+    aggregate_owned_leaf_names(layout, &source_name, &mut leaf_names);
+    let mut transferred = Vec::with_capacity(leaf_names.len());
+    for owner_name in leaf_names {
+        let owner = owned_buffers.get(&owner_name).ok_or_else(|| {
+            NativeCompileError::new(format!(
+                "{machine_contract} aggregate `{source_name}` lost owned leaf `{owner_name}` before {context}"
+            ))
+        })?;
+        require_live_owned_transfer(
+            owner,
+            borrow_states,
+            &owner_name,
+            owner.element_type,
+            context,
+            machine_contract,
+        )?;
+        transferred.push((owner_name, owner.clone()));
+    }
+    Ok(PreparedAggregateTransfer {
+        source_name,
+        source,
+        owned_leaves: transferred,
+    })
+}
+
+fn commit_affine_aggregate_transfer(
+    source_name: &str,
+    transferred: &[(String, OwnedBuffer)],
+    owned_buffers: &mut HashMap<String, OwnedBuffer>,
+    borrow_states: &mut HashMap<String, BorrowState>,
+) {
+    for (owner_name, _) in transferred {
+        owned_buffers
+            .get_mut(owner_name)
+            .expect("aggregate transfer leaf was just validated")
+            .state = OwnedBufferState::Moved;
+    }
+    borrow_states
+        .entry(source_name.to_string())
+        .or_default()
+        .aggregate_moved = true;
+}
+
 fn lower_typed_ast_to_object(
     ast: &Ast,
     machine_contract: &'static str,
@@ -1979,7 +2660,8 @@ fn lower_typed_ast_to_object(
         .into_iter()
         .map(|layout| (layout.name.clone(), layout))
         .collect::<HashMap<_, _>>();
-    let specs = collect_typed_function_specs(ast, machine_contract, &aggregate_layouts)?;
+    let specs =
+        collect_typed_function_specs(ast, machine_contract, &aggregate_layouts, pointer_type)?;
     let allocator = if owned_buffers_enabled(machine_contract) {
         Some(declare_allocator_abi(&mut module)?)
     } else {
@@ -2028,11 +2710,13 @@ fn lower_typed_ast_to_object(
 
             let mut block_params = builder.block_params(block).to_vec().into_iter();
             let mut locals = HashMap::new();
+            let mut parameter_stack_slots = HashMap::new();
             let mut parameter_references = HashMap::new();
             let mut parameter_owned_buffers = HashMap::new();
             let mut parameter_owner_order = Vec::new();
             for (name, parameter) in spec.node.params.iter().zip(spec.params.iter().copied()) {
                 if locals.contains_key(name)
+                    || parameter_stack_slots.contains_key(name)
                     || parameter_references.contains_key(name)
                     || parameter_owned_buffers.contains_key(name)
                 {
@@ -2111,17 +2795,78 @@ fn lower_typed_ast_to_object(
                         );
                         parameter_owner_order.push(name.clone());
                     }
+                    MachineParameter::Aggregate { layout_fingerprint } => {
+                        let descriptor = block_params
+                            .next()
+                            .expect("aggregate parameter must have one ABI descriptor pointer");
+                        let layout = aggregate_layout_by_fingerprint(
+                            &aggregate_layouts,
+                            pointer_type,
+                            layout_fingerprint,
+                            &format!("parameter `{name}` in `{}`", spec.node.name),
+                            machine_contract,
+                        )?;
+                        let payload = validate_aggregate_ffi_record(
+                            &mut builder,
+                            &module,
+                            descriptor,
+                            layout,
+                        );
+                        let stack_slot = builder.create_sized_stack_slot(StackSlotData::new(
+                            StackSlotKind::ExplicitSlot,
+                            layout.size,
+                            layout.align_shift,
+                        ));
+                        materialize_aggregate_from_pointer(
+                            &mut builder,
+                            &module,
+                            payload,
+                            stack_slot,
+                            layout,
+                            name,
+                            0,
+                            &mut parameter_owned_buffers,
+                            &mut parameter_owner_order,
+                            0,
+                        );
+                        parameter_stack_slots.insert(
+                            name.clone(),
+                            TypedStackSlot {
+                                slot: stack_slot,
+                                layout: StackSlotLayout::Aggregate(layout.clone()),
+                            },
+                        );
+                    }
                 }
             }
-            let owned_return_out = match spec.result {
+            let return_out = match spec.result {
                 MachineResult::Owned(_) => Some(
                     block_params
                         .next()
                         .expect("owned return must have an ABI out-record pointer"),
                 ),
                 MachineResult::Scalar(_) => None,
+                MachineResult::Aggregate { layout_fingerprint } => {
+                    let descriptor = block_params
+                        .next()
+                        .expect("aggregate return must have an ABI descriptor pointer");
+                    let layout = aggregate_layout_by_fingerprint(
+                        &aggregate_layouts,
+                        pointer_type,
+                        layout_fingerprint,
+                        &format!("return from `{}`", spec.node.name),
+                        machine_contract,
+                    )?;
+                    Some(validate_aggregate_ffi_record(
+                        &mut builder,
+                        &module,
+                        descriptor,
+                        layout,
+                    ))
+                }
             };
-            if let Some(out) = owned_return_out {
+            if matches!(spec.result, MachineResult::Owned(_)) {
+                let out = return_out.expect("owned result must have an out record");
                 let null_out = builder.ins().icmp_imm(IntCC::Equal, out, 0);
                 builder.ins().trapnz(null_out, TrapCode::unwrap_user(2));
             }
@@ -2133,10 +2878,11 @@ fn lower_typed_ast_to_object(
                 &functions,
                 &aggregate_layouts,
                 &mut locals,
+                parameter_stack_slots,
                 parameter_references,
                 parameter_owned_buffers,
                 parameter_owner_order,
-                owned_return_out,
+                return_out,
                 allocator,
                 spec,
                 machine_contract,
@@ -2174,7 +2920,9 @@ fn lower_typed_ast_to_object(
             MachineResult::Scalar(MachineType::Bool) => builder.ins().uextend(types::I32, value),
             MachineResult::Scalar(MachineType::I32) => value,
             MachineResult::Scalar(MachineType::I64) => builder.ins().ireduce(types::I32, value),
-            MachineResult::Owned(_) => unreachable!("typed main cannot return ownership"),
+            MachineResult::Owned(_) | MachineResult::Aggregate { .. } => {
+                unreachable!("typed main cannot return ownership")
+            }
         };
         builder.ins().return_(&[exit_code]);
         builder.seal_all_blocks();
@@ -2194,6 +2942,7 @@ fn collect_typed_function_specs<'a>(
     ast: &'a Ast,
     machine_contract: &str,
     aggregate_layouts: &HashMap<String, AggregateLayout>,
+    pointer_type: Type,
 ) -> Result<Vec<TypedFunctionSpec<'a>>, NativeCompileError> {
     if ast.body.is_empty() {
         return Err(NativeCompileError::new(format!(
@@ -2285,6 +3034,7 @@ fn collect_typed_function_specs<'a>(
                                 | SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT
                                 | OWNED_BUFFER_MACHINE_CONTRACT
                                 | OWNED_AGGREGATE_MACHINE_CONTRACT
+                                | AFFINE_AGGREGATE_MACHINE_CONTRACT
                         ) =>
                     {
                         params.push(MachineParameter::Slice {
@@ -2301,11 +3051,17 @@ fn collect_typed_function_specs<'a>(
                     }
                 }
             }
-            if aggregate_layouts.contains_key(type_name) {
-                return Err(NativeCompileError::new(format!(
-                    "{machine_contract} aggregates cannot appear in function parameters; `{param_name}` in `{}` uses `{type_name}`",
-                    function.name
-                )));
+            if let Some(layout) = aggregate_layouts.get(type_name) {
+                if machine_contract != AFFINE_AGGREGATE_MACHINE_CONTRACT {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} aggregates cannot appear in function parameters; `{param_name}` in `{}` uses `{type_name}`",
+                        function.name
+                    )));
+                }
+                params.push(MachineParameter::Aggregate {
+                    layout_fingerprint: layout.abi_fingerprint(pointer_type),
+                });
+                continue;
             }
             if FixedArrayLayout::parse(
                 type_name,
@@ -2344,29 +3100,35 @@ fn collect_typed_function_specs<'a>(
                     function.name
                 )));
             }
-            if aggregate_layouts.contains_key(return_name) {
-                return Err(NativeCompileError::new(format!(
-                    "{machine_contract} aggregates cannot appear in function returns; `{}` returns `{return_name}`",
-                    function.name
-                )));
+            if let Some(layout) = aggregate_layouts.get(return_name) {
+                if machine_contract != AFFINE_AGGREGATE_MACHINE_CONTRACT {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} aggregates cannot appear in function returns; `{}` returns `{return_name}`",
+                        function.name
+                    )));
+                }
+                MachineResult::Aggregate {
+                    layout_fingerprint: layout.abi_fingerprint(pointer_type),
+                }
+            } else {
+                if FixedArrayLayout::parse(
+                    return_name,
+                    &format!("return type of function `{}`", function.name),
+                    machine_contract,
+                )?
+                .is_some()
+                {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} fixed arrays cannot appear in function returns; `{}` returns `{return_name}`",
+                        function.name
+                    )));
+                }
+                MachineResult::Scalar(MachineType::parse(
+                    return_name,
+                    &format!("return type of function `{}`", function.name),
+                    machine_contract,
+                )?)
             }
-            if FixedArrayLayout::parse(
-                return_name,
-                &format!("return type of function `{}`", function.name),
-                machine_contract,
-            )?
-            .is_some()
-            {
-                return Err(NativeCompileError::new(format!(
-                    "{machine_contract} fixed arrays cannot appear in function returns; `{}` returns `{return_name}`",
-                    function.name
-                )));
-            }
-            MachineResult::Scalar(MachineType::parse(
-                return_name,
-                &format!("return type of function `{}`", function.name),
-                machine_contract,
-            )?)
         };
         specs.push(TypedFunctionSpec {
             node: function,
@@ -2423,6 +3185,9 @@ fn machine_signature(
                 signature.params.push(AbiParam::new(types::I32));
                 signature.params.push(AbiParam::new(types::I32));
             }
+            MachineParameter::Aggregate { .. } => signature
+                .params
+                .push(AbiParam::new(module.target_config().pointer_type())),
         }
     }
     match result {
@@ -2431,7 +3196,7 @@ fn machine_signature(
                 .returns
                 .push(AbiParam::new(machine_type.ir_type()));
         }
-        MachineResult::Owned(_) => signature
+        MachineResult::Owned(_) | MachineResult::Aggregate { .. } => signature
             .params
             .push(AbiParam::new(module.target_config().pointer_type())),
     }
@@ -2445,16 +3210,16 @@ fn lower_typed_body(
     functions: &HashMap<String, TypedFunctionAbi>,
     aggregate_layouts: &HashMap<String, AggregateLayout>,
     locals: &mut HashMap<String, TypedValue>,
+    mut stack_slots: HashMap<String, TypedStackSlot>,
     mut references: HashMap<String, TypedReference>,
     mut owned_buffers: HashMap<String, OwnedBuffer>,
     mut owner_order: Vec<String>,
-    owned_return_out: Option<Value>,
+    return_out: Option<Value>,
     allocator: Option<AllocatorAbi>,
     spec: &TypedFunctionSpec<'_>,
     machine_contract: &str,
     memory_enabled: bool,
 ) -> Result<(), NativeCompileError> {
-    let mut stack_slots = HashMap::new();
     let mut borrow_states = HashMap::new();
     let mut function_borrow_leases = Vec::new();
     let outcome = lower_typed_statements(
@@ -2472,7 +3237,7 @@ fn lower_typed_body(
         allocator,
         &spec.node.body,
         spec,
-        owned_return_out,
+        return_out,
         machine_contract,
         memory_enabled,
         true,
@@ -3038,6 +3803,56 @@ fn lower_typed_statements(
                         }
                         builder.ins().return_(&[]);
                     }
+                    MachineResult::Aggregate { layout_fingerprint } => {
+                        let layout = aggregate_layout_by_fingerprint(
+                            aggregate_layouts,
+                            module.target_config().pointer_type(),
+                            layout_fingerprint,
+                            &format!("return from `{}`", spec.node.name),
+                            machine_contract,
+                        )?;
+                        let context = format!("return from `{}`", spec.node.name);
+                        let PreparedAggregateTransfer {
+                            source_name,
+                            source,
+                            owned_leaves: transferred,
+                        } = prepare_affine_aggregate_transfer(
+                            module,
+                            stack_slots,
+                            owned_buffers,
+                            borrow_states,
+                            argument,
+                            layout_fingerprint,
+                            &context,
+                            machine_contract,
+                        )?;
+                        let out = owned_return_out
+                            .expect("aggregate result must have a validated payload pointer");
+                        copy_aggregate_slot_to_pointer(
+                            builder,
+                            module,
+                            source.slot,
+                            out,
+                            layout,
+                            0,
+                        );
+                        commit_affine_aggregate_transfer(
+                            &source_name,
+                            &transferred,
+                            owned_buffers,
+                            borrow_states,
+                        );
+                        if let Some(allocator) = allocator {
+                            emit_owned_buffer_cleanup(
+                                builder,
+                                module,
+                                owned_buffers,
+                                owner_order,
+                                allocator,
+                            );
+                        }
+                        builder.ins().return_(&[]);
+                    }
                 }
                 outcome = FlowOutcome::Returns;
             }
@@ -3066,7 +3881,7 @@ fn lower_aggregate_initializer(
     locals: &HashMap<String, TypedValue>,
     stack_slots: &HashMap<String, TypedStackSlot>,
     references: &HashMap<String, TypedReference>,
-    borrow_states: &HashMap<String, BorrowState>,
+    borrow_states: &mut HashMap<String, BorrowState>,
     owned_buffers: &mut HashMap<String, OwnedBuffer>,
     owner_order: &mut Vec<String>,
     allocator: Option<AllocatorAbi>,
@@ -3090,6 +3905,105 @@ fn lower_aggregate_initializer(
             "{machine_contract} aggregate `{owner_prefix}` requires a named constructor"
         )));
     };
+    let expected_fingerprint = layout.abi_fingerprint(module.target_config().pointer_type());
+    if constructor_name.name == "move" {
+        if machine_contract != AFFINE_AGGREGATE_MACHINE_CONTRACT {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} whole-aggregate moves require {AFFINE_AGGREGATE_MACHINE_CONTRACT}"
+            )));
+        }
+        let context = format!("initializer for aggregate `{owner_prefix}`");
+        let PreparedAggregateTransfer {
+            source_name,
+            source,
+            owned_leaves: transferred,
+        } = prepare_affine_aggregate_transfer(
+            module,
+            stack_slots,
+            owned_buffers,
+            borrow_states,
+            initializer,
+            expected_fingerprint,
+            &context,
+            machine_contract,
+        )?;
+        copy_aggregate_slot_to_slot(
+            builder,
+            module,
+            source.slot,
+            stack_slot,
+            layout,
+            0,
+            base_offset,
+        );
+        commit_affine_aggregate_transfer(&source_name, &transferred, owned_buffers, borrow_states);
+        for (source_owner, mut owner) in transferred {
+            let suffix = source_owner
+                .strip_prefix(&source_name)
+                .expect("aggregate leaf must retain its source root");
+            let destination_owner = format!("{owner_prefix}{suffix}");
+            owner.state = OwnedBufferState::Live;
+            owner.scope_depth = scope_depth;
+            owned_buffers.insert(destination_owner.clone(), owner);
+            owner_order.push(destination_owner);
+        }
+        return Ok(());
+    }
+    if let Some(abi) = functions.get(&constructor_name.name) {
+        let MachineResult::Aggregate { layout_fingerprint } = abi.result else {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} aggregate `{owner_prefix}` cannot be initialized by `{}` because it does not return an aggregate",
+                constructor_name.name
+            )));
+        };
+        if layout_fingerprint != expected_fingerprint {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} aggregate `{owner_prefix}` expects `{}`, but `{}` returns an incompatible aggregate layout",
+                layout.name, constructor_name.name
+            )));
+        }
+        let mut arguments = lower_call_arguments_with_ownership(
+            builder,
+            module,
+            functions,
+            locals,
+            stack_slots,
+            references,
+            borrow_states,
+            owned_buffers,
+            constructor,
+            abi,
+            machine_contract,
+            memory_enabled,
+        )?;
+        arguments.push(create_aggregate_ffi_record(
+            builder,
+            module,
+            stack_slot,
+            i32::try_from(base_offset).expect("aggregate offsets are validated"),
+            layout,
+        ));
+        let local_callee = module.declare_func_in_func(abi.func_id, builder.func);
+        let call_inst = builder.ins().call(local_callee, &arguments);
+        debug_assert!(builder.inst_results(call_inst).is_empty());
+        let payload =
+            builder
+                .ins()
+                .stack_addr(module.target_config().pointer_type(), stack_slot, 0);
+        materialize_aggregate_from_pointer(
+            builder,
+            module,
+            payload,
+            stack_slot,
+            layout,
+            owner_prefix,
+            base_offset,
+            owned_buffers,
+            owner_order,
+            scope_depth,
+        );
+        return Ok(());
+    }
     if constructor_name.name != layout.name {
         return Err(NativeCompileError::new(format!(
             "{machine_contract} aggregate `{owner_prefix}` expects constructor `{}`, found `{}`",
@@ -3229,7 +4143,7 @@ fn lower_owned_buffer_initializer(
     locals: &HashMap<String, TypedValue>,
     stack_slots: &HashMap<String, TypedStackSlot>,
     references: &HashMap<String, TypedReference>,
-    borrow_states: &HashMap<String, BorrowState>,
+    borrow_states: &mut HashMap<String, BorrowState>,
     owned_buffers: &mut HashMap<String, OwnedBuffer>,
     allocator: AllocatorAbi,
     owner_name: &str,
@@ -3430,9 +4344,12 @@ fn call_consumes_owned_arguments(
         return false;
     };
     functions.get(&callee.name).is_some_and(|abi| {
-        abi.params
-            .iter()
-            .any(|parameter| matches!(parameter, MachineParameter::Owned { .. }))
+        abi.params.iter().any(|parameter| {
+            matches!(
+                parameter,
+                MachineParameter::Owned { .. } | MachineParameter::Aggregate { .. }
+            )
+        })
     })
 }
 
@@ -3444,7 +4361,7 @@ fn lower_scalar_call_with_ownership(
     locals: &HashMap<String, TypedValue>,
     stack_slots: &HashMap<String, TypedStackSlot>,
     references: &HashMap<String, TypedReference>,
-    borrow_states: &HashMap<String, BorrowState>,
+    borrow_states: &mut HashMap<String, BorrowState>,
     owned_buffers: &mut HashMap<String, OwnedBuffer>,
     call: &CallExpression,
     expected: MachineType,
@@ -3508,7 +4425,7 @@ fn lower_call_arguments_with_ownership(
     locals: &HashMap<String, TypedValue>,
     stack_slots: &HashMap<String, TypedStackSlot>,
     references: &HashMap<String, TypedReference>,
-    borrow_states: &HashMap<String, BorrowState>,
+    borrow_states: &mut HashMap<String, BorrowState>,
     owned_buffers: &mut HashMap<String, OwnedBuffer>,
     call: &CallExpression,
     abi: &TypedFunctionAbi,
@@ -3591,6 +4508,39 @@ fn lower_call_arguments_with_ownership(
                 arguments.push(transferred.base);
                 arguments.push(transferred.length);
                 arguments.push(transferred.allocator_id);
+            }
+            MachineParameter::Aggregate { layout_fingerprint } => {
+                let context = format!("argument {} to `{}`", index + 1, callee.name);
+                let PreparedAggregateTransfer {
+                    source_name,
+                    source,
+                    owned_leaves: transferred,
+                } = prepare_affine_aggregate_transfer(
+                    module,
+                    stack_slots,
+                    owned_buffers,
+                    borrow_states,
+                    argument,
+                    layout_fingerprint,
+                    &context,
+                    machine_contract,
+                )?;
+                let StackSlotLayout::Aggregate(layout) = &source.layout else {
+                    unreachable!("aggregate transfer preparation validates aggregate storage")
+                };
+                arguments.push(create_aggregate_ffi_record(
+                    builder,
+                    module,
+                    source.slot,
+                    0,
+                    layout,
+                ));
+                commit_affine_aggregate_transfer(
+                    &source_name,
+                    &transferred,
+                    owned_buffers,
+                    borrow_states,
+                );
             }
         }
     }
@@ -4064,11 +5014,13 @@ fn lower_typed_if(
         (FlowOutcome::Returns, FlowOutcome::Returns) => Ok(FlowOutcome::Returns),
         (FlowOutcome::Returns, FlowOutcome::FallsThrough) => {
             apply_owned_branch_state(owned_buffers, &alternate_owned_buffers);
+            apply_aggregate_move_branch_state(borrow_states, &alternate_borrow_states);
             builder.switch_to_block(merge_block);
             Ok(FlowOutcome::FallsThrough)
         }
         (FlowOutcome::FallsThrough, FlowOutcome::Returns) => {
             apply_owned_branch_state(owned_buffers, &consequent_owned_buffers);
+            apply_aggregate_move_branch_state(borrow_states, &consequent_borrow_states);
             builder.switch_to_block(merge_block);
             Ok(FlowOutcome::FallsThrough)
         }
@@ -4077,6 +5029,13 @@ fn lower_typed_if(
                 owned_buffers,
                 &consequent_owned_buffers,
                 &alternate_owned_buffers,
+                &spec.node.name,
+                machine_contract,
+            )?;
+            join_aggregate_move_branch_states(
+                borrow_states,
+                &consequent_borrow_states,
+                &alternate_borrow_states,
                 &spec.node.name,
                 machine_contract,
             )?;
@@ -4096,6 +5055,56 @@ fn apply_owned_branch_state(
             .expect("branch ownership map must retain outer owners")
             .state;
     }
+}
+
+fn apply_aggregate_move_branch_state(
+    borrow_states: &mut HashMap<String, BorrowState>,
+    branch: &HashMap<String, BorrowState>,
+) {
+    for state in borrow_states.values_mut() {
+        state.aggregate_moved = false;
+    }
+    for (name, branch_state) in branch {
+        if branch_state.aggregate_moved {
+            borrow_states
+                .entry(name.clone())
+                .or_default()
+                .aggregate_moved = true;
+        }
+    }
+}
+
+fn join_aggregate_move_branch_states(
+    borrow_states: &mut HashMap<String, BorrowState>,
+    consequent: &HashMap<String, BorrowState>,
+    alternate: &HashMap<String, BorrowState>,
+    function_name: &str,
+    machine_contract: &str,
+) -> Result<(), NativeCompileError> {
+    let names = consequent
+        .keys()
+        .chain(alternate.keys())
+        .collect::<HashSet<_>>();
+    for name in names {
+        let consequent_moved = consequent
+            .get(name)
+            .is_some_and(|state| state.aggregate_moved);
+        let alternate_moved = alternate
+            .get(name)
+            .is_some_and(|state| state.aggregate_moved);
+        if consequent_moved != alternate_moved {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} conditional aggregate-move join for `{name}` in function `{function_name}` disagrees between branches"
+            )));
+        }
+        if consequent_moved {
+            borrow_states
+                .entry(name.clone())
+                .or_default()
+                .aggregate_moved = true;
+        }
+    }
+    Ok(())
 }
 
 fn join_owned_branch_states(
@@ -4204,6 +5213,24 @@ fn lower_typed_while(
             if owner.state != body_state {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} loop body changes ownership of `{name}` in function `{}` and could repeat the transfer",
+                    spec.node.name
+                )));
+            }
+        }
+        let aggregate_state_names = borrow_states
+            .keys()
+            .chain(body_borrow_states.keys())
+            .collect::<HashSet<_>>();
+        for name in aggregate_state_names {
+            let before = borrow_states
+                .get(name)
+                .is_some_and(|state| state.aggregate_moved);
+            let after = body_borrow_states
+                .get(name)
+                .is_some_and(|state| state.aggregate_moved);
+            if before != after {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} loop body changes affine aggregate state of `{name}` in function `{}` and could repeat the transfer",
                     spec.node.name
                 )));
             }
@@ -4329,9 +5356,18 @@ fn lower_scoped_statements(
     owner_order.truncate(outer_owner_order_len);
     borrow_states.retain(|slot_name, state| {
         (outer_stack_slots.contains(slot_name) || outer_owned_buffers.contains(slot_name))
-            && (state.shared > 0 || state.exclusive)
+            && (state.shared > 0 || state.exclusive || state.aggregate_moved)
     });
-    if *borrow_states != outer_borrow_states {
+    let borrow_names = borrow_states
+        .keys()
+        .chain(outer_borrow_states.keys())
+        .collect::<HashSet<_>>();
+    let alias_state_changed = borrow_names.into_iter().any(|name| {
+        let current = borrow_states.get(name).copied().unwrap_or_default();
+        let outer = outer_borrow_states.get(name).copied().unwrap_or_default();
+        current.shared != outer.shared || current.exclusive != outer.exclusive
+    });
+    if alias_state_changed {
         return Err(NativeCompileError::new(format!(
             "{machine_contract} cleanup edge changed outer borrow state in function `{}`",
             spec.node.name
@@ -4373,7 +5409,7 @@ fn release_borrow(
                 ))
             })?;
         }
-        state.shared == 0 && !state.exclusive
+        state.shared == 0 && !state.exclusive && !state.aggregate_moved
     };
     if remove_state {
         borrow_states.remove(slot_name);
@@ -4459,6 +5495,7 @@ fn lower_reference_initializer(
                     | SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT
                     | OWNED_BUFFER_MACHINE_CONTRACT
                     | OWNED_AGGREGATE_MACHINE_CONTRACT
+                    | AFFINE_AGGREGATE_MACHINE_CONTRACT
             ) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} does not enable borrowed slice values"
@@ -4499,6 +5536,11 @@ fn lower_reference_initializer(
                         },
                     };
                     let state = borrow_states.entry(slot_name.clone()).or_default();
+                    if state.aggregate_moved {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} cannot borrow aggregate `{slot_name}` after move"
+                        )));
+                    }
                     if reference_type.mutable {
                         if state.exclusive || state.shared > 0 {
                             return Err(NativeCompileError::new(format!(
@@ -4586,6 +5628,11 @@ fn lower_reference_initializer(
     };
 
     let state = borrow_states.entry(slot_name.clone()).or_default();
+    if state.aggregate_moved {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} cannot borrow aggregate `{slot_name}` after move"
+        )));
+    }
     if reference_type.mutable {
         if state.exclusive || state.shared > 0 {
             return Err(NativeCompileError::new(format!(
@@ -5078,7 +6125,7 @@ fn lower_typed_expression(
                         arguments.push(base);
                         arguments.push(length);
                     }
-                    MachineParameter::Owned { .. } => {
+                    MachineParameter::Owned { .. } | MachineParameter::Aggregate { .. } => {
                         return Err(NativeCompileError::new(format!(
                             "{machine_contract} call to `{}` consumes ownership and must be used as a direct typed initializer or return expression",
                             callee.name
@@ -5303,6 +6350,7 @@ fn lower_forwarded_slice_call_argument(
             | SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT
             | OWNED_BUFFER_MACHINE_CONTRACT
             | OWNED_AGGREGATE_MACHINE_CONTRACT
+            | AFFINE_AGGREGATE_MACHINE_CONTRACT
     ) {
         return Err(NativeCompileError::new(format!(
             "{machine_contract} slice argument {} to `{callee_name}` must be a direct range reborrow",
@@ -5356,6 +6404,7 @@ fn lower_forwarded_slice_call_argument(
                 SLICE_DYNAMIC_FORWARD_MACHINE_CONTRACT
                     | OWNED_BUFFER_MACHINE_CONTRACT
                     | OWNED_AGGREGATE_MACHINE_CONTRACT
+                    | AFFINE_AGGREGATE_MACHINE_CONTRACT
             ) =>
         {
             let AstNode::BinaryExpression(range) = range_node else {
@@ -5785,7 +6834,7 @@ fn known_expression_type(
                     .get(&callee.name)
                     .and_then(|abi| match abi.result {
                         MachineResult::Scalar(machine_type) => Some(machine_type),
-                        MachineResult::Owned(_) => None,
+                        MachineResult::Owned(_) | MachineResult::Aggregate { .. } => None,
                     })
             }
         }
@@ -6452,6 +7501,12 @@ fn validate_stack_access_borrow(
                 .get(&access.root_name)
                 .copied()
                 .unwrap_or_default();
+            if state.aggregate_moved {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} aggregate `{}` was already moved before `{operation}`",
+                    access.root_name
+                )));
+            }
             if operation == "load" && state.exclusive {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} cannot directly load stack slot `{}` while an exclusive borrow is active",

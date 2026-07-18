@@ -4,8 +4,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use cranelift::object::object::{Object, ObjectSection, ObjectSymbol, RelocationTarget};
 use holoscript_native::{
-    compile_executable, compile_object, inspect_native_layouts, NativeCompileOptions,
-    NativeOwnedBufferFfi, HOST_ALLOCATOR_PROVENANCE_ID, OWNED_AGGREGATE_MACHINE_CONTRACT,
+    compile_executable, compile_object, inspect_native_layouts, NativeAggregateFfi,
+    NativeCompileOptions, NativeOwnedBufferFfi, AFFINE_AGGREGATE_MACHINE_CONTRACT,
+    HOST_ALLOCATOR_PROVENANCE_ID, NATIVE_AGGREGATE_ABI_VERSION, OWNED_AGGREGATE_MACHINE_CONTRACT,
     OWNED_BUFFER_ABI_VERSION,
 };
 
@@ -214,6 +215,8 @@ const OWNED_BUFFER_TRANSFER_EXIT_FIVE: &str =
     include_str!("../../../examples/native/owned-buffer-transfer-exit-five.hs");
 const OWNED_AGGREGATE_DROP_EXIT_FIVE: &str =
     include_str!("../../../examples/native/owned-aggregate-drop-exit-five.hs");
+const AFFINE_AGGREGATE_TRANSFER_EXIT_FIVE: &str =
+    include_str!("../../../examples/native/affine-aggregate-transfer-exit-five.hs");
 
 fn scratch_executable(name: &str) -> std::path::PathBuf {
     let nonce = SystemTime::now()
@@ -481,7 +484,7 @@ fn compiles_fixed_arrays_and_bounds_checked_slice_projections() {
             .status()
             .expect("out-of-bounds executable should launch");
         assert!(!status.success(), "out-of-bounds index {index} must trap");
-        fs::remove_file(&artifact.executable).expect("remove trapping array executable");
+        remove_scratch_executable_with_retry(&artifact.executable);
     }
 }
 
@@ -526,7 +529,7 @@ fn compiles_non_escaping_borrowed_slices_with_lexical_alias_release() {
             !status.success(),
             "out-of-bounds slice index {index} must trap"
         );
-        fs::remove_file(&artifact.executable).expect("remove trapping slice executable");
+        remove_scratch_executable_with_retry(&artifact.executable);
     }
 }
 
@@ -572,7 +575,7 @@ fn compiles_call_safe_borrowed_slice_parameters() {
             !status.success(),
             "out-of-bounds slice parameter index {index} must trap"
         );
-        fs::remove_file(&artifact.executable).expect("remove trapping slice-call executable");
+        remove_scratch_executable_with_retry(&artifact.executable);
     }
 }
 
@@ -717,7 +720,7 @@ fn runtime_indexed_slice_reborrows_trap_before_invalid_addressing() {
             .status()
             .expect("invalid runtime range executable should launch");
         assert!(!status.success(), "runtime range {start}..{end} must trap");
-        fs::remove_file(&artifact.executable).expect("remove trapping runtime-range executable");
+        remove_scratch_executable_with_retry(&artifact.executable);
     }
 
     let executable = scratch_executable("native-runtime-empty-slice");
@@ -1039,14 +1042,6 @@ fn owned_aggregate_field_state_machine_rejects_copy_alias_and_escape() {
             "recursive by-value aggregate cycle is not finite: Node -> Node",
         ),
         (
-            "struct Packet { values: [i32] } function take(packet: Packet): i32 { return 5 } function main(): i32 { return 5 }",
-            "aggregates cannot appear in function parameters",
-        ),
-        (
-            "struct Packet { values: [i32] } function make(): Packet { slot packet: Packet = Packet(buffer(1, 5)) return packet } function main(): i32 { return 5 }",
-            "aggregates cannot appear in function returns",
-        ),
-        (
             "struct Packet { values: [i32] } function main(): i32 { slot packet: Packet = Packet(buffer(1, 5)) drop(packet) return 5 }",
             "`drop` references unknown owned buffer `packet`",
         ),
@@ -1088,6 +1083,159 @@ fn owned_aggregate_field_state_machine_rejects_copy_alias_and_escape() {
 }
 
 #[test]
+fn affine_aggregate_moves_calls_returns_and_recursive_drop_are_deterministic() {
+    assert_eq!(AFFINE_AGGREGATE_MACHINE_CONTRACT, "hs-machine-v15");
+    assert_eq!(NATIVE_AGGREGATE_ABI_VERSION, 1);
+
+    let first = compile_object(
+        AFFINE_AGGREGATE_TRANSFER_EXIT_FIVE,
+        &NativeCompileOptions::host(),
+    )
+    .expect("affine aggregate calls and returns should compile");
+    let second = compile_object(
+        AFFINE_AGGREGATE_TRANSFER_EXIT_FIVE,
+        &NativeCompileOptions::host(),
+    )
+    .expect("affine aggregate ABI emission should be deterministic");
+    assert_eq!(first, second);
+    assert_eq!(
+        relocation_count_to_symbol(&first, "free"),
+        2,
+        "only the final aggregate receiver should drop its two owned leaves"
+    );
+
+    let executable = scratch_executable("native-affine-aggregate-transfer");
+    let artifact = compile_executable(
+        AFFINE_AGGREGATE_TRANSFER_EXIT_FIVE,
+        &executable,
+        &NativeCompileOptions::host(),
+    )
+    .expect("affine aggregate calls and returns should link");
+    assert_eq!(artifact.machine_contract, "hs-machine-v15");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("affine aggregate executable should run");
+    assert_eq!(status.code(), Some(5));
+    remove_scratch_executable_with_retry(&artifact.executable);
+}
+
+#[test]
+fn affine_aggregate_ffi_descriptor_is_versioned_target_aware_and_fail_closed() {
+    assert_eq!(std::mem::offset_of!(NativeAggregateFfi, data), 0);
+    assert_eq!(
+        std::mem::offset_of!(NativeAggregateFfi, byte_length),
+        std::mem::size_of::<*mut u8>()
+    );
+    assert_eq!(
+        std::mem::offset_of!(NativeAggregateFfi, alignment),
+        std::mem::size_of::<*mut u8>() + 4
+    );
+    assert_eq!(
+        std::mem::offset_of!(NativeAggregateFfi, layout_fingerprint),
+        std::mem::size_of::<*mut u8>() + 8
+    );
+    assert_eq!(
+        std::mem::offset_of!(NativeAggregateFfi, abi_version),
+        std::mem::size_of::<*mut u8>() + 12
+    );
+
+    let layouts = inspect_native_layouts(AFFINE_AGGREGATE_TRANSFER_EXIT_FIVE)
+        .expect("v15 layouts should publish ABI fingerprints");
+    let envelope = layouts
+        .iter()
+        .find(|layout| layout.name == "Envelope")
+        .expect("Envelope layout should be reported");
+    let payload = layouts
+        .iter()
+        .find(|layout| layout.name == "Payload")
+        .expect("Payload layout should be reported");
+    assert_eq!(envelope.abi_version, NATIVE_AGGREGATE_ABI_VERSION);
+    assert_ne!(envelope.abi_fingerprint, 0);
+    assert_ne!(envelope.abi_fingerprint, payload.abi_fingerprint);
+
+    #[repr(align(16))]
+    struct AlignedPayload([u8; 256]);
+    let mut storage = AlignedPayload([0; 256]);
+    assert!(envelope.size as usize <= storage.0.len());
+    let mut descriptor = NativeAggregateFfi {
+        data: storage.0.as_mut_ptr(),
+        byte_length: envelope.size,
+        alignment: envelope.alignment,
+        layout_fingerprint: envelope.abi_fingerprint,
+        abi_version: envelope.abi_version,
+    };
+    envelope
+        .validate_ffi_descriptor(&descriptor)
+        .expect("matching host descriptor should validate");
+
+    descriptor.abi_version += 1;
+    assert!(envelope
+        .validate_ffi_descriptor(&descriptor)
+        .expect_err("unknown ABI versions must fail closed")
+        .to_string()
+        .contains("ABI version mismatch"));
+    descriptor.abi_version = envelope.abi_version;
+    descriptor.layout_fingerprint ^= 1;
+    assert!(envelope
+        .validate_ffi_descriptor(&descriptor)
+        .expect_err("foreign layout identities must fail closed")
+        .to_string()
+        .contains("ABI fingerprint mismatch"));
+    descriptor.layout_fingerprint = envelope.abi_fingerprint;
+    descriptor.byte_length += 1;
+    assert!(envelope
+        .validate_ffi_descriptor(&descriptor)
+        .expect_err("foreign byte sizes must fail closed")
+        .to_string()
+        .contains("ABI layout mismatch"));
+    descriptor.byte_length = envelope.size;
+    descriptor.data = descriptor.data.wrapping_add(1);
+    assert!(envelope
+        .validate_ffi_descriptor(&descriptor)
+        .expect_err("misaligned payloads must fail closed")
+        .to_string()
+        .contains("null or misaligned"));
+}
+
+#[test]
+fn affine_aggregate_state_machine_rejects_implicit_partial_and_repeated_moves() {
+    let options = NativeCompileOptions::host();
+    for (source, expected) in [
+        (
+            "struct Packet { values: [i32], code: i32 } function consume(packet: Packet): i32 { return load(packet.code) } function main(): i32 { slot packet: Packet = Packet(buffer(1, 5), 5) return consume(packet) }",
+            "must use explicit `move(aggregate)`",
+        ),
+        (
+            "struct Packet { values: [i32], code: i32 } function make(): Packet { slot packet: Packet = Packet(buffer(1, 5), 5) return packet } function main(): i32 { return 5 }",
+            "must use explicit `move(aggregate)`",
+        ),
+        (
+            "struct Packet { values: [i32], code: i32 } function consume(values: [i32]): i32 { return 5 } function main(): i32 { slot packet: Packet = Packet(buffer(1, 5), 5) let consumed: i32 = consume(move(packet.values)) slot forwarded: Packet = move(packet) return 5 }",
+            "owned buffer `packet.values` was already moved",
+        ),
+        (
+            "struct Packet { values: [i32], code: i32 } function main(): i32 { slot packet: Packet = Packet(buffer(1, 5), 5) slot forwarded: Packet = move(packet) return load(packet.code) }",
+            "aggregate `packet` was already moved before `load`",
+        ),
+        (
+            "struct Packet { values: [i32], code: i32 } function main(): i32 { slot packet: Packet = Packet(buffer(1, 5), 5) slot first: Packet = move(packet) slot second: Packet = move(packet) return 5 }",
+            "aggregate `packet` was already moved",
+        ),
+        (
+            "struct Packet { values: [i32], code: i32 } function consume(packet: Packet): i32 { return 5 } function main(): i32 { slot packet: Packet = Packet(buffer(1, 5), 5) if (true) { let result: i32 = consume(move(packet)) } else { let result: i32 = consume(move(packet)) } return load(packet.code) }",
+            "aggregate `packet` was already moved before `load`",
+        ),
+    ] {
+        let error = compile_object(source, &options)
+            .expect_err("invalid affine aggregate transfer must fail closed");
+        assert!(
+            error.to_string().contains(expected),
+            "expected `{expected}` in `{error}`"
+        );
+    }
+}
+
+#[test]
 fn owned_buffer_runtime_guards_trap_before_invalid_allocation_or_access() {
     let cases = [
         (
@@ -1108,7 +1256,7 @@ fn owned_buffer_runtime_guards_trap_before_invalid_allocation_or_access() {
             .status()
             .expect("guarded owned-buffer executable should launch");
         assert!(!status.success(), "{name} must trap");
-        fs::remove_file(&artifact.executable).expect("remove trapping owned-buffer executable");
+        remove_scratch_executable_with_retry(&artifact.executable);
     }
 }
 
@@ -1434,14 +1582,6 @@ fn aggregate_contract_rejects_ambiguous_layout_and_escape() {
         (
             "struct Inner { value: i32 } struct Outer { inner: Inner } function main(): i32 { return 5 }",
             "field `inner` uses unsupported nested aggregate type `Inner`",
-        ),
-        (
-            "struct Pair { value: i32 } function take(pair: Pair): i32 { return 5 } function main(): i32 { return 5 }",
-            "aggregates cannot appear in function parameters",
-        ),
-        (
-            "struct Pair { value: i32 } function make(): Pair { slot pair: Pair = Pair(5) return pair } function main(): i32 { return 5 }",
-            "aggregates cannot appear in function returns",
         ),
         (
             "struct Pair { value: i32 } function main(): i32 { let pair: Pair = Pair(5) return 5 }",

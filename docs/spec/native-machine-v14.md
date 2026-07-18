@@ -98,9 +98,9 @@ aggregate-wide owner exists.
 
 Owned leaf transfer across a function call or return uses the unchanged v13
 `NativeOwnedBufferFfi` ABI. Whole aggregates remain forbidden in parameters and
-returns. This keeps layout-bearing aggregate ABI exports fail closed until a later
-contract defines calling convention, versioning, foreign layout validation, and
-cross-target compatibility.
+returns under v14. The successor [v15 contract](./native-machine-v15.md) lifts that
+boundary with explicit affine moves and a versioned, target-aware indirect descriptor
+ABI.
 
 Kotlin and UAAL emitters continue to reject typed owned aggregates rather than erase
 allocator, move, provenance, or cleanup semantics.
