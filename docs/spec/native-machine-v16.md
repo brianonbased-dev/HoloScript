@@ -107,3 +107,6 @@ custom destructors, and unwinding.
 The executable and rejection proofs live in
 `packages/compiler-native/tests/native_smoke.rs`; the canonical program is
 `examples/native/aggregate-reference-exit-five.hs`.
+
+The call-safe aggregate-reference successor is
+[native machine contract v17](native-machine-v17.md).
